@@ -1,36 +1,98 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Turfcut
 
-## Getting Started
+The marketplace for political field work — petition signature gathering first,
+canvassing second. Companies post jobs, workers (1099 contractors) apply or get
+invited, shifts get worked and verified, approved earnings pay out in-app.
 
-First, run the development server:
+Patent pending. Built milestone-by-milestone; see `CLAUDE.md` for the working
+agreements and the build plan for the full roadmap.
+
+## Prerequisites
+
+- Node 20+ and npm
+- A Supabase project (see "What needs Caden" below)
+- No Supabase account yet? The app still typechecks, builds, and boots —
+  auth/DB features show a clear "missing env" message until keys are set.
+
+## Setup
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+
+# 1. Copy env template and fill in (see "What needs Caden")
+cp .env.example .env.local
+
+# 2. Create the database schema (needs DATABASE_URL)
+npm run db:push
+
+# 3. Seed: 1 org, 3 workers, 1 jurisdiction, 1 job, sample shift + payout
+npm run seed
+
+# 4. Run it
+npm run dev   # → http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Scripts
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Command            | What it does                              |
+| ------------------ | ----------------------------------------- |
+| `npm run dev`      | Start dev server                          |
+| `npm run build`    | Production build                          |
+| `npm run start`    | Start production server                   |
+| `npm run typecheck`| `tsc --noEmit`                            |
+| `npm run lint`     | ESLint                                    |
+| `npm test`         | Vitest (run once)                         |
+| `npm run seed`     | Seed the database (`prisma/seed.ts`)      |
+| `npm run db:push`  | Push Prisma schema to the database        |
+| `npm run db:generate` | Regenerate the Prisma client           |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+CI (`.github/workflows/ci.yml`) runs on every push/PR: `prisma validate` →
+typecheck → lint → test → build, using dummy env values (no real DB touched).
 
-## Learn More
+## What needs Caden (only you can do these)
 
-To learn more about Next.js, take a look at the following resources:
+1. **Create a Supabase project** at https://supabase.com (free tier is fine).
+2. **Copy three values** from the Supabase dashboard into `.env.local`:
+   - Project URL → `NEXT_PUBLIC_SUPABASE_URL`
+   - Anon public key → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - Service-role key (Settings → API, keep secret) → `SUPABASE_SERVICE_ROLE_KEY`
+3. **Copy the Postgres connection string** (Settings → Database → Connection
+   string) into `DATABASE_URL` in `.env.local`.
+4. **Run the schema + seed:**
+   ```bash
+   npm run db:push
+   npm run seed
+   ```
+5. **(M5, later)** Create a Stripe account and enable Connect (test mode) for
+   payouts.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Until steps 1–4 are done, `npm run dev` boots fine and the login/signup pages
+render, but sign-up will fail with a clear "missing environment variable"
+message.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Project layout
 
-## Deploy on Vercel
+```
+src/
+  app/
+    page.tsx            # landing
+    login/              # worker/company login
+    signup/             # signup + role selection (worker vs company)
+    dashboard/          # role-gated dashboard skeleton
+  lib/
+    env.ts              # env access with clear missing-var errors
+    db.ts               # Prisma client singleton (lazy)
+    auth.ts             # getSessionProfile / requireRole / requireAuth
+    metrics.ts          # pure scorecard formulas (tested)
+    supabase/           # browser / server / proxy clients
+  proxy.ts              # session refresh (Next.js 16 convention)
+prisma/
+  schema.prisma         # all core tables + enums
+  seed.ts               # M0 seed data
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## M0 scope (done)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Next.js + TS scaffold, Supabase wiring, Prisma schema for all core tables,
+worker/company auth with role skeleton, seed script, CI, smoke tests.
+No M1 features (no profile builder, no scorecard UI, no job posting UI).

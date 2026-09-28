@@ -1,0 +1,351 @@
+// Turfcut — M0 Prisma schema.
+// Distilled from the Turfcut MVP Spec data model (p.17) and the build plan.
+//
+// INVARIANTS (see CLAUDE.md — non-negotiable):
+// - work_events, validations, payouts, audit_events are APPEND-ONLY.
+//   Never UPDATE or DELETE rows. Corrections are new events that supersede.
+// - profile_metrics stores versioned aggregates derived from work_events.
+// - Jurisdiction hard stop: a job cannot publish unless its jurisdiction
+//   profile is approved and current (enforced in application code, M2).
+// - political_preferences: consent versioning — a preference change writes a
+//   NEW row with an incremented consentVersion. Employers only ever see
+//   worker-authorized overlap.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Auth / roles
+// ---------------------------------------------------------------------------
+
+enum Role {
+  WORKER // field worker (1099 contractor)
+  OWNER // organization owner
+  RECRUITER // organization recruiter seat
+  COMPLIANCE // organization compliance reviewer
+  SUPERVISOR // field supervisor (reviews work)
+  FINANCE // organization finance (payouts, exports)
+}
+
+/// Links a Supabase Auth user to a Turfcut role.
+/// M0: one role per user. Worker users get a workers row; company users get an
+/// organizations row and one of the org roles.
+model Profile {
+  id        String   @id @db.Uuid // == Supabase auth.users.id
+  role      Role
+  worker    Worker?
+  orgId     String?  @db.Uuid
+  org       Organization? @relation(fields: [orgId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ---------------------------------------------------------------------------
+// Workers
+// ---------------------------------------------------------------------------
+
+enum VerificationLevel {
+  PLATFORM // verified by Turfcut
+  ORGANIZATION // verified by a hiring organization
+  IMPORTED // imported from a trusted external source
+  SELF_REPORTED // worker-entered; visible but excluded from verified totals
+}
+
+model Worker {
+  id        String   @id @default(uuid()) @db.Uuid
+  profileId String   @unique @db.Uuid
+  profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  displayName String
+  phone     String?
+  // Experience records live here in M1; verification level travels with each.
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  preferences  PoliticalPreference[]
+  engagements  Engagement[]
+  metrics      ProfileMetric[]
+  payouts      Payout[]
+}
+
+/// Worker-controlled political-fit signals. NEVER inferred — every value here
+/// is explicitly self-reported by the worker (spec: "worker-controlled, never
+/// inferred"). Consent versioning: edits append a new row; the latest
+/// consentVersion is authoritative.
+enum VisibilityMode {
+  PRIVATE // never shown to any employer
+  MATCHING_ONLY // usable for matching, shown as "not shared"
+  APPLIED_TO // visible to orgs the worker applied to / was invited by
+  APPROVED_RECRUITERS // visible to recruiters the worker explicitly approved
+}
+
+model PoliticalPreference {
+  id              String         @id @default(uuid()) @db.Uuid
+  workerId        String         @db.Uuid
+  worker          Worker         @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  visibilityMode  VisibilityMode
+  identityLabels  Json? // e.g. ["conservative", "pro-labor"] — self-reported
+  partyRelationship Json? // e.g. {"registered": "unaffiliated", "leans": "..."}
+  issuePositions  Json? // e.g. {"labor": "support", ...} — self-reported
+  campaignBoundaries Json? // e.g. {"willNotWorkFor": [...], "willNotWorkOn": [...]}
+  consentVersion  Int            @default(1)
+  createdAt       DateTime       @default(now())
+
+  @@index([workerId, consentVersion])
+}
+
+// ---------------------------------------------------------------------------
+// Organizations & jurisdiction
+// ---------------------------------------------------------------------------
+
+model Organization {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  approved  Boolean  @default(false) // manual approval for the private pilot
+  profiles  Profile[]
+  jobs      Job[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/// Versioned, counsel-approved rule profile per jurisdiction.
+/// Hard stop: a job may only publish when its jurisdiction profile is the
+/// current approved version (enforced in application code, M2).
+model JurisdictionProfile {
+  id          String   @id @default(uuid()) @db.Uuid
+  state       String // e.g. "CO"
+  locality    String? // e.g. "Denver" — null means statewide
+  version     Int      @default(1)
+  isCurrent   Boolean  @default(true)
+  approved    Boolean  @default(false)
+  approvedAt  DateTime?
+  // Compensation/eligibility/registration/badge/affidavit/disclosure rules.
+  rules       Json
+  jobs        Job[]
+  createdAt   DateTime @default(now())
+
+  @@unique([state, locality, version])
+}
+
+// ---------------------------------------------------------------------------
+// Jobs, engagements, shifts
+// ---------------------------------------------------------------------------
+
+enum JobType {
+  PETITION
+  CANVASS
+}
+
+enum JobStatus {
+  DRAFT
+  PUBLISHED
+  PAUSED
+  CLOSED
+}
+
+enum CompensationMethod {
+  HOURLY // default; always allowed
+  SHIFT_RATE // only where the jurisdiction profile allows
+  PER_UNIT // only where the jurisdiction profile allows
+}
+
+model Job {
+  id                String             @id @default(uuid()) @db.Uuid
+  orgId             String             @db.Uuid
+  org               Organization       @relation(fields: [orgId], references: [id])
+  jurisdictionId    String             @db.Uuid
+  jurisdiction      JurisdictionProfile @relation(fields: [jurisdictionId], references: [id])
+  type              JobType
+  title             String
+  description       String?
+  status            JobStatus          @default(DRAFT)
+  startsAt          DateTime?
+  endsAt            DateTime?
+  geography         Json? // service area / turf boundaries
+  compensationMethod CompensationMethod @default(HOURLY)
+  payRateCents      Int? // gross rate in cents; worker always sees gross
+  headcount         Int?
+  hiringMethod      Json? // application / invite / instant-claim config
+  requirements      Json? // credentials, training, badges
+  // Matching weights are versioned on the job (M3); stored when matching ships.
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  engagements Engagement[]
+
+  @@index([orgId, status])
+}
+
+enum EngagementStatus {
+  APPLIED
+  INVITED
+  CLAIMED
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+model Engagement {
+  id        String           @id @default(uuid()) @db.Uuid
+  jobId     String           @db.Uuid
+  job       Job              @relation(fields: [jobId], references: [id])
+  workerId  String           @db.Uuid
+  worker    Worker           @relation(fields: [workerId], references: [id])
+  status    EngagementStatus @default(APPLIED)
+  // Frozen snapshot of the application + the scorecard shown to the employer
+  // at decision time (spec: freeze the employer-facing snapshot).
+  applicationSnapshot Json?
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  shifts Shift[]
+
+  @@unique([jobId, workerId])
+}
+
+enum ShiftStatus {
+  SCHEDULED
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+model Shift {
+  id          String      @id @default(uuid()) @db.Uuid
+  engagementId String     @db.Uuid
+  engagement  Engagement @relation(fields: [engagementId], references: [id])
+  startsAt    DateTime
+  endsAt      DateTime
+  status      ShiftStatus @default(SCHEDULED)
+  checkInAt   DateTime?
+  checkOutAt  DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  events      WorkEvent[]
+  validations Validation[]
+}
+
+// ---------------------------------------------------------------------------
+// Work events (APPEND-ONLY) and validations (APPEND-ONLY)
+// ---------------------------------------------------------------------------
+
+enum WorkEventType {
+  CHECK_IN
+  CHECK_OUT
+  PAUSE_START
+  PAUSE_END
+  DOOR_KNOCK
+  CONTACT
+  SIGNATURE_SUBMITTED
+  CALL
+  INTERVIEW
+  PACKET_PICKUP // serialized petition packet checked out
+  PACKET_RETURN // serialized petition packet returned
+  BATCH_COUNT // supervisor batch reconciliation count
+  INCIDENT // safety incident / harassment report
+  CORRECTION // signed metric correction event (supersedes, never rewrites)
+  NOTE
+}
+
+/// Immutable ledger of everything that happened on a shift.
+/// NEVER update or delete rows. Corrections are new CORRECTION events.
+model WorkEvent {
+  id        String        @id @default(uuid()) @db.Uuid
+  shiftId   String        @db.Uuid
+  shift     Shift         @relation(fields: [shiftId], references: [id])
+  type      WorkEventType
+  payload   Json // event-specific data (counts, packet IDs, notes, ...)
+  createdAt DateTime      @default(now())
+
+  @@index([shiftId, createdAt])
+}
+
+enum ValidationStatus {
+  APPROVED
+  REJECTED
+  FLAGGED // anomaly flag for supervisor review
+}
+
+/// Supervisor review decisions. APPEND-ONLY: a rejection/appeal is a new row.
+model Validation {
+  id         String           @id @default(uuid()) @db.Uuid
+  shiftId    String           @db.Uuid
+  shift      Shift            @relation(fields: [shiftId], references: [id])
+  workEventId String?         @db.Uuid
+  status     ValidationStatus
+  reason     String?
+  reviewerId String?          @db.Uuid // Profile.id of the supervisor
+  createdAt  DateTime         @default(now())
+
+  @@index([shiftId])
+}
+
+// ---------------------------------------------------------------------------
+// Derived metrics (versioned aggregates — computed, never hand-edited)
+// ---------------------------------------------------------------------------
+
+/// Scorecard aggregates derived from work_events. Each recompute writes a new
+/// row with an incremented version; prior versions are preserved.
+model ProfileMetric {
+  id         String   @id @default(uuid()) @db.Uuid
+  workerId   String   @db.Uuid
+  worker     Worker   @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  version    Int      @default(1)
+  // doorsPerActiveHour, contactRate, signaturesPerActiveHour, acceptanceRate,
+  // showRate, totals by verification level — see lib/metrics.ts for formulas.
+  metrics    Json
+  computedAt DateTime @default(now())
+
+  @@unique([workerId, version])
+  @@index([workerId])
+}
+
+// ---------------------------------------------------------------------------
+// Payouts (APPEND-ONLY ledger)
+// ---------------------------------------------------------------------------
+
+enum PayoutStatus {
+  PENDING // earned, awaiting supervisor approval
+  APPROVED // approved, awaiting transfer
+  PAID // transferred via payout provider
+  DISPUTED // worker or org dispute open
+}
+
+model Payout {
+  id              String       @id @default(uuid()) @db.Uuid
+  workerId        String       @db.Uuid
+  worker          Worker       @relation(fields: [workerId], references: [id])
+  engagementId    String?      @db.Uuid
+  amountCents     Int // gross amount to the worker (0% commission to worker)
+  feeCents        Int          @default(0) // 15% marketplace fee on approved spend
+  status          PayoutStatus @default(PENDING)
+  stripeTransferId String? // set when transferred via Stripe Connect
+  createdAt       DateTime     @default(now())
+
+  @@index([workerId, status])
+}
+
+// ---------------------------------------------------------------------------
+// Audit log (APPEND-ONLY)
+// ---------------------------------------------------------------------------
+
+/// Every state change across the five ledger moments: job configured, worker
+/// matched, shift executed, work reviewed, payout reconciled.
+model AuditEvent {
+  id         String   @id @default(uuid()) @db.Uuid
+  actorId    String?  @db.Uuid // Profile.id, null for system events
+  action     String // e.g. "job.published", "shift.completed"
+  entityType String // e.g. "Job", "Shift", "Payout"
+  entityId   String
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}

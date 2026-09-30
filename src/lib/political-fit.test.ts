@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  consentStatus,
+  CONSENT_TEXT_VERSION,
+  effectivePreference,
   employerFitView,
+  resolveExpiry,
   FLOW_STEPS,
   fromRow,
   NOT_SHARED_BASIS,
@@ -215,5 +219,52 @@ describe("fromRow", () => {
   it("drops stored values that no longer validate instead of guessing", () => {
     const p = fromRow({ visibilityMode: "PRIVATE", identityLabels: null, partyRelationship: { registered: "democratic" }, issuePositions: null, campaignBoundaries: null });
     expect(p.partyRelationship).toBeNull();
+  });
+});
+
+describe("consent expiry and reconfirmation (spec p.8 step 6)", () => {
+  const now = new Date("2026-09-30T12:00:00Z");
+
+  it("requires an explicit expiry choice — no default", () => {
+    expect(resolveExpiry(null, now).ok).toBe(false);
+    expect(resolveExpiry({}, now).ok).toBe(false);
+    expect(resolveExpiry({ kind: "months", months: 3 }, now).ok).toBe(false);
+  });
+
+  it("resolves months, a chosen date, or no expiry", () => {
+    expect(resolveExpiry({ kind: "months", months: 6 }, now)).toEqual({ ok: true, value: new Date("2027-03-30T12:00:00Z") });
+    expect(resolveExpiry({ kind: "months", months: 12 }, now)).toEqual({ ok: true, value: new Date("2027-09-30T12:00:00Z") });
+    expect(resolveExpiry({ kind: "date", date: "2026-11-03" }, now)).toEqual({ ok: true, value: new Date("2026-11-03T23:59:59.999Z") });
+    expect(resolveExpiry({ kind: "none" }, now)).toEqual({ ok: true, value: null });
+  });
+
+  it("rejects past, impossible and far-future dates", () => {
+    for (const date of ["2026-09-29", "2026-02-30", "2030-01-01", "11/03/2026"]) {
+      expect(resolveExpiry({ kind: "date", date }, now).ok).toBe(false);
+    }
+  });
+
+  it("treats a consent as current only under today's wording and before expiry", () => {
+    const later = new Date("2027-01-01T00:00:00Z");
+    expect(consentStatus({ expiresAt: later, consentTextVersion: CONSENT_TEXT_VERSION }, now)).toEqual({ state: "current", expiresAt: later });
+    expect(consentStatus({ expiresAt: null, consentTextVersion: CONSENT_TEXT_VERSION }, now).state).toBe("current");
+    expect(consentStatus({ expiresAt: new Date("2026-09-01T00:00:00Z"), consentTextVersion: CONSENT_TEXT_VERSION }, now).state).toBe("expired");
+    expect(consentStatus({ expiresAt: null, consentTextVersion: "m0-old" }, now)).toEqual({ state: "reconfirm", reason: "consent wording changed" });
+    expect(consentStatus({ expiresAt: null, consentTextVersion: null }, now)).toEqual({ state: "reconfirm", reason: "consent wording not recorded" });
+  });
+
+  it("shares nothing from an expired or outdated consent — identical to no answers", () => {
+    const notShared = employerFitView(null, { orgHasRelationship: true, campaign });
+    const stale = [
+      { ...full, expiresAt: new Date("2026-09-01T00:00:00Z"), consentTextVersion: CONSENT_TEXT_VERSION },
+      { ...full, expiresAt: null, consentTextVersion: null },
+      { ...full, expiresAt: null, consentTextVersion: "m0-old" },
+    ];
+    for (const s of stale) {
+      expect(effectivePreference(s, now)).toBeNull();
+      expect(employerFitView(effectivePreference(s, now), { orgHasRelationship: true, campaign })).toEqual(notShared);
+    }
+    const current = { ...full, expiresAt: null, consentTextVersion: CONSENT_TEXT_VERSION };
+    expect(effectivePreference(current, now)).toEqual(full);
   });
 });

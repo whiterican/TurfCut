@@ -50,8 +50,16 @@ export default async function ProfilePage() {
               <p className="font-medium">{mode.label}</p>
               <p className="text-neutral-600 dark:text-neutral-400">{mode.description}</p>
               <p className="mt-1 text-xs text-neutral-500">
-                Consent version {fit.consentVersion}, given {fit.consentedAt.toISOString().slice(0, 10)}.
+                Consent version {fit.consentVersion}, given {fit.consentedAt.toISOString().slice(0, 10)}
+                {fit.status.state === "current" &&
+                  (fit.status.expiresAt ? `, expires ${fit.status.expiresAt.toISOString().slice(0, 10)}` : ", no expiry")}
+                .
               </p>
+              {fit.status.state !== "current" && (
+                <p className="mt-1 text-amber-700 dark:text-amber-400">
+                  Needs reconfirming — until then nothing is used for matching or shown to organizations.
+                </p>
+              )}
             </>
           ) : (
             <p>Not set. Until you choose, nothing is used for matching or shown to anyone.</p>

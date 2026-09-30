@@ -22,8 +22,21 @@ export default async function PreferencesPage() {
         {latest && (
           <p className="text-xs text-neutral-500">
             Current: consent version {latest.consentVersion}, given{" "}
-            {latest.consentedAt.toISOString().slice(0, 10)}. Saving changes
-            creates version {latest.consentVersion + 1}.
+            {latest.consentedAt.toISOString().slice(0, 10)}
+            {latest.status.state === "current" &&
+              (latest.status.expiresAt
+                ? `, expires ${latest.status.expiresAt.toISOString().slice(0, 10)}`
+                : ", no expiry")}
+            . Saving changes creates version {latest.consentVersion + 1}.
+          </p>
+        )}
+        {latest && latest.status.state !== "current" && (
+          <p role="status" className="rounded-lg border border-amber-500 p-3 text-sm">
+            {latest.status.state === "expired"
+              ? `Your consent expired on ${latest.status.expiredAt.toISOString().slice(0, 10)}.`
+              : "Your saved answers were given under earlier consent wording."}{" "}
+            Until you review and reconfirm below, your answers aren&apos;t used for
+            matching and organizations see &quot;not shared&quot;.
           </p>
         )}
       </header>

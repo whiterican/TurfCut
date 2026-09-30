@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { validatePreferences } from "@/lib/political-fit";
+import { resolveExpiry, validatePreferences } from "@/lib/political-fit";
 import { savePreferences } from "@/lib/political-fit-data";
 import { requireWorker } from "@/lib/worker-session";
 
@@ -21,8 +21,10 @@ export async function consentToPreferences(
   }
 
   let payload: unknown;
+  let expiry: unknown;
   try {
     payload = JSON.parse(String(formData.get("payload") ?? ""));
+    expiry = JSON.parse(String(formData.get("expiry") ?? "null"));
   } catch {
     return { ok: false, message: "Something went wrong reading your answers. Please try again." };
   }
@@ -30,8 +32,12 @@ export async function consentToPreferences(
   if (!result.ok) {
     return { ok: false, message: Object.values(result.errors)[0] };
   }
+  const expiresAt = resolveExpiry(expiry);
+  if (!expiresAt.ok) {
+    return { ok: false, message: Object.values(expiresAt.errors)[0] };
+  }
 
-  const saved = await savePreferences(workerId, userId, result.value);
+  const saved = await savePreferences(workerId, userId, result.value, expiresAt.value);
   revalidatePath("/profile");
   revalidatePath("/profile/preferences");
   return {

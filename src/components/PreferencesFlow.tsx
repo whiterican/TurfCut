@@ -21,6 +21,8 @@ import {
   SHARING_MODES,
   STANCES,
   VISIBILITY_OPTIONS,
+  EXPIRY_OPTIONS,
+  type ExpiryChoice,
   type Boundary,
   type BoundaryKind,
   type FitPreferences,
@@ -388,6 +390,16 @@ function Review({
   state: ConsentState;
 }) {
   const mode = VISIBILITY_OPTIONS.find((o) => o.value === draft.visibilityMode)!;
+  const [expiryOption, setExpiryOption] = useState<string>("");
+  const [expiryDate, setExpiryDate] = useState("");
+  const expiry: ExpiryChoice | null =
+    expiryOption === "6" || expiryOption === "12"
+      ? { kind: "months", months: Number(expiryOption) as 6 | 12 }
+      : expiryOption === "date" && expiryDate
+        ? { kind: "date", date: expiryDate }
+        : expiryOption === "none"
+          ? { kind: "none" }
+          : null;
   const canShare = SHARING_MODES.includes(draft.visibilityMode);
 
 
@@ -526,11 +538,27 @@ function Review({
 
       <form action={formAction} className="space-y-3">
         <input type="hidden" name="payload" value={JSON.stringify(draft)} />
+        <input type="hidden" name="expiry" value={JSON.stringify(expiry)} />
+        <fieldset className={`${box} space-y-1`}>
+          <legend className="px-1 text-sm font-medium">When should this consent expire?</legend>
+          {EXPIRY_OPTIONS.map((o) => (
+            <label key={o.value} className="flex items-center gap-2 text-sm">
+              <input type="radio" name="expiryOption" value={o.value} checked={expiryOption === o.value} onChange={() => setExpiryOption(o.value)} />
+              {o.label}
+            </label>
+          ))}
+          {expiryOption === "date" && (
+            <input type="date" className={input} value={expiryDate} onChange={(e) => setExpiryDate(e.target.value)} required />
+          )}
+          <p className="text-xs text-neutral-500">
+            After it expires, organizations see &quot;not shared&quot; and nothing is used for matching until you reconfirm.
+          </p>
+        </fieldset>
         <label className="flex gap-2 text-sm">
           <input type="checkbox" name="consent" value="yes" required />
           <span>{consentText}</span>
         </label>
-        <button type="submit" disabled={pending} className="rounded-lg bg-black px-4 py-2 text-sm text-white disabled:opacity-50 dark:bg-white dark:text-black">
+        <button type="submit" disabled={pending || !expiry} className="rounded-lg bg-black px-4 py-2 text-sm text-white disabled:opacity-50 dark:bg-white dark:text-black">
           {pending ? "Saving…" : "I consent — save"}
         </button>
         <p aria-live="polite" className={`text-sm ${state.ok ? "text-green-700" : "text-red-600"}`}>{state.message}</p>

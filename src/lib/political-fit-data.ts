@@ -1,13 +1,14 @@
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
-import { fromRow, samePreferences, type FitPreferences } from "@/lib/political-fit";
+import {
+  consentStatus,
+  CONSENT_TEXT_VERSION,
+  fromRow,
+  samePreferences,
+  type FitPreferences,
+} from "@/lib/political-fit";
 
-/** Identifies the consent wording the worker agreed to (stored in the audit log). */
-export const CONSENT_TEXT_VERSION = "m1-2026-09-30";
-
-export const CONSENT_TEXT =
-  "These answers are my own choices. Turfcut may use them only as my visibility setting describes. " +
-  "I can change or withdraw them at any time; each change is saved as a new version and the latest one applies.";
+export { CONSENT_TEXT, CONSENT_TEXT_VERSION } from "@/lib/political-fit";
 
 /** The authoritative (latest-version) preferences, or null if none exist. */
 export async function loadLatestPreference(workerId: string) {
@@ -16,7 +17,14 @@ export async function loadLatestPreference(workerId: string) {
     orderBy: { consentVersion: "desc" },
   });
   return row
-    ? { ...fromRow(row), consentVersion: row.consentVersion, consentedAt: row.createdAt }
+    ? {
+        ...fromRow(row),
+        consentVersion: row.consentVersion,
+        consentedAt: row.createdAt,
+        expiresAt: row.expiresAt,
+        consentTextVersion: row.consentTextVersion,
+        status: consentStatus(row),
+      }
     : null;
 }
 
@@ -25,7 +33,11 @@ const json = (v: unknown) =>
 
 /**
  * Appends a new consent version. Never updates an existing row.
- * Identical answers are a no-op.
+ *
+ * A save is a no-op only when nothing about the consent would change: same
+ * answers, same expiry, same consent wording, and the current consent hasn't
+ * lapsed. Reconfirming an expired consent, or one given under older wording,
+ * always writes a new version — even with identical answers.
  *
  * Saves for one worker are serialized with a transaction-scoped advisory
  * lock, so concurrent saves each get the next version in turn. The unique
@@ -34,7 +46,8 @@ const json = (v: unknown) =>
 export async function savePreferences(
   workerId: string,
   actorId: string,
-  prefs: FitPreferences
+  prefs: FitPreferences,
+  expiresAt: Date | null
 ): Promise<{ changed: boolean; consentVersion: number }> {
   return db().$transaction(async (tx) => {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`political_preferences:${workerId}`}))`;
@@ -43,7 +56,12 @@ export async function savePreferences(
       where: { workerId },
       orderBy: { consentVersion: "desc" },
     });
-    if (row && samePreferences(fromRow(row), prefs)) {
+    if (
+      row &&
+      consentStatus(row).state === "current" &&
+      (row.expiresAt?.getTime() ?? null) === (expiresAt?.getTime() ?? null) &&
+      samePreferences(fromRow(row), prefs)
+    ) {
       return { changed: false, consentVersion: row.consentVersion };
     }
 
@@ -57,6 +75,8 @@ export async function savePreferences(
         partyRelationship: json(prefs.partyRelationship),
         issuePositions: json(prefs.issuePositions),
         campaignBoundaries: json(prefs.campaignBoundaries),
+        expiresAt,
+        consentTextVersion: CONSENT_TEXT_VERSION,
       },
     });
     // Records the act of consent, not the answers themselves.
@@ -66,7 +86,11 @@ export async function savePreferences(
         action: "political_preferences.consented",
         entityType: "Worker",
         entityId: workerId,
-        metadata: { consentVersion, consentTextVersion: CONSENT_TEXT_VERSION },
+        metadata: {
+          consentVersion,
+          consentTextVersion: CONSENT_TEXT_VERSION,
+          expiresAt: expiresAt?.toISOString() ?? null,
+        },
       },
     });
     return { changed: true, consentVersion };

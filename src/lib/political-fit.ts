@@ -171,6 +171,98 @@ export interface FitPreferences {
 export const FLOW_STEPS = ["visibility", "identity", "party", "issues", "boundaries", "review"] as const;
 
 // ---------------------------------------------------------------------------
+// Consent wording, expiry and reconfirmation (spec p.8 step 6, p.17)
+// ---------------------------------------------------------------------------
+
+/**
+ * Identifies the consent wording below. Bump it whenever the wording changes
+ * materially: every earlier consent then needs reconfirming.
+ */
+export const CONSENT_TEXT_VERSION = "m1-2026-09-30";
+
+export const CONSENT_TEXT =
+  "These answers are my own choices. Turfcut may use them only as my visibility setting describes, until the expiry I chose. " +
+  "I can change or withdraw them at any time; each change is saved as a new version and the latest one applies.";
+
+/** The worker's explicit expiry choice. There is no default. */
+export type ExpiryChoice =
+  | { kind: "months"; months: 6 | 12 }
+  | { kind: "date"; date: string } // YYYY-MM-DD
+  | { kind: "none" };
+
+export const EXPIRY_OPTIONS = [
+  { value: "6", label: "Ask me again in 6 months" },
+  { value: "12", label: "Ask me again in 12 months" },
+  { value: "date", label: "On a date I choose" },
+  { value: "none", label: "No expiry — keep until I change it" },
+] as const;
+
+const MAX_EXPIRY_DAYS = 3 * 366;
+
+function addMonthsUtc(d: Date, months: number): Date {
+  const out = new Date(d);
+  out.setUTCMonth(out.getUTCMonth() + months);
+  return out;
+}
+
+/** Turns the worker's expiry choice into a timestamp (null = no expiry). */
+export function resolveExpiry(raw: unknown, now: Date = new Date()): Validated<Date | null> {
+  const o = obj(raw);
+  if (o?.kind === "none" && onlyKeys(o, ["kind"])) return { ok: true, value: null };
+  if (o?.kind === "months" && (o.months === 6 || o.months === 12) && onlyKeys(o, ["kind", "months"])) {
+    return { ok: true, value: addMonthsUtc(now, o.months) };
+  }
+  if (o?.kind === "date" && typeof o.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(o.date) && onlyKeys(o, ["kind", "date"])) {
+    // Expires at the end of the chosen day (UTC).
+    const d = new Date(`${o.date}T23:59:59.999Z`);
+    if (!Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === o.date) {
+      if (d <= now) return { ok: false, errors: { expiry: "Pick a date in the future." } };
+      if (d.getTime() - now.getTime() > MAX_EXPIRY_DAYS * 86_400_000) {
+        return { ok: false, errors: { expiry: "Pick a date within the next 3 years, or choose no expiry." } };
+      }
+      return { ok: true, value: d };
+    }
+  }
+  return { ok: false, errors: { expiry: "Choose when your consent should expire." } };
+}
+
+export type ConsentStatus =
+  | { state: "current"; expiresAt: Date | null }
+  | { state: "expired"; expiredAt: Date }
+  | { state: "reconfirm"; reason: "consent wording changed" | "consent wording not recorded" };
+
+/** Whether a stored consent still authorizes anything. */
+export function consentStatus(
+  row: { expiresAt: Date | null; consentTextVersion: string | null },
+  now: Date = new Date()
+): ConsentStatus {
+  if (row.consentTextVersion === null) return { state: "reconfirm", reason: "consent wording not recorded" };
+  if (row.consentTextVersion !== CONSENT_TEXT_VERSION) return { state: "reconfirm", reason: "consent wording changed" };
+  if (row.expiresAt && row.expiresAt <= now) return { state: "expired", expiredAt: row.expiresAt };
+  return { state: "current", expiresAt: row.expiresAt };
+}
+
+/**
+ * The preferences that may be used for sharing right now: the latest version
+ * if its consent is current, otherwise null — which every consumer treats
+ * exactly like "no answers" (not shared, not used). Nothing is assumed on the
+ * worker's behalf while a reconfirmation is pending.
+ */
+export function effectivePreference(
+  latest: (FitPreferences & { expiresAt: Date | null; consentTextVersion: string | null }) | null,
+  now: Date = new Date()
+): FitPreferences | null {
+  if (!latest || consentStatus(latest, now).state !== "current") return null;
+  return {
+    visibilityMode: latest.visibilityMode,
+    identityLabels: latest.identityLabels,
+    partyRelationship: latest.partyRelationship,
+    issuePositions: latest.issuePositions,
+    campaignBoundaries: latest.campaignBoundaries,
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Validation — strict whitelist; nothing is coerced into an answer.
 // ---------------------------------------------------------------------------
 

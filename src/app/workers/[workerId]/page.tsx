@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { workerAccess } from "@/lib/access";
 import { requireEmployer } from "@/lib/employer-session";
 import { loadScorecardPeriods } from "@/lib/scorecard-data";
-import { employerFitView } from "@/lib/political-fit";
+import { effectivePreference, employerFitView } from "@/lib/political-fit";
 import { loadLatestPreference, orgHasRelationship } from "@/lib/political-fit-data";
 import { ScorecardPanel } from "@/components/ScorecardPanel";
 import { ExperienceList } from "@/components/ExperienceList";
@@ -39,7 +39,8 @@ export default async function EmployerWorkerPage({
   ]);
   // Jobs don't disclose campaign positions until M2, so issue overlap is
   // always "not shared" for now; the full questionnaire is never shown.
-  const fit = employerFitView(pref, { orgHasRelationship: related, campaign: null });
+  // Expired or outdated consent authorizes nothing (effectivePreference → null).
+  const fit = employerFitView(effectivePreference(pref), { orgHasRelationship: related, campaign: null });
 
   return (
     <main className="mx-auto w-full max-w-3xl space-y-10 px-4 py-10">

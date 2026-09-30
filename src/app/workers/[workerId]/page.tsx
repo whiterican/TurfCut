@@ -1,0 +1,65 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { db } from "@/lib/db";
+import { workerAccess } from "@/lib/access";
+import { requireEmployer } from "@/lib/employer-session";
+import { loadScorecard } from "@/lib/scorecard-data";
+import { employerFitView } from "@/lib/political-fit";
+import { loadLatestPreference, orgHasRelationship } from "@/lib/political-fit-data";
+import { ScorecardPanel } from "@/components/ScorecardPanel";
+import { ExperienceList } from "@/components/ExperienceList";
+import { FitSignals } from "@/components/FitSignals";
+
+/** A worker as an organization sees them: only what the worker authorized. */
+export default async function EmployerWorkerPage({
+  params,
+}: {
+  params: Promise<{ workerId: string }>;
+}) {
+  const { workerId } = await params;
+  const session = await requireEmployer();
+  const access = workerAccess(session, workerId, session.orgApproved);
+  if (access.kind !== "employer") {
+    return (
+      <main className="mx-auto max-w-2xl px-4 py-10">
+        <p>{access.kind === "denied" ? access.reason : "Not available."}</p>
+      </main>
+    );
+  }
+
+  // Only the display name — no phone or other contact details.
+  const worker = await db().worker.findUnique({ where: { id: workerId }, select: { displayName: true } });
+  if (!worker) notFound();
+
+  const [records, scorecard, pref, related] = await Promise.all([
+    db().experienceRecord.findMany({ where: { workerId }, orderBy: { startDate: "desc" } }),
+    loadScorecard(workerId),
+    loadLatestPreference(workerId),
+    orgHasRelationship(workerId, access.orgId),
+  ]);
+  const fit = employerFitView(pref, { orgHasRelationship: related });
+
+  return (
+    <main className="mx-auto w-full max-w-3xl space-y-10 px-4 py-10">
+      <header className="flex flex-wrap items-baseline justify-between gap-2">
+        <h1 className="text-2xl font-bold">{worker.displayName}</h1>
+        <Link href="/workers" className="text-sm underline">All workers</Link>
+      </header>
+
+      <section className="space-y-3">
+        <h2 className="text-lg font-semibold">Scorecard</h2>
+        <ScorecardPanel scorecard={scorecard} />
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-lg font-semibold">Experience</h2>
+        <ExperienceList records={records} />
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-lg font-semibold">Political fit</h2>
+        <FitSignals view={fit} />
+      </section>
+    </main>
+  );
+}

@@ -38,6 +38,11 @@ export default async function DashboardPage() {
             <Link href="/profile/preferences" className="underline">Political-fit preferences</Link>
           </p>
         )}
+        {session.role !== "WORKER" && (
+          <p className="text-sm">
+            <Link href="/workers" className="underline">Browse workers</Link>
+          </p>
+        )}
         {session.orgId && (
           <p className="text-sm text-neutral-500">Org ID: {session.orgId}</p>
         )}

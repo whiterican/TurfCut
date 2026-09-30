@@ -2,6 +2,8 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { requireWorker } from "@/lib/worker-session";
 import { loadScorecard } from "@/lib/scorecard-data";
+import { loadLatestPreference } from "@/lib/political-fit-data";
+import { VISIBILITY_OPTIONS } from "@/lib/political-fit";
 import { ExperienceForm } from "@/components/ExperienceForm";
 import { ExperienceList } from "@/components/ExperienceList";
 import { ScorecardPanel } from "@/components/ScorecardPanel";
@@ -9,11 +11,13 @@ import { removeExperience } from "./actions";
 
 export default async function ProfilePage() {
   const { workerId } = await requireWorker();
-  const [worker, records, scorecard] = await Promise.all([
+  const [worker, records, scorecard, fit] = await Promise.all([
     db().worker.findUniqueOrThrow({ where: { id: workerId }, select: { displayName: true } }),
     db().experienceRecord.findMany({ where: { workerId }, orderBy: { startDate: "desc" } }),
     loadScorecard(workerId),
+    loadLatestPreference(workerId),
   ]);
+  const mode = fit && VISIBILITY_OPTIONS.find((o) => o.value === fit.visibilityMode);
 
   return (
     <main className="mx-auto w-full max-w-3xl space-y-10 px-4 py-10">
@@ -36,6 +40,26 @@ export default async function ProfilePage() {
             <ExperienceForm />
           </div>
         </details>
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-lg font-semibold">Political fit</h2>
+        <div className="rounded-lg border p-3 text-sm">
+          {mode ? (
+            <>
+              <p className="font-medium">{mode.label}</p>
+              <p className="text-neutral-600 dark:text-neutral-400">{mode.description}</p>
+              <p className="mt-1 text-xs text-neutral-500">
+                Consent version {fit.consentVersion}, given {fit.consentedAt.toISOString().slice(0, 10)}.
+              </p>
+            </>
+          ) : (
+            <p>Not set. Until you choose, nothing is used for matching or shown to anyone.</p>
+          )}
+          <Link href="/profile/preferences" className="mt-2 inline-block underline">
+            {mode ? "Review or change" : "Set preferences"}
+          </Link>
+        </div>
       </section>
     </main>
   );

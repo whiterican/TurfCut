@@ -35,6 +35,7 @@ export default async function DashboardPage() {
         {session.role === "WORKER" && (
           <p className="space-x-4 text-sm">
             <Link href="/profile" className="underline">My profile</Link>
+            <Link href="/profile/preferences" className="underline">Political-fit preferences</Link>
           </p>
         )}
         {session.orgId && (

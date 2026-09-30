@@ -31,13 +31,69 @@ export const UNIT_TYPES = [
 ] as const;
 export type UnitType = (typeof UNIT_TYPES)[number];
 
+// Spec p.9 experience taxonomy. Wording needs review with pilot companies.
+export const EXPERIENCE_GROUPS = [
+  { value: "door_to_door", label: "Door-to-door" },
+  { value: "petition_circulation", label: "Petition circulation" },
+  { value: "polling_research", label: "Polling + research" },
+  { value: "cold_calls", label: "Cold calls" },
+  { value: "digital_outreach", label: "Digital outreach" },
+  { value: "field_leadership", label: "Field leadership" },
+] as const;
+
+export const CAMPAIGN_TYPES = [
+  { value: "candidate", label: "Candidate" },
+  { value: "party", label: "Party" },
+  { value: "issue_advocacy", label: "Issue advocacy" },
+  { value: "ballot_initiative", label: "Ballot initiative" },
+  { value: "referendum", label: "Referendum" },
+  { value: "candidate_nomination", label: "Candidate nomination petition" },
+  { value: "recall", label: "Recall" },
+  { value: "local_measure", label: "Local measure" },
+  { value: "polling_research", label: "Polling / research" },
+  { value: "nonprofit", label: "Nonprofit / civic" },
+] as const;
+
+export const CHANNELS = [
+  { value: "door", label: "Door-to-door" },
+  { value: "public_intercept", label: "Public intercept / tabling" },
+  { value: "phone", label: "Phone" },
+  { value: "text", label: "Text" },
+  { value: "email", label: "Email" },
+  { value: "virtual", label: "Virtual" },
+] as const;
+
+export const TURF_TYPES = ["urban", "suburban", "rural"] as const;
+
+export const US_STATES = [
+  "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "DC", "FL", "GA", "HI", "ID", "IL", "IN", "IA", "KS",
+  "KY", "LA", "ME", "MD", "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC",
+  "ND", "OH", "OK", "OR", "PA", "RI", "SC", "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY",
+] as const;
+
 export interface ExperienceInput {
+  // Campaign
+  organizationName: string | null;
   campaign: string;
+  campaignType: string | null;
+  experienceGroup: string;
   role: string;
+  channel: string | null;
+  // Where
+  state: string | null;
+  countyOrDistrict: string | null;
+  turfType: string | null;
+  // When
   startDate: Date;
   endDate: Date | null;
+  completedShifts: number | null;
+  activeHours: number | null;
+  // What
   unitType: UnitType;
   unitCount: number;
+  approvedCount: number | null;
+  // Proof
+  referenceContact: string | null;
 }
 
 export type Validated<T> =
@@ -65,6 +121,47 @@ export function validateExperience(
 ): Validated<ExperienceInput> {
   const errors: Record<string, string> = {};
   const str = (k: string) => (typeof raw[k] === "string" ? (raw[k] as string).trim() : "");
+
+  const optionalText = (k: string, max: number, label: string): string | null => {
+    const v = str(k);
+    if (!v) return null;
+    if (v.length > max) errors[k] = `${label}: keep it under ${max} characters.`;
+    return v;
+  };
+  const optionalChoice = (k: string, list: readonly string[], message: string): string | null => {
+    const v = str(k);
+    if (!v) return null;
+    if (!list.includes(v)) errors[k] = message;
+    return v;
+  };
+  const optionalInt = (k: string, max: number, message: string): number | null => {
+    const v = str(k);
+    if (!v) return null;
+    if (!/^\d+$/.test(v) || Number(v) > max) errors[k] = message;
+    return Number(v);
+  };
+  const values = (xs: readonly { value: string }[]) => xs.map((x) => x.value);
+
+  const organizationName = optionalText("organizationName", 200, "Organization");
+  const campaignType = optionalChoice("campaignType", values(CAMPAIGN_TYPES), "Pick a campaign type from the list.");
+  const channel = optionalChoice("channel", values(CHANNELS), "Pick a channel from the list.");
+  const state = optionalChoice("state", US_STATES, "Pick a US state.");
+  const countyOrDistrict = optionalText("countyOrDistrict", 100, "County or district");
+  const turfType = optionalChoice("turfType", TURF_TYPES, "Pick urban, suburban or rural.");
+  const completedShifts = optionalInt("completedShifts", 10_000, "Enter a whole number of shifts (10,000 max).");
+  const approvedCount = optionalInt("approvedCount", 1_000_000, "Enter a whole number from 0 to 1,000,000.");
+  const referenceContact = optionalText("referenceContact", 200, "Reference");
+
+  let activeHours: number | null = null;
+  if (str("activeHours")) {
+    activeHours = Number(str("activeHours"));
+    if (!/^\d+(\.\d{1,2})?$/.test(str("activeHours")) || activeHours > 100_000) {
+      errors.activeHours = "Enter hours as a number, e.g. 42 or 42.5.";
+    }
+  }
+
+  const experienceGroup = str("experienceGroup");
+  if (!values(EXPERIENCE_GROUPS).includes(experienceGroup)) errors.experienceGroup = "Pick the kind of work.";
 
   const campaign = str("campaign");
   if (!campaign) errors.campaign = "Campaign is required.";
@@ -94,10 +191,32 @@ export function validateExperience(
     errors.unitCount = "Enter a whole number from 0 to 1,000,000.";
   }
 
+  if (approvedCount !== null && !errors.unitCount && !errors.approvedCount && approvedCount > unitCount) {
+    errors.approvedCount = "Approved output can't be more than submitted output.";
+  }
+
   if (Object.keys(errors).length > 0) return { ok: false, errors };
   return {
     ok: true,
-    value: { campaign, role, startDate: startDate!, endDate, unitType, unitCount },
+    value: {
+      organizationName,
+      campaign,
+      campaignType,
+      experienceGroup,
+      role,
+      channel,
+      state,
+      countyOrDistrict,
+      turfType,
+      startDate: startDate!,
+      endDate,
+      completedShifts,
+      activeHours,
+      unitType,
+      unitCount,
+      approvedCount,
+      referenceContact,
+    },
   };
 }
 

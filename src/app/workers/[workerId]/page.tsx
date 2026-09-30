@@ -31,7 +31,7 @@ export default async function EmployerWorkerPage({
   const worker = await db().worker.findUnique({ where: { id: workerId }, select: { displayName: true } });
   if (!worker) notFound();
 
-  const [records, scorecard, pref, related] = await Promise.all([
+  const [rawRecords, scorecard, pref, related] = await Promise.all([
     db().experienceRecord.findMany({ where: { workerId }, orderBy: { startDate: "desc" } }),
     loadScorecardPeriods(workerId),
     loadLatestPreference(workerId),
@@ -40,6 +40,8 @@ export default async function EmployerWorkerPage({
   // Jobs don't disclose campaign positions until M2, so issue overlap is
   // always "not shared" for now; the full questionnaire is never shown.
   // Expired or outdated consent authorizes nothing (effectivePreference → null).
+  // References are third-party contact details: employers learn only that one exists.
+  const records = rawRecords.map(({ referenceContact, ...r }) => ({ ...r, hasReference: referenceContact !== null }));
   const fit = employerFitView(effectivePreference(pref), { orgHasRelationship: related, campaign: null });
 
   return (

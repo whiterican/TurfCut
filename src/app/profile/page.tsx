@@ -33,7 +33,11 @@ export default async function ProfilePage() {
 
       <section className="space-y-4">
         <h2 className="text-lg font-semibold">Experience</h2>
-        <ExperienceList records={records} removeAction={removeExperience} />
+        <ExperienceList
+          records={records.map((r) => ({ ...r, hasReference: r.referenceContact !== null }))}
+          removeAction={removeExperience}
+          showReference
+        />
         <details className="rounded-lg border p-4" open={records.length === 0}>
           <summary className="cursor-pointer font-medium">Add a campaign</summary>
           <div className="pt-4">

@@ -67,8 +67,8 @@ typecheck → lint → test → build, using dummy env values (no real DB touche
 5. **(M5, later)** Create a Stripe account and enable Connect (test mode) for
    payouts.
 
-**Already set up under M0?** Upgrade the live database for M1 by pasting
-`prisma/m1-migration.sql` into the Supabase SQL editor, then
+**Already set up under M0?** Upgrade the live database for M1 by pasting,
+in order, `prisma/m1-migration.sql`, `prisma/m1-profile-migration.sql`, then
 `prisma/manual-seed.sql` (adds the seeded shift's check-in, pause, check-out
 and batch-count events; existing rows are left alone). The migration stops
 without changing anything if duplicate consent versions already exist.
@@ -108,7 +108,8 @@ prisma/
   seed.ts               # seed data (idempotent)
   seed-fixture.ts       # seeded shift's events, shared with the tests
   manual-ddl.sql        # full DDL for a fresh database
-  m1-migration.sql      # M0 → M1 upgrade for an existing database
+  m1-migration.sql      # M0 → M1 upgrade for an existing database (run 1st)
+  m1-profile-migration.sql # experience fields + consent expiry (run 2nd)
 ```
 
 ## M0 scope (done)
@@ -119,10 +120,12 @@ No M1 features (no profile builder, no scorecard UI, no job posting UI).
 
 ## M1 scope
 
-Worker profile builder (experience records with verification levels;
-self-reported records shown but excluded from verified totals), political-fit
-preferences flow (visibility → identity → party → issues → boundaries →
-review & consent; every change is a new consent version), company view showing
+Worker profile builder (spec p.9 experience records with verification
+levels; self-reported records shown but excluded from verified totals;
+reference contacts never shown to employers), political-fit preferences flow
+(visibility → identity → party → issues → boundaries → review & consent, with
+per-answer sharing and a worker-chosen expiry; every change is a new consent
+version, and expired or outdated consent shares nothing until reconfirmed), company view showing
 only worker-authorized signals, and a scorecard derived from work events
 (`GET /api/workers/:workerId/scorecard`).
 

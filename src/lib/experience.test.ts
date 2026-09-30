@@ -9,6 +9,21 @@ const good = {
   endDate: "2026-05-15",
   unitType: "signatures",
   unitCount: "1450",
+  experienceGroup: "petition_circulation",
+};
+
+const fullRecord = {
+  ...good,
+  organizationName: "Front Range Circulators",
+  campaignType: "ballot_initiative",
+  channel: "public_intercept",
+  state: "CO",
+  countyOrDistrict: "Denver County",
+  turfType: "urban",
+  completedShifts: "38",
+  activeHours: "171.5",
+  approvedCount: "1310",
+  referenceContact: "Dana Lee, field director, dana@example.org",
 };
 
 describe("validateExperience", () => {
@@ -37,7 +52,7 @@ describe("validateExperience", () => {
     expect(r.ok).toBe(false);
     if (!r.ok) {
       expect(Object.keys(r.errors).sort()).toEqual(
-        ["campaign", "endDate", "role", "startDate", "unitCount", "unitType"].sort()
+        ["campaign", "endDate", "experienceGroup", "role", "startDate", "unitCount", "unitType"].sort()
       );
     }
   });
@@ -45,6 +60,54 @@ describe("validateExperience", () => {
   it("rejects an end date before the start date", () => {
     const r = validateExperience({ ...good, endDate: "2026-02-01" }, today);
     expect(!r.ok && r.errors.endDate).toBeTruthy();
+  });
+});
+
+describe("validateExperience — spec p.9 fields", () => {
+  it("accepts every field on the spec's experience record", () => {
+    const r = validateExperience(fullRecord, today);
+    expect(r.ok && r.value).toMatchObject({
+      organizationName: "Front Range Circulators",
+      campaignType: "ballot_initiative",
+      experienceGroup: "petition_circulation",
+      channel: "public_intercept",
+      state: "CO",
+      countyOrDistrict: "Denver County",
+      turfType: "urban",
+      completedShifts: 38,
+      activeHours: 171.5,
+      approvedCount: 1310,
+      referenceContact: "Dana Lee, field director, dana@example.org",
+    });
+  });
+
+  it("stores blank optional fields as null", () => {
+    const r = validateExperience(good, today);
+    expect(r.ok && r.value).toMatchObject({ organizationName: null, state: null, activeHours: null, approvedCount: null, referenceContact: null });
+  });
+
+  it("requires the kind of work", () => {
+    const r = validateExperience({ ...good, experienceGroup: "" }, today);
+    expect(!r.ok && r.errors.experienceGroup).toBeTruthy();
+  });
+
+  it("rejects values outside the option lists", () => {
+    for (const [k, v] of [
+      ["campaignType", "astroturf"],
+      ["channel", "carrier pigeon"],
+      ["state", "XX"],
+      ["turfType", "lunar"],
+      ["completedShifts", "2.5"],
+      ["activeHours", "12.345"],
+    ]) {
+      const r = validateExperience({ ...fullRecord, [k]: v }, today);
+      expect(!r.ok && r.errors[k]).toBeTruthy();
+    }
+  });
+
+  it("keeps approved output at or below submitted output", () => {
+    const r = validateExperience({ ...fullRecord, approvedCount: "1451" }, today);
+    expect(!r.ok && r.errors.approvedCount).toBeTruthy();
   });
 });
 

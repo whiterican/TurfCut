@@ -4,13 +4,18 @@
  * 1 payout, and audit events.
  *
  * Run: npm run seed (requires DATABASE_URL).
- * Idempotent — safe to re-run.
+ * Idempotent — safe to re-run. Every row has a fixed id (the same ids as
+ * prisma/manual-seed.sql). Append-only tables are written with INSERT … ON
+ * CONFLICT DO NOTHING, so a re-run never duplicates or rewrites anything. The metric snapshot is computed from the
+ * seeded work events, never hand-written.
  *
  * NOTE: this seeds database rows only. Auth users (Supabase) are created via
  * the /signup page; to link a real login to a seeded worker, sign up and then
  * point the worker's profileId at the new auth user id.
  */
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, type Prisma } from "@prisma/client";
+import { computeScorecard } from "../src/lib/scorecard";
+import { SEED_SHIFT_EVENTS, SEED_SHIFT_HOURS, SEED_SHIFT_ID } from "./seed-fixture";
 
 const prisma = new PrismaClient();
 
@@ -26,6 +31,7 @@ async function main() {
     },
     update: {},
     create: {
+      id: "00000000-0000-0000-0000-000000000021",
       state: "CO",
       locality: "Denver",
       version: 1,
@@ -104,8 +110,12 @@ async function main() {
     workers.push(worker);
 
     // Seed political preferences: worker 1 = matching_only, others private.
-    await prisma.politicalPreference.create({
+    // Append-only tables use createMany + skipDuplicates (INSERT … ON CONFLICT
+    // DO NOTHING): an existing row is never updated.
+    await prisma.politicalPreference.createMany({
+      skipDuplicates: true,
       data: {
+        id: `00000000-0000-0000-0000-00000000011${i + 1}`,
         workerId: worker.id,
         visibilityMode: i === 0 ? "MATCHING_ONLY" : "PRIVATE",
         identityLabels: i === 0 ? ["unaffiliated"] : undefined,
@@ -113,8 +123,10 @@ async function main() {
       },
     });
 
-    await prisma.auditEvent.create({
+    await prisma.auditEvent.createMany({
+      skipDuplicates: true,
       data: {
+        id: `00000000-0000-0000-0000-00000000012${i + 1}`,
         action: "worker.seeded",
         entityType: "Worker",
         entityId: worker.id,
@@ -130,6 +142,7 @@ async function main() {
     },
     update: {},
     create: {
+      id: "00000000-0000-0000-0000-000000000031",
       jobId: job.id,
       workerId: workers[0].id,
       status: "ACTIVE",
@@ -137,64 +150,88 @@ async function main() {
     },
   });
 
-  const shiftStart = new Date(Date.now() - 4 * 3600 * 1000);
-  const shift = await prisma.shift.create({
-    data: {
+  const shiftStart = new Date(Date.now() - SEED_SHIFT_HOURS * 3600 * 1000);
+  const shiftEnd = new Date(shiftStart.getTime() + SEED_SHIFT_HOURS * 3600 * 1000);
+  const shift = await prisma.shift.upsert({
+    where: { id: SEED_SHIFT_ID },
+    update: {},
+    create: {
+      id: SEED_SHIFT_ID,
       engagementId: engagement.id,
       startsAt: shiftStart,
-      endsAt: new Date(shiftStart.getTime() + 4 * 3600 * 1000),
+      endsAt: shiftEnd,
       status: "COMPLETED",
       checkInAt: shiftStart,
-      checkOutAt: new Date(shiftStart.getTime() + 4 * 3600 * 1000),
+      checkOutAt: shiftEnd,
     },
   });
 
-  // --- Sample work events (append-only) ---
-  const events: Array<{ type: "DOOR_KNOCK" | "CONTACT" | "SIGNATURE_SUBMITTED" | "PACKET_PICKUP" | "PACKET_RETURN"; payload: object }> = [
-    { type: "PACKET_PICKUP", payload: { packetId: "PKT-0001", sheets: 25 } },
-    { type: "DOOR_KNOCK", payload: { count: 40 } },
-    { type: "CONTACT", payload: { count: 18 } },
-    { type: "SIGNATURE_SUBMITTED", payload: { count: 22 } },
-    { type: "PACKET_RETURN", payload: { packetId: "PKT-0001", sheetsReturned: 25, signatures: 22 } },
-  ];
-  for (const e of events) {
-    await prisma.workEvent.create({
-      data: { shiftId: shift.id, type: e.type, payload: e.payload },
-    });
-  }
+  // --- Work events (append-only). Timestamps are offsets from the shift's
+  // check-in, so the scorecard's active-time math has a real timeline. ---
+  const checkIn = shift.checkInAt ?? shift.startsAt;
+  await prisma.workEvent.createMany({
+    skipDuplicates: true,
+    data: SEED_SHIFT_EVENTS.map((e) => ({
+      id: e.id,
+      shiftId: shift.id,
+      type: e.type,
+      payload: e.payload,
+      createdAt: new Date(checkIn.getTime() + e.offsetMs),
+    })),
+  });
 
   // --- Supervisor validation of the shift ---
-  await prisma.validation.create({
+  await prisma.validation.createMany({
+    skipDuplicates: true,
     data: {
+      id: "00000000-0000-0000-0000-000000000141",
       shiftId: shift.id,
       status: "APPROVED",
       reason: "Seed validation — packet reconciled.",
     },
   });
 
-  // --- Versioned metric snapshot for worker 1 ---
-  await prisma.profileMetric.upsert({
-    where: { workerId_version: { workerId: workers[0].id, version: 1 } },
-    update: {},
-    create: {
-      workerId: workers[0].id,
-      version: 1,
-      metrics: {
-        doorsKnocked: 40,
-        contacts: 18,
-        signaturesSubmitted: 22,
-        signaturesAccepted: 22,
-        activeHours: 4,
-        doorsPerActiveHour: 10,
-        contactRate: 0.45,
-        signaturesPerActiveHour: 5.5,
-      },
-    },
+  // --- Versioned metric snapshot for worker 1, computed from the events above.
+  // Append-only: a new version is written only when the computed metrics differ
+  // from the latest stored version. ---
+  const seededShifts = await prisma.shift.findMany({
+    where: { engagement: { workerId: workers[0].id } },
+    include: { events: true },
   });
+  const scorecard = computeScorecard(seededShifts);
+  const snapshot = {
+    ...scorecard.totals,
+    ...Object.fromEntries(
+      // Rounded to 6 places: jsonb round-trips floats at 15 significant
+      // digits, and an exact compare below would otherwise never match.
+      Object.entries(scorecard.metrics).map(([k, m]) => [
+        k,
+        m.value === null ? null : Math.round(m.value * 1e6) / 1e6,
+      ])
+    ),
+  };
+  const latest = await prisma.profileMetric.findFirst({
+    where: { workerId: workers[0].id },
+    orderBy: { version: "desc" },
+  });
+  // jsonb doesn't preserve key order, so compare on sorted keys.
+  const canonical = (v: unknown) =>
+    JSON.stringify(Object.entries(v as object).sort(([a], [b]) => a.localeCompare(b)));
+  if (!latest || canonical(latest.metrics) !== canonical(snapshot)) {
+    await prisma.profileMetric.create({
+      data: {
+        workerId: workers[0].id,
+        version: (latest?.version ?? 0) + 1,
+        metrics: snapshot as Prisma.InputJsonObject,
+      },
+    });
+  }
 
   // --- Payout: approved earnings for the shift ---
-  await prisma.payout.create({
+  await prisma.payout.createMany({
+    skipDuplicates: true,
     data: {
+      id: "00000000-0000-0000-0000-000000000161",
       workerId: workers[0].id,
       engagementId: engagement.id,
       amountCents: 10000, // 4h × $25/h gross — worker sees 0% commission
@@ -203,8 +240,10 @@ async function main() {
     },
   });
 
-  await prisma.auditEvent.create({
+  await prisma.auditEvent.createMany({
+    skipDuplicates: true,
     data: {
+      id: "00000000-0000-0000-0000-000000000124",
       action: "seed.completed",
       entityType: "Seed",
       entityId: "m0",
@@ -221,7 +260,7 @@ async function main() {
   console.log(`  jurisdiction: CO/Denver v1 (approved)`);
   console.log(`  job:         ${job.title}`);
   console.log(`  workers:     ${names.join(", ")}`);
-  console.log(`  shift:       completed, 40 doors / 18 contacts / 22 signatures`);
+  console.log(`  shift:       completed, 40 doors / 18 contacts / 22 signatures (20 accepted), 30 min paused`);
 }
 
 main()

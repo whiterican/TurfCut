@@ -1,8 +1,8 @@
--- Turfcut M0 — manual Supabase setup (one paste).
--- Generated from prisma/schema.prisma + prisma/seed.ts on 2026-09-29.
+-- Turfcut M0 + M1 — manual Supabase setup (one paste), FRESH databases only.
+-- Generated from prisma/schema.prisma + prisma/seed.ts on 2026-09-30.
 -- Paste the entire file into the Supabase SQL editor and run it.
--- Idempotent: safe to re-run.
-
+-- The DDL is not re-runnable. Already set up under M0? Run m1-migration.sql,
+-- then manual-seed.sql (which is idempotent) instead of this file.
 -- CreateSchema
 CREATE SCHEMA IF NOT EXISTS "public";
 
@@ -60,6 +60,25 @@ CREATE TABLE "public"."Worker" (
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "Worker_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."ExperienceRecord" (
+    "id" UUID NOT NULL,
+    "workerId" UUID NOT NULL,
+    "campaign" TEXT NOT NULL,
+    "role" TEXT NOT NULL,
+    "startDate" DATE NOT NULL,
+    "endDate" DATE,
+    "unitType" TEXT NOT NULL,
+    "unitCount" INTEGER NOT NULL,
+    "verificationLevel" "public"."VerificationLevel" NOT NULL DEFAULT 'SELF_REPORTED',
+    "verifiedById" UUID,
+    "verifiedAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "ExperienceRecord_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -220,7 +239,10 @@ CREATE TABLE "public"."AuditEvent" (
 CREATE UNIQUE INDEX "Worker_profileId_key" ON "public"."Worker"("profileId");
 
 -- CreateIndex
-CREATE INDEX "PoliticalPreference_workerId_consentVersion_idx" ON "public"."PoliticalPreference"("workerId", "consentVersion");
+CREATE INDEX "ExperienceRecord_workerId_idx" ON "public"."ExperienceRecord"("workerId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "PoliticalPreference_workerId_consentVersion_key" ON "public"."PoliticalPreference"("workerId", "consentVersion");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "JurisdictionProfile_state_locality_version_key" ON "public"."JurisdictionProfile"("state", "locality", "version");
@@ -259,6 +281,9 @@ ALTER TABLE "public"."Profile" ADD CONSTRAINT "Profile_orgId_fkey" FOREIGN KEY (
 ALTER TABLE "public"."Worker" ADD CONSTRAINT "Worker_profileId_fkey" FOREIGN KEY ("profileId") REFERENCES "public"."Profile"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "public"."ExperienceRecord" ADD CONSTRAINT "ExperienceRecord_workerId_fkey" FOREIGN KEY ("workerId") REFERENCES "public"."Worker"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "public"."PoliticalPreference" ADD CONSTRAINT "PoliticalPreference_workerId_fkey" FOREIGN KEY ("workerId") REFERENCES "public"."Worker"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -289,7 +314,7 @@ ALTER TABLE "public"."ProfileMetric" ADD CONSTRAINT "ProfileMetric_workerId_fkey
 ALTER TABLE "public"."Payout" ADD CONSTRAINT "Payout_workerId_fkey" FOREIGN KEY ("workerId") REFERENCES "public"."Worker"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 
--- Turfcut M0 seed — SQL version of prisma/seed.ts
+-- Turfcut seed (M0 + M1 events) — SQL version of prisma/seed.ts
 -- Run AFTER the DDL above. Idempotent: safe to re-run (ON CONFLICT DO NOTHING).
 
 -- --- Jurisdiction: CO / Denver v1, approved & current ---
@@ -372,18 +397,32 @@ INSERT INTO "public"."Shift"
    NOW() - interval '4 hours', NOW(), NOW(), NOW())
 ON CONFLICT ("id") DO NOTHING;
 
--- --- Sample work events (append-only) ---
+-- --- Work events (append-only) ---
+-- Mirrors prisma/seed-fixture.ts. Timestamps are offsets from the shift's
+-- check-in: 30 min paused, 3.5 active hours, 20 of 22 signatures accepted.
+-- Ids 131-135 are the M0 events; 136-140 were added in M1. Re-running against
+-- an M0 database adds only the new events (ON CONFLICT DO NOTHING).
 INSERT INTO "public"."WorkEvent" ("id","shiftId","type","payload","createdAt") VALUES
+  ('00000000-0000-0000-0000-000000000136','00000000-0000-0000-0000-000000000201',
+   'CHECK_IN','{}',(SELECT "checkInAt" FROM "public"."Shift" WHERE "id"='00000000-0000-0000-0000-000000000201') + interval '0 minutes'),
   ('00000000-0000-0000-0000-000000000131','00000000-0000-0000-0000-000000000201',
-   'PACKET_PICKUP','{"packetId":"PKT-0001","sheets":25}',NOW()),
+   'PACKET_PICKUP','{"packetId":"PKT-0001","sheets":25}',(SELECT "checkInAt" FROM "public"."Shift" WHERE "id"='00000000-0000-0000-0000-000000000201') + interval '5 minutes'),
   ('00000000-0000-0000-0000-000000000132','00000000-0000-0000-0000-000000000201',
-   'DOOR_KNOCK','{"count":40}',NOW()),
+   'DOOR_KNOCK','{"count":40}',(SELECT "checkInAt" FROM "public"."Shift" WHERE "id"='00000000-0000-0000-0000-000000000201') + interval '80 minutes'),
+  ('00000000-0000-0000-0000-000000000137','00000000-0000-0000-0000-000000000201',
+   'PAUSE_START','{"reason":"break"}',(SELECT "checkInAt" FROM "public"."Shift" WHERE "id"='00000000-0000-0000-0000-000000000201') + interval '90 minutes'),
+  ('00000000-0000-0000-0000-000000000138','00000000-0000-0000-0000-000000000201',
+   'PAUSE_END','{}',(SELECT "checkInAt" FROM "public"."Shift" WHERE "id"='00000000-0000-0000-0000-000000000201') + interval '120 minutes'),
   ('00000000-0000-0000-0000-000000000133','00000000-0000-0000-0000-000000000201',
-   'CONTACT','{"count":18}',NOW()),
+   'CONTACT','{"count":18}',(SELECT "checkInAt" FROM "public"."Shift" WHERE "id"='00000000-0000-0000-0000-000000000201') + interval '180 minutes'),
   ('00000000-0000-0000-0000-000000000134','00000000-0000-0000-0000-000000000201',
-   'SIGNATURE_SUBMITTED','{"count":22}',NOW()),
+   'SIGNATURE_SUBMITTED','{"count":22}',(SELECT "checkInAt" FROM "public"."Shift" WHERE "id"='00000000-0000-0000-0000-000000000201') + interval '200 minutes'),
   ('00000000-0000-0000-0000-000000000135','00000000-0000-0000-0000-000000000201',
-   'PACKET_RETURN','{"packetId":"PKT-0001","sheetsReturned":25,"signatures":22}',NOW())
+   'PACKET_RETURN','{"packetId":"PKT-0001","sheetsReturned":25,"signatures":22}',(SELECT "checkInAt" FROM "public"."Shift" WHERE "id"='00000000-0000-0000-0000-000000000201') + interval '230 minutes'),
+  ('00000000-0000-0000-0000-000000000139','00000000-0000-0000-0000-000000000201',
+   'CHECK_OUT','{}',(SELECT "checkInAt" FROM "public"."Shift" WHERE "id"='00000000-0000-0000-0000-000000000201') + interval '240 minutes'),
+  ('00000000-0000-0000-0000-000000000140','00000000-0000-0000-0000-000000000201',
+   'BATCH_COUNT','{"submitted":22,"accepted":20}',(SELECT "checkInAt" FROM "public"."Shift" WHERE "id"='00000000-0000-0000-0000-000000000201') + interval '250 minutes')
 ON CONFLICT ("id") DO NOTHING;
 
 -- --- Supervisor validation of the shift ---
@@ -393,9 +432,11 @@ INSERT INTO "public"."Validation" ("id","shiftId","status","reason","createdAt")
 ON CONFLICT ("id") DO NOTHING;
 
 -- --- Versioned metric snapshot for worker 1 ---
+-- Output of computeScorecard() over the events above (what `npm run seed`
+-- writes). Not hand-tuned: regenerate from the scorecard if events change.
 INSERT INTO "public"."ProfileMetric" ("id","workerId","version","metrics","computedAt") VALUES
   ('00000000-0000-0000-0000-000000000151','00000000-0000-0000-0000-000000000101',1,
-   '{"doorsKnocked":40,"contacts":18,"signaturesSubmitted":22,"signaturesAccepted":22,"activeHours":4,"doorsPerActiveHour":10,"contactRate":0.45,"signaturesPerActiveHour":5.5}',
+   '{"contacts":18,"showRate":1,"shiftsDue":1,"activeHours":3.5,"contactRate":0.45,"pausedHours":0.5,"doorsKnocked":40,"acceptanceRate":0.909091,"shiftsCheckedIn":1,"shiftsCompleted":1,"shiftsReconciled":1,"doorsPerActiveHour":11.428571,"signaturesAccepted":20,"signaturesSubmitted":22,"doorsPerCompletedShift":40,"signaturesPerActiveHour":6.285714}',
    NOW())
 ON CONFLICT ("workerId","version") DO NOTHING;
 

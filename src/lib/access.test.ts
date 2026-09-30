@@ -9,9 +9,15 @@ describe("workerAccess", () => {
     expect(workerAccess({ role: "WORKER", workerId: "other", orgId: null }, W, false).kind).toBe("denied");
   });
 
-  it("lets staff of an approved org view any worker", () => {
-    for (const role of ["OWNER", "RECRUITER", "COMPLIANCE", "SUPERVISOR", "FINANCE"] as const) {
+  it("lets owners and recruiters of an approved org view the hiring profile", () => {
+    for (const role of ["OWNER", "RECRUITER"] as const) {
       expect(workerAccess({ role, workerId: null, orgId: "org" }, W, true)).toEqual({ kind: "employer", orgId: "org" });
+    }
+  });
+
+  it("keeps compliance, supervisor and finance seats out of the hiring profile", () => {
+    for (const role of ["COMPLIANCE", "SUPERVISOR", "FINANCE"] as const) {
+      expect(workerAccess({ role, workerId: null, orgId: "org" }, W, true).kind).toBe("denied");
     }
   });
 

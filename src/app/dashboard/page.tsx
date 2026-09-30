@@ -38,7 +38,7 @@ export default async function DashboardPage() {
             <Link href="/profile/preferences" className="underline">Political-fit preferences</Link>
           </p>
         )}
-        {session.role !== "WORKER" && (
+        {(session.role === "OWNER" || session.role === "RECRUITER") && (
           <p className="text-sm">
             <Link href="/workers" className="underline">Browse workers</Link>
           </p>

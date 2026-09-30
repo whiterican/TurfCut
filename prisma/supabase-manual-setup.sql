@@ -2,7 +2,7 @@
 -- Generated from prisma/schema.prisma + prisma/seed.ts on 2026-09-30.
 -- Paste the entire file into the Supabase SQL editor and run it.
 -- The DDL is not re-runnable. Already set up under M0? Run m1-migration.sql,
--- then manual-seed.sql (which is idempotent) instead of this file.
+-- then m1-profile-migration.sql, then manual-seed.sql (idempotent) instead.
 -- CreateSchema
 CREATE SCHEMA IF NOT EXISTS "public";
 
@@ -66,12 +66,23 @@ CREATE TABLE "public"."Worker" (
 CREATE TABLE "public"."ExperienceRecord" (
     "id" UUID NOT NULL,
     "workerId" UUID NOT NULL,
+    "organizationName" TEXT,
     "campaign" TEXT NOT NULL,
+    "campaignType" TEXT,
+    "experienceGroup" TEXT,
     "role" TEXT NOT NULL,
+    "channel" TEXT,
+    "state" VARCHAR(2),
+    "countyOrDistrict" TEXT,
+    "turfType" TEXT,
     "startDate" DATE NOT NULL,
     "endDate" DATE,
+    "completedShifts" INTEGER,
+    "activeHours" DOUBLE PRECISION,
     "unitType" TEXT NOT NULL,
     "unitCount" INTEGER NOT NULL,
+    "approvedCount" INTEGER,
+    "referenceContact" TEXT,
     "verificationLevel" "public"."VerificationLevel" NOT NULL DEFAULT 'SELF_REPORTED',
     "verifiedById" UUID,
     "verifiedAt" TIMESTAMP(3),
@@ -91,6 +102,8 @@ CREATE TABLE "public"."PoliticalPreference" (
     "issuePositions" JSONB,
     "campaignBoundaries" JSONB,
     "consentVersion" INTEGER NOT NULL DEFAULT 1,
+    "expiresAt" TIMESTAMP(3),
+    "consentTextVersion" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "PoliticalPreference_pkey" PRIMARY KEY ("id")

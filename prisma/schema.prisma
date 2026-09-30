@@ -82,12 +82,30 @@ model ExperienceRecord {
   id                String            @id @default(uuid()) @db.Uuid
   workerId          String            @db.Uuid
   worker            Worker            @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  // Spec p.9 "Fields on every experience record". Option lists for the
+  // String fields are defined and validated in src/lib/experience.ts.
+  // Campaign: organization, project (= campaign), type, role, channel
+  organizationName  String?
   campaign          String
+  campaignType      String? // e.g. "ballot_initiative", "candidate"
+  experienceGroup   String? // e.g. "petition_circulation", "door_to_door"
   role              String
+  channel           String? // e.g. "door", "public_intercept", "phone"
+  // Where
+  state             String?           @db.VarChar(2)
+  countyOrDistrict  String?
+  turfType          String? // "urban" | "suburban" | "rural"
+  // When
   startDate         DateTime          @db.Date
   endDate           DateTime?         @db.Date // null = ongoing
+  completedShifts   Int?
+  activeHours       Float?
+  // What: submitted output (unitCount) and approved output
   unitType          String // e.g. "signatures", "doors"
   unitCount         Int
+  approvedCount     Int?
+  // Proof
+  referenceContact  String? // never shown to employers
   verificationLevel VerificationLevel @default(SELF_REPORTED)
   verifiedById      String?           @db.Uuid // Profile.id of the verifier
   verifiedAt        DateTime?
@@ -120,6 +138,12 @@ model PoliticalPreference {
   issuePositions  Json? // e.g. {"housing_affordability": {"position": "lean_support", "importance": "high"}}
   campaignBoundaries Json? // e.g. [{"kind": "campaign_type", "target": "candidate", "stance": "ask_me_first"}]
   consentVersion  Int            @default(1)
+  // Worker-chosen expiry (null = no expiry). After it passes — or when the
+  // consent wording changes (consentTextVersion differs from the current
+  // one) — answers are treated as not shared until the worker reconfirms,
+  // which writes a new version.
+  expiresAt          DateTime?
+  consentTextVersion String? // null on rows written before consent wording was versioned
   createdAt       DateTime       @default(now())
 
   // Unique so two concurrent saves can't both claim version N+1.

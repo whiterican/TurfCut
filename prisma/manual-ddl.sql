@@ -58,6 +58,25 @@ CREATE TABLE "public"."Worker" (
 );
 
 -- CreateTable
+CREATE TABLE "public"."ExperienceRecord" (
+    "id" UUID NOT NULL,
+    "workerId" UUID NOT NULL,
+    "campaign" TEXT NOT NULL,
+    "role" TEXT NOT NULL,
+    "startDate" DATE NOT NULL,
+    "endDate" DATE,
+    "unitType" TEXT NOT NULL,
+    "unitCount" INTEGER NOT NULL,
+    "verificationLevel" "public"."VerificationLevel" NOT NULL DEFAULT 'SELF_REPORTED',
+    "verifiedById" UUID,
+    "verifiedAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "ExperienceRecord_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "public"."PoliticalPreference" (
     "id" UUID NOT NULL,
     "workerId" UUID NOT NULL,
@@ -215,7 +234,10 @@ CREATE TABLE "public"."AuditEvent" (
 CREATE UNIQUE INDEX "Worker_profileId_key" ON "public"."Worker"("profileId");
 
 -- CreateIndex
-CREATE INDEX "PoliticalPreference_workerId_consentVersion_idx" ON "public"."PoliticalPreference"("workerId", "consentVersion");
+CREATE INDEX "ExperienceRecord_workerId_idx" ON "public"."ExperienceRecord"("workerId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "PoliticalPreference_workerId_consentVersion_key" ON "public"."PoliticalPreference"("workerId", "consentVersion");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "JurisdictionProfile_state_locality_version_key" ON "public"."JurisdictionProfile"("state", "locality", "version");
@@ -252,6 +274,9 @@ ALTER TABLE "public"."Profile" ADD CONSTRAINT "Profile_orgId_fkey" FOREIGN KEY (
 
 -- AddForeignKey
 ALTER TABLE "public"."Worker" ADD CONSTRAINT "Worker_profileId_fkey" FOREIGN KEY ("profileId") REFERENCES "public"."Profile"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."ExperienceRecord" ADD CONSTRAINT "ExperienceRecord_workerId_fkey" FOREIGN KEY ("workerId") REFERENCES "public"."Worker"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "public"."PoliticalPreference" ADD CONSTRAINT "PoliticalPreference_workerId_fkey" FOREIGN KEY ("workerId") REFERENCES "public"."Worker"("id") ON DELETE CASCADE ON UPDATE CASCADE;

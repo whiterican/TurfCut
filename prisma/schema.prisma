@@ -63,14 +63,38 @@ model Worker {
   profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
   displayName String
   phone     String?
-  // Experience records live here in M1; verification level travels with each.
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  experience   ExperienceRecord[]
   preferences  PoliticalPreference[]
   engagements  Engagement[]
   metrics      ProfileMetric[]
   payouts      Payout[]
+}
+
+/// One past campaign on a worker's profile. The verification level travels
+/// with the record. Workers can only create SELF_REPORTED rows; PLATFORM,
+/// ORGANIZATION and IMPORTED are set by Turfcut, a hiring org, or an import —
+/// never by the worker. SELF_REPORTED rows are visible but excluded from
+/// verified totals.
+model ExperienceRecord {
+  id                String            @id @default(uuid()) @db.Uuid
+  workerId          String            @db.Uuid
+  worker            Worker            @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  campaign          String
+  role              String
+  startDate         DateTime          @db.Date
+  endDate           DateTime?         @db.Date // null = ongoing
+  unitType          String // e.g. "signatures", "doors"
+  unitCount         Int
+  verificationLevel VerificationLevel @default(SELF_REPORTED)
+  verifiedById      String?           @db.Uuid // Profile.id of the verifier
+  verifiedAt        DateTime?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  @@index([workerId])
 }
 
 /// Worker-controlled political-fit signals. NEVER inferred — every value here
@@ -96,7 +120,8 @@ model PoliticalPreference {
   consentVersion  Int            @default(1)
   createdAt       DateTime       @default(now())
 
-  @@index([workerId, consentVersion])
+  // Unique so two concurrent saves can't both claim version N+1.
+  @@unique([workerId, consentVersion])
 }
 
 // ---------------------------------------------------------------------------

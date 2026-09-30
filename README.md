@@ -47,8 +47,9 @@ npm run dev   # → http://localhost:3000
 | `npm run db:push`  | Push Prisma schema to the database        |
 | `npm run db:generate` | Regenerate the Prisma client           |
 
-CI (`.github/workflows/ci.yml`) runs on every push/PR: `prisma validate` →
-typecheck → lint → test → build, using dummy env values (no real DB touched).
+CI (`.github/workflows/ci.yml`) runs on pushes to `master` and on every PR:
+`prisma generate` → `prisma validate` → typecheck → lint → test → build,
+using dummy env values (no real DB touched).
 
 ## What needs Caden (only you can do these)
 

@@ -1,23 +1,29 @@
 /**
- * Pure scorecard metric formulas (spec: data model rules).
+ * Pure scorecard metric formulas (spec p.10 "Required metric definitions").
  *
  * - Active time EXCLUDES paused time (spec: "exclude paused time from
  *   active-hour rates").
  * - All rates are computed from append-only work events; these functions take
- *   plain numbers so they stay testable without a database.
+ *   plain numbers so they stay testable without a database. lib/scorecard.ts
+ *   decides which (verified) shifts feed them.
  * - Minimum-sample rule lives with the caller (M3): a rate is only meaningful
  *   past the job's minimum sample size.
  */
 
 export interface ShiftTotals {
-  /** Milliseconds of active (non-paused) time on shift. */
+  /** Milliseconds of verified active (non-paused) time. */
   activeMs: number;
-  doorsKnocked: number;
+  doorsAttempted: number;
   contacts: number;
   signaturesSubmitted: number;
+  signaturesReviewed: number;
   signaturesAccepted: number;
-  shiftsCompleted: number;
-  shiftsScheduled: number;
+  /** Verified completed shifts that recorded door attempts. */
+  doorShiftsCompleted: number;
+  /** Accepted shifts the worker started (checked in). */
+  shiftsStarted: number;
+  /** Accepted shifts that weren't (timely) cancelled. */
+  shiftsAccepted: number;
 }
 
 /** Active hours from check-in/out timestamps and pause intervals. */
@@ -34,35 +40,40 @@ export function activeHours(
   return Math.max(0, (totalMs - pausedMs) / 3_600_000);
 }
 
+/** Verified doors attempted / verified active field hours. */
 export function doorsPerActiveHour(t: ShiftTotals): number | null {
   const hours = t.activeMs / 3_600_000;
   if (hours <= 0) return null;
-  return t.doorsKnocked / hours;
+  return t.doorsAttempted / hours;
 }
 
+/** Verified doors attempted / completed door shifts. */
 export function doorsPerCompletedShift(t: ShiftTotals): number | null {
-  if (t.shiftsCompleted <= 0) return null;
-  return t.doorsKnocked / t.shiftsCompleted;
+  if (t.doorShiftsCompleted <= 0) return null;
+  return t.doorsAttempted / t.doorShiftsCompleted;
 }
 
+/** Resident contacts / doors attempted. */
 export function contactRate(t: ShiftTotals): number | null {
-  if (t.doorsKnocked <= 0) return null;
-  return t.contacts / t.doorsKnocked;
+  if (t.doorsAttempted <= 0) return null;
+  return t.contacts / t.doorsAttempted;
 }
 
+/** Submitted signatures / verified petition hours (caller passes petition hours only). */
 export function signaturesPerActiveHour(t: ShiftTotals): number | null {
   const hours = t.activeMs / 3_600_000;
   if (hours <= 0) return null;
   return t.signaturesSubmitted / hours;
 }
 
-/** Accepted / submitted — stored separately per the spec. */
+/** Accepted signatures / signatures reviewed. */
 export function acceptanceRate(t: ShiftTotals): number | null {
-  if (t.signaturesSubmitted <= 0) return null;
-  return t.signaturesAccepted / t.signaturesSubmitted;
+  if (t.signaturesReviewed <= 0) return null;
+  return t.signaturesAccepted / t.signaturesReviewed;
 }
 
+/** Started accepted shifts / accepted shifts not timely cancelled. */
 export function showRate(t: ShiftTotals): number | null {
-  if (t.shiftsScheduled <= 0) return null;
-  return t.shiftsCompleted / t.shiftsScheduled;
+  if (t.shiftsAccepted <= 0) return null;
+  return t.shiftsStarted / t.shiftsAccepted;
 }

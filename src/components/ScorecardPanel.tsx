@@ -1,6 +1,7 @@
 import type { MetricExplanation, Period, Scorecard, ScorecardSegment } from "@/lib/scorecard";
 
 const WORK_TYPE_LABELS = { PETITION: "Petition circulation", CANVASS: "Door-to-door canvass" } as const;
+const WORK_TYPE_BADGE = { PETITION: "badge-lavender", CANVASS: "badge-sky" } as const;
 const PERIOD_LABELS: Record<Period, string> = { lifetime: "Lifetime", "12m": "Last 12 months", "90d": "Last 90 days" };
 
 const AVERAGES: Array<{ key: keyof ScorecardSegment["averages"]; label: string; pct?: boolean }> = [
@@ -16,13 +17,16 @@ function fmt(m: MetricExplanation, pct?: boolean): string {
   return pct ? `${(m.value * 100).toFixed(1)}%` : m.value.toFixed(2);
 }
 
-function Metric({ label, m, pct }: { label: string; m: MetricExplanation; pct?: boolean }) {
+function Metric({ label, m, pct, dot }: { label: string; m: MetricExplanation; pct?: boolean; dot?: string }) {
   return (
-    <li className="rounded-lg border p-3">
-      <p className="text-sm text-neutral-500">{label}</p>
-      <p className="text-xl font-semibold tabular-nums">{fmt(m, pct)}</p>
-      <p className="text-xs text-neutral-500">{m.formula}</p>
-      <p className="text-xs text-neutral-600 dark:text-neutral-400">{m.evidence}</p>
+    <li className="stat">
+      <p className="stat-label">
+        {dot && <span aria-hidden className={`dot ${dot}`} />}
+        {label}
+      </p>
+      <p className={m.value === null ? "mt-1 text-base font-medium text-subtle" : "stat-value"}>{fmt(m, pct)}</p>
+      <p className="text-hint mt-2">{m.formula}</p>
+      <p className="mt-1 text-xs leading-relaxed text-muted">{m.evidence}</p>
     </li>
   );
 }
@@ -40,29 +44,29 @@ function Segment({ seg }: { seg: ScorecardSegment }) {
     ["Verified active hours", String(seg.activeHours)],
   ];
   return (
-    <div className="space-y-3">
-      <h3 className="font-medium">
-        {WORK_TYPE_LABELS[seg.workType]}
-        <span className="ml-2 text-sm font-normal text-neutral-500">
+    <div className="space-y-4">
+      <h3 className="flex flex-wrap items-center gap-2">
+        <span className={WORK_TYPE_BADGE[seg.workType]}>{WORK_TYPE_LABELS[seg.workType]}</span>
+        <span className="text-muted-sm">
           {[seg.statesWorked.join(", "), seg.dateRange && `${seg.dateRange.from} – ${seg.dateRange.to}`]
             .filter(Boolean)
             .join(" · ")}
         </span>
       </h3>
-      <dl className="grid gap-2 text-sm sm:grid-cols-3">
+      <dl className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         {totals.map(([k, val]) => (
-          <div key={k} className="rounded-lg border p-2">
-            <dt className="text-neutral-500">{k}</dt>
-            <dd className="font-medium tabular-nums">{val}</dd>
+          <div key={k} className="kv">
+            <dt>{k}</dt>
+            <dd>{val}</dd>
           </div>
         ))}
       </dl>
-      <ul className="grid gap-2 sm:grid-cols-2">
+      <ul className="grid gap-3 sm:grid-cols-2">
         {AVERAGES.map(({ key, label, pct }) => (
           <Metric key={key} label={label} m={seg.averages[key]} pct={pct} />
         ))}
       </ul>
-      <p className="text-xs text-neutral-500">
+      <p className="text-hint">
         Verification: {v.verifiedShifts} verified shift(s) counted; {v.pendingReviewShifts} awaiting review,{" "}
         {v.rejectedShifts} rejected and {v.incompleteShifts} incomplete not counted.
         {seg.correctionsApplied > 0 && ` ${seg.correctionsApplied} signed correction(s) applied; original entries kept.`}
@@ -81,32 +85,38 @@ export function ScorecardPanel({ periods }: { periods: Record<Period, Scorecard>
     s.segments.reduce((a, x) => a + pick(x), 0);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {lifetime.segments.length === 0 ? (
-        <p className="text-sm text-neutral-500">No verified shifts yet.</p>
+        <div className="empty-state">
+          <p className="empty-state-title">No verified shifts yet</p>
+          <p className="empty-state-body">
+            Rates appear here once a shift is checked in, checked out and approved by a supervisor.
+          </p>
+        </div>
       ) : (
         lifetime.segments.map((seg) => <Segment key={seg.workType} seg={seg} />)
       )}
 
-      <ul className="grid gap-2 sm:grid-cols-2">
-        <Metric label="Show rate" m={lifetime.reliability.showRate} pct />
+      <ul className="grid gap-3 sm:grid-cols-2">
+        <Metric label="Show rate" m={lifetime.reliability.showRate} pct dot="bg-mint" />
       </ul>
 
-      <div className="space-y-1">
-        <h3 className="font-medium">Recent activity</h3>
-        <table className="w-full text-sm tabular-nums">
-          <thead className="text-left text-neutral-500">
+      <div className="card space-y-3">
+        <h3 className="font-medium text-fg">Recent activity</h3>
+        <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+        <table className="table min-w-[28rem]">
+          <thead>
             <tr>
-              <th className="font-normal">Period</th>
-              <th className="font-normal">Verified shifts</th>
-              <th className="font-normal">Active hours</th>
-              <th className="font-normal">Doors</th>
-              <th className="font-normal">Signatures accepted</th>
+              <th>Period</th>
+              <th>Verified shifts</th>
+              <th>Active hours</th>
+              <th>Doors</th>
+              <th>Signatures accepted</th>
             </tr>
           </thead>
           <tbody>
             {(["90d", "12m", "lifetime"] as const).map((p) => (
-              <tr key={p} className="border-t">
+              <tr key={p}>
                 <td>{PERIOD_LABELS[p]}</td>
                 <td>{sumOf(periods[p], (x) => x.shiftsCount)}</td>
                 <td>{Math.round(sumOf(periods[p], (x) => x.activeHours) * 100) / 100}</td>
@@ -116,9 +126,10 @@ export function ScorecardPanel({ periods }: { periods: Record<Period, Scorecard>
             ))}
           </tbody>
         </table>
+        </div>
       </div>
 
-      <p className="text-xs text-neutral-500">
+      <p className="text-hint">
         Derived from recorded work events and supervisor reviews
         {lifetime.lastUpdated && `, last updated ${lifetime.lastUpdated.slice(0, 10)}`}. Paused time is excluded
         from active hours. No overall score is computed.

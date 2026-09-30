@@ -8,19 +8,19 @@ export default async function PreferencesPage() {
   const latest = await loadLatestPreference(workerId);
 
   return (
-    <main className="mx-auto w-full max-w-2xl space-y-6 px-4 py-10">
-      <header className="space-y-2">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h1 className="text-2xl font-bold">Political-fit preferences</h1>
-          <Link href="/profile" className="text-sm underline">Back to profile</Link>
+    <main className="page max-w-2xl space-y-8">
+      <header className="space-y-3">
+        <div className="page-header">
+          <h1 className="page-title">Political-fit preferences</h1>
+          <Link href="/profile" className="btn-ghost">← Profile</Link>
         </div>
-        <p className="text-sm text-neutral-600 dark:text-neutral-400">
+        <p className="lead">
           Every answer here is optional and comes only from you. Turfcut never
           guesses your politics from anything else. Nothing is saved until you
           consent on the last step.
         </p>
         {latest && (
-          <p className="text-xs text-neutral-500">
+          <p className="text-hint">
             Current: consent version {latest.consentVersion}, given{" "}
             {latest.consentedAt.toISOString().slice(0, 10)}
             {latest.status.state === "current" &&
@@ -31,7 +31,7 @@ export default async function PreferencesPage() {
           </p>
         )}
         {latest && latest.status.state !== "current" && (
-          <p role="status" className="rounded-lg border border-amber-500 p-3 text-sm">
+          <p role="status" className="alert-warning">
             {latest.status.state === "expired"
               ? `Your consent expired on ${latest.status.expiredAt.toISOString().slice(0, 10)}.`
               : "Your saved answers were given under earlier consent wording."}{" "}

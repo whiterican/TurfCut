@@ -12,6 +12,18 @@ const ROLE_LABELS: Record<string, string> = {
   FINANCE: "Finance",
 };
 
+function NavCard({ href, title, body }: { href: string; title: string; body: string }) {
+  return (
+    <Link href={href} className="card group block transition hover:border-[var(--border-strong)]">
+      <p className="flex items-center justify-between font-medium text-fg">
+        {title}
+        <span aria-hidden className="text-subtle transition group-hover:translate-x-0.5">→</span>
+      </p>
+      <p className="text-muted-sm mt-1">{body}</p>
+    </Link>
+  );
+}
+
 export default async function DashboardPage() {
   const session = await requireAuth();
 
@@ -22,43 +34,54 @@ export default async function DashboardPage() {
     redirect("/login");
   }
 
+  const hasLinks = session.role === "WORKER" || session.role === "OWNER" || session.role === "RECRUITER";
+
   return (
-    <main className="min-h-screen flex items-center justify-center px-6">
-      <div className="w-full max-w-sm space-y-4 text-center">
-        <h1 className="text-2xl font-bold">Dashboard</h1>
-        <p className="text-neutral-600 dark:text-neutral-400">
-          Signed in as <span className="font-medium">{session.email}</span>
-        </p>
-        <p className="inline-block rounded-full border px-3 py-1 text-sm">
-          {ROLE_LABELS[session.role] ?? session.role}
-        </p>
-        {session.role === "WORKER" && (
-          <p className="space-x-4 text-sm">
-            <Link href="/profile" className="underline">My profile</Link>
-            <Link href="/profile/preferences" className="underline">Political-fit preferences</Link>
+    <main className="page">
+      <header className="page-header">
+        <div className="space-y-2">
+          <span className="badge-lavender">{ROLE_LABELS[session.role] ?? session.role}</span>
+          <h1 className="page-title">Dashboard</h1>
+          <p className="text-muted-sm">
+            Signed in as <span className="font-medium text-fg">{session.email}</span>
           </p>
-        )}
-        {(session.role === "OWNER" || session.role === "RECRUITER") && (
-          <p className="text-sm">
-            <Link href="/workers" className="underline">Browse workers</Link>
-          </p>
-        )}
-        {session.orgId && (
-          <p className="text-sm text-neutral-500">Org ID: {session.orgId}</p>
-        )}
+        </div>
         <form action={signOut}>
-          <button
-            type="submit"
-            className="rounded-lg border px-5 py-2.5 text-sm"
-          >
+          <button type="submit" className="btn-secondary">
             Sign out
           </button>
         </form>
-        <p className="text-xs text-neutral-500">
-          M1: worker profiles, scorecards and political-fit consent. Jobs and
-          matching land in M2–M3.
+      </header>
+
+      {hasLinks ? (
+        <div className="grid gap-3 sm:grid-cols-2">
+          {session.role === "WORKER" && (
+            <>
+              <NavCard href="/profile" title="My profile" body="Your scorecard, experience and political-fit status." />
+              <NavCard
+                href="/profile/preferences"
+                title="Political-fit preferences"
+                body="Choose what, if anything, organizations may see."
+              />
+            </>
+          )}
+          {(session.role === "OWNER" || session.role === "RECRUITER") && (
+            <NavCard href="/workers" title="Browse workers" body="Verified scorecards and experience, listed alphabetically." />
+          )}
+        </div>
+      ) : (
+        <div className="empty-state">
+          <p className="empty-state-title">Nothing here yet</p>
+          <p className="empty-state-body">Tools for your role arrive in upcoming milestones.</p>
+        </div>
+      )}
+
+      <footer className="space-y-1">
+        {session.orgId && <p className="text-hint">Org ID: {session.orgId}</p>}
+        <p className="text-hint">
+          M1: worker profiles, scorecards and political-fit consent. Jobs and matching land in M2–M3.
         </p>
-      </div>
+      </footer>
     </main>
   );
 }

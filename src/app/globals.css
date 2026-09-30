@@ -1,26 +1,363 @@
 @import "tailwindcss";
 
+/*
+ * Turfcut design system.
+ *
+ * Dark mode first: deep slate/charcoal surfaces, near-white text, pastel
+ * accents (pink, lavender, sky, mint, peach) used sparingly — highlights,
+ * badges, key actions, active states. Pastels are only ever paired with the
+ * dark "ink" colour (as a fill) or with a dark surface (as text), never
+ * pastel-on-pastel. Light mode uses the same pastels on soft white.
+ *
+ * The theme is a `.dark` class on <html>, set before first paint by the
+ * inline script in app/layout.tsx (saved choice, else the OS preference).
+ * src/lib/design-tokens.test.ts reads the tokens below and checks WCAG
+ * contrast for every text/background pairing, in both themes.
+ */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Pastel accents — identical in both modes. */
+  --pink: #f7b8d2;
+  --lavender: #cbbcf6;
+  --sky: #a9d3f5;
+  --mint: #a7e3c8;
+  --peach: #f8c9a3;
+  --ink: #15171c; /* text on any pastel fill */
+
+  /* Light mode */
+  --bg: #f6f6fa;
+  --surface: #ffffff;
+  --surface-2: #f0f1f6;
+  --field: #ffffff;
+  --border: #e1e3eb;
+  --border-strong: #c3c7d4;
+  --fg: #15171c;
+  --muted: #434856;
+  --subtle: #5c6270;
+  --link: #5a3fc0;
+  --focus: #7c5ce0;
+  --danger: #b42318;
+  --success: #17693f;
+  --warning: #8a4b0f;
+  --shadow: 0 1px 2px rgb(20 22 30 / 0.05), 0 8px 24px -12px rgb(20 22 30 / 0.14);
+  color-scheme: light;
+}
+
+.dark {
+  --bg: #0e1116;
+  --surface: #161a21;
+  --surface-2: #1d222b;
+  --field: #11151b;
+  --border: #2a303b;
+  --border-strong: #3d4552;
+  --fg: #f1f3f7;
+  --muted: #c5cad4;
+  --subtle: #a1a8b5;
+  --link: #cbbcf6;
+  --focus: #cbbcf6;
+  --danger: #ffb4b4;
+  --success: #a7e3c8;
+  --warning: #f8c9a3;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 10px 30px -14px rgb(0 0 0 / 0.6);
+  color-scheme: dark;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--border);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-subtle: var(--subtle);
+  --color-ink: var(--ink);
+  --color-pink: var(--pink);
+  --color-lavender: var(--lavender);
+  --color-sky: var(--sky);
+  --color-mint: var(--mint);
+  --color-peach: var(--peach);
+  --color-danger: var(--danger);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  accent-color: var(--focus);
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+::selection {
+  background: var(--lavender);
+  color: var(--ink);
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+@layer components {
+  /* ---- Layout ---------------------------------------------------------- */
+  .page {
+    @apply mx-auto w-full max-w-3xl space-y-10 px-4 py-8 sm:px-6 sm:py-12;
+  }
+  .page-narrow {
+    @apply mx-auto w-full max-w-md px-4 py-10 sm:py-16;
+  }
+  .page-header {
+    @apply flex flex-wrap items-end justify-between gap-3;
+  }
+  .page-title {
+    @apply text-2xl font-semibold tracking-tight text-fg sm:text-3xl;
+  }
+  .section {
+    @apply space-y-4;
+  }
+  .section-title {
+    @apply text-lg font-semibold tracking-tight text-fg;
+  }
+  .lead {
+    @apply text-base leading-relaxed text-muted;
+  }
+  .text-muted-sm {
+    @apply text-sm text-muted;
+  }
+  .text-hint {
+    @apply text-xs leading-relaxed text-subtle;
+  }
+
+  /* ---- Surfaces -------------------------------------------------------- */
+  .card {
+    @apply rounded-2xl border border-border bg-surface p-4 sm:p-5;
+    box-shadow: var(--shadow);
+  }
+  .card-flat {
+    @apply rounded-2xl border border-border bg-surface-2 p-4;
+  }
+  .card-dashed {
+    @apply rounded-2xl border border-dashed border-border bg-transparent p-4;
+    border-color: var(--border-strong);
+  }
+  .list-card {
+    @apply divide-y divide-border overflow-hidden rounded-2xl border border-border bg-surface;
+    box-shadow: var(--shadow);
+  }
+  .empty-state {
+    @apply rounded-2xl border border-dashed px-6 py-10 text-center;
+    border-color: var(--border-strong);
+  }
+  .empty-state-title {
+    @apply font-medium text-fg;
+  }
+  .empty-state-body {
+    @apply mx-auto mt-1 max-w-sm text-sm text-muted;
+  }
+
+  /* ---- Buttons & links ------------------------------------------------- */
+  .btn,
+  .btn-primary,
+  .btn-secondary,
+  .btn-ghost {
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition;
+    @apply disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-primary {
+    background: var(--lavender);
+    color: var(--ink);
+    box-shadow: inset 0 0 0 1px rgb(21 23 28 / 0.12);
+  }
+  .btn-primary:hover:not(:disabled) {
+    filter: brightness(1.06);
+  }
+  .btn-secondary {
+    @apply border border-border bg-surface-2 text-fg;
+  }
+  .btn-secondary:hover:not(:disabled) {
+    border-color: var(--border-strong);
+  }
+  .btn-ghost {
+    @apply text-muted;
+  }
+  .btn-ghost:hover:not(:disabled) {
+    @apply bg-surface-2 text-fg;
+  }
+  .btn-sm {
+    @apply min-h-9 rounded-lg px-3 py-1.5 text-xs;
+  }
+  .link {
+    color: var(--link);
+    @apply font-medium underline decoration-1 underline-offset-4;
+  }
+  .link:hover {
+    @apply decoration-2;
+  }
+
+  /* ---- Forms ----------------------------------------------------------- */
+  .label {
+    @apply block text-sm font-medium text-fg;
+  }
+  .field {
+    @apply block w-full min-h-11 rounded-xl border border-border px-3 py-2 text-base text-fg sm:text-sm;
+    background: var(--field);
+  }
+  .field::placeholder {
+    color: var(--subtle);
+  }
+  .field:focus {
+    @apply outline-none;
+    border-color: var(--focus);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus) 30%, transparent);
+  }
+  .field-error {
+    @apply mt-1 text-xs font-medium;
+    color: var(--danger);
+  }
+  .fieldset-title {
+    @apply mb-2 text-sm font-semibold uppercase tracking-wide text-subtle;
+  }
+  /* Selectable pill (checkbox/radio inside). Active state = lavender. */
+  .chip {
+    @apply inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-full border border-border bg-surface px-3 py-1.5 text-sm text-fg transition;
+  }
+  .chip:hover {
+    border-color: var(--border-strong);
+  }
+  .chip:has(input:checked) {
+    border-color: var(--lavender);
+    background: color-mix(in srgb, var(--lavender) 16%, var(--surface));
+  }
+  :root:not(.dark) .chip:has(input:checked) {
+    background: var(--lavender);
+    color: var(--ink);
+    border-color: transparent;
+  }
+  .chip:has(input:disabled) {
+    @apply cursor-not-allowed border-dashed text-subtle;
+  }
+  /* Large selectable option (radio card). */
+  .option-card {
+    @apply flex cursor-pointer gap-3 rounded-2xl border border-border bg-surface p-4 transition;
+  }
+  .option-card:hover {
+    border-color: var(--border-strong);
+  }
+  .option-card:has(input:checked) {
+    border-color: var(--lavender);
+    box-shadow: 0 0 0 1px var(--lavender);
+  }
+
+  /* ---- Badges ---------------------------------------------------------- */
+  .badge,
+  .badge-neutral,
+  .badge-dashed,
+  .badge-pink,
+  .badge-lavender,
+  .badge-sky,
+  .badge-mint,
+  .badge-peach {
+    @apply inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium whitespace-nowrap;
+  }
+  .badge-neutral {
+    @apply border-border bg-surface-2 text-muted;
+  }
+  .badge-dashed {
+    @apply border-dashed bg-transparent text-muted;
+    border-color: var(--border-strong);
+  }
+  /* Light: pastel fill + ink text. Dark: tinted surface + pastel text. */
+  .badge-pink { --accent: var(--pink); }
+  .badge-lavender { --accent: var(--lavender); }
+  .badge-sky { --accent: var(--sky); }
+  .badge-mint { --accent: var(--mint); }
+  .badge-peach { --accent: var(--peach); }
+  :is(.badge-pink, .badge-lavender, .badge-sky, .badge-mint, .badge-peach) {
+    background: var(--accent);
+    color: var(--ink);
+    border-color: transparent;
+  }
+  .dark :is(.badge-pink, .badge-lavender, .badge-sky, .badge-mint, .badge-peach) {
+    background: color-mix(in srgb, var(--accent) 14%, var(--surface));
+    color: var(--accent);
+    border-color: color-mix(in srgb, var(--accent) 35%, transparent);
+  }
+  .dot {
+    @apply inline-block size-2 shrink-0 rounded-full;
+  }
+
+  /* ---- Feedback -------------------------------------------------------- */
+  .alert,
+  .alert-warning,
+  .alert-info {
+    @apply rounded-2xl border p-4 text-sm text-fg;
+  }
+  .alert-warning {
+    border-color: color-mix(in srgb, var(--peach) 60%, var(--border));
+    background: color-mix(in srgb, var(--peach) 14%, var(--surface));
+  }
+  .alert-info {
+    border-color: color-mix(in srgb, var(--sky) 60%, var(--border));
+    background: color-mix(in srgb, var(--sky) 12%, var(--surface));
+  }
+  .text-danger-msg {
+    @apply text-sm font-medium;
+    color: var(--danger);
+  }
+  .text-success-msg {
+    @apply text-sm font-medium;
+    color: var(--success);
+  }
+  .text-warning-msg {
+    @apply text-sm font-medium;
+    color: var(--warning);
+  }
+
+  /* ---- Data ------------------------------------------------------------ */
+  .stat {
+    @apply rounded-2xl border border-border bg-surface p-4;
+    box-shadow: var(--shadow);
+  }
+  .stat-label {
+    @apply flex items-center gap-2 text-sm text-muted;
+  }
+  .stat-value {
+    @apply mt-1 text-2xl font-semibold tracking-tight text-fg tabular-nums;
+  }
+  .kv {
+    @apply rounded-xl border border-border bg-surface-2 px-3 py-2;
+  }
+  .kv dt {
+    @apply text-xs text-subtle;
+  }
+  .kv dd {
+    @apply mt-0.5 text-sm font-medium text-fg tabular-nums;
+  }
+  .table {
+    @apply w-full text-left text-sm tabular-nums;
+  }
+  .table th {
+    @apply pb-2 text-xs font-medium tracking-wide text-subtle uppercase;
+  }
+  .table td {
+    @apply border-t border-border py-2 text-fg;
+  }
+
+  /* ---- Stepper --------------------------------------------------------- */
+  .step {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1 text-xs text-subtle;
+  }
+  .step-done {
+    @apply text-muted;
+    border-color: color-mix(in srgb, var(--mint) 50%, var(--border));
+  }
+  .step-current {
+    background: var(--lavender);
+    color: var(--ink);
+    border-color: transparent;
+    @apply font-semibold;
+  }
 }

@@ -32,40 +32,42 @@ export default function LoginPage() {
     }
   }
 
-  const input =
-    "w-full rounded-lg border px-3 py-2 bg-transparent focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white";
-
   return (
-    <main className="min-h-screen flex items-center justify-center px-6">
-      <form onSubmit={onSubmit} className="w-full max-w-sm space-y-4">
-        <h1 className="text-2xl font-bold">Log in to Turfcut</h1>
-        <input
-          className={input}
-          type="email"
-          required
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        <input
-          className={input}
-          type="password"
-          required
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-        {error && <p className="text-sm text-red-600">{error}</p>}
-        <button
-          type="submit"
-          disabled={busy}
-          className="w-full rounded-lg bg-black py-2.5 text-white disabled:opacity-50 dark:bg-white dark:text-black"
-        >
+    <main className="page-narrow">
+      <form onSubmit={onSubmit} className="card space-y-5 sm:p-8">
+        <div className="space-y-1">
+          <h1 className="page-title">Welcome back</h1>
+          <p className="text-muted-sm">Log in to Turfcut.</p>
+        </div>
+        <label className="block space-y-1.5">
+          <span className="label">Email</span>
+          <input
+            className="field"
+            type="email"
+            autoComplete="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+        </label>
+        <label className="block space-y-1.5">
+          <span className="label">Password</span>
+          <input
+            className="field"
+            type="password"
+            autoComplete="current-password"
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </label>
+        {error && <p role="alert" className="text-danger-msg">{error}</p>}
+        <button type="submit" disabled={busy} className="btn-primary w-full">
           {busy ? "Logging in…" : "Log in"}
         </button>
-        <p className="text-sm text-neutral-500">
+        <p className="text-muted-sm text-center">
           No account?{" "}
-          <Link href="/signup" className="underline">
+          <Link href="/signup" className="link">
             Sign up
           </Link>
         </p>

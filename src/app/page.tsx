@@ -5,41 +5,33 @@ export default async function Home() {
   const session = await getSessionProfile();
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center px-6 text-center">
-      <h1 className="text-4xl font-bold tracking-tight">Turfcut</h1>
-      <p className="mt-3 max-w-md text-neutral-600 dark:text-neutral-400">
+    <main className="flex flex-1 flex-col items-center justify-center px-4 py-16 text-center sm:px-6">
+      <span className="badge-lavender">Private pilot</span>
+      <h1 className="mt-5 text-4xl font-semibold tracking-tight text-fg sm:text-5xl">
+        Field work, verified.
+      </h1>
+      <p className="lead mt-4 max-w-lg">
         The marketplace for political field work. Petition signature gathering
         first, canvassing second. Workers are 1099 contractors; companies post
         jobs, verify work, and pay in-app.
       </p>
-      <div className="mt-8 flex gap-4">
+      <div className="mt-8 flex w-full max-w-xs flex-col gap-3 sm:w-auto sm:max-w-none sm:flex-row">
         {session ? (
-          <Link
-            href="/dashboard"
-            className="rounded-lg bg-black px-5 py-2.5 text-white dark:bg-white dark:text-black"
-          >
+          <Link href="/dashboard" className="btn-primary px-6">
             Go to dashboard
           </Link>
         ) : (
           <>
-            <Link
-              href="/login"
-              className="rounded-lg bg-black px-5 py-2.5 text-white dark:bg-white dark:text-black"
-            >
+            <Link href="/login" className="btn-primary px-6">
               Log in
             </Link>
-            <Link
-              href="/signup"
-              className="rounded-lg border px-5 py-2.5"
-            >
+            <Link href="/signup" className="btn-secondary px-6">
               Sign up
             </Link>
           </>
         )}
       </div>
-      <p className="mt-12 text-xs text-neutral-500">
-        M0 build — foundation only. Patent pending.
-      </p>
+      <p className="text-hint mt-14">Patent pending.</p>
     </main>
   );
 }

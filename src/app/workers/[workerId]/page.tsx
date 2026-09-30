@@ -37,7 +37,9 @@ export default async function EmployerWorkerPage({
     loadLatestPreference(workerId),
     orgHasRelationship(workerId, access.orgId),
   ]);
-  const fit = employerFitView(pref, { orgHasRelationship: related });
+  // Jobs don't disclose campaign positions until M2, so issue overlap is
+  // always "not shared" for now; the full questionnaire is never shown.
+  const fit = employerFitView(pref, { orgHasRelationship: related, campaign: null });
 
   return (
     <main className="mx-auto w-full max-w-3xl space-y-10 px-4 py-10">

@@ -113,10 +113,12 @@ model PoliticalPreference {
   workerId        String         @db.Uuid
   worker          Worker         @relation(fields: [workerId], references: [id], onDelete: Cascade)
   visibilityMode  VisibilityMode
-  identityLabels  Json? // e.g. ["conservative", "pro-labor"] — self-reported
-  partyRelationship Json? // e.g. {"registered": "unaffiliated", "leans": "..."}
-  issuePositions  Json? // e.g. {"labor": "support", ...} — self-reported
-  campaignBoundaries Json? // e.g. {"willNotWorkFor": [...], "willNotWorkOn": [...]}
+  // JSON shapes are defined and validated in src/lib/political-fit.ts.
+  // Each answer carries its own opt-in `shared` flag.
+  identityLabels  Json? // e.g. [{"label": "independent", "shared": true}, {"label": "other", "text": "..."}]
+  partyRelationship Json? // e.g. {"relationship": "leans_toward", "party": "democratic"} — NOT voter registration
+  issuePositions  Json? // e.g. {"housing_affordability": {"position": "lean_support", "importance": "high"}}
+  campaignBoundaries Json? // e.g. [{"kind": "campaign_type", "target": "candidate", "stance": "ask_me_first"}]
   consentVersion  Int            @default(1)
   createdAt       DateTime       @default(now())
 

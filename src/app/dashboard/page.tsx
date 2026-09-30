@@ -1,6 +1,7 @@
 import { requireAuth } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 
 const ROLE_LABELS: Record<string, string> = {
   WORKER: "Field worker",
@@ -31,6 +32,11 @@ export default async function DashboardPage() {
         <p className="inline-block rounded-full border px-3 py-1 text-sm">
           {ROLE_LABELS[session.role] ?? session.role}
         </p>
+        {session.role === "WORKER" && (
+          <p className="space-x-4 text-sm">
+            <Link href="/profile" className="underline">My profile</Link>
+          </p>
+        )}
         {session.orgId && (
           <p className="text-sm text-neutral-500">Org ID: {session.orgId}</p>
         )}
@@ -43,8 +49,8 @@ export default async function DashboardPage() {
           </button>
         </form>
         <p className="text-xs text-neutral-500">
-          M0: auth + role skeleton only. Profiles, jobs, and matching land in
-          M1–M3.
+          M1: worker profiles, scorecards and political-fit consent. Jobs and
+          matching land in M2–M3.
         </p>
       </div>
     </main>

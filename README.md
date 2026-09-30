@@ -126,13 +126,17 @@ review & consent; every change is a new consent version), company view showing
 only worker-authorized signals, and a scorecard derived from work events
 (`GET /api/workers/:workerId/scorecard`).
 
-Hand-computed scorecard for the seeded shift (4h on shift, 30 min paused):
+Scorecard formulas follow spec p.10. Averages use verified shifts only
+(checked in, checked out, closeout approved) and are segmented by work type;
+`?period=lifetime|12m|90d&workType=PETITION|CANVASS&state=CO` filters them.
+Hand-computed values for the seeded petition shift (4h on shift, 30 min
+paused, closeout approved):
 
-| Metric | Computation | Value |
-| --- | --- | --- |
-| Doors per active hour | 40 / 3.5 | 11.43 |
-| Doors per completed shift | 40 / 1 | 40 |
-| Contact rate | 18 / 40 | 45% |
-| Signatures per active hour | 22 / 3.5 | 6.29 |
-| Acceptance rate | 20 / 22 | 90.9% |
-| Show rate | 1 / 1 | 100% |
+| Metric | Formula | Seed | Value |
+| --- | --- | --- | --- |
+| Doors per active hour | verified doors ÷ verified active field hours | 40 / 3.5 | 11.43 |
+| Doors per completed shift | verified doors ÷ completed door shifts | 40 / 1 | 40 |
+| Contact rate | contacts ÷ doors attempted | 18 / 40 | 45% |
+| Signatures per active hour | submitted ÷ verified petition hours | 22 / 3.5 | 6.29 |
+| Acceptance rate | accepted ÷ reviewed | 20 / 22 | 90.9% |
+| Show rate | started accepted shifts ÷ accepted shifts not cancelled | 1 / 1 | 100% |

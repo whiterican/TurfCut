@@ -6,7 +6,8 @@
  * Run: npm run seed (requires DATABASE_URL).
  * Idempotent — safe to re-run. Every row has a fixed id (the same ids as
  * prisma/manual-seed.sql). Append-only tables are written with INSERT … ON
- * CONFLICT DO NOTHING, so a re-run never duplicates or rewrites anything. The metric snapshot is computed from the
+ * CONFLICT DO NOTHING, so a re-run never duplicates or rewrites anything.
+ * The metric snapshot is computed by the app's own scorecard loader from the
  * seeded work events, never hand-written.
  *
  * NOTE: this seeds database rows only. Auth users (Supabase) are created via
@@ -14,7 +15,8 @@
  * point the worker's profileId at the new auth user id.
  */
 import { PrismaClient, type Prisma } from "@prisma/client";
-import { computeScorecard } from "../src/lib/scorecard";
+import { db } from "../src/lib/db";
+import { loadScorecard } from "../src/lib/scorecard-data";
 import { SEED_SHIFT_EVENTS, SEED_SHIFT_HOURS, SEED_SHIFT_ID } from "./seed-fixture";
 
 const prisma = new PrismaClient();
@@ -194,35 +196,22 @@ async function main() {
   // --- Versioned metric snapshot for worker 1, computed from the events above.
   // Append-only: a new version is written only when the computed metrics differ
   // from the latest stored version. ---
-  const seededShifts = await prisma.shift.findMany({
-    where: { engagement: { workerId: workers[0].id } },
-    include: { events: true },
-  });
-  const scorecard = computeScorecard(seededShifts);
-  const snapshot = {
-    ...scorecard.totals,
-    ...Object.fromEntries(
-      // Rounded to 6 places: jsonb round-trips floats at 15 significant
-      // digits, and an exact compare below would otherwise never match.
-      Object.entries(scorecard.metrics).map(([k, m]) => [
-        k,
-        m.value === null ? null : Math.round(m.value * 1e6) / 1e6,
-      ])
-    ),
-  };
+  const scorecard = await loadScorecard(workers[0].id);
+  // Rounded to 6 places: jsonb round-trips floats at 15 significant digits,
+  // and the exact compare below would otherwise never match. computedAt is
+  // left out so an unchanged ledger doesn't produce a new version.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { computedAt, ...snapshot } = roundDeep(scorecard) as typeof scorecard;
   const latest = await prisma.profileMetric.findFirst({
     where: { workerId: workers[0].id },
     orderBy: { version: "desc" },
   });
-  // jsonb doesn't preserve key order, so compare on sorted keys.
-  const canonical = (v: unknown) =>
-    JSON.stringify(Object.entries(v as object).sort(([a], [b]) => a.localeCompare(b)));
   if (!latest || canonical(latest.metrics) !== canonical(snapshot)) {
     await prisma.profileMetric.create({
       data: {
         workerId: workers[0].id,
         version: (latest?.version ?? 0) + 1,
-        metrics: snapshot as Prisma.InputJsonObject,
+        metrics: snapshot as unknown as Prisma.InputJsonObject,
       },
     });
   }
@@ -263,6 +252,27 @@ async function main() {
   console.log(`  shift:       completed, 40 doors / 18 contacts / 22 signatures (20 accepted), 30 min paused`);
 }
 
+function roundDeep(v: unknown): unknown {
+  if (typeof v === "number") return Math.round(v * 1e6) / 1e6;
+  if (Array.isArray(v)) return v.map(roundDeep);
+  if (v && typeof v === "object") {
+    return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, roundDeep(x)]));
+  }
+  return v;
+}
+
+/** jsonb reorders keys at every level, so compare on recursively sorted keys. */
+function canonical(v: unknown): string {
+  if (Array.isArray(v)) return `[${v.map(canonical).join(",")}]`;
+  if (v && typeof v === "object") {
+    return `{${Object.keys(v)
+      .sort()
+      .map((k) => `${JSON.stringify(k)}:${canonical((v as Record<string, unknown>)[k])}`)
+      .join(",")}}`;
+  }
+  return JSON.stringify(v);
+}
+
 main()
   .catch((e) => {
     console.error(e);
@@ -270,4 +280,5 @@ main()
   })
   .finally(async () => {
     await prisma.$disconnect();
+    await db().$disconnect(); // the app client used by loadScorecard
   });

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { requireWorker } from "@/lib/worker-session";
-import { loadScorecard } from "@/lib/scorecard-data";
+import { loadScorecardPeriods } from "@/lib/scorecard-data";
 import { loadLatestPreference } from "@/lib/political-fit-data";
 import { VISIBILITY_OPTIONS } from "@/lib/political-fit";
 import { ExperienceForm } from "@/components/ExperienceForm";
@@ -14,7 +14,7 @@ export default async function ProfilePage() {
   const [worker, records, scorecard, fit] = await Promise.all([
     db().worker.findUniqueOrThrow({ where: { id: workerId }, select: { displayName: true } }),
     db().experienceRecord.findMany({ where: { workerId }, orderBy: { startDate: "desc" } }),
-    loadScorecard(workerId),
+    loadScorecardPeriods(workerId),
     loadLatestPreference(workerId),
   ]);
   const mode = fit && VISIBILITY_OPTIONS.find((o) => o.value === fit.visibilityMode);
@@ -28,7 +28,7 @@ export default async function ProfilePage() {
 
       <section className="space-y-3">
         <h2 className="text-lg font-semibold">Scorecard</h2>
-        <ScorecardPanel scorecard={scorecard} />
+        <ScorecardPanel periods={scorecard} />
       </section>
 
       <section className="space-y-4">

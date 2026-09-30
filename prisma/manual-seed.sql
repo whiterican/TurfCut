@@ -83,7 +83,7 @@ ON CONFLICT ("id") DO NOTHING;
 
 -- --- Work events (append-only) ---
 -- Mirrors prisma/seed-fixture.ts. Timestamps are offsets from the shift's
--- check-in: 30 min paused, 3.5 active hours, 20 of 22 signatures accepted.
+-- check-in: 30 min paused, 3.5 active hours; batch count 22 reviewed, 20 accepted.
 -- Ids 131-135 are the M0 events; 136-140 were added in M1. Re-running against
 -- an M0 database adds only the new events (ON CONFLICT DO NOTHING).
 INSERT INTO "public"."WorkEvent" ("id","shiftId","type","payload","createdAt") VALUES
@@ -106,7 +106,7 @@ INSERT INTO "public"."WorkEvent" ("id","shiftId","type","payload","createdAt") V
   ('00000000-0000-0000-0000-000000000139','00000000-0000-0000-0000-000000000201',
    'CHECK_OUT','{}',(SELECT "checkInAt" FROM "public"."Shift" WHERE "id"='00000000-0000-0000-0000-000000000201') + interval '240 minutes'),
   ('00000000-0000-0000-0000-000000000140','00000000-0000-0000-0000-000000000201',
-   'BATCH_COUNT','{"submitted":22,"accepted":20}',(SELECT "checkInAt" FROM "public"."Shift" WHERE "id"='00000000-0000-0000-0000-000000000201') + interval '250 minutes')
+   'BATCH_COUNT','{"reviewed":22,"accepted":20,"rejected":2}',(SELECT "checkInAt" FROM "public"."Shift" WHERE "id"='00000000-0000-0000-0000-000000000201') + interval '250 minutes')
 ON CONFLICT ("id") DO NOTHING;
 
 -- --- Supervisor validation of the shift ---
@@ -115,14 +115,11 @@ INSERT INTO "public"."Validation" ("id","shiftId","status","reason","createdAt")
    'APPROVED','Seed validation - packet reconciled.',NOW())
 ON CONFLICT ("id") DO NOTHING;
 
--- --- Versioned metric snapshot for worker 1 ---
--- Output of computeScorecard() over the events above (what `npm run seed`
--- writes). Not hand-tuned: regenerate from the scorecard if events change.
-INSERT INTO "public"."ProfileMetric" ("id","workerId","version","metrics","computedAt") VALUES
-  ('00000000-0000-0000-0000-000000000151','00000000-0000-0000-0000-000000000101',1,
-   '{"contacts":18,"showRate":1,"shiftsDue":1,"activeHours":3.5,"contactRate":0.45,"pausedHours":0.5,"doorsKnocked":40,"acceptanceRate":0.909091,"shiftsCheckedIn":1,"shiftsCompleted":1,"shiftsReconciled":1,"doorsPerActiveHour":11.428571,"signaturesAccepted":20,"signaturesSubmitted":22,"doorsPerCompletedShift":40,"signaturesPerActiveHour":6.285714}',
-   NOW())
-ON CONFLICT ("workerId","version") DO NOTHING;
+-- --- Metric snapshots ---
+-- None here on purpose: ProfileMetric rows are computed by the app's
+-- scorecard from the events above (`npm run seed` writes one), never
+-- hand-written in SQL. Nothing reads them in M1; the scorecard endpoint
+-- always derives live from work_events.
 
 -- --- Payout: approved earnings for the shift (4h x $25/h, 15% fee) ---
 INSERT INTO "public"."Payout"

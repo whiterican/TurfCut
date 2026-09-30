@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { workerAccess } from "@/lib/access";
 import { requireEmployer } from "@/lib/employer-session";
-import { loadScorecard } from "@/lib/scorecard-data";
+import { loadScorecardPeriods } from "@/lib/scorecard-data";
 import { employerFitView } from "@/lib/political-fit";
 import { loadLatestPreference, orgHasRelationship } from "@/lib/political-fit-data";
 import { ScorecardPanel } from "@/components/ScorecardPanel";
@@ -33,7 +33,7 @@ export default async function EmployerWorkerPage({
 
   const [records, scorecard, pref, related] = await Promise.all([
     db().experienceRecord.findMany({ where: { workerId }, orderBy: { startDate: "desc" } }),
-    loadScorecard(workerId),
+    loadScorecardPeriods(workerId),
     loadLatestPreference(workerId),
     orgHasRelationship(workerId, access.orgId),
   ]);
@@ -48,7 +48,7 @@ export default async function EmployerWorkerPage({
 
       <section className="space-y-3">
         <h2 className="text-lg font-semibold">Scorecard</h2>
-        <ScorecardPanel scorecard={scorecard} />
+        <ScorecardPanel periods={scorecard} />
       </section>
 
       <section className="space-y-3">

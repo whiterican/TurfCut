@@ -2,18 +2,23 @@ import type { NextRequest } from "next/server";
 import { getSessionProfile } from "@/lib/auth";
 import { workerAccess } from "@/lib/access";
 import { db } from "@/lib/db";
-import { loadScorecard } from "@/lib/scorecard-data";
+import { loadScorecard, parseScorecardQuery } from "@/lib/scorecard-data";
 
 /**
- * GET /api/workers/:workerId/scorecard
- * Scorecard derived from work_events. Each metric carries its formula,
- * numerator, denominator and evidence. There is no overall score.
+ * GET /api/workers/:workerId/scorecard?period=lifetime|12m|90d&workType=PETITION|CANVASS&state=CO
+ * Scorecard derived from work_events, segmented by work type. Each metric
+ * carries its formula, numerator, denominator and evidence. There is no
+ * overall score.
  */
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ workerId: string }> }
 ) {
   const { workerId } = await params;
+  const query = parseScorecardQuery(req.nextUrl.searchParams);
+  if (!query.ok) {
+    return Response.json({ error: query.error }, { status: 400 });
+  }
 
   const session = await getSessionProfile();
   if (!session) {
@@ -39,6 +44,6 @@ export async function GET(
     return Response.json({ error: "Worker not found." }, { status: 404 });
   }
 
-  const scorecard = await loadScorecard(workerId);
+  const scorecard = await loadScorecard(workerId, query.opts);
   return Response.json({ workerId, ...scorecard });
 }

@@ -5,16 +5,18 @@
  *
  * Timeline (offsets from check-in):
  *   0:00 CHECK_IN · 0:05 PACKET_PICKUP · 1:30–2:00 paused · 4:00 CHECK_OUT
- *   40 doors, 18 contacts, 22 signatures submitted, 20 accepted at batch count.
+ *   40 doors, 18 contacts, 22 signatures submitted; batch count: 22 reviewed,
+ *   20 accepted, 2 rejected. The shift's closeout is APPROVED (validation 141),
+ *   so it is a verified PETITION shift in CO.
  *
- * Hand-computed scorecard (see src/lib/scorecard.test.ts):
- *   active hours      4h − 0.5h paused = 3.5
- *   doors/active hr   40 / 3.5         = 11.428571…
- *   doors/shift       40 / 1           = 40
- *   contact rate      18 / 40          = 0.45
- *   sigs/active hr    22 / 3.5         = 6.285714…
- *   acceptance rate   20 / 22          = 0.909090…
- *   show rate         1 / 1            = 1
+ * Hand-computed scorecard, spec p.10 formulas (see src/lib/scorecard.test.ts):
+ *   verified active hours          4h − 0.5h paused = 3.5
+ *   doors / active field hour      40 / 3.5         = 11.428571…
+ *   doors / completed door shift   40 / 1           = 40
+ *   contact rate                   18 / 40          = 0.45
+ *   signatures / petition hour     22 / 3.5         = 6.285714…
+ *   acceptance (accepted/reviewed) 20 / 22          = 0.909090…
+ *   show rate (started/accepted)   1 / 1            = 1
  */
 
 export const SEED_SHIFT_ID = "00000000-0000-0000-0000-000000000201";
@@ -33,5 +35,5 @@ export const SEED_SHIFT_EVENTS = [
   { id: "00000000-0000-0000-0000-000000000134", type: "SIGNATURE_SUBMITTED", offsetMs: 200 * MIN, payload: { count: 22 } },
   { id: "00000000-0000-0000-0000-000000000135", type: "PACKET_RETURN", offsetMs: 230 * MIN, payload: { packetId: "PKT-0001", sheetsReturned: 25, signatures: 22 } },
   { id: "00000000-0000-0000-0000-000000000139", type: "CHECK_OUT", offsetMs: 240 * MIN, payload: {} },
-  { id: "00000000-0000-0000-0000-000000000140", type: "BATCH_COUNT", offsetMs: 250 * MIN, payload: { submitted: 22, accepted: 20 } },
+  { id: "00000000-0000-0000-0000-000000000140", type: "BATCH_COUNT", offsetMs: 250 * MIN, payload: { reviewed: 22, accepted: 20, rejected: 2 } },
 ] as const;

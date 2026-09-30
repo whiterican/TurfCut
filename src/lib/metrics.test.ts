@@ -12,12 +12,14 @@ import {
 
 const totals: ShiftTotals = {
   activeMs: 4 * 3_600_000,
-  doorsKnocked: 40,
+  doorsAttempted: 40,
   contacts: 18,
   signaturesSubmitted: 22,
+  signaturesReviewed: 25,
   signaturesAccepted: 20,
-  shiftsCompleted: 2,
-  shiftsScheduled: 3,
+  doorShiftsCompleted: 2,
+  shiftsStarted: 2,
+  shiftsAccepted: 3,
 };
 
 describe("scorecard metric formulas", () => {
@@ -43,21 +45,23 @@ describe("scorecard metric formulas", () => {
     expect(signaturesPerActiveHour(totals)).toBe(5.5);
   });
 
-  it("computes contact, acceptance, and show rates", () => {
+  it("computes contact, acceptance (over reviewed), and show rates", () => {
     expect(contactRate(totals)).toBeCloseTo(0.45);
-    expect(acceptanceRate(totals)).toBeCloseTo(20 / 22);
+    expect(acceptanceRate(totals)).toBeCloseTo(20 / 25);
     expect(showRate(totals)).toBeCloseTo(2 / 3);
   });
 
   it("returns null instead of dividing by zero", () => {
     const empty: ShiftTotals = {
       activeMs: 0,
-      doorsKnocked: 0,
+      doorsAttempted: 0,
       contacts: 0,
       signaturesSubmitted: 0,
+      signaturesReviewed: 0,
       signaturesAccepted: 0,
-      shiftsCompleted: 0,
-      shiftsScheduled: 0,
+      doorShiftsCompleted: 0,
+      shiftsStarted: 0,
+      shiftsAccepted: 0,
     };
     expect(doorsPerActiveHour(empty)).toBeNull();
     expect(contactRate(empty)).toBeNull();

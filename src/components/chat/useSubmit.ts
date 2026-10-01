@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
+import { unstable_rethrow } from "next/navigation";
 import type { ActionState } from "@/app/jobs/actions";
 
 /**
@@ -8,7 +9,8 @@ import type { ActionState } from "@/app/jobs/actions";
  * Unlike <form action>, React doesn't auto-reset the form afterwards — so a
  * failed send keeps its text, ticked boxes and chosen file. Callers reset
  * what they need on success. The clicked button's name/value is included
- * (quick replies).
+ * (quick replies). A network or server failure becomes a message, never the
+ * error page (which would lose the draft); Next's own redirects pass through.
  */
 export function useSubmit(
   action: (prev: ActionState, fd: FormData) => Promise<ActionState>,
@@ -16,15 +18,25 @@ export function useSubmit(
 ) {
   const [state, setState] = useState<ActionState>({ ok: false, message: "" });
   const [pending, start] = useTransition();
+  // A ref, not `pending`: two submits in one frame (Cmd+Enter and a tap) must not both send.
+  const inFlight = useRef(false);
   const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (pending) return;
+    if (inFlight.current) return;
+    inFlight.current = true;
     const form = e.currentTarget;
     const fd = new FormData(form, (e.nativeEvent as SubmitEvent).submitter);
     start(async () => {
-      const r = await action(state, fd);
-      setState(r);
-      after?.(r, form);
+      try {
+        const r = await action(state, fd);
+        setState(r);
+        after?.(r, form);
+      } catch (err) {
+        unstable_rethrow(err); // redirect() after creating a team chat, etc.
+        setState({ ok: false, message: "Couldn't reach Turfcut. Check your connection and try again — nothing was lost." });
+      } finally {
+        inFlight.current = false;
+      }
     });
   };
   return { state, pending, onSubmit };

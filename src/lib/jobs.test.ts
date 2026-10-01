@@ -229,6 +229,7 @@ describe("feed filters", () => {
     // "This week" quick filter: the next 7 days from now.
     const now = new Date("2026-10-01T12:00:00Z");
     expect(parseFeedFilters(new URLSearchParams("week=1"), now)).toEqual({ startsBefore: new Date("2026-10-08T12:00:00Z") });
+    expect(parseFeedFilters(new URLSearchParams("week=1&startsBefore=2026-12-01"), now).startsBefore).toEqual(new Date("2026-12-01T23:59:59Z"));
   });
 });
 

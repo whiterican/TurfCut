@@ -58,7 +58,7 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
   ];
   const anyFilter = !!(filters.type || filters.minRateCents || filters.startsBefore || filters.noCredentials);
   // The date field shows a typed date only, not the "This week" window.
-  const typedStartsBefore = params.get("week") === "1" ? null : filters.startsBefore;
+  const typedStartsBefore = parseFeedFilters(new URLSearchParams(params.get("startsBefore") ? { startsBefore: params.get("startsBefore")! } : {})).startsBefore;
 
   return (
     <main className="page">

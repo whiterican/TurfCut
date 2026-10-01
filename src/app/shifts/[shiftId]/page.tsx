@@ -159,6 +159,8 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
         )}
         {started && (
           <LiveShiftStats
+            // A fresh clock with every server render (each action refreshes the page).
+            key={now.getTime()}
             activeMs={worked.ms}
             running={worked.running}
             maxExtraMs={s.endsAt.getTime() - now.getTime()}

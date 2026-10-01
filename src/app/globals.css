@@ -661,7 +661,7 @@ body {
 
 /* While typing a message, the keyboard covers the tab bar: hide it and let
    the composer sit on the keyboard. */
-@media (max-width: 63.99rem) {
+@media (max-width: 63.99rem) and (pointer: coarse) {
   body:has(.composer-input:focus) .tabbar {
     display: none;
   }

@@ -45,6 +45,7 @@ export default async function MyShiftsPage() {
           <h1 className="page-title">My shifts</h1>
           <p className="text-muted-sm">Every campaign in one calendar. Shifts never overlap — scheduling checks across all of them.</p>
         </div>
+        <Link href="/shifts/turf" className="btn-secondary">My turf</Link>
       </header>
       {upcoming.length === 0 ? (
         <div className="empty-state">

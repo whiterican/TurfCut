@@ -5,7 +5,7 @@ import { requireRole } from "@/lib/auth";
 import { FIELD_ROLES, SCHEDULING_ROLES } from "@/lib/access";
 import { requireWorker } from "@/lib/worker-session";
 import { formToObject } from "@/lib/jobs";
-import { scheduleShift, supervisorShiftAction, workerShiftAction, type WorkerRequest } from "@/lib/field-day-data";
+import { scheduleShift, supervisorShiftAction, workerShiftAction, workerTurfAction, type WorkerRequest } from "@/lib/field-day-data";
 import type { SupervisorAction } from "@/lib/field-day";
 import type { ActionState } from "@/app/jobs/actions";
 
@@ -110,4 +110,21 @@ export async function supervisorStep(_prev: ActionState, fd: FormData): Promise<
   const r = await supervisorShiftAction({ profileId: s.userId, orgId: s.orgId }, shiftId, action);
   refresh(shiftId);
   return r.ok ? { ok: true, message: DONE[kind] ?? "Saved." } : { ok: false, message: r.reason };
+}
+
+/**
+ * Worker turf marks: drop or remove a pin, or set/clear their own turf for
+ * the day. Called from the map (not a form), so arguments are plain values.
+ */
+export async function turfStep(
+  shiftId: string,
+  req: { kind: "pin"; lat: number; lng: number; category: string; label: string | null } | { kind: "unpin"; pinId: string } | { kind: "day_turf"; polygon: unknown }
+): Promise<ActionState> {
+  const { workerId, userId } = await requireWorker();
+  const action = req.kind === "pin" ? { ...req, pinId: crypto.randomUUID() } : req;
+  const r = await workerTurfAction({ workerId, profileId: userId }, shiftId, action);
+  refresh(shiftId);
+  revalidatePath("/shifts/turf");
+  const done = { pin: "Pin dropped.", unpin: "Pin removed.", day_turf: req.kind === "day_turf" && req.polygon === null ? "Turf cleared." : "Turf saved." }[req.kind];
+  return r.ok ? { ok: true, message: done } : { ok: false, message: r.reason };
 }

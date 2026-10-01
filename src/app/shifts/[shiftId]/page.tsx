@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { requireAuth } from "@/lib/auth";
 import { FIELD_ROLES, SCHEDULING_ROLES } from "@/lib/access";
 import { readSupportContacts } from "@/lib/jobs";
-import { readTurf, shiftProgress, shiftState } from "@/lib/field-day";
+import { readTurf, shiftProgress, shiftState, turfMarks, turfMarksClosed } from "@/lib/field-day";
 import { facts, loadShift } from "@/lib/field-day-data";
 import { ShiftProgress } from "@/components/ShiftProgress";
 import { TurfMap } from "@/components/TurfMap";
@@ -11,6 +11,8 @@ import { LocalTime } from "@/components/LocalTime";
 import { ActionButton } from "@/components/ActionButton";
 import { CheckInButton, OnShiftActions } from "@/components/FieldDayActions";
 import { Row } from "@/components/Row";
+import { PinLegend, toMapPins, TurfWorkbench } from "@/components/TurfWorkbench";
+import { PIN_CATEGORIES } from "@/lib/field-day";
 import { supervisorStep, workerStep } from "../actions";
 
 const EVENT_LABELS: Record<string, string> = {
@@ -27,11 +29,17 @@ const EVENT_LABELS: Record<string, string> = {
   SHIFT_CANCELLED: "Shift cancelled",
   INCIDENT: "Incident reported",
   CORRECTION: "Correction",
-  NOTE: "Note",
+  NOTE: "Turf mark",
 };
 
 function eventDetail(type: string, payload: unknown): string {
   const p = (payload ?? {}) as Record<string, unknown>;
+  if (type === "NOTE" && p.kind === "pin") {
+    const cat = PIN_CATEGORIES.find((c) => c.value === p.category)?.label ?? "Pin";
+    return `${cat}${p.label ? ` — ${p.label}` : ""}`;
+  }
+  if (type === "NOTE" && p.kind === "unpin") return "pin removed";
+  if (type === "NOTE" && p.kind === "day_turf") return p.polygon ? "worker marked their turf for the day" : "worker cleared their day turf";
   switch (type) {
     case "CHECK_IN":
       return p.atStaging === true ? "at staging" : p.atStaging === false ? `away from staging (${p.distance})` : "location not checked";
@@ -67,6 +75,8 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
   const st = shiftState(f);
   const steps = shiftProgress(f);
   const turf = readTurf(s.turfArea);
+  const marks = turfMarks(f.events);
+  const marksOpen = isWorker && turfMarksClosed(f, new Date()) === null;
   const staging = s.stagingLat !== null && s.stagingLng !== null ? { lat: s.stagingLat, lng: s.stagingLng } : null;
   const contacts = readSupportContacts(s.engagement.job.supportContacts);
   const petition = f.workType === "PETITION";
@@ -191,10 +201,24 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
 
       <ShiftProgress steps={steps} />
 
-      {(turf || staging) && (
+      {(turf || staging || marks.dayTurf || marks.pins.length > 0 || marksOpen) && (
         <section className="section">
           <h2 className="section-title">Turf</h2>
-          <TurfMap turf={turf} staging={staging} />
+          {turf ? (
+            <p className="text-muted-sm">Turf assigned by {s.engagement.job.org.name}.</p>
+          ) : marks.dayTurf ? (
+            <p className="text-muted-sm">{isWorker ? "Your" : "The worker's"} own turf for today (dashed).</p>
+          ) : (
+            <p className="text-muted-sm">No turf assigned by the campaign{marksOpen ? " — mark your own for today below." : "."}</p>
+          )}
+          {marksOpen ? (
+            <TurfWorkbench shiftId={s.id} turf={turf} dayTurf={marks.dayTurf} staging={staging} pins={marks.pins} canDrawDayTurf={!turf} />
+          ) : (
+            <>
+              <TurfMap turf={turf} dayTurf={marks.dayTurf} staging={staging} pins={toMapPins(marks.pins)} />
+              {marks.pins.length > 0 && <PinLegend />}
+            </>
+          )}
           {s.stagingLocation && <p className="text-muted-sm">Check in at {s.stagingLocation}.</p>}
         </section>
       )}

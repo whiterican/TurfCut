@@ -6,6 +6,13 @@ import type { LatLngExpression, LayerGroup, Map as LeafletMap } from "leaflet";
 import type { TurfPolygon } from "@/lib/field-day";
 
 type Point = { lat: number; lng: number };
+export interface MapPin {
+  id: string;
+  lat: number;
+  lng: number;
+  color: string;
+  label: string;
+}
 
 const STROKE = "#2b6534";
 const FILL = "#c6ec8c";
@@ -26,11 +33,22 @@ export function TurfMap({
   turf = null,
   staging = null,
   editable = false,
+  allowStaging = true,
+  dayTurf = null,
+  pins = [],
+  onPick,
   className = "h-72",
 }: {
   turf?: TurfPolygon | null;
   staging?: Point | null;
   editable?: boolean;
+  /** With `editable`: offer the staging-point tools (organizers only). */
+  allowStaging?: boolean;
+  /** The worker's own turf for the day, drawn dashed. */
+  dayTurf?: TurfPolygon | null;
+  pins?: MapPin[];
+  /** Tap-to-pin: called with the tapped point instead of editing. */
+  onPick?: (p: Point) => void;
   className?: string;
 }) {
   const el = useRef<HTMLDivElement>(null);
@@ -39,7 +57,11 @@ export function TurfMap({
   const lib = useRef<typeof import("leaflet") | null>(null);
   const [points, setPoints] = useState<Point[]>(() => fromTurf(turf));
   const [stage, setStage] = useState<Point | null>(staging);
-  const [mode, setMode] = useState<"turf" | "staging">(turf || !editable ? "turf" : "staging");
+  const [mode, setMode] = useState<"turf" | "staging">(turf || !editable || !allowStaging ? "turf" : "staging");
+  const pickRef = useRef(onPick);
+  useEffect(() => {
+    pickRef.current = onPick;
+  }, [onPick]);
   const [ready, setReady] = useState(false);
   const modeRef = useRef(mode);
   useEffect(() => {
@@ -58,17 +80,17 @@ export function TurfMap({
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       }).addTo(m);
       layer.current = L.layerGroup().addTo(m);
-      const bounds = [...fromTurf(turf), ...(staging ? [staging] : [])].map((p) => [p.lat, p.lng] as [number, number]);
+      const bounds = [...fromTurf(turf), ...fromTurf(dayTurf), ...(staging ? [staging] : []), ...pins].map((p) => [p.lat, p.lng] as [number, number]);
       if (bounds.length > 1) m.fitBounds(bounds, { padding: [24, 24], maxZoom: 17 });
       else if (bounds.length === 1) m.setView(bounds[0], 16);
       else m.setView(US_CENTER, 4);
-      if (editable) {
-        m.on("click", (e) => {
-          const p = { lat: e.latlng.lat, lng: e.latlng.lng };
-          if (modeRef.current === "turf") setPoints((xs) => (xs.length >= 499 ? xs : [...xs, p]));
-          else setStage(p);
-        });
-      }
+      m.on("click", (e) => {
+        const p = { lat: e.latlng.lat, lng: e.latlng.lng };
+        if (pickRef.current) return pickRef.current(p);
+        if (!editable) return;
+        if (modeRef.current === "turf") setPoints((xs) => (xs.length >= 499 ? xs : [...xs, p]));
+        else setStage(p);
+      });
       map.current = m;
       setReady(true);
     });
@@ -90,12 +112,19 @@ export function TurfMap({
     if (latlngs.length >= 3) L.polygon(latlngs, { color: STROKE, weight: 2, fillColor: FILL, fillOpacity: 0.35 }).addTo(layer.current);
     else if (latlngs.length === 2) L.polyline(latlngs, { color: STROKE, weight: 2, dashArray: "4 4" }).addTo(layer.current);
     if (editable) for (const ll of latlngs) L.circleMarker(ll, { radius: 4, color: STROKE, weight: 2, fillColor: "#fff", fillOpacity: 1 }).addTo(layer.current);
+    const day = fromTurf(dayTurf).map((p) => [p.lat, p.lng] as [number, number]);
+    if (day.length >= 3) L.polygon(day, { color: STROKE, weight: 2, dashArray: "6 6", fillColor: FILL, fillOpacity: 0.18 }).bindTooltip("Your turf today").addTo(layer.current);
     if (stage) {
       L.circleMarker([stage.lat, stage.lng], { radius: 9, color: "#17201a", weight: 3, fillColor: FILL, fillOpacity: 1 })
         .bindTooltip("Staging")
         .addTo(layer.current);
     }
-  }, [points, stage, ready, editable]);
+    for (const pin of pins) {
+      L.circleMarker([pin.lat, pin.lng], { radius: 8, color: "#ffffff", weight: 2, fillColor: pin.color, fillOpacity: 1 })
+        .bindTooltip(pin.label)
+        .addTo(layer.current);
+    }
+  }, [points, stage, ready, editable, dayTurf, pins]);
 
   const turfJson = toTurf(points);
 
@@ -105,26 +134,36 @@ export function TurfMap({
       {editable && (
         <>
           <input type="hidden" name="turfArea" value={turfJson ? JSON.stringify(turfJson) : ""} />
-          <input type="hidden" name="stagingLat" value={stage ? stage.lat.toFixed(6) : ""} />
-          <input type="hidden" name="stagingLng" value={stage ? stage.lng.toFixed(6) : ""} />
+          {allowStaging && (
+            <>
+              <input type="hidden" name="stagingLat" value={stage ? stage.lat.toFixed(6) : ""} />
+              <input type="hidden" name="stagingLng" value={stage ? stage.lng.toFixed(6) : ""} />
+            </>
+          )}
           <div className="flex flex-wrap items-center gap-2">
-            <label className="chip">
-              <input type="radio" name="mapMode" className="sr-only" checked={mode === "turf"} onChange={() => setMode("turf")} />
-              Draw turf
-            </label>
-            <label className="chip">
-              <input type="radio" name="mapMode" className="sr-only" checked={mode === "staging"} onChange={() => setMode("staging")} />
-              Place staging point
-            </label>
+            {allowStaging && (
+              <>
+                <label className="chip">
+                  <input type="radio" name="mapMode" className="sr-only" checked={mode === "turf"} onChange={() => setMode("turf")} />
+                  Draw turf
+                </label>
+                <label className="chip">
+                  <input type="radio" name="mapMode" className="sr-only" checked={mode === "staging"} onChange={() => setMode("staging")} />
+                  Place staging point
+                </label>
+              </>
+            )}
             <button type="button" className="btn-ghost btn-sm" disabled={!points.length} onClick={() => setPoints((xs) => xs.slice(0, -1))}>
               Undo corner
             </button>
             <button type="button" className="btn-ghost btn-sm" disabled={!points.length} onClick={() => setPoints([])}>
               Clear turf
             </button>
-            <button type="button" className="btn-ghost btn-sm" disabled={!stage} onClick={() => setStage(null)}>
-              Remove staging point
-            </button>
+            {allowStaging && (
+              <button type="button" className="btn-ghost btn-sm" disabled={!stage} onClick={() => setStage(null)}>
+                Remove staging point
+              </button>
+            )}
             <button
               type="button"
               className="btn-ghost btn-sm"
@@ -137,7 +176,8 @@ export function TurfMap({
           </div>
           <p className="text-hint">
             {mode === "turf" ? "Tap the map to add the turf's corners (3 or more)." : "Tap the map where workers check in."}{" "}
-            {turfJson ? `Turf: ${points.length} corners.` : "No turf drawn."} {stage ? "Staging point set." : "No staging point — check-in won't compare locations."}
+            {turfJson ? `Turf: ${points.length} corners.` : "No turf drawn."}{" "}
+            {allowStaging && (stage ? "Staging point set." : "No staging point — check-in won't compare locations.")}
           </p>
         </>
       )}

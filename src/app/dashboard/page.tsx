@@ -166,6 +166,7 @@ export default async function DashboardPage() {
           {isWorker && (
             <>
               <NavCard href="/shifts" title="My shifts" body="Every campaign in one calendar, from check-in to review." />
+              <NavCard href="/shifts/turf" title="My turf" body="Turf assigned to you, or mark your own for the day — and drop pins." />
               <NavCard href="/jobs" title="Find work" body="Open jobs, with pay, credentials and who to call — up front." />
               <NavCard href="/profile" title="My profile" body="Your scorecard, experience and political-fit status." />
               <NavCard

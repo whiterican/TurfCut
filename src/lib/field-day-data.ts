@@ -9,7 +9,9 @@ import {
   supervisorAction,
   validateShift,
   workerAction,
+  turfAction,
   type Outcome,
+  type TurfAction,
   type ShiftFacts,
   type SupervisorAction,
   type WorkerAction,
@@ -45,6 +47,7 @@ export function facts(s: LoadedShift): ShiftFacts {
     workType: s.engagement.job.type,
     events: s.events.map((e) => ({ type: e.type, payload: e.payload, actorId: e.actorId, createdAt: e.createdAt })),
     validations: s.validations.map((v) => ({ workEventId: v.workEventId, status: v.status, reason: v.reason, createdAt: v.createdAt })),
+    campaignTurf: s.turfArea !== null,
   };
 }
 
@@ -194,6 +197,22 @@ export async function supervisorShiftAction(
   });
 }
 
+/** The worker's own pins and day turf on their shift. */
+export async function workerTurfAction(
+  actor: { workerId: string; profileId: string },
+  shiftId: string,
+  action: TurfAction,
+  now = new Date()
+): Promise<Result> {
+  if (!UUID_RE.test(shiftId)) return { ok: false, reason: "Shift not found." };
+  return db().$transaction(async (tx) => {
+    await lock(tx, `shift:${shiftId}`);
+    const s = await loadShift(shiftId, tx);
+    if (!s || s.engagement.workerId !== actor.workerId) return { ok: false as const, reason: "Shift not found." };
+    return apply(tx, shiftId, actor.profileId, turfAction(facts(s), action, now), now);
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Views
 // ---------------------------------------------------------------------------
@@ -235,4 +254,18 @@ export async function loadOps(orgId: string, now = new Date()) {
     awaitingReview,
     rows: live,
   };
+}
+
+/**
+ * "My turf": the worker's shifts from today on (any campaign), with the
+ * campaign-assigned turf or the worker's own day turf, and their pins.
+ */
+export async function loadWorkerTurf(workerId: string, now = new Date()) {
+  const startOfToday = new Date(now.getTime() - 18 * 3_600_000);
+  return db().shift.findMany({
+    where: { engagement: { workerId }, status: { not: "CANCELLED" }, endsAt: { gte: startOfToday } },
+    include: SHIFT_INCLUDE,
+    orderBy: { startsAt: "asc" },
+    take: 20,
+  });
 }

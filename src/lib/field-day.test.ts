@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   findConflicts,
+  turfAction,
+  turfMarks,
   locationCheck,
   readTurf,
   shiftProgress,
@@ -178,5 +180,44 @@ describe("scheduling", () => {
     expect(readTurf({ type: "Polygon", coordinates: [[[0, 0], [1, 0], [1, 1], [0, 1]]] })).toBeNull(); // not closed
     expect(readTurf({ type: "Point", coordinates: [0, 0] })).toBeNull();
     expect(readTurf({ type: "Polygon", coordinates: [[[0, 0], [1, 0], [1, 91], [0, 0]]] })).toBeNull(); // bad latitude
+  });
+});
+
+describe("turf marks — pins and the worker's day turf", () => {
+  const pin = (id: string, min: number, extra: Record<string, unknown> = {}) =>
+    ev("NOTE", min, { kind: "pin", pinId: id, lat: 39.74, lng: -104.99, category: "good_spot", label: "Library steps", ...extra });
+  const square = { type: "Polygon", coordinates: [[[-104.99, 39.74], [-104.98, 39.74], [-104.98, 39.75], [-104.99, 39.74]]] };
+
+  it("replays pins and removals in order — nothing is edited", () => {
+    const m = turfMarks([pin("a", 1), pin("b", 2, { category: "do_not_knock", label: null }), ev("NOTE", 3, { kind: "unpin", pinId: "a" })]);
+    expect(m.pins.map((p) => [p.id, p.category])).toEqual([["b", "do_not_knock"]]);
+    expect(turfMarks([ev("NOTE", 1, { kind: "pin", pinId: "x", lat: 999, lng: 0, category: "note" })]).pins).toEqual([]);
+  });
+
+  it("drops a pin, cleaned up, during the day of the shift only", () => {
+    const a = { kind: "pin" as const, pinId: "p1", lat: 39.7392123456, lng: -104.9903, category: "come_back", label: "  gate   code? " };
+    expect(turfAction(shift(), a, at(-61)).ok).toBe(false);
+    expect(turfAction(shift(), a, at(-30))).toEqual({
+      ok: true,
+      event: { type: "NOTE", payload: { kind: "pin", pinId: "p1", lat: 39.739212, lng: -104.9903, category: "come_back", label: "gate code?" } },
+    });
+    expect(turfAction(shift(), a, at(8 * 60 + 6 * 60 + 1)).ok).toBe(false);
+    expect(turfAction(shift(), { ...a, category: "secret" }, at(0)).ok).toBe(false);
+    const reviewed = shift([], { validations: [{ workEventId: null, status: "APPROVED", reason: null, createdAt: at(500) }] });
+    expect(turfAction(reviewed, a, at(510)).ok).toBe(false);
+  });
+
+  it("removes only existing pins", () => {
+    expect(turfAction(shift([pin("a", 1)]), { kind: "unpin", pinId: "a" }, at(5))).toMatchObject({ ok: true, event: { payload: { kind: "unpin", pinId: "a" } } });
+    expect(turfAction(shift(), { kind: "unpin", pinId: "a" }, at(5)).ok).toBe(false);
+  });
+
+  it("lets the worker mark their own day turf only when the campaign didn't assign one", () => {
+    expect(turfAction(shift(), { kind: "day_turf", polygon: square }, at(0))).toMatchObject({ ok: true, event: { payload: { kind: "day_turf" } } });
+    expect(turfAction(shift([], { campaignTurf: true }), { kind: "day_turf", polygon: square }, at(0))).toEqual({ ok: false, reason: "The campaign assigned this shift's turf." });
+    expect(turfAction(shift(), { kind: "day_turf", polygon: { type: "Polygon", coordinates: [[[0, 0], [1, 1]]] } }, at(0)).ok).toBe(false);
+    const drawn = [ev("NOTE", 1, { kind: "day_turf", polygon: square })];
+    expect(turfMarks(drawn).dayTurf).toEqual(square);
+    expect(turfMarks([...drawn, ev("NOTE", 2, { kind: "day_turf", polygon: null })]).dayTurf).toBeNull();
   });
 });

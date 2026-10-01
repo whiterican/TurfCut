@@ -42,6 +42,8 @@ export interface ShiftFacts {
   workType: "PETITION" | "CANVASS";
   events: FieldEvent[];
   validations: FieldValidation[];
+  /** True when the organization assigned turf for this shift. */
+  campaignTurf?: boolean;
 }
 
 const obj = (v: unknown): Record<string, unknown> => (v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {});
@@ -444,4 +446,95 @@ export function validateShift(raw: Record<string, unknown>, job: { startsAt: Dat
   }
   if (Object.keys(errors).length) return { ok: false, errors };
   return { ok: true, value: { startsAt: startsAt!, endsAt: endsAt!, stagingLocation, stagingLat, stagingLng, supervisorId, turfArea } };
+}
+
+// ---------------------------------------------------------------------------
+// Turf marks — the worker's own pins and day turf (append-only NOTE events)
+// ---------------------------------------------------------------------------
+
+export const PIN_CATEGORIES = [
+  { value: "good_spot", label: "Good spot", color: "#2b6534" },
+  { value: "covered", label: "Covered", color: "#4b7bb5" },
+  { value: "come_back", label: "Come back", color: "#b7791f" },
+  { value: "do_not_knock", label: "Don't knock", color: "#b42318" },
+  { value: "note", label: "Note", color: "#5b5f66" },
+] as const;
+export type PinCategory = (typeof PIN_CATEGORIES)[number]["value"];
+export const MAX_PINS = 200;
+
+export interface TurfPin {
+  id: string;
+  lat: number;
+  lng: number;
+  category: PinCategory;
+  label: string | null;
+  at: Date;
+}
+
+/**
+ * Current pins and the worker's own day turf, replayed from NOTE events:
+ * {kind:"pin"} adds, {kind:"unpin"} removes, {kind:"day_turf"} sets (latest
+ * wins; polygon null clears). Nothing is ever edited or deleted.
+ */
+export function turfMarks(events: FieldEvent[]): { pins: TurfPin[]; dayTurf: TurfPolygon | null } {
+  const pins = new Map<string, TurfPin>();
+  let dayTurf: TurfPolygon | null = null;
+  for (const e of [...events].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())) {
+    if (e.type !== "NOTE") continue;
+    const p = obj(e.payload);
+    if (p.kind === "pin" && typeof p.pinId === "string" && isLatLng(p.lat, p.lng) && PIN_CATEGORIES.some((c) => c.value === p.category)) {
+      pins.set(p.pinId, { id: p.pinId, lat: p.lat as number, lng: p.lng as number, category: p.category as PinCategory, label: typeof p.label === "string" ? p.label : null, at: e.createdAt });
+    } else if (p.kind === "unpin" && typeof p.pinId === "string") {
+      pins.delete(p.pinId);
+    } else if (p.kind === "day_turf") {
+      dayTurf = p.polygon === null ? null : readTurf(p.polygon);
+    }
+  }
+  return { pins: [...pins.values()], dayTurf };
+}
+
+export type TurfAction =
+  | { kind: "pin"; pinId: string; lat: number; lng: number; category: string; label: string | null }
+  | { kind: "unpin"; pinId: string }
+  | { kind: "day_turf"; polygon: unknown };
+
+/**
+ * Pins and day turf are for the day of the shift: from when check-in opens
+ * until six hours after it ends, and never once the shift is reviewed.
+ */
+export function turfMarksClosed(s: ShiftFacts, now: Date): string | null {
+  const st = shiftState(s);
+  if (st.cancelled) return "This shift was cancelled.";
+  if (st.closeout) return "This shift has been reviewed; its turf is closed.";
+  if (now.getTime() < s.startsAt.getTime() - CHECK_IN_EARLY_MIN * 60_000) return "You can mark turf from an hour before the shift.";
+  if (now.getTime() > s.endsAt.getTime() + 6 * 3_600_000) return "Turf marks close six hours after the shift ends.";
+  return null;
+}
+
+export function turfAction(s: ShiftFacts, a: TurfAction, now: Date): Outcome {
+  const closed = turfMarksClosed(s, now);
+  if (closed) return no(closed);
+  const marks = turfMarks(s.events);
+  switch (a.kind) {
+    case "pin": {
+      if (!isLatLng(a.lat, a.lng)) return no("Tap the map to place the pin.");
+      if (!PIN_CATEGORIES.some((c) => c.value === a.category)) return no("Pick what the pin marks.");
+      if (marks.pins.length >= MAX_PINS) return no(`Up to ${MAX_PINS} pins per shift.`);
+      const label = a.label?.trim().replace(/\s+/g, " ").slice(0, 80) || null;
+      return {
+        ok: true,
+        event: { type: "NOTE", payload: { kind: "pin", pinId: a.pinId, lat: Math.round(a.lat * 1e6) / 1e6, lng: Math.round(a.lng * 1e6) / 1e6, category: a.category, label } },
+      };
+    }
+    case "unpin":
+      if (!marks.pins.some((p) => p.id === a.pinId)) return no("That pin is already gone.");
+      return { ok: true, event: { type: "NOTE", payload: { kind: "unpin", pinId: a.pinId } } };
+    case "day_turf": {
+      if (s.campaignTurf) return no("The campaign assigned this shift's turf.");
+      if (a.polygon === null) return marks.dayTurf ? { ok: true, event: { type: "NOTE", payload: { kind: "day_turf", polygon: null } } } : no("There's no turf to clear.");
+      const poly = readTurf(a.polygon);
+      if (!poly) return no("Draw at least three corners.");
+      return { ok: true, event: { type: "NOTE", payload: { kind: "day_turf", polygon: poly } } };
+    }
+  }
 }

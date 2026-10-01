@@ -135,7 +135,7 @@ export function TurfMap({
     }
     for (const pin of pins) {
       // bubblingMouseEvents: tapping a pin shows its label, it doesn't drop another pin.
-      L.circleMarker([pin.lat, pin.lng], { radius: 8, color: "#ffffff", weight: 2, fillColor: pin.color, fillOpacity: 1, bubblingMouseEvents: false })
+      L.circleMarker([pin.lat, pin.lng], { radius: 8, color: "#ffffff", weight: 2, fillColor: pin.color, fillOpacity: 1, bubblingMouseEvents: false, interactive: !editable })
         .bindTooltip(tip(pin.label))
         .addTo(layer.current);
     }

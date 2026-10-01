@@ -139,8 +139,10 @@ export async function turfStep(
     return { ok: false, message: "Bad request." };
   }
   const r = await workerTurfAction({ workerId, profileId: userId }, shiftId, action);
-  refresh(shiftId);
-  revalidatePath("/shifts/turf");
+  if (r.ok) {
+    refresh(shiftId);
+    revalidatePath("/shifts/turf");
+  }
   const done = { pin: "Pin dropped.", unpin: "Pin removed.", day_turf: req.kind === "day_turf" && req.polygon === null ? "Turf cleared." : "Turf saved." }[req.kind];
   return r.ok ? { ok: true, message: done } : { ok: false, message: r.reason };
 }

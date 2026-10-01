@@ -518,7 +518,10 @@ export function turfAction(s: ShiftFacts, a: TurfAction, now: Date): Outcome {
   const closed = turfMarksClosed(s, now);
   if (closed) return no(closed);
   const notes = s.events.filter((e) => e.type === "NOTE");
-  if (notes.length >= MAX_TURF_EVENTS) return no("This shift has reached its limit of turf changes.");
+  // Only additions count against the cap: removing a wrong pin or clearing
+  // a wrong turf must always work (removals need a live mark, so they're bounded).
+  const adding = a.kind === "pin" || (a.kind === "day_turf" && a.polygon !== null);
+  if (adding && notes.length >= MAX_TURF_EVENTS) return no("This shift has reached its limit of turf changes.");
   const marks = turfMarks(s.events);
   switch (a.kind) {
     case "pin": {

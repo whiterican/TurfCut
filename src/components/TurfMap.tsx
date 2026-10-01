@@ -88,7 +88,10 @@ export function TurfMap({
     import("leaflet").then((L) => {
       if (cancelled || !el.current || map.current) return;
       lib.current = L;
-      const m = L.map(el.current, { scrollWheelZoom: false, attributionControl: true });
+      // Double-tap zoom off when taps draw or pin: each tap of a double-tap
+      // would otherwise add a stray corner or a duplicate pin. Pinch and the
+      // +/− buttons still zoom.
+      const m = L.map(el.current, { scrollWheelZoom: false, attributionControl: true, doubleClickZoom: !(editable || pickRef.current) });
       L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
         maxZoom: 19,
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',

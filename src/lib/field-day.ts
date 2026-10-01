@@ -30,7 +30,7 @@ export interface FieldEvent {
 
 export interface FieldValidation {
   workEventId: string | null;
-  status: "PENDING" | "APPROVED" | "REJECTED";
+  status: "PENDING" | "APPROVED" | "REJECTED" | "FLAGGED";
   reason: string | null;
   createdAt: Date;
 }

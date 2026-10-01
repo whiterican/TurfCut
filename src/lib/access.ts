@@ -16,6 +16,12 @@ export const ORG_ROLES: Role[] = [
  */
 export const HIRING_ROLES: Role[] = ["OWNER", "RECRUITER"];
 
+/** Who schedules shifts for hired workers. */
+export const SCHEDULING_ROLES: Role[] = ["OWNER", "RECRUITER", "SUPERVISOR"];
+
+/** Who runs the field: hands out packets, counts batches, reviews shifts. */
+export const FIELD_ROLES: Role[] = ["OWNER", "SUPERVISOR"];
+
 export type WorkerAccess =
   | { kind: "self" }
   | { kind: "employer"; orgId: string }

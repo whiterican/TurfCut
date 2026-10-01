@@ -54,6 +54,9 @@ export default async function RootLayout({
             </Link>
             <div className="flex items-center gap-2">
               <TopNav tabs={tabs} />
+              <Link href="/settings" className="btn-ghost btn-sm" title="Display settings: text size and theme" aria-label="Display settings">
+                <span aria-hidden className="text-base font-bold leading-none">Aa</span>
+              </Link>
               <ThemeToggle />
             </div>
           </div>

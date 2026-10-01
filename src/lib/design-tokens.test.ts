@@ -51,10 +51,10 @@ describe.each([
     for (const s of SURFACES) expect(ratio(t.fg, t[s])).toBeGreaterThanOrEqual(7);
   });
 
-  it("secondary and hint text are AA (≥ 4.5:1) on every surface", () => {
+  it("secondary text is AAA (≥ 7:1) and hint text well above AA (≥ 6:1) on every surface", () => {
     for (const s of SURFACES) {
-      expect(ratio(t.muted, t[s])).toBeGreaterThanOrEqual(4.5);
-      expect(ratio(t.subtle, t[s])).toBeGreaterThanOrEqual(4.5);
+      expect(ratio(t.muted, t[s])).toBeGreaterThanOrEqual(7);
+      expect(ratio(t.subtle, t[s])).toBeGreaterThanOrEqual(6);
     }
   });
 

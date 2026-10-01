@@ -27,5 +27,10 @@ describe("numbers", () => {
     expect(percent(0.9)).toBe("90%");
     expect(percent(0.875)).toBe("87.5%");
     expect(percent(0.90909)).toBe("90.9%");
+    expect(percent(0.99999)).toBe("99.9%"); // not a false "100%"
+    expect(percent(1)).toBe("100%");
+    expect(percent(0.0001)).toBe("0.1%");
+    expect(num(-0.001)).toBe("0");
+    expect(num(NaN)).toBe("—");
   });
 });

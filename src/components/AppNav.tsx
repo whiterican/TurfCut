@@ -40,9 +40,11 @@ export function TabBar({ tabs }: { tabs: NavTab[] }) {
       <div className="mx-auto flex max-w-md">
         {tabs.map((t) => (
           <Link key={t.href} href={t.href} className="tab" aria-current={t.href === current ? "page" : undefined}>
-            <span aria-hidden className="tab-dot" />
+            <span aria-hidden className="tab-box">
+              {t.href === MESSAGES_HREF && <Badge count={count} />}
+            </span>
             {t.label}
-            {t.href === MESSAGES_HREF && <Badge count={count} />}
+            {t.href === MESSAGES_HREF && count > 0 && <span className="sr-only">, {count} unread</span>}
           </Link>
         ))}
       </div>

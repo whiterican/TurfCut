@@ -27,6 +27,7 @@ export default async function PreferencesPage() {
             {latest.status.state === "current" &&
               (latest.status.expiresAt ? `. They're used until ${dateText(latest.status.expiresAt)}, unless you change them` : ". They're used until you change them")}
             . If you change anything, your earlier answers are kept on record, never overwritten.
+            <span className="mt-1 block">Record no. {latest.consentVersion} — organizations see this number next to anything they were shown.</span>
           </p>
         )}
         {latest && latest.status.state !== "current" && (

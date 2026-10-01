@@ -18,7 +18,21 @@ export function relativeTime(then: Date, now: Date): string {
  * A measured value without noise: at most `digits` decimals, trailing zeros
  * dropped ("40", "11.43", "3.5"), thousands separated.
  */
-export const num = (v: number, digits = 2) => Number(v.toFixed(digits)).toLocaleString("en-US", { maximumFractionDigits: digits });
+export const num = (v: number, digits = 2) => {
+  if (!Number.isFinite(v)) return "—";
+  const r = Number(v.toFixed(digits));
+  return (Object.is(r, -0) ? 0 : r).toLocaleString("en-US", { maximumFractionDigits: digits });
+};
 
-/** A 0–1 rate as a percent with at most one decimal ("90%", "87.5%"). */
-export const percent = (v: number) => `${num(v * 100, 1)}%`;
+/**
+ * A 0–1 rate as a percent with at most one decimal ("90%", "87.5%"). Never
+ * rounds to a perfect 100% or 0% that isn't exact — on a scorecard, "100%"
+ * must mean nothing was rejected.
+ */
+export const percent = (v: number) => {
+  if (!Number.isFinite(v)) return "—";
+  const p = Number((v * 100).toFixed(1));
+  if (p >= 100 && v < 1) return "99.9%";
+  if (p <= 0 && v > 0) return "0.1%";
+  return `${num(p, 1)}%`;
+};

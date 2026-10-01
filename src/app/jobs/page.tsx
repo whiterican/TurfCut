@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { HIRING_ROLES, ORG_ROLES } from "@/lib/access";
 import { ENGAGEMENT_LABELS, JOB_STATUS_LABELS } from "@/lib/engagement-labels";
-import { JOB_TYPES, parseFeedFilters, payText } from "@/lib/jobs";
+import { JOB_TYPES, parseFeedFilters, payShort } from "@/lib/jobs";
 import { plural } from "@/lib/format";
 import { loadFeed } from "@/lib/jobs-data";
 
@@ -108,22 +108,22 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
               const geo = (j.geography ?? {}) as { city?: string; state?: string };
               return (
                 <li key={j.id}>
-                  <Link transitionTypes={["nav-forward"]} href={`/jobs/${j.id}`} className="card group flex flex-col gap-3 transition hover:border-[var(--border-strong)] sm:flex-row sm:items-start sm:justify-between">
-                    <span className="min-w-0 space-y-2">
-                      <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-semibold text-muted">
-                        {j.org.name}
-                        {geo.city && <><span aria-hidden>·</span>{geo.city}, {geo.state}</>}
-                        <span className="badge-mint">Approved org</span>
+                  <Link transitionTypes={["nav-forward"]} href={`/jobs/${j.id}`} className="card group block space-y-3 transition hover:border-[var(--border-strong)]">
+                    <span className="flex items-start justify-between gap-4">
+                      <span className="min-w-0">
+                        <span className="block text-lg leading-snug font-bold tracking-[-0.01em] text-fg">{j.title}</span>
+                        <span className="mt-0.5 block text-sm text-muted">
+                          {[j.org.name, geo.city && `${geo.city}, ${geo.state}`, `${day(j.startsAt)} – ${day(j.endsAt)}`].filter(Boolean).join(" · ")}
+                        </span>
                       </span>
-                      <span className="block text-base font-bold tracking-[-0.01em] text-fg">{j.title}</span>
-                      <span className="flex flex-wrap gap-1.5">
-                        <span className="badge-neutral">{day(j.startsAt)} – {day(j.endsAt)}</span>
-                        <span className="badge-neutral">{j.type === "PETITION" ? "Petition" : "Canvass"}</span>
+                      <span className="shrink-0 text-right">
+                        <span className="block text-lg font-bold text-fg tabular-nums">{payShort(j.compensationMethod, j.payRateCents)}</span>
+                        <span className="block text-xs text-subtle">gross</span>
                       </span>
                     </span>
-                    <span className="flex shrink-0 items-center justify-between gap-3 sm:flex-col sm:items-end">
-                      <span className="text-sm font-bold text-fg tabular-nums">{payText(j.compensationMethod, j.payRateCents)}</span>
-                      <span className="btn-primary btn-sm">View job</span>
+                    <span className="flex flex-wrap gap-1.5">
+                      <span className="badge-sky">Verified org</span>
+                      <span className={j.type === "PETITION" ? "badge-butter" : "badge-mint"}>{j.type === "PETITION" ? "Petition" : "Canvass"}</span>
                     </span>
                   </Link>
                 </li>

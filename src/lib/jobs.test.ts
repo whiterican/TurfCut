@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  payShort,
   jobToForm,
   parseFeedFilters,
   canScheduleShift,
@@ -223,5 +224,14 @@ describe("feed filters", () => {
       noCredentials: true,
     });
     expect(parseFeedFilters(new URLSearchParams("type=DROP TABLE&minRate=-3&startsBefore=soon"))).toEqual({});
+  });
+});
+
+describe("payShort", () => {
+  it("is compact, without trailing cents on whole dollars", () => {
+    expect(payShort("HOURLY", 2800)).toBe("$28/hr");
+    expect(payShort("SHIFT_RATE", 12050)).toBe("$120.50/shift");
+    expect(payShort("PER_UNIT", 150)).toBe("$1.50/unit");
+    expect(payShort("HOURLY", null)).toBe("Rate not set");
   });
 });

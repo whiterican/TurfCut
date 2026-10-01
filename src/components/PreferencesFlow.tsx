@@ -55,7 +55,8 @@ export function PreferencesFlow({ initial, consentText }: { initial: FitPreferen
   const [step, setStepRaw] = useState(0);
   // Steps you've reached stay tappable, so you can jump back (or forward
   // again) without paging through.
-  const [reached, setReached] = useState(0);
+  // Returning workers (saved answers) can jump anywhere straight away.
+  const [reached, setReached] = useState(initial ? FLOW_STEPS.length - 1 : 0);
   const setStep = (n: number | ((s: number) => number)) => {
     const next = typeof n === "function" ? n(step) : n;
     setStepRaw(next);
@@ -101,6 +102,7 @@ export function PreferencesFlow({ initial, consentText }: { initial: FitPreferen
             </li>
           ))}
         </ol>
+        {!draft.visibilityMode && <p className="text-hint">Choose who can see your answers first — the other steps open after that.</p>}
       </nav>
 
       <h2 className="section-title text-xl">{STEP_TITLES[key]}</h2>

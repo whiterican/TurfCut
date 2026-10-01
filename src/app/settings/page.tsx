@@ -1,12 +1,20 @@
 import { DisplaySettings } from "@/components/DisplaySettings";
-import { getSessionProfile } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/server";
 import { signOut } from "@/app/settings/actions";
 
 export const metadata = { title: "Display settings · Turfcut" };
 
 /** Display settings for everyone (signed in or not): text size and theme. */
 export default async function SettingsPage() {
-  const session = await getSessionProfile();
+  // Any signed-in Supabase user can sign out — even one whose account setup
+  // didn't finish (no profile row yet).
+  let session: { email: string | undefined } | null = null;
+  try {
+    const { data } = await (await createClient()).auth.getUser();
+    session = data.user ? { email: data.user.email } : null;
+  } catch {
+    session = null; // Supabase not configured
+  }
   return (
     <main className="page max-w-2xl">
       <header className="page-header">

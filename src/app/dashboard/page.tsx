@@ -2,7 +2,9 @@ import { requireAuth } from "@/lib/auth";
 import { SCHEDULING_ROLES } from "@/lib/access";
 import { db } from "@/lib/db";
 import { ACCEPTED_STATUSES } from "@/lib/engagements";
-import { payText } from "@/lib/jobs";
+import { payShort, payText } from "@/lib/jobs";
+import { Greeting } from "@/components/Greeting";
+import { Avatar } from "@/components/chat/Avatar";
 import { loadOps } from "@/lib/field-day-data";
 import { LocalTime } from "@/components/LocalTime";
 import Link from "next/link";
@@ -40,18 +42,22 @@ async function WorkerHero({ workerId }: { workerId: string }) {
   if (shift) {
     const live = shift.checkInAt !== null;
     return (
-      <Link transitionTypes={["nav-forward"]} href={`/shifts/${shift.id}`} className="hero-card block space-y-4">
+      <Link transitionTypes={["nav-forward"]} href={`/shifts/${shift.id}`} className="hero-card hero-card-lime block space-y-4">
         <p className="eyebrow">
           {live ? "Live shift" : "Next shift"} · <LocalTime iso={shift.startsAt.toISOString()} mode="date" />
         </p>
         <p className="hero-title">{shift.engagement.job.title}</p>
-        <p className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
+        <p className="flex flex-wrap gap-x-8 gap-y-2">
           <span>
-            <span className="block font-bold"><LocalTime iso={shift.startsAt.toISOString()} mode="time" /></span>
-            <span className="hero-muted">{live ? "Started" : "Check-in"}{shift.stagingLocation ? ` · ${shift.stagingLocation}` : ""}</span>
+            <span className="block text-lg font-bold"><LocalTime iso={shift.startsAt.toISOString()} mode="time" /></span>
+            <span className="hero-muted text-sm">{live ? "Started" : "Check-in"}</span>
           </span>
-          <span className="self-end font-bold">{payText(shift.engagement.job.compensationMethod, shift.engagement.job.payRateCents)}</span>
+          <span>
+            <span className="block text-lg font-bold">{payShort(shift.engagement.job.compensationMethod, shift.engagement.job.payRateCents)}</span>
+            <span className="hero-muted text-sm">gross</span>
+          </span>
         </p>
+        {shift.stagingLocation && <p className="hero-muted text-sm">Staging · {shift.stagingLocation}</p>}
       </Link>
     );
   }
@@ -133,12 +139,17 @@ export default async function DashboardPage() {
     <main className="page">
       <header className="page-header">
         <div className="space-y-1.5">
-          <p className="eyebrow">{isWorker ? "Today" : "Operations"}</p>
+          <p className="eyebrow">{isWorker ? <Greeting /> : "Operations"}</p>
           <h1 className="page-title">{name}</h1>
           <p className="text-muted-sm">
             {[ROLE_LABELS[session.role] ?? session.role, session.email].filter(Boolean).join(" · ")}
           </p>
         </div>
+        {isWorker && worker && (
+          <Link href="/profile" transitionTypes={["nav-forward"]} aria-label="Your profile" className="rounded-full">
+            <Avatar name={worker.displayName} tone="coral" />
+          </Link>
+        )}
       </header>
 
       {isWorker && <WorkerHero workerId={session.workerId!} />}

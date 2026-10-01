@@ -119,7 +119,6 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
           )}
         </section>
       )}
-
     </>
   );
 

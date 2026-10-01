@@ -413,6 +413,13 @@ export function payText(method: CompensationMethod, cents: number | null): strin
   return method === "HOURLY" ? `${d} / hour (gross)` : method === "SHIFT_RATE" ? `${d} / completed shift (gross)` : `${d} / accepted unit (gross)`;
 }
 
+/** Compact pay for cards: "$28/hr", "$120/shift", "$1.50/unit". Always gross — show that label nearby. */
+export function payShort(method: CompensationMethod, cents: number | null): string {
+  if (!cents) return "Rate not set";
+  const d = cents % 100 === 0 ? `$${(cents / 100).toLocaleString("en-US")}` : `$${(cents / 100).toFixed(2)}`;
+  return `${d}/${method === "HOURLY" ? "hr" : method === "SHIFT_RATE" ? "shift" : "unit"}`;
+}
+
 export function jobCardAnswers(job: {
   type: JobType;
   compensationMethod: CompensationMethod;

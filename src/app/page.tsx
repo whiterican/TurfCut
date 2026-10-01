@@ -10,7 +10,7 @@ const POINTS = [
 // Illustrative numbers (labelled "Example" on the page), not a real worker.
 const EXAMPLE = [
   { label: "Signatures per active hour", value: "14.2", math: "568 signatures ÷ 40 verified hours" },
-  { label: "Acceptance rate", value: "91%", math: "517 accepted of 568 reviewed" },
+  { label: "Signature acceptance rate", value: "91%", math: "517 accepted of 568 reviewed" },
   { label: "Show rate", value: "96%", math: "24 of 25 scheduled shifts worked" },
 ];
 

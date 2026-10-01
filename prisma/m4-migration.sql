@@ -268,6 +268,10 @@ CREATE TRIGGER "Profile_end_chat_access" AFTER UPDATE OF "orgId", "role" ON "pub
 -- the engagement's status, so nothing new is posted there.)
 CREATE OR REPLACE FUNCTION "turfcut_private"."end_worker_chat_access"() RETURNS trigger LANGUAGE plpgsql SET search_path = '' AS $$
 BEGIN
+  -- Serialize per worker: two of their hires ending at once must not each
+  -- see the other as still active. The UPDATE below runs after the wait,
+  -- with a fresh snapshot.
+  PERFORM pg_advisory_xact_lock(hashtext('chat-worker:' || NEW."workerId"::text));
   UPDATE "public"."ConversationParticipant" p
      SET "removedAt" = (now() AT TIME ZONE 'UTC')
     FROM "public"."Worker" w, "public"."ConversationJob" cj

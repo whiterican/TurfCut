@@ -11,6 +11,7 @@ import { exclusionReasons, readDisclosure, readHiringModes, UUID_RE } from "@/li
 import { effectivePreference, employerFitView } from "@/lib/political-fit";
 import { loadLatestPreference, orgHasRelationship } from "@/lib/political-fit-data";
 import { loadScorecard } from "@/lib/scorecard-data";
+import { defaultBoss } from "@/lib/chat-data";
 
 type Result = { ok: true; engagementId: string; status: string } | { ok: false; reason: string };
 
@@ -76,8 +77,12 @@ async function open(
       acceptedCount,
     });
     if (!t.ok) return { ok: false as const, reason: t.reason };
+    // Who the worker's direct messages are with: the inviter, or for an
+    // instant claim the job's creator (else the owner). Applications get
+    // theirs when someone accepts.
+    const hiredById = action === "invite" ? actor.profileId : action === "claim" ? await defaultBoss(tx, jobId, fresh.orgId) : null;
     const engagement = await tx.engagement.create({
-      data: { jobId, workerId, status: t.status, applicationSnapshot: snapshot as unknown as Prisma.InputJsonValue },
+      data: { jobId, workerId, status: t.status, hiredById, applicationSnapshot: snapshot as unknown as Prisma.InputJsonValue },
     });
     await tx.auditEvent.create({
       data: {
@@ -126,7 +131,10 @@ export async function acceptEngagement(
       acceptedCount,
     });
     if (!t.ok) return { ok: false as const, reason: t.reason };
-    await tx.engagement.update({ where: { id: engagementId }, data: { status: t.status } });
+    // The org member who accepts an application is the worker's contact;
+    // an accepted invitation keeps its inviter.
+    const hiredById = actor.kind === "org" ? actor.profileId : (current.hiredById ?? (await defaultBoss(tx, e.jobId, job.orgId)));
+    await tx.engagement.update({ where: { id: engagementId }, data: { status: t.status, hiredById } });
     await tx.auditEvent.create({
       data: {
         actorId: actor.profileId,

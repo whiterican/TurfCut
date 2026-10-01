@@ -257,64 +257,14 @@ export function sniffType(bytes: Uint8Array, name: string): string | null {
   return null;
 }
 
-/** Entry names from a zip's central directory, or null if it isn't a plain zip we can read. */
-export function zipEntries(b: Uint8Array): string[] | null {
-  const u16 = (o: number) => b[o] | (b[o + 1] << 8);
-  const u32 = (o: number) => (u16(o) | (u16(o + 2) << 16)) >>> 0;
-  // End-of-central-directory record: within the last 64 KB + 22 bytes.
-  let eocd = -1;
-  for (let i = b.length - 22; i >= Math.max(0, b.length - 65_557); i--) {
-    if (u32(i) === 0x06054b50) { eocd = i; break; }
-  }
-  if (eocd < 0) return null;
-  const count = u16(eocd + 10);
-  let at = u32(eocd + 16);
-  if (count === 0xffff || at === 0xffffffff) return null; // zip64: not supported
-  const names: string[] = [];
-  for (let n = 0; n < count; n++) {
-    if (at + 46 > b.length || u32(at) !== 0x02014b50) return null;
-    const [nameLen, extraLen, commentLen] = [u16(at + 28), u16(at + 30), u16(at + 32)];
-    if (at + 46 + nameLen > b.length) return null;
-    names.push(new TextDecoder().decode(b.subarray(at + 46, at + 46 + nameLen)));
-    at += 46 + nameLen + extraLen + commentLen;
-  }
-  return names;
-}
-
 const IMAGE_NAME = /\.(jpe?g|png|gif|webp|heic|heif|avif|bmp|tiff?|svg|emf|wmf)$/i;
-const OOXML_PART = /^(\[Content_Types\]\.xml|_rels\/|docProps\/|customXml\/|word\/|xl\/)/;
 const PHOTO_REASON = `Photos can't be shared in Turfcut chats. ${PETITION_NOTICE}`;
-const PICTURES_REASON = `This document has pictures in it, and Turfcut chats share text-only documents. ${PETITION_NOTICE}`;
-
-/** Why a document's contents are refused (embedded or disguised pictures), or null. */
-function contentProblem(type: string, bytes: Uint8Array): string | null {
-  if (type === "application/pdf") {
-    // Image XObjects are streams, which can't sit inside compressed object
-    // streams, so their dictionaries are always plain text. Undo #xx name
-    // escapes first (/Subtype/#49mage).
-    const text = new TextDecoder("latin1").decode(bytes).replace(/#([0-9a-f]{2})/gi, (_, h) => String.fromCharCode(parseInt(h, 16)));
-    return /\/Subtype\s*\/Image\b/.test(text) || /\bBI\s*\/W\s/.test(text) ? PICTURES_REASON : null;
-  }
-  if (type.startsWith("application/vnd.openxmlformats")) {
-    const names = zipEntries(bytes);
-    const main = type.includes("wordprocessing") ? "word/" : "xl/";
-    if (!names || !names.includes("[Content_Types].xml") || !names.some((n) => n.startsWith(main))) return "That file isn't a real Word or Excel document.";
-    if (names.some((n) => !OOXML_PART.test(n))) return "That file isn't a real Word or Excel document.";
-    if (names.some((n) => /\/media\/|\/embeddings\//.test(n) || IMAGE_NAME.test(n))) return PICTURES_REASON;
-    return null;
-  }
-  // Text: no pictures smuggled in as SVG, data URIs or long base64 runs.
-  const text = new TextDecoder().decode(bytes);
-  if (/<svg[\s>]|data:image\/|[A-Za-z0-9+/]{1000,}/i.test(text)) return PICTURES_REASON;
-  return null;
-}
-
 /**
  * Policy: text documents only. Images are refused in every thread for the
  * pilot — every conversation is tied to petition work, and signed sheets
- * must never be photographed or shared (custody is metadata only). That
- * includes pictures inside documents: scanned PDFs, Word/Excel files with
- * embedded images, and zips renamed to .docx.
+ * must never be photographed or shared (custody is metadata only).
+ * This is the type-and-name check; the server also scans contents for
+ * pictures inside documents (lib/attachment-scan.ts → vetAttachment).
  */
 export function checkAttachment(file: { name: string; size: number; bytes: Uint8Array }): { ok: true; type: string } | { ok: false; reason: string } {
   if (file.size <= 0 || file.bytes.length === 0) return { ok: false, reason: "That file is empty." };
@@ -327,7 +277,5 @@ export function checkAttachment(file: { name: string; size: number; bytes: Uint8
   const type = sniffType(file.bytes, file.name);
   if (type?.startsWith("image/") || IMAGE_NAME.test(file.name)) return { ok: false, reason: PHOTO_REASON };
   if (!type) return { ok: false, reason: "Share PDFs, Word or Excel documents, or text files." };
-  const problem = contentProblem(type, file.bytes);
-  if (problem) return { ok: false, reason: problem };
   return { ok: true, type };
 }

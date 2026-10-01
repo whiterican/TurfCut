@@ -148,21 +148,6 @@ describe("writes", () => {
   });
 });
 
-/** A zip with just a central directory listing `names` — enough for zipEntries. */
-function fakeZip(names: string[]): Uint8Array {
-  const enc = new TextEncoder();
-  const out: number[] = [0x50, 0x4b, 0x03, 0x04, ...new Array(26).fill(0)];
-  const cdStart = out.length;
-  const le = (v: number, n: number) => Array.from({ length: n }, (_, i) => (v >>> (8 * i)) & 0xff);
-  for (const name of names) {
-    const nb = [...enc.encode(name)];
-    out.push(...le(0x02014b50, 4), ...new Array(24).fill(0), ...le(nb.length, 2), 0, 0, 0, 0, ...new Array(12).fill(0), ...nb);
-  }
-  const cdSize = out.length - cdStart;
-  out.push(...le(0x06054b50, 4), 0, 0, 0, 0, ...le(names.length, 2), ...le(names.length, 2), ...le(cdSize, 4), ...le(cdStart, 4), 0, 0);
-  return new Uint8Array(out);
-}
-
 describe("attachments", () => {
   const f = (name: string, head: number[], size = 2000) => ({ name, size, bytes: new Uint8Array([...head, ...new Array(16).fill(65)]) });
   it("rejects photos everywhere with the petition-sheet notice — by bytes, not just the name", () => {
@@ -180,24 +165,6 @@ describe("attachments", () => {
     expect(checkAttachment(f("big.pdf", [0x25, 0x50, 0x44, 0x46], 11 * 1024 * 1024)).ok).toBe(false);
   });
   const doc = (name: string, bytes: Uint8Array) => checkAttachment({ name, size: bytes.length, bytes });
-  const docx = ["[Content_Types].xml", "_rels/.rels", "word/document.xml", "word/_rels/document.xml.rels", "docProps/core.xml"];
-  it("checks inside Word/Excel files: real documents only, no pictures", () => {
-    expect(doc("plan.docx", fakeZip(docx)).ok).toBe(true);
-    expect(doc("roster.xlsx", fakeZip(["[Content_Types].xml", "xl/workbook.xml", "xl/worksheets/sheet1.xml"])).ok).toBe(true);
-    // Photos zipped up and renamed .docx
-    expect(doc("x.docx", fakeZip(["IMG_1.jpg", "IMG_2.jpg"])).ok).toBe(false);
-    expect(doc("x.docx", fakeZip([...docx, "photos/IMG_1.dat"])).ok).toBe(false);
-    const embedded = doc("x.docx", fakeZip([...docx, "word/media/image1.png"]));
-    expect(!embedded.ok && embedded.reason).toMatch(/pictures[\s\S]*Do not photograph/);
-  });
-  it("refuses scanned PDFs and pictures hidden in text files", () => {
-    const enc = (s: string) => new TextEncoder().encode(s);
-    expect(doc("scan.pdf", enc("%PDF-1.7\n5 0 obj << /Type /XObject /Subtype /Image /Width 2550 >>")).ok).toBe(false);
-    expect(doc("scan.pdf", enc("%PDF-1.7\n5 0 obj <</Subtype/#49mage>>")).ok).toBe(false);
-    expect(doc("guide.pdf", enc("%PDF-1.7\n1 0 obj << /Type /Font /Subtype /Type1 >>")).ok).toBe(true);
-    expect(doc("x.txt", enc('<svg xmlns="http://www.w3.org/2000/svg"><image href="data:image/png;base64,AAA"/></svg>')).ok).toBe(false);
-    expect(doc("x.txt", enc("A".repeat(1200))).ok).toBe(false);
-  });
   it("refuses file names that disguise their type", () => {
     expect(doc("inv\u202egpj.txt", new TextEncoder().encode("hi")).ok).toBe(false);
     expect(doc("a/b.txt", new TextEncoder().encode("hi")).ok).toBe(false);

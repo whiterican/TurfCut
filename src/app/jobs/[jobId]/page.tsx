@@ -5,13 +5,16 @@ import { requireAuth } from "@/lib/auth";
 import { HIRING_ROLES, ORG_ROLES } from "@/lib/access";
 import { ACCEPTED_STATUSES, type EngagementStatus, type HiringSnapshot } from "@/lib/engagements";
 import { ENGAGEMENT_LABELS, JOB_STATUS_LABELS } from "@/lib/engagement-labels";
-import { UUID_RE, exclusionReasons, jurisdictionLabel, publishBlockers, readDisclosure, readHiringModes } from "@/lib/jobs";
+import { UUID_RE, exclusionReasons, payText, jurisdictionLabel, publishBlockers, readDisclosure, readHiringModes } from "@/lib/jobs";
 import { effectivePreference } from "@/lib/political-fit";
 import { loadLatestPreference } from "@/lib/political-fit-data";
 import { JobCard } from "@/components/JobCard";
 import { SnapshotView } from "@/components/SnapshotView";
 import { ActionButton } from "@/components/ActionButton";
 import { acceptApplication, acceptInvitation, apply, claim, publish } from "../actions";
+
+const day = (d: Date | null) =>
+  d ? d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" }) : "—";
 
 const loadJob = (id: string) => db().job.findUnique({ where: { id }, include: { org: true, jurisdiction: true } });
 type JobWithRefs = NonNullable<Awaited<ReturnType<typeof loadJob>>>;
@@ -39,13 +42,16 @@ export default async function JobPage({ params }: { params: Promise<{ jobId: str
     <main className="page max-w-3xl">
       <header className="page-header">
         <div className="space-y-2">
-          <p className="flex flex-wrap items-center gap-2 text-muted-sm">
+          <p className="eyebrow">
             {job.type === "PETITION" ? "Petition circulation" : "Door-to-door canvass"} · {jurisdictionLabel(job.jurisdiction)}
-            {isOwnOrg && <span className={status.badge}>{status.label}</span>}
           </p>
           <h1 className="page-title">{job.title}</h1>
-          <p className="text-muted-sm">
-            {acceptedCount} of {job.headcount ?? "—"} spot(s) filled
+          <p className="text-muted-sm">{job.org.name}</p>
+          <p className="pt-2 text-3xl font-bold tracking-[-0.03em] text-fg tabular-nums">{payText(job.compensationMethod, job.payRateCents)}</p>
+          <p className="flex flex-wrap gap-1.5 pt-1">
+            {isOwnOrg && <span className={status.badge}>{status.label}</span>}
+            <span className="badge-sky">{day(job.startsAt)} – {day(job.endsAt)}</span>
+            <span className="badge-neutral">{acceptedCount} of {job.headcount ?? "—"} spots filled</span>
           </p>
         </div>
         <Link href="/jobs" className="btn-ghost">← Jobs</Link>

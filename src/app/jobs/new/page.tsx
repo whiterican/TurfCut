@@ -10,7 +10,7 @@ export default async function NewJobPage() {
     <main className="page max-w-3xl">
       <header className="page-header">
         <div className="space-y-1">
-          <p className="text-muted-sm">Job builder</p>
+          <p className="eyebrow">Job builder</p>
           <h1 className="page-title">New job</h1>
         </div>
         <Link href="/jobs" className="btn-ghost">← Jobs</Link>

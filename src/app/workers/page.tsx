@@ -12,7 +12,7 @@ export default async function WorkersPage() {
     return (
       <main className="page max-w-2xl">
         <div className="empty-state">
-          <span className="badge-peach">Awaiting approval</span>
+          <span className="badge-butter">Awaiting approval</span>
           <p className="empty-state-title mt-3">Your organization is being reviewed</p>
           <p className="empty-state-body">Worker profiles unlock once Turfcut approves it.</p>
         </div>
@@ -28,10 +28,10 @@ export default async function WorkersPage() {
     <main className="page max-w-2xl space-y-6">
       <header className="page-header">
         <div className="space-y-1">
+          <p className="eyebrow">People</p>
           <h1 className="page-title">Workers</h1>
           <p className="text-muted-sm">Listed alphabetically. There is no overall worker score.</p>
         </div>
-        <Link href="/dashboard" className="btn-ghost">← Dashboard</Link>
       </header>
       {workers.length === 0 ? (
         <div className="empty-state">

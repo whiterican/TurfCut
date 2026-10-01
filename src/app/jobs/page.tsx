@@ -6,7 +6,8 @@ import { ENGAGEMENT_LABELS, JOB_STATUS_LABELS } from "@/lib/engagement-labels";
 import { JOB_TYPES, parseFeedFilters, payText } from "@/lib/jobs";
 import { loadFeed } from "@/lib/jobs-data";
 
-const day = (d: Date | null) => (d ? d.toISOString().slice(0, 10) : "—");
+const day = (d: Date | null) =>
+  d ? d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" }) : "—";
 
 type Search = Promise<Record<string, string | string[] | undefined>>;
 
@@ -43,10 +44,10 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
     <main className="page">
       <header className="page-header">
         <div className="space-y-1">
-          <h1 className="page-title">Find work</h1>
+          <p className="eyebrow">Work</p>
+          <h1 className="page-title">Find your next field job.</h1>
           <p className="text-muted-sm">Open jobs, soonest first. Not ranked — matching explanations arrive with M3.</p>
         </div>
-        <Link href="/dashboard" className="btn-ghost">← Dashboard</Link>
       </header>
 
       {mine.length > 0 && (
@@ -101,18 +102,32 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
             <p className="empty-state-body">Try fewer filters, or check back soon.</p>
           </div>
         ) : (
-          <ul className="list-card">
-            {open.map((j) => (
-              <li key={j.id}>
-                <Link href={`/jobs/${j.id}`} className="flex min-h-16 flex-col gap-1 px-4 py-3 text-fg transition hover:bg-surface-2 sm:flex-row sm:items-center sm:justify-between">
-                  <span className="space-y-0.5">
-                    <span className="block font-medium">{j.title}</span>
-                    <span className="text-muted-sm block">{j.org.name} · starts {day(j.startsAt)}</span>
-                  </span>
-                  <span className="text-sm tabular-nums">{payText(j.compensationMethod, j.payRateCents)}</span>
-                </Link>
-              </li>
-            ))}
+          <ul className="space-y-3">
+            {open.map((j) => {
+              const geo = (j.geography ?? {}) as { city?: string; state?: string };
+              return (
+                <li key={j.id}>
+                  <Link href={`/jobs/${j.id}`} className="card group flex flex-col gap-3 transition hover:border-[var(--border-strong)] sm:flex-row sm:items-start sm:justify-between">
+                    <span className="min-w-0 space-y-2">
+                      <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-semibold text-muted">
+                        {j.org.name}
+                        {geo.city && <><span aria-hidden>·</span>{geo.city}, {geo.state}</>}
+                        <span className="badge-mint">Approved org</span>
+                      </span>
+                      <span className="block text-base font-bold tracking-[-0.01em] text-fg">{j.title}</span>
+                      <span className="flex flex-wrap gap-1.5">
+                        <span className="badge-neutral">{day(j.startsAt)} – {day(j.endsAt)}</span>
+                        <span className="badge-neutral">{j.type === "PETITION" ? "Petition" : "Canvass"}</span>
+                      </span>
+                    </span>
+                    <span className="flex shrink-0 items-center justify-between gap-3 sm:flex-col sm:items-end">
+                      <span className="text-sm font-bold text-fg tabular-nums">{payText(j.compensationMethod, j.payRateCents)}</span>
+                      <span className="btn-primary btn-sm">View job</span>
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>
@@ -148,13 +163,11 @@ async function OrgJobs({ orgId, canHire }: { orgId: string; canHire: boolean }) 
     <main className="page max-w-3xl">
       <header className="page-header">
         <div className="space-y-1">
-          <h1 className="page-title">Jobs</h1>
+          <p className="eyebrow">Jobs</p>
+          <h1 className="page-title">Your jobs</h1>
           <p className="text-muted-sm">Your organization&apos;s jobs, newest first.</p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Link href="/dashboard" className="btn-ghost">← Dashboard</Link>
-          {canHire && <Link href="/jobs/new" className="btn-primary">New job</Link>}
-        </div>
+        {canHire && <Link href="/jobs/new" className="btn-primary">New job</Link>}
       </header>
       {jobs.length === 0 ? (
         <div className="empty-state">

@@ -18,7 +18,7 @@ export default async function EditJobPage({ params }: { params: Promise<{ jobId:
     <main className="page max-w-3xl">
       <header className="page-header">
         <div className="space-y-1">
-          <p className="text-muted-sm">Edit draft</p>
+          <p className="eyebrow">Edit draft</p>
           <h1 className="page-title">{job.title}</h1>
         </div>
         <Link href={`/jobs/${job.id}`} className="btn-ghost">← Job</Link>

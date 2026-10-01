@@ -63,7 +63,7 @@ export default async function EmployerWorkerPage({
     <main className="page">
       <header className="page-header">
         <div className="space-y-1">
-          <p className="text-muted-sm">Worker profile</p>
+          <p className="eyebrow">Worker profile</p>
           <h1 className="page-title">{worker.displayName}</h1>
         </div>
         <Link href="/workers" className="btn-ghost">← All workers</Link>

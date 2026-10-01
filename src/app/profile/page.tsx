@@ -23,10 +23,9 @@ export default async function ProfilePage() {
     <main className="page">
       <header className="page-header">
         <div className="space-y-1">
-          <p className="text-muted-sm">Your profile</p>
+          <p className="eyebrow">Your profile</p>
           <h1 className="page-title">{worker.displayName}</h1>
         </div>
-        <Link href="/dashboard" className="btn-ghost">← Dashboard</Link>
       </header>
 
       <section className="section">
@@ -61,7 +60,7 @@ export default async function ProfilePage() {
           {mode ? (
             <>
               <div className="space-y-1">
-                <span className="badge-lavender">{mode.label}</span>
+                <span className="badge-lime">{mode.label}</span>
                 <p className="text-muted-sm">{mode.description}</p>
               </div>
               <p className="text-hint">

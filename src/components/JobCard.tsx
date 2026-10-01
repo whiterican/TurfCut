@@ -2,7 +2,8 @@ import { affiliationLabel, jobCardAnswers, readDisclosure, type CompensationMeth
 import { CAMPAIGN_TYPES, issueLabel } from "@/lib/political-fit";
 import { Row } from "@/components/Row";
 
-const day = (d: Date | null) => (d ? d.toISOString().slice(0, 10) : "—");
+const day = (d: Date | null) =>
+  d ? d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }) : "—";
 
 /** The five questions every job card answers (spec p.7), plus the campaign's own disclosure. */
 export function JobCard({
@@ -43,7 +44,7 @@ export function JobCard({
             </>
           ) : "Not set"}
         </Row>
-        <Row label="Dates">{day(job.startsAt)} to {day(job.endsAt)} · {job.headcount ?? "—"} worker(s)</Row>
+        <Row label="Dates">{day(job.startsAt)} – {day(job.endsAt)} · {job.headcount ?? "—"} worker(s)</Row>
         <Row label="Cancellation notice">{job.cancellationNoticeHours} hours; later cancellations count as no-shows</Row>
       </dl>
 

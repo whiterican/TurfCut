@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { db } from "@/lib/db";
 import { ORG_ROLES } from "@/lib/access";
 import { requireOrgMember } from "@/lib/employer-session";
@@ -37,10 +36,9 @@ export default async function OrgSettingsPage() {
     <main className="page max-w-3xl">
       <header className="page-header">
         <div className="space-y-1">
-          <p className="text-muted-sm">Organization settings</p>
+          <p className="eyebrow">Organization settings</p>
           <h1 className="page-title">{org.name}</h1>
         </div>
-        <Link href="/dashboard" className="btn-ghost">← Dashboard</Link>
       </header>
 
       <section className="section">
@@ -114,7 +112,7 @@ export default async function OrgSettingsPage() {
               <li key={j.id} className="space-y-2 px-4 py-4">
                 <p className="flex flex-wrap items-center gap-2 font-medium text-fg">
                   {jurisdictionLabel(j)}
-                  <span className={problems.length ? "badge-peach" : "badge-mint"}>{problems.length ? "Can't publish" : "Usable"}</span>
+                  <span className={problems.length ? "badge-butter" : "badge-mint"}>{problems.length ? "Can't publish" : "Usable"}</span>
                 </p>
                 <p className="text-muted-sm">
                   Pay methods:{" "}

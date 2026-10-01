@@ -1,7 +1,7 @@
 import type { MetricExplanation, Period, Scorecard, ScorecardSegment } from "@/lib/scorecard";
 
 const WORK_TYPE_LABELS = { PETITION: "Petition circulation", CANVASS: "Door-to-door canvass" } as const;
-const WORK_TYPE_BADGE = { PETITION: "badge-lavender", CANVASS: "badge-sky" } as const;
+const WORK_TYPE_BADGE = { PETITION: "badge-lime", CANVASS: "badge-sky" } as const;
 const PERIOD_LABELS: Record<Period, string> = { lifetime: "Lifetime", "12m": "Last 12 months", "90d": "Last 90 days" };
 
 const AVERAGES: Array<{ key: keyof ScorecardSegment["averages"]; label: string; pct?: boolean }> = [

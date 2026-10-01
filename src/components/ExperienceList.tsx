@@ -40,7 +40,7 @@ const join = (parts: Array<string | null | false | undefined>) => parts.filter(B
 const BADGE: Record<VerificationLevel, string> = {
   PLATFORM: "badge-mint",
   ORGANIZATION: "badge-sky",
-  IMPORTED: "badge-lavender",
+  IMPORTED: "badge-lime",
   SELF_REPORTED: "badge-dashed",
 };
 

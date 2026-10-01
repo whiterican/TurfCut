@@ -85,7 +85,7 @@ export interface ScorecardSegment {
   state: string | null;
   statesWorked: string[];
   dateRange: { from: string; to: string } | null;
-  /** dateRange for people: "today", "on Sep 28, 2026", "Sep 1 – Sep 28, 2026". */
+  /** dateRange for people: "Sep 28, 2026", "Sep 1 – Sep 28, 2026". */
   dateLabel: string | null;
   campaignsCount: number;
   /** Unique measure/initiative IDs across the jobs behind verified shifts. */
@@ -298,20 +298,23 @@ function round(v: number, places = 4): number {
 
 const day = (d: Date) => d.toISOString().slice(0, 10);
 
+const fmtDay = (d: string, year: boolean) =>
+  new Date(`${d}T00:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", ...(year ? { year: "numeric" } : {}), timeZone: "UTC" });
+
 /**
- * A human date range for evidence text: "today", "yesterday",
- * "on Sep 28, 2026", "Sep 1 – Sep 28, 2026", "Dec 30, 2025 – Jan 2, 2026".
- * Inputs are YYYY-MM-DD (UTC calendar days).
+ * A human date range: "Sep 28, 2026", "Sep 1 – Sep 28, 2026",
+ * "Dec 30, 2025 – Jan 2, 2026". Plain dates only — the server doesn't know
+ * the viewer's day, so no "today"/"yesterday". Inputs are YYYY-MM-DD.
  */
-export function rangeLabel(from: string, to: string, now: Date): string {
-  const fmt = (d: string, year: boolean) =>
-    new Date(`${d}T00:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", ...(year ? { year: "numeric" } : {}), timeZone: "UTC" });
-  if (from === to) {
-    if (from === day(now)) return "today";
-    if (from === day(new Date(now.getTime() - 86_400_000))) return "yesterday";
-    return `on ${fmt(from, true)}`;
-  }
-  return from.slice(0, 4) === to.slice(0, 4) ? `${fmt(from, false)} – ${fmt(to, true)}` : `${fmt(from, true)} – ${fmt(to, true)}`;
+export function rangeLabel(from: string, to: string): string {
+  if (from === to) return fmtDay(from, true);
+  return from.slice(0, 4) === to.slice(0, 4) ? `${fmtDay(from, false)} – ${fmtDay(to, true)}` : `${fmtDay(from, true)} – ${fmtDay(to, true)}`;
+}
+
+/** The same range inside a sentence: "on Sep 28, 2026", "from Sep 1 to Sep 28, 2026". */
+export function rangePhrase(from: string, to: string): string {
+  if (from === to) return `on ${fmtDay(from, true)}`;
+  return `from ${fmtDay(from, from.slice(0, 4) !== to.slice(0, 4))} to ${fmtDay(to, true)}`;
 }
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
@@ -330,8 +333,7 @@ function segment(
   workType: WorkType,
   period: Period,
   state: string | null,
-  facts: ShiftFacts[],
-  now: Date
+  facts: ShiftFacts[]
 ): ScorecardSegment {
   const verified = facts.filter((f) => f.verification === "verified");
   const sum = (pick: (f: ShiftFacts) => number, xs = verified) => xs.reduce((a, f) => a + pick(f), 0);
@@ -363,10 +365,10 @@ function segment(
   };
 
   const n = verified.length;
-  const dateLabel = dateRange ? rangeLabel(dateRange.from, dateRange.to, now) : null;
+  const dateLabel = dateRange ? rangeLabel(dateRange.from, dateRange.to) : null;
   const context =
     plural(n, "verified shift") +
-    (dateLabel ? ` ${dateLabel.startsWith("on ") || dateLabel === "today" || dateLabel === "yesterday" ? dateLabel : `from ${dateLabel}`}` : "") +
+    (dateRange ? ` ${rangePhrase(dateRange.from, dateRange.to)}` : "") +
     (statesWorked.length ? `, ${statesWorked.join("/")}` : "");
   const isPetition = workType === "PETITION";
 
@@ -471,7 +473,7 @@ export function computeScorecard(shifts: ScorecardShift[], opts: ScorecardOption
 
   const workTypes = (["PETITION", "CANVASS"] as const).filter((w) => facts.some((f) => f.shift.workType === w));
   const segments = workTypes.map((w) =>
-    segment(w, period, opts.state ?? null, facts.filter((f) => f.shift.workType === w), now)
+    segment(w, period, opts.state ?? null, facts.filter((f) => f.shift.workType === w))
   );
 
   // Reliability spans every work type in scope (spec p.10: started accepted

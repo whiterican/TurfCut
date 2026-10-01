@@ -4,7 +4,7 @@ import { requireEmployer } from "@/lib/employer-session";
 
 /**
  * Worker directory for approved organizations. Alphabetical — not ranked.
- * Matching and ranking (with their explanations) arrive in M3.
+ * Matching and ranking (with their explanations) come later.
  */
 export default async function WorkersPage() {
   const { orgApproved } = await requireEmployer();

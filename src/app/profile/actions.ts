@@ -76,10 +76,14 @@ export async function savePhone(_prev: ContactState, formData: FormData): Promis
   const raw = String(formData.get("phone") ?? "").trim();
   const phone = raw ? normalizePhone(raw) : null;
   if (raw && !phone) return { ok: false, message: "Enter a 10-digit US mobile number, or leave it blank." };
-  await db().worker.update({ where: { id: workerId }, data: { phone } });
-  await db().auditEvent.create({
-    data: { actorId: userId, action: phone ? "worker.phone_set" : "worker.phone_removed", entityType: "Worker", entityId: workerId },
-  });
+  const before = await db().worker.findUniqueOrThrow({ where: { id: workerId }, select: { phone: true } });
+  if (before.phone === phone) return { ok: true, message: "No change." };
+  await db().$transaction([
+    db().worker.update({ where: { id: workerId }, data: { phone } }),
+    db().auditEvent.create({
+      data: { actorId: userId, action: phone ? "worker.phone_set" : "worker.phone_removed", entityType: "Worker", entityId: workerId },
+    }),
+  ]);
   revalidatePath("/profile");
   return { ok: true, message: phone ? "Saved." : "Removed." };
 }

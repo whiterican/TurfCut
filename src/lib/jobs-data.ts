@@ -4,8 +4,8 @@ import {
   exclusionReasons,
   publishBlockers,
   readDisclosure,
+  type FeedFilters,
   type JobInput,
-  type JobType,
 } from "@/lib/jobs";
 import { effectivePreference } from "@/lib/political-fit";
 import { loadLatestPreference } from "@/lib/political-fit-data";
@@ -95,13 +95,6 @@ export function listJurisdictions() {
     where: { approved: true, isCurrent: true },
     orderBy: [{ state: "asc" }, { locality: "asc" }],
   });
-}
-
-export interface FeedFilters {
-  type?: JobType;
-  minRateCents?: number;
-  startsBefore?: Date;
-  noCredentials?: boolean;
 }
 
 /**

@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  jobToForm,
+  parseFeedFilters,
   canScheduleShift,
   compensationProblem,
   exclusionReasons,
@@ -126,6 +128,20 @@ describe("validateJob", () => {
     contactDisputes: "ops@frc.example", contactLostMaterials: "Office", measureIds: "I-305, I-305 ,I-12", cancellationNoticeHours: "12",
   };
 
+  it("round-trips through jobToForm, so editing a draft loses nothing", () => {
+    const r = validateJob(form);
+    if (!r.ok) throw new Error("form");
+    const v = r.value;
+    const stored = {
+      type: v.type, title: v.title, description: v.description, jurisdictionId: v.jurisdictionId,
+      startsAt: v.startsAt, endsAt: v.endsAt, geography: { city: v.city, state: v.state },
+      compensationMethod: v.compensationMethod, payRateCents: v.payRateCents, headcount: v.headcount,
+      hiringMethod: { modes: v.hiringModes }, requirements: v.requirements, campaignDisclosure: v.disclosure,
+      supportContacts: v.supportContacts, measureIds: v.measureIds, cancellationNoticeHours: v.cancellationNoticeHours,
+    };
+    expect(validateJob(jobToForm(stored))).toEqual(r);
+  });
+
   it("parses a complete form", () => {
     const r = validateJob(form);
     expect(r.ok).toBe(true);
@@ -195,5 +211,17 @@ describe("worker exclusions — explicit 'do not match me' only", () => {
     // Worker opposes housing measures but set no boundary: still shown.
     const p: FitPreferences = { ...pref(null), issuePositions: { housing_affordability: { position: "oppose" } } };
     expect(exclusionReasons(p, job)).toEqual([]);
+  });
+});
+
+describe("feed filters", () => {
+  it("parses known filters and ignores malformed ones", () => {
+    expect(parseFeedFilters(new URLSearchParams("type=CANVASS&minRate=20.5&startsBefore=2026-11-01&noCredentials=1"))).toEqual({
+      type: "CANVASS",
+      minRateCents: 2050,
+      startsBefore: new Date("2026-11-01T23:59:59Z"),
+      noCredentials: true,
+    });
+    expect(parseFeedFilters(new URLSearchParams("type=DROP TABLE&minRate=-3&startsBefore=soon"))).toEqual({});
   });
 });

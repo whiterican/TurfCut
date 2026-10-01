@@ -482,3 +482,86 @@ export function exclusionReasons(
     })
     .map((b) => `You asked not to be matched — ${boundaryText(b).replace(/^Do not match me: /, "")}`);
 }
+
+// ---------------------------------------------------------------------------
+// Display + form round-trip
+// ---------------------------------------------------------------------------
+
+export function affiliationLabel(a: string): string {
+  return a === "nonpartisan" ? "Nonpartisan" : `${a[0].toUpperCase()}${a.slice(1)} party`;
+}
+
+/** A stored job back into the builder's form fields (inverse of validateJob). */
+export function jobToForm(job: {
+  type: string;
+  title: string;
+  description: string | null;
+  jurisdictionId: string;
+  startsAt: Date | null;
+  endsAt: Date | null;
+  geography: unknown;
+  compensationMethod: string;
+  payRateCents: number | null;
+  headcount: number | null;
+  hiringMethod: unknown;
+  requirements: unknown;
+  campaignDisclosure: unknown;
+  supportContacts: unknown;
+  measureIds: string[];
+  cancellationNoticeHours: number;
+}): Record<string, unknown> {
+  const geo = obj(job.geography);
+  const req = readRequirements(job.requirements);
+  const d = readDisclosure(job.campaignDisclosure);
+  const c = readSupportContacts(job.supportContacts);
+  const day = (x: Date | null) => (x ? x.toISOString().slice(0, 10) : "");
+  return {
+    type: job.type,
+    title: job.title,
+    description: job.description ?? "",
+    jurisdictionId: job.jurisdictionId,
+    startsAt: day(job.startsAt),
+    endsAt: day(job.endsAt),
+    city: str(geo.city) ?? "",
+    state: str(geo.state) ?? "",
+    compensationMethod: job.compensationMethod,
+    payRate: job.payRateCents ? (job.payRateCents / 100).toFixed(2) : "",
+    headcount: job.headcount ? String(job.headcount) : "",
+    hiringModes: readHiringModes(job.hiringMethod),
+    ...(req.badge ? { badge: "on" } : {}),
+    ...(req.registration ? { registration: "on" } : {}),
+    ...(req.affidavit ? { affidavit: "on" } : {}),
+    training: req.training ?? "",
+    script: req.script ?? "",
+    campaignType: d?.campaignType ?? "",
+    affiliation: d?.affiliation ?? "",
+    campaignName: d?.campaignName ?? "",
+    ...Object.fromEntries(Object.entries(d?.issues ?? {}).map(([k, v]) => [`issue_${k}`, v])),
+    message: d?.message ?? "",
+    contactEmergency: c?.emergency ?? "",
+    contactDisputes: c?.disputes ?? "",
+    contactLostMaterials: c?.lostMaterials ?? "",
+    measureIds: job.measureIds.join(", "),
+    cancellationNoticeHours: String(job.cancellationNoticeHours),
+  };
+}
+
+export interface FeedFilters {
+  type?: JobType;
+  minRateCents?: number;
+  startsBefore?: Date;
+  noCredentials?: boolean;
+}
+
+/** Worker feed filters from a query string. Unknown or malformed values are ignored. */
+export function parseFeedFilters(p: URLSearchParams): FeedFilters {
+  const f: FeedFilters = {};
+  const type = p.get("type");
+  if (type && values(JOB_TYPES).includes(type)) f.type = type as JobType;
+  const rate = p.get("minRate");
+  if (rate && /^\d+(\.\d{1,2})?$/.test(rate)) f.minRateCents = Math.round(Number(rate) * 100);
+  const before = p.get("startsBefore");
+  if (before && /^\d{4}-\d{2}-\d{2}$/.test(before) && !Number.isNaN(Date.parse(before))) f.startsBefore = new Date(`${before}T23:59:59Z`);
+  if (p.get("noCredentials") === "1" || p.get("noCredentials") === "on") f.noCredentials = true;
+  return f;
+}

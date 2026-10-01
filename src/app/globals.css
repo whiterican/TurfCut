@@ -170,6 +170,7 @@ body {
   }
   .hero-card .eyebrow {
     color: var(--hero-muted);
+    max-width: calc(100% - 5.5rem); /* clear the corner highlight */
   }
   .hero-title {
     @apply max-w-[80%] text-2xl leading-tight font-bold tracking-[-0.02em] sm:text-3xl;

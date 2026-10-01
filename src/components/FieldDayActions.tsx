@@ -101,12 +101,12 @@ export function OnShiftActions({
 
       {packetsOut.map((p) => (
         <ActionButton key={p} action={workerStep} fields={{ ...base, kind: "return_packet", packetId: p }} label={`Return packet ${p}`} variant="btn-secondary">
-          <label className="w-28 space-y-1.5">
-            <span className="label">Sheets</span>
+          <label className="w-32 space-y-1.5">
+            <span className="label">Sheets returned</span>
             <input name="sheetsReturned" inputMode="numeric" pattern="[0-9]*" className="field" required />
           </label>
-          <label className="w-28 space-y-1.5">
-            <span className="label">Signatures</span>
+          <label className="w-32 space-y-1.5">
+            <span className="label">Signatures on it</span>
             <input name="signatures" inputMode="numeric" pattern="[0-9]*" className="field" required />
           </label>
         </ActionButton>

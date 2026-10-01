@@ -80,6 +80,9 @@ owner signs the contractor terms and an owner or compliance lead records the
 classification review under **Organization settings** — no job publishes
 until both are on file.
 
+**Already on M2?** Paste `prisma/m3-migration.sql` once (nullable columns
+only; safe to re-run).
+
 Until steps 1–4 are done, `npm run dev` boots fine and the login/signup pages
 render, but sign-up will fail with a clear "missing environment variable"
 message.
@@ -97,12 +100,15 @@ src/
     profile/preferences # worker: 6-step political-fit consent flow
     workers/            # company: worker directory + authorized view + invite
     jobs/               # worker feed / org job list, builder, job page
+    shifts/             # worker calendar + field day; supervisor custody/review
     org/settings/       # publish-gate records, legal contact, jurisdictions
     api/workers/[workerId]/scorecard  # GET scorecard JSON
     api/jobs/…          # jobs, publish, applications, claims, invitations
     api/engagements/[engagementId]/accept
+    api/shifts/…        # schedule, check-in, events, closeout
   components/           # ScorecardPanel, ExperienceList/Form, PreferencesFlow, FitSignals,
-                        # JobForm, JobCard, SnapshotView, ActionButton
+                        # JobForm, JobCard, SnapshotView, ActionButton,
+                        # TurfMap (Leaflet), ShiftProgress, FieldDayActions
   lib/
     env.ts              # env access with clear missing-var errors
     db.ts               # Prisma client singleton (lazy)
@@ -117,6 +123,8 @@ src/
     jobs-data.ts        # create / publish (locked, audited) / feed
     engagements.ts      # apply / invite / claim / accept rules + hiring snapshot
     engagements-data.ts # engagements under a per-job lock
+    field-day.ts        # shift rules: check-in, custody, logging, review
+    field-day-data.ts   # scheduling, shift actions, ops view (locked)
     supabase/           # browser / server / proxy clients
   proxy.ts              # session refresh (Next.js 16 convention)
 prisma/
@@ -127,6 +135,7 @@ prisma/
   m1-migration.sql      # M0 → M1 upgrade for an existing database (run 1st)
   m1-profile-migration.sql # experience fields + consent expiry (run 2nd)
   m2-migration.sql      # M1 → M2 upgrade (jobs, publish gate, cancellations)
+  m3-migration.sql      # M2 → M3 upgrade (staging, turf, supervisor, actor)
 ```
 
 ## M0 scope (done)
@@ -197,3 +206,43 @@ API: `GET/POST /api/jobs`, `POST /api/jobs/:id/publish`,
 `GET/POST /api/jobs/:id/applications`, `POST /api/jobs/:id/claims`,
 `POST /api/jobs/:id/invitations` `{ workerId }`,
 `POST /api/engagements/:id/accept`.
+
+## M3 scope — field day
+
+The petition field loop, from schedule to supervisor review (spec p.13).
+
+- **Scheduling** (owners, recruiters, supervisors): shifts for hired workers,
+  with a staging location, a supervisor and a **turf map** — draw the turf
+  and drop the staging point on an OpenStreetMap map (Leaflet). Refused while
+  the job's jurisdiction profile is frozen, and if the worker already has an
+  overlapping shift on *any* campaign (checked under a per-worker lock).
+- **Worker field day** (`/shifts/:id`): check in (from an hour before),
+  breaks, logging signatures (or doors and contacts for canvass work),
+  returning packets, check-out, cancellation with a reason. A five-step
+  timeline mirrors the mockup; the turf map and "who handles problems" are on
+  the same screen. **My shifts** lists every campaign in one calendar.
+- **Check-in location**: the phone's position is compared with the staging
+  point once and discarded. Only "at staging: yes/no" and a distance band
+  (under 250 m / 250 m–1 km / over 1 km) are stored. Declining location still
+  checks in, marked "location not checked". Nothing is tracked during a shift.
+- **Chain of custody**: supervisors hand out packets by ID; a packet can't be
+  out on two shifts at once (per-job lock). Workers return packets with sheet
+  and signature counts and can't check out holding one. Signed sheets are
+  never photographed or uploaded — custody is metadata only.
+- **Review**: batch count (accepted + rejected = reviewed), then approve or
+  not approve with a reason the worker sees. Reviews append validations; a
+  later one supersedes an earlier one. An approved shift becomes a verified
+  shift in the scorecard.
+- **Ops home** for organizers: shifts in the field today, checked in,
+  signatures submitted, and a "needs attention" list (late check-ins, shifts
+  awaiting review).
+- Every event records who made it (worker or organization).
+
+Map tiles load from tile.openstreetmap.org, which sees the viewer's IP and
+the area viewed. Fine for the pilot; switch to a hosted tile provider before
+public launch (OSM's tile policy).
+
+API: `GET/POST /api/shifts`, `POST /api/shifts/:id/check-in` `{ lat?, lng? }`,
+`POST /api/shifts/:id/events` `{ kind, … }`,
+`POST /api/shifts/:id/closeout` `{ status, reason? }`.
+

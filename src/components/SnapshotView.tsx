@@ -1,5 +1,7 @@
 import type { HiringSnapshot } from "@/lib/engagements";
 import { FitSignals } from "@/components/FitSignals";
+import { RelativeTime } from "@/components/RelativeTime";
+import { plural } from "@/lib/format";
 import { Row } from "@/components/Row";
 
 const pct = (m: { value: number | null; numerator: number; denominator: number }) =>
@@ -14,7 +16,7 @@ export function SnapshotView({ snapshot }: { snapshot: HiringSnapshot }) {
   return (
     <div className="space-y-3">
       <p className="text-hint">
-        Frozen {snapshot.capturedAt.slice(0, 16).replace("T", " ")} UTC
+        Frozen <RelativeTime iso={snapshot.capturedAt} />
         {snapshot.consentVersion !== null ? ` · consent version ${snapshot.consentVersion}` : " · no fit answers on file"}
       </p>
       <dl className="list-card">
@@ -24,7 +26,7 @@ export function SnapshotView({ snapshot }: { snapshot: HiringSnapshot }) {
         ) : (
           s.segments.map((seg) => (
             <Row key={seg.workType} label={seg.workType === "PETITION" ? "Petitioning" : "Canvassing"}>
-              {seg.shiftsCount} verified shift(s) · {seg.activeHours.toFixed(1)} active hours
+              {plural(seg.shiftsCount, "verified shift")} · {seg.activeHours.toFixed(1)} active hours
             </Row>
           ))
         )}

@@ -1,5 +1,6 @@
 import { affiliationLabel, jobCardAnswers, readDisclosure, type CompensationMethod, type JobType } from "@/lib/jobs";
 import { CAMPAIGN_TYPES, issueLabel } from "@/lib/political-fit";
+import { plural } from "@/lib/format";
 import { Row } from "@/components/Row";
 
 const day = (d: Date | null) =>
@@ -44,7 +45,7 @@ export function JobCard({
             </>
           ) : "Not set"}
         </Row>
-        <Row label="Dates">{day(job.startsAt)} – {day(job.endsAt)} · {job.headcount ?? "—"} worker(s)</Row>
+        <Row label="Dates">{day(job.startsAt)} – {day(job.endsAt)} · {job.headcount ? plural(job.headcount, "worker") : "—"}</Row>
         <Row label="Cancellation notice">{job.cancellationNoticeHours} hours; later cancellations count as no-shows</Row>
       </dl>
 

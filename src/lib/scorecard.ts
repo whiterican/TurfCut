@@ -85,6 +85,8 @@ export interface ScorecardSegment {
   state: string | null;
   statesWorked: string[];
   dateRange: { from: string; to: string } | null;
+  /** dateRange for people: "today", "on Sep 28, 2026", "Sep 1 – Sep 28, 2026". */
+  dateLabel: string | null;
   campaignsCount: number;
   /** Unique measure/initiative IDs across the jobs behind verified shifts. */
   initiativesCount: number;
@@ -296,6 +298,24 @@ function round(v: number, places = 4): number {
 
 const day = (d: Date) => d.toISOString().slice(0, 10);
 
+/**
+ * A human date range for evidence text: "today", "yesterday",
+ * "on Sep 28, 2026", "Sep 1 – Sep 28, 2026", "Dec 30, 2025 – Jan 2, 2026".
+ * Inputs are YYYY-MM-DD (UTC calendar days).
+ */
+export function rangeLabel(from: string, to: string, now: Date): string {
+  const fmt = (d: string, year: boolean) =>
+    new Date(`${d}T00:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", ...(year ? { year: "numeric" } : {}), timeZone: "UTC" });
+  if (from === to) {
+    if (from === day(now)) return "today";
+    if (from === day(new Date(now.getTime() - 86_400_000))) return "yesterday";
+    return `on ${fmt(from, true)}`;
+  }
+  return from.slice(0, 4) === to.slice(0, 4) ? `${fmt(from, false)} – ${fmt(to, true)}` : `${fmt(from, true)} – ${fmt(to, true)}`;
+}
+
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
 function explain(
   value: number | null,
   numerator: number,
@@ -310,7 +330,8 @@ function segment(
   workType: WorkType,
   period: Period,
   state: string | null,
-  facts: ShiftFacts[]
+  facts: ShiftFacts[],
+  now: Date
 ): ScorecardSegment {
   const verified = facts.filter((f) => f.verification === "verified");
   const sum = (pick: (f: ShiftFacts) => number, xs = verified) => xs.reduce((a, f) => a + pick(f), 0);
@@ -342,9 +363,10 @@ function segment(
   };
 
   const n = verified.length;
+  const dateLabel = dateRange ? rangeLabel(dateRange.from, dateRange.to, now) : null;
   const context =
-    `${n} verified shift(s)` +
-    (dateRange ? `, ${dateRange.from} to ${dateRange.to}` : "") +
+    plural(n, "verified shift") +
+    (dateLabel ? ` ${dateLabel.startsWith("on ") || dateLabel === "today" || dateLabel === "yesterday" ? dateLabel : `from ${dateLabel}`}` : "") +
     (statesWorked.length ? `, ${statesWorked.join("/")}` : "");
   const isPetition = workType === "PETITION";
 
@@ -354,6 +376,7 @@ function segment(
     state,
     statesWorked,
     dateRange,
+    dateLabel,
     campaignsCount: new Set(verified.map((f) => f.shift.engagementId)).size,
     initiativesCount: new Set(verified.flatMap((f) => f.shift.measureIds ?? [])).size,
     shiftsCount: n,
@@ -377,7 +400,7 @@ function segment(
         doors,
         doorShifts,
         "verified doors attempted ÷ completed door shifts",
-        `${doors} doors across ${doorShifts} completed shift(s) with door attempts; ${context}`
+        `${doors} doors across ${plural(doorShifts, "completed shift")} with door attempts; ${context}`
       ),
       contactRate: explain(
         contactRate(totals),
@@ -448,7 +471,7 @@ export function computeScorecard(shifts: ScorecardShift[], opts: ScorecardOption
 
   const workTypes = (["PETITION", "CANVASS"] as const).filter((w) => facts.some((f) => f.shift.workType === w));
   const segments = workTypes.map((w) =>
-    segment(w, period, opts.state ?? null, facts.filter((f) => f.shift.workType === w))
+    segment(w, period, opts.state ?? null, facts.filter((f) => f.shift.workType === w), now)
   );
 
   // Reliability spans every work type in scope (spec p.10: started accepted
@@ -490,9 +513,9 @@ export function computeScorecard(shifts: ScorecardShift[], opts: ScorecardOption
         started,
         acceptedDue,
         "started accepted shifts ÷ accepted shifts not timely cancelled",
-        `started ${started} of ${acceptedDue} accepted shift(s) due so far` +
-          (late ? `; ${late} late cancellation(s) by the worker counted as no-shows` : "") +
-          (excused ? `; ${excused} timely or organization cancellation(s) left out` : "")
+        `started ${started} of ${plural(acceptedDue, "accepted shift")} due so far` +
+          (late ? `; ${plural(late, "late cancellation")} by the worker counted as no-shows` : "") +
+          (excused ? `; ${plural(excused, "timely or organization cancellation")} left out` : "")
       ),
     },
     lastUpdated: lastEvent ? lastEvent.toISOString() : null,

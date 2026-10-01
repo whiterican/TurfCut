@@ -4,6 +4,7 @@ import { requireAuth } from "@/lib/auth";
 import { HIRING_ROLES, ORG_ROLES } from "@/lib/access";
 import { ENGAGEMENT_LABELS, JOB_STATUS_LABELS } from "@/lib/engagement-labels";
 import { JOB_TYPES, parseFeedFilters, payText } from "@/lib/jobs";
+import { plural } from "@/lib/format";
 import { loadFeed } from "@/lib/jobs-data";
 
 const day = (d: Date | null) =>
@@ -46,7 +47,7 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
         <div className="space-y-1">
           <p className="eyebrow">Work</p>
           <h1 className="page-title">Find your next field job.</h1>
-          <p className="text-muted-sm">Open jobs, soonest first. Not ranked — matching explanations arrive with M3.</p>
+          <p className="text-muted-sm">Open jobs, soonest first. Ranked matches are coming soon.</p>
         </div>
       </header>
 
@@ -88,9 +89,9 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
             <input type="date" name="startsBefore" className="field" defaultValue={filters.startsBefore?.toISOString().slice(0, 10) ?? ""} />
           </label>
           <div className="flex flex-wrap items-center gap-3">
-            <label className="chip">
-              <input type="checkbox" name="noCredentials" value="1" defaultChecked={filters.noCredentials} className="sr-only" />
-              No credentials needed
+            <label className="toggle">
+              <input type="checkbox" role="switch" name="noCredentials" value="1" defaultChecked={filters.noCredentials} />
+              No credentials required
             </label>
             <button className="btn-secondary">Filter</button>
           </div>
@@ -183,7 +184,7 @@ async function OrgJobs({ orgId, canHire }: { orgId: string; canHire: boolean }) 
                 <Link href={`/jobs/${j.id}`} className="flex min-h-14 items-center justify-between gap-3 px-4 py-3 text-fg transition hover:bg-surface-2">
                   <span className="space-y-0.5">
                     <span className="block font-medium">{j.title}</span>
-                    <span className="text-muted-sm block">Starts {day(j.startsAt)} · {j._count.engagements} worker(s) engaged</span>
+                    <span className="text-muted-sm block">Starts {day(j.startsAt)} · {plural(j._count.engagements, "worker")} engaged</span>
                   </span>
                   <span className={s.badge}>{s.label}</span>
                 </Link>

@@ -8,11 +8,12 @@ import { ExperienceForm } from "@/components/ExperienceForm";
 import { ExperienceList } from "@/components/ExperienceList";
 import { ScorecardPanel } from "@/components/ScorecardPanel";
 import { removeExperience } from "./actions";
+import { PhoneForm } from "@/components/PhoneForm";
 
 export default async function ProfilePage() {
   const { workerId } = await requireWorker();
   const [worker, records, scorecard, fit] = await Promise.all([
-    db().worker.findUniqueOrThrow({ where: { id: workerId }, select: { displayName: true } }),
+    db().worker.findUniqueOrThrow({ where: { id: workerId }, select: { displayName: true, phone: true } }),
     db().experienceRecord.findMany({ where: { workerId }, orderBy: { startDate: "desc" } }),
     loadScorecardPeriods(workerId),
     loadLatestPreference(workerId),
@@ -85,6 +86,10 @@ export default async function ProfilePage() {
             {mode ? "Review or change" : "Set preferences"}
           </Link>
         </div>
+      </section>
+      <section className="section">
+        <h2 className="section-title">Contact</h2>
+        <PhoneForm phone={worker.phone} />
       </section>
     </main>
   );

@@ -2,55 +2,49 @@ import Link from "next/link";
 import { getSessionProfile } from "@/lib/auth";
 
 const POINTS = [
-  { title: "Proof, not résumés.", body: "Verified experience follows workers from project to project." },
-  { title: "Fit without inference.", body: "Political alignment is self-reported, optional and consent-governed." },
-  { title: "One operating layer.", body: "Hiring, field work and payouts in one connected workflow." },
+  { title: "Proof, not résumés", body: "Verified work follows you from job to job." },
+  { title: "Fit without inference", body: "Political fit is yours to share — or not." },
+  { title: "One place to work", body: "Jobs, shifts and pay, connected." },
 ];
 
 export default async function Home() {
   const session = await getSessionProfile();
 
   return (
-    <main className="mx-auto w-full max-w-5xl flex-1 px-4 pt-12 pb-28 sm:px-6 sm:pt-20 lg:pb-16">
-      <div className="max-w-2xl space-y-6">
-        <p className="eyebrow flex items-center gap-2">
-          <span className="badge-lime font-sans tracking-normal normal-case">Private pilot</span>
-          Field teams, assembled better
-        </p>
-        <h1 className="text-5xl leading-[0.95] font-bold tracking-[-0.045em] text-fg sm:text-7xl">
-          The ground game gets a real labor market.
-        </h1>
-        <p className="lead max-w-xl">
-          Turfcut connects experienced petitioners and canvassers with the campaigns that need them — then makes every
-          match, shift and payout easier to trust.
-        </p>
-        <div className="flex w-full max-w-xs flex-col gap-3 sm:w-auto sm:max-w-none sm:flex-row">
-          {session ? (
-            <Link href="/dashboard" className="btn-primary px-6">
-              Go to dashboard →
+    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col items-center justify-center px-4 pt-12 pb-28 text-center sm:px-6 lg:pb-16">
+      <span className="badge-lime">Private pilot</span>
+      <h1 className="mt-5 text-[2.75rem] leading-[0.98] font-bold tracking-[-0.045em] text-balance text-fg sm:text-6xl">
+        The ground game gets a real labor market.
+      </h1>
+      <p className="lead mt-5 max-w-md text-balance">
+        Petitioners and canvassers meet the campaigns that need them — with every shift and payout easy to trust.
+      </p>
+      <div className="mt-8 flex w-full max-w-xs flex-col gap-3 sm:max-w-none sm:flex-row sm:justify-center">
+        {session ? (
+          <Link href="/dashboard" className="btn-primary px-8">
+            Go to dashboard
+          </Link>
+        ) : (
+          <>
+            <Link href="/signup" className="btn-primary px-8">
+              Get started
             </Link>
-          ) : (
-            <>
-              <Link href="/signup" className="btn-primary px-6">
-                Get started →
-              </Link>
-              <Link href="/login" className="btn-secondary px-6">
-                Log in
-              </Link>
-            </>
-          )}
-        </div>
+            <Link href="/login" className="btn-secondary px-8">
+              Log in
+            </Link>
+          </>
+        )}
       </div>
 
-      <ul className="mt-16 grid gap-6 border-t border-border pt-10 sm:grid-cols-3">
+      <ul className="mt-14 grid w-full gap-3 sm:grid-cols-3">
         {POINTS.map((p) => (
-          <li key={p.title} className="space-y-2">
-            <p className="text-lg font-bold tracking-[-0.01em] text-fg">{p.title}</p>
-            <p className="text-muted-sm leading-relaxed">{p.body}</p>
+          <li key={p.title} className="card-flat space-y-1 py-5">
+            <p className="font-bold text-fg">{p.title}</p>
+            <p className="text-muted-sm">{p.body}</p>
           </li>
         ))}
       </ul>
-      <p className="text-hint mt-12">Petition circulation first, canvassing next. Patent pending.</p>
+      <p className="text-hint mt-10">Petition circulation first, canvassing next.</p>
     </main>
   );
 }

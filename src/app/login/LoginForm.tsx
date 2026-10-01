@@ -11,10 +11,7 @@ export function LoginForm({ next }: { next: string }) {
   return (
     <form action={action} className="card space-y-5 sm:p-8">
       <input type="hidden" name="next" value={next} />
-      <div className="space-y-1.5 text-center">
-        <h1 className="page-title">Welcome back</h1>
-        <p className="text-muted-sm">Log in to Turfcut.</p>
-      </div>
+      <h1 className="page-title text-center">Welcome back</h1>
       <label className="block space-y-1.5">
         <span className="label">Email</span>
         <input className="field" type="email" name="email" autoComplete="email" inputMode="email" required defaultValue={state.email} />
@@ -37,9 +34,8 @@ export function LoginForm({ next }: { next: string }) {
       <button type="submit" name="intent" value="link" formNoValidate disabled={pending} className="btn-secondary w-full">
         Email me a sign-in link
       </button>
-      <p className="text-hint text-center">No password needed — the link signs you in on this device.</p>
       <p className="text-muted-sm text-center">
-        New to Turfcut?{" "}
+        New here?{" "}
         <Link href="/signup" className="link">
           Create an account
         </Link>

@@ -192,7 +192,7 @@ export function shiftProgress(s: ShiftFacts): ProgressStep[] {
           ? "Awaiting supervisor review"
           : "Return packets and check out",
     },
-    { key: "payout", label: "Payout", done: false, detail: "After approval — in-app payouts arrive in M4" },
+    { key: "payout", label: "Payout", done: false, detail: "After approval — in-app payouts are coming soon" },
   ];
   let current = false;
   return raw.map(({ done, ...step }) => {

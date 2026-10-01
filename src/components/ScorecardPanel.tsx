@@ -1,3 +1,4 @@
+import { plural } from "@/lib/format";
 import type { MetricExplanation, Period, Scorecard, ScorecardSegment } from "@/lib/scorecard";
 
 const WORK_TYPE_LABELS = { PETITION: "Petition circulation", CANVASS: "Door-to-door canvass" } as const;
@@ -48,7 +49,7 @@ function Segment({ seg }: { seg: ScorecardSegment }) {
       <h3 className="flex flex-wrap items-center gap-2">
         <span className={WORK_TYPE_BADGE[seg.workType]}>{WORK_TYPE_LABELS[seg.workType]}</span>
         <span className="text-muted-sm">
-          {[seg.statesWorked.join(", "), seg.dateRange && `${seg.dateRange.from} – ${seg.dateRange.to}`]
+          {[seg.statesWorked.join(", "), seg.dateLabel]
             .filter(Boolean)
             .join(" · ")}
         </span>
@@ -67,9 +68,9 @@ function Segment({ seg }: { seg: ScorecardSegment }) {
         ))}
       </ul>
       <p className="text-hint">
-        Verification: {v.verifiedShifts} verified shift(s) counted; {v.pendingReviewShifts} awaiting review,{" "}
+        Verification: {plural(v.verifiedShifts, "verified shift")} counted; {v.pendingReviewShifts} awaiting review,{" "}
         {v.rejectedShifts} rejected and {v.incompleteShifts} incomplete not counted.
-        {seg.correctionsApplied > 0 && ` ${seg.correctionsApplied} signed correction(s) applied; original entries kept.`}
+        {seg.correctionsApplied > 0 && ` ${plural(seg.correctionsApplied, "signed correction")} applied; original entries kept.`}
       </p>
     </div>
   );

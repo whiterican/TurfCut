@@ -24,10 +24,7 @@ export function SignupForm() {
 
   return (
     <form action={action} className="card space-y-5 sm:p-8">
-      <div className="space-y-1.5 text-center">
-        <h1 className="page-title">Join Turfcut</h1>
-        <p className="text-muted-sm">Field workers and hiring organizations each get their own account.</p>
-      </div>
+      <h1 className="page-title text-center">Join Turfcut</h1>
 
       <fieldset className="grid grid-cols-2 gap-2">
         <legend className="sr-only">Account type</legend>

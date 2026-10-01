@@ -60,7 +60,7 @@ describe("scorecard from the seeded shift (hand-computed, spec p.10 formulas)", 
 
   it("explains each metric with formula, sample size, date range and states", () => {
     expect(seg.averages.acceptanceRate).toMatchObject({ numerator: 20, denominator: 22 });
-    expect(seg.averages.acceptanceRate.evidence).toContain("1 verified shift(s), 2026-09-28 to 2026-09-28, CO");
+    expect(seg.averages.acceptanceRate.evidence).toContain("1 verified shift today, CO");
     for (const m of [...Object.values(seg.averages), s.reliability.showRate]) {
       expect(m.formula).not.toBe("");
       expect(m.evidence).not.toBe("");
@@ -259,5 +259,17 @@ describe("spec formulas and verification rules", () => {
     expect(s.segments).toEqual([]);
     expect(s.reliability.showRate.value).toBeNull();
     expect(s.lastUpdated).toBeNull();
+  });
+});
+
+describe("date range labels", () => {
+  it("reads like a person wrote it", async () => {
+    const { rangeLabel } = await import("./scorecard");
+    const now = new Date("2026-10-01T18:00:00Z");
+    expect(rangeLabel("2026-10-01", "2026-10-01", now)).toBe("today");
+    expect(rangeLabel("2026-09-30", "2026-09-30", now)).toBe("yesterday");
+    expect(rangeLabel("2026-09-28", "2026-09-28", now)).toBe("on Sep 28, 2026");
+    expect(rangeLabel("2026-09-01", "2026-09-28", now)).toBe("Sep 1 – Sep 28, 2026");
+    expect(rangeLabel("2025-12-30", "2026-01-02", now)).toBe("Dec 30, 2025 – Jan 2, 2026");
   });
 });

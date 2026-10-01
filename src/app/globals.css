@@ -297,6 +297,26 @@ body {
   .chip:has(input:disabled) {
     @apply cursor-not-allowed border-dashed text-subtle;
   }
+  /* On/off switch: a real checkbox (role="switch") drawn as a track + knob. */
+  .toggle {
+    @apply inline-flex min-h-11 cursor-pointer items-center gap-3 text-sm font-semibold text-fg;
+  }
+  .toggle input {
+    @apply relative h-6 w-10 shrink-0 cursor-pointer appearance-none rounded-full transition;
+    background: var(--border-strong);
+  }
+  .toggle input::after {
+    content: "";
+    @apply absolute top-[3px] left-[3px] size-[1.125rem] rounded-full transition;
+    background: var(--surface);
+  }
+  .toggle input:checked {
+    background: var(--primary);
+  }
+  .toggle input:checked::after {
+    transform: translateX(1rem);
+    background: var(--on-primary);
+  }
   /* Large selectable option (radio card). */
   .option-card {
     @apply flex cursor-pointer gap-3 rounded-2xl border border-border bg-surface p-4 transition;

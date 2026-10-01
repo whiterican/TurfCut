@@ -6,6 +6,8 @@ import { edit, remove, report, send } from "@/app/messages/actions";
 import type { ActionState } from "@/app/jobs/actions";
 import { MAX_ATTACHMENT_BYTES, MAX_BODY, PETITION_NOTICE } from "@/lib/chat";
 import { LocalTime } from "@/components/LocalTime";
+import { Avatar } from "@/components/chat/Avatar";
+import { ArrowUp, Paperclip } from "@/components/chat/icons";
 
 export interface ClientMessage {
   id: string;
@@ -147,32 +149,41 @@ export function MessageList({
     <ol className="space-y-3" aria-label="Messages">
       {hasOlder && <li className="text-hint text-center">Showing the latest 200 messages.</li>}
       {messages.map((m, i) => {
-        // Name (and Manager badge) whenever the sender changes.
-        const showName = !m.mine && messages[i - 1]?.senderId !== m.senderId;
+        // Runs of messages from one sender: name (and Manager badge) on the
+        // first, avatar beside the last — like a phone's messages app.
+        const firstOfRun = messages[i - 1]?.senderId !== m.senderId;
+        const lastOfRun = messages[i + 1]?.senderId !== m.senderId;
         return (
-          <li key={m.id} className={`flex flex-col ${m.mine ? "items-end" : "items-start"}`}>
-            {showName && (group || m.senderIsManager) && (
-              <span className="mb-1 flex items-center gap-1.5 px-1 text-xs font-semibold text-muted">
-                {m.senderName}
-                {m.senderIsManager && <span className="badge-neutral">Manager</span>}
-              </span>
-            )}
-            <div className={`bubble ${m.deleted ? "bubble-deleted" : m.mine ? "bubble-mine" : "bubble-theirs"}`}>
-              {m.deleted ? "Message deleted" : m.body}
-              {m.attachment && !m.deleted && (
-                <a href={`/messages/attachment/${m.id}`} className="link mt-1 flex items-center gap-2 text-sm" download>
-                  <span aria-hidden>📄</span>
-                  <span className="truncate">{m.attachment.name}</span>
-                  <span className="shrink-0 text-xs opacity-75">{kb(m.attachment.size)}</span>
-                </a>
+          <li key={m.id} className={`flex items-end gap-2 ${m.mine ? "flex-row-reverse" : ""} ${firstOfRun ? "" : "-mt-2"}`}>
+            <span className="w-8 shrink-0 self-start pt-0.5" aria-hidden>
+              {firstOfRun && <Avatar name={m.senderName} size="sm" tone="sky" />}
+            </span>
+            <div className={`flex min-w-0 max-w-[82%] flex-col ${m.mine ? "items-end" : "items-start"}`}>
+              {firstOfRun && !m.mine && (group || m.senderIsManager) && (
+                <span className="mb-1 flex items-center gap-1.5 px-1 text-xs font-semibold text-muted">
+                  {m.senderName}
+                  {m.senderIsManager && <span className="badge-neutral">Manager</span>}
+                </span>
               )}
-            </div>
-            <div className={`mt-0.5 flex items-start gap-1 px-1 ${m.mine ? "flex-row-reverse" : ""}`}>
-              <span className="text-[0.75rem] text-subtle">
-                <LocalTime iso={m.createdAt} mode="time" />
-                {m.edited && " · edited"}
-              </span>
-              <MessageActions m={m} conversationId={conversationId} />
+              <div className={`bubble ${m.deleted ? "bubble-deleted" : m.mine ? "bubble-mine" : "bubble-theirs"}`}>
+                {m.deleted ? "Message deleted" : m.body}
+                {m.attachment && !m.deleted && (
+                  <a href={`/messages/attachment/${m.id}`} className="link mt-1 flex items-center gap-2 text-sm" download>
+                    <Paperclip />
+                    <span className="truncate">{m.attachment.name}</span>
+                    <span className="shrink-0 text-xs opacity-75">{kb(m.attachment.size)}</span>
+                  </a>
+                )}
+              </div>
+              <div className={`mt-0.5 flex items-start gap-1 px-1 ${m.mine ? "flex-row-reverse" : ""}`}>
+                {(lastOfRun || m.edited) && (
+                  <span className="text-[0.75rem] text-subtle">
+                    <LocalTime iso={m.createdAt} mode="time" />
+                    {m.edited && " · edited"}
+                  </span>
+                )}
+                <MessageActions m={m} conversationId={conversationId} />
+              </div>
             </div>
           </li>
         );
@@ -184,7 +195,7 @@ export function MessageList({
 const WORKER_REPLIES = ["On my way", "Running about 10 min late", "At staging", "Packet returned", "Can't make it — calling you"];
 const MANAGER_REPLIES = ["Thanks!", "Where are you?", "See you at staging", "Great work today"];
 
-export function Composer({ conversationId, manager }: { conversationId: string; manager: boolean }) {
+export function Composer({ conversationId, manager, placeholder }: { conversationId: string; manager: boolean; placeholder: string }) {
   const form = useRef<HTMLFormElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
@@ -197,7 +208,14 @@ export function Composer({ conversationId, manager }: { conversationId: string; 
     f.reset();
     setBody("");
     setFile(null);
+    if (input.current) input.current.style.height = "";
   });
+  const input = useRef<HTMLTextAreaElement>(null);
+  // Grow with the message, up to a few lines (browsers without field-sizing).
+  const grow = (el: HTMLTextAreaElement) => {
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
+  };
 
   function pick(f: File | undefined) {
     setFileError(null);
@@ -215,7 +233,7 @@ export function Composer({ conversationId, manager }: { conversationId: string; 
   }
 
   return (
-    <form ref={form} onSubmit={onSubmit} className="card space-y-3" aria-label="Send a message">
+    <form ref={form} onSubmit={onSubmit} className="composer" aria-label="Send a message">
       <input type="hidden" name="conversationId" value={conversationId} />
       {/* One tap for the common field updates; hidden once you start typing so a draft is never replaced. */}
       {!typing && !file && (
@@ -225,23 +243,9 @@ export function Composer({ conversationId, manager }: { conversationId: string; 
           ))}
         </div>
       )}
-      <label className="sr-only" htmlFor="chat-body">Message</label>
-      <textarea
-        id="chat-body"
-        name="body"
-        className="field min-h-20"
-        rows={2}
-        maxLength={MAX_BODY}
-        placeholder="Write a message…"
-        value={body}
-        onChange={(e) => setBody(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && !pending) form.current?.requestSubmit();
-        }}
-      />
       {file && (
         <p className="flex items-center gap-2 text-sm text-fg">
-          <span aria-hidden>📄</span>
+          <Paperclip />
           <span className="truncate">{file.name}</span>
           <span className="text-xs text-subtle">{kb(file.size)}</span>
           <button type="button" className="btn-ghost btn-sm" onClick={() => { if (fileInput.current) fileInput.current.value = ""; setFile(null); }}>
@@ -249,16 +253,37 @@ export function Composer({ conversationId, manager }: { conversationId: string; 
           </button>
         </p>
       )}
-      <div className="flex items-center justify-between gap-2">
-        <label className="btn-ghost btn-sm cursor-pointer">
+      <div className="flex items-end gap-2">
+        <label className="icon-btn cursor-pointer" title="Attach a document: PDF, Word, Excel or text, up to 4 MB">
           <input ref={fileInput} type="file" name="file" className="sr-only" accept=".pdf,.docx,.xlsx,.txt,.csv" onChange={(e) => pick(e.target.files?.[0])} />
-          Attach document
+          <Paperclip />
+          <span className="sr-only">Attach a document (PDF, Word, Excel or text, up to 4 MB)</span>
         </label>
-        <button className="btn-primary" disabled={pending}>{pending ? "Sending…" : "Send"}</button>
+        <label className="sr-only" htmlFor="chat-body">Message</label>
+        <textarea
+          ref={input}
+          id="chat-body"
+          name="body"
+          className="composer-input"
+          rows={1}
+          maxLength={MAX_BODY}
+          placeholder={placeholder}
+          value={body}
+          onChange={(e) => {
+            setBody(e.target.value);
+            grow(e.target);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && !pending) form.current?.requestSubmit();
+          }}
+        />
+        <button className="send-btn" disabled={pending || (!typing && !file)} aria-label={pending ? "Sending" : "Send"}>
+          <ArrowUp />
+        </button>
       </div>
       {/* Persistent custody reminder (spec): always visible in the composer. */}
-      <p className="alert alert-warning text-xs" role="note">
-        <strong>{PETITION_NOTICE.split(". ")[0]}.</strong> {PETITION_NOTICE.split(". ").slice(1).join(". ")} Documents only: PDF, Word, Excel or text, up to 4 MB.
+      <p className="text-[0.75rem] leading-snug text-muted" role="note">
+        <strong className="font-semibold text-fg">{PETITION_NOTICE.split(". ")[0]}.</strong> {PETITION_NOTICE.split(". ").slice(1).join(". ")}
       </p>
       {fileError && <p role="alert" className="text-danger-msg">{fileError}</p>}
       {state.message && !state.ok && <p role="alert" className="text-danger-msg">{state.message}</p>}

@@ -540,23 +540,80 @@ body {
     color: var(--hero-fg);
   }
   .bubble {
-    @apply max-w-[85%] rounded-2xl px-3.5 py-2 text-[0.9375rem] leading-relaxed break-words whitespace-pre-wrap;
+    @apply max-w-full rounded-2xl px-3.5 py-2 text-[0.9375rem] leading-relaxed break-words whitespace-pre-wrap;
   }
   .bubble-theirs {
-    @apply rounded-bl-md border border-border bg-surface text-fg;
+    @apply rounded-bl-md bg-surface-2 text-fg;
   }
+  /* Your own messages: solid lime with dark ink (screen mockups). */
   .bubble-mine {
-    @apply rounded-br-md text-fg;
-    background: color-mix(in srgb, var(--lime) 20%, var(--surface));
-    border: 1px solid color-mix(in srgb, var(--lime) 45%, var(--border));
+    @apply rounded-br-md;
+    background: var(--lime);
+    color: var(--ink);
   }
-  :root:not(.dark) .bubble-mine {
-    background: var(--primary);
-    color: var(--on-primary);
-    border-color: transparent;
+  .bubble-mine .link {
+    color: var(--ink);
   }
   .bubble-deleted {
     @apply border border-dashed border-border bg-transparent text-subtle italic;
+  }
+  .avatar-sky {
+    background: var(--sky);
+    color: var(--ink);
+    border-color: transparent;
+  }
+  /* Round icon buttons: back, ··· menu, attach. */
+  .icon-btn {
+    @apply grid size-11 shrink-0 place-items-center rounded-full border border-border bg-transparent text-fg transition;
+  }
+  .icon-btn:hover {
+    border-color: var(--border-strong);
+  }
+  .icon-btn:has(input:focus-visible) {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+  /* The composer stays above the tab bar while you scroll the thread. */
+  .composer {
+    @apply sticky z-30 -mx-4 space-y-2 border-t border-border px-4 pt-3 pb-3 backdrop-blur sm:-mx-6 sm:px-6 lg:bottom-0;
+    bottom: calc(3.5rem + env(safe-area-inset-bottom));
+    background: color-mix(in srgb, var(--bg) 94%, transparent);
+  }
+  @media (min-width: 64rem) {
+    .composer {
+      bottom: 0;
+    }
+  }
+  .composer-input {
+    @apply block min-h-11 w-full flex-1 resize-none rounded-3xl border border-border px-4 py-2.5 text-base text-fg sm:text-sm;
+    background: var(--surface-2);
+    max-height: 10rem;
+    field-sizing: content;
+  }
+  .composer-input::placeholder {
+    color: var(--subtle);
+  }
+  .composer-input:focus {
+    @apply outline-none;
+    border-color: var(--focus);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus) 30%, transparent);
+  }
+  .send-btn {
+    @apply grid size-11 shrink-0 place-items-center rounded-2xl transition disabled:cursor-not-allowed disabled:opacity-40;
+    background: var(--lime);
+    color: var(--ink);
+  }
+  .thread-top {
+    @apply sticky top-0 z-30 -mx-4 -mt-4 space-y-3 px-4 pt-3 pb-3 backdrop-blur sm:-mx-6 sm:px-6;
+    background: color-mix(in srgb, var(--bg) 94%, transparent);
+  }
+  /* Next-shift banner atop a job conversation. */
+  .shift-banner {
+    @apply block rounded-2xl px-4 py-3 text-fg transition;
+    background: color-mix(in srgb, var(--lime) 24%, var(--surface));
+  }
+  :root:not(.dark) .shift-banner {
+    background: color-mix(in srgb, var(--lime) 50%, var(--surface));
   }
   .quick-reply {
     @apply inline-flex min-h-9 shrink-0 items-center rounded-full border border-border bg-surface px-3 text-xs font-semibold text-fg transition;

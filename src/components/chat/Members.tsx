@@ -68,12 +68,15 @@ export function Members({
   canManage,
   canBlock,
   candidates,
+  bare = false,
 }: {
   conversationId: string;
   members: ClientMember[];
   canManage: boolean;
   canBlock: boolean;
   candidates: ClientCandidate[];
+  /** Inside the thread's ··· menu: no collapsible wrapper of its own. */
+  bare?: boolean;
 }) {
   // Controlled selection: React resets the form after every action, and a
   // failed add shouldn't lose the picks.
@@ -97,12 +100,17 @@ export function Members({
     </li>
   );
 
+  const Wrapper = bare ? "div" : "details";
   return (
-    <details className="card p-0">
-      <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-fg">
-        Members · {active.length}
-        <span className="ml-2 text-xs font-medium text-subtle">{canManage ? "Show and manage" : "Show"}</span>
-      </summary>
+    <Wrapper className={bare ? "" : "card p-0"}>
+      {bare ? (
+        <p className="px-4 py-3 text-sm font-semibold text-fg">Members · {active.length}</p>
+      ) : (
+        <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-fg">
+          Members · {active.length}
+          <span className="ml-2 text-xs font-medium text-subtle">{canManage ? "Show and manage" : "Show"}</span>
+        </summary>
+      )}
       <ul className="divide-y divide-border border-t border-border">
         {active.map(row)}
         {removed.map(row)}
@@ -135,6 +143,6 @@ export function Members({
           {state.message && <p role="status" className={state.ok ? "text-success-msg" : "text-danger-msg"}>{state.message}</p>}
         </form>
       )}
-    </details>
+    </Wrapper>
   );
 }

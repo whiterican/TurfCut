@@ -24,9 +24,15 @@ export async function GET(req: NextRequest) {
     else if (tokenHash && type) ok = !(await supabase.auth.verifyOtp({ type, token_hash: tokenHash })).error;
     if (ok) {
       // The person has now proven they own this address: finish setting up
-      // their account from what they entered at sign-up.
-      const { data } = await supabase.auth.getUser();
-      if (data.user) await ensureAccount(data.user);
+      // their account from what they entered at sign-up. They're signed in
+      // either way, so a setup hiccup must not look like a dead link —
+      // getSessionProfile retries on their next request.
+      try {
+        const { data } = await supabase.auth.getUser();
+        if (data.user) await ensureAccount(data.user);
+      } catch (e) {
+        console.error("[turfcut] account setup after confirmation failed", e);
+      }
     }
   } catch {
     ok = false;

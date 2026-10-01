@@ -76,6 +76,13 @@ using dummy env values (no real DB touched).
      links to `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email`.
      That style works even when the email opens in a different browser than
      the one that asked for it.
+   - Keep **Confirm email** turned on in production (Authentication →
+     Providers → Email). Accounts are only created after the address is
+     confirmed; with confirmation off, sign-up necessarily reveals whether an
+     email is already registered.
+   - Preview deployments run in production mode too: give each one its own
+     `SITE_URL` (and add its `/auth/confirm` to Redirect URLs), or sign-in
+     links stay disabled there.
 6. **(M5, later)** Create a Stripe account and enable Connect (test mode) for
    payouts.
 

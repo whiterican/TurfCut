@@ -39,7 +39,8 @@ export async function getSessionProfile(): Promise<SessionProfile | null> {
     // A confirmed sign-up that landed somewhere other than /auth/confirm
     // (e.g. the Supabase Site URL): finish setup from its pending details.
     if (!profile && (await ensureAccount(user))) profile = await db().profile.findUnique({ where: { id: user.id } });
-  } catch {
+  } catch (e) {
+    console.error("[turfcut] loading or finishing the profile failed", e);
     return null; // DB unreachable — treat as signed out, don't crash the page.
   }
   if (!profile) return null;

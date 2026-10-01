@@ -27,7 +27,7 @@ const SHIFT_INCLUDE = {
       id: true,
       workerId: true,
       status: true,
-      worker: { select: { id: true, displayName: true } },
+      worker: { select: { id: true, displayName: true, profileId: true } },
       job: { select: { id: true, orgId: true, title: true, type: true, org: { select: { name: true } }, supportContacts: true } },
     },
   },

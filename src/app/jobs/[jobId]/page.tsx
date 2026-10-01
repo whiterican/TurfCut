@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
-import { HIRING_ROLES, ORG_ROLES } from "@/lib/access";
+import { HIRING_ROLES, ORG_ROLES, SCHEDULING_ROLES } from "@/lib/access";
 import { ACCEPTED_STATUSES, type EngagementStatus, type HiringSnapshot } from "@/lib/engagements";
 import { ENGAGEMENT_LABELS, JOB_STATUS_LABELS } from "@/lib/engagement-labels";
 import { UUID_RE, exclusionReasons, payText, jurisdictionLabel, publishBlockers, readDisclosure, readHiringModes } from "@/lib/jobs";
@@ -12,6 +12,10 @@ import { JobCard } from "@/components/JobCard";
 import { SnapshotView } from "@/components/SnapshotView";
 import { ActionButton } from "@/components/ActionButton";
 import { acceptApplication, acceptInvitation, apply, claim, publish } from "../actions";
+import { shiftState, shiftStatusLabel } from "@/lib/field-day";
+import { listSupervisors } from "@/lib/field-day-data";
+import { LocalTime } from "@/components/LocalTime";
+import { ScheduleShiftForm } from "@/components/ScheduleShiftForm";
 
 const day = (d: Date | null) =>
   d ? d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" }) : "—";
@@ -60,7 +64,9 @@ export default async function JobPage({ params }: { params: Promise<{ jobId: str
       {job.description && <p className="lead">{job.description}</p>}
 
       {isWorker && <WorkerPanel job={job} engagement={engagement} modes={modes} workerId={session.workerId!} />}
-      {isOwnOrg && <OrgPanel job={job} canHire={HIRING_ROLES.includes(session.role)} />}
+      {isOwnOrg && (
+        <OrgPanel job={job} canHire={HIRING_ROLES.includes(session.role)} canSchedule={SCHEDULING_ROLES.includes(session.role)} userId={session.userId} />
+      )}
 
       <section className="section">
         <h2 className="section-title">Job card</h2>
@@ -92,6 +98,7 @@ async function WorkerPanel({
           <ActionButton action={acceptInvitation} fields={{ jobId: job.id, engagementId: engagement.id }} label="Accept invitation" />
         )}
         {engagement.status === "APPLIED" && <p className="text-muted-sm">The organization will review your application.</p>}
+        {(engagement.status === "ACTIVE" || engagement.status === "CLAIMED") && <WorkerShifts engagementId={engagement.id} />}
       </section>
     );
   }
@@ -127,7 +134,50 @@ async function WorkerPanel({
   );
 }
 
-async function OrgPanel({ job, canHire }: { job: JobWithRefs; canHire: boolean }) {
+const SHIFT_LIST = { events: true, validations: true, engagement: { include: { worker: { select: { id: true, displayName: true, profileId: true } }, job: true } } } as const;
+
+function ShiftList({ shifts, showWorker }: { shifts: Array<Parameters<typeof shiftRow>[0]>; showWorker: boolean }) {
+  return (
+    <ul className="list-card">
+      {shifts.map((s) => shiftRow(s, showWorker))}
+    </ul>
+  );
+}
+
+function shiftRow(
+  s: { id: string; startsAt: Date; endsAt: Date; status: "SCHEDULED" | "ACTIVE" | "COMPLETED" | "CANCELLED"; stagingLocation: string | null; events: Array<{ type: string; payload: unknown; actorId: string | null; createdAt: Date }>; validations: Array<{ workEventId: string | null; status: "PENDING" | "APPROVED" | "REJECTED" | "FLAGGED"; reason: string | null; createdAt: Date }>; engagement: { worker: { displayName: string }; job: { type: "PETITION" | "CANVASS" } } },
+  showWorker: boolean
+) {
+  const b = shiftStatusLabel(shiftState({ status: s.status, startsAt: s.startsAt, endsAt: s.endsAt, workType: s.engagement.job.type, events: s.events, validations: s.validations }));
+  return (
+    <li key={s.id}>
+      <Link href={`/shifts/${s.id}`} className="flex min-h-14 items-center justify-between gap-3 px-4 py-3 text-sm transition hover:bg-surface-2">
+        <span className="space-y-0.5">
+          {showWorker && <span className="block font-semibold text-fg">{s.engagement.worker.displayName}</span>}
+          <span className="block text-muted">
+            <LocalTime iso={s.startsAt.toISOString()} /> – <LocalTime iso={s.endsAt.toISOString()} mode="time" />
+            {s.stagingLocation ? ` · ${s.stagingLocation}` : ""}
+          </span>
+        </span>
+        <span className={b.badge}>{b.label}</span>
+      </Link>
+    </li>
+  );
+}
+
+async function WorkerShifts({ engagementId }: { engagementId: string }) {
+  const shifts = await db().shift.findMany({ where: { engagementId }, include: SHIFT_LIST, orderBy: { startsAt: "asc" } });
+  return shifts.length ? (
+    <div className="space-y-2">
+      <p className="text-sm font-semibold text-fg">Your shifts</p>
+      <ShiftList shifts={shifts} showWorker={false} />
+    </div>
+  ) : (
+    <p className="text-muted-sm">You&apos;re hired. The organization will schedule your shifts — they&apos;ll appear here and under Shifts.</p>
+  );
+}
+
+async function OrgPanel({ job, canHire, canSchedule, userId }: { job: JobWithRefs; canHire: boolean; canSchedule: boolean; userId: string }) {
   const blockers = job.status === "DRAFT" || job.status === "PAUSED"
     ? publishBlockers({ job, jurisdiction: job.jurisdiction, org: job.org })
     : [];
@@ -198,6 +248,39 @@ async function OrgPanel({ job, canHire }: { job: JobWithRefs; canHire: boolean }
           )}
         </section>
       )}
+
+      {canSchedule && job.status === "PUBLISHED" && <ShiftsSection job={job} userId={userId} />}
     </>
+  );
+}
+
+async function ShiftsSection({ job, userId }: { job: JobWithRefs; userId: string }) {
+  const [shifts, hired, supervisors] = await Promise.all([
+    db().shift.findMany({ where: { engagement: { jobId: job.id } }, include: SHIFT_LIST, orderBy: { startsAt: "asc" } }),
+    db().engagement.findMany({
+      where: { jobId: job.id, status: { in: ["ACTIVE", "CLAIMED"] } },
+      select: { id: true, worker: { select: { displayName: true } } },
+      orderBy: { createdAt: "asc" },
+    }),
+    listSupervisors(job.orgId),
+  ]);
+  const labels = supervisors.map((p) => ({
+    id: p.id,
+    label: p.id === userId ? "You" : `${p.role === "OWNER" ? "Owner" : "Supervisor"} · ${p.id.slice(0, 8)}`,
+  }));
+  return (
+    <section className="section">
+      <h2 className="section-title">Shifts</h2>
+      {shifts.length > 0 ? (
+        <ShiftList shifts={shifts} showWorker />
+      ) : (
+        <p className="text-muted-sm">No shifts yet.</p>
+      )}
+      {hired.length > 0 ? (
+        <ScheduleShiftForm jobId={job.id} workers={hired.map((e) => ({ engagementId: e.id, name: e.worker.displayName }))} supervisors={labels} />
+      ) : (
+        <p className="text-hint">Accept a worker first — only hired workers can be scheduled.</p>
+      )}
+    </section>
   );
 }

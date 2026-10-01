@@ -6,7 +6,7 @@ export interface NavTab {
 }
 
 /**
- * Tabs per role (screen mockups: Today / Work / Profile for workers;
+ * Tabs per role (screen mockups: Today / Work / Shifts / Profile for workers;
  * Ops / Jobs / People for organizers). Chat joins when it ships.
  */
 export function navTabs(role: Role | null, hasOrg: boolean): NavTab[] {
@@ -14,6 +14,7 @@ export function navTabs(role: Role | null, hasOrg: boolean): NavTab[] {
     return [
       { href: "/dashboard", label: "Today" },
       { href: "/jobs", label: "Work" },
+      { href: "/shifts", label: "Shifts" },
       { href: "/profile", label: "Profile" },
     ];
   }

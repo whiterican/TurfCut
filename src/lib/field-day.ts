@@ -125,6 +125,16 @@ export function shiftState(s: ShiftFacts): ShiftState {
   return st;
 }
 
+/** One-word status for lists, with its badge style. */
+export function shiftStatusLabel(st: ShiftState): { label: string; badge: string } {
+  if (st.cancelled) return { label: "Cancelled", badge: "badge-neutral" };
+  if (st.closeout?.status === "APPROVED") return { label: "Approved", badge: "badge-mint" };
+  if (st.closeout?.status === "REJECTED") return { label: "Not approved", badge: "badge-coral" };
+  if (st.checkedOutAt) return { label: "In review", badge: "badge-butter" };
+  if (st.checkedInAt) return { label: st.paused ? "On break" : "On shift", badge: "badge-lime" };
+  return { label: "Scheduled", badge: "badge-sky" };
+}
+
 // ---------------------------------------------------------------------------
 // Progress (the mockup's five-step timeline)
 // ---------------------------------------------------------------------------

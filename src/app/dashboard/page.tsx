@@ -1,8 +1,11 @@
 import { requireAuth } from "@/lib/auth";
+import { SCHEDULING_ROLES } from "@/lib/access";
 import { createClient } from "@/lib/supabase/server";
 import { db } from "@/lib/db";
 import { ACCEPTED_STATUSES } from "@/lib/engagements";
 import { payText } from "@/lib/jobs";
+import { loadOps } from "@/lib/field-day-data";
+import { LocalTime } from "@/components/LocalTime";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 
@@ -31,6 +34,32 @@ function NavCard({ href, title, body }: { href: string; title: string; body: str
 }
 
 async function WorkerHero({ workerId }: { workerId: string }) {
+  const shift = await db().shift.findFirst({
+    where: { engagement: { workerId }, status: { not: "CANCELLED" }, endsAt: { gte: new Date() }, checkOutAt: null },
+    include: { engagement: { select: { job: { select: { title: true, compensationMethod: true, payRateCents: true } } } } },
+    orderBy: { startsAt: "asc" },
+  });
+  if (shift) {
+    const live = shift.checkInAt !== null;
+    return (
+      <Link href={`/shifts/${shift.id}`} className="hero-card block space-y-4">
+        <p className="eyebrow">
+          {live ? "Live shift" : "Next shift"} · <LocalTime iso={shift.startsAt.toISOString()} mode="date" />
+        </p>
+        <p className="hero-title">{shift.engagement.job.title}</p>
+        <p className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
+          <span>
+            <span className="block font-bold"><LocalTime iso={shift.startsAt.toISOString()} mode="time" /></span>
+            <span className="hero-muted">{live ? "Started" : "Check-in"}{shift.stagingLocation ? ` · ${shift.stagingLocation}` : ""}</span>
+          </span>
+          <span>
+            <span className="block font-bold">{payText(shift.engagement.job.compensationMethod, shift.engagement.job.payRateCents)}</span>
+            <span className="hero-muted">Gross rate</span>
+          </span>
+        </p>
+      </Link>
+    );
+  }
   const next = await db().engagement.findFirst({
     where: { workerId, status: { in: ACCEPTED_STATUSES }, job: { endsAt: { gte: new Date() } } },
     include: { job: { select: { id: true, title: true, startsAt: true, compensationMethod: true, payRateCents: true } } },
@@ -55,20 +84,42 @@ async function WorkerHero({ workerId }: { workerId: string }) {
 }
 
 async function OrgHero({ orgId }: { orgId: string }) {
-  const jobs = await db().job.findMany({
-    where: { orgId, status: "PUBLISHED" },
-    select: { headcount: true, _count: { select: { engagements: { where: { status: { in: ACCEPTED_STATUSES } } } } } },
-  });
-  const spots = jobs.reduce((n, j) => n + (j.headcount ?? 0), 0);
-  const filled = jobs.reduce((n, j) => n + j._count.engagements, 0);
+  const ops = await loadOps(orgId);
+  const attention = [
+    ...ops.late.map((r) => ({ id: r.shift.id, title: `${r.shift.engagement.worker.displayName} hasn't checked in`, sub: r.shift.engagement.job.title, tag: "Late", badge: "badge-coral" })),
+    ...ops.awaitingReview.map((r) => ({ id: r.shift.id, title: `Review ${r.shift.engagement.worker.displayName}'s shift`, sub: r.shift.engagement.job.title, tag: "Review", badge: "badge-butter" })),
+  ];
   return (
-    <Link href="/jobs" className="hero-card block space-y-4">
-      <p className="eyebrow">Live now</p>
-      <p className="hero-title">{jobs.length === 1 ? "1 published job" : `${jobs.length} published jobs`}</p>
-      <div className="flex gap-6 text-sm">
-        <p><span className="block text-lg font-bold tabular-nums">{filled} / {spots}</span><span className="hero-muted">Spots filled</span></p>
+    <>
+      <div className="hero-card space-y-4">
+        <p className="eyebrow">Active today</p>
+        <p className="hero-title">{ops.scheduled === 1 ? "1 shift" : `${ops.scheduled} shifts`} in the field</p>
+        <p className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
+          <span><span className="block text-lg font-bold tabular-nums">{ops.checkedIn} / {ops.scheduled}</span><span className="hero-muted">Checked in</span></span>
+          <span><span className="block text-lg font-bold tabular-nums">{ops.signatures}</span><span className="hero-muted">Signatures submitted</span></span>
+          {ops.doors > 0 && <span><span className="block text-lg font-bold tabular-nums">{ops.doors}</span><span className="hero-muted">Doors</span></span>}
+        </p>
       </div>
-    </Link>
+      <section className="section">
+        <h2 className="section-title flex items-center justify-between">
+          Needs attention <span className="text-xs font-medium text-subtle">{attention.length} item{attention.length === 1 ? "" : "s"}</span>
+        </h2>
+        {attention.length === 0 ? (
+          <p className="text-muted-sm">Nothing right now. Late check-ins and shifts waiting for review show up here.</p>
+        ) : (
+          <ul className="list-card">
+            {attention.map((a) => (
+              <li key={a.id + a.tag}>
+                <Link href={`/shifts/${a.id}`} className="flex min-h-14 items-center justify-between gap-3 px-4 py-3 transition hover:bg-surface-2">
+                  <span><span className="block text-sm font-semibold text-fg">{a.title}</span><span className="text-xs text-muted">{a.sub}</span></span>
+                  <span className={a.badge}>{a.tag}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+    </>
   );
 }
 
@@ -108,12 +159,13 @@ export default async function DashboardPage() {
       </header>
 
       {isWorker && <WorkerHero workerId={session.workerId!} />}
-      {!isWorker && session.orgId && <OrgHero orgId={session.orgId} />}
+      {!isWorker && session.orgId && SCHEDULING_ROLES.includes(session.role) && <OrgHero orgId={session.orgId} />}
 
       {isWorker || session.orgId ? (
         <div className="grid gap-3 sm:grid-cols-2">
           {isWorker && (
             <>
+              <NavCard href="/shifts" title="My shifts" body="Every campaign in one calendar, from check-in to review." />
               <NavCard href="/jobs" title="Find work" body="Open jobs, with pay, credentials and who to call — up front." />
               <NavCard href="/profile" title="My profile" body="Your scorecard, experience and political-fit status." />
               <NavCard

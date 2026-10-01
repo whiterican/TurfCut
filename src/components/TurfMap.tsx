@@ -101,7 +101,16 @@ export function TurfMap({
       if (bounds.length > 1) m.fitBounds(bounds, { padding: [24, 24], maxZoom: 17 });
       else if (bounds.length === 1) m.setView(bounds[0], 16);
       else m.setView(US_CENTER, 4);
+      // A double-tap still delivers two clicks: ignore the second one (and any
+      // tap within 300 ms / 15 px of the last), so it never adds a duplicate
+      // corner or pin.
+      let last = { t: 0, x: 0, y: 0 };
       m.on("click", (e) => {
+        const ev = e.originalEvent as MouseEvent;
+        const now = Date.now();
+        const near = Math.abs(e.containerPoint.x - last.x) < 15 && Math.abs(e.containerPoint.y - last.y) < 15;
+        if (ev.detail > 1 || (near && now - last.t < 300)) return;
+        last = { t: now, x: e.containerPoint.x, y: e.containerPoint.y };
         const p = { lat: e.latlng.lat, lng: e.latlng.lng };
         if (pickRef.current) return pickRef.current(p);
         if (!editable) return;

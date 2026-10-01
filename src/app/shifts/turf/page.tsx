@@ -4,7 +4,8 @@ import { readTurf, turfMarks, turfMarksClosed } from "@/lib/field-day";
 import { facts, loadWorkerTurf } from "@/lib/field-day-data";
 import { LocalTime } from "@/components/LocalTime";
 import { TurfMap } from "@/components/TurfMap";
-import { PinLegend, toMapPins, TurfWorkbench } from "@/components/TurfWorkbench";
+import { PinLegend, TurfWorkbench } from "@/components/TurfWorkbench";
+import { toMapPins } from "@/lib/turf-pins";
 
 /**
  * My turf: what each campaign assigned (or what the worker marked for the

@@ -3,23 +3,11 @@
 import { useMemo, useRef, useState, useTransition } from "react";
 import { turfStep } from "@/app/shifts/actions";
 import { PIN_CATEGORIES, type PinCategory, type TurfPolygon } from "@/lib/field-day";
-import { TurfMap, type MapPin } from "@/components/TurfMap";
+import { pinColor, pinLabel, toMapPins, type WorkbenchPin } from "@/lib/turf-pins";
+import { TurfMap } from "@/components/TurfMap";
 
-const colorOf = (c: PinCategory) => PIN_CATEGORIES.find((p) => p.value === c)!.color;
-const labelOf = (c: PinCategory) => PIN_CATEGORIES.find((p) => p.value === c)!.label;
-
-export interface WorkbenchPin {
-  id: string;
-  lat: number;
-  lng: number;
-  category: PinCategory;
-  label: string | null;
-}
-
-/** Map pins for display: colour by category, tooltip "Category · label". */
-export function toMapPins(pins: WorkbenchPin[]): MapPin[] {
-  return pins.map((p) => ({ id: p.id, lat: p.lat, lng: p.lng, color: colorOf(p.category), label: p.label ? `${labelOf(p.category)} · ${p.label}` : labelOf(p.category) }));
-}
+const colorOf = pinColor;
+const labelOf = pinLabel;
 
 export function PinLegend() {
   return (

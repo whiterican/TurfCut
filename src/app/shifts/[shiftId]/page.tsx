@@ -11,7 +11,8 @@ import { LocalTime } from "@/components/LocalTime";
 import { ActionButton } from "@/components/ActionButton";
 import { CheckInButton, OnShiftActions } from "@/components/FieldDayActions";
 import { Row } from "@/components/Row";
-import { PinLegend, toMapPins, TurfWorkbench } from "@/components/TurfWorkbench";
+import { PinLegend, TurfWorkbench } from "@/components/TurfWorkbench";
+import { toMapPins } from "@/lib/turf-pins";
 import { PIN_CATEGORIES } from "@/lib/field-day";
 import { supervisorStep, workerStep } from "../actions";
 

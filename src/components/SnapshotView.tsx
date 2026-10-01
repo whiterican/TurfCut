@@ -12,6 +12,10 @@ const pct = (m: { value: number | null; numerator: number; denominator: number }
  * frozen, never recomputed. Fit shows authorized signals only.
  */
 export function SnapshotView({ snapshot }: { snapshot: HiringSnapshot }) {
+  // Seeded and pre-M2 rows hold a placeholder, not a full snapshot.
+  if (!snapshot?.scorecard?.showRate || !Array.isArray(snapshot.scorecard.segments)) {
+    return <p className="text-hint">No hiring snapshot was saved for this engagement.</p>;
+  }
   const s = snapshot.scorecard;
   return (
     <div className="space-y-3">

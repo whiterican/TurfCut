@@ -289,11 +289,20 @@ model Shift {
   status      ShiftStatus @default(SCHEDULED)
   checkInAt   DateTime?
   checkOutAt  DateTime?
+  // Field day (M3). Staging point for check-in; the worker's own position is
+  // never stored — check-in records only whether they were at staging.
+  stagingLocation String?
+  stagingLat      Float?
+  stagingLng      Float?
+  supervisorId    String?  @db.Uuid // Profile.id who accepts custody and reviews
+  turfArea        Json? // GeoJSON Polygon of the assigned turf
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
   events      WorkEvent[]
   validations Validation[]
+
+  @@index([engagementId, startsAt])
 }
 
 // ---------------------------------------------------------------------------
@@ -327,6 +336,7 @@ model WorkEvent {
   shift     Shift         @relation(fields: [shiftId], references: [id])
   type      WorkEventType
   payload   Json // event-specific data (counts, packet IDs, notes, ...)
+  actorId   String?       @db.Uuid // Profile.id who recorded it (worker or supervisor); null on pre-M3 rows
   createdAt DateTime      @default(now())
 
   @@index([shiftId, createdAt])

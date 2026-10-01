@@ -185,6 +185,11 @@ CREATE TABLE "public"."Shift" (
     "status" "public"."ShiftStatus" NOT NULL DEFAULT 'SCHEDULED',
     "checkInAt" TIMESTAMP(3),
     "checkOutAt" TIMESTAMP(3),
+    "stagingLocation" TEXT,
+    "stagingLat" DOUBLE PRECISION,
+    "stagingLng" DOUBLE PRECISION,
+    "supervisorId" UUID,
+    "turfArea" JSONB,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -197,6 +202,7 @@ CREATE TABLE "public"."WorkEvent" (
     "shiftId" UUID NOT NULL,
     "type" "public"."WorkEventType" NOT NULL,
     "payload" JSONB NOT NULL,
+    "actorId" UUID,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "WorkEvent_pkey" PRIMARY KEY ("id")
@@ -270,6 +276,9 @@ CREATE INDEX "Job_orgId_status_idx" ON "public"."Job"("orgId", "status");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Engagement_jobId_workerId_key" ON "public"."Engagement"("jobId", "workerId");
+
+-- CreateIndex
+CREATE INDEX "Shift_engagementId_startsAt_idx" ON "public"."Shift"("engagementId", "startsAt");
 
 -- CreateIndex
 CREATE INDEX "WorkEvent_shiftId_createdAt_idx" ON "public"."WorkEvent"("shiftId", "createdAt");

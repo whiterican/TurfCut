@@ -35,7 +35,10 @@ REVOKE ALL ON ALL TABLES IN SCHEMA "public" FROM anon, authenticated;
 REVOKE ALL ON ALL SEQUENCES IN SCHEMA "public" FROM anon, authenticated;
 ALTER DEFAULT PRIVILEGES IN SCHEMA "public" REVOKE ALL ON TABLES FROM anon, authenticated;
 ALTER DEFAULT PRIVILEGES IN SCHEMA "public" REVOKE ALL ON SEQUENCES FROM anon, authenticated;
-ALTER DEFAULT PRIVILEGES IN SCHEMA "public" REVOKE EXECUTE ON FUNCTIONS FROM anon, authenticated, PUBLIC;
+ALTER DEFAULT PRIVILEGES IN SCHEMA "public" REVOKE EXECUTE ON FUNCTIONS FROM anon, authenticated;
+-- Postgres also grants EXECUTE on every new function to PUBLIC, globally; a
+-- per-schema default can't take that back. So Turfcut keeps its functions
+-- in "turfcut_private" (not exposed) and revokes PUBLIC on each one.
 -- Re-running this after m4-migration.sql must not cut off chat Realtime:
 -- restore the one deliberate client grant (still filtered by RLS policies).
 DO $$

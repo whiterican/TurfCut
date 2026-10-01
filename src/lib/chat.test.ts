@@ -57,6 +57,10 @@ describe("access — who can read and post", () => {
     });
   });
 
+  it("a direct thread freezes when the other person has left", () => {
+    expect(chatAccess(direct({ counterpartRemoved: true }))).toMatchObject({ read: true, post: false });
+  });
+
   it("group workers post only while hired on one of the team's jobs", () => {
     expect(chatAccess(group()).post).toBe(true);
     expect(chatAccess(group({ hiredOnLinkedJob: false }))).toMatchObject({ read: true, post: false });
@@ -69,9 +73,9 @@ describe("what a viewer sees", () => {
 
   it("applies edits and tombstones without losing the original", () => {
     const v = viewMessages(msgs, [
-      { messageId: "a", kind: "EDIT", body: "a2", createdAt: t(2) },
-      { messageId: "a", kind: "EDIT", body: "a3", createdAt: t(3) },
-      { messageId: "b", kind: "DELETE", body: null, createdAt: t(4) },
+      { messageId: "a", actorId: "boss", kind: "EDIT", body: "a2", createdAt: t(2) },
+      { messageId: "a", actorId: "boss", kind: "EDIT", body: "a3", createdAt: t(3) },
+      { messageId: "b", actorId: "w", kind: "DELETE", body: null, createdAt: t(4) },
     ], "w", [], null);
     expect(v.find((x) => x.id === "a")).toMatchObject({ body: "a3", edited: true, deleted: false });
     expect(v.find((x) => x.id === "b")).toMatchObject({ body: null, deleted: true, edited: false });
@@ -86,8 +90,14 @@ describe("what a viewer sees", () => {
     expect(viewMessages([...msgs, m("e", "sup", 55)], [], "w", [{ ...block, liftedAt: t(50) }], null).map((x) => x.id)).toEqual(["a", "b", "d", "e"]);
   });
 
+  it("hides edits a blocked sender makes while blocked (same rule as Realtime)", () => {
+    const block = { blockerId: "w", blockedId: "boss", createdAt: t(5), liftedAt: null };
+    const v = viewMessages(msgs, [{ messageId: "a", actorId: "boss", kind: "EDIT", body: "sneaky", createdAt: t(6) }], "w", [block], null);
+    expect(v.find((x) => x.id === "a")).toMatchObject({ body: "a", edited: false });
+  });
+
   it("cuts history at removal, including later edits", () => {
-    const v = viewMessages(msgs, [{ messageId: "a", kind: "EDIT", body: "after", createdAt: t(35) }], "w", [], t(30));
+    const v = viewMessages(msgs, [{ messageId: "a", actorId: "boss", kind: "EDIT", body: "after", createdAt: t(35) }], "w", [], t(30));
     expect(v.map((x) => x.id)).toEqual(["a", "b", "c"]);
     expect(v[0].body).toBe("a");
   });
@@ -138,6 +148,21 @@ describe("writes", () => {
   });
 });
 
+/** A zip with just a central directory listing `names` — enough for zipEntries. */
+function fakeZip(names: string[]): Uint8Array {
+  const enc = new TextEncoder();
+  const out: number[] = [0x50, 0x4b, 0x03, 0x04, ...new Array(26).fill(0)];
+  const cdStart = out.length;
+  const le = (v: number, n: number) => Array.from({ length: n }, (_, i) => (v >>> (8 * i)) & 0xff);
+  for (const name of names) {
+    const nb = [...enc.encode(name)];
+    out.push(...le(0x02014b50, 4), ...new Array(24).fill(0), ...le(nb.length, 2), 0, 0, 0, 0, ...new Array(12).fill(0), ...nb);
+  }
+  const cdSize = out.length - cdStart;
+  out.push(...le(0x06054b50, 4), 0, 0, 0, 0, ...le(names.length, 2), ...le(names.length, 2), ...le(cdSize, 4), ...le(cdStart, 4), 0, 0);
+  return new Uint8Array(out);
+}
+
 describe("attachments", () => {
   const f = (name: string, head: number[], size = 2000) => ({ name, size, bytes: new Uint8Array([...head, ...new Array(16).fill(65)]) });
   it("rejects photos everywhere with the petition-sheet notice — by bytes, not just the name", () => {
@@ -149,10 +174,32 @@ describe("attachments", () => {
   });
   it("accepts documents and refuses unknown or oversized files", () => {
     expect(checkAttachment(f("training.pdf", [0x25, 0x50, 0x44, 0x46]))).toEqual({ ok: true, type: "application/pdf" });
-    expect(checkAttachment(f("roster.xlsx", [0x50, 0x4b, 0x03, 0x04])).ok).toBe(true);
     expect(checkAttachment(f("tool.zip", [0x50, 0x4b, 0x03, 0x04])).ok).toBe(false);
     expect(checkAttachment(f("notes.txt", [104, 105])).ok).toBe(true);
     expect(checkAttachment(f("run.exe", [0x4d, 0x5a])).ok).toBe(false);
     expect(checkAttachment(f("big.pdf", [0x25, 0x50, 0x44, 0x46], 11 * 1024 * 1024)).ok).toBe(false);
+  });
+  const doc = (name: string, bytes: Uint8Array) => checkAttachment({ name, size: bytes.length, bytes });
+  const docx = ["[Content_Types].xml", "_rels/.rels", "word/document.xml", "word/_rels/document.xml.rels", "docProps/core.xml"];
+  it("checks inside Word/Excel files: real documents only, no pictures", () => {
+    expect(doc("plan.docx", fakeZip(docx)).ok).toBe(true);
+    expect(doc("roster.xlsx", fakeZip(["[Content_Types].xml", "xl/workbook.xml", "xl/worksheets/sheet1.xml"])).ok).toBe(true);
+    // Photos zipped up and renamed .docx
+    expect(doc("x.docx", fakeZip(["IMG_1.jpg", "IMG_2.jpg"])).ok).toBe(false);
+    expect(doc("x.docx", fakeZip([...docx, "photos/IMG_1.dat"])).ok).toBe(false);
+    const embedded = doc("x.docx", fakeZip([...docx, "word/media/image1.png"]));
+    expect(!embedded.ok && embedded.reason).toMatch(/pictures[\s\S]*Do not photograph/);
+  });
+  it("refuses scanned PDFs and pictures hidden in text files", () => {
+    const enc = (s: string) => new TextEncoder().encode(s);
+    expect(doc("scan.pdf", enc("%PDF-1.7\n5 0 obj << /Type /XObject /Subtype /Image /Width 2550 >>")).ok).toBe(false);
+    expect(doc("scan.pdf", enc("%PDF-1.7\n5 0 obj <</Subtype/#49mage>>")).ok).toBe(false);
+    expect(doc("guide.pdf", enc("%PDF-1.7\n1 0 obj << /Type /Font /Subtype /Type1 >>")).ok).toBe(true);
+    expect(doc("x.txt", enc('<svg xmlns="http://www.w3.org/2000/svg"><image href="data:image/png;base64,AAA"/></svg>')).ok).toBe(false);
+    expect(doc("x.txt", enc("A".repeat(1200))).ok).toBe(false);
+  });
+  it("refuses file names that disguise their type", () => {
+    expect(doc("inv\u202egpj.txt", new TextEncoder().encode("hi")).ok).toBe(false);
+    expect(doc("a/b.txt", new TextEncoder().encode("hi")).ok).toBe(false);
   });
 });

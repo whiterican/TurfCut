@@ -211,16 +211,77 @@ ALTER TABLE "public"."Message" ADD CONSTRAINT "Message_body_length" CHECK (char_
 ALTER TABLE "public"."MessageRevision" ADD CONSTRAINT "MessageRevision_shape" CHECK (
   ("kind" = 'EDIT' AND "body" IS NOT NULL AND char_length("body") <= 4000) OR ("kind" = 'DELETE' AND "body" IS NULL));
 
+-- Turfcut's database functions live in a schema the Data API doesn't expose
+-- (never callable as RPC).
+CREATE SCHEMA IF NOT EXISTS "turfcut_private";
+REVOKE ALL ON SCHEMA "turfcut_private" FROM PUBLIC, anon;
+GRANT USAGE ON SCHEMA "turfcut_private" TO authenticated;
+
 -- Append-only, enforced: messages and their revisions are never changed or removed.
-CREATE OR REPLACE FUNCTION "public"."turfcut_append_only"() RETURNS trigger LANGUAGE plpgsql AS $$
+CREATE OR REPLACE FUNCTION "turfcut_private"."append_only"() RETURNS trigger LANGUAGE plpgsql SET search_path = '' AS $$
 BEGIN
   RAISE EXCEPTION '% is append-only: % is not allowed', TG_TABLE_NAME, TG_OP USING ERRCODE = 'insufficient_privilege';
 END $$;
-REVOKE ALL ON FUNCTION "public"."turfcut_append_only"() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION "turfcut_private"."append_only"() FROM PUBLIC, anon, authenticated;
 CREATE TRIGGER "Message_append_only" BEFORE UPDATE OR DELETE ON "public"."Message"
-  FOR EACH ROW EXECUTE FUNCTION "public"."turfcut_append_only"();
+  FOR EACH ROW EXECUTE FUNCTION "turfcut_private"."append_only"();
 CREATE TRIGGER "MessageRevision_append_only" BEFORE UPDATE OR DELETE ON "public"."MessageRevision"
-  FOR EACH ROW EXECUTE FUNCTION "public"."turfcut_append_only"();
+  FOR EACH ROW EXECUTE FUNCTION "turfcut_private"."append_only"();
+
+-- Copied columns always match their message: Realtime filters revisions by
+-- conversationId, and reports are routed by orgId.
+CREATE OR REPLACE FUNCTION "turfcut_private"."copy_message_scope"() RETURNS trigger LANGUAGE plpgsql SET search_path = '' AS $$
+BEGIN
+  SELECT m."conversationId" INTO STRICT NEW."conversationId" FROM "public"."Message" m WHERE m."id" = NEW."messageId";
+  IF TG_TABLE_NAME = 'MessageReport' THEN
+    SELECT c."orgId" INTO STRICT NEW."orgId" FROM "public"."Conversation" c WHERE c."id" = NEW."conversationId";
+  END IF;
+  RETURN NEW;
+END $$;
+REVOKE ALL ON FUNCTION "turfcut_private"."copy_message_scope"() FROM PUBLIC, anon, authenticated;
+CREATE TRIGGER "MessageRevision_scope" BEFORE INSERT ON "public"."MessageRevision"
+  FOR EACH ROW EXECUTE FUNCTION "turfcut_private"."copy_message_scope"();
+CREATE TRIGGER "MessageReport_scope" BEFORE INSERT ON "public"."MessageReport"
+  FOR EACH ROW EXECUTE FUNCTION "turfcut_private"."copy_message_scope"();
+
+-- Access ends with the job or the role, whatever path makes the change: a
+-- frozen member must not keep reading new messages (here, over Realtime, or
+-- the Data API). Removal keeps their history up to now, read-only.
+-- Staff who leave the org, or stop being owner/recruiter/supervisor, are
+-- removed from every conversation they manage there.
+CREATE OR REPLACE FUNCTION "turfcut_private"."end_staff_chat_access"() RETURNS trigger LANGUAGE plpgsql SET search_path = '' AS $$
+BEGIN
+  UPDATE "public"."ConversationParticipant" p
+     SET "removedAt" = (now() AT TIME ZONE 'UTC')
+    FROM "public"."Conversation" c
+   WHERE c."id" = p."conversationId" AND p."profileId" = NEW."id" AND p."role" = 'MANAGER' AND p."removedAt" IS NULL
+     AND (NEW."orgId" IS DISTINCT FROM c."orgId" OR NEW."role"::text NOT IN ('OWNER', 'RECRUITER', 'SUPERVISOR'));
+  RETURN NULL;
+END $$;
+REVOKE ALL ON FUNCTION "turfcut_private"."end_staff_chat_access"() FROM PUBLIC, anon, authenticated;
+CREATE TRIGGER "Profile_end_chat_access" AFTER UPDATE OF "orgId", "role" ON "public"."Profile"
+  FOR EACH ROW WHEN (OLD."orgId" IS DISTINCT FROM NEW."orgId" OR OLD."role" IS DISTINCT FROM NEW."role")
+  EXECUTE FUNCTION "turfcut_private"."end_staff_chat_access"();
+
+-- A worker whose hire ends leaves each team chat where they're no longer
+-- hired on any of its jobs. (Their direct thread freezes for both sides by
+-- the engagement's status, so nothing new is posted there.)
+CREATE OR REPLACE FUNCTION "turfcut_private"."end_worker_chat_access"() RETURNS trigger LANGUAGE plpgsql SET search_path = '' AS $$
+BEGIN
+  UPDATE "public"."ConversationParticipant" p
+     SET "removedAt" = (now() AT TIME ZONE 'UTC')
+    FROM "public"."Worker" w, "public"."ConversationJob" cj
+   WHERE w."id" = NEW."workerId" AND p."profileId" = w."profileId" AND p."role" = 'WORKER' AND p."removedAt" IS NULL
+     AND cj."conversationId" = p."conversationId" AND cj."jobId" = NEW."jobId"
+     AND NOT EXISTS (
+       SELECT 1 FROM "public"."ConversationJob" cj2 JOIN "public"."Engagement" e ON e."jobId" = cj2."jobId"
+        WHERE cj2."conversationId" = p."conversationId" AND e."workerId" = NEW."workerId" AND e."status" IN ('ACTIVE', 'CLAIMED'));
+  RETURN NULL;
+END $$;
+REVOKE ALL ON FUNCTION "turfcut_private"."end_worker_chat_access"() FROM PUBLIC, anon, authenticated;
+CREATE TRIGGER "Engagement_end_chat_access" AFTER UPDATE OF "status" ON "public"."Engagement"
+  FOR EACH ROW WHEN (OLD."status" IN ('ACTIVE', 'CLAIMED') AND NEW."status" NOT IN ('ACTIVE', 'CLAIMED'))
+  EXECUTE FUNCTION "turfcut_private"."end_worker_chat_access"();
 
 -- Backfill who hired each current/past worker: the org member who accepted
 -- the application, else who sent the invitation, else (instant claims) who
@@ -251,12 +312,8 @@ ALTER TABLE "public"."MessageRevision"         ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."MessageReport"           ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."ProfileBlock"            ENABLE ROW LEVEL SECURITY;
 
--- Policy helpers in a schema the Data API doesn't expose (not callable as
--- RPC). SECURITY DEFINER so they can read the participant and block tables;
--- search_path empty, every name qualified.
-CREATE SCHEMA IF NOT EXISTS "turfcut_private";
-REVOKE ALL ON SCHEMA "turfcut_private" FROM PUBLIC, anon;
-GRANT USAGE ON SCHEMA "turfcut_private" TO authenticated;
+-- Policy helpers (below): SECURITY DEFINER so they can read the participant
+-- and block tables; search_path empty, every name qualified.
 
 -- Can the signed-in user see something that happened at p_at in this
 -- conversation, by p_author? Participant (and, if removed, p_at before the

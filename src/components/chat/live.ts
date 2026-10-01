@@ -27,7 +27,9 @@ export function subscribeToChat(opts: {
       await sb.realtime.setAuth(data.session.access_token);
       const filter = opts.conversationId ? { filter: `conversationId=eq.${opts.conversationId}` } : {};
       const channel = sb
-        .channel(opts.channel)
+        // Unique per mount: reusing a topic whose previous channel is still
+        // leaving would make .on() throw and silently drop to polling.
+        .channel(`${opts.channel}:${crypto.randomUUID()}`)
         .on("postgres_changes", { event: "INSERT", schema: "public", table: "Message", ...filter }, opts.onChange)
         .on("postgres_changes", { event: "INSERT", schema: "public", table: "MessageRevision", ...filter }, opts.onChange)
         .subscribe((status) => opts.onStatus(status === "SUBSCRIBED"));

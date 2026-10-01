@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState, useTransition } from "react";
+import { useActionState, useRef, useState, useTransition } from "react";
 import { candidates as loadCandidates, createTeamChat } from "@/app/messages/actions";
 import type { ActionState } from "@/app/jobs/actions";
 import type { ClientCandidate } from "@/components/chat/Members";
@@ -13,17 +13,27 @@ export function NewTeamChatForm({ jobs }: { jobs: { id: string; title: string; h
   const [people, setPeople] = useState<ClientCandidate[] | null>(null);
   const [loading, start] = useTransition();
   const [loadError, setLoadError] = useState(false);
+  // Every field is controlled: React resets uncontrolled ones after each
+  // action, so a failed create would otherwise wipe the form.
+  const [name, setName] = useState("");
+  const [chosen, setChosen] = useState<Set<string>>(new Set());
+  const request = useRef(0);
 
   function toggleJob(id: string, on: boolean) {
     const next = on ? [...jobIds, id] : jobIds.filter((j) => j !== id);
     setJobIds(next);
     setLoadError(false);
+    const mine = ++request.current;
     if (next.length === 0) return setPeople(null);
     start(async () => {
       try {
-        setPeople(await loadCandidates(next));
+        const list = await loadCandidates(next);
+        if (mine !== request.current) return; // a newer selection already loaded
+        setPeople(list);
+        // Workers start ticked; keep any choices still eligible.
+        setChosen((prev) => new Set(list.filter((p) => prev.has(p.profileId) || p.role === "WORKER").map((p) => p.profileId)));
       } catch {
-        setLoadError(true);
+        if (mine === request.current) setLoadError(true);
       }
     });
   }
@@ -32,7 +42,14 @@ export function NewTeamChatForm({ jobs }: { jobs: { id: string; title: string; h
   const workers = people?.filter((p) => p.role === "WORKER") ?? [];
   const pick = (p: ClientCandidate) => (
     <label key={p.profileId} className="chip">
-      <input type="checkbox" name="memberIds" value={p.profileId} className="sr-only" defaultChecked={p.role === "WORKER"} />
+      <input
+        type="checkbox"
+        name="memberIds"
+        value={p.profileId}
+        className="sr-only"
+        checked={chosen.has(p.profileId)}
+        onChange={(e) => setChosen((prev) => { const n = new Set(prev); if (e.target.checked) n.add(p.profileId); else n.delete(p.profileId); return n; })}
+      />
       {p.name}
       <span className="text-xs text-subtle">{p.detail}</span>
     </label>
@@ -42,7 +59,7 @@ export function NewTeamChatForm({ jobs }: { jobs: { id: string; title: string; h
     <form action={action} className="space-y-6">
       <div className="space-y-2">
         <label className="label" htmlFor="name">Name</label>
-        <input id="name" name="name" className="field" maxLength={80} required placeholder="e.g. Denver housing initiative — Team A" />
+        <input id="name" name="name" className="field" maxLength={80} required value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Denver housing initiative — Team A" />
       </div>
 
       <fieldset className="space-y-2">
@@ -51,7 +68,7 @@ export function NewTeamChatForm({ jobs }: { jobs: { id: string; title: string; h
         <div className="flex flex-wrap gap-2">
           {jobs.map((j) => (
             <label key={j.id} className="chip">
-              <input type="checkbox" name="jobIds" value={j.id} className="sr-only" onChange={(e) => toggleJob(j.id, e.target.checked)} />
+              <input type="checkbox" name="jobIds" value={j.id} className="sr-only" checked={jobIds.includes(j.id)} onChange={(e) => toggleJob(j.id, e.target.checked)} />
               {j.title}
               <span className="text-xs text-subtle">{j.hired} hired</span>
             </label>

@@ -24,9 +24,17 @@ export function useUnread(initial: number, enabled: boolean): number {
     let alive = true;
     const refresh = () => load(setCount, () => alive);
     const poll = window.setInterval(() => document.visibilityState === "visible" && refresh(), 30_000);
-    const stop = subscribeToChat({ channel: "unread", onChange: refresh, onStatus: () => {} });
+    // A new message in the thread you're reading is marked read by that
+    // page's refresh; wait for it before recounting.
+    let timer: number | undefined;
+    const later = () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(refresh, 2_000);
+    };
+    const stop = subscribeToChat({ channel: "unread", onChange: later, onStatus: () => {} });
     return () => {
       alive = false;
+      window.clearTimeout(timer);
       window.clearInterval(poll);
       stop();
     };

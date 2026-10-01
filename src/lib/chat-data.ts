@@ -655,6 +655,7 @@ export async function reportMessage(me: ChatUser, messageId: string, rawReason: 
 export interface OpenReport {
   id: string;
   messageId: string;
+  conversationId: string;
   conversationTitle: string;
   senderName: string;
   reporterName: string;
@@ -691,6 +692,7 @@ export async function listOpenReports(me: ChatUser): Promise<OpenReport[]> {
     return {
       id: r.id,
       messageId: r.messageId,
+      conversationId: r.conversationId,
       conversationTitle: conv.kind === "GROUP" ? (conv.name ?? "Team chat") : `Direct messages · ${conv.engagement?.job.title ?? ""}`,
       senderName: personName(r.message.sender),
       reporterName: personName(reporters.get(r.reporterId)),

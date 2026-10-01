@@ -8,6 +8,7 @@ import { LocalTime } from "@/components/LocalTime";
 
 export interface ClientMessage {
   id: string;
+  senderId: string;
   senderName: string;
   senderIsManager: boolean;
   mine: boolean;
@@ -41,29 +42,35 @@ function MessageActions({ m, conversationId }: { m: ClientMessage; conversationI
     });
 
   return (
-    <div className={`mt-1 flex flex-col gap-1 ${m.mine ? "items-end" : "items-start"}`}>
+    <div className={`flex flex-col gap-1 ${m.mine ? "items-end" : "items-start"}`}>
       {mode === null && (
-        <button type="button" className="text-xs font-semibold text-subtle hover:text-fg" onClick={() => { setMsg(null); setMode("menu"); }} aria-label="Message options">
+        <button
+          type="button"
+          className="-mt-1 rounded px-1.5 text-sm font-bold leading-none text-subtle hover:text-fg"
+          onClick={() => { setMsg(null); setMode("menu"); }}
+          aria-label="Message options"
+          aria-expanded={false}
+        >
           ···
         </button>
       )}
       {mode === "menu" && (
-        <div className="flex flex-wrap gap-1">
-          {m.canEdit && <button type="button" className="btn-ghost btn-sm" onClick={() => setMode("edit")}>Edit</button>}
+        <div className="flex flex-wrap gap-1" role="group" aria-label="Message options">
+          {m.canEdit && <button type="button" className="btn-ghost btn-sm" autoFocus onClick={() => setMode("edit")}>Edit</button>}
           {m.canDelete && (
             <button type="button" className="btn-ghost btn-sm" disabled={pending}
               onClick={() => confirm("Delete this message? Everyone will see “Message deleted”.") && run(remove(conversationId, m.id), () => setMode(null))}>
               Delete
             </button>
           )}
-          {canReport && <button type="button" className="btn-ghost btn-sm" onClick={() => setMode("report")}>Report</button>}
+          {canReport && <button type="button" className="btn-ghost btn-sm" autoFocus={!m.canEdit} onClick={() => setMode("report")}>Report</button>}
           <button type="button" className="btn-ghost btn-sm" onClick={() => setMode(null)}>Close</button>
         </div>
       )}
       {mode === "edit" && (
         <form className="w-full max-w-md space-y-2" onSubmit={(e) => { e.preventDefault(); run(edit(conversationId, m.id, text), () => setMode(null)); }}>
           <label className="sr-only" htmlFor={`edit-${m.id}`}>Edit message</label>
-          <textarea id={`edit-${m.id}`} className="field" rows={3} maxLength={MAX_BODY} value={text} onChange={(e) => setText(e.target.value)} />
+          <textarea id={`edit-${m.id}`} autoFocus className="field" rows={3} maxLength={MAX_BODY} value={text} onChange={(e) => setText(e.target.value)} />
           <div className="flex justify-end gap-2">
             <button type="button" className="btn-ghost btn-sm" onClick={() => setMode(null)}>Cancel</button>
             <button className="btn-primary btn-sm" disabled={pending}>{pending ? "Saving…" : "Save edit"}</button>
@@ -73,7 +80,7 @@ function MessageActions({ m, conversationId }: { m: ClientMessage; conversationI
       {mode === "report" && (
         <form className="w-full max-w-md space-y-2" onSubmit={(e) => { e.preventDefault(); run(report(m.id, reason), () => setMode(null)); }}>
           <label className="label text-xs" htmlFor={`report-${m.id}`}>What&apos;s wrong with this message?</label>
-          <input id={`report-${m.id}`} className="field" maxLength={500} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="e.g. harassment, pressure about politics" required />
+          <input id={`report-${m.id}`} autoFocus className="field" maxLength={500} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="e.g. harassment, pressure about politics" required />
           <p className="text-hint">The organization&apos;s owner reviews reports. The sender isn&apos;t told who reported it.</p>
           <div className="flex justify-end gap-2">
             <button type="button" className="btn-ghost btn-sm" onClick={() => setMode(null)}>Cancel</button>
@@ -86,16 +93,35 @@ function MessageActions({ m, conversationId }: { m: ClientMessage; conversationI
   );
 }
 
-export function MessageList({ messages, conversationId, group, hasOlder }: { messages: ClientMessage[]; conversationId: string; group: boolean; hasOlder: boolean }) {
-  const end = useRef<HTMLDivElement>(null);
+export function MessageList({
+  messages,
+  conversationId,
+  group,
+  hasOlder,
+  canPost,
+}: {
+  messages: ClientMessage[];
+  conversationId: string;
+  group: boolean;
+  hasOlder: boolean;
+  canPost: boolean;
+}) {
   const last = messages.at(-1)?.id;
-  useEffect(() => end.current?.scrollIntoView({ block: "end" }), [last]);
+  const first = useRef(true);
+  useEffect(() => {
+    const root = document.scrollingElement ?? document.documentElement;
+    const nearBottom = root.scrollHeight - root.scrollTop - root.clientHeight < 240;
+    // Open at the newest message (composer in view); later, follow new
+    // messages only if the reader is already at the bottom.
+    if (first.current || nearBottom) root.scrollTo({ top: root.scrollHeight });
+    first.current = false;
+  }, [last]);
 
   if (messages.length === 0) {
     return (
       <div className="empty-state">
         <p className="empty-state-title">No messages yet</p>
-        <p className="empty-state-body">Say hello — or use a quick reply below.</p>
+        <p className="empty-state-body">{canPost ? "Say hello — or tap a quick reply below." : "Nothing was sent here."}</p>
       </div>
     );
   }
@@ -103,11 +129,11 @@ export function MessageList({ messages, conversationId, group, hasOlder }: { mes
     <ol className="space-y-3" aria-label="Messages">
       {hasOlder && <li className="text-hint text-center">Showing the latest 200 messages.</li>}
       {messages.map((m, i) => {
-        const prev = messages[i - 1];
-        const showName = group && !m.mine && prev?.senderName !== m.senderName;
+        // Name (and Manager badge) whenever the sender changes.
+        const showName = !m.mine && messages[i - 1]?.senderId !== m.senderId;
         return (
           <li key={m.id} className={`flex flex-col ${m.mine ? "items-end" : "items-start"}`}>
-            {(showName || (!group && !m.mine && m.senderIsManager && i === 0)) && (
+            {showName && (group || m.senderIsManager) && (
               <span className="mb-1 flex items-center gap-1.5 px-1 text-xs font-semibold text-muted">
                 {m.senderName}
                 {m.senderIsManager && <span className="badge-neutral">Manager</span>}
@@ -123,15 +149,16 @@ export function MessageList({ messages, conversationId, group, hasOlder }: { mes
                 </a>
               )}
             </div>
-            <span className="mt-0.5 px-1 text-[0.75rem] text-subtle">
-              <LocalTime iso={m.createdAt} mode="time" />
-              {m.edited && " · edited"}
-            </span>
-            <MessageActions m={m} conversationId={conversationId} />
+            <div className={`mt-0.5 flex items-start gap-1 px-1 ${m.mine ? "flex-row-reverse" : ""}`}>
+              <span className="text-[0.75rem] text-subtle">
+                <LocalTime iso={m.createdAt} mode="time" />
+                {m.edited && " · edited"}
+              </span>
+              <MessageActions m={m} conversationId={conversationId} />
+            </div>
           </li>
         );
       })}
-      <div ref={end} />
     </ol>
   );
 }
@@ -150,8 +177,18 @@ export function Composer({ conversationId, manager }: { conversationId: string; 
   const typing = body.trim().length > 0;
   const [state, action, pending] = useActionState(async (prev: ActionState, fd: FormData) => {
     const r = await send(prev, fd);
-    if (r.ok) setBody("");
-    setFile(null); // the file input is cleared either way
+    if (r.ok) {
+      setBody("");
+      setFile(null);
+    } else {
+      // React clears the file input after every action: put the file back.
+      const sent = fd.get("file");
+      if (sent instanceof File && sent.size > 0 && fileInput.current) {
+        const dt = new DataTransfer();
+        dt.items.add(sent);
+        fileInput.current.files = dt.files;
+      }
+    }
     return r;
   }, initial);
 
@@ -192,7 +229,7 @@ export function Composer({ conversationId, manager }: { conversationId: string; 
         value={body}
         onChange={(e) => setBody(e.target.value)}
         onKeyDown={(e) => {
-          if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) form.current?.requestSubmit();
+          if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && !pending) form.current?.requestSubmit();
         }}
       />
       {file && (

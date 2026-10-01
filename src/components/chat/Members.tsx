@@ -75,7 +75,14 @@ export function Members({
   canBlock: boolean;
   candidates: ClientCandidate[];
 }) {
-  const [state, action, pending] = useActionState(addMembers, initial);
+  // Controlled selection: React resets the form after every action, and a
+  // failed add shouldn't lose the picks.
+  const [picked, setPicked] = useState<Set<string>>(new Set());
+  const [state, action, pending] = useActionState(async (prev: ActionState, fd: FormData) => {
+    const r = await addMembers(prev, fd);
+    if (r.ok) setPicked(new Set());
+    return r;
+  }, initial);
   const active = members.filter((m) => !m.removed);
   const removed = members.filter((m) => m.removed);
   const addable = candidates.filter((c) => !active.some((m) => m.profileId === c.profileId));
@@ -96,9 +103,9 @@ export function Members({
 
   return (
     <details className="card p-0">
-      <summary className="cursor-pointer list-none px-4 py-3 text-sm font-semibold text-fg">
+      <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-fg">
         Members · {active.length}
-        <span className="ml-2 text-xs font-medium text-subtle">Tap to {canManage ? "manage" : "see"}</span>
+        <span className="ml-2 text-xs font-medium text-subtle">{canManage ? "Show and manage" : "Show"}</span>
       </summary>
       <ul className="divide-y divide-border border-t border-border">
         {active.map(row)}
@@ -114,7 +121,14 @@ export function Members({
             <div className="flex flex-wrap gap-2">
               {addable.map((c) => (
                 <label key={c.profileId} className="chip">
-                  <input type="checkbox" name="memberIds" value={c.profileId} className="sr-only" />
+                  <input
+                    type="checkbox"
+                    name="memberIds"
+                    value={c.profileId}
+                    className="sr-only"
+                    checked={picked.has(c.profileId)}
+                    onChange={(e) => setPicked((prev) => { const n = new Set(prev); if (e.target.checked) n.add(c.profileId); else n.delete(c.profileId); return n; })}
+                  />
                   {c.name}
                   <span className="text-xs text-subtle">{c.role === "MANAGER" ? c.detail : "Worker"}</span>
                 </label>

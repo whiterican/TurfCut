@@ -43,7 +43,7 @@ export default async function ReportsPage() {
                 <div className="kv"><dt>Reported by</dt><dd>{r.reporterName}</dd></div>
               </dl>
               <p className="text-sm text-fg"><span className="font-semibold">Reason:</span> {r.reason}</p>
-              <ReportActions reportId={r.id} messageId={r.messageId} deleted={r.deleted} />
+              <ReportActions reportId={r.id} messageId={r.messageId} conversationId={r.conversationId} deleted={r.deleted} />
             </li>
           ))}
         </ul>

@@ -10,6 +10,12 @@ import { ChatNameForm } from "@/components/chat/ChatNameForm";
 
 export const metadata = { title: "Messages · Turfcut" };
 
+const ERRORS: Record<string, string> = {
+  not_hired: "Messages unlock once the hire is confirmed.",
+  no_contact: "No one at this organization can be messaged yet.",
+  not_found: "That conversation isn't available.",
+};
+
 function ThreadRow({ t }: { t: ThreadSummary }) {
   const unread = t.unread > 0;
   return (
@@ -45,7 +51,7 @@ function ThreadRow({ t }: { t: ThreadSummary }) {
 export default async function MessagesPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   const session = await requireAuth();
   const me = { userId: session.userId, role: session.role, orgId: session.orgId };
-  const { error } = await searchParams;
+  const error = ERRORS[(await searchParams).error ?? ""];
   const staff = canCreateGroup(me).ok;
   const [{ threads, startable }, reports, profile] = await Promise.all([
     listThreads(me),

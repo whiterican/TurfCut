@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useMemo, useRef, useState, useTransition } from "react";
 import { turfStep } from "@/app/shifts/actions";
 import { PIN_CATEGORIES, type PinCategory, type TurfPolygon } from "@/lib/field-day";
 import { TurfMap, type MapPin } from "@/components/TurfMap";
@@ -61,6 +61,7 @@ export function TurfWorkbench({
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [pending, start] = useTransition();
   const drawForm = useRef<HTMLFormElement>(null);
+  const mapPins = useMemo(() => toMapPins(pins), [pins]);
 
   const run = (req: Parameters<typeof turfStep>[1], after?: () => void) =>
     start(async () => {
@@ -79,7 +80,7 @@ export function TurfWorkbench({
     return (
       <form ref={drawForm} onSubmit={(e) => e.preventDefault()} className="space-y-3">
         <p className="text-muted-sm">Tap the corners of the area you&apos;re working today.</p>
-        <TurfMap editable allowStaging={false} turf={dayTurf} staging={staging} className="h-80" />
+        <TurfMap editable allowStaging={false} turf={dayTurf} staging={staging} pins={mapPins} className="h-80" />
         <div className="flex flex-wrap gap-3">
           <button type="button" className="btn-primary" disabled={pending} onClick={saveDayTurf}>
             {pending ? "Saving…" : "Save my turf"}
@@ -120,7 +121,7 @@ export function TurfWorkbench({
         turf={turf}
         dayTurf={dayTurf}
         staging={staging}
-        pins={toMapPins(pins)}
+        pins={mapPins}
         onPick={(p) => !pending && run({ kind: "pin", lat: p.lat, lng: p.lng, category, label: label || null }, () => setLabel(""))}
         className="h-80"
       />
@@ -156,7 +157,7 @@ export function TurfWorkbench({
           ))}
         </ul>
       )}
-      <p className="text-hint">Pins and your day turf are visible to this campaign&apos;s supervisors. Nothing is recorded unless you tap.</p>
+      <p className="text-hint">Pins and your day turf are visible to this campaign&apos;s owners and field supervisors. Nothing is recorded unless you tap.</p>
     </div>
   );
 }

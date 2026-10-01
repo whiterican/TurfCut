@@ -221,3 +221,19 @@ describe("turf marks — pins and the worker's day turf", () => {
     expect(turfMarks([...drawn, ev("NOTE", 2, { kind: "day_turf", polygon: null })]).dayTurf).toBeNull();
   });
 });
+
+describe("turf marks — limits and hostile input", () => {
+  it("caps total turf events and day-turf redraws (append-only can't grow forever)", async () => {
+    const { MAX_TURF_EVENTS, MAX_DAY_TURF_EVENTS } = await import("./field-day");
+    const churn = Array.from({ length: MAX_TURF_EVENTS }, (_, i) => ev("NOTE", 1, { kind: i % 2 ? "unpin" : "pin", pinId: "a", lat: 39.7, lng: -104.9, category: "note" }));
+    expect(turfAction(shift(churn), { kind: "pin", pinId: "b", lat: 39.7, lng: -104.9, category: "note", label: null }, at(5)).ok).toBe(false);
+    const sq = { type: "Polygon", coordinates: [[[-104.99, 39.74], [-104.98, 39.74], [-104.98, 39.75], [-104.99, 39.74]]] };
+    const redraws = Array.from({ length: MAX_DAY_TURF_EVENTS }, () => ev("NOTE", 1, { kind: "day_turf", polygon: sq }));
+    expect(turfAction(shift(redraws), { kind: "day_turf", polygon: sq }, at(5))).toEqual({ ok: false, reason: "You've redrawn this shift's turf too many times." });
+  });
+
+  it("refuses non-text labels and unknown kinds instead of crashing", () => {
+    expect(turfAction(shift(), { kind: "pin", pinId: "p", lat: 39.7, lng: -104.9, category: "note", label: 42 as unknown as string }, at(5)).ok).toBe(false);
+    expect(turfAction(shift(), { kind: "explode" } as never, at(5))).toEqual({ ok: false, reason: "Unknown turf action." });
+  });
+});

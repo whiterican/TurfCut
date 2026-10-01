@@ -18,6 +18,17 @@ const STROKE = "#2b6534";
 const FILL = "#c6ec8c";
 const US_CENTER: LatLngExpression = [39.5, -98.35];
 
+/**
+ * Tooltip content as a DOM node with textContent. Leaflet inserts string
+ * tooltips as HTML, so user-written text (pin labels) must never be passed
+ * as a string.
+ */
+const tip = (text: string) => {
+  const el = document.createElement("span");
+  el.textContent = text;
+  return el;
+};
+
 /** GeoJSON ring is [lng, lat] and closed; the editor works in open [lat, lng]. */
 const fromTurf = (t: TurfPolygon | null): Point[] => (t ? t.coordinates[0].slice(0, -1).map(([lng, lat]) => ({ lat, lng })) : []);
 const toTurf = (pts: Point[]): TurfPolygon | null =>
@@ -37,6 +48,7 @@ export function TurfMap({
   dayTurf = null,
   pins = [],
   onPick,
+  dayTurfLabel = "Your turf today",
   className = "h-72",
 }: {
   turf?: TurfPolygon | null;
@@ -49,6 +61,8 @@ export function TurfMap({
   pins?: MapPin[];
   /** Tap-to-pin: called with the tapped point instead of editing. */
   onPick?: (p: Point) => void;
+  /** Tooltip for the day turf ("Your turf today" / "Worker's turf today"). */
+  dayTurfLabel?: string;
   className?: string;
 }) {
   const el = useRef<HTMLDivElement>(null);
@@ -113,18 +127,19 @@ export function TurfMap({
     else if (latlngs.length === 2) L.polyline(latlngs, { color: STROKE, weight: 2, dashArray: "4 4" }).addTo(layer.current);
     if (editable) for (const ll of latlngs) L.circleMarker(ll, { radius: 4, color: STROKE, weight: 2, fillColor: "#fff", fillOpacity: 1 }).addTo(layer.current);
     const day = fromTurf(dayTurf).map((p) => [p.lat, p.lng] as [number, number]);
-    if (day.length >= 3) L.polygon(day, { color: STROKE, weight: 2, dashArray: "6 6", fillColor: FILL, fillOpacity: 0.18 }).bindTooltip("Your turf today").addTo(layer.current);
+    if (day.length >= 3) L.polygon(day, { color: STROKE, weight: 2, dashArray: "6 6", fillColor: FILL, fillOpacity: 0.18 }).bindTooltip(tip(dayTurfLabel)).addTo(layer.current);
     if (stage) {
       L.circleMarker([stage.lat, stage.lng], { radius: 9, color: "#17201a", weight: 3, fillColor: FILL, fillOpacity: 1 })
-        .bindTooltip("Staging")
+        .bindTooltip(tip("Staging"))
         .addTo(layer.current);
     }
     for (const pin of pins) {
-      L.circleMarker([pin.lat, pin.lng], { radius: 8, color: "#ffffff", weight: 2, fillColor: pin.color, fillOpacity: 1 })
-        .bindTooltip(pin.label)
+      // bubblingMouseEvents: tapping a pin shows its label, it doesn't drop another pin.
+      L.circleMarker([pin.lat, pin.lng], { radius: 8, color: "#ffffff", weight: 2, fillColor: pin.color, fillOpacity: 1, bubblingMouseEvents: false })
+        .bindTooltip(tip(pin.label))
         .addTo(layer.current);
     }
-  }, [points, stage, ready, editable, dayTurf, pins]);
+  }, [points, stage, ready, editable, dayTurf, pins, dayTurfLabel]);
 
   const turfJson = toTurf(points);
 

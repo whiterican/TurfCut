@@ -6,7 +6,7 @@ import { FIELD_ROLES, SCHEDULING_ROLES } from "@/lib/access";
 import { requireWorker } from "@/lib/worker-session";
 import { formToObject } from "@/lib/jobs";
 import { scheduleShift, supervisorShiftAction, workerShiftAction, workerTurfAction, type WorkerRequest } from "@/lib/field-day-data";
-import type { SupervisorAction } from "@/lib/field-day";
+import type { SupervisorAction, TurfAction } from "@/lib/field-day";
 import type { ActionState } from "@/app/jobs/actions";
 
 export interface ScheduleState {
@@ -121,7 +121,23 @@ export async function turfStep(
   req: { kind: "pin"; lat: number; lng: number; category: string; label: string | null } | { kind: "unpin"; pinId: string } | { kind: "day_turf"; polygon: unknown }
 ): Promise<ActionState> {
   const { workerId, userId } = await requireWorker();
-  const action = req.kind === "pin" ? { ...req, pinId: crypto.randomUUID() } : req;
+  // A server action is a public endpoint: re-check every argument's type.
+  const r0 = req as Record<string, unknown> | null;
+  let action: TurfAction;
+  if (typeof shiftId !== "string" || !r0 || typeof r0 !== "object") return { ok: false, message: "Bad request." };
+  if (r0.kind === "pin") {
+    if (typeof r0.lat !== "number" || typeof r0.lng !== "number" || typeof r0.category !== "string" || (r0.label !== null && typeof r0.label !== "string")) {
+      return { ok: false, message: "Bad request." };
+    }
+    action = { kind: "pin", pinId: crypto.randomUUID(), lat: r0.lat, lng: r0.lng, category: r0.category, label: r0.label as string | null };
+  } else if (r0.kind === "unpin") {
+    if (typeof r0.pinId !== "string" || r0.pinId.length > 64) return { ok: false, message: "Bad request." };
+    action = { kind: "unpin", pinId: r0.pinId };
+  } else if (r0.kind === "day_turf") {
+    action = { kind: "day_turf", polygon: r0.polygon ?? null };
+  } else {
+    return { ok: false, message: "Bad request." };
+  }
   const r = await workerTurfAction({ workerId, profileId: userId }, shiftId, action);
   refresh(shiftId);
   revalidatePath("/shifts/turf");

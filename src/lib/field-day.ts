@@ -461,6 +461,9 @@ export const PIN_CATEGORIES = [
 ] as const;
 export type PinCategory = (typeof PIN_CATEGORIES)[number]["value"];
 export const MAX_PINS = 200;
+/** Append-only means removals add events too: cap the total per shift. */
+export const MAX_TURF_EVENTS = 1000;
+export const MAX_DAY_TURF_EVENTS = 50;
 
 export interface TurfPin {
   id: string;
@@ -514,12 +517,15 @@ export function turfMarksClosed(s: ShiftFacts, now: Date): string | null {
 export function turfAction(s: ShiftFacts, a: TurfAction, now: Date): Outcome {
   const closed = turfMarksClosed(s, now);
   if (closed) return no(closed);
+  const notes = s.events.filter((e) => e.type === "NOTE");
+  if (notes.length >= MAX_TURF_EVENTS) return no("This shift has reached its limit of turf changes.");
   const marks = turfMarks(s.events);
   switch (a.kind) {
     case "pin": {
       if (!isLatLng(a.lat, a.lng)) return no("Tap the map to place the pin.");
       if (!PIN_CATEGORIES.some((c) => c.value === a.category)) return no("Pick what the pin marks.");
       if (marks.pins.length >= MAX_PINS) return no(`Up to ${MAX_PINS} pins per shift.`);
+      if (a.label !== null && typeof a.label !== "string") return no("Pin notes must be text.");
       const label = a.label?.trim().replace(/\s+/g, " ").slice(0, 80) || null;
       return {
         ok: true,
@@ -531,10 +537,13 @@ export function turfAction(s: ShiftFacts, a: TurfAction, now: Date): Outcome {
       return { ok: true, event: { type: "NOTE", payload: { kind: "unpin", pinId: a.pinId } } };
     case "day_turf": {
       if (s.campaignTurf) return no("The campaign assigned this shift's turf.");
+      if (notes.filter((e) => obj(e.payload).kind === "day_turf").length >= MAX_DAY_TURF_EVENTS) return no("You've redrawn this shift's turf too many times.");
       if (a.polygon === null) return marks.dayTurf ? { ok: true, event: { type: "NOTE", payload: { kind: "day_turf", polygon: null } } } : no("There's no turf to clear.");
       const poly = readTurf(a.polygon);
       if (!poly) return no("Draw at least three corners.");
       return { ok: true, event: { type: "NOTE", payload: { kind: "day_turf", polygon: poly } } };
     }
+    default:
+      return no("Unknown turf action.");
   }
 }

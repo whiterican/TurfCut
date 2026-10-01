@@ -61,7 +61,7 @@ export default async function MyTurfPage() {
                 <>
                   <TurfMap turf={turf} dayTurf={marks.dayTurf} staging={staging} pins={toMapPins(marks.pins)} className="h-56" />
                   {marks.pins.length > 0 && <PinLegend />}
-                  <p className="text-hint">You can drop pins from an hour before this shift.</p>
+                  <p className="text-hint">{s.startsAt > now ? "You can drop pins from an hour before this shift." : "Turf marks for this shift are closed."}</p>
                 </>
               ) : (
                 <p className="text-muted-sm">No turf assigned yet. From an hour before the shift you can mark your own.</p>

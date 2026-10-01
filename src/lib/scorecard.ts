@@ -223,7 +223,8 @@ function shiftFacts(shift: ScorecardShift): ShiftFacts {
     reviewed: 0,
     accepted: 0,
     rejected: 0,
-    lastEventAt: latest(shift.events)?.createdAt ?? null,
+    // Turf marks (NOTE) aren't work: they don't move "last updated".
+    lastEventAt: latest(shift.events.filter((e) => e.type !== "NOTE"))?.createdAt ?? null,
     correctionsApplied: applied,
     correctionsIgnored: ignored,
   };

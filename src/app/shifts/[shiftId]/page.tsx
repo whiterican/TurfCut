@@ -29,17 +29,17 @@ const EVENT_LABELS: Record<string, string> = {
   SHIFT_CANCELLED: "Shift cancelled",
   INCIDENT: "Incident reported",
   CORRECTION: "Correction",
-  NOTE: "Turf mark",
+  NOTE: "Note",
 };
 
 function eventDetail(type: string, payload: unknown): string {
   const p = (payload ?? {}) as Record<string, unknown>;
-  if (type === "NOTE" && p.kind === "pin") {
+  if (type === "NOTE" && (p.kind === "pin" || p.kind === "unpin" || p.kind === "day_turf")) {
+    if (p.kind === "unpin") return "pin removed";
+    if (p.kind === "day_turf") return p.polygon ? "worker marked their turf for the day" : "worker cleared their day turf";
     const cat = PIN_CATEGORIES.find((c) => c.value === p.category)?.label ?? "Pin";
     return `${cat}${p.label ? ` — ${p.label}` : ""}`;
   }
-  if (type === "NOTE" && p.kind === "unpin") return "pin removed";
-  if (type === "NOTE" && p.kind === "day_turf") return p.polygon ? "worker marked their turf for the day" : "worker cleared their day turf";
   switch (type) {
     case "CHECK_IN":
       return p.atStaging === true ? "at staging" : p.atStaging === false ? `away from staging (${p.distance})` : "location not checked";
@@ -75,7 +75,11 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
   const st = shiftState(f);
   const steps = shiftProgress(f);
   const turf = readTurf(s.turfArea);
-  const marks = turfMarks(f.events);
+  // Pins and a worker's own day turf are a location trail: the worker and
+  // the field team (owners, supervisors) see them; recruiters don't.
+  const seesMarks = isWorker || canField;
+  const marks = seesMarks ? turfMarks(f.events) : { pins: [], dayTurf: null };
+  const logEvents = seesMarks ? s.events : s.events.filter((e) => e.type !== "NOTE");
   const marksOpen = isWorker && turfMarksClosed(f, new Date()) === null;
   const staging = s.stagingLat !== null && s.stagingLng !== null ? { lat: s.stagingLat, lng: s.stagingLng } : null;
   const contacts = readSupportContacts(s.engagement.job.supportContacts);
@@ -215,7 +219,7 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
             <TurfWorkbench shiftId={s.id} turf={turf} dayTurf={marks.dayTurf} staging={staging} pins={marks.pins} canDrawDayTurf={!turf} />
           ) : (
             <>
-              <TurfMap turf={turf} dayTurf={marks.dayTurf} staging={staging} pins={toMapPins(marks.pins)} />
+              <TurfMap turf={turf} dayTurf={marks.dayTurf} staging={staging} pins={toMapPins(marks.pins)} dayTurfLabel={isWorker ? "Your turf today" : "Worker's turf today"} />
               {marks.pins.length > 0 && <PinLegend />}
             </>
           )}
@@ -223,14 +227,14 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
         </section>
       )}
 
-      {isOrg && s.events.length > 0 && (
+      {isOrg && logEvents.length > 0 && (
         <section className="section">
           <h2 className="section-title">Custody and activity log</h2>
           <ol className="list-card">
-            {s.events.map((e) => (
+            {logEvents.map((e) => (
               <li key={e.id} className="flex flex-col gap-0.5 px-4 py-3 text-sm sm:flex-row sm:justify-between sm:gap-4">
                 <span>
-                  <span className="font-semibold text-fg">{EVENT_LABELS[e.type] ?? e.type}</span>{" "}
+                  <span className="font-semibold text-fg">{e.type === "NOTE" && ["pin", "unpin", "day_turf"].includes(String((e.payload as Record<string, unknown> | null)?.kind)) ? "Turf mark" : (EVENT_LABELS[e.type] ?? e.type)}</span>{" "}
                   <span className="text-muted">{eventDetail(e.type, e.payload)}</span>
                 </span>
                 <span className="text-xs text-subtle">

@@ -37,7 +37,7 @@ function ThreadRow({ t }: { t: ThreadSummary }) {
               {t.last ? `${t.last.mine ? "You: " : ""}${t.last.text}` : "No messages yet"}
             </span>
             {unread ? (
-              <span className="unread-badge" aria-label={`${t.unread} unread`}>{t.unread > 99 ? "99+" : t.unread}</span>
+              <span className="unread-badge"><span aria-hidden>{t.unread > 99 ? "99+" : t.unread}</span><span className="sr-only"> unread: {t.unread}</span></span>
             ) : t.frozen ? (
               <span className="badge-neutral shrink-0">Read-only</span>
             ) : null}

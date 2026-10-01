@@ -18,7 +18,8 @@ export function SnapshotView({ snapshot }: { snapshot: HiringSnapshot }) {
     !!sc?.showRate &&
     Array.isArray(sc.segments) &&
     sc.segments.every((g) => typeof g?.shiftsCount === "number" && typeof g?.activeHours === "number") &&
-    !!snapshot.fit &&
+    typeof snapshot.fit?.fields === "object" &&
+    snapshot.fit.fields !== null &&
     typeof snapshot.capturedAt === "string";
   if (!whole) {
     return <p className="text-hint">No hiring snapshot was saved for this engagement.</p>;
@@ -28,7 +29,7 @@ export function SnapshotView({ snapshot }: { snapshot: HiringSnapshot }) {
     <div className="space-y-3">
       <p className="text-hint">
         Frozen <RelativeTime iso={snapshot.capturedAt} />
-        {snapshot.consentVersion !== null ? ` · consent version ${snapshot.consentVersion}` : " · no fit answers on file"}
+        {snapshot.consentVersion != null ? ` · consent version ${snapshot.consentVersion}` : " · no fit answers on file"}
       </p>
       <dl className="list-card">
         <Row label="Show rate">{pct(s.showRate)}</Row>

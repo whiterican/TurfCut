@@ -8,8 +8,10 @@
  * badges (solid pastel with dark ink, in both themes), active states, the
  * hero card's highlight. Accent fills always
  * carry the dark "ink" colour, never another accent. Dark: deep green
- * surfaces built from the mockup's hero card, with the same accents as text
- * or tinted fills. Primary actions are ink-on-light / lime-on-dark.
+ * surfaces built from the mockup's hero card; accents stay solid pastel
+ * fills with ink (badges, your chat bubbles, the next-shift card) or appear
+ * as text. Primary actions are ink-on-light / lime-on-dark; the current
+ * tab's box is lime (dark) or ink (light).
  *
  * The theme is a `.dark` class on <html>, set before first paint by the
  * inline script in app/layout.tsx (saved choice, else the OS preference).
@@ -190,7 +192,7 @@ body {
   }
   .hero-card.hero-card-lime .eyebrow,
   .hero-card.hero-card-lime .hero-muted {
-    color: color-mix(in srgb, var(--ink) 78%, var(--lime));
+    color: color-mix(in srgb, var(--ink) 80%, var(--lime));
   }
   /* Data-dense hero cards skip the corner highlight so numbers stay clear. */
   .hero-card-plain::after {
@@ -508,7 +510,8 @@ body {
     background: var(--lime);
   }
   .tab .unread-badge {
-    @apply absolute -top-2 -right-3 min-w-[1.125rem] px-1 text-[0.625rem] leading-[1.125rem];
+    @apply absolute -top-2.5 -right-3.5 min-w-[1.25rem] px-1 text-[0.75rem] leading-[1.25rem];
+    box-shadow: 0 0 0 2px var(--surface); /* separates coral from the lime box */
   }
   .topnav-link {
     @apply rounded-lg px-3 py-2 text-sm font-medium text-muted transition hover:bg-surface-2 hover:text-fg;

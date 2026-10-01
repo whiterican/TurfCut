@@ -112,7 +112,7 @@ export async function loadFeed(workerId: string | null, f: FeedFilters = {}) {
       ...(f.minRateCents ? { payRateCents: { gte: f.minRateCents } } : {}),
       ...(f.startsBefore ? { startsAt: { lte: f.startsBefore } } : {}),
     },
-    include: { org: { select: { name: true } }, jurisdiction: true },
+    include: { org: { select: { name: true, approved: true } }, jurisdiction: true },
     orderBy: [{ startsAt: "asc" }, { title: "asc" }],
   });
   const pref = workerId ? effectivePreference(await loadLatestPreference(workerId)) : null;

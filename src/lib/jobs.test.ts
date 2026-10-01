@@ -230,8 +230,11 @@ describe("feed filters", () => {
 describe("payShort", () => {
   it("is compact, without trailing cents on whole dollars", () => {
     expect(payShort("HOURLY", 2800)).toBe("$28/hr");
-    expect(payShort("SHIFT_RATE", 12050)).toBe("$120.50/shift");
-    expect(payShort("PER_UNIT", 150)).toBe("$1.50/unit");
+    expect(payShort("SHIFT_RATE", 12050)).toBe("$120.50/completed shift");
+    expect(payShort("SHIFT_RATE", 120050)).toBe("$1,200.50/completed shift");
+    // Says what's paid for: accepted units, not collected ones.
+    expect(payShort("PER_UNIT", 150, "PETITION")).toBe("$1.50/accepted signature");
+    expect(payShort("PER_UNIT", 200, "CANVASS")).toBe("$2/accepted contact");
     expect(payShort("HOURLY", null)).toBe("Rate not set");
   });
 });

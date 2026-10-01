@@ -8,7 +8,7 @@ import { useUnreadCount } from "@/components/chat/UnreadProvider";
 function Badge({ count }: { count: number }) {
   if (count <= 0) return null;
   return (
-    <span className="unread-badge" aria-label={`${count} unread`}>
+    <span className="unread-badge" aria-hidden>
       {count > 99 ? "99+" : count}
     </span>
   );
@@ -24,6 +24,7 @@ export function TopNav({ tabs }: { tabs: NavTab[] }) {
         <Link key={t.href} href={t.href} className="topnav-link inline-flex items-center gap-1.5" aria-current={t.href === current ? "page" : undefined}>
           {t.label}
           {t.href === MESSAGES_HREF && <Badge count={count} />}
+          {t.href === MESSAGES_HREF && count > 0 && <span className="sr-only">, {count} unread</span>}
         </Link>
       ))}
     </nav>

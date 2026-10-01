@@ -92,12 +92,31 @@ describe.each([
   });
 });
 
-describe("dark theme accent text", () => {
-  it("accent badge text is AA on its tinted background and on plain surfaces", () => {
+describe("dark theme accents", () => {
+  it("solid badges (ink on pastel) are AAA in dark mode too", () => {
+    for (const p of PASTELS) expect(ratio(dark.ink, dark[p])).toBeGreaterThanOrEqual(7);
+  });
+  it("accents used as text are AA on plain surfaces", () => {
     for (const p of PASTELS) {
-      expect(ratio(dark[p], mix(dark[p], 0.14, dark.surface))).toBeGreaterThanOrEqual(4.5);
       expect(ratio(dark[p], dark.surface)).toBeGreaterThanOrEqual(4.5);
       expect(ratio(dark[p], dark.bg)).toBeGreaterThanOrEqual(4.5);
     }
+  });
+});
+
+describe("mockup surfaces", () => {
+  it("lime next-shift card: title AAA, secondary text AAA", () => {
+    for (const th of [light, dark]) {
+      expect(ratio(th.ink, th.lime)).toBeGreaterThanOrEqual(7);
+      expect(ratio(mix(th.ink, 0.8, th.lime), th.lime)).toBeGreaterThanOrEqual(7);
+    }
+  });
+  it("chat shift banner text is AAA, its second line AA", () => {
+    const lightBanner = mix(light.lime, 0.5, light.surface);
+    const dk = mix(dark.lime, 0.24, dark.surface);
+    expect(ratio(light.fg, lightBanner)).toBeGreaterThanOrEqual(7);
+    expect(ratio(dark.fg, dk)).toBeGreaterThanOrEqual(7);
+    expect(ratio(light.muted, lightBanner)).toBeGreaterThanOrEqual(4.5);
+    expect(ratio(dark.muted, dk)).toBeGreaterThanOrEqual(4.5);
   });
 });

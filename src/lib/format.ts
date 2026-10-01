@@ -33,6 +33,6 @@ export const percent = (v: number) => {
   if (!Number.isFinite(v)) return "—";
   const p = Number((v * 100).toFixed(1));
   if (p >= 100 && v < 1) return "99.9%";
-  if (p <= 0 && v > 0) return "0.1%";
+  if (p <= 0 && v > 0) return "<0.1%";
   return `${num(p, 1)}%`;
 };

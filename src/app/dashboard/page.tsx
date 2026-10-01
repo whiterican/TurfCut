@@ -36,7 +36,7 @@ function NavCard({ href, title, body }: { href: string; title: string; body: str
 async function WorkerHero({ workerId }: { workerId: string }) {
   const shift = await db().shift.findFirst({
     where: { engagement: { workerId }, status: { not: "CANCELLED" }, endsAt: { gte: new Date() }, checkOutAt: null },
-    include: { engagement: { select: { job: { select: { title: true, compensationMethod: true, payRateCents: true } } } } },
+    include: { engagement: { select: { job: { select: { title: true, type: true, compensationMethod: true, payRateCents: true } } } } },
     orderBy: { startsAt: "asc" },
   });
   if (shift) {
@@ -53,7 +53,7 @@ async function WorkerHero({ workerId }: { workerId: string }) {
             <span className="hero-muted text-sm">{live ? "Started" : "Check-in"}</span>
           </span>
           <span>
-            <span className="block text-lg font-bold">{payShort(shift.engagement.job.compensationMethod, shift.engagement.job.payRateCents)}</span>
+            <span className="block text-lg font-bold">{payShort(shift.engagement.job.compensationMethod, shift.engagement.job.payRateCents, shift.engagement.job.type)}</span>
             <span className="hero-muted text-sm">gross</span>
           </span>
         </p>

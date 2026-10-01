@@ -113,16 +113,16 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
                       <span className="min-w-0">
                         <span className="block text-lg leading-snug font-bold tracking-[-0.01em] text-fg">{j.title}</span>
                         <span className="mt-0.5 block text-sm text-muted">
-                          {[j.org.name, geo.city && `${geo.city}, ${geo.state}`, `${day(j.startsAt)} – ${day(j.endsAt)}`].filter(Boolean).join(" · ")}
+                          {[j.org.name, [geo.city, geo.state].filter(Boolean).join(", "), `${day(j.startsAt)} – ${day(j.endsAt)}`].filter(Boolean).join(" · ")}
                         </span>
                       </span>
                       <span className="shrink-0 text-right">
-                        <span className="block text-lg font-bold text-fg tabular-nums">{payShort(j.compensationMethod, j.payRateCents)}</span>
+                        <span className="block text-lg font-bold text-fg tabular-nums">{payShort(j.compensationMethod, j.payRateCents, j.type)}</span>
                         <span className="block text-xs text-subtle">gross</span>
                       </span>
                     </span>
                     <span className="flex flex-wrap gap-1.5">
-                      <span className="badge-sky">Verified org</span>
+                      {j.org.approved && <span className="badge-sky">Approved org</span>}
                       <span className={j.type === "PETITION" ? "badge-butter" : "badge-mint"}>{j.type === "PETITION" ? "Petition" : "Canvass"}</span>
                     </span>
                   </Link>

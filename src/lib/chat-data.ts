@@ -465,8 +465,16 @@ export async function ensureDirect(me: ChatUser, engagementId: string): Promise<
         const next = stillStaff ? boss.id : await defaultBoss(tx, e.jobId, e.job.orgId);
         if (next && next !== e.worker.profileId) {
           const prior = managers.find((m) => m.profileId === next);
-          if (prior) await tx.conversationParticipant.update({ where: { id: prior.id }, data: { removedAt: null, removedById: null, addedById: me.userId, addedAt: await dbNow(tx) } });
-          else await tx.conversationParticipant.create({ data: { conversationId: e.conversation.id, profileId: next, role: "MANAGER", addedById: me.userId, addedAt: await dbNow(tx) } });
+          // A returning contact keeps their original start (and so their own
+          // history); a new one reads from strictly after the last message.
+          if (prior) {
+            await tx.conversationParticipant.update({ where: { id: prior.id }, data: { removedAt: null, removedById: null, addedById: me.userId } });
+          } else {
+            const last = (await tx.conversation.findUniqueOrThrow({ where: { id: e.conversation.id }, select: { lastMessageAt: true } })).lastMessageAt;
+            let addedAt = await dbNow(tx);
+            if (last && addedAt <= last) addedAt = new Date(last.getTime() + 1);
+            await tx.conversationParticipant.create({ data: { conversationId: e.conversation.id, profileId: next, role: "MANAGER", addedById: me.userId, addedAt } });
+          }
           if (next !== e.hiredById) await tx.engagement.update({ where: { id: e.id }, data: { hiredById: next } });
           await audit(tx, me.userId, "conversation.member_added", "Conversation", e.conversation.id, { profileId: next, role: "MANAGER", reason: "contact_left" });
         }

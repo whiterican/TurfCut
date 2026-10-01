@@ -55,6 +55,41 @@ export function imageSize(b: Uint8Array): { width: number; height: number } | nu
   return null;
 }
 
+/**
+ * A preview carries nothing but its one small picture: a JPEG with a single
+ * image (no second SOI, no large APP/EXIF blocks, nothing after EOI), or a
+ * PNG with only core chunks and nothing after IEND.
+ */
+function plainPreview(b: Uint8Array): boolean {
+  if (b[0] === 0x89) {
+    const be32 = (o: number) => ((b[o] << 24) | (b[o + 1] << 16) | (b[o + 2] << 8) | b[o + 3]) >>> 0;
+    const CORE = new Set(["IHDR", "PLTE", "IDAT", "IEND", "tRNS", "sRGB", "gAMA", "pHYs", "cHRM", "iCCP", "sBIT", "bKGD"]);
+    for (let o = 8; o + 12 <= b.length; ) {
+      const len = be32(o);
+      const type = String.fromCharCode(b[o + 4], b[o + 5], b[o + 6], b[o + 7]);
+      if (!CORE.has(type)) return false;
+      o += 12 + len;
+      if (type === "IEND") return o === b.length;
+    }
+    return false;
+  }
+  let sois = 0;
+  for (let i = 0; i + 2 < b.length; i++) if (b[i] === 0xff && b[i + 1] === 0xd8 && b[i + 2] === 0xff) sois++;
+  if (sois !== 1) return false;
+  let end = b.length;
+  while (end > 0 && b[end - 1] === 0) end--; // tolerate zero padding
+  if (end < 2 || b[end - 2] !== 0xff || b[end - 1] !== 0xd9) return false;
+  for (let o = 2; o + 4 <= b.length; ) {
+    if (b[o] !== 0xff) return false;
+    const marker = b[o + 1];
+    if (marker === 0xda) return true; // start of scan: headers done
+    const len = (b[o + 2] << 8) | b[o + 3];
+    if (marker >= 0xe0 && marker <= 0xef && len > 4096) return false;
+    o += 2 + len;
+  }
+  return false;
+}
+
 // ---------------------------------------------------------------------------
 // Text
 // ---------------------------------------------------------------------------
@@ -229,7 +264,7 @@ export function ooxmlProblem(type: string, bytes: Uint8Array): string | null {
     budget -= data.length;
     if (THUMBNAIL.test(e.name)) {
       const size = imageSize(data);
-      if (data.length > 32 * 1024 || !size || size.width > 256 || size.height > 256) return PICTURES_REASON;
+      if (data.length > 32 * 1024 || !size || size.width > 256 || size.height > 256 || !plainPreview(data)) return PICTURES_REASON;
     } else if (looksLikeImage(data)) {
       return PICTURES_REASON;
     } else if (PRINTER_SETTINGS.test(e.name)) {

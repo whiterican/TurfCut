@@ -4,9 +4,11 @@ import { DM_Mono, DM_Sans } from "next/font/google";
 import { TabBar, TopNav } from "@/components/AppNav";
 import { InlineScript } from "@/components/InlineScript";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { UnreadProvider } from "@/components/chat/UnreadProvider";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
 import { getSessionProfile } from "@/lib/auth";
-import { navTabs } from "@/lib/nav";
+import { MESSAGES_HREF, navTabs } from "@/lib/nav";
+import { unreadTotal } from "@/lib/chat-data";
 import "./globals.css";
 
 const dmSans = DM_Sans({
@@ -32,6 +34,10 @@ export default async function RootLayout({
 }) {
   const session = await getSessionProfile();
   const tabs = navTabs(session?.role ?? null, !!session?.orgId);
+  const unread =
+    session && tabs.some((t) => t.href === MESSAGES_HREF)
+      ? await unreadTotal({ userId: session.userId, role: session.role, orgId: session.orgId }).catch(() => 0)
+      : 0;
   return (
     <html
       lang="en"
@@ -44,6 +50,7 @@ export default async function RootLayout({
         <InlineScript html={THEME_INIT_SCRIPT} />
       </head>
       <body className="min-h-full flex flex-col">
+        <UnreadProvider initial={unread} enabled={tabs.some((t) => t.href === MESSAGES_HREF)}>
         <header className="border-b border-border bg-surface/80 backdrop-blur">
           <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
             <Link href={session ? "/dashboard" : "/"} className="flex items-center gap-2 text-lg font-bold tracking-[-0.03em] text-fg">
@@ -63,6 +70,7 @@ export default async function RootLayout({
         </header>
         <div className="flex flex-1 flex-col">{children}</div>
         <TabBar tabs={tabs} />
+        </UnreadProvider>
       </body>
     </html>
   );

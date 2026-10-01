@@ -36,9 +36,13 @@ const DOCX = {
   "docProps/core.xml": "<cp:coreProperties/>",
 };
 const JPEG = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0, 16, 74, 70, 73, 70, 0, 1]);
-/** A JPEG header (APP0 + SOF0) declaring the given size. */
-const jpegOf = (w: number, h: number) =>
-  new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0, 16, 74, 70, 73, 70, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0, 0xff, 0xc0, 0, 17, 8, h >> 8, h & 255, w >> 8, w & 255, 3, 1, 0x22, 0, 2, 0x11, 1, 3, 0x11, 1]);
+/** A minimal JPEG (APP0, SOF0, SOS, a few data bytes, EOI) declaring the given size. */
+const jpegOf = (w: number, h: number, trailer: number[] = []) =>
+  new Uint8Array([
+    0xff, 0xd8, 0xff, 0xe0, 0, 16, 74, 70, 73, 70, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0,
+    0xff, 0xc0, 0, 17, 8, h >> 8, h & 255, w >> 8, w & 255, 3, 1, 0x22, 0, 2, 0x11, 1, 3, 0x11, 1,
+    0xff, 0xda, 0, 8, 1, 1, 0, 0, 63, 0, 0x12, 0x34, 0xff, 0xd9, ...trailer,
+  ]);
 
 describe("Word and Excel files", () => {
   it("accepts plain documents", () => {
@@ -56,6 +60,8 @@ describe("Word and Excel files", () => {
   it("refuses a photo passed off as the page preview", () => {
     expect(vet("x.docx", zip({ ...DOCX, "docProps/thumbnail.jpeg": jpegOf(1700, 2200) })).ok).toBe(false);
     expect(vet("x.docx", zip({ ...DOCX, "docProps/thumbnail.jpeg": JPEG })).ok).toBe(false); // size unreadable
+    // A small preview with a second, full-size picture appended after it.
+    expect(vet("x.docx", zip({ ...DOCX, "docProps/thumbnail.jpeg": jpegOf(256, 181, [...jpegOf(1700, 2200)]) })).ok).toBe(false);
   });
   it("refuses embedded pictures, however they're named", () => {
     const r = vet("x.docx", zip({ ...DOCX, "word/media/image1.png": JPEG }));

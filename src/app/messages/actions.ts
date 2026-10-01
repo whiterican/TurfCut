@@ -37,12 +37,14 @@ export async function unreadCount(): Promise<number> {
 export async function send(_prev: ActionState, fd: FormData): Promise<ActionState> {
   const user = await me();
   const conversationId = str(fd.get("conversationId"));
-  const upload = fd.get("file");
+  // A quick-reply button sends its own text (and no attachment).
+  const quick = str(fd.get("quick"));
+  const upload = quick ? null : fd.get("file");
   let file: chat.UploadedFile | null = null;
   if (upload instanceof File && upload.size > 0) {
     file = { name: upload.name, bytes: new Uint8Array(await upload.arrayBuffer()) };
   }
-  const r = await chat.sendMessage(user, conversationId, fd.get("body"), file);
+  const r = await chat.sendMessage(user, conversationId, quick || fd.get("body"), file);
   if (r.ok) refreshThread(conversationId);
   return done(r, "Sent.");
 }

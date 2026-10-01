@@ -3,9 +3,10 @@ import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { HIRING_ROLES, ORG_ROLES } from "@/lib/access";
 import { ENGAGEMENT_LABELS, JOB_STATUS_LABELS } from "@/lib/engagement-labels";
-import { JOB_TYPES, parseFeedFilters, payShort } from "@/lib/jobs";
+import { JOB_TYPES, parseFeedFilters } from "@/lib/jobs";
 import { plural } from "@/lib/format";
 import { loadFeed } from "@/lib/jobs-data";
+import { JobFeedCard } from "@/components/JobFeedCard";
 
 const day = (d: Date | null) =>
   d ? d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" }) : "—";
@@ -41,13 +42,32 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
   const engagedIds = new Set(mine.map((e) => e.jobId));
   const open = jobs.filter((j) => !engagedIds.has(j.id));
 
+  // Quick-filter chips toggle one URL parameter each.
+  const toggle = (key: string, value: string) => {
+    const next = new URLSearchParams(params);
+    if (next.get(key) === value) next.delete(key);
+    else next.set(key, value);
+    const qs = next.toString();
+    return qs ? `/jobs?${qs}` : "/jobs";
+  };
+  const week = new Date();
+  week.setUTCDate(week.getUTCDate() + 7);
+  const weekEnd = week.toISOString().slice(0, 10);
+  const quick = [
+    { label: "This week", href: toggle("startsBefore", weekEnd), on: params.get("startsBefore") === weekEnd, tone: "filter-chip-sky" },
+    { label: "Petition", href: toggle("type", "PETITION"), on: filters.type === "PETITION", tone: "filter-chip-butter" },
+    { label: "Canvass", href: toggle("type", "CANVASS"), on: filters.type === "CANVASS", tone: "filter-chip-mint" },
+    { label: "No credentials", href: toggle("noCredentials", "1"), on: !!filters.noCredentials, tone: "filter-chip-lime" },
+  ];
+  const anyFilter = !!(filters.type || filters.minRateCents || filters.startsBefore || filters.noCredentials);
+
   return (
     <main className="page">
       <header className="page-header">
         <div className="space-y-1">
           <p className="eyebrow">Work</p>
-          <h1 className="page-title">Find your next field job.</h1>
-          <p className="text-muted-sm">Open jobs, soonest first. Ranked matches are coming soon.</p>
+          <h1 className="page-title">Find work</h1>
+          <p className="text-muted-sm">Open jobs, soonest first — pay, place and dates up front.</p>
         </div>
       </header>
 
@@ -70,32 +90,48 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
         </section>
       )}
 
-      <section className="section">
-        <h2 className="section-title">Open jobs</h2>
-        <form className="card grid gap-3 sm:grid-cols-4 sm:items-end">
-          <label className="space-y-1.5">
-            <span className="label">Type</span>
-            <select name="type" className="field" defaultValue={filters.type ?? ""}>
-              <option value="">Any</option>
-              {JOB_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
-            </select>
-          </label>
-          <label className="space-y-1.5">
-            <span className="label">Minimum rate ($)</span>
-            <input name="minRate" inputMode="decimal" className="field" defaultValue={filters.minRateCents ? (filters.minRateCents / 100).toString() : ""} />
-          </label>
-          <label className="space-y-1.5">
-            <span className="label">Starts by</span>
-            <input type="date" name="startsBefore" className="field" defaultValue={filters.startsBefore?.toISOString().slice(0, 10) ?? ""} />
-          </label>
-          <div className="flex flex-wrap items-center gap-3">
-            <label className="toggle">
-              <input type="checkbox" role="switch" name="noCredentials" value="1" defaultChecked={filters.noCredentials} />
-              No credentials required
+      <section className="section space-y-4">
+        {/* Quick filters (screen mockups): one tap on, one tap off. */}
+        <nav aria-label="Quick filters" className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+          {quick.map((q) => (
+            <Link key={q.label} href={q.href} scroll={false} className={`filter-chip ${q.on ? q.tone : ""}`} aria-pressed={q.on}>
+              {q.on && <span aria-hidden>✓</span>}
+              {q.label}
+            </Link>
+          ))}
+        </nav>
+        <div className="flex items-baseline justify-between gap-3">
+          <h2 className="section-title">{plural(open.length, "opportunity", "opportunities")}</h2>
+          {anyFilter && <Link href="/jobs" scroll={false} className="link text-sm">Clear filters</Link>}
+        </div>
+
+        <details className="card p-0" open={!!filters.minRateCents}>
+          <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-fg">More filters</summary>
+          <form className="grid gap-3 border-t border-border p-4 sm:grid-cols-4 sm:items-end">
+            <label className="space-y-1.5">
+              <span className="label">Type</span>
+              <select name="type" className="field" defaultValue={filters.type ?? ""}>
+                <option value="">Any</option>
+                {JOB_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+              </select>
             </label>
-            <button className="btn-secondary">Filter</button>
-          </div>
-        </form>
+            <label className="space-y-1.5">
+              <span className="label">Minimum rate ($)</span>
+              <input name="minRate" inputMode="decimal" className="field" defaultValue={filters.minRateCents ? (filters.minRateCents / 100).toString() : ""} />
+            </label>
+            <label className="space-y-1.5">
+              <span className="label">Starts by</span>
+              <input type="date" name="startsBefore" className="field" defaultValue={filters.startsBefore?.toISOString().slice(0, 10) ?? ""} />
+            </label>
+            <div className="flex flex-wrap items-center gap-3">
+              <label className="toggle">
+                <input type="checkbox" role="switch" name="noCredentials" value="1" defaultChecked={filters.noCredentials} />
+                No credentials required
+              </label>
+              <button className="btn-secondary">Apply</button>
+            </div>
+          </form>
+        </details>
 
         {open.length === 0 ? (
           <div className="empty-state">
@@ -104,33 +140,14 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
           </div>
         ) : (
           <ul className="space-y-3">
-            {open.map((j) => {
-              const geo = (j.geography ?? {}) as { city?: string; state?: string };
-              return (
-                <li key={j.id}>
-                  <Link transitionTypes={["nav-forward"]} href={`/jobs/${j.id}`} className="card group block space-y-3 transition hover:border-[var(--border-strong)]">
-                    <span className="flex items-start justify-between gap-4">
-                      <span className="min-w-0">
-                        <span className="block text-lg leading-snug font-bold tracking-[-0.01em] text-fg">{j.title}</span>
-                        <span className="mt-0.5 block text-sm text-muted">
-                          {[j.org.name, [geo.city, geo.state].filter(Boolean).join(", "), `${day(j.startsAt)} – ${day(j.endsAt)}`].filter(Boolean).join(" · ")}
-                        </span>
-                      </span>
-                      <span className="shrink-0 text-right">
-                        <span className="block text-lg font-bold text-fg tabular-nums">{payShort(j.compensationMethod, j.payRateCents, j.type)}</span>
-                        <span className="block text-xs text-subtle">gross</span>
-                      </span>
-                    </span>
-                    <span className="flex flex-wrap gap-1.5">
-                      {j.org.approved && <span className="badge-sky">Approved org</span>}
-                      <span className={j.type === "PETITION" ? "badge-butter" : "badge-mint"}>{j.type === "PETITION" ? "Petition" : "Canvass"}</span>
-                    </span>
-                  </Link>
-                </li>
-              );
-            })}
+            {open.map((j) => (
+              <li key={j.id}>
+                <JobFeedCard j={j} />
+              </li>
+            ))}
           </ul>
         )}
+        <Link href="/profile/preferences" className="btn-secondary w-full">Adjust preferences</Link>
       </section>
 
       {hidden.length > 0 && (

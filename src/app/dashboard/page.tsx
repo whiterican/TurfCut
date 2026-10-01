@@ -6,6 +6,8 @@ import { payShort, payText } from "@/lib/jobs";
 import { Greeting } from "@/components/Greeting";
 import { Avatar } from "@/components/chat/Avatar";
 import { loadOps } from "@/lib/field-day-data";
+import { loadFeed } from "@/lib/jobs-data";
+import { JobFeedCard } from "@/components/JobFeedCard";
 import { LocalTime } from "@/components/LocalTime";
 import Link from "next/link";
 
@@ -84,6 +86,35 @@ async function WorkerHero({ workerId }: { workerId: string }) {
   );
 }
 
+/** Open jobs, soonest first (screen mockups' "Best matches", without a ranking). */
+async function OpenJobs({ workerId }: { workerId: string }) {
+  const [{ jobs }, mine] = await Promise.all([
+    loadFeed(workerId),
+    db().engagement.findMany({ where: { workerId }, select: { jobId: true } }),
+  ]);
+  const engaged = new Set(mine.map((e) => e.jobId));
+  const open = jobs.filter((j) => !engaged.has(j.id)).slice(0, 3);
+  return (
+    <section className="section">
+      <div className="flex items-baseline justify-between gap-3">
+        <h2 className="section-title">Open jobs</h2>
+        <Link href="/jobs" className="text-sm font-medium text-muted hover:text-fg">View all</Link>
+      </div>
+      {open.length === 0 ? (
+        <p className="text-muted-sm">No open jobs right now. New ones show up here first.</p>
+      ) : (
+        <ul className="space-y-3">
+          {open.map((j) => (
+            <li key={j.id}>
+              <JobFeedCard j={j} />
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
 async function OrgHero({ orgId }: { orgId: string }) {
   const ops = await loadOps(orgId);
   const attention = [
@@ -155,21 +186,10 @@ export default async function DashboardPage() {
       {isWorker && <WorkerHero workerId={session.workerId!} />}
       {!isWorker && session.orgId && SCHEDULING_ROLES.includes(session.role) && <OrgHero orgId={session.orgId} />}
 
-      {isWorker || session.orgId ? (
+      {isWorker && <OpenJobs workerId={session.workerId!} />}
+
+      {isWorker ? null : session.orgId ? (
         <div className="grid gap-3 sm:grid-cols-2">
-          {isWorker && (
-            <>
-              <NavCard href="/shifts" title="My shifts" body="Every campaign in one calendar, from check-in to review." />
-              <NavCard href="/shifts/turf" title="My turf" body="Turf assigned to you, or mark your own for the day — and drop pins." />
-              <NavCard href="/jobs" title="Find work" body="Open jobs, with pay, credentials and who to call — up front." />
-              <NavCard href="/profile" title="My profile" body="Your scorecard, experience and political-fit status." />
-              <NavCard
-                href="/profile/preferences"
-                title="Political-fit preferences"
-                body="Choose what, if anything, organizations may see."
-              />
-            </>
-          )}
           {!isWorker && session.orgId && (
             <NavCard href="/jobs" title="Jobs" body={canHire ? "Build, publish and staff your jobs." : "Your organization's jobs."} />
           )}

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { requireWorker } from "@/lib/worker-session";
-import { loadScorecardPeriods } from "@/lib/scorecard-data";
+import { loadCampaignHistory, loadScorecardPeriods } from "@/lib/scorecard-data";
 import { loadLatestPreference } from "@/lib/political-fit-data";
 import { VISIBILITY_OPTIONS } from "@/lib/political-fit";
 import { ExperienceForm } from "@/components/ExperienceForm";
@@ -12,11 +12,12 @@ import { PhoneForm } from "@/components/PhoneForm";
 
 export default async function ProfilePage() {
   const { workerId } = await requireWorker();
-  const [worker, records, scorecard, fit] = await Promise.all([
+  const [worker, records, scorecard, fit, history] = await Promise.all([
     db().worker.findUniqueOrThrow({ where: { id: workerId }, select: { displayName: true, phone: true } }),
     db().experienceRecord.findMany({ where: { workerId }, orderBy: { startDate: "desc" } }),
     loadScorecardPeriods(workerId),
     loadLatestPreference(workerId),
+    loadCampaignHistory(workerId),
   ]);
   const mode = fit && VISIBILITY_OPTIONS.find((o) => o.value === fit.visibilityMode);
 
@@ -32,7 +33,7 @@ export default async function ProfilePage() {
 
       <section className="section">
         <h2 className="section-title">Scorecard</h2>
-        <ScorecardPanel periods={scorecard} />
+        <ScorecardPanel periods={scorecard} history={history} />
       </section>
 
       <section className="section">

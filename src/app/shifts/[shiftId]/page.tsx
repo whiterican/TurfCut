@@ -3,11 +3,12 @@ import { notFound } from "next/navigation";
 import { requireAuth } from "@/lib/auth";
 import { FIELD_ROLES, SCHEDULING_ROLES } from "@/lib/access";
 import { readSupportContacts } from "@/lib/jobs";
-import { readTurf, shiftProgress, shiftState, turfMarks, turfMarksClosed } from "@/lib/field-day";
+import { activeTime, earningsEstimate, readTurf, shiftProgress, shiftState, turfMarks, turfMarksClosed } from "@/lib/field-day";
 import { facts, loadShift } from "@/lib/field-day-data";
 import { ShiftProgress } from "@/components/ShiftProgress";
 import { TurfMap } from "@/components/TurfMap";
 import { LocalTime } from "@/components/LocalTime";
+import { LiveShiftStats } from "@/components/LiveShiftStats";
 import { ActionButton } from "@/components/ActionButton";
 import { CheckInButton, OnShiftActions } from "@/components/FieldDayActions";
 import { Row } from "@/components/Row";
@@ -89,6 +90,11 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
   const eyebrow = st.cancelled ? "Cancelled" : live ? (st.paused ? "On a break" : "Live shift") : st.checkedOutAt ? "Shift done" : "Upcoming shift";
 
   const started = !!st.checkedInAt;
+  const now = new Date();
+  const worked = activeTime(f, now);
+  const job = s.engagement.job;
+  // The worker's own pay only — never shown to anyone else here.
+  const estimate = earningsEstimate(job.compensationMethod, job.payRateCents, worked.ms, petition ? st.signatures : st.contacts);
   const workerActions = (
     <>
       {isWorker && !st.cancelled && !st.checkedOutAt && (
@@ -136,7 +142,7 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
       </header>
 
       {!started && workerActions}
-      <div className="hero-card space-y-4">
+      <div className={`hero-card space-y-4 ${isWorker ? "hero-card-lime" : ""}`}>
         <p className="eyebrow">
           <LocalTime iso={s.startsAt.toISOString()} mode="date" />
           {started && s.stagingLocation ? ` · ${s.stagingLocation}` : ""}
@@ -151,13 +157,27 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
             <LocalTime iso={s.startsAt.toISOString()} mode="time" /> – <LocalTime iso={s.endsAt.toISOString()} mode="time" />
           </p>
         )}
+        {started && (
+          <LiveShiftStats
+            activeMs={worked.ms}
+            running={worked.running}
+            renderedAt={now.getTime()}
+            pay={
+              !isWorker || !estimate
+                ? null
+                : job.compensationMethod === "HOURLY"
+                  ? { kind: "hourly", centsPerHour: job.payRateCents!, label: estimate.label }
+                  : { kind: "fixed", cents: estimate.cents, label: estimate.label }
+            }
+          />
+        )}
         <p className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
           {started ? (
             <span>
               <span className="block font-bold">
                 <LocalTime iso={s.startsAt.toISOString()} mode="time" /> – <LocalTime iso={s.endsAt.toISOString()} mode="time" />
               </span>
-              <span className="hero-muted">Shift</span>
+              <span className="hero-muted">Scheduled</span>
             </span>
           ) : (
             s.stagingLocation && (

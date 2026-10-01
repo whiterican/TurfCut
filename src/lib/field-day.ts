@@ -142,6 +142,48 @@ export function shiftStatusLabel(st: ShiftState): { label: string; badge: string
 // ---------------------------------------------------------------------------
 
 export type StepState = "done" | "current" | "todo";
+/**
+ * Time worked so far: check-in to check-out (or `now` while on shift), minus
+ * breaks (an open break runs to the end). Same rule the scorecard uses for
+ * active hours, so the live number and the verified one agree.
+ */
+export function activeTime(s: ShiftFacts, now: Date): { ms: number; running: boolean } {
+  const events = [...s.events].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+  const checkIn = events.find((e) => e.type === "CHECK_IN")?.createdAt;
+  if (!checkIn) return { ms: 0, running: false };
+  const checkOut = events.find((e) => e.type === "CHECK_OUT")?.createdAt;
+  const end = checkOut ?? now;
+  let paused = 0;
+  let pauseStart: Date | null = null;
+  for (const e of events) {
+    if (e.type === "PAUSE_START" && !pauseStart) pauseStart = e.createdAt;
+    if (e.type === "PAUSE_END" && pauseStart) {
+      paused += Math.max(0, Math.min(e.createdAt.getTime(), end.getTime()) - Math.max(pauseStart.getTime(), checkIn.getTime()));
+      pauseStart = null;
+    }
+  }
+  if (pauseStart) paused += Math.max(0, end.getTime() - Math.max(pauseStart.getTime(), checkIn.getTime()));
+  const ms = Math.max(0, end.getTime() - checkIn.getTime() - paused);
+  return { ms, running: !checkOut && !pauseStart && s.status !== "CANCELLED" };
+}
+
+/**
+ * The live earnings estimate — gross, and never a promise: pay follows
+ * supervisor review. Hourly: rate × time worked. Per unit: rate × units
+ * submitted, labelled "if all accepted". Shift rate: the rate.
+ */
+export function earningsEstimate(
+  method: "HOURLY" | "SHIFT_RATE" | "PER_UNIT",
+  cents: number | null,
+  activeMs: number,
+  units: number
+): { cents: number; label: string } | null {
+  if (!cents) return null;
+  if (method === "HOURLY") return { cents: Math.floor((cents * activeMs) / 3_600_000), label: "Est. gross" };
+  if (method === "PER_UNIT") return { cents: cents * units, label: "Gross if all accepted" };
+  return { cents, label: "Per completed shift" };
+}
+
 export interface ProgressStep {
   key: "checkin" | "materials" | "collecting" | "return" | "payout";
   label: string;
@@ -169,6 +211,7 @@ export function shiftProgress(s: ShiftFacts): ProgressStep[] {
     {
       key: "materials",
       label: "Materials received",
+      at: petition ? s.events.filter((e) => e.type === "PACKET_PICKUP").sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())[0]?.createdAt : undefined,
       done: st.packetsOut.length + st.packetsReturned.length > 0 || !petition,
       detail: petition
         ? st.packetsOut.length + st.packetsReturned.length > 0

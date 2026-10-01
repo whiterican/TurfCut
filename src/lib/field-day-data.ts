@@ -30,7 +30,7 @@ const SHIFT_INCLUDE = {
       workerId: true,
       status: true,
       worker: { select: { id: true, displayName: true, profileId: true } },
-      job: { select: { id: true, orgId: true, title: true, type: true, org: { select: { name: true } }, supportContacts: true } },
+      job: { select: { id: true, orgId: true, title: true, type: true, compensationMethod: true, payRateCents: true, org: { select: { name: true } }, supportContacts: true } },
     },
   },
   events: { orderBy: { createdAt: "asc" as const } },

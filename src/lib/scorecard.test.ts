@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computeScorecard, type ScorecardShift } from "./scorecard";
+import { campaignHistory, computeScorecard, type ScorecardShift } from "./scorecard";
 import { SEED_SHIFT_EVENTS, SEED_SHIFT_ID } from "../../prisma/seed-fixture";
 
 const checkIn = new Date("2026-09-28T09:00:00Z");
@@ -271,5 +271,20 @@ describe("date range labels", () => {
     expect(rangePhrase("2026-09-28", "2026-09-28")).toBe("on Sep 28, 2026");
     expect(rangePhrase("2026-09-01", "2026-09-28")).toBe("from Sep 1 to Sep 28, 2026");
     expect(rangePhrase("2025-12-30", "2026-01-02")).toBe("from Dec 30, 2025 to Jan 2, 2026");
+  });
+});
+
+describe("per-campaign history (the worker's own profile only)", () => {
+  it("counts verified shifts per job with the scorecard's own rules, newest first", () => {
+    const a = { ...seedShift, jobId: "job-a", jobTitle: "Denver drive" };
+    const pending = { ...a, id: "pending", validations: [] };
+    const b = { ...seedShift, id: "b", jobId: "job-b", jobTitle: "Aurora drive", startsAt: at(60 * 24) };
+    const h = campaignHistory([a, pending, b]);
+    expect(h.map((x) => x.title)).toEqual(["Aurora drive", "Denver drive"]);
+    const total = computeScorecard([a, b], { now: at(60 * 48) }).segments[0];
+    // Adds up to the scorecard: same verified shifts, same accepted/reviewed.
+    expect(h.reduce((n, x) => n + x.verifiedShifts, 0)).toBe(total.shiftsCount);
+    expect(h.reduce((n, x) => n + x.accepted, 0)).toBe(total.signaturesAccepted);
+    expect(h.reduce((n, x) => n + x.reviewed, 0)).toBe(total.signaturesReviewed);
   });
 });

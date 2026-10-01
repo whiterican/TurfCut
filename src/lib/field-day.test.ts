@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  activeTime,
+  earningsEstimate,
   findConflicts,
   turfAction,
   turfMarks,
@@ -238,5 +240,23 @@ describe("turf marks — limits and hostile input", () => {
   it("refuses non-text labels and unknown kinds instead of crashing", () => {
     expect(turfAction(shift(), { kind: "pin", pinId: "p", lat: 39.7, lng: -104.9, category: "note", label: 42 as unknown as string }, at(5)).ok).toBe(false);
     expect(turfAction(shift(), { kind: "explode" } as never, at(5))).toEqual({ ok: false, reason: "Unknown turf action." });
+  });
+});
+
+describe("live time worked and earnings estimate", () => {
+  it("counts from check-in, minus breaks, until now or check-out", () => {
+    const evs = [ev("CHECK_IN", 0), ev("PAUSE_START", 60), ev("PAUSE_END", 90)];
+    expect(activeTime(shift(evs, { status: "ACTIVE" }), at(120))).toEqual({ ms: 90 * 60_000, running: true });
+    // On a break: the clock stops at the break's start.
+    expect(activeTime(shift([ev("CHECK_IN", 0), ev("PAUSE_START", 60)], { status: "ACTIVE" }), at(120))).toEqual({ ms: 60 * 60_000, running: false });
+    // Checked out: fixed at check-out, whatever "now" is.
+    expect(activeTime(shift([...evs, ev("CHECK_OUT", 300)], { status: "COMPLETED" }), at(999)).ms).toBe(270 * 60_000);
+    expect(activeTime(shift([]), at(10))).toEqual({ ms: 0, running: false });
+  });
+  it("estimates gross pay honestly for each pay method", () => {
+    expect(earningsEstimate("HOURLY", 2800, 90 * 60_000, 0)).toEqual({ cents: 4200, label: "Est. gross" });
+    expect(earningsEstimate("PER_UNIT", 150, 0, 23)).toEqual({ cents: 3450, label: "Gross if all accepted" });
+    expect(earningsEstimate("SHIFT_RATE", 12000, 0, 0)).toEqual({ cents: 12000, label: "Per completed shift" });
+    expect(earningsEstimate("HOURLY", null, 1, 1)).toBeNull();
   });
 });

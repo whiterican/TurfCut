@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import {
+  campaignHistory,
   computeScorecard,
   PERIODS,
   type Period,
@@ -28,6 +29,8 @@ export async function loadScorecardShifts(workerId: string): Promise<ScorecardSh
           status: true,
           job: {
             select: {
+              id: true,
+              title: true,
               type: true,
               measureIds: true,
               cancellationNoticeHours: true,
@@ -55,7 +58,14 @@ export async function loadScorecardShifts(workerId: string): Promise<ScorecardSh
     validations: s.validations,
     cancellationNoticeHours: s.engagement.job.cancellationNoticeHours,
     measureIds: s.engagement.job.measureIds,
+    jobId: s.engagement.job.id,
+    jobTitle: s.engagement.job.title,
   }));
+}
+
+/** Verified work per campaign, newest first (profile "Recent history"). */
+export async function loadCampaignHistory(workerId: string, limit = 5) {
+  return campaignHistory(await loadScorecardShifts(workerId), limit);
 }
 
 export async function loadScorecard(workerId: string, opts: ScorecardOptions = {}): Promise<Scorecard> {

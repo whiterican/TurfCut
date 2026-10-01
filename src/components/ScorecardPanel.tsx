@@ -1,5 +1,5 @@
 import { num, percent, plural } from "@/lib/format";
-import type { MetricExplanation, Period, Scorecard, ScorecardSegment } from "@/lib/scorecard";
+import type { CampaignHistory, MetricExplanation, Period, Scorecard, ScorecardSegment } from "@/lib/scorecard";
 
 const WORK_TYPE_LABELS = { PETITION: "Petition circulation", CANVASS: "Door-to-door canvass" } as const;
 const WORK_TYPE_BADGE = { PETITION: "badge-lime", CANVASS: "badge-sky" } as const;
@@ -81,13 +81,77 @@ function Segment({ seg }: { seg: ScorecardSegment }) {
  * Totals and rates together (spec p.10), segmented by work type so unlike
  * work is never compared. Deliberately no overall score (CLAUDE.md #5).
  */
-export function ScorecardPanel({ periods }: { periods: Record<Period, Scorecard> }) {
+export function ScorecardPanel({ periods, history }: { periods: Record<Period, Scorecard>; history?: CampaignHistory[] }) {
   const lifetime = periods.lifetime;
   const sumOf = (s: Scorecard, pick: (x: ScorecardSegment) => number) =>
     s.segments.reduce((a, x) => a + pick(x), 0);
+  const total = (pick: (x: ScorecardSegment) => number) => sumOf(lifetime, pick);
+  const petition = lifetime.segments.some((x) => x.workType === "PETITION");
+  const show = lifetime.reliability.showRate;
+  // Four headline totals (screen mockups) — each with its evidence; there is
+  // no overall score.
+  const tiles: Array<{ value: string; label: string; evidence: string }> = [
+    { value: num(total((x) => x.shiftsCount)), label: "Verified shifts", evidence: "Approved by a supervisor" },
+    { value: show.value === null ? "—" : percent(show.value), label: "Show rate", evidence: show.value === null ? "No scheduled shifts yet" : `${show.numerator} of ${show.denominator} scheduled shifts worked` },
+    petition
+      ? { value: num(total((x) => x.signaturesAccepted)), label: "Accepted signatures", evidence: `Of ${num(total((x) => x.signaturesReviewed))} reviewed` }
+      : { value: num(total((x) => x.doorsAttempted)), label: "Doors attempted", evidence: "On verified shifts" },
+    { value: num(total((x) => x.activeHours), 1), label: "Verified hours", evidence: "Breaks excluded" },
+  ];
+  const strengths = [
+    ...lifetime.segments.map((x) => ({ label: WORK_TYPE_LABELS[x.workType], tone: x.workType === "PETITION" ? "badge-mint" : "badge-sky" })),
+    ...[...new Set(lifetime.segments.flatMap((x) => x.statesWorked))].map((st) => ({ label: `Worked in ${st}`, tone: "badge-butter" })),
+  ];
 
   return (
     <div className="space-y-8">
+      <ul className="grid grid-cols-2 gap-3">
+        {tiles.map((tile) => (
+          <li key={tile.label} className="stat">
+            <p className="text-3xl font-bold tracking-[-0.02em] text-fg tabular-nums">{tile.value}</p>
+            <p className="mt-1 text-sm font-medium text-muted">{tile.label}</p>
+            <p className="text-hint mt-1">{tile.evidence}</p>
+          </li>
+        ))}
+      </ul>
+
+      {strengths.length > 0 && (
+        <section className="space-y-3">
+          <h3 className="font-bold text-fg">Verified strengths</h3>
+          <p className="flex flex-wrap gap-2">
+            {strengths.map((x) => <span key={x.label} className={`${x.tone} px-2.5 py-1 text-sm`}>{x.label}</span>)}
+          </p>
+        </section>
+      )}
+
+      {history && (
+        <section className="space-y-3">
+          <h3 className="font-bold text-fg">Recent history</h3>
+          {history.length === 0 ? (
+            <p className="text-muted-sm">Campaigns appear here once a supervisor approves one of your shifts.</p>
+          ) : (
+            <ul className="divide-y divide-border">
+              {history.map((h) => (
+                <li key={h.jobId} className="flex items-center gap-3 py-3">
+                  <span aria-hidden className="grid size-10 shrink-0 place-items-center rounded-xl bg-mint font-bold text-ink">✓</span>
+                  <span className="min-w-0">
+                    <span className="block truncate font-semibold text-fg">{h.title}</span>
+                    <span className="block text-sm text-muted">
+                      {plural(h.verifiedShifts, "verified shift")}
+                      {h.workType === "PETITION"
+                        ? h.reviewed > 0 ? ` · ${percent(h.accepted / h.reviewed)} accepted` : ""
+                        : ` · ${num(h.doors)} doors`}
+                    </span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <p className="text-hint">Only you see this list. Organizations see your totals, not which campaigns you worked for.</p>
+        </section>
+      )}
+
+      <h3 className="font-bold text-fg">The math behind every number</h3>
       {lifetime.segments.length === 0 ? (
         <div className="empty-state">
           <p className="empty-state-title">No verified shifts yet</p>

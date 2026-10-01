@@ -68,6 +68,21 @@ export interface ScorecardShift {
   cancellationNoticeHours?: number;
   /** The job's ballot measure / initiative IDs. */
   measureIds?: string[];
+  /** For the per-campaign history list. */
+  jobId?: string;
+  jobTitle?: string;
+}
+
+export interface CampaignHistory {
+  jobId: string;
+  title: string;
+  workType: WorkType;
+  verifiedShifts: number;
+  /** Signatures accepted / reviewed at supervisor review (petition work). */
+  accepted: number;
+  reviewed: number;
+  doors: number;
+  lastAt: string;
 }
 
 export interface MetricExplanation {
@@ -445,6 +460,27 @@ function segment(
  * "late" = by the worker inside the job's notice window; "excused" = by the
  * worker in time, or by the organization; null = not cancelled by event.
  */
+/**
+ * Verified work per campaign, newest first — the same verification rules as
+ * the scorecard totals, so the list always adds up to them.
+ */
+export function campaignHistory(shifts: ScorecardShift[], limit = 5): CampaignHistory[] {
+  const by = new Map<string, CampaignHistory>();
+  for (const s of shifts) {
+    if (!s.jobId) continue;
+    const f = shiftFacts(s);
+    if (f.verification !== "verified") continue;
+    const h = by.get(s.jobId) ?? { jobId: s.jobId, title: s.jobTitle ?? "Campaign", workType: s.workType, verifiedShifts: 0, accepted: 0, reviewed: 0, doors: 0, lastAt: s.startsAt.toISOString() };
+    h.verifiedShifts += 1;
+    h.accepted += f.accepted;
+    h.reviewed += f.reviewed;
+    h.doors += f.doors;
+    if (s.startsAt.toISOString() > h.lastAt) h.lastAt = s.startsAt.toISOString();
+    by.set(s.jobId, h);
+  }
+  return [...by.values()].sort((a, b) => b.lastAt.localeCompare(a.lastAt)).slice(0, limit);
+}
+
 export function cancellationOf(shift: ScorecardShift): "late" | "excused" | null {
   const { events } = effectiveEvents(shift.events, shift.validations);
   const c = latest(events.filter((e) => e.type === "SHIFT_CANCELLED"));

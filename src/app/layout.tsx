@@ -1,19 +1,23 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Geist, Geist_Mono } from "next/font/google";
+import { DM_Mono, DM_Sans } from "next/font/google";
+import { TabBar, TopNav } from "@/components/AppNav";
 import { InlineScript } from "@/components/InlineScript";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
+import { getSessionProfile } from "@/lib/auth";
+import { navTabs } from "@/lib/nav";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const dmSans = DM_Sans({
+  variable: "--font-dm-sans",
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const dmMono = DM_Mono({
+  variable: "--font-dm-mono",
   subsets: ["latin"],
+  weight: ["400", "500"],
 });
 
 export const metadata: Metadata = {
@@ -21,17 +25,19 @@ export const metadata: Metadata = {
   description: "The marketplace for political field work.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const session = await getSessionProfile();
+  const tabs = navTabs(session?.role ?? null, !!session?.orgId);
   return (
     <html
       lang="en"
       // Server renders dark (the primary theme); the inline script corrects
       // it before first paint, so React must accept the DOM's class.
-      className={`dark ${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`dark ${dmSans.variable} ${dmMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <head>
@@ -40,18 +46,20 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
         <header className="border-b border-border bg-surface/80 backdrop-blur">
           <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
-            <Link href="/" className="flex items-center gap-2 text-base font-semibold tracking-tight text-fg">
-              <span aria-hidden className="flex gap-0.5">
-                <span className="dot bg-pink" />
-                <span className="dot bg-lavender" />
-                <span className="dot bg-mint" />
+            <Link href={session ? "/dashboard" : "/"} className="flex items-center gap-2 text-lg font-bold tracking-[-0.03em] text-fg">
+              <span aria-hidden className="grid size-7 place-items-center rounded-lg bg-hero">
+                <span className="size-2.5 rounded-full bg-lime" />
               </span>
               Turfcut
             </Link>
-            <ThemeToggle />
+            <div className="flex items-center gap-2">
+              <TopNav tabs={tabs} />
+              <ThemeToggle />
+            </div>
           </div>
         </header>
         <div className="flex flex-1 flex-col">{children}</div>
+        <TabBar tabs={tabs} />
       </body>
     </html>
   );

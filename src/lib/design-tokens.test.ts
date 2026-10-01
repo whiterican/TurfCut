@@ -40,7 +40,7 @@ const ratio = (a: RGB | string, b: RGB | string) => {
   return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
 };
 
-const PASTELS = ["pink", "lavender", "sky", "mint", "peach"] as const;
+const PASTELS = ["lime", "mint", "sky", "coral", "butter"] as const;
 const SURFACES = ["bg", "surface", "surface-2", "field"] as const;
 
 describe.each([
@@ -64,19 +64,36 @@ describe.each([
     }
   });
 
-  it("ink on every pastel fill (buttons, light badges, current step) is AAA", () => {
+  it("ink on every accent fill (light badges, current step) is AAA", () => {
     for (const p of PASTELS) expect(ratio(t.ink, t[p])).toBeGreaterThanOrEqual(7);
   });
 
+  it("primary buttons and selected chips are AAA", () => {
+    expect(ratio(t["on-primary"], t.primary)).toBeGreaterThanOrEqual(7);
+  });
+
+  it("hero card text is AAA, its secondary text AA", () => {
+    expect(ratio(t["hero-fg"], t.hero)).toBeGreaterThanOrEqual(7);
+    expect(ratio(t["hero-muted"], t.hero)).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it("the tab bar's text is AA on its translucent surface", () => {
+    for (const under of SURFACES) {
+      const bar = mix(t.surface, 0.92, t[under]);
+      expect(ratio(t.subtle, bar)).toBeGreaterThanOrEqual(4.5);
+      expect(ratio(t.fg, bar)).toBeGreaterThanOrEqual(7);
+    }
+  });
+
   it("body text stays AAA on tinted alerts and selected chips", () => {
-    expect(ratio(t.fg, mix(t.peach, 0.14, t.surface))).toBeGreaterThanOrEqual(7);
+    expect(ratio(t.fg, mix(t.butter, 0.14, t.surface))).toBeGreaterThanOrEqual(7);
     expect(ratio(t.fg, mix(t.sky, 0.12, t.surface))).toBeGreaterThanOrEqual(7);
-    expect(ratio(t.fg, mix(t.lavender, 0.16, t.surface))).toBeGreaterThanOrEqual(7);
+    expect(ratio(t.fg, mix(t.lime, 0.16, t.surface))).toBeGreaterThanOrEqual(7);
   });
 });
 
-describe("dark theme pastel text", () => {
-  it("pastel badge text is AA on its tinted background and on plain surfaces", () => {
+describe("dark theme accent text", () => {
+  it("accent badge text is AA on its tinted background and on plain surfaces", () => {
     for (const p of PASTELS) {
       expect(ratio(dark[p], mix(dark[p], 0.14, dark.surface))).toBeGreaterThanOrEqual(4.5);
       expect(ratio(dark[p], dark.surface)).toBeGreaterThanOrEqual(4.5);

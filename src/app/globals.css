@@ -1,13 +1,14 @@
 @import "tailwindcss";
 
 /*
- * Turfcut design system.
+ * Turfcut design system — from the Turfcut screen mockups.
  *
- * Dark mode first: deep slate/charcoal surfaces, near-white text, pastel
- * accents (pink, lavender, sky, mint, peach) used sparingly — highlights,
- * badges, key actions, active states. Pastels are only ever paired with the
- * dark "ink" colour (as a fill) or with a dark surface (as text), never
- * pastel-on-pastel. Light mode uses the same pastels on soft white.
+ * Light: soft sage surfaces, near-black green ink, mono eyebrow labels, and
+ * fresh accents (lime, mint, sky, coral, butter) used sparingly — status
+ * badges, active states, the hero card's highlight. Accent fills always
+ * carry the dark "ink" colour, never another accent. Dark: deep green
+ * surfaces built from the mockup's hero card, with the same accents as text
+ * or tinted fills. Primary actions are ink-on-light / lime-on-dark.
  *
  * The theme is a `.dark` class on <html>, set before first paint by the
  * inline script in app/layout.tsx (saved choice, else the OS preference).
@@ -17,49 +18,59 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  /* Pastel accents — identical in both modes. */
-  --pink: #f7b8d2;
-  --lavender: #cbbcf6;
-  --sky: #a9d3f5;
-  --mint: #a7e3c8;
-  --peach: #f8c9a3;
-  --ink: #15171c; /* text on any pastel fill */
+  /* Accents — identical in both modes. */
+  --lime: #c6ec8c;
+  --mint: #a8e4cc;
+  --sky: #b9dbfa;
+  --coral: #f8b3a2;
+  --butter: #f5d98a;
+  --ink: #17201a; /* text on any accent fill */
 
   /* Light mode */
-  --bg: #f6f6fa;
-  --surface: #ffffff;
-  --surface-2: #f0f1f6;
+  --bg: #eef0ea;
+  --surface: #f8f9f5;
+  --surface-2: #e8ebe3;
   --field: #ffffff;
-  --border: #e1e3eb;
-  --border-strong: #c3c7d4;
-  --fg: #15171c;
-  --muted: #434856;
-  --subtle: #5c6270;
-  --link: #5a3fc0;
-  --focus: #7c5ce0;
+  --border: #dbe0d4;
+  --border-strong: #b9c1b1;
+  --fg: #17201a;
+  --muted: #444f47;
+  --subtle: #56625a;
+  --link: #2b6534;
+  --focus: #2b6534;
   --danger: #b42318;
-  --success: #17693f;
-  --warning: #8a4b0f;
-  --shadow: 0 1px 2px rgb(20 22 30 / 0.05), 0 8px 24px -12px rgb(20 22 30 / 0.14);
+  --success: #1f6b3a;
+  --warning: #7d5300;
+  --primary: #17201a;
+  --on-primary: #f8f9f5;
+  --hero: #1d2a20;
+  --hero-fg: #f3f6ef;
+  --hero-muted: #c9d3c6;
+  --shadow: 0 1px 2px rgb(23 32 26 / 0.04), 0 10px 28px -16px rgb(23 32 26 / 0.18);
   color-scheme: light;
 }
 
 .dark {
-  --bg: #0e1116;
-  --surface: #161a21;
-  --surface-2: #1d222b;
-  --field: #11151b;
-  --border: #2a303b;
-  --border-strong: #3d4552;
-  --fg: #f1f3f7;
-  --muted: #c5cad4;
-  --subtle: #a1a8b5;
-  --link: #cbbcf6;
-  --focus: #cbbcf6;
+  --bg: #0e140f;
+  --surface: #151d17;
+  --surface-2: #1c261f;
+  --field: #111813;
+  --border: #29352c;
+  --border-strong: #3b4a3f;
+  --fg: #eef2ea;
+  --muted: #c3ccc2;
+  --subtle: #a2ada3;
+  --link: #c6ec8c;
+  --focus: #c6ec8c;
   --danger: #ffb4b4;
-  --success: #a7e3c8;
-  --warning: #f8c9a3;
-  --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 10px 30px -14px rgb(0 0 0 / 0.6);
+  --success: #a8e4cc;
+  --warning: #f5d98a;
+  --primary: #c6ec8c;
+  --on-primary: #17201a;
+  --hero: #213024;
+  --hero-fg: #f3f6ef;
+  --hero-muted: #c9d3c6;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 12px 32px -16px rgb(0 0 0 / 0.6);
   color-scheme: dark;
 }
 
@@ -72,27 +83,28 @@
   --color-muted: var(--muted);
   --color-subtle: var(--subtle);
   --color-ink: var(--ink);
-  --color-pink: var(--pink);
-  --color-lavender: var(--lavender);
-  --color-sky: var(--sky);
+  --color-lime: var(--lime);
   --color-mint: var(--mint);
-  --color-peach: var(--peach);
+  --color-sky: var(--sky);
+  --color-coral: var(--coral);
+  --color-butter: var(--butter);
+  --color-hero: var(--hero);
   --color-danger: var(--danger);
   --color-success: var(--success);
   --color-warning: var(--warning);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-dm-sans);
+  --font-mono: var(--font-dm-mono);
 }
 
 body {
   background: var(--bg);
   color: var(--fg);
-  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
   accent-color: var(--focus);
 }
 
 ::selection {
-  background: var(--lavender);
+  background: var(--lime);
   color: var(--ink);
 }
 
@@ -103,8 +115,9 @@ body {
 
 @layer components {
   /* ---- Layout ---------------------------------------------------------- */
+  /* Bottom padding clears the phone tab bar (see .tabbar). */
   .page {
-    @apply mx-auto w-full max-w-3xl space-y-10 px-4 py-8 sm:px-6 sm:py-12;
+    @apply mx-auto w-full max-w-3xl space-y-10 px-4 pt-8 pb-28 sm:px-6 sm:pt-12 lg:pb-12;
   }
   .page-narrow {
     @apply mx-auto w-full max-w-md px-4 py-10 sm:py-16;
@@ -113,13 +126,17 @@ body {
     @apply flex flex-wrap items-end justify-between gap-3;
   }
   .page-title {
-    @apply text-2xl font-semibold tracking-tight text-fg sm:text-3xl;
+    @apply text-3xl leading-[1.05] font-bold tracking-[-0.03em] text-fg sm:text-4xl;
+  }
+  /* Small mono label above a title ("LIVE SHIFT", "GOOD MORNING"). */
+  .eyebrow {
+    @apply font-mono text-[0.7rem] font-medium tracking-[0.12em] text-subtle uppercase;
   }
   .section {
     @apply space-y-4;
   }
   .section-title {
-    @apply text-lg font-semibold tracking-tight text-fg;
+    @apply text-lg font-bold tracking-[-0.01em] text-fg;
   }
   .lead {
     @apply text-base leading-relaxed text-muted;
@@ -135,6 +152,30 @@ body {
   .card {
     @apply rounded-2xl border border-border bg-surface p-4 sm:p-5;
     box-shadow: var(--shadow);
+  }
+  /* The mockup's dark feature card with a lime highlight in the corner. */
+  .hero-card {
+    @apply relative overflow-hidden rounded-3xl p-5 sm:p-6;
+    background: var(--hero);
+    color: var(--hero-fg);
+    box-shadow: var(--shadow);
+  }
+  .hero-card::after {
+    content: "";
+    @apply pointer-events-none absolute -top-10 -right-10 size-32 rounded-full;
+    background: var(--lime);
+  }
+  .hero-card > * {
+    @apply relative z-10;
+  }
+  .hero-card .eyebrow {
+    color: var(--hero-muted);
+  }
+  .hero-title {
+    @apply max-w-[80%] text-2xl leading-tight font-bold tracking-[-0.02em] sm:text-3xl;
+  }
+  .hero-muted {
+    color: var(--hero-muted);
   }
   .card-flat {
     @apply rounded-2xl border border-border bg-surface-2 p-4;
@@ -163,15 +204,17 @@ body {
   .btn-primary,
   .btn-secondary,
   .btn-ghost {
-    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition;
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition;
     @apply disabled:cursor-not-allowed disabled:opacity-50;
   }
   .btn-primary {
-    background: var(--lavender);
-    color: var(--ink);
-    box-shadow: inset 0 0 0 1px rgb(21 23 28 / 0.12);
+    background: var(--primary);
+    color: var(--on-primary);
   }
   .btn-primary:hover:not(:disabled) {
+    filter: brightness(1.15);
+  }
+  .dark .btn-primary:hover:not(:disabled) {
     filter: brightness(1.06);
   }
   .btn-secondary {
@@ -218,9 +261,9 @@ body {
     color: var(--danger);
   }
   .fieldset-title {
-    @apply mb-2 text-sm font-semibold uppercase tracking-wide text-subtle;
+    @apply mb-2 font-mono text-xs font-medium tracking-[0.12em] text-subtle uppercase;
   }
-  /* Selectable pill (checkbox/radio inside). Active state = lavender. */
+  /* Selectable pill (checkbox/radio inside). Active state = ink (light) / lime (dark). */
   .chip {
     @apply inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-full border border-border bg-surface px-3 py-1.5 text-sm text-fg transition;
   }
@@ -228,12 +271,12 @@ body {
     border-color: var(--border-strong);
   }
   .chip:has(input:checked) {
-    border-color: var(--lavender);
-    background: color-mix(in srgb, var(--lavender) 16%, var(--surface));
+    border-color: var(--lime);
+    background: color-mix(in srgb, var(--lime) 16%, var(--surface));
   }
   :root:not(.dark) .chip:has(input:checked) {
-    background: var(--lavender);
-    color: var(--ink);
+    background: var(--primary);
+    color: var(--on-primary);
     border-color: transparent;
   }
   .chip:has(input:disabled) {
@@ -247,20 +290,20 @@ body {
     border-color: var(--border-strong);
   }
   .option-card:has(input:checked) {
-    border-color: var(--lavender);
-    box-shadow: 0 0 0 1px var(--lavender);
+    border-color: var(--focus);
+    box-shadow: 0 0 0 1px var(--focus);
   }
 
   /* ---- Badges ---------------------------------------------------------- */
   .badge,
   .badge-neutral,
   .badge-dashed,
-  .badge-pink,
-  .badge-lavender,
+  .badge-coral,
+  .badge-lime,
   .badge-sky,
   .badge-mint,
-  .badge-peach {
-    @apply inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium whitespace-nowrap;
+  .badge-butter {
+    @apply inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-semibold whitespace-nowrap;
   }
   .badge-neutral {
     @apply border-border bg-surface-2 text-muted;
@@ -269,18 +312,18 @@ body {
     @apply border-dashed bg-transparent text-muted;
     border-color: var(--border-strong);
   }
-  /* Light: pastel fill + ink text. Dark: tinted surface + pastel text. */
-  .badge-pink { --accent: var(--pink); }
-  .badge-lavender { --accent: var(--lavender); }
+  /* Light: accent fill + ink text. Dark: tinted surface + accent text. */
+  .badge-coral { --accent: var(--coral); }
+  .badge-lime { --accent: var(--lime); }
   .badge-sky { --accent: var(--sky); }
   .badge-mint { --accent: var(--mint); }
-  .badge-peach { --accent: var(--peach); }
-  :is(.badge-pink, .badge-lavender, .badge-sky, .badge-mint, .badge-peach) {
+  .badge-butter { --accent: var(--butter); }
+  :is(.badge-coral, .badge-lime, .badge-sky, .badge-mint, .badge-butter) {
     background: var(--accent);
     color: var(--ink);
     border-color: transparent;
   }
-  .dark :is(.badge-pink, .badge-lavender, .badge-sky, .badge-mint, .badge-peach) {
+  .dark :is(.badge-coral, .badge-lime, .badge-sky, .badge-mint, .badge-butter) {
     background: color-mix(in srgb, var(--accent) 14%, var(--surface));
     color: var(--accent);
     border-color: color-mix(in srgb, var(--accent) 35%, transparent);
@@ -296,8 +339,8 @@ body {
     @apply rounded-2xl border p-4 text-sm text-fg;
   }
   .alert-warning {
-    border-color: color-mix(in srgb, var(--peach) 60%, var(--border));
-    background: color-mix(in srgb, var(--peach) 14%, var(--surface));
+    border-color: color-mix(in srgb, var(--butter) 60%, var(--border));
+    background: color-mix(in srgb, var(--butter) 14%, var(--surface));
   }
   .alert-info {
     border-color: color-mix(in srgb, var(--sky) 60%, var(--border));
@@ -325,7 +368,7 @@ body {
     @apply flex items-center gap-2 text-sm text-muted;
   }
   .stat-value {
-    @apply mt-1 text-2xl font-semibold tracking-tight text-fg tabular-nums;
+    @apply mt-1 text-2xl font-bold tracking-[-0.02em] text-fg tabular-nums;
   }
   .kv {
     @apply rounded-xl border border-border bg-surface-2 px-3 py-2;
@@ -355,9 +398,39 @@ body {
     border-color: color-mix(in srgb, var(--mint) 50%, var(--border));
   }
   .step-current {
-    background: var(--lavender);
+    background: var(--lime);
     color: var(--ink);
     border-color: transparent;
     @apply font-semibold;
+  }
+
+  /* ---- App navigation ------------------------------------------------- */
+  /* Phone: fixed bottom tab bar. Desktop (lg): links in the top bar. */
+  .tabbar {
+    @apply fixed inset-x-0 bottom-0 z-40 border-t border-border lg:hidden;
+    background: color-mix(in srgb, var(--surface) 92%, transparent);
+    backdrop-filter: blur(12px);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .tab {
+    @apply flex min-h-14 flex-1 flex-col items-center justify-center gap-1 text-xs font-medium text-subtle;
+  }
+  .tab[aria-current="page"] {
+    @apply text-fg;
+  }
+  .tab-dot {
+    @apply size-1.5 rounded-full bg-transparent;
+  }
+  .tab[aria-current="page"] .tab-dot {
+    background: var(--fg);
+  }
+  .dark .tab[aria-current="page"] .tab-dot {
+    background: var(--lime);
+  }
+  .topnav-link {
+    @apply rounded-lg px-3 py-2 text-sm font-medium text-muted transition hover:bg-surface-2 hover:text-fg;
+  }
+  .topnav-link[aria-current="page"] {
+    @apply bg-surface-2 text-fg;
   }
 }

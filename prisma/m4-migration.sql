@@ -1,0 +1,238 @@
+-- Turfcut M4 migration — in-app messaging. Run ONCE, after m4-0-rls-lockdown.sql.
+-- Paste into the Supabase SQL editor. (Fresh databases: supabase-manual-setup.sql
+-- already includes it.)
+--
+-- Changes (approved for M4):
+--   1. Profile.displayName (org staff's name in chat); Engagement.hiredById
+--      (who hired the worker), backfilled from the audit log.
+--   2. New tables: Conversation, ConversationJob, ConversationParticipant,
+--      Message (immutable), MessageRevision (append-only edits/tombstones),
+--      MessageReport, ProfileBlock.
+--   3. RLS on all new tables. Writes: none (the server writes, as `postgres`).
+--      Reads: Message/MessageRevision only, for Supabase Realtime — a signed-in
+--      user sees a row only if they're a participant (and, if removed, only up
+--      to their removal) and haven't blocked the sender.
+
+BEGIN;
+
+-- CreateEnum
+CREATE TYPE "public"."ConversationKind" AS ENUM ('DIRECT', 'GROUP');
+
+-- CreateEnum
+CREATE TYPE "public"."ParticipantRole" AS ENUM ('WORKER', 'MANAGER');
+
+-- CreateEnum
+CREATE TYPE "public"."RevisionKind" AS ENUM ('EDIT', 'DELETE');
+
+-- AlterTable
+ALTER TABLE "public"."Profile" ADD COLUMN     "displayName" TEXT;
+
+-- AlterTable
+ALTER TABLE "public"."Engagement" ADD COLUMN     "hiredById" UUID;
+
+-- CreateTable
+CREATE TABLE "public"."Conversation" (
+    "id" UUID NOT NULL,
+    "kind" "public"."ConversationKind" NOT NULL,
+    "orgId" UUID NOT NULL,
+    "engagementId" UUID,
+    "name" TEXT,
+    "createdById" UUID NOT NULL,
+    "lastMessageAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Conversation_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."ConversationJob" (
+    "conversationId" UUID NOT NULL,
+    "jobId" UUID NOT NULL,
+
+    CONSTRAINT "ConversationJob_pkey" PRIMARY KEY ("conversationId","jobId")
+);
+
+-- CreateTable
+CREATE TABLE "public"."ConversationParticipant" (
+    "id" UUID NOT NULL,
+    "conversationId" UUID NOT NULL,
+    "profileId" UUID NOT NULL,
+    "role" "public"."ParticipantRole" NOT NULL,
+    "addedById" UUID NOT NULL,
+    "addedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "removedAt" TIMESTAMP(3),
+    "removedById" UUID,
+    "lastReadAt" TIMESTAMP(3),
+
+    CONSTRAINT "ConversationParticipant_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."Message" (
+    "id" UUID NOT NULL,
+    "conversationId" UUID NOT NULL,
+    "senderId" UUID NOT NULL,
+    "body" TEXT NOT NULL,
+    "attachmentPath" TEXT,
+    "attachmentName" TEXT,
+    "attachmentType" TEXT,
+    "attachmentSize" INTEGER,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Message_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."MessageRevision" (
+    "id" UUID NOT NULL,
+    "messageId" UUID NOT NULL,
+    "conversationId" UUID NOT NULL,
+    "kind" "public"."RevisionKind" NOT NULL,
+    "body" TEXT,
+    "actorId" UUID NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "MessageRevision_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."MessageReport" (
+    "id" UUID NOT NULL,
+    "messageId" UUID NOT NULL,
+    "conversationId" UUID NOT NULL,
+    "orgId" UUID NOT NULL,
+    "reporterId" UUID NOT NULL,
+    "reason" TEXT NOT NULL,
+    "bodySnapshot" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "resolvedAt" TIMESTAMP(3),
+    "resolvedById" UUID,
+
+    CONSTRAINT "MessageReport_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."ProfileBlock" (
+    "id" UUID NOT NULL,
+    "blockerId" UUID NOT NULL,
+    "blockedId" UUID NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "liftedAt" TIMESTAMP(3),
+
+    CONSTRAINT "ProfileBlock_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Conversation_engagementId_key" ON "public"."Conversation"("engagementId");
+
+-- CreateIndex
+CREATE INDEX "Conversation_orgId_kind_idx" ON "public"."Conversation"("orgId", "kind");
+
+-- CreateIndex
+CREATE INDEX "ConversationJob_jobId_idx" ON "public"."ConversationJob"("jobId");
+
+-- CreateIndex
+CREATE INDEX "ConversationParticipant_profileId_idx" ON "public"."ConversationParticipant"("profileId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ConversationParticipant_conversationId_profileId_key" ON "public"."ConversationParticipant"("conversationId", "profileId");
+
+-- CreateIndex
+CREATE INDEX "Message_conversationId_createdAt_idx" ON "public"."Message"("conversationId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "MessageRevision_messageId_createdAt_idx" ON "public"."MessageRevision"("messageId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "MessageRevision_conversationId_createdAt_idx" ON "public"."MessageRevision"("conversationId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "MessageReport_orgId_createdAt_idx" ON "public"."MessageReport"("orgId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "ProfileBlock_blockerId_idx" ON "public"."ProfileBlock"("blockerId");
+
+-- CreateIndex
+CREATE INDEX "ProfileBlock_blockedId_idx" ON "public"."ProfileBlock"("blockedId");
+
+-- AddForeignKey
+ALTER TABLE "public"."ConversationJob" ADD CONSTRAINT "ConversationJob_conversationId_fkey" FOREIGN KEY ("conversationId") REFERENCES "public"."Conversation"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."ConversationParticipant" ADD CONSTRAINT "ConversationParticipant_conversationId_fkey" FOREIGN KEY ("conversationId") REFERENCES "public"."Conversation"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."Message" ADD CONSTRAINT "Message_conversationId_fkey" FOREIGN KEY ("conversationId") REFERENCES "public"."Conversation"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."MessageRevision" ADD CONSTRAINT "MessageRevision_messageId_fkey" FOREIGN KEY ("messageId") REFERENCES "public"."Message"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- One active block per pair; lifted blocks stay as history.
+CREATE UNIQUE INDEX "ProfileBlock_active_pair" ON "public"."ProfileBlock"("blockerId", "blockedId") WHERE "liftedAt" IS NULL;
+
+-- Backfill who hired each current/past worker: the org member who accepted
+-- the application, else who sent the invitation, else (instant claims) who
+-- created the job, else the organization's first owner.
+UPDATE "public"."Engagement" e SET "hiredById" = COALESCE(
+  (SELECT a."actorId" FROM "public"."AuditEvent" a
+    WHERE a."entityType" = 'Engagement' AND a."entityId" = e."id"::text
+      AND a."action" = 'engagement.accepted' AND a."metadata"->>'acceptedBy' = 'org'
+    ORDER BY a."createdAt" DESC LIMIT 1),
+  (SELECT a."actorId" FROM "public"."AuditEvent" a
+    WHERE a."entityType" = 'Engagement' AND a."entityId" = e."id"::text AND a."action" = 'engagement.invited'
+    ORDER BY a."createdAt" DESC LIMIT 1),
+  (SELECT a."actorId" FROM "public"."AuditEvent" a
+    WHERE a."entityType" = 'Job' AND a."entityId" = e."jobId"::text AND a."action" = 'job.created'
+    ORDER BY a."createdAt" ASC LIMIT 1),
+  (SELECT p."id" FROM "public"."Profile" p JOIN "public"."Job" j ON j."orgId" = p."orgId"
+    WHERE j."id" = e."jobId" AND p."role" = 'OWNER' ORDER BY p."createdAt" ASC LIMIT 1)
+)
+WHERE e."hiredById" IS NULL AND e."status" IN ('ACTIVE', 'CLAIMED', 'COMPLETED');
+
+-- RLS: deny-by-default on every new table.
+ALTER TABLE "public"."Conversation"            ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."ConversationJob"         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."ConversationParticipant" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."Message"                 ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."MessageRevision"         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."MessageReport"           ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."ProfileBlock"            ENABLE ROW LEVEL SECURITY;
+
+-- Can the signed-in user (auth.uid()) see a message? SECURITY DEFINER so the
+-- check can read the participant and block tables, which RLS hides from
+-- clients; search_path pinned so it can't be hijacked.
+CREATE OR REPLACE FUNCTION "public"."turfcut_can_see_message"(p_conversation uuid, p_sender uuid, p_created timestamp)
+RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = pg_catalog, public AS $$
+  SELECT EXISTS (
+           SELECT 1 FROM "public"."ConversationParticipant" p
+            WHERE p."conversationId" = p_conversation AND p."profileId" = auth.uid()
+              AND (p."removedAt" IS NULL OR p_created <= p."removedAt"))
+     AND NOT EXISTS (
+           SELECT 1 FROM "public"."ProfileBlock" b
+            WHERE b."blockerId" = auth.uid() AND b."blockedId" = p_sender
+              AND b."liftedAt" IS NULL AND b."createdAt" <= p_created);
+$$;
+
+CREATE OR REPLACE FUNCTION "public"."turfcut_can_see_revision"(p_message uuid)
+RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = pg_catalog, public AS $$
+  SELECT COALESCE((SELECT "public"."turfcut_can_see_message"(m."conversationId", m."senderId", m."createdAt")
+                     FROM "public"."Message" m WHERE m."id" = p_message), false);
+$$;
+
+REVOKE ALL ON FUNCTION "public"."turfcut_can_see_message"(uuid, uuid, timestamp) FROM PUBLIC;
+REVOKE ALL ON FUNCTION "public"."turfcut_can_see_revision"(uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION "public"."turfcut_can_see_message"(uuid, uuid, timestamp) TO authenticated;
+GRANT EXECUTE ON FUNCTION "public"."turfcut_can_see_revision"(uuid) TO authenticated;
+
+CREATE POLICY "participants read messages" ON "public"."Message"
+  FOR SELECT TO authenticated
+  USING ("public"."turfcut_can_see_message"("conversationId", "senderId", "createdAt"));
+
+CREATE POLICY "participants read revisions" ON "public"."MessageRevision"
+  FOR SELECT TO authenticated
+  USING ("public"."turfcut_can_see_revision"("messageId"));
+
+COMMIT;
+
+-- Realtime (run once after the migration; Supabase only):
+--   ALTER PUBLICATION supabase_realtime ADD TABLE "public"."Message", "public"."MessageRevision";

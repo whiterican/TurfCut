@@ -42,6 +42,9 @@ model Profile {
   worker    Worker?
   orgId     String?  @db.Uuid
   org       Organization? @relation(fields: [orgId], references: [id])
+  // Org staff's name as shown in chat ("Maya Chen · Manager"). Workers use
+  // Worker.displayName. Never shown to anyone outside a shared conversation.
+  displayName String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -265,6 +268,10 @@ model Engagement {
   // Frozen snapshot of the application + the scorecard shown to the employer
   // at decision time (spec: freeze the employer-facing snapshot).
   applicationSnapshot Json?
+  // The org profile who hired this worker (accepted the application, sent
+  // the invitation, or created the job for an instant claim). The worker's
+  // direct-message thread for this job is with this person.
+  hiredById String? @db.Uuid
   createdAt DateTime         @default(now())
   updatedAt DateTime         @updatedAt
 
@@ -424,4 +431,129 @@ model AuditEvent {
 
   @@index([entityType, entityId])
   @@index([createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// M4 — in-app messaging. Access is decided in src/lib/chat.ts (server) and,
+// for Supabase Realtime, by RLS policies in prisma/m4-migration.sql.
+// Messages are immutable; edits and deletes are MessageRevision rows.
+// ---------------------------------------------------------------------------
+
+enum ConversationKind {
+  DIRECT // worker ↔ the person who hired them, one per engagement
+  GROUP // team chat created by an organizer
+}
+
+enum ParticipantRole {
+  WORKER
+  MANAGER
+}
+
+enum RevisionKind {
+  EDIT
+  DELETE
+}
+
+model Conversation {
+  id            String           @id @default(uuid()) @db.Uuid
+  kind          ConversationKind
+  orgId         String           @db.Uuid
+  engagementId  String?          @unique @db.Uuid // DIRECT: exactly one thread per (worker, job)
+  name          String? // GROUP: "Denver housing initiative — Team A"
+  createdById   String           @db.Uuid // Profile
+  lastMessageAt DateTime? // thread-list ordering; only moves forward
+  createdAt     DateTime         @default(now())
+
+  participants ConversationParticipant[]
+  jobs         ConversationJob[]
+  messages     Message[]
+
+  @@index([orgId, kind])
+}
+
+/// GROUP ↔ related jobs: a worker may post only while hired on one of them.
+model ConversationJob {
+  conversationId String       @db.Uuid
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  jobId          String       @db.Uuid
+
+  @@id([conversationId, jobId])
+  @@index([jobId])
+}
+
+model ConversationParticipant {
+  id             String          @id @default(uuid()) @db.Uuid
+  conversationId String          @db.Uuid
+  conversation   Conversation    @relation(fields: [conversationId], references: [id])
+  profileId      String          @db.Uuid
+  role           ParticipantRole
+  addedById      String          @db.Uuid
+  addedAt        DateTime        @default(now())
+  removedAt      DateTime? // set = read-only; history visible up to this moment
+  removedById    String?         @db.Uuid
+  lastReadAt     DateTime? // unread = messages after this
+
+  @@unique([conversationId, profileId])
+  @@index([profileId])
+}
+
+/// Immutable: never updated or deleted. See MessageRevision.
+model Message {
+  id             String       @id @default(uuid()) @db.Uuid
+  conversationId String       @db.Uuid
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  senderId       String       @db.Uuid // Profile
+  body           String // ≤ 4,000 characters
+  attachmentPath String? // private storage key, never a public URL
+  attachmentName String?
+  attachmentType String? // MIME type checked from the file's bytes
+  attachmentSize Int?
+  createdAt      DateTime     @default(now())
+
+  revisions MessageRevision[]
+
+  @@index([conversationId, createdAt])
+}
+
+/// Append-only edits and soft deletes (tombstones). Latest EDIT wins; any DELETE hides the text.
+model MessageRevision {
+  id             String       @id @default(uuid()) @db.Uuid
+  messageId      String       @db.Uuid
+  message        Message      @relation(fields: [messageId], references: [id])
+  conversationId String       @db.Uuid // denormalized for realtime filtering
+  kind           RevisionKind
+  body           String? // EDIT: the new text; DELETE: null
+  actorId        String       @db.Uuid
+  createdAt      DateTime     @default(now())
+
+  @@index([messageId, createdAt])
+  @@index([conversationId, createdAt])
+}
+
+model MessageReport {
+  id             String    @id @default(uuid()) @db.Uuid
+  messageId      String    @db.Uuid
+  conversationId String    @db.Uuid
+  orgId          String    @db.Uuid
+  reporterId     String    @db.Uuid
+  reason         String // ≤ 500 characters
+  bodySnapshot   String // the text when reported; survives later edits/deletes
+  createdAt      DateTime  @default(now())
+  resolvedAt     DateTime?
+  resolvedById   String?   @db.Uuid
+
+  @@index([orgId, createdAt])
+}
+
+/// A worker blocking an employer/manager. Unblocking sets liftedAt; rows stay.
+/// One active block per pair (partial unique index in m4-migration.sql).
+model ProfileBlock {
+  id        String    @id @default(uuid()) @db.Uuid
+  blockerId String    @db.Uuid
+  blockedId String    @db.Uuid
+  createdAt DateTime  @default(now())
+  liftedAt  DateTime?
+
+  @@index([blockerId])
+  @@index([blockedId])
 }

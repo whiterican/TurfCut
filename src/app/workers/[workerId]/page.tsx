@@ -66,7 +66,7 @@ export default async function EmployerWorkerPage({
           <p className="eyebrow">Worker profile</p>
           <h1 className="page-title">{worker.displayName}</h1>
         </div>
-        <Link href="/workers" className="btn-ghost">← All workers</Link>
+        <Link transitionTypes={["nav-back"]} href="/workers" className="btn-ghost">← All workers</Link>
       </header>
 
       <section className="section">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useTransition } from "react";
 import { useSubmit } from "@/components/chat/useSubmit";
 import { edit, remove, report, send } from "@/app/messages/actions";
 import type { ActionState } from "@/app/jobs/actions";
@@ -125,7 +125,9 @@ export function MessageList({
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
-  useEffect(() => {
+  // Layout effect: runs before paint (and before a page transition takes its
+  // snapshot), so the thread slides in already at the newest message.
+  useLayoutEffect(() => {
     const root = document.scrollingElement ?? document.documentElement;
     // Open at the newest message (composer in view); afterwards follow new
     // messages if the reader was at the bottom, or if they sent it.

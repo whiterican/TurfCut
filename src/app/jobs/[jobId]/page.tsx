@@ -58,7 +58,7 @@ export default async function JobPage({ params }: { params: Promise<{ jobId: str
             <span className="badge-neutral">{acceptedCount} of {job.headcount ?? "—"} spots filled</span>
           </p>
         </div>
-        <Link href="/jobs" className="btn-ghost">← Jobs</Link>
+        <Link transitionTypes={["nav-back"]} href="/jobs" className="btn-ghost">← Jobs</Link>
       </header>
 
       {job.description && <p className="lead">{job.description}</p>}
@@ -151,7 +151,7 @@ function shiftRow(
   const b = shiftStatusLabel(shiftState({ status: s.status, startsAt: s.startsAt, endsAt: s.endsAt, workType: s.engagement.job.type, events: s.events, validations: s.validations }));
   return (
     <li key={s.id}>
-      <Link href={`/shifts/${s.id}`} className="flex min-h-14 items-center justify-between gap-3 px-4 py-3 text-sm transition hover:bg-surface-2">
+      <Link transitionTypes={["nav-forward"]} href={`/shifts/${s.id}`} className="flex min-h-14 items-center justify-between gap-3 px-4 py-3 text-sm transition hover:bg-surface-2">
         <span className="space-y-0.5">
           {showWorker && <span className="block font-semibold text-fg">{s.engagement.worker.displayName}</span>}
           <span className="block text-muted">
@@ -206,7 +206,7 @@ async function OrgPanel({ job, canHire, canSchedule, userId }: { job: JobWithRef
           {canHire && (
             <div className="flex flex-wrap items-start gap-3">
               <ActionButton action={publish} fields={{ jobId: job.id }} label="Publish" pendingLabel="Publishing…" disabled={blockers.length > 0} />
-              {job.status === "DRAFT" && <Link href={`/jobs/${job.id}/edit`} className="btn-secondary">Edit draft</Link>}
+              {job.status === "DRAFT" && <Link transitionTypes={["nav-forward"]} href={`/jobs/${job.id}/edit`} className="btn-secondary">Edit draft</Link>}
             </div>
           )}
         </section>
@@ -229,7 +229,7 @@ async function OrgPanel({ job, canHire, canSchedule, userId }: { job: JobWithRef
                   <li key={e.id} className="card space-y-3">
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <p className="flex items-center gap-2 font-medium text-fg">
-                        <Link href={`/workers/${e.worker.id}`} className="link">{e.worker.displayName}</Link>
+                        <Link transitionTypes={["nav-forward"]} href={`/workers/${e.worker.id}`} className="link">{e.worker.displayName}</Link>
                         <span className={s.badge}>{s.label}</span>
                       </p>
                       {e.status === "APPLIED" && (

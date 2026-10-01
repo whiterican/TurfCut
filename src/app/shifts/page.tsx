@@ -18,7 +18,7 @@ export default async function MyShiftsPage() {
         const b = shiftStatusLabel(shiftState(facts(s)));
         return (
           <li key={s.id}>
-            <Link href={`/shifts/${s.id}`} className="card flex items-start justify-between gap-3 transition hover:border-[var(--border-strong)]">
+            <Link transitionTypes={["nav-forward"]} href={`/shifts/${s.id}`} className="card flex items-start justify-between gap-3 transition hover:border-[var(--border-strong)]">
               <span className="min-w-0 space-y-1">
                 <span className="eyebrow block">
                   <LocalTime iso={s.startsAt.toISOString()} mode="date" />
@@ -45,7 +45,7 @@ export default async function MyShiftsPage() {
           <h1 className="page-title">My shifts</h1>
           <p className="text-muted-sm">Every campaign in one calendar. Shifts never overlap — scheduling checks across all of them.</p>
         </div>
-        <Link href="/shifts/turf" className="btn-secondary">My turf</Link>
+        <Link transitionTypes={["nav-forward"]} href="/shifts/turf" className="btn-secondary">My turf</Link>
       </header>
       {upcoming.length === 0 ? (
         <div className="empty-state">

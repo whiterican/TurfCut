@@ -21,7 +21,7 @@ export default async function EditJobPage({ params }: { params: Promise<{ jobId:
           <p className="eyebrow">Edit draft</p>
           <h1 className="page-title">{job.title}</h1>
         </div>
-        <Link href={`/jobs/${job.id}`} className="btn-ghost">← Job</Link>
+        <Link transitionTypes={["nav-back"]} href={`/jobs/${job.id}`} className="btn-ghost">← Job</Link>
       </header>
       {job.status === "DRAFT" ? (
         <JobForm jobId={job.id} defaults={jobToForm(job)} jurisdictions={jurisdictions} />

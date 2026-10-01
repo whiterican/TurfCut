@@ -20,7 +20,7 @@ function ThreadRow({ t }: { t: ThreadSummary }) {
   const unread = t.unread > 0;
   return (
     <li>
-      <Link href={`/messages/${t.id}`} className="flex items-center gap-3 px-4 py-3 transition hover:bg-surface-2">
+      <Link transitionTypes={["nav-forward"]} scroll={false} href={`/messages/${t.id}`} className="flex items-center gap-3 px-4 py-3 transition hover:bg-surface-2">
         <Avatar name={t.title} team={t.kind === "GROUP"} />
         <span className="min-w-0 flex-1">
           <span className="flex items-baseline justify-between gap-3">
@@ -74,11 +74,11 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
         {staff && (
           <div className="flex flex-wrap gap-2">
             {session.role === "OWNER" && (
-              <Link href="/messages/reports" className="btn-secondary">
+              <Link transitionTypes={["nav-forward"]} href="/messages/reports" className="btn-secondary">
                 Reports{reports.length > 0 && <span className="unread-badge">{reports.length}</span>}
               </Link>
             )}
-            <Link href="/messages/new" className="btn-primary">New team chat</Link>
+            <Link transitionTypes={["nav-forward"]} href="/messages/new" className="btn-primary">New team chat</Link>
           </div>
         )}
       </header>
@@ -126,7 +126,7 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
             {session.role === "WORKER" ? (
               <Link href="/jobs" className="btn-primary mt-4">Find work</Link>
             ) : (
-              staff && <Link href="/messages/new" className="btn-primary mt-4">New team chat</Link>
+              staff && <Link transitionTypes={["nav-forward"]} href="/messages/new" className="btn-primary mt-4">New team chat</Link>
             )}
           </div>
         )

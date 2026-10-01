@@ -59,7 +59,7 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
               const s = ENGAGEMENT_LABELS[e.status];
               return (
                 <li key={e.id}>
-                  <Link href={`/jobs/${e.job.id}`} className="flex min-h-14 items-center justify-between gap-3 px-4 py-3 text-fg transition hover:bg-surface-2">
+                  <Link transitionTypes={["nav-forward"]} href={`/jobs/${e.job.id}`} className="flex min-h-14 items-center justify-between gap-3 px-4 py-3 text-fg transition hover:bg-surface-2">
                     <span className="font-medium">{e.job.title}</span>
                     <span className={s.badge}>{s.label}</span>
                   </Link>
@@ -108,7 +108,7 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
               const geo = (j.geography ?? {}) as { city?: string; state?: string };
               return (
                 <li key={j.id}>
-                  <Link href={`/jobs/${j.id}`} className="card group flex flex-col gap-3 transition hover:border-[var(--border-strong)] sm:flex-row sm:items-start sm:justify-between">
+                  <Link transitionTypes={["nav-forward"]} href={`/jobs/${j.id}`} className="card group flex flex-col gap-3 transition hover:border-[var(--border-strong)] sm:flex-row sm:items-start sm:justify-between">
                     <span className="min-w-0 space-y-2">
                       <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-semibold text-muted">
                         {j.org.name}
@@ -181,7 +181,7 @@ async function OrgJobs({ orgId, canHire }: { orgId: string; canHire: boolean }) 
             const s = JOB_STATUS_LABELS[j.status];
             return (
               <li key={j.id}>
-                <Link href={`/jobs/${j.id}`} className="flex min-h-14 items-center justify-between gap-3 px-4 py-3 text-fg transition hover:bg-surface-2">
+                <Link transitionTypes={["nav-forward"]} href={`/jobs/${j.id}`} className="flex min-h-14 items-center justify-between gap-3 px-4 py-3 text-fg transition hover:bg-surface-2">
                   <span className="space-y-0.5">
                     <span className="block font-medium">{j.title}</span>
                     <span className="text-muted-sm block">Starts {day(j.startsAt)} · {plural(j._count.engagements, "worker")} engaged</span>

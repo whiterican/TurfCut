@@ -2,6 +2,7 @@
 
 import { useSyncExternalStore } from "react";
 import { TEXT_SIZE_KEY, TEXT_SIZES, THEME_STORAGE_KEY, type TextSize } from "@/lib/theme";
+import { HAPTICS_KEY, haptic } from "@/lib/haptics";
 
 type ThemeChoice = "system" | "light" | "dark";
 
@@ -74,9 +75,17 @@ function applyTheme(v: ThemeChoice) {
   notify();
 }
 
+const hapticsSnapshot = () => read(HAPTICS_KEY) !== "off";
+function applyHaptics(on: boolean) {
+  save(HAPTICS_KEY, on ? null : "off");
+  notify();
+  if (on) haptic(); // a sample tick
+}
+
 export function DisplaySettings() {
   const size = useSyncExternalStore(subscribe, sizeSnapshot, () => "md" as TextSize);
   const theme = useSyncExternalStore(subscribe, themeSnapshot, () => "system" as ThemeChoice);
+  const haptics = useSyncExternalStore(subscribe, hapticsSnapshot, () => true);
 
   return (
     <div className="space-y-8">
@@ -105,6 +114,15 @@ export function DisplaySettings() {
             </label>
           ))}
         </div>
+      </fieldset>
+
+      <fieldset className="space-y-3">
+        <legend className="section-title">Feel</legend>
+        <label className="toggle">
+          <input type="checkbox" role="switch" checked={haptics} onChange={(e) => applyHaptics(e.target.checked)} />
+          Vibrate lightly when I tap a button
+        </label>
+        <p className="text-hint">On phones that support it (most Android phones; iPhone with iOS 18 or later). Saved on this device.</p>
       </fieldset>
 
       <div className="card space-y-2">

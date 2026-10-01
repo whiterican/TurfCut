@@ -23,7 +23,7 @@ export default async function MyTurfPage() {
           <h1 className="page-title">My turf</h1>
           <p className="text-muted-sm">Turf each campaign assigned you, or the area you marked for the day — plus your pins.</p>
         </div>
-        <Link href="/shifts" className="btn-ghost">← My shifts</Link>
+        <Link transitionTypes={["nav-back"]} href="/shifts" className="btn-ghost">← My shifts</Link>
       </header>
 
       {shifts.length === 0 ? (
@@ -66,7 +66,7 @@ export default async function MyTurfPage() {
               ) : (
                 <p className="text-muted-sm">No turf assigned yet. From an hour before the shift you can mark your own.</p>
               )}
-              <Link href={`/shifts/${s.id}`} className="link text-sm">Open field day</Link>
+              <Link transitionTypes={["nav-forward"]} href={`/shifts/${s.id}`} className="link text-sm">Open field day</Link>
             </section>
           );
         })

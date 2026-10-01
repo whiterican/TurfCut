@@ -9,8 +9,8 @@ export default function SettingsPage() {
       <header className="page-header">
         <div className="space-y-1">
           <p className="eyebrow">Display</p>
-          <h1 className="page-title">Text size and theme</h1>
-          <p className="text-muted-sm">Make Turfcut easier to read on your phone.</p>
+          <h1 className="page-title">Text size, theme and feel</h1>
+          <p className="text-muted-sm">Make Turfcut easier to read and use on your phone.</p>
         </div>
       </header>
       <DisplaySettings />

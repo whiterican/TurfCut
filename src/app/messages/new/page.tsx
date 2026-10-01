@@ -16,7 +16,7 @@ export default async function NewTeamChatPage() {
   return (
     <main className="page max-w-2xl">
       <header className="space-y-1">
-        <Link href="/messages" className="link text-sm">← Messages</Link>
+        <Link transitionTypes={["nav-back"]} href="/messages" className="link text-sm">← Messages</Link>
         <h1 className="page-title">New team chat</h1>
         <p className="text-muted-sm">
           One chat for a campaign or circulation team. Pick its jobs, then who&apos;s in it: your staff, and workers hired on those jobs.

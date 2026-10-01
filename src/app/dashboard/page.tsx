@@ -42,7 +42,7 @@ async function WorkerHero({ workerId }: { workerId: string }) {
   if (shift) {
     const live = shift.checkInAt !== null;
     return (
-      <Link href={`/shifts/${shift.id}`} className="hero-card block space-y-4">
+      <Link transitionTypes={["nav-forward"]} href={`/shifts/${shift.id}`} className="hero-card block space-y-4">
         <p className="eyebrow">
           {live ? "Live shift" : "Next shift"} · <LocalTime iso={shift.startsAt.toISOString()} mode="date" />
         </p>
@@ -75,7 +75,7 @@ async function WorkerHero({ workerId }: { workerId: string }) {
     );
   }
   return (
-    <Link href={`/jobs/${next.job.id}`} className="hero-card block space-y-4">
+    <Link transitionTypes={["nav-forward"]} href={`/jobs/${next.job.id}`} className="hero-card block space-y-4">
       <p className="eyebrow">Your next job · starts {day(next.job.startsAt)}</p>
       <p className="hero-title">{next.job.title}</p>
       <p className="text-sm font-semibold">{payText(next.job.compensationMethod, next.job.payRateCents)}</p>
@@ -110,7 +110,7 @@ async function OrgHero({ orgId }: { orgId: string }) {
           <ul className="list-card">
             {attention.map((a) => (
               <li key={a.id + a.tag}>
-                <Link href={`/shifts/${a.id}`} className="flex min-h-14 items-center justify-between gap-3 px-4 py-3 transition hover:bg-surface-2">
+                <Link transitionTypes={["nav-forward"]} href={`/shifts/${a.id}`} className="flex min-h-14 items-center justify-between gap-3 px-4 py-3 transition hover:bg-surface-2">
                   <span><span className="block text-sm font-semibold text-fg">{a.title}</span><span className="text-xs text-muted">{a.sub}</span></span>
                   <span className={a.badge}>{a.tag}</span>
                 </Link>

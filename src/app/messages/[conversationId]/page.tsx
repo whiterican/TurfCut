@@ -29,7 +29,7 @@ export default async function ThreadPage({ params }: { params: Promise<{ convers
     <main className="page max-w-2xl space-y-4">
       <LiveRefresh conversationId={t.id} />
       <header className="flex items-center gap-3">
-        <Link href="/messages" className="btn-ghost btn-sm" aria-label="Back to messages">←</Link>
+        <Link transitionTypes={["nav-back"]} href="/messages" className="btn-ghost btn-sm" aria-label="Back to messages">←</Link>
         <Avatar name={t.title} team={group} />
         <div className="min-w-0 flex-1">
           <h1 className="truncate text-lg font-bold text-fg">{t.title}</h1>
@@ -44,7 +44,7 @@ export default async function ThreadPage({ params }: { params: Promise<{ convers
       </header>
 
       {t.nextShift && (
-        <Link href={`/shifts/${t.nextShift.id}`} className="card flex items-center justify-between gap-3 transition hover:border-[var(--border-strong)]">
+        <Link transitionTypes={["nav-forward"]} href={`/shifts/${t.nextShift.id}`} className="card flex items-center justify-between gap-3 transition hover:border-[var(--border-strong)]">
           <span className="min-w-0">
             <span className="eyebrow block">{t.nextShift.active ? "On shift now" : "Next shift"}</span>
             <span className="block font-semibold text-fg">

@@ -12,7 +12,7 @@ export default async function PreferencesPage() {
       <header className="space-y-3">
         <div className="page-header">
           <h1 className="page-title">Political-fit preferences</h1>
-          <Link href="/profile" className="btn-ghost">← Profile</Link>
+          <Link transitionTypes={["nav-back"]} href="/profile" className="btn-ghost">← Profile</Link>
         </div>
         <p className="lead">
           Every answer here is optional and comes only from you. Turfcut never

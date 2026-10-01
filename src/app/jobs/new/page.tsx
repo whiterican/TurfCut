@@ -13,7 +13,7 @@ export default async function NewJobPage() {
           <p className="eyebrow">Job builder</p>
           <h1 className="page-title">New job</h1>
         </div>
-        <Link href="/jobs" className="btn-ghost">← Jobs</Link>
+        <Link transitionTypes={["nav-back"]} href="/jobs" className="btn-ghost">← Jobs</Link>
       </header>
       <p className="lead">Saved as a draft. You publish it from the job page once every check passes.</p>
       <JobForm jurisdictions={jurisdictions} />

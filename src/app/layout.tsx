@@ -5,6 +5,8 @@ import { TabBar, TopNav } from "@/components/AppNav";
 import { InlineScript } from "@/components/InlineScript";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { UnreadProvider } from "@/components/chat/UnreadProvider";
+import { PageTransition } from "@/components/PageTransition";
+import { Haptics } from "@/components/Haptics";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
 import { getSessionProfile } from "@/lib/auth";
 import { MESSAGES_HREF, navTabs } from "@/lib/nav";
@@ -51,7 +53,7 @@ export default async function RootLayout({
       </head>
       <body className="min-h-full flex flex-col">
         <UnreadProvider initial={unread} enabled={tabs.some((t) => t.href === MESSAGES_HREF)}>
-        <header className="border-b border-border bg-surface/80 backdrop-blur">
+        <header className="site-header border-b border-border bg-surface/80 backdrop-blur">
           <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
             <Link href={session ? "/dashboard" : "/"} className="flex items-center gap-2 text-lg font-bold tracking-[-0.03em] text-fg">
               <span aria-hidden className="grid size-7 place-items-center rounded-lg bg-hero">
@@ -68,7 +70,8 @@ export default async function RootLayout({
             </div>
           </div>
         </header>
-        <div className="flex flex-1 flex-col">{children}</div>
+        <PageTransition>{children}</PageTransition>
+        <Haptics />
         <TabBar tabs={tabs} />
         </UnreadProvider>
       </body>

@@ -16,7 +16,7 @@ export default async function ReportsPage() {
   return (
     <main className="page max-w-2xl">
       <header className="space-y-1">
-        <Link href="/messages" className="link text-sm">← Messages</Link>
+        <Link transitionTypes={["nav-back"]} href="/messages" className="link text-sm">← Messages</Link>
         <h1 className="page-title">Message reports</h1>
         <p className="text-muted-sm">
           Messages people in your organization reported. Remove one to replace it with &ldquo;Message deleted&rdquo; for everyone — the original stays in the audit trail — or dismiss the report.

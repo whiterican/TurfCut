@@ -1,22 +1,14 @@
 "use server";
 
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { EMAIL_RE, safeNext } from "@/lib/auth-input";
+import { siteOrigin } from "@/lib/site-origin";
 
 export interface LoginState {
   ok: boolean;
   message: string;
   email: string;
-}
-
-/** The site's own origin, for the magic-link return address. */
-async function origin(): Promise<string> {
-  const h = await headers();
-  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
-  const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
-  return `${proto}://${host}`;
 }
 
 /**
@@ -38,19 +30,27 @@ export async function logIn(_prev: LoginState, fd: FormData): Promise<LoginState
   }
 
   if (intent === "link") {
+    const origin = await siteOrigin();
+    if (!origin) return { ok: false, message: "Sign-in links aren't configured on this server yet (SITE_URL).", email };
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: { shouldCreateUser: false, emailRedirectTo: `${await origin()}/auth/confirm?next=${encodeURIComponent(next)}` },
+      options: { shouldCreateUser: false, emailRedirectTo: `${origin}/auth/confirm?next=${encodeURIComponent(next)}` },
     });
-    // Same answer whether or not the account exists, so the form can't be
-    // used to discover who has an account.
-    if (error && error.status !== 400 && error.status !== 422) return { ok: false, message: "We couldn't send the link. Try again in a minute.", email };
-    return { ok: true, message: `If ${email} has an account, a sign-in link is on its way. Open it on this phone.`, email };
+    // The same reply whether or not the account exists (otp_disabled = no
+    // such user) or was rate limited, so the form can't reveal who has an
+    // account. Other failures are real and are reported.
+    if (error && error.code !== "otp_disabled" && error.status !== 429) {
+      return { ok: false, message: "We couldn't send the link. Check the address and try again.", email };
+    }
+    return { ok: true, message: `If ${email} has an account, a sign-in link is on its way. It works best opened on this phone.`, email };
   }
 
   const password = String(fd.get("password") ?? "");
   if (!password) return { ok: false, message: "Enter your password, or email yourself a sign-in link.", email };
   const { error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error?.code === "email_not_confirmed") {
+    return { ok: false, message: "Confirm your email first — check your inbox — or use a sign-in link below.", email };
+  }
   if (error) return { ok: false, message: "That email and password don't match. Try again, or use a sign-in link.", email };
   redirect(next);
 }

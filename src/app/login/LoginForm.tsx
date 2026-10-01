@@ -9,7 +9,7 @@ const initial: LoginState = { ok: false, message: "", email: "" };
 export function LoginForm({ next }: { next: string }) {
   const [state, action, pending] = useActionState(logIn, initial);
   return (
-    <form action={action} method="post" className="card space-y-5 sm:p-8">
+    <form action={action} className="card space-y-5 sm:p-8">
       <input type="hidden" name="next" value={next} />
       <div className="space-y-1.5 text-center">
         <h1 className="page-title">Welcome back</h1>

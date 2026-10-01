@@ -65,7 +65,18 @@ using dummy env values (no real DB touched).
    npm run db:push
    npm run seed
    ```
-5. **(M5, later)** Create a Stripe account and enable Connect (test mode) for
+5. **Sign-in links and email confirmation:**
+   - Set `SITE_URL` to the app's public address (e.g. `https://app.turfcut.com`)
+     in the hosting environment. Without it, production refuses to send
+     sign-in links rather than trusting the request's Host header.
+   - Supabase → Authentication → URL Configuration → **Redirect URLs**: add
+     `<SITE_URL>/auth/confirm` (exact — avoid wildcards).
+   - Optional but recommended for field phones: in Supabase → Authentication
+     → Email Templates, change the **Magic Link** and **Confirm signup**
+     links to `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email`.
+     That style works even when the email opens in a different browser than
+     the one that asked for it.
+6. **(M5, later)** Create a Stripe account and enable Connect (test mode) for
    payouts.
 
 **Already set up under M0?** Upgrade the live database for M1 by pasting,

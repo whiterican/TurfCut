@@ -158,6 +158,10 @@ model Organization {
   id        String   @id @default(uuid()) @db.Uuid
   name      String
   approved  Boolean  @default(false) // manual approval for the private pilot
+  // Publish gate (spec p.15): no job publishes until both are recorded.
+  contractorTermsSignedAt  DateTime?
+  classificationReviewedAt DateTime?
+  legalContact             String? // legal-review contact (spec p.11)
   profiles  Profile[]
   jobs      Job[]
   createdAt DateTime @default(now())
@@ -175,6 +179,9 @@ model JurisdictionProfile {
   isCurrent   Boolean  @default(true)
   approved    Boolean  @default(false)
   approvedAt  DateTime?
+  // Versioned by effective date; counsel approval can lapse (spec p.13, p.15).
+  effectiveFrom     DateTime? // null = effective immediately
+  approvalExpiresAt DateTime? // null = no expiry set by counsel
   // Compensation/eligibility/registration/badge/affidavit/disclosure rules.
   rules       Json
   jobs        Job[]
@@ -223,6 +230,13 @@ model Job {
   headcount         Int?
   hiringMethod      Json? // application / invite / instant-claim config
   requirements      Json? // credentials, training, badges
+  // Campaign disclosure (spec p.14): affiliation, issue positions, message.
+  // Shapes are defined and validated in src/lib/jobs.ts.
+  campaignDisclosure      Json?
+  supportContacts         Json? // who handles emergencies, disputes, lost materials
+  measureIds              String[] @default([]) // ballot measure / initiative IDs
+  cancellationNoticeHours Int      @default(24) // later worker cancellations count as no-shows
+  publishedAt             DateTime?
   // Matching weights are versioned on the job (M3); stored when matching ships.
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
@@ -301,6 +315,7 @@ enum WorkEventType {
   BATCH_COUNT // supervisor batch reconciliation count
   INCIDENT // safety incident / harassment report
   CORRECTION // signed metric correction event (supersedes, never rewrites)
+  SHIFT_CANCELLED // payload: { by: "WORKER" | "ORGANIZATION", reason } — append-only record of a cancellation
   NOTE
 }
 

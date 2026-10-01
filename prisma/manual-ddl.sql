@@ -26,7 +26,7 @@ CREATE TYPE "public"."EngagementStatus" AS ENUM ('APPLIED', 'INVITED', 'CLAIMED'
 CREATE TYPE "public"."ShiftStatus" AS ENUM ('SCHEDULED', 'ACTIVE', 'COMPLETED', 'CANCELLED');
 
 -- CreateEnum
-CREATE TYPE "public"."WorkEventType" AS ENUM ('CHECK_IN', 'CHECK_OUT', 'PAUSE_START', 'PAUSE_END', 'DOOR_KNOCK', 'CONTACT', 'SIGNATURE_SUBMITTED', 'CALL', 'INTERVIEW', 'PACKET_PICKUP', 'PACKET_RETURN', 'BATCH_COUNT', 'INCIDENT', 'CORRECTION', 'NOTE');
+CREATE TYPE "public"."WorkEventType" AS ENUM ('CHECK_IN', 'CHECK_OUT', 'PAUSE_START', 'PAUSE_END', 'DOOR_KNOCK', 'CONTACT', 'SIGNATURE_SUBMITTED', 'CALL', 'INTERVIEW', 'PACKET_PICKUP', 'PACKET_RETURN', 'BATCH_COUNT', 'INCIDENT', 'CORRECTION', 'SHIFT_CANCELLED', 'NOTE');
 
 -- CreateEnum
 CREATE TYPE "public"."ValidationStatus" AS ENUM ('APPROVED', 'REJECTED', 'FLAGGED');
@@ -109,6 +109,9 @@ CREATE TABLE "public"."Organization" (
     "id" UUID NOT NULL,
     "name" TEXT NOT NULL,
     "approved" BOOLEAN NOT NULL DEFAULT false,
+    "contractorTermsSignedAt" TIMESTAMP(3),
+    "classificationReviewedAt" TIMESTAMP(3),
+    "legalContact" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -124,6 +127,8 @@ CREATE TABLE "public"."JurisdictionProfile" (
     "isCurrent" BOOLEAN NOT NULL DEFAULT true,
     "approved" BOOLEAN NOT NULL DEFAULT false,
     "approvedAt" TIMESTAMP(3),
+    "effectiveFrom" TIMESTAMP(3),
+    "approvalExpiresAt" TIMESTAMP(3),
     "rules" JSONB NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
@@ -147,6 +152,11 @@ CREATE TABLE "public"."Job" (
     "headcount" INTEGER,
     "hiringMethod" JSONB,
     "requirements" JSONB,
+    "campaignDisclosure" JSONB,
+    "supportContacts" JSONB,
+    "measureIds" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "cancellationNoticeHours" INTEGER NOT NULL DEFAULT 24,
+    "publishedAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 

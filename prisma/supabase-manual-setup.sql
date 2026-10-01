@@ -1,8 +1,8 @@
--- Turfcut M0 + M1 — manual Supabase setup (one paste), FRESH databases only.
+-- Turfcut M0 + M1 + M2 — manual Supabase setup (one paste), FRESH databases only.
 -- Generated from prisma/schema.prisma + prisma/seed.ts on 2026-09-30.
 -- Paste the entire file into the Supabase SQL editor and run it.
--- The DDL is not re-runnable. Already set up under M0? Run m1-migration.sql,
--- then m1-profile-migration.sql, then manual-seed.sql (idempotent) instead.
+-- The DDL is not re-runnable. Existing database? Run the m1-, m1-profile- and
+-- m2-migration.sql files in order, then manual-seed.sql (idempotent).
 -- CreateSchema
 CREATE SCHEMA IF NOT EXISTS "public";
 
@@ -31,7 +31,7 @@ CREATE TYPE "public"."EngagementStatus" AS ENUM ('APPLIED', 'INVITED', 'CLAIMED'
 CREATE TYPE "public"."ShiftStatus" AS ENUM ('SCHEDULED', 'ACTIVE', 'COMPLETED', 'CANCELLED');
 
 -- CreateEnum
-CREATE TYPE "public"."WorkEventType" AS ENUM ('CHECK_IN', 'CHECK_OUT', 'PAUSE_START', 'PAUSE_END', 'DOOR_KNOCK', 'CONTACT', 'SIGNATURE_SUBMITTED', 'CALL', 'INTERVIEW', 'PACKET_PICKUP', 'PACKET_RETURN', 'BATCH_COUNT', 'INCIDENT', 'CORRECTION', 'NOTE');
+CREATE TYPE "public"."WorkEventType" AS ENUM ('CHECK_IN', 'CHECK_OUT', 'PAUSE_START', 'PAUSE_END', 'DOOR_KNOCK', 'CONTACT', 'SIGNATURE_SUBMITTED', 'CALL', 'INTERVIEW', 'PACKET_PICKUP', 'PACKET_RETURN', 'BATCH_COUNT', 'INCIDENT', 'CORRECTION', 'SHIFT_CANCELLED', 'NOTE');
 
 -- CreateEnum
 CREATE TYPE "public"."ValidationStatus" AS ENUM ('APPROVED', 'REJECTED', 'FLAGGED');
@@ -114,6 +114,9 @@ CREATE TABLE "public"."Organization" (
     "id" UUID NOT NULL,
     "name" TEXT NOT NULL,
     "approved" BOOLEAN NOT NULL DEFAULT false,
+    "contractorTermsSignedAt" TIMESTAMP(3),
+    "classificationReviewedAt" TIMESTAMP(3),
+    "legalContact" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -129,6 +132,8 @@ CREATE TABLE "public"."JurisdictionProfile" (
     "isCurrent" BOOLEAN NOT NULL DEFAULT true,
     "approved" BOOLEAN NOT NULL DEFAULT false,
     "approvedAt" TIMESTAMP(3),
+    "effectiveFrom" TIMESTAMP(3),
+    "approvalExpiresAt" TIMESTAMP(3),
     "rules" JSONB NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
@@ -152,6 +157,11 @@ CREATE TABLE "public"."Job" (
     "headcount" INTEGER,
     "hiringMethod" JSONB,
     "requirements" JSONB,
+    "campaignDisclosure" JSONB,
+    "supportContacts" JSONB,
+    "measureIds" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "cancellationNoticeHours" INTEGER NOT NULL DEFAULT 24,
+    "publishedAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 

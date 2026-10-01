@@ -74,6 +74,12 @@ in order, `prisma/m1-migration.sql`, `prisma/m1-profile-migration.sql`, then
 and batch-count events; existing rows are left alone). The migration stops
 without changing anything if duplicate consent versions already exist.
 
+**Already on M1?** Paste `prisma/m2-migration.sql` once. Every new column is
+nullable or defaulted, so existing rows stay valid. Then, in the app, an
+owner signs the contractor terms and an owner or compliance lead records the
+classification review under **Organization settings** — no job publishes
+until both are on file.
+
 Until steps 1–4 are done, `npm run dev` boots fine and the login/signup pages
 render, but sign-up will fail with a clear "missing environment variable"
 message.
@@ -89,9 +95,14 @@ src/
     dashboard/          # role-gated dashboard skeleton
     profile/            # worker: scorecard, experience, fit summary
     profile/preferences # worker: 6-step political-fit consent flow
-    workers/            # company: worker directory + authorized view
+    workers/            # company: worker directory + authorized view + invite
+    jobs/               # worker feed / org job list, builder, job page
+    org/settings/       # publish-gate records, legal contact, jurisdictions
     api/workers/[workerId]/scorecard  # GET scorecard JSON
-  components/           # ScorecardPanel, ExperienceList/Form, PreferencesFlow, FitSignals
+    api/jobs/…          # jobs, publish, applications, claims, invitations
+    api/engagements/[engagementId]/accept
+  components/           # ScorecardPanel, ExperienceList/Form, PreferencesFlow, FitSignals,
+                        # JobForm, JobCard, SnapshotView, ActionButton
   lib/
     env.ts              # env access with clear missing-var errors
     db.ts               # Prisma client singleton (lazy)
@@ -102,6 +113,10 @@ src/
     political-fit.ts    # preference validation + employer view (never inferred)
     political-fit-data.ts # append-only consent versioning
     access.ts           # who may view a worker
+    jobs.ts             # job validation, publish gate, card answers, exclusions
+    jobs-data.ts        # create / publish (locked, audited) / feed
+    engagements.ts      # apply / invite / claim / accept rules + hiring snapshot
+    engagements-data.ts # engagements under a per-job lock
     supabase/           # browser / server / proxy clients
   proxy.ts              # session refresh (Next.js 16 convention)
 prisma/
@@ -111,6 +126,7 @@ prisma/
   manual-ddl.sql        # full DDL for a fresh database
   m1-migration.sql      # M0 → M1 upgrade for an existing database (run 1st)
   m1-profile-migration.sql # experience fields + consent expiry (run 2nd)
+  m2-migration.sql      # M1 → M2 upgrade (jobs, publish gate, cancellations)
 ```
 
 ## M0 scope (done)
@@ -144,3 +160,39 @@ paused, closeout approved):
 | Signatures per active hour | submitted ÷ verified petition hours | 22 / 3.5 | 6.29 |
 | Acceptance rate | accepted ÷ reviewed | 20 / 22 | 90.9% |
 | Show rate | started accepted shifts ÷ accepted shifts not cancelled | 1 / 1 | 100% |
+
+## M2 scope
+
+Jobs and hiring, built on the M1 profile.
+
+- **Job builder** (owners, recruiters): type, dates, place, pay, headcount,
+  hiring modes, requirements, campaign disclosure (type, affiliation, name,
+  message, public issue positions, ballot-measure IDs), who handles
+  emergencies / disputes / lost materials, and the cancellation-notice window.
+  Saves a draft; drafts stay editable until published.
+- **Publish gate — jurisdiction hard stop.** Publishing re-checks everything
+  under a per-job lock and lists every blocking reason: org not approved,
+  contractor terms unsigned, classification review missing, a jurisdiction
+  profile that is unknown / unapproved / superseded / not yet effective /
+  expired, a pay method its rules don't allow (per-unit needs explicit
+  approval), or missing disclosure / contacts / hiring mode. Both blocked and
+  successful attempts are audited.
+- **Worker feed** (`/jobs`): published jobs, soonest first, with filters. Not
+  ranked. Jobs a worker's own "do not match me" answers exclude are listed
+  separately with the reason; nothing else hides a job.
+- **Job card**: who you work for, what you're paid (gross), what counts as
+  payable, credentials needed, who handles problems — plus the disclosure.
+- **Apply / invite / claim / accept.** Workers apply or claim; orgs invite;
+  orgs accept applications and workers accept invitations. Headcount is
+  enforced under a lock, so simultaneous claims can't overfill a job.
+- **Hiring snapshot.** Each engagement freezes what the org could see at that
+  moment — scorecard summary and authorized fit signals only, with consent
+  version and time. Issue overlap compares the worker's shared answers with
+  the job's disclosed positions; invitations see no fit answers.
+- **Late cancellations.** A worker `SHIFT_CANCELLED` inside the job's notice
+  window counts as a no-show; timely and organization cancellations don't.
+
+API: `GET/POST /api/jobs`, `POST /api/jobs/:id/publish`,
+`GET/POST /api/jobs/:id/applications`, `POST /api/jobs/:id/claims`,
+`POST /api/jobs/:id/invitations` `{ workerId }`,
+`POST /api/engagements/:id/accept`.

@@ -47,6 +47,12 @@ model Profile {
   displayName String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  hiredEngagements   Engagement[]              @relation("HiredBy")
+  chatParticipations ConversationParticipant[]
+  sentMessages       Message[]
+  blocksMade         ProfileBlock[]            @relation("Blocker")
+  blocksReceived     ProfileBlock[]            @relation("Blocked")
 }
 
 // ---------------------------------------------------------------------------
@@ -165,8 +171,9 @@ model Organization {
   contractorTermsSignedAt  DateTime?
   classificationReviewedAt DateTime?
   legalContact             String? // legal-review contact (spec p.11)
-  profiles  Profile[]
-  jobs      Job[]
+  profiles      Profile[]
+  jobs          Job[]
+  conversations Conversation[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -244,7 +251,8 @@ model Job {
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
 
-  engagements Engagement[]
+  engagements      Engagement[]
+  conversationJobs ConversationJob[]
 
   @@index([orgId, status])
 }
@@ -272,10 +280,12 @@ model Engagement {
   // the invitation, or created the job for an instant claim). The worker's
   // direct-message thread for this job is with this person.
   hiredById String? @db.Uuid
+  hiredBy   Profile? @relation("HiredBy", fields: [hiredById], references: [id], onDelete: Restrict)
   createdAt DateTime         @default(now())
   updatedAt DateTime         @updatedAt
 
-  shifts Shift[]
+  shifts       Shift[]
+  conversation Conversation?
 
   @@unique([jobId, workerId])
 }
@@ -458,7 +468,9 @@ model Conversation {
   id            String           @id @default(uuid()) @db.Uuid
   kind          ConversationKind
   orgId         String           @db.Uuid
+  org           Organization     @relation(fields: [orgId], references: [id], onDelete: Restrict)
   engagementId  String?          @unique @db.Uuid // DIRECT: exactly one thread per (worker, job)
+  engagement    Engagement?      @relation(fields: [engagementId], references: [id], onDelete: Restrict)
   name          String? // GROUP: "Denver housing initiative — Team A"
   createdById   String           @db.Uuid // Profile
   lastMessageAt DateTime? // thread-list ordering; only moves forward
@@ -474,8 +486,9 @@ model Conversation {
 /// GROUP ↔ related jobs: a worker may post only while hired on one of them.
 model ConversationJob {
   conversationId String       @db.Uuid
-  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Restrict)
   jobId          String       @db.Uuid
+  job            Job          @relation(fields: [jobId], references: [id], onDelete: Restrict)
 
   @@id([conversationId, jobId])
   @@index([jobId])
@@ -484,8 +497,9 @@ model ConversationJob {
 model ConversationParticipant {
   id             String          @id @default(uuid()) @db.Uuid
   conversationId String          @db.Uuid
-  conversation   Conversation    @relation(fields: [conversationId], references: [id])
+  conversation   Conversation    @relation(fields: [conversationId], references: [id], onDelete: Restrict)
   profileId      String          @db.Uuid
+  profile        Profile         @relation(fields: [profileId], references: [id], onDelete: Restrict)
   role           ParticipantRole
   addedById      String          @db.Uuid
   addedAt        DateTime        @default(now())
@@ -501,8 +515,9 @@ model ConversationParticipant {
 model Message {
   id             String       @id @default(uuid()) @db.Uuid
   conversationId String       @db.Uuid
-  conversation   Conversation @relation(fields: [conversationId], references: [id])
-  senderId       String       @db.Uuid // Profile
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Restrict)
+  senderId       String       @db.Uuid
+  sender         Profile      @relation(fields: [senderId], references: [id], onDelete: Restrict)
   body           String // ≤ 4,000 characters
   attachmentPath String? // private storage key, never a public URL
   attachmentName String?
@@ -511,6 +526,7 @@ model Message {
   createdAt      DateTime     @default(now())
 
   revisions MessageRevision[]
+  reports   MessageReport[]
 
   @@index([conversationId, createdAt])
 }
@@ -519,7 +535,7 @@ model Message {
 model MessageRevision {
   id             String       @id @default(uuid()) @db.Uuid
   messageId      String       @db.Uuid
-  message        Message      @relation(fields: [messageId], references: [id])
+  message        Message      @relation(fields: [messageId], references: [id], onDelete: Restrict)
   conversationId String       @db.Uuid // denormalized for realtime filtering
   kind           RevisionKind
   body           String? // EDIT: the new text; DELETE: null
@@ -533,6 +549,7 @@ model MessageRevision {
 model MessageReport {
   id             String    @id @default(uuid()) @db.Uuid
   messageId      String    @db.Uuid
+  message        Message   @relation(fields: [messageId], references: [id], onDelete: Restrict)
   conversationId String    @db.Uuid
   orgId          String    @db.Uuid
   reporterId     String    @db.Uuid
@@ -542,18 +559,21 @@ model MessageReport {
   resolvedAt     DateTime?
   resolvedById   String?   @db.Uuid
 
+  @@unique([messageId, reporterId]) // one report per person per message
   @@index([orgId, createdAt])
 }
 
 /// A worker blocking an employer/manager. Unblocking sets liftedAt; rows stay.
+/// Messages sent while a block was active stay hidden from the blocker.
 /// One active block per pair (partial unique index in m4-migration.sql).
 model ProfileBlock {
   id        String    @id @default(uuid()) @db.Uuid
   blockerId String    @db.Uuid
+  blocker   Profile   @relation("Blocker", fields: [blockerId], references: [id], onDelete: Restrict)
   blockedId String    @db.Uuid
+  blocked   Profile   @relation("Blocked", fields: [blockedId], references: [id], onDelete: Restrict)
   createdAt DateTime  @default(now())
   liftedAt  DateTime?
 
-  @@index([blockerId])
   @@index([blockedId])
 }

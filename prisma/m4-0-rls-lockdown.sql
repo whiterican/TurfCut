@@ -7,7 +7,9 @@
 -- including PoliticalPreference. Enabling RLS with NO policies denies the
 -- `anon` and `authenticated` roles everything through that API.
 --
--- The app is unaffected: Prisma connects as `postgres`, which bypasses RLS.
+-- The app is unaffected: Prisma connects as `postgres`, which owns these
+-- tables (and on Supabase has BYPASSRLS). Verify once, over DATABASE_URL:
+--   select r.rolbypassrls from pg_roles r where r.rolname = current_user;
 
 BEGIN;
 ALTER TABLE "public"."Profile"             ENABLE ROW LEVEL SECURITY;
@@ -24,4 +26,22 @@ ALTER TABLE "public"."Validation"          ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."ProfileMetric"       ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."Payout"              ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."AuditEvent"          ENABLE ROW LEVEL SECURITY;
+
+-- Defense in depth: take back the table privileges Supabase grants the API
+-- roles by default, now and for tables created later — so a future table
+-- that forgets RLS still isn't exposed. (Tables the app intends to expose
+-- to clients, like Message for Realtime, are granted explicitly.)
+REVOKE ALL ON ALL TABLES IN SCHEMA "public" FROM anon, authenticated;
+REVOKE ALL ON ALL SEQUENCES IN SCHEMA "public" FROM anon, authenticated;
+ALTER DEFAULT PRIVILEGES IN SCHEMA "public" REVOKE ALL ON TABLES FROM anon, authenticated;
+ALTER DEFAULT PRIVILEGES IN SCHEMA "public" REVOKE ALL ON SEQUENCES FROM anon, authenticated;
+ALTER DEFAULT PRIVILEGES IN SCHEMA "public" REVOKE EXECUTE ON FUNCTIONS FROM anon, authenticated, PUBLIC;
+-- Re-running this after m4-migration.sql must not cut off chat Realtime:
+-- restore the one deliberate client grant (still filtered by RLS policies).
+DO $$
+BEGIN
+  IF to_regclass('"public"."Message"') IS NOT NULL THEN
+    GRANT SELECT ON "public"."Message", "public"."MessageRevision" TO authenticated;
+  END IF;
+END $$;
 COMMIT;

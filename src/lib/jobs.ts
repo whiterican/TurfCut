@@ -105,7 +105,7 @@ export interface JobInput {
 
 const values = (xs: readonly { value: string }[]) => xs.map((x) => x.value) as readonly string[];
 const ISSUE_KEYS = ISSUES.map((i) => i.key) as readonly string[];
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+export const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function text(raw: Record<string, unknown>, k: string): string {
   const v = raw[k];

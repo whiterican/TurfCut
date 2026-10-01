@@ -1,0 +1,35 @@
+import type { HiringSnapshot } from "@/lib/engagements";
+import { FitSignals } from "@/components/FitSignals";
+import { Row } from "@/components/Row";
+
+const pct = (m: { value: number | null; numerator: number; denominator: number }) =>
+  m.value === null ? "No data yet" : `${Math.round(m.value * 100)}% (${m.numerator} of ${m.denominator})`;
+
+/**
+ * What the organization could see when this hiring decision was made —
+ * frozen, never recomputed. Fit shows authorized signals only.
+ */
+export function SnapshotView({ snapshot }: { snapshot: HiringSnapshot }) {
+  const s = snapshot.scorecard;
+  return (
+    <div className="space-y-3">
+      <p className="text-hint">
+        Frozen {snapshot.capturedAt.slice(0, 16).replace("T", " ")} UTC
+        {snapshot.consentVersion !== null ? ` · consent version ${snapshot.consentVersion}` : " · no fit answers on file"}
+      </p>
+      <dl className="list-card">
+        <Row label="Show rate">{pct(s.showRate)}</Row>
+        {s.segments.length === 0 ? (
+          <Row label="Verified work">No verified shifts yet</Row>
+        ) : (
+          s.segments.map((seg) => (
+            <Row key={seg.workType} label={seg.workType === "PETITION" ? "Petitioning" : "Canvassing"}>
+              {seg.shiftsCount} verified shift(s) · {seg.activeHours.toFixed(1)} active hours
+            </Row>
+          ))
+        )}
+      </dl>
+      <FitSignals view={snapshot.fit} />
+    </div>
+  );
+}

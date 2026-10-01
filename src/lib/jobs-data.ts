@@ -4,6 +4,7 @@ import {
   exclusionReasons,
   publishBlockers,
   readDisclosure,
+  UUID_RE,
   type FeedFilters,
   type JobInput,
 } from "@/lib/jobs";
@@ -46,6 +47,7 @@ export async function createJob(orgId: string, actorId: string, input: JobInput)
 
 /** Edits a job while it is still a draft. Returns false if it isn't. */
 export async function updateDraftJob(jobId: string, orgId: string, actorId: string, input: JobInput) {
+  if (!UUID_RE.test(jobId)) return false;
   return db().$transaction(async (tx) => {
     const { count } = await tx.job.updateMany({ where: { id: jobId, orgId, status: "DRAFT" }, data: jobData(input) });
     if (count === 0) return false;
@@ -64,6 +66,7 @@ export async function publishJob(
   actorId: string,
   now: Date = new Date()
 ): Promise<{ ok: true } | { ok: false; reasons: string[] }> {
+  if (!UUID_RE.test(jobId)) return { ok: false, reasons: ["Job not found."] };
   return db().$transaction(async (tx) => {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`job:${jobId}`}))`;
     const job = await tx.job.findFirst({ where: { id: jobId, orgId }, include: { jurisdiction: true, org: true } });

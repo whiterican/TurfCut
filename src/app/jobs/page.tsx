@@ -1,0 +1,184 @@
+import Link from "next/link";
+import { db } from "@/lib/db";
+import { requireAuth } from "@/lib/auth";
+import { HIRING_ROLES, ORG_ROLES } from "@/lib/access";
+import { ENGAGEMENT_LABELS, JOB_STATUS_LABELS } from "@/lib/engagement-labels";
+import { JOB_TYPES, parseFeedFilters, payText } from "@/lib/jobs";
+import { loadFeed } from "@/lib/jobs-data";
+
+const day = (d: Date | null) => (d ? d.toISOString().slice(0, 10) : "—");
+
+type Search = Promise<Record<string, string | string[] | undefined>>;
+
+export default async function JobsPage({ searchParams }: { searchParams: Search }) {
+  const session = await requireAuth();
+  if (session.role === "WORKER" && session.workerId) return <WorkerFeed workerId={session.workerId} searchParams={searchParams} />;
+  if (ORG_ROLES.includes(session.role) && session.orgId) return <OrgJobs orgId={session.orgId} canHire={HIRING_ROLES.includes(session.role)} />;
+  return (
+    <main className="page max-w-2xl">
+      <div className="empty-state">
+        <p className="empty-state-title">No jobs for this account</p>
+        <p className="empty-state-body">This login isn&apos;t linked to a worker profile or an organization.</p>
+      </div>
+    </main>
+  );
+}
+
+async function WorkerFeed({ workerId, searchParams }: { workerId: string; searchParams: Search }) {
+  const raw = await searchParams;
+  const params = new URLSearchParams(Object.entries(raw).flatMap(([k, v]) => (typeof v === "string" ? [[k, v]] : [])));
+  const filters = parseFeedFilters(params);
+  const [{ jobs, hidden }, mine] = await Promise.all([
+    loadFeed(workerId, filters),
+    db().engagement.findMany({
+      where: { workerId },
+      include: { job: { select: { id: true, title: true, startsAt: true } } },
+      orderBy: { createdAt: "desc" },
+    }),
+  ]);
+  const engagedIds = new Set(mine.map((e) => e.jobId));
+  const open = jobs.filter((j) => !engagedIds.has(j.id));
+
+  return (
+    <main className="page">
+      <header className="page-header">
+        <div className="space-y-1">
+          <h1 className="page-title">Find work</h1>
+          <p className="text-muted-sm">Open jobs, soonest first. Not ranked — matching explanations arrive with M3.</p>
+        </div>
+        <Link href="/dashboard" className="btn-ghost">← Dashboard</Link>
+      </header>
+
+      {mine.length > 0 && (
+        <section className="section">
+          <h2 className="section-title">Your jobs</h2>
+          <ul className="list-card">
+            {mine.map((e) => {
+              const s = ENGAGEMENT_LABELS[e.status];
+              return (
+                <li key={e.id}>
+                  <Link href={`/jobs/${e.job.id}`} className="flex min-h-14 items-center justify-between gap-3 px-4 py-3 text-fg transition hover:bg-surface-2">
+                    <span className="font-medium">{e.job.title}</span>
+                    <span className={s.badge}>{s.label}</span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
+
+      <section className="section">
+        <h2 className="section-title">Open jobs</h2>
+        <form className="card grid gap-3 sm:grid-cols-4 sm:items-end">
+          <label className="space-y-1.5">
+            <span className="label">Type</span>
+            <select name="type" className="field" defaultValue={filters.type ?? ""}>
+              <option value="">Any</option>
+              {JOB_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+            </select>
+          </label>
+          <label className="space-y-1.5">
+            <span className="label">Minimum rate ($)</span>
+            <input name="minRate" inputMode="decimal" className="field" defaultValue={filters.minRateCents ? (filters.minRateCents / 100).toString() : ""} />
+          </label>
+          <label className="space-y-1.5">
+            <span className="label">Starts by</span>
+            <input type="date" name="startsBefore" className="field" defaultValue={filters.startsBefore?.toISOString().slice(0, 10) ?? ""} />
+          </label>
+          <div className="flex flex-wrap items-center gap-3">
+            <label className="chip">
+              <input type="checkbox" name="noCredentials" value="1" defaultChecked={filters.noCredentials} className="sr-only" />
+              No credentials needed
+            </label>
+            <button className="btn-secondary">Filter</button>
+          </div>
+        </form>
+
+        {open.length === 0 ? (
+          <div className="empty-state">
+            <p className="empty-state-title">No open jobs match</p>
+            <p className="empty-state-body">Try fewer filters, or check back soon.</p>
+          </div>
+        ) : (
+          <ul className="list-card">
+            {open.map((j) => (
+              <li key={j.id}>
+                <Link href={`/jobs/${j.id}`} className="flex min-h-16 flex-col gap-1 px-4 py-3 text-fg transition hover:bg-surface-2 sm:flex-row sm:items-center sm:justify-between">
+                  <span className="space-y-0.5">
+                    <span className="block font-medium">{j.title}</span>
+                    <span className="text-muted-sm block">{j.org.name} · starts {day(j.startsAt)}</span>
+                  </span>
+                  <span className="text-sm tabular-nums">{payText(j.compensationMethod, j.payRateCents)}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {hidden.length > 0 && (
+        <section className="section">
+          <h2 className="section-title">Hidden by your preferences</h2>
+          <p className="text-muted-sm">
+            Only your own &ldquo;do not match me&rdquo; answers hide jobs.{" "}
+            <Link href="/profile/preferences" className="link">Change them</Link>
+          </p>
+          <ul className="list-card">
+            {hidden.map((h) => (
+              <li key={h.id} className="space-y-0.5 px-4 py-3 text-sm">
+                <p className="font-medium text-fg">{h.title}</p>
+                {h.reasons.map((r) => <p key={r} className="text-muted">{r}</p>)}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </main>
+  );
+}
+
+async function OrgJobs({ orgId, canHire }: { orgId: string; canHire: boolean }) {
+  const jobs = await db().job.findMany({
+    where: { orgId },
+    include: { _count: { select: { engagements: true } } },
+    orderBy: [{ createdAt: "desc" }],
+  });
+  return (
+    <main className="page max-w-3xl">
+      <header className="page-header">
+        <div className="space-y-1">
+          <h1 className="page-title">Jobs</h1>
+          <p className="text-muted-sm">Your organization&apos;s jobs, newest first.</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Link href="/dashboard" className="btn-ghost">← Dashboard</Link>
+          {canHire && <Link href="/jobs/new" className="btn-primary">New job</Link>}
+        </div>
+      </header>
+      {jobs.length === 0 ? (
+        <div className="empty-state">
+          <p className="empty-state-title">No jobs yet</p>
+          <p className="empty-state-body">{canHire ? "Create a draft, then publish once every check passes." : "Owners and recruiters create jobs."}</p>
+        </div>
+      ) : (
+        <ul className="list-card">
+          {jobs.map((j) => {
+            const s = JOB_STATUS_LABELS[j.status];
+            return (
+              <li key={j.id}>
+                <Link href={`/jobs/${j.id}`} className="flex min-h-14 items-center justify-between gap-3 px-4 py-3 text-fg transition hover:bg-surface-2">
+                  <span className="space-y-0.5">
+                    <span className="block font-medium">{j.title}</span>
+                    <span className="text-muted-sm block">Starts {day(j.startsAt)} · {j._count.engagements} worker(s) engaged</span>
+                  </span>
+                  <span className={s.badge}>{s.label}</span>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </main>
+  );
+}

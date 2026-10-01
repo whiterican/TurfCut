@@ -7,7 +7,7 @@ import {
   type EngagementAction,
   type HiringSnapshot,
 } from "@/lib/engagements";
-import { exclusionReasons, readDisclosure, readHiringModes } from "@/lib/jobs";
+import { exclusionReasons, readDisclosure, readHiringModes, UUID_RE } from "@/lib/jobs";
 import { effectivePreference, employerFitView } from "@/lib/political-fit";
 import { loadLatestPreference, orgHasRelationship } from "@/lib/political-fit-data";
 import { loadScorecard } from "@/lib/scorecard-data";
@@ -47,6 +47,7 @@ async function open(
   workerId: string,
   now: Date
 ): Promise<Result> {
+  if (!UUID_RE.test(jobId) || !UUID_RE.test(workerId)) return { ok: false, reason: "Job not found." };
   const job = await db().job.findUnique({ where: { id: jobId }, include: { org: { select: { name: true } } } });
   if (!job) return { ok: false, reason: "Job not found." };
   if (actor.kind === "org" && actor.orgId !== job.orgId) return { ok: false, reason: "This job belongs to another organization." };
@@ -105,6 +106,7 @@ export async function acceptEngagement(
   engagementId: string,
   actor: { kind: "worker"; profileId: string; workerId: string } | { kind: "org"; profileId: string; orgId: string }
 ): Promise<Result> {
+  if (!UUID_RE.test(engagementId)) return { ok: false, reason: "Engagement not found." };
   const e = await db().engagement.findUnique({ where: { id: engagementId }, include: { job: true } });
   if (!e) return { ok: false, reason: "Engagement not found." };
   if (actor.kind === "worker" && e.workerId !== actor.workerId) return { ok: false, reason: "This isn't your invitation." };

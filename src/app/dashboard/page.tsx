@@ -34,7 +34,8 @@ export default async function DashboardPage() {
     redirect("/login");
   }
 
-  const hasLinks = session.role === "WORKER" || session.role === "OWNER" || session.role === "RECRUITER";
+  const hasLinks = session.role === "WORKER" || !!session.orgId;
+  const canHire = session.role === "OWNER" || session.role === "RECRUITER";
 
   return (
     <main className="page">
@@ -57,6 +58,7 @@ export default async function DashboardPage() {
         <div className="grid gap-3 sm:grid-cols-2">
           {session.role === "WORKER" && (
             <>
+              <NavCard href="/jobs" title="Find work" body="Open jobs, with pay, credentials and who to call — up front." />
               <NavCard href="/profile" title="My profile" body="Your scorecard, experience and political-fit status." />
               <NavCard
                 href="/profile/preferences"
@@ -65,8 +67,14 @@ export default async function DashboardPage() {
               />
             </>
           )}
-          {(session.role === "OWNER" || session.role === "RECRUITER") && (
+          {session.role !== "WORKER" && session.orgId && (
+            <NavCard href="/jobs" title="Jobs" body={canHire ? "Build, publish and staff your jobs." : "Your organization's jobs."} />
+          )}
+          {canHire && (
             <NavCard href="/workers" title="Browse workers" body="Verified scorecards and experience, listed alphabetically." />
+          )}
+          {session.role !== "WORKER" && session.orgId && (
+            <NavCard href="/org/settings" title="Organization settings" body="Publishing checks, legal contact and jurisdiction rules." />
           )}
         </div>
       ) : (
@@ -79,7 +87,7 @@ export default async function DashboardPage() {
       <footer className="space-y-1">
         {session.orgId && <p className="text-hint">Org ID: {session.orgId}</p>}
         <p className="text-hint">
-          M1: worker profiles, scorecards and political-fit consent. Jobs and matching land in M2–M3.
+          M2: jobs, the publish gate, applications, invitations and claims. Matching lands in M3.
         </p>
       </footer>
     </main>

@@ -84,7 +84,7 @@ export async function unblock(conversationId: string, profileId: string): Promis
 export async function startDirect(fd: FormData): Promise<void> {
   const r = await chat.ensureDirect(await me(), str(fd.get("engagementId")));
   // A fixed code, never free text in the URL (no message injection via links).
-  if (!r.ok) redirect(`/messages?error=${/hire is confirmed/.test(r.reason) ? "not_hired" : /No one at this organization/.test(r.reason) ? "no_contact" : "not_found"}`);
+  if (!r.ok) redirect(`/messages?error=${r.code}`);
   redirect(`/messages/${r.conversationId}`);
 }
 

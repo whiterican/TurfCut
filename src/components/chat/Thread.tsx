@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
+import { useSubmit } from "@/components/chat/useSubmit";
 import { edit, remove, report, send } from "@/app/messages/actions";
 import type { ActionState } from "@/app/jobs/actions";
 import { MAX_ATTACHMENT_BYTES, MAX_BODY, PETITION_NOTICE } from "@/lib/chat";
@@ -21,7 +22,6 @@ export interface ClientMessage {
   canDelete: boolean;
 }
 
-const initial: ActionState = { ok: false, message: "" };
 const IMAGE_FILE = /\.(jpe?g|png|gif|webp|heic|heif|avif|bmp|tiff?|svg)$/i;
 const kb = (n: number) => (n < 1024 * 1024 ? `${Math.max(1, Math.round(n / 1024))} KB` : `${(n / 1024 / 1024).toFixed(1)} MB`);
 
@@ -31,8 +31,14 @@ function MessageActions({ m, conversationId }: { m: ClientMessage; conversationI
   const [reason, setReason] = useState("");
   const [msg, setMsg] = useState<ActionState | null>(null);
   const [pending, start] = useTransition();
+  const toggle = useRef<HTMLButtonElement>(null);
   const canReport = !m.mine && !m.deleted;
   if (!m.canEdit && !m.canDelete && !canReport) return null;
+  // Closing returns focus to the ··· button it came from.
+  const close = () => {
+    setMode(null);
+    requestAnimationFrame(() => toggle.current?.focus());
+  };
 
   const run = (p: Promise<ActionState>, after?: () => void) =>
     start(async () => {
@@ -45,11 +51,12 @@ function MessageActions({ m, conversationId }: { m: ClientMessage; conversationI
     <div className={`flex flex-col gap-1 ${m.mine ? "items-end" : "items-start"}`}>
       {mode === null && (
         <button
+          ref={toggle}
           type="button"
           className="-mt-1 rounded px-1.5 text-sm font-bold leading-none text-subtle hover:text-fg"
           onClick={() => { setMsg(null); setMode("menu"); }}
           aria-label="Message options"
-          aria-expanded={false}
+          aria-haspopup="true"
         >
           ···
         </button>
@@ -59,31 +66,31 @@ function MessageActions({ m, conversationId }: { m: ClientMessage; conversationI
           {m.canEdit && <button type="button" className="btn-ghost btn-sm" autoFocus onClick={() => setMode("edit")}>Edit</button>}
           {m.canDelete && (
             <button type="button" className="btn-ghost btn-sm" disabled={pending}
-              onClick={() => confirm("Delete this message? Everyone will see “Message deleted”.") && run(remove(conversationId, m.id), () => setMode(null))}>
+              onClick={() => confirm("Delete this message? Everyone will see “Message deleted”.") && run(remove(conversationId, m.id), close)}>
               Delete
             </button>
           )}
           {canReport && <button type="button" className="btn-ghost btn-sm" autoFocus={!m.canEdit} onClick={() => setMode("report")}>Report</button>}
-          <button type="button" className="btn-ghost btn-sm" onClick={() => setMode(null)}>Close</button>
+          <button type="button" className="btn-ghost btn-sm" onClick={close}>Close</button>
         </div>
       )}
       {mode === "edit" && (
-        <form className="w-full max-w-md space-y-2" onSubmit={(e) => { e.preventDefault(); run(edit(conversationId, m.id, text), () => setMode(null)); }}>
+        <form className="w-full max-w-md space-y-2" onSubmit={(e) => { e.preventDefault(); run(edit(conversationId, m.id, text), close); }}>
           <label className="sr-only" htmlFor={`edit-${m.id}`}>Edit message</label>
           <textarea id={`edit-${m.id}`} autoFocus className="field" rows={3} maxLength={MAX_BODY} value={text} onChange={(e) => setText(e.target.value)} />
           <div className="flex justify-end gap-2">
-            <button type="button" className="btn-ghost btn-sm" onClick={() => setMode(null)}>Cancel</button>
+            <button type="button" className="btn-ghost btn-sm" onClick={close}>Cancel</button>
             <button className="btn-primary btn-sm" disabled={pending}>{pending ? "Saving…" : "Save edit"}</button>
           </div>
         </form>
       )}
       {mode === "report" && (
-        <form className="w-full max-w-md space-y-2" onSubmit={(e) => { e.preventDefault(); run(report(m.id, reason), () => setMode(null)); }}>
+        <form className="w-full max-w-md space-y-2" onSubmit={(e) => { e.preventDefault(); run(report(m.id, reason), close); }}>
           <label className="label text-xs" htmlFor={`report-${m.id}`}>What&apos;s wrong with this message?</label>
           <input id={`report-${m.id}`} autoFocus className="field" maxLength={500} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="e.g. harassment, pressure about politics" required />
           <p className="text-hint">The organization&apos;s owner reviews reports. The sender isn&apos;t told who reported it.</p>
           <div className="flex justify-end gap-2">
-            <button type="button" className="btn-ghost btn-sm" onClick={() => setMode(null)}>Cancel</button>
+            <button type="button" className="btn-ghost btn-sm" onClick={close}>Cancel</button>
             <button className="btn-secondary btn-sm" disabled={pending}>{pending ? "Sending…" : "Report"}</button>
           </div>
         </form>
@@ -106,16 +113,25 @@ export function MessageList({
   hasOlder: boolean;
   canPost: boolean;
 }) {
-  const last = messages.at(-1)?.id;
+  const last = messages.at(-1);
   const first = useRef(true);
+  const atBottom = useRef(true);
+  // Where the reader is, measured before new messages render.
   useEffect(() => {
     const root = document.scrollingElement ?? document.documentElement;
-    const nearBottom = root.scrollHeight - root.scrollTop - root.clientHeight < 240;
-    // Open at the newest message (composer in view); later, follow new
-    // messages only if the reader is already at the bottom.
-    if (first.current || nearBottom) root.scrollTo({ top: root.scrollHeight });
+    const onScroll = () => {
+      atBottom.current = root.scrollHeight - root.scrollTop - root.clientHeight < 240;
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+  useEffect(() => {
+    const root = document.scrollingElement ?? document.documentElement;
+    // Open at the newest message (composer in view); afterwards follow new
+    // messages if the reader was at the bottom, or if they sent it.
+    if (first.current || atBottom.current || last?.mine) root.scrollTo({ top: root.scrollHeight });
     first.current = false;
-  }, [last]);
+  }, [last?.id, last?.mine]);
 
   if (messages.length === 0) {
     return (
@@ -171,26 +187,15 @@ export function Composer({ conversationId, manager }: { conversationId: string; 
   const fileInput = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
-  // Controlled, so a failed send never loses the draft (React resets
-  // uncontrolled fields after every form action, success or not).
   const [body, setBody] = useState("");
   const typing = body.trim().length > 0;
-  const [state, action, pending] = useActionState(async (prev: ActionState, fd: FormData) => {
-    const r = await send(prev, fd);
-    if (r.ok) {
-      setBody("");
-      setFile(null);
-    } else {
-      // React clears the file input after every action: put the file back.
-      const sent = fd.get("file");
-      if (sent instanceof File && sent.size > 0 && fileInput.current) {
-        const dt = new DataTransfer();
-        dt.items.add(sent);
-        fileInput.current.files = dt.files;
-      }
-    }
-    return r;
-  }, initial);
+  // A failed send keeps the text and the file (no auto-reset); success clears both.
+  const { state, pending, onSubmit } = useSubmit(send, (r, f) => {
+    if (!r.ok) return;
+    f.reset();
+    setBody("");
+    setFile(null);
+  });
 
   function pick(f: File | undefined) {
     setFileError(null);
@@ -208,7 +213,7 @@ export function Composer({ conversationId, manager }: { conversationId: string; 
   }
 
   return (
-    <form ref={form} action={action} className="card space-y-3" aria-label="Send a message">
+    <form ref={form} onSubmit={onSubmit} className="card space-y-3" aria-label="Send a message">
       <input type="hidden" name="conversationId" value={conversationId} />
       {/* One tap for the common field updates; hidden once you start typing so a draft is never replaced. */}
       {!typing && !file && (

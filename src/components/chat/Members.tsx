@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
+import { useSubmit } from "@/components/chat/useSubmit";
 import { addMembers, block, removeMember, unblock } from "@/app/messages/actions";
 import type { ActionState } from "@/app/jobs/actions";
 import { Avatar } from "@/components/chat/Avatar";
@@ -20,7 +21,6 @@ export interface ClientCandidate {
   detail: string;
 }
 
-const initial: ActionState = { ok: false, message: "" };
 
 /** Block / unblock a manager (workers only). Blocking hides their new messages and stops their direct messages. */
 export function BlockButton({ conversationId, member }: { conversationId: string; member: ClientMember }) {
@@ -78,11 +78,7 @@ export function Members({
   // Controlled selection: React resets the form after every action, and a
   // failed add shouldn't lose the picks.
   const [picked, setPicked] = useState<Set<string>>(new Set());
-  const [state, action, pending] = useActionState(async (prev: ActionState, fd: FormData) => {
-    const r = await addMembers(prev, fd);
-    if (r.ok) setPicked(new Set());
-    return r;
-  }, initial);
+  const { state, pending, onSubmit } = useSubmit(addMembers, (r) => r.ok && setPicked(new Set()));
   const active = members.filter((m) => !m.removed);
   const removed = members.filter((m) => m.removed);
   const addable = candidates.filter((c) => !active.some((m) => m.profileId === c.profileId));
@@ -112,7 +108,7 @@ export function Members({
         {removed.map(row)}
       </ul>
       {canManage && (
-        <form action={action} className="space-y-3 border-t border-border p-4">
+        <form onSubmit={onSubmit} className="space-y-3 border-t border-border p-4">
           <input type="hidden" name="conversationId" value={conversationId} />
           <p className="label">Add people</p>
           {addable.length === 0 ? (

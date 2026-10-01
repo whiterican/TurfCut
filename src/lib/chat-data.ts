@@ -438,7 +438,17 @@ export async function defaultBoss(c: Client, jobId: string, orgId: string): Prom
 }
 
 /** The direct thread for a hire, created on first use. Only the worker and the person who hired them. */
-export async function ensureDirect(me: ChatUser, engagementId: string): Promise<{ ok: true; conversationId: string } | Fail> {
+export type DirectFailCode = "not_found" | "not_hired" | "no_contact";
+export async function ensureDirect(me: ChatUser, engagementId: string): Promise<{ ok: true; conversationId: string } | (Fail & { code: DirectFailCode })> {
+  const r = await ensureDirectInner(me, engagementId);
+  if (r.ok) return r;
+  const code: DirectFailCode = r === NOT_HIRED ? "not_hired" : r === NO_CONTACT ? "no_contact" : "not_found";
+  return { ...r, code };
+}
+const NOT_HIRED = fail("Messages unlock once the hire is confirmed.");
+const NO_CONTACT = fail("No one at this organization can be messaged yet.");
+
+async function ensureDirectInner(me: ChatUser, engagementId: string): Promise<{ ok: true; conversationId: string } | Fail> {
   if (!UUID_RE.test(engagementId)) return NOT_FOUND;
   return db().$transaction(async (tx) => {
     await lock(tx, `conv:engagement:${engagementId}`);
@@ -450,7 +460,7 @@ export async function ensureDirect(me: ChatUser, engagementId: string): Promise<
     const isWorker = e.worker.profileId === me.userId;
     const isBoss = e.hiredById === me.userId && me.orgId === e.job.orgId && CHAT_STAFF_ROLES.includes(me.role);
     if (!isWorker && !isBoss) return NOT_FOUND;
-    if (!e.conversation && !isHired(e.status)) return fail("Messages unlock once the hire is confirmed.");
+    if (!e.conversation && !isHired(e.status)) return NOT_HIRED;
 
     // The contact must still run this org's teams; otherwise fall back.
     const boss = e.hiredById ? await tx.profile.findUnique({ where: { id: e.hiredById }, select: { id: true, orgId: true, role: true } }) : null;
@@ -483,7 +493,7 @@ export async function ensureDirect(me: ChatUser, engagementId: string): Promise<
     }
 
     const bossId = stillStaff ? boss.id : await defaultBoss(tx, e.jobId, e.job.orgId);
-    if (!bossId || bossId === e.worker.profileId) return fail("No one at this organization can be messaged yet.");
+    if (!bossId || bossId === e.worker.profileId) return NO_CONTACT;
     if (bossId !== e.hiredById) await tx.engagement.update({ where: { id: e.id }, data: { hiredById: bossId } });
     const at = await dbNow(tx);
     const conv = await tx.conversation.create({

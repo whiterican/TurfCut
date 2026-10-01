@@ -1,14 +1,14 @@
 "use client";
 
-import { useActionState, useRef, useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
+import { useSubmit } from "@/components/chat/useSubmit";
 import { candidates as loadCandidates, createTeamChat } from "@/app/messages/actions";
-import type { ActionState } from "@/app/jobs/actions";
 import type { ClientCandidate } from "@/components/chat/Members";
 
-const initial: ActionState = { ok: false, message: "" };
 
 export function NewTeamChatForm({ jobs }: { jobs: { id: string; title: string; hired: number; status: string }[] }) {
-  const [state, action, pending] = useActionState(createTeamChat, initial);
+  // onSubmit (not <form action>), so a failed create keeps every field.
+  const { state, pending, onSubmit } = useSubmit(createTeamChat);
   const [jobIds, setJobIds] = useState<string[]>([]);
   const [people, setPeople] = useState<ClientCandidate[] | null>(null);
   const [loading, start] = useTransition();
@@ -18,6 +18,7 @@ export function NewTeamChatForm({ jobs }: { jobs: { id: string; title: string; h
   const [name, setName] = useState("");
   const [chosen, setChosen] = useState<Set<string>>(new Set());
   const request = useRef(0);
+  const shown = useRef<ClientCandidate[] | null>(null);
 
   function toggleJob(id: string, on: boolean) {
     const next = on ? [...jobIds, id] : jobIds.filter((j) => j !== id);
@@ -29,9 +30,12 @@ export function NewTeamChatForm({ jobs }: { jobs: { id: string; title: string; h
       try {
         const list = await loadCandidates(next);
         if (mine !== request.current) return; // a newer selection already loaded
+        // Keep choices that are still eligible; people newly shown start
+        // ticked if they're workers. An un-ticked worker stays un-ticked.
+        const seen = new Set((shown.current ?? []).map((p) => p.profileId));
+        shown.current = list;
+        setChosen((prev) => new Set(list.filter((p) => (seen.has(p.profileId) ? prev.has(p.profileId) : p.role === "WORKER")).map((p) => p.profileId)));
         setPeople(list);
-        // Workers start ticked; keep any choices still eligible.
-        setChosen((prev) => new Set(list.filter((p) => prev.has(p.profileId) || p.role === "WORKER").map((p) => p.profileId)));
       } catch {
         if (mine === request.current) setLoadError(true);
       }
@@ -56,7 +60,7 @@ export function NewTeamChatForm({ jobs }: { jobs: { id: string; title: string; h
   );
 
   return (
-    <form action={action} className="space-y-6">
+    <form onSubmit={onSubmit} className="space-y-6">
       <div className="space-y-2">
         <label className="label" htmlFor="name">Name</label>
         <input id="name" name="name" className="field" maxLength={80} required value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Denver housing initiative — Team A" />

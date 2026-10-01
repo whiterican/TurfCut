@@ -130,7 +130,7 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
 
   return (
     <main className="page max-w-2xl">
-      <header className="page-header">
+      <header className="flex items-start justify-between gap-3">
         <div className="space-y-1.5">
           <p className="eyebrow">{eyebrow}</p>
           <h1 className="page-title">{isWorker ? "Field day" : s.engagement.worker.displayName}</h1>
@@ -138,7 +138,7 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
             <Link href={`/jobs/${s.engagement.job.id}`} className="link">{s.engagement.job.title}</Link> · {s.engagement.job.org.name}
           </p>
         </div>
-        {live && <span className={st.paused ? "badge-butter" : "badge-mint"}>{st.paused ? "On break" : "On shift"}</span>}
+        {live && <span className={`${st.paused ? "badge-butter" : "badge-mint"} mt-5 shrink-0`}>{st.paused ? "On break" : "On shift"}</span>}
       </header>
 
       {!started && workerActions}

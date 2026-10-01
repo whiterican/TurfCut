@@ -419,11 +419,70 @@ export function payText(method: CompensationMethod, cents: number | null): strin
  * label nearby.
  */
 export function payShort(method: CompensationMethod, cents: number | null, type: JobType = "PETITION"): string {
-  if (!cents) return "Rate not set";
-  const d = `$${(cents / 100).toLocaleString("en-US", { minimumFractionDigits: cents % 100 === 0 ? 0 : 2, maximumFractionDigits: 2 })}`;
-  if (method === "HOURLY") return `${d}/hr`;
-  if (method === "SHIFT_RATE") return `${d}/completed shift`;
-  return `${d}/accepted ${type === "PETITION" ? "signature" : "contact"}`;
+  const p = payParts(method, cents, type);
+  return p ? `${p.amount}/${p.short}` : "Rate not set";
+}
+
+/** Pay split for big displays: "$28" + "hour" (short "hr"), "$1.50" + "accepted signature". */
+export function payParts(method: CompensationMethod, cents: number | null, type: JobType = "PETITION"): { amount: string; unit: string; short: string } | null {
+  if (!cents) return null;
+  const amount = `$${(cents / 100).toLocaleString("en-US", { minimumFractionDigits: cents % 100 === 0 ? 0 : 2, maximumFractionDigits: 2 })}`;
+  if (method === "HOURLY") return { amount, unit: "hour", short: "hr" };
+  if (method === "SHIFT_RATE") return { amount, unit: "completed shift", short: "completed shift" };
+  const unit = `accepted ${type === "PETITION" ? "signature" : "contact"}`;
+  return { amount, unit, short: unit };
+}
+
+export interface FitReason {
+  /** "yes" = a check; "info" = worth knowing, not a mark against you. */
+  kind: "yes" | "info";
+  title: string;
+  detail: string;
+}
+
+/**
+ * Why a job fits — shown to the worker only, built from their own verified
+ * record and the job's published rules. Never a score or a percentage, and
+ * nothing here reads political-fit answers beyond the worker's own
+ * "do not match me" boundaries (which already passed, or the job would be
+ * hidden).
+ */
+export function fitReasons(f: {
+  type: JobType;
+  state: string;
+  verifiedShiftsOfType: number;
+  statesWorked: string[];
+  credentials: string[];
+  noExtraCredentials: boolean;
+  spotsLeft: number | null;
+  hasBoundaries: boolean;
+}): FitReason[] {
+  const work = f.type === "PETITION" ? "Petition" : "Canvass";
+  const out: FitReason[] = [];
+  out.push(
+    f.verifiedShiftsOfType > 0
+      ? { kind: "yes", title: `${work} experience`, detail: `${f.verifiedShiftsOfType} verified ${f.verifiedShiftsOfType === 1 ? "shift" : "shifts"} on your scorecard` }
+      : { kind: "info", title: `New to ${work.toLowerCase()} work`, detail: "Onboarding covers the basics — your first verified shift starts your record" }
+  );
+  out.push(
+    f.statesWorked.includes(f.state)
+      ? { kind: "yes", title: `Worked in ${f.state} before`, detail: "You know this jurisdiction's rules" }
+      : { kind: "info", title: `First job in ${f.state}`, detail: "Check the credentials below before you start" }
+  );
+  out.push(
+    f.noExtraCredentials
+      ? { kind: "yes", title: "No extra credentials", detail: "Nothing beyond the job's onboarding" }
+      : { kind: "info", title: "Credentials needed", detail: f.credentials.join(" · ") }
+  );
+  if (f.spotsLeft !== null) {
+    out.push(
+      f.spotsLeft > 0
+        ? { kind: "yes", title: `${f.spotsLeft} ${f.spotsLeft === 1 ? "spot" : "spots"} open`, detail: "Apply or claim while there's room" }
+        : { kind: "info", title: "Every spot is filled", detail: "Check back — spots open when plans change" }
+    );
+  }
+  if (f.hasBoundaries) out.push({ kind: "yes", title: "Within your boundaries", detail: "None of your “do not match me” answers apply" });
+  return out;
 }
 
 export function jobCardAnswers(job: {

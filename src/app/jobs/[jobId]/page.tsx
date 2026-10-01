@@ -5,7 +5,9 @@ import { requireAuth } from "@/lib/auth";
 import { HIRING_ROLES, ORG_ROLES, SCHEDULING_ROLES } from "@/lib/access";
 import { ACCEPTED_STATUSES, type EngagementStatus, type HiringSnapshot } from "@/lib/engagements";
 import { ENGAGEMENT_LABELS, JOB_STATUS_LABELS } from "@/lib/engagement-labels";
-import { UUID_RE, exclusionReasons, payText, jurisdictionLabel, publishBlockers, readDisclosure, readHiringModes } from "@/lib/jobs";
+import { UUID_RE, exclusionReasons, fitReasons, jobCardAnswers, jurisdictionLabel, payParts, publishBlockers, readDisclosure, readHiringModes } from "@/lib/jobs";
+import { loadScorecard } from "@/lib/scorecard-data";
+import { ArrowLeft } from "@/components/chat/icons";
 import { effectivePreference } from "@/lib/political-fit";
 import { loadLatestPreference } from "@/lib/political-fit-data";
 import { JobCard } from "@/components/JobCard";
@@ -41,29 +43,46 @@ export default async function JobPage({ params }: { params: Promise<{ jobId: str
   const acceptedCount = await db().engagement.count({ where: { jobId, status: { in: ACCEPTED_STATUSES } } });
   const modes = readHiringModes(job.hiringMethod);
   const status = JOB_STATUS_LABELS[job.status];
+  const pay = payParts(job.compensationMethod, job.payRateCents, job.type);
+  const geo = (job.geography ?? {}) as { city?: string; state?: string };
+  const place = [geo.city, geo.state ?? job.jurisdiction.state].filter(Boolean).join(", ");
 
   return (
     <main className="page max-w-3xl">
-      <header className="page-header">
-        <div className="space-y-2">
-          <p className="eyebrow">
-            {job.type === "PETITION" ? "Petition circulation" : "Door-to-door canvass"} · {jurisdictionLabel(job.jurisdiction)}
+      <header className="space-y-5">
+        <div className="grid grid-cols-[2.75rem_minmax(0,1fr)_2.75rem] items-center gap-2">
+          <Link transitionTypes={["nav-back"]} href="/jobs" className="icon-btn" aria-label="Back to jobs">
+            <ArrowLeft />
+          </Link>
+          <p className="truncate text-center font-mono text-[0.6875rem] tracking-[0.14em] text-subtle uppercase">
+            {job.org.approved ? "Approved organization" : "Organization"}
           </p>
+          <span />
+        </div>
+        <div className="space-y-2">
           <h1 className="page-title">{job.title}</h1>
-          <p className="text-muted-sm">{job.org.name}</p>
-          <p className="pt-2 text-3xl font-bold tracking-[-0.03em] text-fg tabular-nums">{payText(job.compensationMethod, job.payRateCents)}</p>
+          <p className="text-muted-sm">{[job.org.name, place].filter(Boolean).join(" · ")}</p>
+          {pay ? (
+            <p className="flex flex-wrap items-baseline gap-x-1.5 pt-1">
+              <span className="text-5xl font-bold tracking-[-0.04em] text-fg tabular-nums">{pay.amount}</span>
+              <span className="text-sm font-medium text-muted">/{pay.unit} · gross</span>
+            </p>
+          ) : (
+            <p className="pt-1 text-lg font-semibold text-muted">Rate not set</p>
+          )}
           <p className="flex flex-wrap gap-1.5 pt-1">
             {isOwnOrg && <span className={status.badge}>{status.label}</span>}
             <span className="badge-sky">{day(job.startsAt)} – {day(job.endsAt)}</span>
+            <span className={job.type === "PETITION" ? "badge-butter" : "badge-mint"}>{job.type === "PETITION" ? "Petition" : "Canvass"}</span>
             <span className="badge-neutral">{acceptedCount} of {job.headcount ?? "—"} spots filled</span>
           </p>
+          <p className="text-hint">Rules: {jurisdictionLabel(job.jurisdiction)}</p>
         </div>
-        <Link transitionTypes={["nav-back"]} href="/jobs" className="btn-ghost">← Jobs</Link>
       </header>
 
       {job.description && <p className="lead">{job.description}</p>}
 
-      {isWorker && <WorkerPanel job={job} engagement={engagement} modes={modes} workerId={session.workerId!} />}
+      {isWorker && <WorkerPanel job={job} engagement={engagement} modes={modes} workerId={session.workerId!} acceptedCount={acceptedCount} />}
       {isOwnOrg && (
         <OrgPanel job={job} canHire={HIRING_ROLES.includes(session.role)} canSchedule={SCHEDULING_ROLES.includes(session.role)} userId={session.userId} />
       )}
@@ -81,11 +100,13 @@ async function WorkerPanel({
   engagement,
   modes,
   workerId,
+  acceptedCount,
 }: {
   job: JobWithRefs;
   engagement: { id: string; status: EngagementStatus } | null;
   modes: string[];
   workerId: string;
+  acceptedCount: number;
 }) {
   if (engagement) {
     const s = ENGAGEMENT_LABELS[engagement.status];
@@ -115,13 +136,45 @@ async function WorkerPanel({
     );
   }
 
+  // Why it fits: the worker's own verified record against the job's rules.
+  const card = await loadScorecard(workerId);
+  const answers = jobCardAnswers({ ...job, orgName: job.org.name, jurisdictionRules: job.jurisdiction.rules });
+  const reasons2 = fitReasons({
+    type: job.type,
+    state: job.jurisdiction.state,
+    verifiedShiftsOfType: card.segments.filter((x) => x.workType === job.type).reduce((n, x) => n + x.shiftsCount, 0),
+    statesWorked: [...new Set(card.segments.flatMap((x) => x.statesWorked))],
+    credentials: answers.credentials,
+    noExtraCredentials: answers.credentials.length === 1 && answers.credentials[0].startsWith("None"),
+    spotsLeft: job.headcount === null ? null : Math.max(0, job.headcount - acceptedCount),
+    hasBoundaries: !!pref?.campaignBoundaries?.length,
+  });
+
   return (
-    <section className="card space-y-4">
+    <>
+    <section className="section">
+      <h2 className="section-title">Why it fits</h2>
+      <ul className="divide-y divide-border">
+        {reasons2.map((r) => (
+          <li key={r.title} className="flex items-center gap-3 py-3">
+            <span aria-hidden className={`grid size-10 shrink-0 place-items-center rounded-xl font-bold text-ink ${r.kind === "yes" ? "bg-mint" : "bg-butter"}`}>
+              {r.kind === "yes" ? "✓" : "i"}
+            </span>
+            <span className="min-w-0">
+              <span className="block font-semibold text-fg">{r.title}</span>
+              <span className="block text-sm text-muted">{r.detail}</span>
+            </span>
+          </li>
+        ))}
+      </ul>
+      <p className="text-hint">From your verified record and this job&apos;s rules — no hidden score.</p>
+    </section>
+    <section className="space-y-4">
       {modes.includes("application") && (
-        <ActionButton action={apply} fields={{ jobId: job.id }} label="Apply" pendingLabel="Applying…" />
+        <ActionButton action={apply} fields={{ jobId: job.id }} label="Apply with verified profile" pendingLabel="Applying…" variant="btn-primary w-full" />
       )}
       {modes.includes("instant_claim") && (
-        <ActionButton action={claim} fields={{ jobId: job.id }} label="Claim a spot" pendingLabel="Claiming…" variant={modes.includes("application") ? "btn-secondary" : "btn-primary"} />
+        <ActionButton action={claim} fields={{ jobId: job.id }} label="Claim a spot" pendingLabel="Claiming…" variant={modes.includes("application") ? "btn-secondary w-full" : "btn-primary w-full"} />
       )}
       {!modes.includes("application") && !modes.includes("instant_claim") && (
         <p className="text-muted-sm">This job hires by invitation only.</p>
@@ -131,6 +184,7 @@ async function WorkerPanel({
         <Link href="/profile/preferences" className="link">Review what you share</Link>
       </p>
     </section>
+    </>
   );
 }
 

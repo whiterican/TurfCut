@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  fitReasons,
+  payParts,
   payShort,
   jobToForm,
   parseFeedFilters,
@@ -236,5 +238,29 @@ describe("payShort", () => {
     expect(payShort("PER_UNIT", 150, "PETITION")).toBe("$1.50/accepted signature");
     expect(payShort("PER_UNIT", 200, "CANVASS")).toBe("$2/accepted contact");
     expect(payShort("HOURLY", null)).toBe("Rate not set");
+  });
+});
+
+describe("fitReasons", () => {
+  const base = { type: "PETITION" as const, state: "CO", verifiedShiftsOfType: 0, statesWorked: [], credentials: ["None beyond the job's onboarding"], noExtraCredentials: true, spotsLeft: 3, hasBoundaries: false };
+  it("explains fit from the worker's own record — checks and plain info, never a score", () => {
+    const r = fitReasons({ ...base, verifiedShiftsOfType: 34, statesWorked: ["CO"] });
+    expect(r.map((x) => [x.kind, x.title])).toEqual([
+      ["yes", "Petition experience"],
+      ["yes", "Worked in CO before"],
+      ["yes", "No extra credentials"],
+      ["yes", "3 spots open"],
+    ]);
+    expect(r[0].detail).toBe("34 verified shifts on your scorecard");
+    expect(JSON.stringify(r)).not.toMatch(/%|score:/);
+  });
+  it("frames gaps as information, not marks against the worker", () => {
+    const r = fitReasons({ ...base, credentials: ["Badge", "Signed affidavit"], noExtraCredentials: false, spotsLeft: 0, hasBoundaries: true });
+    expect(r.filter((x) => x.kind === "info").map((x) => x.title)).toEqual(["New to petition work", "First job in CO", "Credentials needed", "Every spot is filled"]);
+    expect(r.at(-1)).toMatchObject({ kind: "yes", title: "Within your boundaries" });
+  });
+  it("splits pay for big displays", () => {
+    expect(payParts("HOURLY", 2800)).toEqual({ amount: "$28", unit: "hour", short: "hr" });
+    expect(payParts("PER_UNIT", 150, "CANVASS")?.unit).toBe("accepted contact");
   });
 });

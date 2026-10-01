@@ -179,14 +179,16 @@ export function canEdit(access: Access, msg: ViewMessage, me: string, body: stri
 }
 
 /**
- * Soft delete: the sender (while they can read the thread), or the org owner
- * moderating a reported message. The original stays in the store and in
+ * Soft delete: the sender (while they can still post), or the org owner
+ * moderating a message with an open report. The original stays in the store and in
  * any report's snapshot.
  */
 export function canDelete(access: Access, msg: ViewMessage, me: { profileId: string; role: Role; orgId: string | null }, orgId: string, reported: boolean): Check {
   if (msg.deleted) return no("That message is already deleted.");
-  if (msg.senderId === me.profileId && access.read) return yes;
+  // Read-only members (removed, hire ended, blocked) can't change history.
+  if (msg.senderId === me.profileId && access.post) return yes;
   if (me.role === "OWNER" && me.orgId === orgId && reported) return yes;
+  if (msg.senderId === me.profileId) return no(access.closed ?? "This conversation is read-only.");
   return no("You can only delete your own messages.");
 }
 

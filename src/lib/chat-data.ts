@@ -48,9 +48,9 @@ export const THREAD_LIMIT = 200;
 const lock = (tx: Prisma.TransactionClient, key: string) => tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${key}))`;
 
 /**
- * Chat times come from the database clock — the same clock the access
- * triggers use for removals — so "sent before/after removal or a block"
- * never depends on app-server clock drift.
+ * Chat times come from the database's wall clock (clock_timestamp) — the
+ * same clock the access triggers use for removals — so "sent before/after
+ * removal or a block" never depends on app-server clock drift.
  */
 async function dbNow(c: Client): Promise<Date> {
   const [row] = await c.$queryRaw<{ now: Date }[]>`SELECT (clock_timestamp() AT TIME ZONE 'UTC')::timestamp(3) AS "now"`;
@@ -91,7 +91,7 @@ async function loadContext(c: Client, me: ChatUser, conversationId: string) {
   };
   if (conv.kind === "DIRECT" && conv.engagement) {
     facts.engagementStatus = conv.engagement.status;
-    facts.counterpartRemoved = conv.participants.some((p) => p.profileId !== me.userId && p.removedAt !== null);
+    facts.counterpartRemoved = !conv.participants.some((p) => p.profileId !== me.userId && p.removedAt === null);
     if (mine?.role === "MANAGER") {
       facts.blockedByOther = (await c.profileBlock.count({ where: { blockerId: conv.engagement.worker.profileId, blockedId: me.userId, liftedAt: null } })) > 0;
     }
@@ -146,7 +146,10 @@ async function unreadByConversation(profileId: string): Promise<Map<string, numb
        AND (p."removedAt" IS NULL OR m."createdAt" <= p."removedAt")
        AND NOT EXISTS (SELECT 1 FROM "MessageRevision" r
                         WHERE r."messageId" = m."id" AND r."kind" = 'DELETE'
-                          AND (p."removedAt" IS NULL OR r."createdAt" <= p."removedAt"))
+                          AND (p."removedAt" IS NULL OR r."createdAt" <= p."removedAt")
+                          AND NOT EXISTS (SELECT 1 FROM "ProfileBlock" b2
+                                           WHERE b2."blockerId" = p."profileId" AND b2."blockedId" = r."actorId"
+                                             AND b2."createdAt" <= r."createdAt" AND (b2."liftedAt" IS NULL OR r."createdAt" < b2."liftedAt")))
        AND NOT EXISTS (SELECT 1 FROM "ProfileBlock" b
                         WHERE b."blockerId" = p."profileId" AND b."blockedId" = m."senderId"
                           AND b."createdAt" <= m."createdAt" AND (b."liftedAt" IS NULL OR m."createdAt" < b."liftedAt"))
@@ -187,6 +190,45 @@ function preview(m: ViewMessage): string {
   return m.attachment ? `Attachment: ${m.attachment.name}` : "";
 }
 
+/**
+ * Each of my threads' latest visible message, in three queries: the newest
+ * 20 per thread (inside my removal window), their revisions, my blocks.
+ */
+async function latestVisible(profileId: string): Promise<Map<string, ViewMessage>> {
+  const rows = await db().$queryRaw<
+    { id: string; conversationId: string; senderId: string; body: string; createdAt: Date; attachmentPath: string | null; attachmentName: string | null; attachmentType: string | null; attachmentSize: number | null; readUntil: Date | null }[]
+  >`
+    SELECT m."id"::text, m."conversationId"::text, m."senderId"::text, m."body", m."createdAt",
+           m."attachmentPath", m."attachmentName", m."attachmentType", m."attachmentSize", p."removedAt" AS "readUntil"
+      FROM "ConversationParticipant" p
+      CROSS JOIN LATERAL (
+        SELECT * FROM "Message" mm
+         WHERE mm."conversationId" = p."conversationId" AND (p."removedAt" IS NULL OR mm."createdAt" <= p."removedAt")
+         ORDER BY mm."createdAt" DESC LIMIT 20) m
+     WHERE p."profileId" = ${profileId}::uuid`;
+  if (rows.length === 0) return new Map();
+  const [revisions, blocks] = await Promise.all([
+    db().messageRevision.findMany({ where: { messageId: { in: rows.map((r) => r.id) } } }),
+    db().profileBlock.findMany({ where: { blockerId: profileId } }),
+  ]);
+  const byConv = new Map<string, typeof rows>();
+  for (const r of rows) byConv.set(r.conversationId, [...(byConv.get(r.conversationId) ?? []), r]);
+  const out = new Map<string, ViewMessage>();
+  for (const [convId, msgs] of byConv) {
+    const ids = new Set(msgs.map((m) => m.id));
+    const view = viewMessages(
+      msgs.map((m) => ({ id: m.id, senderId: m.senderId, body: m.body, createdAt: m.createdAt, attachment: m.attachmentPath ? { name: m.attachmentName ?? "file", type: m.attachmentType ?? "", size: m.attachmentSize ?? 0 } : null })),
+      revisions.filter((r) => ids.has(r.messageId)).map((r) => ({ messageId: r.messageId, actorId: r.actorId, kind: r.kind, body: r.body, createdAt: r.createdAt })),
+      profileId,
+      blocks,
+      msgs[0].readUntil
+    );
+    const last = view.at(-1);
+    if (last) out.set(convId, last);
+  }
+  return out;
+}
+
 export async function listThreads(me: ChatUser): Promise<{ threads: ThreadSummary[]; startable: StartableDirect[] }> {
   const rows = await db().conversationParticipant.findMany({
     where: { profileId: me.userId },
@@ -201,25 +243,23 @@ export async function listThreads(me: ChatUser): Promise<{ threads: ThreadSummar
     },
   });
   const unread = await unreadByConversation(me.userId);
-  const threads = await Promise.all(
-    rows.map(async (row): Promise<ThreadSummary> => {
-      const c = row.conversation;
-      const { view } = await loadView(db(), c.id, me.userId, row.removedAt, { take: 10 });
-      const last = view.at(-1);
-      const direct = c.kind === "DIRECT";
-      const other = direct ? c.participants[0] : undefined;
-      return {
-        id: c.id,
-        kind: c.kind,
-        title: direct ? personName(other?.profile) : (c.name ?? "Team chat"),
-        subtitle: direct ? (c.engagement?.job.title ?? "") : c.jobs.map((j) => j.job.title).join(" · "),
-        frozen: row.removedAt !== null || (direct && !isHired(c.engagement?.status ?? "")),
-        unread: unread.get(c.id) ?? 0,
-        last: last ? { text: preview(last), mine: last.senderId === me.userId, at: last.createdAt } : null,
-        activeAt: last?.createdAt ?? c.createdAt,
-      };
-    })
-  );
+  const latest = await latestVisible(me.userId);
+  const threads = rows.map((row): ThreadSummary => {
+    const c = row.conversation;
+    const last = latest.get(c.id);
+    const direct = c.kind === "DIRECT";
+    const other = direct ? (c.participants.find((p) => !p.removedAt) ?? c.participants[0]) : undefined;
+    return {
+      id: c.id,
+      kind: c.kind,
+      title: direct ? personName(other?.profile) : (c.name ?? "Team chat"),
+      subtitle: direct ? (c.engagement?.job.title ?? "") : c.jobs.map((j) => j.job.title).join(" · "),
+      frozen: row.removedAt !== null || (direct && !isHired(c.engagement?.status ?? "")),
+      unread: unread.get(c.id) ?? 0,
+      last: last ? { text: preview(last), mine: last.senderId === me.userId, at: last.createdAt } : null,
+      activeAt: last?.createdAt ?? c.createdAt,
+    };
+  });
   threads.sort((a, b) => b.activeAt.getTime() - a.activeAt.getTime());
   return { threads, startable: await startableDirects(me) };
 }
@@ -297,7 +337,13 @@ export async function openThread(me: ChatUser, conversationId: string): Promise<
     (await db().profileBlock.findMany({ where: { blockerId: me.userId, liftedAt: null }, select: { blockedId: true } })).map((b) => b.blockedId)
   );
   const now = await dbNow(db());
-  await db().conversationParticipant.update({ where: { id: mine.id }, data: { lastReadAt: now } });
+  // Read up to the newest message actually loaded, never "now": a message
+  // committing during this request stays unread. (Sends are serialized per
+  // conversation, so nothing older than what we loaded can still appear.)
+  const newest = view.at(-1)?.createdAt;
+  if (newest && (!mine.lastReadAt || newest > mine.lastReadAt)) {
+    await db().conversationParticipant.update({ where: { id: mine.id }, data: { lastReadAt: newest } });
+  }
 
   const byId = new Map(conv.participants.map((p) => [p.profileId, p]));
   const direct = conv.kind === "DIRECT";
@@ -375,16 +421,32 @@ export async function ensureDirect(me: ChatUser, engagementId: string): Promise<
     const isWorker = e.worker.profileId === me.userId;
     const isBoss = e.hiredById === me.userId && me.orgId === e.job.orgId && CHAT_STAFF_ROLES.includes(me.role);
     if (!isWorker && !isBoss) return NOT_FOUND;
-    if (e.conversation) return { ok: true as const, conversationId: e.conversation.id };
-    if (!isHired(e.status)) return fail("Messages unlock once the hire is confirmed.");
+    if (!e.conversation && !isHired(e.status)) return fail("Messages unlock once the hire is confirmed.");
 
-    // The boss must still run this org's teams; otherwise fall back.
+    // The contact must still run this org's teams; otherwise fall back.
     const boss = e.hiredById ? await tx.profile.findUnique({ where: { id: e.hiredById }, select: { id: true, orgId: true, role: true } }) : null;
     const stillStaff = !!boss && boss.orgId === e.job.orgId && CHAT_STAFF_ROLES.includes(boss.role as Role);
+
+    if (e.conversation) {
+      // If the contact left (removed by the staff trigger) while the hire is
+      // still on, hand the thread to a current contact instead of stranding it.
+      const managers = await tx.conversationParticipant.findMany({ where: { conversationId: e.conversation.id, role: "MANAGER" } });
+      if (isHired(e.status) && !managers.some((m) => !m.removedAt)) {
+        const next = stillStaff ? boss.id : await defaultBoss(tx, e.jobId, e.job.orgId);
+        if (next && next !== e.worker.profileId) {
+          const prior = managers.find((m) => m.profileId === next);
+          if (prior) await tx.conversationParticipant.update({ where: { id: prior.id }, data: { removedAt: null, removedById: null, addedById: me.userId, addedAt: await dbNow(tx) } });
+          else await tx.conversationParticipant.create({ data: { conversationId: e.conversation.id, profileId: next, role: "MANAGER", addedById: me.userId, addedAt: await dbNow(tx) } });
+          if (next !== e.hiredById) await tx.engagement.update({ where: { id: e.id }, data: { hiredById: next } });
+          await audit(tx, me.userId, "conversation.member_added", "Conversation", e.conversation.id, { profileId: next, role: "MANAGER", reason: "contact_left" });
+        }
+      }
+      return { ok: true as const, conversationId: e.conversation.id };
+    }
+
     const bossId = stillStaff ? boss.id : await defaultBoss(tx, e.jobId, e.job.orgId);
-    if (!bossId) return fail("No one at this organization can be messaged yet.");
+    if (!bossId || bossId === e.worker.profileId) return fail("No one at this organization can be messaged yet.");
     if (bossId !== e.hiredById) await tx.engagement.update({ where: { id: e.id }, data: { hiredById: bossId } });
-    if (bossId === e.worker.profileId) return fail("No one at this organization can be messaged yet.");
     const conv = await tx.conversation.create({
       data: {
         kind: "DIRECT",
@@ -507,10 +569,11 @@ export async function editMessage(me: ChatUser, messageId: string, rawBody: unkn
 export async function deleteMessage(me: ChatUser, messageId: string): Promise<{ ok: true } | Fail> {
   return db().$transaction(async (tx) => {
     const m = await lockedMessage(tx, me, messageId);
-    if (!m || !m.msg) return fail("Message not found.");
-    const reported = (await tx.messageReport.count({ where: { messageId } })) > 0;
+    const moderator = me.role === "OWNER" && !!m && me.orgId === m.ctx.conv.orgId;
+    if (!m || !m.msg || (!m.ctx.access.read && !moderator)) return fail("Message not found.");
+    const reported = (await tx.messageReport.count({ where: { messageId, resolvedAt: null } })) > 0;
     const ok = canDelete(m.ctx.access, m.msg, { profileId: me.userId, role: me.role, orgId: me.orgId }, m.ctx.conv.orgId, reported);
-    if (!ok.ok) return ok.reason.startsWith("You can only") && !m.ctx.access.read ? fail("Message not found.") : ok;
+    if (!ok.ok) return ok;
     const now = await dbNow(tx);
     await tx.messageRevision.create({ data: { messageId, conversationId: m.ctx.conv.id, kind: "DELETE", actorId: me.userId, createdAt: now } });
     if (m.msg.senderId !== me.userId) {
@@ -669,7 +732,7 @@ export async function teamChatJobs(me: ChatUser) {
 
 /** Who can be added to a team on these jobs: org staff, and workers hired on them. */
 export async function teamCandidates(me: ChatUser, jobIds: string[], c: Client = db()): Promise<Candidate[]> {
-  if (!me.orgId || !jobIds.every((id) => UUID_RE.test(id))) return [];
+  if (!canCreateGroup(me).ok || !me.orgId || !jobIds.every((id) => UUID_RE.test(id))) return [];
   const [staff, hires] = await Promise.all([
     c.profile.findMany({ where: { orgId: me.orgId, role: { in: CHAT_STAFF_ROLES } }, select: PERSON.select, orderBy: { createdAt: "asc" } }),
     c.engagement.findMany({

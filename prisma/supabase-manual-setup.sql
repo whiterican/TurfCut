@@ -611,7 +611,7 @@ CREATE TRIGGER "MessageReport_scope" BEFORE INSERT ON "public"."MessageReport"
 CREATE OR REPLACE FUNCTION "turfcut_private"."end_staff_chat_access"() RETURNS trigger LANGUAGE plpgsql SET search_path = '' AS $$
 BEGIN
   UPDATE "public"."ConversationParticipant" p
-     SET "removedAt" = (now() AT TIME ZONE 'UTC')
+     SET "removedAt" = (clock_timestamp() AT TIME ZONE 'UTC')::timestamp(3)
     FROM "public"."Conversation" c
    WHERE c."id" = p."conversationId" AND p."profileId" = NEW."id" AND p."role" = 'MANAGER' AND p."removedAt" IS NULL
      AND (NEW."orgId" IS DISTINCT FROM c."orgId" OR NEW."role"::text NOT IN ('OWNER', 'RECRUITER', 'SUPERVISOR'));
@@ -632,7 +632,7 @@ BEGIN
   -- with a fresh snapshot.
   PERFORM pg_advisory_xact_lock(hashtext('chat-worker:' || NEW."workerId"::text));
   UPDATE "public"."ConversationParticipant" p
-     SET "removedAt" = (now() AT TIME ZONE 'UTC')
+     SET "removedAt" = (clock_timestamp() AT TIME ZONE 'UTC')::timestamp(3)
     FROM "public"."Worker" w, "public"."ConversationJob" cj
    WHERE w."id" = NEW."workerId" AND p."profileId" = w."profileId" AND p."role" = 'WORKER' AND p."removedAt" IS NULL
      AND cj."conversationId" = p."conversationId" AND cj."jobId" = NEW."jobId"

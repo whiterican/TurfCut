@@ -125,6 +125,9 @@ describe("writes", () => {
     expect(canDelete(open, mine, boss, ORG, true).ok).toBe(false);
     expect(canDelete(open, mine, { profileId: "own", role: "OWNER", orgId: ORG }, ORG, false).ok).toBe(false);
     expect(canDelete(open, mine, { profileId: "own", role: "OWNER", orgId: ORG }, ORG, true).ok).toBe(true);
+    // Read-only members can't change history, even their own messages.
+    expect(canDelete(chatAccess(direct({ engagementStatus: "COMPLETED" })), mine, worker, ORG, false).ok).toBe(false);
+    expect(canDelete(chatAccess(direct({ participant: { role: "WORKER", removedAt: t(9) } })), mine, worker, ORG, false).ok).toBe(false);
   });
 
   it("reports others' messages with a reason; blocks managers only", () => {

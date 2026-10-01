@@ -42,6 +42,14 @@ describe("Word and Excel files", () => {
     expect(vet("plan.docx", zip(DOCX)).ok).toBe(true);
     expect(vet("roster.xlsx", zip({ "[Content_Types].xml": "<Types/>", "xl/workbook.xml": "<workbook/>", "xl/worksheets/sheet1.xml": "<worksheet/>" })).ok).toBe(true);
   });
+  it("accepts what real Word/Excel files carry: hyperlinks, page previews, printer settings, checksums", () => {
+    const rels = '<Relationships><Relationship Id="rId9" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink" Target="https://turfcut.app" TargetMode="External"/></Relationships>';
+    expect(vet("plan.docx", zip({ ...DOCX, "word/_rels/document.xml.rels": rels })).ok).toBe(true);
+    expect(vet("plan.docx", zip({ ...DOCX, "docProps/thumbnail.jpeg": JPEG })).ok).toBe(true);
+    expect(vet("roster.xlsx", zip({ "[Content_Types].xml": "<Types/>", "xl/workbook.xml": "<workbook/>", "xl/printerSettings/printerSettings1.bin": new Uint8Array(200) })).ok).toBe(true);
+    const sha = Array.from({ length: 16 }, (_, i) => (i.toString(16).repeat(64))).join("\n");
+    expect(vet("hashes.txt", enc(sha)).ok).toBe(true);
+  });
   it("refuses embedded pictures, however they're named", () => {
     const r = vet("x.docx", zip({ ...DOCX, "word/media/image1.png": JPEG }));
     expect(!r.ok && r.reason).toMatch(PICTURES);
@@ -81,6 +89,14 @@ describe("PDFs", () => {
     expect(vet("scan.pdf", pdf("q", "3 0 obj <</Subtype%hidden\n/Image>> endobj\n")).ok).toBe(false);
     // An inline image inside the compressed page content.
     expect(vet("scan.pdf", pdf("q BI /W 2550 /H 3300 /BPC 8 /CS /G ID xxxx EI Q")).ok).toBe(false);
+    // An inline image in the second compressed stream (the first is clean).
+    const two = (() => {
+      const a = deflateSync(enc("BT (page one) Tj ET"));
+      const b = deflateSync(enc("q BI /W 2550 /H 3300 ID xxxx EI Q"));
+      const parts = [enc(`%PDF-1.7\n1 0 obj << /Length ${a.length} /Filter /FlateDecode >>\nstream\n`), a, enc(`\nendstream\nendobj\n2 0 obj << /Length ${b.length} /Filter /FlateDecode >>\nstream\n`), b, enc("\nendstream\nendobj\n%%EOF\n")];
+      return new Uint8Array(parts.flatMap((p) => [...p]));
+    })();
+    expect(vet("scan.pdf", two).ok).toBe(false);
     // A picture attached to the PDF.
     expect(vet("scan.pdf", pdf("q", "3 0 obj << /Type /EmbeddedFile >> endobj\n")).ok).toBe(false);
   });

@@ -43,12 +43,13 @@ const looksLikeImage = (b: Uint8Array) =>
 export function textProblem(text: string): string | null {
   if (/<([\w-]+:)?svg[\s>/]|data:\s*image\/|\/\* XPM \*\/|^begin(-base64)? [0-7]{3} /im.test(text)) return PICTURES_REASON;
   if (/^\s*P[1-7]\s+(#[^\n]*\n\s*)*\d+\s+\d+/.test(text)) return PICTURES_REASON; // netpbm header
-  if (/[A-Za-z0-9+/=_-]{1000,}/.test(text)) return PICTURES_REASON;
+  for (const run of text.match(/[A-Za-z0-9+/=_-]{1000,}/g) ?? []) if (!/^[0-9a-fA-F]+$/.test(run)) return PICTURES_REASON;
   // Wrapped encodings: consecutive lines that are nothing but base64/hex.
   let run = 0;
   for (const line of text.split(/\r?\n/)) {
     const t = line.trim();
-    if (t.length >= 40 && /^[A-Za-z0-9+/=_-]+$/.test(t)) {
+    // Pure hex lines (checksums, IDs) are ordinary data; base64 needs more letters.
+    if (t.length >= 40 && /^[A-Za-z0-9+/=_-]+$/.test(t) && !/^[0-9a-fA-F]+$/.test(t)) {
       run += t.length;
       if (run >= 1000) return PICTURES_REASON;
     } else if (t) run = 0;
@@ -80,7 +81,7 @@ export function pdfProblem(bytes: Uint8Array): string | null {
     const start = m.index + m[0].length;
     const end = raw.indexOf("endstream", start);
     if (end < 0) break;
-    re.lastIndex = end;
+    re.lastIndex = end + "endstream".length; // don't re-match the "stream" inside "endstream"
     try {
       const out = inflateSync(bytes.subarray(start, end), { finishFlush: constants.Z_SYNC_FLUSH, maxOutputLength: budget });
       budget -= out.length;
@@ -144,9 +145,22 @@ export function zipDirectory(b: Uint8Array): { entries: ZipEntry[]; cdStart: num
 }
 
 const OOXML_PART = /^(\[Content_Types\]\.xml|_rels\/|docProps\/|customXml\/|word\/|xl\/)/;
-const PRINTER_SETTINGS = /^xl\/printerSettings\/printerSettings\d+\.bin$/;
-/** Relationships that pull in pictures, files or remote content. */
-const PICTURE_RELS = /relationships\/(image|oleObject|package|aFChunk|video|audio|media|hdphoto|attachedTemplate|frame)"|TargetMode\s*=\s*"External"/i;
+const PRINTER_SETTINGS = /^(xl|word)\/printerSettings\/printerSettings\d+\.bin$/;
+/** The page preview Word/Excel save (Mac default). Allowed only when nothing else carries a picture. */
+const THUMBNAIL = /^docProps\/thumbnail\.(jpe?g|png|emf|wmf)$/;
+/** Relationship types that pull in pictures, files or other documents. */
+const PICTURE_REL_TYPE = /\/(image|oleObject|package|aFChunk|video|audio|media|hdphoto|attachedTemplate|frame|subDocument)$/i;
+
+/** Pictures pulled in by a .rels part — embedded, or linked from the web. Plain hyperlinks are fine. */
+function relsProblem(xml: string): boolean {
+  for (const rel of xml.match(/<(\w+:)?Relationship\b[^>]*>/g) ?? []) {
+    const type = /\bType\s*=\s*"([^"]*)"/.exec(rel)?.[1] ?? "";
+    const external = /\bTargetMode\s*=\s*"External"/i.test(rel);
+    if (PICTURE_REL_TYPE.test(type)) return true;
+    if (external && !/\/hyperlink$/i.test(type)) return true;
+  }
+  return false;
+}
 
 export function ooxmlProblem(type: string, bytes: Uint8Array): string | null {
   const zip = zipDirectory(bytes);
@@ -158,7 +172,7 @@ export function ooxmlProblem(type: string, bytes: Uint8Array): string | null {
   if (new Set(names).size !== names.length) return NOT_OFFICE;
   for (const n of names) {
     if (!OOXML_PART.test(n)) return NOT_OFFICE;
-    if (!/\.(xml|rels)$/.test(n) && !PRINTER_SETTINGS.test(n)) return PICTURES_REASON;
+    if (!/\.(xml|rels)$/.test(n) && !PRINTER_SETTINGS.test(n) && !THUMBNAIL.test(n)) return PICTURES_REASON;
   }
 
   // The local entries must tile the file from byte 0 to the central
@@ -189,12 +203,16 @@ export function ooxmlProblem(type: string, bytes: Uint8Array): string | null {
       return UNCHECKABLE;
     }
     budget -= data.length;
-    if (looksLikeImage(data)) return PICTURES_REASON;
-    if (PRINTER_SETTINGS.test(e.name)) {
+    if (THUMBNAIL.test(e.name)) {
+      // A preview of the document's own (picture-free) pages.
+      if (data.length > 256 * 1024) return PICTURES_REASON;
+    } else if (looksLikeImage(data)) {
+      return PICTURES_REASON;
+    } else if (PRINTER_SETTINGS.test(e.name)) {
       if (data.length > 64 * 1024) return PICTURES_REASON;
     } else {
       const text = decoder.decode(data);
-      if (PICTURE_RELS.test(text) || textProblem(text)) return PICTURES_REASON;
+      if ((e.name.endsWith(".rels") && relsProblem(text)) || textProblem(text)) return PICTURES_REASON;
     }
     expected = dataEnd;
   }

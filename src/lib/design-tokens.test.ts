@@ -77,11 +77,11 @@ describe.each([
     expect(ratio(t["hero-muted"], t.hero)).toBeGreaterThanOrEqual(4.5);
   });
 
-  it("the tab bar's text is AA on its translucent surface", () => {
+  it("the tab bar's text is AAA on its translucent surface", () => {
     for (const under of SURFACES) {
       const bar = mix(t.surface, 0.92, t[under]);
-      expect(ratio(t.subtle, bar)).toBeGreaterThanOrEqual(4.5);
-      expect(ratio(t.fg, bar)).toBeGreaterThanOrEqual(7);
+      expect(ratio(t.muted, bar)).toBeGreaterThanOrEqual(7); // tab labels
+      expect(ratio(t.fg, bar)).toBeGreaterThanOrEqual(7); // current tab
     }
   });
 

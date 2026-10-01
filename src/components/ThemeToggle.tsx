@@ -16,6 +16,7 @@ export function ThemeToggle() {
     } catch {
       // Storage unavailable (private mode): the choice lasts for this page.
     }
+    window.dispatchEvent(new Event("turfcut-display")); // keep Display settings in step
   }
 
   return (

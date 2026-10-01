@@ -3,45 +3,80 @@
 import { useSyncExternalStore } from "react";
 import { TEXT_SIZE_KEY, TEXT_SIZES, THEME_STORAGE_KEY, type TextSize } from "@/lib/theme";
 
-/** Re-render when <html>'s class or data-text changes. */
+type ThemeChoice = "system" | "light" | "dark";
+
+/**
+ * A tiny store over <html> + localStorage. Every write notifies listeners
+ * directly (the class may not change, e.g. choosing "Dark" on a dark phone),
+ * the `storage` event keeps other tabs in sync, and the last choice is kept
+ * in memory for when storage is unavailable (private mode).
+ */
+const EVENT = "turfcut-display";
+let lastTheme: ThemeChoice | null = null;
+const notify = () => window.dispatchEvent(new Event(EVENT));
+
 function subscribe(cb: () => void) {
-  const o = new MutationObserver(cb);
-  o.observe(document.documentElement, { attributes: true, attributeFilter: ["class", "data-text"] });
-  return () => o.disconnect();
+  window.addEventListener(EVENT, cb);
+  window.addEventListener("storage", cb);
+  const mq = window.matchMedia("(prefers-color-scheme: light)");
+  // "Match my phone" follows the phone live while no theme is saved.
+  const follow = () => {
+    if (themeSnapshot() === "system") document.documentElement.classList.toggle("dark", !mq.matches);
+    cb();
+  };
+  mq.addEventListener("change", follow);
+  return () => {
+    window.removeEventListener(EVENT, cb);
+    window.removeEventListener("storage", cb);
+    mq.removeEventListener("change", follow);
+  };
 }
-const read = (key: string) => {
+
+function read(key: string): string | null {
   try {
     return localStorage.getItem(key);
   } catch {
     return null;
   }
-};
-const save = (key: string, value: string | null) => {
+}
+function save(key: string, value: string | null): boolean {
   try {
     if (value === null) localStorage.removeItem(key);
     else localStorage.setItem(key, value);
+    return true;
   } catch {
-    // Storage unavailable (private mode): the choice lasts for this page.
+    return false; // Storage unavailable: the choice lasts for this page.
   }
+}
+
+function themeSnapshot(): ThemeChoice {
+  const stored = read(THEME_STORAGE_KEY);
+  if (stored === "light" || stored === "dark") return stored;
+  return lastTheme ?? "system";
+}
+const sizeSnapshot = (): TextSize => {
+  const v = document.documentElement.getAttribute("data-text");
+  return v === "lg" || v === "xl" ? v : "md";
 };
 
-/** DOM + storage writes live outside the component (React compiler rule). */
 function applySize(v: TextSize) {
   const html = document.documentElement;
   if (v === "md") html.removeAttribute("data-text");
   else html.setAttribute("data-text", v);
   save(TEXT_SIZE_KEY, v === "md" ? null : v);
+  notify();
 }
-function applyTheme(v: "system" | "light" | "dark") {
-  const dark = v === "system" ? !window.matchMedia("(prefers-color-scheme: light)").matches : v === "dark";
+function applyTheme(v: ThemeChoice) {
+  lastTheme = v;
   save(THEME_STORAGE_KEY, v === "system" ? null : v);
+  const dark = v === "system" ? !window.matchMedia("(prefers-color-scheme: light)").matches : v === "dark";
   document.documentElement.classList.toggle("dark", dark);
+  notify();
 }
 
 export function DisplaySettings() {
-  const size = useSyncExternalStore(subscribe, () => (document.documentElement.dataset.text as TextSize | undefined) ?? "md", () => "md");
-  const theme = useSyncExternalStore(subscribe, () => read(THEME_STORAGE_KEY) ?? "system", () => "system");
-
+  const size = useSyncExternalStore(subscribe, sizeSnapshot, () => "md" as TextSize);
+  const theme = useSyncExternalStore(subscribe, themeSnapshot, () => "system" as ThemeChoice);
 
   return (
     <div className="space-y-8">

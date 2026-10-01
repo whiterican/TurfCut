@@ -252,6 +252,8 @@ describe("live time worked and earnings estimate", () => {
     // Checked out: fixed at check-out, whatever "now" is.
     expect(activeTime(shift([...evs, ev("CHECK_OUT", 300)], { status: "COMPLETED" }), at(999)).ms).toBe(270 * 60_000);
     expect(activeTime(shift([]), at(10))).toEqual({ ms: 0, running: false });
+    // Forgot to check out: stops at the scheduled end (8h), not "26h".
+    expect(activeTime(shift([ev("CHECK_IN", 0)], { status: "ACTIVE" }), at(26 * 60))).toEqual({ ms: 8 * 60 * 60_000, running: false });
   });
   it("estimates gross pay honestly for each pay method", () => {
     expect(earningsEstimate("HOURLY", 2800, 90 * 60_000, 0)).toEqual({ cents: 4200, label: "Est. gross" });

@@ -143,16 +143,19 @@ export function shiftStatusLabel(st: ShiftState): { label: string; badge: string
 
 export type StepState = "done" | "current" | "todo";
 /**
- * Time worked so far: check-in to check-out (or `now` while on shift), minus
- * breaks (an open break runs to the end). Same rule the scorecard uses for
- * active hours, so the live number and the verified one agree.
+ * Time worked so far: check-in to check-out (or `now` while on shift, but
+ * never past the scheduled end — a forgotten check-out doesn't keep
+ * counting), minus breaks (an open break runs to the end). The same basic
+ * rule as the scorecard's active hours; the verified number there is what
+ * pay is based on.
  */
 export function activeTime(s: ShiftFacts, now: Date): { ms: number; running: boolean } {
   const events = [...s.events].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
   const checkIn = events.find((e) => e.type === "CHECK_IN")?.createdAt;
   if (!checkIn) return { ms: 0, running: false };
   const checkOut = events.find((e) => e.type === "CHECK_OUT")?.createdAt;
-  const end = checkOut ?? now;
+  const overdue = !checkOut && now > s.endsAt;
+  const end = checkOut ?? (overdue ? s.endsAt : now);
   let paused = 0;
   let pauseStart: Date | null = null;
   for (const e of events) {
@@ -164,7 +167,7 @@ export function activeTime(s: ShiftFacts, now: Date): { ms: number; running: boo
   }
   if (pauseStart) paused += Math.max(0, end.getTime() - Math.max(pauseStart.getTime(), checkIn.getTime()));
   const ms = Math.max(0, end.getTime() - checkIn.getTime() - paused);
-  return { ms, running: !checkOut && !pauseStart && s.status !== "CANCELLED" };
+  return { ms, running: !checkOut && !overdue && !pauseStart && s.status !== "CANCELLED" };
 }
 
 /**

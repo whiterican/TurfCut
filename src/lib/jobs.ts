@@ -626,7 +626,7 @@ export interface FeedFilters {
 }
 
 /** Worker feed filters from a query string. Unknown or malformed values are ignored. */
-export function parseFeedFilters(p: URLSearchParams): FeedFilters {
+export function parseFeedFilters(p: URLSearchParams, now = new Date()): FeedFilters {
   const f: FeedFilters = {};
   const type = p.get("type");
   if (type && values(JOB_TYPES).includes(type)) f.type = type as JobType;
@@ -635,5 +635,7 @@ export function parseFeedFilters(p: URLSearchParams): FeedFilters {
   const before = p.get("startsBefore");
   if (before && /^\d{4}-\d{2}-\d{2}$/.test(before) && !Number.isNaN(Date.parse(before))) f.startsBefore = new Date(`${before}T23:59:59Z`);
   if (p.get("noCredentials") === "1" || p.get("noCredentials") === "on") f.noCredentials = true;
+  // "This week" quick filter: starting within the next 7 days.
+  if (p.get("week") === "1") f.startsBefore = new Date(now.getTime() + 7 * 86_400_000);
   return f;
 }

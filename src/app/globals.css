@@ -606,8 +606,9 @@ body {
     background: var(--lime);
     color: var(--ink);
   }
+  /* z-50: its ··· menu must open above the composer and the tab bar. */
   .thread-top {
-    @apply sticky top-0 z-30 -mx-4 -mt-4 space-y-3 px-4 pt-3 pb-3 backdrop-blur sm:-mx-6 sm:px-6;
+    @apply sticky top-0 z-50 -mx-4 -mt-4 space-y-3 px-4 pt-3 pb-3 backdrop-blur sm:-mx-6 sm:px-6;
     background: color-mix(in srgb, var(--bg) 94%, transparent);
   }
   /* Next-shift banner atop a job conversation. */
@@ -656,6 +657,17 @@ body {
 }
 .turf-map .leaflet-control-attribution {
   font-size: 10px;
+}
+
+/* While typing a message, the keyboard covers the tab bar: hide it and let
+   the composer sit on the keyboard. */
+@media (max-width: 63.99rem) {
+  body:has(.composer-input:focus) .tabbar {
+    display: none;
+  }
+  body:has(.composer-input:focus) .composer {
+    bottom: 0;
+  }
 }
 
 /* Summaries styled as buttons: no disclosure triangle (Safari draws its own). */

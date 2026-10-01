@@ -108,6 +108,8 @@ export async function loadFeed(workerId: string | null, f: FeedFilters = {}) {
   const jobs = await db().job.findMany({
     where: {
       status: "PUBLISHED",
+      // Jobs that have already ended aren't open work.
+      OR: [{ endsAt: null }, { endsAt: { gte: new Date() } }],
       ...(f.type ? { type: f.type } : {}),
       ...(f.minRateCents ? { payRateCents: { gte: f.minRateCents } } : {}),
       ...(f.startsBefore ? { startsAt: { lte: f.startsBefore } } : {}),

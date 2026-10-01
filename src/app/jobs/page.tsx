@@ -50,16 +50,15 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
     const qs = next.toString();
     return qs ? `/jobs?${qs}` : "/jobs";
   };
-  const week = new Date();
-  week.setUTCDate(week.getUTCDate() + 7);
-  const weekEnd = week.toISOString().slice(0, 10);
   const quick = [
-    { label: "This week", href: toggle("startsBefore", weekEnd), on: params.get("startsBefore") === weekEnd, tone: "filter-chip-sky" },
+    { label: "This week", href: toggle("week", "1"), on: params.get("week") === "1", tone: "filter-chip-sky" },
     { label: "Petition", href: toggle("type", "PETITION"), on: filters.type === "PETITION", tone: "filter-chip-butter" },
     { label: "Canvass", href: toggle("type", "CANVASS"), on: filters.type === "CANVASS", tone: "filter-chip-mint" },
     { label: "No credentials", href: toggle("noCredentials", "1"), on: !!filters.noCredentials, tone: "filter-chip-lime" },
   ];
   const anyFilter = !!(filters.type || filters.minRateCents || filters.startsBefore || filters.noCredentials);
+  // The date field shows a typed date only, not the "This week" window.
+  const typedStartsBefore = params.get("week") === "1" ? null : filters.startsBefore;
 
   return (
     <main className="page">
@@ -94,9 +93,10 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
         {/* Quick filters (screen mockups): one tap on, one tap off. */}
         <nav aria-label="Quick filters" className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
           {quick.map((q) => (
-            <Link key={q.label} href={q.href} scroll={false} className={`filter-chip ${q.on ? q.tone : ""}`} aria-pressed={q.on}>
+            <Link key={q.label} href={q.href} scroll={false} className={`filter-chip ${q.on ? q.tone : ""}`}>
               {q.on && <span aria-hidden>✓</span>}
               {q.label}
+              <span className="sr-only">{q.on ? " (on — tap to turn off)" : " (off)"}</span>
             </Link>
           ))}
         </nav>
@@ -121,7 +121,7 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
             </label>
             <label className="space-y-1.5">
               <span className="label">Starts by</span>
-              <input type="date" name="startsBefore" className="field" defaultValue={filters.startsBefore?.toISOString().slice(0, 10) ?? ""} />
+              <input type="date" name="startsBefore" className="field" defaultValue={typedStartsBefore?.toISOString().slice(0, 10) ?? ""} />
             </label>
             <div className="flex flex-wrap items-center gap-3">
               <label className="toggle">
@@ -147,7 +147,7 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
             ))}
           </ul>
         )}
-        <Link href="/profile/preferences" className="btn-secondary w-full">Adjust preferences</Link>
+        <Link href="/profile/preferences" className="btn-secondary w-full">Adjust who you won&apos;t be matched with</Link>
       </section>
 
       {hidden.length > 0 && (

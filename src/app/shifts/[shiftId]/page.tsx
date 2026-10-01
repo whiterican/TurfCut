@@ -161,7 +161,7 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
           <LiveShiftStats
             activeMs={worked.ms}
             running={worked.running}
-            renderedAt={now.getTime()}
+            maxExtraMs={s.endsAt.getTime() - now.getTime()}
             pay={
               !isWorker || !estimate
                 ? null

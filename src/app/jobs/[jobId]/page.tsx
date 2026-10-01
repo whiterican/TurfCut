@@ -147,7 +147,13 @@ async function WorkerPanel({
     credentials: answers.credentials,
     noExtraCredentials: answers.credentials.length === 1 && answers.credentials[0].startsWith("None"),
     spotsLeft: job.headcount === null ? null : Math.max(0, job.headcount - acceptedCount),
-    hasBoundaries: !!pref?.campaignBoundaries?.length,
+    // Only claim "within your boundaries" when they were actually checked:
+    // matching-mode answers, a disclosed campaign, at least one do-not-match.
+    hasBoundaries:
+      !!pref &&
+      pref.visibilityMode !== "PRIVATE" &&
+      !!readDisclosure(job.campaignDisclosure) &&
+      (pref.campaignBoundaries ?? []).some((b) => b.stance === "do_not_match"),
   });
 
   return (

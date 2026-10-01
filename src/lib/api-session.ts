@@ -1,4 +1,4 @@
-import { getSessionProfile, type SessionProfile } from "@/lib/auth";
+import { getSessionProfile, type Role, type SessionProfile } from "@/lib/auth";
 import { HIRING_ROLES } from "@/lib/access";
 import { db } from "@/lib/db";
 import { UUID_RE } from "@/lib/jobs";
@@ -33,4 +33,18 @@ export function engagementResponse(r: { ok: true; engagementId: string; status: 
 /** Route ids must be UUIDs; anything else is simply not found. */
 export function badId(...ids: string[]): Response | null {
   return ids.every((id) => UUID_RE.test(id)) ? null : Response.json({ error: "Not found." }, { status: 404 });
+}
+
+/** API guard: a member of an organization in one of `roles`. */
+export async function apiOrgRole(roles: Role[]): Promise<{ session: SessionProfile & { orgId: string } } | Denied> {
+  const session = await getSessionProfile();
+  if (!session) return deny(401, "Sign in required.");
+  if (!roles.includes(session.role) || !session.orgId) return deny(403, "Your role can't do this.");
+  return { session: { ...session, orgId: session.orgId } };
+}
+
+/** Shift action result → HTTP. Rule refusals are 409. */
+export function resultResponse(r: { ok: true } | { ok: false; reason: string }) {
+  if (r.ok) return Response.json({ ok: true });
+  return Response.json({ error: r.reason }, { status: /not found/i.test(r.reason) ? 404 : 409 });
 }

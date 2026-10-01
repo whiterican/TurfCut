@@ -1,4 +1,4 @@
-import { plural } from "@/lib/format";
+import { num, percent, plural } from "@/lib/format";
 import type { MetricExplanation, Period, Scorecard, ScorecardSegment } from "@/lib/scorecard";
 
 const WORK_TYPE_LABELS = { PETITION: "Petition circulation", CANVASS: "Door-to-door canvass" } as const;
@@ -15,7 +15,7 @@ const AVERAGES: Array<{ key: keyof ScorecardSegment["averages"]; label: string; 
 
 function fmt(m: MetricExplanation, pct?: boolean): string {
   if (m.value === null) return "No data yet";
-  return pct ? `${(m.value * 100).toFixed(1)}%` : m.value.toFixed(2);
+  return pct ? percent(m.value) : num(m.value);
 }
 
 function Metric({ label, m, pct, dot }: { label: string; m: MetricExplanation; pct?: boolean; dot?: string }) {
@@ -35,14 +35,15 @@ function Metric({ label, m, pct, dot }: { label: string; m: MetricExplanation; p
 function Segment({ seg }: { seg: ScorecardSegment }) {
   const v = seg.verificationBreakdown;
   const totals: Array<[string, string]> = [
-    ["Doors attempted", seg.doorsAttempted.toLocaleString()],
+    ["Doors attempted", num(seg.doorsAttempted)],
     [
-      "Signatures submitted",
-      `${seg.signaturesSubmitted.toLocaleString()} (${seg.signaturesAccepted.toLocaleString()} accepted of ${seg.signaturesReviewed.toLocaleString()} reviewed)`,
+      "Signatures",
+      `${num(seg.signaturesSubmitted)} submitted · ${num(seg.signaturesAccepted)} accepted` +
+        (seg.signaturesReviewed < seg.signaturesSubmitted ? ` · ${num(seg.signaturesSubmitted - seg.signaturesReviewed)} awaiting review` : ""),
     ],
     ["Campaigns", String(seg.campaignsCount)],
     ["Ballot initiatives", String(seg.initiativesCount)],
-    ["Verified active hours", String(seg.activeHours)],
+    ["Verified active hours", num(seg.activeHours, 1)],
   ];
   return (
     <div className="space-y-4">

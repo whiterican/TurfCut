@@ -1,12 +1,10 @@
 import { requireAuth } from "@/lib/auth";
 import { SCHEDULING_ROLES } from "@/lib/access";
-import { createClient } from "@/lib/supabase/server";
 import { db } from "@/lib/db";
 import { ACCEPTED_STATUSES } from "@/lib/engagements";
 import { payText } from "@/lib/jobs";
 import { loadOps } from "@/lib/field-day-data";
 import { LocalTime } from "@/components/LocalTime";
-import { redirect } from "next/navigation";
 import Link from "next/link";
 
 const ROLE_LABELS: Record<string, string> = {
@@ -52,10 +50,7 @@ async function WorkerHero({ workerId }: { workerId: string }) {
             <span className="block font-bold"><LocalTime iso={shift.startsAt.toISOString()} mode="time" /></span>
             <span className="hero-muted">{live ? "Started" : "Check-in"}{shift.stagingLocation ? ` · ${shift.stagingLocation}` : ""}</span>
           </span>
-          <span>
-            <span className="block font-bold">{payText(shift.engagement.job.compensationMethod, shift.engagement.job.payRateCents)}</span>
-            <span className="hero-muted">Gross rate</span>
-          </span>
+          <span className="self-end font-bold">{payText(shift.engagement.job.compensationMethod, shift.engagement.job.payRateCents)}</span>
         </p>
       </Link>
     );
@@ -126,13 +121,6 @@ async function OrgHero({ orgId }: { orgId: string }) {
 export default async function DashboardPage() {
   const session = await requireAuth();
 
-  async function signOut() {
-    "use server";
-    const supabase = await createClient();
-    await supabase.auth.signOut();
-    redirect("/login");
-  }
-
   const isWorker = session.role === "WORKER" && !!session.workerId;
   const canHire = session.role === "OWNER" || session.role === "RECRUITER";
   const [worker, org] = await Promise.all([
@@ -148,14 +136,9 @@ export default async function DashboardPage() {
           <p className="eyebrow">{isWorker ? "Today" : "Operations"}</p>
           <h1 className="page-title">{name}</h1>
           <p className="text-muted-sm">
-            {ROLE_LABELS[session.role] ?? session.role} · <span className="text-fg">{session.email}</span>
+            {[ROLE_LABELS[session.role] ?? session.role, session.email].filter(Boolean).join(" · ")}
           </p>
         </div>
-        <form action={signOut}>
-          <button type="submit" className="btn-secondary btn-sm">
-            Sign out
-          </button>
-        </form>
       </header>
 
       {isWorker && <WorkerHero workerId={session.workerId!} />}

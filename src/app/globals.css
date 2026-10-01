@@ -179,6 +179,13 @@ body {
     @apply pointer-events-none absolute -top-10 -right-10 size-32 rounded-full;
     background: var(--lime);
   }
+  /* Data-dense hero cards skip the corner highlight so numbers stay clear. */
+  .hero-card-plain::after {
+    display: none;
+  }
+  .hero-card-plain .eyebrow {
+    max-width: none;
+  }
   .hero-card > * {
     @apply relative z-10;
   }

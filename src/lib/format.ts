@@ -13,3 +13,12 @@ export function relativeTime(then: Date, now: Date): string {
   if (d < 14) return plural(d, "day") + " ago";
   return `on ${then.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
 }
+
+/**
+ * A measured value without noise: at most `digits` decimals, trailing zeros
+ * dropped ("40", "11.43", "3.5"), thousands separated.
+ */
+export const num = (v: number, digits = 2) => Number(v.toFixed(digits)).toLocaleString("en-US", { maximumFractionDigits: digits });
+
+/** A 0–1 rate as a percent with at most one decimal ("90%", "87.5%"). */
+export const percent = (v: number) => `${num(v * 100, 1)}%`;

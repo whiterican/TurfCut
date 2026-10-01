@@ -88,6 +88,41 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
   const live = !!st.checkedInAt && !st.checkedOutAt;
   const eyebrow = st.cancelled ? "Cancelled" : live ? (st.paused ? "On a break" : "Live shift") : st.checkedOutAt ? "Shift done" : "Upcoming shift";
 
+  const started = !!st.checkedInAt;
+  const workerActions = (
+    <>
+      {isWorker && !st.cancelled && !st.checkedOutAt && (
+        <section className="card space-y-4">
+          {!st.checkedInAt ? (
+            <>
+              <CheckInButton shiftId={s.id} hasStaging={!!staging} />
+              {/* Late cancellations hurt campaigns: a real button, with the consequence up front. */}
+              <details className="group space-y-3">
+                <summary className="btn-secondary w-full cursor-pointer list-none">
+                  <span className="group-open:hidden">Can&apos;t make it</span>
+                  <span className="hidden group-open:inline">Keep my shift</span>
+                </summary>
+                <div className="space-y-3">
+                  <p className="text-sm font-semibold text-fg">Cancel this shift</p>
+                  <ActionButton action={workerStep} fields={{ shiftId: s.id, kind: "cancel" }} label="Cancel shift" variant="btn-secondary">
+                    <label className="min-w-48 flex-1 space-y-1.5">
+                      <span className="label">Reason</span>
+                      <input name="reason" className="field" required maxLength={200} />
+                    </label>
+                  </ActionButton>
+                </div>
+              </details>
+              <p className="text-hint">Cancelling inside the job&apos;s notice window counts as a no-show on your scorecard.</p>
+            </>
+          ) : (
+            <OnShiftActions shiftId={s.id} workType={f.workType} paused={st.paused} packetsOut={st.packetsOut} />
+          )}
+        </section>
+      )}
+
+    </>
+  );
+
   return (
     <main className="page max-w-2xl">
       <header className="page-header">
@@ -101,22 +136,39 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
         {live && <span className={st.paused ? "badge-butter" : "badge-mint"}>{st.paused ? "On break" : "On shift"}</span>}
       </header>
 
+      {!started && workerActions}
       <div className="hero-card space-y-4">
         <p className="eyebrow">
           <LocalTime iso={s.startsAt.toISOString()} mode="date" />
-          {s.stagingLocation ? ` · ${s.stagingLocation}` : ""}
+          {started && s.stagingLocation ? ` · ${s.stagingLocation}` : ""}
         </p>
-        <p className="hero-title">
-          {petition ? `${st.signatures} signature${st.signatures === 1 ? "" : "s"} submitted` : `${st.doors} doors · ${st.contacts} contacts`}
-        </p>
+        {started ? (
+          <p className="hero-title">
+            {petition ? `${st.signatures} signature${st.signatures === 1 ? "" : "s"} submitted` : `${st.doors} doors · ${st.contacts} contacts`}
+          </p>
+        ) : (
+          // Before the shift: when and where, not a zero.
+          <p className="hero-title">
+            <LocalTime iso={s.startsAt.toISOString()} mode="time" /> – <LocalTime iso={s.endsAt.toISOString()} mode="time" />
+          </p>
+        )}
         <p className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
-          <span>
-            <span className="block font-bold">
-              <LocalTime iso={s.startsAt.toISOString()} mode="time" /> – <LocalTime iso={s.endsAt.toISOString()} mode="time" />
+          {started ? (
+            <span>
+              <span className="block font-bold">
+                <LocalTime iso={s.startsAt.toISOString()} mode="time" /> – <LocalTime iso={s.endsAt.toISOString()} mode="time" />
+              </span>
+              <span className="hero-muted">Shift</span>
             </span>
-            <span className="hero-muted">Shift</span>
-          </span>
-          {petition && (
+          ) : (
+            s.stagingLocation && (
+              <span>
+                <span className="block font-bold">{s.stagingLocation}</span>
+                <span className="hero-muted">Staging — check in here</span>
+              </span>
+            )
+          )}
+          {petition && started && (
             <span>
               <span className="block font-bold">{st.packetsOut.length ? st.packetsOut.join(", ") : "—"}</span>
               <span className="hero-muted">Packets out</span>
@@ -125,30 +177,7 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
         </p>
       </div>
 
-      {isWorker && !st.cancelled && !st.checkedOutAt && (
-        <section className="card space-y-4">
-          {!st.checkedInAt ? (
-            <>
-              <CheckInButton shiftId={s.id} hasStaging={!!staging} />
-              <details className="text-sm">
-                <summary className="cursor-pointer text-muted">Can&apos;t make it?</summary>
-                <div className="pt-3">
-                  <ActionButton action={workerStep} fields={{ shiftId: s.id, kind: "cancel" }} label="Cancel shift" variant="btn-secondary">
-                    <label className="min-w-48 flex-1 space-y-1.5">
-                      <span className="label">Reason</span>
-                      <input name="reason" className="field" required maxLength={200} />
-                    </label>
-                  </ActionButton>
-                  <p className="text-hint pt-2">Cancelling inside the job&apos;s notice window counts as a no-show on your scorecard.</p>
-                </div>
-              </details>
-            </>
-          ) : (
-            <OnShiftActions shiftId={s.id} workType={f.workType} paused={st.paused} packetsOut={st.packetsOut} />
-          )}
-        </section>
-      )}
-
+      {started && workerActions}
       {canField && !st.cancelled && (
         <section className="section">
           <h2 className="section-title">Supervisor</h2>

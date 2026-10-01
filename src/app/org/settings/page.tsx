@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { db } from "@/lib/db";
 import { ORG_ROLES } from "@/lib/access";
 import { requireOrgMember } from "@/lib/employer-session";
@@ -39,6 +40,7 @@ export default async function OrgSettingsPage() {
           <p className="eyebrow">Organization settings</p>
           <h1 className="page-title">{org.name}</h1>
         </div>
+        <Link href="/settings" className="btn-ghost btn-sm">Settings &amp; sign out</Link>
       </header>
 
       <section className="section">

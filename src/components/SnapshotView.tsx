@@ -1,11 +1,11 @@
 import type { HiringSnapshot } from "@/lib/engagements";
 import { FitSignals } from "@/components/FitSignals";
 import { RelativeTime } from "@/components/RelativeTime";
-import { plural } from "@/lib/format";
+import { num, percent, plural } from "@/lib/format";
 import { Row } from "@/components/Row";
 
 const pct = (m: { value: number | null; numerator: number; denominator: number }) =>
-  m.value === null ? "No data yet" : `${Math.round(m.value * 100)}% (${m.numerator} of ${m.denominator})`;
+  m.value === null ? "No data yet" : `${percent(m.value)} (${m.numerator} of ${m.denominator})`;
 
 /**
  * What the organization could see when this hiring decision was made —
@@ -30,7 +30,7 @@ export function SnapshotView({ snapshot }: { snapshot: HiringSnapshot }) {
         ) : (
           s.segments.map((seg) => (
             <Row key={seg.workType} label={seg.workType === "PETITION" ? "Petitioning" : "Canvassing"}>
-              {plural(seg.shiftsCount, "verified shift")} · {seg.activeHours.toFixed(1)} active hours
+              {plural(seg.shiftsCount, "verified shift")} · {num(seg.activeHours, 1)} active hours
             </Row>
           ))
         )}

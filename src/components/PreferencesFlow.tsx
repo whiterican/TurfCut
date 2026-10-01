@@ -52,7 +52,15 @@ const chip = "chip";
 const nullIfEmpty = <T,>(xs: T[]) => (xs.length ? xs : null);
 
 export function PreferencesFlow({ initial, consentText }: { initial: FitPreferences | null; consentText: string }) {
-  const [step, setStep] = useState(0);
+  const [step, setStepRaw] = useState(0);
+  // Steps you've reached stay tappable, so you can jump back (or forward
+  // again) without paging through.
+  const [reached, setReached] = useState(0);
+  const setStep = (n: number | ((s: number) => number)) => {
+    const next = typeof n === "function" ? n(step) : n;
+    setStepRaw(next);
+    setReached((r) => Math.max(r, next));
+  };
   // Starts from the worker's own latest answers, or from nothing. There are
   // no pre-selected answers: the worker picks every value themselves.
   const [draft, setDraft] = useState<Draft>(
@@ -69,17 +77,31 @@ export function PreferencesFlow({ initial, consentText }: { initial: FitPreferen
 
   return (
     <div className="space-y-8">
-      <ol className="flex flex-wrap gap-2 text-xs">
-        {FLOW_STEPS.map((s, i) => (
-          <li
-            key={s}
-            className={`step ${i === step ? "step-current" : i < step ? "step-done" : ""}`}
-            aria-current={i === step ? "step" : undefined}
-          >
-            {i + 1}. {STEP_TITLES[s]}
-          </li>
-        ))}
-      </ol>
+      <nav aria-label="Steps" className="space-y-3">
+        <div className="flex items-center justify-between text-sm">
+          <span className="font-semibold text-fg">Step {step + 1} of {FLOW_STEPS.length}</span>
+          <span className="text-subtle">{Math.round(((step + 1) / FLOW_STEPS.length) * 100)}%</span>
+        </div>
+        <div className="h-1.5 overflow-hidden rounded-full bg-surface-2" aria-hidden>
+          <div className="h-full rounded-full bg-lime transition-all" style={{ width: `${((step + 1) / FLOW_STEPS.length) * 100}%` }} />
+        </div>
+        <ol className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+          {FLOW_STEPS.map((s, i) => (
+            <li key={s} className="shrink-0">
+              <button
+                type="button"
+                className={`step min-h-10 disabled:cursor-not-allowed disabled:opacity-50 ${i === step ? "step-current" : i <= reached ? "step-done" : ""}`}
+                aria-current={i === step ? "step" : undefined}
+                disabled={i > reached || (i > 0 && !draft.visibilityMode)}
+                onClick={() => setStep(i)}
+              >
+                {i < step && <span aria-hidden>✓</span>}
+                {STEP_TITLES[s]}
+              </button>
+            </li>
+          ))}
+        </ol>
+      </nav>
 
       <h2 className="section-title text-xl">{STEP_TITLES[key]}</h2>
 

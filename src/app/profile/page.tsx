@@ -27,6 +27,7 @@ export default async function ProfilePage() {
           <p className="eyebrow">Your profile</p>
           <h1 className="page-title">{worker.displayName}</h1>
         </div>
+        <Link href="/settings" className="btn-ghost btn-sm">Settings &amp; sign out</Link>
       </header>
 
       <section className="section">

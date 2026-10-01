@@ -3,6 +3,8 @@ import { requireWorker } from "@/lib/worker-session";
 import { CONSENT_TEXT, loadLatestPreference } from "@/lib/political-fit-data";
 import { PreferencesFlow } from "@/components/PreferencesFlow";
 
+const dateText = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
+
 export default async function PreferencesPage() {
   const { workerId } = await requireWorker();
   const latest = await loadLatestPreference(workerId);
@@ -21,20 +23,17 @@ export default async function PreferencesPage() {
         </p>
         {latest && (
           <p className="text-hint">
-            Current: consent version {latest.consentVersion}, given{" "}
-            {latest.consentedAt.toISOString().slice(0, 10)}
+            You last saved your answers on {dateText(latest.consentedAt)}
             {latest.status.state === "current" &&
-              (latest.status.expiresAt
-                ? `, expires ${latest.status.expiresAt.toISOString().slice(0, 10)}`
-                : ", no expiry")}
-            . Saving changes creates version {latest.consentVersion + 1}.
+              (latest.status.expiresAt ? `. They're used until ${dateText(latest.status.expiresAt)}, unless you change them` : ". They're used until you change them")}
+            . If you change anything, your earlier answers are kept on record, never overwritten.
           </p>
         )}
         {latest && latest.status.state !== "current" && (
           <p role="status" className="alert-warning">
             {latest.status.state === "expired"
-              ? `Your consent expired on ${latest.status.expiredAt.toISOString().slice(0, 10)}.`
-              : "Your saved answers were given under earlier consent wording."}{" "}
+              ? `Your permission to use these answers ran out on ${dateText(latest.status.expiredAt)}.`
+              : "We've updated the wording of what you agree to since you last saved."}{" "}
             Until you review and reconfirm below, your answers aren&apos;t used for
             matching and organizations see &quot;not shared&quot;.
           </p>

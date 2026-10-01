@@ -33,7 +33,7 @@ export function useSubmit(
         after?.(r, form);
       } catch (err) {
         unstable_rethrow(err); // redirect() after creating a team chat, etc.
-        setState({ ok: false, message: "Couldn't reach Turfcut. Check your connection and try again — nothing was lost." });
+        setState({ ok: false, message: "Couldn't reach Turfcut, so this may not have gone through. Your text is still here — check the conversation before sending again." });
       } finally {
         inFlight.current = false;
       }

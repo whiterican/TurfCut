@@ -47,11 +47,13 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
     const next = new URLSearchParams(params);
     if (next.get(key) === value) next.delete(key);
     else next.set(key, value);
+    // Turning "This week" on replaces a typed date, so the chip and the results agree.
+    if (key === "week" && next.get("week") === "1") next.delete("startsBefore");
     const qs = next.toString();
     return qs ? `/jobs?${qs}` : "/jobs";
   };
   const quick = [
-    { label: "This week", href: toggle("week", "1"), on: params.get("week") === "1", tone: "filter-chip-sky" },
+    { label: "This week", href: toggle("week", "1"), on: params.get("week") === "1" && !params.get("startsBefore"), tone: "filter-chip-sky" },
     { label: "Petition", href: toggle("type", "PETITION"), on: filters.type === "PETITION", tone: "filter-chip-butter" },
     { label: "Canvass", href: toggle("type", "CANVASS"), on: filters.type === "CANVASS", tone: "filter-chip-mint" },
     { label: "No credentials", href: toggle("noCredentials", "1"), on: !!filters.noCredentials, tone: "filter-chip-lime" },

@@ -101,6 +101,22 @@ until both are on file.
 **Already on M2?** Paste `prisma/m3-migration.sql` once (nullable columns
 only; safe to re-run).
 
+**Already on M3? Messaging (M4)** — in the Supabase SQL editor:
+1. Run `prisma/m4-0-rls-lockdown.sql` (turns on row-level security for every
+   existing table and takes back the browser roles' default access — the app
+   itself is unaffected; it connects as the database owner). Safe to re-run.
+2. Run `prisma/m4-migration.sql` once (chat tables, append-only triggers,
+   access-ending triggers, the policies Realtime uses).
+3. Turn on Realtime for messages:
+   `ALTER PUBLICATION supabase_realtime ADD TABLE "public"."Message", "public"."MessageRevision";`
+4. Check the app's database login bypasses row-level security (should say `t`):
+   `select rolbypassrls from pg_roles where rolname = current_user;`
+5. Storage → **New bucket** → name `chat-attachments`, **Public: off**. The app
+   uploads through the server only and hands out 60-second download links.
+
+Without steps 3 and 5, chat still works: threads refresh every 15 seconds
+instead of instantly, and attaching a document fails with a clear error.
+
 Until steps 1–4 are done, `npm run dev` boots fine and the login/signup pages
 render, but sign-up will fail with a clear "missing environment variable"
 message.
@@ -154,6 +170,8 @@ prisma/
   m1-profile-migration.sql # experience fields + consent expiry (run 2nd)
   m2-migration.sql      # M1 → M2 upgrade (jobs, publish gate, cancellations)
   m3-migration.sql      # M2 → M3 upgrade (staging, turf, supervisor, actor)
+  m4-0-rls-lockdown.sql # RLS on + browser-role grants revoked (run before m4)
+  m4-migration.sql      # M3 → M4 upgrade (messaging)
 ```
 
 ## M0 scope (done)
@@ -263,4 +281,34 @@ public launch (OSM's tile policy).
 API: `GET/POST /api/shifts`, `POST /api/shifts/:id/check-in` `{ lat?, lng? }`,
 `POST /api/shifts/:id/events` `{ kind, … }`,
 `POST /api/shifts/:id/closeout` `{ status, reason? }`.
+
+## M4 scope — messaging
+
+- **Direct messages**: one thread per hire, between the worker and the person
+  who hired them (the inviter, the person who accepted the application, or —
+  for instant claims — the job's creator, else the owner). Opens only once
+  the hire is confirmed; read-only when it ends. If that contact leaves the
+  organization, the worker can reopen the thread with a current contact, who
+  sees it only from that point on.
+- **Team chats**: owners, recruiters and supervisors create a chat for a
+  campaign or team, tied to jobs, and add staff (managers) and workers hired
+  on those jobs. Workers never add themselves. Managers' messages carry a
+  "Manager" badge. Removed members keep read-only history up to their
+  removal; a worker whose hire ends, or staff who leave the org or lose
+  their role, are removed automatically (database triggers).
+- **Safety**: workers can block an employer or manager (their new messages
+  are hidden, history stays). Anyone can report a message; reports go to the
+  org owner's queue (**Messages → Reports**) and the audit log, and the
+  owner can remove a reported message.
+- **History is append-only**: edits (within 5 minutes, marked "edited") and
+  deletes ("Message deleted") are new rows; the original is never changed.
+- **Attachments**: documents only (PDF, Word, Excel, text; up to 4 MB). Photos
+  are refused everywhere, and documents are scanned for pictures (scanned
+  PDFs, embedded images, images encoded as text). The composer always shows
+  "Do not photograph or share signed petition sheets."
+- **Live updates**: Supabase Realtime, filtered by row-level security, with a
+  15-second refresh as a fallback. Unread counts per thread and on the
+  Messages tab. No push or email yet — `onMessageSent` in
+  `src/lib/chat-hooks.ts` is the hook a future notifier registers on.
+- Chat never reads or shows political-fit answers.
 

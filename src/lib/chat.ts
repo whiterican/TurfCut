@@ -25,7 +25,7 @@ const HIRED = new Set(["ACTIVE", "CLAIMED"]);
 
 export const MAX_BODY = 4000;
 export const EDIT_WINDOW_MS = 5 * 60_000;
-export const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
+export const MAX_ATTACHMENT_BYTES = 4 * 1024 * 1024;
 export const PETITION_NOTICE = "Do not photograph or share signed petition sheets. Custody is tracked as packet IDs and counts only.";
 
 export type Kind = "DIRECT" | "GROUP";
@@ -268,7 +268,7 @@ const PHOTO_REASON = `Photos can't be shared in Turfcut chats. ${PETITION_NOTICE
  */
 export function checkAttachment(file: { name: string; size: number; bytes: Uint8Array }): { ok: true; type: string } | { ok: false; reason: string } {
   if (file.size <= 0 || file.bytes.length === 0) return { ok: false, reason: "That file is empty." };
-  if (file.size > MAX_ATTACHMENT_BYTES || file.bytes.length > MAX_ATTACHMENT_BYTES) return { ok: false, reason: "Files can be up to 10 MB." };
+  if (file.size > MAX_ATTACHMENT_BYTES || file.bytes.length > MAX_ATTACHMENT_BYTES) return { ok: false, reason: "Files can be up to 4 MB." };
   // No slashes, control characters or text-direction overrides (which can
   // make "x‮gpj.txt" display as "xtxt.jpg").
   if (!/^[^/\\\u0000-\u001f\u007f\u202a-\u202e\u2066-\u2069]{1,120}$/.test(file.name)) {

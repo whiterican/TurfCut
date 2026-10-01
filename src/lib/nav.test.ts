@@ -3,9 +3,10 @@ import { activeTab, navTabs } from "./nav";
 
 describe("navigation", () => {
   it("gives each role its own tabs", () => {
-    expect(navTabs("WORKER", false).map((t) => t.label)).toEqual(["Today", "Work", "Shifts", "Profile"]);
-    expect(navTabs("OWNER", true).map((t) => t.label)).toEqual(["Ops", "Jobs", "People", "Settings"]);
-    // Worker profiles are for owners and recruiters only.
+    expect(navTabs("WORKER", false).map((t) => t.label)).toEqual(["Today", "Work", "Shifts", "Messages", "Profile"]);
+    expect(navTabs("OWNER", true).map((t) => t.label)).toEqual(["Ops", "Jobs", "People", "Messages", "Settings"]);
+    expect(navTabs("SUPERVISOR", true).map((t) => t.label)).toEqual(["Ops", "Jobs", "Messages", "Settings"]);
+    // Worker profiles are for owners and recruiters only; chat is for team staff.
     expect(navTabs("COMPLIANCE", true).map((t) => t.label)).toEqual(["Ops", "Jobs", "Settings"]);
     expect(navTabs("RECRUITER", false)).toEqual([]);
     expect(navTabs(null, false)).toEqual([]);

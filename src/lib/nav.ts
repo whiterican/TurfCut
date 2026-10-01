@@ -1,13 +1,16 @@
 import type { Role } from "@/lib/auth";
+import { CHAT_STAFF_ROLES } from "@/lib/chat";
 
 export interface NavTab {
   href: string;
   label: string;
 }
 
+export const MESSAGES_HREF = "/messages";
+
 /**
  * Tabs per role (screen mockups: Today / Work / Shifts / Profile for workers;
- * Ops / Jobs / People for organizers). Chat joins when it ships.
+ * Ops / Jobs / People for organizers), plus Messages for everyone who chats.
  */
 export function navTabs(role: Role | null, hasOrg: boolean): NavTab[] {
   if (role === "WORKER") {
@@ -15,6 +18,7 @@ export function navTabs(role: Role | null, hasOrg: boolean): NavTab[] {
       { href: "/dashboard", label: "Today" },
       { href: "/jobs", label: "Work" },
       { href: "/shifts", label: "Shifts" },
+      { href: MESSAGES_HREF, label: "Messages" },
       { href: "/profile", label: "Profile" },
     ];
   }
@@ -24,6 +28,7 @@ export function navTabs(role: Role | null, hasOrg: boolean): NavTab[] {
     { href: "/dashboard", label: "Ops" },
     { href: "/jobs", label: "Jobs" },
     ...(hiring ? [{ href: "/workers", label: "People" }] : []),
+    ...(CHAT_STAFF_ROLES.includes(role) ? [{ href: MESSAGES_HREF, label: "Messages" }] : []),
     { href: "/org/settings", label: "Settings" },
   ];
 }

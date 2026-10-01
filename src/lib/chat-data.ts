@@ -277,6 +277,8 @@ export interface ThreadView {
   title: string;
   subtitle: string;
   access: Access;
+  /** GROUP: the team's jobs (for finding people to add). */
+  jobIds: string[];
   canManage: boolean;
   canBlock: boolean;
   members: ThreadMember[];
@@ -306,6 +308,7 @@ export async function openThread(me: ChatUser, conversationId: string): Promise<
     title: direct ? personName(other?.profile) : (conv.name ?? "Team chat"),
     subtitle: direct ? (conv.engagement?.job.title ?? "") : conv.jobs.map((j) => j.job.title).join(" · "),
     access,
+    jobIds: conv.jobs.map((j) => j.jobId),
     canManage: canManageMembers(ctx.facts).ok,
     canBlock: me.role === "WORKER",
     members: conv.participants

@@ -665,8 +665,11 @@ CREATE OR REPLACE FUNCTION "turfcut_private"."can_see"(p_conversation uuid, p_au
 RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = '' AS $$
   SELECT EXISTS (
            SELECT 1 FROM "public"."ConversationParticipant" p
+             JOIN "public"."Conversation" c ON c."id" = p."conversationId"
             WHERE p."conversationId" = p_conversation AND p."profileId" = auth.uid()
-              AND (p."removedAt" IS NULL OR p_at <= p."removedAt"))
+              AND (p."removedAt" IS NULL OR p_at <= p."removedAt")
+              -- A contact who takes over a direct thread reads it from when they joined.
+              AND (c."kind" = 'GROUP' OR p."role" = 'WORKER' OR p_at >= p."addedAt"))
      AND NOT EXISTS (
            SELECT 1 FROM "public"."ProfileBlock" b
             WHERE b."blockerId" = auth.uid() AND b."blockedId" = p_author

@@ -35,7 +35,7 @@ export interface ChatFacts {
   orgId: string;
   me: { profileId: string; role: Role; orgId: string | null };
   /** My participant row, if any. */
-  participant: { role: "WORKER" | "MANAGER"; removedAt: Date | null } | null;
+  participant: { role: "WORKER" | "MANAGER"; removedAt: Date | null; addedAt?: Date } | null;
   /** DIRECT: the engagement's status. */
   engagementStatus?: string;
   /** GROUP, worker: hired (ACTIVE/CLAIMED) on at least one of the chat's jobs. */
@@ -50,19 +50,26 @@ export interface Access {
   read: boolean;
   /** Messages after this are hidden (removed members). null = no limit. */
   readUntil: Date | null;
+  /**
+   * Messages before this are hidden. Direct threads only: a contact who
+   * takes over a worker's thread sees it from when they joined, never the
+   * worker's earlier private messages. null = from the start.
+   */
+  readFrom: Date | null;
   post: boolean;
   /** Why posting is closed, in plain words (null when open). */
   closed: string | null;
 }
 
-const NONE: Access = { read: false, readUntil: null, post: false, closed: "You're not in this conversation." };
+const NONE: Access = { read: false, readUntil: null, readFrom: null, post: false, closed: "You're not in this conversation." };
 
 export function chatAccess(f: ChatFacts): Access {
   const p = f.participant;
   if (!p) return NONE;
-  if (p.removedAt) return { read: true, readUntil: p.removedAt, post: false, closed: "You were removed from this conversation. History is read-only." };
-  const open = (): Access => ({ read: true, readUntil: null, post: true, closed: null });
-  const frozen = (closed: string): Access => ({ read: true, readUntil: null, post: false, closed });
+  const readFrom = f.kind === "DIRECT" && p.role === "MANAGER" ? (p.addedAt ?? null) : null;
+  if (p.removedAt) return { read: true, readUntil: p.removedAt, readFrom, post: false, closed: "You were removed from this conversation. History is read-only." };
+  const open = (): Access => ({ read: true, readUntil: null, readFrom, post: true, closed: null });
+  const frozen = (closed: string): Access => ({ read: true, readUntil: null, readFrom, post: false, closed });
 
   if (p.role === "MANAGER") {
     if (f.me.orgId !== f.orgId || !CHAT_STAFF_ROLES.includes(f.me.role)) return frozen("You no longer manage this conversation. History is read-only.");
@@ -112,7 +119,14 @@ export interface ViewMessage {
   attachment: RawMessage["attachment"];
 }
 
-export function viewMessages(messages: RawMessage[], revisions: RawRevision[], viewerId: string, blocks: Block[], readUntil: Date | null): ViewMessage[] {
+export function viewMessages(
+  messages: RawMessage[],
+  revisions: RawRevision[],
+  viewerId: string,
+  blocks: Block[],
+  readUntil: Date | null,
+  readFrom: Date | null = null
+): ViewMessage[] {
   const byMsg = new Map<string, RawRevision[]>();
   for (const r of revisions) byMsg.set(r.messageId, [...(byMsg.get(r.messageId) ?? []), r]);
   // Hidden if sent while the viewer had that sender blocked — and it stays
@@ -121,7 +135,7 @@ export function viewMessages(messages: RawMessage[], revisions: RawRevision[], v
   const blockedAt = (sender: string, at: Date) =>
     myBlocks.some((b) => b.blockedId === sender && b.createdAt <= at && (b.liftedAt === null || at < b.liftedAt));
   return messages
-    .filter((m) => !readUntil || m.createdAt <= readUntil)
+    .filter((m) => (!readUntil || m.createdAt <= readUntil) && (!readFrom || m.createdAt >= readFrom))
     .filter((m) => !blockedAt(m.senderId, m.createdAt))
     .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
     .map((m) => {

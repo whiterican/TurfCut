@@ -457,7 +457,7 @@ body {
     padding-bottom: env(safe-area-inset-bottom);
   }
   .tab {
-    @apply flex min-h-14 flex-1 flex-col items-center justify-center gap-1 text-xs font-semibold text-muted;
+    @apply relative flex min-h-14 flex-1 flex-col items-center justify-center gap-1 text-xs font-semibold text-muted;
   }
   .tab[aria-current="page"] {
     @apply text-fg;
@@ -476,6 +476,54 @@ body {
   }
   .topnav-link[aria-current="page"] {
     @apply bg-surface-2 text-fg;
+  }
+
+  /* ---- Messages -------------------------------------------------------- */
+  .unread-badge {
+    @apply inline-grid min-w-5 place-items-center rounded-full px-1.5 text-[0.6875rem] leading-5 font-bold tabular-nums;
+    background: var(--coral);
+    color: var(--ink);
+  }
+  .tab .unread-badge {
+    @apply absolute -top-1 left-1/2 ml-2;
+  }
+  .avatar {
+    @apply grid size-10 shrink-0 place-items-center rounded-full text-sm font-bold;
+    background: var(--surface-2);
+    color: var(--fg);
+    border: 1px solid var(--border);
+  }
+  .avatar-team {
+    background: var(--hero);
+    color: var(--hero-fg);
+  }
+  .bubble {
+    @apply max-w-[85%] rounded-2xl px-3.5 py-2 text-[0.9375rem] leading-relaxed break-words whitespace-pre-wrap;
+  }
+  .bubble-theirs {
+    @apply rounded-bl-md border border-border bg-surface text-fg;
+  }
+  .bubble-mine {
+    @apply rounded-br-md text-fg;
+    background: color-mix(in srgb, var(--lime) 20%, var(--surface));
+    border: 1px solid color-mix(in srgb, var(--lime) 45%, var(--border));
+  }
+  :root:not(.dark) .bubble-mine {
+    background: var(--primary);
+    color: var(--on-primary);
+    border-color: transparent;
+  }
+  .bubble-deleted {
+    @apply border border-dashed border-border bg-transparent text-subtle italic;
+  }
+  .quick-reply {
+    @apply inline-flex min-h-9 shrink-0 items-center rounded-full border border-border bg-surface px-3 text-xs font-semibold text-fg transition;
+  }
+  .quick-reply:hover:not(:disabled) {
+    border-color: var(--border-strong);
+  }
+  .skeleton {
+    @apply animate-pulse rounded-xl bg-surface-2;
   }
 }
 

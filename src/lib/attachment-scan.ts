@@ -35,6 +35,26 @@ const looksLikeImage = (b: Uint8Array) =>
   (b[8] === 0x57 && b[9] === 0x45 && b[10] === 0x42 && b[11] === 0x50) || // webp
   (b[4] === 0x66 && b[5] === 0x74 && b[6] === 0x79 && b[7] === 0x70); // heic/avif/mp4
 
+/** Pixel size from a PNG or JPEG header; null if unreadable (or another format). */
+export function imageSize(b: Uint8Array): { width: number; height: number } | null {
+  const be16 = (o: number) => (b[o] << 8) | b[o + 1];
+  const be32 = (o: number) => ((b[o] << 24) | (b[o + 1] << 16) | (b[o + 2] << 8) | b[o + 3]) >>> 0;
+  if (b.length >= 24 && b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47) return { width: be32(16), height: be32(20) };
+  if (b[0] !== 0xff || b[1] !== 0xd8) return null;
+  // Walk JPEG segments to the first start-of-frame marker.
+  for (let o = 2; o + 9 < b.length; ) {
+    if (b[o] !== 0xff) return null;
+    const marker = b[o + 1];
+    if (marker === 0xd8 || marker === 0x01 || (marker >= 0xd0 && marker <= 0xd7)) {
+      o += 2;
+      continue;
+    }
+    if (marker >= 0xc0 && marker <= 0xcf && ![0xc4, 0xc8, 0xcc].includes(marker)) return { height: be16(o + 5), width: be16(o + 7) };
+    o += 2 + be16(o + 2);
+  }
+  return null;
+}
+
 // ---------------------------------------------------------------------------
 // Text
 // ---------------------------------------------------------------------------
@@ -43,13 +63,14 @@ const looksLikeImage = (b: Uint8Array) =>
 export function textProblem(text: string): string | null {
   if (/<([\w-]+:)?svg[\s>/]|data:\s*image\/|\/\* XPM \*\/|^begin(-base64)? [0-7]{3} /im.test(text)) return PICTURES_REASON;
   if (/^\s*P[1-7]\s+(#[^\n]*\n\s*)*\d+\s+\d+/.test(text)) return PICTURES_REASON; // netpbm header
-  for (const run of text.match(/[A-Za-z0-9+/=_-]{1000,}/g) ?? []) if (!/^[0-9a-fA-F]+$/.test(run)) return PICTURES_REASON;
+  if (/[A-Za-z0-9+/=_-]{1000,}/.test(text)) return PICTURES_REASON;
   // Wrapped encodings: consecutive lines that are nothing but base64/hex.
   let run = 0;
   for (const line of text.split(/\r?\n/)) {
     const t = line.trim();
-    // Pure hex lines (checksums, IDs) are ordinary data; base64 needs more letters.
-    if (t.length >= 40 && /^[A-Za-z0-9+/=_-]+$/.test(t) && !/^[0-9a-fA-F]+$/.test(t)) {
+    // Short hex lines (checksums, IDs: up to 64 characters) are ordinary data.
+    const checksum = t.length <= 64 && /^[0-9a-fA-F]+$/.test(t);
+    if (t.length >= 40 && !checksum && /^[A-Za-z0-9+/=_-]+$/.test(t)) {
       run += t.length;
       if (run >= 1000) return PICTURES_REASON;
     } else if (t) run = 0;
@@ -146,7 +167,10 @@ export function zipDirectory(b: Uint8Array): { entries: ZipEntry[]; cdStart: num
 
 const OOXML_PART = /^(\[Content_Types\]\.xml|_rels\/|docProps\/|customXml\/|word\/|xl\/)/;
 const PRINTER_SETTINGS = /^(xl|word)\/printerSettings\/printerSettings\d+\.bin$/;
-/** The page preview Word/Excel save (Mac default). Allowed only when nothing else carries a picture. */
+/**
+ * The page preview Word/Excel save (Mac default). Allowed only when tiny —
+ * at most 256 px a side and 32 KB — far too small to read a signature.
+ */
 const THUMBNAIL = /^docProps\/thumbnail\.(jpe?g|png|emf|wmf)$/;
 /** Relationship types that pull in pictures, files or other documents. */
 const PICTURE_REL_TYPE = /\/(image|oleObject|package|aFChunk|video|audio|media|hdphoto|attachedTemplate|frame|subDocument)$/i;
@@ -154,8 +178,8 @@ const PICTURE_REL_TYPE = /\/(image|oleObject|package|aFChunk|video|audio|media|h
 /** Pictures pulled in by a .rels part — embedded, or linked from the web. Plain hyperlinks are fine. */
 function relsProblem(xml: string): boolean {
   for (const rel of xml.match(/<(\w+:)?Relationship\b[^>]*>/g) ?? []) {
-    const type = /\bType\s*=\s*"([^"]*)"/.exec(rel)?.[1] ?? "";
-    const external = /\bTargetMode\s*=\s*"External"/i.test(rel);
+    const type = /\bType\s*=\s*["']([^"']*)["']/.exec(rel)?.[1] ?? "";
+    const external = /\bTargetMode\s*=\s*["']External["']/i.test(rel);
     if (PICTURE_REL_TYPE.test(type)) return true;
     if (external && !/\/hyperlink$/i.test(type)) return true;
   }
@@ -204,8 +228,8 @@ export function ooxmlProblem(type: string, bytes: Uint8Array): string | null {
     }
     budget -= data.length;
     if (THUMBNAIL.test(e.name)) {
-      // A preview of the document's own (picture-free) pages.
-      if (data.length > 256 * 1024) return PICTURES_REASON;
+      const size = imageSize(data);
+      if (data.length > 32 * 1024 || !size || size.width > 256 || size.height > 256) return PICTURES_REASON;
     } else if (looksLikeImage(data)) {
       return PICTURES_REASON;
     } else if (PRINTER_SETTINGS.test(e.name)) {

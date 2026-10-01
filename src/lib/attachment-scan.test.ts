@@ -36,6 +36,9 @@ const DOCX = {
   "docProps/core.xml": "<cp:coreProperties/>",
 };
 const JPEG = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0, 16, 74, 70, 73, 70, 0, 1]);
+/** A JPEG header (APP0 + SOF0) declaring the given size. */
+const jpegOf = (w: number, h: number) =>
+  new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0, 16, 74, 70, 73, 70, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0, 0xff, 0xc0, 0, 17, 8, h >> 8, h & 255, w >> 8, w & 255, 3, 1, 0x22, 0, 2, 0x11, 1, 3, 0x11, 1]);
 
 describe("Word and Excel files", () => {
   it("accepts plain documents", () => {
@@ -45,10 +48,14 @@ describe("Word and Excel files", () => {
   it("accepts what real Word/Excel files carry: hyperlinks, page previews, printer settings, checksums", () => {
     const rels = '<Relationships><Relationship Id="rId9" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink" Target="https://turfcut.app" TargetMode="External"/></Relationships>';
     expect(vet("plan.docx", zip({ ...DOCX, "word/_rels/document.xml.rels": rels })).ok).toBe(true);
-    expect(vet("plan.docx", zip({ ...DOCX, "docProps/thumbnail.jpeg": JPEG })).ok).toBe(true);
+    expect(vet("plan.docx", zip({ ...DOCX, "docProps/thumbnail.jpeg": jpegOf(256, 181) })).ok).toBe(true);
     expect(vet("roster.xlsx", zip({ "[Content_Types].xml": "<Types/>", "xl/workbook.xml": "<workbook/>", "xl/printerSettings/printerSettings1.bin": new Uint8Array(200) })).ok).toBe(true);
     const sha = Array.from({ length: 16 }, (_, i) => (i.toString(16).repeat(64))).join("\n");
     expect(vet("hashes.txt", enc(sha)).ok).toBe(true);
+  });
+  it("refuses a photo passed off as the page preview", () => {
+    expect(vet("x.docx", zip({ ...DOCX, "docProps/thumbnail.jpeg": jpegOf(1700, 2200) })).ok).toBe(false);
+    expect(vet("x.docx", zip({ ...DOCX, "docProps/thumbnail.jpeg": JPEG })).ok).toBe(false); // size unreadable
   });
   it("refuses embedded pictures, however they're named", () => {
     const r = vet("x.docx", zip({ ...DOCX, "word/media/image1.png": JPEG }));
@@ -58,6 +65,8 @@ describe("Word and Excel files", () => {
     expect(vet("x.docx", zip({ ...DOCX, "word/afchunk.mht": "MIME" })).ok).toBe(false);
   });
   it("refuses linked or encoded pictures in the XML", () => {
+    const single = "<Relationships><Relationship Type='http://schemas.openxmlformats.org/officeDocument/2006/relationships/image' Target='https://x.test/a.jpg' TargetMode='External'/></Relationships>";
+    expect(vet("x.docx", zip({ ...DOCX, "word/_rels/document.xml.rels": single })).ok).toBe(false);
     const linked = '<Relationships><Relationship Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="https://x.test/a.jpg" TargetMode="External"/></Relationships>';
     expect(vet("x.docx", zip({ ...DOCX, "word/_rels/document.xml.rels": linked })).ok).toBe(false);
     expect(vet("x.docx", zip({ ...DOCX, "word/document.xml": `<w:document><v:imagedata src="data:image/png;base64,iVBOR"/></w:document>` })).ok).toBe(false);
@@ -119,5 +128,9 @@ describe("text files", () => {
     expect(vet("x.txt", enc("P3\n2550 3300\n255\n0 0 0")).ok).toBe(false);
     expect(vet("x.txt", enc("/* XPM */\nstatic char *x[] = {")).ok).toBe(false);
     expect(vet("x.txt", enc("begin 644 sheet.jpg\nM_]C_X``02D9)\n")).ok).toBe(false);
+    // A hex dump of an image, wrapped or not.
+    const hex = Buffer.from(new Uint8Array(1500).map((_, i) => (i * 37) % 256)).toString("hex");
+    expect(vet("x.txt", enc(hex)).ok).toBe(false);
+    expect(vet("x.txt", enc(hex.match(/.{1,80}/g)!.join("\n"))).ok).toBe(false);
   });
 });

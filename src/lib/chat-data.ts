@@ -87,7 +87,7 @@ async function loadContext(c: Client, me: ChatUser, conversationId: string) {
     kind: conv.kind,
     orgId: conv.orgId,
     me: { profileId: me.userId, role: me.role, orgId: me.orgId },
-    participant: mine ? { role: mine.role, removedAt: mine.removedAt } : null,
+    participant: mine ? { role: mine.role, removedAt: mine.removedAt, addedAt: mine.addedAt } : null,
   };
   if (conv.kind === "DIRECT" && conv.engagement) {
     facts.engagementStatus = conv.engagement.status;
@@ -104,9 +104,14 @@ async function loadContext(c: Client, me: ChatUser, conversationId: string) {
 }
 
 /** Messages as this viewer sees them: removal cutoff, blocks and revisions applied. */
-async function loadView(c: Client, conversationId: string, viewerId: string, readUntil: Date | null, opts: { take?: number; ids?: string[] } = {}) {
+async function loadView(c: Client, conversationId: string, viewerId: string, window: { readUntil: Date | null; readFrom: Date | null }, opts: { take?: number; ids?: string[] } = {}) {
+  const { readUntil, readFrom } = window;
   const rows = await c.message.findMany({
-    where: { conversationId, ...(readUntil ? { createdAt: { lte: readUntil } } : {}), ...(opts.ids ? { id: { in: opts.ids } } : {}) },
+    where: {
+      conversationId,
+      ...(readUntil || readFrom ? { createdAt: { ...(readUntil ? { lte: readUntil } : {}), ...(readFrom ? { gte: readFrom } : {}) } } : {}),
+      ...(opts.ids ? { id: { in: opts.ids } } : {}),
+    },
     orderBy: { createdAt: "desc" },
     take: opts.take,
   });
@@ -125,7 +130,8 @@ async function loadView(c: Client, conversationId: string, viewerId: string, rea
     revisions.map((r): RawRevision => ({ messageId: r.messageId, actorId: r.actorId, kind: r.kind, body: r.body, createdAt: r.createdAt })),
     viewerId,
     blocks,
-    readUntil
+    readUntil,
+    readFrom
   );
   return { view, rows, revisions, truncated: opts.take !== undefined && rows.length === opts.take };
 }
@@ -144,6 +150,8 @@ async function unreadByConversation(profileId: string): Promise<Map<string, numb
        AND m."senderId" <> p."profileId"
        AND (p."lastReadAt" IS NULL OR m."createdAt" > p."lastReadAt")
        AND (p."removedAt" IS NULL OR m."createdAt" <= p."removedAt")
+       AND (p."role" = 'WORKER' OR m."createdAt" >= p."addedAt"
+            OR NOT EXISTS (SELECT 1 FROM "Conversation" cv WHERE cv."id" = p."conversationId" AND cv."kind" = 'DIRECT'))
        AND NOT EXISTS (SELECT 1 FROM "MessageRevision" r
                         WHERE r."messageId" = m."id" AND r."kind" = 'DELETE'
                           AND (p."removedAt" IS NULL OR r."createdAt" <= p."removedAt")
@@ -196,14 +204,18 @@ function preview(m: ViewMessage): string {
  */
 async function latestVisible(profileId: string): Promise<Map<string, ViewMessage>> {
   const rows = await db().$queryRaw<
-    { id: string; conversationId: string; senderId: string; body: string; createdAt: Date; attachmentPath: string | null; attachmentName: string | null; attachmentType: string | null; attachmentSize: number | null; readUntil: Date | null }[]
+    { id: string; conversationId: string; senderId: string; body: string; createdAt: Date; attachmentPath: string | null; attachmentName: string | null; attachmentType: string | null; attachmentSize: number | null; readUntil: Date | null; readFrom: Date | null }[]
   >`
     SELECT m."id"::text, m."conversationId"::text, m."senderId"::text, m."body", m."createdAt",
-           m."attachmentPath", m."attachmentName", m."attachmentType", m."attachmentSize", p."removedAt" AS "readUntil"
+           m."attachmentPath", m."attachmentName", m."attachmentType", m."attachmentSize", p."removedAt" AS "readUntil",
+           CASE WHEN p."role" = 'MANAGER' AND c."kind" = 'DIRECT' THEN p."addedAt" END AS "readFrom"
       FROM "ConversationParticipant" p
+      JOIN "Conversation" c ON c."id" = p."conversationId"
       CROSS JOIN LATERAL (
         SELECT * FROM "Message" mm
          WHERE mm."conversationId" = p."conversationId" AND (p."removedAt" IS NULL OR mm."createdAt" <= p."removedAt")
+           AND (p."role" = 'WORKER' OR mm."createdAt" >= p."addedAt"
+            OR NOT EXISTS (SELECT 1 FROM "Conversation" cv WHERE cv."id" = p."conversationId" AND cv."kind" = 'DIRECT'))
          ORDER BY mm."createdAt" DESC LIMIT 20) m
      WHERE p."profileId" = ${profileId}::uuid`;
   if (rows.length === 0) return new Map();
@@ -221,7 +233,8 @@ async function latestVisible(profileId: string): Promise<Map<string, ViewMessage
       revisions.filter((r) => ids.has(r.messageId)).map((r) => ({ messageId: r.messageId, actorId: r.actorId, kind: r.kind, body: r.body, createdAt: r.createdAt })),
       profileId,
       blocks,
-      msgs[0].readUntil
+      msgs[0].readUntil,
+      msgs[0].readFrom
     );
     const last = view.at(-1);
     if (last) out.set(convId, last);
@@ -319,6 +332,10 @@ export interface ThreadView {
   access: Access;
   /** GROUP: the team's jobs (for finding people to add). */
   jobIds: string[];
+  /** DIRECT: this hire's next (or current) shift, for the card atop the thread. */
+  nextShift: { id: string; startsAt: Date; endsAt: Date; stagingLocation: string | null; active: boolean } | null;
+  /** DIRECT, frozen because the contact left while the hire is on: the worker can reopen with a current contact. */
+  reopenEngagementId: string | null;
   canManage: boolean;
   canBlock: boolean;
   members: ThreadMember[];
@@ -332,7 +349,7 @@ export async function openThread(me: ChatUser, conversationId: string): Promise<
   const ctx = await loadContext(db(), me, conversationId);
   if (!ctx || !ctx.access.read || !ctx.mine) return null;
   const { conv, mine, access } = ctx;
-  const { view, truncated } = await loadView(db(), conv.id, me.userId, access.readUntil, { take: THREAD_LIMIT });
+  const { view, truncated } = await loadView(db(), conv.id, me.userId, access, { take: THREAD_LIMIT });
   const myBlocks = new Set(
     (await db().profileBlock.findMany({ where: { blockerId: me.userId, liftedAt: null }, select: { blockedId: true } })).map((b) => b.blockedId)
   );
@@ -346,8 +363,17 @@ export async function openThread(me: ChatUser, conversationId: string): Promise<
   }
 
   const byId = new Map(conv.participants.map((p) => [p.profileId, p]));
+  const shift =
+    conv.kind === "DIRECT" && conv.engagement && access.read && !mine.removedAt
+      ? await db().shift.findFirst({
+          where: { engagementId: conv.engagement.id, status: { in: ["SCHEDULED", "ACTIVE"] }, endsAt: { gte: now } },
+          orderBy: { startsAt: "asc" },
+          select: { id: true, startsAt: true, endsAt: true, stagingLocation: true, status: true },
+        })
+      : null;
   const direct = conv.kind === "DIRECT";
-  const other = direct ? conv.participants.find((p) => p.profileId !== me.userId) : undefined;
+  const others = conv.participants.filter((p) => p.profileId !== me.userId);
+  const other = direct ? (others.find((p) => !p.removedAt) ?? others.at(-1)) : undefined;
   return {
     id: conv.id,
     kind: conv.kind,
@@ -355,6 +381,9 @@ export async function openThread(me: ChatUser, conversationId: string): Promise<
     subtitle: direct ? (conv.engagement?.job.title ?? "") : conv.jobs.map((j) => j.job.title).join(" · "),
     access,
     jobIds: conv.jobs.map((j) => j.jobId),
+    nextShift: shift ? { id: shift.id, startsAt: shift.startsAt, endsAt: shift.endsAt, stagingLocation: shift.stagingLocation, active: shift.status === "ACTIVE" } : null,
+    reopenEngagementId:
+      conv.kind === "DIRECT" && ctx.facts.counterpartRemoved && mine.role === "WORKER" && !mine.removedAt && isHired(conv.engagement?.status ?? "") ? (conv.engagement?.id ?? null) : null,
     canManage: canManageMembers(ctx.facts).ok,
     canBlock: me.role === "WORKER",
     members: conv.participants
@@ -428,6 +457,7 @@ export async function ensureDirect(me: ChatUser, engagementId: string): Promise<
     const stillStaff = !!boss && boss.orgId === e.job.orgId && CHAT_STAFF_ROLES.includes(boss.role as Role);
 
     if (e.conversation) {
+      await lock(tx, `conv:${e.conversation.id}`); // order: conv:engagement → conv
       // If the contact left (removed by the staff trigger) while the hire is
       // still on, hand the thread to a current contact instead of stranding it.
       const managers = await tx.conversationParticipant.findMany({ where: { conversationId: e.conversation.id, role: "MANAGER" } });
@@ -447,16 +477,18 @@ export async function ensureDirect(me: ChatUser, engagementId: string): Promise<
     const bossId = stillStaff ? boss.id : await defaultBoss(tx, e.jobId, e.job.orgId);
     if (!bossId || bossId === e.worker.profileId) return fail("No one at this organization can be messaged yet.");
     if (bossId !== e.hiredById) await tx.engagement.update({ where: { id: e.id }, data: { hiredById: bossId } });
+    const at = await dbNow(tx);
     const conv = await tx.conversation.create({
       data: {
         kind: "DIRECT",
         orgId: e.job.orgId,
         engagementId: e.id,
         createdById: me.userId,
+        createdAt: at,
         participants: {
           create: [
-            { profileId: e.worker.profileId, role: "WORKER", addedById: me.userId },
-            { profileId: bossId, role: "MANAGER", addedById: me.userId },
+            { profileId: e.worker.profileId, role: "WORKER", addedById: me.userId, addedAt: at },
+            { profileId: bossId, role: "MANAGER", addedById: me.userId, addedAt: at },
           ],
         },
       },
@@ -504,7 +536,9 @@ export async function sendMessage(
       if (!ctx || !ctx.access.read || !ctx.mine) return NOT_FOUND;
       const ok = canSend(ctx.access, body, attachment !== null);
       if (!ok.ok) return ok;
-      const at = await dbNow(tx);
+      // Strictly after the previous message, so "read up to X" is exact.
+      let at = await dbNow(tx);
+      if (ctx.conv.lastMessageAt && at <= ctx.conv.lastMessageAt) at = new Date(ctx.conv.lastMessageAt.getTime() + 1);
       const msg = await tx.message.create({
         data: {
           conversationId,
@@ -547,8 +581,8 @@ async function lockedMessage(tx: Prisma.TransactionClient, me: ChatUser, message
   if (!ctx) return null;
   // Participants see it through their window; others (an owner moderating)
   // see the stored message with its revisions.
-  const readUntil = ctx.access.read ? ctx.access.readUntil : null;
-  const { view, rows, revisions } = await loadView(tx, head.conversationId, me.userId, readUntil, { ids: [messageId] });
+  const window = ctx.access.read ? ctx.access : { readUntil: null, readFrom: null };
+  const { view, rows, revisions } = await loadView(tx, head.conversationId, me.userId, window, { ids: [messageId] });
   return { ctx, msg: view[0] ?? null, row: rows[0] ?? null, revisions };
 }
 
@@ -860,7 +894,7 @@ export async function attachmentLink(me: ChatUser, messageId: string, store: Att
   if (!head?.attachmentPath) return null;
   const ctx = await loadContext(db(), me, head.conversationId);
   if (!ctx || !ctx.access.read) return null;
-  const { view } = await loadView(db(), head.conversationId, me.userId, ctx.access.readUntil, { ids: [messageId] });
+  const { view } = await loadView(db(), head.conversationId, me.userId, ctx.access, { ids: [messageId] });
   if (!view[0] || view[0].deleted) return null;
   return store.signedUrl(head.attachmentPath, head.attachmentName ?? "attachment");
 }

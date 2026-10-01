@@ -52,6 +52,7 @@ describe("access — who can read and post", () => {
     expect(chatAccess(group({ participant: { role: "WORKER", removedAt: t(30) } }))).toEqual({
       read: true,
       readUntil: t(30),
+      readFrom: null,
       post: false,
       closed: "You were removed from this conversation. History is read-only.",
     });
@@ -94,6 +95,14 @@ describe("what a viewer sees", () => {
     const block = { blockerId: "w", blockedId: "boss", createdAt: t(5), liftedAt: null };
     const v = viewMessages(msgs, [{ messageId: "a", actorId: "boss", kind: "EDIT", body: "sneaky", createdAt: t(6) }], "w", [block], null);
     expect(v.find((x) => x.id === "a")).toMatchObject({ body: "a", edited: false });
+  });
+
+  it("a contact who takes over a direct thread sees it only from when they joined", () => {
+    const a = chatAccess(direct({ me: boss, participant: { role: "MANAGER", removedAt: null, addedAt: t(5) } }));
+    expect(a.readFrom).toEqual(t(5));
+    expect(viewMessages(msgs, [], "boss", [], null, a.readFrom).map((x) => x.id)).toEqual(["c", "d"]);
+    // Team chats keep full history for new members.
+    expect(chatAccess(group({ me: boss, participant: { role: "MANAGER", removedAt: null, addedAt: t(5) } })).readFrom).toBeNull();
   });
 
   it("cuts history at removal, including later edits", () => {

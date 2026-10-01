@@ -40,7 +40,7 @@ function Segment({ seg }: { seg: ScorecardSegment }) {
       `${seg.signaturesSubmitted.toLocaleString()} (${seg.signaturesAccepted.toLocaleString()} accepted of ${seg.signaturesReviewed.toLocaleString()} reviewed)`,
     ],
     ["Campaigns", String(seg.campaignsCount)],
-    ["Ballot initiatives", seg.initiativesCount === null ? "Not tracked yet" : String(seg.initiativesCount)],
+    ["Ballot initiatives", String(seg.initiativesCount)],
     ["Verified active hours", String(seg.activeHours)],
   ];
   return (

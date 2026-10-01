@@ -37,7 +37,7 @@ describe("scorecard from the seeded shift (hand-computed, spec p.10 formulas)", 
   it("reports the spec's minimum totals, with signature stages stored separately", () => {
     expect(seg).toMatchObject({
       campaignsCount: 1,
-      initiativesCount: null,
+      initiativesCount: 0,
       shiftsCount: 1,
       activeHours: 3.5,
       doorsAttempted: 40,
@@ -195,6 +195,43 @@ describe("spec formulas and verification rules", () => {
       { now }
     );
     expect(s.reliability.showRate).toMatchObject({ value: 0.5, numerator: 1, denominator: 2 });
+  });
+
+  it("counts a late worker cancellation as a no-show; timely or org cancellations leave the denominator", () => {
+    const start = new Date("2026-09-28T09:00:00Z");
+    const cancel = (by: string, hoursBefore: number, extra: Partial<ScorecardShift> = {}) =>
+      shift([], {
+        startsAt: start,
+        status: "CANCELLED",
+        cancellationNoticeHours: 24,
+        ...extra,
+        events: [{ id: `c-${by}-${hoursBefore}`, type: "SHIFT_CANCELLED", payload: { by, reason: "test" }, createdAt: new Date(start.getTime() - hoursBefore * 3_600_000) }],
+      });
+    const s = computeScorecard(
+      [
+        shift([["CHECK_IN", 0], ["CHECK_OUT", 60]]), // started
+        cancel("WORKER", 2), // late: inside the 24h window → no-show
+        cancel("WORKER", 48), // timely → excused
+        cancel("ORGANIZATION", 1), // org cancelled → never the worker's fault
+        cancel("WORKER", 6, { cancellationNoticeHours: 4 }), // job allows 4h notice → timely
+      ],
+      { now }
+    );
+    expect(s.reliability.showRate).toMatchObject({ value: 0.5, numerator: 1, denominator: 2 });
+    expect(s.reliability.showRate.evidence).toMatch(/1 late cancellation.*3 timely or organization/);
+    expect(s.segments[0].shiftsCount).toBe(1); // cancelled shifts aren't work
+  });
+
+  it("counts unique ballot measures across verified shifts", () => {
+    const s = computeScorecard(
+      [
+        shift([["CHECK_IN", 0], ["CHECK_OUT", 60]], { measureIds: ["I-305", "I-12"] }),
+        shift([["CHECK_IN", 0], ["CHECK_OUT", 60]], { measureIds: ["I-305"] }),
+        shift([["CHECK_IN", 0], ["CHECK_OUT", 60]], { measureIds: ["I-99"], validations: [] }), // unverified
+      ],
+      { now }
+    );
+    expect(s.segments[0].initiativesCount).toBe(2);
   });
 
   it("treats an unclosed pause as paused until check-out", () => {

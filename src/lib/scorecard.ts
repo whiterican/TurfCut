@@ -64,6 +64,10 @@ export interface ScorecardShift {
   startsAt: Date;
   events: ScorecardEvent[];
   validations: ScorecardValidation[];
+  /** The job's notice window: a worker cancellation later than this is a no-show. Default 24. */
+  cancellationNoticeHours?: number;
+  /** The job's ballot measure / initiative IDs. */
+  measureIds?: string[];
 }
 
 export interface MetricExplanation {
@@ -82,8 +86,8 @@ export interface ScorecardSegment {
   statesWorked: string[];
   dateRange: { from: string; to: string } | null;
   campaignsCount: number;
-  /** Unique measure/initiative IDs. Jobs don't record them yet, so null. */
-  initiativesCount: number | null;
+  /** Unique measure/initiative IDs across the jobs behind verified shifts. */
+  initiativesCount: number;
   shiftsCount: number;
   activeHours: number;
   doorsAttempted: number;
@@ -351,7 +355,7 @@ function segment(
     statesWorked,
     dateRange,
     campaignsCount: new Set(verified.map((f) => f.shift.engagementId)).size,
-    initiativesCount: null,
+    initiativesCount: new Set(verified.flatMap((f) => f.shift.measureIds ?? [])).size,
     shiftsCount: n,
     activeHours: hours,
     doorsAttempted: doors,
@@ -410,6 +414,20 @@ function segment(
   };
 }
 
+/**
+ * How a shift was cancelled, from its newest SHIFT_CANCELLED event:
+ * "late" = by the worker inside the job's notice window; "excused" = by the
+ * worker in time, or by the organization; null = not cancelled by event.
+ */
+export function cancellationOf(shift: ScorecardShift): "late" | "excused" | null {
+  const { events } = effectiveEvents(shift.events, shift.validations);
+  const c = latest(events.filter((e) => e.type === "SHIFT_CANCELLED"));
+  if (!c) return null;
+  if (obj(c.payload).by !== "WORKER") return "excused";
+  const noticeMs = (shift.cancellationNoticeHours ?? 24) * 3_600_000;
+  return c.createdAt.getTime() > shift.startsAt.getTime() - noticeMs ? "late" : "excused";
+}
+
 export function computeScorecard(shifts: ScorecardShift[], opts: ScorecardOptions = {}): Scorecard {
   const now = opts.now ?? new Date();
   const period = opts.period ?? "lifetime";
@@ -424,19 +442,27 @@ export function computeScorecard(shifts: ScorecardShift[], opts: ScorecardOption
       (!opts.workType || s.workType === opts.workType) &&
       (!opts.state || s.state === opts.state)
   );
-  const facts = inScope.map(shiftFacts);
+  const all = inScope.map((s) => ({ s, cancellation: cancellationOf(s) }));
+  // Cancelled shifts produce no work, so they stay out of the segments.
+  const facts = all.filter((x) => !x.cancellation && x.s.status !== "CANCELLED").map((x) => shiftFacts(x.s));
 
   const workTypes = (["PETITION", "CANVASS"] as const).filter((w) => facts.some((f) => f.shift.workType === w));
   const segments = workTypes.map((w) =>
     segment(w, period, opts.state ?? null, facts.filter((f) => f.shift.workType === w))
   );
 
-  // Reliability spans every work type in scope. Cancelled shifts leave the
-  // denominator; late cancellations can't be told apart until shifts record
-  // when (and by whom) they were cancelled.
-  const accepted = facts.filter((f) => f.shift.status !== "CANCELLED");
-  const started = accepted.filter((f) => f.started).length;
-  const cancelled = facts.length - accepted.length;
+  // Reliability spans every work type in scope (spec p.10: started accepted
+  // shifts ÷ accepted shifts not timely cancelled).
+  // - A worker cancellation inside the job's notice window still counts as an
+  //   accepted shift that wasn't started — a no-show.
+  // - A timely worker cancellation, or any organization cancellation, leaves
+  //   the denominator.
+  // - A legacy CANCELLED shift with no SHIFT_CANCELLED event is treated as
+  //   excused: there's no record of who cancelled or when.
+  const late = all.filter((x) => x.cancellation === "late").length;
+  const excused = all.filter((x) => x.cancellation === "excused" || (!x.cancellation && x.s.status === "CANCELLED")).length;
+  const started = facts.filter((f) => f.started).length;
+  const acceptedDue = facts.length + late;
   const rel: ShiftTotals = {
     activeMs: 0,
     doorsAttempted: 0,
@@ -446,7 +472,7 @@ export function computeScorecard(shifts: ScorecardShift[], opts: ScorecardOption
     signaturesAccepted: 0,
     doorShiftsCompleted: 0,
     shiftsStarted: started,
-    shiftsAccepted: accepted.length,
+    shiftsAccepted: acceptedDue,
   };
 
   const lastEvent = facts
@@ -462,11 +488,11 @@ export function computeScorecard(shifts: ScorecardShift[], opts: ScorecardOption
       showRate: explain(
         showRate(rel),
         started,
-        accepted.length,
+        acceptedDue,
         "started accepted shifts ÷ accepted shifts not timely cancelled",
-        `started ${started} of ${accepted.length} accepted shift(s) due so far` +
-          (cancelled ? `; ${cancelled} cancelled shift(s) left out` : "") +
-          " (late cancellations can't be identified yet)"
+        `started ${started} of ${acceptedDue} accepted shift(s) due so far` +
+          (late ? `; ${late} late cancellation(s) by the worker counted as no-shows` : "") +
+          (excused ? `; ${excused} timely or organization cancellation(s) left out` : "")
       ),
     },
     lastUpdated: lastEvent ? lastEvent.toISOString() : null,

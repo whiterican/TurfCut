@@ -117,8 +117,11 @@ export function textProblem(text: string): string | null {
 // PDF
 // ---------------------------------------------------------------------------
 
-/** Picture-carrying PDF features: image XObjects, inline images, image filters, attached files. */
-const PDF_PICTURES = /\/Subtype\s*\/Image\b|\/(DCTDecode|JPXDecode|JBIG2Decode|CCITTFaxDecode|EmbeddedFiles?|FileAttachment|RichMedia|Movie|Sound)\b|(^|\s)BI\s*\/(W|Width|IM|ImageMask)\b/;
+/**
+ * Picture-carrying PDF features: image XObjects, inline images (the BI
+ * operator, whatever key comes first), image filters, attached files.
+ */
+const PDF_PICTURES = /\/Subtype\s*\/Image\b|\/(DCTDecode|JPXDecode|JBIG2Decode|CCITTFaxDecode|EmbeddedFiles?|FileAttachment|RichMedia|Movie|Sound)\b|(^|\s)BI\s*\/[A-Za-z]/;
 /** Encodings we can't see through. */
 const PDF_OPAQUE = /\/(Encrypt|LZWDecode|ASCII85Decode|ASCIIHexDecode|RunLengthDecode|Crypt)\b/;
 

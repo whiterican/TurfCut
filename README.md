@@ -117,6 +117,12 @@ only; safe to re-run).
 Without steps 3 and 5, chat still works: threads refresh every 15 seconds
 instead of instantly, and attaching a document fails with a clear error.
 
+**Already on M4?** Run `prisma/m4-1-hardening.sql` (safe to re-run): browsers
+can read only chat ids and times (never message text), a deleted message
+disappears for everyone, chat history can't be truncated, and consent and
+metric versions can't be edited. It gives up after 5 seconds if the
+database is busy; just run it again.
+
 Until steps 1–4 are done, `npm run dev` boots fine and the login/signup pages
 render, but sign-up will fail with a clear "missing environment variable"
 message.
@@ -172,6 +178,7 @@ prisma/
   m3-migration.sql      # M2 → M3 upgrade (staging, turf, supervisor, actor)
   m4-0-rls-lockdown.sql # RLS on + browser-role grants revoked (run before m4)
   m4-migration.sql      # M3 → M4 upgrade (messaging)
+  m4-1-hardening.sql    # review fixes: chat read grants, history guards
 ```
 
 ## M0 scope (done)

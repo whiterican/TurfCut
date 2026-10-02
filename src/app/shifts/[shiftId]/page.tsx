@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { requireAuth } from "@/lib/auth";
 import { FIELD_ROLES, SCHEDULING_ROLES } from "@/lib/access";
 import { readSupportContacts } from "@/lib/jobs";
-import { activeTime, earningsEstimate, readTurf, shiftProgress, shiftState, turfMarks, turfMarksClosed } from "@/lib/field-day";
+import { activeTime, earningsEstimate, readTurf, scheduleFlags, shiftProgress, shiftState, turfMarks, turfMarksClosed } from "@/lib/field-day";
 import { facts, loadShift } from "@/lib/field-day-data";
 import { ShiftProgress } from "@/components/ShiftProgress";
 import { TurfMap } from "@/components/TurfMap";
@@ -16,7 +16,7 @@ import { PinLegend, TurfWorkbench } from "@/components/TurfWorkbench";
 import { toMapPins } from "@/lib/turf-pins";
 import { PIN_CATEGORIES } from "@/lib/field-day";
 import { supervisorStep, workerStep } from "../actions";
-import { shiftPay } from "@/lib/pay-data";
+import { reviewFinal, shiftPay } from "@/lib/pay-data";
 import { computeShiftPay, money, statusLabel } from "@/lib/pay";
 import { verifiedWork } from "@/lib/scorecard";
 
@@ -105,7 +105,9 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
         jurisdictionVersion: job0.jurisdiction.version,
       })
     : null;
-  const payLocked = !!pay?.locked;
+  // Final once pay is approved — or, with no current pay line, if anything
+  // else on the shift makes it so (the same rule the server applies).
+  const payLocked = pay ? pay.locked : canField && (await reviewFinal(s.id));
   const turf = readTurf(s.turfArea);
   // Pins and a worker's own day turf are a location trail: the worker and
   // the field team (owners, supervisors) see them; recruiters don't.
@@ -144,12 +146,15 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
         startsAt: s.startsAt.toISOString(),
         endsAt: s.endsAt.toISOString(),
         staging,
+        ended: now > s.endsAt,
         // Who made each event isn't needed on the phone; the phone's own id
         // for an entry lets it drop that entry once it shows here.
         events: s.events.map((e) => ({ type: e.type, payload: e.payload, clientId: e.clientId, createdAt: e.createdAt.toISOString() })),
         validations: f.validations.map((v) => ({ ...v, createdAt: v.createdAt.toISOString() })),
       }}
       beforeCheckIn={
+        // After the end an unstarted shift is a no-show: nothing to cancel.
+        now <= s.endsAt && (
         <>
           {/* Late cancellations hurt campaigns: a real button, with the consequence up front. Needs a connection. */}
           <details className="group space-y-3">
@@ -169,6 +174,7 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
           </details>
           <p className="text-hint">Cancelling inside the job&apos;s notice window counts as a no-show on your scorecard.</p>
         </>
+        )
       }
     />
   );
@@ -276,7 +282,9 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
               </ActionButton>
             )}
             {st.checkedOutAt && payLocked && (
-              <p className="text-muted-sm">Pay for this shift ({money(pay!.amountCents)}) is approved for payment, so the review and counts are final. Your owner or finance team can make a pay adjustment if something changed.</p>
+              <p className="text-muted-sm">
+                {pay ? <>Pay for this shift ({money(pay.amountCents)}) is approved for payment, so the review and counts are final.</> : <>This shift&apos;s review is final.</>} Your owner or finance team can make a pay adjustment if something changed.
+              </p>
             )}
             {st.checkedOutAt && !payLocked && offlineNote && <p className="text-sm font-semibold text-danger-msg" role="note">{offlineNote}</p>}
             {st.checkedOutAt && !payLocked && approvePreview && (
@@ -285,7 +293,7 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
                   pay && pay.mainCents !== approvePreview.amountCents && st.closeout?.status === "APPROVED" ? (
                     <>The counts changed since approval: recorded pay is {money(pay.mainCents)}, but it now works out to <strong className="text-fg">{money(approvePreview.amountCents)}</strong> ({approvePreview.basis.formula}). Approve again to update it.</>
                   ) : !pay && st.closeout?.status === "APPROVED" ? (
-                    <>No pay is recorded for the current approval (a recount after approving withdraws it). <strong className="text-fg">Approve again</strong> to record pay of {money(approvePreview.amountCents)} — {approvePreview.basis.formula}.</>
+                    <>No pay is recorded for the current approval. <strong className="text-fg">Approve again</strong> to record pay of {money(approvePreview.amountCents)} — {approvePreview.basis.formula}.</>
                   ) : (
                     <>Approving records pay of <strong className="text-fg">{money(approvePreview.amountCents)}</strong> — {approvePreview.basis.formula}.</>
                   )
@@ -294,6 +302,9 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
                 )}
               </p>
             )}
+            {st.checkedOutAt && !payLocked && scheduleFlags(f).map((flag) => (
+              <p key={flag} className="text-sm font-semibold text-fg">{flag} That time counts as worked.</p>
+            ))}
             {st.checkedOutAt && !payLocked && (
               <div className="flex flex-wrap items-start gap-3">
                 <ActionButton action={supervisorStep} fields={{ shiftId: s.id, kind: "closeout", status: "APPROVED" }} label="Approve shift" />
@@ -305,7 +316,7 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
                 </ActionButton>
               </div>
             )}
-            {!st.checkedInAt && (
+            {!st.checkedInAt && now <= s.endsAt && (
               <ActionButton action={supervisorStep} fields={{ shiftId: s.id, kind: "cancel" }} label="Cancel shift" variant="btn-secondary">
                 <label className="min-w-48 flex-1 space-y-1.5">
                   <span className="label">Reason (shown to the worker)</span>

@@ -41,6 +41,7 @@ const ready = (): PublishFacts => ({
     campaignDisclosure: disclosure,
     supportContacts: contacts,
     hiringMethod: { modes: ["application"] },
+    geography: { city: "Denver", state: "CO" },
   },
   jurisdiction: { ...denver },
   org: { approved: true, contractorTermsSignedAt: now, classificationReviewedAt: now },
@@ -89,6 +90,22 @@ describe("publish gate (jurisdiction hard stop, spec p.15)", () => {
     f.org.contractorTermsSignedAt = null;
     f.job.compensationMethod = "PER_UNIT";
     expect(publishBlockers(f, now)).toHaveLength(2);
+  });
+
+  it("blocks a job whose state isn't the rule profile's state", () => {
+    const f = ready();
+    f.job.geography = { city: "Austin", state: "TX" };
+    expect(publishBlockers(f, now)).toEqual(["The job is in TX but the rule profile is for CO. Pick a TX profile."]);
+  });
+
+  it("keeps a job open through its whole end date, US time", () => {
+    // End date Oct 2 is stored as 2026-10-02T00:00Z (6 pm Oct 1 in Denver).
+    const f = ready();
+    f.job.endsAt = new Date("2026-10-02T00:00:00Z");
+    f.job.startsAt = new Date("2026-10-01T00:00:00Z");
+    expect(publishBlockers(f, new Date("2026-10-02T20:00:00Z"))).toEqual([]); // 2 pm Oct 2 in Denver
+    expect(publishBlockers(f, new Date("2026-10-03T09:59:00Z"))).toEqual([]); // still Oct 2 in Hawaii
+    expect(publishBlockers(f, new Date("2026-10-03T10:00:00Z"))).toEqual(["The job's end date has passed."]);
   });
 
   it("won't re-publish a published job", () => {

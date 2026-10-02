@@ -44,7 +44,9 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA "public" REVOKE EXECUTE ON FUNCTIONS FROM ano
 DO $$
 BEGIN
   IF to_regclass('"public"."Message"') IS NOT NULL THEN
-    GRANT SELECT ON "public"."Message", "public"."MessageRevision" TO authenticated;
+    -- Ids and times only (M4.1): never message text.
+    GRANT SELECT ("id", "conversationId", "createdAt") ON "public"."Message" TO authenticated;
+    GRANT SELECT ("id", "messageId", "conversationId", "createdAt") ON "public"."MessageRevision" TO authenticated;
   END IF;
 END $$;
 COMMIT;

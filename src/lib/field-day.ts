@@ -148,9 +148,10 @@ export type StepState = "done" | "current" | "todo";
 /**
  * Time worked so far: check-in to check-out (or `now` while on shift, but
  * never past the scheduled end — a forgotten check-out doesn't keep
- * counting), minus breaks (an open break runs to the end). The same basic
- * rule as the scorecard's active hours; the verified number there is what
- * pay is based on.
+ * counting), minus breaks (an open break runs to the end). Once the worker
+ * checks out, the check-out time counts even if it's after the scheduled
+ * end, as in the scorecard's verified hours (what pay is based on) — so the
+ * review shows `scheduleFlags` for time outside the schedule.
  */
 export function activeTime(s: ShiftFacts, now: Date): { ms: number; running: boolean } {
   const events = [...s.events].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
@@ -171,6 +172,32 @@ export function activeTime(s: ShiftFacts, now: Date): { ms: number; running: boo
   if (pauseStart) paused += Math.max(0, end.getTime() - Math.max(pauseStart.getTime(), checkIn.getTime()));
   const ms = Math.max(0, end.getTime() - checkIn.getTime() - paused);
   return { ms, running: !checkOut && !overdue && !pauseStart && s.status !== "CANCELLED" };
+}
+
+/** Slack before time outside the schedule is flagged (a punctual early arrival isn't). */
+const SCHEDULE_SLACK_MS = 15 * 60_000;
+const span = (ms: number) => {
+  const m = Math.round(ms / 60_000);
+  return m < 60 ? `${m} min` : `${Math.floor(m / 60)}h${m % 60 ? ` ${m % 60}m` : ""}`;
+};
+
+/**
+ * Worked time outside the scheduled window, for the reviewer: an early
+ * check-in or a late check-out counts toward verified hours, so the person
+ * approving the shift sees it before they do.
+ */
+export function scheduleFlags(s: ShiftFacts): string[] {
+  const events = [...s.events].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+  const checkIn = events.find((e) => e.type === "CHECK_IN")?.createdAt;
+  const checkOut = events.find((e) => e.type === "CHECK_OUT")?.createdAt;
+  const out: string[] = [];
+  if (checkIn && s.startsAt.getTime() - checkIn.getTime() > SCHEDULE_SLACK_MS) {
+    out.push(`Checked in ${span(s.startsAt.getTime() - checkIn.getTime())} before the scheduled start.`);
+  }
+  if (checkOut && checkOut.getTime() - s.endsAt.getTime() > SCHEDULE_SLACK_MS) {
+    out.push(`Checked out ${span(checkOut.getTime() - s.endsAt.getTime())} after the scheduled end.`);
+  }
+  return out;
 }
 
 /**
@@ -315,10 +342,12 @@ export function workerAction(s: ShiftFacts, a: WorkerAction, now: Date): Outcome
     }
     case "return_packet": {
       if (!st.checkedInAt) return no("Check in first.");
-      if (!st.packetsOut.includes(a.packetId)) return no("That packet isn't checked out to you on this shift.");
+      // Packet IDs match regardless of case ("18a" is packet 18A).
+      const packetId = st.packetsOut.find((p) => samePacket(p, a.packetId));
+      if (!packetId) return no("That packet isn't checked out to you on this shift.");
       if (!Number.isInteger(a.sheetsReturned) || a.sheetsReturned < 0 || a.sheetsReturned > 1000) return no("Enter the number of sheets returned.");
       if (!Number.isInteger(a.signatures) || a.signatures < 0 || a.signatures > 10_000) return no("Enter the signatures you're claiming on this packet.");
-      return { ok: true, event: { type: "PACKET_RETURN", payload: { packetId: a.packetId, sheetsReturned: a.sheetsReturned, signatures: a.signatures } } };
+      return { ok: true, event: { type: "PACKET_RETURN", payload: { packetId, sheetsReturned: a.sheetsReturned, signatures: a.signatures } } };
     }
     case "check_out":
       if (!active) return no("You're not on shift.");
@@ -327,30 +356,35 @@ export function workerAction(s: ShiftFacts, a: WorkerAction, now: Date): Outcome
       return { ok: true, event: { type: "CHECK_OUT", payload: {} }, status: "COMPLETED" };
     case "cancel":
       if (st.checkedInAt) return no("You can't cancel a shift you've started.");
+      if (now > s.endsAt) return no("This shift has already ended.");
       if (!a.reason.trim()) return no("Say briefly why you're cancelling.");
       return { ok: true, event: { type: "SHIFT_CANCELLED", payload: { by: "WORKER", reason: a.reason.trim().slice(0, 200) } }, status: "CANCELLED" };
   }
 }
 
+/** Packet IDs are compared without case: "18a" and "18A" are one packet. */
+export const samePacket = (a: string, b: string) => a.trim().toUpperCase() === b.trim().toUpperCase();
+
 /**
  * Supervisor actions. `packetsOutElsewhere` lists packet IDs currently out on
  * other shifts of the same job — a packet can't be in two hands at once.
  */
-export function supervisorAction(s: ShiftFacts, a: SupervisorAction, packetsOutElsewhere: string[]): Outcome {
+export function supervisorAction(s: ShiftFacts, a: SupervisorAction, packetsOutElsewhere: string[], now: Date): Outcome {
   const st = shiftState(s);
   if (st.cancelled) return no("This shift was cancelled.");
   switch (a.kind) {
     case "packet_pickup": {
-      const id = a.packetId.trim();
-      if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,39}$/.test(id)) return no("Packet IDs are letters, numbers, dots, dashes or underscores (up to 40).");
+      const id = a.packetId.trim().toUpperCase();
+      if (!/^[A-Z0-9][A-Z0-9._-]{0,39}$/.test(id)) return no("Packet IDs are letters, numbers, dots, dashes or underscores (up to 40).");
       if (!st.checkedInAt) return no("The worker must check in before taking packets.");
       if (st.checkedOutAt) return no("The worker has already checked out.");
-      if (st.packetsOut.includes(id) || st.packetsReturned.includes(id)) return no(`Packet ${id} is already recorded on this shift.`);
-      if (packetsOutElsewhere.includes(id)) return no(`Packet ${id} is still checked out on another shift. Record its return first.`);
+      if ([...st.packetsOut, ...st.packetsReturned].some((p) => samePacket(p, id))) return no(`Packet ${id} is already recorded on this shift.`);
+      if (packetsOutElsewhere.some((p) => samePacket(p, id))) return no(`Packet ${id} is still checked out on another shift. Record its return first.`);
       if (!Number.isInteger(a.sheets) || a.sheets < 1 || a.sheets > 1000) return no("Enter the number of sheets in the packet.");
       return { ok: true, event: { type: "PACKET_PICKUP", payload: { packetId: id, sheets: a.sheets } } };
     }
     case "batch_count": {
+      if (s.workType !== "PETITION") return no("Batch counts are for petition shifts.");
       if (!st.checkedOutAt) return no("Count the batch after the worker checks out.");
       const ints = [a.reviewed, a.accepted, a.rejected];
       if (!ints.every((n) => Number.isInteger(n) && n >= 0 && n <= 100_000)) return no("Counts must be whole numbers.");
@@ -371,6 +405,8 @@ export function supervisorAction(s: ShiftFacts, a: SupervisorAction, packetsOutE
     }
     case "cancel":
       if (st.checkedInAt) return no("This shift has started; review it instead.");
+      // After the end an unstarted shift is a no-show; cancelling can't erase it.
+      if (now > s.endsAt) return no("This shift has already ended.");
       if (!a.reason.trim()) return no("Give the worker a reason.");
       return { ok: true, event: { type: "SHIFT_CANCELLED", payload: { by: "ORGANIZATION", reason: a.reason.trim().slice(0, 200) } }, status: "CANCELLED" };
   }

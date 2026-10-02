@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildSnapshot, transition, type TransitionContext } from "./engagements";
+import { buildSnapshot, RELATIONSHIP_STATUSES, transition, type TransitionContext } from "./engagements";
 import { computeScorecard } from "./scorecard";
 import { employerFitView } from "./political-fit";
 
@@ -56,5 +56,15 @@ describe("hiring snapshot", () => {
     expect(snap.scorecard.showRate).toEqual({ value: null, numerator: 0, denominator: 0 });
     // A frozen copy: JSON round-trips without loss.
     expect(JSON.parse(JSON.stringify(snap))).toEqual(snap);
+  });
+});
+
+describe("relationship for shared fit answers", () => {
+  it("counts only engagements the worker started or accepted", () => {
+    // An org's invitation must never unlock answers shared with
+    // "organizations you apply to or accept an invitation from".
+    expect(RELATIONSHIP_STATUSES).not.toContain("INVITED");
+    expect(RELATIONSHIP_STATUSES).not.toContain("CANCELLED");
+    expect([...RELATIONSHIP_STATUSES].sort()).toEqual(["ACTIVE", "APPLIED", "CLAIMED", "COMPLETED"]);
   });
 });

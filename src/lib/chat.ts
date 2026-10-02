@@ -139,8 +139,11 @@ export function viewMessages(
     .filter((m) => !blockedAt(m.senderId, m.createdAt))
     .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
     .map((m) => {
+      // Edits by someone the viewer blocked stay hidden; a deletion has no
+      // content, so it applies whoever made it (an owner removing a
+      // reported message must remove it for everyone).
       const revs = (byMsg.get(m.id) ?? [])
-        .filter((r) => (!readUntil || r.createdAt <= readUntil) && !blockedAt(r.actorId, r.createdAt))
+        .filter((r) => (!readUntil || r.createdAt <= readUntil) && (r.kind === "DELETE" || !blockedAt(r.actorId, r.createdAt)))
         .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
       const deleted = revs.some((r) => r.kind === "DELETE");
       const lastEdit = [...revs].reverse().find((r) => r.kind === "EDIT");
@@ -249,9 +252,19 @@ export function validateGroupName(raw: unknown): { ok: true; name: string } | { 
 
 const startsWith = (b: Uint8Array, sig: number[], at = 0) => sig.every((v, i) => b[at + i] === v);
 
+/**
+ * Plain text: no control bytes anywhere except tab, newlines, form feed and
+ * escape. Any picture (or other binary) data has them, so an image appended
+ * after a page of text can't pass as a .txt.
+ */
+const plainText = (bytes: Uint8Array) => !bytes.some((b) => b < 0x09 || (b > 0x0d && b < 0x20 && b !== 0x1b) || b === 0x7f);
+
 /** Detects the real type from magic bytes. Returns null for anything not recognised. */
 export function sniffType(bytes: Uint8Array, name: string): string | null {
   const ext = name.toLowerCase().split(".").pop() ?? "";
+  // Checked first: a note that happens to start "BM…" or "GIF8…" is text,
+  // since a real image header always has control bytes.
+  if ((ext === "txt" || ext === "csv") && plainText(bytes)) return ext === "csv" ? "text/csv" : "text/plain";
   if (startsWith(bytes, [0xff, 0xd8, 0xff])) return "image/jpeg";
   if (startsWith(bytes, [0x89, 0x50, 0x4e, 0x47])) return "image/png";
   if (startsWith(bytes, [0x47, 0x49, 0x46, 0x38])) return "image/gif";
@@ -269,7 +282,6 @@ export function sniffType(bytes: Uint8Array, name: string): string | null {
     if (ext === "xlsx") return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
     return null; // other zip archives aren't allowed
   }
-  if ((ext === "txt" || ext === "csv") && !bytes.slice(0, 4096).includes(0)) return ext === "csv" ? "text/csv" : "text/plain";
   return null;
 }
 

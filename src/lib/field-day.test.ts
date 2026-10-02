@@ -7,6 +7,7 @@ import {
   turfMarks,
   locationCheck,
   readTurf,
+  scheduleFlags,
   shiftProgress,
   shiftState,
   supervisorAction,
@@ -73,6 +74,8 @@ describe("worker actions", () => {
       status: "CANCELLED",
     });
     expect(workerAction(shift([ev("CHECK_IN", 0)]), { kind: "cancel", reason: "x" }, at(5)).ok).toBe(false);
+    // An unstarted shift that has ended is a no-show, not cancellable.
+    expect(workerAction(shift(), { kind: "cancel", reason: "x" }, at(8 * 60 + 1))).toEqual({ ok: false, reason: "This shift has already ended." });
     expect(workerAction(shift([ev("SHIFT_CANCELLED", -60, { by: "WORKER" })]), { kind: "check_in", location: { checked: false } }, at(0)).ok).toBe(false);
   });
 });
@@ -80,33 +83,54 @@ describe("worker actions", () => {
 describe("supervisor actions — custody", () => {
   const on = shift([ev("CHECK_IN", 0)]);
   it("hands out a packet once, and never one that's out on another shift", () => {
-    expect(supervisorAction(on, { kind: "packet_pickup", packetId: "18A", sheets: 25 }, [])).toEqual({
+    expect(supervisorAction(on, { kind: "packet_pickup", packetId: "18A", sheets: 25 }, [], at(0))).toEqual({
       ok: true,
       event: { type: "PACKET_PICKUP", payload: { packetId: "18A", sheets: 25 } },
     });
-    expect(supervisorAction(on, { kind: "packet_pickup", packetId: "18A", sheets: 25 }, ["18A"]).ok).toBe(false);
-    expect(supervisorAction(shift(), { kind: "packet_pickup", packetId: "18A", sheets: 25 }, []).ok).toBe(false);
-    expect(supervisorAction(on, { kind: "packet_pickup", packetId: "18 A; drop", sheets: 25 }, []).ok).toBe(false);
+    expect(supervisorAction(on, { kind: "packet_pickup", packetId: "18A", sheets: 25 }, ["18A"], at(0)).ok).toBe(false);
+    expect(supervisorAction(shift(), { kind: "packet_pickup", packetId: "18A", sheets: 25 }, [], at(0)).ok).toBe(false);
+    expect(supervisorAction(on, { kind: "packet_pickup", packetId: "18 A; drop", sheets: 25 }, [], at(0)).ok).toBe(false);
   });
 
   it("counts the batch and closes out only after check-out; rejection needs a reason", () => {
     const done = shift([ev("CHECK_IN", 0), ev("SIGNATURE_SUBMITTED", 30, { count: 22 }), ev("CHECK_OUT", 240)]);
-    expect(supervisorAction(on, { kind: "batch_count", reviewed: 2, accepted: 1, rejected: 1, exceptions: null }, []).ok).toBe(false);
-    expect(supervisorAction(done, { kind: "batch_count", reviewed: 22, accepted: 20, rejected: 1, exceptions: null }, []).ok).toBe(false);
-    expect(supervisorAction(done, { kind: "batch_count", reviewed: 22, accepted: 20, rejected: 2, exceptions: "2 out-of-county" }, [])).toEqual({
+    expect(supervisorAction(on, { kind: "batch_count", reviewed: 2, accepted: 1, rejected: 1, exceptions: null }, [], at(0)).ok).toBe(false);
+    expect(supervisorAction(done, { kind: "batch_count", reviewed: 22, accepted: 20, rejected: 1, exceptions: null }, [], at(0)).ok).toBe(false);
+    expect(supervisorAction(done, { kind: "batch_count", reviewed: 22, accepted: 20, rejected: 2, exceptions: "2 out-of-county" }, [], at(0))).toEqual({
       ok: true,
       event: { type: "BATCH_COUNT", payload: { reviewed: 22, accepted: 20, rejected: 2, exceptions: "2 out-of-county" } },
     });
-    expect(supervisorAction(done, { kind: "closeout", status: "REJECTED", reason: "" }, []).ok).toBe(false);
-    expect(supervisorAction(done, { kind: "closeout", status: "APPROVED", reason: null }, [])).toEqual({
+    expect(supervisorAction(done, { kind: "closeout", status: "REJECTED", reason: "" }, [], at(0)).ok).toBe(false);
+    expect(supervisorAction(done, { kind: "closeout", status: "APPROVED", reason: null }, [], at(0))).toEqual({
       ok: true,
       event: null,
       closeout: { status: "APPROVED", reason: null },
     });
   });
 
+  it("matches packet IDs without case", () => {
+    expect(supervisorAction(on, { kind: "packet_pickup", packetId: "18a", sheets: 25 }, [], at(0))).toMatchObject({ event: { payload: { packetId: "18A" } } });
+    expect(supervisorAction(on, { kind: "packet_pickup", packetId: "18a", sheets: 25 }, ["18A"], at(0)).ok).toBe(false);
+    const holding = shift([ev("CHECK_IN", 0), ev("PACKET_PICKUP", 5, { packetId: "18A", sheets: 25 })]);
+    expect(workerAction(holding, { kind: "return_packet", packetId: "18a", sheetsReturned: 25, signatures: 10 }, at(60))).toMatchObject({
+      event: { payload: { packetId: "18A" } },
+    });
+  });
+
+  it("counts batches on petition shifts only", () => {
+    const canvass = shift([ev("CHECK_IN", 0), ev("CHECK_OUT", 240)], { workType: "CANVASS" });
+    expect(supervisorAction(canvass, { kind: "batch_count", reviewed: 1, accepted: 1, rejected: 0, exceptions: null }, [], at(300))).toEqual({
+      ok: false,
+      reason: "Batch counts are for petition shifts.",
+    });
+  });
+
+  it("won't cancel a shift after it ended", () => {
+    expect(supervisorAction(shift(), { kind: "cancel", reason: "cleanup" }, [], at(8 * 60 + 1))).toEqual({ ok: false, reason: "This shift has already ended." });
+  });
+
   it("organization cancellations are recorded as excused", () => {
-    expect(supervisorAction(shift(), { kind: "cancel", reason: "rain" }, [])).toMatchObject({
+    expect(supervisorAction(shift(), { kind: "cancel", reason: "rain" }, [], at(0))).toMatchObject({
       ok: true,
       event: { payload: { by: "ORGANIZATION", reason: "rain" } },
     });
@@ -260,5 +284,15 @@ describe("live time worked and earnings estimate", () => {
     expect(earningsEstimate("PER_UNIT", 150, 0, 23)).toEqual({ cents: 3450, label: "Gross if all accepted" });
     expect(earningsEstimate("SHIFT_RATE", 12000, 0, 0)).toEqual({ cents: 12000, label: "Per completed shift" });
     expect(earningsEstimate("HOURLY", null, 1, 1)).toBeNull();
+  });
+});
+
+describe("time outside the schedule", () => {
+  it("flags an early check-in and a late check-out for the reviewer", () => {
+    expect(scheduleFlags(shift([ev("CHECK_IN", -10), ev("CHECK_OUT", 8 * 60 + 12)]))).toEqual([]);
+    expect(scheduleFlags(shift([ev("CHECK_IN", -45), ev("CHECK_OUT", 8 * 60 + 190)]))).toEqual([
+      "Checked in 45 min before the scheduled start.",
+      "Checked out 3h 10m after the scheduled end.",
+    ]);
   });
 });

@@ -97,9 +97,10 @@ export async function planReview(tx: Tx, s: ReviewShift, status: "APPROVED" | "R
   const active = shiftLines.filter((x) => x.state.status !== "VOIDED");
   let heldReason = active.find((x) => x.state.status === "HELD")?.state.heldReason ?? null;
   if (!active.length) {
-    // A recount withdrew the last line: a hold finance put on it still applies.
+    // The last line was withdrawn (a recount, or "not approved"): a hold
+    // finance put on it still applies to the line that replaces it.
     const last = [...shiftLines].sort((a, b) => b.line.createdAt.getTime() - a.line.createdAt.getTime())[0];
-    if (last?.line.events.some((e) => e.type === "VOIDED" && e.reason === RECOUNT_VOID)) {
+    if (last) {
       const before = lineState(last.line, asFacts(last.line.events.filter((e) => e.type !== "VOIDED")), false);
       if (before.status === "HELD") heldReason = before.heldReason;
     }
@@ -155,10 +156,15 @@ export async function withdrawStalePay(tx: Tx, s: ReviewShift, actorId: string, 
 }
 
 /** Why the shift's review (or batch count, which changes pay) is final, or null. */
-export async function reviewLockProblem(tx: Tx, shiftId: string): Promise<string | null> {
+export async function reviewLockProblem(tx: Client, shiftId: string): Promise<string | null> {
   const lines = await tx.payout.findMany({ where: { shiftId }, include: { events: true } });
   const states = lines.map((l) => ({ line: l, state: lineState(l, asFacts(l.events), false) }));
   return reReviewProblem(states.map((x) => x.state)) ?? adjustedProblem(states);
+}
+
+/** Whether the shift's review is final (for pages; the server re-checks under its locks). */
+export async function reviewFinal(shiftId: string): Promise<boolean> {
+  return UUID_RE.test(shiftId) && (await reviewLockProblem(db(), shiftId)) !== null;
 }
 
 /**
@@ -194,7 +200,8 @@ export async function applyReviewPlan(tx: Tx, s: ReviewShift, plan: ReviewPlan &
       createdAt: now,
     },
   });
-  // A hold finance placed on the replaced line stays until they release it.
+  // A hold finance placed on the replaced (or withdrawn) line stays until
+  // they release it.
   if (plan.heldReason) {
     await tx.payoutEvent.create({ data: { payoutId: line.id, type: "HELD", actorId, reason: plan.heldReason, createdAt: now } });
   }
@@ -545,6 +552,8 @@ export interface DisputeView {
   shiftStartsAt: Date;
   jobTitle: string;
   line: { amountCents: number; formula: string } | null;
+  /** The shift has no current pay line (withdrawn by a recount or a review): it can't be adjusted until a supervisor approves it again. */
+  noPayLine: boolean;
   review: { status: string; reason: string | null; at: Date } | null;
   resolution: { outcome: string; response: string; createdAt: Date } | null;
 }
@@ -590,6 +599,7 @@ export async function loadOrgDisputes(actor: PayActor, open: boolean): Promise<D
         const main = live.find((l) => l.kind === "SHIFT");
         return live.length ? { amountCents: live.reduce((n, l) => n + l.amountCents, 0), formula: main ? readBasis(main.basis).formula : "adjustments only" } : null;
       })(),
+      noPayLine: !d.shift.payouts.some((l) => l.kind === "SHIFT" && lineState(l, asFacts(l.events), false).status !== "VOIDED"),
       review: v ? { status: v.status, reason: v.reason, at: v.createdAt } : null,
       resolution: d.resolution ? { outcome: d.resolution.outcome, response: d.resolution.response, createdAt: d.resolution.createdAt } : null,
     };
@@ -630,6 +640,12 @@ export async function resolveDispute(actor: PayActor, disputeId: string, r: Reso
       // A dispute can't leave the worker owing money for the shift.
       if (total + r.amountCents < 0) return { ok: false as const, reason: `A deduction can't be more than this shift's pay (${money(total)}).` };
       const base = live.find((x) => x.l.kind === "SHIFT") ?? null;
+      // An adjustment needs the shift's pay to adjust. Without it (withdrawn
+      // by a recount or a review), an adjustment would make the review final
+      // and the shift could never be paid.
+      if (!base) {
+        return { ok: false as const, reason: "This shift has no pay recorded right now (a recount or a review withdrew it). A supervisor approves the shift again first; then adjust it." };
+      }
       // The shift's pay counts as approved if any positive line on it is.
       const anyApproved = live.some((x) => x.l.amountCents > 0 && (x.st.approvedAt !== null || x.st.status === "PAID" || x.st.status === "PROCESSING"));
       const adj = await tx.payout.create({
@@ -706,7 +722,9 @@ export async function loadOrgPay(actor: PayActor) {
       items: ls,
       blocked:
         t.amountCents <= 0
-          ? "Deductions cover this worker's approved pay; nothing to send yet."
+          ? ls.some((l) => l.line.amountCents > 0)
+            ? "Deductions cover this worker's approved pay; nothing to send yet."
+            : "Only deductions are ready; they come off this worker's next approved pay."
           : !w.stripeAccountId || !w.payoutsEnabled
             ? "Hasn't finished setting up payouts with Stripe yet."
             : null,
@@ -759,6 +777,9 @@ export async function exportLedger(actor: PayActor, from: Date, to: Date): Promi
     "line_id", "kind", "status", "payee", "payee_worker_id", "project", "purpose", "measure_ids", "shift_date",
     "calculation", "gross_usd", "platform_fee_usd", "org_cost_usd", "reviewed_by", "approved_at", "approved_by",
     "paid_at", "stripe_transfer", "adjusts_line", "recorded_at",
+    // A line recorded in one period and paid in the next is in both exports:
+    // sum the "yes" rows to total a period's payments.
+    "paid_in_period",
   ];
   const rows = lines.map((l) => {
     const approval = sortEvents(asFacts(l.line.events).map((e, i) => ({ ...e, i }))).find((e) => e.type === "APPROVED");
@@ -788,6 +809,7 @@ export async function exportLedger(actor: PayActor, from: Date, to: Date): Promi
       l.state.paidRef ?? "",
       l.line.adjustsId ?? "",
       l.line.createdAt.toISOString(),
+      l.line.events.some((e) => e.type === "PAID" && e.createdAt >= from && e.createdAt < to) ? "yes" : "no",
     ].map(csvCell).join(",");
   });
   // The BOM tells spreadsheet apps it's UTF-8 (names with accents stay intact).
@@ -1077,33 +1099,44 @@ async function recordedReversal(c: Client, transferId: string): Promise<number> 
 export async function partialReversals(actor: PayActor): Promise<{ partial: PartialReversal[]; mismatches: Array<{ transferId: string; expectedCents: number; stripeCents: number; at: Date }> }> {
   assertPayRole(actor);
   const orgId = actor.orgId;
-  const audits = await db().auditEvent.findMany({
-    where: { action: { in: ["payout.partially_reversed", "payout.amount_mismatch"] }, entityType: "PayoutTransfer", metadata: { path: ["orgId"], equals: orgId } },
-    orderBy: { createdAt: "desc" },
-    take: 200,
-  });
-  const latest = new Map<string, (typeof audits)[number]>();
-  for (const a of audits.filter((x) => x.action === "payout.partially_reversed")) {
+  // Mismatches are a heads-up for a month, not a permanent banner.
+  const since = new Date(Date.now() - 30 * 86_400_000);
+  const ofOrg = { entityType: "PayoutTransfer", metadata: { path: ["orgId"], equals: orgId } };
+  const [partials, mismatchAudits] = await Promise.all([
+    db().auditEvent.findMany({ where: { action: "payout.partially_reversed", ...ofOrg }, orderBy: { createdAt: "desc" } }),
+    db().auditEvent.findMany({ where: { action: "payout.amount_mismatch", ...ofOrg, createdAt: { gt: since } }, orderBy: { createdAt: "desc" }, take: 50 }),
+  ]);
+  // Stripe reports the total reversed so far: the largest is the latest.
+  const latest = new Map<string, (typeof partials)[number]>();
+  for (const a of partials) {
     const prev = latest.get(a.entityId);
     if (!prev || num(meta(a.metadata).reversedCents) > num(meta(prev.metadata).reversedCents)) latest.set(a.entityId, a);
   }
-  const transfers = await db().payoutTransfer.findMany({ where: { id: { in: [...latest.keys()] }, orgId }, include: { worker: { select: { displayName: true } } } });
+  const ids = [...latest.keys()];
+  const [transfers, reversedFully, settled] = ids.length
+    ? await Promise.all([
+        db().payoutTransfer.findMany({ where: { id: { in: ids }, orgId }, include: { worker: { select: { displayName: true } } } }),
+        db().payoutEvent.findMany({ where: { type: "REVERSED", transferId: { in: ids } }, select: { transferId: true } }),
+        db().payout.findMany({ where: { orgId, kind: "ADJUSTMENT", amountCents: { lt: 0 } }, select: { amountCents: true, basis: true } }),
+      ])
+    : [[], [], []];
+  const full = new Set(reversedFully.map((e) => e.transferId));
+  const recorded = new Map<string, number>();
+  for (const l of settled) {
+    const of = meta(l.basis).reversalOf;
+    if (typeof of === "string") recorded.set(of, (recorded.get(of) ?? 0) - l.amountCents);
+  }
   const partial: PartialReversal[] = [];
   for (const t of transfers) {
+    if (full.has(t.id)) continue; // reversed in full later: its lines went on hold
     const a = latest.get(t.id)!;
     const m = meta(a.metadata);
-    const fully = await db().payoutEvent.count({ where: { transferId: t.id, type: "REVERSED" } });
-    if (fully) continue;
     const reversedCents = num(m.reversedCents);
-    const outstandingCents = reversedCents - (await recordedReversal(db(), t.id));
+    const outstandingCents = reversedCents - (recorded.get(t.id) ?? 0);
     if (outstandingCents <= 0) continue;
     partial.push({ transferId: t.id, workerName: t.worker.displayName, amountCents: num(m.amountCents), reversedCents, outstandingCents, providerRef: String(m.providerRef ?? ""), at: a.createdAt });
   }
-  // Mismatches are a heads-up for a month, not a permanent banner.
-  const since = Date.now() - 30 * 86_400_000;
-  const mismatches = audits
-    .filter((x) => x.action === "payout.amount_mismatch" && x.createdAt.getTime() > since)
-    .map((x) => ({ transferId: x.entityId, expectedCents: num(meta(x.metadata).expected), stripeCents: num(meta(x.metadata).stripe), at: x.createdAt }));
+  const mismatches = mismatchAudits.map((x) => ({ transferId: x.entityId, expectedCents: num(meta(x.metadata).expected), stripeCents: num(meta(x.metadata).stripe), at: x.createdAt }));
   return { partial, mismatches };
 }
 
@@ -1138,7 +1171,9 @@ export async function recordPartialReversal(actor: PayActor, transferId: string,
         basis: { formula: `Returned in a Stripe reversal (${ref})`, reversalOf: transferId } as Prisma.InputJsonObject,
       },
     });
-    // Already settled: the money went back in Stripe, so it's never deducted again.
+    // Already settled: the money went back in Stripe, so it isn't deducted
+    // again — unless the whole transfer is later reversed too, when it comes
+    // off the re-payment along with the rest of that transfer's lines.
     await tx.payoutEvent.createMany({
       data: [
         { payoutId: back.id, type: "APPROVED", actorId: actor.profileId, reason: "Recorded from a Stripe reversal", createdAt: now },

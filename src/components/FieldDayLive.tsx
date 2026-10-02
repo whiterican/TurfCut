@@ -16,6 +16,8 @@ export interface LiveShift {
   startsAt: string;
   endsAt: string;
   staging: { lat: number; lng: number } | null;
+  /** The scheduled end had passed when the page was made. */
+  ended: boolean;
   events: Array<{ type: string; payload: unknown; clientId: string | null; createdAt: string }>;
   validations: Array<{ workEventId: string | null; status: "PENDING" | "APPROVED" | "REJECTED" | "FLAGGED"; reason: string | null; createdAt: string }>;
 }
@@ -246,6 +248,8 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
 
       {st.cancelled ? (
         <p className="text-muted-sm">This shift was cancelled.</p>
+      ) : !st.checkedInAt && shift.ended ? (
+        <p className="text-muted-sm">This shift has ended without a check-in.</p>
       ) : !st.checkedInAt ? (
         <div className="space-y-2">
           <button type="button" onClick={checkIn} className="btn-primary w-full sm:w-auto" disabled={locating}>

@@ -23,8 +23,11 @@ const PREFIX = "turfcut-queue:";
 const CLOCK = "turfcut-clock";
 /** Requests stay well under the server's limit. */
 const CHUNK = Math.min(50, MAX_BATCH);
-/** A saved entry the page never showed is dropped after this anyway. */
-const SAVED_TTL_MS = 10 * 60_000;
+/**
+ * A saved entry stays on screen until the page shows it — through failed
+ * refreshes and reloads from the saved copy — or a day at most.
+ */
+const SAVED_TTL_MS = 24 * 3_600_000;
 const key = (userId: string) => `${PREFIX}${userId}`;
 const listeners = new Set<() => void>();
 let memory: Record<string, Pending[]> = {};
@@ -149,12 +152,14 @@ function saveOffset(serverNow: unknown, sentAt: number, gotAt: number) {
 export type FlushResult = { saved: number; rejected: number; offline: boolean; problem: string | null; busy?: boolean };
 
 const inFlight = new Set<string>();
+/** A send for this shift is under way (from this page or Today's). */
+export const isFlushing = (shiftId: string) => inFlight.has(shiftId);
 
 async function post(shiftId: string, batch: Pending[]): Promise<Response> {
   const ctrl = new AbortController();
-  // Longer than the server's 30 s transaction, so a slow batch isn't re-sent
-  // while the first one still holds the shift.
-  const timer = setTimeout(() => ctrl.abort(), 35_000);
+  // The server may hold the shift up to 40 s (10 s waiting for it, 30 s
+  // working): don't give up — and re-send — before then.
+  const timer = setTimeout(() => ctrl.abort(), 45_000);
   try {
     return await fetch(`/api/shifts/${shiftId}/sync`, {
       method: "POST",

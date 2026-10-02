@@ -1,10 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { shiftState, workerAction, type FieldEvent, type ShiftFacts } from "@/lib/field-day";
 import { stagingCheck, type QueuedAction } from "@/lib/offline-sync";
-import { clockOffset, dismiss, enqueue, flush, pendingFor, prune, serverClock, subscribe, type Pending } from "@/lib/offline-queue";
+import { clockOffset, dismiss, enqueue, flush, isFlushing, pendingFor, prune, serverClock, subscribe, type Pending } from "@/lib/offline-queue";
 import { haptic } from "@/lib/haptics";
 import { refreshSavedPage } from "@/components/OfflineBrief";
 
@@ -121,18 +121,38 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
   // Forget saved entries once the page shows them.
   useEffect(() => prune(shift.userId, shown), [shift.userId, shown]);
   // Saved entries the page doesn't show yet (synced here, from another tab
-  // or from Today) need its fresh data: refresh whenever that set changes.
+  // or from Today) need its fresh data. Refresh once per set of them, and
+  // again when signal comes back: a failed refresh makes Next.js reload the
+  // page (from the copy saved for dead zones), and the reloaded page must
+  // not try again straight away. The entries stay on screen meanwhile.
   const savedUnseen = pending.filter((p) => p.savedAt && !shown.has(p.clientId)).map((p) => p.clientId).join(",");
+  const signalReturns = useRef(0);
   useEffect(() => {
-    if (savedUnseen) router.refresh();
-  }, [savedUnseen, router]);
+    const bump = () => void (signalReturns.current += 1);
+    window.addEventListener("online", bump);
+    return () => window.removeEventListener("online", bump);
+  }, []);
+  useEffect(() => {
+    if (!savedUnseen || !online) return;
+    const key = `turfcut-refreshed:${shift.shiftId}`;
+    const attempt = `${savedUnseen}|${signalReturns.current}`;
+    try {
+      if (sessionStorage.getItem(key) === attempt) return;
+      sessionStorage.setItem(key, attempt);
+    } catch {
+      // no session storage: refresh anyway
+    }
+    router.refresh();
+  }, [savedUnseen, online, router, shift.shiftId]);
 
   const sync = useCallback(async () => {
     if (!pendingFor(shift.userId, shift.shiftId).some((p) => !p.rejected && !p.savedAt)) return;
+    // Another send for this shift is under way: leave the badge as it is.
+    if (isFlushing(shift.shiftId)) return;
     setSyncing(true);
     const r = await flush(shift.userId, shift.shiftId);
     setSyncing(false);
-    if (r.busy) return; // another send for this shift is under way: keep the badge as it is
+    if (r.busy) return;
     setUnreachable(r.offline);
     setProblem(r.problem);
     // (The page refreshes itself once saved entries are waiting to show.)

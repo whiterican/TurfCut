@@ -131,8 +131,9 @@ instead of instantly, and attaching a document fails with a clear error.
 
 **Already on M4?** Run `prisma/m4-1-hardening.sql` (safe to re-run): browsers
 can read only chat ids and times (never message text), a deleted message
-disappears for everyone, chat history can't be truncated, and consent and
-metric versions can't be edited. It gives up after 5 seconds if the
+disappears for everyone, chat history can't be truncated, consent and
+metric versions can't be edited, and deleting a worker no longer erases
+them (a worker with history can't be deleted). It gives up after 5 seconds if the
 database is busy; just run it again.
 
 **Payouts (M5)** — in the Supabase SQL editor, run

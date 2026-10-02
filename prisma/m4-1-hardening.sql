@@ -15,8 +15,9 @@
 --   3. Message and MessageRevision can't be truncated (UPDATE and DELETE
 --      were already refused).
 --   4. PoliticalPreference and ProfileMetric (CLAUDE.md rule 3) refuse
---      UPDATE and TRUNCATE. Deleting a worker still cascades to them; that
---      is an open question for the owner, so DELETE is left alone here.
+--      UPDATE and TRUNCATE, and deleting a worker no longer cascades to
+--      them: a worker with consent or metric history can't be deleted
+--      (owner decision).
 
 BEGIN;
 -- Don't queue the app behind a long transaction; on timeout everything
@@ -50,4 +51,9 @@ CREATE OR REPLACE TRIGGER "ProfileMetric_no_update" BEFORE UPDATE ON "public"."P
   FOR EACH ROW EXECUTE FUNCTION "turfcut_private"."append_only"();
 CREATE OR REPLACE TRIGGER "ProfileMetric_no_truncate" BEFORE TRUNCATE ON "public"."ProfileMetric"
   FOR EACH STATEMENT EXECUTE FUNCTION "turfcut_private"."append_only"();
+-- Deleting a worker must not erase their history.
+ALTER TABLE "public"."PoliticalPreference" DROP CONSTRAINT "PoliticalPreference_workerId_fkey",
+  ADD CONSTRAINT "PoliticalPreference_workerId_fkey" FOREIGN KEY ("workerId") REFERENCES "public"."Worker"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "public"."ProfileMetric" DROP CONSTRAINT "ProfileMetric_workerId_fkey",
+  ADD CONSTRAINT "ProfileMetric_workerId_fkey" FOREIGN KEY ("workerId") REFERENCES "public"."Worker"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 COMMIT;

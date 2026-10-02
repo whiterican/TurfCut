@@ -1,81 +1,69 @@
 "use server";
 
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
-import {
-  getSupabaseServiceRoleKey,
-  getSupabaseUrl,
-  getDatabaseUrl,
-} from "@/lib/env";
-import { PrismaClient } from "@prisma/client";
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { validateSignup } from "@/lib/auth-input";
+import { formToObject } from "@/lib/jobs";
+import { ensureAccount, SIGNUP_METADATA_KEY } from "@/lib/account";
+import { siteOrigin } from "@/lib/site-origin";
 
-interface SignupInput {
-  userId: string;
-  accountType: "worker" | "company";
-  name: string;
+export interface SignupState {
+  message: string;
+  errors: Record<string, string>;
+  values: Record<string, string>;
 }
 
 /**
- * Creates the Turfcut-side rows for a newly signed-up auth user:
- * Profile + Worker (role WORKER) or Profile + Organization (role OWNER).
- * Runs with the service-role key so it works before RLS policies exist (M0).
+ * Creates the auth user. The Turfcut rows (Profile + Worker, or Profile +
+ * Organization) are created only once the person holds a real session —
+ * here when email confirmation is off, otherwise when they open the
+ * confirmation link — so nobody can claim an email address they don't own.
+ * A server action: works without JavaScript, never puts a password in a URL.
  */
-export async function completeSignup(
-  input: SignupInput
-): Promise<{ ok: true } | { ok: false; error: string }> {
+export async function signUp(_prev: SignupState, fd: FormData): Promise<SignupState> {
+  const raw = formToObject(fd);
+  const values = Object.fromEntries(["accountType", "name", "email", "phone"].map((k) => [k, typeof raw[k] === "string" ? (raw[k] as string) : ""]));
+  const v = validateSignup(raw);
+  if (!v.ok) return { message: "Fix the highlighted fields.", errors: v.errors, values };
+  const { accountType, name, email, password, phone } = v.value;
+
+  let supabase;
   try {
-    const url = getSupabaseUrl();
-    const serviceKey = getSupabaseServiceRoleKey();
-    getDatabaseUrl();
-
-    const cookieStore = await cookies();
-    // Verify the caller actually owns this auth user before writing rows.
-    const supabase = createServerClient(url, serviceKey, {
-      cookies: {
-        getAll: () => cookieStore.getAll(),
-        setAll: () => {},
-      },
-    });
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user || user.id !== input.userId) {
-      return { ok: false, error: "Not authenticated as the new user." };
-    }
-
-    const prisma = new PrismaClient({
-      datasources: { db: { url: process.env.DATABASE_URL! } },
-    });
-    try {
-      const existing = await prisma.profile.findUnique({
-        where: { id: input.userId },
-      });
-      if (existing) return { ok: true }; // idempotent
-
-      if (input.accountType === "worker") {
-        await prisma.profile.create({
-          data: {
-            id: input.userId,
-            role: "WORKER",
-            worker: { create: { displayName: input.name } },
-          },
-        });
-      } else {
-        const org = await prisma.organization.create({
-          data: { name: input.name },
-        });
-        await prisma.profile.create({
-          data: { id: input.userId, role: "OWNER", orgId: org.id },
-        });
-      }
-      return { ok: true };
-    } finally {
-      await prisma.$disconnect();
-    }
-  } catch (err) {
-    return {
-      ok: false,
-      error: err instanceof Error ? err.message : "Signup failed",
-    };
+    supabase = await createClient();
+  } catch {
+    return { message: "Sign-up isn't configured on this server yet.", errors: {}, values };
   }
+  const origin = await siteOrigin();
+  // The same answer for a new address and an existing one, so the form
+  // can't be used to find out who has an account.
+  const checkEmail: SignupState = {
+    message: `Check ${email} for a confirmation link. Already have an account? Log in instead.`,
+    errors: {},
+    values: { ...values, done: "1" },
+  };
+
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: { [SIGNUP_METADATA_KEY]: { accountType, name, phone } },
+      ...(origin ? { emailRedirectTo: `${origin}/auth/confirm?next=/dashboard` } : {}),
+    },
+  });
+  if (error) {
+    if (error.code === "user_already_exists" || error.code === "email_exists") return checkEmail;
+    if (error.code === "weak_password") return { message: "Fix the highlighted fields.", errors: { password: "Choose a stronger password." }, values };
+    if (error.status === 429) return { message: "Too many attempts. Wait a minute and try again.", errors: {}, values };
+    return { message: "We couldn't create the account. Try again in a minute.", errors: {}, values };
+  }
+  // Confirmation on: either a new user awaiting confirmation, or (no
+  // identities) an existing address — both get the same reply.
+  if (!data.session || !data.user || !data.user.identities?.length) return checkEmail;
+
+  try {
+    await ensureAccount(data.user);
+  } catch {
+    return { message: "Your login was created, but setting up your profile failed. Log in to finish.", errors: {}, values };
+  }
+  redirect("/dashboard");
 }

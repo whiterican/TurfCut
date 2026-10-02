@@ -64,6 +64,25 @@ export interface ScorecardShift {
   startsAt: Date;
   events: ScorecardEvent[];
   validations: ScorecardValidation[];
+  /** The job's notice window: a worker cancellation later than this is a no-show. Default 24. */
+  cancellationNoticeHours?: number;
+  /** The job's ballot measure / initiative IDs. */
+  measureIds?: string[];
+  /** For the per-campaign history list. */
+  jobId?: string;
+  jobTitle?: string;
+}
+
+export interface CampaignHistory {
+  jobId: string;
+  title: string;
+  workType: WorkType;
+  verifiedShifts: number;
+  /** Signatures accepted / reviewed at supervisor review (petition work). */
+  accepted: number;
+  reviewed: number;
+  doors: number;
+  lastAt: string;
 }
 
 export interface MetricExplanation {
@@ -81,9 +100,11 @@ export interface ScorecardSegment {
   state: string | null;
   statesWorked: string[];
   dateRange: { from: string; to: string } | null;
+  /** dateRange for people: "Sep 28, 2026", "Sep 1 – Sep 28, 2026". */
+  dateLabel: string | null;
   campaignsCount: number;
-  /** Unique measure/initiative IDs. Jobs don't record them yet, so null. */
-  initiativesCount: number | null;
+  /** Unique measure/initiative IDs across the jobs behind verified shifts. */
+  initiativesCount: number;
   shiftsCount: number;
   activeHours: number;
   doorsAttempted: number;
@@ -217,7 +238,8 @@ function shiftFacts(shift: ScorecardShift): ShiftFacts {
     reviewed: 0,
     accepted: 0,
     rejected: 0,
-    lastEventAt: latest(shift.events)?.createdAt ?? null,
+    // Turf marks (NOTE) aren't work: they don't move "last updated".
+    lastEventAt: latest(shift.events.filter((e) => e.type !== "NOTE"))?.createdAt ?? null,
     correctionsApplied: applied,
     correctionsIgnored: ignored,
   };
@@ -292,6 +314,27 @@ function round(v: number, places = 4): number {
 
 const day = (d: Date) => d.toISOString().slice(0, 10);
 
+const fmtDay = (d: string, year: boolean) =>
+  new Date(`${d}T00:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", ...(year ? { year: "numeric" } : {}), timeZone: "UTC" });
+
+/**
+ * A human date range: "Sep 28, 2026", "Sep 1 – Sep 28, 2026",
+ * "Dec 30, 2025 – Jan 2, 2026". Plain dates only — the server doesn't know
+ * the viewer's day, so no "today"/"yesterday". Inputs are YYYY-MM-DD.
+ */
+export function rangeLabel(from: string, to: string): string {
+  if (from === to) return fmtDay(from, true);
+  return from.slice(0, 4) === to.slice(0, 4) ? `${fmtDay(from, false)} – ${fmtDay(to, true)}` : `${fmtDay(from, true)} – ${fmtDay(to, true)}`;
+}
+
+/** The same range inside a sentence: "on Sep 28, 2026", "from Sep 1 to Sep 28, 2026". */
+export function rangePhrase(from: string, to: string): string {
+  if (from === to) return `on ${fmtDay(from, true)}`;
+  return `from ${fmtDay(from, from.slice(0, 4) !== to.slice(0, 4))} to ${fmtDay(to, true)}`;
+}
+
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
 function explain(
   value: number | null,
   numerator: number,
@@ -338,9 +381,10 @@ function segment(
   };
 
   const n = verified.length;
+  const dateLabel = dateRange ? rangeLabel(dateRange.from, dateRange.to) : null;
   const context =
-    `${n} verified shift(s)` +
-    (dateRange ? `, ${dateRange.from} to ${dateRange.to}` : "") +
+    plural(n, "verified shift") +
+    (dateRange ? ` ${rangePhrase(dateRange.from, dateRange.to)}` : "") +
     (statesWorked.length ? `, ${statesWorked.join("/")}` : "");
   const isPetition = workType === "PETITION";
 
@@ -350,8 +394,9 @@ function segment(
     state,
     statesWorked,
     dateRange,
+    dateLabel,
     campaignsCount: new Set(verified.map((f) => f.shift.engagementId)).size,
-    initiativesCount: null,
+    initiativesCount: new Set(verified.flatMap((f) => f.shift.measureIds ?? [])).size,
     shiftsCount: n,
     activeHours: hours,
     doorsAttempted: doors,
@@ -373,7 +418,7 @@ function segment(
         doors,
         doorShifts,
         "verified doors attempted ÷ completed door shifts",
-        `${doors} doors across ${doorShifts} completed shift(s) with door attempts; ${context}`
+        `${doors} doors across ${plural(doorShifts, "completed shift")} with door attempts; ${context}`
       ),
       contactRate: explain(
         contactRate(totals),
@@ -410,6 +455,41 @@ function segment(
   };
 }
 
+/**
+ * How a shift was cancelled, from its newest SHIFT_CANCELLED event:
+ * "late" = by the worker inside the job's notice window; "excused" = by the
+ * worker in time, or by the organization; null = not cancelled by event.
+ */
+/**
+ * Verified work per campaign, newest first — the same verification rules as
+ * the scorecard totals, so the list always adds up to them.
+ */
+export function campaignHistory(shifts: ScorecardShift[], limit = 5): CampaignHistory[] {
+  const by = new Map<string, CampaignHistory>();
+  for (const s of shifts) {
+    if (!s.jobId) continue;
+    const f = shiftFacts(s);
+    if (f.verification !== "verified") continue;
+    const h = by.get(s.jobId) ?? { jobId: s.jobId, title: s.jobTitle ?? "Campaign", workType: s.workType, verifiedShifts: 0, accepted: 0, reviewed: 0, doors: 0, lastAt: s.startsAt.toISOString() };
+    h.verifiedShifts += 1;
+    h.accepted += f.accepted;
+    h.reviewed += f.reviewed;
+    h.doors += f.doors;
+    if (s.startsAt.toISOString() > h.lastAt) h.lastAt = s.startsAt.toISOString();
+    by.set(s.jobId, h);
+  }
+  return [...by.values()].sort((a, b) => b.lastAt.localeCompare(a.lastAt)).slice(0, limit);
+}
+
+export function cancellationOf(shift: ScorecardShift): "late" | "excused" | null {
+  const { events } = effectiveEvents(shift.events, shift.validations);
+  const c = latest(events.filter((e) => e.type === "SHIFT_CANCELLED"));
+  if (!c) return null;
+  if (obj(c.payload).by !== "WORKER") return "excused";
+  const noticeMs = (shift.cancellationNoticeHours ?? 24) * 3_600_000;
+  return c.createdAt.getTime() > shift.startsAt.getTime() - noticeMs ? "late" : "excused";
+}
+
 export function computeScorecard(shifts: ScorecardShift[], opts: ScorecardOptions = {}): Scorecard {
   const now = opts.now ?? new Date();
   const period = opts.period ?? "lifetime";
@@ -424,19 +504,27 @@ export function computeScorecard(shifts: ScorecardShift[], opts: ScorecardOption
       (!opts.workType || s.workType === opts.workType) &&
       (!opts.state || s.state === opts.state)
   );
-  const facts = inScope.map(shiftFacts);
+  const all = inScope.map((s) => ({ s, cancellation: cancellationOf(s) }));
+  // Cancelled shifts produce no work, so they stay out of the segments.
+  const facts = all.filter((x) => !x.cancellation && x.s.status !== "CANCELLED").map((x) => shiftFacts(x.s));
 
   const workTypes = (["PETITION", "CANVASS"] as const).filter((w) => facts.some((f) => f.shift.workType === w));
   const segments = workTypes.map((w) =>
     segment(w, period, opts.state ?? null, facts.filter((f) => f.shift.workType === w))
   );
 
-  // Reliability spans every work type in scope. Cancelled shifts leave the
-  // denominator; late cancellations can't be told apart until shifts record
-  // when (and by whom) they were cancelled.
-  const accepted = facts.filter((f) => f.shift.status !== "CANCELLED");
-  const started = accepted.filter((f) => f.started).length;
-  const cancelled = facts.length - accepted.length;
+  // Reliability spans every work type in scope (spec p.10: started accepted
+  // shifts ÷ accepted shifts not timely cancelled).
+  // - A worker cancellation inside the job's notice window still counts as an
+  //   accepted shift that wasn't started — a no-show.
+  // - A timely worker cancellation, or any organization cancellation, leaves
+  //   the denominator.
+  // - A legacy CANCELLED shift with no SHIFT_CANCELLED event is treated as
+  //   excused: there's no record of who cancelled or when.
+  const late = all.filter((x) => x.cancellation === "late").length;
+  const excused = all.filter((x) => x.cancellation === "excused" || (!x.cancellation && x.s.status === "CANCELLED")).length;
+  const started = facts.filter((f) => f.started).length;
+  const acceptedDue = facts.length + late;
   const rel: ShiftTotals = {
     activeMs: 0,
     doorsAttempted: 0,
@@ -446,7 +534,7 @@ export function computeScorecard(shifts: ScorecardShift[], opts: ScorecardOption
     signaturesAccepted: 0,
     doorShiftsCompleted: 0,
     shiftsStarted: started,
-    shiftsAccepted: accepted.length,
+    shiftsAccepted: acceptedDue,
   };
 
   const lastEvent = facts
@@ -462,11 +550,11 @@ export function computeScorecard(shifts: ScorecardShift[], opts: ScorecardOption
       showRate: explain(
         showRate(rel),
         started,
-        accepted.length,
+        acceptedDue,
         "started accepted shifts ÷ accepted shifts not timely cancelled",
-        `started ${started} of ${accepted.length} accepted shift(s) due so far` +
-          (cancelled ? `; ${cancelled} cancelled shift(s) left out` : "") +
-          " (late cancellations can't be identified yet)"
+        `started ${started} of ${plural(acceptedDue, "accepted shift")} due so far` +
+          (late ? `; ${plural(late, "late cancellation")} by the worker counted as no-shows` : "") +
+          (excused ? `; ${plural(excused, "timely or organization cancellation")} left out` : "")
       ),
     },
     lastUpdated: lastEvent ? lastEvent.toISOString() : null,

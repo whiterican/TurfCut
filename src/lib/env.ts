@@ -28,6 +28,25 @@ export function getDatabaseUrl(): string {
   return v;
 }
 
+/**
+ * The site's public origin (e.g. https://app.turfcut.com), used to build
+ * links that leave the site — magic links and confirmation emails. Never
+ * derived from request headers in production: a forged Host header would
+ * otherwise point a victim's sign-in link at an attacker's server.
+ * Returns null when unset in production.
+ */
+export function getSiteUrl(): string | null {
+  const v = process.env.SITE_URL;
+  if (v) {
+    try {
+      return new URL(v).origin;
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
 /** True when the browser-safe Supabase config is present. */
 export function hasSupabaseConfig(): boolean {
   return Boolean(

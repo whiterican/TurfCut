@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { db } from "@/lib/db";
+import { ensureAccount } from "@/lib/account";
 
 export type Role =
   | "WORKER"
@@ -35,7 +36,11 @@ export async function getSessionProfile(): Promise<SessionProfile | null> {
   let profile;
   try {
     profile = await db().profile.findUnique({ where: { id: user.id } });
-  } catch {
+    // A confirmed sign-up that landed somewhere other than /auth/confirm
+    // (e.g. the Supabase Site URL): finish setup from its pending details.
+    if (!profile && (await ensureAccount(user))) profile = await db().profile.findUnique({ where: { id: user.id } });
+  } catch (e) {
+    console.error("[turfcut] loading or finishing the profile failed", e);
     return null; // DB unreachable — treat as signed out, don't crash the page.
   }
   if (!profile) return null;

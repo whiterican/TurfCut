@@ -8,5 +8,7 @@ export default defineConfig({
   test: {
     include: ["src/**/*.test.ts"],
     environment: "node",
+    // Date formatting in tests must not depend on the machine's zone.
+    env: { TZ: "UTC" },
   },
 });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computeScorecard, type ScorecardShift } from "./scorecard";
+import { campaignHistory, computeScorecard, type ScorecardShift } from "./scorecard";
 import { SEED_SHIFT_EVENTS, SEED_SHIFT_ID } from "../../prisma/seed-fixture";
 
 const checkIn = new Date("2026-09-28T09:00:00Z");
@@ -37,7 +37,7 @@ describe("scorecard from the seeded shift (hand-computed, spec p.10 formulas)", 
   it("reports the spec's minimum totals, with signature stages stored separately", () => {
     expect(seg).toMatchObject({
       campaignsCount: 1,
-      initiativesCount: null,
+      initiativesCount: 0,
       shiftsCount: 1,
       activeHours: 3.5,
       doorsAttempted: 40,
@@ -60,7 +60,7 @@ describe("scorecard from the seeded shift (hand-computed, spec p.10 formulas)", 
 
   it("explains each metric with formula, sample size, date range and states", () => {
     expect(seg.averages.acceptanceRate).toMatchObject({ numerator: 20, denominator: 22 });
-    expect(seg.averages.acceptanceRate.evidence).toContain("1 verified shift(s), 2026-09-28 to 2026-09-28, CO");
+    expect(seg.averages.acceptanceRate.evidence).toContain("1 verified shift on Sep 28, 2026, CO");
     for (const m of [...Object.values(seg.averages), s.reliability.showRate]) {
       expect(m.formula).not.toBe("");
       expect(m.evidence).not.toBe("");
@@ -197,6 +197,43 @@ describe("spec formulas and verification rules", () => {
     expect(s.reliability.showRate).toMatchObject({ value: 0.5, numerator: 1, denominator: 2 });
   });
 
+  it("counts a late worker cancellation as a no-show; timely or org cancellations leave the denominator", () => {
+    const start = new Date("2026-09-28T09:00:00Z");
+    const cancel = (by: string, hoursBefore: number, extra: Partial<ScorecardShift> = {}) =>
+      shift([], {
+        startsAt: start,
+        status: "CANCELLED",
+        cancellationNoticeHours: 24,
+        ...extra,
+        events: [{ id: `c-${by}-${hoursBefore}`, type: "SHIFT_CANCELLED", payload: { by, reason: "test" }, createdAt: new Date(start.getTime() - hoursBefore * 3_600_000) }],
+      });
+    const s = computeScorecard(
+      [
+        shift([["CHECK_IN", 0], ["CHECK_OUT", 60]]), // started
+        cancel("WORKER", 2), // late: inside the 24h window → no-show
+        cancel("WORKER", 48), // timely → excused
+        cancel("ORGANIZATION", 1), // org cancelled → never the worker's fault
+        cancel("WORKER", 6, { cancellationNoticeHours: 4 }), // job allows 4h notice → timely
+      ],
+      { now }
+    );
+    expect(s.reliability.showRate).toMatchObject({ value: 0.5, numerator: 1, denominator: 2 });
+    expect(s.reliability.showRate.evidence).toMatch(/1 late cancellation.*3 timely or organization/);
+    expect(s.segments[0].shiftsCount).toBe(1); // cancelled shifts aren't work
+  });
+
+  it("counts unique ballot measures across verified shifts", () => {
+    const s = computeScorecard(
+      [
+        shift([["CHECK_IN", 0], ["CHECK_OUT", 60]], { measureIds: ["I-305", "I-12"] }),
+        shift([["CHECK_IN", 0], ["CHECK_OUT", 60]], { measureIds: ["I-305"] }),
+        shift([["CHECK_IN", 0], ["CHECK_OUT", 60]], { measureIds: ["I-99"], validations: [] }), // unverified
+      ],
+      { now }
+    );
+    expect(s.segments[0].initiativesCount).toBe(2);
+  });
+
   it("treats an unclosed pause as paused until check-out", () => {
     const s = computeScorecard([shift([["CHECK_IN", 0], ["PAUSE_START", 60], ["CHECK_OUT", 120]])], { now });
     expect(s.segments[0].activeHours).toBe(1);
@@ -222,5 +259,32 @@ describe("spec formulas and verification rules", () => {
     expect(s.segments).toEqual([]);
     expect(s.reliability.showRate.value).toBeNull();
     expect(s.lastUpdated).toBeNull();
+  });
+});
+
+describe("date range labels", () => {
+  it("reads like a person wrote it — plain dates, no server-side 'today'", async () => {
+    const { rangeLabel, rangePhrase } = await import("./scorecard");
+    expect(rangeLabel("2026-09-28", "2026-09-28")).toBe("Sep 28, 2026");
+    expect(rangeLabel("2026-09-01", "2026-09-28")).toBe("Sep 1 – Sep 28, 2026");
+    expect(rangeLabel("2025-12-30", "2026-01-02")).toBe("Dec 30, 2025 – Jan 2, 2026");
+    expect(rangePhrase("2026-09-28", "2026-09-28")).toBe("on Sep 28, 2026");
+    expect(rangePhrase("2026-09-01", "2026-09-28")).toBe("from Sep 1 to Sep 28, 2026");
+    expect(rangePhrase("2025-12-30", "2026-01-02")).toBe("from Dec 30, 2025 to Jan 2, 2026");
+  });
+});
+
+describe("per-campaign history (the worker's own profile only)", () => {
+  it("counts verified shifts per job with the scorecard's own rules, newest first", () => {
+    const a = { ...seedShift, jobId: "job-a", jobTitle: "Denver drive" };
+    const pending = { ...a, id: "pending", validations: [] };
+    const b = { ...seedShift, id: "b", jobId: "job-b", jobTitle: "Aurora drive", startsAt: at(60 * 24) };
+    const h = campaignHistory([a, pending, b]);
+    expect(h.map((x) => x.title)).toEqual(["Aurora drive", "Denver drive"]);
+    const total = computeScorecard([a, b], { now: at(60 * 48) }).segments[0];
+    // Adds up to the scorecard: same verified shifts, same accepted/reviewed.
+    expect(h.reduce((n, x) => n + x.verifiedShifts, 0)).toBe(total.shiftsCount);
+    expect(h.reduce((n, x) => n + x.accepted, 0)).toBe(total.signaturesAccepted);
+    expect(h.reduce((n, x) => n + x.reviewed, 0)).toBe(total.signaturesReviewed);
   });
 });

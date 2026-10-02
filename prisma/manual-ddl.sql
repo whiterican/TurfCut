@@ -26,7 +26,7 @@ CREATE TYPE "public"."EngagementStatus" AS ENUM ('APPLIED', 'INVITED', 'CLAIMED'
 CREATE TYPE "public"."ShiftStatus" AS ENUM ('SCHEDULED', 'ACTIVE', 'COMPLETED', 'CANCELLED');
 
 -- CreateEnum
-CREATE TYPE "public"."WorkEventType" AS ENUM ('CHECK_IN', 'CHECK_OUT', 'PAUSE_START', 'PAUSE_END', 'DOOR_KNOCK', 'CONTACT', 'SIGNATURE_SUBMITTED', 'CALL', 'INTERVIEW', 'PACKET_PICKUP', 'PACKET_RETURN', 'BATCH_COUNT', 'INCIDENT', 'CORRECTION', 'NOTE');
+CREATE TYPE "public"."WorkEventType" AS ENUM ('CHECK_IN', 'CHECK_OUT', 'PAUSE_START', 'PAUSE_END', 'DOOR_KNOCK', 'CONTACT', 'SIGNATURE_SUBMITTED', 'CALL', 'INTERVIEW', 'PACKET_PICKUP', 'PACKET_RETURN', 'BATCH_COUNT', 'INCIDENT', 'CORRECTION', 'SHIFT_CANCELLED', 'NOTE');
 
 -- CreateEnum
 CREATE TYPE "public"."ValidationStatus" AS ENUM ('APPROVED', 'REJECTED', 'FLAGGED');
@@ -34,11 +34,21 @@ CREATE TYPE "public"."ValidationStatus" AS ENUM ('APPROVED', 'REJECTED', 'FLAGGE
 -- CreateEnum
 CREATE TYPE "public"."PayoutStatus" AS ENUM ('PENDING', 'APPROVED', 'PAID', 'DISPUTED');
 
+-- CreateEnum
+CREATE TYPE "public"."ConversationKind" AS ENUM ('DIRECT', 'GROUP');
+
+-- CreateEnum
+CREATE TYPE "public"."ParticipantRole" AS ENUM ('WORKER', 'MANAGER');
+
+-- CreateEnum
+CREATE TYPE "public"."RevisionKind" AS ENUM ('EDIT', 'DELETE');
+
 -- CreateTable
 CREATE TABLE "public"."Profile" (
     "id" UUID NOT NULL,
     "role" "public"."Role" NOT NULL,
     "orgId" UUID,
+    "displayName" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -109,6 +119,9 @@ CREATE TABLE "public"."Organization" (
     "id" UUID NOT NULL,
     "name" TEXT NOT NULL,
     "approved" BOOLEAN NOT NULL DEFAULT false,
+    "contractorTermsSignedAt" TIMESTAMP(3),
+    "classificationReviewedAt" TIMESTAMP(3),
+    "legalContact" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -124,6 +137,8 @@ CREATE TABLE "public"."JurisdictionProfile" (
     "isCurrent" BOOLEAN NOT NULL DEFAULT true,
     "approved" BOOLEAN NOT NULL DEFAULT false,
     "approvedAt" TIMESTAMP(3),
+    "effectiveFrom" TIMESTAMP(3),
+    "approvalExpiresAt" TIMESTAMP(3),
     "rules" JSONB NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
@@ -147,6 +162,11 @@ CREATE TABLE "public"."Job" (
     "headcount" INTEGER,
     "hiringMethod" JSONB,
     "requirements" JSONB,
+    "campaignDisclosure" JSONB,
+    "supportContacts" JSONB,
+    "measureIds" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "cancellationNoticeHours" INTEGER NOT NULL DEFAULT 24,
+    "publishedAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -160,6 +180,7 @@ CREATE TABLE "public"."Engagement" (
     "workerId" UUID NOT NULL,
     "status" "public"."EngagementStatus" NOT NULL DEFAULT 'APPLIED',
     "applicationSnapshot" JSONB,
+    "hiredById" UUID,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -175,6 +196,11 @@ CREATE TABLE "public"."Shift" (
     "status" "public"."ShiftStatus" NOT NULL DEFAULT 'SCHEDULED',
     "checkInAt" TIMESTAMP(3),
     "checkOutAt" TIMESTAMP(3),
+    "stagingLocation" TEXT,
+    "stagingLat" DOUBLE PRECISION,
+    "stagingLng" DOUBLE PRECISION,
+    "supervisorId" UUID,
+    "turfArea" JSONB,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -187,6 +213,7 @@ CREATE TABLE "public"."WorkEvent" (
     "shiftId" UUID NOT NULL,
     "type" "public"."WorkEventType" NOT NULL,
     "payload" JSONB NOT NULL,
+    "actorId" UUID,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "WorkEvent_pkey" PRIMARY KEY ("id")
@@ -243,6 +270,98 @@ CREATE TABLE "public"."AuditEvent" (
     CONSTRAINT "AuditEvent_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "public"."Conversation" (
+    "id" UUID NOT NULL,
+    "kind" "public"."ConversationKind" NOT NULL,
+    "orgId" UUID NOT NULL,
+    "engagementId" UUID,
+    "name" TEXT,
+    "createdById" UUID NOT NULL,
+    "lastMessageAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Conversation_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."ConversationJob" (
+    "conversationId" UUID NOT NULL,
+    "jobId" UUID NOT NULL,
+
+    CONSTRAINT "ConversationJob_pkey" PRIMARY KEY ("conversationId","jobId")
+);
+
+-- CreateTable
+CREATE TABLE "public"."ConversationParticipant" (
+    "id" UUID NOT NULL,
+    "conversationId" UUID NOT NULL,
+    "profileId" UUID NOT NULL,
+    "role" "public"."ParticipantRole" NOT NULL,
+    "addedById" UUID NOT NULL,
+    "addedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "removedAt" TIMESTAMP(3),
+    "removedById" UUID,
+    "lastReadAt" TIMESTAMP(3),
+
+    CONSTRAINT "ConversationParticipant_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."Message" (
+    "id" UUID NOT NULL,
+    "conversationId" UUID NOT NULL,
+    "senderId" UUID NOT NULL,
+    "body" TEXT NOT NULL,
+    "attachmentPath" TEXT,
+    "attachmentName" TEXT,
+    "attachmentType" TEXT,
+    "attachmentSize" INTEGER,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Message_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."MessageRevision" (
+    "id" UUID NOT NULL,
+    "messageId" UUID NOT NULL,
+    "conversationId" UUID NOT NULL,
+    "kind" "public"."RevisionKind" NOT NULL,
+    "body" TEXT,
+    "actorId" UUID NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "MessageRevision_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."MessageReport" (
+    "id" UUID NOT NULL,
+    "messageId" UUID NOT NULL,
+    "conversationId" UUID NOT NULL,
+    "orgId" UUID NOT NULL,
+    "reporterId" UUID NOT NULL,
+    "reason" TEXT NOT NULL,
+    "bodySnapshot" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "resolvedAt" TIMESTAMP(3),
+    "resolvedById" UUID,
+
+    CONSTRAINT "MessageReport_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."ProfileBlock" (
+    "id" UUID NOT NULL,
+    "blockerId" UUID NOT NULL,
+    "blockedId" UUID NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "liftedAt" TIMESTAMP(3),
+
+    CONSTRAINT "ProfileBlock_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "Worker_profileId_key" ON "public"."Worker"("profileId");
 
@@ -260,6 +379,9 @@ CREATE INDEX "Job_orgId_status_idx" ON "public"."Job"("orgId", "status");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Engagement_jobId_workerId_key" ON "public"."Engagement"("jobId", "workerId");
+
+-- CreateIndex
+CREATE INDEX "Shift_engagementId_startsAt_idx" ON "public"."Shift"("engagementId", "startsAt");
 
 -- CreateIndex
 CREATE INDEX "WorkEvent_shiftId_createdAt_idx" ON "public"."WorkEvent"("shiftId", "createdAt");
@@ -281,6 +403,39 @@ CREATE INDEX "AuditEvent_entityType_entityId_idx" ON "public"."AuditEvent"("enti
 
 -- CreateIndex
 CREATE INDEX "AuditEvent_createdAt_idx" ON "public"."AuditEvent"("createdAt");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Conversation_engagementId_key" ON "public"."Conversation"("engagementId");
+
+-- CreateIndex
+CREATE INDEX "Conversation_orgId_kind_idx" ON "public"."Conversation"("orgId", "kind");
+
+-- CreateIndex
+CREATE INDEX "ConversationJob_jobId_idx" ON "public"."ConversationJob"("jobId");
+
+-- CreateIndex
+CREATE INDEX "ConversationParticipant_profileId_idx" ON "public"."ConversationParticipant"("profileId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ConversationParticipant_conversationId_profileId_key" ON "public"."ConversationParticipant"("conversationId", "profileId");
+
+-- CreateIndex
+CREATE INDEX "Message_conversationId_createdAt_idx" ON "public"."Message"("conversationId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "MessageRevision_messageId_createdAt_idx" ON "public"."MessageRevision"("messageId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "MessageRevision_conversationId_createdAt_idx" ON "public"."MessageRevision"("conversationId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "MessageReport_orgId_createdAt_idx" ON "public"."MessageReport"("orgId", "createdAt");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "MessageReport_messageId_reporterId_key" ON "public"."MessageReport"("messageId", "reporterId");
+
+-- CreateIndex
+CREATE INDEX "ProfileBlock_blockedId_idx" ON "public"."ProfileBlock"("blockedId");
 
 -- AddForeignKey
 ALTER TABLE "public"."Profile" ADD CONSTRAINT "Profile_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "public"."Organization"("id") ON DELETE SET NULL ON UPDATE CASCADE;
@@ -307,6 +462,9 @@ ALTER TABLE "public"."Engagement" ADD CONSTRAINT "Engagement_jobId_fkey" FOREIGN
 ALTER TABLE "public"."Engagement" ADD CONSTRAINT "Engagement_workerId_fkey" FOREIGN KEY ("workerId") REFERENCES "public"."Worker"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "public"."Engagement" ADD CONSTRAINT "Engagement_hiredById_fkey" FOREIGN KEY ("hiredById") REFERENCES "public"."Profile"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "public"."Shift" ADD CONSTRAINT "Shift_engagementId_fkey" FOREIGN KEY ("engagementId") REFERENCES "public"."Engagement"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -320,4 +478,40 @@ ALTER TABLE "public"."ProfileMetric" ADD CONSTRAINT "ProfileMetric_workerId_fkey
 
 -- AddForeignKey
 ALTER TABLE "public"."Payout" ADD CONSTRAINT "Payout_workerId_fkey" FOREIGN KEY ("workerId") REFERENCES "public"."Worker"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."Conversation" ADD CONSTRAINT "Conversation_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "public"."Organization"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."Conversation" ADD CONSTRAINT "Conversation_engagementId_fkey" FOREIGN KEY ("engagementId") REFERENCES "public"."Engagement"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."ConversationJob" ADD CONSTRAINT "ConversationJob_conversationId_fkey" FOREIGN KEY ("conversationId") REFERENCES "public"."Conversation"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."ConversationJob" ADD CONSTRAINT "ConversationJob_jobId_fkey" FOREIGN KEY ("jobId") REFERENCES "public"."Job"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."ConversationParticipant" ADD CONSTRAINT "ConversationParticipant_conversationId_fkey" FOREIGN KEY ("conversationId") REFERENCES "public"."Conversation"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."ConversationParticipant" ADD CONSTRAINT "ConversationParticipant_profileId_fkey" FOREIGN KEY ("profileId") REFERENCES "public"."Profile"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."Message" ADD CONSTRAINT "Message_conversationId_fkey" FOREIGN KEY ("conversationId") REFERENCES "public"."Conversation"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."Message" ADD CONSTRAINT "Message_senderId_fkey" FOREIGN KEY ("senderId") REFERENCES "public"."Profile"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."MessageRevision" ADD CONSTRAINT "MessageRevision_messageId_fkey" FOREIGN KEY ("messageId") REFERENCES "public"."Message"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."MessageReport" ADD CONSTRAINT "MessageReport_messageId_fkey" FOREIGN KEY ("messageId") REFERENCES "public"."Message"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."ProfileBlock" ADD CONSTRAINT "ProfileBlock_blockerId_fkey" FOREIGN KEY ("blockerId") REFERENCES "public"."Profile"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."ProfileBlock" ADD CONSTRAINT "ProfileBlock_blockedId_fkey" FOREIGN KEY ("blockedId") REFERENCES "public"."Profile"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 

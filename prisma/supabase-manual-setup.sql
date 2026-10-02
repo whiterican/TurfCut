@@ -1,8 +1,8 @@
--- Turfcut M0 + M1 — manual Supabase setup (one paste), FRESH databases only.
--- Generated from prisma/schema.prisma + prisma/seed.ts on 2026-09-30.
+-- Turfcut M0 + M1 + M2 + M3 + M4 — manual Supabase setup (one paste), FRESH databases only.
+-- Generated from prisma/schema.prisma + prisma/seed.ts on 2026-10-01.
 -- Paste the entire file into the Supabase SQL editor and run it.
--- The DDL is not re-runnable. Already set up under M0? Run m1-migration.sql,
--- then m1-profile-migration.sql, then manual-seed.sql (idempotent) instead.
+-- The DDL is not re-runnable. Existing database? Run the m1-, m1-profile-,
+-- m2-, m3-, m4-0-rls-lockdown and m4-migration.sql files in order, then manual-seed.sql (idempotent).
 -- CreateSchema
 CREATE SCHEMA IF NOT EXISTS "public";
 
@@ -31,7 +31,7 @@ CREATE TYPE "public"."EngagementStatus" AS ENUM ('APPLIED', 'INVITED', 'CLAIMED'
 CREATE TYPE "public"."ShiftStatus" AS ENUM ('SCHEDULED', 'ACTIVE', 'COMPLETED', 'CANCELLED');
 
 -- CreateEnum
-CREATE TYPE "public"."WorkEventType" AS ENUM ('CHECK_IN', 'CHECK_OUT', 'PAUSE_START', 'PAUSE_END', 'DOOR_KNOCK', 'CONTACT', 'SIGNATURE_SUBMITTED', 'CALL', 'INTERVIEW', 'PACKET_PICKUP', 'PACKET_RETURN', 'BATCH_COUNT', 'INCIDENT', 'CORRECTION', 'NOTE');
+CREATE TYPE "public"."WorkEventType" AS ENUM ('CHECK_IN', 'CHECK_OUT', 'PAUSE_START', 'PAUSE_END', 'DOOR_KNOCK', 'CONTACT', 'SIGNATURE_SUBMITTED', 'CALL', 'INTERVIEW', 'PACKET_PICKUP', 'PACKET_RETURN', 'BATCH_COUNT', 'INCIDENT', 'CORRECTION', 'SHIFT_CANCELLED', 'NOTE');
 
 -- CreateEnum
 CREATE TYPE "public"."ValidationStatus" AS ENUM ('APPROVED', 'REJECTED', 'FLAGGED');
@@ -39,11 +39,21 @@ CREATE TYPE "public"."ValidationStatus" AS ENUM ('APPROVED', 'REJECTED', 'FLAGGE
 -- CreateEnum
 CREATE TYPE "public"."PayoutStatus" AS ENUM ('PENDING', 'APPROVED', 'PAID', 'DISPUTED');
 
+-- CreateEnum
+CREATE TYPE "public"."ConversationKind" AS ENUM ('DIRECT', 'GROUP');
+
+-- CreateEnum
+CREATE TYPE "public"."ParticipantRole" AS ENUM ('WORKER', 'MANAGER');
+
+-- CreateEnum
+CREATE TYPE "public"."RevisionKind" AS ENUM ('EDIT', 'DELETE');
+
 -- CreateTable
 CREATE TABLE "public"."Profile" (
     "id" UUID NOT NULL,
     "role" "public"."Role" NOT NULL,
     "orgId" UUID,
+    "displayName" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -114,6 +124,9 @@ CREATE TABLE "public"."Organization" (
     "id" UUID NOT NULL,
     "name" TEXT NOT NULL,
     "approved" BOOLEAN NOT NULL DEFAULT false,
+    "contractorTermsSignedAt" TIMESTAMP(3),
+    "classificationReviewedAt" TIMESTAMP(3),
+    "legalContact" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -129,6 +142,8 @@ CREATE TABLE "public"."JurisdictionProfile" (
     "isCurrent" BOOLEAN NOT NULL DEFAULT true,
     "approved" BOOLEAN NOT NULL DEFAULT false,
     "approvedAt" TIMESTAMP(3),
+    "effectiveFrom" TIMESTAMP(3),
+    "approvalExpiresAt" TIMESTAMP(3),
     "rules" JSONB NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
@@ -152,6 +167,11 @@ CREATE TABLE "public"."Job" (
     "headcount" INTEGER,
     "hiringMethod" JSONB,
     "requirements" JSONB,
+    "campaignDisclosure" JSONB,
+    "supportContacts" JSONB,
+    "measureIds" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "cancellationNoticeHours" INTEGER NOT NULL DEFAULT 24,
+    "publishedAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -165,6 +185,7 @@ CREATE TABLE "public"."Engagement" (
     "workerId" UUID NOT NULL,
     "status" "public"."EngagementStatus" NOT NULL DEFAULT 'APPLIED',
     "applicationSnapshot" JSONB,
+    "hiredById" UUID,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -180,6 +201,11 @@ CREATE TABLE "public"."Shift" (
     "status" "public"."ShiftStatus" NOT NULL DEFAULT 'SCHEDULED',
     "checkInAt" TIMESTAMP(3),
     "checkOutAt" TIMESTAMP(3),
+    "stagingLocation" TEXT,
+    "stagingLat" DOUBLE PRECISION,
+    "stagingLng" DOUBLE PRECISION,
+    "supervisorId" UUID,
+    "turfArea" JSONB,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -192,6 +218,7 @@ CREATE TABLE "public"."WorkEvent" (
     "shiftId" UUID NOT NULL,
     "type" "public"."WorkEventType" NOT NULL,
     "payload" JSONB NOT NULL,
+    "actorId" UUID,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "WorkEvent_pkey" PRIMARY KEY ("id")
@@ -248,6 +275,98 @@ CREATE TABLE "public"."AuditEvent" (
     CONSTRAINT "AuditEvent_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "public"."Conversation" (
+    "id" UUID NOT NULL,
+    "kind" "public"."ConversationKind" NOT NULL,
+    "orgId" UUID NOT NULL,
+    "engagementId" UUID,
+    "name" TEXT,
+    "createdById" UUID NOT NULL,
+    "lastMessageAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Conversation_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."ConversationJob" (
+    "conversationId" UUID NOT NULL,
+    "jobId" UUID NOT NULL,
+
+    CONSTRAINT "ConversationJob_pkey" PRIMARY KEY ("conversationId","jobId")
+);
+
+-- CreateTable
+CREATE TABLE "public"."ConversationParticipant" (
+    "id" UUID NOT NULL,
+    "conversationId" UUID NOT NULL,
+    "profileId" UUID NOT NULL,
+    "role" "public"."ParticipantRole" NOT NULL,
+    "addedById" UUID NOT NULL,
+    "addedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "removedAt" TIMESTAMP(3),
+    "removedById" UUID,
+    "lastReadAt" TIMESTAMP(3),
+
+    CONSTRAINT "ConversationParticipant_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."Message" (
+    "id" UUID NOT NULL,
+    "conversationId" UUID NOT NULL,
+    "senderId" UUID NOT NULL,
+    "body" TEXT NOT NULL,
+    "attachmentPath" TEXT,
+    "attachmentName" TEXT,
+    "attachmentType" TEXT,
+    "attachmentSize" INTEGER,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Message_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."MessageRevision" (
+    "id" UUID NOT NULL,
+    "messageId" UUID NOT NULL,
+    "conversationId" UUID NOT NULL,
+    "kind" "public"."RevisionKind" NOT NULL,
+    "body" TEXT,
+    "actorId" UUID NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "MessageRevision_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."MessageReport" (
+    "id" UUID NOT NULL,
+    "messageId" UUID NOT NULL,
+    "conversationId" UUID NOT NULL,
+    "orgId" UUID NOT NULL,
+    "reporterId" UUID NOT NULL,
+    "reason" TEXT NOT NULL,
+    "bodySnapshot" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "resolvedAt" TIMESTAMP(3),
+    "resolvedById" UUID,
+
+    CONSTRAINT "MessageReport_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."ProfileBlock" (
+    "id" UUID NOT NULL,
+    "blockerId" UUID NOT NULL,
+    "blockedId" UUID NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "liftedAt" TIMESTAMP(3),
+
+    CONSTRAINT "ProfileBlock_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "Worker_profileId_key" ON "public"."Worker"("profileId");
 
@@ -265,6 +384,9 @@ CREATE INDEX "Job_orgId_status_idx" ON "public"."Job"("orgId", "status");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Engagement_jobId_workerId_key" ON "public"."Engagement"("jobId", "workerId");
+
+-- CreateIndex
+CREATE INDEX "Shift_engagementId_startsAt_idx" ON "public"."Shift"("engagementId", "startsAt");
 
 -- CreateIndex
 CREATE INDEX "WorkEvent_shiftId_createdAt_idx" ON "public"."WorkEvent"("shiftId", "createdAt");
@@ -286,6 +408,39 @@ CREATE INDEX "AuditEvent_entityType_entityId_idx" ON "public"."AuditEvent"("enti
 
 -- CreateIndex
 CREATE INDEX "AuditEvent_createdAt_idx" ON "public"."AuditEvent"("createdAt");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Conversation_engagementId_key" ON "public"."Conversation"("engagementId");
+
+-- CreateIndex
+CREATE INDEX "Conversation_orgId_kind_idx" ON "public"."Conversation"("orgId", "kind");
+
+-- CreateIndex
+CREATE INDEX "ConversationJob_jobId_idx" ON "public"."ConversationJob"("jobId");
+
+-- CreateIndex
+CREATE INDEX "ConversationParticipant_profileId_idx" ON "public"."ConversationParticipant"("profileId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ConversationParticipant_conversationId_profileId_key" ON "public"."ConversationParticipant"("conversationId", "profileId");
+
+-- CreateIndex
+CREATE INDEX "Message_conversationId_createdAt_idx" ON "public"."Message"("conversationId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "MessageRevision_messageId_createdAt_idx" ON "public"."MessageRevision"("messageId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "MessageRevision_conversationId_createdAt_idx" ON "public"."MessageRevision"("conversationId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "MessageReport_orgId_createdAt_idx" ON "public"."MessageReport"("orgId", "createdAt");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "MessageReport_messageId_reporterId_key" ON "public"."MessageReport"("messageId", "reporterId");
+
+-- CreateIndex
+CREATE INDEX "ProfileBlock_blockedId_idx" ON "public"."ProfileBlock"("blockedId");
 
 -- AddForeignKey
 ALTER TABLE "public"."Profile" ADD CONSTRAINT "Profile_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "public"."Organization"("id") ON DELETE SET NULL ON UPDATE CASCADE;
@@ -312,6 +467,9 @@ ALTER TABLE "public"."Engagement" ADD CONSTRAINT "Engagement_jobId_fkey" FOREIGN
 ALTER TABLE "public"."Engagement" ADD CONSTRAINT "Engagement_workerId_fkey" FOREIGN KEY ("workerId") REFERENCES "public"."Worker"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "public"."Engagement" ADD CONSTRAINT "Engagement_hiredById_fkey" FOREIGN KEY ("hiredById") REFERENCES "public"."Profile"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "public"."Shift" ADD CONSTRAINT "Shift_engagementId_fkey" FOREIGN KEY ("engagementId") REFERENCES "public"."Engagement"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -326,6 +484,223 @@ ALTER TABLE "public"."ProfileMetric" ADD CONSTRAINT "ProfileMetric_workerId_fkey
 -- AddForeignKey
 ALTER TABLE "public"."Payout" ADD CONSTRAINT "Payout_workerId_fkey" FOREIGN KEY ("workerId") REFERENCES "public"."Worker"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
+-- AddForeignKey
+ALTER TABLE "public"."Conversation" ADD CONSTRAINT "Conversation_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "public"."Organization"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."Conversation" ADD CONSTRAINT "Conversation_engagementId_fkey" FOREIGN KEY ("engagementId") REFERENCES "public"."Engagement"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."ConversationJob" ADD CONSTRAINT "ConversationJob_conversationId_fkey" FOREIGN KEY ("conversationId") REFERENCES "public"."Conversation"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."ConversationJob" ADD CONSTRAINT "ConversationJob_jobId_fkey" FOREIGN KEY ("jobId") REFERENCES "public"."Job"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."ConversationParticipant" ADD CONSTRAINT "ConversationParticipant_conversationId_fkey" FOREIGN KEY ("conversationId") REFERENCES "public"."Conversation"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."ConversationParticipant" ADD CONSTRAINT "ConversationParticipant_profileId_fkey" FOREIGN KEY ("profileId") REFERENCES "public"."Profile"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."Message" ADD CONSTRAINT "Message_conversationId_fkey" FOREIGN KEY ("conversationId") REFERENCES "public"."Conversation"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."Message" ADD CONSTRAINT "Message_senderId_fkey" FOREIGN KEY ("senderId") REFERENCES "public"."Profile"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."MessageRevision" ADD CONSTRAINT "MessageRevision_messageId_fkey" FOREIGN KEY ("messageId") REFERENCES "public"."Message"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."MessageReport" ADD CONSTRAINT "MessageReport_messageId_fkey" FOREIGN KEY ("messageId") REFERENCES "public"."Message"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."ProfileBlock" ADD CONSTRAINT "ProfileBlock_blockerId_fkey" FOREIGN KEY ("blockerId") REFERENCES "public"."Profile"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."ProfileBlock" ADD CONSTRAINT "ProfileBlock_blockedId_fkey" FOREIGN KEY ("blockedId") REFERENCES "public"."Profile"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+
+-- ---- Security (M4): Data API lockdown + messaging integrity and read policies ----
+ALTER TABLE "public"."Profile"             ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."Worker"              ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."ExperienceRecord"    ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."PoliticalPreference" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."Organization"        ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."JurisdictionProfile" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."Job"                 ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."Engagement"          ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."Shift"               ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."WorkEvent"           ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."Validation"          ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."ProfileMetric"       ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."Payout"              ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."AuditEvent"          ENABLE ROW LEVEL SECURITY;
+
+-- Defense in depth: take back the table privileges Supabase grants the API
+-- roles by default, now and for tables created later — so a future table
+-- that forgets RLS still isn't exposed. (Tables the app intends to expose
+-- to clients, like Message for Realtime, are granted explicitly.)
+REVOKE ALL ON ALL TABLES IN SCHEMA "public" FROM anon, authenticated;
+REVOKE ALL ON ALL SEQUENCES IN SCHEMA "public" FROM anon, authenticated;
+ALTER DEFAULT PRIVILEGES IN SCHEMA "public" REVOKE ALL ON TABLES FROM anon, authenticated;
+ALTER DEFAULT PRIVILEGES IN SCHEMA "public" REVOKE ALL ON SEQUENCES FROM anon, authenticated;
+ALTER DEFAULT PRIVILEGES IN SCHEMA "public" REVOKE EXECUTE ON FUNCTIONS FROM anon, authenticated;
+-- Postgres also grants EXECUTE on every new function to PUBLIC, globally; a
+-- per-schema default can't take that back. So Turfcut keeps its functions
+-- in "turfcut_private" (not exposed) and revokes PUBLIC on each one.
+-- Re-running this after m4-migration.sql must not cut off chat Realtime:
+-- restore the one deliberate client grant (still filtered by RLS policies).
+DO $$
+BEGIN
+  IF to_regclass('"public"."Message"') IS NOT NULL THEN
+    GRANT SELECT ON "public"."Message", "public"."MessageRevision" TO authenticated;
+  END IF;
+END $$;
+
+-- One active block per pair; lifted blocks stay as history.
+CREATE UNIQUE INDEX "ProfileBlock_active_pair" ON "public"."ProfileBlock"("blockerId", "blockedId") WHERE "liftedAt" IS NULL;
+-- Owners' open-reports list.
+CREATE INDEX "MessageReport_open" ON "public"."MessageReport"("orgId", "createdAt") WHERE "resolvedAt" IS NULL;
+
+-- Shape checks.
+ALTER TABLE "public"."Conversation" ADD CONSTRAINT "Conversation_kind_shape" CHECK (
+  ("kind" = 'DIRECT' AND "engagementId" IS NOT NULL) OR ("kind" = 'GROUP' AND "engagementId" IS NULL AND "name" IS NOT NULL));
+ALTER TABLE "public"."Message" ADD CONSTRAINT "Message_body_length" CHECK (char_length("body") <= 4000);
+ALTER TABLE "public"."MessageRevision" ADD CONSTRAINT "MessageRevision_shape" CHECK (
+  ("kind" = 'EDIT' AND "body" IS NOT NULL AND char_length("body") <= 4000) OR ("kind" = 'DELETE' AND "body" IS NULL));
+
+-- Turfcut's database functions live in a schema the Data API doesn't expose
+-- (never callable as RPC).
+CREATE SCHEMA IF NOT EXISTS "turfcut_private";
+REVOKE ALL ON SCHEMA "turfcut_private" FROM PUBLIC, anon;
+GRANT USAGE ON SCHEMA "turfcut_private" TO authenticated;
+
+-- Append-only, enforced: messages and their revisions are never changed or removed.
+CREATE OR REPLACE FUNCTION "turfcut_private"."append_only"() RETURNS trigger LANGUAGE plpgsql SET search_path = '' AS $$
+BEGIN
+  RAISE EXCEPTION '% is append-only: % is not allowed', TG_TABLE_NAME, TG_OP USING ERRCODE = 'insufficient_privilege';
+END $$;
+REVOKE ALL ON FUNCTION "turfcut_private"."append_only"() FROM PUBLIC, anon, authenticated;
+CREATE TRIGGER "Message_append_only" BEFORE UPDATE OR DELETE ON "public"."Message"
+  FOR EACH ROW EXECUTE FUNCTION "turfcut_private"."append_only"();
+CREATE TRIGGER "MessageRevision_append_only" BEFORE UPDATE OR DELETE ON "public"."MessageRevision"
+  FOR EACH ROW EXECUTE FUNCTION "turfcut_private"."append_only"();
+
+-- Copied columns always match their message: Realtime filters revisions by
+-- conversationId, and reports are routed by orgId.
+CREATE OR REPLACE FUNCTION "turfcut_private"."copy_message_scope"() RETURNS trigger LANGUAGE plpgsql SET search_path = '' AS $$
+BEGIN
+  SELECT m."conversationId" INTO STRICT NEW."conversationId" FROM "public"."Message" m WHERE m."id" = NEW."messageId";
+  IF TG_TABLE_NAME = 'MessageReport' THEN
+    SELECT c."orgId" INTO STRICT NEW."orgId" FROM "public"."Conversation" c WHERE c."id" = NEW."conversationId";
+  END IF;
+  RETURN NEW;
+END $$;
+REVOKE ALL ON FUNCTION "turfcut_private"."copy_message_scope"() FROM PUBLIC, anon, authenticated;
+CREATE TRIGGER "MessageRevision_scope" BEFORE INSERT ON "public"."MessageRevision"
+  FOR EACH ROW EXECUTE FUNCTION "turfcut_private"."copy_message_scope"();
+CREATE TRIGGER "MessageReport_scope" BEFORE INSERT ON "public"."MessageReport"
+  FOR EACH ROW EXECUTE FUNCTION "turfcut_private"."copy_message_scope"();
+
+-- Access ends with the job or the role, whatever path makes the change: a
+-- frozen member must not keep reading new messages (here, over Realtime, or
+-- the Data API). Removal keeps their history up to now, read-only.
+-- Staff who leave the org, or stop being owner/recruiter/supervisor, are
+-- removed from every conversation they manage there.
+CREATE OR REPLACE FUNCTION "turfcut_private"."end_staff_chat_access"() RETURNS trigger LANGUAGE plpgsql SET search_path = '' AS $$
+BEGIN
+  UPDATE "public"."ConversationParticipant" p
+     SET "removedAt" = (clock_timestamp() AT TIME ZONE 'UTC')::timestamp(3)
+    FROM "public"."Conversation" c
+   WHERE c."id" = p."conversationId" AND p."profileId" = NEW."id" AND p."role" = 'MANAGER' AND p."removedAt" IS NULL
+     AND (NEW."orgId" IS DISTINCT FROM c."orgId" OR NEW."role"::text NOT IN ('OWNER', 'RECRUITER', 'SUPERVISOR'));
+  RETURN NULL;
+END $$;
+REVOKE ALL ON FUNCTION "turfcut_private"."end_staff_chat_access"() FROM PUBLIC, anon, authenticated;
+CREATE TRIGGER "Profile_end_chat_access" AFTER UPDATE OF "orgId", "role" ON "public"."Profile"
+  FOR EACH ROW WHEN (OLD."orgId" IS DISTINCT FROM NEW."orgId" OR OLD."role" IS DISTINCT FROM NEW."role")
+  EXECUTE FUNCTION "turfcut_private"."end_staff_chat_access"();
+
+-- A worker whose hire ends leaves each team chat where they're no longer
+-- hired on any of its jobs. (Their direct thread freezes for both sides by
+-- the engagement's status, so nothing new is posted there.)
+CREATE OR REPLACE FUNCTION "turfcut_private"."end_worker_chat_access"() RETURNS trigger LANGUAGE plpgsql SET search_path = '' AS $$
+BEGIN
+  -- Serialize per worker: two of their hires ending at once must not each
+  -- see the other as still active. The UPDATE below runs after the wait,
+  -- with a fresh snapshot.
+  PERFORM pg_advisory_xact_lock(hashtext('chat-worker:' || NEW."workerId"::text));
+  UPDATE "public"."ConversationParticipant" p
+     SET "removedAt" = (clock_timestamp() AT TIME ZONE 'UTC')::timestamp(3)
+    FROM "public"."Worker" w, "public"."ConversationJob" cj
+   WHERE w."id" = NEW."workerId" AND p."profileId" = w."profileId" AND p."role" = 'WORKER' AND p."removedAt" IS NULL
+     AND cj."conversationId" = p."conversationId" AND cj."jobId" = NEW."jobId"
+     AND NOT EXISTS (
+       SELECT 1 FROM "public"."ConversationJob" cj2 JOIN "public"."Engagement" e ON e."jobId" = cj2."jobId"
+        WHERE cj2."conversationId" = p."conversationId" AND e."workerId" = NEW."workerId" AND e."status" IN ('ACTIVE', 'CLAIMED'));
+  RETURN NULL;
+END $$;
+REVOKE ALL ON FUNCTION "turfcut_private"."end_worker_chat_access"() FROM PUBLIC, anon, authenticated;
+CREATE TRIGGER "Engagement_end_chat_access" AFTER UPDATE OF "status" ON "public"."Engagement"
+  FOR EACH ROW WHEN (OLD."status" IN ('ACTIVE', 'CLAIMED') AND NEW."status" NOT IN ('ACTIVE', 'CLAIMED'))
+  EXECUTE FUNCTION "turfcut_private"."end_worker_chat_access"();
+
+-- RLS: deny-by-default on every new table.
+ALTER TABLE "public"."Conversation"            ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."ConversationJob"         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."ConversationParticipant" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."Message"                 ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."MessageRevision"         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."MessageReport"           ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."ProfileBlock"            ENABLE ROW LEVEL SECURITY;
+
+-- Policy helpers (below): SECURITY DEFINER so they can read the participant
+-- and block tables; search_path empty, every name qualified.
+
+-- Can the signed-in user see something that happened at p_at in this
+-- conversation, by p_author? Participant (and, if removed, p_at before the
+-- removal), and p_author wasn't blocked by them at p_at.
+CREATE OR REPLACE FUNCTION "turfcut_private"."can_see"(p_conversation uuid, p_author uuid, p_at timestamp)
+RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = '' AS $$
+  SELECT EXISTS (
+           SELECT 1 FROM "public"."ConversationParticipant" p
+             JOIN "public"."Conversation" c ON c."id" = p."conversationId"
+            WHERE p."conversationId" = p_conversation AND p."profileId" = auth.uid()
+              AND (p."removedAt" IS NULL OR p_at <= p."removedAt")
+              -- A contact who takes over a direct thread reads it from when they joined.
+              AND (c."kind" = 'GROUP' OR p."role" = 'WORKER' OR p_at >= p."addedAt"))
+     AND NOT EXISTS (
+           SELECT 1 FROM "public"."ProfileBlock" b
+            WHERE b."blockerId" = auth.uid() AND b."blockedId" = p_author
+              AND b."createdAt" <= p_at AND (b."liftedAt" IS NULL OR p_at < b."liftedAt"));
+$$;
+
+-- A revision is visible if its message is, and the revision itself happened
+-- inside the viewer's window and wasn't made by someone they had blocked.
+CREATE OR REPLACE FUNCTION "turfcut_private"."can_see_revision"(p_message uuid, p_actor uuid, p_at timestamp)
+RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = '' AS $$
+  SELECT COALESCE((SELECT "turfcut_private"."can_see"(m."conversationId", m."senderId", m."createdAt")
+                          AND "turfcut_private"."can_see"(m."conversationId", p_actor, p_at)
+                     FROM "public"."Message" m WHERE m."id" = p_message), false);
+$$;
+
+REVOKE ALL ON FUNCTION "turfcut_private"."can_see"(uuid, uuid, timestamp) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION "turfcut_private"."can_see_revision"(uuid, uuid, timestamp) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION "turfcut_private"."can_see"(uuid, uuid, timestamp) TO authenticated;
+GRANT EXECUTE ON FUNCTION "turfcut_private"."can_see_revision"(uuid, uuid, timestamp) TO authenticated;
+
+-- Only these two tables are readable by signed-in clients (for Realtime),
+-- and only through these policies. Nothing is granted to anon.
+GRANT SELECT ON "public"."Message", "public"."MessageRevision" TO authenticated;
+
+CREATE POLICY "participants read messages" ON "public"."Message"
+  FOR SELECT TO authenticated
+  USING ("turfcut_private"."can_see"("conversationId", "senderId", "createdAt"));
+
+CREATE POLICY "participants read revisions" ON "public"."MessageRevision"
+  FOR SELECT TO authenticated
+  USING ("turfcut_private"."can_see_revision"("messageId", "actorId", "createdAt"));
 
 -- Turfcut seed (M0 + M1 events) — SQL version of prisma/seed.ts
 -- Run AFTER the DDL above. Idempotent: safe to re-run (ON CONFLICT DO NOTHING).

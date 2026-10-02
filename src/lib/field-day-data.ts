@@ -1,0 +1,271 @@
+import { Prisma } from "@prisma/client";
+import { db } from "@/lib/db";
+import { FIELD_ROLES } from "@/lib/access";
+import { canScheduleShift, UUID_RE } from "@/lib/jobs";
+import {
+  findConflicts,
+  locationCheck,
+  shiftState,
+  supervisorAction,
+  validateShift,
+  workerAction,
+  turfAction,
+  type Outcome,
+  type TurfAction,
+  type ShiftFacts,
+  type SupervisorAction,
+  type WorkerAction,
+} from "@/lib/field-day";
+
+type Tx = Prisma.TransactionClient;
+type Result = { ok: true } | { ok: false; reason: string };
+
+const lock = (tx: Tx, key: string) => tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${key}))`;
+
+/** Every shift-scoped page and action loads the same shape. */
+const SHIFT_INCLUDE = {
+  engagement: {
+    select: {
+      id: true,
+      workerId: true,
+      status: true,
+      worker: { select: { id: true, displayName: true, profileId: true } },
+      job: { select: { id: true, orgId: true, title: true, type: true, compensationMethod: true, payRateCents: true, org: { select: { name: true } }, supportContacts: true } },
+    },
+  },
+  events: { orderBy: { createdAt: "asc" as const } },
+  validations: { orderBy: { createdAt: "asc" as const } },
+} satisfies Prisma.ShiftInclude;
+
+export type LoadedShift = Prisma.ShiftGetPayload<{ include: typeof SHIFT_INCLUDE }>;
+
+export function facts(s: LoadedShift): ShiftFacts {
+  return {
+    status: s.status,
+    startsAt: s.startsAt,
+    endsAt: s.endsAt,
+    workType: s.engagement.job.type,
+    events: s.events.map((e) => ({ type: e.type, payload: e.payload, actorId: e.actorId, createdAt: e.createdAt })),
+    validations: s.validations.map((v) => ({ workEventId: v.workEventId, status: v.status, reason: v.reason, createdAt: v.createdAt })),
+    campaignTurf: s.turfArea !== null,
+  };
+}
+
+export async function loadShift(shiftId: string, tx: Tx | ReturnType<typeof db> = db()) {
+  if (!UUID_RE.test(shiftId)) return null;
+  return tx.shift.findUnique({ where: { id: shiftId }, include: SHIFT_INCLUDE });
+}
+
+// ---------------------------------------------------------------------------
+// Scheduling
+// ---------------------------------------------------------------------------
+
+export async function scheduleShift(
+  actor: { profileId: string; orgId: string },
+  engagementId: string,
+  raw: Record<string, unknown>,
+  now = new Date()
+): Promise<{ ok: true; shiftId: string } | { ok: false; reason: string; errors?: Record<string, string> }> {
+  if (!UUID_RE.test(engagementId)) return { ok: false, reason: "Engagement not found." };
+  const e = await db().engagement.findUnique({
+    where: { id: engagementId },
+    include: { job: { include: { jurisdiction: true } } },
+  });
+  if (!e || e.job.orgId !== actor.orgId) return { ok: false, reason: "Engagement not found." };
+  if (e.status !== "ACTIVE" && e.status !== "CLAIMED") return { ok: false, reason: "Only hired workers can be scheduled." };
+  if (e.job.status !== "PUBLISHED") return { ok: false, reason: "The job isn't open." };
+  // Jurisdiction hard stop: a rule change freezes new shifts until re-approved.
+  const freeze = canScheduleShift(e.job.jurisdiction, now);
+  if (!freeze.ok) return { ok: false, reason: `New shifts are frozen: ${freeze.reasons.join(" ")}` };
+
+  const v = validateShift(raw, e.job);
+  if (!v.ok) return { ok: false, reason: "Fix the highlighted fields.", errors: v.errors };
+  if (v.value.endsAt <= now) return { ok: false, reason: "That shift is already over.", errors: { endsAt: "Pick a time in the future." } };
+  if (v.value.supervisorId) {
+    const sup = await db().profile.findFirst({ where: { id: v.value.supervisorId, orgId: actor.orgId, role: { in: FIELD_ROLES } } });
+    if (!sup) return { ok: false, reason: "Fix the highlighted fields.", errors: { supervisorId: "Pick a supervisor from your organization." } };
+  }
+
+  return db().$transaction(async (tx) => {
+    // One worker, many campaigns: the conflict check spans every engagement.
+    await lock(tx, `worker:${e.workerId}`);
+    const theirs = await tx.shift.findMany({
+      where: { engagement: { workerId: e.workerId }, endsAt: { gt: v.value.startsAt }, startsAt: { lt: v.value.endsAt } },
+      select: { startsAt: true, endsAt: true, status: true },
+    });
+    if (findConflicts(v.value, theirs).length) {
+      return { ok: false as const, reason: "This worker already has a shift then (on this or another campaign).", errors: { startsAt: "Overlaps another shift." } };
+    }
+    const shift = await tx.shift.create({
+      data: {
+        engagementId,
+        startsAt: v.value.startsAt,
+        endsAt: v.value.endsAt,
+        stagingLocation: v.value.stagingLocation,
+        stagingLat: v.value.stagingLat,
+        stagingLng: v.value.stagingLng,
+        supervisorId: v.value.supervisorId,
+        turfArea: v.value.turfArea ? (v.value.turfArea as unknown as Prisma.InputJsonValue) : Prisma.DbNull,
+      },
+    });
+    await tx.auditEvent.create({
+      data: {
+        actorId: actor.profileId,
+        action: "shift.scheduled",
+        entityType: "Shift",
+        entityId: shift.id,
+        metadata: { engagementId, jurisdictionVersion: e.job.jurisdiction.version },
+      },
+    });
+    return { ok: true as const, shiftId: shift.id };
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Actions
+// ---------------------------------------------------------------------------
+
+async function apply(tx: Tx, shiftId: string, actorId: string, out: Outcome, now: Date): Promise<Result> {
+  if (!out.ok) return out;
+  if (out.event) {
+    await tx.workEvent.create({
+      data: { shiftId, type: out.event.type as never, payload: out.event.payload as Prisma.InputJsonValue, actorId, createdAt: now },
+    });
+  }
+  if (out.closeout) {
+    // Append-only: a later review supersedes an earlier one; neither is edited.
+    await tx.validation.create({ data: { shiftId, workEventId: null, status: out.closeout.status, reason: out.closeout.reason, reviewerId: actorId, createdAt: now } });
+    await tx.auditEvent.create({
+      data: { actorId, action: "shift.reviewed", entityType: "Shift", entityId: shiftId, metadata: { status: out.closeout.status, reason: out.closeout.reason } },
+    });
+  }
+  if (out.status) {
+    const t = out.event?.type;
+    await tx.shift.update({
+      where: { id: shiftId },
+      data: { status: out.status, ...(t === "CHECK_IN" ? { checkInAt: now } : t === "CHECK_OUT" ? { checkOutAt: now } : {}) },
+    });
+  }
+  if (out.event?.type === "SHIFT_CANCELLED") {
+    await tx.auditEvent.create({ data: { actorId, action: "shift.cancelled", entityType: "Shift", entityId: shiftId, metadata: out.event.payload as Prisma.InputJsonValue } });
+  }
+  return { ok: true };
+}
+
+export type WorkerRequest = Exclude<WorkerAction, { kind: "check_in" }> | { kind: "check_in"; device: { lat: number; lng: number } | null };
+
+export async function workerShiftAction(
+  actor: { workerId: string; profileId: string },
+  shiftId: string,
+  req: WorkerRequest,
+  now = new Date()
+): Promise<Result> {
+  if (!UUID_RE.test(shiftId)) return { ok: false, reason: "Shift not found." };
+  return db().$transaction(async (tx) => {
+    await lock(tx, `shift:${shiftId}`);
+    const s = await loadShift(shiftId, tx);
+    if (!s || s.engagement.workerId !== actor.workerId) return { ok: false as const, reason: "Shift not found." };
+    // The device position is used for this comparison only and never stored.
+    const action: WorkerAction =
+      req.kind === "check_in" ? { kind: "check_in", location: locationCheck({ lat: s.stagingLat, lng: s.stagingLng }, req.device) } : req;
+    return apply(tx, shiftId, actor.profileId, workerAction(facts(s), action, now), now);
+  });
+}
+
+export async function supervisorShiftAction(
+  actor: { profileId: string; orgId: string },
+  shiftId: string,
+  action: SupervisorAction,
+  now = new Date()
+): Promise<Result> {
+  if (!UUID_RE.test(shiftId)) return { ok: false, reason: "Shift not found." };
+  return db().$transaction(async (tx) => {
+    await lock(tx, `shift:${shiftId}`);
+    const s = await loadShift(shiftId, tx);
+    if (!s || s.engagement.job.orgId !== actor.orgId) return { ok: false as const, reason: "Shift not found." };
+    let elsewhere: string[] = [];
+    if (action.kind === "packet_pickup") {
+      // Packets move between shifts of the same job: serialize those checks.
+      await lock(tx, `packets:${s.engagement.job.id}`);
+      const others = await tx.shift.findMany({
+        where: { id: { not: shiftId }, engagement: { jobId: s.engagement.job.id }, events: { some: { type: "PACKET_PICKUP" } } },
+        include: SHIFT_INCLUDE,
+      });
+      elsewhere = others.flatMap((o) => shiftState(facts(o)).packetsOut);
+    }
+    return apply(tx, shiftId, actor.profileId, supervisorAction(facts(s), action, elsewhere), now);
+  });
+}
+
+/** The worker's own pins and day turf on their shift. */
+export async function workerTurfAction(
+  actor: { workerId: string; profileId: string },
+  shiftId: string,
+  action: TurfAction,
+  now = new Date()
+): Promise<Result> {
+  if (!UUID_RE.test(shiftId)) return { ok: false, reason: "Shift not found." };
+  return db().$transaction(async (tx) => {
+    await lock(tx, `shift:${shiftId}`);
+    const s = await loadShift(shiftId, tx);
+    if (!s || s.engagement.workerId !== actor.workerId) return { ok: false as const, reason: "Shift not found." };
+    return apply(tx, shiftId, actor.profileId, turfAction(facts(s), action, now), now);
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Views
+// ---------------------------------------------------------------------------
+
+/** A worker's shifts across every campaign, upcoming first. */
+export async function loadWorkerShifts(workerId: string, now = new Date()) {
+  return db().shift.findMany({
+    where: { engagement: { workerId }, endsAt: { gte: new Date(now.getTime() - 7 * 86_400_000) } },
+    include: SHIFT_INCLUDE,
+    orderBy: { startsAt: "asc" },
+  });
+}
+
+export async function listSupervisors(orgId: string) {
+  return db().profile.findMany({ where: { orgId, role: { in: FIELD_ROLES } }, select: { id: true, role: true } });
+}
+
+/** The organizer's live view (mockup "Operations"): today's field work. */
+export async function loadOps(orgId: string, now = new Date()) {
+  const shifts = await db().shift.findMany({
+    where: {
+      engagement: { job: { orgId } },
+      startsAt: { lt: new Date(now.getTime() + 24 * 3_600_000) },
+      endsAt: { gt: new Date(now.getTime() - 12 * 3_600_000) },
+    },
+    include: SHIFT_INCLUDE,
+    orderBy: { startsAt: "asc" },
+  });
+  const rows = shifts.map((s) => ({ shift: s, state: shiftState(facts(s)) }));
+  const live = rows.filter((r) => !r.state.cancelled);
+  const late = live.filter((r) => !r.state.checkedInAt && now.getTime() > r.shift.startsAt.getTime() + 15 * 60_000 && now < r.shift.endsAt);
+  const awaitingReview = live.filter((r) => r.state.checkedOutAt && !r.state.closeout);
+  return {
+    scheduled: live.length,
+    checkedIn: live.filter((r) => r.state.checkedInAt).length,
+    signatures: live.reduce((n, r) => n + r.state.signatures, 0),
+    doors: live.reduce((n, r) => n + r.state.doors, 0),
+    late,
+    awaitingReview,
+    rows: live,
+  };
+}
+
+/**
+ * "My turf": the worker's shifts from today on (any campaign), with the
+ * campaign-assigned turf or the worker's own day turf, and their pins.
+ */
+export async function loadWorkerTurf(workerId: string, now = new Date()) {
+  const startOfToday = new Date(now.getTime() - 18 * 3_600_000);
+  return db().shift.findMany({
+    where: { engagement: { workerId }, status: { not: "CANCELLED" }, endsAt: { gte: startOfToday } },
+    include: SHIFT_INCLUDE,
+    orderBy: { startsAt: "asc" },
+    take: 20,
+  });
+}

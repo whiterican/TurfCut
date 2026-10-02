@@ -42,8 +42,17 @@ model Profile {
   worker    Worker?
   orgId     String?  @db.Uuid
   org       Organization? @relation(fields: [orgId], references: [id])
+  // Org staff's name as shown in chat ("Maya Chen · Manager"). Workers use
+  // Worker.displayName. Never shown to anyone outside a shared conversation.
+  displayName String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  hiredEngagements   Engagement[]              @relation("HiredBy")
+  chatParticipations ConversationParticipant[]
+  sentMessages       Message[]
+  blocksMade         ProfileBlock[]            @relation("Blocker")
+  blocksReceived     ProfileBlock[]            @relation("Blocked")
 }
 
 // ---------------------------------------------------------------------------
@@ -158,8 +167,13 @@ model Organization {
   id        String   @id @default(uuid()) @db.Uuid
   name      String
   approved  Boolean  @default(false) // manual approval for the private pilot
-  profiles  Profile[]
-  jobs      Job[]
+  // Publish gate (spec p.15): no job publishes until both are recorded.
+  contractorTermsSignedAt  DateTime?
+  classificationReviewedAt DateTime?
+  legalContact             String? // legal-review contact (spec p.11)
+  profiles      Profile[]
+  jobs          Job[]
+  conversations Conversation[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -175,6 +189,9 @@ model JurisdictionProfile {
   isCurrent   Boolean  @default(true)
   approved    Boolean  @default(false)
   approvedAt  DateTime?
+  // Versioned by effective date; counsel approval can lapse (spec p.13, p.15).
+  effectiveFrom     DateTime? // null = effective immediately
+  approvalExpiresAt DateTime? // null = no expiry set by counsel
   // Compensation/eligibility/registration/badge/affidavit/disclosure rules.
   rules       Json
   jobs        Job[]
@@ -223,11 +240,19 @@ model Job {
   headcount         Int?
   hiringMethod      Json? // application / invite / instant-claim config
   requirements      Json? // credentials, training, badges
+  // Campaign disclosure (spec p.14): affiliation, issue positions, message.
+  // Shapes are defined and validated in src/lib/jobs.ts.
+  campaignDisclosure      Json?
+  supportContacts         Json? // who handles emergencies, disputes, lost materials
+  measureIds              String[] @default([]) // ballot measure / initiative IDs
+  cancellationNoticeHours Int      @default(24) // later worker cancellations count as no-shows
+  publishedAt             DateTime?
   // Matching weights are versioned on the job (M3); stored when matching ships.
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
 
-  engagements Engagement[]
+  engagements      Engagement[]
+  conversationJobs ConversationJob[]
 
   @@index([orgId, status])
 }
@@ -251,10 +276,16 @@ model Engagement {
   // Frozen snapshot of the application + the scorecard shown to the employer
   // at decision time (spec: freeze the employer-facing snapshot).
   applicationSnapshot Json?
+  // The org profile who hired this worker (accepted the application, sent
+  // the invitation, or created the job for an instant claim). The worker's
+  // direct-message thread for this job is with this person.
+  hiredById String? @db.Uuid
+  hiredBy   Profile? @relation("HiredBy", fields: [hiredById], references: [id], onDelete: Restrict)
   createdAt DateTime         @default(now())
   updatedAt DateTime         @updatedAt
 
-  shifts Shift[]
+  shifts       Shift[]
+  conversation Conversation?
 
   @@unique([jobId, workerId])
 }
@@ -275,11 +306,20 @@ model Shift {
   status      ShiftStatus @default(SCHEDULED)
   checkInAt   DateTime?
   checkOutAt  DateTime?
+  // Field day (M3). Staging point for check-in; the worker's own position is
+  // never stored — check-in records only whether they were at staging.
+  stagingLocation String?
+  stagingLat      Float?
+  stagingLng      Float?
+  supervisorId    String?  @db.Uuid // Profile.id who accepts custody and reviews
+  turfArea        Json? // GeoJSON Polygon of the assigned turf
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
   events      WorkEvent[]
   validations Validation[]
+
+  @@index([engagementId, startsAt])
 }
 
 // ---------------------------------------------------------------------------
@@ -301,6 +341,7 @@ enum WorkEventType {
   BATCH_COUNT // supervisor batch reconciliation count
   INCIDENT // safety incident / harassment report
   CORRECTION // signed metric correction event (supersedes, never rewrites)
+  SHIFT_CANCELLED // payload: { by: "WORKER" | "ORGANIZATION", reason } — append-only record of a cancellation
   NOTE
 }
 
@@ -312,6 +353,7 @@ model WorkEvent {
   shift     Shift         @relation(fields: [shiftId], references: [id])
   type      WorkEventType
   payload   Json // event-specific data (counts, packet IDs, notes, ...)
+  actorId   String?       @db.Uuid // Profile.id who recorded it (worker or supervisor); null on pre-M3 rows
   createdAt DateTime      @default(now())
 
   @@index([shiftId, createdAt])
@@ -399,4 +441,139 @@ model AuditEvent {
 
   @@index([entityType, entityId])
   @@index([createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// M4 — in-app messaging. Access is decided in src/lib/chat.ts (server) and,
+// for Supabase Realtime, by RLS policies in prisma/m4-migration.sql.
+// Messages are immutable; edits and deletes are MessageRevision rows.
+// ---------------------------------------------------------------------------
+
+enum ConversationKind {
+  DIRECT // worker ↔ the person who hired them, one per engagement
+  GROUP // team chat created by an organizer
+}
+
+enum ParticipantRole {
+  WORKER
+  MANAGER
+}
+
+enum RevisionKind {
+  EDIT
+  DELETE
+}
+
+model Conversation {
+  id            String           @id @default(uuid()) @db.Uuid
+  kind          ConversationKind
+  orgId         String           @db.Uuid
+  org           Organization     @relation(fields: [orgId], references: [id], onDelete: Restrict)
+  engagementId  String?          @unique @db.Uuid // DIRECT: exactly one thread per (worker, job)
+  engagement    Engagement?      @relation(fields: [engagementId], references: [id], onDelete: Restrict)
+  name          String? // GROUP: "Denver housing initiative — Team A"
+  createdById   String           @db.Uuid // Profile
+  lastMessageAt DateTime? // thread-list ordering; only moves forward
+  createdAt     DateTime         @default(now())
+
+  participants ConversationParticipant[]
+  jobs         ConversationJob[]
+  messages     Message[]
+
+  @@index([orgId, kind])
+}
+
+/// GROUP ↔ related jobs: a worker may post only while hired on one of them.
+model ConversationJob {
+  conversationId String       @db.Uuid
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Restrict)
+  jobId          String       @db.Uuid
+  job            Job          @relation(fields: [jobId], references: [id], onDelete: Restrict)
+
+  @@id([conversationId, jobId])
+  @@index([jobId])
+}
+
+model ConversationParticipant {
+  id             String          @id @default(uuid()) @db.Uuid
+  conversationId String          @db.Uuid
+  conversation   Conversation    @relation(fields: [conversationId], references: [id], onDelete: Restrict)
+  profileId      String          @db.Uuid
+  profile        Profile         @relation(fields: [profileId], references: [id], onDelete: Restrict)
+  role           ParticipantRole
+  addedById      String          @db.Uuid
+  addedAt        DateTime        @default(now())
+  removedAt      DateTime? // set = read-only; history visible up to this moment
+  removedById    String?         @db.Uuid
+  lastReadAt     DateTime? // unread = messages after this
+
+  @@unique([conversationId, profileId])
+  @@index([profileId])
+}
+
+/// Immutable: never updated or deleted. See MessageRevision.
+model Message {
+  id             String       @id @default(uuid()) @db.Uuid
+  conversationId String       @db.Uuid
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Restrict)
+  senderId       String       @db.Uuid
+  sender         Profile      @relation(fields: [senderId], references: [id], onDelete: Restrict)
+  body           String // ≤ 4,000 characters
+  attachmentPath String? // private storage key, never a public URL
+  attachmentName String?
+  attachmentType String? // MIME type checked from the file's bytes
+  attachmentSize Int?
+  createdAt      DateTime     @default(now())
+
+  revisions MessageRevision[]
+  reports   MessageReport[]
+
+  @@index([conversationId, createdAt])
+}
+
+/// Append-only edits and soft deletes (tombstones). Latest EDIT wins; any DELETE hides the text.
+model MessageRevision {
+  id             String       @id @default(uuid()) @db.Uuid
+  messageId      String       @db.Uuid
+  message        Message      @relation(fields: [messageId], references: [id], onDelete: Restrict)
+  conversationId String       @db.Uuid // denormalized for realtime filtering
+  kind           RevisionKind
+  body           String? // EDIT: the new text; DELETE: null
+  actorId        String       @db.Uuid
+  createdAt      DateTime     @default(now())
+
+  @@index([messageId, createdAt])
+  @@index([conversationId, createdAt])
+}
+
+model MessageReport {
+  id             String    @id @default(uuid()) @db.Uuid
+  messageId      String    @db.Uuid
+  message        Message   @relation(fields: [messageId], references: [id], onDelete: Restrict)
+  conversationId String    @db.Uuid
+  orgId          String    @db.Uuid
+  reporterId     String    @db.Uuid
+  reason         String // ≤ 500 characters
+  bodySnapshot   String // the text when reported; survives later edits/deletes
+  createdAt      DateTime  @default(now())
+  resolvedAt     DateTime?
+  resolvedById   String?   @db.Uuid
+
+  @@unique([messageId, reporterId]) // one report per person per message
+  @@index([orgId, createdAt])
+}
+
+/// A worker blocking an employer/manager. Unblocking sets liftedAt; rows stay.
+/// Messages sent while a block was active stay hidden from the blocker.
+/// One active block per pair (partial unique index in m4-migration.sql).
+model ProfileBlock {
+  id        String    @id @default(uuid()) @db.Uuid
+  blockerId String    @db.Uuid
+  blocker   Profile   @relation("Blocker", fields: [blockerId], references: [id], onDelete: Restrict)
+  blockedId String    @db.Uuid
+  blocked   Profile   @relation("Blocked", fields: [blockedId], references: [id], onDelete: Restrict)
+  createdAt DateTime  @default(now())
+  liftedAt  DateTime?
+
+  @@index([blockedId])
 }

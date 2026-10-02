@@ -1,77 +1,97 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { requireWorker } from "@/lib/worker-session";
-import { loadScorecardPeriods } from "@/lib/scorecard-data";
+import { loadCampaignHistory, loadScorecardPeriods } from "@/lib/scorecard-data";
 import { loadLatestPreference } from "@/lib/political-fit-data";
 import { VISIBILITY_OPTIONS } from "@/lib/political-fit";
 import { ExperienceForm } from "@/components/ExperienceForm";
 import { ExperienceList } from "@/components/ExperienceList";
 import { ScorecardPanel } from "@/components/ScorecardPanel";
 import { removeExperience } from "./actions";
+import { PhoneForm } from "@/components/PhoneForm";
 
 export default async function ProfilePage() {
   const { workerId } = await requireWorker();
-  const [worker, records, scorecard, fit] = await Promise.all([
-    db().worker.findUniqueOrThrow({ where: { id: workerId }, select: { displayName: true } }),
+  const [worker, records, scorecard, fit, history] = await Promise.all([
+    db().worker.findUniqueOrThrow({ where: { id: workerId }, select: { displayName: true, phone: true } }),
     db().experienceRecord.findMany({ where: { workerId }, orderBy: { startDate: "desc" } }),
     loadScorecardPeriods(workerId),
     loadLatestPreference(workerId),
+    loadCampaignHistory(workerId),
   ]);
   const mode = fit && VISIBILITY_OPTIONS.find((o) => o.value === fit.visibilityMode);
 
   return (
-    <main className="mx-auto w-full max-w-3xl space-y-10 px-4 py-10">
-      <header className="flex flex-wrap items-baseline justify-between gap-2">
-        <h1 className="text-2xl font-bold">{worker.displayName}</h1>
-        <Link href="/dashboard" className="text-sm underline">Dashboard</Link>
+    <main className="page">
+      <header className="page-header">
+        <div className="space-y-1">
+          <p className="eyebrow">Your profile</p>
+          <h1 className="page-title">{worker.displayName}</h1>
+        </div>
+        <Link href="/settings" className="btn-ghost btn-sm">Settings &amp; sign out</Link>
       </header>
 
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold">Scorecard</h2>
-        <ScorecardPanel periods={scorecard} />
+      <section className="section">
+        <h2 className="section-title">Scorecard</h2>
+        <ScorecardPanel periods={scorecard} history={history} />
       </section>
 
-      <section className="space-y-4">
-        <h2 className="text-lg font-semibold">Experience</h2>
+      <section className="section">
+        <h2 className="section-title">Experience</h2>
         <ExperienceList
           records={records.map((r) => ({ ...r, hasReference: r.referenceContact !== null }))}
           removeAction={removeExperience}
           showReference
         />
-        <details className="rounded-lg border p-4" open={records.length === 0}>
-          <summary className="cursor-pointer font-medium">Add a campaign</summary>
-          <div className="pt-4">
+        <details className="card group" open={records.length === 0}>
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-2 font-medium text-fg">
+            <span className="flex items-center gap-2">
+              <span aria-hidden className="dot bg-mint" />
+              Add a campaign
+            </span>
+            <span aria-hidden className="text-subtle transition group-open:rotate-45">+</span>
+          </summary>
+          <div className="mt-5 border-t border-border pt-5">
             <ExperienceForm />
           </div>
         </details>
       </section>
 
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold">Political fit</h2>
-        <div className="rounded-lg border p-3 text-sm">
+      <section className="section">
+        <h2 className="section-title">Political fit</h2>
+        <div className="card space-y-3">
           {mode ? (
             <>
-              <p className="font-medium">{mode.label}</p>
-              <p className="text-neutral-600 dark:text-neutral-400">{mode.description}</p>
-              <p className="mt-1 text-xs text-neutral-500">
+              <div className="space-y-1">
+                <span className="badge-lime">{mode.label}</span>
+                <p className="text-muted-sm">{mode.description}</p>
+              </div>
+              <p className="text-hint">
                 Consent version {fit.consentVersion}, given {fit.consentedAt.toISOString().slice(0, 10)}
                 {fit.status.state === "current" &&
                   (fit.status.expiresAt ? `, expires ${fit.status.expiresAt.toISOString().slice(0, 10)}` : ", no expiry")}
                 .
               </p>
               {fit.status.state !== "current" && (
-                <p className="mt-1 text-amber-700 dark:text-amber-400">
+                <p role="status" className="alert-warning">
                   Needs reconfirming — until then nothing is used for matching or shown to organizations.
                 </p>
               )}
             </>
           ) : (
-            <p>Not set. Until you choose, nothing is used for matching or shown to anyone.</p>
+            <div className="space-y-1">
+              <p className="font-medium text-fg">Not set yet</p>
+              <p className="text-muted-sm">Until you choose, nothing is used for matching or shown to anyone.</p>
+            </div>
           )}
-          <Link href="/profile/preferences" className="mt-2 inline-block underline">
+          <Link href="/profile/preferences" className={mode ? "btn-secondary" : "btn-primary"}>
             {mode ? "Review or change" : "Set preferences"}
           </Link>
         </div>
+      </section>
+      <section className="section">
+        <h2 className="section-title">Contact</h2>
+        <PhoneForm phone={worker.phone} />
       </section>
     </main>
   );

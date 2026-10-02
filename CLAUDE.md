@@ -12,6 +12,7 @@ Non-negotiable. Every milestone, every session.
 6. **Jurisdiction hard stop.** A job cannot publish with an unknown, expired, or unapproved jurisdiction rule profile. Block it with a clear error, never a silent default.
 7. **Verify before marking done.** Run typecheck and tests before marking any slice done. Fix failures; don't skip them.
 8. **Ask before adding a dependency or changing the data model.** The schema is the contract — changes get explicit approval first.
+9. **Have Claude review every step.** After each working slice, a separate Claude reviewer (subagent) reviews the diff for bugs, security and improvements. Fix its findings — or say why not — and have the fixes re-checked before moving on.
 
 ## Stack (M0)
 

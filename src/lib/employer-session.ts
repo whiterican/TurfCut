@@ -1,4 +1,5 @@
-import { requireRole, type SessionProfile } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import { requireRole, type Role, type SessionProfile } from "@/lib/auth";
 import { HIRING_ROLES } from "@/lib/access";
 import { db } from "@/lib/db";
 
@@ -9,4 +10,11 @@ export async function requireEmployer(): Promise<SessionProfile & { orgApproved:
     ? await db().organization.findUnique({ where: { id: session.orgId }, select: { approved: true } })
     : null;
   return { ...session, orgApproved: org?.approved ?? false };
+}
+
+/** Signed-in member of an organization in one of `roles`, or a redirect. */
+export async function requireOrgMember(roles: Role[]): Promise<SessionProfile & { orgId: string }> {
+  const session = await requireRole(roles);
+  if (!session.orgId) redirect("/dashboard");
+  return { ...session, orgId: session.orgId };
 }

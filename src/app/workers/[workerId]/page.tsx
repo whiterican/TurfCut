@@ -9,6 +9,9 @@ import { loadLatestPreference, orgHasRelationship } from "@/lib/political-fit-da
 import { ScorecardPanel } from "@/components/ScorecardPanel";
 import { ExperienceList } from "@/components/ExperienceList";
 import { FitSignals } from "@/components/FitSignals";
+import { ActionButton } from "@/components/ActionButton";
+import { readHiringModes } from "@/lib/jobs";
+import { invite } from "@/app/jobs/actions";
 
 /** A worker as an organization sees them: only what the worker authorized. */
 export default async function EmployerWorkerPage({
@@ -21,8 +24,11 @@ export default async function EmployerWorkerPage({
   const access = workerAccess(session, workerId, session.orgApproved);
   if (access.kind !== "employer") {
     return (
-      <main className="mx-auto max-w-2xl px-4 py-10">
-        <p>{access.kind === "denied" ? access.reason : "Not available."}</p>
+      <main className="page max-w-2xl">
+        <div className="empty-state">
+          <p className="empty-state-title">This profile isn&apos;t available</p>
+          <p className="empty-state-body">{access.kind === "denied" ? access.reason : "Not available."}</p>
+        </div>
       </main>
     );
   }
@@ -31,38 +37,66 @@ export default async function EmployerWorkerPage({
   const worker = await db().worker.findUnique({ where: { id: workerId }, select: { displayName: true } });
   if (!worker) notFound();
 
-  const [rawRecords, scorecard, pref, related] = await Promise.all([
+  const [rawRecords, scorecard, pref, related, openJobs, engagedOn] = await Promise.all([
     db().experienceRecord.findMany({ where: { workerId }, orderBy: { startDate: "desc" } }),
     loadScorecardPeriods(workerId),
     loadLatestPreference(workerId),
     orgHasRelationship(workerId, access.orgId),
+    db().job.findMany({
+      where: { orgId: access.orgId, status: "PUBLISHED" },
+      select: { id: true, title: true, hiringMethod: true },
+      orderBy: { startsAt: "asc" },
+    }),
+    db().engagement.findMany({ where: { workerId, job: { orgId: access.orgId } }, select: { jobId: true } }),
   ]);
-  // Jobs don't disclose campaign positions until M2, so issue overlap is
-  // always "not shared" for now; the full questionnaire is never shown.
+  const engaged = new Set(engagedOn.map((e) => e.jobId));
+  const invitable = openJobs.filter((j) => readHiringModes(j.hiringMethod).includes("invite") && !engaged.has(j.id));
+  // Issue overlap is per campaign, so this job-independent view never shows
+  // it; it appears on each applicant's hiring snapshot. The full
+  // questionnaire is never shown.
   // Expired or outdated consent authorizes nothing (effectivePreference → null).
   // References are third-party contact details: employers learn only that one exists.
   const records = rawRecords.map(({ referenceContact, ...r }) => ({ ...r, hasReference: referenceContact !== null }));
   const fit = employerFitView(effectivePreference(pref), { orgHasRelationship: related, campaign: null });
 
   return (
-    <main className="mx-auto w-full max-w-3xl space-y-10 px-4 py-10">
-      <header className="flex flex-wrap items-baseline justify-between gap-2">
-        <h1 className="text-2xl font-bold">{worker.displayName}</h1>
-        <Link href="/workers" className="text-sm underline">All workers</Link>
+    <main className="page">
+      <header className="page-header">
+        <div className="space-y-1">
+          <p className="eyebrow">Worker profile</p>
+          <h1 className="page-title">{worker.displayName}</h1>
+        </div>
+        <Link transitionTypes={["nav-back"]} href="/workers" className="btn-ghost">← All workers</Link>
       </header>
 
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold">Scorecard</h2>
+      <section className="section">
+        <h2 className="section-title">Invite to a job</h2>
+        {invitable.length === 0 ? (
+          <p className="text-muted-sm">No published job of yours is open to invitations for this worker.</p>
+        ) : (
+          <ActionButton action={invite} fields={{ workerId }} label="Send invitation" pendingLabel="Sending…">
+            <label className="min-w-56 flex-1 space-y-1.5">
+              <span className="label">Job</span>
+              <select name="jobId" className="field" required>
+                {invitable.map((j) => <option key={j.id} value={j.id}>{j.title}</option>)}
+              </select>
+            </label>
+          </ActionButton>
+        )}
+      </section>
+
+      <section className="section">
+        <h2 className="section-title">Scorecard</h2>
         <ScorecardPanel periods={scorecard} />
       </section>
 
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold">Experience</h2>
+      <section className="section">
+        <h2 className="section-title">Experience</h2>
         <ExperienceList records={records} />
       </section>
 
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold">Political fit</h2>
+      <section className="section">
+        <h2 className="section-title">Political fit</h2>
         <FitSignals view={fit} />
       </section>
     </main>

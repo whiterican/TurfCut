@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { validateExperience } from "@/lib/experience";
 import { requireWorker } from "@/lib/worker-session";
+import { normalizePhone } from "@/lib/auth-input";
 
 export interface ExperienceFormState {
   ok: boolean;
@@ -62,4 +63,27 @@ export async function removeExperience(formData: FormData): Promise<void> {
     });
   }
   revalidatePath("/profile");
+}
+
+export interface ContactState {
+  ok: boolean;
+  message: string;
+}
+
+/** The worker's own mobile number (for future shift reminders). Never shown to organizations. */
+export async function savePhone(_prev: ContactState, formData: FormData): Promise<ContactState> {
+  const { workerId, userId } = await requireWorker();
+  const raw = String(formData.get("phone") ?? "").trim();
+  const phone = raw ? normalizePhone(raw) : null;
+  if (raw && !phone) return { ok: false, message: "Enter a 10-digit US mobile number, or leave it blank." };
+  const before = await db().worker.findUniqueOrThrow({ where: { id: workerId }, select: { phone: true } });
+  if (before.phone === phone) return { ok: true, message: "No change." };
+  await db().$transaction([
+    db().worker.update({ where: { id: workerId }, data: { phone } }),
+    db().auditEvent.create({
+      data: { actorId: userId, action: phone ? "worker.phone_set" : "worker.phone_removed", entityType: "Worker", entityId: workerId },
+    }),
+  ]);
+  revalidatePath("/profile");
+  return { ok: true, message: phone ? "Saved." : "Removed." };
 }

@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { FIELD_ROLES } from "@/lib/access";
 import { canScheduleShift, UUID_RE } from "@/lib/jobs";
 import { applyReviewPlan, payLock, planReview, reviewLockProblem } from "@/lib/pay-data";
+import { correctTime, placeTime, timeProblem, wasOffline, type QueuedAction } from "@/lib/offline-sync";
 import {
   findConflicts,
   locationCheck,
@@ -138,11 +139,26 @@ export async function scheduleShift(
 // Actions
 // ---------------------------------------------------------------------------
 
-async function apply(tx: Tx, shiftId: string, actorId: string, out: Outcome, now: Date, afterReview?: (validationId: string) => Promise<void>): Promise<Result> {
+async function apply(
+  tx: Tx,
+  shiftId: string,
+  actorId: string,
+  out: Outcome,
+  now: Date,
+  afterReview?: (validationId: string) => Promise<void>,
+  sync?: { clientId: string; receivedAt: Date | null }
+): Promise<Result> {
   if (!out.ok) return out;
   if (out.event) {
     await tx.workEvent.create({
-      data: { shiftId, type: out.event.type as never, payload: out.event.payload as Prisma.InputJsonValue, actorId, createdAt: now },
+      data: {
+        shiftId,
+        type: out.event.type as never,
+        payload: out.event.payload as Prisma.InputJsonValue,
+        actorId,
+        createdAt: now,
+        ...(sync ? { clientId: sync.clientId, receivedAt: sync.receivedAt } : {}),
+      },
     });
   }
   if (out.closeout) {
@@ -219,6 +235,62 @@ export async function supervisorShiftAction(
     const plan = await planReview(tx, s, action.status);
     if (!plan.ok) return plan;
     return apply(tx, shiftId, actor.profileId, out, now, (validationId) => applyReviewPlan(tx, s, plan, validationId, actor.profileId, now));
+  });
+}
+
+export type SyncResult = { clientId: string; status: "saved" | "duplicate" | "rejected"; reason?: string };
+
+/**
+ * Applies actions a worker's phone queued (M6, lib/offline-sync.ts), in the
+ * phone's order, at their corrected times. Each is checked against the
+ * shift as it stood at that moment, so an action recorded offline is judged
+ * by what had happened by then. An id already saved is reported as a
+ * duplicate, never saved twice. One transaction under the shift lock.
+ */
+export async function syncWorkerActions(
+  actor: { workerId: string; profileId: string },
+  shiftId: string,
+  batch: { deviceNow: number; actions: QueuedAction[] },
+  serverNow = new Date()
+): Promise<{ ok: true; results: SyncResult[] } | { ok: false; reason: string }> {
+  if (!UUID_RE.test(shiftId)) return { ok: false, reason: "Shift not found." };
+  if (!Number.isFinite(batch.deviceNow)) return { ok: false, reason: "Missing the phone's clock." };
+  return db().$transaction(async (tx) => {
+    await lock(tx, `shift:${shiftId}`);
+    const s = await loadShift(shiftId, tx);
+    if (!s || s.engagement.workerId !== actor.workerId) return { ok: false as const, reason: "Shift not found." };
+    const seen = await tx.workEvent.findMany({ where: { clientId: { in: batch.actions.map((a) => a.clientId) } }, select: { clientId: true, shiftId: true } });
+    const done = new Map(seen.map((e) => [e.clientId!, e.shiftId]));
+    const f = facts(s);
+    const results: SyncResult[] = [];
+    let lastSaved: Date | null = null;
+    for (const q of batch.actions) {
+      if (done.has(q.clientId)) {
+        results.push(done.get(q.clientId) === shiftId ? { clientId: q.clientId, status: "duplicate" } : { clientId: q.clientId, status: "rejected", reason: "Already used for another shift." });
+        continue;
+      }
+      const corrected = correctTime(q.at, batch.deviceNow, serverNow);
+      const late = timeProblem(corrected, serverNow);
+      if (late) {
+        results.push({ clientId: q.clientId, status: "rejected", reason: late });
+        continue;
+      }
+      const t = placeTime(corrected, lastSaved, serverNow);
+      // The shift as it stood at time t. (A shift cancelled since is still
+      // cancelled: its status stays, so nothing more is recorded on it.)
+      const asOf = { ...f, events: f.events.filter((e) => e.createdAt <= t) };
+      const out = workerAction(asOf, q.action, t);
+      if (!out.ok) {
+        results.push({ clientId: q.clientId, status: "rejected", reason: out.reason });
+        continue;
+      }
+      await apply(tx, shiftId, actor.profileId, out, t, undefined, { clientId: q.clientId, receivedAt: wasOffline(t, serverNow) ? serverNow : null });
+      done.set(q.clientId, shiftId);
+      lastSaved = t;
+      if (out.event) f.events.push({ type: out.event.type, payload: out.event.payload, actorId: actor.profileId, createdAt: t });
+      results.push({ clientId: q.clientId, status: "saved" });
+    }
+    return { ok: true as const, results };
   });
 }
 

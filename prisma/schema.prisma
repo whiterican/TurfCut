@@ -369,7 +369,12 @@ model WorkEvent {
   type      WorkEventType
   payload   Json // event-specific data (counts, packet IDs, notes, ...)
   actorId   String?       @db.Uuid // Profile.id who recorded it (worker or supervisor); null on pre-M3 rows
-  createdAt DateTime      @default(now())
+  createdAt DateTime      @default(now()) // when it happened (for offline actions: the phone's corrected time)
+  // Offline field day (M6): the phone's id for the action, so a re-sent
+  // action is saved once; and when an action recorded offline reached the
+  // server (null = recorded live).
+  clientId   String?   @unique @db.Uuid
+  receivedAt DateTime?
 
   @@index([shiftId, createdAt])
 }

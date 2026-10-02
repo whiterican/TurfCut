@@ -1,8 +1,8 @@
--- Turfcut M0 + M1 + M2 + M3 + M4 + M5 — manual Supabase setup (one paste), FRESH databases only.
+-- Turfcut M0–M6 — manual Supabase setup (one paste), FRESH databases only.
 -- Generated from prisma/schema.prisma + prisma/seed.ts on 2026-10-02.
 -- Paste the entire file into the Supabase SQL editor and run it.
 -- The DDL is not re-runnable. Existing database? Run the m1-, m1-profile-, m2-, m3-,
--- m4-0-rls-lockdown, m4-, m5-migration and m5-1-history-lock.sql files in order, then manual-seed.sql (idempotent).
+-- m4-0-rls-lockdown, m4-, m5-migration, m5-1-history-lock and m6-migration.sql files in order, then manual-seed.sql (idempotent).
 -- CreateSchema
 CREATE SCHEMA IF NOT EXISTS "public";
 
@@ -229,6 +229,8 @@ CREATE TABLE "public"."WorkEvent" (
     "payload" JSONB NOT NULL,
     "actorId" UUID,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "clientId" UUID,
+    "receivedAt" TIMESTAMP(3),
 
     CONSTRAINT "WorkEvent_pkey" PRIMARY KEY ("id")
 );
@@ -471,6 +473,9 @@ CREATE INDEX "Shift_engagementId_startsAt_idx" ON "public"."Shift"("engagementId
 
 -- CreateIndex
 CREATE INDEX "WorkEvent_shiftId_createdAt_idx" ON "public"."WorkEvent"("shiftId", "createdAt");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "WorkEvent_clientId_key" ON "public"."WorkEvent"("clientId");
 
 -- CreateIndex
 CREATE INDEX "Validation_shiftId_idx" ON "public"."Validation"("shiftId");

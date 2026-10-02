@@ -224,6 +224,8 @@ CREATE TABLE "public"."WorkEvent" (
     "payload" JSONB NOT NULL,
     "actorId" UUID,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "clientId" UUID,
+    "receivedAt" TIMESTAMP(3),
 
     CONSTRAINT "WorkEvent_pkey" PRIMARY KEY ("id")
 );
@@ -463,6 +465,9 @@ CREATE UNIQUE INDEX "Engagement_jobId_workerId_key" ON "public"."Engagement"("jo
 
 -- CreateIndex
 CREATE INDEX "Shift_engagementId_startsAt_idx" ON "public"."Shift"("engagementId", "startsAt");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "WorkEvent_clientId_key" ON "public"."WorkEvent"("clientId");
 
 -- CreateIndex
 CREATE INDEX "WorkEvent_shiftId_createdAt_idx" ON "public"."WorkEvent"("shiftId", "createdAt");

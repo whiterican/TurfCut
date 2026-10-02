@@ -8,6 +8,8 @@ import { loadFeed } from "@/lib/jobs-data";
 import { JobFeedCard } from "@/components/JobFeedCard";
 import { LocalTime } from "@/components/LocalTime";
 import Link from "next/link";
+import { workerPayTotals } from "@/lib/pay-data";
+import { money } from "@/lib/pay";
 
 const ROLE_LABELS: Record<string, string> = {
   WORKER: "Field worker",
@@ -85,6 +87,19 @@ async function WorkerHero({ workerId }: { workerId: string }) {
 }
 
 /** Open jobs, soonest first (screen mockups' "Best matches", without a ranking). */
+/** The worker's pay at a glance (their own totals only). */
+async function EarningsCard({ workerId }: { workerId: string }) {
+  const t = await workerPayTotals(workerId);
+  const any = t.paid || t.onTheWay || t.awaiting || t.stopped;
+  return (
+    <NavCard
+      href="/earnings"
+      title="Earnings"
+      body={any ? `${money(t.paid)} paid · ${money(t.onTheWay)} on the way · ${money(t.awaiting)} awaiting approval` : "Your pay shows up here once a supervisor approves a shift."}
+    />
+  );
+}
+
 async function OpenJobs({ workerId }: { workerId: string }) {
   const [{ jobs }, mine] = await Promise.all([
     loadFeed(workerId),
@@ -179,6 +194,7 @@ export default async function DashboardPage() {
       {isWorker && <WorkerHero workerId={session.workerId!} />}
       {!isWorker && session.orgId && SCHEDULING_ROLES.includes(session.role) && <OrgHero orgId={session.orgId} />}
 
+      {isWorker && <EarningsCard workerId={session.workerId!} />}
       {isWorker && <OpenJobs workerId={session.workerId!} />}
 
       {isWorker ? null : session.orgId ? (

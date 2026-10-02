@@ -114,7 +114,8 @@ export function shiftState(s: ShiftFacts): ShiftState {
         st.contacts += num(p.count) || 1;
         break;
       case "BATCH_COUNT":
-        st.batchCounted = true;
+        // Same rule as pay (lib/scorecard verifiedWork): only a valid count counts.
+        if (typeof p.accepted === "number" && Number.isFinite(p.accepted)) st.batchCounted = true;
         break;
       case "SHIFT_CANCELLED":
         st.cancelled = true;
@@ -196,7 +197,8 @@ export interface ProgressStep {
   at?: Date;
 }
 
-export function shiftProgress(s: ShiftFacts): ProgressStep[] {
+/** `payout`: the pay step as the caller may show it (lib/pay-data shiftPay). */
+export function shiftProgress(s: ShiftFacts, payout?: { done: boolean; detail: string; at?: Date }): ProgressStep[] {
   const st = shiftState(s);
   const petition = s.workType === "PETITION";
   const returned = st.checkedOutAt !== null && st.packetsOut.length === 0;
@@ -240,7 +242,7 @@ export function shiftProgress(s: ShiftFacts): ProgressStep[] {
           ? "Awaiting supervisor review"
           : "Return packets and check out",
     },
-    { key: "payout", label: "Payout", done: false, detail: "After approval — in-app payouts are coming soon" },
+    { key: "payout", label: "Payout", done: payout?.done ?? false, at: payout?.at, detail: payout?.detail ?? "Paid in the app after your supervisor approves the shift" },
   ];
   let current = false;
   return raw.map(({ done, ...step }) => {

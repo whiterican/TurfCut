@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { FIELD_ROLES } from "@/lib/access";
 import { canScheduleShift, UUID_RE } from "@/lib/jobs";
+import { applyReviewPlan, planReview } from "@/lib/pay-data";
 import {
   findConflicts,
   locationCheck,
@@ -30,7 +31,19 @@ const SHIFT_INCLUDE = {
       workerId: true,
       status: true,
       worker: { select: { id: true, displayName: true, profileId: true } },
-      job: { select: { id: true, orgId: true, title: true, type: true, compensationMethod: true, payRateCents: true, org: { select: { name: true } }, supportContacts: true } },
+      job: {
+        select: {
+          id: true,
+          orgId: true,
+          title: true,
+          type: true,
+          compensationMethod: true,
+          payRateCents: true,
+          org: { select: { name: true } },
+          supportContacts: true,
+          jurisdiction: { select: { version: true, rules: true } },
+        },
+      },
     },
   },
   events: { orderBy: { createdAt: "asc" as const } },
@@ -125,7 +138,7 @@ export async function scheduleShift(
 // Actions
 // ---------------------------------------------------------------------------
 
-async function apply(tx: Tx, shiftId: string, actorId: string, out: Outcome, now: Date): Promise<Result> {
+async function apply(tx: Tx, shiftId: string, actorId: string, out: Outcome, now: Date, afterReview?: (validationId: string) => Promise<void>): Promise<Result> {
   if (!out.ok) return out;
   if (out.event) {
     await tx.workEvent.create({
@@ -134,7 +147,8 @@ async function apply(tx: Tx, shiftId: string, actorId: string, out: Outcome, now
   }
   if (out.closeout) {
     // Append-only: a later review supersedes an earlier one; neither is edited.
-    await tx.validation.create({ data: { shiftId, workEventId: null, status: out.closeout.status, reason: out.closeout.reason, reviewerId: actorId, createdAt: now } });
+    const v = await tx.validation.create({ data: { shiftId, workEventId: null, status: out.closeout.status, reason: out.closeout.reason, reviewerId: actorId, createdAt: now } });
+    await afterReview?.(v.id);
     await tx.auditEvent.create({
       data: { actorId, action: "shift.reviewed", entityType: "Shift", entityId: shiftId, metadata: { status: out.closeout.status, reason: out.closeout.reason } },
     });
@@ -193,7 +207,12 @@ export async function supervisorShiftAction(
       });
       elsewhere = others.flatMap((o) => shiftState(facts(o)).packetsOut);
     }
-    return apply(tx, shiftId, actor.profileId, supervisorAction(facts(s), action, elsewhere), now);
+    const out = supervisorAction(facts(s), action, elsewhere);
+    if (!out.ok || action.kind !== "closeout") return apply(tx, shiftId, actor.profileId, out, now);
+    // A review creates, keeps or voids the shift's pay line (lib/pay-data.ts).
+    const plan = await planReview(tx, s, action.status);
+    if (!plan.ok) return plan;
+    return apply(tx, shiftId, actor.profileId, out, now, (validationId) => applyReviewPlan(tx, s, plan, validationId, actor.profileId, now));
   });
 }
 

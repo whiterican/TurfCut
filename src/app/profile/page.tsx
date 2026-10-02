@@ -28,7 +28,10 @@ export default async function ProfilePage() {
           <p className="eyebrow">Your profile</p>
           <h1 className="page-title">{worker.displayName}</h1>
         </div>
-        <Link href="/settings" className="btn-ghost btn-sm">Settings &amp; sign out</Link>
+        <div className="flex flex-wrap justify-end gap-2">
+          <Link transitionTypes={["nav-forward"]} href="/earnings" className="btn-secondary btn-sm">Earnings</Link>
+          <Link href="/settings" className="btn-ghost btn-sm">Settings &amp; sign out</Link>
+        </div>
       </header>
 
       <section className="section">

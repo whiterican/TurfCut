@@ -233,8 +233,9 @@ Jobs and hiring, built on the M1 profile.
 - **Hiring snapshot.** Each engagement freezes what the org could see at that
   moment — scorecard summary and authorized fit signals only, with consent
   version and time. Issue overlap compares the worker's shared answers with
-  the job's disclosed positions. An invitation sent before the worker has
-  any relationship with the org shows no fit answers.
+  the job's disclosed positions. An invitation shows fit answers only if
+  the worker already applied to, claimed or accepted one of the org's jobs;
+  an invitation alone (even a second one) is never a relationship.
 - **Late cancellations.** A worker `SHIFT_CANCELLED` inside the job's notice
   window counts as a no-show; timely and organization cancellations don't.
 

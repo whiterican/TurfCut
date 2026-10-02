@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireEmployer } from "@/lib/employer-session";
 import { requireWorker } from "@/lib/worker-session";
-import { formToObject, validateJob } from "@/lib/jobs";
+import { formToObject, jurisdictionStateProblem, validateJob } from "@/lib/jobs";
 import { createJob, publishJob, updateDraftJob } from "@/lib/jobs-data";
 import { acceptEngagement, applyToJob, claimJob, inviteWorker } from "@/lib/engagements-data";
 
@@ -25,8 +25,10 @@ export async function saveJob(_prev: JobFormState, formData: FormData): Promise<
   if (!orgId) return { message: "No organization on this account.", errors: {} };
   const result = validateJob(formToObject(formData));
   if (!result.ok) return { message: "Fix the highlighted fields.", errors: result.errors };
-  const jurisdiction = await db().jurisdictionProfile.findUnique({ where: { id: result.value.jurisdictionId }, select: { id: true } });
+  const jurisdiction = await db().jurisdictionProfile.findUnique({ where: { id: result.value.jurisdictionId }, select: { state: true } });
   if (!jurisdiction) return { message: "Fix the highlighted fields.", errors: { jurisdictionId: "That jurisdiction doesn't exist." } };
+  const stateProblem = jurisdictionStateProblem(result.value.state, jurisdiction.state);
+  if (stateProblem) return { message: "Fix the highlighted fields.", errors: { jurisdictionId: stateProblem } };
 
   const jobId = String(formData.get("jobId") ?? "");
   let id = jobId;

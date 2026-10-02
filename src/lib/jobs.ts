@@ -376,10 +376,32 @@ export interface PublishFacts {
     campaignDisclosure: unknown;
     supportContacts: unknown;
     hiringMethod: unknown;
+    geography: unknown;
   };
   jurisdiction: JurisdictionFacts | null;
   org: { approved: boolean; contractorTermsSignedAt: Date | null; classificationReviewedAt: Date | null };
 }
+
+/**
+ * The rule profile must be for the state the job is in — picking any
+ * approved profile can't stand in for the job's own jurisdiction.
+ */
+export function jurisdictionStateProblem(jobState: string | null, profileState: string): string | null {
+  if (!jobState) return "Set the job's state.";
+  return jobState.toUpperCase() === profileState.toUpperCase()
+    ? null
+    : `The job is in ${jobState.toUpperCase()} but the rule profile is for ${profileState}. Pick a ${jobState.toUpperCase()} profile.`;
+}
+
+/**
+ * Job dates are calendar days (stored as midnight UTC). The end date is
+ * over only once that day has ended everywhere in the US — Hawaii, UTC−10,
+ * is last — not at midnight UTC, which is the evening before in the US.
+ */
+const END_DAY_MS = (24 + 10) * 3_600_000;
+export const jobEndPassed = (endsAt: Date, now: Date) => now.getTime() >= endsAt.getTime() + END_DAY_MS;
+/** Jobs whose stored end date is at or after this are still open. */
+export const openJobsEndAfter = (now: Date) => new Date(now.getTime() - END_DAY_MS);
 
 /** Every reason this job can't publish right now (empty = it can). */
 export function publishBlockers(f: PublishFacts, now: Date = new Date()): string[] {
@@ -392,11 +414,13 @@ export function publishBlockers(f: PublishFacts, now: Date = new Date()): string
   if (f.jurisdiction) {
     const c = compensationProblem(f.job.compensationMethod, f.jurisdiction.rules);
     if (c) out.push(c);
+    const s = jurisdictionStateProblem(str(obj(f.job.geography).state), f.jurisdiction.state);
+    if (s) out.push(s);
   }
   if (!f.job.payRateCents || f.job.payRateCents <= 0) out.push("Set the gross pay rate.");
   if (!f.job.headcount || f.job.headcount < 1) out.push("Set the headcount.");
   if (!f.job.startsAt || !f.job.endsAt) out.push("Set the start and end dates.");
-  else if (f.job.endsAt < now) out.push("The job's end date has passed.");
+  else if (jobEndPassed(f.job.endsAt, now)) out.push("The job's end date has passed.");
   if (!readDisclosure(f.job.campaignDisclosure)) out.push("Disclose the campaign's type, affiliation and message.");
   if (!readSupportContacts(f.job.supportContacts)) out.push("Name who handles emergencies, disputes and lost materials.");
   if (readHiringModes(f.job.hiringMethod).length === 0) out.push("Pick at least one way to hire.");

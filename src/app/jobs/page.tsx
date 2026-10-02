@@ -31,7 +31,7 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
   const raw = await searchParams;
   const params = new URLSearchParams(Object.entries(raw).flatMap(([k, v]) => (typeof v === "string" ? [[k, v]] : [])));
   const filters = parseFeedFilters(params);
-  const [{ jobs, hidden }, mine] = await Promise.all([
+  const [{ jobs, hidden }, engagements] = await Promise.all([
     loadFeed(workerId, filters),
     db().engagement.findMany({
       where: { workerId },
@@ -39,7 +39,11 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
       orderBy: { createdAt: "desc" },
     }),
   ]);
-  const engagedIds = new Set(mine.map((e) => e.jobId));
+  // An invitation to a job the worker's own do-not-match answers rule out
+  // stays with the hidden jobs below, never in "Your jobs" with an Accept.
+  const hiddenIds = new Set(hidden.map((h) => h.id));
+  const mine = engagements.filter((e) => !(e.status === "INVITED" && hiddenIds.has(e.jobId)));
+  const engagedIds = new Set(engagements.map((e) => e.jobId));
   const open = jobs.filter((j) => !engagedIds.has(j.id));
 
   // Quick-filter chips toggle one URL parameter each.

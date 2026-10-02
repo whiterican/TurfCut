@@ -91,8 +91,21 @@ async function WorkerPanel({
   workerId: string;
   acceptedCount: number;
 }) {
+  const pref = effectivePreference(await loadLatestPreference(workerId));
+  const reasons = exclusionReasons(pref, { disclosure: readDisclosure(job.campaignDisclosure), orgName: job.org.name, measureIds: job.measureIds });
+  const excluded = (
+    <section className="alert-info space-y-2">
+      <p className="font-medium">Hidden from your feed by your own preferences</p>
+      <ul className="list-disc pl-5">{reasons.map((r) => <li key={r}>{r}</li>)}</ul>
+      <Link href="/profile/preferences" className="link">Change your preferences</Link>
+    </section>
+  );
+
   if (engagement) {
     const s = ENGAGEMENT_LABELS[engagement.status];
+    // An invitation is the org's act: the worker's do-not-match answers
+    // still keep them off the job (the org is never told why).
+    if (engagement.status === "INVITED" && reasons.length) return excluded;
     return (
       <section className="card space-y-3">
         <p className="flex items-center gap-2 font-medium text-fg">
@@ -107,17 +120,7 @@ async function WorkerPanel({
     );
   }
 
-  const pref = effectivePreference(await loadLatestPreference(workerId));
-  const reasons = exclusionReasons(pref, { disclosure: readDisclosure(job.campaignDisclosure), orgName: job.org.name, measureIds: job.measureIds });
-  if (reasons.length) {
-    return (
-      <section className="alert-info space-y-2">
-        <p className="font-medium">Hidden from your feed by your own preferences</p>
-        <ul className="list-disc pl-5">{reasons.map((r) => <li key={r}>{r}</li>)}</ul>
-        <Link href="/profile/preferences" className="link">Change your preferences</Link>
-      </section>
-    );
-  }
+  if (reasons.length) return excluded;
 
   // Why it fits: the worker's own verified record against the job's rules.
   const card = await loadScorecard(workerId);

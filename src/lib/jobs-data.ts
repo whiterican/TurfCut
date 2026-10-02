@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import {
   exclusionReasons,
+  openJobsEndAfter,
   publishBlockers,
   readDisclosure,
   UUID_RE,
@@ -45,10 +46,15 @@ export async function createJob(orgId: string, actorId: string, input: JobInput)
   });
 }
 
-/** Edits a job while it is still a draft. Returns false if it isn't. */
+/**
+ * Edits a job while it is still a draft. Returns false if it isn't. Takes
+ * the publish lock, so an edit can't land between the publish gate's check
+ * and the status change.
+ */
 export async function updateDraftJob(jobId: string, orgId: string, actorId: string, input: JobInput) {
   if (!UUID_RE.test(jobId)) return false;
   return db().$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`job:${jobId}`}))`;
     const { count } = await tx.job.updateMany({ where: { id: jobId, orgId, status: "DRAFT" }, data: jobData(input) });
     if (count === 0) return false;
     await tx.auditEvent.create({ data: { actorId, action: "job.edited", entityType: "Job", entityId: jobId } });
@@ -109,7 +115,7 @@ export async function loadFeed(workerId: string | null, f: FeedFilters = {}) {
     where: {
       status: "PUBLISHED",
       // Jobs that have already ended aren't open work.
-      OR: [{ endsAt: null }, { endsAt: { gte: new Date() } }],
+      OR: [{ endsAt: null }, { endsAt: { gt: openJobsEndAfter(new Date()) } }],
       ...(f.type ? { type: f.type } : {}),
       ...(f.minRateCents ? { payRateCents: { gte: f.minRateCents } } : {}),
       ...(f.startsBefore ? { startsAt: { lte: f.startsBefore } } : {}),

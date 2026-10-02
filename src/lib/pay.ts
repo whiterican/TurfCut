@@ -200,20 +200,25 @@ export function sortEvents<T extends { type: PayEventType; createdAt: Date }>(ev
 }
 
 /**
- * Replays a line's events. A transfer's outcome (paid, failed, reversed)
- * only counts for the transfer it names: a late answer about an earlier
- * transfer never reopens or re-pays a line. A reversal puts the line on
- * hold — someone decides whether to pay it again.
+ * Replays a line's events. Every transfer is tracked by id: a payment always
+ * counts (money moved, including pre-M5 lines with no start event); a
+ * failure or reversal only affects the transfer it names, so a late answer
+ * about an old transfer never re-pays a line. A reversal puts the line on
+ * hold — someone decides whether to pay it again. More than one transfer
+ * paid or in flight at once is a conflict: shown, and never paid again.
  */
 export function lineState(line: { amountCents: number }, events: PayEventFact[], openDispute: boolean): LineState {
   let voided = false;
   let approvedAt: Date | null = null;
   let held: string | null = null;
-  let transfer = null as { id: string | null; state: "processing" | "paid"; at: Date; ref: string | null } | null;
   let note: string | null = null;
-  // Money that may have moved twice: shown, and the line is never paid again.
-  let conflict: string | null = null;
-  const same = (e: PayEventFact) => transfer !== null && (e.transferId === null || transfer.id === null || e.transferId === transfer.id);
+  const inFlight = new Map<string, Date>();
+  const paid = new Map<string, { at: Date; ref: string | null }>();
+  // Reversed before the "paid" arrived (webhooks out of order).
+  const reversedEarly = new Set<string>();
+  const LEGACY = "pre-M5";
+  /** The transfer an event is about: its own id, else the only one it can mean. */
+  const keyOf = (e: PayEventFact, pool: Map<string, unknown>) => e.transferId ?? (pool.size === 1 ? [...pool.keys()][0] : LEGACY);
   for (const e of sortEvents(events)) {
     switch (e.type) {
       case "VOIDED":
@@ -229,58 +234,55 @@ export function lineState(line: { amountCents: number }, events: PayEventFact[],
         held = null;
         break;
       case "TRANSFER_STARTED":
-        // One transfer at a time; the pay run never starts a second one.
-        if (transfer === null) transfer = { id: e.transferId, state: "processing", at: e.createdAt, ref: null };
-        else conflict = `In two payments at once (${transfer.id ?? "earlier"} and ${e.transferId ?? "later"}). Check Stripe before paying again.`;
+        inFlight.set(e.transferId ?? LEGACY, e.createdAt);
         break;
       case "PAID": {
-        // A payment always counts: money moved. (Pre-M5 lines have no start event.)
-        const paid = { id: e.transferId ?? transfer?.id ?? null, state: "paid" as const, at: e.createdAt, ref: e.providerRef };
-        if (transfer === null || (transfer.state === "processing" && same(e))) {
-          transfer = paid;
-          note = null;
-        } else if (transfer.state === "processing") {
-          conflict = `Paid by ${e.transferId ?? "a transfer"} while ${transfer.id ?? "another"} was in progress. Check Stripe for a double payment.`;
-          transfer = paid;
-        } else if (!same(e)) {
-          conflict = `Paid twice (${transfer.id ?? "earlier"} and ${e.transferId ?? "later"}). Reverse one in Stripe.`;
-        }
+        const k = keyOf(e, inFlight);
+        inFlight.delete(k);
+        if (reversedEarly.has(k)) break;
+        paid.set(k, { at: e.createdAt, ref: e.providerRef });
+        note = null;
         break;
       }
-      case "TRANSFER_FAILED":
-        if (same(e) && transfer!.state === "processing") {
-          transfer = null;
-          note = `Payment failed${e.reason ? `: ${e.reason}` : ""}`;
-        }
+      case "TRANSFER_FAILED": {
+        const k = keyOf(e, inFlight);
+        if (inFlight.delete(k)) note = `Payment failed${e.reason ? `: ${e.reason}` : ""}`;
         break;
-      case "REVERSED":
-        if (same(e) && transfer!.state === "paid") {
-          transfer = null;
+      }
+      case "REVERSED": {
+        const k = keyOf(e, paid.size ? paid : inFlight);
+        if (paid.delete(k) || inFlight.delete(k)) {
+          if (!paid.has(k)) reversedEarly.add(k);
           held = `Payment reversed${e.reason ? `: ${e.reason}` : ""}`;
         }
         break;
+      }
     }
   }
-  const paid = transfer?.state === "paid";
+  const conflict = paid.size + inFlight.size > 1;
+  const lastPaid = [...paid.entries()].sort((x, y) => y[1].at.getTime() - x[1].at.getTime())[0];
   let status: PayStatus;
   if (voided) status = "VOIDED";
-  else if (paid) status = "PAID";
-  else if (transfer?.state === "processing") status = "PROCESSING";
+  else if (paid.size) status = "PAID";
+  else if (inFlight.size) status = "PROCESSING";
   else if (line.amountCents === 0) status = "NOTHING_DUE";
   else if (openDispute) status = "DISPUTED";
   else if (held) status = "HELD";
   else if (approvedAt) status = "APPROVED";
   else status = "AWAITING_APPROVAL";
+  const ids = [...paid.keys(), ...inFlight.keys()];
   return {
     status,
     approvedAt,
-    paidAt: paid ? transfer!.at : null,
-    paidRef: paid ? transfer!.ref : null,
-    transferId: transfer?.id ?? null,
+    paidAt: lastPaid ? lastPaid[1].at : null,
+    paidRef: lastPaid ? lastPaid[1].ref : null,
+    transferId: [...inFlight.keys()][0] ?? (lastPaid && lastPaid[0] !== LEGACY ? lastPaid[0] : null),
     heldReason: status === "HELD" ? held : null,
-    note: conflict ?? (status === "VOIDED" || status === "PAID" ? null : note),
-    conflict: conflict !== null,
-    payable: status === "APPROVED" && conflict === null,
+    note: conflict
+      ? `More than one payment for this line (${ids.join(", ")}). Check Stripe and reverse the extra one.`
+      : status === "VOIDED" || status === "PAID" ? null : note,
+    conflict,
+    payable: status === "APPROVED" && !conflict,
   };
 }
 

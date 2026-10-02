@@ -71,7 +71,10 @@ export async function resolve(_prev: ActionState, fd: FormData): Promise<ActionS
   const res = await resolveDispute(a, str(fd, "disputeId"), r);
   if (!res.ok) return { ok: false, message: res.reason };
   refresh();
-  return { ok: true, message: "Dispute closed. The worker sees your response." };
+  return {
+    ok: true,
+    message: r.outcome === "ADJUSTED" && r.amountCents > 0 ? "Dispute closed. Someone else on your team approves the extra pay." : "Dispute closed. The worker sees your response.",
+  };
 }
 
 /** Sends one worker everything approved and unpaid, through Stripe. */

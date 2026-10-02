@@ -12,7 +12,8 @@ import { approve, checkPayment, hold, payNow, release, resolve } from "./actions
 const day = (d: Date) => d.toISOString().slice(0, 10);
 
 function LineText({ l, names }: { l: OrgLine; names: Map<string, string> }) {
-  const reviewer = l.line.validation?.reviewerId ? names.get(l.line.validation.reviewerId) : null;
+  const rv = l.line.shift?.validations[0]?.reviewerId ?? l.line.validation?.reviewerId;
+  const reviewer = rv ? names.get(rv) : null;
   return (
     <span className="block text-xs text-muted">
       {l.line.engagement?.job.title ?? "Pay"}

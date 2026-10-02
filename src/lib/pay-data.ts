@@ -425,7 +425,7 @@ type LineAction = "approve" | "hold" | "release";
 /** The two-person rule for one loaded line (lib/pay selfApprovalProblem). */
 export function selfApproval(l: OrgLine, actorId: string): string | null {
   return selfApprovalProblem(
-    { kind: l.line.kind, createdById: l.line.createdById, hasShift: !!l.line.shift },
+    { kind: l.line.kind, createdById: l.line.createdById, hasShift: !!l.line.shift, amountCents: l.line.amountCents },
     l.line.shift?.validations[0]?.reviewerId ?? null,
     actorId
   );
@@ -529,7 +529,8 @@ export async function loadOrgDisputes(actor: PayActor, open: boolean): Promise<D
 
 /**
  * Close a dispute: keep the pay (with a response), adjust it (a new
- * ADJUSTMENT line, approved by whoever resolves it), or record that a
+ * ADJUSTMENT line: a raise waits for someone else's approval, a deduction
+ * on approved pay applies at once), or record that a
  * supervisor re-reviewed the shift after the dispute.
  */
 export async function resolveDispute(actor: PayActor, disputeId: string, r: Resolution, now = new Date()): Promise<Result> {
@@ -575,10 +576,14 @@ export async function resolveDispute(actor: PayActor, disputeId: string, r: Reso
           createdAt: now,
         },
       });
-      // Someone other than its maker approves the adjustment (two people),
-      // and it's held along with a held shift line.
+      // A raise waits for someone other than its maker (two people). A
+      // deduction on pay that's approved or paid applies at once, so the
+      // next payment can't go out without it. Either is held with a held line.
+      const baseApproved = !!base && (base.st.approvedAt !== null || base.st.status === "PAID" || base.st.status === "PROCESSING");
       if (base?.st.status === "HELD") {
         await tx.payoutEvent.create({ data: { payoutId: adj.id, type: "HELD", actorId: actor.profileId, reason: base.st.heldReason, createdAt: now } });
+      } else if (r.amountCents < 0 && baseApproved) {
+        await tx.payoutEvent.create({ data: { payoutId: adj.id, type: "APPROVED", actorId: actor.profileId, reason: "Deduction applied when the dispute was resolved", createdAt: now } });
       }
       adjustmentId = adj.id;
     }
@@ -634,7 +639,7 @@ export async function loadOrgPay(actor: PayActor) {
             : null,
     };
   });
-  const reviewerIds = [...new Set(live.flatMap((l) => [l.line.validation?.reviewerId, l.line.createdById]).filter((x): x is string => !!x))];
+  const reviewerIds = [...new Set(live.flatMap((l) => [l.line.shift?.validations[0]?.reviewerId, l.line.validation?.reviewerId, l.line.createdById]).filter((x): x is string => !!x))];
   const names = new Map((await db().profile.findMany({ where: { id: { in: reviewerIds } }, select: { id: true, displayName: true } })).map((p) => [p.id, p.displayName ?? "Staff"]));
   return {
     awaiting: live.filter((l) => l.state.status === "AWAITING_APPROVAL"),
@@ -668,7 +673,8 @@ export async function exportLedger(actor: PayActor, from: Date, to: Date): Promi
   const lines = await orgLines(db(), { orgId: actor.orgId, createdAt: { gte: from, lt: to } });
   const people = new Set<string>();
   for (const l of lines) {
-    if (l.line.validation?.reviewerId) people.add(l.line.validation.reviewerId);
+    const rv = l.line.shift?.validations[0]?.reviewerId ?? l.line.validation?.reviewerId;
+    if (rv) people.add(rv);
     if (l.line.createdById) people.add(l.line.createdById);
     for (const e of l.line.events) if (e.actorId) people.add(e.actorId);
   }
@@ -696,7 +702,10 @@ export async function exportLedger(actor: PayActor, from: Date, to: Date): Promi
       usd(l.line.amountCents),
       usd(l.line.feeCents),
       usd(l.line.amountCents + l.line.feeCents),
-      l.line.validation?.reviewerId ? names.get(l.line.validation.reviewerId) ?? "" : "",
+      (() => {
+        const rv = l.line.shift?.validations[0]?.reviewerId ?? l.line.validation?.reviewerId;
+        return rv ? names.get(rv) ?? "" : "";
+      })(),
       l.state.approvedAt?.toISOString() ?? "",
       approver ? names.get(approver) ?? "" : "",
       l.state.paidAt?.toISOString() ?? "",

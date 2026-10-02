@@ -235,17 +235,19 @@ describe("finance actions and re-review", () => {
 });
 
 describe("two people per payment", () => {
-  it("the shift's latest reviewer can't approve its pay, nor its adjustments", () => {
-    const shiftLine = { kind: "SHIFT" as const, createdById: "sup", hasShift: true };
+  it("the shift's latest reviewer can't approve its pay; an adjustment's maker can't approve it", () => {
+    const shiftLine = { kind: "SHIFT" as const, createdById: "sup", hasShift: true, amountCents: 8750 };
     expect(selfApprovalProblem(shiftLine, "owner", "owner")).toMatch(/approved this shift/);
     expect(selfApprovalProblem(shiftLine, "sup", "owner")).toBeNull();
-    // a kept line still checks the shift's latest reviewer, not the line's maker
-    expect(selfApprovalProblem({ ...shiftLine, createdById: "sup" }, "owner", "owner")).not.toBeNull();
-    const adj = { kind: "ADJUSTMENT" as const, createdById: "fin", hasShift: true };
-    expect(selfApprovalProblem(adj, "owner", "owner")).toMatch(/approved this shift/);
+    // a kept line checks the shift's latest reviewer, not the line's maker
+    expect(selfApprovalProblem(shiftLine, "owner", "owner")).not.toBeNull();
+    const adj = { kind: "ADJUSTMENT" as const, createdById: "fin", hasShift: true, amountCents: 750 };
     expect(selfApprovalProblem(adj, "sup", "fin")).toMatch(/made this adjustment/);
-    expect(selfApprovalProblem(adj, "sup", "owner")).toBeNull();
-    expect(selfApprovalProblem({ kind: "SHIFT", createdById: null, hasShift: false }, null, "owner")).toBeNull();
+    // the shift's reviewer may approve someone else's adjustment (still two people)
+    expect(selfApprovalProblem(adj, "owner", "owner")).toBeNull();
+    // a deduction can't send money out: its maker may approve it
+    expect(selfApprovalProblem({ ...adj, amountCents: -500 }, "sup", "fin")).toBeNull();
+    expect(selfApprovalProblem({ kind: "SHIFT", createdById: null, hasShift: false, amountCents: 1 }, null, "owner")).toBeNull();
   });
 });
 

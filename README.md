@@ -323,7 +323,8 @@ API: `GET/POST /api/shifts`, `POST /api/shifts/:id/check-in` `{ lat?, lng? }`,
   per-signature shift can't be approved before its batch count.
 - **Two approvals, two people.** Supervisors approve the work; owners and
   finance approve the pay — never the person who made the shift's latest
-  review, and never the person who made an adjustment (**Pay** tab), can hold a line with a reason the worker sees, and
+  review; an extra-pay adjustment is approved by someone other than its
+  maker (deductions on approved pay apply at once) (**Pay** tab), can hold a line with a reason the worker sees, and
   release it. A review can change only until its pay is approved; after
   that, changes are adjustments.
 - **Workers see their pay** on **Earnings** (from Today and Profile): gross

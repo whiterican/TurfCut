@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireRole } from "@/lib/auth";
 import { FIELD_ROLES, PAY_ROLES } from "@/lib/access";
-import { loadOrgDisputes, loadOrgPay, partialReversals, pendingTransfers, selfApproval, type OrgLine } from "@/lib/pay-data";
+import { loadOrgDisputes, loadOrgPay, partialReversals, pendingTransfers, reviewerOf, selfApproval, type OrgLine } from "@/lib/pay-data";
 import { stripeProvider } from "@/lib/payout-provider";
 import { money, PLATFORM_FEE_BPS, statusLabel } from "@/lib/pay";
 import { LocalTime } from "@/components/LocalTime";
@@ -12,7 +12,7 @@ import { approve, checkPayment, hold, payNow, release, resolve } from "./actions
 const day = (d: Date) => d.toISOString().slice(0, 10);
 
 function LineText({ l, names }: { l: OrgLine; names: Map<string, string> }) {
-  const rv = l.line.shift?.validations[0]?.reviewerId ?? l.line.validation?.reviewerId;
+  const rv = reviewerOf(l);
   const reviewer = rv ? names.get(rv) : null;
   return (
     <span className="block text-xs text-muted">

@@ -422,6 +422,16 @@ async function orgLines(c: Client, where: Prisma.PayoutWhereInput): Promise<OrgL
 
 type LineAction = "approve" | "hold" | "release";
 
+/**
+ * Who reviewed the work behind a line, for display and the ledger: the
+ * shift's latest review for a live shift line (a kept line may be older
+ * than it), the line's own review once replaced, nobody for adjustments.
+ */
+export function reviewerOf(l: OrgLine): string | null {
+  if (l.line.kind !== "SHIFT") return null;
+  return l.state.status === "VOIDED" ? (l.line.validation?.reviewerId ?? null) : (l.line.shift?.validations[0]?.reviewerId ?? l.line.validation?.reviewerId ?? null);
+}
+
 /** The two-person rule for one loaded line (lib/pay selfApprovalProblem). */
 export function selfApproval(l: OrgLine, actorId: string): string | null {
   return selfApprovalProblem(
@@ -456,11 +466,21 @@ export async function lineAction(actor: PayActor, payoutIds: string[], action: L
       const problem = lineActionProblem(l.state, action, why);
       if (problem) return { ok: false as const, reason: lines.length > 1 ? `${l.line.worker.displayName}: ${problem}` : problem };
     }
-    const at = await eventAt(tx, ids, now);
+    // Approving shift pay approves the deductions waiting on those shifts
+    // too, so a payment can never go out without them.
+    const shiftIds = lines.filter((l) => l.line.kind === "SHIFT" && l.line.shiftId).map((l) => l.line.shiftId!);
+    const deductions =
+      action === "approve" && shiftIds.length
+        ? (await orgLines(tx, { orgId: actor.orgId, shiftId: { in: shiftIds }, kind: "ADJUSTMENT", amountCents: { lt: 0 } }))
+            .filter((d) => d.state.status === "AWAITING_APPROVAL" && !ids.includes(d.line.id))
+            .map((d) => d.line.id)
+        : [];
+    const all = [...ids, ...deductions];
+    const at = await eventAt(tx, all, now);
     const type = action === "approve" ? "APPROVED" : action === "hold" ? "HELD" : "RELEASED";
-    await tx.payoutEvent.createMany({ data: ids.map((payoutId) => ({ payoutId, type, actorId: actor.profileId, reason: why, createdAt: at })) });
+    await tx.payoutEvent.createMany({ data: all.map((payoutId) => ({ payoutId, type, actorId: actor.profileId, reason: why, createdAt: at })) });
     await tx.auditEvent.create({
-      data: { actorId: actor.profileId, action: `payout.${action === "approve" ? "approved" : action === "hold" ? "held" : "released"}`, entityType: "Payout", entityId: ids[0], metadata: { payoutIds: ids, reason: why } },
+      data: { actorId: actor.profileId, action: `payout.${action === "approve" ? "approved" : action === "hold" ? "held" : "released"}`, entityType: "Payout", entityId: ids[0], metadata: { payoutIds: all, reason: why } },
     });
     return { ok: true as const, count: ids.length };
   });
@@ -576,14 +596,16 @@ export async function resolveDispute(actor: PayActor, disputeId: string, r: Reso
           createdAt: now,
         },
       });
-      // A raise waits for someone other than its maker (two people). A
-      // deduction on pay that's approved or paid applies at once, so the
-      // next payment can't go out without it. Either is held with a held line.
+      // A raise waits for someone other than its maker (two people) and is
+      // held with a held shift line. A deduction on pay that's approved or
+      // paid applies at once, so the next payment can't go out without it.
       const baseApproved = !!base && (base.st.approvedAt !== null || base.st.status === "PAID" || base.st.status === "PROCESSING");
-      if (base?.st.status === "HELD") {
-        await tx.payoutEvent.create({ data: { payoutId: adj.id, type: "HELD", actorId: actor.profileId, reason: base.st.heldReason, createdAt: now } });
-      } else if (r.amountCents < 0 && baseApproved) {
+      // (A deduction only lowers what goes out, so it's never held: if the
+      // pay is approved it applies now; if not, it's approved with it.)
+      if (r.amountCents < 0 && baseApproved) {
         await tx.payoutEvent.create({ data: { payoutId: adj.id, type: "APPROVED", actorId: actor.profileId, reason: "Deduction applied when the dispute was resolved", createdAt: now } });
+      } else if (r.amountCents > 0 && base?.st.status === "HELD") {
+        await tx.payoutEvent.create({ data: { payoutId: adj.id, type: "HELD", actorId: actor.profileId, reason: base.st.heldReason, createdAt: now } });
       }
       adjustmentId = adj.id;
     }
@@ -673,7 +695,7 @@ export async function exportLedger(actor: PayActor, from: Date, to: Date): Promi
   const lines = await orgLines(db(), { orgId: actor.orgId, createdAt: { gte: from, lt: to } });
   const people = new Set<string>();
   for (const l of lines) {
-    const rv = l.line.shift?.validations[0]?.reviewerId ?? l.line.validation?.reviewerId;
+    const rv = reviewerOf(l);
     if (rv) people.add(rv);
     if (l.line.createdById) people.add(l.line.createdById);
     for (const e of l.line.events) if (e.actorId) people.add(e.actorId);
@@ -703,7 +725,7 @@ export async function exportLedger(actor: PayActor, from: Date, to: Date): Promi
       usd(l.line.feeCents),
       usd(l.line.amountCents + l.line.feeCents),
       (() => {
-        const rv = l.line.shift?.validations[0]?.reviewerId ?? l.line.validation?.reviewerId;
+        const rv = reviewerOf(l);
         return rv ? names.get(rv) ?? "" : "";
       })(),
       l.state.approvedAt?.toISOString() ?? "",

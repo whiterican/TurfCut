@@ -359,9 +359,16 @@ export function reReviewProblem(lines: LineState[]): string | null {
 export function selfApprovalProblem(
   line: { kind: "SHIFT" | "ADJUSTMENT"; createdById: string | null; hasShift: boolean; amountCents: number },
   latestReviewerId: string | null,
-  actorId: string
+  actorId: string,
+  /** Profiles who entered or corrected the shift's entries, or counted a batch (M7): they set the amount too. */
+  amountSetters: readonly string[] = []
 ): string | null {
-  if (line.kind === "SHIFT") return line.hasShift && latestReviewerId === actorId ? "You approved this shift's work, so someone else approves its pay." : null;
+  if (line.kind === "SHIFT") {
+    if (!line.hasShift) return null;
+    if (latestReviewerId === actorId) return "You approved this shift's work, so someone else approves its pay.";
+    if (amountSetters.includes(actorId)) return "You entered or corrected this shift's work, so someone else approves its pay.";
+    return null;
+  }
   return line.amountCents > 0 && line.createdById === actorId ? "You made this adjustment, so someone else approves it." : null;
 }
 

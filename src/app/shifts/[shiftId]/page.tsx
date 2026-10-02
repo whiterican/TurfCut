@@ -163,8 +163,9 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
         staging,
         ended: now > s.endsAt,
         // Who made each event isn't needed on the phone; the phone's own id
-        // for an entry lets it drop that entry once it shows here.
-        events: s.events.map((e) => ({ type: e.type, payload: e.payload, clientId: e.clientId, createdAt: e.createdAt.toISOString() })),
+        // for an entry lets it drop that entry once it shows here, and the
+        // row id lets supervisor corrections apply live.
+        events: s.events.map((e) => ({ id: e.id, type: e.type, payload: e.payload, clientId: e.clientId, createdAt: e.createdAt.toISOString() })),
         validations: f.validations.map((v) => ({ ...v, createdAt: v.createdAt.toISOString() })),
       }}
       beforeCheckIn={

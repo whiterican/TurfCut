@@ -343,7 +343,7 @@ describe("supervisor corrections (M7)", () => {
     const out = correctionAction(s, { kind: "enter_event", type: "CHECK_OUT", at: at(250), reason: "Phone died; left at 1:10 per the worker" }, "sup", now);
     expect(out).toEqual({ ok: true, event: { type: "CHECK_OUT", payload: { enteredBy: "sup", reason: "Phone died; left at 1:10 per the worker" }, createdAt: at(250) } });
     expect(correctionAction(done(), { kind: "enter_event", type: "CHECK_OUT", at: at(250), reason: "a second check-out" }, "sup", now)).toMatchObject({ ok: false, reason: /two check-outs/ });
-    expect(correctionAction(s, { kind: "enter_event", type: "CHECK_OUT", at: at(8 * 60 + 150), reason: "far outside the shift" }, "sup", now)).toMatchObject({ ok: false, reason: /within 2 hours/ });
+    expect(correctionAction(s, { kind: "enter_event", type: "CHECK_OUT", at: at(8 * 60 + 150), reason: "far outside the shift" }, "sup", now)).toMatchObject({ ok: false, reason: /2 hours outside/ });
     expect(correctionAction(s, { kind: "enter_event", type: "DOOR_KNOCK", at: at(90), count: 10, reason: "doors on a petition shift" }, "sup", now)).toMatchObject({ ok: false, reason: /canvass/ });
   });
 
@@ -357,5 +357,21 @@ describe("supervisor corrections (M7)", () => {
   it("timelineProblem: the whole-shift sanity check", () => {
     expect(timelineProblem(done().events, done())).toBeNull();
     expect(timelineProblem([evId("a", "CHECK_OUT", 10)], done())).toMatch(/needs a check-in/);
+    expect(timelineProblem([evId("pp", "PACKET_PICKUP", 10, { packetId: "1" })], done())).toMatch(/only go out while on shift/);
+  });
+
+  it("checks the 2-hour window only on the time being set: a worker's own late check-out never blocks other corrections", () => {
+    // The shift is scheduled 0–8h (shift() default); the worker checked out 2.5h after the end.
+    const late = shift([evId("ci", "CHECK_IN", 0), evId("sig", "SIGNATURE_SUBMITTED", 60, { count: 20 }), evId("co", "CHECK_OUT", 8 * 60 + 150)], { status: "COMPLETED" });
+    expect(correctionAction(late, { kind: "correct_event", eventId: "sig", count: 18, reason: "Two sheets were counted twice" }, "sup", at(12 * 60))).toMatchObject({ ok: true });
+    expect(correctionAction(late, { kind: "correct_event", eventId: "ci", at: at(-130), reason: "an hour-ten before the window" }, "sup", at(12 * 60))).toMatchObject({ ok: false, reason: /2 hours outside/ });
+    expect(correctionAction(late, { kind: "correct_event", eventId: "ci", at: at(-100), reason: "inside the window is fine" }, "sup", at(12 * 60))).toMatchObject({ ok: true });
+  });
+
+  it("drops an entry a per-entry review rejected, with or without corrections, so state agrees with pay", () => {
+    const s = done();
+    s.validations = [{ workEventId: "co", status: "REJECTED", reason: "not them", createdAt: at(300) }];
+    expect(shiftState(s).checkedOutAt).toBeNull();
+    expect(shiftState(s).signatures).toBe(20);
   });
 });

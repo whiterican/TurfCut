@@ -290,8 +290,10 @@ export async function syncWorkerActions(
     const results: SyncResult[] = [];
     const latest = (keep: (e: (typeof f.events)[number]) => boolean) =>
       f.events.reduce<Date | null>((m, e) => (keep(e) && (!m || e.createdAt > m) ? e.createdAt : m), null);
-    // Everything synced goes after the worker's own field events.
-    let lastWorker = latest((e) => WORKER_FIELD_EVENTS.has(e.type));
+    // Everything synced goes after the worker's own field events. A
+    // supervisor's entry in the worker's name (M7) isn't one: it must never
+    // push the worker's own times later.
+    let lastWorker = latest((e) => WORKER_FIELD_EVENTS.has(e.type) && !((e.payload ?? {}) as Record<string, unknown>).enteredBy);
     for (const q of batch.actions) {
       if (done.has(q.clientId)) {
         results.push(done.get(q.clientId) === shiftId ? { clientId: q.clientId, status: "duplicate" } : { clientId: q.clientId, status: "rejected", reason: "Already used for another shift." });
@@ -371,7 +373,7 @@ export async function supervisorCorrection(
     await tx.shift.update({
       where: { id: shiftId },
       data: {
-        status: st.checkedOutAt ? "COMPLETED" : st.checkedInAt ? "ACTIVE" : fresh.status === "CANCELLED" ? "CANCELLED" : "SCHEDULED",
+        status: st.checkedOutAt ? "COMPLETED" : st.checkedInAt ? "ACTIVE" : "SCHEDULED",
         checkInAt: st.checkedInAt,
         checkOutAt: st.checkedOutAt,
       },

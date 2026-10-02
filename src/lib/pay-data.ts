@@ -448,6 +448,8 @@ const LINE_INCLUDE = {
       endsAt: true,
       // The latest review of the shift: the person who approves pay must not be its reviewer.
       validations: { where: { workEventId: null }, orderBy: { createdAt: "desc" }, take: 1, select: { reviewerId: true } },
+      // Who set the amount by hand (M7 corrections and entries, batch counts): they can't approve its pay either.
+      events: { where: { OR: [{ type: "CORRECTION" }, { type: "BATCH_COUNT" }, { payload: { path: ["enteredBy"], not: Prisma.DbNull } }] }, select: { type: true, actorId: true, payload: true } },
     },
   },
   engagement: { select: { job: { select: { id: true, title: true, type: true, measureIds: true, jurisdiction: { select: { rules: true } } } } } },
@@ -495,10 +497,15 @@ export function reviewerOf(l: OrgLine): string | null {
 
 /** The two-person rule for one loaded line (lib/pay selfApprovalProblem). */
 export function selfApproval(l: OrgLine, actorId: string): string | null {
+  const setters = (l.line.shift?.events ?? []).flatMap((e) => {
+    const p = (e.payload ?? {}) as Record<string, unknown>;
+    return [e.actorId, p.signedBy, p.enteredBy].filter((x): x is string => typeof x === "string");
+  });
   return selfApprovalProblem(
     { kind: l.line.kind, createdById: l.line.createdById, hasShift: !!l.line.shift, amountCents: l.line.amountCents },
     l.line.shift?.validations[0]?.reviewerId ?? null,
-    actorId
+    actorId,
+    setters
   );
 }
 

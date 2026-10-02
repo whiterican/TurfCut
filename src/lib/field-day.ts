@@ -36,11 +36,11 @@ export interface FieldEvent {
 /**
  * The shift's events with supervisor corrections applied (lib/corrections):
  * what every reader below — state, time worked, flags — works from, so they
- * agree with the scorecard and pay. Entries without an id can't be
- * corrected and pass through.
+ * agree with the scorecard and pay — including dropping an entry a
+ * per-entry review rejected. Entries without an id can't be corrected and
+ * pass through.
  */
 export function correctedEvents(s: Pick<ShiftFacts, "events" | "validations">): FieldEvent[] {
-  if (!s.events.some((e) => e.type === "CORRECTION")) return s.events;
   const withId = s.events.filter((e): e is FieldEvent & { id: string } => !!e.id);
   const rest = s.events.filter((e) => !e.id);
   return [...effectiveEvents(withId, s.validations).events, ...rest];
@@ -464,11 +464,9 @@ export function timelineProblem(events: FieldEvent[], s: Pick<ShiftFacts, "start
   const out = new Set<string>();
   for (const e of sorted) {
     const p = (e.payload ?? {}) as Record<string, unknown>;
-    const inWindow = e.createdAt.getTime() >= s.startsAt.getTime() - CORRECTION_WINDOW_MS && e.createdAt.getTime() <= s.endsAt.getTime() + CORRECTION_WINDOW_MS;
     switch (e.type) {
       case "CHECK_IN":
         if (checkIn) return "That would make two check-ins.";
-        if (!inWindow) return "A check-in has to be within 2 hours of the scheduled shift.";
         checkIn = e.createdAt;
         break;
       case "CHECK_OUT":
@@ -476,7 +474,6 @@ export function timelineProblem(events: FieldEvent[], s: Pick<ShiftFacts, "start
         if (checkOut) return "That would make two check-outs.";
         if (paused) return "The break would still be open at check-out.";
         if (out.size) return `Packet ${[...out].join(", ")} would still be out at check-out.`;
-        if (!inWindow) return "A check-out has to be within 2 hours of the scheduled shift.";
         checkOut = e.createdAt;
         break;
       case "PAUSE_START":
@@ -497,6 +494,7 @@ export function timelineProblem(events: FieldEvent[], s: Pick<ShiftFacts, "start
         if (e.type !== "SIGNATURE_SUBMITTED" && s.workType !== "CANVASS") return "Doors and contacts are for canvass shifts.";
         break;
       case "PACKET_PICKUP":
+        if (!checkIn || checkOut) return "A packet can only go out while on shift.";
         if (typeof p.packetId === "string") out.add(p.packetId);
         break;
       case "PACKET_RETURN": {
@@ -517,6 +515,17 @@ export function timelineProblem(events: FieldEvent[], s: Pick<ShiftFacts, "start
  * CORRECTION event naming it; an `enter_event` becomes the missing event
  * itself, marked as entered by the supervisor, at the time they state.
  */
+/**
+ * A corrected or entered time has to be near the scheduled shift. Only the
+ * time being set is checked: a worker's own late check-out, recorded as it
+ * happened, never blocks correcting something else on the shift.
+ */
+function windowProblem(at: Date, s: Pick<ShiftFacts, "startsAt" | "endsAt">): string | null {
+  const t = at.getTime();
+  if (t < s.startsAt.getTime() - CORRECTION_WINDOW_MS || t > s.endsAt.getTime() + CORRECTION_WINDOW_MS) return "That time is more than 2 hours outside the scheduled shift.";
+  return null;
+}
+
 export function correctionAction(s: ShiftFacts, a: CorrectionAction, signedBy: string, now: Date): CorrectionOutcome {
   if (s.status === "CANCELLED") return noC("This shift was cancelled.");
   const reason = a.reason.trim();
@@ -535,6 +544,8 @@ export function correctionAction(s: ShiftFacts, a: CorrectionAction, signedBy: s
     for (const k of Object.keys(fields)) if (!allowed.includes(k)) return noC(`A ${target.type.toLowerCase().replace(/_/g, " ")} entry has no ${k} to correct.`);
     if (a.at && !allowed.includes("at")) return noC("That entry's time can't be changed.");
     if (a.at && a.at.getTime() > now.getTime()) return noC("That time is in the future.");
+    const outside = a.at && windowProblem(a.at, s);
+    if (outside) return noC(outside);
     if (!a.at && !Object.keys(fields).length) return noC("Change the time or a value.");
     const current = base.find((e) => e.id === a.eventId);
     if (!current) return noC("That entry was rejected and can't be corrected.");
@@ -547,6 +558,8 @@ export function correctionAction(s: ShiftFacts, a: CorrectionAction, signedBy: s
   }
   if (!(ENTERABLE as readonly string[]).includes(a.type)) return noC("That kind of entry can't be entered.");
   if (a.at.getTime() > now.getTime()) return noC("That time is in the future.");
+  const outside = windowProblem(a.at, s);
+  if (outside) return noC(outside);
   const payload: Record<string, unknown> = { enteredBy: signedBy, reason };
   if (COUNTED.has(a.type)) payload.count = a.count;
   if (a.type === "PACKET_RETURN") {

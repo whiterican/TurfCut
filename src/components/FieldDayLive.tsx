@@ -18,7 +18,7 @@ export interface LiveShift {
   staging: { lat: number; lng: number } | null;
   /** The scheduled end had passed when the page was made. */
   ended: boolean;
-  events: Array<{ type: string; payload: unknown; clientId: string | null; createdAt: string }>;
+  events: Array<{ id: string; type: string; payload: unknown; clientId: string | null; createdAt: string }>;
   validations: Array<{ workEventId: string | null; status: "PENDING" | "APPROVED" | "REJECTED" | "FLAGGED"; reason: string | null; createdAt: string }>;
 }
 
@@ -103,7 +103,7 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
       startsAt: new Date(shift.startsAt),
       endsAt: new Date(shift.endsAt),
       workType: shift.workType,
-      events: shift.events.map((e) => ({ type: e.type, payload: e.payload, actorId: null, createdAt: new Date(e.createdAt) })),
+      events: shift.events.map((e) => ({ id: e.id, type: e.type, payload: e.payload, actorId: null, createdAt: new Date(e.createdAt) })),
       validations: shift.validations.map((v) => ({ ...v, createdAt: new Date(v.createdAt) })),
     }),
     [shift]

@@ -190,7 +190,7 @@ export default async function PayoutsPage() {
                     </span>
                     <span className="shrink-0 text-sm font-semibold text-fg">{money(l.line.amountCents)}</span>
                   </div>
-                  <HoldLine action={hold} payoutId={l.line.id} />
+                  {l.line.amountCents > 0 && <HoldLine action={hold} payoutId={l.line.id} />}
                 </li>
               ))}
             </ul>

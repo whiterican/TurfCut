@@ -127,16 +127,19 @@ UPDATE "public"."Payout" p SET "orgId" = j."orgId"
  WHERE e."id" = p."engagementId";
 UPDATE "public"."Payout" p SET
   "shiftId" = s."id",
-  "validationId" = (SELECT v."id" FROM "public"."Validation" v
-                     WHERE v."shiftId" = s."id" AND v."workEventId" IS NULL AND v."status" = 'APPROVED'
-                     ORDER BY v."createdAt" DESC LIMIT 1)
+  -- The shift's latest review, when that review approved it.
+  "validationId" = (SELECT v."id" FROM (SELECT * FROM "public"."Validation" v0
+                     WHERE v0."shiftId" = s."id" AND v0."workEventId" IS NULL
+                     ORDER BY v0."createdAt" DESC LIMIT 1) v WHERE v."status" = 'APPROVED')
   FROM "public"."Shift" s
  WHERE s."engagementId" = p."engagementId"
    AND (SELECT COUNT(*) FROM "public"."Shift" s2 WHERE s2."engagementId" = p."engagementId") = 1;
 UPDATE "public"."Payout" SET "basis" = '{"legacy": true, "formula": "Recorded before in-app payouts; no saved calculation"}'::jsonb;
 
 -- The old status, as history: APPROVED → approved; PAID → approved + paid;
--- DISPUTED → approved + held. PENDING needs no event.
+-- DISPUTED → approved + held. PENDING needs no event. Unpaid pre-M5 lines
+-- have no saved calculation, so they're also held: finance checks the
+-- amount and releases them before the first pay run can include them.
 INSERT INTO "public"."PayoutEvent" ("id", "payoutId", "type", "reason", "createdAt")
 SELECT gen_random_uuid(), p."id", 'APPROVED', 'Status before in-app payouts', p."createdAt"
   FROM "public"."Payout" p WHERE p."status" IN ('APPROVED', 'PAID', 'DISPUTED');
@@ -144,8 +147,11 @@ INSERT INTO "public"."PayoutEvent" ("id", "payoutId", "type", "reason", "provide
 SELECT gen_random_uuid(), p."id", 'PAID', 'Status before in-app payouts', p."stripeTransferId", p."createdAt" + interval '1 millisecond'
   FROM "public"."Payout" p WHERE p."status" = 'PAID';
 INSERT INTO "public"."PayoutEvent" ("id", "payoutId", "type", "reason", "createdAt")
-SELECT gen_random_uuid(), p."id", 'HELD', 'Disputed before in-app payouts', p."createdAt" + interval '1 millisecond'
-  FROM "public"."Payout" p WHERE p."status" = 'DISPUTED';
+SELECT gen_random_uuid(), p."id", 'HELD',
+       CASE WHEN p."status" = 'DISPUTED' THEN 'Disputed before in-app payouts'
+            ELSE 'Recorded before in-app payouts: check the amount, then release it' END,
+       p."createdAt" + interval '1 millisecond'
+  FROM "public"."Payout" p WHERE p."status" IN ('APPROVED', 'DISPUTED', 'PENDING');
 
 ALTER TABLE "public"."Payout" ALTER COLUMN "orgId" SET NOT NULL;
 
@@ -249,6 +255,9 @@ ALTER TABLE "public"."Payout" ADD CONSTRAINT "Payout_kind_shape" CHECK (
 ALTER TABLE "public"."PayoutTransfer" ADD CONSTRAINT "PayoutTransfer_amount_positive" CHECK ("amountCents" > 0);
 ALTER TABLE "public"."PayDispute" ADD CONSTRAINT "PayDispute_reason_length" CHECK (char_length("reason") BETWEEN 1 AND 1000);
 ALTER TABLE "public"."PayDisputeResolution" ADD CONSTRAINT "PayDisputeResolution_response_length" CHECK (char_length("response") BETWEEN 1 AND 1000);
+ALTER TABLE "public"."PayDisputeResolution" ADD CONSTRAINT "PayDisputeResolution_adjustment_shape" CHECK (("outcome" = 'ADJUSTED') = ("adjustmentId" IS NOT NULL));
+-- One shift pay line per supervisor approval (a double-click can't pay twice).
+CREATE UNIQUE INDEX "Payout_shift_validation_key" ON "public"."Payout"("validationId") WHERE "kind" = 'SHIFT';
 
 -- Append-only, enforced by the database (the function is M4's).
 CREATE TRIGGER "Payout_append_only" BEFORE UPDATE OR DELETE ON "public"."Payout"
@@ -263,6 +272,19 @@ CREATE TRIGGER "PayDisputeResolution_append_only" BEFORE UPDATE OR DELETE ON "pu
   FOR EACH ROW EXECUTE FUNCTION "turfcut_private"."append_only"();
 CREATE TRIGGER "ProviderEvent_append_only" BEFORE UPDATE OR DELETE ON "public"."ProviderEvent"
   FOR EACH ROW EXECUTE FUNCTION "turfcut_private"."append_only"();
+
+CREATE TRIGGER "Payout_no_truncate" BEFORE TRUNCATE ON "public"."Payout"
+  FOR EACH STATEMENT EXECUTE FUNCTION "turfcut_private"."append_only"();
+CREATE TRIGGER "PayoutEvent_no_truncate" BEFORE TRUNCATE ON "public"."PayoutEvent"
+  FOR EACH STATEMENT EXECUTE FUNCTION "turfcut_private"."append_only"();
+CREATE TRIGGER "PayoutTransfer_no_truncate" BEFORE TRUNCATE ON "public"."PayoutTransfer"
+  FOR EACH STATEMENT EXECUTE FUNCTION "turfcut_private"."append_only"();
+CREATE TRIGGER "PayDispute_no_truncate" BEFORE TRUNCATE ON "public"."PayDispute"
+  FOR EACH STATEMENT EXECUTE FUNCTION "turfcut_private"."append_only"();
+CREATE TRIGGER "PayDisputeResolution_no_truncate" BEFORE TRUNCATE ON "public"."PayDisputeResolution"
+  FOR EACH STATEMENT EXECUTE FUNCTION "turfcut_private"."append_only"();
+CREATE TRIGGER "ProviderEvent_no_truncate" BEFORE TRUNCATE ON "public"."ProviderEvent"
+  FOR EACH STATEMENT EXECUTE FUNCTION "turfcut_private"."append_only"();
 
 -- RLS: deny-by-default; no policies, no grants. Pay records are read and
 -- written only by the server.

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   computeShiftPay,
+  statusLabel,
   disputeProblem,
   lineActionProblem,
   lineState,
@@ -70,6 +71,27 @@ describe("computeShiftPay", () => {
     expect(r.ok && r.basis.formula).toBe("1 verified contact × $1.00");
   });
 
+  it("refuses fractional counts and implausible amounts", () => {
+    expect(computeShiftPay({ method: "PER_UNIT", rateCents: 100, workType: "CANVASS", work: work({ contacts: 1.5 }), jurisdictionVersion: 1 }).ok).toBe(false);
+    expect(computeShiftPay({ method: "SHIFT_RATE", rateCents: 2_000_000, workType: "CANVASS", work: work(), jurisdictionVersion: 1 }).ok).toBe(false);
+  });
+
+  it("a recount replaces the earlier batch count", () => {
+    const at = (m: number) => new Date(Date.UTC(2026, 8, 1, 14, m));
+    const w = verifiedWork(
+      [
+        { id: "1", type: "CHECK_IN", payload: {}, createdAt: at(0) },
+        { id: "2", type: "CHECK_OUT", payload: {}, createdAt: at(60) },
+        { id: "3", type: "BATCH_COUNT", payload: { reviewed: 30, accepted: 25, rejected: 5 }, createdAt: at(70) },
+        { id: "4", type: "BATCH_COUNT", payload: { reviewed: 30, accepted: 20, rejected: 10 }, createdAt: at(80) },
+        { id: "5", type: "BATCH_COUNT", payload: { note: "malformed" }, createdAt: at(90) },
+      ],
+      []
+    );
+    expect(w).toMatchObject({ accepted: 20, reviewed: 30, batchCounted: true });
+    expect(verifiedWork([{ id: "5", type: "BATCH_COUNT", payload: {}, createdAt: at(90) }], []).batchCounted).toBe(false);
+  });
+
   it("refuses without a rate or a completed shift", () => {
     expect(computeShiftPay({ method: "HOURLY", rateCents: null, workType: "PETITION", work: work(), jurisdictionVersion: 1 }).ok).toBe(false);
     expect(computeShiftPay({ method: "HOURLY", rateCents: 2500, workType: "PETITION", work: work({ completed: false }), jurisdictionVersion: 1 }).ok).toBe(false);
@@ -123,8 +145,30 @@ describe("lineState", () => {
   it("a failed or reversed transfer makes it payable again, with a note", () => {
     const failed = [ev("APPROVED", 1), ev("TRANSFER_STARTED", 2), ev("TRANSFER_FAILED", 3, { reason: "balance too low" })];
     expect(lineState(line, failed, false)).toMatchObject({ status: "APPROVED", payable: true, note: "Payment failed: balance too low" });
-    const reversed = [ev("APPROVED", 1), ev("TRANSFER_STARTED", 2), ev("PAID", 3), ev("REVERSED", 4)];
-    expect(lineState(line, reversed, false)).toMatchObject({ status: "APPROVED", payable: true });
+  });
+  it("a reversal holds the line until someone releases it", () => {
+    const reversed = [ev("APPROVED", 1), ev("TRANSFER_STARTED", 2, { transferId: "t1" }), ev("PAID", 3, { transferId: "t1" }), ev("REVERSED", 4, { transferId: "t1", reason: "wrong account" })];
+    expect(lineState(line, reversed, false)).toMatchObject({ status: "HELD", payable: false, heldReason: "Payment reversed: wrong account" });
+    expect(lineState(line, [...reversed, ev("RELEASED", 5)], false)).toMatchObject({ status: "APPROVED", payable: true });
+  });
+  it("ignores a late answer about an earlier transfer", () => {
+    const events = [
+      ev("APPROVED", 1),
+      ev("TRANSFER_STARTED", 2, { transferId: "t1" }),
+      ev("TRANSFER_FAILED", 3, { transferId: "t1" }),
+      ev("TRANSFER_STARTED", 4, { transferId: "t2" }),
+      ev("PAID", 5, { transferId: "t2", providerRef: "tr_2" }),
+      ev("REVERSED", 6, { transferId: "t1" }),
+      ev("TRANSFER_FAILED", 7, { transferId: "t1" }),
+    ];
+    expect(lineState(line, events, false)).toMatchObject({ status: "PAID", paidRef: "tr_2" });
+    // …and a stale "paid" for t1 doesn't mark a t2 in flight as paid.
+    const inFlight = [ev("APPROVED", 1), ev("TRANSFER_STARTED", 2, { transferId: "t1" }), ev("TRANSFER_FAILED", 3, { transferId: "t1" }), ev("TRANSFER_STARTED", 4, { transferId: "t2" }), ev("PAID", 5, { transferId: "t1" })];
+    expect(lineState(line, inFlight, false)).toMatchObject({ status: "PROCESSING", transferId: "t2" });
+  });
+  it("replays same-millisecond events in the order they can happen", () => {
+    expect(lineState(line, [ev("TRANSFER_FAILED", 2, { transferId: "t" }), ev("TRANSFER_STARTED", 2, { transferId: "t" }), ev("APPROVED", 1)], false).status).toBe("APPROVED");
+    expect(lineState(line, [ev("RELEASED", 2), ev("HELD", 2, { reason: "x" })], false).status).toBe("AWAITING_APPROVAL");
   });
   it("holds and disputes stop payment", () => {
     expect(lineState(line, [ev("APPROVED", 1), ev("HELD", 2, { reason: "Check hours" })], false)).toMatchObject({ status: "HELD", heldReason: "Check hours", payable: false });
@@ -162,6 +206,13 @@ describe("finance actions and re-review", () => {
       { amountCents: 999, feeCents: 150, state: st([]) },
     ];
     expect(payableTotal(lines)).toEqual({ amountCents: 8250, feeCents: 1238, count: 2 });
+  });
+});
+
+describe("labels", () => {
+  it("names deductions as deductions", () => {
+    expect(statusLabel("APPROVED", -500).label).toBe("Deducted from your next payment");
+    expect(statusLabel("APPROVED", 500).label).toBe("Approved · on the way");
   });
 });
 

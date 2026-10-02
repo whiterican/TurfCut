@@ -66,6 +66,9 @@ export interface VerifiedWork {
   batchCounted: boolean;
 }
 
+/** No single shift pays more than this; larger amounts point to a data error. */
+export const MAX_LINE_CENTS = 1_000_000;
+
 export type PayResult = { ok: true; amountCents: number; feeCents: number; basis: PayBasis } | { ok: false; reason: string };
 
 export function computeShiftPay(input: {
@@ -107,6 +110,8 @@ export function computeShiftPay(input: {
     unit = "contact";
     formula = `${work.contacts} verified ${work.contacts === 1 ? "contact" : "contacts"} × ${money(rate)}`;
   }
+  if ((unit !== "hour" && !Number.isSafeInteger(quantity)) || !Number.isSafeInteger(amountCents)) return { ok: false, reason: "The verified counts aren't whole numbers. Correct the count first." };
+  if (amountCents > MAX_LINE_CENTS) return { ok: false, reason: `Pay over ${money(MAX_LINE_CENTS)} for one shift needs a check: correct the counts or the rate.` };
   return {
     ok: true,
     amountCents,
@@ -176,13 +181,36 @@ export interface LineState {
   payable: boolean;
 }
 
+/** Same-millisecond events replay in the order they can happen. */
+const EVENT_ORDER: Record<PayEventType, number> = {
+  APPROVED: 0,
+  HELD: 1,
+  RELEASED: 2,
+  TRANSFER_STARTED: 3,
+  PAID: 4,
+  TRANSFER_FAILED: 4,
+  REVERSED: 5,
+  VOIDED: 6,
+};
+
+export function sortEvents<T extends { type: PayEventType; createdAt: Date }>(events: T[]): T[] {
+  return [...events].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime() || EVENT_ORDER[a.type] - EVENT_ORDER[b.type]);
+}
+
+/**
+ * Replays a line's events. A transfer's outcome (paid, failed, reversed)
+ * only counts for the transfer it names: a late answer about an earlier
+ * transfer never reopens or re-pays a line. A reversal puts the line on
+ * hold — someone decides whether to pay it again.
+ */
 export function lineState(line: { amountCents: number }, events: PayEventFact[], openDispute: boolean): LineState {
   let voided = false;
   let approvedAt: Date | null = null;
   let held: string | null = null;
   let transfer = null as { id: string | null; state: "processing" | "paid"; at: Date; ref: string | null } | null;
   let note: string | null = null;
-  for (const e of [...events].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())) {
+  const current = (e: PayEventFact) => transfer !== null && (e.transferId === null || transfer.id === null || e.transferId === transfer.id);
+  for (const e of sortEvents(events)) {
     switch (e.type) {
       case "VOIDED":
         voided = true;
@@ -197,19 +225,26 @@ export function lineState(line: { amountCents: number }, events: PayEventFact[],
         held = null;
         break;
       case "TRANSFER_STARTED":
-        transfer = { id: e.transferId, state: "processing", at: e.createdAt, ref: null };
+        // A line is in one transfer at a time; a new one replaces a failed one.
+        if (transfer?.state !== "paid") transfer = { id: e.transferId, state: "processing", at: e.createdAt, ref: null };
         break;
       case "PAID":
-        transfer = { id: e.transferId ?? transfer?.id ?? null, state: "paid", at: e.createdAt, ref: e.providerRef };
-        note = null;
+        if (current(e)) {
+          transfer = { id: transfer!.id ?? e.transferId, state: "paid", at: e.createdAt, ref: e.providerRef };
+          note = null;
+        }
         break;
       case "TRANSFER_FAILED":
-        transfer = null;
-        note = `Payment failed${e.reason ? `: ${e.reason}` : ""}`;
+        if (current(e) && transfer!.state === "processing") {
+          transfer = null;
+          note = `Payment failed${e.reason ? `: ${e.reason}` : ""}`;
+        }
         break;
       case "REVERSED":
-        transfer = null;
-        note = `Payment reversed${e.reason ? `: ${e.reason}` : ""}`;
+        if (current(e) && transfer!.state === "paid") {
+          transfer = null;
+          held = `Payment reversed${e.reason ? `: ${e.reason}` : ""}`;
+        }
         break;
     }
   }
@@ -235,7 +270,9 @@ export function lineState(line: { amountCents: number }, events: PayEventFact[],
   };
 }
 
-export function statusLabel(s: PayStatus): { label: string; badge: string } {
+export function statusLabel(s: PayStatus, amountCents = 1): { label: string; badge: string } {
+  if (amountCents < 0 && (s === "APPROVED" || s === "PROCESSING")) return { label: "Deducted from your next payment", badge: "badge-neutral" };
+  if (amountCents < 0 && s === "PAID") return { label: "Deducted", badge: "badge-neutral" };
   switch (s) {
     case "AWAITING_APPROVAL":
       return { label: "Awaiting payment approval", badge: "badge-butter" };
@@ -278,7 +315,10 @@ export function reReviewProblem(lines: LineState[]): string | null {
   return locked ? "Pay for this shift is already approved for payment. Changes now go through a pay adjustment." : null;
 }
 
-/** Net amount of payable lines (adjustments can be negative). */
+/**
+ * Net amount of payable lines. Deductions (negative adjustments) are netted
+ * against the same worker's positive lines; a pay run needs a net above zero.
+ */
 export function payableTotal(lines: Array<{ amountCents: number; feeCents: number; state: LineState }>): { amountCents: number; feeCents: number; count: number } {
   const ready = lines.filter((l) => l.state.payable);
   return {

@@ -247,7 +247,10 @@ async function main() {
       basis: pay.basis as unknown as Prisma.InputJsonObject,
     },
   });
-  await prisma.payoutEvent.createMany({
+  // Only for the line written just now: a pre-M5 line keeps its own history.
+  const line = await prisma.payout.findUnique({ where: { id: "00000000-0000-0000-0000-000000000161" }, select: { basis: true } });
+  const legacy = !!line?.basis && typeof line.basis === "object" && "legacy" in (line.basis as object);
+  if (!legacy) await prisma.payoutEvent.createMany({
     skipDuplicates: true,
     data: { id: "00000000-0000-0000-0000-000000000162", payoutId: "00000000-0000-0000-0000-000000000161", type: "APPROVED", reason: "Seed: approved for payment" },
   });

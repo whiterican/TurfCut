@@ -132,8 +132,10 @@ INSERT INTO "public"."Payout"
    '{"method":"HOURLY","rateCents":2500,"quantity":3.5,"unit":"hour","activeMs":12600000,"formula":"3h 30m verified × $25.00/hr","jurisdictionVersion":1,"effectiveHourlyCents":2500}',
    NOW())
 ON CONFLICT ("id") DO NOTHING;
-INSERT INTO "public"."PayoutEvent" ("id","payoutId","type","reason","createdAt") VALUES
-  ('00000000-0000-0000-0000-000000000162','00000000-0000-0000-0000-000000000161','APPROVED','Seed: approved for payment',NOW())
+-- (Only for the line this seed wrote: a pre-M5 line keeps its own history.)
+INSERT INTO "public"."PayoutEvent" ("id","payoutId","type","reason","createdAt")
+SELECT '00000000-0000-0000-0000-000000000162','00000000-0000-0000-0000-000000000161','APPROVED','Seed: approved for payment',NOW()
+ WHERE EXISTS (SELECT 1 FROM "public"."Payout" WHERE "id" = '00000000-0000-0000-0000-000000000161' AND NOT ("basis" ? 'legacy'))
 ON CONFLICT ("id") DO NOTHING;
 
 -- --- Audit: seed completed ---

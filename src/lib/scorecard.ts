@@ -18,7 +18,8 @@
  * Event conventions:
  * - DOOR_KNOCK / CONTACT / SIGNATURE_SUBMITTED: payload.count (default 1).
  * - BATCH_COUNT: supervisor reconciliation — payload.reviewed, .accepted,
- *   .rejected (reviewed defaults to accepted + rejected).
+ *   .rejected (reviewed defaults to accepted + rejected). A recount
+ *   supersedes: the latest valid count is the shift's count.
  * - CORRECTION: payload.supersedesEventId + corrected fields, and must carry
  *   payload.signedBy and payload.reason. Unsigned or unexplained corrections
  *   are ignored (and counted). The newest valid correction wins; the original
@@ -214,6 +215,8 @@ interface ShiftFacts {
   started: boolean;
   /** Checked in and out (out after in). */
   completed: boolean;
+  /** A valid supervisor batch count exists. */
+  batchCounted: boolean;
   verification: Verification;
   activeMs: number;
   doors: number;
@@ -233,6 +236,7 @@ function shiftFacts(shift: ScorecardShift): ShiftFacts {
     shift,
     started: false,
     completed: false,
+    batchCounted: false,
     verification: "incomplete",
     activeMs: 0,
     doors: 0,
@@ -282,9 +286,11 @@ function shiftFacts(shift: ScorecardShift): ShiftFacts {
         const rejected = num(p.rejected);
         const reviewed = num(p.reviewed) ?? (accepted !== null && rejected !== null ? accepted + rejected : null);
         if (reviewed !== null && accepted !== null) {
-          f.reviewed += reviewed;
-          f.accepted += accepted;
-          f.rejected += rejected ?? reviewed - accepted;
+          // Events are in time order, so the last valid count wins.
+          f.reviewed = reviewed;
+          f.accepted = accepted;
+          f.rejected = rejected ?? reviewed - accepted;
+          f.batchCounted = true;
         }
         break;
       }
@@ -321,7 +327,6 @@ export function verifiedWork(
   validations: ScorecardValidation[]
 ): { completed: boolean; activeMs: number; submitted: number; reviewed: number; accepted: number; doors: number; contacts: number; batchCounted: boolean } {
   const f = shiftFacts({ events, validations } as ScorecardShift);
-  const batchCounted = effectiveEvents(events, validations).events.some((e) => e.type === "BATCH_COUNT");
   return {
     completed: f.completed,
     activeMs: f.activeMs,
@@ -330,7 +335,7 @@ export function verifiedWork(
     accepted: f.accepted,
     doors: f.doors,
     contacts: f.contacts,
-    batchCounted,
+    batchCounted: f.batchCounted,
   };
 }
 

@@ -868,6 +868,9 @@ ALTER TABLE "public"."Payout" ADD CONSTRAINT "Payout_kind_shape" CHECK (
 ALTER TABLE "public"."PayoutTransfer" ADD CONSTRAINT "PayoutTransfer_amount_positive" CHECK ("amountCents" > 0);
 ALTER TABLE "public"."PayDispute" ADD CONSTRAINT "PayDispute_reason_length" CHECK (char_length("reason") BETWEEN 1 AND 1000);
 ALTER TABLE "public"."PayDisputeResolution" ADD CONSTRAINT "PayDisputeResolution_response_length" CHECK (char_length("response") BETWEEN 1 AND 1000);
+ALTER TABLE "public"."PayDisputeResolution" ADD CONSTRAINT "PayDisputeResolution_adjustment_shape" CHECK (("outcome" = 'ADJUSTED') = ("adjustmentId" IS NOT NULL));
+-- One shift pay line per supervisor approval (a double-click can't pay twice).
+CREATE UNIQUE INDEX "Payout_shift_validation_key" ON "public"."Payout"("validationId") WHERE "kind" = 'SHIFT';
 
 -- Append-only, enforced by the database (the function is M4's).
 CREATE TRIGGER "Payout_append_only" BEFORE UPDATE OR DELETE ON "public"."Payout"
@@ -882,6 +885,19 @@ CREATE TRIGGER "PayDisputeResolution_append_only" BEFORE UPDATE OR DELETE ON "pu
   FOR EACH ROW EXECUTE FUNCTION "turfcut_private"."append_only"();
 CREATE TRIGGER "ProviderEvent_append_only" BEFORE UPDATE OR DELETE ON "public"."ProviderEvent"
   FOR EACH ROW EXECUTE FUNCTION "turfcut_private"."append_only"();
+
+CREATE TRIGGER "Payout_no_truncate" BEFORE TRUNCATE ON "public"."Payout"
+  FOR EACH STATEMENT EXECUTE FUNCTION "turfcut_private"."append_only"();
+CREATE TRIGGER "PayoutEvent_no_truncate" BEFORE TRUNCATE ON "public"."PayoutEvent"
+  FOR EACH STATEMENT EXECUTE FUNCTION "turfcut_private"."append_only"();
+CREATE TRIGGER "PayoutTransfer_no_truncate" BEFORE TRUNCATE ON "public"."PayoutTransfer"
+  FOR EACH STATEMENT EXECUTE FUNCTION "turfcut_private"."append_only"();
+CREATE TRIGGER "PayDispute_no_truncate" BEFORE TRUNCATE ON "public"."PayDispute"
+  FOR EACH STATEMENT EXECUTE FUNCTION "turfcut_private"."append_only"();
+CREATE TRIGGER "PayDisputeResolution_no_truncate" BEFORE TRUNCATE ON "public"."PayDisputeResolution"
+  FOR EACH STATEMENT EXECUTE FUNCTION "turfcut_private"."append_only"();
+CREATE TRIGGER "ProviderEvent_no_truncate" BEFORE TRUNCATE ON "public"."ProviderEvent"
+  FOR EACH STATEMENT EXECUTE FUNCTION "turfcut_private"."append_only"();
 
 -- RLS: deny-by-default; no policies, no grants. Pay records are read and
 -- written only by the server.
@@ -1027,8 +1043,10 @@ INSERT INTO "public"."Payout"
    '{"method":"HOURLY","rateCents":2500,"quantity":3.5,"unit":"hour","activeMs":12600000,"formula":"3h 30m verified × $25.00/hr","jurisdictionVersion":1,"effectiveHourlyCents":2500}',
    NOW())
 ON CONFLICT ("id") DO NOTHING;
-INSERT INTO "public"."PayoutEvent" ("id","payoutId","type","reason","createdAt") VALUES
-  ('00000000-0000-0000-0000-000000000162','00000000-0000-0000-0000-000000000161','APPROVED','Seed: approved for payment',NOW())
+-- (Only for the line this seed wrote: a pre-M5 line keeps its own history.)
+INSERT INTO "public"."PayoutEvent" ("id","payoutId","type","reason","createdAt")
+SELECT '00000000-0000-0000-0000-000000000162','00000000-0000-0000-0000-000000000161','APPROVED','Seed: approved for payment',NOW()
+ WHERE EXISTS (SELECT 1 FROM "public"."Payout" WHERE "id" = '00000000-0000-0000-0000-000000000161' AND NOT ("basis" ? 'legacy'))
 ON CONFLICT ("id") DO NOTHING;
 
 -- --- Audit: seed completed ---

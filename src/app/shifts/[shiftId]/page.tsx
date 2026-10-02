@@ -10,7 +10,7 @@ import { TurfMap } from "@/components/TurfMap";
 import { LocalTime } from "@/components/LocalTime";
 import { LiveShiftStats } from "@/components/LiveShiftStats";
 import { ActionButton } from "@/components/ActionButton";
-import { CheckInButton, OnShiftActions } from "@/components/FieldDayActions";
+import { FieldDayLive } from "@/components/FieldDayLive";
 import { Row } from "@/components/Row";
 import { PinLegend, TurfWorkbench } from "@/components/TurfWorkbench";
 import { toMapPins } from "@/lib/turf-pins";
@@ -125,38 +125,45 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
   const job = s.engagement.job;
   // The worker's own pay only — never shown to anyone else here.
   const estimate = earningsEstimate(job.compensationMethod, job.payRateCents, worked.ms, petition ? st.signatures : st.contacts);
-  const workerActions = (
-    <>
-      {isWorker && !st.cancelled && !st.checkedOutAt && (
-        <section className="card space-y-4">
-          {!st.checkedInAt ? (
-            <>
-              <CheckInButton shiftId={s.id} hasStaging={!!staging} />
-              {/* Late cancellations hurt campaigns: a real button, with the consequence up front. */}
-              <details className="group space-y-3">
-                <summary className="btn-secondary w-full cursor-pointer list-none">
-                  <span className="group-open:hidden">Can&apos;t make it</span>
-                  <span className="hidden group-open:inline">Keep my shift</span>
-                </summary>
-                <div className="space-y-3">
-                  <p className="text-sm font-semibold text-fg">Cancel this shift</p>
-                  <ActionButton action={workerStep} fields={{ shiftId: s.id, kind: "cancel" }} label="Cancel shift" variant="btn-secondary">
-                    <label className="min-w-48 flex-1 space-y-1.5">
-                      <span className="label">Reason</span>
-                      <input name="reason" className="field" required maxLength={200} />
-                    </label>
-                  </ActionButton>
-                </div>
-              </details>
-              <p className="text-hint">Cancelling inside the job&apos;s notice window counts as a no-show on your scorecard.</p>
-            </>
-          ) : (
-            <OnShiftActions shiftId={s.id} workType={f.workType} paused={st.paused} packetsOut={st.packetsOut} />
-          )}
-        </section>
-      )}
-    </>
+  // Every field action goes through the phone's queue (offline field day):
+  // it works with no signal and syncs later.
+  const workerActions = isWorker && !st.cancelled && (!st.checkedOutAt || s.endsAt.getTime() > now.getTime() - 24 * 3_600_000) && (
+    <FieldDayLive
+      shift={{
+        shiftId: s.id,
+        userId: session.userId,
+        workType: f.workType,
+        status: f.status,
+        startsAt: s.startsAt.toISOString(),
+        endsAt: s.endsAt.toISOString(),
+        staging,
+        events: f.events.map((e) => ({ type: e.type, payload: e.payload, actorId: e.actorId, createdAt: e.createdAt.toISOString() })),
+        validations: f.validations.map((v) => ({ ...v, createdAt: v.createdAt.toISOString() })),
+      }}
+      beforeCheckIn={
+        <>
+          {/* Late cancellations hurt campaigns: a real button, with the consequence up front. Needs a connection. */}
+          <details className="group space-y-3">
+            <summary className="btn-secondary w-full cursor-pointer list-none">
+              <span className="group-open:hidden">Can&apos;t make it</span>
+              <span className="hidden group-open:inline">Keep my shift</span>
+            </summary>
+            <div className="space-y-3">
+              <p className="text-sm font-semibold text-fg">Cancel this shift</p>
+              <ActionButton action={workerStep} fields={{ shiftId: s.id, kind: "cancel" }} label="Cancel shift" variant="btn-secondary">
+                <label className="min-w-48 flex-1 space-y-1.5">
+                  <span className="label">Reason</span>
+                  <input name="reason" className="field" required maxLength={200} />
+                </label>
+              </ActionButton>
+            </div>
+          </details>
+          <p className="text-hint">Cancelling inside the job&apos;s notice window counts as a no-show on your scorecard.</p>
+        </>
+      }
+    />
   );
+
 
   return (
     <main className="page max-w-2xl">
@@ -337,6 +344,11 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
                 <span className="text-xs text-subtle">
                   {e.actorId === null ? "" : e.actorId === s.engagement.worker.profileId ? "Worker · " : "Organization · "}
                   <LocalTime iso={e.createdAt.toISOString()} mode="time" />
+                  {e.receivedAt && (
+                    <>
+                      {" "}· recorded offline, synced <LocalTime iso={e.receivedAt.toISOString()} mode="time" />
+                    </>
+                  )}
                 </span>
               </li>
             ))}

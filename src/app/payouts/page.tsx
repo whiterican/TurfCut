@@ -157,13 +157,19 @@ export default async function PayoutsPage() {
                     ) : (
                       <LocalTime iso={d.shiftStartsAt.toISOString()} mode="date" />
                     )}
-                    {d.line ? ` · now ${money(d.line.amountCents)} (${d.line.formula})` : d.review?.status === "REJECTED" ? ` · not approved${d.review.reason ? `: ${d.review.reason}` : ""}` : ""}
+                    {d.review?.status === "REJECTED"
+                      ? ` · not approved${d.review.reason ? `: ${d.review.reason}` : ""}`
+                      : d.noPayLine
+                        ? " · no pay recorded right now (withdrawn after a recount — a supervisor approves the shift again)"
+                        : d.line
+                          ? ` · now ${money(d.line.amountCents)} (${d.line.formula})`
+                          : ""}
                   </p>
                 </div>
                 <span className="badge-coral shrink-0">Disputed</span>
               </div>
               <blockquote className="border-l-2 border-border pl-3 text-sm text-fg">{d.reason}</blockquote>
-              <ResolveDispute action={resolve} disputeId={d.id} reReviewed={!!d.review && d.review.at > d.createdAt} />
+              <ResolveDispute action={resolve} disputeId={d.id} reReviewed={!!d.review && d.review.at > d.createdAt} canAdjust={!d.noPayLine} />
             </div>
           ))}
         </section>
@@ -302,7 +308,7 @@ export default async function PayoutsPage() {
             <input type="date" name="to" className="field" required defaultValue={day(today)} />
           </label>
           <button className="btn-secondary">Download CSV</button>
-          <p className="text-hint w-full">One row per pay line recorded or paid in the period: payee, date, amount, fee, purpose, project, shift, who reviewed and approved it, and the Stripe reference.</p>
+          <p className="text-hint w-full">One row per pay line recorded or paid in the period: payee, date, amount, fee, purpose, project, shift, who reviewed and approved it, and the Stripe reference. Sum the rows marked paid_in_period = yes to total the period&apos;s payments.</p>
         </form>
       </section>
 

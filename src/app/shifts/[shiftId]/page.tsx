@@ -16,7 +16,7 @@ import { PinLegend, TurfWorkbench } from "@/components/TurfWorkbench";
 import { toMapPins } from "@/lib/turf-pins";
 import { PIN_CATEGORIES } from "@/lib/field-day";
 import { supervisorStep, workerStep } from "../actions";
-import { shiftPay } from "@/lib/pay-data";
+import { reviewFinal, shiftPay } from "@/lib/pay-data";
 import { computeShiftPay, money, statusLabel } from "@/lib/pay";
 import { verifiedWork } from "@/lib/scorecard";
 
@@ -105,7 +105,9 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
         jurisdictionVersion: job0.jurisdiction.version,
       })
     : null;
-  const payLocked = !!pay?.locked;
+  // Final once pay is approved — or, with no current pay line, if anything
+  // else on the shift makes it so (the same rule the server applies).
+  const payLocked = pay ? pay.locked : canField && (await reviewFinal(s.id));
   const turf = readTurf(s.turfArea);
   // Pins and a worker's own day turf are a location trail: the worker and
   // the field team (owners, supervisors) see them; recruiters don't.
@@ -268,7 +270,7 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
                   pay && pay.mainCents !== approvePreview.amountCents && st.closeout?.status === "APPROVED" ? (
                     <>The counts changed since approval: recorded pay is {money(pay.mainCents)}, but it now works out to <strong className="text-fg">{money(approvePreview.amountCents)}</strong> ({approvePreview.basis.formula}). Approve again to update it.</>
                   ) : !pay && st.closeout?.status === "APPROVED" ? (
-                    <>No pay is recorded for the current approval (a recount after approving withdraws it). <strong className="text-fg">Approve again</strong> to record pay of {money(approvePreview.amountCents)} — {approvePreview.basis.formula}.</>
+                    <>No pay is recorded for the current approval. <strong className="text-fg">Approve again</strong> to record pay of {money(approvePreview.amountCents)} — {approvePreview.basis.formula}.</>
                   ) : (
                     <>Approving records pay of <strong className="text-fg">{money(approvePreview.amountCents)}</strong> — {approvePreview.basis.formula}.</>
                   )

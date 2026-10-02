@@ -75,7 +75,18 @@ export function HoldLine({ action, payoutId }: { action: (p: ActionState, fd: Fo
 }
 
 /** Close a dispute: keep, adjust, or confirm a re-review. */
-export function ResolveDispute({ action, disputeId, reReviewed }: { action: (p: ActionState, fd: FormData) => Promise<ActionState>; disputeId: string; reReviewed: boolean }) {
+export function ResolveDispute({
+  action,
+  disputeId,
+  reReviewed,
+  canAdjust = true,
+}: {
+  action: (p: ActionState, fd: FormData) => Promise<ActionState>;
+  disputeId: string;
+  reReviewed: boolean;
+  /** False while the shift has no pay line to adjust. */
+  canAdjust?: boolean;
+}) {
   const [state, formAction, pending] = useActionState(action, initial);
   return (
     <form action={formAction} className="space-y-3">
@@ -85,9 +96,10 @@ export function ResolveDispute({ action, disputeId, reReviewed }: { action: (p: 
         <label className="flex items-center gap-2 text-sm">
           <input type="radio" name="outcome" value="KEPT" required className="accent-[var(--focus)]" /> Keep the pay as it is
         </label>
-        <label className="flex items-center gap-2 text-sm">
-          <input type="radio" name="outcome" value="ADJUSTED" className="accent-[var(--focus)]" /> Adjust the pay by
-          <input name="amount" className="field w-28" inputMode="decimal" placeholder="25.00" aria-label="Adjustment in dollars (negative to deduct)" />
+        <label className={`flex flex-wrap items-center gap-2 text-sm ${canAdjust ? "" : "text-subtle"}`}>
+          <input type="radio" name="outcome" value="ADJUSTED" disabled={!canAdjust} className="accent-[var(--focus)]" /> Adjust the pay by
+          <input name="amount" disabled={!canAdjust} className="field w-28" inputMode="decimal" placeholder="25.00" aria-label="Adjustment in dollars (negative to deduct)" />
+          {!canAdjust && <span className="text-xs">(once a supervisor approves the shift again)</span>}
         </label>
         <label className={`flex items-center gap-2 text-sm ${reReviewed ? "" : "text-subtle"}`}>
           <input type="radio" name="outcome" value="REREVIEWED" disabled={!reReviewed} className="accent-[var(--focus)]" /> The shift was re-reviewed

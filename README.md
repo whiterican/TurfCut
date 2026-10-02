@@ -331,7 +331,9 @@ API: `GET/POST /api/shifts`, `POST /api/shifts/:id/check-in` `{ lat?, lng? }`,
   can be held with a reason the worker sees, and released. A review can
   change only until its pay is approved; after that, changes are
   adjustments. A batch recount before then withdraws pay worked out from
-  the old counts, and the supervisor approves the shift again. Pay lines
+  the old counts, and the supervisor approves the shift again (a dispute
+  can't adjust the shift's pay until then; a finance hold carries over to
+  the new line). Pay lines
   approved before M5 come over on hold and need a fresh approval.
   Hourly pay for more time than was scheduled is flagged to the approver.
 - **Workers see their pay** on **Earnings** (from Today and Profile): gross
@@ -348,13 +350,15 @@ API: `GET/POST /api/shifts`, `POST /api/shifts/:id/check-in` `{ lat?, lng? }`,
   and carries a unique idempotency key, so retries and timeouts can't pay
   twice. Reversals put lines on hold. A partial reversal is shown on the
   Pay tab until finance records the returned amount (a settled deduction,
-  so the ledger matches what the worker kept), optionally paying it again
-  with a second person's approval. Stripe amounts that differ from what
+  so the ledger matches what the worker kept — and if the whole transfer
+  is reversed later, it comes off the re-payment with the rest), optionally
+  paying it again with a second person's approval. Stripe amounts that differ from what
   Turfcut recorded are shown for 30 days.
 - **Platform fee: 15%** of approved pay, invoiced to the organization and
   never taken from the worker; saved on each line so a change is never
   retroactive.
-- **Finance export**: CSV of pay lines recorded or paid in a period — payee, project, purpose, measure
+- **Finance export**: CSV of pay lines recorded or paid in a period (a
+  `paid_in_period` column marks the payments, so monthly exports add up) — payee, project, purpose, measure
   IDs, shift date, calculation, gross, fee, total cost, who reviewed and who
   approved, paid date and Stripe reference.
 - **Append-only, enforced by the database**: pay lines, their status log,

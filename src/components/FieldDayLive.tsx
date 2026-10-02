@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { shiftState, workerAction, type FieldEvent, type ShiftFacts } from "@/lib/field-day";
 import { stagingCheck, type QueuedAction } from "@/lib/offline-sync";
@@ -126,24 +126,36 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
   // page (from the copy saved for dead zones), and the reloaded page must
   // not try again straight away. The entries stay on screen meanwhile.
   const savedUnseen = pending.filter((p) => p.savedAt && !shown.has(p.clientId)).map((p) => p.clientId).join(",");
-  const signalReturns = useRef(0);
+  const triedKey = `turfcut-refreshed:${shift.shiftId}`;
+  // One more try each time signal returns or the app comes back to the front.
+  const [retry, setRetry] = useState(0);
   useEffect(() => {
-    const bump = () => void (signalReturns.current += 1);
-    window.addEventListener("online", bump);
-    return () => window.removeEventListener("online", bump);
-  }, []);
+    const again = () => {
+      try {
+        sessionStorage.removeItem(triedKey);
+      } catch {
+        // nothing remembered
+      }
+      setRetry((n) => n + 1);
+    };
+    const onVisible = () => document.visibilityState === "visible" && again();
+    window.addEventListener("online", again);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      window.removeEventListener("online", again);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [triedKey]);
   useEffect(() => {
     if (!savedUnseen || !online) return;
-    const key = `turfcut-refreshed:${shift.shiftId}`;
-    const attempt = `${savedUnseen}|${signalReturns.current}`;
     try {
-      if (sessionStorage.getItem(key) === attempt) return;
-      sessionStorage.setItem(key, attempt);
+      if (sessionStorage.getItem(triedKey) === savedUnseen) return; // tried for these already
+      sessionStorage.setItem(triedKey, savedUnseen);
     } catch {
-      // no session storage: refresh anyway
+      return; // can't remember the try: don't risk a reload loop (the entries stay on screen)
     }
     router.refresh();
-  }, [savedUnseen, online, router, shift.shiftId]);
+  }, [savedUnseen, online, retry, router, triedKey]);
 
   const sync = useCallback(async () => {
     if (!pendingFor(shift.userId, shift.shiftId).some((p) => !p.rejected && !p.savedAt)) return;
@@ -349,9 +361,10 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
           {st.packetsOut.length > 0 && <p className="text-hint">Return your packets before checking out.</p>}
         </div>
       )}
-      {live && waiting.length > 0 && (
+      {live && (waiting.length > 0 || savedUnseen) && (
         <p className="text-hint">
-          On this phone: {petition ? `${st.signatures} signatures` : `${st.doors} doors · ${st.contacts} contacts`} including what&apos;s waiting to sync.
+          On this phone: {petition ? `${st.signatures} signatures` : `${st.doors} doors · ${st.contacts} contacts`}
+          {waiting.length > 0 ? " including what's waiting to sync." : " including entries synced since this page loaded."}
         </p>
       )}
       {message && <p role="status" className={message.ok ? "text-success-msg" : "text-danger-msg"}>{message.text}</p>}

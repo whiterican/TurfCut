@@ -72,6 +72,9 @@ function ShiftRow({ s, orgName }: { s: EarningShift; orgName: string }) {
             </Link>
           </p>
           {main?.formula && <p className="text-xs text-muted">{main.formula}</p>}
+          {s.corrections.map((c, i) => (
+            <p key={i} className="text-xs text-muted">Corrected by your supervisor: {c.reason}</p>
+          ))}
           {!main && s.review?.status === "REJECTED" && <p className="text-xs text-muted">{s.review.reason ? `Reason: ${s.review.reason}` : "No reason given."}</p>}
           {!main && s.review?.status === "APPROVED" && <p className="text-xs text-muted">Approved before in-app pay — no pay line recorded. Ask {orgName} if you&apos;re missing pay.</p>}
         </div>

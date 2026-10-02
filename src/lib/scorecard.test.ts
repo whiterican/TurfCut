@@ -303,6 +303,12 @@ describe("spec formulas and verification rules", () => {
     expect(sh.events[1].payload).toEqual({ count: 50 });
   });
 
+  it("applies a time correction: the corrected check-out sets verified hours", () => {
+    const sh = shift([["CHECK_IN", 0], ["CHECK_OUT", 60]]);
+    sh.events.push({ id: "c1", type: "CORRECTION", payload: { supersedesEventId: sh.events[1].id, at: at(180).toISOString(), signedBy: "sup-1", reason: "forgot to check out" }, createdAt: at(300) });
+    expect(computeScorecard([sh], { now }).segments[0].activeHours).toBe(3);
+  });
+
   it("returns null metrics, not zeros, when there is no evidence", () => {
     const s = computeScorecard([], { now });
     expect(s.segments).toEqual([]);

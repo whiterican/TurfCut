@@ -26,6 +26,7 @@
  *   row is never touched.
  * - An event whose latest event-level validation is REJECTED is excluded.
  */
+import { effectiveEvents } from "@/lib/corrections";
 import {
   acceptanceRate,
   activeHours,
@@ -161,55 +162,12 @@ function obj(v: unknown): Record<string, unknown> {
   return v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
 }
 
-const nonEmpty = (v: unknown) => typeof v === "string" && v.trim().length > 0;
 
 function latest<T extends { createdAt: Date }>(xs: T[]): T | undefined {
   return xs.reduce<T | undefined>((a, b) => (!a || b.createdAt >= a.createdAt ? b : a), undefined);
 }
 
-/**
- * Drops rejected events and applies valid (signed, explained) corrections:
- * newest valid correction per target wins.
- */
-export function effectiveEvents(
-  events: ScorecardEvent[],
-  validations: ScorecardValidation[] = []
-): { events: ScorecardEvent[]; applied: number; ignored: number } {
-  const rejected = new Set<string>();
-  const byEvent = new Map<string, ScorecardValidation[]>();
-  for (const v of validations) {
-    if (!v.workEventId) continue;
-    byEvent.set(v.workEventId, [...(byEvent.get(v.workEventId) ?? []), v]);
-  }
-  for (const [id, vs] of byEvent) if (latest(vs)?.status === "REJECTED") rejected.add(id);
-
-  const sorted = [...events]
-    .filter((e) => !rejected.has(e.id))
-    .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
-  const corrections = new Map<string, Record<string, unknown>>();
-  let ignored = 0;
-  for (const e of sorted) {
-    if (e.type !== "CORRECTION") continue;
-    const p = obj(e.payload);
-    if (nonEmpty(p.supersedesEventId) && nonEmpty(p.signedBy) && nonEmpty(p.reason)) {
-      corrections.set(p.supersedesEventId as string, p);
-    } else {
-      ignored++;
-    }
-  }
-  let applied = 0;
-  const out = sorted
-    .filter((e) => e.type !== "CORRECTION")
-    .map((e) => {
-      const c = corrections.get(e.id);
-      if (!c) return e;
-      applied++;
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { supersedesEventId, signedBy, reason, ...fields } = c;
-      return { ...e, payload: { ...obj(e.payload), ...fields } };
-    });
-  return { events: out, applied, ignored };
-}
+export { effectiveEvents } from "@/lib/corrections";
 
 type Verification = "verified" | "pending" | "rejected" | "incomplete";
 

@@ -133,7 +133,7 @@ export async function planReview(tx: Tx, s: ReviewShift, status: "APPROVED" | "R
  */
 const RECOUNT_VOID = "The batch was recounted; the shift needs approving again.";
 
-export async function withdrawStalePay(tx: Tx, s: ReviewShift, actorId: string, now: Date): Promise<string[]> {
+export async function withdrawStalePay(tx: Tx, s: ReviewShift, actorId: string, now: Date, reason = RECOUNT_VOID): Promise<string[]> {
   const lines = await tx.payout.findMany({ where: { shiftId: s.id, kind: "SHIFT" }, include: { events: true } });
   const live = lines.filter((l) => lineState(l, asFacts(l.events), false).status !== "VOIDED");
   if (!live.length) return [];
@@ -149,8 +149,8 @@ export async function withdrawStalePay(tx: Tx, s: ReviewShift, actorId: string, 
   if (!stale.length) return [];
   const at = await eventAt(tx, stale.map((l) => l.id), now);
   for (const l of stale) {
-    await tx.payoutEvent.create({ data: { payoutId: l.id, type: "VOIDED", actorId, reason: RECOUNT_VOID, createdAt: at } });
-    await tx.auditEvent.create({ data: { actorId, action: "payout.voided", entityType: "Payout", entityId: l.id, metadata: { shiftId: s.id, reason: "recount" } } });
+    await tx.payoutEvent.create({ data: { payoutId: l.id, type: "VOIDED", actorId, reason, createdAt: at } });
+    await tx.auditEvent.create({ data: { actorId, action: "payout.voided", entityType: "Payout", entityId: l.id, metadata: { shiftId: s.id, reason } } });
   }
   return stale.map((l) => l.id);
 }
@@ -264,6 +264,8 @@ export interface EarningShift {
   totalCents: number;
   disputes: Array<{ id: string; reason: string; createdAt: Date; resolution: { outcome: string; response: string; createdAt: Date } | null }>;
   canDispute: boolean;
+  /** Reasons a supervisor gave for correcting or entering entries on this shift. */
+  corrections: Array<{ reason: string; createdAt: Date }>;
 }
 
 export interface EarningCampaign {
@@ -315,6 +317,8 @@ export async function loadWorkerEarnings(workerId: string): Promise<{ campaigns:
         startsAt: true,
         validations: { where: { workEventId: null }, orderBy: { createdAt: "desc" }, take: 1, select: { status: true, reason: true } },
         engagement: { select: { job: jobSel } },
+        // Supervisor corrections and entries (M7): the worker sees the reasons.
+        events: { where: { OR: [{ type: "CORRECTION" }, { payload: { path: ["enteredBy"], not: Prisma.DbNull } }] }, select: { type: true, payload: true, createdAt: true } },
       },
       orderBy: { startsAt: "desc" },
     }),
@@ -362,6 +366,10 @@ export async function loadWorkerEarnings(workerId: string): Promise<{ campaigns:
         resolution: d.resolution ? { outcome: d.resolution.outcome, response: d.resolution.response, createdAt: d.resolution.createdAt } : null,
       })),
       canDispute: disputeProblem({ reviewed: true, openDispute: open.has(s.id), disputes: ds.length, reason: "x".repeat(10) }) === null,
+      corrections: s.events
+        .map((e) => ({ reason: String(((e.payload ?? {}) as Record<string, unknown>).reason ?? ""), createdAt: e.createdAt }))
+        .filter((c) => c.reason)
+        .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime()),
     });
   }
   return { campaigns: [...campaigns.values()], totals };

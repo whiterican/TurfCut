@@ -5,8 +5,8 @@ import { requireRole } from "@/lib/auth";
 import { FIELD_ROLES, SCHEDULING_ROLES } from "@/lib/access";
 import { requireWorker } from "@/lib/worker-session";
 import { formToObject } from "@/lib/jobs";
-import { scheduleShift, supervisorShiftAction, workerShiftAction, workerTurfAction } from "@/lib/field-day-data";
-import type { SupervisorAction, TurfAction } from "@/lib/field-day";
+import { scheduleShift, supervisorCorrection, supervisorShiftAction, workerShiftAction, workerTurfAction } from "@/lib/field-day-data";
+import { ENTERABLE, type CorrectionAction, type EnterableType, type SupervisorAction, type TurfAction } from "@/lib/field-day";
 import type { ActionState } from "@/app/jobs/actions";
 
 export interface ScheduleState {
@@ -122,4 +122,32 @@ export async function turfStep(
   }
   const done = { pin: "Pin dropped.", unpin: "Pin removed.", day_turf: req.kind === "day_turf" && req.polygon === null ? "Turf cleared." : "Turf saved." }[req.kind];
   return r.ok ? { ok: true, message: done } : { ok: false, message: r.reason };
+}
+
+/** A supervisor corrects an entry or enters a missing one (M7). */
+export async function correctionStep(_prev: ActionState, fd: FormData): Promise<ActionState> {
+  const s = await requireRole(FIELD_ROLES);
+  if (!s.orgId) return { ok: false, message: "No organization on this account." };
+  const shiftId = str(fd, "shiftId");
+  const kind = str(fd, "kind");
+  const reason = str(fd, "reason");
+  const atIso = str(fd, "at");
+  const at = atIso ? new Date(atIso) : undefined;
+  if (atIso && (!at || Number.isNaN(at.getTime()))) return { ok: false, message: "Enter a valid time." };
+  const opt = (k: string) => (str(fd, k) ? int(fd, k) : undefined);
+  let action: CorrectionAction;
+  if (kind === "correct_event") {
+    action = { kind, eventId: str(fd, "eventId"), at, count: opt("count"), sheetsReturned: opt("sheetsReturned"), signatures: opt("signatures"), reason };
+  } else if (kind === "enter_event") {
+    const type = str(fd, "type");
+    if (!(ENTERABLE as readonly string[]).includes(type)) return { ok: false, message: "Pick what to enter." };
+    if (!at) return { ok: false, message: "Enter when it happened." };
+    action = { kind, type: type as EnterableType, at, count: opt("count"), packetId: str(fd, "packetId") || undefined, sheetsReturned: opt("sheetsReturned"), signatures: opt("signatures"), reason };
+  } else {
+    return { ok: false, message: "Unknown action." };
+  }
+  const r = await supervisorCorrection({ profileId: s.userId, orgId: s.orgId }, shiftId, action);
+  refresh(shiftId);
+  revalidatePath("/earnings");
+  return r.ok ? { ok: true, message: kind === "correct_event" ? "Corrected. The worker sees the reason." : "Entered. The worker sees the reason." } : { ok: false, message: r.reason };
 }

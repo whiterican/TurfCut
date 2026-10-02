@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAuth } from "@/lib/auth";
+import { db } from "@/lib/db";
 import { FIELD_ROLES, SCHEDULING_ROLES } from "@/lib/access";
 import { readSupportContacts } from "@/lib/jobs";
 import { activeTime, earningsEstimate, readTurf, scheduleFlags, shiftProgress, shiftState, turfMarks, turfMarksClosed } from "@/lib/field-day";
@@ -15,7 +16,9 @@ import { Row } from "@/components/Row";
 import { PinLegend, TurfWorkbench } from "@/components/TurfWorkbench";
 import { toMapPins } from "@/lib/turf-pins";
 import { PIN_CATEGORIES } from "@/lib/field-day";
-import { supervisorStep, workerStep } from "../actions";
+import { correctionStep, supervisorStep, workerStep } from "../actions";
+import { CorrectEntry, EnterEntry } from "@/components/CorrectionForms";
+import { CORRECTABLE, correctionsByEvent } from "@/lib/corrections";
 import { reviewFinal, shiftPay } from "@/lib/pay-data";
 import { computeShiftPay, money, statusLabel } from "@/lib/pay";
 import { verifiedWork } from "@/lib/scorecard";
@@ -113,7 +116,19 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
   // the field team (owners, supervisors) see them; recruiters don't.
   const seesMarks = isWorker || canField;
   const marks = seesMarks ? turfMarks(f.events) : { pins: [], dayTurf: null };
-  const logEvents = seesMarks ? s.events : s.events.filter((e) => e.type !== "NOTE");
+  // Corrections show on the entries they supersede, not as their own rows.
+  const corrections = correctionsByEvent(s.events);
+  const correctorNames = new Map(
+    (await db().profile.findMany({ where: { id: { in: [...new Set([...corrections.values()].map((c) => c.signedBy))] } }, select: { id: true, displayName: true, role: true } })).map((p) => [p.id, p.displayName ?? p.role.toLowerCase()])
+  );
+  const logEvents = (seesMarks ? s.events : s.events.filter((e) => e.type !== "NOTE")).filter((e) => e.type !== "CORRECTION");
+  const workerCorrections = s.events
+    .filter((e) => e.type === "CORRECTION" || (e.payload as Record<string, unknown> | null)?.enteredBy)
+    .map((e) => {
+      const p = (e.payload ?? {}) as Record<string, unknown>;
+      const who = correctorNames.get(String(p.signedBy ?? p.enteredBy)) ?? "your supervisor";
+      return { id: e.id, at: e.createdAt, text: e.type === "CORRECTION" ? `${EVENT_LABELS[s.events.find((x) => x.id === p.supersedesEventId)?.type ?? ""] ?? "An entry"} corrected by ${who}: ${p.reason}` : `${EVENT_LABELS[e.type] ?? e.type} entered by ${who}: ${p.reason}` };
+    });
   const marksOpen = isWorker && turfMarksClosed(f, new Date()) === null;
   const staging = s.stagingLat !== null && s.stagingLng !== null ? { lat: s.stagingLat, lng: s.stagingLng } : null;
   const contacts = readSupportContacts(s.engagement.job.supportContacts);
@@ -325,7 +340,8 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
               </ActionButton>
             )}
             {live && !petition && <p className="text-muted-sm">The worker is on shift. Review opens when they check out.</p>}
-            <p className="text-hint">Every entry is permanent and records who made it. A later review or recount supersedes an earlier one.</p>
+            {!payLocked && <EnterEntry action={correctionStep} shiftId={s.id} petition={petition} packetsOut={st.packetsOut} />}
+            <p className="text-hint">Every entry is permanent and records who made it. A later review, recount or correction supersedes an earlier one.</p>
           </div>
         </section>
       )}
@@ -365,6 +381,18 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
                   <span className="text-muted">{eventDetail(e.type, e.payload)}</span>
                 </span>
                 <span className="text-xs text-subtle">
+                  {(() => {
+                    const c = corrections.get(e.id);
+                    if (!c) return null;
+                    return (
+                      <span className="block text-fg">
+                        Corrected by {correctorNames.get(c.signedBy) ?? "a supervisor"}: {c.reason}
+                        {c.at && <> · now <LocalTime iso={c.at.toISOString()} mode="time" /></>}
+                        {Object.entries(c.fields).map(([k, v]) => <span key={k}> · {k} now {String(v)}</span>)}
+                      </span>
+                    );
+                  })()}
+                  {!!(e.payload as Record<string, unknown> | null)?.enteredBy && <span className="block text-fg">Entered by {correctorNames.get(String((e.payload as Record<string, unknown>).enteredBy)) ?? "a supervisor"}: {String((e.payload as Record<string, unknown>).reason)}</span>}
                   {e.actorId === null ? "" : e.actorId === s.engagement.worker.profileId ? "Worker · " : "Organization · "}
                   <LocalTime iso={e.createdAt.toISOString()} mode="time" />
                   {e.receivedAt && (
@@ -372,10 +400,41 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
                       {" "}· recorded offline, synced <LocalTime iso={e.receivedAt.toISOString()} mode="time" />
                     </>
                   )}
+                  {canField && !payLocked && !st.cancelled && CORRECTABLE[e.type] && (
+                    <span className="block pt-1">
+                      <CorrectEntry
+                        action={correctionStep}
+                        shiftId={s.id}
+                        eventId={e.id}
+                        type={e.type}
+                        atIso={(corrections.get(e.id)?.at ?? e.createdAt).toISOString()}
+                        values={Object.fromEntries(
+                          CORRECTABLE[e.type]
+                            .filter((k) => k !== "at")
+                            .map((k) => [k, Number((corrections.get(e.id)?.fields[k] ?? ((e.payload ?? {}) as Record<string, unknown>)[k]) ?? (k === "count" ? 1 : 0))])
+                        )}
+                      />
+                    </span>
+                  )}
                 </span>
               </li>
             ))}
           </ol>
+        </section>
+      )}
+
+      {isWorker && workerCorrections.length > 0 && (
+        <section className="section">
+          <h2 className="section-title">Corrections to this shift</h2>
+          <ul className="list-card">
+            {workerCorrections.map((c) => (
+              <li key={c.id} className="px-4 py-3 text-sm">
+                <span className="text-fg">{c.text}</span>
+                <span className="block text-xs text-subtle"><LocalTime iso={c.at.toISOString()} /></span>
+              </li>
+            ))}
+          </ul>
+          <p className="text-hint">Your original entries are kept. If a correction is wrong, dispute this shift&apos;s pay from Earnings.</p>
         </section>
       )}
 

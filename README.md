@@ -173,7 +173,7 @@ src/
     api/workers/[workerId]/scorecard  # GET scorecard JSON
     api/jobs/…          # jobs, publish, applications, claims, invitations
     api/engagements/[engagementId]/accept
-    api/shifts/…        # schedule, check-in, events, closeout
+    api/shifts/…        # schedule, check-in, events, closeout, sync, corrections
   components/           # ScorecardPanel, ExperienceList/Form, PreferencesFlow, FitSignals,
                         # JobForm, JobCard, SnapshotView, ActionButton,
                         # TurfMap (Leaflet), ShiftProgress, FieldDayActions
@@ -378,6 +378,29 @@ API: `GET/POST /api/shifts`, `POST /api/shifts/:id/check-in` `{ location? }`
   Entries synced into a shift the organization cancelled in the meantime,
   or one a supervisor already reviewed, are refused with that reason — a
   supervisor enters the work instead.
+
+## M7 scope — field truth and leaving cleanly
+
+- **Supervisor corrections.** On a shift's activity log, an owner or
+  supervisor can **correct** any of the worker's entries — its time, or a
+  count, or a packet's sheets and signatures — or **enter a missing entry**
+  (a forgotten check-out, work older than the 24-hour offline window) at a
+  stated time, with a reason the worker sees. Nothing is edited: a
+  correction is a `CORRECTION` work event naming the entry it supersedes,
+  signed by the supervisor; an entered entry is an ordinary event in the
+  worker's name marked `enteredBy`. Every reader — shift state, the live
+  clock, the scorecard, pay — applies corrections the same way
+  (`lib/corrections.ts`; newest signed correction per entry wins).
+- **Checked by replay.** A correction is refused if the shift couldn't have
+  happened that way (two check-ins, a break ending before it starts, a
+  packet returned before it went out, work logged after check-out, a time
+  more than 2 hours outside the schedule, a count outside 1–500).
+- **Pay follows.** Allowed only until the shift's pay is approved for
+  payment (after that, finance adjusts). Pay already recorded from the old
+  entries is withdrawn like after a recount, and the supervisor approves
+  the shift again at the corrected figure; a finance hold carries over.
+- Workers see each correction on the shift page and on Earnings, and can
+  dispute as before. `POST /api/shifts/:id/corrections` mirrors the screen.
 
 **Already on M5? Offline field day (M6)** — run `prisma/m6-migration.sql`
 once in the Supabase SQL editor (two nullable columns on `WorkEvent`).

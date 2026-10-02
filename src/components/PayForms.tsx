@@ -15,24 +15,27 @@ export interface ApprovalRow {
   detail: string;
   amount: string;
   flag: string | null;
+  /** Why this person can't approve the line (two-person rule), or null. */
+  blocked: string | null;
 }
 
 /** Lines awaiting payment approval, approved together. */
 export function ApproveLines({ action, rows }: { action: (p: ActionState, fd: FormData) => Promise<ActionState>; rows: ApprovalRow[] }) {
   const [state, formAction, pending] = useActionState(action, initial);
   const form = useRef<HTMLFormElement>(null);
-  const setAll = (on: boolean) => form.current?.querySelectorAll<HTMLInputElement>('input[name="payoutIds"]').forEach((i) => (i.checked = on));
+  const setAll = (on: boolean) => form.current?.querySelectorAll<HTMLInputElement>('input[name="payoutIds"]:not(:disabled)').forEach((i) => (i.checked = on));
   return (
     <form ref={form} action={formAction} className="space-y-3">
       <ul className="list-card">
         {rows.map((r) => (
           <li key={r.id}>
-            <label className="flex cursor-pointer items-start gap-3 px-4 py-3">
-              <input type="checkbox" name="payoutIds" value={r.id} className="mt-1 size-4 accent-[var(--focus)]" />
+            <label className={`flex items-start gap-3 px-4 py-3 ${r.blocked ? "" : "cursor-pointer"}`}>
+              <input type="checkbox" name="payoutIds" value={r.id} disabled={!!r.blocked} className="mt-1 size-4 accent-[var(--focus)]" />
               <span className="min-w-0 flex-1 space-y-0.5">
                 <span className="block text-sm font-semibold text-fg">{r.worker}</span>
                 <span className="block text-xs text-muted">{r.detail}</span>
                 {r.flag && <span className="block text-xs font-semibold text-danger-msg">{r.flag}</span>}
+                {r.blocked && <span className="block text-xs text-subtle">{r.blocked}</span>}
               </span>
               <span className="shrink-0 font-bold text-fg">{r.amount}</span>
             </label>

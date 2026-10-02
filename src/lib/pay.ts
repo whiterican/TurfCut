@@ -335,6 +335,21 @@ export function reReviewProblem(lines: LineState[]): string | null {
 }
 
 /**
+ * Two people for every payment (owner decision, M5): nobody approves pay
+ * for a shift whose latest review they made, or an adjustment they made.
+ * Lines with no shift on record can't be checked this way.
+ */
+export function selfApprovalProblem(
+  line: { kind: "SHIFT" | "ADJUSTMENT"; createdById: string | null; hasShift: boolean },
+  latestReviewerId: string | null,
+  actorId: string
+): string | null {
+  if (line.hasShift && latestReviewerId === actorId) return "You approved this shift's work, so someone else approves its pay.";
+  if (line.kind === "ADJUSTMENT" && line.createdById === actorId) return "You made this adjustment, so someone else approves it.";
+  return null;
+}
+
+/**
  * Net amount of payable lines. Deductions (negative adjustments) are netted
  * against the same worker's positive lines; a pay run needs a net above zero.
  */

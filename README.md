@@ -130,14 +130,14 @@ Without steps 3 and 5, chat still works: threads refresh every 15 seconds
 instead of instantly, and attaching a document fails with a clear error.
 
 **Already on M4? Payouts (M5)** — in the Supabase SQL editor, run
-`prisma/m5-migration.sql` once, then `prisma/m5-1-history-lock.sql` (the
-database then refuses edits and deletes of work events, shift reviews and
-the audit log, as it already does for messages and pay). It turns `Payout` into an append-only pay
+`prisma/m5-migration.sql` once. It turns `Payout` into an append-only pay
 line with a status log, adds the transfer, dispute and webhook tables, and
 blocks updates and deletes on all of them. It stops without changing
 anything if an existing payout can't be traced to an organization. Any
 unpaid payout from before M5 is put on hold so finance checks its amount
-before paying it.
+before paying it. Then run `prisma/m5-1-history-lock.sql`: the database
+refuses edits and deletes of work events, shift reviews and the audit log,
+as it already does for messages and pay (safe to re-run).
 
 Until steps 1–4 are done, `npm run dev` boots fine and the login/signup pages
 render, but sign-up will fail with a clear "missing environment variable"
@@ -322,7 +322,8 @@ API: `GET/POST /api/shifts`, `POST /api/shifts/:id/check-in` `{ lat?, lng? }`,
   the line ("3h 30m verified × $25.00/hr") and never recalculated. A
   per-signature shift can't be approved before its batch count.
 - **Two approvals, two people.** Supervisors approve the work; owners and
-  finance approve the pay — never the same person for the same shift (**Pay** tab), can hold a line with a reason the worker sees, and
+  finance approve the pay — never the person who made the shift's latest
+  review, and never the person who made an adjustment (**Pay** tab), can hold a line with a reason the worker sees, and
   release it. A review can change only until its pay is approved; after
   that, changes are adjustments.
 - **Workers see their pay** on **Earnings** (from Today and Profile): gross

@@ -798,6 +798,7 @@ async function transferLines(tx: Tx, transferId: string) {
       return evs.includes("TRANSFER_STARTED") && !evs.includes("PAID") && !evs.includes("TRANSFER_FAILED") && !evs.includes("REVERSED");
     }),
     unpaid: lines.filter((l) => !of(l).includes("PAID") && !of(l).includes("REVERSED")),
+    reversed: lines.some((l) => of(l).includes("REVERSED")),
     paid: lines.filter((l) => of(l).includes("PAID") && !of(l).includes("REVERSED")),
     failed: lines.some((l) => of(l).includes("TRANSFER_FAILED")),
   };
@@ -829,6 +830,7 @@ export async function settleTransfer(actor: PayActor | null, transferId: string,
   if (!t || (actor && t.orgId !== actor.orgId)) return { ok: false, reason: "Payment not found." };
   const before = await transferLines(db() as unknown as Tx, transferId);
   if (!before.inFlight.length) {
+    if (!before.paid.length && before.reversed) return { ok: true, transferId, outcome: "failed", message: "This payment was reversed in Stripe; its lines are on hold." };
     return before.paid.length
       ? { ok: true, transferId, outcome: "paid", message: "This payment already went through." }
       : { ok: true, transferId, outcome: "failed", message: "This payment didn't go through; its lines can be paid again." };
@@ -855,6 +857,9 @@ export async function settleTransfer(actor: PayActor | null, transferId: string,
       await payLock(tx, t.workerId);
       const x = await transferLines(tx, transferId);
       if (ref) {
+        if (!x.unpaid.length && !x.paid.length && x.reversed) {
+          return { ok: true as const, transferId, outcome: "failed" as const, message: "This payment was reversed in Stripe; its lines are on hold." };
+        }
         await recordPaid(tx, transferId, ref, actor?.profileId ?? null, "Confirmed when sent", now, x);
         return { ok: true as const, transferId, outcome: "paid" as const, message: `Sent ${money(t.amountCents)} through Stripe.` };
       }
@@ -915,7 +920,7 @@ export async function handleProviderEvent(e: ProviderEvent, now = new Date()): P
     if (e.type === "transfer.reversed") {
       if (t.reversedCents >= t.amountCents) {
         // Paid lines, and lines still "sending" (a reversal can arrive first).
-        const hit = [...x.paid, ...x.inFlight.filter((l) => !x.paid.includes(l))];
+        const hit = [...x.paid, ...x.unpaid];
         if (hit.length) {
           const at = await eventAt(tx, hit.map((l) => l.id), now);
           await tx.payoutEvent.createMany({ data: hit.map((l) => ({ payoutId: l.id, type: "REVERSED" as const, transferId: transfer.id, providerRef: t.id, reason: "Reversed in Stripe", createdAt: at })) });

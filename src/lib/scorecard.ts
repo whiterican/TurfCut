@@ -490,7 +490,9 @@ export function cancellationOf(shift: ScorecardShift): "late" | "excused" | null
   if (!c) return null;
   const at = c.createdAt.getTime();
   if (at > shift.endsAt.getTime()) return "late";
-  if (obj(c.payload).by !== "WORKER") return "excused";
+  // Closing an account cancels future shifts in the worker's name, but it is
+  // never a no-show (owner decision, M7).
+  if (obj(c.payload).by !== "WORKER" || obj(c.payload).accountClosed === true) return "excused";
   const start = shift.startsAt.getTime();
   const noticeDeadline = start - (shift.cancellationNoticeHours ?? 24) * 3_600_000;
   const scheduled = shift.scheduledAt.getTime();

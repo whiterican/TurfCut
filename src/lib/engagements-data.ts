@@ -54,7 +54,9 @@ async function open(
   const job = await db().job.findUnique({ where: { id: jobId }, include: { org: { select: { name: true } } } });
   if (!job) return { ok: false, reason: "Job not found." };
   if (actor.kind === "org" && actor.orgId !== job.orgId) return { ok: false, reason: "This job belongs to another organization." };
-  if (!(await db().worker.findUnique({ where: { id: workerId }, select: { id: true } }))) return { ok: false, reason: "Worker not found." };
+  const w = await db().worker.findUnique({ where: { id: workerId }, select: { closedAt: true } });
+  if (!w) return { ok: false, reason: "Worker not found." };
+  if (w.closedAt) return { ok: false, reason: "This worker has closed their account." };
 
   // A worker never lands on a job their own do-not-match answers exclude.
   if (actor.kind === "worker") {

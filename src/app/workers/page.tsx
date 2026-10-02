@@ -20,6 +20,7 @@ export default async function WorkersPage() {
     );
   }
   const workers = await db().worker.findMany({
+    where: { closedAt: null },
     select: { id: true, displayName: true },
     orderBy: { displayName: "asc" },
   });

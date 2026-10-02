@@ -43,7 +43,7 @@ export async function getSessionProfile(): Promise<SessionProfile | null> {
     console.error("[turfcut] loading or finishing the profile failed", e);
     return null; // DB unreachable — treat as signed out, don't crash the page.
   }
-  if (!profile) return null;
+  if (!profile || profile.closedAt) return null; // a closed account (M7) has no session
 
   // Worker link lives on the Worker row (Profile 1:1 Worker via profileId).
   let workerId: string | null = null;

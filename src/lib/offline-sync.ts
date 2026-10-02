@@ -38,7 +38,8 @@ const obj = (v: unknown): Record<string, unknown> => (v && typeof v === "object"
 const int = (v: unknown) => (typeof v === "number" && Number.isInteger(v) ? v : NaN);
 const BANDS = ["under 250 m", "250 m – 1 km", "over 1 km"] as const;
 
-function readLocation(v: unknown): LocationCheck | null {
+/** A staging check the phone made: yes/no plus a band that agrees with it — never a position. */
+export function readLocationCheck(v: unknown): LocationCheck | null {
   const o = obj(v);
   if (o.checked === false) return { checked: false };
   if (o.checked === true && typeof o.atStaging === "boolean" && BANDS.includes(o.distance as (typeof BANDS)[number])) {
@@ -58,7 +59,7 @@ export function readQueued(raw: unknown): QueuedAction | null {
   let action: QueuedAction["action"];
   switch (a.kind) {
     case "check_in": {
-      const location = readLocation(a.location);
+      const location = readLocationCheck(a.location);
       if (!location) return null;
       action = { kind: "check_in", location };
       break;
@@ -88,14 +89,16 @@ export function correctTime(at: number, deviceNow: number, serverNow: Date): Dat
 }
 
 /**
- * Where an accepted action goes on the timeline: its corrected time, but
- * after the last action saved from the batch (a phone clock that jumped
- * back can't reorder the work) and never later than now. Age and future
- * checks use the corrected time itself, before this.
+ * Where an accepted action goes on the timeline: its corrected time (never
+ * later than now), but always after `lastSaved` — the latest event the
+ * shift already has, then each action saved from the batch — so nothing
+ * lands in front of recorded work and two actions never share a time. That
+ * can put an action a few milliseconds past now; it never goes earlier.
+ * Age and future checks use the corrected time itself, before this.
  */
 export function placeTime(corrected: Date, lastSaved: Date | null, serverNow: Date): Date {
-  const t = Math.max(corrected.getTime(), lastSaved ? lastSaved.getTime() + 1 : -Infinity);
-  return new Date(Math.min(t, serverNow.getTime()));
+  const t = Math.min(corrected.getTime(), serverNow.getTime());
+  return new Date(lastSaved ? Math.max(t, lastSaved.getTime() + 1) : t);
 }
 
 /** Why a corrected time can't be recorded automatically, or null. */

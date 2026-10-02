@@ -5,8 +5,9 @@ import { MAX_BATCH, readQueued, type QueuedAction } from "@/lib/offline-sync";
 /**
  * POST /api/shifts/:shiftId/sync { deviceNow, actions: [{ clientId, at, action }] }
  * The worker's phone sends field actions it saved (offline or not), oldest
- * first. Each comes back saved, duplicate (already saved — drop it) or
- * rejected (with the reason to show). Invalid shapes reject the request.
+ * first, up to MAX_BATCH at a time. Each comes back saved, duplicate
+ * (already saved — drop it) or rejected (with the reason to show). Invalid
+ * shapes reject the request (400); a missing session is 401.
  */
 export async function POST(req: Request, { params }: { params: Promise<{ shiftId: string }> }) {
   const { shiftId } = await params;
@@ -26,5 +27,6 @@ export async function POST(req: Request, { params }: { params: Promise<{ shiftId
   if (new Set(actions.map((a) => a.clientId)).size !== actions.length) return Response.json({ error: "Each action needs its own id." }, { status: 400 });
   const r = await syncWorkerActions({ workerId: auth.session.workerId, profileId: auth.session.userId }, shiftId, { deviceNow: b.deviceNow, actions });
   if (!r.ok) return Response.json({ error: r.reason }, { status: /not found/i.test(r.reason) ? 404 : 400 });
-  return Response.json({ results: r.results }, { headers: { "Cache-Control": "no-store" } });
+  // serverNow lets the phone line its clock up with the server's for its own checks.
+  return Response.json({ results: r.results, serverNow: Date.now() }, { headers: { "Cache-Control": "no-store" } });
 }

@@ -4,8 +4,9 @@ import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 
 import { useRouter } from "next/navigation";
 import { shiftState, workerAction, type FieldEvent, type ShiftFacts } from "@/lib/field-day";
 import { stagingCheck, type QueuedAction } from "@/lib/offline-sync";
-import { dismiss, enqueue, flush, pendingFor, subscribe, type Pending } from "@/lib/offline-queue";
+import { clockOffset, dismiss, enqueue, flush, pendingFor, prune, serverClock, subscribe, type Pending } from "@/lib/offline-queue";
 import { haptic } from "@/lib/haptics";
+import { refreshSavedPage } from "@/components/OfflineBrief";
 
 export interface LiveShift {
   shiftId: string;
@@ -15,7 +16,7 @@ export interface LiveShift {
   startsAt: string;
   endsAt: string;
   staging: { lat: number; lng: number } | null;
-  events: Array<{ type: string; payload: unknown; actorId: string | null; createdAt: string }>;
+  events: Array<{ type: string; payload: unknown; clientId: string | null; createdAt: string }>;
   validations: Array<{ workEventId: string | null; status: "PENDING" | "APPROVED" | "REJECTED" | "FLAGGED"; reason: string | null; createdAt: string }>;
 }
 
@@ -23,11 +24,15 @@ type Action = QueuedAction["action"];
 
 const noop = () => () => {};
 
-/** The shift as the phone sees it: the server's events plus what's waiting to sync. */
-function withPending(base: ShiftFacts, pending: Pending[]): ShiftFacts {
+/**
+ * The shift as the phone sees it: the server's events plus entries not on
+ * the page yet (waiting, or saved since it loaded), in the order recorded,
+ * on the server's clock.
+ */
+function withPending(base: ShiftFacts, pending: Pending[], offset: number): ShiftFacts {
   let f = base;
-  for (const p of pending.filter((x) => !x.rejected).sort((a, b) => a.at - b.at)) {
-    const at = new Date(p.at);
+  for (const p of pending) {
+    const at = new Date(p.at + offset);
     const out = workerAction(f, p.action, at);
     if (!out.ok || !out.event) continue;
     const ev: FieldEvent = { type: out.event.type, payload: out.event.payload, actorId: null, createdAt: at };
@@ -84,6 +89,7 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
   const pending = useMemo(() => JSON.parse(snapshot) as Pending[], [snapshot]);
   const [syncing, setSyncing] = useState(false);
   const [unreachable, setUnreachable] = useState(false);
+  const [problem, setProblem] = useState<string | null>(null);
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
   const [locating, setLocating] = useState(false);
   // Hydration-safe: the queue only exists in the browser.
@@ -95,23 +101,36 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
       startsAt: new Date(shift.startsAt),
       endsAt: new Date(shift.endsAt),
       workType: shift.workType,
-      events: shift.events.map((e) => ({ ...e, createdAt: new Date(e.createdAt) })),
+      events: shift.events.map((e) => ({ type: e.type, payload: e.payload, actorId: null, createdAt: new Date(e.createdAt) })),
       validations: shift.validations.map((v) => ({ ...v, createdAt: new Date(v.createdAt) })),
     }),
     [shift]
   );
-  const facts = useMemo(() => withPending(base, pending), [base, pending]);
+  // Entries the page already shows (saved and reloaded) aren't replayed again.
+  const shown = useMemo(() => new Set(shift.events.map((e) => e.clientId).filter((x): x is string => !!x)), [shift.events]);
+  const facts = useMemo(
+    () => withPending(base, pending.filter((p) => !p.rejected && !shown.has(p.clientId)), mounted ? clockOffset() : 0),
+    [base, pending, shown, mounted]
+  );
   const st = shiftState(facts);
-  const waiting = pending.filter((p) => !p.rejected);
+  const waiting = pending.filter((p) => !p.rejected && !p.savedAt);
   const refused = pending.filter((p) => p.rejected);
 
+  // Forget saved entries once the page shows them.
+  useEffect(() => prune(shift.userId, shown), [shift.userId, shown]);
+
   const sync = useCallback(async () => {
-    if (!pendingFor(shift.userId, shift.shiftId).some((p) => !p.rejected)) return;
+    if (!pendingFor(shift.userId, shift.shiftId).some((p) => !p.rejected && !p.savedAt)) return;
     setSyncing(true);
     const r = await flush(shift.userId, shift.shiftId);
     setSyncing(false);
     setUnreachable(r.offline);
-    if (r.saved > 0 || r.rejected > 0) router.refresh();
+    setProblem(r.problem);
+    if (r.saved > 0 || r.rejected > 0) {
+      router.refresh();
+      // The copy saved for dead zones should show what just synced.
+      refreshSavedPage(shift.userId, `/shifts/${shift.shiftId}`);
+    }
   }, [router, shift.shiftId, shift.userId]);
 
   // Send whenever there's a chance: on load, when signal returns, when the
@@ -131,14 +150,19 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
   }, [sync]);
 
   function record(action: Action): boolean {
-    const out = workerAction(facts, action, new Date());
+    // Judged on the server's clock (as of the last sync), like the server will.
+    const out = workerAction(facts, action, serverClock());
     if (!out.ok) {
       setMessage({ ok: false, text: out.reason });
       return false;
     }
-    enqueue(shift.userId, shift.shiftId, action);
+    const { stored } = enqueue(shift.userId, shift.shiftId, action);
     haptic();
-    setMessage({ ok: true, text: navigator.onLine ? "Saved." : "Saved on this phone. It'll sync when you have signal." });
+    setMessage(
+      !stored
+        ? { ok: false, text: "This phone's storage is full, so this is only kept while the page is open. Keep it open until it syncs." }
+        : { ok: true, text: navigator.onLine ? "Saved." : "Saved on this phone. It'll sync when you have signal." }
+    );
     void sync();
     return true;
   }
@@ -174,7 +198,9 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
     : refused.length
       ? { tone: "badge-coral", text: `${refused.length} couldn't be saved` }
       : waiting.length
-        ? !online || unreachable
+        ? problem
+          ? { tone: "badge-butter", text: `${problem} ${waiting.length} saved on this phone.` }
+          : !online || unreachable
           ? { tone: "badge-butter", text: `No signal — ${waiting.length} saved on this phone` }
           : { tone: "badge-sky", text: syncing ? "Syncing…" : `${waiting.length} waiting to sync` }
         : !online

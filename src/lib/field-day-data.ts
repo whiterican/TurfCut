@@ -6,7 +6,6 @@ import { applyReviewPlan, payLock, planReview, reviewLockProblem, withdrawStaleP
 import { correctTime, placeTime, timeProblem, wasOffline, type QueuedAction } from "@/lib/offline-sync";
 import {
   findConflicts,
-  locationCheck,
   shiftState,
   supervisorAction,
   validateShift,
@@ -182,7 +181,11 @@ async function apply(
   return { ok: true };
 }
 
-export type WorkerRequest = Exclude<WorkerAction, { kind: "check_in" }> | { kind: "check_in"; device: { lat: number; lng: number } | null };
+/**
+ * A worker's field action. Check-in carries the phone's own staging check
+ * (yes/no and a band): the server never receives a position.
+ */
+export type WorkerRequest = WorkerAction;
 
 export async function workerShiftAction(
   actor: { workerId: string; profileId: string },
@@ -195,9 +198,7 @@ export async function workerShiftAction(
     await lock(tx, `shift:${shiftId}`);
     const s = await loadShift(shiftId, tx);
     if (!s || s.engagement.workerId !== actor.workerId) return { ok: false as const, reason: "Shift not found." };
-    // The device position is used for this comparison only and never stored.
-    const action: WorkerAction =
-      req.kind === "check_in" ? { kind: "check_in", location: locationCheck({ lat: s.stagingLat, lng: s.stagingLng }, req.device) } : req;
+    const action: WorkerAction = req;
     return apply(tx, shiftId, actor.profileId, workerAction(facts(s), action, now), now);
   });
 }
@@ -247,10 +248,14 @@ export type SyncResult = { clientId: string; status: "saved" | "duplicate" | "re
 
 /**
  * Applies actions a worker's phone queued (M6, lib/offline-sync.ts), in the
- * phone's order, at their corrected times. Each is checked against the
- * shift as it stood at that moment, so an action recorded offline is judged
- * by what had happened by then. An id already saved is reported as a
- * duplicate, never saved twice. One transaction under the shift lock.
+ * phone's order, at their corrected times — but never before anything the
+ * shift already has: each action goes after the latest recorded event and
+ * is judged against the whole shift as it stands, so a backdated action
+ * can't slip in front of a check-in, a break or a check-out that's already
+ * there. (The phone's clock is the worker's to set; this keeps it from
+ * rewriting recorded time.) Once a supervisor has reviewed the shift,
+ * nothing more is added from the phone. An id already saved is reported as
+ * a duplicate, never saved twice. One transaction under the shift lock.
  */
 export async function syncWorkerActions(
   actor: { workerId: string; profileId: string },
@@ -260,18 +265,25 @@ export async function syncWorkerActions(
 ): Promise<{ ok: true; results: SyncResult[] } | { ok: false; reason: string }> {
   if (!UUID_RE.test(shiftId)) return { ok: false, reason: "Shift not found." };
   if (!Number.isFinite(batch.deviceNow)) return { ok: false, reason: "Missing the phone's clock." };
-  return db().$transaction(async (tx) => {
+  return db().$transaction(
+    async (tx) => {
     await lock(tx, `shift:${shiftId}`);
     const s = await loadShift(shiftId, tx);
     if (!s || s.engagement.workerId !== actor.workerId) return { ok: false as const, reason: "Shift not found." };
     const seen = await tx.workEvent.findMany({ where: { clientId: { in: batch.actions.map((a) => a.clientId) } }, select: { clientId: true, shiftId: true } });
     const done = new Map(seen.map((e) => [e.clientId!, e.shiftId]));
     const f = facts(s);
+    const reviewed = shiftState(f).closeout !== null;
     const results: SyncResult[] = [];
-    let lastSaved: Date | null = null;
+    // Everything synced goes after what the shift already has.
+    let lastSaved: Date | null = f.events.reduce<Date | null>((m, e) => (!m || e.createdAt > m ? e.createdAt : m), null);
     for (const q of batch.actions) {
       if (done.has(q.clientId)) {
         results.push(done.get(q.clientId) === shiftId ? { clientId: q.clientId, status: "duplicate" } : { clientId: q.clientId, status: "rejected", reason: "Already used for another shift." });
+        continue;
+      }
+      if (reviewed) {
+        results.push({ clientId: q.clientId, status: "rejected", reason: "Your supervisor already reviewed this shift. Ask them to add it." });
         continue;
       }
       const corrected = correctTime(q.at, batch.deviceNow, serverNow);
@@ -281,10 +293,9 @@ export async function syncWorkerActions(
         continue;
       }
       const t = placeTime(corrected, lastSaved, serverNow);
-      // The shift as it stood at time t. (A shift cancelled since is still
-      // cancelled: its status stays, so nothing more is recorded on it.)
-      const asOf = { ...f, events: f.events.filter((e) => e.createdAt <= t) };
-      const out = workerAction(asOf, q.action, t);
+      // t is after every recorded event, so this is the whole shift as it
+      // stands. (A cancelled shift stays cancelled: nothing more is added.)
+      const out = workerAction(f, q.action, t);
       if (!out.ok) {
         results.push({ clientId: q.clientId, status: "rejected", reason: out.reason });
         continue;
@@ -293,10 +304,15 @@ export async function syncWorkerActions(
       done.set(q.clientId, shiftId);
       lastSaved = t;
       if (out.event) f.events.push({ type: out.event.type, payload: out.event.payload, actorId: actor.profileId, createdAt: t });
+      if (out.status) f.status = out.status;
       results.push({ clientId: q.clientId, status: "saved" });
     }
     return { ok: true as const, results };
-  });
+    },
+    // A day's worth of entries can take a while on a slow connection to the
+    // database; the default 5 s would roll the whole batch back.
+    { timeout: 30_000, maxWait: 10_000 }
+  );
 }
 
 /** The worker's own pins and day turf on their shift. */

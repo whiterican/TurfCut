@@ -5,7 +5,17 @@ const nextConfig: NextConfig = {
   devIndicators: false,
   // The offline brief's service worker must never be served stale.
   async headers() {
-    return [{ source: "/sw.js", headers: [{ key: "Cache-Control", value: "no-cache, no-store, must-revalidate" }, { key: "Content-Type", value: "application/javascript; charset=utf-8" }] }];
+    // As the Next.js PWA guide sets them for a service worker.
+    return [
+      {
+        source: "/sw.js",
+        headers: [
+          { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
+          { key: "Content-Type", value: "application/javascript; charset=utf-8" },
+          { key: "Content-Security-Policy", value: "default-src 'self'; script-src 'self'" },
+        ],
+      },
+    ];
   },
   experimental: {
     // Chat attachments go through a server action: 4 MB files (lib/chat.ts

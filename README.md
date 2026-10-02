@@ -312,7 +312,8 @@ Map tiles load from tile.openstreetmap.org, which sees the viewer's IP and
 the area viewed. Fine for the pilot; switch to a hosted tile provider before
 public launch (OSM's tile policy).
 
-API: `GET/POST /api/shifts`, `POST /api/shifts/:id/check-in` `{ lat?, lng? }`,
+API: `GET/POST /api/shifts`, `POST /api/shifts/:id/check-in` `{ location? }`
+(the device's own staging check — the server refuses coordinates),
 `POST /api/shifts/:id/events` `{ kind, … }`,
 `POST /api/shifts/:id/closeout` `{ status, reason? }`.
 
@@ -322,24 +323,43 @@ API: `GET/POST /api/shifts`, `POST /api/shifts/:id/check-in` `{ lat?, lng? }`,
   signatures/doors/contacts, packet returns and check-out are saved on the
   phone first with the time they happened, then sent in order when there's
   signal (on load, when signal returns, when the app comes back to the
-  front, and every 20 seconds). The controls update right away; a badge
-  says what's waiting or couldn't be saved, with the reason.
+  front, and every 20 seconds), up to 50 per request. Today and My shifts
+  send every shift's waiting entries. The controls update right away and
+  stay updated until the page shows what synced; a badge says what's
+  waiting or couldn't be saved, with the reason. Only the server refusing
+  an entry marks it "couldn't be saved"; no signal, a signed-out session or
+  server trouble leave it waiting.
 - **Times are checked on sync.** Phone clocks are corrected (server now −
   phone now). The server refuses future times and anything held offline
-  more than 24 hours (a supervisor enters those), keeps the phone's order,
-  and judges each action against the shift as it stood at that moment. An
-  action re-sent after a dropped connection is saved once (`clientId`).
-  Supervisors see "recorded offline, synced HH:MM" in the activity log.
+  more than 24 hours (a supervisor enters those) and keeps the phone's
+  order. A synced action never lands before anything the shift already
+  has (it goes after the latest recorded event) and is judged against the
+  whole shift, so a phone clock can't rewrite recorded time; once a
+  supervisor has reviewed the shift, nothing more syncs into it. An action
+  re-sent after a dropped connection is saved once (`clientId`).
+  Supervisors see "recorded offline, synced HH:MM" in the activity log, and
+  a note before approving when any entry came in late from the phone.
+  The phone's own checks use the server's clock (learned at each sync).
 - **Check-in location stays on the phone.** The phone compares its position
   with the staging point; only "at staging: yes/no" and a distance band are
-  sent.
-- **Offline brief.** A service worker (`public/sw.js`, no library) saves
-  Today, My shifts and the shift pages for today and the next two days —
-  with the scripts they need — so they open in a dead zone. Pages are
-  network-first; API calls and server actions are never cached. Sign-out
-  warns about unsynced entries and clears the queue and saved pages.
+  sent. No server endpoint accepts a position.
+- **Offline brief.** A service worker (`public/sw.js`, no library, production
+  builds only) saves Today, My shifts and the shift pages for today and the
+  next two days — with the scripts they need — so they open in a dead zone.
+  Pages are network-first, falling back to the saved copy on no signal, a
+  server error or an 8-second wait; copies are kept for one worker and
+  72 hours at most, and only for pages on that list. API calls and server
+  actions are never cached. Saved pages are deleted when another worker's
+  list arrives, on the sign-in pages and when a page bounces to sign-in.
+  Sign-out warns about this worker's unsynced entries and clears the queue
+  and saved pages. (Another worker's unsynced entries stay on the phone
+  until they sign in again.)
 - **Still needs a connection:** cancelling a shift, turf pins, messages,
-  disputes, pay.
+  disputes, pay. A packet a supervisor hands out shows on the worker's
+  phone once it has signal (until then it can't be returned offline).
+  Entries synced into a shift the organization cancelled in the meantime,
+  or one a supervisor already reviewed, are refused with that reason — a
+  supervisor enters the work instead.
 
 **Already on M5? Offline field day (M6)** — run `prisma/m6-migration.sql`
 once in the Supabase SQL editor (two nullable columns on `WorkEvent`).

@@ -121,6 +121,13 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
 
   const started = !!st.checkedInAt;
   const now = new Date();
+  // Entries the phone saved offline carry the phone's times: the reviewer
+  // sees how many, and how late the latest reached the server.
+  const offline = s.events.filter((e) => e.receivedAt);
+  const offlineLag = offline.reduce((m, e) => Math.max(m, e.receivedAt!.getTime() - e.createdAt.getTime()), 0);
+  const offlineNote = offline.length
+    ? `${offline.length === 1 ? "1 entry was" : `${offline.length} entries were`} recorded offline and synced up to ${offlineLag >= 3_600_000 ? `${Math.round(offlineLag / 3_600_000)}h` : `${Math.max(1, Math.round(offlineLag / 60_000))} min`} later. Their times come from the worker's phone — check them before approving.`
+    : null;
   const worked = activeTime(f, now);
   const job = s.engagement.job;
   // The worker's own pay only — never shown to anyone else here.
@@ -137,7 +144,9 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
         startsAt: s.startsAt.toISOString(),
         endsAt: s.endsAt.toISOString(),
         staging,
-        events: f.events.map((e) => ({ type: e.type, payload: e.payload, actorId: e.actorId, createdAt: e.createdAt.toISOString() })),
+        // Who made each event isn't needed on the phone; the phone's own id
+        // for an entry lets it drop that entry once it shows here.
+        events: s.events.map((e) => ({ type: e.type, payload: e.payload, clientId: e.clientId, createdAt: e.createdAt.toISOString() })),
         validations: f.validations.map((v) => ({ ...v, createdAt: v.createdAt.toISOString() })),
       }}
       beforeCheckIn={
@@ -269,6 +278,7 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
             {st.checkedOutAt && payLocked && (
               <p className="text-muted-sm">Pay for this shift ({money(pay!.amountCents)}) is approved for payment, so the review and counts are final. Your owner or finance team can make a pay adjustment if something changed.</p>
             )}
+            {st.checkedOutAt && !payLocked && offlineNote && <p className="text-sm font-semibold text-danger-msg" role="note">{offlineNote}</p>}
             {st.checkedOutAt && !payLocked && approvePreview && (
               <p className="text-muted-sm" role="note">
                 {approvePreview.ok ? (

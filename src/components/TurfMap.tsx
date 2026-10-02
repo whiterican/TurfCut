@@ -121,7 +121,9 @@ export function TurfMap({
       });
       map.current = m;
       setReady(true);
-    }).catch(() => setFailed(true));
+      // Only a failed download of the map code (no signal) means "map
+      // unavailable"; a bug in the setup above still surfaces as an error.
+    }, () => !cancelled && setFailed(true));
     return () => {
       cancelled = true;
       map.current?.remove();

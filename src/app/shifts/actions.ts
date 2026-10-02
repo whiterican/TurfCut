@@ -5,7 +5,7 @@ import { requireRole } from "@/lib/auth";
 import { FIELD_ROLES, SCHEDULING_ROLES } from "@/lib/access";
 import { requireWorker } from "@/lib/worker-session";
 import { formToObject } from "@/lib/jobs";
-import { scheduleShift, supervisorShiftAction, workerShiftAction, workerTurfAction, type WorkerRequest } from "@/lib/field-day-data";
+import { scheduleShift, supervisorShiftAction, workerShiftAction, workerTurfAction } from "@/lib/field-day-data";
 import type { SupervisorAction, TurfAction } from "@/lib/field-day";
 import type { ActionState } from "@/app/jobs/actions";
 
@@ -31,40 +31,17 @@ export async function schedule(_prev: ScheduleState, fd: FormData): Promise<Sche
   return r.ok ? { ok: true, message: "Shift scheduled.", errors: {} } : { ok: false, message: r.reason, errors: r.errors ?? {} };
 }
 
-/** One entry point for the worker's field-day buttons; `kind` picks the action. */
+/**
+ * The worker's one server-action step: cancelling a shift (it needs a
+ * connection). Every other field action goes through the phone's queue
+ * (components/FieldDayLive → /api/shifts/:id/sync).
+ */
 export async function workerStep(_prev: ActionState, fd: FormData): Promise<ActionState> {
   const { workerId, userId } = await requireWorker();
   const shiftId = str(fd, "shiftId");
   const kind = str(fd, "kind");
-  let req: WorkerRequest;
-  switch (kind) {
-    case "check_in": {
-      // Used once, for the at-staging comparison; never stored.
-      const [lat, lng] = [Number(str(fd, "lat")), Number(str(fd, "lng"))];
-      req = { kind, device: str(fd, "lat") && str(fd, "lng") && Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null };
-      break;
-    }
-    case "pause":
-    case "resume":
-    case "check_out":
-      req = { kind };
-      break;
-    case "log": {
-      const unit = str(fd, "unit");
-      if (unit !== "signatures" && unit !== "doors" && unit !== "contacts") return { ok: false, message: "Unknown unit." };
-      req = { kind, unit, count: int(fd, "count") };
-      break;
-    }
-    case "return_packet":
-      req = { kind, packetId: str(fd, "packetId"), sheetsReturned: int(fd, "sheetsReturned"), signatures: int(fd, "signatures") };
-      break;
-    case "cancel":
-      req = { kind, reason: str(fd, "reason") };
-      break;
-    default:
-      return { ok: false, message: "Unknown action." };
-  }
-  const r = await workerShiftAction({ workerId, profileId: userId }, shiftId, req);
+  if (kind !== "cancel") return { ok: false, message: "Use the field controls on the shift page." };
+  const r = await workerShiftAction({ workerId, profileId: userId }, shiftId, { kind, reason: str(fd, "reason") });
   refresh(shiftId);
   return r.ok ? { ok: true, message: DONE[kind] ?? "Saved." } : { ok: false, message: r.reason };
 }

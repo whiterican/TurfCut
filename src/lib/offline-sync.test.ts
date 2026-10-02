@@ -37,6 +37,11 @@ describe("time correction", () => {
     expect(b.getTime()).toBe(a.getTime() + 1);
     // and nothing is placed after now
     expect(placeTime(new Date(server.getTime() + 60_000), null, server).getTime()).toBe(server.getTime());
+    // two actions clamped to now still get distinct, ordered times
+    const first = placeTime(new Date(server.getTime() + 60_000), null, server);
+    expect(placeTime(new Date(server.getTime() + 30_000), first, server).getTime()).toBe(server.getTime() + 1);
+    // never in front of what the shift already recorded
+    expect(placeTime(new Date(server.getTime() - 3 * 3_600_000), new Date(server.getTime() - 60_000), server).getTime()).toBe(server.getTime() - 59_999);
   });
   it("refuses the future and anything over 24 hours old; flags offline", () => {
     const now = new Date(Date.UTC(2026, 9, 2, 16, 0));

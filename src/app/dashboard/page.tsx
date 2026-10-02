@@ -10,6 +10,7 @@ import { LocalTime } from "@/components/LocalTime";
 import Link from "next/link";
 import { workerPayTotals } from "@/lib/pay-data";
 import { OfflineBrief } from "@/components/OfflineBrief";
+import { briefPaths } from "@/lib/offline-brief-data";
 import { money } from "@/lib/pay";
 
 const ROLE_LABELS: Record<string, string> = {
@@ -88,14 +89,8 @@ async function WorkerHero({ workerId }: { workerId: string }) {
 }
 
 /** Saves today's and the next two days' shift pages on the phone (offline brief). */
-async function WorkerBrief({ workerId }: { workerId: string }) {
-  const now = new Date();
-  const soon = await db().shift.findMany({
-    where: { engagement: { workerId }, status: { not: "CANCELLED" }, endsAt: { gte: now }, startsAt: { lt: new Date(now.getTime() + 48 * 3_600_000) } },
-    select: { id: true },
-    take: 8,
-  });
-  return <OfflineBrief paths={["/dashboard", "/shifts", ...soon.map((s) => `/shifts/${s.id}`)]} />;
+async function WorkerBrief({ workerId, userId }: { workerId: string; userId: string }) {
+  return <OfflineBrief userId={userId} paths={await briefPaths(workerId)} />;
 }
 
 /** The worker's pay at a glance (their own totals only). */
@@ -203,7 +198,7 @@ export default async function DashboardPage() {
         </div>
       </header>
 
-      {isWorker && <WorkerBrief workerId={session.workerId!} />}
+      {isWorker && <WorkerBrief workerId={session.workerId!} userId={session.userId} />}
       {isWorker && <WorkerHero workerId={session.workerId!} />}
       {!isWorker && session.orgId && SCHEDULING_ROLES.includes(session.role) && <OrgHero orgId={session.orgId} />}
 

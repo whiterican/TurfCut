@@ -12,6 +12,9 @@
 --      happened" (the phone's time, corrected for clock drift).
 
 BEGIN;
+-- Don't queue the app behind a long transaction: after 5 seconds of waiting
+-- for WorkEvent this stops and rolls back (nothing changes); run it again.
+SET LOCAL lock_timeout = '5s';
 
 -- AlterTable
 ALTER TABLE "public"."WorkEvent" ADD COLUMN     "clientId" UUID,

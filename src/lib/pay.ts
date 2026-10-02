@@ -175,8 +175,10 @@ export interface LineState {
   /** The transfer in flight or that paid it. */
   transferId: string | null;
   heldReason: string | null;
-  /** Last failure or reversal, shown so finance knows why it's back. */
+  /** Last failure, or a possible double payment, shown to finance. */
   note: string | null;
+  /** The line's history shows a possible double payment: never pay it again. */
+  conflict: boolean;
   /** Approved and nothing stops it from being paid. */
   payable: boolean;
 }
@@ -209,7 +211,9 @@ export function lineState(line: { amountCents: number }, events: PayEventFact[],
   let held: string | null = null;
   let transfer = null as { id: string | null; state: "processing" | "paid"; at: Date; ref: string | null } | null;
   let note: string | null = null;
-  const current = (e: PayEventFact) => transfer !== null && (e.transferId === null || transfer.id === null || e.transferId === transfer.id);
+  // Money that may have moved twice: shown, and the line is never paid again.
+  let conflict: string | null = null;
+  const same = (e: PayEventFact) => transfer !== null && (e.transferId === null || transfer.id === null || e.transferId === transfer.id);
   for (const e of sortEvents(events)) {
     switch (e.type) {
       case "VOIDED":
@@ -225,23 +229,32 @@ export function lineState(line: { amountCents: number }, events: PayEventFact[],
         held = null;
         break;
       case "TRANSFER_STARTED":
-        // A line is in one transfer at a time; a new one replaces a failed one.
-        if (transfer?.state !== "paid") transfer = { id: e.transferId, state: "processing", at: e.createdAt, ref: null };
+        // One transfer at a time; the pay run never starts a second one.
+        if (transfer === null) transfer = { id: e.transferId, state: "processing", at: e.createdAt, ref: null };
+        else conflict = `In two payments at once (${transfer.id ?? "earlier"} and ${e.transferId ?? "later"}). Check Stripe before paying again.`;
         break;
-      case "PAID":
-        if (current(e)) {
-          transfer = { id: transfer!.id ?? e.transferId, state: "paid", at: e.createdAt, ref: e.providerRef };
+      case "PAID": {
+        // A payment always counts: money moved. (Pre-M5 lines have no start event.)
+        const paid = { id: e.transferId ?? transfer?.id ?? null, state: "paid" as const, at: e.createdAt, ref: e.providerRef };
+        if (transfer === null || (transfer.state === "processing" && same(e))) {
+          transfer = paid;
           note = null;
+        } else if (transfer.state === "processing") {
+          conflict = `Paid by ${e.transferId ?? "a transfer"} while ${transfer.id ?? "another"} was in progress. Check Stripe for a double payment.`;
+          transfer = paid;
+        } else if (!same(e)) {
+          conflict = `Paid twice (${transfer.id ?? "earlier"} and ${e.transferId ?? "later"}). Reverse one in Stripe.`;
         }
         break;
+      }
       case "TRANSFER_FAILED":
-        if (current(e) && transfer!.state === "processing") {
+        if (same(e) && transfer!.state === "processing") {
           transfer = null;
           note = `Payment failed${e.reason ? `: ${e.reason}` : ""}`;
         }
         break;
       case "REVERSED":
-        if (current(e) && transfer!.state === "paid") {
+        if (same(e) && transfer!.state === "paid") {
           transfer = null;
           held = `Payment reversed${e.reason ? `: ${e.reason}` : ""}`;
         }
@@ -265,8 +278,9 @@ export function lineState(line: { amountCents: number }, events: PayEventFact[],
     paidRef: paid ? transfer!.ref : null,
     transferId: transfer?.id ?? null,
     heldReason: status === "HELD" ? held : null,
-    note: status === "VOIDED" || status === "PAID" ? null : note,
-    payable: status === "APPROVED",
+    note: conflict ?? (status === "VOIDED" || status === "PAID" ? null : note),
+    conflict: conflict !== null,
+    payable: status === "APPROVED" && conflict === null,
   };
 }
 

@@ -162,9 +162,20 @@ describe("lineState", () => {
       ev("TRANSFER_FAILED", 7, { transferId: "t1" }),
     ];
     expect(lineState(line, events, false)).toMatchObject({ status: "PAID", paidRef: "tr_2" });
-    // …and a stale "paid" for t1 doesn't mark a t2 in flight as paid.
+    // …but a "paid" for t1 while t2 is in flight means money moved: flagged.
     const inFlight = [ev("APPROVED", 1), ev("TRANSFER_STARTED", 2, { transferId: "t1" }), ev("TRANSFER_FAILED", 3, { transferId: "t1" }), ev("TRANSFER_STARTED", 4, { transferId: "t2" }), ev("PAID", 5, { transferId: "t1" })];
-    expect(lineState(line, inFlight, false)).toMatchObject({ status: "PROCESSING", transferId: "t2" });
+    expect(lineState(line, inFlight, false)).toMatchObject({ status: "PAID", conflict: true });
+  });
+  it("a pre-M5 paid line stays paid", () => {
+    expect(lineState(line, [ev("APPROVED", 0), ev("PAID", 0, { providerRef: "tr_old" })], false)).toMatchObject({ status: "PAID", paidRef: "tr_old", payable: false });
+  });
+  it("flags a possible double payment and never pays the line again", () => {
+    const twice = [ev("APPROVED", 1), ev("TRANSFER_STARTED", 2, { transferId: "t1" }), ev("TRANSFER_FAILED", 3, { transferId: "t1" }), ev("TRANSFER_STARTED", 4, { transferId: "t2" }), ev("PAID", 5, { transferId: "t2" }), ev("PAID", 6, { transferId: "t1" })];
+    expect(lineState(line, twice, false)).toMatchObject({ status: "PAID", conflict: true, note: expect.stringMatching(/Paid twice/) });
+    const overlap = [ev("APPROVED", 1), ev("TRANSFER_STARTED", 2, { transferId: "t1" }), ev("TRANSFER_STARTED", 3, { transferId: "t2" })];
+    expect(lineState(line, overlap, false)).toMatchObject({ status: "PROCESSING", transferId: "t1", conflict: true });
+    const failedBack = [...overlap, ev("TRANSFER_FAILED", 4, { transferId: "t1" })];
+    expect(lineState(line, failedBack, false)).toMatchObject({ status: "APPROVED", payable: false, conflict: true });
   });
   it("replays same-millisecond events in the order they can happen", () => {
     expect(lineState(line, [ev("TRANSFER_FAILED", 2, { transferId: "t" }), ev("TRANSFER_STARTED", 2, { transferId: "t" }), ev("APPROVED", 1)], false).status).toBe("APPROVED");

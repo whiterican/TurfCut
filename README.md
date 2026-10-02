@@ -83,8 +83,20 @@ using dummy env values (no real DB touched).
    - Preview deployments run in production mode too: give each one its own
      `SITE_URL` (and add its `/auth/confirm` to Redirect URLs), or sign-in
      links stay disabled there.
-6. **(M5, later)** Create a Stripe account and enable Connect (test mode) for
-   payouts.
+6. **Payouts (M5)** — optional until you want to send real (test) money:
+   - Create a Stripe account and turn on **Connect** (Express accounts),
+     in **test mode**.
+   - Developers → API keys → copy the secret key into `STRIPE_SECRET_KEY`.
+   - Developers → Webhooks → add an endpoint at
+     `<SITE_URL>/api/stripe/webhook` for `transfer.created` and
+     `transfer.reversed`, and copy its signing secret into
+     `STRIPE_WEBHOOK_SECRET`. (Optional: a second endpoint listening to
+     **connected accounts** for `account.updated` — the app also re-checks
+     a worker's setup on its own.)
+   - Transfers come out of Turfcut's Stripe balance, which organizations
+     fund by invoice. In test mode, add test funds in the Stripe dashboard.
+   Without these keys the app still records, approves, disputes and exports
+   pay; the **Pay** button explains that Stripe isn't connected yet.
 
 **Already set up under M0?** Upgrade the live database for M1 by pasting,
 in order, `prisma/m1-migration.sql`, `prisma/m1-profile-migration.sql`, then
@@ -117,6 +129,14 @@ only; safe to re-run).
 Without steps 3 and 5, chat still works: threads refresh every 15 seconds
 instead of instantly, and attaching a document fails with a clear error.
 
+**Already on M4? Payouts (M5)** — in the Supabase SQL editor, run
+`prisma/m5-migration.sql` once. It turns `Payout` into an append-only pay
+line with a status log, adds the transfer, dispute and webhook tables, and
+blocks updates and deletes on all of them. It stops without changing
+anything if an existing payout can't be traced to an organization. Any
+unpaid payout from before M5 is put on hold so finance checks its amount
+before paying it.
+
 Until steps 1–4 are done, `npm run dev` boots fine and the login/signup pages
 render, but sign-up will fail with a clear "missing environment variable"
 message.
@@ -135,6 +155,9 @@ src/
     workers/            # company: worker directory + authorized view + invite
     jobs/               # worker feed / org job list, builder, job page
     shifts/             # worker calendar + field day; supervisor custody/review
+    earnings/           # worker: pay per campaign, disputes, payout setup (M5)
+    payouts/            # owners/finance: approve, hold, disputes, pay, export (M5)
+    api/stripe/webhook  # Stripe events (M5)
     org/settings/       # publish-gate records, legal contact, jurisdictions
     api/workers/[workerId]/scorecard  # GET scorecard JSON
     api/jobs/…          # jobs, publish, applications, claims, invitations
@@ -159,6 +182,9 @@ src/
     engagements-data.ts # engagements under a per-job lock
     field-day.ts        # shift rules: check-in, custody, logging, review
     field-day-data.ts   # scheduling, shift actions, ops view (locked)
+    pay.ts              # pay calculation, line status replay, dispute rules (M5)
+    pay-data.ts         # pay lines, approvals, disputes, pay runs, export (locked)
+    payout-provider.ts  # Stripe Connect (lazy client; tests use a fake)
     supabase/           # browser / server / proxy clients
   proxy.ts              # session refresh (Next.js 16 convention)
 prisma/
@@ -172,6 +198,7 @@ prisma/
   m3-migration.sql      # M2 → M3 upgrade (staging, turf, supervisor, actor)
   m4-0-rls-lockdown.sql # RLS on + browser-role grants revoked (run before m4)
   m4-migration.sql      # M3 → M4 upgrade (messaging)
+  m5-migration.sql      # M4 → M5 upgrade (pay lines, payouts, disputes)
 ```
 
 ## M0 scope (done)
@@ -281,6 +308,43 @@ public launch (OSM's tile policy).
 API: `GET/POST /api/shifts`, `POST /api/shifts/:id/check-in` `{ lat?, lng? }`,
 `POST /api/shifts/:id/events` `{ kind, … }`,
 `POST /api/shifts/:id/closeout` `{ status, reason? }`.
+
+## M5 scope — review and in-app payouts
+
+- **Pay is calculated, never typed.** When a supervisor approves a shift, the
+  server records its pay line from what review verified: hourly = verified
+  hours (check-in to check-out, minus breaks, corrections applied) × rate;
+  shift rate = the rate; per accepted unit = the latest batch count's
+  accepted signatures (or verified contacts) × rate. The formula is saved on
+  the line ("3h 30m verified × $25.00/hr") and never recalculated. A
+  per-signature shift can't be approved before its batch count.
+- **Two approvals.** Supervisors approve the work; owners and finance approve
+  the pay (**Pay** tab), can hold a line with a reason the worker sees, and
+  release it. A review can change only until its pay is approved; after
+  that, changes are adjustments.
+- **Workers see their pay** on **Earnings** (from Today and Profile): gross
+  totals per campaign and every shift's status — awaiting approval,
+  approved, sending, paid, on hold, disputed.
+- **Disputes.** A worker can dispute any reviewed shift's pay, approved or
+  not (up to 3 times per shift). Unpaid pay waits. Owners and finance close
+  it by keeping the pay (with a response), adjusting it (a new adjustment
+  line — a deduction can't exceed the shift's pay), or recording that a
+  supervisor re-reviewed the shift.
+- **Stripe Connect payouts.** Workers set up payouts on Stripe's pages (bank
+  and tax details never reach Turfcut). Finance pays a worker everything
+  approved in one transfer; every transfer is recorded before money moves
+  and carries a unique idempotency key, so retries and timeouts can't pay
+  twice. Reversals put lines on hold; partial reversals are flagged.
+- **Platform fee: 15%** of approved pay, invoiced to the organization and
+  never taken from the worker; saved on each line so a change is never
+  retroactive.
+- **Finance export**: CSV of pay lines — payee, project, purpose, measure
+  IDs, shift date, calculation, gross, fee, total cost, who reviewed and who
+  approved, paid date and Stripe reference.
+- **Append-only, enforced by the database**: pay lines, their status log,
+  transfers, disputes, resolutions and handled webhooks can't be updated,
+  deleted or truncated. A minimum-wage flag appears when a jurisdiction's
+  rules list `minimumWageCents`.
 
 ## M4 scope — messaging
 

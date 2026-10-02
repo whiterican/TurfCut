@@ -56,6 +56,7 @@ export default async function JobPage({ params }: { params: Promise<{ jobId: str
           <p className="flex flex-wrap gap-1.5 pt-1">
             {isOwnOrg && <span className={status.badge}>{status.label}</span>}
             <span className="badge-sky">{day(job.startsAt)} – {day(job.endsAt)}</span>
+            <span className={job.type === "PETITION" ? "badge-butter" : "badge-mint"}>{job.type === "PETITION" ? "Petition" : "Canvass"}</span>
             <span className="badge-neutral">{acceptedCount} of {job.headcount ?? "—"} spots filled</span>
           </p>
         </div>

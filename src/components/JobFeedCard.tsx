@@ -31,7 +31,7 @@ export function JobFeedCard({ j }: { j: FeedJob }) {
         <span className="block text-base font-bold tracking-[-0.01em] text-fg">{j.title}</span>
         <span className="flex flex-wrap gap-1.5">
           <span className="badge-neutral">{day(j.startsAt)} – {day(j.endsAt)}</span>
-          <span className="badge-neutral">{j.type === "PETITION" ? "Petition" : "Canvass"}</span>
+          <span className={j.type === "PETITION" ? "badge-butter" : "badge-mint"}>{j.type === "PETITION" ? "Petition" : "Canvass"}</span>
         </span>
       </span>
       <span className="flex shrink-0 items-center justify-between gap-3 sm:flex-col sm:items-end">

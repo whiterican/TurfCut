@@ -16,7 +16,14 @@ import { flushAll } from "@/lib/offline-queue";
 export function OfflineBrief({ userId, paths }: { userId: string; paths: string[] }) {
   const key = paths.join("|");
   useEffect(() => {
-    const send = () => void flushAll(userId).catch(() => {});
+    // Shift pages saved for dead zones should show what just synced.
+    const send = () =>
+      void flushAll(userId)
+        .then((r) => {
+          if (!r.savedShifts.length) return;
+          for (const p of ["/dashboard", "/shifts", ...r.savedShifts.map((id) => `/shifts/${id}`)]) refreshSavedPage(userId, p);
+        })
+        .catch(() => {});
     const first = setTimeout(send, 0);
     window.addEventListener("online", send);
     let cancelled = false;

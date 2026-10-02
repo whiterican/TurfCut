@@ -28,8 +28,11 @@ const SAVED_TTL_MS = 10 * 60_000;
 const key = (userId: string) => `${PREFIX}${userId}`;
 const listeners = new Set<() => void>();
 let memory: Record<string, Pending[]> = {};
+/** Users whose latest entries only this page holds (the phone couldn't store them). */
+const memoryOnly = new Set<string>();
 
 function read(userId: string): Pending[] {
+  if (memoryOnly.has(userId)) return memory[userId] ?? [];
   try {
     const raw = localStorage.getItem(key(userId));
     return raw ? (JSON.parse(raw) as Pending[]) : (memory[userId] ?? []);
@@ -45,8 +48,10 @@ function write(userId: string, items: Pending[]): boolean {
   try {
     if (items.length) localStorage.setItem(key(userId), JSON.stringify(items));
     else localStorage.removeItem(key(userId));
+    memoryOnly.delete(userId);
   } catch {
-    stored = false; // storage full or blocked
+    stored = false; // storage full or blocked: this page's copy is the latest
+    memoryOnly.add(userId);
   }
   listeners.forEach((l) => l());
   return stored;
@@ -91,11 +96,18 @@ export function prune(userId: string, shown: Set<string>, now = Date.now()) {
   if (keep.length !== items.length) write(userId, keep);
 }
 
-/** Everything a signed-out phone must forget. */
-export function clearAll() {
-  memory = {};
+/**
+ * What the phone forgets when this person signs out: their own entries.
+ * Another worker's unsynced entries on a shared phone stay until they sign
+ * in again (sign-out only warns about the person signing out).
+ */
+export function clearUser(userId: string) {
+  const { [userId]: _gone, ...rest } = memory;
+  void _gone;
+  memory = rest;
+  memoryOnly.delete(userId);
   try {
-    for (const k of Object.keys(localStorage)) if (k.startsWith(PREFIX) || k === CLOCK) localStorage.removeItem(k);
+    localStorage.removeItem(key(userId));
   } catch {
     // nothing stored
   }
@@ -131,15 +143,18 @@ function saveOffset(serverNow: unknown, sentAt: number, gotAt: number) {
 /**
  * What happened. `offline`: no answer (no signal, timeout, server trouble),
  * try again later. `problem`: an answer that isn't about any one entry
- * (e.g. signed out) — the entries wait, with this shown.
+ * (e.g. signed out) — the entries wait, with this shown. `busy`: another
+ * send for this shift was already under way, so this one didn't run.
  */
-export type FlushResult = { saved: number; rejected: number; offline: boolean; problem: string | null };
+export type FlushResult = { saved: number; rejected: number; offline: boolean; problem: string | null; busy?: boolean };
 
 const inFlight = new Set<string>();
 
 async function post(shiftId: string, batch: Pending[]): Promise<Response> {
   const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 20_000);
+  // Longer than the server's 30 s transaction, so a slow batch isn't re-sent
+  // while the first one still holds the shift.
+  const timer = setTimeout(() => ctrl.abort(), 35_000);
   try {
     return await fetch(`/api/shifts/${shiftId}/sync`, {
       method: "POST",
@@ -155,7 +170,7 @@ async function post(shiftId: string, batch: Pending[]): Promise<Response> {
 /** Sends a shift's unsent actions, in the order recorded. Safe to call often. */
 export async function flush(userId: string, shiftId: string): Promise<FlushResult> {
   const result: FlushResult = { saved: 0, rejected: 0, offline: false, problem: null };
-  if (inFlight.has(shiftId)) return result;
+  if (inFlight.has(shiftId)) return { ...result, busy: true };
   inFlight.add(shiftId);
   try {
     for (;;) {
@@ -208,16 +223,17 @@ export async function flush(userId: string, shiftId: string): Promise<FlushResul
   }
 }
 
-/** Sends every shift's unsent actions (e.g. from Today or My shifts). */
-export async function flushAll(userId: string): Promise<FlushResult> {
+/** Sends every shift's unsent actions (e.g. from Today or My shifts). `savedShifts`: shifts that got entries. */
+export async function flushAll(userId: string): Promise<FlushResult & { savedShifts: string[] }> {
   const shifts = [...new Set(read(userId).filter((p) => !p.rejected && !p.savedAt).map((p) => p.shiftId))];
-  const total: FlushResult = { saved: 0, rejected: 0, offline: false, problem: null };
+  const total: FlushResult & { savedShifts: string[] } = { saved: 0, rejected: 0, offline: false, problem: null, savedShifts: [] };
   for (const s of shifts) {
     const r = await flush(userId, s);
     total.saved += r.saved;
     total.rejected += r.rejected;
     total.offline ||= r.offline;
     total.problem ??= r.problem;
+    if (r.saved) total.savedShifts.push(s);
     if (r.offline || r.problem) break;
   }
   return total;

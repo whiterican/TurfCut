@@ -346,10 +346,13 @@ API: `GET/POST /api/shifts`, `POST /api/shifts/:id/check-in` `{ location? }`
 - **Times are checked on sync.** Phone clocks are corrected (server now −
   phone now). The server refuses future times and anything held offline
   more than 24 hours (a supervisor enters those) and keeps the phone's
-  order. A synced action never lands before anything the shift already
-  has (it goes after the latest recorded event) and is judged against the
-  whole shift, so a phone clock can't rewrite recorded time; once a
-  supervisor has reviewed the shift, nothing more syncs into it. An action
+  order. A synced action never lands before the worker's own field events
+  already on the shift (it goes after the latest check-in, break, count,
+  packet return or check-out) and is judged against the whole shift, so a
+  phone clock can't rewrite recorded time. Other people's events — a
+  packet handed out, a map pin — don't move it; a packet return goes after
+  that packet was handed out. Once a supervisor has reviewed the shift,
+  nothing more syncs into it. An action
   re-sent after a dropped connection is saved once (`clientId`).
   Supervisors see "recorded offline, synced HH:MM" in the activity log, and
   a note before approving when any entry came in late from the phone.

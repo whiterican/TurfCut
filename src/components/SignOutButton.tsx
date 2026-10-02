@@ -1,12 +1,13 @@
 "use client";
 
-import { clearAll, unsentCount } from "@/lib/offline-queue";
+import { clearUser, unsentCount } from "@/lib/offline-queue";
 import { forgetSavedPages } from "@/components/OfflineBrief";
 
 /**
- * Sign out, and make the phone forget this person: field actions waiting to
- * sync and the shift pages saved for offline use. Warns first if any of
- * their entries haven't synced yet.
+ * Sign out, and make the phone forget this person: their field actions
+ * waiting to sync and the shift pages saved for offline use. Warns first if
+ * any of their entries haven't synced yet. (Another worker's unsynced
+ * entries on a shared phone stay for when they sign in again.)
  */
 export function SignOutButton({ action, userId }: { action: () => Promise<void>; userId: string }) {
   function onSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -15,7 +16,7 @@ export function SignOutButton({ action, userId }: { action: () => Promise<void>;
       e.preventDefault();
       return;
     }
-    clearAll();
+    clearUser(userId);
     forgetSavedPages();
     if ("caches" in window) void caches.keys().then((ks) => ks.filter((k) => k.startsWith("turfcut-")).forEach((k) => void caches.delete(k)));
   }

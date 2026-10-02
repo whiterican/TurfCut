@@ -18,7 +18,9 @@
 const PAGES = "turfcut-pages-v2";
 const STATIC = "turfcut-static-v1";
 const META = "turfcut-meta-v1";
-const FIELD = /^\/(?:dashboard|shifts(?:\/[0-9a-f-]{36})?|shifts\/turf)\/?$/i;
+// No trailing slash: Next.js redirects "/shifts/" to "/shifts", and a
+// redirect on a field page reads as "signed out" below.
+const FIELD = /^\/(?:dashboard|shifts(?:\/[0-9a-f-]{36})?|shifts\/turf)$/i;
 const MAX_AGE_MS = 72 * 3_600_000;
 const RESAVE_MS = 5 * 60_000;
 const NETWORK_WAIT_MS = 8_000;
@@ -158,6 +160,7 @@ async function fieldPage(e, url) {
   const fetched = fetch(e.request).then((res) => ({ res, copy: res.clone() }));
   e.waitUntil(fetched.then(({ copy }) => savePage(path, copy)).catch(() => {}));
   const network = fetched.then(({ res }) => res);
+  network.catch(() => {}); // a failure after the saved copy was served is expected
   const slow = new Promise((resolve) => setTimeout(() => resolve("slow"), NETWORK_WAIT_MS));
   try {
     const first = await Promise.race([network, slow]);

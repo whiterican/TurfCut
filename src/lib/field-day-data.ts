@@ -6,6 +6,7 @@ import { applyReviewPlan, payLock, planReview, reviewLockProblem, withdrawStaleP
 import { correctTime, placeTime, timeProblem, wasOffline, type QueuedAction } from "@/lib/offline-sync";
 import {
   findConflicts,
+  samePacket,
   shiftState,
   supervisorAction,
   validateShift,
@@ -248,18 +249,24 @@ export async function supervisorShiftAction(
   });
 }
 
+/** The events a worker's own field actions write (not supervisors', not map pins). */
+const WORKER_FIELD_EVENTS = new Set(["CHECK_IN", "CHECK_OUT", "PAUSE_START", "PAUSE_END", "SIGNATURE_SUBMITTED", "DOOR_KNOCK", "CONTACT", "PACKET_RETURN"]);
+
 export type SyncResult = { clientId: string; status: "saved" | "duplicate" | "rejected"; reason?: string };
 
 /**
  * Applies actions a worker's phone queued (M6, lib/offline-sync.ts), in the
- * phone's order, at their corrected times — but never before anything the
- * shift already has: each action goes after the latest recorded event and
- * is judged against the whole shift as it stands, so a backdated action
- * can't slip in front of a check-in, a break or a check-out that's already
- * there. (The phone's clock is the worker's to set; this keeps it from
- * rewriting recorded time.) Once a supervisor has reviewed the shift,
- * nothing more is added from the phone. An id already saved is reported as
- * a duplicate, never saved twice. One transaction under the shift lock.
+ * phone's order, at their corrected times — but never before the worker's
+ * own field events already on the shift (check-in, breaks, counts, packet
+ * returns, check-out): each goes after the latest of those and is judged
+ * against the whole shift as it stands, so a backdated action can't slip in
+ * front of recorded work. (The phone's clock is the worker's to set; this
+ * keeps it from rewriting recorded time.) Other people's events — a packet
+ * handed out, a map pin — don't move the worker's times; a packet return
+ * goes after that packet was handed out. Once a supervisor has reviewed the
+ * shift, nothing more is added from the phone. An id already saved is
+ * reported as a duplicate, never saved twice. One transaction under the
+ * shift lock.
  */
 export async function syncWorkerActions(
   actor: { workerId: string; profileId: string },
@@ -279,8 +286,10 @@ export async function syncWorkerActions(
     const f = facts(s);
     const reviewed = shiftState(f).closeout !== null;
     const results: SyncResult[] = [];
-    // Everything synced goes after what the shift already has.
-    let lastSaved: Date | null = f.events.reduce<Date | null>((m, e) => (!m || e.createdAt > m ? e.createdAt : m), null);
+    const latest = (keep: (e: (typeof f.events)[number]) => boolean) =>
+      f.events.reduce<Date | null>((m, e) => (keep(e) && (!m || e.createdAt > m) ? e.createdAt : m), null);
+    // Everything synced goes after the worker's own field events.
+    let lastWorker = latest((e) => WORKER_FIELD_EVENTS.has(e.type));
     for (const q of batch.actions) {
       if (done.has(q.clientId)) {
         results.push(done.get(q.clientId) === shiftId ? { clientId: q.clientId, status: "duplicate" } : { clientId: q.clientId, status: "rejected", reason: "Already used for another shift." });
@@ -296,17 +305,22 @@ export async function syncWorkerActions(
         results.push({ clientId: q.clientId, status: "rejected", reason: late });
         continue;
       }
-      const t = placeTime(corrected, lastSaved, serverNow);
-      // t is after every recorded event, so this is the whole shift as it
-      // stands. (A cancelled shift stays cancelled: nothing more is added.)
+      // A packet comes back after it went out.
+      const pickedUp = q.action.kind === "return_packet" ? latest((e) => e.type === "PACKET_PICKUP" && samePacket(String((e.payload as { packetId?: unknown } | null)?.packetId ?? ""), (q.action as { packetId: string }).packetId)) : null;
+      const floor = pickedUp && (!lastWorker || pickedUp > lastWorker) ? pickedUp : lastWorker;
+      const t = placeTime(corrected, floor, serverNow);
+      // t is after the worker's own events, so their side of the shift is as
+      // it stands. (A cancelled shift stays cancelled: nothing more is added.)
       const out = workerAction(f, q.action, t);
       if (!out.ok) {
         results.push({ clientId: q.clientId, status: "rejected", reason: out.reason });
         continue;
       }
-      await apply(tx, shiftId, actor.profileId, out, t, undefined, { clientId: q.clientId, receivedAt: wasOffline(t, serverNow) ? serverNow : null });
+      // "Recorded offline" is about when it happened on the phone, not where
+      // it was placed: a moved entry is still marked for the reviewer.
+      await apply(tx, shiftId, actor.profileId, out, t, undefined, { clientId: q.clientId, receivedAt: wasOffline(corrected, serverNow) ? serverNow : null });
       done.set(q.clientId, shiftId);
-      lastSaved = t;
+      if (out.event) lastWorker = t;
       if (out.event) f.events.push({ type: out.event.type, payload: out.event.payload, actorId: actor.profileId, createdAt: t });
       if (out.status) f.status = out.status;
       results.push({ clientId: q.clientId, status: "saved" });

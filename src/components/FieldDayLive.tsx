@@ -120,20 +120,25 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
 
   // Forget saved entries once the page shows them.
   useEffect(() => prune(shift.userId, shown), [shift.userId, shown]);
+  // Saved entries the page doesn't show yet (synced here, from another tab
+  // or from Today) need its fresh data: refresh whenever that set changes.
+  const savedUnseen = pending.filter((p) => p.savedAt && !shown.has(p.clientId)).map((p) => p.clientId).join(",");
+  useEffect(() => {
+    if (savedUnseen) router.refresh();
+  }, [savedUnseen, router]);
 
   const sync = useCallback(async () => {
     if (!pendingFor(shift.userId, shift.shiftId).some((p) => !p.rejected && !p.savedAt)) return;
     setSyncing(true);
     const r = await flush(shift.userId, shift.shiftId);
     setSyncing(false);
+    if (r.busy) return; // another send for this shift is under way: keep the badge as it is
     setUnreachable(r.offline);
     setProblem(r.problem);
-    if (r.saved > 0 || r.rejected > 0) {
-      router.refresh();
-      // The copy saved for dead zones should show what just synced.
-      refreshSavedPage(shift.userId, `/shifts/${shift.shiftId}`);
-    }
-  }, [router, shift.shiftId, shift.userId]);
+    // (The page refreshes itself once saved entries are waiting to show.)
+    // The copy saved for dead zones should show what just synced too.
+    if (r.saved > 0) refreshSavedPage(shift.userId, `/shifts/${shift.shiftId}`);
+  }, [shift.shiftId, shift.userId]);
 
   // Send whenever there's a chance: on load, when signal returns, when the
   // app comes back to the front, and every 20 seconds while anything waits.

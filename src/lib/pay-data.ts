@@ -432,6 +432,10 @@ export async function lineAction(actor: PayActor, payoutIds: string[], action: L
     for (const w of [...new Set(owners.map((o) => o.workerId))].sort()) await payLock(tx, w);
     const lines = await orgLines(tx, { id: { in: ids } });
     for (const l of lines) {
+      // Two people: whoever approved the shift's work can't approve its pay.
+      if (action === "approve" && l.line.kind === "SHIFT" && l.line.validation?.reviewerId === actor.profileId) {
+        return { ok: false as const, reason: `${l.line.worker.displayName}: you approved this shift's work, so someone else approves its pay.` };
+      }
       const problem = lineActionProblem(l.state, action, why);
       if (problem) return { ok: false as const, reason: lines.length > 1 ? `${l.line.worker.displayName}: ${problem}` : problem };
     }

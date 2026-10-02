@@ -173,7 +173,7 @@ export default async function PayoutsPage() {
               worker: l.line.worker.displayName,
               detail: [l.line.engagement?.job.title, l.line.shift ? day(l.line.shift.startsAt) : null, l.formula].filter(Boolean).join(" · "),
               amount: money(l.line.amountCents),
-              flag: l.wageFlag,
+              flag: l.line.validation?.reviewerId === s.userId ? "You approved this shift's work — someone else approves its pay." : l.wageFlag,
             }))}
           />
           <details className="card">

@@ -130,7 +130,9 @@ Without steps 3 and 5, chat still works: threads refresh every 15 seconds
 instead of instantly, and attaching a document fails with a clear error.
 
 **Already on M4? Payouts (M5)** — in the Supabase SQL editor, run
-`prisma/m5-migration.sql` once. It turns `Payout` into an append-only pay
+`prisma/m5-migration.sql` once, then `prisma/m5-1-history-lock.sql` (the
+database then refuses edits and deletes of work events, shift reviews and
+the audit log, as it already does for messages and pay). It turns `Payout` into an append-only pay
 line with a status log, adds the transfer, dispute and webhook tables, and
 blocks updates and deletes on all of them. It stops without changing
 anything if an existing payout can't be traced to an organization. Any
@@ -199,6 +201,7 @@ prisma/
   m4-0-rls-lockdown.sql # RLS on + browser-role grants revoked (run before m4)
   m4-migration.sql      # M3 → M4 upgrade (messaging)
   m5-migration.sql      # M4 → M5 upgrade (pay lines, payouts, disputes)
+  m5-1-history-lock.sql # append-only triggers on work events, reviews, audit
 ```
 
 ## M0 scope (done)
@@ -318,8 +321,8 @@ API: `GET/POST /api/shifts`, `POST /api/shifts/:id/check-in` `{ lat?, lng? }`,
   accepted signatures (or verified contacts) × rate. The formula is saved on
   the line ("3h 30m verified × $25.00/hr") and never recalculated. A
   per-signature shift can't be approved before its batch count.
-- **Two approvals.** Supervisors approve the work; owners and finance approve
-  the pay (**Pay** tab), can hold a line with a reason the worker sees, and
+- **Two approvals, two people.** Supervisors approve the work; owners and
+  finance approve the pay — never the same person for the same shift (**Pay** tab), can hold a line with a reason the worker sees, and
   release it. A review can change only until its pay is approved; after
   that, changes are adjustments.
 - **Workers see their pay** on **Earnings** (from Today and Profile): gross

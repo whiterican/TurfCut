@@ -2,7 +2,7 @@
 -- Generated from prisma/schema.prisma + prisma/seed.ts on 2026-10-02.
 -- Paste the entire file into the Supabase SQL editor and run it.
 -- The DDL is not re-runnable. Existing database? Run the m1-, m1-profile-, m2-, m3-,
--- m4-0-rls-lockdown, m4- and m5-migration.sql files in order, then manual-seed.sql (idempotent).
+-- m4-0-rls-lockdown, m4-, m5-migration and m5-1-history-lock.sql files in order, then manual-seed.sql (idempotent).
 -- CreateSchema
 CREATE SCHEMA IF NOT EXISTS "public";
 
@@ -908,6 +908,21 @@ ALTER TABLE "public"."PayDisputeResolution" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."ProviderEvent"        ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON "public"."PayoutEvent", "public"."PayoutTransfer", "public"."PayDispute",
   "public"."PayDisputeResolution", "public"."ProviderEvent" FROM anon, authenticated;
+
+-- ---- Security (M5.1): append-only work history ----
+CREATE TRIGGER "WorkEvent_append_only" BEFORE UPDATE OR DELETE ON "public"."WorkEvent"
+  FOR EACH ROW EXECUTE FUNCTION "turfcut_private"."append_only"();
+CREATE TRIGGER "Validation_append_only" BEFORE UPDATE OR DELETE ON "public"."Validation"
+  FOR EACH ROW EXECUTE FUNCTION "turfcut_private"."append_only"();
+CREATE TRIGGER "AuditEvent_append_only" BEFORE UPDATE OR DELETE ON "public"."AuditEvent"
+  FOR EACH ROW EXECUTE FUNCTION "turfcut_private"."append_only"();
+CREATE TRIGGER "WorkEvent_no_truncate" BEFORE TRUNCATE ON "public"."WorkEvent"
+  FOR EACH STATEMENT EXECUTE FUNCTION "turfcut_private"."append_only"();
+CREATE TRIGGER "Validation_no_truncate" BEFORE TRUNCATE ON "public"."Validation"
+  FOR EACH STATEMENT EXECUTE FUNCTION "turfcut_private"."append_only"();
+CREATE TRIGGER "AuditEvent_no_truncate" BEFORE TRUNCATE ON "public"."AuditEvent"
+  FOR EACH STATEMENT EXECUTE FUNCTION "turfcut_private"."append_only"();
+
 
 -- Turfcut seed (M0 + M1 events) — SQL version of prisma/seed.ts
 -- Run AFTER the DDL above. Idempotent: safe to re-run (ON CONFLICT DO NOTHING).

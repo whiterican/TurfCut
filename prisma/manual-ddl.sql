@@ -32,7 +32,13 @@ CREATE TYPE "public"."WorkEventType" AS ENUM ('CHECK_IN', 'CHECK_OUT', 'PAUSE_ST
 CREATE TYPE "public"."ValidationStatus" AS ENUM ('APPROVED', 'REJECTED', 'FLAGGED');
 
 -- CreateEnum
-CREATE TYPE "public"."PayoutStatus" AS ENUM ('PENDING', 'APPROVED', 'PAID', 'DISPUTED');
+CREATE TYPE "public"."PayoutKind" AS ENUM ('SHIFT', 'ADJUSTMENT');
+
+-- CreateEnum
+CREATE TYPE "public"."PayoutEventType" AS ENUM ('APPROVED', 'HELD', 'RELEASED', 'VOIDED', 'TRANSFER_STARTED', 'PAID', 'TRANSFER_FAILED', 'REVERSED');
+
+-- CreateEnum
+CREATE TYPE "public"."DisputeOutcome" AS ENUM ('KEPT', 'ADJUSTED', 'REREVIEWED');
 
 -- CreateEnum
 CREATE TYPE "public"."ConversationKind" AS ENUM ('DIRECT', 'GROUP');
@@ -63,6 +69,9 @@ CREATE TABLE "public"."Worker" (
     "phone" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
+    "stripeAccountId" TEXT,
+    "payoutsEnabled" BOOLEAN NOT NULL DEFAULT false,
+    "payoutsCheckedAt" TIMESTAMP(3),
 
     CONSTRAINT "Worker_pkey" PRIMARY KEY ("id")
 );
@@ -247,14 +256,83 @@ CREATE TABLE "public"."ProfileMetric" (
 CREATE TABLE "public"."Payout" (
     "id" UUID NOT NULL,
     "workerId" UUID NOT NULL,
+    "orgId" UUID NOT NULL,
     "engagementId" UUID,
+    "shiftId" UUID,
+    "validationId" UUID,
+    "kind" "public"."PayoutKind" NOT NULL DEFAULT 'SHIFT',
     "amountCents" INTEGER NOT NULL,
     "feeCents" INTEGER NOT NULL DEFAULT 0,
-    "status" "public"."PayoutStatus" NOT NULL DEFAULT 'PENDING',
-    "stripeTransferId" TEXT,
+    "basis" JSONB,
+    "adjustsId" UUID,
+    "createdById" UUID,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "Payout_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."PayoutEvent" (
+    "id" UUID NOT NULL,
+    "payoutId" UUID NOT NULL,
+    "type" "public"."PayoutEventType" NOT NULL,
+    "actorId" UUID,
+    "reason" TEXT,
+    "transferId" UUID,
+    "providerRef" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "PayoutEvent_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."PayoutTransfer" (
+    "id" UUID NOT NULL,
+    "workerId" UUID NOT NULL,
+    "orgId" UUID NOT NULL,
+    "amountCents" INTEGER NOT NULL,
+    "feeCents" INTEGER NOT NULL,
+    "destination" TEXT NOT NULL,
+    "createdById" UUID NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "PayoutTransfer_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."PayDispute" (
+    "id" UUID NOT NULL,
+    "shiftId" UUID NOT NULL,
+    "workerId" UUID NOT NULL,
+    "orgId" UUID NOT NULL,
+    "payoutId" UUID,
+    "openedById" UUID NOT NULL,
+    "reason" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "PayDispute_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."PayDisputeResolution" (
+    "id" UUID NOT NULL,
+    "disputeId" UUID NOT NULL,
+    "outcome" "public"."DisputeOutcome" NOT NULL,
+    "response" TEXT NOT NULL,
+    "resolvedById" UUID NOT NULL,
+    "adjustmentId" UUID,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "PayDisputeResolution_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."ProviderEvent" (
+    "id" TEXT NOT NULL,
+    "type" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "ProviderEvent_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -366,6 +444,9 @@ CREATE TABLE "public"."ProfileBlock" (
 CREATE UNIQUE INDEX "Worker_profileId_key" ON "public"."Worker"("profileId");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "Worker_stripeAccountId_key" ON "public"."Worker"("stripeAccountId");
+
+-- CreateIndex
 CREATE INDEX "ExperienceRecord_workerId_idx" ON "public"."ExperienceRecord"("workerId");
 
 -- CreateIndex
@@ -396,7 +477,37 @@ CREATE INDEX "ProfileMetric_workerId_idx" ON "public"."ProfileMetric"("workerId"
 CREATE UNIQUE INDEX "ProfileMetric_workerId_version_key" ON "public"."ProfileMetric"("workerId", "version");
 
 -- CreateIndex
-CREATE INDEX "Payout_workerId_status_idx" ON "public"."Payout"("workerId", "status");
+CREATE INDEX "Payout_workerId_createdAt_idx" ON "public"."Payout"("workerId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "Payout_orgId_createdAt_idx" ON "public"."Payout"("orgId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "Payout_shiftId_idx" ON "public"."Payout"("shiftId");
+
+-- CreateIndex
+CREATE INDEX "PayoutEvent_payoutId_createdAt_idx" ON "public"."PayoutEvent"("payoutId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "PayoutEvent_transferId_idx" ON "public"."PayoutEvent"("transferId");
+
+-- CreateIndex
+CREATE INDEX "PayoutTransfer_orgId_createdAt_idx" ON "public"."PayoutTransfer"("orgId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "PayoutTransfer_workerId_createdAt_idx" ON "public"."PayoutTransfer"("workerId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "PayDispute_orgId_createdAt_idx" ON "public"."PayDispute"("orgId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "PayDispute_shiftId_idx" ON "public"."PayDispute"("shiftId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "PayDisputeResolution_disputeId_key" ON "public"."PayDisputeResolution"("disputeId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "PayDisputeResolution_adjustmentId_key" ON "public"."PayDisputeResolution"("adjustmentId");
 
 -- CreateIndex
 CREATE INDEX "AuditEvent_entityType_entityId_idx" ON "public"."AuditEvent"("entityType", "entityId");
@@ -478,6 +589,51 @@ ALTER TABLE "public"."ProfileMetric" ADD CONSTRAINT "ProfileMetric_workerId_fkey
 
 -- AddForeignKey
 ALTER TABLE "public"."Payout" ADD CONSTRAINT "Payout_workerId_fkey" FOREIGN KEY ("workerId") REFERENCES "public"."Worker"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."Payout" ADD CONSTRAINT "Payout_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "public"."Organization"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."Payout" ADD CONSTRAINT "Payout_engagementId_fkey" FOREIGN KEY ("engagementId") REFERENCES "public"."Engagement"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."Payout" ADD CONSTRAINT "Payout_shiftId_fkey" FOREIGN KEY ("shiftId") REFERENCES "public"."Shift"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."Payout" ADD CONSTRAINT "Payout_validationId_fkey" FOREIGN KEY ("validationId") REFERENCES "public"."Validation"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."Payout" ADD CONSTRAINT "Payout_adjustsId_fkey" FOREIGN KEY ("adjustsId") REFERENCES "public"."Payout"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."PayoutEvent" ADD CONSTRAINT "PayoutEvent_payoutId_fkey" FOREIGN KEY ("payoutId") REFERENCES "public"."Payout"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."PayoutEvent" ADD CONSTRAINT "PayoutEvent_transferId_fkey" FOREIGN KEY ("transferId") REFERENCES "public"."PayoutTransfer"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."PayoutTransfer" ADD CONSTRAINT "PayoutTransfer_workerId_fkey" FOREIGN KEY ("workerId") REFERENCES "public"."Worker"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."PayoutTransfer" ADD CONSTRAINT "PayoutTransfer_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "public"."Organization"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."PayDispute" ADD CONSTRAINT "PayDispute_shiftId_fkey" FOREIGN KEY ("shiftId") REFERENCES "public"."Shift"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."PayDispute" ADD CONSTRAINT "PayDispute_workerId_fkey" FOREIGN KEY ("workerId") REFERENCES "public"."Worker"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."PayDispute" ADD CONSTRAINT "PayDispute_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "public"."Organization"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."PayDispute" ADD CONSTRAINT "PayDispute_payoutId_fkey" FOREIGN KEY ("payoutId") REFERENCES "public"."Payout"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."PayDisputeResolution" ADD CONSTRAINT "PayDisputeResolution_disputeId_fkey" FOREIGN KEY ("disputeId") REFERENCES "public"."PayDispute"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."PayDisputeResolution" ADD CONSTRAINT "PayDisputeResolution_adjustmentId_fkey" FOREIGN KEY ("adjustmentId") REFERENCES "public"."Payout"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "public"."Conversation" ADD CONSTRAINT "Conversation_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "public"."Organization"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

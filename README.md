@@ -83,8 +83,20 @@ using dummy env values (no real DB touched).
    - Preview deployments run in production mode too: give each one its own
      `SITE_URL` (and add its `/auth/confirm` to Redirect URLs), or sign-in
      links stay disabled there.
-6. **(M5, later)** Create a Stripe account and enable Connect (test mode) for
-   payouts.
+6. **Payouts (M5)** — optional until you want to send real (test) money:
+   - Create a Stripe account and turn on **Connect** (Express accounts),
+     in **test mode**.
+   - Developers → API keys → copy the secret key into `STRIPE_SECRET_KEY`.
+   - Developers → Webhooks → add an endpoint at
+     `<SITE_URL>/api/stripe/webhook` for `transfer.created` and
+     `transfer.reversed`, and copy its signing secret into
+     `STRIPE_WEBHOOK_SECRET`. (Optional: a second endpoint listening to
+     **connected accounts** for `account.updated` — the app also re-checks
+     a worker's setup on its own.)
+   - Transfers come out of Turfcut's Stripe balance, which organizations
+     fund by invoice. In test mode, add test funds in the Stripe dashboard.
+   Without these keys the app still records, approves, disputes and exports
+   pay; the **Pay** button explains that Stripe isn't connected yet.
 
 **Already set up under M0?** Upgrade the live database for M1 by pasting,
 in order, `prisma/m1-migration.sql`, `prisma/m1-profile-migration.sql`, then
@@ -117,6 +129,24 @@ only; safe to re-run).
 Without steps 3 and 5, chat still works: threads refresh every 15 seconds
 instead of instantly, and attaching a document fails with a clear error.
 
+**Already on M4?** Run `prisma/m4-1-hardening.sql` (safe to re-run): browsers
+can read only chat ids and times (never message text), a deleted message
+disappears for everyone, chat history can't be truncated, and consent and
+metric versions can't be edited. It gives up after 5 seconds if the
+database is busy; just run it again.
+
+**Payouts (M5)** — in the Supabase SQL editor, run
+`prisma/m5-migration.sql` once. It turns `Payout` into an append-only pay
+line with a status log, adds the transfer, dispute and webhook tables, and
+blocks updates and deletes on all of them. It stops without changing
+anything if an existing payout can't be traced to an organization or has a
+negative amount, and gives up after 5 seconds if the database is busy. Any
+unpaid payout from before M5 comes over on hold with no approval: finance
+checks its amount, releases it, and it's approved again (by two people)
+before it's paid. Then run `prisma/m5-1-history-lock.sql`: the database
+refuses edits and deletes of work events, shift reviews and the audit log,
+as it already does for messages and pay (safe to re-run).
+
 Until steps 1–4 are done, `npm run dev` boots fine and the login/signup pages
 render, but sign-up will fail with a clear "missing environment variable"
 message.
@@ -135,6 +165,9 @@ src/
     workers/            # company: worker directory + authorized view + invite
     jobs/               # worker feed / org job list, builder, job page
     shifts/             # worker calendar + field day; supervisor custody/review
+    earnings/           # worker: pay per campaign, disputes, payout setup (M5)
+    payouts/            # owners/finance: approve, hold, disputes, pay, export (M5)
+    api/stripe/webhook  # Stripe events (M5)
     org/settings/       # publish-gate records, legal contact, jurisdictions
     api/workers/[workerId]/scorecard  # GET scorecard JSON
     api/jobs/…          # jobs, publish, applications, claims, invitations
@@ -159,19 +192,26 @@ src/
     engagements-data.ts # engagements under a per-job lock
     field-day.ts        # shift rules: check-in, custody, logging, review
     field-day-data.ts   # scheduling, shift actions, ops view (locked)
+    pay.ts              # pay calculation, line status replay, dispute rules (M5)
+    pay-data.ts         # pay lines, approvals, disputes, pay runs, export (locked)
+    payout-provider.ts  # Stripe Connect (lazy client; tests use a fake)
     supabase/           # browser / server / proxy clients
   proxy.ts              # session refresh (Next.js 16 convention)
 prisma/
   schema.prisma         # all core tables + enums
   seed.ts               # seed data (idempotent)
   seed-fixture.ts       # seeded shift's events, shared with the tests
-  manual-ddl.sql        # full DDL for a fresh database
+  manual-ddl.sql        # Prisma's table DDL only — no triggers, CHECKs, partial
+                        # indexes or RLS; use supabase-manual-setup.sql for a real DB
   m1-migration.sql      # M0 → M1 upgrade for an existing database (run 1st)
   m1-profile-migration.sql # experience fields + consent expiry (run 2nd)
   m2-migration.sql      # M1 → M2 upgrade (jobs, publish gate, cancellations)
   m3-migration.sql      # M2 → M3 upgrade (staging, turf, supervisor, actor)
   m4-0-rls-lockdown.sql # RLS on + browser-role grants revoked (run before m4)
   m4-migration.sql      # M3 → M4 upgrade (messaging)
+  m4-1-hardening.sql    # review fixes: chat read grants, history guards
+  m5-migration.sql      # M4 → M5 upgrade (pay lines, payouts, disputes)
+  m5-1-history-lock.sql # append-only triggers on work events, reviews, audit
 ```
 
 ## M0 scope (done)
@@ -233,10 +273,15 @@ Jobs and hiring, built on the M1 profile.
 - **Hiring snapshot.** Each engagement freezes what the org could see at that
   moment — scorecard summary and authorized fit signals only, with consent
   version and time. Issue overlap compares the worker's shared answers with
-  the job's disclosed positions. An invitation sent before the worker has
-  any relationship with the org shows no fit answers.
+  the job's disclosed positions. An invitation shows fit answers only if
+  the worker already applied to, claimed or accepted one of the org's jobs;
+  an invitation alone (even a second one) is never a relationship.
 - **Late cancellations.** A worker `SHIFT_CANCELLED` inside the job's notice
   window counts as a no-show; timely and organization cancellations don't.
+  A shift scheduled with less notice than the window can be cancelled
+  without penalty until it starts (or until an hour after it was
+  scheduled, if that's later). Once a shift has ended nobody can cancel
+  it: an unstarted shift is a no-show from its end (not its start).
 
 API: `GET/POST /api/jobs`, `POST /api/jobs/:id/publish`,
 `GET/POST /api/jobs/:id/applications`, `POST /api/jobs/:id/claims`,
@@ -281,6 +326,59 @@ public launch (OSM's tile policy).
 API: `GET/POST /api/shifts`, `POST /api/shifts/:id/check-in` `{ lat?, lng? }`,
 `POST /api/shifts/:id/events` `{ kind, … }`,
 `POST /api/shifts/:id/closeout` `{ status, reason? }`.
+
+## M5 scope — review and in-app payouts
+
+- **Pay is calculated, never typed.** When a supervisor approves a shift, the
+  server records its pay line from what review verified: hourly = verified
+  hours (check-in to check-out, minus breaks, corrections applied) × rate;
+  shift rate = the rate; per accepted unit = the latest batch count's
+  accepted signatures (or verified contacts) × rate. The formula is saved on
+  the line ("3h 30m verified × $25.00/hr") and never recalculated. A
+  per-signature shift can't be approved before its batch count.
+- **Two approvals, two people.** Supervisors approve the work; owners and
+  finance approve the pay on the **Pay** tab — never the person who made the
+  shift's latest review. Extra pay from a dispute is approved by someone
+  other than whoever decided it; deductions always apply (at once on
+  approved pay, otherwise together with the shift's pay) — an open dispute
+  or a hold never keeps an approved deduction out of the next payment. Pay
+  can be held with a reason the worker sees, and released. A review can
+  change only until its pay is approved; after that, changes are
+  adjustments. A batch recount before then withdraws pay worked out from
+  the old counts, and the supervisor approves the shift again (a dispute
+  can't adjust the shift's pay until then; a finance hold carries over to
+  the new line). Pay lines
+  approved before M5 come over on hold and need a fresh approval.
+  Hourly pay for more time than was scheduled is flagged to the approver.
+- **Workers see their pay** on **Earnings** (from Today and Profile): gross
+  totals per campaign and every shift's status — awaiting approval,
+  approved, sending, paid, on hold, disputed.
+- **Disputes.** A worker can dispute any reviewed shift's pay, approved or
+  not (up to 3 times per shift). Unpaid pay waits. Owners and finance close
+  it by keeping the pay (with a response), adjusting it (a new adjustment
+  line — a deduction can't exceed the shift's pay), or recording that a
+  supervisor re-reviewed the shift.
+- **Stripe Connect payouts.** Workers set up payouts on Stripe's pages (bank
+  and tax details never reach Turfcut). Finance pays a worker everything
+  approved in one transfer; every transfer is recorded before money moves
+  and carries a unique idempotency key, so retries and timeouts can't pay
+  twice. Reversals put lines on hold. A partial reversal is shown on the
+  Pay tab until finance records the returned amount (a settled deduction,
+  so the ledger matches what the worker kept — and if the whole transfer
+  is reversed later, it comes off the re-payment with the rest), optionally
+  paying it again with a second person's approval. Stripe amounts that differ from what
+  Turfcut recorded are shown for 30 days.
+- **Platform fee: 15%** of approved pay, invoiced to the organization and
+  never taken from the worker; saved on each line so a change is never
+  retroactive.
+- **Finance export**: CSV of pay lines recorded or paid in a period (a
+  `paid_in_period` column marks the payments, so monthly exports add up) — payee, project, purpose, measure
+  IDs, shift date, calculation, gross, fee, total cost, who reviewed and who
+  approved, paid date and Stripe reference.
+- **Append-only, enforced by the database**: pay lines, their status log,
+  transfers, disputes, resolutions and handled webhooks can't be updated,
+  deleted or truncated. A minimum-wage flag appears when a jurisdiction's
+  rules list `minimumWageCents`.
 
 ## M4 scope — messaging
 

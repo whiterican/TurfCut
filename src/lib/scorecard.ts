@@ -18,7 +18,8 @@
  * Event conventions:
  * - DOOR_KNOCK / CONTACT / SIGNATURE_SUBMITTED: payload.count (default 1).
  * - BATCH_COUNT: supervisor reconciliation — payload.reviewed, .accepted,
- *   .rejected (reviewed defaults to accepted + rejected).
+ *   .rejected (reviewed defaults to accepted + rejected). A recount
+ *   supersedes: the latest valid count is the shift's count.
  * - CORRECTION: payload.supersedesEventId + corrected fields, and must carry
  *   payload.signedBy and payload.reason. Unsigned or unexplained corrections
  *   are ignored (and counted). The newest valid correction wins; the original
@@ -62,6 +63,9 @@ export interface ScorecardShift {
   state: string;
   status: "SCHEDULED" | "ACTIVE" | "COMPLETED" | "CANCELLED";
   startsAt: Date;
+  endsAt: Date;
+  /** When the shift was put on the schedule. */
+  scheduledAt: Date;
   events: ScorecardEvent[];
   validations: ScorecardValidation[];
   /** The job's notice window: a worker cancellation later than this is a no-show. Default 24. */
@@ -212,6 +216,10 @@ type Verification = "verified" | "pending" | "rejected" | "incomplete";
 interface ShiftFacts {
   shift: ScorecardShift;
   started: boolean;
+  /** Checked in and out (out after in). */
+  completed: boolean;
+  /** A valid supervisor batch count exists. */
+  batchCounted: boolean;
   verification: Verification;
   activeMs: number;
   doors: number;
@@ -230,6 +238,8 @@ function shiftFacts(shift: ScorecardShift): ShiftFacts {
   const f: ShiftFacts = {
     shift,
     started: false,
+    completed: false,
+    batchCounted: false,
     verification: "incomplete",
     activeMs: 0,
     doors: 0,
@@ -279,9 +289,11 @@ function shiftFacts(shift: ScorecardShift): ShiftFacts {
         const rejected = num(p.rejected);
         const reviewed = num(p.reviewed) ?? (accepted !== null && rejected !== null ? accepted + rejected : null);
         if (reviewed !== null && accepted !== null) {
-          f.reviewed += reviewed;
-          f.accepted += accepted;
-          f.rejected += rejected ?? reviewed - accepted;
+          // Events are in time order, so the last valid count wins.
+          f.reviewed = reviewed;
+          f.accepted = accepted;
+          f.rejected = rejected ?? reviewed - accepted;
+          f.batchCounted = true;
         }
         break;
       }
@@ -290,6 +302,7 @@ function shiftFacts(shift: ScorecardShift): ShiftFacts {
 
   f.started = checkIn !== null;
   const completed = checkIn !== null && checkOut !== null && checkOut > checkIn;
+  f.completed = completed;
   if (completed) {
     // Clip pauses to the shift window; an unclosed pause runs to check-out.
     const clipped = pauses.map((x) => ({
@@ -305,6 +318,28 @@ function shiftFacts(shift: ScorecardShift): ShiftFacts {
   else if (closeout?.status === "APPROVED") f.verification = "verified";
   else f.verification = "pending";
   return f;
+}
+
+/**
+ * What review verified on one shift, with rejected events dropped and
+ * signed corrections applied — the numbers pay is calculated from
+ * (lib/pay.ts). Same rules as the scorecard.
+ */
+export function verifiedWork(
+  events: ScorecardEvent[],
+  validations: ScorecardValidation[]
+): { completed: boolean; activeMs: number; submitted: number; reviewed: number; accepted: number; doors: number; contacts: number; batchCounted: boolean } {
+  const f = shiftFacts({ events, validations } as ScorecardShift);
+  return {
+    completed: f.completed,
+    activeMs: f.activeMs,
+    submitted: f.submitted,
+    reviewed: f.reviewed,
+    accepted: f.accepted,
+    doors: f.doors,
+    contacts: f.contacts,
+    batchCounted: f.batchCounted,
+  };
 }
 
 function round(v: number, places = 4): number {
@@ -406,13 +441,17 @@ function segment(
     signaturesAccepted: accepted,
     signaturesRejected: rejected,
     averages: {
-      doorsPerActiveHour: explain(
-        doorsPerActiveHour(totals),
-        doors,
-        hours,
-        "verified doors attempted ÷ verified active field hours",
-        `${doors} doors over ${hours} active hours (paused time excluded); ${context}`
-      ),
+      // Petition shifts can't log doors, so their zero isn't a measurement.
+      doorsPerActiveHour:
+        isPetition && doors === 0
+          ? explain(null, 0, 0, "verified doors attempted ÷ verified active field hours", "No doors are logged on petition shifts.")
+          : explain(
+              doorsPerActiveHour(totals),
+              doors,
+              hours,
+              "verified doors attempted ÷ verified active field hours",
+              `${doors} doors over ${hours} active hours (paused time excluded); ${context}`
+            ),
       doorsPerCompletedShift: explain(
         doorsPerCompletedShift(totals),
         doors,
@@ -456,11 +495,6 @@ function segment(
 }
 
 /**
- * How a shift was cancelled, from its newest SHIFT_CANCELLED event:
- * "late" = by the worker inside the job's notice window; "excused" = by the
- * worker in time, or by the organization; null = not cancelled by event.
- */
-/**
  * Verified work per campaign, newest first — the same verification rules as
  * the scorecard totals, so the list always adds up to them.
  */
@@ -481,13 +515,29 @@ export function campaignHistory(shifts: ScorecardShift[], limit = 5): CampaignHi
   return [...by.values()].sort((a, b) => b.lastAt.localeCompare(a.lastAt)).slice(0, limit);
 }
 
+/**
+ * How a shift was cancelled, from its newest SHIFT_CANCELLED event:
+ * - "late" = by the worker inside the job's notice window — or by anyone
+ *   after the shift ended, when it was already a no-show;
+ * - "excused" = by the worker in time, or by the organization before the
+ *   end;
+ * - null = not cancelled by event.
+ * A shift scheduled with less notice than the window gives the worker until
+ * it starts (or an hour after it was scheduled, if later) to cancel: the
+ * worker can't owe notice the organization didn't give.
+ */
 export function cancellationOf(shift: ScorecardShift): "late" | "excused" | null {
   const { events } = effectiveEvents(shift.events, shift.validations);
   const c = latest(events.filter((e) => e.type === "SHIFT_CANCELLED"));
   if (!c) return null;
+  const at = c.createdAt.getTime();
+  if (at > shift.endsAt.getTime()) return "late";
   if (obj(c.payload).by !== "WORKER") return "excused";
-  const noticeMs = (shift.cancellationNoticeHours ?? 24) * 3_600_000;
-  return c.createdAt.getTime() > shift.startsAt.getTime() - noticeMs ? "late" : "excused";
+  const start = shift.startsAt.getTime();
+  const noticeDeadline = start - (shift.cancellationNoticeHours ?? 24) * 3_600_000;
+  const scheduled = shift.scheduledAt.getTime();
+  const deadline = scheduled > noticeDeadline ? Math.max(start, scheduled + 3_600_000) : noticeDeadline;
+  return at > deadline ? "late" : "excused";
 }
 
 export function computeScorecard(shifts: ScorecardShift[], opts: ScorecardOptions = {}): Scorecard {
@@ -521,10 +571,12 @@ export function computeScorecard(shifts: ScorecardShift[], opts: ScorecardOption
   //   the denominator.
   // - A legacy CANCELLED shift with no SHIFT_CANCELLED event is treated as
   //   excused: there's no record of who cancelled or when.
+  // - A shift nobody has started yet isn't a no-show until it has ended.
   const late = all.filter((x) => x.cancellation === "late").length;
   const excused = all.filter((x) => x.cancellation === "excused" || (!x.cancellation && x.s.status === "CANCELLED")).length;
-  const started = facts.filter((f) => f.started).length;
-  const acceptedDue = facts.length + late;
+  const due = facts.filter((f) => f.started || f.shift.endsAt.getTime() <= now.getTime());
+  const started = due.filter((f) => f.started).length;
+  const acceptedDue = due.length + late;
   const rel: ShiftTotals = {
     activeMs: 0,
     doorsAttempted: 0,

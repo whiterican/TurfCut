@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { getSessionProfile } from "@/lib/auth";
 import { ORG_ROLES } from "@/lib/access";
 import { apiEmployer } from "@/lib/api-session";
-import { parseFeedFilters, validateJob } from "@/lib/jobs";
+import { jurisdictionStateProblem, parseFeedFilters, validateJob } from "@/lib/jobs";
 import { createJob, loadFeed } from "@/lib/jobs-data";
 
 /**
@@ -37,8 +37,10 @@ export async function POST(req: NextRequest) {
   }
   const v = validateJob(body as Record<string, unknown>);
   if (!v.ok) return Response.json({ error: "Invalid job.", errors: v.errors }, { status: 400 });
-  const jurisdiction = await db().jurisdictionProfile.findUnique({ where: { id: v.value.jurisdictionId }, select: { id: true } });
+  const jurisdiction = await db().jurisdictionProfile.findUnique({ where: { id: v.value.jurisdictionId }, select: { state: true } });
   if (!jurisdiction) return Response.json({ error: "Invalid job.", errors: { jurisdictionId: "That jurisdiction doesn't exist." } }, { status: 400 });
+  const stateProblem = jurisdictionStateProblem(v.value.state, jurisdiction.state);
+  if (stateProblem) return Response.json({ error: "Invalid job.", errors: { jurisdictionId: stateProblem } }, { status: 400 });
   const job = await createJob(auth.session.orgId, auth.session.userId, v.value);
   return Response.json({ job }, { status: 201 });
 }

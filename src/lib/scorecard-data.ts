@@ -23,6 +23,8 @@ export async function loadScorecardShifts(workerId: string): Promise<ScorecardSh
       id: true,
       status: true,
       startsAt: true,
+      endsAt: true,
+      createdAt: true,
       engagement: {
         select: {
           id: true,
@@ -54,6 +56,8 @@ export async function loadScorecardShifts(workerId: string): Promise<ScorecardSh
     state: s.engagement.job.jurisdiction.state,
     status: s.status,
     startsAt: s.startsAt,
+    endsAt: s.endsAt,
+    scheduledAt: s.createdAt,
     events: s.events,
     validations: s.validations,
     cancellationNoticeHours: s.engagement.job.cancellationNoticeHours,

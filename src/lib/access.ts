@@ -19,6 +19,13 @@ export const HIRING_ROLES: Role[] = ["OWNER", "RECRUITER"];
 /** Who schedules shifts for hired workers. */
 export const SCHEDULING_ROLES: Role[] = ["OWNER", "RECRUITER", "SUPERVISOR"];
 
+/**
+ * Who approves pay, resolves pay disputes, pays workers and exports the pay
+ * ledger (spec p.11 "finance sees pay records"). Supervisors approve the
+ * work itself on the shift page.
+ */
+export const PAY_ROLES: Role[] = ["OWNER", "FINANCE"];
+
 /** Who runs the field: hands out packets, counts batches, reviews shifts. */
 export const FIELD_ROLES: Role[] = ["OWNER", "SUPERVISOR"];
 

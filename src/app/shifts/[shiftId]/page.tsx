@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { requireAuth } from "@/lib/auth";
 import { FIELD_ROLES, SCHEDULING_ROLES } from "@/lib/access";
 import { readSupportContacts } from "@/lib/jobs";
-import { activeTime, earningsEstimate, readTurf, shiftProgress, shiftState, turfMarks, turfMarksClosed } from "@/lib/field-day";
+import { activeTime, earningsEstimate, readTurf, scheduleFlags, shiftProgress, shiftState, turfMarks, turfMarksClosed } from "@/lib/field-day";
 import { facts, loadShift } from "@/lib/field-day-data";
 import { ShiftProgress } from "@/components/ShiftProgress";
 import { TurfMap } from "@/components/TurfMap";
@@ -16,6 +16,9 @@ import { PinLegend, TurfWorkbench } from "@/components/TurfWorkbench";
 import { toMapPins } from "@/lib/turf-pins";
 import { PIN_CATEGORIES } from "@/lib/field-day";
 import { supervisorStep, workerStep } from "../actions";
+import { reviewFinal, shiftPay } from "@/lib/pay-data";
+import { computeShiftPay, money, statusLabel } from "@/lib/pay";
+import { verifiedWork } from "@/lib/scorecard";
 
 const EVENT_LABELS: Record<string, string> = {
   CHECK_IN: "Checked in",
@@ -75,7 +78,36 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
 
   const f = facts(s);
   const st = shiftState(f);
-  const steps = shiftProgress(f);
+  const pay = await shiftPay(s.id);
+  // Amounts go to the worker and to the field team approving them.
+  const seesPay = isWorker || canField;
+  const payLabel = pay ? statusLabel(pay.state.status).label : null;
+  const steps = shiftProgress(
+    f,
+    pay
+      ? {
+          done: pay.state.status === "PAID",
+          at: pay.state.paidAt ?? undefined,
+          detail: seesPay ? `${money(pay.amountCents)} · ${payLabel}` : payLabel!,
+        }
+      : st.closeout?.status === "REJECTED"
+        ? { done: false, detail: "No pay recorded — the shift wasn't approved" }
+        : undefined
+  );
+  // What approving would record, so the supervisor sees the pay they approve.
+  const job0 = s.engagement.job;
+  const approvePreview = canField && st.checkedOutAt
+    ? computeShiftPay({
+        method: job0.compensationMethod,
+        rateCents: job0.payRateCents,
+        workType: job0.type,
+        work: verifiedWork(s.events, s.validations),
+        jurisdictionVersion: job0.jurisdiction.version,
+      })
+    : null;
+  // Final once pay is approved — or, with no current pay line, if anything
+  // else on the shift makes it so (the same rule the server applies).
+  const payLocked = pay ? pay.locked : canField && (await reviewFinal(s.id));
   const turf = readTurf(s.turfArea);
   // Pins and a worker's own day turf are a location trail: the worker and
   // the field team (owners, supervisors) see them; recruiters don't.
@@ -99,10 +131,13 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
     <>
       {isWorker && !st.cancelled && !st.checkedOutAt && (
         <section className="card space-y-4">
-          {!st.checkedInAt ? (
+          {!st.checkedInAt && now > s.endsAt ? (
+            <p className="text-muted-sm">This shift has ended without a check-in.</p>
+          ) : !st.checkedInAt ? (
             <>
               <CheckInButton shiftId={s.id} hasStaging={!!staging} />
               {/* Late cancellations hurt campaigns: a real button, with the consequence up front. */}
+              {now <= s.endsAt && (
               <details className="group space-y-3">
                 <summary className="btn-secondary w-full cursor-pointer list-none">
                   <span className="group-open:hidden">Can&apos;t make it</span>
@@ -118,6 +153,7 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
                   </ActionButton>
                 </div>
               </details>
+              )}
               <p className="text-hint">Cancelling inside the job&apos;s notice window counts as a no-show on your scorecard.</p>
             </>
           ) : (
@@ -215,7 +251,7 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
                 </label>
               </ActionButton>
             )}
-            {st.checkedOutAt && petition && (
+            {st.checkedOutAt && petition && !payLocked && (
               <ActionButton action={supervisorStep} fields={{ shiftId: s.id, kind: "batch_count" }} label={st.batchCounted ? "Record a recount" : "Record batch count"} variant="btn-secondary">
                 {[["reviewed", "Reviewed"], ["accepted", "Accepted"], ["rejected", "Rejected"]].map(([k, l]) => (
                   <label key={k} className="w-24 space-y-1.5">
@@ -229,7 +265,30 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
                 </label>
               </ActionButton>
             )}
-            {st.checkedOutAt && (
+            {st.checkedOutAt && payLocked && (
+              <p className="text-muted-sm">
+                {pay ? <>Pay for this shift ({money(pay.amountCents)}) is approved for payment, so the review and counts are final.</> : <>This shift&apos;s review is final.</>} Your owner or finance team can make a pay adjustment if something changed.
+              </p>
+            )}
+            {st.checkedOutAt && !payLocked && approvePreview && (
+              <p className="text-muted-sm" role="note">
+                {approvePreview.ok ? (
+                  pay && pay.mainCents !== approvePreview.amountCents && st.closeout?.status === "APPROVED" ? (
+                    <>The counts changed since approval: recorded pay is {money(pay.mainCents)}, but it now works out to <strong className="text-fg">{money(approvePreview.amountCents)}</strong> ({approvePreview.basis.formula}). Approve again to update it.</>
+                  ) : !pay && st.closeout?.status === "APPROVED" ? (
+                    <>No pay is recorded for the current approval. <strong className="text-fg">Approve again</strong> to record pay of {money(approvePreview.amountCents)} — {approvePreview.basis.formula}.</>
+                  ) : (
+                    <>Approving records pay of <strong className="text-fg">{money(approvePreview.amountCents)}</strong> — {approvePreview.basis.formula}.</>
+                  )
+                ) : (
+                  approvePreview.reason
+                )}
+              </p>
+            )}
+            {st.checkedOutAt && !payLocked && scheduleFlags(f).map((flag) => (
+              <p key={flag} className="text-sm font-semibold text-fg">{flag} That time counts as worked.</p>
+            ))}
+            {st.checkedOutAt && !payLocked && (
               <div className="flex flex-wrap items-start gap-3">
                 <ActionButton action={supervisorStep} fields={{ shiftId: s.id, kind: "closeout", status: "APPROVED" }} label="Approve shift" />
                 <ActionButton action={supervisorStep} fields={{ shiftId: s.id, kind: "closeout", status: "REJECTED" }} label="Not approved" variant="btn-secondary">
@@ -240,7 +299,7 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
                 </ActionButton>
               </div>
             )}
-            {!st.checkedInAt && (
+            {!st.checkedInAt && now <= s.endsAt && (
               <ActionButton action={supervisorStep} fields={{ shiftId: s.id, kind: "cancel" }} label="Cancel shift" variant="btn-secondary">
                 <label className="min-w-48 flex-1 space-y-1.5">
                   <span className="label">Reason (shown to the worker)</span>

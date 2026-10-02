@@ -2,12 +2,14 @@ import { requireAuth } from "@/lib/auth";
 import { SCHEDULING_ROLES } from "@/lib/access";
 import { db } from "@/lib/db";
 import { ACCEPTED_STATUSES } from "@/lib/engagements";
-import { payShort, payText } from "@/lib/jobs";
+import { openJobsEndAfter, payShort, payText } from "@/lib/jobs";
 import { loadOps } from "@/lib/field-day-data";
 import { loadFeed } from "@/lib/jobs-data";
 import { JobFeedCard } from "@/components/JobFeedCard";
 import { LocalTime } from "@/components/LocalTime";
 import Link from "next/link";
+import { workerPayTotals } from "@/lib/pay-data";
+import { money } from "@/lib/pay";
 
 const ROLE_LABELS: Record<string, string> = {
   WORKER: "Field worker",
@@ -62,7 +64,7 @@ async function WorkerHero({ workerId }: { workerId: string }) {
     );
   }
   const next = await db().engagement.findFirst({
-    where: { workerId, status: { in: ACCEPTED_STATUSES }, job: { endsAt: { gte: new Date() } } },
+    where: { workerId, status: { in: ACCEPTED_STATUSES }, job: { endsAt: { gt: openJobsEndAfter(new Date()) } } },
     include: { job: { select: { id: true, title: true, startsAt: true, compensationMethod: true, payRateCents: true } } },
     orderBy: { job: { startsAt: "asc" } },
   });
@@ -82,6 +84,19 @@ async function WorkerHero({ workerId }: { workerId: string }) {
       <p className="text-sm font-semibold">{payText(next.job.compensationMethod, next.job.payRateCents)}</p>
     </Link>
   );
+}
+
+/** The worker's pay at a glance (their own totals only). */
+async function EarningsCard({ workerId }: { workerId: string }) {
+  const t = await workerPayTotals(workerId);
+  const parts = [
+    `${money(t.paid)} paid`,
+    t.onTheWay ? `${money(t.onTheWay)} on the way` : null,
+    t.awaiting ? `${money(t.awaiting)} awaiting approval` : null,
+    t.stopped ? `${money(t.stopped)} on hold or disputed` : null,
+  ].filter(Boolean);
+  const any = t.paid || t.onTheWay || t.awaiting || t.stopped;
+  return <NavCard href="/earnings" title="Earnings" body={any ? parts.join(" · ") : "Your pay shows up here once a supervisor approves a shift."} />;
 }
 
 /** Open jobs, soonest first (screen mockups' "Best matches", without a ranking). */
@@ -128,6 +143,7 @@ async function OrgHero({ orgId }: { orgId: string }) {
           <span><span className="block text-lg font-bold tabular-nums">{ops.checkedIn} / {ops.scheduled}</span><span className="hero-muted">Checked in</span></span>
           <span><span className="block text-lg font-bold tabular-nums">{ops.signatures}</span><span className="hero-muted">Signatures submitted</span></span>
           {ops.doors > 0 && <span><span className="block text-lg font-bold tabular-nums">{ops.doors}</span><span className="hero-muted">Doors</span></span>}
+          {ops.upcoming > 0 && <span><span className="block text-lg font-bold tabular-nums">{ops.upcoming}</span><span className="hero-muted">Starting in the next 24h</span></span>}
         </p>
       </div>
       <section className="section">
@@ -179,6 +195,7 @@ export default async function DashboardPage() {
       {isWorker && <WorkerHero workerId={session.workerId!} />}
       {!isWorker && session.orgId && SCHEDULING_ROLES.includes(session.role) && <OrgHero orgId={session.orgId} />}
 
+      {isWorker && <EarningsCard workerId={session.workerId!} />}
       {isWorker && <OpenJobs workerId={session.workerId!} />}
 
       {isWorker ? null : session.orgId ? (

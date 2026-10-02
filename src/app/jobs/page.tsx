@@ -3,7 +3,9 @@ import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { HIRING_ROLES, ORG_ROLES } from "@/lib/access";
 import { ENGAGEMENT_LABELS, JOB_STATUS_LABELS } from "@/lib/engagement-labels";
-import { JOB_TYPES, parseFeedFilters } from "@/lib/jobs";
+import { JOB_TYPES, exclusionReasons, parseFeedFilters, readDisclosure } from "@/lib/jobs";
+import { effectivePreference } from "@/lib/political-fit";
+import { loadLatestPreference } from "@/lib/political-fit-data";
 import { plural } from "@/lib/format";
 import { loadFeed } from "@/lib/jobs-data";
 import { JobFeedCard } from "@/components/JobFeedCard";
@@ -31,15 +33,22 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
   const raw = await searchParams;
   const params = new URLSearchParams(Object.entries(raw).flatMap(([k, v]) => (typeof v === "string" ? [[k, v]] : [])));
   const filters = parseFeedFilters(params);
-  const [{ jobs, hidden }, mine] = await Promise.all([
+  const [{ jobs, hidden }, engagements, latest] = await Promise.all([
     loadFeed(workerId, filters),
     db().engagement.findMany({
       where: { workerId },
-      include: { job: { select: { id: true, title: true, startsAt: true } } },
+      include: { job: { select: { id: true, title: true, startsAt: true, campaignDisclosure: true, measureIds: true, org: { select: { name: true } } } } },
       orderBy: { createdAt: "desc" },
     }),
+    loadLatestPreference(workerId),
   ]);
-  const engagedIds = new Set(mine.map((e) => e.jobId));
+  // An invitation to a job the worker's own do-not-match answers rule out
+  // never shows in "Your jobs" with an Accept (whatever the feed filters).
+  const pref = effectivePreference(latest);
+  const mine = engagements.filter(
+    (e) => !(e.status === "INVITED" && exclusionReasons(pref, { disclosure: readDisclosure(e.job.campaignDisclosure), orgName: e.job.org.name, measureIds: e.job.measureIds }).length)
+  );
+  const engagedIds = new Set(engagements.map((e) => e.jobId));
   const open = jobs.filter((j) => !engagedIds.has(j.id));
 
   // Quick-filter chips toggle one URL parameter each.

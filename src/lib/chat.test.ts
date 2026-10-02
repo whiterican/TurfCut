@@ -97,6 +97,13 @@ describe("what a viewer sees", () => {
     expect(v.find((x) => x.id === "a")).toMatchObject({ body: "a", edited: false });
   });
 
+  it("applies a deletion even by someone the viewer blocked (a tombstone has no content)", () => {
+    // The worker blocked the owner; the owner removes a reported message.
+    const block = { blockerId: "w", blockedId: "boss", createdAt: t(5), liftedAt: null };
+    const v = viewMessages(msgs, [{ messageId: "c", actorId: "boss", kind: "DELETE", body: null, createdAt: t(20) }], "w", [block], null);
+    expect(v.find((x) => x.id === "c")).toMatchObject({ body: null, deleted: true });
+  });
+
   it("a contact who takes over a direct thread sees it only from when they joined", () => {
     const a = chatAccess(direct({ me: boss, participant: { role: "MANAGER", removedAt: null, addedAt: t(5) } }));
     expect(a.readFrom).toEqual(t(5));
@@ -177,6 +184,15 @@ describe("attachments", () => {
     expect(checkAttachment(f("big.pdf", [0x25, 0x50, 0x44, 0x46], 11 * 1024 * 1024)).ok).toBe(false);
   });
   const doc = (name: string, bytes: Uint8Array) => checkAttachment({ name, size: bytes.length, bytes });
+  it("reads a text file as text even if it starts like an image header", () => {
+    expect(doc("notes.txt", new TextEncoder().encode("BMW dealership on 5th — skip"))).toEqual({ ok: true, type: "text/plain" });
+    expect(doc("notes.txt", new TextEncoder().encode("GIF89a is the old format, ignore"))).toEqual({ ok: true, type: "text/plain" });
+  });
+  it("refuses a text file with binary data anywhere (a photo appended to notes)", () => {
+    const notes = new TextEncoder().encode("x".repeat(5000));
+    const photo = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0, 16, 74, 70, 73, 70, 0, 1]);
+    expect(doc("notes.txt", new Uint8Array([...notes, ...photo])).ok).toBe(false);
+  });
   it("refuses file names that disguise their type", () => {
     expect(doc("inv\u202egpj.txt", new TextEncoder().encode("hi")).ok).toBe(false);
     expect(doc("a/b.txt", new TextEncoder().encode("hi")).ok).toBe(false);

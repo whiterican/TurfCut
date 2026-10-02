@@ -47,6 +47,29 @@ export function getSiteUrl(): string | null {
   return null;
 }
 
+/** Stripe secret key (M5 payouts). Server only. */
+export function getStripeSecretKey(): string {
+  const v = process.env.STRIPE_SECRET_KEY;
+  if (!v) throw missing("STRIPE_SECRET_KEY");
+  return v;
+}
+
+/**
+ * Signing secrets for /api/stripe/webhook: the platform endpoint
+ * (STRIPE_WEBHOOK_SECRET, transfer events) and, optionally, the Connect
+ * endpoint (STRIPE_CONNECT_WEBHOOK_SECRET, account.updated).
+ */
+export function getStripeWebhookSecrets(): string[] {
+  const v = [process.env.STRIPE_WEBHOOK_SECRET, process.env.STRIPE_CONNECT_WEBHOOK_SECRET].filter((x): x is string => !!x);
+  if (!v.length) throw missing("STRIPE_WEBHOOK_SECRET");
+  return v;
+}
+
+/** True when payouts can reach Stripe. Without it, pay is tracked but not sent. */
+export function hasStripeConfig(): boolean {
+  return Boolean(process.env.STRIPE_SECRET_KEY);
+}
+
 /** True when the browser-safe Supabase config is present. */
 export function hasSupabaseConfig(): boolean {
   return Boolean(

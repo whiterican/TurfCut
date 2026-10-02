@@ -80,6 +80,15 @@ model Worker {
   engagements  Engagement[]
   metrics      ProfileMetric[]
   payouts      Payout[]
+
+  // Payouts (M5): the worker's Stripe Connect account. Bank and tax details
+  // stay with Stripe; payoutsEnabled caches whether Stripe can pay them.
+  stripeAccountId  String?   @unique
+  payoutsEnabled   Boolean   @default(false)
+  payoutsCheckedAt DateTime?
+
+  payoutTransfers PayoutTransfer[]
+  payDisputes     PayDispute[]
 }
 
 /// One past campaign on a worker's profile. The verification level travels
@@ -174,6 +183,9 @@ model Organization {
   profiles      Profile[]
   jobs          Job[]
   conversations Conversation[]
+  payouts         Payout[]
+  payoutTransfers PayoutTransfer[]
+  payDisputes     PayDispute[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -285,6 +297,7 @@ model Engagement {
   updatedAt DateTime         @updatedAt
 
   shifts       Shift[]
+  payouts      Payout[]
   conversation Conversation?
 
   @@unique([jobId, workerId])
@@ -318,6 +331,8 @@ model Shift {
 
   events      WorkEvent[]
   validations Validation[]
+  payouts     Payout[]
+  payDisputes PayDispute[]
 
   @@index([engagementId, startsAt])
 }
@@ -376,6 +391,8 @@ model Validation {
   reviewerId String?          @db.Uuid // Profile.id of the supervisor
   createdAt  DateTime         @default(now())
 
+  payouts Payout[]
+
   @@index([shiftId])
 }
 
@@ -403,25 +420,143 @@ model ProfileMetric {
 // Payouts (APPEND-ONLY ledger)
 // ---------------------------------------------------------------------------
 
-enum PayoutStatus {
-  PENDING // earned, awaiting supervisor approval
-  APPROVED // approved, awaiting transfer
-  PAID // transferred via payout provider
-  DISPUTED // worker or org dispute open
+enum PayoutKind {
+  SHIFT // pay for one approved shift
+  ADJUSTMENT // a correction to pay (positive or negative), e.g. a resolved dispute
 }
 
-model Payout {
-  id              String       @id @default(uuid()) @db.Uuid
-  workerId        String       @db.Uuid
-  worker          Worker       @relation(fields: [workerId], references: [id])
-  engagementId    String?      @db.Uuid
-  amountCents     Int // gross amount to the worker (0% commission to worker)
-  feeCents        Int          @default(0) // 15% marketplace fee on approved spend
-  status          PayoutStatus @default(PENDING)
-  stripeTransferId String? // set when transferred via Stripe Connect
-  createdAt       DateTime     @default(now())
+enum PayoutEventType {
+  APPROVED // finance or the owner approved the line for payment
+  HELD // payment put on hold (reason required)
+  RELEASED // hold lifted
+  VOIDED // the shift was re-reviewed before payment; this line no longer pays
+  TRANSFER_STARTED // included in a payout transfer (transferId)
+  PAID // the transfer went through (providerRef = Stripe transfer id)
+  TRANSFER_FAILED // the provider refused the transfer; the line can be paid again
+  REVERSED // a paid transfer was reversed; the line can be paid again or held
+}
 
-  @@index([workerId, status])
+/// One pay line: what a worker earned for an approved shift, or an
+/// adjustment to it. NEVER updated or deleted (database trigger) — status
+/// lives in PayoutEvent, and a correction is a new ADJUSTMENT line.
+model Payout {
+  id           String       @id @default(uuid()) @db.Uuid
+  workerId     String       @db.Uuid
+  worker       Worker       @relation(fields: [workerId], references: [id])
+  orgId        String       @db.Uuid
+  org          Organization @relation(fields: [orgId], references: [id])
+  engagementId String?      @db.Uuid
+  engagement   Engagement?  @relation(fields: [engagementId], references: [id], onDelete: Restrict)
+  shiftId      String?      @db.Uuid
+  shift        Shift?       @relation(fields: [shiftId], references: [id], onDelete: Restrict)
+  // The supervisor's approval (closeout) this line pays for.
+  validationId String?      @db.Uuid
+  validation   Validation?  @relation(fields: [validationId], references: [id], onDelete: Restrict)
+  kind         PayoutKind   @default(SHIFT)
+  amountCents  Int // gross to the worker (never reduced by a commission); negative only for ADJUSTMENT
+  feeCents     Int          @default(0) // platform fee, charged to the organization on top
+  // Frozen calculation: method, rate, verified quantity, formula text,
+  // jurisdiction version (lib/pay.ts PayBasis). Never recomputed.
+  basis        Json?
+  adjustsId    String?      @db.Uuid // ADJUSTMENT: the line it corrects
+  adjusts      Payout?      @relation("Adjusts", fields: [adjustsId], references: [id], onDelete: Restrict)
+  adjustments  Payout[]     @relation("Adjusts")
+  createdById  String?      @db.Uuid // Profile: the approving supervisor, or who adjusted
+  createdAt    DateTime     @default(now())
+
+  events     PayoutEvent[]
+  disputes   PayDispute[]
+  resolution PayDisputeResolution?
+
+  @@index([workerId, createdAt])
+  @@index([orgId, createdAt])
+  @@index([shiftId])
+}
+
+/// Status history of a pay line. APPEND-ONLY.
+model PayoutEvent {
+  id          String          @id @default(uuid()) @db.Uuid
+  payoutId    String          @db.Uuid
+  payout      Payout          @relation(fields: [payoutId], references: [id], onDelete: Restrict)
+  type        PayoutEventType
+  actorId     String?         @db.Uuid // Profile; null for the provider / system
+  reason      String?
+  transferId  String?         @db.Uuid
+  transfer    PayoutTransfer? @relation(fields: [transferId], references: [id], onDelete: Restrict)
+  providerRef String? // Stripe transfer id on PAID / REVERSED
+  createdAt   DateTime        @default(now())
+
+  @@index([payoutId, createdAt])
+  @@index([transferId])
+}
+
+/// One payment to one worker covering their approved lines in a pay run.
+/// The id is also the Stripe idempotency key and transfer group, so a retry
+/// finds or repeats the same transfer instead of paying twice. APPEND-ONLY.
+model PayoutTransfer {
+  id          String       @id @default(uuid()) @db.Uuid
+  workerId    String       @db.Uuid
+  worker      Worker       @relation(fields: [workerId], references: [id])
+  orgId       String       @db.Uuid
+  org         Organization @relation(fields: [orgId], references: [id])
+  amountCents Int // sum of the lines' gross pay — what the worker receives
+  feeCents    Int // sum of the lines' platform fees (invoiced to the organization)
+  destination String // the worker's Stripe account at the time
+  createdById String       @db.Uuid
+  createdAt   DateTime     @default(now())
+
+  events PayoutEvent[]
+
+  @@index([orgId, createdAt])
+  @@index([workerId, createdAt])
+}
+
+enum DisputeOutcome {
+  KEPT // pay stays as it is; the response says why
+  ADJUSTED // an ADJUSTMENT line was added
+  REREVIEWED // a supervisor re-reviewed the shift after the dispute
+}
+
+/// A worker's dispute of a shift's pay (approved or not). APPEND-ONLY;
+/// the outcome is a separate row.
+model PayDispute {
+  id         String       @id @default(uuid()) @db.Uuid
+  shiftId    String       @db.Uuid
+  shift      Shift        @relation(fields: [shiftId], references: [id], onDelete: Restrict)
+  workerId   String       @db.Uuid
+  worker     Worker       @relation(fields: [workerId], references: [id])
+  orgId      String       @db.Uuid
+  org        Organization @relation(fields: [orgId], references: [id])
+  payoutId   String?      @db.Uuid // the line disputed, when the shift has one
+  payout     Payout?      @relation(fields: [payoutId], references: [id], onDelete: Restrict)
+  openedById String       @db.Uuid
+  reason     String
+  createdAt  DateTime     @default(now())
+
+  resolution PayDisputeResolution?
+
+  @@index([orgId, createdAt])
+  @@index([shiftId])
+}
+
+/// How a dispute was closed. One per dispute. APPEND-ONLY.
+model PayDisputeResolution {
+  id           String         @id @default(uuid()) @db.Uuid
+  disputeId    String         @unique @db.Uuid
+  dispute      PayDispute     @relation(fields: [disputeId], references: [id])
+  outcome      DisputeOutcome
+  response     String
+  resolvedById String         @db.Uuid
+  adjustmentId String?        @unique @db.Uuid
+  adjustment   Payout?        @relation(fields: [adjustmentId], references: [id], onDelete: Restrict)
+  createdAt    DateTime       @default(now())
+}
+
+/// Stripe webhook events already handled (each is processed once). APPEND-ONLY.
+model ProviderEvent {
+  id        String   @id // Stripe event id (evt_...)
+  type      String
+  createdAt DateTime @default(now())
 }
 
 // ---------------------------------------------------------------------------

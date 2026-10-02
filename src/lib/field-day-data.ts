@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { FIELD_ROLES } from "@/lib/access";
 import { canScheduleShift, UUID_RE } from "@/lib/jobs";
+import { applyReviewPlan, payLock, planReview, reviewLockProblem, withdrawStalePay } from "@/lib/pay-data";
 import {
   findConflicts,
   locationCheck,
@@ -30,7 +31,19 @@ const SHIFT_INCLUDE = {
       workerId: true,
       status: true,
       worker: { select: { id: true, displayName: true, profileId: true } },
-      job: { select: { id: true, orgId: true, title: true, type: true, compensationMethod: true, payRateCents: true, org: { select: { name: true } }, supportContacts: true } },
+      job: {
+        select: {
+          id: true,
+          orgId: true,
+          title: true,
+          type: true,
+          compensationMethod: true,
+          payRateCents: true,
+          org: { select: { name: true } },
+          supportContacts: true,
+          jurisdiction: { select: { version: true, rules: true } },
+        },
+      },
     },
   },
   events: { orderBy: { createdAt: "asc" as const } },
@@ -125,7 +138,7 @@ export async function scheduleShift(
 // Actions
 // ---------------------------------------------------------------------------
 
-async function apply(tx: Tx, shiftId: string, actorId: string, out: Outcome, now: Date): Promise<Result> {
+async function apply(tx: Tx, shiftId: string, actorId: string, out: Outcome, now: Date, afterReview?: (validationId: string) => Promise<void>): Promise<Result> {
   if (!out.ok) return out;
   if (out.event) {
     await tx.workEvent.create({
@@ -134,7 +147,8 @@ async function apply(tx: Tx, shiftId: string, actorId: string, out: Outcome, now
   }
   if (out.closeout) {
     // Append-only: a later review supersedes an earlier one; neither is edited.
-    await tx.validation.create({ data: { shiftId, workEventId: null, status: out.closeout.status, reason: out.closeout.reason, reviewerId: actorId, createdAt: now } });
+    const v = await tx.validation.create({ data: { shiftId, workEventId: null, status: out.closeout.status, reason: out.closeout.reason, reviewerId: actorId, createdAt: now } });
+    await afterReview?.(v.id);
     await tx.auditEvent.create({
       data: { actorId, action: "shift.reviewed", entityType: "Shift", entityId: shiftId, metadata: { status: out.closeout.status, reason: out.closeout.reason } },
     });
@@ -158,11 +172,13 @@ export async function workerShiftAction(
   actor: { workerId: string; profileId: string },
   shiftId: string,
   req: WorkerRequest,
-  now = new Date()
+  at?: Date
 ): Promise<Result> {
   if (!UUID_RE.test(shiftId)) return { ok: false, reason: "Shift not found." };
   return db().$transaction(async (tx) => {
     await lock(tx, `shift:${shiftId}`);
+    // Timed after the lock, so events land in the order they were judged.
+    const now = at ?? new Date();
     const s = await loadShift(shiftId, tx);
     if (!s || s.engagement.workerId !== actor.workerId) return { ok: false as const, reason: "Shift not found." };
     // The device position is used for this comparison only and never stored.
@@ -176,11 +192,13 @@ export async function supervisorShiftAction(
   actor: { profileId: string; orgId: string },
   shiftId: string,
   action: SupervisorAction,
-  now = new Date()
+  at?: Date
 ): Promise<Result> {
   if (!UUID_RE.test(shiftId)) return { ok: false, reason: "Shift not found." };
   return db().$transaction(async (tx) => {
     await lock(tx, `shift:${shiftId}`);
+    // Timed after the lock, so events land in the order they were judged.
+    const now = at ?? new Date();
     const s = await loadShift(shiftId, tx);
     if (!s || s.engagement.job.orgId !== actor.orgId) return { ok: false as const, reason: "Shift not found." };
     let elsewhere: string[] = [];
@@ -193,7 +211,23 @@ export async function supervisorShiftAction(
       });
       elsewhere = others.flatMap((o) => shiftState(facts(o)).packetsOut);
     }
-    return apply(tx, shiftId, actor.profileId, supervisorAction(facts(s), action, elsewhere), now);
+    const out = supervisorAction(facts(s), action, elsewhere, now);
+    if (out.ok && action.kind === "batch_count") {
+      // A recount changes per-signature pay: not once that pay is approved.
+      await payLock(tx, s.engagement.workerId);
+      const locked = await reviewLockProblem(tx, shiftId);
+      if (locked) return { ok: false as const, reason: locked };
+      const r = await apply(tx, shiftId, actor.profileId, out, now);
+      // Pay recorded from the old counts can't be approved any more.
+      const fresh = r.ok ? await loadShift(shiftId, tx) : null;
+      if (fresh) await withdrawStalePay(tx, fresh, actor.profileId, now);
+      return r;
+    }
+    if (!out.ok || action.kind !== "closeout") return apply(tx, shiftId, actor.profileId, out, now);
+    // A review creates, keeps or voids the shift's pay line (lib/pay-data.ts).
+    const plan = await planReview(tx, s, action.status);
+    if (!plan.ok) return plan;
+    return apply(tx, shiftId, actor.profileId, out, now, (validationId) => applyReviewPlan(tx, s, plan, validationId, actor.profileId, now));
   });
 }
 
@@ -202,11 +236,13 @@ export async function workerTurfAction(
   actor: { workerId: string; profileId: string },
   shiftId: string,
   action: TurfAction,
-  now = new Date()
+  at?: Date
 ): Promise<Result> {
   if (!UUID_RE.test(shiftId)) return { ok: false, reason: "Shift not found." };
   return db().$transaction(async (tx) => {
     await lock(tx, `shift:${shiftId}`);
+    // Timed after the lock, so events land in the order they were judged.
+    const now = at ?? new Date();
     const s = await loadShift(shiftId, tx);
     if (!s || s.engagement.workerId !== actor.workerId) return { ok: false as const, reason: "Shift not found." };
     return apply(tx, shiftId, actor.profileId, turfAction(facts(s), action, now), now);
@@ -245,9 +281,13 @@ export async function loadOps(orgId: string, now = new Date()) {
   const live = rows.filter((r) => !r.state.cancelled);
   const late = live.filter((r) => !r.state.checkedInAt && now.getTime() > r.shift.startsAt.getTime() + 15 * 60_000 && now < r.shift.endsAt);
   const awaitingReview = live.filter((r) => r.state.checkedOutAt && !r.state.closeout);
+  // "In the field" = shifts that have started (or checked in early); the
+  // rest of the next 24 hours is counted separately as upcoming.
+  const due = live.filter((r) => r.state.checkedInAt || r.shift.startsAt <= now);
   return {
-    scheduled: live.length,
-    checkedIn: live.filter((r) => r.state.checkedInAt).length,
+    scheduled: due.length,
+    upcoming: live.length - due.length,
+    checkedIn: due.filter((r) => r.state.checkedInAt).length,
     signatures: live.reduce((n, r) => n + r.state.signatures, 0),
     doors: live.reduce((n, r) => n + r.state.doors, 0),
     late,

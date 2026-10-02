@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireRole } from "@/lib/auth";
 import { FIELD_ROLES, PAY_ROLES } from "@/lib/access";
-import { loadOrgDisputes, loadOrgPay, partialReversals, pendingTransfers, selfApproval, type OrgLine } from "@/lib/pay-data";
+import { loadOrgDisputes, loadOrgPay, partialReversals, pendingTransfers, reviewerOf, selfApproval, type OrgLine } from "@/lib/pay-data";
 import { stripeProvider } from "@/lib/payout-provider";
 import { money, PLATFORM_FEE_BPS, statusLabel } from "@/lib/pay";
 import { LocalTime } from "@/components/LocalTime";
@@ -12,7 +12,8 @@ import { approve, checkPayment, hold, payNow, release, resolve } from "./actions
 const day = (d: Date) => d.toISOString().slice(0, 10);
 
 function LineText({ l, names }: { l: OrgLine; names: Map<string, string> }) {
-  const reviewer = l.line.validation?.reviewerId ? names.get(l.line.validation.reviewerId) : null;
+  const rv = reviewerOf(l);
+  const reviewer = rv ? names.get(rv) : null;
   return (
     <span className="block text-xs text-muted">
       {l.line.engagement?.job.title ?? "Pay"}
@@ -189,7 +190,7 @@ export default async function PayoutsPage() {
                     </span>
                     <span className="shrink-0 text-sm font-semibold text-fg">{money(l.line.amountCents)}</span>
                   </div>
-                  <HoldLine action={hold} payoutId={l.line.id} />
+                  {l.line.amountCents > 0 && <HoldLine action={hold} payoutId={l.line.id} />}
                 </li>
               ))}
             </ul>
@@ -228,7 +229,7 @@ export default async function PayoutsPage() {
                         <span className="shrink-0 text-sm font-semibold text-fg">{money(l.line.amountCents)}</span>
                       </div>
                       {l.state.note && <p className="text-xs text-muted">{l.state.note}</p>}
-                      <HoldLine action={hold} payoutId={l.line.id} />
+                      {l.line.amountCents > 0 && <HoldLine action={hold} payoutId={l.line.id} />}
                     </li>
                   ))}
                 </ul>

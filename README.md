@@ -322,9 +322,11 @@ API: `GET/POST /api/shifts`, `POST /api/shifts/:id/check-in` `{ lat?, lng? }`,
   the line ("3h 30m verified × $25.00/hr") and never recalculated. A
   per-signature shift can't be approved before its batch count.
 - **Two approvals, two people.** Supervisors approve the work; owners and
-  finance approve the pay — never the person who made the shift's latest
-  review, and never the person who made an adjustment (**Pay** tab), can hold a line with a reason the worker sees, and
-  release it. A review can change only until its pay is approved; after
+  finance approve the pay on the **Pay** tab — never the person who made the
+  shift's latest review. Extra pay from a dispute is approved by someone
+  other than whoever decided it; deductions always apply (at once on
+  approved pay, otherwise together with the shift's pay). Pay can be held
+  with a reason the worker sees, and released. A review can change only until its pay is approved; after
   that, changes are adjustments.
 - **Workers see their pay** on **Earnings** (from Today and Profile): gross
   totals per campaign and every shift's status — awaiting approval,

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { payShort } from "@/lib/jobs";
+import { payText } from "@/lib/jobs";
 import type { CompensationMethod, JobType } from "@prisma/client";
 
 const day = (d: Date | null) => (d ? d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" }) : "—");
@@ -16,26 +16,27 @@ export interface FeedJob {
   org: { name: string; approved: boolean };
 }
 
-/** An open job (screen mockups): title with gross pay on the right, who · where · when, then tags. */
+/** An open job: who · where, the title, dates and type; gross pay and a button on the right. */
 export function JobFeedCard({ j }: { j: FeedJob }) {
   const geo = (j.geography ?? {}) as { city?: string; state?: string };
+  const place = [geo.city, geo.state].filter(Boolean).join(", ");
   return (
-    <Link transitionTypes={["nav-forward"]} href={`/jobs/${j.id}`} className="card group block space-y-3 transition hover:border-[var(--border-strong)]">
-      <span className="flex items-start justify-between gap-4">
-        <span className="min-w-0">
-          <span className="block text-lg leading-snug font-bold tracking-[-0.01em] text-fg">{j.title}</span>
-          <span className="mt-0.5 block text-sm text-muted">
-            {[j.org.name, [geo.city, geo.state].filter(Boolean).join(", "), `${day(j.startsAt)} – ${day(j.endsAt)}`].filter(Boolean).join(" · ")}
-          </span>
+    <Link transitionTypes={["nav-forward"]} href={`/jobs/${j.id}`} className="card group flex flex-col gap-3 transition hover:border-[var(--border-strong)] sm:flex-row sm:items-start sm:justify-between">
+      <span className="min-w-0 space-y-2">
+        <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-semibold text-muted">
+          {j.org.name}
+          {place && <><span aria-hidden>·</span>{place}</>}
+          {j.org.approved && <span className="badge-mint">Approved org</span>}
         </span>
-        <span className="max-w-[45%] shrink-0 text-right">
-          <span className="block text-lg leading-snug font-bold text-fg tabular-nums">{payShort(j.compensationMethod, j.payRateCents, j.type)}</span>
-          <span className="block text-xs text-subtle">gross</span>
+        <span className="block text-base font-bold tracking-[-0.01em] text-fg">{j.title}</span>
+        <span className="flex flex-wrap gap-1.5">
+          <span className="badge-neutral">{day(j.startsAt)} – {day(j.endsAt)}</span>
+          <span className="badge-neutral">{j.type === "PETITION" ? "Petition" : "Canvass"}</span>
         </span>
       </span>
-      <span className="flex flex-wrap gap-1.5">
-        {j.org.approved && <span className="badge-sky">Approved org</span>}
-        <span className={j.type === "PETITION" ? "badge-butter" : "badge-mint"}>{j.type === "PETITION" ? "Petition" : "Canvass"}</span>
+      <span className="flex shrink-0 items-center justify-between gap-3 sm:flex-col sm:items-end">
+        <span className="text-sm font-bold text-fg tabular-nums">{payText(j.compensationMethod, j.payRateCents)}</span>
+        <span className="btn-primary btn-sm">View job</span>
       </span>
     </Link>
   );

@@ -10,8 +10,8 @@
  * carry the dark "ink" colour, never another accent. Dark: deep green
  * surfaces built from the mockup's hero card; accents stay solid pastel
  * fills with ink (badges, your chat bubbles, the next-shift card) or appear
- * as text. Primary actions are ink-on-light / lime-on-dark; the current
- * tab's box is lime (dark) or ink (light).
+ * as text. Primary actions are ink-on-light / lime-on-dark; a dot marks
+ * the current tab.
  *
  * The theme is a `.dark` class on <html>, set before first paint by the
  * inline script in app/layout.tsx (saved choice, else the OS preference).
@@ -482,36 +482,20 @@ body {
     @apply relative flex min-h-14 flex-1 flex-col items-center justify-center gap-1 text-xs font-semibold text-muted;
   }
   .tab[aria-current="page"] {
-    @apply font-bold text-fg;
+    @apply text-fg;
   }
-  /* Each tab has a rounded-square box (from the screen mockups): outlined,
-     then filled lime with a dot when it's the tab you're on. */
-  .tab-box {
-    @apply relative grid size-[1.375rem] place-items-center rounded-[0.4rem] border-[1.5px] transition;
-    border-color: var(--muted);
+  .tab-dot {
+    @apply size-1.5 rounded-full bg-transparent;
   }
-  .tab-box::after {
-    content: "";
-    @apply size-1 rounded-full opacity-0 transition;
-    background: var(--ink);
+  .tab[aria-current="page"] .tab-dot {
+    background: var(--fg);
   }
-  .tab[aria-current="page"] .tab-box {
-    background: var(--lime);
-    border-color: var(--lime);
-  }
-  :root:not(.dark) .tab[aria-current="page"] .tab-box {
-    background: var(--primary);
-    border-color: var(--primary);
-  }
-  .tab[aria-current="page"] .tab-box::after {
-    opacity: 1;
-  }
-  :root:not(.dark) .tab[aria-current="page"] .tab-box::after {
+  .dark .tab[aria-current="page"] .tab-dot {
     background: var(--lime);
   }
   .tab .unread-badge {
-    @apply absolute -top-2.5 -right-3.5 min-w-[1.25rem] px-1 text-[0.75rem] leading-[1.25rem];
-    box-shadow: 0 0 0 2px var(--surface); /* separates coral from the lime box */
+    @apply absolute top-1 left-1/2 ml-3 min-w-[1.25rem] px-1 text-[0.75rem] leading-[1.25rem];
+    box-shadow: 0 0 0 2px var(--surface);
   }
   .topnav-link {
     @apply rounded-lg px-3 py-2 text-sm font-medium text-muted transition hover:bg-surface-2 hover:text-fg;
@@ -531,12 +515,6 @@ body {
     background: var(--surface-2);
     color: var(--fg);
     border: 1px solid var(--border);
-  }
-  .avatar-coral {
-    @apply size-12 text-base;
-    background: var(--coral);
-    color: var(--ink);
-    border-color: transparent;
   }
   .avatar-team {
     background: var(--hero);

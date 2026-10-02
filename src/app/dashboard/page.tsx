@@ -3,8 +3,6 @@ import { SCHEDULING_ROLES } from "@/lib/access";
 import { db } from "@/lib/db";
 import { ACCEPTED_STATUSES } from "@/lib/engagements";
 import { payShort, payText } from "@/lib/jobs";
-import { Greeting } from "@/components/Greeting";
-import { Avatar } from "@/components/chat/Avatar";
 import { loadOps } from "@/lib/field-day-data";
 import { loadFeed } from "@/lib/jobs-data";
 import { JobFeedCard } from "@/components/JobFeedCard";
@@ -170,17 +168,12 @@ export default async function DashboardPage() {
     <main className="page">
       <header className="page-header">
         <div className="space-y-1.5">
-          <p className="eyebrow">{isWorker ? <Greeting /> : "Operations"}</p>
+          <p className="eyebrow">{isWorker ? "Today" : "Operations"}</p>
           <h1 className="page-title">{name}</h1>
           <p className="text-muted-sm">
             {[ROLE_LABELS[session.role] ?? session.role, session.email].filter(Boolean).join(" · ")}
           </p>
         </div>
-        {isWorker && worker && (
-          <Link href="/profile" transitionTypes={["nav-forward"]} aria-label="Your profile" className="rounded-full">
-            <Avatar name={worker.displayName} tone="coral" />
-          </Link>
-        )}
       </header>
 
       {isWorker && <WorkerHero workerId={session.workerId!} />}

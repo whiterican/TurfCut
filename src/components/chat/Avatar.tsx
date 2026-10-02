@@ -1,5 +1,5 @@
 /** Initials in a circle; team chats get the dark hero colour. Purely decorative. */
-export function Avatar({ name, team = false, size = "md", tone }: { name: string; team?: boolean; size?: "sm" | "md"; tone?: "coral" | "sky" }) {
+export function Avatar({ name, team = false, size = "md", tone }: { name: string; team?: boolean; size?: "sm" | "md"; tone?: "sky" }) {
   const initials = name
     .split(/\s+/)
     .filter((w) => /\p{L}|\p{N}/u.test(w[0] ?? ""))

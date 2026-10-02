@@ -31,7 +31,7 @@ export function TopNav({ tabs }: { tabs: NavTab[] }) {
   );
 }
 
-/** Phone and tablet: fixed bottom tab bar, as in the screen mockups. */
+/** Phone and tablet: fixed bottom tab bar; a dot marks the current tab. */
 export function TabBar({ tabs }: { tabs: NavTab[] }) {
   const current = activeTab(tabs, usePathname());
   const count = useUnreadCount();
@@ -41,10 +41,9 @@ export function TabBar({ tabs }: { tabs: NavTab[] }) {
       <div className="mx-auto flex max-w-md">
         {tabs.map((t) => (
           <Link key={t.href} href={t.href} className="tab" aria-current={t.href === current ? "page" : undefined}>
-            <span aria-hidden className="tab-box">
-              {t.href === MESSAGES_HREF && <Badge count={count} />}
-            </span>
+            <span aria-hidden className="tab-dot" />
             {t.label}
+            {t.href === MESSAGES_HREF && <Badge count={count} />}
             {t.href === MESSAGES_HREF && count > 0 && <span className="sr-only">, {count} unread</span>}
           </Link>
         ))}

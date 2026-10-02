@@ -67,8 +67,8 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
       <header className="page-header">
         <div className="space-y-1">
           <p className="eyebrow">Work</p>
-          <h1 className="page-title">Find work</h1>
-          <p className="text-muted-sm">Open jobs, soonest first — pay, place and dates up front.</p>
+          <h1 className="page-title">Find your next field job.</h1>
+          <p className="text-muted-sm">Open jobs, soonest first, with pay, place and dates up front.</p>
         </div>
       </header>
 

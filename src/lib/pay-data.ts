@@ -429,7 +429,8 @@ type LineAction = "approve" | "hold" | "release";
  */
 export function reviewerOf(l: OrgLine): string | null {
   if (l.line.kind !== "SHIFT") return null;
-  return l.state.status === "VOIDED" ? (l.line.validation?.reviewerId ?? null) : (l.line.shift?.validations[0]?.reviewerId ?? l.line.validation?.reviewerId ?? null);
+  const replaced = l.line.events.some((e) => e.type === "VOIDED");
+  return replaced ? (l.line.validation?.reviewerId ?? null) : (l.line.shift?.validations[0]?.reviewerId ?? l.line.validation?.reviewerId ?? null);
 }
 
 /** The two-person rule for one loaded line (lib/pay selfApprovalProblem). */
@@ -446,7 +447,7 @@ export function selfApproval(l: OrgLine, actorId: string): string | null {
  * organization and be in a state that allows the action; otherwise nothing
  * is written.
  */
-export async function lineAction(actor: PayActor, payoutIds: string[], action: LineAction, reason: string | null = null, now = new Date()): Promise<Result & { count?: number }> {
+export async function lineAction(actor: PayActor, payoutIds: string[], action: LineAction, reason: string | null = null, now = new Date()): Promise<Result & { count?: number; deductions?: number }> {
   if (notPayRole(actor)) return { ok: false, reason: "Only owners and finance can approve or hold pay." };
   const unique = [...new Set(payoutIds)];
   const ids = unique.filter((id) => UUID_RE.test(id));
@@ -463,12 +464,15 @@ export async function lineAction(actor: PayActor, payoutIds: string[], action: L
         const self = selfApproval(l, actor.profileId);
         if (self) return { ok: false as const, reason: `${l.line.worker.displayName}: ${self}` };
       }
+      if (action === "hold" && l.line.amountCents < 0) {
+        return { ok: false as const, reason: "A deduction can't be held (that would raise what's paid). Hold the shift's pay instead." };
+      }
       const problem = lineActionProblem(l.state, action, why);
       if (problem) return { ok: false as const, reason: lines.length > 1 ? `${l.line.worker.displayName}: ${problem}` : problem };
     }
     // Approving shift pay approves the deductions waiting on those shifts
     // too, so a payment can never go out without them.
-    const shiftIds = lines.filter((l) => l.line.kind === "SHIFT" && l.line.shiftId).map((l) => l.line.shiftId!);
+    const shiftIds = lines.filter((l) => l.line.amountCents > 0 && l.line.shiftId).map((l) => l.line.shiftId!);
     const deductions =
       action === "approve" && shiftIds.length
         ? (await orgLines(tx, { orgId: actor.orgId, shiftId: { in: shiftIds }, kind: "ADJUSTMENT", amountCents: { lt: 0 } }))
@@ -482,7 +486,7 @@ export async function lineAction(actor: PayActor, payoutIds: string[], action: L
     await tx.auditEvent.create({
       data: { actorId: actor.profileId, action: `payout.${action === "approve" ? "approved" : action === "hold" ? "held" : "released"}`, entityType: "Payout", entityId: ids[0], metadata: { payoutIds: all, reason: why } },
     });
-    return { ok: true as const, count: ids.length };
+    return { ok: true as const, count: ids.length, deductions: deductions.length };
   });
 }
 
@@ -581,6 +585,8 @@ export async function resolveDispute(actor: PayActor, disputeId: string, r: Reso
       // A dispute can't leave the worker owing money for the shift.
       if (total + r.amountCents < 0) return { ok: false as const, reason: `A deduction can't be more than this shift's pay (${money(total)}).` };
       const base = live.find((x) => x.l.kind === "SHIFT") ?? null;
+      // The shift's pay counts as approved if any positive line on it is.
+      const anyApproved = live.some((x) => x.l.amountCents > 0 && (x.st.approvedAt !== null || x.st.status === "PAID" || x.st.status === "PROCESSING"));
       const adj = await tx.payout.create({
         data: {
           workerId: d.workerId,
@@ -599,7 +605,7 @@ export async function resolveDispute(actor: PayActor, disputeId: string, r: Reso
       // A raise waits for someone other than its maker (two people) and is
       // held with a held shift line. A deduction on pay that's approved or
       // paid applies at once, so the next payment can't go out without it.
-      const baseApproved = !!base && (base.st.approvedAt !== null || base.st.status === "PAID" || base.st.status === "PROCESSING");
+      const baseApproved = anyApproved;
       // (A deduction only lowers what goes out, so it's never held: if the
       // pay is approved it applies now; if not, it's approved with it.)
       if (r.amountCents < 0 && baseApproved) {

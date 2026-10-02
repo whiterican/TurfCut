@@ -32,7 +32,8 @@ export async function approve(_prev: ActionState, fd: FormData): Promise<ActionS
   const r = await lineAction(a, ids, "approve");
   if (!r.ok) return { ok: false, message: r.reason };
   refresh();
-  return { ok: true, message: r.count === 1 ? "Approved 1 line for payment." : `Approved ${r.count} lines for payment.` };
+  const extra = r.deductions ? ` and applied ${r.deductions} ${r.deductions === 1 ? "deduction" : "deductions"} on those shifts` : "";
+  return { ok: true, message: `${r.count === 1 ? "Approved 1 line" : `Approved ${r.count} lines`} for payment${extra}.` };
 }
 
 export async function hold(_prev: ActionState, fd: FormData): Promise<ActionState> {

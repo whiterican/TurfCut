@@ -20,7 +20,7 @@ export async function GET(req: Request) {
   const end = new Date(new Date(`${to}T00:00:00Z`).getTime() + 86_400_000);
   if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end <= start) return new NextResponse("The end date must be on or after the start date.", { status: 400 });
   if (end.getTime() - start.getTime() > 400 * 86_400_000) return new NextResponse("Export at most about a year at a time.", { status: 400 });
-  const csv = await exportLedger(s.orgId, start, end);
+  const csv = await exportLedger({ profileId: s.userId, orgId: s.orgId, role: s.role }, start, end);
   return new NextResponse(csv, {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",

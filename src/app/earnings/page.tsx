@@ -4,7 +4,51 @@ import { loadWorkerEarnings, type EarningShift } from "@/lib/pay-data";
 import { money, statusLabel } from "@/lib/pay";
 import { LocalTime } from "@/components/LocalTime";
 import { ActionButton } from "@/components/ActionButton";
-import { dispute } from "./actions";
+import { dispute, managePayouts, setUpPayouts } from "./actions";
+import { payoutSetup } from "@/lib/pay-data";
+import { stripeProvider } from "@/lib/payout-provider";
+
+const SETUP_NOTE: Record<string, string> = {
+  done: "Thanks — Stripe is checking your details. This can take a minute.",
+  error: "Stripe didn't respond. Try again in a moment.",
+  unavailable: "In-app payouts aren't switched on yet.",
+};
+
+/** Where the worker's payouts go, and the button to set them up. */
+async function PayoutSetup({ workerId, note }: { workerId: string; note: string | null }) {
+  const provider = stripeProvider();
+  const w = await payoutSetup(workerId, provider, note === "done");
+  return (
+    <section className="card space-y-3">
+      <div className="flex items-start justify-between gap-3">
+        <div className="space-y-1">
+          <p className="font-semibold text-fg">Payouts</p>
+          <p className="text-muted-sm">
+            {!provider.configured()
+              ? "In-app payouts aren't switched on yet. Approved pay is kept and sent once they are."
+              : w.payoutsEnabled
+                ? "Approved pay goes to your bank account through Stripe."
+                : w.stripeAccountId
+                  ? "Finish setting up with Stripe so you can be paid."
+                  : "Set up payouts once and approved pay goes straight to your bank. Stripe collects your bank and tax details — Turfcut never sees them."}
+          </p>
+        </div>
+        {w.payoutsEnabled && <span className="badge-mint shrink-0">Ready</span>}
+      </div>
+      {provider.configured() &&
+        (w.payoutsEnabled ? (
+          <form action={managePayouts}>
+            <button className="btn-secondary btn-sm">Payout details and tax forms</button>
+          </form>
+        ) : (
+          <form action={setUpPayouts}>
+            <button className="btn-primary">{w.stripeAccountId ? "Finish setup with Stripe" : "Set up payouts"}</button>
+          </form>
+        ))}
+      {note && SETUP_NOTE[note] && <p role="status" className="text-hint">{SETUP_NOTE[note]}</p>}
+    </section>
+  );
+}
 
 const OUTCOME: Record<string, string> = {
   KEPT: "Pay kept as it was",
@@ -81,8 +125,10 @@ function ShiftRow({ s, orgName }: { s: EarningShift; orgName: string }) {
 }
 
 /** The worker's pay: gross, per campaign, with each shift's status. */
-export default async function EarningsPage() {
+export default async function EarningsPage({ searchParams }: { searchParams: Promise<{ payouts?: string | string[] }> }) {
   const { workerId } = await requireWorker();
+  const q = (await searchParams).payouts;
+  const note = typeof q === "string" ? q : null;
   const { campaigns, totals } = await loadWorkerEarnings(workerId);
   return (
     <main className="page max-w-2xl">
@@ -112,6 +158,8 @@ export default async function EarningsPage() {
           )}
         </p>
       </div>
+
+      <PayoutSetup workerId={workerId} note={note} />
 
       {campaigns.length === 0 ? (
         <div className="empty-state">

@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { requireRole } from "@/lib/auth";
 import { PAY_ROLES } from "@/lib/access";
-import { lineAction, resolveDispute, type PayActor } from "@/lib/pay-data";
+import { lineAction, payWorker, resolveDispute, settleTransfer, type PayActor } from "@/lib/pay-data";
+import { stripeProvider } from "@/lib/payout-provider";
 import { parseMoney, type Resolution } from "@/lib/pay";
 import type { ActionState } from "@/app/jobs/actions";
 
@@ -71,4 +72,24 @@ export async function resolve(_prev: ActionState, fd: FormData): Promise<ActionS
   if (!res.ok) return { ok: false, message: res.reason };
   refresh();
   return { ok: true, message: "Dispute closed. The worker sees your response." };
+}
+
+/** Sends one worker everything approved and unpaid, through Stripe. */
+export async function payNow(_prev: ActionState, fd: FormData): Promise<ActionState> {
+  const a = await actor();
+  if (!a) return { ok: false, message: "No organization on this account." };
+  const r = await payWorker(a, str(fd, "workerId"), stripeProvider());
+  refresh();
+  if (!r.ok) return { ok: false, message: r.reason };
+  return { ok: r.outcome === "paid", message: r.message };
+}
+
+/** Asks Stripe what happened to a payment still marked "sending". */
+export async function checkPayment(_prev: ActionState, fd: FormData): Promise<ActionState> {
+  const a = await actor();
+  if (!a) return { ok: false, message: "No organization on this account." };
+  const r = await settleTransfer(a, str(fd, "transferId"), stripeProvider());
+  refresh();
+  if (!r.ok) return { ok: false, message: r.reason };
+  return { ok: r.outcome === "paid", message: r.message };
 }

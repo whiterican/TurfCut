@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { requireRole } from "@/lib/auth";
-import { PAY_ROLES } from "@/lib/access";
-import { loadOrgDisputes, loadOrgPay, type OrgLine } from "@/lib/pay-data";
+import { FIELD_ROLES, PAY_ROLES } from "@/lib/access";
+import { loadOrgDisputes, loadOrgPay, partialReversals, pendingTransfers, type OrgLine } from "@/lib/pay-data";
+import { stripeProvider } from "@/lib/payout-provider";
 import { money, PLATFORM_FEE_BPS, statusLabel } from "@/lib/pay";
 import { LocalTime } from "@/components/LocalTime";
 import { ActionButton } from "@/components/ActionButton";
 import { ApproveLines, HoldLine, ResolveDispute } from "@/components/PayForms";
-import { approve, hold, release, resolve } from "./actions";
+import { approve, checkPayment, hold, payNow, release, resolve } from "./actions";
 
 const day = (d: Date) => d.toISOString().slice(0, 10);
 
@@ -40,12 +41,21 @@ export default async function PayoutsPage() {
       </main>
     );
   }
-  const [pay, disputes, closed] = await Promise.all([loadOrgPay(s.orgId), loadOrgDisputes(s.orgId, true), loadOrgDisputes(s.orgId, false)]);
+  const actor = { profileId: s.userId, orgId: s.orgId, role: s.role };
+  const canOpenShifts = FIELD_ROLES.includes(s.role);
+  const [pay, disputes, closed, pending, partial] = await Promise.all([
+    loadOrgPay(actor),
+    loadOrgDisputes(actor, true),
+    loadOrgDisputes(actor, false),
+    pendingTransfers(actor),
+    partialReversals(actor),
+  ]);
+  const stripeOn = stripeProvider().configured();
   const sum = (ls: OrgLine[]) => ls.reduce((n, l) => n + l.line.amountCents, 0);
   const readyTotal = pay.toPay.reduce((n, w) => n + Math.max(0, w.amountCents), 0);
   const today = new Date();
   const monthAgo = new Date(today.getTime() - 30 * 86_400_000);
-  const nothing = !pay.awaiting.length && !pay.toPay.length && !pay.held.length && !pay.processing.length && !pay.paid.length && !disputes.length;
+  const nothing = !pay.awaiting.length && !pay.toPay.length && !pay.held.length && !pending.length && !pay.paid.length && !disputes.length;
 
   return (
     <main className="page max-w-3xl">
@@ -56,6 +66,7 @@ export default async function PayoutsPage() {
           <p className="text-muted-sm">
             Supervisors approve the work; you approve the pay. Workers receive the full gross amount — the {PLATFORM_FEE_BPS / 100}% platform fee is invoiced to your organization.
           </p>
+          {!stripeOn && <p className="text-hint">Stripe isn&apos;t connected yet: you can approve pay, and it&apos;s sent once Stripe is set up.</p>}
         </div>
       </header>
 
@@ -89,6 +100,34 @@ export default async function PayoutsPage() {
         </div>
       )}
 
+      {partial.length > 0 && (
+        <div className="card space-y-2" role="alert">
+          <p className="font-semibold text-fg">Partly reversed in Stripe</p>
+          {partial.map((r) => {
+            const m = r.metadata as { reversedCents?: number; amountCents?: number; providerRef?: string };
+            return (
+              <p key={r.id} className="text-sm text-muted">
+                {money(m.reversedCents ?? 0)} of {money(m.amountCents ?? 0)} ({m.providerRef}) was reversed on <LocalTime iso={r.createdAt.toISOString()} mode="date" />. Settle the difference with a pay adjustment.
+              </p>
+            );
+          })}
+        </div>
+      )}
+
+      {pending.length > 0 && (
+        <section className="section">
+          <h2 className="section-title">Waiting for Stripe</h2>
+          {pending.map((t) => (
+            <div key={t.id} className="card flex flex-wrap items-center justify-between gap-3">
+              <p className="text-sm text-fg">
+                {t.worker.displayName} · {money(t.amountCents)} · started <LocalTime iso={t.createdAt.toISOString()} mode="datetime" />
+              </p>
+              <ActionButton action={checkPayment} fields={{ transferId: t.id }} label="Check status" pendingLabel="Checking…" variant="btn-secondary btn-sm" />
+            </div>
+          ))}
+        </section>
+      )}
+
       {nothing && (
         <div className="empty-state">
           <p className="empty-state-title">No pay to handle yet</p>
@@ -105,8 +144,13 @@ export default async function PayoutsPage() {
                 <div className="space-y-0.5">
                   <p className="font-semibold text-fg">{d.worker}</p>
                   <p className="text-xs text-muted">
-                    {d.jobTitle} · <Link href={`/shifts/${d.shiftId}`} className="link"><LocalTime iso={d.shiftStartsAt.toISOString()} mode="date" /></Link>
-                    {d.line ? ` · ${money(d.line.amountCents)} (${d.line.formula})` : d.review?.status === "REJECTED" ? ` · not approved${d.review.reason ? `: ${d.review.reason}` : ""}` : ""}
+                    {d.jobTitle} ·{" "}
+                    {canOpenShifts ? (
+                      <Link href={`/shifts/${d.shiftId}`} className="link"><LocalTime iso={d.shiftStartsAt.toISOString()} mode="date" /></Link>
+                    ) : (
+                      <LocalTime iso={d.shiftStartsAt.toISOString()} mode="date" />
+                    )}
+                    {d.line ? ` · now ${money(d.line.amountCents)} (${d.line.formula})` : d.review?.status === "REJECTED" ? ` · not approved${d.review.reason ? `: ${d.review.reason}` : ""}` : ""}
                   </p>
                 </div>
                 <span className="badge-coral shrink-0">Disputed</span>
@@ -132,6 +176,23 @@ export default async function PayoutsPage() {
               flag: l.wageFlag,
             }))}
           />
+          <details className="card">
+            <summary className="link cursor-pointer text-sm font-semibold">Hold a line instead</summary>
+            <ul className="mt-2 divide-y divide-border">
+              {pay.awaiting.map((l) => (
+                <li key={l.line.id} className="space-y-1 py-2">
+                  <div className="flex items-start justify-between gap-3">
+                    <span className="min-w-0">
+                      <span className="block text-sm font-semibold text-fg">{l.line.worker.displayName}</span>
+                      <LineText l={l} names={pay.names} />
+                    </span>
+                    <span className="shrink-0 text-sm font-semibold text-fg">{money(l.line.amountCents)}</span>
+                  </div>
+                  <HoldLine action={hold} payoutId={l.line.id} />
+                </li>
+              ))}
+            </ul>
+          </details>
         </section>
       )}
 
@@ -149,7 +210,13 @@ export default async function PayoutsPage() {
                 </div>
                 <p className="text-lg font-bold text-fg">{money(w.amountCents)}</p>
               </div>
-              {w.blocked ? <p className="text-muted-sm">{w.blocked}</p> : <p className="text-muted-sm">Payouts through Stripe arrive in the next step of this milestone.</p>}
+              {w.blocked ? (
+                <p className="text-muted-sm">{w.blocked}</p>
+              ) : !stripeOn ? (
+                <p className="text-muted-sm">Stripe isn&apos;t connected yet, so pay can&apos;t be sent. Approved pay is kept until it is.</p>
+              ) : (
+                <ActionButton action={payNow} fields={{ workerId: w.workerId }} label={`Pay ${money(w.amountCents)}`} pendingLabel="Sending…" />
+              )}
               <details>
                 <summary className="link cursor-pointer text-xs font-semibold">Lines</summary>
                 <ul className="mt-2 divide-y divide-border">
@@ -185,23 +252,6 @@ export default async function PayoutsPage() {
                   <span className="shrink-0 font-bold text-fg">{money(l.line.amountCents)}</span>
                 </div>
                 <ActionButton action={release} fields={{ payoutId: l.line.id }} label="Release" variant="btn-secondary btn-sm" />
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      {pay.processing.length > 0 && (
-        <section className="section">
-          <h2 className="section-title">Sending</h2>
-          <ul className="list-card">
-            {pay.processing.map((l) => (
-              <li key={l.line.id} className="flex items-start justify-between gap-3 px-4 py-3">
-                <span className="min-w-0">
-                  <span className="block text-sm font-semibold text-fg">{l.line.worker.displayName}</span>
-                  <LineText l={l} names={pay.names} />
-                </span>
-                <span className="shrink-0 font-bold text-fg">{money(l.line.amountCents)}</span>
               </li>
             ))}
           </ul>

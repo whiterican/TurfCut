@@ -105,7 +105,7 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
         jurisdictionVersion: job0.jurisdiction.version,
       })
     : null;
-  const payLocked = !!pay && (pay.state.approvedAt !== null || pay.state.status === "PROCESSING" || pay.state.status === "PAID");
+  const payLocked = !!pay?.locked;
   const turf = readTurf(s.turfArea);
   // Pins and a worker's own day turf are a location trail: the worker and
   // the field team (owners, supervisors) see them; recruiters don't.
@@ -265,8 +265,8 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
             {st.checkedOutAt && !payLocked && approvePreview && (
               <p className="text-muted-sm" role="note">
                 {approvePreview.ok ? (
-                  pay && pay.amountCents !== approvePreview.amountCents && st.closeout?.status === "APPROVED" ? (
-                    <>The counts changed since approval: recorded pay is {money(pay.amountCents)}, but it now works out to <strong className="text-fg">{money(approvePreview.amountCents)}</strong> ({approvePreview.basis.formula}). Approve again to update it.</>
+                  pay && pay.mainCents !== approvePreview.amountCents && st.closeout?.status === "APPROVED" ? (
+                    <>The counts changed since approval: recorded pay is {money(pay.mainCents)}, but it now works out to <strong className="text-fg">{money(approvePreview.amountCents)}</strong> ({approvePreview.basis.formula}). Approve again to update it.</>
                   ) : (
                     <>Approving records pay of <strong className="text-fg">{money(approvePreview.amountCents)}</strong> — {approvePreview.basis.formula}.</>
                   )

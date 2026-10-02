@@ -3,12 +3,14 @@ import { db } from "@/lib/db";
 import { UUID_RE } from "@/lib/jobs";
 import { PAY_ROLES } from "@/lib/access";
 import type { Role } from "@/lib/auth";
+import { ProviderError, type PayoutProvider, type ProviderEvent } from "@/lib/payout-provider";
 import { verifiedWork } from "@/lib/scorecard";
 import {
   computeShiftPay,
   disputeProblem,
   lineActionProblem,
   lineState,
+  money,
   payableTotal,
   platformFee,
   readBasis,
@@ -154,19 +156,28 @@ export async function applyReviewPlan(tx: Tx, s: ReviewShift, plan: ReviewPlan &
   });
 }
 
-/** The shift's pay as the shift page shows it: the current shift line, if any. */
-export async function shiftPay(shiftId: string): Promise<{ amountCents: number; formula: string; state: LineState } | null> {
+/**
+ * The shift's pay as the shift page shows it: the live total, the current
+ * shift line (its own amount and state), and whether the review is final —
+ * the same rule the server applies (reReviewProblem over every line).
+ */
+export async function shiftPay(shiftId: string): Promise<{ amountCents: number; mainCents: number; formula: string; state: LineState; locked: boolean } | null> {
   if (!UUID_RE.test(shiftId)) return null;
   const [lines, open] = await Promise.all([
     db().payout.findMany({ where: { shiftId }, include: { events: true }, orderBy: { createdAt: "asc" } }),
     openDisputeShifts(db(), { shiftId }),
   ]);
-  const live = lines.map((l) => ({ l, state: lineState(l, asFacts(l.events), open.has(shiftId)) })).filter((x) => x.state.status !== "VOIDED");
+  const states = lines.map((l) => ({ l, state: lineState(l, asFacts(l.events), open.has(shiftId)) }));
+  const live = states.filter((x) => x.state.status !== "VOIDED");
   const main = live.find((x) => x.l.kind === "SHIFT");
   if (!main) return null;
-  const total = live.reduce((n, x) => n + x.l.amountCents, 0);
-  const basis = (main.l.basis ?? {}) as Record<string, unknown>;
-  return { amountCents: total, formula: typeof basis.formula === "string" ? basis.formula : "", state: main.state };
+  return {
+    amountCents: live.reduce((n, x) => n + x.l.amountCents, 0),
+    mainCents: main.l.amountCents,
+    formula: readBasis(main.l.basis).formula,
+    state: main.state,
+    locked: reReviewProblem(states.map((x) => x.state)) !== null,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -316,6 +327,7 @@ export async function openDispute(
   const text = typeof reason === "string" ? reason.trim() : "";
   return db().$transaction(async (tx) => {
     await lock(tx, `shift:${shiftId}`);
+    await payLock(tx, actor.workerId);
     const s = await tx.shift.findUnique({
       where: { id: shiftId },
       select: {
@@ -326,7 +338,6 @@ export async function openDispute(
       },
     });
     if (!s || s.engagement.workerId !== actor.workerId) return { ok: false as const, reason: "Shift not found." };
-    await payLock(tx, actor.workerId);
     const problem = disputeProblem({
       reviewed: s.validations.length > 0,
       openDispute: s.payDisputes.some((d) => !d.resolution),
@@ -437,7 +448,13 @@ export interface DisputeView {
   resolution: { outcome: string; response: string; createdAt: Date } | null;
 }
 
-export async function loadOrgDisputes(orgId: string, open: boolean): Promise<DisputeView[]> {
+function assertPayRole(actor: PayActor) {
+  if (notPayRole(actor)) throw new Error("[turfcut] pay records are for owners and finance only");
+}
+
+export async function loadOrgDisputes(actor: PayActor, open: boolean): Promise<DisputeView[]> {
+  assertPayRole(actor);
+  const orgId = actor.orgId;
   const ds = await db().payDispute.findMany({
     where: { orgId, resolution: open ? { is: null } : { isNot: null } },
     include: {
@@ -449,6 +466,7 @@ export async function loadOrgDisputes(orgId: string, open: boolean): Promise<Dis
           startsAt: true,
           engagement: { select: { job: { select: { title: true } } } },
           validations: { where: { workEventId: null }, orderBy: { createdAt: "desc" }, take: 1 },
+          payouts: { include: { events: true }, orderBy: { createdAt: "asc" } },
         },
       },
     },
@@ -466,7 +484,12 @@ export async function loadOrgDisputes(orgId: string, open: boolean): Promise<Dis
       shiftId: d.shiftId,
       shiftStartsAt: d.shift.startsAt,
       jobTitle: d.shift.engagement.job.title,
-      line: d.payout ? { amountCents: d.payout.amountCents, formula: readBasis(d.payout.basis).formula } : null,
+      line: (() => {
+        // The shift's pay as it stands now (a re-review may have replaced the disputed line).
+        const live = d.shift.payouts.filter((l) => lineState(l, asFacts(l.events), false).status !== "VOIDED");
+        const main = live.find((l) => l.kind === "SHIFT");
+        return live.length ? { amountCents: live.reduce((n, l) => n + l.amountCents, 0), formula: main ? readBasis(main.basis).formula : "adjustments only" } : null;
+      })(),
       review: v ? { status: v.status, reason: v.reason, at: v.createdAt } : null,
       resolution: d.resolution ? { outcome: d.resolution.outcome, response: d.resolution.response, createdAt: d.resolution.createdAt } : null,
     };
@@ -500,6 +523,12 @@ export async function resolveDispute(actor: PayActor, disputeId: string, r: Reso
     const response = r.response.trim();
     let adjustmentId: string | null = null;
     if (r.outcome === "ADJUSTED") {
+      const shiftLines = await tx.payout.findMany({ where: { shiftId: d.shiftId }, include: { events: true }, orderBy: { createdAt: "asc" } });
+      const live = shiftLines.map((l) => ({ l, st: lineState(l, asFacts(l.events), false) })).filter((x) => x.st.status !== "VOIDED");
+      const total = live.reduce((n, x) => n + x.l.amountCents, 0);
+      // A dispute can't leave the worker owing money for the shift.
+      if (total + r.amountCents < 0) return { ok: false as const, reason: `A deduction can't be more than this shift's pay (${money(total)}).` };
+      const base = live.find((x) => x.l.kind === "SHIFT") ?? null;
       const adj = await tx.payout.create({
         data: {
           workerId: d.workerId,
@@ -510,13 +539,19 @@ export async function resolveDispute(actor: PayActor, disputeId: string, r: Reso
           amountCents: r.amountCents,
           feeCents: platformFee(r.amountCents),
           basis: { formula: `Dispute adjustment: ${response}`, disputeId } as Prisma.InputJsonObject,
-          adjustsId: d.payoutId,
+          adjustsId: base?.l.id ?? null,
           createdById: actor.profileId,
           createdAt: now,
         },
       });
-      // Deciding the adjustment is its approval.
-      await tx.payoutEvent.create({ data: { payoutId: adj.id, type: "APPROVED", actorId: actor.profileId, reason: "Approved when the dispute was resolved", createdAt: now } });
+      // The adjustment follows the shift's pay: approved with it (or on its
+      // own when the shift had no pay), held with it, else awaiting approval.
+      const baseApproved = !base || base.st.approvedAt !== null || base.st.status === "PAID" || base.st.status === "PROCESSING";
+      if (base?.st.status === "HELD") {
+        await tx.payoutEvent.create({ data: { payoutId: adj.id, type: "HELD", actorId: actor.profileId, reason: base.st.heldReason, createdAt: now } });
+      } else if (baseApproved) {
+        await tx.payoutEvent.create({ data: { payoutId: adj.id, type: "APPROVED", actorId: actor.profileId, reason: "Approved when the dispute was resolved", createdAt: now } });
+      }
       adjustmentId = adj.id;
     }
     await tx.payDisputeResolution.create({
@@ -547,8 +582,9 @@ export interface WorkerToPay {
 }
 
 /** Everything the Pay page shows for one organization. */
-export async function loadOrgPay(orgId: string) {
-  const lines = await orgLines(db(), { orgId });
+export async function loadOrgPay(actor: PayActor) {
+  assertPayRole(actor);
+  const lines = await orgLines(db(), { orgId: actor.orgId });
   const live = lines.filter((l) => l.state.status !== "VOIDED");
   const byWorker = new Map<string, OrgLine[]>();
   for (const l of live.filter((x) => x.state.payable)) byWorker.set(l.line.workerId, [...(byWorker.get(l.line.workerId) ?? []), l]);
@@ -599,8 +635,9 @@ export function csvCell(v: string | number | null | undefined): string {
 
 const usd = (cents: number) => (cents / 100).toFixed(2);
 
-export async function exportLedger(orgId: string, from: Date, to: Date): Promise<string> {
-  const lines = await orgLines(db(), { orgId, createdAt: { gte: from, lt: to } });
+export async function exportLedger(actor: PayActor, from: Date, to: Date): Promise<string> {
+  assertPayRole(actor);
+  const lines = await orgLines(db(), { orgId: actor.orgId, createdAt: { gte: from, lt: to } });
   const people = new Set<string>();
   for (const l of lines) {
     if (l.line.validation?.reviewerId) people.add(l.line.validation.reviewerId);
@@ -640,5 +677,211 @@ export async function exportLedger(orgId: string, from: Date, to: Date): Promise
       l.line.createdAt.toISOString(),
     ].map(csvCell).join(",");
   });
-  return [header.join(","), ...rows].join("\r\n") + "\r\n";
+  // The BOM tells spreadsheet apps it's UTF-8 (names with accents stay intact).
+  return "\uFEFF" + [header.join(","), ...rows].join("\r\n") + "\r\n";
+}
+
+// ---------------------------------------------------------------------------
+// Stripe: worker payout accounts, pay runs, webhooks
+// ---------------------------------------------------------------------------
+
+/** The worker's Stripe account, created on first use (one per worker). */
+export async function ensurePayoutAccount(workerId: string, email: string | null, provider: PayoutProvider): Promise<string> {
+  const w = await db().worker.findUniqueOrThrow({ where: { id: workerId }, select: { stripeAccountId: true } });
+  if (w.stripeAccountId) return w.stripeAccountId;
+  // Idempotent at Stripe per worker, so two clicks get the same account.
+  const id = await provider.createAccount({ workerId, email });
+  await db().$transaction(async (tx) => {
+    await lock(tx, `payout-account:${workerId}`);
+    const again = await tx.worker.findUniqueOrThrow({ where: { id: workerId }, select: { stripeAccountId: true } });
+    if (!again.stripeAccountId) await tx.worker.update({ where: { id: workerId }, data: { stripeAccountId: id, payoutsEnabled: false, payoutsCheckedAt: null } });
+  });
+  return id;
+}
+
+/**
+ * The worker's payout setup for the Earnings page. Asks Stripe again when
+ * they're back from Stripe's setup pages, or the cached "not yet" is over
+ * five minutes old; a Stripe outage just keeps the cached answer.
+ */
+export async function payoutSetup(workerId: string, provider: PayoutProvider, justBack: boolean, now = new Date()) {
+  const w = await db().worker.findUniqueOrThrow({ where: { id: workerId }, select: { stripeAccountId: true, payoutsEnabled: true, payoutsCheckedAt: true } });
+  const stale = !w.payoutsCheckedAt || now.getTime() - w.payoutsCheckedAt.getTime() > 5 * 60_000;
+  if (provider.configured() && w.stripeAccountId && !w.payoutsEnabled && (justBack || stale)) {
+    try {
+      return { ...w, payoutsEnabled: await refreshPayoutStatus(workerId, provider, now) };
+    } catch {
+      return w;
+    }
+  }
+  return w;
+}
+
+/** Re-reads from Stripe whether this worker can be paid (cached on Worker). */
+export async function refreshPayoutStatus(workerId: string, provider: PayoutProvider, now = new Date()): Promise<boolean> {
+  const w = await db().worker.findUniqueOrThrow({ where: { id: workerId }, select: { stripeAccountId: true, payoutsEnabled: true } });
+  if (!w.stripeAccountId || !provider.configured()) return false;
+  const enabled = await provider.payoutsEnabled(w.stripeAccountId);
+  await db().worker.update({ where: { id: workerId }, data: { payoutsEnabled: enabled, payoutsCheckedAt: now } });
+  return enabled;
+}
+
+type PayRun = { ok: true; transferId: string; outcome: "paid" | "pending" | "failed"; message: string } | { ok: false; reason: string };
+
+/**
+ * Pays one worker everything approved and unpaid at this organization, in
+ * one Stripe transfer. Step 1 records the transfer and marks its lines as
+ * sending (committed before any money moves); step 2 settles it with
+ * Stripe. A crash between the two leaves the lines "sending" until
+ * settleTransfer runs again — it never sends a second payment.
+ */
+export async function payWorker(actor: PayActor, workerId: string, provider: PayoutProvider, now = new Date()): Promise<PayRun> {
+  if (notPayRole(actor)) return { ok: false, reason: "Only owners and finance can pay workers." };
+  if (!UUID_RE.test(workerId)) return { ok: false, reason: "Worker not found." };
+  if (!provider.configured()) return { ok: false, reason: "Stripe isn't connected yet, so pay can't be sent. Approved pay is kept until it is." };
+  const worker = await db().worker.findUnique({ where: { id: workerId }, select: { stripeAccountId: true, payoutsEnabled: true } });
+  if (!worker?.stripeAccountId) return { ok: false, reason: "This worker hasn't set up payouts with Stripe yet." };
+  // Re-check with Stripe when the cached answer is "not yet".
+  if (!worker.payoutsEnabled && !(await refreshPayoutStatus(workerId, provider, now))) {
+    return { ok: false, reason: "This worker hasn't finished setting up payouts with Stripe yet." };
+  }
+  const started = await db().$transaction(async (tx) => {
+    await payLock(tx, workerId);
+    const lines = await orgLines(tx, { orgId: actor.orgId, workerId });
+    if (lines.some((l) => l.state.status === "PROCESSING")) {
+      return { ok: false as const, reason: "A payment to this worker is still being confirmed. Check its status first." };
+    }
+    const ready = lines.filter((l) => l.state.payable);
+    const t = payableTotal(ready.map((l) => ({ amountCents: l.line.amountCents, feeCents: l.line.feeCents, state: l.state })));
+    if (!ready.length) return { ok: false as const, reason: "Nothing approved to pay this worker." };
+    if (t.amountCents <= 0) return { ok: false as const, reason: "Deductions cover this worker's approved pay; nothing to send yet." };
+    const transfer = await tx.payoutTransfer.create({
+      data: { workerId, orgId: actor.orgId, amountCents: t.amountCents, feeCents: t.feeCents, destination: worker.stripeAccountId!, createdById: actor.profileId, createdAt: now },
+    });
+    const ids = ready.map((l) => l.line.id);
+    const at = await eventAt(tx, ids, now);
+    await tx.payoutEvent.createMany({ data: ids.map((payoutId) => ({ payoutId, type: "TRANSFER_STARTED" as const, actorId: actor.profileId, transferId: transfer.id, createdAt: at })) });
+    await tx.auditEvent.create({
+      data: { actorId: actor.profileId, action: "payout.transfer_started", entityType: "PayoutTransfer", entityId: transfer.id, metadata: { workerId, amountCents: t.amountCents, feeCents: t.feeCents, payoutIds: ids } },
+    });
+    return { ok: true as const, transferId: transfer.id };
+  });
+  if (!started.ok) return started;
+  return settleTransfer(actor, started.transferId, provider);
+}
+
+/**
+ * Finds or makes the Stripe transfer for a Turfcut transfer and records the
+ * outcome. Safe to run any number of times: it first looks for a transfer
+ * already made (by transfer group), and a repeat create uses the same
+ * idempotency key.
+ */
+export async function settleTransfer(actor: PayActor | null, transferId: string, provider: PayoutProvider, now = new Date()): Promise<PayRun> {
+  if (actor && notPayRole(actor)) return { ok: false, reason: "Only owners and finance can pay workers." };
+  if (!UUID_RE.test(transferId)) return { ok: false, reason: "Payment not found." };
+  const t = await db().payoutTransfer.findUnique({ where: { id: transferId } });
+  if (!t || (actor && t.orgId !== actor.orgId)) return { ok: false, reason: "Payment not found." };
+  return db().$transaction(
+    async (tx) => {
+      // Held across the Stripe call: one settle per worker at a time.
+      await payLock(tx, t.workerId);
+      const lines = await tx.payout.findMany({ where: { events: { some: { transferId } } }, include: { events: true } });
+      const inFlight = lines.filter((l) => {
+        const evs = l.events.filter((e) => e.transferId === transferId).map((e) => e.type);
+        return evs.includes("TRANSFER_STARTED") && !evs.includes("PAID") && !evs.includes("TRANSFER_FAILED");
+      });
+      if (!inFlight.length) return { ok: true as const, transferId, outcome: "paid" as const, message: "This payment was already settled." };
+      let ref: string;
+      try {
+        ref = (await provider.findTransfer(transferId))?.id ?? (await provider.transfer({ amountCents: t.amountCents, destination: t.destination, key: transferId, workerId: t.workerId })).id;
+      } catch (e) {
+        const err = e instanceof ProviderError ? e : new ProviderError("Couldn't reach Stripe. Check again shortly.", false);
+        if (!err.definitive) return { ok: true as const, transferId, outcome: "pending" as const, message: `${err.message} The lines stay "sending" until confirmed.` };
+        const at = await eventAt(tx, inFlight.map((l) => l.id), now);
+        await tx.payoutEvent.createMany({
+          data: inFlight.map((l) => ({ payoutId: l.id, type: "TRANSFER_FAILED" as const, actorId: actor?.profileId ?? null, transferId, reason: err.message.slice(0, 300), createdAt: at })),
+        });
+        await tx.auditEvent.create({ data: { actorId: actor?.profileId ?? null, action: "payout.transfer_failed", entityType: "PayoutTransfer", entityId: transferId, metadata: { reason: err.message } } });
+        return { ok: true as const, transferId, outcome: "failed" as const, message: err.message };
+      }
+      const at = await eventAt(tx, inFlight.map((l) => l.id), now);
+      await tx.payoutEvent.createMany({
+        data: inFlight.map((l) => ({ payoutId: l.id, type: "PAID" as const, actorId: actor?.profileId ?? null, transferId, providerRef: ref, createdAt: at })),
+      });
+      await tx.auditEvent.create({ data: { actorId: actor?.profileId ?? null, action: "payout.paid", entityType: "PayoutTransfer", entityId: transferId, metadata: { providerRef: ref, amountCents: t.amountCents } } });
+      return { ok: true as const, transferId, outcome: "paid" as const, message: `Sent ${money(t.amountCents)} through Stripe.` };
+    },
+    { timeout: 60_000, maxWait: 15_000 }
+  );
+}
+
+/** Transfers this organization has in flight, for "check status". */
+export async function pendingTransfers(actor: PayActor) {
+  assertPayRole(actor);
+  const lines = await orgLines(db(), { orgId: actor.orgId });
+  const ids = new Set(lines.filter((l) => l.state.status === "PROCESSING" && l.state.transferId).map((l) => l.state.transferId!));
+  if (!ids.size) return [];
+  return db().payoutTransfer.findMany({ where: { id: { in: [...ids] } }, include: { worker: { select: { displayName: true } } }, orderBy: { createdAt: "asc" } });
+}
+
+/**
+ * A verified Stripe webhook. Recorded and applied in one transaction, so a
+ * failure leaves nothing recorded and Stripe's retry runs it again.
+ */
+export async function handleProviderEvent(e: ProviderEvent, now = new Date()): Promise<"applied" | "duplicate" | "ignored"> {
+  const t = e.transfer;
+  const transfer = t?.group && UUID_RE.test(t.group) ? await db().payoutTransfer.findUnique({ where: { id: t.group } }) : null;
+  return db().$transaction(async (tx) => {
+    if (transfer) await payLock(tx, transfer.workerId);
+    const fresh = await tx.providerEvent.createMany({ data: [{ id: e.id, type: e.type, createdAt: now }], skipDuplicates: true });
+    if (fresh.count === 0) return "duplicate" as const;
+    if (e.account) {
+      await tx.worker.updateMany({ where: { stripeAccountId: e.account.id }, data: { payoutsEnabled: e.account.payoutsEnabled, payoutsCheckedAt: now } });
+      return "applied" as const;
+    }
+    if (!t || !transfer) return "ignored" as const;
+    const lines = await tx.payout.findMany({ where: { events: { some: { transferId: transfer.id } } }, include: { events: true } });
+    const ofThis = (l: (typeof lines)[number]) => l.events.filter((x) => x.transferId === transfer.id).map((x) => x.type);
+    if (e.type === "transfer.created") {
+      // Confirms a payment whose result the app didn't get to record.
+      const open = lines.filter((l) => {
+        const evs = ofThis(l);
+        return evs.includes("TRANSFER_STARTED") && !evs.includes("PAID") && !evs.includes("TRANSFER_FAILED");
+      });
+      if (!open.length) return "applied" as const;
+      const at = await eventAt(tx, open.map((l) => l.id), now);
+      await tx.payoutEvent.createMany({ data: open.map((l) => ({ payoutId: l.id, type: "PAID" as const, transferId: transfer.id, providerRef: t.id, reason: "Confirmed by Stripe", createdAt: at })) });
+      return "applied" as const;
+    }
+    if (e.type === "transfer.reversed") {
+      if (t.reversedCents >= t.amountCents) {
+        const paid = lines.filter((l) => ofThis(l).includes("PAID") && !ofThis(l).includes("REVERSED"));
+        if (paid.length) {
+          const at = await eventAt(tx, paid.map((l) => l.id), now);
+          await tx.payoutEvent.createMany({ data: paid.map((l) => ({ payoutId: l.id, type: "REVERSED" as const, transferId: transfer.id, providerRef: t.id, reason: "Reversed in Stripe", createdAt: at })) });
+        }
+      } else {
+        // A partial reversal isn't a line-by-line event: flag it for finance.
+        await tx.auditEvent.create({
+          data: {
+            action: "payout.partially_reversed",
+            entityType: "PayoutTransfer",
+            entityId: transfer.id,
+            metadata: { orgId: transfer.orgId, workerId: transfer.workerId, amountCents: t.amountCents, reversedCents: t.reversedCents, providerRef: t.id },
+            createdAt: now,
+          },
+        });
+      }
+      return "applied" as const;
+    }
+    return "ignored" as const;
+  });
+}
+
+/** Partial reversals finance needs to settle with an adjustment. */
+export async function partialReversals(actor: PayActor) {
+  assertPayRole(actor);
+  const orgId = actor.orgId;
+  const rows = await db().auditEvent.findMany({ where: { action: "payout.partially_reversed", entityType: "PayoutTransfer" }, orderBy: { createdAt: "desc" }, take: 50 });
+  return rows.filter((r) => (r.metadata as Record<string, unknown> | null)?.orgId === orgId);
 }

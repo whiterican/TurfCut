@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { requireAuth } from "@/lib/auth";
 import { FIELD_ROLES, SCHEDULING_ROLES } from "@/lib/access";
 import { readSupportContacts } from "@/lib/jobs";
-import { activeTime, earningsEstimate, readTurf, shiftProgress, shiftState, turfMarks, turfMarksClosed } from "@/lib/field-day";
+import { activeTime, earningsEstimate, readTurf, scheduleFlags, shiftProgress, shiftState, turfMarks, turfMarksClosed } from "@/lib/field-day";
 import { facts, loadShift } from "@/lib/field-day-data";
 import { ShiftProgress } from "@/components/ShiftProgress";
 import { TurfMap } from "@/components/TurfMap";
@@ -103,6 +103,7 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
             <>
               <CheckInButton shiftId={s.id} hasStaging={!!staging} />
               {/* Late cancellations hurt campaigns: a real button, with the consequence up front. */}
+              {now <= s.endsAt && (
               <details className="group space-y-3">
                 <summary className="btn-secondary w-full cursor-pointer list-none">
                   <span className="group-open:hidden">Can&apos;t make it</span>
@@ -118,6 +119,7 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
                   </ActionButton>
                 </div>
               </details>
+              )}
               <p className="text-hint">Cancelling inside the job&apos;s notice window counts as a no-show on your scorecard.</p>
             </>
           ) : (
@@ -229,6 +231,9 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
                 </label>
               </ActionButton>
             )}
+            {st.checkedOutAt && scheduleFlags(f).map((flag) => (
+              <p key={flag} className="text-sm font-semibold text-danger-msg">{flag} That time counts as worked — approve only if it was.</p>
+            ))}
             {st.checkedOutAt && (
               <div className="flex flex-wrap items-start gap-3">
                 <ActionButton action={supervisorStep} fields={{ shiftId: s.id, kind: "closeout", status: "APPROVED" }} label="Approve shift" />
@@ -240,7 +245,7 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
                 </ActionButton>
               </div>
             )}
-            {!st.checkedInAt && (
+            {!st.checkedInAt && now <= s.endsAt && (
               <ActionButton action={supervisorStep} fields={{ shiftId: s.id, kind: "cancel" }} label="Cancel shift" variant="btn-secondary">
                 <label className="min-w-48 flex-1 space-y-1.5">
                   <span className="label">Reason (shown to the worker)</span>

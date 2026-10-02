@@ -62,6 +62,9 @@ export interface ScorecardShift {
   state: string;
   status: "SCHEDULED" | "ACTIVE" | "COMPLETED" | "CANCELLED";
   startsAt: Date;
+  endsAt: Date;
+  /** When the shift was put on the schedule. */
+  scheduledAt: Date;
   events: ScorecardEvent[];
   validations: ScorecardValidation[];
   /** The job's notice window: a worker cancellation later than this is a no-show. Default 24. */
@@ -406,13 +409,17 @@ function segment(
     signaturesAccepted: accepted,
     signaturesRejected: rejected,
     averages: {
-      doorsPerActiveHour: explain(
-        doorsPerActiveHour(totals),
-        doors,
-        hours,
-        "verified doors attempted ÷ verified active field hours",
-        `${doors} doors over ${hours} active hours (paused time excluded); ${context}`
-      ),
+      // Petition shifts can't log doors, so their zero isn't a measurement.
+      doorsPerActiveHour:
+        isPetition && doors === 0
+          ? explain(null, 0, 0, "verified doors attempted ÷ verified active field hours", "No doors are logged on petition shifts.")
+          : explain(
+              doorsPerActiveHour(totals),
+              doors,
+              hours,
+              "verified doors attempted ÷ verified active field hours",
+              `${doors} doors over ${hours} active hours (paused time excluded); ${context}`
+            ),
       doorsPerCompletedShift: explain(
         doorsPerCompletedShift(totals),
         doors,
@@ -456,11 +463,6 @@ function segment(
 }
 
 /**
- * How a shift was cancelled, from its newest SHIFT_CANCELLED event:
- * "late" = by the worker inside the job's notice window; "excused" = by the
- * worker in time, or by the organization; null = not cancelled by event.
- */
-/**
  * Verified work per campaign, newest first — the same verification rules as
  * the scorecard totals, so the list always adds up to them.
  */
@@ -481,13 +483,29 @@ export function campaignHistory(shifts: ScorecardShift[], limit = 5): CampaignHi
   return [...by.values()].sort((a, b) => b.lastAt.localeCompare(a.lastAt)).slice(0, limit);
 }
 
+/**
+ * How a shift was cancelled, from its newest SHIFT_CANCELLED event:
+ * - "late" = by the worker inside the job's notice window — or by anyone
+ *   after the shift ended, when it was already a no-show;
+ * - "excused" = by the worker in time, or by the organization before the
+ *   end;
+ * - null = not cancelled by event.
+ * A shift scheduled with less notice than the window gives the worker until
+ * it starts (or an hour after it was scheduled, if later) to cancel: the
+ * worker can't owe notice the organization didn't give.
+ */
 export function cancellationOf(shift: ScorecardShift): "late" | "excused" | null {
   const { events } = effectiveEvents(shift.events, shift.validations);
   const c = latest(events.filter((e) => e.type === "SHIFT_CANCELLED"));
   if (!c) return null;
+  const at = c.createdAt.getTime();
+  if (at > shift.endsAt.getTime()) return "late";
   if (obj(c.payload).by !== "WORKER") return "excused";
-  const noticeMs = (shift.cancellationNoticeHours ?? 24) * 3_600_000;
-  return c.createdAt.getTime() > shift.startsAt.getTime() - noticeMs ? "late" : "excused";
+  const start = shift.startsAt.getTime();
+  const noticeDeadline = start - (shift.cancellationNoticeHours ?? 24) * 3_600_000;
+  const scheduled = shift.scheduledAt.getTime();
+  const deadline = scheduled > noticeDeadline ? Math.max(start, scheduled + 3_600_000) : noticeDeadline;
+  return at > deadline ? "late" : "excused";
 }
 
 export function computeScorecard(shifts: ScorecardShift[], opts: ScorecardOptions = {}): Scorecard {
@@ -521,10 +539,12 @@ export function computeScorecard(shifts: ScorecardShift[], opts: ScorecardOption
   //   the denominator.
   // - A legacy CANCELLED shift with no SHIFT_CANCELLED event is treated as
   //   excused: there's no record of who cancelled or when.
+  // - A shift nobody has started yet isn't a no-show until it has ended.
   const late = all.filter((x) => x.cancellation === "late").length;
   const excused = all.filter((x) => x.cancellation === "excused" || (!x.cancellation && x.s.status === "CANCELLED")).length;
-  const started = facts.filter((f) => f.started).length;
-  const acceptedDue = facts.length + late;
+  const due = facts.filter((f) => f.started || f.shift.endsAt.getTime() <= now.getTime());
+  const started = due.filter((f) => f.started).length;
+  const acceptedDue = due.length + late;
   const rel: ShiftTotals = {
     activeMs: 0,
     doorsAttempted: 0,

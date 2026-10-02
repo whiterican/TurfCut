@@ -54,10 +54,14 @@ export function getStripeSecretKey(): string {
   return v;
 }
 
-/** Signing secret of the Stripe webhook endpoint (/api/stripe/webhook). */
-export function getStripeWebhookSecret(): string {
-  const v = process.env.STRIPE_WEBHOOK_SECRET;
-  if (!v) throw missing("STRIPE_WEBHOOK_SECRET");
+/**
+ * Signing secrets for /api/stripe/webhook: the platform endpoint
+ * (STRIPE_WEBHOOK_SECRET, transfer events) and, optionally, the Connect
+ * endpoint (STRIPE_CONNECT_WEBHOOK_SECRET, account.updated).
+ */
+export function getStripeWebhookSecrets(): string[] {
+  const v = [process.env.STRIPE_WEBHOOK_SECRET, process.env.STRIPE_CONNECT_WEBHOOK_SECRET].filter((x): x is string => !!x);
+  if (!v.length) throw missing("STRIPE_WEBHOOK_SECRET");
   return v;
 }
 

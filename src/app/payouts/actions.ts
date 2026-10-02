@@ -78,7 +78,8 @@ export async function resolve(_prev: ActionState, fd: FormData): Promise<ActionS
 export async function payNow(_prev: ActionState, fd: FormData): Promise<ActionState> {
   const a = await actor();
   if (!a) return { ok: false, message: "No organization on this account." };
-  const r = await payWorker(a, str(fd, "workerId"), stripeProvider());
+  const expected = Number(str(fd, "expectedCents"));
+  const r = await payWorker(a, str(fd, "workerId"), stripeProvider(), Number.isSafeInteger(expected) ? expected : null);
   refresh();
   if (!r.ok) return { ok: false, message: r.reason };
   return { ok: r.outcome === "paid", message: r.message };

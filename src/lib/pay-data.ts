@@ -89,7 +89,7 @@ export async function planReview(tx: Tx, s: ReviewShift, status: "APPROVED" | "R
   // Every line on the shift counts: an approved adjustment also makes the review final.
   const lines = await tx.payout.findMany({ where: { shiftId: s.id }, include: { events: true } });
   const states = lines.map((l) => ({ line: l, state: lineState(l, asFacts(l.events), false) }));
-  const blocked = reReviewProblem(states.map((x) => x.state));
+  const blocked = reReviewProblem(states.map((x) => x.state)) ?? adjustedProblem(states);
   if (blocked) return { ok: false, reason: blocked };
   const active = states.filter((x) => x.line.kind === "SHIFT" && x.state.status !== "VOIDED");
   const heldReason = active.find((x) => x.state.status === "HELD")?.state.heldReason ?? null;
@@ -115,7 +115,18 @@ export async function planReview(tx: Tx, s: ReviewShift, status: "APPROVED" | "R
 /** Why the shift's review (or batch count, which changes pay) is final, or null. */
 export async function reviewLockProblem(tx: Tx, shiftId: string): Promise<string | null> {
   const lines = await tx.payout.findMany({ where: { shiftId }, include: { events: true } });
-  return reReviewProblem(lines.map((l) => lineState(l, asFacts(l.events), false)));
+  const states = lines.map((l) => ({ line: l, state: lineState(l, asFacts(l.events), false) }));
+  return reReviewProblem(states.map((x) => x.state)) ?? adjustedProblem(states);
+}
+
+/**
+ * A dispute adjustment was made against the shift's current pay; changing
+ * the review under it could leave the shift paying a negative amount.
+ */
+function adjustedProblem(states: Array<{ line: { kind: string }; state: LineState }>): string | null {
+  return states.some((x) => x.line.kind === "ADJUSTMENT" && x.state.status !== "VOIDED")
+    ? "This shift's pay was adjusted in a dispute, so the review is final. Ask your owner or finance team for another adjustment."
+    : null;
 }
 
 /** Applies a plan after the review's Validation row is written. */
@@ -176,7 +187,7 @@ export async function shiftPay(shiftId: string): Promise<{ amountCents: number; 
     mainCents: main.l.amountCents,
     formula: readBasis(main.l.basis).formula,
     state: main.state,
-    locked: reReviewProblem(states.map((x) => x.state)) !== null,
+    locked: (reReviewProblem(states.map((x) => x.state)) ?? adjustedProblem(states.map((x) => ({ line: x.l, state: x.state })))) !== null,
   };
 }
 
@@ -460,7 +471,6 @@ export async function loadOrgDisputes(actor: PayActor, open: boolean): Promise<D
     include: {
       resolution: true,
       worker: { select: { displayName: true } },
-      payout: true,
       shift: {
         select: {
           startsAt: true,
@@ -686,11 +696,11 @@ export async function exportLedger(actor: PayActor, from: Date, to: Date): Promi
 // ---------------------------------------------------------------------------
 
 /** The worker's Stripe account, created on first use (one per worker). */
-export async function ensurePayoutAccount(workerId: string, email: string | null, provider: PayoutProvider): Promise<string> {
+export async function ensurePayoutAccount(workerId: string, provider: PayoutProvider): Promise<string> {
   const w = await db().worker.findUniqueOrThrow({ where: { id: workerId }, select: { stripeAccountId: true } });
   if (w.stripeAccountId) return w.stripeAccountId;
   // Idempotent at Stripe per worker, so two clicks get the same account.
-  const id = await provider.createAccount({ workerId, email });
+  const id = await provider.createAccount({ workerId });
   await db().$transaction(async (tx) => {
     await lock(tx, `payout-account:${workerId}`);
     const again = await tx.worker.findUniqueOrThrow({ where: { id: workerId }, select: { stripeAccountId: true } });
@@ -709,7 +719,7 @@ export async function payoutSetup(workerId: string, provider: PayoutProvider, ju
   const stale = !w.payoutsCheckedAt || now.getTime() - w.payoutsCheckedAt.getTime() > 5 * 60_000;
   if (provider.configured() && w.stripeAccountId && !w.payoutsEnabled && (justBack || stale)) {
     try {
-      return { ...w, payoutsEnabled: await refreshPayoutStatus(workerId, provider, now) };
+      return { ...w, payoutsEnabled: await refreshPayoutStatus(workerId, provider, now, true) };
     } catch {
       return w;
     }
@@ -718,10 +728,10 @@ export async function payoutSetup(workerId: string, provider: PayoutProvider, ju
 }
 
 /** Re-reads from Stripe whether this worker can be paid (cached on Worker). */
-export async function refreshPayoutStatus(workerId: string, provider: PayoutProvider, now = new Date()): Promise<boolean> {
+export async function refreshPayoutStatus(workerId: string, provider: PayoutProvider, now = new Date(), quick = false): Promise<boolean> {
   const w = await db().worker.findUniqueOrThrow({ where: { id: workerId }, select: { stripeAccountId: true, payoutsEnabled: true } });
   if (!w.stripeAccountId || !provider.configured()) return false;
-  const enabled = await provider.payoutsEnabled(w.stripeAccountId);
+  const enabled = await provider.payoutsEnabled(w.stripeAccountId, quick);
   await db().worker.update({ where: { id: workerId }, data: { payoutsEnabled: enabled, payoutsCheckedAt: now } });
   return enabled;
 }
@@ -734,16 +744,20 @@ type PayRun = { ok: true; transferId: string; outcome: "paid" | "pending" | "fai
  * sending (committed before any money moves); step 2 settles it with
  * Stripe. A crash between the two leaves the lines "sending" until
  * settleTransfer runs again — it never sends a second payment.
+ * `expectedCents`: the amount the person saw on the button; if more was
+ * approved since, nothing is sent and they're asked to look again.
  */
-export async function payWorker(actor: PayActor, workerId: string, provider: PayoutProvider, now = new Date()): Promise<PayRun> {
+export async function payWorker(actor: PayActor, workerId: string, provider: PayoutProvider, expectedCents: number | null = null, now = new Date()): Promise<PayRun> {
   if (notPayRole(actor)) return { ok: false, reason: "Only owners and finance can pay workers." };
   if (!UUID_RE.test(workerId)) return { ok: false, reason: "Worker not found." };
   if (!provider.configured()) return { ok: false, reason: "Stripe isn't connected yet, so pay can't be sent. Approved pay is kept until it is." };
-  const worker = await db().worker.findUnique({ where: { id: workerId }, select: { stripeAccountId: true, payoutsEnabled: true } });
+  const worker = await db().worker.findUnique({ where: { id: workerId }, select: { stripeAccountId: true } });
   if (!worker?.stripeAccountId) return { ok: false, reason: "This worker hasn't set up payouts with Stripe yet." };
-  // Re-check with Stripe when the cached answer is "not yet".
-  if (!worker.payoutsEnabled && !(await refreshPayoutStatus(workerId, provider, now))) {
-    return { ok: false, reason: "This worker hasn't finished setting up payouts with Stripe yet." };
+  // Always ask Stripe right before paying: an account can be restricted later.
+  try {
+    if (!(await refreshPayoutStatus(workerId, provider, now))) return { ok: false, reason: "This worker's Stripe account can't receive payouts right now (setup unfinished or restricted)." };
+  } catch (e) {
+    return { ok: false, reason: e instanceof ProviderError ? e.message : "Couldn't reach Stripe. Try again shortly." };
   }
   const started = await db().$transaction(async (tx) => {
     await payLock(tx, workerId);
@@ -755,6 +769,9 @@ export async function payWorker(actor: PayActor, workerId: string, provider: Pay
     const t = payableTotal(ready.map((l) => ({ amountCents: l.line.amountCents, feeCents: l.line.feeCents, state: l.state })));
     if (!ready.length) return { ok: false as const, reason: "Nothing approved to pay this worker." };
     if (t.amountCents <= 0) return { ok: false as const, reason: "Deductions cover this worker's approved pay; nothing to send yet." };
+    if (expectedCents !== null && expectedCents !== t.amountCents) {
+      return { ok: false as const, reason: `The amount changed to ${money(t.amountCents)} since you opened this page. Nothing was sent — check it and pay again.` };
+    }
     const transfer = await tx.payoutTransfer.create({
       data: { workerId, orgId: actor.orgId, amountCents: t.amountCents, feeCents: t.feeCents, destination: worker.stripeAccountId!, createdById: actor.profileId, createdAt: now },
     });
@@ -770,49 +787,89 @@ export async function payWorker(actor: PayActor, workerId: string, provider: Pay
   return settleTransfer(actor, started.transferId, provider);
 }
 
+type TransferLines = Awaited<ReturnType<typeof transferLines>>;
+async function transferLines(tx: Tx, transferId: string) {
+  const lines = await tx.payout.findMany({ where: { events: { some: { transferId } } }, include: { events: true } });
+  const of = (l: (typeof lines)[number]) => l.events.filter((e) => e.transferId === transferId).map((e) => e.type);
+  return {
+    lines,
+    inFlight: lines.filter((l) => {
+      const evs = of(l);
+      return evs.includes("TRANSFER_STARTED") && !evs.includes("PAID") && !evs.includes("TRANSFER_FAILED") && !evs.includes("REVERSED");
+    }),
+    unpaid: lines.filter((l) => !of(l).includes("PAID") && !of(l).includes("REVERSED")),
+    paid: lines.filter((l) => of(l).includes("PAID") && !of(l).includes("REVERSED")),
+    failed: lines.some((l) => of(l).includes("TRANSFER_FAILED")),
+  };
+}
+
+/** Records that Stripe made this transfer: every line of it not yet marked paid. */
+async function recordPaid(tx: Tx, transferId: string, ref: string, actorId: string | null, source: string, now: Date, tl?: TransferLines) {
+  const x = tl ?? (await transferLines(tx, transferId));
+  if (!x.unpaid.length) return;
+  const at = await eventAt(tx, x.unpaid.map((l) => l.id), now);
+  await tx.payoutEvent.createMany({ data: x.unpaid.map((l) => ({ payoutId: l.id, type: "PAID" as const, actorId, transferId, providerRef: ref, reason: source, createdAt: at })) });
+  await tx.auditEvent.create({
+    data: { actorId, action: x.failed ? "payout.paid_after_failure" : "payout.paid", entityType: "PayoutTransfer", entityId: transferId, metadata: { providerRef: ref, source, payoutIds: x.unpaid.map((l) => l.id) } },
+  });
+}
+
 /**
  * Finds or makes the Stripe transfer for a Turfcut transfer and records the
- * outcome. Safe to run any number of times: it first looks for a transfer
- * already made (by transfer group), and a repeat create uses the same
- * idempotency key.
+ * outcome. Safe to run any number of times. Stripe is called outside any
+ * database lock ("sending" is already recorded); the outcome is then
+ * written in a short transaction. Only a refusal of the create itself —
+ * after the lookup found nothing — counts as failed; anything unclear,
+ * including a failed lookup, stays "sending".
  */
 export async function settleTransfer(actor: PayActor | null, transferId: string, provider: PayoutProvider, now = new Date()): Promise<PayRun> {
   if (actor && notPayRole(actor)) return { ok: false, reason: "Only owners and finance can pay workers." };
   if (!UUID_RE.test(transferId)) return { ok: false, reason: "Payment not found." };
   const t = await db().payoutTransfer.findUnique({ where: { id: transferId } });
   if (!t || (actor && t.orgId !== actor.orgId)) return { ok: false, reason: "Payment not found." };
-  return db().$transaction(
-    async (tx) => {
-      // Held across the Stripe call: one settle per worker at a time.
+  const before = await transferLines(db() as unknown as Tx, transferId);
+  if (!before.inFlight.length) {
+    return before.paid.length
+      ? { ok: true, transferId, outcome: "paid", message: "This payment already went through." }
+      : { ok: true, transferId, outcome: "failed", message: "This payment didn't go through; its lines can be paid again." };
+  }
+  let ref: string | null = null;
+  let refusal: string | null = null;
+  try {
+    ref = (await provider.findTransfer(transferId))?.id ?? null;
+  } catch (e) {
+    // A failed lookup says nothing about whether money moved.
+    return { ok: true, transferId, outcome: "pending", message: `${e instanceof ProviderError ? e.message : "Couldn't reach Stripe."} The payment stays "sending" until confirmed.` };
+  }
+  if (!ref) {
+    try {
+      ref = (await provider.transfer({ amountCents: t.amountCents, destination: t.destination, key: transferId, workerId: t.workerId })).id;
+    } catch (e) {
+      const err = e instanceof ProviderError ? e : new ProviderError("Couldn't reach Stripe.", false);
+      if (!err.definitive) return { ok: true, transferId, outcome: "pending", message: `${err.message} The payment stays "sending" until confirmed.` };
+      refusal = err.message;
+    }
+  }
+  try {
+    return await db().$transaction(async (tx) => {
       await payLock(tx, t.workerId);
-      const lines = await tx.payout.findMany({ where: { events: { some: { transferId } } }, include: { events: true } });
-      const inFlight = lines.filter((l) => {
-        const evs = l.events.filter((e) => e.transferId === transferId).map((e) => e.type);
-        return evs.includes("TRANSFER_STARTED") && !evs.includes("PAID") && !evs.includes("TRANSFER_FAILED");
-      });
-      if (!inFlight.length) return { ok: true as const, transferId, outcome: "paid" as const, message: "This payment was already settled." };
-      let ref: string;
-      try {
-        ref = (await provider.findTransfer(transferId))?.id ?? (await provider.transfer({ amountCents: t.amountCents, destination: t.destination, key: transferId, workerId: t.workerId })).id;
-      } catch (e) {
-        const err = e instanceof ProviderError ? e : new ProviderError("Couldn't reach Stripe. Check again shortly.", false);
-        if (!err.definitive) return { ok: true as const, transferId, outcome: "pending" as const, message: `${err.message} The lines stay "sending" until confirmed.` };
-        const at = await eventAt(tx, inFlight.map((l) => l.id), now);
-        await tx.payoutEvent.createMany({
-          data: inFlight.map((l) => ({ payoutId: l.id, type: "TRANSFER_FAILED" as const, actorId: actor?.profileId ?? null, transferId, reason: err.message.slice(0, 300), createdAt: at })),
-        });
-        await tx.auditEvent.create({ data: { actorId: actor?.profileId ?? null, action: "payout.transfer_failed", entityType: "PayoutTransfer", entityId: transferId, metadata: { reason: err.message } } });
-        return { ok: true as const, transferId, outcome: "failed" as const, message: err.message };
+      const x = await transferLines(tx, transferId);
+      if (ref) {
+        await recordPaid(tx, transferId, ref, actor?.profileId ?? null, "Confirmed when sent", now, x);
+        return { ok: true as const, transferId, outcome: "paid" as const, message: `Sent ${money(t.amountCents)} through Stripe.` };
       }
-      const at = await eventAt(tx, inFlight.map((l) => l.id), now);
-      await tx.payoutEvent.createMany({
-        data: inFlight.map((l) => ({ payoutId: l.id, type: "PAID" as const, actorId: actor?.profileId ?? null, transferId, providerRef: ref, createdAt: at })),
-      });
-      await tx.auditEvent.create({ data: { actorId: actor?.profileId ?? null, action: "payout.paid", entityType: "PayoutTransfer", entityId: transferId, metadata: { providerRef: ref, amountCents: t.amountCents } } });
-      return { ok: true as const, transferId, outcome: "paid" as const, message: `Sent ${money(t.amountCents)} through Stripe.` };
-    },
-    { timeout: 60_000, maxWait: 15_000 }
-  );
+      if (x.inFlight.length) {
+        const at = await eventAt(tx, x.inFlight.map((l) => l.id), now);
+        await tx.payoutEvent.createMany({
+          data: x.inFlight.map((l) => ({ payoutId: l.id, type: "TRANSFER_FAILED" as const, actorId: actor?.profileId ?? null, transferId, reason: refusal!.slice(0, 300), createdAt: at })),
+        });
+        await tx.auditEvent.create({ data: { actorId: actor?.profileId ?? null, action: "payout.transfer_failed", entityType: "PayoutTransfer", entityId: transferId, metadata: { reason: refusal } } });
+      }
+      return { ok: true as const, transferId, outcome: "failed" as const, message: refusal! };
+    });
+  } catch {
+    return { ok: true, transferId, outcome: "pending", message: "Stripe answered, but the result couldn't be saved yet. Check status again — it won't send twice." };
+  }
 }
 
 /** Transfers this organization has in flight, for "check status". */
@@ -836,29 +893,33 @@ export async function handleProviderEvent(e: ProviderEvent, now = new Date()): P
     const fresh = await tx.providerEvent.createMany({ data: [{ id: e.id, type: e.type, createdAt: now }], skipDuplicates: true });
     if (fresh.count === 0) return "duplicate" as const;
     if (e.account) {
-      await tx.worker.updateMany({ where: { stripeAccountId: e.account.id }, data: { payoutsEnabled: e.account.payoutsEnabled, payoutsCheckedAt: now } });
+      // An older event delivered late never overwrites a newer check.
+      const at = e.createdAt ?? now;
+      await tx.worker.updateMany({
+        where: { stripeAccountId: e.account.id, OR: [{ payoutsCheckedAt: null }, { payoutsCheckedAt: { lt: at } }] },
+        data: { payoutsEnabled: e.account.payoutsEnabled, payoutsCheckedAt: at },
+      });
       return "applied" as const;
     }
     if (!t || !transfer) return "ignored" as const;
-    const lines = await tx.payout.findMany({ where: { events: { some: { transferId: transfer.id } } }, include: { events: true } });
-    const ofThis = (l: (typeof lines)[number]) => l.events.filter((x) => x.transferId === transfer.id).map((x) => x.type);
+    const x = await transferLines(tx, transfer.id);
     if (e.type === "transfer.created") {
-      // Confirms a payment whose result the app didn't get to record.
-      const open = lines.filter((l) => {
-        const evs = ofThis(l);
-        return evs.includes("TRANSFER_STARTED") && !evs.includes("PAID") && !evs.includes("TRANSFER_FAILED");
-      });
-      if (!open.length) return "applied" as const;
-      const at = await eventAt(tx, open.map((l) => l.id), now);
-      await tx.payoutEvent.createMany({ data: open.map((l) => ({ payoutId: l.id, type: "PAID" as const, transferId: transfer.id, providerRef: t.id, reason: "Confirmed by Stripe", createdAt: at })) });
+      // Money moved: record it even if the app had marked the payment failed
+      // (a re-payment since then shows as a conflict on the lines).
+      await recordPaid(tx, transfer.id, t.id, null, "Confirmed by Stripe", now, x);
+      if (t.amountCents !== transfer.amountCents) {
+        await tx.auditEvent.create({ data: { action: "payout.amount_mismatch", entityType: "PayoutTransfer", entityId: transfer.id, metadata: { orgId: transfer.orgId, expected: transfer.amountCents, stripe: t.amountCents } } });
+      }
       return "applied" as const;
     }
     if (e.type === "transfer.reversed") {
       if (t.reversedCents >= t.amountCents) {
-        const paid = lines.filter((l) => ofThis(l).includes("PAID") && !ofThis(l).includes("REVERSED"));
-        if (paid.length) {
-          const at = await eventAt(tx, paid.map((l) => l.id), now);
-          await tx.payoutEvent.createMany({ data: paid.map((l) => ({ payoutId: l.id, type: "REVERSED" as const, transferId: transfer.id, providerRef: t.id, reason: "Reversed in Stripe", createdAt: at })) });
+        // Paid lines, and lines still "sending" (a reversal can arrive first).
+        const hit = [...x.paid, ...x.inFlight.filter((l) => !x.paid.includes(l))];
+        if (hit.length) {
+          const at = await eventAt(tx, hit.map((l) => l.id), now);
+          await tx.payoutEvent.createMany({ data: hit.map((l) => ({ payoutId: l.id, type: "REVERSED" as const, transferId: transfer.id, providerRef: t.id, reason: "Reversed in Stripe", createdAt: at })) });
+          await tx.auditEvent.create({ data: { action: "payout.reversed", entityType: "PayoutTransfer", entityId: transfer.id, metadata: { orgId: transfer.orgId, providerRef: t.id, payoutIds: hit.map((l) => l.id) } } });
         }
       } else {
         // A partial reversal isn't a line-by-line event: flag it for finance.
@@ -882,6 +943,9 @@ export async function handleProviderEvent(e: ProviderEvent, now = new Date()): P
 export async function partialReversals(actor: PayActor) {
   assertPayRole(actor);
   const orgId = actor.orgId;
-  const rows = await db().auditEvent.findMany({ where: { action: "payout.partially_reversed", entityType: "PayoutTransfer" }, orderBy: { createdAt: "desc" }, take: 50 });
-  return rows.filter((r) => (r.metadata as Record<string, unknown> | null)?.orgId === orgId);
+  return db().auditEvent.findMany({
+    where: { action: "payout.partially_reversed", entityType: "PayoutTransfer", metadata: { path: ["orgId"], equals: orgId } },
+    orderBy: { createdAt: "desc" },
+    take: 50,
+  });
 }

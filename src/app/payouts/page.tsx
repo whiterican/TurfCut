@@ -215,7 +215,7 @@ export default async function PayoutsPage() {
               ) : !stripeOn ? (
                 <p className="text-muted-sm">Stripe isn&apos;t connected yet, so pay can&apos;t be sent. Approved pay is kept until it is.</p>
               ) : (
-                <ActionButton action={payNow} fields={{ workerId: w.workerId }} label={`Pay ${money(w.amountCents)}`} pendingLabel="Sending…" />
+                <ActionButton action={payNow} fields={{ workerId: w.workerId, expectedCents: String(w.amountCents) }} label={`Pay ${money(w.amountCents)}`} pendingLabel="Sending…" />
               )}
               <details>
                 <summary className="link cursor-pointer text-xs font-semibold">Lines</summary>

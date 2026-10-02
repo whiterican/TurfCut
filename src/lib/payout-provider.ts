@@ -1,5 +1,5 @@
 import Stripe from "stripe";
-import { getStripeSecretKey, getStripeWebhookSecret, hasStripeConfig } from "@/lib/env";
+import { getStripeSecretKey, getStripeWebhookSecrets, hasStripeConfig } from "@/lib/env";
 
 /**
  * Where money actually moves (M5): Stripe Connect, Express accounts.
@@ -12,13 +12,13 @@ import { getStripeSecretKey, getStripeWebhookSecret, hasStripeConfig } from "@/l
 export interface PayoutProvider {
   configured(): boolean;
   /** Creates the worker's connected account. Idempotent per worker. */
-  createAccount(input: { workerId: string; email: string | null }): Promise<string>;
+  createAccount(input: { workerId: string }): Promise<string>;
   /** A one-time Stripe-hosted link to enter or update payout details. */
   onboardingLink(accountId: string, urls: { refresh: string; return: string }): Promise<string>;
   /** A one-time link to the worker's Stripe Express dashboard. */
   dashboardLink(accountId: string): Promise<string>;
-  /** Whether Stripe can send money to this account now. */
-  payoutsEnabled(accountId: string): Promise<boolean>;
+  /** Whether Stripe can send money to this account now. `quick`: one short try (page loads). */
+  payoutsEnabled(accountId: string, quick?: boolean): Promise<boolean>;
   /** The transfer made for a Turfcut transfer id, if one exists. */
   findTransfer(group: string): Promise<{ id: string } | null>;
   /** Sends money. `key` is the Turfcut transfer id: idempotency key and group. */
@@ -30,6 +30,8 @@ export interface PayoutProvider {
 export interface ProviderEvent {
   id: string;
   type: string;
+  /** When Stripe created the event. */
+  createdAt?: Date;
   /** For transfer events. */
   transfer?: { id: string; group: string | null; amountCents: number; reversedCents: number };
   /** For account.updated. */
@@ -77,14 +79,15 @@ async function call<T>(f: () => Promise<T>): Promise<T> {
 export function stripeProvider(): PayoutProvider {
   return {
     configured: hasStripeConfig,
-    createAccount: ({ workerId, email }) =>
+    // Stripe asks for the email during onboarding; leaving it out keeps the
+    // request identical for every retry under the same idempotency key.
+    createAccount: ({ workerId }) =>
       call(async () => {
         const acct = await stripe().accounts.create(
           {
             type: "express",
             country: "US",
             business_type: "individual",
-            ...(email ? { email } : {}),
             capabilities: { transfers: { requested: true } },
             metadata: { turfcutWorkerId: workerId },
           },
@@ -95,9 +98,9 @@ export function stripeProvider(): PayoutProvider {
     onboardingLink: (account, urls) =>
       call(async () => (await stripe().accountLinks.create({ account, refresh_url: urls.refresh, return_url: urls.return, type: "account_onboarding" })).url),
     dashboardLink: (account) => call(async () => (await stripe().accounts.createLoginLink(account)).url),
-    payoutsEnabled: (account) =>
+    payoutsEnabled: (account, quick) =>
       call(async () => {
-        const a = await stripe().accounts.retrieve(account);
+        const a = await stripe().accounts.retrieve(account, {}, quick ? { timeout: 5_000, maxNetworkRetries: 0 } : {});
         return Boolean(a.payouts_enabled) && a.capabilities?.transfers === "active";
       }),
     findTransfer: (group) =>
@@ -121,8 +124,19 @@ export function stripeProvider(): PayoutProvider {
         return { id: t.id };
       }),
     parseWebhook(rawBody, signature) {
-      const e = stripe().webhooks.constructEvent(rawBody, signature, getStripeWebhookSecret());
-      const out: ProviderEvent = { id: e.id, type: e.type };
+      // Platform events and connected-account events come from two endpoints
+      // with their own signing secrets; either may sign.
+      let e: Stripe.Event | null = null;
+      for (const secret of getStripeWebhookSecrets()) {
+        try {
+          e = stripe().webhooks.constructEvent(rawBody, signature, secret);
+          break;
+        } catch {
+          // try the next secret
+        }
+      }
+      if (!e) throw new Error("invalid webhook signature");
+      const out: ProviderEvent = { id: e.id, type: e.type, createdAt: new Date(e.created * 1000) };
       if (e.type.startsWith("transfer.")) {
         const t = e.data.object as Stripe.Transfer;
         out.transfer = { id: t.id, group: t.transfer_group ?? null, amountCents: t.amount, reversedCents: t.amount_reversed };

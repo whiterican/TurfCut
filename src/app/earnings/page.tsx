@@ -45,7 +45,7 @@ async function PayoutSetup({ workerId, note }: { workerId: string; note: string 
             <button className="btn-primary">{w.stripeAccountId ? "Finish setup with Stripe" : "Set up payouts"}</button>
           </form>
         ))}
-      {note && SETUP_NOTE[note] && <p role="status" className="text-hint">{SETUP_NOTE[note]}</p>}
+      {note && SETUP_NOTE[note] && !(note === "done" && w.payoutsEnabled) && <p role="status" className="text-hint">{SETUP_NOTE[note]}</p>}
     </section>
   );
 }

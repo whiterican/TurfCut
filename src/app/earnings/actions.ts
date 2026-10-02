@@ -3,7 +3,6 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireWorker } from "@/lib/worker-session";
-import { getSessionProfile } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { siteOrigin } from "@/lib/site-origin";
 import { ensurePayoutAccount, openDispute } from "@/lib/pay-data";
@@ -33,10 +32,9 @@ export async function setUpPayouts(): Promise<void> {
   if (!provider.configured()) redirect("/earnings?payouts=unavailable");
   const origin = await siteOrigin();
   if (!origin) redirect("/earnings?payouts=unavailable");
-  const session = await getSessionProfile();
   let url: string;
   try {
-    const account = await ensurePayoutAccount(workerId, session?.email ?? null, provider);
+    const account = await ensurePayoutAccount(workerId, provider);
     url = await provider.onboardingLink(account, { refresh: `${origin}/earnings/payouts`, return: `${origin}/earnings?payouts=done` });
   } catch {
     redirect("/earnings?payouts=error");

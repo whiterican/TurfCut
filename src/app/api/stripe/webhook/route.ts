@@ -9,7 +9,7 @@ import { stripeProvider, type ProviderEvent } from "@/lib/payout-provider";
  */
 export async function POST(req: Request) {
   const provider = stripeProvider();
-  if (!provider.configured() || !process.env.STRIPE_WEBHOOK_SECRET) return new NextResponse("Payouts aren't configured.", { status: 503 });
+  if (!provider.configured() || !(process.env.STRIPE_WEBHOOK_SECRET || process.env.STRIPE_CONNECT_WEBHOOK_SECRET)) return new NextResponse("Payouts aren't configured.", { status: 503 });
   const signature = req.headers.get("stripe-signature");
   if (!signature) return new NextResponse("Missing signature.", { status: 400 });
   const raw = await req.text();

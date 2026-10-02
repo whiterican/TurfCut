@@ -183,12 +183,13 @@ self.addEventListener("fetch", (e) => {
   }
   if (req.mode !== "navigate") return;
   // The sign-in pages mean nobody (or somebody else) is signed in now.
-  if (/^\/(login|signup)(\/|$)/.test(url.pathname)) {
-    e.waitUntil(forget());
+  if (/^\/(login|signup)(\/|$)/.test(url.pathname)) e.waitUntil(forget());
+  if (FIELD.test(url.pathname)) {
+    e.respondWith(fieldPage(e, url));
     return;
   }
-  if (!FIELD.test(url.pathname)) return;
-  e.respondWith(fieldPage(e, url));
+  // Every other page: the network, or the app's own "no signal" page.
+  e.respondWith(fetch(req).catch(() => offlinePage()));
 });
 
 self.addEventListener("message", (e) => {

@@ -147,7 +147,8 @@ enum VisibilityMode {
 model PoliticalPreference {
   id              String         @id @default(uuid()) @db.Uuid
   workerId        String         @db.Uuid
-  worker          Worker         @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  // Consent history outlives nothing: a worker with versions can't be deleted (owner decision; rule 3).
+  worker          Worker         @relation(fields: [workerId], references: [id], onDelete: Restrict)
   visibilityMode  VisibilityMode
   // JSON shapes are defined and validated in src/lib/political-fit.ts.
   // Each answer carries its own opt-in `shared` flag.
@@ -369,7 +370,12 @@ model WorkEvent {
   type      WorkEventType
   payload   Json // event-specific data (counts, packet IDs, notes, ...)
   actorId   String?       @db.Uuid // Profile.id who recorded it (worker or supervisor); null on pre-M3 rows
-  createdAt DateTime      @default(now())
+  createdAt DateTime      @default(now()) // when it happened (for offline actions: the phone's corrected time)
+  // Offline field day (M6): the phone's id for the action, so a re-sent
+  // action is saved once; and when an action recorded offline reached the
+  // server (null = recorded live).
+  clientId   String?   @unique @db.Uuid
+  receivedAt DateTime?
 
   @@index([shiftId, createdAt])
 }
@@ -405,7 +411,8 @@ model Validation {
 model ProfileMetric {
   id         String   @id @default(uuid()) @db.Uuid
   workerId   String   @db.Uuid
-  worker     Worker   @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  // Versioned aggregates are never erased with the worker (rule 3).
+  worker     Worker   @relation(fields: [workerId], references: [id], onDelete: Restrict)
   version    Int      @default(1)
   // doorsPerActiveHour, contactRate, signaturesPerActiveHour, acceptanceRate,
   // showRate, totals by verification level — see lib/metrics.ts for formulas.

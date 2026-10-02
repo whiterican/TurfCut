@@ -9,6 +9,8 @@ import { JobFeedCard } from "@/components/JobFeedCard";
 import { LocalTime } from "@/components/LocalTime";
 import Link from "next/link";
 import { workerPayTotals } from "@/lib/pay-data";
+import { OfflineBrief } from "@/components/OfflineBrief";
+import { briefPaths } from "@/lib/offline-brief-data";
 import { money } from "@/lib/pay";
 
 const ROLE_LABELS: Record<string, string> = {
@@ -84,6 +86,11 @@ async function WorkerHero({ workerId }: { workerId: string }) {
       <p className="text-sm font-semibold">{payText(next.job.compensationMethod, next.job.payRateCents)}</p>
     </Link>
   );
+}
+
+/** Saves today's and the next two days' shift pages on the phone (offline brief). */
+async function WorkerBrief({ workerId, userId }: { workerId: string; userId: string }) {
+  return <OfflineBrief userId={userId} paths={await briefPaths(workerId)} />;
 }
 
 /** The worker's pay at a glance (their own totals only). */
@@ -192,6 +199,7 @@ export default async function DashboardPage() {
         </div>
       </header>
 
+      {isWorker && <WorkerBrief workerId={session.workerId!} userId={session.userId} />}
       {isWorker && <WorkerHero workerId={session.workerId!} />}
       {!isWorker && session.orgId && SCHEDULING_ROLES.includes(session.role) && <OrgHero orgId={session.orgId} />}
 

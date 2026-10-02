@@ -131,8 +131,9 @@ instead of instantly, and attaching a document fails with a clear error.
 
 **Already on M4?** Run `prisma/m4-1-hardening.sql` (safe to re-run): browsers
 can read only chat ids and times (never message text), a deleted message
-disappears for everyone, chat history can't be truncated, and consent and
-metric versions can't be edited. It gives up after 5 seconds if the
+disappears for everyone, chat history can't be truncated, consent and
+metric versions can't be edited, and deleting a worker no longer erases
+them (a worker with history can't be deleted). It gives up after 5 seconds if the
 database is busy; just run it again.
 
 **Payouts (M5)** — in the Supabase SQL editor, run
@@ -193,6 +194,8 @@ src/
     field-day.ts        # shift rules: check-in, custody, logging, review
     field-day-data.ts   # scheduling, shift actions, ops view (locked)
     pay.ts              # pay calculation, line status replay, dispute rules (M5)
+    offline-sync.ts     # offline field actions: shapes, clock correction, limits (M6)
+    offline-queue.ts    # the phone's queue of field actions (M6, browser)
     pay-data.ts         # pay lines, approvals, disputes, pay runs, export (locked)
     payout-provider.ts  # Stripe Connect (lazy client; tests use a fake)
     supabase/           # browser / server / proxy clients
@@ -212,6 +215,7 @@ prisma/
   m4-1-hardening.sql    # review fixes: chat read grants, history guards
   m5-migration.sql      # M4 → M5 upgrade (pay lines, payouts, disputes)
   m5-1-history-lock.sql # append-only triggers on work events, reviews, audit
+  m6-migration.sql      # M5 → M6 upgrade (offline sync ids on work events)
 ```
 
 ## M0 scope (done)
@@ -323,9 +327,60 @@ Map tiles load from tile.openstreetmap.org, which sees the viewer's IP and
 the area viewed. Fine for the pilot; switch to a hosted tile provider before
 public launch (OSM's tile policy).
 
-API: `GET/POST /api/shifts`, `POST /api/shifts/:id/check-in` `{ lat?, lng? }`,
+API: `GET/POST /api/shifts`, `POST /api/shifts/:id/check-in` `{ location? }`
+(the device's own staging check — the server refuses coordinates),
 `POST /api/shifts/:id/events` `{ kind, … }`,
 `POST /api/shifts/:id/closeout` `{ status, reason? }`.
+
+## M6 scope — offline field day
+
+- **Field actions work with no signal.** Check-in, breaks, logging
+  signatures/doors/contacts, packet returns and check-out are saved on the
+  phone first with the time they happened, then sent in order when there's
+  signal (on load, when signal returns, when the app comes back to the
+  front, and every 20 seconds), up to 50 per request. Today and My shifts
+  send every shift's waiting entries. The controls update right away and
+  stay updated until the page shows what synced; a badge says what's
+  waiting or couldn't be saved, with the reason. Only the server refusing
+  an entry marks it "couldn't be saved"; no signal, a signed-out session or
+  server trouble leave it waiting.
+- **Times are checked on sync.** Phone clocks are corrected (server now −
+  phone now). The server refuses future times and anything held offline
+  more than 24 hours (a supervisor enters those) and keeps the phone's
+  order. A synced action never lands before the worker's own field events
+  already on the shift (it goes after the latest check-in, break, count,
+  packet return or check-out) and is judged against the whole shift, so a
+  phone clock can't rewrite recorded time. Other people's events — a
+  packet handed out, a map pin — don't move it; a packet return goes after
+  that packet was handed out. Once a supervisor has reviewed the shift,
+  nothing more syncs into it. An action
+  re-sent after a dropped connection is saved once (`clientId`).
+  Supervisors see "recorded offline, synced HH:MM" in the activity log, and
+  a note before approving when any entry came in late from the phone.
+  The phone's own checks use the server's clock (learned at each sync).
+- **Check-in location stays on the phone.** The phone compares its position
+  with the staging point; only "at staging: yes/no" and a distance band are
+  sent. No server endpoint accepts a position.
+- **Offline brief.** A service worker (`public/sw.js`, no library, production
+  builds only) saves Today, My shifts and the shift pages for today and the
+  next two days — with the scripts they need — so they open in a dead zone.
+  Pages are network-first, falling back to the saved copy on no signal, a
+  server error or an 8-second wait; copies are kept for one worker and
+  72 hours at most, and only for pages on that list. API calls and server
+  actions are never cached. Saved pages are deleted when another worker's
+  list arrives, on the sign-in pages and when a page bounces to sign-in.
+  Sign-out warns about this worker's unsynced entries and clears the queue
+  and saved pages. (Another worker's unsynced entries stay on the phone
+  until they sign in again.)
+- **Still needs a connection:** cancelling a shift, turf pins, messages,
+  disputes, pay. A packet a supervisor hands out shows on the worker's
+  phone once it has signal (until then it can't be returned offline).
+  Entries synced into a shift the organization cancelled in the meantime,
+  or one a supervisor already reviewed, are refused with that reason — a
+  supervisor enters the work instead.
+
+**Already on M5? Offline field day (M6)** — run `prisma/m6-migration.sql`
+once in the Supabase SQL editor (two nullable columns on `WorkEvent`).
 
 ## M5 scope — review and in-app payouts
 

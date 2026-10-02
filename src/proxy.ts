@@ -13,7 +13,8 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Stripe webhooks carry no session: skip the session refresh for them.
-    "/((?!_next/static|_next/image|favicon.ico|api/stripe/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    // Stripe webhooks carry no session, and the service worker script is a
+    // static file: skip the session refresh for them.
+    "/((?!_next/static|_next/image|favicon.ico|sw\\.js|api/stripe/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

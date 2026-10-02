@@ -1,6 +1,7 @@
 import { DisplaySettings } from "@/components/DisplaySettings";
 import { createClient } from "@/lib/supabase/server";
 import { signOut } from "@/app/settings/actions";
+import { SignOutButton } from "@/components/SignOutButton";
 
 export const metadata = { title: "Display settings · Turfcut" };
 
@@ -8,10 +9,10 @@ export const metadata = { title: "Display settings · Turfcut" };
 export default async function SettingsPage() {
   // Any signed-in Supabase user can sign out — even one whose account setup
   // didn't finish (no profile row yet).
-  let session: { email: string | undefined } | null = null;
+  let session: { id: string; email: string | undefined } | null = null;
   try {
     const { data } = await (await createClient()).auth.getUser();
-    session = data.user ? { email: data.user.email } : null;
+    session = data.user ? { id: data.user.id, email: data.user.email } : null;
   } catch {
     session = null; // Supabase not configured
   }
@@ -32,9 +33,7 @@ export default async function SettingsPage() {
             <p className="text-muted-sm min-w-0 truncate">
               Signed in{session.email ? <> as <span className="text-fg">{session.email}</span></> : null}
             </p>
-            <form action={signOut}>
-              <button type="submit" className="btn-secondary">Sign out</button>
-            </form>
+            <SignOutButton action={signOut} userId={session.id} />
           </div>
         </section>
       )}

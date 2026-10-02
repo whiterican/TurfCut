@@ -1,7 +1,7 @@
 /**
  * M0 seed: 1 organization, 3 workers, 1 jurisdiction profile, 1 job,
  * 1 engagement + shift, sample work events, 1 validation, 1 metric snapshot,
- * 1 payout, and audit events.
+ * 1 approved pay line (M5), and audit events.
  *
  * Run: npm run seed (requires DATABASE_URL).
  * Idempotent — safe to re-run. Every row has a fixed id (the same ids as
@@ -17,6 +17,8 @@
 import { PrismaClient, type Prisma } from "@prisma/client";
 import { db } from "../src/lib/db";
 import { loadScorecard } from "../src/lib/scorecard-data";
+import { computeShiftPay } from "../src/lib/pay";
+import { verifiedWork } from "../src/lib/scorecard";
 import { SEED_SHIFT_EVENTS, SEED_SHIFT_HOURS, SEED_SHIFT_ID } from "./seed-fixture";
 
 const prisma = new PrismaClient();
@@ -216,17 +218,38 @@ async function main() {
     });
   }
 
-  // --- Payout: approved earnings for the shift ---
+  // --- Payout: the pay line for the approved shift, calculated by the app's
+  // own pay rules from the seeded events (3.5 verified hours × $25), and
+  // approved for payment. Append-only: both rows have fixed ids. ---
+  const pay = computeShiftPay({
+    method: job.compensationMethod,
+    rateCents: job.payRateCents,
+    workType: job.type,
+    work: verifiedWork(
+      SEED_SHIFT_EVENTS.map((e) => ({ id: e.id, type: e.type, payload: e.payload, createdAt: new Date(checkIn.getTime() + e.offsetMs) })),
+      [{ workEventId: null, status: "APPROVED", createdAt: shiftEnd }]
+    ),
+    jurisdictionVersion: jurisdiction.version,
+  });
+  if (!pay.ok) throw new Error(`Seed pay: ${pay.reason}`);
   await prisma.payout.createMany({
     skipDuplicates: true,
     data: {
       id: "00000000-0000-0000-0000-000000000161",
       workerId: workers[0].id,
+      orgId: org.id,
       engagementId: engagement.id,
-      amountCents: 10000, // 4h × $25/h gross — worker sees 0% commission
-      feeCents: 1500, // 15% marketplace fee on approved spend
-      status: "APPROVED",
+      shiftId: shift.id,
+      validationId: "00000000-0000-0000-0000-000000000141",
+      kind: "SHIFT",
+      amountCents: pay.amountCents,
+      feeCents: pay.feeCents,
+      basis: pay.basis as unknown as Prisma.InputJsonObject,
     },
+  });
+  await prisma.payoutEvent.createMany({
+    skipDuplicates: true,
+    data: { id: "00000000-0000-0000-0000-000000000162", payoutId: "00000000-0000-0000-0000-000000000161", type: "APPROVED", reason: "Seed: approved for payment" },
   });
 
   await prisma.auditEvent.createMany({

@@ -212,6 +212,8 @@ type Verification = "verified" | "pending" | "rejected" | "incomplete";
 interface ShiftFacts {
   shift: ScorecardShift;
   started: boolean;
+  /** Checked in and out (out after in). */
+  completed: boolean;
   verification: Verification;
   activeMs: number;
   doors: number;
@@ -230,6 +232,7 @@ function shiftFacts(shift: ScorecardShift): ShiftFacts {
   const f: ShiftFacts = {
     shift,
     started: false,
+    completed: false,
     verification: "incomplete",
     activeMs: 0,
     doors: 0,
@@ -290,6 +293,7 @@ function shiftFacts(shift: ScorecardShift): ShiftFacts {
 
   f.started = checkIn !== null;
   const completed = checkIn !== null && checkOut !== null && checkOut > checkIn;
+  f.completed = completed;
   if (completed) {
     // Clip pauses to the shift window; an unclosed pause runs to check-out.
     const clipped = pauses.map((x) => ({
@@ -305,6 +309,29 @@ function shiftFacts(shift: ScorecardShift): ShiftFacts {
   else if (closeout?.status === "APPROVED") f.verification = "verified";
   else f.verification = "pending";
   return f;
+}
+
+/**
+ * What review verified on one shift, with rejected events dropped and
+ * signed corrections applied — the numbers pay is calculated from
+ * (lib/pay.ts). Same rules as the scorecard.
+ */
+export function verifiedWork(
+  events: ScorecardEvent[],
+  validations: ScorecardValidation[]
+): { completed: boolean; activeMs: number; submitted: number; reviewed: number; accepted: number; doors: number; contacts: number; batchCounted: boolean } {
+  const f = shiftFacts({ events, validations } as ScorecardShift);
+  const batchCounted = effectiveEvents(events, validations).events.some((e) => e.type === "BATCH_COUNT");
+  return {
+    completed: f.completed,
+    activeMs: f.activeMs,
+    submitted: f.submitted,
+    reviewed: f.reviewed,
+    accepted: f.accepted,
+    doors: f.doors,
+    contacts: f.contacts,
+    batchCounted,
+  };
 }
 
 function round(v: number, places = 4): number {

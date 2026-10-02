@@ -1,8 +1,8 @@
--- Turfcut M0 + M1 + M2 + M3 + M4 — manual Supabase setup (one paste), FRESH databases only.
--- Generated from prisma/schema.prisma + prisma/seed.ts on 2026-10-01.
+-- Turfcut M0 + M1 + M2 + M3 + M4 + M5 — manual Supabase setup (one paste), FRESH databases only.
+-- Generated from prisma/schema.prisma + prisma/seed.ts on 2026-10-02.
 -- Paste the entire file into the Supabase SQL editor and run it.
--- The DDL is not re-runnable. Existing database? Run the m1-, m1-profile-,
--- m2-, m3-, m4-0-rls-lockdown and m4-migration.sql files in order, then manual-seed.sql (idempotent).
+-- The DDL is not re-runnable. Existing database? Run the m1-, m1-profile-, m2-, m3-,
+-- m4-0-rls-lockdown, m4- and m5-migration.sql files in order, then manual-seed.sql (idempotent).
 -- CreateSchema
 CREATE SCHEMA IF NOT EXISTS "public";
 
@@ -37,7 +37,13 @@ CREATE TYPE "public"."WorkEventType" AS ENUM ('CHECK_IN', 'CHECK_OUT', 'PAUSE_ST
 CREATE TYPE "public"."ValidationStatus" AS ENUM ('APPROVED', 'REJECTED', 'FLAGGED');
 
 -- CreateEnum
-CREATE TYPE "public"."PayoutStatus" AS ENUM ('PENDING', 'APPROVED', 'PAID', 'DISPUTED');
+CREATE TYPE "public"."PayoutKind" AS ENUM ('SHIFT', 'ADJUSTMENT');
+
+-- CreateEnum
+CREATE TYPE "public"."PayoutEventType" AS ENUM ('APPROVED', 'HELD', 'RELEASED', 'VOIDED', 'TRANSFER_STARTED', 'PAID', 'TRANSFER_FAILED', 'REVERSED');
+
+-- CreateEnum
+CREATE TYPE "public"."DisputeOutcome" AS ENUM ('KEPT', 'ADJUSTED', 'REREVIEWED');
 
 -- CreateEnum
 CREATE TYPE "public"."ConversationKind" AS ENUM ('DIRECT', 'GROUP');
@@ -68,6 +74,9 @@ CREATE TABLE "public"."Worker" (
     "phone" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
+    "stripeAccountId" TEXT,
+    "payoutsEnabled" BOOLEAN NOT NULL DEFAULT false,
+    "payoutsCheckedAt" TIMESTAMP(3),
 
     CONSTRAINT "Worker_pkey" PRIMARY KEY ("id")
 );
@@ -252,14 +261,83 @@ CREATE TABLE "public"."ProfileMetric" (
 CREATE TABLE "public"."Payout" (
     "id" UUID NOT NULL,
     "workerId" UUID NOT NULL,
+    "orgId" UUID NOT NULL,
     "engagementId" UUID,
+    "shiftId" UUID,
+    "validationId" UUID,
+    "kind" "public"."PayoutKind" NOT NULL DEFAULT 'SHIFT',
     "amountCents" INTEGER NOT NULL,
     "feeCents" INTEGER NOT NULL DEFAULT 0,
-    "status" "public"."PayoutStatus" NOT NULL DEFAULT 'PENDING',
-    "stripeTransferId" TEXT,
+    "basis" JSONB,
+    "adjustsId" UUID,
+    "createdById" UUID,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "Payout_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."PayoutEvent" (
+    "id" UUID NOT NULL,
+    "payoutId" UUID NOT NULL,
+    "type" "public"."PayoutEventType" NOT NULL,
+    "actorId" UUID,
+    "reason" TEXT,
+    "transferId" UUID,
+    "providerRef" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "PayoutEvent_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."PayoutTransfer" (
+    "id" UUID NOT NULL,
+    "workerId" UUID NOT NULL,
+    "orgId" UUID NOT NULL,
+    "amountCents" INTEGER NOT NULL,
+    "feeCents" INTEGER NOT NULL,
+    "destination" TEXT NOT NULL,
+    "createdById" UUID NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "PayoutTransfer_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."PayDispute" (
+    "id" UUID NOT NULL,
+    "shiftId" UUID NOT NULL,
+    "workerId" UUID NOT NULL,
+    "orgId" UUID NOT NULL,
+    "payoutId" UUID,
+    "openedById" UUID NOT NULL,
+    "reason" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "PayDispute_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."PayDisputeResolution" (
+    "id" UUID NOT NULL,
+    "disputeId" UUID NOT NULL,
+    "outcome" "public"."DisputeOutcome" NOT NULL,
+    "response" TEXT NOT NULL,
+    "resolvedById" UUID NOT NULL,
+    "adjustmentId" UUID,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "PayDisputeResolution_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."ProviderEvent" (
+    "id" TEXT NOT NULL,
+    "type" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "ProviderEvent_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -371,6 +449,9 @@ CREATE TABLE "public"."ProfileBlock" (
 CREATE UNIQUE INDEX "Worker_profileId_key" ON "public"."Worker"("profileId");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "Worker_stripeAccountId_key" ON "public"."Worker"("stripeAccountId");
+
+-- CreateIndex
 CREATE INDEX "ExperienceRecord_workerId_idx" ON "public"."ExperienceRecord"("workerId");
 
 -- CreateIndex
@@ -401,7 +482,37 @@ CREATE INDEX "ProfileMetric_workerId_idx" ON "public"."ProfileMetric"("workerId"
 CREATE UNIQUE INDEX "ProfileMetric_workerId_version_key" ON "public"."ProfileMetric"("workerId", "version");
 
 -- CreateIndex
-CREATE INDEX "Payout_workerId_status_idx" ON "public"."Payout"("workerId", "status");
+CREATE INDEX "Payout_workerId_createdAt_idx" ON "public"."Payout"("workerId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "Payout_orgId_createdAt_idx" ON "public"."Payout"("orgId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "Payout_shiftId_idx" ON "public"."Payout"("shiftId");
+
+-- CreateIndex
+CREATE INDEX "PayoutEvent_payoutId_createdAt_idx" ON "public"."PayoutEvent"("payoutId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "PayoutEvent_transferId_idx" ON "public"."PayoutEvent"("transferId");
+
+-- CreateIndex
+CREATE INDEX "PayoutTransfer_orgId_createdAt_idx" ON "public"."PayoutTransfer"("orgId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "PayoutTransfer_workerId_createdAt_idx" ON "public"."PayoutTransfer"("workerId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "PayDispute_orgId_createdAt_idx" ON "public"."PayDispute"("orgId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "PayDispute_shiftId_idx" ON "public"."PayDispute"("shiftId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "PayDisputeResolution_disputeId_key" ON "public"."PayDisputeResolution"("disputeId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "PayDisputeResolution_adjustmentId_key" ON "public"."PayDisputeResolution"("adjustmentId");
 
 -- CreateIndex
 CREATE INDEX "AuditEvent_entityType_entityId_idx" ON "public"."AuditEvent"("entityType", "entityId");
@@ -485,6 +596,51 @@ ALTER TABLE "public"."ProfileMetric" ADD CONSTRAINT "ProfileMetric_workerId_fkey
 ALTER TABLE "public"."Payout" ADD CONSTRAINT "Payout_workerId_fkey" FOREIGN KEY ("workerId") REFERENCES "public"."Worker"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "public"."Payout" ADD CONSTRAINT "Payout_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "public"."Organization"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."Payout" ADD CONSTRAINT "Payout_engagementId_fkey" FOREIGN KEY ("engagementId") REFERENCES "public"."Engagement"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."Payout" ADD CONSTRAINT "Payout_shiftId_fkey" FOREIGN KEY ("shiftId") REFERENCES "public"."Shift"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."Payout" ADD CONSTRAINT "Payout_validationId_fkey" FOREIGN KEY ("validationId") REFERENCES "public"."Validation"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."Payout" ADD CONSTRAINT "Payout_adjustsId_fkey" FOREIGN KEY ("adjustsId") REFERENCES "public"."Payout"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."PayoutEvent" ADD CONSTRAINT "PayoutEvent_payoutId_fkey" FOREIGN KEY ("payoutId") REFERENCES "public"."Payout"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."PayoutEvent" ADD CONSTRAINT "PayoutEvent_transferId_fkey" FOREIGN KEY ("transferId") REFERENCES "public"."PayoutTransfer"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."PayoutTransfer" ADD CONSTRAINT "PayoutTransfer_workerId_fkey" FOREIGN KEY ("workerId") REFERENCES "public"."Worker"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."PayoutTransfer" ADD CONSTRAINT "PayoutTransfer_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "public"."Organization"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."PayDispute" ADD CONSTRAINT "PayDispute_shiftId_fkey" FOREIGN KEY ("shiftId") REFERENCES "public"."Shift"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."PayDispute" ADD CONSTRAINT "PayDispute_workerId_fkey" FOREIGN KEY ("workerId") REFERENCES "public"."Worker"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."PayDispute" ADD CONSTRAINT "PayDispute_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "public"."Organization"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."PayDispute" ADD CONSTRAINT "PayDispute_payoutId_fkey" FOREIGN KEY ("payoutId") REFERENCES "public"."Payout"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."PayDisputeResolution" ADD CONSTRAINT "PayDisputeResolution_disputeId_fkey" FOREIGN KEY ("disputeId") REFERENCES "public"."PayDispute"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."PayDisputeResolution" ADD CONSTRAINT "PayDisputeResolution_adjustmentId_fkey" FOREIGN KEY ("adjustmentId") REFERENCES "public"."Payout"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "public"."Conversation" ADD CONSTRAINT "Conversation_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "public"."Organization"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -519,6 +675,7 @@ ALTER TABLE "public"."ProfileBlock" ADD CONSTRAINT "ProfileBlock_blockerId_fkey"
 
 -- AddForeignKey
 ALTER TABLE "public"."ProfileBlock" ADD CONSTRAINT "ProfileBlock_blockedId_fkey" FOREIGN KEY ("blockedId") REFERENCES "public"."Profile"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
 
 
 -- ---- Security (M4): Data API lockdown + messaging integrity and read policies ----
@@ -702,6 +859,40 @@ CREATE POLICY "participants read revisions" ON "public"."MessageRevision"
   FOR SELECT TO authenticated
   USING ("turfcut_private"."can_see_revision"("messageId", "actorId", "createdAt"));
 
+-- ---- Security (M5): payout integrity, append-only, RLS ----
+
+-- Shape checks.
+ALTER TABLE "public"."Payout" ADD CONSTRAINT "Payout_kind_shape" CHECK (
+  ("kind" = 'SHIFT' AND "amountCents" >= 0 AND "adjustsId" IS NULL)
+  OR ("kind" = 'ADJUSTMENT' AND "amountCents" <> 0 AND ("adjustsId" IS NOT NULL OR "shiftId" IS NOT NULL)));
+ALTER TABLE "public"."PayoutTransfer" ADD CONSTRAINT "PayoutTransfer_amount_positive" CHECK ("amountCents" > 0);
+ALTER TABLE "public"."PayDispute" ADD CONSTRAINT "PayDispute_reason_length" CHECK (char_length("reason") BETWEEN 1 AND 1000);
+ALTER TABLE "public"."PayDisputeResolution" ADD CONSTRAINT "PayDisputeResolution_response_length" CHECK (char_length("response") BETWEEN 1 AND 1000);
+
+-- Append-only, enforced by the database (the function is M4's).
+CREATE TRIGGER "Payout_append_only" BEFORE UPDATE OR DELETE ON "public"."Payout"
+  FOR EACH ROW EXECUTE FUNCTION "turfcut_private"."append_only"();
+CREATE TRIGGER "PayoutEvent_append_only" BEFORE UPDATE OR DELETE ON "public"."PayoutEvent"
+  FOR EACH ROW EXECUTE FUNCTION "turfcut_private"."append_only"();
+CREATE TRIGGER "PayoutTransfer_append_only" BEFORE UPDATE OR DELETE ON "public"."PayoutTransfer"
+  FOR EACH ROW EXECUTE FUNCTION "turfcut_private"."append_only"();
+CREATE TRIGGER "PayDispute_append_only" BEFORE UPDATE OR DELETE ON "public"."PayDispute"
+  FOR EACH ROW EXECUTE FUNCTION "turfcut_private"."append_only"();
+CREATE TRIGGER "PayDisputeResolution_append_only" BEFORE UPDATE OR DELETE ON "public"."PayDisputeResolution"
+  FOR EACH ROW EXECUTE FUNCTION "turfcut_private"."append_only"();
+CREATE TRIGGER "ProviderEvent_append_only" BEFORE UPDATE OR DELETE ON "public"."ProviderEvent"
+  FOR EACH ROW EXECUTE FUNCTION "turfcut_private"."append_only"();
+
+-- RLS: deny-by-default; no policies, no grants. Pay records are read and
+-- written only by the server.
+ALTER TABLE "public"."PayoutEvent"          ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."PayoutTransfer"       ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."PayDispute"           ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."PayDisputeResolution" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."ProviderEvent"        ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON "public"."PayoutEvent", "public"."PayoutTransfer", "public"."PayDispute",
+  "public"."PayDisputeResolution", "public"."ProviderEvent" FROM anon, authenticated;
+
 -- Turfcut seed (M0 + M1 events) — SQL version of prisma/seed.ts
 -- Run AFTER the DDL above. Idempotent: safe to re-run (ON CONFLICT DO NOTHING).
 
@@ -825,11 +1016,19 @@ ON CONFLICT ("id") DO NOTHING;
 -- hand-written in SQL. Nothing reads them in M1; the scorecard endpoint
 -- always derives live from work_events.
 
--- --- Payout: approved earnings for the shift (4h x $25/h, 15% fee) ---
+-- --- Payout: the pay line for the approved shift (3.5 verified h x $25/h,
+-- 15% fee charged to the org), approved for payment. Same values the app's
+-- pay rules compute (prisma/seed.ts). ---
 INSERT INTO "public"."Payout"
-  ("id","workerId","engagementId","amountCents","feeCents","status","createdAt") VALUES
+  ("id","workerId","orgId","engagementId","shiftId","validationId","kind","amountCents","feeCents","basis","createdAt") VALUES
   ('00000000-0000-0000-0000-000000000161','00000000-0000-0000-0000-000000000101',
-   '00000000-0000-0000-0000-000000000031',10000,1500,'APPROVED',NOW())
+   '00000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000031',
+   '00000000-0000-0000-0000-000000000201','00000000-0000-0000-0000-000000000141','SHIFT',8750,1313,
+   '{"method":"HOURLY","rateCents":2500,"quantity":3.5,"unit":"hour","activeMs":12600000,"formula":"3h 30m verified × $25.00/hr","jurisdictionVersion":1,"effectiveHourlyCents":2500}',
+   NOW())
+ON CONFLICT ("id") DO NOTHING;
+INSERT INTO "public"."PayoutEvent" ("id","payoutId","type","reason","createdAt") VALUES
+  ('00000000-0000-0000-0000-000000000162','00000000-0000-0000-0000-000000000161','APPROVED','Seed: approved for payment',NOW())
 ON CONFLICT ("id") DO NOTHING;
 
 -- --- Audit: seed completed ---

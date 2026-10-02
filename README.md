@@ -129,13 +129,21 @@ only; safe to re-run).
 Without steps 3 and 5, chat still works: threads refresh every 15 seconds
 instead of instantly, and attaching a document fails with a clear error.
 
-**Already on M4? Payouts (M5)** — in the Supabase SQL editor, run
+**Already on M4?** Run `prisma/m4-1-hardening.sql` (safe to re-run): browsers
+can read only chat ids and times (never message text), a deleted message
+disappears for everyone, chat history can't be truncated, and consent and
+metric versions can't be edited. It gives up after 5 seconds if the
+database is busy; just run it again.
+
+**Payouts (M5)** — in the Supabase SQL editor, run
 `prisma/m5-migration.sql` once. It turns `Payout` into an append-only pay
 line with a status log, adds the transfer, dispute and webhook tables, and
 blocks updates and deletes on all of them. It stops without changing
-anything if an existing payout can't be traced to an organization. Any
-unpaid payout from before M5 is put on hold so finance checks its amount
-before paying it. Then run `prisma/m5-1-history-lock.sql`: the database
+anything if an existing payout can't be traced to an organization or has a
+negative amount, and gives up after 5 seconds if the database is busy. Any
+unpaid payout from before M5 comes over on hold with no approval: finance
+checks its amount, releases it, and it's approved again (by two people)
+before it's paid. Then run `prisma/m5-1-history-lock.sql`: the database
 refuses edits and deletes of work events, shift reviews and the audit log,
 as it already does for messages and pay (safe to re-run).
 
@@ -201,6 +209,7 @@ prisma/
   m3-migration.sql      # M2 → M3 upgrade (staging, turf, supervisor, actor)
   m4-0-rls-lockdown.sql # RLS on + browser-role grants revoked (run before m4)
   m4-migration.sql      # M3 → M4 upgrade (messaging)
+  m4-1-hardening.sql    # review fixes: chat read grants, history guards
   m5-migration.sql      # M4 → M5 upgrade (pay lines, payouts, disputes)
   m5-1-history-lock.sql # append-only triggers on work events, reviews, audit
 ```
@@ -264,10 +273,15 @@ Jobs and hiring, built on the M1 profile.
 - **Hiring snapshot.** Each engagement freezes what the org could see at that
   moment — scorecard summary and authorized fit signals only, with consent
   version and time. Issue overlap compares the worker's shared answers with
-  the job's disclosed positions. An invitation sent before the worker has
-  any relationship with the org shows no fit answers.
+  the job's disclosed positions. An invitation shows fit answers only if
+  the worker already applied to, claimed or accepted one of the org's jobs;
+  an invitation alone (even a second one) is never a relationship.
 - **Late cancellations.** A worker `SHIFT_CANCELLED` inside the job's notice
   window counts as a no-show; timely and organization cancellations don't.
+  A shift scheduled with less notice than the window can be cancelled
+  without penalty until it starts (or until an hour after it was
+  scheduled, if that's later). Once a shift has ended nobody can cancel
+  it: an unstarted shift is a no-show from its end (not its start).
 
 API: `GET/POST /api/jobs`, `POST /api/jobs/:id/publish`,
 `GET/POST /api/jobs/:id/applications`, `POST /api/jobs/:id/claims`,

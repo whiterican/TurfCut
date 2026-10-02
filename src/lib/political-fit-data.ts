@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
+import { RELATIONSHIP_STATUSES } from "@/lib/engagements";
 import {
   consentStatus,
   CONSENT_TEXT_VERSION,
@@ -97,8 +98,11 @@ export async function savePreferences(
   });
 }
 
-/** True when the worker applied to, or was invited by, one of the org's jobs. */
+/**
+ * True when the worker applied to, claimed, or accepted one of the org's
+ * jobs. An invitation the worker hasn't accepted is not a relationship.
+ */
 export async function orgHasRelationship(workerId: string, orgId: string): Promise<boolean> {
-  const n = await db().engagement.count({ where: { workerId, job: { orgId } } });
+  const n = await db().engagement.count({ where: { workerId, job: { orgId }, status: { in: RELATIONSHIP_STATUSES } } });
   return n > 0;
 }

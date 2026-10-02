@@ -28,7 +28,8 @@ async function snapshotFor(
     orgHasRelationship(workerId, job.orgId),
   ]);
   // Applying or claiming creates the relationship; an invite is the org's
-  // decision made before any relationship exists, so it sees only that.
+  // decision, so it sees only a relationship the worker already started
+  // (an earlier, unaccepted invitation doesn't count).
   const relationship = kind === "invitation" ? related : true;
   const fit = employerFitView(effectivePreference(latest, now), {
     orgHasRelationship: relationship,
@@ -48,10 +49,12 @@ async function open(
   workerId: string,
   now: Date
 ): Promise<Result> {
-  if (!UUID_RE.test(jobId) || !UUID_RE.test(workerId)) return { ok: false, reason: "Job not found." };
+  if (!UUID_RE.test(jobId)) return { ok: false, reason: "Job not found." };
+  if (!UUID_RE.test(workerId)) return { ok: false, reason: "Worker not found." };
   const job = await db().job.findUnique({ where: { id: jobId }, include: { org: { select: { name: true } } } });
   if (!job) return { ok: false, reason: "Job not found." };
   if (actor.kind === "org" && actor.orgId !== job.orgId) return { ok: false, reason: "This job belongs to another organization." };
+  if (!(await db().worker.findUnique({ where: { id: workerId }, select: { id: true } }))) return { ok: false, reason: "Worker not found." };
 
   // A worker never lands on a job their own do-not-match answers exclude.
   if (actor.kind === "worker") {
@@ -112,10 +115,16 @@ export async function acceptEngagement(
   actor: { kind: "worker"; profileId: string; workerId: string } | { kind: "org"; profileId: string; orgId: string }
 ): Promise<Result> {
   if (!UUID_RE.test(engagementId)) return { ok: false, reason: "Engagement not found." };
-  const e = await db().engagement.findUnique({ where: { id: engagementId }, include: { job: true } });
+  const e = await db().engagement.findUnique({ where: { id: engagementId }, include: { job: { include: { org: { select: { name: true } } } } } });
   if (!e) return { ok: false, reason: "Engagement not found." };
   if (actor.kind === "worker" && e.workerId !== actor.workerId) return { ok: false, reason: "This isn't your invitation." };
   if (actor.kind === "org" && e.job.orgId !== actor.orgId) return { ok: false, reason: "This application is for another organization." };
+  // An invitation never overrides the worker's own do-not-match answers.
+  if (actor.kind === "worker") {
+    const pref = effectivePreference(await loadLatestPreference(actor.workerId));
+    const reasons = exclusionReasons(pref, { disclosure: readDisclosure(e.job.campaignDisclosure), orgName: e.job.org.name, measureIds: e.job.measureIds });
+    if (reasons.length) return { ok: false, reason: `${reasons[0]}. Change your preferences to accept this job.` };
+  }
 
   return db().$transaction(async (tx) => {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`job:${e.jobId}`}))`;

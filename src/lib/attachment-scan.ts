@@ -117,13 +117,25 @@ export function textProblem(text: string): string | null {
 // PDF
 // ---------------------------------------------------------------------------
 
-/** Picture-carrying PDF features: image XObjects, inline images, image filters, attached files. */
-const PDF_PICTURES = /\/Subtype\s*\/Image\b|\/(DCTDecode|JPXDecode|JBIG2Decode|CCITTFaxDecode|EmbeddedFiles?|FileAttachment|RichMedia|Movie|Sound)\b|(^|\s)BI\s*\/(W|Width|IM|ImageMask)\b/;
+/**
+ * Picture-carrying PDF features: image XObjects, inline images (the BI
+ * operator, whatever key comes first), image filters, attached files.
+ */
+const PDF_PICTURES = /\/Subtype\s*\/Image\b|\/(DCTDecode|JPXDecode|JBIG2Decode|CCITTFaxDecode|EmbeddedFiles?|FileAttachment|RichMedia|Movie|Sound)\b|(^|[\s()<>[\]{}])BI\s*\/[A-Za-z]/;
 /** Encodings we can't see through. */
 const PDF_OPAQUE = /\/(Encrypt|LZWDecode|ASCII85Decode|ASCIIHexDecode|RunLengthDecode|Crypt)\b/;
 
-/** PDF text with name escapes (#49) undone and comments stripped, so neither can hide a keyword. */
-const pdfNormalize = (s: string) => s.replace(/#([0-9a-f]{2})/gi, (_, h) => String.fromCharCode(parseInt(h, 16))).replace(/%[^\r\n]*/g, " ");
+/** PDF text with name escapes (#49) undone, so they can't hide a keyword. */
+const pdfUnescape = (s: string) => s.replace(/#([0-9a-f]{2})/gi, (_, h) => String.fromCharCode(parseInt(h, 16)));
+/**
+ * Both readings of the text: comments stripped (so a comment can't split a
+ * keyword) and not (a "%" inside a string like "(50% off)" isn't a comment,
+ * and stripping to the end of the line would hide what follows it).
+ */
+const pdfReadings = (s: string) => {
+  const u = pdfUnescape(s);
+  return [u.replace(/%[^\r\n]*/g, " "), u];
+};
 
 export function pdfProblem(bytes: Uint8Array): string | null {
   const raw = latin1(bytes);
@@ -148,9 +160,9 @@ export function pdfProblem(bytes: Uint8Array): string | null {
     }
   }
   for (const t of texts) {
-    const n = pdfNormalize(t);
-    if (PDF_PICTURES.test(n)) return PICTURES_REASON;
-    if (PDF_OPAQUE.test(n)) return UNCHECKABLE;
+    const readings = pdfReadings(t);
+    if (readings.some((n) => PDF_PICTURES.test(n))) return PICTURES_REASON;
+    if (readings.some((n) => PDF_OPAQUE.test(n))) return UNCHECKABLE;
   }
   return null;
 }

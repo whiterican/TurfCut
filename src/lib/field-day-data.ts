@@ -172,11 +172,13 @@ export async function workerShiftAction(
   actor: { workerId: string; profileId: string },
   shiftId: string,
   req: WorkerRequest,
-  now = new Date()
+  at?: Date
 ): Promise<Result> {
   if (!UUID_RE.test(shiftId)) return { ok: false, reason: "Shift not found." };
   return db().$transaction(async (tx) => {
     await lock(tx, `shift:${shiftId}`);
+    // Timed after the lock, so events land in the order they were judged.
+    const now = at ?? new Date();
     const s = await loadShift(shiftId, tx);
     if (!s || s.engagement.workerId !== actor.workerId) return { ok: false as const, reason: "Shift not found." };
     // The device position is used for this comparison only and never stored.
@@ -190,11 +192,13 @@ export async function supervisorShiftAction(
   actor: { profileId: string; orgId: string },
   shiftId: string,
   action: SupervisorAction,
-  now = new Date()
+  at?: Date
 ): Promise<Result> {
   if (!UUID_RE.test(shiftId)) return { ok: false, reason: "Shift not found." };
   return db().$transaction(async (tx) => {
     await lock(tx, `shift:${shiftId}`);
+    // Timed after the lock, so events land in the order they were judged.
+    const now = at ?? new Date();
     const s = await loadShift(shiftId, tx);
     if (!s || s.engagement.job.orgId !== actor.orgId) return { ok: false as const, reason: "Shift not found." };
     let elsewhere: string[] = [];
@@ -207,7 +211,7 @@ export async function supervisorShiftAction(
       });
       elsewhere = others.flatMap((o) => shiftState(facts(o)).packetsOut);
     }
-    const out = supervisorAction(facts(s), action, elsewhere);
+    const out = supervisorAction(facts(s), action, elsewhere, now);
     if (out.ok && action.kind === "batch_count") {
       // A recount changes per-signature pay: not once that pay is approved.
       await payLock(tx, s.engagement.workerId);
@@ -232,11 +236,13 @@ export async function workerTurfAction(
   actor: { workerId: string; profileId: string },
   shiftId: string,
   action: TurfAction,
-  now = new Date()
+  at?: Date
 ): Promise<Result> {
   if (!UUID_RE.test(shiftId)) return { ok: false, reason: "Shift not found." };
   return db().$transaction(async (tx) => {
     await lock(tx, `shift:${shiftId}`);
+    // Timed after the lock, so events land in the order they were judged.
+    const now = at ?? new Date();
     const s = await loadShift(shiftId, tx);
     if (!s || s.engagement.workerId !== actor.workerId) return { ok: false as const, reason: "Shift not found." };
     return apply(tx, shiftId, actor.profileId, turfAction(facts(s), action, now), now);
@@ -275,9 +281,13 @@ export async function loadOps(orgId: string, now = new Date()) {
   const live = rows.filter((r) => !r.state.cancelled);
   const late = live.filter((r) => !r.state.checkedInAt && now.getTime() > r.shift.startsAt.getTime() + 15 * 60_000 && now < r.shift.endsAt);
   const awaitingReview = live.filter((r) => r.state.checkedOutAt && !r.state.closeout);
+  // "In the field" = shifts that have started (or checked in early); the
+  // rest of the next 24 hours is counted separately as upcoming.
+  const due = live.filter((r) => r.state.checkedInAt || r.shift.startsAt <= now);
   return {
-    scheduled: live.length,
-    checkedIn: live.filter((r) => r.state.checkedInAt).length,
+    scheduled: due.length,
+    upcoming: live.length - due.length,
+    checkedIn: due.filter((r) => r.state.checkedInAt).length,
     signatures: live.reduce((n, r) => n + r.state.signatures, 0),
     doors: live.reduce((n, r) => n + r.state.doors, 0),
     late,

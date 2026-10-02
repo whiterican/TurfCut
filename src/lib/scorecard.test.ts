@@ -15,6 +15,8 @@ const seedShift: ScorecardShift = {
   state: "CO",
   status: "COMPLETED",
   startsAt: checkIn,
+  endsAt: at(480),
+  scheduledAt: at(-7 * 24 * 60),
   events: SEED_SHIFT_EVENTS.map((e) => ({
     id: e.id,
     type: e.type,
@@ -87,6 +89,8 @@ describe("spec formulas and verification rules", () => {
       state: "CO",
       status: "COMPLETED",
       startsAt: checkIn,
+      endsAt: at(480),
+      scheduledAt: at(-7 * 24 * 60),
       events: events.map(([type, min, payload = {}], i) => ({ id: `${id}-${i}`, type, payload, createdAt: at(min) })),
       validations: approved(),
       ...extra,
@@ -202,6 +206,7 @@ describe("spec formulas and verification rules", () => {
     const cancel = (by: string, hoursBefore: number, extra: Partial<ScorecardShift> = {}) =>
       shift([], {
         startsAt: start,
+        endsAt: new Date(start.getTime() + 8 * 3_600_000),
         status: "CANCELLED",
         cancellationNoticeHours: 24,
         ...extra,
@@ -220,6 +225,50 @@ describe("spec formulas and verification rules", () => {
     expect(s.reliability.showRate).toMatchObject({ value: 0.5, numerator: 1, denominator: 2 });
     expect(s.reliability.showRate.evidence).toMatch(/1 late cancellation.*3 timely or organization/);
     expect(s.segments[0].shiftsCount).toBe(1); // cancelled shifts aren't work
+  });
+
+  it("gives a shift scheduled inside the notice window until its start to cancel", () => {
+    const start = new Date("2026-09-28T09:00:00Z");
+    const cancelled = (scheduledHoursBefore: number, cancelHoursBefore: number) =>
+      shift([], {
+        startsAt: start,
+        endsAt: new Date(start.getTime() + 8 * 3_600_000),
+        scheduledAt: new Date(start.getTime() - scheduledHoursBefore * 3_600_000),
+        status: "CANCELLED",
+        cancellationNoticeHours: 24,
+        events: [{ id: `c-${scheduledHoursBefore}-${cancelHoursBefore}`, type: "SHIFT_CANCELLED", payload: { by: "WORKER", reason: "test" }, createdAt: new Date(start.getTime() - cancelHoursBefore * 3_600_000) }],
+      });
+    // Scheduled 1h before the start on a 24h-notice job, cancelled 55 min before → excused.
+    expect(computeScorecard([cancelled(1, 55 / 60)], { now }).reliability.showRate.denominator).toBe(0);
+    // Scheduled with full notice, cancelled 2h before → still a no-show.
+    expect(computeScorecard([cancelled(72, 2)], { now }).reliability.showRate).toMatchObject({ numerator: 0, denominator: 1 });
+    // Short notice still ends at the start: cancelling after it began is a no-show.
+    expect(computeScorecard([cancelled(3, -1)], { now }).reliability.showRate).toMatchObject({ numerator: 0, denominator: 1 });
+  });
+
+  it("doesn't let a cancellation after the shift ended erase a no-show", () => {
+    const start = new Date("2026-09-27T09:00:00Z");
+    const s = shift([], {
+      startsAt: start,
+      endsAt: new Date(start.getTime() + 8 * 3_600_000),
+      status: "CANCELLED",
+      events: [{ id: "c-late-org", type: "SHIFT_CANCELLED", payload: { by: "ORGANIZATION", reason: "cleanup" }, createdAt: new Date(start.getTime() + 22 * 3_600_000) }],
+    });
+    expect(computeScorecard([s], { now }).reliability.showRate).toMatchObject({ value: 0, numerator: 0, denominator: 1 });
+  });
+
+  it("doesn't count a shift as a no-show until it has ended", () => {
+    const started = shift([["CHECK_IN", 0], ["CHECK_OUT", 60]]);
+    const justStarted = shift([], { status: "SCHEDULED", startsAt: at(-1, now), endsAt: at(239, now), validations: [] });
+    const missed = shift([], { status: "SCHEDULED", startsAt: at(-300, now), endsAt: at(-60, now), validations: [] });
+    expect(computeScorecard([started, justStarted], { now }).reliability.showRate).toMatchObject({ value: 1, numerator: 1, denominator: 1 });
+    expect(computeScorecard([started, missed], { now }).reliability.showRate).toMatchObject({ value: 0.5, numerator: 1, denominator: 2 });
+  });
+
+  it("shows no doors-per-hour for petition work with no doors logged", () => {
+    const seg = computeScorecard([shift([["CHECK_IN", 0], ["SIGNATURE_SUBMITTED", 30, { count: 10 }], ["CHECK_OUT", 120]])], { now }).segments[0];
+    expect(seg.averages.doorsPerActiveHour.value).toBeNull();
+    expect(seg.averages.doorsPerActiveHour.evidence).toBe("No doors are logged on petition shifts.");
   });
 
   it("counts unique ballot measures across verified shifts", () => {

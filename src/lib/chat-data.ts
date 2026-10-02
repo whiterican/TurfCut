@@ -152,12 +152,11 @@ async function unreadByConversation(profileId: string): Promise<Map<string, numb
        AND (p."removedAt" IS NULL OR m."createdAt" <= p."removedAt")
        AND (p."role" = 'WORKER' OR m."createdAt" >= p."addedAt"
             OR NOT EXISTS (SELECT 1 FROM "Conversation" cv WHERE cv."id" = p."conversationId" AND cv."kind" = 'DIRECT'))
+       -- A deletion carries no content, so it counts whoever made it (even
+       -- someone I've blocked, like an owner removing a reported message).
        AND NOT EXISTS (SELECT 1 FROM "MessageRevision" r
                         WHERE r."messageId" = m."id" AND r."kind" = 'DELETE'
-                          AND (p."removedAt" IS NULL OR r."createdAt" <= p."removedAt")
-                          AND NOT EXISTS (SELECT 1 FROM "ProfileBlock" b2
-                                           WHERE b2."blockerId" = p."profileId" AND b2."blockedId" = r."actorId"
-                                             AND b2."createdAt" <= r."createdAt" AND (b2."liftedAt" IS NULL OR r."createdAt" < b2."liftedAt")))
+                          AND (p."removedAt" IS NULL OR r."createdAt" <= p."removedAt"))
        AND NOT EXISTS (SELECT 1 FROM "ProfileBlock" b
                         WHERE b."blockerId" = p."profileId" AND b."blockedId" = m."senderId"
                           AND b."createdAt" <= m."createdAt" AND (b."liftedAt" IS NULL OR m."createdAt" < b."liftedAt"))
@@ -216,6 +215,11 @@ async function latestVisible(profileId: string): Promise<Map<string, ViewMessage
          WHERE mm."conversationId" = p."conversationId" AND (p."removedAt" IS NULL OR mm."createdAt" <= p."removedAt")
            AND (p."role" = 'WORKER' OR mm."createdAt" >= p."addedAt"
             OR NOT EXISTS (SELECT 1 FROM "Conversation" cv WHERE cv."id" = p."conversationId" AND cv."kind" = 'DIRECT'))
+           -- Skip messages from people I'd blocked at the time, so a run of
+           -- them can't hide the latest message I can actually see.
+           AND NOT EXISTS (SELECT 1 FROM "ProfileBlock" b
+                            WHERE b."blockerId" = p."profileId" AND b."blockedId" = mm."senderId"
+                              AND b."createdAt" <= mm."createdAt" AND (b."liftedAt" IS NULL OR mm."createdAt" < b."liftedAt"))
          ORDER BY mm."createdAt" DESC LIMIT 20) m
      WHERE p."profileId" = ${profileId}::uuid`;
   if (rows.length === 0) return new Map();
@@ -407,7 +411,7 @@ export async function openThread(me: ChatUser, conversationId: string): Promise<
         senderIsManager: sender?.role === "MANAGER",
         mine: mineMsg,
         canEdit: mineMsg && !m.deleted && !!m.body && access.post && now.getTime() - m.createdAt.getTime() <= EDIT_WINDOW_MS,
-        canDelete: mineMsg && !m.deleted,
+        canDelete: mineMsg && !m.deleted && access.post,
       };
     }),
     hasOlder: truncated,
@@ -475,14 +479,15 @@ async function ensureDirectInner(me: ChatUser, engagementId: string): Promise<{ 
         const next = stillStaff ? boss.id : await defaultBoss(tx, e.jobId, e.job.orgId);
         if (next && next !== e.worker.profileId) {
           const prior = managers.find((m) => m.profileId === next);
-          // A returning contact keeps their original start (and so their own
-          // history); a new one reads from strictly after the last message.
+          // The contact reads from strictly after the last message — a
+          // returning one too: what the worker said to the contacts in
+          // between was private to them.
+          const last = (await tx.conversation.findUniqueOrThrow({ where: { id: e.conversation.id }, select: { lastMessageAt: true } })).lastMessageAt;
+          let addedAt = await dbNow(tx);
+          if (last && addedAt <= last) addedAt = new Date(last.getTime() + 1);
           if (prior) {
-            await tx.conversationParticipant.update({ where: { id: prior.id }, data: { removedAt: null, removedById: null, addedById: me.userId } });
+            await tx.conversationParticipant.update({ where: { id: prior.id }, data: { removedAt: null, removedById: null, addedById: me.userId, addedAt } });
           } else {
-            const last = (await tx.conversation.findUniqueOrThrow({ where: { id: e.conversation.id }, select: { lastMessageAt: true } })).lastMessageAt;
-            let addedAt = await dbNow(tx);
-            if (last && addedAt <= last) addedAt = new Date(last.getTime() + 1);
             await tx.conversationParticipant.create({ data: { conversationId: e.conversation.id, profileId: next, role: "MANAGER", addedById: me.userId, addedAt } });
           }
           if (next !== e.hiredById) await tx.engagement.update({ where: { id: e.id }, data: { hiredById: next } });
@@ -650,10 +655,10 @@ export async function reportMessage(me: ChatUser, messageId: string, rawReason: 
     if (await tx.messageReport.findUnique({ where: { messageId_reporterId: { messageId, reporterId: me.userId } } })) {
       return fail("You've already reported this message.");
     }
-    // The text as last written — kept even if it's later edited or deleted.
-    const lastEdit = m.revisions.filter((r) => r.kind === "EDIT").sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0];
-    const text = lastEdit?.body ?? m.row.body;
-    const snapshot = m.row.attachmentName ? `${text}${text ? "\n" : ""}[Attachment: ${m.row.attachmentName}]` : text;
+    // The text as the reporter saw it — kept even if it's later edited or
+    // deleted. (An edit by someone they blocked is hidden from them too.)
+    const text = m.msg.body ?? "";
+    const snapshot = m.msg.attachment ? `${text}${text ? "\n" : ""}[Attachment: ${m.msg.attachment.name}]` : text;
     const report = await tx.messageReport.create({
       data: { messageId, conversationId: m.ctx.conv.id, orgId: m.ctx.conv.orgId, reporterId: me.userId, reason: reason.slice(0, 500), bodySnapshot: snapshot },
     });

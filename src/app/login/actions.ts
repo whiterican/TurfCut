@@ -48,6 +48,8 @@ export async function logIn(_prev: LoginState, fd: FormData): Promise<LoginState
   const password = String(fd.get("password") ?? "");
   if (!password) return { ok: false, message: "Enter your password, or email yourself a sign-in link.", email };
   const { error } = await supabase.auth.signInWithPassword({ email, password });
+  // Supabase checks the password before confirmation, so this message
+  // needs the right password — it doesn't reveal who has an account.
   if (error?.code === "email_not_confirmed") {
     return { ok: false, message: "Confirm your email first — check your inbox — or use a sign-in link below.", email };
   }

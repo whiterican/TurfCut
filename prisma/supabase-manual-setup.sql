@@ -1,8 +1,8 @@
--- Turfcut M0 + M1 + M2 + M3 + M4 + M5 — manual Supabase setup (one paste), FRESH databases only.
+-- Turfcut M0 + M1 + M2 + M3 + M4 (+ M4.1) + M5 — manual Supabase setup (one paste), FRESH databases only.
 -- Generated from prisma/schema.prisma + prisma/seed.ts on 2026-10-02.
 -- Paste the entire file into the Supabase SQL editor and run it.
 -- The DDL is not re-runnable. Existing database? Run the m1-, m1-profile-, m2-, m3-,
--- m4-0-rls-lockdown, m4-, m5-migration and m5-1-history-lock.sql files in order, then manual-seed.sql (idempotent).
+-- m4-0-rls-lockdown, m4-, m4-1-hardening, m5-migration and m5-1-history-lock.sql files in order, then manual-seed.sql (idempotent).
 -- CreateSchema
 CREATE SCHEMA IF NOT EXISTS "public";
 
@@ -711,7 +711,8 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA "public" REVOKE EXECUTE ON FUNCTIONS FROM ano
 DO $$
 BEGIN
   IF to_regclass('"public"."Message"') IS NOT NULL THEN
-    GRANT SELECT ON "public"."Message", "public"."MessageRevision" TO authenticated;
+    GRANT SELECT ("id", "conversationId", "createdAt") ON "public"."Message" TO authenticated;
+    GRANT SELECT ("id", "messageId", "conversationId", "createdAt") ON "public"."MessageRevision" TO authenticated;
   END IF;
 END $$;
 
@@ -848,16 +849,34 @@ GRANT EXECUTE ON FUNCTION "turfcut_private"."can_see"(uuid, uuid, timestamp) TO 
 GRANT EXECUTE ON FUNCTION "turfcut_private"."can_see_revision"(uuid, uuid, timestamp) TO authenticated;
 
 -- Only these two tables are readable by signed-in clients (for Realtime),
--- and only through these policies. Nothing is granted to anon.
-GRANT SELECT ON "public"."Message", "public"."MessageRevision" TO authenticated;
+-- only their ids and times (never message text), and only through these
+-- policies. Nothing is granted to anon. (M4.1)
+GRANT SELECT ("id", "conversationId", "createdAt") ON "public"."Message" TO authenticated;
+GRANT SELECT ("id", "messageId", "conversationId", "createdAt") ON "public"."MessageRevision" TO authenticated;
 
 CREATE POLICY "participants read messages" ON "public"."Message"
   FOR SELECT TO authenticated
   USING ("turfcut_private"."can_see"("conversationId", "senderId", "createdAt"));
 
+-- Tombstones aren't filtered by blocks (a NULL actor never matches a block).
 CREATE POLICY "participants read revisions" ON "public"."MessageRevision"
   FOR SELECT TO authenticated
-  USING ("turfcut_private"."can_see_revision"("messageId", "actorId", "createdAt"));
+  USING ("turfcut_private"."can_see_revision"("messageId", CASE WHEN "kind" = 'DELETE' THEN NULL ELSE "actorId" END, "createdAt"));
+
+-- No truncating chat history; consent and metric versions are never edited
+-- or wiped (M4.1).
+CREATE TRIGGER "Message_no_truncate" BEFORE TRUNCATE ON "public"."Message"
+  FOR EACH STATEMENT EXECUTE FUNCTION "turfcut_private"."append_only"();
+CREATE TRIGGER "MessageRevision_no_truncate" BEFORE TRUNCATE ON "public"."MessageRevision"
+  FOR EACH STATEMENT EXECUTE FUNCTION "turfcut_private"."append_only"();
+CREATE TRIGGER "PoliticalPreference_no_update" BEFORE UPDATE ON "public"."PoliticalPreference"
+  FOR EACH ROW EXECUTE FUNCTION "turfcut_private"."append_only"();
+CREATE TRIGGER "PoliticalPreference_no_truncate" BEFORE TRUNCATE ON "public"."PoliticalPreference"
+  FOR EACH STATEMENT EXECUTE FUNCTION "turfcut_private"."append_only"();
+CREATE TRIGGER "ProfileMetric_no_update" BEFORE UPDATE ON "public"."ProfileMetric"
+  FOR EACH ROW EXECUTE FUNCTION "turfcut_private"."append_only"();
+CREATE TRIGGER "ProfileMetric_no_truncate" BEFORE TRUNCATE ON "public"."ProfileMetric"
+  FOR EACH STATEMENT EXECUTE FUNCTION "turfcut_private"."append_only"();
 
 -- ---- Security (M5): payout integrity, append-only, RLS ----
 

@@ -103,3 +103,18 @@ export function ResolveDispute({ action, disputeId, reReviewed }: { action: (p: 
     </form>
   );
 }
+
+/** Book a partial Stripe reversal in the ledger, optionally paying it again. */
+export function RecordReversal({ action, transferId, amount }: { action: (p: ActionState, fd: FormData) => Promise<ActionState>; transferId: string; amount: string }) {
+  const [state, formAction, pending] = useActionState(action, initial);
+  return (
+    <form action={formAction} className="space-y-2">
+      <input type="hidden" name="transferId" value={transferId} />
+      <label className="flex items-center gap-2 text-sm">
+        <input type="checkbox" name="repay" className="size-4 accent-[var(--focus)]" /> Also pay the {amount} again (someone else approves it)
+      </label>
+      <button className="btn-secondary btn-sm" disabled={pending}>{pending ? "Recording…" : `Record ${amount} returned`}</button>
+      <Status state={state} />
+    </form>
+  );
+}

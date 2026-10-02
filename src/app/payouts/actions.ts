@@ -3,9 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { requireRole } from "@/lib/auth";
 import { PAY_ROLES } from "@/lib/access";
-import { lineAction, payWorker, resolveDispute, settleTransfer, type PayActor } from "@/lib/pay-data";
+import { lineAction, payWorker, recordPartialReversal, resolveDispute, settleTransfer, type PayActor } from "@/lib/pay-data";
 import { stripeProvider } from "@/lib/payout-provider";
-import { parseMoney, type Resolution } from "@/lib/pay";
+import { money, parseMoney, type Resolution } from "@/lib/pay";
 import type { ActionState } from "@/app/jobs/actions";
 
 /*
@@ -98,4 +98,19 @@ export async function checkPayment(_prev: ActionState, fd: FormData): Promise<Ac
   refresh();
   if (!r.ok) return { ok: false, message: r.reason };
   return { ok: r.outcome === "paid", message: r.message };
+}
+
+export async function recordReversal(_prev: ActionState, fd: FormData): Promise<ActionState> {
+  const a = await actor();
+  if (!a) return { ok: false, message: "No organization on this account." };
+  const repay = fd.get("repay") === "on";
+  const r = await recordPartialReversal(a, str(fd, "transferId"), repay);
+  if (!r.ok) return { ok: false, message: r.reason };
+  refresh();
+  return {
+    ok: true,
+    message: repay
+      ? `Recorded ${money(r.cents ?? 0)} returned. Someone else on your team approves paying it again.`
+      : `Recorded ${money(r.cents ?? 0)} returned in the ledger.`,
+  };
 }

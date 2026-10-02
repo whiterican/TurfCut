@@ -8,6 +8,7 @@ import { verifiedWork } from "@/lib/scorecard";
 import {
   computeShiftPay,
   disputeProblem,
+  hoursFlag,
   lineActionProblem,
   lineState,
   money,
@@ -92,8 +93,17 @@ export async function planReview(tx: Tx, s: ReviewShift, status: "APPROVED" | "R
   const states = lines.map((l) => ({ line: l, state: lineState(l, asFacts(l.events), false) }));
   const blocked = reReviewProblem(states.map((x) => x.state)) ?? adjustedProblem(states);
   if (blocked) return { ok: false, reason: blocked };
-  const active = states.filter((x) => x.line.kind === "SHIFT" && x.state.status !== "VOIDED");
-  const heldReason = active.find((x) => x.state.status === "HELD")?.state.heldReason ?? null;
+  const shiftLines = states.filter((x) => x.line.kind === "SHIFT");
+  const active = shiftLines.filter((x) => x.state.status !== "VOIDED");
+  let heldReason = active.find((x) => x.state.status === "HELD")?.state.heldReason ?? null;
+  if (!active.length) {
+    // A recount withdrew the last line: a hold finance put on it still applies.
+    const last = [...shiftLines].sort((a, b) => b.line.createdAt.getTime() - a.line.createdAt.getTime())[0];
+    if (last?.line.events.some((e) => e.type === "VOIDED" && e.reason === RECOUNT_VOID)) {
+      const before = lineState(last.line, asFacts(last.line.events.filter((e) => e.type !== "VOIDED")), false);
+      if (before.status === "HELD") heldReason = before.heldReason;
+    }
+  }
   if (status === "REJECTED") return { ok: true, pay: null, voidIds: active.map((x) => x.line.id), keepId: null, heldReason: null };
   const job = s.engagement.job;
   const pay = computeShiftPay({
@@ -111,6 +121,37 @@ export async function planReview(tx: Tx, s: ReviewShift, status: "APPROVED" | "R
   };
   const same = active.length === 1 && sameAs(active[0].line) ? active[0].line : null;
   return { ok: true, pay, voidIds: active.filter((x) => x.line !== same).map((x) => x.line.id), keepId: same?.id ?? null, heldReason: same ? null : heldReason };
+}
+
+/**
+ * After a batch recount (allowed only while the shift's pay isn't approved
+ * for payment): if the new counts change the pay, the shift line waiting
+ * for approval — or on hold — is withdrawn, so nobody can approve or pay
+ * the old amount. The supervisor approves the shift again to record the
+ * new pay. Callers hold the shift lock and payLock.
+ */
+const RECOUNT_VOID = "The batch was recounted; the shift needs approving again.";
+
+export async function withdrawStalePay(tx: Tx, s: ReviewShift, actorId: string, now: Date): Promise<string[]> {
+  const lines = await tx.payout.findMany({ where: { shiftId: s.id, kind: "SHIFT" }, include: { events: true } });
+  const live = lines.filter((l) => lineState(l, asFacts(l.events), false).status !== "VOIDED");
+  if (!live.length) return [];
+  const job = s.engagement.job;
+  const pay = computeShiftPay({
+    method: job.compensationMethod,
+    rateCents: job.payRateCents,
+    workType: job.type,
+    work: verifiedWork(s.events, s.validations),
+    jurisdictionVersion: job.jurisdiction.version,
+  });
+  const stale = live.filter((l) => !pay.ok || l.amountCents !== pay.amountCents || readBasis(l.basis).formula !== pay.basis.formula);
+  if (!stale.length) return [];
+  const at = await eventAt(tx, stale.map((l) => l.id), now);
+  for (const l of stale) {
+    await tx.payoutEvent.create({ data: { payoutId: l.id, type: "VOIDED", actorId, reason: RECOUNT_VOID, createdAt: at } });
+    await tx.auditEvent.create({ data: { actorId, action: "payout.voided", entityType: "Payout", entityId: l.id, metadata: { shiftId: s.id, reason: "recount" } } });
+  }
+  return stale.map((l) => l.id);
 }
 
 /** Why the shift's review (or batch count, which changes pay) is final, or null. */
@@ -389,6 +430,7 @@ const LINE_INCLUDE = {
     select: {
       id: true,
       startsAt: true,
+      endsAt: true,
       // The latest review of the shift: the person who approves pay must not be its reviewer.
       validations: { where: { workEventId: null }, orderBy: { createdAt: "desc" }, take: 1, select: { reviewerId: true } },
     },
@@ -404,6 +446,8 @@ export interface OrgLine {
   state: LineState;
   formula: string;
   wageFlag: string | null;
+  /** Hourly pay for more time than the shift was scheduled for. */
+  hoursFlag: string | null;
 }
 
 async function orgLines(c: Client, where: Prisma.PayoutWhereInput): Promise<OrgLine[]> {
@@ -416,6 +460,7 @@ async function orgLines(c: Client, where: Prisma.PayoutWhereInput): Promise<OrgL
       state: lineState(line, asFacts(line.events), !!line.shiftId && open.has(line.shiftId)),
       formula: b.formula,
       wageFlag: line.kind === "SHIFT" ? wageFlag(b.effectiveHourlyCents, line.engagement?.job.jurisdiction.rules) : null,
+      hoursFlag: line.kind === "SHIFT" && line.shift ? hoursFlag(b, line.shift.endsAt.getTime() - line.shift.startsAt.getTime()) : null,
     };
   });
 }
@@ -698,7 +743,10 @@ const usd = (cents: number) => (cents / 100).toFixed(2);
 
 export async function exportLedger(actor: PayActor, from: Date, to: Date): Promise<string> {
   assertPayRole(actor);
-  const lines = await orgLines(db(), { orgId: actor.orgId, createdAt: { gte: from, lt: to } });
+  // Lines recorded in the period, and older lines paid in it (so a month's
+  // payments reconcile from one export).
+  const range = { gte: from, lt: to };
+  const lines = await orgLines(db(), { orgId: actor.orgId, OR: [{ createdAt: range }, { events: { some: { type: "PAID", createdAt: range } } }] });
   const people = new Set<string>();
   for (const l of lines) {
     const rv = reviewerOf(l);
@@ -999,13 +1047,114 @@ export async function handleProviderEvent(e: ProviderEvent, now = new Date()): P
   });
 }
 
-/** Partial reversals finance needs to settle with an adjustment. */
-export async function partialReversals(actor: PayActor) {
+export interface PartialReversal {
+  transferId: string;
+  workerName: string;
+  amountCents: number;
+  /** Total reversed so far (Stripe reports it cumulatively). */
+  reversedCents: number;
+  /** Not yet recorded in the ledger. */
+  outstandingCents: number;
+  providerRef: string;
+  at: Date;
+}
+
+const meta = (v: unknown) => (v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {});
+const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : 0);
+
+/** How much of a transfer's partial reversal the ledger already records. */
+async function recordedReversal(c: Client, transferId: string): Promise<number> {
+  const lines = await c.payout.findMany({ where: { kind: "ADJUSTMENT", amountCents: { lt: 0 }, basis: { path: ["reversalOf"], equals: transferId } }, select: { amountCents: true } });
+  return lines.reduce((n, l) => n - l.amountCents, 0);
+}
+
+/**
+ * Stripe reversals that took back part of a payment, still to be recorded
+ * in the ledger, and transfers Stripe sent for a different amount than
+ * Turfcut recorded. A transfer later reversed in full is left out: its
+ * lines went back on hold instead.
+ */
+export async function partialReversals(actor: PayActor): Promise<{ partial: PartialReversal[]; mismatches: Array<{ transferId: string; expectedCents: number; stripeCents: number; at: Date }> }> {
   assertPayRole(actor);
   const orgId = actor.orgId;
-  return db().auditEvent.findMany({
-    where: { action: "payout.partially_reversed", entityType: "PayoutTransfer", metadata: { path: ["orgId"], equals: orgId } },
+  const audits = await db().auditEvent.findMany({
+    where: { action: { in: ["payout.partially_reversed", "payout.amount_mismatch"] }, entityType: "PayoutTransfer", metadata: { path: ["orgId"], equals: orgId } },
     orderBy: { createdAt: "desc" },
-    take: 50,
+    take: 200,
+  });
+  const latest = new Map<string, (typeof audits)[number]>();
+  for (const a of audits.filter((x) => x.action === "payout.partially_reversed")) {
+    const prev = latest.get(a.entityId);
+    if (!prev || num(meta(a.metadata).reversedCents) > num(meta(prev.metadata).reversedCents)) latest.set(a.entityId, a);
+  }
+  const transfers = await db().payoutTransfer.findMany({ where: { id: { in: [...latest.keys()] }, orgId }, include: { worker: { select: { displayName: true } } } });
+  const partial: PartialReversal[] = [];
+  for (const t of transfers) {
+    const a = latest.get(t.id)!;
+    const m = meta(a.metadata);
+    const fully = await db().payoutEvent.count({ where: { transferId: t.id, type: "REVERSED" } });
+    if (fully) continue;
+    const reversedCents = num(m.reversedCents);
+    const outstandingCents = reversedCents - (await recordedReversal(db(), t.id));
+    if (outstandingCents <= 0) continue;
+    partial.push({ transferId: t.id, workerName: t.worker.displayName, amountCents: num(m.amountCents), reversedCents, outstandingCents, providerRef: String(m.providerRef ?? ""), at: a.createdAt });
+  }
+  // Mismatches are a heads-up for a month, not a permanent banner.
+  const since = Date.now() - 30 * 86_400_000;
+  const mismatches = audits
+    .filter((x) => x.action === "payout.amount_mismatch" && x.createdAt.getTime() > since)
+    .map((x) => ({ transferId: x.entityId, expectedCents: num(meta(x.metadata).expected), stripeCents: num(meta(x.metadata).stripe), at: x.createdAt }));
+  return { partial, mismatches };
+}
+
+/**
+ * Records a partial Stripe reversal in the ledger: the returned amount as a
+ * deduction that's already settled (the money is back), so totals and the
+ * export match what the worker actually kept. `repay` also adds a line to
+ * pay that amount again — a raise, so someone else approves it.
+ */
+export async function recordPartialReversal(actor: PayActor, transferId: string, repay: boolean, now = new Date()): Promise<Result & { cents?: number }> {
+  if (notPayRole(actor)) return { ok: false, reason: "Only owners and finance can record reversals." };
+  if (!UUID_RE.test(transferId)) return { ok: false, reason: "Payment not found." };
+  const transfer = await db().payoutTransfer.findUnique({ where: { id: transferId } });
+  if (!transfer || transfer.orgId !== actor.orgId) return { ok: false, reason: "Payment not found." };
+  return db().$transaction(async (tx) => {
+    await payLock(tx, transfer.workerId);
+    const audits = await tx.auditEvent.findMany({ where: { action: "payout.partially_reversed", entityType: "PayoutTransfer", entityId: transferId } });
+    const reversed = Math.max(0, ...audits.map((a) => num(meta(a.metadata).reversedCents)));
+    const ref = String(meta(audits.find((a) => num(meta(a.metadata).reversedCents) === reversed)?.metadata).providerRef ?? "");
+    const x = await transferLines(tx, transferId);
+    if (x.reversed) return { ok: false as const, reason: "This payment was later reversed in full; its lines are on hold instead." };
+    const outstanding = reversed - (await recordedReversal(tx, transferId));
+    if (outstanding <= 0) return { ok: false as const, reason: "This reversal is already recorded." };
+    const base = x.paid.filter((l) => l.amountCents > 0).sort((a, b) => b.amountCents - a.amountCents)[0];
+    if (!base) return { ok: false as const, reason: "Stripe hasn't confirmed this payment yet. Try again once it shows as paid." };
+    const common = { workerId: transfer.workerId, orgId: transfer.orgId, engagementId: base.engagementId, shiftId: base.shiftId, kind: "ADJUSTMENT" as const, adjustsId: base.id, createdById: actor.profileId, createdAt: now };
+    const back = await tx.payout.create({
+      data: {
+        ...common,
+        amountCents: -outstanding,
+        feeCents: platformFee(-outstanding),
+        basis: { formula: `Returned in a Stripe reversal (${ref})`, reversalOf: transferId } as Prisma.InputJsonObject,
+      },
+    });
+    // Already settled: the money went back in Stripe, so it's never deducted again.
+    await tx.payoutEvent.createMany({
+      data: [
+        { payoutId: back.id, type: "APPROVED", actorId: actor.profileId, reason: "Recorded from a Stripe reversal", createdAt: now },
+        { payoutId: back.id, type: "PAID", actorId: actor.profileId, transferId, providerRef: ref || null, reason: "Returned in Stripe", createdAt: now },
+      ],
+    });
+    let repayId: string | null = null;
+    if (repay) {
+      const again = await tx.payout.create({
+        data: { ...common, amountCents: outstanding, feeCents: platformFee(outstanding), basis: { formula: `Paying again what a Stripe reversal took back (${ref})`, repayOf: transferId } as Prisma.InputJsonObject },
+      });
+      repayId = again.id;
+    }
+    await tx.auditEvent.create({
+      data: { actorId: actor.profileId, action: "payout.partial_reversal_recorded", entityType: "PayoutTransfer", entityId: transferId, metadata: { orgId: actor.orgId, cents: outstanding, deductionId: back.id, repayId } },
+    });
+    return { ok: true as const, cents: outstanding };
   });
 }

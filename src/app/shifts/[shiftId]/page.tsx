@@ -267,6 +267,8 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
                 {approvePreview.ok ? (
                   pay && pay.mainCents !== approvePreview.amountCents && st.closeout?.status === "APPROVED" ? (
                     <>The counts changed since approval: recorded pay is {money(pay.mainCents)}, but it now works out to <strong className="text-fg">{money(approvePreview.amountCents)}</strong> ({approvePreview.basis.formula}). Approve again to update it.</>
+                  ) : !pay && st.closeout?.status === "APPROVED" ? (
+                    <>No pay is recorded for the current approval (a recount after approving withdraws it). <strong className="text-fg">Approve again</strong> to record pay of {money(approvePreview.amountCents)} — {approvePreview.basis.formula}.</>
                   ) : (
                     <>Approving records pay of <strong className="text-fg">{money(approvePreview.amountCents)}</strong> — {approvePreview.basis.formula}.</>
                   )

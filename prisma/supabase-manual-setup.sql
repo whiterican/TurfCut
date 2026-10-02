@@ -910,17 +910,17 @@ REVOKE ALL ON "public"."PayoutEvent", "public"."PayoutTransfer", "public"."PayDi
   "public"."PayDisputeResolution", "public"."ProviderEvent" FROM anon, authenticated;
 
 -- ---- Security (M5.1): append-only work history ----
-CREATE TRIGGER "WorkEvent_append_only" BEFORE UPDATE OR DELETE ON "public"."WorkEvent"
+CREATE OR REPLACE TRIGGER "WorkEvent_append_only" BEFORE UPDATE OR DELETE ON "public"."WorkEvent"
   FOR EACH ROW EXECUTE FUNCTION "turfcut_private"."append_only"();
-CREATE TRIGGER "Validation_append_only" BEFORE UPDATE OR DELETE ON "public"."Validation"
+CREATE OR REPLACE TRIGGER "Validation_append_only" BEFORE UPDATE OR DELETE ON "public"."Validation"
   FOR EACH ROW EXECUTE FUNCTION "turfcut_private"."append_only"();
-CREATE TRIGGER "AuditEvent_append_only" BEFORE UPDATE OR DELETE ON "public"."AuditEvent"
+CREATE OR REPLACE TRIGGER "AuditEvent_append_only" BEFORE UPDATE OR DELETE ON "public"."AuditEvent"
   FOR EACH ROW EXECUTE FUNCTION "turfcut_private"."append_only"();
-CREATE TRIGGER "WorkEvent_no_truncate" BEFORE TRUNCATE ON "public"."WorkEvent"
+CREATE OR REPLACE TRIGGER "WorkEvent_no_truncate" BEFORE TRUNCATE ON "public"."WorkEvent"
   FOR EACH STATEMENT EXECUTE FUNCTION "turfcut_private"."append_only"();
-CREATE TRIGGER "Validation_no_truncate" BEFORE TRUNCATE ON "public"."Validation"
+CREATE OR REPLACE TRIGGER "Validation_no_truncate" BEFORE TRUNCATE ON "public"."Validation"
   FOR EACH STATEMENT EXECUTE FUNCTION "turfcut_private"."append_only"();
-CREATE TRIGGER "AuditEvent_no_truncate" BEFORE TRUNCATE ON "public"."AuditEvent"
+CREATE OR REPLACE TRIGGER "AuditEvent_no_truncate" BEFORE TRUNCATE ON "public"."AuditEvent"
   FOR EACH STATEMENT EXECUTE FUNCTION "turfcut_private"."append_only"();
 
 

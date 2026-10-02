@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireRole } from "@/lib/auth";
 import { FIELD_ROLES, PAY_ROLES } from "@/lib/access";
-import { loadOrgDisputes, loadOrgPay, partialReversals, pendingTransfers, type OrgLine } from "@/lib/pay-data";
+import { loadOrgDisputes, loadOrgPay, partialReversals, pendingTransfers, selfApproval, type OrgLine } from "@/lib/pay-data";
 import { stripeProvider } from "@/lib/payout-provider";
 import { money, PLATFORM_FEE_BPS, statusLabel } from "@/lib/pay";
 import { LocalTime } from "@/components/LocalTime";
@@ -173,7 +173,8 @@ export default async function PayoutsPage() {
               worker: l.line.worker.displayName,
               detail: [l.line.engagement?.job.title, l.line.shift ? day(l.line.shift.startsAt) : null, l.formula].filter(Boolean).join(" · "),
               amount: money(l.line.amountCents),
-              flag: l.line.validation?.reviewerId === s.userId ? "You approved this shift's work — someone else approves its pay." : l.wageFlag,
+              flag: l.wageFlag,
+              blocked: selfApproval(l, s.userId),
             }))}
           />
           <details className="card">

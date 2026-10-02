@@ -15,6 +15,7 @@ import {
   platformFee,
   readBasis,
   reReviewProblem,
+  selfApprovalProblem,
   resolutionProblem,
   sortEvents,
   wageFlag,
@@ -384,7 +385,14 @@ const notPayRole = (a: PayActor) => !PAY_ROLES.includes(a.role);
 const LINE_INCLUDE = {
   events: true,
   worker: { select: { id: true, displayName: true, stripeAccountId: true, payoutsEnabled: true } },
-  shift: { select: { id: true, startsAt: true } },
+  shift: {
+    select: {
+      id: true,
+      startsAt: true,
+      // The latest review of the shift: the person who approves pay must not be its reviewer.
+      validations: { where: { workEventId: null }, orderBy: { createdAt: "desc" }, take: 1, select: { reviewerId: true } },
+    },
+  },
   engagement: { select: { job: { select: { id: true, title: true, type: true, measureIds: true, jurisdiction: { select: { rules: true } } } } } },
   validation: { select: { reviewerId: true, createdAt: true } },
 } satisfies Prisma.PayoutInclude;
@@ -414,6 +422,15 @@ async function orgLines(c: Client, where: Prisma.PayoutWhereInput): Promise<OrgL
 
 type LineAction = "approve" | "hold" | "release";
 
+/** The two-person rule for one loaded line (lib/pay selfApprovalProblem). */
+export function selfApproval(l: OrgLine, actorId: string): string | null {
+  return selfApprovalProblem(
+    { kind: l.line.kind, createdById: l.line.createdById, hasShift: !!l.line.shift },
+    l.line.shift?.validations[0]?.reviewerId ?? null,
+    actorId
+  );
+}
+
 /**
  * Approve, hold or release pay lines. All lines must belong to the actor's
  * organization and be in a state that allows the action; otherwise nothing
@@ -432,9 +449,9 @@ export async function lineAction(actor: PayActor, payoutIds: string[], action: L
     for (const w of [...new Set(owners.map((o) => o.workerId))].sort()) await payLock(tx, w);
     const lines = await orgLines(tx, { id: { in: ids } });
     for (const l of lines) {
-      // Two people: whoever approved the shift's work can't approve its pay.
-      if (action === "approve" && l.line.kind === "SHIFT" && l.line.validation?.reviewerId === actor.profileId) {
-        return { ok: false as const, reason: `${l.line.worker.displayName}: you approved this shift's work, so someone else approves its pay.` };
+      if (action === "approve") {
+        const self = selfApproval(l, actor.profileId);
+        if (self) return { ok: false as const, reason: `${l.line.worker.displayName}: ${self}` };
       }
       const problem = lineActionProblem(l.state, action, why);
       if (problem) return { ok: false as const, reason: lines.length > 1 ? `${l.line.worker.displayName}: ${problem}` : problem };
@@ -558,13 +575,10 @@ export async function resolveDispute(actor: PayActor, disputeId: string, r: Reso
           createdAt: now,
         },
       });
-      // The adjustment follows the shift's pay: approved with it (or on its
-      // own when the shift had no pay), held with it, else awaiting approval.
-      const baseApproved = !base || base.st.approvedAt !== null || base.st.status === "PAID" || base.st.status === "PROCESSING";
+      // Someone other than its maker approves the adjustment (two people),
+      // and it's held along with a held shift line.
       if (base?.st.status === "HELD") {
         await tx.payoutEvent.create({ data: { payoutId: adj.id, type: "HELD", actorId: actor.profileId, reason: base.st.heldReason, createdAt: now } });
-      } else if (baseApproved) {
-        await tx.payoutEvent.create({ data: { payoutId: adj.id, type: "APPROVED", actorId: actor.profileId, reason: "Approved when the dispute was resolved", createdAt: now } });
       }
       adjustmentId = adj.id;
     }

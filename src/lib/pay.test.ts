@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   computeShiftPay,
+  selfApprovalProblem,
   statusLabel,
   disputeProblem,
   lineActionProblem,
@@ -230,6 +231,21 @@ describe("finance actions and re-review", () => {
       { amountCents: 999, feeCents: 150, state: st([]) },
     ];
     expect(payableTotal(lines)).toEqual({ amountCents: 8250, feeCents: 1238, count: 2 });
+  });
+});
+
+describe("two people per payment", () => {
+  it("the shift's latest reviewer can't approve its pay, nor its adjustments", () => {
+    const shiftLine = { kind: "SHIFT" as const, createdById: "sup", hasShift: true };
+    expect(selfApprovalProblem(shiftLine, "owner", "owner")).toMatch(/approved this shift/);
+    expect(selfApprovalProblem(shiftLine, "sup", "owner")).toBeNull();
+    // a kept line still checks the shift's latest reviewer, not the line's maker
+    expect(selfApprovalProblem({ ...shiftLine, createdById: "sup" }, "owner", "owner")).not.toBeNull();
+    const adj = { kind: "ADJUSTMENT" as const, createdById: "fin", hasShift: true };
+    expect(selfApprovalProblem(adj, "owner", "owner")).toMatch(/approved this shift/);
+    expect(selfApprovalProblem(adj, "sup", "fin")).toMatch(/made this adjustment/);
+    expect(selfApprovalProblem(adj, "sup", "owner")).toBeNull();
+    expect(selfApprovalProblem({ kind: "SHIFT", createdById: null, hasShift: false }, null, "owner")).toBeNull();
   });
 });
 

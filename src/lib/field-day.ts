@@ -171,8 +171,8 @@ export function activeTime(s: ShiftFacts, now: Date): { ms: number; running: boo
   return { ms, running: !checkOut && !overdue && !pauseStart && s.status !== "CANCELLED" };
 }
 
-/** Minutes of slack before time outside the schedule is flagged. */
-const SCHEDULE_SLACK_MS = 5 * 60_000;
+/** Slack before time outside the schedule is flagged (a punctual early arrival isn't). */
+const SCHEDULE_SLACK_MS = 15 * 60_000;
 const span = (ms: number) => {
   const m = Math.round(ms / 60_000);
   return m < 60 ? `${m} min` : `${Math.floor(m / 60)}h${m % 60 ? ` ${m % 60}m` : ""}`;

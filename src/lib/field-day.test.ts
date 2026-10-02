@@ -289,7 +289,7 @@ describe("live time worked and earnings estimate", () => {
 
 describe("time outside the schedule", () => {
   it("flags an early check-in and a late check-out for the reviewer", () => {
-    expect(scheduleFlags(shift([ev("CHECK_IN", 2), ev("CHECK_OUT", 8 * 60 + 4)]))).toEqual([]);
+    expect(scheduleFlags(shift([ev("CHECK_IN", -10), ev("CHECK_OUT", 8 * 60 + 12)]))).toEqual([]);
     expect(scheduleFlags(shift([ev("CHECK_IN", -45), ev("CHECK_OUT", 8 * 60 + 190)]))).toEqual([
       "Checked in 45 min before the scheduled start.",
       "Checked out 3h 10m after the scheduled end.",

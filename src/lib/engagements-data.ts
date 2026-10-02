@@ -49,7 +49,8 @@ async function open(
   workerId: string,
   now: Date
 ): Promise<Result> {
-  if (!UUID_RE.test(jobId) || !UUID_RE.test(workerId)) return { ok: false, reason: "Job not found." };
+  if (!UUID_RE.test(jobId)) return { ok: false, reason: "Job not found." };
+  if (!UUID_RE.test(workerId)) return { ok: false, reason: "Worker not found." };
   const job = await db().job.findUnique({ where: { id: jobId }, include: { org: { select: { name: true } } } });
   if (!job) return { ok: false, reason: "Job not found." };
   if (actor.kind === "org" && actor.orgId !== job.orgId) return { ok: false, reason: "This job belongs to another organization." };

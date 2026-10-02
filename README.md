@@ -246,7 +246,8 @@ Jobs and hiring, built on the M1 profile.
 - **Late cancellations.** A worker `SHIFT_CANCELLED` inside the job's notice
   window counts as a no-show; timely and organization cancellations don't.
   A shift scheduled with less notice than the window can be cancelled
-  without penalty until it starts. Once a shift has ended nobody can cancel
+  without penalty until it starts (or until an hour after it was
+  scheduled, if that's later). Once a shift has ended nobody can cancel
   it: an unstarted shift is a no-show from its end (not its start).
 
 API: `GET/POST /api/jobs`, `POST /api/jobs/:id/publish`,

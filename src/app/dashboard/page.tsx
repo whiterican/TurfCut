@@ -2,7 +2,7 @@ import { requireAuth } from "@/lib/auth";
 import { SCHEDULING_ROLES } from "@/lib/access";
 import { db } from "@/lib/db";
 import { ACCEPTED_STATUSES } from "@/lib/engagements";
-import { payShort, payText } from "@/lib/jobs";
+import { openJobsEndAfter, payShort, payText } from "@/lib/jobs";
 import { loadOps } from "@/lib/field-day-data";
 import { loadFeed } from "@/lib/jobs-data";
 import { JobFeedCard } from "@/components/JobFeedCard";
@@ -62,7 +62,7 @@ async function WorkerHero({ workerId }: { workerId: string }) {
     );
   }
   const next = await db().engagement.findFirst({
-    where: { workerId, status: { in: ACCEPTED_STATUSES }, job: { endsAt: { gte: new Date() } } },
+    where: { workerId, status: { in: ACCEPTED_STATUSES }, job: { endsAt: { gt: openJobsEndAfter(new Date()) } } },
     include: { job: { select: { id: true, title: true, startsAt: true, compensationMethod: true, payRateCents: true } } },
     orderBy: { job: { startsAt: "asc" } },
   });

@@ -107,6 +107,10 @@ describe("PDFs", () => {
     // Inline-image keys can come in any order.
     expect(vet("scan.pdf", pdf("q BI /BPC 8 /CS /G /W 2550 /H 3300 ID xxxx EI Q")).ok).toBe(false);
     expect(vet("scan.pdf", pdf("q BI /H 3300 /W 2550 ID xxxx EI Q")).ok).toBe(false);
+    // …right after a delimiter, or after a "%" inside a string (not a comment).
+    expect(vet("scan.pdf", pdf("q (x)BI /W 2550 /H 3300 /BPC 8 /CS /G ID xxxx EI Q")).ok).toBe(false);
+    expect(vet("scan.pdf", pdf("q [1 2]BI /W 2550 ID xxxx EI Q")).ok).toBe(false);
+    expect(vet("scan.pdf", pdf("q (50% off) Tj BI /W 2550 /H 3300 /BPC 8 /CS /G ID xxxx EI Q")).ok).toBe(false);
     // An inline image in the second compressed stream (the first is clean).
     const two = (() => {
       const a = deflateSync(enc("BT (page one) Tj ET"));

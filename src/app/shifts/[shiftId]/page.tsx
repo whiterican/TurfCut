@@ -99,7 +99,9 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
     <>
       {isWorker && !st.cancelled && !st.checkedOutAt && (
         <section className="card space-y-4">
-          {!st.checkedInAt ? (
+          {!st.checkedInAt && now > s.endsAt ? (
+            <p className="text-muted-sm">This shift has ended without a check-in.</p>
+          ) : !st.checkedInAt ? (
             <>
               <CheckInButton shiftId={s.id} hasStaging={!!staging} />
               {/* Late cancellations hurt campaigns: a real button, with the consequence up front. */}
@@ -232,7 +234,7 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
               </ActionButton>
             )}
             {st.checkedOutAt && scheduleFlags(f).map((flag) => (
-              <p key={flag} className="text-sm font-semibold text-danger-msg">{flag} That time counts as worked — approve only if it was.</p>
+              <p key={flag} className="text-sm font-semibold text-fg">{flag} That time counts as worked.</p>
             ))}
             {st.checkedOutAt && (
               <div className="flex flex-wrap items-start gap-3">

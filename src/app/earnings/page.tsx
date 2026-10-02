@@ -29,6 +29,7 @@ function ShiftRow({ s, orgName }: { s: EarningShift; orgName: string }) {
           </p>
           {main?.formula && <p className="text-xs text-muted">{main.formula}</p>}
           {!main && s.review?.status === "REJECTED" && <p className="text-xs text-muted">{s.review.reason ? `Reason: ${s.review.reason}` : "No reason given."}</p>}
+          {!main && s.review?.status === "APPROVED" && <p className="text-xs text-muted">Approved before in-app pay — no pay line recorded. Ask {orgName} if you&apos;re missing pay.</p>}
         </div>
         <div className="shrink-0 space-y-1 text-right">
           {s.lines.length > 0 && <p className="font-bold text-fg">{money(s.totalCents)}</p>}
@@ -48,7 +49,10 @@ function ShiftRow({ s, orgName }: { s: EarningShift; orgName: string }) {
         </p>
       ))}
       {open ? (
-        <p className="text-xs text-muted">You disputed this on <LocalTime iso={open.createdAt.toISOString()} mode="date" />. {orgName} will respond here; payment waits until then.</p>
+        <p className="text-xs text-muted">
+          You disputed this on <LocalTime iso={open.createdAt.toISOString()} mode="date" />. {orgName} will respond here
+          {main && main.state.status === "DISPUTED" ? "; payment waits until then." : "."}
+        </p>
       ) : (
         last?.resolution && (
           <p className="text-xs text-muted">

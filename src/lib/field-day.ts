@@ -115,7 +115,7 @@ export function shiftState(s: ShiftFacts): ShiftState {
         break;
       case "BATCH_COUNT":
         // Same rule as pay (lib/scorecard verifiedWork): only a valid count counts.
-        if (typeof p.accepted === "number" && Number.isFinite(p.accepted)) st.batchCounted = true;
+        if (num(p.accepted) >= 0 && typeof p.accepted === "number" && (typeof p.reviewed === "number" || typeof p.rejected === "number")) st.batchCounted = true;
         break;
       case "SHIFT_CANCELLED":
         st.cancelled = true;

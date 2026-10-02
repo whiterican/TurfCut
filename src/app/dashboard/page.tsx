@@ -86,20 +86,20 @@ async function WorkerHero({ workerId }: { workerId: string }) {
   );
 }
 
-/** Open jobs, soonest first (screen mockups' "Best matches", without a ranking). */
 /** The worker's pay at a glance (their own totals only). */
 async function EarningsCard({ workerId }: { workerId: string }) {
   const t = await workerPayTotals(workerId);
+  const parts = [
+    `${money(t.paid)} paid`,
+    t.onTheWay ? `${money(t.onTheWay)} on the way` : null,
+    t.awaiting ? `${money(t.awaiting)} awaiting approval` : null,
+    t.stopped ? `${money(t.stopped)} on hold or disputed` : null,
+  ].filter(Boolean);
   const any = t.paid || t.onTheWay || t.awaiting || t.stopped;
-  return (
-    <NavCard
-      href="/earnings"
-      title="Earnings"
-      body={any ? `${money(t.paid)} paid · ${money(t.onTheWay)} on the way · ${money(t.awaiting)} awaiting approval` : "Your pay shows up here once a supervisor approves a shift."}
-    />
-  );
+  return <NavCard href="/earnings" title="Earnings" body={any ? parts.join(" · ") : "Your pay shows up here once a supervisor approves a shift."} />;
 }
 
+/** Open jobs, soonest first (screen mockups' "Best matches", without a ranking). */
 async function OpenJobs({ workerId }: { workerId: string }) {
   const [{ jobs }, mine] = await Promise.all([
     loadFeed(workerId),

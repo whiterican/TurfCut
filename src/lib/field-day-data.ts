@@ -2,7 +2,7 @@ import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { FIELD_ROLES } from "@/lib/access";
 import { canScheduleShift, UUID_RE } from "@/lib/jobs";
-import { applyReviewPlan, planReview } from "@/lib/pay-data";
+import { applyReviewPlan, payLock, planReview, reviewLockProblem } from "@/lib/pay-data";
 import {
   findConflicts,
   locationCheck,
@@ -208,6 +208,12 @@ export async function supervisorShiftAction(
       elsewhere = others.flatMap((o) => shiftState(facts(o)).packetsOut);
     }
     const out = supervisorAction(facts(s), action, elsewhere);
+    if (out.ok && action.kind === "batch_count") {
+      // A recount changes per-signature pay: not once that pay is approved.
+      await payLock(tx, s.engagement.workerId);
+      const locked = await reviewLockProblem(tx, shiftId);
+      if (locked) return { ok: false as const, reason: locked };
+    }
     if (!out.ok || action.kind !== "closeout") return apply(tx, shiftId, actor.profileId, out, now);
     // A review creates, keeps or voids the shift's pay line (lib/pay-data.ts).
     const plan = await planReview(tx, s, action.status);

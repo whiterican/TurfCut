@@ -259,12 +259,13 @@ export function lineState(line: { amountCents: number }, events: PayEventFact[],
       }
     }
   }
-  const conflict = paid.size + inFlight.size > 1;
+  // A void can't undo money that moved: shown as a conflict, never as void.
+  const conflict = paid.size + inFlight.size > 1 || (voided && paid.size + inFlight.size > 0);
   const lastPaid = [...paid.entries()].sort((x, y) => y[1].at.getTime() - x[1].at.getTime())[0];
   let status: PayStatus;
-  if (voided) status = "VOIDED";
-  else if (paid.size) status = "PAID";
+  if (paid.size) status = "PAID";
   else if (inFlight.size) status = "PROCESSING";
+  else if (voided) status = "VOIDED";
   else if (line.amountCents === 0) status = "NOTHING_DUE";
   else if (openDispute) status = "DISPUTED";
   else if (held) status = "HELD";
@@ -279,7 +280,9 @@ export function lineState(line: { amountCents: number }, events: PayEventFact[],
     transferId: [...inFlight.keys()][0] ?? (lastPaid && lastPaid[0] !== LEGACY ? lastPaid[0] : null),
     heldReason: status === "HELD" ? held : null,
     note: conflict
-      ? `More than one payment for this line (${ids.join(", ")}). Check Stripe and reverse the extra one.`
+      ? voided
+        ? `This line was replaced after a review, but a payment for it went out (${ids.join(", ")}). Check before paying the replacement.`
+        : `More than one payment for this line (${ids.join(", ")}). Check Stripe and reverse the extra one.`
       : status === "VOIDED" || status === "PAID" ? null : note,
     conflict,
     payable: status === "APPROVED" && !conflict,
@@ -327,8 +330,8 @@ export function lineActionProblem(st: LineState, action: "approve" | "hold" | "r
  * approved for payment. After that, a change is an adjustment.
  */
 export function reReviewProblem(lines: LineState[]): string | null {
-  const locked = lines.find((l) => l.status !== "VOIDED" && (l.approvedAt || l.status === "PROCESSING" || l.status === "PAID"));
-  return locked ? "Pay for this shift is already approved for payment. Changes now go through a pay adjustment." : null;
+  const locked = lines.find((l) => (l.status !== "VOIDED" || l.conflict) && (l.approvedAt || l.status === "PROCESSING" || l.status === "PAID"));
+  return locked ? "Pay for this shift is already approved for payment, so the review is final. Ask your owner or finance team for a pay adjustment." : null;
 }
 
 /**

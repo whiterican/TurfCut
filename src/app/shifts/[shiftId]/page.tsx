@@ -245,7 +245,7 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
                 </label>
               </ActionButton>
             )}
-            {st.checkedOutAt && petition && (
+            {st.checkedOutAt && petition && !payLocked && (
               <ActionButton action={supervisorStep} fields={{ shiftId: s.id, kind: "batch_count" }} label={st.batchCounted ? "Record a recount" : "Record batch count"} variant="btn-secondary">
                 {[["reviewed", "Reviewed"], ["accepted", "Accepted"], ["rejected", "Rejected"]].map(([k, l]) => (
                   <label key={k} className="w-24 space-y-1.5">
@@ -260,13 +260,19 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
               </ActionButton>
             )}
             {st.checkedOutAt && payLocked && (
-              <p className="text-muted-sm">Pay for this shift ({money(pay!.amountCents)}) is approved for payment, so the review is final. A change now is a pay adjustment from the Pay page.</p>
+              <p className="text-muted-sm">Pay for this shift ({money(pay!.amountCents)}) is approved for payment, so the review and counts are final. Your owner or finance team can make a pay adjustment if something changed.</p>
             )}
             {st.checkedOutAt && !payLocked && approvePreview && (
               <p className="text-muted-sm" role="note">
-                {approvePreview.ok
-                  ? <>Approving records pay of <strong className="text-fg">{money(approvePreview.amountCents)}</strong> — {approvePreview.basis.formula}.</>
-                  : approvePreview.reason}
+                {approvePreview.ok ? (
+                  pay && pay.amountCents !== approvePreview.amountCents && st.closeout?.status === "APPROVED" ? (
+                    <>The counts changed since approval: recorded pay is {money(pay.amountCents)}, but it now works out to <strong className="text-fg">{money(approvePreview.amountCents)}</strong> ({approvePreview.basis.formula}). Approve again to update it.</>
+                  ) : (
+                    <>Approving records pay of <strong className="text-fg">{money(approvePreview.amountCents)}</strong> — {approvePreview.basis.formula}.</>
+                  )
+                ) : (
+                  approvePreview.reason
+                )}
               </p>
             )}
             {st.checkedOutAt && !payLocked && (

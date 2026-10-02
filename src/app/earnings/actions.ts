@@ -15,5 +15,8 @@ export async function dispute(_prev: ActionState, fd: FormData): Promise<ActionS
   if (!r.ok) return { ok: false, message: r.reason };
   revalidatePath("/earnings");
   revalidatePath(`/shifts/${shiftId}`);
-  return { ok: true, message: "Dispute sent. Payment for this shift is on hold until it's resolved." };
+  return {
+    ok: true,
+    message: r.paymentWaits ? "Dispute sent. Payment for this shift waits until it's resolved." : "Dispute sent. You'll see the response here.",
+  };
 }

@@ -211,6 +211,11 @@ describe("finance actions and re-review", () => {
     expect(lineActionProblem(st([ev("APPROVED", 1), ev("TRANSFER_STARTED", 2)]), "hold", "x")).not.toBeNull();
     expect(lineActionProblem(st([ev("HELD", 1, { reason: "x" })]), "release")).toBeNull();
   });
+  it("a void never hides a payment that went out", () => {
+    const st2 = lineState({ amountCents: 100 }, [ev("APPROVED", 1), ev("TRANSFER_STARTED", 2, { transferId: "t" }), ev("VOIDED", 3), ev("PAID", 4, { transferId: "t" })], false);
+    expect(st2).toMatchObject({ status: "PAID", conflict: true, payable: false });
+    expect(reReviewProblem([st2])).not.toBeNull();
+  });
   it("re-review is allowed until pay is approved", () => {
     expect(reReviewProblem([st([])])).toBeNull();
     expect(reReviewProblem([st([ev("HELD", 1, { reason: "x" })])])).toBeNull();

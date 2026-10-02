@@ -185,6 +185,8 @@ src/
     field-day.ts        # shift rules: check-in, custody, logging, review
     field-day-data.ts   # scheduling, shift actions, ops view (locked)
     pay.ts              # pay calculation, line status replay, dispute rules (M5)
+    offline-sync.ts     # offline field actions: shapes, clock correction, limits (M6)
+    offline-queue.ts    # the phone's queue of field actions (M6, browser)
     pay-data.ts         # pay lines, approvals, disputes, pay runs, export (locked)
     payout-provider.ts  # Stripe Connect (lazy client; tests use a fake)
     supabase/           # browser / server / proxy clients
@@ -202,6 +204,7 @@ prisma/
   m4-migration.sql      # M3 → M4 upgrade (messaging)
   m5-migration.sql      # M4 → M5 upgrade (pay lines, payouts, disputes)
   m5-1-history-lock.sql # append-only triggers on work events, reviews, audit
+  m6-migration.sql      # M5 → M6 upgrade (offline sync ids on work events)
 ```
 
 ## M0 scope (done)
@@ -311,6 +314,34 @@ public launch (OSM's tile policy).
 API: `GET/POST /api/shifts`, `POST /api/shifts/:id/check-in` `{ lat?, lng? }`,
 `POST /api/shifts/:id/events` `{ kind, … }`,
 `POST /api/shifts/:id/closeout` `{ status, reason? }`.
+
+## M6 scope — offline field day
+
+- **Field actions work with no signal.** Check-in, breaks, logging
+  signatures/doors/contacts, packet returns and check-out are saved on the
+  phone first with the time they happened, then sent in order when there's
+  signal (on load, when signal returns, when the app comes back to the
+  front, and every 20 seconds). The controls update right away; a badge
+  says what's waiting or couldn't be saved, with the reason.
+- **Times are checked on sync.** Phone clocks are corrected (server now −
+  phone now). The server refuses future times and anything held offline
+  more than 24 hours (a supervisor enters those), keeps the phone's order,
+  and judges each action against the shift as it stood at that moment. An
+  action re-sent after a dropped connection is saved once (`clientId`).
+  Supervisors see "recorded offline, synced HH:MM" in the activity log.
+- **Check-in location stays on the phone.** The phone compares its position
+  with the staging point; only "at staging: yes/no" and a distance band are
+  sent.
+- **Offline brief.** A service worker (`public/sw.js`, no library) saves
+  Today, My shifts and the shift pages for today and the next two days —
+  with the scripts they need — so they open in a dead zone. Pages are
+  network-first; API calls and server actions are never cached. Sign-out
+  warns about unsynced entries and clears the queue and saved pages.
+- **Still needs a connection:** cancelling a shift, turf pins, messages,
+  disputes, pay.
+
+**Already on M5? Offline field day (M6)** — run `prisma/m6-migration.sql`
+once in the Supabase SQL editor (two nullable columns on `WorkEvent`).
 
 ## M5 scope — review and in-app payouts
 

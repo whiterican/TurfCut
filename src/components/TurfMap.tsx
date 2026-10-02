@@ -77,6 +77,8 @@ export function TurfMap({
     pickRef.current = onPick;
   }, [onPick]);
   const [ready, setReady] = useState(false);
+  // The map's code or tiles can't load (no signal on a page saved offline).
+  const [failed, setFailed] = useState(false);
   const modeRef = useRef(mode);
   useEffect(() => {
     modeRef.current = mode;
@@ -119,7 +121,7 @@ export function TurfMap({
       });
       map.current = m;
       setReady(true);
-    });
+    }).catch(() => setFailed(true));
     return () => {
       cancelled = true;
       map.current?.remove();
@@ -157,7 +159,13 @@ export function TurfMap({
 
   return (
     <div className="space-y-2">
-      <div ref={el} className={`turf-map w-full overflow-hidden rounded-2xl border border-border ${className}`} role="img" aria-label={editable ? "Map: tap to draw the turf" : "Map of the assigned turf"} />
+      {failed ? (
+        <p className={`turf-map flex w-full items-center justify-center rounded-2xl border border-border p-4 text-center text-muted-sm ${className}`}>
+          The map needs signal. The staging point and turf details are on this page.
+        </p>
+      ) : (
+        <div ref={el} className={`turf-map w-full overflow-hidden rounded-2xl border border-border ${className}`} role="img" aria-label={editable ? "Map: tap to draw the turf" : "Map of the assigned turf"} />
+      )}
       {editable && (
         <>
           <input type="hidden" name="turfArea" value={turfJson ? JSON.stringify(turfJson) : ""} />

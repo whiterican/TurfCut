@@ -3,6 +3,7 @@ import { requireWorker } from "@/lib/worker-session";
 import { shiftState, shiftStatusLabel } from "@/lib/field-day";
 import { facts, loadWorkerShifts } from "@/lib/field-day-data";
 import { LocalTime } from "@/components/LocalTime";
+import { OfflineBrief } from "@/components/OfflineBrief";
 
 /** Every shift across every campaign — the multi-campaign calendar. */
 export default async function MyShiftsPage() {
@@ -10,6 +11,8 @@ export default async function MyShiftsPage() {
   const now = new Date();
   const shifts = await loadWorkerShifts(workerId, now);
   const upcoming = shifts.filter((s) => s.endsAt >= now);
+  // Saved on the phone for dead zones: today's and the next two days' shifts.
+  const brief = ["/dashboard", "/shifts", ...upcoming.filter((s) => s.status !== "CANCELLED" && s.startsAt.getTime() < now.getTime() + 48 * 3_600_000).map((s) => `/shifts/${s.id}`)];
   const recent = shifts.filter((s) => s.endsAt < now).reverse();
 
   const list = (items: typeof shifts) => (
@@ -39,6 +42,7 @@ export default async function MyShiftsPage() {
 
   return (
     <main className="page max-w-2xl">
+      <OfflineBrief paths={brief} />
       <header className="page-header">
         <div className="space-y-1">
           <p className="eyebrow">Shifts</p>

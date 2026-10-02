@@ -6,8 +6,8 @@ import { stripeProvider } from "@/lib/payout-provider";
 import { money, PLATFORM_FEE_BPS, statusLabel } from "@/lib/pay";
 import { LocalTime } from "@/components/LocalTime";
 import { ActionButton } from "@/components/ActionButton";
-import { ApproveLines, HoldLine, ResolveDispute } from "@/components/PayForms";
-import { approve, checkPayment, hold, payNow, release, resolve } from "./actions";
+import { ApproveLines, HoldLine, RecordReversal, ResolveDispute } from "@/components/PayForms";
+import { approve, checkPayment, hold, payNow, recordReversal, release, resolve } from "./actions";
 
 const day = (d: Date) => d.toISOString().slice(0, 10);
 
@@ -101,17 +101,23 @@ export default async function PayoutsPage() {
         </div>
       )}
 
-      {partial.length > 0 && (
-        <div className="card space-y-2" role="alert">
-          <p className="font-semibold text-fg">Partly reversed in Stripe</p>
-          {partial.map((r) => {
-            const m = r.metadata as { reversedCents?: number; amountCents?: number; providerRef?: string };
-            return (
-              <p key={r.id} className="text-sm text-muted">
-                {money(m.reversedCents ?? 0)} of {money(m.amountCents ?? 0)} ({m.providerRef}) was reversed on <LocalTime iso={r.createdAt.toISOString()} mode="date" />. Settle the difference with a pay adjustment.
+      {(partial.partial.length > 0 || partial.mismatches.length > 0) && (
+        <div className="card space-y-3" role="alert">
+          <p className="font-semibold text-fg">Check these Stripe payments</p>
+          {partial.partial.map((r) => (
+            <div key={r.transferId} className="space-y-2">
+              <p className="text-sm text-muted">
+                {r.workerName}: {money(r.reversedCents)} of {money(r.amountCents)} ({r.providerRef}) was reversed in Stripe on <LocalTime iso={r.at.toISOString()} mode="date" />.
+                {" "}The ledger still shows it as paid. Record the {money(r.outstandingCents)} that came back.
               </p>
-            );
-          })}
+              <RecordReversal action={recordReversal} transferId={r.transferId} amount={money(r.outstandingCents)} />
+            </div>
+          ))}
+          {partial.mismatches.map((m) => (
+            <p key={`${m.transferId}-${m.at.toISOString()}`} className="text-sm text-muted">
+              Stripe sent {money(m.stripeCents)} for a payment Turfcut recorded as {money(m.expectedCents)} (<LocalTime iso={m.at.toISOString()} mode="date" />). Check it in Stripe before paying this worker again.
+            </p>
+          ))}
         </div>
       )}
 
@@ -174,7 +180,7 @@ export default async function PayoutsPage() {
               worker: l.line.worker.displayName,
               detail: [l.line.engagement?.job.title, l.line.shift ? day(l.line.shift.startsAt) : null, l.formula].filter(Boolean).join(" · "),
               amount: money(l.line.amountCents),
-              flag: l.wageFlag,
+              flag: [l.wageFlag, l.hoursFlag].filter(Boolean).join(" ") || null,
               blocked: selfApproval(l, s.userId),
             }))}
           />
@@ -296,7 +302,7 @@ export default async function PayoutsPage() {
             <input type="date" name="to" className="field" required defaultValue={day(today)} />
           </label>
           <button className="btn-secondary">Download CSV</button>
-          <p className="text-hint w-full">One row per pay line: payee, date, amount, fee, purpose, project, shift, who reviewed and approved it, and the Stripe reference.</p>
+          <p className="text-hint w-full">One row per pay line recorded or paid in the period: payee, date, amount, fee, purpose, project, shift, who reviewed and approved it, and the Stripe reference.</p>
         </form>
       </section>
 

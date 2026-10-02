@@ -2,7 +2,7 @@ import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { FIELD_ROLES } from "@/lib/access";
 import { canScheduleShift, UUID_RE } from "@/lib/jobs";
-import { applyReviewPlan, payLock, planReview, reviewLockProblem } from "@/lib/pay-data";
+import { applyReviewPlan, payLock, planReview, reviewLockProblem, withdrawStalePay } from "@/lib/pay-data";
 import { correctTime, placeTime, timeProblem, wasOffline, type QueuedAction } from "@/lib/offline-sync";
 import {
   findConflicts,
@@ -229,6 +229,11 @@ export async function supervisorShiftAction(
       await payLock(tx, s.engagement.workerId);
       const locked = await reviewLockProblem(tx, shiftId);
       if (locked) return { ok: false as const, reason: locked };
+      const r = await apply(tx, shiftId, actor.profileId, out, now);
+      // Pay recorded from the old counts can't be approved any more.
+      const fresh = r.ok ? await loadShift(shiftId, tx) : null;
+      if (fresh) await withdrawStalePay(tx, fresh, actor.profileId, now);
+      return r;
     }
     if (!out.ok || action.kind !== "closeout") return apply(tx, shiftId, actor.profileId, out, now);
     // A review creates, keeps or voids the shift's pay line (lib/pay-data.ts).

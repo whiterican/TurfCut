@@ -130,11 +130,13 @@ export function computeShiftPay(input: {
 }
 
 /** Reads a saved basis back (lines from before M5 have only a formula). */
-export function readBasis(v: unknown): { formula: string; effectiveHourlyCents: number | null } {
+export function readBasis(v: unknown): { formula: string; effectiveHourlyCents: number | null; method: CompMethod | null; activeMs: number } {
   const o = v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
   return {
     formula: typeof o.formula === "string" ? o.formula : "",
     effectiveHourlyCents: typeof o.effectiveHourlyCents === "number" ? o.effectiveHourlyCents : null,
+    method: o.method === "HOURLY" || o.method === "SHIFT_RATE" || o.method === "PER_UNIT" ? o.method : null,
+    activeMs: typeof o.activeMs === "number" && Number.isFinite(o.activeMs) ? o.activeMs : 0,
   };
 }
 
@@ -267,6 +269,9 @@ export function lineState(line: { amountCents: number }, events: PayEventFact[],
   else if (inFlight.size) status = "PROCESSING";
   else if (voided) status = "VOIDED";
   else if (line.amountCents === 0) status = "NOTHING_DUE";
+  // Deductions always apply (owner decision): once approved, a dispute or a
+  // hold (e.g. after a reversal) never keeps one out of the next payment.
+  else if (line.amountCents < 0 && approvedAt) status = "APPROVED";
   else if (openDispute) status = "DISPUTED";
   else if (held) status = "HELD";
   else if (approvedAt) status = "APPROVED";
@@ -287,6 +292,16 @@ export function lineState(line: { amountCents: number }, events: PayEventFact[],
     conflict,
     payable: status === "APPROVED" && !conflict,
   };
+}
+
+/**
+ * Hourly pay for more time than was scheduled (a late check-out, an early
+ * check-in) — shown to whoever approves the pay. Null when within the
+ * schedule (5 minutes' slack) or the pay isn't hourly.
+ */
+export function hoursFlag(basis: { method: CompMethod | null; activeMs: number }, scheduledMs: number): string | null {
+  if (basis.method !== "HOURLY" || basis.activeMs <= scheduledMs + 5 * 60_000) return null;
+  return `${hoursText(basis.activeMs)} verified; the shift was scheduled for ${hoursText(scheduledMs)}.`;
 }
 
 export function statusLabel(s: PayStatus, amountCents = 1): { label: string; badge: string } {

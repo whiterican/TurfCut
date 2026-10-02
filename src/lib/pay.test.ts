@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   computeShiftPay,
+  hoursFlag,
   selfApprovalProblem,
   statusLabel,
   disputeProblem,
@@ -195,6 +196,22 @@ describe("lineState", () => {
     expect(lineState(line, [ev("APPROVED", 1), ev("HELD", 2), ev("RELEASED", 3)], false).status).toBe("APPROVED");
     expect(lineState(line, [ev("APPROVED", 1)], true)).toMatchObject({ status: "DISPUTED", payable: false });
   });
+  it("keeps an approved deduction in the next payment, whatever a dispute or hold says", () => {
+    // Owner decision: deductions always apply. A worker's dispute on the
+    // shift, or a hold after a reversal, can't drop one from a pay run.
+    const deduction = { amountCents: -200 };
+    expect(lineState(deduction, [ev("APPROVED", 1)], true)).toMatchObject({ status: "APPROVED", payable: true });
+    expect(lineState(deduction, [ev("APPROVED", 1), ev("HELD", 2, { reason: "check" })], false)).toMatchObject({ status: "APPROVED", payable: true });
+    const reversed = [ev("APPROVED", 1), ev("TRANSFER_STARTED", 2, { transferId: "t1" }), ev("PAID", 3, { transferId: "t1" }), ev("REVERSED", 4, { transferId: "t1" })];
+    expect(lineState(deduction, reversed, false)).toMatchObject({ status: "APPROVED", payable: true });
+    expect(payableTotal([
+      { amountCents: 8750, feeCents: 1313, state: lineState(line, [ev("APPROVED", 1)], false) },
+      { amountCents: -200, feeCents: -30, state: lineState(deduction, [ev("APPROVED", 1)], true) },
+    ]).amountCents).toBe(8550);
+    // Not yet approved: it still waits for the shift's pay.
+    expect(lineState(deduction, [], true).status).toBe("DISPUTED");
+  });
+
   it("voided wins; zero lines have nothing to pay", () => {
     expect(lineState(line, [ev("VOIDED", 1)], false).status).toBe("VOIDED");
     expect(lineState({ amountCents: 0 }, [ev("APPROVED", 1)], false)).toMatchObject({ status: "NOTHING_DUE", payable: false });
@@ -281,5 +298,13 @@ describe("minimum-wage review", () => {
     expect(wageFlag(1000, { minimumWageCents: 1481 })).toMatch(/below the \$14\.81\/hr/);
     expect(wageFlag(2000, { minimumWageCents: 1481 })).toBeNull();
     expect(wageFlag(null, { minimumWageCents: 1481 })).toBeNull();
+  });
+});
+
+describe("hours over the schedule", () => {
+  it("flags hourly pay for more time than was scheduled", () => {
+    expect(hoursFlag({ method: "HOURLY", activeMs: 8 * H + 4 * 60_000 }, 8 * H)).toBeNull();
+    expect(hoursFlag({ method: "HOURLY", activeMs: 13.5 * H }, 8 * H)).toBe("13h 30m verified; the shift was scheduled for 8h.");
+    expect(hoursFlag({ method: "SHIFT_RATE", activeMs: 13.5 * H }, 8 * H)).toBeNull();
   });
 });

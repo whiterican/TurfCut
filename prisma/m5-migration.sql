@@ -17,18 +17,26 @@
 --      on every payout table. RLS on every new table, with no policies: only
 --      the server (as `postgres`) reads or writes them.
 --
--- The migration stops without changing anything if an existing payout can't
--- be traced to an organization through its engagement.
+-- Needs the turfcut_private.append_only() trigger function from
+-- m4-migration.sql. The migration stops without changing anything if an
+-- existing payout can't be traced to an organization through its
+-- engagement, or has a negative amount. It gives up after waiting 5 seconds
+-- for a busy table (nothing changes); run it again.
 
 BEGIN;
+SET LOCAL lock_timeout = '5s';
 
 DO $$
-DECLARE orphans INTEGER;
+DECLARE orphans INTEGER; negatives INTEGER;
 BEGIN
   SELECT COUNT(*) INTO orphans FROM "public"."Payout" p
    WHERE NOT EXISTS (SELECT 1 FROM "public"."Engagement" e JOIN "public"."Job" j ON j."id" = e."jobId" WHERE e."id" = p."engagementId");
   IF orphans > 0 THEN
     RAISE EXCEPTION 'M5 migration stopped: % payout(s) have no engagement, so their organization is unknown. Resolve them before re-running.', orphans;
+  END IF;
+  SELECT COUNT(*) INTO negatives FROM "public"."Payout" WHERE "amountCents" < 0;
+  IF negatives > 0 THEN
+    RAISE EXCEPTION 'M5 migration stopped: % payout(s) have a negative amount, which shift pay can''t be. Resolve them before re-running.', negatives;
   END IF;
 END $$;
 
@@ -127,29 +135,32 @@ UPDATE "public"."Payout" p SET "orgId" = j."orgId"
  WHERE e."id" = p."engagementId";
 UPDATE "public"."Payout" p SET
   "shiftId" = s."id",
-  -- The shift's latest review, when that review approved it.
-  "validationId" = (SELECT v."id" FROM (SELECT * FROM "public"."Validation" v0
-                     WHERE v0."shiftId" = s."id" AND v0."workEventId" IS NULL
-                     ORDER BY v0."createdAt" DESC LIMIT 1) v WHERE v."status" = 'APPROVED')
+  -- The shift's latest review, when that review approved it — and only for
+  -- the engagement's one payout (one shift line per approval).
+  "validationId" = CASE WHEN (SELECT COUNT(*) FROM "public"."Payout" p2 WHERE p2."engagementId" = p."engagementId") = 1 THEN
+                     (SELECT v."id" FROM (SELECT * FROM "public"."Validation" v0
+                       WHERE v0."shiftId" = s."id" AND v0."workEventId" IS NULL
+                       ORDER BY v0."createdAt" DESC LIMIT 1) v WHERE v."status" = 'APPROVED') END
   FROM "public"."Shift" s
  WHERE s."engagementId" = p."engagementId"
    AND (SELECT COUNT(*) FROM "public"."Shift" s2 WHERE s2."engagementId" = p."engagementId") = 1;
 UPDATE "public"."Payout" SET "basis" = '{"legacy": true, "formula": "Recorded before in-app payouts; no saved calculation"}'::jsonb;
 
--- The old status, as history: APPROVED → approved; PAID → approved + paid;
--- DISPUTED → approved + held. PENDING needs no event. Unpaid pre-M5 lines
--- have no saved calculation, so they're also held: finance checks the
--- amount and releases them before the first pay run can include them.
+-- The old status, as history: PAID → approved + paid. Unpaid pre-M5 lines
+-- (PENDING, APPROVED, DISPUTED) have no saved calculation and no record of
+-- who approved them, so they come over on hold with no approval: finance
+-- checks the amount and releases it, and then it needs a fresh approval —
+-- by two people, like every other line — before a pay run can include it.
 INSERT INTO "public"."PayoutEvent" ("id", "payoutId", "type", "reason", "createdAt")
 SELECT gen_random_uuid(), p."id", 'APPROVED', 'Status before in-app payouts', p."createdAt"
-  FROM "public"."Payout" p WHERE p."status" IN ('APPROVED', 'PAID', 'DISPUTED');
+  FROM "public"."Payout" p WHERE p."status" = 'PAID';
 INSERT INTO "public"."PayoutEvent" ("id", "payoutId", "type", "reason", "providerRef", "createdAt")
 SELECT gen_random_uuid(), p."id", 'PAID', 'Status before in-app payouts', p."stripeTransferId", p."createdAt" + interval '1 millisecond'
   FROM "public"."Payout" p WHERE p."status" = 'PAID';
 INSERT INTO "public"."PayoutEvent" ("id", "payoutId", "type", "reason", "createdAt")
 SELECT gen_random_uuid(), p."id", 'HELD',
-       CASE WHEN p."status" = 'DISPUTED' THEN 'Disputed before in-app payouts'
-            ELSE 'Recorded before in-app payouts: check the amount, then release it' END,
+       CASE WHEN p."status" = 'DISPUTED' THEN 'Disputed before in-app payouts: check it, then release it for a fresh approval'
+            ELSE 'Recorded before in-app payouts: check the amount, then release it for a fresh approval' END,
        p."createdAt" + interval '1 millisecond'
   FROM "public"."Payout" p WHERE p."status" IN ('APPROVED', 'DISPUTED', 'PENDING');
 

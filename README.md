@@ -195,7 +195,8 @@ prisma/
   schema.prisma         # all core tables + enums
   seed.ts               # seed data (idempotent)
   seed-fixture.ts       # seeded shift's events, shared with the tests
-  manual-ddl.sql        # full DDL for a fresh database
+  manual-ddl.sql        # Prisma's table DDL only — no triggers, CHECKs, partial
+                        # indexes or RLS; use supabase-manual-setup.sql for a real DB
   m1-migration.sql      # M0 → M1 upgrade for an existing database (run 1st)
   m1-profile-migration.sql # experience fields + consent expiry (run 2nd)
   m2-migration.sql      # M1 → M2 upgrade (jobs, publish gate, cancellations)
@@ -356,9 +357,14 @@ once in the Supabase SQL editor (two nullable columns on `WorkEvent`).
   finance approve the pay on the **Pay** tab — never the person who made the
   shift's latest review. Extra pay from a dispute is approved by someone
   other than whoever decided it; deductions always apply (at once on
-  approved pay, otherwise together with the shift's pay). Pay can be held
-  with a reason the worker sees, and released. A review can change only until its pay is approved; after
-  that, changes are adjustments.
+  approved pay, otherwise together with the shift's pay) — an open dispute
+  or a hold never keeps an approved deduction out of the next payment. Pay
+  can be held with a reason the worker sees, and released. A review can
+  change only until its pay is approved; after that, changes are
+  adjustments. A batch recount before then withdraws pay worked out from
+  the old counts, and the supervisor approves the shift again. Pay lines
+  approved before M5 come over on hold and need a fresh approval.
+  Hourly pay for more time than was scheduled is flagged to the approver.
 - **Workers see their pay** on **Earnings** (from Today and Profile): gross
   totals per campaign and every shift's status — awaiting approval,
   approved, sending, paid, on hold, disputed.
@@ -371,11 +377,15 @@ once in the Supabase SQL editor (two nullable columns on `WorkEvent`).
   and tax details never reach Turfcut). Finance pays a worker everything
   approved in one transfer; every transfer is recorded before money moves
   and carries a unique idempotency key, so retries and timeouts can't pay
-  twice. Reversals put lines on hold; partial reversals are flagged.
+  twice. Reversals put lines on hold. A partial reversal is shown on the
+  Pay tab until finance records the returned amount (a settled deduction,
+  so the ledger matches what the worker kept), optionally paying it again
+  with a second person's approval. Stripe amounts that differ from what
+  Turfcut recorded are shown for 30 days.
 - **Platform fee: 15%** of approved pay, invoiced to the organization and
   never taken from the worker; saved on each line so a change is never
   retroactive.
-- **Finance export**: CSV of pay lines — payee, project, purpose, measure
+- **Finance export**: CSV of pay lines recorded or paid in a period — payee, project, purpose, measure
   IDs, shift date, calculation, gross, fee, total cost, who reviewed and who
   approved, paid date and Stripe reference.
 - **Append-only, enforced by the database**: pay lines, their status log,

@@ -54,27 +54,33 @@
 }
 
 .dark {
-  /* Eggplant, not avocado: deep, low-saturation purple neutrals (hue ~280°)
-     at the same lightness steps as before. Lime stays the accent. */
-  --bg: #130f17;
-  --surface: #1a1520;
-  --surface-2: #231c2a;
-  --field: #161119;
-  --border: #322a3b;
-  --border-strong: #463c52;
-  --fg: #f1eef3;
-  --muted: #d6d0db;
-  --subtle: #bbb3c2;
-  --link: #c6ec8c;
-  --focus: #c6ec8c;
+  /* Dark mode is eggplant through and through: low-saturation purple
+     neutrals (hue ~275°) one step lighter than pitch, a brighter eggplant
+     in place of lime for the accent, and gold on a few rims only. */
+  --bg: #1b1523;
+  --surface: #241c2e;
+  --surface-2: #2e2539;
+  --field: #1f1828;
+  --border: #3f3450;
+  --border-strong: #57496a;
+  --fg: #f4f0f7;
+  --muted: #d9d2de;
+  --subtle: #bfb6c7;
+  /* The accent: bright eggplant. Everything that was lime in dark mode. */
+  --lime: #e3ccf9;
+  --ink: #1f1727;
+  --link: #e3ccf9;
+  --focus: #e3ccf9;
   --danger: #ffb4b4;
   --success: #a8e4cc;
   --warning: #f5d98a;
-  --primary: #c6ec8c;
-  --on-primary: #1b1521;
-  --hero: #2b2135;
-  --hero-fg: #f5f2f7;
-  --hero-muted: #cdc5d3;
+  --primary: #e3ccf9;
+  --on-primary: #1f1727;
+  --hero: #382c47;
+  --hero-fg: #f6f2f9;
+  --hero-muted: #d0c7d7;
+  /* Gold: rims only, never fills or text. */
+  --gold: #e2c178;
   --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 12px 32px -16px rgb(0 0 0 / 0.6);
   color-scheme: dark;
 }
@@ -188,6 +194,9 @@ body {
   .hero-card-lime {
     background: var(--lime);
     color: var(--ink);
+  }
+  .dark .hero-card-lime {
+    box-shadow: inset 0 0 0 1.5px var(--gold), var(--shadow);
   }
   .hero-card.hero-card-lime::after {
     background: color-mix(in srgb, white 35%, var(--lime));
@@ -496,6 +505,7 @@ body {
   .dark .tab[aria-current="page"] .tab-icon {
     color: var(--lime);
     background: color-mix(in srgb, var(--lime) 14%, transparent);
+    box-shadow: inset 0 0 0 1px var(--gold);
   }
   /* Icons inside buttons: sized to the text, never the hit target. */
   .btn-icon {

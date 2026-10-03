@@ -69,6 +69,8 @@ async function open(
   const snapshot = await snapshotFor(kind, workerId, job, now);
 
   return db().$transaction(async (tx) => {
+    // Worker before job (closing an account holds the worker lock; nothing takes job → worker).
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`worker:${workerId}`}))`;
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`job:${jobId}`}))`;
     const [existing, acceptedCount, fresh, wk] = await Promise.all([
       tx.engagement.findUnique({ where: { jobId_workerId: { jobId, workerId } } }),
@@ -131,12 +133,15 @@ export async function acceptEngagement(
   }
 
   return db().$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`worker:${e.workerId}`}))`;
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`job:${e.jobId}`}))`;
-    const [current, acceptedCount, job] = await Promise.all([
+    const [current, acceptedCount, job, wk] = await Promise.all([
       tx.engagement.findUniqueOrThrow({ where: { id: engagementId } }),
       tx.engagement.count({ where: { jobId: e.jobId, status: { in: ACCEPTED_STATUSES } } }),
       tx.job.findUniqueOrThrow({ where: { id: e.jobId } }),
+      tx.worker.findUniqueOrThrow({ where: { id: e.workerId }, select: { closedAt: true } }),
     ]);
+    if (wk.closedAt) return { ok: false as const, reason: "This worker has closed their account." };
     const t = transition(current.status, "accept", actor.kind, {
       jobStatus: job.status,
       hiringModes: readHiringModes(job.hiringMethod),

@@ -14,8 +14,9 @@ export interface MapPin {
   label: string;
 }
 
-const STROKE = "#2b6534";
-const FILL = "#c6ec8c";
+/** Map colours follow the theme tokens (lime → bright eggplant in dark mode), read when drawing. */
+const token = (name: string, fallback: string) => (typeof document === "undefined" ? fallback : getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback);
+const colors = () => ({ stroke: token("--link", "#2b6534"), fill: token("--lime", "#c6ec8c"), ink: token("--ink", "#17201a") });
 const US_CENTER: LatLngExpression = [39.5, -98.35];
 
 /**
@@ -139,13 +140,14 @@ export function TurfMap({
     if (!ready || !L || !layer.current) return;
     layer.current.clearLayers();
     const latlngs = points.map((p) => [p.lat, p.lng] as [number, number]);
+    const { stroke: STROKE, fill: FILL, ink: INK } = colors();
     if (latlngs.length >= 3) L.polygon(latlngs, { color: STROKE, weight: 2, fillColor: FILL, fillOpacity: 0.35 }).addTo(layer.current);
     else if (latlngs.length === 2) L.polyline(latlngs, { color: STROKE, weight: 2, dashArray: "4 4" }).addTo(layer.current);
     if (editable) for (const ll of latlngs) L.circleMarker(ll, { radius: 4, color: STROKE, weight: 2, fillColor: "#fff", fillOpacity: 1 }).addTo(layer.current);
     const day = fromTurf(dayTurf).map((p) => [p.lat, p.lng] as [number, number]);
     if (day.length >= 3) L.polygon(day, { color: STROKE, weight: 2, dashArray: "6 6", fillColor: FILL, fillOpacity: 0.18 }).bindTooltip(tip(dayTurfLabel)).addTo(layer.current);
     if (stage) {
-      L.circleMarker([stage.lat, stage.lng], { radius: 9, color: "#17201a", weight: 3, fillColor: FILL, fillOpacity: 1 })
+      L.circleMarker([stage.lat, stage.lng], { radius: 9, color: INK, weight: 3, fillColor: FILL, fillOpacity: 1 })
         .bindTooltip(tip("Staging"))
         .addTo(layer.current);
     }

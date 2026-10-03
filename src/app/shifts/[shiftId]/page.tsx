@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { shiftPriority } from "@/lib/priority";
 import { FIELD_ROLES, SCHEDULING_ROLES } from "@/lib/access";
 import { readSupportContacts } from "@/lib/jobs";
 import { activeTime, earningsEstimate, readTurf, scheduleFlags, shiftProgress, shiftState, turfMarks, turfMarksClosed } from "@/lib/field-day";
@@ -211,7 +212,7 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
       </header>
 
       {!started && workerActions}
-      <div className={`hero-card space-y-4 ${isWorker ? "hero-card-lime" : ""}`}>
+      <div className={`hero-card space-y-4 ${isWorker ? "hero-card-lime" : ""}`} data-priority={isWorker ? shiftPriority(s, now) : undefined}>
         <p className="eyebrow">
           <LocalTime iso={s.startsAt.toISOString()} mode="date" />
           {started && s.stagingLocation ? ` · ${s.stagingLocation}` : ""}

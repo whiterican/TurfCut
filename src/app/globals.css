@@ -50,31 +50,44 @@
   --hero-fg: #f3f6ef;
   --hero-muted: #c9d3c6;
   --shadow: 0 1px 2px rgb(23 32 26 / 0.04), 0 10px 28px -16px rgb(23 32 26 / 0.18);
+  /* Gold: priority rings on the shift card (lighter inside, darker out) and the current tab. */
+  --gold: #b8912e;
+  --gold-2: #8f6c1c;
+  --gold-3: #66480f;
   color-scheme: light;
 }
 
 .dark {
-  /* Eggplant, not avocado: deep, low-saturation purple neutrals (hue ~280°)
-     at the same lightness steps as before. Lime stays the accent. */
-  --bg: #130f17;
-  --surface: #1a1520;
-  --surface-2: #231c2a;
-  --field: #161119;
-  --border: #322a3b;
-  --border-strong: #463c52;
-  --fg: #f1eef3;
-  --muted: #d6d0db;
-  --subtle: #bbb3c2;
-  --link: #c6ec8c;
-  --focus: #c6ec8c;
+  /* Dark mode is eggplant through and through: low-saturation purple
+     neutrals (hue ~275°) one step lighter than pitch, a brighter eggplant
+     in place of lime for the accent, and gold only on priority rings and
+     the current tab. */
+  --bg: #1b1523;
+  --surface: #241c2e;
+  --surface-2: #2e2539;
+  --field: #1f1828;
+  --border: #3f3450;
+  --border-strong: #57496a;
+  --fg: #f4f0f7;
+  --muted: #d9d2de;
+  --subtle: #bfb6c7;
+  /* The accent: bright eggplant. Everything that was lime in dark mode. */
+  --lime: #dcd1ea;
+  --ink: #1f1727;
+  --link: #dcd1ea;
+  --focus: #dcd1ea;
   --danger: #ffb4b4;
   --success: #a8e4cc;
   --warning: #f5d98a;
-  --primary: #c6ec8c;
-  --on-primary: #1b1521;
-  --hero: #2b2135;
-  --hero-fg: #f5f2f7;
-  --hero-muted: #cdc5d3;
+  --primary: #dcd1ea;
+  --on-primary: #1f1727;
+  --hero: #382c47;
+  --hero-fg: #f6f2f9;
+  --hero-muted: #d0c7d7;
+  /* Gold: rims only, never fills or text. */
+  --gold: #c99a35;
+  --gold-2: #a8781e;
+  --gold-3: #8a5e14;
   --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 12px 32px -16px rgb(0 0 0 / 0.6);
   color-scheme: dark;
 }
@@ -184,10 +197,24 @@ body {
     @apply pointer-events-none absolute -top-10 -right-10 size-32 rounded-full;
     background: var(--lime);
   }
-  /* The worker's next shift (mockup): a bright lime card with dark ink. */
+  /* The worker's next shift (mockup): a bright accent card with dark ink. */
   .hero-card-lime {
     background: var(--lime);
     color: var(--ink);
+  }
+  /* Priority rings (lib/priority): one narrow gold ring per level, each
+     further out a darker gold. The innermost is a real border so it is the
+     same width on every edge; the outer ones are rings around it. */
+  .hero-card[data-priority="1"],
+  .hero-card[data-priority="2"],
+  .hero-card[data-priority="3"] {
+    border: 2px solid var(--gold);
+  }
+  .hero-card[data-priority="2"] {
+    box-shadow: 0 0 0 2px var(--gold-2), var(--shadow);
+  }
+  .hero-card[data-priority="3"] {
+    box-shadow: 0 0 0 2px var(--gold-2), 0 0 0 4px var(--gold-3), var(--shadow);
   }
   .hero-card.hero-card-lime::after {
     background: color-mix(in srgb, white 35%, var(--lime));
@@ -200,7 +227,7 @@ body {
   .hero-card-plain::after {
     display: none;
   }
-  .hero-card-plain .eyebrow {
+  .hero-card.hero-card-plain .eyebrow {
     max-width: none;
   }
   .hero-card > * {
@@ -496,6 +523,7 @@ body {
   .dark .tab[aria-current="page"] .tab-icon {
     color: var(--lime);
     background: color-mix(in srgb, var(--lime) 14%, transparent);
+    box-shadow: inset 0 0 0 2px var(--gold);
   }
   /* Icons inside buttons: sized to the text, never the hit target. */
   .btn-icon {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   activeTime,
+  correctionAction,
   earningsEstimate,
   findConflicts,
   turfAction,
@@ -13,6 +14,7 @@ import {
   supervisorAction,
   validateShift,
   workerAction,
+  timelineProblem,
   type FieldEvent,
   type ShiftFacts,
 } from "./field-day";
@@ -294,5 +296,82 @@ describe("time outside the schedule", () => {
       "Checked in 45 min before the scheduled start.",
       "Checked out 3h 10m after the scheduled end.",
     ]);
+  });
+});
+
+describe("supervisor corrections (M7)", () => {
+  const evId = (id: string, type: string, min: number, payload: Record<string, unknown> = {}): FieldEvent => ({ id, type, payload, actorId: "w", createdAt: at(min) });
+  const done = () => shift([evId("ci", "CHECK_IN", 0), evId("sig", "SIGNATURE_SUBMITTED", 60, { count: 20 }), evId("ps", "PAUSE_START", 120), evId("pe", "PAUSE_END", 150), evId("co", "CHECK_OUT", 240)], { status: "COMPLETED" });
+  const now = at(10 * 60);
+
+  it("corrects a count: a signed, reasoned CORRECTION that every reader applies", () => {
+    const out = correctionAction(done(), { kind: "correct_event", eventId: "sig", count: 18, reason: "Two sheets were counted twice" }, "sup", now);
+    expect(out).toEqual({ ok: true, event: { type: "CORRECTION", payload: { supersedesEventId: "sig", signedBy: "sup", reason: "Two sheets were counted twice", count: 18 }, createdAt: now } });
+    if (!out.ok) return;
+    const s = done();
+    s.events.push({ id: "c1", type: "CORRECTION", payload: out.event.payload, actorId: "sup", createdAt: out.event.createdAt });
+    expect(shiftState(s).signatures).toBe(18);
+  });
+
+  it("corrects a time, and the live clock and flags follow", () => {
+    const s = done();
+    const out = correctionAction(s, { kind: "correct_event", eventId: "co", at: at(300), reason: "Checked out late; forgot to tap" }, "sup", now);
+    expect(out.ok).toBe(true);
+    if (!out.ok) return;
+    s.events.push({ id: "c1", type: "CORRECTION", payload: out.event.payload, actorId: "sup", createdAt: now });
+    expect(shiftState(s).checkedOutAt).toEqual(at(300));
+    expect(activeTime(s, now).ms).toBe((300 - 30) * 60_000);
+  });
+
+  it("refuses corrections that make an impossible timeline, or change nothing", () => {
+    const refuse = (a: Parameters<typeof correctionAction>[1]) => {
+      const r = correctionAction(done(), a, "sup", now);
+      return r.ok ? "ok" : r.reason;
+    };
+    expect(refuse({ kind: "correct_event", eventId: "pe", at: at(100), reason: "typed the wrong time" })).toMatch(/break that hadn't started/);
+    expect(refuse({ kind: "correct_event", eventId: "co", at: at(50), reason: "typed the wrong time" })).toMatch(/break would still be open|Work has to be logged/);
+    expect(refuse({ kind: "correct_event", eventId: "sig", count: 0, reason: "nothing was collected" })).toMatch(/1 to 500/);
+    expect(refuse({ kind: "correct_event", eventId: "sig", count: 20, reason: "same count as before" })).toMatch(/already says/);
+    expect(refuse({ kind: "correct_event", eventId: "ci", count: 5, reason: "a count on a check-in" })).toMatch(/has no count/);
+    expect(refuse({ kind: "correct_event", eventId: "sig", count: 18, reason: "short" })).toMatch(/at least a few words/);
+    expect(refuse({ kind: "correct_event", eventId: "nope", count: 18, reason: "that entry is not here" })).toMatch(/isn't on this shift/);
+    expect(refuse({ kind: "correct_event", eventId: "co", at: at(11 * 60), reason: "a time in the future" })).toMatch(/future/);
+  });
+
+  it("enters a missing check-out in the worker's name, at the stated time", () => {
+    const s = shift([evId("ci", "CHECK_IN", 0), evId("sig", "SIGNATURE_SUBMITTED", 60, { count: 20 })], { status: "ACTIVE" });
+    const out = correctionAction(s, { kind: "enter_event", type: "CHECK_OUT", at: at(250), reason: "Phone died; left at 1:10 per the worker" }, "sup", now);
+    expect(out).toEqual({ ok: true, event: { type: "CHECK_OUT", payload: { enteredBy: "sup", reason: "Phone died; left at 1:10 per the worker" }, createdAt: at(250) } });
+    expect(correctionAction(done(), { kind: "enter_event", type: "CHECK_OUT", at: at(250), reason: "a second check-out" }, "sup", now)).toMatchObject({ ok: false, reason: /two check-outs/ });
+    expect(correctionAction(s, { kind: "enter_event", type: "CHECK_OUT", at: at(8 * 60 + 150), reason: "far outside the shift" }, "sup", now)).toMatchObject({ ok: false, reason: /2 hours outside/ });
+    expect(correctionAction(s, { kind: "enter_event", type: "DOOR_KNOCK", at: at(90), count: 10, reason: "doors on a petition shift" }, "sup", now)).toMatchObject({ ok: false, reason: /canvass/ });
+  });
+
+  it("returns a packet only after it went out, and never on a cancelled shift", () => {
+    const s = shift([evId("ci", "CHECK_IN", 0), evId("pp", "PACKET_PICKUP", 30, { packetId: "18A", sheets: 20 })], { status: "ACTIVE" });
+    expect(correctionAction(s, { kind: "enter_event", type: "PACKET_RETURN", at: at(20), packetId: "18a", sheetsReturned: 20, signatures: 15, reason: "returned before pickup?" }, "sup", now)).toMatchObject({ ok: false, reason: /wasn't out/ });
+    expect(correctionAction(s, { kind: "enter_event", type: "PACKET_RETURN", at: at(200), packetId: "18a", sheetsReturned: 20, signatures: 15, reason: "Luis took it back at 12:20" }, "sup", now)).toMatchObject({ ok: true, event: { type: "PACKET_RETURN", payload: { packetId: "18A", sheetsReturned: 20, signatures: 15 } } });
+    expect(correctionAction(shift([], { status: "CANCELLED" }), { kind: "enter_event", type: "CHECK_IN", at: at(0), reason: "entering on a cancelled shift" }, "sup", now)).toMatchObject({ ok: false, reason: /cancelled/ });
+  });
+
+  it("timelineProblem: the whole-shift sanity check", () => {
+    expect(timelineProblem(done().events, done())).toBeNull();
+    expect(timelineProblem([evId("a", "CHECK_OUT", 10)], done())).toMatch(/needs a check-in/);
+    expect(timelineProblem([evId("pp", "PACKET_PICKUP", 10, { packetId: "1" })], done())).toMatch(/only go out while on shift/);
+  });
+
+  it("checks the 2-hour window only on the time being set: a worker's own late check-out never blocks other corrections", () => {
+    // The shift is scheduled 0–8h (shift() default); the worker checked out 2.5h after the end.
+    const late = shift([evId("ci", "CHECK_IN", 0), evId("sig", "SIGNATURE_SUBMITTED", 60, { count: 20 }), evId("co", "CHECK_OUT", 8 * 60 + 150)], { status: "COMPLETED" });
+    expect(correctionAction(late, { kind: "correct_event", eventId: "sig", count: 18, reason: "Two sheets were counted twice" }, "sup", at(12 * 60))).toMatchObject({ ok: true });
+    expect(correctionAction(late, { kind: "correct_event", eventId: "ci", at: at(-130), reason: "an hour-ten before the window" }, "sup", at(12 * 60))).toMatchObject({ ok: false, reason: /2 hours outside/ });
+    expect(correctionAction(late, { kind: "correct_event", eventId: "ci", at: at(-100), reason: "inside the window is fine" }, "sup", at(12 * 60))).toMatchObject({ ok: true });
+  });
+
+  it("drops an entry a per-entry review rejected, with or without corrections, so state agrees with pay", () => {
+    const s = done();
+    s.validations = [{ workEventId: "co", status: "REJECTED", reason: "not them", createdAt: at(300) }];
+    expect(shiftState(s).checkedOutAt).toBeNull();
+    expect(shiftState(s).signatures).toBe(20);
   });
 });

@@ -173,7 +173,7 @@ src/
     api/workers/[workerId]/scorecard  # GET scorecard JSON
     api/jobs/…          # jobs, publish, applications, claims, invitations
     api/engagements/[engagementId]/accept
-    api/shifts/…        # schedule, check-in, events, closeout
+    api/shifts/…        # schedule, check-in, events, closeout, sync, corrections
   components/           # ScorecardPanel, ExperienceList/Form, PreferencesFlow, FitSignals,
                         # JobForm, JobCard, SnapshotView, ActionButton,
                         # TurfMap (Leaflet), ShiftProgress, FieldDayActions
@@ -378,6 +378,51 @@ API: `GET/POST /api/shifts`, `POST /api/shifts/:id/check-in` `{ location? }`
   Entries synced into a shift the organization cancelled in the meantime,
   or one a supervisor already reviewed, are refused with that reason — a
   supervisor enters the work instead.
+
+## M7 scope — field truth and leaving cleanly
+
+- **Supervisor corrections.** On a shift's activity log, an owner or
+  supervisor can **correct** any of the worker's entries — its time, or a
+  count, or a packet's sheets and signatures — or **enter a missing entry**
+  (a forgotten check-out, work older than the 24-hour offline window) at a
+  stated time, with a reason the worker sees. Nothing is edited: a
+  correction is a `CORRECTION` work event naming the entry it supersedes,
+  signed by the supervisor; an entered entry is an ordinary event in the
+  worker's name marked `enteredBy`. Every reader — shift state, the live
+  clock, the scorecard, pay — applies corrections the same way
+  (`lib/corrections.ts`; newest signed correction per entry wins).
+- **Checked by replay.** A correction is refused if the shift couldn't have
+  happened that way (two check-ins, a break ending before it starts, a
+  packet returned before it went out, work logged after check-out, a time
+  more than 2 hours outside the schedule, a count outside 1–500).
+- **Pay follows.** Allowed only until the shift's pay is approved for
+  payment (after that, finance adjusts). Pay already recorded from the old
+  entries is withdrawn like after a recount, and the supervisor approves
+  the shift again at the corrected figure; a finance hold carries over.
+- Workers see each correction on the shift page and on Earnings, and can
+  dispute as before. `POST /api/shifts/:id/corrections` mirrors the screen.
+  Whoever entered or corrected a shift's entries counts as having set its
+  pay, so the two-person rule keeps them from approving that pay.
+- **Your data.** Settings → Your data: a worker downloads everything
+  Turfcut holds about them (`GET /api/account/export`, a ZIP of JSON and
+  CSV: profile, experience, every consent version, every metric version,
+  engagements, shifts, the field ledger, reviews, pay lines and their
+  history, transfers, disputes, messages sent). No dependency: the ZIP is
+  written by `lib/zip.ts` (stored entries).
+- **Closing an account.** Same place, two steps (a typed phrase). Refused
+  with the reasons while anything is open: pay on the way, a transfer in
+  flight, an open dispute, a live shift, or entries on this phone not yet
+  synced. On closing: the login is deleted (Supabase admin API), the name
+  becomes "Former worker" and the phone is cleared, `closedAt` is set on
+  Profile and Worker, unstarted shifts are cancelled in the worker's name
+  with `accountClosed: true` (never a no-show — owner decision), open
+  applications and invitations are withdrawn. The ledger, pay, consent and
+  metric versions, reviews and messages stay exactly as recorded (rule 3).
+  Closed workers are hidden from People, can't be invited, their profile is
+  not found, and any remaining session is refused.
+
+**Already on M6? Field truth (M7)** — run `prisma/m7-migration.sql` once
+in the Supabase SQL editor (`closedAt` on `Profile` and `Worker`).
 
 **Already on M5? Offline field day (M6)** — run `prisma/m6-migration.sql`
 once in the Supabase SQL editor (two nullable columns on `WorkEvent`).

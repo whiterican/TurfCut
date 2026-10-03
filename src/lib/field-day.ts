@@ -15,6 +15,7 @@
  * - A worker can't hold two overlapping shifts, across every campaign.
  */
 import type { Validated } from "@/lib/experience";
+import { CORRECTABLE, effectiveEvents } from "@/lib/corrections";
 
 // Also runs on the phone (offline field day), so it doesn't import lib/jobs.
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -24,10 +25,25 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 // ---------------------------------------------------------------------------
 
 export interface FieldEvent {
+  /** The ledger row (absent for entries the phone hasn't synced yet). */
+  id?: string;
   type: string;
   payload: unknown;
   actorId: string | null;
   createdAt: Date;
+}
+
+/**
+ * The shift's events with supervisor corrections applied (lib/corrections):
+ * what every reader below — state, time worked, flags — works from, so they
+ * agree with the scorecard and pay — including dropping an entry a
+ * per-entry review rejected. Entries without an id can't be corrected and
+ * pass through.
+ */
+export function correctedEvents(s: Pick<ShiftFacts, "events" | "validations">): FieldEvent[] {
+  const withId = s.events.filter((e): e is FieldEvent & { id: string } => !!e.id);
+  const rest = s.events.filter((e) => !e.id);
+  return [...effectiveEvents(withId, s.validations).events, ...rest];
 }
 
 export interface FieldValidation {
@@ -68,6 +84,7 @@ export interface ShiftState {
 }
 
 export function shiftState(s: ShiftFacts): ShiftState {
+  const corrected = correctedEvents(s);
   const st: ShiftState = {
     cancelled: s.status === "CANCELLED",
     checkedInAt: null,
@@ -83,7 +100,7 @@ export function shiftState(s: ShiftFacts): ShiftState {
     atStaging: null,
   };
   const out = new Set<string>();
-  for (const e of [...s.events].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())) {
+  for (const e of [...corrected].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())) {
     const p = obj(e.payload);
     switch (e.type) {
       case "CHECK_IN":
@@ -154,7 +171,7 @@ export type StepState = "done" | "current" | "todo";
  * review shows `scheduleFlags` for time outside the schedule.
  */
 export function activeTime(s: ShiftFacts, now: Date): { ms: number; running: boolean } {
-  const events = [...s.events].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+  const events = [...correctedEvents(s)].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
   const checkIn = events.find((e) => e.type === "CHECK_IN")?.createdAt;
   if (!checkIn) return { ms: 0, running: false };
   const checkOut = events.find((e) => e.type === "CHECK_OUT")?.createdAt;
@@ -187,7 +204,7 @@ const span = (ms: number) => {
  * approving the shift sees it before they do.
  */
 export function scheduleFlags(s: ShiftFacts): string[] {
-  const events = [...s.events].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+  const events = [...correctedEvents(s)].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
   const checkIn = events.find((e) => e.type === "CHECK_IN")?.createdAt;
   const checkOut = events.find((e) => e.type === "CHECK_OUT")?.createdAt;
   const out: string[] = [];
@@ -410,6 +427,152 @@ export function supervisorAction(s: ShiftFacts, a: SupervisorAction, packetsOutE
       if (!a.reason.trim()) return no("Give the worker a reason.");
       return { ok: true, event: { type: "SHIFT_CANCELLED", payload: { by: "ORGANIZATION", reason: a.reason.trim().slice(0, 200) } }, status: "CANCELLED" };
   }
+}
+
+// ---------------------------------------------------------------------------
+// Supervisor corrections (M7) — new events that supersede, never edits
+// ---------------------------------------------------------------------------
+
+/** Events a supervisor may enter on a worker's behalf. */
+export const ENTERABLE = ["CHECK_IN", "CHECK_OUT", "PAUSE_START", "PAUSE_END", "SIGNATURE_SUBMITTED", "DOOR_KNOCK", "CONTACT", "PACKET_RETURN"] as const;
+export type EnterableType = (typeof ENTERABLE)[number];
+/** An entered or corrected time must fall inside the shift ± this. */
+export const CORRECTION_WINDOW_MS = 2 * 3_600_000;
+const COUNTED = new Set(["SIGNATURE_SUBMITTED", "DOOR_KNOCK", "CONTACT"]);
+
+export type CorrectionAction =
+  | { kind: "correct_event"; eventId: string; at?: Date; count?: number; sheetsReturned?: number; signatures?: number; reason: string }
+  | { kind: "enter_event"; type: EnterableType; at: Date; count?: number; packetId?: string; sheetsReturned?: number; signatures?: number; reason: string };
+
+export type CorrectionOutcome =
+  | { ok: true; event: { type: string; payload: Record<string, unknown>; createdAt: Date } }
+  | { ok: false; reason: string };
+
+const noC = (reason: string): CorrectionOutcome => ({ ok: false, reason });
+const intIn = (v: unknown, lo: number, hi: number) => typeof v === "number" && Number.isInteger(v) && v >= lo && v <= hi;
+
+/**
+ * Why a timeline (events already corrected) can't have happened, or null:
+ * one check-in, nothing before it or after check-out, breaks alternate,
+ * packets return after they went out and before check-out.
+ */
+export function timelineProblem(events: FieldEvent[], s: Pick<ShiftFacts, "startsAt" | "endsAt" | "workType">): string | null {
+  const sorted = [...events].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+  let checkIn: Date | null = null;
+  let checkOut: Date | null = null;
+  let paused = false;
+  const out = new Set<string>();
+  for (const e of sorted) {
+    const p = (e.payload ?? {}) as Record<string, unknown>;
+    switch (e.type) {
+      case "CHECK_IN":
+        if (checkIn) return "That would make two check-ins.";
+        checkIn = e.createdAt;
+        break;
+      case "CHECK_OUT":
+        if (!checkIn) return "A check-out needs a check-in before it.";
+        if (checkOut) return "That would make two check-outs.";
+        if (paused) return "The break would still be open at check-out.";
+        if (out.size) return `Packet ${[...out].join(", ")} would still be out at check-out.`;
+        checkOut = e.createdAt;
+        break;
+      case "PAUSE_START":
+        if (!checkIn || checkOut) return "A break has to start while on shift.";
+        if (paused) return "That would start a break during a break.";
+        paused = true;
+        break;
+      case "PAUSE_END":
+        if (!paused) return "That would end a break that hadn't started.";
+        paused = false;
+        break;
+      case "SIGNATURE_SUBMITTED":
+      case "DOOR_KNOCK":
+      case "CONTACT":
+        if (!checkIn || checkOut) return "Work has to be logged while on shift.";
+        if (!intIn(p.count, 1, 500)) return "Counts are whole numbers from 1 to 500.";
+        if (e.type === "SIGNATURE_SUBMITTED" && s.workType !== "PETITION") return "Signatures are for petition shifts.";
+        if (e.type !== "SIGNATURE_SUBMITTED" && s.workType !== "CANVASS") return "Doors and contacts are for canvass shifts.";
+        break;
+      case "PACKET_PICKUP":
+        if (!checkIn || checkOut) return "A packet can only go out while on shift.";
+        if (typeof p.packetId === "string") out.add(p.packetId);
+        break;
+      case "PACKET_RETURN": {
+        const id = typeof p.packetId === "string" ? [...out].find((x) => samePacket(x, p.packetId as string)) : undefined;
+        if (!id) return "That packet wasn't out at that time.";
+        if (!intIn(p.sheetsReturned, 0, 1000) || !intIn(p.signatures, 0, 10_000)) return "Enter the sheets returned and the signatures claimed.";
+        out.delete(id);
+        break;
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * A supervisor's correction, checked by replaying the shift with it
+ * applied. The original is never touched: a `correct_event` becomes a
+ * CORRECTION event naming it; an `enter_event` becomes the missing event
+ * itself, marked as entered by the supervisor, at the time they state.
+ */
+/**
+ * A corrected or entered time has to be near the scheduled shift. Only the
+ * time being set is checked: a worker's own late check-out, recorded as it
+ * happened, never blocks correcting something else on the shift.
+ */
+function windowProblem(at: Date, s: Pick<ShiftFacts, "startsAt" | "endsAt">): string | null {
+  const t = at.getTime();
+  if (t < s.startsAt.getTime() - CORRECTION_WINDOW_MS || t > s.endsAt.getTime() + CORRECTION_WINDOW_MS) return "That time is more than 2 hours outside the scheduled shift.";
+  return null;
+}
+
+export function correctionAction(s: ShiftFacts, a: CorrectionAction, signedBy: string, now: Date): CorrectionOutcome {
+  if (s.status === "CANCELLED") return noC("This shift was cancelled.");
+  const reason = a.reason.trim();
+  if (reason.length < 10) return noC("Say why, in at least a few words (the worker sees it).");
+  if (reason.length > 500) return noC("Keep the reason under 500 characters.");
+  const base = correctedEvents(s);
+  if (a.kind === "correct_event") {
+    const target = s.events.find((e) => e.id === a.eventId);
+    if (!target) return noC("That entry isn't on this shift.");
+    const allowed = CORRECTABLE[target.type];
+    if (!allowed) return noC("That kind of entry can't be corrected.");
+    const fields: Record<string, unknown> = {};
+    if (a.count !== undefined) fields.count = a.count;
+    if (a.sheetsReturned !== undefined) fields.sheetsReturned = a.sheetsReturned;
+    if (a.signatures !== undefined) fields.signatures = a.signatures;
+    for (const k of Object.keys(fields)) if (!allowed.includes(k)) return noC(`A ${target.type.toLowerCase().replace(/_/g, " ")} entry has no ${k} to correct.`);
+    if (a.at && !allowed.includes("at")) return noC("That entry's time can't be changed.");
+    if (a.at && a.at.getTime() > now.getTime()) return noC("That time is in the future.");
+    const outside = a.at && windowProblem(a.at, s);
+    if (outside) return noC(outside);
+    if (!a.at && !Object.keys(fields).length) return noC("Change the time or a value.");
+    const current = base.find((e) => e.id === a.eventId);
+    if (!current) return noC("That entry was rejected and can't be corrected.");
+    const changed = (!a.at || a.at.getTime() === current.createdAt.getTime()) && Object.entries(fields).every(([k, v]) => ((current.payload ?? {}) as Record<string, unknown>)[k] === v);
+    if (changed) return noC("That's what the entry already says.");
+    const replay = base.map((e) => (e.id === a.eventId ? { ...e, createdAt: a.at ?? e.createdAt, payload: { ...((e.payload ?? {}) as Record<string, unknown>), ...fields } } : e));
+    const problem = timelineProblem(replay, s);
+    if (problem) return noC(problem);
+    return { ok: true, event: { type: "CORRECTION", payload: { supersedesEventId: a.eventId, signedBy, reason, ...(a.at ? { at: a.at.toISOString() } : {}), ...fields }, createdAt: now } };
+  }
+  if (!(ENTERABLE as readonly string[]).includes(a.type)) return noC("That kind of entry can't be entered.");
+  if (a.at.getTime() > now.getTime()) return noC("That time is in the future.");
+  const outside = windowProblem(a.at, s);
+  if (outside) return noC(outside);
+  const payload: Record<string, unknown> = { enteredBy: signedBy, reason };
+  if (COUNTED.has(a.type)) payload.count = a.count;
+  if (a.type === "PACKET_RETURN") {
+    if (typeof a.packetId !== "string" || !a.packetId.trim()) return noC("Which packet?");
+    payload.packetId = a.packetId.trim().toUpperCase();
+    payload.sheetsReturned = a.sheetsReturned;
+    payload.signatures = a.signatures;
+  }
+  if (a.type === "CHECK_IN") payload.locationChecked = false;
+  const entered: FieldEvent = { type: a.type, payload, actorId: signedBy, createdAt: a.at };
+  const problem = timelineProblem([...base, entered], s);
+  if (problem) return noC(problem);
+  return { ok: true, event: { type: a.type, payload, createdAt: a.at } };
 }
 
 // ---------------------------------------------------------------------------

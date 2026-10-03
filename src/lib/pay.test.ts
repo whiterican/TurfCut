@@ -256,6 +256,9 @@ describe("two people per payment", () => {
     const shiftLine = { kind: "SHIFT" as const, createdById: "sup", hasShift: true, amountCents: 8750 };
     expect(selfApprovalProblem(shiftLine, "owner", "owner")).toMatch(/approved this shift/);
     expect(selfApprovalProblem(shiftLine, "sup", "owner")).toBeNull();
+    // M7: whoever entered or corrected the shift's entries set the amount too
+    expect(selfApprovalProblem(shiftLine, "sup", "owner", ["owner"])).toMatch(/entered or corrected/);
+    expect(selfApprovalProblem(shiftLine, "sup", "fin", ["owner", "sup"])).toBeNull();
     const adj = { kind: "ADJUSTMENT" as const, createdById: "fin", hasShift: true, amountCents: 750 };
     expect(selfApprovalProblem(adj, "sup", "fin")).toMatch(/made this adjustment/);
     // the shift's reviewer may approve someone else's adjustment (still two people)

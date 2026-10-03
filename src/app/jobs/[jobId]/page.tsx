@@ -230,7 +230,7 @@ async function OrgPanel({ job, canHire, canSchedule, userId }: { job: JobWithRef
   const engagements = canHire
     ? await db().engagement.findMany({
         where: { jobId: job.id },
-        include: { worker: { select: { id: true, displayName: true } } },
+        include: { worker: { select: { id: true, displayName: true, closedAt: true } } },
         orderBy: { createdAt: "asc" },
       })
     : [];
@@ -275,7 +275,11 @@ async function OrgPanel({ job, canHire, canSchedule, userId }: { job: JobWithRef
                   <li key={e.id} className="card space-y-3">
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <p className="flex items-center gap-2 font-medium text-fg">
-                        <Link transitionTypes={["nav-forward"]} href={`/workers/${e.worker.id}`} className="link">{e.worker.displayName}</Link>
+                        {e.worker.closedAt ? (
+                          <span>{e.worker.displayName}</span>
+                        ) : (
+                          <Link transitionTypes={["nav-forward"]} href={`/workers/${e.worker.id}`} className="link">{e.worker.displayName}</Link>
+                        )}
                         <span className={s.badge}>{s.label}</span>
                       </p>
                       {e.status === "APPLIED" && (
@@ -304,7 +308,7 @@ async function ShiftsSection({ job, userId }: { job: JobWithRefs; userId: string
   const [shifts, hired, supervisors] = await Promise.all([
     db().shift.findMany({ where: { engagement: { jobId: job.id } }, include: SHIFT_LIST, orderBy: { startsAt: "asc" } }),
     db().engagement.findMany({
-      where: { jobId: job.id, status: { in: ["ACTIVE", "CLAIMED"] } },
+      where: { jobId: job.id, status: { in: ["ACTIVE", "CLAIMED"] }, worker: { closedAt: null } },
       select: { id: true, worker: { select: { displayName: true } } },
       orderBy: { createdAt: "asc" },
     }),

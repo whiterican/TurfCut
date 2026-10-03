@@ -2,6 +2,10 @@ import { DisplaySettings } from "@/components/DisplaySettings";
 import { createClient } from "@/lib/supabase/server";
 import { signOut } from "@/app/settings/actions";
 import { SignOutButton } from "@/components/SignOutButton";
+import { AccountData } from "@/components/AccountData";
+import { getSessionProfile } from "@/lib/auth";
+import { closureFacts } from "@/lib/account-data";
+import { closureProblems } from "@/lib/account-closure";
 
 export const metadata = { title: "Display settings · Turfcut" };
 
@@ -15,6 +19,17 @@ export default async function SettingsPage() {
     session = data.user ? { id: data.user.id, email: data.user.email } : null;
   } catch {
     session = null; // Supabase not configured
+  }
+  // Workers get their data and the way out (M7). Staff accounts belong to
+  // their organization and aren't closed from here.
+  let worker: { problems: string[] } | null = null;
+  if (session) {
+    try {
+      const me = await getSessionProfile();
+      if (me?.role === "WORKER" && me.workerId) worker = { problems: closureProblems(await closureFacts(me.workerId)) };
+    } catch (e) {
+      console.error("[turfcut] loading account closure facts failed", e);
+    }
   }
   return (
     <main className="page max-w-2xl">
@@ -37,6 +52,7 @@ export default async function SettingsPage() {
           </div>
         </section>
       )}
+      {session && worker && <AccountData userId={session.id} problems={worker.problems} />}
     </main>
   );
 }

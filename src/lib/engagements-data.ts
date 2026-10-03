@@ -54,7 +54,9 @@ async function open(
   const job = await db().job.findUnique({ where: { id: jobId }, include: { org: { select: { name: true } } } });
   if (!job) return { ok: false, reason: "Job not found." };
   if (actor.kind === "org" && actor.orgId !== job.orgId) return { ok: false, reason: "This job belongs to another organization." };
-  if (!(await db().worker.findUnique({ where: { id: workerId }, select: { id: true } }))) return { ok: false, reason: "Worker not found." };
+  const w = await db().worker.findUnique({ where: { id: workerId }, select: { closedAt: true } });
+  if (!w) return { ok: false, reason: "Worker not found." };
+  if (w.closedAt) return { ok: false, reason: "This worker has closed their account." };
 
   // A worker never lands on a job their own do-not-match answers exclude.
   if (actor.kind === "worker") {
@@ -67,12 +69,16 @@ async function open(
   const snapshot = await snapshotFor(kind, workerId, job, now);
 
   return db().$transaction(async (tx) => {
+    // Worker before job (closing an account holds the worker lock; nothing takes job → worker).
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`worker:${workerId}`}))`;
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`job:${jobId}`}))`;
-    const [existing, acceptedCount, fresh] = await Promise.all([
+    const [existing, acceptedCount, fresh, wk] = await Promise.all([
       tx.engagement.findUnique({ where: { jobId_workerId: { jobId, workerId } } }),
       tx.engagement.count({ where: { jobId, status: { in: ACCEPTED_STATUSES } } }),
       tx.job.findUniqueOrThrow({ where: { id: jobId } }),
+      tx.worker.findUniqueOrThrow({ where: { id: workerId }, select: { closedAt: true } }),
     ]);
+    if (wk.closedAt) return { ok: false as const, reason: "This worker has closed their account." };
     const t = transition(existing?.status ?? null, action, actor.kind, {
       jobStatus: fresh.status,
       hiringModes: readHiringModes(fresh.hiringMethod),
@@ -127,12 +133,15 @@ export async function acceptEngagement(
   }
 
   return db().$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`worker:${e.workerId}`}))`;
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`job:${e.jobId}`}))`;
-    const [current, acceptedCount, job] = await Promise.all([
+    const [current, acceptedCount, job, wk] = await Promise.all([
       tx.engagement.findUniqueOrThrow({ where: { id: engagementId } }),
       tx.engagement.count({ where: { jobId: e.jobId, status: { in: ACCEPTED_STATUSES } } }),
       tx.job.findUniqueOrThrow({ where: { id: e.jobId } }),
+      tx.worker.findUniqueOrThrow({ where: { id: e.workerId }, select: { closedAt: true } }),
     ]);
+    if (wk.closedAt) return { ok: false as const, reason: "This worker has closed their account." };
     const t = transition(current.status, "accept", actor.kind, {
       jobStatus: job.status,
       hiringModes: readHiringModes(job.hiringMethod),

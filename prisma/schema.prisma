@@ -45,6 +45,9 @@ model Profile {
   // Org staff's name as shown in chat ("Maya Chen · Manager"). Workers use
   // Worker.displayName. Never shown to anyone outside a shared conversation.
   displayName String?
+  // Account closure (M7): set when the person closed their account. The
+  // auth user is deleted; this row and everything it anchors stay (rule 3).
+  closedAt  DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -72,6 +75,8 @@ model Worker {
   profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
   displayName String
   phone     String?
+  // Account closure (M7): name and phone are anonymized; history stays.
+  closedAt  DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

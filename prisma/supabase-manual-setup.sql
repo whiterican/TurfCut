@@ -1,8 +1,8 @@
--- Turfcut M0–M6 (with M4.1) — manual Supabase setup (one paste), FRESH databases only.
+-- Turfcut M0–M7 (with M4.1) — manual Supabase setup (one paste), FRESH databases only.
 -- Generated from prisma/schema.prisma + prisma/seed.ts on 2026-10-02.
 -- Paste the entire file into the Supabase SQL editor and run it.
 -- The DDL is not re-runnable. Existing database? Run the m1-, m1-profile-, m2-, m3-,
--- m4-0-rls-lockdown, m4-, m4-1-hardening, m5-migration, m5-1-history-lock and m6-migration.sql files in order, then manual-seed.sql (idempotent).
+-- m4-0-rls-lockdown, m4-, m4-1-hardening, m5-migration, m5-1-history-lock, m6-migration and m7-migration.sql files in order, then manual-seed.sql (idempotent).
 -- CreateSchema
 CREATE SCHEMA IF NOT EXISTS "public";
 
@@ -60,6 +60,7 @@ CREATE TABLE "public"."Profile" (
     "role" "public"."Role" NOT NULL,
     "orgId" UUID,
     "displayName" TEXT,
+    "closedAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -72,6 +73,7 @@ CREATE TABLE "public"."Worker" (
     "profileId" UUID NOT NULL,
     "displayName" TEXT NOT NULL,
     "phone" TEXT,
+    "closedAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "stripeAccountId" TEXT,

@@ -34,8 +34,8 @@ export default async function EmployerWorkerPage({
   }
 
   // Only the display name — no phone or other contact details.
-  const worker = await db().worker.findUnique({ where: { id: workerId }, select: { displayName: true } });
-  if (!worker) notFound();
+  const worker = await db().worker.findUnique({ where: { id: workerId }, select: { displayName: true, closedAt: true } });
+  if (!worker || worker.closedAt) notFound();
 
   const [rawRecords, scorecard, pref, related, openJobs, engagedOn] = await Promise.all([
     db().experienceRecord.findMany({ where: { workerId }, orderBy: { startDate: "desc" } }),

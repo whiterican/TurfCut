@@ -5,6 +5,7 @@ import { canScheduleShift, UUID_RE } from "@/lib/jobs";
 import { applyReviewPlan, payLock, planReview, reviewLockProblem, withdrawStalePay } from "@/lib/pay-data";
 import { correctTime, placeTime, timeProblem, wasOffline, type QueuedAction } from "@/lib/offline-sync";
 import {
+  correctionAction,
   findConflicts,
   samePacket,
   shiftState,
@@ -12,6 +13,7 @@ import {
   validateShift,
   workerAction,
   turfAction,
+  type CorrectionAction,
   type Outcome,
   type TurfAction,
   type ShiftFacts,
@@ -59,7 +61,7 @@ export function facts(s: LoadedShift): ShiftFacts {
     startsAt: s.startsAt,
     endsAt: s.endsAt,
     workType: s.engagement.job.type,
-    events: s.events.map((e) => ({ type: e.type, payload: e.payload, actorId: e.actorId, createdAt: e.createdAt })),
+    events: s.events.map((e) => ({ id: e.id, type: e.type, payload: e.payload, actorId: e.actorId, createdAt: e.createdAt })),
     validations: s.validations.map((v) => ({ workEventId: v.workEventId, status: v.status, reason: v.reason, createdAt: v.createdAt })),
     campaignTurf: s.turfArea !== null,
   };
@@ -83,10 +85,11 @@ export async function scheduleShift(
   if (!UUID_RE.test(engagementId)) return { ok: false, reason: "Engagement not found." };
   const e = await db().engagement.findUnique({
     where: { id: engagementId },
-    include: { job: { include: { jurisdiction: true } } },
+    include: { job: { include: { jurisdiction: true } }, worker: { select: { closedAt: true } } },
   });
   if (!e || e.job.orgId !== actor.orgId) return { ok: false, reason: "Engagement not found." };
   if (e.status !== "ACTIVE" && e.status !== "CLAIMED") return { ok: false, reason: "Only hired workers can be scheduled." };
+  if (e.worker.closedAt) return { ok: false, reason: "This worker has closed their account." };
   if (e.job.status !== "PUBLISHED") return { ok: false, reason: "The job isn't open." };
   // Jurisdiction hard stop: a rule change freezes new shifts until re-approved.
   const freeze = canScheduleShift(e.job.jurisdiction, now);
@@ -103,6 +106,9 @@ export async function scheduleShift(
   return db().$transaction(async (tx) => {
     // One worker, many campaigns: the conflict check spans every engagement.
     await lock(tx, `worker:${e.workerId}`);
+    // Closure takes the same lock first, so this can't race it.
+    const w = await tx.worker.findUniqueOrThrow({ where: { id: e.workerId }, select: { closedAt: true } });
+    if (w.closedAt) return { ok: false as const, reason: "This worker has closed their account." };
     const theirs = await tx.shift.findMany({
       where: { engagement: { workerId: e.workerId }, endsAt: { gt: v.value.startsAt }, startsAt: { lt: v.value.endsAt } },
       select: { startsAt: true, endsAt: true, status: true },
@@ -288,8 +294,10 @@ export async function syncWorkerActions(
     const results: SyncResult[] = [];
     const latest = (keep: (e: (typeof f.events)[number]) => boolean) =>
       f.events.reduce<Date | null>((m, e) => (keep(e) && (!m || e.createdAt > m) ? e.createdAt : m), null);
-    // Everything synced goes after the worker's own field events.
-    let lastWorker = latest((e) => WORKER_FIELD_EVENTS.has(e.type));
+    // Everything synced goes after the worker's own field events. A
+    // supervisor's entry in the worker's name (M7) isn't one: it must never
+    // push the worker's own times later.
+    let lastWorker = latest((e) => WORKER_FIELD_EVENTS.has(e.type) && !((e.payload ?? {}) as Record<string, unknown>).enteredBy);
     for (const q of batch.actions) {
       if (done.has(q.clientId)) {
         results.push(done.get(q.clientId) === shiftId ? { clientId: q.clientId, status: "duplicate" } : { clientId: q.clientId, status: "rejected", reason: "Already used for another shift." });
@@ -331,6 +339,61 @@ export async function syncWorkerActions(
     // database; the default 5 s would roll the whole batch back.
     { timeout: 30_000, maxWait: 10_000 }
   );
+}
+
+const CORRECTED_VOID = "The shift was corrected; it needs approving again.";
+
+/**
+ * A supervisor corrects the ledger (M7): a CORRECTION event that supersedes
+ * one of the worker's entries, or a missing entry made in the worker's name
+ * at a stated time. Refused once pay is approved for payment (then it's an
+ * adjustment, by finance). Pay recorded from the old entries is withdrawn,
+ * like after a recount, so the shift is approved again at the corrected
+ * figure. Shift.status/checkInAt/checkOutAt are refreshed from the
+ * corrected timeline (they're denormalized, not the record).
+ */
+export async function supervisorCorrection(
+  actor: { profileId: string; orgId: string },
+  shiftId: string,
+  action: CorrectionAction,
+  at?: Date
+): Promise<Result> {
+  if (!UUID_RE.test(shiftId)) return { ok: false, reason: "Shift not found." };
+  return db().$transaction(async (tx) => {
+    await lock(tx, `shift:${shiftId}`);
+    const now = at ?? new Date();
+    const s = await loadShift(shiftId, tx);
+    if (!s || s.engagement.job.orgId !== actor.orgId) return { ok: false as const, reason: "Shift not found." };
+    const out = correctionAction(facts(s), action, actor.profileId, now);
+    if (!out.ok) return out;
+    await payLock(tx, s.engagement.workerId);
+    const locked = await reviewLockProblem(tx, shiftId);
+    if (locked) return { ok: false as const, reason: locked };
+    const ev = await tx.workEvent.create({
+      data: { shiftId, type: out.event.type as never, payload: out.event.payload as Prisma.InputJsonValue, actorId: actor.profileId, createdAt: out.event.createdAt },
+    });
+    const fresh = (await loadShift(shiftId, tx))!;
+    const st = shiftState(facts(fresh));
+    await tx.shift.update({
+      where: { id: shiftId },
+      data: {
+        status: st.checkedOutAt ? "COMPLETED" : st.checkedInAt ? "ACTIVE" : "SCHEDULED",
+        checkInAt: st.checkedInAt,
+        checkOutAt: st.checkedOutAt,
+      },
+    });
+    await withdrawStalePay(tx, fresh, actor.profileId, now, CORRECTED_VOID);
+    await tx.auditEvent.create({
+      data: {
+        actorId: actor.profileId,
+        action: action.kind === "correct_event" ? "shift.corrected" : "shift.entry_entered",
+        entityType: "Shift",
+        entityId: shiftId,
+        metadata: { eventId: ev.id, ...(action.kind === "correct_event" ? { supersedesEventId: action.eventId } : { type: action.type }), reason: action.reason.trim() },
+      },
+    });
+    return { ok: true as const };
+  });
 }
 
 /** The worker's own pins and day turf on their shift. */

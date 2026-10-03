@@ -7,8 +7,8 @@
  * fresh accents (lime, mint, sky, coral, butter) used sparingly — status
  * badges (solid pastel with dark ink, in both themes), active states, the
  * hero card's highlight. Accent fills always
- * carry the dark "ink" colour, never another accent. Dark: deep green
- * surfaces built from the mockup's hero card; accents stay solid pastel
+ * carry the dark "ink" colour, never another accent. Dark: deep eggplant
+ * (low-saturation purple) surfaces; accents stay solid pastel
  * fills with ink (badges, your chat bubbles, the next-shift card) or appear
  * as text. Primary actions are ink-on-light / lime-on-dark; a dot marks
  * the current tab.
@@ -54,25 +54,27 @@
 }
 
 .dark {
-  --bg: #0e140f;
-  --surface: #151d17;
-  --surface-2: #1c261f;
-  --field: #111813;
-  --border: #29352c;
-  --border-strong: #3b4a3f;
-  --fg: #eef2ea;
-  --muted: #d3dbd2;
-  --subtle: #b7c1b8;
+  /* Eggplant, not avocado: deep, low-saturation purple neutrals (hue ~280°)
+     at the same lightness steps as before. Lime stays the accent. */
+  --bg: #130f17;
+  --surface: #1a1520;
+  --surface-2: #231c2a;
+  --field: #161119;
+  --border: #322a3b;
+  --border-strong: #463c52;
+  --fg: #f1eef3;
+  --muted: #d6d0db;
+  --subtle: #bbb3c2;
   --link: #c6ec8c;
   --focus: #c6ec8c;
   --danger: #ffb4b4;
   --success: #a8e4cc;
   --warning: #f5d98a;
   --primary: #c6ec8c;
-  --on-primary: #17201a;
-  --hero: #213024;
-  --hero-fg: #f3f6ef;
-  --hero-muted: #c9d3c6;
+  --on-primary: #1b1521;
+  --hero: #2b2135;
+  --hero-fg: #f5f2f7;
+  --hero-muted: #cdc5d3;
   --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 12px 32px -16px rgb(0 0 0 / 0.6);
   color-scheme: dark;
 }

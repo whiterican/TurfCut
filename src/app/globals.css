@@ -481,22 +481,31 @@ body {
     padding-bottom: env(safe-area-inset-bottom);
   }
   .tab {
-    @apply relative flex min-h-14 flex-1 flex-col items-center justify-center gap-1 text-xs font-semibold text-muted;
+    @apply relative flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 pt-1.5 pb-1 text-xs font-semibold text-muted;
   }
   .tab[aria-current="page"] {
     @apply text-fg;
   }
-  .tab-dot {
-    @apply size-1.5 rounded-full bg-transparent;
+  .tab-icon {
+    @apply size-6 rounded-lg p-0.5 transition;
   }
-  .tab[aria-current="page"] .tab-dot {
-    background: var(--fg);
+  .tab[aria-current="page"] .tab-icon {
+    color: var(--fg);
+    background: color-mix(in srgb, var(--fg) 10%, transparent);
   }
-  .dark .tab[aria-current="page"] .tab-dot {
-    background: var(--lime);
+  .dark .tab[aria-current="page"] .tab-icon {
+    color: var(--lime);
+    background: color-mix(in srgb, var(--lime) 14%, transparent);
+  }
+  /* Icons inside buttons: sized to the text, never the hit target. */
+  .btn-icon {
+    @apply size-4 shrink-0;
+  }
+  .btn-sm .btn-icon {
+    @apply size-3.5;
   }
   .tab .unread-badge {
-    @apply absolute top-1 left-1/2 ml-3 min-w-[1.25rem] px-1 text-[0.75rem] leading-[1.25rem];
+    @apply absolute top-0.5 left-1/2 ml-2 min-w-[1.25rem] px-1 text-[0.7rem] leading-[1.25rem];
     box-shadow: 0 0 0 2px var(--surface);
   }
   .topnav-link {

@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useSyncExternalStore } from "react";
+import { Download, UserX } from "lucide-react";
 import { CLOSE_PHRASE, confirmed } from "@/lib/account-closure";
 import { clearUser, subscribe, unsentCount } from "@/lib/offline-queue";
 
@@ -44,7 +45,7 @@ export function AccountData({ userId, problems }: { userId: string; problems: st
       <h2 className="section-title">Your data</h2>
       <div className="card space-y-3">
         <p className="text-muted-sm">Everything Turfcut holds about you — profile, experience, consent history, shifts, pay, disputes and the messages you sent — as a ZIP of JSON and CSV files.</p>
-        <a href="/api/account/export" className="btn-secondary btn-sm inline-block" download>Download my data</a>
+        <a href="/api/account/export" className="btn-secondary btn-sm" download><Download aria-hidden className="btn-icon" />Download my data</a>
       </div>
       <div className="card space-y-3">
         <h3 className="font-semibold">Close my account</h3>
@@ -59,7 +60,7 @@ export function AccountData({ userId, problems }: { userId: string; problems: st
             </ul>
           </div>
         ) : !open ? (
-          <button type="button" className="btn-secondary btn-sm" onClick={() => setOpen(true)}>Close my account…</button>
+          <button type="button" className="btn-secondary btn-sm" onClick={() => setOpen(true)}><UserX aria-hidden className="btn-icon" />Close my account…</button>
         ) : (
           <div className="space-y-3">
             <label className="block space-y-1.5">
@@ -67,7 +68,7 @@ export function AccountData({ userId, problems }: { userId: string; problems: st
               <input className="field" value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" autoCapitalize="none" spellCheck={false} />
             </label>
             <div className="flex flex-wrap gap-2">
-              <button type="button" className="btn-primary btn-sm" disabled={!confirmed(typed) || busy} onClick={close}>{busy ? "Closing…" : "Close my account for good"}</button>
+              <button type="button" className="btn-primary btn-sm" disabled={!confirmed(typed) || busy} onClick={close}><UserX aria-hidden className="btn-icon" />{busy ? "Closing…" : "Close my account for good"}</button>
               <button type="button" className="btn-ghost btn-sm" disabled={busy} onClick={() => { setOpen(false); setTyped(""); setError(null); }}>Keep my account</button>
             </div>
             {error && (

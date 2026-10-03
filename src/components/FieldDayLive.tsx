@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { Coffee, DoorOpen, LogIn, LogOut, PackageCheck, PenLine, Play, RefreshCw, UserCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { shiftState, workerAction, type FieldEvent, type ShiftFacts } from "@/lib/field-day";
 import { stagingCheck, type QueuedAction } from "@/lib/offline-sync";
@@ -253,6 +254,7 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
           <span role="status" className={status.tone}>{status.text}</span>
           {waiting.length > 0 && online && !syncing && (
             <button type="button" className="btn-ghost btn-sm" onClick={() => void sync()}>
+              <RefreshCw aria-hidden className="btn-icon" />
               Sync now
             </button>
           )}
@@ -290,6 +292,7 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
       ) : !st.checkedInAt ? (
         <div className="space-y-2">
           <button type="button" onClick={checkIn} className="btn-primary w-full sm:w-auto" disabled={locating}>
+            <LogIn aria-hidden className="btn-icon" />
             {locating ? "Checking location…" : "Check in"}
           </button>
           {shift.staging && (
@@ -303,6 +306,7 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
         <p className="text-muted-sm">{waiting.length ? "Checked out — it'll sync when you have signal." : "Checked out."}</p>
       ) : st.paused ? (
         <button type="button" className="btn-primary" onClick={() => record({ kind: "resume" })}>
+          <Play aria-hidden className="btn-icon" />
           End break
         </button>
       ) : (
@@ -313,7 +317,7 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
                 <span className="label">Signatures</span>
                 <input name="count" inputMode="numeric" pattern="[0-9]*" className="field" required placeholder="5" />
               </label>
-              <button className="btn-primary">Add signatures</button>
+              <button className="btn-primary"><PenLine aria-hidden className="btn-icon" />Add signatures</button>
             </form>
           ) : (
             <>
@@ -322,14 +326,14 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
                   <span className="label">Doors knocked</span>
                   <input name="count" inputMode="numeric" pattern="[0-9]*" className="field" required />
                 </label>
-                <button className="btn-primary">Add doors</button>
+                <button className="btn-primary"><DoorOpen aria-hidden className="btn-icon" />Add doors</button>
               </form>
               <form onSubmit={submit((fd) => ({ kind: "log", unit: "contacts", count: num(fd, "count") }))} className="flex flex-wrap items-end gap-3">
                 <label className="w-32 space-y-1.5">
                   <span className="label">Contacts</span>
                   <input name="count" inputMode="numeric" pattern="[0-9]*" className="field" required />
                 </label>
-                <button className="btn-secondary">Add contacts</button>
+                <button className="btn-secondary"><UserCheck aria-hidden className="btn-icon" />Add contacts</button>
               </form>
             </>
           )}
@@ -347,14 +351,16 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
                 <span className="label">Signatures on it</span>
                 <input name="signatures" inputMode="numeric" pattern="[0-9]*" className="field" required />
               </label>
-              <button className="btn-secondary">Return packet {packetId}</button>
+              <button className="btn-secondary"><PackageCheck aria-hidden className="btn-icon" />Return packet {packetId}</button>
             </form>
           ))}
           <div className="flex flex-wrap gap-3 border-t border-border pt-4">
             <button type="button" className="btn-secondary" onClick={() => record({ kind: "pause" })}>
+              <Coffee aria-hidden className="btn-icon" />
               Take a break
             </button>
             <button type="button" className="btn-primary" disabled={st.packetsOut.length > 0} onClick={() => record({ kind: "check_out" })}>
+              <LogOut aria-hidden className="btn-icon" />
               Check out
             </button>
           </div>

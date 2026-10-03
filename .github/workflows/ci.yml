@@ -44,3 +44,35 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  acceptance:
+    # The data layer end to end on a real Postgres: fresh database from
+    # prisma/supabase-manual-setup.sql + seed, then tests/acceptance/*.ts.
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      # No Supabase vars on purpose: the clients are lazy, and account
+      # closure's auth-user delete then fails fast instead of calling out.
+      PGURL: postgresql://postgres:postgres@localhost:5432
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Prisma generate
+        run: npm run db:generate
+      - name: Acceptance checks
+        run: npm run test:acceptance

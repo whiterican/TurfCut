@@ -50,13 +50,17 @@
   --hero-fg: #f3f6ef;
   --hero-muted: #c9d3c6;
   --shadow: 0 1px 2px rgb(23 32 26 / 0.04), 0 10px 28px -16px rgb(23 32 26 / 0.18);
+  /* Gold: priority rings on the shift card (lighter inside, darker out) and the current tab. */
+  --gold: #e3c45a;
+  --gold-2: #b8912e;
+  --gold-3: #7f5f14;
   color-scheme: light;
 }
 
 .dark {
   /* Dark mode is eggplant through and through: low-saturation purple
      neutrals (hue ~275°) one step lighter than pitch, a brighter eggplant
-     in place of lime for the accent, and gold on a few rims only. */
+     in place of lime for the accent, and gold on priority rings only. */
   --bg: #1b1523;
   --surface: #241c2e;
   --surface-2: #2e2539;
@@ -81,7 +85,8 @@
   --hero-muted: #d0c7d7;
   /* Gold: rims only, never fills or text. */
   --gold: #f3cf6e;
-  --gold-deep: #a8781e;
+  --gold-2: #c99a35;
+  --gold-3: #8a6718;
   --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 12px 32px -16px rgb(0 0 0 / 0.6);
   color-scheme: dark;
 }
@@ -191,20 +196,28 @@ body {
     @apply pointer-events-none absolute -top-10 -right-10 size-32 rounded-full;
     background: var(--lime);
   }
+  /* The corner highlight is reserved: the first line never runs under it. */
+  .hero-card .eyebrow {
+    @apply pr-12;
+  }
   /* The worker's next shift (mockup): a bright accent card with dark ink. */
   .hero-card-lime {
     background: var(--lime);
     color: var(--ink);
   }
-  /* Dark mode: a true gold border (same width on every edge and corner,
-     never clipped), and a deep-gold coin inside the corner highlight. */
-  .dark .hero-card-lime {
-    border: 5px solid var(--gold);
+  /* Priority rings (lib/priority): one narrow gold ring per level, each
+     further out a darker gold. The innermost is a real border so it is the
+     same width on every edge; the outer ones are rings around it. */
+  .hero-card[data-priority="1"],
+  .hero-card[data-priority="2"],
+  .hero-card[data-priority="3"] {
+    border: 2px solid var(--gold);
   }
-  .dark .hero-card-lime::before {
-    content: "";
-    @apply pointer-events-none absolute top-3 right-3 z-[1] size-10 rounded-full;
-    background: var(--gold-deep);
+  .hero-card[data-priority="2"] {
+    box-shadow: 0 0 0 2px var(--gold-2), var(--shadow);
+  }
+  .hero-card[data-priority="3"] {
+    box-shadow: 0 0 0 2px var(--gold-2), 0 0 0 4px var(--gold-3), var(--shadow);
   }
   .hero-card.hero-card-lime::after {
     background: color-mix(in srgb, white 35%, var(--lime));

@@ -1,6 +1,7 @@
 import { requireAuth } from "@/lib/auth";
 import { SCHEDULING_ROLES } from "@/lib/access";
 import { db } from "@/lib/db";
+import { shiftPriority } from "@/lib/priority";
 import { ACCEPTED_STATUSES } from "@/lib/engagements";
 import { openJobsEndAfter, payShort, payText } from "@/lib/jobs";
 import { loadOps } from "@/lib/field-day-data";
@@ -46,7 +47,7 @@ async function WorkerHero({ workerId }: { workerId: string }) {
   if (shift) {
     const live = shift.checkInAt !== null;
     return (
-      <Link transitionTypes={["nav-forward"]} href={`/shifts/${shift.id}`} className="hero-card hero-card-lime block space-y-4">
+      <Link transitionTypes={["nav-forward"]} href={`/shifts/${shift.id}`} className="hero-card hero-card-lime block space-y-4" data-priority={shiftPriority(shift)}>
         <p className="eyebrow">
           {live ? "Live shift" : "Next shift"} · <LocalTime iso={shift.startsAt.toISOString()} mode="date" />
         </p>

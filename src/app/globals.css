@@ -67,14 +67,14 @@
   --muted: #d9d2de;
   --subtle: #bfb6c7;
   /* The accent: bright eggplant. Everything that was lime in dark mode. */
-  --lime: #e3ccf9;
+  --lime: #dcd1ea;
   --ink: #1f1727;
-  --link: #e3ccf9;
-  --focus: #e3ccf9;
+  --link: #dcd1ea;
+  --focus: #dcd1ea;
   --danger: #ffb4b4;
   --success: #a8e4cc;
   --warning: #f5d98a;
-  --primary: #e3ccf9;
+  --primary: #dcd1ea;
   --on-primary: #1f1727;
   --hero: #382c47;
   --hero-fg: #f6f2f9;

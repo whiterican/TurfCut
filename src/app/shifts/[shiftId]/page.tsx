@@ -11,6 +11,7 @@ import { TurfMap } from "@/components/TurfMap";
 import { LocalTime } from "@/components/LocalTime";
 import { LiveShiftStats } from "@/components/LiveShiftStats";
 import { ActionButton } from "@/components/ActionButton";
+import { Ban, CheckCircle2, ListChecks, Package, XCircle } from "lucide-react";
 import { FieldDayLive } from "@/components/FieldDayLive";
 import { Row } from "@/components/Row";
 import { PinLegend, TurfWorkbench } from "@/components/TurfWorkbench";
@@ -180,7 +181,7 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
             </summary>
             <div className="space-y-3">
               <p className="text-sm font-semibold text-fg">Cancel this shift</p>
-              <ActionButton action={workerStep} fields={{ shiftId: s.id, kind: "cancel" }} label="Cancel shift" variant="btn-secondary">
+              <ActionButton action={workerStep} fields={{ shiftId: s.id, kind: "cancel" }} label="Cancel shift" variant="btn-secondary" icon={<Ban aria-hidden className="btn-icon" />}>
                 <label className="min-w-48 flex-1 space-y-1.5">
                   <span className="label">Reason</span>
                   <input name="reason" className="field" required maxLength={200} />
@@ -272,7 +273,7 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
           <h2 className="section-title">Supervisor</h2>
           <div className="card space-y-5">
             {petition && live && (
-              <ActionButton action={supervisorStep} fields={{ shiftId: s.id, kind: "packet_pickup" }} label="Hand out packet">
+              <ActionButton action={supervisorStep} fields={{ shiftId: s.id, kind: "packet_pickup" }} label="Hand out packet" icon={<Package aria-hidden className="btn-icon" />}>
                 <label className="w-32 space-y-1.5">
                   <span className="label">Packet ID</span>
                   <input name="packetId" className="field" required maxLength={40} placeholder="18A" />
@@ -284,7 +285,7 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
               </ActionButton>
             )}
             {st.checkedOutAt && petition && !payLocked && (
-              <ActionButton action={supervisorStep} fields={{ shiftId: s.id, kind: "batch_count" }} label={st.batchCounted ? "Record a recount" : "Record batch count"} variant="btn-secondary">
+              <ActionButton action={supervisorStep} fields={{ shiftId: s.id, kind: "batch_count" }} label={st.batchCounted ? "Record a recount" : "Record batch count"} variant="btn-secondary" icon={<ListChecks aria-hidden className="btn-icon" />}>
                 {[["reviewed", "Reviewed"], ["accepted", "Accepted"], ["rejected", "Rejected"]].map(([k, l]) => (
                   <label key={k} className="w-24 space-y-1.5">
                     <span className="label">{l}</span>
@@ -323,8 +324,8 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
             ))}
             {st.checkedOutAt && !payLocked && (
               <div className="flex flex-wrap items-start gap-3">
-                <ActionButton action={supervisorStep} fields={{ shiftId: s.id, kind: "closeout", status: "APPROVED" }} label="Approve shift" />
-                <ActionButton action={supervisorStep} fields={{ shiftId: s.id, kind: "closeout", status: "REJECTED" }} label="Not approved" variant="btn-secondary">
+                <ActionButton action={supervisorStep} fields={{ shiftId: s.id, kind: "closeout", status: "APPROVED" }} label="Approve shift" icon={<CheckCircle2 aria-hidden className="btn-icon" />} />
+                <ActionButton action={supervisorStep} fields={{ shiftId: s.id, kind: "closeout", status: "REJECTED" }} label="Not approved" variant="btn-secondary" icon={<XCircle aria-hidden className="btn-icon" />}>
                   <label className="min-w-48 flex-1 space-y-1.5">
                     <span className="label">Reason (shown to the worker)</span>
                     <input name="reason" className="field" required maxLength={500} />
@@ -333,7 +334,7 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
               </div>
             )}
             {!st.checkedInAt && now <= s.endsAt && (
-              <ActionButton action={supervisorStep} fields={{ shiftId: s.id, kind: "cancel" }} label="Cancel shift" variant="btn-secondary">
+              <ActionButton action={supervisorStep} fields={{ shiftId: s.id, kind: "cancel" }} label="Cancel shift" variant="btn-secondary" icon={<Ban aria-hidden className="btn-icon" />}>
                 <label className="min-w-48 flex-1 space-y-1.5">
                   <span className="label">Reason (shown to the worker)</span>
                   <input name="reason" className="field" required maxLength={200} />

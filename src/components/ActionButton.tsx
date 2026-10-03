@@ -13,6 +13,7 @@ export function ActionButton({
   pendingLabel,
   variant = "btn-primary",
   disabled = false,
+  icon,
   children,
 }: {
   action: (prev: ActionState, fd: FormData) => Promise<ActionState>;
@@ -21,6 +22,8 @@ export function ActionButton({
   pendingLabel?: string;
   variant?: string;
   disabled?: boolean;
+  /** A glyph shown before the label (decorative: the label carries the meaning). */
+  icon?: React.ReactNode;
   children?: React.ReactNode;
 }) {
   const [state, formAction, pending] = useActionState(action, initial);
@@ -29,7 +32,10 @@ export function ActionButton({
       {Object.entries(fields).map(([k, v]) => <input key={k} type="hidden" name={k} value={v} />)}
       <div className="flex flex-wrap items-end gap-3">
         {children}
-        <button className={variant} disabled={disabled || pending}>{pending ? (pendingLabel ?? "Working…") : label}</button>
+        <button className={variant} disabled={disabled || pending}>
+          {icon}
+          {pending ? (pendingLabel ?? "Working…") : label}
+        </button>
       </div>
       {state.message && (
         <p role="status" className={state.ok ? "text-success-msg" : "text-danger-msg"}>{state.message}</p>

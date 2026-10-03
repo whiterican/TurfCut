@@ -2,6 +2,7 @@
 
 import { clearUser, unsentCount } from "@/lib/offline-queue";
 import { forgetSavedPages } from "@/components/OfflineBrief";
+import { LogOut } from "lucide-react";
 
 /**
  * Sign out, and make the phone forget this person: their field actions
@@ -22,7 +23,7 @@ export function SignOutButton({ action, userId }: { action: () => Promise<void>;
   }
   return (
     <form action={action} onSubmit={onSubmit}>
-      <button type="submit" className="btn-secondary">Sign out</button>
+      <button type="submit" className="btn-secondary"><LogOut aria-hidden className="btn-icon" />Sign out</button>
     </form>
   );
 }

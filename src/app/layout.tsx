@@ -4,6 +4,7 @@ import { DM_Mono, DM_Sans } from "next/font/google";
 import { TabBar, TopNav } from "@/components/AppNav";
 import { InlineScript } from "@/components/InlineScript";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { SlidersHorizontal } from "lucide-react";
 import { UnreadProvider } from "@/components/chat/UnreadProvider";
 import { PageTransition } from "@/components/PageTransition";
 import { Haptics } from "@/components/Haptics";
@@ -64,7 +65,7 @@ export default async function RootLayout({
             <div className="flex items-center gap-2">
               <TopNav tabs={tabs} />
               <Link href="/settings" className="btn-ghost btn-sm" title="Settings: text size, theme, sign out" aria-label="Settings">
-                <span aria-hidden className="text-base font-bold leading-none">Aa</span>
+                <SlidersHorizontal aria-hidden className="btn-icon" />
               </Link>
               <ThemeToggle />
             </div>

@@ -27,7 +27,7 @@ export function ThreadMenu({ label, children }: { label: string; children: React
       <summary className="icon-btn cursor-pointer list-none" aria-label={label}>
         <More />
       </summary>
-      <div className="card absolute top-[calc(100%+0.5rem)] right-0 z-40 max-h-[calc(100dvh-14rem)] w-[min(22rem,calc(100vw-2rem))] overflow-y-auto p-0">
+      <div className="card card-plain absolute top-[calc(100%+0.5rem)] right-0 z-40 max-h-[calc(100dvh-14rem)] w-[min(22rem,calc(100vw-2rem))] overflow-y-auto p-0">
         {children}
       </div>
     </details>

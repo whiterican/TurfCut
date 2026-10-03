@@ -29,7 +29,7 @@ export async function signUp(_prev: SignupState, fd: FormData): Promise<SignupSt
   if (!v.ok) return { message: "Fix the highlighted fields.", errors: v.errors, values };
   const { accountType, name, email, password, phone } = v.value;
   const who = clientKey(await headers());
-  if (!allow("signup", who)) return { message: `Too many sign-ups from this connection. Try again in ${Math.ceil(retryAfter("signup", who) / 60)} minutes.`, errors: {}, values };
+  if (who && !allow("signup", who)) return { message: `Too many sign-ups from this connection. Try again in ${Math.ceil(retryAfter("signup", who) / 60)} minutes.`, errors: {}, values };
 
   let supabase;
   try {

@@ -383,16 +383,22 @@ API: `GET/POST /api/shifts`, `POST /api/shifts/:id/check-in` `{ location? }`
 
 - **Sentry** (optional): set `SENTRY_DSN` (server) and `NEXT_PUBLIC_SENTRY_DSN`
   (browser) in `.env.local`. Without them nothing is initialised and the app
-  runs exactly as before. Only errors and stacks are sent: request bodies,
-  cookies, headers and user ids are stripped (`src/instrumentation.ts`).
+  runs exactly as before. Only errors and stacks are sent: collection of
+  IPs, cookies, headers, bodies and query strings is switched off and a
+  final scrub drops anything left (`src/instrumentation.ts`).
   `src/app/global-error.tsx` reports a crashed page and offers a reload.
-- **Rate limits** (`lib/rate-limit.ts`): sign-in 10 per 10 minutes and
-  sign-up 5 per hour per connection; offline sync 60 batches a minute per
-  worker (the phone treats a 429 as "retry later"). In memory per server
-  process, so on serverless hosting each instance counts on its own; it is
-  a floor beneath Supabase Auth's own limits, not a wall. Moving to a
-  shared store (Postgres table or Upstash) only changes the store inside
-  that file.
+- **Rate limits** (`lib/rate-limit.ts`): password sign-in 10 per 10 minutes
+  per connection and 20 per address from anywhere; sign-in links 5 per 10
+  minutes and sign-up 5 per hour per connection; offline sync 60 batches a
+  minute per worker (the phone treats a 429 as "retry later"). The
+  connection is read only from headers the host sets itself (Cloudflare,
+  Fly, Vercel, `x-real-ip`); behind your own reverse proxy set
+  `TRUSTED_PROXY_HOPS` to the number of proxies so `x-forwarded-for` is read
+  from the trusted end. With no known address the per-connection limit is
+  skipped rather than shared by everyone. In memory per server process, so
+  on serverless hosting each instance counts on its own; it is a floor
+  beneath Supabase Auth's own limits, not a wall. Moving to a shared store
+  (Postgres table or Upstash) only changes the store inside that file.
 
 ## M7 scope — field truth and leaving cleanly
 

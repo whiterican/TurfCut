@@ -24,8 +24,11 @@ export async function logIn(_prev: LoginState, fd: FormData): Promise<LoginState
   const intent = fd.get("intent") === "link" ? "link" : "password";
   const next = safeNext(fd.get("next"));
   if (!EMAIL_RE.test(email)) return { ok: false, message: "Enter a valid email address.", email };
+  // Per connection (when the host tells us one) and, for passwords, per address from anywhere.
   const who = clientKey(await headers());
-  if (!allow("login", who)) return { ok: false, message: `Too many sign-in attempts. Try again in ${Math.ceil(retryAfter("login", who) / 60)} minutes.`, email };
+  const bucket = intent === "link" ? "link" : "login";
+  if (who && !allow(bucket, who)) return { ok: false, message: `Too many sign-in attempts. Try again in ${Math.ceil(retryAfter(bucket, who) / 60)} minutes.`, email };
+  if (intent === "password" && !allow("login-email", email)) return { ok: false, message: `Too many sign-in attempts for this address. Try again in ${Math.ceil(retryAfter("login-email", email) / 60)} minutes, or use a sign-in link.`, email };
 
   let supabase;
   try {

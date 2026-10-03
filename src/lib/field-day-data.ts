@@ -106,6 +106,9 @@ export async function scheduleShift(
   return db().$transaction(async (tx) => {
     // One worker, many campaigns: the conflict check spans every engagement.
     await lock(tx, `worker:${e.workerId}`);
+    // Closure takes the same lock first, so this can't race it.
+    const w = await tx.worker.findUniqueOrThrow({ where: { id: e.workerId }, select: { closedAt: true } });
+    if (w.closedAt) return { ok: false as const, reason: "This worker has closed their account." };
     const theirs = await tx.shift.findMany({
       where: { engagement: { workerId: e.workerId }, endsAt: { gt: v.value.startsAt }, startsAt: { lt: v.value.endsAt } },
       select: { startsAt: true, endsAt: true, status: true },

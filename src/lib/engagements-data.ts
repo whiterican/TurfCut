@@ -70,11 +70,13 @@ async function open(
 
   return db().$transaction(async (tx) => {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`job:${jobId}`}))`;
-    const [existing, acceptedCount, fresh] = await Promise.all([
+    const [existing, acceptedCount, fresh, wk] = await Promise.all([
       tx.engagement.findUnique({ where: { jobId_workerId: { jobId, workerId } } }),
       tx.engagement.count({ where: { jobId, status: { in: ACCEPTED_STATUSES } } }),
       tx.job.findUniqueOrThrow({ where: { id: jobId } }),
+      tx.worker.findUniqueOrThrow({ where: { id: workerId }, select: { closedAt: true } }),
     ]);
+    if (wk.closedAt) return { ok: false as const, reason: "This worker has closed their account." };
     const t = transition(existing?.status ?? null, action, actor.kind, {
       jobStatus: fresh.status,
       hiringModes: readHiringModes(fresh.hiringMethod),

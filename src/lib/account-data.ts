@@ -15,8 +15,15 @@ export async function closureFacts(workerId: string, c: Client = db()): Promise<
     c.payout.findMany({ where: { workerId }, include: { events: true, disputes: { select: { resolution: { select: { id: true } } } } } }),
     c.payDispute.count({ where: { workerId, resolution: null } }),
     c.shift.count({ where: { engagement: { workerId }, status: "ACTIVE" } }),
-    // Worked but not closed out: the pay isn't recorded yet, so "nothing owed" can't be known.
-    c.shift.count({ where: { engagement: { workerId }, status: "COMPLETED", validations: { none: { workEventId: null } } } }),
+    // Worked shifts whose pay isn't settled yet: no closeout, or approved
+    // but every SHIFT line withdrawn (a recount or correction awaits re-approval).
+    c.shift.findMany({
+      where: { engagement: { workerId }, status: "COMPLETED" },
+      select: {
+        validations: { where: { workEventId: null }, orderBy: { createdAt: "desc" }, take: 1, select: { status: true } },
+        payouts: { where: { kind: "SHIFT" }, select: { events: { where: { type: "VOIDED" }, select: { id: true } } } },
+      },
+    }).then((shifts) => shifts.filter((s) => !s.validations.length || (s.validations[0].status === "APPROVED" && !s.payouts.some((l) => !l.events.length))).length),
   ]);
   let unpaidLines = 0;
   let transfersInFlight = 0;
@@ -39,10 +46,11 @@ export type CloseResult = { ok: true; cancelledShifts: number } | { ok: false; p
  */
 export async function closeAccount(actor: { userId: string; workerId: string }, now = new Date(), opts: { unsyncedEntries?: number } = {}): Promise<CloseResult> {
   const result = await db().$transaction(async (tx) => {
-    // Lock order everywhere else is shift → pay, so: the account, then the
-    // unstarted shifts (sorted), then pay. A shift that starts between the
-    // listing and its lock is left alone (the update is conditional).
-    await lock(tx, `account:${actor.workerId}`);
+    // Lock order everywhere else is worker (scheduling) or shift → pay, so:
+    // the worker, then the unstarted shifts (sorted), then pay. A shift that
+    // starts between the listing and its lock is left alone (the update is
+    // conditional).
+    await lock(tx, `worker:${actor.workerId}`);
     const worker = await tx.worker.findUnique({ where: { id: actor.workerId }, select: { closedAt: true, profileId: true } });
     if (!worker || worker.profileId !== actor.userId) return { ok: false as const, problems: ["Account not found."] };
     if (worker.closedAt) return { ok: false as const, problems: ["This account is already closed."] };

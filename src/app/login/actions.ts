@@ -48,7 +48,7 @@ export async function logIn(_prev: LoginState, fd: FormData): Promise<LoginState
 
   const password = String(fd.get("password") ?? "");
   if (!password) return { ok: false, message: "Enter your password, or email yourself a sign-in link.", email };
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   // Supabase checks the password before confirmation, so this message
   // needs the right password — it doesn't reveal who has an account.
   if (error?.code === "email_not_confirmed") {
@@ -57,7 +57,6 @@ export async function logIn(_prev: LoginState, fd: FormData): Promise<LoginState
   if (error) return { ok: false, message: "That email and password don't match. Try again, or use a sign-in link.", email };
   // A closed account whose login outlived the closure (the admin delete
   // failed) is signed straight back out — it's closed, not locked out.
-  const { data } = await supabase.auth.getUser();
   if (data.user && (await closed(data.user.id))) {
     await supabase.auth.signOut();
     redirect("/login?closed=1");

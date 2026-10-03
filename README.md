@@ -379,6 +379,29 @@ API: `GET/POST /api/shifts`, `POST /api/shifts/:id/check-in` `{ location? }`
   or one a supervisor already reviewed, are refused with that reason — a
   supervisor enters the work instead.
 
+## Infra — error reporting and rate limits
+
+- **Sentry** (optional): set `SENTRY_DSN` (server) and `NEXT_PUBLIC_SENTRY_DSN`
+  (browser) in `.env.local`. Without them nothing is initialised and the app
+  runs exactly as before. Only errors and stacks are sent: collection of
+  IPs, cookies, headers, bodies and query strings is switched off and a
+  final scrub drops anything left (`src/instrumentation.ts`).
+  `src/app/global-error.tsx` reports a crashed page and offers a reload.
+- **Rate limits** (`lib/rate-limit.ts`): password sign-in 10 per 10 minutes
+  per connection and 20 per address from anywhere; sign-in links 5 per 10
+  minutes and sign-up 5 per hour per connection; offline sync 60 batches a
+  minute per worker (the phone treats a 429 as "retry later"). No header
+  is trusted for the client's address until the deployment names one:
+  `CLIENT_IP_HEADER` (a header the platform sets itself, e.g.
+  `x-vercel-forwarded-for`, `cf-connecting-ip`, `fly-client-ip`) or
+  `TRUSTED_PROXY_HOPS` (behind your own proxy, so `x-forwarded-for` is read
+  from the trusted end). With neither set the per-connection limits are
+  skipped rather than shared by everyone; the per-email and per-worker
+  limits still apply. In memory per server process, so
+  on serverless hosting each instance counts on its own; it is a floor
+  beneath Supabase Auth's own limits, not a wall. Moving to a shared store
+  (Postgres table or Upstash) only changes the store inside that file.
+
 ## M7 scope — field truth and leaving cleanly
 
 - **Supervisor corrections.** On a shift's activity log, an owner or

@@ -81,6 +81,7 @@
   --hero-muted: #d0c7d7;
   /* Gold: rims only, never fills or text. */
   --gold: #f3cf6e;
+  --gold-deep: #a8781e;
   --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 12px 32px -16px rgb(0 0 0 / 0.6);
   color-scheme: dark;
 }
@@ -195,8 +196,15 @@ body {
     background: var(--lime);
     color: var(--ink);
   }
+  /* Dark mode: a true gold border (same width on every edge and corner,
+     never clipped), and a deep-gold coin inside the corner highlight. */
   .dark .hero-card-lime {
-    box-shadow: 0 0 0 5px var(--gold), var(--shadow);
+    border: 5px solid var(--gold);
+  }
+  .dark .hero-card-lime::before {
+    content: "";
+    @apply pointer-events-none absolute top-3 right-3 z-[1] size-10 rounded-full;
+    background: var(--gold-deep);
   }
   .hero-card.hero-card-lime::after {
     background: color-mix(in srgb, white 35%, var(--lime));

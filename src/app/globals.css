@@ -190,13 +190,13 @@ body {
     @apply pointer-events-none absolute -top-10 -right-10 size-32 rounded-full;
     background: var(--lime);
   }
-  /* The worker's next shift (mockup): a bright lime card with dark ink. */
+  /* The worker's next shift (mockup): a bright accent card with dark ink. */
   .hero-card-lime {
     background: var(--lime);
     color: var(--ink);
   }
   .dark .hero-card-lime {
-    box-shadow: inset 0 0 0 1.5px var(--gold), var(--shadow);
+    box-shadow: 0 0 0 1.5px var(--gold), var(--shadow);
   }
   .hero-card.hero-card-lime::after {
     background: color-mix(in srgb, white 35%, var(--lime));

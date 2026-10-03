@@ -62,9 +62,8 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     env:
-      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: dummy-anon-key
-      SUPABASE_SERVICE_ROLE_KEY: dummy-service-role-key
+      # No Supabase vars on purpose: the clients are lazy, and account
+      # closure's auth-user delete then fails fast instead of calling out.
       PGURL: postgresql://postgres:postgres@localhost:5432
     steps:
       - uses: actions/checkout@v4

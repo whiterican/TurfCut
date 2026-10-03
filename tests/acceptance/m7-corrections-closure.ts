@@ -1,4 +1,5 @@
 /* M7 acceptance checks: supervisor corrections, account closure, data export, against a fresh database (tests/acceptance/run.sh). */
+import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { supervisorCorrection, supervisorShiftAction, loadShift, facts, scheduleShift } from "@/lib/field-day-data";
 import { activeTime, shiftState } from "@/lib/field-day";
@@ -11,7 +12,7 @@ import { closeAccount, closureFacts, exportAccount } from "@/lib/account-data";
 import { closureProblems, CLOSED_NAME } from "@/lib/account-closure";
 import { inviteWorker } from "@/lib/engagements-data";
 import { personName } from "@/lib/chat-data";
-import { cancellationOf } from "@/lib/scorecard";
+import { cancellationOf, type ScorecardShift } from "@/lib/scorecard";
 
 const ORG = "00000000-0000-0000-0000-000000000001";
 const ORG2 = "00000000-0000-0000-0000-000000000002";
@@ -160,9 +161,9 @@ const approve = (id: string) => supervisorShiftAction(supA, id, { kind: "closeou
   // A second worker (Jordan) with a future shift, an open application and a pay history.
   const W2 = "00000000-0000-0000-0000-000000000102", W2P = "00000000-0000-0000-0000-000000000102";
   const JOB = "00000000-0000-0000-0000-000000000011";
-  const jobRow = await p.job.findUniqueOrThrow({ where: { id: JOB } });
-  const jobA = Object.fromEntries(Object.entries(jobRow).filter(([k]) => !["id", "createdAt", "updatedAt"].includes(k)));
-  const job2 = await p.job.create({ data: { ...(jobA as never as Record<string, never>), title: "Second job", startsAt: new Date(Date.now() + 2 * 24 * H), endsAt: new Date(Date.now() + 9 * 24 * H) } as never });
+  const { id: _id, createdAt: _c, updatedAt: _u, ...jobA } = await p.job.findUniqueOrThrow({ where: { id: JOB } });
+  void _id; void _c; void _u;
+  const job2 = await p.job.create({ data: { ...(jobA as Prisma.JobUncheckedCreateInput), title: "Second job", startsAt: new Date(Date.now() + 2 * 24 * H), endsAt: new Date(Date.now() + 9 * 24 * H) } });
   const eng2 = await p.engagement.create({ data: { jobId: JOB, workerId: W2, status: "ACTIVE", hiredById: OWNER } });
   const applied = await p.engagement.create({ data: { jobId: job2.id, workerId: W2, status: "APPLIED" } });
   const prefBefore = await p.politicalPreference.count({ where: { workerId: W2 } });
@@ -205,7 +206,8 @@ const approve = (id: string) => supervisorShiftAction(supA, id, { kind: "closeou
   const f2 = await p.shift.findUniqueOrThrow({ where: { id: future2.id }, include: { events: true } });
   const cancelEv = f2.events.find((e) => e.type === "SHIFT_CANCELLED");
   check("the future shift is cancelled in the worker's name, marked as an account closure", f2.status === "CANCELLED" && (cancelEv?.payload as Record<string, unknown>)?.accountClosed === true && (cancelEv?.payload as Record<string, unknown>)?.by === "WORKER", f2);
-  check("…which the scorecard treats as excused, never a no-show", cancellationOf({ id: f2.id, startsAt: f2.startsAt, endsAt: f2.endsAt, scheduledAt: f2.createdAt, status: "CANCELLED", workType: "PETITION", engagementStatus: "ACTIVE", cancellationNoticeHours: 24, events: f2.events.map((e) => ({ id: e.id, type: e.type, payload: e.payload, createdAt: e.createdAt })), validations: [] } as never) === "excused");
+  const asScorecardShift: ScorecardShift = { id: f2.id, engagementId: eng2.id, state: "CO", startsAt: f2.startsAt, endsAt: f2.endsAt, scheduledAt: f2.createdAt, status: "CANCELLED", workType: "PETITION", engagementStatus: "ACTIVE", cancellationNoticeHours: 24, events: f2.events.map((e) => ({ id: e.id, type: e.type, payload: e.payload, createdAt: e.createdAt })), validations: [] };
+  check("…which the scorecard treats as excused, never a no-show", cancellationOf(asScorecardShift) === "excused");
   check("the open application is withdrawn; the worked engagement stays", (await p.engagement.findUniqueOrThrow({ where: { id: applied.id } })).status === "CANCELLED" && (await p.engagement.findUniqueOrThrow({ where: { id: eng2.id } })).status === "ACTIVE");
   check("audit records the closure", !!(await p.auditEvent.findFirst({ where: { action: "account.closed", entityId: W2P } })));
   check("(no Supabase here) the login deletion failure is recorded, not hidden", !!(await p.auditEvent.findFirst({ where: { action: "account.login_delete_failed", entityId: W2P } })));

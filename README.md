@@ -58,8 +58,10 @@ built from `prisma/supabase-manual-setup.sql` plus the seed and exercises
 the data layer end to end (locks under contention, append-only rules, pay
 lines and transfers, offline sync ordering, corrections, closure, export).
 Locally: `PGURL=postgresql://postgres@localhost:5432 npm run test:acceptance`
-(add `PGQUERY="?host=/tmp"` for a Unix socket). They create and drop
-`turfcut_acc_*` databases on that server.
+(add `PGQUERY="?host=/tmp"` for a Unix socket). They drop and recreate
+`turfcut_acc_*` databases on that server and leave them for inspection.
+They run as the connection role through Prisma, as the app does, so they
+exercise the locks, triggers and data rules, not the RLS policies.
 
 ## What needs Caden (only you can do these)
 

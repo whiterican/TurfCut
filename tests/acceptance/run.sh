@@ -4,18 +4,24 @@
 # data layer end to end (locks, append-only rules, pay, sync, closure).
 #
 # Usage: PGURL=postgresql://user:pass@host:port tests/acceptance/run.sh [m5|m6|m7 ...]
+# Needs bash 4+ (macOS: brew install bash).
 # PGURL points at the server (database "postgres"); the script creates
 # turfcut_acc_<name> databases and drops them first if they exist. PGQUERY
 # adds connection options to every URL, e.g. PGQUERY="?host=/tmp" for a
-# Unix socket.
+# Unix socket. The databases are left in place after the run for inspection.
+#
+# A setup failure (psql, seed) stops the run; a FAIL inside a script is
+# reported and the remaining scripts still run, then the exit code is 1.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 PGURL="${PGURL:-postgresql://postgres@localhost:5432}"
+PGURL="${PGURL%/}"
 PGQUERY="${PGQUERY:-}"
 P="psql -v ON_ERROR_STOP=1 -q -X"
 export PGOPTIONS="-c client_min_messages=warning"
 checks=("$@"); [ ${#checks[@]} -eq 0 ] && checks=(m5 m6 m7)
 declare -A FILE=([m5]=m5-payouts.ts [m6]=m6-offline.ts [m7]=m7-corrections-closure.ts)
+for c in "${checks[@]}"; do [[ -v FILE[$c] ]] || { echo "unknown check: $c (m5, m6, m7)"; exit 2; }; done
 fail=0
 for c in "${checks[@]}"; do
   db="turfcut_acc_$c"

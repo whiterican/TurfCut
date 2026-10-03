@@ -227,7 +227,7 @@ body {
   .hero-card-plain::after {
     display: none;
   }
-  .hero-card-plain .eyebrow {
+  .hero-card.hero-card-plain .eyebrow {
     max-width: none;
   }
   .hero-card > * {

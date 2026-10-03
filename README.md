@@ -46,10 +46,20 @@ npm run dev   # → http://localhost:3000
 | `npm run seed`     | Seed the database (`prisma/seed.ts`)      |
 | `npm run db:push`  | Push Prisma schema to the database        |
 | `npm run db:generate` | Regenerate the Prisma client           |
+| `npm run test:acceptance` | Data-layer checks on a real Postgres (`tests/acceptance/`) |
 
 CI (`.github/workflows/ci.yml`) runs on pushes to `master` and on every PR:
 `prisma generate` → `prisma validate` → typecheck → lint → test → build,
-using dummy env values (no real DB touched).
+using dummy env values (no real DB touched); a second job runs the
+acceptance checks against a throwaway Postgres 16 service.
+
+Acceptance checks (`tests/acceptance/`): each script gets a fresh database
+built from `prisma/supabase-manual-setup.sql` plus the seed and exercises
+the data layer end to end (locks under contention, append-only rules, pay
+lines and transfers, offline sync ordering, corrections, closure, export).
+Locally: `PGURL=postgresql://postgres@localhost:5432 npm run test:acceptance`
+(add `PGQUERY="?host=/tmp"` for a Unix socket). They create and drop
+`turfcut_acc_*` databases on that server.
 
 ## What needs Caden (only you can do these)
 

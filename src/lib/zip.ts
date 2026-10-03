@@ -46,7 +46,7 @@ export function csvTable(rows: Array<Record<string, unknown>>, columns?: string[
   const cols = columns ?? [...new Set(rows.flatMap((r) => Object.keys(r)))];
   const cell = (v: unknown) => {
     let s = v === null || v === undefined ? "" : v instanceof Date ? v.toISOString() : typeof v === "object" ? JSON.stringify(v) : String(v);
-    if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
+    if (typeof v !== "number" && /^[=+\-@\t\r]/.test(s)) s = `'${s}`;
     return `"${s.replace(/"/g, '""')}"`;
   };
   return "﻿" + [cols.map(cell).join(","), ...rows.map((r) => cols.map((c) => cell(r[c])).join(","))].join("\r\n") + "\r\n";

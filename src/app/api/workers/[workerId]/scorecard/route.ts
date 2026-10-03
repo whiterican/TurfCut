@@ -38,9 +38,9 @@ export async function GET(
 
   const worker = await db().worker.findUnique({
     where: { id: workerId },
-    select: { id: true },
+    select: { id: true, closedAt: true },
   });
-  if (!worker) {
+  if (!worker || worker.closedAt) {
     return Response.json({ error: "Worker not found." }, { status: 404 });
   }
 

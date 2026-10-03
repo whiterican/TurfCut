@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { EMAIL_RE, safeNext } from "@/lib/auth-input";
 import { siteOrigin } from "@/lib/site-origin";
+import { db } from "@/lib/db";
 
 export interface LoginState {
   ok: boolean;
@@ -54,5 +55,20 @@ export async function logIn(_prev: LoginState, fd: FormData): Promise<LoginState
     return { ok: false, message: "Confirm your email first — check your inbox — or use a sign-in link below.", email };
   }
   if (error) return { ok: false, message: "That email and password don't match. Try again, or use a sign-in link.", email };
+  // A closed account whose login outlived the closure (the admin delete
+  // failed) is signed straight back out — it's closed, not locked out.
+  const { data } = await supabase.auth.getUser();
+  if (data.user && (await closed(data.user.id))) {
+    await supabase.auth.signOut();
+    redirect("/login?closed=1");
+  }
   redirect(next);
+}
+
+async function closed(userId: string): Promise<boolean> {
+  try {
+    return !!(await db().profile.findUnique({ where: { id: userId }, select: { closedAt: true } }))?.closedAt;
+  } catch {
+    return false;
+  }
 }

@@ -85,10 +85,11 @@ export async function scheduleShift(
   if (!UUID_RE.test(engagementId)) return { ok: false, reason: "Engagement not found." };
   const e = await db().engagement.findUnique({
     where: { id: engagementId },
-    include: { job: { include: { jurisdiction: true } } },
+    include: { job: { include: { jurisdiction: true } }, worker: { select: { closedAt: true } } },
   });
   if (!e || e.job.orgId !== actor.orgId) return { ok: false, reason: "Engagement not found." };
   if (e.status !== "ACTIVE" && e.status !== "CLAIMED") return { ok: false, reason: "Only hired workers can be scheduled." };
+  if (e.worker.closedAt) return { ok: false, reason: "This worker has closed their account." };
   if (e.job.status !== "PUBLISHED") return { ok: false, reason: "The job isn't open." };
   // Jurisdiction hard stop: a rule change freezes new shifts until re-approved.
   const freeze = canScheduleShift(e.job.jurisdiction, now);

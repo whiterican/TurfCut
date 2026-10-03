@@ -14,7 +14,14 @@ export async function POST(req: Request) {
   const body = (await req.json().catch(() => null)) as { confirm?: unknown; unsyncedEntries?: unknown } | null;
   if (!confirmed(body?.confirm)) return Response.json({ error: "Type the confirmation phrase exactly." }, { status: 400 });
   const unsyncedEntries = typeof body?.unsyncedEntries === "number" && Number.isFinite(body.unsyncedEntries) ? Math.max(0, Math.floor(body.unsyncedEntries)) : 0;
-  const r = await closeAccount({ userId: auth.session.userId, workerId: auth.session.workerId }, new Date(), { unsyncedEntries });
+  let r;
+  try {
+    r = await closeAccount({ userId: auth.session.userId, workerId: auth.session.workerId }, new Date(), { unsyncedEntries });
+  } catch (e) {
+    console.error("[turfcut] closing an account failed", auth.session.userId, e);
+    const busy = "Something else is happening on your account right now (a review, a pay run or a sync). Try again in a minute.";
+    return Response.json({ error: busy, problems: [busy] }, { status: 409 });
+  }
   if (!r.ok) return Response.json({ error: r.problems[0], problems: r.problems }, { status: 409 });
   try {
     await (await createClient()).auth.signOut();

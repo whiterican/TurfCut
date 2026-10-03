@@ -11,10 +11,12 @@ const lock = (tx: Prisma.TransactionClient, key: string) => tx.$executeRaw`SELEC
 
 /** What stands between this worker and closing their account, from the database. */
 export async function closureFacts(workerId: string, c: Client = db()): Promise<ClosureFacts> {
-  const [lines, openDisputes, liveShifts] = await Promise.all([
+  const [lines, openDisputes, liveShifts, pendingReviews] = await Promise.all([
     c.payout.findMany({ where: { workerId }, include: { events: true, disputes: { select: { resolution: { select: { id: true } } } } } }),
     c.payDispute.count({ where: { workerId, resolution: null } }),
     c.shift.count({ where: { engagement: { workerId }, status: "ACTIVE" } }),
+    // Worked but not closed out: the pay isn't recorded yet, so "nothing owed" can't be known.
+    c.shift.count({ where: { engagement: { workerId }, status: "COMPLETED", validations: { none: { workEventId: null } } } }),
   ]);
   let unpaidLines = 0;
   let transfersInFlight = 0;
@@ -23,7 +25,7 @@ export async function closureFacts(workerId: string, c: Client = db()): Promise<
     if (st.status === "PROCESSING") transfersInFlight++;
     else if (st.status !== "VOIDED" && st.status !== "PAID" && st.status !== "NOTHING_DUE") unpaidLines++;
   }
-  return { unpaidLines, openDisputes, liveShifts, transfersInFlight };
+  return { unpaidLines, openDisputes, liveShifts, pendingReviews, transfersInFlight };
 }
 
 export type CloseResult = { ok: true; cancelledShifts: number } | { ok: false; problems: string[] };
@@ -37,30 +39,36 @@ export type CloseResult = { ok: true; cancelledShifts: number } | { ok: false; p
  */
 export async function closeAccount(actor: { userId: string; workerId: string }, now = new Date(), opts: { unsyncedEntries?: number } = {}): Promise<CloseResult> {
   const result = await db().$transaction(async (tx) => {
-    await lock(tx, `pay:${actor.workerId}`);
+    // Lock order everywhere else is shift → pay, so: the account, then the
+    // unstarted shifts (sorted), then pay. A shift that starts between the
+    // listing and its lock is left alone (the update is conditional).
     await lock(tx, `account:${actor.workerId}`);
     const worker = await tx.worker.findUnique({ where: { id: actor.workerId }, select: { closedAt: true, profileId: true } });
     if (!worker || worker.profileId !== actor.userId) return { ok: false as const, problems: ["Account not found."] };
     if (worker.closedAt) return { ok: false as const, problems: ["This account is already closed."] };
+    const future = (await tx.shift.findMany({ where: { engagement: { workerId: actor.workerId }, status: "SCHEDULED", endsAt: { gt: now } }, select: { id: true }, orderBy: { id: "asc" } })).map((s) => s.id);
+    for (const id of future) await lock(tx, `shift:${id}`);
+    await lock(tx, `pay:${actor.workerId}`);
     const problems = closureProblems({ ...(await closureFacts(actor.workerId, tx)), unsyncedEntries: opts.unsyncedEntries });
     if (problems.length) return { ok: false as const, problems };
 
-    // Future shifts: cancelled in the worker's name, marked as an account
+    // Unstarted shifts: cancelled in the worker's name, marked as an account
     // closure so the scorecard treats it as excused, never as a no-show.
-    const future = await tx.shift.findMany({ where: { engagement: { workerId: actor.workerId }, status: "SCHEDULED", endsAt: { gt: now } }, select: { id: true } });
     const payload = { by: "WORKER", reason: "Account closed", accountClosed: true };
-    for (const s of future) {
-      await lock(tx, `shift:${s.id}`);
-      await tx.workEvent.create({ data: { shiftId: s.id, type: "SHIFT_CANCELLED", payload, actorId: actor.userId, createdAt: now } });
-      await tx.shift.update({ where: { id: s.id }, data: { status: "CANCELLED" } });
-      await tx.auditEvent.create({ data: { actorId: actor.userId, action: "shift.cancelled", entityType: "Shift", entityId: s.id, metadata: payload, createdAt: now } });
+    let cancelled = 0;
+    for (const id of future) {
+      const { count } = await tx.shift.updateMany({ where: { id, status: "SCHEDULED" }, data: { status: "CANCELLED" } });
+      if (!count) continue; // started in the meantime — closure is refused by the live-shift check above, so this can't normally happen
+      cancelled++;
+      await tx.workEvent.create({ data: { shiftId: id, type: "SHIFT_CANCELLED", payload, actorId: actor.userId, createdAt: now } });
+      await tx.auditEvent.create({ data: { actorId: actor.userId, action: "shift.cancelled", entityType: "Shift", entityId: id, metadata: payload, createdAt: now } });
     }
     await tx.engagement.updateMany({ where: { workerId: actor.workerId, status: { in: ["APPLIED", "INVITED"] } }, data: { status: "CANCELLED" } });
 
     await tx.worker.update({ where: { id: actor.workerId }, data: { displayName: CLOSED_NAME, phone: null, closedAt: now } });
     await tx.profile.update({ where: { id: actor.userId }, data: { displayName: null, closedAt: now } });
-    await tx.auditEvent.create({ data: { actorId: actor.userId, action: "account.closed", entityType: "Profile", entityId: actor.userId, metadata: { cancelledShifts: future.length }, createdAt: now } });
-    return { ok: true as const, cancelledShifts: future.length };
+    await tx.auditEvent.create({ data: { actorId: actor.userId, action: "account.closed", entityType: "Profile", entityId: actor.userId, metadata: { cancelledShifts: cancelled }, createdAt: now } });
+    return { ok: true as const, cancelledShifts: cancelled };
   });
   if (!result.ok) return result;
 
@@ -90,7 +98,7 @@ export async function exportAccount(actor: { userId: string; workerId: string; e
   const w = actor.workerId;
   const [worker, experience, preferences, metrics, engagements, shifts, lines, transfers, disputes, messages] = await Promise.all([
     p.worker.findUniqueOrThrow({ where: { id: w }, select: { id: true, displayName: true, phone: true, createdAt: true, closedAt: true, payoutsEnabled: true, stripeAccountId: true } }),
-    p.experienceRecord.findMany({ where: { workerId: w }, orderBy: { startDate: "desc" } }),
+    p.experienceRecord.findMany({ where: { workerId: w }, omit: { verifiedById: true }, orderBy: { startDate: "desc" } }),
     p.politicalPreference.findMany({ where: { workerId: w }, orderBy: { consentVersion: "asc" } }),
     p.profileMetric.findMany({ where: { workerId: w }, orderBy: { version: "asc" } }),
     p.engagement.findMany({ where: { workerId: w }, include: { job: { select: { id: true, title: true, org: { select: { name: true } } } } }, orderBy: { createdAt: "asc" } }),

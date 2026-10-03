@@ -42,12 +42,13 @@ describe("data export files (M7)", () => {
   it("CSV: every cell quoted, quotes doubled, dates as ISO, objects as JSON, formulas defused", () => {
     const csv = csvTable([
       { id: 1, name: 'Ann "Q" Lee', at: new Date("2026-09-28T09:00:00Z"), payload: { count: 3 }, note: "=SUM(A1)", empty: null },
-      { id: 2, name: "Bo", extra: "x" },
+      { id: 2, name: "Bo", extra: "x", amount: -500, note: "-not a number" },
     ]);
     const lines = csv.replace(/^﻿/, "").split("\r\n");
-    expect(lines[0]).toBe('"id","name","at","payload","note","empty","extra"');
-    expect(lines[1]).toBe('"1","Ann ""Q"" Lee","2026-09-28T09:00:00.000Z","{""count"":3}","\'=SUM(A1)","",""');
-    expect(lines[2]).toBe('"2","Bo","","","","","x"');
+    expect(lines[0]).toBe('"id","name","at","payload","note","empty","extra","amount"');
+    expect(lines[1]).toBe('"1","Ann ""Q"" Lee","2026-09-28T09:00:00.000Z","{""count"":3}","\'=SUM(A1)","","",""');
+    // a negative number stays a number; a dash-led string is defused
+    expect(lines[2]).toBe('"2","Bo","","","\'-not a number","","x","-500"');
     expect(csv.startsWith("﻿")).toBe(true);
     expect(csvTable([{ a: 1 }], ["a", "b"]).split("\r\n")[0]).toBe('\uFEFF"a","b"');
   });

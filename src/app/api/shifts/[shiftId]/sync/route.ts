@@ -1,3 +1,4 @@
+import { allow, retryAfter } from "@/lib/rate-limit";
 import { apiWorker, badId } from "@/lib/api-session";
 import { syncWorkerActions } from "@/lib/field-day-data";
 import { MAX_BATCH, readQueued, type QueuedAction } from "@/lib/offline-sync";
@@ -15,6 +16,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ shiftId
   if (bad) return bad;
   const auth = await apiWorker();
   if ("error" in auth) return auth.error;
+  if (!allow("sync", auth.session.workerId)) {
+    return Response.json({ error: "Syncing too often. The phone will retry in a minute." }, { status: 429, headers: { "Retry-After": String(retryAfter("sync", auth.session.workerId)) } });
+  }
   const b = (await req.json().catch(() => null)) as { deviceNow?: unknown; actions?: unknown } | null;
   if (!b || typeof b.deviceNow !== "number" || !Array.isArray(b.actions)) return Response.json({ error: "Send { deviceNow, actions }." }, { status: 400 });
   if (b.actions.length === 0 || b.actions.length > MAX_BATCH) return Response.json({ error: `Send 1 to ${MAX_BATCH} actions.` }, { status: 400 });

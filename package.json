@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "@prisma/client": "^6.16.0",
+    "@sentry/nextjs": "^11.4.0",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.117.2",
     "leaflet": "1.9.4",

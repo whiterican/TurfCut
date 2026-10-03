@@ -1,6 +1,8 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
+import { allow, clientKey, retryAfter } from "@/lib/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 import { EMAIL_RE, safeNext } from "@/lib/auth-input";
 import { siteOrigin } from "@/lib/site-origin";
@@ -22,6 +24,8 @@ export async function logIn(_prev: LoginState, fd: FormData): Promise<LoginState
   const intent = fd.get("intent") === "link" ? "link" : "password";
   const next = safeNext(fd.get("next"));
   if (!EMAIL_RE.test(email)) return { ok: false, message: "Enter a valid email address.", email };
+  const who = clientKey(await headers());
+  if (!allow("login", who)) return { ok: false, message: `Too many sign-in attempts. Try again in ${Math.ceil(retryAfter("login", who) / 60)} minutes.`, email };
 
   let supabase;
   try {

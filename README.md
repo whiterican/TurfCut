@@ -379,6 +379,21 @@ API: `GET/POST /api/shifts`, `POST /api/shifts/:id/check-in` `{ location? }`
   or one a supervisor already reviewed, are refused with that reason — a
   supervisor enters the work instead.
 
+## Infra — error reporting and rate limits
+
+- **Sentry** (optional): set `SENTRY_DSN` (server) and `NEXT_PUBLIC_SENTRY_DSN`
+  (browser) in `.env.local`. Without them nothing is initialised and the app
+  runs exactly as before. Only errors and stacks are sent: request bodies,
+  cookies, headers and user ids are stripped (`src/instrumentation.ts`).
+  `src/app/global-error.tsx` reports a crashed page and offers a reload.
+- **Rate limits** (`lib/rate-limit.ts`): sign-in 10 per 10 minutes and
+  sign-up 5 per hour per connection; offline sync 60 batches a minute per
+  worker (the phone treats a 429 as "retry later"). In memory per server
+  process, so on serverless hosting each instance counts on its own; it is
+  a floor beneath Supabase Auth's own limits, not a wall. Moving to a
+  shared store (Postgres table or Upstash) only changes the store inside
+  that file.
+
 ## M7 scope — field truth and leaving cleanly
 
 - **Supervisor corrections.** On a shift's activity log, an owner or

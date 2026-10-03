@@ -80,7 +80,7 @@
   --hero-fg: #f6f2f9;
   --hero-muted: #d0c7d7;
   /* Gold: rims only, never fills or text. */
-  --gold: #efcc7a;
+  --gold: #f3cf6e;
   --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 12px 32px -16px rgb(0 0 0 / 0.6);
   color-scheme: dark;
 }
@@ -196,7 +196,7 @@ body {
     color: var(--ink);
   }
   .dark .hero-card-lime {
-    box-shadow: 0 0 0 3px var(--gold), var(--shadow);
+    box-shadow: 0 0 0 5px var(--gold), var(--shadow);
   }
   .hero-card.hero-card-lime::after {
     background: color-mix(in srgb, white 35%, var(--lime));
@@ -505,7 +505,7 @@ body {
   .dark .tab[aria-current="page"] .tab-icon {
     color: var(--lime);
     background: color-mix(in srgb, var(--lime) 14%, transparent);
-    box-shadow: inset 0 0 0 1.5px var(--gold);
+    box-shadow: inset 0 0 0 2px var(--gold);
   }
   /* Icons inside buttons: sized to the text, never the hit target. */
   .btn-icon {

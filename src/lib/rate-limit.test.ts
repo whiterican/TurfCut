@@ -1,11 +1,10 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { _reset, allow, clientKey, LIMITS, retryAfter } from "./rate-limit";
 
 const h = (m: Record<string, string>) => ({ get: (n: string) => m[n.toLowerCase()] ?? null });
 
 describe("rate limit", () => {
   beforeEach(_reset);
-  afterEach(() => { delete process.env.TRUSTED_PROXY_HOPS; });
 
   it("allows up to the limit in a window, then refuses until it slides", () => {
     const t0 = 1_000_000;
@@ -34,14 +33,16 @@ describe("rate limit", () => {
     expect(s.has("sync:w1")).toBe(false); // one-minute window: gone
   });
 
-  it("trusts platform headers, never the client's own x-forwarded-for", () => {
-    expect(clientKey(h({ "cf-connecting-ip": "203.0.113.9", "x-forwarded-for": "6.6.6.6" }))).toBe("203.0.113.9");
-    expect(clientKey(h({ "x-real-ip": "198.51.100.2" }))).toBe("198.51.100.2");
-    expect(clientKey(h({ "x-forwarded-for": "6.6.6.6, 203.0.113.9" }))).toBeNull(); // no trusted hop count: unknown
-    process.env.TRUSTED_PROXY_HOPS = "1"; // one proxy: it appended the client's address last
-    expect(clientKey(h({ "x-forwarded-for": "6.6.6.6, 203.0.113.9" }))).toBe("203.0.113.9");
-    process.env.TRUSTED_PROXY_HOPS = "2"; // two proxies: the second appended the first's address
-    expect(clientKey(h({ "x-forwarded-for": "6.6.6.6, 203.0.113.9, 10.0.0.1" }))).toBe("203.0.113.9");
-    expect(clientKey(h({}))).toBeNull();
+  it("trusts only the header or hop count the deployment names", () => {
+    // nothing configured: no address, so no per-connection limit (never a shared bucket)
+    expect(clientKey(h({ "x-forwarded-for": "6.6.6.6, 203.0.113.9", "x-real-ip": "6.6.6.7" }), {})).toBeNull();
+    // a platform header, named explicitly: client-sent x-forwarded-for is ignored
+    expect(clientKey(h({ "cf-connecting-ip": "203.0.113.9", "x-forwarded-for": "6.6.6.6" }), { CLIENT_IP_HEADER: "CF-Connecting-IP" })).toBe("203.0.113.9");
+    expect(clientKey(h({ "x-forwarded-for": "6.6.6.6" }), { CLIENT_IP_HEADER: "x-real-ip" })).toBeNull();
+    // one proxy: it appended the client's address last; a forged x-real-ip is ignored
+    expect(clientKey(h({ "x-forwarded-for": "6.6.6.6, 203.0.113.9", "x-real-ip": "6.6.6.7" }), { TRUSTED_PROXY_HOPS: "1" })).toBe("203.0.113.9");
+    // two proxies: the second appended the first's address
+    expect(clientKey(h({ "x-forwarded-for": "6.6.6.6, 203.0.113.9, 10.0.0.1" }), { TRUSTED_PROXY_HOPS: "2" })).toBe("203.0.113.9");
+    expect(clientKey(h({}), { TRUSTED_PROXY_HOPS: "1" })).toBeNull();
   });
 });

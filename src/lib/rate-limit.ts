@@ -69,21 +69,21 @@ function sweep(s: Store, now: number) {
 }
 
 /**
- * The caller's address, or null when the deployment gives none (plain
- * `next start` with no proxy): callers then skip the per-connection limit
- * rather than lock every visitor into one shared bucket.
+ * The caller's address, or null when the deployment has not said which
+ * header to believe: callers then skip the per-connection limit rather than
+ * lock every visitor into one shared bucket.
  *
- * Only headers a hosting platform sets itself are trusted; a client can put
- * anything in x-forwarded-for, and a generic reverse proxy appends to it
- * rather than replacing it. Set TRUSTED_PROXY_HOPS to the number of proxies
- * in front of the app to read x-forwarded-for from the right end.
+ * Nothing is trusted by default. A client can send any header, and a
+ * generic reverse proxy forwards client headers unchanged and appends to
+ * x-forwarded-for rather than replacing it. So the deployment names exactly
+ * one source: CLIENT_IP_HEADER (a header the platform itself sets, such as
+ * cf-connecting-ip, fly-client-ip, x-vercel-forwarded-for or x-real-ip) or
+ * TRUSTED_PROXY_HOPS (x-forwarded-for read from the trusted end).
  */
-export function clientKey(h: { get(name: string): string | null }): string | null {
-  for (const name of ["cf-connecting-ip", "fly-client-ip", "x-vercel-forwarded-for", "x-real-ip"]) {
-    const v = h.get(name)?.split(",")[0].trim();
-    if (v) return v;
-  }
-  const hops = Number(process.env.TRUSTED_PROXY_HOPS ?? "0");
+export function clientKey(h: { get(name: string): string | null }, env: Record<string, string | undefined> = process.env): string | null {
+  const header = env.CLIENT_IP_HEADER?.trim().toLowerCase();
+  if (header) return h.get(header)?.split(",")[0].trim() || null;
+  const hops = Number(env.TRUSTED_PROXY_HOPS ?? "0");
   const chain = (h.get("x-forwarded-for") ?? "").split(",").map((x) => x.trim()).filter(Boolean);
   if (!chain.length || !Number.isInteger(hops) || hops < 1) return null;
   // Each trusted proxy appends the address it was reached from, so with n

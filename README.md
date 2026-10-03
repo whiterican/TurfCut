@@ -390,12 +390,14 @@ API: `GET/POST /api/shifts`, `POST /api/shifts/:id/check-in` `{ location? }`
 - **Rate limits** (`lib/rate-limit.ts`): password sign-in 10 per 10 minutes
   per connection and 20 per address from anywhere; sign-in links 5 per 10
   minutes and sign-up 5 per hour per connection; offline sync 60 batches a
-  minute per worker (the phone treats a 429 as "retry later"). The
-  connection is read only from headers the host sets itself (Cloudflare,
-  Fly, Vercel, `x-real-ip`); behind your own reverse proxy set
-  `TRUSTED_PROXY_HOPS` to the number of proxies so `x-forwarded-for` is read
-  from the trusted end. With no known address the per-connection limit is
-  skipped rather than shared by everyone. In memory per server process, so
+  minute per worker (the phone treats a 429 as "retry later"). No header
+  is trusted for the client's address until the deployment names one:
+  `CLIENT_IP_HEADER` (a header the platform sets itself, e.g.
+  `x-vercel-forwarded-for`, `cf-connecting-ip`, `fly-client-ip`) or
+  `TRUSTED_PROXY_HOPS` (behind your own proxy, so `x-forwarded-for` is read
+  from the trusted end). With neither set the per-connection limits are
+  skipped rather than shared by everyone; the per-email and per-worker
+  limits still apply. In memory per server process, so
   on serverless hosting each instance counts on its own; it is a floor
   beneath Supabase Auth's own limits, not a wall. Moving to a shared store
   (Postgres table or Upstash) only changes the store inside that file.

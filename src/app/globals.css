@@ -50,9 +50,6 @@
   --hero-fg: #f3f6ef;
   --hero-muted: #c9d3c6;
   --shadow: 0 1px 2px rgb(23 32 26 / 0.04), 0 10px 28px -16px rgb(23 32 26 / 0.18);
-  /* Gold: rims and the corner coin only, never fills or text. */
-  --gold: #d9b64a;
-  --gold-deep: #9a6d14;
   color-scheme: light;
 }
 
@@ -179,31 +176,8 @@ body {
 
   /* ---- Surfaces -------------------------------------------------------- */
   .card {
-    @apply relative isolate rounded-2xl border border-border bg-surface p-4 sm:p-5;
+    @apply rounded-2xl border border-border bg-surface p-4 sm:p-5;
     box-shadow: var(--shadow);
-  }
-  /* The corner motif on every box: a soft accent circle with a deep-gold
-     coin, drawn behind the content (isolate + negative z) so nothing is
-     covered and contrast is unchanged. */
-  .card::after,
-  .card::before {
-    content: "";
-    @apply pointer-events-none absolute rounded-full;
-  }
-  .card::after {
-    @apply top-1 right-1 size-12;
-    z-index: -2;
-    background: color-mix(in srgb, var(--lime) 22%, var(--surface));
-  }
-  /* The coin stays inside the padding corner, so text never sits on it. */
-  .card::before {
-    @apply top-2 right-2 size-4;
-    z-index: -1;
-    background: var(--gold-deep);
-  }
-  .card-plain::after,
-  .card-plain::before {
-    display: none;
   }
   /* The mockup's dark feature card with a lime highlight in the corner. */
   .hero-card {
@@ -214,13 +188,8 @@ body {
   }
   .hero-card::after {
     content: "";
-    @apply pointer-events-none absolute -top-7 -right-7 size-24 rounded-full;
+    @apply pointer-events-none absolute -top-10 -right-10 size-32 rounded-full;
     background: var(--lime);
-  }
-  .hero-card::before {
-    content: "";
-    @apply pointer-events-none absolute top-2.5 right-2.5 z-[1] size-7 rounded-full;
-    background: var(--gold-deep);
   }
   /* The worker's next shift (mockup): a bright accent card with dark ink. */
   .hero-card-lime {
@@ -228,9 +197,14 @@ body {
     color: var(--ink);
   }
   /* Dark mode: a true gold border (same width on every edge and corner,
-     never clipped). */
+     never clipped), and a deep-gold coin inside the corner highlight. */
   .dark .hero-card-lime {
     border: 5px solid var(--gold);
+  }
+  .dark .hero-card-lime::before {
+    content: "";
+    @apply pointer-events-none absolute top-3 right-3 z-[1] size-10 rounded-full;
+    background: var(--gold-deep);
   }
   .hero-card.hero-card-lime::after {
     background: color-mix(in srgb, white 35%, var(--lime));

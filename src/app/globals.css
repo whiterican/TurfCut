@@ -479,7 +479,7 @@ body {
     padding-bottom: env(safe-area-inset-bottom);
   }
   .tab {
-    @apply relative flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 pt-1.5 pb-1 text-[0.7rem] font-semibold text-muted;
+    @apply relative flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 pt-1.5 pb-1 text-xs font-semibold text-muted;
   }
   .tab[aria-current="page"] {
     @apply text-fg;

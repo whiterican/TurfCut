@@ -2,22 +2,24 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Briefcase, CalendarClock, LayoutDashboard, MessageCircle, Settings, Sun, User, Users, Wallet, type LucideIcon } from "lucide-react";
-import { activeTab, MESSAGES_HREF, type NavTab } from "@/lib/nav";
+import { Briefcase, CalendarClock, LayoutDashboard, MessageCircle, Settings, Sunrise, User, Users, Wallet, type LucideIcon } from "lucide-react";
+import { activeTab, MESSAGES_HREF, type NavTab, type TabIconId } from "@/lib/nav";
 import { useUnreadCount } from "@/components/chat/UnreadProvider";
 
-/** One glyph per destination (lib/nav decides who gets which tabs). */
-const ICONS: Record<string, LucideIcon> = {
-  "/dashboard": Sun,
-  "/jobs": Briefcase,
-  "/shifts": CalendarClock,
-  [MESSAGES_HREF]: MessageCircle,
-  "/profile": User,
-  "/workers": Users,
-  "/payouts": Wallet,
-  "/org/settings": Settings,
+/** One glyph per tab id (lib/nav decides who gets which tabs). Exhaustive: a new id fails to compile until it has a glyph. */
+const ICONS: Record<TabIconId, LucideIcon> = {
+  today: Sunrise, // not Sun: the theme toggle uses that
+  work: Briefcase,
+  shifts: CalendarClock,
+  messages: MessageCircle,
+  profile: User,
+  ops: LayoutDashboard,
+  jobs: Briefcase,
+  people: Users,
+  pay: Wallet,
+  settings: Settings,
 };
-const iconFor = (t: NavTab): LucideIcon => (t.label === "Ops" ? LayoutDashboard : ICONS[t.href] ?? LayoutDashboard);
+const iconFor = (t: NavTab): LucideIcon => ICONS[t.icon];
 
 function Badge({ count }: { count: number }) {
   if (count <= 0) return null;
@@ -29,10 +31,10 @@ function Badge({ count }: { count: number }) {
 }
 
 function Icon({ of: I, className }: { of: LucideIcon; className?: string }) {
-  return <I aria-hidden className={className} strokeWidth={2} />;
+  return <I aria-hidden className={className} />;
 }
 
-/** The glyph for one tab, for anything that draws its own tab bar. */
+/** The glyph for one tab, for anything that draws its own tab bar (the local screenshot fixture does). */
 export function TabIcon({ tab }: { tab: NavTab }) {
   return <Icon of={iconFor(tab)} className="tab-icon" />;
 }

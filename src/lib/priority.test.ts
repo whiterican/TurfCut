@@ -17,6 +17,10 @@ describe("shift priority rings", () => {
     expect(shiftPriority(shift(-1, { status: "ACTIVE", checkInAt: new Date(now.getTime() - H) }), now)).toBe(3);
     expect(shiftPriority(shift(2), now)).toBe(3);
     expect(shiftPriority(shift(0.5), now)).toBe(3);
+    // checked in while the row still says SCHEDULED (the phone synced first)
+    expect(shiftPriority(shift(-1, { checkInAt: new Date(now.getTime() - H) }), now)).toBe(3);
+    // running late: started an hour ago, not checked in, not over
+    expect(shiftPriority(shift(-1), now)).toBe(3);
   });
   it("2 when it starts today, 1 when it is further out", () => {
     expect(shiftPriority(shift(5), now)).toBe(2);

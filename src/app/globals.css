@@ -123,6 +123,7 @@
   --text-sm--line-height: 1.5;
   --font-sans: var(--font-dm-sans);
   --font-mono: var(--font-dm-mono);
+  --font-masthead: var(--font-newsreader);
 }
 
 /* Text size setting (Display settings): scales every rem-based size. */
@@ -165,6 +166,14 @@ body {
   }
   .page-title {
     @apply text-3xl leading-[1.05] font-bold tracking-[-0.03em] text-fg sm:text-4xl;
+  }
+  /* Newsreader, for mastheads only: organization and job names at the top of a page. */
+  .masthead {
+    font-family: var(--font-newsreader), ui-serif, Georgia, serif;
+    @apply font-semibold tracking-[-0.01em] text-fg;
+  }
+  .page-title.masthead {
+    @apply tracking-[-0.015em];
   }
   /* Small mono label above a title ("LIVE SHIFT", "GOOD MORNING"). */
   .eyebrow {
@@ -557,6 +566,82 @@ body {
   .tab .unread-badge {
     @apply absolute top-0.5 left-1/2 ml-2 min-w-[1.25rem] px-1 text-[0.7rem] leading-[1.25rem];
     box-shadow: 0 0 0 2px var(--surface);
+  }
+  /* ---- Staff components (C1) ------------------------------------------ */
+  .data-table-wrap {
+    @apply max-h-[70vh] overflow-auto rounded-2xl border border-border bg-surface;
+    box-shadow: var(--shadow);
+  }
+  .data-table {
+    @apply w-full border-collapse text-sm;
+  }
+  .data-table thead th {
+    @apply sticky top-0 z-10 border-b border-border bg-surface-2 px-3 py-2 text-left text-xs font-semibold whitespace-nowrap text-muted;
+  }
+  .data-table tbody th,
+  .data-table td {
+    @apply border-b border-border px-3 py-2.5 text-left align-top text-fg;
+  }
+  .data-table tbody th {
+    @apply font-semibold;
+  }
+  .data-table tbody tr:last-child > * {
+    @apply border-b-0;
+  }
+  .data-table .num,
+  .data-table th.text-right {
+    @apply text-right tabular-nums;
+  }
+  .data-table-sort {
+    @apply -mx-1 inline-flex items-center gap-1 rounded px-1 py-0.5 font-semibold hover:text-fg;
+  }
+  .summary-bar {
+    @apply grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-border bg-border sm:grid-cols-4;
+  }
+  .summary-item {
+    @apply space-y-1 bg-surface px-4 py-3;
+  }
+  .summary-value {
+    @apply text-2xl font-bold tracking-[-0.02em] text-fg tabular-nums;
+  }
+
+  /* Organization shell (C1): left rail on desktop, role tabs + More sheet on phones. */
+  .org-shell {
+    @apply mx-auto flex w-full max-w-6xl flex-1;
+  }
+  .org-rail {
+    @apply sticky top-0 hidden max-h-dvh w-60 shrink-0 self-start overflow-y-auto px-3 pt-8 pb-6 lg:block;
+  }
+  .org-rail-head {
+    @apply mb-4 space-y-1 border-b border-border px-3 pb-4;
+  }
+  .org-rail-status {
+    @apply inline-flex items-center gap-1 text-xs font-semibold text-muted;
+  }
+  .rail-link {
+    @apply flex min-h-10 items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-muted transition hover:bg-surface-2 hover:text-fg;
+  }
+  .rail-link[aria-current="page"] {
+    @apply bg-surface-2 font-semibold text-fg;
+    box-shadow: inset 3px 0 0 var(--focus);
+  }
+  /* More sheet: a native modal dialog pinned to the bottom of the screen. */
+  .more-sheet {
+    @apply m-0 mx-auto mt-auto w-full max-w-md border-0 bg-transparent p-0 lg:hidden;
+    max-height: 100dvh;
+    color: inherit;
+  }
+  .more-sheet-panel {
+    @apply rounded-t-2xl border border-b-0 border-border bg-surface p-4;
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+    box-shadow: var(--shadow);
+  }
+  /* Dims the page (never a pale wash, which reads as disabled). */
+  .more-sheet::backdrop {
+    background: rgb(24 20 30 / 0.45);
+  }
+  .dark .more-sheet::backdrop {
+    background: rgb(8 4 14 / 0.6);
   }
   .topnav-link {
     @apply rounded-lg px-3 py-2 text-sm font-medium text-muted transition hover:bg-surface-2 hover:text-fg;

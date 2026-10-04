@@ -58,6 +58,10 @@ describe.each([
     }
   });
 
+  it("the keyboard focus outline is visible on every surface (≥ 3:1)", () => {
+    for (const s of SURFACES) expect(ratio(t.focus, t[s])).toBeGreaterThanOrEqual(3);
+  });
+
   it("links and status text are AA on every surface", () => {
     for (const c of ["link", "danger", "success", "warning"] as const) {
       for (const s of SURFACES) expect(ratio(t[c], t[s])).toBeGreaterThanOrEqual(4.5);

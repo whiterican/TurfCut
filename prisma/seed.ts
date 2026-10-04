@@ -307,5 +307,4 @@ main()
   })
   .finally(async () => {
     await prisma.$disconnect();
-    await db().$disconnect(); // the app client used by loadScorecard
   });

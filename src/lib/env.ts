@@ -134,7 +134,7 @@ export function describeDatabaseUrl(raw: string): string {
   const rest = clean.slice(clean.indexOf("://") + 3);
   const at = rest.lastIndexOf("@");
   if (at >= 0 && /[/#?@]/.test(rest.slice(0, at))) {
-    parts.push("the password seems to contain / # ? or @, which must be percent-encoded");
+    parts.push("the password may contain / # ? or @, which must be percent-encoded (or there's an @ after the host)");
     return parts.join(", ");
   }
   let u: URL | null = null;

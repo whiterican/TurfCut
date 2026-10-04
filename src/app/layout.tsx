@@ -8,6 +8,7 @@ import { InlineScript } from "@/components/InlineScript";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { SlidersHorizontal } from "lucide-react";
 import { UnreadProvider } from "@/components/chat/UnreadProvider";
+import { ViewerKindProvider } from "@/components/ViewerKind";
 import { PageTransition } from "@/components/PageTransition";
 import { Haptics } from "@/components/Haptics";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
@@ -69,6 +70,7 @@ export default async function RootLayout({
         <InlineScript html={THEME_INIT_SCRIPT} />
       </head>
       <body className="min-h-full flex flex-col">
+        <ViewerKindProvider kind={!session ? "none" : session.role === "WORKER" ? "worker" : session.orgId ? "org" : "none"}>
         <UnreadProvider initial={unread} enabled={tabs.some((t) => t.href === MESSAGES_HREF)}>
         <header className="site-header border-b border-border bg-surface/80 backdrop-blur">
           <div className={`mx-auto flex w-full ${isOrg ? "max-w-6xl" : "max-w-5xl"} items-center justify-between gap-3 px-4 py-3 sm:px-6`}>
@@ -101,6 +103,7 @@ export default async function RootLayout({
         <Haptics />
         {isOrg ? <OrgTabBar tabs={org.phone} more={org.more} /> : <TabBar tabs={tabs} />}
         </UnreadProvider>
+        </ViewerKindProvider>
       </body>
     </html>
   );

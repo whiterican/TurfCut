@@ -1,4 +1,4 @@
--- Turfcut M0–M7 (with M4.1) and C1 — manual Supabase setup (one paste), FRESH databases only.
+-- Turfcut M0–M7 (with M4.1), C1 and the rate-limit store — manual Supabase setup (one paste), FRESH databases only.
 -- Generated from prisma/schema.prisma + prisma/seed.ts on 2026-10-02.
 -- Paste the entire file into the Supabase SQL editor and run it.
 -- The DDL is not re-runnable. Existing database? Run the m1-, m1-profile-, m2-, m3-,
@@ -973,6 +973,22 @@ CREATE UNIQUE INDEX "OrgInvite_pending_key" ON "public"."OrgInvite"("orgId", "em
 ALTER TABLE "public"."OrgInvite" ADD CONSTRAINT "OrgInvite_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "public"."Organization"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 ALTER TABLE "public"."OrgInvite" ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON "public"."OrgInvite" FROM anon, authenticated;
+
+-- ---- Rate-limit store (server-only; prisma/rate-limit.sql) ----
+CREATE TABLE "public"."RateLimitCounter" (
+    "bucket" TEXT NOT NULL,
+    "windowStart" BIGINT NOT NULL,
+    "count" INTEGER NOT NULL,
+    "expiresAt" BIGINT NOT NULL,
+
+    CONSTRAINT "RateLimitCounter_pkey" PRIMARY KEY ("bucket", "windowStart"),
+    CONSTRAINT "RateLimitCounter_count_positive" CHECK ("count" > 0)
+);
+
+CREATE INDEX "RateLimitCounter_expiresAt_idx" ON "public"."RateLimitCounter"("expiresAt");
+
+ALTER TABLE "public"."RateLimitCounter" ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON "public"."RateLimitCounter" FROM anon, authenticated;
 
 
 -- Turfcut seed (M0 + M1 events) — SQL version of prisma/seed.ts

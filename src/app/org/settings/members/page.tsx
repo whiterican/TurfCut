@@ -85,7 +85,7 @@ export default async function MembersPage() {
                 <div className="space-y-1">
                   <p className="flex flex-wrap items-center gap-2 font-medium text-fg">
                     <span className="break-all">{m.name ?? m.email ?? "Member"}</span>
-                    {me && <span className="badge-plum">You</span>}
+                    {me && <span className="badge-solid">You</span>}
                     <span className="badge-neutral">{ROLE_LABELS[m.role]}</span>
                   </p>
                   <p className="text-muted-sm">{[m.name ? m.email : null, `Since ${day(m.since)}`].filter(Boolean).join(" · ")}</p>

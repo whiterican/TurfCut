@@ -15,9 +15,17 @@ generator client {
   provider = "prisma-client-js"
 }
 
+// Two connections (Supabase):
+// - DATABASE_URL: what the app uses at runtime. On Vercel, the pooler in
+//   transaction mode, port 6543 (src/lib/env.ts adds pgbouncer=true and
+//   connection_limit=1 when missing).
+// - DIRECT_URL: the direct connection, port 5432, used by the Prisma CLI
+//   (db push, migrate) which needs a session the pooler can't give.
+// Locally both can be the same URL.
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // ---------------------------------------------------------------------------
@@ -749,4 +757,18 @@ model ProfileBlock {
   liftedAt  DateTime?
 
   @@index([blockedId])
+}
+
+/// Rate-limit counts (src/lib/rate-limit.ts), shared by every server
+/// instance: one row per bucket ("login:203.0.113.9") per fixed window.
+/// Times are epoch milliseconds. Operational state, not a ledger: rows are
+/// deleted once expiresAt passes. Server-only (RLS on, no policies).
+model RateLimitCounter {
+  bucket      String
+  windowStart BigInt
+  count       Int
+  expiresAt   BigInt
+
+  @@id([bucket, windowStart])
+  @@index([expiresAt])
 }

@@ -16,8 +16,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ shiftId
   if (bad) return bad;
   const auth = await apiWorker();
   if ("error" in auth) return auth.error;
-  if (!allow("sync", auth.session.workerId)) {
-    return Response.json({ error: "Syncing too often. The phone will retry in a minute." }, { status: 429, headers: { "Retry-After": String(retryAfter("sync", auth.session.workerId)) } });
+  if (!(await allow("sync", auth.session.workerId))) {
+    return Response.json({ error: "Syncing too often. The phone will retry in a minute." }, { status: 429, headers: { "Retry-After": String(Math.max(1, await retryAfter("sync", auth.session.workerId))) } });
   }
   const b = (await req.json().catch(() => null)) as { deviceNow?: unknown; actions?: unknown } | null;
   if (!b || typeof b.deviceNow !== "number" || !Array.isArray(b.actions)) return Response.json({ error: "Send { deviceNow, actions }." }, { status: 400 });

@@ -150,7 +150,7 @@ export function shiftState(s: ShiftFacts): ShiftState {
 /** One-word status for lists, with its badge style. */
 export function shiftStatusLabel(st: ShiftState): { label: string; badge: string } {
   if (st.cancelled) return { label: "Cancelled", badge: "badge-neutral" };
-  if (st.closeout?.status === "APPROVED") return { label: "Approved", badge: "badge-plum" };
+  if (st.closeout?.status === "APPROVED") return { label: "Approved", badge: "badge-solid" };
   if (st.closeout?.status === "REJECTED") return { label: "Not approved", badge: "badge-coral" };
   if (st.checkedOutAt) return { label: "In review", badge: "badge-butter" };
   if (st.checkedInAt) return { label: st.paused ? "On break" : "On shift", badge: "badge-accent" };

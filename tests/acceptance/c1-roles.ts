@@ -4,6 +4,7 @@ import { acceptInvite, changeMemberRole, inviteMember, listMembers, pendingInvit
 import { ensureAccount, SIGNUP_METADATA_KEY } from "@/lib/account";
 import { workerAccessFor } from "@/lib/worker-access-data";
 import { inviteWorker } from "@/lib/engagements-data";
+import { loadDesk } from "@/lib/desk-data";
 
 const ORG = "00000000-0000-0000-0000-000000000001";
 const ORG2 = "00000000-0000-0000-0000-000000000002";
@@ -189,7 +190,36 @@ const confirmed = (id: string, email: string) => ({ id, email, email_confirmed_a
   await p.engagement.create({ data: { jobId: org2Job.id, workerId: W2, status: "INVITED" } });
   check("an invitation alone (the org's own act) doesn't count as a relationship", (await workerAccessFor({ role: "OWNER", workerId: null, orgId: ORG2 }, W2, true)).kind === "denied");
 
-  // --- 7. Database guards ---
+  // --- 7. The Desk (C1.3) ---
+  const jur = (await p.job.findUniqueOrThrow({ where: { id: JOB } })).jurisdictionId;
+  const mk = (title: string, status: "PUBLISHED" | "CLOSED", startsAt: Date, endsAt: Date) =>
+    p.job.create({ data: { orgId: ORG, jurisdictionId: jur, type: "PETITION", title, description: "x", status, startsAt, endsAt, geography: {}, compensationMethod: "HOURLY", payRateCents: 2500, headcount: 5, hiringMethod: { mode: "application" } } });
+  const ended = await mk("Ended drive", "PUBLISHED", new Date(Date.now() - 30 * DAY), new Date(Date.now() - 10 * DAY));
+  const closed = await mk("Closed drive", "CLOSED", new Date(Date.now() - DAY), new Date(Date.now() + 20 * DAY));
+  const far = await mk("Next month", "PUBLISHED", new Date(Date.now() + 30 * DAY), new Date(Date.now() + 40 * DAY));
+  await p.engagement.createMany({ data: [
+    { jobId: ended.id, workerId: W2, status: "APPLIED" },
+    { jobId: closed.id, workerId: W2, status: "APPLIED" },
+  ] });
+  // A shift under way right now on the seed job.
+  const w1eng = await p.engagement.findFirstOrThrow({ where: { jobId: JOB, workerId: W1 } });
+  await p.shift.create({ data: { engagementId: w1eng.id, startsAt: new Date(Date.now() - 2 * 3_600_000), endsAt: new Date(Date.now() + 2 * 3_600_000), status: "SCHEDULED" } });
+
+  const ownerDesk = await loadDesk({ profileId: OWNER, orgId: ORG, role: "OWNER" });
+  const needKeys = ownerDesk.needs.map((n) => n.key);
+  check("an ended job is never 'short', and applications on ended or closed jobs aren't 'waiting'",
+    !needKeys.some((k) => k.endsWith(ended.id) || k.endsWith(closed.id)), needKeys);
+  check("the week ahead leaves out ended jobs and jobs that start after the week", !!ownerDesk.week && !ownerDesk.week.some((r) => r.jobId === ended.id || r.jobId === far.id || r.jobId === closed.id), ownerDesk.week);
+  check("a shift under way counts as scheduled this week", ownerDesk.week?.find((r) => r.jobId === JOB)?.scheduled === 1, ownerDesk.week);
+  const recDesk = await loadDesk({ profileId: OWNER, orgId: ORG, role: "RECRUITER" });
+  check("a recruiter's desk has no pay or field queues (pay loaders would refuse them)", !recDesk.parts.pay && !recDesk.needs.some((n) => n.key.startsWith("pay-") || n.key.startsWith("late-") || n.key.startsWith("review-")) && recDesk.today === null);
+  const pubDesk = await loadDesk({ profileId: OWNER, orgId: ORG, role: "PUBLISHER" });
+  check("a publisher's desk is read-only: no queues, live jobs only (none ended or closed)",
+    pubDesk.parts.readOnly && pubDesk.needs.length === 0 && !!pubDesk.live?.some((j) => j.id === JOB) && !pubDesk.live.some((j) => j.id === ended.id || j.id === closed.id), pubDesk.live);
+  const finDesk = await loadDesk({ profileId: OWNER, orgId: ORG, role: "FINANCE" });
+  check("finance sees pay queues only", finDesk.parts.pay && !finDesk.parts.hiring && finDesk.week === null && finDesk.needs.every((n) => n.key.startsWith("pay-")), finDesk.needs);
+
+  // --- 8. Database guards ---
   const lower = await p.$executeRaw`INSERT INTO "OrgInvite" (id, "orgId", email, role, "invitedById", "expiresAt") VALUES (gen_random_uuid(), ${ORG}::uuid, 'UPPER@example.org', 'RECRUITER', ${OWNER}::uuid, now())`.then(() => true, () => false);
   const wk = await p.$executeRaw`INSERT INTO "OrgInvite" (id, "orgId", email, role, "invitedById", "expiresAt") VALUES (gen_random_uuid(), ${ORG}::uuid, 'w@example.org', 'WORKER', ${OWNER}::uuid, now())`.then(() => true, () => false);
   check("the database refuses mixed-case emails and WORKER invites", !lower && !wk);

@@ -1,4 +1,7 @@
 import Link from "next/link";
+import { ACCEPTED_STATUSES } from "@/lib/engagements";
+import { Masthead } from "@/components/staff/Masthead";
+import { DataTable } from "@/components/staff/DataTable";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { HIRING_ROLES, ORG_ROLES } from "@/lib/access";
@@ -185,41 +188,38 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
 async function OrgJobs({ orgId, canHire }: { orgId: string; canHire: boolean }) {
   const jobs = await db().job.findMany({
     where: { orgId },
-    include: { _count: { select: { engagements: true } } },
+    include: { _count: { select: { engagements: { where: { status: { in: ACCEPTED_STATUSES } } } } } },
     orderBy: [{ createdAt: "desc" }],
   });
   return (
-    <main className="page max-w-3xl">
-      <header className="page-header">
-        <div className="space-y-1">
-          <p className="eyebrow">Jobs</p>
-          <h1 className="page-title">Your jobs</h1>
-          <p className="text-muted-sm">Your organization&apos;s jobs, newest first.</p>
-        </div>
+    <main className="page max-w-4xl">
+      <Masthead eyebrow="Jobs" title="Your jobs" meta="Your organization's jobs, newest first. Sort by any column.">
         {canHire && <Link href="/jobs/new" className="btn-primary">New job</Link>}
-      </header>
+      </Masthead>
       {jobs.length === 0 ? (
         <div className="empty-state">
           <p className="empty-state-title">No jobs yet</p>
           <p className="empty-state-body">{canHire ? "Create a draft, then publish once every check passes." : "Owners and recruiters create jobs."}</p>
         </div>
       ) : (
-        <ul className="list-card">
-          {jobs.map((j) => {
-            const s = JOB_STATUS_LABELS[j.status];
-            return (
-              <li key={j.id}>
-                <Link transitionTypes={["nav-forward"]} href={`/jobs/${j.id}`} className="flex min-h-14 items-center justify-between gap-3 px-4 py-3 text-fg transition hover:bg-surface-2">
-                  <span className="space-y-0.5">
-                    <span className="block font-medium">{j.title}</span>
-                    <span className="text-muted-sm block">Starts {day(j.startsAt)} · {plural(j._count.engagements, "worker")} engaged</span>
-                  </span>
-                  <span className={s.badge}>{s.label}</span>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+        <DataTable
+          caption="Your organization's jobs"
+          columns={[
+            { key: "title", label: "Job", sortable: true },
+            { key: "status", label: "Status", sortable: true },
+            { key: "starts", label: "Starts", sortable: true },
+            { key: "filled", label: "Filled", numeric: true, sortable: true },
+          ]}
+          rows={jobs.map((j) => ({
+            id: j.id,
+            cells: {
+              title: { text: j.title, href: `/jobs/${j.id}` },
+              status: { text: JOB_STATUS_LABELS[j.status].label },
+              starts: { text: day(j.startsAt), sort: j.startsAt?.getTime() ?? null },
+              filled: { text: j.headcount === null ? String(j._count.engagements) : `${j._count.engagements} of ${j.headcount}`, sort: j._count.engagements },
+            },
+          }))}
+        />
       )}
     </main>
   );

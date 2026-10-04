@@ -374,11 +374,14 @@ body {
   .chip:hover {
     border-color: var(--border-strong);
   }
-  .chip:has(input:checked) {
+  /* Checked filter chips, and link chips for the page you're on (Pay tabs). */
+  .chip:has(input:checked),
+  .chip[aria-current="page"] {
     border-color: var(--accent);
     background: color-mix(in srgb, var(--accent) 16%, var(--surface));
   }
-  :root:not(.dark) .chip:has(input:checked) {
+  :root:not(.dark) .chip:has(input:checked),
+  :root:not(.dark) .chip[aria-current="page"] {
     background: var(--primary);
     color: var(--on-primary);
     border-color: transparent;
@@ -587,15 +590,19 @@ body {
   .data-table td {
     @apply border-b border-border px-3 py-2.5 text-left align-top text-fg;
   }
+  /* The row label keeps a readable width; narrow screens scroll the figures instead of crushing it. */
   .data-table tbody th {
-    @apply font-semibold;
+    @apply min-w-44 font-semibold;
+  }
+  .data-table-compact tbody th {
+    @apply min-w-32 sm:min-w-44;
   }
   .data-table tbody tr:last-child > * {
     @apply border-b-0;
   }
   .data-table .num,
   .data-table th.text-right {
-    @apply text-right tabular-nums;
+    @apply text-right whitespace-nowrap tabular-nums;
   }
   .data-table-sort {
     @apply -mx-1 inline-flex items-center gap-1 rounded px-1 py-0.5 font-semibold hover:text-fg;

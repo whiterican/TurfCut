@@ -54,6 +54,8 @@ export async function publish(_prev: ActionState, formData: FormData): Promise<A
 const done = (jobId: string, r: { ok: true; status: string } | { ok: false; reason: string }, okMessage: string): ActionState => {
   revalidatePath(`/jobs/${jobId}`);
   revalidatePath("/jobs");
+  revalidatePath("/desk");
+  revalidatePath("/hiring", "layout");
   return r.ok ? { ok: true, message: okMessage } : { ok: false, message: r.reason };
 };
 

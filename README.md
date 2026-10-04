@@ -22,7 +22,7 @@ npm install
 # 1. Copy env template and fill in (see "What needs Caden")
 cp .env.example .env.local
 
-# 2. Create the database schema (needs DATABASE_URL)
+# 2. Create the database schema (needs DATABASE_URL and DIRECT_URL)
 npm run db:push
 
 # 3. Seed: 1 org, 3 workers, 1 jurisdiction, 1 job, sample shift + payout
@@ -70,8 +70,10 @@ exercise the locks, triggers and data rules, not the RLS policies.
    - Project URL → `NEXT_PUBLIC_SUPABASE_URL`
    - Anon public key → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
    - Service-role key (Settings → API, keep secret) → `SUPABASE_SERVICE_ROLE_KEY`
-3. **Copy the Postgres connection string** (Settings → Database → Connection
-   string) into `DATABASE_URL` in `.env.local`.
+3. **Copy the Postgres connection strings** (Project → Connect) into
+   `.env.local`: `DATABASE_URL` for the running app and `DIRECT_URL` for the
+   Prisma CLI. Locally they can be the same. See **Deploying to Vercel** for
+   which one goes where in production.
 4. **Run the schema + seed:**
    ```bash
    npm run db:push
@@ -399,6 +401,28 @@ API: `GET/POST /api/shifts`, `POST /api/shifts/:id/check-in` `{ location? }`
   or one a supervisor already reviewed, are refused with that reason — a
   supervisor enters the work instead.
 
+## Deploying to Vercel — database connections
+
+Serverless functions each open their own database connections, so the
+running app must go through Supabase's connection pooler; the direct
+connection is only for schema changes.
+
+| Env var | Where | Value (Supabase → Project → Connect) |
+|---|---|---|
+| `DATABASE_URL` | Vercel (Production and Preview) | **Transaction pooler**, port **6543**: `postgresql://postgres.<ref>:<password>@aws-0-<region>.pooler.supabase.com:6543/postgres` |
+| `DIRECT_URL` | Your machine / CI only, when running `npm run db:push` or one-off scripts | **Direct connection**, port **5432**: `postgresql://postgres:<password>@db.<ref>.supabase.co:5432/postgres` |
+
+- The app adds `pgbouncer=true` (Prisma can't use prepared statements on the
+  transaction pooler) and `connection_limit=1` to a 6543 URL that doesn't
+  set them, and logs a warning on Vercel if `DATABASE_URL` isn't port 6543.
+- Everything the app does in a database transaction (advisory locks,
+  interactive transactions) is transaction-scoped, so it works through the
+  pooler.
+- SQL migration files (`prisma/*.sql`) are pasted into the Supabase SQL
+  editor and need neither URL.
+- `DIRECT_URL` isn't needed on Vercel; Prisma only reads it for CLI
+  commands. Set it anyway if a build step ever runs one.
+
 ## Infra — error reporting and rate limits
 
 - **Sentry** (optional): set `SENTRY_DSN` (server) and `NEXT_PUBLIC_SENTRY_DSN`
@@ -417,10 +441,17 @@ API: `GET/POST /api/shifts`, `POST /api/shifts/:id/check-in` `{ location? }`
   `TRUSTED_PROXY_HOPS` (behind your own proxy, so `x-forwarded-for` is read
   from the trusted end). With neither set the per-connection limits are
   skipped rather than shared by everyone; the per-email and per-worker
-  limits still apply. In memory per server process, so
-  on serverless hosting each instance counts on its own; it is a floor
-  beneath Supabase Auth's own limits, not a wall. Moving to a shared store
-  (Postgres table or Upstash) only changes the store inside that file.
+  limits still apply (on Vercel a warning is logged until one is set:
+  `CLIENT_IP_HEADER=x-vercel-forwarded-for`). Counts live in Postgres
+  (`RateLimitCounter`, created by `prisma/rate-limit.sql`), one row per key
+  per window, so every serverless instance shares them. Each request is a
+  single atomic upsert (no lock, no transaction), read as a sliding window
+  by weighting the previous window's count. If the database is unreachable
+  the request goes through (an outage mustn't lock everyone out); any
+  other failure, such as the table missing, refuses sign-in, sign-up and
+  invites rather than silently lifting the limits. Offline sync always goes
+  through. Run `prisma/rate-limit.sql` before deploying this. Member
+  invites are capped at 20 emails per organization per day the same way.
 
 ## M7 scope — field truth and leaving cleanly
 

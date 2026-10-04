@@ -5,11 +5,17 @@ import type { ActionState } from "@/app/jobs/actions";
 import { requireArea } from "@/lib/employer-session";
 import { supabaseInviteMailer } from "@/lib/invite-mailer";
 import { changeMemberRole, inviteMember, isInviteRole, normalizeEmail, removeMember, resendInvite, revokeInvite } from "@/lib/members-data";
-import { allow, retryAfter } from "@/lib/rate-limit";
+import { check, retryAfter, waitText } from "@/lib/rate-limit";
 
 const PATH = "/org/settings/members";
 const str = (fd: FormData, k: string) => String(fd.get(k) ?? "");
-const tooMany = (orgId: string): ActionState => ({ ok: false, message: `Your organization has sent today's limit of invites. Try again in ${Math.ceil(retryAfter("invite", orgId) / 3600)} hours.` });
+/** The invite limit's answer as a message, or null to go ahead. */
+const inviteGate = async (orgId: string): Promise<ActionState | null> => {
+  const verdict = await check("invite", orgId);
+  if (verdict === "ok") return null;
+  if (verdict === "unavailable") return { ok: false, message: "Invites are briefly unavailable. Try again in a minute." };
+  return { ok: false, message: `Your organization has sent today's limit of invites. Try again in ${waitText(await retryAfter("invite", orgId), "hour")}.` };
+};
 
 // Every action re-checks the caller: owners only (C1-Q1).
 const owner = async () => {
@@ -22,7 +28,8 @@ export async function invite(_prev: ActionState, fd: FormData): Promise<ActionSt
   const email = normalizeEmail(str(fd, "email"));
   if (!email) return { ok: false, message: "Enter a valid email address." };
   if (!isInviteRole(str(fd, "role"))) return { ok: false, message: "Choose a role." };
-  if (!allow("invite", actor.orgId)) return tooMany(actor.orgId);
+  const gate = await inviteGate(actor.orgId);
+  if (gate) return gate;
   const r = await inviteMember(actor, { email, role: str(fd, "role") }, supabaseInviteMailer);
   revalidatePath(PATH);
   if (!r.ok) return { ok: false, message: r.reason };
@@ -31,7 +38,8 @@ export async function invite(_prev: ActionState, fd: FormData): Promise<ActionSt
 
 export async function resend(_prev: ActionState, fd: FormData): Promise<ActionState> {
   const actor = await owner();
-  if (!allow("invite", actor.orgId)) return tooMany(actor.orgId);
+  const gate = await inviteGate(actor.orgId);
+  if (gate) return gate;
   const r = await resendInvite(actor, str(fd, "inviteId"), supabaseInviteMailer);
   revalidatePath(PATH);
   return r.ok ? { ok: true, message: "Sent again. It works for 7 more days." } : { ok: false, message: r.reason };

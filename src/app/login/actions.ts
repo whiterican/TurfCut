@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
-import { allow, clientKey, retryAfter } from "@/lib/rate-limit";
+import { check, clientKey, retryAfter, waitText } from "@/lib/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 import { EMAIL_RE, safeNext } from "@/lib/auth-input";
 import { siteOrigin } from "@/lib/site-origin";
@@ -27,8 +27,13 @@ export async function logIn(_prev: LoginState, fd: FormData): Promise<LoginState
   // Per connection (when the host tells us one) and, for passwords, per address from anywhere.
   const who = clientKey(await headers());
   const bucket = intent === "link" ? "link" : "login";
-  if (who && !allow(bucket, who)) return { ok: false, message: `Too many sign-in attempts. Try again in ${Math.ceil(retryAfter(bucket, who) / 60)} minutes.`, email };
-  if (intent === "password" && !allow("login-email", email)) return { ok: false, message: `Too many sign-in attempts for this address. Try again in ${Math.ceil(retryAfter("login-email", email) / 60)} minutes, or use a sign-in link.`, email };
+  const busy = { ok: false, message: "Sign-in is briefly unavailable. Try again in a minute.", email };
+  const conn = who ? await check(bucket, who) : "ok";
+  if (conn === "unavailable") return busy;
+  if (conn === "limited") return { ok: false, message: `Too many sign-in attempts. Try again in ${waitText(await retryAfter(bucket, who!))}.`, email };
+  const addr = intent === "password" ? await check("login-email", email) : "ok";
+  if (addr === "unavailable") return busy;
+  if (addr === "limited") return { ok: false, message: `Too many sign-in attempts for this address. Try again in ${waitText(await retryAfter("login-email", email))}, or use a sign-in link.`, email };
 
   let supabase;
   try {

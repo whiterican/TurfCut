@@ -64,7 +64,7 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
   const quick = [
     { label: "This week", href: toggle("week", "1"), on: params.get("week") === "1" && !params.get("startsBefore"), tone: "filter-chip-sky" },
     { label: "Petition", href: toggle("type", "PETITION"), on: filters.type === "PETITION", tone: "filter-chip-butter" },
-    { label: "Canvass", href: toggle("type", "CANVASS"), on: filters.type === "CANVASS", tone: "filter-chip-plum" },
+    { label: "Canvass", href: toggle("type", "CANVASS"), on: filters.type === "CANVASS", tone: "filter-chip-solid" },
     { label: "No credentials", href: toggle("noCredentials", "1"), on: !!filters.noCredentials, tone: "filter-chip-accent" },
   ];
   const anyFilter = !!(filters.type || filters.minRateCents || filters.startsBefore || filters.noCredentials);

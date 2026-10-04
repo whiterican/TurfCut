@@ -2,7 +2,7 @@ import { num, percent, plural } from "@/lib/format";
 import type { CampaignHistory, MetricExplanation, Period, Scorecard, ScorecardSegment } from "@/lib/scorecard";
 
 const WORK_TYPE_LABELS = { PETITION: "Petition circulation", CANVASS: "Door-to-door canvass" } as const;
-const WORK_TYPE_BADGE = { PETITION: "badge-butter", CANVASS: "badge-plum" } as const;
+const WORK_TYPE_BADGE = { PETITION: "badge-butter", CANVASS: "badge-solid" } as const;
 const PERIOD_LABELS: Record<Period, string> = { lifetime: "Lifetime", "12m": "Last 12 months", "90d": "Last 90 days" };
 
 const AVERAGES: Array<{ key: keyof ScorecardSegment["averages"]; label: string; pct?: boolean }> = [
@@ -133,7 +133,7 @@ export function ScorecardPanel({ periods, history }: { periods: Record<Period, S
             <ul className="divide-y divide-border">
               {history.map((h) => (
                 <li key={h.jobId} className="flex items-center gap-3 py-3">
-                  <span aria-hidden className="grid size-10 shrink-0 place-items-center rounded-xl bg-plum font-bold text-on-plum">✓</span>
+                  <span aria-hidden className="grid size-10 shrink-0 place-items-center rounded-xl bg-solid font-bold text-on-solid">✓</span>
                   <span className="min-w-0">
                     <span className="block truncate font-semibold text-fg">{h.title}</span>
                     <span className="block text-sm text-muted">

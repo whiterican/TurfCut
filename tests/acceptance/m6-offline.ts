@@ -46,6 +46,16 @@ const w1 = { workerId: W1, profileId: W1 };
   check("re-sending is harmless: all duplicates", again.ok && again.results.every((x) => x.status === "duplicate"), again);
   check("…and nothing new was saved", (await p.workEvent.count({ where: { shiftId: shift.id } })) === evs.length);
 
+  // Server-side chunking (the shift lock is held per chunk): the same batch
+  // synced two entries at a time gives the same results and the same timeline.
+  const chunked = await p.shift.create({ data: { engagementId: ENG, startsAt: start, endsAt: new Date(start.getTime() + 4 * H) } });
+  const replay = batch.map((x) => ({ ...x, clientId: randomUUID() }));
+  const rc = await syncWorkerActions(w1, chunked.id, { deviceNow: phone(now.getTime()), actions: replay }, now, 2);
+  const shape = (rs: typeof res) => rs.map((x) => `${x.status}:${x.reason ?? ""}`);
+  check("chunked sync: same per-entry results, in order", rc.ok && JSON.stringify(shape(rc.results)) === JSON.stringify(shape(res)) && rc.results.every((x, i) => x.clientId === replay[i].clientId), rc);
+  const evc = await p.workEvent.findMany({ where: { shiftId: chunked.id }, orderBy: { createdAt: "asc" } });
+  check("chunked sync: same events at the same times", JSON.stringify(evc.map((e) => [e.type, e.createdAt.getTime()])) === JSON.stringify(evs.map((e) => [e.type, e.createdAt.getTime()])), { evc: evc.map((e) => e.type), evs: evs.map((e) => e.type) });
+
   check("another worker can't sync to this shift", !(await syncWorkerActions({ workerId: W2, profileId: W2 }, shift.id, { deviceNow: Date.now(), actions: [q(1, { kind: "pause" })] })).ok);
 
   // A second shift today for the limits.

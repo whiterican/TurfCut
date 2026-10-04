@@ -217,7 +217,7 @@ body {
   }
   /* Priority rings (lib/priority): one narrow ring per level, each
      further out a darker shade. By day the innermost is the card's own
-     border (eggplant on gold reads at 4:1). By night a page-coloured gap
+     border (eggplant on gold reads at 4.7:1). By night a page-coloured gap
      comes first, because cream on the lilac card would not show. */
   .hero-card[data-priority="1"],
   .hero-card[data-priority="2"],
@@ -667,8 +667,10 @@ body {
     @apply block rounded-2xl px-4 py-3 text-fg transition;
     background: color-mix(in srgb, var(--accent) 24%, var(--surface));
   }
+  /* By day the light gold banner gets an eggplant trim so it reads as a block. */
   :root:not(.dark) .shift-banner {
     background: color-mix(in srgb, var(--accent) 50%, var(--surface));
+    border: 1px solid var(--hero-border);
   }
   /* Quick filters on Find work: outlined, solid pastel when on. */
   .filter-chip {

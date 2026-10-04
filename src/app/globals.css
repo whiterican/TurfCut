@@ -3,17 +3,14 @@
 /*
  * Turfcut design system — from the Turfcut screen mockups.
  *
- * Light: the brand's cream surfaces with deep eggplant ink (the logo's
- * #281840), and soft accents (lilac, plum, sky, coral, butter) used
- * sparingly: status badges (solid pastel with eggplant ink, in both
- * themes), active states, the next-shift card. Accent fills always carry
- * the dark "ink" colour, never another accent. Dark: deep eggplant
- * (low-saturation purple) surfaces; accents stay solid pastel
- * fills with ink (badges, your chat bubbles, the next-shift card) or appear
- * as text. Primary actions are eggplant-on-cream / bright eggplant on dark.
- * Priority rings stay in the eggplant family: deep eggplant around the
- * lilac card in light mode, cream to lavender in dark mode. There is no
- * green anywhere in Turfcut (design-tokens.test.ts enforces it).
+ * Light (daytime): cream surfaces, gold fills (the next-shift card, chips,
+ * your chat bubbles, the hero card's pale gold) and eggplant for every trim:
+ * text, outlines, rings and links. Dark: deep eggplant surfaces with a
+ * lilac accent. Pastel status badges (sky, coral, butter, and the accent)
+ * carry the dark "ink" colour; solid plum badges carry --on-plum text.
+ * Priority rings are eggplant in light mode and cream to lavender in dark
+ * mode. There is no green anywhere in Turfcut: design-tokens.test.ts fails on
+ * any green colour, and Tailwind's green palettes are switched off below.
  *
  * The theme is a `.dark` class on <html>, set before first paint by the
  * inline script in app/layout.tsx (saved choice, else the OS preference).
@@ -23,8 +20,8 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  /* Accents — identical in both modes. */
-  --lilac: #dcd1ea; /* the brand's bright eggplant: accent cards, chips, your chat bubbles */
+  /* The accent fill: gold by day, lilac by night (see .dark). */
+  --accent: #e0c47a;
   --plum: #4a3070; /* solid "done / live" badges, with --on-plum text */
   --on-plum: #fbfaf1;
   --sky: #b9dbfa;
@@ -49,14 +46,16 @@
   --warning: #7d5300;
   --primary: #281840;
   --on-primary: #fbfaf1;
-  --hero: #281840;
-  --hero-fg: #f6f4e2;
-  --hero-muted: #cfc5dc;
+  /* Hero card by day: pale gold with an eggplant trim. */
+  --hero: #f2e6c4;
+  --hero-fg: #281840;
+  --hero-muted: #4a3d5c;
+  --hero-border: #4a3070;
   --shadow: 0 1px 2px rgb(40 24 64 / 0.05), 0 10px 28px -16px rgb(40 24 64 / 0.2);
-  /* Priority rings on the lilac shift card: eggplant, lighter inside,
+  /* Priority rings on the gold shift card: eggplant, lighter inside,
      darker toward the outside edge. */
-  --ring: #7a5aa3;
-  --ring-2: #523479;
+  --ring: #6a4c91;
+  --ring-2: #4a3070;
   --ring-3: #281840;
   color-scheme: light;
 }
@@ -64,8 +63,9 @@
 .dark {
   /* Dark mode is eggplant through and through: low-saturation purple
      neutrals (hue ~275°) one step lighter than pitch, a brighter eggplant
-     for the accent, and cream to lavender rims only on priority rings and
-     the current tab. */
+     (lilac) for the accent, and cream to lavender rims only on priority
+     rings and the current tab. */
+  --accent: #dcd1ea;
   --bg: #1b1523;
   --surface: #241c2e;
   --surface-2: #2e2539;
@@ -88,7 +88,9 @@
   --hero: #382c47;
   --hero-fg: #f6f2f9;
   --hero-muted: #d0c7d7;
-  /* Rings: rims only, never fills or text. */
+  --hero-border: transparent;
+  /* Rings: rims only, never fills or text. In dark mode a page-coloured gap
+     separates them from the lilac card (see the priority ring rules). */
   --ring: #f6f4e2;
   --ring-2: #b9a6d6;
   --ring-3: #8a74ae;
@@ -105,7 +107,12 @@
   --color-muted: var(--muted);
   --color-subtle: var(--subtle);
   --color-ink: var(--ink);
-  --color-lilac: var(--lilac);
+  --color-accent: var(--accent);
+  /* No green: Tailwind's green palettes are switched off. */
+  --color-green-*: initial;
+  --color-emerald-*: initial;
+  --color-teal-*: initial;
+  --color-lime-*: initial;
   --color-plum: var(--plum);
   --color-on-plum: var(--on-plum);
   --color-sky: var(--sky);
@@ -141,7 +148,7 @@ body {
 }
 
 ::selection {
-  background: var(--lilac);
+  background: var(--accent);
   color: var(--ink);
 }
 
@@ -190,30 +197,32 @@ body {
     @apply rounded-2xl border border-border bg-surface p-4 sm:p-5;
     box-shadow: var(--shadow);
   }
-  /* The mockup's dark feature card with a lilac highlight in the corner. */
+  /* The mockup's dark feature card with an accent circle in the corner. */
   .hero-card {
     @apply relative overflow-hidden rounded-3xl p-5 sm:p-6;
     background: var(--hero);
     color: var(--hero-fg);
+    border: 2px solid var(--hero-border);
     box-shadow: var(--shadow);
   }
   .hero-card::after {
     content: "";
     @apply pointer-events-none absolute -top-10 -right-10 size-32 rounded-full;
-    background: var(--lilac);
+    background: var(--accent);
   }
   /* The worker's next shift (mockup): a bright accent card with dark ink. */
-  .hero-card-lilac {
-    background: var(--lilac);
+  .hero-card-accent {
+    background: var(--accent);
     color: var(--ink);
   }
   /* Priority rings (lib/priority): one narrow ring per level, each
-     further out a darker shade. The innermost is a real border so it is the
-     same width on every edge; the outer ones are rings around it. */
+     further out a darker shade. By day the innermost is the card's own
+     border (eggplant on gold reads at 4:1). By night a page-coloured gap
+     comes first, because cream on the lilac card would not show. */
   .hero-card[data-priority="1"],
   .hero-card[data-priority="2"],
   .hero-card[data-priority="3"] {
-    border: 2px solid var(--ring);
+    border-color: var(--ring);
   }
   .hero-card[data-priority="2"] {
     box-shadow: 0 0 0 2px var(--ring-2), var(--shadow);
@@ -221,16 +230,28 @@ body {
   .hero-card[data-priority="3"] {
     box-shadow: 0 0 0 2px var(--ring-2), 0 0 0 4px var(--ring-3), var(--shadow);
   }
-  /* Keyboard focus sits clear of the rings, so it never blends into them. */
+  .dark .hero-card:is([data-priority="1"], [data-priority="2"], [data-priority="3"]) {
+    border-color: var(--bg);
+  }
+  .dark .hero-card[data-priority="1"] {
+    box-shadow: 0 0 0 2px var(--ring), var(--shadow);
+  }
+  .dark .hero-card[data-priority="2"] {
+    box-shadow: 0 0 0 2px var(--ring), 0 0 0 4px var(--ring-2), var(--shadow);
+  }
+  .dark .hero-card[data-priority="3"] {
+    box-shadow: 0 0 0 2px var(--ring), 0 0 0 4px var(--ring-2), 0 0 0 6px var(--ring-3), var(--shadow);
+  }
+  /* Keyboard focus sits clear of the rings (up to 6px), so it never blends into them. */
   .hero-card:is([data-priority="1"], [data-priority="2"], [data-priority="3"]):focus-visible {
-    outline-offset: 7px;
+    outline-offset: 9px;
   }
-  .hero-card.hero-card-lilac::after {
-    background: color-mix(in srgb, white 35%, var(--lilac));
+  .hero-card.hero-card-accent::after {
+    background: color-mix(in srgb, white 35%, var(--accent));
   }
-  .hero-card.hero-card-lilac .eyebrow,
-  .hero-card.hero-card-lilac .hero-muted {
-    color: color-mix(in srgb, var(--ink) 85%, var(--lilac));
+  .hero-card.hero-card-accent .eyebrow,
+  .hero-card.hero-card-accent .hero-muted {
+    color: color-mix(in srgb, var(--ink) 90%, var(--accent));
   }
   /* Data-dense hero cards skip the corner highlight so numbers stay clear. */
   .hero-card-plain::after {
@@ -338,7 +359,7 @@ body {
   .fieldset-title {
     @apply mb-2 font-mono text-xs font-medium tracking-[0.12em] text-subtle uppercase;
   }
-  /* Selectable pill (checkbox/radio inside). Active state = ink (light) / lilac (dark). */
+  /* Selectable pill (checkbox/radio inside). Active state = ink (light) / accent (dark). */
   .chip {
     @apply inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-full border border-border bg-surface px-3 py-1.5 text-sm text-fg transition;
   }
@@ -346,8 +367,8 @@ body {
     border-color: var(--border-strong);
   }
   .chip:has(input:checked) {
-    border-color: var(--lilac);
-    background: color-mix(in srgb, var(--lilac) 16%, var(--surface));
+    border-color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 16%, var(--surface));
   }
   :root:not(.dark) .chip:has(input:checked) {
     background: var(--primary);
@@ -407,7 +428,7 @@ body {
   .badge-neutral,
   .badge-dashed,
   .badge-coral,
-  .badge-lilac,
+  .badge-accent,
   .badge-sky,
   .badge-plum,
   .badge-butter {
@@ -420,17 +441,16 @@ body {
     @apply border-dashed bg-transparent text-muted;
     border-color: var(--border-strong);
   }
-  /* Light: accent fill + ink text. Dark: tinted surface + accent text. */
-  .badge-coral { --accent: var(--coral); }
-  .badge-lilac { --accent: var(--lilac); }
-  .badge-sky { --accent: var(--sky); }
-  .badge-butter { --accent: var(--butter); }
-  :is(.badge-coral, .badge-lilac, .badge-sky, .badge-butter) {
-    background: var(--accent);
+  /* Pastel fill + ink text in both themes. */
+  .badge-coral { --badge-bg: var(--coral); }
+  .badge-accent { --badge-bg: var(--accent); }
+  .badge-sky { --badge-bg: var(--sky); }
+  .badge-butter { --badge-bg: var(--butter); }
+  :is(.badge-coral, .badge-accent, .badge-sky, .badge-butter) {
+    background: var(--badge-bg);
     color: var(--ink);
     border-color: transparent;
   }
-  /* Solid pastel fills with dark ink in both themes (screen mockups). */
   .dot {
     @apply inline-block size-2 shrink-0 rounded-full;
   }
@@ -501,7 +521,7 @@ body {
     border-color: color-mix(in srgb, var(--plum) 50%, var(--border));
   }
   .step-current {
-    background: var(--lilac);
+    background: var(--accent);
     color: var(--ink);
     border-color: transparent;
     @apply font-semibold;
@@ -529,8 +549,8 @@ body {
     background: color-mix(in srgb, var(--fg) 10%, transparent);
   }
   .dark .tab[aria-current="page"] .tab-icon {
-    color: var(--lilac);
-    background: color-mix(in srgb, var(--lilac) 14%, transparent);
+    color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 14%, transparent);
     box-shadow: inset 0 0 0 2px var(--ring);
   }
   /* Icons inside buttons: sized to the text, never the hit target. */
@@ -573,10 +593,10 @@ body {
   .bubble-theirs {
     @apply rounded-bl-md bg-surface-2 text-fg;
   }
-  /* Your own messages: solid lilac with dark ink (screen mockups). */
+  /* Your own messages: solid accent with dark ink (screen mockups). */
   .bubble-mine {
     @apply rounded-br-md;
-    background: var(--lilac);
+    background: var(--accent);
     color: var(--ink);
   }
   .bubble-mine .link {
@@ -628,7 +648,7 @@ body {
   }
   .send-btn {
     @apply grid size-11 shrink-0 place-items-center rounded-2xl transition disabled:cursor-not-allowed disabled:opacity-40;
-    background: var(--lilac);
+    background: var(--accent);
     color: var(--ink);
   }
   /* z-50: its ··· menu must open above the composer and the tab bar. */
@@ -639,10 +659,10 @@ body {
   /* Next-shift banner atop a job conversation. */
   .shift-banner {
     @apply block rounded-2xl px-4 py-3 text-fg transition;
-    background: color-mix(in srgb, var(--lilac) 24%, var(--surface));
+    background: color-mix(in srgb, var(--accent) 24%, var(--surface));
   }
   :root:not(.dark) .shift-banner {
-    background: color-mix(in srgb, var(--lilac) 50%, var(--surface));
+    background: color-mix(in srgb, var(--accent) 50%, var(--surface));
   }
   /* Quick filters on Find work: outlined, solid pastel when on. */
   .filter-chip {
@@ -653,13 +673,13 @@ body {
   }
   .filter-chip-sky,
   .filter-chip-butter,
-  .filter-chip-lilac {
+  .filter-chip-accent {
     color: var(--ink);
     border-color: transparent;
   }
   .filter-chip-sky { background: var(--sky); }
   .filter-chip-butter { background: var(--butter); }
-  .filter-chip-lilac { background: var(--lilac); }
+  .filter-chip-accent { background: var(--accent); }
   /* Solid plum: "done / live" badges and the Canvass filter, light text on plum. */
   .badge-plum,
   .filter-chip-plum {
@@ -687,7 +707,7 @@ body {
   background: var(--surface-2);
 }
 .dark .turf-map .leaflet-tile {
-  filter: brightness(0.72) contrast(1.15) saturate(0.6);
+  filter: brightness(0.72) contrast(1.15);
 }
 .turf-map .leaflet-control-attribution {
   font-size: 10px;
@@ -802,4 +822,15 @@ summary.list-none::-webkit-details-marker {
   :is(.btn, .btn-primary, .btn-secondary, .btn-ghost, .quick-reply, .chip, .tab):active {
     transform: none;
   }
+}
+
+/* Header logo: the gold mark by day, the lilac mark by night. */
+.logo-night {
+  display: none;
+}
+.dark .logo-day {
+  display: none;
+}
+.dark .logo-night {
+  display: block;
 }

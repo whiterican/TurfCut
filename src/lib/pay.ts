@@ -317,7 +317,7 @@ export function statusLabel(s: PayStatus, amountCents = 1): { label: string; bad
     case "DISPUTED":
       return { label: "Disputed", badge: "badge-coral" };
     case "PROCESSING":
-      return { label: "Sending", badge: "badge-lilac" };
+      return { label: "Sending", badge: "badge-accent" };
     case "PAID":
       return { label: "Paid", badge: "badge-plum" };
     case "VOIDED":

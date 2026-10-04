@@ -19,7 +19,7 @@ export default async function Home() {
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col items-center justify-center px-4 pt-12 pb-28 text-center sm:px-6 lg:pb-16">
-      <span className="badge-lilac">Private pilot</span>
+      <span className="badge-accent">Private pilot</span>
       <h1 className="mt-5 text-[2.75rem] leading-[0.98] font-bold tracking-[-0.045em] text-balance text-fg sm:text-6xl">
         The ground game gets a real labor market.
       </h1>

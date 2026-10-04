@@ -84,7 +84,7 @@ export function PreferencesFlow({ initial, consentText }: { initial: FitPreferen
           <span className="text-subtle">{Math.round(((step + 1) / FLOW_STEPS.length) * 100)}%</span>
         </div>
         <div className="h-1.5 overflow-hidden rounded-full bg-surface-2" aria-hidden>
-          <div className="h-full rounded-full bg-lilac transition-all" style={{ width: `${((step + 1) / FLOW_STEPS.length) * 100}%` }} />
+          <div className="h-full rounded-full bg-accent transition-all" style={{ width: `${((step + 1) / FLOW_STEPS.length) * 100}%` }} />
         </div>
         <ol className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
           {FLOW_STEPS.map((s, i) => (
@@ -451,7 +451,7 @@ function Review({
     <div className="space-y-4">
       <div className={box}>
         <p className="fieldset-title">Visibility</p>
-        <span className="badge-lilac">{mode.label}</span>
+        <span className="badge-accent">{mode.label}</span>
         <p className="text-muted-sm mt-2">{mode.description}</p>
         {canShare && (
           <p className="text-hint mt-2">Approve each answer below that organizations may see. Nothing is shared unless you tick it.</p>

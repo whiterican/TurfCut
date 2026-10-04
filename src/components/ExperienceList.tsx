@@ -40,7 +40,7 @@ const join = (parts: Array<string | null | false | undefined>) => parts.filter(B
 const BADGE: Record<VerificationLevel, string> = {
   PLATFORM: "badge-plum",
   ORGANIZATION: "badge-sky",
-  IMPORTED: "badge-lilac",
+  IMPORTED: "badge-accent",
   SELF_REPORTED: "badge-dashed",
 };
 
@@ -71,7 +71,7 @@ export function ExperienceList({
       <dl className="grid gap-3 sm:grid-cols-2">
         <div className="card">
           <dt className="stat-label">
-            <span aria-hidden className="dot bg-plum" />
+            <span aria-hidden className="dot bg-success" />
             Verified totals · {totals.verifiedRecords} record{totals.verifiedRecords === 1 ? "" : "s"}
           </dt>
           <dd className="mt-1 font-medium text-fg">{fmtTotals(totals.verified)}</dd>

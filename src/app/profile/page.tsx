@@ -49,7 +49,7 @@ export default async function ProfilePage() {
         <details className="card group" open={records.length === 0}>
           <summary className="flex cursor-pointer list-none items-center justify-between gap-2 font-medium text-fg">
             <span className="flex items-center gap-2">
-              <span aria-hidden className="dot bg-plum" />
+              <span aria-hidden className="dot bg-success" />
               Add a campaign
             </span>
             <span aria-hidden className="text-subtle transition group-open:rotate-45">+</span>
@@ -66,7 +66,7 @@ export default async function ProfilePage() {
           {mode ? (
             <>
               <div className="space-y-1">
-                <span className="badge-lilac">{mode.label}</span>
+                <span className="badge-accent">{mode.label}</span>
                 <p className="text-muted-sm">{mode.description}</p>
               </div>
               <p className="text-hint">

@@ -2,7 +2,7 @@ import type { EngagementStatus } from "@/lib/engagements";
 
 export const ENGAGEMENT_LABELS: Record<EngagementStatus, { label: string; badge: string }> = {
   APPLIED: { label: "Applied", badge: "badge-sky" },
-  INVITED: { label: "Invited", badge: "badge-lilac" },
+  INVITED: { label: "Invited", badge: "badge-accent" },
   CLAIMED: { label: "Claimed", badge: "badge-plum" },
   ACTIVE: { label: "Active", badge: "badge-plum" },
   COMPLETED: { label: "Completed", badge: "badge-neutral" },

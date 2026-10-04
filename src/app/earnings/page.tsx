@@ -141,7 +141,7 @@ export default async function EarningsPage({ searchParams }: { searchParams: Pro
         <p className="text-muted-sm">Gross pay for shifts your supervisors approved. Turfcut never takes a cut of your pay — campaigns pay the platform fee.</p>
       </header>
 
-      <div className="hero-card hero-card-lilac space-y-4">
+      <div className="hero-card hero-card-accent space-y-4">
         <p className="eyebrow">All campaigns</p>
         <p className="hero-title">{money(totals.paid)} paid</p>
         <p className="flex flex-wrap gap-x-6 gap-y-2 text-sm">

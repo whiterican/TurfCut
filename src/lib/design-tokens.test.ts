@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { PIN_CATEGORIES } from "@/lib/field-day";
@@ -54,10 +54,10 @@ function hueOf(hex: string): number | null {
 /** Yellow-green through green to teal-green. */
 const isGreen = (hex: string) => {
   const h = hueOf(hex);
-  return h !== null && h >= 70 && h <= 175;
+  return h !== null && h >= 70 && h <= 185;
 };
 
-const PASTELS = ["lilac", "sky", "coral", "butter"] as const;
+const PASTELS = ["accent", "sky", "coral", "butter"] as const;
 const SURFACES = ["bg", "surface", "surface-2", "field"] as const;
 
 describe.each([
@@ -109,7 +109,7 @@ describe.each([
   it("body text stays AAA on tinted alerts and selected chips", () => {
     expect(ratio(t.fg, mix(t.butter, 0.14, t.surface))).toBeGreaterThanOrEqual(7);
     expect(ratio(t.fg, mix(t.sky, 0.12, t.surface))).toBeGreaterThanOrEqual(7);
-    expect(ratio(t.fg, mix(t.lilac, 0.16, t.surface))).toBeGreaterThanOrEqual(7);
+    expect(ratio(t.fg, mix(t.accent, 0.16, t.surface))).toBeGreaterThanOrEqual(7);
   });
 });
 
@@ -126,15 +126,15 @@ describe("dark theme accents", () => {
 });
 
 describe("mockup surfaces", () => {
-  it("lilac next-shift card: title AAA, secondary text AAA", () => {
+  it("accent next-shift card (gold by day, lilac by night): title AAA, secondary text AAA", () => {
     for (const th of [light, dark]) {
-      expect(ratio(th.ink, th.lilac)).toBeGreaterThanOrEqual(7);
-      expect(ratio(mix(th.ink, 0.85, th.lilac), th.lilac)).toBeGreaterThanOrEqual(7);
+      expect(ratio(th.ink, th.accent)).toBeGreaterThanOrEqual(7);
+      expect(ratio(mix(th.ink, 0.9, th.accent), th.accent)).toBeGreaterThanOrEqual(7);
     }
   });
   it("chat shift banner text is AAA, its second line AA", () => {
-    const lightBanner = mix(light.lilac, 0.5, light.surface);
-    const dk = mix(dark.lilac, 0.24, dark.surface);
+    const lightBanner = mix(light.accent, 0.5, light.surface);
+    const dk = mix(dark.accent, 0.24, dark.surface);
     expect(ratio(light.fg, lightBanner)).toBeGreaterThanOrEqual(7);
     expect(ratio(dark.fg, dk)).toBeGreaterThanOrEqual(7);
     expect(ratio(light.muted, lightBanner)).toBeGreaterThanOrEqual(4.5);
@@ -143,21 +143,20 @@ describe("mockup surfaces", () => {
 });
 
 describe("priority rings", () => {
-  // The rings circle the next-shift card, which is filled with --lilac.
+  // The rings circle the next-shift card, which is filled with --accent.
   it("the outermost ring stands out from the page (WCAG non-text, ≥ 3:1)", () => {
     for (const th of [light, dark]) {
       for (const s of ["bg", "surface", "surface-2"] as const) expect(ratio(th["ring-3"], th[s])).toBeGreaterThanOrEqual(3);
     }
   });
-  it("in light mode the innermost ring stands out from the lilac card (≥ 3:1)", () => {
-    expect(ratio(light.ring, light.lilac)).toBeGreaterThanOrEqual(3);
+  it("by day the innermost ring stands out from the gold card (≥ 3:1)", () => {
+    expect(ratio(light.ring, light.accent)).toBeGreaterThanOrEqual(3);
   });
-  it("in dark mode the rings are lighter than the page and stay in the eggplant family", () => {
-    for (const k of ["ring", "ring-2", "ring-3"] as const) {
-      expect(lum(rgb(dark[k]))).toBeGreaterThan(lum(rgb(dark.surface)));
-      expect(hueOf(dark[k])).not.toBeNull(); // has a hue to check
-      expect(isGreen(dark[k])).toBe(false);
-    }
+  it("by night a page-coloured gap separates the rings from the lilac card", () => {
+    // Cream on lilac is only about 1.3:1, so the card's border takes the page colour.
+    expect(css).toMatch(/\.dark \.hero-card:is\(\[data-priority="1"\], \[data-priority="2"\], \[data-priority="3"\]\) \{\s*border-color: var\(--bg\);/);
+    expect(ratio(dark.ring, dark.bg)).toBeGreaterThanOrEqual(3);
+    for (const k of ["ring", "ring-2", "ring-3"] as const) expect(lum(rgb(dark[k]))).toBeGreaterThan(lum(rgb(dark.surface)));
   });
   it("a single ring (priority 1) stands out from the page (≥ 3:1)", () => {
     for (const th of [light, dark]) {
@@ -190,5 +189,58 @@ describe("no green anywhere", () => {
   });
   it("the stylesheet has no leftover lime or mint tokens", () => {
     expect(css).not.toMatch(/--(lime|mint)\b/);
+  });
+});
+
+describe("daytime trim", () => {
+  it("the eggplant trim around hero cards shows against the page (≥ 3:1)", () => {
+    for (const s of ["bg", "surface"] as const) expect(ratio(light["hero-border"], light[s])).toBeGreaterThanOrEqual(3);
+  });
+  it("the daytime accent is gold, not eggplant", () => {
+    const h = hueOf(light.accent);
+    expect(h).not.toBeNull();
+    expect(h!).toBeGreaterThanOrEqual(35);
+    expect(h!).toBeLessThanOrEqual(50);
+  });
+});
+
+describe("no green in the source", () => {
+  const root = join(__dirname, "../..");
+  const files: string[] = [];
+  const walk = (dir: string) => {
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      const p = join(dir, e.name);
+      if (e.isDirectory()) {
+        if (e.name !== "zz-preview" && e.name !== "node_modules") walk(p);
+      } else if (/\.(tsx?|css)$/.test(e.name) && !/\.test\.ts$/.test(e.name)) files.push(p);
+    }
+  };
+  walk(join(root, "src"));
+  files.push(join(root, "public/sw.js"));
+
+  it("every token in the theme blocks was parsed (so the token checks see them all)", () => {
+    for (const sel of [":root", ".dark"]) {
+      const start = css.indexOf(`${sel} {`);
+      const body = css.slice(start, css.indexOf("}", start));
+      const names = [...body.matchAll(/--([\w-]+):\s*([^;]+);/g)];
+      const parsed = block(sel);
+      for (const [, name, value] of names) {
+        if (/^(#[0-9a-fA-F]{6})$/.test(value.trim())) expect(parsed[name]).toBe(value.trim());
+        else expect(["shadow", "hero-border"]).toContain(name); // non-colour or transparent
+      }
+    }
+  });
+  it("no hex colour literal anywhere in src or the service worker is green", () => {
+    for (const f of files) {
+      const text = readFileSync(f, "utf8");
+      for (const m of text.matchAll(/#([0-9a-fA-F]{6}|[0-9a-fA-F]{3})\b/g)) {
+        const hex = m[1].length === 3 ? `#${[...m[1]].map((c) => c + c).join("")}` : m[0];
+        expect({ file: f.slice(root.length), hex, green: isGreen(hex) }).toEqual({ file: f.slice(root.length), hex, green: false });
+      }
+    }
+  });
+  it("no Tailwind green, emerald, teal or lime class is used", () => {
+    const re = /\b(?:bg|text|border|ring|fill|stroke|from|via|to|outline|decoration|shadow|accent|caret|divide)-(?:green|emerald|teal|lime)(?:-\d+)?\b/;
+    for (const f of files) expect({ file: f.slice(root.length), hit: re.exec(readFileSync(f, "utf8"))?.[0] ?? null }).toEqual({ file: f.slice(root.length), hit: null });
   });
 });

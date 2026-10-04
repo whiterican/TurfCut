@@ -153,7 +153,7 @@ export function shiftStatusLabel(st: ShiftState): { label: string; badge: string
   if (st.closeout?.status === "APPROVED") return { label: "Approved", badge: "badge-plum" };
   if (st.closeout?.status === "REJECTED") return { label: "Not approved", badge: "badge-coral" };
   if (st.checkedOutAt) return { label: "In review", badge: "badge-butter" };
-  if (st.checkedInAt) return { label: st.paused ? "On break" : "On shift", badge: "badge-lilac" };
+  if (st.checkedInAt) return { label: st.paused ? "On break" : "On shift", badge: "badge-accent" };
   return { label: "Scheduled", badge: "badge-sky" };
 }
 
@@ -702,7 +702,7 @@ export function validateShift(raw: Record<string, unknown>, job: { startsAt: Dat
 // ---------------------------------------------------------------------------
 
 export const PIN_CATEGORIES = [
-  { value: "good_spot", label: "Good spot", color: "#6a4c91" },
+  { value: "good_spot", label: "Good spot", color: "#a3367a" },
   { value: "covered", label: "Covered", color: "#4b7bb5" },
   { value: "come_back", label: "Come back", color: "#b7791f" },
   { value: "do_not_knock", label: "Don't knock", color: "#b42318" },

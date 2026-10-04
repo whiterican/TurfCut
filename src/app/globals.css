@@ -832,6 +832,8 @@ body {
 /* Leaflet map: keep OSM tiles readable but less glaring in the dark theme. */
 .turf-map {
   background: var(--surface-2);
+  /* Leaflet's panes (z-index 400+) stay inside the map, under the tab bar. */
+  isolation: isolate;
 }
 .dark .turf-map .leaflet-tile {
   filter: brightness(0.72) contrast(1.15);
@@ -854,9 +856,11 @@ body {
 /* Scrolling down tucks the tab bar below the screen; scrolling up brings it
    back. It stays put when motion is reduced, while it holds keyboard focus
    (Tab must never land on something off screen), and in chat threads,
-   where the composer sits right above it. */
+   where the composer sits right above it. :focus-visible, not
+   :focus-within: a tapped tab (or More, refocused after its sheet closes)
+   keeps focus, and that must not pin the bar. */
 @media (prefers-reduced-motion: no-preference) {
-  body:not(:has(.composer)) .tabbar[data-tucked]:not(:focus-within) {
+  body:not(:has(.composer)) .tabbar[data-tucked]:not(:has(:focus-visible)) {
     transform: translateY(calc(100% + 1.5rem + env(safe-area-inset-bottom)));
   }
 }

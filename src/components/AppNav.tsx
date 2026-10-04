@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import { BadgeCheck, Briefcase, CalendarClock, ClipboardList, Clock, Ellipsis, LayoutDashboard, Map, MessageCircle, Settings, Sunrise, User, Users, Wallet, X, type LucideIcon } from "lucide-react";
 import { activeTab, MESSAGES_HREF, type NavTab, type TabIconId } from "@/lib/nav";
-import { MIN_DELTA, nextHidden, SHOW_NEAR_TOP } from "@/lib/scroll-hide";
+import { clampScroll, MIN_DELTA, nextHidden, SHOW_NEAR_TOP } from "@/lib/scroll-hide";
 import { useUnreadCount } from "@/components/chat/UnreadProvider";
 
 /** One glyph per tab id (lib/nav decides who gets which tabs). Exhaustive: a new id fails to compile until it has a glyph. */
@@ -48,14 +48,15 @@ function Icon({ of: I, className }: { of: LucideIcon; className?: string }) {
 function useTuckOnScroll(): boolean {
   const [hidden, setHidden] = useState(false);
   useEffect(() => {
-    let last = window.scrollY;
+    const position = () => clampScroll(window.scrollY, document.documentElement.scrollHeight - window.innerHeight);
+    let last = position();
     let current = false;
     let frame = 0;
     const onScroll = () => {
       if (frame) return;
       frame = requestAnimationFrame(() => {
         frame = 0;
-        const y = window.scrollY;
+        const y = position();
         if (Math.abs(y - last) < MIN_DELTA && y > SHOW_NEAR_TOP) return;
         current = nextHidden(current, last, y);
         last = y;

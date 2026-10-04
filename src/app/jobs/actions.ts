@@ -55,6 +55,7 @@ const done = (jobId: string, r: { ok: true; status: string } | { ok: false; reas
   revalidatePath(`/jobs/${jobId}`);
   revalidatePath("/jobs");
   revalidatePath("/desk");
+  revalidatePath("/hiring", "layout");
   return r.ok ? { ok: true, message: okMessage } : { ok: false, message: r.reason };
 };
 

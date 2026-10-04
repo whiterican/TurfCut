@@ -549,12 +549,17 @@ body {
   }
 
   /* ---- App navigation ------------------------------------------------- */
-  /* Phone: fixed bottom tab bar. Desktop (lg): links in the top bar. */
+  /* Phone: a floating pill above the bottom edge (and the home indicator),
+     tucked away while scrolling down (components/AppNav, lib/scroll-hide).
+     Desktop (lg): links in the top bar or the rail instead. */
   .tabbar {
-    @apply fixed inset-x-0 bottom-0 z-40 border-t border-border lg:hidden;
+    @apply fixed z-40 mx-auto max-w-md rounded-[1.75rem] border border-border px-1 lg:hidden;
+    inset-inline: 0.75rem;
+    bottom: calc(0.625rem + env(safe-area-inset-bottom));
     background: color-mix(in srgb, var(--surface) 92%, transparent);
-    backdrop-filter: blur(12px);
-    padding-bottom: env(safe-area-inset-bottom);
+    backdrop-filter: blur(16px);
+    box-shadow: 0 10px 30px -12px rgb(0 0 0 / 0.35), 0 2px 6px -2px rgb(0 0 0 / 0.12);
+    transition: transform 280ms cubic-bezier(0.2, 0.8, 0.2, 1);
   }
   .tab {
     @apply relative flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 pt-1.5 pb-1 text-xs font-semibold text-muted;
@@ -732,10 +737,11 @@ body {
     outline: 2px solid var(--focus);
     outline-offset: 2px;
   }
-  /* The composer stays above the tab bar while you scroll the thread. */
+  /* The composer stays above the floating tab bar while you scroll the
+     thread (bar: 3.5rem tall, 0.625rem off the bottom, plus a gap). */
   .composer {
     @apply sticky z-30 -mx-4 space-y-2 border-t border-border px-4 pt-3 pb-3 backdrop-blur sm:-mx-6 sm:px-6 lg:bottom-0;
-    bottom: calc(3.5rem + env(safe-area-inset-bottom));
+    bottom: calc(4.75rem + env(safe-area-inset-bottom));
     background: color-mix(in srgb, var(--bg) 94%, transparent);
   }
   @media (min-width: 64rem) {
@@ -826,6 +832,8 @@ body {
 /* Leaflet map: keep OSM tiles readable but less glaring in the dark theme. */
 .turf-map {
   background: var(--surface-2);
+  /* Leaflet's panes (z-index 400+) stay inside the map, under the tab bar. */
+  isolation: isolate;
 }
 .dark .turf-map .leaflet-tile {
   filter: brightness(0.72) contrast(1.15);
@@ -842,6 +850,18 @@ body {
   }
   body:has(.composer-input:focus) .composer {
     bottom: 0;
+  }
+}
+
+/* Scrolling down tucks the tab bar below the screen; scrolling up brings it
+   back. It stays put when motion is reduced, while it holds keyboard focus
+   (Tab must never land on something off screen), and in chat threads,
+   where the composer sits right above it. :focus-visible, not
+   :focus-within: a tapped tab (or More, refocused after its sheet closes)
+   keeps focus, and that must not pin the bar. */
+@media (prefers-reduced-motion: no-preference) {
+  body:not(:has(.composer)) .tabbar[data-tucked]:not(:has(:focus-visible)) {
+    transform: translateY(calc(100% + 1.5rem + env(safe-area-inset-bottom)));
   }
 }
 

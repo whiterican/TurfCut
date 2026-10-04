@@ -5,10 +5,12 @@ import { UUID_RE } from "@/lib/jobs";
 import type { Role } from "@/lib/auth";
 
 /**
- * Organization members and invites (C1). Owners invite by email and role;
- * the person joins when they first sign in with that email, proven by the
- * confirmation link. Removing a member detaches them (orgId = null): their
- * login and everything they did stay, and they lose access at once.
+ * Organization members and invites (C1). Owners of approved organizations
+ * invite by email and role. Someone new joins by opening the invite email
+ * (their first sign-in proves the address); anyone who already has a
+ * Turfcut login only ever joins by pressing Accept. Removing a member
+ * detaches them (orgId = null): their login and everything they did stay,
+ * and they lose access at once.
  */
 
 export const INVITE_DAYS = 7;
@@ -19,9 +21,22 @@ type Tx = Prisma.TransactionClient;
 type Fail = { ok: false; reason: string };
 const fail = (reason: string): Fail => ({ ok: false, reason });
 class Refusal extends Error {}
+const orgApproved = async (tx: Tx, orgId: string) => !!(await tx.organization.findUnique({ where: { id: orgId }, select: { approved: true } }))?.approved;
 // One lock per organization's membership: the last-owner guard reads then writes.
 const lockOrg = (tx: Tx, orgId: string) => tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`org-members:${orgId}`}))`;
 const lockEmail = (tx: Tx, email: string) => tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`invite-email:${email}`}))`;
+
+/**
+ * Re-checks, inside the transaction, that the actor is still an owner of the
+ * organization (the page guard ran before it; an owner removed meanwhile
+ * must not finish a change). Call after lockOrg.
+ */
+async function stillOwner(tx: Tx, actor: Actor): Promise<boolean> {
+  const me = await tx.profile.findUnique({ where: { id: actor.userId }, select: { role: true, orgId: true, closedAt: true } });
+  return !!me && me.role === "OWNER" && me.orgId === actor.orgId && !me.closedAt;
+}
+const NOT_OWNER = "Only an owner of this organization can manage members.";
+const UNAPPROVED = "Invites open once Turfcut has approved your organization.";
 
 export interface Actor {
   userId: string;
@@ -80,22 +95,28 @@ export async function listMembers(orgId: string, now = new Date()): Promise<{ me
 }
 
 /**
- * Why this email can't be invited to `orgId`, or null. An account in use
- * elsewhere gets one generic answer: the owner learns nothing about it.
+ * Whether this email can be invited to `orgId`. A pending invite or a current
+ * member is refused (the owner can see both on the members page). An email
+ * that belongs to an account which can't join — a worker, another
+ * organization's member — gets an invite that is saved but never emailed
+ * and can never be accepted, so the reply is the same as for anyone else
+ * and owners can't use invites to learn who has a Turfcut account.
  */
-async function inviteBlocker(tx: Tx, orgId: string, email: string): Promise<string | null> {
+async function inviteCheck(tx: Tx, orgId: string, email: string): Promise<{ refuse: string } | { mail: boolean }> {
+  const pending = await tx.orgInvite.findFirst({ where: { orgId, email, acceptedAt: null, revokedAt: null }, select: { expiresAt: true } });
+  if (pending) {
+    return { refuse: pending.expiresAt <= new Date() ? "That email's invite has expired — resend or revoke it below." : "There's already an invite for that email — resend or revoke it below." };
+  }
   const users = await tx.$queryRaw<{ id: string }[]>`SELECT id::text AS id FROM auth.users WHERE lower(email) = ${email}`;
+  let mail = true;
   for (const u of users) {
     const p = await tx.profile.findUnique({ where: { id: u.id }, select: { role: true, orgId: true, closedAt: true } });
-    if (!p) continue; // signed up, never confirmed: the invite wins when they do
-    if (p.orgId === orgId && !p.closedAt && p.role !== "WORKER") return "That person is already a member.";
-    // A detached member (removed earlier) can be invited back.
-    if (p.role !== "WORKER" && !p.orgId && !p.closedAt) continue;
-    return "That email is already used by another Turfcut account. Ask them for a different address.";
+    if (!p) continue; // signed up, never confirmed
+    if (p.orgId === orgId && !p.closedAt && p.role !== "WORKER") return { refuse: "That person is already a member." };
+    if (p.role !== "WORKER" && !p.orgId && !p.closedAt) continue; // a removed member can be invited back
+    mail = false;
   }
-  const pending = await tx.orgInvite.findFirst({ where: { orgId, email, acceptedAt: null, revokedAt: null }, select: { id: true } });
-  if (pending) return "There's already an invite for that email — resend or revoke it below.";
-  return null;
+  return { mail };
 }
 
 export type InviteResult = { ok: true; inviteId: string; sent: boolean; message?: string } | Fail;
@@ -105,23 +126,28 @@ export async function inviteMember(actor: Actor, input: { email: unknown; role: 
   if (!email) return fail("Enter a valid email address.");
   if (!isOrgRole(input.role)) return fail("Choose a role.");
   const role = input.role;
-  let inviteId: string;
+  let made: { inviteId: string; mail: boolean };
   try {
-    inviteId = await db().$transaction(async (tx) => {
+    made = await db().$transaction(async (tx) => {
       await lockEmail(tx, email);
-      const blocker = await inviteBlocker(tx, actor.orgId, email);
-      if (blocker) throw new Refusal(blocker);
+      await lockOrg(tx, actor.orgId);
+      if (!(await stillOwner(tx, actor))) throw new Refusal(NOT_OWNER);
+      if (!(await orgApproved(tx, actor.orgId))) throw new Refusal(UNAPPROVED);
+      const c = await inviteCheck(tx, actor.orgId, email);
+      if ("refuse" in c) throw new Refusal(c.refuse);
       const inv = await tx.orgInvite.create({
         data: { orgId: actor.orgId, email, role, invitedById: actor.userId, createdAt: now, expiresAt: new Date(now.getTime() + INVITE_DAYS * DAY) },
       });
-      await tx.auditEvent.create({ data: { actorId: actor.userId, action: "member.invited", entityType: "OrgInvite", entityId: inv.id, metadata: { orgId: actor.orgId, email, role }, createdAt: now } });
-      return inv.id;
+      await tx.auditEvent.create({ data: { actorId: actor.userId, action: "member.invited", entityType: "OrgInvite", entityId: inv.id, metadata: { orgId: actor.orgId, email, role, emailed: c.mail }, createdAt: now } });
+      return { inviteId: inv.id, mail: c.mail };
     });
   } catch (e) {
     if (e instanceof Refusal) return fail(e.message);
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") return fail("There's already an invite for that email — resend or revoke it below.");
     throw e;
   }
+  const { inviteId } = made;
+  if (!made.mail) return { ok: true, inviteId, sent: true };
   const sent = await mail(email).catch((e: unknown) => ({ ok: false as const, message: e instanceof Error ? e.message : String(e) }));
   if (!sent.ok) {
     console.error("[turfcut] invite email failed", sent.message);
@@ -133,9 +159,23 @@ export async function inviteMember(actor: Actor, input: { email: unknown; role: 
 export async function resendInvite(actor: Actor, inviteId: string, mail: InviteMailer, now = new Date()): Promise<{ ok: true } | Fail> {
   if (!UUID_RE.test(inviteId)) return fail("Invite not found.");
   const expiresAt = new Date(now.getTime() + INVITE_DAYS * DAY);
-  const inv = await db().orgInvite.findFirst({ where: { id: inviteId, orgId: actor.orgId, acceptedAt: null, revokedAt: null }, select: { email: true } });
-  if (!inv) return fail("Invite not found.");
-  const sent = await mail(inv.email).catch((e: unknown) => ({ ok: false as const, message: e instanceof Error ? e.message : String(e) }));
+  const pre = await db().$transaction(async (tx) => {
+    await lockOrg(tx, actor.orgId);
+    if (!(await stillOwner(tx, actor))) return fail(NOT_OWNER);
+    if (!(await orgApproved(tx, actor.orgId))) return fail(UNAPPROVED);
+    const inv = await tx.orgInvite.findFirst({ where: { id: inviteId, orgId: actor.orgId, acceptedAt: null, revokedAt: null }, select: { email: true } });
+    if (!inv) return fail("Invite not found.");
+    // The pending invite itself doesn't block its own resend.
+    const users = await tx.$queryRaw<{ id: string }[]>`SELECT id::text AS id FROM auth.users WHERE lower(email) = ${inv.email}`;
+    let canJoin = true;
+    for (const u of users) {
+      const p = await tx.profile.findUnique({ where: { id: u.id }, select: { role: true, orgId: true, closedAt: true } });
+      if (p && (p.role === "WORKER" || p.orgId || p.closedAt)) canJoin = false;
+    }
+    return { ok: true as const, email: inv.email, canJoin };
+  });
+  if (!pre.ok) return pre;
+  const sent = !pre.canJoin ? { ok: true as const } : await mail(pre.email).catch((e: unknown) => ({ ok: false as const, message: e instanceof Error ? e.message : String(e) }));
   if (!sent.ok) {
     console.error("[turfcut] invite email failed", sent.message);
     return fail("The email didn't send. Try again in a minute.");
@@ -149,6 +189,8 @@ export async function resendInvite(actor: Actor, inviteId: string, mail: InviteM
 export async function revokeInvite(actor: Actor, inviteId: string, now = new Date()): Promise<{ ok: true } | Fail> {
   if (!UUID_RE.test(inviteId)) return fail("Invite not found.");
   return db().$transaction(async (tx) => {
+    await lockOrg(tx, actor.orgId);
+    if (!(await stillOwner(tx, actor))) return fail(NOT_OWNER);
     const { count } = await tx.orgInvite.updateMany({ where: { id: inviteId, orgId: actor.orgId, acceptedAt: null, revokedAt: null }, data: { revokedAt: now } });
     if (!count) return fail("Invite not found.");
     await tx.auditEvent.create({ data: { actorId: actor.userId, action: "invite.revoked", entityType: "OrgInvite", entityId: inviteId, metadata: { orgId: actor.orgId }, createdAt: now } });
@@ -172,6 +214,8 @@ export async function changeMemberRole(actor: Actor, profileId: string, role: un
   if (!isOrgRole(role)) return fail("Choose a role.");
   if (!UUID_RE.test(profileId)) return fail("Member not found.");
   return db().$transaction(async (tx) => {
+    await lockOrg(tx, actor.orgId);
+    if (!(await stillOwner(tx, actor))) return fail(NOT_OWNER);
     const p = await memberFor(tx, actor, profileId);
     if (!p) return fail("Member not found.");
     if (p.role === role) return { ok: true as const };
@@ -185,6 +229,8 @@ export async function changeMemberRole(actor: Actor, profileId: string, role: un
 export async function removeMember(actor: Actor, profileId: string, now = new Date()): Promise<{ ok: true } | Fail> {
   if (!UUID_RE.test(profileId)) return fail("Member not found.");
   return db().$transaction(async (tx) => {
+    await lockOrg(tx, actor.orgId);
+    if (!(await stillOwner(tx, actor))) return fail(NOT_OWNER);
     const p = await memberFor(tx, actor, profileId);
     if (!p) return fail("Member not found.");
     if (p.role === "OWNER" && !(await otherOwners(tx, actor.orgId, p.id))) return fail(LAST_OWNER);
@@ -203,22 +249,42 @@ export interface VerifiedUser {
   email_confirmed_at?: string | null;
 }
 
+const confirmedEmail = (user: VerifiedUser) => (user.email_confirmed_at ? normalizeEmail(user.email) : null);
+
+/** Unexpired invites waiting for this person's confirmed email, newest first. */
+export async function pendingInvitesFor(user: VerifiedUser, now = new Date()) {
+  const email = confirmedEmail(user);
+  if (!email) return [];
+  return db().orgInvite.findMany({
+    where: { email, acceptedAt: null, revokedAt: null, expiresAt: { gt: now } },
+    select: { id: true, role: true, expiresAt: true, org: { select: { name: true } } },
+    orderBy: { createdAt: "desc" },
+  });
+}
+
 /**
- * Joins the person to the organization behind their newest unexpired invite,
- * if their email is confirmed and they have no profile yet or are a detached
- * member. Roles come only from the invite, never from user metadata. Returns
- * true when they joined.
+ * Joins the person to an organization they were invited to. Roles come only
+ * from the invite, never from user metadata, and the invite must match the
+ * person's confirmed email.
+ * - Someone brand new (no profile) — the invite email created their login —
+ *   joins through their newest invite on first sign-in. ensureAccount calls
+ *   this only when they brought no sign-up details of their own.
+ * - A removed (detached) member joins only the invite they chose
+ *   (`inviteId`), by pressing Accept. Nobody with a login is ever pulled
+ *   into an organization without asking.
+ * Returns true when they joined.
  */
-export async function acceptInvite(user: VerifiedUser, opts: { name?: string | null; now?: Date } = {}): Promise<boolean> {
+export async function acceptInvite(user: VerifiedUser, opts: { inviteId?: string; name?: string | null; now?: Date } = {}): Promise<boolean> {
   const now = opts.now ?? new Date();
-  const email = normalizeEmail(user.email);
-  if (!email || !user.email_confirmed_at) return false;
+  const email = confirmedEmail(user);
+  if (!email) return false;
+  if (opts.inviteId !== undefined && !UUID_RE.test(opts.inviteId)) return false;
   return db().$transaction(async (tx) => {
     await lockEmail(tx, email);
     const profile = await tx.profile.findUnique({ where: { id: user.id }, select: { role: true, orgId: true, closedAt: true } });
-    if (profile && (profile.role === "WORKER" || profile.orgId || profile.closedAt)) return false;
+    if (profile && (profile.role === "WORKER" || profile.orgId || profile.closedAt || !opts.inviteId)) return false;
     const inv = await tx.orgInvite.findFirst({
-      where: { email, acceptedAt: null, revokedAt: null, expiresAt: { gt: now } },
+      where: { email, acceptedAt: null, revokedAt: null, expiresAt: { gt: now }, ...(opts.inviteId ? { id: opts.inviteId } : {}) },
       orderBy: { createdAt: "desc" },
     });
     if (!inv) return false;

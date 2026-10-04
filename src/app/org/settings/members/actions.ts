@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import type { ActionState } from "@/app/jobs/actions";
 import { requireArea } from "@/lib/employer-session";
 import { supabaseInviteMailer } from "@/lib/invite-mailer";
-import { changeMemberRole, inviteMember, removeMember, resendInvite, revokeInvite } from "@/lib/members-data";
+import { changeMemberRole, inviteMember, isOrgRole, normalizeEmail, removeMember, resendInvite, revokeInvite } from "@/lib/members-data";
 import { allow, retryAfter } from "@/lib/rate-limit";
 
 const PATH = "/org/settings/members";
@@ -19,8 +19,11 @@ const owner = async () => {
 
 export async function invite(_prev: ActionState, fd: FormData): Promise<ActionState> {
   const actor = await owner();
+  const email = normalizeEmail(str(fd, "email"));
+  if (!email) return { ok: false, message: "Enter a valid email address." };
+  if (!isOrgRole(str(fd, "role"))) return { ok: false, message: "Choose a role." };
   if (!allow("invite", actor.orgId)) return tooMany(actor.orgId);
-  const r = await inviteMember(actor, { email: str(fd, "email"), role: str(fd, "role") }, supabaseInviteMailer);
+  const r = await inviteMember(actor, { email, role: str(fd, "role") }, supabaseInviteMailer);
   revalidatePath(PATH);
   if (!r.ok) return { ok: false, message: r.reason };
   return { ok: r.sent, message: r.message ?? "Invite sent. It works for 7 days." };

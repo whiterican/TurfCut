@@ -45,7 +45,7 @@ export default async function MembersPage() {
         <ul className="text-hint space-y-0.5">
           {INVITE_ROLES.map((r) => <li key={r}><strong>{ROLE_LABELS[r]}:</strong> {ROLE_HELP[r]}</li>)}
         </ul>
-        <p className="text-hint">They join when they open the link and sign in with that email. Invites last 7 days.</p>
+        <p className="text-hint">Someone new joins by opening the link in the email. Anyone who already has a Turfcut login sees the invite after signing in and chooses whether to accept. Invites last 7 days.</p>
       </section>
 
       {invites.length > 0 && (
@@ -95,7 +95,7 @@ export default async function MembersPage() {
                     <summary className="link cursor-pointer list-none text-sm font-semibold">{me ? "Leave organization…" : "Remove…"}</summary>
                     <div className="mt-2 space-y-2">
                       <p className="text-muted-sm">
-                        {me ? "You'll lose access right away." : "They lose access right away."} Their login and everything already recorded stay. An owner can invite them back.
+                        {me ? "You'll lose access to the organization right away." : "They lose access to the organization right away."} Their login and everything already recorded stay; conversations they were in stay readable to them up to now, without new messages. An owner can invite them back.
                       </p>
                       <ActionButton action={remove} fields={{ profileId: m.profileId }} label={me ? "Leave" : "Remove"} pendingLabel="Removing…" variant="btn-secondary btn-sm" />
                     </div>

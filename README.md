@@ -94,6 +94,8 @@ exercise the locks, triggers and data rules, not the RLS policies.
      Invites are sent server-side, so the default link style can't complete
      them. The pilot uses Supabase's built-in sender; switch Authentication →
      SMTP to a real provider before scaling beyond the pilot.
+     Invites rely on **Confirm email** being on (below): an invite is matched
+     to the address the person has proven they own.
    - Keep **Confirm email** turned on in production (Authentication →
      Providers → Email). Accounts are only created after the address is
      confirmed; with confirmation off, sign-up necessarily reveals whether an

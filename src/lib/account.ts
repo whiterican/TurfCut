@@ -27,27 +27,26 @@ export function readPendingSignup(meta: unknown): PendingSignup | null {
 /**
  * Creates the Turfcut rows for an AUTHENTICATED user — call only with a user
  * from a verified session (getUser / a successful sign-up session), never
- * from unverified input. A pending organization invite for their confirmed
- * email comes first (C1); otherwise their sign-up details. Idempotent: an
+ * from unverified input. From their sign-up details, or, for a login an
+ * organization's invite created, from that invite (C1). Idempotent: an
  * existing profile, or a concurrent creation (P2002), counts as success.
  */
 export async function ensureAccount(user: VerifiedUser & { user_metadata?: unknown }): Promise<boolean> {
-  const existing = await db().profile.findUnique({ where: { id: user.id }, select: { role: true, orgId: true, closedAt: true } });
+  const existing = await db().profile.findUnique({ where: { id: user.id }, select: { id: true } });
+  if (existing) return true;
   const pending = readPendingSignup(user.user_metadata);
-  if (existing) {
-    // A removed (detached) member who has been invited back rejoins here.
-    if (existing.role !== "WORKER" && !existing.orgId && !existing.closedAt) await acceptInvite(user);
-    return true;
+  if (!pending) {
+    // No sign-up details: the login came from an organization's invite email
+    // (C1). Join through that invite; metadata never grants a role. Someone
+    // who signed up themselves keeps what they asked for — an invite never
+    // overrides it.
+    try {
+      return await acceptInvite(user);
+    } catch (e) {
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") return true;
+      throw e;
+    }
   }
-  // An invite to this confirmed email outranks whatever sign-up asked for:
-  // the organization chose the role, and metadata never grants one.
-  try {
-    if (await acceptInvite(user, { name: pending?.name })) return true;
-  } catch (e) {
-    if (!(e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002")) throw e;
-    return true;
-  }
-  if (!pending) return false;
   try {
     await db().$transaction(async (tx) => {
       if (pending.accountType === "worker") {

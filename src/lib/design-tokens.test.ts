@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { PIN_CATEGORIES } from "@/lib/field-day";
 
 /**
  * Contrast guard for the design system in app/globals.css. Reads the actual
@@ -40,7 +41,23 @@ const ratio = (a: RGB | string, b: RGB | string) => {
   return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
 };
 
-const PASTELS = ["lime", "mint", "sky", "coral", "butter"] as const;
+/** Hue in degrees, or null for a grey too unsaturated to have one. */
+function hueOf(hex: string): number | null {
+  const [r, g, b] = rgb(hex).map((v) => v / 255);
+  const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
+  const l = (max + min) / 2;
+  const sat = d === 0 ? 0 : d / (1 - Math.abs(2 * l - 1));
+  if (sat < 0.12) return null;
+  const h = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return (h * 60 + 360) % 360;
+}
+/** Yellow-green through green to teal-green. */
+const isGreen = (hex: string) => {
+  const h = hueOf(hex);
+  return h !== null && h >= 70 && h <= 175;
+};
+
+const PASTELS = ["lilac", "sky", "coral", "butter"] as const;
 const SURFACES = ["bg", "surface", "surface-2", "field"] as const;
 
 describe.each([
@@ -92,7 +109,7 @@ describe.each([
   it("body text stays AAA on tinted alerts and selected chips", () => {
     expect(ratio(t.fg, mix(t.butter, 0.14, t.surface))).toBeGreaterThanOrEqual(7);
     expect(ratio(t.fg, mix(t.sky, 0.12, t.surface))).toBeGreaterThanOrEqual(7);
-    expect(ratio(t.fg, mix(t.lime, 0.16, t.surface))).toBeGreaterThanOrEqual(7);
+    expect(ratio(t.fg, mix(t.lilac, 0.16, t.surface))).toBeGreaterThanOrEqual(7);
   });
 });
 
@@ -109,15 +126,15 @@ describe("dark theme accents", () => {
 });
 
 describe("mockup surfaces", () => {
-  it("lime next-shift card: title AAA, secondary text AAA", () => {
+  it("lilac next-shift card: title AAA, secondary text AAA", () => {
     for (const th of [light, dark]) {
-      expect(ratio(th.ink, th.lime)).toBeGreaterThanOrEqual(7);
-      expect(ratio(mix(th.ink, 0.8, th.lime), th.lime)).toBeGreaterThanOrEqual(7);
+      expect(ratio(th.ink, th.lilac)).toBeGreaterThanOrEqual(7);
+      expect(ratio(mix(th.ink, 0.85, th.lilac), th.lilac)).toBeGreaterThanOrEqual(7);
     }
   });
   it("chat shift banner text is AAA, its second line AA", () => {
-    const lightBanner = mix(light.lime, 0.5, light.surface);
-    const dk = mix(dark.lime, 0.24, dark.surface);
+    const lightBanner = mix(light.lilac, 0.5, light.surface);
+    const dk = mix(dark.lilac, 0.24, dark.surface);
     expect(ratio(light.fg, lightBanner)).toBeGreaterThanOrEqual(7);
     expect(ratio(dark.fg, dk)).toBeGreaterThanOrEqual(7);
     expect(ratio(light.muted, lightBanner)).toBeGreaterThanOrEqual(4.5);
@@ -126,26 +143,21 @@ describe("mockup surfaces", () => {
 });
 
 describe("priority rings", () => {
-  // The rings circle the next-shift card, which is filled with --lime.
+  // The rings circle the next-shift card, which is filled with --lilac.
   it("the outermost ring stands out from the page (WCAG non-text, ≥ 3:1)", () => {
     for (const th of [light, dark]) {
       for (const s of ["bg", "surface", "surface-2"] as const) expect(ratio(th["ring-3"], th[s])).toBeGreaterThanOrEqual(3);
     }
   });
-  it("in light mode the innermost ring stands out from the lime card (≥ 3:1)", () => {
-    expect(ratio(light.ring, light.lime)).toBeGreaterThanOrEqual(3);
+  it("in light mode the innermost ring stands out from the lilac card (≥ 3:1)", () => {
+    expect(ratio(light.ring, light.lilac)).toBeGreaterThanOrEqual(3);
   });
-  it("in dark mode the rings are green, set apart from the lavender card by hue", () => {
-    // Luminance contrast against the bright eggplant card is low by design
-    // (about 1.3:1); the hue difference carries it, so check the hues.
+  it("in dark mode the rings are lighter than the page and stay in the eggplant family", () => {
     for (const k of ["ring", "ring-2", "ring-3"] as const) {
-      const [r, g, b] = rgb(dark[k]);
-      expect(g).toBeGreaterThan(r);
-      expect(g).toBeGreaterThan(b);
+      expect(lum(rgb(dark[k]))).toBeGreaterThan(lum(rgb(dark.surface)));
+      expect(hueOf(dark[k])).not.toBeNull(); // has a hue to check
+      expect(isGreen(dark[k])).toBe(false);
     }
-    const [cr, cg, cb] = rgb(dark.lime);
-    expect(cb).toBeGreaterThan(cg);
-    expect(cr).toBeGreaterThan(cg);
   });
   it("a single ring (priority 1) stands out from the page (≥ 3:1)", () => {
     for (const th of [light, dark]) {
@@ -157,5 +169,26 @@ describe("priority rings", () => {
       expect(lum(rgb(th["ring-2"]))).toBeLessThan(lum(rgb(th.ring)));
       expect(lum(rgb(th["ring-3"]))).toBeLessThan(lum(rgb(th["ring-2"])));
     }
+  });
+});
+
+describe("plum badges", () => {
+  it("light text on solid plum is AAA in both themes", () => {
+    for (const th of [light, dark]) expect(ratio(th["on-plum"], th.plum)).toBeGreaterThanOrEqual(7);
+  });
+});
+
+describe("no green anywhere", () => {
+  // Turfcut does not use green: not as an accent, a status, a ring or a map pin.
+  it("no colour token in either theme has a green hue", () => {
+    for (const [name, hex] of [...Object.entries(light), ...Object.entries(dark)]) {
+      expect({ name, hex, green: isGreen(hex) }).toEqual({ name, hex, green: false });
+    }
+  });
+  it("no map pin colour is green", () => {
+    for (const c of PIN_CATEGORIES) expect({ pin: c.value, green: isGreen(c.color) }).toEqual({ pin: c.value, green: false });
+  });
+  it("the stylesheet has no leftover lime or mint tokens", () => {
+    expect(css).not.toMatch(/--(lime|mint)\b/);
   });
 });

@@ -58,7 +58,7 @@ export default async function RootLayout({
           <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
             <Link href={session ? "/dashboard" : "/"} className="flex items-center gap-2 text-lg font-bold tracking-[-0.03em] text-fg">
               <span aria-hidden className="grid size-7 place-items-center rounded-lg bg-hero">
-                <span className="size-2.5 rounded-full bg-lime" />
+                <span className="size-2.5 rounded-full bg-lilac" />
               </span>
               Turfcut
             </Link>

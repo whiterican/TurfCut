@@ -15,7 +15,7 @@ export function ShiftProgress({ steps }: { steps: ProgressStep[] }) {
             <span
               aria-hidden
               className={`absolute top-1 -left-[1.6rem] size-3 rounded-full border-2 ${
-                s.state === "done" ? "border-transparent bg-lime" : s.state === "current" ? "border-[var(--focus)] bg-surface ring-4 ring-lime/40" : "border-border bg-surface"
+                s.state === "done" ? "border-transparent bg-lilac" : s.state === "current" ? "border-[var(--focus)] bg-surface ring-4 ring-lilac/40" : "border-border bg-surface"
               }`}
             />
             <p className={`text-sm font-semibold ${s.state === "todo" ? "text-subtle" : "text-fg"}`}>

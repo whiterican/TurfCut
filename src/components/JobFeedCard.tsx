@@ -26,12 +26,12 @@ export function JobFeedCard({ j }: { j: FeedJob }) {
         <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-semibold text-muted">
           {j.org.name}
           {place && <><span aria-hidden>·</span>{place}</>}
-          {j.org.approved && <span className="badge-mint">Approved org</span>}
+          {j.org.approved && <span className="badge-plum">Approved org</span>}
         </span>
         <span className="block text-base font-bold tracking-[-0.01em] text-fg">{j.title}</span>
         <span className="flex flex-wrap gap-1.5">
           <span className="badge-neutral">{day(j.startsAt)} – {day(j.endsAt)}</span>
-          <span className={j.type === "PETITION" ? "badge-butter" : "badge-mint"}>{j.type === "PETITION" ? "Petition" : "Canvass"}</span>
+          <span className={j.type === "PETITION" ? "badge-butter" : "badge-plum"}>{j.type === "PETITION" ? "Petition" : "Canvass"}</span>
         </span>
       </span>
       <span className="flex shrink-0 items-center justify-between gap-3 sm:flex-col sm:items-end">

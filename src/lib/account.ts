@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { normalizePhone } from "@/lib/auth-input";
+import { acceptInvite, type VerifiedUser } from "@/lib/members-data";
 
 /** What sign-up stores on the auth user until the account is confirmed. */
 export interface PendingSignup {
@@ -26,13 +27,26 @@ export function readPendingSignup(meta: unknown): PendingSignup | null {
 /**
  * Creates the Turfcut rows for an AUTHENTICATED user — call only with a user
  * from a verified session (getUser / a successful sign-up session), never
- * from unverified input. Idempotent: an existing profile, or a concurrent
- * creation (P2002), counts as success.
+ * from unverified input. A pending organization invite for their confirmed
+ * email comes first (C1); otherwise their sign-up details. Idempotent: an
+ * existing profile, or a concurrent creation (P2002), counts as success.
  */
-export async function ensureAccount(user: { id: string; user_metadata?: unknown }): Promise<boolean> {
-  const existing = await db().profile.findUnique({ where: { id: user.id }, select: { id: true } });
-  if (existing) return true;
+export async function ensureAccount(user: VerifiedUser & { user_metadata?: unknown }): Promise<boolean> {
+  const existing = await db().profile.findUnique({ where: { id: user.id }, select: { role: true, orgId: true, closedAt: true } });
   const pending = readPendingSignup(user.user_metadata);
+  if (existing) {
+    // A removed (detached) member who has been invited back rejoins here.
+    if (existing.role !== "WORKER" && !existing.orgId && !existing.closedAt) await acceptInvite(user);
+    return true;
+  }
+  // An invite to this confirmed email outranks whatever sign-up asked for:
+  // the organization chose the role, and metadata never grants one.
+  try {
+    if (await acceptInvite(user, { name: pending?.name })) return true;
+  } catch (e) {
+    if (!(e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002")) throw e;
+    return true;
+  }
   if (!pending) return false;
   try {
     await db().$transaction(async (tx) => {

@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { db } from "@/lib/db";
 import { ensureAccount } from "@/lib/account";
+import { acceptInvite } from "@/lib/members-data";
 
 export type Role =
   | "WORKER"
@@ -40,6 +41,10 @@ export async function getSessionProfile(): Promise<SessionProfile | null> {
     // A confirmed sign-up that landed somewhere other than /auth/confirm
     // (e.g. the Supabase Site URL): finish setup from its pending details.
     if (!profile && (await ensureAccount(user))) profile = await db().profile.findUnique({ where: { id: user.id } });
+    // A removed member invited back joins on their next request (C1).
+    else if (profile && profile.role !== "WORKER" && !profile.orgId && !profile.closedAt && (await acceptInvite(user))) {
+      profile = await db().profile.findUnique({ where: { id: user.id } });
+    }
   } catch (e) {
     console.error("[turfcut] loading or finishing the profile failed", e);
     return null; // DB unreachable — treat as signed out, don't crash the page.

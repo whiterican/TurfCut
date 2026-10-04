@@ -213,12 +213,19 @@ export default async function DashboardPage() {
           {!isWorker && session.orgId && (
             <NavCard href="/jobs" title="Jobs" body={canHire ? "Build, publish and staff your jobs." : "Your organization's jobs."} />
           )}
-          {canHire && (
-            <NavCard href="/workers" title="People" body="Verified scorecards and experience, listed alphabetically." />
+          {session.role === "OWNER" && (
+            <NavCard href="/org/settings/members" title="Members" body="Invite your team, set their roles, remove access." />
           )}
           {!isWorker && session.orgId && (
             <NavCard href="/org/settings" title="Organization settings" body="Publishing checks, legal contact and jurisdiction rules." />
           )}
+        </div>
+      ) : session.role !== "WORKER" ? (
+        <div className="empty-state">
+          <p className="empty-state-title">You&apos;re no longer part of an organization</p>
+          <p className="empty-state-body">
+            An owner removed this login from their organization. Everything you did there stays on record. If they invite you back, open the link in their email.
+          </p>
         </div>
       ) : (
         <div className="empty-state">

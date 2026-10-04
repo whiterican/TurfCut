@@ -5,6 +5,26 @@ export type OrgRole = Exclude<Role, "WORKER">;
 const ORG_ROLE_LIST: OrgRole[] = ["OWNER", "RECRUITER", "COMPLIANCE", "SUPERVISOR", "FINANCE", "PUBLISHER"];
 export const ORG_ROLES: Role[] = ORG_ROLE_LIST;
 
+/** How each role is named in the app, and what an owner is told it can do. */
+export const ROLE_LABELS: Record<Role, string> = {
+  WORKER: "Field worker",
+  OWNER: "Owner",
+  RECRUITER: "Recruiter",
+  COMPLIANCE: "Compliance",
+  SUPERVISOR: "Supervisor",
+  FINANCE: "Finance",
+  PUBLISHER: "Publisher",
+};
+export const ROLE_HELP: Record<OrgRole, string> = {
+  OWNER: "Everything, including members and settings.",
+  RECRUITER: "Jobs, applicants and invitations; reads field days.",
+  COMPLIANCE: "Classification review and compliance records.",
+  SUPERVISOR: "Schedules shifts and runs field days.",
+  FINANCE: "Pay: approvals, holds and exports.",
+  PUBLISHER: "Campaign communications (coming soon).",
+};
+export const INVITE_ROLES: OrgRole[] = ORG_ROLE_LIST;
+
 /**
  * C1 access map: the one table that says which organization role reaches
  * which area of the client side, with full access or view only. Pages,

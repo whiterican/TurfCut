@@ -4,11 +4,10 @@ import { HIRING_ROLES, rolesFor, type AccessLevel, type Area } from "@/lib/acces
 import { db } from "@/lib/db";
 
 /** Signed-in owner/recruiter, plus whether Turfcut has approved their org. */
-export async function requireEmployer(): Promise<SessionProfile & { orgApproved: boolean }> {
-  const session = await requireRole(HIRING_ROLES);
-  const org = session.orgId
-    ? await db().organization.findUnique({ where: { id: session.orgId }, select: { approved: true } })
-    : null;
+export async function requireEmployer(): Promise<SessionProfile & { orgId: string; orgApproved: boolean }> {
+  // A removed member keeps their role but has no organization: no access.
+  const session = await requireOrgMember(HIRING_ROLES);
+  const org = await db().organization.findUnique({ where: { id: session.orgId }, select: { approved: true } });
   return { ...session, orgApproved: org?.approved ?? false };
 }
 

@@ -677,9 +677,10 @@ body {
   :root:not(.dark) .bubble-mine {
     box-shadow: inset 0 0 0 1px var(--border-strong);
   }
-  /* Links inside a feature card take the card's text colour, never the page link colour. */
+  /* Links inside a feature card take the card's own text colour (off-white on the
+     dark card, ink on the lime one), never the page link colour. */
   .hero-card .link {
-    color: var(--hero-fg);
+    color: inherit;
   }
   /* Quick filters on Find work: outlined, solid pastel when on. */
   .filter-chip {

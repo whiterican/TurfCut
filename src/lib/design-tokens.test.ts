@@ -89,9 +89,17 @@ describe.each([
     expect(ratio(t["on-primary"], t.primary)).toBeGreaterThanOrEqual(7);
   });
 
-  it("hero card text is AAA, its secondary text AA", () => {
+  it("hero card text is AAA, its secondary text too", () => {
     expect(ratio(t["hero-fg"], t.hero)).toBeGreaterThanOrEqual(7);
-    expect(ratio(t["hero-muted"], t.hero)).toBeGreaterThanOrEqual(4.5);
+    expect(ratio(t["hero-muted"], t.hero)).toBeGreaterThanOrEqual(7);
+  });
+
+  it("secondary buttons: AAA text, an edge visible against the page (≥ 3:1), quieter than primary", () => {
+    expect(ratio(t.fg, t.secondary)).toBeGreaterThanOrEqual(7);
+    expect(ratio(t["secondary-border"], t.bg)).toBeGreaterThanOrEqual(3);
+    expect(ratio(t["secondary-border"], t.secondary)).toBeGreaterThanOrEqual(3);
+    // The primary fill stands out from the page more than the secondary fill does.
+    expect(ratio(t.primary, t.bg)).toBeGreaterThan(ratio(t.secondary, t.bg));
   });
 
   it("the tab bar's text is AAA on its translucent surface", () => {

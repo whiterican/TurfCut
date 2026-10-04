@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
-import brandMark from "../../public/brand/icons/turfcut-icon-96.png";
 import { DM_Mono, DM_Sans } from "next/font/google";
 import { TabBar, TopNav } from "@/components/AppNav";
 import { InlineScript } from "@/components/InlineScript";
@@ -58,13 +56,11 @@ export default async function RootLayout({
         <UnreadProvider initial={unread} enabled={tabs.some((t) => t.href === MESSAGES_HREF)}>
         <header className="site-header border-b border-border bg-surface/80 backdrop-blur">
           <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
-            <Link href={session ? "/dashboard" : "/"} className="flex items-center gap-2 text-xl font-bold tracking-[-0.04em] text-fg">
-              {/* The pin-pen badge from the brand lockup; the word is live text so it
-                  takes the theme's ink in both modes. */}
-              {/* Static import + unoptimized: served from /_next/static, which the
-                  service worker saves with offline field pages. */}
-              <Image src={brandMark} alt="" width={28} height={28} unoptimized className="size-7 rounded-lg" />
-              turfcut
+            <Link href={session ? "/dashboard" : "/"} className="flex items-center gap-2 text-lg font-bold tracking-[-0.03em] text-fg">
+              <span aria-hidden className="grid size-7 place-items-center rounded-lg bg-hero">
+                <span className="size-2.5 rounded-full bg-lime" />
+              </span>
+              Turfcut
             </Link>
             <div className="flex items-center gap-2">
               <TopNav tabs={tabs} />

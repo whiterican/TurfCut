@@ -26,8 +26,8 @@ jobs:
 
       - run: npm ci
 
-      # Generate the Prisma client explicitly so typecheck, lint and tests see
-      # the real schema types, not the stub client (the build generates its own).
+      # Generate the Prisma client explicitly so typecheck and tests use the
+      # real client, not the stub (the build generates its own).
       - name: Prisma generate
         run: npm run db:generate
 

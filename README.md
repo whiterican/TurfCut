@@ -422,7 +422,8 @@ connection is only for schema changes.
   editor and need neither URL.
 - `DIRECT_URL` isn't needed on Vercel. The build runs `prisma generate`
   (so a cached install never ships a stale client), and that reads neither
-  URL; only `db:push` and other CLI commands that touch the database do.
+  URL. `db:push` connects through `DIRECT_URL`, and `prisma validate` fails
+  if it's unset (any placeholder satisfies it, as in CI).
 
 ## Infra — error reporting and rate limits
 

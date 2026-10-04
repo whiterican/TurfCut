@@ -196,6 +196,13 @@ describe("daytime trim", () => {
   it("the eggplant trim around hero cards shows against the page (≥ 3:1)", () => {
     for (const s of ["bg", "surface"] as const) expect(ratio(light["hero-border"], light[s])).toBeGreaterThanOrEqual(3);
   });
+  it("no deep dark gold: every gold token by day is light (owner's call)", () => {
+    for (const [name, hex] of Object.entries(light)) {
+      const h = hueOf(hex);
+      const l = lum(rgb(hex));
+      if (h !== null && h >= 25 && h <= 55) expect({ name, hex, deep: l < 0.35 }).toEqual({ name, hex, deep: false });
+    }
+  });
   it("the daytime accent is gold, not eggplant", () => {
     const h = hueOf(light.accent);
     expect(h).not.toBeNull();

@@ -43,7 +43,7 @@
   --focus: #5a3a8a;
   --danger: #b42318;
   --success: #4a3070;
-  --warning: #7d5300;
+  --warning: #8f4a2f; /* clay, not gold: gold stays a fill */
   --primary: #281840;
   --on-primary: #fbfaf1;
   /* Hero card by day: pale gold with an eggplant trim. */

@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
+import markDay from "../../public/brand/icons/icon-96.png";
+import markNight from "../../public/brand/icons/icon-night-96.png";
 import { DM_Mono, DM_Sans } from "next/font/google";
 import { TabBar, TopNav } from "@/components/AppNav";
 import { InlineScript } from "@/components/InlineScript";
@@ -56,11 +59,13 @@ export default async function RootLayout({
         <UnreadProvider initial={unread} enabled={tabs.some((t) => t.href === MESSAGES_HREF)}>
         <header className="site-header border-b border-border bg-surface/80 backdrop-blur">
           <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
-            <Link href={session ? "/dashboard" : "/"} className="flex items-center gap-2 text-lg font-bold tracking-[-0.03em] text-fg">
-              <span aria-hidden className="grid size-7 place-items-center rounded-lg bg-hero">
-                <span className="size-2.5 rounded-full bg-lime" />
-              </span>
-              Turfcut
+            <Link href={session ? "/dashboard" : "/"} className="flex items-center gap-2 text-xl font-bold tracking-[-0.04em] text-fg">
+              {/* The pin-check-nib mark: gold by day, lilac by night. The word is live
+                  text in the theme's ink. Static imports + unoptimized: served from
+                  /_next/static, which the service worker saves with offline pages. */}
+              <Image src={markDay} alt="" width={28} height={28} unoptimized className="logo-day size-7 rounded-lg" />
+              <Image src={markNight} alt="" width={28} height={28} unoptimized className="logo-night size-7 rounded-lg" />
+              turfcut
             </Link>
             <div className="flex items-center gap-2">
               <TopNav tabs={tabs} />

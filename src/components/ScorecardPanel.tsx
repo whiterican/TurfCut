@@ -2,7 +2,7 @@ import { num, percent, plural } from "@/lib/format";
 import type { CampaignHistory, MetricExplanation, Period, Scorecard, ScorecardSegment } from "@/lib/scorecard";
 
 const WORK_TYPE_LABELS = { PETITION: "Petition circulation", CANVASS: "Door-to-door canvass" } as const;
-const WORK_TYPE_BADGE = { PETITION: "badge-lime", CANVASS: "badge-sky" } as const;
+const WORK_TYPE_BADGE = { PETITION: "badge-butter", CANVASS: "badge-plum" } as const;
 const PERIOD_LABELS: Record<Period, string> = { lifetime: "Lifetime", "12m": "Last 12 months", "90d": "Last 90 days" };
 
 const AVERAGES: Array<{ key: keyof ScorecardSegment["averages"]; label: string; pct?: boolean }> = [
@@ -99,7 +99,7 @@ export function ScorecardPanel({ periods, history }: { periods: Record<Period, S
     { value: num(total((x) => x.activeHours), 1), label: "Verified hours", evidence: "Breaks excluded" },
   ];
   const strengths = [
-    ...lifetime.segments.map((x) => ({ label: WORK_TYPE_LABELS[x.workType], tone: x.workType === "PETITION" ? "badge-mint" : "badge-sky" })),
+    ...lifetime.segments.map((x) => ({ label: WORK_TYPE_LABELS[x.workType], tone: WORK_TYPE_BADGE[x.workType] })),
     ...[...new Set(lifetime.segments.flatMap((x) => x.statesWorked))].map((st) => ({ label: `Worked in ${st}`, tone: "badge-butter" })),
   ];
 
@@ -133,7 +133,7 @@ export function ScorecardPanel({ periods, history }: { periods: Record<Period, S
             <ul className="divide-y divide-border">
               {history.map((h) => (
                 <li key={h.jobId} className="flex items-center gap-3 py-3">
-                  <span aria-hidden className="grid size-10 shrink-0 place-items-center rounded-xl bg-mint font-bold text-ink">✓</span>
+                  <span aria-hidden className="grid size-10 shrink-0 place-items-center rounded-xl bg-plum font-bold text-on-plum">✓</span>
                   <span className="min-w-0">
                     <span className="block truncate font-semibold text-fg">{h.title}</span>
                     <span className="block text-sm text-muted">
@@ -164,7 +164,7 @@ export function ScorecardPanel({ periods, history }: { periods: Record<Period, S
       )}
 
       <ul className="grid gap-3 sm:grid-cols-2">
-        <Metric label="Show rate" m={lifetime.reliability.showRate} pct dot="bg-mint" />
+        <Metric label="Show rate" m={lifetime.reliability.showRate} pct dot="bg-success" />
       </ul>
 
       <div className="card space-y-3">

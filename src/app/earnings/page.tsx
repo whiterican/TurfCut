@@ -33,7 +33,7 @@ async function PayoutSetup({ workerId, note }: { workerId: string; note: string 
                   : "Set up payouts once and approved pay goes straight to your bank. Stripe collects your bank and tax details — Turfcut never sees them."}
           </p>
         </div>
-        {w.payoutsEnabled && <span className="badge-mint shrink-0">Ready</span>}
+        {w.payoutsEnabled && <span className="badge-plum shrink-0">Ready</span>}
       </div>
       {provider.configured() &&
         (w.payoutsEnabled ? (
@@ -141,7 +141,7 @@ export default async function EarningsPage({ searchParams }: { searchParams: Pro
         <p className="text-muted-sm">Gross pay for shifts your supervisors approved. Turfcut never takes a cut of your pay — campaigns pay the platform fee.</p>
       </header>
 
-      <div className="hero-card hero-card-lime space-y-4">
+      <div className="hero-card hero-card-accent space-y-4">
         <p className="eyebrow">All campaigns</p>
         <p className="hero-title">{money(totals.paid)} paid</p>
         <p className="flex flex-wrap gap-x-6 gap-y-2 text-sm">

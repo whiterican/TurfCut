@@ -19,7 +19,7 @@ export default async function Home() {
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col items-center justify-center px-4 pt-12 pb-28 text-center sm:px-6 lg:pb-16">
-      <span className="badge-lime">Private pilot</span>
+      <span className="badge-accent">Private pilot</span>
       <h1 className="mt-5 text-[2.75rem] leading-[0.98] font-bold tracking-[-0.045em] text-balance text-fg sm:text-6xl">
         The ground game gets a real labor market.
       </h1>
@@ -48,7 +48,7 @@ export default async function Home() {
         <p className="eyebrow" id="example-title">Example scorecard · petition circulator</p>
         <dl className="space-y-3">
           {EXAMPLE.map((m) => (
-            <div key={m.label} className="flex items-baseline justify-between gap-4 border-t border-white/10 pt-3 first:border-0 first:pt-0">
+            <div key={m.label} className="flex items-baseline justify-between gap-4 border-t border-[color-mix(in_srgb,var(--hero-fg)_15%,transparent)] pt-3 first:border-0 first:pt-0">
               <dt className="min-w-0">
                 <span className="block text-sm font-semibold">{m.label}</span>
                 <span className="hero-muted block text-xs">{m.math}</span>

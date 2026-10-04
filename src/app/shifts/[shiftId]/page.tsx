@@ -208,11 +208,11 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
             <Link href={`/jobs/${s.engagement.job.id}`} className="link">{s.engagement.job.title}</Link> · {s.engagement.job.org.name}
           </p>
         </div>
-        {live && <span className={`${st.paused ? "badge-butter" : "badge-mint"} mt-5 shrink-0`}>{st.paused ? "On break" : "On shift"}</span>}
+        {live && <span className={`${st.paused ? "badge-butter" : "badge-plum"} mt-5 shrink-0`}>{st.paused ? "On break" : "On shift"}</span>}
       </header>
 
       {!started && workerActions}
-      <div className={`hero-card space-y-4 ${isWorker ? "hero-card-lime" : ""}`} data-priority={isWorker ? shiftPriority(s, now) : undefined}>
+      <div className={`hero-card space-y-4 ${isWorker ? "hero-card-accent" : ""}`} data-priority={isWorker ? shiftPriority(s, now) : undefined}>
         <p className="eyebrow">
           <LocalTime iso={s.startsAt.toISOString()} mode="date" />
           {started && s.stagingLocation ? ` · ${s.stagingLocation}` : ""}

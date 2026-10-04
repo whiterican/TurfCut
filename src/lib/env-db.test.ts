@@ -39,6 +39,8 @@ describe("pasted DATABASE_URL clean-up", () => {
     for (const v of [` ${POOLER}\n`, `"${POOLER}"`, `'${POOLER}'`, "`" + POOLER + "`", `DATABASE_URL=${POOLER}`, POOLER.replace("postgresql", "Postgresql"), POOLER.replace("postgresql", "POSTGRESQL")])
       expect(cleanDatabaseUrl(v)).toBe(POOLER);
     expect(cleanDatabaseUrl("Postgres://u:p@h:6543/db")).toBe("postgres://u:p@h:6543/db");
+    // A settings box that wrapped the line or took a stray Return.
+    expect(cleanDatabaseUrl(` ${POOLER.replace("supabase.com", "supabase\n.com").replace("@aws", " \r\n@aws")} \n`)).toBe(POOLER);
   });
 
   it("gives Prisma the cleaned pooler URL, with the pooler settings added", () => {

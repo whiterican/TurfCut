@@ -100,6 +100,12 @@ function tidy(raw: string): { clean: string; stripped: string; fixes: string[] }
     v = q[2].trim();
     fixes.push("was wrapped in quotes");
   }
+  // A URL never holds raw whitespace (it would be percent-encoded), so any
+  // inside is a wrapped paste or a stray Return in a settings box.
+  if (/\s/.test(v)) {
+    v = v.replace(/\s+/g, "");
+    fixes.push("had spaces or line breaks inside it");
+  }
   const clean = v.replace(/^postgres(ql)?:\/\//i, (m) => m.toLowerCase());
   if (clean !== v) fixes.push("had capital letters in postgresql://");
   return { clean, stripped: v, fixes };

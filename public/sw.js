@@ -132,9 +132,9 @@ async function savedCopy(path) {
 function offlinePage() {
   return new Response(
     `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Offline · Turfcut</title>
-<body style="font:16px system-ui;background:#1b1523;color:#f4f0f7;padding:32px 16px;max-width:32rem;margin:auto">
+<body style="font:16px system-ui;background:#0f1612;color:#f4f4ee;padding:32px 16px;max-width:32rem;margin:auto">
 <h1 style="font-size:24px">No signal</h1><p>This page wasn't saved on your phone. Your shift pages are saved when you open Today or My shifts with signal.</p>
-<p><a style="color:#dcd1ea" href="" onclick="location.reload();return false">Try again</a> · <a style="color:#dcd1ea" href="/shifts">My shifts</a> · <a style="color:#dcd1ea" href="/dashboard">Today</a></p></body>`,
+<p><a style="color:#b8dec6" href="" onclick="location.reload();return false">Try again</a> · <a style="color:#b8dec6" href="/shifts">My shifts</a> · <a style="color:#b8dec6" href="/dashboard">Today</a></p></body>`,
     { status: 503, headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" } }
   );
 }

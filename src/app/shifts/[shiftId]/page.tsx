@@ -208,7 +208,7 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
             <Link href={`/jobs/${s.engagement.job.id}`} className="link">{s.engagement.job.title}</Link> · {s.engagement.job.org.name}
           </p>
         </div>
-        {live && <span className={`${st.paused ? "badge-butter" : "badge-plum"} mt-5 shrink-0`}>{st.paused ? "On break" : "On shift"}</span>}
+        {live && <span className={`${st.paused ? "badge-butter" : "badge-forest"} mt-5 shrink-0`}>{st.paused ? "On break" : "On shift"}</span>}
       </header>
 
       {!started && workerActions}

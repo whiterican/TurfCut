@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 
-/** Home-screen install: the gold pin-check-nib mark on eggplant, eggplant splash (the app opens dark by default). */
+/** Home-screen install: the mint pin-check-nib mark on forest green; green-black splash (the app opens dark by default). */
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Turfcut",
@@ -10,8 +10,8 @@ export default function manifest(): MetadataRoute.Manifest {
     start_url: "/dashboard",
     scope: "/",
     display: "standalone",
-    background_color: "#281840",
-    theme_color: "#281840",
+    background_color: "#0f1612",
+    theme_color: "#205a42",
     icons: [
       { src: "/brand/icons/icon-192.png", sizes: "192x192", type: "image/png" },
       { src: "/brand/icons/icon-512.png", sizes: "512x512", type: "image/png" },

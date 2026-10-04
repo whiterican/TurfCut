@@ -33,7 +33,7 @@ async function PayoutSetup({ workerId, note }: { workerId: string; note: string 
                   : "Set up payouts once and approved pay goes straight to your bank. Stripe collects your bank and tax details — Turfcut never sees them."}
           </p>
         </div>
-        {w.payoutsEnabled && <span className="badge-plum shrink-0">Ready</span>}
+        {w.payoutsEnabled && <span className="badge-forest shrink-0">Ready</span>}
       </div>
       {provider.configured() &&
         (w.payoutsEnabled ? (

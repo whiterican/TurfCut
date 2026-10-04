@@ -38,7 +38,7 @@ const join = (parts: Array<string | null | false | undefined>) => parts.filter(B
 
 /** Verification level → badge style. Self-reported is deliberately neutral. */
 const BADGE: Record<VerificationLevel, string> = {
-  PLATFORM: "badge-plum",
+  PLATFORM: "badge-forest",
   ORGANIZATION: "badge-sky",
   IMPORTED: "badge-accent",
   SELF_REPORTED: "badge-dashed",

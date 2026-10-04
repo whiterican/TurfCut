@@ -56,7 +56,7 @@ export default async function JobPage({ params }: { params: Promise<{ jobId: str
           <p className="flex flex-wrap gap-1.5 pt-1">
             {isOwnOrg && <span className={status.badge}>{status.label}</span>}
             <span className="badge-sky">{day(job.startsAt)} – {day(job.endsAt)}</span>
-            <span className={job.type === "PETITION" ? "badge-butter" : "badge-plum"}>{job.type === "PETITION" ? "Petition" : "Canvass"}</span>
+            <span className={job.type === "PETITION" ? "badge-butter" : "badge-forest"}>{job.type === "PETITION" ? "Petition" : "Canvass"}</span>
             <span className="badge-neutral">{acceptedCount} of {job.headcount ?? "—"} spots filled</span>
           </p>
         </div>
@@ -149,7 +149,7 @@ async function WorkerPanel({
       <ul className="divide-y divide-border">
         {reasons2.map((r) => (
           <li key={r.title} className="flex items-center gap-3 py-3">
-            <span aria-hidden className={`grid size-10 shrink-0 place-items-center rounded-xl font-bold ${r.kind === "yes" ? "bg-plum text-on-plum" : "bg-butter text-ink"}`}>
+            <span aria-hidden className={`grid size-10 shrink-0 place-items-center rounded-xl font-bold ${r.kind === "yes" ? "bg-forest text-on-forest" : "bg-butter text-ink"}`}>
               {r.kind === "yes" ? "✓" : "i"}
             </span>
             <span className="min-w-0">

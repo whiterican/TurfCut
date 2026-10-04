@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { CORE_SETTINGS, missingCoreSettings, missingInviteSettings, notConfiguredMessage } from "./env";
+import { CORE_SETTINGS, getSiteUrl, missingCoreSettings, missingInviteSettings, notConfiguredMessage, siteOriginOf } from "./env";
 
 const ALL = Object.fromEntries(CORE_SETTINGS.map((k) => [k, `value-of-${k}`]));
 
@@ -50,7 +50,31 @@ describe("invite settings", () => {
     expect(missingInviteSettings({ SUPABASE_SERVICE_ROLE_KEY: KEY, SITE_URL: "https://turf-cut.vercel.app", NODE_ENV: "production" })).toEqual([]);
   });
 
+  it("treats a SITE_URL without http(s) as unset (it would build links like null/auth/confirm)", () => {
+    expect(missingInviteSettings({ SUPABASE_SERVICE_ROLE_KEY: KEY, SITE_URL: "localhost:3000", NODE_ENV: "production" })).toEqual(["SITE_URL"]);
+  });
+
   it("names both when both are missing", () => {
     expect(missingInviteSettings({ NODE_ENV: "production" })).toEqual(["SUPABASE_SERVICE_ROLE_KEY", "SITE_URL"]);
+  });
+});
+
+describe("SITE_URL", () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it("keeps only an http(s) origin", () => {
+    expect(siteOriginOf("https://turf-cut.vercel.app/some/path?x=1")).toBe("https://turf-cut.vercel.app");
+    expect(siteOriginOf(" http://localhost:3000 ")).toBe("http://localhost:3000");
+  });
+
+  it("treats anything else as unset", () => {
+    for (const v of [undefined, "", "  ", "turf-cut.vercel.app", "localhost:3000", "mailto:caden@example.com"]) expect(siteOriginOf(v)).toBeNull();
+  });
+
+  it("is what getSiteUrl reads", () => {
+    vi.stubEnv("SITE_URL", "localhost:3000");
+    expect(getSiteUrl()).toBeNull();
+    vi.stubEnv("SITE_URL", "https://turf-cut.vercel.app/");
+    expect(getSiteUrl()).toBe("https://turf-cut.vercel.app");
   });
 });

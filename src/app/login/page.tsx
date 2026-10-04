@@ -19,7 +19,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
       )}
       {error === "config" && (
         <p role="alert" className="alert-warning mb-4">
-          Sign-in isn&apos;t set up on this server yet, so your link wasn&apos;t used. Try it again once the site is ready.
+          Sign-in isn&apos;t set up on this server yet. Once it is, sign in with your password or ask for a new link.
         </p>
       )}
       <LoginForm next={safeNext(next)} />

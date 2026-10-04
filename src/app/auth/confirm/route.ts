@@ -13,8 +13,10 @@ import { missingCoreSettings } from "@/lib/env";
  * continues to `next` (same-site paths only).
  */
 export async function GET(req: NextRequest) {
-  // A server missing its settings mustn't blame the link: nothing here has
-  // used the link yet, so say so and let it be tried again once it's set up.
+  // A server missing its settings mustn't blame the link ("expired or already
+  // used"): say the server isn't set up. Nothing here exchanges the link, so
+  // a token_hash link still works later; the default style's token was
+  // already spent at Supabase, so the page offers password or a new link.
   const unset = missingCoreSettings();
   if (unset.length) {
     console.error(`[turfcut] sign-in link not used: not configured (${unset.join(", ")})`);

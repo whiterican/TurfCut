@@ -75,15 +75,22 @@ export function runtimeDatabaseUrl(raw: string, serverless: boolean): { url: str
  * Returns null when unset in production.
  */
 export function getSiteUrl(): string | null {
-  const v = process.env.SITE_URL;
-  if (v) {
-    try {
-      return new URL(v).origin;
-    } catch {
-      return null;
-    }
+  return siteOriginOf(process.env.SITE_URL);
+}
+
+/**
+ * The http(s) origin of a SITE_URL value, or null. Anything else counts as
+ * unset: "localhost:3000" parses as a URL whose origin is "null", which would
+ * otherwise build links like "null/auth/confirm".
+ */
+export function siteOriginOf(v: string | undefined): string | null {
+  if (!v?.trim()) return null;
+  try {
+    const u = new URL(v.trim());
+    return u.protocol === "https:" || u.protocol === "http:" ? u.origin : null;
+  } catch {
+    return null;
   }
-  return null;
 }
 
 /** Stripe secret key (M5 payouts). Server only. */
@@ -145,18 +152,8 @@ export function missingInviteSettings(
 ): string[] {
   const out: string[] = [];
   if (!env.SUPABASE_SERVICE_ROLE_KEY?.trim()) out.push("SUPABASE_SERVICE_ROLE_KEY");
-  if (env.NODE_ENV === "production" && !isOrigin(env.SITE_URL)) out.push("SITE_URL");
+  if (env.NODE_ENV === "production" && !siteOriginOf(env.SITE_URL)) out.push("SITE_URL");
   return out;
-}
-
-function isOrigin(v: string | undefined): boolean {
-  if (!v?.trim()) return false;
-  try {
-    new URL(v);
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 /** "Sign-in isn't configured on this server yet (DATABASE_URL)." */

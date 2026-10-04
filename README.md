@@ -68,8 +68,10 @@ exercise the locks, triggers and data rules, not the RLS policies.
 1. **Create a Supabase project** at https://supabase.com (free tier is fine).
 2. **Copy three values** from the Supabase dashboard into `.env.local`:
    - Project URL → `NEXT_PUBLIC_SUPABASE_URL`
-   - Anon public key → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-   - Service-role key (Settings → API, keep secret) → `SUPABASE_SERVICE_ROLE_KEY`
+   - Publishable key, or the legacy anon key → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - A secret key, or the legacy service_role key (Project Settings → API
+     Keys; keep it secret) → `SUPABASE_SERVICE_ROLE_KEY`. The app hands both
+     straight to Supabase's client libraries, which accept either kind.
 3. **Copy the Postgres connection strings** (Project → Connect) into
    `.env.local`: `DATABASE_URL` for the running app and `DIRECT_URL` for the
    Prisma CLI. Locally they can be the same. See **Deploying to Vercel** for
@@ -136,10 +138,12 @@ exercise the locks, triggers and data rules, not the RLS policies.
       The app reads exactly these names. Supabase's Vercel integration adds
       differently named ones (`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`,
       `SUPABASE_SECRET_KEY`, `POSTGRES_PRISMA_URL`), so add the app's names
-      as well: the **anon** and **service_role** keys from Supabase → Project
-      Settings → API Keys → Legacy API keys, and `DATABASE_URL` from Connect →
-      Transaction pooler (or a copy of `POSTGRES_PRISMA_URL` once you've
-      checked it's port 6543; a copy doesn't follow later password changes).
+      as well, with the same values: the publishable key (or legacy anon key)
+      as `NEXT_PUBLIC_SUPABASE_ANON_KEY`, a secret key (or legacy
+      service_role key) as `SUPABASE_SERVICE_ROLE_KEY`, and `DATABASE_URL`
+      from Connect → Transaction pooler (or a copy of `POSTGRES_PRISMA_URL`
+      once you've checked it's port 6543; a copy doesn't follow later
+      password changes).
    4. **Redeploy after any settings change** (Deployments → ⋯ → Redeploy).
       Settings only reach new deployments, and the `NEXT_PUBLIC_` ones are
       baked in when the site is built.
@@ -155,12 +159,13 @@ exercise the locks, triggers and data rules, not the RLS policies.
         this server yet (DATABASE_URL).") and in Vercel → Logs
         (`[turfcut] sign-in refused: not configured (DATABASE_URL)`). Member
         invites do the same for `SUPABASE_SERVICE_ROLE_KEY` and `SITE_URL`.
-      - "Sign-in is briefly unavailable" with every setting present means the
-        database isn't up to date (step 2); Logs show
+      - "Sign-in is briefly unavailable" for a password sign-in, with every
+        setting present, means the database is behind: most often
+        `prisma/rate-limit.sql` hasn't run (step 2). Logs show
         `[turfcut] rate limiter error`.
       - Signing in seems to work but lands back on the login page: the
-        database address or password in `DATABASE_URL` is wrong; Logs show
-        the database error.
+        address or password in `DATABASE_URL` is wrong, or the database is
+        behind. Logs show the database error that says which.
 
 **Already set up under M0?** Upgrade the live database for M1 by pasting,
 in order, `prisma/m1-migration.sql`, `prisma/m1-profile-migration.sql`, then
@@ -215,8 +220,8 @@ as it already does for messages and pay (safe to re-run).
 Until steps 1–4 are done, `npm run dev` boots fine and the login/signup pages
 render. While the Supabase URL and key or `DATABASE_URL` are unset, sign-in
 and sign-up say which is missing and create nothing. Once they're set but
-before step 4 has run, sign-in reads "briefly unavailable": the database has
-no tables yet.
+before step 4 has run, a password sign-in reads "briefly unavailable": the
+database has no tables yet.
 
 ## Project layout
 

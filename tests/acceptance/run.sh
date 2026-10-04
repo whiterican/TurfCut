@@ -3,7 +3,7 @@
 # built from prisma/supabase-manual-setup.sql plus the seed, then exercises the
 # data layer end to end (locks, append-only rules, pay, sync, closure).
 #
-# Usage: PGURL=postgresql://user:pass@host:port tests/acceptance/run.sh [m5|m6|m7|c1 ...]
+# Usage: PGURL=postgresql://user:pass@host:port tests/acceptance/run.sh [m5|m6|m7|c1|rl ...]
 # Needs bash 4+ (macOS: brew install bash).
 # PGURL points at the server (database "postgres"); the script creates
 # turfcut_acc_<name> databases and drops them first if they exist. PGQUERY
@@ -19,9 +19,9 @@ PGURL="${PGURL%/}"
 PGQUERY="${PGQUERY:-}"
 P="psql -v ON_ERROR_STOP=1 -q -X"
 export PGOPTIONS="-c client_min_messages=warning"
-checks=("$@"); [ ${#checks[@]} -eq 0 ] && checks=(m5 m6 m7 c1)
-declare -A FILE=([m5]=m5-payouts.ts [m6]=m6-offline.ts [m7]=m7-corrections-closure.ts [c1]=c1-roles.ts)
-for c in "${checks[@]}"; do [[ -v FILE[$c] ]] || { echo "unknown check: $c (m5, m6, m7, c1)"; exit 2; }; done
+checks=("$@"); [ ${#checks[@]} -eq 0 ] && checks=(m5 m6 m7 c1 rl)
+declare -A FILE=([m5]=m5-payouts.ts [m6]=m6-offline.ts [m7]=m7-corrections-closure.ts [c1]=c1-roles.ts [rl]=rate-limit.ts)
+for c in "${checks[@]}"; do [[ -v FILE[$c] ]] || { echo "unknown check: $c (m5, m6, m7, c1, rl)"; exit 2; }; done
 fail=0
 for c in "${checks[@]}"; do
   db="turfcut_acc_$c"

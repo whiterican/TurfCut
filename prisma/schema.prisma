@@ -750,3 +750,17 @@ model ProfileBlock {
 
   @@index([blockedId])
 }
+
+/// Rate-limit counts (src/lib/rate-limit.ts), shared by every server
+/// instance: one row per bucket ("login:203.0.113.9") per fixed window.
+/// Times are epoch milliseconds. Operational state, not a ledger: rows are
+/// deleted once expiresAt passes. Server-only (RLS on, no policies).
+model RateLimitCounter {
+  bucket      String
+  windowStart BigInt
+  count       Int
+  expiresAt   BigInt
+
+  @@id([bucket, windowStart])
+  @@index([expiresAt])
+}

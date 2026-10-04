@@ -417,10 +417,17 @@ API: `GET/POST /api/shifts`, `POST /api/shifts/:id/check-in` `{ location? }`
   `TRUSTED_PROXY_HOPS` (behind your own proxy, so `x-forwarded-for` is read
   from the trusted end). With neither set the per-connection limits are
   skipped rather than shared by everyone; the per-email and per-worker
-  limits still apply. In memory per server process, so
-  on serverless hosting each instance counts on its own; it is a floor
-  beneath Supabase Auth's own limits, not a wall. Moving to a shared store
-  (Postgres table or Upstash) only changes the store inside that file.
+  limits still apply (on Vercel a warning is logged until one is set:
+  `CLIENT_IP_HEADER=x-vercel-forwarded-for`). Counts live in Postgres
+  (`RateLimitCounter`, created by `prisma/rate-limit.sql`), one row per key
+  per window, so every serverless instance shares them. Each request is a
+  single atomic upsert (no lock, no transaction), read as a sliding window
+  by weighting the previous window's count. If the database is unreachable
+  the request goes through (an outage mustn't lock everyone out); any
+  other failure, such as the table missing, refuses sign-in, sign-up and
+  invites rather than silently lifting the limits. Offline sync always goes
+  through. Run `prisma/rate-limit.sql` before deploying this. Member
+  invites are capped at 20 emails per organization per day the same way.
 
 ## M7 scope — field truth and leaving cleanly
 

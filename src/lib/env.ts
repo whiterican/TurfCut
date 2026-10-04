@@ -90,6 +90,15 @@ function tidy(raw: string): { clean: string; stripped: string; fixes: string[] }
   const fixes: string[] = [];
   let v = raw.trim();
   if (v !== raw) fixes.push("had spaces or line breaks around it");
+  // Line breaks and tabs never belong in a URL (URL parsers drop them too), so
+  // any inside is a wrapped paste or a stray Return in a settings box; take
+  // spaces next to them along. A lone space stays: in a password it is legal
+  // once encoded, and Prisma encodes it.
+  const unbroken = v.replace(/[ \t]*[\r\n]+[ \t]*/g, "").replace(/\t/g, "");
+  if (unbroken !== v) {
+    v = unbroken;
+    fixes.push("had line breaks inside it");
+  }
   const prefix = /^(export\s+)?DATABASE_URL\s*=\s*/i.exec(v);
   if (prefix) {
     v = v.slice(prefix[0].length).trim();
@@ -99,12 +108,6 @@ function tidy(raw: string): { clean: string; stripped: string; fixes: string[] }
   if (q) {
     v = q[2].trim();
     fixes.push("was wrapped in quotes");
-  }
-  // A URL never holds raw whitespace (it would be percent-encoded), so any
-  // inside is a wrapped paste or a stray Return in a settings box.
-  if (/\s/.test(v)) {
-    v = v.replace(/\s+/g, "");
-    fixes.push("had spaces or line breaks inside it");
   }
   const clean = v.replace(/^postgres(ql)?:\/\//i, (m) => m.toLowerCase());
   if (clean !== v) fixes.push("had capital letters in postgresql://");

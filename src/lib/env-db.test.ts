@@ -41,6 +41,9 @@ describe("pasted DATABASE_URL clean-up", () => {
     expect(cleanDatabaseUrl("Postgres://u:p@h:6543/db")).toBe("postgres://u:p@h:6543/db");
     // A settings box that wrapped the line or took a stray Return.
     expect(cleanDatabaseUrl(` ${POOLER.replace("supabase.com", "supabase\n.com").replace("@aws", " \r\n@aws")} \n`)).toBe(POOLER);
+    expect(cleanDatabaseUrl(`DATABASE_\nURL=${POOLER}`)).toBe(POOLER);
+    // A space inside a password is legal once encoded (Prisma encodes it): kept.
+    expect(cleanDatabaseUrl("postgresql://u:my pass@h:5432/d")).toBe("postgresql://u:my pass@h:5432/d");
   });
 
   it("gives Prisma the cleaned pooler URL, with the pooler settings added", () => {

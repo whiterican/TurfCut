@@ -11,6 +11,15 @@ import { approve, checkPayment, hold, payNow, recordReversal, release, resolve }
 
 const day = (d: Date) => d.toISOString().slice(0, 10);
 
+const TABS = [
+  { id: "approve", label: "To approve" },
+  { id: "ready", label: "Ready to pay" },
+  { id: "transit", label: "In transit" },
+  { id: "paid", label: "Paid" },
+  { id: "disputes", label: "Disputes" },
+] as const;
+type Tab = (typeof TABS)[number]["id"];
+
 function LineText({ l, names }: { l: OrgLine; names: Map<string, string> }) {
   const rv = reviewerOf(l);
   const reviewer = rv ? names.get(rv) : null;
@@ -29,8 +38,10 @@ function LineText({ l, names }: { l: OrgLine; names: Map<string, string> }) {
   );
 }
 
-/** Owners and finance: approve pay, resolve disputes, pay workers, export the ledger. */
-export default async function PayoutsPage() {
+/** Owners and finance: approve pay, resolve disputes, pay workers, export the ledger. Tabs (C1.4). */
+export default async function PayPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
+  const asked = (await searchParams).tab;
+  const tab: Tab = TABS.some((t) => t.id === asked) ? (asked as Tab) : "approve";
   const s = await requireRole(PAY_ROLES);
   if (!s.orgId) {
     return (
@@ -56,14 +67,27 @@ export default async function PayoutsPage() {
   const readyTotal = pay.toPay.reduce((n, w) => n + Math.max(0, w.amountCents), 0);
   const today = new Date();
   const monthAgo = new Date(today.getTime() - 30 * 86_400_000);
-  const nothing = !pay.awaiting.length && !pay.toPay.length && !pay.held.length && !pending.length && !pay.paid.length && !disputes.length;
+  const counts: Record<Tab, number> = {
+    approve: pay.awaiting.length + pay.held.length,
+    ready: pay.toPay.length,
+    transit: pending.length,
+    paid: pay.paid.length,
+    disputes: disputes.length,
+  };
+  const EMPTY: Record<Tab, string> = {
+    approve: "Nothing to approve. When a supervisor approves a shift, its pay appears here.",
+    ready: "Nobody is waiting to be paid.",
+    transit: "No payments are on their way through Stripe.",
+    paid: "Nothing paid yet.",
+    disputes: "No open disputes.",
+  };
 
   return (
     <main className="page max-w-3xl">
       <header className="page-header">
         <div className="space-y-1">
           <p className="eyebrow">Pay</p>
-          <h1 className="page-title">Payouts</h1>
+          <h1 className="page-title">Pay</h1>
           <p className="text-muted-sm">
             Supervisors approve the work; you approve the pay. Workers receive the full gross amount — the {PLATFORM_FEE_BPS / 100}% platform fee is invoiced to your organization.
           </p>
@@ -89,6 +113,15 @@ export default async function PayoutsPage() {
           <p className="stat-label">Paid, last 30 days</p>
         </div>
       </div>
+
+      <nav aria-label="Pay sections" className="flex flex-wrap gap-2">
+        {TABS.map((t) => (
+          <Link key={t.id} href={`/pay?tab=${t.id}`} className="chip" aria-current={t.id === tab ? "page" : undefined}>
+            {t.label}
+            <span className="tabular-nums text-muted">{counts[t.id]}</span>
+          </Link>
+        ))}
+      </nav>
 
       {pay.conflicts.length > 0 && (
         <div className="card space-y-2 border-[var(--danger)]" role="alert">
@@ -121,7 +154,7 @@ export default async function PayoutsPage() {
         </div>
       )}
 
-      {pending.length > 0 && (
+      {tab === "transit" && pending.length > 0 && (
         <section className="section">
           <h2 className="section-title">Waiting for Stripe</h2>
           {pending.map((t) => (
@@ -135,14 +168,14 @@ export default async function PayoutsPage() {
         </section>
       )}
 
-      {nothing && (
+      {counts[tab] === 0 && (
         <div className="empty-state">
-          <p className="empty-state-title">No pay to handle yet</p>
-          <p className="empty-state-body">When a supervisor approves a shift, its pay appears here for you to approve.</p>
+          <p className="empty-state-title">Nothing here</p>
+          <p className="empty-state-body">{EMPTY[tab]}</p>
         </div>
       )}
 
-      {disputes.length > 0 && (
+      {tab === "disputes" && disputes.length > 0 && (
         <section className="section">
           <h2 className="section-title">Open disputes</h2>
           {disputes.map((d) => (
@@ -175,7 +208,7 @@ export default async function PayoutsPage() {
         </section>
       )}
 
-      {pay.awaiting.length > 0 && (
+      {tab === "approve" && pay.awaiting.length > 0 && (
         <section className="section">
           <h2 className="section-title">Approve pay</h2>
           <p className="text-muted-sm">Each line was calculated from verified work when a supervisor approved the shift.</p>
@@ -210,7 +243,7 @@ export default async function PayoutsPage() {
         </section>
       )}
 
-      {pay.toPay.length > 0 && (
+      {tab === "ready" && pay.toPay.length > 0 && (
         <section className="section">
           <h2 className="section-title">Ready to pay</h2>
           {pay.toPay.map((w) => (
@@ -251,7 +284,7 @@ export default async function PayoutsPage() {
         </section>
       )}
 
-      {pay.held.length > 0 && (
+      {tab === "approve" && pay.held.length > 0 && (
         <section className="section">
           <h2 className="section-title">On hold</h2>
           <ul className="list-card">
@@ -272,7 +305,7 @@ export default async function PayoutsPage() {
         </section>
       )}
 
-      {pay.paid.length > 0 && (
+      {tab === "paid" && pay.paid.length > 0 && (
         <section className="section">
           <h2 className="section-title">Recently paid</h2>
           <ul className="list-card">
@@ -296,9 +329,9 @@ export default async function PayoutsPage() {
         </section>
       )}
 
-      <section className="section">
+      {tab === "paid" && <section className="section">
         <h2 className="section-title">Export</h2>
-        <form action="/payouts/export" method="get" className="card flex flex-wrap items-end gap-3">
+        <form action="/pay/export" method="get" className="card flex flex-wrap items-end gap-3">
           <label className="space-y-1.5">
             <span className="label">From (UTC)</span>
             <input type="date" name="from" className="field" required defaultValue={day(monthAgo)} />
@@ -310,9 +343,9 @@ export default async function PayoutsPage() {
           <button className="btn-secondary">Download CSV</button>
           <p className="text-hint w-full">One row per pay line recorded or paid in the period: payee, date, amount, fee, purpose, project, shift, who reviewed and approved it, and the Stripe reference. Sum the rows marked paid_in_period = yes to total the period&apos;s payments.</p>
         </form>
-      </section>
+      </section>}
 
-      {closed.length > 0 && (
+      {tab === "disputes" && closed.length > 0 && (
         <section className="section">
           <h2 className="section-title">Recently closed disputes</h2>
           <ul className="list-card">

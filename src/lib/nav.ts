@@ -37,7 +37,7 @@ export const ORG_TABS: OrgItem[] = [
   { id: "desk", href: "/desk", label: "Desk", icon: "desk", area: "desk" },
   { id: "jobs", href: "/jobs", label: "Jobs", icon: "jobs", area: "jobs" },
   { id: "messages", href: MESSAGES_HREF, label: "Messages", icon: "messages", area: "messages" },
-  { id: "pay", href: "/payouts", label: "Pay", icon: "pay", area: "pay" },
+  { id: "pay", href: "/pay", label: "Pay", icon: "pay", area: "pay" },
   { id: "members", href: "/org/settings/members", label: "Members", icon: "members", area: "orgMembers" },
   { id: "settings", href: "/org/settings", label: "Settings", icon: "settings", area: "orgSettings" },
 ];

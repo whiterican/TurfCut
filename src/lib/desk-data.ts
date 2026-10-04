@@ -78,9 +78,9 @@ export async function loadDesk(actor: { profileId: string; orgId: string; role: 
   if (parts.pay && pay && disputes !== null) {
     if (pay.awaiting.length) {
       const cents = pay.awaiting.reduce((n, l) => n + l.line.amountCents, 0);
-      needs.push({ key: "pay-approve", title: `${plural(pay.awaiting.length, "pay line")} to approve`, sub: `${money(cents)} in total`, tag: "Approve", badge: "badge-butter", href: "/payouts" });
+      needs.push({ key: "pay-approve", title: `${plural(pay.awaiting.length, "pay line")} to approve`, sub: `${money(cents)} in total`, tag: "Approve", badge: "badge-butter", href: "/pay?tab=approve" });
     }
-    if (disputes) needs.push({ key: "pay-disputes", title: `${plural(disputes, "open dispute")}`, sub: "Workers questioning their pay", tag: "Dispute", badge: "badge-coral", href: "/payouts" });
+    if (disputes) needs.push({ key: "pay-disputes", title: `${plural(disputes, "open dispute")}`, sub: "Workers questioning their pay", tag: "Dispute", badge: "badge-coral", href: "/pay?tab=disputes" });
   }
 
   return {

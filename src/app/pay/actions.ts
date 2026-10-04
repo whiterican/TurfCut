@@ -21,7 +21,7 @@ async function actor(): Promise<PayActor | null> {
 }
 
 const refresh = () => {
-  revalidatePath("/payouts");
+  revalidatePath("/pay");
   revalidatePath("/desk");
   revalidatePath("/earnings");
 };

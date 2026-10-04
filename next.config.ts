@@ -3,6 +3,13 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   // No floating Next.js badge while developing (it never ships to users).
   devIndicators: false,
+  // Pay moved from /payouts to /pay (C1.4); old links and bookmarks still work.
+  async redirects() {
+    return [
+      { source: "/payouts", destination: "/pay", permanent: false },
+      { source: "/payouts/export", destination: "/pay/export", permanent: false },
+    ];
+  },
   // The offline brief's service worker must never be served stale.
   async headers() {
     // As the Next.js PWA guide sets them for a service worker.

@@ -30,4 +30,15 @@ describe("staff table sorting", () => {
     expect(nextSort({ key: "name", dir: "asc" }, "name")).toEqual({ key: "name", dir: "desc" });
     expect(nextSort({ key: "name", dir: "desc" }, "count")).toEqual({ key: "count", dir: "asc" });
   });
+  it("handles a column mixing explicit sort values with text-only cells", () => {
+    const mixed: TableRow[] = [
+      { id: "n", cells: { v: { text: "12", sort: 12 } } },
+      { id: "t", cells: { v: { text: "pending" } } },
+      { id: "e", cells: { v: { text: "" } } },
+      { id: "m", cells: {} },
+    ];
+    // Numbers and text compare as text when mixed; blanks and missing cells still go last.
+    expect(ids(sortRows(mixed, "v", "asc"))).toEqual(["n", "t", "e", "m"]);
+    expect(ids(sortRows(mixed, "v", "desc")).slice(-2)).toEqual(["e", "m"]);
+  });
 });

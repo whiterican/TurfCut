@@ -26,7 +26,8 @@ export function DataTable({
   const [sort, setSort] = useState<{ key: string | null; dir: SortDir }>(initialSort ?? { key: null, dir: "asc" });
   const shown = sortRows(rows, sort.key, sort.dir);
   return (
-    <div className="data-table-wrap">
+    // Focusable and named, so keyboard users can scroll it even with no links inside.
+    <div className="data-table-wrap" tabIndex={0} role="region" aria-label={caption}>
       <table className="data-table">
         <caption className="sr-only">{caption}</caption>
         <thead>

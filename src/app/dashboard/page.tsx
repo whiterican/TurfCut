@@ -226,8 +226,8 @@ export default async function DashboardPage() {
     <main className="page">
       <header className="page-header">
         <div className="space-y-1.5">
-          <p className="eyebrow">{isWorker ? "Today" : "Desk"}</p>
-          <h1 className={isWorker ? "page-title" : "page-title masthead"}>{name}</h1>
+          <p className="eyebrow">{isWorker ? "Today" : session.orgId ? "Desk" : "Account"}</p>
+          <h1 className={!isWorker && session.orgId ? "page-title masthead" : "page-title"}>{name}</h1>
           <p className="text-muted-sm">
             {[ROLE_LABELS[session.role] ?? session.role, session.email].filter(Boolean).join(" · ")}
           </p>

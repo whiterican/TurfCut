@@ -83,18 +83,16 @@ export function TabBar({ tabs }: { tabs: NavTab[] }) {
 }
 
 /** Desktop (lg): the organization's left rail — its name and approval, then every area the role reaches. */
-export function OrgRail({ tabs, orgName, approved }: { tabs: NavTab[]; orgName: string; approved: boolean }) {
+export function OrgRail({ tabs, orgName, approved }: { tabs: NavTab[]; orgName: string; approved: boolean | null }) {
   const current = activeTab(tabs, usePathname());
   const count = useUnreadCount();
   return (
     <aside className="org-rail" aria-label="Organization">
       <div className="org-rail-head">
         <p className="masthead truncate text-lg" title={orgName}>{orgName}</p>
-        {approved ? (
-          <p className="org-rail-status"><BadgeCheck aria-hidden className="size-3.5" /> Approved</p>
-        ) : (
-          <p className="org-rail-status"><Clock aria-hidden className="size-3.5" /> Awaiting Turfcut approval</p>
-        )}
+        {/* null = couldn't load it: say nothing rather than something false. */}
+        {approved === true && <p className="org-rail-status"><BadgeCheck aria-hidden className="size-3.5" /> Approved</p>}
+        {approved === false && <p className="org-rail-status"><Clock aria-hidden className="size-3.5" /> Awaiting Turfcut approval</p>}
       </div>
       <nav aria-label="Main">
         <ul className="space-y-0.5">
@@ -114,14 +112,18 @@ export function OrgRail({ tabs, orgName, approved }: { tabs: NavTab[]; orgName: 
   );
 }
 
-/** Phone and tablet, organization roles: the role's tabs, and More for the rest (a sheet). */
+/**
+ * Phone and tablet, organization roles: the role's tabs, and More for the
+ * rest. More is a native modal <dialog>: the browser traps focus, makes the
+ * page behind it inert, closes on Escape and returns focus to More.
+ */
 export function OrgTabBar({ tabs, more }: { tabs: NavTab[]; more: NavTab[] }) {
   const pathname = usePathname();
   const current = activeTab([...tabs, ...more], pathname);
   const count = useUnreadCount();
   const [open, setOpen] = useState(false);
   const sheetId = useId();
-  const sheet = useRef<HTMLDivElement>(null);
+  const sheet = useRef<HTMLDialogElement>(null);
   const button = useRef<HTMLButtonElement>(null);
   const inMore = more.some((t) => t.href === current);
 
@@ -131,43 +133,54 @@ export function OrgTabBar({ tabs, more }: { tabs: NavTab[]; more: NavTab[] }) {
     setOpenedAt(pathname);
     if (open) setOpen(false);
   }
-  // Escape closes and returns focus; opening moves focus into the sheet.
+  // Keep the dialog in step with state.
   useEffect(() => {
-    if (!open) return;
-    sheet.current?.querySelector<HTMLElement>("a")?.focus();
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setOpen(false);
-        button.current?.focus();
-      }
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
+    const d = sheet.current;
+    if (!d) return;
+    if (open && !d.open) d.showModal();
+    if (!open && d.open) d.close();
   }, [open]);
 
   if (tabs.length === 0) return null;
+  const close = () => setOpen(false);
   return (
     <>
-      {open && <button type="button" aria-label="Close menu" tabIndex={-1} className="more-backdrop" onClick={() => setOpen(false)} />}
-      {open && (
-        <div ref={sheet} id={sheetId} role="dialog" aria-modal="true" aria-label="More" className="more-sheet">
-          <div className="mb-2 flex items-center justify-between">
-            <p className="eyebrow">More</p>
-            <button type="button" className="btn-ghost btn-sm" onClick={() => { setOpen(false); button.current?.focus(); }} aria-label="Close">
-              <X aria-hidden className="btn-icon" />
-            </button>
+      {more.length > 0 && (
+        <dialog
+          ref={sheet}
+          id={sheetId}
+          aria-label="More"
+          className="more-sheet"
+          // Escape, or close() from anywhere: sync state and hand focus back to More.
+          onClose={() => {
+            setOpen(false);
+            button.current?.focus();
+          }}
+          // A press on the dimmed area outside the panel lands on the dialog itself.
+          onClick={(e) => {
+            if (e.target === e.currentTarget) close();
+          }}
+        >
+          <div className="more-sheet-panel">
+            <div className="mb-2 flex items-center justify-between">
+              <p className="eyebrow">More</p>
+              <button type="button" className="btn-ghost btn-sm" onClick={close} aria-label="Close">
+                <X aria-hidden className="btn-icon" />
+              </button>
+            </div>
+            <ul className="space-y-0.5">
+              {more.map((t, i) => (
+                <li key={t.href}>
+                  {/* Closes even when the link is the page you're on (no navigation happens). */}
+                  <Link href={t.href} className="rail-link" autoFocus={i === 0} onClick={close} aria-current={t.href === current ? "page" : undefined}>
+                    <Icon of={iconFor(t)} className="size-4 shrink-0" />
+                    {t.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
           </div>
-          <ul className="space-y-0.5">
-            {more.map((t) => (
-              <li key={t.href}>
-                <Link href={t.href} className="rail-link" aria-current={t.href === current ? "page" : undefined}>
-                  <Icon of={iconFor(t)} className="size-4 shrink-0" />
-                  {t.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
+        </dialog>
       )}
       <nav aria-label="Main" className="tabbar">
         <div className="mx-auto flex max-w-md">
@@ -184,10 +197,11 @@ export function OrgTabBar({ tabs, more }: { tabs: NavTab[]; more: NavTab[] }) {
               ref={button}
               type="button"
               className="tab"
+              aria-haspopup="dialog"
               aria-expanded={open}
               aria-controls={sheetId}
               aria-current={inMore ? "page" : undefined}
-              onClick={() => setOpen((o) => !o)}
+              onClick={() => setOpen(true)}
             >
               <Icon of={Ellipsis} className="tab-icon" />
               More

@@ -610,7 +610,7 @@ body {
     @apply mx-auto flex w-full max-w-6xl flex-1;
   }
   .org-rail {
-    @apply sticky top-16 hidden w-60 shrink-0 self-start px-3 pt-8 lg:block;
+    @apply sticky top-0 hidden max-h-dvh w-60 shrink-0 self-start overflow-y-auto px-3 pt-8 pb-6 lg:block;
   }
   .org-rail-head {
     @apply mb-4 space-y-1 border-b border-border px-3 pb-4;
@@ -625,23 +625,23 @@ body {
     @apply bg-surface-2 font-semibold text-fg;
     box-shadow: inset 3px 0 0 var(--focus);
   }
-  /* Dims the page behind the sheet (never a pale wash, which reads as disabled). */
-  .more-backdrop {
-    @apply fixed inset-0 z-40 lg:hidden;
+  /* More sheet: a native modal dialog pinned to the bottom of the screen. */
+  .more-sheet {
+    @apply m-0 mx-auto mt-auto w-full max-w-md border-0 bg-transparent p-0 lg:hidden;
+    max-height: 100dvh;
+    color: inherit;
+  }
+  .more-sheet-panel {
+    @apply rounded-t-2xl border border-b-0 border-border bg-surface p-4;
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+    box-shadow: var(--shadow);
+  }
+  /* Dims the page (never a pale wash, which reads as disabled). */
+  .more-sheet::backdrop {
     background: rgb(24 20 30 / 0.45);
   }
-  .dark .more-backdrop {
+  .dark .more-sheet::backdrop {
     background: rgb(8 4 14 / 0.6);
-  }
-  /* While More is open the bar is solid, so the page doesn't ghost through it. */
-  body:has(.more-sheet) .tabbar {
-    background: var(--surface);
-    backdrop-filter: none;
-  }
-  .more-sheet {
-    @apply fixed inset-x-0 z-50 mx-auto max-w-md rounded-t-2xl border border-b-0 border-border bg-surface p-4 lg:hidden;
-    bottom: calc(3.5rem + env(safe-area-inset-bottom));
-    box-shadow: var(--shadow);
   }
   .topnav-link {
     @apply rounded-lg px-3 py-2 text-sm font-medium text-muted transition hover:bg-surface-2 hover:text-fg;

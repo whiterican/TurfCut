@@ -49,13 +49,14 @@ export default async function RootLayout({
   const tabs = navTabs(session?.role ?? null, !!session?.orgId);
   const org = orgNav(session?.role ?? null, !!session?.orgId);
   const isOrg = org.rail.length > 0;
-  const orgInfo = isOrg && session?.orgId
-    ? await db().organization.findUnique({ where: { id: session.orgId }, select: { name: true, approved: true } }).catch(() => null)
-    : null;
-  const unread =
+  const [unread, orgInfo] = await Promise.all([
     session && tabs.some((t) => t.href === MESSAGES_HREF)
-      ? await unreadTotal({ userId: session.userId, role: session.role, orgId: session.orgId }).catch(() => 0)
-      : 0;
+      ? unreadTotal({ userId: session.userId, role: session.role, orgId: session.orgId }).catch(() => 0)
+      : 0,
+    isOrg && session?.orgId
+      ? db().organization.findUnique({ where: { id: session.orgId }, select: { name: true, approved: true } }).catch(() => null)
+      : null,
+  ]);
   return (
     <html
       lang="en"
@@ -89,7 +90,7 @@ export default async function RootLayout({
         </header>
         {isOrg ? (
           <div className="org-shell">
-            <OrgRail tabs={org.rail} orgName={orgInfo?.name ?? "Your organization"} approved={orgInfo?.approved ?? false} />
+            <OrgRail tabs={org.rail} orgName={orgInfo?.name ?? "Your organization"} approved={orgInfo ? orgInfo.approved : null} />
             <div className="min-w-0 flex-1">
               <PageTransition>{children}</PageTransition>
             </div>

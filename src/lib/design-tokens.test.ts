@@ -154,9 +154,9 @@ describe("priority rings", () => {
   });
 });
 
-describe("plum badges", () => {
-  it("light text on solid plum is AAA in both themes", () => {
-    for (const th of [light, dark]) expect(ratio(th["on-plum"], th.plum)).toBeGreaterThanOrEqual(7);
+describe("solid badges", () => {
+  it("text on the solid fill (eggplant by day, olive by night) is AAA in both themes", () => {
+    for (const th of [light, dark]) expect(ratio(th["on-solid"], th.solid)).toBeGreaterThanOrEqual(7);
   });
 });
 
@@ -166,20 +166,20 @@ describe("the Turfcut App Mockup palette (eggplant and lime)", () => {
     expect(dark.surface).toBe("#281a3a");
     expect(dark["surface-2"]).toBe("#36264a");
     expect(dark.accent).toBe("#ccea96");
-    expect(dark.plum).toBe("#3e4830"); // olive "verified" chip
+    expect(dark.solid).toBe("#3e4830"); // olive "verified" chip
   });
   it("light mode uses the mockup's off-white page, green-black ink and lime accent", () => {
     expect(light.bg).toBe("#eef0ea");
     expect(light.fg).toBe("#181e1a");
     expect(light.accent).toBe("#ccea96");
-    expect(light.plum).toBe("#281a3a"); // eggplant "done" badge
+    expect(light.solid).toBe("#281a3a"); // eggplant "done" badge
   });
   it("progress fills (the success colour) show against surfaces in both themes (≥ 3:1)", () => {
     for (const th of [light, dark]) for (const k of ["surface", "surface-2"] as const) expect(ratio(th.success, th[k])).toBeGreaterThanOrEqual(3);
   });
   it("by night team avatars (olive) differ from people's avatars (raised eggplant)", () => {
-    expect(css).toMatch(/\.dark \.avatar-team \{\s*background: var\(--plum\);/);
-    expect(dark.plum).not.toBe(dark["surface-2"]);
+    expect(css).toMatch(/\.dark \.avatar-team \{\s*background: var\(--solid\);/);
+    expect(dark.solid).not.toBe(dark["surface-2"]);
   });
   it("warning text differs from error text by brightness, not only hue", () => {
     expect(ratio(light.warning, light.danger)).toBeGreaterThanOrEqual(1.5);

@@ -10,7 +10,7 @@
  * green-black ink (#181e1a), lime accent fills, eggplant for links, the
  * "done" badges and progress, and a green-black feature card. Pastel status
  * badges (sky, coral, butter, and the accent) carry the dark "ink" colour;
- * solid plum badges carry --on-plum text. Priority rings are eggplant around
+ * solid badges (--solid) carry --on-solid text. Priority rings are eggplant around
  * the lime card by day and lime by night (with a page-coloured gap).
  *
  * The theme is a `.dark` class on <html>, set before first paint by the
@@ -23,8 +23,13 @@
 :root {
   /* The accent fill: lime in both themes. */
   --accent: #ccea96;
-  --plum: #281a3a; /* solid "done / live" badges, with --on-plum text */
-  --on-plum: #f6f6f2;
+  /* Solid (and on-solid): the fill for "done / live / verified"
+     badges, the Canvass filter and team avatars, and the text on it. One
+     role, two colours: EGGPLANT with off-white text by day, OLIVE with lime
+     text by night (the mockup's "Verified org" chip). Was --plum, which only
+     described the light theme. */
+  --solid: #281a3a;
+  --on-solid: #f6f6f2;
   --sky: #b9dbfa;
   --coral: #f8b3a2;
   --butter: #f5d98a;
@@ -74,8 +79,8 @@
   --fg: #f8f8f4;
   --muted: #d4ccde;
   --subtle: #b9b0c4;
-  --plum: #3e4830; /* olive chip with lime text, as on "Verified org" */
-  --on-plum: #ccea96;
+  --solid: #3e4830; /* olive, not eggplant: see --solid in :root */
+  --on-solid: #ccea96;
   --ink: #1e142c;
   --link: #ccea96;
   --focus: #ccea96;
@@ -107,8 +112,8 @@
   --color-subtle: var(--subtle);
   --color-ink: var(--ink);
   --color-accent: var(--accent);
-  --color-plum: var(--plum);
-  --color-on-plum: var(--on-plum);
+  --color-solid: var(--solid);
+  --color-on-solid: var(--on-solid);
   --color-sky: var(--sky);
   --color-coral: var(--coral);
   --color-butter: var(--butter);
@@ -433,7 +438,7 @@ body {
   .badge-coral,
   .badge-accent,
   .badge-sky,
-  .badge-plum,
+  .badge-solid,
   .badge-butter {
     @apply inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-semibold whitespace-nowrap;
   }
@@ -521,7 +526,7 @@ body {
   }
   .step-done {
     @apply text-muted;
-    border-color: color-mix(in srgb, var(--plum) 50%, var(--border));
+    border-color: color-mix(in srgb, var(--solid) 50%, var(--border));
   }
   .step-current {
     background: var(--accent);
@@ -673,8 +678,8 @@ body {
   }
   /* By night: the olive "verified" chip colours, distinct from people's eggplant avatars. */
   .dark .avatar-team {
-    background: var(--plum);
-    color: var(--on-plum);
+    background: var(--solid);
+    color: var(--on-solid);
   }
   .bubble {
     @apply max-w-full rounded-2xl px-3.5 py-2 text-[0.9375rem] leading-relaxed break-words whitespace-pre-wrap;
@@ -783,11 +788,11 @@ body {
   .filter-chip-sky { background: var(--sky); }
   .filter-chip-butter { background: var(--butter); }
   .filter-chip-accent { background: var(--accent); }
-  /* Solid plum: "done / live" badges and the Canvass filter, light text on plum. */
-  .badge-plum,
-  .filter-chip-plum {
-    background: var(--plum);
-    color: var(--on-plum);
+  /* Solid: "done / live" badges and the Canvass filter (eggplant by day, olive by night; see --solid). */
+  .badge-solid,
+  .filter-chip-solid {
+    background: var(--solid);
+    color: var(--on-solid);
     border-color: transparent;
   }
   .quick-reply {

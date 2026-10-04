@@ -13,7 +13,7 @@ function GateRow({ label, done, detail, children }: { label: string; done: boole
       <div className="space-y-1">
         <p className="flex items-center gap-2 font-medium text-fg">
           {label}
-          <span className={done ? "badge-plum" : "badge-neutral"}>{done ? "Done" : "Not yet"}</span>
+          <span className={done ? "badge-solid" : "badge-neutral"}>{done ? "Done" : "Not yet"}</span>
         </p>
         <p className="text-muted-sm">{detail}</p>
       </div>
@@ -117,7 +117,7 @@ export default async function OrgSettingsPage() {
               <li key={j.id} className="space-y-2 px-4 py-4">
                 <p className="flex flex-wrap items-center gap-2 font-medium text-fg">
                   {jurisdictionLabel(j)}
-                  <span className={problems.length ? "badge-butter" : "badge-plum"}>{problems.length ? "Can't publish" : "Usable"}</span>
+                  <span className={problems.length ? "badge-butter" : "badge-solid"}>{problems.length ? "Can't publish" : "Usable"}</span>
                 </p>
                 <p className="text-muted-sm">
                   Pay methods:{" "}

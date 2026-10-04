@@ -47,4 +47,15 @@ describe("field views", () => {
     ]);
     expect(q.map((x) => x.id)).toEqual(["early", "late"]);
   });
+  it("puts a reviewed shift back in the queue once it's corrected after its review", () => {
+    const closeout = { workEventId: null, status: "APPROVED" as const, reason: null, createdAt: d("2026-10-04T19:00:00Z") };
+    const out = d("2026-10-04T18:00:00Z");
+    expect(needsReview(st({ checkedOutAt: out, closeout }), d("2026-10-04T18:30:00Z"))).toBe(false); // corrected, then reviewed
+    expect(needsReview(st({ checkedOutAt: out, closeout }), d("2026-10-04T20:00:00Z"))).toBe(true); // reviewed, then corrected
+    const q = reviewQueue([
+      { id: "corrected", state: st({ checkedOutAt: out, closeout }), correctedAt: d("2026-10-04T20:00:00Z") },
+      { id: "settled", state: st({ checkedOutAt: out, closeout }), correctedAt: null },
+    ]);
+    expect(q.map((x) => x.id)).toEqual(["corrected"]);
+  });
 });

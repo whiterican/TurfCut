@@ -27,7 +27,7 @@ export default async function HiringPage() {
           { label: "Open jobs", value: rows.length },
           { label: "Applications waiting", value: total("applied") },
           { label: "Invited", value: total("invited") },
-          { label: "Hired, working", value: total("engaged") },
+          { label: "Working", value: total("engaged") },
         ]}
       />
       <DataTable
@@ -37,8 +37,9 @@ export default async function HiringPage() {
           { key: "job", label: "Job", sortable: true },
           { key: "applied", label: "Applied", numeric: true, sortable: true },
           { key: "invited", label: "Invited", numeric: true, sortable: true },
-          { key: "engaged", label: "Hired", numeric: true, sortable: true },
-          { key: "completed", label: "Completed", numeric: true, sortable: true },
+          { key: "engaged", label: "Working", numeric: true, sortable: true },
+          // Hired so far (working or completed), as the Jobs list and the capacity check count it.
+          { key: "filled", label: "Filled", numeric: true, sortable: true },
         ]}
         rows={rows.map((r) => ({
           id: r.jobId,
@@ -46,8 +47,8 @@ export default async function HiringPage() {
             job: { text: r.status === "PAUSED" ? `${r.title} (paused)` : r.title, href: `/hiring/${r.jobId}/applicants`, sort: r.title },
             applied: { text: String(r.applied), sort: r.applied },
             invited: { text: String(r.invited), sort: r.invited },
-            engaged: { text: r.headcount === null ? String(r.engaged) : `${r.engaged} of ${r.headcount}`, sort: r.engaged },
-            completed: { text: String(r.completed), sort: r.completed },
+            engaged: { text: String(r.engaged), sort: r.engaged },
+            filled: { text: r.headcount === null ? String(r.engaged + r.completed) : `${r.engaged + r.completed} of ${r.headcount}`, sort: r.engaged + r.completed },
           },
         }))}
       />

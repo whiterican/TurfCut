@@ -497,16 +497,35 @@ export async function loadFieldWindow(orgId: string, from: Date, to: Date): Prom
   }));
 }
 
-/** Shifts checked out in the last `days` days and still without a closeout (the review queue's candidates). */
+/** The most the review queue loads at once (oldest first); the rest wait their turn. */
+export const REVIEW_CAP = 200;
+
+/**
+ * The review queue's candidates: shifts checked out in the last `days` days
+ * with no closeout yet, or corrected since (lib/field-view needsReview
+ * decides), the longest-waiting first, at most REVIEW_CAP.
+ */
 export async function loadReviewCandidates(orgId: string, now = new Date(), days = 30) {
   const shifts = await db().shift.findMany({
     where: {
       engagement: { job: { orgId } },
       status: { not: "CANCELLED" },
       checkOutAt: { gt: new Date(now.getTime() - days * 86_400_000) },
-      validations: { none: { workEventId: null } },
+      OR: [{ validations: { none: { workEventId: null } } }, { events: { some: { type: "CORRECTION" } } }],
     },
     include: SHIFT_INCLUDE,
+    orderBy: { checkOutAt: "asc" },
+    take: REVIEW_CAP,
   });
-  return shifts.map((s) => ({ shiftId: s.id, jobTitle: s.engagement.job.title, worker: s.engagement.worker.displayName, startsAt: s.startsAt, state: shiftState(facts(s)) }));
+  return shifts.map((s) => {
+    const corrections = s.events.filter((e) => e.type === "CORRECTION");
+    return {
+      shiftId: s.id,
+      jobTitle: s.engagement.job.title,
+      worker: s.engagement.worker.displayName,
+      startsAt: s.startsAt,
+      state: shiftState(facts(s)),
+      correctedAt: corrections.length ? corrections[corrections.length - 1].createdAt : null,
+    };
+  });
 }

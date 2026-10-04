@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requireArea } from "@/lib/employer-session";
-import { loadFieldWindow, loadReviewCandidates } from "@/lib/field-day-data";
+import { loadFieldWindow, loadReviewCandidates, REVIEW_CAP } from "@/lib/field-day-data";
 import { isoDay, reviewQueue } from "@/lib/field-view";
 import { Masthead } from "@/components/staff/Masthead";
 import { SummaryBar } from "@/components/staff/SummaryBar";
@@ -16,13 +16,14 @@ export default async function FieldPage() {
     loadFieldWindow(session.orgId, new Date(now.getTime() - 12 * H), new Date(now.getTime() + 24 * H)),
     loadReviewCandidates(session.orgId, now),
   ]);
-  const underWay = rows.filter((r) => r.startsAt <= now || r.state.checkedInAt);
+  // Under way: checked in and not out, or due now and not checked in (late).
+  const underWay = rows.filter((r) => !r.state.checkedOutAt && (r.state.checkedInAt || (r.startsAt <= now && r.endsAt > now)));
   const waiting = reviewQueue(candidates).length;
   return (
     <main className="page max-w-4xl">
       <Masthead eyebrow="Field" title="In the field" meta="The last 12 hours and the next 24.">
-        <Link href={`/field/${isoDay(now)}`} className="btn-ghost btn-sm">By date</Link>
-        <Link href="/field/review" className="btn-secondary btn-sm">Review queue{waiting ? ` (${waiting})` : ""}</Link>
+        <Link href={`/field/${isoDay(now)}`} className="btn-ghost btn-sm">By date (UTC)</Link>
+        <Link href="/field/review" className="btn-secondary btn-sm">Review queue{waiting ? ` (${waiting >= REVIEW_CAP ? `${REVIEW_CAP}+` : waiting})` : ""}</Link>
       </Masthead>
       <SummaryBar
         label="Field totals"
@@ -30,7 +31,7 @@ export default async function FieldPage() {
           { label: "Under way", value: underWay.length },
           { label: "Checked in", value: underWay.filter((r) => r.state.checkedInAt).length },
           { label: "Packets out", value: rows.reduce((n, r) => n + r.state.packetsOut.length, 0) },
-          { label: "Waiting for review", value: waiting },
+          { label: "Waiting for review", value: waiting >= REVIEW_CAP ? `${REVIEW_CAP}+` : waiting },
         ]}
       />
       <FieldBoard rows={rows} empty="No shifts in the last 12 hours or the next 24." />

@@ -70,7 +70,8 @@ export default async function ApplicantsPage({ params }: { params: Promise<{ job
                     {e.worker.closedAt ? e.worker.displayName : <Link href={`/workers/${e.worker.id}`} className="link">{e.worker.displayName}</Link>}
                     <span className="text-muted-sm"> · applied {day(e.createdAt)}</span>
                   </p>
-                  {job.status === "PUBLISHED" && (
+                  {/* The server accepts on any job that isn't closed (paused included). */}
+                  {job.status !== "CLOSED" && (
                     <ActionButton action={acceptApplication} fields={{ jobId: job.id, engagementId: e.id }} label="Accept" variant="btn-primary btn-sm" />
                   )}
                 </div>

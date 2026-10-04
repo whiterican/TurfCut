@@ -91,6 +91,7 @@ export default async function PayPage({ searchParams }: { searchParams: Promise<
           <p className="text-muted-sm">
             Supervisors approve the work; you approve the pay. Workers receive the full gross amount — the {PLATFORM_FEE_BPS / 100}% platform fee is invoiced to your organization.
           </p>
+          <p className="text-muted-sm"><Link href="/pay?tab=paid#export" className="link">Export the ledger (CSV)</Link></p>
           {!stripeOn && <p className="text-hint">Stripe isn&apos;t connected yet: you can approve pay, and it&apos;s sent once Stripe is set up.</p>}
         </div>
       </header>
@@ -118,7 +119,7 @@ export default async function PayPage({ searchParams }: { searchParams: Promise<
         {TABS.map((t) => (
           <Link key={t.id} href={`/pay?tab=${t.id}`} className="chip" aria-current={t.id === tab ? "page" : undefined}>
             {t.label}
-            <span className="tabular-nums text-muted">{counts[t.id]}</span>
+            <span className="tabular-nums opacity-75">{counts[t.id]}</span>
           </Link>
         ))}
       </nav>
@@ -329,7 +330,7 @@ export default async function PayPage({ searchParams }: { searchParams: Promise<
         </section>
       )}
 
-      {tab === "paid" && <section className="section">
+      {tab === "paid" && <section className="section" id="export">
         <h2 className="section-title">Export</h2>
         <form action="/pay/export" method="get" className="card flex flex-wrap items-end gap-3">
           <label className="space-y-1.5">

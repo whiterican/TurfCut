@@ -16,7 +16,7 @@ export default async function FieldDayPage({ params }: { params: Promise<{ date:
   const label = win.from.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" });
   return (
     <main className="page max-w-4xl">
-      <Masthead eyebrow="Field" title={label} meta={`${rows.length} ${rows.length === 1 ? "shift" : "shifts"}`}>
+      <Masthead eyebrow="Field" title={label} meta={`${rows.length} ${rows.length === 1 ? "shift" : "shifts"} on this UTC day (midnight to midnight UTC). Times show in your time zone.`}>
         <Link href={`/field/${shiftDay(date, -1)}`} className="btn-ghost btn-sm" aria-label="Previous day">←</Link>
         <Link href="/field" className="btn-secondary btn-sm">Now</Link>
         <Link href={`/field/${shiftDay(date, 1)}`} className="btn-ghost btn-sm" aria-label="Next day">→</Link>

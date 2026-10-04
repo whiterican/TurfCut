@@ -11,7 +11,7 @@ export default async function ReviewQueuePage() {
   const queue = reviewQueue(await loadReviewCandidates(session.orgId));
   return (
     <main className="page max-w-3xl">
-      <Masthead eyebrow="Field" title="Review queue" meta="Checked-out shifts from the last 30 days without a closeout, longest waiting first.">
+      <Masthead eyebrow="Field" title="Review queue" meta="Checked-out shifts from the last 30 days without a closeout, or corrected since theirs, longest waiting first.">
         <Link href="/field" className="btn-ghost btn-sm">← In the field</Link>
       </Masthead>
       {queue.length === 0 ? (
@@ -28,7 +28,11 @@ export default async function ReviewQueuePage() {
                   <span className="block text-sm font-semibold text-fg">{r.worker}</span>
                   <span className="block truncate text-xs text-muted">{r.jobTitle} · {r.state.signatures} signatures{r.state.packetsOut.length ? ` · ${r.state.packetsOut.length} packets not returned` : ""}</span>
                 </span>
-                <span className="badge-butter shrink-0">Checked out <RelativeTime iso={r.state.checkedOutAt!.toISOString()} /></span>
+                {r.state.closeout ? (
+                  <span className="badge-coral shrink-0">Corrected since review</span>
+                ) : (
+                  <span className="badge-butter shrink-0">Checked out <RelativeTime iso={r.state.checkedOutAt!.toISOString()} /></span>
+                )}
               </Link>
             </li>
           ))}

@@ -56,10 +56,15 @@ export function groupField(rows: FieldRow[]): FieldGroup[] {
   );
 }
 
-/** Waiting for a closeout: checked out, not cancelled, not yet approved or rejected. */
-export const needsReview = (st: ShiftState) => !st.cancelled && st.checkedOutAt !== null && st.closeout === null;
+/**
+ * Waiting for a closeout: checked out, not cancelled, and either never
+ * reviewed or corrected since its last review (a correction withdraws the
+ * pay and the shift "needs approving again").
+ */
+export const needsReview = (st: ShiftState, correctedAt: Date | null = null) =>
+  !st.cancelled && st.checkedOutAt !== null && (st.closeout === null || (correctedAt !== null && correctedAt > st.closeout.createdAt));
 
 /** The review queue: shifts waiting for a closeout, the longest-waiting first. */
-export function reviewQueue<T extends { state: ShiftState }>(rows: T[]): T[] {
-  return rows.filter((r) => needsReview(r.state)).sort((a, b) => a.state.checkedOutAt!.getTime() - b.state.checkedOutAt!.getTime());
+export function reviewQueue<T extends { state: ShiftState; correctedAt?: Date | null }>(rows: T[]): T[] {
+  return rows.filter((r) => needsReview(r.state, r.correctedAt ?? null)).sort((a, b) => a.state.checkedOutAt!.getTime() - b.state.checkedOutAt!.getTime());
 }

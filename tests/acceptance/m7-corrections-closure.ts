@@ -1,7 +1,8 @@
 /* M7 acceptance checks: supervisor corrections, account closure, data export, against a fresh database (tests/acceptance/run.sh). */
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
-import { supervisorCorrection, supervisorShiftAction, loadShift, facts, scheduleShift } from "@/lib/field-day-data";
+import { supervisorCorrection, supervisorShiftAction, loadShift, facts, scheduleShift, loadReviewCandidates } from "@/lib/field-day-data";
+import { reviewQueue } from "@/lib/field-view";
 import { activeTime, shiftState } from "@/lib/field-day";
 import { computeScorecard, verifiedWork } from "@/lib/scorecard";
 import { loadScorecardShifts } from "@/lib/scorecard-data";
@@ -78,6 +79,8 @@ const approve = (id: string) => supervisorShiftAction(supA, id, { kind: "closeou
   const sig = await evOf(b.id, "SIGNATURE_SUBMITTED");
   const fix = await supervisorCorrection(supA, b.id, { kind: "correct_event", eventId: sig.id, count: 25, reason: "Five sheets were double-counted at hand-in" });
   check("a count correction before pay approval is accepted", fix.ok, fix);
+  const queue = reviewQueue(await loadReviewCandidates(ORG));
+  check("the corrected shift is back in the review queue (it needs approving again)", queue.some((r) => r.shiftId === b.id), queue.map((r) => r.shiftId));
   s = (await loadShift(b.id))!;
   st = shiftState(facts(s));
   check("state, live clock and scorecard all agree on the corrected count", st.signatures === 25 && verifiedWork(s.events, s.validations).submitted === 25 && activeTime(facts(s), new Date()).ms === 3.5 * H);

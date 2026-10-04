@@ -4,7 +4,7 @@ import type { EmailOtpType } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { safeNext } from "@/lib/auth-input";
 import { ensureAccount } from "@/lib/account";
-import { missingCoreSettings } from "@/lib/env";
+import { missingCoreSettings, unsetDetail } from "@/lib/env";
 
 /**
  * GET /auth/confirm — where a magic link lands. Handles both link styles
@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
   // already spent at Supabase, so the page offers password or a new link.
   const unset = missingCoreSettings();
   if (unset.length) {
-    console.error(`[turfcut] sign-in link not used: not configured (${unset.join(", ")})`);
+    console.error(`[turfcut] sign-in link not used: not configured (${unsetDetail(unset)})`);
     redirect("/login?error=config");
   }
   const p = req.nextUrl.searchParams;

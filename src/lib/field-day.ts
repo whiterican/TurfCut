@@ -702,7 +702,7 @@ export function validateShift(raw: Record<string, unknown>, job: { startsAt: Dat
 // ---------------------------------------------------------------------------
 
 export const PIN_CATEGORIES = [
-  { value: "good_spot", label: "Good spot", color: "#a3367a" },
+  { value: "good_spot", label: "Good spot", color: "#4a7a2e" },
   { value: "covered", label: "Covered", color: "#4b7bb5" },
   { value: "come_back", label: "Come back", color: "#b7791f" },
   { value: "do_not_knock", label: "Don't knock", color: "#b42318" },

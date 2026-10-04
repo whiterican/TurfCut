@@ -21,7 +21,7 @@
 
 :root {
   /* The accent fill: gold by day, lilac by night (see .dark). */
-  --accent: #e0c47a;
+  --accent: #ead39a;
   --plum: #4a3070; /* solid "done / live" badges, with --on-plum text */
   --on-plum: #fbfaf1;
   --sky: #b9dbfa;

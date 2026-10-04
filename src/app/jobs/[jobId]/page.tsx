@@ -50,7 +50,7 @@ export default async function JobPage({ params }: { params: Promise<{ jobId: str
           <p className="eyebrow">
             {job.type === "PETITION" ? "Petition circulation" : "Door-to-door canvass"} · {jurisdictionLabel(job.jurisdiction)}
           </p>
-          <h1 className="page-title">{job.title}</h1>
+          <h1 className="page-title masthead">{job.title}</h1>
           <p className="text-muted-sm">{job.org.name}</p>
           <p className="pt-2 text-3xl font-bold tracking-[-0.03em] text-fg tabular-nums">{payText(job.compensationMethod, job.payRateCents)}</p>
           <p className="flex flex-wrap gap-1.5 pt-1">

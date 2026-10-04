@@ -38,7 +38,7 @@ export default async function OrgSettingsPage() {
       <header className="page-header">
         <div className="space-y-1">
           <p className="eyebrow">Organization settings</p>
-          <h1 className="page-title">{org.name}</h1>
+          <h1 className="page-title masthead">{org.name}</h1>
         </div>
         <div className="flex flex-wrap gap-2">
           {isOwner && <Link href="/org/settings/members" className="btn-secondary btn-sm">Members</Link>}

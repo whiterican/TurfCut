@@ -119,6 +119,33 @@ exercise the locks, triggers and data rules, not the RLS policies.
      fund by invoice. In test mode, add test funds in the Stripe dashboard.
    Without these keys the app still records, approves, disputes and exports
    pay; the **Pay** button explains that Stripe isn't connected yet.
+7. **Going live on Vercel**, in this order:
+   1. **One Vercel project for the site.** Importing the repo twice makes two
+      projects that both build every push, and settings added to one never
+      reach the other. Keep one; delete the other (its Settings, at the bottom).
+   2. **Bring the live database up to date first** (the upgrade notes below,
+      or the catch-up file from the latest handover). Pages that read new
+      tables fail until it's done.
+   3. **Settings → Environment Variables**, ticked for **Production** (and
+      Preview, if you'll test previews): `NEXT_PUBLIC_SUPABASE_URL`,
+      `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`,
+      `DATABASE_URL` (the transaction pooler, port 6543; see **Deploying to
+      Vercel**), `SITE_URL` (the public address, e.g. `https://turf-cut.vercel.app`)
+      and `CLIENT_IP_HEADER=x-vercel-forwarded-for`. The app reads
+      `DATABASE_URL` only: if Supabase's Vercel integration added a
+      `POSTGRES_PRISMA_URL`, copy its value into `DATABASE_URL`.
+   4. **Redeploy after any settings change** (Deployments → ⋯ → Redeploy).
+      Settings only reach new deployments, and the `NEXT_PUBLIC_` ones are
+      baked in when the site is built.
+   5. **Use the project's public domain.** Other addresses (per-deployment
+      URLs, and `<project>-<team>.vercel.app` on accounts with Deployment
+      Protection) sit behind Vercel's own login, so field phones can't open them.
+   6. **Supabase → Authentication → URL Configuration:** Site URL = `SITE_URL`,
+      and add `<SITE_URL>/auth/confirm` to Redirect URLs. Set the email
+      templates as in item 5 above.
+   7. **Check it:** open `/login` and sign in. If a core setting is missing,
+      sign-in and sign-up name it ("Sign-in isn't configured on this server
+      yet (DATABASE_URL).") and Vercel → Logs shows the same line.
 
 **Already set up under M0?** Upgrade the live database for M1 by pasting,
 in order, `prisma/m1-migration.sql`, `prisma/m1-profile-migration.sql`, then
@@ -171,8 +198,8 @@ refuses edits and deletes of work events, shift reviews and the audit log,
 as it already does for messages and pay (safe to re-run).
 
 Until steps 1–4 are done, `npm run dev` boots fine and the login/signup pages
-render, but sign-up will fail with a clear "missing environment variable"
-message.
+render, but sign-in and sign-up say which setting is missing (and create
+nothing) instead of going ahead.
 
 ## Project layout
 

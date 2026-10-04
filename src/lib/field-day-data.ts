@@ -474,3 +474,39 @@ export async function loadWorkerTurf(workerId: string, now = new Date()) {
     take: 20,
   });
 }
+
+/**
+ * Field views (C1.4): the organization's shifts overlapping [from, to), not
+ * cancelled, with their state, as rows for lib/field-view.
+ */
+export async function loadFieldWindow(orgId: string, from: Date, to: Date): Promise<import("@/lib/field-view").FieldRow[]> {
+  const shifts = await db().shift.findMany({
+    where: { engagement: { job: { orgId } }, status: { not: "CANCELLED" }, startsAt: { lt: to }, endsAt: { gt: from } },
+    include: SHIFT_INCLUDE,
+    orderBy: { startsAt: "asc" },
+  });
+  return shifts.map((s) => ({
+    shiftId: s.id,
+    jobId: s.engagement.job.id,
+    jobTitle: s.engagement.job.title,
+    staging: s.stagingLocation,
+    worker: s.engagement.worker.displayName,
+    startsAt: s.startsAt,
+    endsAt: s.endsAt,
+    state: shiftState(facts(s)),
+  }));
+}
+
+/** Shifts checked out in the last `days` days and still without a closeout (the review queue's candidates). */
+export async function loadReviewCandidates(orgId: string, now = new Date(), days = 30) {
+  const shifts = await db().shift.findMany({
+    where: {
+      engagement: { job: { orgId } },
+      status: { not: "CANCELLED" },
+      checkOutAt: { gt: new Date(now.getTime() - days * 86_400_000) },
+      validations: { none: { workEventId: null } },
+    },
+    include: SHIFT_INCLUDE,
+  });
+  return shifts.map((s) => ({ shiftId: s.id, jobTitle: s.engagement.job.title, worker: s.engagement.worker.displayName, startsAt: s.startsAt, state: shiftState(facts(s)) }));
+}

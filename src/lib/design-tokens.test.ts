@@ -102,9 +102,14 @@ describe.each([
     expect(ratio(t.primary, t.bg)).toBeGreaterThan(ratio(t.secondary, t.bg));
   });
 
-  it("the tab bar's text is AAA on its translucent surface", () => {
-    for (const under of SURFACES) {
-      const bar = mix(t.surface, 0.92, t[under]);
+  it("the tab bar's text is AAA on its translucent surface, over anything it floats above", () => {
+    // Read the bar's opacity from the stylesheet, so lowering it is caught here.
+    const m = css.match(/\.tabbar \{[^}]*?background: color-mix\(in srgb, var\(--surface\) (\d+)%, transparent\)/);
+    expect(m, "the .tabbar background is a surface/transparent mix").not.toBeNull();
+    const alpha = Number(m![1]) / 100;
+    // Floating, it can sit over photos and the map too: black and white are the worst cases.
+    for (const under of [...SURFACES.map((s) => t[s]), "#000000", "#ffffff"]) {
+      const bar = mix(t.surface, alpha, under);
       expect(ratio(t.muted, bar)).toBeGreaterThanOrEqual(7); // tab labels
       expect(ratio(t.fg, bar)).toBeGreaterThanOrEqual(7); // current tab
     }

@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import { BadgeCheck, Briefcase, CalendarClock, ClipboardList, Clock, Ellipsis, LayoutDashboard, Map, MessageCircle, Settings, Sunrise, User, Users, Wallet, X, type LucideIcon } from "lucide-react";
 import { activeTab, MESSAGES_HREF, type NavTab, type TabIconId } from "@/lib/nav";
+import { MIN_DELTA, nextHidden, SHOW_NEAR_TOP } from "@/lib/scroll-hide";
 import { useUnreadCount } from "@/components/chat/UnreadProvider";
 
 /** One glyph per tab id (lib/nav decides who gets which tabs). Exhaustive: a new id fails to compile until it has a glyph. */
@@ -38,6 +39,38 @@ function Icon({ of: I, className }: { of: LucideIcon; className?: string }) {
   return <I aria-hidden className={className} />;
 }
 
+/**
+ * True while the phone tab bar should be tucked away: scrolling down hides
+ * it, scrolling up shows it (lib/scroll-hide). CSS keeps it on screen anyway
+ * with reduced motion, while it holds keyboard focus, and in chat threads.
+ * One read per frame; small moves wait until they add up to a real scroll.
+ */
+function useTuckOnScroll(): boolean {
+  const [hidden, setHidden] = useState(false);
+  useEffect(() => {
+    let last = window.scrollY;
+    let current = false;
+    let frame = 0;
+    const onScroll = () => {
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        const y = window.scrollY;
+        if (Math.abs(y - last) < MIN_DELTA && y > SHOW_NEAR_TOP) return;
+        current = nextHidden(current, last, y);
+        last = y;
+        setHidden(current);
+      });
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      cancelAnimationFrame(frame);
+    };
+  }, []);
+  return hidden;
+}
+
 /** The glyph for one tab, for anything that draws its own tab bar (the local screenshot fixture does). */
 export function TabIcon({ tab }: { tab: NavTab }) {
   return <Icon of={iconFor(tab)} className="tab-icon" />;
@@ -61,13 +94,14 @@ export function TopNav({ tabs }: { tabs: NavTab[] }) {
   );
 }
 
-/** Phone and tablet: fixed bottom tab bar; a tinted icon marks the current tab. */
+/** Phone and tablet: a floating bottom tab bar that tucks away on scroll; a tinted icon marks the current tab. */
 export function TabBar({ tabs }: { tabs: NavTab[] }) {
   const current = activeTab(tabs, usePathname());
   const count = useUnreadCount();
+  const tucked = useTuckOnScroll();
   if (tabs.length === 0) return null;
   return (
-    <nav aria-label="Main" className="tabbar">
+    <nav aria-label="Main" className="tabbar" data-tucked={tucked || undefined}>
       <div className="mx-auto flex max-w-md">
         {tabs.map((t) => (
           <Link key={t.href} href={t.href} className="tab" aria-current={t.href === current ? "page" : undefined}>
@@ -126,6 +160,7 @@ export function OrgTabBar({ tabs, more }: { tabs: NavTab[]; more: NavTab[] }) {
   const sheet = useRef<HTMLDialogElement>(null);
   const button = useRef<HTMLButtonElement>(null);
   const inMore = more.some((t) => t.href === current);
+  const tucked = useTuckOnScroll();
 
   // Close on navigation (reset during render when the path changes).
   const [openedAt, setOpenedAt] = useState(pathname);
@@ -198,7 +233,7 @@ export function OrgTabBar({ tabs, more }: { tabs: NavTab[]; more: NavTab[] }) {
           </div>
         </dialog>
       )}
-      <nav aria-label="Main" className="tabbar">
+      <nav aria-label="Main" className="tabbar" data-tucked={tucked || undefined}>
         <div className="mx-auto flex max-w-md">
           {tabs.map((t) => (
             <Link key={t.href} href={t.href} className="tab" aria-current={t.href === current ? "page" : undefined}>

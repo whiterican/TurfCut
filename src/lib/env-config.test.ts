@@ -94,7 +94,7 @@ describe("the not-configured log line", () => {
   it("adds what's wrong with a set-but-unusable DATABASE_URL, never its password", async () => {
     const { unsetDetail } = await import("./env");
     expect(unsetDetail(["NEXT_PUBLIC_SUPABASE_URL"], "anything")).toBe("NEXT_PUBLIC_SUPABASE_URL");
-    expect(unsetDetail(["DATABASE_URL"], undefined)).toBe("DATABASE_URL");
+    expect(unsetDetail(["DATABASE_URL"], "")).toBe("DATABASE_URL"); // (undefined would fall back to the real env)
     const line = unsetDetail(["DATABASE_URL"], "db.abc.supabase.co:5432/postgres?password=hunter22");
     expect(line).toMatch(/^DATABASE_URL; DATABASE_URL doesn't start with a scheme/);
     expect(line).not.toContain("hunter22");

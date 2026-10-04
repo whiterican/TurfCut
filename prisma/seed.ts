@@ -14,14 +14,15 @@
  * the /signup page; to link a real login to a seeded worker, sign up and then
  * point the worker's profileId at the new auth user id.
  */
-import { PrismaClient, type Prisma } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 import { db } from "../src/lib/db";
 import { loadScorecard } from "../src/lib/scorecard-data";
 import { computeShiftPay } from "../src/lib/pay";
 import { verifiedWork } from "../src/lib/scorecard";
 import { SEED_SHIFT_EVENTS, SEED_SHIFT_HOURS, SEED_SHIFT_ID } from "./seed-fixture";
 
-const prisma = new PrismaClient();
+// The app's client, so the seed reads DATABASE_URL the way the app does (tidied).
+const prisma = db();
 
 async function main() {
   // --- Jurisdiction: Colorado / Denver, approved & current ---

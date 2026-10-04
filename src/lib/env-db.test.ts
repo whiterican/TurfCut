@@ -60,17 +60,38 @@ describe("pasted DATABASE_URL clean-up", () => {
   it("describes the shape for logs and never includes the password", async () => {
     const { describeDatabaseUrl } = await import("./env");
     const d = describeDatabaseUrl(` ${DIRECT.replace("pw", "s3cretpw")}`);
-    expect(d).toBe('has spaces or line breaks around it, starts with "postgresql://", user "postgres", host "db.abc.supabase.co", port 5432');
+    expect(d).toBe('had spaces or line breaks around it, starts with "postgresql://", user "postgres", host "db.abc.supabase.co", port 5432');
     expect(d).not.toContain("s3cret");
     expect(runtimeDatabaseUrl(DIRECT.replace("pw", "s3cretpw"), true).warning).not.toContain("s3cret");
   });
 
   it("shows nothing of a password with an unencoded / # or ? (it would otherwise land in the host or port)", async () => {
     const { describeDatabaseUrl } = await import("./env");
-    for (const pw of ["1234/5678", "ab99#cd77", "qq9?zz7"]) {
+    for (const pw of ["1234/5678", "ab99#cd77", "qq9?zz7", "ab@SECRET1/x", "ab@SECRET2:9999/x", "ab@SECRET3#x", "ab@1234/x"]) {
       const d = describeDatabaseUrl(`postgresql://postgres.abc:${pw}@aws-0-us-west-1.pooler.supabase.com:6543/postgres`);
       expect(d).toMatch(/must be percent-encoded/);
-      for (const piece of pw.split(/[/#?]/)) expect(d).not.toContain(piece);
+      for (const piece of pw.split(/[/#?@:]/).filter((p) => p.length > 1)) expect(d).not.toContain(piece);
     }
+  });
+});
+
+describe("describing a pasted DATABASE_URL", () => {
+  it("names what was tidied, and the scheme as pasted", async () => {
+    const { describeDatabaseUrl } = await import("./env");
+    expect(describeDatabaseUrl(`"${POOLER}"`)).toBe('was wrapped in quotes, starts with "postgresql://", user "postgres.abc", host "aws-0-us-west-1.pooler.supabase.com", port 6543');
+    expect(describeDatabaseUrl(`export database_url=${POOLER.replace("postgresql", "Postgresql")}`)).toMatch(/^had a "DATABASE_URL=" prefix, had capital letters in postgresql:\/\/, starts with "Postgresql:\/\/"/);
+  });
+
+  it("doesn't throw on a malformed % in the user name", async () => {
+    const { describeDatabaseUrl } = await import("./env");
+    const bad = "postgresql://post%zzgres.abc:pw@aws-0-us-west-1.pooler.supabase.com:6543/postgres";
+    expect(describeDatabaseUrl(bad)).toMatch(/user "post%zzgres.abc"/);
+    expect(() => runtimeDatabaseUrl(bad, true)).not.toThrow();
+  });
+
+  it("never shows a lone name that may be the password, nor a query string", async () => {
+    const { describeDatabaseUrl } = await import("./env");
+    expect(describeDatabaseUrl("postgresql://HUNTER22@db.abc.supabase.co:5432/postgres")).not.toContain("HUNTER22");
+    expect(describeDatabaseUrl("postgresql://u:p@h:5432/postgres?password=HUNTER22")).not.toContain("HUNTER22");
   });
 });

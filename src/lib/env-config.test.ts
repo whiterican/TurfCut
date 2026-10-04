@@ -100,3 +100,20 @@ describe("the not-configured log line", () => {
     expect(line).not.toContain("hunter22");
   });
 });
+
+describe("getDatabaseUrl on a host", () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it("hands Prisma the tidied URL and warns without the password", async () => {
+    vi.resetModules();
+    vi.stubEnv("VERCEL", "1");
+    vi.stubEnv("DATABASE_URL", ' "Postgresql://postgres:HUNTER22@db.abc.supabase.co:5432/postgres" ');
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const { getDatabaseUrl } = await import("./env");
+    expect(getDatabaseUrl()).toBe("postgresql://postgres:HUNTER22@db.abc.supabase.co:5432/postgres");
+    getDatabaseUrl();
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(String(warn.mock.calls[0][0])).not.toContain("HUNTER22");
+    warn.mockRestore();
+  });
+});

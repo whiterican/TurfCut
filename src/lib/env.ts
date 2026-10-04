@@ -70,7 +70,7 @@ export function runtimeDatabaseUrl(raw: string, serverless: boolean): { url: str
       "DATABASE_URL is not the Supabase pooler (port 6543). Serverless instances each open connections and will exhaust max_connections; use the pooler URL at runtime and DIRECT_URL for migrations."
     );
   // Supabase's pooler finds the project from the user name: "postgres.<project-ref>".
-  if (u.hostname.endsWith(".pooler.supabase.com") && !decodeURIComponent(u.username).includes("."))
+  if (u.hostname.endsWith(".pooler.supabase.com") && !safeDecode(u.username).includes("."))
     notes.push('DATABASE_URL points at the Supabase pooler, whose user name must be "postgres.<project-ref>", not "postgres".');
   const warning = notes.length ? `${notes.join(" ")} (${describeDatabaseUrl(raw)})` : null;
   return { url: pooled ? u.toString() : clean, warning };
@@ -83,40 +83,69 @@ export function runtimeDatabaseUrl(raw: string, serverless: boolean): { url: str
  * Prisma accepts only a literal lowercase postgresql:// or postgres:// start.
  */
 export function cleanDatabaseUrl(raw: string): string {
+  return tidy(raw).clean;
+}
+
+function tidy(raw: string): { clean: string; stripped: string; fixes: string[] } {
+  const fixes: string[] = [];
   let v = raw.trim();
-  v = v.replace(/^DATABASE_URL\s*=\s*/, "").trim();
+  if (v !== raw) fixes.push("had spaces or line breaks around it");
+  const prefix = /^(export\s+)?DATABASE_URL\s*=\s*/i.exec(v);
+  if (prefix) {
+    v = v.slice(prefix[0].length).trim();
+    fixes.push('had a "DATABASE_URL=" prefix');
+  }
   const q = /^(["'`])([\s\S]*)\1$/.exec(v);
-  if (q) v = q[2].trim();
-  return v.replace(/^postgres(ql)?:\/\//i, (m) => m.toLowerCase());
+  if (q) {
+    v = q[2].trim();
+    fixes.push("was wrapped in quotes");
+  }
+  const clean = v.replace(/^postgres(ql)?:\/\//i, (m) => m.toLowerCase());
+  if (clean !== v) fixes.push("had capital letters in postgresql://");
+  return { clean, stripped: v, fixes };
 }
 
 function hasPostgresScheme(v: string): boolean {
   return v.startsWith("postgresql://") || v.startsWith("postgres://");
 }
 
+const safeDecode = (s: string) => {
+  try {
+    return decodeURIComponent(s);
+  } catch {
+    return s;
+  }
+};
+
 /**
- * A DATABASE_URL's shape for logs, never its password: what it starts with,
- * the user name, host and port, and any stray characters around it.
+ * A DATABASE_URL's shape for logs, never its password: what was tidied, what
+ * it starts with, and the user name, host and port when they can be told
+ * apart from the password with certainty.
  */
 export function describeDatabaseUrl(raw: string): string {
-  const parts: string[] = [];
-  if (raw !== raw.trim()) parts.push("has spaces or line breaks around it");
-  const clean = cleanDatabaseUrl(raw);
-  const scheme = /^([A-Za-z][A-Za-z0-9+.-]*):\/\//.exec(raw.trim());
+  const { clean, stripped, fixes } = tidy(raw);
+  const parts = [...fixes];
+  const scheme = /^([A-Za-z][A-Za-z0-9+.-]*):\/\//.exec(stripped);
   parts.push(scheme ? `starts with "${scheme[1]}://"` : "doesn't start with a scheme like postgresql://");
+  if (!scheme) return parts.join(", ");
+  // Where the user:password@ part ends. URL parsers stop the host at the
+  // first / # or ?, so an unencoded one (or a second @) in the password puts
+  // part of it where the host or port would be: describe nothing past it.
+  const rest = clean.slice(clean.indexOf("://") + 3);
+  const at = rest.lastIndexOf("@");
+  if (at >= 0 && /[/#?@]/.test(rest.slice(0, at))) {
+    parts.push("the password seems to contain / # ? or @, which must be percent-encoded");
+    return parts.join(", ");
+  }
   let u: URL | null = null;
   try {
     u = new URL(clean);
   } catch {}
-  if (u && u.username) {
-    parts.push(`user "${decodeURIComponent(u.username)}"`, `host "${u.hostname || "(none)"}"`, `port ${u.port || "(default)"}`);
-  } else if (clean.includes("@")) {
-    // The user:password@ part didn't parse, so whatever sits where the host
-    // should be may be part of the password: say why, show nothing of it.
-    parts.push("the password seems to contain / # ? or @, which must be percent-encoded");
-  } else {
-    parts.push(u ? "no user name" : "not readable as a URL");
-  }
+  if (!u) parts.push("not readable as a URL");
+  else if (!u.username) parts.push("no user name");
+  // Without a password the one name given may itself be the password.
+  else if (!u.password) parts.push("no password given");
+  else parts.push(`user "${safeDecode(u.username)}"`, `host "${u.hostname || "(none)"}"`, `port ${u.port || "(default)"}`);
   return parts.join(", ");
 }
 

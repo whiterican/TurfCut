@@ -420,8 +420,10 @@ connection is only for schema changes.
   pooler.
 - SQL migration files (`prisma/*.sql`) are pasted into the Supabase SQL
   editor and need neither URL.
-- `DIRECT_URL` isn't needed on Vercel; Prisma only reads it for CLI
-  commands. Set it anyway if a build step ever runs one.
+- `DIRECT_URL` isn't needed on Vercel. The build runs `prisma generate`
+  (so a cached install never ships a stale client), and that reads neither
+  URL. `db:push` connects through `DIRECT_URL`, and `prisma validate` fails
+  if it's unset (any placeholder satisfies it, as in CI).
 
 ## Infra — error reporting and rate limits
 

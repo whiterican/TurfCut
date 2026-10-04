@@ -53,8 +53,6 @@
   --hero-muted: #c9d2cb;
   --hero-border: transparent;
   --shadow: 0 1px 2px rgb(24 30 26 / 0.05), 0 10px 28px -16px rgb(24 30 26 / 0.18);
-  /* Behind a sheet or dialog: dims the page (never a pale wash, which reads as disabled). */
-  --scrim: rgb(24 20 30 / 0.45);
   /* Priority rings on the lime shift card: eggplant, lighter inside,
      darker toward the outside edge. */
   --ring: #6a4c91;
@@ -96,7 +94,6 @@
   --ring-2: #b8d08a;
   --ring-3: #8aa560;
   --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 12px 32px -16px rgb(0 0 0 / 0.6);
-  --scrim: rgb(8 4 14 / 0.6);
   color-scheme: dark;
 }
 
@@ -628,9 +625,13 @@ body {
     @apply bg-surface-2 font-semibold text-fg;
     box-shadow: inset 3px 0 0 var(--focus);
   }
+  /* Dims the page behind the sheet (never a pale wash, which reads as disabled). */
   .more-backdrop {
     @apply fixed inset-0 z-40 lg:hidden;
-    background: var(--scrim);
+    background: rgb(24 20 30 / 0.45);
+  }
+  .dark .more-backdrop {
+    background: rgb(8 4 14 / 0.6);
   }
   /* While More is open the bar is solid, so the page doesn't ghost through it. */
   body:has(.more-sheet) .tabbar {

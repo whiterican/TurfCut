@@ -1,4 +1,5 @@
 import { Prisma } from "@prisma/client";
+import { needsReview } from "@/lib/field-view";
 import { db } from "@/lib/db";
 import { FIELD_ROLES } from "@/lib/access";
 import { canScheduleShift, UUID_RE } from "@/lib/jobs";
@@ -25,6 +26,9 @@ type Tx = Prisma.TransactionClient;
 type Result = { ok: true } | { ok: false; reason: string };
 
 const lock = (tx: Tx, key: string) => tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${key}))`;
+
+/** When the shift's latest CORRECTION event was made, or null (events load oldest first). */
+const lastCorrection = (s: { events: { type: string; createdAt: Date }[] }) => s.events.findLast((e) => e.type === "CORRECTION")?.createdAt ?? null;
 
 /** Every shift-scoped page and action loads the same shape. */
 const SHIFT_INCLUDE = {
@@ -445,7 +449,8 @@ export async function loadOps(orgId: string, now = new Date()) {
   const rows = shifts.map((s) => ({ shift: s, state: shiftState(facts(s)) }));
   const live = rows.filter((r) => !r.state.cancelled);
   const late = live.filter((r) => !r.state.checkedInAt && now.getTime() > r.shift.startsAt.getTime() + 15 * 60_000 && now < r.shift.endsAt);
-  const awaitingReview = live.filter((r) => r.state.checkedOutAt && !r.state.closeout);
+  // Same rule as the review queue: never reviewed, or corrected since.
+  const awaitingReview = live.filter((r) => needsReview(r.state, lastCorrection(r.shift)));
   // "In the field" = shifts that have started (or checked in early); the
   // rest of the next 24 hours is counted separately as upcoming.
   const due = live.filter((r) => r.state.checkedInAt || r.shift.startsAt <= now);
@@ -517,15 +522,12 @@ export async function loadReviewCandidates(orgId: string, now = new Date(), days
     orderBy: { checkOutAt: "asc" },
     take: REVIEW_CAP,
   });
-  return shifts.map((s) => {
-    const corrections = s.events.filter((e) => e.type === "CORRECTION");
-    return {
-      shiftId: s.id,
-      jobTitle: s.engagement.job.title,
-      worker: s.engagement.worker.displayName,
-      startsAt: s.startsAt,
-      state: shiftState(facts(s)),
-      correctedAt: corrections.length ? corrections[corrections.length - 1].createdAt : null,
-    };
-  });
+  return shifts.map((s) => ({
+    shiftId: s.id,
+    jobTitle: s.engagement.job.title,
+    worker: s.engagement.worker.displayName,
+    startsAt: s.startsAt,
+    state: shiftState(facts(s)),
+    correctedAt: lastCorrection(s),
+  }));
 }

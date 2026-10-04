@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requireArea } from "@/lib/employer-session";
-import { loadReviewCandidates } from "@/lib/field-day-data";
+import { loadReviewCandidates, REVIEW_CAP } from "@/lib/field-day-data";
 import { reviewQueue } from "@/lib/field-view";
 import { Masthead } from "@/components/staff/Masthead";
 import { RelativeTime } from "@/components/RelativeTime";
@@ -8,12 +8,16 @@ import { RelativeTime } from "@/components/RelativeTime";
 /** Shifts waiting for a closeout (C1.4), the longest-waiting first. Each opens the shift page, where the review happens. */
 export default async function ReviewQueuePage() {
   const session = await requireArea("field", "read");
-  const queue = reviewQueue(await loadReviewCandidates(session.orgId));
+  const candidates = await loadReviewCandidates(session.orgId);
+  const queue = reviewQueue(candidates);
   return (
     <main className="page max-w-3xl">
       <Masthead eyebrow="Field" title="Review queue" meta="Checked-out shifts from the last 30 days without a closeout, or corrected since theirs, longest waiting first.">
         <Link href="/field" className="btn-ghost btn-sm">← In the field</Link>
       </Masthead>
+      {candidates.length >= REVIEW_CAP && (
+        <p className="text-hint">Showing the oldest {REVIEW_CAP} checked-out shifts; review these and the next ones appear.</p>
+      )}
       {queue.length === 0 ? (
         <div className="empty-state">
           <p className="empty-state-title">Nothing to review</p>

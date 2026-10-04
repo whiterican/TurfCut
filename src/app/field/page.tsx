@@ -19,11 +19,13 @@ export default async function FieldPage() {
   // Under way: checked in and not out, or due now and not checked in (late).
   const underWay = rows.filter((r) => !r.state.checkedOutAt && (r.state.checkedInAt || (r.startsAt <= now && r.endsAt > now)));
   const waiting = reviewQueue(candidates).length;
+  // The loader stops at REVIEW_CAP rows; if it did, there may be more than it shows.
+  const more = candidates.length >= REVIEW_CAP;
   return (
     <main className="page max-w-4xl">
       <Masthead eyebrow="Field" title="In the field" meta="The last 12 hours and the next 24.">
         <Link href={`/field/${isoDay(now)}`} className="btn-ghost btn-sm">By date (UTC)</Link>
-        <Link href="/field/review" className="btn-secondary btn-sm">Review queue{waiting ? ` (${waiting >= REVIEW_CAP ? `${REVIEW_CAP}+` : waiting})` : ""}</Link>
+        <Link href="/field/review" className="btn-secondary btn-sm">Review queue{waiting ? ` (${waiting}${more ? "+" : ""})` : ""}</Link>
       </Masthead>
       <SummaryBar
         label="Field totals"
@@ -31,7 +33,7 @@ export default async function FieldPage() {
           { label: "Under way", value: underWay.length },
           { label: "Checked in", value: underWay.filter((r) => r.state.checkedInAt).length },
           { label: "Packets out", value: rows.reduce((n, r) => n + r.state.packetsOut.length, 0) },
-          { label: "Waiting for review", value: waiting >= REVIEW_CAP ? `${REVIEW_CAP}+` : waiting },
+          { label: "Waiting for review", value: `${waiting}${more ? "+" : ""}` },
         ]}
       />
       <FieldBoard rows={rows} empty="No shifts in the last 12 hours or the next 24." />

@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { EMAIL_RE, safeNext } from "@/lib/auth-input";
 import { siteOrigin } from "@/lib/site-origin";
 import { db } from "@/lib/db";
-import { missingCoreSettings, notConfiguredMessage } from "@/lib/env";
+import { missingCoreSettings, notConfiguredMessage, unsetDetail } from "@/lib/env";
 
 export interface LoginState {
   ok: boolean;
@@ -27,7 +27,7 @@ export async function logIn(_prev: LoginState, fd: FormData): Promise<LoginState
   if (!EMAIL_RE.test(email)) return { ok: false, message: "Enter a valid email address.", email };
   const unset = missingCoreSettings();
   if (unset.length) {
-    console.error(`[turfcut] sign-in refused: not configured (${unset.join(", ")})`);
+    console.error(`[turfcut] sign-in refused: not configured (${unsetDetail(unset)})`);
     return { ok: false, message: notConfiguredMessage("Sign-in", unset), email };
   }
   // Per connection (when the host tells us one) and, for passwords, per address from anywhere.

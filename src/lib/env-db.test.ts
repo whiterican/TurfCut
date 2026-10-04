@@ -32,3 +32,45 @@ describe("runtime database URL", () => {
     expect(runtimeDatabaseUrl(DIRECT, false).warning).toBeNull();
   });
 });
+
+describe("pasted DATABASE_URL clean-up", () => {
+  it("undoes spaces, line breaks, quotes, a DATABASE_URL= prefix and a phone's capital first letter", async () => {
+    const { cleanDatabaseUrl } = await import("./env");
+    for (const v of [` ${POOLER}\n`, `"${POOLER}"`, `'${POOLER}'`, "`" + POOLER + "`", `DATABASE_URL=${POOLER}`, POOLER.replace("postgresql", "Postgresql"), POOLER.replace("postgresql", "POSTGRESQL")])
+      expect(cleanDatabaseUrl(v)).toBe(POOLER);
+    expect(cleanDatabaseUrl("Postgres://u:p@h:6543/db")).toBe("postgres://u:p@h:6543/db");
+  });
+
+  it("gives Prisma the cleaned pooler URL, with the pooler settings added", () => {
+    const { url, warning } = runtimeDatabaseUrl(` Postgresql://postgres.abc:pw@aws-0-us-west-1.pooler.supabase.com:6543/postgres `, true);
+    expect(url.startsWith("postgresql://postgres.abc:pw@aws-0-us-west-1.pooler.supabase.com:6543/postgres?")).toBe(true);
+    expect(warning).toBeNull();
+  });
+
+  it("says plainly when the value isn't a postgres URL at all", () => {
+    const r = runtimeDatabaseUrl("https://txzx.supabase.co", true);
+    expect(r.warning).toMatch(/must start with postgresql:\/\/ \(starts with "https:\/\/"/);
+  });
+
+  it("flags the pooler with a plain postgres user name (the pooler needs postgres.<project-ref>)", () => {
+    const r = runtimeDatabaseUrl("postgresql://postgres:pw@aws-0-us-west-1.pooler.supabase.com:6543/postgres", true);
+    expect(r.warning).toMatch(/postgres\.<project-ref>/);
+  });
+
+  it("describes the shape for logs and never includes the password", async () => {
+    const { describeDatabaseUrl } = await import("./env");
+    const d = describeDatabaseUrl(` ${DIRECT.replace("pw", "s3cretpw")}`);
+    expect(d).toBe('has spaces or line breaks around it, starts with "postgresql://", user "postgres", host "db.abc.supabase.co", port 5432');
+    expect(d).not.toContain("s3cret");
+    expect(runtimeDatabaseUrl(DIRECT.replace("pw", "s3cretpw"), true).warning).not.toContain("s3cret");
+  });
+
+  it("shows nothing of a password with an unencoded / # or ? (it would otherwise land in the host or port)", async () => {
+    const { describeDatabaseUrl } = await import("./env");
+    for (const pw of ["1234/5678", "ab99#cd77", "qq9?zz7"]) {
+      const d = describeDatabaseUrl(`postgresql://postgres.abc:${pw}@aws-0-us-west-1.pooler.supabase.com:6543/postgres`);
+      expect(d).toMatch(/must be percent-encoded/);
+      for (const piece of pw.split(/[/#?]/)) expect(d).not.toContain(piece);
+    }
+  });
+});

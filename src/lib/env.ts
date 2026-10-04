@@ -30,7 +30,7 @@ export function getSupabaseServiceRoleKey(): string {
  */
 export function getDatabaseUrl(): string {
   const v = process.env.DATABASE_URL;
-  if (!v) throw missing("DATABASE_URL");
+  if (!v?.trim()) throw missing("DATABASE_URL");
   const { url, warning } = runtimeDatabaseUrl(v, !!process.env.VERCEL);
   if (warning && !warned) {
     warned = true;
@@ -49,22 +49,75 @@ let warned = false;
  * is plenty: both are added when the URL doesn't say otherwise. Pure.
  */
 export function runtimeDatabaseUrl(raw: string, serverless: boolean): { url: string; warning: string | null } {
+  const clean = cleanDatabaseUrl(raw);
+  if (!hasPostgresScheme(clean)) {
+    return { url: clean, warning: `DATABASE_URL must start with postgresql:// (${describeDatabaseUrl(raw)}).` };
+  }
   let u: URL;
   try {
-    u = new URL(raw);
+    u = new URL(clean);
   } catch {
-    return { url: raw, warning: null }; // leave anything unusual to Prisma's own error
+    return { url: clean, warning: null }; // leave anything unusual to Prisma's own error
   }
   const pooled = u.port === "6543";
   if (pooled) {
     if (!u.searchParams.has("pgbouncer")) u.searchParams.set("pgbouncer", "true");
     if (!u.searchParams.has("connection_limit")) u.searchParams.set("connection_limit", "1");
   }
-  const warning =
-    serverless && !pooled
-      ? "DATABASE_URL is not the Supabase pooler (port 6543). Serverless instances each open connections and will exhaust max_connections; use the pooler URL at runtime and DIRECT_URL for migrations."
-      : null;
-  return { url: pooled ? u.toString() : raw, warning };
+  const notes: string[] = [];
+  if (serverless && !pooled)
+    notes.push(
+      "DATABASE_URL is not the Supabase pooler (port 6543). Serverless instances each open connections and will exhaust max_connections; use the pooler URL at runtime and DIRECT_URL for migrations."
+    );
+  // Supabase's pooler finds the project from the user name: "postgres.<project-ref>".
+  if (u.hostname.endsWith(".pooler.supabase.com") && !decodeURIComponent(u.username).includes("."))
+    notes.push('DATABASE_URL points at the Supabase pooler, whose user name must be "postgres.<project-ref>", not "postgres".');
+  const warning = notes.length ? `${notes.join(" ")} (${describeDatabaseUrl(raw)})` : null;
+  return { url: pooled ? u.toString() : clean, warning };
+}
+
+/**
+ * Undoes what a settings form or a notes app does to a pasted URL: spaces
+ * and line breaks around it, wrapping quotes or backticks, a "DATABASE_URL="
+ * prefix, and a capitalised scheme (phones capitalise the first letter).
+ * Prisma accepts only a literal lowercase postgresql:// or postgres:// start.
+ */
+export function cleanDatabaseUrl(raw: string): string {
+  let v = raw.trim();
+  v = v.replace(/^DATABASE_URL\s*=\s*/, "").trim();
+  const q = /^(["'`])([\s\S]*)\1$/.exec(v);
+  if (q) v = q[2].trim();
+  return v.replace(/^postgres(ql)?:\/\//i, (m) => m.toLowerCase());
+}
+
+function hasPostgresScheme(v: string): boolean {
+  return v.startsWith("postgresql://") || v.startsWith("postgres://");
+}
+
+/**
+ * A DATABASE_URL's shape for logs, never its password: what it starts with,
+ * the user name, host and port, and any stray characters around it.
+ */
+export function describeDatabaseUrl(raw: string): string {
+  const parts: string[] = [];
+  if (raw !== raw.trim()) parts.push("has spaces or line breaks around it");
+  const clean = cleanDatabaseUrl(raw);
+  const scheme = /^([A-Za-z][A-Za-z0-9+.-]*):\/\//.exec(raw.trim());
+  parts.push(scheme ? `starts with "${scheme[1]}://"` : "doesn't start with a scheme like postgresql://");
+  let u: URL | null = null;
+  try {
+    u = new URL(clean);
+  } catch {}
+  if (u && u.username) {
+    parts.push(`user "${decodeURIComponent(u.username)}"`, `host "${u.hostname || "(none)"}"`, `port ${u.port || "(default)"}`);
+  } else if (clean.includes("@")) {
+    // The user:password@ part didn't parse, so whatever sits where the host
+    // should be may be part of the password: say why, show nothing of it.
+    parts.push("the password seems to contain / # ? or @, which must be percent-encoded");
+  } else {
+    parts.push(u ? "no user name" : "not readable as a URL");
+  }
+  return parts.join(", ");
 }
 
 /**
@@ -134,7 +187,9 @@ const coreEnv = (): Record<string, string | undefined> => ({
 });
 
 export function missingCoreSettings(env: Record<string, string | undefined> = coreEnv()): string[] {
-  return CORE_SETTINGS.filter((name) => !env[name]?.trim());
+  // A DATABASE_URL Prisma would refuse outright counts as missing, so the form
+  // names it instead of reading as an outage.
+  return CORE_SETTINGS.filter((name) => !env[name]?.trim() || (name === "DATABASE_URL" && !hasPostgresScheme(cleanDatabaseUrl(env[name]!))));
 }
 
 /**
@@ -154,6 +209,15 @@ export function missingInviteSettings(
   if (!env.SUPABASE_SERVICE_ROLE_KEY?.trim()) out.push("SUPABASE_SERVICE_ROLE_KEY");
   if (env.NODE_ENV === "production" && !siteOriginOf(env.SITE_URL)) out.push("SITE_URL");
   return out;
+}
+
+/**
+ * The missing names for a log line, plus what's wrong with a DATABASE_URL
+ * that is set but unusable (its shape, never its password).
+ */
+export function unsetDetail(names: readonly string[], databaseUrl = process.env.DATABASE_URL): string {
+  const base = names.join(", ");
+  return names.includes("DATABASE_URL") && databaseUrl?.trim() ? `${base}; DATABASE_URL ${describeDatabaseUrl(databaseUrl)}` : base;
 }
 
 /** "Sign-in isn't configured on this server yet (DATABASE_URL)." */

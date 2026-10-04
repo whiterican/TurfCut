@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { CORE_SETTINGS, getSiteUrl, missingCoreSettings, missingInviteSettings, notConfiguredMessage, siteOriginOf } from "./env";
 
-const ALL = Object.fromEntries(CORE_SETTINGS.map((k) => [k, `value-of-${k}`]));
+const ALL = { ...Object.fromEntries(CORE_SETTINGS.map((k) => [k, `value-of-${k}`])), DATABASE_URL: "postgresql://postgres@localhost:5432/turfcut" };
 
 describe("core settings for sign-in and sign-up", () => {
   it("reports nothing when every core setting is present", () => {
@@ -76,5 +76,27 @@ describe("SITE_URL", () => {
     expect(getSiteUrl()).toBeNull();
     vi.stubEnv("SITE_URL", "https://turf-cut.vercel.app/");
     expect(getSiteUrl()).toBe("https://turf-cut.vercel.app");
+  });
+});
+
+describe("a DATABASE_URL Prisma would refuse", () => {
+  it("counts as missing, so sign-in names it", () => {
+    expect(missingCoreSettings({ ...ALL, DATABASE_URL: "db.abc.supabase.co:5432" })).toEqual(["DATABASE_URL"]);
+    expect(missingCoreSettings({ ...ALL, DATABASE_URL: "https://abc.supabase.co" })).toEqual(["DATABASE_URL"]);
+  });
+
+  it("is fine once cleaned (a phone's capital P, quotes, spaces)", () => {
+    expect(missingCoreSettings({ ...ALL, DATABASE_URL: ' "Postgresql://postgres.abc:pw@h:6543/postgres" ' })).toEqual([]);
+  });
+});
+
+describe("the not-configured log line", () => {
+  it("adds what's wrong with a set-but-unusable DATABASE_URL, never its password", async () => {
+    const { unsetDetail } = await import("./env");
+    expect(unsetDetail(["NEXT_PUBLIC_SUPABASE_URL"], "anything")).toBe("NEXT_PUBLIC_SUPABASE_URL");
+    expect(unsetDetail(["DATABASE_URL"], undefined)).toBe("DATABASE_URL");
+    const line = unsetDetail(["DATABASE_URL"], "db.abc.supabase.co:5432/postgres?password=hunter22");
+    expect(line).toMatch(/^DATABASE_URL; DATABASE_URL doesn't start with a scheme/);
+    expect(line).not.toContain("hunter22");
   });
 });

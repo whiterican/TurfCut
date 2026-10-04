@@ -34,7 +34,7 @@ type OrgNavId = "desk" | "hiring" | "jobs" | "field" | "messages" | "pay" | "mem
  * a tab never points at a route that doesn't exist yet.
  */
 export const ORG_TABS: OrgItem[] = [
-  { id: "desk", href: "/dashboard", label: "Desk", icon: "desk", area: "desk" },
+  { id: "desk", href: "/desk", label: "Desk", icon: "desk", area: "desk" },
   { id: "jobs", href: "/jobs", label: "Jobs", icon: "jobs", area: "jobs" },
   { id: "messages", href: MESSAGES_HREF, label: "Messages", icon: "messages", area: "messages" },
   { id: "pay", href: "/payouts", label: "Pay", icon: "pay", area: "pay" },

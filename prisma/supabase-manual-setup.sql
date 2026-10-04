@@ -1,13 +1,13 @@
--- Turfcut M0–M7 (with M4.1) — manual Supabase setup (one paste), FRESH databases only.
+-- Turfcut M0–M7 (with M4.1) and C1 — manual Supabase setup (one paste), FRESH databases only.
 -- Generated from prisma/schema.prisma + prisma/seed.ts on 2026-10-02.
 -- Paste the entire file into the Supabase SQL editor and run it.
 -- The DDL is not re-runnable. Existing database? Run the m1-, m1-profile-, m2-, m3-,
--- m4-0-rls-lockdown, m4-, m4-1-hardening, m5-migration, m5-1-history-lock, m6-migration and m7-migration.sql files in order, then manual-seed.sql (idempotent).
+-- m4-0-rls-lockdown, m4-, m4-1-hardening, m5-migration, m5-1-history-lock, m6-migration, m7-migration and c1-roles.sql files in order, then manual-seed.sql (idempotent).
 -- CreateSchema
 CREATE SCHEMA IF NOT EXISTS "public";
 
 -- CreateEnum
-CREATE TYPE "public"."Role" AS ENUM ('WORKER', 'OWNER', 'RECRUITER', 'COMPLIANCE', 'SUPERVISOR', 'FINANCE');
+CREATE TYPE "public"."Role" AS ENUM ('WORKER', 'OWNER', 'RECRUITER', 'COMPLIANCE', 'SUPERVISOR', 'FINANCE', 'PUBLISHER');
 
 -- CreateEnum
 CREATE TYPE "public"."VerificationLevel" AS ENUM ('PLATFORM', 'ORGANIZATION', 'IMPORTED', 'SELF_REPORTED');
@@ -948,6 +948,31 @@ CREATE OR REPLACE TRIGGER "Validation_no_truncate" BEFORE TRUNCATE ON "public"."
   FOR EACH STATEMENT EXECUTE FUNCTION "turfcut_private"."append_only"();
 CREATE OR REPLACE TRIGGER "AuditEvent_no_truncate" BEFORE TRUNCATE ON "public"."AuditEvent"
   FOR EACH STATEMENT EXECUTE FUNCTION "turfcut_private"."append_only"();
+
+-- ---- C1: member invites (server-only, like the M5 tables) ----
+CREATE TABLE "public"."OrgInvite" (
+    "id" UUID NOT NULL,
+    "orgId" UUID NOT NULL,
+    "email" TEXT NOT NULL,
+    "role" "public"."Role" NOT NULL,
+    "invitedById" UUID NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "expiresAt" TIMESTAMP(3) NOT NULL,
+    "acceptedAt" TIMESTAMP(3),
+    "acceptedById" UUID,
+    "revokedAt" TIMESTAMP(3),
+
+    CONSTRAINT "OrgInvite_pkey" PRIMARY KEY ("id"),
+    CONSTRAINT "OrgInvite_email_lowercase" CHECK ("email" = lower("email")),
+    CONSTRAINT "OrgInvite_role_not_worker" CHECK ("role" <> 'WORKER')
+);
+CREATE INDEX "OrgInvite_email_idx" ON "public"."OrgInvite"("email");
+CREATE INDEX "OrgInvite_orgId_createdAt_idx" ON "public"."OrgInvite"("orgId", "createdAt");
+CREATE UNIQUE INDEX "OrgInvite_pending_key" ON "public"."OrgInvite"("orgId", "email")
+  WHERE "acceptedAt" IS NULL AND "revokedAt" IS NULL;
+ALTER TABLE "public"."OrgInvite" ADD CONSTRAINT "OrgInvite_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "public"."Organization"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "public"."OrgInvite" ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON "public"."OrgInvite" FROM anon, authenticated;
 
 
 -- Turfcut seed (M0 + M1 events) — SQL version of prisma/seed.ts

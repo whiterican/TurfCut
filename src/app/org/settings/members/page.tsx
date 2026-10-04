@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ActionButton } from "@/components/ActionButton";
 import { INVITE_ROLES, ROLE_HELP, ROLE_LABELS } from "@/lib/access";
 import { requireArea } from "@/lib/employer-session";
+import type { Role } from "@/lib/auth";
 import { listMembers } from "@/lib/members-data";
 import { changeRole, invite, remove, resend, revoke } from "./actions";
 
@@ -12,6 +13,8 @@ function RoleSelect({ value, label }: { value?: string; label: string }) {
     <label className="space-y-1.5">
       <span className="label">{label}</span>
       <select name="role" className="field" defaultValue={value ?? "RECRUITER"}>
+        {/* A role that can no longer be assigned (compliance) still shows as the current one. */}
+        {value && !(INVITE_ROLES as string[]).includes(value) && <option value={value} disabled>{ROLE_LABELS[value as Role]}</option>}
         {INVITE_ROLES.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
       </select>
     </label>

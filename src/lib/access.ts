@@ -23,7 +23,8 @@ export const ROLE_HELP: Record<OrgRole, string> = {
   FINANCE: "Pay: approvals, holds and exports.",
   PUBLISHER: "Campaign communications (coming soon).",
 };
-export const INVITE_ROLES: OrgRole[] = ORG_ROLE_LIST;
+/** Roles an owner can invite or assign (C1 plan). Compliance is not offered: M10 decides it; existing compliance members keep it. */
+export const INVITE_ROLES: OrgRole[] = ["OWNER", "RECRUITER", "SUPERVISOR", "FINANCE", "PUBLISHER"];
 
 /**
  * C1 access map: the one table that says which organization role reaches

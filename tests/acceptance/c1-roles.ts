@@ -51,6 +51,8 @@ const confirmed = (id: string, email: string) => ({ id, email, email_confirmed_a
   check("a malformed email is refused", !bad.ok);
   const asWorker = await inviteMember(owner, { email: "x@example.org", role: "WORKER" }, mail);
   check("WORKER is not an invitable role", !asWorker.ok);
+  const asCompliance = await inviteMember(owner, { email: "c@example.org", role: "COMPLIANCE" }, mail);
+  check("compliance isn't offered in invites (M10 decides it)", !asCompliance.ok);
   const inv = await inviteMember(owner, { email: "  Riley@Example.ORG ", role: "RECRUITER" }, mail);
   check("an owner invites a recruiter; the email is lowercased and sent", inv.ok && inv.sent && sent.at(-1) === "riley@example.org", inv);
   const row = inv.ok ? await p.orgInvite.findUniqueOrThrow({ where: { id: inv.inviteId } }) : null;

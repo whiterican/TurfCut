@@ -1,6 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
-import { ORG_ROLES } from "@/lib/access";
+import { INVITE_ROLES, ORG_ROLES } from "@/lib/access";
 import { UUID_RE } from "@/lib/jobs";
 import type { Role } from "@/lib/auth";
 
@@ -53,6 +53,11 @@ export function normalizeEmail(raw: unknown): string | null {
 
 export function isOrgRole(raw: unknown): raw is Role {
   return typeof raw === "string" && ORG_ROLES.includes(raw as Role);
+}
+
+/** A role an owner may invite someone as, or assign (INVITE_ROLES). */
+export function isInviteRole(raw: unknown): raw is Role {
+  return typeof raw === "string" && (INVITE_ROLES as string[]).includes(raw);
 }
 
 /** Emails for auth users, by id. Server only: auth.users is never exposed to clients. */
@@ -124,7 +129,7 @@ export type InviteResult = { ok: true; inviteId: string; sent: boolean; message?
 export async function inviteMember(actor: Actor, input: { email: unknown; role: unknown }, mail: InviteMailer, now = new Date()): Promise<InviteResult> {
   const email = normalizeEmail(input.email);
   if (!email) return fail("Enter a valid email address.");
-  if (!isOrgRole(input.role)) return fail("Choose a role.");
+  if (!isInviteRole(input.role)) return fail("Choose a role.");
   const role = input.role;
   let made: { inviteId: string; mail: boolean };
   try {
@@ -211,7 +216,7 @@ const otherOwners = (tx: Tx, orgId: string, profileId: string) =>
   tx.profile.count({ where: { orgId, role: "OWNER", closedAt: null, id: { not: profileId } } });
 
 export async function changeMemberRole(actor: Actor, profileId: string, role: unknown, now = new Date()): Promise<{ ok: true } | Fail> {
-  if (!isOrgRole(role)) return fail("Choose a role.");
+  if (!isInviteRole(role)) return fail("Choose a role.");
   if (!UUID_RE.test(profileId)) return fail("Member not found.");
   return db().$transaction(async (tx) => {
     await lockOrg(tx, actor.orgId);

@@ -40,7 +40,10 @@ export default async function OrgSettingsPage() {
           <p className="eyebrow">Organization settings</p>
           <h1 className="page-title">{org.name}</h1>
         </div>
-        <Link href="/settings" className="btn-ghost btn-sm">Settings &amp; sign out</Link>
+        <div className="flex flex-wrap gap-2">
+          {isOwner && <Link href="/org/settings/members" className="btn-secondary btn-sm">Members</Link>}
+          <Link href="/settings" className="btn-ghost btn-sm">Settings &amp; sign out</Link>
+        </div>
       </header>
 
       <section className="section">

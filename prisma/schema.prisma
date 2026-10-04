@@ -31,10 +31,12 @@ enum Role {
   COMPLIANCE // organization compliance reviewer
   SUPERVISOR // field supervisor (reviews work)
   FINANCE // organization finance (payouts, exports)
+  PUBLISHER // C1: campaign communications (campaign profiles and feed land in C6)
 }
 
 /// Links a Supabase Auth user to a Turfcut role.
-/// M0: one role per user. Worker users get a workers row; company users get an
+/// M0: one role per user. C1: owners add members through OrgInvite; removing a
+/// member detaches them (orgId = null) and keeps their login and history. Worker users get a workers row; company users get an
 /// organizations row and one of the org roles.
 model Profile {
   id        String   @id @db.Uuid // == Supabase auth.users.id
@@ -192,8 +194,32 @@ model Organization {
   payouts         Payout[]
   payoutTransfers PayoutTransfer[]
   payDisputes     PayDispute[]
+  invites         OrgInvite[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+/// C1: an owner's invitation for someone to join the organization in a role.
+/// Held on the server and matched to the email address the person proves
+/// they own when they first sign in (never to editable sign-up details).
+/// Operational state, not a ledger: resend moves expiresAt, revoke and
+/// accept stamp their columns. At most one pending invite per org and email
+/// (partial unique index in prisma/c1-roles.sql).
+model OrgInvite {
+  id           String       @id @default(uuid()) @db.Uuid
+  orgId        String       @db.Uuid
+  org          Organization @relation(fields: [orgId], references: [id], onDelete: Restrict)
+  email        String // lowercased
+  role         Role // never WORKER
+  invitedById  String       @db.Uuid // Profile.id of the owner who sent it
+  createdAt    DateTime     @default(now())
+  expiresAt    DateTime
+  acceptedAt   DateTime?
+  acceptedById String?      @db.Uuid // Profile.id created or attached on acceptance
+  revokedAt    DateTime?
+
+  @@index([email])
+  @@index([orgId, createdAt])
 }
 
 /// Versioned, counsel-approved rule profile per jurisdiction.

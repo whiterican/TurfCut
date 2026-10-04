@@ -9,7 +9,8 @@ export type Role =
   | "RECRUITER"
   | "COMPLIANCE"
   | "SUPERVISOR"
-  | "FINANCE";
+  | "FINANCE"
+  | "PUBLISHER";
 
 export interface SessionProfile {
   userId: string;
@@ -70,7 +71,7 @@ export async function getSessionProfile(): Promise<SessionProfile | null> {
  */
 export async function requireRole(allowed: Role[]): Promise<SessionProfile> {
   const session = await getSessionProfile();
-  if (!session) redirect("/login");
+  if (!session) redirect((await needsSetup()) ? "/welcome" : "/login");
   if (!allowed.includes(session.role)) redirect("/dashboard");
   return session;
 }
@@ -78,6 +79,31 @@ export async function requireRole(allowed: Role[]): Promise<SessionProfile> {
 /** Convenience: any signed-in user. */
 export async function requireAuth(): Promise<SessionProfile> {
   const session = await getSessionProfile();
-  if (!session) redirect("/login");
+  if (!session) redirect((await needsSetup()) ? "/welcome" : "/login");
   return session;
+}
+
+/** The signed-in auth user (verified with Supabase), or null. For checks on the email itself. */
+export async function getAuthUser() {
+  try {
+    const supabase = await createClient();
+    return (await supabase.auth.getUser()).data.user ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Signed in, but with no Turfcut profile and nothing to build one from —
+ * e.g. a login an organization's invite created, whose invite was then
+ * revoked or expired (C1). /welcome lets them finish setting up.
+ */
+export async function needsSetup(): Promise<boolean> {
+  const user = await getAuthUser();
+  if (!user) return false;
+  try {
+    return !(await db().profile.findUnique({ where: { id: user.id }, select: { id: true } }));
+  } catch {
+    return false;
+  }
 }

@@ -6,6 +6,9 @@ import { validateSetup } from "@/lib/auth-input";
 import { formToObject } from "@/lib/jobs";
 import { ensureAccount, SIGNUP_METADATA_KEY } from "@/lib/account";
 import { db } from "@/lib/db";
+import { getAuthUser } from "@/lib/auth";
+import { acceptInvite } from "@/lib/members-data";
+import type { ActionState as ActionStateLike } from "@/app/jobs/actions";
 
 export interface SetupState {
   message: string;
@@ -31,4 +34,12 @@ export async function finishSetup(_prev: SetupState, fd: FormData): Promise<Setu
     return { message: "We couldn't set up your account. Try again in a minute.", errors: {} };
   }
   redirect("/dashboard");
+}
+
+/** Joins one invite the person chose, from /welcome. */
+export async function acceptFromWelcome(_prev: ActionStateLike, fd: FormData): Promise<ActionStateLike> {
+  const user = await getAuthUser();
+  if (!user) return { ok: false, message: "Sign in again to accept." };
+  if (await acceptInvite(user, { inviteId: String(fd.get("inviteId") ?? "") })) redirect("/dashboard");
+  return { ok: false, message: "That invite is no longer open. Ask an owner to send a new one." };
 }

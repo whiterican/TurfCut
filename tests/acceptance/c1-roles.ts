@@ -99,7 +99,8 @@ const confirmed = (id: string, email: string) => ({ id, email, email_confirmed_a
   await p.$executeRaw`DELETE FROM auth.users WHERE id = ${UNCONFIRMED}::uuid`;
   // A login the invite email created has no sign-up details: it joins on first sign-in.
   await authUser(NEW1, "riley@example.org");
-  const joined = await ensureAccount({ ...confirmed(NEW1, "Riley@example.org"), user_metadata: {} });
+  check("a sign-in that isn't the invite link joins nobody", !(await ensureAccount({ ...confirmed(NEW1, "Riley@example.org"), user_metadata: {} })) && !(await p.profile.findUnique({ where: { id: NEW1 } })));
+  const joined = await ensureAccount({ ...confirmed(NEW1, "Riley@example.org"), user_metadata: {} }, { fromInviteLink: true });
   const riley = await p.profile.findUnique({ where: { id: NEW1 } });
   check("the invited person joins as recruiter of the inviting org on first sign-in", joined && riley?.role === "RECRUITER" && riley.orgId === ORG, riley);
   const accepted = inv.ok ? await p.orgInvite.findUniqueOrThrow({ where: { id: inv.inviteId } }) : null;
@@ -116,7 +117,7 @@ const confirmed = (id: string, email: string) => ({ id, email, email_confirmed_a
   const expired = await inviteMember(owner, { email: "quinn@example.org", role: "FINANCE" }, mail);
   if (expired.ok) await p.orgInvite.update({ where: { id: expired.inviteId }, data: { expiresAt: new Date(Date.now() - 1000) } });
   await authUser(NEW2, "quinn@example.org");
-  check("an expired invite doesn't let anyone in", !(await ensureAccount({ ...confirmed(NEW2, "quinn@example.org"), user_metadata: {} })) && !(await p.profile.findUnique({ where: { id: NEW2 } })));
+  check("an expired invite doesn't let anyone in", !(await ensureAccount({ ...confirmed(NEW2, "quinn@example.org"), user_metadata: {} }, { fromInviteLink: true })) && !(await p.profile.findUnique({ where: { id: NEW2 } })));
   const exp2 = await inviteMember(owner, { email: "quinn@example.org", role: "FINANCE" }, mail);
   check("an expired invite blocks a duplicate and says it expired", !exp2.ok && /expired/.test(exp2.ok ? "" : exp2.reason), exp2);
   // Quinn's login exists (the invite email made it) but the invite closed: setup reports "nothing to build from",
@@ -156,7 +157,7 @@ const confirmed = (id: string, email: string) => ({ id, email, email_confirmed_a
   const part = await p.conversationParticipant.findFirstOrThrow({ where: { conversationId: conv.id, profileId: NEW1 } });
   check("the chat trigger ends their conversations (history read-only up to now)", !!part.removedAt);
   check("they're off the members list", (await listMembers(ORG)).members.length === 1);
-  check("a detached member isn't pulled back in on sign-in", (await ensureAccount({ ...confirmed(NEW1, "riley@example.org"), user_metadata: {} })) && (await p.profile.findUniqueOrThrow({ where: { id: NEW1 } })).orgId === null);
+  check("a detached member isn't pulled back in on sign-in", (await ensureAccount({ ...confirmed(NEW1, "riley@example.org"), user_metadata: {} }, { fromInviteLink: true })) && (await p.profile.findUniqueOrThrow({ where: { id: NEW1 } })).orgId === null);
   const back = await inviteMember(owner, { email: "riley@example.org", role: "PUBLISHER" }, mail);
   check("a detached member can be invited back", back.ok, back);
   check("…and nothing happens until they accept", !(await acceptInvite(confirmed(NEW1, "riley@example.org"))) && (await p.profile.findUniqueOrThrow({ where: { id: NEW1 } })).orgId === null);

@@ -5,7 +5,7 @@ import { finishSetup, type SetupState } from "./actions";
 
 const initial: SetupState = { message: "", errors: {} };
 
-export function WelcomeForm() {
+export function WelcomeForm({ invited }: { invited: boolean }) {
   const [state, action, pending] = useActionState(finishSetup, initial);
   const [type, setType] = useState("worker");
   const err = (k: string) => (state.errors[k] ? <p className="field-error">{state.errors[k]}</p> : null);
@@ -13,7 +13,11 @@ export function WelcomeForm() {
     <form action={action} className="card space-y-5 sm:p-8">
       <div className="space-y-2 text-center">
         <h1 className="page-title">Finish setting up</h1>
-        <p className="text-muted-sm">The invite that brought you here is no longer open. You can still use Turfcut on your own, or ask the organization to invite you again.</p>
+        <p className="text-muted-sm">
+          {invited
+            ? "Or set up your own account instead."
+            : "The invite that brought you here is no longer open. You can still use Turfcut on your own, or ask the organization to invite you again."}
+        </p>
       </div>
       <fieldset className="grid grid-cols-2 gap-2">
         <legend className="sr-only">Account type</legend>

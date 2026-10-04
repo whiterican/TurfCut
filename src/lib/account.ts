@@ -27,19 +27,20 @@ export function readPendingSignup(meta: unknown): PendingSignup | null {
 /**
  * Creates the Turfcut rows for an AUTHENTICATED user — call only with a user
  * from a verified session (getUser / a successful sign-up session), never
- * from unverified input. From their sign-up details, or, for a login an
- * organization's invite created, from that invite (C1). Idempotent: an
+ * from unverified input. From their sign-up details, or — when they've just
+ * opened an organization's invite link — from that invite (C1). Idempotent: an
  * existing profile, or a concurrent creation (P2002), counts as success.
  */
-export async function ensureAccount(user: VerifiedUser & { user_metadata?: unknown }): Promise<boolean> {
+export async function ensureAccount(user: VerifiedUser & { user_metadata?: unknown }, opts: { fromInviteLink?: boolean } = {}): Promise<boolean> {
   const existing = await db().profile.findUnique({ where: { id: user.id }, select: { id: true } });
   if (existing) return true;
   const pending = readPendingSignup(user.user_metadata);
   if (!pending) {
     // No sign-up details: the login came from an organization's invite email
-    // (C1). Join through that invite; metadata never grants a role. Someone
-    // who signed up themselves keeps what they asked for — an invite never
-    // overrides it.
+    // (C1). Opening that invite link is the person's yes, so only then do
+    // they join through it; metadata never grants a role. Someone who signed
+    // up themselves keeps what they asked for — an invite never overrides it.
+    if (!opts.fromInviteLink) return false;
     try {
       return await acceptInvite(user);
     } catch (e) {

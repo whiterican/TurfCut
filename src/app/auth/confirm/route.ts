@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
         const { data } = await supabase.auth.getUser();
         // No profile and nothing to build one from (an invite that closed
         // before they opened it): let them finish setting up.
-        if (data.user && !(await ensureAccount(data.user))) setup = true;
+        if (data.user && !(await ensureAccount(data.user, { fromInviteLink: type === "invite" }))) setup = true;
       } catch (e) {
         console.error("[turfcut] account setup after confirmation failed", e);
       }

@@ -119,6 +119,10 @@ const confirmed = (id: string, email: string) => ({ id, email, email_confirmed_a
   check("an expired invite doesn't let anyone in", !(await ensureAccount({ ...confirmed(NEW2, "quinn@example.org"), user_metadata: {} })) && !(await p.profile.findUnique({ where: { id: NEW2 } })));
   const exp2 = await inviteMember(owner, { email: "quinn@example.org", role: "FINANCE" }, mail);
   check("an expired invite blocks a duplicate and says it expired", !exp2.ok && /expired/.test(exp2.ok ? "" : exp2.reason), exp2);
+  // Quinn's login exists (the invite email made it) but the invite closed: setup reports "nothing to build from",
+  // which sends them to /welcome; their own choice there then sets up the account normally.
+  const finish = { [SIGNUP_METADATA_KEY]: { accountType: "worker", name: "Quinn Q" } };
+  check("a login whose invite closed can finish setting up on their own", (await ensureAccount({ ...confirmed(NEW2, "quinn@example.org"), user_metadata: finish })) && (await p.profile.findUniqueOrThrow({ where: { id: NEW2 } })).role === "WORKER");
   const workerJoin = await p.orgInvite.create({ data: { orgId: ORG, email: "alex@example.org", role: "OWNER", invitedById: OWNER, expiresAt: new Date(Date.now() + DAY) } });
   check("a worker account never becomes a member, even with an invite on file", !(await acceptInvite(confirmed(W1_PROFILE, "alex@example.org"), { inviteId: workerJoin.id })) && (await p.profile.findUniqueOrThrow({ where: { id: W1_PROFILE } })).role === "WORKER");
   await p.orgInvite.update({ where: { id: workerJoin.id }, data: { revokedAt: new Date() } });

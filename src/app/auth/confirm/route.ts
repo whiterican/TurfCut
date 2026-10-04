@@ -15,6 +15,7 @@ export async function GET(req: NextRequest) {
   const p = req.nextUrl.searchParams;
   const next = safeNext(p.get("next"));
   let ok = false;
+  let setup = false;
   try {
     const supabase = await createClient();
     const code = p.get("code");
@@ -29,7 +30,9 @@ export async function GET(req: NextRequest) {
       // getSessionProfile retries on their next request.
       try {
         const { data } = await supabase.auth.getUser();
-        if (data.user) await ensureAccount(data.user);
+        // No profile and nothing to build one from (an invite that closed
+        // before they opened it): let them finish setting up.
+        if (data.user && !(await ensureAccount(data.user))) setup = true;
       } catch (e) {
         console.error("[turfcut] account setup after confirmation failed", e);
       }
@@ -37,5 +40,5 @@ export async function GET(req: NextRequest) {
   } catch {
     ok = false;
   }
-  redirect(ok ? next : "/login?error=link");
+  redirect(!ok ? "/login?error=link" : setup ? "/welcome" : next);
 }

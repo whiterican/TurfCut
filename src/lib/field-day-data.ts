@@ -1,4 +1,5 @@
 import { Prisma } from "@prisma/client";
+import { needsReview } from "@/lib/field-view";
 import { db } from "@/lib/db";
 import { FIELD_ROLES } from "@/lib/access";
 import { canScheduleShift, UUID_RE } from "@/lib/jobs";
@@ -25,6 +26,9 @@ type Tx = Prisma.TransactionClient;
 type Result = { ok: true } | { ok: false; reason: string };
 
 const lock = (tx: Tx, key: string) => tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${key}))`;
+
+/** When the shift's latest CORRECTION event was made, or null (events load oldest first). */
+const lastCorrection = (s: { events: { type: string; createdAt: Date }[] }) => s.events.findLast((e) => e.type === "CORRECTION")?.createdAt ?? null;
 
 /** Every shift-scoped page and action loads the same shape. */
 const SHIFT_INCLUDE = {
@@ -445,7 +449,8 @@ export async function loadOps(orgId: string, now = new Date()) {
   const rows = shifts.map((s) => ({ shift: s, state: shiftState(facts(s)) }));
   const live = rows.filter((r) => !r.state.cancelled);
   const late = live.filter((r) => !r.state.checkedInAt && now.getTime() > r.shift.startsAt.getTime() + 15 * 60_000 && now < r.shift.endsAt);
-  const awaitingReview = live.filter((r) => r.state.checkedOutAt && !r.state.closeout);
+  // Same rule as the review queue: never reviewed, or corrected since.
+  const awaitingReview = live.filter((r) => needsReview(r.state, lastCorrection(r.shift)));
   // "In the field" = shifts that have started (or checked in early); the
   // rest of the next 24 hours is counted separately as upcoming.
   const due = live.filter((r) => r.state.checkedInAt || r.shift.startsAt <= now);
@@ -473,4 +478,56 @@ export async function loadWorkerTurf(workerId: string, now = new Date()) {
     orderBy: { startsAt: "asc" },
     take: 20,
   });
+}
+
+/**
+ * Field views (C1.4): the organization's shifts overlapping [from, to), not
+ * cancelled, with their state, as rows for lib/field-view.
+ */
+export async function loadFieldWindow(orgId: string, from: Date, to: Date): Promise<import("@/lib/field-view").FieldRow[]> {
+  const shifts = await db().shift.findMany({
+    where: { engagement: { job: { orgId } }, status: { not: "CANCELLED" }, startsAt: { lt: to }, endsAt: { gt: from } },
+    include: SHIFT_INCLUDE,
+    orderBy: { startsAt: "asc" },
+  });
+  return shifts.map((s) => ({
+    shiftId: s.id,
+    jobId: s.engagement.job.id,
+    jobTitle: s.engagement.job.title,
+    staging: s.stagingLocation,
+    worker: s.engagement.worker.displayName,
+    startsAt: s.startsAt,
+    endsAt: s.endsAt,
+    state: shiftState(facts(s)),
+  }));
+}
+
+/** The most the review queue loads at once (oldest first); the rest wait their turn. */
+export const REVIEW_CAP = 200;
+
+/**
+ * The review queue's candidates: shifts checked out in the last `days` days
+ * with no closeout yet, or corrected since (lib/field-view needsReview
+ * decides), the longest-waiting first, at most REVIEW_CAP.
+ */
+export async function loadReviewCandidates(orgId: string, now = new Date(), days = 30) {
+  const shifts = await db().shift.findMany({
+    where: {
+      engagement: { job: { orgId } },
+      status: { not: "CANCELLED" },
+      checkOutAt: { gt: new Date(now.getTime() - days * 86_400_000) },
+      OR: [{ validations: { none: { workEventId: null } } }, { events: { some: { type: "CORRECTION" } } }],
+    },
+    include: SHIFT_INCLUDE,
+    orderBy: { checkOutAt: "asc" },
+    take: REVIEW_CAP,
+  });
+  return shifts.map((s) => ({
+    shiftId: s.id,
+    jobTitle: s.engagement.job.title,
+    worker: s.engagement.worker.displayName,
+    startsAt: s.startsAt,
+    state: shiftState(facts(s)),
+    correctedAt: lastCorrection(s),
+  }));
 }

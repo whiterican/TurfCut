@@ -369,11 +369,14 @@ body {
   .chip:hover {
     border-color: var(--border-strong);
   }
-  .chip:has(input:checked) {
+  /* Checked filter chips, and link chips for the page you're on (Pay tabs). */
+  .chip:has(input:checked),
+  .chip[aria-current="page"] {
     border-color: var(--accent);
     background: color-mix(in srgb, var(--accent) 16%, var(--surface));
   }
-  :root:not(.dark) .chip:has(input:checked) {
+  :root:not(.dark) .chip:has(input:checked),
+  :root:not(.dark) .chip[aria-current="page"] {
     background: var(--primary);
     color: var(--on-primary);
     border-color: transparent;

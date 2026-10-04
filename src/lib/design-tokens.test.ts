@@ -9,12 +9,25 @@ import { describe, expect, it } from "vitest";
  */
 const css = readFileSync(join(__dirname, "../app/globals.css"), "utf8");
 
-function block(selector: string): Record<string, string> {
-  const start = css.indexOf(`${selector} {`);
-  if (start < 0) throw new Error(`no ${selector} block`);
-  const body = css.slice(start, css.indexOf("}", start));
+/**
+ * The body of the one top-level `selector {` block in the stylesheet, with
+ * comments removed. Anchored to the start of a line and required to be
+ * unique: a second `:root {` added anywhere (or `.dark {` inside another
+ * rule) makes this throw instead of quietly testing the wrong block.
+ */
+function themeBody(source: string, selector: string): string {
+  const esc = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const opens = [...source.matchAll(new RegExp(`^${esc} \\{`, "gm"))];
+  if (opens.length !== 1) throw new Error(`expected exactly one top-level "${selector} {" block, found ${opens.length}`);
+  const start = opens[0].index! + opens[0][0].length;
+  const end = source.indexOf("\n}", start);
+  if (end < 0) throw new Error(`unclosed "${selector}" block`);
+  return source.slice(start, end).replace(/\/\*[\s\S]*?\*\//g, "");
+}
+
+function block(selector: string, source = css): Record<string, string> {
   return Object.fromEntries(
-    [...body.matchAll(/--([\w-]+):\s*(#[0-9a-fA-F]{6})\s*;/g)].map((m) => [m[1], m[2]])
+    [...themeBody(source, selector).matchAll(/--([\w-]+):\s*(#[0-9a-fA-F]{6})\s*;/g)].map((m) => [m[1], m[2]])
   );
 }
 
@@ -186,8 +199,7 @@ describe("the Turfcut App Mockup palette (eggplant and lime)", () => {
   });
   it("every token in the theme blocks was parsed (so the contrast checks see them all)", () => {
     for (const sel of [":root", ".dark"]) {
-      const start = css.indexOf(`${sel} {`);
-      const body = css.slice(start, css.indexOf("}", start));
+      const body = themeBody(css, sel);
       const parsed = block(sel);
       for (const [, name, value] of body.matchAll(/--([\w-]+):\s*([^;]+);/g)) {
         if (/^#[0-9a-fA-F]{6}$/.test(value.trim())) expect(parsed[name]).toBe(value.trim());
@@ -197,3 +209,24 @@ describe("the Turfcut App Mockup palette (eggplant and lime)", () => {
     }
   });
 });
+
+describe("the token parser itself", () => {
+  const sheet = (extra = "") => `${extra}:root {\n  --bg: #ffffff;\n  /* --fake: #000000; not a token */\n}\n.dark {\n  --bg: #000000;\n}\n`;
+  it("reads the one top-level block, ignoring tokens inside comments", () => {
+    expect(block(":root", sheet())).toEqual({ bg: "#ffffff" });
+    expect(block(".dark", sheet())).toEqual({ bg: "#000000" });
+  });
+  it("refuses a stylesheet with a second :root block instead of testing the wrong one", () => {
+    expect(() => block(":root", sheet(":root {\n  --bg: #123456;\n}\n"))).toThrow(/exactly one/);
+  });
+  it("doesn't mistake a nested or prefixed selector for the theme block", () => {
+    const nested = `@media print {\n  .dark { --bg: #111111; }\n}\n:root.x {\n  --bg: #222222;\n}\n` + sheet();
+    expect(block(".dark", nested)).toEqual({ bg: "#000000" });
+    expect(block(":root", nested)).toEqual({ bg: "#ffffff" });
+  });
+  it("the real stylesheet has exactly one of each", () => {
+    expect(() => themeBody(css, ":root")).not.toThrow();
+    expect(() => themeBody(css, ".dark")).not.toThrow();
+  });
+});
+

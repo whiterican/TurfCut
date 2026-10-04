@@ -585,7 +585,11 @@ body {
   :root:not(.dark) .avatar-team {
     background: var(--accent);
     color: var(--ink);
-    border-color: var(--hero-border);
+  }
+  /* By night: the olive "verified" chip colours, distinct from people's eggplant avatars. */
+  .dark .avatar-team {
+    background: var(--plum);
+    color: var(--on-plum);
   }
   .bubble {
     @apply max-w-full rounded-2xl px-3.5 py-2 text-[0.9375rem] leading-relaxed break-words whitespace-pre-wrap;
@@ -663,6 +667,19 @@ body {
   }
   :root:not(.dark) .shift-banner {
     background: color-mix(in srgb, var(--accent) 50%, var(--surface));
+    border: 1px solid var(--border-strong);
+  }
+  /* By day lime is close to the off-white page, so lime shapes get a quiet
+     outline to read as shapes (text on them is already AAA). */
+  :root:not(.dark) :is(.badge-accent, .filter-chip-accent) {
+    border-color: var(--border-strong);
+  }
+  :root:not(.dark) .bubble-mine {
+    box-shadow: inset 0 0 0 1px var(--border-strong);
+  }
+  /* Links inside a feature card take the card's text colour, never the page link colour. */
+  .hero-card .link {
+    color: var(--hero-fg);
   }
   /* Quick filters on Find work: outlined, solid pastel when on. */
   .filter-chip {

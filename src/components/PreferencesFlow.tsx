@@ -84,7 +84,7 @@ export function PreferencesFlow({ initial, consentText }: { initial: FitPreferen
           <span className="text-subtle">{Math.round(((step + 1) / FLOW_STEPS.length) * 100)}%</span>
         </div>
         <div className="h-1.5 overflow-hidden rounded-full bg-surface-2" aria-hidden>
-          <div className="h-full rounded-full bg-accent transition-all" style={{ width: `${((step + 1) / FLOW_STEPS.length) * 100}%` }} />
+          <div className="h-full rounded-full bg-success transition-all" style={{ width: `${((step + 1) / FLOW_STEPS.length) * 100}%` }} />
         </div>
         <ol className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
           {FLOW_STEPS.map((s, i) => (

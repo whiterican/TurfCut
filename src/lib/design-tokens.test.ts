@@ -174,6 +174,13 @@ describe("the Turfcut App Mockup palette (eggplant and lime)", () => {
     expect(light.accent).toBe("#ccea96");
     expect(light.plum).toBe("#281a3a"); // eggplant "done" badge
   });
+  it("progress fills (the success colour) show against surfaces in both themes (≥ 3:1)", () => {
+    for (const th of [light, dark]) for (const k of ["surface", "surface-2"] as const) expect(ratio(th.success, th[k])).toBeGreaterThanOrEqual(3);
+  });
+  it("by night team avatars (olive) differ from people's avatars (raised eggplant)", () => {
+    expect(css).toMatch(/\.dark \.avatar-team \{\s*background: var\(--plum\);/);
+    expect(dark.plum).not.toBe(dark["surface-2"]);
+  });
   it("warning text differs from error text by brightness, not only hue", () => {
     expect(ratio(light.warning, light.danger)).toBeGreaterThanOrEqual(1.5);
   });

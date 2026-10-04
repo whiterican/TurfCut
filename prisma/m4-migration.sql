@@ -353,7 +353,12 @@ GRANT EXECUTE ON FUNCTION "turfcut_private"."can_see_revision"(uuid, uuid, times
 
 -- Only these two tables are readable by signed-in clients (for Realtime),
 -- and only through these policies. Nothing is granted to anon.
-GRANT SELECT ON "public"."Message", "public"."MessageRevision" TO authenticated;
+-- Ids and times only, never message text: the same column-limited grant as
+-- m4-0-rls-lockdown.sql (and m4-1-hardening.sql). Revoking the table grant
+-- first clears any earlier grant, so re-running stays column-limited.
+REVOKE SELECT ON "public"."Message", "public"."MessageRevision" FROM authenticated;
+GRANT SELECT ("id", "conversationId", "createdAt") ON "public"."Message" TO authenticated;
+GRANT SELECT ("id", "messageId", "conversationId", "createdAt") ON "public"."MessageRevision" TO authenticated;
 
 CREATE POLICY "participants read messages" ON "public"."Message"
   FOR SELECT TO authenticated

@@ -26,19 +26,29 @@ export interface SignupFields {
 
 export function validateSignup(raw: Record<string, unknown>): { ok: true; value: SignupFields } | { ok: false; errors: Record<string, string> } {
   const s = (k: string) => (typeof raw[k] === "string" ? (raw[k] as string).trim() : "");
+  const setup = validateSetup(raw);
+  const errors: Record<string, string> = setup.ok ? {} : { ...setup.errors };
+  const email = s("email").toLowerCase();
+  if (!EMAIL_RE.test(email)) errors.email = "Enter a valid email address.";
+  const password = typeof raw.password === "string" ? raw.password : "";
+  if (password.length < 8) errors.password = "Use at least 8 characters.";
+  return setup.ok && !Object.keys(errors).length ? { ok: true, value: { ...setup.value, email, password } } : { ok: false, errors };
+}
+
+export type SetupFields = Pick<SignupFields, "accountType" | "name" | "phone">;
+
+/** Account type, name and phone: what sign-up asks for besides the login itself. */
+export function validateSetup(raw: Record<string, unknown>): { ok: true; value: SetupFields } | { ok: false; errors: Record<string, string> } {
+  const s = (k: string) => (typeof raw[k] === "string" ? (raw[k] as string).trim() : "");
   const errors: Record<string, string> = {};
   const accountType = s("accountType") === "company" ? "company" : "worker";
   const name = s("name").replace(/\s+/g, " ");
   if (!name) errors.name = accountType === "worker" ? "Enter your name." : "Enter your company's name.";
   else if (name.length > 100) errors.name = "Keep it under 100 characters.";
-  const email = s("email").toLowerCase();
-  if (!EMAIL_RE.test(email)) errors.email = "Enter a valid email address.";
-  const password = typeof raw.password === "string" ? raw.password : "";
-  if (password.length < 8) errors.password = "Use at least 8 characters.";
   let phone: string | null = null;
   if (accountType === "worker" && s("phone")) {
     phone = normalizePhone(s("phone"));
     if (!phone) errors.phone = "Enter a 10-digit US mobile number, or leave it blank.";
   }
-  return Object.keys(errors).length ? { ok: false, errors } : { ok: true, value: { accountType, name, email, password, phone } };
+  return Object.keys(errors).length ? { ok: false, errors } : { ok: true, value: { accountType, name, phone } };
 }

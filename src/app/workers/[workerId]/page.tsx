@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
-import { workerAccess } from "@/lib/access";
+import { workerAccessFor } from "@/lib/worker-access-data";
 import { requireEmployer } from "@/lib/employer-session";
 import { loadScorecardPeriods } from "@/lib/scorecard-data";
 import { effectivePreference, employerFitView } from "@/lib/political-fit";
@@ -21,7 +21,7 @@ export default async function EmployerWorkerPage({
 }) {
   const { workerId } = await params;
   const session = await requireEmployer();
-  const access = workerAccess(session, workerId, session.orgApproved);
+  const access = await workerAccessFor(session, workerId, session.orgApproved);
   if (access.kind !== "employer") {
     return (
       <main className="page max-w-2xl">
@@ -66,7 +66,7 @@ export default async function EmployerWorkerPage({
           <p className="eyebrow">Worker profile</p>
           <h1 className="page-title">{worker.displayName}</h1>
         </div>
-        <Link transitionTypes={["nav-back"]} href="/workers" className="btn-ghost">← All workers</Link>
+        <Link transitionTypes={["nav-back"]} href="/jobs" className="btn-ghost">← Jobs</Link>
       </header>
 
       <section className="section">

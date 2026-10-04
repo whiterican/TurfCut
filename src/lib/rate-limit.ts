@@ -1,6 +1,7 @@
 /**
  * A small sliding-window limiter for the few endpoints that take unauthenticated
- * or unmetered input: sign-in, sign-up, and the phone's offline sync.
+ * or unmetered input: sign-in, sign-up, the phone's offline sync, and the
+ * invite emails an owner can trigger.
  *
  * Per-process and in memory: on a single server it is exact; on serverless
  * hosting each instance counts on its own, so it is a floor, not a wall.
@@ -26,6 +27,8 @@ export const LIMITS = {
   signup: { max: 5, windowMs: 60 * 60_000 },
   /** Offline sync batches per worker (a phone retries, a script floods). */
   sync: { max: 60, windowMs: 60_000 },
+  /** Member invite emails (sends and resends) per organization per day. */
+  invite: { max: 20, windowMs: 24 * 60 * 60_000 },
 } as const satisfies Record<string, Limit>;
 
 export type LimitName = keyof typeof LIMITS;

@@ -1,4 +1,7 @@
-import { requireAuth } from "@/lib/auth";
+import { getAuthUser, requireAuth } from "@/lib/auth";
+import { pendingInvitesFor } from "@/lib/members-data";
+import { ActionButton } from "@/components/ActionButton";
+import { acceptOrgInvite } from "./actions";
 import { SCHEDULING_ROLES } from "@/lib/access";
 import { db } from "@/lib/db";
 import { shiftPriority } from "@/lib/priority";
@@ -21,6 +24,7 @@ const ROLE_LABELS: Record<string, string> = {
   COMPLIANCE: "Compliance",
   SUPERVISOR: "Supervisor",
   FINANCE: "Finance",
+  PUBLISHER: "Publisher",
 };
 
 const day = (d: Date | null) =>
@@ -177,6 +181,36 @@ async function OrgHero({ orgId }: { orgId: string }) {
   );
 }
 
+/** A removed member: what happened, and any invite they can choose to accept. */
+async function Detached() {
+  const user = await getAuthUser();
+  const invites = user ? await pendingInvitesFor(user) : [];
+  return (
+    <div className="space-y-4">
+      <div className="empty-state">
+        <p className="empty-state-title">You&apos;re no longer part of an organization</p>
+        <p className="empty-state-body">
+          An owner removed this login from their organization. Everything you did there stays on record.
+          {invites.length === 0 && " If an owner invites you, the invite appears here."}
+        </p>
+      </div>
+      {invites.length > 0 && (
+        <ul className="list-card">
+          {invites.map((i) => (
+            <li key={i.id} className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="space-y-1">
+                <p className="font-medium text-fg">{i.org.name} invited you as {ROLE_LABELS[i.role] ?? i.role}</p>
+                <p className="text-muted-sm">Open until {i.expiresAt.toISOString().slice(0, 10)}. Nothing changes unless you accept.</p>
+              </div>
+              <ActionButton action={acceptOrgInvite} fields={{ inviteId: i.id }} label="Accept" pendingLabel="Joining…" />
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 export default async function DashboardPage() {
   const session = await requireAuth();
 
@@ -212,13 +246,15 @@ export default async function DashboardPage() {
           {!isWorker && session.orgId && (
             <NavCard href="/jobs" title="Jobs" body={canHire ? "Build, publish and staff your jobs." : "Your organization's jobs."} />
           )}
-          {canHire && (
-            <NavCard href="/workers" title="People" body="Verified scorecards and experience, listed alphabetically." />
+          {session.role === "OWNER" && (
+            <NavCard href="/org/settings/members" title="Members" body="Invite your team, set their roles, remove access." />
           )}
           {!isWorker && session.orgId && (
             <NavCard href="/org/settings" title="Organization settings" body="Publishing checks, legal contact and jurisdiction rules." />
           )}
         </div>
+      ) : session.role !== "WORKER" ? (
+        <Detached />
       ) : (
         <div className="empty-state">
           <p className="empty-state-title">Nothing here yet</p>

@@ -21,6 +21,7 @@ const ROLE_LABELS: Record<string, string> = {
   COMPLIANCE: "Compliance",
   SUPERVISOR: "Supervisor",
   FINANCE: "Finance",
+  PUBLISHER: "Publisher",
 };
 
 const day = (d: Date | null) =>

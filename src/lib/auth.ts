@@ -9,7 +9,8 @@ export type Role =
   | "RECRUITER"
   | "COMPLIANCE"
   | "SUPERVISOR"
-  | "FINANCE";
+  | "FINANCE"
+  | "PUBLISHER";
 
 export interface SessionProfile {
   userId: string;

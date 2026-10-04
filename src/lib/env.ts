@@ -99,7 +99,7 @@ function tidy(raw: string): { clean: string; stripped: string; fixes: string[] }
     v = unbroken;
     fixes.push("had line breaks inside it");
   }
-  const prefix = /^(export\s+)?DATABASE_URL\s*=\s*/i.exec(v);
+  const prefix = /^(export\s*)?DATABASE_URL\s*=\s*/i.exec(v);
   if (prefix) {
     v = v.slice(prefix[0].length).trim();
     fixes.push('had a "DATABASE_URL=" prefix');

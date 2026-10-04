@@ -193,6 +193,9 @@ describe("no green anywhere", () => {
 });
 
 describe("daytime trim", () => {
+  it("warning text differs from error text by brightness, not only hue", () => {
+    expect(ratio(light.warning, light.danger)).toBeGreaterThanOrEqual(1.5);
+  });
   it("the eggplant trim around hero cards shows against the page (≥ 3:1)", () => {
     for (const s of ["bg", "surface"] as const) expect(ratio(light["hero-border"], light[s])).toBeGreaterThanOrEqual(3);
   });
@@ -250,7 +253,7 @@ describe("no green in the source", () => {
     }
   });
   it("stylesheets use no green colour functions or named greens", () => {
-    const named = /(?<![\w-])(green|lime|teal|olive|seagreen|chartreuse|lawngreen|springgreen|forestgreen|darkgreen|limegreen|yellowgreen|olivedrab|aquamarine|mediumseagreen|darkseagreen|lightgreen|palegreen|darkolivegreen|mediumspringgreen|lightseagreen|darkcyan)(?![\w-])/i;
+    const named = /(?<![\w-])(green|lime|teal|olive|seagreen|chartreuse|lawngreen|springgreen|forestgreen|darkgreen|limegreen|yellowgreen|olivedrab|aquamarine|mediumseagreen|darkseagreen|lightgreen|palegreen|darkolivegreen|mediumspringgreen|lightseagreen|darkcyan|turquoise|mediumturquoise|darkturquoise|mediumaquamarine|greenyellow|honeydew|mintcream)(?![\w-])/i;
     for (const f of files.filter((x) => x.endsWith(".css"))) {
       const text = readFileSync(f, "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
       expect({ file: f.slice(root.length), named: named.exec(text)?.[0] ?? null }).toEqual({ file: f.slice(root.length), named: null });
@@ -258,6 +261,8 @@ describe("no green in the source", () => {
         const hex = "#" + [m[1], m[2], m[3]].map((v) => Number(v).toString(16).padStart(2, "0")).join("");
         expect({ file: f.slice(root.length), rgb: m[0], green: isGreen(hex) }).toEqual({ file: f.slice(root.length), rgb: m[0], green: false });
       }
+      // Colours are written as hex or rgb()/hsl() so these checks can read them.
+      expect({ file: f.slice(root.length), fn: /\b(?:oklch|oklab|lab|lch|hwb|color)\(/.exec(text)?.[0] ?? null }).toEqual({ file: f.slice(root.length), fn: null });
       for (const m of text.matchAll(/hsla?\(\s*([\d.]+)/g)) {
         const h = Number(m[1]);
         expect({ file: f.slice(root.length), hsl: m[0], green: h >= 70 && h <= 185 }).toEqual({ file: f.slice(root.length), hsl: m[0], green: false });

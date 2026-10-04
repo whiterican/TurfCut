@@ -3,15 +3,17 @@
 /*
  * Turfcut design system — from the Turfcut screen mockups.
  *
- * Light: soft sage surfaces, near-black green ink, mono eyebrow labels, and
- * fresh accents (lime, mint, sky, coral, butter) used sparingly — status
- * badges (solid pastel with dark ink, in both themes), active states, the
- * hero card's highlight. Accent fills always
- * carry the dark "ink" colour, never another accent. Dark: deep eggplant
+ * Light: the brand's cream surfaces with deep eggplant ink (the logo's
+ * #281840), and fresh accents (lime, mint, sky, coral, butter) used
+ * sparingly: status badges (solid pastel with eggplant ink, in both
+ * themes), active states, the next-shift card. Accent fills always carry
+ * the dark "ink" colour, never another accent. Dark: deep eggplant
  * (low-saturation purple) surfaces; accents stay solid pastel
  * fills with ink (badges, your chat bubbles, the next-shift card) or appear
- * as text. Primary actions are ink-on-light / lime-on-dark; a dot marks
- * the current tab.
+ * as text. Primary actions are eggplant-on-cream / bright eggplant on dark.
+ * Priority rings use the brand's other colour from the card they circle:
+ * eggplant around the lime card in light mode, green around the bright
+ * eggplant card in dark mode.
  *
  * The theme is a `.dark` class on <html>, set before first paint by the
  * inline script in app/layout.tsx (saved choice, else the OS preference).
@@ -27,41 +29,42 @@
   --sky: #b9dbfa;
   --coral: #f8b3a2;
   --butter: #f5d98a;
-  --ink: #17201a; /* text on any accent fill */
+  --ink: #281840; /* text on any accent fill: the logo's eggplant */
 
-  /* Light mode */
-  --bg: #eef0ea;
-  --surface: #f8f9f5;
-  --surface-2: #e8ebe3;
-  --field: #ffffff;
-  --border: #dbe0d4;
-  --border-strong: #b9c1b1;
-  --fg: #17201a;
-  --muted: #36413a;
-  --subtle: #47524a;
-  --link: #2b6534;
-  --focus: #2b6534;
+  /* Light mode: cream and eggplant, from the brand marks. */
+  --bg: #f4f2e4;
+  --surface: #fbfaf1;
+  --surface-2: #ecead9;
+  --field: #fffef8;
+  --border: #e0ddc9;
+  --border-strong: #bdb8a0;
+  --fg: #281840;
+  --muted: #3f3257;
+  --subtle: #52466a;
+  --link: #5a3a8a;
+  --focus: #5a3a8a;
   --danger: #b42318;
   --success: #1f6b3a;
   --warning: #7d5300;
-  --primary: #17201a;
-  --on-primary: #f8f9f5;
-  --hero: #1d2a20;
-  --hero-fg: #f3f6ef;
-  --hero-muted: #c9d3c6;
-  --shadow: 0 1px 2px rgb(23 32 26 / 0.04), 0 10px 28px -16px rgb(23 32 26 / 0.18);
-  /* Gold: priority rings on the shift card (lighter inside, darker out) and the current tab. */
-  --gold: #b8912e;
-  --gold-2: #8f6c1c;
-  --gold-3: #66480f;
+  --primary: #281840;
+  --on-primary: #fbfaf1;
+  --hero: #281840;
+  --hero-fg: #f6f4e2;
+  --hero-muted: #cfc5dc;
+  --shadow: 0 1px 2px rgb(40 24 64 / 0.05), 0 10px 28px -16px rgb(40 24 64 / 0.2);
+  /* Priority rings on the lime shift card: eggplant, lighter inside,
+     darker toward the outside edge. */
+  --ring: #7a5aa3;
+  --ring-2: #523479;
+  --ring-3: #281840;
   color-scheme: light;
 }
 
 .dark {
   /* Dark mode is eggplant through and through: low-saturation purple
      neutrals (hue ~275°) one step lighter than pitch, a brighter eggplant
-     in place of lime for the accent, and gold only on priority rings and
-     the current tab. */
+     in place of lime for the accent, and green (eggplant's complement,
+     the logo's lime deepened) only on priority rings and the current tab. */
   --bg: #1b1523;
   --surface: #241c2e;
   --surface-2: #2e2539;
@@ -84,10 +87,10 @@
   --hero: #382c47;
   --hero-fg: #f6f2f9;
   --hero-muted: #d0c7d7;
-  /* Gold: rims only, never fills or text. */
-  --gold: #c99a35;
-  --gold-2: #a8781e;
-  --gold-3: #8a5e14;
+  /* Rings: rims only, never fills or text. */
+  --ring: #9cc95c;
+  --ring-2: #77a03a;
+  --ring-3: #5a7f27;
   --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 12px 32px -16px rgb(0 0 0 / 0.6);
   color-scheme: dark;
 }
@@ -202,19 +205,19 @@ body {
     background: var(--lime);
     color: var(--ink);
   }
-  /* Priority rings (lib/priority): one narrow gold ring per level, each
-     further out a darker gold. The innermost is a real border so it is the
+  /* Priority rings (lib/priority): one narrow ring per level, each
+     further out a darker shade. The innermost is a real border so it is the
      same width on every edge; the outer ones are rings around it. */
   .hero-card[data-priority="1"],
   .hero-card[data-priority="2"],
   .hero-card[data-priority="3"] {
-    border: 2px solid var(--gold);
+    border: 2px solid var(--ring);
   }
   .hero-card[data-priority="2"] {
-    box-shadow: 0 0 0 2px var(--gold-2), var(--shadow);
+    box-shadow: 0 0 0 2px var(--ring-2), var(--shadow);
   }
   .hero-card[data-priority="3"] {
-    box-shadow: 0 0 0 2px var(--gold-2), 0 0 0 4px var(--gold-3), var(--shadow);
+    box-shadow: 0 0 0 2px var(--ring-2), 0 0 0 4px var(--ring-3), var(--shadow);
   }
   .hero-card.hero-card-lime::after {
     background: color-mix(in srgb, white 35%, var(--lime));
@@ -523,7 +526,7 @@ body {
   .dark .tab[aria-current="page"] .tab-icon {
     color: var(--lime);
     background: color-mix(in srgb, var(--lime) 14%, transparent);
-    box-shadow: inset 0 0 0 2px var(--gold);
+    box-shadow: inset 0 0 0 2px var(--ring);
   }
   /* Icons inside buttons: sized to the text, never the hit target. */
   .btn-icon {

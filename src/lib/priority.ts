@@ -1,5 +1,5 @@
 /**
- * How urgent a shift is for the person looking at it, 0–3. Drawn as gold
+ * How urgent a shift is for the person looking at it, 0–3. Drawn as
  * rings on the shift card (one per level, darker toward the outside edge),
  * so a glance says "now", "today" or "coming up" without reading.
  */

@@ -120,3 +120,28 @@ describe("mockup surfaces", () => {
     expect(ratio(dark.muted, dk)).toBeGreaterThanOrEqual(4.5);
   });
 });
+
+describe("priority rings", () => {
+  // The rings circle the next-shift card, which is filled with --lime.
+  it("the outermost ring stands out from the page (WCAG non-text, ≥ 3:1)", () => {
+    for (const th of [light, dark]) {
+      for (const s of ["bg", "surface", "surface-2"] as const) expect(ratio(th["ring-3"], th[s])).toBeGreaterThanOrEqual(3);
+    }
+  });
+  it("in light mode the innermost ring stands out from the lime card (≥ 3:1)", () => {
+    expect(ratio(light.ring, light.lime)).toBeGreaterThanOrEqual(3);
+  });
+  it("in dark mode the innermost ring is a different hue family from the card (green on eggplant)", () => {
+    const [r, g, b] = rgb(dark.ring);
+    const [cr, , cb] = rgb(dark.lime);
+    expect(g).toBeGreaterThan(r);
+    expect(g).toBeGreaterThan(b);
+    expect(cb).toBeGreaterThan(cr - 20); // the card is lavender, not green
+  });
+  it("each ring is darker than the one inside it", () => {
+    for (const th of [light, dark]) {
+      expect(lum(rgb(th["ring-2"]))).toBeLessThan(lum(rgb(th.ring)));
+      expect(lum(rgb(th["ring-3"]))).toBeLessThan(lum(rgb(th["ring-2"])));
+    }
+  });
+});

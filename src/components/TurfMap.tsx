@@ -16,7 +16,7 @@ export interface MapPin {
 
 /** Map colours follow the theme tokens (lime → bright eggplant in dark mode), read when drawing. */
 const token = (name: string, fallback: string) => (typeof document === "undefined" ? fallback : getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback);
-const colors = () => ({ stroke: token("--link", "#2b6534"), fill: token("--lime", "#c6ec8c"), ink: token("--ink", "#17201a") });
+const colors = () => ({ stroke: token("--link", "#5a3a8a"), fill: token("--lime", "#c6ec8c"), ink: token("--ink", "#281840") });
 const US_CENTER: LatLngExpression = [39.5, -98.35];
 
 /**

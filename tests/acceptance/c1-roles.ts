@@ -99,6 +99,9 @@ const confirmed = (id: string, email: string) => ({ id, email, email_confirmed_a
   await p.$executeRaw`DELETE FROM auth.users WHERE id = ${UNCONFIRMED}::uuid`;
   // A login the invite email created has no sign-up details: it joins on first sign-in.
   await authUser(NEW1, "riley@example.org");
+  const rival = await p.orgInvite.create({ data: { orgId: ORG2, email: "riley@example.org", role: "OWNER", invitedById: OTHER, expiresAt: new Date(Date.now() + DAY) } });
+  check("with two open invites, the link alone joins neither (they choose)", !(await ensureAccount({ ...confirmed(NEW1, "riley@example.org"), user_metadata: {} }, { fromInviteLink: true })) && !(await p.profile.findUnique({ where: { id: NEW1 } })));
+  await p.orgInvite.update({ where: { id: rival.id }, data: { revokedAt: new Date() } });
   check("a sign-in that isn't the invite link joins nobody", !(await ensureAccount({ ...confirmed(NEW1, "Riley@example.org"), user_metadata: {} })) && !(await p.profile.findUnique({ where: { id: NEW1 } })));
   const joined = await ensureAccount({ ...confirmed(NEW1, "Riley@example.org"), user_metadata: {} }, { fromInviteLink: true });
   const riley = await p.profile.findUnique({ where: { id: NEW1 } });

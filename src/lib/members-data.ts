@@ -267,8 +267,9 @@ export async function pendingInvitesFor(user: VerifiedUser, now = new Date()) {
  * from the invite, never from user metadata, and the invite must match the
  * person's confirmed email.
  * - Someone brand new (no profile) — the invite email created their login —
- *   joins through their newest invite on first sign-in. ensureAccount calls
- *   this only when they brought no sign-up details of their own.
+ *   joins on opening that invite link, if it's their only open invite (with
+ *   several, they choose on /welcome). ensureAccount calls this only when
+ *   they brought no sign-up details of their own.
  * - A removed (detached) member joins only the invite they chose
  *   (`inviteId`), by pressing Accept. Nobody with a login is ever pulled
  *   into an organization without asking.
@@ -283,11 +284,14 @@ export async function acceptInvite(user: VerifiedUser, opts: { inviteId?: string
     await lockEmail(tx, email);
     const profile = await tx.profile.findUnique({ where: { id: user.id }, select: { role: true, orgId: true, closedAt: true } });
     if (profile && (profile.role === "WORKER" || profile.orgId || profile.closedAt || !opts.inviteId)) return false;
-    const inv = await tx.orgInvite.findFirst({
+    // Without a chosen invite, join only when there is exactly one to choose:
+    // with several, the link they clicked can't say which, so they pick.
+    const found = await tx.orgInvite.findMany({
       where: { email, acceptedAt: null, revokedAt: null, expiresAt: { gt: now }, ...(opts.inviteId ? { id: opts.inviteId } : {}) },
-      orderBy: { createdAt: "desc" },
+      take: 2,
     });
-    if (!inv) return false;
+    if (found.length !== 1) return false;
+    const inv = found[0];
     await lockOrg(tx, inv.orgId);
     const { count } = await tx.orgInvite.updateMany({ where: { id: inv.id, acceptedAt: null, revokedAt: null }, data: { acceptedAt: now, acceptedById: user.id } });
     if (!count) return false;

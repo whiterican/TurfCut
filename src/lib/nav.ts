@@ -28,14 +28,12 @@ export const MESSAGES_HREF = "/messages";
 type OrgItem = NavTab & { area: Area; id: OrgNavId };
 type OrgNavId = "desk" | "hiring" | "jobs" | "field" | "messages" | "pay" | "members" | "settings";
 
-/**
- * Every organization area, in rail order, tied to the access-map area its
- * route checks. Hiring and Field join when their pages land (C1.3/C1.4):
- * a tab never points at a route that doesn't exist yet.
- */
+/** Every organization area, in rail order, tied to the access-map area its route checks. */
 export const ORG_TABS: OrgItem[] = [
   { id: "desk", href: "/desk", label: "Desk", icon: "desk", area: "desk" },
+  { id: "hiring", href: "/hiring", label: "Hiring", icon: "hiring", area: "hiring" },
   { id: "jobs", href: "/jobs", label: "Jobs", icon: "jobs", area: "jobs" },
+  { id: "field", href: "/field", label: "Field", icon: "field", area: "field" },
   { id: "messages", href: MESSAGES_HREF, label: "Messages", icon: "messages", area: "messages" },
   { id: "pay", href: "/pay", label: "Pay", icon: "pay", area: "pay" },
   { id: "members", href: "/org/settings/members", label: "Members", icon: "members", area: "orgMembers" },
@@ -44,8 +42,8 @@ export const ORG_TABS: OrgItem[] = [
 
 /**
  * The phone bar's tabs per role, in order (C1 plan). Anything else the role
- * can reach goes under More. Picks whose page doesn't exist yet are skipped
- * and the bar fills from the rail order, so it never looks half-empty.
+ * can reach goes under More. A pick the role can't reach is skipped and the
+ * bar fills from the rail order.
  */
 export const PHONE_PICKS: Record<Exclude<Role, "WORKER">, OrgNavId[]> = {
   OWNER: ["desk", "hiring", "field", "messages"],

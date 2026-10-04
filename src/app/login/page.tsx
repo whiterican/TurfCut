@@ -17,6 +17,11 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
           That sign-in link has expired or was already used. Request a new one below.
         </p>
       )}
+      {error === "config" && (
+        <p role="alert" className="alert-warning mb-4">
+          Sign-in isn&apos;t set up on this server yet, so your link wasn&apos;t used. Try it again once the site is ready.
+        </p>
+      )}
       <LoginForm next={safeNext(next)} />
     </main>
   );

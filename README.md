@@ -126,26 +126,41 @@ exercise the locks, triggers and data rules, not the RLS policies.
    2. **Bring the live database up to date first** (the upgrade notes below,
       or the catch-up file from the latest handover). Pages that read new
       tables fail until it's done.
-   3. **Settings → Environment Variables**, ticked for **Production** (and
-      Preview, if you'll test previews): `NEXT_PUBLIC_SUPABASE_URL`,
-      `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`,
-      `DATABASE_URL` (the transaction pooler, port 6543; see **Deploying to
-      Vercel**), `SITE_URL` (the public address, e.g. `https://turf-cut.vercel.app`)
-      and `CLIENT_IP_HEADER=x-vercel-forwarded-for`. The app reads
-      `DATABASE_URL` only: if Supabase's Vercel integration added a
-      `POSTGRES_PRISMA_URL`, copy its value into `DATABASE_URL`.
+   3. **Settings → Environment Variables**, ticked for **Production**:
+      `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
+      `SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL` (the transaction pooler,
+      port 6543; see **Deploying to Vercel**), `SITE_URL` (the public
+      address, e.g. `https://turf-cut.vercel.app`) and
+      `CLIENT_IP_HEADER=x-vercel-forwarded-for`. Tick Preview too for all but
+      `SITE_URL` if you'll test previews (each preview needs its own, item 5).
+      The app reads exactly these names. Supabase's Vercel integration adds
+      differently named ones (`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`,
+      `SUPABASE_SECRET_KEY`, `POSTGRES_PRISMA_URL`), so add the app's names
+      as well: the **anon** and **service_role** keys from Supabase → Project
+      Settings → API Keys → Legacy API keys, and `DATABASE_URL` from Connect →
+      Transaction pooler (or a copy of `POSTGRES_PRISMA_URL` once you've
+      checked it's port 6543; a copy doesn't follow later password changes).
    4. **Redeploy after any settings change** (Deployments → ⋯ → Redeploy).
       Settings only reach new deployments, and the `NEXT_PUBLIC_` ones are
       baked in when the site is built.
-   5. **Use the project's public domain.** Other addresses (per-deployment
-      URLs, and `<project>-<team>.vercel.app` on accounts with Deployment
-      Protection) sit behind Vercel's own login, so field phones can't open them.
+   5. **Use the project's public domain.** With Deployment Protection on
+      (the default for new projects), every other address, per-deployment URLs
+      and `<project>-<team>.vercel.app` included, sits behind Vercel's own
+      login, so field phones can't open them.
    6. **Supabase → Authentication → URL Configuration:** Site URL = `SITE_URL`,
       and add `<SITE_URL>/auth/confirm` to Redirect URLs. Set the email
       templates as in item 5 above.
-   7. **Check it:** open `/login` and sign in. If a core setting is missing,
-      sign-in and sign-up name it ("Sign-in isn't configured on this server
-      yet (DATABASE_URL).") and Vercel → Logs shows the same line.
+   7. **Check it:** open `/login` and sign in.
+      - A missing setting is named on the page ("Sign-in isn't configured on
+        this server yet (DATABASE_URL).") and in Vercel → Logs
+        (`[turfcut] sign-in refused: not configured (DATABASE_URL)`). Member
+        invites do the same for `SUPABASE_SERVICE_ROLE_KEY` and `SITE_URL`.
+      - "Sign-in is briefly unavailable" with every setting present means the
+        database isn't up to date (step 2); Logs show
+        `[turfcut] rate limiter error`.
+      - Signing in seems to work but lands back on the login page: the
+        database address or password in `DATABASE_URL` is wrong; Logs show
+        the database error.
 
 **Already set up under M0?** Upgrade the live database for M1 by pasting,
 in order, `prisma/m1-migration.sql`, `prisma/m1-profile-migration.sql`, then
@@ -198,8 +213,10 @@ refuses edits and deletes of work events, shift reviews and the audit log,
 as it already does for messages and pay (safe to re-run).
 
 Until steps 1–4 are done, `npm run dev` boots fine and the login/signup pages
-render, but sign-in and sign-up say which setting is missing (and create
-nothing) instead of going ahead.
+render. While the Supabase URL and key or `DATABASE_URL` are unset, sign-in
+and sign-up say which is missing and create nothing. Once they're set but
+before step 4 has run, sign-in reads "briefly unavailable": the database has
+no tables yet.
 
 ## Project layout
 

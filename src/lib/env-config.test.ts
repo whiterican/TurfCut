@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { CORE_SETTINGS, missingCoreSettings, notConfiguredMessage } from "./env";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { CORE_SETTINGS, missingCoreSettings, missingInviteSettings, notConfiguredMessage } from "./env";
 
 const ALL = Object.fromEntries(CORE_SETTINGS.map((k) => [k, `value-of-${k}`]));
 
@@ -22,5 +22,35 @@ describe("core settings for sign-in and sign-up", () => {
     expect(notConfiguredMessage("Sign-up", ["NEXT_PUBLIC_SUPABASE_URL", "DATABASE_URL"])).toBe(
       "Sign-up isn't configured on this server yet (NEXT_PUBLIC_SUPABASE_URL, DATABASE_URL).",
     );
+  });
+});
+
+describe("core settings read from the environment by default", () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it("sees what the server was given", () => {
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://example.supabase.co");
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "anon-key");
+    vi.stubEnv("DATABASE_URL", "");
+    expect(missingCoreSettings()).toEqual(["DATABASE_URL"]);
+  });
+});
+
+describe("invite settings", () => {
+  const KEY = "service-role-key";
+
+  it("needs the service key everywhere", () => {
+    expect(missingInviteSettings({ NODE_ENV: "development" })).toEqual(["SUPABASE_SERVICE_ROLE_KEY"]);
+    expect(missingInviteSettings({ SUPABASE_SERVICE_ROLE_KEY: KEY, NODE_ENV: "development" })).toEqual([]);
+  });
+
+  it("needs a usable SITE_URL in production only, as the invite link does", () => {
+    expect(missingInviteSettings({ SUPABASE_SERVICE_ROLE_KEY: KEY, NODE_ENV: "production" })).toEqual(["SITE_URL"]);
+    expect(missingInviteSettings({ SUPABASE_SERVICE_ROLE_KEY: KEY, SITE_URL: "turf-cut.vercel.app", NODE_ENV: "production" })).toEqual(["SITE_URL"]);
+    expect(missingInviteSettings({ SUPABASE_SERVICE_ROLE_KEY: KEY, SITE_URL: "https://turf-cut.vercel.app", NODE_ENV: "production" })).toEqual([]);
+  });
+
+  it("names both when both are missing", () => {
+    expect(missingInviteSettings({ NODE_ENV: "production" })).toEqual(["SUPABASE_SERVICE_ROLE_KEY", "SITE_URL"]);
   });
 });

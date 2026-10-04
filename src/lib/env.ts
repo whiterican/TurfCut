@@ -117,8 +117,46 @@ export function hasStripeConfig(): boolean {
  */
 export const CORE_SETTINGS = ["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY", "DATABASE_URL"] as const;
 
-export function missingCoreSettings(env: Record<string, string | undefined> = process.env): string[] {
+// Fixed references, like the getters above: Next builds NEXT_PUBLIC_ values
+// into server code too, so on a host that passes them only at build time the
+// check must see the same values the getters do.
+const coreEnv = (): Record<string, string | undefined> => ({
+  NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+  DATABASE_URL: process.env.DATABASE_URL,
+});
+
+export function missingCoreSettings(env: Record<string, string | undefined> = coreEnv()): string[] {
   return CORE_SETTINGS.filter((name) => !env[name]?.trim());
+}
+
+/**
+ * What sending a member invite needs on top of the core settings: the
+ * service key (the invite email is sent server-side) and, in production, a
+ * valid SITE_URL for the link (development falls back to the request's host,
+ * as siteOrigin does).
+ */
+export function missingInviteSettings(
+  env: Record<string, string | undefined> = {
+    SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
+    SITE_URL: process.env.SITE_URL,
+    NODE_ENV: process.env.NODE_ENV,
+  }
+): string[] {
+  const out: string[] = [];
+  if (!env.SUPABASE_SERVICE_ROLE_KEY?.trim()) out.push("SUPABASE_SERVICE_ROLE_KEY");
+  if (env.NODE_ENV === "production" && !isOrigin(env.SITE_URL)) out.push("SITE_URL");
+  return out;
+}
+
+function isOrigin(v: string | undefined): boolean {
+  if (!v?.trim()) return false;
+  try {
+    new URL(v);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /** "Sign-in isn't configured on this server yet (DATABASE_URL)." */

@@ -35,6 +35,10 @@ describe("logIn when the server isn't fully configured", () => {
     expect(r).toEqual({ ok: false, message: "Sign-in isn't configured on this server yet (DATABASE_URL).", email: "caden@example.com" });
     expect(m.check).not.toHaveBeenCalled();
     expect(m.createClient).not.toHaveBeenCalled();
+    // The log names the setting, never a value.
+    const logged = vi.mocked(console.error).mock.calls.flat().join(" ");
+    expect(logged).toContain("DATABASE_URL");
+    expect(logged).not.toMatch(/anon-key|example\.supabase\.co/);
   });
 
   it("does the same for sign-in links", async () => {

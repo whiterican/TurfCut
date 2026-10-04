@@ -594,6 +594,9 @@ body {
   .data-table tbody th {
     @apply min-w-44 font-semibold;
   }
+  .data-table-compact tbody th {
+    @apply min-w-32 sm:min-w-44;
+  }
   .data-table tbody tr:last-child > * {
     @apply border-b-0;
   }

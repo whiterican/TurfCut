@@ -28,7 +28,8 @@ export function DataTable({
   return (
     // Focusable and named, so keyboard users can scroll it even with no links inside.
     <div className="data-table-wrap" tabIndex={0} role="region" aria-label={caption}>
-      <table className="data-table">
+      {/* Three columns or fewer can fit a phone if the row label gives a little. */}
+      <table className={columns.length <= 3 ? "data-table data-table-compact" : "data-table"}>
         <caption className="sr-only">{caption}</caption>
         <thead>
           <tr>

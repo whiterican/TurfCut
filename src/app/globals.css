@@ -219,6 +219,10 @@ body {
   .hero-card[data-priority="3"] {
     box-shadow: 0 0 0 2px var(--ring-2), 0 0 0 4px var(--ring-3), var(--shadow);
   }
+  /* Keyboard focus sits clear of the rings, so it never blends into them. */
+  .hero-card[data-priority]:focus-visible {
+    outline-offset: 7px;
+  }
   .hero-card.hero-card-lime::after {
     background: color-mix(in srgb, white 35%, var(--lime));
   }

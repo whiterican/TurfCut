@@ -131,12 +131,22 @@ describe("priority rings", () => {
   it("in light mode the innermost ring stands out from the lime card (≥ 3:1)", () => {
     expect(ratio(light.ring, light.lime)).toBeGreaterThanOrEqual(3);
   });
-  it("in dark mode the innermost ring is a different hue family from the card (green on eggplant)", () => {
-    const [r, g, b] = rgb(dark.ring);
-    const [cr, , cb] = rgb(dark.lime);
-    expect(g).toBeGreaterThan(r);
-    expect(g).toBeGreaterThan(b);
-    expect(cb).toBeGreaterThan(cr - 20); // the card is lavender, not green
+  it("in dark mode the rings are green, set apart from the lavender card by hue", () => {
+    // Luminance contrast against the bright eggplant card is low by design
+    // (about 1.3:1); the hue difference carries it, so check the hues.
+    for (const k of ["ring", "ring-2", "ring-3"] as const) {
+      const [r, g, b] = rgb(dark[k]);
+      expect(g).toBeGreaterThan(r);
+      expect(g).toBeGreaterThan(b);
+    }
+    const [cr, cg, cb] = rgb(dark.lime);
+    expect(cb).toBeGreaterThan(cg);
+    expect(cr).toBeGreaterThan(cg);
+  });
+  it("a single ring (priority 1) stands out from the page (≥ 3:1)", () => {
+    for (const th of [light, dark]) {
+      for (const s of ["bg", "surface", "surface-2"] as const) expect(ratio(th.ring, th[s])).toBeGreaterThanOrEqual(3);
+    }
   });
   it("each ring is darker than the one inside it", () => {
     for (const th of [light, dark]) {

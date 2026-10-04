@@ -22,10 +22,49 @@ export function getSupabaseServiceRoleKey(): string {
   return v;
 }
 
+/**
+ * The app's runtime connection: DATABASE_URL, which on Vercel must be the
+ * Supabase pooler (transaction mode, port 6543). Migrations and the
+ * Prisma CLI use DIRECT_URL (port 5432) instead; see prisma/schema.prisma
+ * and the README's deployment notes.
+ */
 export function getDatabaseUrl(): string {
   const v = process.env.DATABASE_URL;
   if (!v) throw missing("DATABASE_URL");
-  return v;
+  const { url, warning } = runtimeDatabaseUrl(v, !!process.env.VERCEL);
+  if (warning && !warned) {
+    warned = true;
+    console.warn(`[turfcut] ${warning}`);
+  }
+  return url;
+}
+let warned = false;
+
+/**
+ * Prepares the runtime URL. Serverless instances each open their own
+ * connections, so production must go through Supabase's pooler; a direct
+ * connection (5432) on Vercel is warned about, since it exhausts
+ * max_connections under load. On the pooler's transaction mode Prisma needs
+ * pgbouncer=true (no prepared statements), and one connection per instance
+ * is plenty: both are added when the URL doesn't say otherwise. Pure.
+ */
+export function runtimeDatabaseUrl(raw: string, serverless: boolean): { url: string; warning: string | null } {
+  let u: URL;
+  try {
+    u = new URL(raw);
+  } catch {
+    return { url: raw, warning: null }; // leave anything unusual to Prisma's own error
+  }
+  const pooled = u.port === "6543";
+  if (pooled) {
+    if (!u.searchParams.has("pgbouncer")) u.searchParams.set("pgbouncer", "true");
+    if (!u.searchParams.has("connection_limit")) u.searchParams.set("connection_limit", "1");
+  }
+  const warning =
+    serverless && !pooled
+      ? "DATABASE_URL is not the Supabase pooler (port 6543). Serverless instances each open connections and will exhaust max_connections; use the pooler URL at runtime and DIRECT_URL for migrations."
+      : null;
+  return { url: pooled ? u.toString() : raw, warning };
 }
 
 /**

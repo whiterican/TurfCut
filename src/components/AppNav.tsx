@@ -57,7 +57,7 @@ export function TopNav({ tabs }: { tabs: NavTab[] }) {
   );
 }
 
-/** Phone and tablet: fixed bottom tab bar; a dot marks the current tab. */
+/** Phone and tablet: fixed bottom tab bar; a tinted icon marks the current tab. */
 export function TabBar({ tabs }: { tabs: NavTab[] }) {
   const current = activeTab(tabs, usePathname());
   const count = useUnreadCount();

@@ -1,16 +1,17 @@
 @import "tailwindcss";
 
 /*
- * Turfcut design system — from the Turfcut screen mockups.
+ * Turfcut design system — the "Turfcut App Mockup" palette: eggplant and lime.
  *
- * Light (daytime): cream surfaces, gold fills (the next-shift card, chips,
- * your chat bubbles, the hero card's pale gold) and eggplant for every trim:
- * text, outlines, rings and links. Dark: deep eggplant surfaces with a
- * lilac accent. Pastel status badges (sky, coral, butter, and the accent)
- * carry the dark "ink" colour; solid plum badges carry --on-plum text.
- * Priority rings are eggplant in light mode and cream to lavender in dark
- * mode. There is no green anywhere in Turfcut: design-tokens.test.ts fails on
- * any green colour, and Tailwind's green palettes are switched off below.
+ * Dark (the primary theme): eggplant surfaces (#1c142c page, #281a3a cards,
+ * #36264a raised), off-white text, lime (#ccea96) for the accent fill,
+ * primary actions, links and highlights, and olive (#3e4830) chips with lime
+ * text for "verified / done". Light: off-white page (#eef0ea), white cards,
+ * green-black ink (#181e1a), lime accent fills, eggplant for links, the
+ * "done" badges and progress, and a green-black feature card. Pastel status
+ * badges (sky, coral, butter, and the accent) carry the dark "ink" colour;
+ * solid plum badges carry --on-plum text. Priority rings are eggplant around
+ * the lime card by day and lime by night (with a page-coloured gap).
  *
  * The theme is a `.dark` class on <html>, set before first paint by the
  * inline script in app/layout.tsx (saved choice, else the OS preference).
@@ -20,80 +21,78 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  /* The accent fill: gold by day, lilac by night (see .dark). */
-  --accent: #e0c47a;
-  --plum: #4a3070; /* solid "done / live" badges, with --on-plum text */
-  --on-plum: #fbfaf1;
+  /* The accent fill: lime in both themes. */
+  --accent: #ccea96;
+  --plum: #281a3a; /* solid "done / live" badges, with --on-plum text */
+  --on-plum: #f6f6f2;
   --sky: #b9dbfa;
   --coral: #f8b3a2;
   --butter: #f5d98a;
-  --ink: #281840; /* text on any accent fill: the logo's eggplant */
+  --ink: #181e1a; /* text on any accent fill */
 
-  /* Light mode: cream and eggplant, from the brand marks. */
-  --bg: #f4f2e4;
-  --surface: #fbfaf1;
-  --surface-2: #ecead9;
-  --field: #fffef8;
-  --border: #e0ddc9;
-  --border-strong: #bdb8a0;
-  --fg: #281840;
-  --muted: #3f3257;
-  --subtle: #52466a;
+  /* Light mode: off-white page, white cards, green-black ink, eggplant links. */
+  --bg: #eef0ea;
+  --surface: #fbfbf8;
+  --surface-2: #e4e7df;
+  --field: #ffffff;
+  --border: #d9ddd3;
+  --border-strong: #b7bdb2;
+  --fg: #181e1a;
+  --muted: #3f463f;
+  --subtle: #474f47;
   --link: #5a3a8a;
   --focus: #5a3a8a;
   --danger: #b42318;
-  --success: #4a3070;
-  --warning: #5e3424; /* dark clay, not gold (gold stays a fill); darker than --danger so the two differ by more than hue */
-  --primary: #281840;
-  --on-primary: #fbfaf1;
-  /* Hero card by day: pale gold with an eggplant trim. */
-  --hero: #f2e6c4;
-  --hero-fg: #281840;
-  --hero-muted: #4a3d5c;
-  --hero-border: #4a3070;
-  --shadow: 0 1px 2px rgb(40 24 64 / 0.05), 0 10px 28px -16px rgb(40 24 64 / 0.2);
-  /* Priority rings on the gold shift card: eggplant, lighter inside,
+  --success: #3a2754;
+  --warning: #5e3424; /* dark clay: differs from --danger in brightness, not just hue */
+  --primary: #181e1a;
+  --on-primary: #f6f6f2;
+  /* Feature card: green-black with off-white text and a lime circle. */
+  --hero: #1e2820;
+  --hero-fg: #f6f6f2;
+  --hero-muted: #c9d2cb;
+  --hero-border: transparent;
+  --shadow: 0 1px 2px rgb(24 30 26 / 0.05), 0 10px 28px -16px rgb(24 30 26 / 0.18);
+  /* Priority rings on the lime shift card: eggplant, lighter inside,
      darker toward the outside edge. */
   --ring: #6a4c91;
   --ring-2: #4a3070;
-  --ring-3: #281840;
+  --ring-3: #281a3a;
   color-scheme: light;
 }
 
 .dark {
-  /* Dark mode is eggplant through and through: low-saturation purple
-     neutrals (hue ~275°) one step lighter than pitch, a brighter eggplant
-     (lilac) for the accent, and cream to lavender rims only on priority
-     rings and the current tab. */
-  --accent: #dcd1ea;
-  --bg: #1b1523;
-  --surface: #241c2e;
-  --surface-2: #2e2539;
-  --field: #1f1828;
-  --border: #3f3450;
-  --border-strong: #57496a;
-  --fg: #f4f0f7;
-  --muted: #d9d2de;
-  --subtle: #bfb6c7;
-  --plum: #5a4678;
-  --on-plum: #f4f0f7;
-  --ink: #1f1727;
-  --link: #dcd1ea;
-  --focus: #dcd1ea;
+  /* Dark mode: eggplant surfaces, lime accent, olive "verified" chips, lime
+     rims on priority rings and the current tab. */
+  --accent: #ccea96;
+  --bg: #1c142c;
+  --surface: #281a3a;
+  --surface-2: #36264a;
+  --field: #22172f;
+  --border: #4e3c64;
+  --border-strong: #6a5482;
+  --fg: #f8f8f4;
+  --muted: #d4ccde;
+  --subtle: #b9b0c4;
+  --plum: #3e4830; /* olive chip with lime text, as on "Verified org" */
+  --on-plum: #ccea96;
+  --ink: #1e142c;
+  --link: #ccea96;
+  --focus: #ccea96;
   --danger: #ffb4b4;
-  --success: #dcd1ea;
+  --success: #ccea96;
   --warning: #f5d98a;
-  --primary: #dcd1ea;
-  --on-primary: #1f1727;
-  --hero: #382c47;
-  --hero-fg: #f6f2f9;
-  --hero-muted: #d0c7d7;
+  --primary: #ccea96;
+  --on-primary: #1e142c;
+  --hero: #36264a;
+  --hero-fg: #f8f8f4;
+  --hero-muted: #d4ccde;
   --hero-border: transparent;
-  /* Rings: rims only, never fills or text. In dark mode a page-coloured gap
-     separates them from the lilac card (see the priority ring rules). */
-  --ring: #f6f4e2;
-  --ring-2: #b9a6d6;
-  --ring-3: #8a74ae;
+  /* Rings: rims only, never fills or text. A page-coloured gap separates
+     them from the lime card (see the priority ring rules). */
+  --ring: #eef6dc;
+  --ring-2: #b8d08a;
+  --ring-3: #8aa560;
   --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 12px 32px -16px rgb(0 0 0 / 0.6);
   color-scheme: dark;
 }
@@ -108,11 +107,6 @@
   --color-subtle: var(--subtle);
   --color-ink: var(--ink);
   --color-accent: var(--accent);
-  /* No green: Tailwind's green palettes are switched off. */
-  --color-green-*: initial;
-  --color-emerald-*: initial;
-  --color-teal-*: initial;
-  --color-lime-*: initial;
   --color-plum: var(--plum);
   --color-on-plum: var(--on-plum);
   --color-sky: var(--sky);
@@ -197,7 +191,7 @@ body {
     @apply rounded-2xl border border-border bg-surface p-4 sm:p-5;
     box-shadow: var(--shadow);
   }
-  /* The feature card (pale gold by day, eggplant by night) with an accent circle in the corner. */
+  /* The feature card (green-black by day, raised eggplant by night) with a lime circle in the corner. */
   .hero-card {
     @apply relative overflow-hidden rounded-3xl p-5 sm:p-6;
     background: var(--hero);
@@ -217,8 +211,8 @@ body {
   }
   /* Priority rings (lib/priority): one narrow ring per level, each
      further out a darker shade. By day the innermost is the card's own
-     border (eggplant on gold reads at 4:1). By night a page-coloured gap
-     comes first, because cream on the lilac card would not show. */
+     border (eggplant on lime reads at 5:1). By night a page-coloured gap
+     comes first, so the pale inner ring stands clear of the lime card. */
   .hero-card[data-priority="1"],
   .hero-card[data-priority="2"],
   .hero-card[data-priority="3"] {
@@ -587,11 +581,15 @@ body {
     background: var(--hero);
     color: var(--hero-fg);
   }
-  /* By day: gold fill, eggplant trim, so team chats stand out from people. */
+  /* By day: lime fill, so team chats stand out from people. */
   :root:not(.dark) .avatar-team {
     background: var(--accent);
     color: var(--ink);
-    border-color: var(--hero-border);
+  }
+  /* By night: the olive "verified" chip colours, distinct from people's eggplant avatars. */
+  .dark .avatar-team {
+    background: var(--plum);
+    color: var(--on-plum);
   }
   .bubble {
     @apply max-w-full rounded-2xl px-3.5 py-2 text-[0.9375rem] leading-relaxed break-words whitespace-pre-wrap;
@@ -669,6 +667,20 @@ body {
   }
   :root:not(.dark) .shift-banner {
     background: color-mix(in srgb, var(--accent) 50%, var(--surface));
+    border: 1px solid var(--border-strong);
+  }
+  /* By day lime is close to the off-white page, so lime shapes get a quiet
+     outline to read as shapes (text on them is already AAA). */
+  :root:not(.dark) :is(.badge-accent, .filter-chip-accent) {
+    border-color: var(--border-strong);
+  }
+  :root:not(.dark) .bubble-mine {
+    box-shadow: inset 0 0 0 1px var(--border-strong);
+  }
+  /* Links inside a feature card take the card's own text colour (off-white on the
+     dark card, ink on the lime one), never the page link colour. */
+  .hero-card .link {
+    color: inherit;
   }
   /* Quick filters on Find work: outlined, solid pastel when on. */
   .filter-chip {
@@ -692,15 +704,6 @@ body {
     background: var(--plum);
     color: var(--on-plum);
     border-color: transparent;
-  }
-  /* By day gold accent chips and badges carry an eggplant trim, which also
-     keeps them apart from butter (status "waiting") at a glance. */
-  :root:not(.dark) :is(.badge-accent, .filter-chip-accent) {
-    border-color: var(--hero-border);
-  }
-  /* OpenStreetMap tiles paint parks and fields green; Turfcut shows its maps in greyscale. */
-  .leaflet-tile-pane {
-    filter: grayscale(1);
   }
   .quick-reply {
     @apply inline-flex min-h-9 shrink-0 items-center rounded-full border border-border bg-surface px-3 text-xs font-semibold text-fg transition;
@@ -833,15 +836,4 @@ summary.list-none::-webkit-details-marker {
   :is(.btn, .btn-primary, .btn-secondary, .btn-ghost, .quick-reply, .chip, .tab):active {
     transform: none;
   }
-}
-
-/* Header logo: the gold mark by day, the lilac mark by night. */
-.logo-night {
-  display: none;
-}
-.dark .logo-day {
-  display: none;
-}
-.dark .logo-night {
-  display: block;
 }

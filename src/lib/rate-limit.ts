@@ -139,8 +139,10 @@ let shared: RateStore | null = null;
 const store = () => (shared ??= postgresStore());
 
 /**
- * When the store fails: let the request through only if the database is
- * unreachable (or not configured), so an outage doesn't lock everyone out.
+ * When the store fails: let the request through only if the database can't
+ * be reached or connected to at all, so an outage doesn't lock everyone out.
+ * (A missing DATABASE_URL never gets here: sign-in and sign-up check their
+ * settings first and say what's missing; see missingCoreSettings.)
  * Anything else (a missing table, an error under load) makes the sign-in,
  * sign-up and invite limits answer "unavailable" rather than silently
  * switching them off; offline sync stays open, since refusing it loses

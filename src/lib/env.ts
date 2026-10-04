@@ -109,6 +109,23 @@ export function hasStripeConfig(): boolean {
   return Boolean(process.env.STRIPE_SECRET_KEY);
 }
 
+/**
+ * What sign-in and sign-up can't work without. They check these up front so a
+ * half-configured deployment names what's missing, instead of reading as an
+ * outage ("briefly unavailable") or creating logins the app can't finish
+ * setting up. Names only, never values.
+ */
+export const CORE_SETTINGS = ["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY", "DATABASE_URL"] as const;
+
+export function missingCoreSettings(env: Record<string, string | undefined> = process.env): string[] {
+  return CORE_SETTINGS.filter((name) => !env[name]?.trim());
+}
+
+/** "Sign-in isn't configured on this server yet (DATABASE_URL)." */
+export function notConfiguredMessage(what: string, missingNames: readonly string[]): string {
+  return `${what} isn't configured on this server yet (${missingNames.join(", ")}).`;
+}
+
 /** True when the browser-safe Supabase config is present. */
 export function hasSupabaseConfig(): boolean {
   return Boolean(

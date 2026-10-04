@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { EMAIL_RE, safeNext } from "@/lib/auth-input";
 import { siteOrigin } from "@/lib/site-origin";
 import { db } from "@/lib/db";
+import { missingCoreSettings, notConfiguredMessage } from "@/lib/env";
 
 export interface LoginState {
   ok: boolean;
@@ -24,6 +25,11 @@ export async function logIn(_prev: LoginState, fd: FormData): Promise<LoginState
   const intent = fd.get("intent") === "link" ? "link" : "password";
   const next = safeNext(fd.get("next"));
   if (!EMAIL_RE.test(email)) return { ok: false, message: "Enter a valid email address.", email };
+  const unset = missingCoreSettings();
+  if (unset.length) {
+    console.error(`[turfcut] sign-in refused: not configured (${unset.join(", ")})`);
+    return { ok: false, message: notConfiguredMessage("Sign-in", unset), email };
+  }
   // Per connection (when the host tells us one) and, for passwords, per address from anywhere.
   const who = clientKey(await headers());
   const bucket = intent === "link" ? "link" : "login";

@@ -75,15 +75,22 @@ export function runtimeDatabaseUrl(raw: string, serverless: boolean): { url: str
  * Returns null when unset in production.
  */
 export function getSiteUrl(): string | null {
-  const v = process.env.SITE_URL;
-  if (v) {
-    try {
-      return new URL(v).origin;
-    } catch {
-      return null;
-    }
+  return siteOriginOf(process.env.SITE_URL);
+}
+
+/**
+ * The http(s) origin of a SITE_URL value, or null. Anything else counts as
+ * unset: "localhost:3000" parses as a URL whose origin is "null", which would
+ * otherwise build links like "null/auth/confirm".
+ */
+export function siteOriginOf(v: string | undefined): string | null {
+  if (!v?.trim()) return null;
+  try {
+    const u = new URL(v.trim());
+    return u.protocol === "https:" || u.protocol === "http:" ? u.origin : null;
+  } catch {
+    return null;
   }
-  return null;
 }
 
 /** Stripe secret key (M5 payouts). Server only. */
@@ -107,6 +114,51 @@ export function getStripeWebhookSecrets(): string[] {
 /** True when payouts can reach Stripe. Without it, pay is tracked but not sent. */
 export function hasStripeConfig(): boolean {
   return Boolean(process.env.STRIPE_SECRET_KEY);
+}
+
+/**
+ * What sign-in and sign-up can't work without. They check these up front so a
+ * half-configured deployment names what's missing, instead of reading as an
+ * outage ("briefly unavailable") or creating logins the app can't finish
+ * setting up. Names only, never values.
+ */
+export const CORE_SETTINGS = ["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY", "DATABASE_URL"] as const;
+
+// Fixed references, like the getters above: Next builds NEXT_PUBLIC_ values
+// into server code too, so on a host that passes them only at build time the
+// check must see the same values the getters do.
+const coreEnv = (): Record<string, string | undefined> => ({
+  NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+  DATABASE_URL: process.env.DATABASE_URL,
+});
+
+export function missingCoreSettings(env: Record<string, string | undefined> = coreEnv()): string[] {
+  return CORE_SETTINGS.filter((name) => !env[name]?.trim());
+}
+
+/**
+ * What sending a member invite needs on top of the core settings: the
+ * service key (the invite email is sent server-side) and, in production, a
+ * valid SITE_URL for the link (development falls back to the request's host,
+ * as siteOrigin does).
+ */
+export function missingInviteSettings(
+  env: Record<string, string | undefined> = {
+    SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
+    SITE_URL: process.env.SITE_URL,
+    NODE_ENV: process.env.NODE_ENV,
+  }
+): string[] {
+  const out: string[] = [];
+  if (!env.SUPABASE_SERVICE_ROLE_KEY?.trim()) out.push("SUPABASE_SERVICE_ROLE_KEY");
+  if (env.NODE_ENV === "production" && !siteOriginOf(env.SITE_URL)) out.push("SITE_URL");
+  return out;
+}
+
+/** "Sign-in isn't configured on this server yet (DATABASE_URL)." */
+export function notConfiguredMessage(what: string, missingNames: readonly string[]): string {
+  return `${what} isn't configured on this server yet (${missingNames.join(", ")}).`;
 }
 
 /** True when the browser-safe Supabase config is present. */

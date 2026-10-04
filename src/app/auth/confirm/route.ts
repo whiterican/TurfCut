@@ -4,6 +4,7 @@ import type { EmailOtpType } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { safeNext } from "@/lib/auth-input";
 import { ensureAccount } from "@/lib/account";
+import { missingCoreSettings } from "@/lib/env";
 
 /**
  * GET /auth/confirm — where a magic link lands. Handles both link styles
@@ -12,6 +13,15 @@ import { ensureAccount } from "@/lib/account";
  * continues to `next` (same-site paths only).
  */
 export async function GET(req: NextRequest) {
+  // A server missing its settings mustn't blame the link ("expired or already
+  // used"): say the server isn't set up. Nothing here exchanges the link, so
+  // a token_hash link still works later; the default style's token was
+  // already spent at Supabase, so the page offers password or a new link.
+  const unset = missingCoreSettings();
+  if (unset.length) {
+    console.error(`[turfcut] sign-in link not used: not configured (${unset.join(", ")})`);
+    redirect("/login?error=config");
+  }
   const p = req.nextUrl.searchParams;
   const next = safeNext(p.get("next"));
   let ok = false;

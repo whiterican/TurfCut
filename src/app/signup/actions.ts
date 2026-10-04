@@ -8,6 +8,7 @@ import { formToObject } from "@/lib/jobs";
 import { ensureAccount, SIGNUP_METADATA_KEY } from "@/lib/account";
 import { check, clientKey, retryAfter, waitText } from "@/lib/rate-limit";
 import { siteOrigin } from "@/lib/site-origin";
+import { missingCoreSettings, notConfiguredMessage } from "@/lib/env";
 
 export interface SignupState {
   message: string;
@@ -28,6 +29,13 @@ export async function signUp(_prev: SignupState, fd: FormData): Promise<SignupSt
   const v = validateSignup(raw);
   if (!v.ok) return { message: "Fix the highlighted fields.", errors: v.errors, values };
   const { accountType, name, email, password, phone } = v.value;
+  // Before any login exists: without the database, a confirmed address
+  // would have no Turfcut account to land in.
+  const unset = missingCoreSettings();
+  if (unset.length) {
+    console.error(`[turfcut] sign-up refused: not configured (${unset.join(", ")})`);
+    return { message: notConfiguredMessage("Sign-up", unset), errors: {}, values };
+  }
   const who = clientKey(await headers());
   const verdict = who ? await check("signup", who) : "ok";
   if (verdict === "unavailable") return { message: "Sign-up is briefly unavailable. Try again in a minute.", errors: {}, values };

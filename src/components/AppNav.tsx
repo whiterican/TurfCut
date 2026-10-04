@@ -133,12 +133,27 @@ export function OrgTabBar({ tabs, more }: { tabs: NavTab[]; more: NavTab[] }) {
     setOpenedAt(pathname);
     if (open) setOpen(false);
   }
-  // Keep the dialog in step with state.
+  // Nothing left to show (e.g. the role changed): the sheet can't stay open.
+  if (open && more.length === 0) setOpen(false);
+  // Keep the dialog in step with state; focus the first item on opening.
   useEffect(() => {
     const d = sheet.current;
     if (!d) return;
-    if (open && !d.open) d.showModal();
+    if (open && !d.open) {
+      d.showModal();
+      d.querySelector<HTMLElement>("a")?.focus();
+    }
     if (!open && d.open) d.close();
+  }, [open]);
+  // The sheet is phone-only: widening past the phone layout closes it, or
+  // the page would stay inert behind a hidden modal.
+  useEffect(() => {
+    if (!open) return;
+    const wide = window.matchMedia("(min-width: 64rem)");
+    const onChange = () => wide.matches && setOpen(false);
+    onChange();
+    wide.addEventListener("change", onChange);
+    return () => wide.removeEventListener("change", onChange);
   }, [open]);
 
   if (tabs.length === 0) return null;
@@ -169,10 +184,10 @@ export function OrgTabBar({ tabs, more }: { tabs: NavTab[]; more: NavTab[] }) {
               </button>
             </div>
             <ul className="space-y-0.5">
-              {more.map((t, i) => (
+              {more.map((t) => (
                 <li key={t.href}>
                   {/* Closes even when the link is the page you're on (no navigation happens). */}
-                  <Link href={t.href} className="rail-link" autoFocus={i === 0} onClick={close} aria-current={t.href === current ? "page" : undefined}>
+                  <Link href={t.href} className="rail-link" onClick={close} aria-current={t.href === current ? "page" : undefined}>
                     <Icon of={iconFor(t)} className="size-4 shrink-0" />
                     {t.label}
                   </Link>

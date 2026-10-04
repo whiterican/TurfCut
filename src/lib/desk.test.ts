@@ -30,11 +30,11 @@ describe("the Desk", () => {
     const now = d("2026-10-04T12:00:00Z");
     const jobs = [{ id: "j1", title: "Drive", headcount: 3 }, { id: "j2", title: "Canvass", headcount: 2 }, { id: "j3", title: "Open-ended", headcount: null }];
     const shifts = [
-      { jobId: "j1", workerId: "w1", startsAt: d("2026-10-05T15:00:00Z") },
-      { jobId: "j1", workerId: "w1", startsAt: d("2026-10-06T15:00:00Z") }, // same worker twice
-      { jobId: "j1", workerId: "w2", startsAt: d("2026-10-07T15:00:00Z") },
-      { jobId: "j1", workerId: "w3", startsAt: d("2026-10-12T15:00:00Z") }, // past the week
-      { jobId: "j2", workerId: "w4", startsAt: d("2026-10-03T15:00:00Z") }, // already past
+      { jobId: "j1", workerId: "w1", startsAt: d("2026-10-05T15:00:00Z"), endsAt: d("2026-10-05T19:00:00Z") },
+      { jobId: "j1", workerId: "w1", startsAt: d("2026-10-06T15:00:00Z"), endsAt: d("2026-10-06T19:00:00Z") }, // same worker twice
+      { jobId: "j1", workerId: "w2", startsAt: d("2026-10-04T10:00:00Z"), endsAt: d("2026-10-04T14:00:00Z") }, // under way now
+      { jobId: "j1", workerId: "w3", startsAt: d("2026-10-12T15:00:00Z"), endsAt: d("2026-10-12T19:00:00Z") }, // past the week
+      { jobId: "j2", workerId: "w4", startsAt: d("2026-10-03T15:00:00Z"), endsAt: d("2026-10-03T19:00:00Z") }, // already over
     ];
     expect(weekAhead(jobs, shifts, now)).toEqual([
       { jobId: "j2", title: "Canvass", headcount: 2, scheduled: 0, shifts: 0, gap: 2 },

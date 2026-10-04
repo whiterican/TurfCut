@@ -72,7 +72,7 @@ export default async function RootLayout({
         <UnreadProvider initial={unread} enabled={tabs.some((t) => t.href === MESSAGES_HREF)}>
         <header className="site-header border-b border-border bg-surface/80 backdrop-blur">
           <div className={`mx-auto flex w-full ${isOrg ? "max-w-6xl" : "max-w-5xl"} items-center justify-between gap-3 px-4 py-3 sm:px-6`}>
-            <Link href={session ? "/dashboard" : "/"} className="flex items-center gap-2 text-xl font-bold tracking-[-0.04em] text-fg">
+            <Link href={!session ? "/" : isOrg ? "/desk" : "/dashboard"} className="flex items-center gap-2 text-xl font-bold tracking-[-0.04em] text-fg">
               {/* The founder's pin-check-nib mark: lime on eggplant, the same in both
                   themes. The word is live text in the theme's ink. Static import +
                   unoptimized: served from /_next/static, saved offline by the service worker. */}

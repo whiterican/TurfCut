@@ -77,18 +77,15 @@ export default async function DeskPage() {
             initialSort={null}
             columns={[
               { key: "job", label: "Job", sortable: true },
-              { key: "headcount", label: "Headcount", numeric: true, sortable: true },
               { key: "scheduled", label: "Scheduled", numeric: true, sortable: true },
-              { key: "shifts", label: "Shifts", numeric: true, sortable: true },
               { key: "gap", label: "Unfilled", numeric: true, sortable: true },
             ]}
             rows={desk.week.map((r) => ({
               id: r.jobId,
               cells: {
                 job: { text: r.title, href: `/jobs/${r.jobId}` },
-                headcount: { text: r.headcount === null ? "—" : String(r.headcount), sort: r.headcount },
-                scheduled: { text: String(r.scheduled), sort: r.scheduled },
-                shifts: { text: String(r.shifts), sort: r.shifts },
+                // "1 of 10": three columns fit a phone without sideways scrolling.
+                scheduled: { text: r.headcount === null ? String(r.scheduled) : `${r.scheduled} of ${r.headcount}`, sort: r.scheduled },
                 gap: { text: r.gap === null ? "—" : String(r.gap), sort: r.gap },
               },
             }))}

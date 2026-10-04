@@ -2,7 +2,8 @@ import { db } from "@/lib/db";
 import type { Role } from "@/lib/auth";
 import { ACCEPTED_STATUSES } from "@/lib/engagements";
 import { loadOps } from "@/lib/field-day-data";
-import { loadOrgDisputes, loadOrgPay } from "@/lib/pay-data";
+import { countOpenDisputes, loadOrgPay } from "@/lib/pay-data";
+import { openJobsEndAfter } from "@/lib/jobs";
 import { money } from "@/lib/pay";
 import { applicationsByJob, deskParts, shortOfHeadcount, weekAhead, type DeskParts, type WeekRow } from "@/lib/desk";
 
@@ -33,27 +34,32 @@ export async function loadDesk(actor: { profileId: string; orgId: string; role: 
   const orgId = actor.orgId;
   const needsOps = parts.today || parts.field || parts.readOnly;
   const needsJobs = parts.hiring || parts.week || parts.readOnly;
+  // Live = published and not past its end (the same rule as the worker feed);
+  // ended jobs stay PUBLISHED until someone closes them, so filter here.
+  const live = { status: "PUBLISHED" as const, OR: [{ endsAt: null }, { endsAt: { gt: openJobsEndAfter(now) } }] };
+  const weekEnd = new Date(now.getTime() + 7 * 86_400_000);
 
   const [ops, jobs, apps, upcoming, pay, disputes] = await Promise.all([
     needsOps ? loadOps(orgId, now) : null,
     needsJobs
       ? db().job.findMany({
-          where: { orgId, status: "PUBLISHED" },
+          where: { orgId, ...live },
           select: { id: true, title: true, headcount: true, startsAt: true, endsAt: true, _count: { select: { engagements: { where: { status: { in: ACCEPTED_STATUSES } } } } } },
           orderBy: { startsAt: "asc" },
         })
       : null,
     parts.hiring
-      ? db().engagement.findMany({ where: { status: "APPLIED", job: { orgId } }, select: { jobId: true, createdAt: true, job: { select: { title: true } } } })
+      ? // Only jobs that can still accept: the job page refuses on paused, closed or ended ones.
+        db().engagement.findMany({ where: { status: "APPLIED", job: { orgId, ...live } }, select: { jobId: true, createdAt: true, job: { select: { title: true } } } })
       : null,
     parts.week
       ? db().shift.findMany({
-          where: { status: { not: "CANCELLED" }, startsAt: { gte: now, lt: new Date(now.getTime() + 7 * 86_400_000) }, engagement: { job: { orgId } } },
-          select: { startsAt: true, engagement: { select: { jobId: true, workerId: true } } },
+          where: { status: { not: "CANCELLED" }, endsAt: { gt: now }, startsAt: { lt: weekEnd }, engagement: { job: { orgId } } },
+          select: { startsAt: true, endsAt: true, engagement: { select: { jobId: true, workerId: true } } },
         })
       : null,
     parts.pay ? loadOrgPay(actor) : null,
-    parts.pay ? loadOrgDisputes(actor, true) : null,
+    parts.pay ? countOpenDisputes(actor) : null,
   ]);
 
   const needs: DeskItem[] = [];
@@ -69,20 +75,25 @@ export async function loadDesk(actor: { profileId: string; orgId: string; role: 
       needs.push({ key: `short-${j.id}`, title: `${j.short} of ${j.headcount} ${j.headcount === 1 ? "seat" : "seats"} open`, sub: j.title, tag: "Short", badge: "badge-neutral", href: `/jobs/${j.id}` });
     }
   }
-  if (parts.pay && pay && disputes) {
+  if (parts.pay && pay && disputes !== null) {
     if (pay.awaiting.length) {
       const cents = pay.awaiting.reduce((n, l) => n + l.line.amountCents, 0);
       needs.push({ key: "pay-approve", title: `${plural(pay.awaiting.length, "pay line")} to approve`, sub: `${money(cents)} in total`, tag: "Approve", badge: "badge-butter", href: "/payouts" });
     }
-    if (disputes.length) needs.push({ key: "pay-disputes", title: `${plural(disputes.length, "open dispute")}`, sub: "Workers questioning their pay", tag: "Dispute", badge: "badge-coral", href: "/payouts" });
+    if (disputes) needs.push({ key: "pay-disputes", title: `${plural(disputes, "open dispute")}`, sub: "Workers questioning their pay", tag: "Dispute", badge: "badge-coral", href: "/payouts" });
   }
 
   return {
     parts,
     needs,
     today: parts.today || parts.readOnly ? ops : null,
+    // The week ahead: live jobs that run during the next 7 days (undated ones too).
     week: parts.week && jobs && upcoming
-      ? weekAhead(jobs, upcoming.map((s) => ({ jobId: s.engagement.jobId, workerId: s.engagement.workerId, startsAt: s.startsAt })), now)
+      ? weekAhead(
+          jobs.filter((j) => !j.startsAt || j.startsAt < weekEnd),
+          upcoming.map((s) => ({ jobId: s.engagement.jobId, workerId: s.engagement.workerId, startsAt: s.startsAt, endsAt: s.endsAt })),
+          now,
+        )
       : null,
     live: parts.readOnly && jobs ? jobs.map((j) => ({ id: j.id, title: j.title, startsAt: j.startsAt, endsAt: j.endsAt })) : null,
   };

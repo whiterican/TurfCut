@@ -53,6 +53,7 @@ export interface WeekShift {
   jobId: string;
   workerId: string;
   startsAt: Date;
+  endsAt: Date;
 }
 
 export interface WeekRow {
@@ -73,7 +74,8 @@ export interface WeekRow {
  */
 export function weekAhead(jobs: Array<{ id: string; title: string; headcount: number | null }>, shifts: WeekShift[], now: Date, days = 7): WeekRow[] {
   const end = now.getTime() + days * 86_400_000;
-  const inWindow = shifts.filter((s) => s.startsAt.getTime() >= now.getTime() && s.startsAt.getTime() < end);
+  // A shift already under way still counts: its worker is scheduled this week.
+  const inWindow = shifts.filter((s) => s.endsAt.getTime() > now.getTime() && s.startsAt.getTime() < end);
   return jobs
     .map((j) => {
       const mine = inWindow.filter((s) => s.jobId === j.id);

@@ -48,7 +48,7 @@ export default async function Home() {
         <p className="eyebrow" id="example-title">Example scorecard · petition circulator</p>
         <dl className="space-y-3">
           {EXAMPLE.map((m) => (
-            <div key={m.label} className="flex items-baseline justify-between gap-4 border-t border-white/10 pt-3 first:border-0 first:pt-0">
+            <div key={m.label} className="flex items-baseline justify-between gap-4 border-t border-[color-mix(in_srgb,var(--hero-fg)_15%,transparent)] pt-3 first:border-0 first:pt-0">
               <dt className="min-w-0">
                 <span className="block text-sm font-semibold">{m.label}</span>
                 <span className="hero-muted block text-xs">{m.math}</span>

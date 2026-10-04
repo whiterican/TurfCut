@@ -15,8 +15,9 @@ export default function manifest(): MetadataRoute.Manifest {
     icons: [
       { src: "/brand/icons/icon-192.png", sizes: "192x192", type: "image/png" },
       { src: "/brand/icons/icon-512.png", sizes: "512x512", type: "image/png" },
-      // The glyph sits inside the maskable safe zone, so Android can crop it to any shape.
-      { src: "/brand/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+      // A copy with the glyph scaled into the maskable safe zone (radius 0.4 of the width),
+      // so Android can crop it to any shape without clipping the pen tip.
+      { src: "/brand/icons/icon-maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
     ],
   };
 }

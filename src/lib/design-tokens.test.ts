@@ -233,16 +233,34 @@ describe("no green in the source", () => {
       const parsed = block(sel);
       for (const [, name, value] of names) {
         if (/^(#[0-9a-fA-F]{6})$/.test(value.trim())) expect(parsed[name]).toBe(value.trim());
-        else expect(["shadow", "hero-border"]).toContain(name); // non-colour or transparent
+        else if (name === "hero-border") expect(value.trim()).toBe("transparent");
+        else expect(name).toBe("shadow"); // the only non-colour token
       }
     }
   });
   it("no hex colour literal anywhere in src or the service worker is green", () => {
+    // #rgb, #rgba, #rrggbb and #rrggbbaa; in-page links (href="#…") and HTML entities (&#…) are not colours.
     for (const f of files) {
       const text = readFileSync(f, "utf8");
-      for (const m of text.matchAll(/#([0-9a-fA-F]{6}|[0-9a-fA-F]{3})\b/g)) {
-        const hex = m[1].length === 3 ? `#${[...m[1]].map((c) => c + c).join("")}` : m[0];
+      for (const m of text.matchAll(/(?<![\w&]|href=["'])#([0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{3,4})\b/g)) {
+        const d = m[1];
+        const hex = d.length <= 4 ? `#${[...d.slice(0, 3)].map((c) => c + c).join("")}` : `#${d.slice(0, 6)}`;
         expect({ file: f.slice(root.length), hex, green: isGreen(hex) }).toEqual({ file: f.slice(root.length), hex, green: false });
+      }
+    }
+  });
+  it("stylesheets use no green colour functions or named greens", () => {
+    const named = /(?<![\w-])(green|lime|teal|olive|seagreen|chartreuse|lawngreen|springgreen|forestgreen|darkgreen|limegreen|yellowgreen|olivedrab|aquamarine|mediumseagreen|darkseagreen|lightgreen|palegreen|darkolivegreen|mediumspringgreen|lightseagreen|darkcyan)(?![\w-])/i;
+    for (const f of files.filter((x) => x.endsWith(".css"))) {
+      const text = readFileSync(f, "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+      expect({ file: f.slice(root.length), named: named.exec(text)?.[0] ?? null }).toEqual({ file: f.slice(root.length), named: null });
+      for (const m of text.matchAll(/rgba?\(\s*(\d+)[\s,]+(\d+)[\s,]+(\d+)/g)) {
+        const hex = "#" + [m[1], m[2], m[3]].map((v) => Number(v).toString(16).padStart(2, "0")).join("");
+        expect({ file: f.slice(root.length), rgb: m[0], green: isGreen(hex) }).toEqual({ file: f.slice(root.length), rgb: m[0], green: false });
+      }
+      for (const m of text.matchAll(/hsla?\(\s*([\d.]+)/g)) {
+        const h = Number(m[1]);
+        expect({ file: f.slice(root.length), hsl: m[0], green: h >= 70 && h <= 185 }).toEqual({ file: f.slice(root.length), hsl: m[0], green: false });
       }
     }
   });

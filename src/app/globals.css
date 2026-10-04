@@ -197,7 +197,7 @@ body {
     @apply rounded-2xl border border-border bg-surface p-4 sm:p-5;
     box-shadow: var(--shadow);
   }
-  /* The mockup's dark feature card with an accent circle in the corner. */
+  /* The feature card (pale gold by day, eggplant by night) with an accent circle in the corner. */
   .hero-card {
     @apply relative overflow-hidden rounded-3xl p-5 sm:p-6;
     background: var(--hero);
@@ -587,6 +587,12 @@ body {
     background: var(--hero);
     color: var(--hero-fg);
   }
+  /* By day: gold fill, eggplant trim, so team chats stand out from people. */
+  :root:not(.dark) .avatar-team {
+    background: var(--accent);
+    color: var(--ink);
+    border-color: var(--hero-border);
+  }
   .bubble {
     @apply max-w-full rounded-2xl px-3.5 py-2 text-[0.9375rem] leading-relaxed break-words whitespace-pre-wrap;
   }
@@ -686,6 +692,11 @@ body {
     background: var(--plum);
     color: var(--on-plum);
     border-color: transparent;
+  }
+  /* By day gold accent chips and badges carry an eggplant trim, which also
+     keeps them apart from butter (status "waiting") at a glance. */
+  :root:not(.dark) :is(.badge-accent, .filter-chip-accent) {
+    border-color: var(--hero-border);
   }
   /* OpenStreetMap tiles paint parks and fields green; Turfcut shows its maps in greyscale. */
   .leaflet-tile-pane {

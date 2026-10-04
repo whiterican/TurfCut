@@ -169,7 +169,8 @@ export function OrgTabBar({ tabs, more }: { tabs: NavTab[]; more: NavTab[] }) {
           // Escape, or close() from anywhere: sync state and hand focus back to More.
           onClose={() => {
             setOpen(false);
-            button.current?.focus();
+            // Not when widening hid the bar: focus can't go to a hidden button.
+            if (button.current?.offsetParent) button.current.focus();
           }}
           // A press on the dimmed area outside the panel lands on the dialog itself.
           onClick={(e) => {

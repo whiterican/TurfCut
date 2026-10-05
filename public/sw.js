@@ -66,14 +66,24 @@ self.addEventListener("activate", (e) => {
   );
 });
 
-const bouncedToLogin = (res) => res.type === "opaqueredirect" || (res.redirected && new URL(res.url).pathname.startsWith("/login"));
+/** The app's sign-in page, given a URL or a path relative to the app. */
+const isLoginUrl = (u) => {
+  try {
+    const url = new URL(u, self.location.origin);
+    return url.origin === self.location.origin && url.pathname === "/login";
+  } catch {
+    return false;
+  }
+};
+const bouncedToLogin = (res) => res.type === "opaqueredirect" || (res.redirected && isLoginUrl(res.url));
 
 /**
  * Where a page sends the browser when it redirected after streaming began
  * (behind a loading screen, the status is already 200, so Next.js adds
  * <meta id="__next-page-redirect" content="1;url=/login">), or null.
- * Field pages keep no loading screen so they answer with a real redirect;
- * this is the backstop if one is ever added.
+ * Field pages keep no loading screen (or other Suspense boundary) so they
+ * answer with a real redirect, 404 or 500; this is the backstop if one is
+ * ever added. Only &amp; is decoded: the value is only checked for /login.
  */
 function streamedRedirect(html) {
   const tag = /<meta\b[^>]*\bid="__next-page-redirect"[^>]*>/i.exec(html);
@@ -90,16 +100,19 @@ async function savePage(path, res) {
     return;
   }
   if (!res.ok || res.type !== "basic" || res.redirected) return;
-  const s = await getState();
-  if (!s.user || !s.allowed.includes(path)) return;
   try {
     const html = await res.text();
-    if (gen !== generation) return; // wiped meanwhile
+    // Checked before who may save what: a bounce to sign-in wipes whatever is saved.
     const to = streamedRedirect(html);
-    if (to !== null) return to.startsWith("/login") ? forget() : undefined; // never save a redirect
+    if (to !== null) return isLoginUrl(to) ? forget() : undefined; // never save a redirect
+    const s = await getState();
+    if (!s.user || !s.allowed.includes(path)) return;
+    if (gen !== generation) return; // wiped meanwhile
     const headers = new Headers(res.headers);
     headers.set("x-turfcut-saved-at", String(Date.now()));
-    await (await caches.open(PAGES)).put(path, new Response(html, { status: res.status, headers }));
+    const pages = await caches.open(PAGES);
+    if (gen !== generation) return; // wiped while opening: don't bring the page back
+    await pages.put(path, new Response(html, { status: res.status, headers }));
     // A saved page is no use offline without its own scripts and styles.
     await saveAssets(html);
   } catch {

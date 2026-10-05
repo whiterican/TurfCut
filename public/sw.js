@@ -83,7 +83,7 @@ const bouncedToLogin = (res) => res.type === "opaqueredirect" || (res.redirected
  * <meta id="__next-page-redirect" content="1;url=/login">), or null.
  * Field pages keep no loading screen (or other Suspense boundary) so they
  * answer with a real redirect, 404 or 500; this is the backstop if one is
- * ever added. Only &amp; is decoded: the value is only checked for /login.
+ * ever added. Only &amp; is decoded; the target only says a redirect happened.
  */
 function streamedRedirect(html) {
   const tag = /<meta\b[^>]*\bid="__next-page-redirect"[^>]*>/i.exec(html);
@@ -102,9 +102,10 @@ async function savePage(path, res) {
   if (!res.ok || res.type !== "basic" || res.redirected) return;
   try {
     const html = await res.text();
-    // Checked before who may save what: a bounce to sign-in wipes whatever is saved.
-    const to = streamedRedirect(html);
-    if (to !== null) return isLoginUrl(to) ? forget() : undefined; // never save a redirect
+    // Checked before who may save what. Like a real redirect (any one reads as
+    // "signed out" above), a streamed one wipes: it may lead to /login or to
+    // /welcome (someone else, with no profile yet), and is never saved.
+    if (streamedRedirect(html) !== null) return forget();
     const s = await getState();
     if (!s.user || !s.allowed.includes(path)) return;
     if (gen !== generation) return; // wiped meanwhile

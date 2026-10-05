@@ -1,8 +1,11 @@
 /**
- * Haptic feedback for taps. Android browsers expose the Vibration API; iOS
- * Safari (17.4+) has none, but toggling a native `<input switch>` plays the
- * system's light "tick" — so on iPhone we click a hidden one. Desktop: no-op.
- * On by default; Display settings can turn it off (saved on this device).
+ * Haptic feedback for taps, where the browser offers the Vibration API
+ * (most Android phones). iPhone Safari has none and plays its system tick
+ * only when a finger toggles a real switch, so on iPhone the app's own
+ * toggles are native switches (`<input switch>`) and buttons stay silent;
+ * a hidden switch clicked from script ticked on older iOS but no longer does.
+ * Desktop: no-op. On by default; Display settings can turn it off (saved on
+ * this device).
  */
 export const HAPTICS_KEY = "turfcut-haptics";
 
@@ -14,35 +17,15 @@ export function hapticsEnabled(): boolean {
   }
 }
 
-let iosSwitch: HTMLLabelElement | null = null;
-
-function iosTick() {
-  if (!iosSwitch) {
-    const label = document.createElement("label");
-    label.setAttribute("aria-hidden", "true");
-    label.style.cssText = "position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0;pointer-events:none;";
-    const input = document.createElement("input");
-    input.type = "checkbox";
-    input.setAttribute("switch", "");
-    input.tabIndex = -1;
-    label.appendChild(input);
-    document.body.appendChild(label);
-    iosSwitch = label;
-  }
-  // Clicking the label toggles the switch (the tick) — keep focus where it was.
-  const active = document.activeElement as HTMLElement | null;
-  iosSwitch.click();
-  if (active && document.activeElement !== active) active.focus({ preventScroll: true });
+/** True when this browser can vibrate on a tap. */
+export function canVibrate(): boolean {
+  return typeof navigator !== "undefined" && typeof navigator.vibrate === "function";
 }
 
 /** A short tap tick. Call from a user gesture (click/pointer handlers). */
 export function haptic(): void {
-  if (typeof window === "undefined" || !hapticsEnabled()) return;
-  if (typeof navigator.vibrate === "function") {
-    navigator.vibrate(8);
-    return;
-  }
-  if (/iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent))) iosTick();
+  if (typeof window === "undefined" || !hapticsEnabled() || !canVibrate()) return;
+  navigator.vibrate(8);
 }
 
 /** What counts as a "button" for feedback: real controls, not plain text links. */

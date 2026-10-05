@@ -119,10 +119,10 @@ export function DisplaySettings() {
       <fieldset className="space-y-3">
         <legend className="section-title">Feel</legend>
         <label className="toggle">
-          <input type="checkbox" role="switch" checked={haptics} onChange={(e) => applyHaptics(e.target.checked)} />
+          <input type="checkbox" role="switch" switch="" checked={haptics} onChange={(e) => applyHaptics(e.target.checked)} />
           Vibrate lightly when I tap a button
         </label>
-        <p className="text-hint">On phones that support it (most Android phones; iPhone with iOS 18 or later). Saved on this device.</p>
+        <p className="text-hint">On phones that allow it (most Android phones). iPhones don&apos;t let websites vibrate on taps; switches like this one still tick. Saved on this device.</p>
       </fieldset>
 
       <div className="card space-y-2">

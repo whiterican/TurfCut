@@ -25,6 +25,12 @@ describe("haptics", () => {
     haptic();
     expect(vibrate).not.toHaveBeenCalled();
   });
+  it("does nothing on iPhone (no Vibration API) and clicks nothing behind the scenes", () => {
+    stubBrowser({});
+    vi.stubGlobal("navigator", { userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X)", maxTouchPoints: 5 });
+    vi.stubGlobal("document", undefined);
+    expect(() => haptic()).not.toThrow();
+  });
   it("does nothing on desktop browsers without vibration", () => {
     stubBrowser({});
     vi.stubGlobal("navigator", { userAgent: "Mozilla/5.0 (X11; Linux x86_64)", maxTouchPoints: 0 });

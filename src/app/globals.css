@@ -424,6 +424,21 @@ body {
     transform: translateX(1rem);
     background: var(--on-primary);
   }
+  /* Where the browser has native switches (Safari 17.4+), use them: iPhone
+     plays its system tick only for a real switch, and only in its native look. */
+  @supports selector(::thumb) {
+    .toggle input[switch] {
+      appearance: auto;
+      width: auto;
+      height: auto;
+      border: 0;
+      background: none;
+      accent-color: var(--primary);
+    }
+    .toggle input[switch]::after {
+      content: none;
+    }
+  }
   @media (forced-colors: active) {
     .toggle input {
       border-color: CanvasText;

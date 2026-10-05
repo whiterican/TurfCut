@@ -7,7 +7,7 @@ import { HAPTIC_TARGETS, haptic } from "@/lib/haptics";
 export function Haptics() {
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
-      // Only real taps (not the synthetic click we send ourselves on iOS).
+      // Only real taps, not clicks sent from script.
       if (!e.isTrusted || e.button !== 0) return;
       const target = e.target instanceof Element ? e.target.closest(HAPTIC_TARGETS) : null;
       if (target && !target.closest('[aria-hidden="true"]')) haptic();

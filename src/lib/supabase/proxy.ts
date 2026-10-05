@@ -43,9 +43,11 @@ export async function updateSession(request: NextRequest) {
   // token expires.
   try {
     await supabase.auth.getClaims();
-  } catch {
+  } catch (e) {
     // A malformed token in the cookie makes getClaims throw (getUser didn't):
-    // leave it to the page's check rather than fail every request.
+    // leave it to the page's check rather than fail every request. Logged by
+    // type only (never the token), so a fault on every request still shows.
+    console.warn(`[turfcut] session check skipped: ${e instanceof Error ? e.name : typeof e}`);
   }
 
   return response;

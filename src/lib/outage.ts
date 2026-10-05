@@ -23,9 +23,25 @@ export function isDatabaseUnreachable(e: unknown): boolean {
   return typeof code === "string" && UNREACHABLE.has(code);
 }
 
-/** A Supabase Auth error that means the service failed, not that the session is bad. */
+/**
+ * A Supabase Auth error that means the service failed, not that the session
+ * is bad: a network failure or 5xx, a body that isn't Auth's own (a gateway
+ * page), or rate limiting.
+ */
 export function isAuthOutage(error: unknown): boolean {
   if (isAuthRetryableFetchError(error)) return true;
+  if ((error as { name?: unknown })?.name === "AuthUnknownError") return true;
   const status = (error as { status?: unknown })?.status;
-  return typeof status === "number" && status >= 500;
+  return typeof status === "number" && (status >= 500 || status === 429);
+}
+
+/**
+ * A setting the app can't run without is missing or unusable (lib/env.ts):
+ * that reads as signed out (the M0 rule), and sign-in names the setting.
+ * Note that a DATABASE_URL Prisma accepts but can't log in with (a wrong
+ * password) is an outage until it's fixed.
+ */
+export function isConfigError(e: unknown): boolean {
+  const m = e instanceof Error ? e.message : "";
+  return m.startsWith("[turfcut] Missing environment variable") || m.startsWith("[turfcut] DATABASE_URL can't be used");
 }

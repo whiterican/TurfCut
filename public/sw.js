@@ -10,12 +10,15 @@
  *   is used for 72 hours at most.
  * - The copies belong to one person: they're deleted when another worker
  *   signs in on the phone, on sign-out, on the sign-in page, and when a
- *   page bounces to sign-in (the session ended).
+ *   field page redirects anywhere (signed out, someone else's session, or
+ *   a login with no profile yet). An outage isn't a sign-out: the server
+ *   answers 500 then (lib/outage.ts) and the saved copy is used.
  * - Static build files (/_next/static): cache first (their names change
  *   with every build).
  * - Never cached: API calls, server actions, data requests, other sites.
  */
-const PAGES = "turfcut-pages-v2";
+// v3: drops any copy an older worker saved of a page that redirected.
+const PAGES = "turfcut-pages-v3";
 const STATIC = "turfcut-static-v1";
 const META = "turfcut-meta-v1";
 // No trailing slash: Next.js redirects "/shifts/" to "/shifts", and a

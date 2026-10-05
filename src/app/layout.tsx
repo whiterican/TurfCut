@@ -46,7 +46,9 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const session = await getSessionProfile();
+  // The nav shows as signed out during an outage; the page itself still
+  // throws (same cached call), so field pages answer 500, not a sign-in bounce.
+  const session = await getSessionProfile().catch(() => null);
   const tabs = navTabs(session?.role ?? null, !!session?.orgId);
   const org = orgNav(session?.role ?? null, !!session?.orgId);
   const isOrg = org.rail.length > 0;

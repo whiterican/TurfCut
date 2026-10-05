@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { db } from "@/lib/db";
 import { ensureAccount } from "@/lib/account";
+import { ServiceUnavailableError, isAuthOutage, isDatabaseUnreachable } from "@/lib/outage";
 
 export type Role =
   | "WORKER"
@@ -27,12 +28,21 @@ export interface SessionProfile {
  * one call to Supabase.
  */
 export const getAuthUser = cache(async () => {
+  let supabase;
   try {
-    const supabase = await createClient();
-    return (await supabase.auth.getUser()).data.user ?? null;
+    supabase = await createClient();
   } catch {
-    return null; // Supabase env missing or unreachable — treat as signed out (M0 rule).
+    return null; // Supabase env missing — treat as signed out (M0 rule).
   }
+  let result;
+  try {
+    result = await supabase.auth.getUser();
+  } catch (e) {
+    throw new ServiceUnavailableError("auth", e);
+  }
+  // Auth unreachable or failing is an outage, not a sign-out (see outage.ts).
+  if (result.error && isAuthOutage(result.error)) throw new ServiceUnavailableError("auth", result.error);
+  return result.data.user ?? null;
 });
 
 /**
@@ -54,8 +64,11 @@ export const getSessionProfile = cache(async (): Promise<SessionProfile | null> 
     // (e.g. the Supabase Site URL): finish setup from its pending details.
     if (!profile && (await ensureAccount(user))) profile = await load();
   } catch (e) {
+    // The database down is an outage, not a sign-out (see outage.ts); any
+    // other failure keeps the page up and reads as signed out.
+    if (isDatabaseUnreachable(e)) throw new ServiceUnavailableError("database", e);
     console.error("[turfcut] loading or finishing the profile failed", e);
-    return null; // DB unreachable — treat as signed out, don't crash the page.
+    return null;
   }
   if (!profile || profile.closedAt) return null; // a closed account (M7) has no session
 

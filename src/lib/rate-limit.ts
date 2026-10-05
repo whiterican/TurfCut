@@ -1,5 +1,5 @@
-import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
+import { isDatabaseUnreachable } from "@/lib/outage";
 
 /**
  * A small sliding-window limiter for the few endpoints that take unauthenticated
@@ -150,14 +150,10 @@ const store = () => (shared ??= postgresStore());
  * per-connection sign-in limit: the per-address limit still applies, and
  * otherwise anyone keeping an instance busy could block every sign-in on it.
  */
-const UNREACHABLE = new Set(["P1001", "P1002", "P1008", "P1017"]);
 const FAIL_OPEN: ReadonlySet<LimitName> = new Set(["sync"]);
 function failOpen(name: LimitName, e: unknown): boolean {
-  if (FAIL_OPEN.has(name)) return true;
-  if (e instanceof Prisma.PrismaClientInitializationError) return true;
-  const code = (e as { code?: unknown })?.code;
-  if (typeof code !== "string") return false;
-  return UNREACHABLE.has(code) || (code === "P2024" && name === "login");
+  if (FAIL_OPEN.has(name) || isDatabaseUnreachable(e)) return true;
+  return (e as { code?: unknown })?.code === "P2024" && name === "login";
 }
 
 /** "ok": go ahead. "limited": too many, say when to retry. "unavailable": the limiter can't tell; say so, don't blame the user. */

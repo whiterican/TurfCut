@@ -39,7 +39,8 @@ export function isAuthOutage(error: unknown): boolean {
  * A setting the app can't run without is missing or unusable (lib/env.ts):
  * that reads as signed out (the M0 rule), and sign-in names the setting.
  * Note that a DATABASE_URL Prisma accepts but can't log in with (a wrong
- * password) is an outage until it's fixed.
+ * password) is an outage until it's fixed. These prefixes are the messages
+ * lib/env.ts throws (the second arrives with the DATABASE_URL checks).
  */
 export function isConfigError(e: unknown): boolean {
   const m = e instanceof Error ? e.message : "";

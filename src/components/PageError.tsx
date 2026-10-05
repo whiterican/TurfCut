@@ -12,7 +12,7 @@ export function PageError({ title, retry, href, label }: { title: string; retry:
     <main className="page max-w-2xl">
       <div className="empty-state" role="alert">
         <p className="empty-state-title">{title}</p>
-        <p className="empty-state-body">Turfcut couldn&apos;t be reached. Try again in a minute; if you were saving something, check it went through.</p>
+        <p className="empty-state-body">Something went wrong on our side. Try again in a minute; if you were saving something, check it went through.</p>
         <div className="mt-4 flex justify-center gap-2">
           <button type="button" className="btn-primary" onClick={() => retry()}>Try again</button>
           <Link href={href} className="btn-secondary">{label}</Link>

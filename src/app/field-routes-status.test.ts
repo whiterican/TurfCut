@@ -32,7 +32,9 @@ describe("field routes answer with real status codes", () => {
     const layout = join(APP, "layout.tsx");
     const imported = [...readFileSync(layout, "utf8").matchAll(/from "@\/components\/([^"]+)"/g)].map((m) => {
       const base = join(APP, "..", "components", m[1]);
-      return [`${base}.tsx`, `${base}.ts`].find((p) => existsSync(p))!;
+      const p = [`${base}.tsx`, `${base}.ts`, join(base, "index.tsx"), join(base, "index.ts")].find((f) => existsSync(f));
+      expect(p, `can't find @/components/${m[1]}`).toBeDefined();
+      return p!;
     });
     expect(imported.length).toBeGreaterThan(0);
     const sources = [layout, ...imported, ...FIELD_DIRS.flatMap((d) => files(join(APP, d)))].filter((f) => /\.(t|j)sx?$/.test(f) && !/\.test\./.test(f));

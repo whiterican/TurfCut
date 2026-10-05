@@ -5,15 +5,31 @@
  */
 
 export function getSupabaseUrl(): string {
-  const v = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const v = supabaseUrlOf(process.env.NEXT_PUBLIC_SUPABASE_URL);
   if (!v) throw missing("NEXT_PUBLIC_SUPABASE_URL");
   return v;
 }
 
 export function getSupabaseAnonKey(): string {
-  const v = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const v = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
   if (!v) throw missing("NEXT_PUBLIC_SUPABASE_ANON_KEY");
   return v;
+}
+
+/**
+ * A usable Supabase project URL (http(s), trimmed), or null. Supabase's
+ * client throws on anything else, so a blank or scheme-less paste counts as
+ * unset everywhere, including the proxy that runs on every request.
+ */
+export function supabaseUrlOf(v: string | undefined): string | null {
+  const t = v?.trim();
+  if (!t) return null;
+  try {
+    const u = new URL(t);
+    return u.protocol === "https:" || u.protocol === "http:" ? t : null;
+  } catch {
+    return null;
+  }
 }
 
 export function getSupabaseServiceRoleKey(): string {
@@ -31,6 +47,9 @@ export function getSupabaseServiceRoleKey(): string {
 export function getDatabaseUrl(): string {
   const v = process.env.DATABASE_URL;
   if (!v?.trim()) throw missing("DATABASE_URL");
+  // Refused before Prisma sees it: Prisma's own errors would print part of a
+  // password with an unencoded / # or ? as the "host:port" it couldn't reach.
+  if (unusableDatabaseUrl(v)) throw new Error(`[turfcut] DATABASE_URL can't be used (${describeDatabaseUrl(v)}).`);
   const { url, warning } = runtimeDatabaseUrl(v, !!process.env.VERCEL);
   if (warning && !warned) {
     warned = true;
@@ -118,6 +137,25 @@ function hasPostgresScheme(v: string): boolean {
   return v.startsWith("postgresql://") || v.startsWith("postgres://");
 }
 
+/**
+ * True when an @ comes after the host part ends. URL parsers end the host at
+ * the first / # or ?, so a password holding one unencoded puts part of
+ * itself where the host and port would be (and into any error that names
+ * them). A real @ in a query or path is possible but has no place in a
+ * database URL.
+ */
+function credentialsNeedEncoding(clean: string): boolean {
+  const rest = clean.slice(clean.indexOf("://") + 3);
+  const end = rest.search(/[/?#]/);
+  return end >= 0 && rest.slice(end).includes("@");
+}
+
+/** A DATABASE_URL that can't be handed to Prisma, even after tidying. */
+export function unusableDatabaseUrl(raw: string): boolean {
+  const clean = cleanDatabaseUrl(raw);
+  return !hasPostgresScheme(clean) || credentialsNeedEncoding(clean);
+}
+
 const safeDecode = (s: string) => {
   try {
     return decodeURIComponent(s);
@@ -137,12 +175,7 @@ export function describeDatabaseUrl(raw: string): string {
   const scheme = /^([A-Za-z][A-Za-z0-9+.-]*):\/\//.exec(stripped);
   parts.push(scheme ? `starts with "${scheme[1]}://"` : "doesn't start with a scheme like postgresql://");
   if (!scheme) return parts.join(", ");
-  // Where the user:password@ part ends. URL parsers stop the host at the
-  // first / # or ?, so an unencoded one (or a second @) in the password puts
-  // part of it where the host or port would be: describe nothing past it.
-  const rest = clean.slice(clean.indexOf("://") + 3);
-  const at = rest.lastIndexOf("@");
-  if (at >= 0 && /[/#?@]/.test(rest.slice(0, at))) {
+  if (credentialsNeedEncoding(clean)) {
     parts.push("the password may contain / # ? or @, which must be percent-encoded (or there's an @ after the host)");
     return parts.join(", ");
   }
@@ -225,9 +258,15 @@ const coreEnv = (): Record<string, string | undefined> => ({
 });
 
 export function missingCoreSettings(env: Record<string, string | undefined> = coreEnv()): string[] {
-  // A DATABASE_URL Prisma would refuse outright counts as missing, so the form
-  // names it instead of reading as an outage.
-  return CORE_SETTINGS.filter((name) => !env[name]?.trim() || (name === "DATABASE_URL" && !hasPostgresScheme(cleanDatabaseUrl(env[name]!))));
+  // A value the app would refuse counts as missing, so the form names it
+  // instead of reading as an outage.
+  return CORE_SETTINGS.filter((name) => {
+    const v = env[name];
+    if (!v?.trim()) return true;
+    if (name === "NEXT_PUBLIC_SUPABASE_URL") return !supabaseUrlOf(v);
+    if (name === "DATABASE_URL") return unusableDatabaseUrl(v);
+    return false;
+  });
 }
 
 /**
@@ -263,12 +302,9 @@ export function notConfiguredMessage(what: string, missingNames: readonly string
   return `${what} isn't configured on this server yet (${missingNames.join(", ")}).`;
 }
 
-/** True when the browser-safe Supabase config is present. */
+/** True when the browser-safe Supabase config is present and usable. */
 export function hasSupabaseConfig(): boolean {
-  return Boolean(
-    process.env.NEXT_PUBLIC_SUPABASE_URL &&
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  );
+  return Boolean(supabaseUrlOf(process.env.NEXT_PUBLIC_SUPABASE_URL) && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim());
 }
 
 function missing(name: string): Error {

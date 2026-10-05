@@ -147,6 +147,9 @@ exercise the locks, triggers and data rules, not the RLS policies.
    4. **Redeploy after any settings change** (Deployments → ⋯ → Redeploy).
       Settings only reach new deployments, and the `NEXT_PUBLIC_` ones are
       baked in when the site is built.
+      The server's region comes from `vercel.json` (`cle1`, Cleveland, next
+      to a Supabase project in us-east-2) and overrides the dashboard's
+      Function Region; change it there if the database moves.
    5. **Use the project's public domain.** With Deployment Protection on
       (the default for new projects), every other address, per-deployment URLs
       and `<project>-<team>.vercel.app` included, sits behind Vercel's own

@@ -85,6 +85,11 @@ describe.each([
     for (const p of PASTELS) expect(ratio(t.ink, t[p])).toBeGreaterThanOrEqual(7);
   });
 
+  it("a native switch's 'on' track stands out from its white thumb and every surface (≥ 3:1)", () => {
+    expect(ratio(t["switch-on"], "#ffffff")).toBeGreaterThanOrEqual(3);
+    for (const s of SURFACES) expect(ratio(t["switch-on"], t[s])).toBeGreaterThanOrEqual(3);
+  });
+
   it("primary buttons and selected chips are AAA", () => {
     expect(ratio(t["on-primary"], t.primary)).toBeGreaterThanOrEqual(7);
   });

@@ -86,7 +86,8 @@ export function DisplaySettings() {
   const size = useSyncExternalStore(subscribe, sizeSnapshot, () => "md" as TextSize);
   const theme = useSyncExternalStore(subscribe, themeSnapshot, () => "system" as ThemeChoice);
   const haptics = useSyncExternalStore(subscribe, hapticsSnapshot, () => true);
-  // Known only in the browser; the server assumes it can, so Android never flickers.
+  // Known only in the browser. The server assumes it can, so Android never
+  // flickers; iPhone swaps the switch for the explanation right after hydration.
   const vibrates = useSyncExternalStore(subscribe, canVibrate, () => true);
 
   return (
@@ -130,7 +131,7 @@ export function DisplaySettings() {
           </>
         ) : (
           <p className="text-hint">
-            This phone doesn&apos;t let websites vibrate when you tap a button. On iPhone, Turfcut&apos;s on/off switches still give a light tick.
+            This browser can&apos;t vibrate when you tap a button. On iPhone, Turfcut&apos;s on/off switches still give a light tick.
           </p>
         )}
       </fieldset>

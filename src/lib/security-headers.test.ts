@@ -8,12 +8,12 @@ async function rules() {
 describe("security headers", () => {
   it("go on every response: no framing, no type sniffing, location for the app only", async () => {
     const all = (await rules()).find((r) => r.source === "/:path*");
+    expect(all).toBeDefined();
     const h = Object.fromEntries(all!.headers.map((x) => [x.key, x.value]));
     expect(h["Content-Security-Policy"]).toBe("frame-ancestors 'none'");
     expect(h["X-Frame-Options"]).toBe("DENY");
     expect(h["X-Content-Type-Options"]).toBe("nosniff");
-    expect(h["Permissions-Policy"]).toContain("geolocation=(self)");
-    expect(h["Permissions-Policy"]).toContain("camera=()");
+    expect(h["Permissions-Policy"]).toBe("camera=(), microphone=(), geolocation=(self)");
   });
 
   it("leave the service worker's own policy last, so it wins where both match", async () => {

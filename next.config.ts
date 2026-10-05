@@ -18,6 +18,9 @@ const nextConfig: NextConfig = {
       // phone's location (check-in, the turf map); no camera or microphone.
       // The referrer policy stays the browser default
       // (strict-origin-when-cross-origin); routes that need stricter set it.
+      // These four keys win over a route handler's own value: a route that
+      // needs a different one gets a later, more specific rule here, as
+      // /sw.js does.
       {
         source: "/:path*",
         headers: [

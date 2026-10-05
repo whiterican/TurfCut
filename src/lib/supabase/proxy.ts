@@ -33,8 +33,12 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  // Touching getUser() refreshes an expired session into the response cookies.
-  await supabase.auth.getUser();
+  // Refreshes an expiring session into the response cookies. getClaims()
+  // verifies the token locally when the project signs with asymmetric keys
+  // (no round trip to Supabase Auth on every request and prefetch) and falls
+  // back to asking the server otherwise. Who the user is stays the page's
+  // job: getAuthUser() still asks Supabase (lib/auth.ts).
+  await supabase.auth.getClaims();
 
   return response;
 }

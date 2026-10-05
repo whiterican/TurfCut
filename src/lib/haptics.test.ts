@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { HAPTICS_KEY, haptic, hapticsEnabled } from "@/lib/haptics";
+import { HAPTICS_KEY, canVibrate, haptic, hapticsEnabled } from "@/lib/haptics";
 
 function stubBrowser(opts: { saved?: string | null; vibrate?: boolean }) {
   const store = new Map<string, string>(opts.saved ? [[HAPTICS_KEY, opts.saved]] : []);
@@ -25,11 +25,18 @@ describe("haptics", () => {
     haptic();
     expect(vibrate).not.toHaveBeenCalled();
   });
-  it("does nothing on iPhone (no Vibration API) and clicks nothing behind the scenes", () => {
+  it("does nothing on iPhone (no Vibration API) and adds nothing to the page", () => {
     stubBrowser({});
     vi.stubGlobal("navigator", { userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X)", maxTouchPoints: 5 });
-    vi.stubGlobal("document", undefined);
-    expect(() => haptic()).not.toThrow();
+    const appendChild = vi.fn();
+    vi.stubGlobal("document", { body: { appendChild }, head: { appendChild }, createElement: vi.fn() });
+    expect(canVibrate()).toBe(false);
+    haptic();
+    expect(appendChild).not.toHaveBeenCalled();
+  });
+  it("knows when the browser can vibrate", () => {
+    stubBrowser({ vibrate: true });
+    expect(canVibrate()).toBe(true);
   });
   it("does nothing on desktop browsers without vibration", () => {
     stubBrowser({});

@@ -34,11 +34,19 @@ export async function updateSession(request: NextRequest) {
   );
 
   // Refreshes an expiring session into the response cookies. getClaims()
-  // verifies the token locally when the project signs with asymmetric keys
-  // (no round trip to Supabase Auth on every request and prefetch) and falls
-  // back to asking the server otherwise. Who the user is stays the page's
-  // job: getAuthUser() still asks Supabase (lib/auth.ts).
-  await supabase.auth.getClaims();
+  // checks the token locally when it's signed with the project's asymmetric
+  // key (the key set is fetched about every 10 minutes per warm instance, and
+  // on each cold start); a symmetric-signed token, an unknown key id or no
+  // WebCrypto falls back to asking Supabase. Who the user is stays the page's
+  // job: getAuthUser() still asks Supabase (lib/auth.ts), so a revoked
+  // session is refused there even though its cookies linger here until the
+  // token expires.
+  try {
+    await supabase.auth.getClaims();
+  } catch {
+    // A malformed token in the cookie makes getClaims throw (getUser didn't):
+    // leave it to the page's check rather than fail every request.
+  }
 
   return response;
 }

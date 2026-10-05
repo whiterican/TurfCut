@@ -234,14 +234,14 @@ src/
     page.tsx            # landing
     login/              # worker/company login
     signup/             # signup + role selection (worker vs company)
-    dashboard/          # role-gated dashboard skeleton
+    dashboard/          # worker: Today (saved for offline); org roles go to their desk
     profile/            # worker: scorecard, experience, fit summary
     profile/preferences # worker: 6-step political-fit consent flow
     workers/            # company: worker directory + authorized view + invite
     jobs/               # worker feed / org job list, builder, job page
     shifts/             # worker calendar + field day; supervisor custody/review
     earnings/           # worker: pay per campaign, disputes, payout setup (M5)
-    payouts/            # owners/finance: approve, hold, disputes, pay, export (M5)
+    pay/                # owners/finance: approve, hold, disputes, pay, export (M5)
     api/stripe/webhook  # Stripe events (M5)
     org/settings/       # publish-gate records, legal contact, jurisdictions
     api/workers/[workerId]/scorecard  # GET scorecard JSON
@@ -442,7 +442,10 @@ API: `GET/POST /api/shifts`, `POST /api/shifts/:id/check-in` `{ location? }`
   server error or an 8-second wait; copies are kept for one worker and
   72 hours at most, and only for pages on that list. API calls and server
   actions are never cached. Saved pages are deleted when another worker's
-  list arrives, on the sign-in pages and when a page bounces to sign-in.
+  list arrives, on the sign-in pages and when a saved page redirects
+  anywhere (the session ended, or the phone now belongs to someone else).
+  These pages keep no loading screen, so the server's real redirect, 404
+  and 500 reach the worker (a test guards this).
   Sign-out warns about this worker's unsynced entries and clears the queue
   and saved pages. (Another worker's unsynced entries stay on the phone
   until they sign in again.)
@@ -467,6 +470,16 @@ connection is only for schema changes.
 - The app adds `pgbouncer=true` (Prisma can't use prepared statements on the
   transaction pooler) and `connection_limit=1` to a 6543 URL that doesn't
   set them, and logs a warning on Vercel if `DATABASE_URL` isn't port 6543.
+- A pasted value is tidied first: spaces and line breaks, wrapping quotes, a
+  `DATABASE_URL=` prefix and a phone's capital `P` in `postgresql://` are
+  undone. One that still doesn't start with `postgresql://` makes sign-in
+  name `DATABASE_URL`; a pooler user without the project ref
+  (`postgres` instead of `postgres.<ref>`) is warned about. Warnings describe
+  the URL's shape, never its password.
+- Sessions are refreshed by the proxy with `getClaims()`, which checks the
+  token locally when the project signs with an asymmetric key (Supabase →
+  JWT Keys; this project uses ES256). On a legacy symmetric key every
+  request and tab prefetch costs a call to Supabase Auth instead.
 - Everything the app does in a database transaction (advisory locks,
   interactive transactions) is transaction-scoped, so it works through the
   pooler.

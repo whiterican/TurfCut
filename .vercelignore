@@ -1,0 +1,3 @@
+# Local-only screenshot fixture (excluded from git via .git/info/exclude):
+# never upload it with the Vercel CLI, which does not read git excludes.
+src/app/zz-preview

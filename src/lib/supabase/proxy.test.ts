@@ -20,11 +20,14 @@ afterEach(() => {
 describe("updateSession", () => {
   it("passes every request through untouched when the Supabase URL is blank or has no scheme", async () => {
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "anon");
-    for (const url of ["  ", "abc.supabase.co"]) {
+    for (const url of ["  ", "abc.supabase.co", "https:/abc.supabase.co"]) {
       vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", url);
       const res = await updateSession(req());
       expect(res.status).toBe(200);
     }
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://abc.supabase.co");
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "  ");
+    expect((await updateSession(req())).status).toBe(200);
     expect(createServerClient).not.toHaveBeenCalled();
   });
 

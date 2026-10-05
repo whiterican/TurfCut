@@ -122,7 +122,7 @@ describe("Supabase URL", () => {
   it("is usable only as a trimmed http(s) URL", async () => {
     const { supabaseUrlOf } = await import("./env");
     expect(supabaseUrlOf(" https://abc.supabase.co \n")).toBe("https://abc.supabase.co");
-    for (const v of [undefined, "", "  ", "abc.supabase.co", "ftp://abc.supabase.co"]) expect(supabaseUrlOf(v)).toBeNull();
+    for (const v of [undefined, "", "  ", "abc.supabase.co", "ftp://abc.supabase.co", "https:abc.supabase.co", "https:/abc.supabase.co"]) expect(supabaseUrlOf(v)).toBeNull();
   });
 
   it("counts as missing when blank or without a scheme, so sign-in names it", () => {
@@ -132,25 +132,37 @@ describe("Supabase URL", () => {
 });
 
 describe("a DATABASE_URL whose password needs encoding", () => {
+  afterEach(() => vi.unstubAllEnvs());
+
   it("counts as missing, and getDatabaseUrl refuses it without printing the password", async () => {
     const bad = "postgresql://postgres.abc:2024/Summer@aws-0-us-east-2.pooler.supabase.com:6543/postgres";
     expect(missingCoreSettings({ ...ALL, DATABASE_URL: bad })).toEqual(["DATABASE_URL"]);
     vi.resetModules();
     vi.stubEnv("DATABASE_URL", bad);
     const { getDatabaseUrl } = await import("./env");
-    expect(() => getDatabaseUrl()).toThrow(/must be percent-encoded/);
+    let thrown: unknown = null;
     try {
       getDatabaseUrl();
     } catch (e) {
-      expect(String(e)).not.toContain("2024");
-      expect(String(e)).not.toContain("Summer");
+      thrown = e;
     }
-    vi.unstubAllEnvs();
+    expect(String(thrown)).toMatch(/must be percent-encoded/);
+    expect(String(thrown)).not.toMatch(/2024|Summer/);
   });
 
   it("keeps a working URL whose password holds an @ (the last @ ends it)", async () => {
     const { unusableDatabaseUrl } = await import("./env");
     expect(unusableDatabaseUrl("postgresql://postgres.abc:pa@ss@aws-0-us-east-2.pooler.supabase.com:6543/postgres")).toBe(false);
     expect(unusableDatabaseUrl("postgresql://postgres.abc:pw@h:6543/postgres?sslmode=require")).toBe(false);
+  });
+
+  it("refuses an @ after the host, even in a query: it can't be told apart from a password", async () => {
+    const { unusableDatabaseUrl } = await import("./env");
+    expect(unusableDatabaseUrl("postgresql://user:p@h:5432/postgres?application_name=me@x")).toBe(true);
+  });
+
+  it("never prints a user name holding an @", async () => {
+    const { describeDatabaseUrl } = await import("./env");
+    expect(describeDatabaseUrl("postgresql://ab@SECRET9:9999@h/db")).not.toContain("SECRET9");
   });
 });

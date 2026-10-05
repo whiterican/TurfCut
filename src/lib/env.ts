@@ -23,7 +23,9 @@ export function getSupabaseAnonKey(): string {
  */
 export function supabaseUrlOf(v: string | undefined): string | null {
   const t = v?.trim();
-  if (!t) return null;
+  // Supabase's own check: URL parsers forgive "https:abc" or "https:/abc",
+  // Supabase's client throws on them.
+  if (!t || !/^https?:\/\//i.test(t)) return null;
   try {
     const u = new URL(t);
     return u.protocol === "https:" || u.protocol === "http:" ? t : null;
@@ -187,6 +189,8 @@ export function describeDatabaseUrl(raw: string): string {
   else if (!u.username) parts.push("no user name");
   // Without a password the one name given may itself be the password.
   else if (!u.password) parts.push("no password given");
+  // An @ in the user name means the split is uncertain: it may hold password text.
+  else if (safeDecode(u.username).includes("@")) parts.push("the user name contains @, which must be percent-encoded");
   else parts.push(`user "${safeDecode(u.username)}"`, `host "${u.hostname || "(none)"}"`, `port ${u.port || "(default)"}`);
   return parts.join(", ");
 }

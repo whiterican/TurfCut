@@ -164,5 +164,7 @@ describe("a DATABASE_URL whose password needs encoding", () => {
   it("never prints a user name holding an @", async () => {
     const { describeDatabaseUrl } = await import("./env");
     expect(describeDatabaseUrl("postgresql://ab@SECRET9:9999@h/db")).not.toContain("SECRET9");
+    const { unusableDatabaseUrl } = await import("./env");
+    expect(unusableDatabaseUrl("postgresql://ab@SECRET9:9999@h/db")).toBe(true);
   });
 });

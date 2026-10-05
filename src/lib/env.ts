@@ -155,7 +155,14 @@ function credentialsNeedEncoding(clean: string): boolean {
 /** A DATABASE_URL that can't be handed to Prisma, even after tidying. */
 export function unusableDatabaseUrl(raw: string): boolean {
   const clean = cleanDatabaseUrl(raw);
-  return !hasPostgresScheme(clean) || credentialsNeedEncoding(clean);
+  if (!hasPostgresScheme(clean) || credentialsNeedEncoding(clean)) return true;
+  // A user name holding an @ means the split may be wrong, and Prisma's
+  // login errors name the user.
+  try {
+    return safeDecode(new URL(clean).username).includes("@");
+  } catch {
+    return false;
+  }
 }
 
 const safeDecode = (s: string) => {

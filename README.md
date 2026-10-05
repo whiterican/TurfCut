@@ -442,10 +442,10 @@ API: `GET/POST /api/shifts`, `POST /api/shifts/:id/check-in` `{ location? }`
   server error or an 8-second wait; copies are kept for one worker and
   72 hours at most, and only for pages on that list. API calls and server
   actions are never cached. Saved pages are deleted when another worker's
-  list arrives, on the sign-in pages and when a saved page redirects
-  anywhere (the session ended, or the phone now belongs to someone else).
-  These pages keep no loading screen, so the server's real redirect, 404
-  and 500 reach the worker (a test guards this).
+  list arrives, on the sign-in pages and when a field page redirects
+  anywhere (signed out, or someone else's session). These pages keep no
+  loading screen, so the server's real redirect, 404 and 500 reach the
+  service worker.
   Sign-out warns about this worker's unsynced entries and clears the queue
   and saved pages. (Another worker's unsynced entries stay on the phone
   until they sign in again.)
@@ -472,7 +472,8 @@ connection is only for schema changes.
   set them, and logs a warning on Vercel if `DATABASE_URL` isn't port 6543.
 - A pasted value is tidied first: spaces and line breaks, wrapping quotes, a
   `DATABASE_URL=` prefix and a phone's capital `P` in `postgresql://` are
-  undone. One that still doesn't start with `postgresql://` makes sign-in
+  undone. One that still doesn't start with `postgresql://` (or
+  `postgres://`) makes sign-in
   name `DATABASE_URL`; a pooler user without the project ref
   (`postgres` instead of `postgres.<ref>`) is warned about. Warnings describe
   the URL's shape, never its password.

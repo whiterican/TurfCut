@@ -139,7 +139,7 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
             </label>
             <div className="flex flex-wrap items-center gap-3">
               <label className="toggle">
-                <input type="checkbox" role="switch" name="noCredentials" value="1" defaultChecked={filters.noCredentials} />
+                <input type="checkbox" role="switch" switch="" name="noCredentials" value="1" defaultChecked={filters.noCredentials} />
                 No credentials required
               </label>
               <button className="btn-secondary">Apply</button>

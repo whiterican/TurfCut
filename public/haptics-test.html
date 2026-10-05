@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Haptics test</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { font: 17px/1.4 -apple-system, system-ui, sans-serif; margin: 0; padding: 16px; background: Canvas; color: CanvasText; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  p { margin: 0 0 16px; opacity: .8; }
+  button { display: block; width: 100%; padding: 18px; margin: 0 0 12px; font: inherit; font-weight: 600; border-radius: 14px; border: 2px solid #2b1b3d; background: #f3eef8; color: #2b1b3d; text-align: left; }
+  label.real { display: flex; align-items: center; gap: 12px; padding: 18px; border-radius: 14px; border: 2px dashed #888; margin: 0 0 12px; font-weight: 600; }
+  code { font-size: 13px; word-break: break-all; }
+</style>
+</head>
+<body>
+<h1>Haptics test</h1>
+<p>Tap each button once. Note the numbers where you feel a tick.</p>
+
+<label class="real"><input type="checkbox" switch> 1 · Tap this real switch directly</label>
+<button id="b2">2 · Hidden switch kept off-screen (what the app does now)</button>
+<button id="b3">3 · New hidden switch each tap, display:none in &lt;head&gt;</button>
+<button id="b4">4 · New see-through switch on screen each tap</button>
+<button id="b5">5 · Click the switch itself, not its label</button>
+<button id="b6">6 · navigator.vibrate</button>
+
+<p><code id="info"></code></p>
+
+<script>
+  document.getElementById("info").textContent =
+    "vibrate: " + (typeof navigator.vibrate) + " · " + navigator.userAgent;
+
+  function makeSwitch(styleText) {
+    const label = document.createElement("label");
+    label.setAttribute("aria-hidden", "true");
+    label.style.cssText = styleText;
+    const input = document.createElement("input");
+    input.type = "checkbox";
+    input.setAttribute("switch", "");
+    input.tabIndex = -1;
+    label.appendChild(input);
+    return { label, input };
+  }
+
+  // 2: the app's current approach.
+  const kept = makeSwitch("position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0;pointer-events:none;");
+  document.body.appendChild(kept.label);
+  document.getElementById("b2").addEventListener("click", () => kept.label.click());
+
+  // 3: fresh, display:none, in <head> (as the ios-haptics package does).
+  document.getElementById("b3").addEventListener("click", () => {
+    const s = makeSwitch("display:none");
+    document.head.appendChild(s.label);
+    s.label.click();
+    s.label.remove();
+  });
+
+  // 4: fresh, on screen but transparent.
+  document.getElementById("b4").addEventListener("click", () => {
+    const s = makeSwitch("position:fixed;left:0;bottom:0;width:40px;height:30px;opacity:0.01;");
+    document.body.appendChild(s.label);
+    s.label.click();
+    setTimeout(() => s.label.remove(), 500);
+  });
+
+  // 5: click the input rather than the label.
+  const kept5 = makeSwitch("position:fixed;left:0;bottom:0;width:40px;height:30px;opacity:0.01;");
+  document.body.appendChild(kept5.label);
+  document.getElementById("b5").addEventListener("click", () => kept5.input.click());
+
+  // 6: the Vibration API (Android).
+  document.getElementById("b6").addEventListener("click", () => {
+    if (typeof navigator.vibrate === "function") navigator.vibrate(20);
+  });
+</script>
+</body>
+</html>

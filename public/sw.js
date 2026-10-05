@@ -68,6 +68,20 @@ self.addEventListener("activate", (e) => {
 
 const bouncedToLogin = (res) => res.type === "opaqueredirect" || (res.redirected && new URL(res.url).pathname.startsWith("/login"));
 
+/**
+ * Where a page sends the browser when it redirected after streaming began
+ * (behind a loading screen, the status is already 200, so Next.js adds
+ * <meta id="__next-page-redirect" content="1;url=/login">), or null.
+ * Field pages keep no loading screen so they answer with a real redirect;
+ * this is the backstop if one is ever added.
+ */
+function streamedRedirect(html) {
+  const tag = /<meta\b[^>]*\bid="__next-page-redirect"[^>]*>/i.exec(html);
+  if (!tag) return null;
+  const to = /\bcontent="\d+;url=([^"]*)"/i.exec(tag[0]);
+  return to ? to[1].replace(/&amp;/g, "&") : "";
+}
+
 async function savePage(path, res) {
   const gen = generation;
   if (bouncedToLogin(res)) return forget(); // signed out
@@ -81,6 +95,8 @@ async function savePage(path, res) {
   try {
     const html = await res.text();
     if (gen !== generation) return; // wiped meanwhile
+    const to = streamedRedirect(html);
+    if (to !== null) return to.startsWith("/login") ? forget() : undefined; // never save a redirect
     const headers = new Headers(res.headers);
     headers.set("x-turfcut-saved-at", String(Date.now()));
     await (await caches.open(PAGES)).put(path, new Response(html, { status: res.status, headers }));

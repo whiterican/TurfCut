@@ -95,6 +95,9 @@ model Worker {
   engagements  Engagement[]
   metrics      ProfileMetric[]
   payouts      Payout[]
+  sharing        WorkerSharing[]
+  availabilities WorkerAvailability[]
+  credentials    WorkerCredential[]
 
   // Payouts (M5): the worker's Stripe Connect account. Bank and tax details
   // stay with Stripe; payoutsEnabled caches whether Stripe can pay them.
@@ -771,4 +774,96 @@ model RateLimitCounter {
 
   @@id([bucket, windowStart])
   @@index([expiresAt])
+}
+
+// ---------------------------------------------------------------------------
+// C2: what each organization sees. All three tables are APPEND-ONLY: a change
+// appends a version (or a superseding row) and the latest wins (rule 3).
+// Server-only (RLS on, no policies).
+// ---------------------------------------------------------------------------
+
+/// Who may see one part of a worker's profile (C2).
+enum ShareAudience {
+  RELATIONSHIP // organizations the worker applied to or accepted an invitation from
+  ANY_APPROVED_ORG // any organization Turfcut approved that could hire them (takes effect with Matches, C3)
+  NOBODY
+}
+
+enum CredentialKind {
+  CIRCULATOR_REGISTRATION
+  NOTARY_OR_AFFIDAVIT
+  TRAINING
+  OTHER
+}
+
+/// The worker's sharing choices, one version per save. No row = the defaults
+/// in src/lib/sharing.ts (RELATIONSHIP for every part, not findable).
+model WorkerSharing {
+  id                   String        @id @default(uuid()) @db.Uuid
+  workerId             String        @db.Uuid
+  worker               Worker        @relation(fields: [workerId], references: [id], onDelete: Restrict)
+  version              Int
+  outputAudience       ShareAudience // doors and signatures per hour, doors per shift
+  qualityAudience      ShareAudience // signature acceptance, contact rate
+  reliabilityAudience  ShareAudience // show rate
+  historyAudience      ShareAudience // verified shifts, hours, campaigns, states, dates, totals
+  availabilityAudience ShareAudience
+  credentialsAudience  ShareAudience
+  readReceipts         Boolean       @default(false) // used from C3
+  // Findability: off by default. The home area is what the worker typed (a
+  // city or ZIP), never a location from the phone.
+  findable             Boolean       @default(false)
+  workTypes            JobType[]     @default([])
+  homeArea             String?
+  travelMiles          Int?
+  consentTextVersion   String
+  actorId              String        @db.Uuid // Profile.id who saved it
+  createdAt            DateTime      @default(now())
+
+  // Unique so two concurrent saves can't both claim version N+1.
+  @@unique([workerId, version])
+}
+
+/// The worker's usual week and date exceptions, one version per save.
+/// Never scored or ranked. Shapes are validated in src/lib/availability.ts.
+model WorkerAvailability {
+  id         String   @id @default(uuid()) @db.Uuid
+  workerId   String   @db.Uuid
+  worker     Worker   @relation(fields: [workerId], references: [id], onDelete: Restrict)
+  version    Int
+  weekly     Json // per weekday, up to two { from: "09:00", to: "15:00" } ranges
+  exceptions Json // [{ date: "2026-10-12", ranges: [] }] (no ranges = not available that day)
+  note       String?
+  actorId    String   @db.Uuid
+  createdAt  DateTime @default(now())
+
+  @@unique([workerId, version])
+}
+
+/// A credential the worker holds. An edit appends a row that supersedes the
+/// previous one; taking one down appends a row with removed = true. The
+/// current credentials are the rows nothing supersedes that aren't removed.
+model WorkerCredential {
+  id           String            @id @default(uuid()) @db.Uuid
+  workerId     String            @db.Uuid
+  worker       Worker            @relation(fields: [workerId], references: [id], onDelete: Restrict)
+  kind         CredentialKind
+  label        String? // the worker's name for an OTHER credential or a training course
+  state        String? // two-letter state, when the credential has one
+  identifier   String? // stored in full, only ever shown masked
+  issuedOn     DateTime?         @db.Date
+  expiresOn    DateTime?         @db.Date
+  verification VerificationLevel @default(SELF_REPORTED)
+  verifiedById String?           @db.Uuid
+  verifiedAt   DateTime?
+  proofPath    String? // private storage key in credential-proofs, never a public URL
+  // Unique: two edits racing on one row can't both supersede it.
+  supersedesId String?           @unique @db.Uuid
+  supersedes   WorkerCredential? @relation("Supersedes", fields: [supersedesId], references: [id], onDelete: Restrict)
+  supersededBy WorkerCredential? @relation("Supersedes")
+  removed      Boolean           @default(false)
+  actorId      String            @db.Uuid
+  createdAt    DateTime          @default(now())
+
+  @@index([workerId, createdAt])
 }

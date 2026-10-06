@@ -290,6 +290,7 @@ prisma/
   m5-migration.sql      # M4 → M5 upgrade (pay lines, payouts, disputes)
   m5-1-history-lock.sql # append-only triggers on work events, reviews, audit
   m6-migration.sql      # M5 → M6 upgrade (offline sync ids on work events)
+  c2-consent.sql        # C1 → C2 upgrade (worker sharing, availability, credentials)
 ```
 
 ## M0 scope (done)
@@ -562,6 +563,13 @@ connection is only for schema changes.
   metric versions, reviews and messages stay exactly as recorded (rule 3).
   Closed workers are hidden from People, can't be invited, their profile is
   not found, and any remaining session is refused.
+
+**Already on C1? Worker sharing (C2)** — run `prisma/c2-consent.sql` once
+in the Supabase SQL editor, after `c1-roles.sql` and `rate-limit.sql`. It adds
+`WorkerSharing`, `WorkerAvailability` and `WorkerCredential`: append-only,
+server-only, and empty until workers save a choice. Until then every worker
+gets the defaults (organizations they applied to see everything they saw
+before; nobody can find them).
 
 **Already on M6? Field truth (M7)** — run `prisma/m7-migration.sql` once
 in the Supabase SQL editor (`closedAt` on `Profile` and `Worker`).

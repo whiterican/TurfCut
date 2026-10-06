@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useRef, useState, useTransition } from "react";
+import { unstable_rethrow } from "next/navigation";
 import { saveSharingChoices, type SharingFormState } from "@/app/profile/sharing/actions";
 import {
   AUDIENCE_OPTIONS,
@@ -22,11 +23,14 @@ const WORK_TYPES: Array<{ value: WorkType; label: string }> = [
 /**
  * Profile → Who sees what. Every part of the profile gets one of three
  * audiences; findability is separate and off by default. Fields are
- * controlled, so a refused save keeps what the worker chose (React resets
- * uncontrolled fields after a form action).
+ * controlled and the form submits from onSubmit (not <form action>), so
+ * React never resets it: what's on screen is always what the worker chose
+ * and what the next save sends.
  */
 export function SharingForm({ choices }: { choices: SharingChoices }) {
-  const [state, action, pending] = useActionState(saveSharingChoices, initial);
+  const [state, setState] = useState<SharingFormState>(initial);
+  const [pending, start] = useTransition();
+  const inFlight = useRef(false);
   const [audiences, setAudiences] = useState<Record<SharePart, ShareAudience>>(choices.audiences);
   const [findable, setFindable] = useState(choices.findable);
   const [workTypes, setWorkTypes] = useState<WorkType[]>(choices.workTypes);
@@ -36,9 +40,32 @@ export function SharingForm({ choices }: { choices: SharingChoices }) {
   const errId = (k: string) => (e[k] ? `err-${k}` : undefined);
   const err = (k: string) => e[k] && <p id={`err-${k}`} className="text-danger-msg">{e[k]}</p>;
   const failed = Object.keys(e);
+  const onSubmit = (ev: React.FormEvent<HTMLFormElement>) => {
+    ev.preventDefault();
+    if (inFlight.current) return;
+    inFlight.current = true;
+    const fd = new FormData(ev.currentTarget);
+    start(async () => {
+      try {
+        const r = await saveSharingChoices(state, fd);
+        setState(r);
+        // Saved while not findable: the server kept no place or distance, so neither does the screen.
+        if (r.ok && !fd.get("findable")) {
+          setWorkTypes([]);
+          setHomeArea("");
+          setTravelMiles("");
+        }
+      } catch (err) {
+        unstable_rethrow(err);
+        setState({ ok: false, message: "Couldn't reach Turfcut, so this may not have saved. Your choices are still here; try again.", errors: {} });
+      } finally {
+        inFlight.current = false;
+      }
+    });
+  };
 
   return (
-    <form action={action} className="space-y-6" noValidate>
+    <form onSubmit={onSubmit} className="space-y-6" noValidate>
       {failed.length > 0 && (
         <p role="alert" className="alert-warning">
           Nothing was saved. Check {failed.map((k) => (k in PART_DETAILS ? PART_DETAILS[k as SharePart].label : k === "workTypes" ? "work types" : k === "homeArea" ? "city or ZIP" : k === "travelMiles" ? "travel distance" : "your choices")).join(", ")}.

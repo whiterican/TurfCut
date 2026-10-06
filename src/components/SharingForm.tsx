@@ -59,7 +59,6 @@ export function SharingForm({ choices }: { choices: SharingChoices }) {
                   value={o.value}
                   checked={audiences[part] === o.value}
                   onChange={() => setAudiences((a) => ({ ...a, [part]: o.value }))}
-                  aria-invalid={e[part] ? true : undefined}
                 />
                 {o.label}
               </label>

@@ -9,15 +9,24 @@ import { ExperienceList } from "@/components/ExperienceList";
 import { ScorecardPanel } from "@/components/ScorecardPanel";
 import { removeExperience } from "./actions";
 import { PhoneForm } from "@/components/PhoneForm";
+import { loadSharing } from "@/lib/sharing-data";
+import { PART_DETAILS, SHARE_PARTS, type ShareAudience } from "@/lib/sharing";
+
+const AUDIENCE_SHORT: Record<ShareAudience, string> = {
+  RELATIONSHIP: "Organizations you apply to",
+  ANY_APPROVED_ORG: "Any approved organization",
+  NOBODY: "Nobody",
+};
 
 export default async function ProfilePage() {
   const { workerId } = await requireWorker();
-  const [worker, records, scorecard, fit, history] = await Promise.all([
+  const [worker, records, scorecard, fit, history, sharing] = await Promise.all([
     db().worker.findUniqueOrThrow({ where: { id: workerId }, select: { displayName: true, phone: true } }),
     db().experienceRecord.findMany({ where: { workerId }, orderBy: { startDate: "desc" } }),
     loadScorecardPeriods(workerId),
     loadLatestPreference(workerId),
     loadCampaignHistory(workerId),
+    loadSharing(workerId),
   ]);
   const mode = fit && VISIBILITY_OPTIONS.find((o) => o.value === fit.visibilityMode);
 
@@ -58,6 +67,26 @@ export default async function ProfilePage() {
             <ExperienceForm />
           </div>
         </details>
+      </section>
+
+      <section className="section">
+        <h2 className="section-title">Who sees what</h2>
+        <div className="card space-y-3">
+          <ul className="space-y-1.5">
+            {SHARE_PARTS.map((part) => (
+              <li key={part} className="flex flex-wrap justify-between gap-x-4 text-sm">
+                <span className="text-fg">{PART_DETAILS[part].label}</span>
+                <span className="text-muted">{AUDIENCE_SHORT[sharing.choices.audiences[part]]}</span>
+              </li>
+            ))}
+            <li className="flex flex-wrap justify-between gap-x-4 text-sm">
+              <span className="text-fg">Organizations can find you</span>
+              <span className="text-muted">{sharing.choices.findable ? `Yes, within ${sharing.choices.travelMiles} miles of ${sharing.choices.homeArea}` : "No"}</span>
+            </li>
+          </ul>
+          {sharing.version === null && <p className="text-hint">These are the defaults. Nothing changes until you choose.</p>}
+          <Link transitionTypes={["nav-forward"]} href="/profile/sharing" className="btn-secondary">Change who sees what</Link>
+        </div>
       </section>
 
       <section className="section">

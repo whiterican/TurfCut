@@ -15,6 +15,10 @@ import { workerPayTotals } from "@/lib/pay-data";
 import { OfflineBrief } from "@/components/OfflineBrief";
 import { briefPaths } from "@/lib/offline-brief-data";
 import { money } from "@/lib/pay";
+import { cookies } from "next/headers";
+import { loadSharing } from "@/lib/sharing-data";
+import { SHARING_NOTE_COOKIE } from "@/lib/sharing";
+import { dismissSharingNote } from "./actions";
 
 const ROLE_LABELS: Record<string, string> = {
   WORKER: "Field worker",
@@ -93,6 +97,32 @@ async function WorkerHero({ workerId }: { workerId: string }) {
 }
 
 /** Saves today's and the next two days' shift pages on the phone (offline brief). */
+/**
+ * One-time note for workers who were here before C2: sharing choices now
+ * exist, and nothing changed until they make one. Gone once they save a
+ * choice or dismiss it (remembered on this device).
+ */
+async function SharingNote({ workerId }: { workerId: string }) {
+  const [jar, sharing] = await Promise.all([cookies(), loadSharing(workerId)]);
+  if (sharing.version !== null || jar.get(SHARING_NOTE_COOKIE)) return null;
+  return (
+    <section className="card space-y-3" aria-labelledby="sharing-note">
+      <p id="sharing-note" className="font-semibold text-fg">New: you choose who sees what</p>
+      <p className="text-muted-sm">
+        You can now choose who sees each part of your scorecard, your availability and your credentials, and
+        whether organizations can find you. Nothing has changed until you choose: organizations you apply to see
+        what they saw before, and nobody can find you.
+      </p>
+      <div className="flex flex-wrap gap-2">
+        <Link transitionTypes={["nav-forward"]} href="/profile/sharing" className="btn-primary btn-sm">Review my choices</Link>
+        <form action={dismissSharingNote}>
+          <button className="btn-ghost btn-sm">Not now</button>
+        </form>
+      </div>
+    </section>
+  );
+}
+
 async function WorkerBrief({ workerId, userId }: { workerId: string; userId: string }) {
   return <OfflineBrief userId={userId} paths={await briefPaths(workerId)} />;
 }
@@ -194,6 +224,7 @@ export default async function DashboardPage() {
 
       {isWorker && <WorkerBrief workerId={session.workerId!} userId={session.userId} />}
       {isWorker && <WorkerHero workerId={session.workerId!} />}
+      {isWorker && <SharingNote workerId={session.workerId!} />}
 
       {isWorker && <EarningsCard workerId={session.workerId!} />}
       {isWorker && <OpenJobs workerId={session.workerId!} />}

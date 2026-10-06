@@ -76,6 +76,7 @@ function applyTheme(v: ThemeChoice) {
 }
 
 const hapticsSnapshot = () => read(HAPTICS_KEY) !== "off";
+const vibratingPhone = () => canVibrate() && window.matchMedia("(pointer: coarse)").matches;
 function applyHaptics(on: boolean) {
   save(HAPTICS_KEY, on ? null : "off");
   notify();
@@ -87,8 +88,9 @@ export function DisplaySettings() {
   const theme = useSyncExternalStore(subscribe, themeSnapshot, () => "system" as ThemeChoice);
   const haptics = useSyncExternalStore(subscribe, hapticsSnapshot, () => true);
   // Known only in the browser. The server assumes it can, so Android never
-  // flickers; iPhone swaps the switch for the explanation right after hydration.
-  const vibrates = useSyncExternalStore(subscribe, canVibrate, () => true);
+  // flickers; iPhone and computers swap the switch for the explanation right
+  // after hydration. Desktop Chrome has the Vibration API but nothing to buzz.
+  const vibrates = useSyncExternalStore(subscribe, vibratingPhone, () => true);
 
   return (
     <div className="space-y-8">
@@ -124,14 +126,14 @@ export function DisplaySettings() {
         {vibrates ? (
           <>
             <label className="toggle">
-              <input type="checkbox" role="switch" switch="" checked={haptics} onChange={(e) => applyHaptics(e.target.checked)} />
+              <input type="checkbox" role="switch" checked={haptics} onChange={(e) => applyHaptics(e.target.checked)} />
               Vibrate lightly when I tap a button
             </label>
             <p className="text-hint">Saved on this device.</p>
           </>
         ) : (
           <p className="text-hint">
-            This browser can&apos;t vibrate when you tap a button. On iPhone, Turfcut&apos;s on/off switches still give a light tick.
+            This device can&apos;t vibrate when you tap a button. On iPhone, on/off switches (like the job filters) still give a light tick.
           </p>
         )}
       </fieldset>

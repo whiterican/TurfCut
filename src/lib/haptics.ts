@@ -1,8 +1,8 @@
 /**
  * Haptic feedback for taps, where the browser offers the Vibration API
  * (most Android phones). iPhone Safari has none and plays its system tick
- * only when a finger toggles a real switch, so on iPhone the app's own
- * toggles are native switches (`<input switch>`) and buttons stay silent;
+ * only when a finger toggles a real switch, so on/off switches such as the
+ * job filters are native switches (`<input switch>`) and buttons stay silent;
  * a hidden switch clicked from script ticked on older iOS but no longer does.
  * Desktop: no-op. On by default; Display settings can turn it off (saved on
  * this device).

@@ -3,10 +3,10 @@ import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { workerAccessFor } from "@/lib/worker-access-data";
 import { requireEmployer } from "@/lib/employer-session";
-import { loadScorecardPeriods } from "@/lib/scorecard-data";
 import { effectivePreference, employerFitView } from "@/lib/political-fit";
 import { loadLatestPreference, orgHasRelationship } from "@/lib/political-fit-data";
 import { ScorecardPanel } from "@/components/ScorecardPanel";
+import { loadOrgScorecardPeriods } from "@/lib/shared-scorecard-data";
 import { ExperienceList } from "@/components/ExperienceList";
 import { FitSignals } from "@/components/FitSignals";
 import { ActionButton } from "@/components/ActionButton";
@@ -37,9 +37,10 @@ export default async function EmployerWorkerPage({
   const worker = await db().worker.findUnique({ where: { id: workerId }, select: { displayName: true, closedAt: true } });
   if (!worker || worker.closedAt) notFound();
 
-  const [rawRecords, scorecard, pref, related, openJobs, engagedOn] = await Promise.all([
+  const [rawRecords, shared, pref, related, openJobs, engagedOn] = await Promise.all([
     db().experienceRecord.findMany({ where: { workerId }, orderBy: { startDate: "desc" } }),
-    loadScorecardPeriods(workerId),
+    // Only the groups the worker shares with this organization, right now (C2.3).
+    loadOrgScorecardPeriods(workerId, access.orgId),
     loadLatestPreference(workerId),
     orgHasRelationship(workerId, access.orgId),
     db().job.findMany({
@@ -87,7 +88,7 @@ export default async function EmployerWorkerPage({
 
       <section className="section">
         <h2 className="section-title">Scorecard</h2>
-        <ScorecardPanel periods={scorecard} />
+        <ScorecardPanel periods={shared} />
       </section>
 
       <section className="section">

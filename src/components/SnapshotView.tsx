@@ -1,23 +1,35 @@
 import type { HiringSnapshot } from "@/lib/engagements";
 import { FitSignals } from "@/components/FitSignals";
 import { RelativeTime } from "@/components/RelativeTime";
+import { NotSharedChip } from "@/components/staff/NotSharedChip";
 import { num, percent, plural } from "@/lib/format";
 import { Row } from "@/components/Row";
 
-const pct = (m: { value: number | null; numerator: number; denominator: number }) =>
-  m.value === null ? "No data yet" : `${percent(m.value)} (${m.numerator} of ${m.denominator})`;
+type Frozen = { value: number | null; numerator: number; denominator: number };
+const pct = (m: Frozen) => (m.value === null ? "No data yet" : `${percent(m.value)} (${m.numerator} of ${m.denominator})`);
+const rate = (m: Frozen) => (m.value === null ? "No data yet" : `${num(m.value, 1)} (${m.numerator} ÷ ${m.denominator})`);
+const isNum = (v: unknown) => typeof v === "number" || v === null;
+
+const SHOWN: Array<{ key: string; label: string; pct?: boolean; work?: "PETITION" | "CANVASS" }> = [
+  { key: "signaturesPerActiveHour", label: "Signatures per active hour", work: "PETITION" },
+  { key: "acceptanceRate", label: "Signature acceptance", pct: true, work: "PETITION" },
+  { key: "doorsPerActiveHour", label: "Doors per active hour", work: "CANVASS" },
+  { key: "contactRate", label: "Contact rate", pct: true, work: "CANVASS" },
+];
 
 /**
  * What the organization could see when this hiring decision was made —
- * frozen, never recomputed. Fit shows authorized signals only.
+ * frozen, never recomputed. Groups the worker didn't share then show "not
+ * shared" (C2); snapshots from before C2 hold what was shown at the time.
  */
 export function SnapshotView({ snapshot }: { snapshot: HiringSnapshot }) {
   // Seeded and pre-M2 rows hold a placeholder, not a full snapshot.
   const sc = snapshot?.scorecard;
   const whole =
-    !!sc?.showRate &&
+    !!sc &&
+    (sc.showRate === null || typeof sc.showRate === "object") &&
     Array.isArray(sc.segments) &&
-    sc.segments.every((g) => typeof g?.shiftsCount === "number" && typeof g?.activeHours === "number") &&
+    sc.segments.every((g) => isNum(g?.shiftsCount) && isNum(g?.activeHours)) &&
     typeof snapshot.fit?.fields === "object" &&
     snapshot.fit.fields !== null &&
     typeof snapshot.capturedAt === "string";
@@ -25,21 +37,39 @@ export function SnapshotView({ snapshot }: { snapshot: HiringSnapshot }) {
     return <p className="text-hint">No hiring snapshot was saved for this engagement.</p>;
   }
   const s = snapshot.scorecard;
+  const day = new Date(snapshot.capturedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
   return (
     <div className="space-y-3">
       <p className="text-hint">
-        Frozen <RelativeTime iso={snapshot.capturedAt} />
+        As of {day} (<RelativeTime iso={snapshot.capturedAt} />)
         {snapshot.consentVersion != null ? ` · consent version ${snapshot.consentVersion}` : " · no fit answers on file"}
+        {s.shared && " · only what the worker shared then"}
       </p>
       <dl className="list-card">
-        <Row label="Show rate">{pct(s.showRate)}</Row>
+        <Row label="Show rate">{s.showRate ? pct(s.showRate) : <NotSharedChip what="show rate" />}</Row>
         {s.segments.length === 0 ? (
           <Row label="Verified work">No verified shifts yet</Row>
         ) : (
           s.segments.map((seg) => (
-            <Row key={seg.workType} label={seg.workType === "PETITION" ? "Petitioning" : "Canvassing"}>
-              {plural(seg.shiftsCount, "verified shift")} · {num(seg.activeHours, 1)} active hours
-            </Row>
+            <div key={seg.workType} className="contents">
+              <Row label={seg.workType === "PETITION" ? "Petitioning" : "Canvassing"}>
+                {seg.shiftsCount === null || seg.activeHours === null ? (
+                  <NotSharedChip what="hours and history" />
+                ) : (
+                  `${plural(seg.shiftsCount, "verified shift")} · ${num(seg.activeHours, 1)} active hours`
+                )}
+              </Row>
+              {/* Pre-C2 snapshots listed shifts and hours only; their averages stay as stored. */}
+              {s.shared &&
+                SHOWN.filter((m) => m.work === seg.workType).map((m) => {
+                  const v = seg.averages?.[m.key];
+                  return (
+                    <Row key={m.key} label={m.label}>
+                      {v ? (m.pct ? pct(v) : rate(v)) : <NotSharedChip what={m.label.toLowerCase()} />}
+                    </Row>
+                  );
+                })}
+            </div>
           ))
         )}
       </dl>

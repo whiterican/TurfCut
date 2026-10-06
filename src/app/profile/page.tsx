@@ -7,6 +7,7 @@ import { VISIBILITY_OPTIONS } from "@/lib/political-fit";
 import { ExperienceForm } from "@/components/ExperienceForm";
 import { ExperienceList } from "@/components/ExperienceList";
 import { ScorecardPanel } from "@/components/ScorecardPanel";
+import { ALL_SHARED, shareScorecardPeriods } from "@/lib/shared-scorecard";
 import { removeExperience } from "./actions";
 import { PhoneForm } from "@/components/PhoneForm";
 import { loadSharing } from "@/lib/sharing-data";
@@ -45,7 +46,7 @@ export default async function ProfilePage() {
 
       <section className="section">
         <h2 className="section-title">Scorecard</h2>
-        <ScorecardPanel periods={scorecard} history={history} />
+        <ScorecardPanel periods={shareScorecardPeriods(scorecard, ALL_SHARED)} history={history} />
       </section>
 
       <section className="section">

@@ -3,6 +3,9 @@ import { randomUUID } from "node:crypto";
 import { db } from "@/lib/db";
 import { loadSharing, orgViewer, saveSharing } from "@/lib/sharing-data";
 import { DEFAULT_SHARING, SHARE_PARTS, sharingToRow, visibleParts } from "@/lib/sharing";
+import { applyToJob } from "@/lib/engagements-data";
+import type { HiringSnapshot } from "@/lib/engagements";
+import { loadOrgScorecard, loadOrgScorecardPeriods } from "@/lib/shared-scorecard-data";
 
 const ORG = "00000000-0000-0000-0000-000000000001";
 const ORG2 = "00000000-0000-0000-0000-000000000002";
@@ -166,6 +169,29 @@ const all = (a: string) => Object.fromEntries(SHARE_PARTS.map((p) => [p, a]));
   const vClosed = await orgViewer(W1, ORG);
   check("a closed account shows nothing, even to a related org", Object.values(visibleParts((await loadSharing(W1)).choices, vClosed)).every((x) => !x), vClosed);
   await p.worker.update({ where: { id: W1 }, data: { closedAt: null } });
+
+  // --- 7. C2.3: live views follow sharing at once; snapshots stay as the record ---
+  const JOB = "00000000-0000-0000-0000-000000000011"; // ORG's seeded petition job
+  await p.job.update({ where: { id: JOB }, data: { hiringMethod: { modes: ["application"] } } });
+  await saveSharing(W2, W2, { audiences: all("RELATIONSHIP") });
+  const applied = await applyToJob(W2, W2, JOB);
+  check("W2 applies to ORG's job with everything shared", applied.ok, applied);
+  const eng = await p.engagement.findFirstOrThrow({ where: { workerId: W2, jobId: JOB } });
+  const snap = eng.applicationSnapshot as unknown as HiringSnapshot;
+  check("the snapshot records what was shared, and the sharing version", !!snap.scorecard.shared && Object.values(snap.scorecard.shared).every(Boolean) && typeof snap.scorecard.sharingVersion === "number" && snap.scorecard.showRate !== null, snap.scorecard);
+  const before = await loadOrgScorecard(W2, ORG);
+  check("ORG's live view shows reliability and history while shared", before.showRate !== null && before.shared.history);
+  await saveSharing(W2, W2, { audiences: { ...all("RELATIONSHIP"), reliability: "NOBODY", history: "NOBODY", quality: "NOBODY" } });
+  const after = await loadOrgScorecard(W2, ORG, { period: "90d", state: "CO" });
+  check("after narrowing, ORG's live view drops those groups straight away", after.showRate === null && !after.shared.history && after.segments.every((g) => g.history === null && g.averages.acceptanceRate === null), after);
+  check("without history, period and state filters are ignored (lifetime, all states)", after.period === "lifetime", after.period);
+  check("the live view carries no dates, states or totals", !/"CO"|shiftsCount|statesWorked/.test(JSON.stringify(after)));
+  const periods = await loadOrgScorecardPeriods(W2, ORG);
+  check("the worker-page view gives every period the lifetime view without history", periods["90d"] === periods.lifetime || JSON.stringify(periods["90d"]) === JSON.stringify(periods.lifetime));
+  const again = (await p.engagement.findFirstOrThrow({ where: { id: eng.id } })).applicationSnapshot;
+  check("the earlier snapshot still shows exactly what it captured", JSON.stringify(again) === JSON.stringify(snap));
+  const stranger = await loadOrgScorecard(W2, ORG2);
+  check("an unrelated org's live view has no numbers at all", stranger.showRate === null && stranger.segments.every((g) => g.history === null && Object.values(g.averages).every((m) => m === null)), stranger);
 
   // --- 7. Browsers have no access ---
   for (const table of ["WorkerSharing", "WorkerAvailability", "WorkerCredential"]) {

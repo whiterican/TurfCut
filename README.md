@@ -292,6 +292,17 @@ prisma/
   m6-migration.sql      # M5 → M6 upgrade (offline sync ids on work events)
 ```
 
+## Demo data
+
+`npm run seed:demo` (after `npm run seed`) fills the app for testers: six
+organizations and twelve workers, all named "… (demo)", twenty published
+Colorado jobs for fictional, nonpartisan campaigns, about fifty worked and
+reviewed shifts with pay lines, waiting applications and a few messages.
+Everything is made through the app's own rules (publish gate, hiring, field
+day, review, pay), backdated so workers have history. It runs once. Work
+history, reviews and pay lines are append-only, so they stay; demo jobs can
+be closed from each demo organization.
+
 ## M0 scope (done)
 
 Next.js + TS scaffold, Supabase wiring, Prisma schema for all core tables,

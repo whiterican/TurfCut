@@ -290,6 +290,7 @@ prisma/
   m5-migration.sql      # M4 → M5 upgrade (pay lines, payouts, disputes)
   m5-1-history-lock.sql # append-only triggers on work events, reviews, audit
   m6-migration.sql      # M5 → M6 upgrade (offline sync ids on work events)
+  fk-indexes.sql        # indexes on nine foreign keys (safe to re-run)
 ```
 
 ## M0 scope (done)

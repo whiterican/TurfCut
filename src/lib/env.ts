@@ -72,9 +72,10 @@ let warned = false;
  * queued, and a write's $transaction (pay, chat, jobs, members) could give up
  * after Prisma's 2 s maxWait while another held it. The cost: the pooler's
  * client limit is per project (200 on Supabase's smallest plans), so it now
- * fits about 66 warm instances instead of 200; ?connection_limit=1 in
- * DATABASE_URL restores the old setting. Both are added when the URL doesn't
- * say otherwise. Pure.
+ * fits about 66 warm instances instead of 200 (the database-side pool,
+ * about 15, is unchanged: beyond it requests queue in the pooler).
+ * connection_limit=1 in DATABASE_URL's query restores the old setting. Both
+ * are added when the URL doesn't say otherwise. Pure.
  */
 export function runtimeDatabaseUrl(raw: string, serverless: boolean): { url: string; warning: string | null } {
   const clean = cleanDatabaseUrl(raw);

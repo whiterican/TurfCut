@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { Prisma } from "@prisma/client";
+import { AuthApiError, AuthRetryableFetchError, AuthSessionMissingError, AuthUnknownError } from "@supabase/supabase-js";
 
 const findUnique = vi.fn();
 const getUser = vi.fn();
@@ -7,7 +9,8 @@ vi.mock("@/lib/db", () => ({ db: () => ({ profile: { findUnique } }) }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ auth: { getUser } }) }));
 vi.mock("@/lib/account", () => ({ ensureAccount: vi.fn(async () => false) }));
 
-const { getSessionProfile } = await import("./auth");
+const { getAuthUser, getSessionProfile } = await import("./auth");
+const { ServiceUnavailableError } = await import("./outage");
 
 describe("session profile", () => {
   beforeEach(() => {
@@ -31,11 +34,64 @@ describe("session profile", () => {
     expect(await getSessionProfile()).toBeNull();
   });
 
-  it("treats a database failure as signed out instead of crashing the page", async () => {
+  it("treats a missing database setting as signed out (the sign-in form names it)", async () => {
     getUser.mockResolvedValue({ data: { user: { id: "u3" } } });
-    findUnique.mockRejectedValue(new Error("db down"));
+    findUnique.mockRejectedValue(new Error("[turfcut] Missing environment variable DATABASE_URL. Copy .env.example…"));
     const log = vi.spyOn(console, "error").mockImplementation(() => {});
     expect(await getSessionProfile()).toBeNull();
     log.mockRestore();
+  });
+
+  it("throws on any other database failure for a confirmed user: pool timeout, too many connections, a panic", async () => {
+    getUser.mockResolvedValue({ data: { user: { id: "u5" } } });
+    for (const code of ["P2024", "P2037"]) {
+      findUnique.mockRejectedValue(new Prisma.PrismaClientKnownRequestError("busy", { code, clientVersion: "6" }));
+      await expect(getSessionProfile()).rejects.toBeInstanceOf(ServiceUnavailableError);
+    }
+    findUnique.mockRejectedValue(new Prisma.PrismaClientRustPanicError("panic", "6"));
+    await expect(getSessionProfile()).rejects.toBeInstanceOf(ServiceUnavailableError);
+  });
+
+  it("passes an Auth outage on rather than reading it as signed out", async () => {
+    getUser.mockResolvedValue({ data: { user: null }, error: new AuthRetryableFetchError("fetch failed", 0) });
+    await expect(getSessionProfile()).rejects.toBeInstanceOf(ServiceUnavailableError);
+  });
+
+  it("throws when the database can't be reached: an outage, not a sign-out", async () => {
+    getUser.mockResolvedValue({ data: { user: { id: "u4" } } });
+    findUnique.mockRejectedValue(new Prisma.PrismaClientKnownRequestError("Can't reach database server", { code: "P1001", clientVersion: "6" }));
+    await expect(getSessionProfile()).rejects.toBeInstanceOf(ServiceUnavailableError);
+    findUnique.mockRejectedValue(new Prisma.PrismaClientInitializationError("Authentication failed", "6"));
+    await expect(getSessionProfile()).rejects.toBeInstanceOf(ServiceUnavailableError);
+  });
+});
+
+describe("the auth user", () => {
+  beforeEach(() => {
+    getUser.mockReset();
+  });
+
+  it("is null for a missing or rejected session", async () => {
+    getUser.mockResolvedValue({ data: { user: null }, error: new AuthSessionMissingError() });
+    expect(await getAuthUser()).toBeNull();
+    getUser.mockResolvedValue({ data: { user: null }, error: new AuthApiError("Session not found", 403, "session_not_found") });
+    expect(await getAuthUser()).toBeNull();
+    getUser.mockResolvedValue({ data: { user: null }, error: new AuthApiError("JWT expired", 401, "bad_jwt") });
+    expect(await getAuthUser()).toBeNull();
+  });
+
+  it("throws when Supabase Auth can't be reached or fails on its side", async () => {
+    getUser.mockResolvedValue({ data: { user: null }, error: new AuthRetryableFetchError("fetch failed", 0) });
+    await expect(getAuthUser()).rejects.toBeInstanceOf(ServiceUnavailableError);
+    getUser.mockResolvedValue({ data: { user: null }, error: new AuthApiError("upstream", 503, undefined) });
+    await expect(getAuthUser()).rejects.toBeInstanceOf(ServiceUnavailableError);
+    getUser.mockResolvedValue({ data: { user: null }, error: new AuthUnknownError("<html>Bad gateway</html>", null) });
+    await expect(getAuthUser()).rejects.toBeInstanceOf(ServiceUnavailableError);
+    getUser.mockResolvedValue({ data: { user: null }, error: new AuthApiError("slow down", 429, "over_request_rate_limit") });
+    await expect(getAuthUser()).rejects.toBeInstanceOf(ServiceUnavailableError);
+    getUser.mockImplementation(() => {
+      throw new TypeError("network");
+    });
+    await expect(getAuthUser()).rejects.toBeInstanceOf(ServiceUnavailableError);
   });
 });

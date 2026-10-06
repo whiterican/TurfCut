@@ -15,7 +15,8 @@ const EXAMPLE = [
 ];
 
 export default async function Home() {
-  const session = await getSessionProfile();
+  // The public landing stays up during an outage.
+  const session = await getSessionProfile().catch(() => null);
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col items-center justify-center px-4 pt-12 pb-28 text-center sm:px-6 lg:pb-16">

@@ -10,10 +10,29 @@ const nextConfig: NextConfig = {
       { source: "/payouts/export", destination: "/pay/export", permanent: false },
     ];
   },
-  // The offline brief's service worker must never be served stale.
   async headers() {
-    // As the Next.js PWA guide sets them for a service worker.
     return [
+      // Every response. Nothing may show the app inside a frame (a login page
+      // in a hidden frame is how clickjacking works), files are taken for the
+      // type they're sent as, and only the app itself may ask for the
+      // phone's location (check-in, the turf map); no camera or microphone.
+      // The referrer policy stays the browser default
+      // (strict-origin-when-cross-origin); routes that need stricter set it.
+      // These four keys win over a route handler's own value: a route that
+      // needs a different one gets a later, more specific rule here, as
+      // /sw.js does.
+      {
+        source: "/:path*",
+        headers: [
+          { key: "Content-Security-Policy", value: "frame-ancestors 'none'" },
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(self)" },
+        ],
+      },
+      // The offline brief's service worker must never be served stale. Listed
+      // after the rule above so its own policy wins (the last match does).
+      // As the Next.js PWA guide sets them for a service worker.
       {
         source: "/sw.js",
         headers: [

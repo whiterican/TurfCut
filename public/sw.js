@@ -165,7 +165,10 @@ function offlinePage() {
 <body style="font:16px system-ui;background:#1c142c;color:#f8f8f4;padding:32px 16px;max-width:32rem;margin:auto">
 <h1 style="font-size:24px">No signal</h1><p>This page wasn't saved on your phone. Your shift pages are saved when you open Today or My shifts with signal.</p>
 <p><a style="color:#ccea96" href="" onclick="location.reload();return false">Try again</a> · <a style="color:#ccea96" href="/shifts">My shifts</a> · <a style="color:#ccea96" href="/dashboard">Today</a></p></body>`,
-    { status: 503, headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" } }
+    {
+      status: 503,
+      headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store", "Content-Security-Policy": "frame-ancestors 'none'", "X-Content-Type-Options": "nosniff" },
+    }
   );
 }
 

@@ -525,6 +525,31 @@ connection is only for schema changes.
   through. Run `prisma/rate-limit.sql` before deploying this. Member
   invites are capped at 20 emails per organization per day the same way.
 
+## C2 scope — workers decide what each organization sees
+
+- **Who sees what** (Profile): each part of the profile — output rates,
+  quality, reliability, hours and history, availability, credentials — is
+  shared with organizations the worker applied to or accepted an invite
+  from, any organization Turfcut approved, or nobody. No saved choice = the
+  first, which is what organizations saw before C2. Findability is off by
+  default and uses only a typed city or ZIP and a radius, never GPS.
+- **One shared view**: every organization screen and API reads a worker
+  through `shareScorecard` / `loadOrg*` (`src/lib/shared-scorecard*.ts`,
+  `availability-data.ts`, `credentials-data.ts`). A withheld part shows
+  "not shared", never a zero; without hours and history a shared rate shows
+  its rounded value and formula only, and period/state filters are ignored.
+  Narrowing applies at once; hiring snapshots freeze only what was shared
+  then.
+- **Availability** (usual week, dates that differ, a note) and the
+  **credentials wallet** (self-reported; only a number's last four
+  characters are kept) are append-only and versioned.
+- **See what organizations see** previews each kind of viewer with the same
+  code; a short first-run setup is offered on Today, with a reminder on
+  Profile until the worker saves a choice.
+- Database: `prisma/c2-consent.sql` (three append-only, server-only tables
+  with checks that refuse self-verification, foreign proof paths and
+  carried-forward verification). Acceptance: `tests/acceptance/c2-consent.ts`.
+
 ## M7 scope — field truth and leaving cleanly
 
 - **Supervisor corrections.** On a shift's activity log, an owner or

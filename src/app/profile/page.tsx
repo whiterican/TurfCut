@@ -16,6 +16,7 @@ import { availabilitySummary, isEmptyAvailability } from "@/lib/availability";
 import { AvailabilityStatement } from "@/components/AvailabilityStatement";
 import { loadCredentials } from "@/lib/credentials-data";
 import { CredentialList } from "@/components/CredentialList";
+import { expiryToday } from "@/lib/credentials";
 import { PART_DETAILS, SHARE_PARTS, type ShareAudience } from "@/lib/sharing";
 
 const AUDIENCE_SHORT: Record<ShareAudience, string> = {
@@ -103,7 +104,7 @@ export default async function ProfilePage() {
       <section className="section">
         <h2 className="section-title">Credentials</h2>
         <div className="card space-y-3">
-          <CredentialList view={creds.map((c) => ({ kind: c.kind, label: c.label, state: c.state, verification: c.verification, expiresOn: c.expiresOn }))} today={today} />
+          <CredentialList view={creds.map((c) => ({ kind: c.kind, label: c.label, state: c.state, verification: c.verification, expiresOn: c.expiresOn }))} today={expiryToday()} />
           <Link transitionTypes={["nav-forward"]} href="/profile/credentials" className="btn-secondary">
             {creds.length ? "Manage credentials" : "Add a credential"}
           </Link>

@@ -8,6 +8,7 @@ import type { HiringSnapshot } from "@/lib/engagements";
 import { loadOrgScorecard, loadOrgScorecardPeriods } from "@/lib/shared-scorecard-data";
 import { loadAvailability, loadOrgAvailabilities, loadOrgAvailability, saveAvailability } from "@/lib/availability-data";
 import { addCredential, editCredential, loadCredentials, loadOrgCredentials, removeCredential } from "@/lib/credentials-data";
+import { exportAccount } from "@/lib/account-data";
 
 const ORG = "00000000-0000-0000-0000-000000000001";
 const ORG2 = "00000000-0000-0000-0000-000000000002";
@@ -240,10 +241,16 @@ const all = (a: string) => Object.fromEntries(SHARE_PARTS.map((p) => [p, a]));
   ]);
   check("two edits racing on one credential: exactly one lands, the other is told to reload", [e1, e2].filter((r) => r.ok).length === 1 && [e1, e2].some((r) => !r.ok && /Reload/.test(r.reason)), [e1, e2]);
   const wallet = await loadCredentials(W2);
-  check("the wallet shows one current credential, with the winning edit", wallet.length === 1 && ["CO-1", "CO-2"].includes(wallet[0].identifier ?? ""), wallet);
+  check("the wallet shows one current credential, with the winning edit", wallet.length === 1 && ["CO-1", "CO-2"].includes(wallet[0].identifier ?? "") && wallet[0].rootId === id1, wallet);
+  check("only the last four characters of a number are ever stored", (await p.workerCredential.findMany({ where: { workerId: W2 } })).every((r) => !r.identifier || r.identifier.length <= 4));
+  const credRows = await p.workerCredential.count({ where: { workerId: W2 } });
+  const same = await editCredential(W2, W2C, wallet[0].id, { kind: "CIRCULATOR_REGISTRATION", state: "CO", identifier: "", expiresOn: "" });
+  check("an edit with a blank number and nothing changed writes nothing", same.ok && same.changed === false && (await p.workerCredential.count({ where: { workerId: W2 } })) === credRows, same);
   const stale = await editCredential(W2, W2C, id1, { kind: "CIRCULATOR_REGISTRATION", state: "CO", identifier: "CO-3" });
   check("editing the superseded row is refused", !stale.ok);
   await addCredential(W2, W2C, { kind: "TRAINING", label: "Petition basics" });
+  const exported = await exportAccount({ userId: W2, workerId: W2 });
+  check("the data export includes credentials, sharing and availability", ["credentials.csv", "sharing.json", "availability.json"].every((n) => exported.some((f) => f.name === n)) && exported.find((f) => f.name === "credentials.csv")!.text.includes("CIRCULATOR_REGISTRATION"));
   const rm = await removeCredential(W2, W2C, wallet[0].id);
   check("removing appends a removal row; history stays", rm.ok && (await loadCredentials(W2)).length === 1 && (await p.workerCredential.count({ where: { workerId: W2 } })) === 4, rm); // add, winning edit, training, removal
   const rmAgain = await removeCredential(W2, W2C, wallet[0].id);

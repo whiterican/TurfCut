@@ -20,7 +20,7 @@ import { loadSharing } from "@/lib/sharing-data";
 import { noteDismissedBy, SHARING_NOTE_COOKIE } from "@/lib/sharing";
 import { DismissibleNote } from "@/components/DismissibleNote";
 import { loadCredentials } from "@/lib/credentials-data";
-import { credentialName, expiryReminder, expiryState } from "@/lib/credentials";
+import { credentialName, expiryReminder, expiryState, expiryToday } from "@/lib/credentials";
 import { dismissSharingNote } from "./actions";
 
 const ROLE_LABELS: Record<string, string> = {
@@ -119,18 +119,20 @@ async function SharingNote({ workerId }: { workerId: string }) {
 }
 
 /**
- * Credentials that expire within 30 days, or expired in the last 30 (C2.5).
- * Shown from 30 days out; at 7 days the wording turns urgent.
+ * Credentials that expire within 30 days, or have expired (C2.5). From 30
+ * days out it's a reminder; within 7 days, or once expired, it says so plainly.
  */
 async function CredentialReminder({ workerId }: { workerId: string }) {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = expiryToday();
   const due = (await loadCredentials(workerId))
     .map((c) => ({ c, when: expiryReminder(c.expiresOn, today), state: expiryState(c.expiresOn, today) }))
     .filter((x) => x.when !== null);
   if (!due.length) return null;
   return (
     <section className={`card space-y-2 ${due.some((x) => x.when !== "30") ? "border-[var(--danger)]" : ""}`} aria-label="Credentials to renew">
-      <p className="font-semibold text-fg">{due.length === 1 ? "A credential needs renewing" : "Credentials need renewing"}</p>
+      <p className="font-semibold text-fg">
+        {due.some((x) => x.when === "expired") ? "Expired: renew before you work" : due.some((x) => x.when === "7") ? "Renew this week" : due.length === 1 ? "A credential needs renewing soon" : "Credentials need renewing soon"}
+      </p>
       <ul className="space-y-1 text-sm">
         {due.map(({ c, state }) => (
           <li key={c.id} className="text-fg">

@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { addCredential, editCredential, removeCredential } from "@/lib/credentials-data";
 import { requireWorker } from "@/lib/worker-session";
 
@@ -31,12 +32,17 @@ function done(r: Awaited<ReturnType<typeof addCredential>>, ok: string): Credent
 export async function saveCredentialAction(fd: FormData): Promise<CredentialFormState> {
   const { workerId, userId } = await requireWorker();
   const id = fd.get("id");
-  return typeof id === "string" && id
-    ? done(await editCredential(workerId, userId, id, fields(fd)), "Saved. Earlier details are kept on record.")
-    : done(await addCredential(workerId, userId, fields(fd)), "Added as self-reported.");
+  if (typeof id === "string" && id) {
+    const r = await editCredential(workerId, userId, id, fields(fd));
+    return done(r, r.ok && r.changed === false ? "Nothing had changed." : "Saved. Earlier details are kept on record.");
+  }
+  return done(await addCredential(workerId, userId, fields(fd)), "Added as self-reported.");
 }
 
+/** On success the page reloads with ?removed=1, which shows the confirmation (the removed row is gone). */
 export async function removeCredentialAction(fd: FormData): Promise<CredentialFormState> {
   const { workerId, userId } = await requireWorker();
-  return done(await removeCredential(workerId, userId, String(fd.get("id") ?? "")), "Removed. It stays on record but nobody sees it.");
+  const r = done(await removeCredential(workerId, userId, String(fd.get("id") ?? "")), "Removed.");
+  if (r.ok) redirect("/profile/credentials?removed=1");
+  return r;
 }

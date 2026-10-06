@@ -10,7 +10,7 @@ const SELECT = {
 } as const;
 
 /** The worker's wallet now (rows nothing supersedes, minus removals), newest first. */
-export async function loadCredentials(workerId: string): Promise<CredentialRow[]> {
+export async function loadCredentials(workerId: string): Promise<Array<CredentialRow & { rootId: string }>> {
   const rows = await db().workerCredential.findMany({ where: { workerId }, select: SELECT });
   return currentCredentials(rows);
 }
@@ -29,7 +29,7 @@ const STALE = "This credential changed since you opened it. Reload to see the la
  */
 async function ownCurrent(tx: Prisma.TransactionClient, workerId: string, id: string) {
   if (!UUID_RE.test(id)) return null;
-  const row = await tx.workerCredential.findFirst({ where: { id, workerId, removed: false, supersededBy: null }, select: { id: true, kind: true } });
+  const row = await tx.workerCredential.findFirst({ where: { id, workerId, removed: false, supersededBy: null }, select: { id: true, kind: true, label: true, state: true, identifier: true, issuedOn: true, expiresOn: true } });
   return row;
 }
 
@@ -49,10 +49,12 @@ export async function addCredential(workerId: string, actorId: string, raw: unkn
 /**
  * Edits by appending a row that supersedes the current one. The kind stays
  * the same, and the edit is self-reported again: a verification never
- * carries over to changed details. Two edits racing on one row can't both
- * land (unique supersedesId); the loser is told to reload.
+ * carries over to changed details. A blank number keeps the current one
+ * (the full number is never sent back to the phone). Saving with nothing
+ * changed writes nothing. Two edits racing on one row can't both land
+ * (unique supersedesId); the loser is told to reload.
  */
-export async function editCredential(workerId: string, actorId: string, id: string, raw: unknown): Promise<CredentialResult> {
+export async function editCredential(workerId: string, actorId: string, id: string, raw: unknown): Promise<CredentialResult & { changed?: boolean }> {
   const v = validateCredential(raw);
   if (!v.ok) return { ok: false, reason: "Fix the fields marked below.", errors: v.errors };
   try {
@@ -60,9 +62,14 @@ export async function editCredential(workerId: string, actorId: string, id: stri
       const cur = await ownCurrent(tx, workerId, id);
       if (!cur) return { ok: false as const, reason: STALE };
       if (cur.kind !== v.value.kind) return { ok: false as const, reason: "A credential's kind can't change. Remove it and add a new one." };
-      const row = await tx.workerCredential.create({ data: { workerId, actorId, ...data(v.value), supersedesId: cur.id }, select: { id: true } });
+      const next = { ...v.value, identifier: v.value.identifier ?? cur.identifier };
+      const d = (x: Date | null) => (x ? x.toISOString().slice(0, 10) : null);
+      if (next.label === cur.label && next.state === cur.state && next.identifier === cur.identifier && next.issuedOn === d(cur.issuedOn) && next.expiresOn === d(cur.expiresOn)) {
+        return { ok: true as const, id: cur.id, changed: false };
+      }
+      const row = await tx.workerCredential.create({ data: { workerId, actorId, ...data(next), supersedesId: cur.id }, select: { id: true } });
       await tx.auditEvent.create({ data: { actorId, action: "credential.edited", entityType: "WorkerCredential", entityId: row.id, metadata: { supersedes: cur.id } } });
-      return { ok: true as const, id: row.id };
+      return { ok: true as const, id: row.id, changed: true };
     });
   } catch (e) {
     if (isUnique(e)) return { ok: false, reason: STALE };

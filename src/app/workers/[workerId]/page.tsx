@@ -11,6 +11,7 @@ import { loadOrgAvailability } from "@/lib/availability-data";
 import { AvailabilityStatement } from "@/components/AvailabilityStatement";
 import { loadOrgCredentials } from "@/lib/credentials-data";
 import { CredentialList } from "@/components/CredentialList";
+import { expiryToday } from "@/lib/credentials";
 import { ExperienceList } from "@/components/ExperienceList";
 import { FitSignals } from "@/components/FitSignals";
 import { ActionButton } from "@/components/ActionButton";
@@ -104,7 +105,7 @@ export default async function EmployerWorkerPage({
 
       <section className="section">
         <h2 className="section-title">Credentials</h2>
-        <div className="card"><CredentialList view={credentials} today={new Date().toISOString().slice(0, 10)} /></div>
+        <div className="card"><CredentialList view={credentials} today={expiryToday()} /></div>
       </section>
 
       <section className="section">

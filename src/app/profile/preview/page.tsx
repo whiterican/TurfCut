@@ -12,6 +12,7 @@ import { availabilitySummary, isEmptyAvailability } from "@/lib/availability";
 import { ScorecardPanel } from "@/components/ScorecardPanel";
 import { AvailabilityStatement } from "@/components/AvailabilityStatement";
 import { CredentialList } from "@/components/CredentialList";
+import { expiryToday } from "@/lib/credentials";
 import { FitSignals } from "@/components/FitSignals";
 
 const TABS = [
@@ -86,7 +87,7 @@ export default async function PreviewPage({ searchParams }: { searchParams: Prom
           <section className="section">
             <h2 className="section-title">Credentials</h2>
             <div className="card">
-              <CredentialList view={!parts.credentials ? "withheld" : creds.map((c) => ({ kind: c.kind, label: c.label, state: c.state, verification: c.verification, expiresOn: c.expiresOn }))} today={today} />
+              <CredentialList view={!parts.credentials ? "withheld" : creds.map((c) => ({ kind: c.kind, label: c.label, state: c.state, verification: c.verification, expiresOn: c.expiresOn }))} today={expiryToday()} />
             </div>
           </section>
           <section className="section">

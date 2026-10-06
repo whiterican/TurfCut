@@ -1,12 +1,23 @@
 import { describe, expect, it } from "vitest";
-import { credentialName, currentCredentials, expiryReminder, expiryState, maskIdentifier, validateCredential } from "./credentials";
+import { credentialName, currentCredentials, expiryReminder, expiryState, expiryToday, maskIdentifier, validateCredential } from "./credentials";
 
 describe("validateCredential", () => {
   it("accepts a circulator registration and normalizes it", () => {
     expect(validateCredential({ kind: "CIRCULATOR_REGISTRATION", state: " co ", identifier: "  CO-12345 ", issuedOn: "2026-01-02", expiresOn: "2027-01-01" })).toEqual({
       ok: true,
-      value: { kind: "CIRCULATOR_REGISTRATION", label: null, state: "CO", identifier: "CO-12345", issuedOn: "2026-01-02", expiresOn: "2027-01-01" },
+      // Only the last four characters are kept.
+      value: { kind: "CIRCULATOR_REGISTRATION", label: null, state: "CO", identifier: "2345", issuedOn: "2026-01-02", expiresOn: "2027-01-01" },
     });
+  });
+  it("never keeps a full number, even one typed by mistake", () => {
+    const v = validateCredential({ kind: "OTHER", label: "x", identifier: "123 45 6789" });
+    expect(v.ok && v.value.identifier).toBe("6789");
+  });
+  it("bounds years and says why text is refused", () => {
+    expect(validateCredential({ kind: "OTHER", label: "x", expiresOn: "0000-01-01" }).ok).toBe(false);
+    expect(validateCredential({ kind: "OTHER", label: "x", expiresOn: "2101-01-01" }).ok).toBe(false);
+    const hidden = validateCredential({ kind: "OTHER", label: "a\u200bb" });
+    expect(!hidden.ok && hidden.errors.label).toMatch(/character/);
   });
   it("needs a state for a registration and a name for training or other", () => {
     const reg = validateCredential({ kind: "CIRCULATOR_REGISTRATION" });
@@ -31,14 +42,14 @@ describe("validateCredential", () => {
 
 describe("display", () => {
   it("masks identifiers to the last four, never more than half", () => {
-    expect(maskIdentifier("CO-12345")).toBe("•••• 2345");
-    expect(maskIdentifier("123")).toBe("•••• 3");
-    expect(maskIdentifier("1")).toBe("••••");
+    expect(maskIdentifier("2345")).toBe("•••• 2345");
+    expect(maskIdentifier("123")).toBe("•••• 123");
     expect(maskIdentifier(null)).toBeNull();
   });
   it("names credentials plainly", () => {
     expect(credentialName({ kind: "CIRCULATOR_REGISTRATION", label: null, state: "CO" })).toBe("CO circulator registration");
     expect(credentialName({ kind: "TRAINING", label: "Petition basics", state: null })).toBe("Petition basics");
+    expect(credentialName({ kind: "TRAINING", label: "NVRA basics", state: "CO" })).toBe("CO: NVRA basics");
   });
 });
 
@@ -52,7 +63,10 @@ describe("the current wallet", () => {
       { id: "b-rm", supersedesId: "b", removed: true, createdAt: t(4) },
       { id: "c", supersedesId: null, removed: false, createdAt: t(5) },
     ];
-    expect(currentCredentials(rows).map((r) => r.id)).toEqual(["c", "a2"]);
+    const cur = currentCredentials(rows);
+    expect(cur.map((r) => r.id)).toEqual(["c", "a2"]);
+    // An edit keeps its credential's place and identity (the chain's first row).
+    expect(cur.map((r) => r.rootId)).toEqual(["c", "a"]);
   });
 });
 
@@ -67,6 +81,14 @@ describe("expiry", () => {
     expect(expiryReminder(d("2026-11-06"), "2026-10-06")).toBeNull();
     expect(expiryReminder(d("2026-10-13"), "2026-10-06")).toBe("7");
     expect(expiryReminder(d("2026-10-01"), "2026-10-06")).toBe("expired");
-    expect(expiryReminder(d("2026-08-01"), "2026-10-06")).toBeNull();
+    // An expired credential never quietly drops off.
+    expect(expiryReminder(d("2026-01-01"), "2026-10-06")).toBe("expired");
+  });
+});
+
+describe("expiryToday", () => {
+  it("is the date in the furthest-west US time, so the expiry day still counts in US evenings", () => {
+    expect(expiryToday(new Date("2026-10-13T01:00:00Z"))).toBe("2026-10-12"); // 7pm Oct 12 in Denver
+    expect(expiryToday(new Date("2026-10-13T12:00:00Z"))).toBe("2026-10-13");
   });
 });

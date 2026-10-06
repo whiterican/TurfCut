@@ -3,16 +3,17 @@ import { requireWorker } from "@/lib/worker-session";
 import { loadCredentials } from "@/lib/credentials-data";
 import { loadSharing } from "@/lib/sharing-data";
 import { AUDIENCE_OPTIONS } from "@/lib/sharing";
-import { credentialName, dateOnly, expiryState, maskIdentifier, VERIFICATION_LABELS } from "@/lib/credentials";
+import { credentialName, dateOnly, expiryState, expiryToday, maskIdentifier, VERIFICATION_LABELS } from "@/lib/credentials";
 import { CredentialForm, RemoveCredential } from "@/components/CredentialForm";
 
 const dateText = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
 
-export default async function CredentialsPage() {
+export default async function CredentialsPage({ searchParams }: { searchParams: Promise<{ removed?: string }> }) {
   const { workerId } = await requireWorker();
+  const removed = (await searchParams).removed === "1";
   const [creds, sharing] = await Promise.all([loadCredentials(workerId), loadSharing(workerId)]);
   const audience = AUDIENCE_OPTIONS.find((o) => o.value === sharing.choices.audiences.credentials)!;
-  const today = new Date().toISOString().slice(0, 10);
+  const today = expiryToday();
 
   return (
     <main className="page max-w-2xl space-y-8">
@@ -28,6 +29,7 @@ export default async function CredentialsPage() {
         </p>
       </header>
 
+      {removed && <p role="status" className="text-success-msg">Removed. It stays on record, but nobody sees it.</p>}
       <section className="section" aria-labelledby="wallet">
         <h2 id="wallet" className="section-title">Your credentials</h2>
         {creds.length === 0 ? (
@@ -38,7 +40,8 @@ export default async function CredentialsPage() {
               const ex = expiryState(c.expiresOn, today);
               const name = credentialName(c);
               return (
-                <li key={c.id} className="card space-y-2">
+                // Keyed by the first row of the edit chain, so a saved edit keeps its form and message.
+                <li key={c.rootId} className="card space-y-2">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="font-semibold text-fg">{name}</p>
                     <span className={c.verification === "SELF_REPORTED" ? "badge-dashed" : "badge-accent"}>{VERIFICATION_LABELS[c.verification]}</span>
@@ -53,7 +56,8 @@ export default async function CredentialsPage() {
                     <div className="mt-3 border-t border-border pt-3">
                       <CredentialForm
                         id={c.id}
-                        values={{ kind: c.kind, label: c.label ?? "", state: c.state ?? "", identifier: c.identifier ?? "", issuedOn: dateOnly(c.issuedOn) ?? "", expiresOn: dateOnly(c.expiresOn) ?? "" }}
+                        masked={maskIdentifier(c.identifier)}
+                        values={{ kind: c.kind, label: c.label ?? "", state: c.state ?? "", identifier: "", issuedOn: dateOnly(c.issuedOn) ?? "", expiresOn: dateOnly(c.expiresOn) ?? "" }}
                       />
                     </div>
                   </details>

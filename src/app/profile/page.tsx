@@ -14,6 +14,8 @@ import { loadSharing } from "@/lib/sharing-data";
 import { loadAvailability } from "@/lib/availability-data";
 import { availabilitySummary, isEmptyAvailability } from "@/lib/availability";
 import { AvailabilityStatement } from "@/components/AvailabilityStatement";
+import { loadCredentials } from "@/lib/credentials-data";
+import { CredentialList } from "@/components/CredentialList";
 import { PART_DETAILS, SHARE_PARTS, type ShareAudience } from "@/lib/sharing";
 
 const AUDIENCE_SHORT: Record<ShareAudience, string> = {
@@ -24,7 +26,7 @@ const AUDIENCE_SHORT: Record<ShareAudience, string> = {
 
 export default async function ProfilePage() {
   const { workerId } = await requireWorker();
-  const [worker, records, scorecard, fit, history, sharing, avail] = await Promise.all([
+  const [worker, records, scorecard, fit, history, sharing, avail, creds] = await Promise.all([
     db().worker.findUniqueOrThrow({ where: { id: workerId }, select: { displayName: true, phone: true } }),
     db().experienceRecord.findMany({ where: { workerId }, orderBy: { startDate: "desc" } }),
     loadScorecardPeriods(workerId),
@@ -32,6 +34,7 @@ export default async function ProfilePage() {
     loadCampaignHistory(workerId),
     loadSharing(workerId),
     loadAvailability(workerId),
+    loadCredentials(workerId),
   ]);
   const today = new Date().toISOString().slice(0, 10);
   const mode = fit && VISIBILITY_OPTIONS.find((o) => o.value === fit.visibilityMode);
@@ -81,6 +84,16 @@ export default async function ProfilePage() {
           <AvailabilityStatement view={isEmptyAvailability(avail.availability) ? null : availabilitySummary(avail.availability, today)} />
           <Link transitionTypes={["nav-forward"]} href="/profile/availability" className="btn-secondary">
             {avail.version === null ? "Set your availability" : "Change availability"}
+          </Link>
+        </div>
+      </section>
+
+      <section className="section">
+        <h2 className="section-title">Credentials</h2>
+        <div className="card space-y-3">
+          <CredentialList view={creds.map((c) => ({ kind: c.kind, label: c.label, state: c.state, verification: c.verification, expiresOn: c.expiresOn }))} today={today} />
+          <Link transitionTypes={["nav-forward"]} href="/profile/credentials" className="btn-secondary">
+            {creds.length ? "Manage credentials" : "Add a credential"}
           </Link>
         </div>
       </section>

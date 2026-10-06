@@ -7,6 +7,7 @@ import { applyToJob } from "@/lib/engagements-data";
 import type { HiringSnapshot } from "@/lib/engagements";
 import { loadOrgScorecard, loadOrgScorecardPeriods } from "@/lib/shared-scorecard-data";
 import { loadAvailability, loadOrgAvailabilities, loadOrgAvailability, saveAvailability } from "@/lib/availability-data";
+import { addCredential, editCredential, loadCredentials, loadOrgCredentials, removeCredential } from "@/lib/credentials-data";
 
 const ORG = "00000000-0000-0000-0000-000000000001";
 const ORG2 = "00000000-0000-0000-0000-000000000002";
@@ -221,6 +222,38 @@ const all = (a: string) => Object.fromEntries(SHARE_PARTS.map((p) => [p, a]));
   }
   const old = await saveAvailability(W3, W3, { weekly: {}, exceptions: [{ date: "2020-01-01", ranges: [] }, { date: "2099-01-01", ranges: [] }] }, "2026-10-06");
   check("dates that are over are dropped on save", old.ok && (await loadAvailability(W3)).availability.exceptions.map((e) => e.date).join() === "2099-01-01", old);
+
+  // --- 9. C2.5: credentials wallet ---
+  const W2C = W2; // W2's profile id equals the worker id in the seed
+  const add = await addCredential(W2, W2C, { kind: "CIRCULATOR_REGISTRATION", state: "co", identifier: "CO-778899", expiresOn: "2099-01-01" });
+  check("a worker adds a self-reported credential, audited", add.ok && (await p.workerCredential.findUniqueOrThrow({ where: { id: add.ok ? add.id : "" } })).verification === "SELF_REPORTED" && (await p.auditEvent.count({ where: { action: "credential.added" } })) === 1, add);
+  const badAdd = await addCredential(W2, W2C, { kind: "CIRCULATOR_REGISTRATION" });
+  check("a registration without a state is refused with a field message", !badAdd.ok && !!badAdd.errors?.state, badAdd);
+  const id1 = add.ok ? add.id : "";
+  const notMine = await editCredential(W3, W3, id1, { kind: "CIRCULATOR_REGISTRATION", state: "CO", identifier: "X" });
+  check("another worker can't edit it (reads as changed/not found)", !notMine.ok && (await loadCredentials(W2)).length === 1, notMine);
+  const kindChange = await editCredential(W2, W2C, id1, { kind: "TRAINING", label: "x" });
+  check("an edit can't change the kind", !kindChange.ok && /kind/.test(kindChange.ok ? "" : kindChange.reason));
+  const [e1, e2] = await Promise.all([
+    editCredential(W2, W2C, id1, { kind: "CIRCULATOR_REGISTRATION", state: "CO", identifier: "CO-1" }),
+    editCredential(W2, W2C, id1, { kind: "CIRCULATOR_REGISTRATION", state: "CO", identifier: "CO-2" }),
+  ]);
+  check("two edits racing on one credential: exactly one lands, the other is told to reload", [e1, e2].filter((r) => r.ok).length === 1 && [e1, e2].some((r) => !r.ok && /Reload/.test(r.reason)), [e1, e2]);
+  const wallet = await loadCredentials(W2);
+  check("the wallet shows one current credential, with the winning edit", wallet.length === 1 && ["CO-1", "CO-2"].includes(wallet[0].identifier ?? ""), wallet);
+  const stale = await editCredential(W2, W2C, id1, { kind: "CIRCULATOR_REGISTRATION", state: "CO", identifier: "CO-3" });
+  check("editing the superseded row is refused", !stale.ok);
+  await addCredential(W2, W2C, { kind: "TRAINING", label: "Petition basics" });
+  const rm = await removeCredential(W2, W2C, wallet[0].id);
+  check("removing appends a removal row; history stays", rm.ok && (await loadCredentials(W2)).length === 1 && (await p.workerCredential.count({ where: { workerId: W2 } })) === 4, rm); // add, winning edit, training, removal
+  const rmAgain = await removeCredential(W2, W2C, wallet[0].id);
+  check("removing it twice is refused", !rmAgain.ok);
+  await saveSharing(W2, W2, { audiences: { ...all("RELATIONSHIP"), credentials: "RELATIONSHIP" } });
+  const orgView = await loadOrgCredentials(W2, ORG);
+  check("a related org sees name, level and expiry, never the number", orgView !== "withheld" && orgView.length === 1 && !JSON.stringify(orgView).includes("CO-") && !("identifier" in orgView[0]), orgView);
+  check("an unrelated org sees credentials as not shared", (await loadOrgCredentials(W2, ORG2)) === "withheld");
+  await saveSharing(W2, W2, { audiences: { ...all("RELATIONSHIP"), credentials: "NOBODY" } });
+  check("hidden straight away when the worker narrows sharing", (await loadOrgCredentials(W2, ORG)) === "withheld");
 
   // --- 7. Browsers have no access ---
   for (const table of ["WorkerSharing", "WorkerAvailability", "WorkerCredential"]) {

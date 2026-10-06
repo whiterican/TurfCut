@@ -20,7 +20,7 @@ export default async function AvailabilityPage() {
         </div>
         <p className="lead">When you&apos;re usually free to work. It helps schedulers plan; it&apos;s never scored or used to rank you.</p>
         <p className="text-hint">
-          Who sees it: {audience.label.toLowerCase()}.{" "}
+          Who sees it: {audience.label}.{" "}
           <Link href="/profile/sharing" className="link">Change</Link>
         </p>
       </header>

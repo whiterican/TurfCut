@@ -19,6 +19,8 @@ import { cookies } from "next/headers";
 import { loadSharing } from "@/lib/sharing-data";
 import { noteDismissedBy, SHARING_NOTE_COOKIE } from "@/lib/sharing";
 import { DismissibleNote } from "@/components/DismissibleNote";
+import { loadCredentials } from "@/lib/credentials-data";
+import { credentialName, expiryReminder, expiryState } from "@/lib/credentials";
 import { dismissSharingNote } from "./actions";
 
 const ROLE_LABELS: Record<string, string> = {
@@ -113,6 +115,36 @@ async function SharingNote({ workerId }: { workerId: string }) {
       </p>
       <Link transitionTypes={["nav-forward"]} href="/profile/sharing" className="btn-primary btn-sm">Review my choices</Link>
     </DismissibleNote>
+  );
+}
+
+/**
+ * Credentials that expire within 30 days, or expired in the last 30 (C2.5).
+ * Shown from 30 days out; at 7 days the wording turns urgent.
+ */
+async function CredentialReminder({ workerId }: { workerId: string }) {
+  const today = new Date().toISOString().slice(0, 10);
+  const due = (await loadCredentials(workerId))
+    .map((c) => ({ c, when: expiryReminder(c.expiresOn, today), state: expiryState(c.expiresOn, today) }))
+    .filter((x) => x.when !== null);
+  if (!due.length) return null;
+  return (
+    <section className={`card space-y-2 ${due.some((x) => x.when !== "30") ? "border-[var(--danger)]" : ""}`} aria-label="Credentials to renew">
+      <p className="font-semibold text-fg">{due.length === 1 ? "A credential needs renewing" : "Credentials need renewing"}</p>
+      <ul className="space-y-1 text-sm">
+        {due.map(({ c, state }) => (
+          <li key={c.id} className="text-fg">
+            {credentialName(c)}:{" "}
+            {state.kind === "expired"
+              ? `expired ${state.days === 1 ? "yesterday" : `${state.days} days ago`}`
+              : state.kind === "soon"
+                ? state.days === 0 ? "expires today" : `expires in ${state.days} ${state.days === 1 ? "day" : "days"}`
+                : ""}
+          </li>
+        ))}
+      </ul>
+      <Link transitionTypes={["nav-forward"]} href="/profile/credentials" className="link text-sm">Update credentials</Link>
+    </section>
   );
 }
 
@@ -218,6 +250,7 @@ export default async function DashboardPage() {
 
       {isWorker && <WorkerBrief workerId={session.workerId!} userId={session.userId} />}
       {isWorker && <WorkerHero workerId={session.workerId!} />}
+      {isWorker && <CredentialReminder workerId={session.workerId!} />}
       {isWorker && <SharingNote workerId={session.workerId!} />}
 
       {isWorker && <EarningsCard workerId={session.workerId!} />}

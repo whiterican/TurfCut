@@ -12,6 +12,7 @@
  *   never a zero.
  */
 import type { Validated } from "@/lib/experience";
+import { hasHiddenChars } from "@/lib/text-guard";
 
 export type ShareAudience = "RELATIONSHIP" | "ANY_APPROVED_ORG" | "NOBODY";
 export type ShareGroup = "output" | "quality" | "reliability" | "history";
@@ -113,8 +114,6 @@ export function visibleParts(choices: SharingChoices, viewer: Viewer): Record<Sh
 
 export const MAX_TRAVEL_MILES = 500;
 const HOME_AREA_MAX = 80;
-/** Control, zero-width and direction-changing characters: they'd let typed text render as something else. */
-const HIDDEN_CHARS = /[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2060-\u2069\ufeff]/;
 const AUDIENCES = AUDIENCE_OPTIONS.map((o) => o.value);
 const WORK_TYPES: WorkType[] = ["PETITION", "CANVASS"];
 
@@ -147,7 +146,7 @@ export function validateSharing(raw: unknown): Validated<SharingChoices> {
   const area = typeof r.homeArea === "string" ? r.homeArea.trim().replace(/\s+/g, " ") : r.homeArea ?? null;
   let homeArea: string | null = null;
   if (area === null || area === "") homeArea = null;
-  else if (typeof area === "string" && area.length <= HOME_AREA_MAX && !HIDDEN_CHARS.test(area)) homeArea = area;
+  else if (typeof area === "string" && area.length <= HOME_AREA_MAX && !hasHiddenChars(area, true)) homeArea = area;
   else errors.homeArea = `Type a city or ZIP (up to ${HOME_AREA_MAX} characters).`;
 
   const miles =

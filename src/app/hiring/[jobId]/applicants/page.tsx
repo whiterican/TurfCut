@@ -10,7 +10,7 @@ import { DataTable } from "@/components/staff/DataTable";
 import { SnapshotView } from "@/components/SnapshotView";
 import { ActionButton } from "@/components/ActionButton";
 import { acceptApplication } from "@/app/jobs/actions";
-import { loadOrgAvailability } from "@/lib/availability-data";
+import { loadOrgAvailabilities } from "@/lib/availability-data";
 import { AvailabilityStatement } from "@/components/AvailabilityStatement";
 
 const day = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
@@ -33,9 +33,8 @@ export default async function ApplicantsPage({ params }: { params: Promise<{ job
   });
   const waiting = engagements.filter((e) => e.status === "APPLIED");
   // Live, as each worker shares it with this organization now (C2.4); never scored or sorted on.
-  const availability = new Map(
-    await Promise.all(waiting.filter((e) => !e.worker.closedAt).map(async (e) => [e.id, await loadOrgAvailability(e.worker.id, session.orgId)] as const))
-  );
+  const byWorker = await loadOrgAvailabilities(waiting.filter((e) => !e.worker.closedAt).map((e) => e.worker.id), session.orgId);
+  const availability = new Map(waiting.filter((e) => byWorker.has(e.worker.id)).map((e) => [e.id, byWorker.get(e.worker.id)!] as const));
 
   return (
     <main className="page max-w-4xl">

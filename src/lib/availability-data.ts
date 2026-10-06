@@ -1,7 +1,9 @@
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
-import { availabilityFromRow, availabilitySummary, EMPTY_AVAILABILITY, isEmptyAvailability, sameAvailability, validateAvailability, type Availability } from "@/lib/availability";
+import { availabilityFromRow, availabilitySummary, EMPTY_AVAILABILITY, isEmptyAvailability, sameAvailability, validateAvailability, withoutPastDates, type Availability } from "@/lib/availability";
 import { partsForOrg } from "@/lib/shared-scorecard-data";
+import { DEFAULT_SHARING, sharingFromRow, visibleParts, type Viewer } from "@/lib/sharing";
+import { RELATIONSHIP_STATUSES } from "@/lib/engagements";
 
 export interface LoadedAvailability {
   availability: Availability;
@@ -27,8 +29,8 @@ export type SaveAvailabilityResult =
  * serialized with an advisory lock; the unique (workerId, version) index is
  * the backstop.
  */
-export async function saveAvailability(workerId: string, actorId: string, raw: unknown): Promise<SaveAvailabilityResult> {
-  const v = validateAvailability(raw);
+export async function saveAvailability(workerId: string, actorId: string, raw: unknown, today = new Date().toISOString().slice(0, 10)): Promise<SaveAvailabilityResult> {
+  const v = validateAvailability(withoutPastDates(raw, today));
   if (!v.ok) return v;
   const a = v.value;
   return db().$transaction(async (tx) => {
@@ -58,10 +60,44 @@ export async function saveAvailability(workerId: string, actorId: string, raw: u
 /**
  * Availability as one organization may see it, right now: the plain summary
  * when the worker shares it with this organization (C2.4), "withheld" when
- * not, null when shared but nothing is set. Closed accounts show nothing.
+ * not (including closed accounts, which orgViewer treats as the public), null
+ * when shared but nothing is set.
  */
 export async function loadOrgAvailability(workerId: string, orgId: string, today = new Date().toISOString().slice(0, 10)) {
-  const [parts, { availability }] = await Promise.all([partsForOrg(workerId, orgId), loadAvailability(workerId)]);
-  if (!parts.availability) return "withheld" as const;
+  if (!(await partsForOrg(workerId, orgId)).availability) return "withheld" as const;
+  const { availability } = await loadAvailability(workerId);
   return isEmptyAvailability(availability) ? null : availabilitySummary(availability, today);
+}
+
+/**
+ * loadOrgAvailability for a list of workers in five queries, whatever its
+ * length (the applicants page). Same rules: the worker's latest sharing
+ * choice, the organization's approval, a relationship from the worker's own
+ * engagements, closed accounts withheld.
+ */
+export async function loadOrgAvailabilities(workerIds: string[], orgId: string, today = new Date().toISOString().slice(0, 10)) {
+  const ids = [...new Set(workerIds)];
+  const out = new Map<string, Awaited<ReturnType<typeof loadOrgAvailability>>>();
+  if (!ids.length) return out;
+  const [org, workers, sharing, related, rows] = await Promise.all([
+    db().organization.findUnique({ where: { id: orgId }, select: { approved: true } }),
+    db().worker.findMany({ where: { id: { in: ids } }, select: { id: true, closedAt: true } }),
+    db().workerSharing.findMany({ where: { workerId: { in: ids } }, orderBy: [{ workerId: "asc" }, { version: "desc" }], distinct: ["workerId"] }),
+    db().engagement.groupBy({ by: ["workerId"], where: { workerId: { in: ids }, job: { orgId }, status: { in: RELATIONSHIP_STATUSES } } }),
+    db().workerAvailability.findMany({ where: { workerId: { in: ids } }, orderBy: [{ workerId: "asc" }, { version: "desc" }], distinct: ["workerId"] }),
+  ]);
+  const open = new Set(workers.filter((w) => !w.closedAt).map((w) => w.id));
+  const choices = new Map(sharing.map((s) => [s.workerId, sharingFromRow(s)]));
+  const rel = new Set(related.map((r) => r.workerId));
+  const avail = new Map(rows.map((r) => [r.workerId, availabilityFromRow(r)]));
+  for (const id of ids) {
+    const viewer: Viewer = open.has(id) ? { kind: "org", approved: org?.approved ?? false, relationship: rel.has(id) } : { kind: "public" };
+    if (!visibleParts(choices.get(id) ?? DEFAULT_SHARING, viewer).availability) {
+      out.set(id, "withheld");
+      continue;
+    }
+    const a = avail.get(id) ?? EMPTY_AVAILABILITY;
+    out.set(id, isEmptyAvailability(a) ? null : availabilitySummary(a, today));
+  }
+  return out;
 }

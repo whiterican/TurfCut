@@ -53,7 +53,7 @@ describe("shareScorecard", () => {
 
   it("a shared rate without shared history shows its value and formula only — no counts behind it", () => {
     const m = shareScorecard(sc, only("quality")).segments[0].averages.acceptanceRate!;
-    expect(m.value).toBeCloseTo(20 / 22, 10);
+    expect(m.value).toBe(0.91); // rounded: 20/22 can't be read back
     expect(m).toMatchObject({ numerator: null, denominator: null, evidence: COUNTS_WITHHELD, formula: "accepted signatures ÷ signatures reviewed" });
     const withHistory = shareScorecard(sc, only("quality", "history")).segments[0].averages.acceptanceRate!;
     expect(withHistory.evidence).toMatch(/1 verified shift.*CO/);

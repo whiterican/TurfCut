@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { availabilityFromRow, availabilitySummary, EMPTY_AVAILABILITY, isEmptyAvailability, sameAvailability, timeText, validateAvailability } from "./availability";
+import { withoutPastDates, availabilityFromRow, availabilitySummary, EMPTY_AVAILABILITY, isEmptyAvailability, sameAvailability, timeText, validateAvailability } from "./availability";
 
 const ok = (raw: unknown) => {
   const v = validateAvailability(raw);
@@ -40,7 +40,7 @@ describe("validateAvailability", () => {
       { weekly: {}, exceptions: Array.from({ length: 41 }, (_, i) => ({ date: `2027-01-${String((i % 28) + 1).padStart(2, "0")}`, ranges: [] })) },
       { weekly: {}, exceptions: "none" },
       { weekly: {}, exceptions: [], note: "x".repeat(501) },
-      { weekly: {}, exceptions: [], note: "call me‮" },
+      { weekly: {}, exceptions: [], note: "call me\u202e" },
       { weekly: {}, exceptions: [], note: 5 },
     ];
     for (const raw of bad) expect(validateAvailability(raw).ok).toBe(false);
@@ -80,5 +80,31 @@ describe("rows", () => {
     expect(sameAvailability(a, { ...a, weekly: { ...a.weekly, mon: [] } })).toBe(true);
     expect(sameAvailability(a, { ...a, note: null })).toBe(false);
     expect(availabilityFromRow({ weekly: "junk", exceptions: [], note: null })).toEqual(EMPTY_AVAILABILITY);
+  });
+});
+
+describe("C2.4 review fixes", () => {
+  it("joins back-to-back times and reads runs of days as Mon–Fri", () => {
+    const a = ok({ weekly: { mon: [{ from: "09:00", to: "12:00" }, { from: "12:00", to: "17:00" }], tue: [{ from: "09:00", to: "17:00" }], wed: [{ from: "09:00", to: "17:00" }], thu: [{ from: "09:00", to: "17:00" }], fri: [{ from: "09:00", to: "17:00" }], sun: [{ from: "09:00", to: "17:00" }] }, exceptions: [] });
+    expect(a.weekly.mon).toEqual([{ from: "09:00", to: "17:00" }]);
+    expect(availabilitySummary(a, "2026-10-06").usual).toBe("Usually free Mon–Fri, Sun 9am–5pm.");
+  });
+  it("still shows yesterday's (UTC) date, for US evenings", () => {
+    const a = ok({ weekly: {}, exceptions: [{ date: "2026-10-12", ranges: [] }] });
+    expect(availabilitySummary(a, "2026-10-13").dates).toEqual(["Mon, Oct 12: not available"]);
+    expect(availabilitySummary(a, "2026-10-14").dates).toEqual([]);
+  });
+  it("says what's wrong, per day and per date", () => {
+    const v = validateAvailability({ weekly: { mon: [{ from: "", to: "17:00" }] }, exceptions: [{ date: "", ranges: [] }, { date: "2026-10-12", ranges: [] }, { date: "2026-10-12", ranges: [] }] });
+    expect(!v.ok && v.errors).toEqual({ mon: "Monday: Fill in both times.", "exceptions.0": "Pick a date.", "exceptions.2": "Mon, Oct 12, 2026 is listed twice." });
+    const shape = validateAvailability({ weekly: {}, exceptions: "nope" });
+    expect(!shape.ok && shape.errors.exceptions).toMatch(/Reload/);
+  });
+  it("drops dates that are over before saving, and leaves the rest alone", () => {
+    expect(withoutPastDates({ weekly: {}, exceptions: [{ date: "2026-10-04", ranges: [] }, { date: "2026-10-05", ranges: [] }, { date: "bad", ranges: [] }] }, "2026-10-06")).toEqual({ weekly: {}, exceptions: [{ date: "2026-10-05", ranges: [] }, { date: "bad", ranges: [] }] });
+    expect(withoutPastDates("junk", "2026-10-06")).toBe("junk");
+  });
+  it("refuses tag characters and line separators in the note", () => {
+    for (const note of ["a\u{e0041}b", "a\u2028b", "a\u00adb"]) expect(validateAvailability({ weekly: {}, exceptions: [], note }).ok).toBe(false);
   });
 });

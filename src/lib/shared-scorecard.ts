@@ -68,12 +68,16 @@ export const ALL_SHARED: Record<SharePart, boolean> = {
 const groupsOf = (parts: Record<SharePart, boolean>): Record<ShareGroup, boolean> =>
   Object.fromEntries(SHARE_GROUPS.map((g) => [g, parts[g] === true])) as Record<ShareGroup, boolean>;
 
+/** Rates under 1 (percentages) to whole percents; others to one decimal. */
+export const roundWithoutCounts = (v: number) => (v <= 1 ? Math.round(v * 100) / 100 : Math.round(v * 10) / 10);
+
 export const COUNTS_WITHHELD = "The counts behind this rate are part of hours and history, which the worker doesn't share.";
 
 function metric(m: MetricExplanation, history: boolean): SharedMetric | null {
   if (history) return { value: m.value, formula: m.formula, numerator: m.numerator, denominator: m.denominator, evidence: m.evidence };
   if (m.value === null) return null;
-  return { value: m.value, formula: m.formula, numerator: null, denominator: null, evidence: COUNTS_WITHHELD };
+  // Rounded, so an exact value can't be worked back to its counts (0.9090… = 10/11).
+  return { value: roundWithoutCounts(m.value), formula: m.formula, numerator: null, denominator: null, evidence: COUNTS_WITHHELD };
 }
 
 export function shareScorecard(sc: Scorecard, parts: Record<SharePart, boolean>): SharedScorecard {

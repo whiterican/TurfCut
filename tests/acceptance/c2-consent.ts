@@ -6,7 +6,7 @@ import { DEFAULT_SHARING, SHARE_PARTS, sharingToRow, visibleParts } from "@/lib/
 import { applyToJob } from "@/lib/engagements-data";
 import type { HiringSnapshot } from "@/lib/engagements";
 import { loadOrgScorecard, loadOrgScorecardPeriods } from "@/lib/shared-scorecard-data";
-import { loadOrgAvailability, saveAvailability } from "@/lib/availability-data";
+import { loadAvailability, loadOrgAvailabilities, loadOrgAvailability, saveAvailability } from "@/lib/availability-data";
 
 const ORG = "00000000-0000-0000-0000-000000000001";
 const ORG2 = "00000000-0000-0000-0000-000000000002";
@@ -214,6 +214,13 @@ const all = (a: string) => Object.fromEntries(SHARE_PARTS.map((p) => [p, a]));
   await saveSharing(W2, W2, { audiences: { ...all("RELATIONSHIP"), availability: "NOBODY" } });
   check("after the worker hides it, the related org sees not shared at once", (await loadOrgAvailability(W2, ORG)) === "withheld");
   check("a worker who set nothing but shares it reads as no availability (not a blank score)", (await loadOrgAvailability(W1, ORG)) === null);
+  for (const org of [ORG, ORG2]) {
+    const batch = await loadOrgAvailabilities([W1, W2, W3], org, "2026-10-06");
+    const single = await Promise.all([W1, W2, W3].map((w) => loadOrgAvailability(w, org, "2026-10-06")));
+    check(`the applicants-page batch matches one-by-one for ${org === ORG ? "a related" : "an unrelated"} org`, JSON.stringify([W1, W2, W3].map((w) => batch.get(w))) === JSON.stringify(single), { batch: [...batch], single });
+  }
+  const old = await saveAvailability(W3, W3, { weekly: {}, exceptions: [{ date: "2020-01-01", ranges: [] }, { date: "2099-01-01", ranges: [] }] }, "2026-10-06");
+  check("dates that are over are dropped on save", old.ok && (await loadAvailability(W3)).availability.exceptions.map((e) => e.date).join() === "2099-01-01", old);
 
   // --- 7. Browsers have no access ---
   for (const table of ["WorkerSharing", "WorkerAvailability", "WorkerCredential"]) {

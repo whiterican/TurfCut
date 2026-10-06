@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { computeScorecard, type ScorecardShift } from "./scorecard";
-import { ALL_SHARED, AVERAGE_KEYS, COUNTS_WITHHELD, shareScorecard, sortWithWithheld } from "./shared-scorecard";
+import { ALL_SHARED, AVERAGE_KEYS, COUNTS_WITHHELD, shareScorecard, shareScorecardPeriodsForOrg, sortWithWithheld } from "./shared-scorecard";
 import { canSee, visibleParts, DEFAULT_SHARING, type SharePart } from "./sharing";
 import { SEED_SHIFT_EVENTS, SEED_SHIFT_ID } from "../../prisma/seed-fixture";
 
@@ -82,6 +82,20 @@ describe("shareScorecard", () => {
     const stranger = visibleParts(DEFAULT_SHARING, { kind: "org", approved: true, relationship: false });
     expect(json(shareScorecard(sc, stranger))).toBe(json(shareScorecard(sc, only())));
     expect(canSee("NOBODY", { kind: "self" })).toBe(true);
+  });
+});
+
+describe("periods an organization (and the worker's preview) gets", () => {
+  const periods = { lifetime: sc, "12m": computeScorecard([shift], { now, period: "12m" }), "90d": computeScorecard([], { now, period: "90d" }) };
+  it("without history, every period is the lifetime view, so periods can't date the work", () => {
+    const v = shareScorecardPeriodsForOrg(periods, only("output"));
+    expect(v["90d"]).toBe(v.lifetime);
+    expect(v["12m"]).toBe(v.lifetime);
+  });
+  it("with history, each period is its own", () => {
+    const v = shareScorecardPeriodsForOrg(periods, ALL_SHARED);
+    expect(v["90d"].segments).toHaveLength(0);
+    expect(v.lifetime.segments).toHaveLength(1);
   });
 });
 

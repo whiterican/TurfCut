@@ -124,6 +124,22 @@ export function shareScorecardPeriods(
 }
 
 /**
+ * The periods an organization gets. Comparing periods would show when the
+ * worker worked — that's hours and history — so without it every period is
+ * the lifetime view. Used by the org's worker page and the worker's preview.
+ */
+export function shareScorecardPeriodsForOrg(
+  periods: Record<Period, Scorecard>,
+  parts: Record<SharePart, boolean>
+): Record<Period, SharedScorecard> {
+  if (!parts.history) {
+    const life = shareScorecard(periods.lifetime, parts);
+    return { lifetime: life, "12m": life, "90d": life };
+  }
+  return shareScorecardPeriods(periods, parts);
+}
+
+/**
  * The sort rule for lists of workers (used by C3's Applicants and Matches):
  * workers who share the metric are sorted by it; workers who withheld it sit
  * in their own group below, in their original order — never ranked as zero.

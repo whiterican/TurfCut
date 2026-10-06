@@ -1,5 +1,5 @@
 import { loadScorecard, loadScorecardPeriods } from "@/lib/scorecard-data";
-import { shareScorecard, shareScorecardPeriods, type SharedScorecard } from "@/lib/shared-scorecard";
+import { shareScorecard, shareScorecardPeriodsForOrg, type SharedScorecard } from "@/lib/shared-scorecard";
 import { loadSharing, orgViewer } from "@/lib/sharing-data";
 import { visibleParts } from "@/lib/sharing";
 import type { Period, ScorecardOptions } from "@/lib/scorecard";
@@ -16,12 +16,7 @@ export async function partsForOrg(workerId: string, orgId: string) {
  */
 export async function loadOrgScorecardPeriods(workerId: string, orgId: string): Promise<Record<Period, SharedScorecard>> {
   const [periods, parts] = await Promise.all([loadScorecardPeriods(workerId), partsForOrg(workerId, orgId)]);
-  // Comparing periods would show when the worker worked: that's history.
-  if (!parts.history) {
-    const life = shareScorecard(periods.lifetime, parts);
-    return { lifetime: life, "12m": life, "90d": life };
-  }
-  return shareScorecardPeriods(periods, parts);
+  return shareScorecardPeriodsForOrg(periods, parts);
 }
 
 /**

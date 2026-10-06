@@ -113,7 +113,7 @@ async function SharingNote({ workerId }: { workerId: string }) {
         organizations can find you. Until you do, organizations you apply to or accept an invite from see your
         profile, and nobody can find you.
       </p>
-      <Link transitionTypes={["nav-forward"]} href="/profile/sharing" className="btn-primary btn-sm">Review my choices</Link>
+      <Link transitionTypes={["nav-forward"]} href="/profile/setup" className="btn-primary btn-sm">Set it up (4 short steps)</Link>
     </DismissibleNote>
   );
 }

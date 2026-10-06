@@ -52,6 +52,18 @@ export default async function ProfilePage() {
         </div>
       </header>
 
+      {sharing.version === null && (
+        // Until the worker saves a sharing choice (C2-Q4): a reminder, every visit.
+        <section className="card space-y-2" aria-label="Set up who sees what">
+          <p className="font-semibold text-fg">Choose who sees what</p>
+          <p className="text-muted-sm">You&apos;re on the defaults: organizations you apply to or accept an invite from see your profile, and nobody can find you.</p>
+          <div className="flex flex-wrap gap-2">
+            <Link transitionTypes={["nav-forward"]} href="/profile/setup" className="btn-primary btn-sm">Set it up</Link>
+            <Link href="/profile/preview" className="btn-ghost btn-sm">See what organizations see</Link>
+          </div>
+        </section>
+      )}
+
       <section className="section">
         <h2 className="section-title">Scorecard</h2>
         <ScorecardPanel periods={shareScorecardPeriods(scorecard, ALL_SHARED)} history={history} />
@@ -114,7 +126,10 @@ export default async function ProfilePage() {
             </li>
           </ul>
           {sharing.version === null && <p className="text-hint">These are the defaults. Nothing changes until you choose.</p>}
-          <Link transitionTypes={["nav-forward"]} href="/profile/sharing" className="btn-secondary">Change who sees what</Link>
+          <div className="flex flex-wrap gap-2">
+            <Link transitionTypes={["nav-forward"]} href="/profile/sharing" className="btn-secondary">Change who sees what</Link>
+            <Link transitionTypes={["nav-forward"]} href="/profile/preview" className="btn-ghost">See what organizations see</Link>
+          </div>
         </div>
       </section>
 

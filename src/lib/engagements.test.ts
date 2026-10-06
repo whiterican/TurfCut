@@ -66,7 +66,7 @@ describe("hiring snapshot with sharing narrowed", () => {
     const now = new Date("2026-10-01T12:00:00Z");
     const fit = employerFitView(null, { orgHasRelationship: true });
     const parts = { ...ALL_SHARED, reliability: false, history: false };
-    const m = { value: 0.9, numerator: 9, denominator: 10, formula: "f", evidence: "9 of 10; 1 verified shift on Sep 28, CO", basis: "9 of 10" };
+    const m = { value: 0.9, numerator: 9, denominator: 10, formula: "f", evidence: "9 of 10; 1 verified shift on Sep 28, CO" };
     const seg = computeScorecard([], { now });
     const full = {
       ...seg,
@@ -80,8 +80,8 @@ describe("hiring snapshot with sharing narrowed", () => {
     };
     const snap = buildSnapshot({ kind: "application", scorecard: shareScorecard(full, parts), sharingVersion: 4, fit, consentVersion: null, now });
     expect(snap.scorecard.segments).toHaveLength(1);
-    expect(snap.scorecard.segments[0].averages.acceptanceRate).toEqual({ value: 0.9, numerator: 9, denominator: 10 });
-    expect(JSON.stringify(snap)).not.toMatch(/CO|Sep 28|3\.5/);
+    expect(snap.scorecard.segments[0].averages.acceptanceRate).toEqual({ value: 0.9, numerator: null, denominator: null });
+    expect(JSON.stringify(snap)).not.toMatch(/CO|Sep 28|3\.5|"numerator":\d/);
     expect(snap.scorecard.showRate).toBeNull();
     expect(snap.scorecard.sharingVersion).toBe(4);
     expect(snap.scorecard.shared).toMatchObject({ reliability: false, history: false, output: true });

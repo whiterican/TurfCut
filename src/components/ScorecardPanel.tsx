@@ -1,6 +1,6 @@
 import { num, percent, plural } from "@/lib/format";
-import type { CampaignHistory, MetricExplanation, Period } from "@/lib/scorecard";
-import type { AverageKey, SharedScorecard, SharedSegment } from "@/lib/shared-scorecard";
+import type { CampaignHistory, Period } from "@/lib/scorecard";
+import type { AverageKey, SharedMetric, SharedScorecard, SharedSegment } from "@/lib/shared-scorecard";
 import { NotSharedChip } from "@/components/staff/NotSharedChip";
 
 const WORK_TYPE_LABELS = { PETITION: "Petition circulation", CANVASS: "Door-to-door canvass" } as const;
@@ -15,12 +15,12 @@ const AVERAGES: Array<{ key: AverageKey; label: string; pct?: boolean }> = [
   { key: "acceptanceRate", label: "Signature acceptance rate", pct: true },
 ];
 
-function fmt(m: MetricExplanation, pct?: boolean): string {
+function fmt(m: SharedMetric, pct?: boolean): string {
   if (m.value === null) return "No data yet";
   return pct ? percent(m.value) : num(m.value);
 }
 
-function Metric({ label, m, pct, dot }: { label: string; m: MetricExplanation | null; pct?: boolean; dot?: string }) {
+function Metric({ label, m, pct, dot }: { label: string; m: SharedMetric | null; pct?: boolean; dot?: string }) {
   if (!m) {
     return (
       <li className="stat">
@@ -118,7 +118,7 @@ export function ScorecardPanel({ periods, history }: { periods: Record<Period, S
   const tiles: Array<{ value: string | null; label: string; evidence: string }> = [
     { value: sharesHistory ? num(total((x) => x.shiftsCount)) : null, label: "Verified shifts", evidence: "Approved by a supervisor" },
     show
-      ? { value: show.value === null ? "—" : percent(show.value), label: "Show rate", evidence: show.value === null ? "No scheduled shifts yet" : `${show.numerator} of ${show.denominator} scheduled shifts worked` }
+      ? { value: show.value === null ? "—" : percent(show.value), label: "Show rate", evidence: show.value === null ? "No scheduled shifts yet" : show.numerator === null ? "Counts not shared" : `${show.numerator} of ${show.denominator} scheduled shifts worked` }
       : { value: null, label: "Show rate", evidence: "" },
     petition
       ? { value: sharesHistory ? num(total((x) => x.signaturesAccepted)) : null, label: "Accepted signatures", evidence: sharesHistory ? `Of ${num(total((x) => x.signaturesReviewed))} reviewed` : "" }
@@ -183,9 +183,12 @@ export function ScorecardPanel({ periods, history }: { periods: Record<Period, S
 
       <h3 className="font-bold text-fg">The math behind every number</h3>
       {!sharesHistory && lifetime.segments.some((x) => Object.values(x.averages).some(Boolean)) && (
-        <p className="text-hint">Each shared rate shows its own math. Shift counts, dates and states belong to hours and history, which aren&apos;t shared.</p>
+        <p className="text-hint">Each shared rate shows its value and formula. The counts behind it, and dates and states, belong to hours and history, which aren&apos;t shared.</p>
       )}
-      {lifetime.segments.length === 0 ? (
+      {lifetime.segments.length === 0 && !sharesHistory ? (
+        // "No verified shifts yet" would tell the organization about hours and history.
+        <p className="flex flex-wrap items-center gap-2 text-sm text-muted">Verified work: <NotSharedChip what="hours and history" /></p>
+      ) : lifetime.segments.length === 0 ? (
         <div className="empty-state">
           <p className="empty-state-title">No verified shifts yet</p>
           <p className="empty-state-body">

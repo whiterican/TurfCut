@@ -97,8 +97,6 @@ export interface MetricExplanation {
   formula: string;
   /** The rate's own math plus its context (shifts, dates, states). */
   evidence: string;
-  /** The rate's own math only — what's shown when the worker doesn't share their history (C2). */
-  basis: string;
 }
 
 export interface ScorecardSegment {
@@ -339,7 +337,7 @@ function explain(
   basis: string,
   context?: string
 ): MetricExplanation {
-  return { value, numerator, denominator: round(denominator), formula, evidence: context ? `${basis}; ${context}` : basis, basis };
+  return { value, numerator, denominator: round(denominator), formula, evidence: context ? `${basis}; ${context}` : basis };
 }
 
 function segment(

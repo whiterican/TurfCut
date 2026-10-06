@@ -171,7 +171,7 @@ const all = (a: string) => Object.fromEntries(SHARE_PARTS.map((p) => [p, a]));
   check("a closed account shows nothing, even to a related org", Object.values(visibleParts((await loadSharing(W1)).choices, vClosed)).every((x) => !x), vClosed);
   await p.worker.update({ where: { id: W1 }, data: { closedAt: null } });
 
-  // --- 7. C2.3: live views follow sharing at once; snapshots stay as the record ---
+  // --- 6b. C2.3: live views follow sharing at once; snapshots stay as the record ---
   const JOB = "00000000-0000-0000-0000-000000000011"; // ORG's seeded petition job
   await p.job.update({ where: { id: JOB }, data: { hiringMethod: { modes: ["application"] } } });
   await saveSharing(W2, W2, { audiences: all("RELATIONSHIP") });
@@ -186,7 +186,7 @@ const all = (a: string) => Object.fromEntries(SHARE_PARTS.map((p) => [p, a]));
   const after = await loadOrgScorecard(W2, ORG, { period: "90d", state: "CO" });
   check("after narrowing, ORG's live view drops those groups straight away", after.showRate === null && !after.shared.history && after.segments.every((g) => g.history === null && g.averages.acceptanceRate === null), after);
   check("without history, period and state filters are ignored (lifetime, all states)", after.period === "lifetime", after.period);
-  check("the live view carries no dates, states or totals", !/"CO"|shiftsCount|statesWorked/.test(JSON.stringify(after)));
+  check("the live view carries no dates, states, totals or a rate's counts", !/"CO"|shiftsCount|statesWorked|"numerator":\d|"denominator":\d/.test(JSON.stringify(after)), JSON.stringify(after));
   const periods = await loadOrgScorecardPeriods(W2, ORG);
   check("the worker-page view gives every period the lifetime view without history", periods["90d"] === periods.lifetime || JSON.stringify(periods["90d"]) === JSON.stringify(periods.lifetime));
   const again = (await p.engagement.findFirstOrThrow({ where: { id: eng.id } })).applicationSnapshot;

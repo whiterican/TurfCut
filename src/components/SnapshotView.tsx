@@ -5,9 +5,10 @@ import { NotSharedChip } from "@/components/staff/NotSharedChip";
 import { num, percent, plural } from "@/lib/format";
 import { Row } from "@/components/Row";
 
-type Frozen = { value: number | null; numerator: number; denominator: number };
-const pct = (m: Frozen) => (m.value === null ? "No data yet" : `${percent(m.value)} (${m.numerator} of ${m.denominator})`);
-const rate = (m: Frozen) => (m.value === null ? "No data yet" : `${num(m.value, 1)} (${m.numerator} ÷ ${m.denominator})`);
+type Frozen = { value: number | null; numerator: number | null; denominator: number | null };
+// Counts are null when the worker didn't share hours and history: the value alone.
+const pct = (m: Frozen) => (m.value === null ? "No data yet" : m.numerator === null ? percent(m.value) : `${percent(m.value)} (${m.numerator} of ${m.denominator})`);
+const rate = (m: Frozen) => (m.value === null ? "No data yet" : m.numerator === null ? num(m.value, 1) : `${num(m.value, 1)} (${m.numerator} ÷ ${m.denominator})`);
 const isNum = (v: unknown) => typeof v === "number" || v === null;
 
 const SHOWN: Array<{ key: string; label: string; pct?: boolean; work?: "PETITION" | "CANVASS" }> = [
@@ -27,7 +28,7 @@ export function SnapshotView({ snapshot }: { snapshot: HiringSnapshot }) {
   const sc = snapshot?.scorecard;
   const whole =
     !!sc &&
-    (sc.showRate === null || typeof sc.showRate === "object") &&
+    (sc.showRate === null || (typeof sc.showRate === "object" && !Array.isArray(sc.showRate) && "value" in sc.showRate)) &&
     Array.isArray(sc.segments) &&
     sc.segments.every((g) => isNum(g?.shiftsCount) && isNum(g?.activeHours)) &&
     typeof snapshot.fit?.fields === "object" &&
@@ -48,7 +49,7 @@ export function SnapshotView({ snapshot }: { snapshot: HiringSnapshot }) {
       <dl className="list-card">
         <Row label="Show rate">{s.showRate ? pct(s.showRate) : <NotSharedChip what="show rate" />}</Row>
         {s.segments.length === 0 ? (
-          <Row label="Verified work">No verified shifts yet</Row>
+          <Row label="Verified work">{s.shared && !s.shared.history ? <NotSharedChip what="hours and history" /> : "No verified shifts yet"}</Row>
         ) : (
           s.segments.map((seg) => (
             <div key={seg.workType} className="contents">

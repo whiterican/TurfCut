@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { computeScorecard, type ScorecardShift } from "./scorecard";
-import { ALL_SHARED, AVERAGE_KEYS, shareScorecard, sortWithWithheld } from "./shared-scorecard";
+import { ALL_SHARED, AVERAGE_KEYS, COUNTS_WITHHELD, shareScorecard, sortWithWithheld } from "./shared-scorecard";
 import { canSee, visibleParts, DEFAULT_SHARING, type SharePart } from "./sharing";
 import { SEED_SHIFT_EVENTS, SEED_SHIFT_ID } from "../../prisma/seed-fixture";
 
@@ -31,7 +31,7 @@ describe("shareScorecard", () => {
     expect(seg.history?.shiftsCount).toBe(1);
     expect(seg.history?.statesWorked).toEqual(["CO"]);
     for (const k of AVERAGE_KEYS) expect(seg.averages[k]).toEqual(sc.segments[0].averages[k]);
-    expect(v.showRate).toEqual(sc.reliability.showRate);
+    expect(v.showRate).toMatchObject({ value: 1, numerator: 1, denominator: 1 });
     expect(v.lastUpdated).toBe(sc.lastUpdated);
   });
 
@@ -51,18 +51,29 @@ describe("shareScorecard", () => {
     expect(shareScorecard(sc, only("history")).segments[0].history).not.toBeNull();
   });
 
-  it("a shared rate without shared history keeps its own math but loses dates, states and shift counts", () => {
+  it("a shared rate without shared history shows its value and formula only — no counts behind it", () => {
     const m = shareScorecard(sc, only("quality")).segments[0].averages.acceptanceRate!;
     expect(m.value).toBeCloseTo(20 / 22, 10);
-    expect(m.evidence).toBe("20 accepted of 22 reviewed (2 rejected)");
-    expect(m.evidence).not.toMatch(/CO|Sep|verified shift/);
+    expect(m).toMatchObject({ numerator: null, denominator: null, evidence: COUNTS_WITHHELD, formula: "accepted signatures ÷ signatures reviewed" });
     const withHistory = shareScorecard(sc, only("quality", "history")).segments[0].averages.acceptanceRate!;
     expect(withHistory.evidence).toMatch(/1 verified shift.*CO/);
   });
 
-  it("withheld history leaves no trace anywhere in the shared view", () => {
+  it("withheld history leaves no trace anywhere in the shared view — not even in a rate's math", () => {
     const text = json(shareScorecard(sc, only("output", "quality", "reliability")));
     expect(text).not.toMatch(/"CO"|CO\b|Sep 28|campaignsCount|shiftsCount|lastUpdated":"/);
+    // A rate keeps its value (doors per shift is 40 here); none carries the counts behind it.
+    expect(text).not.toMatch(/"numerator":\d|"denominator":\d|over [0-9]|contacts from|[0-9] of [0-9]+ accepted shift|of [0-9]+ reviewed/);
+    const v = shareScorecard(sc, only("output", "quality", "reliability"));
+    const shown = [...Object.values(v.segments[0].averages), v.showRate].filter(Boolean);
+    expect(shown.length).toBeGreaterThan(0);
+    for (const m of shown) expect(m!.evidence).toBe(COUNTS_WITHHELD);
+  });
+
+  it("without history, a rate with no data yet is withheld rather than shown as none", () => {
+    const empty = computeScorecard([], { now });
+    expect(shareScorecard(empty, only("reliability")).showRate).toBeNull();
+    expect(shareScorecard(empty, only("reliability", "history")).showRate?.value).toBeNull();
   });
 
   it("follows the worker's choices for a real viewer: defaults show a related org everything, others nothing", () => {
@@ -88,6 +99,9 @@ describe("sortWithWithheld (the rule C3's lists use)", () => {
     expect(r.sorted.map((x) => x.n)).toEqual(["c", "a", "f"]);
     expect(r.noData.map((x) => x.n)).toEqual(["d"]);
     expect(r.withheld.map((x) => x.n)).toEqual(["b", "e"]);
+  });
+  it("files NaN with no data, never sorted", () => {
+    expect(sortWithWithheld([{ v: NaN }, { v: 1 }], (x) => x.v).noData).toHaveLength(1);
   });
   it("ascending keeps ties in their original order", () => {
     expect(sortWithWithheld(rows, (x) => x.v, "asc").sorted.map((x) => x.n)).toEqual(["a", "f", "c"]);

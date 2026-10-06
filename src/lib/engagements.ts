@@ -11,8 +11,7 @@
  *   sharing later, live views change and the snapshot stays as the record.
  */
 import type { EmployerFitView } from "@/lib/political-fit";
-import type { MetricExplanation } from "@/lib/scorecard";
-import type { SharedScorecard } from "@/lib/shared-scorecard";
+import type { SharedMetric, SharedScorecard } from "@/lib/shared-scorecard";
 import type { ShareGroup } from "@/lib/sharing";
 import type { HiringMode } from "@/lib/jobs";
 
@@ -79,7 +78,8 @@ export function transition(
   }
 }
 
-type FrozenMetric = { value: number | null; numerator: number; denominator: number };
+/** Counts are null when the worker didn't share hours and history (C2). */
+type FrozenMetric = { value: number | null; numerator: number | null; denominator: number | null };
 
 export interface HiringSnapshot {
   kind: "application" | "invitation" | "claim";
@@ -120,7 +120,7 @@ export function buildSnapshot(args: {
   consentVersion: number | null;
   now: Date;
 }): HiringSnapshot {
-  const pick = (m: MetricExplanation | null): FrozenMetric | null =>
+  const pick = (m: SharedMetric | null): FrozenMetric | null =>
     m && { value: m.value, numerator: m.numerator, denominator: m.denominator };
   return {
     kind: args.kind,

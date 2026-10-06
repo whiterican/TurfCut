@@ -8,10 +8,8 @@ import { ENGAGEMENT_LABELS, JOB_STATUS_LABELS } from "@/lib/engagement-labels";
 import { UUID_RE, exclusionReasons, fitReasons, jobCardAnswers, jurisdictionLabel, payText, publishBlockers, readDisclosure, readHiringModes } from "@/lib/jobs";
 import { loadScorecard } from "@/lib/scorecard-data";
 import { loadSharing } from "@/lib/sharing-data";
-import { PART_DETAILS, SHARE_PARTS, visibleParts } from "@/lib/sharing";
+import { PART_DETAILS, SHARE_PARTS, visibleParts, type SharingChoices } from "@/lib/sharing";
 
-/** "a, b and c" */
-const listText = (xs: string[]) => (xs.length < 2 ? xs.join("") : `${xs.slice(0, -1).join(", ")} and ${xs.at(-1)}`);
 import { effectivePreference } from "@/lib/political-fit";
 import { loadLatestPreference } from "@/lib/political-fit-data";
 import { JobCard } from "@/components/JobCard";
@@ -117,7 +115,10 @@ async function WorkerPanel({
           Your status <span className={s.badge}>{s.label}</span>
         </p>
         {engagement.status === "INVITED" && (
-          <ActionButton action={acceptInvitation} fields={{ jobId: job.id, engagementId: engagement.id }} label="Accept invitation" />
+          <>
+            <ActionButton action={acceptInvitation} fields={{ jobId: job.id, engagementId: engagement.id }} label="Accept invitation" />
+            <WillSee sharing={(await loadSharing(workerId)).choices} approved={job.org.approved} />
+          </>
         )}
         {engagement.status === "APPLIED" && <p className="text-muted-sm">The organization will review your application.</p>}
         {(engagement.status === "ACTIVE" || engagement.status === "CLAIMED") && <WorkerShifts engagementId={engagement.id} />}
@@ -129,10 +130,6 @@ async function WorkerPanel({
 
   // Why it fits: the worker's own verified record against the job's rules.
   const [card, sharing] = await Promise.all([loadScorecard(workerId), loadSharing(workerId)]);
-  // Applying or claiming makes this a related organization (C2.3).
-  const willSee = visibleParts(sharing.choices, { kind: "org", approved: true, relationship: true });
-  const seen = SHARE_PARTS.filter((p) => willSee[p]).map((p) => PART_DETAILS[p].label.toLowerCase());
-  const hidden = SHARE_PARTS.filter((p) => !willSee[p]).map((p) => PART_DETAILS[p].label.toLowerCase());
   const answers = jobCardAnswers({ ...job, orgName: job.org.name, jurisdictionRules: job.jurisdiction.rules });
   const reasons2 = fitReasons({
     type: job.type,
@@ -180,20 +177,44 @@ async function WorkerPanel({
       {!modes.includes("application") && !modes.includes("instant_claim") && (
         <p className="text-muted-sm">This job hires by invitation only.</p>
       )}
-      <div className="space-y-1.5 text-sm">
-        <p className="font-medium text-fg">This organization will see</p>
-        <p className="text-muted">
-          {seen.length ? `Your ${listText(seen)}` : "None of your scorecard, availability or credentials"}, and only the
-          political-fit answers you chose to share.
-          {hidden.length > 0 && ` Not your ${listText(hidden)}: it sees "not shared" there.`}
-        </p>
-        <p className="flex flex-wrap gap-x-4">
-          <Link href="/profile/sharing" className="link">Change who sees what</Link>
-          <Link href="/profile/preferences" className="link">Political-fit answers</Link>
-        </p>
-      </div>
+      <WillSee sharing={sharing.choices} approved={job.org.approved} />
     </section>
     </>
+  );
+}
+
+/** "a, b and c" */
+const listText = (xs: string[]) => (xs.length < 2 ? xs.join("") : `${xs.slice(0, -1).join(", ")} and ${xs.at(-1)}`);
+
+/**
+ * Before the worker applies, claims or accepts an invitation: what this
+ * organization will see once they do (they become a related organization).
+ */
+function WillSee({ sharing, approved }: { sharing: SharingChoices; approved: boolean }) {
+  if (!approved) {
+    return (
+      <p className="text-hint">
+        Turfcut hasn&apos;t approved this organization yet, so it sees none of your profile.{" "}
+        <Link href="/profile/sharing" className="link">Who sees what</Link>
+      </p>
+    );
+  }
+  const parts = visibleParts(sharing, { kind: "org", approved: true, relationship: true });
+  const seen = SHARE_PARTS.filter((p) => parts[p]).map((p) => PART_DETAILS[p].label.toLowerCase());
+  const hidden = SHARE_PARTS.filter((p) => !parts[p]).map((p) => PART_DETAILS[p].label.toLowerCase());
+  return (
+    <div className="space-y-1.5 text-sm">
+      <p className="font-medium text-fg">This organization will see</p>
+      <p className="text-muted">
+        {seen.length ? `Your ${listText(seen)}` : "None of your scorecard, availability or credentials"}, and only the
+        political-fit answers you chose to share.
+        {hidden.length > 0 && ` Not your ${listText(hidden)}: it sees "not shared" there.`}
+      </p>
+      <p className="flex flex-wrap gap-x-4">
+        <Link href="/profile/sharing" className="link">Change who sees what</Link>
+        <Link href="/profile/preferences" className="link">Political-fit answers</Link>
+      </p>
+    </div>
   );
 }
 

@@ -308,7 +308,10 @@ reference contacts never shown to employers), political-fit preferences flow
 per-answer sharing and a worker-chosen expiry; every change is a new consent
 version, and expired or outdated consent shares nothing until reconfirmed), company view showing
 only worker-authorized signals, and a scorecard derived from work events
-(`GET /api/workers/:workerId/scorecard`).
+(`GET /api/workers/:workerId/scorecard`). Since C2 it returns the shared
+view: the worker gets everything; an organization gets only the groups the
+worker shares with it (`shared`), with a withheld group as `null` and, without
+hours and history, no counts behind a rate and no period or state filtering.
 
 Scorecard formulas follow spec p.10. Averages use verified shifts only
 (checked in, checked out, closeout approved) and are segmented by work type;

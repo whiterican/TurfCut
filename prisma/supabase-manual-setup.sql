@@ -1020,8 +1020,8 @@ CREATE TABLE "public"."WorkerSharing" (
     -- Findable needs somewhere to be found from: a typed area and a radius.
     CONSTRAINT "WorkerSharing_findable_shape" CHECK (NOT "findable" OR ("homeArea" IS NOT NULL AND "travelMiles" IS NOT NULL AND cardinality("workTypes") > 0)),
     CONSTRAINT "WorkerSharing_work_types_shape" CHECK ("workTypes" IS NOT NULL AND array_position("workTypes", NULL) IS NULL),
-    CONSTRAINT "WorkerSharing_home_area_trimmed" CHECK ("homeArea" IS NULL OR "homeArea" = btrim("homeArea")),
-    CONSTRAINT "WorkerSharing_text_version" CHECK (char_length("consentTextVersion") > 0)
+    CONSTRAINT "WorkerSharing_home_area_trimmed" CHECK ("homeArea" IS NULL OR "homeArea" ~ '^\S(.*\S)?$'),
+    CONSTRAINT "WorkerSharing_text_version" CHECK ("consentTextVersion" ~ '^\S+$')
 );
 
 CREATE TABLE "public"."WorkerAvailability" (
@@ -1066,17 +1066,21 @@ CREATE TABLE "public"."WorkerCredential" (
     -- Taking a credential down supersedes the row it removes.
     CONSTRAINT "WorkerCredential_removal_supersedes" CHECK (NOT "removed" OR "supersedesId" IS NOT NULL),
     CONSTRAINT "WorkerCredential_not_self" CHECK ("supersedesId" IS NULL OR "supersedesId" <> "id"),
-    -- Self-reported means nobody verified it; anything else says when it was verified.
+    -- Self-reported means nobody verified it. Anything else says when it was
+    -- verified (not in the future); Turfcut and organization verification
+    -- also name the verifier, who is the one writing the row, so a worker's
+    -- own save can never produce a verified credential.
     CONSTRAINT "WorkerCredential_verification_shape" CHECK (
       ("verification" = 'SELF_REPORTED' AND "verifiedById" IS NULL AND "verifiedAt" IS NULL)
-      OR ("verification" <> 'SELF_REPORTED' AND "verifiedAt" IS NOT NULL)),
+      OR ("verification" <> 'SELF_REPORTED' AND "verifiedAt" IS NOT NULL AND "verifiedAt" <= "createdAt" + interval '1 minute'
+          AND ("verification" = 'IMPORTED' OR ("verifiedById" IS NOT NULL AND "verifiedById" = "actorId")))),
     -- A removal records only what it removes: no new content, no verification.
     CONSTRAINT "WorkerCredential_removal_bare" CHECK (NOT "removed" OR (
       "label" IS NULL AND "state" IS NULL AND "identifier" IS NULL AND "issuedOn" IS NULL AND "expiresOn" IS NULL
       AND "proofPath" IS NULL AND "verification" = 'SELF_REPORTED')),
     -- Proof files live under the worker's own folder in credential-proofs.
     CONSTRAINT "WorkerCredential_proof_path" CHECK ("proofPath" IS NULL OR (
-      left("proofPath", 37) = "workerId"::text || '/' AND strpos("proofPath", '..') = 0 AND char_length("proofPath") <= 200))
+      left("proofPath", 37) = "workerId"::text || '/' AND strpos("proofPath", '..') = 0 AND char_length("proofPath") BETWEEN 38 AND 200))
 );
 
 CREATE UNIQUE INDEX "WorkerSharing_workerId_version_key" ON "public"."WorkerSharing"("workerId", "version");

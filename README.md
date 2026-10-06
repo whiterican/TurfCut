@@ -468,7 +468,7 @@ connection is only for schema changes.
 | `DIRECT_URL` | Your machine / CI only, when running `npm run db:push` or one-off scripts | **Direct connection**, port **5432**: `postgresql://postgres:<password>@db.<ref>.supabase.co:5432/postgres` |
 
 - The app adds `pgbouncer=true` (Prisma can't use prepared statements on the
-  transaction pooler) and `connection_limit=1` to a 6543 URL that doesn't
+  transaction pooler) and `connection_limit=3` to a 6543 URL that doesn't
   set them, and logs a warning on Vercel if `DATABASE_URL` isn't port 6543.
 - A pasted value is tidied first: spaces and line breaks, wrapping quotes, a
   `DATABASE_URL=` prefix and a phone's capital `P` in `postgresql://` are

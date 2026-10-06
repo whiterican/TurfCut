@@ -66,8 +66,16 @@ let warned = false;
  * connections, so production must go through Supabase's pooler; a direct
  * connection (5432) on Vercel is warned about, since it exhausts
  * max_connections under load. On the pooler's transaction mode Prisma needs
- * pgbouncer=true (no prepared statements), and one connection per instance
- * is plenty: both are added when the URL doesn't say otherwise. Pure.
+ * pgbouncer=true (no prepared statements). Each instance gets three
+ * connections: pages run their queries side by side (Promise.all) and one
+ * instance serves several requests at once, so with one connection they
+ * queued, and a write's $transaction (pay, chat, jobs, members) could give up
+ * after Prisma's 2 s maxWait while another held it. The cost: the pooler's
+ * client limit is per project (200 on Supabase's smallest plans), so it now
+ * fits about 66 warm instances instead of 200 (the database-side pool,
+ * about 15, is unchanged: beyond it requests queue in the pooler).
+ * connection_limit=1 in DATABASE_URL's query restores the old setting. Both
+ * are added when the URL doesn't say otherwise. Pure.
  */
 export function runtimeDatabaseUrl(raw: string, serverless: boolean): { url: string; warning: string | null } {
   const clean = cleanDatabaseUrl(raw);
@@ -83,7 +91,7 @@ export function runtimeDatabaseUrl(raw: string, serverless: boolean): { url: str
   const pooled = u.port === "6543";
   if (pooled) {
     if (!u.searchParams.has("pgbouncer")) u.searchParams.set("pgbouncer", "true");
-    if (!u.searchParams.has("connection_limit")) u.searchParams.set("connection_limit", "1");
+    if (!u.searchParams.has("connection_limit")) u.searchParams.set("connection_limit", "3");
   }
   const notes: string[] = [];
   if (serverless && !pooled)

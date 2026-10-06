@@ -2,7 +2,7 @@
 import { randomUUID } from "node:crypto";
 import { db } from "@/lib/db";
 import { loadSharing, orgViewer, saveSharing } from "@/lib/sharing-data";
-import { DEFAULT_SHARING, SHARE_PARTS, visibleParts } from "@/lib/sharing";
+import { DEFAULT_SHARING, SHARE_PARTS, sharingToRow, visibleParts } from "@/lib/sharing";
 
 const ORG = "00000000-0000-0000-0000-000000000001";
 const ORG2 = "00000000-0000-0000-0000-000000000002";
@@ -21,22 +21,29 @@ const all = (a: string) => Object.fromEntries(SHARE_PARTS.map((p) => [p, a]));
   // --- 1. Defaults and versions ---
   const fresh = await loadSharing(W1);
   check("a worker who never saved gets the defaults (version none)", fresh.version === null && JSON.stringify(fresh.choices) === JSON.stringify(DEFAULT_SHARING));
+  const first = await saveSharing(W1, ACTOR, DEFAULT_SHARING);
+  check("a first save is recorded even when it equals the defaults (confirmed ≠ never looked)", first.ok && first.changed && first.version === 1 && (await p.workerSharing.count({ where: { workerId: W1 } })) === 1, first);
   const noop = await saveSharing(W1, ACTOR, DEFAULT_SHARING);
-  check("saving the defaults before any save writes nothing", noop.ok && !noop.changed && (await p.workerSharing.count({ where: { workerId: W1 } })) === 0, noop);
-  const s1 = await saveSharing(W1, ACTOR, { audiences: { ...all("RELATIONSHIP"), quality: "NOBODY" } });
-  check("a change appends version 1 and an audit event", s1.ok && s1.changed && s1.version === 1 && (await p.auditEvent.count({ where: { action: "sharing.saved", entityId: W1 } })) === 1, s1);
-  const same = await saveSharing(W1, ACTOR, { audiences: { ...all("RELATIONSHIP"), quality: "NOBODY" } });
-  check("saving the same choices again is a no-op", same.ok && !same.changed && same.version === 1, same);
+  check("saving the same choices again is a no-op", noop.ok && !noop.changed && noop.version === 1, noop);
+  const s2 = await saveSharing(W1, ACTOR, { audiences: { ...all("RELATIONSHIP"), quality: "NOBODY" } });
+  check("a change appends version 2 and an audit event per version", s2.ok && s2.changed && s2.version === 2 && (await p.auditEvent.count({ where: { action: "sharing.saved", entityId: W1 } })) === 2, s2);
   const bad = await saveSharing(W1, ACTOR, { audiences: all("EVERYONE") });
-  check("invalid choices are refused before the database", !bad.ok && (await p.workerSharing.count({ where: { workerId: W1 } })) === 1);
+  check("invalid choices are refused before the database", !bad.ok && (await p.workerSharing.count({ where: { workerId: W1 } })) === 2);
   const loaded = await loadSharing(W1);
-  check("the latest version wins", loaded.version === 1 && loaded.choices.audiences.quality === "NOBODY" && loaded.choices.audiences.output === "RELATIONSHIP");
+  check("the latest version wins", loaded.version === 2 && loaded.choices.audiences.quality === "NOBODY" && loaded.choices.audiences.output === "RELATIONSHIP");
+  // A row saved under older wording: the same choices are asked (and recorded) again.
+  await p.workerSharing.create({ data: { workerId: W3, version: 1, ...sharingToRow(DEFAULT_SHARING), consentTextVersion: "c2-old-wording", actorId: W3 } });
+  const reworded = await saveSharing(W3, W3, DEFAULT_SHARING);
+  check("after a wording change, saving identical choices appends a new version", reworded.ok && reworded.changed && reworded.version === 2, reworded);
 
   // --- 2. Races: concurrent saves each get the next version ---
   const results = await Promise.all(Array.from({ length: 8 }, (_, i) =>
     saveSharing(W2, W2, { audiences: all("RELATIONSHIP"), findable: true, workTypes: ["PETITION"], homeArea: "Denver", travelMiles: 10 + i })));
   const versions = (await p.workerSharing.findMany({ where: { workerId: W2 }, select: { version: true }, orderBy: { version: "asc" } })).map((r) => r.version);
   check("8 simultaneous different saves → versions 1..8, none lost or doubled", results.every((r) => r.ok && r.changed) && versions.join() === "1,2,3,4,5,6,7,8", versions);
+  const twins = await Promise.all(Array.from({ length: 5 }, () => saveSharing(W2, W2, { audiences: all("NOBODY") })));
+  check("5 simultaneous identical saves → exactly one new version and one audit event",
+    twins.filter((r) => r.ok && r.changed).length === 1 && (await p.workerSharing.count({ where: { workerId: W2 } })) === 9 && (await p.auditEvent.count({ where: { action: "sharing.saved", entityId: W2 } })) === 9, twins);
   const dup = await refused(p.workerSharing.create({ data: { workerId: W2, version: 8, outputAudience: "NOBODY", qualityAudience: "NOBODY", reliabilityAudience: "NOBODY", historyAudience: "NOBODY", availabilityAudience: "NOBODY", credentialsAudience: "NOBODY", consentTextVersion: "x", actorId: W2 } }));
   check("a second row can't claim an existing version (unique backstop)", /Unique constraint/.test(dup), dup);
 
@@ -61,7 +68,7 @@ const all = (a: string) => Object.fromEntries(SHARE_PARTS.map((p) => [p, a]));
     ["WorkerCredential truncate", p.$executeRawUnsafe(`TRUNCATE "public"."WorkerCredential"`)],
   ];
   for (const [label, q] of tries) { const r = await refused(q); check(`${label} is refused`, /append-only/.test(r), r); }
-  check("history is intact after the attempts", (await p.workerSharing.count({ where: { workerId: W1 } })) === 1 && (await p.workerCredential.count()) === 1);
+  check("history is intact after the attempts", (await p.workerSharing.count({ where: { workerId: W1 } })) === 2 && (await p.workerCredential.count()) === 1);
 
   // --- 5. Credentials: supersede, remove, and the races ---
   const edit = await p.workerCredential.create({ data: { workerId: W3, kind: "CIRCULATOR_REGISTRATION", state: "CO", identifier: "CO-54321", supersedesId: cred.id, actorId: W3 } });
@@ -77,6 +84,34 @@ const all = (a: string) => Object.fromEntries(SHARE_PARTS.map((p) => [p, a]));
   check("nothing supersedes a removal (a removed credential is added again as new)", /removed credential/.test(revive), revive);
   const current = await p.workerCredential.findMany({ where: { workerId: W3, removed: false, supersededBy: null } });
   check("current credentials = rows nothing supersedes that aren't removed (none left)", current.length === 0, current);
+  const ghost = await refused(p.workerCredential.create({ data: { workerId: W3, kind: "TRAINING", label: "x", supersedesId: randomUUID(), actorId: W3 } }));
+  check("superseding a credential that doesn't exist is refused as a missing reference", /doesn't exist|Foreign key constraint/.test(ghost), ghost);
+
+  // Verification can't be self-set or carried forward by an edit.
+  const fakeVerified = await refused(p.workerCredential.create({ data: { workerId: W3, kind: "TRAINING", label: "Petition basics", verification: "PLATFORM", actorId: W3 } }));
+  check("a verified level needs a verification time", /WorkerCredential_verification_shape/.test(fakeVerified), fakeVerified);
+  const selfWithVerifier = await refused(p.workerCredential.create({ data: { workerId: W3, kind: "TRAINING", label: "x", verifiedById: W1, verifiedAt: new Date(), actorId: W3 } }));
+  check("self-reported can't name a verifier", /WorkerCredential_verification_shape/.test(selfWithVerifier), selfWithVerifier);
+  const verified = await p.workerCredential.create({ data: { workerId: W3, kind: "CIRCULATOR_REGISTRATION", state: "CO", identifier: "CO-1", verification: "PLATFORM", verifiedAt: new Date(), actorId: W1 } });
+  const carried = await refused(p.workerCredential.create({ data: { workerId: W3, kind: "CIRCULATOR_REGISTRATION", state: "CO", identifier: "CO-999", verification: "PLATFORM", verifiedAt: verified.verifiedAt, supersedesId: verified.id, actorId: W3 } }));
+  check("an edit can't carry the earlier verification forward", /earlier verification/.test(carried), carried);
+  const kindSwap = await refused(p.workerCredential.create({ data: { workerId: W3, kind: "OTHER", label: "x", supersedesId: verified.id, actorId: W3 } }));
+  check("an edit keeps the credential's kind", /keeps the credential's kind/.test(kindSwap), kindSwap);
+  const busyRemoval = await refused(p.workerCredential.create({ data: { workerId: W3, kind: "CIRCULATOR_REGISTRATION", removed: true, identifier: "CO-777", supersedesId: verified.id, actorId: W3 } }));
+  check("a removal carries no new content", /WorkerCredential_removal_bare/.test(busyRemoval), busyRemoval);
+  const reEdit = await p.workerCredential.create({ data: { workerId: W3, kind: "CIRCULATOR_REGISTRATION", state: "CO", identifier: "CO-999", supersedesId: verified.id, actorId: W3 } });
+  check("an edit of a verified credential goes back to self-reported", reEdit.verification === "SELF_REPORTED");
+
+  // Proof files stay in the worker's own folder.
+  const foreignProof = await refused(p.workerCredential.create({ data: { workerId: W3, kind: "TRAINING", label: "x", proofPath: `${W2}/secret.pdf`, actorId: W3 } }));
+  check("a proof path in another worker's folder is refused", /WorkerCredential_proof_path/.test(foreignProof), foreignProof);
+  const climb = await refused(p.workerCredential.create({ data: { workerId: W3, kind: "TRAINING", label: "x", proofPath: `${W3}/../${W2}/secret.pdf`, actorId: W3 } }));
+  check("a proof path can't climb out of the folder", /WorkerCredential_proof_path/.test(climb), climb);
+  const ownProof = await p.workerCredential.create({ data: { workerId: W3, kind: "TRAINING", label: "x", proofPath: `${W3}/${randomUUID()}.pdf`, actorId: W3 } });
+  check("a proof path in the worker's own folder is accepted", !!ownProof.id);
+
+  const nullType = await refused(p.$executeRaw`INSERT INTO "public"."WorkerSharing" ("id","workerId","version","outputAudience","qualityAudience","reliabilityAudience","historyAudience","availabilityAudience","credentialsAudience","workTypes","consentTextVersion","actorId") VALUES (${randomUUID()}::uuid, ${W3}::uuid, 50, 'NOBODY','NOBODY','NOBODY','NOBODY','NOBODY','NOBODY', ARRAY['PETITION', NULL]::"public"."JobType"[], 'x', ${W3}::uuid)`);
+  check("a work-type list with a blank entry is refused (it would break reading the row)", /WorkerSharing_work_types_shape/.test(nullType), nullType);
   const badState = await refused(p.workerCredential.create({ data: { workerId: W3, kind: "OTHER", label: "x", state: "colorado", actorId: W3 } }));
   check("a state must be a two-letter code", /WorkerCredential_state_code/.test(badState), badState);
 
@@ -88,11 +123,27 @@ const all = (a: string) => Object.fromEntries(SHARE_PARTS.map((p) => [p, a]));
   check("an approved org with no engagement is an unrelated viewer", v2.kind === "org" && v2.approved && !v2.relationship, v2);
   const parts = visibleParts((await loadSharing(W1)).choices, v1);
   check("the related org sees what W1 shares and not the hidden group", parts.output && !parts.quality && parts.history, parts);
-  check("the unrelated org sees nothing by default", Object.values(visibleParts((await loadSharing(W1)).choices, v2)).every((x) => !x));
+  check("an unrelated org sees none of W1's parts shared with related orgs only", Object.values(visibleParts((await loadSharing(W1)).choices, v2)).every((x) => !x));
+  await saveSharing(W1, ACTOR, { audiences: { ...all("RELATIONSHIP"), quality: "NOBODY", availability: "ANY_APPROVED_ORG" } });
+  const wide = visibleParts((await loadSharing(W1)).choices, v2);
+  check("a part shared with any approved organization reaches an unrelated approved org, and only that part", wide.availability && !wide.output && !wide.quality, wide);
+
+  // An invitation alone, or a cancelled engagement, is not a relationship.
+  const job2 = await p.job.create({ data: { orgId: ORG2, jurisdictionId: (await p.job.findFirstOrThrow({ where: { orgId: ORG } })).jurisdictionId, type: "CANVASS", title: "Invite-only canvass" } });
+  const inv = await p.engagement.create({ data: { jobId: job2.id, workerId: W1, status: "INVITED" } });
+  const vInvited = await orgViewer(W1, ORG2);
+  check("an org that only invited the worker is unrelated", vInvited.kind === "org" && !vInvited.relationship, vInvited);
+  await p.engagement.update({ where: { id: inv.id }, data: { status: "CANCELLED" } });
+  const vCancelled = await orgViewer(W1, ORG2);
+  check("an org whose engagement was cancelled is unrelated", vCancelled.kind === "org" && !vCancelled.relationship, vCancelled);
   await p.organization.update({ where: { id: ORG }, data: { approved: false } });
   const v3 = await orgViewer(W1, ORG);
   check("an org whose approval is withdrawn sees nothing", Object.values(visibleParts((await loadSharing(W1)).choices, v3)).every((x) => !x), v3);
   await p.organization.update({ where: { id: ORG }, data: { approved: true } });
+  await p.worker.update({ where: { id: W1 }, data: { closedAt: new Date() } });
+  const vClosed = await orgViewer(W1, ORG);
+  check("a closed account shows nothing, even to a related org", Object.values(visibleParts((await loadSharing(W1)).choices, vClosed)).every((x) => !x), vClosed);
+  await p.worker.update({ where: { id: W1 }, data: { closedAt: null } });
 
   // --- 7. Browsers have no access ---
   for (const table of ["WorkerSharing", "WorkerAvailability", "WorkerCredential"]) {

@@ -57,6 +57,9 @@ export interface SharingChoices {
   travelMiles: number | null;
 }
 
+/** Set when a worker dismisses the one-time sharing note on Today. */
+export const SHARING_NOTE_COOKIE = "tc_sharing_note";
+
 /** Bump when the sharing wording on the worker's screen changes. */
 export const SHARING_TEXT_VERSION = "c2-2026-10-06";
 
@@ -79,6 +82,11 @@ export type Viewer =
   | { kind: "org"; approved: boolean; relationship: boolean }
   | { kind: "public" };
 
+/**
+ * ANY_APPROVED_ORG already counts here. Today no organization reaches a
+ * worker without a relationship (workerAccessFor), so it can't show yet; C3
+ * decides whether Matches also requires the worker to be findable.
+ */
 export function canSee(audience: ShareAudience, viewer: Viewer): boolean {
   if (viewer.kind === "self") return true;
   if (viewer.kind !== "org" || !viewer.approved) return false;
@@ -93,6 +101,8 @@ export function visibleParts(choices: SharingChoices, viewer: Viewer): Record<Sh
 
 export const MAX_TRAVEL_MILES = 500;
 const HOME_AREA_MAX = 80;
+/** Control, zero-width and direction-changing characters: they'd let typed text render as something else. */
+const HIDDEN_CHARS = /[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2060-\u2069\ufeff]/;
 const AUDIENCES = AUDIENCE_OPTIONS.map((o) => o.value);
 const WORK_TYPES: WorkType[] = ["PETITION", "CANVASS"];
 
@@ -125,10 +135,15 @@ export function validateSharing(raw: unknown): Validated<SharingChoices> {
   const area = typeof r.homeArea === "string" ? r.homeArea.trim().replace(/\s+/g, " ") : r.homeArea ?? null;
   let homeArea: string | null = null;
   if (area === null || area === "") homeArea = null;
-  else if (typeof area === "string" && area.length <= HOME_AREA_MAX && !/[\u0000-\u001f\u007f]/.test(area)) homeArea = area;
+  else if (typeof area === "string" && area.length <= HOME_AREA_MAX && !HIDDEN_CHARS.test(area)) homeArea = area;
   else errors.homeArea = `Type a city or ZIP (up to ${HOME_AREA_MAX} characters).`;
 
-  const miles = r.travelMiles === "" || r.travelMiles === undefined ? null : typeof r.travelMiles === "string" ? Number(r.travelMiles) : r.travelMiles;
+  const miles =
+    r.travelMiles === "" || r.travelMiles === undefined || r.travelMiles === null
+      ? null
+      : typeof r.travelMiles === "string"
+        ? /^\d{1,3}$/.test(r.travelMiles.trim()) ? Number(r.travelMiles.trim()) : NaN
+        : r.travelMiles;
   let travelMiles: number | null = null;
   if (miles === null) travelMiles = null;
   else if (typeof miles === "number" && Number.isInteger(miles) && miles >= 1 && miles <= MAX_TRAVEL_MILES) travelMiles = miles;

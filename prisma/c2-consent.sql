@@ -45,7 +45,10 @@ CREATE TABLE "public"."WorkerSharing" (
     CONSTRAINT "WorkerSharing_home_area_length" CHECK ("homeArea" IS NULL OR char_length("homeArea") BETWEEN 1 AND 80),
     CONSTRAINT "WorkerSharing_travel_miles_range" CHECK ("travelMiles" IS NULL OR "travelMiles" BETWEEN 1 AND 500),
     -- Findable needs somewhere to be found from: a typed area and a radius.
-    CONSTRAINT "WorkerSharing_findable_shape" CHECK (NOT "findable" OR ("homeArea" IS NOT NULL AND "travelMiles" IS NOT NULL))
+    CONSTRAINT "WorkerSharing_findable_shape" CHECK (NOT "findable" OR ("homeArea" IS NOT NULL AND "travelMiles" IS NOT NULL AND cardinality("workTypes") > 0)),
+    CONSTRAINT "WorkerSharing_work_types_shape" CHECK ("workTypes" IS NOT NULL AND array_position("workTypes", NULL) IS NULL),
+    CONSTRAINT "WorkerSharing_home_area_trimmed" CHECK ("homeArea" IS NULL OR "homeArea" = btrim("homeArea")),
+    CONSTRAINT "WorkerSharing_text_version" CHECK (char_length("consentTextVersion") > 0)
 );
 
 CREATE TABLE "public"."WorkerAvailability" (
@@ -89,7 +92,18 @@ CREATE TABLE "public"."WorkerCredential" (
     CONSTRAINT "WorkerCredential_dates" CHECK ("issuedOn" IS NULL OR "expiresOn" IS NULL OR "issuedOn" <= "expiresOn"),
     -- Taking a credential down supersedes the row it removes.
     CONSTRAINT "WorkerCredential_removal_supersedes" CHECK (NOT "removed" OR "supersedesId" IS NOT NULL),
-    CONSTRAINT "WorkerCredential_not_self" CHECK ("supersedesId" IS NULL OR "supersedesId" <> "id")
+    CONSTRAINT "WorkerCredential_not_self" CHECK ("supersedesId" IS NULL OR "supersedesId" <> "id"),
+    -- Self-reported means nobody verified it; anything else says when it was verified.
+    CONSTRAINT "WorkerCredential_verification_shape" CHECK (
+      ("verification" = 'SELF_REPORTED' AND "verifiedById" IS NULL AND "verifiedAt" IS NULL)
+      OR ("verification" <> 'SELF_REPORTED' AND "verifiedAt" IS NOT NULL)),
+    -- A removal records only what it removes: no new content, no verification.
+    CONSTRAINT "WorkerCredential_removal_bare" CHECK (NOT "removed" OR (
+      "label" IS NULL AND "state" IS NULL AND "identifier" IS NULL AND "issuedOn" IS NULL AND "expiresOn" IS NULL
+      AND "proofPath" IS NULL AND "verification" = 'SELF_REPORTED')),
+    -- Proof files live under the worker's own folder in credential-proofs.
+    CONSTRAINT "WorkerCredential_proof_path" CHECK ("proofPath" IS NULL OR (
+      left("proofPath", 37) = "workerId"::text || '/' AND strpos("proofPath", '..') = 0 AND char_length("proofPath") <= 200))
 );
 
 CREATE UNIQUE INDEX "WorkerSharing_workerId_version_key" ON "public"."WorkerSharing"("workerId", "version");
@@ -102,18 +116,30 @@ ALTER TABLE "public"."WorkerAvailability" ADD CONSTRAINT "WorkerAvailability_wor
 ALTER TABLE "public"."WorkerCredential" ADD CONSTRAINT "WorkerCredential_workerId_fkey" FOREIGN KEY ("workerId") REFERENCES "public"."Worker"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 ALTER TABLE "public"."WorkerCredential" ADD CONSTRAINT "WorkerCredential_supersedesId_fkey" FOREIGN KEY ("supersedesId") REFERENCES "public"."WorkerCredential"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
--- A row can only supersede the same worker's credential, and nothing
--- supersedes a removal (a removed credential is added again as a new one).
+-- A row can only supersede an existing credential of the same worker and
+-- kind, and nothing supersedes a removal (a removed credential is added again
+-- as a new one). An edit can't carry a verification forward: a superseding
+-- row that isn't self-reported must have been verified after the row it
+-- replaces was written.
 CREATE OR REPLACE FUNCTION "turfcut_private"."credential_supersedes_own"() RETURNS trigger LANGUAGE plpgsql SET search_path = '' AS $$
 DECLARE prev record;
 BEGIN
   IF NEW."supersedesId" IS NULL THEN RETURN NEW; END IF;
-  SELECT "workerId", "removed" INTO prev FROM "public"."WorkerCredential" WHERE "id" = NEW."supersedesId";
-  IF prev."workerId" IS DISTINCT FROM NEW."workerId" THEN
+  SELECT "workerId", "kind", "removed", "createdAt" INTO prev FROM "public"."WorkerCredential" WHERE "id" = NEW."supersedesId";
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'WorkerCredential: the credential being superseded doesn''t exist' USING ERRCODE = 'foreign_key_violation';
+  END IF;
+  IF prev."workerId" <> NEW."workerId" THEN
     RAISE EXCEPTION 'WorkerCredential: a row can only supersede the same worker''s credential' USING ERRCODE = 'check_violation';
   END IF;
   IF prev."removed" THEN
     RAISE EXCEPTION 'WorkerCredential: a removed credential can''t be superseded' USING ERRCODE = 'check_violation';
+  END IF;
+  IF prev."kind" <> NEW."kind" THEN
+    RAISE EXCEPTION 'WorkerCredential: an edit or removal keeps the credential''s kind' USING ERRCODE = 'check_violation';
+  END IF;
+  IF NEW."verification" <> 'SELF_REPORTED' AND NEW."verifiedAt" <= prev."createdAt" THEN
+    RAISE EXCEPTION 'WorkerCredential: an edit can''t carry an earlier verification forward' USING ERRCODE = 'check_violation';
   END IF;
   RETURN NEW;
 END $$;

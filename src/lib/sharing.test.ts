@@ -94,6 +94,8 @@ describe("validateSharing", () => {
     for (const bad of [
       { travelMiles: 0 }, { travelMiles: 501 }, { travelMiles: 2.5 }, { travelMiles: "ten" },
       { homeArea: "x".repeat(81) }, { homeArea: "Denver\u0007CO" }, { homeArea: 80202 },
+      { homeArea: "Denver\u202egnp.exe" }, { homeArea: "Den\u200bver" }, { homeArea: "Denver\u0085" },
+      { travelMiles: "0x10" }, { travelMiles: "1e2" }, { travelMiles: "-5" }, { travelMiles: "1000" },
       { workTypes: ["DOORS"] }, { workTypes: "PETITION" }, { findable: "yes" }, { readReceipts: 1 },
     ]) {
       expect({ bad, ok: validateSharing({ audiences: all("RELATIONSHIP"), ...bad }).ok }).toEqual({ bad, ok: false });

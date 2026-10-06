@@ -27,12 +27,14 @@ export async function loadSharing(workerId: string): Promise<LoadedSharing> {
 }
 
 export type SaveSharingResult =
-  | { ok: true; changed: boolean; version: number | null }
+  | { ok: true; changed: boolean; version: number }
   | { ok: false; errors: Record<string, string> };
 
 /**
- * Appends a new version. Never updates an existing row. Saving the choices
- * already in force (including the defaults, before any save) is a no-op.
+ * Appends a new version. Never updates an existing row. Re-saving the saved
+ * choices under the same wording is a no-op; a worker's first save is always
+ * recorded, even when it equals the defaults, so "confirmed" and "never
+ * looked" stay distinguishable and a wording change asks everyone again.
  *
  * Saves for one worker are serialized with a transaction-scoped advisory
  * lock, so concurrent saves each get the next version in turn. The unique
@@ -45,9 +47,8 @@ export async function saveSharing(workerId: string, actorId: string, raw: unknow
   return db().$transaction(async (tx) => {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`worker_sharing:${workerId}`}))`;
     const row = await tx.workerSharing.findFirst({ where: { workerId }, orderBy: { version: "desc" } });
-    const current = row ? sharingFromRow(row) : DEFAULT_SHARING;
-    if (sameSharing(current, choices) && (!row || row.consentTextVersion === SHARING_TEXT_VERSION)) {
-      return { ok: true as const, changed: false, version: row?.version ?? null };
+    if (row && row.consentTextVersion === SHARING_TEXT_VERSION && sameSharing(sharingFromRow(row), choices)) {
+      return { ok: true as const, changed: false, version: row.version };
     }
     const version = (row?.version ?? 0) + 1;
     await tx.workerSharing.create({
@@ -67,11 +68,16 @@ export async function saveSharing(workerId: string, actorId: string, raw: unknow
   });
 }
 
-/** How an organization's staff member counts as a viewer of this worker. */
+/**
+ * How an organization's staff member counts as a viewer of this worker. A
+ * closed account shows nothing to anyone (M7), whatever its saved choices.
+ */
 export async function orgViewer(workerId: string, orgId: string): Promise<Viewer> {
-  const [org, relationship] = await Promise.all([
+  const [org, worker, relationship] = await Promise.all([
     db().organization.findUnique({ where: { id: orgId }, select: { approved: true } }),
+    db().worker.findUnique({ where: { id: workerId }, select: { closedAt: true } }),
     orgHasRelationship(workerId, orgId),
   ]);
+  if (!worker || worker.closedAt) return { kind: "public" };
   return { kind: "org", approved: org?.approved ?? false, relationship };
 }

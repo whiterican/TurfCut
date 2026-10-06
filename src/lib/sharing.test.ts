@@ -10,6 +10,8 @@ import {
   sharingToRow,
   validateSharing,
   visibleParts,
+  noteDismissedBy,
+  withDismissal,
   type ShareAudience,
   type Viewer,
 } from "./sharing";
@@ -89,8 +91,12 @@ describe("validateSharing", () => {
     if (!v.ok) expect(Object.keys(v.errors).sort()).toEqual(["homeArea", "travelMiles", "workTypes"]);
   });
 
-  it("keeps a typed area while not findable, and refuses bad values", () => {
-    expect(validateSharing({ audiences: all("RELATIONSHIP"), findable: false, homeArea: "80202", travelMiles: 10 }).ok).toBe(true);
+  it("not findable keeps no area, radius or work types, and ignores their errors", () => {
+    const v = validateSharing({ audiences: all("RELATIONSHIP"), findable: false, homeArea: "80202\u200b", travelMiles: 900, workTypes: ["PETITION"] });
+    expect(v.ok && v.value).toMatchObject({ findable: false, homeArea: null, travelMiles: null, workTypes: [] });
+  });
+
+  it("refuses bad values while findable", () => {
     for (const bad of [
       { travelMiles: 0 }, { travelMiles: 501 }, { travelMiles: 2.5 }, { travelMiles: "ten" },
       { homeArea: "x".repeat(81) }, { homeArea: "Denver\u0007CO" }, { homeArea: 80202 },
@@ -98,7 +104,7 @@ describe("validateSharing", () => {
       { travelMiles: "0x10" }, { travelMiles: "1e2" }, { travelMiles: "-5" }, { travelMiles: "1000" },
       { workTypes: ["DOORS"] }, { workTypes: "PETITION" }, { findable: "yes" }, { readReceipts: 1 },
     ]) {
-      expect({ bad, ok: validateSharing({ audiences: all("RELATIONSHIP"), ...bad }).ok }).toEqual({ bad, ok: false });
+      expect({ bad, ok: validateSharing({ audiences: all("RELATIONSHIP"), findable: true, workTypes: ["PETITION"], homeArea: "Denver", travelMiles: 10, ...bad }).ok }).toEqual({ bad, ok: false });
     }
   });
 
@@ -116,5 +122,23 @@ describe("rows", () => {
     expect(sameSharing(v.value, { ...v.value, travelMiles: 41 })).toBe(false);
     expect(sameSharing(v.value, { ...v.value, audiences: { ...v.value.audiences, credentials: "NOBODY" } })).toBe(false);
     expect(sameSharing(DEFAULT_SHARING, DEFAULT_SHARING)).toBe(true);
+  });
+});
+
+describe("sharing note dismissal (per worker, per device)", () => {
+  const A = "00000000-0000-0000-0000-000000000101";
+  const B = "00000000-0000-0000-0000-000000000102";
+  it("remembers each worker separately", () => {
+    const c = withDismissal(undefined, A);
+    expect(noteDismissedBy(c, A)).toBe(true);
+    expect(noteDismissedBy(c, B)).toBe(false);
+    expect(noteDismissedBy(withDismissal(c, B), A)).toBe(true);
+    expect(noteDismissedBy(undefined, A)).toBe(false);
+  });
+  it("keeps ids only, no duplicates, at most 8", () => {
+    expect(withDismissal(`junk.${A}.<script>`, A)).toBe(A);
+    const many = Array.from({ length: 10 }, (_, i) => `00000000-0000-0000-0000-${String(i).padStart(12, "0")}`);
+    const c = many.reduce<string | undefined>((acc, id) => withDismissal(acc, id), undefined)!;
+    expect(c.split(".")).toEqual(many.slice(-8));
   });
 });

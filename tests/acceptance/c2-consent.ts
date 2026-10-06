@@ -36,6 +36,11 @@ const all = (a: string) => Object.fromEntries(SHARE_PARTS.map((p) => [p, a]));
   const reworded = await saveSharing(W3, W3, DEFAULT_SHARING);
   check("after a wording change, saving identical choices appends a new version", reworded.ok && reworded.changed && reworded.version === 2, reworded);
 
+  // Read receipts aren't on the form until C3: a save that leaves them out keeps the saved value.
+  await p.workerSharing.create({ data: { workerId: W3, version: 3, ...sharingToRow({ ...DEFAULT_SHARING, readReceipts: true }), consentTextVersion: "c2-old-wording", actorId: W3 } });
+  const keep = await saveSharing(W3, W3, { audiences: all("NOBODY") });
+  check("a save without read receipts keeps the saved setting", keep.ok && (await loadSharing(W3)).choices.readReceipts === true, keep);
+
   // --- 2. Races: concurrent saves each get the next version ---
   const results = await Promise.all(Array.from({ length: 8 }, (_, i) =>
     saveSharing(W2, W2, { audiences: all("RELATIONSHIP"), findable: true, workTypes: ["PETITION"], homeArea: "Denver", travelMiles: 10 + i })));

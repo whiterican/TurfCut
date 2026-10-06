@@ -5,7 +5,7 @@ import type { ActionState } from "@/app/jobs/actions";
 import { getAuthUser, getSessionProfile } from "@/lib/auth";
 import { acceptInvite } from "@/lib/members-data";
 import { cookies } from "next/headers";
-import { SHARING_NOTE_COOKIE } from "@/lib/sharing";
+import { SHARING_NOTE_COOKIE, withDismissal } from "@/lib/sharing";
 
 /** A removed member accepts one invite they were sent: joining is always their choice. */
 export async function acceptOrgInvite(_prev: ActionState, fd: FormData): Promise<ActionState> {
@@ -17,8 +17,17 @@ export async function acceptOrgInvite(_prev: ActionState, fd: FormData): Promise
   return ok ? { ok: true, message: "Joined. Welcome back." } : { ok: false, message: "That invite is no longer open. Ask an owner to send a new one." };
 }
 
-/** Hides the one-time sharing note on this device. Holds no personal data. */
+/**
+ * Hides the sharing note for the signed-in worker on this device. The
+ * cookie lists the worker ids that dismissed it, so on a shared crew phone
+ * each worker still sees it once.
+ */
 export async function dismissSharingNote(): Promise<void> {
-  (await cookies()).set(SHARING_NOTE_COOKIE, "1", { path: "/", maxAge: 60 * 60 * 24 * 365, httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production" });
+  const session = await getSessionProfile();
+  if (!session?.workerId) return;
+  const jar = await cookies();
+  jar.set(SHARING_NOTE_COOKIE, withDismissal(jar.get(SHARING_NOTE_COOKIE)?.value, session.workerId), {
+    path: "/", maxAge: 60 * 60 * 24 * 365, httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production",
+  });
   revalidatePath("/dashboard");
 }

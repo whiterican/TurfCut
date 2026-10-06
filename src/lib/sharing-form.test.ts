@@ -18,7 +18,7 @@ const audiences: Array<[string, string]> = [
 
 describe("Who sees what form", () => {
   it("reads every audience, findability and the typed area into a valid save", () => {
-    const raw = sharingFromForm(form([...audiences, ["findable", "on"], ["workTypes", "CANVASS"], ["homeArea", " 80202 "], ["travelMiles", "15"]]), false);
+    const raw = sharingFromForm(form([...audiences, ["findable", "on"], ["workTypes", "CANVASS"], ["homeArea", " 80202 "], ["travelMiles", "15"]]));
     expect(validateSharing(raw)).toEqual({
       ok: true,
       value: {
@@ -32,18 +32,20 @@ describe("Who sees what form", () => {
     });
   });
 
-  it("an unticked switch is off, empty fields are blank, and read receipts carry over", () => {
-    const v = validateSharing(sharingFromForm(form([...audiences, ["homeArea", ""], ["travelMiles", ""]]), true));
-    expect(v.ok && v.value).toMatchObject({ findable: false, workTypes: [], homeArea: null, travelMiles: null, readReceipts: true });
+  it("an unticked switch is off, empty fields are blank, and read receipts are left to the saved value", () => {
+    const raw = sharingFromForm(form([...audiences, ["homeArea", ""], ["travelMiles", ""]]));
+    expect("readReceipts" in raw).toBe(false);
+    const v = validateSharing(raw);
+    expect(v.ok && v.value).toMatchObject({ findable: false, workTypes: [], homeArea: null, travelMiles: null });
   });
 
   it("a missing audience is reported for that part", () => {
-    const v = validateSharing(sharingFromForm(form(audiences.slice(1)), false));
+    const v = validateSharing(sharingFromForm(form(audiences.slice(1))));
     expect(!v.ok && Object.keys(v.errors)).toEqual(["output"]);
   });
 
   it("findable without the details is refused with a message per field", () => {
-    const v = validateSharing(sharingFromForm(form([...audiences, ["findable", "on"]]), false));
+    const v = validateSharing(sharingFromForm(form([...audiences, ["findable", "on"]])));
     expect(!v.ok && Object.keys(v.errors).sort()).toEqual(["homeArea", "travelMiles", "workTypes"]);
   });
 });

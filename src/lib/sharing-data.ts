@@ -41,12 +41,16 @@ export type SaveSharingResult =
  * (workerId, version) index is the backstop if anything bypasses this.
  */
 export async function saveSharing(workerId: string, actorId: string, raw: unknown): Promise<SaveSharingResult> {
-  const v = validateSharing(raw);
-  if (!v.ok) return v;
-  const choices = v.value;
+  // Refuse a malformed save before taking the lock.
+  const pre = validateSharing(raw);
+  if (!pre.ok) return pre;
   return db().$transaction(async (tx) => {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`worker_sharing:${workerId}`}))`;
     const row = await tx.workerSharing.findFirst({ where: { workerId }, orderBy: { version: "desc" } });
+    // A setting the save doesn't mention (read receipts, until C3 puts them
+    // on a screen) keeps its saved value, read under the lock.
+    const omitsReceipts = !!raw && typeof raw === "object" && (raw as Record<string, unknown>).readReceipts === undefined;
+    const choices = omitsReceipts ? { ...pre.value, readReceipts: row?.readReceipts ?? false } : pre.value;
     if (row && row.consentTextVersion === SHARING_TEXT_VERSION && sameSharing(sharingFromRow(row), choices)) {
       return { ok: true as const, changed: false, version: row.version };
     }

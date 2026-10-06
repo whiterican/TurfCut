@@ -23,7 +23,7 @@ export const SHARE_PARTS: SharePart[] = [...SHARE_GROUPS, "availability", "crede
 
 export const AUDIENCE_OPTIONS: Array<{ value: ShareAudience; label: string }> = [
   { value: "RELATIONSHIP", label: "Organizations I apply to or accept an invite from" },
-  { value: "ANY_APPROVED_ORG", label: "Any approved organization that could hire me" },
+  { value: "ANY_APPROVED_ORG", label: "Any organization Turfcut has approved" },
   { value: "NOBODY", label: "Nobody" },
 ];
 
@@ -57,8 +57,20 @@ export interface SharingChoices {
   travelMiles: number | null;
 }
 
-/** Set when a worker dismisses the one-time sharing note on Today. */
+/** Lists the workers who dismissed the sharing note on Today, on this device. */
 export const SHARING_NOTE_COOKIE = "tc_sharing_note";
+const NOTE_MAX_WORKERS = 8;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export function noteDismissedBy(cookie: string | undefined, workerId: string): boolean {
+  return !!cookie && cookie.split(".").includes(workerId);
+}
+
+/** The cookie value after this worker dismisses the note: ids only, newest last, at most 8. */
+export function withDismissal(cookie: string | undefined, workerId: string): string {
+  const ids = (cookie ?? "").split(".").filter((id) => UUID.test(id) && id !== workerId);
+  return [...ids, workerId].slice(-NOTE_MAX_WORKERS).join(".");
+}
 
 /** Bump when the sharing wording on the worker's screen changes. */
 export const SHARING_TEXT_VERSION = "c2-2026-10-06";
@@ -153,12 +165,19 @@ export function validateSharing(raw: unknown): Validated<SharingChoices> {
     if (workTypes && workTypes.length === 0) errors.workTypes ??= "Pick the work you want to be found for.";
     if (homeArea === null && !errors.homeArea) errors.homeArea = "Type the city or ZIP you'd travel from.";
     if (travelMiles === null && !errors.travelMiles) errors.travelMiles = "Choose how far you'd travel.";
+  } else {
+    // Not findable: Turfcut keeps no home area, radius or work types.
+    delete errors.workTypes;
+    delete errors.homeArea;
+    delete errors.travelMiles;
   }
 
   if (Object.keys(errors).length) return { ok: false, errors };
   return {
     ok: true,
-    value: { audiences, readReceipts: readReceipts as boolean, findable: findable as boolean, workTypes: workTypes!, homeArea, travelMiles },
+    value: findable
+      ? { audiences, readReceipts: readReceipts as boolean, findable: true, workTypes: workTypes!, homeArea, travelMiles }
+      : { audiences, readReceipts: readReceipts as boolean, findable: false, workTypes: [], homeArea: null, travelMiles: null },
   };
 }
 

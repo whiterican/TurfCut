@@ -11,6 +11,9 @@ import { ALL_SHARED, shareScorecardPeriods } from "@/lib/shared-scorecard";
 import { removeExperience } from "./actions";
 import { PhoneForm } from "@/components/PhoneForm";
 import { loadSharing } from "@/lib/sharing-data";
+import { loadAvailability } from "@/lib/availability-data";
+import { availabilitySummary, isEmptyAvailability } from "@/lib/availability";
+import { AvailabilityStatement } from "@/components/AvailabilityStatement";
 import { PART_DETAILS, SHARE_PARTS, type ShareAudience } from "@/lib/sharing";
 
 const AUDIENCE_SHORT: Record<ShareAudience, string> = {
@@ -21,14 +24,16 @@ const AUDIENCE_SHORT: Record<ShareAudience, string> = {
 
 export default async function ProfilePage() {
   const { workerId } = await requireWorker();
-  const [worker, records, scorecard, fit, history, sharing] = await Promise.all([
+  const [worker, records, scorecard, fit, history, sharing, avail] = await Promise.all([
     db().worker.findUniqueOrThrow({ where: { id: workerId }, select: { displayName: true, phone: true } }),
     db().experienceRecord.findMany({ where: { workerId }, orderBy: { startDate: "desc" } }),
     loadScorecardPeriods(workerId),
     loadLatestPreference(workerId),
     loadCampaignHistory(workerId),
     loadSharing(workerId),
+    loadAvailability(workerId),
   ]);
+  const today = new Date().toISOString().slice(0, 10);
   const mode = fit && VISIBILITY_OPTIONS.find((o) => o.value === fit.visibilityMode);
 
   return (
@@ -68,6 +73,16 @@ export default async function ProfilePage() {
             <ExperienceForm />
           </div>
         </details>
+      </section>
+
+      <section className="section">
+        <h2 className="section-title">Availability</h2>
+        <div className="card space-y-3">
+          <AvailabilityStatement view={isEmptyAvailability(avail.availability) ? null : availabilitySummary(avail.availability, today)} />
+          <Link transitionTypes={["nav-forward"]} href="/profile/availability" className="btn-secondary">
+            {avail.version === null ? "Set your availability" : "Change availability"}
+          </Link>
+        </div>
       </section>
 
       <section className="section">

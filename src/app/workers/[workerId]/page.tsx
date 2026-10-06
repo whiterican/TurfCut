@@ -7,6 +7,8 @@ import { effectivePreference, employerFitView } from "@/lib/political-fit";
 import { loadLatestPreference, orgHasRelationship } from "@/lib/political-fit-data";
 import { ScorecardPanel } from "@/components/ScorecardPanel";
 import { loadOrgScorecardPeriods } from "@/lib/shared-scorecard-data";
+import { loadOrgAvailability } from "@/lib/availability-data";
+import { AvailabilityStatement } from "@/components/AvailabilityStatement";
 import { ExperienceList } from "@/components/ExperienceList";
 import { FitSignals } from "@/components/FitSignals";
 import { ActionButton } from "@/components/ActionButton";
@@ -37,7 +39,7 @@ export default async function EmployerWorkerPage({
   const worker = await db().worker.findUnique({ where: { id: workerId }, select: { displayName: true, closedAt: true } });
   if (!worker || worker.closedAt) notFound();
 
-  const [rawRecords, shared, pref, related, openJobs, engagedOn] = await Promise.all([
+  const [rawRecords, shared, pref, related, openJobs, engagedOn, availability] = await Promise.all([
     db().experienceRecord.findMany({ where: { workerId }, orderBy: { startDate: "desc" } }),
     // Only the groups the worker shares with this organization, right now (C2.3).
     loadOrgScorecardPeriods(workerId, access.orgId),
@@ -49,6 +51,7 @@ export default async function EmployerWorkerPage({
       orderBy: { startsAt: "asc" },
     }),
     db().engagement.findMany({ where: { workerId, job: { orgId: access.orgId } }, select: { jobId: true } }),
+    loadOrgAvailability(workerId, access.orgId),
   ]);
   const engaged = new Set(engagedOn.map((e) => e.jobId));
   const invitable = openJobs.filter((j) => readHiringModes(j.hiringMethod).includes("invite") && !engaged.has(j.id));
@@ -89,6 +92,11 @@ export default async function EmployerWorkerPage({
       <section className="section">
         <h2 className="section-title">Scorecard</h2>
         <ScorecardPanel periods={shared} />
+      </section>
+
+      <section className="section">
+        <h2 className="section-title">Availability</h2>
+        <div className="card"><AvailabilityStatement view={availability} /></div>
       </section>
 
       <section className="section">

@@ -10,13 +10,15 @@ import { DataTable } from "@/components/staff/DataTable";
 import { SnapshotView } from "@/components/SnapshotView";
 import { ActionButton } from "@/components/ActionButton";
 import { acceptApplication } from "@/app/jobs/actions";
+import { loadOrgAvailability } from "@/lib/availability-data";
+import { AvailabilityStatement } from "@/components/AvailabilityStatement";
 
 const day = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
 
 /**
  * One job's applications (C1.4): who is at which stage, and the hiring
  * snapshot for each waiting application. Accept is the existing action.
- * No scorecard columns: those wait for workers' sharing settings (C2).
+ * No scorecard columns: sortable lists of shared numbers arrive with C3.
  */
 export default async function ApplicantsPage({ params }: { params: Promise<{ jobId: string }> }) {
   const { jobId } = await params;
@@ -30,6 +32,10 @@ export default async function ApplicantsPage({ params }: { params: Promise<{ job
     orderBy: { createdAt: "asc" },
   });
   const waiting = engagements.filter((e) => e.status === "APPLIED");
+  // Live, as each worker shares it with this organization now (C2.4); never scored or sorted on.
+  const availability = new Map(
+    await Promise.all(waiting.filter((e) => !e.worker.closedAt).map(async (e) => [e.id, await loadOrgAvailability(e.worker.id, session.orgId)] as const))
+  );
 
   return (
     <main className="page max-w-4xl">
@@ -75,6 +81,12 @@ export default async function ApplicantsPage({ params }: { params: Promise<{ job
                     <ActionButton action={acceptApplication} fields={{ jobId: job.id, engagementId: e.id }} label="Accept" variant="btn-primary btn-sm" />
                   )}
                 </div>
+                {availability.has(e.id) && (
+                  <div className="space-y-1">
+                    <p className="label">Availability now</p>
+                    <AvailabilityStatement view={availability.get(e.id)!} />
+                  </div>
+                )}
                 {e.applicationSnapshot ? <SnapshotView snapshot={e.applicationSnapshot as unknown as HiringSnapshot} /> : null}
               </li>
             ))}

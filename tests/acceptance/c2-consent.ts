@@ -6,6 +6,7 @@ import { DEFAULT_SHARING, SHARE_PARTS, sharingToRow, visibleParts } from "@/lib/
 import { applyToJob } from "@/lib/engagements-data";
 import type { HiringSnapshot } from "@/lib/engagements";
 import { loadOrgScorecard, loadOrgScorecardPeriods } from "@/lib/shared-scorecard-data";
+import { loadOrgAvailability, saveAvailability } from "@/lib/availability-data";
 
 const ORG = "00000000-0000-0000-0000-000000000001";
 const ORG2 = "00000000-0000-0000-0000-000000000002";
@@ -192,6 +193,27 @@ const all = (a: string) => Object.fromEntries(SHARE_PARTS.map((p) => [p, a]));
   check("the earlier snapshot still shows exactly what it captured", JSON.stringify(again) === JSON.stringify(snap));
   const stranger = await loadOrgScorecard(W2, ORG2);
   check("an unrelated org's live view has no numbers at all", stranger.showRate === null && stranger.segments.every((g) => g.history === null && Object.values(g.averages).every((m) => m === null)), stranger);
+
+  // --- 8. C2.4: availability ---
+  const week = { weekly: { sat: [{ from: "09:00", to: "15:00" }], sun: [{ from: "00:00", to: "24:00" }] }, exceptions: [{ date: "2099-10-12", ranges: [] }], note: "Weekends." };
+  const a0 = await saveAvailability(W2, W2, { weekly: {}, exceptions: [] });
+  check("saving an empty week before any save writes nothing", a0.ok && !a0.changed && (await p.workerAvailability.count({ where: { workerId: W2 } })) === 0, a0);
+  const a1 = await saveAvailability(W2, W2, week);
+  check("a week appends version 1 with an audit event", a1.ok && a1.changed && a1.version === 1 && (await p.auditEvent.count({ where: { action: "availability.saved", entityId: W2 } })) === 1, a1);
+  const a2 = await saveAvailability(W2, W2, week);
+  check("the same week again is a no-op", a2.ok && !a2.changed && a2.version === 1, a2);
+  const aBad = await saveAvailability(W2, W2, { weekly: { sat: [{ from: "15:00", to: "09:00" }] }, exceptions: [] });
+  check("a backwards time is refused before the database", !aBad.ok);
+  const racers = await Promise.all(Array.from({ length: 6 }, (_, i) => saveAvailability(W2, W2, { ...week, note: `n${i}` })));
+  const avs = (await p.workerAvailability.findMany({ where: { workerId: W2 }, select: { version: true }, orderBy: { version: "asc" } })).map((r) => r.version);
+  check("6 simultaneous saves → versions 1..7, none lost", racers.every((r) => r.ok && r.changed) && avs.join() === "1,2,3,4,5,6,7", avs);
+  await saveSharing(W2, W2, { audiences: { ...all("RELATIONSHIP"), availability: "RELATIONSHIP" } });
+  const seenAvail = await loadOrgAvailability(W2, ORG, "2026-10-06");
+  check("a related org sees the plain summary", seenAvail !== "withheld" && seenAvail?.usual === "Usually free Sat 9am–3pm; Sun all day." && seenAvail.dates[0]?.includes("not available"), seenAvail);
+  check("an unrelated org sees availability as not shared", (await loadOrgAvailability(W2, ORG2)) === "withheld");
+  await saveSharing(W2, W2, { audiences: { ...all("RELATIONSHIP"), availability: "NOBODY" } });
+  check("after the worker hides it, the related org sees not shared at once", (await loadOrgAvailability(W2, ORG)) === "withheld");
+  check("a worker who set nothing but shares it reads as no availability (not a blank score)", (await loadOrgAvailability(W1, ORG)) === null);
 
   // --- 7. Browsers have no access ---
   for (const table of ["WorkerSharing", "WorkerAvailability", "WorkerCredential"]) {

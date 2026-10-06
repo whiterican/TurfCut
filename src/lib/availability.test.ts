@@ -1,0 +1,84 @@
+import { describe, expect, it } from "vitest";
+import { availabilityFromRow, availabilitySummary, EMPTY_AVAILABILITY, isEmptyAvailability, sameAvailability, timeText, validateAvailability } from "./availability";
+
+const ok = (raw: unknown) => {
+  const v = validateAvailability(raw);
+  if (!v.ok) throw new Error(JSON.stringify(v.errors));
+  return v.value;
+};
+
+describe("validateAvailability", () => {
+  it("accepts a usual week, exceptions and a note, sorted and trimmed", () => {
+    const v = ok({
+      weekly: { sat: [{ from: "13:00", to: "17:00" }, { from: "09:00", to: "12:00" }], mon: [] },
+      exceptions: [{ date: "2026-10-18", ranges: [{ from: "00:00", to: "24:00" }] }, { date: "2026-10-12", ranges: [] }],
+      note: "  Weekends best.  ",
+    });
+    expect(v.weekly).toEqual({ sat: [{ from: "09:00", to: "12:00" }, { from: "13:00", to: "17:00" }] });
+    expect(v.exceptions.map((e) => e.date)).toEqual(["2026-10-12", "2026-10-18"]);
+    expect(v.note).toBe("Weekends best.");
+  });
+
+  it("refuses more than two ranges, overlaps, backwards or malformed times, and unknown days", () => {
+    const bad = [
+      { weekly: { sat: [{ from: "09:00", to: "10:00" }, { from: "11:00", to: "12:00" }, { from: "13:00", to: "14:00" }] }, exceptions: [] },
+      { weekly: { sat: [{ from: "09:00", to: "12:00" }, { from: "11:00", to: "14:00" }] }, exceptions: [] },
+      { weekly: { sat: [{ from: "15:00", to: "09:00" }] }, exceptions: [] },
+      { weekly: { sat: [{ from: "9:00", to: "15:00" }] }, exceptions: [] },
+      { weekly: { sat: [{ from: "24:00", to: "24:00" }] }, exceptions: [] },
+      { weekly: { sat: [{ from: "09:00", to: "15:00", extra: 1 }] }, exceptions: [] },
+      { weekly: { funday: [] }, exceptions: [] },
+      { weekly: [], exceptions: [] },
+    ];
+    for (const raw of bad) expect({ raw, ok: validateAvailability(raw).ok }).toEqual({ raw, ok: false });
+  });
+
+  it("refuses bad, duplicate or too many dates, and a hidden-character or overlong note", () => {
+    const bad = [
+      { weekly: {}, exceptions: [{ date: "2026-02-30", ranges: [] }] },
+      { weekly: {}, exceptions: [{ date: "2026-10-12", ranges: [] }, { date: "2026-10-12", ranges: [] }] },
+      { weekly: {}, exceptions: Array.from({ length: 41 }, (_, i) => ({ date: `2027-01-${String((i % 28) + 1).padStart(2, "0")}`, ranges: [] })) },
+      { weekly: {}, exceptions: "none" },
+      { weekly: {}, exceptions: [], note: "x".repeat(501) },
+      { weekly: {}, exceptions: [], note: "call me‮" },
+      { weekly: {}, exceptions: [], note: 5 },
+    ];
+    for (const raw of bad) expect(validateAvailability(raw).ok).toBe(false);
+  });
+
+  it("allows a blank note and an empty week", () => {
+    expect(ok({ weekly: {}, exceptions: [], note: "   " })).toEqual(EMPTY_AVAILABILITY);
+    expect(isEmptyAvailability(ok({ weekly: {}, exceptions: [] }))).toBe(true);
+  });
+});
+
+describe("summary an organization sees", () => {
+  it("groups days with the same times and lists upcoming dates only", () => {
+    const a = ok({
+      weekly: { mon: [{ from: "18:00", to: "21:00" }], wed: [{ from: "18:00", to: "21:00" }], sat: [{ from: "09:00", to: "15:30" }], sun: [{ from: "00:00", to: "24:00" }] },
+      exceptions: [{ date: "2026-10-01", ranges: [] }, { date: "2026-10-12", ranges: [] }, { date: "2026-10-18", ranges: [{ from: "12:00", to: "17:00" }] }],
+      note: "No Sundays in November.",
+    });
+    expect(availabilitySummary(a, "2026-10-06")).toEqual({
+      usual: "Usually free Mon, Wed 6pm–9pm; Sat 9am–3:30pm; Sun all day.",
+      dates: ["Mon, Oct 12: not available", "Sun, Oct 18: free noon–5pm"],
+      note: "No Sundays in November.",
+    });
+  });
+  it("says nothing usual when no day is set", () => {
+    expect(availabilitySummary(EMPTY_AVAILABILITY, "2026-10-06")).toEqual({ usual: null, dates: [], note: null });
+  });
+  it("reads times the way people say them", () => {
+    expect(["00:00", "09:00", "09:30", "12:00", "12:15", "18:45", "24:00"].map(timeText)).toEqual(["midnight", "9am", "9:30am", "noon", "12:15pm", "6:45pm", "midnight"]);
+  });
+});
+
+describe("rows", () => {
+  it("round-trips, compares regardless of order, and reads a malformed row as empty", () => {
+    const a = ok({ weekly: { sat: [{ from: "09:00", to: "15:00" }] }, exceptions: [{ date: "2026-10-12", ranges: [] }], note: "hi" });
+    expect(availabilityFromRow({ weekly: a.weekly, exceptions: a.exceptions, note: a.note })).toEqual(a);
+    expect(sameAvailability(a, { ...a, weekly: { ...a.weekly, mon: [] } })).toBe(true);
+    expect(sameAvailability(a, { ...a, note: null })).toBe(false);
+    expect(availabilityFromRow({ weekly: "junk", exceptions: [], note: null })).toEqual(EMPTY_AVAILABILITY);
+  });
+});

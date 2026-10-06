@@ -94,20 +94,21 @@ CREATE TABLE "public"."WorkerCredential" (
     CONSTRAINT "WorkerCredential_removal_supersedes" CHECK (NOT "removed" OR "supersedesId" IS NOT NULL),
     CONSTRAINT "WorkerCredential_not_self" CHECK ("supersedesId" IS NULL OR "supersedesId" <> "id"),
     -- Self-reported means nobody verified it. Anything else says when it was
-    -- verified (not in the future); Turfcut and organization verification
-    -- also name the verifier, who is the one writing the row, so a worker's
-    -- own save can never produce a verified credential.
+    -- verified (not in the future) and names the verifier, who is the one
+    -- writing the row; the trigger below also refuses the worker as their
+    -- own verifier.
     CONSTRAINT "WorkerCredential_verification_shape" CHECK (
       ("verification" = 'SELF_REPORTED' AND "verifiedById" IS NULL AND "verifiedAt" IS NULL)
       OR ("verification" <> 'SELF_REPORTED' AND "verifiedAt" IS NOT NULL AND "verifiedAt" <= "createdAt" + interval '1 minute'
-          AND ("verification" = 'IMPORTED' OR ("verifiedById" IS NOT NULL AND "verifiedById" = "actorId")))),
+          AND "verifiedById" IS NOT NULL AND "verifiedById" = "actorId")),
     -- A removal records only what it removes: no new content, no verification.
     CONSTRAINT "WorkerCredential_removal_bare" CHECK (NOT "removed" OR (
       "label" IS NULL AND "state" IS NULL AND "identifier" IS NULL AND "issuedOn" IS NULL AND "expiresOn" IS NULL
       AND "proofPath" IS NULL AND "verification" = 'SELF_REPORTED')),
     -- Proof files live under the worker's own folder in credential-proofs.
     CONSTRAINT "WorkerCredential_proof_path" CHECK ("proofPath" IS NULL OR (
-      left("proofPath", 37) = "workerId"::text || '/' AND strpos("proofPath", '..') = 0 AND char_length("proofPath") BETWEEN 38 AND 200))
+      left("proofPath", 37) = "workerId"::text || '/' AND strpos("proofPath", '..') = 0 AND strpos(substr("proofPath", 38), '/') = 0
+      AND char_length("proofPath") BETWEEN 38 AND 200))
 );
 
 CREATE UNIQUE INDEX "WorkerSharing_workerId_version_key" ON "public"."WorkerSharing"("workerId", "version");
@@ -120,6 +121,8 @@ ALTER TABLE "public"."WorkerAvailability" ADD CONSTRAINT "WorkerAvailability_wor
 ALTER TABLE "public"."WorkerCredential" ADD CONSTRAINT "WorkerCredential_workerId_fkey" FOREIGN KEY ("workerId") REFERENCES "public"."Worker"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 ALTER TABLE "public"."WorkerCredential" ADD CONSTRAINT "WorkerCredential_supersedesId_fkey" FOREIGN KEY ("supersedesId") REFERENCES "public"."WorkerCredential"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
+-- Every row: the database's clock sets createdAt (so time checks can't be
+-- fed a chosen time), and nobody verifies their own credential.
 -- A row can only supersede an existing credential of the same worker and
 -- kind, and nothing supersedes a removal (a removed credential is added again
 -- as a new one). An edit can't carry a verification forward: a superseding
@@ -128,6 +131,11 @@ ALTER TABLE "public"."WorkerCredential" ADD CONSTRAINT "WorkerCredential_superse
 CREATE OR REPLACE FUNCTION "turfcut_private"."credential_supersedes_own"() RETURNS trigger LANGUAGE plpgsql SET search_path = '' AS $$
 DECLARE prev record;
 BEGIN
+  NEW."createdAt" := clock_timestamp();
+  IF NEW."verifiedById" IS NOT NULL AND EXISTS (
+    SELECT 1 FROM "public"."Worker" WHERE "id" = NEW."workerId" AND "profileId" = NEW."verifiedById") THEN
+    RAISE EXCEPTION 'WorkerCredential: a worker can''t verify their own credential' USING ERRCODE = 'check_violation';
+  END IF;
   IF NEW."supersedesId" IS NULL THEN RETURN NEW; END IF;
   SELECT "workerId", "kind", "removed", "createdAt" INTO prev FROM "public"."WorkerCredential" WHERE "id" = NEW."supersedesId";
   IF NOT FOUND THEN

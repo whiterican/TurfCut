@@ -69,9 +69,12 @@ let warned = false;
  * pgbouncer=true (no prepared statements). Each instance gets three
  * connections: pages run their queries side by side (Promise.all) and one
  * instance serves several requests at once, so with one connection they
- * queued, and a slow page could starve the rate limiter's transaction. Three
- * per instance stays far under the pooler's client limit. Both are added
- * when the URL doesn't say otherwise. Pure.
+ * queued, and a write's $transaction (pay, chat, jobs, members) could give up
+ * after Prisma's 2 s maxWait while another held it. The cost: the pooler's
+ * client limit is per project (200 on Supabase's smallest plans), so it now
+ * fits about 66 warm instances instead of 200; ?connection_limit=1 in
+ * DATABASE_URL restores the old setting. Both are added when the URL doesn't
+ * say otherwise. Pure.
  */
 export function runtimeDatabaseUrl(raw: string, serverless: boolean): { url: string; warning: string | null } {
   const clean = cleanDatabaseUrl(raw);

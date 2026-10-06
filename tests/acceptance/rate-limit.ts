@@ -1,5 +1,5 @@
 /* Rate-limit store acceptance: the Postgres store shared across instances, against a fresh database (tests/acceptance/run.sh). */
-// One connection per instance, as on Vercel through the pooler (set before the first query).
+// Worst case: one connection per instance (production uses three; set before the first query).
 process.env.DATABASE_URL = `${process.env.DATABASE_URL}${process.env.DATABASE_URL?.includes("?") ? "&" : "?"}connection_limit=1&pool_timeout=20`;
 import { db } from "@/lib/db";
 import { allow, check as verdict, LIMITS, postgresStore, retryAfter } from "@/lib/rate-limit";
@@ -29,7 +29,7 @@ const quiet = <T,>(f: () => Promise<T>) => { const e = console.error; console.er
   const burst = await Promise.all(Array.from({ length: 30 }, (_, i) => allow("login", "203.0.113.50", t0 + i, i % 3 ? a : b)));
   check("30 concurrent sign-ins: exactly the limit get through", burst.filter(Boolean).length === LIMITS.login.max, burst.filter(Boolean).length);
 
-  // The review's probe: the instance's one connection is busy for 3 s while a flood arrives.
+  // The review's probe: the instance's only connection is busy for 3 s while a flood arrives.
   const hold = p.$transaction(async (tx) => { await tx.$executeRaw`SELECT pg_sleep(3)`; }, { timeout: 10_000 });
   await new Promise((r) => setTimeout(r, 200));
   const flood = await Promise.all(Array.from({ length: 15 }, (_, i) => allow("login", "203.0.113.77", t0 + i)));

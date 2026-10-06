@@ -204,15 +204,13 @@ function daysText(days: Day[]): string {
 const dayBefore = (iso: string) => new Date(Date.parse(`${iso}T00:00:00Z`) - 86_400_000).toISOString().slice(0, 10);
 
 /**
- * Drops dates that are over (before yesterday, in UTC) from a save, so the
- * wallet of dates doesn't fill up with the past. Anything else passes through
- * untouched for validation.
+ * Availability without the dates that are over (before yesterday, in UTC),
+ * so the list doesn't fill up with the past. Applied after validation, so a
+ * message about a date still points at the row the worker sees.
  */
-export function withoutPastDates(raw: unknown, today: string): unknown {
-  const r = obj(raw);
-  if (!r || !Array.isArray(r.exceptions)) return raw;
+export function withoutPastDates(a: Availability, today: string): Availability {
   const from = dayBefore(today);
-  return { ...r, exceptions: r.exceptions.filter((e) => !(obj(e) && typeof obj(e)!.date === "string" && validDate(obj(e)!.date as string) && (obj(e)!.date as string) < from)) };
+  return { ...a, exceptions: a.exceptions.filter((e) => e.date >= from) };
 }
 
 /**

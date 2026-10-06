@@ -100,9 +100,13 @@ describe("C2.4 review fixes", () => {
     const shape = validateAvailability({ weekly: {}, exceptions: "nope" });
     expect(!shape.ok && shape.errors.exceptions).toMatch(/Reload/);
   });
-  it("drops dates that are over before saving, and leaves the rest alone", () => {
-    expect(withoutPastDates({ weekly: {}, exceptions: [{ date: "2026-10-04", ranges: [] }, { date: "2026-10-05", ranges: [] }, { date: "bad", ranges: [] }] }, "2026-10-06")).toEqual({ weekly: {}, exceptions: [{ date: "2026-10-05", ranges: [] }, { date: "bad", ranges: [] }] });
-    expect(withoutPastDates("junk", "2026-10-06")).toBe("junk");
+  it("drops dates that are over, keeping yesterday", () => {
+    const a = ok({ weekly: {}, exceptions: [{ date: "2026-10-04", ranges: [] }, { date: "2026-10-05", ranges: [] }, { date: "2026-10-09", ranges: [] }] });
+    expect(withoutPastDates(a, "2026-10-06").exceptions.map((e) => e.date)).toEqual(["2026-10-05", "2026-10-09"]);
+  });
+  it("a date's error points at the row the worker sees, past dates included", () => {
+    const v = validateAvailability({ weekly: {}, exceptions: [{ date: "2026-10-01", ranges: [] }, { date: "", ranges: [] }] });
+    expect(!v.ok && v.errors).toEqual({ "exceptions.1": "Pick a date." });
   });
   it("refuses tag characters and line separators in the note", () => {
     for (const note of ["a\u{e0041}b", "a\u2028b", "a\u00adb"]) expect(validateAvailability({ weekly: {}, exceptions: [], note }).ok).toBe(false);

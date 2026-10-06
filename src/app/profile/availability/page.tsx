@@ -4,6 +4,7 @@ import { loadAvailability } from "@/lib/availability-data";
 import { loadSharing } from "@/lib/sharing-data";
 import { AUDIENCE_OPTIONS } from "@/lib/sharing";
 import { AvailabilityForm } from "@/components/AvailabilityForm";
+import { withoutPastDates } from "@/lib/availability";
 
 export default async function AvailabilityPage() {
   const { workerId } = await requireWorker();
@@ -23,7 +24,8 @@ export default async function AvailabilityPage() {
           <Link href="/profile/sharing" className="link">Change</Link>
         </p>
       </header>
-      <AvailabilityForm availability={availability} />
+      {/* Past dates drop off here too, so the form's rows match what saving keeps. */}
+      <AvailabilityForm availability={withoutPastDates(availability, new Date().toISOString().slice(0, 10))} />
     </main>
   );
 }

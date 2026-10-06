@@ -30,9 +30,9 @@ export type SaveAvailabilityResult =
  * the backstop.
  */
 export async function saveAvailability(workerId: string, actorId: string, raw: unknown, today = new Date().toISOString().slice(0, 10)): Promise<SaveAvailabilityResult> {
-  const v = validateAvailability(withoutPastDates(raw, today));
+  const v = validateAvailability(raw);
   if (!v.ok) return v;
-  const a = v.value;
+  const a = withoutPastDates(v.value, today);
   return db().$transaction(async (tx) => {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`worker_availability:${workerId}`}))`;
     const row = await tx.workerAvailability.findFirst({ where: { workerId }, orderBy: { version: "desc" } });

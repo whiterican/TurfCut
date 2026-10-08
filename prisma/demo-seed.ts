@@ -9,8 +9,13 @@
  * stated or inferred.
  *
  * Jobs whose campaign takes a party or an issue position hire by invitation
- * only, so a real worker can't apply to one and leave their shared fit
- * answers in a demo organization's application records.
+ * only, so no real worker's issue answers are matched against a demo
+ * campaign. The nonpartisan jobs stay open so testers can apply and claim,
+ * and an application to any organization carries what the worker shares
+ * with organizations they apply to (scorecard, and fit answers they chose
+ * to share). Nobody signs in as demo staff, so that goes nowhere — unless
+ * someone links a real login to a demo organization. Don't; and close the
+ * demo jobs before real workers arrive (README).
  *
  * Built through the app's own rules — jobs pass the publish gate, workers
  * apply and are accepted, shifts are scheduled, worked and reviewed with the
@@ -102,7 +107,7 @@ const CAMPAIGNS: Campaign[] = [
   { type: "PETITION", title: "Public Transit Night Service — signatures", campaignType: "ballot_measure", affiliation: "nonpartisan", name: "Late-Night Transit Measure (demo)", message: "Ask voters to fund late-night bus service.", issues: {} },
   { type: "CANVASS", title: "Voter registration canvass — East Colfax", campaignType: "nonpartisan_civic", affiliation: "nonpartisan", name: null, message: "Help eligible neighbors register and check their registration.", issues: {} },
   { type: "CANVASS", title: "Get-out-the-vote reminders — weekend shifts", campaignType: "nonpartisan_civic", affiliation: "nonpartisan", name: null, message: "Remind registered voters of dates, drop boxes and polling places.", issues: {} },
-  { type: "CANVASS", title: "Census-style community survey — door to door", campaignType: "nonpartisan_civic", affiliation: "nonpartisan", name: null, message: "Collect neighborhood feedback for the city's planning office.", issues: {} },
+  { type: "CANVASS", title: "Census-style community survey — door to door", campaignType: "nonpartisan_civic", affiliation: "nonpartisan", name: null, message: "Collect neighborhood feedback for the city's planning office.", issues: {}, noCredentials: true },
   { type: "CANVASS", title: "Ballot measure info canvass — Aurora", campaignType: "ballot_measure", affiliation: "nonpartisan", name: "Neighborhood Parks Bond (demo)", message: "Share what the parks bond does and answer questions.", issues: {} },
   { type: "PETITION", title: "School Crossing Guards Measure — petitioners", campaignType: "ballot_measure", affiliation: "nonpartisan", name: "Safe Routes to School Measure (demo)", message: "Gather signatures for funding school crossing guards.", issues: {} },
   { type: "CANVASS", title: "New-resident voter guide drop", campaignType: "nonpartisan_civic", affiliation: "nonpartisan", name: null, message: "Leave nonpartisan voter guides and answer questions.", issues: {} },

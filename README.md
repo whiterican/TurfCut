@@ -305,16 +305,20 @@ testers. Export `DATABASE_URL` in the shell first; tsx doesn't read
   Republican, Libertarian, Green, other). The candidates have invented
   names and run in districts that don't exist. Between them the campaigns
   disclose every issue, so the feed's filters and workers' own "do not
-  match me" answers have something to act on. Two canvass jobs ask for no
-  credentials;
+  match me" answers have something to act on. Four canvass jobs ask for no
+  credentials (two of them open to applications);
 - about fifty worked and reviewed daytime shifts with pay lines, waiting
   applications, claims and invitations, and a few messages.
 
 Jobs whose campaign takes a party or an issue position hire by invitation
-only, so real workers can't apply to them and leave their shared
-political-fit answers with a demo organization. Real workers can apply to
-the nonpartisan demo jobs; nobody signs in as demo staff, so don't link a
-real login to a demo organization or it will see those applicants.
+only, so no real worker's issue answers are matched against a demo
+campaign. The nonpartisan demo jobs stay open, so testers can apply and
+claim. Like any application, one to a demo job carries what the worker
+shares with organizations they apply to: their scorecard and the
+political-fit answers they chose to share (identity, party, campaign
+interests). Nobody signs in as demo staff, so it reaches no one. Never link
+a real login to a demo organization (it would see those applicants), and
+close the demo jobs before real workers arrive.
 
 Everything goes through the app's own rules (publish gate, hiring, field
 day, review, pay), backdated so workers have history. Audit-log entries

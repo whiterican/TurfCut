@@ -1,27 +1,37 @@
 /**
  * Demo data: makes the app look active for testers. Every organization,
- * person and campaign it creates is named "… (demo)" and is fictional. The
- * campaigns cover every campaign type and party, and between them every
- * disclosed issue, so the feed's filters and workers' own "do not match me"
- * preferences have something to act on. Demo workers have no political-fit
- * answers: nothing about them is stated or inferred.
+ * person, job and campaign it creates is named "… (demo)" and is fictional;
+ * candidates have invented names and run in districts that don't exist. The
+ * campaigns cover every campaign type and affiliation (each party, "other"
+ * and nonpartisan), and between them every disclosed issue, so the feed's
+ * filters and workers' own "do not match me" preferences have something to
+ * act on. Demo workers have no political-fit answers: nothing about them is
+ * stated or inferred.
+ *
+ * Jobs whose campaign takes a party or an issue position hire by invitation
+ * only, so a real worker can't apply to one and leave their shared fit
+ * answers in a demo organization's application records.
  *
  * Built through the app's own rules — jobs pass the publish gate, workers
  * apply and are accepted, shifts are scheduled, worked and reviewed with the
  * field-day functions — backdated so workers have real verified history and
- * pay lines computed by the pay rules. Nothing is hand-written.
+ * pay lines computed by the pay rules. The only hand-set values are the
+ * hire dates (acceptEngagement stamps the current time).
  *
  * Run: npm run seed:demo -- --yes (DATABASE_URL must be set in the shell;
  * the base seed's approved CO/Denver jurisdiction must exist). It runs once:
  * work history, reviews and pay lines are append-only and stay for good.
- * Everything is checked before the first write, and a completion marker is
- * written last, so a run that stopped partway is reported, not hidden.
+ * Everything is checked before the first write, and a completion marker
+ * naming the organizations it made is written last, so a run that stopped
+ * partway is reported, not hidden, and the demo set is known by id rather
+ * than by a name anyone could type.
  */
+import { cleanDatabaseUrl } from "../src/lib/env";
 import { db } from "../src/lib/db";
 import { compensationProblem, jurisdictionProblems, validateJob, type Affiliation, type CampaignType, type JobInput } from "../src/lib/jobs";
 import type { IssueKey } from "../src/lib/political-fit";
 import { createJob, publishJob } from "../src/lib/jobs-data";
-import { acceptEngagement, applyToJob, claimJob } from "../src/lib/engagements-data";
+import { acceptEngagement, applyToJob, claimJob, inviteWorker } from "../src/lib/engagements-data";
 import { scheduleShift, supervisorShiftAction, workerShiftAction } from "../src/lib/field-day-data";
 import { ensureDirect, sendMessage } from "../src/lib/chat-data";
 
@@ -31,8 +41,16 @@ const HOUR = 3_600_000;
 const MIN = 60_000;
 const JURISDICTION = "00000000-0000-0000-0000-000000000021";
 const DEMO = " (demo)";
-/** Written last: its absence next to demo organizations means a run stopped partway. */
+/**
+ * Written last, with the ids of the organizations and workers the run made: a
+ * demo-named organization that no marker names means a run stopped partway
+ * (or someone gave a real organization that name).
+ */
 const MARKER = { action: "demo.seeded", entityType: "Demo", entityId: "demo-data" };
+const orgIdsOf = (metadata: unknown): string[] => {
+  const ids = metadata && typeof metadata === "object" ? (metadata as { orgIds?: unknown }).orgIds : null;
+  return Array.isArray(ids) ? ids.filter((x): x is string => typeof x === "string") : [];
+};
 
 // Deterministic randomness, so a run is reproducible.
 let seed = 20261006;
@@ -82,7 +100,7 @@ const CAMPAIGNS: Campaign[] = [
   { type: "PETITION", title: "Neighborhood Parks Bond — petition team", campaignType: "ballot_measure", affiliation: "nonpartisan", name: "Neighborhood Parks Bond (demo)", message: "Let voters decide on a parks maintenance bond.", issues: {} },
   { type: "PETITION", title: "Bike Lane Safety Measure — circulators", campaignType: "ballot_measure", affiliation: "nonpartisan", name: "Safer Streets Measure (demo)", message: "Qualify a street-safety measure for the ballot.", issues: {} },
   { type: "PETITION", title: "Public Transit Night Service — signatures", campaignType: "ballot_measure", affiliation: "nonpartisan", name: "Late-Night Transit Measure (demo)", message: "Ask voters to fund late-night bus service.", issues: {} },
-  { type: "CANVASS", title: "Voter registration canvass — East Colfax", campaignType: "nonpartisan_civic", affiliation: "nonpartisan", name: null, message: "Help eligible neighbors register and check their registration.", issues: { voting_access: "support" } },
+  { type: "CANVASS", title: "Voter registration canvass — East Colfax", campaignType: "nonpartisan_civic", affiliation: "nonpartisan", name: null, message: "Help eligible neighbors register and check their registration.", issues: {} },
   { type: "CANVASS", title: "Get-out-the-vote reminders — weekend shifts", campaignType: "nonpartisan_civic", affiliation: "nonpartisan", name: null, message: "Remind registered voters of dates, drop boxes and polling places.", issues: {} },
   { type: "CANVASS", title: "Census-style community survey — door to door", campaignType: "nonpartisan_civic", affiliation: "nonpartisan", name: null, message: "Collect neighborhood feedback for the city's planning office.", issues: {} },
   { type: "CANVASS", title: "Ballot measure info canvass — Aurora", campaignType: "ballot_measure", affiliation: "nonpartisan", name: "Neighborhood Parks Bond (demo)", message: "Share what the parks bond does and answer questions.", issues: {} },
@@ -91,25 +109,29 @@ const CAMPAIGNS: Campaign[] = [
 ];
 
 /**
- * One job for each remaining campaign type and party, starting soon. The
- * candidates and committees are made up; between them and the jobs above,
- * every issue on the disclosure list is taken by at least one campaign.
+ * One job for each remaining campaign type and affiliation, starting soon.
+ * The candidates' names are invented (no Colorado politician found with
+ * them) and their districts don't exist: Colorado has 65 House and 35 Senate
+ * districts, and no county has nine commissioner districts. The committees
+ * are unnamed. Between them these campaigns take every issue on the
+ * disclosure list; the two nonpartisan ones lean opposite ways.
  */
 const MORE_CAMPAIGNS: Array<Campaign & { org: number }> = [
-  { org: 4, type: "CANVASS", title: "Marsh for State House — weekend canvass", campaignType: "candidate", affiliation: "democratic", name: "Elena Marsh for State House (demo)", message: "Introduce Elena Marsh to voters and hear what matters to them.", issues: { healthcare_access: "support", renewable_energy: "support", abortion_access: "support" } },
-  { org: 1, type: "CANVASS", title: "Becker for County Commissioner — door knocking", campaignType: "candidate", affiliation: "republican", name: "Tom Becker for County Commissioner (demo)", message: "Share Tom Becker's plan for county roads and budgets.", issues: { tax_policy: "oppose", gun_rights: "support" } },
+  { org: 4, type: "CANVASS", title: "Halvorsen for House District 71 — weekend canvass", campaignType: "candidate", affiliation: "democratic", name: "Corinne Halvorsen for State House, District 71 (demo)", message: "Introduce the candidate to voters and hear what matters to them.", issues: { healthcare_access: "support", abortion_access: "support", voting_access: "support" } },
+  { org: 1, type: "CANVASS", title: "Pellerin for County Commissioner — door knocking", campaignType: "candidate", affiliation: "republican", name: "Wade Pellerin for County Commissioner, District 9 (demo)", message: "Share the candidate's plan for county roads and budgets.", issues: { tax_policy: "oppose", gun_rights: "support", school_choice: "support" } },
   { org: 2, type: "CANVASS", title: "County party committee — voter contact", campaignType: "party_committee", affiliation: "libertarian", name: null, message: "Contact voters for the county party committee and its slate.", issues: { criminal_justice_reform: "support", immigration: "support", tax_policy: "oppose" } },
-  { org: 3, type: "PETITION", title: "Party ballot access — petition circulators", campaignType: "party_committee", affiliation: "green", name: null, message: "Collect signatures so the party's candidates qualify for the ballot.", issues: { renewable_energy: "support", labor_unions: "support" } },
-  { org: 0, type: "CANVASS", title: "Renters' rights canvass — tenant outreach", campaignType: "issue_advocacy", affiliation: "nonpartisan", name: null, message: "Talk with renters about rents, wages and tenant protections.", issues: { housing_affordability: "support", minimum_wage: "support" }, noCredentials: true },
+  { org: 3, type: "PETITION", title: "Party ballot access — petition circulators", campaignType: "party_committee", affiliation: "green", name: null, message: "Collect signatures so the party's candidates qualify for the ballot.", issues: { renewable_energy: "support", labor_unions: "support", minimum_wage: "support" } },
+  { org: 5, type: "CANVASS", title: "Ashgrove for State Senate District 41 — literature drop", campaignType: "candidate", affiliation: "other", name: "Lena Ashgrove for State Senate, District 41 (demo)", message: "Drop literature for a minor-party candidate and note voters' questions.", issues: {} },
+  { org: 0, type: "CANVASS", title: "Renters' rights canvass — tenant outreach", campaignType: "issue_advocacy", affiliation: "nonpartisan", name: null, message: "Talk with renters about rents, repairs and tenant protections.", issues: { housing_affordability: "support" }, noCredentials: true },
   { org: 1, type: "CANVASS", title: "School options info canvass — parent outreach", campaignType: "issue_advocacy", affiliation: "nonpartisan", name: null, message: "Tell parents about the school options in their district.", issues: { school_choice: "support" }, noCredentials: true },
 ];
 
 const PACKET = (i: number) => `DEMO-${String(i).padStart(4, "0")}`;
 
-/** Where the data would go, without credentials. */
+/** Where the data would go, without credentials (tidied the way the app tidies it). */
 function target(): string {
   try {
-    const u = new URL(process.env.DATABASE_URL ?? "");
+    const u = new URL(cleanDatabaseUrl(process.env.DATABASE_URL ?? ""));
     return `${u.hostname}${u.port ? `:${u.port}` : ""}${u.pathname}`;
   } catch {
     return "(DATABASE_URL is not set)";
@@ -123,12 +145,18 @@ async function main() {
     process.exitCode = 1;
     return;
   }
-  if (await p.organization.findFirst({ where: { name: { endsWith: DEMO } } })) {
-    if (await p.auditEvent.findFirst({ where: MARKER })) {
-      console.log("Demo data is already here; nothing to do.");
-      return;
-    }
-    throw new Error("Demo organizations exist, but no run finished (no completion marker). An earlier run stopped partway; its history is append-only, so check it by hand before anything else.");
+  const finished = new Set((await p.auditEvent.findMany({ where: MARKER, select: { metadata: true } })).flatMap((m) => orgIdsOf(m.metadata)));
+  const named = await p.organization.findMany({ where: { name: { endsWith: DEMO } }, select: { id: true, name: true } });
+  const unexplained = named.filter((o) => !finished.has(o.id));
+  if (unexplained.length) {
+    throw new Error(
+      `No finished demo run made ${unexplained.map((o) => `"${o.name}"`).join(", ")}. Either an earlier run stopped partway ` +
+        "(its history is append-only, so check it by hand before anything else) or a real organization has a demo name."
+    );
+  }
+  if (named.length) {
+    console.log("Demo data is already here; nothing to do.");
+    return;
   }
 
   const now = new Date();
@@ -148,13 +176,16 @@ async function main() {
     const endsAt = dayOf(new Date((past ? now.getTime() : startsAt.getTime()) + int(20, 60) * DAY));
     const method = rand() < 0.7 ? "HOURLY" : "SHIFT_RATE";
     const rate = method === "HOURLY" ? pick(["22", "24", "25", "26", "28", "30"]) : pick(["150", "165", "180", "200"]);
-    const modes = past ? ["application"] : pick([["application"], ["application", "instant_claim"], ["instant_claim"], ["application", "invite"]]);
+    // A campaign that takes a side hires by invitation only (see the header).
+    const sided = c.affiliation !== "nonpartisan" || Object.keys(c.issues).length > 0;
+    if (sided && past) throw new Error(`demo job "${c.title}": past jobs hold the history, which needs applications`);
+    const modes = sided ? ["invite"] : past ? ["application"] : pick([["application"], ["application", "instant_claim"], ["instant_claim"], ["application", "invite"]]);
     const o = ORGS[orgIdx];
     const phone = `(303) 555-01${String(10 + orgIdx).padStart(2, "0")}`;
     const petition = c.type === "PETITION";
     const v = validateJob({
       type: c.type,
-      title: c.title,
+      title: `${c.title}${DEMO}`,
       description: `${c.message} Training provided on day one; staging point shared after you're hired. Demo job: not a real campaign.`,
       jurisdictionId: JURISDICTION,
       startsAt: iso(startsAt),
@@ -183,7 +214,7 @@ async function main() {
     return { input: v.value, orgIdx, type: c.type, startsAt, endsAt, past, modes };
   };
   // ~20 jobs on the local campaigns (some running since the demo began, holding
-  // the history; some starting soon), then one for each campaign type and party.
+  // the history; some starting soon), then one for each campaign type and affiliation.
   const planned = [
     ...Array.from({ length: 20 }, (_, i) => plan(CAMPAIGNS[i % CAMPAIGNS.length], i % ORGS.length, i < 12)),
     ...MORE_CAMPAIGNS.map((c) => plan(c, c.org, false)),
@@ -296,22 +327,26 @@ async function main() {
     }
   }
 
-  // --- Upcoming jobs: applications waiting for a decision, and a few claimed spots ---
+  // --- Upcoming jobs: applications waiting for a decision, claimed spots and invitations out ---
   let pending = 0;
   for (const job of jobs.filter((j) => !j.past)) {
+    const { org, owner } = orgs[job.orgIdx];
     const n = int(1, 4);
     for (let k = 0; k < n; k++) {
       const { worker, profile } = workers[(pending * 5 + k) % workers.length];
       const r = job.modes.includes("application")
         ? await applyToJob(worker.id, profile.id, job.id)
-        : await claimJob(worker.id, profile.id, job.id);
+        : job.modes.includes("instant_claim")
+          ? await claimJob(worker.id, profile.id, job.id)
+          : await inviteWorker(org.id, owner.id, job.id, worker.id);
       if (r.ok) pending++;
     }
   }
 
   // --- A few direct messages between a hiring manager and a worker ---
+  const orgIds = orgs.map((o) => o.org.id);
   const engagements = await p.engagement.findMany({
-    where: { status: "ACTIVE", job: { org: { name: { endsWith: DEMO } } } },
+    where: { status: "ACTIVE", job: { orgId: { in: orgIds } } },
     include: { job: { select: { orgId: true, title: true } }, worker: { select: { profileId: true, displayName: true } } },
     orderBy: { createdAt: "asc" },
     take: 6,
@@ -328,11 +363,11 @@ async function main() {
   }
 
   await p.auditEvent.create({
-    data: { ...MARKER, actorId: null, metadata: { organizations: orgs.length, workers: workers.length, jobs: jobs.length, shiftsWorked } },
+    data: { ...MARKER, actorId: null, metadata: { orgIds, workerIds: workers.map((w) => w.worker.id), jobs: jobs.length, shiftsWorked } },
   });
   console.log("Demo data loaded:");
   console.log(`  ${orgs.length} organizations, ${workers.length} workers, ${jobs.length} published jobs`);
-  console.log(`  ${shiftsWorked} worked shifts, ${pending} waiting applications/claims, ${engagements.length} message threads`);
+  console.log(`  ${shiftsWorked} worked shifts, ${pending} waiting applications, claims and invitations, ${engagements.length} message threads`);
 }
 
 main()

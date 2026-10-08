@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  cardAffiliation,
   fitReasons,
   payParts,
   payShort,
@@ -283,5 +284,20 @@ describe("fitReasons", () => {
   it("splits pay for big displays", () => {
     expect(payParts("HOURLY", 2800)).toEqual({ amount: "$28", unit: "hour", short: "hr" });
     expect(payParts("PER_UNIT", 150, "CANVASS")?.unit).toBe("accepted contact");
+  });
+});
+
+describe("cardAffiliation (the job card's colour)", () => {
+  const disclosure = (affiliation: string) => ({ campaignType: "candidate", affiliation, message: "Hi", issues: {} });
+  it("takes only what the campaign disclosed, and names it", () => {
+    expect(cardAffiliation(disclosure("democratic"))).toEqual({ affiliation: "democratic", label: "Democratic" });
+    expect(cardAffiliation(disclosure("republican"))).toEqual({ affiliation: "republican", label: "Republican" });
+    expect(cardAffiliation(disclosure("libertarian"))).toEqual({ affiliation: "libertarian", label: "Libertarian" });
+    expect(cardAffiliation(disclosure("green"))).toEqual({ affiliation: "green", label: "Green" });
+    expect(cardAffiliation(disclosure("other"))).toEqual({ affiliation: "other", label: "Other party" });
+    expect(cardAffiliation(disclosure("nonpartisan"))).toEqual({ affiliation: "nonpartisan", label: "Nonpartisan" });
+  });
+  it("is null without a readable disclosure or with an unknown affiliation (never a guess)", () => {
+    for (const v of [null, undefined, {}, "democratic", disclosure("whig"), disclosure("")]) expect(cardAffiliation(v)).toBeNull();
   });
 });

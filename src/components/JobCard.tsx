@@ -1,4 +1,4 @@
-import { affiliationLabel, jobCardAnswers, readDisclosure, type CompensationMethod, type JobType } from "@/lib/jobs";
+import { affiliationLabel, cardAffiliation, jobCardAnswers, readDisclosure, type CompensationMethod, type JobType } from "@/lib/jobs";
 import { CAMPAIGN_TYPES, issueLabel } from "@/lib/political-fit";
 import { plural } from "@/lib/format";
 import { Row } from "@/components/Row";
@@ -28,6 +28,7 @@ export function JobCard({
 }) {
   const a = jobCardAnswers(job);
   const d = readDisclosure(job.campaignDisclosure);
+  const aff = cardAffiliation(job.campaignDisclosure);
   const issues = Object.entries(d?.issues ?? {});
   return (
     <div className="space-y-4">
@@ -54,7 +55,8 @@ export function JobCard({
           <p className="flex flex-wrap items-center gap-2 font-medium text-fg">
             Campaign
             <span className="badge-sky">{CAMPAIGN_TYPES.find((c) => c.value === d.campaignType)?.label ?? d.campaignType}</span>
-            <span className="badge-neutral">{affiliationLabel(d.affiliation)}</span>
+            {/* Coloured as on the job feed: the campaign's own declared affiliation. */}
+            <span className={aff ? `badge-party badge-party-${aff.affiliation}` : "badge-neutral"}>{affiliationLabel(d.affiliation)}</span>
           </p>
           {(d.campaignName || job.measureIds.length > 0) && (
             <p className="text-muted-sm">{[d.campaignName, ...job.measureIds].filter(Boolean).join(" · ")}</p>

@@ -191,6 +191,22 @@ describe("solid badges", () => {
   });
 });
 
+describe("party chips (job cards)", () => {
+  const PARTIES = ["democratic", "republican", "libertarian", "green", "other", "nonpartisan"] as const;
+  it("every affiliation has its own fill, used by a badge class", () => {
+    const fills = PARTIES.map((p) => light[`party-${p}`]);
+    expect(fills.every(Boolean)).toBe(true);
+    expect(new Set(fills).size).toBe(PARTIES.length);
+    for (const p of PARTIES) expect(css).toMatch(new RegExp(`\\.badge-party-${p} \\{ --badge-bg: var\\(--party-${p}\\); \\}`));
+  });
+  it("ink on every party fill is AAA in both themes", () => {
+    for (const th of [light, dark]) for (const p of PARTIES) expect(ratio(th.ink, th[`party-${p}`])).toBeGreaterThanOrEqual(7);
+  });
+  it("by night each chip stands out from the eggplant card it sits on (≥ 3:1)", () => {
+    for (const p of PARTIES) for (const s of SURFACES) expect(ratio(dark[`party-${p}`], dark[s])).toBeGreaterThanOrEqual(3);
+  });
+});
+
 describe("the Turfcut App Mockup palette (eggplant and lime)", () => {
   it("dark mode uses the mockup's eggplant surfaces and lime accent", () => {
     expect(dark.bg).toBe("#1c142c");

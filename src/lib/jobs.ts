@@ -112,6 +112,8 @@ function text(raw: Record<string, unknown>, k: string): string {
   return typeof v === "string" ? v.trim().replace(/\s+/g, " ") : "";
 }
 
+const checked = (v: unknown) => v === true || v === "on" || v === "true";
+
 function list(raw: Record<string, unknown>, k: string): string[] {
   const v = raw[k];
   if (Array.isArray(v)) return v.filter((x): x is string => typeof x === "string");
@@ -232,9 +234,10 @@ export function validateJob(raw: Record<string, unknown>): Validated<JobInput> {
       headcount,
       hiringModes: hiringModes as HiringMode[],
       requirements: {
-        badge: raw.badge === "on" || raw.badge === "true",
-        registration: raw.registration === "on" || raw.registration === "true",
-        affidavit: raw.affidavit === "on" || raw.affidavit === "true",
+        // A checked form box ("on"), or true from a JSON client.
+        badge: checked(raw.badge),
+        registration: checked(raw.registration),
+        affidavit: checked(raw.affidavit),
         training,
         script,
       },

@@ -46,6 +46,7 @@ async function main() {
       rules: {
         compensationAllowed: ["HOURLY", "SHIFT_RATE"],
         perUnitAllowed: false,
+        // Circulator rules: they apply to petition jobs only (jobCredentials).
         workerRegistrationRequired: true,
         badgeRequired: true,
         affidavitRequired: true,

@@ -24,7 +24,7 @@
   /* The accent fill: lime in both themes. */
   --accent: #ccea96;
   /* Solid (and on-solid): the fill for "done / live / verified"
-     badges, the Canvass filter and team avatars, and the text on it. One
+     badges, a quick filter that's on and team avatars, and the text on it. One
      role, two colours: EGGPLANT with off-white text by day, OLIVE with lime
      text by night (the mockup's "Verified org" chip). Was --plum, which only
      described the light theme. */
@@ -833,8 +833,10 @@ body {
   }
   /* Quick filters on Find work: outlined, solid when on. One "on" for all of
      them: on the feed, a coloured chip means a campaign's declared party. */
+  /* relative: it holds its own screen-reader text (absolutely placed), so the
+     scrolling row clips that too and the page never scrolls sideways. */
   .filter-chip {
-    @apply inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-full border border-border bg-surface px-3.5 text-sm font-semibold text-fg transition;
+    @apply relative inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-full border border-border bg-surface px-3.5 text-sm font-semibold text-fg transition;
   }
   .filter-chip:hover {
     border-color: var(--border-strong);

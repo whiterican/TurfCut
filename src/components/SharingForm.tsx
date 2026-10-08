@@ -98,7 +98,7 @@ export function SharingForm({ choices }: { choices: SharingChoices }) {
         </fieldset>
       ))}
       <p className="text-hint">
-        Today an organization only sees your profile after you apply or accept its invite, so both of the first two
+        Today an organization only sees your profile after you apply, claim a spot or accept its invite, so both of the first two
         choices work the same for now. When Turfcut lets organizations look for workers, we&apos;ll ask you to confirm
         your choices first.
       </p>

@@ -66,7 +66,7 @@ export interface SharingChoices {
  * Bump when the sharing wording on the worker's screens (Who sees what, and
  * the setup) changes: every worker is asked again, on Today and on Profile.
  */
-export const SHARING_TEXT_VERSION = "c2-2026-10-08";
+export const SHARING_TEXT_VERSION = "c2-2026-10-08b";
 
 /**
  * Lists the workers who dismissed the sharing note on Today, on this device.

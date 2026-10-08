@@ -17,7 +17,7 @@ import { briefPaths } from "@/lib/offline-brief-data";
 import { money } from "@/lib/pay";
 import { cookies } from "next/headers";
 import { loadSharing } from "@/lib/sharing-data";
-import { noteDismissedBy, SHARING_NOTE_COOKIE } from "@/lib/sharing";
+import { noteDismissedBy, RELATIONSHIP_PHRASE, SHARING_NOTE_COOKIE } from "@/lib/sharing";
 import { DismissibleNote } from "@/components/DismissibleNote";
 import { loadCredentials } from "@/lib/credentials-data";
 import { credentialName, expiryReminder, expiryState, expiryToday } from "@/lib/credentials";
@@ -113,7 +113,7 @@ async function SharingNote({ workerId }: { workerId: string }) {
     <DismissibleNote action={dismissSharingNote} title={never ? "You choose who sees what" : "Check who sees what"}>
       <p className="text-muted-sm">
         {never
-          ? "Choose who sees each part of your scorecard, your availability and your credentials, and whether organizations can find you. Until you do, organizations you apply to or accept an invite from see your profile, and nobody can find you."
+          ? `Choose who sees each part of your scorecard, your availability and your credentials, and whether organizations can find you. Until you do, organizations you ${RELATIONSHIP_PHRASE} see your profile, and nobody can find you.`
           : "We've changed how Turfcut explains who sees what since you chose. Your choices stay as they are; take a look and confirm them."}
       </p>
       <Link transitionTypes={["nav-forward"]} href="/profile/setup" className="btn-primary btn-sm">{never ? "Set it up (4 short steps)" : "Check your choices"}</Link>

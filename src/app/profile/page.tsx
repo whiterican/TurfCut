@@ -17,11 +17,11 @@ import { AvailabilityStatement } from "@/components/AvailabilityStatement";
 import { loadCredentials } from "@/lib/credentials-data";
 import { CredentialList } from "@/components/CredentialList";
 import { expiryToday } from "@/lib/credentials";
-import { PART_DETAILS, SHARE_PARTS, type ShareAudience } from "@/lib/sharing";
+import { PART_DETAILS, RELATIONSHIP_PHRASE, SHARE_PARTS, type ShareAudience } from "@/lib/sharing";
 import { UrlNotice } from "@/components/UrlNotice";
 
 const AUDIENCE_SHORT: Record<ShareAudience, string> = {
-  RELATIONSHIP: "Organizations you apply to, claim a spot with or accept an invite from",
+  RELATIONSHIP: `Organizations you ${RELATIONSHIP_PHRASE}`,
   ANY_APPROVED_ORG: "Any approved organization",
   NOBODY: "Nobody",
 };
@@ -63,7 +63,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
           <p className="font-semibold text-fg">{sharing.version === null ? "Choose who sees what" : "Check who sees what"}</p>
           <p className="text-muted-sm">
             {sharing.version === null
-              ? "You're on the defaults: organizations you apply to or accept an invite from see your profile, and nobody can find you."
+              ? `You're on the defaults: organizations you ${RELATIONSHIP_PHRASE} see your profile, and nobody can find you.`
               : "We've changed how Turfcut explains who sees what since you chose. Your choices stay as they are; take a look and confirm them."}
           </p>
           <div className="flex flex-wrap gap-2">

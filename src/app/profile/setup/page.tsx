@@ -3,7 +3,7 @@ import { requireWorker } from "@/lib/worker-session";
 import { loadSharing } from "@/lib/sharing-data";
 import { loadAvailability } from "@/lib/availability-data";
 import { loadCredentials } from "@/lib/credentials-data";
-import { PART_DETAILS, SHARE_GROUPS, SHARING_TEXT_VERSION, type ShareAudience, type WorkType } from "@/lib/sharing";
+import { PART_DETAILS, RELATIONSHIP_PHRASE, SHARE_GROUPS, SHARING_TEXT_VERSION, type ShareAudience, type WorkType } from "@/lib/sharing";
 import { availabilitySummary, isEmptyAvailability } from "@/lib/availability";
 import { credentialName } from "@/lib/credentials";
 import { SETUP_STEPS, setupOrigin, setupStep } from "@/lib/setup-flow";
@@ -11,7 +11,7 @@ import { PendingButton } from "@/components/PendingButton";
 import { confirmSharing, skipSetup } from "./actions";
 
 const SHORT: Record<ShareAudience, string> = {
-  RELATIONSHIP: "Organizations you apply to, claim a spot with or accept an invite from",
+  RELATIONSHIP: `Organizations you ${RELATIONSHIP_PHRASE}`,
   ANY_APPROVED_ORG: "Any organization Turfcut has approved",
   NOBODY: "Nobody",
 };
@@ -133,7 +133,7 @@ export default async function SetupPage({ searchParams }: { searchParams: Promis
       </div>
       <p className="text-hint">
         {sharing.version === null
-          ? "Skipping keeps the defaults: organizations you apply to or accept an invite from see your profile, and nobody can find you."
+          ? `Skipping keeps the defaults: organizations you ${RELATIONSHIP_PHRASE} see your profile, and nobody can find you.`
           : "Skipping keeps your current choices."}
       </p>
     </main>

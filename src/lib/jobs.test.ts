@@ -280,6 +280,12 @@ describe("fitReasons", () => {
     expect(r.filter((x) => x.kind === "info").map((x) => x.title)).toEqual(["New to petition work", "First job in CO", "Credentials needed", "Every spot is filled"]);
     expect(r.at(-1)).toMatchObject({ kind: "yes", title: "Within your boundaries" });
   });
+  it("an invitation-only job doesn't invite applying or claiming", () => {
+    const spots = (canJoin?: boolean) => fitReasons({ ...base, canJoin }).find((x) => x.title === "3 spots open")?.detail;
+    expect(spots(false)).toBe("Filled by invitation");
+    expect(spots(true)).toBe("Apply or claim while there's room");
+    expect(spots(undefined)).toBe("Apply or claim while there's room");
+  });
   it("splits pay for big displays", () => {
     expect(payParts("HOURLY", 2800)).toEqual({ amount: "$28", unit: "hour", short: "hr" });
     expect(payParts("PER_UNIT", 150, "CANVASS")?.unit).toBe("accepted contact");

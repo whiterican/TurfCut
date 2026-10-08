@@ -22,8 +22,11 @@ export type WorkType = "PETITION" | "CANVASS";
 export const SHARE_GROUPS: ShareGroup[] = ["output", "quality", "reliability", "history"];
 export const SHARE_PARTS: SharePart[] = [...SHARE_GROUPS, "availability", "credentials"];
 
+/** Who counts as "an organization you work with" (orgHasRelationship): one phrase, used everywhere. */
+export const RELATIONSHIP_PHRASE = "apply to, claim a spot with or accept an invite from";
+
 export const AUDIENCE_OPTIONS: Array<{ value: ShareAudience; label: string }> = [
-  { value: "RELATIONSHIP", label: "Organizations I apply to or accept an invite from" },
+  { value: "RELATIONSHIP", label: `Organizations I ${RELATIONSHIP_PHRASE}` },
   { value: "ANY_APPROVED_ORG", label: "Any organization Turfcut has approved" },
   { value: "NOBODY", label: "Nobody" },
 ];

@@ -8,7 +8,7 @@ import { ENGAGEMENT_LABELS, JOB_STATUS_LABELS } from "@/lib/engagement-labels";
 import { UUID_RE, exclusionReasons, fitReasons, jobCardAnswers, jurisdictionLabel, payText, publishBlockers, readDisclosure, readHiringModes } from "@/lib/jobs";
 import { loadScorecard } from "@/lib/scorecard-data";
 import { loadSharing } from "@/lib/sharing-data";
-import { PART_DETAILS, SHARE_PARTS, visibleParts, type SharePart, type SharingChoices } from "@/lib/sharing";
+import { PART_DETAILS, RELATIONSHIP_PHRASE, SHARE_PARTS, visibleParts, type SharePart, type SharingChoices } from "@/lib/sharing";
 
 import { effectivePreference } from "@/lib/political-fit";
 import { loadLatestPreference } from "@/lib/political-fit-data";
@@ -132,6 +132,7 @@ async function WorkerPanel({
   const [card, sharing] = await Promise.all([loadScorecard(workerId), loadSharing(workerId)]);
   const answers = jobCardAnswers({ ...job, orgName: job.org.name, jurisdictionRules: job.jurisdiction.rules });
   const reasons2 = fitReasons({
+    canJoin: modes.includes("application") || modes.includes("instant_claim"),
     type: job.type,
     state: job.jurisdiction.state,
     verifiedShiftsOfType: card.segments.filter((x) => x.workType === job.type).reduce((n, x) => n + x.shiftsCount, 0),
@@ -210,10 +211,15 @@ function WillSee({
 }) {
   if (!approved) {
     // Its hiring pages still list your name (and any copy it already kept), so say exactly that.
+    const now = invited
+      ? "Turfcut hasn't approved this organization (or no longer does), so it sees only your name, none of your profile."
+      : canJoin
+        ? "Turfcut hasn't approved this organization, so if you apply or claim a spot it sees only your name, none of your profile."
+        : "Turfcut hasn't approved this organization, so it sees none of your profile.";
     return (
       <p className="text-hint">
-        While Turfcut doesn&apos;t approve this organization, it sees only your name, none of your profile. If Turfcut approves it, it sees what
-        you share with organizations you apply to.{invited && kept ? " The copy it kept when it invited you stays on its record." : ""}{" "}
+        {now} If Turfcut approves it, it sees what you share with organizations you {RELATIONSHIP_PHRASE}.
+        {invited && kept ? " The copy it kept when it invited you stays on its record." : ""}{" "}
         <Link href="/profile/sharing" className="link">Who sees what</Link>
       </p>
     );

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireWorker } from "@/lib/worker-session";
 import { loadSharing } from "@/lib/sharing-data";
+import { RELATIONSHIP_PHRASE } from "@/lib/sharing";
 import { SharingForm } from "@/components/SharingForm";
 
 const dateText = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
@@ -23,7 +24,7 @@ export default async function SharingPage() {
         <p className="text-hint">
           {sharing.savedAt
             ? `You last changed these on ${dateText(sharing.savedAt)}. Earlier choices are kept on record, never overwritten.`
-            : "You haven't changed anything yet: organizations you apply to or accept an invite from see your profile, nobody else does, and nobody can find you."}
+            : `You haven't changed anything yet: organizations you ${RELATIONSHIP_PHRASE} see your profile, nobody else does, and nobody can find you.`}
         </p>
         <p className="text-hint">Your political-fit answers have their own settings, under Political fit on your profile.</p>
       </header>

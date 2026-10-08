@@ -293,6 +293,50 @@ prisma/
   fk-indexes.sql        # indexes on nine foreign keys (safe to re-run)
 ```
 
+## Demo data
+
+`npm run seed:demo -- --yes` (after `npm run seed`) fills the app for
+testers. Export `DATABASE_URL` in the shell first; tsx doesn't read
+`.env.local`. Without `--yes` it only says where it would write. It makes:
+
+- six organizations with their staff and twelve workers, all named "… (demo)";
+- 27 published Colorado jobs, all titled "… (demo)" and fictional: local
+  measures and civic work, plus a job for each campaign type and
+  affiliation (candidate, party committee, issue advocacy; Democratic,
+  Republican, Libertarian, Green, other). The candidates have invented
+  names and run in districts that don't exist. Between them the campaigns
+  disclose every issue, so the feed's filters and workers' own "do not
+  match me" answers have something to act on. Four canvass jobs ask for no
+  credentials (two of them open to applications);
+- about fifty worked and reviewed daytime shifts with pay lines, waiting
+  applications, claims and invitations, and a few messages.
+
+Jobs whose campaign takes a party or an issue position hire by invitation
+only, so no real worker's issue answers are matched against a demo
+campaign. The nonpartisan demo jobs stay open, so testers can apply and
+claim. Like any application, one to a demo job carries what the worker
+shares with organizations they apply to: their scorecard and the
+political-fit answers they chose to share (identity, party, campaign
+interests). Nobody signs in as demo staff, so it reaches no one. Never link
+a real login to a demo organization (it would see those applicants), and
+close the demo jobs before real workers arrive.
+
+Everything goes through the app's own rules (publish gate, hiring, field
+day, review, pay), backdated so workers have history. Audit-log entries
+carry the date of the load. It runs once: a completion marker naming the
+demo organizations is written last, and a run that stopped partway is
+reported rather than repeated. Work history, reviews, pay lines and
+messages are append-only and stay. To take the demo jobs out of the feed
+(by the ids in the marker, not by name, since anyone can name an
+organization "… (demo)"):
+
+```sql
+UPDATE "Job" SET status = 'CLOSED'
+WHERE status = 'PUBLISHED' AND "orgId" IN (
+  SELECT (jsonb_array_elements_text(metadata -> 'orgIds'))::uuid
+  FROM "AuditEvent" WHERE action = 'demo.seeded');
+```
+
 ## M0 scope (done)
 
 Next.js + TS scaffold, Supabase wiring, Prisma schema for all core tables,

@@ -5,19 +5,19 @@ const POOLER = "postgresql://postgres.abc:pw@aws-0-us-west-1.pooler.supabase.com
 const DIRECT = "postgresql://postgres:pw@db.abc.supabase.co:5432/postgres";
 
 describe("runtime database URL", () => {
-  it("adds pgbouncer=true and one connection per instance to a pooler URL", () => {
+  it("adds pgbouncer=true and three connections per instance to a pooler URL", () => {
     const { url, warning } = runtimeDatabaseUrl(POOLER, true);
     const u = new URL(url);
     expect(u.port).toBe("6543");
     expect(u.searchParams.get("pgbouncer")).toBe("true");
-    expect(u.searchParams.get("connection_limit")).toBe("1");
+    expect(u.searchParams.get("connection_limit")).toBe("3");
     expect(u.password).toBe("pw");
     expect(warning).toBeNull();
   });
 
   it("keeps settings the URL already chose", () => {
-    const u = new URL(runtimeDatabaseUrl(`${POOLER}?connection_limit=3&pgbouncer=true`, true).url);
-    expect(u.searchParams.get("connection_limit")).toBe("3");
+    const u = new URL(runtimeDatabaseUrl(`${POOLER}?connection_limit=1&pgbouncer=true`, true).url);
+    expect(u.searchParams.get("connection_limit")).toBe("1");
     expect(u.searchParams.getAll("pgbouncer")).toEqual(["true"]);
   });
 

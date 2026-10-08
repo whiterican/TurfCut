@@ -18,7 +18,7 @@ generator client {
 // Two connections (Supabase):
 // - DATABASE_URL: what the app uses at runtime. On Vercel, the pooler in
 //   transaction mode, port 6543 (src/lib/env.ts adds pgbouncer=true and
-//   connection_limit=1 when missing).
+//   connection_limit=3 when missing).
 // - DIRECT_URL: the direct connection, port 5432, used by the Prisma CLI
 //   (db push, migrate) which needs a session the pooler can't give.
 // Locally both can be the same URL.
@@ -66,6 +66,8 @@ model Profile {
   sentMessages       Message[]
   blocksMade         ProfileBlock[]            @relation("Blocker")
   blocksReceived     ProfileBlock[]            @relation("Blocked")
+
+  @@index([orgId])
 }
 
 // ---------------------------------------------------------------------------
@@ -310,6 +312,7 @@ model Job {
   conversationJobs ConversationJob[]
 
   @@index([orgId, status])
+  @@index([jurisdictionId])
 }
 
 enum EngagementStatus {
@@ -344,6 +347,8 @@ model Engagement {
   conversation Conversation?
 
   @@unique([jobId, workerId])
+  @@index([workerId])
+  @@index([hiredById])
 }
 
 enum ShiftStatus {
@@ -520,6 +525,8 @@ model Payout {
   @@index([workerId, createdAt])
   @@index([orgId, createdAt])
   @@index([shiftId])
+  @@index([engagementId])
+  @@index([adjustsId])
 }
 
 /// Status history of a pay line. APPEND-ONLY.
@@ -586,6 +593,8 @@ model PayDispute {
 
   @@index([orgId, createdAt])
   @@index([shiftId])
+  @@index([workerId])
+  @@index([payoutId])
 }
 
 /// How a dispute was closed. One per dispute. APPEND-ONLY.
@@ -713,6 +722,7 @@ model Message {
   reports   MessageReport[]
 
   @@index([conversationId, createdAt])
+  @@index([senderId])
 }
 
 /// Append-only edits and soft deletes (tombstones). Latest EDIT wins; any DELETE hides the text.

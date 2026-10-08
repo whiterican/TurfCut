@@ -450,6 +450,9 @@ CREATE TABLE "public"."ProfileBlock" (
 );
 
 -- CreateIndex
+CREATE INDEX "Profile_orgId_idx" ON "public"."Profile"("orgId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "Worker_profileId_key" ON "public"."Worker"("profileId");
 
 -- CreateIndex
@@ -468,7 +471,16 @@ CREATE UNIQUE INDEX "JurisdictionProfile_state_locality_version_key" ON "public"
 CREATE INDEX "Job_orgId_status_idx" ON "public"."Job"("orgId", "status");
 
 -- CreateIndex
+CREATE INDEX "Job_jurisdictionId_idx" ON "public"."Job"("jurisdictionId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "Engagement_jobId_workerId_key" ON "public"."Engagement"("jobId", "workerId");
+
+-- CreateIndex
+CREATE INDEX "Engagement_workerId_idx" ON "public"."Engagement"("workerId");
+
+-- CreateIndex
+CREATE INDEX "Engagement_hiredById_idx" ON "public"."Engagement"("hiredById");
 
 -- CreateIndex
 CREATE INDEX "Shift_engagementId_startsAt_idx" ON "public"."Shift"("engagementId", "startsAt");
@@ -498,6 +510,12 @@ CREATE INDEX "Payout_orgId_createdAt_idx" ON "public"."Payout"("orgId", "created
 CREATE INDEX "Payout_shiftId_idx" ON "public"."Payout"("shiftId");
 
 -- CreateIndex
+CREATE INDEX "Payout_engagementId_idx" ON "public"."Payout"("engagementId");
+
+-- CreateIndex
+CREATE INDEX "Payout_adjustsId_idx" ON "public"."Payout"("adjustsId");
+
+-- CreateIndex
 CREATE INDEX "PayoutEvent_payoutId_createdAt_idx" ON "public"."PayoutEvent"("payoutId", "createdAt");
 
 -- CreateIndex
@@ -514,6 +532,12 @@ CREATE INDEX "PayDispute_orgId_createdAt_idx" ON "public"."PayDispute"("orgId", 
 
 -- CreateIndex
 CREATE INDEX "PayDispute_shiftId_idx" ON "public"."PayDispute"("shiftId");
+
+-- CreateIndex
+CREATE INDEX "PayDispute_workerId_idx" ON "public"."PayDispute"("workerId");
+
+-- CreateIndex
+CREATE INDEX "PayDispute_payoutId_idx" ON "public"."PayDispute"("payoutId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "PayDisputeResolution_disputeId_key" ON "public"."PayDisputeResolution"("disputeId");
@@ -544,6 +568,9 @@ CREATE UNIQUE INDEX "ConversationParticipant_conversationId_profileId_key" ON "p
 
 -- CreateIndex
 CREATE INDEX "Message_conversationId_createdAt_idx" ON "public"."Message"("conversationId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "Message_senderId_idx" ON "public"."Message"("senderId");
 
 -- CreateIndex
 CREATE INDEX "MessageRevision_messageId_createdAt_idx" ON "public"."MessageRevision"("messageId", "createdAt");

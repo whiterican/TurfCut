@@ -39,7 +39,7 @@ export function JobFeedCard({ j }: { j: FeedJob }) {
         <span className="flex flex-wrap gap-1.5">
           <span className="badge-neutral">{day(j.startsAt)} – {day(j.endsAt)}</span>
           {aff ? (
-            <span className={`badge-party badge-party-${aff.affiliation}`}>{type} · {aff.label}</span>
+            <span className={`badge-party badge-party-${aff.affiliation} whitespace-normal`}>{type} · {aff.label}</span>
           ) : (
             <span className="badge-neutral">{type}</span>
           )}

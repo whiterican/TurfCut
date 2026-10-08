@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { HIRING_ROLES, ORG_ROLES, SCHEDULING_ROLES } from "@/lib/access";
 import { ACCEPTED_STATUSES, RELATIONSHIP_STATUSES, type EngagementStatus, type HiringSnapshot } from "@/lib/engagements";
-import { ENGAGEMENT_LABELS, JOB_STATUS_LABELS } from "@/lib/engagement-labels";
+import { ENGAGEMENT_LABELS, JOB_STATUS_LABELS, jobPageBadge } from "@/lib/engagement-labels";
 import { UUID_RE, exclusionReasons, fitReasons, jobCardAnswers, jurisdictionLabel, payText, publishBlockers, readDisclosure, readHiringModes } from "@/lib/jobs";
 import { loadScorecard } from "@/lib/scorecard-data";
 import { effectivePreference } from "@/lib/political-fit";
@@ -54,7 +54,7 @@ export default async function JobPage({ params }: { params: Promise<{ jobId: str
           <p className="text-muted-sm">{job.org.name}</p>
           <p className="pt-2 text-3xl font-bold tracking-[-0.03em] text-fg tabular-nums">{payText(job.compensationMethod, job.payRateCents)}</p>
           <p className="flex flex-wrap gap-1.5 pt-1">
-            {isOwnOrg && <span className={status.badge}>{status.label}</span>}
+            {isOwnOrg && <span className={jobPageBadge(status.badge)}>{status.label}</span>}
             {/* Neutral: on job pages and cards, a coloured chip means the campaign's declared party. */}
             <span className="badge-neutral">{day(job.startsAt)} – {day(job.endsAt)}</span>
             <span className="badge-neutral">{job.type === "PETITION" ? "Petition" : "Canvass"}</span>
@@ -206,7 +206,7 @@ function shiftRow(
             {s.stagingLocation ? ` · ${s.stagingLocation}` : ""}
           </span>
         </span>
-        <span className={b.badge}>{b.label}</span>
+        <span className={jobPageBadge(b.badge)}>{b.label}</span>
       </Link>
     </li>
   );

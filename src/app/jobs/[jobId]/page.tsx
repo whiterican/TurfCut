@@ -89,7 +89,7 @@ async function WorkerPanel({
   acceptedCount,
 }: {
   job: JobWithRefs;
-  engagement: { id: string; status: EngagementStatus } | null;
+  engagement: { id: string; status: EngagementStatus; applicationSnapshot: unknown } | null;
   modes: string[];
   workerId: string;
   acceptedCount: number;
@@ -117,7 +117,7 @@ async function WorkerPanel({
         {engagement.status === "INVITED" && (
           <>
             <ActionButton action={acceptInvitation} fields={{ jobId: job.id, engagementId: engagement.id }} label="Accept invitation" />
-            <WillSee sharing={(await loadSharing(workerId)).choices} approved={job.org.approved} invited />
+            <WillSee sharing={(await loadSharing(workerId)).choices} approved={job.org.approved} invited kept={engagement.applicationSnapshot != null} />
           </>
         )}
         {engagement.status === "APPLIED" && <p className="text-muted-sm">The organization will review your application.</p>}
@@ -191,12 +191,17 @@ const listText = (xs: string[]) => (xs.length < 2 ? xs.join("") : `${xs.slice(0,
  * organization will see once they do (they become a related organization).
  * The same rules as orgProfileView: name, the parts shared with it (with
  * experience as part of hours and history), and the fit answers shared.
+ * `kept`: the invitation holds a copy of what was shared when it was sent
+ * (invitations from before hiring copies don't).
  */
-function WillSee({ sharing, approved, invited = false }: { sharing: SharingChoices; approved: boolean; invited?: boolean }) {
+function WillSee({ sharing, approved, invited = false, kept = false }: { sharing: SharingChoices; approved: boolean; invited?: boolean; kept?: boolean }) {
   if (!approved) {
+    // Its hiring pages still list your name (and any copy it already kept), so say exactly that.
     return (
       <p className="text-hint">
-        Turfcut hasn&apos;t approved this organization yet, so it sees none of your profile.{" "}
+        {invited
+          ? `Turfcut doesn't approve this organization right now, so from here on it sees your name and none of your profile.${kept ? " The copy it kept when it invited you stays on its record." : ""}`
+          : "Turfcut hasn't approved this organization, so it would see your name and none of your profile."}{" "}
         <Link href="/profile/sharing" className="link">Who sees what</Link>
       </p>
     );
@@ -213,8 +218,8 @@ function WillSee({ sharing, approved, invited = false }: { sharing: SharingChoic
         Your name{seen.length ? `, your ${listText(seen)}` : ""}, and only the political-fit answers you chose to share.
         {hidden.length > 0 && ` Not your ${listText(hidden)}: it sees "not shared" there.`}{" "}
         {invited
-          ? "It also kept a copy of what you shared when it invited you; accepting doesn't change that copy."
-          : "Your application keeps a copy of what you share at that moment."}
+          ? kept && "It also kept a copy of what you shared when it invited you; accepting doesn't change that copy."
+          : "Applying or claiming a spot keeps a copy of what you share at that moment."}
       </p>
       <p className="flex flex-wrap gap-x-4">
         <Link href="/profile/sharing" className="link">Change who sees what</Link>

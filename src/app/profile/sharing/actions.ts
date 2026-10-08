@@ -27,8 +27,8 @@ export async function saveSharingChoices(_prev: SharingFormState, formData: Form
     ok: true,
     message: !saved.changed
       ? "Saved. Nothing had changed."
-      : saved.reworded
-        ? "Saved. Your choices are confirmed under the current wording; nothing changes for organizations."
+      : saved.sameForOrgs
+        ? "Saved. Your choices are confirmed; nothing changes for organizations."
         : "Saved. Organizations see the change straight away.",
     errors: {},
   };

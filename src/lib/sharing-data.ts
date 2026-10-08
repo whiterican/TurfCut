@@ -33,8 +33,13 @@ export async function loadSharing(workerId: string): Promise<LoadedSharing> {
 }
 
 export type SaveSharingResult =
-  /** reworded: the same choices, confirmed under a newer wording (nothing changes for organizations). */
-  | { ok: true; changed: boolean; version: number; reworded?: boolean }
+  /**
+   * changed: a version was appended. sameForOrgs: it holds the choices
+   * already in effect (a first save of the defaults, or the same choices
+   * under a newer wording), so it records a confirmation and nothing changes
+   * for organizations.
+   */
+  | { ok: true; changed: boolean; version: number; sameForOrgs?: boolean }
   | { ok: false; errors: Record<string, string> };
 
 /**
@@ -73,7 +78,7 @@ export async function saveSharing(
   opts: { expectedVersion?: number | null; textVersion?: string } = {}
 ): Promise<SaveSharingResult> {
   if (opts.textVersion !== undefined && opts.textVersion !== SHARING_TEXT_VERSION) {
-    return { ok: false, errors: { reworded: "How Turfcut explains who sees what changed since this page opened. Reload to read it, then save again." } };
+    return { ok: false, errors: { reworded: "This page is out of date: how Turfcut explains who sees what has changed since it opened. Nothing was saved. Reload it, read the new wording, then choose again." } };
   }
   // Refuse a malformed save before taking the lock.
   const pre = validateSharing(raw);
@@ -88,7 +93,8 @@ export async function saveSharing(
     // on a screen) keeps its saved value, read under the lock.
     const omitsReceipts = !!raw && typeof raw === "object" && (raw as Record<string, unknown>).readReceipts === undefined;
     const choices = omitsReceipts ? { ...pre.value, readReceipts: row?.readReceipts ?? false } : pre.value;
-    const sameChoices = !!row && sameSharing(sharingFromRow(row), choices);
+    // The choices organizations see right now: the latest save, or the defaults.
+    const sameChoices = sameSharing(row ? sharingFromRow(row) : DEFAULT_SHARING, choices);
     if (row && sameChoices && row.consentTextVersion === SHARING_TEXT_VERSION) {
       return { ok: true as const, changed: false, version: row.version };
     }
@@ -106,8 +112,7 @@ export async function saveSharing(
         metadata: { version, consentTextVersion: SHARING_TEXT_VERSION },
       },
     });
-    // Same choices, newer wording: recorded as confirmed, but nothing changes for organizations.
-    return { ok: true as const, changed: true, version, reworded: sameChoices };
+    return { ok: true as const, changed: true, version, sameForOrgs: sameChoices };
   });
 }
 

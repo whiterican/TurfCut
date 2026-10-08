@@ -18,7 +18,7 @@ const SHORT: Record<ShareAudience, string> = {
 const WORK: Record<WorkType, string> = { PETITION: "petition", CANVASS: "canvass" };
 const ERRORS: Record<string, string> = {
   stale: "Your choices changed since this page opened (perhaps in another window). Check them, then press Done again.",
-  reworded: "How Turfcut explains who sees what changed since this page opened. Read the steps again, then press Done.",
+  reworded: "How Turfcut explains who sees what changed while you were going through these steps. Here they are again as they read now.",
   invalid: "Your saved choices need a fix before they can be confirmed. Open Who sees what to fix them.",
 };
 
@@ -28,17 +28,21 @@ const ERRORS: Record<string, string> = {
  * contents, being found and for what work), since Done records the choices
  * under the sharing wording. Skippable at any point; skipping keeps them.
  */
-export default async function SetupPage({ searchParams }: { searchParams: Promise<{ step?: string; from?: string; error?: string }> }) {
+export default async function SetupPage({ searchParams }: { searchParams: Promise<{ step?: string; from?: string; error?: string; tv?: string }> }) {
   const { workerId } = await requireWorker();
   const sp = await searchParams;
   const n = setupStep(sp.step);
   const from = setupOrigin(sp.from);
   // Own keys only: ?error=constructor must not reach the page as a function.
-  const error = n === SETUP_STEPS.length && typeof sp.error === "string" && Object.hasOwn(ERRORS, sp.error) ? ERRORS[sp.error] : undefined;
+  const errorKey = typeof sp.error === "string" && Object.hasOwn(ERRORS, sp.error) ? sp.error : undefined;
+  // A wording change restarts the steps (shown on step 1); the others belong to Done.
+  const error = errorKey && n === (errorKey === "reworded" ? 1 : SETUP_STEPS.length) ? ERRORS[errorKey] : undefined;
+  // The wording the steps were first shown under, carried from step 1 to Done: Done is refused if it changed on the way.
+  const tv = typeof sp.tv === "string" && sp.tv ? sp.tv : SHARING_TEXT_VERSION;
   const [sharing, avail, creds] = await Promise.all([loadSharing(workerId), loadAvailability(workerId), loadCredentials(workerId)]);
   const c = sharing.choices;
   const today = new Date().toISOString().slice(0, 10);
-  const step = (k: number) => `/profile/setup?step=${k}${from === "profile" ? "&from=profile" : ""}`;
+  const step = (k: number) => `/profile/setup?step=${k}${from === "profile" ? "&from=profile" : ""}&tv=${encodeURIComponent(tv)}`;
 
   return (
     <main className="page max-w-2xl space-y-6">
@@ -115,8 +119,8 @@ export default async function SetupPage({ searchParams }: { searchParams: Promis
           <form action={confirmSharing}>
             {/* The version on screen: Done confirms it, or is refused if a newer save landed meanwhile. */}
             <input type="hidden" name="version" value={sharing.version ?? ""} />
-            {/* …and the wording it showed it under. */}
-            <input type="hidden" name="textVersion" value={SHARING_TEXT_VERSION} />
+            {/* …and the wording the steps showed it under (from step 1). */}
+            <input type="hidden" name="textVersion" value={tv} />
             <input type="hidden" name="from" value={from} />
             <PendingButton pendingLabel="Saving…">Done, keep these choices</PendingButton>
           </form>

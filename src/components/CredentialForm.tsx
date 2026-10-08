@@ -39,7 +39,7 @@ type Wallet = {
   message: string;
   /** The status line's id, so announce can focus it. */
   lineId: string;
-  /** Shows `message` on the status line ("" clears it). `from`: the form it came from. */
+  /** Shows `message` on the status line ("" clears it). `from`: the part of the page it came from. */
   announce: (message: string, from?: Element | null) => void;
 };
 const WalletContext = createContext<Wallet | null>(null);
@@ -62,7 +62,7 @@ export function WalletStatus({ children }: { children: React.ReactNode }) {
     requestAnimationFrame(() => {
       setMessage(m);
       requestAnimationFrame(() => {
-        // Focus follows only if it was lost with the removed row (or is still in its form),
+        // Focus follows only if it was lost with the removed row (or is still in it),
         // never away from a field the worker has moved on to.
         const a = document.activeElement;
         if (!a || a === document.body || from?.contains(a)) document.getElementById(lineId)?.focus();
@@ -108,8 +108,8 @@ export function CredentialForm({ id, values: start, masked, onDone }: { id?: str
   });
   const err = (k: string) => e[k] && <p id={`${id ?? "new"}-err-${k}`} className="text-danger-msg">{e[k]}</p>;
   const onSubmit = (ev: React.FormEvent<HTMLFormElement>) => {
+    submit(ev); // first: it stops the browser's own submit
     announce(""); // a new save: the wallet's last removal message no longer applies
-    submit(ev);
   };
 
   return (
@@ -194,7 +194,8 @@ export function RemoveCredential({ id, name }: { id: string; name: string }) {
   const form = useRef<HTMLFormElement>(null);
   const announce = useAnnounce();
   const { state, pending, onSubmit } = useSubmitState(removeCredentialAction, (r) => {
-    if (r.ok) announce(`Removed ${name}. It stays on record, but nobody sees it.`, form.current);
+    // The whole row goes, so focus anywhere in it (its Edit too) would be lost.
+    if (r.ok) announce(`Removed ${name}. It stays on record, but nobody sees it.`, form.current?.closest("li") ?? form.current);
   });
   if (!confirming) {
     return <button type="button" className="link text-sm" onClick={() => setConfirming(true)}>Remove {name}</button>;

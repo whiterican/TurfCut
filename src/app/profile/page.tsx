@@ -21,7 +21,7 @@ import { PART_DETAILS, SHARE_PARTS, type ShareAudience } from "@/lib/sharing";
 import { UrlNotice } from "@/components/UrlNotice";
 
 const AUDIENCE_SHORT: Record<ShareAudience, string> = {
-  RELATIONSHIP: "Organizations you apply to",
+  RELATIONSHIP: "Organizations you apply to or accept an invite from",
   ANY_APPROVED_ORG: "Any approved organization",
   NOBODY: "Nobody",
 };
@@ -81,8 +81,8 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
       <section className="section">
         <h2 className="section-title">Experience</h2>
         <p className="text-hint">
-          Seen by: {AUDIENCE_SHORT[sharing.choices.audiences.history]} (experience goes with hours and history). Organizations never see a
-          reference&apos;s contact details, only that you gave one.{" "}
+          Seen by: {AUDIENCE_SHORT[sharing.choices.audiences.history]} (experience goes with hours and history). Organizations that see it
+          never see a reference&apos;s contact details, only that you gave one.{" "}
           <Link href="/profile/sharing" className="link">Change</Link>
         </p>
         <ExperienceList

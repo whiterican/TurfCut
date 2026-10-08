@@ -554,9 +554,9 @@ connection is only for schema changes.
   sharing wording; a new wording (`SHARING_TEXT_VERSION`) asks again. Done
   confirms the version and the wording it showed: it's refused if a newer
   save landed meanwhile (unless those same choices are already confirmed,
-  as after a double press) or if the wording changed since the page
-  opened. Who sees what refuses a save across a wording change the same
-  way.
+  as after a double press) or if the wording changed since the steps
+  began (they start again). Who sees what refuses a save across a wording
+  change the same way.
 - Database: `prisma/c2-consent.sql` (three append-only, server-only tables
   with checks that refuse self-verification, foreign proof paths and
   carried-forward verification). Acceptance: `tests/acceptance/c2-consent.ts`.

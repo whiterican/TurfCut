@@ -31,10 +31,12 @@ const all = (a: string) => Object.fromEntries(SHARE_PARTS.map((p) => [p, a]));
   check("a worker who never saved gets the defaults (version none)", fresh.version === null && JSON.stringify(fresh.choices) === JSON.stringify(DEFAULT_SHARING));
   const first = await saveSharing(W1, ACTOR, DEFAULT_SHARING);
   check("a first save is recorded even when it equals the defaults (confirmed ≠ never looked)", first.ok && first.changed && first.version === 1 && (await p.workerSharing.count({ where: { workerId: W1 } })) === 1, first);
+  check("…and says nothing changes for organizations (they already saw the defaults)", first.ok && first.sameForOrgs === true, first);
   const noop = await saveSharing(W1, ACTOR, DEFAULT_SHARING);
   check("saving the same choices again is a no-op", noop.ok && !noop.changed && noop.version === 1, noop);
   const s2 = await saveSharing(W1, ACTOR, { audiences: { ...all("RELATIONSHIP"), quality: "NOBODY" } });
   check("a change appends version 2 and an audit event per version", s2.ok && s2.changed && s2.version === 2 && (await p.auditEvent.count({ where: { action: "sharing.saved", entityId: W1 } })) === 2, s2);
+  check("a real change isn't reported as the same for organizations", s2.ok && s2.sameForOrgs === false, s2);
   const bad = await saveSharing(W1, ACTOR, { audiences: all("EVERYONE") });
   check("invalid choices are refused before the database", !bad.ok && (await p.workerSharing.count({ where: { workerId: W1 } })) === 2);
   const loaded = await loadSharing(W1);
@@ -42,7 +44,7 @@ const all = (a: string) => Object.fromEntries(SHARE_PARTS.map((p) => [p, a]));
   // A row saved under older wording: the same choices are asked (and recorded) again.
   await p.workerSharing.create({ data: { workerId: W3, version: 1, ...sharingToRow(DEFAULT_SHARING), consentTextVersion: "c2-old-wording", actorId: W3 } });
   const reworded = await saveSharing(W3, W3, DEFAULT_SHARING);
-  check("after a wording change, saving identical choices appends a new version", reworded.ok && reworded.changed && reworded.version === 2, reworded);
+  check("after a wording change, saving identical choices appends a new version (the same for organizations)", reworded.ok && reworded.changed && reworded.version === 2 && reworded.sameForOrgs === true, reworded);
 
   // Read receipts aren't on the form until C3: a save that leaves them out keeps the saved value.
   await p.workerSharing.create({ data: { workerId: W3, version: 3, ...sharingToRow({ ...DEFAULT_SHARING, readReceipts: true }), consentTextVersion: "c2-old-wording", actorId: W3 } });
@@ -179,11 +181,13 @@ const all = (a: string) => Object.fromEntries(SHARE_PARTS.map((p) => [p, a]));
   const JOB = "00000000-0000-0000-0000-000000000011"; // ORG's seeded petition job
   await p.job.update({ where: { id: JOB }, data: { hiringMethod: { modes: ["application"] } } });
   await saveSharing(W2, W2, { audiences: all("RELATIONSHIP") });
+  await savePreferences(W2, W2, { visibilityMode: "APPLIED_TO", identityLabels: [{ label: "independent", shared: true }], partyRelationship: null, issuePositions: {}, campaignBoundaries: [] }, null);
   const applied = await applyToJob(W2, W2, JOB);
   check("W2 applies to ORG's job with everything shared", applied.ok, applied);
   const eng = await p.engagement.findFirstOrThrow({ where: { workerId: W2, jobId: JOB } });
   const snap = eng.applicationSnapshot as unknown as HiringSnapshot;
   check("the snapshot records what was shared, and the sharing version", !!snap.scorecard.shared && Object.values(snap.scorecard.shared).every(Boolean) && typeof snap.scorecard.sharingVersion === "number" && snap.scorecard.showRate !== null, snap.scorecard);
+  check("an approved organization the worker applied to gets the fit answers they share", snap.fit.fields.identity.shared === true, snap.fit);
   const before = await loadOrgScorecard(W2, ORG);
   check("ORG's live view shows reliability and history while shared", before.showRate !== null && before.shared.history);
   await saveSharing(W2, W2, { audiences: { ...all("RELATIONSHIP"), reliability: "NOBODY", history: "NOBODY", quality: "NOBODY" } });
@@ -296,7 +300,6 @@ const all = (a: string) => Object.fromEntries(SHARE_PARTS.map((p) => [p, a]));
   // A stale confirm counts as done only if the choices it showed are what's confirmed now.
   await saveSharing(W1, ACTOR, { audiences: { ...all("RELATIONSHIP"), output: "NOBODY" } });
   check("a stale confirm isn't done once different choices were saved meanwhile", (await alreadyConfirmed(W1, shownNow)) === false);
-  check("…nor for a version that doesn't exist", (await alreadyConfirmed(W1, 999)) === false);
   const latest = (await loadSharing(W1)).version ?? 0;
   await p.workerSharing.create({ data: { workerId: W1, version: latest + 1, ...sharingToRow(DEFAULT_SHARING), consentTextVersion: "c2-old-wording", actorId: W1 } });
   check("a latest save under older wording is not current (the worker is asked again)", (await loadSharing(W1)).current === false);
@@ -308,8 +311,10 @@ const all = (a: string) => Object.fromEntries(SHARE_PARTS.map((p) => [p, a]));
   check("a save from a page drawn under older wording is refused and writes nothing",
     !oldPage.ok && !!oldPage.errors.reworded && (await p.workerSharing.count({ where: { workerId: W1 } })) === rowsOld, oldPage);
   const reconfirm = await saveSharing(W1, ACTOR, DEFAULT_SHARING, { expectedVersion: latest + 1, textVersion: SHARING_TEXT_VERSION });
-  check("the same choices under today's wording append a version marked as reworded (nothing changes for organizations)",
-    reconfirm.ok && reconfirm.changed && reconfirm.reworded === true && (await loadSharing(W1)).current === true, reconfirm);
+  check("the same choices under today's wording append a version marked as the same for organizations",
+    reconfirm.ok && reconfirm.changed && reconfirm.sameForOrgs === true && (await loadSharing(W1)).current === true, reconfirm);
+  // The latest choices are the defaults now, so a missing version can't pass by comparing with the defaults.
+  check("a stale confirm of a version that doesn't exist isn't done", (await alreadyConfirmed(W1, 999)) === false);
   // Done pressed twice (or in two tabs): the second press is stale, writes nothing, and counts as done.
   const rowsDone = await p.workerSharing.count({ where: { workerId: W1 } });
   const secondPress = await saveSharing(W1, ACTOR, DEFAULT_SHARING, { expectedVersion: latest + 1, textVersion: SHARING_TEXT_VERSION });
@@ -317,7 +322,17 @@ const all = (a: string) => Object.fromEntries(SHARE_PARTS.map((p) => [p, a]));
     !secondPress.ok && !!secondPress.errors.stale && (await p.workerSharing.count({ where: { workerId: W1 } })) === rowsDone, secondPress);
   check("…and counts as done, since the choices it showed are confirmed under today's wording", (await alreadyConfirmed(W1, latest + 1)) === true);
   const realChange = await saveSharing(W1, ACTOR, { audiences: all("NOBODY") }, { textVersion: SHARING_TEXT_VERSION });
-  check("a real change isn't marked as reworded", realChange.ok && realChange.changed && !realChange.reworded, realChange);
+  check("a real change isn't marked as the same for organizations", realChange.ok && realChange.changed && realChange.sameForOrgs === false, realChange);
+
+  // A worker who never saved presses Done twice: the defaults are confirmed once, and the second press counts as done.
+  const W4 = randomUUID();
+  await p.profile.create({ data: { id: W4, role: "WORKER" } });
+  await p.worker.create({ data: { id: W4, profileId: W4, displayName: "Riley Quinn" } });
+  check("a worker who never saved has nothing confirmed yet", (await alreadyConfirmed(W4, null)) === false);
+  const press1 = await saveSharing(W4, W4, DEFAULT_SHARING, { expectedVersion: null, textVersion: SHARING_TEXT_VERSION });
+  const press2 = await saveSharing(W4, W4, DEFAULT_SHARING, { expectedVersion: null, textVersion: SHARING_TEXT_VERSION });
+  check("never saved, Done twice: the first confirms the defaults; the second is stale, writes nothing, and counts as done",
+    press1.ok && press1.version === 1 && !press2.ok && !!press2.errors.stale && (await p.workerSharing.count({ where: { workerId: W4 } })) === 1 && (await alreadyConfirmed(W4, null)) === true, { press1, press2 });
 
   // An organization Turfcut doesn't approve gets no political fit on a hiring snapshot, as it gets no scorecard.
   await savePreferences(W3, W3, { visibilityMode: "APPLIED_TO", identityLabels: [{ label: "independent", shared: true }], partyRelationship: null, issuePositions: {}, campaignBoundaries: [] }, null);

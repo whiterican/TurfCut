@@ -6,7 +6,9 @@ import { useEffect, useState } from "react";
  * A confirmation carried in the URL after a redirect (e.g. "?setup=done").
  * The status region is in the page first and the text arrives a moment
  * later, so screen readers announce it; the flag then leaves the address,
- * so a reload or a later refresh of the page doesn't repeat it.
+ * so a reload or a later refresh of the page doesn't repeat it (Back and
+ * Forward may still restore the page as it was). Needs JavaScript, like the
+ * rest of the app.
  */
 export function UrlNotice({ param, message }: { param: string; message: string }) {
   const [text, setText] = useState("");

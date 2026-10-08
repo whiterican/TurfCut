@@ -29,5 +29,7 @@ export async function dismissSharingNote(): Promise<void> {
   jar.set(SHARING_NOTE_COOKIE, withDismissal(jar.get(SHARING_NOTE_COOKIE)?.value, session.workerId), {
     path: "/", maxAge: 60 * 60 * 24 * 365, httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production",
   });
+  // Dismissals of earlier wordings mean nothing now; don't send them on every request for a year.
+  for (const c of jar.getAll()) if (c.name.startsWith("tc_sharing_note") && c.name !== SHARING_NOTE_COOKIE) jar.delete(c.name);
   revalidatePath("/dashboard");
 }

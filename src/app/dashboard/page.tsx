@@ -146,7 +146,7 @@ async function CredentialReminder({ workerId }: { workerId: string }) {
                 ? state.days === 0 ? "expires today" : `expires in ${state.days} ${state.days === 1 ? "day" : "days"}`
                 : ""}
             {/* The date itself too: "today" is counted in the furthest-west US time (expiryToday). */}
-            {c.expiresOn && ` (${c.expiresOn.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })})`}
+            {c.expiresOn && ` (${c.expiresOn.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" })})`}
           </li>
         ))}
       </ul>

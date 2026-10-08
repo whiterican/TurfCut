@@ -4,6 +4,7 @@ import { AvailabilityStatement } from "@/components/AvailabilityStatement";
 import { CredentialList } from "@/components/CredentialList";
 import { ExperienceList } from "@/components/ExperienceList";
 import { FitSignals } from "@/components/FitSignals";
+import { NotSharedChip } from "@/components/staff/NotSharedChip";
 
 /**
  * The parts of a worker's profile an organization sees (C2.6): drawn the same
@@ -29,7 +30,12 @@ export function OrgProfileSections({ view }: { view: OrgProfileView }) {
 
       <section className="section">
         <h2 className="section-title">Experience</h2>
-        <ExperienceList records={view.experience} />
+        {view.experience === "withheld" ? (
+          // Experience is part of hours and history, which the worker doesn't share with this viewer.
+          <div className="card"><NotSharedChip what="experience" /></div>
+        ) : (
+          <ExperienceList records={view.experience} />
+        )}
       </section>
 
       <section className="section">

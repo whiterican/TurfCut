@@ -55,7 +55,8 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
         </div>
       </header>
 
-      {setupDone && <UrlNotice param="setup" message="Saved. These are your choices now; change them any time under Who sees what." />}
+      {/* Only when a confirmed choice is really on record: a hand-typed ?setup=done claims nothing. */}
+      {setupDone && sharing.current && <UrlNotice param="setup" message="Saved. These are your choices now; change them any time under Who sees what." />}
       {!sharing.current && (
         // Until the worker saves a sharing choice under today's wording (C2-Q4): a reminder, every visit.
         <section className="card space-y-2" aria-label="Set up who sees what">

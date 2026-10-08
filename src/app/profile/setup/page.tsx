@@ -7,6 +7,7 @@ import { PART_DETAILS, SHARE_GROUPS, type ShareAudience, type WorkType } from "@
 import { availabilitySummary, isEmptyAvailability } from "@/lib/availability";
 import { credentialName } from "@/lib/credentials";
 import { SETUP_STEPS, setupOrigin, setupStep } from "@/lib/setup-flow";
+import { PendingButton } from "@/components/PendingButton";
 import { confirmSharing, skipSetup } from "./actions";
 
 const SHORT: Record<ShareAudience, string> = {
@@ -31,7 +32,8 @@ export default async function SetupPage({ searchParams }: { searchParams: Promis
   const sp = await searchParams;
   const n = setupStep(sp.step);
   const from = setupOrigin(sp.from);
-  const error = n === SETUP_STEPS.length ? ERRORS[sp.error ?? ""] : undefined;
+  // Own keys only: ?error=constructor must not reach the page as a function.
+  const error = n === SETUP_STEPS.length && typeof sp.error === "string" && Object.hasOwn(ERRORS, sp.error) ? ERRORS[sp.error] : undefined;
   const [sharing, avail, creds] = await Promise.all([loadSharing(workerId), loadAvailability(workerId), loadCredentials(workerId)]);
   const c = sharing.choices;
   const today = new Date().toISOString().slice(0, 10);
@@ -113,13 +115,13 @@ export default async function SetupPage({ searchParams }: { searchParams: Promis
             {/* The version on screen: Done confirms it, or is refused if a newer save landed meanwhile. */}
             <input type="hidden" name="version" value={sharing.version ?? ""} />
             <input type="hidden" name="from" value={from} />
-            <button className="btn-primary">Done, keep these choices</button>
+            <PendingButton pendingLabel="Saving…">Done, keep these choices</PendingButton>
           </form>
         )}
         {n > 1 && <Link href={step(n - 1)} className="btn-ghost">Back</Link>}
         <form action={skipSetup}>
           <input type="hidden" name="from" value={from} />
-          <button className="btn-ghost">Skip for now</button>
+          <PendingButton className="btn-ghost" pendingLabel="Skipping…">Skip for now</PendingButton>
         </form>
       </div>
       <p className="text-hint">

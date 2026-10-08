@@ -60,6 +60,7 @@ describe("orgProfileView", () => {
     expect(v.scorecard.lifetime.shared).toEqual({ output: false, quality: false, reliability: false, history: false });
     expect(v.availability).toBe("withheld");
     expect(v.credentials).toBe("withheld");
+    expect(v.experience).toBe("withheld");
     expect(v.fit.fields.identity).toEqual({ shared: false });
   });
 
@@ -69,11 +70,26 @@ describe("orgProfileView", () => {
     expect(orgProfileView(source(sharing), applied, now).credentials).toBe("withheld");
   });
 
-  it("shows nothing to the public (a closed account reads as the public)", () => {
+  it("treats experience as hours and history: it goes wherever that part goes", () => {
+    const hidden: SharingChoices = { ...DEFAULT_SHARING, audiences: { ...DEFAULT_SHARING.audiences, history: "NOBODY" } };
+    expect(orgProfileView(source(hidden), applied, now).experience).toBe("withheld");
+    const wide: SharingChoices = { ...DEFAULT_SHARING, audiences: { ...DEFAULT_SHARING.audiences, history: "ANY_APPROVED_ORG" } };
+    expect(orgProfileView(source(wide), stranger, now).experience).toHaveLength(2);
+  });
+
+  it("shows nothing to the public (a closed account reads as the public), not even the name", () => {
     const v = orgProfileView(source(), { kind: "public" }, now);
+    expect(v.displayName).toBeNull();
     expect(v.availability).toBe("withheld");
     expect(v.credentials).toBe("withheld");
-    expect(v.experience).toEqual([]);
+    expect(v.experience).toBe("withheld");
+    expect(v.fit.fields.identity).toEqual({ shared: false });
+  });
+
+  it("gives an unapproved organization nothing, even with a relationship", () => {
+    const v = orgProfileView(source(), { kind: "org", approved: false, relationship: true }, now);
+    expect(v.displayName).toBeNull();
+    expect([v.availability, v.credentials, v.experience]).toEqual(["withheld", "withheld", "withheld"]);
     expect(v.fit.fields.identity).toEqual({ shared: false });
   });
 

@@ -23,12 +23,13 @@ export async function confirmSharing(fd: FormData): Promise<void> {
   if (!r.ok) redirect(back(r.errors.stale ? "stale" : "invalid"));
   revalidatePath("/profile");
   revalidatePath("/dashboard");
-  redirect("/profile?setup=done");
+  // Replace, not push: Back from Profile mustn't land on a Done that would now be stale.
+  redirect("/profile?setup=done", "replace");
 }
 
 /** "Skip for now": the choices stay; Today's note goes away on this device; Profile keeps a reminder. Back to where the setup was opened. */
 export async function skipSetup(fd: FormData): Promise<void> {
   await requireWorker();
   await dismissSharingNote();
-  redirect(setupOrigin(fd.get("from")) === "profile" ? "/profile" : "/dashboard");
+  redirect(setupOrigin(fd.get("from")) === "profile" ? "/profile" : "/dashboard", "replace");
 }

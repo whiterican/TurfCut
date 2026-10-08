@@ -189,6 +189,8 @@ const listText = (xs: string[]) => (xs.length < 2 ? xs.join("") : `${xs.slice(0,
 /**
  * Before the worker applies, claims or accepts an invitation: what this
  * organization will see once they do (they become a related organization).
+ * The same rules as orgProfileView: name, the parts shared with it (with
+ * experience as part of hours and history), and the fit answers shared.
  */
 function WillSee({ sharing, approved }: { sharing: SharingChoices; approved: boolean }) {
   if (!approved) {
@@ -206,12 +208,14 @@ function WillSee({ sharing, approved }: { sharing: SharingChoices; approved: boo
     <div className="space-y-1.5 text-sm">
       <p className="font-medium text-fg">This organization will see</p>
       <p className="text-muted">
-        {seen.length ? `Your ${listText(seen)}` : "None of your scorecard, availability or credentials"}, and only the
-        political-fit answers you chose to share.
-        {hidden.length > 0 && ` Not your ${listText(hidden)}: it sees "not shared" there.`}
+        Your name{seen.length ? `, your ${listText(seen)}` : ""}
+        {parts.history ? " (your experience included)" : ""}, and only the political-fit answers you chose to share.
+        {hidden.length > 0 && ` Not your ${listText(hidden)}${parts.history ? "" : " or your experience"}: it sees "not shared" there.`}{" "}
+        Your application keeps a copy of what you share at that moment.
       </p>
       <p className="flex flex-wrap gap-x-4">
         <Link href="/profile/sharing" className="link">Change who sees what</Link>
+        <Link href="/profile/preview" className="link">See what organizations see</Link>
         <Link href="/profile/preferences" className="link">Political-fit answers</Link>
       </p>
     </div>

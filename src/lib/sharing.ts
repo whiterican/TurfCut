@@ -33,7 +33,8 @@ export const PART_DETAILS: Record<SharePart, { label: string; covers: string }> 
   output: { label: "Output rates", covers: "Doors per hour, doors per shift, signatures per hour" },
   quality: { label: "Quality", covers: "Signature acceptance rate, contact rate" },
   reliability: { label: "Reliability", covers: "Show rate" },
-  history: { label: "Hours and history", covers: "Verified shifts, active hours, campaigns, states and dates worked, totals" },
+  // Experience records are campaigns, states and dates worked, so they go with this part (pending Caden's confirmation).
+  history: { label: "Hours and history", covers: "Verified shifts, active hours, campaigns, states and dates worked, totals, and the experience you list" },
   availability: { label: "Availability", covers: "Your usual week, date exceptions and note" },
   credentials: { label: "Credentials", covers: "Name, verification level and expiry of each credential" },
 };
@@ -62,7 +63,7 @@ export interface SharingChoices {
  * Bump when the sharing wording on the worker's screens (Who sees what, and
  * the setup) changes: every worker is asked again, on Today and on Profile.
  */
-export const SHARING_TEXT_VERSION = "c2-2026-10-06";
+export const SHARING_TEXT_VERSION = "c2-2026-10-08";
 
 /**
  * Lists the workers who dismissed the sharing note on Today, on this device.

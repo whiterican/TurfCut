@@ -533,10 +533,12 @@ connection is only for schema changes.
   from, any organization Turfcut approved, or nobody. No saved choice = the
   first, which is what organizations saw before C2. Findability is off by
   default and uses only a typed city or ZIP and a radius, never GPS.
-- **One shared view**: every organization screen and API reads a worker
-  through `shareScorecard` / `loadOrg*` (`src/lib/shared-scorecard*.ts`,
-  `availability-data.ts`, `credentials-data.ts`). A withheld part shows
-  "not shared", never a zero; without hours and history a shared rate shows
+- **One shared view**: the organization's worker page (and the worker's
+  preview of it) is built by `orgProfileView` (`src/lib/org-profile.ts`);
+  lists and the API read through `shareScorecard`, `loadOrgScorecard` and
+  `loadOrgAvailabilities`, which apply the same rules. A withheld part shows
+  "not shared", never a zero; experience records count as hours and
+  history; without hours and history a shared rate shows
   its rounded value and formula only, and period/state filters are ignored.
   Narrowing applies at once; hiring snapshots freeze only what was shared
   then.

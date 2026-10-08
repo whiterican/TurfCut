@@ -39,18 +39,24 @@ const Announce = createContext<(message: string) => void>(() => {});
 /**
  * The wallet's own status line: a removal's confirmation lands here, since
  * the removed credential's row (and its form) is gone once the list
- * refreshes. Focus moves to it, so it isn't lost with the button.
+ * refreshes. Focus moves to it, so it isn't lost with the button. Any other
+ * save in the wallet clears it; an empty line takes no space.
  */
 export function WalletStatus({ children }: { children: React.ReactNode }) {
   const [message, setMessage] = useState("");
   const ref = useRef<HTMLParagraphElement>(null);
   const announce = (m: string) => {
-    setMessage(m);
-    requestAnimationFrame(() => ref.current?.focus());
+    // Cleared first, so the same words twice (two "Remove CO registration") are announced twice.
+    setMessage("");
+    if (!m) return;
+    requestAnimationFrame(() => {
+      setMessage(m);
+      requestAnimationFrame(() => ref.current?.focus());
+    });
   };
   return (
     <Announce value={announce}>
-      <p ref={ref} tabIndex={-1} role="status" className="text-success-msg outline-none">{message}</p>
+      <p ref={ref} tabIndex={-1} role="status" className={message ? "text-success-msg outline-none" : "sr-only"}>{message}</p>
       {children}
     </Announce>
   );
@@ -65,7 +71,8 @@ export function WalletStatus({ children }: { children: React.ReactNode }) {
 export function CredentialForm({ id, values: start, masked, onDone }: { id?: string; values?: Values; masked?: string | null; onDone?: () => void }) {
   const [v, setV] = useState<Values>(start ?? EMPTY);
   const [clearNumber, setClearNumber] = useState(false);
-  const { state, pending, onSubmit } = useSubmitState(saveCredentialAction, (r) => {
+  const announce = useContext(Announce);
+  const { state, pending, onSubmit: submit } = useSubmitState(saveCredentialAction, (r) => {
     if (r.ok && !id) setV(EMPTY);
     // The saved number is shown masked from now on; don't keep the typed one on screen.
     if (r.ok && id) {
@@ -84,6 +91,10 @@ export function CredentialForm({ id, values: start, masked, onDone }: { id?: str
     "aria-describedby": e[k] ? `${id ?? "new"}-err-${k}` : undefined,
   });
   const err = (k: string) => e[k] && <p id={`${id ?? "new"}-err-${k}`} className="text-danger-msg">{e[k]}</p>;
+  const onSubmit = (ev: React.FormEvent<HTMLFormElement>) => {
+    announce(""); // a new save: the wallet's last removal message no longer applies
+    submit(ev);
+  };
 
   return (
     <form onSubmit={onSubmit} className="space-y-4" noValidate>
@@ -128,7 +139,16 @@ export function CredentialForm({ id, values: start, masked, onDone }: { id?: str
           </label>
           {masked && (
             <label className="flex items-center gap-2 text-sm text-fg">
-              <input type="checkbox" name="clearIdentifier" checked={clearNumber} onChange={(ev) => setClearNumber(ev.target.checked)} />
+              <input
+                type="checkbox"
+                name="clearIdentifier"
+                checked={clearNumber}
+                onChange={(ev) => {
+                  setClearNumber(ev.target.checked);
+                  // The field is ignored while ticked: don't leave a number on screen that won't be saved.
+                  if (ev.target.checked) setV((x) => ({ ...x, identifier: "" }));
+                }}
+              />
               Take the number {masked} off
             </label>
           )}

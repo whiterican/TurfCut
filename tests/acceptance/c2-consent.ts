@@ -270,10 +270,14 @@ const all = (a: string) => Object.fromEntries(SHARE_PARTS.map((p) => [p, a]));
   const preview = await previewOrgProfile(W2, { kind: "org", approved: true, relationship: true }, at);
   check("the preview for 'an organization you applied to' is exactly what that organization sees", !!real && JSON.stringify(real) === JSON.stringify(preview), { real, preview });
   check("it includes the name and experience, never a reference's contact details",
-    !!real && real.displayName.length > 0 && real.experience.every((r) => !("referenceContact" in r)));
+    !!real && !!real.displayName && real.experience !== "withheld" && real.experience.every((r) => !("referenceContact" in r)), real);
   const strangerView = await loadOrgProfile(W2, ORG2, at);
-  check("an unrelated organization sees every shared part as not shared", !!strangerView && strangerView.availability === "withheld" && strangerView.credentials === "withheld", strangerView);
+  check("an unrelated organization sees every shared part as not shared, experience too", !!strangerView && strangerView.availability === "withheld" && strangerView.credentials === "withheld" && strangerView.experience === "withheld", strangerView);
   check("no such worker: no profile", (await loadOrgProfile(randomUUID(), ORG, at)) === null);
+  await saveSharing(W2, W2, { audiences: { ...all("RELATIONSHIP"), history: "NOBODY" } });
+  const noHistory = await loadOrgProfile(W2, ORG, at);
+  check("experience goes with hours and history: hidden from a related org once history is", !!noHistory && noHistory.experience === "withheld", noHistory?.experience);
+  await saveSharing(W2, W2, { audiences: all("RELATIONSHIP") });
 
   const shownNow = (await loadSharing(W1)).version;
   const rowsBefore = await p.workerSharing.count({ where: { workerId: W1 } });

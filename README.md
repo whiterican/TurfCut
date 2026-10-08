@@ -294,14 +294,31 @@ prisma/
 
 ## Demo data
 
-`npm run seed:demo` (after `npm run seed`) fills the app for testers: six
-organizations and twelve workers, all named "… (demo)", twenty published
-Colorado jobs for fictional, nonpartisan campaigns, about fifty worked and
-reviewed shifts with pay lines, waiting applications and a few messages.
-Everything is made through the app's own rules (publish gate, hiring, field
-day, review, pay), backdated so workers have history. It runs once. Work
-history, reviews and pay lines are append-only, so they stay; demo jobs can
-be closed from each demo organization.
+`npm run seed:demo -- --yes` (after `npm run seed`) fills the app for
+testers. Export `DATABASE_URL` in the shell first; tsx doesn't read
+`.env.local`. Without `--yes` it only says where it would write. It makes:
+
+- six organizations with their staff and twelve workers, all named "… (demo)";
+- 26 published Colorado jobs, all fictional: local measures and civic work,
+  plus a job for each campaign type and party (candidate, party committee,
+  issue advocacy; Democratic, Republican, Libertarian, Green). Between them
+  the campaigns disclose every issue, so the feed's filters and workers' own
+  "do not match me" answers have something to act on. Two canvass jobs ask
+  for no credentials;
+- about fifty worked and reviewed daytime shifts with pay lines, waiting
+  applications and claims, and a few messages.
+
+Everything goes through the app's own rules (publish gate, hiring, field
+day, review, pay), backdated so workers have history. Audit-log entries
+carry the date of the load. It runs once: a completion marker is written
+last, and a run that stopped partway is reported rather than repeated.
+Work history, reviews, pay lines and messages are append-only and stay.
+To take the demo jobs out of the feed:
+
+```sql
+UPDATE "Job" SET status = 'CLOSED'
+WHERE "orgId" IN (SELECT id FROM "Organization" WHERE name LIKE '% (demo)');
+```
 
 ## M0 scope (done)
 

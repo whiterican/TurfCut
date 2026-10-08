@@ -18,10 +18,11 @@ import { SETUP_STEPS, setupOrigin, shownVersion } from "@/lib/setup-flow";
 export async function confirmSharing(fd: FormData): Promise<void> {
   const { workerId, userId } = await requireWorker();
   const origin = setupOrigin(fd.get("from")) === "profile" ? "&from=profile" : "";
-  const back = (error: string) => `/profile/setup?step=${SETUP_STEPS.length}${origin}&error=${error}`;
+  const textVersion = typeof fd.get("textVersion") === "string" ? (fd.get("textVersion") as string) : "";
+  // Back to Done, still under the wording the steps began with.
+  const back = (error: string) => `/profile/setup?step=${SETUP_STEPS.length}${origin}&tv=${encodeURIComponent(textVersion)}&error=${error}`;
   const shown = shownVersion(fd.get("version"));
   if (shown === undefined) redirect(back("stale"));
-  const textVersion = typeof fd.get("textVersion") === "string" ? (fd.get("textVersion") as string) : "";
   const { choices } = await loadSharing(workerId);
   const r = await saveSharing(workerId, userId, choices, { expectedVersion: shown, textVersion });
   if (!r.ok) {

@@ -11,7 +11,7 @@ import { PendingButton } from "@/components/PendingButton";
 import { confirmSharing, skipSetup } from "./actions";
 
 const SHORT: Record<ShareAudience, string> = {
-  RELATIONSHIP: "Organizations you apply to or accept an invite from",
+  RELATIONSHIP: "Organizations you apply to, claim a spot with or accept an invite from",
   ANY_APPROVED_ORG: "Any organization Turfcut has approved",
   NOBODY: "Nobody",
 };
@@ -38,7 +38,7 @@ export default async function SetupPage({ searchParams }: { searchParams: Promis
   // A wording change restarts the steps (shown on step 1); the others belong to Done.
   const error = errorKey && n === (errorKey === "reworded" ? 1 : SETUP_STEPS.length) ? ERRORS[errorKey] : undefined;
   // The wording the steps were first shown under, carried from step 1 to Done: Done is refused if it changed on the way.
-  const tv = typeof sp.tv === "string" && sp.tv ? sp.tv : SHARING_TEXT_VERSION;
+  const tv = n > 1 && typeof sp.tv === "string" && sp.tv ? sp.tv : SHARING_TEXT_VERSION;
   const [sharing, avail, creds] = await Promise.all([loadSharing(workerId), loadAvailability(workerId), loadCredentials(workerId)]);
   const c = sharing.choices;
   const today = new Date().toISOString().slice(0, 10);

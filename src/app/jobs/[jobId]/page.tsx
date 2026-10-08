@@ -177,7 +177,7 @@ async function WorkerPanel({
       {!modes.includes("application") && !modes.includes("instant_claim") && (
         <p className="text-muted-sm">This job hires by invitation only.</p>
       )}
-      <WillSee sharing={sharing.choices} approved={job.org.approved} />
+      <WillSee sharing={sharing.choices} approved={job.org.approved} canJoin={modes.includes("application") || modes.includes("instant_claim")} />
     </section>
     </>
   );
@@ -194,14 +194,26 @@ const listText = (xs: string[]) => (xs.length < 2 ? xs.join("") : `${xs.slice(0,
  * `kept`: the invitation holds a copy of what was shared when it was sent
  * (invitations from before hiring copies don't).
  */
-function WillSee({ sharing, approved, invited = false, kept = false }: { sharing: SharingChoices; approved: boolean; invited?: boolean; kept?: boolean }) {
+function WillSee({
+  sharing,
+  approved,
+  invited = false,
+  kept = false,
+  canJoin = true,
+}: {
+  sharing: SharingChoices;
+  approved: boolean;
+  invited?: boolean;
+  kept?: boolean;
+  /** The job takes applications or claims (an invitation-only job takes neither). */
+  canJoin?: boolean;
+}) {
   if (!approved) {
     // Its hiring pages still list your name (and any copy it already kept), so say exactly that.
     return (
       <p className="text-hint">
-        {invited
-          ? `Turfcut doesn't approve this organization right now, so from here on it sees your name and none of your profile.${kept ? " The copy it kept when it invited you stays on its record." : ""}`
-          : "Turfcut hasn't approved this organization, so it would see your name and none of your profile."}{" "}
+        While Turfcut doesn&apos;t approve this organization, it sees only your name, none of your profile. If Turfcut approves it, it sees what
+        you share with organizations you apply to.{invited && kept ? " The copy it kept when it invited you stays on its record." : ""}{" "}
         <Link href="/profile/sharing" className="link">Who sees what</Link>
       </p>
     );
@@ -219,7 +231,7 @@ function WillSee({ sharing, approved, invited = false, kept = false }: { sharing
         {hidden.length > 0 && ` Not your ${listText(hidden)}: it sees "not shared" there.`}{" "}
         {invited
           ? kept && "It also kept a copy of what you shared when it invited you; accepting doesn't change that copy."
-          : "Applying or claiming a spot keeps a copy of what you share at that moment."}
+          : canJoin && "Applying or claiming a spot keeps a copy of what you share at that moment."}
       </p>
       <p className="flex flex-wrap gap-x-4">
         <Link href="/profile/sharing" className="link">Change who sees what</Link>

@@ -29,7 +29,7 @@ export async function saveSharingChoices(_prev: SharingFormState, formData: Form
       ? "Saved. Nothing had changed."
       : saved.sameForOrgs
         ? "Saved. Your choices are confirmed; nothing changes for organizations."
-        : "Saved. Organizations see the change straight away.",
+        : "Saved. Organizations that can see your profile see the change straight away; copies kept with applications, claims and invitations don't change.",
     errors: {},
   };
 }

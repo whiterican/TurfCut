@@ -21,7 +21,7 @@ import { PART_DETAILS, SHARE_PARTS, type ShareAudience } from "@/lib/sharing";
 import { UrlNotice } from "@/components/UrlNotice";
 
 const AUDIENCE_SHORT: Record<ShareAudience, string> = {
-  RELATIONSHIP: "Organizations you apply to or accept an invite from",
+  RELATIONSHIP: "Organizations you apply to, claim a spot with or accept an invite from",
   ANY_APPROVED_ORG: "Any approved organization",
   NOBODY: "Nobody",
 };

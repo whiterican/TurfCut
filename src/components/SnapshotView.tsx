@@ -43,7 +43,8 @@ export function SnapshotView({ snapshot }: { snapshot: HiringSnapshot }) {
     <div className="space-y-3">
       <p className="text-hint">
         As of {day} (<RelativeTime iso={snapshot.capturedAt} />)
-        {snapshot.consentVersion != null ? ` · consent version ${snapshot.consentVersion}` : " · no fit answers on file"}
+        {/* Only when something was shared: otherwise the version (or its absence) would say whether answers exist. */}
+        {snapshot.consentVersion != null && Object.values(snapshot.fit.fields).some((f) => f.shared) ? ` · consent version ${snapshot.consentVersion}` : ""}
         {s.shared && " · only what the worker shared then"}
       </p>
       <dl className="list-card">

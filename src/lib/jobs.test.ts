@@ -216,7 +216,7 @@ describe("job card answers the five questions (spec p.7)", () => {
   });
   it("gives the No-credentials filter exactly the card's answer", () => {
     // Every combination: the filter's "nothing needed" must match the card's "None beyond…" line.
-    const flags = [{}, { badge: true }, { registration: true }, { affidavit: true }, { training: "Basics" }, { badge: true, training: "Basics" }];
+    const flags = [{}, { badge: true }, { registration: true }, { affidavit: true }, { training: "Basics" }, { badge: true, training: "Basics" }, { script: "Hi" }];
     const rules = [{}, SEED_RULES, { badgeRequired: true }, { affidavitRequired: true }, { workerRegistrationRequired: true }];
     for (const type of ["PETITION", "CANVASS"] as const)
       for (const requirements of flags)

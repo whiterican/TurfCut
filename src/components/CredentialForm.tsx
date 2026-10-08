@@ -1,6 +1,7 @@
 "use client";
 
-import { createContext, useContext, useRef, useState, useTransition } from "react";
+import { createContext, useContext, useId, useRef, useState, useTransition } from "react";
+import { flushSync } from "react-dom";
 import { unstable_rethrow } from "next/navigation";
 import { removeCredentialAction, saveCredentialAction, type CredentialFormState } from "@/app/profile/credentials/actions";
 import { CREDENTIAL_KINDS, type CredentialKind } from "@/lib/credentials";
@@ -34,32 +35,47 @@ function useSubmitState(run: (fd: FormData) => Promise<CredentialFormState>, aft
   return { state, pending, onSubmit };
 }
 
-const Announce = createContext<(message: string) => void>(() => {});
+type Wallet = {
+  message: string;
+  /** The status line's id, so announce can focus it. */
+  lineId: string;
+  /** Shows `message` on the status line ("" clears it). `from`: the form it came from. */
+  announce: (message: string, from?: Element | null) => void;
+};
+const WalletContext = createContext<Wallet | null>(null);
+const useAnnounce = () => useContext(WalletContext)?.announce ?? (() => {});
 
 /**
- * The wallet's own status line: a removal's confirmation lands here, since
+ * The wallet's own status line (drawn by <WalletStatusLine>, around both
+ * the list and the add form): a removal's confirmation lands here, since
  * the removed credential's row (and its form) is gone once the list
- * refreshes. Focus moves to it, so it isn't lost with the button. Any other
- * save in the wallet clears it; an empty line takes no space.
+ * refreshes. Any other save in the wallet clears it; an empty line takes no
+ * space.
  */
 export function WalletStatus({ children }: { children: React.ReactNode }) {
   const [message, setMessage] = useState("");
-  const ref = useRef<HTMLParagraphElement>(null);
-  const announce = (m: string) => {
-    // Cleared first, so the same words twice (two "Remove CO registration") are announced twice.
-    setMessage("");
+  const lineId = useId();
+  const announce = (m: string, from?: Element | null) => {
+    // Cleared at once, so the same words twice (two "Removed CO registration") are announced twice.
+    flushSync(() => setMessage(""));
     if (!m) return;
     requestAnimationFrame(() => {
       setMessage(m);
-      requestAnimationFrame(() => ref.current?.focus());
+      requestAnimationFrame(() => {
+        // Focus follows only if it was lost with the removed row (or is still in its form),
+        // never away from a field the worker has moved on to.
+        const a = document.activeElement;
+        if (!a || a === document.body || from?.contains(a)) document.getElementById(lineId)?.focus();
+      });
     });
   };
-  return (
-    <Announce value={announce}>
-      <p ref={ref} tabIndex={-1} role="status" className={message ? "text-success-msg outline-none" : "sr-only"}>{message}</p>
-      {children}
-    </Announce>
-  );
+  return <WalletContext value={{ message, lineId, announce }}>{children}</WalletContext>;
+}
+
+export function WalletStatusLine() {
+  const w = useContext(WalletContext);
+  if (!w) return null;
+  return <p id={w.lineId} tabIndex={-1} role="status" className={w.message ? "text-success-msg outline-none" : "sr-only"}>{w.message}</p>;
 }
 
 /**
@@ -71,7 +87,7 @@ export function WalletStatus({ children }: { children: React.ReactNode }) {
 export function CredentialForm({ id, values: start, masked, onDone }: { id?: string; values?: Values; masked?: string | null; onDone?: () => void }) {
   const [v, setV] = useState<Values>(start ?? EMPTY);
   const [clearNumber, setClearNumber] = useState(false);
-  const announce = useContext(Announce);
+  const announce = useAnnounce();
   const { state, pending, onSubmit: submit } = useSubmitState(saveCredentialAction, (r) => {
     if (r.ok && !id) setV(EMPTY);
     // The saved number is shown masked from now on; don't keep the typed one on screen.
@@ -175,15 +191,16 @@ export function CredentialForm({ id, values: start, masked, onDone }: { id?: str
 
 export function RemoveCredential({ id, name }: { id: string; name: string }) {
   const [confirming, setConfirming] = useState(false);
-  const announce = useContext(Announce);
+  const form = useRef<HTMLFormElement>(null);
+  const announce = useAnnounce();
   const { state, pending, onSubmit } = useSubmitState(removeCredentialAction, (r) => {
-    if (r.ok) announce(`Removed ${name}. It stays on record, but nobody sees it.`);
+    if (r.ok) announce(`Removed ${name}. It stays on record, but nobody sees it.`, form.current);
   });
   if (!confirming) {
     return <button type="button" className="link text-sm" onClick={() => setConfirming(true)}>Remove {name}</button>;
   }
   return (
-    <form onSubmit={onSubmit} className="flex flex-wrap items-center gap-2">
+    <form ref={form} onSubmit={onSubmit} className="flex flex-wrap items-center gap-2">
       <input type="hidden" name="id" value={id} />
       <span className="text-sm text-fg">Remove {name}?</span>
       {/* Focus moves here when the confirm opens, so it isn't lost with the button that opened it. */}

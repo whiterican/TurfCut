@@ -1,8 +1,9 @@
 /* C2.1 acceptance checks: the sharing model on real Postgres — versions, defaults, races, append-only history, credential supersession and no browser access (tests/acceptance/run.sh). */
 import { randomUUID } from "node:crypto";
 import { db } from "@/lib/db";
-import { loadSharing, orgViewer, saveSharing } from "@/lib/sharing-data";
-import { DEFAULT_SHARING, SHARE_PARTS, sharingToRow, visibleParts } from "@/lib/sharing";
+import { alreadyConfirmed, loadSharing, orgViewer, saveSharing } from "@/lib/sharing-data";
+import { DEFAULT_SHARING, SHARE_PARTS, SHARING_TEXT_VERSION, sharingToRow, visibleParts } from "@/lib/sharing";
+import { savePreferences } from "@/lib/political-fit-data";
 import { applyToJob } from "@/lib/engagements-data";
 import type { HiringSnapshot } from "@/lib/engagements";
 import { loadOrgScorecard, loadOrgScorecardPeriods } from "@/lib/shared-scorecard-data";
@@ -265,12 +266,16 @@ const all = (a: string) => Object.fromEntries(SHARE_PARTS.map((p) => [p, a]));
 
   // --- 10. C2.6: the preview is the organization's page; setup confirms what it showed ---
   await saveSharing(W2, W2, { audiences: all("RELATIONSHIP") });
+  await p.experienceRecord.create({
+    data: { workerId: W2, campaign: "Clean Water Initiative", role: "Circulator", state: "CO", startDate: new Date("2024-05-01"), unitType: "signatures", unitCount: 900, referenceContact: "ref-lead@example.org" },
+  });
   const at = new Date();
   const real = await loadOrgProfile(W2, ORG, at);
   const preview = await previewOrgProfile(W2, { kind: "org", approved: true, relationship: true }, at);
   check("the preview for 'an organization you applied to' is exactly what that organization sees", !!real && JSON.stringify(real) === JSON.stringify(preview), { real, preview });
-  check("it includes the name and experience, never a reference's contact details",
-    !!real && !!real.displayName && real.experience !== "withheld" && real.experience.every((r) => !("referenceContact" in r)), real);
+  check("it includes the name and experience, never a reference's contact details (only that there is one)",
+    !!real && !!real.displayName && real.experience !== "withheld" && real.experience.length === 1 && real.experience[0].hasReference === true &&
+      real.experience.every((r) => !("referenceContact" in r)) && !JSON.stringify(real).includes("ref-lead@"), real);
   const strangerView = await loadOrgProfile(W2, ORG2, at);
   check("an unrelated organization sees every shared part as not shared, experience too", !!strangerView && strangerView.availability === "withheld" && strangerView.credentials === "withheld" && strangerView.experience === "withheld", strangerView);
   check("no such worker: no profile", (await loadOrgProfile(randomUUID(), ORG, at)) === null);
@@ -288,9 +293,42 @@ const all = (a: string) => Object.fromEntries(SHARE_PARTS.map((p) => [p, a]));
   const goodConfirm = await saveSharing(W1, ACTOR, (await loadSharing(W1)).choices, { expectedVersion: shownNow });
   check("a confirm of the version on screen goes through", goodConfirm.ok, goodConfirm);
   check("a save under today's wording is current", (await loadSharing(W1)).current === true);
+  // A stale confirm counts as done only if the choices it showed are what's confirmed now.
+  await saveSharing(W1, ACTOR, { audiences: { ...all("RELATIONSHIP"), output: "NOBODY" } });
+  check("a stale confirm isn't done once different choices were saved meanwhile", (await alreadyConfirmed(W1, shownNow)) === false);
+  check("…nor for a version that doesn't exist", (await alreadyConfirmed(W1, 999)) === false);
   const latest = (await loadSharing(W1)).version ?? 0;
   await p.workerSharing.create({ data: { workerId: W1, version: latest + 1, ...sharingToRow(DEFAULT_SHARING), consentTextVersion: "c2-old-wording", actorId: W1 } });
   check("a latest save under older wording is not current (the worker is asked again)", (await loadSharing(W1)).current === false);
+  check("…and a confirm of it isn't counted as done", (await alreadyConfirmed(W1, latest + 1)) === false);
+
+  // The wording a screen was drawn with: a save across a wording change is refused.
+  const rowsOld = await p.workerSharing.count({ where: { workerId: W1 } });
+  const oldPage = await saveSharing(W1, ACTOR, DEFAULT_SHARING, { expectedVersion: latest + 1, textVersion: "c2-old-wording" });
+  check("a save from a page drawn under older wording is refused and writes nothing",
+    !oldPage.ok && !!oldPage.errors.reworded && (await p.workerSharing.count({ where: { workerId: W1 } })) === rowsOld, oldPage);
+  const reconfirm = await saveSharing(W1, ACTOR, DEFAULT_SHARING, { expectedVersion: latest + 1, textVersion: SHARING_TEXT_VERSION });
+  check("the same choices under today's wording append a version marked as reworded (nothing changes for organizations)",
+    reconfirm.ok && reconfirm.changed && reconfirm.reworded === true && (await loadSharing(W1)).current === true, reconfirm);
+  // Done pressed twice (or in two tabs): the second press is stale, writes nothing, and counts as done.
+  const rowsDone = await p.workerSharing.count({ where: { workerId: W1 } });
+  const secondPress = await saveSharing(W1, ACTOR, DEFAULT_SHARING, { expectedVersion: latest + 1, textVersion: SHARING_TEXT_VERSION });
+  check("pressing Done again on the same page is refused as stale and writes nothing",
+    !secondPress.ok && !!secondPress.errors.stale && (await p.workerSharing.count({ where: { workerId: W1 } })) === rowsDone, secondPress);
+  check("…and counts as done, since the choices it showed are confirmed under today's wording", (await alreadyConfirmed(W1, latest + 1)) === true);
+  const realChange = await saveSharing(W1, ACTOR, { audiences: all("NOBODY") }, { textVersion: SHARING_TEXT_VERSION });
+  check("a real change isn't marked as reworded", realChange.ok && realChange.changed && !realChange.reworded, realChange);
+
+  // An organization Turfcut doesn't approve gets no political fit on a hiring snapshot, as it gets no scorecard.
+  await savePreferences(W3, W3, { visibilityMode: "APPLIED_TO", identityLabels: [{ label: "independent", shared: true }], partyRelationship: null, issuePositions: {}, campaignBoundaries: [] }, null);
+  await p.organization.update({ where: { id: ORG }, data: { approved: false } });
+  const unapprovedApply = await applyToJob(W3, W3, JOB);
+  await p.organization.update({ where: { id: ORG }, data: { approved: true } });
+  const w3snap = (await p.engagement.findFirst({ where: { workerId: W3, jobId: JOB } }))?.applicationSnapshot as unknown as HiringSnapshot | undefined;
+  check("an unapproved organization's snapshot carries no political fit and no scorecard part",
+    unapprovedApply.ok && !!w3snap && Object.values(w3snap.fit.fields).every((f) => !f.shared) && !!w3snap.scorecard.shared && Object.values(w3snap.scorecard.shared).every((x) => !x), { unapprovedApply, w3snap });
+  const w3view = await loadOrgProfile(W3, ORG, at);
+  check("once approved again, the live page shows the fit the worker shares with it", !!w3view && w3view.fit.fields.identity.shared === true, w3view?.fit);
 
   const numbered = await addCredential(W3, W3, { kind: "NOTARY_OR_AFFIDAVIT", state: "CO", identifier: "N-445566" });
   const numberedId = numbered.ok ? numbered.id : "";

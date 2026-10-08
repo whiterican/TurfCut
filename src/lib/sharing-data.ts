@@ -33,8 +33,22 @@ export async function loadSharing(workerId: string): Promise<LoadedSharing> {
 }
 
 export type SaveSharingResult =
-  | { ok: true; changed: boolean; version: number }
+  /** reworded: the same choices, confirmed under a newer wording (nothing changes for organizations). */
+  | { ok: true; changed: boolean; version: number; reworded?: boolean }
   | { ok: false; errors: Record<string, string> };
+
+/**
+ * Whether a refused confirmation (stale) was already done: the latest save
+ * is under today's wording and holds the choices the screen showed (a
+ * double press, or the same choices confirmed in two tabs).
+ */
+export async function alreadyConfirmed(workerId: string, shown: number | null): Promise<boolean> {
+  const latest = await loadSharing(workerId);
+  if (!latest.current) return false;
+  const shownRow = shown === null ? null : await db().workerSharing.findUnique({ where: { workerId_version: { workerId, version: shown } } });
+  if (shown !== null && !shownRow) return false;
+  return sameSharing(latest.choices, shownRow ? sharingFromRow(shownRow) : DEFAULT_SHARING);
+}
 
 /**
  * Appends a new version. Never updates an existing row. Re-saving the saved
@@ -48,8 +62,19 @@ export type SaveSharingResult =
  *
  * `expectedVersion` (null = never saved) makes it a confirmation of what a
  * screen showed: refused, writing nothing, when a newer save has landed.
+ * `textVersion` is the sharing wording the screen showed: a save from a page
+ * drawn before the wording changed is refused, so nobody is recorded as
+ * agreeing to words they never saw.
  */
-export async function saveSharing(workerId: string, actorId: string, raw: unknown, opts: { expectedVersion?: number | null } = {}): Promise<SaveSharingResult> {
+export async function saveSharing(
+  workerId: string,
+  actorId: string,
+  raw: unknown,
+  opts: { expectedVersion?: number | null; textVersion?: string } = {}
+): Promise<SaveSharingResult> {
+  if (opts.textVersion !== undefined && opts.textVersion !== SHARING_TEXT_VERSION) {
+    return { ok: false, errors: { reworded: "How Turfcut explains who sees what changed since this page opened. Reload to read it, then save again." } };
+  }
   // Refuse a malformed save before taking the lock.
   const pre = validateSharing(raw);
   if (!pre.ok) return pre;
@@ -63,7 +88,8 @@ export async function saveSharing(workerId: string, actorId: string, raw: unknow
     // on a screen) keeps its saved value, read under the lock.
     const omitsReceipts = !!raw && typeof raw === "object" && (raw as Record<string, unknown>).readReceipts === undefined;
     const choices = omitsReceipts ? { ...pre.value, readReceipts: row?.readReceipts ?? false } : pre.value;
-    if (row && row.consentTextVersion === SHARING_TEXT_VERSION && sameSharing(sharingFromRow(row), choices)) {
+    const sameChoices = !!row && sameSharing(sharingFromRow(row), choices);
+    if (row && sameChoices && row.consentTextVersion === SHARING_TEXT_VERSION) {
       return { ok: true as const, changed: false, version: row.version };
     }
     const version = (row?.version ?? 0) + 1;
@@ -80,7 +106,8 @@ export async function saveSharing(workerId: string, actorId: string, raw: unknow
         metadata: { version, consentTextVersion: SHARING_TEXT_VERSION },
       },
     });
-    return { ok: true as const, changed: true, version };
+    // Same choices, newer wording: recorded as confirmed, but nothing changes for organizations.
+    return { ok: true as const, changed: true, version, reworded: sameChoices };
   });
 }
 

@@ -80,6 +80,11 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
 
       <section className="section">
         <h2 className="section-title">Experience</h2>
+        <p className="text-hint">
+          Seen by: {AUDIENCE_SHORT[sharing.choices.audiences.history]} (experience goes with hours and history). Organizations never see a
+          reference&apos;s contact details, only that you gave one.{" "}
+          <Link href="/profile/sharing" className="link">Change</Link>
+        </p>
         <ExperienceList
           records={records.map((r) => ({ ...r, hasReference: r.referenceContact !== null }))}
           removeAction={removeExperience}

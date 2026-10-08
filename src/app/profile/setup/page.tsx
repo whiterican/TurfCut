@@ -3,7 +3,7 @@ import { requireWorker } from "@/lib/worker-session";
 import { loadSharing } from "@/lib/sharing-data";
 import { loadAvailability } from "@/lib/availability-data";
 import { loadCredentials } from "@/lib/credentials-data";
-import { PART_DETAILS, SHARE_GROUPS, type ShareAudience, type WorkType } from "@/lib/sharing";
+import { PART_DETAILS, SHARE_GROUPS, SHARING_TEXT_VERSION, type ShareAudience, type WorkType } from "@/lib/sharing";
 import { availabilitySummary, isEmptyAvailability } from "@/lib/availability";
 import { credentialName } from "@/lib/credentials";
 import { SETUP_STEPS, setupOrigin, setupStep } from "@/lib/setup-flow";
@@ -18,6 +18,7 @@ const SHORT: Record<ShareAudience, string> = {
 const WORK: Record<WorkType, string> = { PETITION: "petition", CANVASS: "canvass" };
 const ERRORS: Record<string, string> = {
   stale: "Your choices changed since this page opened (perhaps in another window). Check them, then press Done again.",
+  reworded: "How Turfcut explains who sees what changed since this page opened. Read the steps again, then press Done.",
   invalid: "Your saved choices need a fix before they can be confirmed. Open Who sees what to fix them.",
 };
 
@@ -114,6 +115,8 @@ export default async function SetupPage({ searchParams }: { searchParams: Promis
           <form action={confirmSharing}>
             {/* The version on screen: Done confirms it, or is refused if a newer save landed meanwhile. */}
             <input type="hidden" name="version" value={sharing.version ?? ""} />
+            {/* …and the wording it showed it under. */}
+            <input type="hidden" name="textVersion" value={SHARING_TEXT_VERSION} />
             <input type="hidden" name="from" value={from} />
             <PendingButton pendingLabel="Saving…">Done, keep these choices</PendingButton>
           </form>

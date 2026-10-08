@@ -4,7 +4,7 @@ import { loadCredentials } from "@/lib/credentials-data";
 import { loadSharing } from "@/lib/sharing-data";
 import { AUDIENCE_OPTIONS } from "@/lib/sharing";
 import { credentialName, dateOnly, expiryState, expiryToday, maskIdentifier, VERIFICATION_LABELS } from "@/lib/credentials";
-import { CredentialForm, RemoveCredential, WalletStatus } from "@/components/CredentialForm";
+import { CredentialForm, RemoveCredential, WalletStatus, WalletStatusLine } from "@/components/CredentialForm";
 
 const dateText = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
 
@@ -28,9 +28,11 @@ export default async function CredentialsPage() {
         </p>
       </header>
 
+      {/* Around both sections: a removal's message lands in the list; any save, here or below, clears it. */}
+      <WalletStatus>
       <section className="section" aria-labelledby="wallet">
         <h2 id="wallet" className="section-title">Your credentials</h2>
-        <WalletStatus>
+        <WalletStatusLine />
         {creds.length === 0 ? (
           <p className="text-muted-sm">None yet.</p>
         ) : (
@@ -66,7 +68,6 @@ export default async function CredentialsPage() {
             })}
           </ul>
         )}
-        </WalletStatus>
       </section>
 
       <section className="section" aria-labelledby="add">
@@ -76,6 +77,7 @@ export default async function CredentialsPage() {
         </div>
         <p className="text-hint">Proof uploads come later. For now, keep your documents yourself: an organization that needs to see one will ask.</p>
       </section>
+      </WalletStatus>
     </main>
   );
 }

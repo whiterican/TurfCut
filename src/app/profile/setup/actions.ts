@@ -2,25 +2,31 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { loadSharing, saveSharing } from "@/lib/sharing-data";
+import { alreadyConfirmed, loadSharing, saveSharing } from "@/lib/sharing-data";
 import { requireWorker } from "@/lib/worker-session";
 import { dismissSharingNote } from "@/app/dashboard/actions";
 import { SETUP_STEPS, setupOrigin, shownVersion } from "@/lib/setup-flow";
 
 /**
- * Last step of the setup: records the choices the worker was shown as their
- * own (version 1 when they kept the defaults), so the reminders stop. If a
- * save landed after the page opened, nothing is written and the worker is
- * sent back to check.
+ * Last step of the setup: records the choices the worker was shown, under
+ * the wording they were shown, as their own (version 1 when they kept the
+ * defaults), so the reminders stop. If a save landed after the page opened,
+ * or the wording changed, nothing is written and the worker is sent back to
+ * check, unless those exact choices are already confirmed under today's
+ * wording (a double press, or the same confirm in two tabs): then it's done.
  */
 export async function confirmSharing(fd: FormData): Promise<void> {
   const { workerId, userId } = await requireWorker();
   const back = (error: string) => `/profile/setup?step=${SETUP_STEPS.length}${setupOrigin(fd.get("from")) === "profile" ? "&from=profile" : ""}&error=${error}`;
   const shown = shownVersion(fd.get("version"));
   if (shown === undefined) redirect(back("stale"));
+  const textVersion = typeof fd.get("textVersion") === "string" ? (fd.get("textVersion") as string) : "";
   const { choices } = await loadSharing(workerId);
-  const r = await saveSharing(workerId, userId, choices, { expectedVersion: shown });
-  if (!r.ok) redirect(back(r.errors.stale ? "stale" : "invalid"));
+  const r = await saveSharing(workerId, userId, choices, { expectedVersion: shown, textVersion });
+  if (!r.ok) {
+    if (r.errors.reworded) redirect(back("reworded"));
+    if (!(r.errors.stale && (await alreadyConfirmed(workerId, shown)))) redirect(back(r.errors.stale ? "stale" : "invalid"));
+  }
   revalidatePath("/profile");
   revalidatePath("/dashboard");
   // Replace, not push: Back from Profile mustn't land on a Done that would now be stale.

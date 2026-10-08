@@ -13,14 +13,23 @@ export interface SharingFormState {
 
 export async function saveSharingChoices(_prev: SharingFormState, formData: FormData): Promise<SharingFormState> {
   const { workerId, userId } = await requireWorker();
-  const saved = await saveSharing(workerId, userId, sharingFromForm(formData));
-  if (!saved.ok) return { ok: false, message: "Nothing was saved. Fix the choices marked below.", errors: saved.errors };
+  // The wording the form was drawn with: a save across a wording change is refused (saveSharing).
+  const textVersion = typeof formData.get("textVersion") === "string" ? (formData.get("textVersion") as string) : "";
+  const saved = await saveSharing(workerId, userId, sharingFromForm(formData), { textVersion });
+  if (!saved.ok) {
+    if (saved.errors.reworded) return { ok: false, message: saved.errors.reworded, errors: {} };
+    return { ok: false, message: "Nothing was saved. Fix the choices marked below.", errors: saved.errors };
+  }
   revalidatePath("/profile");
   revalidatePath("/profile/sharing");
   revalidatePath("/dashboard");
   return {
     ok: true,
-    message: saved.changed ? "Saved. Organizations see the change straight away." : "Saved. Nothing had changed.",
+    message: !saved.changed
+      ? "Saved. Nothing had changed."
+      : saved.reworded
+        ? "Saved. Your choices are confirmed under the current wording; nothing changes for organizations."
+        : "Saved. Organizations see the change straight away.",
     errors: {},
   };
 }

@@ -177,7 +177,7 @@ export function ScorecardPanel({ periods, history }: { periods: Record<Period, S
               ))}
             </ul>
           )}
-          <p className="text-hint">Only you see this list. Organizations see your totals, not which campaigns you worked for.</p>
+          <p className="text-hint">Only you see this list of Turfcut jobs. Organizations you share hours and history with see the totals, not the list.</p>
         </section>
       )}
 

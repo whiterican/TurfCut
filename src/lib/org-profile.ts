@@ -13,8 +13,10 @@
  *   exists.
  * - Political fit: employerFitView, so only what the worker authorized, and
  *   expired or outdated consent authorizes nothing.
- * - Nothing reaches an unapproved organization or the public (a closed
- *   account reads as the public, orgViewer), not even the name.
+ * - An unapproved organization or the public (a closed account reads as
+ *   the public, orgViewer) gets no part of the profile and no name. Only
+ *   the kinds of work (petition, canvass) stay, as on every view, each
+ *   marked "not shared".
  */
 import { orgAvailabilityView, type Availability } from "@/lib/availability";
 import { expiryToday, orgCredentialView, type CredentialRow } from "@/lib/credentials";

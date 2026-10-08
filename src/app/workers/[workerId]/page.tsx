@@ -48,8 +48,8 @@ export default async function EmployerWorkerPage({
       <header className="page-header">
         <div className="space-y-1">
           <p className="eyebrow">Worker profile</p>
-          {/* Only the display name — no phone or other contact details. */}
-          <h1 className="page-title">{view.displayName}</h1>
+          {/* Only the display name — no phone or other contact details. (No name for an unapproved viewer, which can't reach here today.) */}
+          <h1 className="page-title">{view.displayName ?? "Name not shared"}</h1>
         </div>
         <Link transitionTypes={["nav-back"]} href="/jobs" className="btn-ghost">← Jobs</Link>
       </header>

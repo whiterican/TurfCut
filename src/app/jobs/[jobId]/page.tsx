@@ -8,7 +8,7 @@ import { ENGAGEMENT_LABELS, JOB_STATUS_LABELS } from "@/lib/engagement-labels";
 import { UUID_RE, exclusionReasons, fitReasons, jobCardAnswers, jurisdictionLabel, payText, publishBlockers, readDisclosure, readHiringModes } from "@/lib/jobs";
 import { loadScorecard } from "@/lib/scorecard-data";
 import { loadSharing } from "@/lib/sharing-data";
-import { PART_DETAILS, SHARE_PARTS, visibleParts, type SharingChoices } from "@/lib/sharing";
+import { PART_DETAILS, SHARE_PARTS, visibleParts, type SharePart, type SharingChoices } from "@/lib/sharing";
 
 import { effectivePreference } from "@/lib/political-fit";
 import { loadLatestPreference } from "@/lib/political-fit-data";
@@ -117,7 +117,7 @@ async function WorkerPanel({
         {engagement.status === "INVITED" && (
           <>
             <ActionButton action={acceptInvitation} fields={{ jobId: job.id, engagementId: engagement.id }} label="Accept invitation" />
-            <WillSee sharing={(await loadSharing(workerId)).choices} approved={job.org.approved} />
+            <WillSee sharing={(await loadSharing(workerId)).choices} approved={job.org.approved} invited />
           </>
         )}
         {engagement.status === "APPLIED" && <p className="text-muted-sm">The organization will review your application.</p>}
@@ -192,7 +192,7 @@ const listText = (xs: string[]) => (xs.length < 2 ? xs.join("") : `${xs.slice(0,
  * The same rules as orgProfileView: name, the parts shared with it (with
  * experience as part of hours and history), and the fit answers shared.
  */
-function WillSee({ sharing, approved }: { sharing: SharingChoices; approved: boolean }) {
+function WillSee({ sharing, approved, invited = false }: { sharing: SharingChoices; approved: boolean; invited?: boolean }) {
   if (!approved) {
     return (
       <p className="text-hint">
@@ -202,16 +202,19 @@ function WillSee({ sharing, approved }: { sharing: SharingChoices; approved: boo
     );
   }
   const parts = visibleParts(sharing, { kind: "org", approved: true, relationship: true });
-  const seen = SHARE_PARTS.filter((p) => parts[p]).map((p) => PART_DETAILS[p].label.toLowerCase());
-  const hidden = SHARE_PARTS.filter((p) => !parts[p]).map((p) => PART_DETAILS[p].label.toLowerCase());
+  // Experience goes with hours and history, so it's named right there.
+  const name = (p: SharePart) => (p === "history" ? "hours and history (with your experience)" : PART_DETAILS[p].label.toLowerCase());
+  const seen = SHARE_PARTS.filter((p) => parts[p]).map(name);
+  const hidden = SHARE_PARTS.filter((p) => !parts[p]).map(name);
   return (
     <div className="space-y-1.5 text-sm">
       <p className="font-medium text-fg">This organization will see</p>
       <p className="text-muted">
-        Your name{seen.length ? `, your ${listText(seen)}` : ""}
-        {parts.history ? " (your experience included)" : ""}, and only the political-fit answers you chose to share.
-        {hidden.length > 0 && ` Not your ${listText(hidden)}${parts.history ? "" : " or your experience"}: it sees "not shared" there.`}{" "}
-        Your application keeps a copy of what you share at that moment.
+        Your name{seen.length ? `, your ${listText(seen)}` : ""}, and only the political-fit answers you chose to share.
+        {hidden.length > 0 && ` Not your ${listText(hidden)}: it sees "not shared" there.`}{" "}
+        {invited
+          ? "It also kept a copy of what you shared when it invited you; accepting doesn't change that copy."
+          : "Your application keeps a copy of what you share at that moment."}
       </p>
       <p className="flex flex-wrap gap-x-4">
         <Link href="/profile/sharing" className="link">Change who sees what</Link>

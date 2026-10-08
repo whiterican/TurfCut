@@ -8,6 +8,7 @@ import {
   MAX_TRAVEL_MILES,
   PART_DETAILS,
   SHARE_PARTS,
+  SHARING_TEXT_VERSION,
   type ShareAudience,
   type SharePart,
   type SharingChoices,
@@ -66,6 +67,8 @@ export function SharingForm({ choices }: { choices: SharingChoices }) {
 
   return (
     <form onSubmit={onSubmit} className="space-y-6" noValidate>
+      {/* The wording this form was drawn with; a save across a wording change is refused. */}
+      <input type="hidden" name="textVersion" value={SHARING_TEXT_VERSION} />
       {failed.length > 0 && (
         <p role="alert" className="alert-warning">
           Nothing was saved. Check {failed.map((k) => (k in PART_DETAILS ? PART_DETAILS[k as SharePart].label : k === "workTypes" ? "work types" : k === "homeArea" ? "city or ZIP" : k === "travelMiles" ? "travel distance" : "your choices")).join(", ")}.

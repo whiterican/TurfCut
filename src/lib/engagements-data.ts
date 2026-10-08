@@ -36,8 +36,10 @@ async function snapshotFor(
   // decision, so it sees only a relationship the worker already started
   // (an earlier, unaccepted invitation doesn't count).
   const relationship = kind === "invitation" ? related : true;
+  // An organization Turfcut hasn't approved (or no longer approves) sees none
+  // of the worker's answers, as it sees none of the scorecard below.
   const fit = employerFitView(effectivePreference(latest, now), {
-    orgHasRelationship: relationship,
+    orgHasRelationship: (org?.approved ?? false) && relationship,
     campaign: readDisclosure(job.campaignDisclosure),
   });
   const parts = visibleParts(sharing.choices, { kind: "org", approved: org?.approved ?? false, relationship });

@@ -535,11 +535,12 @@ connection is only for schema changes.
   default and uses only a typed city or ZIP and a radius, never GPS.
 - **One shared view**: the organization's worker page (and the worker's
   preview of it) is built by `orgProfileView` (`src/lib/org-profile.ts`);
-  lists and the API read through `shareScorecard`, `loadOrgScorecard` and
-  `loadOrgAvailabilities`, which apply the same rules. A withheld part shows
-  "not shared", never a zero; experience records count as hours and
-  history; without hours and history a shared rate shows
-  its rounded value and formula only, and period/state filters are ignored.
+  lists, hiring snapshots and the API read through `shareScorecard`,
+  `loadOrgScorecard` and `loadOrgAvailabilities`, which apply the same
+  rules (an unapproved organization gets no part and no political fit). A
+  withheld part shows "not shared", never a zero; experience records count
+  as hours and history; without hours and history a shared rate shows its
+  rounded value and formula only, and period/state filters are ignored.
   Narrowing applies at once; hiring snapshots freeze only what was shared
   then.
 - **Availability** (usual week, dates that differ, a note) and the
@@ -547,11 +548,15 @@ connection is only for schema changes.
   characters are kept) are append-only and versioned.
 - **See what organizations see** is the organization's own worker page
   (one function, `orgProfileView`, and one component) drawn for each kind
-  of viewer, name and experience included. A short first-run setup is
-  offered on Today, with a reminder on Profile until the worker confirms
-  their choices under the current sharing wording; a new wording
-  (`SHARING_TEXT_VERSION`) asks again. Done confirms the version it
-  showed, and is refused if a newer save landed meanwhile.
+  of viewer, with the name and experience whenever that viewer would get
+  them. A short first-run setup is offered on Today, with a reminder on
+  Profile until the worker confirms their choices under the current
+  sharing wording; a new wording (`SHARING_TEXT_VERSION`) asks again. Done
+  confirms the version and the wording it showed: it's refused if a newer
+  save landed meanwhile (unless those same choices are already confirmed,
+  as after a double press) or if the wording changed since the page
+  opened. Who sees what refuses a save across a wording change the same
+  way.
 - Database: `prisma/c2-consent.sql` (three append-only, server-only tables
   with checks that refuse self-verification, foreign proof paths and
   carried-forward verification). Acceptance: `tests/acceptance/c2-consent.ts`.

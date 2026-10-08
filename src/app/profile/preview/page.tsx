@@ -13,7 +13,7 @@ const TABS = [
 
 const HINTS: Record<(typeof TABS)[number]["key"], string> = {
   applied:
-    "What an organization sees after you apply to one of its jobs or accept its invite: your name and the parts of your profile you share with it (your experience goes with hours and history). Each application also keeps a copy of what you shared at that moment, including where your shared issue positions agree with that campaign's.",
+    "What an organization sees after you apply to one of its jobs or accept its invite: your name and the parts of your profile you share with it (your experience goes with hours and history). Each application, and each invitation an organization sends you, also keeps a copy of what you shared at that moment, including where your shared issue positions agree with that campaign's.",
   approved: "Today no organization reaches you without your applying or accepting an invite; this shows what any approved organization would see once that's possible.",
   public: "Nobody outside an approved organization you've applied to (or chosen to share with) sees your profile.",
 };

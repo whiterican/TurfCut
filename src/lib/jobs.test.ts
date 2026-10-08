@@ -290,10 +290,10 @@ describe("fitReasons", () => {
 describe("cardAffiliation (the job card's colour)", () => {
   const disclosure = (affiliation: string) => ({ campaignType: "candidate", affiliation, message: "Hi", issues: {} });
   it("takes only what the campaign disclosed, and names it", () => {
-    expect(cardAffiliation(disclosure("democratic"))).toEqual({ affiliation: "democratic", label: "Democratic" });
-    expect(cardAffiliation(disclosure("republican"))).toEqual({ affiliation: "republican", label: "Republican" });
-    expect(cardAffiliation(disclosure("libertarian"))).toEqual({ affiliation: "libertarian", label: "Libertarian" });
-    expect(cardAffiliation(disclosure("green"))).toEqual({ affiliation: "green", label: "Green" });
+    expect(cardAffiliation(disclosure("democratic"))).toEqual({ affiliation: "democratic", label: "Democratic party" });
+    expect(cardAffiliation(disclosure("republican"))).toEqual({ affiliation: "republican", label: "Republican party" });
+    expect(cardAffiliation(disclosure("libertarian"))).toEqual({ affiliation: "libertarian", label: "Libertarian party" });
+    expect(cardAffiliation(disclosure("green"))).toEqual({ affiliation: "green", label: "Green party" });
     expect(cardAffiliation(disclosure("other"))).toEqual({ affiliation: "other", label: "Other party" });
     expect(cardAffiliation(disclosure("nonpartisan"))).toEqual({ affiliation: "nonpartisan", label: "Nonpartisan" });
   });

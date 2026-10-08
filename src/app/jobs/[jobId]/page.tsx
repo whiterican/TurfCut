@@ -55,8 +55,9 @@ export default async function JobPage({ params }: { params: Promise<{ jobId: str
           <p className="pt-2 text-3xl font-bold tracking-[-0.03em] text-fg tabular-nums">{payText(job.compensationMethod, job.payRateCents)}</p>
           <p className="flex flex-wrap gap-1.5 pt-1">
             {isOwnOrg && <span className={status.badge}>{status.label}</span>}
-            <span className="badge-sky">{day(job.startsAt)} – {day(job.endsAt)}</span>
-            <span className={job.type === "PETITION" ? "badge-butter" : "badge-solid"}>{job.type === "PETITION" ? "Petition" : "Canvass"}</span>
+            {/* Neutral: on job pages and cards, a coloured chip means the campaign's declared party. */}
+            <span className="badge-neutral">{day(job.startsAt)} – {day(job.endsAt)}</span>
+            <span className="badge-neutral">{job.type === "PETITION" ? "Petition" : "Canvass"}</span>
             <span className="badge-neutral">{acceptedCount} of {job.headcount ?? "—"} spots filled</span>
           </p>
         </div>

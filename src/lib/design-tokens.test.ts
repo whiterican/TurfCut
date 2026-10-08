@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { AFFILIATIONS } from "@/lib/jobs";
 
 /**
  * Contrast guard for the design system in app/globals.css. Reads the actual
@@ -192,16 +193,24 @@ describe("solid badges", () => {
 });
 
 describe("party chips (job cards)", () => {
-  const PARTIES = ["democratic", "republican", "libertarian", "green", "other", "nonpartisan"] as const;
+  // Every affiliation a job can declare (a new one fails here until it has a fill and a class).
+  const PARTIES = AFFILIATIONS;
   it("every affiliation has its own fill, used by a badge class", () => {
     const fills = PARTIES.map((p) => light[`party-${p}`]);
     expect(fills.every(Boolean)).toBe(true);
     expect(new Set(fills).size).toBe(PARTIES.length);
     for (const p of PARTIES) expect(css).toMatch(new RegExp(`\\.badge-party-${p} \\{ --badge-bg: var\\(--party-${p}\\); \\}`));
   });
+  it("party chips are filled by the pastel badge rule (ink text on --badge-bg)", () => {
+    const rule = css.match(/:is\(([^)]*)\) \{\s*background: var\(--badge-bg\);/);
+    expect(rule?.[1].split(",").map((x) => x.trim())).toContain(".badge-party");
+  });
   it("ink on every party fill is AAA in both themes", () => {
     for (const th of [light, dark]) for (const p of PARTIES) expect(ratio(th.ink, th[`party-${p}`])).toBeGreaterThanOrEqual(7);
   });
+  // By day the pastel chips sit close to the white card, like the other pastel
+  // badges; that's not checked, since the party's name in the chip carries the
+  // meaning (text contrast is checked above).
   it("by night each chip stands out from the eggplant card it sits on (≥ 3:1)", () => {
     for (const p of PARTIES) for (const s of SURFACES) expect(ratio(dark[`party-${p}`], dark[s])).toBeGreaterThanOrEqual(3);
   });

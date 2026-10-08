@@ -20,7 +20,7 @@ export interface FeedJob {
 /**
  * An open job: who · where, the title, dates and type; gross pay and a button
  * on the right. The type chip is coloured by the campaign's own declared
- * affiliation and names it, e.g. "Canvass · Democratic".
+ * affiliation and names it, e.g. "Canvass · Democratic party".
  */
 export function JobFeedCard({ j }: { j: FeedJob }) {
   const geo = (j.geography ?? {}) as { city?: string; state?: string };

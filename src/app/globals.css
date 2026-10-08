@@ -820,7 +820,7 @@ body {
   }
   /* By day lime is close to the off-white page, so lime shapes get a quiet
      outline to read as shapes (text on them is already AAA). */
-  :root:not(.dark) :is(.badge-accent, .filter-chip-accent) {
+  :root:not(.dark) .badge-accent {
     border-color: var(--border-strong);
   }
   :root:not(.dark) .bubble-mine {
@@ -831,25 +831,17 @@ body {
   .hero-card .link {
     color: inherit;
   }
-  /* Quick filters on Find work: outlined, solid pastel when on. */
+  /* Quick filters on Find work: outlined, solid when on. One "on" for all of
+     them: on the feed, a coloured chip means a campaign's declared party. */
   .filter-chip {
     @apply inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-full border border-border bg-surface px-3.5 text-sm font-semibold text-fg transition;
   }
   .filter-chip:hover {
     border-color: var(--border-strong);
   }
-  .filter-chip-sky,
-  .filter-chip-butter,
-  .filter-chip-accent {
-    color: var(--ink);
-    border-color: transparent;
-  }
-  .filter-chip-sky { background: var(--sky); }
-  .filter-chip-butter { background: var(--butter); }
-  .filter-chip-accent { background: var(--accent); }
-  /* Solid: "done / live" badges and the Canvass filter (eggplant by day, olive by night; see --solid). */
+  /* Solid: "done / live" badges and a quick filter that's on (eggplant by day, olive by night; see --solid). */
   .badge-solid,
-  .filter-chip-solid {
+  .filter-chip-on {
     background: var(--solid);
     color: var(--on-solid);
     border-color: transparent;

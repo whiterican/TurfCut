@@ -587,15 +587,6 @@ export function affiliationLabel(a: string): string {
   return a === "nonpartisan" ? "Nonpartisan" : `${a[0].toUpperCase()}${a.slice(1)} party`;
 }
 
-const AFFILIATION_SHORT: Record<Affiliation, string> = {
-  nonpartisan: "Nonpartisan",
-  democratic: "Democratic",
-  republican: "Republican",
-  libertarian: "Libertarian",
-  green: "Green",
-  other: "Other party",
-};
-
 /**
  * The affiliation a job card is coloured by: only what the campaign itself
  * disclosed, never inferred. Null when the job has no readable disclosure
@@ -604,7 +595,7 @@ const AFFILIATION_SHORT: Record<Affiliation, string> = {
  */
 export function cardAffiliation(campaignDisclosure: unknown): { affiliation: Affiliation; label: string } | null {
   const a = readDisclosure(campaignDisclosure)?.affiliation;
-  return a && (AFFILIATIONS as readonly string[]).includes(a) ? { affiliation: a, label: AFFILIATION_SHORT[a] } : null;
+  return a && (AFFILIATIONS as readonly string[]).includes(a) ? { affiliation: a, label: affiliationLabel(a) } : null;
 }
 
 /** A stored job back into the builder's form fields (inverse of validateJob). */

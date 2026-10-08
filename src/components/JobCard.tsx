@@ -54,7 +54,7 @@ export function JobCard({
         <div className="card space-y-2">
           <p className="flex flex-wrap items-center gap-2 font-medium text-fg">
             Campaign
-            <span className="badge-sky">{CAMPAIGN_TYPES.find((c) => c.value === d.campaignType)?.label ?? d.campaignType}</span>
+            <span className="badge-neutral">{CAMPAIGN_TYPES.find((c) => c.value === d.campaignType)?.label ?? d.campaignType}</span>
             {/* Coloured as on the job feed: the campaign's own declared affiliation. */}
             <span className={aff ? `badge-party badge-party-${aff.affiliation}` : "badge-neutral"}>{affiliationLabel(d.affiliation)}</span>
           </p>

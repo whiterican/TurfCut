@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { addCredential, editCredential, removeCredential } from "@/lib/credentials-data";
 import { requireWorker } from "@/lib/worker-session";
 
@@ -16,6 +15,7 @@ const fields = (fd: FormData) => ({
   label: fd.get("label"),
   state: fd.get("state"),
   identifier: fd.get("identifier"),
+  clearIdentifier: fd.get("clearIdentifier") === "on",
   issuedOn: fd.get("issuedOn"),
   expiresOn: fd.get("expiresOn"),
 });
@@ -39,10 +39,8 @@ export async function saveCredentialAction(fd: FormData): Promise<CredentialForm
   return done(await addCredential(workerId, userId, fields(fd)), "Added as self-reported.");
 }
 
-/** On success the page reloads with ?removed=1, which shows the confirmation (the removed row is gone). */
+/** The wallet's status line says it worked (WalletStatus): the removed row and its form are gone. */
 export async function removeCredentialAction(fd: FormData): Promise<CredentialFormState> {
   const { workerId, userId } = await requireWorker();
-  const r = done(await removeCredential(workerId, userId, String(fd.get("id") ?? "")), "Removed.");
-  if (r.ok) redirect("/profile/credentials?removed=1");
-  return r;
+  return done(await removeCredential(workerId, userId, String(fd.get("id") ?? "")), "Removed.");
 }

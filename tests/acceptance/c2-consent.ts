@@ -9,6 +9,7 @@ import { loadOrgScorecard, loadOrgScorecardPeriods } from "@/lib/shared-scorecar
 import { loadAvailability, loadOrgAvailabilities, loadOrgAvailability, saveAvailability } from "@/lib/availability-data";
 import { addCredential, editCredential, loadCredentials, loadOrgCredentials, removeCredential } from "@/lib/credentials-data";
 import { exportAccount } from "@/lib/account-data";
+import { loadOrgProfile, previewOrgProfile } from "@/lib/org-profile-data";
 
 const ORG = "00000000-0000-0000-0000-000000000001";
 const ORG2 = "00000000-0000-0000-0000-000000000002";
@@ -261,6 +262,42 @@ const all = (a: string) => Object.fromEntries(SHARE_PARTS.map((p) => [p, a]));
   check("an unrelated org sees credentials as not shared", (await loadOrgCredentials(W2, ORG2)) === "withheld");
   await saveSharing(W2, W2, { audiences: { ...all("RELATIONSHIP"), credentials: "NOBODY" } });
   check("hidden straight away when the worker narrows sharing", (await loadOrgCredentials(W2, ORG)) === "withheld");
+
+  // --- 10. C2.6: the preview is the organization's page; setup confirms what it showed ---
+  await saveSharing(W2, W2, { audiences: all("RELATIONSHIP") });
+  const at = new Date();
+  const real = await loadOrgProfile(W2, ORG, at);
+  const preview = await previewOrgProfile(W2, { kind: "org", approved: true, relationship: true }, at);
+  check("the preview for 'an organization you applied to' is exactly what that organization sees", !!real && JSON.stringify(real) === JSON.stringify(preview), { real, preview });
+  check("it includes the name and experience, never a reference's contact details",
+    !!real && real.displayName.length > 0 && real.experience.every((r) => !("referenceContact" in r)));
+  const strangerView = await loadOrgProfile(W2, ORG2, at);
+  check("an unrelated organization sees every shared part as not shared", !!strangerView && strangerView.availability === "withheld" && strangerView.credentials === "withheld", strangerView);
+  check("no such worker: no profile", (await loadOrgProfile(randomUUID(), ORG, at)) === null);
+
+  const shownNow = (await loadSharing(W1)).version;
+  const rowsBefore = await p.workerSharing.count({ where: { workerId: W1 } });
+  const staleConfirm = await saveSharing(W1, ACTOR, { audiences: all("NOBODY") }, { expectedVersion: (shownNow ?? 0) - 1 });
+  check("a confirm of an older version is refused and writes nothing", !staleConfirm.ok && !!staleConfirm.errors.stale && (await p.workerSharing.count({ where: { workerId: W1 } })) === rowsBefore, staleConfirm);
+  const neverConfirm = await saveSharing(W1, ACTOR, { audiences: all("NOBODY") }, { expectedVersion: null });
+  check("a confirm of 'never saved' is refused once a version exists", !neverConfirm.ok && !!neverConfirm.errors.stale, neverConfirm);
+  const goodConfirm = await saveSharing(W1, ACTOR, (await loadSharing(W1)).choices, { expectedVersion: shownNow });
+  check("a confirm of the version on screen goes through", goodConfirm.ok, goodConfirm);
+  check("a save under today's wording is current", (await loadSharing(W1)).current === true);
+  const latest = (await loadSharing(W1)).version ?? 0;
+  await p.workerSharing.create({ data: { workerId: W1, version: latest + 1, ...sharingToRow(DEFAULT_SHARING), consentTextVersion: "c2-old-wording", actorId: W1 } });
+  check("a latest save under older wording is not current (the worker is asked again)", (await loadSharing(W1)).current === false);
+
+  const numbered = await addCredential(W3, W3, { kind: "NOTARY_OR_AFFIDAVIT", state: "CO", identifier: "N-445566" });
+  const numberedId = numbered.ok ? numbered.id : "";
+  const kept = await editCredential(W3, W3, numberedId, { kind: "NOTARY_OR_AFFIDAVIT", state: "CO", identifier: "", expiresOn: "2099-02-02" });
+  const keptRow = (await loadCredentials(W3)).find((c) => c.rootId === numberedId);
+  check("a blank number keeps the saved one", kept.ok && keptRow?.identifier === "5566", keptRow);
+  const cleared = await editCredential(W3, W3, keptRow?.id ?? "", { kind: "NOTARY_OR_AFFIDAVIT", state: "CO", identifier: "", expiresOn: "2099-02-02", clearIdentifier: true });
+  const clearedRow = (await loadCredentials(W3)).find((c) => c.rootId === numberedId);
+  check("asking to take the number off appends a row without it; the old row stays", cleared.ok && cleared.changed === true && clearedRow?.identifier === null && (await p.workerCredential.count({ where: { workerId: W3, identifier: "5566" } })) === 2, clearedRow);
+  const typed = await editCredential(W3, W3, clearedRow?.id ?? "", { kind: "NOTARY_OR_AFFIDAVIT", state: "CO", identifier: "N-778899", expiresOn: "2099-02-02", clearIdentifier: true });
+  check("a number typed in wins over the box", typed.ok && (await loadCredentials(W3)).find((c) => c.rootId === numberedId)?.identifier === "8899", typed);
 
   // --- 7. Browsers have no access ---
   for (const table of ["WorkerSharing", "WorkerAvailability", "WorkerCredential"]) {

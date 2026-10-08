@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { createContext, useContext, useRef, useState, useTransition } from "react";
 import { unstable_rethrow } from "next/navigation";
 import { removeCredentialAction, saveCredentialAction, type CredentialFormState } from "@/app/profile/credentials/actions";
 import { CREDENTIAL_KINDS, type CredentialKind } from "@/lib/credentials";
@@ -34,15 +34,44 @@ function useSubmitState(run: (fd: FormData) => Promise<CredentialFormState>, aft
   return { state, pending, onSubmit };
 }
 
+const Announce = createContext<(message: string) => void>(() => {});
+
 /**
- * Add a credential, or edit one (`id` + `initial`). Controlled and sent from
+ * The wallet's own status line: a removal's confirmation lands here, since
+ * the removed credential's row (and its form) is gone once the list
+ * refreshes. Focus moves to it, so it isn't lost with the button.
+ */
+export function WalletStatus({ children }: { children: React.ReactNode }) {
+  const [message, setMessage] = useState("");
+  const ref = useRef<HTMLParagraphElement>(null);
+  const announce = (m: string) => {
+    setMessage(m);
+    requestAnimationFrame(() => ref.current?.focus());
+  };
+  return (
+    <Announce value={announce}>
+      <p ref={ref} tabIndex={-1} role="status" className="text-success-msg outline-none">{message}</p>
+      {children}
+    </Announce>
+  );
+}
+
+/**
+ * Add a credential, or edit one (`id` + `values`). Controlled and sent from
  * onSubmit, so a refused save keeps what was typed. Editing can't change the
- * kind; everything entered is self-reported.
+ * kind; everything entered is self-reported. A blank number keeps the saved
+ * one (shown masked); a box takes it away.
  */
 export function CredentialForm({ id, values: start, masked, onDone }: { id?: string; values?: Values; masked?: string | null; onDone?: () => void }) {
   const [v, setV] = useState<Values>(start ?? EMPTY);
+  const [clearNumber, setClearNumber] = useState(false);
   const { state, pending, onSubmit } = useSubmitState(saveCredentialAction, (r) => {
     if (r.ok && !id) setV(EMPTY);
+    // The saved number is shown masked from now on; don't keep the typed one on screen.
+    if (r.ok && id) {
+      setV((x) => ({ ...x, identifier: "" }));
+      setClearNumber(false);
+    }
     if (r.ok) onDone?.();
   });
   const e = state.ok ? {} : state.errors;
@@ -64,6 +93,7 @@ export function CredentialForm({ id, values: start, masked, onDone }: { id?: str
           <input type="hidden" name="kind" value={v.kind} />
           <p className="label">Kind</p>
           <p className="text-sm text-fg">{kind.label}</p>
+          <p className="text-hint">{kind.hint}</p>
         </div>
       ) : (
         <label className="block space-y-1.5">
@@ -88,12 +118,22 @@ export function CredentialForm({ id, values: start, masked, onDone }: { id?: str
           <input className="field uppercase" maxLength={2} autoComplete="off" autoCapitalize="characters" placeholder="CO" {...f("state")} />
           {err("state")}
         </label>
-        <label className="block space-y-1.5">
-          <span className="label">Number (optional)</span>
-          <input className="field" maxLength={64} autoComplete="off" placeholder={masked ? `${masked} (leave blank to keep)` : undefined} {...f("identifier")} />
-          <span className="text-hint block">Turfcut keeps only the last 4 characters, shown like •••• 2345. Organizations never see it.</span>
+        <div className="space-y-1.5">
+          <label className="block space-y-1.5">
+            <span className="label">Number (optional)</span>
+            <input className="field" maxLength={64} autoComplete="off" disabled={clearNumber} {...f("identifier")} />
+            <span className="text-hint block">
+              {masked && !clearNumber ? `Leave blank to keep ${masked}. ` : ""}Turfcut keeps only the last 4 characters, shown like •••• 2345. Organizations never see it.
+            </span>
+          </label>
+          {masked && (
+            <label className="flex items-center gap-2 text-sm text-fg">
+              <input type="checkbox" name="clearIdentifier" checked={clearNumber} onChange={(ev) => setClearNumber(ev.target.checked)} />
+              Take the number {masked} off
+            </label>
+          )}
           {err("identifier")}
-        </label>
+        </div>
         <label className="block space-y-1.5">
           <span className="label">Issued (optional)</span>
           <input type="date" className="field" {...f("issuedOn")} />
@@ -115,7 +155,10 @@ export function CredentialForm({ id, values: start, masked, onDone }: { id?: str
 
 export function RemoveCredential({ id, name }: { id: string; name: string }) {
   const [confirming, setConfirming] = useState(false);
-  const { state, pending, onSubmit } = useSubmitState(removeCredentialAction);
+  const announce = useContext(Announce);
+  const { state, pending, onSubmit } = useSubmitState(removeCredentialAction, (r) => {
+    if (r.ok) announce(`Removed ${name}. It stays on record, but nobody sees it.`);
+  });
   if (!confirming) {
     return <button type="button" className="link text-sm" onClick={() => setConfirming(true)}>Remove {name}</button>;
   }
@@ -126,7 +169,7 @@ export function RemoveCredential({ id, name }: { id: string; name: string }) {
       {/* Focus moves here when the confirm opens, so it isn't lost with the button that opened it. */}
       <button className="btn-secondary btn-sm" disabled={pending} autoFocus>{pending ? "Removing…" : "Remove"}</button>
       <button type="button" className="btn-ghost btn-sm" onClick={() => setConfirming(false)}>Keep it</button>
-      {state.message && <p role="status" className={state.ok ? "text-success-msg" : "text-danger-msg"}>{state.message}</p>}
+      {state.message && !state.ok && <p role="status" className="text-danger-msg">{state.message}</p>}
     </form>
   );
 }

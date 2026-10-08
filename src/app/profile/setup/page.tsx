@@ -3,9 +3,10 @@ import { requireWorker } from "@/lib/worker-session";
 import { loadSharing } from "@/lib/sharing-data";
 import { loadAvailability } from "@/lib/availability-data";
 import { loadCredentials } from "@/lib/credentials-data";
-import { AUDIENCE_OPTIONS, PART_DETAILS, SHARE_GROUPS, type ShareAudience } from "@/lib/sharing";
+import { PART_DETAILS, SHARE_GROUPS, type ShareAudience, type WorkType } from "@/lib/sharing";
 import { availabilitySummary, isEmptyAvailability } from "@/lib/availability";
 import { credentialName } from "@/lib/credentials";
+import { SETUP_STEPS, setupOrigin, setupStep } from "@/lib/setup-flow";
 import { confirmSharing, skipSetup } from "./actions";
 
 const SHORT: Record<ShareAudience, string> = {
@@ -13,28 +14,38 @@ const SHORT: Record<ShareAudience, string> = {
   ANY_APPROVED_ORG: "Any organization Turfcut has approved",
   NOBODY: "Nobody",
 };
-const STEPS = ["Who sees your scorecard", "Availability", "Credentials", "Being found"] as const;
+const WORK: Record<WorkType, string> = { PETITION: "petition", CANVASS: "canvass" };
+const ERRORS: Record<string, string> = {
+  stale: "Your choices changed since this page opened (perhaps in another window). Check them, then press Done again.",
+  invalid: "Your saved choices need a fix before they can be confirmed. Open Who sees what to fix them.",
+};
 
 /**
  * First-run setup (C2.6): four short steps, each with the current state and
- * a link to change it. Skippable at any point; skipping keeps the defaults.
+ * a link to change it. It shows everything Who sees what covers (each part's
+ * contents, being found and for what work), since Done records the choices
+ * under the sharing wording. Skippable at any point; skipping keeps them.
  */
-export default async function SetupPage({ searchParams }: { searchParams: Promise<{ step?: string }> }) {
+export default async function SetupPage({ searchParams }: { searchParams: Promise<{ step?: string; from?: string; error?: string }> }) {
   const { workerId } = await requireWorker();
-  const n = Math.min(Math.max(Number((await searchParams).step) || 1, 1), STEPS.length);
+  const sp = await searchParams;
+  const n = setupStep(sp.step);
+  const from = setupOrigin(sp.from);
+  const error = n === SETUP_STEPS.length ? ERRORS[sp.error ?? ""] : undefined;
   const [sharing, avail, creds] = await Promise.all([loadSharing(workerId), loadAvailability(workerId), loadCredentials(workerId)]);
   const c = sharing.choices;
   const today = new Date().toISOString().slice(0, 10);
+  const step = (k: number) => `/profile/setup?step=${k}${from === "profile" ? "&from=profile" : ""}`;
 
   return (
     <main className="page max-w-2xl space-y-6">
       <header className="space-y-2">
-        <p className="eyebrow">Step {n} of {STEPS.length}</p>
-        <h1 className="page-title">{STEPS[n - 1]}</h1>
+        <p className="eyebrow">Step {n} of {SETUP_STEPS.length}</p>
+        <h1 className="page-title">{SETUP_STEPS[n - 1]}</h1>
         <ol className="flex gap-1.5" aria-label="Progress">
-          {STEPS.map((s, i) => (
-            <li key={s} className={`h-1.5 flex-1 rounded-full ${i < n ? "bg-[var(--focus)]" : "bg-surface-2"}`}>
-              <span className="sr-only">{s}{i < n - 1 ? " (done)" : i === n - 1 ? " (now)" : ""}</span>
+          {SETUP_STEPS.map((s, i) => (
+            <li key={s} aria-current={i === n - 1 ? "step" : undefined} className={`h-1.5 flex-1 rounded-full ${i < n ? "bg-[var(--focus)]" : "bg-surface-2"}`}>
+              <span className="sr-only">{s}{i < n - 1 ? " (seen)" : i === n - 1 ? " (this step)" : ""}</span>
             </li>
           ))}
         </ol>
@@ -44,11 +55,14 @@ export default async function SetupPage({ searchParams }: { searchParams: Promis
         {n === 1 && (
           <>
             <p className="text-muted-sm">Each part of your scorecard has its own audience. Anything not shared shows as &quot;not shared&quot;, never a zero.</p>
-            <ul className="space-y-1.5">
+            <ul className="space-y-3">
               {SHARE_GROUPS.map((g) => (
-                <li key={g} className="flex flex-wrap justify-between gap-x-4 text-sm">
-                  <span className="text-fg">{PART_DETAILS[g].label}</span>
-                  <span className="text-muted">{SHORT[c.audiences[g]]}</span>
+                <li key={g} className="space-y-0.5 text-sm">
+                  <span className="flex flex-wrap justify-between gap-x-4">
+                    <span className="text-fg">{PART_DETAILS[g].label}</span>
+                    <span className="text-muted">{SHORT[c.audiences[g]]}</span>
+                  </span>
+                  <span className="text-hint block">{PART_DETAILS[g].covers}</span>
                 </li>
               ))}
             </ul>
@@ -57,37 +71,54 @@ export default async function SetupPage({ searchParams }: { searchParams: Promis
         )}
         {n === 2 && (
           <>
-            <p className="text-muted-sm">When you&apos;re usually free, for schedulers. Never scored. Seen by: {AUDIENCE_OPTIONS.find((o) => o.value === c.audiences.availability)!.label}.</p>
+            <p className="text-muted-sm">When you&apos;re usually free, for schedulers. Never scored. It covers: {PART_DETAILS.availability.covers.toLowerCase()}.</p>
+            <p className="text-muted-sm">Seen by: {SHORT[c.audiences.availability]}.</p>
             <p className="text-sm text-fg">{isEmptyAvailability(avail.availability) ? "Not set yet." : availabilitySummary(avail.availability, today).usual ?? "Only specific dates set."}</p>
             <Link href="/profile/availability" className="link text-sm">{isEmptyAvailability(avail.availability) ? "Set your availability" : "Change availability"}</Link>
           </>
         )}
         {n === 3 && (
           <>
-            <p className="text-muted-sm">Registrations, notary status and training. Seen by: {AUDIENCE_OPTIONS.find((o) => o.value === c.audiences.credentials)!.label}. Never the number.</p>
+            <p className="text-muted-sm">Registrations, notary status and training. Organizations see the {PART_DETAILS.credentials.covers.toLowerCase()}, never the number.</p>
+            <p className="text-muted-sm">Seen by: {SHORT[c.audiences.credentials]}.</p>
             <p className="text-sm text-fg">{creds.length ? creds.map(credentialName).join(", ") : "None added yet."}</p>
             <Link href="/profile/credentials" className="link text-sm">{creds.length ? "Manage credentials" : "Add a credential"}</Link>
           </>
         )}
         {n === 4 && (
           <>
-            <p className="text-muted-sm">Whether organizations can find you for work. Off unless you turn it on; it uses only a city or ZIP you type.</p>
-            <p className="text-sm text-fg">{c.findable ? `On: within ${c.travelMiles} miles of ${c.homeArea}.` : "Off."}</p>
+            <p className="text-muted-sm">
+              Whether organizations can find you for work, and for which kind. Off unless you turn it on; it uses only a city or ZIP you type, never
+              your phone&apos;s location.
+            </p>
+            <p className="text-sm text-fg">
+              {c.findable ? `On: ${c.workTypes.map((t) => WORK[t]).join(" and ")} work, within ${c.travelMiles} miles of ${c.homeArea}.` : "Off."}
+            </p>
             <Link href="/profile/sharing" className="link text-sm">Change</Link>
           </>
         )}
       </section>
 
+      {error && (
+        <p role="alert" className="alert-warning">
+          {error} {sp.error === "invalid" && <Link href="/profile/sharing" className="link">Who sees what</Link>}
+        </p>
+      )}
+
       <div className="flex flex-wrap items-center gap-3">
-        {n < STEPS.length ? (
-          <Link href={`/profile/setup?step=${n + 1}`} className="btn-primary">Next</Link>
+        {n < SETUP_STEPS.length ? (
+          <Link href={step(n + 1)} className="btn-primary">Next</Link>
         ) : (
           <form action={confirmSharing}>
+            {/* The version on screen: Done confirms it, or is refused if a newer save landed meanwhile. */}
+            <input type="hidden" name="version" value={sharing.version ?? ""} />
+            <input type="hidden" name="from" value={from} />
             <button className="btn-primary">Done, keep these choices</button>
           </form>
         )}
-        {n > 1 && <Link href={`/profile/setup?step=${n - 1}`} className="btn-ghost">Back</Link>}
+        {n > 1 && <Link href={step(n - 1)} className="btn-ghost">Back</Link>}
         <form action={skipSetup}>
+          <input type="hidden" name="from" value={from} />
           <button className="btn-ghost">Skip for now</button>
         </form>
       </div>

@@ -100,20 +100,23 @@ async function WorkerHero({ workerId }: { workerId: string }) {
 }
 
 /**
- * One-time note: workers choose who sees what. Gone once the worker saves a
- * choice, or dismisses it for themselves on this device.
+ * Note: workers choose who sees what. Gone once the worker saves a choice
+ * under today's wording, or dismisses it for themselves on this device; a
+ * new wording brings it back (SHARING_TEXT_VERSION).
  */
 async function SharingNote({ workerId }: { workerId: string }) {
   if (noteDismissedBy((await cookies()).get(SHARING_NOTE_COOKIE)?.value, workerId)) return null;
-  if ((await loadSharing(workerId)).version !== null) return null;
+  const sharing = await loadSharing(workerId);
+  if (sharing.current) return null;
+  const never = sharing.version === null;
   return (
-    <DismissibleNote action={dismissSharingNote} title="You choose who sees what">
+    <DismissibleNote action={dismissSharingNote} title={never ? "You choose who sees what" : "Check who sees what"}>
       <p className="text-muted-sm">
-        Choose who sees each part of your scorecard, your availability and your credentials, and whether
-        organizations can find you. Until you do, organizations you apply to or accept an invite from see your
-        profile, and nobody can find you.
+        {never
+          ? "Choose who sees each part of your scorecard, your availability and your credentials, and whether organizations can find you. Until you do, organizations you apply to or accept an invite from see your profile, and nobody can find you."
+          : "We've changed how Turfcut explains who sees what since you chose. Your choices stay as they are; take a look and confirm them."}
       </p>
-      <Link transitionTypes={["nav-forward"]} href="/profile/setup" className="btn-primary btn-sm">Set it up (4 short steps)</Link>
+      <Link transitionTypes={["nav-forward"]} href="/profile/setup" className="btn-primary btn-sm">{never ? "Set it up (4 short steps)" : "Check your choices"}</Link>
     </DismissibleNote>
   );
 }
@@ -142,6 +145,8 @@ async function CredentialReminder({ workerId }: { workerId: string }) {
               : state.kind === "soon"
                 ? state.days === 0 ? "expires today" : `expires in ${state.days} ${state.days === 1 ? "day" : "days"}`
                 : ""}
+            {/* The date itself too: "today" is counted in the furthest-west US time (expiryToday). */}
+            {c.expiresOn && ` (${c.expiresOn.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })})`}
           </li>
         ))}
       </ul>

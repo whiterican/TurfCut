@@ -4,13 +4,12 @@ import { loadCredentials } from "@/lib/credentials-data";
 import { loadSharing } from "@/lib/sharing-data";
 import { AUDIENCE_OPTIONS } from "@/lib/sharing";
 import { credentialName, dateOnly, expiryState, expiryToday, maskIdentifier, VERIFICATION_LABELS } from "@/lib/credentials";
-import { CredentialForm, RemoveCredential } from "@/components/CredentialForm";
+import { CredentialForm, RemoveCredential, WalletStatus } from "@/components/CredentialForm";
 
 const dateText = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
 
-export default async function CredentialsPage({ searchParams }: { searchParams: Promise<{ removed?: string }> }) {
+export default async function CredentialsPage() {
   const { workerId } = await requireWorker();
-  const removed = (await searchParams).removed === "1";
   const [creds, sharing] = await Promise.all([loadCredentials(workerId), loadSharing(workerId)]);
   const audience = AUDIENCE_OPTIONS.find((o) => o.value === sharing.choices.audiences.credentials)!;
   const today = expiryToday();
@@ -29,9 +28,9 @@ export default async function CredentialsPage({ searchParams }: { searchParams: 
         </p>
       </header>
 
-      {removed && <p role="status" className="text-success-msg">Removed. It stays on record, but nobody sees it.</p>}
       <section className="section" aria-labelledby="wallet">
         <h2 id="wallet" className="section-title">Your credentials</h2>
+        <WalletStatus>
         {creds.length === 0 ? (
           <p className="text-muted-sm">None yet.</p>
         ) : (
@@ -67,6 +66,7 @@ export default async function CredentialsPage({ searchParams }: { searchParams: 
             })}
           </ul>
         )}
+        </WalletStatus>
       </section>
 
       <section className="section" aria-labelledby="add">

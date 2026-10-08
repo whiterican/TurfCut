@@ -543,9 +543,13 @@ connection is only for schema changes.
 - **Availability** (usual week, dates that differ, a note) and the
   **credentials wallet** (self-reported; only a number's last four
   characters are kept) are append-only and versioned.
-- **See what organizations see** previews each kind of viewer with the same
-  code; a short first-run setup is offered on Today, with a reminder on
-  Profile until the worker saves a choice.
+- **See what organizations see** is the organization's own worker page
+  (one function, `orgProfileView`, and one component) drawn for each kind
+  of viewer, name and experience included. A short first-run setup is
+  offered on Today, with a reminder on Profile until the worker confirms
+  their choices under the current sharing wording; a new wording
+  (`SHARING_TEXT_VERSION`) asks again. Done confirms the version it
+  showed, and is refused if a newer save landed meanwhile.
 - Database: `prisma/c2-consent.sql` (three append-only, server-only tables
   with checks that refuse self-verification, foreign proof paths and
   carried-forward verification). Acceptance: `tests/acceptance/c2-consent.ts`.

@@ -3,17 +3,8 @@ import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { workerAccessFor } from "@/lib/worker-access-data";
 import { requireEmployer } from "@/lib/employer-session";
-import { effectivePreference, employerFitView } from "@/lib/political-fit";
-import { loadLatestPreference, orgHasRelationship } from "@/lib/political-fit-data";
-import { ScorecardPanel } from "@/components/ScorecardPanel";
-import { loadOrgScorecardPeriods } from "@/lib/shared-scorecard-data";
-import { loadOrgAvailability } from "@/lib/availability-data";
-import { AvailabilityStatement } from "@/components/AvailabilityStatement";
-import { loadOrgCredentials } from "@/lib/credentials-data";
-import { CredentialList } from "@/components/CredentialList";
-import { expiryToday } from "@/lib/credentials";
-import { ExperienceList } from "@/components/ExperienceList";
-import { FitSignals } from "@/components/FitSignals";
+import { loadOrgProfile } from "@/lib/org-profile-data";
+import { OrgProfileSections } from "@/components/OrgProfileSections";
 import { ActionButton } from "@/components/ActionButton";
 import { readHiringModes } from "@/lib/jobs";
 import { invite } from "@/app/jobs/actions";
@@ -38,41 +29,27 @@ export default async function EmployerWorkerPage({
     );
   }
 
-  // Only the display name — no phone or other contact details.
-  const worker = await db().worker.findUnique({ where: { id: workerId }, select: { displayName: true, closedAt: true } });
-  if (!worker || worker.closedAt) notFound();
-
-  const [rawRecords, shared, pref, related, openJobs, engagedOn, availability, credentials] = await Promise.all([
-    db().experienceRecord.findMany({ where: { workerId }, orderBy: { startDate: "desc" } }),
-    // Only the groups the worker shares with this organization, right now (C2.3).
-    loadOrgScorecardPeriods(workerId, access.orgId),
-    loadLatestPreference(workerId),
-    orgHasRelationship(workerId, access.orgId),
+  const [view, openJobs, engagedOn] = await Promise.all([
+    // The same view the worker previews (C2.6): only what they share with this organization, right now.
+    loadOrgProfile(workerId, access.orgId),
     db().job.findMany({
       where: { orgId: access.orgId, status: "PUBLISHED" },
       select: { id: true, title: true, hiringMethod: true },
       orderBy: { startsAt: "asc" },
     }),
     db().engagement.findMany({ where: { workerId, job: { orgId: access.orgId } }, select: { jobId: true } }),
-    loadOrgAvailability(workerId, access.orgId),
-    loadOrgCredentials(workerId, access.orgId),
   ]);
+  if (!view) notFound();
   const engaged = new Set(engagedOn.map((e) => e.jobId));
   const invitable = openJobs.filter((j) => readHiringModes(j.hiringMethod).includes("invite") && !engaged.has(j.id));
-  // Issue overlap is per campaign, so this job-independent view never shows
-  // it; it appears on each applicant's hiring snapshot. The full
-  // questionnaire is never shown.
-  // Expired or outdated consent authorizes nothing (effectivePreference → null).
-  // References are third-party contact details: employers learn only that one exists.
-  const records = rawRecords.map(({ referenceContact, ...r }) => ({ ...r, hasReference: referenceContact !== null }));
-  const fit = employerFitView(effectivePreference(pref), { orgHasRelationship: related, campaign: null });
 
   return (
     <main className="page">
       <header className="page-header">
         <div className="space-y-1">
           <p className="eyebrow">Worker profile</p>
-          <h1 className="page-title">{worker.displayName}</h1>
+          {/* Only the display name — no phone or other contact details. */}
+          <h1 className="page-title">{view.displayName}</h1>
         </div>
         <Link transitionTypes={["nav-back"]} href="/jobs" className="btn-ghost">← Jobs</Link>
       </header>
@@ -93,30 +70,7 @@ export default async function EmployerWorkerPage({
         )}
       </section>
 
-      <section className="section">
-        <h2 className="section-title">Scorecard</h2>
-        <ScorecardPanel periods={shared} />
-      </section>
-
-      <section className="section">
-        <h2 className="section-title">Availability</h2>
-        <div className="card"><AvailabilityStatement view={availability} /></div>
-      </section>
-
-      <section className="section">
-        <h2 className="section-title">Credentials</h2>
-        <div className="card"><CredentialList view={credentials} today={expiryToday()} /></div>
-      </section>
-
-      <section className="section">
-        <h2 className="section-title">Experience</h2>
-        <ExperienceList records={records} />
-      </section>
-
-      <section className="section">
-        <h2 className="section-title">Political fit</h2>
-        <FitSignals view={fit} />
-      </section>
+      <OrgProfileSections view={view} />
     </main>
   );
 }

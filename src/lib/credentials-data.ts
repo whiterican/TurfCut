@@ -2,7 +2,7 @@ import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { UUID_RE } from "@/lib/jobs";
 import { partsForOrg } from "@/lib/shared-scorecard-data";
-import { currentCredentials, validateCredential, type CredentialInput, type CredentialRow } from "@/lib/credentials";
+import { currentCredentials, orgCredentialView, validateCredential, type CredentialInput, type CredentialRow, type OrgCredentialView } from "@/lib/credentials";
 
 const SELECT = {
   id: true, kind: true, label: true, state: true, identifier: true, issuedOn: true, expiresOn: true,
@@ -50,19 +50,22 @@ export async function addCredential(workerId: string, actorId: string, raw: unkn
  * Edits by appending a row that supersedes the current one. The kind stays
  * the same, and the edit is self-reported again: a verification never
  * carries over to changed details. A blank number keeps the current one
- * (the full number is never sent back to the phone). Saving with nothing
- * changed writes nothing. Two edits racing on one row can't both land
- * (unique supersedesId); the loser is told to reload.
+ * (the full number is never sent back to the phone), unless the worker asks
+ * to take it off (clearIdentifier). Saving with nothing changed writes
+ * nothing. Two edits racing on one row can't both land (unique
+ * supersedesId); the loser is told to reload.
  */
 export async function editCredential(workerId: string, actorId: string, id: string, raw: unknown): Promise<CredentialResult & { changed?: boolean }> {
   const v = validateCredential(raw);
   if (!v.ok) return { ok: false, reason: "Fix the fields marked below.", errors: v.errors };
+  const clear = !!raw && typeof raw === "object" && (raw as Record<string, unknown>).clearIdentifier === true;
   try {
     return await db().$transaction(async (tx) => {
       const cur = await ownCurrent(tx, workerId, id);
       if (!cur) return { ok: false as const, reason: STALE };
       if (cur.kind !== v.value.kind) return { ok: false as const, reason: "A credential's kind can't change. Remove it and add a new one." };
-      const next = { ...v.value, identifier: v.value.identifier ?? cur.identifier };
+      // A number typed in wins; otherwise blank keeps the saved one, or takes it off when asked.
+      const next = { ...v.value, identifier: v.value.identifier ?? (clear ? null : cur.identifier) };
       const d = (x: Date | null) => (x ? x.toISOString().slice(0, 10) : null);
       if (next.label === cur.label && next.state === cur.state && next.identifier === cur.identifier && next.issuedOn === d(cur.issuedOn) && next.expiresOn === d(cur.expiresOn)) {
         return { ok: true as const, id: cur.id, changed: false };
@@ -93,17 +96,8 @@ export async function removeCredential(workerId: string, actorId: string, id: st
   }
 }
 
-/** What an organization sees of a credential: name, level and expiry. Never the identifier. */
-export interface OrgCredentialView {
-  kind: CredentialRow["kind"];
-  label: string | null;
-  state: string | null;
-  verification: CredentialRow["verification"];
-  expiresOn: Date | null;
-}
-
 /** The wallet as one organization may see it right now, or "withheld" (C2.5). */
 export async function loadOrgCredentials(workerId: string, orgId: string): Promise<OrgCredentialView[] | "withheld"> {
   if (!(await partsForOrg(workerId, orgId)).credentials) return "withheld";
-  return (await loadCredentials(workerId)).map((c) => ({ kind: c.kind, label: c.label, state: c.state, verification: c.verification, expiresOn: c.expiresOn }));
+  return orgCredentialView(await loadCredentials(workerId), true);
 }

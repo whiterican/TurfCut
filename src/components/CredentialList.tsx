@@ -1,5 +1,4 @@
-import { credentialName, VERIFICATION_LABELS } from "@/lib/credentials";
-import type { OrgCredentialView } from "@/lib/credentials-data";
+import { credentialName, VERIFICATION_LABELS, type OrgCredentialView } from "@/lib/credentials";
 import { NotSharedChip } from "@/components/staff/NotSharedChip";
 
 const dateText = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });

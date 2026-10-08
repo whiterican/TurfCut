@@ -58,8 +58,17 @@ export interface SharingChoices {
   travelMiles: number | null;
 }
 
-/** Lists the workers who dismissed the sharing note on Today, on this device. */
-export const SHARING_NOTE_COOKIE = "tc_sharing_note";
+/**
+ * Bump when the sharing wording on the worker's screens (Who sees what, and
+ * the setup) changes: every worker is asked again, on Today and on Profile.
+ */
+export const SHARING_TEXT_VERSION = "c2-2026-10-06";
+
+/**
+ * Lists the workers who dismissed the sharing note on Today, on this device.
+ * Named for the wording, so a new wording brings the note back.
+ */
+export const SHARING_NOTE_COOKIE = `tc_sharing_note_${SHARING_TEXT_VERSION}`;
 const NOTE_MAX_WORKERS = 8;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -72,9 +81,6 @@ export function withDismissal(cookie: string | undefined, workerId: string): str
   const ids = (cookie ?? "").split(".").filter((id) => UUID.test(id) && id !== workerId);
   return [...ids, workerId].slice(-NOTE_MAX_WORKERS).join(".");
 }
-
-/** Bump when the sharing wording on the worker's screen changes. */
-export const SHARING_TEXT_VERSION = "c2-2026-10-06";
 
 export const DEFAULT_SHARING: SharingChoices = {
   audiences: { output: "RELATIONSHIP", quality: "RELATIONSHIP", reliability: "RELATIONSHIP", history: "RELATIONSHIP", availability: "RELATIONSHIP", credentials: "RELATIONSHIP" },

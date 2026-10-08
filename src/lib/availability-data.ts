@@ -1,6 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
-import { availabilityFromRow, availabilitySummary, EMPTY_AVAILABILITY, isEmptyAvailability, sameAvailability, validateAvailability, withoutPastDates, type Availability } from "@/lib/availability";
+import { availabilityFromRow, EMPTY_AVAILABILITY, orgAvailabilityView, sameAvailability, validateAvailability, withoutPastDates, type Availability, type OrgAvailabilityView } from "@/lib/availability";
 import { partsForOrg } from "@/lib/shared-scorecard-data";
 import { DEFAULT_SHARING, sharingFromRow, visibleParts, type Viewer } from "@/lib/sharing";
 import { RELATIONSHIP_STATUSES } from "@/lib/engagements";
@@ -63,10 +63,9 @@ export async function saveAvailability(workerId: string, actorId: string, raw: u
  * not (including closed accounts, which orgViewer treats as the public), null
  * when shared but nothing is set.
  */
-export async function loadOrgAvailability(workerId: string, orgId: string, today = new Date().toISOString().slice(0, 10)) {
-  if (!(await partsForOrg(workerId, orgId)).availability) return "withheld" as const;
-  const { availability } = await loadAvailability(workerId);
-  return isEmptyAvailability(availability) ? null : availabilitySummary(availability, today);
+export async function loadOrgAvailability(workerId: string, orgId: string, today = new Date().toISOString().slice(0, 10)): Promise<OrgAvailabilityView> {
+  if (!(await partsForOrg(workerId, orgId)).availability) return "withheld";
+  return orgAvailabilityView((await loadAvailability(workerId)).availability, true, today);
 }
 
 /**
@@ -77,7 +76,7 @@ export async function loadOrgAvailability(workerId: string, orgId: string, today
  */
 export async function loadOrgAvailabilities(workerIds: string[], orgId: string, today = new Date().toISOString().slice(0, 10)) {
   const ids = [...new Set(workerIds)];
-  const out = new Map<string, Awaited<ReturnType<typeof loadOrgAvailability>>>();
+  const out = new Map<string, OrgAvailabilityView>();
   if (!ids.length) return out;
   const [org, workers, sharing, related, rows] = await Promise.all([
     db().organization.findUnique({ where: { id: orgId }, select: { approved: true } }),
@@ -92,12 +91,8 @@ export async function loadOrgAvailabilities(workerIds: string[], orgId: string, 
   const avail = new Map(rows.map((r) => [r.workerId, availabilityFromRow(r)]));
   for (const id of ids) {
     const viewer: Viewer = open.has(id) ? { kind: "org", approved: org?.approved ?? false, relationship: rel.has(id) } : { kind: "public" };
-    if (!visibleParts(choices.get(id) ?? DEFAULT_SHARING, viewer).availability) {
-      out.set(id, "withheld");
-      continue;
-    }
-    const a = avail.get(id) ?? EMPTY_AVAILABILITY;
-    out.set(id, isEmptyAvailability(a) ? null : availabilitySummary(a, today));
+    const shared = visibleParts(choices.get(id) ?? DEFAULT_SHARING, viewer).availability;
+    out.set(id, orgAvailabilityView(avail.get(id) ?? EMPTY_AVAILABILITY, shared, today));
   }
   return out;
 }

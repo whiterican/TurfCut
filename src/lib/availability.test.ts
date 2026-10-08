@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { withoutPastDates, availabilityFromRow, availabilitySummary, EMPTY_AVAILABILITY, isEmptyAvailability, sameAvailability, timeText, validateAvailability } from "./availability";
+import { withoutPastDates, availabilityFromRow, availabilitySummary, EMPTY_AVAILABILITY, isEmptyAvailability, orgAvailabilityView, sameAvailability, timeText, validateAvailability } from "./availability";
 
 const ok = (raw: unknown) => {
   const v = validateAvailability(raw);
@@ -70,6 +70,13 @@ describe("summary an organization sees", () => {
   });
   it("reads times the way people say them", () => {
     expect(["00:00", "09:00", "09:30", "12:00", "12:15", "18:45", "24:00"].map(timeText)).toEqual(["midnight", "9am", "9:30am", "noon", "12:15pm", "6:45pm", "midnight"]);
+  });
+  it("is withheld when not shared, and none (not a blank) when nothing is set", () => {
+    const a = ok({ weekly: { sat: [{ from: "09:00", to: "15:00" }] }, exceptions: [] });
+    expect(orgAvailabilityView(a, false, "2026-10-06")).toBe("withheld");
+    expect(orgAvailabilityView(EMPTY_AVAILABILITY, false, "2026-10-06")).toBe("withheld");
+    expect(orgAvailabilityView(EMPTY_AVAILABILITY, true, "2026-10-06")).toBeNull();
+    expect(orgAvailabilityView(a, true, "2026-10-06")).toEqual(availabilitySummary(a, "2026-10-06"));
   });
 });
 

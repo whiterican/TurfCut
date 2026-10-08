@@ -1,47 +1,34 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { requireWorker } from "@/lib/worker-session";
-import { loadScorecardPeriods } from "@/lib/scorecard-data";
-import { loadSharing } from "@/lib/sharing-data";
-import { loadAvailability } from "@/lib/availability-data";
-import { loadCredentials } from "@/lib/credentials-data";
-import { loadLatestPreference } from "@/lib/political-fit-data";
-import { effectivePreference, employerFitView } from "@/lib/political-fit";
-import { visibleParts, type Viewer } from "@/lib/sharing";
-import { shareScorecardPeriodsForOrg } from "@/lib/shared-scorecard";
-import { availabilitySummary, isEmptyAvailability } from "@/lib/availability";
-import { ScorecardPanel } from "@/components/ScorecardPanel";
-import { AvailabilityStatement } from "@/components/AvailabilityStatement";
-import { CredentialList } from "@/components/CredentialList";
-import { expiryToday } from "@/lib/credentials";
-import { FitSignals } from "@/components/FitSignals";
+import { previewOrgProfile } from "@/lib/org-profile-data";
+import type { OrgOrPublic } from "@/lib/org-profile";
+import { OrgProfileSections } from "@/components/OrgProfileSections";
 
 const TABS = [
   { key: "applied", label: "An organization you applied to", viewer: { kind: "org", approved: true, relationship: true } },
-  { key: "approved", label: "An organization that could hire you", viewer: { kind: "org", approved: true, relationship: false } },
+  { key: "approved", label: "Any approved organization", viewer: { kind: "org", approved: true, relationship: false } },
   { key: "public", label: "The public", viewer: { kind: "public" } },
-] as const satisfies ReadonlyArray<{ key: string; label: string; viewer: Viewer }>;
+] as const satisfies ReadonlyArray<{ key: string; label: string; viewer: OrgOrPublic }>;
+
+const HINTS: Record<(typeof TABS)[number]["key"], string> = {
+  applied: "What an organization sees after you apply to one of its jobs or accept its invite: your name, your experience, and the parts of your profile you share with it.",
+  approved: "Today no organization reaches you without your applying or accepting an invite; this shows what any approved organization would see once that's possible.",
+  public: "Nobody outside an approved organization you've applied to (or chosen to share with) sees your profile.",
+};
 
 /**
- * Profile → See what organizations see (C2.6). Each tab is drawn by the same
- * rules (visibleParts, shareScorecard, employerFitView) and the same
- * components the organization's worker page uses, so the preview can't drift
- * from the real view.
+ * Profile → See what organizations see (C2.6). Each organization tab is the
+ * organization's own worker page, built by the same function from the same
+ * data (orgProfileView) and drawn by the same component, for an imagined
+ * viewer, so the preview can't drift from the real view.
  */
 export default async function PreviewPage({ searchParams }: { searchParams: Promise<{ as?: string }> }) {
   const { workerId } = await requireWorker();
   const as = (await searchParams).as;
   const tab = TABS.find((t) => t.key === as) ?? TABS[0];
-  const [periods, sharing, avail, creds, pref] = await Promise.all([
-    loadScorecardPeriods(workerId),
-    loadSharing(workerId),
-    loadAvailability(workerId),
-    loadCredentials(workerId),
-    loadLatestPreference(workerId),
-  ]);
-  const parts = visibleParts(sharing.choices, tab.viewer);
-  const today = new Date().toISOString().slice(0, 10);
-  const shared = shareScorecardPeriodsForOrg(periods, parts);
-  const isOrg = tab.viewer.kind === "org";
+  const view = tab.viewer.kind === "org" ? await previewOrgProfile(workerId, tab.viewer) : null;
+  if (tab.viewer.kind === "org" && !view) notFound();
 
   return (
     <main className="page space-y-8">
@@ -58,43 +45,23 @@ export default async function PreviewPage({ searchParams }: { searchParams: Prom
           ))}
         </nav>
         <p className="text-hint">
-          {tab.key === "approved"
-            ? "Today no organization reaches you without your applying or accepting an invite; this shows what one would see once that's possible."
-            : tab.key === "public"
-              ? "Turfcut has no public profiles: nobody outside an organization sees anything."
-              : "What an organization sees after you apply to one of its jobs or accept its invite."}{" "}
-          <Link href="/profile/sharing" className="link">Change who sees what</Link>
+          {HINTS[tab.key]} <Link href="/profile/sharing" className="link">Change who sees what</Link>
         </p>
       </header>
 
-      {!isOrg ? (
+      {!view ? (
         <div className="empty-state">
           <p className="empty-state-title">Nothing is shown</p>
-          <p className="empty-state-body">Your scorecard, availability, credentials and political-fit answers are never public.</p>
+          <p className="empty-state-body">Your name, scorecard, experience, availability, credentials and political-fit answers are never public.</p>
         </div>
       ) : (
-        <>
-          <section className="section">
-            <h2 className="section-title">Scorecard</h2>
-            <ScorecardPanel periods={shared} />
-          </section>
-          <section className="section">
-            <h2 className="section-title">Availability</h2>
-            <div className="card">
-              <AvailabilityStatement view={!parts.availability ? "withheld" : isEmptyAvailability(avail.availability) ? null : availabilitySummary(avail.availability, today)} />
-            </div>
-          </section>
-          <section className="section">
-            <h2 className="section-title">Credentials</h2>
-            <div className="card">
-              <CredentialList view={!parts.credentials ? "withheld" : creds.map((c) => ({ kind: c.kind, label: c.label, state: c.state, verification: c.verification, expiresOn: c.expiresOn }))} today={expiryToday()} />
-            </div>
-          </section>
-          <section className="section">
-            <h2 className="section-title">Political fit</h2>
-            <FitSignals view={employerFitView(effectivePreference(pref), { orgHasRelationship: tab.viewer.kind === "org" && tab.viewer.relationship, campaign: null })} />
-          </section>
-        </>
+        <section aria-label="Your profile as this organization sees it" className="space-y-8 border-t border-border pt-6">
+          <div className="space-y-1">
+            <p className="eyebrow">Worker profile</p>
+            <p className="page-title">{view.displayName}</p>
+          </div>
+          <OrgProfileSections view={view} />
+        </section>
       )}
     </main>
   );

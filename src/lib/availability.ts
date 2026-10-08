@@ -241,4 +241,12 @@ export function availabilitySummary(a: Availability, today: string, maxException
   return { usual, dates, note: a.note };
 }
 
+/** Availability as an organization sees it: "withheld" when not shared with it, null when nothing is set. */
+export type OrgAvailabilityView = ReturnType<typeof availabilitySummary> | "withheld" | null;
+
+export function orgAvailabilityView(a: Availability, shared: boolean, today: string): OrgAvailabilityView {
+  if (!shared) return "withheld";
+  return isEmptyAvailability(a) ? null : availabilitySummary(a, today);
+}
+
 export { ALL_DAY };

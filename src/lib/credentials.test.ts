@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { credentialName, currentCredentials, expiryReminder, expiryState, expiryToday, maskIdentifier, validateCredential } from "./credentials";
+import { credentialName, currentCredentials, expiryReminder, expiryState, expiryToday, maskIdentifier, orgCredentialView, validateCredential } from "./credentials";
 
 describe("validateCredential", () => {
   it("accepts a circulator registration and normalizes it", () => {
@@ -90,5 +90,18 @@ describe("expiryToday", () => {
   it("is the date in the furthest-west US time, so the expiry day still counts in US evenings", () => {
     expect(expiryToday(new Date("2026-10-13T01:00:00Z"))).toBe("2026-10-12"); // 7pm Oct 12 in Denver
     expect(expiryToday(new Date("2026-10-13T12:00:00Z"))).toBe("2026-10-13");
+  });
+});
+
+describe("orgCredentialView", () => {
+  const row = {
+    id: "c1", kind: "NOTARY_OR_AFFIDAVIT" as const, label: null, state: "CO", identifier: "2345", issuedOn: new Date("2026-01-02T00:00:00Z"),
+    expiresOn: new Date("2027-01-02T00:00:00Z"), verification: "SELF_REPORTED" as const, supersedesId: null, removed: false, createdAt: new Date(),
+  };
+  it("gives name, level and expiry, never the number or the issue date", () => {
+    expect(orgCredentialView([row], true)).toEqual([{ kind: "NOTARY_OR_AFFIDAVIT", label: null, state: "CO", verification: "SELF_REPORTED", expiresOn: row.expiresOn }]);
+  });
+  it("is withheld when not shared", () => {
+    expect(orgCredentialView([row], false)).toBe("withheld");
   });
 });

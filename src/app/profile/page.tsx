@@ -18,6 +18,7 @@ import { loadCredentials } from "@/lib/credentials-data";
 import { CredentialList } from "@/components/CredentialList";
 import { expiryToday } from "@/lib/credentials";
 import { PART_DETAILS, SHARE_PARTS, type ShareAudience } from "@/lib/sharing";
+import { UrlNotice } from "@/components/UrlNotice";
 
 const AUDIENCE_SHORT: Record<ShareAudience, string> = {
   RELATIONSHIP: "Organizations you apply to",
@@ -25,8 +26,9 @@ const AUDIENCE_SHORT: Record<ShareAudience, string> = {
   NOBODY: "Nobody",
 };
 
-export default async function ProfilePage() {
+export default async function ProfilePage({ searchParams }: { searchParams: Promise<{ setup?: string }> }) {
   const { workerId } = await requireWorker();
+  const setupDone = (await searchParams).setup === "done";
   const [worker, records, scorecard, fit, history, sharing, avail, creds] = await Promise.all([
     db().worker.findUniqueOrThrow({ where: { id: workerId }, select: { displayName: true, phone: true } }),
     db().experienceRecord.findMany({ where: { workerId }, orderBy: { startDate: "desc" } }),
@@ -53,13 +55,18 @@ export default async function ProfilePage() {
         </div>
       </header>
 
-      {sharing.version === null && (
-        // Until the worker saves a sharing choice (C2-Q4): a reminder, every visit.
+      {setupDone && <UrlNotice param="setup" message="Saved. These are your choices now; change them any time under Who sees what." />}
+      {!sharing.current && (
+        // Until the worker saves a sharing choice under today's wording (C2-Q4): a reminder, every visit.
         <section className="card space-y-2" aria-label="Set up who sees what">
-          <p className="font-semibold text-fg">Choose who sees what</p>
-          <p className="text-muted-sm">You&apos;re on the defaults: organizations you apply to or accept an invite from see your profile, and nobody can find you.</p>
+          <p className="font-semibold text-fg">{sharing.version === null ? "Choose who sees what" : "Check who sees what"}</p>
+          <p className="text-muted-sm">
+            {sharing.version === null
+              ? "You're on the defaults: organizations you apply to or accept an invite from see your profile, and nobody can find you."
+              : "We've changed how Turfcut explains who sees what since you chose. Your choices stay as they are; take a look and confirm them."}
+          </p>
           <div className="flex flex-wrap gap-2">
-            <Link transitionTypes={["nav-forward"]} href="/profile/setup" className="btn-primary btn-sm">Set it up</Link>
+            <Link transitionTypes={["nav-forward"]} href="/profile/setup?from=profile" className="btn-primary btn-sm">{sharing.version === null ? "Set it up" : "Check your choices"}</Link>
             <Link href="/profile/preview" className="btn-ghost btn-sm">See what organizations see</Link>
           </div>
         </section>

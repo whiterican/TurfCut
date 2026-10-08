@@ -188,3 +188,18 @@ export function expiryReminder(expiresOn: Date | null, today: string): "30" | "7
 export const expiryToday = (now = new Date()) => new Date(now.getTime() - 10 * 3_600_000).toISOString().slice(0, 10);
 
 export const dateOnly = (d: Date | null) => (d ? d.toISOString().slice(0, 10) : null);
+
+/** What an organization sees of a credential: name, level and expiry. Never the identifier. */
+export interface OrgCredentialView {
+  kind: CredentialKind;
+  label: string | null;
+  state: string | null;
+  verification: VerificationLevel;
+  expiresOn: Date | null;
+}
+
+/** The wallet as an organization sees it, or "withheld" when the worker doesn't share credentials with it. */
+export function orgCredentialView(creds: CredentialRow[], shared: boolean): OrgCredentialView[] | "withheld" {
+  if (!shared) return "withheld";
+  return creds.map((c) => ({ kind: c.kind, label: c.label, state: c.state, verification: c.verification, expiresOn: c.expiresOn }));
+}

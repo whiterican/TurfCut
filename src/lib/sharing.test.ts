@@ -12,6 +12,8 @@ import {
   visibleParts,
   noteDismissedBy,
   withDismissal,
+  SHARING_NOTE_COOKIE,
+  SHARING_TEXT_VERSION,
   type ShareAudience,
   type Viewer,
 } from "./sharing";
@@ -140,5 +142,10 @@ describe("sharing note dismissal (per worker, per device)", () => {
     const many = Array.from({ length: 10 }, (_, i) => `00000000-0000-0000-0000-${String(i).padStart(12, "0")}`);
     const c = many.reduce<string | undefined>((acc, id) => withDismissal(acc, id), undefined)!;
     expect(c.split(".")).toEqual(many.slice(-8));
+  });
+  it("is named for the sharing wording, so a new wording brings the note back", () => {
+    expect(SHARING_NOTE_COOKIE).toBe(`tc_sharing_note_${SHARING_TEXT_VERSION}`);
+    // A valid cookie name: no separators, spaces or "=".
+    expect(SHARING_NOTE_COOKIE).toMatch(/^[A-Za-z0-9_-]+$/);
   });
 });

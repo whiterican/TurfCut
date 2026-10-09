@@ -20,7 +20,7 @@ export default async function HiringPage() {
 
   return (
     <main className="page max-w-4xl">
-      <Masthead eyebrow="Hiring" title="Pipeline" meta="Open jobs and the people at each stage. Scorecard columns arrive once workers can choose what to share." />
+      <Masthead eyebrow="Hiring" title="Pipeline" meta="Open jobs and the people at each stage. Open a job's applicants to compare what each worker shares with you." />
       <SummaryBar
         label="Hiring totals"
         items={[
@@ -47,8 +47,8 @@ export default async function HiringPage() {
           id: r.jobId,
           cells: {
             job: { text: r.status === "PAUSED" ? `${r.title} (paused)` : r.title, href: `/hiring/${r.jobId}/applicants`, sort: r.title },
-            applied: { text: String(r.applied), sort: r.applied },
-            offered: { text: String(r.offered), sort: r.offered },
+            applied: { text: String(r.applied), sort: r.applied, href: r.applied ? `/hiring/${r.jobId}/applicants` : undefined },
+            offered: { text: String(r.offered), sort: r.offered, href: r.offered ? `/hiring/${r.jobId}/applicants` : undefined },
             invited: { text: String(r.invited), sort: r.invited },
             engaged: { text: String(r.engaged), sort: r.engaged },
             filled: { text: r.headcount === null ? String(r.engaged + r.completed) : `${r.engaged + r.completed} of ${r.headcount}`, sort: r.engaged + r.completed },

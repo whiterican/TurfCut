@@ -248,6 +248,44 @@ export async function moveEngagement(
   });
 }
 
+/** Most rows one bulk step moves (a job's applicant list is far shorter). */
+export const BULK_MAX = 100;
+
+/**
+ * One step for several of one job's engagements (C3.2 bulk actions): in
+ * review, offer, or not selected with one reason and note for all. Each goes
+ * through moveEngagement on its own, in the order they arrived (so offers go
+ * to the earliest first while seats last); ids that aren't this job's are
+ * counted, never touched.
+ */
+export async function moveEngagements(
+  jobId: string,
+  actor: { profileId: string; orgId: string },
+  action: "review" | "offer" | "decline",
+  engagementIds: string[],
+  opts: { reasonCode?: string; note?: string } = {}
+): Promise<{ ok: true; moved: number; refused: Array<{ reason: string; names: string[] }> } | { ok: false; reason: string }> {
+  if (!UUID_RE.test(jobId)) return { ok: false, reason: "Job not found." };
+  const picked = [...new Set(engagementIds)];
+  if (!picked.length) return { ok: false, reason: "Select at least one applicant." };
+  if (picked.length > BULK_MAX) return { ok: false, reason: `Select at most ${BULK_MAX} at a time.` };
+  const rows = await db().engagement.findMany({
+    where: { id: { in: picked.filter((id) => UUID_RE.test(id)) }, jobId, job: { orgId: actor.orgId } },
+    select: { id: true, worker: { select: { displayName: true } } },
+    orderBy: { createdAt: "asc" },
+  });
+  let moved = 0;
+  const refused = new Map<string, string[]>();
+  for (const e of rows) {
+    const r = await moveEngagement(e.id, action, { kind: "org", ...actor }, opts);
+    if (r.ok) moved++;
+    else refused.set(r.reason, [...(refused.get(r.reason) ?? []), e.worker.displayName]);
+  }
+  const missing = picked.length - rows.length;
+  if (missing) refused.set("Not an applicant on this job.", [`${missing} selected`]);
+  return { ok: true, moved, refused: [...refused].map(([reason, names]) => ({ reason, names })) };
+}
+
 export type HistoryEvent = Awaited<ReturnType<typeof loadEngagementEvents>>[number];
 
 /**

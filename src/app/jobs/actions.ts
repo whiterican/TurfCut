@@ -7,7 +7,7 @@ import { requireEmployer } from "@/lib/employer-session";
 import { requireWorker } from "@/lib/worker-session";
 import { formToObject, jurisdictionStateProblem, validateJob } from "@/lib/jobs";
 import { createJob, publishJob, updateDraftJob } from "@/lib/jobs-data";
-import { acceptEngagement, applyToJob, claimJob, inviteWorker, moveEngagement } from "@/lib/engagements-data";
+import { acceptEngagement, applyToJob, claimJob, inviteWorker, moveEngagement, moveEngagements } from "@/lib/engagements-data";
 import { OFFER_HOURS } from "@/lib/engagements";
 
 export interface JobFormState {
@@ -52,11 +52,15 @@ export async function publish(_prev: ActionState, formData: FormData): Promise<A
   return r.ok ? { ok: true, message: "Published." } : { ok: false, message: r.reasons.join(" ") };
 }
 
-const done = (jobId: string, r: { ok: true; status: string } | { ok: false; reason: string }, okMessage: string): ActionState => {
+const refresh = (jobId: string) => {
   revalidatePath(`/jobs/${jobId}`);
   revalidatePath("/jobs");
   revalidatePath("/desk");
   revalidatePath("/hiring", "layout");
+};
+
+const done = (jobId: string, r: { ok: true; status: string } | { ok: false; reason: string }, okMessage: string): ActionState => {
+  refresh(jobId);
   return r.ok ? { ok: true, message: okMessage } : { ok: false, message: r.reason };
 };
 
@@ -114,6 +118,26 @@ async function orgMove(
 export const offerApplication = async (_prev: ActionState, fd: FormData) => orgMove(fd, "offer", `Offer sent. The worker has ${OFFER_HOURS} hours to accept.`);
 export const reviewApplication = async (_prev: ActionState, fd: FormData) => orgMove(fd, "review", "Marked in review. The worker sees \"In review\".");
 export const notSelected = async (_prev: ActionState, fd: FormData) => orgMove(fd, "decline", "Done. The worker sees the reason you picked, and your note if you wrote one.");
+const BULK_DONE: Record<"review" | "offer" | "decline", string> = { review: "put in review", offer: "sent an offer", decline: "marked not selected" };
+
+/** One step for several applicants of one job (C3.2); see moveEngagements. */
+export async function bulkMove(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const { orgId, userId } = await requireEmployer();
+  if (!orgId) return { ok: false, message: "No organization on this account." };
+  const jobId = field(formData, "jobId");
+  const action = field(formData, "bulk");
+  if (action !== "review" && action !== "offer" && action !== "decline") return { ok: false, message: "Pick what to do." };
+  const r = await moveEngagements(jobId, { profileId: userId, orgId }, action, formData.getAll("engagementId").map(String), {
+    reasonCode: field(formData, "reasonCode"),
+    note: field(formData, "note"),
+  });
+  if (!r.ok) return { ok: false, message: r.reason };
+  refresh(jobId);
+  const why = r.refused.map(({ reason, names }) => `${names.join(", ")}: ${reason}`).join(" ");
+  if (!r.moved) return { ok: false, message: why || "Nothing changed." };
+  return { ok: true, message: `${r.moved} ${r.moved === 1 ? "applicant" : "applicants"} ${BULK_DONE[action]}.${why ? ` Not changed — ${why}` : ""}` };
+}
+
 export const withdrawInvitation = async (_prev: ActionState, fd: FormData) => orgMove(fd, "withdraw", "Invitation withdrawn.");
 
 export async function invite(_prev: ActionState, formData: FormData): Promise<ActionState> {

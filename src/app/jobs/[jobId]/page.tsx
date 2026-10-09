@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { HIRING_ROLES, ORG_ROLES, SCHEDULING_ROLES } from "@/lib/access";
-import { ACCEPTED_STATUSES, RELATIONSHIP_STATUSES, offerLapsed, workerStage, type EngagementStatus, type HiringSnapshot } from "@/lib/engagements";
+import { ACCEPTED_STATUSES, offerLapsed, workerStage, type EngagementStatus, type HiringSnapshot } from "@/lib/engagements";
 import { loadPipelineFacts } from "@/lib/engagements-data";
 import { EngagementHistory } from "@/components/EngagementHistory";
 import { HiringActions, timeLeft } from "@/components/HiringActions";
@@ -389,12 +389,8 @@ async function OrgPanel({ job, canHire, canSchedule, userId }: { job: JobWithRef
                   <li key={e.id} className="card space-y-3">
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <p className="flex items-center gap-2 font-medium text-fg">
-                        {/* Profiles open once the worker has engaged (C1); a bare invitation or a closed account shows the name only. */}
-                        {e.worker.closedAt || !RELATIONSHIP_STATUSES.includes(e.status) ? (
-                          <span>{e.worker.displayName}</span>
-                        ) : (
-                          <Link transitionTypes={["nav-forward"]} href={`/workers/${e.worker.id}`} className="link">{e.worker.displayName}</Link>
-                        )}
+                        {/* The applicant page (C3.2) shows the live profile only while the worker has a relationship with you (C1). */}
+                        <Link transitionTypes={["nav-forward"]} href={`/hiring/${job.id}/people/${e.id}`} className="link">{e.worker.displayName}</Link>
                         <span className={s.badge}>{workerStage(e.status, f.events, offerExpired)}</span>
                       </p>
                     </div>

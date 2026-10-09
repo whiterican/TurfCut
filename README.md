@@ -659,6 +659,24 @@ certificate. Approved as recommended by review:
   closes it as not selected, that worker and job can't start again; the
   worker is asked to confirm first. Closing an account withdraws open
   applications, invitations and offers, each with a history line.
+- **Applicants (C3.2)**: `/hiring/[jobId]/applicants` is a table of the
+  people who applied or claimed (invitations live under Invites). The
+  recruiter picks the columns: applied date, stage, free days on the job's
+  dates, the credentials the job requires, and the job's work-type metrics
+  (each with its sample), show rate and verified shifts. One column sorts
+  at a time; a worker who doesn't share the sorted value sits in a separate
+  "not shared" group in arrival order, never ranked as zero. Filters
+  (stage, applied since, free on a job day, holds the required
+  credentials) narrow what was shared and never drop someone for not
+  sharing. Bulk steps: in review, offer (earliest applicant first while
+  spots last) and not selected with one reason. There is no overall score,
+  and political answers are never a column, filter or sort.
+- **Applicant page (C3.2)**: `/hiring/[jobId]/people/[engagementId]`: the
+  stage, actions and history; free days and required credentials for this
+  job; the live profile with political-fit answers (display only, issue
+  overlap against this job's disclosure) while the worker has a
+  relationship with the organization; and the copy taken when they applied.
+  Supervisors' access to hired workers' pages comes later.
 - **History**: every step is an append-only `EngagementEvent`, shown the
   same way to the worker and the organization, and in the worker's data
   export (`engagement-history.csv`). `prisma/c3-hiring.sql` adds the

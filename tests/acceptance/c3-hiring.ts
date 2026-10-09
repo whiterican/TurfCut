@@ -1,7 +1,11 @@
 /* C3.1 acceptance checks: the hiring pipeline on real Postgres — review, offer, accept, decline with a reason, withdraw, expiry, history and no browser access (tests/acceptance/run.sh). */
 import { db } from "@/lib/db";
 import { ACCOUNT_CLOSED_NOTE } from "@/lib/engagements";
-import { applyToJob, claimJob, inviteWorker, loadEngagementEvents, loadPipelineFacts, moveEngagement } from "@/lib/engagements-data";
+import { applyToJob, claimJob, inviteWorker, loadEngagementEvents, loadPipelineFacts, moveEngagement, moveEngagements } from "@/lib/engagements-data";
+import { loadApplicants } from "@/lib/applicants-data";
+import { applicantCells } from "@/lib/applicants";
+import { saveSharing } from "@/lib/sharing-data";
+import { DEFAULT_SHARING } from "@/lib/sharing";
 import { closeAccount, exportAccount } from "@/lib/account-data";
 import { scheduleShift } from "@/lib/field-day-data";
 import { orgHasRelationship, savePreferences } from "@/lib/political-fit-data";
@@ -223,6 +227,38 @@ const types = async (id: string) => (await loadEngagementEvents(id)).map((e) => 
   const files = await exportAccount({ userId: W4, workerId: W4 });
   const hist = files.find((f) => f.name === "engagement-history.csv");
   check("the data export includes engagement-history.csv with offers and reasons", !!hist && /OFFERED/.test(hist.text) && /OFFER_ACCEPTED/.test(hist.text) && /positions_filled/.test(hist.text), hist?.text.slice(0, 300));
+
+  // --- C3.2: the applicants table and bulk steps ---
+  const jobP = await newJob("Applicants job", 1, {
+    type: "PETITION",
+    requirements: { registration: true },
+    startsAt: new Date("2026-11-02T00:00:00Z"),
+    endsAt: new Date("2026-11-08T00:00:00Z"),
+  });
+  const pa = idOf(await applyToJob(W2, W2, jobP.id));
+  const pb = idOf(await applyToJob(W3, W3, jobP.id));
+  const pi = idOf(await inviteWorker(ORG, OWNER, jobP.id, W4));
+  await saveSharing(W3, W3, { audiences: { ...DEFAULT_SHARING.audiences, output: "NOBODY", availability: "NOBODY", credentials: "NOBODY" } });
+  const apps = await loadApplicants(jobP.id, ORG);
+  const rowOf = (id: string) => apps.find((a) => a.engagementId === id);
+  check("applicants: the people who applied, never the org's own invitations", apps.length === 2 && !!rowOf(pa) && !!rowOf(pb) && !rowOf(pi), apps.map((a) => a.name));
+  const w3 = rowOf(pb)!;
+  check("…each row only what the worker shares now: withheld parts read as withheld", w3.availability === "withheld" && w3.credentials === "withheld" && w3.scorecard.segments.every((sg) => sg.averages.signaturesPerActiveHour === null), w3);
+  const cells = applicantCells(w3, { type: "PETITION", startsAt: jobP.startsAt, endsAt: jobP.endsAt, requirements: { badge: false, registration: true, affidavit: false, training: null, script: null }, state: "CO" }, ["free", "credentials", "signaturesPerActiveHour"], "2026-10-09", "/x");
+  check("…and its cells say 'not shared', unranked", ["free", "credentials", "signaturesPerActiveHour"].every((k) => cells[k].withheld === true && cells[k].sort === null), cells);
+  check("…while the other applicant's shared parts come through", rowOf(pa)!.availability !== "withheld" && rowOf(pa)!.credentials !== "withheld");
+  check("another organization gets nobody from this job", (await loadApplicants(jobP.id, ORG2)).length === 0);
+
+  const bulk = await moveEngagements(jobP.id, { profileId: OWNER, orgId: ORG }, "review", [pa, pb, pi, "00000000-0000-0000-0000-00000000dead", "garbage"]);
+  check("bulk in review: moves this job's applications, refuses the invitation by the same rules, counts strangers", bulk.ok && bulk.moved === 2 && bulk.refused.some((r) => r.names.includes("Riley Park") && /application/.test(r.reason)) && bulk.refused.some((r) => r.names[0] === "2 selected"), bulk);
+  check("…and records each step", (await types(pa)) === "APPLIED,IN_REVIEW" && (await types(pb)) === "APPLIED,IN_REVIEW");
+  const foreignBulk = await moveEngagements(jobP.id, { profileId: OTHER, orgId: ORG2 }, "review", [pa]);
+  check("another organization's bulk step touches nothing", foreignBulk.ok && foreignBulk.moved === 0 && (await types(pa)) === "APPLIED,IN_REVIEW", foreignBulk);
+  const offerAll = await moveEngagements(jobP.id, { profileId: OWNER, orgId: ORG }, "offer", [pb, pa]);
+  check("bulk offer on a one-seat job: the earliest applicant gets it, the rest are refused with the reason", offerAll.ok && offerAll.moved === 1 && (await p.engagement.findUniqueOrThrow({ where: { id: pa } })).status === "OFFERED" && offerAll.refused.some((r) => /offer out/.test(r.reason)), offerAll);
+  const noReason = await moveEngagements(jobP.id, { profileId: OWNER, orgId: ORG }, "decline", [pb]);
+  check("bulk not selected needs a reason", noReason.ok && noReason.moved === 0 && noReason.refused[0]?.reason === "Pick a reason.", noReason);
+  check("bulk refuses an empty or oversized selection", !(await moveEngagements(jobP.id, { profileId: OWNER, orgId: ORG }, "review", [])).ok && !(await moveEngagements(jobP.id, { profileId: OWNER, orgId: ORG }, "review", Array.from({ length: 101 }, (_, i) => `00000000-0000-0000-0000-${String(i).padStart(12, "0")}`))).ok);
 
   await p.$disconnect();
   process.exit(fails ? 1 : 0);

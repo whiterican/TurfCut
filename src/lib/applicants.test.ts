@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applicantCells, availableColumns, defaultColumns, freeDays, heldCredentials, keepApplicant, parseColumns, parseFilters, type ApplicantFacts, type ApplicantJob } from "./applicants";
+import { applicantCells, applicantJob, availableColumns, defaultColumns, filtersActive, fitCampaignAllowed, freeCell, freeDays, heldCredentials, keepApplicant, parseColumns, parseFilters, type ApplicantFacts, type ApplicantJob } from "./applicants";
 import { EMPTY_AVAILABILITY, type Availability } from "./availability";
 import { shareScorecard, ALL_SHARED } from "./shared-scorecard";
 import { computeScorecard } from "./scorecard";
@@ -89,14 +89,20 @@ describe("applicant filters", () => {
   const today = "2026-10-09";
   it("parse safely", () => {
     expect(parseFilters(new URLSearchParams("stage=all&free=1&creds=1&since=2026-10-01"))).toEqual({ stage: "all", free: true, credentials: true, since: "2026-10-01" });
-    expect(parseFilters(new URLSearchParams("since=yesterday"))).toEqual({ stage: "open", free: false, credentials: false, since: null });
+    const none = parseFilters(new URLSearchParams("since=yesterday"));
+    expect(none).toEqual({ stage: "all", free: false, credentials: false, since: null });
+    expect(filtersActive(none)).toBe(false);
+    expect(filtersActive(parseFilters(new URLSearchParams("stage=open")))).toBe(true);
   });
   it("narrow what was shared, and never drop someone for not sharing", () => {
     const f = { stage: "open" as const, free: true, credentials: true, since: null };
-    expect(keepApplicant(facts({ availability: EMPTY_AVAILABILITY, credentials: [reg()] }), petition, f, today)).toBe(false); // shared: no free days
+    const weekdaysOnly: Availability = { weekly: { mon: [{ from: "09:00", to: "17:00" }] }, exceptions: [{ date: "2026-10-12", ranges: [] }], note: null };
+    expect(keepApplicant(facts({ availability: weekdaysOnly, credentials: [reg()] }), petition, f, today)).toBe(false); // shared: no free days
     expect(keepApplicant(facts({ credentials: [] }), petition, f, today)).toBe(false); // shared: no registration
     expect(keepApplicant(facts({ credentials: [reg()] }), petition, f, today)).toBe(true);
     expect(keepApplicant(facts({ availability: "withheld", credentials: "withheld" }), petition, f, today)).toBe(true);
+    // Shared but not set says nothing about the job's days: it stays.
+    expect(keepApplicant(facts({ availability: EMPTY_AVAILABILITY, credentials: [reg()] }), { ...petition, requirements: { ...petition.requirements, registration: false } }, { ...f, credentials: false }, today)).toBe(true);
   });
   it("stage and date", () => {
     const f = { stage: "open" as const, free: false, credentials: false, since: "2026-10-03" };
@@ -104,5 +110,40 @@ describe("applicant filters", () => {
     expect(keepApplicant(facts({ appliedAt: new Date("2026-10-03T01:00:00Z") }), petition, f, today)).toBe(true);
     expect(keepApplicant(facts({ status: "DECLINED", appliedAt: new Date("2026-10-05T00:00:00Z") }), petition, f, today)).toBe(false);
     expect(keepApplicant(facts({ status: "DECLINED", appliedAt: new Date("2026-10-05T00:00:00Z") }), petition, { ...f, stage: "all" }, today)).toBe(true);
+  });
+});
+
+describe("C3.2 review fixes", () => {
+  const today = "2026-10-09";
+  const someShared = shareScorecard(computeScorecard([]), { output: true, quality: true, reliability: true, history: false, availability: true, credentials: true });
+  it("without hours and history, a metric with no work reads 'not shared', never 'No data yet' (that would reveal history)", () => {
+    const cells = applicantCells(facts({ scorecard: someShared }), petition, ["signaturesPerActiveHour", "acceptanceRate", "showRate", "shifts"], today, "/x");
+    for (const k of ["signaturesPerActiveHour", "acceptanceRate", "showRate", "shifts"]) expect(cells[k]).toMatchObject({ text: "not shared", withheld: true });
+  });
+  it("the jurisdiction's rules add required credentials, circulator ones on petition jobs only", () => {
+    const base = { startsAt: null, endsAt: null, requirements: {}, jurisdiction: { state: "CO", rules: { workerRegistrationRequired: true, affidavitRequired: true } } };
+    const p = applicantJob({ ...base, type: "PETITION" });
+    expect(availableColumns(p)).toContain("credentials");
+    expect(heldCredentials([reg()], p, today).map((h) => h.kind)).toEqual(["CIRCULATOR_REGISTRATION", "NOTARY_OR_AFFIDAVIT"]);
+    expect(availableColumns(applicantJob({ ...base, type: "CANVASS" }))).not.toContain("credentials");
+  });
+  it("issue overlap with this job only on the worker's own open or worked engagement", () => {
+    expect(fitCampaignAllowed("worker", "APPLIED")).toBe(true);
+    expect(fitCampaignAllowed("worker", "ACTIVE")).toBe(true);
+    expect(fitCampaignAllowed("org", "INVITED")).toBe(false);
+    expect(fitCampaignAllowed("org", "ACTIVE")).toBe(false);
+    expect(fitCampaignAllowed("worker", "DECLINED")).toBe(false);
+    expect(fitCampaignAllowed("worker", "WITHDRAWN")).toBe(false);
+  });
+  it("free days count only the days left; 'Not set' and 'Dates passed' are their own answers", () => {
+    // From Thu 15: Sat 17 off, Sun 18 free → 1 of 4.
+    expect(freeDays(weekends, petition.startsAt!, petition.endsAt!, "2026-10-15")).toEqual({ free: 1, total: 4, capped: false });
+    expect(freeCell(weekends, petition, "2026-10-20")).toEqual({ text: "Dates passed", sort: null });
+    expect(freeCell(EMPTY_AVAILABILITY, petition, today)).toEqual({ text: "Not set", sort: null });
+  });
+  it("a rate's sample is its own denominator", () => {
+    const m = { value: 0.9, formula: "", numerator: 18, denominator: 20, evidence: "" };
+    const sc = { ...empty, segments: [{ workType: "PETITION" as const, history: null, averages: { doorsPerActiveHour: null, doorsPerCompletedShift: null, contactRate: null, signaturesPerActiveHour: null, acceptanceRate: m } }] };
+    expect(applicantCells(facts({ scorecard: sc }), petition, ["acceptanceRate"], today, "/x").acceptanceRate.text).toBe("90% · 20 reviewed");
   });
 });

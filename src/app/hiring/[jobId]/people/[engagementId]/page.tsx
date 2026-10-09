@@ -2,12 +2,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireArea } from "@/lib/employer-session";
-import { readDisclosure, readRequirements, UUID_RE } from "@/lib/jobs";
+import { readDisclosure, UUID_RE } from "@/lib/jobs";
 import { expiryToday } from "@/lib/credentials";
 import { offerLapsed, workerStage, type HiringSnapshot } from "@/lib/engagements";
 import { loadPipelineFacts } from "@/lib/engagements-data";
 import { ENGAGEMENT_LABELS } from "@/lib/engagement-labels";
-import { freeDays, heldCredentials, requiredKinds, type ApplicantJob } from "@/lib/applicants";
+import { applicantJob, fitCampaignAllowed, freeCell, heldCredentials, requiredKinds } from "@/lib/applicants";
 import { loadOrgProfile } from "@/lib/org-profile-data";
 import { workerAccessFor } from "@/lib/worker-access-data";
 import { loadLatestPreference } from "@/lib/political-fit-data";
@@ -26,8 +26,11 @@ import { startDirect } from "@/app/messages/actions";
  * One person in the context of one job (C3.2): where they stand, what they
  * share with this organization now — including political-fit answers,
  * display only, where the worker shares them — and the copy taken when they
- * applied. Once an application has closed (not selected, withdrawn), the
- * live profile closes with it (C3.1 decision) and the copy stays.
+ * applied. The live profile is open while the worker has a relationship
+ * with the organization (an open or worked engagement they started on any
+ * of its jobs, C1); otherwise only the history and the copy stay. Issue
+ * overlap with this job's campaign shows only on an engagement the worker
+ * started and that is still open or worked (fitCampaignAllowed).
  */
 export default async function ApplicantPage({ params }: { params: Promise<{ jobId: string; engagementId: string }> }) {
   const { jobId, engagementId } = await params;
@@ -38,7 +41,7 @@ export default async function ApplicantPage({ params }: { params: Promise<{ jobI
     select: {
       id: true, status: true, createdAt: true, applicationSnapshot: true,
       worker: { select: { id: true, displayName: true, closedAt: true } },
-      job: { select: { id: true, title: true, status: true, type: true, startsAt: true, endsAt: true, requirements: true, campaignDisclosure: true, org: { select: { approved: true } }, jurisdiction: { select: { state: true } } } },
+      job: { select: { id: true, title: true, status: true, type: true, startsAt: true, endsAt: true, requirements: true, campaignDisclosure: true, org: { select: { approved: true } }, jurisdiction: { select: { state: true, rules: true } } } },
     },
   });
   if (!e) notFound();
@@ -49,16 +52,21 @@ export default async function ApplicantPage({ params }: { params: Promise<{ jobI
   const access = e.worker.closedAt ? null : await workerAccessFor(session, e.worker.id, job.org.approved);
   const open = access?.kind === "employer";
 
-  const appJob: ApplicantJob = { type: job.type, startsAt: job.startsAt, endsAt: job.endsAt, requirements: readRequirements(job.requirements), state: job.jurisdiction.state };
+  const appJob = applicantJob(job);
+  const firstStep = facts.events[0]?.type;
+  const origin = firstStep ? (firstStep === "APPLIED" || firstStep === "CLAIMED" ? "worker" : "org") : (e.applicationSnapshot as { kind?: unknown } | null)?.kind === "invitation" ? "org" : "worker";
   const [view, latest, avail, creds] = open
     ? await Promise.all([loadOrgProfile(e.worker.id, session.orgId, now), loadLatestPreference(e.worker.id), loadAvailability(e.worker.id), loadOrgCredentials(e.worker.id, session.orgId)])
     : [null, null, null, null];
   // Issue overlap needs a campaign: on this page it's this job's.
   const withFit = view && {
     ...view,
-    fit: employerFitView(effectivePreference(latest, now), { orgHasRelationship: open && job.org.approved, campaign: readDisclosure(job.campaignDisclosure) }),
+    fit: employerFitView(effectivePreference(latest, now), {
+      orgHasRelationship: open && job.org.approved,
+      campaign: fitCampaignAllowed(origin, e.status) ? readDisclosure(job.campaignDisclosure) : null,
+    }),
   };
-  const free = view && view.availability !== "withheld" && avail && job.startsAt && job.endsAt ? freeDays(avail.availability, job.startsAt, job.endsAt) : null;
+  const free = view && view.availability !== "withheld" && avail ? freeCell(avail.availability, appJob, now.toISOString().slice(0, 10)) : null;
   const hired = e.status === "ACTIVE" || e.status === "CLAIMED";
   const s = ENGAGEMENT_LABELS[e.status];
 
@@ -90,7 +98,7 @@ export default async function ApplicantPage({ params }: { params: Promise<{ jobI
                 <div className="flex flex-col gap-1 px-4 py-3 text-sm sm:flex-row sm:justify-between sm:gap-4">
                   <dt className="text-muted">Free on the job&apos;s dates</dt>
                   <dd className="text-fg sm:text-right">
-                    {view.availability === "withheld" ? <NotSharedChip what="availability" /> : !free || !view.availability ? "No availability set" : `${free.free} of ${free.total}${free.capped ? "+" : ""} days`}
+                    {view.availability === "withheld" ? <NotSharedChip what="availability" /> : free?.text || "Not set"}
                   </dd>
                 </div>
               )}
@@ -114,7 +122,7 @@ export default async function ApplicantPage({ params }: { params: Promise<{ jobI
               ? "They haven't answered your invitation, so their profile opens only once they do (or if they apply to one of your jobs)."
               : access?.kind === "denied" && !job.org.approved
                 ? "Profiles open once Turfcut approves your organization."
-                : "This application has closed, so their live profile isn't open to you. The history and the copy below stay."}
+                : "They have no open application or job with your organization now, so their live profile isn't open to you. The history and the copy below stay."}
         </section>
       )}
 

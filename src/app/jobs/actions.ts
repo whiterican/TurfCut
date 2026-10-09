@@ -118,7 +118,11 @@ async function orgMove(
 export const offerApplication = async (_prev: ActionState, fd: FormData) => orgMove(fd, "offer", `Offer sent. The worker has ${OFFER_HOURS} hours to accept.`);
 export const reviewApplication = async (_prev: ActionState, fd: FormData) => orgMove(fd, "review", "Marked in review. The worker sees \"In review\".");
 export const notSelected = async (_prev: ActionState, fd: FormData) => orgMove(fd, "decline", "Done. The worker sees the reason you picked, and your note if you wrote one.");
-const BULK_DONE: Record<"review" | "offer" | "decline", string> = { review: "put in review", offer: "sent an offer", decline: "marked not selected" };
+const BULK_DONE: Record<"review" | "offer" | "decline", (n: string) => string> = {
+  review: (n) => `${n} marked in review.`,
+  offer: (n) => `Offer sent to ${n}.`,
+  decline: (n) => `${n} marked not selected.`,
+};
 
 /** One step for several applicants of one job (C3.2); see moveEngagements. */
 export async function bulkMove(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -135,7 +139,8 @@ export async function bulkMove(_prev: ActionState, formData: FormData): Promise<
   refresh(jobId);
   const why = r.refused.map(({ reason, names }) => `${names.join(", ")}: ${reason}`).join(" ");
   if (!r.moved) return { ok: false, message: why || "Nothing changed." };
-  return { ok: true, message: `${r.moved} ${r.moved === 1 ? "applicant" : "applicants"} ${BULK_DONE[action]}.${why ? ` Not changed — ${why}` : ""}` };
+  const n = `${r.moved} ${r.moved === 1 ? "applicant" : "applicants"}`;
+  return { ok: true, message: `${BULK_DONE[action](n)}${why ? ` Not changed — ${why}` : ""}` };
 }
 
 export const withdrawInvitation = async (_prev: ActionState, fd: FormData) => orgMove(fd, "withdraw", "Invitation withdrawn.");

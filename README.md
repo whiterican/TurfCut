@@ -660,9 +660,12 @@ certificate. Approved as recommended by review:
   worker is asked to confirm first. Closing an account withdraws open
   applications, invitations and offers, each with a history line.
 - **Applicants (C3.2)**: `/hiring/[jobId]/applicants` is a table of the
-  people who applied or claimed (invitations live under Invites). The
+  people who applied or claimed (invitations, and hires that began as one,
+  stay on the job page's Workers list until the Invites view in C3.3). The
   recruiter picks the columns: applied date, stage, free days on the job's
-  dates, the credentials the job requires, and the job's work-type metrics
+  dates, the credentials the job or its jurisdiction requires (circulator
+  ones on petition jobs only; any training course counts), and the job's
+  work-type metrics
   (each with its sample), show rate and verified shifts. One column sorts
   at a time; a worker who doesn't share the sorted value sits in a separate
   "not shared" group in arrival order, never ranked as zero. Filters
@@ -674,8 +677,10 @@ certificate. Approved as recommended by review:
 - **Applicant page (C3.2)**: `/hiring/[jobId]/people/[engagementId]`: the
   stage, actions and history; free days and required credentials for this
   job; the live profile with political-fit answers (display only, issue
-  overlap against this job's disclosure) while the worker has a
-  relationship with the organization; and the copy taken when they applied.
+  overlap against this job's disclosure only on an application or claim
+  that is still open or worked, never on an invitation) while the worker
+  has a relationship with the organization; and the copy taken when they
+  applied.
   Supervisors' access to hired workers' pages comes later.
 - **History**: every step is an append-only `EngagementEvent`, shown the
   same way to the worker and the organization, and in the worker's data

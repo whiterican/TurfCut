@@ -73,7 +73,7 @@ export function DataTable({
               ...(ri === withheldFrom
                 ? [
                     <tr key="__withheld">
-                      <td colSpan={span} className="text-muted-sm py-2">Not shared: {sortedLabel}. Not ranked on this column; in the order they arrived.</td>
+                      <th scope="rowgroup" colSpan={span} className="text-muted-sm py-2 font-normal">Not shared: {sortedLabel}. Not ranked on this column; in the order they arrived.</th>
                     </tr>,
                   ]
                 : []),

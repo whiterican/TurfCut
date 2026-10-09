@@ -11,10 +11,10 @@
  *   them, so not sharing is never a reason to fall off the list.
  * - There is no combined score. Each metric stands alone, with its sample.
  */
-import { DAYS, type Availability } from "@/lib/availability";
+import { DAYS, isEmptyAvailability, type Availability } from "@/lib/availability";
 import { expiryState, type CredentialKind, type OrgCredentialView } from "@/lib/credentials";
-import type { EngagementStatus } from "@/lib/engagements";
-import type { JobRequirements } from "@/lib/jobs";
+import { RELATIONSHIP_STATUSES, type EngagementStatus } from "@/lib/engagements";
+import { readRequirements, type JobRequirements } from "@/lib/jobs";
 import type { AverageKey, SharedMetric, SharedScorecard } from "@/lib/shared-scorecard";
 import { METRIC_GROUP } from "@/lib/sharing";
 import type { TableCell, TableColumn } from "@/lib/table";
@@ -59,6 +59,30 @@ export interface ApplicantJob {
   state: string;
 }
 
+/**
+ * The job as the applicants views read it. Credentials the job requires
+ * come from the job's own requirements and its jurisdiction's rules, as on
+ * the job card (jobCardAnswers); circulator ones count for petition jobs
+ * only (requiredKinds).
+ */
+export function applicantJob(job: {
+  type: JobType;
+  startsAt: Date | null;
+  endsAt: Date | null;
+  requirements: unknown;
+  jurisdiction: { state: string; rules: unknown };
+}): ApplicantJob {
+  const req = readRequirements(job.requirements);
+  const rules = job.jurisdiction.rules && typeof job.jurisdiction.rules === "object" ? (job.jurisdiction.rules as Record<string, unknown>) : {};
+  return {
+    type: job.type,
+    startsAt: job.startsAt,
+    endsAt: job.endsAt,
+    requirements: { ...req, registration: req.registration || rules.workerRegistrationRequired === true, affidavit: req.affidavit || rules.affidavitRequired === true },
+    state: job.jurisdiction.state,
+  };
+}
+
 /** Columns that mean something for this job: its work type's metrics, and dates or credentials only when it has them. */
 export function availableColumns(job: ApplicantJob): ApplicantColumn[] {
   return ORDER.filter((c) => {
@@ -101,13 +125,15 @@ export const MAX_JOB_DAYS = 62;
 const dayKey = (d: Date) => DAYS[(d.getUTCDay() + 6) % 7];
 
 /**
- * On how many of the job's days the worker said they're free at some time:
- * a dated exception wins over the usual week. Job dates are calendar dates
- * (midnight UTC). Times aren't compared: shift times aren't set yet.
+ * On how many of the job's remaining days (from `today`, a YYYY-MM-DD date,
+ * on) the worker said they're free at some time: a dated exception wins
+ * over the usual week. Job dates are calendar dates (midnight UTC). Times
+ * aren't compared: shift times aren't set yet. total 0 = the dates are over.
  */
-export function freeDays(a: Availability, startsAt: Date, endsAt: Date): { free: number; total: number; capped: boolean } {
+export function freeDays(a: Availability, startsAt: Date, endsAt: Date, today?: string): { free: number; total: number; capped: boolean } {
   const exceptions = new Map(a.exceptions.map((e) => [e.date, e.ranges.length > 0]));
-  const start = Date.UTC(startsAt.getUTCFullYear(), startsAt.getUTCMonth(), startsAt.getUTCDate());
+  const first = Date.UTC(startsAt.getUTCFullYear(), startsAt.getUTCMonth(), startsAt.getUTCDate());
+  const start = today ? Math.max(first, Date.parse(`${today}T00:00:00Z`)) : first;
   const end = Date.UTC(endsAt.getUTCFullYear(), endsAt.getUTCMonth(), endsAt.getUTCDate());
   let free = 0;
   let total = 0;
@@ -143,7 +169,8 @@ export type HeldStatus = { kind: CredentialKind; text: string; rank: number };
  */
 export function heldCredentials(creds: OrgCredentialView[], job: ApplicantJob, today: string): HeldStatus[] {
   return requiredKinds(job).map((kind) => {
-    const name = kind === "CIRCULATOR_REGISTRATION" ? `${job.state} registration` : kind === "TRAINING" ? "Training" : "Affidavit status";
+    // Any training course counts: the job's training is free text, so it can't be matched to a credential's name.
+    const name = kind === "CIRCULATOR_REGISTRATION" ? `${job.state} registration` : kind === "TRAINING" ? "Training (any course)" : "Affidavit status";
     const mine = creds.filter((c) => c.kind === kind && (kind !== "CIRCULATOR_REGISTRATION" || c.state === job.state));
     const best = mine
       .map((c) => {
@@ -155,6 +182,17 @@ export function heldCredentials(creds: OrgCredentialView[], job: ApplicantJob, t
       .sort((a, b) => b.rank - a.rank)[0];
     return { kind, text: `${name}: ${best?.text ?? "none added"}`, rank: best?.rank ?? 0 };
   });
+}
+
+/**
+ * Whether the applicant page may compare the worker's shared issue answers
+ * with this job's campaign. Only on an engagement the worker started
+ * (applied or claimed) that is still open or worked: never on an
+ * invitation or a closed one, so an organization can't publish jobs taking
+ * opposite sides and invite someone to each to read their positions.
+ */
+export function fitCampaignAllowed(origin: "worker" | "org", status: EngagementStatus): boolean {
+  return origin === "worker" && RELATIONSHIP_STATUSES.includes(status);
 }
 
 // ---------------------------------------------------------------------------
@@ -178,12 +216,33 @@ const NOT_SHARED: TableCell = { text: "not shared", sort: null, withheld: true }
 const day = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
 const pct = (v: number) => `${Math.round(v * 100)}%`;
 
-/** A shared metric: its value with its sample beside it when the counts are shared. */
-function metricCell(m: SharedMetric | null | undefined, percent: boolean, sample: number | null): TableCell {
+const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+
+/**
+ * A shared metric: its value with its sample beside it when the counts
+ * (hours and history) are shared — shifts for the per-hour and per-shift
+ * figures, the reviewed signatures, attempted doors or shifts for the rates.
+ */
+function metricCell(m: SharedMetric | null | undefined, c: ApplicantColumn, shifts: number | null): TableCell {
   if (m === null) return NOT_SHARED;
   if (!m || m.value === null) return { text: "No data yet", sort: null };
+  const percent = c === "acceptanceRate" || c === "contactRate" || c === "showRate";
   const v = percent ? pct(m.value) : m.value.toFixed(1);
-  return { text: sample !== null ? `${v} · ${sample} ${sample === 1 ? "shift" : "shifts"}` : v, sort: m.value };
+  const sample =
+    c === "acceptanceRate" ? (m.denominator !== null ? plural(m.denominator, "reviewed", "reviewed") : null)
+    : c === "contactRate" ? (m.denominator !== null ? plural(m.denominator, "door", "doors") : null)
+    : c === "showRate" ? (m.denominator !== null ? plural(m.denominator, "shift", "shifts") : null)
+    : shifts !== null ? plural(shifts, "shift", "shifts") : null;
+  return { text: sample ? `${v} · ${sample}` : v, sort: m.value };
+}
+
+/** The free-days cell: "Not set" when the worker shares availability but set none; "Dates passed" once the job's days are over. */
+export function freeCell(a: Availability, job: ApplicantJob, today: string): TableCell {
+  if (!job.startsAt || !job.endsAt) return { text: "", sort: null };
+  if (isEmptyAvailability(a)) return { text: "Not set", sort: null };
+  const f = freeDays(a, job.startsAt, job.endsAt, today);
+  if (!f.total) return { text: "Dates passed", sort: null };
+  return { text: `${f.free} of ${f.total}${f.capped ? "+" : ""} days`, sort: f.free / f.total };
 }
 
 export function applicantCells(a: ApplicantFacts, job: ApplicantJob, cols: ApplicantColumn[], today: string, href: string): Record<string, TableCell> {
@@ -200,12 +259,7 @@ export function applicantCells(a: ApplicantFacts, job: ApplicantJob, cols: Appli
         break;
       case "free": {
         if (a.availability === "withheld") cells[c] = NOT_SHARED;
-        else if (!job.startsAt || !job.endsAt) cells[c] = { text: "", sort: null };
-        else if (!a.availability.exceptions.length && !Object.values(a.availability.weekly).some((r) => r?.length)) cells[c] = { text: "Not set", sort: null };
-        else {
-          const f = freeDays(a.availability, job.startsAt, job.endsAt);
-          cells[c] = { text: `${f.free} of ${f.total}${f.capped ? "+" : ""} days`, sort: f.total ? f.free / f.total : null };
-        }
+        else cells[c] = freeCell(a.availability, job, today);
         break;
       }
       case "credentials": {
@@ -217,16 +271,17 @@ export function applicantCells(a: ApplicantFacts, job: ApplicantJob, cols: Appli
         break;
       }
       case "showRate":
-        cells[c] = metricCell(a.scorecard.showRate, true, null);
+        cells[c] = metricCell(a.scorecard.showRate, c, null);
         break;
       case "shifts":
         cells[c] = seg?.history ? { text: String(seg.history.shiftsCount), sort: seg.history.shiftsCount } : a.scorecard.shared.history ? { text: "0", sort: 0 } : NOT_SHARED;
         break;
       default: {
-        // No segment for this work type: "No data yet" if the metric's group is shared, else "not shared".
+        // No segment for this work type: "No data yet" only when hours and history are shared too —
+        // "none yet" says the worker has no such work, which is history (shareScorecard does the same).
         const k: AverageKey = c;
-        const m = seg ? seg.averages[k] : a.scorecard.shared[METRIC_GROUP[k]] ? undefined : null;
-        cells[c] = metricCell(m, c === "acceptanceRate" || c === "contactRate", shifts);
+        const m = seg ? seg.averages[k] : a.scorecard.shared[METRIC_GROUP[k]] && a.scorecard.shared.history ? undefined : null;
+        cells[c] = metricCell(m, c, shifts);
       }
     }
   }
@@ -238,7 +293,7 @@ export function applicantCells(a: ApplicantFacts, job: ApplicantJob, cols: Appli
 // ---------------------------------------------------------------------------
 
 export interface ApplicantFilters {
-  /** "open": waiting on someone (applied, offered); "all": every stage. */
+  /** "all" (the default): every stage; "open": waiting on someone (applied, offered). */
   stage: "open" | "all";
   /** Free on at least one of the job's days. */
   free: boolean;
@@ -251,12 +306,15 @@ export interface ApplicantFilters {
 export function parseFilters(p: URLSearchParams): ApplicantFilters {
   const since = p.get("since");
   return {
-    stage: p.get("stage") === "all" ? "all" : "open",
+    stage: p.get("stage") === "open" ? "open" : "all",
     free: p.get("free") === "1",
     credentials: p.get("creds") === "1",
     since: since && /^\d{4}-\d{2}-\d{2}$/.test(since) && !Number.isNaN(Date.parse(since)) ? since : null,
   };
 }
+
+/** Any filter on (the page opens the filter panel and says so). */
+export const filtersActive = (f: ApplicantFilters) => f.stage !== "all" || f.free || f.credentials || f.since !== null;
 
 /**
  * Whether a row stays under the filters. A worker who doesn't share what a
@@ -266,7 +324,11 @@ export function parseFilters(p: URLSearchParams): ApplicantFilters {
 export function keepApplicant(a: ApplicantFacts, job: ApplicantJob, f: ApplicantFilters, today: string): boolean {
   if (f.stage === "open" && a.status !== "APPLIED" && a.status !== "OFFERED") return false;
   if (f.since && a.appliedAt.toISOString().slice(0, 10) < f.since) return false;
-  if (f.free && a.availability !== "withheld" && job.startsAt && job.endsAt && freeDays(a.availability, job.startsAt, job.endsAt).free === 0) return false;
+  // Free: drops only someone whose shared availability has no free remaining day ("Not set" stays: it says nothing).
+  if (f.free && a.availability !== "withheld" && !isEmptyAvailability(a.availability) && job.startsAt && job.endsAt) {
+    const d = freeDays(a.availability, job.startsAt, job.endsAt, today);
+    if (d.total > 0 && d.free === 0) return false;
+  }
   if (f.credentials && a.credentials !== "withheld" && heldCredentials(a.credentials, job, today).some((h) => h.rank < 2)) return false;
   return true;
 }

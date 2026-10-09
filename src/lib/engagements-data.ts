@@ -272,7 +272,7 @@ export async function moveEngagements(
   const rows = await db().engagement.findMany({
     where: { id: { in: picked.filter((id) => UUID_RE.test(id)) }, jobId, job: { orgId: actor.orgId } },
     select: { id: true, worker: { select: { displayName: true } } },
-    orderBy: { createdAt: "asc" },
+    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
   });
   let moved = 0;
   const refused = new Map<string, string[]>();

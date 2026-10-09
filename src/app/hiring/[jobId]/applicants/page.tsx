@@ -2,11 +2,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireArea } from "@/lib/employer-session";
 import { db } from "@/lib/db";
-import { readRequirements, UUID_RE } from "@/lib/jobs";
+import { UUID_RE } from "@/lib/jobs";
 import { expiryToday } from "@/lib/credentials";
 import { offerLapsed } from "@/lib/engagements";
 import { loadApplicants } from "@/lib/applicants-data";
-import { applicantCells, availableColumns, columnLabel, keepApplicant, parseColumns, parseFilters, tableColumns, type ApplicantJob } from "@/lib/applicants";
+import { applicantCells, applicantJob, availableColumns, columnLabel, filtersActive, keepApplicant, parseColumns, parseFilters, tableColumns } from "@/lib/applicants";
 import { Masthead } from "@/components/staff/Masthead";
 import { DataTable } from "@/components/staff/DataTable";
 import { BulkApplicantActions } from "@/components/BulkApplicantActions";
@@ -32,19 +32,22 @@ export default async function ApplicantsPage({
   const session = await requireArea("hiring");
   const job = await db().job.findFirst({
     where: { id: jobId, orgId: session.orgId },
-    select: { id: true, title: true, status: true, type: true, headcount: true, startsAt: true, endsAt: true, requirements: true, jurisdiction: { select: { state: true } } },
+    select: { id: true, title: true, status: true, type: true, headcount: true, startsAt: true, endsAt: true, requirements: true, jurisdiction: { select: { state: true, rules: true } } },
   });
   if (!job) notFound();
 
   const raw = await searchParams;
   const qs = new URLSearchParams(Object.entries(raw).flatMap(([k, v]) => (Array.isArray(v) ? v.map((x) => [k, x]) : typeof v === "string" ? [[k, v]] : [])));
-  const facts: ApplicantJob = { type: job.type, startsAt: job.startsAt, endsAt: job.endsAt, requirements: readRequirements(job.requirements), state: job.jurisdiction.state };
+  const facts = applicantJob(job);
   const cols = parseColumns(qs.getAll("col").join(","), facts);
   const filters = parseFilters(qs);
   const now = new Date();
   const today = expiryToday(now);
 
-  const all = await loadApplicants(job.id, session.orgId, now);
+  // Scorecards load only when a column shows one.
+  const scorecards = cols.some((c) => !["applied", "stage", "free", "credentials"].includes(c));
+  const all = await loadApplicants(job.id, session.orgId, now, { scorecards });
+  const filtering = filtersActive(filters);
   const shown = all.filter((a) => keepApplicant(a, facts, filters, today));
   const toDecide = all.filter((a) => a.status === "APPLIED").length;
   const offers = all.filter((a) => a.status === "OFFERED" && !offerLapsed(a.status, a.offerExpiresAt, now)).length;
@@ -61,7 +64,7 @@ export default async function ApplicantsPage({
         <Link href={`/jobs/${job.id}`} className="btn-secondary btn-sm">Job page</Link>
       </Masthead>
 
-      <details className="card p-0">
+      <details className="card p-0" open={filtering || undefined}>
         <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-fg">Columns and filters</summary>
         <form className="space-y-4 border-t border-border p-4">
           <fieldset className="space-y-2">
@@ -80,8 +83,8 @@ export default async function ApplicantsPage({
             <label className="space-y-1.5">
               <span className="label">Stage</span>
               <select name="stage" className="field" defaultValue={filters.stage}>
-                <option value="open">Waiting on someone (applied, offered)</option>
                 <option value="all">Every stage</option>
+                <option value="open">Waiting on someone (applied, offered)</option>
               </select>
             </label>
             <label className="space-y-1.5">
@@ -108,6 +111,12 @@ export default async function ApplicantsPage({
           </div>
         </form>
       </details>
+
+      {filtering && (
+        <p className="text-muted-sm" role="status">
+          Showing {shown.length} of {all.length}. <Link href={`/hiring/${job.id}/applicants${cols.length ? `?${cols.map((c) => `col=${c}`).join("&")}` : ""}`} className="link">Clear filters</Link>
+        </p>
+      )}
 
       {offerable && shown.some((a) => a.status === "APPLIED" || a.status === "OFFERED") && <BulkApplicantActions formId={BULK_FORM} jobId={job.id} />}
 

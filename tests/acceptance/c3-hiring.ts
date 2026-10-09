@@ -5,6 +5,7 @@ import { applyToJob, claimJob, inviteWorker, loadEngagementEvents, loadPipelineF
 import { loadApplicants } from "@/lib/applicants-data";
 import { applicantCells } from "@/lib/applicants";
 import { saveSharing } from "@/lib/sharing-data";
+import { partsForOrg, partsForOrgMany } from "@/lib/shared-scorecard-data";
 import { DEFAULT_SHARING } from "@/lib/sharing";
 import { closeAccount, exportAccount } from "@/lib/account-data";
 import { scheduleShift } from "@/lib/field-day-data";
@@ -243,7 +244,7 @@ const types = async (id: string) => (await loadEngagementEvents(id)).map((e) => 
   const rowOf = (id: string) => apps.find((a) => a.engagementId === id);
   check("applicants: the people who applied, never the org's own invitations", apps.length === 2 && !!rowOf(pa) && !!rowOf(pb) && !rowOf(pi), apps.map((a) => a.name));
   const w3 = rowOf(pb)!;
-  check("…each row only what the worker shares now: withheld parts read as withheld", w3.availability === "withheld" && w3.credentials === "withheld" && w3.scorecard.segments.every((sg) => sg.averages.signaturesPerActiveHour === null), w3);
+  check("…each row only what the worker shares now: withheld parts read as withheld", w3.availability === "withheld" && w3.credentials === "withheld" && w3.scorecard.shared.output === false && w3.scorecard.shared.history === true, w3);
   const cells = applicantCells(w3, { type: "PETITION", startsAt: jobP.startsAt, endsAt: jobP.endsAt, requirements: { badge: false, registration: true, affidavit: false, training: null, script: null }, state: "CO" }, ["free", "credentials", "signaturesPerActiveHour"], "2026-10-09", "/x");
   check("…and its cells say 'not shared', unranked", ["free", "credentials", "signaturesPerActiveHour"].every((k) => cells[k].withheld === true && cells[k].sort === null), cells);
   check("…while the other applicant's shared parts come through", rowOf(pa)!.availability !== "withheld" && rowOf(pa)!.credentials !== "withheld");
@@ -258,6 +259,15 @@ const types = async (id: string) => (await loadEngagementEvents(id)).map((e) => 
   check("bulk offer on a one-seat job: the earliest applicant gets it, the rest are refused with the reason", offerAll.ok && offerAll.moved === 1 && (await p.engagement.findUniqueOrThrow({ where: { id: pa } })).status === "OFFERED" && offerAll.refused.some((r) => /offer out/.test(r.reason)), offerAll);
   const noReason = await moveEngagements(jobP.id, { profileId: OWNER, orgId: ORG }, "decline", [pb]);
   check("bulk not selected needs a reason", noReason.ok && noReason.moved === 0 && noReason.refused[0]?.reason === "Pick a reason.", noReason);
+  // partsForOrgMany must agree with partsForOrg for every kind of viewer: related, closed (W5), ended relationship (W6), unapproved org.
+  const ORG3 = "00000000-0000-0000-0000-000000000003";
+  await p.organization.create({ data: { id: ORG3, name: "Unapproved Co", approved: false, updatedAt: new Date() } });
+  const everyone = [W1, W2, W3, W4, W5, W6];
+  for (const o of [ORG, ORG2, ORG3]) {
+    const many = await partsForOrgMany(everyone, o);
+    const single = await Promise.all(everyone.map((w) => partsForOrg(w, o)));
+    check(`partsForOrgMany matches partsForOrg for ${o.slice(-1)}`, everyone.every((w, i) => JSON.stringify(many.get(w)) === JSON.stringify(single[i])), { many: [...many], single });
+  }
   check("bulk refuses an empty or oversized selection", !(await moveEngagements(jobP.id, { profileId: OWNER, orgId: ORG }, "review", [])).ok && !(await moveEngagements(jobP.id, { profileId: OWNER, orgId: ORG }, "review", Array.from({ length: 101 }, (_, i) => `00000000-0000-0000-0000-${String(i).padStart(12, "0")}`))).ok);
 
   await p.$disconnect();

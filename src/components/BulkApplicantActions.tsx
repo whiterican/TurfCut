@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { startTransition, useActionState, useState } from "react";
 import { bulkMove, type ActionState } from "@/app/jobs/actions";
 import { NOT_SELECTED_REASONS, NOTE_MAX } from "@/lib/engagements";
 
@@ -15,7 +15,17 @@ export function BulkApplicantActions({ formId, jobId }: { formId: string; jobId:
   const [state, action, pending] = useActionState(bulkMove, initial);
   const [step, setStep] = useState("review");
   return (
-    <form id={formId} action={action} className="card space-y-3">
+    // Submitted by hand rather than through `action`: React resets an action form when it finishes,
+    // which would clear the table's checkboxes (they belong to this form) even when nothing moved.
+    <form
+      id={formId}
+      className="card space-y-3"
+      onSubmit={(e) => {
+        e.preventDefault();
+        const fd = new FormData(e.currentTarget);
+        startTransition(() => action(fd));
+      }}
+    >
       <input type="hidden" name="jobId" value={jobId} />
       <div className="flex flex-wrap items-end gap-3">
         <label className="space-y-1.5">
@@ -35,7 +45,7 @@ export function BulkApplicantActions({ formId, jobId }: { formId: string; jobId:
             </select>
           </label>
         )}
-        <button className="btn-secondary" disabled={pending}>{pending ? "Working…" : "Apply to selected"}</button>
+        <button className="btn-secondary" disabled={pending}>{pending ? "Working…" : "Update selected"}</button>
       </div>
       {(step === "decline" || step === "offer") && (
         <label className="block space-y-1.5">

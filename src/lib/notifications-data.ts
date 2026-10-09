@@ -97,12 +97,15 @@ const SELECT = {
  * A worker's notices about invitations their own do-not-match answers now rule
  * out are never shown, as the invitation itself never is (rule 4).
  */
-async function visible<T extends { kind: NotificationKind; engagement: { status: string; job: { campaignDisclosure: unknown; measureIds: string[]; org: { name: string } } } }>(
+type Pref = ReturnType<typeof effectivePreference>;
+const prefFor = async (v: Viewer): Promise<Pref> => (v.role === "WORKER" && v.workerId ? effectivePreference(await loadLatestPreference(v.workerId)) : null);
+
+function visible<T extends { kind: NotificationKind; engagement: { status: string; job: { campaignDisclosure: unknown; measureIds: string[]; org: { name: string } } } }>(
   v: Viewer,
+  pref: Pref,
   rows: T[]
-): Promise<T[]> {
+): T[] {
   if (v.role !== "WORKER" || !v.workerId || !rows.length) return rows;
-  const pref = effectivePreference(await loadLatestPreference(v.workerId));
   const invitation = (r: T) =>
     r.kind === "INVITATION_RECEIVED" || r.kind === "INVITATION_WITHDRAWN" || (r.kind === "JOB_CLOSED" && r.engagement.status === "WITHDRAWN");
   return rows.filter(
@@ -118,13 +121,23 @@ async function visible<T extends { kind: NotificationKind; engagement: { status:
 export async function loadNotifications(v: Viewer) {
   const scope = scopeFor(v);
   if (!scope) return [];
+  const pref = await prefFor(v);
+  const where = { recipientId: v.userId, engagement: scope };
   const out: Array<Awaited<ReturnType<typeof page>>[number]> = [];
-  const page = (skip: number) =>
-    db().notification.findMany({ where: { recipientId: v.userId, engagement: scope }, select: SELECT, orderBy: [{ createdAt: "desc" }, { id: "asc" }], skip, take: NOTIFICATION_PAGE });
-  for (let skip = 0; out.length < NOTIFICATION_PAGE; skip += NOTIFICATION_PAGE) {
-    const rows = await page(skip);
-    out.push(...(await visible(v, rows)));
+  // Keyset pages (createdAt, then id): a notice arriving meanwhile can't shift a row onto the next page.
+  const page = (after: { createdAt: Date; id: string } | null) =>
+    db().notification.findMany({
+      where: after ? { ...where, OR: [{ createdAt: { lt: after.createdAt } }, { createdAt: after.createdAt, id: { gt: after.id } }] } : where,
+      select: SELECT,
+      orderBy: [{ createdAt: "desc" }, { id: "asc" }],
+      take: NOTIFICATION_PAGE,
+    });
+  let after: { createdAt: Date; id: string } | null = null;
+  while (out.length < NOTIFICATION_PAGE) {
+    const rows = await page(after);
+    out.push(...visible(v, pref, rows));
     if (rows.length < NOTIFICATION_PAGE) break;
+    after = rows[rows.length - 1];
   }
   return out.slice(0, NOTIFICATION_PAGE);
 }
@@ -142,12 +155,20 @@ export async function unreadNotifications(v: Viewer): Promise<number> {
   const where = { recipientId: v.userId, readAt: null, engagement: scope };
   // Staff notices are never hidden, so a capped count is enough.
   if (v.role !== "WORKER") return db().notification.count({ where, take: UNREAD_CAP });
-  // A worker's hidden ones never get marked read, so count past them, a page at a time.
+  // A worker's hidden ones never get marked read, so count past them, a keyset page at a time.
+  const pref = await prefFor(v);
   let n = 0;
-  for (let skip = 0; n < UNREAD_CAP; skip += UNREAD_CAP) {
-    const rows = await db().notification.findMany({ where, select: COUNT_SELECT, orderBy: { createdAt: "desc" }, skip, take: UNREAD_CAP });
-    n += (await visible(v, rows)).length;
+  let after: { createdAt: Date; id: string } | null = null;
+  while (n < UNREAD_CAP) {
+    const rows: Array<Prisma.NotificationGetPayload<{ select: typeof COUNT_SELECT & { id: true; createdAt: true } }>> = await db().notification.findMany({
+      where: after ? { ...where, OR: [{ createdAt: { lt: after.createdAt } }, { createdAt: after.createdAt, id: { gt: after.id } }] } : where,
+      select: { ...COUNT_SELECT, id: true, createdAt: true },
+      orderBy: [{ createdAt: "desc" }, { id: "asc" }],
+      take: UNREAD_CAP,
+    });
+    n += visible(v, pref, rows).length;
     if (rows.length < UNREAD_CAP) break;
+    after = rows[rows.length - 1];
   }
   return Math.min(n, UNREAD_CAP);
 }

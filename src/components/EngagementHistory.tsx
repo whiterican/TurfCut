@@ -21,7 +21,8 @@ export function EngagementHistory({
             {EVENT_LABELS[e.type]} <span className="text-muted">· {when(e.createdAt)}</span>
           </p>
           {e.reasonCode && <p className="text-muted-sm">{NOT_SELECTED_REASONS.find((r) => r.value === e.reasonCode)?.label ?? "Another reason"}</p>}
-          {e.note === ACCOUNT_CLOSED_NOTE ? (
+          {/* Only Turfcut writes a note on these two (organizations write notes on offers and not-selected). */}
+          {e.note === ACCOUNT_CLOSED_NOTE && (e.type === "WITHDRAWN" || e.type === "INVITE_DECLINED") ? (
             <p className="text-muted-sm">{e.note}</p>
           ) : (
             e.note && <p className="text-muted-sm whitespace-pre-line">&ldquo;{e.note}&rdquo;</p>

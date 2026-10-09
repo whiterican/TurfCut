@@ -597,7 +597,7 @@ const types = async (id: string) => (await loadEngagementEvents(id)).map((e) => 
   check("…and is audited with the organization and the method", (audit6?.metadata as { orgId?: string; method?: string } | null)?.orgId === ORG && (audit6?.metadata as { method?: string }).method === "REGISTRY_LOOKUP" && audit6?.actorId === COMP, audit6);
   const again = ok6.ok ? await verifyCredential(owner, ok6.id, "ORIGINAL_DOCUMENT") : null;
   const stale = await verifyCredential(owner, c1, "ORIGINAL_DOCUMENT");
-  check("a verified credential isn't verified again; the replaced row reads as not found", !!again && !again.ok && /already verified/.test(again.reason) && !stale.ok && /not found/.test(stale.reason), { again, stale });
+  check("a verified credential isn't verified again; checking the replaced row says it changed", !!again && !again.ok && /already verified/.test(again.reason) && !stale.ok && /changed since you opened/.test(stale.reason), { again, stale });
   const list6 = ((await loadHiredCredentials(owner)) ?? []).find((x) => x.workerId === V(1));
   const ownCirc = list6 && list6.credentials !== "withheld" ? list6.credentials.find((c) => c.kind === "CIRCULATOR_REGISTRATION") : undefined;
   check("the verifying organization's list marks it as its own", ownCirc?.byUs === true && ownCirc.verificationMethod === "REGISTRY_LOOKUP", ownCirc);
@@ -619,7 +619,7 @@ const types = async (id: string) => (await loadEngagementEvents(id)).map((e) => 
 
   // Two checks racing on one credential: one is recorded.
   const race = await Promise.all([verifyCredential(owner, c1b, "ORIGINAL_DOCUMENT"), verifyCredential(comp, c1b, "REGISTRY_LOOKUP")]);
-  check("two checks at once: exactly one is recorded", race.filter((r) => r.ok).length === 1 && (await p.workerCredential.count({ where: { supersedesId: c1b } })) === 1, race);
+  check("two checks at once: exactly one is recorded; the other is told it changed", race.filter((r) => r.ok).length === 1 && race.some((r) => !r.ok && /changed since you opened/.test(r.reason)) && (await p.workerCredential.count({ where: { supersedesId: c1b } })) === 1, race);
   // The worker's edit racing a check on one credential: one lands.
   const c1c = await addId(V(1), V(1), { kind: "NOTARY_OR_AFFIDAVIT", state: "CO", expiresOn: "2099-01-01" });
   const editRace = await Promise.all([editCredential(V(1), V(1), c1c, { kind: "NOTARY_OR_AFFIDAVIT", state: "CO", expiresOn: "2098-01-01" }), verifyCredential(owner, c1c, "REGISTRY_LOOKUP")]);
@@ -629,7 +629,8 @@ const types = async (id: string) => (await loadEngagementEvents(id)).map((e) => 
   const c1r = await addId(V(1), V(1), { kind: "TRAINING", label: "Removed course" });
   await removeCredential(V(1), V(1), c1r);
   const removedV = await verifyCredential(owner, c1r, "ORIGINAL_DOCUMENT");
-  check("a malformed id, a missing one and a removed credential all read as not found", [malformed, missing, removedV].every((r) => !r.ok && /not found/.test(r.reason)), { malformed, missing, removedV });
+  check("a malformed or missing id reads as not found", [malformed, missing].every((r) => !r.ok && /not found/.test(r.reason)), { malformed, missing });
+  check("a credential the worker took down since the page opened: they're told it changed, and nothing is written", !removedV.ok && /changed since you opened/.test(removedV.reason) && (await p.workerCredential.count({ where: { supersedesId: c1r } })) === 1, removedV);
   const c1t = await addId(V(1), V(1), { kind: "TRAINING", label: "Doorstep safety" });
   const regTraining = await verifyCredential(owner, c1t, "REGISTRY_LOOKUP");
   check("a registry lookup isn't offered for training (no state registry lists it)", !regTraining.ok && /registry/.test(regTraining.reason) && !methodsFor({ kind: "TRAINING", state: null }).includes("REGISTRY_LOOKUP") && !methodsFor({ kind: "CIRCULATOR_REGISTRATION", state: null }).includes("REGISTRY_LOOKUP") && methodsFor({ kind: "CIRCULATOR_REGISTRATION", state: "CO" }).includes("REGISTRY_LOOKUP"), regTraining);
@@ -637,7 +638,7 @@ const types = async (id: string) => (await loadEngagementEvents(id)).map((e) => 
   const today6 = await verifyCredential(owner, c1today, "ORIGINAL_DOCUMENT");
   check("a credential expiring today can still be verified", today6.ok, today6);
   const keys6 = ((await loadHiredCredentials(owner)) ?? []).flatMap((x) => (x.credentials === "withheld" ? [] : x.credentials.map((c) => Object.keys(c).sort().join())));
-  check("the list never carries a number or who checked", keys6.length > 0 && keys6.every((k) => k === "byUs,createdAt,expiresOn,id,issuedOn,kind,label,state,verification,verificationMethod,verifiedAt"), keys6[0]);
+  check("the list never carries a number, an issue date or who checked", keys6.length > 0 && keys6.every((k) => k === "byUs,expiresOn,id,kind,label,state,verification,verificationMethod,verifiedAt"), keys6[0]);
   // A second organization that also hired the worker: it sees the check, not who made it or when.
   const orgJob2 = await p.job.create({ data: { orgId: ORG2, jurisdictionId, type: "CANVASS", title: "Other org job", status: "PUBLISHED", hiringMethod: { modes: ["instant_claim"] }, headcount: 5 } });
   check("ORG2 hires V1 too", (await claimJob(V(1), V(1), orgJob2.id)).ok);

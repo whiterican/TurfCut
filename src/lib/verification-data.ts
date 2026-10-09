@@ -60,7 +60,8 @@ export async function loadHiredCredentials(staff: Staff) {
     partsForOrgMany(ids, staff.orgId),
     db().workerCredential.findMany({
       where: { workerId: { in: ids }, removed: false, supersededBy: null },
-      select: { workerId: true, id: true, kind: true, label: true, state: true, issuedOn: true, expiresOn: true, verification: true, verificationMethod: true, verifiedAt: true, createdAt: true },
+      // What the organizations' shared view shows (never the number or the issue date), plus the row id to act on.
+      select: { workerId: true, id: true, kind: true, label: true, state: true, expiresOn: true, verification: true, verificationMethod: true, verifiedAt: true },
       orderBy: [{ createdAt: "asc" }, { id: "asc" }],
     }),
   ]);
@@ -86,6 +87,27 @@ export async function loadHiredCredentials(staff: Staff) {
 }
 
 const NOT_FOUND = { ok: false as const, reason: "Credential not found." };
+const STALE = { ok: false as const, reason: "This credential changed since you opened it. Reload to see the latest." };
+const UNRECORDED = { ok: false as const, reason: "Turfcut couldn't record this check. Reload and try again." };
+
+/**
+ * A failed check as a message, or null to rethrow: a racing edit (the
+ * unique supersedesId), a database check refusing the row, or a lock held
+ * past the transaction's time limit. Logs only the error's code, never the
+ * message (Postgres puts the whole row in it).
+ */
+export function checkFailure(e: unknown): { ok: false; reason: string } | null {
+  if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") return STALE;
+  if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2028") {
+    console.error("[turfcut] credential check timed out waiting for the worker");
+    return UNRECORDED;
+  }
+  if (e instanceof Prisma.PrismaClientUnknownRequestError && /23514|check_violation/.test(e.message)) {
+    console.error("[turfcut] credential check refused by a database check (23514)");
+    return UNRECORDED;
+  }
+  return null;
+}
 
 /**
  * Records that this organization checked a credential, and how. Every check
@@ -97,22 +119,27 @@ export async function verifyCredential(staff: Staff, credentialId: string, metho
   if (!can(staff.role, "compliance")) return { ok: false, reason: "Only owners and compliance members verify credentials." };
   if (!ORG_METHODS.includes(method as VerificationMethod)) return { ok: false, reason: "Say how you checked it." };
   if (!UUID_RE.test(credentialId)) return NOT_FOUND;
+  // No worker lock for an organization that can't verify at all (checked again under the lock).
+  if (!(await db().organization.findUnique({ where: { id: staff.orgId }, select: { approved: true } }))?.approved) return NOT_FOUND;
   try {
     return await db().$transaction(async (tx) => {
       const head = await tx.workerCredential.findUnique({ where: { id: credentialId }, select: { workerId: true } });
       if (!head) return NOT_FOUND;
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`worker:${head.workerId}`}))`;
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`worker_sharing:${head.workerId}`}))`;
-      const cur = await tx.workerCredential.findFirst({
-        where: { id: credentialId, removed: false, supersededBy: null },
-        select: { id: true, workerId: true, kind: true, label: true, state: true, identifier: true, issuedOn: true, expiresOn: true, verification: true, worker: { select: { profileId: true } } },
+      const row0 = await tx.workerCredential.findUnique({
+        where: { id: credentialId },
+        select: { id: true, workerId: true, kind: true, label: true, state: true, identifier: true, issuedOn: true, expiresOn: true, verification: true, removed: true, supersededBy: { select: { id: true } }, worker: { select: { profileId: true } } },
       });
-      if (!cur) return NOT_FOUND;
+      if (!row0) return NOT_FOUND;
+      const { removed, supersededBy, ...cur } = row0;
       const org = await tx.organization.findUnique({ where: { id: staff.orgId }, select: { approved: true } });
       const hired = await tx.engagement.count({ where: { workerId: cur.workerId, ...hiredWhere(staff.orgId), worker: { closedAt: null } } });
       const parts = await partsForOrgMany([cur.workerId], staff.orgId, { client: tx });
       // Not approved, never hired here, closed, or not shared with this organization: it reads as not found.
       if (!org?.approved || !hired || !parts.get(cur.workerId)?.credentials) return NOT_FOUND;
+      // Replaced or taken down since the page was drawn (another check, or the worker's edit, got there first).
+      if (removed || supersededBy) return STALE;
       if (cur.worker.profileId === staff.profileId) return { ok: false as const, reason: "You can't verify your own credential." };
       if (cur.verification !== "SELF_REPORTED") return { ok: false as const, reason: "This credential is already verified." };
       if (expiryState(cur.expiresOn, expiryToday()).kind === "expired") return { ok: false as const, reason: "This credential has expired. The worker updates it first." };
@@ -133,13 +160,8 @@ export async function verifyCredential(staff: Staff, credentialId: string, metho
       return { ok: true as const, id: row.id };
     });
   } catch (e) {
-    // The worker's edit racing the check on one row: the unique supersedesId lets one through.
-    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") return { ok: false, reason: "This credential changed since you opened it. Reload to see the latest." };
-    // A database check refused it (e.g. its clock checks): say so instead of failing the page.
-    if (e instanceof Prisma.PrismaClientUnknownRequestError && /23514|check_violation/.test(e.message)) {
-      console.error("[turfcut] credential check refused by the database", e.message);
-      return { ok: false, reason: "Turfcut couldn't record this check. Reload and try again." };
-    }
+    const failed = checkFailure(e);
+    if (failed) return failed;
     throw e;
   }
 }

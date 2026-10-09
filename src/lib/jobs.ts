@@ -109,8 +109,14 @@ export const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f
 
 function text(raw: Record<string, unknown>, k: string): string {
   const v = raw[k];
-  return typeof v === "string" ? v.trim().replace(/\s+/g, " ") : "";
+  // A form always sends text; a JSON client may send a number (headcount: 10).
+  const s = typeof v === "string" ? v : typeof v === "number" && Number.isFinite(v) ? String(v) : "";
+  return s.trim().replace(/\s+/g, " ");
 }
+
+/** Sent, but in a shape `text` can't read (an object, a list, a boolean): refuse it rather than use a default. */
+const unreadable = (raw: Record<string, unknown>, k: string) =>
+  raw[k] !== undefined && raw[k] !== null && raw[k] !== "" && typeof raw[k] !== "string" && typeof raw[k] !== "number";
 
 function list(raw: Record<string, unknown>, k: string): string[] {
   const v = raw[k];
@@ -201,16 +207,22 @@ export function validateJob(raw: Record<string, unknown>): Validated<JobInput> {
     lostMaterials: need("contactLostMaterials", "Lost-materials contact", 200),
   };
 
+  // Comma-separated from the form; a JSON client may send a list. Measure IDs feed
+  // workers' "do not match me" answers, so a list is never quietly dropped.
+  const rawMeasures = raw.measureIds;
+  const measureList = Array.isArray(rawMeasures) && rawMeasures.every((m) => typeof m === "string");
   const measureIds = [
     ...new Set(
-      text(raw, "measureIds")
-        .split(",")
-        .map((m) => m.trim())
+      (measureList ? (rawMeasures as string[]) : text(raw, "measureIds").split(","))
+        .map((m) => m.trim().replace(/\s+/g, " "))
         .filter(Boolean)
     ),
   ];
-  if (measureIds.some((m) => m.length > 40) || measureIds.length > 20) errors.measureIds = "Up to 20 measure IDs, comma-separated.";
+  if ((unreadable(raw, "measureIds") && !measureList) || measureIds.some((m) => m.length > 40) || measureIds.length > 20) {
+    errors.measureIds = "Up to 20 measure IDs, comma-separated.";
+  }
 
+  if (unreadable(raw, "cancellationNoticeHours")) errors.cancellationNoticeHours = "Enter 0–168 hours.";
   const noticeStr = text(raw, "cancellationNoticeHours") || "24";
   const cancellationNoticeHours = Number(noticeStr);
   if (!/^\d+$/.test(noticeStr) || cancellationNoticeHours > 168) errors.cancellationNoticeHours = "Enter 0–168 hours.";

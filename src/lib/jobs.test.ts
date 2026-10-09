@@ -177,6 +177,19 @@ describe("validateJob", () => {
     });
   });
 
+  it("reads a JSON client's numbers and lists the way it reads the form's text", () => {
+    const r = validateJob({ ...form, payRate: 25.5, headcount: 10, measureIds: ["I-305", " I-12 ", "I-305"], cancellationNoticeHours: 12 });
+    expect(r.ok && r.value).toMatchObject({ payRateCents: 2550, headcount: 10, measureIds: ["I-305", "I-12"], cancellationNoticeHours: 12 });
+    const none = validateJob({ ...form, measureIds: [] });
+    expect(none.ok && none.value.measureIds).toEqual([]);
+  });
+  it("refuses a value it can't read instead of storing a default", () => {
+    // Before: a list with a non-text entry became no measure IDs at all, and an object became 24 hours' notice.
+    const r = validateJob({ ...form, measureIds: ["I-305", 12], cancellationNoticeHours: { hours: 2 } });
+    expect(!r.ok && Object.keys(r.errors).sort()).toEqual(["cancellationNoticeHours", "measureIds"]);
+    const t = validateJob({ ...form, measureIds: true, headcount: Number.NaN });
+    expect(!t.ok && Object.keys(t.errors).sort()).toEqual(["headcount", "measureIds"]);
+  });
   it("rejects bad input with a message per field", () => {
     const r = validateJob({ ...form, type: "PHONEBANK", payRate: "-1", headcount: "0", endsAt: "2026-10-01", hiringModes: [], affiliation: "whig", issue_gun_rights: "maybe" });
     expect(!r.ok && Object.keys(r.errors).sort()).toEqual(["affiliation", "endsAt", "headcount", "hiringModes", "issues", "payRate", "type"]);

@@ -627,8 +627,8 @@ certificate. Approved as recommended by review:
   encrypted with a separate key; private bucket, streamed through a
   signed-in route, never a public or signed link.
 - Deleted when the credential is removed, the account closes, or the
-  training expires (at most 13 months); daily purge and a written
-  disposal policy. Included in the data export.
+  Colorado registration it supports lapses (one year after the training
+  date); daily purge and a written disposal policy. Included in the data export.
 - Schema (approved): a `CredentialProof` table with its own deletion rows,
   and `verificationMethod` on verified credentials; `proofPath` stays
   unused.

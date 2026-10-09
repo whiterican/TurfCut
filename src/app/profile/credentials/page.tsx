@@ -76,7 +76,7 @@ export default async function CredentialsPage() {
             <CredentialForm />
           </div>
           <p className="text-hint">
-            Keep your documents yourself. In Colorado, save your Secretary of State circulator training certificate: the organization that
+            Keep your documents yourself. If you circulate petitions in Colorado, save your Secretary of State training certificate: the organization that
             hires you needs a copy to register you.
           </p>
         </section>

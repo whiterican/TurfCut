@@ -17,7 +17,8 @@ export function placeKey(name: string, strips = 3): string {
 }
 
 type Zcta = Record<string, [number, number, string]>;
-type Places = Record<string, Record<string, [number, number]>>;
+/** null = a name several places share in that state: known, but never placed. */
+type Places = Record<string, Record<string, [number, number] | null>>;
 let tables: Promise<{ zcta: Zcta; places: Places }> | null = null;
 /** Loaded on first use only (about 2 MB), so pages that never match don't pay for them. */
 export function geoTables() {
@@ -54,15 +55,18 @@ export function resolveArea(text: string | null | undefined, t: { zcta: Zcta; pl
     const st = cs[2].toUpperCase();
     for (const key of keys(cs[1])) {
       const hit = t.places[st]?.[key];
+      if (hit === null) return null; // shared by several places there
       if (hit) return { lat: hit[0], lon: hit[1], state: st };
     }
   }
   for (const key of keys(s)) {
-    const found = Object.entries(t.places).filter(([, ps]) => ps[key]);
+    // Every state where the name is taken counts, placed or not.
+    const found = Object.entries(t.places).filter(([, ps]) => key in ps);
     if (found.length > 1) return null; // a name several states share: never guessed
     if (found.length === 1) {
       const [st, ps] = found[0];
-      return { lat: ps[key][0], lon: ps[key][1], state: st };
+      const hit = ps[key];
+      return hit ? { lat: hit[0], lon: hit[1], state: st } : null;
     }
   }
   return null;

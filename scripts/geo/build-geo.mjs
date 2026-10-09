@@ -73,7 +73,9 @@ const byState = {};
 let ambiguous = 0;
 for (const st of new Set([...Object.keys(own), ...Object.keys(alias)])) {
   byState[st] = {};
-  for (const [key, pts] of Object.entries(alias[st] ?? {})) if (pts.length === 1) byState[st][key] = pts[0];
+  // A name left out stays as null, so a lookup without a state still sees it's taken here (never
+  // "unique in the US" just because this state's places were too ambiguous to keep).
+  for (const [key, pts] of Object.entries(alias[st] ?? {})) byState[st][key] = pts.length === 1 ? pts[0] : null;
   for (const [key, pts] of Object.entries(own[st] ?? {})) {
     // One place; or one town whose same-name CDPs all sit within a few miles of it (Chevy Chase town
     // and CDP, effectively one place). Otherwise the name is left out, never guessed between: an El
@@ -83,7 +85,7 @@ for (const st of new Set([...Object.keys(own), ...Object.keys(alias)])) {
       pts.length === 1 ? pts[0] : towns.length === 1 && pts.every((p) => p === towns[0] || miles(p, towns[0]) <= SAME_PLACE_MILES) ? towns[0] : null;
     if (pick) byState[st][key] = [pick[0], pick[1]];
     else {
-      delete byState[st][key];
+      byState[st][key] = null;
       ambiguous++;
     }
   }

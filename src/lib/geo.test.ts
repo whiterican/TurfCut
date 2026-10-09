@@ -27,6 +27,9 @@ describe("geo", () => {
     expect(resolveArea("Franklin, PA", t)).toBeNull();
     expect(resolveArea("El Cerrito, CA", t)).toBeNull();
     expect(resolveArea("Chevy Chase, MD", t)).toMatchObject({ state: "MD" });
+    // A bare name left out in one state isn't "unique" elsewhere (Plantation FL vs Plantation KY).
+    for (const bare of ["Plantation", "Rice Lake", "Cold Springs", "Middlebury"]) expect(resolveArea(bare, t), bare).toBeNull();
+    expect(resolveArea("Plantation, KY", t)).toMatchObject({ state: "KY" });
     // A place's own name beats a looser form of another's ("Goodyear city" vs "Goodyear Village CDP").
     expect(resolveArea("Goodyear, AZ", t)).not.toEqual(resolveArea("Goodyear Village, AZ", t));
     expect(resolveArea("Boise, ID", t)).toEqual(resolveArea("Boise City, ID", t));

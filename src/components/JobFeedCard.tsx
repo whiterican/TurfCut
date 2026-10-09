@@ -1,8 +1,7 @@
 import Link from "next/link";
+import { DateRangeChip } from "@/components/DateRangeChip";
 import { cardAffiliation, payText } from "@/lib/jobs";
 import type { CompensationMethod, JobType } from "@prisma/client";
-
-const day = (d: Date | null) => (d ? d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" }) : "—");
 
 export interface FeedJob {
   id: string;
@@ -37,7 +36,7 @@ export function JobFeedCard({ j }: { j: FeedJob }) {
         </span>
         <span className="block text-base font-bold tracking-[-0.01em] text-fg">{j.title}</span>
         <span className="flex flex-wrap gap-1.5">
-          <span className="badge-neutral">{day(j.startsAt)} – {day(j.endsAt)}</span>
+          <DateRangeChip startsAt={j.startsAt} endsAt={j.endsAt} />
           {aff ? (
             <span className={`badge-party badge-party-${aff.affiliation} whitespace-normal`}>{type} · {aff.label}</span>
           ) : (

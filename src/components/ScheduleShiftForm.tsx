@@ -7,6 +7,9 @@ import { TurfMap } from "@/components/TurfMap";
 const initial: ScheduleState = { ok: false, message: "", errors: {} };
 /** datetime-local value (organizer's own zone) → ISO; the server never guesses a zone. */
 const toIso = (v: string) => (v ? new Date(v).toISOString() : "");
+/** The chosen time in words: on a narrow phone with large text the field cuts off the date's start. */
+const readback = (v: string) =>
+  v && <span className="text-hint block">{new Date(v).toLocaleString([], { weekday: "short", month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" })}</span>;
 
 export function ScheduleShiftForm({
   jobId,
@@ -27,30 +30,32 @@ export function ScheduleShiftForm({
       <input type="hidden" name="jobId" value={jobId} />
       <input type="hidden" name="startsAt" value={toIso(start)} />
       <input type="hidden" name="endsAt" value={toIso(end)} />
-      <div className="grid gap-3 sm:grid-cols-2">
-        <label className="space-y-1.5 sm:col-span-2">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <label className="min-w-0 space-y-1.5 sm:col-span-2">
           <span className="label">Worker</span>
           <select name="engagementId" className="field" required defaultValue="">
             <option value="" disabled>Choose a hired worker…</option>
             {workers.map((w) => <option key={w.engagementId} value={w.engagementId}>{w.name}</option>)}
           </select>
         </label>
-        <label className="space-y-1.5">
+        <label className="min-w-0 space-y-1.5">
           <span className="label">Starts</span>
           <input type="datetime-local" className="field" required value={start} onChange={(e) => setStart(e.target.value)} />
+          {readback(start)}
           {err("startsAt")}
         </label>
-        <label className="space-y-1.5">
+        <label className="min-w-0 space-y-1.5">
           <span className="label">Ends</span>
           <input type="datetime-local" className="field" required value={end} onChange={(e) => setEnd(e.target.value)} />
+          {readback(end)}
           {err("endsAt")}
         </label>
-        <label className="space-y-1.5">
+        <label className="min-w-0 space-y-1.5">
           <span className="label">Staging location</span>
           <input name="stagingLocation" className="field" maxLength={200} placeholder="Denver Central, table 3" />
           {err("stagingLocation")}
         </label>
-        <label className="space-y-1.5">
+        <label className="min-w-0 space-y-1.5">
           <span className="label">Supervisor</span>
           <select name="supervisorId" className="field" defaultValue="">
             <option value="">None assigned</option>

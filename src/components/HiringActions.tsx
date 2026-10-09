@@ -63,10 +63,14 @@ export function HiringActions({
     const lapsed = inviteLapsed(status, inviteExpiresAt, new Date());
     return (
       <div className="space-y-2">
-        {inviteExpiresAt && (
-          <p className="text-muted-sm">
-            {lapsed ? "The invitation expired unanswered." : `Invitation sent; the worker can answer until ${inviteExpiresAt.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })}.`}
-          </p>
+        {closed ? (
+          <p className="text-muted-sm">The job closed before the worker answered.</p>
+        ) : lapsed ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-muted-sm">The invitation expired unanswered. You can invite them again from their page.</p>
+          </div>
+        ) : (
+          inviteExpiresAt && <p className="text-muted-sm">Invitation sent; the worker can answer until {inviteExpiresAt.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })}.</p>
         )}
       <ActionButton
         action={withdrawInvitation}

@@ -83,6 +83,7 @@ describe("engagement transitions", () => {
     expect(cleanNote("  Thanks   for\tapplying \r\n\r\n\r\n\n  See you  ")).toBe("Thanks for applying\n\nSee you");
     expect(cleanNote("   \n  ")).toBeNull();
     expect(cleanNote(undefined)).toBeNull();
+    expect(cleanNote("a\u0000b\u0007c")).toBe("abc");
   });
 
   it("invitations lapse after 7 days; a lapsed one can't be accepted but can still be declined or withdrawn", () => {
@@ -98,6 +99,11 @@ describe("engagement transitions", () => {
     expect(transition("INVITED", "withdraw", "org", lapsed).ok).toBe(true);
     expect(stageOf({ status: "INVITED", inviteExpiresAt: inviteExpiresAt(sent) }, { events: [], offerExpiresAt: null }, new Date("2026-10-20T00:00:00Z"))).toBe("Invitation expired");
     expect(stageOf({ status: "INVITED", inviteExpiresAt: inviteExpiresAt(sent) }, { events: [], offerExpiresAt: null }, sent)).toBe("Invited");
+    // The organization can send a lapsed invitation again; never a live one, and the worker is told what to do.
+    expect(transition("INVITED", "invite", "org", lapsed)).toEqual({ ok: true, status: "INVITED" });
+    expect(transition("INVITED", "invite", "org", open)).toEqual({ ok: false, reason: "An invitation is already waiting on this worker." });
+    expect(transition("INVITED", "apply", "worker", lapsed)).toMatchObject({ ok: false, reason: expect.stringMatching(/expired.*invite you again/) });
+    expect(transition("INVITED", "invite", "org", { ...lapsed, jobStatus: "CLOSED" }).ok).toBe(false);
   });
 
   it("in review is a step on an application, once, and only by the org", () => {

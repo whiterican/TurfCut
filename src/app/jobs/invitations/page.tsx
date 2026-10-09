@@ -1,13 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireAuth } from "@/lib/auth";
-import { exclusionReasons, payText, readDisclosure } from "@/lib/jobs";
-import { effectivePreference } from "@/lib/political-fit";
-import { loadLatestPreference } from "@/lib/political-fit-data";
+import { payText } from "@/lib/jobs";
 import { loadInvitations, loadMutes } from "@/lib/invitations-data";
 import { INVITE_DAYS } from "@/lib/engagements";
 import { ActionButton } from "@/components/ActionButton";
-import { acceptInvitation, declineAsWorker, unmute } from "../actions";
+import { acceptInvitation, declineAsWorker, mute, unmute } from "../actions";
+import { LocalTime } from "@/components/LocalTime";
 
 export const metadata = { title: "Invitations · Turfcut" };
 
@@ -31,10 +30,9 @@ export default async function InvitationsPage() {
   if (session.role !== "WORKER" || !session.workerId) redirect("/jobs");
   const workerId = session.workerId;
   const now = new Date();
-  const [all, mutes, latest] = await Promise.all([loadInvitations(workerId, now), loadMutes(workerId), loadLatestPreference(workerId)]);
-  // As in the feed: an invitation to a job the worker's own do-not-match answers rule out never shows.
-  const pref = effectivePreference(latest, now);
-  const invitations = all.filter((i) => !exclusionReasons(pref, { disclosure: readDisclosure(i.job.campaignDisclosure), orgName: i.job.org.name, measureIds: i.job.measureIds }).length);
+  // loadInvitations already leaves out jobs the worker's own do-not-match answers rule out.
+  const [invitations, mutes] = await Promise.all([loadInvitations(workerId, now), loadMutes(workerId)]);
+  const muted = new Set(mutes.map((m) => m.orgId));
   const open = invitations.filter((i) => !i.lapsed);
   const lapsed = invitations.filter((i) => i.lapsed);
 
@@ -70,7 +68,7 @@ export default async function InvitationsPage() {
                   </p>
                 </div>
                 {i.inviteNote && <p className="whitespace-pre-line rounded-xl bg-surface-2 p-3 text-sm text-fg">&ldquo;{i.inviteNote}&rdquo;</p>}
-                {i.inviteExpiresAt && <p className="text-muted-sm">Answer by {day(i.inviteExpiresAt)} ({left(i.inviteExpiresAt, now)}).</p>}
+                {i.inviteExpiresAt && <p className="text-muted-sm">Answer by <LocalTime iso={i.inviteExpiresAt.toISOString()} /> ({left(i.inviteExpiresAt, now)}).</p>}
                 <div className="flex flex-wrap items-start gap-2">
                   <ActionButton action={acceptInvitation} fields={fields} label="Accept" pendingLabel="Accepting…" />
                   <ActionButton
@@ -88,7 +86,7 @@ export default async function InvitationsPage() {
                     pendingLabel="Declining…"
                     variant="btn-ghost"
                     confirm={{
-                      text: `Decline, and stop ${i.job.org.name} from inviting you again? Their jobs still show in your feed, and you can unmute them below. They aren't told you muted them.`,
+                      text: `Decline, and stop ${i.job.org.name} from inviting you again? Their jobs still show in your feed, and you can unmute them below. We don't tell them, though they may notice their invitations don't go through.`,
                       label: "Yes, decline and mute",
                     }}
                   />
@@ -105,8 +103,13 @@ export default async function InvitationsPage() {
           <ul className="list-card">
             {lapsed.map((i) => (
               <li key={i.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm">
-                <Link href={`/jobs/${i.job.id}`} className="link">{i.job.title}</Link>
-                <span className="text-muted">{i.job.status === "CLOSED" ? "Job closed" : `Expired ${day(i.inviteExpiresAt)}`}</span>
+                <span className="space-y-0.5">
+                  <Link href={`/jobs/${i.job.id}`} className="link block">{i.job.title}</Link>
+                  <span className="text-muted block">{i.job.org.name} · {i.job.status === "CLOSED" ? "job closed" : `expired ${day(i.inviteExpiresAt)}`}</span>
+                </span>
+                {!muted.has(i.job.org.id) && (
+                  <ActionButton action={mute} fields={{ orgId: i.job.org.id }} label={`Mute ${i.job.org.name}`} pendingLabel="Muting…" variant="btn-ghost btn-sm" />
+                )}
               </li>
             ))}
           </ul>

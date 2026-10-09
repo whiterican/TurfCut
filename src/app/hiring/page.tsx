@@ -14,8 +14,8 @@ export default async function HiringPage() {
     where: { orgId: session.orgId, status: { in: ["PUBLISHED", "PAUSED"] }, OR: [{ endsAt: null }, { endsAt: { gt: openJobsEndAfter(now) } }] },
     select: { id: true, title: true, status: true, headcount: true, startsAt: true },
   });
-  const engagements = await db().engagement.findMany({ where: { jobId: { in: jobs.map((j) => j.id) } }, select: { jobId: true, status: true } });
-  const rows = pipeline(jobs.map((j) => ({ ...j, status: j.status as "PUBLISHED" | "PAUSED" })), engagements);
+  const engagements = await db().engagement.findMany({ where: { jobId: { in: jobs.map((j) => j.id) } }, select: { jobId: true, status: true, inviteExpiresAt: true } });
+  const rows = pipeline(jobs.map((j) => ({ ...j, status: j.status as "PUBLISHED" | "PAUSED" })), engagements, now);
   const total = (k: "applied" | "offered" | "invited" | "engaged") => rows.reduce((n, r) => n + r[k], 0);
 
   return (

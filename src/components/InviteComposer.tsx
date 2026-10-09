@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { readHiringModes } from "@/lib/jobs";
-import { INVITE_DAYS, INVITES_PER_WEEK, NOTE_MAX } from "@/lib/engagements";
+import { INVITE_DAYS, INVITES_PER_WEEK, inviteLapsed, NOTE_MAX } from "@/lib/engagements";
 import { invitesLeft } from "@/lib/invitations-data";
 import { ActionButton } from "@/components/ActionButton";
 import { invite } from "@/app/jobs/actions";
@@ -13,10 +13,12 @@ import { invite } from "@/app/jobs/actions";
 export async function InviteComposer({ workerId, orgId }: { workerId: string; orgId: string }) {
   const [openJobs, engagedOn, left] = await Promise.all([
     db().job.findMany({ where: { orgId, status: "PUBLISHED" }, select: { id: true, title: true, hiringMethod: true }, orderBy: { startsAt: "asc" } }),
-    db().engagement.findMany({ where: { workerId, job: { orgId } }, select: { jobId: true } }),
+    db().engagement.findMany({ where: { workerId, job: { orgId } }, select: { jobId: true, status: true, inviteExpiresAt: true } }),
     invitesLeft(workerId, orgId),
   ]);
-  const engaged = new Set(engagedOn.map((e) => e.jobId));
+  // A lapsed invitation can be sent again; any other engagement on a job rules that job out.
+  const now = new Date();
+  const engaged = new Set(engagedOn.filter((e) => !inviteLapsed(e.status, e.inviteExpiresAt, now)).map((e) => e.jobId));
   const invitable = openJobs.filter((j) => readHiringModes(j.hiringMethod).includes("invite") && !engaged.has(j.id));
 
   return (

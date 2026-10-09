@@ -27,7 +27,15 @@ export async function apiEmployer(): Promise<{ session: SessionProfile & { orgId
 export function engagementResponse(r: { ok: true; engagementId: string; status: string } | { ok: false; reason: string }, created = true) {
   if (r.ok) return Response.json({ engagementId: r.engagementId, status: r.status }, { status: created ? 201 : 200 });
   // "…belongs to another organization" comes from opening an engagement on a job that isn't the caller's.
-  const status = /not found/i.test(r.reason) ? 404 : /another organization/i.test(r.reason) ? 403 : 409;
+  const status = /not found/i.test(r.reason)
+    ? 404
+    : /another organization/i.test(r.reason)
+      ? 403
+      : /invitations this week/i.test(r.reason)
+        ? 429
+        : /characters or fewer/i.test(r.reason)
+          ? 400
+          : 409;
   return Response.json({ error: r.reason }, { status });
 }
 

@@ -81,6 +81,8 @@ export const ACCOUNT_CLOSED_NOTE = "Account closed.";
 export function cleanNote(raw: string | undefined): string | null {
   const text = (raw ?? "")
     .replace(/\r\n?/g, "\n")
+    // Control characters (NUL and the like) never belong in a note; Postgres refuses NUL outright.
+    .replace(/[\u0000-\u0008\u000B-\u001F\u007F]/g, "")
     .split("\n")
     .map((l) => l.replace(/[^\S\n]+/g, " ").trim())
     .join("\n")
@@ -137,10 +139,15 @@ export function transition(
   const heldReason = "Every open spot has an offer out right now. Check back in a couple of days.";
 
   const opens = action === "apply" || action === "invite" || action === "claim";
-  if (opens && current !== null) {
-    return no(current === "INVITED" && actor === "worker"
-      ? "You've already been invited to this job — accept the invitation instead."
-      : "There's already an engagement for this worker on this job.");
+  // A lapsed invitation can be sent again (as a lapsed offer can): the worker only missed the window.
+  const renewsInvite = action === "invite" && actor === "org" && current === "INVITED" && !!ctx.inviteExpired;
+  if (opens && current !== null && !renewsInvite) {
+    if (current === "INVITED" && actor === "worker") {
+      return no(ctx.inviteExpired
+        ? "Your invitation to this job expired. The organization can invite you again, or you can decline it."
+        : "You've already been invited to this job — accept the invitation instead.");
+    }
+    return no(current === "INVITED" && actor === "org" ? "An invitation is already waiting on this worker." : "There's already an engagement for this worker on this job.");
   }
   if (opens && ctx.jobStatus !== "PUBLISHED") return no("This job isn't open.");
   if (!opens && current === null) return no("Engagement not found.");

@@ -135,7 +135,7 @@ async function open(
       if (muted) return { ok: false as const, reason: "Worker not found." };
       // At most INVITES_PER_WEEK invitations from one organization to one worker in any 7 days (C3).
       const recent = await tx.engagementEvent.count({
-        where: { type: "INVITED", createdAt: { gt: new Date(at.getTime() - 7 * 86_400_000) }, engagement: { workerId, job: { orgId: fresh.orgId } } },
+        where: { type: "INVITED", createdAt: { gt: new Date(at.getTime() - 7 * 86_400_000), lte: at }, engagement: { workerId, job: { orgId: fresh.orgId } } },
       });
       if (recent >= INVITES_PER_WEEK) return { ok: false as const, reason: `You've sent this worker ${INVITES_PER_WEEK} invitations this week, the most allowed. Try again in a few days.` };
     }
@@ -145,12 +145,23 @@ async function open(
       headcount: fresh.headcount,
       acceptedCount,
       liveOffers: offers,
+      inviteExpired: !!existing && inviteLapsed(existing.status, existing.inviteExpiresAt, at),
     });
     if (!t.ok) return { ok: false as const, reason: t.reason };
     // Who the worker's direct messages are with: the inviter, or for an
     // instant claim the job's creator (else the owner). Applications get
     // theirs when someone accepts.
     const hiredById = action === "invite" ? actor.profileId : action === "claim" ? await defaultBoss(tx, jobId, fresh.orgId) : null;
+    if (existing) {
+      // Renewing a lapsed invitation: a fresh note, deadline and inviter on the same row (its first
+      // snapshot stays as the record of what the organization saw), and a new INVITED line.
+      await tx.engagement.update({ where: { id: existing.id }, data: { hiredById, inviteNote: note, inviteExpiresAt: inviteExpiresAt(at) } });
+      await tx.engagementEvent.create({ data: { engagementId: existing.id, type: "INVITED", actorId: actor.profileId, note, createdAt: at } });
+      await tx.auditEvent.create({
+        data: { actorId: actor.profileId, action: "engagement.reinvited", entityType: "Engagement", entityId: existing.id, metadata: { jobId, workerId }, createdAt: at },
+      });
+      return { ok: true as const, engagementId: existing.id, status: "INVITED" };
+    }
     const engagement = await tx.engagement.create({
       data: {
         jobId, workerId, status: t.status, hiredById, applicationSnapshot: snapshot as unknown as Prisma.InputJsonValue,

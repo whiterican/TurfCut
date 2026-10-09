@@ -20,6 +20,12 @@ describe("hiring pipeline", () => {
   });
   it("puts jobs with applications waiting first, then the soonest start (undated last)", () => {
     const rows = pipeline(jobs, [{ jobId: "c", status: "APPLIED" }]);
+    // A lapsed invitation counts nowhere; a live one counts as invited.
+    const inv = pipeline(jobs, [
+      { jobId: "c", status: "INVITED", inviteExpiresAt: new Date("2026-10-01T00:00:00Z") },
+      { jobId: "c", status: "INVITED", inviteExpiresAt: new Date("2026-10-20T00:00:00Z") },
+    ], new Date("2026-10-09T00:00:00Z"));
+    expect(inv.find((r) => r.jobId === "c")!.invited).toBe(1);
     expect(rows.map((r) => r.jobId)).toEqual(["c", "b", "a"]);
   });
 });

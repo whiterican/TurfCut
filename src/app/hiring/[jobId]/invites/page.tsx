@@ -27,7 +27,7 @@ export default async function InvitesPage({ params }: { params: Promise<{ jobId:
   const [invites, counts] = await Promise.all([loadJobInvites(job.id, session.orgId), hiringCounts(job.id, session.orgId)]);
   const facts = await loadPipelineFacts(invites.map((i) => i.id));
   const now = new Date();
-  const waiting = invites.filter((i) => i.status === "INVITED" && !inviteLapsed(i.status, i.inviteExpiresAt, now)).length;
+  const waiting = job.status === "CLOSED" ? 0 : invites.filter((i) => i.status === "INVITED" && !inviteLapsed(i.status, i.inviteExpiresAt, now)).length;
 
   return (
     <main className="page max-w-3xl">
@@ -56,7 +56,7 @@ export default async function InvitesPage({ params }: { params: Promise<{ jobId:
                   <span className="badge-neutral">{stageOf(i, f, now)}</span>
                 </div>
                 <p className="text-muted-sm">
-                  Sent {day(i.createdAt)}{i.hiredBy?.displayName ? ` by ${i.hiredBy.displayName}` : ""}
+                  Sent {day(i.sentAt)}{i.sentBy ? ` by ${i.sentBy}` : ""}
                 </p>
                 <HiringActions jobId={job.id} jobStatus={job.status} engagementId={i.id} status={i.status} inReview={f.inReview} offerExpiresAt={f.offerExpiresAt} inviteExpiresAt={i.inviteExpiresAt} />
                 <EngagementHistory events={f.events} />

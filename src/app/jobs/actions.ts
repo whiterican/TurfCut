@@ -9,7 +9,7 @@ import { formToObject, jurisdictionStateProblem, validateJob } from "@/lib/jobs"
 import { createJob, publishJob, updateDraftJob } from "@/lib/jobs-data";
 import { acceptEngagement, applyToJob, claimJob, inviteWorker, moveEngagement, moveEngagements } from "@/lib/engagements-data";
 import { OFFER_HOURS } from "@/lib/engagements";
-import { declineInvitation, unmuteOrg } from "@/lib/invitations-data";
+import { declineInvitation, muteOrg, unmuteOrg } from "@/lib/invitations-data";
 
 export interface JobFormState {
   message: string;
@@ -96,8 +96,20 @@ export async function declineAsWorker(_prev: ActionState, formData: FormData): P
   return done(
     field(formData, "jobId"),
     r,
-    mute ? "Declined, and muted: this organization can't invite you again until you unmute it." : "Declined. The organization sees that you said no; nothing else."
+    r.ok && r.muted
+      ? "Declined, and muted: this organization can't invite you again until you unmute it."
+      : mute
+        ? "Declined. The mute didn't go through; you can mute them from Invitations."
+        : "Declined. The organization sees that you said no; nothing else."
   );
+}
+
+/** Mutes an organization that has invited the worker (C3.3), e.g. from an expired invitation. */
+export async function mute(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const { workerId, userId } = await requireWorker();
+  const r = await muteOrg({ workerId, profileId: userId }, field(formData, "orgId"));
+  revalidatePath("/jobs/invitations");
+  return r.ok ? { ok: true, message: "Muted. They can't invite you until you unmute them." } : { ok: false, message: r.reason };
 }
 
 /** Lifts a mute (C3.3): the organization may invite the worker again. */

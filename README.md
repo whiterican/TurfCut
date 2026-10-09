@@ -686,12 +686,15 @@ certificate. Approved as recommended by review:
 - **Invitations (C3.3)**: an organization invites a worker it already has
   a relationship with (C1) from the worker's or applicant's page, with an
   optional note the worker reads (also on the history). An invitation
-  lapses after 7 days, and one organization can send one worker at most 3
-  in any 7 days (withdrawn ones count). There are no read receipts:
+  lapses after 7 days and can then be sent again, and one organization can
+  send one worker at most 3 in any 7 days (withdrawn and resent ones
+  count; the API answers 429 past that). There are no read receipts:
   opening one records nothing. The worker's inbox (`/jobs/invitations`)
   offers Accept, Decline, and Decline and mute: a muted organization's
-  invitations read "Worker not found", as for any worker it can't reach;
-  its jobs still show in the feed (a "do not match" answer hides them).
+  invitations read "Worker not found", as for any worker it can't reach
+  (it isn't told, though it may notice); its jobs still show in the feed
+  (a "do not match" answer hides them). An expired invitation can be muted
+  from the inbox too.
   Mutes can be lifted from the inbox, are audited, and are in the data
   export with the invitation notes. The organization's Invites view
   (`/hiring/[jobId]/invites`) lists who was invited, by whom, the note and

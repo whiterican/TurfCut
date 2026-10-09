@@ -1,4 +1,4 @@
-import type { EngagementStatus } from "@/lib/engagements";
+import { inviteLapsed, type EngagementStatus } from "@/lib/engagements";
 
 /**
  * The hiring pipeline (C1.4): per open job, how many people sit at each
@@ -32,14 +32,16 @@ const STAGE: Partial<Record<EngagementStatus, keyof Pick<PipelineRow, "applied" 
 
 export function pipeline(
   jobs: Array<{ id: string; title: string; status: "PUBLISHED" | "PAUSED"; headcount: number | null; startsAt: Date | null }>,
-  engagements: Array<{ jobId: string; status: EngagementStatus }>
+  engagements: Array<{ jobId: string; status: EngagementStatus; inviteExpiresAt?: Date | null }>,
+  now = new Date()
 ): PipelineRow[] {
   const rows = new Map<string, PipelineRow>(
     jobs.map((j) => [j.id, { jobId: j.id, title: j.title, status: j.status, headcount: j.headcount, applied: 0, offered: 0, invited: 0, engaged: 0, completed: 0 }])
   );
   for (const e of engagements) {
     const row = rows.get(e.jobId);
-    const stage = STAGE[e.status];
+    // A lapsed invitation is waiting on nobody: it counts nowhere (C3.3).
+    const stage = inviteLapsed(e.status, e.inviteExpiresAt ?? null, now) ? undefined : STAGE[e.status];
     if (row && stage) row[stage]++;
   }
   // Waiting applications first, then soonest start.

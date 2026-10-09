@@ -310,10 +310,43 @@ const types = async (id: string) => (await loadEngagementEvents(id)).map((e) => 
 
   // The organization's side.
   const jobInv = await loadJobInvites(ji1.id, ORG);
-  check("the Invites view lists the invitation with its sender", jobInv.length === 1 && jobInv[0].hiredBy?.displayName === "Maya Chen" && jobInv[0].inviteNote === n1e.inviteNote, jobInv);
+  check("the Invites view lists the invitation with its sender", jobInv.length === 1 && jobInv[0].sentBy === "Maya Chen" && jobInv[0].inviteNote === n1e.inviteNote, jobInv);
   check("…and another organization sees none of them", (await loadJobInvites(ji1.id, ORG2)).length === 0);
   check("tab counts split applicants from invitations", JSON.stringify(await hiringCounts(jobP.id, ORG)) === JSON.stringify({ applicants: 2, invites: 1 }), await hiringCounts(jobP.id, ORG));
   check("no read receipts: INVITE_VIEWED is never written", (await p.engagementEvent.count({ where: { type: "INVITE_VIEWED" } })) === 0);
+  // Review round: a lapsed invitation can be sent again (the worker only missed the window).
+  // (A week on, so this week's invitations to W4 don't hit the cap.)
+  const reInv = await inviteWorker(ORG, HIRER, (await p.engagement.findUniqueOrThrow({ where: { id: idOf(old) } })).jobId, W4, new Date(Date.now() + 8 * DAY), { note: "Second try" });
+  const renewed = await p.engagement.findUniqueOrThrow({ where: { id: idOf(old) } });
+  check("a lapsed invitation is sent again on the same engagement: new deadline, note and sender", reInv.ok && idOf(reInv) === idOf(old) && renewed.status === "INVITED" && renewed.inviteNote === "Second try" && renewed.hiredById === HIRER && renewed.inviteExpiresAt! > new Date(), { reInv, renewed });
+  const renewInvites = await loadJobInvites(renewed.jobId, ORG);
+  check("…the Invites view names the latest sender, and the worker can accept it", renewInvites[0]?.sentBy === "Sam Hirer" && (await moveEngagement(idOf(old), "accept", worker(W4))).ok, renewInvites);
+
+  // The cap holds under concurrency: four at once, three go out.
+  const capJobs = await Promise.all([0, 1, 2, 3].map((k) => newJob(`Race cap ${k}`, 2)));
+  const raced = await Promise.all(capJobs.map((j) => inviteWorker(ORG, OWNER, j.id, W3)));
+  check("four invitations at once to one worker: exactly three go out", raced.filter((r) => r.ok).length === 3, raced);
+
+  // Decline and mute only mutes when an invitation is declined, and says so.
+  const offerMute = await declineInvitation({ workerId: W2, profileId: W2 }, pa, { mute: true });
+  check("decline-and-mute on an offer declines it but mutes nothing", offerMute.ok && offerMute.muted === false && (await p.orgMute.count({ where: { workerId: W2 } })) === 0, offerMute);
+  const legacyJob = await newJob("Legacy invite job", 2);
+  const legacy = await p.engagement.create({ data: { jobId: legacyJob.id, workerId: W6, status: "INVITED" } });
+  const legacyMute = await declineInvitation({ workerId: W6, profileId: W6 }, legacy.id, { mute: true });
+  check("an invitation from before C3 history (no INVITED line) can still be declined and muted", legacyMute.ok && legacyMute.muted === true, legacyMute);
+  check("…and it shows in the Invites view and the tab counts", (await loadJobInvites(legacyJob.id, ORG)).length === 1 && (await hiringCounts(legacyJob.id, ORG)).invites === 1);
+
+  // The inbox honours the worker's own do-not-match answers (W4 asked not to be matched with this organization).
+  const jd = await newJob("Disclosed invite job", 2, { campaignDisclosure: { campaignType: "ballot_measure", affiliation: "nonpartisan", message: "Paid for by the committee." } });
+  const hidden = await inviteWorker(ORG, OWNER, jd.id, W4, new Date(Date.now() - 10 * DAY));
+  check("an invitation the worker's do-not-match answers rule out never shows in their inbox", hidden.ok && !(await loadInvitations(W4)).some((i) => i.id === idOf(hidden)), hidden);
+
+  check("tab counts agree with the applicants list on a job with a pre-C3 seeded engagement", (await hiringCounts(JOB, ORG)).applicants === (await loadApplicants(JOB, ORG, new Date(), { scorecards: false })).length, await hiringCounts(JOB, ORG));
+
+  await muteOrg({ workerId: W4, profileId: W4 }, ORG);
+  const mutesFile = (await exportAccount({ userId: W4, workerId: W4 })).find((f) => f.name === "mutes.json")?.text ?? "";
+  check("the export's mutes file names the muted organization", /Front Range Circulators/.test(mutesFile), mutesFile);
+
   const expW2 = await exportAccount({ userId: W2, workerId: W2 });
   check("the export carries invitation notes and the mutes file", /Saturday canvass/.test(expW2.find((f) => f.name === "engagements.csv")?.text ?? "") && expW2.some((f) => f.name === "mutes.json"));
 

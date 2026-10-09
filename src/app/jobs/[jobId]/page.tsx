@@ -381,8 +381,9 @@ async function OrgPanel({ job, canHire, canSchedule, userId }: { job: JobWithRef
         <section className="section">
           <h2 className="section-title">Close this job</h2>
           <p className="text-muted-sm">
-            When the spots are filled or the work is done. Nobody can apply or be invited afterwards. Open applications and offers end as not
-            selected and invitations are withdrawn, each worker told the job closed. People already hired stay hired.
+            When you&apos;re done hiring. Nobody can apply or be invited afterwards. Open applications end as not selected, open offers
+            (even ones still inside their 48 hours) are withdrawn as not selected, and invitations are withdrawn, each worker told the job
+            closed. People already hired stay hired, and you can keep scheduling their shifts.
           </p>
           <ActionButton
             action={closeJobAction}
@@ -390,7 +391,7 @@ async function OrgPanel({ job, canHire, canSchedule, userId }: { job: JobWithRef
             label="Close job"
             pendingLabel="Closing…"
             variant="btn-secondary"
-            confirm={{ text: "Close this job? It can't be reopened.", label: "Yes, close it" }}
+            confirm={{ text: "Close this job? Open applications, offers and invitations end now, and it can't be reopened.", label: "Yes, close it" }}
           />
         </section>
       )}
@@ -441,7 +442,7 @@ async function OrgPanel({ job, canHire, canSchedule, userId }: { job: JobWithRef
         </section>
       )}
 
-      {canSchedule && job.status === "PUBLISHED" && <ShiftsSection job={job} userId={userId} />}
+      {canSchedule && (job.status === "PUBLISHED" || job.status === "CLOSED") && <ShiftsSection job={job} userId={userId} />}
     </>
   );
 }

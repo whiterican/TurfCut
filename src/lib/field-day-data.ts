@@ -94,7 +94,8 @@ export async function scheduleShift(
   if (!e || e.job.orgId !== actor.orgId) return { ok: false, reason: "Engagement not found." };
   if (e.status !== "ACTIVE" && e.status !== "CLAIMED") return { ok: false, reason: "Only hired workers can be scheduled." };
   if (e.worker.closedAt) return { ok: false, reason: "This worker has closed their account." };
-  if (e.job.status !== "PUBLISHED") return { ok: false, reason: "The job isn't open." };
+  // A closed job stops hiring, not the work: people already hired can still be scheduled (C3.5).
+  if (e.job.status !== "PUBLISHED" && e.job.status !== "CLOSED") return { ok: false, reason: "The job isn't open." };
   // Jurisdiction hard stop: a rule change freezes new shifts until re-approved.
   const freeze = canScheduleShift(e.job.jurisdiction, now);
   if (!freeze.ok) return { ok: false, reason: `New shifts are frozen: ${freeze.reasons.join(" ")}` };

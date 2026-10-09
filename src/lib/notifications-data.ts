@@ -1,7 +1,10 @@
-import type { NotificationKind, Prisma } from "@prisma/client";
+import type { NotificationKind, Prisma, Role } from "@prisma/client";
 import { db } from "@/lib/db";
 import { HIRING_ROLES } from "@/lib/access";
 import type { EngagementEventType } from "@/lib/engagements";
+import { exclusionReasons, readDisclosure, UUID_RE } from "@/lib/jobs";
+import { effectivePreference } from "@/lib/political-fit";
+import { loadLatestPreference } from "@/lib/political-fit-data";
 
 type Tx = Prisma.TransactionClient;
 
@@ -12,10 +15,13 @@ type Tx = Prisma.TransactionClient;
  * is theirs alone: nothing shows it to anyone else (no read receipts).
  */
 
-/** Who on the organization's side hears about a step: the engagement's contact, else its hiring staff. */
+/**
+ * Who on the organization's side hears about a step: the engagement's
+ * contact while they're still hiring staff there, else its hiring staff.
+ */
 async function orgRecipients(tx: Tx, orgId: string, contactId: string | null): Promise<string[]> {
   if (contactId) {
-    const c = await tx.profile.findFirst({ where: { id: contactId, orgId, closedAt: null }, select: { id: true } });
+    const c = await tx.profile.findFirst({ where: { id: contactId, orgId, role: { in: HIRING_ROLES }, closedAt: null }, select: { id: true } });
     if (c) return [c.id];
   }
   const staff = await tx.profile.findMany({ where: { orgId, role: { in: HIRING_ROLES }, closedAt: null }, select: { id: true } });
@@ -59,31 +65,79 @@ export async function notifyStep(
 }
 
 export const NOTIFICATION_PAGE = 50;
+/** The badge shows "99+" past this: counting further would only cost time. */
+export const UNREAD_CAP = 100;
+
+type Viewer = { userId: string; role: Role; workerId: string | null; orgId: string | null };
 
 /**
- * A person's notices, newest first, each with what it's about — only ones
- * that still concern them: a worker's own engagements, or engagements on the
- * jobs of the organization they belong to now (staff who left see none).
+ * Which engagements a person's notices may be about now: a worker's own, or
+ * — for hiring staff only — the jobs of the organization they belong to now
+ * (staff who left or moved to another role see none of its applicants).
  */
-export async function loadNotifications(viewer: { userId: string; workerId: string | null; orgId: string | null }) {
-  const scope: Prisma.EngagementWhereInput = viewer.workerId ? { workerId: viewer.workerId } : viewer.orgId ? { job: { orgId: viewer.orgId } } : { id: "00000000-0000-0000-0000-000000000000" };
-  return db().notification.findMany({
-    where: { recipientId: viewer.userId, engagement: scope },
+function scopeFor(v: Viewer): Prisma.EngagementWhereInput | null {
+  if (v.role === "WORKER") return v.workerId ? { workerId: v.workerId } : null;
+  return v.orgId && HIRING_ROLES.includes(v.role) ? { job: { orgId: v.orgId } } : null;
+}
+
+const SELECT = {
+  id: true, kind: true, createdAt: true, readAt: true,
+  engagement: {
     select: {
-      id: true, kind: true, createdAt: true, readAt: true,
-      engagement: { select: { id: true, jobId: true, worker: { select: { displayName: true } }, job: { select: { title: true, org: { select: { name: true } } } } } },
+      id: true, jobId: true, status: true,
+      worker: { select: { displayName: true } },
+      job: { select: { title: true, campaignDisclosure: true, measureIds: true, org: { select: { name: true } } } },
+      // Whether it ever was an offer, for the words of a job-closed notice.
+      events: { where: { type: "OFFERED" as const }, take: 1, select: { id: true } },
     },
-    orderBy: [{ createdAt: "desc" }, { id: "asc" }],
-    take: NOTIFICATION_PAGE,
+  },
+} satisfies Prisma.NotificationSelect;
+
+/**
+ * A worker's notices about invitations their own do-not-match answers now rule
+ * out are never shown, as the invitation itself never is (rule 4).
+ */
+async function visible<T extends { kind: NotificationKind; engagement: { status: string; job: { campaignDisclosure: unknown; measureIds: string[]; org: { name: string } } } }>(
+  v: Viewer,
+  rows: T[]
+): Promise<T[]> {
+  if (v.role !== "WORKER" || !v.workerId || !rows.length) return rows;
+  const pref = effectivePreference(await loadLatestPreference(v.workerId));
+  const invitation = (r: T) =>
+    r.kind === "INVITATION_RECEIVED" || r.kind === "INVITATION_WITHDRAWN" || (r.kind === "JOB_CLOSED" && r.engagement.status === "WITHDRAWN");
+  return rows.filter(
+    (r) => !invitation(r) || !exclusionReasons(pref, { disclosure: readDisclosure(r.engagement.job.campaignDisclosure), orgName: r.engagement.job.org.name, measureIds: r.engagement.job.measureIds }).length
+  );
+}
+
+/** A person's notices, newest first, each with what it's about. */
+export async function loadNotifications(v: Viewer) {
+  const scope = scopeFor(v);
+  if (!scope) return [];
+  const rows = await db().notification.findMany({ where: { recipientId: v.userId, engagement: scope }, select: SELECT, orderBy: [{ createdAt: "desc" }, { id: "asc" }], take: NOTIFICATION_PAGE });
+  return visible(v, rows);
+}
+
+/** Unread notices (up to UNREAD_CAP) for the header bell. */
+export async function unreadNotifications(v: Viewer): Promise<number> {
+  const scope = scopeFor(v);
+  if (!scope) return 0;
+  const rows = await db().notification.findMany({
+    where: { recipientId: v.userId, readAt: null, engagement: scope },
+    select: SELECT,
+    orderBy: { createdAt: "desc" },
+    take: UNREAD_CAP,
   });
+  return (await visible(v, rows)).length;
 }
 
-export async function unreadNotifications(viewer: { userId: string; workerId: string | null; orgId: string | null }): Promise<number> {
-  const scope: Prisma.EngagementWhereInput = viewer.workerId ? { workerId: viewer.workerId } : viewer.orgId ? { job: { orgId: viewer.orgId } } : { id: "00000000-0000-0000-0000-000000000000" };
-  return db().notification.count({ where: { recipientId: viewer.userId, readAt: null, engagement: scope } });
-}
-
-/** Marks every notice of this person read (their own; nobody else ever sees it). */
-export async function markAllRead(userId: string, now = new Date()) {
-  await db().notification.updateMany({ where: { recipientId: userId, readAt: null }, data: { readAt: now } });
+/**
+ * Marks read the notices this person was shown (their ids, from the page) —
+ * never ones that arrived after, sat beyond the page, or aren't theirs.
+ * Nobody else ever sees whether they did.
+ */
+export async function markRead(userId: string, ids: string[], now = new Date()) {
+  const own = ids.filter((id) => UUID_RE.test(id)).slice(0, NOTIFICATION_PAGE);
+  if (!own.length) return;
+  await db().notification.updateMany({ where: { recipientId: userId, id: { in: own }, readAt: null }, data: { readAt: now } });
 }

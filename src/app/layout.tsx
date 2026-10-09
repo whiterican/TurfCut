@@ -61,7 +61,7 @@ export default async function RootLayout({
       ? db().organization.findUnique({ where: { id: session.orgId }, select: { name: true, approved: true } }).catch(() => null)
       : null,
     session
-      ? unreadNotifications({ userId: session.userId, workerId: session.workerId ?? null, orgId: session.role === "WORKER" ? null : session.orgId ?? null }).catch(() => 0)
+      ? unreadNotifications({ userId: session.userId, role: session.role, workerId: session.workerId ?? null, orgId: session.orgId ?? null }).catch(() => 0)
       : 0,
   ]);
   return (

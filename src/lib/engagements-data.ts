@@ -383,7 +383,11 @@ export async function closeJob(jobId: string, actor: { profileId: string; orgId:
     await tx.job.update({ where: { id: jobId }, data: { status: "CLOSED" } });
     const open = await tx.engagement.findMany({
       where: { jobId, status: { in: ["APPLIED", "OFFERED", "INVITED"] } },
-      select: { id: true, status: true, hiredById: true, worker: { select: { profileId: true, closedAt: true } } },
+      select: {
+        id: true, status: true, hiredById: true, inviteExpiresAt: true,
+        worker: { select: { profileId: true, closedAt: true } },
+        events: { where: { type: "OFFERED" }, orderBy: { createdAt: "desc" }, take: 1, select: { createdAt: true } },
+      },
     });
     let closed = 0;
     for (const e of open) {
@@ -396,7 +400,10 @@ export async function closeJob(jobId: string, actor: { profileId: string; orgId:
       await tx.engagementEvent.create({
         data: { engagementId: e.id, type, actorId: actor.profileId, reasonCode: type === "NOT_SELECTED" ? "other" : null, note: JOB_CLOSED_NOTE, createdAt: at },
       });
-      await notifyStep(tx, type, { id: e.id, hiredById: e.hiredById, worker: e.worker, job: { orgId: job.orgId } }, actor.profileId, at, "JOB_CLOSED");
+      // An invitation or offer that had already lapsed ends quietly: nothing was waiting on the worker.
+      const lapsed =
+        inviteLapsed(e.status, e.inviteExpiresAt, at) || offerLapsed(e.status, e.events[0] ? offerExpiresAt(e.events[0].createdAt) : null, at);
+      if (!lapsed) await notifyStep(tx, type, { id: e.id, hiredById: e.hiredById, worker: e.worker, job: { orgId: job.orgId } }, actor.profileId, at, "JOB_CLOSED");
     }
     await tx.auditEvent.create({ data: { actorId: actor.profileId, action: "job.closed", entityType: "Job", entityId: jobId, metadata: { closedEngagements: closed }, createdAt: at } });
     return { ok: true as const, closed };

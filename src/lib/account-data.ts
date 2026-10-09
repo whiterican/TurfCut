@@ -79,10 +79,13 @@ export async function closeAccount(actor: { userId: string; workerId: string }, 
     // with a history line in the worker's name (an invitation reads as
     // declined, anything the worker started as withdrawn) that says why.
     const open = await tx.engagement.findMany({ where: { workerId: actor.workerId, status: { in: ["APPLIED", "INVITED", "OFFERED"] } }, select: { id: true, status: true } });
-    if (open.length) {
-      await tx.engagement.updateMany({ where: { id: { in: open.map((e) => e.id) } }, data: { status: "CANCELLED" } });
-      await tx.engagementEvent.createMany({
-        data: open.map((e) => ({ engagementId: e.id, type: e.status === "INVITED" ? ("INVITE_DECLINED" as const) : ("WITHDRAWN" as const), actorId: actor.userId, note: ACCOUNT_CLOSED_NOTE, createdAt: now })),
+    // One by one, each only if still as read: closing a job (which holds the job's lock, not the
+    // worker's) may have ended it meanwhile, and its history must not get a second ending.
+    for (const e of open) {
+      const { count } = await tx.engagement.updateMany({ where: { id: e.id, status: e.status }, data: { status: "CANCELLED" } });
+      if (!count) continue;
+      await tx.engagementEvent.create({
+        data: { engagementId: e.id, type: e.status === "INVITED" ? "INVITE_DECLINED" : "WITHDRAWN", actorId: actor.userId, note: ACCOUNT_CLOSED_NOTE, createdAt: now },
       });
     }
 

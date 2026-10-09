@@ -2,11 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { requireAuth } from "@/lib/auth";
-import { markAllRead } from "@/lib/notifications-data";
+import { markRead } from "@/lib/notifications-data";
 
-/** Marks the signed-in person's notices read. Nobody else ever sees whether they did. */
-export async function markNotificationsRead(): Promise<void> {
+/** Marks read the notices the page showed (their ids). Nobody else ever sees whether they did. */
+export async function markNotificationsRead(fd: FormData): Promise<void> {
   const session = await requireAuth();
-  await markAllRead(session.userId);
+  await markRead(session.userId, fd.getAll("id").map(String));
   revalidatePath("/", "layout");
 }

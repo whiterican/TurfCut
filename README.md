@@ -738,14 +738,19 @@ certificate. Approved as recommended by review:
   invitations and offers. Never the person who took the step; "in review"
   stays quiet. Only the kind and the engagement are stored; the words are
   drawn when shown, and staff who leave an organization stop seeing its
-  notices. Reading is private: nothing records or shows it to anyone else,
-  and the page marks nothing read until "Mark all as read". In the
-  worker's export. Email and push come later.
+  notices, as do members whose role no longer includes hiring. A worker's
+  notices about invitations their own "do not match" answers rule out are
+  never shown. Reading is private: nothing records or shows it to anyone
+  else, and only "Mark these as read" marks the notices on the page (never
+  newer ones). In the worker's export. Closing an account ends the
+  worker's open engagements without notices (their name becomes "Former
+  worker"). Email and push come later.
 - **Closing a job (C3.5)**: owners and recruiters can close a published or
   paused job from its page. Open applications and offers end as not
   selected ("another reason", with Turfcut's note that the job closed),
-  invitations are withdrawn, each worker is notified; people already hired
-  stay hired. It can't be reopened.
+  invitations are withdrawn, each worker is notified (not for ones that had
+  already lapsed); people already hired stay hired and can still be
+  scheduled. It can't be reopened.
 - **History**: every step is an append-only `EngagementEvent`, shown the
   same way to the worker and the organization, and in the worker's data
   export (`engagement-history.csv`). `prisma/c3-hiring.sql` adds the

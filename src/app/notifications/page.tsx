@@ -15,7 +15,7 @@ export const metadata = { title: "Notifications · Turfcut" };
 export default async function NotificationsPage() {
   const session = await requireAuth();
   const viewer = session.role === "WORKER" ? "worker" : "org";
-  const items = await loadNotifications({ userId: session.userId, workerId: session.workerId ?? null, orgId: viewer === "org" ? session.orgId ?? null : null });
+  const items = await loadNotifications({ userId: session.userId, role: session.role, workerId: session.workerId ?? null, orgId: session.orgId ?? null });
   const unread = items.filter((n) => !n.readAt).length;
 
   return (
@@ -28,7 +28,9 @@ export default async function NotificationsPage() {
         </div>
         {unread > 0 && (
           <form action={markNotificationsRead}>
-            <button className="btn-secondary btn-sm">Mark all as read</button>
+            {/* Only the ones shown here: anything newer stays unread until it's seen. */}
+            {items.filter((n) => !n.readAt).map((n) => <input key={n.id} type="hidden" name="id" value={n.id} />)}
+            <button className="btn-secondary btn-sm">Mark these as read</button>
           </form>
         )}
       </header>
@@ -40,7 +42,7 @@ export default async function NotificationsPage() {
       ) : (
         <ul className="list-card">
           {items.map((n) => {
-            const t = notificationText(n.kind, n.engagement, viewer);
+            const t = notificationText(n.kind, { ...n.engagement, wasOffer: n.engagement.events.length > 0 }, viewer);
             return (
               <li key={n.id}>
                 <Link href={t.href} className="flex items-start gap-3 px-4 py-3 text-fg transition hover:bg-surface-2">

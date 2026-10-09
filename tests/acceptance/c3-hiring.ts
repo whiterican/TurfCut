@@ -7,7 +7,8 @@ import { applicantCells } from "@/lib/applicants";
 import { saveSharing } from "@/lib/sharing-data";
 import { partsForOrg, partsForOrgMany } from "@/lib/shared-scorecard-data";
 import { isMatch, loadMatches, matchCounts } from "@/lib/matches-data";
-import { loadNotifications, markAllRead, unreadNotifications } from "@/lib/notifications-data";
+import { loadNotifications, markRead, unreadNotifications } from "@/lib/notifications-data";
+import { scheduleShift as scheduleShiftC35 } from "@/lib/field-day-data";
 import { closeJob } from "@/lib/engagements-data";
 import { JOB_CLOSED_NOTE } from "@/lib/engagements";
 import { HIRING_ROLES } from "@/lib/access";
@@ -456,18 +457,67 @@ const types = async (id: string) => (await loadEngagementEvents(id)).map((e) => 
   check("…leaves people already hired as they are", (await p.engagement.findUniqueOrThrow({ where: { id: nn1 } })).status === "ACTIVE" && (await p.job.findUniqueOrThrow({ where: { id: jn.id } })).status === "CLOSED");
   const closedB = await closeJob(jn2.id, { profileId: OWNER, orgId: ORG });
   check("…and withdraws an open invitation, telling the worker", closedB.ok && (await p.engagement.findUniqueOrThrow({ where: { id: n1inv } })).status === "WITHDRAWN" && (await notices(n1inv)).some((x) => x.kind === "JOB_CLOSED" && x.recipientId === N(1)));
-  check("a closed job takes no applications or invitations, and can't be closed twice", !(await applyToJob(N(2), N(2), jn.id)).ok && !(await closeJob(jn.id, { profileId: OWNER, orgId: ORG })).ok);
-  check("another organization can't close it", (await closeJob(jn2.id, { profileId: OTHER, orgId: ORG2 })).ok === false);
+  const lateApply = await applyToJob(W3, W3, jn.id);
+  // N(4) has a relationship with the organization (an application elsewhere) and nothing on this job.
+  await p.profile.create({ data: { id: N(4), role: "WORKER" } });
+  await p.worker.create({ data: { id: N(4), profileId: N(4), displayName: "Notice 4" } });
+  await applyToJob(N(4), N(4), (await newJob("Relationship job", 2)).id);
+  const lateInvite = await inviteWorker(ORG, OWNER, jn.id, N(4));
+  check("a closed job takes no applications or invitations", !lateApply.ok && lateApply.reason === "This job isn't open." && !lateInvite.ok && lateInvite.reason === "This job isn't open.", { lateApply, lateInvite });
+  check("…and can't be closed twice", JSON.stringify(await closeJob(jn.id, { profileId: OWNER, orgId: ORG })) === JSON.stringify({ ok: false, reason: "This job is already closed." }));
+  const stillOpen = await newJob("Other org can't close", 2);
+  check("another organization can't close a job (reads as not found)", JSON.stringify(await closeJob(stillOpen.id, { profileId: OTHER, orgId: ORG2 })) === JSON.stringify({ ok: false, reason: "Job not found." }) && (await p.job.findUniqueOrThrow({ where: { id: stillOpen.id } })).status === "PUBLISHED");
+  const hiredShift = await scheduleShiftC35({ profileId: OWNER, orgId: ORG }, nn1, { startsAt: new Date(Date.now() + 50 * HOUR).toISOString(), endsAt: new Date(Date.now() + 54 * HOUR).toISOString(), stagingLocation: "Library parking lot" });
+  check("people hired on a closed job can still be scheduled", hiredShift.ok, hiredShift);
+
+  // Closing a job with a live offer, and with lapsed ones.
+  const jo = await newJob("Offer close job", 3);
+  const oLive = idOf(await applyToJob(N(2), N(2), jo.id));
+  await moveEngagement(oLive, "offer", org);
+  const oOld = idOf(await applyToJob(N(3), N(3), jo.id, new Date(Date.now() - 60 * HOUR)));
+  await moveEngagement(oOld, "offer", org, {}, new Date(Date.now() - 50 * HOUR));
+  await closeJob(jo.id, { profileId: OWNER, orgId: ORG });
+  const n2closed = (await loadNotifications({ userId: N(2), role: "WORKER", workerId: N(2), orgId: null })).find((n) => n.engagement.id === oLive && n.kind === "JOB_CLOSED");
+  check("a live offer ends with the job, and the worker is told it was an offer", (await p.engagement.findUniqueOrThrow({ where: { id: oLive } })).status === "DECLINED" && !!n2closed && n2closed.engagement.events.length > 0, n2closed);
+  check("a lapsed offer ends quietly", !(await notices(oOld)).some((x) => x.kind === "JOB_CLOSED"));
   check("closing is audited", (await p.auditEvent.count({ where: { action: "job.closed", entityId: jn.id } })) === 1);
 
-  const mine = await loadNotifications({ userId: N(1), workerId: N(1), orgId: null });
+  const asWorker = (w: string) => ({ userId: w, role: "WORKER" as const, workerId: w, orgId: null });
+  const asStaff = (id: string, role: "OWNER" | "RECRUITER" | "SUPERVISOR", orgId: string) => ({ userId: id, role, workerId: null, orgId });
+  const mine = await loadNotifications(asWorker(N(1)));
   check("a worker's notices are theirs, newest first", mine.length >= 3 && mine.every((n) => n.engagement.jobId === jn.id || n.engagement.jobId === jn2.id) && mine[0].createdAt >= mine.at(-1)!.createdAt, mine.map((n) => n.kind));
+  const hirerBefore = (await loadNotifications(asStaff(HIRER, "RECRUITER", ORG))).length;
   await p.profile.update({ where: { id: HIRER }, data: { orgId: ORG2 } });
-  check("hiringStaff who move to another organization no longer see the old one's notices", (await loadNotifications({ userId: HIRER, workerId: null, orgId: ORG2 })).length === 0 && (await unreadNotifications({ userId: HIRER, workerId: null, orgId: ORG2 })) === 0);
+  check("staff who move to another organization no longer see the old one's notices", hirerBefore > 0 && (await loadNotifications(asStaff(HIRER, "RECRUITER", ORG2))).length === 0 && (await unreadNotifications(asStaff(HIRER, "RECRUITER", ORG2))) === 0, hirerBefore);
   await p.profile.update({ where: { id: HIRER }, data: { orgId: ORG } });
-  const ownerUnread = await unreadNotifications({ userId: OWNER, workerId: null, orgId: ORG });
-  await markAllRead(N(1));
-  check("marking read is the reader's own: theirs goes to 0, nobody else's changes", (await unreadNotifications({ userId: N(1), workerId: N(1), orgId: null })) === 0 && (await unreadNotifications({ userId: OWNER, workerId: null, orgId: ORG })) === ownerUnread && ownerUnread > 0);
+  check("…nor do members whose role no longer includes hiring", (await loadNotifications(asStaff(HIRER, "SUPERVISOR", ORG))).length === 0);
+  // A contact who is no longer hiring staff isn't the one told: the hiring staff are.
+  await p.profile.update({ where: { id: HIRER }, data: { role: "SUPERVISOR" } });
+  const jh = await newJob("Demoted contact job", 2);
+  const hInv = idOf(await inviteWorker(ORG, OWNER, jh.id, N(1)));
+  await p.engagement.update({ where: { id: hInv }, data: { hiredById: HIRER } }); // as if HIRER had sent it, then been moved
+  await moveEngagement(hInv, "accept", worker(N(1)));
+  const hAcc = (await notices(hInv)).filter((x) => x.kind === "INVITATION_ACCEPTED").map((x) => x.recipientId).sort();
+  check("an answer goes to hiring staff when the contact no longer hires", !hAcc.includes(HIRER) && hAcc.length > 0, hAcc);
+  await p.profile.update({ where: { id: HIRER }, data: { role: "RECRUITER" } });
+
+  // A worker's own do-not-match answers hide notices about invitations they rule out (rule 4).
+  const jx = await newJob("Excluded invite job", 2, { campaignDisclosure: { campaignType: "ballot_measure", affiliation: "nonpartisan", message: "Paid for by the committee." } });
+  const xInv = idOf(await inviteWorker(ORG, OWNER, jx.id, N(1)));
+  const beforeBoundary = (await loadNotifications(asWorker(N(1)))).some((n) => n.engagement.id === xInv);
+  await savePreferences(N(1), N(1), { visibilityMode: "MATCHING_ONLY", identityLabels: [], partyRelationship: null, issuePositions: {}, campaignBoundaries: [{ kind: "campaign_type", target: "ballot_measure", stance: "do_not_match" }] } as never, null);
+  check("a notice about an invitation the worker's own answers rule out isn't shown or counted", beforeBoundary && !(await loadNotifications(asWorker(N(1)))).some((n) => n.engagement.id === xInv), { beforeBoundary });
+
+  const ownerUnread = await unreadNotifications(asStaff(OWNER, "OWNER", ORG));
+  const shown = await loadNotifications(asWorker(N(1)));
+  // A notice that arrives after the page was drawn (N(1) is at this week's invitation limit, so it's written directly).
+  const newer = await p.notification.create({ data: { recipientId: N(1), kind: "OFFER_RECEIVED", engagementId: nn1, createdAt: new Date(Date.now() + 1000) } });
+  await markRead(N(1), shown.map((n) => n.id));
+  const left = await loadNotifications(asWorker(N(1)));
+  check("marking read covers only what was shown: a newer notice stays unread", left.every((n) => (n.id === newer.id ? !n.readAt : !!n.readAt)) && left.some((n) => n.id === newer.id), left.map((n) => [n.kind, !!n.readAt]));
+  check("…and is the reader's own: nobody else's changes", (await unreadNotifications(asStaff(OWNER, "OWNER", ORG))) === ownerUnread && ownerUnread > 0);
+  await markRead(OWNER, shown.map((n) => n.id));
+  check("…and someone else's ids mark nothing", (await p.notification.count({ where: { id: { in: shown.map((n) => n.id) }, recipientId: N(1), readAt: null } })) === 0 && (await unreadNotifications(asStaff(OWNER, "OWNER", ORG))) === ownerUnread);
   const nExp = (await exportAccount({ userId: N(1), workerId: N(1) })).find((f) => f.name === "notifications.csv")?.text ?? "";
   check("the worker's export lists their notices", /OFFER_RECEIVED/.test(nExp) && /JOB_CLOSED/.test(nExp), nExp.slice(0, 200));
   for (const role of ["anon", "authenticated"]) {

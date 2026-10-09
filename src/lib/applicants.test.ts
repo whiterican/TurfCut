@@ -128,12 +128,12 @@ describe("C3.2 review fixes", () => {
     expect(availableColumns(applicantJob({ ...base, type: "CANVASS" }))).not.toContain("credentials");
   });
   it("issue overlap with this job only on the worker's own open or worked engagement", () => {
-    expect(fitCampaignAllowed("worker", "APPLIED")).toBe(true);
-    expect(fitCampaignAllowed("worker", "ACTIVE")).toBe(true);
-    expect(fitCampaignAllowed("org", "INVITED")).toBe(false);
-    expect(fitCampaignAllowed("org", "ACTIVE")).toBe(false);
-    expect(fitCampaignAllowed("worker", "DECLINED")).toBe(false);
-    expect(fitCampaignAllowed("worker", "WITHDRAWN")).toBe(false);
+    expect(fitCampaignAllowed("APPLIED")).toBe(true);
+    expect(fitCampaignAllowed("ACTIVE")).toBe(true); // including an accepted invitation, as the consent says
+    expect(fitCampaignAllowed("INVITED")).toBe(false);
+    expect(fitCampaignAllowed("DECLINED")).toBe(false);
+    expect(fitCampaignAllowed("WITHDRAWN")).toBe(false);
+    expect(fitCampaignAllowed("CANCELLED")).toBe(false);
   });
   it("free days count only the days left; 'Not set' and 'Dates passed' are their own answers", () => {
     // From Thu 15: Sat 17 off, Sun 18 free → 1 of 4.

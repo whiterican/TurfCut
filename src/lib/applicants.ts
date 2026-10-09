@@ -186,13 +186,15 @@ export function heldCredentials(creds: OrgCredentialView[], job: ApplicantJob, t
 
 /**
  * Whether the applicant page may compare the worker's shared issue answers
- * with this job's campaign. Only on an engagement the worker started
- * (applied or claimed) that is still open or worked: never on an
- * invitation or a closed one, so an organization can't publish jobs taking
- * opposite sides and invite someone to each to read their positions.
+ * with this job's campaign: only on an engagement the worker entered
+ * themselves — applied, claimed, or accepted the invitation (the consent's
+ * own words) — that is still open or worked. Never on an unanswered
+ * invitation or a closed engagement, so an organization can't publish jobs
+ * taking opposite sides and invite someone to each to read their positions.
+ * (Only the worker's own act reaches a RELATIONSHIP_STATUS.)
  */
-export function fitCampaignAllowed(origin: "worker" | "org", status: EngagementStatus): boolean {
-  return origin === "worker" && RELATIONSHIP_STATUSES.includes(status);
+export function fitCampaignAllowed(status: EngagementStatus): boolean {
+  return RELATIONSHIP_STATUSES.includes(status);
 }
 
 // ---------------------------------------------------------------------------

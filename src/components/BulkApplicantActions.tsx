@@ -1,6 +1,6 @@
 "use client";
 
-import { startTransition, useActionState, useState } from "react";
+import { startTransition, useActionState, useEffect, useState } from "react";
 import { bulkMove, type ActionState } from "@/app/jobs/actions";
 import { NOT_SELECTED_REASONS, NOTE_MAX } from "@/lib/engagements";
 
@@ -14,6 +14,11 @@ const initial: ActionState = { ok: false, message: "" };
 export function BulkApplicantActions({ formId, jobId }: { formId: string; jobId: string }) {
   const [state, action, pending] = useActionState(bulkMove, initial);
   const [step, setStep] = useState("review");
+  // After a step that moved someone, clear the table's checks so the next step starts from nothing.
+  useEffect(() => {
+    if (!state.ok) return;
+    document.querySelectorAll<HTMLInputElement>(`input[type="checkbox"][form="${formId}"]`).forEach((c) => (c.checked = false));
+  }, [state, formId]);
   return (
     // Submitted by hand rather than through `action`: React resets an action form when it finishes,
     // which would clear the table's checkboxes (they belong to this form) even when nothing moved.

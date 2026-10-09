@@ -30,7 +30,7 @@ import { startDirect } from "@/app/messages/actions";
  * with the organization (an open or worked engagement they started on any
  * of its jobs, C1); otherwise only the history and the copy stay. Issue
  * overlap with this job's campaign shows only on an engagement the worker
- * started and that is still open or worked (fitCampaignAllowed).
+ * entered themselves that is still open or worked (fitCampaignAllowed).
  */
 export default async function ApplicantPage({ params }: { params: Promise<{ jobId: string; engagementId: string }> }) {
   const { jobId, engagementId } = await params;
@@ -53,8 +53,6 @@ export default async function ApplicantPage({ params }: { params: Promise<{ jobI
   const open = access?.kind === "employer";
 
   const appJob = applicantJob(job);
-  const firstStep = facts.events[0]?.type;
-  const origin = firstStep ? (firstStep === "APPLIED" || firstStep === "CLAIMED" ? "worker" : "org") : (e.applicationSnapshot as { kind?: unknown } | null)?.kind === "invitation" ? "org" : "worker";
   const [view, latest, avail, creds] = open
     ? await Promise.all([loadOrgProfile(e.worker.id, session.orgId, now), loadLatestPreference(e.worker.id), loadAvailability(e.worker.id), loadOrgCredentials(e.worker.id, session.orgId)])
     : [null, null, null, null];
@@ -63,10 +61,10 @@ export default async function ApplicantPage({ params }: { params: Promise<{ jobI
     ...view,
     fit: employerFitView(effectivePreference(latest, now), {
       orgHasRelationship: open && job.org.approved,
-      campaign: fitCampaignAllowed(origin, e.status) ? readDisclosure(job.campaignDisclosure) : null,
+      campaign: fitCampaignAllowed(e.status) ? readDisclosure(job.campaignDisclosure) : null,
     }),
   };
-  const free = view && view.availability !== "withheld" && avail ? freeCell(avail.availability, appJob, now.toISOString().slice(0, 10)) : null;
+  const free = view && view.availability !== "withheld" && avail ? freeCell(avail.availability, appJob, expiryToday(now)) : null;
   const hired = e.status === "ACTIVE" || e.status === "CLAIMED";
   const s = ENGAGEMENT_LABELS[e.status];
 

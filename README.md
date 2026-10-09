@@ -677,8 +677,9 @@ certificate. Approved as recommended by review:
 - **Applicant page (C3.2)**: `/hiring/[jobId]/people/[engagementId]`: the
   stage, actions and history; free days and required credentials for this
   job; the live profile with political-fit answers (display only, issue
-  overlap against this job's disclosure only on an application or claim
-  that is still open or worked, never on an invitation) while the worker
+  overlap against this job's disclosure only on an application, claim or
+  accepted invitation that is still open or worked, never on an
+  unanswered invitation) while the worker
   has a relationship with the organization; and the copy taken when they
   applied.
   Supervisors' access to hired workers' pages comes later.

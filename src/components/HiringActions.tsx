@@ -1,7 +1,7 @@
 import { ActionButton } from "@/components/ActionButton";
 import { NotSelectedForm } from "@/components/NotSelectedForm";
 import { offerApplication, reviewApplication, withdrawInvitation } from "@/app/jobs/actions";
-import { type EngagementStatus } from "@/lib/engagements";
+import { offerLapsed, type EngagementStatus } from "@/lib/engagements";
 
 /** "about 5 hours left": readable in any time zone. */
 export const timeLeft = (until: Date, now = new Date()) => {
@@ -43,11 +43,11 @@ export function HiringActions({
     );
   }
   if (status === "OFFERED") {
-    const expired = !offerExpiresAt || offerExpiresAt <= new Date();
+    const expired = offerLapsed(status, offerExpiresAt, new Date());
     return (
       <div className="space-y-2">
         <p className="text-muted-sm">
-          {expired ? "The offer lapsed before the worker answered." : `Offer sent, waiting on the worker (${timeLeft(offerExpiresAt)} to accept).`}
+          {expired || !offerExpiresAt ? "The offer lapsed before the worker answered." : `Offer sent, waiting on the worker (${timeLeft(offerExpiresAt)} to accept).`}
         </p>
         <div className="flex flex-wrap items-start gap-2">
           {expired && !closed && <ActionButton action={offerApplication} fields={fields} label="Send a new offer" pendingLabel="Sending…" variant="btn-primary btn-sm" />}

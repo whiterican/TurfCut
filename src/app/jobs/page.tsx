@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ACCEPTED_STATUSES, workerStage } from "@/lib/engagements";
+import { ACCEPTED_STATUSES, offerLapsed, workerStage } from "@/lib/engagements";
 import { loadPipelineFacts } from "@/lib/engagements-data";
 import { Masthead } from "@/components/staff/Masthead";
 import { DataTable } from "@/components/staff/DataTable";
@@ -94,7 +94,7 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
             {mine.map((e) => {
               const s = ENGAGEMENT_LABELS[e.status];
               const f = facts.get(e.id);
-              const stage = workerStage(e.status, f?.events ?? [], !!f?.offerExpiresAt && f.offerExpiresAt <= now);
+              const stage = workerStage(e.status, f?.events ?? [], offerLapsed(e.status, f?.offerExpiresAt ?? null, now));
               return (
                 <li key={e.id}>
                   <Link transitionTypes={["nav-forward"]} href={`/jobs/${e.job.id}`} className="flex min-h-14 items-center justify-between gap-3 px-4 py-3 text-fg transition hover:bg-surface-2">

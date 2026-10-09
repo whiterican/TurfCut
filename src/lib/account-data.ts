@@ -73,12 +73,12 @@ export async function closeAccount(actor: { userId: string; workerId: string }, 
     }
     // Open applications, invitations and offers end with the account, each
     // with a history line in the worker's name (an invitation reads as
-    // declined, anything the worker started as withdrawn).
+    // declined, anything the worker started as withdrawn) that says why.
     const open = await tx.engagement.findMany({ where: { workerId: actor.workerId, status: { in: ["APPLIED", "INVITED", "OFFERED"] } }, select: { id: true, status: true } });
     if (open.length) {
       await tx.engagement.updateMany({ where: { id: { in: open.map((e) => e.id) } }, data: { status: "CANCELLED" } });
       await tx.engagementEvent.createMany({
-        data: open.map((e) => ({ engagementId: e.id, type: e.status === "INVITED" ? ("INVITE_DECLINED" as const) : ("WITHDRAWN" as const), actorId: actor.userId, createdAt: now })),
+        data: open.map((e) => ({ engagementId: e.id, type: e.status === "INVITED" ? ("INVITE_DECLINED" as const) : ("WITHDRAWN" as const), actorId: actor.userId, note: "Account closed.", createdAt: now })),
       });
     }
 

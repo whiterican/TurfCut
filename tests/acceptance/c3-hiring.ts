@@ -145,11 +145,28 @@ const types = async (id: string) => (await loadEngagementEvents(id)).map((e) => 
   const qb = idOf(await applyToJob(W6, W6, jobQ.id));
   const both = await Promise.all([moveEngagement(qa, "offer", org), moveEngagement(qb, "offer", org)]);
   check("two offers for the last seat at once: exactly one goes out", both.filter((r) => r.ok).length === 1, both);
-  const twice = await Promise.all([moveEngagement(qa, "review", org), moveEngagement(qa, "review", org)]);
   const offeredOne = both[0].ok ? qa : qb;
   const dup = await Promise.all([moveEngagement(offeredOne, "accept", worker(offeredOne === qa ? W5 : W6)), moveEngagement(offeredOne, "decline", org, { reasonCode: "positions_filled" })]);
   check("an accept racing a not-selected: exactly one wins", dup.filter((r) => r.ok).length === 1, dup);
-  check("(a second review at once on the other one is recorded at most once)", (await p.engagementEvent.count({ where: { engagementId: qa, type: "IN_REVIEW" } })) <= 1, twice);
+  const jobV = await newJob("Review race job", 2);
+  const va = idOf(await applyToJob(W4, W4, jobV.id));
+  const twice = await Promise.all([moveEngagement(va, "review", org), moveEngagement(va, "review", org)]);
+  check("two reviews at once: exactly one is recorded", twice.filter((r) => r.ok).length === 1 && (await p.engagementEvent.count({ where: { engagementId: va, type: "IN_REVIEW" } })) === 1, twice);
+
+  // A live offer holds its seat against an invitation's accept and against renewing someone else's lapsed offer.
+  const jobH = await newJob("Held seat job", 1);
+  const ha = idOf(await applyToJob(W4, W4, jobH.id));
+  await moveEngagement(ha, "offer", org);
+  const hi = idOf(await inviteWorker(ORG, OWNER, jobH.id, W5));
+  const hiAcc = await moveEngagement(hi, "accept", worker(W5));
+  check("an invitation can't be accepted into a seat an offer holds", !hiAcc.ok && /offer out/.test(hiAcc.reason) && (await p.engagement.findUniqueOrThrow({ where: { id: hi } })).status === "INVITED", hiAcc);
+  const jobN = await newJob("Renewal blocked job", 1);
+  const na = idOf(await applyToJob(W4, W4, jobN.id, new Date(t0 - 51 * HOUR)));
+  await moveEngagement(na, "offer", org, {}, new Date(t0 - 50 * HOUR));
+  const nb = idOf(await applyToJob(W5, W5, jobN.id));
+  const nbOffer = await moveEngagement(nb, "offer", org);
+  const naRenew = await moveEngagement(na, "offer", org);
+  check("a lapsed offer holds no seat, and can't be renewed once another live offer holds it", nbOffer.ok && !naRenew.ok && /offer out/.test(naRenew.ok ? "" : naRenew.reason), { nbOffer, naRenew });
 
   // --- Closed jobs: close-outs still work ---
   const jobC = await newJob("Closing job", 3);
@@ -196,7 +213,9 @@ const types = async (id: string) => (await loadEngagementEvents(id)).map((e) => 
   await moveEngagement(xa, "offer", org);
   const closed = await closeAccount({ userId: W5, workerId: W5 });
   const xr = await p.engagement.findUniqueOrThrow({ where: { id: xa } });
-  check("closing an account cancels an open offer and records it", closed.ok && xr.status === "CANCELLED" && (await types(xa)).endsWith("OFFERED,WITHDRAWN"), { closed, xr, t: await types(xa) });
+  const closeEvt = (await loadEngagementEvents(xa)).at(-1)!;
+  check("closing an account cancels an open offer and records it, saying why", closed.ok && xr.status === "CANCELLED" && (await types(xa)).endsWith("OFFERED,WITHDRAWN") && closeEvt.note === "Account closed.", { closed, xr, t: await types(xa) });
+  check("…an open invitation reads as declined", (await p.engagement.findUniqueOrThrow({ where: { id: hi } })).status === "CANCELLED" && (await types(hi)) === "INVITED,INVITE_DECLINED");
   check("…and an open application", (await p.engagement.findUniqueOrThrow({ where: { id: rb } })).status === "CANCELLED" && (await types(rb)) === "APPLIED,WITHDRAWN");
 
   // --- The export carries the hiring history ---

@@ -39,6 +39,14 @@ export const OFFER_HOURS = 48;
 export const offerExpiresAt = (offeredAt: Date) => new Date(offeredAt.getTime() + OFFER_HOURS * 3_600_000);
 
 /**
+ * Whether an OFFERED engagement's offer has lapsed. One rule everywhere: an
+ * offer with no recorded OFFERED event (hand-edited or legacy data) counts
+ * as lapsed, so it holds no seat, can't be accepted and can be sent again.
+ */
+export const offerLapsed = (status: EngagementStatus, expiresAt: Date | null, now: Date) =>
+  status === "OFFERED" && (!expiresAt || expiresAt <= now);
+
+/**
  * Why an organization didn't select someone (C3 decision Q5: structured
  * reasons, never free-text notes about a worker). The worker sees the label,
  * plus any note the organization writes to them. Worded for both sides: the

@@ -8,7 +8,7 @@ import { Masthead } from "@/components/staff/Masthead";
 import { DataTable } from "@/components/staff/DataTable";
 import { SnapshotView } from "@/components/SnapshotView";
 import { loadPipelineFacts } from "@/lib/engagements-data";
-import { workerStage } from "@/lib/engagements";
+import { offerLapsed, workerStage } from "@/lib/engagements";
 import { HiringActions } from "@/components/HiringActions";
 import { EngagementHistory } from "@/components/EngagementHistory";
 import { loadOrgAvailabilities } from "@/lib/availability-data";
@@ -34,15 +34,14 @@ export default async function ApplicantsPage({ params }: { params: Promise<{ job
   });
   // Waiting on the organization (an application) or on the worker (an offer).
   const waiting = engagements.filter((e) => e.status === "APPLIED" || e.status === "OFFERED");
-  const toDecide = waiting.filter((e) => e.status === "APPLIED").length;
-  const offers = waiting.length - toDecide;
   const facts = await loadPipelineFacts(engagements.map((e) => e.id));
   const now = new Date();
   const factsOf = (id: string) => facts.get(id) ?? { events: [], inReview: false, offerExpiresAt: null };
-  const stage = (e: (typeof engagements)[number]) => {
-    const f = factsOf(e.id);
-    return workerStage(e.status, f.events, e.status === "OFFERED" && !!f.offerExpiresAt && f.offerExpiresAt <= now);
-  };
+  const lapsed = (e: (typeof engagements)[number]) => offerLapsed(e.status, factsOf(e.id).offerExpiresAt, now);
+  const stage = (e: (typeof engagements)[number]) => workerStage(e.status, factsOf(e.id).events, lapsed(e));
+  const toDecide = waiting.filter((e) => e.status === "APPLIED").length;
+  // Live offers only: a lapsed one holds no seat and waits on the organization.
+  const offers = waiting.filter((e) => e.status === "OFFERED" && !lapsed(e)).length;
   // Live, as each worker shares it with this organization now (C2.4); never scored or sorted on.
   const byWorker = await loadOrgAvailabilities(waiting.filter((e) => !e.worker.closedAt).map((e) => e.worker.id), session.orgId);
   const availability = new Map(waiting.filter((e) => byWorker.has(e.worker.id)).map((e) => [e.id, byWorker.get(e.worker.id)!] as const));

@@ -8,6 +8,7 @@ import {
   NOT_SELECTED_REASONS,
   NOTE_MAX,
   offerExpiresAt,
+  offerLapsed,
   transition,
   type EngagementAction,
   type HiringSnapshot,
@@ -81,8 +82,11 @@ async function open(
   actor: { kind: "worker" | "org"; profileId: string; orgId?: string },
   jobId: string,
   workerId: string,
-  now: Date
+  now?: Date
 ): Promise<Result> {
+  // `now` is for backdated runs (the demo seed); otherwise the clock is read
+  // again once the locks are held, so history stays in commit order.
+  const before = now ?? new Date();
   if (!UUID_RE.test(jobId)) return { ok: false, reason: "Job not found." };
   if (!UUID_RE.test(workerId)) return { ok: false, reason: "Worker not found." };
   const job = await db().job.findUnique({ where: { id: jobId }, include: { org: { select: { name: true } } } });
@@ -98,24 +102,25 @@ async function open(
 
   // A worker never lands on a job their own do-not-match answers exclude.
   if (actor.kind === "worker") {
-    const pref = effectivePreference(await loadLatestPreference(workerId), now);
+    const pref = effectivePreference(await loadLatestPreference(workerId), before);
     const reasons = exclusionReasons(pref, { disclosure: readDisclosure(job.campaignDisclosure), orgName: job.org.name, measureIds: job.measureIds });
     if (reasons.length) return { ok: false, reason: `${reasons[0]}. Change your preferences to see this job.` };
   }
 
   const kind = action === "apply" ? "application" : action === "claim" ? "claim" : "invitation";
-  const snapshot = await snapshotFor(kind, workerId, job, now);
+  const snapshot = await snapshotFor(kind, workerId, job, before);
 
   return db().$transaction(async (tx) => {
     // Worker before job (closing an account holds the worker lock; nothing takes job → worker).
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`worker:${workerId}`}))`;
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`job:${jobId}`}))`;
+    const at = now ?? new Date();
     const [existing, acceptedCount, fresh, wk, offers] = await Promise.all([
       tx.engagement.findUnique({ where: { jobId_workerId: { jobId, workerId } } }),
       tx.engagement.count({ where: { jobId, status: { in: ACCEPTED_STATUSES } } }),
       tx.job.findUniqueOrThrow({ where: { id: jobId } }),
       tx.worker.findUniqueOrThrow({ where: { id: workerId }, select: { closedAt: true } }),
-      liveOffers(tx, jobId, null, now),
+      liveOffers(tx, jobId, null, at),
     ]);
     if (wk.closedAt) return { ok: false as const, reason: "This worker has closed their account." };
     const t = transition(existing?.status ?? null, action, actor.kind, {
@@ -134,7 +139,7 @@ async function open(
       data: { jobId, workerId, status: t.status, hiredById, applicationSnapshot: snapshot as unknown as Prisma.InputJsonValue },
     });
     await tx.engagementEvent.create({
-      data: { engagementId: engagement.id, type: eventFor(action, actor.kind, null, t.status), actorId: actor.profileId, createdAt: now },
+      data: { engagementId: engagement.id, type: eventFor(action, actor.kind, null, t.status), actorId: actor.profileId, createdAt: at },
     });
     await tx.auditEvent.create({
       data: {
@@ -143,25 +148,26 @@ async function open(
         entityType: "Engagement",
         entityId: engagement.id,
         metadata: { jobId, workerId, status: t.status, consentVersion: snapshot.consentVersion },
+        createdAt: at,
       },
     });
     return { ok: true as const, engagementId: engagement.id, status: t.status };
   });
 }
 
-export const applyToJob = (workerId: string, profileId: string, jobId: string, now = new Date()) =>
+export const applyToJob = (workerId: string, profileId: string, jobId: string, now?: Date) =>
   open("apply", { kind: "worker", profileId }, jobId, workerId, now);
 
-export const claimJob = (workerId: string, profileId: string, jobId: string, now = new Date()) =>
+export const claimJob = (workerId: string, profileId: string, jobId: string, now?: Date) =>
   open("claim", { kind: "worker", profileId }, jobId, workerId, now);
 
-export const inviteWorker = (orgId: string, profileId: string, jobId: string, workerId: string, now = new Date()) =>
+export const inviteWorker = (orgId: string, profileId: string, jobId: string, workerId: string, now?: Date) =>
   open("invite", { kind: "org", profileId, orgId }, jobId, workerId, now);
 
 type Actor = { kind: "worker"; profileId: string; workerId: string } | { kind: "org"; profileId: string; orgId: string };
 
 /** Org sends an offer for an application; worker accepts an invitation or an offer. */
-export const acceptEngagement = (engagementId: string, actor: Actor, now = new Date()) => moveEngagement(engagementId, "accept", actor, {}, now);
+export const acceptEngagement = (engagementId: string, actor: Actor, now?: Date) => moveEngagement(engagementId, "accept", actor, {}, now);
 
 /**
  * Moves an existing engagement along the hiring pipeline (C3): review, offer,
@@ -174,7 +180,7 @@ export async function moveEngagement(
   action: Exclude<EngagementAction, "apply" | "claim" | "invite">,
   actor: Actor,
   opts: { reasonCode?: string; note?: string } = {},
-  now = new Date()
+  now?: Date
 ): Promise<Result> {
   if (!UUID_RE.test(engagementId)) return { ok: false, reason: "Engagement not found." };
   const e = await db().engagement.findUnique({ where: { id: engagementId }, include: { job: { include: { org: { select: { name: true } } } } } });
@@ -190,7 +196,7 @@ export async function moveEngagement(
 
   // Taking a job never overrides the worker's own do-not-match answers.
   if (action === "accept" && actor.kind === "worker") {
-    const pref = effectivePreference(await loadLatestPreference(actor.workerId), now);
+    const pref = effectivePreference(await loadLatestPreference(actor.workerId), now ?? new Date());
     const reasons = exclusionReasons(pref, { disclosure: readDisclosure(e.job.campaignDisclosure), orgName: e.job.org.name, measureIds: e.job.measureIds });
     if (reasons.length) return { ok: false, reason: `${reasons[0]}. Change your preferences to accept this job.` };
   }
@@ -198,6 +204,8 @@ export async function moveEngagement(
   return db().$transaction(async (tx) => {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`worker:${e.workerId}`}))`;
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`job:${e.jobId}`}))`;
+    // Read the clock once the locks are held (see open()).
+    const at = now ?? new Date();
     const [current, acceptedCount, job, wk, reviewed, lastOffer, offers] = await Promise.all([
       tx.engagement.findUniqueOrThrow({ where: { id: engagementId } }),
       tx.engagement.count({ where: { jobId: e.jobId, status: { in: ACCEPTED_STATUSES } } }),
@@ -205,7 +213,7 @@ export async function moveEngagement(
       tx.worker.findUniqueOrThrow({ where: { id: e.workerId }, select: { closedAt: true } }),
       tx.engagementEvent.count({ where: { engagementId, type: "IN_REVIEW" } }),
       tx.engagementEvent.findFirst({ where: { engagementId, type: "OFFERED" }, orderBy: { createdAt: "desc" }, select: { createdAt: true } }),
-      liveOffers(tx, e.jobId, engagementId, now),
+      liveOffers(tx, e.jobId, engagementId, at),
     ]);
     if (wk.closedAt) return { ok: false as const, reason: "This worker has closed their account." };
     const t = transition(current.status, action, actor.kind, {
@@ -214,7 +222,7 @@ export async function moveEngagement(
       headcount: job.headcount,
       acceptedCount,
       inReview: reviewed > 0,
-      offerExpired: current.status === "OFFERED" && !!lastOffer && offerExpiresAt(lastOffer.createdAt) <= now,
+      offerExpired: offerLapsed(current.status, lastOffer ? offerExpiresAt(lastOffer.createdAt) : null, at),
       liveOffers: offers,
     });
     if (!t.ok) return { ok: false as const, reason: t.reason };
@@ -225,7 +233,7 @@ export async function moveEngagement(
       await tx.engagement.update({ where: { id: engagementId }, data: { status: t.status, hiredById } });
     }
     const type = eventFor(action, actor.kind, current.status, t.status);
-    await tx.engagementEvent.create({ data: { engagementId, type, actorId: actor.profileId, reasonCode, note, createdAt: now } });
+    await tx.engagementEvent.create({ data: { engagementId, type, actorId: actor.profileId, reasonCode, note, createdAt: at } });
     await tx.auditEvent.create({
       data: {
         actorId: actor.profileId,
@@ -233,6 +241,7 @@ export async function moveEngagement(
         entityType: "Engagement",
         entityId: engagementId,
         metadata: { from: current.status, to: t.status, by: actor.kind, ...(reasonCode ? { reasonCode } : {}) },
+        createdAt: at,
       },
     });
     return { ok: true as const, engagementId, status: t.status };

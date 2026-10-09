@@ -33,12 +33,17 @@ export function ActionButton({
   confirm?: { text: string; label: string };
 }) {
   const [state, formAction, pending] = useActionState(action, initial);
-  if (confirm) {
+  // A disabled confirm step is just a disabled button: there's nothing to open.
+  if (confirm && !disabled) {
     return (
-      <details className="group space-y-2">
-        <summary className={`${variant} cursor-pointer list-none`}>{label}</summary>
+      <details className="group">
+        <summary className={`${variant} cursor-pointer list-none [&::-webkit-details-marker]:hidden`}>
+          {icon}
+          {label}
+        </summary>
         <form action={formAction} className="mt-2 space-y-2 rounded-xl border border-border p-3">
           {Object.entries(fields).map(([k, v]) => <input key={k} type="hidden" name={k} value={v} />)}
+          {children}
           <p className="text-sm text-fg">{confirm.text}</p>
           <button className="btn-secondary btn-sm" disabled={disabled || pending}>{pending ? (pendingLabel ?? "Working…") : confirm.label}</button>
           {state.message && (

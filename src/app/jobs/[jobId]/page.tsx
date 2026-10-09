@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { HIRING_ROLES, ORG_ROLES, SCHEDULING_ROLES } from "@/lib/access";
-import { ACCEPTED_STATUSES, RELATIONSHIP_STATUSES, workerStage, type EngagementStatus, type HiringSnapshot } from "@/lib/engagements";
+import { ACCEPTED_STATUSES, RELATIONSHIP_STATUSES, offerLapsed, workerStage, type EngagementStatus, type HiringSnapshot } from "@/lib/engagements";
 import { loadPipelineFacts } from "@/lib/engagements-data";
 import { EngagementHistory } from "@/components/EngagementHistory";
 import { HiringActions, timeLeft } from "@/components/HiringActions";
@@ -112,9 +112,9 @@ async function WorkerPanel({
     // An invitation is the org's act: the worker's do-not-match answers
     // still keep them off the job (the org is never told why).
     if (engagement.status === "INVITED" && reasons.length) return excluded;
-    const facts = (await loadPipelineFacts([engagement.id])).get(engagement.id)!;
+    const facts = (await loadPipelineFacts([engagement.id])).get(engagement.id) ?? { events: [], inReview: false, offerExpiresAt: null };
     const offerDeadline = engagement.status === "OFFERED" ? facts.offerExpiresAt : null;
-    const offerExpired = !!offerDeadline && offerDeadline <= new Date();
+    const offerExpired = offerLapsed(engagement.status, offerDeadline, new Date());
     const closed = job.status === "CLOSED";
     const fields = { jobId: job.id, engagementId: engagement.id };
     // Declining and withdrawing end this job for good: no second application or invitation (C3 decision).
@@ -384,7 +384,7 @@ async function OrgPanel({ job, canHire, canSchedule, userId }: { job: JobWithRef
               {engagements.map((e) => {
                 const s = ENGAGEMENT_LABELS[e.status];
                 const f = facts.get(e.id) ?? { events: [], inReview: false, offerExpiresAt: null };
-                const offerExpired = e.status === "OFFERED" && !!f.offerExpiresAt && f.offerExpiresAt <= now;
+                const offerExpired = offerLapsed(e.status, f.offerExpiresAt, now);
                 return (
                   <li key={e.id} className="card space-y-3">
                     <div className="flex flex-wrap items-center justify-between gap-3">

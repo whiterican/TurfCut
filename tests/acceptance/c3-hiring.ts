@@ -208,6 +208,10 @@ const types = async (id: string) => (await loadEngagementEvents(id)).map((e) => 
   await savePreferences(W4, W4, { visibilityMode: "APPLIED_TO", identityLabels: [], partyRelationship: null, issuePositions: {}, campaignBoundaries: [{ kind: "organization", target: "Front Range Circulators", stance: "do_not_match" }] } as never, null);
   const blocked = await moveEngagement(ma, "accept", worker(W4));
   check("a do-not-match answer blocks accepting the offer, and nothing changes", !blocked.ok && /not to be matched/.test(blocked.reason) && (await p.engagement.findUniqueOrThrow({ where: { id: ma } })).status === "OFFERED", blocked);
+  // W4 takes the boundary back for the checks below (it applies to every job of this organization).
+  const noBoundary = { visibilityMode: "APPLIED_TO", identityLabels: [], partyRelationship: null, issuePositions: {}, campaignBoundaries: [] } as never;
+  const withBoundary = { visibilityMode: "APPLIED_TO", identityLabels: [], partyRelationship: null, issuePositions: {}, campaignBoundaries: [{ kind: "organization", target: "Front Range Circulators", stance: "do_not_match" }] } as never;
+  await savePreferences(W4, W4, noBoundary, null);
 
   // --- An accepted invitation keeps its inviter as the contact ---
   // W5's open application on the renewal job is the relationship that lets the org invite.
@@ -340,7 +344,9 @@ const types = async (id: string) => (await loadEngagementEvents(id)).map((e) => 
   // The inbox honours the worker's own do-not-match answers (W4 asked not to be matched with this organization).
   const jd = await newJob("Disclosed invite job", 2, { campaignDisclosure: { campaignType: "ballot_measure", affiliation: "nonpartisan", message: "Paid for by the committee." } });
   const hidden = await inviteWorker(ORG, OWNER, jd.id, W4, new Date(Date.now() - 10 * DAY));
+  await savePreferences(W4, W4, withBoundary, null);
   check("an invitation the worker's do-not-match answers rule out never shows in their inbox", hidden.ok && !(await loadInvitations(W4)).some((i) => i.id === idOf(hidden)), hidden);
+  await savePreferences(W4, W4, noBoundary, null);
 
   check("tab counts agree with the applicants list on a job with a pre-C3 seeded engagement", (await hiringCounts(JOB, ORG)).applicants === (await loadApplicants(JOB, ORG, new Date(), { scorecards: false })).length, await hiringCounts(JOB, ORG));
 
@@ -350,7 +356,7 @@ const types = async (id: string) => (await loadEngagementEvents(id)).map((e) => 
 
   // --- C3.4: matches ---
   const M = (n: number) => `00000000-0000-0000-0000-0000000002${String(n).padStart(2, "0")}`;
-  const mw = [1, 2, 3, 4, 5, 6, 7].map(M);
+  const mw = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map(M);
   await p.profile.createMany({ data: mw.map((id) => ({ id, role: "WORKER" as const })) });
   await p.worker.createMany({ data: mw.map((id, i) => ({ id, profileId: id, displayName: `Match ${i + 1}` })) });
   const findMe = (w: string, over: Record<string, unknown>) =>
@@ -358,8 +364,19 @@ const types = async (id: string) => (await loadEngagementEvents(id)).map((e) => 
   await findMe(M(1), {}); // an Aurora ZIP, a few miles from Denver: a match
   await findMe(M(2), { workTypes: ["PETITION"] }); // wrong work type
   await findMe(M(3), { homeArea: "Boulder, CO", travelMiles: 10 }); // ~25 mi, travels 10
-  await findMe(M(4), {}); // rules out this organization (in PRIVATE mode, still honoured)
-  await savePreferences(M(4), M(4), { visibilityMode: "PRIVATE", identityLabels: [], partyRelationship: null, issuePositions: {}, campaignBoundaries: [{ kind: "organization", target: "Front Range Circulators", stance: "do_not_match" }] } as never, null);
+  const ruleOut = (mode: string) => ({ visibilityMode: mode, identityLabels: [], partyRelationship: null, issuePositions: {}, campaignBoundaries: [{ kind: "organization", target: "Front Range Circulators", stance: "do_not_match" }] }) as never;
+  await findMe(M(4), {}); // rules out this organization, answers usable for matching
+  await savePreferences(M(4), M(4), ruleOut("MATCHING_ONLY"), null);
+  await findMe(M(8), {}); // the same answer marked Private: "never used for matching", so it isn't
+  await savePreferences(M(8), M(8), ruleOut("PRIVATE"), null);
+  await findMe(M(9), {}); // findable, then turned it off: the latest version counts
+  await saveSharing(M(9), M(9), { audiences: DEFAULT_SHARING.audiences, findable: false, workTypes: [], homeArea: null, travelMiles: null });
+  await findMe(M(10), {}); // closed account
+  await p.worker.update({ where: { id: M(10) }, data: { closedAt: new Date() } });
+  // Confirmed findable under the old wording, before Matches existed: not matched until they confirm again.
+  await p.workerSharing.create({ data: { workerId: M(11), version: 1, outputAudience: "ANY_APPROVED_ORG", qualityAudience: "RELATIONSHIP", reliabilityAudience: "RELATIONSHIP", historyAudience: "RELATIONSHIP", availabilityAudience: "RELATIONSHIP", credentialsAudience: "RELATIONSHIP", findable: true, workTypes: ["CANVASS"], homeArea: "80012", travelMiles: 25, consentTextVersion: "c2-2026-10-08b", actorId: M(11) } });
+  // W2 works with this organization already; Matches still shows only what any approved organization sees.
+  await saveSharing(W2, W2, { audiences: { ...DEFAULT_SHARING.audiences, output: "RELATIONSHIP" }, findable: true, workTypes: ["CANVASS"], homeArea: "Denver, CO", travelMiles: 20 });
   await findMe(M(5), { homeArea: "Nowhere Special" }); // can't be placed
   await findMe(M(6), {}); // muted the organization
   await p.orgMute.create({ data: { workerId: M(6), orgId: ORG } });
@@ -368,23 +385,39 @@ const types = async (id: string) => (await loadEngagementEvents(id)).map((e) => 
   const jm = await newJob("Denver match job", 3, { geography: { city: "Denver", state: "CO" }, hiringMethod: { modes: ["application", "invite"] }, ...disclosed });
   const mr = await loadMatches(jm.id, ORG);
   const names = mr.ok ? mr.rows.map((r) => r.name) : [];
-  check("matches: only the findable worker for this work, within their distance, not ruled out, placeable and not muting the org", mr.ok && names.length === 1 && names[0] === "Match 1", { mr: mr.ok ? names : mr });
-  const top = mr.ok ? mr.rows[0] : null;
+  check(
+    "matches: findable for this work, within their distance, not ruled out by answers they let Turfcut use, placeable, not muting, open account, current consent",
+    mr.ok && JSON.stringify([...names].sort()) === JSON.stringify(["Jordan Blake", "Match 1", "Match 8"]),
+    { mr: mr.ok ? names : mr }
+  );
+  const top = mr.ok ? mr.rows.find((r) => r.name === "Match 1") ?? null : null;
+  const jordan = mr.ok ? mr.rows.find((r) => r.name === "Jordan Blake") : null;
+  check("a worker who already works with the organization shows only what any approved organization sees", !!jordan && jordan.scorecard.shared.output === false, jordan);
   check("…with the distance measured (an Aurora ZIP is a few miles from Denver)", !!top && top.miles > 2 && top.miles < 15 && top.travelMiles === 25 && top.travelSet, top);
   check("…and only what they share with approved organizations (output yes; availability, credentials, reliability no)", !!top && top.scorecard.shared.output === true && top.scorecard.shared.reliability === false && top.availability === "withheld" && top.credentials === "withheld", top);
   check("an organization Turfcut hasn't approved gets no matches", JSON.stringify(await loadMatches(jm.id, ORG3)).includes("not_found") || !(await loadMatches(jm.id, ORG3)).ok);
   await p.organization.update({ where: { id: ORG }, data: { approved: false } });
   check("…including this one while unapproved", (await loadMatches(jm.id, ORG)).ok === false);
   await p.organization.update({ where: { id: ORG }, data: { approved: true } });
+  const draftJob = await newJob("Draft match job", 3, { status: "DRAFT", geography: { city: "Denver", state: "CO" }, ...disclosed });
+  check("a draft job has no matches (its city and campaign can still change)", JSON.stringify(await loadMatches(draftJob.id, ORG)) === JSON.stringify({ ok: false, reason: "not_open" }));
+  const bare = await newJob("Undisclosed match job", 3, { geography: { city: "Denver", state: "CO" } });
+  const bareRows = await loadMatches(bare.id, ORG);
+  check("an organization boundary applies even when the job has no campaign disclosure", bareRows.ok && !bareRows.rows.some((r) => r.name === "Match 4") && bareRows.rows.some((r) => r.name === "Match 1"), bareRows.ok ? bareRows.rows.map((r) => r.name) : bareRows);
+  const unplaced = await newJob("Unplaced city job", 3, { geography: { city: "Nowhere Special", state: "CO" } });
+  check("a city Turfcut can't place says so", JSON.stringify(await loadMatches(unplaced.id, ORG)) === JSON.stringify({ ok: false, reason: "city_unplaced" }));
   const noCity = await newJob("No city job", 2);
   check("a job without a city has no matches to measure", JSON.stringify(await loadMatches(noCity.id, ORG)) === JSON.stringify({ ok: false, reason: "no_city" }));
   check("another organization can't load this job's matches", (await loadMatches(jm.id, ORG2)).ok === false);
-  check("a non-match can't be invited (no directory): 'Worker not found.'", (await inviteWorker(ORG, OWNER, jm.id, M(3))).ok === false && (await inviteWorker(ORG, OWNER, jm.id, M(4))).ok === false);
+  const nonMatch = await inviteWorker(ORG, OWNER, jm.id, M(3));
+  const unknown = await inviteWorker(ORG, OWNER, jm.id, "00000000-0000-0000-0000-00000000beef");
+  check("a non-match and an unknown id get the same answer (no directory)", JSON.stringify(nonMatch) === JSON.stringify(unknown) && !nonMatch.ok && nonMatch.reason === "Worker not found.", { nonMatch, unknown });
+  check("…as does someone ruled out by their boundaries", JSON.stringify(await inviteWorker(ORG, OWNER, jm.id, M(4))) === JSON.stringify(unknown));
   check("isMatch agrees", (await isMatch(M(1), jm.id, ORG)) && !(await isMatch(M(3), jm.id, ORG)) && !(await isMatch(M(6), jm.id, ORG)));
   const mInv = await inviteWorker(ORG, OWNER, jm.id, M(1), undefined, { note: "You're nearby" });
   check("a match can be invited without any earlier relationship", mInv.ok, mInv);
   const after = await loadMatches(jm.id, ORG);
-  check("…and then leaves Matches (it's under Invites now)", after.ok && after.rows.length === 0 && (await matchCounts([jm], ORG)).get(jm.id) === 0);
+  check("…and then leaves Matches (it's under Invites now)", after.ok && !after.rows.some((r) => r.name === "Match 1") && (await matchCounts([jm.id, draftJob.id], ORG)).get(jm.id) === after.rows.length && (await matchCounts([draftJob.id], ORG)).get(draftJob.id) === null);
   const mSnap = (await p.engagement.findUniqueOrThrow({ where: { id: idOf(mInv) } })).applicationSnapshot as { scorecard?: { shared?: Record<string, boolean> } };
   check("…(output shared, history not)", mSnap.scorecard?.shared?.output === true && mSnap.scorecard?.shared?.history === false, mSnap);
 

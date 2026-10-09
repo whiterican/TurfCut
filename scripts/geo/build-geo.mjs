@@ -25,25 +25,55 @@ const r3 = (n) => Math.round(Number(n) * 1000) / 1000;
 const places = rows(placeFile, "\t");
 const ph = places[0];
 const P = Object.fromEntries(ph.map((h, i) => [h, i]));
+const need = (cols, names, file) => {
+  for (const n of names) if (!(n in cols)) throw new Error(`${file}: no ${n} column (has the Census format changed?)`);
+};
+need(P, ["USPS", "GEOID", "NAME", "INTPTLAT", "INTPTLONG"], placeFile);
 const fipsToState = {};
-const byState = {};
-const area = {};
+// Per state: key -> list of [lat, lon] for the places whose own name gives that key, and
+// key -> [lat, lon] for other names a place goes by (used only when no place's own name is the key).
+const own = {};
+const alias = {};
+const add = (bag, st, key, pt) => {
+  if (!key) return;
+  bag[st] ??= {};
+  (bag[st][key] ??= []).push(pt);
+};
 for (const p of places.slice(1)) {
   const st = p[P.USPS];
   fipsToState[p[P.GEOID].slice(0, 2)] = st;
-  const key = placeKey(p[P.NAME]);
-  if (!key) continue;
-  const land = Number(p[P.ALAND]);
-  byState[st] ??= {};
-  // Two places with one name in a state (a city and a CDP): keep the larger.
-  if (byState[st][key] && area[`${st}|${key}`] >= land) continue;
-  byState[st][key] = [r3(p[P.INTPTLAT]), r3(p[P.INTPTLONG])];
-  area[`${st}|${key}`] = land;
+  const name = p[P.NAME];
+  const pt = [r3(p[P.INTPTLAT]), r3(p[P.INTPTLONG])];
+  add(own, st, placeKey(name), pt);
+  // "San Buenaventura (Ventura) city" also answers to "Ventura".
+  const paren = /\(([^)]+)\)/.exec(name);
+  if (paren && !/balance/i.test(paren[1])) add(alias, st, placeKey(paren[1]), pt);
+  // Consolidated city-counties: "Nashville-Davidson metropolitan government (balance)" is "Nashville",
+  // "Louisville/Jefferson County metro government (balance)" is "Louisville".
+  // "Macon-Bibb County" is "Macon"; "Lynchburg, Moore County metropolitan government" is "Lynchburg".
+  if (/(government|urban county|\(balance\)|county$)/i.test(name)) add(alias, st, placeKey(name.split(/[-/,]/)[0]), pt);
+  // "Urban Honolulu CDP" is "Honolulu".
+  if (/^urban /i.test(name)) add(alias, st, placeKey(name.replace(/^urban /i, "")), pt);
+}
+// One answer per name, or none: two different places with one name in a state are never guessed between.
+const byState = {};
+let ambiguous = 0;
+for (const st of new Set([...Object.keys(own), ...Object.keys(alias)])) {
+  byState[st] = {};
+  for (const [key, pts] of Object.entries(alias[st] ?? {})) if (pts.length === 1) byState[st][key] = pts[0];
+  for (const [key, pts] of Object.entries(own[st] ?? {})) {
+    if (pts.length === 1) byState[st][key] = pts[0];
+    else {
+      delete byState[st][key];
+      ambiguous++;
+    }
+  }
 }
 
 // Each ZIP's state: the county holding most of its land.
 const rel = rows(relFile, "|");
 const R = Object.fromEntries(rel[0].map((h, i) => [h, i]));
+need(R, ["GEOID_ZCTA5_20", "GEOID_COUNTY_20", "AREALAND_PART"], relFile);
 const best = {};
 for (const r of rel.slice(1)) {
   const z = r[R.GEOID_ZCTA5_20];
@@ -55,9 +85,10 @@ for (const r of rel.slice(1)) {
 
 const zctas = rows(zctaFile, "\t");
 const Z = Object.fromEntries(zctas[0].map((h, i) => [h, i]));
+need(Z, ["GEOID", "INTPTLAT", "INTPTLONG"], zctaFile);
 const zcta = {};
 for (const z of zctas.slice(1)) zcta[z[Z.GEOID]] = [r3(z[Z.INTPTLAT]), r3(z[Z.INTPTLONG]), best[z[Z.GEOID]]?.st ?? ""];
 
 writeFileSync(join(outDir, "zcta.json"), JSON.stringify(zcta));
 writeFileSync(join(outDir, "places.json"), JSON.stringify(byState));
-console.log(`zcta: ${Object.keys(zcta).length}, places: ${Object.values(byState).reduce((n, s) => n + Object.keys(s).length, 0)} in ${Object.keys(byState).length} states`);
+console.log(`zcta: ${Object.keys(zcta).length}, places: ${Object.values(byState).reduce((n, s) => n + Object.keys(s).length, 0)} in ${Object.keys(byState).length} states; ${ambiguous} names left out as ambiguous within a state`);

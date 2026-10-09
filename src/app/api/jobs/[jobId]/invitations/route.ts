@@ -4,7 +4,7 @@ import { inviteWorker } from "@/lib/engagements-data";
 /**
  * POST /api/jobs/:jobId/invitations { workerId, note? } — approved
  * organizations invite a worker who has already engaged with one of their
- * jobs. The note (up to 500 characters) is shown to the worker; the
+ * jobs, or who is one of this job's Matches (C3.4). The note (up to 500 characters) is shown to the worker; the
  * invitation lasts 7 days; at most 3 a week per worker (409 beyond that).
  */
 export async function POST(req: Request, { params }: { params: Promise<{ jobId: string }> }) {

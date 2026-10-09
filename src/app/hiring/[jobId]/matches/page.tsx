@@ -5,8 +5,8 @@ import { db } from "@/lib/db";
 import { readHiringModes, UUID_RE } from "@/lib/jobs";
 import { expiryToday } from "@/lib/credentials";
 import { INVITE_DAYS, INVITES_PER_WEEK, NOTE_MAX } from "@/lib/engagements";
-import { applicantCells, applicantJob, availableColumns } from "@/lib/applicants";
-import { DEFAULT_TRAVEL_MILES, loadMatches, type MatchRow } from "@/lib/matches-data";
+import { applicantCells, applicantJob, availableColumns, filtersActive, keepApplicant, parseFilters } from "@/lib/applicants";
+import { DEFAULT_TRAVEL_MILES, distanceBand, loadMatches, type MatchRow } from "@/lib/matches-data";
 import { hiringCounts } from "@/lib/invitations-data";
 import type { TableCell } from "@/lib/table";
 import { Masthead } from "@/components/staff/Masthead";
@@ -15,10 +15,16 @@ import { DataTable } from "@/components/staff/DataTable";
 import { ActionButton } from "@/components/ActionButton";
 import { invite } from "@/app/jobs/actions";
 
-/** Rounded, so a home ZIP can't be worked back out from the distance. */
-const distanceText = (m: MatchRow) => {
-  const r = m.miles < 5 ? "under 5 mi" : `about ${Math.round(m.miles / 5) * 5} mi`;
-  return `${r} · travels ${m.travelSet ? `up to ${m.travelMiles} mi` : `(no distance set, ${DEFAULT_TRAVEL_MILES} mi used)`}`;
+/** In 5-mile bands only — the exact distance never leaves the server — so a home ZIP can't be worked back out. */
+const distanceText = (m: MatchRow) =>
+  `${distanceBand(m.miles).text} · travels ${m.travelSet ? `up to ${m.travelMiles} mi` : `(no distance set, ${DEFAULT_TRAVEL_MILES} mi used)`}`;
+
+const REFUSED: Record<string, { title: string; body: string }> = {
+  not_approved: { title: "Matches open once Turfcut approves your organization", body: "Until then, only people who apply are shown." },
+  not_open: { title: "Matches show for published jobs", body: "Publish the job (its city and campaign are fixed from then on) to see who's nearby." },
+  no_city: { title: "Add the job's city to see matches", body: "Matches are measured from the job's city." },
+  city_unplaced: { title: "Turfcut can't place this job's city", body: "Check its spelling and state. Matches are measured from the job's city." },
+  not_found: { title: "Job not found", body: "" },
 };
 
 /**
@@ -29,8 +35,16 @@ const distanceText = (m: MatchRow) => {
  * there's no combined score, and political answers play no part except
  * that a worker's own "do not match" answers keep them off this list.
  */
-export default async function MatchesPage({ params }: { params: Promise<{ jobId: string }> }) {
+export default async function MatchesPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ jobId: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const { jobId } = await params;
+  const raw = await searchParams;
+  const filters = { ...parseFilters(new URLSearchParams(Object.entries(raw).flatMap(([k, v]) => (typeof v === "string" ? [[k, v]] : [])))), stage: "all" as const, since: null };
   if (!UUID_RE.test(jobId)) notFound();
   const session = await requireArea("hiring");
   const job = await db().job.findFirst({
@@ -43,27 +57,48 @@ export default async function MatchesPage({ params }: { params: Promise<{ jobId:
   const facts = applicantJob(job);
   const main = job.type === "PETITION" ? "signaturesPerActiveHour" : "doorsPerActiveHour";
   const cols = availableColumns(facts).filter((c) => ["free", "credentials", main, "showRate", "shifts"].includes(c));
-  const rows = r.ok ? r.rows : [];
+  const all = r.ok ? r.rows : [];
+  const today = expiryToday(now);
+  // The same filters as Applicants: they narrow what was shared, never drop someone for not sharing.
+  const rows = all.filter((m) => keepApplicant(m, facts, filters, today));
   const invitable = job.status === "PUBLISHED" && readHiringModes(job.hiringMethod).includes("invite");
 
   return (
     <main className="page max-w-5xl">
-      <Masthead eyebrow="Matches" title={job.title} meta={r.ok ? `${rows.length} ${rows.length === 1 ? "worker" : "workers"} who chose to be found for this work` : ""}>
+      <Masthead eyebrow="Matches" title={job.title} meta={r.ok ? `${all.length} ${all.length === 1 ? "worker" : "workers"} who chose to be found for this work` : ""}>
         <Link href="/hiring" className="btn-ghost btn-sm">← Pipeline</Link>
         <Link href={`/jobs/${job.id}`} className="btn-secondary btn-sm">Job page</Link>
       </Masthead>
-      <HiringTabs jobId={job.id} current="matches" counts={{ ...counts, matches: r.ok ? rows.length : undefined }} />
+      <HiringTabs jobId={job.id} current="matches" counts={counts} />
       <p className="text-muted-sm">
-        Workers who turned on &ldquo;organizations can find me&rdquo; for {job.type === "PETITION" ? "petition" : "canvass"} work and live within the distance they&apos;d travel to this job&apos;s city. Each column is one fact with its evidence, only what the worker shares with approved organizations. There&apos;s no overall score. Anyone whose own &ldquo;do not match&rdquo; answers rule this job out is never listed, and nothing about those answers is shown.
+        Workers who turned on &ldquo;organizations can find me&rdquo; for {job.type === "PETITION" ? "petition" : "canvass"} work and live within the distance they&apos;d travel to this job&apos;s city. Each column is one fact with its evidence: only what the worker shares with any approved organization, even if they&apos;ve worked with you. There&apos;s no overall score. Workers whose own &ldquo;do not match&rdquo; answers rule this job out aren&apos;t listed, and nothing about those answers is shown.
       </p>
 
       {!r.ok ? (
         <div className="empty-state">
-          <p className="empty-state-title">{r.reason === "not_approved" ? "Matches open once Turfcut approves your organization" : "Add the job's city to see matches"}</p>
-          <p className="empty-state-body">{r.reason === "not_approved" ? "Until then, only people who apply are shown." : "Matches are measured from the job's city."}</p>
+          <p className="empty-state-title">{REFUSED[r.reason].title}</p>
+          {REFUSED[r.reason].body && <p className="empty-state-body">{REFUSED[r.reason].body}</p>}
         </div>
       ) : (
         <>
+          {(facts.startsAt || availableColumns(facts).includes("credentials")) && (
+            <form className="card flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
+              {facts.startsAt && facts.endsAt && (
+                <label className="flex items-center gap-2">
+                  <input type="checkbox" name="free" value="1" defaultChecked={filters.free} className="size-4" />
+                  Free on at least one of the job&apos;s days
+                </label>
+              )}
+              {availableColumns(facts).includes("credentials") && (
+                <label className="flex items-center gap-2">
+                  <input type="checkbox" name="creds" value="1" defaultChecked={filters.credentials} className="size-4" />
+                  Holds every required credential
+                </label>
+              )}
+              <button className="btn-secondary btn-sm">Show</button>
+              {filtersActive(filters) && <Link href={`/hiring/${job.id}/matches`} className="link">Clear ({rows.length} of {all.length} shown)</Link>}
+            </form>
+          )}
           <DataTable
             caption={`Matches for ${job.title}`}
             empty="Nobody matches yet. Workers appear here when they choose to be found for this kind of work nearby."
@@ -76,7 +111,7 @@ export default async function MatchesPage({ params }: { params: Promise<{ jobId:
             rows={rows.map((m) => {
               const cells: Record<string, TableCell> = applicantCells(m, facts, cols, expiryToday(now), "");
               cells.who = { text: m.name, sort: m.name };
-              cells.distance = { text: distanceText(m), sort: Math.round(m.miles) };
+              cells.distance = { text: distanceText(m), sort: distanceBand(m.miles).band };
               return { id: m.workerId, cells };
             })}
           />
@@ -93,7 +128,7 @@ export default async function MatchesPage({ params }: { params: Promise<{ jobId:
                       <label className="block space-y-1.5">
                         <span className="label">Worker</span>
                         <select name="workerId" className="field" required>
-                          {rows.map((m) => <option key={m.workerId} value={m.workerId}>{m.name}</option>)}
+                          {rows.map((m) => <option key={m.workerId} value={m.workerId}>{m.name} — {distanceBand(m.miles).text}</option>)}
                         </select>
                       </label>
                       <label className="block space-y-1.5">

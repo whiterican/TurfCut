@@ -557,8 +557,14 @@ export function exclusionReasons(
   pref: FitPreferences | null,
   job: { disclosure: JobDisclosure | null; orgName: string; measureIds: string[] }
 ): string[] {
-  if (!pref || pref.visibilityMode === "PRIVATE" || !job.disclosure) return [];
+  if (!pref || pref.visibilityMode === "PRIVATE") return [];
   const d = job.disclosure;
+  // "Do not match me with this organization" needs no disclosure; the other boundaries are about the campaign.
+  if (!d) {
+    return (pref.campaignBoundaries ?? [])
+      .filter((b) => b.stance === "do_not_match" && b.kind === "organization" && job.orgName.trim().toLowerCase() === b.target.trim().toLowerCase())
+      .map((b) => `You asked not to be matched — ${boundaryText(b).replace(/^Do not match me: /, "")}`);
+  }
   const eq = (a: string | null | undefined, b: string) => !!a && a.trim().toLowerCase() === b.trim().toLowerCase();
   return (pref.campaignBoundaries ?? [])
     .filter((b) => b.stance === "do_not_match")

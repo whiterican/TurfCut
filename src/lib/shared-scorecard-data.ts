@@ -18,7 +18,11 @@ export async function partsForOrg(workerId: string, orgId: string) {
  * the organization's approval, a relationship from the worker's own
  * engagements, closed (or missing) accounts read as the public.
  */
-export async function partsForOrgMany(workerIds: string[], orgId: string): Promise<Map<string, Record<SharePart, boolean>>> {
+export async function partsForOrgMany(
+  workerIds: string[],
+  orgId: string,
+  opts: { asStranger?: boolean } = {}
+): Promise<Map<string, Record<SharePart, boolean>>> {
   const ids = [...new Set(workerIds)];
   const out = new Map<string, Record<SharePart, boolean>>();
   if (!ids.length) return out;
@@ -32,7 +36,8 @@ export async function partsForOrgMany(workerIds: string[], orgId: string): Promi
   const choices = new Map(sharing.map((r) => [r.workerId, sharingFromRow(r)]));
   const rel = new Set(related.map((r) => r.workerId));
   for (const id of ids) {
-    const viewer = open.has(id) ? { kind: "org" as const, approved: org?.approved ?? false, relationship: rel.has(id) } : { kind: "public" as const };
+    // asStranger (Matches): what the worker shares with approved organizations they haven't engaged with.
+    const viewer = open.has(id) ? { kind: "org" as const, approved: org?.approved ?? false, relationship: !opts.asStranger && rel.has(id) } : { kind: "public" as const };
     out.set(id, visibleParts(choices.get(id) ?? DEFAULT_SHARING, viewer));
   }
   return out;

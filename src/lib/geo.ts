@@ -21,10 +21,13 @@ type Places = Record<string, Record<string, [number, number]>>;
 let tables: Promise<{ zcta: Zcta; places: Places }> | null = null;
 /** Loaded on first use only (about 2 MB), so pages that never match don't pay for them. */
 export function geoTables() {
-  tables ??= Promise.all([import("@/data/geo/zcta.json"), import("@/data/geo/places.json")]).then(([z, p]) => ({
-    zcta: (z.default ?? z) as unknown as Zcta,
-    places: (p.default ?? p) as unknown as Places,
-  }));
+  tables ??= Promise.all([import("@/data/geo/zcta.json"), import("@/data/geo/places.json")]).then(
+    ([z, p]) => ({ zcta: (z.default ?? z) as unknown as Zcta, places: (p.default ?? p) as unknown as Places }),
+    (err) => {
+      tables = null; // a failed load is tried again next time, not remembered
+      throw err;
+    }
+  );
   return tables;
 }
 
@@ -32,11 +35,11 @@ const ZIP = /^(\d{5})(?:-\d{4})?$/;
 const CITY_STATE = /^(.+?)[,\s]+([A-Za-z]{2})$/;
 
 /**
- * A typed home area: a ZIP ("80202"), "City, ST", or a city alone when its
- * name is unique in the US or in `stateHint`. null when it can't be placed
- * (unknown or ambiguous): such a worker isn't matched, never guessed.
+ * A typed place: a ZIP ("80202"), "City, ST", or a city alone when its name
+ * is unique in the US. null when it can't be placed for certain (unknown,
+ * or a name several places share — never settled by guessing a state).
  */
-export function resolveArea(text: string | null | undefined, t: { zcta: Zcta; places: Places }, stateHint?: string): Point | null {
+export function resolveArea(text: string | null | undefined, t: { zcta: Zcta; places: Places }): Point | null {
   const s = (text ?? "").trim();
   if (!s) return null;
   const zip = ZIP.exec(s);
@@ -51,10 +54,6 @@ export function resolveArea(text: string | null | undefined, t: { zcta: Zcta; pl
     if (hit) return { lat: hit[0], lon: hit[1], state: st };
   }
   const key = placeKey(s);
-  if (stateHint && t.places[stateHint]?.[key]) {
-    const h = t.places[stateHint][key];
-    return { lat: h[0], lon: h[1], state: stateHint };
-  }
   const found = Object.entries(t.places).filter(([, ps]) => ps[key]);
   if (found.length !== 1) return null;
   const [st, ps] = found[0];

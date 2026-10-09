@@ -705,20 +705,29 @@ certificate. Approved as recommended by review:
   `{ workerId, note? }`.
 - **Matches (C3.4)**: `/hiring/[jobId]/matches`, a separate tab from
   Applicants, lists workers who turned on "organizations can find me" for
-  the job's kind of work and whose home area is within the distance they'd
-  travel to the job's city, never anyone already on the job, anyone who
-  muted the organization, or anyone whose own "do not match" answers rule
-  the job out (in any sharing mode: boundaries only ever exclude, and
-  nothing about them is shown). Each column is one fact with its evidence
-  from what the worker shares with approved organizations; distance is
-  rounded to 5 miles; there is no combined score. Only approved
-  organizations see matches, and a match can be invited without an earlier
-  relationship (the only exception to C1's no-directory rule, because the
-  worker opted in). Distances use bundled Census tables
+  the job's kind of work, confirmed under the wording that says what
+  Matches shows (`SHARING_TEXT_VERSION` was bumped, so everyone is asked
+  again), and whose home area is within the distance they'd travel to the
+  job's city. Never anyone already on the job, anyone who muted the
+  organization, or anyone whose own "do not match" answers rule the job
+  out, applied exactly as in their feed (Private answers are never used;
+  an organization boundary applies even to a job without a disclosure).
+  Published or paused jobs only, so a draft's city or campaign can't be
+  moved around to probe. Each column is one fact with its evidence from
+  what the worker shares with any approved organization (even one they work
+  with); distance is sent in 5-mile bands only; there is no combined score.
+  Only approved organizations see matches, and a match can be invited
+  without an earlier relationship (the only exception to C1's no-directory
+  rule, because the worker opted in). Decision for Caden: an organization
+  with several published jobs that disclose different campaigns can still
+  notice a worker who appears for one and not another; the alternative is
+  not applying boundaries to Matches at all. Distances use bundled Census tables
   (`src/data/geo`, ZIP and place centroids, public domain; rebuild with
-  `scripts/geo/build-geo.mjs`). A worker whose home area Turfcut can't
-  place (unknown, or a city name shared by several states) isn't matched,
-  and their profile says so. `/hiring` shows each job's match count.
+  `scripts/geo/build-geo.mjs`; consolidated city-counties and alternate
+  names such as "Nashville" or "Honolulu" are included, and two places with
+  one name in a state are left out rather than guessed). A worker whose
+  home area Turfcut can't place (unknown, or a city name shared by several
+  places) isn't matched, and their profile says so. `/hiring` shows each job's match count.
 - **History**: every step is an append-only `EngagementEvent`, shown the
   same way to the worker and the organization, and in the worker's data
   export (`engagement-history.csv`). `prisma/c3-hiring.sql` adds the

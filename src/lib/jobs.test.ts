@@ -227,6 +227,13 @@ describe("worker exclusions — explicit 'do not match me' only", () => {
     expect(exclusionReasons(pref([{ kind: "issue", target: "housing_affordability", stance: "do_not_match" }], "PRIVATE"), job)).toEqual([]);
   });
 
+  it("an organization boundary applies even when a job has no campaign disclosure; the others need one", () => {
+    const bare = { ...job, disclosure: null };
+    expect(exclusionReasons(pref([{ kind: "organization", target: "Front Range Circulators", stance: "do_not_match" }]), bare)).toHaveLength(1);
+    expect(exclusionReasons(pref([{ kind: "party", target: "nonpartisan", stance: "do_not_match" }]), bare)).toEqual([]);
+    expect(exclusionReasons(pref([{ kind: "organization", target: "Front Range Circulators", stance: "do_not_match" }], "PRIVATE"), bare)).toEqual([]);
+  });
+
   it("never excludes on a job's position — only on the worker's own exclusion of the issue", () => {
     // Worker opposes housing measures but set no boundary: still shown.
     const p: FitPreferences = { ...pref(null), issuePositions: { housing_affordability: { position: "oppose" } } };

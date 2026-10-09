@@ -17,7 +17,7 @@ export default async function HiringPage() {
   });
   const engagements = await db().engagement.findMany({ where: { jobId: { in: jobs.map((j) => j.id) } }, select: { jobId: true, status: true, inviteExpiresAt: true } });
   const rows = pipeline(jobs.map((j) => ({ ...j, status: j.status as "PUBLISHED" | "PAUSED" })), engagements, now);
-  const matches = await matchCounts(jobs, session.orgId, now);
+  const matches = await matchCounts(jobs.map((j) => j.id), session.orgId, now);
   const total = (k: "applied" | "offered" | "invited" | "engaged") => rows.reduce((n, r) => n + r[k], 0);
 
   return (

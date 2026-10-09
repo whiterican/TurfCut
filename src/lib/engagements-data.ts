@@ -103,9 +103,8 @@ async function open(
   // engaged with one of its jobs. Unknown and unrelated ids get the same
   // answer, so invitations can't be used to probe for worker ids.
   // ...or, since C3.4, a worker who chose to be findable and matches this job (Matches).
-  if (action === "invite" && !(await orgHasRelationship(workerId, job.orgId)) && !(await isMatch(workerId, jobId, job.orgId, before))) {
-    return { ok: false, reason: "Worker not found." };
-  }
+  const viaMatch = action === "invite" && !(await orgHasRelationship(workerId, job.orgId));
+  if (viaMatch && !(await isMatch(workerId, jobId, job.orgId, before))) return { ok: false, reason: "Worker not found." };
   const w = await db().worker.findUnique({ where: { id: workerId }, select: { closedAt: true } });
   if (!w) return { ok: false, reason: "Worker not found." };
   if (w.closedAt) return { ok: false, reason: "This worker has closed their account." };
@@ -137,6 +136,11 @@ async function open(
       // A worker who muted this organization reads like any worker it can't reach (no directory, C1).
       const muted = await tx.orgMute.findUnique({ where: { workerId_orgId: { workerId, orgId: fresh.orgId } } });
       if (muted) return { ok: false as const, reason: "Worker not found." };
+      // Reached through Matches: still findable now, under the lock (they may have just turned it off).
+      if (viaMatch) {
+        const s = await tx.workerSharing.findFirst({ where: { workerId }, orderBy: { version: "desc" }, select: { findable: true } });
+        if (!s?.findable) return { ok: false as const, reason: "Worker not found." };
+      }
       // At most INVITES_PER_WEEK invitations from one organization to one worker in any 7 days (C3).
       const recent = await tx.engagementEvent.count({
         where: { type: "INVITED", createdAt: { gt: new Date(at.getTime() - 7 * 86_400_000), lte: at }, engagement: { workerId, job: { orgId: fresh.orgId } } },

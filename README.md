@@ -608,7 +608,7 @@ connection is only for schema changes.
 
 ### Credential proof photos — decided for C3 (owner, 2026-10-09)
 
-Not built yet; C2 only tells Colorado workers to keep their training
+Not built yet; C2 only tells Colorado petition circulators to keep their training
 certificate. Approved as recommended by review:
 
 - A photo is evidence a person checks, never proof by itself: it doesn't

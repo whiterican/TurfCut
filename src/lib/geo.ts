@@ -43,9 +43,11 @@ const CITY_STATE = /^(.+?)[,\s]+([A-Za-z]{2})$/;
 export function resolveArea(text: string | null | undefined, t: { zcta: Zcta; places: Places }): Point | null {
   const s = (text ?? "").trim();
   if (!s) return null;
+  // Own keys only: the tables are plain JSON objects, so "constructor" mustn't find a built-in.
+  const own = <V>(o: Record<string, V> | undefined, k: string): o is Record<string, V> => !!o && Object.hasOwn(o, k);
   const zip = ZIP.exec(s);
   if (zip) {
-    const z = t.zcta[zip[1]];
+    const z = own(t.zcta, zip[1]) ? t.zcta[zip[1]] : undefined;
     return z ? { lat: z[0], lon: z[1], state: z[2] } : null;
   }
   // The least-stripped form that names a place wins ("Goodyear Village" before "Goodyear").
@@ -53,15 +55,17 @@ export function resolveArea(text: string | null | undefined, t: { zcta: Zcta; pl
   const cs = CITY_STATE.exec(s);
   if (cs) {
     const st = cs[2].toUpperCase();
+    const ps = own(t.places, st) ? t.places[st] : undefined;
     for (const key of keys(cs[1])) {
-      const hit = t.places[st]?.[key];
+      if (!own(ps, key)) continue;
+      const hit = ps[key];
       if (hit === null) return null; // shared by several places there
-      if (hit) return { lat: hit[0], lon: hit[1], state: st };
+      return { lat: hit[0], lon: hit[1], state: st };
     }
   }
   for (const key of keys(s)) {
     // Every state where the name is taken counts, placed or not.
-    const found = Object.entries(t.places).filter(([, ps]) => key in ps);
+    const found = Object.entries(t.places).filter(([, ps]) => Object.hasOwn(ps, key));
     if (found.length > 1) return null; // a name several states share: never guessed
     if (found.length === 1) {
       const [st, ps] = found[0];

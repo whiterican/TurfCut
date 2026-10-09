@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import type { ActionState } from "@/app/jobs/actions";
 import { requireArea } from "@/lib/employer-session";
 import { verifyCredential } from "@/lib/verification-data";
@@ -11,5 +12,6 @@ export async function verify(_prev: ActionState, fd: FormData): Promise<ActionSt
   const r = await verifyCredential({ profileId: s.userId, orgId: s.orgId, role: s.role }, String(fd.get("credentialId") ?? ""), String(fd.get("method") ?? ""));
   if (!r.ok) return { ok: false, message: r.reason };
   revalidatePath("/org/credentials");
-  return { ok: true, message: "Recorded. The worker sees that your organization verified it, and how." };
+  // The form goes away once the credential is verified, so the confirmation is shown by the page.
+  redirect("/org/credentials?checked=1");
 }

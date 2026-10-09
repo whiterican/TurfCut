@@ -26,6 +26,11 @@ export const METHOD_LABELS: Record<VerificationMethod, string> = {
 };
 /** The methods an organization can record today (proof photos arrive with C3.6b). */
 export const ORG_METHODS: VerificationMethod[] = ["REGISTRY_LOOKUP", "ORIGINAL_DOCUMENT"];
+/** A state keeps a registry of circulators and notaries, not of training courses: registry lookups only fit those, with a state. */
+export function methodsFor(c: Pick<CredentialRow, "kind" | "state">): VerificationMethod[] {
+  const registry = (c.kind === "CIRCULATOR_REGISTRATION" || c.kind === "NOTARY_OR_AFFIDAVIT") && !!c.state;
+  return ORG_METHODS.filter((m) => m !== "REGISTRY_LOOKUP" || registry);
+}
 
 export const CREDENTIAL_KINDS: Array<{ value: CredentialKind; label: string; needsLabel: boolean; hint: string }> = [
   { value: "CIRCULATOR_REGISTRATION", label: "Circulator registration", needsLabel: false, hint: "Your state's petition circulator registration." },

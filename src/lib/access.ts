@@ -46,7 +46,7 @@ export type Area =
   | "pay" // approve and send pay, disputes, pay exports
   | "messages" // in-app chat
   | "orgSettings" // the organization's settings page
-  | "compliance" // record the classification review
+  | "compliance" // record the classification review and credential checks
   | "orgMembers" // invite, change and remove members
   | "campaigns"; // campaign profiles (C6)
 export type AccessLevel = "full" | "read";

@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { loadVerifiers } from "@/lib/verification-data";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { getSupabaseServiceRoleKey, getSupabaseUrl } from "@/lib/env";
@@ -182,7 +183,9 @@ export async function exportAccount(actor: { userId: string; workerId: string; e
   files.push({ name: "metrics.json", text: json(metrics) });
   files.push({ name: "sharing.json", text: json(sharing) });
   files.push({ name: "availability.json", text: json(availability) });
-  files.push({ name: "credentials.csv", text: csvTable(credentials) });
+  // Which organization verified a row is the worker's to know (others see only that one did).
+  const verifiers = await loadVerifiers(w);
+  files.push({ name: "credentials.csv", text: csvTable(credentials.map((c) => ({ ...c, verifiedByOrg: verifiers.get(c.id)?.org ?? "" }))) });
   files.push({ name: "notifications.csv", text: csvTable(notices.map((n) => ({ id: n.id, kind: n.kind, engagementId: n.engagementId, at: n.createdAt, readAt: n.readAt ?? "" })), ["id", "kind", "engagementId", "at", "readAt"]) });
   files.push({ name: "mutes.json", text: json(mutes.map((m) => ({ organization: m.org.name, since: m.createdAt }))) });
   files.push({ name: "engagements.csv", text: csvTable(engagements.map((e) => ({ id: e.id, jobId: e.job.id, job: e.job.title, organization: e.job.org.name, status: e.status, createdAt: e.createdAt, updatedAt: e.updatedAt, inviteNote: e.inviteNote ?? "", inviteExpiresAt: e.inviteExpiresAt ?? "", applicationSnapshot: e.applicationSnapshot }))) });

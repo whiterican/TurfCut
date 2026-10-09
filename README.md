@@ -765,7 +765,13 @@ certificate. Approved as recommended by review:
   when, even if the person who checked later leaves that organization.
   Other organizations see "Verified by an organization" and how, never
   which one. Organizations never see a credential's number, so a registry
-  check is by the worker's name.
+  check is by the worker's name, and is offered only for circulator and
+  notary credentials with a state. Already ran `c3-hiring.sql`? Run it
+  once more before deploying C3.6: every credentials screen reads the new
+  column. Decisions for Caden: an organization can't take back a check it
+  recorded by mistake (only the worker's edit resets it; a withdrawal row
+  could come later), and a worker whose shared history names a single
+  organization lets others guess which one verified.
 - **History**: every step is an append-only `EngagementEvent`, shown the
   same way to the worker and the organization, and in the worker's data
   export (`engagement-history.csv`). `prisma/c3-hiring.sql` adds the

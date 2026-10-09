@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { ActionButton } from "@/components/ActionButton";
+import { UrlNotice } from "@/components/UrlNotice";
 import { requireArea } from "@/lib/employer-session";
-import { db } from "@/lib/db";
-import { credentialName, expiryState, expiryToday, METHOD_LABELS, ORG_METHODS, VERIFICATION_LABELS } from "@/lib/credentials";
+import { credentialName, expiryState, expiryToday, METHOD_LABELS, methodsFor, VERIFICATION_LABELS } from "@/lib/credentials";
 import { loadHiredCredentials } from "@/lib/verification-data";
 import { verify } from "./actions";
 
@@ -14,12 +14,9 @@ const dateText = (d: Date) => d.toLocaleDateString("en-US", { month: "short", da
  * the organization's jobs who share credentials with it; a worker's edit
  * makes the credential self-reported again.
  */
-export default async function OrgCredentialsPage() {
+export default async function OrgCredentialsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const session = await requireArea("compliance");
-  const [org, workers] = await Promise.all([
-    db().organization.findUnique({ where: { id: session.orgId }, select: { approved: true } }),
-    loadHiredCredentials({ profileId: session.userId, orgId: session.orgId, role: session.role }),
-  ]);
+  const [workers, { checked }] = await Promise.all([loadHiredCredentials({ profileId: session.userId, orgId: session.orgId, role: session.role }), searchParams]);
   const today = expiryToday();
 
   return (
@@ -36,7 +33,9 @@ export default async function OrgCredentialsPage() {
         organization did, and how.
       </p>
 
-      {!org?.approved ? (
+      {checked === "1" && <UrlNotice param="checked" message="Recorded. The worker sees that your organization verified it, and how." />}
+
+      {workers === null ? (
         <p role="status" className="alert-info">Once Turfcut approves your organization, you can verify the credentials of workers you hire.</p>
       ) : workers.length === 0 ? (
         <p className="text-muted-sm">Nobody hired yet. Workers appear here once they claim a spot or accept an offer on one of your jobs.</p>
@@ -85,7 +84,7 @@ export default async function OrgCredentialsPage() {
                               <span className="label">How you checked</span>
                               <select name="method" required className="field" defaultValue="">
                                 <option value="" disabled>Choose one</option>
-                                {ORG_METHODS.map((m) => <option key={m} value={m}>{METHOD_LABELS[m][0].toUpperCase() + METHOD_LABELS[m].slice(1)}</option>)}
+                                {methodsFor(c).map((m) => <option key={m} value={m}>{METHOD_LABELS[m][0].toUpperCase() + METHOD_LABELS[m].slice(1)}</option>)}
                               </select>
                             </label>
                           </ActionButton>

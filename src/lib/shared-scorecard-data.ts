@@ -1,5 +1,6 @@
 import { loadScorecard, loadScorecardPeriods } from "@/lib/scorecard-data";
 import { shareScorecard, shareScorecardPeriodsForOrg, type SharedScorecard } from "@/lib/shared-scorecard";
+import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { RELATIONSHIP_STATUSES } from "@/lib/engagements";
 import { loadSharing, orgViewer } from "@/lib/sharing-data";
@@ -21,16 +22,18 @@ export async function partsForOrg(workerId: string, orgId: string) {
 export async function partsForOrgMany(
   workerIds: string[],
   orgId: string,
-  opts: { asStranger?: boolean } = {}
+  opts: { asStranger?: boolean; client?: Prisma.TransactionClient } = {}
 ): Promise<Map<string, Record<SharePart, boolean>>> {
   const ids = [...new Set(workerIds)];
   const out = new Map<string, Record<SharePart, boolean>>();
   if (!ids.length) return out;
+  // A transaction passes itself, to read under the locks it holds.
+  const c = opts.client ?? db();
   const [org, workers, sharing, related] = await Promise.all([
-    db().organization.findUnique({ where: { id: orgId }, select: { approved: true } }),
-    db().worker.findMany({ where: { id: { in: ids } }, select: { id: true, closedAt: true } }),
-    db().workerSharing.findMany({ where: { workerId: { in: ids } }, orderBy: [{ workerId: "asc" }, { version: "desc" }], distinct: ["workerId"] }),
-    db().engagement.groupBy({ by: ["workerId"], where: { workerId: { in: ids }, job: { orgId }, status: { in: RELATIONSHIP_STATUSES } } }),
+    c.organization.findUnique({ where: { id: orgId }, select: { approved: true } }),
+    c.worker.findMany({ where: { id: { in: ids } }, select: { id: true, closedAt: true } }),
+    c.workerSharing.findMany({ where: { workerId: { in: ids } }, orderBy: [{ workerId: "asc" }, { version: "desc" }], distinct: ["workerId"] }),
+    c.engagement.groupBy({ by: ["workerId"], where: { workerId: { in: ids }, job: { orgId }, status: { in: RELATIONSHIP_STATUSES } } }),
   ]);
   const open = new Set(workers.filter((w) => !w.closedAt).map((w) => w.id));
   const choices = new Map(sharing.map((r) => [r.workerId, sharingFromRow(r)]));

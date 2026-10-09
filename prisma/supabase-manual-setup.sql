@@ -1264,8 +1264,8 @@ ALTER TABLE "public"."Notification" ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON "public"."Notification" FROM anon, authenticated;
 
 -- Credential verification records how it was checked (C3.6). Set exactly
--- when a credential is verified; NOT VALID leaves any earlier rows as they
--- were and holds every new row to it.
+-- when a credential is verified. (c3-hiring.sql adds this check NOT VALID,
+-- for databases with earlier rows; a fresh database checks every row.)
 DO $$ BEGIN
   CREATE TYPE "public"."VerificationMethod" AS ENUM ('REGISTRY_LOOKUP', 'ORIGINAL_DOCUMENT', 'PROOF_PHOTO');
 EXCEPTION WHEN duplicate_object THEN NULL;

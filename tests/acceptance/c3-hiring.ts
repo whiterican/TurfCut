@@ -19,7 +19,8 @@ import { closeAccount, exportAccount } from "@/lib/account-data";
 import { scheduleShift } from "@/lib/field-day-data";
 import { orgHasRelationship, savePreferences } from "@/lib/political-fit-data";
 import { workerAccessFor } from "@/lib/worker-access-data";
-import { addCredential, editCredential, loadOrgCredentials } from "@/lib/credentials-data";
+import { addCredential, editCredential, loadOrgCredentials, removeCredential } from "@/lib/credentials-data";
+import { expiryToday, methodsFor } from "@/lib/credentials";
 import { loadHiredCredentials, loadVerifiers, verifyCredential } from "@/lib/verification-data";
 
 const ORG = "00000000-0000-0000-0000-000000000001";
@@ -574,13 +575,13 @@ const types = async (id: string) => (await loadEngagementEvents(id)).map((e) => 
   await saveSharing(V(1), V(1), { audiences: { ...DEFAULT_SHARING.audiences, credentials: "NOBODY" } });
   const unshared = await verifyCredential(owner, c1, "ORIGINAL_DOCUMENT");
   check("credentials not shared with the organization read as not found", !unshared.ok && /not found/.test(unshared.reason), unshared);
-  check("…and the list says so instead of showing them", (await loadHiredCredentials(comp)).find((x) => x.workerId === V(1))?.credentials === "withheld");
+  check("…and the list says so instead of showing them", ((await loadHiredCredentials(comp)) ?? []).find((x) => x.workerId === V(1))?.credentials === "withheld");
   await saveSharing(V(1), V(1), { audiences: { ...DEFAULT_SHARING.audiences, credentials: "ANY_APPROVED_ORG" } });
   await p.organization.update({ where: { id: ORG }, data: { approved: false } });
   const unapproved = await verifyCredential(owner, c1, "ORIGINAL_DOCUMENT");
   const unapprovedList = await loadHiredCredentials(owner);
   await p.organization.update({ where: { id: ORG }, data: { approved: true } });
-  check("an organization Turfcut doesn't approve can't verify or list", !unapproved.ok && /not found/.test(unapproved.reason) && unapprovedList.length === 0, unapproved);
+  check("an organization Turfcut doesn't approve can't verify or list", !unapproved.ok && /not found/.test(unapproved.reason) && unapprovedList === null, unapproved);
   const self = await verifyCredential(staffOf(COMP2, "COMPLIANCE"), c3, "ORIGINAL_DOCUMENT");
   check("nobody verifies their own credential", !self.ok && /your own/.test(self.reason), self);
   const expired = await verifyCredential(owner, c1old, "ORIGINAL_DOCUMENT");
@@ -597,10 +598,10 @@ const types = async (id: string) => (await loadEngagementEvents(id)).map((e) => 
   const again = ok6.ok ? await verifyCredential(owner, ok6.id, "ORIGINAL_DOCUMENT") : null;
   const stale = await verifyCredential(owner, c1, "ORIGINAL_DOCUMENT");
   check("a verified credential isn't verified again; the replaced row reads as not found", !!again && !again.ok && /already verified/.test(again.reason) && !stale.ok && /not found/.test(stale.reason), { again, stale });
-  const list6 = (await loadHiredCredentials(owner)).find((x) => x.workerId === V(1));
+  const list6 = ((await loadHiredCredentials(owner)) ?? []).find((x) => x.workerId === V(1));
   const ownCirc = list6 && list6.credentials !== "withheld" ? list6.credentials.find((c) => c.kind === "CIRCULATOR_REGISTRATION") : undefined;
   check("the verifying organization's list marks it as its own", ownCirc?.byUs === true && ownCirc.verificationMethod === "REGISTRY_LOOKUP", ownCirc);
-  check("V2 (only applied) isn't on the list; a recruiter's list is empty", !(await loadHiredCredentials(owner)).some((x) => x.workerId === V(2)) && (await loadHiredCredentials(staffOf(HIRER, "RECRUITER"))).length === 0);
+  check("V2 (only applied) isn't on the list; a recruiter gets no list", !((await loadHiredCredentials(owner)) ?? []).some((x) => x.workerId === V(2)) && (await loadHiredCredentials(staffOf(HIRER, "RECRUITER"))) === null);
   const seen = await loadOrgCredentials(V(1), ORG2);
   const seenCirc = seen === "withheld" ? undefined : seen.find((c) => c.kind === "CIRCULATOR_REGISTRATION");
   check("another organization sees that an organization verified it and how, never which one",
@@ -619,6 +620,40 @@ const types = async (id: string) => (await loadEngagementEvents(id)).map((e) => 
   // Two checks racing on one credential: one is recorded.
   const race = await Promise.all([verifyCredential(owner, c1b, "ORIGINAL_DOCUMENT"), verifyCredential(comp, c1b, "REGISTRY_LOOKUP")]);
   check("two checks at once: exactly one is recorded", race.filter((r) => r.ok).length === 1 && (await p.workerCredential.count({ where: { supersedesId: c1b } })) === 1, race);
+  // The worker's edit racing a check on one credential: one lands.
+  const c1c = await addId(V(1), V(1), { kind: "NOTARY_OR_AFFIDAVIT", state: "CO", expiresOn: "2099-01-01" });
+  const editRace = await Promise.all([editCredential(V(1), V(1), c1c, { kind: "NOTARY_OR_AFFIDAVIT", state: "CO", expiresOn: "2098-01-01" }), verifyCredential(owner, c1c, "REGISTRY_LOOKUP")]);
+  check("the worker's edit and a check at once: exactly one lands", editRace.filter((r) => r.ok).length === 1 && (await p.workerCredential.count({ where: { supersedesId: c1c } })) === 1, editRace);
+  const malformed = await verifyCredential(owner, "not-a-uuid", "ORIGINAL_DOCUMENT");
+  const missing = await verifyCredential(owner, "00000000-0000-0000-0000-00000000dead", "ORIGINAL_DOCUMENT");
+  const c1r = await addId(V(1), V(1), { kind: "TRAINING", label: "Removed course" });
+  await removeCredential(V(1), V(1), c1r);
+  const removedV = await verifyCredential(owner, c1r, "ORIGINAL_DOCUMENT");
+  check("a malformed id, a missing one and a removed credential all read as not found", [malformed, missing, removedV].every((r) => !r.ok && /not found/.test(r.reason)), { malformed, missing, removedV });
+  const c1t = await addId(V(1), V(1), { kind: "TRAINING", label: "Doorstep safety" });
+  const regTraining = await verifyCredential(owner, c1t, "REGISTRY_LOOKUP");
+  check("a registry lookup isn't offered for training (no state registry lists it)", !regTraining.ok && /registry/.test(regTraining.reason) && !methodsFor({ kind: "TRAINING", state: null }).includes("REGISTRY_LOOKUP") && !methodsFor({ kind: "CIRCULATOR_REGISTRATION", state: null }).includes("REGISTRY_LOOKUP") && methodsFor({ kind: "CIRCULATOR_REGISTRATION", state: "CO" }).includes("REGISTRY_LOOKUP"), regTraining);
+  const c1today = await addId(V(1), V(1), { kind: "TRAINING", label: "Expires today", expiresOn: expiryToday() });
+  const today6 = await verifyCredential(owner, c1today, "ORIGINAL_DOCUMENT");
+  check("a credential expiring today can still be verified", today6.ok, today6);
+  const keys6 = ((await loadHiredCredentials(owner)) ?? []).flatMap((x) => (x.credentials === "withheld" ? [] : x.credentials.map((c) => Object.keys(c).sort().join())));
+  check("the list never carries a number or who checked", keys6.length > 0 && keys6.every((k) => k === "byUs,createdAt,expiresOn,id,issuedOn,kind,label,state,verification,verificationMethod,verifiedAt"), keys6[0]);
+  // A second organization that also hired the worker: it sees the check, not who made it or when.
+  const orgJob2 = await p.job.create({ data: { orgId: ORG2, jurisdictionId, type: "CANVASS", title: "Other org job", status: "PUBLISHED", hiringMethod: { modes: ["instant_claim"] }, headcount: 5 } });
+  check("ORG2 hires V1 too", (await claimJob(V(1), V(1), orgJob2.id)).ok);
+  const theirs = ((await loadHiredCredentials(staffOf(OTHER, "OWNER", ORG2))) ?? []).find((x) => x.workerId === V(1));
+  const theirToday = theirs && theirs.credentials !== "withheld" ? theirs.credentials.find((c) => c.label === "Expires today") : undefined;
+  check("…where it reads as verified by an organization, not by that one, with no date", theirToday?.verification === "ORGANIZATION" && theirToday.byUs === false && theirToday.verifiedAt === null, theirToday);
+  // A closed account drops off the list and can't be verified.
+  const closedCred = await addId(V(1), V(1), { kind: "TRAINING", label: "Before closing" });
+  await p.worker.update({ where: { id: V(1) }, data: { closedAt: new Date() } });
+  const closedV = await verifyCredential(owner, closedCred, "ORIGINAL_DOCUMENT");
+  const closedList = ((await loadHiredCredentials(owner)) ?? []).some((x) => x.workerId === V(1));
+  await p.worker.update({ where: { id: V(1) }, data: { closedAt: null } });
+  check("a closed account's credentials read as not found and leave the list", !closedV.ok && /not found/.test(closedV.reason) && !closedList, closedV);
+  const exp6 = (await exportAccount({ userId: V(1), workerId: V(1) })).find((f) => f.name === "credentials.csv")?.text ?? "";
+  check("the worker's export says how and by which organization", /verificationMethod/.test(exp6) && /REGISTRY_LOOKUP/.test(exp6) && /verifiedByOrg/.test(exp6) && exp6.includes(orgName) && !/verifiedById/.test(exp6), exp6.slice(0, 300));
+
   const badShape = await refused(p.workerCredential.create({ data: { workerId: V(2), kind: "TRAINING", label: "x", verification: "ORGANIZATION", verifiedById: OWNER, verifiedAt: new Date(), actorId: OWNER } }));
   const badSelf = await refused(p.workerCredential.create({ data: { workerId: V(2), kind: "TRAINING", label: "x", verificationMethod: "REGISTRY_LOOKUP", actorId: V(2) } }));
   check("the database refuses a verification without a method, and a method without a verification", /verification_method/.test(badShape) && /verification_method/.test(badSelf), { badShape, badSelf });

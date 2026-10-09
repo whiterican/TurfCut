@@ -4,7 +4,7 @@ import { can } from "@/lib/access";
 import type { Role } from "@/lib/auth";
 import { UUID_RE } from "@/lib/jobs";
 import { ACCEPTED_STATUSES } from "@/lib/engagements";
-import { currentCredentials, expiryState, expiryToday, ORG_METHODS, type VerificationMethod } from "@/lib/credentials";
+import { expiryState, expiryToday, methodsFor, ORG_METHODS, type VerificationMethod } from "@/lib/credentials";
 import { partsForOrgMany } from "@/lib/shared-scorecard-data";
 
 /**
@@ -40,11 +40,15 @@ async function verifierOrgs(rowIds: string[]) {
   return out;
 }
 
-/** The organization's hired workers who share credentials with it, each with their current credentials. */
+/**
+ * The organization's hired workers who share credentials with it, each with
+ * their current credentials, or null when the organization can't verify
+ * (its role, or Turfcut hasn't approved it). Only current rows are read.
+ */
 export async function loadHiredCredentials(staff: Staff) {
-  if (!can(staff.role, "compliance")) return [];
+  if (!can(staff.role, "compliance")) return null;
   const org = await db().organization.findUnique({ where: { id: staff.orgId }, select: { approved: true } });
-  if (!org?.approved) return [];
+  if (!org?.approved) return null;
   const hired = await db().engagement.findMany({
     where: { ...hiredWhere(staff.orgId), worker: { closedAt: null } },
     select: { workerId: true, worker: { select: { displayName: true } }, job: { select: { title: true } } },
@@ -55,55 +59,70 @@ export async function loadHiredCredentials(staff: Staff) {
   const [parts, rows] = await Promise.all([
     partsForOrgMany(ids, staff.orgId),
     db().workerCredential.findMany({
-      where: { workerId: { in: ids } },
-      select: { workerId: true, id: true, kind: true, label: true, state: true, issuedOn: true, expiresOn: true, verification: true, verificationMethod: true, verifiedAt: true, supersedesId: true, removed: true, createdAt: true },
+      where: { workerId: { in: ids }, removed: false, supersededBy: null },
+      select: { workerId: true, id: true, kind: true, label: true, state: true, issuedOn: true, expiresOn: true, verification: true, verificationMethod: true, verifiedAt: true, createdAt: true },
+      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
     }),
   ]);
-  const current = currentCredentials(rows);
-  const byOrg = await verifierOrgs(current.filter((r) => r.verification === "ORGANIZATION").map((r) => r.id));
+  const shares = ids.filter((id) => parts.get(id)?.credentials);
+  const byOrg = await verifierOrgs(rows.filter((r) => r.verification === "ORGANIZATION" && shares.includes(r.workerId)).map((r) => r.id));
   return ids.map((workerId) => {
     const jobs = [...new Set(hired.filter((h) => h.workerId === workerId).map((h) => h.job.title))];
     const name = hired.find((h) => h.workerId === workerId)!.worker.displayName;
-    const shared = parts.get(workerId)?.credentials ?? false;
     return {
       workerId,
       name,
       jobs,
-      credentials: shared
-        ? current.filter((r) => r.workerId === workerId).map((r) => ({ ...r, byUs: byOrg.get(r.id) === staff.orgId }))
+      credentials: shares.includes(workerId)
+        ? rows.filter((r) => r.workerId === workerId).map(({ workerId: _w, ...r }) => {
+            void _w;
+            const byUs = byOrg.get(r.id) === staff.orgId;
+            // When it was checked is the verifying organization's own record; others see only that it was, and how.
+            return { ...r, verifiedAt: byUs ? r.verifiedAt : null, byUs };
+          })
         : ("withheld" as const),
     };
   });
 }
 
-/** Records that this organization checked a credential, and how. */
+const NOT_FOUND = { ok: false as const, reason: "Credential not found." };
+
+/**
+ * Records that this organization checked a credential, and how. Every check
+ * runs inside the transaction, under the worker's lock (closing the account
+ * takes it) and the sharing lock (saving sharing choices takes it), so
+ * neither can land between the checks and the record.
+ */
 export async function verifyCredential(staff: Staff, credentialId: string, method: string): Promise<{ ok: true; id: string } | { ok: false; reason: string }> {
   if (!can(staff.role, "compliance")) return { ok: false, reason: "Only owners and compliance members verify credentials." };
   if (!ORG_METHODS.includes(method as VerificationMethod)) return { ok: false, reason: "Say how you checked it." };
-  if (!UUID_RE.test(credentialId)) return { ok: false, reason: "Credential not found." };
-  const cur = await db().workerCredential.findFirst({
-    where: { id: credentialId, removed: false, supersededBy: null },
-    select: { id: true, workerId: true, kind: true, label: true, state: true, identifier: true, issuedOn: true, expiresOn: true, verification: true, worker: { select: { profileId: true } } },
-  });
-  if (!cur) return { ok: false, reason: "Credential not found." };
-  const [org, hired, parts] = await Promise.all([
-    db().organization.findUnique({ where: { id: staff.orgId }, select: { approved: true } }),
-    db().engagement.count({ where: { workerId: cur.workerId, ...hiredWhere(staff.orgId), worker: { closedAt: null } } }),
-    partsForOrgMany([cur.workerId], staff.orgId),
-  ]);
-  // Not approved, never hired here, or not shared with this organization: it reads as not found.
-  if (!org?.approved || !hired || !parts.get(cur.workerId)?.credentials) return { ok: false, reason: "Credential not found." };
-  if (cur.worker.profileId === staff.profileId) return { ok: false, reason: "You can't verify your own credential." };
-  if (cur.verification !== "SELF_REPORTED") return { ok: false, reason: "This credential is already verified." };
-  if (expiryState(cur.expiresOn, expiryToday()).kind === "expired") return { ok: false, reason: "This credential has expired. The worker updates it first." };
+  if (!UUID_RE.test(credentialId)) return NOT_FOUND;
   try {
     return await db().$transaction(async (tx) => {
+      const head = await tx.workerCredential.findUnique({ where: { id: credentialId }, select: { workerId: true } });
+      if (!head) return NOT_FOUND;
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`worker:${head.workerId}`}))`;
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`worker_sharing:${head.workerId}`}))`;
+      const cur = await tx.workerCredential.findFirst({
+        where: { id: credentialId, removed: false, supersededBy: null },
+        select: { id: true, workerId: true, kind: true, label: true, state: true, identifier: true, issuedOn: true, expiresOn: true, verification: true, worker: { select: { profileId: true } } },
+      });
+      if (!cur) return NOT_FOUND;
+      const org = await tx.organization.findUnique({ where: { id: staff.orgId }, select: { approved: true } });
+      const hired = await tx.engagement.count({ where: { workerId: cur.workerId, ...hiredWhere(staff.orgId), worker: { closedAt: null } } });
+      const parts = await partsForOrgMany([cur.workerId], staff.orgId, { client: tx });
+      // Not approved, never hired here, closed, or not shared with this organization: it reads as not found.
+      if (!org?.approved || !hired || !parts.get(cur.workerId)?.credentials) return NOT_FOUND;
+      if (cur.worker.profileId === staff.profileId) return { ok: false as const, reason: "You can't verify your own credential." };
+      if (cur.verification !== "SELF_REPORTED") return { ok: false as const, reason: "This credential is already verified." };
+      if (expiryState(cur.expiresOn, expiryToday()).kind === "expired") return { ok: false as const, reason: "This credential has expired. The worker updates it first." };
+      if (!methodsFor(cur).includes(method as VerificationMethod)) return { ok: false as const, reason: "A state registry doesn't list this credential. Choose how you checked it." };
       const { id: _id, workerId, verification: _v, worker: _w, ...content } = cur;
       void _id;
       void _v;
       void _w;
-      // The database's clock, which also stamps createdAt: its checks compare the two.
-      const [{ now }] = await tx.$queryRaw<Array<{ now: Date }>>`SELECT clock_timestamp() AS now`;
+      // The database's clock, as for createdAt (its checks compare the two), in UTC like every stored time.
+      const [{ now }] = await tx.$queryRaw<Array<{ now: Date }>>`SELECT (clock_timestamp() AT TIME ZONE 'UTC')::timestamp(3) AS "now"`;
       const row = await tx.workerCredential.create({
         data: { ...content, workerId, supersedesId: cur.id, verification: "ORGANIZATION", verifiedById: staff.profileId, verifiedAt: now, verificationMethod: method as VerificationMethod, actorId: staff.profileId },
         select: { id: true },
@@ -114,8 +133,13 @@ export async function verifyCredential(staff: Staff, credentialId: string, metho
       return { ok: true as const, id: row.id };
     });
   } catch (e) {
-    // Two checks (or a check and the worker's edit) racing on one row: the unique supersedesId lets one through.
+    // The worker's edit racing the check on one row: the unique supersedesId lets one through.
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") return { ok: false, reason: "This credential changed since you opened it. Reload to see the latest." };
+    // A database check refused it (e.g. its clock checks): say so instead of failing the page.
+    if (e instanceof Prisma.PrismaClientUnknownRequestError && /23514|check_violation/.test(e.message)) {
+      console.error("[turfcut] credential check refused by the database", e.message);
+      return { ok: false, reason: "Turfcut couldn't record this check. Reload and try again." };
+    }
     throw e;
   }
 }

@@ -7,6 +7,10 @@
 -- engagement made in between. (Fresh databases: supabase-manual-setup.sql
 -- already includes it.)
 --
+-- Already ran it for C3.1–C3.5? Run it once more before deploying C3.6: the
+-- code reads WorkerCredential.verificationMethod wherever credentials load
+-- (profile, applicants, Matches), so those pages fail until the column exists.
+--
 -- Changes (approved for C3, Oct 9). Additive; nothing existing changes:
 --   1. EngagementStatus gains OFFERED, DECLINED and WITHDRAWN. An offer waits
 --      on the worker: nothing starts without their accept.

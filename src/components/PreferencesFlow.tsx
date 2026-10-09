@@ -436,7 +436,7 @@ function Review({
   );
 
   const empty = <p className="text-sm text-subtle">Not answered</p>;
-  // Preview as an organization the worker applied to, whose campaign agrees
+  // Preview as an organization the worker works with, whose campaign agrees
   // with each of the worker's positions (the most that could ever show).
   const bestCase = {
     issues: Object.fromEntries(
@@ -542,7 +542,7 @@ function Review({
         <p className="font-medium text-fg">Preview: what organizations see</p>
         <p className="text-hint mt-1">
           {canShare && draft.visibilityMode === "APPLIED_TO"
-            ? "An organization you applied to, if its campaign agreed with every position you shared:"
+            ? "An organization you work with, if its campaign agreed with every position you shared:"
             : "Every organization:"}
         </p>
         <dl className="mt-3 divide-y divide-border text-sm">

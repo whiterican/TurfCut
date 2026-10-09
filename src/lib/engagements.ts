@@ -20,8 +20,8 @@ export const ACCEPTED_STATUSES: EngagementStatus[] = ["CLAIMED", "ACTIVE", "COMP
 
 /**
  * Engagements the worker started or agreed to — the "relationship" that
- * lets an org see answers shared with "organizations you apply to or accept
- * an invitation from". An invitation alone is the org's act, not the
+ * lets an org see answers shared with "organizations you apply to, claim a
+ * spot with or accept an invitation from". An invitation alone is the org's act, not the
  * worker's, so it never counts; nor does a cancelled engagement.
  */
 export const RELATIONSHIP_STATUSES: EngagementStatus[] = ["APPLIED", "CLAIMED", "ACTIVE", "COMPLETED"];

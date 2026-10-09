@@ -38,6 +38,16 @@ export const OFFER_HOURS = 48;
 
 export const offerExpiresAt = (offeredAt: Date) => new Date(offeredAt.getTime() + OFFER_HOURS * 3_600_000);
 
+/** How long a worker has to answer an invitation (C3 decision). */
+export const INVITE_DAYS = 7;
+/** Most invitations one organization may send one worker in a rolling week (C3 decision). */
+export const INVITES_PER_WEEK = 3;
+export const inviteExpiresAt = (sentAt: Date) => new Date(sentAt.getTime() + INVITE_DAYS * 86_400_000);
+
+/** Whether an INVITED engagement has lapsed. Invitations sent before C3 have no deadline. */
+export const inviteLapsed = (status: EngagementStatus, expiresAt: Date | null, now: Date) =>
+  status === "INVITED" && !!expiresAt && expiresAt <= now;
+
 /**
  * Whether an OFFERED engagement's offer has lapsed. One rule everywhere: an
  * offer with no recorded OFFERED event (hand-edited or legacy data) counts
@@ -102,6 +112,8 @@ export interface TransitionContext {
   inReview?: boolean;
   /** The pending offer's deadline has passed. */
   offerExpired?: boolean;
+  /** The invitation's deadline has passed. */
+  inviteExpired?: boolean;
   /**
    * Other offers on this job still inside their window. An offer holds a
    * seat until it lapses, so claims, invitations and new offers can't take
@@ -169,6 +181,7 @@ export function transition(
       if (current === "APPLIED" && actor === "org") return transition(current, "offer", actor, ctx);
       if ((current === "INVITED" || current === "OFFERED") && actor === "worker") {
         if (current === "OFFERED" && ctx.offerExpired) return no("This offer has expired. Ask the organization to send a new one.");
+        if (current === "INVITED" && ctx.inviteExpired) return no("This invitation has expired.");
         if (full) return no("Every spot on this job is taken.");
         // The worker's own offer holds their seat; an invitation holds none.
         if (current === "INVITED" && held) return no(heldReason);
@@ -195,6 +208,7 @@ export type EngagementEventType =
   | "APPLIED"
   | "CLAIMED"
   | "INVITED"
+  // Never written: there are no read receipts on invitations (C3 decision).
   | "INVITE_VIEWED"
   | "INVITE_ACCEPTED"
   | "INVITE_DECLINED"
@@ -221,11 +235,11 @@ export function eventFor(action: EngagementAction, actor: "worker" | "org", from
 }
 
 /** Where an engagement stands, in the worker's words. */
-export function workerStage(status: EngagementStatus, events: Array<{ type: EngagementEventType }>, offerExpired = false): string {
+export function workerStage(status: EngagementStatus, events: Array<{ type: EngagementEventType }>, offerExpired = false, inviteExpired = false): string {
   const has = (t: EngagementEventType) => events.some((e) => e.type === t);
   switch (status) {
     case "APPLIED": return has("IN_REVIEW") ? "In review" : "Applied";
-    case "INVITED": return "Invited";
+    case "INVITED": return inviteExpired ? "Invitation expired" : "Invited";
     case "OFFERED": return offerExpired ? "Offer expired" : "Offer";
     case "CLAIMED": return "Claimed";
     case "ACTIVE": return "Active";
@@ -235,6 +249,13 @@ export function workerStage(status: EngagementStatus, events: Array<{ type: Enga
     case "WITHDRAWN": return has("INVITE_WITHDRAWN") ? "Invitation withdrawn" : "Withdrawn";
   }
 }
+
+/** workerStage for an engagement row and its pipeline facts, with both deadlines read at `now`. */
+export const stageOf = (
+  e: { status: EngagementStatus; inviteExpiresAt: Date | null },
+  facts: { events: Array<{ type: EngagementEventType }>; offerExpiresAt: Date | null },
+  now: Date
+) => workerStage(e.status, facts.events, offerLapsed(e.status, facts.offerExpiresAt, now), inviteLapsed(e.status, e.inviteExpiresAt, now));
 
 /** One history line, in the worker's words (the organization sees the same history). */
 export const EVENT_LABELS: Record<EngagementEventType, string> = {

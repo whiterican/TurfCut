@@ -10,6 +10,8 @@ import { applicantCells, applicantJob, availableColumns, columnLabel, filtersAct
 import { Masthead } from "@/components/staff/Masthead";
 import { DataTable } from "@/components/staff/DataTable";
 import { BulkApplicantActions } from "@/components/BulkApplicantActions";
+import { HiringTabs } from "@/components/staff/HiringTabs";
+import { hiringCounts } from "@/lib/invitations-data";
 
 const BULK_FORM = "applicants-bulk";
 
@@ -46,7 +48,7 @@ export default async function ApplicantsPage({
 
   // Scorecards load only when a column shows one.
   const scorecards = cols.some((c) => !["applied", "stage", "free", "credentials"].includes(c));
-  const all = await loadApplicants(job.id, session.orgId, now, { scorecards });
+  const [all, counts] = await Promise.all([loadApplicants(job.id, session.orgId, now, { scorecards }), hiringCounts(job.id, session.orgId)]);
   const filtering = filtersActive(filters);
   const shown = all.filter((a) => keepApplicant(a, facts, filters, today));
   const toDecide = all.filter((a) => a.status === "APPLIED").length;
@@ -63,6 +65,7 @@ export default async function ApplicantsPage({
         <Link href="/hiring" className="btn-ghost btn-sm">← Pipeline</Link>
         <Link href={`/jobs/${job.id}`} className="btn-secondary btn-sm">Job page</Link>
       </Masthead>
+      <HiringTabs jobId={job.id} current="applicants" counts={counts} />
 
       <details className="card p-0" open={filtering || undefined}>
         <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-fg">Columns and filters</summary>

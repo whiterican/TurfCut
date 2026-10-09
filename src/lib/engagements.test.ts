@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { shareScorecard, ALL_SHARED } from "./shared-scorecard";
-import { buildSnapshot, cleanNote, eventFor, offerExpiresAt, RELATIONSHIP_STATUSES, transition, workerStage, type TransitionContext } from "./engagements";
+import { buildSnapshot, cleanNote, eventFor, inviteExpiresAt, inviteLapsed, offerExpiresAt, stageOf, RELATIONSHIP_STATUSES, transition, workerStage, type TransitionContext } from "./engagements";
 import { computeScorecard } from "./scorecard";
 import { employerFitView } from "./political-fit";
 
@@ -83,6 +83,21 @@ describe("engagement transitions", () => {
     expect(cleanNote("  Thanks   for\tapplying \r\n\r\n\r\n\n  See you  ")).toBe("Thanks for applying\n\nSee you");
     expect(cleanNote("   \n  ")).toBeNull();
     expect(cleanNote(undefined)).toBeNull();
+  });
+
+  it("invitations lapse after 7 days; a lapsed one can't be accepted but can still be declined or withdrawn", () => {
+    const sent = new Date("2026-10-09T12:00:00Z");
+    expect(inviteExpiresAt(sent).toISOString()).toBe("2026-10-16T12:00:00.000Z");
+    expect(inviteLapsed("INVITED", inviteExpiresAt(sent), new Date("2026-10-16T11:59:59Z"))).toBe(false);
+    expect(inviteLapsed("INVITED", inviteExpiresAt(sent), new Date("2026-10-16T12:00:00Z"))).toBe(true);
+    expect(inviteLapsed("INVITED", null, new Date("2030-01-01T00:00:00Z"))).toBe(false); // sent before C3: no deadline
+    expect(inviteLapsed("ACTIVE", inviteExpiresAt(sent), new Date("2030-01-01T00:00:00Z"))).toBe(false);
+    const lapsed = { ...open, inviteExpired: true };
+    expect(transition("INVITED", "accept", "worker", lapsed)).toEqual({ ok: false, reason: "This invitation has expired." });
+    expect(transition("INVITED", "decline", "worker", lapsed).ok).toBe(true);
+    expect(transition("INVITED", "withdraw", "org", lapsed).ok).toBe(true);
+    expect(stageOf({ status: "INVITED", inviteExpiresAt: inviteExpiresAt(sent) }, { events: [], offerExpiresAt: null }, new Date("2026-10-20T00:00:00Z"))).toBe("Invitation expired");
+    expect(stageOf({ status: "INVITED", inviteExpiresAt: inviteExpiresAt(sent) }, { events: [], offerExpiresAt: null }, sent)).toBe("Invited");
   });
 
   it("in review is a step on an application, once, and only by the org", () => {

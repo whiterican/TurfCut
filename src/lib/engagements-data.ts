@@ -5,6 +5,9 @@ import {
   buildSnapshot,
   cleanNote,
   eventFor,
+  inviteExpiresAt,
+  inviteLapsed,
+  INVITES_PER_WEEK,
   NOT_SELECTED_REASONS,
   NOTE_MAX,
   offerExpiresAt,
@@ -82,11 +85,14 @@ async function open(
   actor: { kind: "worker" | "org"; profileId: string; orgId?: string },
   jobId: string,
   workerId: string,
-  now?: Date
+  now?: Date,
+  opts: { note?: string } = {}
 ): Promise<Result> {
   // `now` is for backdated runs (the demo seed); otherwise the clock is read
   // again once the locks are held, so history stays in commit order.
   const before = now ?? new Date();
+  const note = action === "invite" ? cleanNote(opts.note) : null;
+  if (note && note.length > NOTE_MAX) return { ok: false, reason: `Keep the note to ${NOTE_MAX} characters or fewer.` };
   if (!UUID_RE.test(jobId)) return { ok: false, reason: "Job not found." };
   if (!UUID_RE.test(workerId)) return { ok: false, reason: "Worker not found." };
   const job = await db().job.findUnique({ where: { id: jobId }, include: { org: { select: { name: true } } } });
@@ -123,6 +129,16 @@ async function open(
       liveOffers(tx, jobId, null, at),
     ]);
     if (wk.closedAt) return { ok: false as const, reason: "This worker has closed their account." };
+    if (action === "invite") {
+      // A worker who muted this organization reads like any worker it can't reach (no directory, C1).
+      const muted = await tx.orgMute.findUnique({ where: { workerId_orgId: { workerId, orgId: fresh.orgId } } });
+      if (muted) return { ok: false as const, reason: "Worker not found." };
+      // At most INVITES_PER_WEEK invitations from one organization to one worker in any 7 days (C3).
+      const recent = await tx.engagementEvent.count({
+        where: { type: "INVITED", createdAt: { gt: new Date(at.getTime() - 7 * 86_400_000) }, engagement: { workerId, job: { orgId: fresh.orgId } } },
+      });
+      if (recent >= INVITES_PER_WEEK) return { ok: false as const, reason: `You've sent this worker ${INVITES_PER_WEEK} invitations this week, the most allowed. Try again in a few days.` };
+    }
     const t = transition(existing?.status ?? null, action, actor.kind, {
       jobStatus: fresh.status,
       hiringModes: readHiringModes(fresh.hiringMethod),
@@ -136,10 +152,14 @@ async function open(
     // theirs when someone accepts.
     const hiredById = action === "invite" ? actor.profileId : action === "claim" ? await defaultBoss(tx, jobId, fresh.orgId) : null;
     const engagement = await tx.engagement.create({
-      data: { jobId, workerId, status: t.status, hiredById, applicationSnapshot: snapshot as unknown as Prisma.InputJsonValue },
+      data: {
+        jobId, workerId, status: t.status, hiredById, applicationSnapshot: snapshot as unknown as Prisma.InputJsonValue,
+        ...(action === "invite" ? { inviteNote: note, inviteExpiresAt: inviteExpiresAt(at) } : {}),
+      },
     });
+    // The invitation's note also goes on its history line, where both sides read it.
     await tx.engagementEvent.create({
-      data: { engagementId: engagement.id, type: eventFor(action, actor.kind, null, t.status), actorId: actor.profileId, createdAt: at },
+      data: { engagementId: engagement.id, type: eventFor(action, actor.kind, null, t.status), actorId: actor.profileId, note, createdAt: at },
     });
     await tx.auditEvent.create({
       data: {
@@ -161,8 +181,8 @@ export const applyToJob = (workerId: string, profileId: string, jobId: string, n
 export const claimJob = (workerId: string, profileId: string, jobId: string, now?: Date) =>
   open("claim", { kind: "worker", profileId }, jobId, workerId, now);
 
-export const inviteWorker = (orgId: string, profileId: string, jobId: string, workerId: string, now?: Date) =>
-  open("invite", { kind: "org", profileId, orgId }, jobId, workerId, now);
+export const inviteWorker = (orgId: string, profileId: string, jobId: string, workerId: string, now?: Date, opts: { note?: string } = {}) =>
+  open("invite", { kind: "org", profileId, orgId }, jobId, workerId, now, opts);
 
 type Actor = { kind: "worker"; profileId: string; workerId: string } | { kind: "org"; profileId: string; orgId: string };
 
@@ -223,6 +243,7 @@ export async function moveEngagement(
       acceptedCount,
       inReview: reviewed > 0,
       offerExpired: offerLapsed(current.status, lastOffer ? offerExpiresAt(lastOffer.createdAt) : null, at),
+      inviteExpired: inviteLapsed(current.status, current.inviteExpiresAt, at),
       liveOffers: offers,
     });
     if (!t.ok) return { ok: false as const, reason: t.reason };

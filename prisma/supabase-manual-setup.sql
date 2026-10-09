@@ -1214,6 +1214,30 @@ CREATE TRIGGER "EngagementEvent_no_truncate" BEFORE TRUNCATE ON "public"."Engage
 ALTER TABLE "public"."EngagementEvent" ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON "public"."EngagementEvent" FROM anon, authenticated;
 
+-- Invitations (C3.3): the inviter's note and when the invitation lapses.
+ALTER TABLE "public"."Engagement" ADD COLUMN "inviteNote" TEXT;
+ALTER TABLE "public"."Engagement" ADD COLUMN "inviteExpiresAt" TIMESTAMP(3);
+DO $$ BEGIN
+  ALTER TABLE "public"."Engagement" ADD CONSTRAINT "Engagement_inviteNote_length" CHECK ("inviteNote" IS NULL OR char_length("inviteNote") BETWEEN 1 AND 500);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+-- A worker's mute of an organization (C3.3): no invitations from it while
+-- the row exists. Unmuting removes the row (audited by the app).
+CREATE TABLE "public"."OrgMute" (
+    "id" UUID NOT NULL,
+    "workerId" UUID NOT NULL,
+    "orgId" UUID NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "OrgMute_pkey" PRIMARY KEY ("id"),
+    CONSTRAINT "OrgMute_workerId_fkey" FOREIGN KEY ("workerId") REFERENCES "public"."Worker"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT "OrgMute_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "public"."Organization"("id") ON DELETE RESTRICT ON UPDATE CASCADE
+);
+CREATE UNIQUE INDEX "OrgMute_workerId_orgId_key" ON "public"."OrgMute"("workerId", "orgId");
+CREATE INDEX "OrgMute_orgId_idx" ON "public"."OrgMute"("orgId");
+ALTER TABLE "public"."OrgMute" ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON "public"."OrgMute" FROM anon, authenticated;
+
 -- (The history step of c3-hiring.sql runs after the seed, at the end.)
 
 -- Turfcut seed (M0 + M1 events) — SQL version of prisma/seed.ts

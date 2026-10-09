@@ -100,6 +100,7 @@ model Worker {
   sharing        WorkerSharing[]
   availabilities WorkerAvailability[]
   credentials    WorkerCredential[]
+  mutes          OrgMute[]
 
   // Payouts (M5): the worker's Stripe Connect account. Bank and tax details
   // stay with Stripe; payoutsEnabled caches whether Stripe can pay them.
@@ -208,6 +209,7 @@ model Organization {
   payoutTransfers PayoutTransfer[]
   payDisputes     PayDispute[]
   invites         OrgInvite[]
+  mutedBy         OrgMute[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -381,6 +383,11 @@ model Engagement {
   // direct-message thread for this job is with this person.
   hiredById String? @db.Uuid
   hiredBy   Profile? @relation("HiredBy", fields: [hiredById], references: [id], onDelete: Restrict)
+  // C3 invitations: the inviter's note to the worker (1–500 characters) and
+  // when the invitation lapses (7 days). Null on applications, claims and
+  // invitations sent before C3 (which don't lapse).
+  inviteNote      String?
+  inviteExpiresAt DateTime?
   createdAt DateTime         @default(now())
   updatedAt DateTime         @updatedAt
 
@@ -919,4 +926,20 @@ model WorkerCredential {
   createdAt    DateTime          @default(now())
 
   @@index([workerId, createdAt])
+}
+
+/// C3: a worker has muted an organization. While the row exists the
+/// organization can't invite them (it reads as "Worker not found", like any
+/// worker it can't reach), and its jobs still show in the worker's feed.
+/// Unmuting removes the row; both are audited. Server-only.
+model OrgMute {
+  id        String       @id @default(uuid()) @db.Uuid
+  workerId  String       @db.Uuid
+  worker    Worker       @relation(fields: [workerId], references: [id], onDelete: Restrict)
+  orgId     String       @db.Uuid
+  org       Organization @relation(fields: [orgId], references: [id], onDelete: Restrict)
+  createdAt DateTime     @default(now())
+
+  @@unique([workerId, orgId])
+  @@index([orgId])
 }

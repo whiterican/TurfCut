@@ -1,7 +1,7 @@
 import { ActionButton } from "@/components/ActionButton";
 import { NotSelectedForm } from "@/components/NotSelectedForm";
 import { offerApplication, reviewApplication, withdrawInvitation } from "@/app/jobs/actions";
-import { offerLapsed, type EngagementStatus } from "@/lib/engagements";
+import { inviteLapsed, offerLapsed, type EngagementStatus } from "@/lib/engagements";
 
 /** "about 5 hours left": readable in any time zone. */
 export const timeLeft = (until: Date, now = new Date()) => {
@@ -23,6 +23,7 @@ export function HiringActions({
   status,
   inReview,
   offerExpiresAt,
+  inviteExpiresAt = null,
 }: {
   jobId: string;
   jobStatus: "DRAFT" | "PUBLISHED" | "PAUSED" | "CLOSED";
@@ -30,6 +31,8 @@ export function HiringActions({
   status: EngagementStatus;
   inReview: boolean;
   offerExpiresAt: Date | null;
+  /** When an invitation lapses (C3.3); null for invitations sent before C3. */
+  inviteExpiresAt?: Date | null;
 }) {
   const fields = { jobId, engagementId };
   const closed = jobStatus === "CLOSED";
@@ -57,7 +60,14 @@ export function HiringActions({
     );
   }
   if (status === "INVITED") {
+    const lapsed = inviteLapsed(status, inviteExpiresAt, new Date());
     return (
+      <div className="space-y-2">
+        {inviteExpiresAt && (
+          <p className="text-muted-sm">
+            {lapsed ? "The invitation expired unanswered." : `Invitation sent; the worker can answer until ${inviteExpiresAt.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })}.`}
+          </p>
+        )}
       <ActionButton
         action={withdrawInvitation}
         fields={fields}
@@ -66,6 +76,7 @@ export function HiringActions({
         variant="btn-ghost btn-sm"
         confirm={{ text: "Withdraw this invitation? You can't invite this worker to this job again.", label: "Yes, withdraw" }}
       />
+      </div>
     );
   }
   return null;

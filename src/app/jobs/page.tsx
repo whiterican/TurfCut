@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ACCEPTED_STATUSES, offerLapsed, workerStage } from "@/lib/engagements";
+import { ACCEPTED_STATUSES, inviteLapsed, stageOf } from "@/lib/engagements";
 import { loadPipelineFacts } from "@/lib/engagements-data";
 import { Masthead } from "@/components/staff/Masthead";
 import { DataTable } from "@/components/staff/DataTable";
@@ -41,7 +41,7 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
     loadFeed(workerId, filters),
     db().engagement.findMany({
       where: { workerId },
-      include: { job: { select: { id: true, title: true, startsAt: true, campaignDisclosure: true, measureIds: true, org: { select: { name: true } } } } },
+      include: { job: { select: { id: true, title: true, status: true, startsAt: true, campaignDisclosure: true, measureIds: true, org: { select: { name: true } } } } },
       orderBy: { createdAt: "desc" },
     }),
     loadLatestPreference(workerId),
@@ -54,6 +54,7 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
   );
   const facts = await loadPipelineFacts(mine.map((e) => e.id));
   const now = new Date();
+  const waitingInvites = mine.filter((e) => e.status === "INVITED" && !inviteLapsed(e.status, e.inviteExpiresAt, now) && e.job.status !== "CLOSED").length;
   const engagedIds = new Set(engagements.map((e) => e.jobId));
   const open = jobs.filter((j) => !engagedIds.has(j.id));
 
@@ -87,14 +88,26 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
         </div>
       </header>
 
+      {waitingInvites > 0 && (
+        <Link href="/jobs/invitations" className="alert-info flex items-center justify-between gap-3">
+          <span className="font-medium">
+            {waitingInvites} {waitingInvites === 1 ? "invitation is" : "invitations are"} waiting for your answer
+          </span>
+          <span aria-hidden>→</span>
+        </Link>
+      )}
+
       {mine.length > 0 && (
         <section className="section">
-          <h2 className="section-title">Your jobs</h2>
+          <div className="flex items-baseline justify-between gap-3">
+            <h2 className="section-title">Your jobs</h2>
+            <Link href="/jobs/invitations" className="link text-sm">Invitations</Link>
+          </div>
           <ul className="list-card">
             {mine.map((e) => {
               const s = ENGAGEMENT_LABELS[e.status];
               const f = facts.get(e.id);
-              const stage = workerStage(e.status, f?.events ?? [], offerLapsed(e.status, f?.offerExpiresAt ?? null, now));
+              const stage = stageOf(e, f ?? { events: [], offerExpiresAt: null }, now);
               return (
                 <li key={e.id}>
                   <Link transitionTypes={["nav-forward"]} href={`/jobs/${e.job.id}`} className="flex min-h-14 items-center justify-between gap-3 px-4 py-3 text-fg transition hover:bg-surface-2">

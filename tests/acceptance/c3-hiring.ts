@@ -6,6 +6,7 @@ import { loadApplicants } from "@/lib/applicants-data";
 import { applicantCells } from "@/lib/applicants";
 import { saveSharing } from "@/lib/sharing-data";
 import { partsForOrg, partsForOrgMany } from "@/lib/shared-scorecard-data";
+import { declineInvitation, hiringCounts, invitesLeft, loadInvitations, loadJobInvites, muteOrg, unmuteOrg } from "@/lib/invitations-data";
 import { DEFAULT_SHARING } from "@/lib/sharing";
 import { closeAccount, exportAccount } from "@/lib/account-data";
 import { scheduleShift } from "@/lib/field-day-data";
@@ -269,6 +270,52 @@ const types = async (id: string) => (await loadEngagementEvents(id)).map((e) => 
     check(`partsForOrgMany matches partsForOrg for ${o.slice(-1)}`, everyone.every((w, i) => JSON.stringify(many.get(w)) === JSON.stringify(single[i])), { many: [...many], single });
   }
   check("bulk refuses an empty or oversized selection", !(await moveEngagements(jobP.id, { profileId: OWNER, orgId: ORG }, "review", [])).ok && !(await moveEngagements(jobP.id, { profileId: OWNER, orgId: ORG }, "review", Array.from({ length: 101 }, (_, i) => `00000000-0000-0000-0000-${String(i).padStart(12, "0")}`))).ok);
+
+  // --- C3.3: invitations ---
+  const DAY = 24 * HOUR;
+  const ji1 = await newJob("Invite note job", 3);
+  const n1 = await inviteWorker(ORG, OWNER, ji1.id, W2, undefined, { note: "  Saturday   canvass\n\n\n\nbring water " });
+  const n1e = await p.engagement.findUniqueOrThrow({ where: { id: idOf(n1) } });
+  const n1evt = (await loadEngagementEvents(n1e.id))[0];
+  check("an invitation keeps the inviter's tidied note, on the row and its history line", n1.ok && n1e.inviteNote === "Saturday canvass\n\nbring water" && n1evt?.note === n1e.inviteNote, { n1e, n1evt });
+  check("…and lapses 7 days after it was sent", !!n1e.inviteExpiresAt && Math.abs(n1e.inviteExpiresAt.getTime() - n1evt.createdAt.getTime() - 7 * DAY) < 1000, n1e);
+  check("a note over 500 characters is refused", !(await inviteWorker(ORG, OWNER, (await newJob("Long note job", 2)).id, W2, undefined, { note: "x".repeat(501) })).ok);
+
+  // The weekly cap: at most 3 from one organization to one worker in any 7 days, withdrawn ones included.
+  const left0 = await invitesLeft(W2, ORG);
+  for (let k = 0; k < left0; k++) await inviteWorker(ORG, OWNER, (await newJob(`Cap job ${k}`, 2)).id, W2);
+  const over = await inviteWorker(ORG, OWNER, (await newJob("Over cap job", 2)).id, W2);
+  check("a fourth invitation in a week is refused, and invitesLeft says 0", !over.ok && /3 invitations this week/.test(over.reason) && (await invitesLeft(W2, ORG)) === 0, { left0, over });
+  const later = await inviteWorker(ORG, OWNER, (await newJob("Next week job", 2)).id, W2, new Date(Date.now() + 8 * DAY));
+  check("…and allowed again once the week has rolled on", later.ok, later);
+
+  // Lapsed invitations: no accept, still a decline.
+  const old = await inviteWorker(ORG, OWNER, (await newJob("Old invite job", 2)).id, W4, new Date(Date.now() - 8 * DAY));
+  const oldAcc = await moveEngagement(idOf(old), "accept", worker(W4));
+  check("an expired invitation can't be accepted", old.ok && !oldAcc.ok && /expired/.test(oldAcc.ok ? "" : oldAcc.reason), oldAcc);
+  const inbox = await loadInvitations(W4);
+  check("the inbox lists it as lapsed", inbox.some((i) => i.id === idOf(old) && i.lapsed));
+
+  // Decline and mute; mutes block invitations without saying so; unmute restores them.
+  const jm1 = await newJob("Mute job 1", 2);
+  const m1 = await inviteWorker(ORG, OWNER, jm1.id, W4, undefined, { note: "Hope you can make it" });
+  check("the inbox shows an open invitation with its note and deadline", (await loadInvitations(W4)).some((i) => i.id === idOf(m1) && !i.lapsed && i.inviteNote === "Hope you can make it" && !!i.inviteExpiresAt));
+  const dm = await declineInvitation({ workerId: W4, profileId: W4 }, idOf(m1), { mute: true });
+  check("decline and mute: DECLINED, and the organization is muted", dm.ok && dm.status === "DECLINED" && (await p.orgMute.count({ where: { workerId: W4, orgId: ORG } })) === 1, dm);
+  const blocked2 = await inviteWorker(ORG, OWNER, (await newJob("Mute job 2", 2)).id, W4);
+  check("a muted organization's invitation reads 'Worker not found.', like any worker it can't reach", !blocked2.ok && blocked2.reason === "Worker not found.", blocked2);
+  check("muting an organization that never invited you is refused (no probing)", !(await muteOrg({ workerId: W4, profileId: W4 }, ORG2)).ok);
+  check("unmuting works once, and both are audited", (await unmuteOrg({ workerId: W4, profileId: W4 }, ORG)).ok && !(await unmuteOrg({ workerId: W4, profileId: W4 }, ORG)).ok && (await p.auditEvent.count({ where: { entityId: W4, action: { in: ["org.muted", "org.unmuted"] } } })) === 2);
+  check("…after which the organization can invite again", (await inviteWorker(ORG, OWNER, (await newJob("Mute job 3", 2)).id, W4)).ok);
+
+  // The organization's side.
+  const jobInv = await loadJobInvites(ji1.id, ORG);
+  check("the Invites view lists the invitation with its sender", jobInv.length === 1 && jobInv[0].hiredBy?.displayName === "Maya Chen" && jobInv[0].inviteNote === n1e.inviteNote, jobInv);
+  check("…and another organization sees none of them", (await loadJobInvites(ji1.id, ORG2)).length === 0);
+  check("tab counts split applicants from invitations", JSON.stringify(await hiringCounts(jobP.id, ORG)) === JSON.stringify({ applicants: 2, invites: 1 }), await hiringCounts(jobP.id, ORG));
+  check("no read receipts: INVITE_VIEWED is never written", (await p.engagementEvent.count({ where: { type: "INVITE_VIEWED" } })) === 0);
+  const expW2 = await exportAccount({ userId: W2, workerId: W2 });
+  check("the export carries invitation notes and the mutes file", /Saturday canvass/.test(expW2.find((f) => f.name === "engagements.csv")?.text ?? "") && expW2.some((f) => f.name === "mutes.json"));
 
   await p.$disconnect();
   process.exit(fails ? 1 : 0);

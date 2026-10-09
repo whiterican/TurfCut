@@ -683,6 +683,21 @@ certificate. Approved as recommended by review:
   has a relationship with the organization; and the copy taken when they
   applied.
   Supervisors' access to hired workers' pages comes later.
+- **Invitations (C3.3)**: an organization invites a worker it already has
+  a relationship with (C1) from the worker's or applicant's page, with an
+  optional note the worker reads (also on the history). An invitation
+  lapses after 7 days, and one organization can send one worker at most 3
+  in any 7 days (withdrawn ones count). There are no read receipts:
+  opening one records nothing. The worker's inbox (`/jobs/invitations`)
+  offers Accept, Decline, and Decline and mute: a muted organization's
+  invitations read "Worker not found", as for any worker it can't reach;
+  its jobs still show in the feed (a "do not match" answer hides them).
+  Mutes can be lifted from the inbox, are audited, and are in the data
+  export with the invitation notes. The organization's Invites view
+  (`/hiring/[jobId]/invites`) lists who was invited, by whom, the note and
+  what happened. `prisma/c3-hiring.sql` adds `Engagement.inviteNote`,
+  `inviteExpiresAt` and the `OrgMute` table. The API invitation accepts
+  `{ workerId, note? }`.
 - **History**: every step is an append-only `EngagementEvent`, shown the
   same way to the worker and the organization, and in the worker's data
   export (`engagement-history.csv`). `prisma/c3-hiring.sql` adds the

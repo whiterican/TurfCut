@@ -9,6 +9,7 @@ import { formToObject, jurisdictionStateProblem, validateJob } from "@/lib/jobs"
 import { createJob, publishJob, updateDraftJob } from "@/lib/jobs-data";
 import { acceptEngagement, applyToJob, claimJob, inviteWorker, moveEngagement, moveEngagements } from "@/lib/engagements-data";
 import { OFFER_HOURS } from "@/lib/engagements";
+import { declineInvitation, unmuteOrg } from "@/lib/invitations-data";
 
 export interface JobFormState {
   message: string;
@@ -89,8 +90,22 @@ const field = (fd: FormData, k: string) => (typeof fd.get(k) === "string" ? (fd.
 /** The worker declines an invitation or an offer. */
 export async function declineAsWorker(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const { workerId, userId } = await requireWorker();
-  const r = await moveEngagement(field(formData, "engagementId"), "decline", { kind: "worker", profileId: userId, workerId });
-  return done(field(formData, "jobId"), r, "Declined. The organization sees that you said no; nothing else.");
+  const mute = field(formData, "mute") === "1";
+  const r = await declineInvitation({ workerId, profileId: userId }, field(formData, "engagementId"), { mute });
+  revalidatePath("/jobs/invitations");
+  return done(
+    field(formData, "jobId"),
+    r,
+    mute ? "Declined, and muted: this organization can't invite you again until you unmute it." : "Declined. The organization sees that you said no; nothing else."
+  );
+}
+
+/** Lifts a mute (C3.3): the organization may invite the worker again. */
+export async function unmute(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const { workerId, userId } = await requireWorker();
+  const r = await unmuteOrg({ workerId, profileId: userId }, field(formData, "orgId"));
+  revalidatePath("/jobs/invitations");
+  return r.ok ? { ok: true, message: "Unmuted. They can invite you again." } : { ok: false, message: r.reason };
 }
 
 /** The worker withdraws an application (or a pending offer) before they're hired. */
@@ -150,7 +165,8 @@ export async function invite(_prev: ActionState, formData: FormData): Promise<Ac
   if (!orgId || !orgApproved) return { ok: false, message: "Your organization is awaiting approval." };
   const jobId = String(formData.get("jobId") ?? "");
   const workerId = String(formData.get("workerId") ?? "");
-  const r = await inviteWorker(orgId, userId, jobId, workerId);
+  const r = await inviteWorker(orgId, userId, jobId, workerId, undefined, { note: field(formData, "note") });
   revalidatePath(`/workers/${workerId}`);
+  revalidatePath(`/hiring/${jobId}/invites`);
   return done(jobId, r, "Invitation sent.");
 }

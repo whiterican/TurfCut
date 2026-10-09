@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { HIRING_ROLES, ORG_ROLES, SCHEDULING_ROLES } from "@/lib/access";
-import { ACCEPTED_STATUSES, offerLapsed, workerStage, type EngagementStatus, type HiringSnapshot } from "@/lib/engagements";
+import { ACCEPTED_STATUSES, inviteLapsed, offerLapsed, stageOf, workerStage, type EngagementStatus, type HiringSnapshot } from "@/lib/engagements";
 import { loadPipelineFacts } from "@/lib/engagements-data";
 import { EngagementHistory } from "@/components/EngagementHistory";
 import { HiringActions, timeLeft } from "@/components/HiringActions";
@@ -92,7 +92,7 @@ async function WorkerPanel({
   acceptedCount,
 }: {
   job: JobWithRefs;
-  engagement: { id: string; status: EngagementStatus; applicationSnapshot: unknown } | null;
+  engagement: { id: string; status: EngagementStatus; applicationSnapshot: unknown; inviteNote: string | null; inviteExpiresAt: Date | null } | null;
   modes: string[];
   workerId: string;
   acceptedCount: number;
@@ -116,19 +116,26 @@ async function WorkerPanel({
     const offerDeadline = engagement.status === "OFFERED" ? facts.offerExpiresAt : null;
     const offerExpired = offerLapsed(engagement.status, offerDeadline, new Date());
     const closed = job.status === "CLOSED";
+    const inviteExpired = inviteLapsed(engagement.status, engagement.inviteExpiresAt, new Date());
     const fields = { jobId: job.id, engagementId: engagement.id };
     // Declining and withdrawing end this job for good: no second application or invitation (C3 decision).
     const final = "You can't apply to or be invited to this job again afterwards.";
     return (
       <section className="card space-y-3">
         <p className="flex items-center gap-2 font-medium text-fg">
-          Your status <span className={s.badge}>{workerStage(engagement.status, facts.events, offerExpired)}</span>
+          Your status <span className={s.badge}>{workerStage(engagement.status, facts.events, offerExpired, inviteExpired)}</span>
         </p>
         {engagement.status === "INVITED" && (
           <>
-            {closed && <p className="text-muted-sm">This job has closed.</p>}
+            {closed ? (
+              <p className="text-muted-sm">This job has closed.</p>
+            ) : inviteExpired ? (
+              <p className="text-muted-sm">This invitation expired before you answered.</p>
+            ) : (
+              engagement.inviteExpiresAt && <p className="text-muted-sm">Answer by {day(engagement.inviteExpiresAt)}. The organization&apos;s note, if any, is in the history below.</p>
+            )}
             <div className="flex flex-wrap items-start gap-2">
-              {!closed && <ActionButton action={acceptInvitation} fields={fields} label="Accept invitation" />}
+              {!closed && !inviteExpired && <ActionButton action={acceptInvitation} fields={fields} label="Accept invitation" />}
               <ActionButton action={declineAsWorker} fields={fields} label="Decline" pendingLabel="Declining…" variant="btn-ghost" confirm={{ text: `Decline this invitation? ${final}`, label: "Yes, decline" }} />
             </div>
             <WillSee sharing={(await loadSharing(workerId)).choices} approved={job.org.approved} invited kept={engagement.applicationSnapshot != null} />
@@ -384,14 +391,13 @@ async function OrgPanel({ job, canHire, canSchedule, userId }: { job: JobWithRef
               {engagements.map((e) => {
                 const s = ENGAGEMENT_LABELS[e.status];
                 const f = facts.get(e.id) ?? { events: [], inReview: false, offerExpiresAt: null };
-                const offerExpired = offerLapsed(e.status, f.offerExpiresAt, now);
                 return (
                   <li key={e.id} className="card space-y-3">
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <p className="flex items-center gap-2 font-medium text-fg">
                         {/* The applicant page (C3.2) shows the live profile only while the worker has a relationship with you (C1). */}
                         <Link transitionTypes={["nav-forward"]} href={`/hiring/${job.id}/people/${e.id}`} className="link">{e.worker.displayName}</Link>
-                        <span className={s.badge}>{workerStage(e.status, f.events, offerExpired)}</span>
+                        <span className={s.badge}>{stageOf(e, f, now)}</span>
                       </p>
                     </div>
                     <HiringActions
@@ -401,6 +407,7 @@ async function OrgPanel({ job, canHire, canSchedule, userId }: { job: JobWithRef
                       status={e.status}
                       inReview={f.inReview}
                       offerExpiresAt={f.offerExpiresAt}
+                      inviteExpiresAt={e.inviteExpiresAt}
                     />
                     <EngagementHistory events={f.events} />
                     {e.applicationSnapshot ? (

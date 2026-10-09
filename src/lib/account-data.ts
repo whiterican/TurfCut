@@ -117,13 +117,14 @@ const json = (v: unknown) => JSON.stringify(v, null, 2) + "\n";
 export async function exportAccount(actor: { userId: string; workerId: string; email?: string }, now = new Date()): Promise<Array<{ name: string; text: string }>> {
   const p = db();
   const w = actor.workerId;
-  const [worker, experience, preferences, metrics, engagements, history, shifts, lines, transfers, disputes, messages, sharing, availability, credentials] = await Promise.all([
+  const [worker, experience, preferences, metrics, engagements, history, mutes, shifts, lines, transfers, disputes, messages, sharing, availability, credentials] = await Promise.all([
     p.worker.findUniqueOrThrow({ where: { id: w }, select: { id: true, displayName: true, phone: true, createdAt: true, closedAt: true, payoutsEnabled: true, stripeAccountId: true } }),
     p.experienceRecord.findMany({ where: { workerId: w }, omit: { verifiedById: true }, orderBy: { startDate: "desc" } }),
     p.politicalPreference.findMany({ where: { workerId: w }, orderBy: { consentVersion: "asc" } }),
     p.profileMetric.findMany({ where: { workerId: w }, orderBy: { version: "asc" } }),
     p.engagement.findMany({ where: { workerId: w }, include: { job: { select: { id: true, title: true, org: { select: { name: true } } } } }, orderBy: { createdAt: "asc" } }),
     p.engagementEvent.findMany({ where: { engagement: { workerId: w } }, select: { id: true, engagementId: true, type: true, reasonCode: true, note: true, createdAt: true, actorId: true }, orderBy: { createdAt: "asc" } }),
+    p.orgMute.findMany({ where: { workerId: w }, select: { createdAt: true, org: { select: { name: true } } }, orderBy: { createdAt: "asc" } }),
     p.shift.findMany({
       where: { engagement: { workerId: w } },
       include: { engagement: { select: { job: { select: { title: true, org: { select: { name: true } } } } } }, events: { orderBy: { createdAt: "asc" } }, validations: { orderBy: { createdAt: "asc" } } },
@@ -150,6 +151,7 @@ export async function exportAccount(actor: { userId: string; workerId: string; e
       "preferences.json    every version of your political-fit answers and consent (newest last)",
       "metrics.json        every version of your computed scorecard aggregates",
       "engagements.csv     jobs you applied to, were invited to, claimed or worked",
+      "mutes.json          organizations you muted (they can't invite you)",
       "engagement-history.csv  each step of those: offers, reviews, reasons and notes (yours to read, or Turfcut's on closure)",
       "shifts.csv          your shifts, with the supervisor's review",
       "work-events.csv     the field ledger: every check-in, count, break, packet, correction",
@@ -176,7 +178,8 @@ export async function exportAccount(actor: { userId: string; workerId: string; e
   files.push({ name: "sharing.json", text: json(sharing) });
   files.push({ name: "availability.json", text: json(availability) });
   files.push({ name: "credentials.csv", text: csvTable(credentials) });
-  files.push({ name: "engagements.csv", text: csvTable(engagements.map((e) => ({ id: e.id, jobId: e.job.id, job: e.job.title, organization: e.job.org.name, status: e.status, createdAt: e.createdAt, updatedAt: e.updatedAt, applicationSnapshot: e.applicationSnapshot }))) });
+  files.push({ name: "mutes.json", text: json(mutes.map((m) => ({ organization: m.org.name, since: m.createdAt }))) });
+  files.push({ name: "engagements.csv", text: csvTable(engagements.map((e) => ({ id: e.id, jobId: e.job.id, job: e.job.title, organization: e.job.org.name, status: e.status, createdAt: e.createdAt, updatedAt: e.updatedAt, inviteNote: e.inviteNote ?? "", inviteExpiresAt: e.inviteExpiresAt ?? "", applicationSnapshot: e.applicationSnapshot }))) });
   files.push({
     name: "engagement-history.csv",
     text: csvTable(

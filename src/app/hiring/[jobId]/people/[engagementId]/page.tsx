@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { requireArea } from "@/lib/employer-session";
 import { readDisclosure, UUID_RE } from "@/lib/jobs";
 import { expiryToday } from "@/lib/credentials";
-import { offerLapsed, workerStage, type HiringSnapshot } from "@/lib/engagements";
+import { stageOf, type HiringSnapshot } from "@/lib/engagements";
 import { loadPipelineFacts } from "@/lib/engagements-data";
 import { ENGAGEMENT_LABELS } from "@/lib/engagement-labels";
 import { applicantJob, fitCampaignAllowed, freeCell, heldCredentials, requiredKinds } from "@/lib/applicants";
@@ -21,6 +21,7 @@ import { OrgProfileSections } from "@/components/OrgProfileSections";
 import { SnapshotView } from "@/components/SnapshotView";
 import { NotSharedChip } from "@/components/staff/NotSharedChip";
 import { startDirect } from "@/app/messages/actions";
+import { InviteComposer } from "@/components/InviteComposer";
 
 /**
  * One person in the context of one job (C3.2): where they stand, what they
@@ -39,7 +40,7 @@ export default async function ApplicantPage({ params }: { params: Promise<{ jobI
   const e = await db().engagement.findFirst({
     where: { id: engagementId, jobId, job: { orgId: session.orgId } },
     select: {
-      id: true, status: true, createdAt: true, applicationSnapshot: true,
+      id: true, status: true, createdAt: true, applicationSnapshot: true, inviteExpiresAt: true,
       worker: { select: { id: true, displayName: true, closedAt: true } },
       job: { select: { id: true, title: true, status: true, type: true, startsAt: true, endsAt: true, requirements: true, campaignDisclosure: true, org: { select: { approved: true } }, jurisdiction: { select: { state: true, rules: true } } } },
     },
@@ -48,7 +49,7 @@ export default async function ApplicantPage({ params }: { params: Promise<{ jobI
   const now = new Date();
   const job = e.job;
   const facts = (await loadPipelineFacts([e.id])).get(e.id) ?? { events: [], inReview: false, offerExpiresAt: null };
-  const stage = workerStage(e.status, facts.events, offerLapsed(e.status, facts.offerExpiresAt, now));
+  const stage = stageOf(e, facts, now);
   const access = e.worker.closedAt ? null : await workerAccessFor(session, e.worker.id, job.org.approved);
   const open = access?.kind === "employer";
 
@@ -77,7 +78,7 @@ export default async function ApplicantPage({ params }: { params: Promise<{ jobI
 
       <section className="card space-y-3">
         <p className="flex items-center gap-2 font-medium text-fg">Stage <span className={s.badge}>{stage}</span></p>
-        <HiringActions jobId={job.id} jobStatus={job.status} engagementId={e.id} status={e.status} inReview={facts.inReview} offerExpiresAt={facts.offerExpiresAt} />
+        <HiringActions jobId={job.id} jobStatus={job.status} engagementId={e.id} status={e.status} inReview={facts.inReview} offerExpiresAt={facts.offerExpiresAt} inviteExpiresAt={e.inviteExpiresAt} />
         {hired && (
           <form action={startDirect}>
             <input type="hidden" name="engagementId" value={e.id} />
@@ -110,6 +111,7 @@ export default async function ApplicantPage({ params }: { params: Promise<{ jobI
               )}
             </dl>
           </section>
+          <InviteComposer workerId={e.worker.id} orgId={session.orgId} />
           <OrgProfileSections view={withFit!} />
         </>
       ) : (

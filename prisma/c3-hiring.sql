@@ -13,7 +13,10 @@
 --   2. EngagementEvent: the dated hiring history of each engagement (applied,
 --      in review, offered, not selected with a reason code, withdrawn, ...).
 --      Append-only and server-only, like the other history tables.
---   3. Each existing engagement gets its opening event (applied, claimed or
+--   3. Invitations carry the inviter's note and lapse after 7 days
+--      (Engagement.inviteNote, inviteExpiresAt); OrgMute records a worker's
+--      mute of an organization (no invitations from it).
+--   4. Each existing engagement gets its opening event (applied, claimed or
 --      invited, from the copy it kept), dated when it was created.
 
 -- New enum values come first and nothing below uses them, so they're safe in
@@ -62,6 +65,30 @@ CREATE OR REPLACE TRIGGER "EngagementEvent_no_truncate" BEFORE TRUNCATE ON "publ
 -- Server-only: row-level security on with no policies, nothing granted.
 ALTER TABLE "public"."EngagementEvent" ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON "public"."EngagementEvent" FROM anon, authenticated;
+
+-- Invitations (C3.3): the inviter's note and when the invitation lapses.
+ALTER TABLE "public"."Engagement" ADD COLUMN IF NOT EXISTS "inviteNote" TEXT;
+ALTER TABLE "public"."Engagement" ADD COLUMN IF NOT EXISTS "inviteExpiresAt" TIMESTAMP(3);
+DO $$ BEGIN
+  ALTER TABLE "public"."Engagement" ADD CONSTRAINT "Engagement_inviteNote_length" CHECK ("inviteNote" IS NULL OR char_length("inviteNote") BETWEEN 1 AND 500);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+-- A worker's mute of an organization (C3.3): no invitations from it while
+-- the row exists. Unmuting removes the row (audited by the app).
+CREATE TABLE IF NOT EXISTS "public"."OrgMute" (
+    "id" UUID NOT NULL,
+    "workerId" UUID NOT NULL,
+    "orgId" UUID NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "OrgMute_pkey" PRIMARY KEY ("id"),
+    CONSTRAINT "OrgMute_workerId_fkey" FOREIGN KEY ("workerId") REFERENCES "public"."Worker"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT "OrgMute_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "public"."Organization"("id") ON DELETE RESTRICT ON UPDATE CASCADE
+);
+CREATE UNIQUE INDEX IF NOT EXISTS "OrgMute_workerId_orgId_key" ON "public"."OrgMute"("workerId", "orgId");
+CREATE INDEX IF NOT EXISTS "OrgMute_orgId_idx" ON "public"."OrgMute"("orgId");
+ALTER TABLE "public"."OrgMute" ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON "public"."OrgMute" FROM anon, authenticated;
 
 -- History so far: the opening event of each engagement that kept a copy of
 -- how it began (an engagement without one, like the base seed's, gets

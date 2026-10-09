@@ -32,16 +32,18 @@ const INVITATION: Prisma.EngagementWhereInput = {
  * worker's own do-not-match answers rule out never shows (rule 4).
  */
 export async function loadInvitations(workerId: string, now = new Date()) {
-  const latest = await loadLatestPreference(workerId);
-  const pref = effectivePreference(latest, now);
-  const rows = await db().engagement.findMany({
+  const [latest, rows] = await Promise.all([
+    loadLatestPreference(workerId),
+    db().engagement.findMany({
     where: { workerId, status: "INVITED" },
     select: {
       id: true, inviteNote: true, inviteExpiresAt: true, createdAt: true,
       job: { select: { id: true, title: true, type: true, startsAt: true, endsAt: true, compensationMethod: true, payRateCents: true, campaignDisclosure: true, measureIds: true, status: true, org: { select: { id: true, name: true } } } },
     },
     orderBy: [{ inviteExpiresAt: "asc" }, { createdAt: "desc" }],
-  });
+  }),
+  ]);
+  const pref = effectivePreference(latest, now);
   const recent = now.getTime() - 14 * 86_400_000;
   return rows
     .filter((r) => !exclusionReasons(pref, { disclosure: readDisclosure(r.job.campaignDisclosure), orgName: r.job.org.name, measureIds: r.job.measureIds }).length)
@@ -98,7 +100,10 @@ export async function declineInvitation(actor: WorkerActor, engagementId: string
     : null;
   const r = await moveEngagement(engagementId, "decline", { kind: "worker", ...actor });
   if (!r.ok || !opts.mute || e?.status !== "INVITED") return { ...r, muted: false };
-  const m = await muteOrg(actor, e.job.orgId).catch(() => ({ ok: false as const, reason: "" }));
+  const m = await muteOrg(actor, e.job.orgId).catch((err: unknown) => {
+    console.error("[turfcut] decline went through but the mute failed", engagementId, err);
+    return { ok: false as const, reason: "" };
+  });
   return { ...r, muted: m.ok };
 }
 

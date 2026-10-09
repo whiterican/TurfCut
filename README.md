@@ -694,7 +694,9 @@ certificate. Approved as recommended by review:
   invitations read "Worker not found", as for any worker it can't reach
   (it isn't told, though it may notice); its jobs still show in the feed
   (a "do not match" answer hides them). An expired invitation can be muted
-  from the inbox too.
+  from the inbox too. Decision for Caden: a worker can't turn a lapsed
+  invitation into an application on their own; the organization resends
+  it, or the worker declines (which ends that job for them).
   Mutes can be lifted from the inbox, are audited, and are in the data
   export with the invitation notes. The organization's Invites view
   (`/hiring/[jobId]/invites`) lists who was invited, by whom, the note and

@@ -66,9 +66,9 @@ export function HiringActions({
         {closed ? (
           <p className="text-muted-sm">The job closed before the worker answered.</p>
         ) : lapsed ? (
-          <div className="flex flex-wrap items-center gap-2">
-            <p className="text-muted-sm">The invitation expired unanswered. You can invite them again from their page.</p>
-          </div>
+          <p className="text-muted-sm">
+            The invitation expired unanswered.{jobStatus === "PUBLISHED" ? " You can invite them again from their page." : " You can invite them again once the job is published."}
+          </p>
         ) : (
           inviteExpiresAt && <p className="text-muted-sm">Invitation sent; the worker can answer until {inviteExpiresAt.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })}.</p>
         )}

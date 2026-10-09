@@ -35,8 +35,9 @@ export function JobFeedCard({ j }: { j: FeedJob }) {
         </span>
       </span>
       <span className="flex shrink-0 items-center justify-between gap-3 sm:flex-col sm:items-end">
-        <span className="text-sm font-bold text-fg tabular-nums">{payText(j.compensationMethod, j.payRateCents)}</span>
-        <span className="btn-primary btn-sm">View job</span>
+        {/* The pay wraps, never the button: "$150.00 / completed shift (gross)" beside "View job" on a phone. */}
+        <span className="min-w-0 text-sm font-bold text-fg tabular-nums">{payText(j.compensationMethod, j.payRateCents)}</span>
+        <span className="btn-primary btn-sm shrink-0 whitespace-nowrap">View job</span>
       </span>
     </Link>
   );

@@ -27,30 +27,30 @@ export function ScheduleShiftForm({
       <input type="hidden" name="jobId" value={jobId} />
       <input type="hidden" name="startsAt" value={toIso(start)} />
       <input type="hidden" name="endsAt" value={toIso(end)} />
-      <div className="grid gap-3 sm:grid-cols-2">
-        <label className="space-y-1.5 sm:col-span-2">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <label className="min-w-0 space-y-1.5 sm:col-span-2">
           <span className="label">Worker</span>
           <select name="engagementId" className="field" required defaultValue="">
             <option value="" disabled>Choose a hired worker…</option>
             {workers.map((w) => <option key={w.engagementId} value={w.engagementId}>{w.name}</option>)}
           </select>
         </label>
-        <label className="space-y-1.5">
+        <label className="min-w-0 space-y-1.5">
           <span className="label">Starts</span>
           <input type="datetime-local" className="field" required value={start} onChange={(e) => setStart(e.target.value)} />
           {err("startsAt")}
         </label>
-        <label className="space-y-1.5">
+        <label className="min-w-0 space-y-1.5">
           <span className="label">Ends</span>
           <input type="datetime-local" className="field" required value={end} onChange={(e) => setEnd(e.target.value)} />
           {err("endsAt")}
         </label>
-        <label className="space-y-1.5">
+        <label className="min-w-0 space-y-1.5">
           <span className="label">Staging location</span>
           <input name="stagingLocation" className="field" maxLength={200} placeholder="Denver Central, table 3" />
           {err("stagingLocation")}
         </label>
-        <label className="space-y-1.5">
+        <label className="min-w-0 space-y-1.5">
           <span className="label">Supervisor</span>
           <select name="supervisorId" className="field" defaultValue="">
             <option value="">None assigned</option>

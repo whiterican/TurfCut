@@ -34,9 +34,10 @@ export function JobFeedCard({ j }: { j: FeedJob }) {
           <span className={j.type === "PETITION" ? "badge-butter" : "badge-solid"}>{j.type === "PETITION" ? "Petition" : "Canvass"}</span>
         </span>
       </span>
-      <span className="flex shrink-0 items-center justify-between gap-3 sm:flex-col sm:items-end">
-        {/* The pay wraps, never the button: "$150.00 / completed shift (gross)" beside "View job" on a phone. */}
-        <span className="min-w-0 text-sm font-bold text-fg tabular-nums">{payText(j.compensationMethod, j.payRateCents)}</span>
+      <span className="flex shrink-0 flex-wrap items-center justify-between gap-3 sm:flex-col sm:items-end">
+        {/* The pay wraps, never the button: "$150.00 / completed shift (gross)" beside "View job" on a phone.
+            Where even its longest word won't fit beside the button, the button takes its own line. */}
+        <span className="flex-1 text-sm font-bold text-fg tabular-nums sm:flex-none">{payText(j.compensationMethod, j.payRateCents)}</span>
         <span className="btn-primary btn-sm shrink-0 whitespace-nowrap">View job</span>
       </span>
     </Link>

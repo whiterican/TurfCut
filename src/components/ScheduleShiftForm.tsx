@@ -7,6 +7,9 @@ import { TurfMap } from "@/components/TurfMap";
 const initial: ScheduleState = { ok: false, message: "", errors: {} };
 /** datetime-local value (organizer's own zone) → ISO; the server never guesses a zone. */
 const toIso = (v: string) => (v ? new Date(v).toISOString() : "");
+/** The chosen time in words: on a narrow phone with large text the field cuts off the date's start. */
+const readback = (v: string) =>
+  v && <span className="text-hint block">{new Date(v).toLocaleString([], { weekday: "short", month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" })}</span>;
 
 export function ScheduleShiftForm({
   jobId,
@@ -38,11 +41,13 @@ export function ScheduleShiftForm({
         <label className="min-w-0 space-y-1.5">
           <span className="label">Starts</span>
           <input type="datetime-local" className="field" required value={start} onChange={(e) => setStart(e.target.value)} />
+          {readback(start)}
           {err("startsAt")}
         </label>
         <label className="min-w-0 space-y-1.5">
           <span className="label">Ends</span>
           <input type="datetime-local" className="field" required value={end} onChange={(e) => setEnd(e.target.value)} />
+          {readback(end)}
           {err("endsAt")}
         </label>
         <label className="min-w-0 space-y-1.5">

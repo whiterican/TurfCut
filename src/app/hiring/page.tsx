@@ -16,7 +16,7 @@ export default async function HiringPage() {
   });
   const engagements = await db().engagement.findMany({ where: { jobId: { in: jobs.map((j) => j.id) } }, select: { jobId: true, status: true } });
   const rows = pipeline(jobs.map((j) => ({ ...j, status: j.status as "PUBLISHED" | "PAUSED" })), engagements);
-  const total = (k: "applied" | "invited" | "engaged") => rows.reduce((n, r) => n + r[k], 0);
+  const total = (k: "applied" | "offered" | "invited" | "engaged") => rows.reduce((n, r) => n + r[k], 0);
 
   return (
     <main className="page max-w-4xl">
@@ -26,6 +26,7 @@ export default async function HiringPage() {
         items={[
           { label: "Open jobs", value: rows.length },
           { label: "Applications waiting", value: total("applied") },
+          { label: "Offers out", value: total("offered") },
           { label: "Invited", value: total("invited") },
           { label: "Working", value: total("engaged") },
         ]}
@@ -36,6 +37,7 @@ export default async function HiringPage() {
         columns={[
           { key: "job", label: "Job", sortable: true },
           { key: "applied", label: "Applied", numeric: true, sortable: true },
+          { key: "offered", label: "Offered", numeric: true, sortable: true },
           { key: "invited", label: "Invited", numeric: true, sortable: true },
           { key: "engaged", label: "Working", numeric: true, sortable: true },
           // Hired so far (working or completed), as the Jobs list and the capacity check count it.
@@ -46,6 +48,7 @@ export default async function HiringPage() {
           cells: {
             job: { text: r.status === "PAUSED" ? `${r.title} (paused)` : r.title, href: `/hiring/${r.jobId}/applicants`, sort: r.title },
             applied: { text: String(r.applied), sort: r.applied },
+            offered: { text: String(r.offered), sort: r.offered },
             invited: { text: String(r.invited), sort: r.invited },
             engaged: { text: String(r.engaged), sort: r.engaged },
             filled: { text: r.headcount === null ? String(r.engaged + r.completed) : `${r.engaged + r.completed} of ${r.headcount}`, sort: r.engaged + r.completed },

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { shareScorecard, ALL_SHARED } from "./shared-scorecard";
-import { buildSnapshot, RELATIONSHIP_STATUSES, transition, type TransitionContext } from "./engagements";
+import { buildSnapshot, eventFor, offerExpiresAt, RELATIONSHIP_STATUSES, transition, workerStage, type TransitionContext } from "./engagements";
 import { computeScorecard } from "./scorecard";
 import { employerFitView } from "./political-fit";
 
@@ -15,12 +15,72 @@ describe("engagement transitions", () => {
     expect(transition(null, "invite", "worker", open).ok).toBe(false);
   });
 
-  it("orgs accept applications; workers accept invitations — not the other way round", () => {
-    expect(transition("APPLIED", "accept", "org", open)).toEqual({ ok: true, status: "ACTIVE" });
+  it("an org answers an application with an offer; only the worker's accept starts the job (C3)", () => {
+    // "accept" by the org (the pre-C3 API) now sends an offer.
+    expect(transition("APPLIED", "accept", "org", open)).toEqual({ ok: true, status: "OFFERED" });
+    expect(transition("APPLIED", "offer", "org", open)).toEqual({ ok: true, status: "OFFERED" });
+    expect(transition("OFFERED", "accept", "worker", open)).toEqual({ ok: true, status: "ACTIVE" });
     expect(transition("INVITED", "accept", "worker", open)).toEqual({ ok: true, status: "ACTIVE" });
     expect(transition("APPLIED", "accept", "worker", open).ok).toBe(false);
     expect(transition("INVITED", "accept", "org", open).ok).toBe(false);
+    expect(transition("OFFERED", "accept", "org", open).ok).toBe(false);
     expect(transition("ACTIVE", "accept", "org", open).ok).toBe(false);
+    expect(transition("APPLIED", "offer", "worker", open).ok).toBe(false);
+  });
+
+  it("an expired offer can't be accepted; a full job can't take an offer or its accept", () => {
+    expect(transition("OFFERED", "accept", "worker", { ...open, offerExpired: true })).toMatchObject({ ok: false, reason: expect.stringMatching(/expired/) });
+    const full = { ...open, headcount: 1, acceptedCount: 1 };
+    expect(transition("APPLIED", "offer", "org", full).ok).toBe(false);
+    expect(transition("OFFERED", "accept", "worker", full).ok).toBe(false);
+    expect(offerExpiresAt(new Date("2026-10-09T10:00:00Z")).toISOString()).toBe("2026-10-11T10:00:00.000Z");
+  });
+
+  it("in review is a step on an application, once, and only by the org", () => {
+    expect(transition("APPLIED", "review", "org", open)).toEqual({ ok: true, status: "APPLIED" });
+    expect(transition("APPLIED", "review", "org", { ...open, inReview: true }).ok).toBe(false);
+    expect(transition("APPLIED", "review", "worker", open).ok).toBe(false);
+    expect(transition("INVITED", "review", "org", open).ok).toBe(false);
+  });
+
+  it("declining and withdrawing: who can, and from where", () => {
+    expect(transition("APPLIED", "decline", "org", open)).toEqual({ ok: true, status: "DECLINED" });
+    expect(transition("OFFERED", "decline", "org", open)).toEqual({ ok: true, status: "DECLINED" });
+    expect(transition("INVITED", "decline", "worker", open)).toEqual({ ok: true, status: "DECLINED" });
+    expect(transition("OFFERED", "decline", "worker", open)).toEqual({ ok: true, status: "DECLINED" });
+    expect(transition("APPLIED", "decline", "worker", open).ok).toBe(false);
+    expect(transition("ACTIVE", "decline", "org", open).ok).toBe(false);
+    expect(transition("APPLIED", "withdraw", "worker", open)).toEqual({ ok: true, status: "WITHDRAWN" });
+    expect(transition("OFFERED", "withdraw", "worker", open)).toEqual({ ok: true, status: "WITHDRAWN" });
+    expect(transition("INVITED", "withdraw", "org", open)).toEqual({ ok: true, status: "WITHDRAWN" });
+    expect(transition("ACTIVE", "withdraw", "worker", open).ok).toBe(false);
+    expect(transition("APPLIED", "withdraw", "org", open).ok).toBe(false);
+    for (const end of ["DECLINED", "WITHDRAWN"] as const) {
+      for (const a of ["accept", "offer", "review", "decline", "withdraw"] as const) {
+        for (const who of ["org", "worker"] as const) expect(transition(end, a, who, open).ok).toBe(false);
+      }
+    }
+    expect(transition(null, "offer", "org", open).ok).toBe(false);
+  });
+
+  it("each step records the event the worker and org see", () => {
+    expect(eventFor("accept", "org", "APPLIED", "OFFERED")).toBe("OFFERED");
+    expect(eventFor("accept", "worker", "OFFERED", "ACTIVE")).toBe("OFFER_ACCEPTED");
+    expect(eventFor("accept", "worker", "INVITED", "ACTIVE")).toBe("INVITE_ACCEPTED");
+    expect(eventFor("decline", "org", "APPLIED", "DECLINED")).toBe("NOT_SELECTED");
+    expect(eventFor("decline", "worker", "OFFERED", "DECLINED")).toBe("OFFER_DECLINED");
+    expect(eventFor("decline", "worker", "INVITED", "DECLINED")).toBe("INVITE_DECLINED");
+    expect(eventFor("withdraw", "org", "INVITED", "WITHDRAWN")).toBe("INVITE_WITHDRAWN");
+    expect(eventFor("withdraw", "worker", "APPLIED", "WITHDRAWN")).toBe("WITHDRAWN");
+  });
+
+  it("the worker's stage reads from status and history", () => {
+    expect(workerStage("APPLIED", [{ type: "APPLIED" }])).toBe("Applied");
+    expect(workerStage("APPLIED", [{ type: "APPLIED" }, { type: "IN_REVIEW" }])).toBe("In review");
+    expect(workerStage("OFFERED", [], true)).toBe("Offer expired");
+    expect(workerStage("DECLINED", [{ type: "NOT_SELECTED" }])).toBe("Not selected");
+    expect(workerStage("DECLINED", [{ type: "OFFER_DECLINED" }])).toBe("Declined");
+    expect(workerStage("WITHDRAWN", [{ type: "INVITE_WITHDRAWN" }])).toBe("Invitation withdrawn");
   });
 
   it("respects the job's hiring modes and status", () => {
@@ -95,6 +155,8 @@ describe("relationship for shared fit answers", () => {
     // "organizations you apply to or accept an invitation from".
     expect(RELATIONSHIP_STATUSES).not.toContain("INVITED");
     expect(RELATIONSHIP_STATUSES).not.toContain("CANCELLED");
-    expect([...RELATIONSHIP_STATUSES].sort()).toEqual(["ACTIVE", "APPLIED", "CLAIMED", "COMPLETED"]);
+    expect(RELATIONSHIP_STATUSES).not.toContain("WITHDRAWN");
+    expect(RELATIONSHIP_STATUSES).not.toContain("DECLINED");
+    expect([...RELATIONSHIP_STATUSES].sort()).toEqual(["ACTIVE", "APPLIED", "CLAIMED", "COMPLETED", "OFFERED"]);
   });
 });

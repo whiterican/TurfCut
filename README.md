@@ -292,6 +292,7 @@ prisma/
   m6-migration.sql      # M5 → M6 upgrade (offline sync ids on work events)
   fk-indexes.sql        # indexes on nine foreign keys (safe to re-run)
   c2-consent.sql        # C1 → C2 upgrade (worker sharing, availability, credentials)
+  c3-hiring.sql         # C2 → C3 upgrade (hiring pipeline: offers, history)
 ```
 
 ## Demo data
@@ -634,6 +635,22 @@ certificate. Approved as recommended by review:
   unused.
 - Counsel reviews the Colorado rule profile and document handling before
   the pilot.
+
+## C3 scope — the hiring hub (in progress)
+
+- **Pipeline (C3.1)**: an organization can mark an application *in review*
+  (the worker sees "In review"), send an *offer*, or mark it *not selected*
+  with a reason code from a fixed list and an optional note the worker
+  reads; there are no private notes about workers. Nothing starts until the
+  worker accepts: an offer lapses after 48 hours (`OFFER_HOURS`). Workers
+  can decline an invitation or offer and withdraw until hired; an
+  organization can withdraw an unanswered invitation. "Accept" from an
+  organization (the pre-C3 API) now sends an offer.
+- **History**: every step is an append-only `EngagementEvent`, shown the
+  same way to the worker and the organization. `prisma/c3-hiring.sql` adds
+  the statuses (OFFERED, DECLINED, WITHDRAWN) and the table, and gives each
+  existing engagement its opening event. Acceptance:
+  `tests/acceptance/c3-hiring.ts`.
 
 ## M7 scope — field truth and leaving cleanly
 

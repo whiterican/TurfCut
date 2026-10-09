@@ -3,6 +3,10 @@ import { db } from "@/lib/db";
 import {
   ACCEPTED_STATUSES,
   buildSnapshot,
+  eventFor,
+  NOT_SELECTED_REASONS,
+  NOTE_MAX,
+  offerExpiresAt,
   transition,
   type EngagementAction,
   type HiringSnapshot,
@@ -58,7 +62,7 @@ async function snapshotFor(
  * lock so concurrent claims can't overfill headcount.
  */
 async function open(
-  action: Exclude<EngagementAction, "accept">,
+  action: "apply" | "claim" | "invite",
   actor: { kind: "worker" | "org"; profileId: string; orgId?: string },
   jobId: string,
   workerId: string,
@@ -112,6 +116,7 @@ async function open(
     const engagement = await tx.engagement.create({
       data: { jobId, workerId, status: t.status, hiredById, applicationSnapshot: snapshot as unknown as Prisma.InputJsonValue },
     });
+    await tx.engagementEvent.create({ data: { engagementId: engagement.id, type: eventFor(action, actor.kind, null, t.status), actorId: actor.profileId } });
     await tx.auditEvent.create({
       data: {
         actorId: actor.profileId,
@@ -134,19 +139,39 @@ export const claimJob = (workerId: string, profileId: string, jobId: string, now
 export const inviteWorker = (orgId: string, profileId: string, jobId: string, workerId: string, now = new Date()) =>
   open("invite", { kind: "org", profileId, orgId }, jobId, workerId, now);
 
-/** Org accepts an application, or worker accepts an invitation. */
-export async function acceptEngagement(
+type Actor = { kind: "worker"; profileId: string; workerId: string } | { kind: "org"; profileId: string; orgId: string };
+
+/** Org sends an offer for an application; worker accepts an invitation or an offer. */
+export const acceptEngagement = (engagementId: string, actor: Actor, now = new Date()) => moveEngagement(engagementId, "accept", actor, {}, now);
+
+/**
+ * Moves an existing engagement along the hiring pipeline (C3): review, offer,
+ * accept, decline, withdraw. Each step appends an EngagementEvent and an
+ * audit event under the job's lock. A decline by the organization ("not
+ * selected") needs a reason code; an optional note is shown to the worker.
+ */
+export async function moveEngagement(
   engagementId: string,
-  actor: { kind: "worker"; profileId: string; workerId: string } | { kind: "org"; profileId: string; orgId: string }
+  action: Exclude<EngagementAction, "apply" | "claim" | "invite">,
+  actor: Actor,
+  opts: { reasonCode?: string; note?: string } = {},
+  now = new Date()
 ): Promise<Result> {
   if (!UUID_RE.test(engagementId)) return { ok: false, reason: "Engagement not found." };
   const e = await db().engagement.findUnique({ where: { id: engagementId }, include: { job: { include: { org: { select: { name: true } } } } } });
   if (!e) return { ok: false, reason: "Engagement not found." };
-  if (actor.kind === "worker" && e.workerId !== actor.workerId) return { ok: false, reason: "This isn't your invitation." };
-  if (actor.kind === "org" && e.job.orgId !== actor.orgId) return { ok: false, reason: "This application is for another organization." };
-  // An invitation never overrides the worker's own do-not-match answers.
-  if (actor.kind === "worker") {
-    const pref = effectivePreference(await loadLatestPreference(actor.workerId));
+  if (actor.kind === "worker" && e.workerId !== actor.workerId) return { ok: false, reason: "Engagement not found." };
+  if (actor.kind === "org" && e.job.orgId !== actor.orgId) return { ok: false, reason: "Engagement not found." };
+
+  const declining = action === "decline" && actor.kind === "org";
+  const reasonCode = declining ? (opts.reasonCode ?? "") : null;
+  if (declining && !NOT_SELECTED_REASONS.some((r) => r.value === reasonCode)) return { ok: false, reason: "Pick a reason." };
+  const note = actor.kind === "org" && (action === "decline" || action === "offer") ? (opts.note ?? "").trim().replace(/\s+/g, " ") || null : null;
+  if (note && note.length > NOTE_MAX) return { ok: false, reason: `Keep the note under ${NOTE_MAX} characters.` };
+
+  // Taking a job never overrides the worker's own do-not-match answers.
+  if (action === "accept" && actor.kind === "worker") {
+    const pref = effectivePreference(await loadLatestPreference(actor.workerId), now);
     const reasons = exclusionReasons(pref, { disclosure: readDisclosure(e.job.campaignDisclosure), orgName: e.job.org.name, measureIds: e.job.measureIds });
     if (reasons.length) return { ok: false, reason: `${reasons[0]}. Change your preferences to accept this job.` };
   }
@@ -154,33 +179,73 @@ export async function acceptEngagement(
   return db().$transaction(async (tx) => {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`worker:${e.workerId}`}))`;
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`job:${e.jobId}`}))`;
-    const [current, acceptedCount, job, wk] = await Promise.all([
+    const [current, acceptedCount, job, wk, reviewed, lastOffer] = await Promise.all([
       tx.engagement.findUniqueOrThrow({ where: { id: engagementId } }),
       tx.engagement.count({ where: { jobId: e.jobId, status: { in: ACCEPTED_STATUSES } } }),
       tx.job.findUniqueOrThrow({ where: { id: e.jobId } }),
       tx.worker.findUniqueOrThrow({ where: { id: e.workerId }, select: { closedAt: true } }),
+      tx.engagementEvent.count({ where: { engagementId, type: "IN_REVIEW" } }),
+      tx.engagementEvent.findFirst({ where: { engagementId, type: "OFFERED" }, orderBy: { createdAt: "desc" }, select: { createdAt: true } }),
     ]);
     if (wk.closedAt) return { ok: false as const, reason: "This worker has closed their account." };
-    const t = transition(current.status, "accept", actor.kind, {
+    const t = transition(current.status, action, actor.kind, {
       jobStatus: job.status,
       hiringModes: readHiringModes(job.hiringMethod),
       headcount: job.headcount,
       acceptedCount,
+      inReview: reviewed > 0,
+      offerExpired: current.status === "OFFERED" && !!lastOffer && offerExpiresAt(lastOffer.createdAt) <= now,
     });
     if (!t.ok) return { ok: false as const, reason: t.reason };
-    // The org member who accepts an application is the worker's contact;
-    // an accepted invitation keeps its inviter.
-    const hiredById = actor.kind === "org" ? actor.profileId : (current.hiredById ?? (await defaultBoss(tx, e.jobId, job.orgId)));
-    await tx.engagement.update({ where: { id: engagementId }, data: { status: t.status, hiredById } });
+    // The worker's contact: whoever sends the offer, or the inviter.
+    const hiredById =
+      actor.kind === "org" && t.status === "OFFERED" ? actor.profileId : (current.hiredById ?? (t.status === "ACTIVE" ? await defaultBoss(tx, e.jobId, job.orgId) : null));
+    if (t.status !== current.status || hiredById !== current.hiredById) {
+      await tx.engagement.update({ where: { id: engagementId }, data: { status: t.status, hiredById } });
+    }
+    const type = eventFor(action, actor.kind, current.status, t.status);
+    await tx.engagementEvent.create({ data: { engagementId, type, actorId: actor.profileId, reasonCode, note } });
     await tx.auditEvent.create({
       data: {
         actorId: actor.profileId,
-        action: "engagement.accepted",
+        action: `engagement.${type.toLowerCase()}`,
         entityType: "Engagement",
         entityId: engagementId,
-        metadata: { from: current.status, to: t.status, acceptedBy: actor.kind },
+        metadata: { from: current.status, to: t.status, by: actor.kind, ...(reasonCode ? { reasonCode } : {}) },
       },
     });
     return { ok: true as const, engagementId, status: t.status };
+  });
+}
+
+export type HistoryEvent = Awaited<ReturnType<typeof loadEngagementEvents>>[number];
+
+/**
+ * Per engagement: its history, whether it is in review, and when a pending
+ * offer lapses. One query for a whole list.
+ */
+export async function loadPipelineFacts(engagementIds: string[]) {
+  const events = engagementIds.length
+    ? await db().engagementEvent.findMany({
+        where: { engagementId: { in: engagementIds } },
+        orderBy: { createdAt: "asc" },
+        select: { id: true, engagementId: true, type: true, reasonCode: true, note: true, createdAt: true },
+      })
+    : [];
+  return new Map(
+    engagementIds.map((id) => {
+      const mine = events.filter((e) => e.engagementId === id);
+      const offer = mine.filter((e) => e.type === "OFFERED").at(-1);
+      return [id, { events: mine, inReview: mine.some((e) => e.type === "IN_REVIEW"), offerExpiresAt: offer ? offerExpiresAt(offer.createdAt) : null }] as const;
+    })
+  );
+}
+
+/** An engagement's history, oldest first (what the worker and the organization see). */
+export function loadEngagementEvents(engagementId: string) {
+  return db().engagementEvent.findMany({
+    where: { engagementId },
+    orderBy: { createdAt: "asc" },
+    select: { id: true, type: true, reasonCode: true, note: true, createdAt: true },
   });
 }

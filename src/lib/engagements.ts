@@ -1,8 +1,14 @@
 /**
- * Engagement rules: apply, invite, claim, accept. Pure — no database access.
+ * Engagement rules: apply, invite, claim, review, offer, accept, decline,
+ * withdraw. Pure — no database access.
  *
- * - Workers apply or claim; organizations invite. Organizations accept
- *   applications; workers accept invitations.
+ * - Workers apply or claim; organizations invite.
+ * - Hiring from an application (C3): the organization may mark it in review,
+ *   then sends an offer; only the worker's accept starts the engagement. An
+ *   offer lapses after OFFER_HOURS. Workers accept invitations directly.
+ * - An organization can decline an application or offer (not selected, with
+ *   a reason code) and withdraw an unanswered invitation; a worker can
+ *   decline an invitation or offer and withdraw until they're hired.
  * - Headcount is enforced on every path that creates an accepted engagement.
  * - Each hiring decision freezes a snapshot of exactly what the organization
  *   could see: the scorecard groups the worker shared with it (C2) and the
@@ -15,8 +21,37 @@ import type { SharedMetric, SharedScorecard } from "@/lib/shared-scorecard";
 import type { ShareGroup } from "@/lib/sharing";
 import type { HiringMode } from "@/lib/jobs";
 
-export type EngagementStatus = "APPLIED" | "INVITED" | "CLAIMED" | "ACTIVE" | "COMPLETED" | "CANCELLED";
-export type EngagementAction = "apply" | "invite" | "claim" | "accept";
+export type EngagementStatus =
+  | "APPLIED"
+  | "INVITED"
+  | "CLAIMED"
+  | "ACTIVE"
+  | "COMPLETED"
+  | "CANCELLED"
+  | "OFFERED"
+  | "DECLINED"
+  | "WITHDRAWN";
+export type EngagementAction = "apply" | "invite" | "claim" | "accept" | "review" | "offer" | "decline" | "withdraw";
+
+/** How long a worker has to accept an offer (C3 decision). */
+export const OFFER_HOURS = 48;
+
+export const offerExpiresAt = (offeredAt: Date) => new Date(offeredAt.getTime() + OFFER_HOURS * 3_600_000);
+
+/**
+ * Why an organization didn't select someone (C3 decision Q5: structured
+ * reasons, never free-text notes about a worker). The worker sees the label,
+ * plus any note the organization writes to them.
+ */
+export const NOT_SELECTED_REASONS = [
+  { value: "positions_filled", label: "The spots are filled" },
+  { value: "schedule", label: "Your availability doesn't fit the job's dates" },
+  { value: "credentials", label: "The job needs a credential you haven't added" },
+  { value: "area", label: "The job is outside the area you'd travel to" },
+  { value: "other", label: "Another reason" },
+] as const;
+export type NotSelectedReason = (typeof NOT_SELECTED_REASONS)[number]["value"];
+export const NOTE_MAX = 500;
 
 /** Statuses that hold a seat against headcount. */
 export const ACCEPTED_STATUSES: EngagementStatus[] = ["CLAIMED", "ACTIVE", "COMPLETED"];
@@ -27,13 +62,20 @@ export const ACCEPTED_STATUSES: EngagementStatus[] = ["CLAIMED", "ACTIVE", "COMP
  * an invitation from". An invitation alone is the org's act, not the
  * worker's, so it never counts; nor does a cancelled engagement.
  */
-export const RELATIONSHIP_STATUSES: EngagementStatus[] = ["APPLIED", "CLAIMED", "ACTIVE", "COMPLETED"];
+export const RELATIONSHIP_STATUSES: EngagementStatus[] = ["APPLIED", "OFFERED", "CLAIMED", "ACTIVE", "COMPLETED"];
+
+/** Waiting on someone: an application, an invitation or an offer. */
+export const OPEN_STATUSES: EngagementStatus[] = ["APPLIED", "INVITED", "OFFERED"];
 
 export interface TransitionContext {
   jobStatus: "DRAFT" | "PUBLISHED" | "PAUSED" | "CLOSED";
   hiringModes: HiringMode[];
   headcount: number | null;
   acceptedCount: number;
+  /** The application is already marked in review. */
+  inReview?: boolean;
+  /** The pending offer's deadline has passed. */
+  offerExpired?: boolean;
 }
 
 export type TransitionResult = { ok: true; status: EngagementStatus } | { ok: false; reason: string };
@@ -47,12 +89,14 @@ export function transition(
   const no = (reason: string): TransitionResult => ({ ok: false, reason });
   const full = ctx.headcount !== null && ctx.acceptedCount >= ctx.headcount;
 
-  if (action !== "accept" && current !== null) {
+  const opens = action === "apply" || action === "invite" || action === "claim";
+  if (opens && current !== null) {
     return no(current === "INVITED" && actor === "worker"
       ? "You've already been invited to this job — accept the invitation instead."
       : "There's already an engagement for this worker on this job.");
   }
-  if (action !== "accept" && ctx.jobStatus !== "PUBLISHED") return no("This job isn't open.");
+  if (opens && ctx.jobStatus !== "PUBLISHED") return no("This job isn't open.");
+  if (!opens && current === null) return no("Engagement not found.");
 
   switch (action) {
     case "apply":
@@ -68,15 +112,103 @@ export function transition(
       if (!ctx.hiringModes.includes("instant_claim")) return no("This job doesn't allow instant claims.");
       if (full) return no("Every spot on this job is taken.");
       return { ok: true, status: "CLAIMED" };
+    case "review":
+      if (actor !== "org") return no("Only the organization reviews applications.");
+      if (current !== "APPLIED") return no("Only an application can be put in review.");
+      if (ctx.jobStatus === "CLOSED") return no("This job is closed.");
+      if (ctx.inReview) return no("This application is already in review.");
+      return { ok: true, status: "APPLIED" };
+    case "offer":
+      if (actor !== "org") return no("Only the organization sends offers.");
+      if (current !== "APPLIED") return no("An offer answers an application.");
+      if (ctx.jobStatus === "CLOSED" || ctx.jobStatus === "DRAFT") return no("This job isn't open.");
+      if (full) return no("Every spot on this job is taken.");
+      return { ok: true, status: "OFFERED" };
     case "accept":
       if (ctx.jobStatus === "CLOSED") return no("This job is closed.");
-      if (current === "APPLIED" && actor === "org") return full ? no("Every spot on this job is taken.") : { ok: true, status: "ACTIVE" };
-      if (current === "INVITED" && actor === "worker") return full ? no("Every spot on this job is taken.") : { ok: true, status: "ACTIVE" };
-      if (current === "APPLIED") return no("The organization accepts applications.");
-      if (current === "INVITED") return no("The worker accepts invitations.");
+      // Before C3 an organization accepted an application directly; now that is an offer.
+      if (current === "APPLIED" && actor === "org") return transition(current, "offer", actor, ctx);
+      if ((current === "INVITED" || current === "OFFERED") && actor === "worker") {
+        if (current === "OFFERED" && ctx.offerExpired) return no("This offer has expired. Ask the organization to send a new one.");
+        return full ? no("Every spot on this job is taken.") : { ok: true, status: "ACTIVE" };
+      }
+      if (current === "APPLIED") return no("The organization sends an offer; the worker accepts it.");
+      if (current === "INVITED" || current === "OFFERED") return no("Only the worker can accept.");
       return no("There's nothing to accept.");
+    case "decline":
+      if (actor === "org" && (current === "APPLIED" || current === "OFFERED")) return { ok: true, status: "DECLINED" };
+      if (actor === "worker" && (current === "INVITED" || current === "OFFERED")) return { ok: true, status: "DECLINED" };
+      if (actor === "worker" && current === "APPLIED") return no("Withdraw your application instead.");
+      return no("There's nothing to decline.");
+    case "withdraw":
+      if (actor === "worker" && (current === "APPLIED" || current === "OFFERED")) return { ok: true, status: "WITHDRAWN" };
+      if (actor === "org" && current === "INVITED") return { ok: true, status: "WITHDRAWN" };
+      if (actor === "worker") return no(current === "INVITED" ? "Decline the invitation instead." : "You can withdraw only before you're hired.");
+      return no("Only an unanswered invitation can be withdrawn.");
   }
 }
+
+export type EngagementEventType =
+  | "APPLIED"
+  | "CLAIMED"
+  | "INVITED"
+  | "INVITE_VIEWED"
+  | "INVITE_ACCEPTED"
+  | "INVITE_DECLINED"
+  | "INVITE_WITHDRAWN"
+  | "IN_REVIEW"
+  | "OFFERED"
+  | "OFFER_ACCEPTED"
+  | "OFFER_DECLINED"
+  | "NOT_SELECTED"
+  | "WITHDRAWN";
+
+/** The history event a successful transition records. */
+export function eventFor(action: EngagementAction, actor: "worker" | "org", from: EngagementStatus | null, to: EngagementStatus): EngagementEventType {
+  switch (action) {
+    case "apply": return "APPLIED";
+    case "claim": return "CLAIMED";
+    case "invite": return "INVITED";
+    case "review": return "IN_REVIEW";
+    case "offer": return "OFFERED";
+    case "accept": return to === "OFFERED" ? "OFFERED" : from === "OFFERED" ? "OFFER_ACCEPTED" : "INVITE_ACCEPTED";
+    case "decline": return actor === "org" ? "NOT_SELECTED" : from === "OFFERED" ? "OFFER_DECLINED" : "INVITE_DECLINED";
+    case "withdraw": return actor === "org" ? "INVITE_WITHDRAWN" : "WITHDRAWN";
+  }
+}
+
+/** Where an engagement stands, in the worker's words. */
+export function workerStage(status: EngagementStatus, events: Array<{ type: EngagementEventType }>, offerExpired = false): string {
+  const has = (t: EngagementEventType) => events.some((e) => e.type === t);
+  switch (status) {
+    case "APPLIED": return has("IN_REVIEW") ? "In review" : "Applied";
+    case "INVITED": return "Invited";
+    case "OFFERED": return offerExpired ? "Offer expired" : "Offer";
+    case "CLAIMED": return "Claimed";
+    case "ACTIVE": return "Active";
+    case "COMPLETED": return "Completed";
+    case "CANCELLED": return "Cancelled";
+    case "DECLINED": return has("NOT_SELECTED") ? "Not selected" : "Declined";
+    case "WITHDRAWN": return has("INVITE_WITHDRAWN") ? "Invitation withdrawn" : "Withdrawn";
+  }
+}
+
+/** One history line, in the worker's words (the organization sees the same history). */
+export const EVENT_LABELS: Record<EngagementEventType, string> = {
+  APPLIED: "Applied",
+  CLAIMED: "Claimed a spot",
+  INVITED: "Invited",
+  INVITE_VIEWED: "Invitation seen",
+  INVITE_ACCEPTED: "Accepted the invitation",
+  INVITE_DECLINED: "Declined the invitation",
+  INVITE_WITHDRAWN: "Invitation withdrawn by the organization",
+  IN_REVIEW: "In review",
+  OFFERED: "Offer sent",
+  OFFER_ACCEPTED: "Accepted the offer",
+  OFFER_DECLINED: "Declined the offer",
+  NOT_SELECTED: "Not selected",
+  WITHDRAWN: "Withdrew",
+};
 
 /** Counts are null when the worker didn't share hours and history (C2). */
 type FrozenMetric = { value: number | null; numerator: number | null; denominator: number | null };

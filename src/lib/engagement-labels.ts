@@ -7,6 +7,10 @@ export const ENGAGEMENT_LABELS: Record<EngagementStatus, { label: string; badge:
   ACTIVE: { label: "Active", badge: "badge-solid" },
   COMPLETED: { label: "Completed", badge: "badge-neutral" },
   CANCELLED: { label: "Cancelled", badge: "badge-neutral" },
+  // C3: an offer waits on the worker; declined and withdrawn never began.
+  OFFERED: { label: "Offered", badge: "badge-dashed" },
+  DECLINED: { label: "Declined", badge: "badge-neutral" },
+  WITHDRAWN: { label: "Withdrawn", badge: "badge-neutral" },
 };
 
 export const JOB_STATUS_LABELS: Record<string, { label: string; badge: string }> = {

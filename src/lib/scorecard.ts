@@ -26,6 +26,7 @@
  *   row is never touched.
  * - An event whose latest event-level validation is REJECTED is excluded.
  */
+import type { EngagementStatus } from "@/lib/engagements";
 import { effectiveEvents } from "@/lib/corrections";
 import {
   acceptanceRate,
@@ -59,7 +60,7 @@ export interface ScorecardValidation {
 export interface ScorecardShift {
   id: string;
   engagementId: string;
-  engagementStatus: "APPLIED" | "INVITED" | "CLAIMED" | "ACTIVE" | "COMPLETED" | "CANCELLED";
+  engagementStatus: EngagementStatus;
   workType: WorkType;
   state: string;
   status: "SCHEDULED" | "ACTIVE" | "COMPLETED" | "CANCELLED";

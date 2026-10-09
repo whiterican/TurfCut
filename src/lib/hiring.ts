@@ -12,19 +12,22 @@ export interface PipelineRow {
   status: "PUBLISHED" | "PAUSED";
   headcount: number | null;
   applied: number;
+  /** Offers waiting on the worker (C3). */
+  offered: number;
   invited: number;
   /** Hired and not finished: CLAIMED or ACTIVE. */
   engaged: number;
   completed: number;
 }
 
-const STAGE: Partial<Record<EngagementStatus, keyof Pick<PipelineRow, "applied" | "invited" | "engaged" | "completed">>> = {
+const STAGE: Partial<Record<EngagementStatus, keyof Pick<PipelineRow, "applied" | "offered" | "invited" | "engaged" | "completed">>> = {
   APPLIED: "applied",
+  OFFERED: "offered",
   INVITED: "invited",
   CLAIMED: "engaged",
   ACTIVE: "engaged",
   COMPLETED: "completed",
-  // CANCELLED counts nowhere.
+  // CANCELLED, DECLINED and WITHDRAWN count nowhere.
 };
 
 export function pipeline(
@@ -32,7 +35,7 @@ export function pipeline(
   engagements: Array<{ jobId: string; status: EngagementStatus }>
 ): PipelineRow[] {
   const rows = new Map<string, PipelineRow>(
-    jobs.map((j) => [j.id, { jobId: j.id, title: j.title, status: j.status, headcount: j.headcount, applied: 0, invited: 0, engaged: 0, completed: 0 }])
+    jobs.map((j) => [j.id, { jobId: j.id, title: j.title, status: j.status, headcount: j.headcount, applied: 0, offered: 0, invited: 0, engaged: 0, completed: 0 }])
   );
   for (const e of engagements) {
     const row = rows.get(e.jobId);

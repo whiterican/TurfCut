@@ -16,7 +16,7 @@ describe("hiring pipeline", () => {
       { jobId: "a", status: "CANCELLED" }, { jobId: "zzz", status: "APPLIED" },
     ]);
     expect(rows.find((r) => r.jobId === "a")).toMatchObject({ applied: 2, invited: 1, engaged: 2, completed: 1 });
-    expect(rows.find((r) => r.jobId === "b")).toMatchObject({ applied: 0, invited: 0, engaged: 0, completed: 0, headcount: null });
+    expect(rows.find((r) => r.jobId === "b")).toMatchObject({ applied: 0, offered: 0, invited: 0, engaged: 0, completed: 0, headcount: null });
   });
   it("puts jobs with applications waiting first, then the soonest start (undated last)", () => {
     const rows = pipeline(jobs, [{ jobId: "c", status: "APPLIED" }]);

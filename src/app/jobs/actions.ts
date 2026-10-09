@@ -7,7 +7,7 @@ import { requireEmployer } from "@/lib/employer-session";
 import { requireWorker } from "@/lib/worker-session";
 import { formToObject, jurisdictionStateProblem, validateJob } from "@/lib/jobs";
 import { createJob, publishJob, updateDraftJob } from "@/lib/jobs-data";
-import { acceptEngagement, applyToJob, claimJob, inviteWorker } from "@/lib/engagements-data";
+import { acceptEngagement, applyToJob, claimJob, inviteWorker, moveEngagement } from "@/lib/engagements-data";
 
 export interface JobFormState {
   message: string;
@@ -71,6 +71,7 @@ export async function claim(_prev: ActionState, formData: FormData): Promise<Act
   return done(jobId, await claimJob(workerId, userId, jobId), "Claimed — the spot is yours.");
 }
 
+/** The worker accepts an invitation or an offer. */
 export async function acceptInvitation(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const { workerId, userId } = await requireWorker();
   const jobId = String(formData.get("jobId") ?? "");
@@ -78,13 +79,42 @@ export async function acceptInvitation(_prev: ActionState, formData: FormData): 
   return done(jobId, r, "Accepted. You're on this job.");
 }
 
-export async function acceptApplication(_prev: ActionState, formData: FormData): Promise<ActionState> {
+const field = (fd: FormData, k: string) => (typeof fd.get(k) === "string" ? (fd.get(k) as string) : "");
+
+/** The worker declines an invitation or an offer. */
+export async function declineAsWorker(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const { workerId, userId } = await requireWorker();
+  const r = await moveEngagement(field(formData, "engagementId"), "decline", { kind: "worker", profileId: userId, workerId });
+  return done(field(formData, "jobId"), r, "Declined. The organization sees that you said no; nothing else.");
+}
+
+/** The worker withdraws an application (or a pending offer) before they're hired. */
+export async function withdrawApplication(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const { workerId, userId } = await requireWorker();
+  const r = await moveEngagement(field(formData, "engagementId"), "withdraw", { kind: "worker", profileId: userId, workerId });
+  return done(field(formData, "jobId"), r, "Withdrawn.");
+}
+
+async function orgMove(
+  formData: FormData,
+  action: "review" | "offer" | "decline" | "withdraw",
+  okMessage: string
+): Promise<ActionState> {
   const { orgId, userId } = await requireEmployer();
   if (!orgId) return { ok: false, message: "No organization on this account." };
-  const jobId = String(formData.get("jobId") ?? "");
-  const r = await acceptEngagement(String(formData.get("engagementId") ?? ""), { kind: "org", profileId: userId, orgId });
-  return done(jobId, r, "Accepted.");
+  const r = await moveEngagement(field(formData, "engagementId"), action, { kind: "org", profileId: userId, orgId }, {
+    reasonCode: field(formData, "reasonCode"),
+    note: field(formData, "note"),
+  });
+  return done(field(formData, "jobId"), r, okMessage);
 }
+
+/** Before C3 "Accept" hired an applicant outright; now it sends an offer the worker accepts. */
+export const acceptApplication = async (_prev: ActionState, fd: FormData) => orgMove(fd, "offer", "Offer sent. The worker has 48 hours to accept.");
+export const offerApplication = async (_prev: ActionState, fd: FormData) => orgMove(fd, "offer", "Offer sent. The worker has 48 hours to accept.");
+export const reviewApplication = async (_prev: ActionState, fd: FormData) => orgMove(fd, "review", "Marked in review. The worker sees \"In review\".");
+export const notSelected = async (_prev: ActionState, fd: FormData) => orgMove(fd, "decline", "Done. The worker sees the reason you picked, and your note if you wrote one.");
+export const withdrawInvitation = async (_prev: ActionState, fd: FormData) => orgMove(fd, "withdraw", "Invitation withdrawn.");
 
 export async function invite(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const { orgId, userId, orgApproved } = await requireEmployer();

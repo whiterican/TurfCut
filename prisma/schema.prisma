@@ -322,6 +322,48 @@ enum EngagementStatus {
   ACTIVE
   COMPLETED
   CANCELLED
+  // C3 hiring pipeline: an offer waits on the worker (nothing starts without
+  // their accept); declined and withdrawn end an engagement that never began.
+  OFFERED
+  DECLINED
+  WITHDRAWN
+}
+
+/// One step in an engagement's hiring history (C3). "In review" is an event,
+/// not a status: the worker sees it as a stage while the engagement stays
+/// APPLIED.
+enum EngagementEventType {
+  APPLIED
+  CLAIMED
+  INVITED
+  INVITE_VIEWED
+  INVITE_ACCEPTED
+  INVITE_DECLINED
+  INVITE_WITHDRAWN
+  IN_REVIEW
+  OFFERED
+  OFFER_ACCEPTED
+  OFFER_DECLINED
+  NOT_SELECTED
+  WITHDRAWN
+}
+
+/// The dated history of an engagement, shown to the worker and the
+/// organization. Append-only (rule 3). No free-text notes about a worker
+/// (C3 decision Q5): a structured reason code on NOT_SELECTED, and a note the
+/// worker reads.
+model EngagementEvent {
+  id           String              @id @default(uuid()) @db.Uuid
+  engagementId String              @db.Uuid
+  engagement   Engagement          @relation(fields: [engagementId], references: [id], onDelete: Restrict)
+  type         EngagementEventType
+  /// Profile.id of who did it; null only for history filled in by the C3 migration.
+  actorId      String?             @db.Uuid
+  reasonCode   String? // only on NOT_SELECTED (NOT_SELECTED_REASONS in engagements.ts)
+  note         String? // shown to the worker
+  createdAt    DateTime            @default(now())
+
+  @@index([engagementId, createdAt])
 }
 
 model Engagement {
@@ -345,6 +387,7 @@ model Engagement {
   shifts       Shift[]
   payouts      Payout[]
   conversation Conversation?
+  events       EngagementEvent[]
 
   @@unique([jobId, workerId])
   @@index([workerId])

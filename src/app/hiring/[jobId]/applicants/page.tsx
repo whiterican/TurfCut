@@ -4,12 +4,13 @@ import { requireArea } from "@/lib/employer-session";
 import { db } from "@/lib/db";
 import { UUID_RE } from "@/lib/jobs";
 import { RELATIONSHIP_STATUSES, type HiringSnapshot } from "@/lib/engagements";
-import { ENGAGEMENT_LABELS } from "@/lib/engagement-labels";
 import { Masthead } from "@/components/staff/Masthead";
 import { DataTable } from "@/components/staff/DataTable";
 import { SnapshotView } from "@/components/SnapshotView";
-import { ActionButton } from "@/components/ActionButton";
-import { acceptApplication } from "@/app/jobs/actions";
+import { loadPipelineFacts } from "@/lib/engagements-data";
+import { workerStage } from "@/lib/engagements";
+import { HiringActions } from "@/components/HiringActions";
+import { EngagementHistory } from "@/components/EngagementHistory";
 import { loadOrgAvailabilities } from "@/lib/availability-data";
 import { AvailabilityStatement } from "@/components/AvailabilityStatement";
 
@@ -31,7 +32,14 @@ export default async function ApplicantsPage({ params }: { params: Promise<{ job
     select: { id: true, status: true, createdAt: true, applicationSnapshot: true, worker: { select: { id: true, displayName: true, closedAt: true } } },
     orderBy: { createdAt: "asc" },
   });
-  const waiting = engagements.filter((e) => e.status === "APPLIED");
+  // Waiting on the organization (an application) or on the worker (an offer).
+  const waiting = engagements.filter((e) => e.status === "APPLIED" || e.status === "OFFERED");
+  const facts = await loadPipelineFacts(engagements.map((e) => e.id));
+  const now = new Date();
+  const stage = (e: (typeof engagements)[number]) => {
+    const f = facts.get(e.id)!;
+    return workerStage(e.status, f.events, e.status === "OFFERED" && !!f.offerExpiresAt && f.offerExpiresAt <= now);
+  };
   // Live, as each worker shares it with this organization now (C2.4); never scored or sorted on.
   const byWorker = await loadOrgAvailabilities(waiting.filter((e) => !e.worker.closedAt).map((e) => e.worker.id), session.orgId);
   const availability = new Map(waiting.filter((e) => byWorker.has(e.worker.id)).map((e) => [e.id, byWorker.get(e.worker.id)!] as const));
@@ -57,7 +65,7 @@ export default async function ApplicantsPage({ params }: { params: Promise<{ job
             // A profile opens once the worker has engaged (C1); closed accounts show the name only.
             who: { text: e.worker.displayName, href: !e.worker.closedAt && RELATIONSHIP_STATUSES.includes(e.status) ? `/workers/${e.worker.id}` : undefined },
             since: { text: day(e.createdAt), sort: e.createdAt.getTime() },
-            stage: { text: ENGAGEMENT_LABELS[e.status].label },
+            stage: { text: stage(e) },
           },
         }))}
       />
@@ -73,13 +81,17 @@ export default async function ApplicantsPage({ params }: { params: Promise<{ job
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <p className="font-medium text-fg">
                     {e.worker.closedAt ? e.worker.displayName : <Link href={`/workers/${e.worker.id}`} className="link">{e.worker.displayName}</Link>}
-                    <span className="text-muted-sm"> · applied {day(e.createdAt)}</span>
+                    <span className="text-muted-sm"> · {stage(e).toLowerCase()} · applied {day(e.createdAt)}</span>
                   </p>
-                  {/* The server accepts on any job that isn't closed (paused included). */}
-                  {job.status !== "CLOSED" && (
-                    <ActionButton action={acceptApplication} fields={{ jobId: job.id, engagementId: e.id }} label="Accept" variant="btn-primary btn-sm" />
-                  )}
                 </div>
+                <HiringActions
+                  jobId={job.id}
+                  jobStatus={job.status}
+                  engagementId={e.id}
+                  status={e.status}
+                  inReview={facts.get(e.id)!.inReview}
+                  offerExpiresAt={facts.get(e.id)!.offerExpiresAt}
+                />
                 {availability.has(e.id) && (
                   <div className="space-y-1">
                     <p className="label">Availability now</p>
@@ -87,6 +99,7 @@ export default async function ApplicantsPage({ params }: { params: Promise<{ job
                   </div>
                 )}
                 {e.applicationSnapshot ? <SnapshotView snapshot={e.applicationSnapshot as unknown as HiringSnapshot} /> : null}
+                <EngagementHistory events={facts.get(e.id)!.events} />
               </li>
             ))}
           </ul>

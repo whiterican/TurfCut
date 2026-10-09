@@ -3,7 +3,10 @@ import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { HIRING_ROLES, ORG_ROLES, SCHEDULING_ROLES } from "@/lib/access";
-import { ACCEPTED_STATUSES, RELATIONSHIP_STATUSES, type EngagementStatus, type HiringSnapshot } from "@/lib/engagements";
+import { ACCEPTED_STATUSES, RELATIONSHIP_STATUSES, workerStage, type EngagementStatus, type HiringSnapshot } from "@/lib/engagements";
+import { loadPipelineFacts } from "@/lib/engagements-data";
+import { EngagementHistory } from "@/components/EngagementHistory";
+import { HiringActions, timeLeft } from "@/components/HiringActions";
 import { ENGAGEMENT_LABELS, JOB_STATUS_LABELS } from "@/lib/engagement-labels";
 import { UUID_RE, exclusionReasons, fitReasons, jobCardAnswers, jurisdictionLabel, payText, publishBlockers, readDisclosure, readHiringModes } from "@/lib/jobs";
 import { loadScorecard } from "@/lib/scorecard-data";
@@ -15,7 +18,7 @@ import { loadLatestPreference } from "@/lib/political-fit-data";
 import { JobCard } from "@/components/JobCard";
 import { SnapshotView } from "@/components/SnapshotView";
 import { ActionButton } from "@/components/ActionButton";
-import { acceptApplication, acceptInvitation, apply, claim, publish } from "../actions";
+import { acceptInvitation, apply, claim, declineAsWorker, publish, withdrawApplication } from "../actions";
 import { shiftState, shiftStatusLabel } from "@/lib/field-day";
 import { listSupervisors } from "@/lib/field-day-data";
 import { LocalTime } from "@/components/LocalTime";
@@ -109,19 +112,44 @@ async function WorkerPanel({
     // An invitation is the org's act: the worker's do-not-match answers
     // still keep them off the job (the org is never told why).
     if (engagement.status === "INVITED" && reasons.length) return excluded;
+    const facts = (await loadPipelineFacts([engagement.id])).get(engagement.id)!;
+    const offerExpired = engagement.status === "OFFERED" && !!facts.offerExpiresAt && facts.offerExpiresAt <= new Date();
+    const fields = { jobId: job.id, engagementId: engagement.id };
     return (
       <section className="card space-y-3">
         <p className="flex items-center gap-2 font-medium text-fg">
-          Your status <span className={s.badge}>{s.label}</span>
+          Your status <span className={s.badge}>{workerStage(engagement.status, facts.events, offerExpired)}</span>
         </p>
         {engagement.status === "INVITED" && (
           <>
-            <ActionButton action={acceptInvitation} fields={{ jobId: job.id, engagementId: engagement.id }} label="Accept invitation" />
+            <div className="flex flex-wrap items-start gap-2">
+              <ActionButton action={acceptInvitation} fields={fields} label="Accept invitation" />
+              <ActionButton action={declineAsWorker} fields={fields} label="Decline" pendingLabel="Declining…" variant="btn-ghost" />
+            </div>
             <WillSee sharing={(await loadSharing(workerId)).choices} approved={job.org.approved} invited kept={engagement.applicationSnapshot != null} />
           </>
         )}
-        {engagement.status === "APPLIED" && <p className="text-muted-sm">The organization will review your application.</p>}
+        {engagement.status === "OFFERED" && (
+          <div className="space-y-2">
+            <p className="text-sm text-fg">
+              {offerExpired
+                ? "This offer expired before you answered. Ask the organization to send a new one."
+                : `The organization offered you a spot. Nothing starts until you accept (${timeLeft(facts.offerExpiresAt!)}). Any note it sent is in the history below.`}
+            </p>
+            <div className="flex flex-wrap items-start gap-2">
+              {!offerExpired && <ActionButton action={acceptInvitation} fields={fields} label="Accept offer" pendingLabel="Accepting…" />}
+              <ActionButton action={declineAsWorker} fields={fields} label="Decline offer" pendingLabel="Declining…" variant="btn-ghost" />
+            </div>
+          </div>
+        )}
+        {engagement.status === "APPLIED" && (
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-muted-sm">The organization will review your application.</p>
+            <ActionButton action={withdrawApplication} fields={fields} label="Withdraw application" pendingLabel="Withdrawing…" variant="btn-ghost btn-sm" />
+          </div>
+        )}
         {(engagement.status === "ACTIVE" || engagement.status === "CLAIMED") && <WorkerShifts engagementId={engagement.id} />}
+        <EngagementHistory events={facts.events} />
       </section>
     );
   }
@@ -309,6 +337,7 @@ async function OrgPanel({ job, canHire, canSchedule, userId }: { job: JobWithRef
         orderBy: { createdAt: "asc" },
       })
     : [];
+  const facts = await loadPipelineFacts(engagements.map((e) => e.id));
 
   return (
     <>
@@ -356,12 +385,20 @@ async function OrgPanel({ job, canHire, canSchedule, userId }: { job: JobWithRef
                         ) : (
                           <Link transitionTypes={["nav-forward"]} href={`/workers/${e.worker.id}`} className="link">{e.worker.displayName}</Link>
                         )}
-                        <span className={s.badge}>{s.label}</span>
+                        <span className={s.badge}>
+                          {workerStage(e.status, facts.get(e.id)!.events, e.status === "OFFERED" && !!facts.get(e.id)!.offerExpiresAt && facts.get(e.id)!.offerExpiresAt! <= new Date())}
+                        </span>
                       </p>
-                      {e.status === "APPLIED" && (
-                        <ActionButton action={acceptApplication} fields={{ jobId: job.id, engagementId: e.id }} label="Accept" variant="btn-primary btn-sm" />
-                      )}
                     </div>
+                    <HiringActions
+                      jobId={job.id}
+                      jobStatus={job.status}
+                      engagementId={e.id}
+                      status={e.status}
+                      inReview={facts.get(e.id)!.inReview}
+                      offerExpiresAt={facts.get(e.id)!.offerExpiresAt}
+                    />
+                    <EngagementHistory events={facts.get(e.id)!.events} />
                     {e.applicationSnapshot ? (
                       <SnapshotView snapshot={e.applicationSnapshot as unknown as HiringSnapshot} />
                     ) : (

@@ -121,6 +121,19 @@ exercise the locks, triggers and data rules, not the RLS policies.
      fund by invoice. In test mode, add test funds in the Stripe dashboard.
    Without these keys the app still records, approves, disputes and exports
    pay; the **Pay** button explains that Stripe isn't connected yet.
+6a. **Credential proof photos (C3.6b)** — optional until workers should add
+   photos of their Colorado training certificate:
+   - Supabase → Storage → **New bucket** → name `credential-proofs`,
+     **Public: off**. Only the server reaches it, with the service-role key.
+   - Generate a key on your own machine with `openssl rand -base64 32` and
+     set it as `CREDENTIAL_PROOF_KEY` in Vercel (Production and Preview). It
+     encrypts the photos and nothing else; keep a copy somewhere safe, since
+     losing it makes the stored photos unreadable. Never paste it anywhere
+     else.
+   - Set `CRON_SECRET` in Vercel (any long random string) so the daily
+     photo purge in `vercel.json` can run.
+   Without these, the credentials page says photos aren't available yet, and
+   nothing else changes.
 7. **Going live on Vercel**, in this order:
    1. **One Vercel project for the site.** Importing the repo twice makes two
       projects that both build every push, and settings added to one never
@@ -614,8 +627,7 @@ connection is only for schema changes.
 
 ### Credential proof photos — decided for C3 (owner, 2026-10-09)
 
-Not built yet; C2 only tells Colorado petition circulators to keep their training
-certificate. Approved as recommended by review:
+Built in C3.6b (see the C3 scope below). Approved as recommended by review:
 
 - A photo is evidence a person checks, never proof by itself: it doesn't
   change the verification level, and organizations get no "proof on file"
@@ -755,8 +767,9 @@ certificate. Approved as recommended by review:
   compliance members of an approved organization), an organization records
   that it checked a credential of a worker it hired (claimed, active or
   completed on one of its jobs) who shares credentials with it, and how:
-  "checked the state's registry" or "saw the original document". Proof
-  photos come with C3.6b. Recording appends a row that supersedes the
+  "checked the state's registry", "saw the original document" or, once it
+  opened a photo the worker shared (C3.6b), "looked at the worker's proof
+  photo". Recording appends a row that supersedes the
   self-reported one (`WorkerCredential.verificationMethod`, added by
   `prisma/c3-hiring.sql`), names the person who checked and is audited
   with the organization. Nobody verifies their own credential, an expired
@@ -772,6 +785,30 @@ certificate. Approved as recommended by review:
   recorded by mistake (only the worker's edit resets it; a withdrawal row
   could come later), and a worker whose shared history names a single
   organization lets others guess which one verified.
+- **Proof photos (C3.6b)**: a worker adds a photo of their Colorado
+  circulator training certificate (front and back) to a training credential
+  with the state CO and the training date, on `/profile/credentials`.
+  Sharing is off until they tick it, per photo. JPEG or PNG only, up to 4 MB
+  and 40 megapixels, 12 uploads a day; the server re-encodes it as a fresh
+  JPEG (upright, at most 2400 px, no location or camera details), seals it
+  with AES-256-GCM under `CREDENTIAL_PROOF_KEY` (bound to the photo's id),
+  and stores it in the private `credential-proofs` bucket. Only the worker,
+  and owners and compliance members of an approved organization that hired
+  them (claimed or active, not completed) while they share credentials with
+  it, can open a shared photo, through `/api/credential-proofs/[id]`
+  (signed in, never cached, never a link to the bucket). Each look and
+  download is audited and listed under the photo for the worker, with the
+  organization and date. Once an organization has opened one, it can record
+  "looked at the worker's proof photo" as how it checked; the photo alone
+  never changes the verification level. Photos are deleted (a
+  `CredentialProofDeletion` row with the reason, then the file) when the
+  worker deletes one, removes the credential or edits it into one that takes
+  no photo, closes the account, or a year after the training date; access
+  stops at once, and a daily purge (`/api/cron/purge-proofs`, Vercel Cron)
+  deletes what's due and retries any file left behind. The export includes
+  the photos, their history and every look. Setup: the bucket,
+  `CREDENTIAL_PROOF_KEY` and `CRON_SECRET` (README "What needs Caden").
+  Counsel reviews the document handling before the pilot.
 - **History**: every step is an append-only `EngagementEvent`, shown the
   same way to the worker and the organization, and in the worker's data
   export (`engagement-history.csv`). `prisma/c3-hiring.sql` adds the

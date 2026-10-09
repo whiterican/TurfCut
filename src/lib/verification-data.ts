@@ -6,6 +6,7 @@ import { UUID_RE } from "@/lib/jobs";
 import { ACCEPTED_STATUSES } from "@/lib/engagements";
 import { expiryState, expiryToday, methodsFor, ORG_METHODS, type VerificationMethod } from "@/lib/credentials";
 import { partsForOrgMany } from "@/lib/shared-scorecard-data";
+import { loadOrgProofs } from "@/lib/proof-data";
 
 /**
  * Credential checks by organizations (C3.6a). An organization Turfcut
@@ -56,7 +57,7 @@ export async function loadHiredCredentials(staff: Staff) {
   });
   const ids = [...new Set(hired.map((h) => h.workerId))];
   if (!ids.length) return [];
-  const [parts, rows] = await Promise.all([
+  const [parts, rows, proofs] = await Promise.all([
     partsForOrgMany(ids, staff.orgId),
     db().workerCredential.findMany({
       where: { workerId: { in: ids }, removed: false, supersededBy: null },
@@ -64,6 +65,7 @@ export async function loadHiredCredentials(staff: Staff) {
       select: { workerId: true, id: true, kind: true, label: true, state: true, expiresOn: true, verification: true, verificationMethod: true, verifiedAt: true },
       orderBy: [{ createdAt: "asc" }, { id: "asc" }],
     }),
+    loadOrgProofs(staff.orgId, ids),
   ]);
   const shares = ids.filter((id) => parts.get(id)?.credentials);
   const byOrg = await verifierOrgs(rows.filter((r) => r.verification === "ORGANIZATION" && shares.includes(r.workerId)).map((r) => r.id));
@@ -79,7 +81,7 @@ export async function loadHiredCredentials(staff: Staff) {
             void _w;
             const byUs = byOrg.get(r.id) === staff.orgId;
             // When it was checked is the verifying organization's own record; others see only that it was, and how.
-            return { ...r, verifiedAt: byUs ? r.verifiedAt : null, byUs };
+            return { ...r, verifiedAt: byUs ? r.verifiedAt : null, byUs, proofs: proofs.get(r.id) ?? [] };
           })
         : ("withheld" as const),
     };
@@ -143,7 +145,11 @@ export async function verifyCredential(staff: Staff, credentialId: string, metho
       if (cur.worker.profileId === staff.profileId) return { ok: false as const, reason: "You can't verify your own credential." };
       if (cur.verification !== "SELF_REPORTED") return { ok: false as const, reason: "This credential is already verified." };
       if (expiryState(cur.expiresOn, expiryToday()).kind === "expired") return { ok: false as const, reason: "This credential has expired. The worker updates it first." };
-      if (!methodsFor(cur).includes(method as VerificationMethod)) return { ok: false as const, reason: "A state registry doesn't list this credential. Choose how you checked it." };
+      // A photo counts as how it was checked only once this organization opened one of this credential the worker shared.
+      const photoSeen = method === "PROOF_PHOTO" && !!(await loadOrgProofs(staff.orgId, [cur.workerId], new Date(), tx)).get(cur.id)?.some((p) => p.looked);
+      if (!methodsFor(cur, { photoSeen }).includes(method as VerificationMethod)) {
+        return { ok: false as const, reason: method === "PROOF_PHOTO" ? "Open the worker's photo of it first." : "A state registry doesn't list this credential. Choose how you checked it." };
+      }
       const { id: _id, workerId, verification: _v, worker: _w, ...content } = cur;
       void _id;
       void _v;

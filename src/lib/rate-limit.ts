@@ -31,6 +31,8 @@ export const LIMITS = {
   sync: { max: 60, windowMs: 60_000 },
   /** Member invite emails (sends and resends) per organization per day. */
   invite: { max: 20, windowMs: 24 * 60 * 60_000 },
+  /** Credential photo uploads per worker per day (each is re-encoded and stored). */
+  "proof-upload": { max: 12, windowMs: 24 * 60 * 60_000 },
 } as const satisfies Record<string, Limit>;
 
 export type LimitName = keyof typeof LIMITS;

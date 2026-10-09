@@ -47,19 +47,19 @@ enum Role {
 /// member detaches them (orgId = null) and keeps their login and history. Worker users get a workers row; company users get an
 /// organizations row and one of the org roles.
 model Profile {
-  id        String   @id @db.Uuid // == Supabase auth.users.id
-  role      Role
-  worker    Worker?
-  orgId     String?  @db.Uuid
-  org       Organization? @relation(fields: [orgId], references: [id])
+  id          String        @id @db.Uuid // == Supabase auth.users.id
+  role        Role
+  worker      Worker?
+  orgId       String?       @db.Uuid
+  org         Organization? @relation(fields: [orgId], references: [id])
   // Org staff's name as shown in chat ("Maya Chen · Manager"). Workers use
   // Worker.displayName. Never shown to anyone outside a shared conversation.
   displayName String?
   // Account closure (M7): set when the person closed their account. The
   // auth user is deleted; this row and everything it anchors stay (rule 3).
-  closedAt  DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  closedAt    DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
 
   hiredEngagements   Engagement[]              @relation("HiredBy")
   notifications      Notification[]
@@ -90,26 +90,40 @@ enum VerificationMethod {
   PROOF_PHOTO // looked at the worker's proof photo (C3.6b)
 }
 
-model Worker {
-  id        String   @id @default(uuid()) @db.Uuid
-  profileId String   @unique @db.Uuid
-  profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
-  displayName String
-  phone     String?
-  // Account closure (M7): name and phone are anonymized; history stays.
-  closedAt  DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+enum ProofSide {
+  FRONT
+  BACK
+}
 
-  experience   ExperienceRecord[]
-  preferences  PoliticalPreference[]
-  engagements  Engagement[]
-  metrics      ProfileMetric[]
-  payouts      Payout[]
-  sharing        WorkerSharing[]
-  availabilities WorkerAvailability[]
-  credentials    WorkerCredential[]
-  mutes          OrgMute[]
+enum ProofDeletionReason {
+  WORKER_REMOVED // the worker took it down
+  CREDENTIAL_REMOVED // the credential it supports was removed
+  NO_LONGER_ELIGIBLE // an edit made the credential one that takes no photo
+  LAPSED // a year after the training date (the Colorado registration it supports)
+  ACCOUNT_CLOSED
+}
+
+model Worker {
+  id          String    @id @default(uuid()) @db.Uuid
+  profileId   String    @unique @db.Uuid
+  profile     Profile   @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  displayName String
+  phone       String?
+  // Account closure (M7): name and phone are anonymized; history stays.
+  closedAt    DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  experience       ExperienceRecord[]
+  preferences      PoliticalPreference[]
+  engagements      Engagement[]
+  metrics          ProfileMetric[]
+  payouts          Payout[]
+  sharing          WorkerSharing[]
+  availabilities   WorkerAvailability[]
+  credentials      WorkerCredential[]
+  credentialProofs CredentialProof[]
+  mutes            OrgMute[]
 
   // Payouts (M5): the worker's Stripe Connect account. Bank and tax details
   // stay with Stripe; payoutsEnabled caches whether Stripe can pay them.
@@ -175,25 +189,25 @@ enum VisibilityMode {
 }
 
 model PoliticalPreference {
-  id              String         @id @default(uuid()) @db.Uuid
-  workerId        String         @db.Uuid
+  id                 String         @id @default(uuid()) @db.Uuid
+  workerId           String         @db.Uuid
   // Consent history outlives nothing: a worker with versions can't be deleted (owner decision; rule 3).
-  worker          Worker         @relation(fields: [workerId], references: [id], onDelete: Restrict)
-  visibilityMode  VisibilityMode
+  worker             Worker         @relation(fields: [workerId], references: [id], onDelete: Restrict)
+  visibilityMode     VisibilityMode
   // JSON shapes are defined and validated in src/lib/political-fit.ts.
   // Each answer carries its own opt-in `shared` flag.
-  identityLabels  Json? // e.g. [{"label": "independent", "shared": true}, {"label": "other", "text": "..."}]
-  partyRelationship Json? // e.g. {"relationship": "leans_toward", "party": "democratic"} — NOT voter registration
-  issuePositions  Json? // e.g. {"housing_affordability": {"position": "lean_support", "importance": "high"}}
+  identityLabels     Json? // e.g. [{"label": "independent", "shared": true}, {"label": "other", "text": "..."}]
+  partyRelationship  Json? // e.g. {"relationship": "leans_toward", "party": "democratic"} — NOT voter registration
+  issuePositions     Json? // e.g. {"housing_affordability": {"position": "lean_support", "importance": "high"}}
   campaignBoundaries Json? // e.g. [{"kind": "campaign_type", "target": "candidate", "stance": "ask_me_first"}]
-  consentVersion  Int            @default(1)
+  consentVersion     Int            @default(1)
   // Worker-chosen expiry (null = no expiry). After it passes — or when the
   // consent wording changes (consentTextVersion differs from the current
   // one) — answers are treated as not shared until the worker reconfirms,
   // which writes a new version.
   expiresAt          DateTime?
   consentTextVersion String? // null on rows written before consent wording was versioned
-  createdAt       DateTime       @default(now())
+  createdAt          DateTime       @default(now())
 
   // Unique so two concurrent saves can't both claim version N+1.
   @@unique([workerId, consentVersion])
@@ -204,23 +218,23 @@ model PoliticalPreference {
 // ---------------------------------------------------------------------------
 
 model Organization {
-  id        String   @id @default(uuid()) @db.Uuid
-  name      String
-  approved  Boolean  @default(false) // manual approval for the private pilot
+  id                       String           @id @default(uuid()) @db.Uuid
+  name                     String
+  approved                 Boolean          @default(false) // manual approval for the private pilot
   // Publish gate (spec p.15): no job publishes until both are recorded.
   contractorTermsSignedAt  DateTime?
   classificationReviewedAt DateTime?
   legalContact             String? // legal-review contact (spec p.11)
-  profiles      Profile[]
-  jobs          Job[]
-  conversations Conversation[]
-  payouts         Payout[]
-  payoutTransfers PayoutTransfer[]
-  payDisputes     PayDispute[]
-  invites         OrgInvite[]
-  mutedBy         OrgMute[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  profiles                 Profile[]
+  jobs                     Job[]
+  conversations            Conversation[]
+  payouts                  Payout[]
+  payoutTransfers          PayoutTransfer[]
+  payDisputes              PayDispute[]
+  invites                  OrgInvite[]
+  mutedBy                  OrgMute[]
+  createdAt                DateTime         @default(now())
+  updatedAt                DateTime         @updatedAt
 }
 
 /// C1: an owner's invitation for someone to join the organization in a role.
@@ -250,20 +264,20 @@ model OrgInvite {
 /// Hard stop: a job may only publish when its jurisdiction profile is the
 /// current approved version (enforced in application code, M2).
 model JurisdictionProfile {
-  id          String   @id @default(uuid()) @db.Uuid
-  state       String // e.g. "CO"
-  locality    String? // e.g. "Denver" — null means statewide
-  version     Int      @default(1)
-  isCurrent   Boolean  @default(true)
-  approved    Boolean  @default(false)
-  approvedAt  DateTime?
+  id                String    @id @default(uuid()) @db.Uuid
+  state             String // e.g. "CO"
+  locality          String? // e.g. "Denver" — null means statewide
+  version           Int       @default(1)
+  isCurrent         Boolean   @default(true)
+  approved          Boolean   @default(false)
+  approvedAt        DateTime?
   // Versioned by effective date; counsel approval can lapse (spec p.13, p.15).
   effectiveFrom     DateTime? // null = effective immediately
   approvalExpiresAt DateTime? // null = no expiry set by counsel
   // Compensation/eligibility/registration/badge/affidavit/disclosure rules.
-  rules       Json
-  jobs        Job[]
-  createdAt   DateTime @default(now())
+  rules             Json
+  jobs              Job[]
+  createdAt         DateTime  @default(now())
 
   @@unique([state, locality, version])
 }
@@ -291,33 +305,33 @@ enum CompensationMethod {
 }
 
 model Job {
-  id                String             @id @default(uuid()) @db.Uuid
-  orgId             String             @db.Uuid
-  org               Organization       @relation(fields: [orgId], references: [id])
-  jurisdictionId    String             @db.Uuid
-  jurisdiction      JurisdictionProfile @relation(fields: [jurisdictionId], references: [id])
-  type              JobType
-  title             String
-  description       String?
-  status            JobStatus          @default(DRAFT)
-  startsAt          DateTime?
-  endsAt            DateTime?
-  geography         Json? // service area / turf boundaries
-  compensationMethod CompensationMethod @default(HOURLY)
-  payRateCents      Int? // gross rate in cents; worker always sees gross
-  headcount         Int?
-  hiringMethod      Json? // application / invite / instant-claim config
-  requirements      Json? // credentials, training, badges
+  id                      String              @id @default(uuid()) @db.Uuid
+  orgId                   String              @db.Uuid
+  org                     Organization        @relation(fields: [orgId], references: [id])
+  jurisdictionId          String              @db.Uuid
+  jurisdiction            JurisdictionProfile @relation(fields: [jurisdictionId], references: [id])
+  type                    JobType
+  title                   String
+  description             String?
+  status                  JobStatus           @default(DRAFT)
+  startsAt                DateTime?
+  endsAt                  DateTime?
+  geography               Json? // service area / turf boundaries
+  compensationMethod      CompensationMethod  @default(HOURLY)
+  payRateCents            Int? // gross rate in cents; worker always sees gross
+  headcount               Int?
+  hiringMethod            Json? // application / invite / instant-claim config
+  requirements            Json? // credentials, training, badges
   // Campaign disclosure (spec p.14): affiliation, issue positions, message.
   // Shapes are defined and validated in src/lib/jobs.ts.
   campaignDisclosure      Json?
   supportContacts         Json? // who handles emergencies, disputes, lost materials
-  measureIds              String[] @default([]) // ballot measure / initiative IDs
-  cancellationNoticeHours Int      @default(24) // later worker cancellations count as no-shows
+  measureIds              String[]            @default([]) // ballot measure / initiative IDs
+  cancellationNoticeHours Int                 @default(24) // later worker cancellations count as no-shows
   publishedAt             DateTime?
   // Matching weights are versioned on the job (M3); stored when matching ships.
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
+  createdAt               DateTime            @default(now())
+  updatedAt               DateTime            @updatedAt
 
   engagements      Engagement[]
   conversationJobs ConversationJob[]
@@ -378,32 +392,32 @@ model EngagementEvent {
 }
 
 model Engagement {
-  id        String           @id @default(uuid()) @db.Uuid
-  jobId     String           @db.Uuid
-  job       Job              @relation(fields: [jobId], references: [id])
-  workerId  String           @db.Uuid
-  worker    Worker           @relation(fields: [workerId], references: [id])
-  status    EngagementStatus @default(APPLIED)
+  id                  String           @id @default(uuid()) @db.Uuid
+  jobId               String           @db.Uuid
+  job                 Job              @relation(fields: [jobId], references: [id])
+  workerId            String           @db.Uuid
+  worker              Worker           @relation(fields: [workerId], references: [id])
+  status              EngagementStatus @default(APPLIED)
   // Frozen snapshot of the application + the scorecard shown to the employer
   // at decision time (spec: freeze the employer-facing snapshot).
   applicationSnapshot Json?
   // The org profile who hired this worker (accepted the application, sent
   // the invitation, or created the job for an instant claim). The worker's
   // direct-message thread for this job is with this person.
-  hiredById String? @db.Uuid
-  hiredBy   Profile? @relation("HiredBy", fields: [hiredById], references: [id], onDelete: Restrict)
+  hiredById           String?          @db.Uuid
+  hiredBy             Profile?         @relation("HiredBy", fields: [hiredById], references: [id], onDelete: Restrict)
   // C3 invitations: the inviter's note to the worker (1–500 characters) and
   // when the invitation lapses (7 days). Null on applications, claims and
   // invitations sent before C3 (which don't lapse).
-  inviteNote      String?
-  inviteExpiresAt DateTime?
-  createdAt DateTime         @default(now())
-  updatedAt DateTime         @updatedAt
+  inviteNote          String?
+  inviteExpiresAt     DateTime?
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
 
-  shifts       Shift[]
-  payouts      Payout[]
-  conversation Conversation?
-  events       EngagementEvent[]
+  shifts        Shift[]
+  payouts       Payout[]
+  conversation  Conversation?
+  events        EngagementEvent[]
   notifications Notification[]
 
   @@unique([jobId, workerId])
@@ -419,23 +433,23 @@ enum ShiftStatus {
 }
 
 model Shift {
-  id          String      @id @default(uuid()) @db.Uuid
-  engagementId String     @db.Uuid
-  engagement  Engagement @relation(fields: [engagementId], references: [id])
-  startsAt    DateTime
-  endsAt      DateTime
-  status      ShiftStatus @default(SCHEDULED)
-  checkInAt   DateTime?
-  checkOutAt  DateTime?
+  id              String      @id @default(uuid()) @db.Uuid
+  engagementId    String      @db.Uuid
+  engagement      Engagement  @relation(fields: [engagementId], references: [id])
+  startsAt        DateTime
+  endsAt          DateTime
+  status          ShiftStatus @default(SCHEDULED)
+  checkInAt       DateTime?
+  checkOutAt      DateTime?
   // Field day (M3). Staging point for check-in; the worker's own position is
   // never stored — check-in records only whether they were at staging.
   stagingLocation String?
   stagingLat      Float?
   stagingLng      Float?
-  supervisorId    String?  @db.Uuid // Profile.id who accepts custody and reviews
+  supervisorId    String?     @db.Uuid // Profile.id who accepts custody and reviews
   turfArea        Json? // GeoJSON Polygon of the assigned turf
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
 
   events      WorkEvent[]
   validations Validation[]
@@ -471,17 +485,17 @@ enum WorkEventType {
 /// Immutable ledger of everything that happened on a shift.
 /// NEVER update or delete rows. Corrections are new CORRECTION events.
 model WorkEvent {
-  id        String        @id @default(uuid()) @db.Uuid
-  shiftId   String        @db.Uuid
-  shift     Shift         @relation(fields: [shiftId], references: [id])
-  type      WorkEventType
-  payload   Json // event-specific data (counts, packet IDs, notes, ...)
-  actorId   String?       @db.Uuid // Profile.id who recorded it (worker or supervisor); null on pre-M3 rows
-  createdAt DateTime      @default(now()) // when it happened (for offline actions: the phone's corrected time)
+  id         String        @id @default(uuid()) @db.Uuid
+  shiftId    String        @db.Uuid
+  shift      Shift         @relation(fields: [shiftId], references: [id])
+  type       WorkEventType
+  payload    Json // event-specific data (counts, packet IDs, notes, ...)
+  actorId    String?       @db.Uuid // Profile.id who recorded it (worker or supervisor); null on pre-M3 rows
+  createdAt  DateTime      @default(now()) // when it happened (for offline actions: the phone's corrected time)
   // Offline field day (M6): the phone's id for the action, so a re-sent
   // action is saved once; and when an action recorded offline reached the
   // server (null = recorded live).
-  clientId   String?   @unique @db.Uuid
+  clientId   String?       @unique @db.Uuid
   receivedAt DateTime?
 
   @@index([shiftId, createdAt])
@@ -495,14 +509,14 @@ enum ValidationStatus {
 
 /// Supervisor review decisions. APPEND-ONLY: a rejection/appeal is a new row.
 model Validation {
-  id         String           @id @default(uuid()) @db.Uuid
-  shiftId    String           @db.Uuid
-  shift      Shift            @relation(fields: [shiftId], references: [id])
-  workEventId String?         @db.Uuid
-  status     ValidationStatus
-  reason     String?
-  reviewerId String?          @db.Uuid // Profile.id of the supervisor
-  createdAt  DateTime         @default(now())
+  id          String           @id @default(uuid()) @db.Uuid
+  shiftId     String           @db.Uuid
+  shift       Shift            @relation(fields: [shiftId], references: [id])
+  workEventId String?          @db.Uuid
+  status      ValidationStatus
+  reason      String?
+  reviewerId  String?          @db.Uuid // Profile.id of the supervisor
+  createdAt   DateTime         @default(now())
 
   payouts Payout[]
 
@@ -914,28 +928,29 @@ model WorkerAvailability {
 /// previous one; taking one down appends a row with removed = true. The
 /// current credentials are the rows nothing supersedes that aren't removed.
 model WorkerCredential {
-  id           String            @id @default(uuid()) @db.Uuid
-  workerId     String            @db.Uuid
-  worker       Worker            @relation(fields: [workerId], references: [id], onDelete: Restrict)
-  kind         CredentialKind
-  label        String? // the worker's name for an OTHER credential or a training course
-  state        String? // two-letter state, when the credential has one
-  identifier   String? // only the last 4 characters of what the worker typed (credentials.ts), shown masked
-  issuedOn     DateTime?         @db.Date
-  expiresOn    DateTime?         @db.Date
-  verification VerificationLevel @default(SELF_REPORTED)
-  verifiedById String?           @db.Uuid
-  verifiedAt   DateTime?
+  id                 String              @id @default(uuid()) @db.Uuid
+  workerId           String              @db.Uuid
+  worker             Worker              @relation(fields: [workerId], references: [id], onDelete: Restrict)
+  kind               CredentialKind
+  label              String? // the worker's name for an OTHER credential or a training course
+  state              String? // two-letter state, when the credential has one
+  identifier         String? // only the last 4 characters of what the worker typed (credentials.ts), shown masked
+  issuedOn           DateTime?           @db.Date
+  expiresOn          DateTime?           @db.Date
+  verification       VerificationLevel   @default(SELF_REPORTED)
+  verifiedById       String?             @db.Uuid
+  verifiedAt         DateTime?
   // How it was verified (C3.6): set exactly when verification isn't SELF_REPORTED.
   verificationMethod VerificationMethod?
-  proofPath    String? // unused: proof photos (C3) get their own table; see README "Credential proof photos"
+  proofPath          String? // unused: proof photos (C3) get their own table; see README "Credential proof photos"
   // Unique: two edits racing on one row can't both supersede it.
-  supersedesId String?           @unique @db.Uuid
-  supersedes   WorkerCredential? @relation("Supersedes", fields: [supersedesId], references: [id], onDelete: Restrict)
-  supersededBy WorkerCredential? @relation("Supersedes")
-  removed      Boolean           @default(false)
-  actorId      String            @db.Uuid
-  createdAt    DateTime          @default(now())
+  supersedesId       String?             @unique @db.Uuid
+  supersedes         WorkerCredential?   @relation("Supersedes", fields: [supersedesId], references: [id], onDelete: Restrict)
+  supersededBy       WorkerCredential?   @relation("Supersedes")
+  proofs             CredentialProof[]
+  removed            Boolean             @default(false)
+  actorId            String              @db.Uuid
+  createdAt          DateTime            @default(now())
 
   @@index([workerId, createdAt])
 }
@@ -987,4 +1002,42 @@ model Notification {
 
   @@index([recipientId, readAt, createdAt])
   @@index([engagementId])
+}
+
+/// A photo of a Colorado circulator training certificate, added by the
+/// worker to that credential (C3.6b). Append-only: removing one appends a
+/// CredentialProofDeletion and deletes the stored file. The file is
+/// encrypted in the private "credential-proofs" bucket at
+/// <workerId>/<id>; only its fingerprint and size are kept here. A photo
+/// is evidence a person checks, never verification by itself.
+model CredentialProof {
+  id           String                   @id @default(uuid()) @db.Uuid
+  workerId     String                   @db.Uuid
+  worker       Worker                   @relation(fields: [workerId], references: [id], onDelete: Restrict)
+  /// The credential row it was added to; it stays with that credential through the worker's edits.
+  credentialId String                   @db.Uuid
+  credential   WorkerCredential         @relation(fields: [credentialId], references: [id], onDelete: Restrict)
+  side         ProofSide
+  sha256       String // of the re-encoded image, before encryption
+  sizeBytes    Int
+  width        Int
+  height       Int
+  /// The worker's choice when adding it: organizations that hired them may see it.
+  shared       Boolean
+  actorId      String                   @db.Uuid
+  createdAt    DateTime                 @default(now())
+  deletion     CredentialProofDeletion?
+
+  @@index([workerId, createdAt])
+  @@index([credentialId])
+}
+
+/// That a proof photo was deleted, why and by whom (null: the daily purge).
+model CredentialProofDeletion {
+  id        String              @id @default(uuid()) @db.Uuid
+  proofId   String              @unique @db.Uuid
+  proof     CredentialProof     @relation(fields: [proofId], references: [id], onDelete: Restrict)
+  reason    ProofDeletionReason
+  actorId   String?             @db.Uuid
+  createdAt DateTime            @default(now())
 }

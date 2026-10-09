@@ -4,6 +4,7 @@ import { UrlNotice } from "@/components/UrlNotice";
 import { requireArea } from "@/lib/employer-session";
 import { credentialName, expiryState, expiryToday, METHOD_LABELS, methodsFor, VERIFICATION_LABELS } from "@/lib/credentials";
 import { loadHiredCredentials } from "@/lib/verification-data";
+import { SIDE_LABELS } from "@/lib/proof-sides";
 import { verify } from "./actions";
 
 const dateText = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
@@ -68,6 +69,17 @@ export default async function OrgCredentialsPage({ searchParams }: { searchParam
                         <p className="text-muted-sm">
                           {c.expiresOn ? (ex.kind === "expired" ? `Expired ${dateText(c.expiresOn)}` : `Expires ${dateText(c.expiresOn)}`) : "No expiry date given"}
                         </p>
+                        {c.proofs.length > 0 && (
+                          <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+                            <span className="text-muted-sm">Certificate photo:</span>
+                            {c.proofs.map((p) => (
+                              <a key={p.id} href={`/api/credential-proofs/${p.id}`} target="_blank" rel="noopener noreferrer" className="link">
+                                View the {SIDE_LABELS[p.side].toLowerCase()}
+                              </a>
+                            ))}
+                            <span className="text-hint">The worker sees when your organization opens it.</span>
+                          </p>
+                        )}
                         {c.verification === "SELF_REPORTED" && ex.kind !== "expired" && (
                           <ActionButton
                             action={verify}
@@ -84,7 +96,7 @@ export default async function OrgCredentialsPage({ searchParams }: { searchParam
                               <span className="label">How you checked</span>
                               <select name="method" required className="field" defaultValue="">
                                 <option value="" disabled>Choose one</option>
-                                {methodsFor(c).map((m) => <option key={m} value={m}>{METHOD_LABELS[m][0].toUpperCase() + METHOD_LABELS[m].slice(1)}</option>)}
+                                {methodsFor(c, { photoSeen: c.proofs.some((p) => p.looked) }).map((m) => <option key={m} value={m}>{METHOD_LABELS[m][0].toUpperCase() + METHOD_LABELS[m].slice(1)}</option>)}
                               </select>
                             </label>
                           </ActionButton>
@@ -99,8 +111,9 @@ export default async function OrgCredentialsPage({ searchParams }: { searchParam
         </ul>
       )}
       <p className="text-hint">
-        Turfcut never shows you a credential&apos;s number. Look the worker up by name in the state&apos;s registry, or ask to see the original. A photo or a
-        copy isn&apos;t enough on its own.
+        Turfcut never shows you a credential&apos;s number. Look the worker up by name in the state&apos;s registry, or ask to see the original. A worker
+        may share a photo of a Colorado training certificate with organizations that hire them: the worker sees each time your organization opens it, and
+        once you have, you can record that you checked it that way. A photo is something to check, not proof by itself.
       </p>
     </main>
   );

@@ -317,6 +317,26 @@ export function unsetDetail(names: readonly string[], databaseUrl = process.env.
 }
 
 /** "Sign-in isn't configured on this server yet (DATABASE_URL)." */
+/**
+ * Settings proof photos need (C3.6b): the service-role key for the private
+ * "credential-proofs" bucket, and the separate key the photos are encrypted
+ * with (CREDENTIAL_PROOF_KEY, 32 random bytes in base64; see
+ * proof-photos.ts). Missing ones are named, never defaulted.
+ */
+export function missingProofSettings(
+  env: Record<string, string | undefined> = {
+    NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
+    CREDENTIAL_PROOF_KEY: process.env.CREDENTIAL_PROOF_KEY,
+  }
+): string[] {
+  const out: string[] = [];
+  if (!supabaseUrlOf(env.NEXT_PUBLIC_SUPABASE_URL)) out.push("NEXT_PUBLIC_SUPABASE_URL");
+  if (!env.SUPABASE_SERVICE_ROLE_KEY?.trim()) out.push("SUPABASE_SERVICE_ROLE_KEY");
+  if (!env.CREDENTIAL_PROOF_KEY?.trim()) out.push("CREDENTIAL_PROOF_KEY");
+  return out;
+}
+
 export function notConfiguredMessage(what: string, missingNames: readonly string[]): string {
   return `${what} isn't configured on this server yet (${missingNames.join(", ")}).`;
 }

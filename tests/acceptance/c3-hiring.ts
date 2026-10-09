@@ -22,6 +22,11 @@ import { workerAccessFor } from "@/lib/worker-access-data";
 import { addCredential, editCredential, loadOrgCredentials, removeCredential } from "@/lib/credentials-data";
 import { expiryToday, methodsFor } from "@/lib/credentials";
 import { loadHiredCredentials, loadVerifiers, verifyCredential } from "@/lib/verification-data";
+import { createHash, randomBytes } from "node:crypto";
+import sharp from "sharp";
+import { addProof, loadOrgProofs, loadWorkerProofs, openProof, purgeProofs, removeProof } from "@/lib/proof-data";
+import { sniffImage } from "@/lib/proof-photos";
+import type { ProofStore } from "@/lib/proof-storage";
 
 const ORG = "00000000-0000-0000-0000-000000000001";
 const ORG2 = "00000000-0000-0000-0000-000000000002";
@@ -567,7 +572,9 @@ const types = async (id: string) => (await loadEngagementEvents(id)).map((e) => 
   const rec = await verifyCredential(staffOf(HIRER, "RECRUITER"), c1, "REGISTRY_LOOKUP");
   check("a recruiter can't verify (owners and compliance only)", !rec.ok && /owners and compliance/.test(rec.reason), rec);
   const noMethod = await verifyCredential(comp, c1, "PROOF_PHOTO");
-  check("a method the organization can't record yet (proof photo) is refused", !noMethod.ok && /how you checked/.test(noMethod.reason), noMethod);
+  check("\"looked at the proof photo\" is refused without a photo it opened", !noMethod.ok && /Open the worker's photo/.test(noMethod.reason), noMethod);
+  const madeUp = await verifyCredential(comp, c1, "GUESSED");
+  check("a method that doesn't exist is refused", !madeUp.ok && /how you checked/.test(madeUp.reason), madeUp);
   const notHired = await verifyCredential(owner, c2, "ORIGINAL_DOCUMENT");
   check("an applicant who isn't hired reads as not found", !notHired.ok && /not found/.test(notHired.reason), notHired);
   const foreignV = await verifyCredential(staffOf(OTHER, "OWNER", ORG2), c1, "ORIGINAL_DOCUMENT");
@@ -638,7 +645,7 @@ const types = async (id: string) => (await loadEngagementEvents(id)).map((e) => 
   const today6 = await verifyCredential(owner, c1today, "ORIGINAL_DOCUMENT");
   check("a credential expiring today can still be verified", today6.ok, today6);
   const keys6 = ((await loadHiredCredentials(owner)) ?? []).flatMap((x) => (x.credentials === "withheld" ? [] : x.credentials.map((c) => Object.keys(c).sort().join())));
-  check("the list never carries a number, an issue date or who checked", keys6.length > 0 && keys6.every((k) => k === "byUs,expiresOn,id,kind,label,state,verification,verificationMethod,verifiedAt"), keys6[0]);
+  check("the list never carries a number, an issue date or who checked", keys6.length > 0 && keys6.every((k) => k === "byUs,expiresOn,id,kind,label,proofs,state,verification,verificationMethod,verifiedAt"), keys6[0]);
   // A second organization that also hired the worker: it sees the check, not who made it or when.
   const orgJob2 = await p.job.create({ data: { orgId: ORG2, jurisdictionId, type: "CANVASS", title: "Other org job", status: "PUBLISHED", hiringMethod: { modes: ["instant_claim"] }, headcount: 5 } });
   check("ORG2 hires V1 too", (await claimJob(V(1), V(1), orgJob2.id)).ok);
@@ -658,6 +665,141 @@ const types = async (id: string) => (await loadEngagementEvents(id)).map((e) => 
   const badShape = await refused(p.workerCredential.create({ data: { workerId: V(2), kind: "TRAINING", label: "x", verification: "ORGANIZATION", verifiedById: OWNER, verifiedAt: new Date(), actorId: OWNER } }));
   const badSelf = await refused(p.workerCredential.create({ data: { workerId: V(2), kind: "TRAINING", label: "x", verificationMethod: "REGISTRY_LOOKUP", actorId: V(2) } }));
   check("the database refuses a verification without a method, and a method without a verification", /verification_method/.test(badShape) && /verification_method/.test(badSelf), { badShape, badSelf });
+
+  // --- C3.6b: credential proof photos ---
+  process.env.CREDENTIAL_PROOF_KEY = randomBytes(32).toString("base64");
+  const stash = new Map<string, Uint8Array>();
+  const mem: ProofStore = {
+    put: async (path, bytes) => { if (stash.has(path)) throw new Error("exists"); stash.set(path, bytes); },
+    get: async (path) => stash.get(path) ?? null,
+    remove: async (paths) => { for (const x of paths) stash.delete(x); },
+  };
+  const Ph = (n: number) => `00000000-0000-0000-0000-0000000005${String(n).padStart(2, "0")}`;
+  await p.profile.createMany({ data: [1, 2, 3].map((n) => ({ id: Ph(n), role: "WORKER" as const })) });
+  await p.worker.createMany({ data: [1, 2, 3].map((n) => ({ id: Ph(n), profileId: Ph(n), displayName: `Photo ${n}` })) });
+  const me = (n: number) => ({ workerId: Ph(n), profileId: Ph(n) });
+  const jp = await newJob("Photo job", 5);
+  check("Photo 1 and Photo 3 are hired (claimed); Photo 2 isn't", (await claimJob(Ph(1), Ph(1), jp.id)).ok && (await claimJob(Ph(3), Ph(3), jp.id)).ok);
+  const cert = await sharp({ create: { width: 1600, height: 1200, channels: 3, background: { r: 240, g: 236, b: 220 } } })
+    .jpeg()
+    .withExif({ IFD0: { Make: "PhoneCo", Model: "Secret Model" }, IFD3: { GPSLatitudeRef: "N", GPSLatitude: "39/1 44/1 0/1" } })
+    .toBuffer();
+  const thisYear = expiryToday().slice(0, 4);
+  const tr1 = await addId(Ph(1), Ph(1), { kind: "TRAINING", label: "Circulator training", state: "CO", issuedOn: `${thisYear}-01-15` });
+  const trNoState = await addId(Ph(1), Ph(1), { kind: "TRAINING", label: "Other course", issuedOn: `${thisYear}-01-15` });
+  const trOld = await addId(Ph(1), Ph(1), { kind: "TRAINING", label: "Old training", state: "CO", issuedOn: "2020-01-15" });
+  const reg1 = await addId(Ph(1), Ph(1), { kind: "CIRCULATOR_REGISTRATION", state: "CO", expiresOn: "2099-01-01" });
+  const tr2 = await addId(Ph(2), Ph(2), { kind: "TRAINING", label: "Circulator training", state: "CO", issuedOn: `${thisYear}-01-15` });
+  const tr3 = await addId(Ph(3), Ph(3), { kind: "TRAINING", label: "Circulator training", state: "CO", issuedOn: `${thisYear}-01-15` });
+  const put = (n: number, credentialId: string, side: string, shared: boolean, file: Uint8Array = cert) => addProof(me(n), { credentialId, side, shared, file }, mem);
+  const refusals = await Promise.all([put(1, trNoState, "FRONT", true), put(1, trOld, "FRONT", true), put(1, reg1, "FRONT", true), put(1, tr2, "FRONT", true), put(1, tr1, "SIDEWAYS", true), put(1, tr1, "FRONT", true, Buffer.from("%PDF-1.7 not a photo"))]);
+  check("only a dated Colorado training credential of one's own takes a photo, a real JPEG or PNG, front or back",
+    refusals.every((r) => !r.ok) && /CO/.test(refusals[0].ok ? "" : refusals[0].reason) && /lapsed/.test(refusals[1].ok ? "" : refusals[1].reason) && /not found/.test(refusals[3].ok ? "" : refusals[3].reason) && /JPEG or PNG/.test(refusals[5].ok ? "" : refusals[5].reason) && stash.size === 0,
+    refusals);
+  const front = await put(1, tr1, "FRONT", true);
+  const frontId = front.ok ? front.id : "";
+  const row1 = await p.credentialProof.findUnique({ where: { id: frontId } });
+  const stored = stash.get(`${Ph(1)}/${frontId}`);
+  check("a photo is recorded with its fingerprint and size, sealed in the store (no camera details, not readable as an image)",
+    front.ok && row1?.shared === true && row1.side === "FRONT" && /^[0-9a-f]{64}$/.test(row1.sha256) && row1.width === 1600 && !!stored && Buffer.from(stored).subarray(0, 4).toString() === "TCP1" && !Buffer.from(stored).includes(Buffer.from("PhoneCo")),
+    { front, row1 });
+  check("…and audited", !!(await p.auditEvent.findFirst({ where: { action: "credential_proof.added", entityId: frontId, actorId: Ph(1) } })));
+  const twiceP = await put(1, tr1, "FRONT", true);
+  const back = await put(1, tr1, "BACK", false);
+  check("one photo per side: a second front is refused, the back (not shared) is added", !twiceP.ok && /already a photo/.test(twiceP.reason) && back.ok, { twiceP, back });
+  const backId = back.ok ? back.id : "";
+  const raceP = await Promise.all([put(3, tr3, "FRONT", true), put(3, tr3, "FRONT", true)]);
+  check("two uploads of one side at once: one is kept, the other's file is discarded", raceP.filter((r) => r.ok).length === 1 && [...stash.keys()].filter((k) => k.startsWith(Ph(3))).length === 1, raceP);
+  const ph3Front = raceP.find((r) => r.ok) as { ok: true; id: string };
+
+  const own = await openProof({ kind: "worker", ...me(1) }, frontId, "view", mem);
+  const ownMeta = own ? await sharp(own.bytes).metadata() : null;
+  check("the worker opens their own photo: a clean JPEG", ownMeta?.format === "jpeg" && ownMeta.exif === undefined && createHash("sha256").update(own!.bytes).digest("hex") === row1?.sha256, ownMeta);
+  check("another worker can't open it", (await openProof({ kind: "worker", ...me(2) }, frontId, "view", mem)) === null);
+  const compV = { kind: "staff" as const, profileId: COMP, orgId: ORG, role: "COMPLIANCE" as const };
+  const ownerV = { kind: "staff" as const, profileId: OWNER, orgId: ORG, role: "OWNER" as const };
+  const tooEarly = await verifyCredential(staffOf(OWNER, "OWNER"), tr1, "PROOF_PHOTO");
+  check("an organization can't record \"looked at the photo\" before opening it", !tooEarly.ok && /Open the worker's photo/.test(tooEarly.reason), tooEarly);
+  const looksBefore = await p.auditEvent.count({ where: { entityId: frontId, action: { in: ["credential_proof.viewed", "credential_proof.downloaded"] } } });
+  const denied = await Promise.all([
+    openProof(compV, backId, "view", mem),
+    openProof({ kind: "staff", profileId: HIRER, orgId: ORG, role: "RECRUITER" }, frontId, "view", mem),
+    openProof({ kind: "staff", profileId: OTHER, orgId: ORG2, role: "OWNER" }, frontId, "view", mem),
+    openProof(compV, "not-a-uuid", "view", mem),
+  ]);
+  check("not shared, a recruiter, an organization that didn't hire them, a bad id: nothing, and nothing recorded",
+    denied.every((x) => x === null) && (await p.auditEvent.count({ where: { entityId: frontId, action: { in: ["credential_proof.viewed", "credential_proof.downloaded"] } } })) === looksBefore);
+  await saveSharing(Ph(1), Ph(1), { audiences: { ...DEFAULT_SHARING.audiences, credentials: "NOBODY" } });
+  const unsharedP = await openProof(compV, frontId, "view", mem);
+  await saveSharing(Ph(1), Ph(1), { audiences: DEFAULT_SHARING.audiences });
+  const engP = await p.engagement.findFirstOrThrow({ where: { workerId: Ph(1), jobId: jp.id } });
+  await p.engagement.update({ where: { id: engP.id }, data: { status: "COMPLETED" } });
+  const doneP = await openProof(compV, frontId, "view", mem);
+  await p.engagement.update({ where: { id: engP.id }, data: { status: "CLAIMED" } });
+  await p.organization.update({ where: { id: ORG }, data: { approved: false } });
+  const unapprovedP = await openProof(compV, frontId, "view", mem);
+  await p.organization.update({ where: { id: ORG }, data: { approved: true } });
+  check("not while credentials aren't shared with it, once the job is done, or while it isn't approved", unsharedP === null && doneP === null && unapprovedP === null);
+  const seenP = await openProof(compV, frontId, "view", mem);
+  const dl = await openProof(ownerV, frontId, "download", mem);
+  check("an owner or compliance member of the hiring organization sees a shared photo", !!seenP && !!dl && seenP.filename === "turfcut-certificate-front.jpg");
+  const looks = (await loadWorkerProofs(Ph(1))).get(tr1)?.find((x) => x.id === frontId)?.looks ?? [];
+  check("the worker sees each look: which organization, when, and a download", looks.length === 2 && looks.every((l) => l.org === orgName) && looks.some((l) => l.download), looks);
+  const orgSide = ((await loadHiredCredentials(staffOf(COMP, "COMPLIANCE"))) ?? []).find((x) => x.workerId === Ph(1));
+  const orgTr = orgSide && orgSide.credentials !== "withheld" ? orgSide.credentials.find((c) => c.id === tr1) : undefined;
+  check("the organization's list offers the shared front only, marked as opened", orgTr?.proofs.length === 1 && orgTr.proofs[0].id === frontId && orgTr.proofs[0].looked, orgTr?.proofs);
+  check("…and another organization's list never shows it", !((await loadOrgProofs(ORG2, [Ph(1)])).size));
+  const byPhoto = await verifyCredential(staffOf(OWNER, "OWNER"), tr1, "PROOF_PHOTO");
+  check("once opened, \"looked at the worker's proof photo\" can be recorded", byPhoto.ok, byPhoto);
+  const verifiedHead = byPhoto.ok ? byPhoto.id : "";
+  check("the photos stay with the credential through its verification", ((await loadWorkerProofs(Ph(1))).get(verifiedHead) ?? []).length === 2 && !!(await openProof(compV, frontId, "view", mem)));
+
+  const exp6b = await exportAccount({ userId: Ph(1), workerId: Ph(1) }, new Date(), { proofStore: mem });
+  const photoFiles = exp6b.filter((f) => f.name.startsWith("credential-photos/"));
+  check("the export carries the photo rows, who looked, and the photos themselves",
+    /FRONT/.test(exp6b.find((f) => f.name === "credential-photos.csv")?.text ?? "") && (exp6b.find((f) => f.name === "credential-photo-looks.csv")?.text ?? "").includes(orgName) && photoFiles.length === 2 && photoFiles.every((f) => f.bytes && sniffImage(f.bytes) === "jpeg"),
+    exp6b.map((f) => f.name));
+
+  const rm = await removeProof(me(1), backId, mem);
+  const rmAgain = await removeProof(me(1), backId, mem);
+  const rmForeign = await removeProof(me(2), frontId, mem);
+  check("the worker deletes a photo: recorded with the reason, the file is gone, and it can't be opened; nobody else can delete it",
+    rm.ok && !rmAgain.ok && !rmForeign.ok && !stash.has(`${Ph(1)}/${backId}`) && (await p.credentialProofDeletion.findUnique({ where: { proofId: backId } }))?.reason === "WORKER_REMOVED" && (await openProof({ kind: "worker", ...me(1) }, backId, "view", mem)) === null && stash.has(`${Ph(1)}/${frontId}`),
+    { rm, rmAgain, rmForeign });
+  // An edit that makes it a credential that takes no photo deletes its photos.
+  await editCredential(Ph(1), Ph(1), verifiedHead, { kind: "TRAINING", label: "Circulator training", state: "AZ", issuedOn: `${thisYear}-01-15` });
+  check("…an edit away from Colorado records the deletion and hides it at once", (await p.credentialProofDeletion.findUnique({ where: { proofId: frontId } }))?.reason === "NO_LONGER_ELIGIBLE" && (await openProof(compV, frontId, "view", mem)) === null);
+  await purgeProofs(mem, { workerId: Ph(1) });
+  check("…and the purge removes its file", !stash.has(`${Ph(1)}/${frontId}`));
+  // Lapse and account closure.
+  const ph3Back = await put(3, tr3, "BACK", true);
+  const lapsedRun = await purgeProofs(mem, {}, new Date(Date.UTC(Number(thisYear) + 1, 0, 16)));
+  check("a year after the training, the daily purge deletes the photos and their stash", lapsedRun.deleted >= 2 && (await p.credentialProofDeletion.findUnique({ where: { proofId: ph3Front.id } }))?.reason === "LAPSED" && ![...stash.keys()].some((k) => k.startsWith(Ph(3))), { lapsedRun, ph3Back });
+  const p2 = await put(2, tr2, "FRONT", false);
+  await closeAccount({ userId: Ph(2), workerId: Ph(2) });
+  check("closing the account deletes the photos", p2.ok && (await p.credentialProofDeletion.findUnique({ where: { proofId: p2.id } }))?.reason === "ACCOUNT_CLOSED");
+  await purgeProofs(mem);
+  check("…and the purge clears every deleted photo's file", stash.size === 0, [...stash.keys()]);
+  const tr1b = await addId(Ph(1), Ph(1), { kind: "TRAINING", label: "Refresher", state: "CO", issuedOn: `${thisYear}-01-20` });
+  const pr = await put(1, tr1b, "FRONT", true);
+  await removeCredential(Ph(1), Ph(1), tr1b);
+  check("removing the credential deletes its photos", pr.ok && (await p.credentialProofDeletion.findUnique({ where: { proofId: pr.id } }))?.reason === "CREDENTIAL_REMOVED");
+
+  // The database's own guards.
+  const anyProof = await p.credentialProof.findFirstOrThrow();
+  const editP = await refused(p.credentialProof.update({ where: { id: anyProof.id }, data: { shared: false } }));
+  const dropP = await refused(p.credentialProofDeletion.deleteMany({}));
+  const byOther = await refused(p.credentialProof.create({ data: { workerId: Ph(1), credentialId: tr1b, side: "FRONT", sha256: "a".repeat(64), sizeBytes: 1, width: 1, height: 1, shared: true, actorId: OWNER } }));
+  const wrongKind = await refused(p.credentialProof.create({ data: { workerId: Ph(1), credentialId: reg1, side: "FRONT", sha256: "a".repeat(64), sizeBytes: 1, width: 1, height: 1, shared: true, actorId: Ph(1) } }));
+  check("the database refuses changing or removing photo rows, a photo added by someone else, and one on another kind of credential",
+    /append-only|immutable|not allowed/i.test(editP) && /append-only|immutable|not allowed/i.test(dropP) && /only the worker/.test(byOther) && /Colorado training/.test(wrongKind), { editP, dropP, byOther, wrongKind });
+  for (const role of ["anon", "authenticated"]) {
+    const r = await p.$transaction(async (tx) => {
+      await tx.$executeRawUnsafe(`SET LOCAL ROLE ${role}`);
+      return tx.$queryRawUnsafe(`SELECT 1 FROM "public"."CredentialProof" LIMIT 1`);
+    }).then(() => "allowed", (e: unknown) => String(e));
+    check(`${role} can't read CredentialProof`, /permission denied/.test(r), r);
+  }
 
   const expW2 = await exportAccount({ userId: W2, workerId: W2 });
   check("the export carries invitation notes and the mutes file", /Saturday canvass/.test(expW2.find((f) => f.name === "engagements.csv")?.text ?? "") && expW2.some((f) => f.name === "mutes.json"));

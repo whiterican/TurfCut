@@ -24,12 +24,17 @@ export const METHOD_LABELS: Record<VerificationMethod, string> = {
   ORIGINAL_DOCUMENT: "saw the original document",
   PROOF_PHOTO: "looked at the worker's proof photo",
 };
-/** The methods an organization can record today (proof photos arrive with C3.6b). */
-export const ORG_METHODS: VerificationMethod[] = ["REGISTRY_LOOKUP", "ORIGINAL_DOCUMENT"];
-/** A state keeps a registry of circulators and notaries, not of training courses: registry lookups only fit those, with a state. */
-export function methodsFor(c: Pick<CredentialRow, "kind" | "state">): VerificationMethod[] {
+/** The methods an organization can record. */
+export const ORG_METHODS: VerificationMethod[] = ["REGISTRY_LOOKUP", "ORIGINAL_DOCUMENT", "PROOF_PHOTO"];
+/**
+ * The methods that fit a credential: a state keeps a registry of
+ * circulators and notaries, not of training courses, so registry lookups
+ * only fit those, with a state; "looked at the proof photo" only once the
+ * organization has opened a photo of it the worker shared (C3.6b).
+ */
+export function methodsFor(c: Pick<CredentialRow, "kind" | "state">, opts: { photoSeen?: boolean } = {}): VerificationMethod[] {
   const registry = (c.kind === "CIRCULATOR_REGISTRATION" || c.kind === "NOTARY_OR_AFFIDAVIT") && !!c.state;
-  return ORG_METHODS.filter((m) => m !== "REGISTRY_LOOKUP" || registry);
+  return ORG_METHODS.filter((m) => (m === "REGISTRY_LOOKUP" ? registry : m === "PROOF_PHOTO" ? !!opts.photoSeen : true));
 }
 
 export const CREDENTIAL_KINDS: Array<{ value: CredentialKind; label: string; needsLabel: boolean; hint: string }> = [

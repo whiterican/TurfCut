@@ -1,4 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
+import { exportProofs, purgeWorkerProofs } from "@/lib/proof-data";
+import type { ProofStore } from "@/lib/proof-storage";
 import { loadVerifiers } from "@/lib/verification-data";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
@@ -108,6 +110,8 @@ export async function closeAccount(actor: { userId: string; workerId: string }, 
     console.error("[turfcut] account closed but the auth user could not be deleted", actor.userId, e);
     await db().auditEvent.create({ data: { actorId: actor.userId, action: "account.login_delete_failed", entityType: "Profile", entityId: actor.userId, metadata: { message: e instanceof Error ? e.message : String(e) } } }).catch(() => {});
   }
+  // Credential photos are deleted on closing (C3.6b); the daily purge retries a failure.
+  await purgeWorkerProofs(actor.workerId);
   return result;
 }
 
@@ -118,8 +122,13 @@ export async function closeAccount(actor: { userId: string; workerId: string }, 
 const json = (v: unknown) => JSON.stringify(v, null, 2) + "\n";
 
 /** The files of a worker's data export (zipped by the route). */
-export async function exportAccount(actor: { userId: string; workerId: string; email?: string }, now = new Date()): Promise<Array<{ name: string; text: string }>> {
+export async function exportAccount(
+  actor: { userId: string; workerId: string; email?: string },
+  now = new Date(),
+  opts: { proofStore?: ProofStore } = {}
+): Promise<Array<{ name: string; text: string; bytes?: Uint8Array }>> {
   const p = db();
+  const proofs = await exportProofs(actor.workerId, opts.proofStore ?? null, now);
   const w = actor.workerId;
   const [worker, experience, preferences, metrics, engagements, history, mutes, notices, shifts, lines, transfers, disputes, messages, sharing, availability, credentials] = await Promise.all([
     p.worker.findUniqueOrThrow({ where: { id: w }, select: { id: true, displayName: true, phone: true, createdAt: true, closedAt: true, payoutsEnabled: true, stripeAccountId: true } }),
@@ -144,7 +153,7 @@ export async function exportAccount(actor: { userId: string; workerId: string; e
     p.workerCredential.findMany({ where: { workerId: w }, omit: { verifiedById: true }, orderBy: { createdAt: "asc" } }),
   ]);
 
-  const files: Array<{ name: string; text: string }> = [];
+  const files: Array<{ name: string; text: string; bytes?: Uint8Array }> = [];
   files.push({
     name: "README.txt",
     text: [
@@ -170,6 +179,10 @@ export async function exportAccount(actor: { userId: string; workerId: string; e
       "sharing.json        every version of who sees what, and whether you can be found",
       "availability.json   every version of your usual week, dates and note",
       "credentials.csv     every credential row: additions, edits and removals",
+      "credential-photos.csv  every certificate photo you added, and when and why each was deleted",
+      "credential-photo-looks.csv  each time an organization looked at or downloaded one of them",
+      "credential-photos/  the photos you have now, as Turfcut keeps them (re-encoded, no location data)",
+      ...(proofs.filesNote ? ["", proofs.filesNote] : []),
       "",
       "Times are UTC (ISO 8601). Nothing here is ever deleted from Turfcut's",
       "ledger — closing your account anonymizes your name and phone and removes",
@@ -185,6 +198,10 @@ export async function exportAccount(actor: { userId: string; workerId: string; e
   files.push({ name: "availability.json", text: json(availability) });
   // Which organization verified a row is the worker's to know (others see only that one did).
   const verifiers = await loadVerifiers(w);
+  files.push({ name: "credential-photos.csv", text: csvTable(proofs.rows, ["id", "credentialId", "side", "shared", "sha256", "sizeBytes", "width", "height", "createdAt", "deletedAt", "deletionReason"]) });
+  files.push({ name: "credential-photo-looks.csv", text: csvTable(proofs.looks, ["photoId", "organization", "at", "downloaded"]) });
+  // Binary entries: the photo bytes, with no text.
+  files.push(...proofs.files.map((f) => ({ ...f, text: "" })));
   files.push({ name: "credentials.csv", text: csvTable(credentials.map((c) => ({ ...c, verifiedByOrg: verifiers.get(c.id)?.org ?? "" }))) });
   files.push({ name: "notifications.csv", text: csvTable(notices.map((n) => ({ id: n.id, kind: n.kind, engagementId: n.engagementId, at: n.createdAt, readAt: n.readAt ?? "" })), ["id", "kind", "engagementId", "at", "readAt"]) });
   files.push({ name: "mutes.json", text: json(mutes.map((m) => ({ organization: m.org.name, since: m.createdAt }))) });

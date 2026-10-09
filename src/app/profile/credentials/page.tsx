@@ -5,13 +5,21 @@ import { loadSharing } from "@/lib/sharing-data";
 import { AUDIENCE_OPTIONS } from "@/lib/sharing";
 import { credentialName, dateOnly, expiryState, expiryToday, maskIdentifier, METHOD_LABELS, VERIFICATION_LABELS } from "@/lib/credentials";
 import { loadVerifiers } from "@/lib/verification-data";
+import { loadWorkerProofs } from "@/lib/proof-data";
+import { proofEligible, proofLapsed, proofLapsesOn } from "@/lib/proof-photos";
+import { PROOF_SIDES, SIDE_LABELS } from "@/lib/proof-sides";
+import { missingProofSettings } from "@/lib/env";
+import { ActionButton } from "@/components/ActionButton";
+import { ProofUploadForm } from "@/components/ProofUploadForm";
+import { removeProofAction } from "./proof-actions";
 import { CredentialForm, RemoveCredential, WalletStatus, WalletStatusLine } from "@/components/CredentialForm";
 
 const dateText = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
 
 export default async function CredentialsPage() {
   const { workerId } = await requireWorker();
-  const [creds, sharing, verifiers] = await Promise.all([loadCredentials(workerId), loadSharing(workerId), loadVerifiers(workerId)]);
+  const [creds, sharing, verifiers, proofs] = await Promise.all([loadCredentials(workerId), loadSharing(workerId), loadVerifiers(workerId), loadWorkerProofs(workerId)]);
+  const photosReady = missingProofSettings().length === 0;
   const audience = AUDIENCE_OPTIONS.find((o) => o.value === sharing.choices.audiences.credentials)!;
   const today = expiryToday();
 
@@ -61,6 +69,49 @@ export default async function CredentialsPage() {
                     )}
                     {ex.kind === "expired" && <p role="status" className="alert-warning">Expired {ex.days === 1 ? "yesterday" : `${ex.days} days ago`}.</p>}
                     {ex.kind === "soon" && <p role="status" className="alert-info">{ex.days === 0 ? "Expires today." : `Expires in ${ex.days} ${ex.days === 1 ? "day" : "days"}.`}</p>}
+                    {c.kind === "TRAINING" && (() => {
+                      const photos = proofs.get(c.id) ?? [];
+                      const free = PROOF_SIDES.filter((side) => !photos.some((p) => p.side === side));
+                      if (!proofEligible(c)) {
+                        return <p className="text-hint">Colorado circulator training? Add the state (CO) and the training date to add a photo of your certificate.</p>;
+                      }
+                      return (
+                        <section className="space-y-2 border-t border-border pt-3" aria-label={`Photos of ${name}`}>
+                          <p className="text-sm font-medium text-fg">Certificate photo</p>
+                          {photos.map((p) => (
+                            <div key={p.id} className="space-y-1.5 rounded-xl border border-border p-3">
+                              <p className="text-sm text-fg">
+                                {SIDE_LABELS[p.side]} · added {dateText(p.createdAt)} · {p.shared ? "organizations that hire you can see it" : "only you can see it"}
+                              </p>
+                              <p className="text-hint">Deleted automatically on {dateText(new Date(`${p.lapsesOn}T00:00:00Z`))}, a year after the training.</p>
+                              <p className="text-muted-sm">
+                                {p.looks.length
+                                  ? `Looked at by ${p.looks.map((l) => `${l.org} (${l.download ? "downloaded " : ""}${dateText(l.at)})`).join(", ")}.`
+                                  : "No organization has looked at it."}
+                              </p>
+                              <div className="flex flex-wrap items-start gap-2">
+                                <a href={`/api/credential-proofs/${p.id}`} target="_blank" rel="noopener noreferrer" className="btn-ghost btn-sm">View</a>
+                                <ActionButton
+                                  action={removeProofAction}
+                                  fields={{ proofId: p.id }}
+                                  label="Delete photo"
+                                  pendingLabel="Deleting…"
+                                  variant="btn-ghost btn-sm"
+                                  confirm={{ text: "The photo is deleted, not hidden. The record that it existed, and who looked at it, stays.", label: "Delete it" }}
+                                />
+                              </div>
+                            </div>
+                          ))}
+                          {proofLapsed(c.issuedOn!, today) ? (
+                            <p className="text-hint">This training was more than a year ago ({dateText(new Date(`${proofLapsesOn(c.issuedOn!)}T00:00:00Z`))}), so it takes no photo. Add your new training instead.</p>
+                          ) : free.length === 0 ? null : photosReady ? (
+                            <ProofUploadForm credentialId={c.id} sides={free} />
+                          ) : (
+                            <p className="text-hint">Adding a photo isn&apos;t available yet.</p>
+                          )}
+                        </section>
+                      );
+                    })()}
                     <details className="group">
                       <summary className="link cursor-pointer list-none text-sm">Edit</summary>
                       <div className="mt-3 space-y-3 border-t border-border pt-3">
@@ -87,7 +138,7 @@ export default async function CredentialsPage() {
           </div>
           <p className="text-hint">
             Keep your documents yourself. If you circulate petitions in Colorado, save your Secretary of State training certificate: the organization that
-            hires you needs a copy to register you.
+            hires you needs a copy to register you. Add it as training, with the state CO and the training date, and you can add a photo of it here.
           </p>
         </section>
       </WalletStatus>

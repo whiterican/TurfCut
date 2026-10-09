@@ -23,7 +23,10 @@
 --   4. Notification: in-app notices about hiring steps (C3.5).
 --   5. WorkerCredential.verificationMethod: how a verified credential was
 --      checked (C3.6).
---   6. Each existing engagement gets its opening event (applied, claimed or
+--   6. CredentialProof and CredentialProofDeletion: photos of a Colorado
+--      circulator training certificate (C3.6b), append-only; the encrypted
+--      files live in the private "credential-proofs" bucket.
+--   7. Each existing engagement gets its opening event (applied, claimed or
 --      invited, from the copy it kept), dated when it was created.
 
 -- New enum values come first and nothing below uses them, so they're safe in
@@ -135,6 +138,95 @@ DO $$ BEGIN
     ("verification" = 'SELF_REPORTED' AND "verificationMethod" IS NULL) OR ("verification" <> 'SELF_REPORTED' AND "verificationMethod" IS NOT NULL)) NOT VALID;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
+
+-- Credential proof photos (C3.6b). A photo of a Colorado circulator
+-- training certificate the worker adds to that credential. Append-only:
+-- removing one appends a CredentialProofDeletion (and the app deletes the
+-- stored file). The file itself is encrypted in a private bucket; only its
+-- fingerprint and size are kept here.
+DO $$ BEGIN
+  CREATE TYPE "public"."ProofSide" AS ENUM ('FRONT', 'BACK');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+DO $$ BEGIN
+  CREATE TYPE "public"."ProofDeletionReason" AS ENUM ('WORKER_REMOVED', 'CREDENTIAL_REMOVED', 'NO_LONGER_ELIGIBLE', 'LAPSED', 'ACCOUNT_CLOSED');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+CREATE TABLE IF NOT EXISTS "public"."CredentialProof" (
+    "id" UUID NOT NULL,
+    "workerId" UUID NOT NULL,
+    "credentialId" UUID NOT NULL,
+    "side" "public"."ProofSide" NOT NULL,
+    "sha256" TEXT NOT NULL,
+    "sizeBytes" INTEGER NOT NULL,
+    "width" INTEGER NOT NULL,
+    "height" INTEGER NOT NULL,
+    "shared" BOOLEAN NOT NULL,
+    "actorId" UUID NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "CredentialProof_pkey" PRIMARY KEY ("id"),
+    CONSTRAINT "CredentialProof_sha256" CHECK ("sha256" ~ '^[0-9a-f]{64}$'),
+    CONSTRAINT "CredentialProof_size" CHECK ("sizeBytes" BETWEEN 1 AND 4194304),
+    CONSTRAINT "CredentialProof_pixels" CHECK ("width" BETWEEN 1 AND 4000 AND "height" BETWEEN 1 AND 4000),
+    CONSTRAINT "CredentialProof_workerId_fkey" FOREIGN KEY ("workerId") REFERENCES "public"."Worker"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT "CredentialProof_credentialId_fkey" FOREIGN KEY ("credentialId") REFERENCES "public"."WorkerCredential"("id") ON DELETE RESTRICT ON UPDATE CASCADE
+);
+CREATE INDEX IF NOT EXISTS "CredentialProof_workerId_createdAt_idx" ON "public"."CredentialProof"("workerId", "createdAt");
+CREATE INDEX IF NOT EXISTS "CredentialProof_credentialId_idx" ON "public"."CredentialProof"("credentialId");
+CREATE TABLE IF NOT EXISTS "public"."CredentialProofDeletion" (
+    "id" UUID NOT NULL,
+    "proofId" UUID NOT NULL,
+    "reason" "public"."ProofDeletionReason" NOT NULL,
+    "actorId" UUID,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "CredentialProofDeletion_pkey" PRIMARY KEY ("id"),
+    CONSTRAINT "CredentialProofDeletion_proofId_fkey" FOREIGN KEY ("proofId") REFERENCES "public"."CredentialProof"("id") ON DELETE RESTRICT ON UPDATE CASCADE
+);
+CREATE UNIQUE INDEX IF NOT EXISTS "CredentialProofDeletion_proofId_key" ON "public"."CredentialProofDeletion"("proofId");
+
+-- A photo is the worker's own: added by them, to their own credential, and
+-- only to a Colorado training credential with a training date (the one
+-- document phase 1 takes). The database clock sets both tables' times.
+CREATE OR REPLACE FUNCTION "turfcut_private"."credential_proof_own"() RETURNS trigger LANGUAGE plpgsql SET search_path = '' AS $$
+DECLARE cred record;
+BEGIN
+  NEW."createdAt" := clock_timestamp();
+  IF NOT EXISTS (SELECT 1 FROM "public"."Worker" WHERE "id" = NEW."workerId" AND "profileId" = NEW."actorId") THEN
+    RAISE EXCEPTION 'CredentialProof: only the worker adds a photo of their credential' USING ERRCODE = 'check_violation';
+  END IF;
+  SELECT "workerId", "kind", "state", "issuedOn", "removed" INTO cred FROM "public"."WorkerCredential" WHERE "id" = NEW."credentialId";
+  IF NOT FOUND OR cred."workerId" <> NEW."workerId" THEN
+    RAISE EXCEPTION 'CredentialProof: the credential must be the worker''s own' USING ERRCODE = 'check_violation';
+  END IF;
+  IF cred."removed" OR cred."kind" <> 'TRAINING' OR cred."state" IS DISTINCT FROM 'CO' OR cred."issuedOn" IS NULL THEN
+    RAISE EXCEPTION 'CredentialProof: only a Colorado training credential with a training date takes a photo' USING ERRCODE = 'check_violation';
+  END IF;
+  RETURN NEW;
+END $$;
+REVOKE ALL ON FUNCTION "turfcut_private"."credential_proof_own"() FROM PUBLIC, anon, authenticated;
+CREATE OR REPLACE TRIGGER "CredentialProof_own" BEFORE INSERT ON "public"."CredentialProof"
+  FOR EACH ROW EXECUTE FUNCTION "turfcut_private"."credential_proof_own"();
+CREATE OR REPLACE FUNCTION "turfcut_private"."credential_proof_deletion_stamp"() RETURNS trigger LANGUAGE plpgsql SET search_path = '' AS $$
+BEGIN
+  NEW."createdAt" := clock_timestamp();
+  RETURN NEW;
+END $$;
+REVOKE ALL ON FUNCTION "turfcut_private"."credential_proof_deletion_stamp"() FROM PUBLIC, anon, authenticated;
+CREATE OR REPLACE TRIGGER "CredentialProofDeletion_stamp" BEFORE INSERT ON "public"."CredentialProofDeletion"
+  FOR EACH ROW EXECUTE FUNCTION "turfcut_private"."credential_proof_deletion_stamp"();
+
+-- Append-only and server-only, like the other history tables.
+CREATE OR REPLACE TRIGGER "CredentialProof_append_only" BEFORE UPDATE OR DELETE ON "public"."CredentialProof"
+  FOR EACH ROW EXECUTE FUNCTION "turfcut_private"."append_only"();
+CREATE OR REPLACE TRIGGER "CredentialProof_no_truncate" BEFORE TRUNCATE ON "public"."CredentialProof"
+  FOR EACH STATEMENT EXECUTE FUNCTION "turfcut_private"."append_only"();
+CREATE OR REPLACE TRIGGER "CredentialProofDeletion_append_only" BEFORE UPDATE OR DELETE ON "public"."CredentialProofDeletion"
+  FOR EACH ROW EXECUTE FUNCTION "turfcut_private"."append_only"();
+CREATE OR REPLACE TRIGGER "CredentialProofDeletion_no_truncate" BEFORE TRUNCATE ON "public"."CredentialProofDeletion"
+  FOR EACH STATEMENT EXECUTE FUNCTION "turfcut_private"."append_only"();
+ALTER TABLE "public"."CredentialProof" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."CredentialProofDeletion" ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON "public"."CredentialProof", "public"."CredentialProofDeletion" FROM anon, authenticated;
 
 -- History so far: the opening event of each engagement that kept a copy of
 -- how it began (an engagement without one, like the base seed's, gets

@@ -1,5 +1,6 @@
 /* C3.1 acceptance checks: the hiring pipeline on real Postgres — review, offer, accept, decline with a reason, withdraw, expiry, history and no browser access (tests/acceptance/run.sh). */
 import { db } from "@/lib/db";
+import { ACCOUNT_CLOSED_NOTE } from "@/lib/engagements";
 import { applyToJob, claimJob, inviteWorker, loadEngagementEvents, loadPipelineFacts, moveEngagement } from "@/lib/engagements-data";
 import { closeAccount, exportAccount } from "@/lib/account-data";
 import { scheduleShift } from "@/lib/field-day-data";
@@ -214,7 +215,7 @@ const types = async (id: string) => (await loadEngagementEvents(id)).map((e) => 
   const closed = await closeAccount({ userId: W5, workerId: W5 });
   const xr = await p.engagement.findUniqueOrThrow({ where: { id: xa } });
   const closeEvt = (await loadEngagementEvents(xa)).at(-1)!;
-  check("closing an account cancels an open offer and records it, saying why", closed.ok && xr.status === "CANCELLED" && (await types(xa)).endsWith("OFFERED,WITHDRAWN") && closeEvt.note === "Account closed.", { closed, xr, t: await types(xa) });
+  check("closing an account cancels an open offer and records it, saying why", closed.ok && xr.status === "CANCELLED" && (await types(xa)).endsWith("OFFERED,WITHDRAWN") && closeEvt.note === ACCOUNT_CLOSED_NOTE, { closed, xr, t: await types(xa) });
   check("…an open invitation reads as declined", (await p.engagement.findUniqueOrThrow({ where: { id: hi } })).status === "CANCELLED" && (await types(hi)) === "INVITED,INVITE_DECLINED");
   check("…and an open application", (await p.engagement.findUniqueOrThrow({ where: { id: rb } })).status === "CANCELLED" && (await types(rb)) === "APPLIED,WITHDRAWN");
 

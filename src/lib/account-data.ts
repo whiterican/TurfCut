@@ -5,6 +5,7 @@ import { getSupabaseServiceRoleKey, getSupabaseUrl } from "@/lib/env";
 import { CLOSED_NAME, closureProblems, type ClosureFacts } from "@/lib/account-closure";
 import { lineState } from "@/lib/pay";
 import { csvTable } from "@/lib/zip";
+import { ACCOUNT_CLOSED_NOTE } from "@/lib/engagements";
 
 type Client = Prisma.TransactionClient | ReturnType<typeof db>;
 const lock = (tx: Prisma.TransactionClient, key: string) => tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${key}))`;
@@ -44,13 +45,16 @@ export type CloseResult = { ok: true; cancelledShifts: number } | { ok: false; p
  * invitations and offers are withdrawn, and the login is removed afterwards so the
  * email is gone and they can't sign in. Everything else stays as recorded.
  */
-export async function closeAccount(actor: { userId: string; workerId: string }, now = new Date(), opts: { unsyncedEntries?: number } = {}): Promise<CloseResult> {
+export async function closeAccount(actor: { userId: string; workerId: string }, at?: Date, opts: { unsyncedEntries?: number } = {}): Promise<CloseResult> {
   const result = await db().$transaction(async (tx) => {
     // Lock order everywhere else is worker (scheduling) or shift → pay, so:
     // the worker, then the unstarted shifts (sorted), then pay. A shift that
     // starts between the listing and its lock is left alone (the update is
     // conditional).
     await lock(tx, `worker:${actor.workerId}`);
+    // The clock is read once the worker lock is held (unless a time is
+    // passed), so closure history lands after anything that held it first.
+    const now = at ?? new Date();
     const worker = await tx.worker.findUnique({ where: { id: actor.workerId }, select: { closedAt: true, profileId: true } });
     if (!worker || worker.profileId !== actor.userId) return { ok: false as const, problems: ["Account not found."] };
     if (worker.closedAt) return { ok: false as const, problems: ["This account is already closed."] };
@@ -78,7 +82,7 @@ export async function closeAccount(actor: { userId: string; workerId: string }, 
     if (open.length) {
       await tx.engagement.updateMany({ where: { id: { in: open.map((e) => e.id) } }, data: { status: "CANCELLED" } });
       await tx.engagementEvent.createMany({
-        data: open.map((e) => ({ engagementId: e.id, type: e.status === "INVITED" ? ("INVITE_DECLINED" as const) : ("WITHDRAWN" as const), actorId: actor.userId, note: "Account closed.", createdAt: now })),
+        data: open.map((e) => ({ engagementId: e.id, type: e.status === "INVITED" ? ("INVITE_DECLINED" as const) : ("WITHDRAWN" as const), actorId: actor.userId, note: ACCOUNT_CLOSED_NOTE, createdAt: now })),
       });
     }
 
@@ -146,7 +150,7 @@ export async function exportAccount(actor: { userId: string; workerId: string; e
       "preferences.json    every version of your political-fit answers and consent (newest last)",
       "metrics.json        every version of your computed scorecard aggregates",
       "engagements.csv     jobs you applied to, were invited to, claimed or worked",
-      "engagement-history.csv  each step of those: offers, reviews, reasons and notes written to you",
+      "engagement-history.csv  each step of those: offers, reviews, reasons and notes (yours to read, or Turfcut's on closure)",
       "shifts.csv          your shifts, with the supervisor's review",
       "work-events.csv     the field ledger: every check-in, count, break, packet, correction",
       "reviews.csv         every supervisor review decision",

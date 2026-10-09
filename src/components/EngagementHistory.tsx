@@ -1,4 +1,4 @@
-import { EVENT_LABELS, NOT_SELECTED_REASONS, type EngagementEventType } from "@/lib/engagements";
+import { ACCOUNT_CLOSED_NOTE, EVENT_LABELS, NOT_SELECTED_REASONS, type EngagementEventType } from "@/lib/engagements";
 
 const when = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
 
@@ -21,7 +21,11 @@ export function EngagementHistory({
             {EVENT_LABELS[e.type]} <span className="text-muted">· {when(e.createdAt)}</span>
           </p>
           {e.reasonCode && <p className="text-muted-sm">{NOT_SELECTED_REASONS.find((r) => r.value === e.reasonCode)?.label ?? "Another reason"}</p>}
-          {e.note && <p className="text-muted-sm whitespace-pre-line">&ldquo;{e.note}&rdquo;</p>}
+          {e.note === ACCOUNT_CLOSED_NOTE ? (
+            <p className="text-muted-sm">{e.note}</p>
+          ) : (
+            e.note && <p className="text-muted-sm whitespace-pre-line">&ldquo;{e.note}&rdquo;</p>
+          )}
         </li>
       ))}
     </ol>

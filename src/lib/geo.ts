@@ -9,9 +9,9 @@ export type Point = { lat: number; lon: number; state: string };
 
 /** Must match scripts/geo/place-key.mjs (the build uses that one; geo.test.ts checks they agree). */
 const SUFFIX = /\s+(city and borough|consolidated government|metropolitan government|unified government|urban county|municipality|comunidad|zona urbana|plantation|borough|village|city|town|township|cdp|corporation)$/;
-export function placeKey(name: string): string {
-  let s = String(name).toLowerCase().replace(/\(.*?\)/g, " ").replace(/[.'’]/g, "").replace(/[^a-z0-9\s-]/g, " ").replace(/\s+/g, " ").trim();
-  for (let i = 0; i < 3; i++) s = s.replace(SUFFIX, "").trim();
+export function placeKey(name: string, strips = 3): string {
+  let s = String(name).normalize("NFD").replace(/\p{M}/gu, "").toLowerCase().replace(/\(.*?\)/g, " ").replace(/[.'’]/g, "").replace(/[^a-z0-9\s-]/g, " ").replace(/\s+/g, " ").trim();
+  for (let i = 0; i < strips; i++) s = s.replace(SUFFIX, "").trim();
   s = s.replace(/\bsaint\b/g, "st").replace(/\bfort\b/g, "ft").replace(/\bmount\b/g, "mt").replace(/-/g, " ").replace(/\s+/g, " ").trim();
   return s;
 }
@@ -47,17 +47,25 @@ export function resolveArea(text: string | null | undefined, t: { zcta: Zcta; pl
     const z = t.zcta[zip[1]];
     return z ? { lat: z[0], lon: z[1], state: z[2] } : null;
   }
+  // The least-stripped form that names a place wins ("Goodyear Village" before "Goodyear").
+  const keys = (text: string) => [...new Set([0, 1, 2, 3].map((n) => placeKey(text, n)))];
   const cs = CITY_STATE.exec(s);
   if (cs) {
     const st = cs[2].toUpperCase();
-    const hit = t.places[st]?.[placeKey(cs[1])];
-    if (hit) return { lat: hit[0], lon: hit[1], state: st };
+    for (const key of keys(cs[1])) {
+      const hit = t.places[st]?.[key];
+      if (hit) return { lat: hit[0], lon: hit[1], state: st };
+    }
   }
-  const key = placeKey(s);
-  const found = Object.entries(t.places).filter(([, ps]) => ps[key]);
-  if (found.length !== 1) return null;
-  const [st, ps] = found[0];
-  return { lat: ps[key][0], lon: ps[key][1], state: st };
+  for (const key of keys(s)) {
+    const found = Object.entries(t.places).filter(([, ps]) => ps[key]);
+    if (found.length > 1) return null; // a name several states share: never guessed
+    if (found.length === 1) {
+      const [st, ps] = found[0];
+      return { lat: ps[key][0], lon: ps[key][1], state: st };
+    }
+  }
+  return null;
 }
 
 /** Great-circle distance in miles. */

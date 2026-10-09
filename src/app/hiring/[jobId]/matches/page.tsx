@@ -81,7 +81,7 @@ export default async function MatchesPage({
         </div>
       ) : (
         <>
-          {(facts.startsAt || availableColumns(facts).includes("credentials")) && (
+          {((facts.startsAt && facts.endsAt) || availableColumns(facts).includes("credentials")) && (
             <form className="card flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
               {facts.startsAt && facts.endsAt && (
                 <label className="flex items-center gap-2">

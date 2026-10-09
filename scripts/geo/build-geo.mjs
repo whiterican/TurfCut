@@ -44,7 +44,13 @@ for (const p of places.slice(1)) {
   fipsToState[p[P.GEOID].slice(0, 2)] = st;
   const name = p[P.NAME];
   const pt = [r3(p[P.INTPTLAT]), r3(p[P.INTPTLONG])];
-  add(own, st, placeKey(name), pt);
+  // Its own key strips only the Census kind ("Goodyear city" → "goodyear"); stripping further
+  // ("Goodyear Village CDP" → "goodyear") is an alias, which a place's own name always beats.
+  const ownKey = placeKey(name, 1);
+  // A census-designated place (CDP, or a Puerto Rico comunidad) is a statistical area, not a town.
+  add(own, st, ownKey, [...pt, /\s(cdp|comunidad)$/i.test(name) ? 0 : 1]);
+  const loose = placeKey(name, 3);
+  if (loose !== ownKey) add(alias, st, loose, pt);
   // "San Buenaventura (Ventura) city" also answers to "Ventura".
   const paren = /\(([^)]+)\)/.exec(name);
   if (paren && !/balance/i.test(paren[1])) add(alias, st, placeKey(paren[1]), pt);
@@ -62,7 +68,11 @@ for (const st of new Set([...Object.keys(own), ...Object.keys(alias)])) {
   byState[st] = {};
   for (const [key, pts] of Object.entries(alias[st] ?? {})) if (pts.length === 1) byState[st][key] = pts[0];
   for (const [key, pts] of Object.entries(own[st] ?? {})) {
-    if (pts.length === 1) byState[st][key] = pts[0];
+    // One place, or exactly one incorporated place among them (Mesquite city, not the Mesquite CDP
+    // elsewhere in Texas); otherwise the name is left out, never guessed between.
+    const towns = pts.filter((p) => p[2] === 1);
+    const pick = pts.length === 1 ? pts[0] : towns.length === 1 ? towns[0] : null;
+    if (pick) byState[st][key] = [pick[0], pick[1]];
     else {
       delete byState[st][key];
       ambiguous++;

@@ -96,7 +96,7 @@ export default async function SetupPage({ searchParams }: { searchParams: Promis
           <>
             <p className="text-muted-sm">
               Whether approved organizations can find you for work near you, and for which kind. They&apos;d see your name, a rounded
-              distance and what you share with any approved organization, never the place itself. Off unless you turn it on; it uses only a
+              distance, how far you&apos;d travel and what you share with any approved organization, never the place itself. Off unless you turn it on; it uses only a
               city or ZIP you type, never your phone&apos;s location.
             </p>
             <p className="text-sm text-fg">

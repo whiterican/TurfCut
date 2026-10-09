@@ -68,7 +68,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
           <p className="text-muted-sm">
             {sharing.version === null
               ? `You're on the defaults: organizations you ${RELATIONSHIP_PHRASE} see your profile, and nobody can find you.`
-              : "We've changed how Turfcut explains who sees what since you chose. Your choices stay as they are; take a look and confirm them."}
+              : "We've changed how Turfcut explains who sees what since you chose. Your choices stay as they are; take a look and confirm them. If you let organizations find you, they can't until you confirm."}
           </p>
           <div className="flex flex-wrap gap-2">
             <Link transitionTypes={["nav-forward"]} href="/profile/setup?from=profile" className="btn-primary btn-sm">{sharing.version === null ? "Set it up" : "Check your choices"}</Link>
@@ -141,7 +141,11 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
             <li className="flex flex-wrap justify-between gap-x-4 text-sm">
               <span className="text-fg">Organizations can find you</span>
               <span className="text-muted">
-                {sharing.choices.findable ? `Yes, within ${sharing.choices.travelMiles ?? DEFAULT_TRAVEL_MILES} miles of ${sharing.choices.homeArea}` : "No"}
+                {!sharing.choices.findable
+                  ? "No"
+                  : !sharing.current
+                    ? "Not until you confirm your choices"
+                    : `Yes, within ${sharing.choices.travelMiles ?? DEFAULT_TRAVEL_MILES} miles of ${sharing.choices.homeArea}`}
               </span>
             </li>
           </ul>

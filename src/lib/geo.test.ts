@@ -4,8 +4,8 @@ import { placeKey as buildKey } from "../../scripts/geo/place-key.mjs";
 
 describe("geo", () => {
   it("place keys match the build script's", () => {
-    for (const n of ["Denver city", "Highlands Ranch CDP", "St. Louis city", "Saint Paul city", "Fort Collins city", "Mount Vernon town", "Winston-Salem city", "Nashville-Davidson metropolitan government (balance)", "Coeur d'Alene city"]) {
-      expect(placeKey(n)).toBe(buildKey(n));
+    for (const n of ["Bayamón zona urbana", "Cañon City city", "Denver city", "Highlands Ranch CDP", "St. Louis city", "Saint Paul city", "Fort Collins city", "Mount Vernon town", "Winston-Salem city", "Nashville-Davidson metropolitan government (balance)", "Coeur d'Alene city"]) {
+      for (const k of [0, 1, 3]) expect(placeKey(n, k)).toBe(buildKey(n, k));
     }
     expect(placeKey("Denver city")).toBe("denver");
     expect(placeKey("Saint Louis")).toBe(placeKey("St. Louis city"));
@@ -21,8 +21,16 @@ describe("geo", () => {
     for (const c of ["Nashville, TN", "Honolulu, HI", "Lexington, KY", "Augusta, GA", "Athens, GA", "Macon, GA", "Ventura, CA", "Louisville, KY"]) {
       expect(resolveArea(c, t), c).not.toBeNull();
     }
-    // Two places with one name in one state are never guessed between.
+    // Two towns with one name in one state are never guessed between (Franklin city and borough, PA);
+    // a town beats a census-designated place of the same name (Mesquite city, not the Mesquite CDP).
     expect(resolveArea("Franklin, PA", t)).toBeNull();
+    expect(resolveArea("Mesquite, TX", t)).toMatchObject({ state: "TX" });
+    // A place's own name beats a looser form of another's ("Goodyear city" vs "Goodyear Village CDP").
+    expect(resolveArea("Goodyear, AZ", t)).not.toEqual(resolveArea("Goodyear Village, AZ", t));
+    expect(resolveArea("Boise, ID", t)).toEqual(resolveArea("Boise City, ID", t));
+    // Accents don't matter.
+    expect(resolveArea("Canon City, CO", t)).toEqual(resolveArea("Cañon City, CO", t));
+    expect(resolveArea("Bayamon, PR", t)).not.toBeNull();
     expect(resolveArea("99999", t)).toBeNull();
     expect(resolveArea("", t)).toBeNull();
     expect(resolveArea("Nowhere Special, CO", t)).toBeNull();

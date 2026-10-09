@@ -724,8 +724,9 @@ certificate. Approved as recommended by review:
   not applying boundaries to Matches at all. Distances use bundled Census tables
   (`src/data/geo`, ZIP and place centroids, public domain; rebuild with
   `scripts/geo/build-geo.mjs`; consolidated city-counties and alternate
-  names such as "Nashville" or "Honolulu" are included, and two places with
-  one name in a state are left out rather than guessed). A worker whose
+  names such as "Nashville" or "Honolulu" are included, accents don't
+  matter, a town beats a census-designated place of the same name, and two
+  towns with one name in a state are left out rather than guessed). A worker whose
   home area Turfcut can't place (unknown, or a city name shared by several
   places) isn't matched, and their profile says so. `/hiring` shows each job's match count.
 - **History**: every step is an append-only `EngagementEvent`, shown the

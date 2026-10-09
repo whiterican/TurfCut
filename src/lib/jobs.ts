@@ -117,6 +117,7 @@ function text(raw: Record<string, unknown>, k: string): string {
 /** Sent, but in a shape `text` can't read (an object, a list, a boolean): refuse it rather than use a default. */
 const unreadable = (raw: Record<string, unknown>, k: string) =>
   raw[k] !== undefined && raw[k] !== null && raw[k] !== "" && typeof raw[k] !== "string" && typeof raw[k] !== "number";
+const checked = (v: unknown) => v === true || v === "on" || v === "true";
 
 function list(raw: Record<string, unknown>, k: string): string[] {
   const v = raw[k];
@@ -244,9 +245,10 @@ export function validateJob(raw: Record<string, unknown>): Validated<JobInput> {
       headcount,
       hiringModes: hiringModes as HiringMode[],
       requirements: {
-        badge: raw.badge === "on" || raw.badge === "true",
-        registration: raw.registration === "on" || raw.registration === "true",
-        affidavit: raw.affidavit === "on" || raw.affidavit === "true",
+        // A checked form box ("on"), or true from a JSON client.
+        badge: checked(raw.badge),
+        registration: checked(raw.registration),
+        affidavit: checked(raw.affidavit),
         training,
         script,
       },
@@ -521,6 +523,25 @@ export function fitReasons(f: {
   return out;
 }
 
+/**
+ * The credentials a job needs: what the organization asked for, plus the
+ * jurisdiction's circulator rules (registration, badge, affidavit). Those
+ * rules govern petition circulation, so they apply to petition jobs only — a
+ * canvass job needs just what its organization asks for. The job card and
+ * the feed's "No credentials" filter both use this list, so they agree.
+ */
+export function jobCredentials(job: { type: JobType; requirements: unknown; jurisdictionRules: unknown }): string[] {
+  const req = readRequirements(job.requirements);
+  const rules = obj(job.jurisdictionRules);
+  const circulating = job.type === "PETITION";
+  return [
+    (req.registration || (circulating && rules.workerRegistrationRequired === true)) && "Circulator registration",
+    (req.badge || (circulating && rules.badgeRequired === true)) && "Badge",
+    (req.affidavit || (circulating && rules.affidavitRequired === true)) && "Signed affidavit",
+    req.training && `Training: ${req.training}`,
+  ].filter((x): x is string => Boolean(x));
+}
+
 export function jobCardAnswers(job: {
   type: JobType;
   compensationMethod: CompensationMethod;
@@ -530,14 +551,7 @@ export function jobCardAnswers(job: {
   orgName: string;
   jurisdictionRules: unknown;
 }) {
-  const req = readRequirements(job.requirements);
-  const rules = obj(job.jurisdictionRules);
-  const creds = [
-    (req.registration || rules.workerRegistrationRequired === true) && "Circulator registration",
-    (req.badge || rules.badgeRequired === true) && "Badge",
-    (req.affidavit || rules.affidavitRequired === true) && "Signed affidavit",
-    req.training && `Training: ${req.training}`,
-  ].filter((x): x is string => Boolean(x));
+  const creds = jobCredentials(job);
   const contacts = readSupportContacts(job.supportContacts);
   const unit = job.type === "PETITION" ? "signature" : "completed contact";
   return {

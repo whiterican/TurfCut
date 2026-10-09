@@ -190,6 +190,16 @@ describe("validateJob", () => {
     expect(!r.ok && Object.keys(r.errors).sort()).toEqual(["cancellationNoticeHours", "measureIds"]);
     const t = validateJob({ ...form, measureIds: true, headcount: Number.NaN });
     expect(!t.ok && Object.keys(t.errors).sort()).toEqual(["headcount", "measureIds"]);
+    const u = validateJob({ ...form, badge: "yes", affidavit: 1, campaignName: ["Yes on 305"], training: 5, hiringModes: ["application", 5] });
+    expect(!u.ok && Object.keys(u.errors).sort()).toEqual(["affidavit", "badge", "campaignName", "hiringModes", "training"]);
+  });
+  it("splits a comma-separated item in a measure-ID list, so do-not-match checks see each ID", () => {
+    const r = validateJob({ ...form, measureIds: ["I-305, I-12", "I-7"] });
+    expect(r.ok && r.value.measureIds).toEqual(["I-305", "I-12", "I-7"]);
+  });
+  it("keeps text fields as text: a JSON number isn't turned into a different string", () => {
+    const r = validateJob({ ...form, contactEmergency: 12345678901234567890 });
+    expect(!r.ok && r.errors.contactEmergency).toBeTruthy();
   });
   it("takes requirement flags from a JSON client as well as a form", () => {
     const r = validateJob({ ...form, badge: true, registration: false, affidavit: "true" });

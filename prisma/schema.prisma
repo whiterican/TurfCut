@@ -82,6 +82,14 @@ enum VerificationLevel {
   SELF_REPORTED // worker-entered; visible but excluded from verified totals
 }
 
+/// C3.6: how a verified credential was checked. A proof photo is evidence a
+/// person looked at, never verification by itself.
+enum VerificationMethod {
+  REGISTRY_LOOKUP // checked the issuing state's registry
+  ORIGINAL_DOCUMENT // saw the original document
+  PROOF_PHOTO // looked at the worker's proof photo (C3.6b)
+}
+
 model Worker {
   id        String   @id @default(uuid()) @db.Uuid
   profileId String   @unique @db.Uuid
@@ -918,6 +926,8 @@ model WorkerCredential {
   verification VerificationLevel @default(SELF_REPORTED)
   verifiedById String?           @db.Uuid
   verifiedAt   DateTime?
+  // How it was verified (C3.6): set exactly when verification isn't SELF_REPORTED.
+  verificationMethod VerificationMethod?
   proofPath    String? // unused: proof photos (C3) get their own table; see README "Credential proof photos"
   // Unique: two edits racing on one row can't both supersede it.
   supersedesId String?           @unique @db.Uuid

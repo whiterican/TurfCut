@@ -99,7 +99,7 @@ describe("orgCredentialView", () => {
     expiresOn: new Date("2027-01-02T00:00:00Z"), verification: "SELF_REPORTED" as const, supersedesId: null, removed: false, createdAt: new Date(),
   };
   it("gives name, level and expiry, never the number or the issue date", () => {
-    expect(orgCredentialView([row], true)).toEqual([{ kind: "NOTARY_OR_AFFIDAVIT", label: null, state: "CO", verification: "SELF_REPORTED", expiresOn: row.expiresOn }]);
+    expect(orgCredentialView([row], true)).toEqual([{ kind: "NOTARY_OR_AFFIDAVIT", label: null, state: "CO", verification: "SELF_REPORTED", verificationMethod: null, expiresOn: row.expiresOn }]);
   });
   it("is withheld when not shared", () => {
     expect(orgCredentialView([row], false)).toBe("withheld");

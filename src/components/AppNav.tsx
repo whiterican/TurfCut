@@ -21,6 +21,7 @@ const ICONS: Record<TabIconId, LucideIcon> = {
   field: Map,
   pay: Wallet,
   members: Users,
+  credentials: BadgeCheck,
   settings: Settings,
   more: Ellipsis,
 };

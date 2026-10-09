@@ -139,7 +139,7 @@ export async function loadMatches(
     db().workerAvailability.findMany({ where: { workerId: { in: keptIds } }, orderBy: [{ workerId: "asc" }, { version: "desc" }], distinct: ["workerId"] }),
     db().workerCredential.findMany({
       where: { workerId: { in: keptIds } },
-      select: { workerId: true, id: true, kind: true, label: true, state: true, identifier: true, issuedOn: true, expiresOn: true, verification: true, supersedesId: true, removed: true, createdAt: true },
+      select: { workerId: true, id: true, kind: true, label: true, state: true, identifier: true, issuedOn: true, expiresOn: true, verification: true, verificationMethod: true, supersedesId: true, removed: true, createdAt: true },
     }),
   ]);
   const wants = (id: string) => {

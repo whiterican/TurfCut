@@ -16,6 +16,16 @@ import { hasHiddenChars } from "@/lib/text-guard";
 
 export type CredentialKind = "CIRCULATOR_REGISTRATION" | "NOTARY_OR_AFFIDAVIT" | "TRAINING" | "OTHER";
 export type VerificationLevel = "PLATFORM" | "ORGANIZATION" | "IMPORTED" | "SELF_REPORTED";
+export type VerificationMethod = "REGISTRY_LOOKUP" | "ORIGINAL_DOCUMENT" | "PROOF_PHOTO";
+
+/** How a verified credential was checked (C3.6), as the worker and organizations read it. */
+export const METHOD_LABELS: Record<VerificationMethod, string> = {
+  REGISTRY_LOOKUP: "checked the state's registry",
+  ORIGINAL_DOCUMENT: "saw the original document",
+  PROOF_PHOTO: "looked at the worker's proof photo",
+};
+/** The methods an organization can record today (proof photos arrive with C3.6b). */
+export const ORG_METHODS: VerificationMethod[] = ["REGISTRY_LOOKUP", "ORIGINAL_DOCUMENT"];
 
 export const CREDENTIAL_KINDS: Array<{ value: CredentialKind; label: string; needsLabel: boolean; hint: string }> = [
   { value: "CIRCULATOR_REGISTRATION", label: "Circulator registration", needsLabel: false, hint: "Your state's petition circulator registration." },
@@ -49,6 +59,7 @@ export interface CredentialRow {
   issuedOn: Date | null;
   expiresOn: Date | null;
   verification: VerificationLevel;
+  verificationMethod?: VerificationMethod | null;
   supersedesId: string | null;
   removed: boolean;
   createdAt: Date;
@@ -195,11 +206,13 @@ export interface OrgCredentialView {
   label: string | null;
   state: string | null;
   verification: VerificationLevel;
+  /** How it was checked, when verified. Which organization verified it is never shown to others. */
+  verificationMethod: VerificationMethod | null;
   expiresOn: Date | null;
 }
 
 /** The wallet as an organization sees it, or "withheld" when the worker doesn't share credentials with it. */
 export function orgCredentialView(creds: CredentialRow[], shared: boolean): OrgCredentialView[] | "withheld" {
   if (!shared) return "withheld";
-  return creds.map((c) => ({ kind: c.kind, label: c.label, state: c.state, verification: c.verification, expiresOn: c.expiresOn }));
+  return creds.map((c) => ({ kind: c.kind, label: c.label, state: c.state, verification: c.verification, verificationMethod: c.verificationMethod ?? null, expiresOn: c.expiresOn }));
 }

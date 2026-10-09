@@ -6,7 +6,7 @@ import { currentCredentials, orgCredentialView, validateCredential, type Credent
 
 const SELECT = {
   id: true, kind: true, label: true, state: true, identifier: true, issuedOn: true, expiresOn: true,
-  verification: true, supersedesId: true, removed: true, createdAt: true,
+  verification: true, verificationMethod: true, supersedesId: true, removed: true, createdAt: true,
 } as const;
 
 /** The worker's wallet now (rows nothing supersedes, minus removals), newest first. */

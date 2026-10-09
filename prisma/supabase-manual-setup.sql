@@ -1263,6 +1263,20 @@ CREATE INDEX "Notification_engagementId_idx" ON "public"."Notification"("engagem
 ALTER TABLE "public"."Notification" ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON "public"."Notification" FROM anon, authenticated;
 
+-- Credential verification records how it was checked (C3.6). Set exactly
+-- when a credential is verified; NOT VALID leaves any earlier rows as they
+-- were and holds every new row to it.
+DO $$ BEGIN
+  CREATE TYPE "public"."VerificationMethod" AS ENUM ('REGISTRY_LOOKUP', 'ORIGINAL_DOCUMENT', 'PROOF_PHOTO');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+ALTER TABLE "public"."WorkerCredential" ADD COLUMN "verificationMethod" "public"."VerificationMethod";
+DO $$ BEGIN
+  ALTER TABLE "public"."WorkerCredential" ADD CONSTRAINT "WorkerCredential_verification_method" CHECK (
+    ("verification" = 'SELF_REPORTED' AND "verificationMethod" IS NULL) OR ("verification" <> 'SELF_REPORTED' AND "verificationMethod" IS NOT NULL));
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
 -- (The history step of c3-hiring.sql runs after the seed, at the end.)
 
 -- Turfcut seed (M0 + M1 events) — SQL version of prisma/seed.ts

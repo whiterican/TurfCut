@@ -21,7 +21,7 @@ const facts = (over: Partial<ApplicantFacts> = {}): ApplicantFacts => ({
   engagementId: "e1", name: "Alex Rivera", closed: false, status: "APPLIED", stage: "Applied",
   appliedAt: new Date("2026-10-02T15:00:00Z"), scorecard: empty, availability: weekends, credentials: [], ...over,
 });
-const reg = (over: Partial<OrgCredentialView> = {}): OrgCredentialView => ({ kind: "CIRCULATOR_REGISTRATION", label: null, state: "CO", verification: "PLATFORM", expiresOn: new Date("2027-06-30T00:00:00Z"), ...over });
+const reg = (over: Partial<OrgCredentialView> = {}): OrgCredentialView => ({ kind: "CIRCULATOR_REGISTRATION", label: null, state: "CO", verification: "PLATFORM", verificationMethod: "REGISTRY_LOOKUP", expiresOn: new Date("2027-06-30T00:00:00Z"), ...over });
 
 describe("applicant columns", () => {
   it("offer only the job's work-type metrics, and dates/credentials only when the job has them", () => {

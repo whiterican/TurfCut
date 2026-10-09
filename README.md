@@ -751,6 +751,21 @@ certificate. Approved as recommended by review:
   invitations are withdrawn, each worker is notified (not for ones that had
   already lapsed); people already hired stay hired and can still be
   scheduled. It can't be reopened.
+- **Credential checks (C3.6a)**: on `/org/credentials` (owners and
+  compliance members of an approved organization), an organization records
+  that it checked a credential of a worker it hired (claimed, active or
+  completed on one of its jobs) who shares credentials with it, and how:
+  "checked the state's registry" or "saw the original document". Proof
+  photos come with C3.6b. Recording appends a row that supersedes the
+  self-reported one (`WorkerCredential.verificationMethod`, added by
+  `prisma/c3-hiring.sql`), names the person who checked and is audited
+  with the organization. Nobody verifies their own credential, an expired
+  one isn't verified, and a worker's edit makes it self-reported again.
+  The worker sees which organization verified each credential, how and
+  when, even if the person who checked later leaves that organization.
+  Other organizations see "Verified by an organization" and how, never
+  which one. Organizations never see a credential's number, so a registry
+  check is by the worker's name.
 - **History**: every step is an append-only `EngagementEvent`, shown the
   same way to the worker and the organization, and in the worker's data
   export (`engagement-history.csv`). `prisma/c3-hiring.sql` adds the

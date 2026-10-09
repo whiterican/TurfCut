@@ -41,7 +41,7 @@ describe("orgProfileView", () => {
     expect(v.displayName).toBe("Sam Rivera");
     expect(v.scorecard.lifetime.shared).toEqual({ output: true, quality: true, reliability: true, history: true });
     expect(v.availability).toMatchObject({ usual: "Usually free Sat 9am–3pm." });
-    expect(v.credentials).toEqual([{ kind: "CIRCULATOR_REGISTRATION", label: null, state: "CO", verification: "SELF_REPORTED", expiresOn: cred.expiresOn }]);
+    expect(v.credentials).toEqual([{ kind: "CIRCULATOR_REGISTRATION", label: null, state: "CO", verification: "SELF_REPORTED", verificationMethod: null, expiresOn: cred.expiresOn }]);
     expect(v.fit.fields.identity).toEqual({ shared: true, lines: expect.any(Array) });
   });
 

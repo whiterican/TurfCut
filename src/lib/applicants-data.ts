@@ -41,7 +41,7 @@ export async function loadApplicants(jobId: string, orgId: string, now = new Dat
     db().workerAvailability.findMany({ where: { workerId: { in: ids } }, orderBy: [{ workerId: "asc" }, { version: "desc" }], distinct: ["workerId"] }),
     db().workerCredential.findMany({
       where: { workerId: { in: ids } },
-      select: { workerId: true, id: true, kind: true, label: true, state: true, identifier: true, issuedOn: true, expiresOn: true, verification: true, supersedesId: true, removed: true, createdAt: true },
+      select: { workerId: true, id: true, kind: true, label: true, state: true, identifier: true, issuedOn: true, expiresOn: true, verification: true, verificationMethod: true, supersedesId: true, removed: true, createdAt: true },
     }),
   ]);
   const wantsCard = (id: string) => {

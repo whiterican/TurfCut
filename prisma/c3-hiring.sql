@@ -17,7 +17,9 @@
 --      (Engagement.inviteNote, inviteExpiresAt); OrgMute records a worker's
 --      mute of an organization (no invitations from it).
 --   4. Notification: in-app notices about hiring steps (C3.5).
---   5. Each existing engagement gets its opening event (applied, claimed or
+--   5. WorkerCredential.verificationMethod: how a verified credential was
+--      checked (C3.6).
+--   6. Each existing engagement gets its opening event (applied, claimed or
 --      invited, from the copy it kept), dated when it was created.
 
 -- New enum values come first and nothing below uses them, so they're safe in
@@ -115,6 +117,20 @@ CREATE INDEX IF NOT EXISTS "Notification_recipientId_readAt_createdAt_idx" ON "p
 CREATE INDEX IF NOT EXISTS "Notification_engagementId_idx" ON "public"."Notification"("engagementId");
 ALTER TABLE "public"."Notification" ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON "public"."Notification" FROM anon, authenticated;
+
+-- Credential verification records how it was checked (C3.6). Set exactly
+-- when a credential is verified; NOT VALID leaves any earlier rows as they
+-- were and holds every new row to it.
+DO $$ BEGIN
+  CREATE TYPE "public"."VerificationMethod" AS ENUM ('REGISTRY_LOOKUP', 'ORIGINAL_DOCUMENT', 'PROOF_PHOTO');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+ALTER TABLE "public"."WorkerCredential" ADD COLUMN IF NOT EXISTS "verificationMethod" "public"."VerificationMethod";
+DO $$ BEGIN
+  ALTER TABLE "public"."WorkerCredential" ADD CONSTRAINT "WorkerCredential_verification_method" CHECK (
+    ("verification" = 'SELF_REPORTED' AND "verificationMethod" IS NULL) OR ("verification" <> 'SELF_REPORTED' AND "verificationMethod" IS NOT NULL)) NOT VALID;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- History so far: the opening event of each engagement that kept a copy of
 -- how it began (an engagement without one, like the base seed's, gets

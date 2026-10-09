@@ -3,14 +3,15 @@ import { requireWorker } from "@/lib/worker-session";
 import { loadCredentials } from "@/lib/credentials-data";
 import { loadSharing } from "@/lib/sharing-data";
 import { AUDIENCE_OPTIONS } from "@/lib/sharing";
-import { credentialName, dateOnly, expiryState, expiryToday, maskIdentifier, VERIFICATION_LABELS } from "@/lib/credentials";
+import { credentialName, dateOnly, expiryState, expiryToday, maskIdentifier, METHOD_LABELS, VERIFICATION_LABELS } from "@/lib/credentials";
+import { loadVerifiers } from "@/lib/verification-data";
 import { CredentialForm, RemoveCredential, WalletStatus, WalletStatusLine } from "@/components/CredentialForm";
 
 const dateText = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
 
 export default async function CredentialsPage() {
   const { workerId } = await requireWorker();
-  const [creds, sharing] = await Promise.all([loadCredentials(workerId), loadSharing(workerId)]);
+  const [creds, sharing, verifiers] = await Promise.all([loadCredentials(workerId), loadSharing(workerId), loadVerifiers(workerId)]);
   const audience = AUDIENCE_OPTIONS.find((o) => o.value === sharing.choices.audiences.credentials)!;
   const today = expiryToday();
 
@@ -40,6 +41,7 @@ export default async function CredentialsPage() {
               {creds.map((c) => {
                 const ex = expiryState(c.expiresOn, today);
                 const name = credentialName(c);
+                const by = verifiers.get(c.id);
                 return (
                   // Keyed by the first row of the edit chain, so a saved edit keeps its form and message.
                   <li key={c.rootId} className="card space-y-2">
@@ -50,11 +52,19 @@ export default async function CredentialsPage() {
                     <p className="text-muted-sm">
                       {[maskIdentifier(c.identifier), c.issuedOn && `Issued ${dateText(c.issuedOn)}`, c.expiresOn && `Expires ${dateText(c.expiresOn)}`].filter(Boolean).join(" · ") || "No details added"}
                     </p>
+                    {by && (
+                      <p className="text-muted-sm">
+                        Verified by {by.org ?? "an organization"}
+                        {by.method && `: ${METHOD_LABELS[by.method]}`}
+                        {by.at && `, ${dateText(by.at)}`}. Other organizations see only that an organization verified it, and how.
+                      </p>
+                    )}
                     {ex.kind === "expired" && <p role="status" className="alert-warning">Expired {ex.days === 1 ? "yesterday" : `${ex.days} days ago`}.</p>}
                     {ex.kind === "soon" && <p role="status" className="alert-info">{ex.days === 0 ? "Expires today." : `Expires in ${ex.days} ${ex.days === 1 ? "day" : "days"}.`}</p>}
                     <details className="group">
                       <summary className="link cursor-pointer list-none text-sm">Edit</summary>
-                      <div className="mt-3 border-t border-border pt-3">
+                      <div className="mt-3 space-y-3 border-t border-border pt-3">
+                        {c.verification !== "SELF_REPORTED" && <p className="text-hint">Saving a change makes it self-reported again, until an organization checks it again.</p>}
                         <CredentialForm
                           id={c.id}
                           masked={maskIdentifier(c.identifier)}

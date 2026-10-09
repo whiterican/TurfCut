@@ -472,6 +472,8 @@ export interface FitReason {
  * hidden).
  */
 export function fitReasons(f: {
+  /** false: invitation only, so the worker can't apply or claim. */
+  canJoin?: boolean;
   type: JobType;
   state: string;
   verifiedShiftsOfType: number;
@@ -501,7 +503,7 @@ export function fitReasons(f: {
   if (f.spotsLeft !== null) {
     out.push(
       f.spotsLeft > 0
-        ? { kind: "yes", title: `${f.spotsLeft} ${f.spotsLeft === 1 ? "spot" : "spots"} open`, detail: "Apply or claim while there's room" }
+        ? { kind: "yes", title: `${f.spotsLeft} ${f.spotsLeft === 1 ? "spot" : "spots"} open`, detail: f.canJoin === false ? "Filled by invitation" : "Apply or claim while there's room" }
         : { kind: "info", title: "Every spot is filled", detail: "Check back — spots open when plans change" }
     );
   }

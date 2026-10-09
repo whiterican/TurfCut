@@ -95,6 +95,7 @@ export interface MetricExplanation {
   numerator: number;
   denominator: number;
   formula: string;
+  /** The rate's own math plus its context (shifts, dates, states). */
   evidence: string;
 }
 
@@ -333,9 +334,10 @@ function explain(
   numerator: number,
   denominator: number,
   formula: string,
-  evidence: string
+  basis: string,
+  context?: string
 ): MetricExplanation {
-  return { value, numerator, denominator: round(denominator), formula, evidence };
+  return { value, numerator, denominator: round(denominator), formula, evidence: context ? `${basis}; ${context}` : basis };
 }
 
 function segment(
@@ -408,21 +410,24 @@ function segment(
               doors,
               hours,
               "verified doors attempted ÷ verified active field hours",
-              `${doors} doors over ${hours} active hours (paused time excluded); ${context}`
+              `${doors} doors over ${hours} active hours (paused time excluded)`,
+              context
             ),
       doorsPerCompletedShift: explain(
         doorsPerCompletedShift(totals),
         doors,
         doorShifts,
         "verified doors attempted ÷ completed door shifts",
-        `${doors} doors across ${plural(doorShifts, "completed shift")} with door attempts; ${context}`
+        `${doors} doors across ${plural(doorShifts, "completed shift")} with door attempts`,
+              context
       ),
       contactRate: explain(
         contactRate(totals),
         contacts,
         doors,
         "resident contacts ÷ doors attempted",
-        `${contacts} contacts from ${doors} doors; ${context}`
+        `${contacts} contacts from ${doors} doors`,
+              context
       ),
       signaturesPerActiveHour: isPetition
         ? explain(
@@ -430,7 +435,8 @@ function segment(
             submitted,
             hours,
             "submitted signatures ÷ verified petition hours",
-            `${submitted} signatures over ${hours} petition hours (paused time excluded); ${context}`
+            `${submitted} signatures over ${hours} petition hours (paused time excluded)`,
+              context
           )
         : explain(null, 0, 0, "submitted signatures ÷ verified petition hours", "Only computed for petition work."),
       acceptanceRate: explain(
@@ -438,7 +444,8 @@ function segment(
         accepted,
         reviewed,
         "accepted signatures ÷ signatures reviewed",
-        `${accepted} accepted of ${reviewed} reviewed (${rejected} rejected); ${context}`
+        `${accepted} accepted of ${reviewed} reviewed (${rejected} rejected)`,
+              context
       ),
     },
     verificationBreakdown: {

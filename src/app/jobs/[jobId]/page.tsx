@@ -7,6 +7,9 @@ import { ACCEPTED_STATUSES, RELATIONSHIP_STATUSES, type EngagementStatus, type H
 import { ENGAGEMENT_LABELS, JOB_STATUS_LABELS } from "@/lib/engagement-labels";
 import { UUID_RE, exclusionReasons, fitReasons, jobCardAnswers, jurisdictionLabel, payText, publishBlockers, readDisclosure, readHiringModes } from "@/lib/jobs";
 import { loadScorecard } from "@/lib/scorecard-data";
+import { loadSharing } from "@/lib/sharing-data";
+import { PART_DETAILS, RELATIONSHIP_PHRASE, SHARE_PARTS, visibleParts, type SharePart, type SharingChoices } from "@/lib/sharing";
+
 import { effectivePreference } from "@/lib/political-fit";
 import { loadLatestPreference } from "@/lib/political-fit-data";
 import { JobCard } from "@/components/JobCard";
@@ -86,7 +89,7 @@ async function WorkerPanel({
   acceptedCount,
 }: {
   job: JobWithRefs;
-  engagement: { id: string; status: EngagementStatus } | null;
+  engagement: { id: string; status: EngagementStatus; applicationSnapshot: unknown } | null;
   modes: string[];
   workerId: string;
   acceptedCount: number;
@@ -112,7 +115,10 @@ async function WorkerPanel({
           Your status <span className={s.badge}>{s.label}</span>
         </p>
         {engagement.status === "INVITED" && (
-          <ActionButton action={acceptInvitation} fields={{ jobId: job.id, engagementId: engagement.id }} label="Accept invitation" />
+          <>
+            <ActionButton action={acceptInvitation} fields={{ jobId: job.id, engagementId: engagement.id }} label="Accept invitation" />
+            <WillSee sharing={(await loadSharing(workerId)).choices} approved={job.org.approved} invited kept={engagement.applicationSnapshot != null} />
+          </>
         )}
         {engagement.status === "APPLIED" && <p className="text-muted-sm">The organization will review your application.</p>}
         {(engagement.status === "ACTIVE" || engagement.status === "CLAIMED") && <WorkerShifts engagementId={engagement.id} />}
@@ -123,9 +129,10 @@ async function WorkerPanel({
   if (reasons.length) return excluded;
 
   // Why it fits: the worker's own verified record against the job's rules.
-  const card = await loadScorecard(workerId);
+  const [card, sharing] = await Promise.all([loadScorecard(workerId), loadSharing(workerId)]);
   const answers = jobCardAnswers({ ...job, orgName: job.org.name, jurisdictionRules: job.jurisdiction.rules });
   const reasons2 = fitReasons({
+    canJoin: modes.includes("application") || modes.includes("instant_claim"),
     type: job.type,
     state: job.jurisdiction.state,
     verifiedShiftsOfType: card.segments.filter((x) => x.workType === job.type).reduce((n, x) => n + x.shiftsCount, 0),
@@ -171,12 +178,80 @@ async function WorkerPanel({
       {!modes.includes("application") && !modes.includes("instant_claim") && (
         <p className="text-muted-sm">This job hires by invitation only.</p>
       )}
-      <p className="text-hint">
-        Applying shares your verified scorecard and only the political-fit answers you chose to share.{" "}
-        <Link href="/profile/preferences" className="link">Review what you share</Link>
-      </p>
+      <WillSee sharing={sharing.choices} approved={job.org.approved} join={joinText(modes)} />
     </section>
     </>
+  );
+}
+
+/** What a worker can do on an open job, in words; null when it hires by invitation only. */
+const joinText = (modes: string[]) => {
+  const apply = modes.includes("application");
+  const claim = modes.includes("instant_claim");
+  return apply && claim ? "apply or claim a spot" : apply ? "apply" : claim ? "claim a spot" : null;
+};
+
+/** "a, b and c" */
+const listText = (xs: string[]) => (xs.length < 2 ? xs.join("") : `${xs.slice(0, -1).join(", ")} and ${xs.at(-1)}`);
+
+/**
+ * Before the worker applies, claims or accepts an invitation: what this
+ * organization will see once they do (they become a related organization).
+ * The same rules as orgProfileView: name, the parts shared with it (with
+ * experience as part of hours and history), and the fit answers shared.
+ * `kept`: the invitation holds a copy of what was shared when it was sent
+ * (invitations from before hiring copies don't).
+ */
+function WillSee({
+  sharing,
+  approved,
+  invited = false,
+  kept = false,
+  join = "apply or claim a spot",
+}: {
+  sharing: SharingChoices;
+  approved: boolean;
+  invited?: boolean;
+  kept?: boolean;
+  /** What the worker can do here ("apply", "claim a spot", both), or null for an invitation-only job. */
+  join?: string | null;
+}) {
+  if (!approved) {
+    // Its hiring pages still list your name (and any copy it already kept), so say exactly that.
+    const now = invited
+      ? "Turfcut hasn't approved this organization (or no longer does), so it sees only your name, none of your profile."
+      : join
+        ? `Turfcut hasn't approved this organization, so if you ${join} it sees only your name, none of your profile.`
+        : "Turfcut hasn't approved this organization, so it sees none of your profile.";
+    return (
+      <p className="text-hint">
+        {now} If Turfcut approves it, it sees what you share with organizations you {RELATIONSHIP_PHRASE}.
+        {invited && kept ? " The copy it kept when it invited you stays on its record." : ""}{" "}
+        <Link href="/profile/sharing" className="link">Who sees what</Link>
+      </p>
+    );
+  }
+  const parts = visibleParts(sharing, { kind: "org", approved: true, relationship: true });
+  // Experience goes with hours and history, so it's named right there.
+  const name = (p: SharePart) => (p === "history" ? "hours and history (with your experience)" : PART_DETAILS[p].label.toLowerCase());
+  const seen = SHARE_PARTS.filter((p) => parts[p]).map(name);
+  const hidden = SHARE_PARTS.filter((p) => !parts[p]).map(name);
+  return (
+    <div className="space-y-1.5 text-sm">
+      <p className="font-medium text-fg">This organization will see</p>
+      <p className="text-muted">
+        Your name{seen.length ? `, your ${listText(seen)}` : ""}, and only the political-fit answers you chose to share.
+        {hidden.length > 0 && ` Not your ${listText(hidden)}: it sees "not shared" there.`}{" "}
+        {invited
+          ? kept && "It also kept a copy of what you shared when it invited you; accepting doesn't change that copy."
+          : join && `If you ${join}, it keeps a copy of what you share at that moment.`}
+      </p>
+      <p className="flex flex-wrap gap-x-4">
+        <Link href="/profile/sharing" className="link">Change who sees what</Link>
+        <Link href="/profile/preview" className="link">See what organizations see</Link>
+        <Link href="/profile/preferences" className="link">Political-fit answers</Link>
+      </p>
+    </div>
   );
 }
 

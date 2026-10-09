@@ -104,7 +104,7 @@ const json = (v: unknown) => JSON.stringify(v, null, 2) + "\n";
 export async function exportAccount(actor: { userId: string; workerId: string; email?: string }, now = new Date()): Promise<Array<{ name: string; text: string }>> {
   const p = db();
   const w = actor.workerId;
-  const [worker, experience, preferences, metrics, engagements, shifts, lines, transfers, disputes, messages] = await Promise.all([
+  const [worker, experience, preferences, metrics, engagements, shifts, lines, transfers, disputes, messages, sharing, availability, credentials] = await Promise.all([
     p.worker.findUniqueOrThrow({ where: { id: w }, select: { id: true, displayName: true, phone: true, createdAt: true, closedAt: true, payoutsEnabled: true, stripeAccountId: true } }),
     p.experienceRecord.findMany({ where: { workerId: w }, omit: { verifiedById: true }, orderBy: { startDate: "desc" } }),
     p.politicalPreference.findMany({ where: { workerId: w }, orderBy: { consentVersion: "asc" } }),
@@ -119,6 +119,9 @@ export async function exportAccount(actor: { userId: string; workerId: string; e
     p.payoutTransfer.findMany({ where: { workerId: w }, include: { org: { select: { name: true } } }, orderBy: { createdAt: "asc" } }),
     p.payDispute.findMany({ where: { workerId: w }, include: { resolution: true, org: { select: { name: true } } }, orderBy: { createdAt: "asc" } }),
     p.message.findMany({ where: { senderId: actor.userId }, include: { revisions: { orderBy: { createdAt: "asc" } }, conversation: { select: { id: true, kind: true, engagement: { select: { job: { select: { title: true } } } } } } }, orderBy: { createdAt: "asc" } }),
+    p.workerSharing.findMany({ where: { workerId: w }, orderBy: { version: "asc" } }),
+    p.workerAvailability.findMany({ where: { workerId: w }, orderBy: { version: "asc" } }),
+    p.workerCredential.findMany({ where: { workerId: w }, omit: { verifiedById: true }, orderBy: { createdAt: "asc" } }),
   ]);
 
   const files: Array<{ name: string; text: string }> = [];
@@ -141,6 +144,9 @@ export async function exportAccount(actor: { userId: string; workerId: string; e
       "transfers.csv       payments sent to your Stripe account",
       "disputes.csv        pay disputes you opened and how they were answered",
       "messages.csv        messages you sent, with any edits or deletions",
+      "sharing.json        every version of who sees what, and whether you can be found",
+      "availability.json   every version of your usual week, dates and note",
+      "credentials.csv     every credential row: additions, edits and removals",
       "",
       "Times are UTC (ISO 8601). Nothing here is ever deleted from Turfcut's",
       "ledger — closing your account anonymizes your name and phone and removes",
@@ -152,6 +158,9 @@ export async function exportAccount(actor: { userId: string; workerId: string; e
   files.push({ name: "experience.csv", text: csvTable(experience) });
   files.push({ name: "preferences.json", text: json(preferences) });
   files.push({ name: "metrics.json", text: json(metrics) });
+  files.push({ name: "sharing.json", text: json(sharing) });
+  files.push({ name: "availability.json", text: json(availability) });
+  files.push({ name: "credentials.csv", text: csvTable(credentials) });
   files.push({ name: "engagements.csv", text: csvTable(engagements.map((e) => ({ id: e.id, jobId: e.job.id, job: e.job.title, organization: e.job.org.name, status: e.status, createdAt: e.createdAt, updatedAt: e.updatedAt, applicationSnapshot: e.applicationSnapshot }))) });
   files.push({
     name: "shifts.csv",

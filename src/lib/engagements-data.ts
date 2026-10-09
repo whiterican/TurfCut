@@ -11,6 +11,9 @@ import { exclusionReasons, readDisclosure, readHiringModes, UUID_RE } from "@/li
 import { effectivePreference, employerFitView } from "@/lib/political-fit";
 import { loadLatestPreference, orgHasRelationship } from "@/lib/political-fit-data";
 import { loadScorecard } from "@/lib/scorecard-data";
+import { loadSharing } from "@/lib/sharing-data";
+import { visibleParts } from "@/lib/sharing";
+import { shareScorecard } from "@/lib/shared-scorecard";
 import { defaultBoss } from "@/lib/chat-data";
 
 type Result = { ok: true; engagementId: string; status: string } | { ok: false; reason: string };
@@ -22,20 +25,32 @@ async function snapshotFor(
   job: { orgId: string; campaignDisclosure: unknown },
   now: Date
 ): Promise<HiringSnapshot> {
-  const [scorecard, latest, related] = await Promise.all([
+  const [scorecard, latest, related, sharing, org] = await Promise.all([
     loadScorecard(workerId, { now }),
     loadLatestPreference(workerId),
     orgHasRelationship(workerId, job.orgId),
+    loadSharing(workerId),
+    db().organization.findUnique({ where: { id: job.orgId }, select: { approved: true } }),
   ]);
   // Applying or claiming creates the relationship; an invite is the org's
   // decision, so it sees only a relationship the worker already started
   // (an earlier, unaccepted invitation doesn't count).
   const relationship = kind === "invitation" ? related : true;
+  // An organization Turfcut hasn't approved (or no longer approves) sees none
+  // of the worker's answers, as it sees none of the scorecard below.
   const fit = employerFitView(effectivePreference(latest, now), {
-    orgHasRelationship: relationship,
+    orgHasRelationship: (org?.approved ?? false) && relationship,
     campaign: readDisclosure(job.campaignDisclosure),
   });
-  return buildSnapshot({ kind, scorecard, fit, consentVersion: latest?.consentVersion ?? null, now });
+  const parts = visibleParts(sharing.choices, { kind: "org", approved: org?.approved ?? false, relationship });
+  return buildSnapshot({
+    kind,
+    scorecard: shareScorecard(scorecard, parts),
+    sharingVersion: sharing.version,
+    fit,
+    consentVersion: latest?.consentVersion ?? null,
+    now,
+  });
 }
 
 /**

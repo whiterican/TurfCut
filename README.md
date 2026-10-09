@@ -291,6 +291,7 @@ prisma/
   m5-1-history-lock.sql # append-only triggers on work events, reviews, audit
   m6-migration.sql      # M5 → M6 upgrade (offline sync ids on work events)
   fk-indexes.sql        # indexes on nine foreign keys (safe to re-run)
+  c2-consent.sql        # C1 → C2 upgrade (worker sharing, availability, credentials)
 ```
 
 ## Demo data
@@ -352,7 +353,10 @@ reference contacts never shown to employers), political-fit preferences flow
 per-answer sharing and a worker-chosen expiry; every change is a new consent
 version, and expired or outdated consent shares nothing until reconfirmed), company view showing
 only worker-authorized signals, and a scorecard derived from work events
-(`GET /api/workers/:workerId/scorecard`).
+(`GET /api/workers/:workerId/scorecard`). Since C2 it returns the shared
+view: the worker gets everything; an organization gets only the groups the
+worker shares with it (`shared`), with a withheld group as `null` and, without
+hours and history, no counts behind a rate and no period or state filtering.
 
 Scorecard formulas follow spec p.10. Averages use verified shifts only
 (checked in, checked out, closeout approved) and are segmented by work type;
@@ -566,6 +570,71 @@ connection is only for schema changes.
   through. Run `prisma/rate-limit.sql` before deploying this. Member
   invites are capped at 20 emails per organization per day the same way.
 
+## C2 scope — workers decide what each organization sees
+
+- **Who sees what** (Profile): each part of the profile — output rates,
+  quality, reliability, hours and history, availability, credentials — is
+  shared with organizations the worker applied to or accepted an invite
+  from, any organization Turfcut approved, or nobody. No saved choice = the
+  first, which is what organizations saw before C2. Findability is off by
+  default and uses only a typed city or ZIP and a radius, never GPS.
+- **One shared view**: the organization's worker page (and the worker's
+  preview of it) is built by `orgProfileView` (`src/lib/org-profile.ts`);
+  lists, hiring snapshots and the API read through `shareScorecard`,
+  `loadOrgScorecard` and `loadOrgAvailabilities`, which apply the same
+  rules (an unapproved organization gets no part and no political fit). A
+  withheld part shows "not shared", never a zero; experience records count
+  as hours and history; without hours and history a shared rate shows its
+  rounded value and formula only, and period/state filters are ignored.
+  Narrowing applies at once; hiring snapshots freeze only what was shared
+  then.
+- **Availability** (usual week, dates that differ, a note) and the
+  **credentials wallet** (self-reported; only a number's last four
+  characters are kept) are append-only and versioned.
+- **See what organizations see** is the organization's own worker page
+  (one function, `orgProfileView`, and one component) drawn for each kind
+  of viewer, with the name and experience whenever that viewer would get
+  them. A short first-run setup is offered on Today, with a reminder on
+  Profile until the worker confirms their choices under the current
+  sharing wording; a new wording (`SHARING_TEXT_VERSION`) asks again. Done
+  confirms the version and the wording it showed: it's refused if a newer
+  save landed meanwhile (unless those same choices are already confirmed,
+  as after a double press) or if the wording changed since the steps
+  began (they start again). Who sees what refuses a save across a wording
+  change the same way.
+- Database: `prisma/c2-consent.sql` (three append-only, server-only tables
+  with checks that refuse self-verification, foreign proof paths and
+  carried-forward verification). Acceptance: `tests/acceptance/c2-consent.ts`.
+
+### Credential proof photos — decided for C3 (owner, 2026-10-09)
+
+Not built yet; C2 only tells Colorado petition circulators to keep their training
+certificate. Approved as recommended by review:
+
+- A photo is evidence a person checks, never proof by itself: it doesn't
+  change the verification level, and organizations get no "proof on file"
+  marker. Verification records how it was checked.
+- Phase 1 takes one document: Colorado's Secretary of State circulator
+  training certificate (the hiring entity uploads it to register the
+  circulator). Never notary or affidavit papers, IDs, signatures or
+  petition sheets; nothing under "Other".
+- Private by default. Only an organization that hired the worker (claimed
+  or active), only its owner and compliance members, only photos the
+  worker chose to share, and only while credentials are shared with it.
+  Every view and download is audited and shown to the worker.
+- Server-side: JPEG/PNG only, size and pixel caps, re-encoded with `sharp`
+  (new dependency, approved) so location and camera metadata are gone;
+  encrypted with a separate key; private bucket, streamed through a
+  signed-in route, never a public or signed link.
+- Deleted when the credential is removed, the account closes, or the
+  Colorado registration it supports lapses (one year after the training
+  date); daily purge and a written disposal policy. Included in the data export.
+- Schema (approved): a `CredentialProof` table with its own deletion rows,
+  and `verificationMethod` on verified credentials; `proofPath` stays
+  unused.
+- Counsel reviews the Colorado rule profile and document handling before
+  the pilot.
+
 ## M7 scope — field truth and leaving cleanly
 
 - **Supervisor corrections.** On a shift's activity log, an owner or
@@ -607,6 +676,13 @@ connection is only for schema changes.
   metric versions, reviews and messages stay exactly as recorded (rule 3).
   Closed workers are hidden from People, can't be invited, their profile is
   not found, and any remaining session is refused.
+
+**Already on C1? Worker sharing (C2)** — run `prisma/c2-consent.sql` once
+in the Supabase SQL editor, after `c1-roles.sql` and `rate-limit.sql`. It adds
+`WorkerSharing`, `WorkerAvailability` and `WorkerCredential`: append-only,
+server-only, and empty until workers save a choice. Until then every worker
+gets the defaults (organizations they applied to see everything they saw
+before; nobody can find them).
 
 **Already on M6? Field truth (M7)** — run `prisma/m7-migration.sql` once
 in the Supabase SQL editor (`closedAt` on `Profile` and `Worker`).

@@ -15,6 +15,13 @@ import { workerPayTotals } from "@/lib/pay-data";
 import { OfflineBrief } from "@/components/OfflineBrief";
 import { briefPaths } from "@/lib/offline-brief-data";
 import { money } from "@/lib/pay";
+import { cookies } from "next/headers";
+import { loadSharing } from "@/lib/sharing-data";
+import { noteDismissedBy, RELATIONSHIP_PHRASE, SHARING_NOTE_COOKIE } from "@/lib/sharing";
+import { DismissibleNote } from "@/components/DismissibleNote";
+import { loadCredentials } from "@/lib/credentials-data";
+import { credentialName, expiryReminder, expiryState, expiryToday } from "@/lib/credentials";
+import { dismissSharingNote } from "./actions";
 
 const ROLE_LABELS: Record<string, string> = {
   WORKER: "Field worker",
@@ -89,6 +96,62 @@ async function WorkerHero({ workerId }: { workerId: string }) {
       <p className="hero-title">{next.job.title}</p>
       <p className="text-sm font-semibold">{payText(next.job.compensationMethod, next.job.payRateCents)}</p>
     </Link>
+  );
+}
+
+/**
+ * Note: workers choose who sees what. Gone once the worker saves a choice
+ * under today's wording, or dismisses it for themselves on this device; a
+ * new wording brings it back (SHARING_TEXT_VERSION).
+ */
+async function SharingNote({ workerId }: { workerId: string }) {
+  if (noteDismissedBy((await cookies()).get(SHARING_NOTE_COOKIE)?.value, workerId)) return null;
+  const sharing = await loadSharing(workerId);
+  if (sharing.current) return null;
+  const never = sharing.version === null;
+  return (
+    <DismissibleNote action={dismissSharingNote} title={never ? "You choose who sees what" : "Check who sees what"}>
+      <p className="text-muted-sm">
+        {never
+          ? `Choose who sees each part of your scorecard, your availability and your credentials, and whether organizations can find you. Until you do, organizations you ${RELATIONSHIP_PHRASE} see your profile, and nobody can find you.`
+          : "We've changed how Turfcut explains who sees what since you chose. Your choices stay as they are; take a look and confirm them."}
+      </p>
+      <Link transitionTypes={["nav-forward"]} href="/profile/setup" className="btn-primary btn-sm">{never ? "Set it up (4 short steps)" : "Check your choices"}</Link>
+    </DismissibleNote>
+  );
+}
+
+/**
+ * Credentials that expire within 30 days, or have expired (C2.5). From 30
+ * days out it's a reminder; within 7 days, or once expired, it says so plainly.
+ */
+async function CredentialReminder({ workerId }: { workerId: string }) {
+  const today = expiryToday();
+  const due = (await loadCredentials(workerId))
+    .map((c) => ({ c, when: expiryReminder(c.expiresOn, today), state: expiryState(c.expiresOn, today) }))
+    .filter((x) => x.when !== null);
+  if (!due.length) return null;
+  return (
+    <section className={`card space-y-2 ${due.some((x) => x.when !== "30") ? "border-[var(--danger)]" : ""}`} aria-label="Credentials to renew">
+      <p className="font-semibold text-fg">
+        {due.some((x) => x.when === "expired") ? "Expired: renew before you work" : due.some((x) => x.when === "7") ? "Renew this week" : due.length === 1 ? "A credential needs renewing soon" : "Credentials need renewing soon"}
+      </p>
+      <ul className="space-y-1 text-sm">
+        {due.map(({ c, state }) => (
+          <li key={c.id} className="text-fg">
+            {credentialName(c)}:{" "}
+            {state.kind === "expired"
+              ? `expired ${state.days === 1 ? "yesterday" : `${state.days} days ago`}`
+              : state.kind === "soon"
+                ? state.days === 0 ? "expires today" : `expires in ${state.days} ${state.days === 1 ? "day" : "days"}`
+                : ""}
+            {/* The date itself too: "today" is counted in the furthest-west US time (expiryToday). */}
+            {c.expiresOn && ` (${c.expiresOn.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" })})`}
+          </li>
+        ))}
+      </ul>
+      <Link transitionTypes={["nav-forward"]} href="/profile/credentials" className="link text-sm">Update credentials</Link>
+    </section>
   );
 }
 
@@ -194,6 +257,8 @@ export default async function DashboardPage() {
 
       {isWorker && <WorkerBrief workerId={session.workerId!} userId={session.userId} />}
       {isWorker && <WorkerHero workerId={session.workerId!} />}
+      {isWorker && <CredentialReminder workerId={session.workerId!} />}
+      {isWorker && <SharingNote workerId={session.workerId!} />}
 
       {isWorker && <EarningsCard workerId={session.workerId!} />}
       {isWorker && <OpenJobs workerId={session.workerId!} />}

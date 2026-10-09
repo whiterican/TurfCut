@@ -11,7 +11,7 @@ export function DateRangeChip({ startsAt, endsAt }: { startsAt: Date | null; end
   return (
     <span className="badge-sky">
       <CalendarDays aria-hidden className="size-3.5 shrink-0" />
-      {day(startsAt)} – {day(endsAt)}
+      {startsAt || endsAt ? `${day(startsAt)} – ${day(endsAt)}` : "Dates to be set"}
     </span>
   );
 }

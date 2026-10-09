@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { DateRangeChip } from "@/components/DateRangeChip";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
@@ -18,6 +17,7 @@ import { shiftState, shiftStatusLabel } from "@/lib/field-day";
 import { listSupervisors } from "@/lib/field-day-data";
 import { LocalTime } from "@/components/LocalTime";
 import { ScheduleShiftForm } from "@/components/ScheduleShiftForm";
+import { DateRangeChip } from "@/components/DateRangeChip";
 
 const loadJob = (id: string) => db().job.findUnique({ where: { id }, include: { org: true, jurisdiction: true } });
 type JobWithRefs = NonNullable<Awaited<ReturnType<typeof loadJob>>>;
@@ -53,7 +53,7 @@ export default async function JobPage({ params }: { params: Promise<{ jobId: str
           <p className="pt-2 text-3xl font-bold tracking-[-0.03em] text-fg tabular-nums">{payText(job.compensationMethod, job.payRateCents)}</p>
           <p className="flex flex-wrap gap-1.5 pt-1">
             {isOwnOrg && <span className={jobPageBadge(status.badge)}>{status.label}</span>}
-            {/* The dates carry a calendar so their blue never reads as a party; other chips here stay neutral. */}
+            {/* The dates carry a calendar so their blue never reads as a party. */}
             <DateRangeChip startsAt={job.startsAt} endsAt={job.endsAt} />
             <span className="badge-neutral">{job.type === "PETITION" ? "Petition" : "Canvass"}</span>
             <span className="badge-neutral">{acceptedCount} of {job.headcount ?? "—"} spots filled</span>

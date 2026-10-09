@@ -832,7 +832,8 @@ body {
     color: inherit;
   }
   /* Quick filters on Find work: outlined, solid when on. One "on" for all of
-     them: on the feed, a coloured chip means a campaign's declared party. */
+     them: on the feed, a coloured chip names a campaign's declared party in
+     words; the sky date chip carries a calendar instead. */
   /* relative: it holds its own screen-reader text (absolutely placed), so the
      scrolling row clips that too and the page never scrolls sideways. */
   .filter-chip {

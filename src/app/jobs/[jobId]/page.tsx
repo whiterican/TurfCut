@@ -113,8 +113,12 @@ async function WorkerPanel({
     // still keep them off the job (the org is never told why).
     if (engagement.status === "INVITED" && reasons.length) return excluded;
     const facts = (await loadPipelineFacts([engagement.id])).get(engagement.id)!;
-    const offerExpired = engagement.status === "OFFERED" && !!facts.offerExpiresAt && facts.offerExpiresAt <= new Date();
+    const offerDeadline = engagement.status === "OFFERED" ? facts.offerExpiresAt : null;
+    const offerExpired = !!offerDeadline && offerDeadline <= new Date();
+    const closed = job.status === "CLOSED";
     const fields = { jobId: job.id, engagementId: engagement.id };
+    // Declining and withdrawing end this job for good: no second application or invitation (C3 decision).
+    const final = "You can't apply to or be invited to this job again afterwards.";
     return (
       <section className="card space-y-3">
         <p className="flex items-center gap-2 font-medium text-fg">
@@ -122,9 +126,10 @@ async function WorkerPanel({
         </p>
         {engagement.status === "INVITED" && (
           <>
+            {closed && <p className="text-muted-sm">This job has closed.</p>}
             <div className="flex flex-wrap items-start gap-2">
-              <ActionButton action={acceptInvitation} fields={fields} label="Accept invitation" />
-              <ActionButton action={declineAsWorker} fields={fields} label="Decline" pendingLabel="Declining…" variant="btn-ghost" />
+              {!closed && <ActionButton action={acceptInvitation} fields={fields} label="Accept invitation" />}
+              <ActionButton action={declineAsWorker} fields={fields} label="Decline" pendingLabel="Declining…" variant="btn-ghost" confirm={{ text: `Decline this invitation? ${final}`, label: "Yes, decline" }} />
             </div>
             <WillSee sharing={(await loadSharing(workerId)).choices} approved={job.org.approved} invited kept={engagement.applicationSnapshot != null} />
           </>
@@ -132,20 +137,22 @@ async function WorkerPanel({
         {engagement.status === "OFFERED" && (
           <div className="space-y-2">
             <p className="text-sm text-fg">
-              {offerExpired
-                ? "This offer expired before you answered. Ask the organization to send a new one."
-                : `The organization offered you a spot. Nothing starts until you accept (${timeLeft(facts.offerExpiresAt!)}). Any note it sent is in the history below.`}
+              {closed
+                ? "This job closed before you answered the offer."
+                : offerExpired || !offerDeadline
+                  ? "This offer expired before you answered. The organization can send a new one."
+                  : `The organization offered you a spot. Nothing starts until you accept (${timeLeft(offerDeadline)}). Any note it sent is in the history below.`}
             </p>
             <div className="flex flex-wrap items-start gap-2">
-              {!offerExpired && <ActionButton action={acceptInvitation} fields={fields} label="Accept offer" pendingLabel="Accepting…" />}
-              <ActionButton action={declineAsWorker} fields={fields} label="Decline offer" pendingLabel="Declining…" variant="btn-ghost" />
+              {!offerExpired && offerDeadline && !closed && <ActionButton action={acceptInvitation} fields={fields} label="Accept offer" pendingLabel="Accepting…" />}
+              <ActionButton action={declineAsWorker} fields={fields} label="Decline offer" pendingLabel="Declining…" variant="btn-ghost" confirm={{ text: `Decline this offer? ${final}`, label: "Yes, decline the offer" }} />
             </div>
           </div>
         )}
         {engagement.status === "APPLIED" && (
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="text-muted-sm">The organization will review your application.</p>
-            <ActionButton action={withdrawApplication} fields={fields} label="Withdraw application" pendingLabel="Withdrawing…" variant="btn-ghost btn-sm" />
+            <ActionButton action={withdrawApplication} fields={fields} label="Withdraw application" pendingLabel="Withdrawing…" variant="btn-ghost btn-sm" confirm={{ text: `Withdraw your application? ${final}`, label: "Yes, withdraw" }} />
           </div>
         )}
         {(engagement.status === "ACTIVE" || engagement.status === "CLAIMED") && <WorkerShifts engagementId={engagement.id} />}
@@ -338,6 +345,7 @@ async function OrgPanel({ job, canHire, canSchedule, userId }: { job: JobWithRef
       })
     : [];
   const facts = await loadPipelineFacts(engagements.map((e) => e.id));
+  const now = new Date();
 
   return (
     <>
@@ -375,6 +383,8 @@ async function OrgPanel({ job, canHire, canSchedule, userId }: { job: JobWithRef
             <ul className="space-y-3">
               {engagements.map((e) => {
                 const s = ENGAGEMENT_LABELS[e.status];
+                const f = facts.get(e.id) ?? { events: [], inReview: false, offerExpiresAt: null };
+                const offerExpired = e.status === "OFFERED" && !!f.offerExpiresAt && f.offerExpiresAt <= now;
                 return (
                   <li key={e.id} className="card space-y-3">
                     <div className="flex flex-wrap items-center justify-between gap-3">
@@ -385,9 +395,7 @@ async function OrgPanel({ job, canHire, canSchedule, userId }: { job: JobWithRef
                         ) : (
                           <Link transitionTypes={["nav-forward"]} href={`/workers/${e.worker.id}`} className="link">{e.worker.displayName}</Link>
                         )}
-                        <span className={s.badge}>
-                          {workerStage(e.status, facts.get(e.id)!.events, e.status === "OFFERED" && !!facts.get(e.id)!.offerExpiresAt && facts.get(e.id)!.offerExpiresAt! <= new Date())}
-                        </span>
+                        <span className={s.badge}>{workerStage(e.status, f.events, offerExpired)}</span>
                       </p>
                     </div>
                     <HiringActions
@@ -395,10 +403,10 @@ async function OrgPanel({ job, canHire, canSchedule, userId }: { job: JobWithRef
                       jobStatus={job.status}
                       engagementId={e.id}
                       status={e.status}
-                      inReview={facts.get(e.id)!.inReview}
-                      offerExpiresAt={facts.get(e.id)!.offerExpiresAt}
+                      inReview={f.inReview}
+                      offerExpiresAt={f.offerExpiresAt}
                     />
-                    <EngagementHistory events={facts.get(e.id)!.events} />
+                    <EngagementHistory events={f.events} />
                     {e.applicationSnapshot ? (
                       <SnapshotView snapshot={e.applicationSnapshot as unknown as HiringSnapshot} />
                     ) : (

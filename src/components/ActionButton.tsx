@@ -15,6 +15,7 @@ export function ActionButton({
   disabled = false,
   icon,
   children,
+  confirm,
 }: {
   action: (prev: ActionState, fd: FormData) => Promise<ActionState>;
   fields: Record<string, string>;
@@ -25,8 +26,28 @@ export function ActionButton({
   /** A glyph shown before the label (decorative: the label carries the meaning). */
   icon?: React.ReactNode;
   children?: React.ReactNode;
+  /**
+   * For a step that can't be undone: the button first opens this warning
+   * and a second button that confirms.
+   */
+  confirm?: { text: string; label: string };
 }) {
   const [state, formAction, pending] = useActionState(action, initial);
+  if (confirm) {
+    return (
+      <details className="group space-y-2">
+        <summary className={`${variant} cursor-pointer list-none`}>{label}</summary>
+        <form action={formAction} className="mt-2 space-y-2 rounded-xl border border-border p-3">
+          {Object.entries(fields).map(([k, v]) => <input key={k} type="hidden" name={k} value={v} />)}
+          <p className="text-sm text-fg">{confirm.text}</p>
+          <button className="btn-secondary btn-sm" disabled={disabled || pending}>{pending ? (pendingLabel ?? "Working…") : confirm.label}</button>
+          {state.message && (
+            <p role="status" className={state.ok ? "text-success-msg" : "text-danger-msg"}>{state.message}</p>
+          )}
+        </form>
+      </details>
+    );
+  }
   return (
     <form action={formAction} className="space-y-2">
       {Object.entries(fields).map(([k, v]) => <input key={k} type="hidden" name={k} value={v} />)}

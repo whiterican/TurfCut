@@ -396,14 +396,17 @@ Jobs and hiring, built on the M1 profile.
 - **Job card**: who you work for, what you're paid (gross), what counts as
   payable, credentials needed, who handles problems — plus the disclosure.
 - **Apply / invite / claim / accept.** Workers apply or claim; orgs invite;
-  orgs accept applications and workers accept invitations. Headcount is
-  enforced under a lock, so simultaneous claims can't overfill a job.
+  orgs answer applications with an offer (C3) and workers accept offers and
+  invitations. Headcount is enforced under a lock, so simultaneous claims
+  can't overfill a job.
 - **Hiring snapshot.** Each engagement freezes what the org could see at that
   moment — scorecard summary and authorized fit signals only, with consent
   version and time. Issue overlap compares the worker's shared answers with
   the job's disclosed positions. An invitation shows fit answers only if
   the worker already applied to, claimed or accepted one of the org's jobs;
-  an invitation alone (even a second one) is never a relationship.
+  an invitation alone (even a second one) is never a relationship. Nor is
+  an engagement the worker withdrew or declined, or one the org closed as
+  not selected (C3): the relationship lasts while one is open or worked.
 - **Late cancellations.** A worker `SHIFT_CANCELLED` inside the job's notice
   window counts as a no-show; timely and organization cancellations don't.
   A shift scheduled with less notice than the window can be cancelled
@@ -414,7 +417,9 @@ Jobs and hiring, built on the M1 profile.
 API: `GET/POST /api/jobs`, `POST /api/jobs/:id/publish`,
 `GET/POST /api/jobs/:id/applications`, `POST /api/jobs/:id/claims`,
 `POST /api/jobs/:id/invitations` `{ workerId }`,
-`POST /api/engagements/:id/accept`.
+`POST /api/engagements/:id/accept` (a worker accepts an invitation or an
+offer; an org calling it on an application sends an offer). Review, not
+selected and withdraw are in the app only for now.
 
 ## M3 scope — field day
 
@@ -645,11 +650,22 @@ certificate. Approved as recommended by review:
   worker accepts: an offer lapses after 48 hours (`OFFER_HOURS`). Workers
   can decline an invitation or offer and withdraw until hired; an
   organization can withdraw an unanswered invitation. "Accept" from an
-  organization (the pre-C3 API) now sends an offer.
+  organization (the pre-C3 API) now sends an offer. A lapsed offer can be
+  sent again. An offer holds a seat while it's live, so an organization
+  can't have more offers out than open spots, and claims and invitations
+  can't take an offered seat. On a closed job only the close-outs remain.
+- **Ending is final for that job** (decision for Caden): once a worker
+  withdraws or declines, or the organization withdraws an invitation or
+  closes it as not selected, that worker and job can't start again; the
+  worker is asked to confirm first. Closing an account withdraws open
+  applications, invitations and offers, each with a history line.
 - **History**: every step is an append-only `EngagementEvent`, shown the
-  same way to the worker and the organization. `prisma/c3-hiring.sql` adds
-  the statuses (OFFERED, DECLINED, WITHDRAWN) and the table, and gives each
-  existing engagement its opening event. Acceptance:
+  same way to the worker and the organization, and in the worker's data
+  export (`engagement-history.csv`). `prisma/c3-hiring.sql` adds the
+  statuses (OFFERED, DECLINED, WITHDRAWN) and the table, and gives each
+  existing engagement its opening event. Run it **before** deploying the
+  C3 code; it is safe to run again, so a second run after the deploy fills
+  in any engagement made in between. Acceptance:
   `tests/acceptance/c3-hiring.ts`.
 
 ## M7 scope — field truth and leaving cleanly
@@ -763,7 +779,7 @@ once in the Supabase SQL editor (two nullable columns on `WorkEvent`).
 ## M4 scope — messaging
 
 - **Direct messages**: one thread per hire, between the worker and the person
-  who hired them (the inviter, the person who accepted the application, or —
+  who hired them (the inviter, the person who sent the offer, or —
   for instant claims — the job's creator, else the owner). Opens only once
   the hire is confirmed; read-only when it ends. If that contact leaves the
   organization, the worker can reopen the thread with a current contact, who

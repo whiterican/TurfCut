@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { ACCEPTED_STATUSES } from "@/lib/engagements";
+import { ACCEPTED_STATUSES, workerStage } from "@/lib/engagements";
+import { loadPipelineFacts } from "@/lib/engagements-data";
 import { Masthead } from "@/components/staff/Masthead";
 import { DataTable } from "@/components/staff/DataTable";
 import { db } from "@/lib/db";
@@ -51,6 +52,8 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
   const mine = engagements.filter(
     (e) => !(e.status === "INVITED" && exclusionReasons(pref, { disclosure: readDisclosure(e.job.campaignDisclosure), orgName: e.job.org.name, measureIds: e.job.measureIds }).length)
   );
+  const facts = await loadPipelineFacts(mine.map((e) => e.id));
+  const now = new Date();
   const engagedIds = new Set(engagements.map((e) => e.jobId));
   const open = jobs.filter((j) => !engagedIds.has(j.id));
 
@@ -90,11 +93,13 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
           <ul className="list-card">
             {mine.map((e) => {
               const s = ENGAGEMENT_LABELS[e.status];
+              const f = facts.get(e.id);
+              const stage = workerStage(e.status, f?.events ?? [], !!f?.offerExpiresAt && f.offerExpiresAt <= now);
               return (
                 <li key={e.id}>
                   <Link transitionTypes={["nav-forward"]} href={`/jobs/${e.job.id}`} className="flex min-h-14 items-center justify-between gap-3 px-4 py-3 text-fg transition hover:bg-surface-2">
                     <span className="font-medium">{e.job.title}</span>
-                    <span className={s.badge}>{s.label}</span>
+                    <span className={s.badge}>{stage}</span>
                   </Link>
                 </li>
               );

@@ -40,8 +40,8 @@ export type CloseResult = { ok: true; cancelledShifts: number } | { ok: false; p
 /**
  * Closes a worker's account. Nothing is deleted from the ledger (rule 3):
  * the name and phone are anonymized, future shifts are cancelled as excused
- * (owner decision: closing is never a no-show), open applications and
- * invitations are withdrawn, and the login is removed afterwards so the
+ * (owner decision: closing is never a no-show), open applications,
+ * invitations and offers are withdrawn, and the login is removed afterwards so the
  * email is gone and they can't sign in. Everything else stays as recorded.
  */
 export async function closeAccount(actor: { userId: string; workerId: string }, now = new Date(), opts: { unsyncedEntries?: number } = {}): Promise<CloseResult> {
@@ -71,7 +71,16 @@ export async function closeAccount(actor: { userId: string; workerId: string }, 
       await tx.workEvent.create({ data: { shiftId: id, type: "SHIFT_CANCELLED", payload, actorId: actor.userId, createdAt: now } });
       await tx.auditEvent.create({ data: { actorId: actor.userId, action: "shift.cancelled", entityType: "Shift", entityId: id, metadata: payload, createdAt: now } });
     }
-    await tx.engagement.updateMany({ where: { workerId: actor.workerId, status: { in: ["APPLIED", "INVITED"] } }, data: { status: "CANCELLED" } });
+    // Open applications, invitations and offers end with the account, each
+    // with a history line in the worker's name (an invitation reads as
+    // declined, anything the worker started as withdrawn).
+    const open = await tx.engagement.findMany({ where: { workerId: actor.workerId, status: { in: ["APPLIED", "INVITED", "OFFERED"] } }, select: { id: true, status: true } });
+    if (open.length) {
+      await tx.engagement.updateMany({ where: { id: { in: open.map((e) => e.id) } }, data: { status: "CANCELLED" } });
+      await tx.engagementEvent.createMany({
+        data: open.map((e) => ({ engagementId: e.id, type: e.status === "INVITED" ? ("INVITE_DECLINED" as const) : ("WITHDRAWN" as const), actorId: actor.userId, createdAt: now })),
+      });
+    }
 
     await tx.worker.update({ where: { id: actor.workerId }, data: { displayName: CLOSED_NAME, phone: null, closedAt: now } });
     await tx.profile.update({ where: { id: actor.userId }, data: { displayName: null, closedAt: now } });
@@ -104,12 +113,13 @@ const json = (v: unknown) => JSON.stringify(v, null, 2) + "\n";
 export async function exportAccount(actor: { userId: string; workerId: string; email?: string }, now = new Date()): Promise<Array<{ name: string; text: string }>> {
   const p = db();
   const w = actor.workerId;
-  const [worker, experience, preferences, metrics, engagements, shifts, lines, transfers, disputes, messages, sharing, availability, credentials] = await Promise.all([
+  const [worker, experience, preferences, metrics, engagements, history, shifts, lines, transfers, disputes, messages, sharing, availability, credentials] = await Promise.all([
     p.worker.findUniqueOrThrow({ where: { id: w }, select: { id: true, displayName: true, phone: true, createdAt: true, closedAt: true, payoutsEnabled: true, stripeAccountId: true } }),
     p.experienceRecord.findMany({ where: { workerId: w }, omit: { verifiedById: true }, orderBy: { startDate: "desc" } }),
     p.politicalPreference.findMany({ where: { workerId: w }, orderBy: { consentVersion: "asc" } }),
     p.profileMetric.findMany({ where: { workerId: w }, orderBy: { version: "asc" } }),
     p.engagement.findMany({ where: { workerId: w }, include: { job: { select: { id: true, title: true, org: { select: { name: true } } } } }, orderBy: { createdAt: "asc" } }),
+    p.engagementEvent.findMany({ where: { engagement: { workerId: w } }, select: { id: true, engagementId: true, type: true, reasonCode: true, note: true, createdAt: true, actorId: true }, orderBy: { createdAt: "asc" } }),
     p.shift.findMany({
       where: { engagement: { workerId: w } },
       include: { engagement: { select: { job: { select: { title: true, org: { select: { name: true } } } } } }, events: { orderBy: { createdAt: "asc" } }, validations: { orderBy: { createdAt: "asc" } } },
@@ -136,6 +146,7 @@ export async function exportAccount(actor: { userId: string; workerId: string; e
       "preferences.json    every version of your political-fit answers and consent (newest last)",
       "metrics.json        every version of your computed scorecard aggregates",
       "engagements.csv     jobs you applied to, were invited to, claimed or worked",
+      "engagement-history.csv  each step of those: offers, reviews, reasons and notes written to you",
       "shifts.csv          your shifts, with the supervisor's review",
       "work-events.csv     the field ledger: every check-in, count, break, packet, correction",
       "reviews.csv         every supervisor review decision",
@@ -162,6 +173,13 @@ export async function exportAccount(actor: { userId: string; workerId: string; e
   files.push({ name: "availability.json", text: json(availability) });
   files.push({ name: "credentials.csv", text: csvTable(credentials) });
   files.push({ name: "engagements.csv", text: csvTable(engagements.map((e) => ({ id: e.id, jobId: e.job.id, job: e.job.title, organization: e.job.org.name, status: e.status, createdAt: e.createdAt, updatedAt: e.updatedAt, applicationSnapshot: e.applicationSnapshot }))) });
+  files.push({
+    name: "engagement-history.csv",
+    text: csvTable(
+      history.map((h) => ({ id: h.id, engagementId: h.engagementId, step: h.type, at: h.createdAt, byMe: h.actorId === actor.userId, reasonCode: h.reasonCode ?? "", note: h.note ?? "" })),
+      ["id", "engagementId", "step", "at", "byMe", "reasonCode", "note"]
+    ),
+  });
   files.push({
     name: "shifts.csv",
     text: csvTable(

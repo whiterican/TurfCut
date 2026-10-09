@@ -1,11 +1,19 @@
 /* C3.1 acceptance checks: the hiring pipeline on real Postgres — review, offer, accept, decline with a reason, withdraw, expiry, history and no browser access (tests/acceptance/run.sh). */
 import { db } from "@/lib/db";
-import { applyToJob, inviteWorker, loadEngagementEvents, loadPipelineFacts, moveEngagement } from "@/lib/engagements-data";
+import { applyToJob, claimJob, inviteWorker, loadEngagementEvents, loadPipelineFacts, moveEngagement } from "@/lib/engagements-data";
+import { closeAccount, exportAccount } from "@/lib/account-data";
+import { scheduleShift } from "@/lib/field-day-data";
+import { orgHasRelationship, savePreferences } from "@/lib/political-fit-data";
+import { workerAccessFor } from "@/lib/worker-access-data";
 
 const ORG = "00000000-0000-0000-0000-000000000001";
 const ORG2 = "00000000-0000-0000-0000-000000000002";
 const OWNER = "00000000-0000-0000-0000-0000000000aa";
 const OTHER = "00000000-0000-0000-0000-0000000000cc";
+const HIRER = "00000000-0000-0000-0000-0000000000ab";
+const W4 = "00000000-0000-0000-0000-000000000104";
+const W5 = "00000000-0000-0000-0000-000000000105";
+const W6 = "00000000-0000-0000-0000-000000000106";
 const W1 = "00000000-0000-0000-0000-000000000101"; // seeded engagement on JOB
 const W2 = "00000000-0000-0000-0000-000000000102";
 const W3 = "00000000-0000-0000-0000-000000000103";
@@ -24,7 +32,18 @@ const types = async (id: string) => (await loadEngagementEvents(id)).map((e) => 
   await p.profile.createMany({ data: [
     { id: OWNER, role: "OWNER", orgId: ORG, displayName: "Maya Chen" },
     { id: OTHER, role: "OWNER", orgId: ORG2, displayName: "Other Boss" },
+    { id: HIRER, role: "RECRUITER", orgId: ORG, displayName: "Sam Hirer" },
+    { id: W4, role: "WORKER" }, { id: W5, role: "WORKER" }, { id: W6, role: "WORKER" },
   ] });
+  await p.worker.createMany({ data: [
+    { id: W4, profileId: W4, displayName: "Riley Park" },
+    { id: W5, profileId: W5, displayName: "Casey Lin" },
+    { id: W6, profileId: W6, displayName: "Morgan Diaz" },
+  ] });
+  const jurisdictionId = (await p.job.findUniqueOrThrow({ where: { id: JOB } })).jurisdictionId;
+  const newJob = (title: string, headcount: number | null, extra: Record<string, unknown> = {}) =>
+    p.job.create({ data: { orgId: ORG, jurisdictionId, type: "CANVASS", title, status: "PUBLISHED", hiringMethod: { modes: ["application", "invite", "instant_claim"] }, headcount, ...extra } });
+  const idOf = (r: { ok: boolean } & ({ engagementId: string } | object)) => ("engagementId" in r ? r.engagementId : "");
   await p.job.update({ where: { id: JOB }, data: { hiringMethod: { modes: ["application", "invite"] }, headcount: 3 } });
 
   // --- Apply → in review → offer → accept ---
@@ -35,7 +54,8 @@ const types = async (id: string) => (await loadEngagementEvents(id)).map((e) => 
   const r2 = await moveEngagement(e2, "review", org);
   check("in review is recorded once; the status stays APPLIED", r1.ok && r1.status === "APPLIED" && !r2.ok && (await types(e2)) === "APPLIED,IN_REVIEW", { r1, r2 });
   check("the worker can't put their own application in review", !(await moveEngagement(e2, "review", worker(W2))).ok);
-  check("another organization can't touch it (reads as not found)", (await moveEngagement(e2, "offer", { kind: "org", profileId: OTHER, orgId: ORG2 })).ok === false);
+  const foreign = await moveEngagement(e2, "offer", { kind: "org", profileId: OTHER, orgId: ORG2 });
+  check("another organization can't touch it (reads as not found, nothing written)", !foreign.ok && /not found/.test(foreign.reason) && (await types(e2)) === "APPLIED,IN_REVIEW", foreign);
   const o = await moveEngagement(e2, "offer", org, { note: "  Saturdays   in Aurora  " });
   const offerEvt = (await loadEngagementEvents(e2)).at(-1)!;
   check("an offer moves it to OFFERED, names the sender as the contact, keeps the tidied note", o.ok && o.status === "OFFERED" && offerEvt.type === "OFFERED" && offerEvt.note === "Saturdays in Aurora" && (await p.engagement.findUniqueOrThrow({ where: { id: e2 } })).hiredById === OWNER, { o, offerEvt });
@@ -93,7 +113,96 @@ const types = async (id: string) => (await loadEngagementEvents(id)).map((e) => 
     check(`${role} can't read EngagementEvent`, /permission denied/.test(r), r);
   }
   const seeded = (await p.engagement.findFirstOrThrow({ where: { workerId: W1 } })).id;
-  check("an engagement from before C3 has an empty history and isn't offered or in review", (await loadPipelineFacts([seeded])).get(seeded)?.events.length === 0 && (await loadPipelineFacts([seeded])).get(seeded)?.offerExpiresAt === null);
+  check("an engagement from before C3 with no opening copy (the seed's) has an empty history and isn't offered or in review", (await loadPipelineFacts([seeded])).get(seeded)?.events.length === 0 && (await loadPipelineFacts([seeded])).get(seeded)?.offerExpiresAt === null);
+
+  // --- Review round 1: lapsed offers, held seats, races ---
+  const t0 = Date.now();
+  const jobR = await newJob("Renewal job", 1);
+  const ra = idOf(await applyToJob(W4, W4, jobR.id, new Date(t0 - 51 * HOUR)));
+  const firstOffer = await moveEngagement(ra, "offer", org, {}, new Date(t0 - 50 * HOUR));
+  check("(setup) an offer sent 50 hours ago", firstOffer.ok, firstOffer);
+  check("the offer's event carries the time it was sent", (await loadEngagementEvents(ra)).at(-1)!.createdAt.getTime() === t0 - 50 * HOUR);
+  check("a live offer can't be sent twice", !(await moveEngagement(ra, "offer", org, {}, new Date(t0 - 49 * HOUR))).ok);
+  const renew = await moveEngagement(ra, "offer", { kind: "org", profileId: HIRER, orgId: ORG });
+  const rf = (await loadPipelineFacts([ra])).get(ra)!;
+  check("a lapsed offer can be sent again: a second OFFERED event, a fresh 48 hours, the new sender as contact", renew.ok && (await types(ra)) === "APPLIED,OFFERED,OFFERED" && !!rf.offerExpiresAt && rf.offerExpiresAt.getTime() > t0 + 47 * HOUR && (await p.engagement.findUniqueOrThrow({ where: { id: ra } })).hiredById === HIRER, { renew, rf });
+  // The renewed offer holds the only seat.
+  const rb = idOf(await applyToJob(W5, W5, jobR.id));
+  const held = await moveEngagement(rb, "offer", org);
+  check("a live offer holds the seat: a second offer on a one-seat job is refused", !held.ok && /offer out/.test(held.reason), held);
+  const heldClaim = await claimJob(W6, W6, jobR.id);
+  check("…and so is an instant claim", !heldClaim.ok && /offer out/.test(heldClaim.reason), heldClaim);
+  const accR = await moveEngagement(ra, "accept", worker(W4));
+  check("the worker holding the offer accepts it", accR.ok && accR.status === "ACTIVE", accR);
+  // Demo-seed path (offer → worker accept → schedule): a hired worker can be scheduled.
+  const sh = await scheduleShift({ profileId: OWNER, orgId: ORG }, ra, { startsAt: new Date(t0 + 30 * HOUR).toISOString(), endsAt: new Date(t0 + 34 * HOUR).toISOString(), stagingLocation: "Library parking lot" });
+  check("an accepted offer can be scheduled (the demo seed's path)", sh.ok, sh);
+  check("…and the seat is gone for the next applicant", !(await moveEngagement(rb, "offer", org)).ok);
+
+  // Races: two offers for the last seat at once; the same offer twice at once.
+  const jobQ = await newJob("Race job", 1);
+  const qa = idOf(await applyToJob(W5, W5, jobQ.id));
+  const qb = idOf(await applyToJob(W6, W6, jobQ.id));
+  const both = await Promise.all([moveEngagement(qa, "offer", org), moveEngagement(qb, "offer", org)]);
+  check("two offers for the last seat at once: exactly one goes out", both.filter((r) => r.ok).length === 1, both);
+  const twice = await Promise.all([moveEngagement(qa, "review", org), moveEngagement(qa, "review", org)]);
+  const offeredOne = both[0].ok ? qa : qb;
+  const dup = await Promise.all([moveEngagement(offeredOne, "accept", worker(offeredOne === qa ? W5 : W6)), moveEngagement(offeredOne, "decline", org, { reasonCode: "positions_filled" })]);
+  check("an accept racing a not-selected: exactly one wins", dup.filter((r) => r.ok).length === 1, dup);
+  check("(a second review at once on the other one is recorded at most once)", (await p.engagementEvent.count({ where: { engagementId: qa, type: "IN_REVIEW" } })) <= 1, twice);
+
+  // --- Closed jobs: close-outs still work ---
+  const jobC = await newJob("Closing job", 3);
+  const ca = idOf(await applyToJob(W4, W4, jobC.id));
+  const cb = idOf(await applyToJob(W5, W5, jobC.id));
+  await moveEngagement(cb, "offer", org);
+  await p.job.update({ where: { id: jobC.id }, data: { status: "CLOSED" } });
+  check("on a closed job no offer goes out and none is accepted", !(await moveEngagement(ca, "offer", org)).ok && !(await moveEngagement(cb, "accept", worker(W5))).ok);
+  check("…but the org can still close out the application and the offer", (await moveEngagement(ca, "decline", org, { reasonCode: "positions_filled" })).ok && (await moveEngagement(cb, "decline", org, { reasonCode: "positions_filled" })).ok);
+
+  // --- Declined and withdrawn end the relationship (decision for Caden) ---
+  const jobD = await newJob("Decline job", 3);
+  const da = idOf(await applyToJob(W6, W6, jobD.id));
+  check("(setup) W6 is related to the org while applied", await orgHasRelationship(W6, ORG));
+  // W6's race engagement on jobQ must be closed too for the relationship to end.
+  const w6q = await p.engagement.findUniqueOrThrow({ where: { jobId_workerId: { jobId: jobQ.id, workerId: W6 } } });
+  if (w6q.status === "APPLIED" || w6q.status === "OFFERED") await moveEngagement(w6q.id, "decline", org, { reasonCode: "positions_filled" });
+  if (w6q.status === "ACTIVE") await p.engagement.update({ where: { id: w6q.id }, data: { status: "CANCELLED" } }); // test-only: end that hire
+  await moveEngagement(da, "decline", org, { reasonCode: "positions_filled" });
+  const staff = { role: "OWNER" as const, workerId: null, orgId: ORG };
+  const access = await workerAccessFor(staff, W6, true);
+  check("after not selected, the org loses the live profile", !(await orgHasRelationship(W6, ORG)) && access.kind === "denied", access);
+  const reinvite = await inviteWorker(ORG, OWNER, (await newJob("Re-invite job", 2)).id, W6);
+  check("…and can't invite them to another job until they apply again", !reinvite.ok && reinvite.reason === "Worker not found.", reinvite);
+  check("a declined application can't be applied to again on the same job", !(await applyToJob(W6, W6, jobD.id)).ok);
+
+  // --- The worker's own do-not-match answers still block an offer's accept ---
+  const jobM = await newJob("Boundary job", 2, { campaignDisclosure: { campaignType: "ballot_measure", affiliation: "nonpartisan", message: "Paid for by the committee." } });
+  const ma = idOf(await applyToJob(W4, W4, jobM.id));
+  await moveEngagement(ma, "offer", org);
+  await savePreferences(W4, W4, { visibilityMode: "APPLIED_TO", identityLabels: [], partyRelationship: null, issuePositions: {}, campaignBoundaries: [{ kind: "organization", target: "Front Range Circulators", stance: "do_not_match" }] } as never, null);
+  const blocked = await moveEngagement(ma, "accept", worker(W4));
+  check("a do-not-match answer blocks accepting the offer, and nothing changes", !blocked.ok && /not to be matched/.test(blocked.reason) && (await p.engagement.findUniqueOrThrow({ where: { id: ma } })).status === "OFFERED", blocked);
+
+  // --- An accepted invitation keeps its inviter as the contact ---
+  // W5's open application on the renewal job is the relationship that lets the org invite.
+  const iv = await inviteWorker(ORG, HIRER, (await newJob("Invite job", 2)).id, W5);
+  const ivAcc = iv.ok ? await moveEngagement(iv.engagementId, "accept", worker(W5)) : iv;
+  check("an accepted invitation keeps the inviter as the worker's contact", iv.ok && ivAcc.ok && (await p.engagement.findUniqueOrThrow({ where: { id: iv.engagementId } })).hiredById === HIRER, { iv, ivAcc });
+
+  // --- Closing an account withdraws an open offer, with a history line ---
+  const jobX = await newJob("Closure job", 2);
+  const xa = idOf(await applyToJob(W5, W5, jobX.id));
+  await moveEngagement(xa, "offer", org);
+  const closed = await closeAccount({ userId: W5, workerId: W5 });
+  const xr = await p.engagement.findUniqueOrThrow({ where: { id: xa } });
+  check("closing an account cancels an open offer and records it", closed.ok && xr.status === "CANCELLED" && (await types(xa)).endsWith("OFFERED,WITHDRAWN"), { closed, xr, t: await types(xa) });
+  check("…and an open application", (await p.engagement.findUniqueOrThrow({ where: { id: rb } })).status === "CANCELLED" && (await types(rb)) === "APPLIED,WITHDRAWN");
+
+  // --- The export carries the hiring history ---
+  const files = await exportAccount({ userId: W4, workerId: W4 });
+  const hist = files.find((f) => f.name === "engagement-history.csv");
+  check("the data export includes engagement-history.csv with offers and reasons", !!hist && /OFFERED/.test(hist.text) && /OFFER_ACCEPTED/.test(hist.text) && /positions_filled/.test(hist.text), hist?.text.slice(0, 300));
 
   await p.$disconnect();
   process.exit(fails ? 1 : 0);

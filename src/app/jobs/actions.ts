@@ -8,6 +8,7 @@ import { requireWorker } from "@/lib/worker-session";
 import { formToObject, jurisdictionStateProblem, validateJob } from "@/lib/jobs";
 import { createJob, publishJob, updateDraftJob } from "@/lib/jobs-data";
 import { acceptEngagement, applyToJob, claimJob, inviteWorker, moveEngagement } from "@/lib/engagements-data";
+import { OFFER_HOURS } from "@/lib/engagements";
 
 export interface JobFormState {
   message: string;
@@ -109,9 +110,8 @@ async function orgMove(
   return done(field(formData, "jobId"), r, okMessage);
 }
 
-/** Before C3 "Accept" hired an applicant outright; now it sends an offer the worker accepts. */
-export const acceptApplication = async (_prev: ActionState, fd: FormData) => orgMove(fd, "offer", "Offer sent. The worker has 48 hours to accept.");
-export const offerApplication = async (_prev: ActionState, fd: FormData) => orgMove(fd, "offer", "Offer sent. The worker has 48 hours to accept.");
+/** An offer answers an application (or replaces a lapsed one); only the worker's accept hires (C3). */
+export const offerApplication = async (_prev: ActionState, fd: FormData) => orgMove(fd, "offer", `Offer sent. The worker has ${OFFER_HOURS} hours to accept.`);
 export const reviewApplication = async (_prev: ActionState, fd: FormData) => orgMove(fd, "review", "Marked in review. The worker sees \"In review\".");
 export const notSelected = async (_prev: ActionState, fd: FormData) => orgMove(fd, "decline", "Done. The worker sees the reason you picked, and your note if you wrote one.");
 export const withdrawInvitation = async (_prev: ActionState, fd: FormData) => orgMove(fd, "withdraw", "Invitation withdrawn.");

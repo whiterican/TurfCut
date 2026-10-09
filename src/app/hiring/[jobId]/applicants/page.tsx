@@ -17,9 +17,9 @@ import { AvailabilityStatement } from "@/components/AvailabilityStatement";
 const day = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
 
 /**
- * One job's applications (C1.4): who is at which stage, and the hiring
- * snapshot for each waiting application. Accept is the existing action.
- * No scorecard columns: sortable lists of shared numbers arrive with C3.
+ * One job's applications (C1.4, C3): who is at which stage, then the open
+ * ones — applications waiting on the organization and offers waiting on the
+ * worker — each with its hiring snapshot, history and next steps.
  */
 export default async function ApplicantsPage({ params }: { params: Promise<{ jobId: string }> }) {
   const { jobId } = await params;
@@ -34,10 +34,13 @@ export default async function ApplicantsPage({ params }: { params: Promise<{ job
   });
   // Waiting on the organization (an application) or on the worker (an offer).
   const waiting = engagements.filter((e) => e.status === "APPLIED" || e.status === "OFFERED");
+  const toDecide = waiting.filter((e) => e.status === "APPLIED").length;
+  const offers = waiting.length - toDecide;
   const facts = await loadPipelineFacts(engagements.map((e) => e.id));
   const now = new Date();
+  const factsOf = (id: string) => facts.get(id) ?? { events: [], inReview: false, offerExpiresAt: null };
   const stage = (e: (typeof engagements)[number]) => {
-    const f = facts.get(e.id)!;
+    const f = factsOf(e.id);
     return workerStage(e.status, f.events, e.status === "OFFERED" && !!f.offerExpiresAt && f.offerExpiresAt <= now);
   };
   // Live, as each worker shares it with this organization now (C2.4); never scored or sorted on.
@@ -46,7 +49,7 @@ export default async function ApplicantsPage({ params }: { params: Promise<{ job
 
   return (
     <main className="page max-w-4xl">
-      <Masthead eyebrow="Applicants" title={job.title} meta={`${engagements.length} ${engagements.length === 1 ? "person" : "people"} · ${waiting.length} waiting for a decision`}>
+      <Masthead eyebrow="Applicants" title={job.title} meta={`${engagements.length} ${engagements.length === 1 ? "person" : "people"} · ${toDecide} to decide · ${offers} ${offers === 1 ? "offer" : "offers"} out`}>
         <Link href="/hiring" className="btn-ghost btn-sm">← Pipeline</Link>
         <Link href={`/jobs/${job.id}`} className="btn-secondary btn-sm">Job page</Link>
       </Masthead>
@@ -56,7 +59,7 @@ export default async function ApplicantsPage({ params }: { params: Promise<{ job
         empty="Nobody has applied yet."
         columns={[
           { key: "who", label: "Worker", sortable: true },
-          { key: "since", label: "Since", sortable: true },
+          { key: "since", label: "Arrived", sortable: true },
           { key: "stage", label: "Stage", sortable: true },
         ]}
         rows={engagements.map((e) => ({
@@ -71,9 +74,9 @@ export default async function ApplicantsPage({ params }: { params: Promise<{ job
       />
 
       <section className="section" aria-labelledby="waiting">
-        <h2 id="waiting" className="section-title">Waiting for a decision</h2>
+        <h2 id="waiting" className="section-title">Applications and offers</h2>
         {waiting.length === 0 ? (
-          <p className="text-muted-sm">No applications are waiting.</p>
+          <p className="text-muted-sm">No applications or offers are open.</p>
         ) : (
           <ul className="space-y-3">
             {waiting.map((e) => (
@@ -81,7 +84,7 @@ export default async function ApplicantsPage({ params }: { params: Promise<{ job
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <p className="font-medium text-fg">
                     {e.worker.closedAt ? e.worker.displayName : <Link href={`/workers/${e.worker.id}`} className="link">{e.worker.displayName}</Link>}
-                    <span className="text-muted-sm"> · {stage(e).toLowerCase()} · applied {day(e.createdAt)}</span>
+                    <span className="text-muted-sm"> · {stage(e)} · applied {day(e.createdAt)}</span>
                   </p>
                 </div>
                 <HiringActions
@@ -89,8 +92,8 @@ export default async function ApplicantsPage({ params }: { params: Promise<{ job
                   jobStatus={job.status}
                   engagementId={e.id}
                   status={e.status}
-                  inReview={facts.get(e.id)!.inReview}
-                  offerExpiresAt={facts.get(e.id)!.offerExpiresAt}
+                  inReview={factsOf(e.id).inReview}
+                  offerExpiresAt={factsOf(e.id).offerExpiresAt}
                 />
                 {availability.has(e.id) && (
                   <div className="space-y-1">
@@ -99,7 +102,7 @@ export default async function ApplicantsPage({ params }: { params: Promise<{ job
                   </div>
                 )}
                 {e.applicationSnapshot ? <SnapshotView snapshot={e.applicationSnapshot as unknown as HiringSnapshot} /> : null}
-                <EngagementHistory events={facts.get(e.id)!.events} />
+                <EngagementHistory events={factsOf(e.id).events} />
               </li>
             ))}
           </ul>

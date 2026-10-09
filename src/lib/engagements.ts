@@ -41,17 +41,33 @@ export const offerExpiresAt = (offeredAt: Date) => new Date(offeredAt.getTime() 
 /**
  * Why an organization didn't select someone (C3 decision Q5: structured
  * reasons, never free-text notes about a worker). The worker sees the label,
- * plus any note the organization writes to them.
+ * plus any note the organization writes to them. Worded for both sides: the
+ * organization reads the same history.
  */
 export const NOT_SELECTED_REASONS = [
   { value: "positions_filled", label: "The spots are filled" },
-  { value: "schedule", label: "Your availability doesn't fit the job's dates" },
-  { value: "credentials", label: "The job needs a credential you haven't added" },
-  { value: "area", label: "The job is outside the area you'd travel to" },
+  { value: "schedule", label: "Availability doesn't fit the job's dates" },
+  { value: "credentials", label: "The job needs a credential that isn't on the profile" },
+  { value: "area", label: "The job is outside the travel area" },
   { value: "other", label: "Another reason" },
 ] as const;
 export type NotSelectedReason = (typeof NOT_SELECTED_REASONS)[number]["value"];
 export const NOTE_MAX = 500;
+
+/**
+ * A note to the worker: trimmed, runs of spaces folded, at most one blank
+ * line in a row (line breaks are kept; the history shows them).
+ */
+export function cleanNote(raw: string | undefined): string | null {
+  const text = (raw ?? "")
+    .replace(/\r\n?/g, "\n")
+    .split("\n")
+    .map((l) => l.replace(/[^\S\n]+/g, " ").trim())
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+  return text || null;
+}
 
 /** Statuses that hold a seat against headcount. */
 export const ACCEPTED_STATUSES: EngagementStatus[] = ["CLAIMED", "ACTIVE", "COMPLETED"];
@@ -76,6 +92,12 @@ export interface TransitionContext {
   inReview?: boolean;
   /** The pending offer's deadline has passed. */
   offerExpired?: boolean;
+  /**
+   * Other offers on this job still inside their window. An offer holds a
+   * seat until it lapses, so claims, invitations and new offers can't take
+   * it out from under the worker it was offered to.
+   */
+  liveOffers?: number;
 }
 
 export type TransitionResult = { ok: true; status: EngagementStatus } | { ok: false; reason: string };
@@ -88,6 +110,9 @@ export function transition(
 ): TransitionResult {
   const no = (reason: string): TransitionResult => ({ ok: false, reason });
   const full = ctx.headcount !== null && ctx.acceptedCount >= ctx.headcount;
+  // Seats hired or held by someone else's offer.
+  const held = ctx.headcount !== null && ctx.acceptedCount + (ctx.liveOffers ?? 0) >= ctx.headcount;
+  const heldReason = "Every open spot has an offer out right now. Check back in a couple of days.";
 
   const opens = action === "apply" || action === "invite" || action === "claim";
   if (opens && current !== null) {
@@ -111,6 +136,7 @@ export function transition(
       if (actor !== "worker") return no("Only the worker can claim a spot.");
       if (!ctx.hiringModes.includes("instant_claim")) return no("This job doesn't allow instant claims.");
       if (full) return no("Every spot on this job is taken.");
+      if (held) return no(heldReason);
       return { ok: true, status: "CLAIMED" };
     case "review":
       if (actor !== "org") return no("Only the organization reviews applications.");
@@ -120,9 +146,12 @@ export function transition(
       return { ok: true, status: "APPLIED" };
     case "offer":
       if (actor !== "org") return no("Only the organization sends offers.");
-      if (current !== "APPLIED") return no("An offer answers an application.");
-      if (ctx.jobStatus === "CLOSED" || ctx.jobStatus === "DRAFT") return no("This job isn't open.");
+      // A lapsed offer can be sent again: the worker was chosen and only missed the window.
+      if (current === "OFFERED" && !ctx.offerExpired) return no("An offer is already waiting on the worker.");
+      if (current !== "APPLIED" && current !== "OFFERED") return no("An offer answers an application.");
+      if (ctx.jobStatus !== "PUBLISHED" && ctx.jobStatus !== "PAUSED") return no("This job isn't open.");
       if (full) return no("Every spot on this job is taken.");
+      if (held) return no("Every open spot already has an offer out. Wait for an answer, or withdraw an offer first.");
       return { ok: true, status: "OFFERED" };
     case "accept":
       if (ctx.jobStatus === "CLOSED") return no("This job is closed.");
@@ -130,7 +159,10 @@ export function transition(
       if (current === "APPLIED" && actor === "org") return transition(current, "offer", actor, ctx);
       if ((current === "INVITED" || current === "OFFERED") && actor === "worker") {
         if (current === "OFFERED" && ctx.offerExpired) return no("This offer has expired. Ask the organization to send a new one.");
-        return full ? no("Every spot on this job is taken.") : { ok: true, status: "ACTIVE" };
+        if (full) return no("Every spot on this job is taken.");
+        // The worker's own offer holds their seat; an invitation holds none.
+        if (current === "INVITED" && held) return no(heldReason);
+        return { ok: true, status: "ACTIVE" };
       }
       if (current === "APPLIED") return no("The organization sends an offer; the worker accepts it.");
       if (current === "INVITED" || current === "OFFERED") return no("Only the worker can accept.");
@@ -139,6 +171,7 @@ export function transition(
       if (actor === "org" && (current === "APPLIED" || current === "OFFERED")) return { ok: true, status: "DECLINED" };
       if (actor === "worker" && (current === "INVITED" || current === "OFFERED")) return { ok: true, status: "DECLINED" };
       if (actor === "worker" && current === "APPLIED") return no("Withdraw your application instead.");
+      if (actor === "org" && current === "INVITED") return no("Withdraw the invitation instead.");
       return no("There's nothing to decline.");
     case "withdraw":
       if (actor === "worker" && (current === "APPLIED" || current === "OFFERED")) return { ok: true, status: "WITHDRAWN" };

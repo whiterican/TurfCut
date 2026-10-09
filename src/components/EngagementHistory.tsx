@@ -21,7 +21,7 @@ export function EngagementHistory({
             {EVENT_LABELS[e.type]} <span className="text-muted">· {when(e.createdAt)}</span>
           </p>
           {e.reasonCode && <p className="text-muted-sm">{NOT_SELECTED_REASONS.find((r) => r.value === e.reasonCode)?.label ?? "Another reason"}</p>}
-          {e.note && <p className="text-muted-sm">&ldquo;{e.note}&rdquo;</p>}
+          {e.note && <p className="text-muted-sm whitespace-pre-line">&ldquo;{e.note}&rdquo;</p>}
         </li>
       ))}
     </ol>

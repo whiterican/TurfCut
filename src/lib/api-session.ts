@@ -26,7 +26,8 @@ export async function apiEmployer(): Promise<{ session: SessionProfile & { orgId
 /** Engagement result → HTTP. Rule refusals are 409 (conflict with current state). */
 export function engagementResponse(r: { ok: true; engagementId: string; status: string } | { ok: false; reason: string }, created = true) {
   if (r.ok) return Response.json({ engagementId: r.engagementId, status: r.status }, { status: created ? 201 : 200 });
-  const status = /not found/i.test(r.reason) ? 404 : /another organization|isn't your/i.test(r.reason) ? 403 : 409;
+  // "…belongs to another organization" comes from opening an engagement on a job that isn't the caller's.
+  const status = /not found/i.test(r.reason) ? 404 : /another organization/i.test(r.reason) ? 403 : 409;
   return Response.json({ error: r.reason }, { status });
 }
 

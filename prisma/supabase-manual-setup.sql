@@ -1214,17 +1214,7 @@ CREATE TRIGGER "EngagementEvent_no_truncate" BEFORE TRUNCATE ON "public"."Engage
 ALTER TABLE "public"."EngagementEvent" ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON "public"."EngagementEvent" FROM anon, authenticated;
 
--- History so far: the opening event of each engagement that kept a copy of
--- how it began. Who did it: the worker for an application or claim, the
--- inviter for an invitation.
-INSERT INTO "public"."EngagementEvent" ("id", "engagementId", "type", "actorId", "createdAt")
-SELECT gen_random_uuid(), e."id",
-       (CASE e."applicationSnapshot"->>'kind' WHEN 'application' THEN 'APPLIED' WHEN 'claim' THEN 'CLAIMED' ELSE 'INVITED' END)::"public"."EngagementEventType",
-       CASE WHEN e."applicationSnapshot"->>'kind' = 'invitation' THEN e."hiredById" ELSE w."profileId" END,
-       e."createdAt"
-  FROM "public"."Engagement" e JOIN "public"."Worker" w ON w."id" = e."workerId"
- WHERE e."applicationSnapshot"->>'kind' IN ('application', 'claim', 'invitation')
-   AND NOT EXISTS (SELECT 1 FROM "public"."EngagementEvent" x WHERE x."engagementId" = e."id");
+-- (The history step of c3-hiring.sql runs after the seed, at the end.)
 
 -- Turfcut seed (M0 + M1 events) — SQL version of prisma/seed.ts
 -- Run AFTER the DDL above. Idempotent: safe to re-run (ON CONFLICT DO NOTHING).
@@ -1373,3 +1363,17 @@ INSERT INTO "public"."AuditEvent"
    '{"org":"Front Range Circulators","job":"Denver Ballot Initiative - Signature Drive","workers":["Alex Rivera","Jordan Blake","Sam Torres"]}',
    NOW())
 ON CONFLICT ("id") DO NOTHING;
+
+-- ---- C3: history so far (prisma/c3-hiring.sql), after the seed as on a migrated database ----
+-- History so far: the opening event of each engagement that kept a copy of
+-- how it began (an engagement without one, like the seed's above, gets
+-- none). Who did it: the worker for an application or claim, the inviter
+-- for an invitation.
+INSERT INTO "public"."EngagementEvent" ("id", "engagementId", "type", "actorId", "createdAt")
+SELECT gen_random_uuid(), e."id",
+       (CASE e."applicationSnapshot"->>'kind' WHEN 'application' THEN 'APPLIED' WHEN 'claim' THEN 'CLAIMED' ELSE 'INVITED' END)::"public"."EngagementEventType",
+       CASE WHEN e."applicationSnapshot"->>'kind' = 'invitation' THEN e."hiredById" ELSE w."profileId" END,
+       e."createdAt"
+  FROM "public"."Engagement" e JOIN "public"."Worker" w ON w."id" = e."workerId"
+ WHERE e."applicationSnapshot"->>'kind' IN ('application', 'claim', 'invitation')
+   AND NOT EXISTS (SELECT 1 FROM "public"."EngagementEvent" x WHERE x."engagementId" = e."id");

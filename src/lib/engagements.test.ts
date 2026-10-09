@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { shareScorecard, ALL_SHARED } from "./shared-scorecard";
-import { buildSnapshot, eventFor, offerExpiresAt, RELATIONSHIP_STATUSES, transition, workerStage, type TransitionContext } from "./engagements";
+import { buildSnapshot, cleanNote, eventFor, offerExpiresAt, RELATIONSHIP_STATUSES, transition, workerStage, type TransitionContext } from "./engagements";
 import { computeScorecard } from "./scorecard";
 import { employerFitView } from "./political-fit";
 
@@ -34,6 +34,55 @@ describe("engagement transitions", () => {
     expect(transition("APPLIED", "offer", "org", full).ok).toBe(false);
     expect(transition("OFFERED", "accept", "worker", full).ok).toBe(false);
     expect(offerExpiresAt(new Date("2026-10-09T10:00:00Z")).toISOString()).toBe("2026-10-11T10:00:00.000Z");
+  });
+
+  it("a lapsed offer can be sent again; a live one can't be doubled", () => {
+    expect(transition("OFFERED", "offer", "org", { ...open, offerExpired: true })).toEqual({ ok: true, status: "OFFERED" });
+    expect(transition("OFFERED", "offer", "org", open)).toMatchObject({ ok: false, reason: expect.stringMatching(/already waiting/) });
+    expect(transition("OFFERED", "offer", "worker", { ...open, offerExpired: true }).ok).toBe(false);
+    expect(transition("OFFERED", "offer", "org", { ...open, offerExpired: true, jobStatus: "CLOSED" }).ok).toBe(false);
+    expect(eventFor("offer", "org", "OFFERED", "OFFERED")).toBe("OFFERED");
+  });
+
+  it("a live offer holds a seat against new offers, claims and invitations, but not against itself", () => {
+    const held = { ...open, headcount: 2, acceptedCount: 1, liveOffers: 1 };
+    expect(transition("APPLIED", "offer", "org", held)).toMatchObject({ ok: false, reason: expect.stringMatching(/offer out/) });
+    expect(transition(null, "claim", "worker", held)).toMatchObject({ ok: false, reason: expect.stringMatching(/offer out/) });
+    expect(transition("INVITED", "accept", "worker", held)).toMatchObject({ ok: false, reason: expect.stringMatching(/offer out/) });
+    // liveOffers counts the other offers, so the worker holding one can accept it.
+    expect(transition("OFFERED", "accept", "worker", held)).toEqual({ ok: true, status: "ACTIVE" });
+    // Applying and inviting take no seat.
+    expect(transition(null, "apply", "worker", held).ok).toBe(true);
+    expect(transition(null, "invite", "org", held).ok).toBe(true);
+    // No headcount: nothing is held.
+    expect(transition("APPLIED", "offer", "org", { ...held, headcount: null }).ok).toBe(true);
+  });
+
+  it("offers and accepts on paused and closed jobs", () => {
+    const paused = { ...open, jobStatus: "PAUSED" as const };
+    const closed = { ...open, jobStatus: "CLOSED" as const };
+    expect(transition("APPLIED", "offer", "org", paused).ok).toBe(true);
+    expect(transition("OFFERED", "accept", "worker", paused).ok).toBe(true);
+    expect(transition("APPLIED", "review", "org", paused).ok).toBe(true);
+    expect(transition("APPLIED", "offer", "org", closed).ok).toBe(false);
+    expect(transition("OFFERED", "accept", "worker", closed).ok).toBe(false);
+    expect(transition("INVITED", "accept", "worker", closed).ok).toBe(false);
+    expect(transition("APPLIED", "review", "org", closed).ok).toBe(false);
+    // Close-outs still work, so nothing is left hanging on a closed job.
+    expect(transition("APPLIED", "decline", "org", closed).ok).toBe(true);
+    expect(transition("OFFERED", "decline", "org", closed).ok).toBe(true);
+    expect(transition("INVITED", "withdraw", "org", closed).ok).toBe(true);
+    expect(transition("OFFERED", "decline", "worker", closed).ok).toBe(true);
+  });
+
+  it("an org pointed at an invitation is told to withdraw it", () => {
+    expect(transition("INVITED", "decline", "org", open)).toEqual({ ok: false, reason: "Withdraw the invitation instead." });
+  });
+
+  it("a note keeps its line breaks and folds the rest", () => {
+    expect(cleanNote("  Thanks   for\tapplying \r\n\r\n\r\n\n  See you  ")).toBe("Thanks for applying\n\nSee you");
+    expect(cleanNote("   \n  ")).toBeNull();
+    expect(cleanNote(undefined)).toBeNull();
   });
 
   it("in review is a step on an application, once, and only by the org", () => {

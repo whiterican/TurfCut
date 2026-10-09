@@ -7,6 +7,10 @@ import { applicantCells } from "@/lib/applicants";
 import { saveSharing } from "@/lib/sharing-data";
 import { partsForOrg, partsForOrgMany } from "@/lib/shared-scorecard-data";
 import { isMatch, loadMatches, matchCounts } from "@/lib/matches-data";
+import { loadNotifications, markAllRead, unreadNotifications } from "@/lib/notifications-data";
+import { closeJob } from "@/lib/engagements-data";
+import { JOB_CLOSED_NOTE } from "@/lib/engagements";
+import { HIRING_ROLES } from "@/lib/access";
 import { declineInvitation, hiringCounts, invitesLeft, loadInvitations, loadJobInvites, muteOrg, unmuteOrg } from "@/lib/invitations-data";
 import { DEFAULT_SHARING } from "@/lib/sharing";
 import { closeAccount, exportAccount } from "@/lib/account-data";
@@ -420,6 +424,59 @@ const types = async (id: string) => (await loadEngagementEvents(id)).map((e) => 
   check("…and then leaves Matches (it's under Invites now)", after.ok && !after.rows.some((r) => r.name === "Match 1") && (await matchCounts([jm.id, draftJob.id], ORG)).get(jm.id) === after.rows.length && (await matchCounts([draftJob.id], ORG)).get(draftJob.id) === null);
   const mSnap = (await p.engagement.findUniqueOrThrow({ where: { id: idOf(mInv) } })).applicationSnapshot as { scorecard?: { shared?: Record<string, boolean> } };
   check("…(output shared, history not)", mSnap.scorecard?.shared?.output === true && mSnap.scorecard?.shared?.history === false, mSnap);
+
+  // --- C3.5: notifications and closing a job ---
+  const N = (n: number) => `00000000-0000-0000-0000-0000000003${String(n).padStart(2, "0")}`;
+  await p.profile.createMany({ data: [1, 2, 3].map((n) => ({ id: N(n), role: "WORKER" as const })) });
+  await p.worker.createMany({ data: [1, 2, 3].map((n) => ({ id: N(n), profileId: N(n), displayName: `Notice ${n}` })) });
+  const notices = (engagementId: string) => p.notification.findMany({ where: { engagementId }, select: { recipientId: true, kind: true }, orderBy: { createdAt: "asc" } });
+  const hiringStaff = (await p.profile.findMany({ where: { orgId: ORG, role: { in: HIRING_ROLES }, closedAt: null }, select: { id: true } })).map((x) => x.id).sort();
+  const jn = await newJob("Notice job", 3);
+  const nn1 = idOf(await applyToJob(N(1), N(1), jn.id));
+  const n1a = await notices(nn1);
+  check("an application tells the organization's hiring hiringStaff (nobody else)", n1a.length === hiringStaff.length && n1a.every((x) => x.kind === "APPLICATION_RECEIVED") && JSON.stringify(n1a.map((x) => x.recipientId).sort()) === JSON.stringify(hiringStaff), { n1a, hiringStaff });
+  await moveEngagement(nn1, "review", { kind: "org", profileId: HIRER, orgId: ORG });
+  check("in review stays quiet", (await notices(nn1)).length === hiringStaff.length);
+  await moveEngagement(nn1, "offer", { kind: "org", profileId: HIRER, orgId: ORG });
+  check("an offer tells the worker", (await notices(nn1)).filter((x) => x.kind === "OFFER_RECEIVED").map((x) => x.recipientId).join() === N(1));
+  await moveEngagement(nn1, "accept", worker(N(1)));
+  check("accepting tells the person who sent the offer, only", (await notices(nn1)).filter((x) => x.kind === "OFFER_ACCEPTED").map((x) => x.recipientId).join() === HIRER);
+  const nn2 = idOf(await applyToJob(N(2), N(2), jn.id));
+  await moveEngagement(nn2, "decline", org, { reasonCode: "schedule" });
+  check("not selected tells the worker; the actor is never notified of their own step", (await notices(nn2)).some((x) => x.kind === "NOT_SELECTED" && x.recipientId === N(2)) && !(await notices(nn2)).some((x) => x.recipientId === OWNER && x.kind === "NOT_SELECTED"));
+  const nn3 = idOf(await applyToJob(N(3), N(3), jn.id));
+  const jn2 = await newJob("Notice job 2", 3);
+  const n1inv = idOf(await inviteWorker(ORG, OWNER, jn2.id, N(1)));
+  check("an invitation tells the worker", (await notices(n1inv)).some((x) => x.kind === "INVITATION_RECEIVED" && x.recipientId === N(1)));
+
+  const closedA = await closeJob(jn.id, { profileId: OWNER, orgId: ORG });
+  const n3row = await p.engagement.findUniqueOrThrow({ where: { id: nn3 } });
+  const n3evt = (await loadEngagementEvents(nn3)).at(-1)!;
+  check("closing a job ends its open application as not selected, with Turfcut's note, and tells the worker", closedA.ok && closedA.closed === 1 && n3row.status === "DECLINED" && n3evt.type === "NOT_SELECTED" && n3evt.reasonCode === "other" && n3evt.note === JOB_CLOSED_NOTE && (await notices(nn3)).some((x) => x.kind === "JOB_CLOSED" && x.recipientId === N(3)), { closedA, n3row, n3evt });
+  check("…leaves people already hired as they are", (await p.engagement.findUniqueOrThrow({ where: { id: nn1 } })).status === "ACTIVE" && (await p.job.findUniqueOrThrow({ where: { id: jn.id } })).status === "CLOSED");
+  const closedB = await closeJob(jn2.id, { profileId: OWNER, orgId: ORG });
+  check("…and withdraws an open invitation, telling the worker", closedB.ok && (await p.engagement.findUniqueOrThrow({ where: { id: n1inv } })).status === "WITHDRAWN" && (await notices(n1inv)).some((x) => x.kind === "JOB_CLOSED" && x.recipientId === N(1)));
+  check("a closed job takes no applications or invitations, and can't be closed twice", !(await applyToJob(N(2), N(2), jn.id)).ok && !(await closeJob(jn.id, { profileId: OWNER, orgId: ORG })).ok);
+  check("another organization can't close it", (await closeJob(jn2.id, { profileId: OTHER, orgId: ORG2 })).ok === false);
+  check("closing is audited", (await p.auditEvent.count({ where: { action: "job.closed", entityId: jn.id } })) === 1);
+
+  const mine = await loadNotifications({ userId: N(1), workerId: N(1), orgId: null });
+  check("a worker's notices are theirs, newest first", mine.length >= 3 && mine.every((n) => n.engagement.jobId === jn.id || n.engagement.jobId === jn2.id) && mine[0].createdAt >= mine.at(-1)!.createdAt, mine.map((n) => n.kind));
+  await p.profile.update({ where: { id: HIRER }, data: { orgId: ORG2 } });
+  check("hiringStaff who move to another organization no longer see the old one's notices", (await loadNotifications({ userId: HIRER, workerId: null, orgId: ORG2 })).length === 0 && (await unreadNotifications({ userId: HIRER, workerId: null, orgId: ORG2 })) === 0);
+  await p.profile.update({ where: { id: HIRER }, data: { orgId: ORG } });
+  const ownerUnread = await unreadNotifications({ userId: OWNER, workerId: null, orgId: ORG });
+  await markAllRead(N(1));
+  check("marking read is the reader's own: theirs goes to 0, nobody else's changes", (await unreadNotifications({ userId: N(1), workerId: N(1), orgId: null })) === 0 && (await unreadNotifications({ userId: OWNER, workerId: null, orgId: ORG })) === ownerUnread && ownerUnread > 0);
+  const nExp = (await exportAccount({ userId: N(1), workerId: N(1) })).find((f) => f.name === "notifications.csv")?.text ?? "";
+  check("the worker's export lists their notices", /OFFER_RECEIVED/.test(nExp) && /JOB_CLOSED/.test(nExp), nExp.slice(0, 200));
+  for (const role of ["anon", "authenticated"]) {
+    const r = await p.$transaction(async (tx) => {
+      await tx.$executeRawUnsafe(`SET LOCAL ROLE ${role}`);
+      return tx.$queryRawUnsafe(`SELECT 1 FROM "public"."Notification" LIMIT 1`);
+    }).then(() => "allowed", (e: unknown) => String(e));
+    check(`${role} can't read Notification`, /permission denied/.test(r), r);
+  }
 
   const expW2 = await exportAccount({ userId: W2, workerId: W2 });
   check("the export carries invitation notes and the mutes file", /Saturday canvass/.test(expW2.find((f) => f.name === "engagements.csv")?.text ?? "") && expW2.some((f) => f.name === "mutes.json"));

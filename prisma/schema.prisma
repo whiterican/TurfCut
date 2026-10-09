@@ -62,6 +62,7 @@ model Profile {
   updatedAt DateTime @updatedAt
 
   hiredEngagements   Engagement[]              @relation("HiredBy")
+  notifications      Notification[]
   chatParticipations ConversationParticipant[]
   sentMessages       Message[]
   blocksMade         ProfileBlock[]            @relation("Blocker")
@@ -395,6 +396,7 @@ model Engagement {
   payouts      Payout[]
   conversation Conversation?
   events       EngagementEvent[]
+  notifications Notification[]
 
   @@unique([jobId, workerId])
   @@index([workerId])
@@ -942,4 +944,37 @@ model OrgMute {
 
   @@unique([workerId, orgId])
   @@index([orgId])
+}
+
+/// C3.5: what an in-app notice is about. The words are drawn when it's shown,
+/// from the engagement as the recipient may see it then; nothing else is stored.
+enum NotificationKind {
+  APPLICATION_RECEIVED
+  CLAIM_RECEIVED
+  INVITATION_RECEIVED
+  INVITATION_ACCEPTED
+  INVITATION_DECLINED
+  INVITATION_WITHDRAWN
+  OFFER_RECEIVED
+  OFFER_ACCEPTED
+  OFFER_DECLINED
+  NOT_SELECTED
+  APPLICATION_WITHDRAWN
+  JOB_CLOSED
+}
+
+/// C3.5: an in-app notice for one person about one engagement. readAt is the
+/// recipient's own: never shown to anyone else (no read receipts). Server-only.
+model Notification {
+  id           String           @id @default(uuid()) @db.Uuid
+  recipientId  String           @db.Uuid
+  recipient    Profile          @relation(fields: [recipientId], references: [id], onDelete: Restrict)
+  kind         NotificationKind
+  engagementId String           @db.Uuid
+  engagement   Engagement       @relation(fields: [engagementId], references: [id], onDelete: Restrict)
+  createdAt    DateTime         @default(now())
+  readAt       DateTime?
+
+  @@index([recipientId, readAt, createdAt])
+  @@index([engagementId])
 }

@@ -4,6 +4,7 @@ import {
   ACCEPTED_STATUSES,
   buildSnapshot,
   cleanNote,
+  JOB_CLOSED_NOTE,
   eventFor,
   inviteExpiresAt,
   inviteLapsed,
@@ -25,6 +26,7 @@ import { visibleParts } from "@/lib/sharing";
 import { shareScorecard } from "@/lib/shared-scorecard";
 import { defaultBoss } from "@/lib/chat-data";
 import { isMatch } from "@/lib/matches-data";
+import { notifyStep } from "@/lib/notifications-data";
 
 type Result = { ok: true; engagementId: string; status: string } | { ok: false; reason: string };
 type Tx = Prisma.TransactionClient;
@@ -128,7 +130,7 @@ async function open(
       tx.engagement.findUnique({ where: { jobId_workerId: { jobId, workerId } } }),
       tx.engagement.count({ where: { jobId, status: { in: ACCEPTED_STATUSES } } }),
       tx.job.findUniqueOrThrow({ where: { id: jobId } }),
-      tx.worker.findUniqueOrThrow({ where: { id: workerId }, select: { closedAt: true } }),
+      tx.worker.findUniqueOrThrow({ where: { id: workerId }, select: { closedAt: true, profileId: true } }),
       liveOffers(tx, jobId, null, at),
     ]);
     if (wk.closedAt) return { ok: false as const, reason: "This worker has closed their account." };
@@ -165,6 +167,7 @@ async function open(
       // snapshot stays as the record of what the organization saw), and a new INVITED line.
       await tx.engagement.update({ where: { id: existing.id }, data: { hiredById, inviteNote: note, inviteExpiresAt: inviteExpiresAt(at) } });
       await tx.engagementEvent.create({ data: { engagementId: existing.id, type: "INVITED", actorId: actor.profileId, note, createdAt: at } });
+      await notifyStep(tx, "INVITED", { id: existing.id, hiredById, worker: wk, job: { orgId: fresh.orgId } }, actor.profileId, at);
       await tx.auditEvent.create({
         data: { actorId: actor.profileId, action: "engagement.reinvited", entityType: "Engagement", entityId: existing.id, metadata: { jobId, workerId }, createdAt: at },
       });
@@ -177,9 +180,11 @@ async function open(
       },
     });
     // The invitation's note also goes on its history line, where both sides read it.
+    const opening = eventFor(action, actor.kind, null, t.status);
     await tx.engagementEvent.create({
-      data: { engagementId: engagement.id, type: eventFor(action, actor.kind, null, t.status), actorId: actor.profileId, note, createdAt: at },
+      data: { engagementId: engagement.id, type: opening, actorId: actor.profileId, note, createdAt: at },
     });
+    await notifyStep(tx, opening, { id: engagement.id, hiredById, worker: wk, job: { orgId: fresh.orgId } }, actor.profileId, at);
     await tx.auditEvent.create({
       data: {
         actorId: actor.profileId,
@@ -249,7 +254,7 @@ export async function moveEngagement(
       tx.engagement.findUniqueOrThrow({ where: { id: engagementId } }),
       tx.engagement.count({ where: { jobId: e.jobId, status: { in: ACCEPTED_STATUSES } } }),
       tx.job.findUniqueOrThrow({ where: { id: e.jobId } }),
-      tx.worker.findUniqueOrThrow({ where: { id: e.workerId }, select: { closedAt: true } }),
+      tx.worker.findUniqueOrThrow({ where: { id: e.workerId }, select: { closedAt: true, profileId: true } }),
       tx.engagementEvent.count({ where: { engagementId, type: "IN_REVIEW" } }),
       tx.engagementEvent.findFirst({ where: { engagementId, type: "OFFERED" }, orderBy: { createdAt: "desc" }, select: { createdAt: true } }),
       liveOffers(tx, e.jobId, engagementId, at),
@@ -274,6 +279,7 @@ export async function moveEngagement(
     }
     const type = eventFor(action, actor.kind, current.status, t.status);
     await tx.engagementEvent.create({ data: { engagementId, type, actorId: actor.profileId, reasonCode, note, createdAt: at } });
+    await notifyStep(tx, type, { id: engagementId, hiredById, worker: wk, job: { orgId: job.orgId } }, actor.profileId, at);
     await tx.auditEvent.create({
       data: {
         actorId: actor.profileId,
@@ -355,5 +361,44 @@ export function loadEngagementEvents(engagementId: string) {
     where: { engagementId },
     orderBy: { createdAt: "asc" },
     select: { id: true, type: true, reasonCode: true, note: true, createdAt: true },
+  });
+}
+
+/**
+ * Closes a published or paused job (C3.5): nobody can apply, claim or be
+ * invited any more, and every open engagement on it ends with a history
+ * line and a notice to the worker — applications and offers as not
+ * selected ("another reason", with a note that the job closed), invitations
+ * withdrawn. People already hired stay hired; their shifts are untouched.
+ * Under the job's lock, so no application or offer slips in meanwhile.
+ */
+export async function closeJob(jobId: string, actor: { profileId: string; orgId: string }, now?: Date): Promise<{ ok: true; closed: number } | { ok: false; reason: string }> {
+  if (!UUID_RE.test(jobId)) return { ok: false, reason: "Job not found." };
+  return db().$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`job:${jobId}`}))`;
+    const at = now ?? new Date();
+    const job = await tx.job.findFirst({ where: { id: jobId, orgId: actor.orgId }, select: { status: true, orgId: true } });
+    if (!job) return { ok: false as const, reason: "Job not found." };
+    if (job.status !== "PUBLISHED" && job.status !== "PAUSED") return { ok: false as const, reason: job.status === "CLOSED" ? "This job is already closed." : "Only a published or paused job can be closed." };
+    await tx.job.update({ where: { id: jobId }, data: { status: "CLOSED" } });
+    const open = await tx.engagement.findMany({
+      where: { jobId, status: { in: ["APPLIED", "OFFERED", "INVITED"] } },
+      select: { id: true, status: true, hiredById: true, worker: { select: { profileId: true, closedAt: true } } },
+    });
+    let closed = 0;
+    for (const e of open) {
+      const to = e.status === "INVITED" ? "WITHDRAWN" : "DECLINED";
+      // Conditional: an account closure (which holds only the worker's lock) may have ended it meanwhile.
+      const { count } = await tx.engagement.updateMany({ where: { id: e.id, status: e.status }, data: { status: to } });
+      if (!count) continue;
+      closed++;
+      const type = e.status === "INVITED" ? "INVITE_WITHDRAWN" : "NOT_SELECTED";
+      await tx.engagementEvent.create({
+        data: { engagementId: e.id, type, actorId: actor.profileId, reasonCode: type === "NOT_SELECTED" ? "other" : null, note: JOB_CLOSED_NOTE, createdAt: at },
+      });
+      await notifyStep(tx, type, { id: e.id, hiredById: e.hiredById, worker: e.worker, job: { orgId: job.orgId } }, actor.profileId, at, "JOB_CLOSED");
+    }
+    await tx.auditEvent.create({ data: { actorId: actor.profileId, action: "job.closed", entityType: "Job", entityId: jobId, metadata: { closedEngagements: closed }, createdAt: at } });
+    return { ok: true as const, closed };
   });
 }

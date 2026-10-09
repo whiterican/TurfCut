@@ -730,6 +730,22 @@ certificate. Approved as recommended by review:
   miles of it, which makes them one place). A worker whose
   home area Turfcut can't place (unknown, or a city name shared by several
   places) isn't matched, and their profile says so. `/hiring` shows each job's match count.
+- **Notifications (C3.5)**: in-app notices for hiring steps
+  (`/notifications`, a bell with the unread count in the header). Workers
+  hear about invitations, offers, not selected, withdrawn invitations and
+  closed jobs; an organization's contact for the engagement (else its
+  hiring staff) hears about applications, claims, and answers to its
+  invitations and offers. Never the person who took the step; "in review"
+  stays quiet. Only the kind and the engagement are stored; the words are
+  drawn when shown, and staff who leave an organization stop seeing its
+  notices. Reading is private: nothing records or shows it to anyone else,
+  and the page marks nothing read until "Mark all as read". In the
+  worker's export. Email and push come later.
+- **Closing a job (C3.5)**: owners and recruiters can close a published or
+  paused job from its page. Open applications and offers end as not
+  selected ("another reason", with Turfcut's note that the job closed),
+  invitations are withdrawn, each worker is notified; people already hired
+  stay hired. It can't be reopened.
 - **History**: every step is an append-only `EngagementEvent`, shown the
   same way to the worker and the organization, and in the worker's data
   export (`engagement-history.csv`). `prisma/c3-hiring.sql` adds the

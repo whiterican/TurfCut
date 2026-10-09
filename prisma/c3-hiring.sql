@@ -16,7 +16,8 @@
 --   3. Invitations carry the inviter's note and lapse after 7 days
 --      (Engagement.inviteNote, inviteExpiresAt); OrgMute records a worker's
 --      mute of an organization (no invitations from it).
---   4. Each existing engagement gets its opening event (applied, claimed or
+--   4. Notification: in-app notices about hiring steps (C3.5).
+--   5. Each existing engagement gets its opening event (applied, claimed or
 --      invited, from the copy it kept), dated when it was created.
 
 -- New enum values come first and nothing below uses them, so they're safe in
@@ -89,6 +90,31 @@ CREATE UNIQUE INDEX IF NOT EXISTS "OrgMute_workerId_orgId_key" ON "public"."OrgM
 CREATE INDEX IF NOT EXISTS "OrgMute_orgId_idx" ON "public"."OrgMute"("orgId");
 ALTER TABLE "public"."OrgMute" ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON "public"."OrgMute" FROM anon, authenticated;
+
+-- In-app notifications (C3.5): one row per person per hiring step that
+-- concerns them. Only the kind and the engagement are stored; the words are
+-- drawn when shown. readAt is the recipient's alone (no read receipts).
+DO $$ BEGIN
+  CREATE TYPE "public"."NotificationKind" AS ENUM (
+    'APPLICATION_RECEIVED', 'CLAIM_RECEIVED', 'INVITATION_RECEIVED', 'INVITATION_ACCEPTED', 'INVITATION_DECLINED',
+    'INVITATION_WITHDRAWN', 'OFFER_RECEIVED', 'OFFER_ACCEPTED', 'OFFER_DECLINED', 'NOT_SELECTED', 'APPLICATION_WITHDRAWN', 'JOB_CLOSED');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+CREATE TABLE IF NOT EXISTS "public"."Notification" (
+    "id" UUID NOT NULL,
+    "recipientId" UUID NOT NULL,
+    "kind" "public"."NotificationKind" NOT NULL,
+    "engagementId" UUID NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "readAt" TIMESTAMP(3),
+    CONSTRAINT "Notification_pkey" PRIMARY KEY ("id"),
+    CONSTRAINT "Notification_recipientId_fkey" FOREIGN KEY ("recipientId") REFERENCES "public"."Profile"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT "Notification_engagementId_fkey" FOREIGN KEY ("engagementId") REFERENCES "public"."Engagement"("id") ON DELETE RESTRICT ON UPDATE CASCADE
+);
+CREATE INDEX IF NOT EXISTS "Notification_recipientId_readAt_createdAt_idx" ON "public"."Notification"("recipientId", "readAt", "createdAt");
+CREATE INDEX IF NOT EXISTS "Notification_engagementId_idx" ON "public"."Notification"("engagementId");
+ALTER TABLE "public"."Notification" ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON "public"."Notification" FROM anon, authenticated;
 
 -- History so far: the opening event of each engagement that kept a copy of
 -- how it began (an engagement without one, like the base seed's, gets

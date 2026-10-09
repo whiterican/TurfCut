@@ -18,7 +18,7 @@ import { loadLatestPreference } from "@/lib/political-fit-data";
 import { JobCard } from "@/components/JobCard";
 import { SnapshotView } from "@/components/SnapshotView";
 import { ActionButton } from "@/components/ActionButton";
-import { acceptInvitation, apply, claim, declineAsWorker, publish, withdrawApplication } from "../actions";
+import { acceptInvitation, apply, claim, closeJobAction, declineAsWorker, publish, withdrawApplication } from "../actions";
 import { shiftState, shiftStatusLabel } from "@/lib/field-day";
 import { listSupervisors } from "@/lib/field-day-data";
 import { LocalTime } from "@/components/LocalTime";
@@ -374,6 +374,24 @@ async function OrgPanel({ job, canHire, canSchedule, userId }: { job: JobWithRef
               {job.status === "DRAFT" && <Link transitionTypes={["nav-forward"]} href={`/jobs/${job.id}/edit`} className="btn-secondary">Edit draft</Link>}
             </div>
           )}
+        </section>
+      )}
+
+      {canHire && (job.status === "PUBLISHED" || job.status === "PAUSED") && (
+        <section className="section">
+          <h2 className="section-title">Close this job</h2>
+          <p className="text-muted-sm">
+            When the spots are filled or the work is done. Nobody can apply or be invited afterwards. Open applications and offers end as not
+            selected and invitations are withdrawn, each worker told the job closed. People already hired stay hired.
+          </p>
+          <ActionButton
+            action={closeJobAction}
+            fields={{ jobId: job.id }}
+            label="Close job"
+            pendingLabel="Closing…"
+            variant="btn-secondary"
+            confirm={{ text: "Close this job? It can't be reopened.", label: "Yes, close it" }}
+          />
         </section>
       )}
 

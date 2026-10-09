@@ -1238,6 +1238,31 @@ CREATE INDEX "OrgMute_orgId_idx" ON "public"."OrgMute"("orgId");
 ALTER TABLE "public"."OrgMute" ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON "public"."OrgMute" FROM anon, authenticated;
 
+-- In-app notifications (C3.5): one row per person per hiring step that
+-- concerns them. Only the kind and the engagement are stored; the words are
+-- drawn when shown. readAt is the recipient's alone (no read receipts).
+DO $$ BEGIN
+  CREATE TYPE "public"."NotificationKind" AS ENUM (
+    'APPLICATION_RECEIVED', 'CLAIM_RECEIVED', 'INVITATION_RECEIVED', 'INVITATION_ACCEPTED', 'INVITATION_DECLINED',
+    'INVITATION_WITHDRAWN', 'OFFER_RECEIVED', 'OFFER_ACCEPTED', 'OFFER_DECLINED', 'NOT_SELECTED', 'APPLICATION_WITHDRAWN', 'JOB_CLOSED');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+CREATE TABLE "public"."Notification" (
+    "id" UUID NOT NULL,
+    "recipientId" UUID NOT NULL,
+    "kind" "public"."NotificationKind" NOT NULL,
+    "engagementId" UUID NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "readAt" TIMESTAMP(3),
+    CONSTRAINT "Notification_pkey" PRIMARY KEY ("id"),
+    CONSTRAINT "Notification_recipientId_fkey" FOREIGN KEY ("recipientId") REFERENCES "public"."Profile"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT "Notification_engagementId_fkey" FOREIGN KEY ("engagementId") REFERENCES "public"."Engagement"("id") ON DELETE RESTRICT ON UPDATE CASCADE
+);
+CREATE INDEX "Notification_recipientId_readAt_createdAt_idx" ON "public"."Notification"("recipientId", "readAt", "createdAt");
+CREATE INDEX "Notification_engagementId_idx" ON "public"."Notification"("engagementId");
+ALTER TABLE "public"."Notification" ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON "public"."Notification" FROM anon, authenticated;
+
 -- (The history step of c3-hiring.sql runs after the seed, at the end.)
 
 -- Turfcut seed (M0 + M1 events) — SQL version of prisma/seed.ts

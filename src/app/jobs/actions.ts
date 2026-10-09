@@ -7,7 +7,7 @@ import { requireEmployer } from "@/lib/employer-session";
 import { requireWorker } from "@/lib/worker-session";
 import { formToObject, jurisdictionStateProblem, validateJob } from "@/lib/jobs";
 import { createJob, publishJob, updateDraftJob } from "@/lib/jobs-data";
-import { acceptEngagement, applyToJob, claimJob, inviteWorker, moveEngagement, moveEngagements } from "@/lib/engagements-data";
+import { acceptEngagement, applyToJob, claimJob, closeJob, inviteWorker, moveEngagement, moveEngagements } from "@/lib/engagements-data";
 import { OFFER_HOURS } from "@/lib/engagements";
 import { declineInvitation, muteOrg, unmuteOrg } from "@/lib/invitations-data";
 
@@ -42,6 +42,17 @@ export async function saveJob(_prev: JobFormState, formData: FormData): Promise<
   }
   revalidatePath("/jobs");
   redirect(`/jobs/${id}`);
+}
+
+/** Closes a job (C3.5): open applications, offers and invitations end, each worker is told. */
+export async function closeJobAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const { orgId, userId } = await requireEmployer();
+  if (!orgId) return { ok: false, message: "No organization on this account." };
+  const jobId = field(formData, "jobId");
+  const r = await closeJob(jobId, { profileId: userId, orgId });
+  refresh(jobId);
+  if (!r.ok) return { ok: false, message: r.reason };
+  return { ok: true, message: r.closed ? `Closed. ${r.closed} open ${r.closed === 1 ? "application, offer or invitation was" : "applications, offers and invitations were"} ended, and each worker was told.` : "Closed." };
 }
 
 export async function publish(_prev: ActionState, formData: FormData): Promise<ActionState> {

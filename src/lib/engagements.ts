@@ -73,6 +73,8 @@ export type NotSelectedReason = (typeof NOT_SELECTED_REASONS)[number]["value"];
 export const NOTE_MAX = 500;
 /** The note on the history lines an account closure writes: Turfcut's, not a person's. */
 export const ACCOUNT_CLOSED_NOTE = "Account closed.";
+/** The note on the history lines a job closure writes (C3.5): Turfcut's, shown plainly. */
+export const JOB_CLOSED_NOTE = "The job closed.";
 
 /**
  * A note to the worker: trimmed, runs of spaces folded, at most one blank

@@ -75,7 +75,10 @@ export default async function CredentialsPage() {
           <div className="card">
             <CredentialForm />
           </div>
-          <p className="text-hint">Proof uploads come later. For now, keep your documents yourself: an organization that needs to see one will ask.</p>
+          <p className="text-hint">
+            Keep your documents yourself. In Colorado, save your Secretary of State circulator training certificate: the organization that
+            hires you needs a copy to register you.
+          </p>
         </section>
       </WalletStatus>
     </main>

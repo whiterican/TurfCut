@@ -606,6 +606,35 @@ connection is only for schema changes.
   with checks that refuse self-verification, foreign proof paths and
   carried-forward verification). Acceptance: `tests/acceptance/c2-consent.ts`.
 
+### Credential proof photos — decided for C3 (owner, 2026-10-09)
+
+Not built yet; C2 only tells Colorado workers to keep their training
+certificate. Approved as recommended by review:
+
+- A photo is evidence a person checks, never proof by itself: it doesn't
+  change the verification level, and organizations get no "proof on file"
+  marker. Verification records how it was checked.
+- Phase 1 takes one document: Colorado's Secretary of State circulator
+  training certificate (the hiring entity uploads it to register the
+  circulator). Never notary or affidavit papers, IDs, signatures or
+  petition sheets; nothing under "Other".
+- Private by default. Only an organization that hired the worker (claimed
+  or active), only its owner and compliance members, only photos the
+  worker chose to share, and only while credentials are shared with it.
+  Every view and download is audited and shown to the worker.
+- Server-side: JPEG/PNG only, size and pixel caps, re-encoded with `sharp`
+  (new dependency, approved) so location and camera metadata are gone;
+  encrypted with a separate key; private bucket, streamed through a
+  signed-in route, never a public or signed link.
+- Deleted when the credential is removed, the account closes, or the
+  training expires (at most 13 months); daily purge and a written
+  disposal policy. Included in the data export.
+- Schema (approved): a `CredentialProof` table with its own deletion rows,
+  and `verificationMethod` on verified credentials; `proofPath` stays
+  unused.
+- Counsel reviews the Colorado rule profile and document handling before
+  the pilot.
+
 ## M7 scope — field truth and leaving cleanly
 
 - **Supervisor corrections.** On a shift's activity log, an owner or

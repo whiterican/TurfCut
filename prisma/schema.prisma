@@ -860,13 +860,13 @@ model WorkerCredential {
   kind         CredentialKind
   label        String? // the worker's name for an OTHER credential or a training course
   state        String? // two-letter state, when the credential has one
-  identifier   String? // stored in full, only ever shown masked
+  identifier   String? // only the last 4 characters of what the worker typed (credentials.ts), shown masked
   issuedOn     DateTime?         @db.Date
   expiresOn    DateTime?         @db.Date
   verification VerificationLevel @default(SELF_REPORTED)
   verifiedById String?           @db.Uuid
   verifiedAt   DateTime?
-  proofPath    String? // private storage key in credential-proofs, never a public URL
+  proofPath    String? // unused: proof photos (C3) get their own table; see README "Credential proof photos"
   // Unique: two edits racing on one row can't both supersede it.
   supersedesId String?           @unique @db.Uuid
   supersedes   WorkerCredential? @relation("Supersedes", fields: [supersedesId], references: [id], onDelete: Restrict)

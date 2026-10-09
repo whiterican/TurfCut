@@ -150,7 +150,7 @@ export function CredentialForm({ id, values: start, masked, onDone }: { id?: str
             <span className="label">Number (optional)</span>
             <input className="field" maxLength={64} autoComplete="off" disabled={clearNumber} {...f("identifier")} />
             <span className="text-hint block">
-              {masked && !clearNumber ? `Leave blank to keep ${masked}. ` : ""}Turfcut keeps only the last 4 characters, shown like •••• 2345. Organizations never see it.
+              {masked && !clearNumber ? `Leave blank to keep ${masked}. ` : ""}Turfcut keeps only the last 4 characters of a number you type, shown like •••• 2345. Organizations never see it.
             </span>
           </label>
           {masked && (

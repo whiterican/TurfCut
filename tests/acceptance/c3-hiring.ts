@@ -618,8 +618,8 @@ const types = async (id: string) => (await loadEngagementEvents(id)).map((e) => 
   check("the worker's edit makes it self-reported again", editedRow?.verification === "SELF_REPORTED" && editedRow.verificationMethod === null && !(await loadVerifiers(V(1))).has(editedRow.id), { edited, editedRow });
 
   // Two checks racing on one credential: one is recorded.
-  const race = await Promise.all([verifyCredential(owner, c1b, "ORIGINAL_DOCUMENT"), verifyCredential(comp, c1b, "REGISTRY_LOOKUP")]);
-  check("two checks at once: exactly one is recorded; the other is told it changed", race.filter((r) => r.ok).length === 1 && race.some((r) => !r.ok && /changed since you opened/.test(r.reason)) && (await p.workerCredential.count({ where: { supersedesId: c1b } })) === 1, race);
+  const race = await Promise.all([verifyCredential(owner, c1b, "ORIGINAL_DOCUMENT"), verifyCredential(comp, c1b, "ORIGINAL_DOCUMENT")]);
+  check("two checks at once: exactly one is recorded; the other is told it changed", race.filter((r) => r.ok).length === 1 && race.some((r) => !r.ok && /changed since you opened/.test(r.reason)) && !race.some((r) => !r.ok && /registry/.test(r.reason)) && (await p.workerCredential.count({ where: { supersedesId: c1b } })) === 1, race);
   // The worker's edit racing a check on one credential: one lands.
   const c1c = await addId(V(1), V(1), { kind: "NOTARY_OR_AFFIDAVIT", state: "CO", expiresOn: "2099-01-01" });
   const editRace = await Promise.all([editCredential(V(1), V(1), c1c, { kind: "NOTARY_OR_AFFIDAVIT", state: "CO", expiresOn: "2098-01-01" }), verifyCredential(owner, c1c, "REGISTRY_LOOKUP")]);

@@ -102,7 +102,7 @@ export function checkFailure(e: unknown): { ok: false; reason: string } | null {
     console.error("[turfcut] credential check timed out waiting for the worker");
     return UNRECORDED;
   }
-  if (e instanceof Prisma.PrismaClientUnknownRequestError && /23514|check_violation/.test(e.message)) {
+  if (e instanceof Prisma.PrismaClientUnknownRequestError && /code: "23514"/.test(e.message)) {
     console.error("[turfcut] credential check refused by a database check (23514)");
     return UNRECORDED;
   }

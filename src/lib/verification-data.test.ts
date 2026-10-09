@@ -19,5 +19,7 @@ describe("checkFailure", () => {
     expect(checkFailure(new Error("boom"))).toBeNull();
     expect(checkFailure(new Prisma.PrismaClientKnownRequestError("fk", { ...v, code: "P2003" }))).toBeNull();
     expect(checkFailure(new Prisma.PrismaClientUnknownRequestError("connection reset", v))).toBeNull();
+    // Only the error's own code counts, not a row value that happens to read 23514.
+    expect(checkFailure(new Prisma.PrismaClientUnknownRequestError('PostgresError { code: "23503", detail: Some("Failing row contains (23514)") }', v))).toBeNull();
   });
 });

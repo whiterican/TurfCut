@@ -16,6 +16,7 @@ import { OfflineBrief } from "@/components/OfflineBrief";
 import { briefPaths } from "@/lib/offline-brief-data";
 import { money } from "@/lib/pay";
 import { loadLatestPreference } from "@/lib/political-fit-data";
+import type { VisibilityMode } from "@/lib/political-fit";
 
 const ROLE_LABELS: Record<string, string> = {
   WORKER: "Field worker",
@@ -111,19 +112,19 @@ async function EarningsCard({ workerId }: { workerId: string }) {
   return <NavCard href="/earnings" title="Earnings" body={any ? parts.join(" · ") : "Your pay shows up here once a supervisor approves a shift."} />;
 }
 
-/**
- * Political-fit answers that need reconfirming (the wording changed) or have
- * expired authorize nothing: they're neither shown nor used to keep the worker
- * out of work they ruled out. Profile says so; Today asks.
- */
 /** What's on hold until the worker reconfirms, by their own choice (Private never shows or uses anything). */
-const PAUSED: Record<string, string> = {
+const PAUSED: Record<VisibilityMode, string> = {
   PRIVATE: "Your answers stay private either way; reconfirm to keep them on record.",
   MATCHING_ONLY: "Until you reconfirm, they aren't used to keep you out of work you've ruled out.",
   APPLIED_TO: "Until you reconfirm, they aren't shown to organizations or used to keep you out of work you've ruled out.",
   APPROVED_RECRUITERS: "Until you reconfirm, they aren't used to keep you out of work you've ruled out.",
 };
 
+/**
+ * Political-fit answers that need reconfirming (the wording changed) or have
+ * expired authorize nothing: they're neither shown nor used to keep the worker
+ * out of work they ruled out. Profile says so; Today asks.
+ */
 async function FitReconfirm({ workerId }: { workerId: string }) {
   const fit = await loadLatestPreference(workerId);
   if (!fit || fit.status.state === "current") return null;

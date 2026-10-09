@@ -21,16 +21,19 @@ describe("geo", () => {
     for (const c of ["Nashville, TN", "Honolulu, HI", "Lexington, KY", "Augusta, GA", "Athens, GA", "Macon, GA", "Ventura, CA", "Louisville, KY"]) {
       expect(resolveArea(c, t), c).not.toBeNull();
     }
-    // Two towns with one name in one state are never guessed between (Franklin city and borough, PA);
-    // a town beats a census-designated place of the same name (Mesquite city, not the Mesquite CDP).
+    // Same-name places in one state are never guessed between (Franklin city and borough, PA; El
+    // Cerrito city and a CDP 389 miles away, CA), unless a town's same-name CDP is effectively the
+    // same place (Chevy Chase town and CDP, MD).
     expect(resolveArea("Franklin, PA", t)).toBeNull();
-    expect(resolveArea("Mesquite, TX", t)).toMatchObject({ state: "TX" });
+    expect(resolveArea("El Cerrito, CA", t)).toBeNull();
+    expect(resolveArea("Chevy Chase, MD", t)).toMatchObject({ state: "MD" });
     // A place's own name beats a looser form of another's ("Goodyear city" vs "Goodyear Village CDP").
     expect(resolveArea("Goodyear, AZ", t)).not.toEqual(resolveArea("Goodyear Village, AZ", t));
     expect(resolveArea("Boise, ID", t)).toEqual(resolveArea("Boise City, ID", t));
     // Accents don't matter.
     expect(resolveArea("Canon City, CO", t)).toEqual(resolveArea("Cañon City, CO", t));
-    expect(resolveArea("Bayamon, PR", t)).not.toBeNull();
+    // (Bayamón's zona urbana and its same-name comunidad are far apart, so that name is left out; a ZIP works.)
+    expect(resolveArea("00961", t)).toMatchObject({ state: "PR" });
     expect(resolveArea("99999", t)).toBeNull();
     expect(resolveArea("", t)).toBeNull();
     expect(resolveArea("Nowhere Special, CO", t)).toBeNull();

@@ -20,6 +20,13 @@ if (!outDir) {
 const rows = (file, sep) =>
   readFileSync(file, "utf8").replace(/^﻿/, "").split(/\r?\n/).filter(Boolean).map((l) => l.split(sep).map((c) => c.trim()));
 const r3 = (n) => Math.round(Number(n) * 1000) / 1000;
+const miles = (a, b) => {
+  const rad = (d) => (d * Math.PI) / 180;
+  const h = Math.sin(rad(b[0] - a[0]) / 2) ** 2 + Math.cos(rad(a[0])) * Math.cos(rad(b[0])) * Math.sin(rad(b[1] - a[1]) / 2) ** 2;
+  return 2 * 3958.8 * Math.asin(Math.min(1, Math.sqrt(h)));
+};
+/** How close a same-name CDP must be to the one town for the name to mean that town (effectively one place). */
+const SAME_PLACE_MILES = 10;
 
 // State FIPS → USPS code, from the places file.
 const places = rows(placeFile, "\t");
@@ -68,10 +75,12 @@ for (const st of new Set([...Object.keys(own), ...Object.keys(alias)])) {
   byState[st] = {};
   for (const [key, pts] of Object.entries(alias[st] ?? {})) if (pts.length === 1) byState[st][key] = pts[0];
   for (const [key, pts] of Object.entries(own[st] ?? {})) {
-    // One place, or exactly one incorporated place among them (Mesquite city, not the Mesquite CDP
-    // elsewhere in Texas); otherwise the name is left out, never guessed between.
+    // One place; or one town whose same-name CDPs all sit within a few miles of it (Chevy Chase town
+    // and CDP, effectively one place). Otherwise the name is left out, never guessed between: an El
+    // Cerrito CDP 389 miles from El Cerrito city is a different place.
     const towns = pts.filter((p) => p[2] === 1);
-    const pick = pts.length === 1 ? pts[0] : towns.length === 1 ? towns[0] : null;
+    const pick =
+      pts.length === 1 ? pts[0] : towns.length === 1 && pts.every((p) => p === towns[0] || miles(p, towns[0]) <= SAME_PLACE_MILES) ? towns[0] : null;
     if (pick) byState[st][key] = [pick[0], pick[1]];
     else {
       delete byState[st][key];

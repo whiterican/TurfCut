@@ -381,9 +381,8 @@ async function OrgPanel({ job, canHire, canSchedule, userId }: { job: JobWithRef
         <section className="section">
           <h2 className="section-title">Close this job</h2>
           <p className="text-muted-sm">
-            When you&apos;re done hiring. Nobody can apply or be invited afterwards. Open applications end as not selected, open offers
-            (even ones still inside their 48 hours) are withdrawn as not selected, and invitations are withdrawn, each worker told the job
-            closed. People already hired stay hired, and you can keep scheduling their shifts.
+            When you&apos;re done hiring. Nobody can apply or be invited afterwards. Open applications, offers and invitations end, and
+            each worker is told the job closed. People already hired stay hired, and you can keep scheduling their shifts.
           </p>
           <ActionButton
             action={closeJobAction}

@@ -9,6 +9,7 @@ import { partsForOrg, partsForOrgMany } from "@/lib/shared-scorecard-data";
 import { isMatch, loadMatches, matchCounts } from "@/lib/matches-data";
 import { loadNotifications, markRead, unreadNotifications } from "@/lib/notifications-data";
 import { scheduleShift as scheduleShiftC35 } from "@/lib/field-day-data";
+import { loadDesk } from "@/lib/desk-data";
 import { closeJob } from "@/lib/engagements-data";
 import { JOB_CLOSED_NOTE } from "@/lib/engagements";
 import { HIRING_ROLES } from "@/lib/access";
@@ -469,6 +470,8 @@ const types = async (id: string) => (await loadEngagementEvents(id)).map((e) => 
   check("another organization can't close a job (reads as not found)", JSON.stringify(await closeJob(stillOpen.id, { profileId: OTHER, orgId: ORG2 })) === JSON.stringify({ ok: false, reason: "Job not found." }) && (await p.job.findUniqueOrThrow({ where: { id: stillOpen.id } })).status === "PUBLISHED");
   const hiredShift = await scheduleShiftC35({ profileId: OWNER, orgId: ORG }, nn1, { startsAt: new Date(Date.now() + 50 * HOUR).toISOString(), endsAt: new Date(Date.now() + 54 * HOUR).toISOString(), stagingLocation: "Library parking lot" });
   check("people hired on a closed job can still be scheduled", hiredShift.ok, hiredShift);
+  const desk = await loadDesk({ profileId: OWNER, orgId: ORG, role: "OWNER" });
+  check("…and the Desk's week ahead shows that closed job's shift", !!desk.week?.some((w) => w.jobId === jn.id && w.shifts >= 1), desk.week?.map((w) => w.title));
 
   // Closing a job with a live offer, and with lapsed ones.
   const jo = await newJob("Offer close job", 3);
@@ -505,8 +508,10 @@ const types = async (id: string) => (await loadEngagementEvents(id)).map((e) => 
   const jx = await newJob("Excluded invite job", 2, { campaignDisclosure: { campaignType: "ballot_measure", affiliation: "nonpartisan", message: "Paid for by the committee." } });
   const xInv = idOf(await inviteWorker(ORG, OWNER, jx.id, N(1)));
   const beforeBoundary = (await loadNotifications(asWorker(N(1)))).some((n) => n.engagement.id === xInv);
+  const unreadBefore = await unreadNotifications(asWorker(N(1)));
   await savePreferences(N(1), N(1), { visibilityMode: "MATCHING_ONLY", identityLabels: [], partyRelationship: null, issuePositions: {}, campaignBoundaries: [{ kind: "campaign_type", target: "ballot_measure", stance: "do_not_match" }] } as never, null);
-  check("a notice about an invitation the worker's own answers rule out isn't shown or counted", beforeBoundary && !(await loadNotifications(asWorker(N(1)))).some((n) => n.engagement.id === xInv), { beforeBoundary });
+  const unreadAfter = await unreadNotifications(asWorker(N(1)));
+  check("a notice about an invitation the worker's own answers rule out isn't shown or counted", beforeBoundary && !(await loadNotifications(asWorker(N(1)))).some((n) => n.engagement.id === xInv) && unreadAfter === unreadBefore - 1, { beforeBoundary, unreadBefore, unreadAfter });
 
   const ownerUnread = await unreadNotifications(asStaff(OWNER, "OWNER", ORG));
   const shown = await loadNotifications(asWorker(N(1)));
@@ -516,8 +521,8 @@ const types = async (id: string) => (await loadEngagementEvents(id)).map((e) => 
   const left = await loadNotifications(asWorker(N(1)));
   check("marking read covers only what was shown: a newer notice stays unread", left.every((n) => (n.id === newer.id ? !n.readAt : !!n.readAt)) && left.some((n) => n.id === newer.id), left.map((n) => [n.kind, !!n.readAt]));
   check("…and is the reader's own: nobody else's changes", (await unreadNotifications(asStaff(OWNER, "OWNER", ORG))) === ownerUnread && ownerUnread > 0);
-  await markRead(OWNER, shown.map((n) => n.id));
-  check("…and someone else's ids mark nothing", (await p.notification.count({ where: { id: { in: shown.map((n) => n.id) }, recipientId: N(1), readAt: null } })) === 0 && (await unreadNotifications(asStaff(OWNER, "OWNER", ORG))) === ownerUnread);
+  await markRead(OWNER, [newer.id]);
+  check("…and someone else's ids mark nothing", !(await p.notification.findUniqueOrThrow({ where: { id: newer.id } })).readAt && (await unreadNotifications(asStaff(OWNER, "OWNER", ORG))) === ownerUnread);
   const nExp = (await exportAccount({ userId: N(1), workerId: N(1) })).find((f) => f.name === "notifications.csv")?.text ?? "";
   check("the worker's export lists their notices", /OFFER_RECEIVED/.test(nExp) && /JOB_CLOSED/.test(nExp), nExp.slice(0, 200));
   for (const role of ["anon", "authenticated"]) {

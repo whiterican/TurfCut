@@ -110,25 +110,46 @@ async function visible<T extends { kind: NotificationKind; engagement: { status:
   );
 }
 
-/** A person's notices, newest first, each with what it's about. */
+/**
+ * A person's notices, newest first, each with what it's about — a full page
+ * of visible ones: notices hidden by the worker's own answers don't take a
+ * slot (pages are fetched until the page fills or the rows run out).
+ */
 export async function loadNotifications(v: Viewer) {
   const scope = scopeFor(v);
   if (!scope) return [];
-  const rows = await db().notification.findMany({ where: { recipientId: v.userId, engagement: scope }, select: SELECT, orderBy: [{ createdAt: "desc" }, { id: "asc" }], take: NOTIFICATION_PAGE });
-  return visible(v, rows);
+  const out: Array<Awaited<ReturnType<typeof page>>[number]> = [];
+  const page = (skip: number) =>
+    db().notification.findMany({ where: { recipientId: v.userId, engagement: scope }, select: SELECT, orderBy: [{ createdAt: "desc" }, { id: "asc" }], skip, take: NOTIFICATION_PAGE });
+  for (let skip = 0; out.length < NOTIFICATION_PAGE; skip += NOTIFICATION_PAGE) {
+    const rows = await page(skip);
+    out.push(...(await visible(v, rows)));
+    if (rows.length < NOTIFICATION_PAGE) break;
+  }
+  return out.slice(0, NOTIFICATION_PAGE);
 }
 
-/** Unread notices (up to UNREAD_CAP) for the header bell. */
+/** Only what deciding visibility needs, for the bell's count. */
+const COUNT_SELECT = {
+  kind: true,
+  engagement: { select: { status: true, job: { select: { campaignDisclosure: true, measureIds: true, org: { select: { name: true } } } } } },
+} satisfies Prisma.NotificationSelect;
+
+/** Unread notices (up to UNREAD_CAP) for the header bell, on every page: kept light. */
 export async function unreadNotifications(v: Viewer): Promise<number> {
   const scope = scopeFor(v);
   if (!scope) return 0;
-  const rows = await db().notification.findMany({
-    where: { recipientId: v.userId, readAt: null, engagement: scope },
-    select: SELECT,
-    orderBy: { createdAt: "desc" },
-    take: UNREAD_CAP,
-  });
-  return (await visible(v, rows)).length;
+  const where = { recipientId: v.userId, readAt: null, engagement: scope };
+  // Staff notices are never hidden, so a capped count is enough.
+  if (v.role !== "WORKER") return db().notification.count({ where, take: UNREAD_CAP });
+  // A worker's hidden ones never get marked read, so count past them, a page at a time.
+  let n = 0;
+  for (let skip = 0; n < UNREAD_CAP; skip += UNREAD_CAP) {
+    const rows = await db().notification.findMany({ where, select: COUNT_SELECT, orderBy: { createdAt: "desc" }, skip, take: UNREAD_CAP });
+    n += (await visible(v, rows)).length;
+    if (rows.length < UNREAD_CAP) break;
+  }
+  return Math.min(n, UNREAD_CAP);
 }
 
 /**

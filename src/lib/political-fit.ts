@@ -39,9 +39,9 @@ export const VISIBILITY_OPTIONS: Array<{ value: VisibilityMode; label: string; d
   },
   {
     value: "APPLIED_TO",
-    label: "Organizations I apply to",
+    label: "Organizations I work with",
     description:
-      "Used for matching. Answers you choose to share are shown to organizations you apply to or accept an invitation from. Everyone else sees \"not shared\".",
+      "Used for matching. Answers you choose to share are shown to organizations you apply to, claim a spot with or accept an invitation from. Everyone else sees \"not shared\".",
   },
   {
     value: "APPROVED_RECRUITERS",
@@ -178,7 +178,7 @@ export const FLOW_STEPS = ["visibility", "identity", "party", "issues", "boundar
  * Identifies the consent wording below. Bump it whenever the wording changes
  * materially: every earlier consent then needs reconfirming.
  */
-export const CONSENT_TEXT_VERSION = "m1-2026-09-30";
+export const CONSENT_TEXT_VERSION = "m1-2026-10-09"; // claiming a spot named (2026-10-09)
 
 export const CONSENT_TEXT =
   "These answers are my own choices. Turfcut may use them only as my visibility setting describes, until the expiry I chose. " +
@@ -543,7 +543,7 @@ export const NOT_SHARED_BASIS =
   "Political-fit answers are shared only when a worker chooses to. \"Not shared\" is the default and says nothing about fit.";
 
 export const SHARED_BASIS =
-  "Worker-authorized signals: shown because this worker chose to share these answers with organizations they apply to or accept an invitation from, and they have with yours. Issue positions appear only where they agree with a position your campaign disclosed; the worker's full questionnaire is never shared.";
+  "Worker-authorized signals: shown because this worker chose to share these answers with organizations they apply to, claim a spot with or accept an invitation from, and they have with yours. Issue positions appear only where they agree with a position your campaign disclosed; the worker's full questionnaire is never shared.";
 
 const SAME_SIDE: Record<Position, "support" | "oppose" | null> = {
   support: "support",

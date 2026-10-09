@@ -703,6 +703,22 @@ certificate. Approved as recommended by review:
   what happened. `prisma/c3-hiring.sql` adds `Engagement.inviteNote`,
   `inviteExpiresAt` and the `OrgMute` table. The API invitation accepts
   `{ workerId, note? }`.
+- **Matches (C3.4)**: `/hiring/[jobId]/matches`, a separate tab from
+  Applicants, lists workers who turned on "organizations can find me" for
+  the job's kind of work and whose home area is within the distance they'd
+  travel to the job's city, never anyone already on the job, anyone who
+  muted the organization, or anyone whose own "do not match" answers rule
+  the job out (in any sharing mode: boundaries only ever exclude, and
+  nothing about them is shown). Each column is one fact with its evidence
+  from what the worker shares with approved organizations; distance is
+  rounded to 5 miles; there is no combined score. Only approved
+  organizations see matches, and a match can be invited without an earlier
+  relationship (the only exception to C1's no-directory rule, because the
+  worker opted in). Distances use bundled Census tables
+  (`src/data/geo`, ZIP and place centroids, public domain; rebuild with
+  `scripts/geo/build-geo.mjs`). A worker whose home area Turfcut can't
+  place (unknown, or a city name shared by several states) isn't matched,
+  and their profile says so. `/hiring` shows each job's match count.
 - **History**: every step is an append-only `EngagementEvent`, shown the
   same way to the worker and the organization, and in the worker's data
   export (`engagement-history.csv`). `prisma/c3-hiring.sql` adds the

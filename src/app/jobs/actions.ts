@@ -179,6 +179,6 @@ export async function invite(_prev: ActionState, formData: FormData): Promise<Ac
   const workerId = String(formData.get("workerId") ?? "");
   const r = await inviteWorker(orgId, userId, jobId, workerId, undefined, { note: field(formData, "note") });
   revalidatePath(`/workers/${workerId}`);
-  revalidatePath(`/hiring/${jobId}/invites`);
+  revalidatePath(`/hiring/${jobId}`, "layout");
   return done(jobId, r, "Invitation sent.");
 }

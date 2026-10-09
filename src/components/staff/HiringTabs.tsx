@@ -1,9 +1,21 @@
 import Link from "next/link";
 
-/** The views of one job's hiring (C3): Applicants and Invites, kept apart (Matches arrive in C3.4). */
-export function HiringTabs({ jobId, current, counts }: { jobId: string; current: "applicants" | "invites"; counts: { applicants: number; invites: number } }) {
+/**
+ * The views of one job's hiring (C3): Applicants, Matches and Invites, kept
+ * apart — suggested workers are never mixed into the people who applied.
+ */
+export function HiringTabs({
+  jobId,
+  current,
+  counts,
+}: {
+  jobId: string;
+  current: "applicants" | "matches" | "invites";
+  counts: { applicants: number; invites: number; matches?: number };
+}) {
   const tabs = [
     { key: "applicants" as const, label: "Applicants", n: counts.applicants },
+    { key: "matches" as const, label: "Matches", n: counts.matches },
     { key: "invites" as const, label: "Invites", n: counts.invites },
   ];
   return (
@@ -15,7 +27,8 @@ export function HiringTabs({ jobId, current, counts }: { jobId: string; current:
           aria-current={t.key === current ? "page" : undefined}
           className={`filter-chip ${t.key === current ? "filter-chip-solid" : ""}`}
         >
-          {t.label} <span className="tabular-nums">{t.n}</span>
+          {t.label}
+          {t.n !== undefined && <span className="tabular-nums"> {t.n}</span>}
         </Link>
       ))}
     </nav>

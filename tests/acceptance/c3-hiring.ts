@@ -6,6 +6,7 @@ import { loadApplicants } from "@/lib/applicants-data";
 import { applicantCells } from "@/lib/applicants";
 import { saveSharing } from "@/lib/sharing-data";
 import { partsForOrg, partsForOrgMany } from "@/lib/shared-scorecard-data";
+import { isMatch, loadMatches, matchCounts } from "@/lib/matches-data";
 import { declineInvitation, hiringCounts, invitesLeft, loadInvitations, loadJobInvites, muteOrg, unmuteOrg } from "@/lib/invitations-data";
 import { DEFAULT_SHARING } from "@/lib/sharing";
 import { closeAccount, exportAccount } from "@/lib/account-data";
@@ -346,6 +347,46 @@ const types = async (id: string) => (await loadEngagementEvents(id)).map((e) => 
   await muteOrg({ workerId: W4, profileId: W4 }, ORG);
   const mutesFile = (await exportAccount({ userId: W4, workerId: W4 })).find((f) => f.name === "mutes.json")?.text ?? "";
   check("the export's mutes file names the muted organization", /Front Range Circulators/.test(mutesFile), mutesFile);
+
+  // --- C3.4: matches ---
+  const M = (n: number) => `00000000-0000-0000-0000-0000000002${String(n).padStart(2, "0")}`;
+  const mw = [1, 2, 3, 4, 5, 6, 7].map(M);
+  await p.profile.createMany({ data: mw.map((id) => ({ id, role: "WORKER" as const })) });
+  await p.worker.createMany({ data: mw.map((id, i) => ({ id, profileId: id, displayName: `Match ${i + 1}` })) });
+  const findMe = (w: string, over: Record<string, unknown>) =>
+    saveSharing(w, w, { audiences: { ...DEFAULT_SHARING.audiences, output: "ANY_APPROVED_ORG" }, findable: true, workTypes: ["CANVASS"], homeArea: "80012", travelMiles: 25, ...over });
+  await findMe(M(1), {}); // an Aurora ZIP, a few miles from Denver: a match
+  await findMe(M(2), { workTypes: ["PETITION"] }); // wrong work type
+  await findMe(M(3), { homeArea: "Boulder, CO", travelMiles: 10 }); // ~25 mi, travels 10
+  await findMe(M(4), {}); // rules out this organization (in PRIVATE mode, still honoured)
+  await savePreferences(M(4), M(4), { visibilityMode: "PRIVATE", identityLabels: [], partyRelationship: null, issuePositions: {}, campaignBoundaries: [{ kind: "organization", target: "Front Range Circulators", stance: "do_not_match" }] } as never, null);
+  await findMe(M(5), { homeArea: "Nowhere Special" }); // can't be placed
+  await findMe(M(6), {}); // muted the organization
+  await p.orgMute.create({ data: { workerId: M(6), orgId: ORG } });
+  await saveSharing(M(7), M(7), { audiences: DEFAULT_SHARING.audiences, findable: false, workTypes: [], homeArea: null, travelMiles: null }); // not findable
+  const disclosed = { campaignDisclosure: { campaignType: "ballot_measure", affiliation: "nonpartisan", message: "Paid for by the committee." } };
+  const jm = await newJob("Denver match job", 3, { geography: { city: "Denver", state: "CO" }, hiringMethod: { modes: ["application", "invite"] }, ...disclosed });
+  const mr = await loadMatches(jm.id, ORG);
+  const names = mr.ok ? mr.rows.map((r) => r.name) : [];
+  check("matches: only the findable worker for this work, within their distance, not ruled out, placeable and not muting the org", mr.ok && names.length === 1 && names[0] === "Match 1", { mr: mr.ok ? names : mr });
+  const top = mr.ok ? mr.rows[0] : null;
+  check("…with the distance measured (an Aurora ZIP is a few miles from Denver)", !!top && top.miles > 2 && top.miles < 15 && top.travelMiles === 25 && top.travelSet, top);
+  check("…and only what they share with approved organizations (output yes; availability, credentials, reliability no)", !!top && top.scorecard.shared.output === true && top.scorecard.shared.reliability === false && top.availability === "withheld" && top.credentials === "withheld", top);
+  check("an organization Turfcut hasn't approved gets no matches", JSON.stringify(await loadMatches(jm.id, ORG3)).includes("not_found") || !(await loadMatches(jm.id, ORG3)).ok);
+  await p.organization.update({ where: { id: ORG }, data: { approved: false } });
+  check("…including this one while unapproved", (await loadMatches(jm.id, ORG)).ok === false);
+  await p.organization.update({ where: { id: ORG }, data: { approved: true } });
+  const noCity = await newJob("No city job", 2);
+  check("a job without a city has no matches to measure", JSON.stringify(await loadMatches(noCity.id, ORG)) === JSON.stringify({ ok: false, reason: "no_city" }));
+  check("another organization can't load this job's matches", (await loadMatches(jm.id, ORG2)).ok === false);
+  check("a non-match can't be invited (no directory): 'Worker not found.'", (await inviteWorker(ORG, OWNER, jm.id, M(3))).ok === false && (await inviteWorker(ORG, OWNER, jm.id, M(4))).ok === false);
+  check("isMatch agrees", (await isMatch(M(1), jm.id, ORG)) && !(await isMatch(M(3), jm.id, ORG)) && !(await isMatch(M(6), jm.id, ORG)));
+  const mInv = await inviteWorker(ORG, OWNER, jm.id, M(1), undefined, { note: "You're nearby" });
+  check("a match can be invited without any earlier relationship", mInv.ok, mInv);
+  const after = await loadMatches(jm.id, ORG);
+  check("…and then leaves Matches (it's under Invites now)", after.ok && after.rows.length === 0 && (await matchCounts([jm], ORG)).get(jm.id) === 0);
+  const mSnap = (await p.engagement.findUniqueOrThrow({ where: { id: idOf(mInv) } })).applicationSnapshot as { scorecard?: { shared?: Record<string, boolean> } };
+  check("…(output shared, history not)", mSnap.scorecard?.shared?.output === true && mSnap.scorecard?.shared?.history === false, mSnap);
 
   const expW2 = await exportAccount({ userId: W2, workerId: W2 });
   check("the export carries invitation notes and the mutes file", /Saturday canvass/.test(expW2.find((f) => f.name === "engagements.csv")?.text ?? "") && expW2.some((f) => f.name === "mutes.json"));

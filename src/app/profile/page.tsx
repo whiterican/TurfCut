@@ -19,6 +19,8 @@ import { CredentialList } from "@/components/CredentialList";
 import { expiryToday } from "@/lib/credentials";
 import { PART_DETAILS, RELATIONSHIP_PHRASE, SHARE_PARTS, type ShareAudience } from "@/lib/sharing";
 import { UrlNotice } from "@/components/UrlNotice";
+import { geoTables, resolveArea } from "@/lib/geo";
+import { DEFAULT_TRAVEL_MILES } from "@/lib/matches-data";
 
 const AUDIENCE_SHORT: Record<ShareAudience, string> = {
   RELATIONSHIP: `Organizations you ${RELATIONSHIP_PHRASE}`,
@@ -41,6 +43,8 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
   ]);
   const today = new Date().toISOString().slice(0, 10);
   const mode = fit && VISIBILITY_OPTIONS.find((o) => o.value === fit.visibilityMode);
+  // Matches (C3.4) need a home area Turfcut can place; say so rather than leave the worker unfindable.
+  const homePlaced = !sharing.choices.findable || !!resolveArea(sharing.choices.homeArea, await geoTables());
 
   return (
     <main className="page">
@@ -136,9 +140,16 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
             ))}
             <li className="flex flex-wrap justify-between gap-x-4 text-sm">
               <span className="text-fg">Organizations can find you</span>
-              <span className="text-muted">{sharing.choices.findable ? `Yes, within ${sharing.choices.travelMiles} miles of ${sharing.choices.homeArea}` : "No"}</span>
+              <span className="text-muted">
+                {sharing.choices.findable ? `Yes, within ${sharing.choices.travelMiles ?? DEFAULT_TRAVEL_MILES} miles of ${sharing.choices.homeArea}` : "No"}
+              </span>
             </li>
           </ul>
+          {sharing.choices.findable && !homePlaced && (
+            <p className="alert-warning text-sm">
+              Turfcut can&apos;t place &ldquo;{sharing.choices.homeArea}&rdquo;, so organizations can&apos;t find you yet. Type a ZIP code, or a city with its state (&ldquo;Aurora, CO&rdquo;).
+            </p>
+          )}
           {sharing.version === null && <p className="text-hint">These are the defaults. Nothing changes until you choose.</p>}
           <div className="flex flex-wrap gap-2">
             <Link transitionTypes={["nav-forward"]} href="/profile/sharing" className="btn-secondary">Change who sees what</Link>

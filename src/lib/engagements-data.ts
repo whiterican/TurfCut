@@ -24,6 +24,7 @@ import { loadSharing } from "@/lib/sharing-data";
 import { visibleParts } from "@/lib/sharing";
 import { shareScorecard } from "@/lib/shared-scorecard";
 import { defaultBoss } from "@/lib/chat-data";
+import { isMatch } from "@/lib/matches-data";
 
 type Result = { ok: true; engagementId: string; status: string } | { ok: false; reason: string };
 type Tx = Prisma.TransactionClient;
@@ -101,7 +102,10 @@ async function open(
   // No directory (C1): an organization invites only workers who have already
   // engaged with one of its jobs. Unknown and unrelated ids get the same
   // answer, so invitations can't be used to probe for worker ids.
-  if (action === "invite" && !(await orgHasRelationship(workerId, job.orgId))) return { ok: false, reason: "Worker not found." };
+  // ...or, since C3.4, a worker who chose to be findable and matches this job (Matches).
+  if (action === "invite" && !(await orgHasRelationship(workerId, job.orgId)) && !(await isMatch(workerId, jobId, job.orgId, before))) {
+    return { ok: false, reason: "Worker not found." };
+  }
   const w = await db().worker.findUnique({ where: { id: workerId }, select: { closedAt: true } });
   if (!w) return { ok: false, reason: "Worker not found." };
   if (w.closedAt) return { ok: false, reason: "This worker has closed their account." };

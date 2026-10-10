@@ -46,6 +46,8 @@ export function ProofUploadForm({ credentialId, sides }: { credentialId: string;
   const [file, setFile] = useState<File | null>(null);
   const [preparing, setPreparing] = useState(false);
   const [problem, setProblem] = useState("");
+  // Choosing again while a photo is still shrinking: only the latest choice lands.
+  const pick = useRef(0);
 
   const choose = async (chosen: File | null) => {
     setProblem("");
@@ -55,10 +57,12 @@ export function ProofUploadForm({ credentialId, sides }: { credentialId: string;
       setProblem("Send a JPEG or PNG photo.");
       return;
     }
+    const mine = ++pick.current;
     let ready = chosen;
     if (chosen.size > SHRINK_OVER) {
       setPreparing(true);
       ready = (await shrink(chosen)) ?? chosen;
+      if (mine !== pick.current) return;
       setPreparing(false);
     }
     if (ready.size > PROOF_MAX_BYTES) {
@@ -101,7 +105,7 @@ export function ProofUploadForm({ credentialId, sides }: { credentialId: string;
         <input type="checkbox" name="shared" className="mt-0.5 size-4" />
         <span>
           Let organizations that hire me see this photo: only their owners and compliance members, only while I&apos;m hired and share my credentials with them.
-          They see everything printed on the certificate, including your name and the training date. I see each time they look.
+          They see everything printed on the certificate, including my name and the training date. I see each time they look.
         </span>
       </label>
       <button className="btn-secondary btn-sm" disabled={pending || preparing || !file || !!problem}>

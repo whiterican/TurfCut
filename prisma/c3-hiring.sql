@@ -201,7 +201,8 @@ BEGIN
   IF cred."removed" OR cred."kind" <> 'TRAINING' OR cred."state" IS DISTINCT FROM 'CO' OR cred."issuedOn" IS NULL THEN
     RAISE EXCEPTION 'CredentialProof: only a Colorado training credential with a training date takes a photo' USING ERRCODE = 'check_violation';
   END IF;
-  IF cred."issuedOn" > (NEW."createdAt" AT TIME ZONE 'UTC')::date THEN
+  -- createdAt is a UTC wall-clock timestamp (no zone), so the cast doesn't depend on the session's time zone.
+  IF cred."issuedOn" > NEW."createdAt"::date THEN
     RAISE EXCEPTION 'CredentialProof: the training date is in the future' USING ERRCODE = 'check_violation';
   END IF;
   RETURN NEW;

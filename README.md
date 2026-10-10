@@ -817,7 +817,9 @@ Built in C3.6b (see the C3 scope below). Approved as recommended by review:
   deletions, and removes any stored file older than an hour that has no
   row. The export includes the photos (up to 3 MB of them; the README inside
   points to the Download link under each photo for the rest), their history
-  and every look. Setup: the bucket,
+  and every look. The export is still one response, so a worker with a very
+  long history and 3 MB of photos could meet the host's response limit; a
+  streamed export is a follow-up if that happens. Setup: the bucket,
   `CREDENTIAL_PROOF_KEY` and `CRON_SECRET` (README "What needs Caden").
   Counsel reviews the document handling before the pilot.
 - **History**: every step is an append-only `EngagementEvent`, shown the

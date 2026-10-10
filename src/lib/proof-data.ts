@@ -191,7 +191,8 @@ export async function purgeProofs(store: ProofStore = supabaseProofStore(), opts
     const known = new Set((await db().credentialProof.findMany({ select: { id: true, workerId: true } })).map((p) => proofPath(p.workerId, p.id)));
     const cutoff = now.getTime() - ORPHAN_MINUTES * 60_000;
     for (const f of stored) {
-      if (!known.has(f.path) && (f.createdAt === null || f.createdAt.getTime() < cutoff)) {
+      // A file the store can't date is left alone: it may be an upload being recorded right now.
+      if (!known.has(f.path) && f.createdAt !== null && f.createdAt.getTime() < cutoff) {
         paths.push(f.path);
         orphans++;
       }

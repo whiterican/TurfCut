@@ -6,7 +6,7 @@ import { AUDIENCE_OPTIONS } from "@/lib/sharing";
 import { credentialName, dateOnly, expiryState, expiryToday, maskIdentifier, METHOD_LABELS, VERIFICATION_LABELS } from "@/lib/credentials";
 import { loadVerifiers } from "@/lib/verification-data";
 import { loadWorkerProofs } from "@/lib/proof-data";
-import { proofEligible, proofLapsed, proofLapsesOn } from "@/lib/proof-photos";
+import { proofEligible, proofLapsed, proofLapsesOn, trainingInFuture } from "@/lib/proof-photos";
 import { PROOF_SIDES, SIDE_LABELS } from "@/lib/proof-sides";
 import { missingProofSettings } from "@/lib/env";
 import { ActionButton } from "@/components/ActionButton";
@@ -96,7 +96,7 @@ export default async function CredentialsPage() {
                               <p className="text-sm text-fg">
                                 {SIDE_LABELS[p.side]} · added {dateText(p.createdAt)} · {p.shared ? "organizations that hire you can see it" : "only you can see it"}
                               </p>
-                              <p className="text-hint">Deleted automatically on {dateText(new Date(`${p.lapsesOn}T00:00:00Z`))}, a year after the training.</p>
+                              <p className="text-hint">Deleted automatically on {dateText(new Date(`${p.lapsesOn}T00:00:00Z`))}, a year after the training (or after it was added, if earlier).</p>
                               {p.looks.length === 0 ? (
                                 <p className="text-muted-sm">No organization has looked at it.</p>
                               ) : (
@@ -125,7 +125,9 @@ export default async function CredentialsPage() {
                               </div>
                             </div>
                           ))}
-                          {proofLapsed(c.issuedOn!, today) ? (
+                          {trainingInFuture(c.issuedOn!, today) ? (
+                            <p className="text-hint">The training date is in the future. You can add a photo of the certificate once the training has happened.</p>
+                          ) : proofLapsed(c.issuedOn!, today) ? (
                             <p className="text-hint">This training was more than a year ago ({dateText(new Date(`${proofLapsesOn(c.issuedOn!)}T00:00:00Z`))}), so it takes no photo. Add your new training instead.</p>
                           ) : free.length === 0 ? null : photosReady ? (
                             <ProofUploadForm credentialId={c.id} sides={free} />

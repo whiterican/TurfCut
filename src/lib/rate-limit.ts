@@ -33,6 +33,8 @@ export const LIMITS = {
   invite: { max: 20, windowMs: 24 * 60 * 60_000 },
   /** Credential photo uploads per worker per day (each is re-encoded and stored). */
   "proof-upload": { max: 12, windowMs: 24 * 60 * 60_000 },
+  /** An organization member's looks at credential photos per hour (each look is recorded for the worker). */
+  "proof-view": { max: 120, windowMs: 60 * 60_000 },
 } as const satisfies Record<string, Limit>;
 
 export type LimitName = keyof typeof LIMITS;

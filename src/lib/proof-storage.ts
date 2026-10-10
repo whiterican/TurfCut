@@ -16,6 +16,8 @@ export interface ProofStore {
   get(path: string): Promise<Uint8Array | null>;
   /** Removing a file that's already gone is fine. */
   remove(paths: string[]): Promise<void>;
+  /** Every stored file, with when it was stored (null when the store doesn't say). */
+  list(): Promise<Array<{ path: string; createdAt: Date | null }>>;
 }
 
 /** Where a photo is kept: under its worker, named by its id (nothing else in the name). */
@@ -41,6 +43,25 @@ export function supabaseProofStore(): ProofStore {
       if (!paths.length) return;
       const { error } = await bucket().remove(paths);
       if (error) throw new Error(`[turfcut] proof photo removal failed: ${error.message}`);
+    },
+    // Files sit one level down, under their worker's id: the root lists the workers, each of those the files.
+    async list() {
+      const b = bucket();
+      const page = async (prefix: string) => {
+        const out: Array<{ name: string; id?: string | null; created_at?: string | null }> = [];
+        for (let offset = 0; ; offset += 1000) {
+          const { data, error } = await b.list(prefix, { limit: 1000, offset });
+          if (error) throw new Error(`[turfcut] proof photo listing failed: ${error.message}`);
+          out.push(...(data ?? []));
+          if (!data || data.length < 1000) return out;
+        }
+      };
+      const files: Array<{ path: string; createdAt: Date | null }> = [];
+      for (const folder of await page("")) {
+        if (folder.id) continue; // a stray file at the root: not a photo
+        for (const f of await page(folder.name)) if (f.id) files.push({ path: `${folder.name}/${f.name}`, createdAt: f.created_at ? new Date(f.created_at) : null });
+      }
+      return files;
     },
   };
 }

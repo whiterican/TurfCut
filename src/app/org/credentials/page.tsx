@@ -74,7 +74,7 @@ export default async function OrgCredentialsPage({ searchParams }: { searchParam
                             <span className="text-muted-sm">Certificate photo:</span>
                             {c.proofs.map((p) => (
                               <a key={p.id} href={`/api/credential-proofs/${p.id}`} target="_blank" rel="noopener noreferrer" className="link">
-                                View the {SIDE_LABELS[p.side].toLowerCase()}
+                                View the {SIDE_LABELS[p.side].toLowerCase()}<span className="sr-only"> (opens in a new tab)</span>
                               </a>
                             ))}
                             <span className="text-hint">The worker sees when your organization opens it.</span>
@@ -111,9 +111,10 @@ export default async function OrgCredentialsPage({ searchParams }: { searchParam
         </ul>
       )}
       <p className="text-hint">
-        Turfcut never shows you a credential&apos;s number. Look the worker up by name in the state&apos;s registry, or ask to see the original. A worker
-        may share a photo of a Colorado training certificate with organizations that hire them: the worker sees each time your organization opens it, and
-        once you have, you can record that you checked it that way. A photo is something to check, not proof by itself.
+        Turfcut itself never shows you a credential&apos;s number. Look the worker up by name in the state&apos;s registry, or ask to see the original. A
+        worker may share a photo of a Colorado training certificate with organizations that hire them; it shows whatever is printed on it. The worker sees
+        each time your organization opens it, and once you have, you can record that you checked it that way. A photo is something to check, not proof by
+        itself.
       </p>
     </main>
   );

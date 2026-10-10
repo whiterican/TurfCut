@@ -1,6 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
-import { purgeWorkerProofs } from "@/lib/proof-data";
+import { lockProofs, purgeWorkerProofs } from "@/lib/proof-data";
 import { UUID_RE } from "@/lib/jobs";
 import { partsForOrg } from "@/lib/shared-scorecard-data";
 import { currentCredentials, orgCredentialView, validateCredential, type CredentialInput, type CredentialRow, type OrgCredentialView } from "@/lib/credentials";
@@ -62,6 +62,8 @@ export async function editCredential(workerId: string, actorId: string, id: stri
   const clear = !!raw && typeof raw === "object" && (raw as Record<string, unknown>).clearIdentifier === true;
   try {
     const r = await db().$transaction(async (tx) => {
+      // Photos follow the credential: no photo lands on a row this edit is replacing (proof-data.ts).
+      await lockProofs(tx, workerId);
       const cur = await ownCurrent(tx, workerId, id);
       if (!cur) return { ok: false as const, reason: STALE };
       if (cur.kind !== v.value.kind) return { ok: false as const, reason: "A credential's kind can't change. Remove it and add a new one." };
@@ -88,6 +90,7 @@ export async function editCredential(workerId: string, actorId: string, id: stri
 export async function removeCredential(workerId: string, actorId: string, id: string): Promise<CredentialResult> {
   try {
     const r = await db().$transaction(async (tx) => {
+      await lockProofs(tx, workerId);
       const cur = await ownCurrent(tx, workerId, id);
       if (!cur) return { ok: false as const, reason: STALE };
       const row = await tx.workerCredential.create({ data: { workerId, actorId, kind: cur.kind, removed: true, supersedesId: cur.id }, select: { id: true } });

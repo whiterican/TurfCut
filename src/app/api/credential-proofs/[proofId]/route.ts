@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 import { getSessionProfile } from "@/lib/auth";
 import { missingProofSettings } from "@/lib/env";
 import { openProof, type Viewer } from "@/lib/proof-data";
+import { check } from "@/lib/rate-limit";
 
 /**
  * GET /api/credential-proofs/:proofId[?download=1] — a credential photo,
@@ -27,6 +28,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ proo
     console.error(`[turfcut] proof photo refused: not configured (${unset.join(", ")})`);
     return Response.json({ error: "Credential photos aren't available on this server yet." }, { status: 503 });
   }
+  // An organization's looks are each recorded for the worker: a loop of them is cut off.
+  if (viewer.kind === "staff" && (await check("proof-view", viewer.profileId)) !== "ok") return Response.json({ error: "Too many requests. Try again later." }, { status: 429 });
   const download = req.nextUrl.searchParams.get("download") === "1";
   const photo = await openProof(viewer, proofId, download ? "download" : "view");
   if (!photo) return Response.json({ error: "Photo not found." }, { status: 404 });
@@ -34,10 +37,16 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ proo
     headers: {
       "Content-Type": "image/jpeg",
       "Content-Disposition": `${download ? "attachment" : "inline"}; filename="${photo.filename}"`,
-      // Never cached anywhere: each look is checked and recorded.
+      // Never cached anywhere: each look is checked and recorded. (The content
+      // security policy for this route is set in next.config.ts, which wins
+      // over a route's own header.)
       "Cache-Control": "private, no-store",
       "Referrer-Policy": "no-referrer",
-      "Content-Security-Policy": "default-src 'none'; img-src 'self'; sandbox",
     },
   });
+}
+
+/** Next.js would answer HEAD by running GET, which records a look that served nothing. */
+export async function HEAD() {
+  return new Response(null, { status: 405, headers: { Allow: "GET" } });
 }

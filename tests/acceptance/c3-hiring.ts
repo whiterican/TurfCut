@@ -25,7 +25,7 @@ import { loadHiredCredentials, loadVerifiers, verifyCredential } from "@/lib/ver
 import { createHash, randomBytes } from "node:crypto";
 import sharp from "sharp";
 import { addProof, loadOrgProofs, loadWorkerProofs, openProof, purgeProofs, removeProof } from "@/lib/proof-data";
-import { sniffImage } from "@/lib/proof-photos";
+import { proofKey, sealPhoto, sniffImage } from "@/lib/proof-photos";
 import type { ProofStore } from "@/lib/proof-storage";
 
 const ORG = "00000000-0000-0000-0000-000000000001";
@@ -669,10 +669,12 @@ const types = async (id: string) => (await loadEngagementEvents(id)).map((e) => 
   // --- C3.6b: credential proof photos ---
   process.env.CREDENTIAL_PROOF_KEY = randomBytes(32).toString("base64");
   const stash = new Map<string, Uint8Array>();
+  const stashed = new Map<string, Date>();
   const mem: ProofStore = {
-    put: async (path, bytes) => { if (stash.has(path)) throw new Error("exists"); stash.set(path, bytes); },
+    put: async (path, bytes) => { if (stash.has(path)) throw new Error("exists"); stash.set(path, bytes); stashed.set(path, new Date()); },
     get: async (path) => stash.get(path) ?? null,
-    remove: async (paths) => { for (const x of paths) stash.delete(x); },
+    remove: async (paths) => { for (const x of paths) { stash.delete(x); stashed.delete(x); } },
+    list: async () => [...stash.keys()].map((path) => ({ path, createdAt: stashed.get(path) ?? null })),
   };
   const Ph = (n: number) => `00000000-0000-0000-0000-0000000005${String(n).padStart(2, "0")}`;
   await p.profile.createMany({ data: [1, 2, 3].map((n) => ({ id: Ph(n), role: "WORKER" as const })) });
@@ -696,6 +698,10 @@ const types = async (id: string) => (await loadEngagementEvents(id)).map((e) => 
   check("only a dated Colorado training credential of one's own takes a photo, a real JPEG or PNG, front or back",
     refusals.every((r) => !r.ok) && /CO/.test(refusals[0].ok ? "" : refusals[0].reason) && /lapsed/.test(refusals[1].ok ? "" : refusals[1].reason) && /not found/.test(refusals[3].ok ? "" : refusals[3].reason) && /JPEG or PNG/.test(refusals[5].ok ? "" : refusals[5].reason) && stash.size === 0,
     refusals);
+  const trFuture = await addId(Ph(1), Ph(1), { kind: "TRAINING", label: "Booked training", state: "CO", issuedOn: `${Number(thisYear) + 1}-01-15` });
+  const future = await put(1, trFuture, "FRONT", true);
+  const futureDb = await refused(p.credentialProof.create({ data: { workerId: Ph(1), credentialId: trFuture, side: "FRONT", sha256: "a".repeat(64), sizeBytes: 1, width: 1, height: 1, shared: true, actorId: Ph(1) } }));
+  check("training that hasn't happened yet takes no photo (the app and the database both refuse)", !future.ok && /in the future/.test(future.reason) && /in the future/.test(futureDb), { future, futureDb });
   const front = await put(1, tr1, "FRONT", true);
   const frontId = front.ok ? front.id : "";
   const row1 = await p.credentialProof.findUnique({ where: { id: frontId } });
@@ -753,12 +759,43 @@ const types = async (id: string) => (await loadEngagementEvents(id)).map((e) => 
   check("once opened, \"looked at the worker's proof photo\" can be recorded", byPhoto.ok, byPhoto);
   const verifiedHead = byPhoto.ok ? byPhoto.id : "";
   check("the photos stay with the credential through its verification", ((await loadWorkerProofs(Ph(1))).get(verifiedHead) ?? []).length === 2 && !!(await openProof(compV, frontId, "view", mem)));
+  const staleUp = await put(1, tr1, "BACK", true);
+  check("an upload against a replaced credential row is told it changed", !staleUp.ok && /changed since you opened/.test(staleUp.reason), staleUp);
+  // Hidden the moment it should go, whatever the purge's timing: on the lapse day, and for a closed account.
+  const lapseDay = new Date(Date.UTC(Number(thisYear) + 1, 0, 15, 12)); // noon: the day's start keeps a 10-hour grace (expiryToday)
+  check("on its lapse day a shared photo is already hidden from the organization and the worker's list", (await openProof(compV, frontId, "view", mem, lapseDay)) === null && !(await loadWorkerProofs(Ph(1), lapseDay)).size && stash.has(`${Ph(1)}/${frontId}`));
+  await p.worker.update({ where: { id: Ph(1) }, data: { closedAt: new Date() } });
+  const closedHidden = (await openProof(compV, frontId, "view", mem)) === null && !(await loadOrgProofs(ORG, [Ph(1)])).size;
+  await p.worker.update({ where: { id: Ph(1) }, data: { closedAt: null } });
+  check("a closed account's photos are hidden before any purge runs", closedHidden);
+  // A look from before the worker's edit doesn't count for the edited credential.
+  const edited1 = await editCredential(Ph(1), Ph(1), verifiedHead, { kind: "TRAINING", label: "Circulator training (renamed)", state: "CO", issuedOn: `${thisYear}-01-15` });
+  const editedHead = edited1.ok ? edited1.id : "";
+  const orgAfterEdit = ((await loadHiredCredentials(staffOf(COMP, "COMPLIANCE"))) ?? []).find((x) => x.workerId === Ph(1));
+  const trAfterEdit = orgAfterEdit && orgAfterEdit.credentials !== "withheld" ? orgAfterEdit.credentials.find((c) => c.id === editedHead) : undefined;
+  const byPhotoAgain = await verifyCredential(staffOf(OWNER, "OWNER"), editedHead, "PROOF_PHOTO");
+  check("after the worker's edit, the photo is still offered but reads as not yet opened, so \"looked at the photo\" is refused until they look again",
+    trAfterEdit?.proofs.length === 1 && trAfterEdit.proofs.every((x) => !x.looked) && !byPhotoAgain.ok && /Open the worker's photo/.test(byPhotoAgain.reason), { trAfterEdit, byPhotoAgain });
+  const lookedAgain = !!(await openProof(compV, frontId, "view", mem));
+  const byPhoto2 = await verifyCredential(staffOf(OWNER, "OWNER"), editedHead, "PROOF_PHOTO");
+  check("…and a fresh look counts", lookedAgain && byPhoto2.ok, byPhoto2);
+  const head2 = byPhoto2.ok ? byPhoto2.id : editedHead;
 
   const exp6b = await exportAccount({ userId: Ph(1), workerId: Ph(1) }, new Date(), { proofStore: mem });
   const photoFiles = exp6b.filter((f) => f.name.startsWith("credential-photos/"));
   check("the export carries the photo rows, who looked, and the photos themselves",
     /FRONT/.test(exp6b.find((f) => f.name === "credential-photos.csv")?.text ?? "") && (exp6b.find((f) => f.name === "credential-photo-looks.csv")?.text ?? "").includes(orgName) && photoFiles.length === 2 && photoFiles.every((f) => f.bytes && sniffImage(f.bytes) === "jpeg"),
     exp6b.map((f) => f.name));
+
+  const goodKey = process.env.CREDENTIAL_PROOF_KEY;
+  process.env.CREDENTIAL_PROOF_KEY = "not-a-key";
+  const expBad = await exportAccount({ userId: Ph(1), workerId: Ph(1) }, new Date(), { proofStore: mem });
+  process.env.CREDENTIAL_PROOF_KEY = goodKey;
+  check("when the photos can't be read, the export still comes through and says so", /couldn't be included/.test(expBad.find((f) => f.name === "README.txt")?.text ?? "") && !expBad.some((f) => f.name.startsWith("credential-photos/")) && expBad.some((f) => f.name === "credential-photos.csv"));
+  const bigStash = new Map(stash);
+  const bigMem: ProofStore = { ...mem, get: async (path) => { const b = bigStash.get(path); return b ? sealPhoto(proofKey(), path.split("/")[1], new Uint8Array(2 * 1024 * 1024).fill(0xff)) : null; } };
+  const expBig = await exportAccount({ userId: Ph(1), workerId: Ph(1) }, new Date(), { proofStore: bigMem });
+  check("the export carries only so much photo (one response); the rest is pointed to the credentials page", expBig.filter((f) => f.name.startsWith("credential-photos/")).length === 1 && /didn't fit in this export/.test(expBig.find((f) => f.name === "README.txt")?.text ?? ""), expBig.map((f) => f.name));
 
   const rm = await removeProof(me(1), backId, mem);
   const rmAgain = await removeProof(me(1), backId, mem);
@@ -767,19 +804,25 @@ const types = async (id: string) => (await loadEngagementEvents(id)).map((e) => 
     rm.ok && !rmAgain.ok && !rmForeign.ok && !stash.has(`${Ph(1)}/${backId}`) && (await p.credentialProofDeletion.findUnique({ where: { proofId: backId } }))?.reason === "WORKER_REMOVED" && (await openProof({ kind: "worker", ...me(1) }, backId, "view", mem)) === null && stash.has(`${Ph(1)}/${frontId}`),
     { rm, rmAgain, rmForeign });
   // An edit that makes it a credential that takes no photo deletes its photos.
-  await editCredential(Ph(1), Ph(1), verifiedHead, { kind: "TRAINING", label: "Circulator training", state: "AZ", issuedOn: `${thisYear}-01-15` });
+  await editCredential(Ph(1), Ph(1), head2, { kind: "TRAINING", label: "Circulator training", state: "AZ", issuedOn: `${thisYear}-01-15` });
   check("…an edit away from Colorado records the deletion and hides it at once", (await p.credentialProofDeletion.findUnique({ where: { proofId: frontId } }))?.reason === "NO_LONGER_ELIGIBLE" && (await openProof(compV, frontId, "view", mem)) === null);
   await purgeProofs(mem, { workerId: Ph(1) });
   check("…and the purge removes its file", !stash.has(`${Ph(1)}/${frontId}`));
   // Lapse and account closure.
   const ph3Back = await put(3, tr3, "BACK", true);
   const lapsedRun = await purgeProofs(mem, {}, new Date(Date.UTC(Number(thisYear) + 1, 0, 16)));
-  check("a year after the training, the daily purge deletes the photos and their stash", lapsedRun.deleted >= 2 && (await p.credentialProofDeletion.findUnique({ where: { proofId: ph3Front.id } }))?.reason === "LAPSED" && ![...stash.keys()].some((k) => k.startsWith(Ph(3))), { lapsedRun, ph3Back });
+  check("a year after the training, the daily purge deletes the photos and their files", lapsedRun.deleted >= 2 && (await p.credentialProofDeletion.findUnique({ where: { proofId: ph3Front.id } }))?.reason === "LAPSED" && ![...stash.keys()].some((k) => k.startsWith(Ph(3))), { lapsedRun, ph3Back });
   const p2 = await put(2, tr2, "FRONT", false);
   await closeAccount({ userId: Ph(2), workerId: Ph(2) });
   check("closing the account deletes the photos", p2.ok && (await p.credentialProofDeletion.findUnique({ where: { proofId: p2.id } }))?.reason === "ACCOUNT_CLOSED");
-  await purgeProofs(mem);
-  check("…and the purge clears every deleted photo's file", stash.size === 0, [...stash.keys()]);
+  // A file with no row (an upload that never got recorded): removed once it's old enough, never while it may still be being recorded.
+  stash.set(`${Ph(1)}/00000000-0000-4000-8000-00000000beef`, new Uint8Array([1]));
+  stashed.set(`${Ph(1)}/00000000-0000-4000-8000-00000000beef`, new Date(Date.now() - 2 * 3_600_000));
+  stash.set(`${Ph(1)}/00000000-0000-4000-8000-00000000cafe`, new Uint8Array([1]));
+  stashed.set(`${Ph(1)}/00000000-0000-4000-8000-00000000cafe`, new Date());
+  const sweep = await purgeProofs(mem);
+  check("…and the purge clears every deleted photo's file and any old stored file without a row, leaving a fresh one alone", sweep.orphans === 1 && stash.size === 1 && stash.has(`${Ph(1)}/00000000-0000-4000-8000-00000000cafe`), [...stash.keys()]);
+  stash.clear();
   const tr1b = await addId(Ph(1), Ph(1), { kind: "TRAINING", label: "Refresher", state: "CO", issuedOn: `${thisYear}-01-20` });
   const pr = await put(1, tr1b, "FRONT", true);
   await removeCredential(Ph(1), Ph(1), tr1b);

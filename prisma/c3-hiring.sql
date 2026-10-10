@@ -201,6 +201,9 @@ BEGIN
   IF cred."removed" OR cred."kind" <> 'TRAINING' OR cred."state" IS DISTINCT FROM 'CO' OR cred."issuedOn" IS NULL THEN
     RAISE EXCEPTION 'CredentialProof: only a Colorado training credential with a training date takes a photo' USING ERRCODE = 'check_violation';
   END IF;
+  IF cred."issuedOn" > (NEW."createdAt" AT TIME ZONE 'UTC')::date THEN
+    RAISE EXCEPTION 'CredentialProof: the training date is in the future' USING ERRCODE = 'check_violation';
+  END IF;
   RETURN NEW;
 END $$;
 REVOKE ALL ON FUNCTION "turfcut_private"."credential_proof_own"() FROM PUBLIC, anon, authenticated;
@@ -227,6 +230,16 @@ CREATE OR REPLACE TRIGGER "CredentialProofDeletion_no_truncate" BEFORE TRUNCATE 
 ALTER TABLE "public"."CredentialProof" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."CredentialProofDeletion" ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON "public"."CredentialProof", "public"."CredentialProofDeletion" FROM anon, authenticated;
+
+-- The private bucket the sealed files live in, when Supabase Storage is
+-- present (a plain Postgres, as in the acceptance runner, has no storage
+-- schema). Private: nothing is ever served from it directly.
+DO $$ BEGIN
+  IF to_regclass('storage.buckets') IS NOT NULL THEN
+    INSERT INTO storage.buckets (id, name, public) VALUES ('credential-proofs', 'credential-proofs', false)
+    ON CONFLICT (id) DO UPDATE SET public = false;
+  END IF;
+END $$;
 
 -- History so far: the opening event of each engagement that kept a copy of
 -- how it began (an engagement without one, like the base seed's, gets

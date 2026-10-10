@@ -6,7 +6,7 @@ import type { Role } from "@/lib/auth";
 import { UUID_RE } from "@/lib/jobs";
 import { expiryToday } from "@/lib/credentials";
 import { partsForOrgMany } from "@/lib/shared-scorecard-data";
-import { chainHeads, cleanPhoto, openPhoto, proofEligible, proofGone, proofKey, proofLapsed, proofLapsesOn, sealPhoto, PROOF_SIDES, type ChainRow, type ProofSide } from "@/lib/proof-photos";
+import { chainHeads, cleanPhoto, openPhoto, proofEligible, proofGone, proofKey, proofLapsed, proofLapsesOn, sealPhoto, trainingInFuture, PROOF_SIDES, type ChainRow, type ProofSide } from "@/lib/proof-photos";
 import { proofPath, supabaseProofStore, type ProofStore } from "@/lib/proof-storage";
 
 /**
@@ -32,10 +32,18 @@ export const VIEW_ACTIONS = ["credential_proof.viewed", "credential_proof.downlo
 
 const NOT_FOUND = { ok: false as const, reason: "Credential not found." };
 const STALE = { ok: false as const, reason: "This credential changed since you opened it. Reload to see the latest." };
-const CHAIN: Prisma.WorkerCredentialSelect = { id: true, workerId: true, supersedesId: true, kind: true, state: true, issuedOn: true, removed: true };
+const CHAIN: Prisma.WorkerCredentialSelect = { id: true, workerId: true, supersedesId: true, kind: true, state: true, issuedOn: true, removed: true, createdAt: true };
+/** Deleted photos whose files are removed again on each daily run, in case a removal failed. */
+const RETRY_DAYS = 30;
+/** A stored file with no row this old was an upload that never got recorded: the purge removes it. */
+const ORPHAN_MINUTES = 60;
+/** The export carries this much of the worker's photos; the rest they download one by one. */
+export const EXPORT_PHOTO_BYTES = 3 * 1024 * 1024;
 type CredRow = ChainRow & { workerId: string };
 
-const lock = (tx: Tx, workerId: string) => tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`credential_proofs:${workerId}`}))`;
+/** Serializes a worker's photo changes with their credential edits and removals (credentials-data.ts takes it too). */
+export const lockProofs = (tx: Tx, workerId: string) => tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`credential_proofs:${workerId}`}))`;
+const lock = lockProofs;
 
 /**
  * Photos not yet deleted, with the current row of the credential each one
@@ -54,7 +62,7 @@ async function liveProofs(where: Prisma.CredentialProofWhereInput, today: string
   const heads = chainHeads(rows);
   return proofs.map((p) => {
     const head = heads.get(p.credentialId)!;
-    return { ...p, side: p.side as ProofSide, head, gone: proofGone(head, !!p.worker.closedAt, today) };
+    return { ...p, side: p.side as ProofSide, head, gone: proofGone(head, !!p.worker.closedAt, today, p.createdAt) };
   });
 }
 
@@ -70,6 +78,7 @@ async function slotProblem(c: Client, actor: WorkerActor, credentialId: string, 
   const heads = chainHeads(rows);
   if (heads.get(cur.id)!.id !== cur.id || cur.removed) return STALE;
   if (!proofEligible(cur)) return { ok: false, reason: "Only a Colorado circulator training certificate takes a photo. Add the state (CO) and the training date first." };
+  if (trainingInFuture(cur.issuedOn!, today)) return { ok: false, reason: "The training date is in the future. Add the photo once the training has happened." };
   if (proofLapsed(cur.issuedOn!, today)) return { ok: false, reason: "This training was more than a year ago, so the registration it supports has lapsed. Add your new training instead." };
   const chain = rows.filter((r) => heads.get(r.id)!.id === cur.id).map((r) => r.id);
   if (await c.credentialProof.count({ where: { credentialId: { in: chain }, side, deletion: null } })) {
@@ -126,14 +135,20 @@ export async function addProof(
 /** The worker takes a photo down: a deletion row, then the file. */
 export async function removeProof(actor: WorkerActor, proofId: string, store: ProofStore = supabaseProofStore()): Promise<{ ok: true } | { ok: false; reason: string }> {
   if (!UUID_RE.test(proofId)) return { ok: false, reason: "Photo not found." };
-  const r = await db().$transaction(async (tx) => {
-    await lock(tx, actor.workerId);
-    const p = await tx.credentialProof.findFirst({ where: { id: proofId, workerId: actor.workerId, deletion: null, worker: { profileId: actor.profileId } }, select: { id: true } });
-    if (!p) return { ok: false as const, reason: "Photo not found." };
-    await tx.credentialProofDeletion.create({ data: { proofId, reason: "WORKER_REMOVED", actorId: actor.profileId } });
-    await tx.auditEvent.create({ data: { actorId: actor.profileId, action: "credential_proof.removed", entityType: "CredentialProof", entityId: proofId } });
-    return { ok: true as const };
-  });
+  const r = await db()
+    .$transaction(async (tx) => {
+      await lock(tx, actor.workerId);
+      const p = await tx.credentialProof.findFirst({ where: { id: proofId, workerId: actor.workerId, deletion: null, worker: { profileId: actor.profileId } }, select: { id: true } });
+      if (!p) return { ok: false as const, reason: "Photo not found." };
+      await tx.credentialProofDeletion.create({ data: { proofId, reason: "WORKER_REMOVED", actorId: actor.profileId } });
+      await tx.auditEvent.create({ data: { actorId: actor.profileId, action: "credential_proof.removed", entityType: "CredentialProof", entityId: proofId } });
+      return { ok: true as const };
+    })
+    .catch((e: unknown) => {
+      // The daily purge deleted it at the same moment: it's gone either way.
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") return { ok: false as const, reason: "Photo not found." };
+      throw e;
+    });
   if (r.ok) {
     await store.remove([proofPath(actor.workerId, proofId)]).catch((e: unknown) => console.error("[turfcut] proof photo file removal failed; the purge retries", String(e)));
   }
@@ -142,9 +157,11 @@ export async function removeProof(actor: WorkerActor, proofId: string, store: Pr
 
 /**
  * Deletes every photo that must go (one worker's, or everyone's for the
- * daily run): a deletion row with the reason, then the files. Every
- * deleted photo's file is removed again on each run (removing a missing
- * file is fine), so a removal that failed once is retried.
+ * daily run): a deletion row with the reason, then the files. Recently
+ * deleted photos' files are removed again on each run (removing a missing
+ * file is fine), so a removal that failed once is retried; and the daily
+ * run removes any stored file with no row, an upload that was never
+ * recorded.
  */
 export async function purgeProofs(store: ProofStore = supabaseProofStore(), opts: { workerId?: string } = {}, now = new Date()) {
   const today = expiryToday(now);
@@ -163,12 +180,25 @@ export async function purgeProofs(store: ProofStore = supabaseProofStore(), opts
     }
   }
   const gone = await db().credentialProofDeletion.findMany({
-    where: opts.workerId ? { proof: { workerId: opts.workerId } } : {},
+    where: { ...(opts.workerId ? { proof: { workerId: opts.workerId } } : {}), createdAt: { gte: new Date(now.getTime() - RETRY_DAYS * 86_400_000) } },
     select: { proof: { select: { id: true, workerId: true } } },
   });
-  const paths = gone.map((d) => proofPath(d.proof.workerId, d.proof.id));
+  // This run's own deletions first, then the recent ones (a removal that failed once is retried).
+  const paths = [...new Set([...doomed.map((p) => proofPath(p.workerId, p.id)), ...gone.map((d) => proofPath(d.proof.workerId, d.proof.id))])];
+  let orphans = 0;
+  if (!opts.workerId) {
+    const stored = await store.list();
+    const known = new Set((await db().credentialProof.findMany({ select: { id: true, workerId: true } })).map((p) => proofPath(p.workerId, p.id)));
+    const cutoff = now.getTime() - ORPHAN_MINUTES * 60_000;
+    for (const f of stored) {
+      if (!known.has(f.path) && (f.createdAt === null || f.createdAt.getTime() < cutoff)) {
+        paths.push(f.path);
+        orphans++;
+      }
+    }
+  }
   for (let i = 0; i < paths.length; i += 500) await store.remove(paths.slice(i, i + 500));
-  return { deleted, filesRemoved: paths.length };
+  return { deleted, orphans, filesRemoved: paths.length };
 }
 
 /**
@@ -214,6 +244,13 @@ export async function openProof(viewer: Viewer, proofId: string, mode: "view" | 
     const org = await db().organization.findUnique({ where: { id: viewer.orgId }, select: { approved: true } });
     if (!org?.approved || !(await orgMaySee(viewer.orgId, [p.workerId])).has(p.workerId)) return null;
   }
+  // The file is read and opened first, so a look is recorded only when the photo is really served.
+  const sealed = await store.get(proofPath(p.workerId, p.id));
+  if (!sealed) {
+    console.error("[turfcut] a live proof photo has no stored file", p.id);
+    return null;
+  }
+  const bytes = openPhoto(proofKey(), p.id, sealed);
   await db().auditEvent.create({
     data: {
       actorId: viewer.profileId,
@@ -223,12 +260,7 @@ export async function openProof(viewer: Viewer, proofId: string, mode: "view" | 
       metadata: viewer.kind === "worker" ? { workerId: p.workerId } : { workerId: p.workerId, orgId: viewer.orgId },
     },
   });
-  const sealed = await store.get(proofPath(p.workerId, p.id));
-  if (!sealed) {
-    console.error("[turfcut] a live proof photo has no stored file", p.id);
-    return null;
-  }
-  return { bytes: openPhoto(proofKey(), p.id, sealed), filename: `turfcut-certificate-${p.side === "FRONT" ? "front" : "back"}.jpg` };
+  return { bytes, filename: `turfcut-certificate-${p.side === "FRONT" ? "front" : "back"}.jpg` };
 }
 
 /** Organizations' looks at each of these photos, for the worker: which organization, when, and whether it downloaded. */
@@ -255,15 +287,16 @@ export async function loadWorkerProofs(workerId: string, now = new Date()) {
   const looks = await looksAt(live.map((p) => p.id));
   const out = new Map<string, Array<{ id: string; side: ProofSide; shared: boolean; createdAt: Date; lapsesOn: string; looks: Array<{ org: string; at: Date; download: boolean }> }>>();
   for (const p of live) {
-    out.set(p.head.id, [...(out.get(p.head.id) ?? []), { id: p.id, side: p.side, shared: p.shared, createdAt: p.createdAt, lapsesOn: proofLapsesOn(p.head.issuedOn!), looks: looks.get(p.id) ?? [] }]);
+    out.set(p.head.id, [...(out.get(p.head.id) ?? []), { id: p.id, side: p.side, shared: p.shared, createdAt: p.createdAt, lapsesOn: proofLapsesOn(p.head.issuedOn!, p.createdAt), looks: looks.get(p.id) ?? [] }]);
   }
   return out;
 }
 
 /**
  * The shared photos this organization may look at, by the id of each
- * credential's current row, with whether it has looked (any member). The
- * caller checks the role and approval.
+ * credential's current row, with whether it has looked (any member) since
+ * that row was written: a look from before the worker's last edit doesn't
+ * count for the edited credential. The caller checks the role and approval.
  */
 export async function loadOrgProofs(orgId: string, workerIds: string[], now = new Date(), tx?: Tx) {
   const c = tx ?? db();
@@ -271,10 +304,18 @@ export async function loadOrgProofs(orgId: string, workerIds: string[], now = ne
   if (!workerIds.length) return out;
   const allowed = await orgMaySee(orgId, workerIds, tx);
   const live = (await liveProofs({ workerId: { in: [...allowed] }, shared: true }, expiryToday(now), c)).filter((p) => !p.gone);
-  const looked = new Set(
-    (await c.auditEvent.findMany({ where: { entityType: "CredentialProof", entityId: { in: live.map((p) => p.id) }, action: { in: VIEW_ACTIONS }, metadata: { path: ["orgId"], equals: orgId } }, select: { entityId: true } })).map((e) => e.entityId)
-  );
-  for (const p of live) out.set(p.head.id, [...(out.get(p.head.id) ?? []), { id: p.id, side: p.side, looked: looked.has(p.id) }]);
+  const lookedAt = new Map<string, Date>();
+  for (const e of await c.auditEvent.findMany({
+    where: { entityType: "CredentialProof", entityId: { in: live.map((p) => p.id) }, action: { in: VIEW_ACTIONS }, metadata: { path: ["orgId"], equals: orgId } },
+    select: { entityId: true, createdAt: true },
+    orderBy: { createdAt: "desc" },
+  })) {
+    if (!lookedAt.has(e.entityId)) lookedAt.set(e.entityId, e.createdAt);
+  }
+  for (const p of live) {
+    const last = lookedAt.get(p.id);
+    out.set(p.head.id, [...(out.get(p.head.id) ?? []), { id: p.id, side: p.side, looked: !!last && last > p.head.createdAt }]);
+  }
   return out;
 }
 
@@ -293,13 +334,25 @@ export async function exportProofs(workerId: string, store: ProofStore | null, n
     try {
       const s = store ?? supabaseProofStore();
       const key = proofKey();
+      let total = 0;
+      const left: string[] = [];
       for (const p of live) {
         const sealed = await s.get(proofPath(workerId, p.id));
-        if (sealed) files.push({ name: `credential-photos/${p.id}-${p.side === "FRONT" ? "front" : "back"}.jpg`, bytes: openPhoto(key, p.id, sealed) });
+        if (!sealed) continue;
+        const bytes = openPhoto(key, p.id, sealed);
+        const name = `credential-photos/${p.id}-${p.side === "FRONT" ? "front" : "back"}.jpg`;
+        // The export is one response, so it carries only so much photo; the rest are downloaded from the credentials page.
+        if (total + bytes.length > EXPORT_PHOTO_BYTES) {
+          left.push(name);
+          continue;
+        }
+        total += bytes.length;
+        files.push({ name, bytes });
       }
+      if (left.length) filesNote = `${left.length === 1 ? "One photo" : `${left.length} photos`} didn't fit in this export (it carries up to ${EXPORT_PHOTO_BYTES / 1024 / 1024} MB of photos). Download the rest from Profile → Credentials, where each photo has a Download link.`;
     } catch (e) {
       console.error("[turfcut] export couldn't include proof photos", String(e));
-      filesNote = "Your credential photos couldn't be included this time. Try the export again later.";
+      filesNote = "Your credential photos couldn't be included this time. Try the export again later, or download each one from Profile → Credentials.";
     }
   }
   return {

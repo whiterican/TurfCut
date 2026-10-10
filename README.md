@@ -123,8 +123,9 @@ exercise the locks, triggers and data rules, not the RLS policies.
    pay; the **Pay** button explains that Stripe isn't connected yet.
 6a. **Credential proof photos (C3.6b)** — optional until workers should add
    photos of their Colorado training certificate:
-   - Supabase → Storage → **New bucket** → name `credential-proofs`,
-     **Public: off**. Only the server reaches it, with the service-role key.
+   - Run `prisma/c3-hiring.sql` (it creates the private `credential-proofs`
+     bucket). Check Supabase → Storage shows it with **Public: off**; only
+     the server reaches it, with the service-role key.
    - Generate a key on your own machine with `openssl rand -base64 32` and
      set it as `CREDENTIAL_PROOF_KEY` in Vercel (Production and Preview). It
      encrypts the photos and nothing else; keep a copy somewhere safe, since
@@ -787,26 +788,36 @@ Built in C3.6b (see the C3 scope below). Approved as recommended by review:
   organization lets others guess which one verified.
 - **Proof photos (C3.6b)**: a worker adds a photo of their Colorado
   circulator training certificate (front and back) to a training credential
-  with the state CO and the training date, on `/profile/credentials`.
-  Sharing is off until they tick it, per photo. JPEG or PNG only, up to 4 MB
-  and 40 megapixels, 12 uploads a day; the server re-encodes it as a fresh
-  JPEG (upright, at most 2400 px, no location or camera details), seals it
-  with AES-256-GCM under `CREDENTIAL_PROOF_KEY` (bound to the photo's id),
-  and stores it in the private `credential-proofs` bucket. Only the worker,
+  with the state CO and a training date that has passed, on
+  `/profile/credentials`. Sharing is off until they tick it, per photo, and
+  the form says an organization sees everything printed on the certificate.
+  JPEG or PNG only, up to 4 MB and 40 megapixels, 12 uploads a day; a large
+  phone photo is shrunk in the browser first, then the server re-encodes it
+  as a fresh JPEG (upright, at most 2400 px, no location or camera details),
+  seals it with AES-256-GCM under `CREDENTIAL_PROOF_KEY` (a key id byte is
+  reserved for rotation; the photo's id is bound in), and stores it in the
+  private `credential-proofs` bucket (`c3-hiring.sql` creates the bucket
+  when Supabase Storage is present). Only the worker,
   and owners and compliance members of an approved organization that hired
   them (claimed or active, not completed) while they share credentials with
   it, can open a shared photo, through `/api/credential-proofs/[id]`
-  (signed in, never cached, never a link to the bucket). Each look and
-  download is audited and listed under the photo for the worker, with the
-  organization and date. Once an organization has opened one, it can record
-  "looked at the worker's proof photo" as how it checked; the photo alone
-  never changes the verification level. Photos are deleted (a
+  (signed in, never cached, never a link to the bucket; a member's looks are
+  limited to 120 an hour). Each look and download is recorded only once the
+  photo is really served, and listed under the photo for the worker by
+  organization: how many times, the last one, and downloads. Once an
+  organization has opened one since the credential's last edit, it can
+  record "looked at the worker's proof photo" as how it checked; the photo
+  alone never changes the verification level. Photos are deleted (a
   `CredentialProofDeletion` row with the reason, then the file) when the
   worker deletes one, removes the credential or edits it into one that takes
-  no photo, closes the account, or a year after the training date; access
-  stops at once, and a daily purge (`/api/cron/purge-proofs`, Vercel Cron)
-  deletes what's due and retries any file left behind. The export includes
-  the photos, their history and every look. Setup: the bucket,
+  no photo, closes the account, or a year after the training date (or after
+  the upload, if the date was later moved forward); access stops at once,
+  and a daily purge (`/api/cron/purge-proofs`, Vercel Cron, bearer
+  `CRON_SECRET`) deletes what's due, retries files from the last 30 days'
+  deletions, and removes any stored file older than an hour that has no
+  row. The export includes the photos (up to 3 MB of them; the README inside
+  points to the Download link under each photo for the rest), their history
+  and every look. Setup: the bucket,
   `CREDENTIAL_PROOF_KEY` and `CRON_SECRET` (README "What needs Caden").
   Counsel reviews the document handling before the pilot.
 - **History**: every step is an append-only `EngagementEvent`, shown the

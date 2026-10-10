@@ -80,10 +80,10 @@ const all = (a: string) => Object.fromEntries(SHARE_PARTS.map((p) => [p, a]));
     ["WorkerAvailability truncate", p.$executeRawUnsafe(`TRUNCATE "public"."WorkerAvailability"`)],
     ["WorkerCredential update", p.$executeRaw`UPDATE "public"."WorkerCredential" SET "removed" = true WHERE "id" = ${cred.id}::uuid`],
     ["WorkerCredential delete", p.$executeRaw`DELETE FROM "public"."WorkerCredential" WHERE "id" = ${cred.id}::uuid`],
-    ["WorkerCredential truncate", p.$executeRawUnsafe(`TRUNCATE "public"."WorkerCredential"`)],
+    // CASCADE: the photo tables reference credentials (C3.6b), and truncating them is refused the same way.
+    ["WorkerCredential truncate", p.$executeRawUnsafe(`TRUNCATE "public"."WorkerCredential" CASCADE`)],
   ];
-  // A truncate may be stopped by the trigger or, once a table references this one (C3.6b photos), by Postgres itself.
-  for (const [label, q] of tries) { const r = await refused(q); check(`${label} is refused`, /append-only/.test(r) || (/truncate/.test(label) && /referenced in a foreign key/.test(r)), r); }
+  for (const [label, q] of tries) { const r = await refused(q); check(`${label} is refused`, /append-only/.test(r), r); }
   check("history is intact after the attempts", (await p.workerSharing.count({ where: { workerId: W1 } })) === 2 && (await p.workerCredential.count()) === 1);
 
   // --- 5. Credentials: supersede, remove, and the races ---

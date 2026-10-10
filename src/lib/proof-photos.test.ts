@@ -2,7 +2,7 @@ import { randomBytes } from "node:crypto";
 import sharp from "sharp";
 import { describe, expect, it } from "vitest";
 import { methodsFor } from "./credentials";
-import { chainHeads, cleanPhoto, openPhoto, proofEligible, proofGone, proofKey, proofLapsed, proofLapsesOn, sealPhoto, sniffImage, type ChainRow } from "./proof-photos";
+import { chainHeads, cleanPhoto, openPhoto, proofEligible, proofGone, proofKey, proofLapsed, proofLapsesOn, sealPhoto, sniffImage, trainingInFuture, type ChainRow } from "./proof-photos";
 
 const photo = (w: number, h: number) => sharp({ create: { width: w, height: h, channels: 3, background: { r: 200, g: 180, b: 160 } } });
 const day = (s: string) => new Date(`${s}T00:00:00Z`);
@@ -86,19 +86,35 @@ describe("proof photos", () => {
     expect(proofLapsesOn(day("2024-02-29"))).toBe("2025-03-01");
     expect(proofLapsed(day("2026-03-01"), "2027-02-28")).toBe(false);
     expect(proofLapsed(day("2026-03-01"), "2027-03-01")).toBe(true);
+    // A training date edited forward never keeps a photo past a year from when it was added.
+    expect(proofLapsesOn(day("2099-01-15"), new Date("2026-10-10T15:00:00Z"))).toBe("2027-10-10");
+    expect(proofLapsesOn(day("2026-03-01"), new Date("2026-10-10T15:00:00Z"))).toBe("2027-03-01");
+    expect(trainingInFuture(day("2026-10-11"), "2026-10-10")).toBe(true);
+    expect(trainingInFuture(day("2026-10-10"), "2026-10-10")).toBe(false);
+  });
+
+  it("marks which key sealed a file, so a rotation can tell old files from new", () => {
+    const sealed = sealPhoto(randomBytes(32), "id", Buffer.from("x"));
+    expect(sealed.subarray(0, 5)).toEqual(Buffer.from([0x54, 0x43, 0x50, 0x31, 0]));
+    const other = Buffer.from(sealed);
+    other[4] = 1;
+    expect(() => openPhoto(randomBytes(32), "id", other)).toThrow(/not a sealed/);
   });
 
   it("follows a credential's edits to its current row, and says why a photo must go", () => {
-    const row = (id: string, supersedesId: string | null, over: Partial<ChainRow> = {}): ChainRow => ({ id, supersedesId, kind: "TRAINING", state: "CO", issuedOn: day("2026-03-01"), removed: false, ...over });
+    const row = (id: string, supersedesId: string | null, over: Partial<ChainRow> = {}): ChainRow => ({ id, supersedesId, kind: "TRAINING", state: "CO", issuedOn: day("2026-03-01"), removed: false, createdAt: day("2026-03-02"), ...over });
+    const added = day("2026-03-05");
     const rows = [row("a", null), row("b", "a"), row("c", "b", { state: "AZ" }), row("x", null), row("y", "x", { removed: true, state: null, issuedOn: null })];
     const heads = chainHeads(rows);
     expect(["a", "b", "c"].map((id) => heads.get(id)!.id)).toEqual(["c", "c", "c"]);
     expect(heads.get("x")!.id).toBe("y");
-    expect(proofGone(heads.get("a")!, false, "2026-06-01")).toBe("NO_LONGER_ELIGIBLE");
-    expect(proofGone(heads.get("x")!, false, "2026-06-01")).toBe("CREDENTIAL_REMOVED");
-    expect(proofGone(row("z", null), true, "2026-06-01")).toBe("ACCOUNT_CLOSED");
-    expect(proofGone(row("z", null), false, "2027-03-01")).toBe("LAPSED");
-    expect(proofGone(row("z", null), false, "2026-06-01")).toBeNull();
+    expect(proofGone(heads.get("a")!, false, "2026-06-01", added)).toBe("NO_LONGER_ELIGIBLE");
+    expect(proofGone(heads.get("x")!, false, "2026-06-01", added)).toBe("CREDENTIAL_REMOVED");
+    expect(proofGone(row("z", null), true, "2026-06-01", added)).toBe("ACCOUNT_CLOSED");
+    expect(proofGone(row("z", null), false, "2027-03-01", added)).toBe("LAPSED");
+    expect(proofGone(row("z", null), false, "2026-06-01", added)).toBeNull();
+    // The training date pushed to 2099 after the upload: gone a year after the upload instead.
+    expect(proofGone(row("z", null, { issuedOn: day("2099-01-01") }), false, "2027-03-05", added)).toBe("LAPSED");
   });
 
   it("offers \"looked at the proof photo\" only once the organization opened one", () => {

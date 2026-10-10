@@ -16,6 +16,19 @@ import { CredentialForm, RemoveCredential, WalletStatus, WalletStatusLine } from
 
 const dateText = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
 
+/** Looks at a photo, one line per organization: how many, the last one, and downloads. */
+function groupLooks(looks: Array<{ org: string; at: Date; download: boolean }>) {
+  const by = new Map<string, { org: string; count: number; downloads: number; last: Date }>();
+  for (const l of looks) {
+    const g = by.get(l.org) ?? { org: l.org, count: 0, downloads: 0, last: l.at };
+    g.count++;
+    if (l.download) g.downloads++;
+    if (l.at > g.last) g.last = l.at;
+    by.set(l.org, g);
+  }
+  return [...by.values()].sort((a, b) => b.last.getTime() - a.last.getTime());
+}
+
 export default async function CredentialsPage() {
   const { workerId } = await requireWorker();
   const [creds, sharing, verifiers, proofs] = await Promise.all([loadCredentials(workerId), loadSharing(workerId), loadVerifiers(workerId), loadWorkerProofs(workerId)]);
@@ -84,13 +97,23 @@ export default async function CredentialsPage() {
                                 {SIDE_LABELS[p.side]} · added {dateText(p.createdAt)} · {p.shared ? "organizations that hire you can see it" : "only you can see it"}
                               </p>
                               <p className="text-hint">Deleted automatically on {dateText(new Date(`${p.lapsesOn}T00:00:00Z`))}, a year after the training.</p>
-                              <p className="text-muted-sm">
-                                {p.looks.length
-                                  ? `Looked at by ${p.looks.map((l) => `${l.org} (${l.download ? "downloaded " : ""}${dateText(l.at)})`).join(", ")}.`
-                                  : "No organization has looked at it."}
-                              </p>
+                              {p.looks.length === 0 ? (
+                                <p className="text-muted-sm">No organization has looked at it.</p>
+                              ) : (
+                                <ul className="text-muted-sm space-y-0.5">
+                                  {groupLooks(p.looks).map((g) => (
+                                    <li key={g.org}>
+                                      {g.org}: looked {g.count === 1 ? "once" : `${g.count} times`}, last {dateText(g.last)}
+                                      {g.downloads > 0 && ` (downloaded ${g.downloads === 1 ? "once" : `${g.downloads} times`})`}.
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
                               <div className="flex flex-wrap items-start gap-2">
-                                <a href={`/api/credential-proofs/${p.id}`} target="_blank" rel="noopener noreferrer" className="btn-ghost btn-sm">View</a>
+                                <a href={`/api/credential-proofs/${p.id}`} target="_blank" rel="noopener noreferrer" className="btn-ghost btn-sm">
+                                  View<span className="sr-only"> (opens in a new tab)</span>
+                                </a>
+                                <a href={`/api/credential-proofs/${p.id}?download=1`} className="btn-ghost btn-sm">Download</a>
                                 <ActionButton
                                   action={removeProofAction}
                                   fields={{ proofId: p.id }}

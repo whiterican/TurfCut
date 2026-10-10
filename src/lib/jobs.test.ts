@@ -10,6 +10,7 @@ import {
   compensationProblem,
   exclusionReasons,
   jobCardAnswers,
+  jobCredentials,
   publishBlockers,
   readHiringModes,
   validateJob,
@@ -178,6 +179,34 @@ describe("validateJob", () => {
     });
   });
 
+  it("reads a JSON client's numbers and lists the way it reads the form's text", () => {
+    const r = validateJob({ ...form, payRate: 25.5, headcount: 10, measureIds: ["I-305", " I-12 ", "I-305"], cancellationNoticeHours: 12 });
+    expect(r.ok && r.value).toMatchObject({ payRateCents: 2550, headcount: 10, measureIds: ["I-305", "I-12"], cancellationNoticeHours: 12 });
+    const none = validateJob({ ...form, measureIds: [] });
+    expect(none.ok && none.value.measureIds).toEqual([]);
+  });
+  it("refuses a value it can't read instead of storing a default", () => {
+    // Before: a list with a non-text entry became no measure IDs at all, and an object became 24 hours' notice.
+    const r = validateJob({ ...form, measureIds: ["I-305", 12], cancellationNoticeHours: { hours: 2 } });
+    expect(!r.ok && Object.keys(r.errors).sort()).toEqual(["cancellationNoticeHours", "measureIds"]);
+    const t = validateJob({ ...form, measureIds: true, headcount: Number.NaN });
+    expect(!t.ok && Object.keys(t.errors).sort()).toEqual(["headcount", "measureIds"]);
+    const u = validateJob({ ...form, badge: "yes", affidavit: 1, campaignName: ["Yes on 305"], training: 5, hiringModes: ["application", 5] });
+    expect(!u.ok && Object.keys(u.errors).sort()).toEqual(["affidavit", "badge", "campaignName", "hiringModes", "training"]);
+  });
+  it("splits a comma-separated item in a measure-ID list, so do-not-match checks see each ID", () => {
+    const r = validateJob({ ...form, measureIds: ["I-305, I-12", "I-7"] });
+    expect(r.ok && r.value.measureIds).toEqual(["I-305", "I-12", "I-7"]);
+  });
+  it("keeps text fields as text: a JSON number isn't turned into a different string", () => {
+    const r = validateJob({ ...form, contactEmergency: 12345678901234567890 });
+    expect(!r.ok && r.errors.contactEmergency).toBeTruthy();
+  });
+  it("takes requirement flags from a JSON client as well as a form", () => {
+    const r = validateJob({ ...form, badge: true, registration: false, affidavit: "true" });
+    expect(r.ok && r.value.requirements).toMatchObject({ badge: true, registration: false, affidavit: true });
+  });
+
   it("rejects bad input with a message per field", () => {
     const r = validateJob({ ...form, type: "PHONEBANK", payRate: "-1", headcount: "0", endsAt: "2026-10-01", hiringModes: [], affiliation: "whig", issue_gun_rights: "maybe" });
     expect(!r.ok && Object.keys(r.errors).sort()).toEqual(["affiliation", "endsAt", "headcount", "hiringModes", "issues", "payRate", "type"]);
@@ -195,6 +224,31 @@ describe("job card answers the five questions (spec p.7)", () => {
     expect(a.payable).toMatch(/supervisor approves/);
     expect(a.credentials).toEqual(["Circulator registration", "Badge", "Signed affidavit", "Training: Petition basics"]);
     expect(a.contacts).toEqual(contacts);
+  });
+  it("applies the jurisdiction's circulator rules to petition jobs only", () => {
+    const canvass = { type: "CANVASS" as const, compensationMethod: "HOURLY" as const, payRateCents: 2500, supportContacts: contacts, orgName: "Front Range Circulators", jurisdictionRules: SEED_RULES };
+    expect(jobCardAnswers({ ...canvass, requirements: {} }).credentials).toEqual(["None beyond the job's onboarding"]);
+    // What the organization itself asks for still counts on a canvass job.
+    expect(jobCardAnswers({ ...canvass, requirements: { badge: true, training: "Canvass basics" } }).credentials).toEqual(["Badge", "Training: Canvass basics"]);
+    expect(jobCardAnswers({ ...canvass, requirements: { registration: true, affidavit: true } }).credentials).toEqual(["Circulator registration", "Signed affidavit"]);
+  });
+  it("lists the jurisdiction's rules only when they are really set", () => {
+    expect(jobCredentials({ type: "PETITION", requirements: {}, jurisdictionRules: SEED_RULES })).toEqual(["Circulator registration", "Badge", "Signed affidavit"]);
+    expect(jobCredentials({ type: "PETITION", requirements: { affidavit: true }, jurisdictionRules: {} })).toEqual(["Signed affidavit"]);
+    expect(jobCredentials({ type: "PETITION", requirements: {}, jurisdictionRules: { badgeRequired: "true" } })).toEqual([]);
+    expect(jobCredentials({ type: "PETITION", requirements: null, jurisdictionRules: null })).toEqual([]);
+  });
+  it("gives the No-credentials filter exactly the card's answer", () => {
+    // Every combination: the filter's "nothing needed" must match the card's "None beyond…" line.
+    const flags = [{}, { badge: true }, { registration: true }, { affidavit: true }, { training: "Basics" }, { badge: true, training: "Basics" }, { script: "Hi" }];
+    const rules = [{}, SEED_RULES, { badgeRequired: true }, { affidavitRequired: true }, { workerRegistrationRequired: true }];
+    for (const type of ["PETITION", "CANVASS"] as const)
+      for (const requirements of flags)
+        for (const jurisdictionRules of rules) {
+          const card = jobCardAnswers({ type, compensationMethod: "HOURLY", payRateCents: 2500, requirements, supportContacts: contacts, orgName: "X", jurisdictionRules });
+          const none = card.credentials.length === 1 && card.credentials[0].startsWith("None");
+          expect(jobCredentials({ type, requirements, jurisdictionRules }).length === 0).toBe(none);
+        }
   });
   it("reads the M0 seed's hiring shape", () => {
     expect(readHiringModes({ mode: "application" })).toEqual(["application"]);

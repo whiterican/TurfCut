@@ -24,7 +24,7 @@
   /* The accent fill: lime in both themes. */
   --accent: #ccea96;
   /* Solid (and on-solid): the fill for "done / live / verified"
-     badges, the Canvass filter and team avatars, and the text on it. One
+     badges, a quick filter that's on and team avatars, and the text on it. One
      role, two colours: EGGPLANT with off-white text by day, OLIVE with lime
      text by night (the mockup's "Verified org" chip). Was --plum, which only
      described the light theme. */
@@ -34,6 +34,14 @@
   --coral: #f8b3a2;
   --butter: #f5d98a;
   --ink: #181e1a; /* text on any accent fill */
+  /* Job cards: the type chip takes the campaign's own declared affiliation
+     (pastel fill, ink text, same in both themes; the chip names it too). */
+  --party-democratic: #a9c8f7;
+  --party-republican: #f5a8a8;
+  --party-libertarian: #f2cd60;
+  --party-green: #a3dcb3;
+  --party-other: #9fd6d2;
+  --party-nonpartisan: #cfbaf2;
 
   /* Light mode: off-white page, white cards, green-black ink, eggplant links. */
   --bg: #eef0ea;
@@ -472,7 +480,8 @@ body {
   .badge-accent,
   .badge-sky,
   .badge-solid,
-  .badge-butter {
+  .badge-butter,
+  .badge-party {
     @apply inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-semibold whitespace-nowrap;
   }
   .badge-neutral {
@@ -487,7 +496,14 @@ body {
   .badge-accent { --badge-bg: var(--accent); }
   .badge-sky { --badge-bg: var(--sky); }
   .badge-butter { --badge-bg: var(--butter); }
-  :is(.badge-coral, .badge-accent, .badge-sky, .badge-butter) {
+  /* A campaign's declared affiliation (job cards; see --party-*). */
+  .badge-party-democratic { --badge-bg: var(--party-democratic); }
+  .badge-party-republican { --badge-bg: var(--party-republican); }
+  .badge-party-libertarian { --badge-bg: var(--party-libertarian); }
+  .badge-party-green { --badge-bg: var(--party-green); }
+  .badge-party-other { --badge-bg: var(--party-other); }
+  .badge-party-nonpartisan { --badge-bg: var(--party-nonpartisan); }
+  :is(.badge-coral, .badge-accent, .badge-sky, .badge-butter, .badge-party) {
     background: var(--badge-bg);
     color: var(--ink);
     border-color: transparent;
@@ -808,7 +824,7 @@ body {
   }
   /* By day lime is close to the off-white page, so lime shapes get a quiet
      outline to read as shapes (text on them is already AAA). */
-  :root:not(.dark) :is(.badge-accent, .filter-chip-accent) {
+  :root:not(.dark) .badge-accent {
     border-color: var(--border-strong);
   }
   :root:not(.dark) .bubble-mine {
@@ -819,25 +835,20 @@ body {
   .hero-card .link {
     color: inherit;
   }
-  /* Quick filters on Find work: outlined, solid pastel when on. */
+  /* Quick filters on Find work: outlined, solid when on. One "on" for all of
+     them: on the feed, a coloured chip names a campaign's declared party in
+     words; the sky date chip carries a calendar instead. */
+  /* relative: it holds its own screen-reader text (absolutely placed), so the
+     scrolling row clips that too and the page never scrolls sideways. */
   .filter-chip {
-    @apply inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-full border border-border bg-surface px-3.5 text-sm font-semibold text-fg transition;
+    @apply relative inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-full border border-border bg-surface px-3.5 text-sm font-semibold text-fg transition;
   }
   .filter-chip:hover {
     border-color: var(--border-strong);
   }
-  .filter-chip-sky,
-  .filter-chip-butter,
-  .filter-chip-accent {
-    color: var(--ink);
-    border-color: transparent;
-  }
-  .filter-chip-sky { background: var(--sky); }
-  .filter-chip-butter { background: var(--butter); }
-  .filter-chip-accent { background: var(--accent); }
-  /* Solid: "done / live" badges and the Canvass filter (eggplant by day, olive by night; see --solid). */
+  /* Solid: "done / live" badges and a quick filter that's on (eggplant by day, olive by night; see --solid). */
   .badge-solid,
-  .filter-chip-solid {
+  .filter-chip-on {
     background: var(--solid);
     color: var(--on-solid);
     border-color: transparent;

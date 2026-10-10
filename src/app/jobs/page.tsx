@@ -69,10 +69,10 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
     return qs ? `/jobs?${qs}` : "/jobs";
   };
   const quick = [
-    { label: "This week", href: toggle("week", "1"), on: params.get("week") === "1" && !params.get("startsBefore"), tone: "filter-chip-sky" },
-    { label: "Petition", href: toggle("type", "PETITION"), on: filters.type === "PETITION", tone: "filter-chip-butter" },
-    { label: "Canvass", href: toggle("type", "CANVASS"), on: filters.type === "CANVASS", tone: "filter-chip-solid" },
-    { label: "No credentials", href: toggle("noCredentials", "1"), on: !!filters.noCredentials, tone: "filter-chip-accent" },
+    { label: "This week", href: toggle("week", "1"), on: params.get("week") === "1" && !params.get("startsBefore") },
+    { label: "Petition", href: toggle("type", "PETITION"), on: filters.type === "PETITION" },
+    { label: "Canvass", href: toggle("type", "CANVASS"), on: filters.type === "CANVASS" },
+    { label: "No credentials", href: toggle("noCredentials", "1"), on: !!filters.noCredentials },
   ];
   const anyFilter = !!(filters.type || filters.minRateCents || filters.startsBefore || filters.noCredentials);
   // The date field shows a typed date only, not the "This week" window.
@@ -125,7 +125,7 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
         {/* Quick filters (screen mockups): one tap on, one tap off. */}
         <nav aria-label="Quick filters" className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
           {quick.map((q) => (
-            <Link key={q.label} href={q.href} scroll={false} className={`filter-chip ${q.on ? q.tone : ""}`}>
+            <Link key={q.label} href={q.href} scroll={false} className={`filter-chip ${q.on ? "filter-chip-on" : ""}`}>
               {q.on && <span aria-hidden>✓</span>}
               {q.label}
               <span className="sr-only">{q.on ? " (on — tap to turn off)" : " (off)"}</span>

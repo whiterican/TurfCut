@@ -5,7 +5,7 @@ import { requireAuth } from "@/lib/auth";
 import { HIRING_ROLES, ORG_ROLES, SCHEDULING_ROLES } from "@/lib/access";
 import { ACCEPTED_STATUSES, RELATIONSHIP_STATUSES, type EngagementStatus, type HiringSnapshot } from "@/lib/engagements";
 import { ENGAGEMENT_LABELS, JOB_STATUS_LABELS, jobPageBadge } from "@/lib/engagement-labels";
-import { UUID_RE, exclusionReasons, fitReasons, jobCardAnswers, jurisdictionLabel, payText, publishBlockers, readDisclosure, readHiringModes } from "@/lib/jobs";
+import { UUID_RE, exclusionReasons, fitReasons, jobCardAnswers, jobCredentials, jurisdictionLabel, payText, publishBlockers, readDisclosure, readHiringModes } from "@/lib/jobs";
 import { loadScorecard } from "@/lib/scorecard-data";
 import { effectivePreference } from "@/lib/political-fit";
 import { loadLatestPreference } from "@/lib/political-fit-data";
@@ -130,7 +130,8 @@ async function WorkerPanel({
     verifiedShiftsOfType: card.segments.filter((x) => x.workType === job.type).reduce((n, x) => n + x.shiftsCount, 0),
     statesWorked: [...new Set(card.segments.flatMap((x) => x.statesWorked))],
     credentials: answers.credentials,
-    noExtraCredentials: answers.credentials.length === 1 && answers.credentials[0].startsWith("None"),
+    // The same check as the feed's "No credentials" filter.
+    noExtraCredentials: jobCredentials({ type: job.type, requirements: job.requirements, jurisdictionRules: job.jurisdiction.rules }).length === 0,
     spotsLeft: job.headcount === null ? null : Math.max(0, job.headcount - acceptedCount),
     // Only claim "within your boundaries" when they were actually checked:
     // matching-mode answers, a disclosed campaign, at least one do-not-match.

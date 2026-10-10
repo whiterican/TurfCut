@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import {
   exclusionReasons,
+  jobCredentials,
   openJobsEndAfter,
   publishBlockers,
   readDisclosure,
@@ -131,13 +132,9 @@ export async function loadFeed(workerId: string | null, f: FeedFilters = {}) {
     if (reasons.length) hidden.push({ id: j.id, title: j.title, reasons });
     else shown.push(j);
   }
+  // The same list the job card shows, so "No credentials" means exactly that.
   const filtered = f.noCredentials
-    ? shown.filter((j) => {
-        const r = (j.requirements ?? {}) as Record<string, unknown>;
-        const rules = (j.jurisdiction.rules ?? {}) as Record<string, unknown>;
-        return !r.badge && !r.registration && !r.affidavit && !r.training &&
-          rules.workerRegistrationRequired !== true && rules.badgeRequired !== true && rules.affidavitRequired !== true;
-      })
+    ? shown.filter((j) => jobCredentials({ type: j.type, requirements: j.requirements, jurisdictionRules: j.jurisdiction.rules }).length === 0)
     : shown;
   return { jobs: filtered, hidden };
 }

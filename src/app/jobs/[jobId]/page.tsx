@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { HIRING_ROLES, ORG_ROLES, SCHEDULING_ROLES } from "@/lib/access";
 import { ACCEPTED_STATUSES, RELATIONSHIP_STATUSES, type EngagementStatus, type HiringSnapshot } from "@/lib/engagements";
-import { ENGAGEMENT_LABELS, JOB_STATUS_LABELS } from "@/lib/engagement-labels";
+import { ENGAGEMENT_LABELS, JOB_STATUS_LABELS, jobPageBadge } from "@/lib/engagement-labels";
 import { UUID_RE, exclusionReasons, fitReasons, jobCardAnswers, jobCredentials, jurisdictionLabel, payText, publishBlockers, readDisclosure, readHiringModes } from "@/lib/jobs";
 import { loadScorecard } from "@/lib/scorecard-data";
 import { effectivePreference } from "@/lib/political-fit";
@@ -17,9 +17,7 @@ import { shiftState, shiftStatusLabel } from "@/lib/field-day";
 import { listSupervisors } from "@/lib/field-day-data";
 import { LocalTime } from "@/components/LocalTime";
 import { ScheduleShiftForm } from "@/components/ScheduleShiftForm";
-
-const day = (d: Date | null) =>
-  d ? d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" }) : "—";
+import { DateRangeChip } from "@/components/DateRangeChip";
 
 const loadJob = (id: string) => db().job.findUnique({ where: { id }, include: { org: true, jurisdiction: true } });
 type JobWithRefs = NonNullable<Awaited<ReturnType<typeof loadJob>>>;
@@ -54,9 +52,10 @@ export default async function JobPage({ params }: { params: Promise<{ jobId: str
           <p className="text-muted-sm">{job.org.name}</p>
           <p className="pt-2 text-3xl font-bold tracking-[-0.03em] text-fg tabular-nums">{payText(job.compensationMethod, job.payRateCents)}</p>
           <p className="flex flex-wrap gap-1.5 pt-1">
-            {isOwnOrg && <span className={status.badge}>{status.label}</span>}
-            <span className="badge-sky">{day(job.startsAt)} – {day(job.endsAt)}</span>
-            <span className={job.type === "PETITION" ? "badge-butter" : "badge-solid"}>{job.type === "PETITION" ? "Petition" : "Canvass"}</span>
+            {isOwnOrg && <span className={jobPageBadge(status.badge)}>{status.label}</span>}
+            {/* The dates carry a calendar so their blue never reads as a party. */}
+            <DateRangeChip startsAt={job.startsAt} endsAt={job.endsAt} />
+            <span className="badge-neutral">{job.type === "PETITION" ? "Petition" : "Canvass"}</span>
             <span className="badge-neutral">{acceptedCount} of {job.headcount ?? "—"} spots filled</span>
           </p>
         </div>
@@ -150,7 +149,7 @@ async function WorkerPanel({
       <ul className="divide-y divide-border">
         {reasons2.map((r) => (
           <li key={r.title} className="flex items-center gap-3 py-3">
-            <span aria-hidden className={`grid size-10 shrink-0 place-items-center rounded-xl font-bold ${r.kind === "yes" ? "bg-solid text-on-solid" : "bg-butter text-ink"}`}>
+            <span aria-hidden className={`grid size-10 shrink-0 place-items-center rounded-xl font-bold ${r.kind === "yes" ? "bg-solid text-on-solid" : "border border-border bg-surface-2 text-fg"}`}>
               {r.kind === "yes" ? "✓" : "i"}
             </span>
             <span className="min-w-0">
@@ -206,7 +205,7 @@ function shiftRow(
             {s.stagingLocation ? ` · ${s.stagingLocation}` : ""}
           </span>
         </span>
-        <span className={b.badge}>{b.label}</span>
+        <span className={jobPageBadge(b.badge)}>{b.label}</span>
       </Link>
     </li>
   );

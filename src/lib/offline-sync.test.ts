@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { correctTime, placeTime, readQueued, stagingCheck, timeProblem, wasOffline } from "@/lib/offline-sync";
+import { bandRadius, correctTime, placeTime, readLocationCheck, readQueued, stagingCheck, timeProblem, wasOffline } from "@/lib/offline-sync";
 
 const id = "3f2b8c1e-9a4d-4e2f-8b6a-1c2d3e4f5a6b";
 const at = Date.UTC(2026, 9, 2, 15, 0);
@@ -58,8 +58,22 @@ describe("stagingCheck (on the phone)", () => {
   const staging = { lat: 39.7392, lng: -104.9903 };
   it("returns only yes/no and a band", () => {
     expect(stagingCheck(staging, { lat: 39.7393, lng: -104.9904 })).toEqual({ checked: true, atStaging: true, distance: "under 250 m" });
+    expect(stagingCheck({ ...staging, radiusM: 400 }, { lat: 39.7393, lng: -104.9904 })).toEqual({ checked: true, atStaging: true, distance: "under 400 m" });
     expect(stagingCheck(staging, { lat: 39.75, lng: -104.99 })).toEqual({ checked: true, atStaging: false, distance: "over 1 km" });
     expect(stagingCheck(null, { lat: 39.75, lng: -104.99 })).toEqual({ checked: false });
     expect(stagingCheck(staging, null)).toEqual({ checked: false });
+  });
+
+  it("reads a band made with any radius in range, refusing one that disagrees with the yes/no or names a radius out of range", () => {
+    expect(readLocationCheck({ checked: true, atStaging: true, distance: "under 400 m" })).toEqual({ checked: true, atStaging: true, distance: "under 400 m" });
+    expect(readLocationCheck({ checked: true, atStaging: false, distance: "400 m – 1 km" })).toEqual({ checked: true, atStaging: false, distance: "400 m – 1 km" });
+    expect(readLocationCheck({ checked: true, atStaging: false, distance: "over 1500 m" })).toEqual({ checked: true, atStaging: false, distance: "over 1500 m" });
+    expect(readLocationCheck({ checked: true, atStaging: false, distance: "over 1 km" })).toEqual({ checked: true, atStaging: false, distance: "over 1 km" });
+    expect(readLocationCheck({ checked: true, atStaging: false, distance: "under 400 m" })).toBeNull();
+    expect(readLocationCheck({ checked: true, atStaging: true, distance: "under 5 m" })).toBeNull();
+    expect(readLocationCheck({ checked: true, atStaging: true, distance: "under 9999 m" })).toBeNull();
+    expect(readLocationCheck({ checked: true, atStaging: true, distance: "near" })).toBeNull();
+    expect(bandRadius("under 400 m")).toEqual({ radius: 400, near: true });
+    expect(bandRadius("over 1 km")).toEqual({ radius: null, near: false });
   });
 });

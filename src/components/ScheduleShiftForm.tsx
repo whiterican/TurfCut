@@ -28,6 +28,9 @@ export function ScheduleShiftForm({
   const [pointId, setPointId] = useState(launch.points[0]?.id ?? "");
   const point = launch.points.find((p) => p.id === pointId) ?? null;
   const self = launch.mode === "SELF";
+  // Where the pin is now: moved off the chosen point, the shift loses that point's radius.
+  const [pin, setPin] = useState<{ lat: number; lng: number } | null>(null);
+  const offPoint = !!point && !!pin && (Math.abs(pin.lat - point.lat) >= 1e-5 || Math.abs(pin.lng - point.lng) >= 1e-5);
   const err = (k: string) => (state.errors[k] ? <p className="field-error">{state.errors[k]}</p> : null);
 
   return (
@@ -84,8 +87,11 @@ export function ScheduleShiftForm({
       </div>
       <div className="space-y-1.5">
         <span className="label">{self ? "Turf" : "Turf and staging point"}</span>
-        {/* Keyed by the chosen point, so picking another one moves the pin. */}
-        <TurfMap key={pointId} editable allowStaging={!self} staging={point ? { lat: point.lat, lng: point.lng } : null} className="h-80" />
+        <TurfMap editable allowStaging={!self} staging={point ? { lat: point.lat, lng: point.lng } : null} onStagingChange={setPin} className="h-80" />
+        {offPoint && (
+          <p className="text-hint">The pin has moved off {point!.name}: check-in will use the usual 250 m radius, not this point&apos;s {point!.radiusM} m. Pick the point again to put it back.</p>
+        )}
+        {!self && launch.points.length > 0 && <p className="text-hint">Picking another staging point keeps the turf you drew; the staging location text is replaced.</p>}
         {err("turfArea")}
         {err("stagingLat")}
       </div>

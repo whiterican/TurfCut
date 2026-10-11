@@ -64,6 +64,20 @@ export async function notifyStep(
   await tx.notification.createMany({ data: recipients.map((recipientId) => ({ recipientId, kind: kind ?? rule.kind, engagementId: e.id, createdAt: at })) });
 }
 
+/**
+ * A published job's terms changed (C4.3): everyone engaged on it (applied,
+ * invited, offered, hired) is told, except the editor and closed accounts.
+ */
+export async function notifyJobChanged(tx: Tx, jobId: string, actorId: string, at: Date) {
+  const engaged = await tx.engagement.findMany({
+    where: { jobId, status: { in: ["APPLIED", "INVITED", "OFFERED", "CLAIMED", "ACTIVE"] }, worker: { closedAt: null } },
+    select: { id: true, worker: { select: { profileId: true } } },
+  });
+  const rows = engaged.filter((e) => e.worker.profileId !== actorId).map((e) => ({ recipientId: e.worker.profileId, kind: "JOB_CHANGED" as const, engagementId: e.id, createdAt: at }));
+  if (rows.length) await tx.notification.createMany({ data: rows });
+  return rows.length;
+}
+
 export const NOTIFICATION_PAGE = 50;
 /** The badge shows "99+" past this: counting further would only cost time. */
 export const UNREAD_CAP = 100;

@@ -32,9 +32,14 @@ export const REVIEW_STEP = BUILDER_STEPS.length - 1;
  * listed under the heading rather than lost on the review.
  */
 export function stepOfField(key: string): number {
+  return fieldStep(key) ?? 0;
+}
+
+/** The step that claims a field, or null when none does. */
+export function fieldStep(key: string): number | null {
   const k = key.startsWith("issue_") ? "issues" : key.startsWith("point_") ? "points" : key;
   const i = BUILDER_STEPS.findIndex((s) => s.fields.includes(k));
-  return i === -1 ? 0 : i;
+  return i === -1 ? null : i;
 }
 
 /** The first step that has one of these errors, or null when none do. */

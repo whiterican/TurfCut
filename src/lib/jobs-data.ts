@@ -1,4 +1,6 @@
 import { Prisma } from "@prisma/client";
+import { changeLabels, jobDiff, materialLabels, type JobChanges } from "@/lib/job-changes";
+import { notifyJobChanged } from "@/lib/notifications-data";
 import { db } from "@/lib/db";
 import {
   exclusionReasons,
@@ -62,6 +64,51 @@ export async function updateDraftJob(jobId: string, orgId: string, actorId: stri
     await tx.auditEvent.create({ data: { actorId, action: "job.edited", entityType: "Job", entityId: jobId } });
     return true;
   });
+}
+
+/**
+ * Edits a published (or paused) job (C4.3). The job has to stay
+ * publishable, so the edit is refused with the gate's reasons otherwise.
+ * What changed is recorded as a JobChange; everyone engaged on the job is
+ * told, and for a material change hired workers may leave within
+ * RELEASE_HOURS with no penalty (job-changes-data.ts). Under the job's
+ * lock, like publishing.
+ */
+export async function updatePublishedJob(
+  jobId: string,
+  orgId: string,
+  actorId: string,
+  input: JobInput,
+  now = new Date()
+): Promise<{ ok: true; changed: string[]; material: string[]; told: number } | { ok: false; reasons: string[] }> {
+  if (!UUID_RE.test(jobId)) return { ok: false, reasons: ["Job not found."] };
+  return db().$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`job:${jobId}`}))`;
+    const job = await tx.job.findFirst({ where: { id: jobId, orgId }, include: { jurisdiction: true, org: true } });
+    if (!job) return { ok: false as const, reasons: ["Job not found."] };
+    if (job.status !== "PUBLISHED" && job.status !== "PAUSED") return { ok: false as const, reasons: ["Only a published or paused job is edited this way."] };
+    const data = jobData(input);
+    const jurisdiction = data.jurisdictionId === job.jurisdictionId ? job.jurisdiction : await tx.jurisdictionProfile.findUnique({ where: { id: data.jurisdictionId } });
+    // Judged as a draft would be: the question is whether the edited job could publish, not whether it is.
+    const reasons = publishBlockers({ job: { ...job, ...data, status: "DRAFT" }, jurisdiction, org: job.org }, now);
+    if (reasons.length) return { ok: false as const, reasons: ["This change would stop the job from publishing: " + reasons.join(" ")] };
+    const changes = jobDiff(job, data);
+    const changed = changeLabels(changes);
+    if (!changed.length) return { ok: true as const, changed, material: [], told: 0 };
+    const material = materialLabels(changes);
+    await tx.job.update({ where: { id: jobId }, data });
+    const change = await tx.jobChange.create({ data: { jobId, actorId, changes: json(changes), material, createdAt: now }, select: { id: true } });
+    await tx.auditEvent.create({ data: { actorId, action: "job.changed", entityType: "Job", entityId: jobId, metadata: { changeId: change.id, changed, material }, createdAt: now } });
+    const told = await notifyJobChanged(tx, jobId, actorId, now);
+    return { ok: true as const, changed, material, told };
+  });
+}
+
+/** A job's edits since it was published, newest first, with who made each (C4.3). */
+export async function loadJobChanges(jobId: string) {
+  const rows = await db().jobChange.findMany({ where: { jobId }, orderBy: { createdAt: "desc" }, select: { id: true, actorId: true, changes: true, material: true, createdAt: true } });
+  const actors = new Map((await db().profile.findMany({ where: { id: { in: [...new Set(rows.map((r) => r.actorId))] } }, select: { id: true, displayName: true } })).map((p) => [p.id, p.displayName]));
+  return rows.map((r) => ({ ...r, changes: r.changes as JobChanges, by: actors.get(r.actorId) ?? null, labels: changeLabels(r.changes as JobChanges) }));
 }
 
 /**

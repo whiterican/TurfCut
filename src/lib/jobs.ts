@@ -671,7 +671,8 @@ export function jobToForm(job: {
     contactLostMaterials: c?.lostMaterials ?? "",
     measureIds: job.measureIds.join(", "),
     cancellationNoticeHours: String(job.cancellationNoticeHours),
-    // A job that says nothing about its launch gives the builder no launch fields (its defaults apply), so an edit round-trips.
+    // A job that says nothing about its launch gives the builder no launch fields: an API edit round-trips, and the
+    // builder (whose radio always picks a mode) makes the choice explicit on its next save.
     ...(job.launch == null ? {} : launchToForm(readLaunch(job.launch))),
   };
 }

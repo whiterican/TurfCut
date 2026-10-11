@@ -4,7 +4,7 @@ import { startTransition, useActionState, useEffect, useRef, useState } from "re
 import { saveJob, type JobFormState } from "@/app/jobs/actions";
 import { AFFILIATIONS, affiliationLabel, COMPENSATION_METHODS, formToObject, HIRING_MODES, JOB_TYPES, validateJob } from "@/lib/jobs";
 import { BUILDER_STEPS, errorsForStep, firstStepWithErrors, REVIEW_STEP, stepOfField } from "@/lib/job-builder";
-import { LAUNCH_MODES, readLaunch } from "@/lib/job-launch";
+import { LAUNCH_MODES, readLaunch, validateLaunch } from "@/lib/job-launch";
 import { CAMPAIGN_TYPES, ISSUES } from "@/lib/political-fit";
 import { US_STATES } from "@/lib/experience";
 import { StagingPointsEditor } from "@/components/StagingPointsEditor";
@@ -63,16 +63,24 @@ export function JobForm({
     const serverStep = firstStepWithErrors(state.errors);
     if (serverStep !== null) setStep(serverStep);
   }
-  // Focus the step heading on a change of step, not on first paint.
-  const mounted = useRef(false);
+  // Focus the step heading on a change of step, not on first paint (nor on
+  // StrictMode's second run of the effect).
+  const shown = useRef(step);
   useEffect(() => {
-    if (mounted.current) heading.current?.focus();
-    mounted.current = true;
+    if (shown.current !== step) heading.current?.focus();
+    shown.current = step;
   }, [step]);
+  // After a failed jump, the first field with a problem takes focus.
+  const [focusTick, setFocusTick] = useState(0);
+  useEffect(() => {
+    if (focusTick) focusFirstProblem(form.current);
+  }, [focusTick]);
 
   const d = (k: string, fallback = "") => (typeof defaults[k] === "string" ? (defaults[k] as string) : fallback);
   const modes = Array.isArray(defaults.hiringModes) ? (defaults.hiringModes as string[]) : ["application"];
-  const launch = readLaunch(launchDefaults(defaults));
+  // The stored launch, read back from the builder's own fields (one parser: validateLaunch).
+  const launchRead = validateLaunch(defaults);
+  const launch = launchRead.ok ? launchRead.value : readLaunch(null);
   const [launchMode, setLaunchMode] = useState(launch.mode);
   const stepErrors = errorsForStep(errors, step);
   const err = (k: string) => (stepErrors[k] ? <p id={`err-${k}`} className="field-error">{stepErrors[k]}</p> : null);
@@ -87,15 +95,20 @@ export function JobForm({
       // Every step on the way has to pass; the first that doesn't is shown.
       const r = validateJob(read());
       const stop = r.ok ? null : [...Array(n - step).keys()].map((i) => step + i).find((i) => Object.keys(errorsForStep(r.errors, i)).length) ?? null;
-      const keep = (k: string) => stepOfField(k) < step || stepOfField(k) >= (stop ?? n);
-      setErrors((e) => ({ ...Object.fromEntries(Object.entries(e).filter(([k]) => keep(k))), ...(r.ok || stop === null ? {} : errorsForStep(r.errors, stop)) }));
+      // The steps checked drop their old problems (the stop step's are replaced by fresh ones); later steps keep theirs.
+      const keep = (k: string) => {
+        const s = stepOfField(k);
+        return s < step || (stop === null ? s >= n : s > stop);
+      };
+      const next = { ...Object.fromEntries(Object.entries(errors).filter(([k]) => keep(k))), ...(r.ok || stop === null ? {} : errorsForStep(r.errors, stop)) };
+      setErrors(next);
       if (stop !== null) {
         setMessage(FIX);
         setStep(stop);
-        queueMicrotask(() => focusFirstProblem(form.current));
+        setFocusTick((t) => t + 1);
         return;
       }
-      setMessage((m) => (m === FIX ? "" : m));
+      if (!Object.keys(next).length) setMessage((m) => (m === FIX ? "" : m));
     }
     if (n === REVIEW_STEP) setSummary(read());
     setStep(n);
@@ -124,8 +137,9 @@ export function JobForm({
       noValidate
       className="space-y-6"
       onKeyDown={(e) => {
-        // Enter in a field goes to the next step, as it would submit a one-page form.
-        if (e.key === "Enter" && step < REVIEW_STEP && e.target instanceof HTMLInputElement) {
+        // Enter in a text field goes to the next step, as it would submit a one-page form (not in the staging-point list, which has its own buttons).
+        const t = e.target;
+        if (e.key === "Enter" && step < REVIEW_STEP && t instanceof HTMLInputElement && ["text", "date", "number", ""].includes(t.type === "text" ? "" : t.type) && !t.closest("[data-list]")) {
           e.preventDefault();
           goTo(step + 1);
         }
@@ -231,7 +245,7 @@ export function JobForm({
           ))}
           {err("launchMode")}
         </fieldset>
-        {launchMode === "STAGED" && <StagingPointsEditor initial={launch.points} errors={stepErrors} describe={describe} />}
+        <StagingPointsEditor initial={launch.points} errors={stepErrors} describe={describe} disabled={launchMode !== "STAGED"} />
       </fieldset>
 
       <fieldset hidden={show(2)} className="grid gap-3 sm:grid-cols-3">
@@ -253,7 +267,7 @@ export function JobForm({
           <input name="headcount" inputMode="numeric" className="field" required defaultValue={d("headcount")} {...describe("headcount")} />
           {err("headcount")}
         </label>
-        <div className="space-y-1.5 sm:col-span-3">
+        <div className="space-y-1.5 sm:col-span-3" role="group" aria-label="How you hire" {...describe("hiringModes")}>
           <span className="label">How you hire</span>
           <div className="flex flex-wrap gap-2">
             {HIRING_MODES.map((m) => (
@@ -353,7 +367,7 @@ export function JobForm({
           <textarea name="message" className="field min-h-20" required maxLength={500} defaultValue={d("message")} {...describe("message")} />
           {err("message")}
         </label>
-        <div className="space-y-2 sm:col-span-2">
+        <div className="space-y-2 sm:col-span-2" role="group" aria-label="Public issue positions" {...describe("issues")}>
           <span className="label">Public issue positions {optional}</span>
           <div className="list-card">
             {ISSUES.map((i) => (
@@ -391,16 +405,6 @@ export function JobForm({
       </div>
     </form>
   );
-}
-
-/** The launch among the form defaults (jobToForm's launchToForm fields), in the stored shape readLaunch reads. */
-function launchDefaults(defaults: Record<string, unknown>): unknown {
-  if (typeof defaults.launchMode !== "string") return null;
-  const points = [];
-  for (let i = 0; typeof defaults[`point_${i}_name`] === "string"; i++) {
-    points.push({ id: defaults[`point_${i}_id`], name: defaults[`point_${i}_name`], address: defaults[`point_${i}_address`] || null, lat: Number(defaults[`point_${i}_lat`]), lng: Number(defaults[`point_${i}_lng`]), radiusM: Number(defaults[`point_${i}_radius`]) });
-  }
-  return { mode: defaults.launchMode, points };
 }
 
 /** Moves focus to the first field with a problem on the shown step, else the heading. */

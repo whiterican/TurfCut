@@ -1,10 +1,12 @@
-/* C4 acceptance checks: job launch and tools on real Postgres (tests/acceptance/run.sh). */
+/* C4 acceptance checks: job launch and tools on real Postgres — launch mode, staging points and check-in radius; editing live jobs and the 24-hour release (tests/acceptance/run.sh). */
 import { db } from "@/lib/db";
-import { createJob, publishJob, updateDraftJob } from "@/lib/jobs-data";
+import { createJob, loadJobChanges, publishJob, updateDraftJob, updatePublishedJob } from "@/lib/jobs-data";
+import { openRelease, releaseFromJob } from "@/lib/job-changes-data";
+import { cancellationOf } from "@/lib/scorecard";
 import { validateJob } from "@/lib/jobs";
 import { radiusFor, readLaunch } from "@/lib/job-launch";
-import { scheduleShift } from "@/lib/field-day-data";
-import { claimJob } from "@/lib/engagements-data";
+import { scheduleShift, workerShiftAction } from "@/lib/field-day-data";
+import { applyToJob, claimJob } from "@/lib/engagements-data";
 
 const ORG = "00000000-0000-0000-0000-000000000001";
 const OWNER = "00000000-0000-0000-0000-0000000000aa";
@@ -21,7 +23,7 @@ const check = (l: string, c: unknown, d?: unknown) => { if (c) console.log(`PASS
   const year = new Date().getUTCFullYear() + 1;
   const base = {
     type: "PETITION", title: "Launch test", jurisdictionId: seeded.jurisdictionId, startsAt: `${year}-03-01`, endsAt: `${year}-04-01`, city: "Denver", state: "CO",
-    compensationMethod: "HOURLY", payRate: "24", headcount: "4", hiringModes: ["instant_claim"], campaignType: "ballot_measure", affiliation: "nonpartisan",
+    compensationMethod: "HOURLY", payRate: "24", headcount: "4", hiringModes: ["instant_claim", "application"], campaignType: "ballot_measure", affiliation: "nonpartisan",
     message: "Qualify a measure.", contactEmergency: "a", contactDisputes: "b", contactLostMaterials: "c",
   };
   const input = (over: Record<string, unknown>) => {
@@ -49,6 +51,65 @@ const check = (l: string, c: unknown, d?: unknown) => { if (c) console.log(`PASS
     : null;
   const row = shift?.ok ? await p.shift.findUniqueOrThrow({ where: { id: shift.shiftId } }) : null;
   check("a shift at the job's point gets that point's check-in radius; elsewhere, the default", !!row && radiusFor(launch, { lat: row.stagingLat, lng: row.stagingLng }) === 400 && radiusFor(launch, { lat: 39.8, lng: -104.989 }) === 250, { shift, row });
+  // The phone's check-in band names the radius it compared with: the server confirms it is this shift's.
+  const me = { workerId: W1, profileId: W1 };
+  const start = row ? new Date(row.startsAt.getTime() - 5 * 60_000) : new Date();
+  const wrongRadius = row ? await workerShiftAction(me, row.id, { kind: "check_in", location: { checked: true, atStaging: true, distance: "under 300 m" } }, start) : null;
+  const rightRadius = row ? await workerShiftAction(me, row.id, { kind: "check_in", location: { checked: true, atStaging: true, distance: "under 400 m" } }, start) : null;
+  check("a check-in made against another radius is refused; one against the shift's own point goes through", !!wrongRadius && !wrongRadius.ok && /different staging point/.test(wrongRadius.reason) && !!rightRadius && rightRadius.ok, { wrongRadius, rightRadius });
+  const stored = row ? await p.workEvent.findFirst({ where: { shiftId: row.id, type: "CHECK_IN" }, select: { payload: true } }) : null;
+  const pl = (stored?.payload ?? {}) as Record<string, unknown>;
+  check("…and what's stored is the yes/no and the band, never a position", pl.atStaging === true && pl.distance === "under 400 m" && Object.keys(pl).sort().join() === "atStaging,distance", stored);
+  // A self-launch job has no staging point on its shifts.
+  const selfClaim = await claimJob(W1, W1, self.id);
+  const selfShift = selfClaim.ok
+    ? await scheduleShift(org, selfClaim.engagementId, { startsAt: new Date(Date.UTC(year, 2, 3, 15)).toISOString(), endsAt: new Date(Date.UTC(year, 2, 3, 19)).toISOString(), stagingLat: "39.737", stagingLng: "-104.989" })
+    : null;
+  const selfShiftOk = selfClaim.ok
+    ? await scheduleShift(org, selfClaim.engagementId, { startsAt: new Date(Date.UTC(year, 2, 3, 15)).toISOString(), endsAt: new Date(Date.UTC(year, 2, 3, 19)).toISOString() })
+    : null;
+  check("a self-launch job refuses a staging point on a shift, and schedules without one", !!selfShift && !selfShift.ok && /self-launch/.test(selfShift.errors?.stagingLat ?? "") && !!selfShiftOk && selfShiftOk.ok, { selfShift, selfShiftOk });
+
+  // --- C4.3: editing a published job; the 24-hour release ---
+  const W2 = "00000000-0000-0000-0000-000000000102";
+  const live = await createJob(ORG, OWNER, input({ launchMode: "SELF" }));
+  check("the live job publishes", (await publishJob(live.id, ORG, OWNER)).ok);
+  const hiredClaim = await claimJob(W1, W1, live.id);
+  const applied = await applyToJob(W2, W2, live.id);
+  const hiredId = hiredClaim.ok ? hiredClaim.engagementId : "";
+  const hiredShift = hiredClaim.ok ? await scheduleShift(org, hiredId, { startsAt: new Date(Date.UTC(year, 2, 10, 15)).toISOString(), endsAt: new Date(Date.UTC(year, 2, 10, 19)).toISOString() }) : null;
+  check("W1 is hired with a shift, W2 applied", hiredClaim.ok && applied.ok && !!hiredShift?.ok, { hiredClaim, applied, hiredShift });
+  const noticesFor = (jobId: string) => p.notification.findMany({ where: { kind: "JOB_CHANGED", engagement: { jobId } }, select: { recipientId: true } });
+  const cosmetic = await updatePublishedJob(live.id, ORG, OWNER, input({ launchMode: "SELF", title: "Launch test (renamed)" }));
+  check("a cosmetic edit is recorded, tells everyone on the job, and is not material", cosmetic.ok && cosmetic.changed.join() === "title" && cosmetic.material.length === 0 && cosmetic.told === 2 && (await noticesFor(live.id)).length === 2, cosmetic);
+  check("…and nobody can leave over it", (await openRelease({ id: hiredId, jobId: live.id, status: "CLAIMED", createdAt: new Date(0) })) === null);
+  const same = await updatePublishedJob(live.id, ORG, OWNER, input({ launchMode: "SELF", title: "Launch test (renamed)" }));
+  check("saving the same terms again records nothing", same.ok && same.changed.length === 0 && (await p.jobChange.count({ where: { jobId: live.id } })) === 1, same);
+  const broken = await updatePublishedJob(live.id, ORG, OWNER, input({ launchMode: "STAGED", title: "Launch test (renamed)" }));
+  check("an edit that would stop the job publishing is refused, nothing recorded", !broken.ok && /staging point/.test(broken.reasons.join(" ")) && (await p.jobChange.count({ where: { jobId: live.id } })) === 1, broken);
+  const payCut = await updatePublishedJob(live.id, ORG, OWNER, input({ launchMode: "SELF", title: "Launch test (renamed)", payRate: "22", startsAt: `${year}-03-02` }));
+  const changeRow = await p.jobChange.findFirst({ where: { jobId: live.id }, orderBy: { createdAt: "desc" } });
+  check("a change to pay and dates is material: recorded with before and after, and everyone told again", payCut.ok && payCut.material.join() === "dates,pay" && changeRow?.material.join() === "dates,pay" && (changeRow.changes as { payRateCents?: { from: number; to: number } }).payRateCents?.to === 2200 && (await noticesFor(live.id)).length === 4, { payCut, changeRow });
+  const release = await openRelease({ id: hiredId, jobId: live.id, status: "CLAIMED", createdAt: new Date(0) });
+  check("the hired worker may leave for 24 hours", !!release && release.material.join() === "dates,pay" && release.deadline.getTime() - release.createdAt.getTime() === 24 * 3_600_000, release);
+  const notHired = await releaseFromJob({ workerId: W2, profileId: W2 }, applied.ok ? applied.engagementId : "");
+  check("an applicant isn't released this way (nothing to leave)", !notHired.ok && /hired/.test(notHired.reason), notHired);
+  const tooLate = await releaseFromJob({ workerId: W1, profileId: W1 }, hiredId, new Date(Date.now() + 25 * 3_600_000));
+  check("after 24 hours the release has passed", !tooLate.ok && /24 hours/.test(tooLate.reason), tooLate);
+  const left = await releaseFromJob({ workerId: W1, profileId: W1 }, hiredId);
+  const afterLeave = await p.engagement.findUniqueOrThrow({ where: { id: hiredId } });
+  const cancelledEv = hiredShift?.ok ? await p.workEvent.findFirst({ where: { shiftId: hiredShift.shiftId, type: "SHIFT_CANCELLED" } }) : null;
+  check("leaving in time withdraws the engagement, cancels the upcoming shift as a job-change release, and tells the organization",
+    left.ok && left.cancelledShifts === 1 && afterLeave.status === "WITHDRAWN" && (cancelledEv?.payload as { jobChanged?: boolean })?.jobChanged === true && (await p.engagementEvent.count({ where: { engagementId: hiredId, type: "WITHDRAWN" } })) === 1 && (await p.notification.count({ where: { engagementId: hiredId, kind: "APPLICATION_WITHDRAWN" } })) > 0,
+    { left, afterLeave, cancelledEv });
+  const shiftRow = hiredShift?.ok ? await p.shift.findUniqueOrThrow({ where: { id: hiredShift.shiftId }, include: { events: true, validations: true } }) : null;
+  check("…and the scorecard reads that cancellation as excused, never a no-show", !!shiftRow && cancellationOf({ ...shiftRow, engagementStatus: "WITHDRAWN", scheduledAt: shiftRow.createdAt, cancellationNoticeHours: 24 } as never) === "excused");
+  const again = await releaseFromJob({ workerId: W1, profileId: W1 }, hiredId);
+  check("leaving twice does nothing", !again.ok, again);
+  const editP = await p.jobChange.update({ where: { id: changeRow!.id }, data: { material: [] } }).then(() => "allowed", (e: unknown) => String(e));
+  check("the database refuses changing a JobChange", /append-only/.test(editP), editP);
+  const hist = await loadJobChanges(live.id);
+  check("the job's change record lists both edits, newest first, with who made them", hist.length === 2 && hist[0].labels.join() === "dates,pay" && hist[1].labels.join() === "title" && hist[0].by === "Maya Chen", hist.map((h) => h.labels));
 
   await p.$disconnect();
   process.exit(fails ? 1 : 0);

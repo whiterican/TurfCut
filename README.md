@@ -676,8 +676,28 @@ Built in C3.6b (see the C3 scope below). Approved as recommended by review:
   read tolerantly (`src/lib/job-launch.ts`). A staged job with no point
   can't publish; a job that says nothing about its launch (one from before
   C4, or made through the API without it) stays as it was, with staging set
-  per shift. The job card tells workers how the day starts. Acceptance:
+  per shift, until the builder saves it (the builder always picks a mode).
+  A self-launch job refuses a staging point on its shifts. The phone's
+  check-in band names the point's radius, and the server confirms it is the
+  shift's own. The job card tells workers how the day starts. Acceptance:
   `tests/acceptance/c4-launch.ts`.
+- **Editing a live job (C4.3)**: a published or paused job can be edited
+  from its page (the same six-step builder). The job has to stay
+  publishable, so an edit that would fail a check is refused. Every change
+  is recorded as an append-only `JobChange` (what changed, before and
+  after, who, when; `prisma/c4-launch.sql`), listed on the job page for the
+  organization, and everyone on the job (applied, invited, offered, hired)
+  gets a `JOB_CHANGED` notice. A change to pay, dates, location,
+  requirements, the campaign, the cancellation notice, the type of work,
+  the rule profile or how the day starts is *material*: for 24 hours
+  (`RELEASE_HOURS`) workers hired before it may leave the job from its
+  page, their upcoming shifts cancelled as excused (the scorecard never
+  counts them as no-shows), the engagement withdrawn with a history line
+  that says why (ending is final for that job, as for any withdrawal). A
+  worker hired after the change agreed to the new terms and isn't offered
+  the release. Decision for Caden: title, description, headcount, hiring
+  modes, contacts and ballot-measure ids are recorded and announced but
+  don't open the release; say if any of those should.
 
 ## C3 scope — the hiring hub
 

@@ -35,6 +35,14 @@ describe("job launch", () => {
     expect(hasLaunchFields({ point_0_name: "x" })).toBe(true);
     const many = validateLaunch({ launchMode: "STAGED", ...Object.assign({}, ...Array.from({ length: 11 }, (_, i) => point(i, { [`point_${i}_lat`]: String(39 + i / 100) }))) });
     expect(many.ok).toBe(false);
+    if (!many.ok) expect(many.errors.points).toMatch(/Up to 10/);
+    // The same id twice (only an API caller can send that): named, never a point dropped in silence.
+    const dup = validateLaunch({ launchMode: "STAGED", ...point(0, { point_0_id: "11111111-1111-4111-8111-111111111111" }), ...point(1, { point_1_id: "11111111-1111-4111-8111-111111111111", point_1_lat: "39.8" }) });
+    expect(dup.ok).toBe(false);
+    if (!dup.ok) expect(dup.errors.point_1_name).toMatch(/repeats/);
+    // A new point gets a uuid, kept on the next save.
+    const fresh = validateLaunch({ launchMode: "STAGED", ...point(0) });
+    expect(fresh.ok && fresh.value.points[0].id).toMatch(/^[0-9a-f-]{36}$/);
   });
 
   it("round-trips through the form defaults, keeping ids", () => {

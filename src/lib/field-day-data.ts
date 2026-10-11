@@ -1,4 +1,6 @@
 import { Prisma } from "@prisma/client";
+import { radiusFor, readLaunch } from "@/lib/job-launch";
+import { bandRadius } from "@/lib/offline-sync";
 import { needsReview } from "@/lib/field-view";
 import { db } from "@/lib/db";
 import { FIELD_ROLES } from "@/lib/access";
@@ -103,6 +105,10 @@ export async function scheduleShift(
 
   const v = validateShift(raw, e.job);
   if (!v.ok) return { ok: false, reason: "Fix the highlighted fields.", errors: v.errors };
+  // A self-launch job has no staging point: check-in records the time only (C4.2).
+  if (readLaunch(e.job.launch).mode === "SELF" && (v.value.stagingLat !== null || v.value.stagingLocation)) {
+    return { ok: false, reason: "Fix the highlighted fields.", errors: { stagingLat: "This job is self-launch: workers start from wherever they are, so a shift has no staging point." } };
+  }
   if (v.value.endsAt <= now) return { ok: false, reason: "That shift is already over.", errors: { endsAt: "Pick a time in the future." } };
   if (v.value.supervisorId) {
     const sup = await db().profile.findFirst({ where: { id: v.value.supervisorId, orgId: actor.orgId, role: { in: FIELD_ROLES } } });
@@ -214,6 +220,13 @@ export async function workerShiftAction(
     const s = await loadShift(shiftId, tx);
     if (!s || s.engagement.workerId !== actor.workerId) return { ok: false as const, reason: "Shift not found." };
     const action: WorkerAction = req;
+    // The phone's band names the radius it compared with (C4.2): it has to be this shift's own.
+    if (action.kind === "check_in" && action.location.checked) {
+      const band = bandRadius(action.location.distance);
+      const radius = radiusFor(readLaunch(s.engagement.job.launch), { lat: s.stagingLat, lng: s.stagingLng });
+      const agrees = !!band && (band.radius === null ? radius < 1000 : band.radius === radius);
+      if (!agrees) return { ok: false as const, reason: "This check-in was made against a different staging point. Reload the shift and check in again." };
+    }
     return apply(tx, shiftId, actor.profileId, workerAction(facts(s), action, now), now);
   });
 }

@@ -15,6 +15,7 @@
  *   saved, not even while waiting to sync.
  */
 import { locationCheck, type LocationCheck, type WorkerAction } from "@/lib/field-day";
+import { MAX_RADIUS_M, MIN_RADIUS_M } from "@/lib/job-launch";
 
 export const MAX_OFFLINE_MS = 24 * 3_600_000;
 /** Older than this when it reached the server = recorded offline. */
@@ -36,16 +37,33 @@ export interface QueuedAction {
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const obj = (v: unknown): Record<string, unknown> => (v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {});
 const int = (v: unknown) => (typeof v === "number" && Number.isInteger(v) ? v : NaN);
-const BANDS = ["under 250 m", "250 m – 1 km", "over 1 km"] as const;
+/**
+ * The check-in radius a band was made with (lib/field-day locationCheck:
+ * "under R m", "R m – 1 km", "over R m" for a radius of 1 km or more, or
+ * "over 1 km"), or null for anything else. The server confirms it against
+ * the shift's own staging point, so the number is never the phone's word.
+ */
+export function bandRadius(distance: unknown): { radius: number | null; near: boolean } | null {
+  if (typeof distance !== "string") return null;
+  let m = /^under (\d{2,4}) m$/.exec(distance);
+  if (m) return { radius: Number(m[1]), near: true };
+  m = /^(\d{2,3}) m – 1 km$/.exec(distance);
+  if (m) return { radius: Number(m[1]), near: false };
+  m = /^over (\d{4}) m$/.exec(distance);
+  if (m) return { radius: Number(m[1]), near: false };
+  if (distance === "over 1 km") return { radius: null, near: false };
+  return null;
+}
 
 /** A staging check the phone made: yes/no plus a band that agrees with it — never a position. */
 export function readLocationCheck(v: unknown): LocationCheck | null {
   const o = obj(v);
   if (o.checked === false) return { checked: false };
-  if (o.checked === true && typeof o.atStaging === "boolean" && BANDS.includes(o.distance as (typeof BANDS)[number])) {
-    // The band must agree with the yes/no.
-    if (o.atStaging !== (o.distance === "under 250 m")) return null;
-    return { checked: true, atStaging: o.atStaging, distance: o.distance as (typeof BANDS)[number] };
+  if (o.checked === true && typeof o.atStaging === "boolean") {
+    const band = bandRadius(o.distance);
+    // The band must be one locationCheck makes, with a radius in range, and agree with the yes/no.
+    if (!band || (band.radius !== null && (band.radius < MIN_RADIUS_M || band.radius > MAX_RADIUS_M)) || o.atStaging !== band.near) return null;
+    return { checked: true, atStaging: o.atStaging, distance: o.distance as string };
   }
   return null;
 }
@@ -112,9 +130,10 @@ export function timeProblem(t: Date, serverNow: Date): string | null {
 export const wasOffline = (t: Date, serverNow: Date) => serverNow.getTime() - t.getTime() > LIVE_WINDOW_MS;
 
 /**
- * The at-staging check, on the phone: the same comparison the server used
- * to make (lib/field-day locationCheck), returning only yes/no and a band.
- * The caller drops the position right after.
+ * The at-staging check, on the phone (lib/field-day locationCheck, with
+ * the shift's own radius), returning only yes/no and a band. The caller
+ * drops the position right after; the server checks the band's radius is
+ * the shift's.
  */
 export function stagingCheck(staging: { lat: number; lng: number; radiusM?: number } | null, device: { lat: number; lng: number } | null): LocationCheck {
   return locationCheck({ lat: staging?.lat ?? null, lng: staging?.lng ?? null, radiusM: staging?.radiusM }, device);

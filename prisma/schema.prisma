@@ -340,6 +340,7 @@ model Job {
 
   engagements      Engagement[]
   conversationJobs ConversationJob[]
+  changes          JobChange[]
 
   @@index([orgId, status])
   @@index([jurisdictionId])
@@ -991,6 +992,7 @@ enum NotificationKind {
   NOT_SELECTED
   APPLICATION_WITHDRAWN
   JOB_CLOSED
+  JOB_CHANGED // C4.3: a published job's terms changed
 }
 
 /// C3.5: an in-app notice for one person about one engagement. readAt is the
@@ -1045,4 +1047,22 @@ model CredentialProofDeletion {
   reason    ProofDeletionReason
   actorId   String?             @db.Uuid
   createdAt DateTime            @default(now())
+}
+
+/// C4.3: an edit to a published job, as a record: what changed (field →
+/// before and after), who, when, and which of it is material (pay, dates,
+/// location, requirements, the campaign, how the day starts, the notice
+/// window). Append-only. Hired workers are told, and for a material change
+/// may leave within RELEASE_HOURS with no reliability penalty.
+model JobChange {
+  id        String   @id @default(uuid()) @db.Uuid
+  jobId     String   @db.Uuid
+  job       Job      @relation(fields: [jobId], references: [id], onDelete: Restrict)
+  actorId   String   @db.Uuid
+  changes   Json
+  /// The material parts that changed, as labels ("pay", "dates"); empty for a change workers aren't released over.
+  material  String[] @default([])
+  createdAt DateTime @default(now())
+
+  @@index([jobId, createdAt])
 }

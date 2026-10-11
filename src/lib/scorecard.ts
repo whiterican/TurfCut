@@ -500,7 +500,8 @@ export function cancellationOf(shift: ScorecardShift): "late" | "excused" | null
   if (at > shift.endsAt.getTime()) return "late";
   // Closing an account cancels future shifts in the worker's name, but it is
   // never a no-show (owner decision, M7).
-  if (obj(c.payload).by !== "WORKER" || obj(c.payload).accountClosed === true) return "excused";
+  // Leaving within a day of a material change to the job's terms is the worker's right (C4.3), never a no-show.
+  if (obj(c.payload).by !== "WORKER" || obj(c.payload).accountClosed === true || obj(c.payload).jobChanged === true) return "excused";
   const start = shift.startsAt.getTime();
   const noticeDeadline = start - (shift.cancellationNoticeHours ?? 24) * 3_600_000;
   const scheduled = shift.scheduledAt.getTime();

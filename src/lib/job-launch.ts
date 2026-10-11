@@ -78,12 +78,13 @@ export function validateLaunch(raw: Record<string, unknown>): { ok: true; value:
   const mode: LaunchMode = modeRaw === "SELF" ? "SELF" : "STAGED";
   const points: StagingPoint[] = [];
   const seen = new Set<string>();
+  let rows = 0;
   for (let i = 0; i < 100; i++) {
     const keys = ["name", "address", "lat", "lng", "radius", "id"].map((f) => `point_${i}_${f}`);
     if (!keys.some((k) => k in raw)) break;
     const [name, address, latS, lngS, radiusS, idS] = keys.map(t);
     if (!name && !address && !latS && !lngS) continue;
-    if (points.length === MAX_POINTS) {
+    if (++rows > MAX_POINTS) {
       errors.points = `Up to ${MAX_POINTS} staging points.`;
       break;
     }
@@ -94,8 +95,12 @@ export function validateLaunch(raw: Record<string, unknown>): { ok: true; value:
     if (!latS || !lngS || !isLatLng(lat, lng)) errors[`point_${i}_lat`] = "Pick the point on the map.";
     const radius = radiusS ? Number(radiusS) : DEFAULT_RADIUS_M;
     if (!/^\d*$/.test(radiusS) || radius < MIN_RADIUS_M || radius > MAX_RADIUS_M) errors[`point_${i}_radius`] = `Check-in radius: ${MIN_RADIUS_M}–${MAX_RADIUS_M} metres.`;
-    const id = /^[0-9a-f-]{8,36}$/i.test(idS) ? idS : `p${i}-${Math.abs(Math.round((lat || 0) * 1e6) ^ Math.round((lng || 0) * 1e6)).toString(36)}`;
-    if (seen.has(id)) continue;
+    // A point keeps its id across edits (the editor sends it back); a new one gets a fresh uuid.
+    const id = /^[0-9a-f-]{8,36}$/i.test(idS) ? idS : crypto.randomUUID();
+    if (seen.has(id)) {
+      errors[`point_${i}_name`] = "This staging point repeats another one's id.";
+      continue;
+    }
     seen.add(id);
     if (!errors[`point_${i}_name`] && !errors[`point_${i}_lat`] && !errors[`point_${i}_radius`]) {
       points.push({ id, name, address: address || null, lat: round6(lat), lng: round6(lng), radiusM: radius });
@@ -121,8 +126,9 @@ export function launchToForm(launch: JobLaunch): Record<string, string> {
 
 /** The job's staging point a shift was scheduled at (same place to a metre), or null when it isn't one of them. */
 export function pointAt(launch: JobLaunch, staging: { lat: number | null; lng: number | null }): StagingPoint | null {
-  if (staging.lat === null || staging.lng === null) return null;
-  return launch.points.find((p) => Math.abs(p.lat - staging.lat!) < 1e-5 && Math.abs(p.lng - staging.lng!) < 1e-5) ?? null;
+  const { lat, lng } = staging;
+  if (lat === null || lng === null) return null;
+  return launch.points.find((p) => Math.abs(p.lat - lat) < 1e-5 && Math.abs(p.lng - lng) < 1e-5) ?? null;
 }
 
 /** The check-in radius for a shift's staging point: the job's point's own, else the default. */

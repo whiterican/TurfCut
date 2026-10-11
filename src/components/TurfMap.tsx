@@ -49,6 +49,7 @@ export function TurfMap({
   dayTurf = null,
   pins = [],
   onPick,
+  onStagingChange,
   dayTurfLabel = "Your turf today",
   className = "h-72",
 }: {
@@ -62,6 +63,8 @@ export function TurfMap({
   pins?: MapPin[];
   /** Tap-to-pin: called with the tapped point instead of editing. */
   onPick?: (p: Point) => void;
+  /** With `editable`: called whenever the staging pin is placed, moved or cleared. */
+  onStagingChange?: (p: Point | null) => void;
   /** Tooltip for the day turf ("Your turf today" / "Worker's turf today"). */
   dayTurfLabel?: string;
   className?: string;
@@ -72,11 +75,31 @@ export function TurfMap({
   const lib = useRef<typeof import("leaflet") | null>(null);
   const [points, setPoints] = useState<Point[]>(() => fromTurf(turf));
   const [stage, setStage] = useState<Point | null>(staging);
-  const [mode, setMode] = useState<"turf" | "staging">(turf || !editable || !allowStaging ? "turf" : "staging");
+  // With a point already given, the first tap draws the turf rather than moving it.
+  const [mode, setMode] = useState<"turf" | "staging">(turf || staging || !editable || !allowStaging ? "turf" : "staging");
   const pickRef = useRef(onPick);
   useEffect(() => {
     pickRef.current = onPick;
   }, [onPick]);
+  // A new staging prop (the organizer picked another of the job's points) moves the pin and the view.
+  const stagingLat = staging?.lat ?? null;
+  const stagingLng = staging?.lng ?? null;
+  // The pin follows the prop (state adjusted while rendering, as React suggests); the view follows in an effect.
+  const [seen, setSeen] = useState(`${stagingLat},${stagingLng}`);
+  if (seen !== `${stagingLat},${stagingLng}`) {
+    setSeen(`${stagingLat},${stagingLng}`);
+    setStage(stagingLat !== null && stagingLng !== null ? { lat: stagingLat, lng: stagingLng } : null);
+  }
+  useEffect(() => {
+    if (stagingLat !== null && stagingLng !== null && map.current) map.current.setView([stagingLat, stagingLng], 16);
+  }, [stagingLat, stagingLng]);
+  const changeRef = useRef(onStagingChange);
+  useEffect(() => {
+    changeRef.current = onStagingChange;
+  }, [onStagingChange]);
+  useEffect(() => {
+    changeRef.current?.(stage);
+  }, [stage]);
   const [ready, setReady] = useState(false);
   // The map's code or tiles can't load (no signal on a page saved offline).
   const [failed, setFailed] = useState(false);

@@ -54,8 +54,8 @@ export function JobCard({
           {launch.mode === "SELF"
             ? "Self-launch: you start from wherever you are; check-in records the time only"
             : launch.points.length
-              ? `Staged: you report to ${launch.points.length === 1 ? "a staging point" : `one of ${launch.points.length} staging points`}; check-in compares your phone's position with it once`
-              : "Staged: you report to a staging point set per shift"}
+              ? `Staged: you report to ${launch.points.length === 1 ? "a staging point" : `one of ${launch.points.length} staging points`}; when a shift has one, check-in compares your phone's position with it once`
+              : "Staged: you report to a staging point set per shift; when a shift has one, check-in compares your phone's position with it once"}
         </Row>
         <Row label="Cancellation notice">{job.cancellationNoticeHours} hours; later cancellations count as no-shows</Row>
       </dl>

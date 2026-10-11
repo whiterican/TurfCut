@@ -6,7 +6,7 @@ import { DEFAULT_RADIUS_M, MAX_POINTS, MAX_RADIUS_M, MIN_RADIUS_M, type StagingP
 
 type Draft = { id: string; name: string; address: string; lat: string; lng: string; radius: string };
 
-const blank = (): Draft => ({ id: "", name: "", address: "", lat: "", lng: "", radius: String(DEFAULT_RADIUS_M) });
+const blank = (): Draft => ({ id: crypto.randomUUID(), name: "", address: "", lat: "", lng: "", radius: String(DEFAULT_RADIUS_M) });
 const fromPoint = (p: StagingPoint): Draft => ({ id: p.id, name: p.name, address: p.address ?? "", lat: p.lat.toFixed(6), lng: p.lng.toFixed(6), radius: String(p.radiusM) });
 
 /**
@@ -19,11 +19,14 @@ export function StagingPointsEditor({
   initial,
   errors,
   describe,
+  disabled = false,
 }: {
   initial: StagingPoint[];
   errors: Record<string, string>;
   /** Field props for an error key (aria-invalid and the error's id). */
   describe: (key: string) => { "aria-invalid"?: true; "aria-describedby"?: string };
+  /** Self-launch is picked: the points stay typed in, hidden, and aren't sent. */
+  disabled?: boolean;
 }) {
   const [points, setPoints] = useState<Draft[]>(initial.length ? initial.map(fromPoint) : [blank()]);
   const [placing, setPlacing] = useState(0);
@@ -32,14 +35,14 @@ export function StagingPointsEditor({
   const pins: MapPin[] = points.flatMap((p, i) => (p.lat && p.lng ? [{ id: `p${i}`, lat: Number(p.lat), lng: Number(p.lng), color: i === placing ? "#2b1b3d" : "#6b7280", label: p.name || `Point ${i + 1}` }] : []));
 
   return (
-    <div className="space-y-4 sm:col-span-2">
+    <div className="space-y-4 sm:col-span-2" data-list hidden={disabled || undefined}>
       {err("points")}
       <ol className="space-y-3">
         {points.map((p, i) => (
           <li key={i} className={`space-y-2 rounded-xl border p-3 ${i === placing ? "border-[var(--border-strong)]" : "border-border"}`}>
-            <input type="hidden" name={`point_${i}_id`} value={p.id} />
-            <input type="hidden" name={`point_${i}_lat`} value={p.lat} />
-            <input type="hidden" name={`point_${i}_lng`} value={p.lng} />
+            <input type="hidden" name={`point_${i}_id`} value={p.id} disabled={disabled} />
+            <input type="hidden" name={`point_${i}_lat`} value={p.lat} disabled={disabled} />
+            <input type="hidden" name={`point_${i}_lng`} value={p.lng} disabled={disabled} />
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="text-sm font-semibold text-fg">Staging point {i + 1}</p>
               <div className="flex gap-2">
@@ -65,17 +68,17 @@ export function StagingPointsEditor({
             <div className="grid gap-3 sm:grid-cols-3">
               <label className="space-y-1.5">
                 <span className="label">Name</span>
-                <input name={`point_${i}_name`} className="field" maxLength={80} value={p.name} onChange={(e) => set(i, { name: e.target.value })} placeholder="Library steps" {...describe(`point_${i}_name`)} />
+                <input disabled={disabled} name={`point_${i}_name`} className="field" maxLength={80} value={p.name} onChange={(e) => set(i, { name: e.target.value })} placeholder="Library steps" {...describe(`point_${i}_name`)} />
                 {err(`point_${i}_name`)}
               </label>
               <label className="space-y-1.5">
                 <span className="label">Address <span className="font-normal text-subtle">(optional)</span></span>
-                <input name={`point_${i}_address`} className="field" maxLength={200} value={p.address} onChange={(e) => set(i, { address: e.target.value })} {...describe(`point_${i}_address`)} />
+                <input disabled={disabled} name={`point_${i}_address`} className="field" maxLength={200} value={p.address} onChange={(e) => set(i, { address: e.target.value })} {...describe(`point_${i}_address`)} />
                 {err(`point_${i}_address`)}
               </label>
               <label className="space-y-1.5">
                 <span className="label">Check-in radius (m)</span>
-                <input name={`point_${i}_radius`} inputMode="numeric" className="field" value={p.radius} onChange={(e) => set(i, { radius: e.target.value })} {...describe(`point_${i}_radius`)} />
+                <input disabled={disabled} name={`point_${i}_radius`} inputMode="numeric" className="field" value={p.radius} onChange={(e) => set(i, { radius: e.target.value })} {...describe(`point_${i}_radius`)} />
                 {err(`point_${i}_radius`)}
               </label>
             </div>

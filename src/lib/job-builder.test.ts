@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { BUILDER_STEPS, errorsForStep, firstStepWithErrors, REVIEW_STEP, stepOfField } from "./job-builder";
+import { BUILDER_STEPS, errorsForStep, fieldStep, firstStepWithErrors, REVIEW_STEP, stepOfField } from "./job-builder";
 import { validateJob } from "./jobs";
 
 describe("job builder steps", () => {
@@ -26,10 +26,10 @@ describe("job builder steps", () => {
     if (empty.ok || bad.ok) return;
     const keys = [...new Set([...Object.keys(empty.errors), ...Object.keys(bad.errors)])];
     expect(keys.length).toBeGreaterThan(25);
-    for (const key of keys) expect({ key, step: stepOfField(key) }).toEqual({ key, step: expect.any(Number) });
-    // Every one lands on a step with fields, never on the review; an unknown key lands on the first step.
-    expect(keys.every((k) => stepOfField(k) < REVIEW_STEP)).toBe(true);
-    expect(keys.every((k) => BUILDER_STEPS[stepOfField(k)].fields.length > 0)).toBe(true);
+    // Every one is claimed by a step (a new validator key with no step would fail here); an unknown key falls to the first step.
+    for (const key of keys) expect({ key, step: fieldStep(key) }).toEqual({ key, step: expect.any(Number) });
+    expect(keys.every((k) => fieldStep(k)! < REVIEW_STEP)).toBe(true);
+    expect(fieldStep("something-new")).toBeNull();
     expect(firstStepWithErrors({ "something-new": "x", message: "y" })).toBe(0);
   });
 

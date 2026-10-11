@@ -21,6 +21,7 @@ export function notificationText(
       case "OFFER_RECEIVED": return { text: `${org} offered you a spot on ${job}.`, href: jobHref };
       case "NOT_SELECTED": return { text: `${org} didn't select you for ${job}. The reason is on the job.`, href: jobHref };
       case "INVITATION_WITHDRAWN": return { text: `${org} withdrew its invitation to ${job}.`, href: jobHref };
+      case "JOB_CHANGED": return { text: `${org} changed the terms of ${job}. See what changed; if you're hired, you may be able to leave with no penalty.`, href: jobHref };
       case "JOB_CLOSED":
         return {
           text: e.status === "WITHDRAWN" ? `${job} closed, so ${org}'s invitation was withdrawn.` : e.wasOffer ? `${job} closed, so ${org}'s offer was withdrawn.` : `${job} closed before a decision on your application.`,

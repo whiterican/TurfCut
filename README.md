@@ -654,7 +654,19 @@ Built in C3.6b (see the C3 scope below). Approved as recommended by review:
 - Counsel reviews the Colorado rule profile and document handling before
   the pilot.
 
-## C3 scope — the hiring hub (in progress)
+## C4 scope — job launch and tools (in progress)
+
+- **Job builder (C4.1)**: `/jobs/new` and a draft's edit page are six
+  steps over one form: the work, when and where, pay and hiring,
+  requirements and contacts, campaign disclosure, review. Next checks only
+  that step's fields with the same validator the server runs
+  (`validateJob`), the review lists everything entered with a way back to
+  each step, and a problem the server finds sends the builder back to its
+  step. Nothing is saved until the last step; publishing stays a separate,
+  gated step on the job page. `src/lib/job-builder.ts` names the steps and
+  their fields; a test keeps every validator error assigned to a step.
+
+## C3 scope — the hiring hub
 
 - **Pipeline (C3.1)**: an organization can mark an application *in review*
   (the worker sees "In review"), send an *offer*, or mark it *not selected*

@@ -15,7 +15,7 @@ export default async function NewJobPage() {
         </div>
         <Link transitionTypes={["nav-back"]} href="/jobs" className="btn-ghost">← Jobs</Link>
       </header>
-      <p className="lead">Saved as a draft. You publish it from the job page once every check passes.</p>
+      <p className="lead">Six short steps. Nothing is saved until the last one, and the draft is published from the job page once every check passes.</p>
       <JobForm jurisdictions={jurisdictions} />
     </main>
   );

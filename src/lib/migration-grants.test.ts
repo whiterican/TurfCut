@@ -45,4 +45,12 @@ describe("migration grants", () => {
       expect({ file: f, schemaWide: /GRANT[^;]*ON\s+ALL\s+TABLES\s+IN\s+SCHEMA[^;]*TO[^;]*(anon|authenticated)/i.test(sql) }).toEqual({ file: f, schemaWide: false });
     }
   });
+  it("follows and likes stay server-only: no grant, no policy, in any migration (S2)", () => {
+    // Who follows a campaign and who liked a post is the worker's business: nothing is ever readable through the Data API.
+    for (const f of files) {
+      const sql = readFileSync(join(dir, f), "utf8").replace(/--[^\n]*/g, "");
+      expect({ file: f, grants: sql.match(/GRANT[^;]*"(CampaignFollow|PostLike)"[^;]*/gi) ?? [] }).toEqual({ file: f, grants: [] });
+      expect({ file: f, policies: sql.match(/CREATE\s+POLICY[^;]*"(CampaignFollow|PostLike)"[^;]*/gi) ?? [] }).toEqual({ file: f, policies: [] });
+    }
+  });
 });

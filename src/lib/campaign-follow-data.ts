@@ -16,6 +16,11 @@ import { FEED_PAGE_SIZE, feedSources, followChange, likeChange, type FeedReason 
 
 type Result = { ok: true } | { ok: false; reason: string };
 const lock = (tx: Prisma.TransactionClient, key: string) => tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${key}))`;
+/** Another writer already left the state as asked (the one-open-row index): not a failure. */
+const alreadySo = (e: unknown) => e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002";
+/** Rows open and close on the database's clock, so a close is never before its open (the CHECK) whatever the app servers' clocks say. */
+const closeFollow = (tx: Prisma.TransactionClient, id: string) => tx.$executeRaw`UPDATE "public"."CampaignFollow" SET "revokedAt" = now() WHERE "id" = ${id}::uuid`;
+const closeLike = (tx: Prisma.TransactionClient, id: string) => tx.$executeRaw`UPDATE "public"."PostLike" SET "removedAt" = now() WHERE "id" = ${id}::uuid`;
 
 /** The same rule as the database's public read policy: published, and the organization approved. */
 const PUBLIC_CAMPAIGN = { publishedAt: { not: null }, org: { approved: true } } satisfies Prisma.CampaignProfileWhereInput;
@@ -40,16 +45,16 @@ export async function followState(workerId: string, campaignId: string): Promise
   return { following: !!open, notify: open?.notify ?? false };
 }
 
-/** The campaigns the worker follows, with each one's notice setting. */
+/** The public campaigns the worker follows, with each one's notice setting (one that went private is left out until it's back). */
 export function openFollows(workerId: string) {
-  return db().campaignFollow.findMany({ where: { workerId, revokedAt: null }, select: { campaignId: true, notify: true, createdAt: true }, orderBy: { createdAt: "desc" } });
+  return db().campaignFollow.findMany({ where: { workerId, revokedAt: null, campaign: PUBLIC_CAMPAIGN }, select: { campaignId: true, notify: true, createdAt: true }, orderBy: { createdAt: "desc" } });
 }
 
 /**
  * Follow, unfollow, or change the notice setting. Only a public campaign can
- * be followed; unfollowing is always allowed (a campaign that went private
- * still lets go). The open row is closed and a new one opened on a change:
- * rows never change.
+ * be followed or have notices turned on; unfollowing and turning notices
+ * off are always allowed (a campaign that went private still lets go). The
+ * open row is closed and a new one opened on a change: rows never change.
  */
 export async function setFollow(workerId: string, campaignId: string, wish: { follow: boolean; notify?: boolean }): Promise<Result> {
   if (!UUID_RE.test(campaignId)) return { ok: false, reason: "That campaign doesn't exist." };
@@ -60,15 +65,14 @@ export async function setFollow(workerId: string, campaignId: string, wish: { fo
     const open = await tx.campaignFollow.findFirst({ where: { workerId, campaignId, revokedAt: null }, select: { id: true, notify: true } });
     const change = followChange(open, wish);
     if (change === "none") return { ok: true };
-    if (change === "open" || change === "replace") {
+    if (change === "open" || (change === "replace" && wish.notify)) {
       const campaign = await tx.campaignProfile.findFirst({ where: { id: campaignId, ...PUBLIC_CAMPAIGN }, select: { id: true } });
       if (!campaign) return { ok: false, reason: "That campaign isn't public." };
     }
-    const now = new Date();
-    if (open && change !== "open") await tx.campaignFollow.update({ where: { id: open.id }, data: { revokedAt: now } });
-    if (change !== "close") await tx.campaignFollow.create({ data: { workerId, campaignId, notify: wish.notify ?? open?.notify ?? false, createdAt: now } });
+    if (open && change !== "open") await closeFollow(tx, open.id);
+    if (change !== "close") await tx.campaignFollow.create({ data: { workerId, campaignId, notify: wish.notify ?? open?.notify ?? false } });
     return { ok: true };
-  });
+  }).catch((e): Result => (alreadySo(e) ? { ok: true } : Promise.reject(e)));
 }
 
 // ---------------------------------------------------------------------------
@@ -151,13 +155,13 @@ export async function setLike(workerId: string, postId: string, want: boolean): 
       if (!post) return { ok: false, reason: "That post isn't available." };
       await tx.postLike.create({ data: { workerId, postId } });
     } else if (open) {
-      await tx.postLike.update({ where: { id: open.id }, data: { removedAt: new Date() } });
+      await closeLike(tx, open.id);
     }
     return { ok: true };
-  });
+  }).catch((e): Result => (alreadySo(e) ? { ok: true } : Promise.reject(e)));
 }
 
-/** Like totals per post, for the campaign's own view (counts only; never who). */
+/** Like totals per post, for the campaign's own view (counts only; never who). `orgId` is the actor's own, from the session, never from the request. */
 export async function likeCounts(orgId: string, postIds: string[]): Promise<Map<string, number>> {
   const ids = postIds.filter((id) => UUID_RE.test(id));
   if (ids.length === 0) return new Map();

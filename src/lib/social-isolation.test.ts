@@ -62,6 +62,15 @@ describe("social isolation", () => {
     expect(offenders).toEqual([]);
   });
 
+  it("the campaign side never reads who follows or who liked (S2): no follower or like rows, no counts of followers", () => {
+    // Prisma's back-relations (CampaignProfile.followers, CampaignPost.likes) exist for the foreign keys only.
+    // The campaign side gets like totals through likeCounts and nothing else.
+    const campaignSide = all.filter((f) => /^src\/(app\/(c|campaigns|api\/campaigns|api\/campaign)\/|components\/campaign\/|lib\/campaign-(social|media|api|follow)(-data)?\.ts$)/.test(f) && !/campaign-follow(-data)?\.ts$/.test(f));
+    const forbidden = /\b(followers|likes)\s*:|\b_count\b|\.(campaignFollow|postLike)\b|\b(openFollows|followState|feedCampaigns|loadHomeFeed|likedPostIds)\b/;
+    const offenders = campaignSide.filter((f) => !/\/(FollowButton|CampaignCard|PostCard|LikeButton)\.tsx$/.test(f) && forbidden.test(source(f)));
+    expect(offenders).toEqual([]);
+  });
+
   it("matching, scorecards, political fit, the feed and hiring never reach it, directly or through imports", () => {
     const guarded = all.filter((f) => GUARDED.test(f));
     expect(guarded).toEqual(expect.arrayContaining(["src/lib/jobs-data.ts", "src/lib/political-fit.ts", "src/lib/scorecard.ts", "src/lib/priority.ts"]));

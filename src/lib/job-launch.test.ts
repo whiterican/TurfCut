@@ -39,7 +39,7 @@ describe("job launch", () => {
     // The same id twice (only an API caller can send that): named, never a point dropped in silence.
     const dup = validateLaunch({ launchMode: "STAGED", ...point(0, { point_0_id: "11111111-1111-4111-8111-111111111111" }), ...point(1, { point_1_id: "11111111-1111-4111-8111-111111111111", point_1_lat: "39.8" }) });
     expect(dup.ok).toBe(false);
-    if (!dup.ok) expect(dup.errors.point_1_name).toMatch(/repeats/);
+    if (!dup.ok) expect(dup.errors.point_1_id).toMatch(/repeats/);
     // A new point gets a uuid, kept on the next save.
     const fresh = validateLaunch({ launchMode: "STAGED", ...point(0) });
     expect(fresh.ok && fresh.value.points[0].id).toMatch(/^[0-9a-f-]{36}$/);

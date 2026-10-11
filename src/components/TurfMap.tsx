@@ -111,6 +111,7 @@ export function TurfMap({
   // Create the map once.
   useEffect(() => {
     let cancelled = false;
+    let observer: ResizeObserver | null = null;
     import("leaflet").then((L) => {
       if (cancelled || !el.current || map.current) return;
       lib.current = L;
@@ -144,12 +145,26 @@ export function TurfMap({
         else setStage(p);
       });
       map.current = m;
+      // The container may be hidden when the map is made (a later builder
+      // step, a self-launch job): when it gets its size, the tiles follow
+      // and the first view is fitted again.
+      let sized = el.current.clientWidth > 0 && el.current.clientHeight > 0;
+      observer = new ResizeObserver(() => {
+        if (!el.current || el.current.clientWidth === 0 || el.current.clientHeight === 0) return;
+        m.invalidateSize();
+        if (!sized) {
+          sized = true;
+          if (bounds.length > 1) m.fitBounds(bounds, { padding: [24, 24], maxZoom: 17 });
+        }
+      });
+      observer.observe(el.current);
       setReady(true);
       // Only a failed download of the map code (no signal) means "map
       // unavailable"; a bug in the setup above still surfaces as an error.
     }, () => !cancelled && setFailed(true));
     return () => {
       cancelled = true;
+      observer?.disconnect();
       map.current?.remove();
       map.current = null;
     };

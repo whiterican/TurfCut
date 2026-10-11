@@ -98,7 +98,7 @@ export function validateLaunch(raw: Record<string, unknown>): { ok: true; value:
     // A point keeps its id across edits (the editor sends it back); a new one gets a fresh uuid.
     const id = /^[0-9a-f-]{8,36}$/i.test(idS) ? idS : crypto.randomUUID();
     if (seen.has(id)) {
-      errors[`point_${i}_name`] = "This staging point repeats another one's id.";
+      errors[`point_${i}_id`] = "This staging point repeats another one's id.";
       continue;
     }
     seen.add(id);

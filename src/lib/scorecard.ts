@@ -154,7 +154,10 @@ export interface ScorecardOptions {
   state?: string | null;
 }
 
-const ACCEPTED_ENGAGEMENT = new Set(["CLAIMED", "ACTIVE", "COMPLETED", "CANCELLED"]);
+// Shifts exist only once a worker is hired, so a WITHDRAWN engagement's shifts
+// are those of a worker who left a changed job (C4.3): their past verified
+// work stays, and the shifts cancelled on leaving are excused (cancellationOf).
+const ACCEPTED_ENGAGEMENT = new Set(["CLAIMED", "ACTIVE", "COMPLETED", "CANCELLED", "WITHDRAWN"]);
 
 function num(v: unknown): number | null {
   return typeof v === "number" && Number.isFinite(v) && v >= 0 ? v : null;

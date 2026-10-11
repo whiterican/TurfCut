@@ -22,7 +22,7 @@ import { ActionButton } from "@/components/ActionButton";
 import { acceptInvitation, apply, claim, closeJobAction, declineAsWorker, leaveChangedJob, publish, withdrawApplication } from "../actions";
 import { openRelease } from "@/lib/job-changes-data";
 import { loadJobChanges } from "@/lib/jobs-data";
-import { listText as andList, RELEASE_HOURS } from "@/lib/job-changes";
+import { listText as andList, materialText, RELEASE_HOURS } from "@/lib/job-changes";
 import { JobChangedNotice } from "@/components/JobChangedNotice";
 import { shiftState, shiftStatusLabel } from "@/lib/field-day";
 import { listSupervisors } from "@/lib/field-day-data";
@@ -35,18 +35,24 @@ const day = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "n
 
 const dayTime = (d: Date) => d.toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/Denver" }) + " MT";
 
-/** The record of edits to a live job (C4.3), newest first. */
-async function ChangeList({ jobId }: { jobId: string }) {
+/**
+ * The record of edits to a live job (C4.3), newest first. The organization
+ * sees who made each; a worker sees when and what parts changed (the words
+ * their notice points them to), never the staff member's name.
+ */
+async function ChangeList({ jobId, viewer }: { jobId: string; viewer: "org" | "worker" }) {
   const changes = await loadJobChanges(jobId);
   if (!changes.length) return null;
   return (
     <details className="card p-0">
-      <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-fg">Changes since publishing ({changes.length})</summary>
+      <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-fg">{viewer === "org" ? "Changes since publishing" : "What changed on this job"} ({changes.length})</summary>
       <ul className="divide-y divide-border border-t border-border">
         {changes.map((c) => (
           <li key={c.id} className="px-4 py-2.5 text-sm">
-            <span className="text-fg">{dayTime(c.createdAt)}</span> · {c.by ?? "a member"} changed {andList(c.labels)}
-            {c.material.length > 0 && <span className="text-muted"> · material: {andList(c.material)}; hired workers could leave until {dayTime(new Date(c.createdAt.getTime() + RELEASE_HOURS * 3_600_000))}</span>}
+            <span className="text-fg">{dayTime(c.createdAt)}</span> · {viewer === "org" ? `${c.by ?? "a member"} changed` : "changed"} {andList(c.labels)}
+            {c.material.length > 0 && (
+              <span className="text-muted"> · material: {andList(c.material)}; {viewer === "org" ? "hired workers could" : "if you were hired before it, you could"} leave until {dayTime(new Date(c.createdAt.getTime() + RELEASE_HOURS * 3_600_000))}</span>
+            )}
           </li>
         ))}
       </ul>
@@ -191,7 +197,7 @@ async function WorkerPanel({
             <p className="font-medium">This job&apos;s terms changed on {dayTime(release.createdAt)}: {andList(release.material)}.</p>
             <p className="text-sm">
               You were hired under the earlier terms, so you can leave until {dayTime(release.deadline)} with no effect on your reliability: your upcoming
-              shifts would be cancelled as excused. Staying means the new terms apply.
+              shifts would be cancelled as excused. Staying means the new terms apply. If a shift is under way, check out of it first.
             </p>
             <ActionButton
               action={leaveChangedJob}
@@ -210,6 +216,7 @@ async function WorkerPanel({
           </div>
         )}
         {(engagement.status === "ACTIVE" || engagement.status === "CLAIMED") && <WorkerShifts engagementId={engagement.id} />}
+        <ChangeList jobId={job.id} viewer="worker" />
         <EngagementHistory events={facts.events} />
       </section>
     );
@@ -403,16 +410,20 @@ async function OrgPanel({ job, canHire, canSchedule, userId }: { job: JobWithRef
 
   return (
     <>
-      {(job.status === "PUBLISHED" || job.status === "PAUSED") && canHire && (
+      {job.status !== "DRAFT" && canHire && (
         <section className="section">
           <h2 className="section-title">Terms</h2>
-          <JobChangedNotice />
-          <p className="text-muted-sm">
-            Edits to a live job are recorded and everyone on it is told. After a change to pay, dates, location, requirements, the campaign, the
-            cancellation notice or how the day starts, hired workers may leave within {RELEASE_HOURS} hours with no penalty.
-          </p>
-          <Link transitionTypes={["nav-forward"]} href={`/jobs/${job.id}/edit`} className="btn-secondary">Edit job</Link>
-          <ChangeList jobId={job.id} />
+          {job.status !== "CLOSED" && (
+            <>
+              <JobChangedNotice />
+              <p className="text-muted-sm">
+                Edits to a live job are recorded and everyone on it is told. After a change to the {materialText()}, hired workers may leave within{" "}
+                {RELEASE_HOURS} hours with no penalty.
+              </p>
+              <Link transitionTypes={["nav-forward"]} href={`/jobs/${job.id}/edit`} className="btn-secondary">Edit job</Link>
+            </>
+          )}
+          <ChangeList jobId={job.id} viewer="org" />
         </section>
       )}
       {(job.status === "DRAFT" || job.status === "PAUSED") && (

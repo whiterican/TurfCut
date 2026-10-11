@@ -220,15 +220,26 @@ export async function workerShiftAction(
     const s = await loadShift(shiftId, tx);
     if (!s || s.engagement.workerId !== actor.workerId) return { ok: false as const, reason: "Shift not found." };
     const action: WorkerAction = req;
-    // The phone's band names the radius it compared with (C4.2): it has to be this shift's own.
-    if (action.kind === "check_in" && action.location.checked) {
-      const band = bandRadius(action.location.distance);
-      const radius = radiusFor(readLaunch(s.engagement.job.launch), { lat: s.stagingLat, lng: s.stagingLng });
-      const agrees = !!band && (band.radius === null ? radius < 1000 : band.radius === radius);
-      if (!agrees) return { ok: false as const, reason: "This check-in was made against a different staging point. Reload the shift and check in again." };
-    }
+    const problem = radiusProblem(s, action);
+    if (problem) return { ok: false as const, reason: problem };
     return apply(tx, shiftId, actor.profileId, workerAction(facts(s), action, now), now);
   });
+}
+
+/**
+ * Why a check-in's staging check can't be taken (C4.2), or null. The phone's
+ * band names the radius it compared with: it has to be this shift's own, and
+ * a shift with no staging point has nothing to be "at". Both the direct route
+ * and the offline sync go through here, so the stored band is never the
+ * phone's word alone.
+ */
+function radiusProblem(s: NonNullable<Awaited<ReturnType<typeof loadShift>>>, action: WorkerAction): string | null {
+  if (action.kind !== "check_in" || !action.location.checked) return null;
+  if (s.stagingLat === null || s.stagingLng === null) return "This shift has no staging point to check in at. Reload the shift and check in again.";
+  const band = bandRadius(action.location.distance);
+  const radius = radiusFor(readLaunch(s.engagement.job.launch), { lat: s.stagingLat, lng: s.stagingLng });
+  const agrees = !!band && (band.radius === null ? radius < 1000 : band.radius === radius);
+  return agrees ? null : "This check-in was made against a different staging point. Reload the shift and check in again.";
 }
 
 export async function supervisorShiftAction(
@@ -367,7 +378,8 @@ function syncChunk(
       const t = placeTime(corrected, floor, serverNow);
       // t is after the worker's own events, so their side of the shift is as
       // it stands. (A cancelled shift stays cancelled: nothing more is added.)
-      const out = workerAction(f, q.action, t);
+      const problem = radiusProblem(s, q.action);
+      const out = problem ? { ok: false as const, reason: problem } : workerAction(f, q.action, t);
       if (!out.ok) {
         results.push({ clientId: q.clientId, status: "rejected", reason: out.reason });
         continue;

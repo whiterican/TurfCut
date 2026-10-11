@@ -27,6 +27,7 @@ export const JOB_FIELDS = {
   measureIds: "ballot measures",
   cancellationNoticeHours: "cancellation notice",
   launch: "how each day starts",
+  tools: "the canvassing app",
 } as const;
 export type JobField = keyof typeof JOB_FIELDS;
 
@@ -44,12 +45,17 @@ function norm(v: unknown): unknown {
   return v ?? null;
 }
 
+/** Ballot-measure ids are a set: the same ids in another order are no change. */
+const ordered = (f: JobField, v: unknown) => (f === "measureIds" && Array.isArray(v) ? [...v].sort() : v);
+
 /** The fields whose stored value the edit changes, each with before and after. */
 export function jobDiff(before: Partial<Record<JobField, unknown>>, after: Partial<Record<JobField, unknown>>): JobChanges {
   const out: JobChanges = {};
   for (const f of Object.keys(JOB_FIELDS) as JobField[]) {
     if (!(f in after)) continue;
-    if (!same(before[f], after[f])) out[f] = { from: norm(before[f]), to: norm(after[f]) };
+    const a = ordered(f, before[f]);
+    const b = ordered(f, after[f]);
+    if (!same(a, b)) out[f] = { from: norm(a), to: norm(b) };
   }
   return out;
 }
@@ -68,8 +74,11 @@ export function changeLabels(changes: JobChanges): string[] {
   return labels;
 }
 
-/** "a, b and c". */
-export const listText = (xs: string[]) => (xs.length < 2 ? xs.join("") : `${xs.slice(0, -1).join(", ")} and ${xs.at(-1)}`);
+/** "a, b and c" (or "a, b or c"). */
+export const listText = (xs: string[], word: "and" | "or" = "and") => (xs.length < 2 ? xs.join("") : `${xs.slice(0, -1).join(", ")} ${word} ${xs.at(-1)}`);
+
+/** The material parts in words, for the copy that warns about the release: one list, drawn from MATERIAL_FIELDS. */
+export const materialText = (word: "and" | "or" = "or") => listText(materialLabels(Object.fromEntries(MATERIAL_FIELDS.map((f) => [f, { from: null, to: null }]))), word);
 
 export const releaseDeadline = (changedAt: Date) => new Date(changedAt.getTime() + RELEASE_HOURS * 3_600_000);
 

@@ -5,7 +5,7 @@ import { requireEmployer } from "@/lib/employer-session";
 import { jobToForm, UUID_RE } from "@/lib/jobs";
 import { jurisdictionOptions } from "@/lib/jurisdiction-options";
 import { JobForm } from "@/components/JobForm";
-import { RELEASE_HOURS } from "@/lib/job-changes";
+import { materialText, RELEASE_HOURS } from "@/lib/job-changes";
 
 export default async function EditJobPage({ params }: { params: Promise<{ jobId: string }> }) {
   const { jobId } = await params;
@@ -28,9 +28,9 @@ export default async function EditJobPage({ params }: { params: Promise<{ jobId:
         <>
           {job.status !== "DRAFT" && (
             <p className="alert-info">
-              This job is live. Every change is recorded and everyone on the job is told. If you change the pay, dates, location, requirements, the
-              campaign, the cancellation notice or how the day starts, workers already hired may leave within {RELEASE_HOURS} hours with no effect on their
-              reliability. The job has to stay publishable: a change that would fail a check is refused.
+              This job is live. Every change is recorded and everyone on the job is told. If you change the {materialText()}, workers already hired
+              may leave within {RELEASE_HOURS} hours with no effect on their reliability. The job has to stay publishable: a change that would fail a
+              check is refused.
             </p>
           )}
           <JobForm jobId={job.id} defaults={jobToForm(job)} jurisdictions={jurisdictions} />

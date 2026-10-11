@@ -13,7 +13,8 @@ export function JobChangedNotice() {
     const url = new URL(window.location.href);
     const changed = url.searchParams.get("changed");
     if (changed === null) return;
-    const told = Number(url.searchParams.get("told") ?? 0);
+    const toldRaw = Number(url.searchParams.get("told") ?? 0);
+    const told = Number.isFinite(toldRaw) && toldRaw >= 0 ? Math.floor(toldRaw) : 0;
     const material = url.searchParams.get("material") === "1";
     const who = told === 0 ? "nobody was on the job to tell" : `${told} ${told === 1 ? "person was" : "people were"} told`;
     const t = window.setTimeout(

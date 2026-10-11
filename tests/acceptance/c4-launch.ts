@@ -5,8 +5,10 @@ import { openRelease, releaseFromJob } from "@/lib/job-changes-data";
 import { cancellationOf } from "@/lib/scorecard";
 import { validateJob } from "@/lib/jobs";
 import { radiusFor, readLaunch } from "@/lib/job-launch";
-import { scheduleShift, workerShiftAction } from "@/lib/field-day-data";
-import { applyToJob, claimJob } from "@/lib/engagements-data";
+import { scheduleShift, syncWorkerActions, workerShiftAction } from "@/lib/field-day-data";
+import { applyToJob, claimJob, inviteWorker } from "@/lib/engagements-data";
+import { loadNotifications } from "@/lib/notifications-data";
+import { savePreferences } from "@/lib/political-fit-data";
 
 const ORG = "00000000-0000-0000-0000-000000000001";
 const OWNER = "00000000-0000-0000-0000-0000000000aa";
@@ -55,6 +57,12 @@ const check = (l: string, c: unknown, d?: unknown) => { if (c) console.log(`PASS
   const me = { workerId: W1, profileId: W1 };
   const start = row ? new Date(row.startsAt.getTime() - 5 * 60_000) : new Date();
   const wrongRadius = row ? await workerShiftAction(me, row.id, { kind: "check_in", location: { checked: true, atStaging: true, distance: "under 300 m" } }, start) : null;
+  // The offline sync (the route the phone uses) confirms the same thing.
+  const synced = row
+    ? await syncWorkerActions(me, row.id, { deviceNow: start.getTime(), actions: [{ clientId: crypto.randomUUID(), at: start.getTime(), action: { kind: "check_in", location: { checked: true, atStaging: true, distance: "under 300 m" } } }] }, start)
+    : null;
+  const syncedResult = synced?.ok ? synced.results[0] : null;
+  check("…and so does the offline sync", !!syncedResult && syncedResult.status === "rejected" && /different staging point/.test(syncedResult.reason ?? ""), synced);
   const rightRadius = row ? await workerShiftAction(me, row.id, { kind: "check_in", location: { checked: true, atStaging: true, distance: "under 400 m" } }, start) : null;
   check("a check-in made against another radius is refused; one against the shift's own point goes through", !!wrongRadius && !wrongRadius.ok && /different staging point/.test(wrongRadius.reason) && !!rightRadius && rightRadius.ok, { wrongRadius, rightRadius });
   const stored = row ? await p.workEvent.findFirst({ where: { shiftId: row.id, type: "CHECK_IN" }, select: { payload: true } }) : null;
@@ -69,6 +77,10 @@ const check = (l: string, c: unknown, d?: unknown) => { if (c) console.log(`PASS
     ? await scheduleShift(org, selfClaim.engagementId, { startsAt: new Date(Date.UTC(year, 2, 3, 15)).toISOString(), endsAt: new Date(Date.UTC(year, 2, 3, 19)).toISOString() })
     : null;
   check("a self-launch job refuses a staging point on a shift, and schedules without one", !!selfShift && !selfShift.ok && /self-launch/.test(selfShift.errors?.stagingLat ?? "") && !!selfShiftOk && selfShiftOk.ok, { selfShift, selfShiftOk });
+  const noPointStart = new Date(Date.UTC(year, 2, 3, 14, 55));
+  const atNothing = selfShiftOk?.ok ? await workerShiftAction(me, selfShiftOk.shiftId, { kind: "check_in", location: { checked: true, atStaging: true, distance: "under 250 m" } }, noPointStart) : null;
+  const unchecked = selfShiftOk?.ok ? await workerShiftAction(me, selfShiftOk.shiftId, { kind: "check_in", location: { checked: false } }, noPointStart) : null;
+  check("a shift with no staging point can't be checked in \"at staging\"; an unchecked check-in goes through", !!atNothing && !atNothing.ok && /no staging point/.test(atNothing.reason) && !!unchecked && unchecked.ok, { atNothing, unchecked });
 
   // --- C4.3: editing a published job; the 24-hour release ---
   const W2 = "00000000-0000-0000-0000-000000000102";
@@ -92,6 +104,13 @@ const check = (l: string, c: unknown, d?: unknown) => { if (c) console.log(`PASS
   check("a change to pay and dates is material: recorded with before and after, and everyone told again", payCut.ok && payCut.material.join() === "dates,pay" && changeRow?.material.join() === "dates,pay" && (changeRow.changes as { payRateCents?: { from: number; to: number } }).payRateCents?.to === 2200 && (await noticesFor(live.id)).length === 4, { payCut, changeRow });
   const release = await openRelease({ id: hiredId, jobId: live.id, status: "CLAIMED", createdAt: new Date(0) });
   check("the hired worker may leave for 24 hours", !!release && release.material.join() === "dates,pay" && release.deadline.getTime() - release.createdAt.getTime() === 24 * 3_600_000, release);
+  // Mid-shift, the worker checks out before leaving.
+  const underWay = await scheduleShift(org, hiredId, { startsAt: new Date(Date.UTC(year, 2, 11, 15)).toISOString(), endsAt: new Date(Date.UTC(year, 2, 11, 19)).toISOString() });
+  const underWayStart = new Date(Date.UTC(year, 2, 11, 14, 55));
+  const checkedIn = underWay.ok ? await workerShiftAction(me, underWay.shiftId, { kind: "check_in", location: { checked: false } }, underWayStart) : null;
+  const midShift = await releaseFromJob({ workerId: W1, profileId: W1 }, hiredId);
+  const checkedOut = underWay.ok ? await workerShiftAction(me, underWay.shiftId, { kind: "check_out" }, new Date(Date.UTC(year, 2, 11, 19))) : null;
+  check("a worker mid-shift checks out before leaving", !!checkedIn?.ok && !midShift.ok && /current shift/.test(midShift.reason) && !!checkedOut?.ok, { checkedIn, midShift, checkedOut });
   const notHired = await releaseFromJob({ workerId: W2, profileId: W2 }, applied.ok ? applied.engagementId : "");
   check("an applicant isn't released this way (nothing to leave)", !notHired.ok && /hired/.test(notHired.reason), notHired);
   const tooLate = await releaseFromJob({ workerId: W1, profileId: W1 }, hiredId, new Date(Date.now() + 25 * 3_600_000));
@@ -110,6 +129,32 @@ const check = (l: string, c: unknown, d?: unknown) => { if (c) console.log(`PASS
   check("the database refuses changing a JobChange", /append-only/.test(editP), editP);
   const hist = await loadJobChanges(live.id);
   check("the job's change record lists both edits, newest first, with who made them", hist.length === 2 && hist[0].labels.join() === "dates,pay" && hist[1].labels.join() === "title" && hist[0].by === "Maya Chen", hist.map((h) => h.labels));
+  // A job from before C4 (no launch stored) edited through the builder, which always sends a mode.
+  const legacyTitle = await updatePublishedJob(legacy.id, ORG, OWNER, input({ launchMode: "STAGED", title: "Launch test (legacy, renamed)" }));
+  const legacyAfter = await p.job.findUniqueOrThrow({ where: { id: legacy.id }, select: { launch: true } });
+  check("a pre-C4 job keeps its unset launch through a builder edit: only the title is recorded", legacyTitle.ok && legacyTitle.changed.join() === "title" && legacyAfter.launch === null, { legacyTitle, legacyAfter });
+  const legacySelf = await updatePublishedJob(legacy.id, ORG, OWNER, input({ launchMode: "SELF", title: "Launch test (legacy, renamed)" }));
+  check("…until it picks a launch, which is a material change", legacySelf.ok && legacySelf.material.join() === "how each day starts", legacySelf);
+  // The notice is hidden while the worker's own answers hide the invitation (rule 4); a closed account isn't told.
+  const W3 = "00000000-0000-0000-0000-000000000103";
+  const byInvite = { launchMode: "SELF", hiringModes: ["instant_claim", "application", "invite"] };
+  const inviteJob = await createJob(ORG, OWNER, input(byInvite));
+  await publishJob(inviteJob.id, ORG, OWNER);
+  await applyToJob(W3, W3, staged.id); // an organization invites only workers it has a relationship with (C1)
+  const invited = await inviteWorker(ORG, OWNER, inviteJob.id, W3);
+  await savePreferences(W3, W3, { visibilityMode: "MATCHING_ONLY", identityLabels: [], partyRelationship: null, issuePositions: {}, campaignBoundaries: [{ kind: "campaign_type", target: "ballot_measure", stance: "do_not_match" }] } as never, null);
+  const toInvited = await updatePublishedJob(inviteJob.id, ORG, OWNER, input({ ...byInvite, title: "Launch test (invite, renamed)" }));
+  const w3Notices = (await loadNotifications({ userId: W3, role: "WORKER", workerId: W3, orgId: null })).filter((n) => n.kind === "JOB_CHANGED" && n.engagement.jobId === inviteJob.id);
+  const w3Row = await p.notification.count({ where: { recipientId: W3, kind: "JOB_CHANGED", engagement: { jobId: inviteJob.id } } });
+  check("an invited worker whose answers rule the job out is told nothing of its edits (rule 4), though the row exists", invited.ok && toInvited.ok && toInvited.told === 1 && w3Row === 1 && w3Notices.length === 0, { invited, toInvited, w3Row, w3Notices });
+  await p.worker.update({ where: { id: W3 }, data: { closedAt: new Date() } });
+  const toClosed = await updatePublishedJob(inviteJob.id, ORG, OWNER, input({ ...byInvite, title: "Launch test (invite)" }));
+  check("a closed account isn't told", toClosed.ok && toClosed.told === 0, toClosed);
+  await p.worker.update({ where: { id: W3 }, data: { closedAt: null } });
+  await p.job.update({ where: { id: live.id }, data: { status: "PAUSED" } });
+  const paused = await updatePublishedJob(live.id, ORG, OWNER, input({ launchMode: "SELF", title: "Launch test (renamed)", payRate: "22", startsAt: `${year}-03-02`, headcount: "5" }));
+  await p.job.update({ where: { id: live.id }, data: { status: "PUBLISHED" } });
+  check("a paused job is edited the same way", paused.ok && paused.changed.join() === "headcount", paused);
 
   await p.$disconnect();
   process.exit(fails ? 1 : 0);

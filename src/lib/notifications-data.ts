@@ -1,7 +1,7 @@
 import type { NotificationKind, Prisma, Role } from "@prisma/client";
 import { db } from "@/lib/db";
 import { HIRING_ROLES } from "@/lib/access";
-import type { EngagementEventType } from "@/lib/engagements";
+import { inviteLapsed, offerExpiresAt, offerLapsed, type EngagementEventType } from "@/lib/engagements";
 import { exclusionReasons, readDisclosure, UUID_RE } from "@/lib/jobs";
 import { effectivePreference } from "@/lib/political-fit";
 import { loadLatestPreference } from "@/lib/political-fit-data";
@@ -66,14 +66,17 @@ export async function notifyStep(
 
 /**
  * A published job's terms changed (C4.3): everyone engaged on it (applied,
- * invited, offered, hired) is told, except the editor and closed accounts.
+ * invited, offered, hired) is told, except the editor, closed accounts, and
+ * an invitation or offer that has already lapsed (nothing was waiting on
+ * the worker, as when a job closes).
  */
 export async function notifyJobChanged(tx: Tx, jobId: string, actorId: string, at: Date) {
   const engaged = await tx.engagement.findMany({
     where: { jobId, status: { in: ["APPLIED", "INVITED", "OFFERED", "CLAIMED", "ACTIVE"] }, worker: { closedAt: null } },
-    select: { id: true, worker: { select: { profileId: true } } },
+    select: { id: true, status: true, inviteExpiresAt: true, worker: { select: { profileId: true } }, events: { where: { type: "OFFERED" }, orderBy: { createdAt: "desc" }, take: 1, select: { createdAt: true } } },
   });
-  const rows = engaged.filter((e) => e.worker.profileId !== actorId).map((e) => ({ recipientId: e.worker.profileId, kind: "JOB_CHANGED" as const, engagementId: e.id, createdAt: at }));
+  const lapsed = (e: (typeof engaged)[number]) => inviteLapsed(e.status, e.inviteExpiresAt, at) || offerLapsed(e.status, e.events[0] ? offerExpiresAt(e.events[0].createdAt) : null, at);
+  const rows = engaged.filter((e) => e.worker.profileId !== actorId && !lapsed(e)).map((e) => ({ recipientId: e.worker.profileId, kind: "JOB_CHANGED" as const, engagementId: e.id, createdAt: at }));
   if (rows.length) await tx.notification.createMany({ data: rows });
   return rows.length;
 }
@@ -109,7 +112,9 @@ const SELECT = {
 
 /**
  * A worker's notices about invitations their own do-not-match answers now rule
- * out are never shown, as the invitation itself never is (rule 4).
+ * out are never shown, as the invitation itself never is (rule 4). That
+ * includes a change to the job while the invitation stands: the notice would
+ * tell the worker who invited them.
  */
 type Pref = ReturnType<typeof effectivePreference>;
 const prefFor = async (v: Viewer): Promise<Pref> => (v.role === "WORKER" && v.workerId ? effectivePreference(await loadLatestPreference(v.workerId)) : null);
@@ -121,7 +126,7 @@ function visible<T extends { kind: NotificationKind; engagement: { status: strin
 ): T[] {
   if (v.role !== "WORKER" || !v.workerId || !rows.length) return rows;
   const invitation = (r: T) =>
-    r.kind === "INVITATION_RECEIVED" || r.kind === "INVITATION_WITHDRAWN" || (r.kind === "JOB_CLOSED" && r.engagement.status === "WITHDRAWN");
+    r.kind === "INVITATION_RECEIVED" || r.kind === "INVITATION_WITHDRAWN" || (r.kind === "JOB_CLOSED" && r.engagement.status === "WITHDRAWN") || (r.kind === "JOB_CHANGED" && r.engagement.status === "INVITED");
   return rows.filter(
     (r) => !invitation(r) || !exclusionReasons(pref, { disclosure: readDisclosure(r.engagement.job.campaignDisclosure), orgName: r.engagement.job.org.name, measureIds: r.engagement.job.measureIds }).length
   );

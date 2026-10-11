@@ -695,9 +695,21 @@ Built in C3.6b (see the C3 scope below). Approved as recommended by review:
   counts them as no-shows), the engagement withdrawn with a history line
   that says why (ending is final for that job, as for any withdrawal). A
   worker hired after the change agreed to the new terms and isn't offered
-  the release. Decision for Caden: title, description, headcount, hiring
-  modes, contacts and ballot-measure ids are recorded and announced but
-  don't open the release; say if any of those should.
+  the release, and a worker mid-shift checks out before leaving. Workers
+  on the job see when and what parts changed (never before/after values or
+  the staff member's name); the organization sees the full record, kept
+  after the job closes. A released worker's past verified work stays on
+  their scorecard. A worker's own do-not-match answers hide the notice
+  while an invitation stands, as they hide the invitation (rule 4), and a
+  lapsed invitation or offer isn't told. A job from before C4 (no launch
+  stored) keeps that until the builder picks self-launch or adds a point:
+  the builder's default, staged with no points, means "as it was" for it.
+  Decisions for Caden: title, description, headcount, hiring modes, the
+  canvassing app, contacts and ballot-measure ids are recorded and
+  announced but don't open the release; and while the organization isn't
+  approved (or its terms are unsigned) no edit saves, even a typo fix,
+  since a live job has to pass the publishing checks (rule 6). Say if
+  either should change.
 
 ## C3 scope — the hiring hub
 

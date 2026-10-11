@@ -239,6 +239,24 @@ describe("spec formulas and verification rules", () => {
     expect(computeScorecard([s], { now }).reliability.showRate.denominator).toBe(0);
   });
 
+  it("keeps the verified work of a worker who left a changed job, with the cancelled shifts excused (C4.3)", () => {
+    const start = new Date("2026-09-28T09:00:00Z");
+    const worked = shift([["CHECK_IN", 0], ["CHECK_OUT", 300]], { engagementStatus: "WITHDRAWN", engagementId: "left" });
+    const dropped = shift([], {
+      engagementStatus: "WITHDRAWN",
+      engagementId: "left",
+      startsAt: start,
+      endsAt: new Date(start.getTime() + 8 * 3_600_000),
+      status: "CANCELLED",
+      cancellationNoticeHours: 24,
+      validations: [],
+      events: [{ id: "c-left", type: "SHIFT_CANCELLED", payload: { by: "WORKER", reason: "The job's terms changed", jobChanged: true, jobChangeId: "ch1" }, createdAt: new Date(start.getTime() - 3_600_000) }],
+    });
+    const s = computeScorecard([worked, dropped], { now });
+    expect(s.segments[0].verificationBreakdown.verifiedShifts).toBe(1);
+    expect(s.reliability.showRate).toMatchObject({ numerator: 1, denominator: 1 });
+  });
+
   it("gives a shift scheduled inside the notice window until its start to cancel", () => {
     const start = new Date("2026-09-28T09:00:00Z");
     const cancelled = (scheduledHoursBefore: number, cancelHoursBefore: number) =>

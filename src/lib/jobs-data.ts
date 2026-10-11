@@ -88,17 +88,25 @@ export async function updatePublishedJob(
     if (!job) return { ok: false as const, reasons: ["Job not found."] };
     if (job.status !== "PUBLISHED" && job.status !== "PAUSED") return { ok: false as const, reasons: ["Only a published or paused job is edited this way."] };
     const data = jobData(input);
+    // A job from before C4 says nothing about its launch (staging is set per
+    // shift). The builder always sends a mode, and its default — staged with
+    // no points yet — means "as it was" for such a job: the stored null stays,
+    // nothing is recorded, and no release opens over a typo fix. Picking
+    // self-launch or adding a point is a real change to how the day starts.
+    if (job.launch === null && input.launch?.mode === "STAGED" && input.launch.points.length === 0) delete (data as { launch?: unknown }).launch;
     const jurisdiction = data.jurisdictionId === job.jurisdictionId ? job.jurisdiction : await tx.jurisdictionProfile.findUnique({ where: { id: data.jurisdictionId } });
     // Judged as a draft would be: the question is whether the edited job could publish, not whether it is.
     const reasons = publishBlockers({ job: { ...job, ...data, status: "DRAFT" }, jurisdiction, org: job.org }, now);
-    if (reasons.length) return { ok: false as const, reasons: ["This change would stop the job from publishing: " + reasons.join(" ")] };
+    if (reasons.length) return { ok: false as const, reasons: ["A live job has to pass the publishing checks, and with this saved it wouldn't: " + reasons.join(" ")] };
     const changes = jobDiff(job, data);
     const changed = changeLabels(changes);
     if (!changed.length) return { ok: true as const, changed, material: [], told: 0 };
     const material = materialLabels(changes);
     await tx.job.update({ where: { id: jobId }, data });
     const change = await tx.jobChange.create({ data: { jobId, actorId, changes: json(changes), material, createdAt: now }, select: { id: true } });
-    await tx.auditEvent.create({ data: { actorId, action: "job.changed", entityType: "Job", entityId: jobId, metadata: { changeId: change.id, changed, material }, createdAt: now } });
+    await tx.auditEvent.create({
+      data: { actorId, action: "job.changed", entityType: "Job", entityId: jobId, metadata: { changeId: change.id, changed, material, jurisdictionId: data.jurisdictionId, jurisdictionVersion: jurisdiction?.version ?? null }, createdAt: now },
+    });
     const told = await notifyJobChanged(tx, jobId, actorId, now);
     return { ok: true as const, changed, material, told };
   });

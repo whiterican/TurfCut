@@ -248,6 +248,9 @@ function radiusProblem(s: NonNullable<Awaited<ReturnType<typeof loadShift>>>, ac
   return agrees ? null : "This check-in was made against a different staging point. Reload the shift and check in again.";
 }
 
+/** How far back the organization-wide count of kept packets looks. */
+export const HELD_WINDOW_DAYS = 60;
+
 /** A packet a worker kept for their next shift (C4.5), and whether someone has since taken it out. */
 export interface HeldPacket {
   packetId: string;
@@ -269,7 +272,9 @@ export interface HeldPacket {
  * holding shift; pickups are read raw (nothing rejects a pickup today).
  */
 export async function heldPackets(c: Tx | ReturnType<typeof db>, scope: { jobId?: string; orgId?: string; engagementId?: string }): Promise<HeldPacket[]> {
-  const where = { ...(scope.engagementId ? { engagementId: scope.engagementId } : {}), engagement: { job: { ...(scope.jobId ? { id: scope.jobId } : {}), ...(scope.orgId ? { orgId: scope.orgId } : {}) } }, events: { some: { type: "PACKET_HELD" as const } } };
+  // The organization-wide view (the ops page) looks back HELD_WINDOW_DAYS: a packet kept longer than that is a custody question for the job's own page, not a live count.
+  const since = scope.orgId && !scope.jobId ? { startsAt: { gte: new Date(Date.now() - HELD_WINDOW_DAYS * 86_400_000) } } : {};
+  const where = { ...since, ...(scope.engagementId ? { engagementId: scope.engagementId } : {}), engagement: { job: { ...(scope.jobId ? { id: scope.jobId } : {}), ...(scope.orgId ? { orgId: scope.orgId } : {}) } }, events: { some: { type: "PACKET_HELD" as const } } };
   const holders = await c.shift.findMany({ where, include: SHIFT_INCLUDE, orderBy: { startsAt: "asc" } });
   if (!holders.length) return [];
   const pid = (e: { payload: unknown }) => String((e.payload as { packetId?: unknown } | null)?.packetId ?? "");

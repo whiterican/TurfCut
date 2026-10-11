@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getSessionProfile } from "@/lib/auth";
 import { loadPublicPost } from "@/lib/campaign-social-data";
+import { likedPostIds } from "@/lib/campaign-follow-data";
 import { PostCard } from "@/components/campaign/PostCard";
 
 type Props = { params: Promise<{ handle: string; postId: string }> };
@@ -18,10 +19,12 @@ export default async function PostPage({ params }: Props) {
   const { handle, postId } = await params;
   const [r, session] = await Promise.all([loadPublicPost(handle, postId), getSessionProfile().catch(() => null)]);
   if (!r) notFound();
+  const workerId = session?.role === "WORKER" ? session.workerId : null;
+  const liked = workerId ? (await likedPostIds(workerId, [r.post.id])).has(r.post.id) : undefined;
   return (
     <main className="page max-w-2xl space-y-4">
       <Link href={`/c/${r.campaign.handle}`} className="btn-ghost btn-sm">{r.campaign.displayName}</Link>
-      <PostCard post={r.post} handle={r.campaign.handle} displayName={r.campaign.displayName} signedIn={!!session} />
+      <PostCard post={r.post} handle={r.campaign.handle} displayName={r.campaign.displayName} signedIn={!!session} liked={liked} />
     </main>
   );
 }

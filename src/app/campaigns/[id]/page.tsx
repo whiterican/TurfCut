@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { embeddableJobs, listOrgCampaigns, loadOrgCampaign, loadPinned, loadPosts, orgJobsForLinking } from "@/lib/campaign-social-data";
 import { MAX_PINNED } from "@/lib/campaign-social";
 import { PostCard } from "@/components/campaign/PostCard";
+import { likeCounts } from "@/lib/campaign-follow-data";
 import { PostComposer } from "@/components/campaign/PostComposer";
 import { mediaUrl } from "@/lib/campaign-media";
 import { ActionButton } from "@/components/ActionButton";
@@ -30,6 +31,8 @@ export default async function CampaignPage({ params, searchParams }: { params: P
   const postFields = (postId: string) => ({ postId, campaignId: c.id });
   // Recruiters change only their own posts that aren't talking points (the server checks it too).
   const shown = [...pinned, ...feed.posts].map((x) => x.id);
+  // Likes: a total per post, nothing about who (S2).
+  const likes = await likeCounts(session.orgId, shown);
   const authors = canEdit ? new Map<string, string>() : new Map((await db().campaignPost.findMany({ where: { id: { in: shown } }, select: { id: true, authorId: true } })).map((x) => [x.id, x.authorId]));
   const canChange = (post: (typeof feed.posts)[number]) => canEdit || (!post.pinnedAt && authors.get(post.id) === session.userId);
   const controls = (post: (typeof feed.posts)[number]) => !canChange(post) ? null : (
@@ -101,7 +104,7 @@ export default async function CampaignPage({ params, searchParams }: { params: P
         </p>
         {pinned.length === 0 && <p className="card text-muted-sm">Nothing pinned yet.</p>}
         {pinned.map((p) => (
-          <PostCard key={p.id} post={p} handle={c.handle} displayName={c.displayName} signedIn>
+          <PostCard key={p.id} post={p} handle={c.handle} displayName={c.displayName} signedIn likeTotal={likes.get(p.id) ?? 0}>
             {controls(p)}
           </PostCard>
         ))}
@@ -144,7 +147,7 @@ export default async function CampaignPage({ params, searchParams }: { params: P
         <h2 className="section-title">Posts</h2>
         {feed.posts.length === 0 && <p className="card text-muted-sm">No posts yet.</p>}
         {feed.posts.map((p) => (
-          <PostCard key={p.id} post={p} handle={c.handle} displayName={c.displayName} signedIn>
+          <PostCard key={p.id} post={p} handle={c.handle} displayName={c.displayName} signedIn likeTotal={likes.get(p.id) ?? 0}>
             {controls(p)}
           </PostCard>
         ))}

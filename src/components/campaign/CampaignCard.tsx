@@ -17,7 +17,7 @@ export function CampaignCard({ campaign, follow, viewer, back }: { campaign: { i
           // eslint-disable-next-line @next/next/no-img-element
           <img src={avatar} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" />
         ) : (
-          <span aria-hidden className="h-10 w-10 shrink-0 rounded-full bg-muted/20" />
+          <span aria-hidden className="h-10 w-10 shrink-0 rounded-full bg-surface-2" />
         )}
         <span className="min-w-0">
           <span className="block truncate font-semibold text-fg">{campaign.displayName}</span>

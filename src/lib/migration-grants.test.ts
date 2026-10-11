@@ -52,5 +52,13 @@ describe("migration grants", () => {
       expect({ file: f, grants: sql.match(/GRANT[^;]*"(CampaignFollow|PostLike)"[^;]*/gi) ?? [] }).toEqual({ file: f, grants: [] });
       expect({ file: f, policies: sql.match(/CREATE\s+POLICY[^;]*"(CampaignFollow|PostLike)"[^;]*/gi) ?? [] }).toEqual({ file: f, policies: [] });
     }
+    // And the files that create them take the API roles' default privileges back and turn RLS on (Supabase grants on new tables by default).
+    for (const f of ["s2-social.sql", "supabase-manual-setup.sql"]) {
+      const sql = readFileSync(join(dir, f), "utf8").replace(/--[^\n]*/g, "");
+      for (const t of ["CampaignFollow", "PostLike"]) {
+        expect({ file: f, table: t, rls: new RegExp(`ALTER\\s+TABLE\\s+"public"\\."${t}"\\s+ENABLE\\s+ROW\\s+LEVEL\\s+SECURITY`, "i").test(sql) }).toEqual({ file: f, table: t, rls: true });
+        expect({ file: f, table: t, revoked: new RegExp(`REVOKE\\s+ALL\\s+ON[^;]*"${t}"[^;]*FROM[^;]*anon[^;]*authenticated`, "i").test(sql) }).toEqual({ file: f, table: t, revoked: true });
+      }
+    }
   });
 });

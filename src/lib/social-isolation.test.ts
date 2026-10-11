@@ -66,13 +66,16 @@ describe("social isolation", () => {
   });
 
   it("the campaign side never reads who follows or who liked (S2): no follower or like rows, no counts of followers", () => {
-    // Prisma's back-relations (CampaignProfile.followers, CampaignPost.likes) exist for the foreign keys only.
-    // The campaign side gets like totals through likeCounts and nothing else.
-    const campaignSide = all.filter((f) => /^src\/(app\/(c|campaigns|api\/campaigns|api\/campaign)\/|components\/campaign\/|lib\/campaign-(social|media|api|follow)(-data)?\.ts$)/.test(f) && !/campaign-follow(-data)?\.ts$/.test(f));
-    // (followState and likedPostIds are fine: they answer only for the signed-in worker's own rows, for the control they're looking at.)
-    const forbidden = /\b(followers|likes)\s*:|\b_count\b|\.(campaignFollow|postLike)\b|\b(openFollows|feedCampaigns|loadHomeFeed)\b/;
-    const offenders = campaignSide.filter((f) => !/\/(FollowButton|CampaignCard|PostCard|LikeButton)\.tsx$/.test(f) && forbidden.test(source(f)));
-    expect(offenders).toEqual([]);
+    // Prisma's back-relations (CampaignProfile.followers, CampaignPost.likes) exist for the foreign keys only: nothing
+    // outside the worker-side module reads them, and the organization's own pages get like totals through likeCounts
+    // and nothing else. The worker's own state (followState, likedPostIds) is fine on the public pages: it answers for
+    // the signed-in worker's rows only.
+    const social = all.filter((f) => ALLOWED.some((re) => re.test(f)) && !/campaign-follow(-data)?\.ts$|\.test\.ts$/.test(f));
+    const rows = /\b(followers|likes)\s*:|["'](followers|likes)["']\s*:|_count[\s\S]{0,80}?\b(followers|likes)\b|\.(campaignFollow|postLike)\b/;
+    const orgSide = all.filter((f) => /^src\/(app\/(campaigns|api\/campaign)\/|lib\/campaign-(social|media|api)(-data)?\.ts$)/.test(f));
+    const workerOnly = /\b(openFollows|followState|feedCampaigns|loadHomeFeed|likedPostIds|campaignsOn|setFollow|setLike)\b/;
+    expect(social.filter((f) => rows.test(source(f)))).toEqual([]);
+    expect(orgSide.filter((f) => workerOnly.test(source(f)))).toEqual([]);
   });
 
   it("matching, scorecards, political fit, the feed and hiring never reach it, directly or through imports", () => {

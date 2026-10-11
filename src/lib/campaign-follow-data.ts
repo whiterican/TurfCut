@@ -18,9 +18,17 @@ type Result = { ok: true } | { ok: false; reason: string };
 const lock = (tx: Prisma.TransactionClient, key: string) => tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${key}))`;
 /** Another writer already left the state as asked (the one-open-row index): not a failure. */
 const alreadySo = (e: unknown) => e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002";
-/** Rows open and close on the database's clock, so a close is never before its open (the CHECK) whatever the app servers' clocks say. */
-const closeFollow = (tx: Prisma.TransactionClient, id: string) => tx.$executeRaw`UPDATE "public"."CampaignFollow" SET "revokedAt" = now() WHERE "id" = ${id}::uuid`;
-const closeLike = (tx: Prisma.TransactionClient, id: string) => tx.$executeRaw`UPDATE "public"."PostLike" SET "removedAt" = now() WHERE "id" = ${id}::uuid`;
+/**
+ * A row opens on the app server's clock (Prisma fills createdAt) and closes
+ * on the database's statement clock, never before it opened: the CHECK
+ * holds whatever the app servers' clocks say and whichever transaction
+ * started first (now() would be the transaction's start, which can predate
+ * a row another transaction created while this one waited for the lock).
+ */
+const closeFollow = (tx: Prisma.TransactionClient, id: string) =>
+  tx.$executeRaw`UPDATE "public"."CampaignFollow" SET "revokedAt" = GREATEST(clock_timestamp(), "createdAt") WHERE "id" = ${id}::uuid`;
+const closeLike = (tx: Prisma.TransactionClient, id: string) =>
+  tx.$executeRaw`UPDATE "public"."PostLike" SET "removedAt" = GREATEST(clock_timestamp(), "createdAt") WHERE "id" = ${id}::uuid`;
 
 /** The same rule as the database's public read policy: published, and the organization approved. */
 const PUBLIC_CAMPAIGN = { publishedAt: { not: null }, org: { approved: true } } satisfies Prisma.CampaignProfileWhereInput;
@@ -73,6 +81,7 @@ export async function setFollow(workerId: string, campaignId: string, wish: { fo
     if (change !== "close") await tx.campaignFollow.create({ data: { workerId, campaignId, notify: wish.notify ?? open?.notify ?? false } });
     return { ok: true };
   }).catch((e): Result => {
+    // Unreachable under the lock; a row written past it means the worker is following, as asked (a notice change would be lost: re-ask).
     if (alreadySo(e)) return { ok: true };
     throw e;
   });
@@ -130,6 +139,20 @@ export async function loadHomeFeed(workerId: string, cursor?: string | null): Pr
   const liked = await likedPostIds(workerId, page.map((p) => p.id));
   const posts = page.map(({ profile, ...p }) => ({ ...publicPost(p), campaign: profile, reason: sources.get(p.profileId) ?? "following", liked: liked.has(p.id) }));
   return { posts, next: rows.length > FEED_PAGE_SIZE ? encodeCursor(page[page.length - 1]) : null, sources: sources.size };
+}
+
+/**
+ * The public campaigns the worker is on right now (a job hired them and
+ * hasn't ended), for Today's strip. Their own engagements, nothing more.
+ */
+export async function campaignsOn(workerId: string, now = new Date()): Promise<FeedCampaign[]> {
+  const rows = await db().campaignProfile.findMany({
+    where: { ...PUBLIC_CAMPAIGN, jobs: { some: { status: { not: "CLOSED" }, OR: [{ endsAt: null }, { endsAt: { gte: now } }], engagements: { some: { workerId, status: { in: ["CLAIMED", "ACTIVE"] } } } } } },
+    select: FEED_CAMPAIGN_SELECT,
+    orderBy: { displayName: "asc" },
+    take: 10,
+  });
+  return rows;
 }
 
 // ---------------------------------------------------------------------------

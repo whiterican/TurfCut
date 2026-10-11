@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import { getSessionProfile } from "@/lib/auth";
 import { loadPinned, loadPosts, loadPublicCampaign } from "@/lib/campaign-social-data";
 import { mediaUrl } from "@/lib/campaign-media";
+import { followState } from "@/lib/campaign-follow-data";
+import { FollowButton } from "@/components/campaign/FollowButton";
 import { CampaignHeader } from "@/components/campaign/CampaignHeader";
 import { PostCard } from "@/components/campaign/PostCard";
 
@@ -25,9 +27,15 @@ export default async function PublicCampaignPage({ params, searchParams }: Props
   const { cursor } = await searchParams;
   const [pinned, feed, session] = await Promise.all([cursor ? Promise.resolve([]) : loadPinned(c.id), loadPosts(c.id, cursor), getSessionProfile().catch(() => null)]);
   const signedIn = !!session;
+  // Following is a worker's own choice (S2): guests are sent to sign in; organization logins see no control.
+  const workerId = session?.role === "WORKER" ? session.workerId : null;
+  const viewer = workerId ? "worker" : session ? "other" : "guest";
+  const follow = workerId ? await followState(workerId, c.id) : { following: false, notify: false };
   return (
     <main className="page max-w-2xl space-y-6">
-      <CampaignHeader displayName={c.displayName} handle={c.handle} bio={c.bio} avatarUrl={mediaUrl(c.avatarKey)} headerUrl={mediaUrl(c.headerKey)} />
+      <CampaignHeader displayName={c.displayName} handle={c.handle} bio={c.bio} avatarUrl={mediaUrl(c.avatarKey)} headerUrl={mediaUrl(c.headerKey)}>
+        <FollowButton campaignId={c.id} state={follow} viewer={viewer} back={`/c/${c.handle}`} />
+      </CampaignHeader>
       {pinned.length > 0 && (
         <section className="section" aria-labelledby="talking-points">
           <h2 id="talking-points" className="section-title">Talking points</h2>

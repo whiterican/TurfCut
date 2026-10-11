@@ -17,6 +17,9 @@ const ALLOWED = [
   /^src\/lib\/job-brief-data\.ts$/, // the shift brief's talking points: the pinned posts, verbatim
   /^src\/app\/(c|campaigns|feed|api\/campaigns|api\/campaign|api\/feed)\//,
   /^src\/app\/shifts\/\[shiftId\]\/page\.tsx$/, // shows the brief's talking points (nothing it reads goes anywhere else)
+  /^src\/app\/jobs\/\[jobId\]\/page\.tsx$/, // the campaign a job works for, with Follow (S2); the page ranks nothing
+  /^src\/app\/dashboard\/page\.tsx$/, // Today's "Campaigns you're on" strip (S2.3); the page ranks nothing
+  /^src\/app\/feed\//, // the worker's home feed (S2)
   /^src\/app\/zz-preview\//,
   /^src\/components\/campaign\//,
 ];
@@ -66,7 +69,8 @@ describe("social isolation", () => {
     // Prisma's back-relations (CampaignProfile.followers, CampaignPost.likes) exist for the foreign keys only.
     // The campaign side gets like totals through likeCounts and nothing else.
     const campaignSide = all.filter((f) => /^src\/(app\/(c|campaigns|api\/campaigns|api\/campaign)\/|components\/campaign\/|lib\/campaign-(social|media|api|follow)(-data)?\.ts$)/.test(f) && !/campaign-follow(-data)?\.ts$/.test(f));
-    const forbidden = /\b(followers|likes)\s*:|\b_count\b|\.(campaignFollow|postLike)\b|\b(openFollows|followState|feedCampaigns|loadHomeFeed|likedPostIds)\b/;
+    // (followState and likedPostIds are fine: they answer only for the signed-in worker's own rows, for the control they're looking at.)
+    const forbidden = /\b(followers|likes)\s*:|\b_count\b|\.(campaignFollow|postLike)\b|\b(openFollows|feedCampaigns|loadHomeFeed)\b/;
     const offenders = campaignSide.filter((f) => !/\/(FollowButton|CampaignCard|PostCard|LikeButton)\.tsx$/.test(f) && forbidden.test(source(f)));
     expect(offenders).toEqual([]);
   });

@@ -315,3 +315,32 @@ export function loadRevisions(orgId: string, postId: string) {
   if (!UUID_RE.test(postId)) return Promise.resolve([]);
   return db().campaignPostRevision.findMany({ where: { postId, post: { profile: { orgId } } }, orderBy: { createdAt: "asc" }, select: { id: true, body: true, createdAt: true } });
 }
+
+// ---------------------------------------------------------------------------
+// Jobs a campaign works for (S1.4): their shifts are briefed with its talking points.
+// ---------------------------------------------------------------------------
+
+/** The organization's jobs, with the campaign each works for (for the campaign page's picker). */
+export function orgJobsForLinking(orgId: string) {
+  return db().job.findMany({
+    where: { orgId, status: { not: "CLOSED" } },
+    orderBy: { createdAt: "desc" },
+    take: 200,
+    select: { id: true, title: true, status: true, campaignProfileId: true },
+  });
+}
+
+/** Links one of the organization's jobs to one of its campaigns, or unlinks it (campaignId null). */
+export async function setJobCampaign(actor: Actor, jobId: string, campaignId: string | null): Promise<Result> {
+  if (!UUID_RE.test(jobId) || (campaignId !== null && !UUID_RE.test(campaignId))) return { ok: false, reason: "Not found." };
+  return db().$transaction(async (tx) => {
+    await lock(tx, `job:${jobId}`);
+    const job = await tx.job.findFirst({ where: { id: jobId, orgId: actor.orgId }, select: { campaignProfileId: true } });
+    if (!job) return { ok: false as const, reason: "Job not found." };
+    if (campaignId && !(await tx.campaignProfile.findFirst({ where: { id: campaignId, orgId: actor.orgId }, select: { id: true } }))) return { ok: false as const, reason: "Campaign not found." };
+    if (job.campaignProfileId === campaignId) return { ok: true as const };
+    await tx.job.update({ where: { id: jobId }, data: { campaignProfileId: campaignId } });
+    await tx.auditEvent.create({ data: { actorId: actor.profileId, action: "job.campaign_set", entityType: "Job", entityId: jobId, metadata: { from: job.campaignProfileId, to: campaignId } } });
+    return { ok: true as const };
+  });
+}

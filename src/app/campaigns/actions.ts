@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import type { ActionState } from "@/app/jobs/actions";
 import { requireArea } from "@/lib/employer-session";
 import { validatePostBody, validateProfile } from "@/lib/campaign-social";
-import { clearCampaignImage, createCampaign, createPost, deletePost, editPost, loadOrgCampaign, setCampaignImage, setCampaignPublished, setPostPinned, updateCampaign } from "@/lib/campaign-social-data";
+import { clearCampaignImage, createCampaign, createPost, deletePost, editPost, loadOrgCampaign, setJobCampaign, setCampaignImage, setCampaignPublished, setPostPinned, updateCampaign } from "@/lib/campaign-social-data";
 import { check, retryAfter, waitText } from "@/lib/rate-limit";
 import { supabaseMediaStore, type MediaKind } from "@/lib/campaign-media";
 
@@ -129,4 +129,16 @@ export async function pinPost(_prev: ActionState, fd: FormData): Promise<ActionS
   const r = await setPostPinned(actor, str(fd, "postId"), pin);
   await refresh(actor.orgId, str(fd, "campaignId"));
   return r.ok ? { ok: true, message: pin ? "Pinned as a talking point." : "Unpinned." } : { ok: false, message: r.reason };
+}
+
+/** Links a job to this campaign (its shifts are briefed with the talking points), or unlinks it. Owners and publishers. */
+export async function linkJob(_prev: ActionState, fd: FormData): Promise<ActionState> {
+  const actor = await editor();
+  const campaignId = str(fd, "campaignId");
+  const jobId = str(fd, "jobId");
+  if (!jobId) return { ok: false, message: "Pick a job." };
+  const unlink = str(fd, "unlink") === "1";
+  const r = await setJobCampaign(actor, jobId, unlink ? null : campaignId);
+  await refresh(actor.orgId, campaignId);
+  return r.ok ? { ok: true, message: unlink ? "Unlinked." : "Linked: its shifts now carry these talking points." } : { ok: false, message: r.reason };
 }

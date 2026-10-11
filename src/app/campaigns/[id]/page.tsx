@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { requireArea } from "@/lib/employer-session";
 import { accessTo } from "@/lib/access";
 import { db } from "@/lib/db";
-import { embeddableJobs, loadOrgCampaign, loadPinned, loadPosts } from "@/lib/campaign-social-data";
+import { embeddableJobs, listOrgCampaigns, loadOrgCampaign, loadPinned, loadPosts, orgJobsForLinking } from "@/lib/campaign-social-data";
 import { MAX_PINNED } from "@/lib/campaign-social";
 import { PostCard } from "@/components/campaign/PostCard";
 import { PostComposer } from "@/components/campaign/PostComposer";
@@ -11,7 +11,7 @@ import { mediaUrl } from "@/lib/campaign-media";
 import { ActionButton } from "@/components/ActionButton";
 import { CampaignHeader } from "@/components/campaign/CampaignHeader";
 import { CampaignProfileForm } from "@/components/campaign/CampaignProfileForm";
-import { pinPost, publishCampaign, removeCampaignImage, removePost, saveCampaign, savePost, uploadCampaignImage } from "../actions";
+import { linkJob, pinPost, publishCampaign, removeCampaignImage, removePost, saveCampaign, savePost, uploadCampaignImage } from "../actions";
 
 /** One campaign: its profile (owners and publishers) and its posts (S1). */
 export default async function CampaignPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ cursor?: string }> }) {
@@ -23,7 +23,10 @@ export default async function CampaignPage({ params, searchParams }: { params: P
   const canEdit = accessTo(session.role, "campaigns") === "full";
   const org = await db().organization.findUniqueOrThrow({ where: { id: session.orgId }, select: { approved: true } });
   const fields = { id: c.id };
-  const [jobs, pinned, feed] = await Promise.all([embeddableJobs(session.orgId), loadPinned(c.id), loadPosts(c.id, cursor)]);
+  const [jobs, pinned, feed, orgJobs, campaigns] = await Promise.all([embeddableJobs(session.orgId), loadPinned(c.id), loadPosts(c.id, cursor), orgJobsForLinking(session.orgId), listOrgCampaigns(session.orgId)]);
+  const linked = orgJobs.filter((j) => j.campaignProfileId === c.id);
+  const linkable = orgJobs.filter((j) => j.campaignProfileId !== c.id);
+  const campaignName = new Map(campaigns.map((x) => [x.id, x.displayName]));
   const postFields = (postId: string) => ({ postId, campaignId: c.id });
   const controls = (post: (typeof feed.posts)[number]) => (
     <div className="flex flex-wrap items-start gap-2 border-t border-border pt-3">
@@ -98,6 +101,39 @@ export default async function CampaignPage({ params, searchParams }: { params: P
             {controls(p)}
           </PostCard>
         ))}
+      </section>
+
+      <section className="section">
+        <h2 className="section-title">Jobs for this campaign</h2>
+        <p className="text-muted-sm">Shifts on these jobs carry this campaign&apos;s talking points in their brief.</p>
+        {linked.length === 0 ? (
+          <p className="card text-muted-sm">No jobs linked yet.</p>
+        ) : (
+          <ul className="list-card">
+            {linked.map((j) => (
+              <li key={j.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+                <Link href={`/jobs/${j.id}`} className="text-sm font-semibold text-fg hover:underline">{j.title}</Link>
+                {canEdit && <ActionButton action={linkJob} fields={{ campaignId: c.id, jobId: j.id, unlink: "1" }} label="Unlink" pendingLabel="Unlinking…" variant="btn-ghost btn-sm" />}
+              </li>
+            ))}
+          </ul>
+        )}
+        {canEdit && linkable.length > 0 && (
+          <ActionButton action={linkJob} fields={{ campaignId: c.id }} label="Link job" pendingLabel="Linking…" variant="btn-secondary">
+            <label className="min-w-56 flex-1 space-y-1.5">
+              <span className="label">Job</span>
+              <select name="jobId" className="field" required defaultValue="">
+                <option value="" disabled>Pick a job</option>
+                {linkable.map((j) => (
+                  <option key={j.id} value={j.id}>
+                    {j.title}
+                    {j.campaignProfileId ? ` (now: ${campaignName.get(j.campaignProfileId) ?? "another campaign"})` : ""}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </ActionButton>
+        )}
       </section>
 
       <section className="section">

@@ -16,6 +16,7 @@ const ALLOWED = [
   /^src\/lib\/(social-isolation|migration-grants)\.test\.ts$/, // the guards themselves
   /^src\/lib\/job-brief-data\.ts$/, // the shift brief's talking points: the pinned posts, verbatim
   /^src\/app\/(c|campaigns|api\/campaigns|api\/campaign)\//,
+  /^src\/app\/shifts\/\[shiftId\]\/page\.tsx$/, // shows the brief's talking points (nothing it reads goes anywhere else)
   /^src\/app\/zz-preview\//,
   /^src\/components\/campaign\//,
 ];

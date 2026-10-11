@@ -27,4 +27,19 @@ describe("migration grants", () => {
       }
     }
   });
+  it("campaign tables: column grants only, never who wrote or deleted a post, never revisions (S1)", () => {
+    const allowed: Record<string, Set<string>> = {
+      CampaignProfile: new Set(['"id"', '"handle"', '"displayName"', '"bio"', '"avatarKey"', '"headerKey"', '"publishedAt"', '"createdAt"', '"updatedAt"']),
+      CampaignPost: new Set(['"id"', '"profileId"', '"body"', '"jobId"', '"pinnedAt"', '"createdAt"', '"editedAt"']),
+    };
+    const tableWide = /GRANT\s+(SELECT|INSERT|UPDATE|DELETE|ALL)(\s+PRIVILEGES)?\s+ON\s+(TABLE\s+)?[^;(]*"(CampaignProfile|CampaignPost|CampaignPostRevision)"[^;]*TO\s+[^;]*(authenticated|anon)/gi;
+    for (const f of files) {
+      const sql = readFileSync(join(dir, f), "utf8").replace(/--[^\n]*/g, "");
+      expect({ file: f, hits: sql.match(tableWide) ?? [] }).toEqual({ file: f, hits: [] });
+      expect({ file: f, revisionGrant: /GRANT[^;]*"CampaignPostRevision"[^;]*TO/i.test(sql) }).toEqual({ file: f, revisionGrant: false });
+      for (const m of sql.matchAll(/GRANT\s+SELECT\s*\(([^)]*)\)\s+ON\s+"public"\."(CampaignProfile|CampaignPost)"/gi)) {
+        for (const col of m[1].split(",").map((c) => c.trim())) expect({ file: f, table: m[2], col, ok: allowed[m[2]].has(col) }).toEqual({ file: f, table: m[2], col, ok: true });
+      }
+    }
+  });
 });

@@ -12,7 +12,7 @@ import { describe, expect, it } from "vitest";
  * 2. Nothing the guarded files import, however indirectly, is a social file.
  */
 const ALLOWED = [
-  /^src\/lib\/campaign-(social|media)(-data)?(\.test)?\.ts$/,
+  /^src\/lib\/campaign-(social|media|api)(-data)?(\.test)?\.ts$/,
   /^src\/lib\/(social-isolation|migration-grants)\.test\.ts$/, // the guards themselves
   /^src\/lib\/job-brief-data\.ts$/, // the shift brief's talking points: the pinned posts, verbatim
   /^src\/app\/(c|campaigns|api\/campaigns|api\/campaign)\//,
@@ -20,7 +20,7 @@ const ALLOWED = [
   /^src\/components\/campaign\//,
 ];
 /** The social layer's names: modules, models, Prisma accessors and relation fields. */
-const SOCIAL = /\b(campaign-social(-data)?|campaign-media|job-brief-data|components\/campaign|campaignProfiles?|campaignPosts?|campaignPostRevisions?|deletedCampaignPosts|embeddedInPosts|campaignProfileId|Campaign(Post|Profile|PostRevision))\b/;
+const SOCIAL = /\b(campaign-social(-data)?|campaign-media|campaign-api|job-brief-data|components\/campaign|campaignProfiles?|campaignPosts?|campaignPostRevisions?|deletedCampaignPosts|embeddedInPosts|campaignProfileId|Campaign(Post|Profile|PostRevision))\b/;
 /** Code that ranks, matches, scores or explains: it must never reach the social layer. */
 const GUARDED = /^src\/(lib\/(.*match.*|scorecard.*|political-fit.*|priority|metrics|jobs-data|jobs|hiring|desk.*|experience.*)\.ts|components\/(FitSignals|ScorecardPanel|JobFeedCard|JobCard)\.tsx)$/;
 
@@ -70,7 +70,11 @@ describe("social isolation", () => {
       while (queue.length) {
         const f = queue.shift()!;
         expect({ start, reaches: f, social: isSocialFile(f) || (f !== start && SOCIAL.test(source(f)) && !ALLOWED[1].test(f)) }).toEqual({ start, reaches: f, social: false });
-        for (const next of imports(f)) if (!seen.has(next)) (seen.add(next), queue.push(next));
+        for (const next of imports(f)) {
+          if (seen.has(next)) continue;
+          seen.add(next);
+          queue.push(next);
+        }
       }
     }
   });

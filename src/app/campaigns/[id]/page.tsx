@@ -3,22 +3,61 @@ import { notFound } from "next/navigation";
 import { requireArea } from "@/lib/employer-session";
 import { accessTo } from "@/lib/access";
 import { db } from "@/lib/db";
-import { loadOrgCampaign } from "@/lib/campaign-social-data";
+import { embeddableJobs, loadOrgCampaign, loadPinned, loadPosts } from "@/lib/campaign-social-data";
+import { MAX_PINNED } from "@/lib/campaign-social";
+import { PostCard } from "@/components/campaign/PostCard";
+import { PostComposer } from "@/components/campaign/PostComposer";
 import { mediaUrl } from "@/lib/campaign-media";
 import { ActionButton } from "@/components/ActionButton";
 import { CampaignHeader } from "@/components/campaign/CampaignHeader";
 import { CampaignProfileForm } from "@/components/campaign/CampaignProfileForm";
-import { publishCampaign, removeCampaignImage, saveCampaign, uploadCampaignImage } from "../actions";
+import { pinPost, publishCampaign, removeCampaignImage, removePost, saveCampaign, savePost, uploadCampaignImage } from "../actions";
 
 /** One campaign: its profile (owners and publishers) and its posts (S1). */
-export default async function CampaignPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function CampaignPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ cursor?: string }> }) {
   const { id } = await params;
+  const { cursor } = await searchParams;
   const session = await requireArea("campaignPosting");
   const c = await loadOrgCampaign(session.orgId, id);
   if (!c) notFound();
   const canEdit = accessTo(session.role, "campaigns") === "full";
   const org = await db().organization.findUniqueOrThrow({ where: { id: session.orgId }, select: { approved: true } });
   const fields = { id: c.id };
+  const [jobs, pinned, feed] = await Promise.all([embeddableJobs(session.orgId), loadPinned(c.id), loadPosts(c.id, cursor)]);
+  const postFields = (postId: string) => ({ postId, campaignId: c.id });
+  const controls = (post: (typeof feed.posts)[number]) => (
+    <div className="flex flex-wrap items-start gap-2 border-t border-border pt-3">
+      <details className="group w-full">
+        <summary className="link cursor-pointer list-none text-sm font-semibold">
+          <span className="group-open:hidden">Edit</span>
+          <span className="hidden group-open:inline">Cancel edit</span>
+        </summary>
+        <div className="pt-3">
+          <PostComposer action={savePost} campaignId={c.id} postId={post.id} jobs={jobs} defaults={{ body: post.body, jobId: post.jobId, jobTitle: post.job?.title ?? null }} submitLabel="Save post" />
+        </div>
+      </details>
+      {canEdit && (
+        <ActionButton
+          action={pinPost}
+          fields={{ ...postFields(post.id), pin: post.pinnedAt ? "0" : "1" }}
+          label={post.pinnedAt ? "Unpin" : "Pin as talking point"}
+          pendingLabel="Saving…"
+          variant="btn-secondary btn-sm"
+          disabled={!post.pinnedAt && pinned.length >= MAX_PINNED}
+        />
+      )}
+      <details className="group">
+        <summary className="btn-ghost btn-sm cursor-pointer list-none">
+          <span className="group-open:hidden">Delete</span>
+          <span className="hidden group-open:inline">Keep post</span>
+        </summary>
+        <div className="space-y-2 pt-2">
+          <p className="text-sm text-fg">Delete this post? It comes off the campaign page{post.pinnedAt ? " and the talking points" : ""}. Turfcut keeps a record of it.</p>
+          <ActionButton action={removePost} fields={postFields(post.id)} label="Yes, delete" pendingLabel="Deleting…" variant="btn-secondary btn-sm" />
+        </div>
+      </details>
+    </div>
+  );
 
   return (
     <main className="page max-w-3xl">
@@ -38,6 +77,38 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
 
       <section className="section" aria-label="Preview">
         <CampaignHeader displayName={c.displayName} handle={c.handle} bio={c.bio} avatarUrl={mediaUrl(c.avatarKey)} headerUrl={mediaUrl(c.headerKey)} />
+      </section>
+
+      <section className="section">
+        <h2 className="section-title">Write a post</h2>
+        <div className="card">
+          <PostComposer action={savePost} campaignId={c.id} jobs={jobs} />
+        </div>
+      </section>
+
+      <section className="section">
+        <h2 className="section-title">Talking points</h2>
+        <p className="text-muted-sm">
+          Pinned posts are your talking points: up to {MAX_PINNED}, shown at the top of your page and in the brief of every shift on this campaign&apos;s jobs.
+          {canEdit ? " Pin a post below." : " Owners and publishers pin them."}
+        </p>
+        {pinned.length === 0 && <p className="card text-muted-sm">Nothing pinned yet.</p>}
+        {pinned.map((p) => (
+          <PostCard key={p.id} post={p} handle={c.handle} displayName={c.displayName} signedIn>
+            {controls(p)}
+          </PostCard>
+        ))}
+      </section>
+
+      <section className="section">
+        <h2 className="section-title">Posts</h2>
+        {feed.posts.length === 0 && <p className="card text-muted-sm">No posts yet.</p>}
+        {feed.posts.map((p) => (
+          <PostCard key={p.id} post={p} handle={c.handle} displayName={c.displayName} signedIn>
+            {controls(p)}
+          </PostCard>
+        ))}
+        {feed.next && <Link href={`/campaigns/${c.id}?cursor=${feed.next}`} className="btn-secondary">Older posts</Link>}
       </section>
 
       {canEdit && (
@@ -70,7 +141,7 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
                   <p className="text-sm font-semibold text-fg">{kind === "avatar" ? "Avatar" : "Header image"}</p>
                   <ActionButton action={uploadCampaignImage} fields={{ ...fields, kind }} label="Upload" pendingLabel="Uploading…" variant="btn-secondary">
                     <label className="space-y-1.5">
-                      <span className="label">PNG or JPEG, up to 2 MB</span>
+                      <span className="label">{kind === "avatar" ? "Avatar image" : "Header image"} (PNG or JPEG, up to 2 MB)</span>
                       <input name="image" type="file" accept="image/png,image/jpeg" required className="field" />
                     </label>
                   </ActionButton>
@@ -80,7 +151,9 @@ export default async function CampaignPage({ params }: { params: Promise<{ id: s
                 </div>
               ))}
             </div>
-            <p className="text-hint">Images are public once the campaign is. A square avatar and a wide header (about 3:1) look best.</p>
+            <p className="text-hint">
+              Uploaded images can be fetched by their address straight away, even while the campaign is a draft; Turfcut removes location and camera details from them first. A square avatar and a wide header (about 3:1) look best.
+            </p>
           </section>
         </>
       )}

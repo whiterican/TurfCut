@@ -33,6 +33,10 @@ describe("posts", () => {
     // No NULs (the database refuses them), no invisible-only posts, no direction overrides.
     expect(validatePostBody("a\u0000b")).toEqual({ ok: true, value: "ab" });
     expect(validatePostBody("\u200b\u200b")).toMatchObject({ ok: false });
+    expect(validatePostBody("\u3164")).toMatchObject({ ok: false });
+    expect(validatePostBody("\u2800 \u2800")).toMatchObject({ ok: false });
+    // The campaign's own words stay whole: joined emoji, tag flags, Persian with a non-joiner.
+    for (const s of ["👨‍👩‍👧", "🏳️‍🌈", "🏴󠁧󠁢󠁳󠁣󠁴󠁿", "می‌خواهم"]) expect(validatePostBody(s)).toEqual({ ok: true, value: s });
     expect(validateProfile({ handle: "ok_handle", displayName: "Yes on 7\u202e", bio: "" })).toMatchObject({ ok: true, value: { displayName: "Yes on 7" } });
   });
 

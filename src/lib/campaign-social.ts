@@ -29,19 +29,31 @@ const RESERVED = new Set([
 export const charCount = (s: string) => [...s].length;
 
 /**
- * Text tidied the way the database will store it: control characters (but
- * line breaks and tabs) and invisible formatting characters removed (no
- * NULs, no zero-width "empty" posts, no right-to-left overrides that make a
- * name read as something else), other whitespace read as a space, line
- * endings unified, trailing spaces gone, at most one blank line in a row.
+ * Characters taken out of a campaign's text: control characters (but line
+ * breaks and tabs: no NULs), invisible ones (zero-width space, word joiners,
+ * byte-order mark, soft hyphen), and direction overrides that make a name
+ * read as something else. Joiners and emoji tag characters stay: they're
+ * part of how people write (family and flag emoji, Persian spelling).
+ */
+const STRIP = /[\u0000-\u0008\u000b-\u001f\u007f-\u009f\u00ad\u061c\u180e\u200b\u200e\u200f\u202a-\u202e\u2060-\u2064\u2066-\u2069\ufeff]/g;
+/** Characters that draw nothing: a post made only of these is empty. */
+const INVISIBLE = /[\p{Cf}\p{Z}\s\u115f\u1160\u2800\u3164\uffa0]/gu;
+
+/**
+ * Text tidied the way the database will store it: the characters above
+ * removed, other whitespace read as a space, line endings unified, trailing
+ * spaces gone, at most one blank line in a row. Everything else verbatim.
  */
 export function tidyText(s: string): string {
   return s
     .replace(/\r\n?/g, "\n")
+    .replace(STRIP, "")
     .replace(/[^\S\n\t ]/g, " ")
-    .replace(/(?![\n\t])[\p{Cc}\p{Cf}]/gu, "")
     .split("\n").map((l) => l.replace(/[ \t]+$/g, "")).join("\n").replace(/\n{3,}/g, "\n\n").trim();
 }
+
+/** Whether text shows anything at all. */
+export const isVisible = (s: string) => s.replace(INVISIBLE, "").length > 0;
 
 export function normalizeHandle(raw: unknown): string {
   return typeof raw === "string" ? raw.trim().replace(/^@/, "").toLowerCase() : "";
@@ -67,7 +79,7 @@ export function validateProfile(raw: Record<string, unknown>): { ok: true; value
   const hp = handleProblem(handle);
   if (hp) errors.handle = hp;
   const displayName = typeof raw.displayName === "string" ? tidyText(raw.displayName).replace(/\s+/g, " ") : "";
-  if (!displayName) errors.displayName = "Give the campaign a name.";
+  if (!isVisible(displayName)) errors.displayName = "Give the campaign a name.";
   else if (charCount(displayName) > NAME_MAX) errors.displayName = `Keep the name to ${NAME_MAX} characters.`;
   const bio = typeof raw.bio === "string" ? tidyText(raw.bio) : "";
   if (charCount(bio) > BIO_MAX) errors.bio = `Keep the bio to ${BIO_MAX.toLocaleString("en-US")} characters.`;
@@ -78,7 +90,7 @@ export function validateProfile(raw: Record<string, unknown>): { ok: true; value
 /** A post's text, tidied, or why not. */
 export function validatePostBody(raw: unknown): { ok: true; value: string } | { ok: false; error: string } {
   const body = typeof raw === "string" ? tidyText(raw) : "";
-  if (!body) return { ok: false, error: "Write something first." };
+  if (!isVisible(body)) return { ok: false, error: "Write something first." };
   const n = charCount(body);
   if (n > POST_MAX) return { ok: false, error: `Posts are up to ${POST_MAX} characters (this one is ${n}).` };
   return { ok: true, value: body };
@@ -127,6 +139,9 @@ function trimTrailing(url: string): string {
     else return u;
   }
 }
+
+/** Campaigns an organization may hold (drafts included): handles aren't free to reserve in bulk. */
+export const MAX_CAMPAIGNS_PER_ORG = 5;
 
 /** Feed cursor: the last post shown, as (createdAt, id). Opaque to callers. Server-side only (Node Buffer). */
 export function encodeCursor(p: { createdAt: Date; id: string }): string {

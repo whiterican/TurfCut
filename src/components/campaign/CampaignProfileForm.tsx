@@ -22,6 +22,8 @@ export function CampaignProfileForm({
   const [state, formAction, pending] = useActionState(action, initial);
   const [bio, setBio] = useState(defaults?.bio ?? "");
   const errors = state.errors ?? {};
+  const f = `cp-${id ?? "new"}`;
+  const over = charCount(bio) > BIO_MAX;
   const describe = (k: string) => (errors[k] ? { "aria-invalid": true as const, "aria-describedby": `err-${k}` } : {});
   const err = (k: string) => (errors[k] ? <p id={`err-${k}`} className="field-error">{errors[k]}</p> : null);
   return (
@@ -37,16 +39,17 @@ export function CampaignProfileForm({
     >
       {id && <input type="hidden" name="id" value={id} />}
       <div className="grid gap-4 sm:grid-cols-2">
-        <label className="space-y-1.5">
-          <span className="label">Campaign name</span>
-          <input name="displayName" className="field" required maxLength={NAME_MAX} defaultValue={defaults?.displayName} placeholder="Yes on 7" {...describe("displayName")} />
+        <div className="space-y-1.5">
+          <label htmlFor={`${f}-name`} className="label">Campaign name</label>
+          <input id={`${f}-name`} name="displayName" className="field" required maxLength={NAME_MAX} defaultValue={defaults?.displayName} placeholder="Yes on 7" {...describe("displayName")} />
           {err("displayName")}
-        </label>
-        <label className="space-y-1.5">
-          <span className="label">Handle</span>
-          <span className="flex items-center gap-1">
+        </div>
+        <div className="space-y-1.5">
+          <label htmlFor={`${f}-handle`} className="label">Handle</label>
+          <div className="flex items-center gap-1">
             <span aria-hidden className="text-muted">@</span>
             <input
+              id={`${f}-handle`}
               name="handle"
               className="field"
               required
@@ -57,35 +60,36 @@ export function CampaignProfileForm({
               defaultValue={defaults?.handle}
               readOnly={handleLocked}
               placeholder="yes_on_7"
-              aria-describedby={["hint-handle", errors.handle ? "err-handle" : ""].filter(Boolean).join(" ")}
+              aria-describedby={[`${f}-hint-handle`, errors.handle ? "err-handle" : ""].filter(Boolean).join(" ")}
               aria-invalid={errors.handle ? true : undefined}
             />
-          </span>
-          <p id="hint-handle" className="text-hint">
-            {handleLocked ? "Your public address. Unpublish to change it." : "Your public address: turfcut.app/c/handle. 3 to 30 lowercase letters, numbers or underscores."}
+          </div>
+          <p id={`${f}-hint-handle`} className="text-hint">
+            {handleLocked ? "Your public address, for good: links and printed codes point at it." : "Your public address: /c/handle. 3 to 30 lowercase letters, numbers or underscores. It can't change once the campaign has been public."}
           </p>
           {err("handle")}
-        </label>
+        </div>
       </div>
-      <label className="block space-y-1.5">
-        <span className="label">Bio</span>
+      <div className="space-y-1.5">
+        <label htmlFor={`${f}-bio`} className="label">Bio</label>
         <textarea
+          id={`${f}-bio`}
           name="bio"
           className="field min-h-40"
-          maxLength={BIO_MAX + 200}
           value={bio}
           onChange={(e) => setBio(e.target.value)}
-          aria-describedby={["hint-bio", errors.bio ? "err-bio" : ""].filter(Boolean).join(" ")}
-          aria-invalid={errors.bio ? true : undefined}
+          aria-describedby={[`${f}-hint-bio`, errors.bio ? "err-bio" : ""].filter(Boolean).join(" ")}
+          aria-invalid={errors.bio || over ? true : undefined}
         />
-        <p id="hint-bio" className="text-hint">
-          Who you are and what you&apos;re working for, in your words. Turfcut shows it exactly as written; web links become clickable. {charCount(bio).toLocaleString("en-US")} / {BIO_MAX.toLocaleString("en-US")}
+        <p id={`${f}-hint-bio`} className="text-hint">
+          Who you are and what you&apos;re working for, in your words. Turfcut shows it exactly as written; web links become clickable.{" "}
+          <span className={over ? "text-danger-msg" : ""}>{charCount(bio).toLocaleString("en-US")} / {BIO_MAX.toLocaleString("en-US")}</span>
         </p>
         {err("bio")}
-      </label>
+      </div>
       <div className="flex flex-wrap items-center gap-3">
         <button className="btn-primary" disabled={pending}>{pending ? "Saving…" : id ? "Save profile" : "Create campaign"}</button>
-        {state.message && <p role="status" className={state.ok ? "text-success-msg" : "text-danger-msg"}>{state.message}</p>}
+        <p role="status" className={state.ok ? "text-success-msg" : "text-danger-msg"}>{state.message}</p>
       </div>
     </form>
   );

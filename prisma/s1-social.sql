@@ -67,6 +67,13 @@ CREATE TABLE IF NOT EXISTS "public"."CampaignPost" (
     -- A deleted post isn't pinned (the talking points are live posts).
     CONSTRAINT "CampaignPost_deleted_unpinned" CHECK ("deletedAt" IS NULL OR "pinnedAt" IS NULL)
 );
+-- A database that ran an early draft of this file has the body check without the blank test: replace it.
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'CampaignPost_body_length' AND pg_get_constraintdef(oid) NOT LIKE '%btrim%') THEN
+    ALTER TABLE "public"."CampaignPost" DROP CONSTRAINT "CampaignPost_body_length";
+    ALTER TABLE "public"."CampaignPost" ADD CONSTRAINT "CampaignPost_body_length" CHECK (char_length("body") BETWEEN 1 AND 500 AND btrim("body") <> '');
+  END IF;
+END $$;
 CREATE INDEX IF NOT EXISTS "CampaignPost_profileId_createdAt_idx" ON "public"."CampaignPost"("profileId", "createdAt");
 CREATE INDEX IF NOT EXISTS "CampaignPost_jobId_idx" ON "public"."CampaignPost"("jobId");
 CREATE INDEX IF NOT EXISTS "CampaignPost_authorId_idx" ON "public"."CampaignPost"("authorId");

@@ -31,6 +31,12 @@ export const LIMITS = {
   sync: { max: 60, windowMs: 60_000 },
   /** Member invite emails (sends and resends) per organization per day. */
   invite: { max: 20, windowMs: 24 * 60 * 60_000 },
+  /** Campaign posts per organization per hour (S1: a script can't flood a feed). */
+  post: { max: 30, windowMs: 60 * 60_000 },
+  /** New campaigns and handle changes per organization per day (S1: handles aren't free to reserve in bulk). */
+  campaign: { max: 10, windowMs: 24 * 60 * 60_000 },
+  /** Campaign image uploads per organization per day (S1). */
+  media: { max: 30, windowMs: 24 * 60 * 60_000 },
 } as const satisfies Record<string, Limit>;
 
 export type LimitName = keyof typeof LIMITS;

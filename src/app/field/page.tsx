@@ -1,6 +1,7 @@
 import Link from "next/link";
+import { db } from "@/lib/db";
 import { requireArea } from "@/lib/employer-session";
-import { loadFieldWindow, loadReviewCandidates, REVIEW_CAP } from "@/lib/field-day-data";
+import { heldPackets, loadFieldWindow, loadReviewCandidates, REVIEW_CAP } from "@/lib/field-day-data";
 import { isoDay, reviewQueue } from "@/lib/field-view";
 import { Masthead } from "@/components/staff/Masthead";
 import { SummaryBar } from "@/components/staff/SummaryBar";
@@ -12,9 +13,11 @@ const H = 3_600_000;
 export default async function FieldPage() {
   const session = await requireArea("field", "read");
   const now = new Date();
-  const [rows, candidates] = await Promise.all([
+  const [rows, candidates, kept] = await Promise.all([
     loadFieldWindow(session.orgId, new Date(now.getTime() - 12 * H), new Date(now.getTime() + 24 * H)),
     loadReviewCandidates(session.orgId, now),
+    // Packets workers kept for their next shift (C4.5), whenever that was: still out of the office.
+    heldPackets(db(), { orgId: session.orgId }),
   ]);
   // Under way: checked in and not out, or due now and not checked in (late).
   const underWay = rows.filter((r) => !r.state.checkedOutAt && (r.state.checkedInAt || (r.startsAt <= now && r.endsAt > now)));
@@ -33,7 +36,7 @@ export default async function FieldPage() {
           { label: "Under way", value: underWay.length },
           { label: "Checked in", value: underWay.filter((r) => r.state.checkedInAt).length },
           { label: "Packets out", value: rows.reduce((n, r) => n + r.state.packetsOut.length, 0) },
-          { label: "Kept by workers", value: rows.reduce((n, r) => n + r.state.packetsHeld.length, 0) },
+          { label: "Kept by workers", value: kept.filter((h) => h.takenOn === null).length },
           { label: "Waiting for review", value: `${waiting}${more ? "+" : ""}` },
         ]}
       />

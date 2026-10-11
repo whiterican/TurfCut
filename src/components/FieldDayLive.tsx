@@ -413,7 +413,7 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
                   >
                     Yes, keep {packetId}
                   </button>
-                  <button type="button" className="btn-ghost btn-sm" onClick={() => setKeeping(null)}>
+                  <button type="button" className="btn-ghost btn-sm" autoFocus onClick={() => setKeeping(null)}>
                     No
                   </button>
                 </span>

@@ -187,6 +187,9 @@ const check = (l: string, c: unknown, d?: unknown) => { if (c) console.log(`PASS
   const cSync = await syncWorkerActions(w2, cId, { deviceNow: cSyncAt, actions: [{ clientId: crypto.randomUUID(), at: cSyncAt, action: { kind: "app_counts", app: "MINIVAN", doors: 45, contacts: 8 } }] }, new Date(cSyncAt));
   const cState2 = shiftState(facts((await loadShift(cId))!));
   check("…the newest entry wins, through the offline sync too", cSync.ok && cSync.results[0].status === "saved" && cState2.doors === 45 && cState2.contacts === 8, { cSync, cState2 });
+  const staleAt = Date.UTC(year, 2, 20, 18, 20);
+  const stale = await syncWorkerActions(w2, cId, { deviceNow: staleAt + 60_000, actions: [{ clientId: crypto.randomUUID(), at: staleAt, action: { kind: "app_counts", app: "MINIVAN", doors: 30, contacts: 3 } }] }, new Date(staleAt + 60_000));
+  check("…and an older entry arriving late (another device) is refused rather than placed last", stale.ok && stale.results[0].status === "rejected" && /Newer totals/.test(stale.results[0].reason ?? "") && shiftState(facts((await loadShift(cId))!)).doors === 45, stale);
   const cOut = await workerShiftAction(w2, cId, { kind: "check_out" }, new Date(Date.UTC(year, 2, 20, 19)));
   const afterOut = await workerShiftAction(w2, cId, { kind: "app_counts", app: "MINIVAN", doors: 46, contacts: 8 }, new Date(Date.UTC(year, 2, 20, 19, 5)));
   check("the totals can still be entered after checking out", cOut.ok && afterOut.ok, { cOut, afterOut });
@@ -233,7 +236,8 @@ const check = (l: string, c: unknown, d?: unknown) => { if (c) console.log(`PASS
   const reassigned = await supervisorShiftAction(sup, q1Id, { kind: "packet_pickup", packetId: "19B", sheets: 10 }, day(3, 15, 5));
   const takenRow = await p.workEvent.findFirst({ where: { shiftId: q1Id, type: "PACKET_PICKUP" }, select: { payload: true } });
   const keptNow = (await heldOnJob(p, pjob.id)).filter((h) => h.heldOn === p2);
-  check("a kept packet can be handed to a colleague through their supervisor; the record says whose it was, and the holding shift knows", qIn.ok && reassigned.ok && (takenRow?.payload as { takenFrom?: string })?.takenFrom === p2 && keptNow.find((h) => h.packetId === "19B")?.takenOn === q1Id && keptNow.find((h) => h.packetId === "20C")?.takenOn === null, { qIn, reassigned, takenRow, keptNow });
+  const keptOnP1 = (await heldOnJob(p, pjob.id)).find((h) => h.heldOn === p1 && h.packetId === "18A");
+  check("a kept packet can be handed to a colleague through their supervisor; the record says whose it was, and the holding shifts know who took each", qIn.ok && reassigned.ok && (takenRow?.payload as { takenFrom?: string })?.takenFrom === p2 && keptNow.find((h) => h.packetId === "19B")?.takenBy === "colleague" && keptNow.find((h) => h.packetId === "19B")?.takenOn === q1Id && keptNow.find((h) => h.packetId === "20C")?.takenOn === null && keptOnP1?.takenBy === "worker" && keptOnP1.takenOn === p2, { qIn, reassigned, takenRow, keptNow, keptOnP1 });
   const p3 = await mk(4);
   const syncAt = day(4, 14, 55).getTime();
   const pSync3 = await syncWorkerActions(w2, p3, { deviceNow: syncAt, actions: [{ clientId: crypto.randomUUID(), at: syncAt, action: { kind: "check_in", location: { checked: false } } }, { clientId: crypto.randomUUID(), at: syncAt + 60_000, action: { kind: "return_packet", packetId: "20C", sheetsReturned: 10, signatures: 4 } }] }, new Date(syncAt + 120_000));

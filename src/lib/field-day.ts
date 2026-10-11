@@ -439,7 +439,7 @@ export const samePacket = (a: string, b: string) => a.trim().toUpperCase() === b
  * Supervisor actions. `packetsOutElsewhere` lists packet IDs currently out on
  * other shifts of the same job — a packet can't be in two hands at once.
  */
-export function supervisorAction(s: ShiftFacts, a: SupervisorAction, packetsOutElsewhere: string[], now: Date, heldElsewhere: Array<{ packetId: string; shiftId: string }> = []): Outcome {
+export function supervisorAction(s: ShiftFacts, a: SupervisorAction, packetsOutElsewhere: string[], now: Date, heldElsewhere: Array<{ packetId: string; shiftId: string; own?: boolean }> = []): Outcome {
   const st = shiftState(s);
   if (st.cancelled) return no("This shift was cancelled.");
   switch (a.kind) {
@@ -452,9 +452,9 @@ export function supervisorAction(s: ShiftFacts, a: SupervisorAction, packetsOutE
       if (st.packetsHeld.some((p) => samePacket(p, id))) return no(`Packet ${id} is kept by the worker for their next shift. If they're handing it back now, they return it first.`);
       if (packetsOutElsewhere.some((p) => samePacket(p, id))) return no(`Packet ${id} is still checked out on another shift. Record its return first.`);
       if (!Number.isInteger(a.sheets) || a.sheets < 1 || a.sheets > 1000) return no("Enter the number of sheets in the packet.");
-      // A packet another worker kept for their next shift (C4.5) can be handed over in person; the record says whose it was.
+      // A packet a worker kept for their next shift (C4.5): their own comes out as carried from that shift; another worker's is handed over in person, and the record says whose it was.
       const taken = heldElsewhere.find((h) => samePacket(h.packetId, id));
-      return { ok: true, event: { type: "PACKET_PICKUP", payload: { packetId: id, sheets: a.sheets, ...(taken ? { takenFrom: taken.shiftId } : {}) } } };
+      return { ok: true, event: { type: "PACKET_PICKUP", payload: { packetId: id, sheets: a.sheets, ...(taken ? (taken.own ? { carriedFrom: taken.shiftId } : { takenFrom: taken.shiftId }) : {}) } } };
     }
     case "batch_count": {
       if (s.workType !== "PETITION") return no("Batch counts are for petition shifts.");
@@ -565,6 +565,7 @@ export function timelineProblem(events: FieldEvent[], s: Pick<ShiftFacts, "start
         }
         break;
       case "PACKET_RETURN": {
+        if (!checkIn) return "A packet can't be returned before check-in.";
         const id = typeof p.packetId === "string" ? [...out, ...held].find((x) => samePacket(x, p.packetId as string)) : undefined;
         if (!id) return "That packet wasn't out at that time.";
         if (!intIn(p.sheetsReturned, 0, 1000) || !intIn(p.signatures, 0, 10_000)) return "Enter the sheets returned and the signatures claimed.";
@@ -573,6 +574,7 @@ export function timelineProblem(events: FieldEvent[], s: Pick<ShiftFacts, "start
         break;
       }
       case "PACKET_HELD": {
+        if (!checkIn) return "A packet can't be kept before check-in.";
         const id = typeof p.packetId === "string" ? [...out].find((x) => samePacket(x, p.packetId as string)) : undefined;
         if (!id) return "That packet wasn't out at that time.";
         out.delete(id);

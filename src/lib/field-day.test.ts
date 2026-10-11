@@ -102,6 +102,9 @@ describe("worker actions", () => {
     expect(timelineProblem([ev("CHECK_IN", 0), ev("CHECK_OUT", 300), { ...carried, createdAt: at(301) }], held)).toMatch(/only go out/);
     // A supervisor taking a colleague's kept packet records whose it was.
     expect(supervisorAction(shift([ev("CHECK_IN", 0)]), { kind: "packet_pickup", packetId: "19b", sheets: 10 }, [], at(5), [{ packetId: "19B", shiftId: "shift-a" }])).toMatchObject({ ok: true, event: { payload: { packetId: "19B", sheets: 10, takenFrom: "shift-a" } } });
+    expect(supervisorAction(shift([ev("CHECK_IN", 0)]), { kind: "packet_pickup", packetId: "19B", sheets: 10 }, [], at(5), [{ packetId: "19B", shiftId: "shift-a", own: true }])).toMatchObject({ ok: true, event: { payload: { packetId: "19B", carriedFrom: "shift-a" } } });
+    // Nothing happens to a packet before check-in, even with a carried-in pickup on the shift.
+    expect(timelineProblem([carried, ev("PACKET_RETURN", 2, { packetId: "18A", sheetsReturned: 20, signatures: 3 }), ev("CHECK_IN", 5)], held)).toMatch(/before check-in/);
   });
 
   it("can't check out holding a packet or mid-break", () => {

@@ -148,7 +148,10 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
   const tools = readTools(s.engagement.job.tools);
   // Packets kept on this shift (C4.5), and which have since gone out with someone else.
   const kept = st.packetsHeld.length ? (await heldOnJob(db(), s.engagement.job.id)).filter((h) => h.heldOn === s.id) : [];
-  const keptLabel = (id: string) => (kept.find((h) => h.packetId === id)?.takenOn ? `${id} (since taken out by another worker)` : id);
+  const keptLabel = (id: string) => {
+    const h = kept.find((k) => k.packetId === id);
+    return h?.takenBy === "worker" ? `${id} (carried to their next shift)` : h?.takenBy === "colleague" ? `${id} (since taken out by another worker)` : id;
+  };
   const live = !!st.checkedInAt && !st.checkedOutAt;
   const eyebrow = st.cancelled ? "Cancelled" : live ? (st.paused ? "On a break" : "Live shift") : st.checkedOutAt ? "Shift done" : "Upcoming shift";
 

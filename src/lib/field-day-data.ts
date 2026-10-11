@@ -258,15 +258,19 @@ export interface HeldPacket {
   heldAt: Date;
   /** The shift a later PACKET_PICKUP took it out on (the worker's next shift, or a colleague's), else null: still in the worker's hands. */
   takenOn: string | null;
+  /** Who took it out: the same worker (carried to their next shift) or a colleague (through their supervisor). */
+  takenBy: "worker" | "colleague" | null;
 }
 
 /**
- * Every packet kept on this job's shifts, with the pickup that has since
- * taken it out, if any. Read through the corrected ledger of the holding
- * shift; pickups are read raw (nothing rejects a pickup today).
+ * Every packet kept on shifts of these jobs (one job, or every job of an
+ * organization; optionally one worker's engagement), with the pickup that
+ * has since taken it out, if any. Read through the corrected ledger of the
+ * holding shift; pickups are read raw (nothing rejects a pickup today).
  */
-export async function heldOnJob(c: Tx | ReturnType<typeof db>, jobId: string): Promise<HeldPacket[]> {
-  const holders = await c.shift.findMany({ where: { engagement: { jobId }, events: { some: { type: "PACKET_HELD" } } }, include: SHIFT_INCLUDE, orderBy: { startsAt: "asc" } });
+export async function heldPackets(c: Tx | ReturnType<typeof db>, scope: { jobId?: string; orgId?: string; engagementId?: string }): Promise<HeldPacket[]> {
+  const where = { ...(scope.engagementId ? { engagementId: scope.engagementId } : {}), engagement: { job: { ...(scope.jobId ? { id: scope.jobId } : {}), ...(scope.orgId ? { orgId: scope.orgId } : {}) } }, events: { some: { type: "PACKET_HELD" as const } } };
+  const holders = await c.shift.findMany({ where, include: SHIFT_INCLUDE, orderBy: { startsAt: "asc" } });
   if (!holders.length) return [];
   const pid = (e: { payload: unknown }) => String((e.payload as { packetId?: unknown } | null)?.packetId ?? "");
   const held: HeldPacket[] = [];
@@ -276,19 +280,32 @@ export async function heldOnJob(c: Tx | ReturnType<typeof db>, jobId: string): P
       const heldAt = corrected.filter((e) => e.type === "PACKET_HELD" && samePacket(pid(e), id)).at(-1)?.createdAt;
       if (!heldAt) continue;
       const sheets = (corrected.filter((e) => e.type === "PACKET_PICKUP" && samePacket(pid(e), id)).at(-1)?.payload as { sheets?: unknown } | null)?.sheets;
-      held.push({ packetId: id, sheets: typeof sheets === "number" ? sheets : null, heldOn: o.id, engagementId: o.engagement.id, heldAt, takenOn: null });
+      held.push({ packetId: id, sheets: typeof sheets === "number" ? sheets : null, heldOn: o.id, engagementId: o.engagement.id, heldAt, takenOn: null, takenBy: null });
     }
   }
   if (!held.length) return held;
   const since = new Date(Math.min(...held.map((h) => h.heldAt.getTime())));
-  const pickups = await c.workEvent.findMany({ where: { type: "PACKET_PICKUP", createdAt: { gt: since }, shift: { engagement: { jobId } } }, select: { shiftId: true, payload: true, createdAt: true }, orderBy: { createdAt: "asc" } });
-  for (const h of held) h.takenOn = pickups.find((e) => e.createdAt > h.heldAt && e.shiftId !== h.heldOn && samePacket(pid(e), h.packetId))?.shiftId ?? null;
+  const jobIds = [...new Set(holders.map((o) => o.engagement.job.id))];
+  const pickups = await c.workEvent.findMany({
+    where: { type: "PACKET_PICKUP", createdAt: { gt: since }, shift: { engagement: { jobId: { in: jobIds } } } },
+    select: { shiftId: true, payload: true, createdAt: true, shift: { select: { engagementId: true, engagement: { select: { jobId: true } } } } },
+    orderBy: { createdAt: "asc" },
+  });
+  const jobOf = new Map(holders.map((o) => [o.id, o.engagement.job.id]));
+  for (const h of held) {
+    const taker = pickups.find((e) => e.createdAt > h.heldAt && e.shiftId !== h.heldOn && e.shift.engagement.jobId === jobOf.get(h.heldOn) && samePacket(pid(e), h.packetId));
+    h.takenOn = taker?.shiftId ?? null;
+    h.takenBy = taker ? (taker.shift.engagementId === h.engagementId ? "worker" : "colleague") : null;
+  }
   return held;
 }
 
+/** Every packet kept on one job's shifts. */
+export const heldOnJob = (c: Tx | ReturnType<typeof db>, jobId: string) => heldPackets(c, { jobId });
+
 /** The packets that would come out at this shift's check-in: kept by this worker on this job, not taken out since. */
 export async function carriedInto(c: Tx | ReturnType<typeof db>, s: { id: string; engagement: { id: string; job: { id: string } } }) {
-  return (await heldOnJob(c, s.engagement.job.id)).filter((h) => h.engagementId === s.engagement.id && h.heldOn !== s.id && h.takenOn === null);
+  return (await heldPackets(c, { jobId: s.engagement.job.id, engagementId: s.engagement.id })).filter((h) => h.heldOn !== s.id && h.takenOn === null);
 }
 
 /**
@@ -333,7 +350,7 @@ export async function supervisorShiftAction(
         include: SHIFT_INCLUDE,
       });
       elsewhere = others.flatMap((o) => shiftState(facts(o)).packetsOut);
-      heldElsewhere = (await heldOnJob(tx, s.engagement.job.id)).filter((h) => h.takenOn === null && h.heldOn !== shiftId).map((h) => ({ packetId: h.packetId, shiftId: h.heldOn }));
+      heldElsewhere = (await heldOnJob(tx, s.engagement.job.id)).filter((h) => h.takenOn === null && h.heldOn !== shiftId).map((h) => ({ packetId: h.packetId, shiftId: h.heldOn, own: h.engagementId === s.engagement.id }));
     }
     const out = supervisorAction(facts(s), action, elsewhere, now, heldElsewhere);
     if (out.ok && action.kind === "batch_count") {
@@ -449,7 +466,8 @@ function syncChunk(
       // t is after the worker's own events, so their side of the shift is as
       // it stands. (A cancelled shift stays cancelled: nothing more is added.)
       // The newest totals win by time entered: an older entry arriving late (another device, a slow sync) is refused rather than placed last.
-      const staleTotals = q.action.kind === "app_counts" && (latest((e) => e.type === "APP_COUNTS")?.getTime() ?? -Infinity) > corrected.getTime();
+      const newestTotals = q.action.kind === "app_counts" ? correctedEvents(f).filter((e) => e.type === "APP_COUNTS").at(-1)?.createdAt : undefined;
+      const staleTotals = !!newestTotals && newestTotals.getTime() > corrected.getTime();
       const problem = radiusProblem(s, q.action) ?? (staleTotals ? "Newer totals were already entered for this shift." : null);
       const out = problem ? { ok: false as const, reason: problem } : workerAction(f, q.action, t);
       if (!out.ok) {

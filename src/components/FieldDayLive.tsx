@@ -1,12 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
-import { Coffee, DoorOpen, LogIn, LogOut, PackageCheck, PenLine, Play, RefreshCw, UserCheck } from "lucide-react";
+import { Coffee, DoorOpen, LogIn, LogOut, PackageCheck, PenLine, Play, RefreshCw, Smartphone, UserCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { shiftState, workerAction, type FieldEvent, type ShiftFacts } from "@/lib/field-day";
 import { stagingCheck, type QueuedAction } from "@/lib/offline-sync";
 import { clockOffset, dismiss, enqueue, flush, isFlushing, pendingFor, prune, serverClock, subscribe, type Pending } from "@/lib/offline-queue";
 import { haptic } from "@/lib/haptics";
+import { appLabel, type CanvassApp } from "@/lib/job-tools";
 import { refreshSavedPage } from "@/components/OfflineBrief";
 
 export interface LiveShift {
@@ -17,6 +18,8 @@ export interface LiveShift {
   startsAt: string;
   endsAt: string;
   staging: { lat: number; lng: number; radiusM: number } | null;
+  /** The app the job's canvassing runs in (C4.4): its totals are entered at the end of the shift. */
+  canvassApp: CanvassApp | null;
   /** The scheduled end had passed when the page was made. */
   ended: boolean;
   events: Array<{ id: string; type: string; payload: unknown; clientId: string | null; createdAt: string }>;
@@ -58,6 +61,8 @@ function describe(a: Action): string {
       return `+${a.count} ${a.unit}`;
     case "return_packet":
       return `Packet ${a.packetId} returned`;
+    case "app_counts":
+      return `${appLabel(a.app)} totals: ${a.doors} doors · ${a.contacts} contacts`;
   }
 }
 
@@ -106,6 +111,7 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
       workType: shift.workType,
       events: shift.events.map((e) => ({ id: e.id, type: e.type, payload: e.payload, actorId: null, createdAt: new Date(e.createdAt) })),
       validations: shift.validations.map((v) => ({ ...v, createdAt: new Date(v.createdAt) })),
+      canvassApp: shift.canvassApp,
     }),
     [shift]
   );
@@ -233,6 +239,27 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
 
   const live = !!st.checkedInAt && !st.checkedOutAt;
   const petition = shift.workType === "PETITION";
+  // The app's totals for the shift (C4.4): entered once the day's work is
+  // done, on shift or after checking out; the newest entry replaces what
+  // was logged by hand here.
+  const app = shift.canvassApp;
+  const appForm = !petition && app && !st.closeout && (
+    <form onSubmit={submit((fd) => ({ kind: "app_counts", app, doors: num(fd, "doors"), contacts: num(fd, "contacts") }))} className="space-y-2 rounded-xl border border-border p-3">
+      <p className="text-sm font-semibold text-fg">{st.appCounts ? `Totals from ${appLabel(app)}: ${st.appCounts.doors} doors · ${st.appCounts.contacts} contacts` : `Totals from ${appLabel(app)}`}</p>
+      <p className="text-hint">At the end of the day, copy the shift totals the app shows. They replace what you logged by hand here.</p>
+      <div className="flex flex-wrap items-end gap-3">
+        <label className="w-28 space-y-1.5">
+          <span className="label">Doors</span>
+          <input name="doors" inputMode="numeric" pattern="[0-9]*" className="field" required defaultValue={st.appCounts?.doors} />
+        </label>
+        <label className="w-28 space-y-1.5">
+          <span className="label">Contacts</span>
+          <input name="contacts" inputMode="numeric" pattern="[0-9]*" className="field" required defaultValue={st.appCounts?.contacts} />
+        </label>
+        <button className="btn-secondary"><Smartphone aria-hidden className="btn-icon" />{st.appCounts ? "Update totals" : "Enter totals"}</button>
+      </div>
+    </form>
+  );
   const status = !mounted
     ? null
     : refused.length
@@ -303,7 +330,10 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
           {!waiting.length && beforeCheckIn}
         </div>
       ) : st.checkedOutAt ? (
-        <p className="text-muted-sm">{waiting.length ? "Checked out — it'll sync when you have signal." : "Checked out."}</p>
+        <div className="space-y-4">
+          <p className="text-muted-sm">{waiting.length ? "Checked out — it'll sync when you have signal." : "Checked out."}</p>
+          {appForm}
+        </div>
       ) : st.paused ? (
         <button type="button" className="btn-primary" onClick={() => record({ kind: "resume" })}>
           <Play aria-hidden className="btn-icon" />
@@ -337,6 +367,7 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
               </form>
             </>
           )}
+          {appForm}
           {st.packetsOut.map((packetId) => (
             <form
               key={packetId}
@@ -369,7 +400,7 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
       )}
       {live && (waiting.length > 0 || savedUnseen) && (
         <p className="text-hint">
-          On this phone: {petition ? `${st.signatures} signatures` : `${st.doors} doors · ${st.contacts} contacts`}
+          On this phone: {petition ? `${st.signatures} signatures` : `${st.doors} doors · ${st.contacts} contacts${st.appCounts ? `, from ${appLabel(st.appCounts.app as CanvassApp)}` : ""}`}
           {waiting.length > 0 ? " including what's waiting to sync." : " including entries synced since this page loaded."}
         </p>
       )}

@@ -15,6 +15,7 @@
  *   saved, not even while waiting to sync.
  */
 import { locationCheck, type LocationCheck, type WorkerAction } from "@/lib/field-day";
+import { isCanvassApp } from "@/lib/job-tools";
 import { MAX_RADIUS_M, MIN_RADIUS_M } from "@/lib/job-launch";
 
 export const MAX_OFFLINE_MS = 24 * 3_600_000;
@@ -94,6 +95,10 @@ export function readQueued(raw: unknown): QueuedAction | null {
     case "return_packet":
       if (typeof a.packetId !== "string" || a.packetId.length > 40) return null;
       action = { kind: "return_packet", packetId: a.packetId, sheetsReturned: int(a.sheetsReturned), signatures: int(a.signatures) };
+      break;
+    case "app_counts":
+      if (!isCanvassApp(a.app)) return null;
+      action = { kind: "app_counts", app: a.app, doors: int(a.doors), contacts: int(a.contacts) };
       break;
     default:
       return null;

@@ -1,5 +1,6 @@
 import { affiliationLabel, cardAffiliation, jobCardAnswers, readDisclosure, type CompensationMethod, type JobType } from "@/lib/jobs";
 import { readLaunch } from "@/lib/job-launch";
+import { readTools, toolsText } from "@/lib/job-tools";
 import { CAMPAIGN_TYPES, issueLabel } from "@/lib/political-fit";
 import { plural } from "@/lib/format";
 import { Row } from "@/components/Row";
@@ -24,6 +25,7 @@ export function JobCard({
     headcount: number | null;
     cancellationNoticeHours: number;
     launch?: unknown;
+    tools?: unknown;
     orgName: string;
     jurisdictionRules: unknown;
   };
@@ -50,6 +52,7 @@ export function JobCard({
           ) : "Not set"}
         </Row>
         <Row label="Dates">{day(job.startsAt)} – {day(job.endsAt)} · {job.headcount ? plural(job.headcount, "worker") : "—"}</Row>
+        {toolsText(readTools(job.tools)) && <Row label="Canvassing app">{toolsText(readTools(job.tools))}; you enter its returned totals at the end of each shift</Row>}
         <Row label="How each day starts">
           {launch.mode === "SELF"
             ? "Self-launch: you start from wherever you are; check-in records the time only"

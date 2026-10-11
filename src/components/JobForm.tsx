@@ -5,6 +5,7 @@ import { saveJob, type JobFormState } from "@/app/jobs/actions";
 import { AFFILIATIONS, affiliationLabel, COMPENSATION_METHODS, formToObject, HIRING_MODES, JOB_TYPES, validateJob } from "@/lib/jobs";
 import { BUILDER_STEPS, errorsForStep, firstStepWithErrors, REVIEW_STEP, stepOfField } from "@/lib/job-builder";
 import { LAUNCH_MODES, readLaunch, validateLaunch } from "@/lib/job-launch";
+import { CANVASS_APPS } from "@/lib/job-tools";
 import { CAMPAIGN_TYPES, ISSUES } from "@/lib/political-fit";
 import { US_STATES } from "@/lib/experience";
 import { StagingPointsEditor } from "@/components/StagingPointsEditor";
@@ -56,12 +57,16 @@ export function JobForm({
   // The server's answer sends the builder to the step it belongs to (state
   // adjusted while rendering, as React suggests, when the answer is new).
   const [answered, setAnswered] = useState(state);
+  const [focusTick, setFocusTick] = useState(0);
   if (state !== answered) {
     setAnswered(state);
     setErrors(state.errors);
     setMessage(state.message);
     const serverStep = firstStepWithErrors(state.errors);
-    if (serverStep !== null) setStep(serverStep);
+    if (serverStep !== null) {
+      setStep(serverStep);
+      setFocusTick((t) => t + 1);
+    }
   }
   // Focus the step heading on a change of step, not on first paint (nor on
   // StrictMode's second run of the effect).
@@ -70,8 +75,7 @@ export function JobForm({
     if (shown.current !== step) heading.current?.focus();
     shown.current = step;
   }, [step]);
-  // After a failed jump, the first field with a problem takes focus.
-  const [focusTick, setFocusTick] = useState(0);
+  // After a failed jump (or the server's answer), the first field with a problem takes focus.
   useEffect(() => {
     if (focusTick) focusFirstProblem(form.current);
   }, [focusTick]);
@@ -100,15 +104,15 @@ export function JobForm({
         const s = stepOfField(k);
         return s < step || (stop === null ? s >= n : s > stop);
       };
-      const next = { ...Object.fromEntries(Object.entries(errors).filter(([k]) => keep(k))), ...(r.ok || stop === null ? {} : errorsForStep(r.errors, stop)) };
-      setErrors(next);
+      const remaining = { ...Object.fromEntries(Object.entries(errors).filter(([k]) => keep(k))), ...(r.ok || stop === null ? {} : errorsForStep(r.errors, stop)) };
+      setErrors(remaining);
       if (stop !== null) {
         setMessage(FIX);
         setStep(stop);
         setFocusTick((t) => t + 1);
         return;
       }
-      if (!Object.keys(next).length) setMessage((m) => (m === FIX ? "" : m));
+      if (!Object.keys(remaining).length) setMessage((m) => (m === FIX ? "" : m));
     }
     if (n === REVIEW_STEP) setSummary(read());
     setStep(n);
@@ -139,7 +143,7 @@ export function JobForm({
       onKeyDown={(e) => {
         // Enter in a text field goes to the next step, as it would submit a one-page form (not in the staging-point list, which has its own buttons).
         const t = e.target;
-        if (e.key === "Enter" && step < REVIEW_STEP && t instanceof HTMLInputElement && ["text", "date", "number", ""].includes(t.type === "text" ? "" : t.type) && !t.closest("[data-list]")) {
+        if (e.key === "Enter" && step < REVIEW_STEP && t instanceof HTMLInputElement && ["text", "date", "number"].includes(t.type) && !t.closest("[data-list]")) {
           e.preventDefault();
           goTo(step + 1);
         }
@@ -312,6 +316,26 @@ export function JobForm({
           <textarea name="script" className="field min-h-24" maxLength={4000} defaultValue={d("script")} {...describe("script")} />
           {err("script")}
         </label>
+        <p className="label sm:col-span-3">Canvassing app {optional}</p>
+        <label className="space-y-1.5">
+          <span className="label">App</span>
+          <select name="canvassApp" className="field" defaultValue={d("canvassApp")} {...describe("canvassApp")}>
+            <option value="">None: counts are logged in Turfcut</option>
+            {CANVASS_APPS.map((a) => <option key={a.value} value={a.value}>{a.label}</option>)}
+          </select>
+          {err("canvassApp")}
+        </label>
+        <label className="space-y-1.5">
+          <span className="label">List or turf in the app {optional}</span>
+          <input name="toolList" className="field" maxLength={120} defaultValue={d("toolList")} placeholder="Turf 12" {...describe("toolList")} />
+          {err("toolList")}
+        </label>
+        <label className="space-y-1.5 sm:col-span-3">
+          <span className="label">How to get into it {optional}</span>
+          <textarea name="toolNotes" className="field min-h-16" maxLength={500} defaultValue={d("toolNotes")} placeholder="Ask your supervisor for the campaign's login code." {...describe("toolNotes")} />
+          <p className="text-hint">At the end of a shift the worker enters the app&apos;s returned totals (doors, contacts); those replace what they logged by hand.</p>
+          {err("toolNotes")}
+        </label>
         <p className="label sm:col-span-3">Who handles problems</p>
         <label className="space-y-1.5">
           <span className="label">Emergencies</span>
@@ -437,6 +461,7 @@ function Review({ raw, jurisdictions, goTo }: { raw: Record<string, unknown>; ju
     { step: 2, label: "Cancellation notice", value: `${s("cancellationNoticeHours") || "24"} hours` },
     { step: 3, label: "Requirements", value: [on("registration") && "Circulator registration", on("badge") && "Badge", on("affidavit") && "Signed affidavit", s("training") && `Training: ${s("training")}`].filter(Boolean).join(", ") || "None beyond the jurisdiction's" },
     { step: 3, label: "Script", value: s("script") || "—" },
+    { step: 3, label: "Canvassing app", value: s("canvassApp") ? `${labelOf(CANVASS_APPS, s("canvassApp"))}${s("toolList") ? `: ${s("toolList")}` : ""}` : "None" },
     { step: 3, label: "Contacts", value: `Emergencies: ${s("contactEmergency") || "—"} · Disputes: ${s("contactDisputes") || "—"} · Lost materials: ${s("contactLostMaterials") || "—"}` },
     { step: 4, label: "Campaign", value: `${labelOf(CAMPAIGN_TYPES, s("campaignType")) || "—"} · ${s("affiliation") ? affiliationLabel(s("affiliation")) : "—"}${s("campaignName") ? ` · ${s("campaignName")}` : ""}` },
     { step: 4, label: "Ballot measure IDs", value: s("measureIds") || "—" },

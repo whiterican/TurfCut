@@ -51,6 +51,22 @@ describe("worker actions", () => {
     expect(workerAction(shift([ev("CHECK_IN", 0), ev("PAUSE_START", 5)]), { kind: "log", unit: "signatures", count: 1 }, at(10)).ok).toBe(false);
   });
 
+  it("takes the canvassing app's totals once on shift, for the job's own app, and lets the newest replace hand logging (C4.4)", () => {
+    const canvass = (events: FieldEvent[]) => shift(events, { workType: "CANVASS", canvassApp: "MINIVAN" });
+    const totals = { kind: "app_counts" as const, app: "MINIVAN" as const, doors: 42, contacts: 7 };
+    expect(workerAction(canvass([]), totals, at(10)).ok).toBe(false);
+    expect(workerAction(canvass([ev("CHECK_IN", 0)]), totals, at(10))).toEqual({ ok: true, event: { type: "APP_COUNTS", payload: { app: "MINIVAN", doors: 42, contacts: 7 } } });
+    expect(workerAction(canvass([ev("CHECK_IN", 0), ev("CHECK_OUT", 300)]), totals, at(310)).ok).toBe(true);
+    expect(workerAction(canvass([ev("CHECK_IN", 0)]), { ...totals, app: "PDI" }, at(10))).toMatchObject({ ok: false, reason: expect.stringMatching(/MiniVAN/) });
+    expect(workerAction(shift([ev("CHECK_IN", 0)], { workType: "CANVASS" }), totals, at(10)).ok).toBe(false);
+    expect(workerAction(shift([ev("CHECK_IN", 0)], { canvassApp: "MINIVAN" }), totals, at(10)).ok).toBe(false);
+    expect(workerAction(canvass([ev("CHECK_IN", 0)]), { ...totals, contacts: 50 }, at(10)).ok).toBe(false);
+    expect(workerAction(canvass([ev("CHECK_IN", 0)]), { ...totals, doors: 5001 }, at(10)).ok).toBe(false);
+    const st = shiftState(canvass([ev("CHECK_IN", 0), ev("DOOR_KNOCK", 5, { count: 10 }), ev("CONTACT", 6, { count: 2 }), ev("APP_COUNTS", 200, { app: "MINIVAN", doors: 42, contacts: 7 }), ev("APP_COUNTS", 210, { app: "MINIVAN", doors: 45, contacts: 8 })]));
+    expect(st).toMatchObject({ doors: 45, contacts: 8, appCounts: { app: "MINIVAN", doors: 45, contacts: 8 } });
+    expect(shiftState(canvass([ev("CHECK_IN", 0), ev("DOOR_KNOCK", 5, { count: 10 })])).doors).toBe(10);
+  });
+
   it("can't check out holding a packet or mid-break", () => {
     const holding = shift([ev("CHECK_IN", 0), ev("PACKET_PICKUP", 5, { packetId: "18A", sheets: 25 }, "sup")]);
     expect(workerAction(holding, { kind: "check_out" }, at(60))).toEqual({ ok: false, reason: "Return packet 18A before checking out." });

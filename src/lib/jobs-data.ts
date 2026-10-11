@@ -36,7 +36,21 @@ function jobData(input: JobInput) {
     cancellationNoticeHours: input.cancellationNoticeHours,
     // Nothing said about the launch leaves it as stored (an API edit from before C4).
     ...(input.launch ? { launch: json(input.launch) } : {}),
+    ...(input.tools ? { tools: json(input.tools) } : {}),
   };
+}
+
+/**
+ * A job from before C4 says nothing about its launch (staging is set per
+ * shift). The builder always sends a mode, and its default — staged with no
+ * points yet — means "as it was" for such a job: the stored null stays, so
+ * nothing is recorded and no release opens over a typo fix on a live job,
+ * and a draft still publishes as before. Picking self-launch or adding a
+ * point is a real change to how the day starts.
+ */
+function keepUnsetLaunch<T extends { launch?: unknown }>(stored: unknown, input: JobInput, data: T): T {
+  if (stored === null && input.launch?.mode === "STAGED" && input.launch.points.length === 0) delete data.launch;
+  return data;
 }
 
 /** Creates a DRAFT job. Publishing is a separate, gated step. */
@@ -59,7 +73,9 @@ export async function updateDraftJob(jobId: string, orgId: string, actorId: stri
   if (!UUID_RE.test(jobId)) return false;
   return db().$transaction(async (tx) => {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`job:${jobId}`}))`;
-    const { count } = await tx.job.updateMany({ where: { id: jobId, orgId, status: "DRAFT" }, data: jobData(input) });
+    const stored = await tx.job.findFirst({ where: { id: jobId, orgId, status: "DRAFT" }, select: { launch: true } });
+    if (!stored) return false;
+    const { count } = await tx.job.updateMany({ where: { id: jobId, orgId, status: "DRAFT" }, data: keepUnsetLaunch(stored.launch, input, jobData(input)) });
     if (count === 0) return false;
     await tx.auditEvent.create({ data: { actorId, action: "job.edited", entityType: "Job", entityId: jobId } });
     return true;
@@ -87,13 +103,7 @@ export async function updatePublishedJob(
     const job = await tx.job.findFirst({ where: { id: jobId, orgId }, include: { jurisdiction: true, org: true } });
     if (!job) return { ok: false as const, reasons: ["Job not found."] };
     if (job.status !== "PUBLISHED" && job.status !== "PAUSED") return { ok: false as const, reasons: ["Only a published or paused job is edited this way."] };
-    const data = jobData(input);
-    // A job from before C4 says nothing about its launch (staging is set per
-    // shift). The builder always sends a mode, and its default — staged with
-    // no points yet — means "as it was" for such a job: the stored null stays,
-    // nothing is recorded, and no release opens over a typo fix. Picking
-    // self-launch or adding a point is a real change to how the day starts.
-    if (job.launch === null && input.launch?.mode === "STAGED" && input.launch.points.length === 0) delete (data as { launch?: unknown }).launch;
+    const data = keepUnsetLaunch(job.launch, input, jobData(input));
     const jurisdiction = data.jurisdictionId === job.jurisdictionId ? job.jurisdiction : await tx.jurisdictionProfile.findUnique({ where: { id: data.jurisdictionId } });
     // Judged as a draft would be: the question is whether the edited job could publish, not whether it is.
     const reasons = publishBlockers({ job: { ...job, ...data, status: "DRAFT" }, jurisdiction, org: job.org }, now);

@@ -21,6 +21,7 @@ describe("job builder steps", () => {
       compensationMethod: "HOURLY", payRate: "-1", headcount: "0", hiringModes: ["telepathy"], training: long, script: long, campaignType: "x", affiliation: "x",
       campaignName: long, issue_housing: "maybe", message: long, contactEmergency: long, contactDisputes: long, contactLostMaterials: long,
       measureIds: Array.from({ length: 30 }, (_, i) => `M${i}`).join(","), cancellationNoticeHours: "999", launchMode: "weird", point_0_name: "", point_0_lat: "95", point_0_lng: "0", point_0_radius: "1",
+      canvassApp: "nope", toolList: "y".repeat(200), toolNotes: "z".repeat(600),
     });
     expect(bad.ok).toBe(false);
     if (empty.ok || bad.ok) return;

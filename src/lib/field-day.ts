@@ -15,6 +15,7 @@
  * - A worker can't hold two overlapping shifts, across every campaign.
  */
 import type { Validated } from "@/lib/experience";
+import { appLabel, type CanvassApp } from "@/lib/job-tools";
 import { CORRECTABLE, effectiveEvents } from "@/lib/corrections";
 
 // Also runs on the phone (offline field day), so it doesn't import lib/jobs.
@@ -62,6 +63,8 @@ export interface ShiftFacts {
   validations: FieldValidation[];
   /** True when the organization assigned turf for this shift. */
   campaignTurf?: boolean;
+  /** The app the job's canvassing runs in (C4.4), whose totals the worker enters at the end. */
+  canvassApp?: CanvassApp | null;
 }
 
 const obj = (v: unknown): Record<string, unknown> => (v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {});
@@ -79,6 +82,8 @@ export interface ShiftState {
   doors: number;
   contacts: number;
   batchCounted: boolean;
+  /** The canvassing app's totals for the shift (C4.4), newest entry; when set, `doors` and `contacts` are these. */
+  appCounts: { app: string; doors: number; contacts: number } | null;
   closeout: FieldValidation | null;
   atStaging: boolean | null;
 }
@@ -96,6 +101,7 @@ export function shiftState(s: ShiftFacts): ShiftState {
     doors: 0,
     contacts: 0,
     batchCounted: false,
+    appCounts: null,
     closeout: null,
     atStaging: null,
   };
@@ -132,6 +138,10 @@ export function shiftState(s: ShiftFacts): ShiftState {
       case "CONTACT":
         st.contacts += num(p.count) || 1;
         break;
+      case "APP_COUNTS":
+        // The app's returned totals replace what was logged by hand; the newest entry wins.
+        if (typeof p.app === "string" && Number.isInteger(p.doors) && Number.isInteger(p.contacts)) st.appCounts = { app: p.app, doors: p.doors as number, contacts: p.contacts as number };
+        break;
       case "BATCH_COUNT":
         // Same rule as pay (lib/scorecard verifiedWork): only a valid count counts.
         if (num(p.accepted) >= 0 && typeof p.accepted === "number" && (typeof p.reviewed === "number" || typeof p.rejected === "number")) st.batchCounted = true;
@@ -142,6 +152,10 @@ export function shiftState(s: ShiftFacts): ShiftState {
     }
   }
   st.packetsOut = [...out];
+  if (st.appCounts) {
+    st.doors = st.appCounts.doors;
+    st.contacts = st.appCounts.contacts;
+  }
   const closeouts = s.validations.filter((v) => v.workEventId === null).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   st.closeout = closeouts[0] ?? null;
   return st;
@@ -274,7 +288,7 @@ export function shiftProgress(s: ShiftFacts, payout?: { done: boolean; detail: s
       key: "collecting",
       label: petition ? "Collecting signatures" : "Knocking doors",
       done: !!st.checkedOutAt,
-      detail: petition ? `${st.signatures} submitted` : `${st.doors} doors · ${st.contacts} contacts`,
+      detail: petition ? `${st.signatures} submitted` : `${st.doors} doors · ${st.contacts} contacts${st.appCounts ? ` (from ${appLabel(st.appCounts.app as CanvassApp)})` : ""}`,
     },
     {
       key: "return",
@@ -313,8 +327,12 @@ export type WorkerAction =
   | { kind: "resume" }
   | { kind: "log"; unit: "signatures" | "doors" | "contacts"; count: number }
   | { kind: "return_packet"; packetId: string; sheetsReturned: number; signatures: number }
+  | { kind: "app_counts"; app: CanvassApp; doors: number; contacts: number }
   | { kind: "check_out" }
   | { kind: "cancel"; reason: string };
+
+/** The most an app's shift totals can be: a typo past this is refused rather than recorded. */
+export const APP_COUNT_MAX = 5000;
 
 export type SupervisorAction =
   | { kind: "packet_pickup"; packetId: string; sheets: number }
@@ -365,6 +383,17 @@ export function workerAction(s: ShiftFacts, a: WorkerAction, now: Date): Outcome
       if (!Number.isInteger(a.sheetsReturned) || a.sheetsReturned < 0 || a.sheetsReturned > 1000) return no("Enter the number of sheets returned.");
       if (!Number.isInteger(a.signatures) || a.signatures < 0 || a.signatures > 10_000) return no("Enter the signatures you're claiming on this packet.");
       return { ok: true, event: { type: "PACKET_RETURN", payload: { packetId, sheetsReturned: a.sheetsReturned, signatures: a.signatures } } };
+    }
+    case "app_counts": {
+      // The app's totals come at the end of the day, on shift or after checking out, until the shift is reviewed.
+      if (!st.checkedInAt) return no("Check in first.");
+      if (st.closeout) return no("This shift has been reviewed. Ask your supervisor to enter the totals.");
+      if (s.workType !== "CANVASS") return no("App totals are for canvass shifts.");
+      if (!s.canvassApp) return no("This job doesn't use a canvassing app.");
+      if (a.app !== s.canvassApp) return no(`This job's work runs in ${appLabel(s.canvassApp)}. Reload the shift and try again.`);
+      if (!Number.isInteger(a.doors) || a.doors < 0 || a.doors > APP_COUNT_MAX || !Number.isInteger(a.contacts) || a.contacts < 0 || a.contacts > APP_COUNT_MAX) return no(`Enter the app's totals as whole numbers from 0 to ${APP_COUNT_MAX}.`);
+      if (a.contacts > a.doors) return no("Contacts can't be more than doors.");
+      return { ok: true, event: { type: "APP_COUNTS", payload: { app: a.app, doors: a.doors, contacts: a.contacts } } };
     }
     case "check_out":
       if (!active) return no("You're not on shift.");
@@ -492,6 +521,11 @@ export function timelineProblem(events: FieldEvent[], s: Pick<ShiftFacts, "start
         if (!intIn(p.count, 1, 500)) return "Counts are whole numbers from 1 to 500.";
         if (e.type === "SIGNATURE_SUBMITTED" && s.workType !== "PETITION") return "Signatures are for petition shifts.";
         if (e.type !== "SIGNATURE_SUBMITTED" && s.workType !== "CANVASS") return "Doors and contacts are for canvass shifts.";
+        break;
+      case "APP_COUNTS":
+        if (!checkIn) return "App totals need a shift that started.";
+        if (s.workType !== "CANVASS") return "App totals are for canvass shifts.";
+        if (!intIn(p.doors, 0, APP_COUNT_MAX) || !intIn(p.contacts, 0, APP_COUNT_MAX)) return `App totals are whole numbers from 0 to ${APP_COUNT_MAX}.`;
         break;
       case "PACKET_PICKUP":
         if (!checkIn || checkOut) return "A packet can only go out while on shift.";

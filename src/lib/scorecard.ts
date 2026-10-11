@@ -155,8 +155,9 @@ export interface ScorecardOptions {
 }
 
 // Shifts exist only once a worker is hired, so a WITHDRAWN engagement's shifts
-// are those of a worker who left a changed job (C4.3): their past verified
-// work stays, and the shifts cancelled on leaving are excused (cancellationOf).
+// are those of a hired worker who left (since C4.3, over a changed job):
+// their past verified work stays, and the shifts cancelled on leaving are
+// judged by cancellationOf like any other.
 const ACCEPTED_ENGAGEMENT = new Set(["CLAIMED", "ACTIVE", "COMPLETED", "CANCELLED", "WITHDRAWN"]);
 
 function num(v: unknown): number | null {
@@ -220,10 +221,18 @@ function shiftFacts(shift: ScorecardShift): ShiftFacts {
   let checkIn: Date | null = null;
   let checkOut: Date | null = null;
   const pauses: Array<{ start: Date; end: Date | null }> = [];
+  // The canvassing app's totals (C4.4), newest entry: they replace what was logged by hand.
+  let app: { doors: number; contacts: number } | null = null;
   for (const e of events) {
     const p = obj(e.payload);
     const count = num(p.count) ?? 1;
     switch (e.type) {
+      case "APP_COUNTS": {
+        const doors = num(p.doors);
+        const contacts = num(p.contacts);
+        if (doors !== null && contacts !== null && Number.isInteger(doors) && Number.isInteger(contacts)) app = { doors, contacts };
+        break;
+      }
       case "CHECK_IN":
         if (!checkIn) checkIn = e.createdAt;
         break;
@@ -263,6 +272,10 @@ function shiftFacts(shift: ScorecardShift): ShiftFacts {
     }
   }
 
+  if (app) {
+    f.doors = app.doors;
+    f.contacts = app.contacts;
+  }
   f.started = checkIn !== null;
   const completed = checkIn !== null && checkOut !== null && checkOut > checkIn;
   f.completed = completed;

@@ -5,7 +5,9 @@ import { openRelease, releaseFromJob } from "@/lib/job-changes-data";
 import { cancellationOf } from "@/lib/scorecard";
 import { validateJob } from "@/lib/jobs";
 import { radiusFor, readLaunch } from "@/lib/job-launch";
-import { scheduleShift, syncWorkerActions, workerShiftAction } from "@/lib/field-day-data";
+import { facts, loadShift, scheduleShift, syncWorkerActions, workerShiftAction } from "@/lib/field-day-data";
+import { shiftState } from "@/lib/field-day";
+import { readTools } from "@/lib/job-tools";
 import { applyToJob, claimJob, inviteWorker } from "@/lib/engagements-data";
 import { loadNotifications } from "@/lib/notifications-data";
 import { savePreferences } from "@/lib/political-fit-data";
@@ -155,6 +157,39 @@ const check = (l: string, c: unknown, d?: unknown) => { if (c) console.log(`PASS
   const paused = await updatePublishedJob(live.id, ORG, OWNER, input({ launchMode: "SELF", title: "Launch test (renamed)", payRate: "22", startsAt: `${year}-03-02`, headcount: "5" }));
   await p.job.update({ where: { id: live.id }, data: { status: "PUBLISHED" } });
   check("a paused job is edited the same way", paused.ok && paused.changed.join() === "headcount", paused);
+
+  // A pre-C4 draft keeps its unset launch through a builder save, and publishes as before.
+  const legacyDraft = await createJob(ORG, OWNER, input({}));
+  const draftSaved = await updateDraftJob(legacyDraft.id, ORG, OWNER, input({ launchMode: "STAGED", title: "Legacy draft, renamed" }));
+  const legacyDraftRow = await p.job.findUniqueOrThrow({ where: { id: legacyDraft.id }, select: { launch: true, title: true } });
+  check("a pre-C4 draft keeps its unset launch through a builder save and still publishes", draftSaved && legacyDraftRow.launch === null && legacyDraftRow.title === "Legacy draft, renamed" && (await publishJob(legacyDraft.id, ORG, OWNER)).ok, legacyDraftRow);
+
+  // --- C4.4: the canvassing app's totals ---
+  const canvass = await createJob(ORG, OWNER, input({ type: "CANVASS", launchMode: "SELF", canvassApp: "MINIVAN", toolList: "Turf 12", toolNotes: "Code 4411 from Sam" }));
+  const tools = readTools(canvass.tools);
+  check("a job stores its canvassing app, list and notes, and publishes", tools.canvassApp === "MINIVAN" && tools.list === "Turf 12" && tools.notes === "Code 4411 from Sam" && (await publishJob(canvass.id, ORG, OWNER)).ok, tools);
+  const noApp = validateJob({ ...base, type: "CANVASS", toolList: "Turf 12" });
+  check("a list without an app is refused by the builder", !noApp.ok && /Pick the app/.test(noApp.errors.canvassApp ?? ""), noApp);
+  const cClaim = await claimJob(W2, W2, canvass.id);
+  const cShift = cClaim.ok ? await scheduleShift(org, cClaim.engagementId, { startsAt: new Date(Date.UTC(year, 2, 20, 15)).toISOString(), endsAt: new Date(Date.UTC(year, 2, 20, 19)).toISOString() }) : null;
+  const cId = cShift?.ok ? cShift.shiftId : "";
+  const w2 = { workerId: W2, profileId: W2 };
+  const cStart = new Date(Date.UTC(year, 2, 20, 14, 55));
+  const cIn = await workerShiftAction(w2, cId, { kind: "check_in", location: { checked: false } }, cStart);
+  const cLog = await workerShiftAction(w2, cId, { kind: "log", unit: "doors", count: 10 }, new Date(Date.UTC(year, 2, 20, 16)));
+  const wrongApp = await workerShiftAction(w2, cId, { kind: "app_counts", app: "PDI", doors: 42, contacts: 7 }, new Date(Date.UTC(year, 2, 20, 18)));
+  const rightApp = await workerShiftAction(w2, cId, { kind: "app_counts", app: "MINIVAN", doors: 42, contacts: 7 }, new Date(Date.UTC(year, 2, 20, 18, 1)));
+  const cState = shiftState(facts((await loadShift(cId))!));
+  check("the app's totals are taken for the job's own app only, and replace what was logged by hand", cIn.ok && cLog.ok && !wrongApp.ok && /MiniVAN/.test(wrongApp.reason) && rightApp.ok && cState.doors === 42 && cState.contacts === 7 && cState.appCounts?.app === "MINIVAN", { cIn, cLog, wrongApp, rightApp, cState });
+  const cSyncAt = Date.UTC(year, 2, 20, 18, 30);
+  const cSync = await syncWorkerActions(w2, cId, { deviceNow: cSyncAt, actions: [{ clientId: crypto.randomUUID(), at: cSyncAt, action: { kind: "app_counts", app: "MINIVAN", doors: 45, contacts: 8 } }] }, new Date(cSyncAt));
+  const cState2 = shiftState(facts((await loadShift(cId))!));
+  check("…the newest entry wins, through the offline sync too", cSync.ok && cSync.results[0].status === "saved" && cState2.doors === 45 && cState2.contacts === 8, { cSync, cState2 });
+  const cOut = await workerShiftAction(w2, cId, { kind: "check_out" }, new Date(Date.UTC(year, 2, 20, 19)));
+  const afterOut = await workerShiftAction(w2, cId, { kind: "app_counts", app: "MINIVAN", doors: 46, contacts: 8 }, new Date(Date.UTC(year, 2, 20, 19, 5)));
+  check("the totals can still be entered after checking out", cOut.ok && afterOut.ok, { cOut, afterOut });
+  const appEvents = await p.workEvent.count({ where: { shiftId: cId, type: "APP_COUNTS" } });
+  check("each entry is its own event; nothing is edited", appEvents === 3, appEvents);
 
   await p.$disconnect();
   process.exit(fails ? 1 : 0);

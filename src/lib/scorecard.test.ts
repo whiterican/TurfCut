@@ -295,6 +295,13 @@ describe("spec formulas and verification rules", () => {
     expect(computeScorecard([started, missed], { now }).reliability.showRate).toMatchObject({ value: 0.5, numerator: 1, denominator: 2 });
   });
 
+  it("takes the canvassing app's newest totals over hand-logged doors and contacts (C4.4)", () => {
+    const s = shift([["CHECK_IN", 0], ["DOOR_KNOCK", 10, { count: 10 }], ["CONTACT", 11, { count: 3 }], ["APP_COUNTS", 290, { app: "MINIVAN", doors: 40, contacts: 9 }], ["APP_COUNTS", 295, { app: "MINIVAN", doors: 42, contacts: 7 }], ["CHECK_OUT", 300]], { workType: "CANVASS" });
+    const seg = computeScorecard([s], { now }).segments[0];
+    expect(seg.doorsAttempted).toBe(42);
+    expect(seg.contacts).toBe(7);
+  });
+
   it("shows no doors-per-hour for petition work with no doors logged", () => {
     const seg = computeScorecard([shift([["CHECK_IN", 0], ["SIGNATURE_SUBMITTED", 30, { count: 10 }], ["CHECK_OUT", 120]])], { now }).segments[0];
     expect(seg.averages.doorsPerActiveHour.value).toBeNull();

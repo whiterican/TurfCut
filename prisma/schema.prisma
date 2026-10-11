@@ -486,6 +486,8 @@ enum WorkEventType {
   CORRECTION // signed metric correction event (supersedes, never rewrites)
   SHIFT_CANCELLED // payload: { by: "WORKER" | "ORGANIZATION", reason } — append-only record of a cancellation
   NOTE
+  APP_COUNTS // C4.4: the canvassing app's returned totals for the shift — payload: { app, doors, contacts }; the newest replaces logged doors/contacts
+  PACKET_HELD // C4.5: a packet the worker keeps between shifts — payload: { packetId }; it is picked up again on their next shift
 }
 
 /// Immutable ledger of everything that happened on a shift.

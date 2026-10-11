@@ -710,6 +710,18 @@ Built in C3.6b (see the C3 scope below). Approved as recommended by review:
   approved (or its terms are unsigned) no edit saves, even a typo fix,
   since a live job has to pass the publishing checks (rule 6). Say if
   either should change.
+- **Canvassing-app handoff (C4.4)**: step 4 of the builder names the app
+  the job's canvassing runs in (MiniVAN, PDI or Ecanvasser), the list or
+  turf to open in it, and a line of instructions; stored on `Job.tools`
+  (`src/lib/job-tools.ts`, read tolerantly, never invented). The job card
+  and the shift brief show it. At the end of a canvass shift — on shift or
+  after checking out, until the shift is reviewed — the worker copies the
+  app's shift totals (doors, contacts) into the field-day page; each entry
+  is an `APP_COUNTS` event naming the app, and the newest replaces what
+  was logged by hand for that shift, on the page, in the supervisor's view
+  and on the scorecard (the hand-logged events stay in the record). The
+  server takes totals only for the job's own app, like the check-in radius.
+  Turfcut doesn't connect to the apps: nothing leaves or enters them.
 
 ## C3 scope — the hiring hub
 

@@ -17,7 +17,7 @@ export const BUILDER_STEPS: readonly BuilderStep[] = [
   { id: "work", title: "The work", blurb: "What the job is and where its rules come from.", fields: ["title", "type", "jurisdictionId", "description"] },
   { id: "when", title: "When and where", blurb: "The dates, the city, and how each day starts.", fields: ["startsAt", "endsAt", "city", "state", "launchMode", "points"] },
   { id: "pay", title: "Pay and hiring", blurb: "What it pays, how many people, and how they get in.", fields: ["compensationMethod", "payRate", "headcount", "hiringModes", "cancellationNoticeHours"] },
-  { id: "requirements", title: "Requirements and contacts", blurb: "What workers must hold, and who they call when something goes wrong.", fields: ["registration", "badge", "affidavit", "training", "script", "contactEmergency", "contactDisputes", "contactLostMaterials"] },
+  { id: "requirements", title: "Requirements and contacts", blurb: "What workers must hold, the app the work runs in, and who they call when something goes wrong.", fields: ["registration", "badge", "affidavit", "training", "script", "canvassApp", "toolList", "toolNotes", "contactEmergency", "contactDisputes", "contactLostMaterials"] },
   { id: "campaign", title: "Campaign disclosure", blurb: "What workers see about the campaign before they apply.", fields: ["campaignType", "affiliation", "campaignName", "measureIds", "message", "issues"] },
   { id: "review", title: "Review", blurb: "Check everything, then save the draft.", fields: [] },
 ];

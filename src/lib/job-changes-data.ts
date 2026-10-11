@@ -50,15 +50,20 @@ export async function releaseFromJob(actor: { workerId: string; profileId: strin
     if (current.status !== "CLAIMED" && current.status !== "ACTIVE") return { ok: false as const, reason: "Only a hired worker leaves this way." };
     const release = await openRelease({ ...e, status: current.status }, now, tx);
     if (!release) return { ok: false as const, reason: "The 24 hours to leave over a change have passed, or nothing changed since you were hired." };
+    // Unstarted shifts go first, each marked as a job-change release so the
+    // scorecard reads it as excused. Each is locked (worker → job → shift,
+    // the order field actions respect: a check-in holds only the shift), so
+    // one can't start between the check below and its cancellation.
+    const future = await tx.shift.findMany({ where: { engagementId: e.id, status: "SCHEDULED", endsAt: { gt: now } }, select: { id: true }, orderBy: { id: "asc" } });
+    for (const s of future) await lock(tx, `shift:${s.id}`);
     // A shift under way ends first: leaving mid-shift would strand it on an ended engagement.
     if (await tx.shift.count({ where: { engagementId: e.id, status: "ACTIVE" } })) return { ok: false as const, reason: "Check out of your current shift first, then leave the job." };
-    // Unstarted shifts go first, each marked as a job-change release so the scorecard reads it as excused.
-    const future = await tx.shift.findMany({ where: { engagementId: e.id, status: "SCHEDULED", endsAt: { gt: now } }, select: { id: true }, orderBy: { id: "asc" } });
     const payload = { by: "WORKER", reason: "The job's terms changed", jobChanged: true, jobChangeId: release.id };
     let cancelled = 0;
     for (const s of future) {
       const { count } = await tx.shift.updateMany({ where: { id: s.id, status: "SCHEDULED" }, data: { status: "CANCELLED" } });
-      if (!count) continue;
+      // Can't happen under the shift's lock; thrown so the release rolls back whole.
+      if (!count) throw new Error("A shift changed during the release.");
       cancelled++;
       await tx.workEvent.create({ data: { shiftId: s.id, type: "SHIFT_CANCELLED", payload, actorId: actor.profileId, createdAt: now } });
       await tx.auditEvent.create({ data: { actorId: actor.profileId, action: "shift.cancelled", entityType: "Shift", entityId: s.id, metadata: payload, createdAt: now } });

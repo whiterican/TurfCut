@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { radiusFor, readLaunch } from "@/lib/job-launch";
+import { appLabel, readTools, toolsText } from "@/lib/job-tools";
 import { notFound } from "next/navigation";
 import { requireAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -36,6 +37,7 @@ const EVENT_LABELS: Record<string, string> = {
   SIGNATURE_SUBMITTED: "Signatures logged",
   DOOR_KNOCK: "Doors logged",
   CONTACT: "Contacts logged",
+  APP_COUNTS: "App totals entered",
   BATCH_COUNT: "Batch counted",
   SHIFT_CANCELLED: "Shift cancelled",
   INCIDENT: "Incident reported",
@@ -62,6 +64,8 @@ function eventDetail(type: string, payload: unknown): string {
     case "DOOR_KNOCK":
     case "CONTACT":
       return `+${p.count ?? 1}`;
+    case "APP_COUNTS":
+      return `${typeof p.app === "string" ? appLabel(p.app as never) : "app"}: ${p.doors} doors · ${p.contacts} contacts (replaces what was logged by hand)`;
     case "BATCH_COUNT":
       return `${p.accepted} accepted · ${p.rejected} rejected of ${p.reviewed} reviewed${p.exceptions ? ` · ${p.exceptions}` : ""}`;
     case "SHIFT_CANCELLED":
@@ -137,6 +141,8 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
   const staging = s.stagingLat !== null && s.stagingLng !== null ? { lat: s.stagingLat, lng: s.stagingLng, radiusM: radiusFor(readLaunch(s.engagement.job.launch), { lat: s.stagingLat, lng: s.stagingLng }) } : null;
   const contacts = readSupportContacts(s.engagement.job.supportContacts);
   const petition = f.workType === "PETITION";
+  // The app the canvassing runs in, for the brief and the end-of-shift totals (C4.4).
+  const tools = readTools(s.engagement.job.tools);
   const live = !!st.checkedInAt && !st.checkedOutAt;
   const eyebrow = st.cancelled ? "Cancelled" : live ? (st.paused ? "On a break" : "Live shift") : st.checkedOutAt ? "Shift done" : "Upcoming shift";
 
@@ -165,6 +171,7 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
         startsAt: s.startsAt.toISOString(),
         endsAt: s.endsAt.toISOString(),
         staging,
+        canvassApp: tools.canvassApp,
         ended: now > s.endsAt,
         // Who made each event isn't needed on the phone; the phone's own id
         // for an entry lets it drop that entry once it shows here, and the
@@ -372,6 +379,12 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
             </>
           )}
           {s.stagingLocation && <p className="text-muted-sm">Check in at {s.stagingLocation}.</p>}
+          {!petition && toolsText(tools) && (
+            <p className="text-muted-sm">
+              Canvassing app: <span className="font-medium text-fg">{toolsText(tools)}</span>
+              {tools.notes ? ` — ${tools.notes}` : ""}
+            </p>
+          )}
         </section>
       )}
 

@@ -410,7 +410,7 @@ async function OrgPanel({ job, canHire, canSchedule, userId }: { job: JobWithRef
 
   return (
     <>
-      {job.status !== "DRAFT" && canHire && (
+      {job.status !== "DRAFT" && canHire && (job.status !== "CLOSED" || (await loadJobChanges(job.id)).length > 0) && (
         <section className="section">
           <h2 className="section-title">Terms</h2>
           {job.status !== "CLOSED" && (

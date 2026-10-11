@@ -10,6 +10,8 @@
 --   3. JobChange: each edit to a published job (what, who, when, which of
 --      it is material), append-only and server-only.
 --   4. NotificationKind gains JOB_CHANGED.
+--   5. WorkEventType gains APP_COUNTS (the canvassing app's returned totals,
+--      C4.4) and PACKET_HELD (a packet kept between shifts, C4.5).
 
 BEGIN;
 SET LOCAL lock_timeout = '5s';
@@ -17,6 +19,8 @@ SET LOCAL lock_timeout = '5s';
 -- A new enum value first: nothing below uses it, so it's safe in the same
 -- transaction (re-running skips it).
 ALTER TYPE "public"."NotificationKind" ADD VALUE IF NOT EXISTS 'JOB_CHANGED';
+ALTER TYPE "public"."WorkEventType" ADD VALUE IF NOT EXISTS 'APP_COUNTS';
+ALTER TYPE "public"."WorkEventType" ADD VALUE IF NOT EXISTS 'PACKET_HELD';
 
 ALTER TABLE "public"."Job" ADD COLUMN IF NOT EXISTS "launch" JSONB;
 ALTER TABLE "public"."Job" ADD COLUMN IF NOT EXISTS "tools" JSONB;

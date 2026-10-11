@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { radiusFor, readLaunch } from "@/lib/job-launch";
 import { bandRadius } from "@/lib/offline-sync";
+import { readTools } from "@/lib/job-tools";
 import { needsReview } from "@/lib/field-view";
 import { db } from "@/lib/db";
 import { FIELD_ROLES } from "@/lib/access";
@@ -51,6 +52,7 @@ const SHIFT_INCLUDE = {
           org: { select: { name: true } },
           supportContacts: true,
           launch: true,
+          tools: true,
           jurisdiction: { select: { version: true, rules: true } },
         },
       },
@@ -71,6 +73,7 @@ export function facts(s: LoadedShift): ShiftFacts {
     events: s.events.map((e) => ({ id: e.id, type: e.type, payload: e.payload, actorId: e.actorId, createdAt: e.createdAt })),
     validations: s.validations.map((v) => ({ workEventId: v.workEventId, status: v.status, reason: v.reason, createdAt: v.createdAt })),
     campaignTurf: s.turfArea !== null,
+    canvassApp: readTools(s.engagement.job.tools).canvassApp,
   };
 }
 
@@ -286,7 +289,7 @@ export async function supervisorShiftAction(
 }
 
 /** The events a worker's own field actions write (not supervisors', not map pins). */
-const WORKER_FIELD_EVENTS = new Set(["CHECK_IN", "CHECK_OUT", "PAUSE_START", "PAUSE_END", "SIGNATURE_SUBMITTED", "DOOR_KNOCK", "CONTACT", "PACKET_RETURN"]);
+const WORKER_FIELD_EVENTS = new Set(["CHECK_IN", "CHECK_OUT", "PAUSE_START", "PAUSE_END", "SIGNATURE_SUBMITTED", "DOOR_KNOCK", "CONTACT", "PACKET_RETURN", "APP_COUNTS"]);
 
 export type SyncResult = { clientId: string; status: "saved" | "duplicate" | "rejected"; reason?: string };
 

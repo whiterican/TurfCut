@@ -60,7 +60,7 @@ export async function setFollow(workerId: string, campaignId: string, wish: { fo
   if (!UUID_RE.test(campaignId)) return { ok: false, reason: "That campaign doesn't exist." };
   const gated = await gate("follow", workerId);
   if (gated) return gated;
-  return db().$transaction(async (tx) => {
+  return db().$transaction(async (tx): Promise<Result> => {
     await lock(tx, `follow:${workerId}:${campaignId}`);
     const open = await tx.campaignFollow.findFirst({ where: { workerId, campaignId, revokedAt: null }, select: { id: true, notify: true } });
     const change = followChange(open, wish);
@@ -72,7 +72,10 @@ export async function setFollow(workerId: string, campaignId: string, wish: { fo
     if (open && change !== "open") await closeFollow(tx, open.id);
     if (change !== "close") await tx.campaignFollow.create({ data: { workerId, campaignId, notify: wish.notify ?? open?.notify ?? false } });
     return { ok: true };
-  }).catch((e): Result => (alreadySo(e) ? { ok: true } : Promise.reject(e)));
+  }).catch((e): Result => {
+    if (alreadySo(e)) return { ok: true };
+    throw e;
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -145,7 +148,7 @@ export async function setLike(workerId: string, postId: string, want: boolean): 
   if (!UUID_RE.test(postId)) return { ok: false, reason: "That post doesn't exist." };
   const gated = await gate("like", workerId);
   if (gated) return gated;
-  return db().$transaction(async (tx) => {
+  return db().$transaction(async (tx): Promise<Result> => {
     await lock(tx, `like:${workerId}:${postId}`);
     const open = await tx.postLike.findFirst({ where: { workerId, postId, removedAt: null }, select: { id: true } });
     const change = likeChange(!!open, want);
@@ -158,7 +161,10 @@ export async function setLike(workerId: string, postId: string, want: boolean): 
       await closeLike(tx, open.id);
     }
     return { ok: true };
-  }).catch((e): Result => (alreadySo(e) ? { ok: true } : Promise.reject(e)));
+  }).catch((e): Result => {
+    if (alreadySo(e)) return { ok: true };
+    throw e;
+  });
 }
 
 /** Like totals per post, for the campaign's own view (counts only; never who). `orgId` is the actor's own, from the session, never from the request. */

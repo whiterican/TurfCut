@@ -78,6 +78,22 @@ describe("computeShiftPay", () => {
     expect(computeShiftPay({ method: "SHIFT_RATE", rateCents: 2_000_000, workType: "CANVASS", work: work(), jurisdictionVersion: 1 }).ok).toBe(false);
   });
 
+  it("per-contact pay follows the canvassing app's totals once entered (C4.4)", () => {
+    const at = (m: number) => new Date(Date.UTC(2026, 8, 1, 14, m));
+    const w = verifiedWork(
+      [
+        { id: "1", type: "CHECK_IN", payload: {}, createdAt: at(0) },
+        { id: "2", type: "CONTACT", payload: { count: 3 }, createdAt: at(10) },
+        { id: "3", type: "APP_COUNTS", payload: { app: "MINIVAN", doors: 40, contacts: 9 }, createdAt: at(50) },
+        { id: "4", type: "CHECK_OUT", payload: {}, createdAt: at(60) },
+      ],
+      []
+    );
+    expect(w).toMatchObject({ doors: 40, contacts: 9 });
+    const r = computeShiftPay({ method: "PER_UNIT", rateCents: 100, workType: "CANVASS", work: w, jurisdictionVersion: 1 });
+    expect(r.ok && r.amountCents).toBe(900);
+  });
+
   it("a recount replaces the earlier batch count", () => {
     const at = (m: number) => new Date(Date.UTC(2026, 8, 1, 14, m));
     const w = verifiedWork(

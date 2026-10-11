@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dayStart, feedSources, followChange, likeChange, MAX_NOTICES_PER_CAMPAIGN_PER_DAY, noticeAllowed } from "./campaign-follow";
+import { dayStart, feedSeenAt, feedSources, followChange, likeChange, MAX_NOTICES_PER_CAMPAIGN_PER_DAY, noticeAllowed, noticeRecipients } from "./campaign-follow";
 
 describe("feed sources", () => {
   it("are the followed and the hiring campaigns, following winning as the reason", () => {
@@ -50,5 +50,27 @@ describe("notices", () => {
   it("count days in UTC", () => {
     expect(dayStart(new Date("2026-10-11T23:59:59.999Z")).toISOString()).toBe("2026-10-11T00:00:00.000Z");
     expect(dayStart(new Date("2026-10-12T00:00:00.000Z")).toISOString()).toBe("2026-10-12T00:00:00.000Z");
+  });
+  it("go to followers who asked, once each, under the daily cap", () => {
+    const followers = [
+      { workerId: "a", notify: true },
+      { workerId: "b", notify: false },
+      { workerId: "c", notify: true },
+      { workerId: "a", notify: true },
+      { workerId: "d", notify: true },
+    ];
+    const sent = new Map([["c", MAX_NOTICES_PER_CAMPAIGN_PER_DAY], ["d", MAX_NOTICES_PER_CAMPAIGN_PER_DAY - 1]]);
+    expect(noticeRecipients(followers, sent)).toEqual(["a", "d"]);
+  });
+});
+
+describe("feed seen cookie", () => {
+  const now = new Date("2026-10-11T12:00:00.000Z");
+  it("reads a plain ISO time and nothing else", () => {
+    expect(feedSeenAt("2026-10-11T11:00:00.000Z", now)?.toISOString()).toBe("2026-10-11T11:00:00.000Z");
+    expect(feedSeenAt(undefined, now)).toBeNull();
+    expect(feedSeenAt("yesterday", now)).toBeNull();
+    expect(feedSeenAt("2026-10-11T11:00:00Z", now)).toBeNull();
+    expect(feedSeenAt("2026-10-11T13:00:00.000Z", now)).toBeNull(); // a clock ahead of ours would hide new posts
   });
 });

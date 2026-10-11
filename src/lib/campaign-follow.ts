@@ -56,6 +56,32 @@ export function noticeAllowed(sentToday: number): boolean {
   return sentToday < MAX_NOTICES_PER_CAMPAIGN_PER_DAY;
 }
 
+/**
+ * Who gets a notice of a campaign's new post (S2.4): the followers who
+ * asked for notices, each at most MAX_NOTICES_PER_CAMPAIGN_PER_DAY times
+ * a day per campaign. Pure; the delivery (an in-app notification) lands
+ * with the Notification model (C3.5) and reads this.
+ */
+export function noticeRecipients(followers: Iterable<{ workerId: string; notify: boolean }>, sentToday: ReadonlyMap<string, number>): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const f of followers) {
+    if (!f.notify || seen.has(f.workerId) || !noticeAllowed(sentToday.get(f.workerId) ?? 0)) continue;
+    seen.add(f.workerId);
+    out.push(f.workerId);
+  }
+  return out;
+}
+
+/** The "feed seen" cookie: when this browser last opened the feed (per device, not a record of anything). */
+export const FEED_SEEN_COOKIE = "turfcut-feed-seen";
+/** Parses the cookie; anything but a plain ISO time (or a time in the future) counts as never. */
+export function feedSeenAt(value: string | undefined, now: Date): Date | null {
+  if (!value || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(value)) return null;
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) || d > now ? null : d;
+}
+
 /** A like request against the worker's open like: start one, end one, or nothing to do. */
 export function likeChange(liked: boolean, want: boolean): "open" | "close" | "none" {
   return liked === want ? "none" : want ? "open" : "close";

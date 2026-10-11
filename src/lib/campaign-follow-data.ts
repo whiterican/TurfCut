@@ -155,6 +155,18 @@ export async function campaignsOn(workerId: string, now = new Date()): Promise<F
   return rows;
 }
 
+/** How many posts the worker's feed has newer than `since` (capped: "9+" is plenty for a badge). */
+export async function newFeedCount(workerId: string, since: Date | null, cap = 9): Promise<number> {
+  const sources = await feedCampaigns(workerId);
+  if (sources.size === 0) return 0;
+  const rows = await db().campaignPost.findMany({
+    where: { profileId: { in: [...sources.keys()] }, deletedAt: null, ...(since ? { createdAt: { gt: since } } : {}) },
+    select: { id: true },
+    take: cap + 1,
+  });
+  return Math.min(rows.length, cap + 1);
+}
+
 // ---------------------------------------------------------------------------
 // Likes
 // ---------------------------------------------------------------------------

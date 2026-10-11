@@ -15,7 +15,9 @@ import { workerPayTotals } from "@/lib/pay-data";
 import { OfflineBrief } from "@/components/OfflineBrief";
 import { briefPaths } from "@/lib/offline-brief-data";
 import { money } from "@/lib/pay";
-import { campaignsOn } from "@/lib/campaign-follow-data";
+import { campaignsOn, newFeedCount } from "@/lib/campaign-follow-data";
+import { FEED_SEEN_COOKIE, feedSeenAt } from "@/lib/campaign-follow";
+import { cookies } from "next/headers";
 import { mediaUrl } from "@/lib/campaign-media";
 
 const ROLE_LABELS: Record<string, string> = {
@@ -96,13 +98,15 @@ async function WorkerHero({ workerId }: { workerId: string }) {
 
 /** The campaigns the worker is on (S2): a strip of their pages, and the way to the feed. Nothing here ranks anything. */
 async function CampaignsOn({ workerId }: { workerId: string }) {
-  const campaigns = await campaignsOn(workerId);
-  if (campaigns.length === 0) return null;
+  const seen = feedSeenAt((await cookies()).get(FEED_SEEN_COOKIE)?.value, new Date());
+  const [campaigns, fresh] = await Promise.all([campaignsOn(workerId), newFeedCount(workerId, seen)]);
+  if (campaigns.length === 0 && fresh === 0) return null;
+  const feedLabel = fresh === 0 ? "Your feed" : fresh > 9 ? "9+ new in your feed" : `${fresh} new in your feed`;
   return (
     <section className="section" aria-labelledby="campaigns-on">
       <div className="flex items-baseline justify-between gap-3">
-        <h2 id="campaigns-on" className="section-title">Campaigns you&apos;re on</h2>
-        <Link href="/feed" className="text-sm font-medium text-muted hover:text-fg">Your feed</Link>
+        <h2 id="campaigns-on" className="section-title">{campaigns.length ? "Campaigns you're on" : "Your campaigns"}</h2>
+        <Link href="/feed" className="text-sm font-medium text-muted hover:text-fg">{feedLabel}</Link>
       </div>
       <ul className="flex gap-2 overflow-x-auto pb-1">
         {campaigns.map((c) => {

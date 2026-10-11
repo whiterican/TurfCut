@@ -390,11 +390,10 @@ are S2, after S1 is approved.
   rate-limited per organization.
 - **Acceptance:** `tests/acceptance/s1-social.ts` (`run.sh s1`).
 
-**Decisions for Caden.**
+**Decided (Caden, Oct 11: the recommendations stand).**
 - An embedded job's card (title, place, dates, pay, the campaign's declared
   affiliation) is visible to anyone who opens the post, signed in or not.
-  The job page itself still needs sign-in. Say if embeds should show less
-  to visitors.
+  The job page itself still needs sign-in.
 - Pinned posts show both under "Talking points" and in the time-ordered
   list.
 - Releasing a squatted draft handle is a manual step for now: delete the

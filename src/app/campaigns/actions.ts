@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { ActionState } from "@/app/jobs/actions";
 import { requireArea } from "@/lib/employer-session";
+import { accessTo } from "@/lib/access";
 import { validatePostBody, validateProfile } from "@/lib/campaign-social";
 import { clearCampaignImage, createCampaign, createPost, deletePost, editPost, loadOrgCampaign, setJobCampaign, setCampaignImage, setCampaignPublished, setPostPinned, updateCampaign } from "@/lib/campaign-social-data";
 import { check, retryAfter, waitText } from "@/lib/rate-limit";
@@ -32,12 +33,6 @@ export async function saveCampaign(_prev: ProfileFormState, fd: FormData): Promi
   const v = validateProfile({ handle: str(fd, "handle"), displayName: str(fd, "displayName"), bio: str(fd, "bio") });
   if (!v.ok) return { ok: false, message: "Fix the highlighted fields.", errors: v.errors };
   const id = str(fd, "id");
-  const current = id ? await loadOrgCampaign(actor.orgId, id) : null;
-  if (!id || (current && current.handle !== v.value.handle)) {
-    const verdict = await check("campaign", actor.orgId);
-    if (verdict === "unavailable") return { ok: false, message: "Saving is briefly unavailable. Try again in a minute." };
-    if (verdict !== "ok") return { ok: false, message: `Your organization has made many campaign changes today. Try again in ${waitText(await retryAfter("campaign", actor.orgId), "hour")}.` };
-  }
   if (!id) {
     const r = await createCampaign(actor, v.value);
     if (!r.ok) return { ok: false, message: r.reason, errors: r.errors };
@@ -95,7 +90,7 @@ export interface PostFormState extends ActionState {
 
 const poster = async () => {
   const s = await requireArea("campaignPosting");
-  return { profileId: s.userId, orgId: s.orgId };
+  return { profileId: s.userId, orgId: s.orgId, manages: accessTo(s.role, "campaigns") === "full" };
 };
 const jobOf = (fd: FormData) => str(fd, "jobId") || null;
 
@@ -105,7 +100,8 @@ export async function savePost(_prev: PostFormState, fd: FormData): Promise<Post
   const postId = str(fd, "postId");
   const body = validatePostBody(str(fd, "body"));
   if (!body.ok) return { ok: false, message: body.error, errors: { body: body.error } };
-  if (!postId) {
+  {
+    // New posts and edits alike: each one writes a revision.
     const verdict = await check("post", actor.orgId);
     if (verdict === "unavailable") return { ok: false, message: "Posting is briefly unavailable. Try again in a minute." };
     if (verdict !== "ok") return { ok: false, message: `Your organization has posted a lot this hour. Try again in ${waitText(await retryAfter("post", actor.orgId))}.` };

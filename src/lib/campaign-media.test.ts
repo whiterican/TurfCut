@@ -26,6 +26,12 @@ describe("campaign images lose what the camera wrote", () => {
     expect(has(out, "JFIF")).toBe(true);
     expect(has(out, "ICC_PROFILE")).toBe(true);
     expect([...out.slice(-7)]).toEqual([0x12, 0x34, 0xff, 0x00, 0x56, 0xff, 0xd9]);
+    // A phone's second image after the end (with its own EXIF), a comment between scans, appended data: all gone.
+    const second = [0xff, 0xd8, ...seg(0xe1, ascii("Exif\0\0GPSLongitude-104.99")), 0xff, 0xd9];
+    const progressive = new Uint8Array([...jpeg.slice(0, -2), ...seg(0xfe, ascii("between scans")), ...seg(0xda, [1, 1, 0, 0, 63, 0]), 0x77, 0xff, 0xd0, 0x78, 0xff, 0xd9, ...second, ...ascii("appended")]);
+    const out2 = stripJpegMetadata(progressive)!;
+    expect(has(out2, "GPSLongitude") || has(out2, "between scans") || has(out2, "appended") || has(out2, "Exif")).toBe(false);
+    expect([...out2.slice(-6)]).toEqual([0x77, 0xff, 0xd0, 0x78, 0xff, 0xd9]);
     expect(stripJpegMetadata(new Uint8Array([0xff, 0xd8, 0x00]))).toBeNull();
     expect(stripJpegMetadata(new Uint8Array([0xff, 0xd8, 0xff, 0xe1, 0xff, 0xff]))).toBeNull();
   });

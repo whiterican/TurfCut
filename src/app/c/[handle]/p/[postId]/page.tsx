@@ -16,7 +16,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 /** One post's own page (S1), public: the link a campaign shares. */
 export default async function PostPage({ params }: Props) {
   const { handle, postId } = await params;
-  const [r, session] = await Promise.all([loadPublicPost(handle, postId), getSessionProfile()]);
+  const [r, session] = await Promise.all([loadPublicPost(handle, postId), getSessionProfile().catch(() => null)]);
   if (!r) notFound();
   return (
     <main className="page max-w-2xl space-y-4">

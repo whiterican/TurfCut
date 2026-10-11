@@ -23,7 +23,7 @@ export default async function PublicCampaignPage({ params, searchParams }: Props
   const c = await loadPublicCampaign((await params).handle);
   if (!c) notFound();
   const { cursor } = await searchParams;
-  const [pinned, feed, session] = await Promise.all([cursor ? Promise.resolve([]) : loadPinned(c.id), loadPosts(c.id, cursor), getSessionProfile()]);
+  const [pinned, feed, session] = await Promise.all([cursor ? Promise.resolve([]) : loadPinned(c.id), loadPosts(c.id, cursor), getSessionProfile().catch(() => null)]);
   const signedIn = !!session;
   return (
     <main className="page max-w-2xl space-y-6">

@@ -19,12 +19,12 @@ PGURL="${PGURL%/}"
 PGQUERY="${PGQUERY:-}"
 P="psql -v ON_ERROR_STOP=1 -q -X"
 export PGOPTIONS="-c client_min_messages=warning"
-checks=("$@"); [ ${#checks[@]} -eq 0 ] && checks=(m5 m6 m7 c1 rl sec)
-declare -A FILE=([m5]=m5-payouts.ts [m6]=m6-offline.ts [m7]=m7-corrections-closure.ts [c1]=c1-roles.ts [rl]=rate-limit.ts [sec]=grants.ts)
+checks=("$@"); [ ${#checks[@]} -eq 0 ] && checks=(m5 m6 m7 c1 rl sec s1)
+declare -A FILE=([m5]=m5-payouts.ts [m6]=m6-offline.ts [m7]=m7-corrections-closure.ts [c1]=c1-roles.ts [rl]=rate-limit.ts [sec]=grants.ts [s1]=s1-social.ts)
 # Extra SQL run after the setup for a check (sec: re-running the lockdown,
 # as it is designed to be, must leave message grants column-limited).
 declare -A AFTER=([sec]=prisma/m4-0-rls-lockdown.sql)
-for c in "${checks[@]}"; do [[ -v FILE[$c] ]] || { echo "unknown check: $c (m5, m6, m7, c1, rl, sec)"; exit 2; }; done
+for c in "${checks[@]}"; do [[ -v FILE[$c] ]] || { echo "unknown check: $c (m5, m6, m7, c1, rl, sec, s1)"; exit 2; }; done
 fail=0
 for c in "${checks[@]}"; do
   db="turfcut_acc_$c"

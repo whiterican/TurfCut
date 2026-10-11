@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { UUID_RE } from "@/lib/jobs";
 import { checkImage, type MediaKind, type MediaStore } from "@/lib/campaign-media";
+import { check, retryAfter, waitText } from "@/lib/rate-limit";
 import { decodeCursor, embedProblem, encodeCursor, MAX_CAMPAIGNS_PER_ORG, MAX_PINNED, normalizeHandle, PAGE_SIZE, type ProfileInput } from "@/lib/campaign-social";
 
 /**
@@ -13,6 +14,8 @@ import { decodeCursor, embedProblem, encodeCursor, MAX_CAMPAIGNS_PER_ORG, MAX_PI
  */
 
 type Actor = { profileId: string; orgId: string };
+/** A post writer: owners and publishers manage every post and the talking points; recruiters their own unpinned posts. */
+type Writer = Actor & { manages: boolean };
 type Result<T = Record<never, never>> = ({ ok: true } & T) | { ok: false; reason: string; errors?: Record<string, string> };
 
 const PROFILE_SELECT = {
@@ -51,10 +54,26 @@ export function loadOrgCampaign(orgId: string, id: string) {
 
 /** A campaign's public profile by handle, or null while it's a draft or its organization isn't approved. */
 export function loadPublicCampaign(handle: string) {
-  return db().campaignProfile.findFirst({ where: { handle: normalizeHandle(decodeURIComponent(handle)), publishedAt: { not: null }, org: { approved: true } }, select: PROFILE_SELECT });
+  let h: string;
+  try {
+    h = normalizeHandle(decodeURIComponent(handle));
+  } catch {
+    return Promise.resolve(null); // a malformed address is simply not found
+  }
+  return db().campaignProfile.findFirst({ where: { handle: h, publishedAt: { not: null }, org: { approved: true } }, select: PROFILE_SELECT });
+}
+
+/** New campaigns and handle changes are rate-limited per organization, whoever calls (page or API). */
+async function campaignGate(orgId: string): Promise<{ ok: false; reason: string } | null> {
+  const verdict = await check("campaign", orgId);
+  if (verdict === "ok") return null;
+  if (verdict === "unavailable") return { ok: false, reason: "Saving is briefly unavailable. Try again in a minute." };
+  return { ok: false, reason: `Your organization has made many campaign changes today. Try again in ${waitText(await retryAfter("campaign", orgId), "hour")}.` };
 }
 
 export async function createCampaign(actor: Actor, input: ProfileInput): Promise<Result<{ id: string }>> {
+  const gate = await campaignGate(actor.orgId);
+  if (gate) return gate;
   try {
     return await db().$transaction(async (tx) => {
       await lock(tx, `campaigns:${actor.orgId}`);
@@ -75,6 +94,11 @@ export async function createCampaign(actor: Actor, input: ProfileInput): Promise
 /** Edits the profile. The handle is the public address: it can change only while the campaign is a draft. */
 export async function updateCampaign(actor: Actor, id: string, input: ProfileInput): Promise<Result> {
   if (!UUID_RE.test(id)) return { ok: false, reason: "Campaign not found." };
+  const before = await db().campaignProfile.findFirst({ where: { id, orgId: actor.orgId }, select: { handle: true } });
+  if (before && before.handle !== input.handle) {
+    const gate = await campaignGate(actor.orgId);
+    if (gate) return gate;
+  }
   try {
     return await db().$transaction(async (tx) => {
       await lock(tx, `campaign:${id}`);
@@ -218,10 +242,18 @@ export async function createPost(actor: Actor, campaignId: string, input: PostIn
 
 /** A live post of the organization's, under its campaign's lock. */
 async function ownPost(tx: Prisma.TransactionClient, orgId: string, postId: string) {
-  const p = await tx.campaignPost.findFirst({ where: { id: postId, profile: { orgId } }, select: { id: true, profileId: true, body: true, jobId: true, pinnedAt: true, deletedAt: true } });
+  const p = await tx.campaignPost.findFirst({ where: { id: postId, profile: { orgId } }, select: { id: true, profileId: true } });
   if (!p) return null;
   await lock(tx, `campaign:${p.profileId}`);
-  return tx.campaignPost.findFirst({ where: { id: postId, deletedAt: null }, select: { id: true, profileId: true, body: true, jobId: true, pinnedAt: true } });
+  return tx.campaignPost.findFirst({ where: { id: postId, deletedAt: null }, select: { id: true, profileId: true, authorId: true, body: true, jobId: true, pinnedAt: true } });
+}
+
+/** Why this writer can't change this post, or null: talking points and other people's posts are the managers'. */
+function writeProblem(w: Writer, p: { pinnedAt: Date | null; authorId: string }): string | null {
+  if (w.manages) return null;
+  if (p.pinnedAt) return "This post is a talking point: an owner or publisher changes it.";
+  if (p.authorId !== w.profileId) return "Only an owner or publisher changes someone else's post.";
+  return null;
 }
 
 /**
@@ -229,29 +261,36 @@ async function ownPost(tx: Prisma.TransactionClient, orgId: string, postId: stri
  * recorded as a revision (every earlier one stays). Keeping an embed whose
  * job has since closed is fine; a new embed has to be a published job.
  */
-export async function editPost(actor: Actor, postId: string, input: PostInput, now = new Date()): Promise<Result> {
+export async function editPost(actor: Writer, postId: string, input: { body: string; jobId?: string | null }, now = new Date()): Promise<Result> {
   if (!UUID_RE.test(postId)) return { ok: false, reason: "Post not found." };
   return db().$transaction(async (tx) => {
-    const p = await ownPost(tx, actor.orgId, postId);
-    if (!p) return { ok: false as const, reason: "Post not found." };
+    const found = await ownPost(tx, actor.orgId, postId);
+    if (!found) return { ok: false as const, reason: "Post not found." };
+    const p = found;
+    const denied = writeProblem(actor, p);
+    if (denied) return { ok: false as const, reason: denied };
+    // No jobId given (an API caller sending only the text): the embed stays as it is.
+    input = { body: input.body, jobId: input.jobId === undefined ? p.jobId : input.jobId };
     if (p.body === input.body && p.jobId === input.jobId) return { ok: true as const };
     if (input.jobId !== p.jobId) {
-      const bad = await checkEmbed(tx, actor.orgId, input.jobId);
+      const bad = await checkEmbed(tx, actor.orgId, input.jobId ?? null);
       if (bad) return { ok: false as const, reason: bad, errors: { jobId: bad } };
     }
-    await tx.campaignPost.update({ where: { id: p.id }, data: { body: input.body, jobId: input.jobId, editedAt: now } });
-    await tx.campaignPostRevision.create({ data: { postId: p.id, body: input.body, jobId: input.jobId, editorId: actor.profileId, createdAt: now } });
+    await tx.campaignPost.update({ where: { id: p.id }, data: { body: input.body, jobId: input.jobId ?? null, editedAt: now } });
+    await tx.campaignPostRevision.create({ data: { postId: p.id, body: input.body, jobId: input.jobId ?? null, editorId: actor.profileId, createdAt: now } });
     await tx.auditEvent.create({ data: { actorId: actor.profileId, action: "campaign.post_edited", entityType: "CampaignPost", entityId: p.id, createdAt: now } });
     return { ok: true as const };
   });
 }
 
 /** Takes a post down: hidden everywhere, unpinned, and kept with its revisions (who deleted it is recorded). */
-export async function deletePost(actor: Actor, postId: string, now = new Date()): Promise<Result> {
+export async function deletePost(actor: Writer, postId: string, now = new Date()): Promise<Result> {
   if (!UUID_RE.test(postId)) return { ok: false, reason: "Post not found." };
   return db().$transaction(async (tx) => {
     const p = await ownPost(tx, actor.orgId, postId);
     if (!p) return { ok: false as const, reason: "Post not found." };
+    const denied = writeProblem(actor, p);
+    if (denied) return { ok: false as const, reason: denied };
     await tx.campaignPost.update({ where: { id: p.id }, data: { deletedAt: now, deletedById: actor.profileId, pinnedAt: null } });
     await tx.auditEvent.create({ data: { actorId: actor.profileId, action: "campaign.post_deleted", entityType: "CampaignPost", entityId: p.id, createdAt: now } });
     return { ok: true as const };

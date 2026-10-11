@@ -28,7 +28,11 @@ export default async function CampaignPage({ params, searchParams }: { params: P
   const linkable = orgJobs.filter((j) => j.campaignProfileId !== c.id);
   const campaignName = new Map(campaigns.map((x) => [x.id, x.displayName]));
   const postFields = (postId: string) => ({ postId, campaignId: c.id });
-  const controls = (post: (typeof feed.posts)[number]) => (
+  // Recruiters change only their own posts that aren't talking points (the server checks it too).
+  const shown = [...pinned, ...feed.posts].map((x) => x.id);
+  const authors = canEdit ? new Map<string, string>() : new Map((await db().campaignPost.findMany({ where: { id: { in: shown } }, select: { id: true, authorId: true } })).map((x) => [x.id, x.authorId]));
+  const canChange = (post: (typeof feed.posts)[number]) => canEdit || (!post.pinnedAt && authors.get(post.id) === session.userId);
+  const controls = (post: (typeof feed.posts)[number]) => !canChange(post) ? null : (
     <div className="flex flex-wrap items-start gap-2 border-t border-border pt-3">
       <details className="group w-full">
         <summary className="link cursor-pointer list-none text-sm font-semibold">

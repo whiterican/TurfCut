@@ -74,32 +74,38 @@ export function stripJpegMetadata(b: Uint8Array): Uint8Array | null {
   if (b[0] !== 0xff || b[1] !== 0xd8) return null;
   const keep: Uint8Array[] = [b.subarray(0, 2)];
   let i = 2;
-  while (i < b.length) {
-    if (b[i] !== 0xff) return null;
+  for (;;) {
+    if (i >= b.length || b[i] !== 0xff) return null;
     let m = i + 1;
     while (m < b.length && b[m] === 0xff) m++; // fill bytes
     const marker = b[m];
     if (marker === undefined) return null;
     const start = m - 1;
-    // Markers with no length: TEM, RSTn, SOI, EOI.
-    if (marker === 0x01 || (marker >= 0xd0 && marker <= 0xd9)) {
+    if (marker === 0xd9) {
+      // End of image: the picture ends here. Anything after it (a phone's second image with its own EXIF, appended data) goes.
+      keep.push(b.subarray(start, m + 1));
+      break;
+    }
+    if (marker === 0x01 || (marker >= 0xd0 && marker <= 0xd8)) {
       keep.push(b.subarray(start, m + 1));
       i = m + 1;
-      if (marker === 0xd9) break;
       continue;
     }
     if (m + 2 >= b.length) return null;
     const len = (b[m + 1] << 8) | b[m + 2];
     if (len < 2 || m + 1 + len > b.length) return null;
-    const end = m + 1 + len;
-    if (marker === 0xda) {
-      // Start of scan: the compressed picture and everything after it, as is.
-      keep.push(b.subarray(start));
-      i = b.length;
-      break;
-    }
+    let end = m + 1 + len;
     // APP1 (EXIF/XMP), APP3–APP13 (maker data, IPTC) and COM (comments) go; APP0, APP2 (colour profile), APP14 and the rest stay.
     const drop = marker === 0xe1 || (marker >= 0xe3 && marker <= 0xed) || marker === 0xfe;
+    if (marker === 0xda) {
+      // Start of scan: the compressed data runs until the next real marker (FF00 is a stuffed byte, FFD0–FFD7 are restarts).
+      let j = end;
+      while (j < b.length) {
+        if (b[j] === 0xff && j + 1 < b.length && b[j + 1] !== 0x00 && !(b[j + 1] >= 0xd0 && b[j + 1] <= 0xd7) && b[j + 1] !== 0xff) break;
+        j++;
+      }
+      end = j;
+    }
     if (!drop) keep.push(b.subarray(start, end));
     i = end;
   }
@@ -112,7 +118,8 @@ export function stripJpegMetadata(b: Uint8Array): Uint8Array | null {
   return out;
 }
 
-const PNG_DROP = new Set(["eXIf", "tEXt", "iTXt", "zTXt", "tIME"]);
+/** The PNG chunks that draw the picture or its colours; everything else (text, EXIF, times, private chunks) goes. */
+const PNG_KEEP = new Set(["IHDR", "PLTE", "IDAT", "IEND", "tRNS", "gAMA", "cHRM", "sRGB", "iCCP", "pHYs", "bKGD", "sBIT"]);
 export function stripPngMetadata(b: Uint8Array): Uint8Array | null {
   const keep: Uint8Array[] = [b.subarray(0, 8)];
   let i = 8;
@@ -122,7 +129,7 @@ export function stripPngMetadata(b: Uint8Array): Uint8Array | null {
     const end = i + 12 + len;
     if (end > b.length) return null;
     const type = String.fromCharCode(b[i + 4], b[i + 5], b[i + 6], b[i + 7]);
-    if (!PNG_DROP.has(type)) keep.push(b.subarray(i, end));
+    if (PNG_KEEP.has(type)) keep.push(b.subarray(i, end));
     i = end;
     if (type === "IEND") {
       ended = true;

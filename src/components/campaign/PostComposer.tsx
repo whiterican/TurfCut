@@ -24,13 +24,19 @@ export function PostComposer({
 }) {
   const [state, formAction, pending] = useActionState(action, initial);
   const [body, setBody] = useState(defaults?.body ?? "");
+  const [jobId, setJobId] = useState(defaults?.jobId ?? "");
   const n = charCount(body.trim());
   const over = n > POST_MAX;
   const id = postId ?? `new-${campaignId}`;
   const answered = useRef(state);
   // A new post clears the box once it's saved (an edit keeps its text).
   useEffect(() => {
-    if (state !== answered.current && state.ok && !postId) startTransition(() => setBody(""));
+    if (state !== answered.current && state.ok && !postId) {
+      startTransition(() => {
+        setBody("");
+        setJobId("");
+      });
+    }
     answered.current = state;
   }, [state, postId]);
   const err = state.errors ?? {};
@@ -71,7 +77,8 @@ export function PostComposer({
           id={`job-${id}`}
           name="jobId"
           className="field"
-          defaultValue={defaults?.jobId ?? ""}
+          value={jobId}
+          onChange={(e) => setJobId(e.target.value)}
           aria-describedby={[`job-hint-${id}`, err.jobId ? `err-job-${id}` : ""].filter(Boolean).join(" ")}
           aria-invalid={err.jobId ? true : undefined}
         >
@@ -83,7 +90,7 @@ export function PostComposer({
         {err.jobId && <p id={`err-job-${id}`} className="field-error">{err.jobId}</p>}
       </div>
       <div className="flex flex-wrap items-center gap-3">
-        <button className="btn-primary" disabled={pending || over || n === 0}>{pending ? "Saving…" : submitLabel}</button>
+        <button className="btn-primary" disabled={pending}>{pending ? "Saving…" : submitLabel}</button>
         <p role="status" className={state.ok ? "text-success-msg" : "text-danger-msg"}>{state.message}</p>
       </div>
     </form>

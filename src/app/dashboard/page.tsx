@@ -15,6 +15,10 @@ import { workerPayTotals } from "@/lib/pay-data";
 import { OfflineBrief } from "@/components/OfflineBrief";
 import { briefPaths } from "@/lib/offline-brief-data";
 import { money } from "@/lib/pay";
+import { campaignsOn, newFeedCount } from "@/lib/campaign-follow-data";
+import { FEED_SEEN_COOKIE, feedBadge, feedSeenAt } from "@/lib/campaign-follow";
+import { cookies } from "next/headers";
+import { mediaUrl } from "@/lib/campaign-media";
 
 const ROLE_LABELS: Record<string, string> = {
   WORKER: "Field worker",
@@ -89,6 +93,39 @@ async function WorkerHero({ workerId }: { workerId: string }) {
       <p className="hero-title">{next.job.title}</p>
       <p className="text-sm font-semibold">{payText(next.job.compensationMethod, next.job.payRateCents)}</p>
     </Link>
+  );
+}
+
+/** The campaigns the worker is on (S2): a strip of their pages, and the way to the feed. Nothing here ranks anything. (The "new" count keys on a cookie on this device, so it's per device, not per account.) */
+async function CampaignsOn({ workerId }: { workerId: string }) {
+  const seen = feedSeenAt((await cookies()).get(FEED_SEEN_COOKIE)?.value, new Date());
+  const [campaigns, fresh] = await Promise.all([campaignsOn(workerId), newFeedCount(workerId, seen)]);
+  if (campaigns.length === 0 && fresh === 0) return null;
+  return (
+    <section className="section" aria-labelledby="campaigns-on">
+      <div className="flex items-baseline justify-between gap-3">
+        <h2 id="campaigns-on" className="section-title">{campaigns.length ? "Campaigns you're on" : "Your campaigns"}</h2>
+        <Link href="/feed" className="text-sm font-medium text-muted hover:text-fg">{feedBadge(fresh)}</Link>
+      </div>
+      <ul className="flex gap-2 overflow-x-auto pb-1">
+        {campaigns.map((c) => {
+          const avatar = mediaUrl(c.avatarKey);
+          return (
+            <li key={c.id} className="shrink-0">
+              <Link href={`/c/${c.handle}`} className="card flex items-center gap-2 px-3 py-2 text-sm font-medium text-fg">
+                {avatar ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- a public storage URL; no optimizer route for it
+                  <img src={avatar} alt="" className="h-6 w-6 rounded-full object-cover" />
+                ) : (
+                  <span aria-hidden className="h-6 w-6 rounded-full bg-surface-2" />
+                )}
+                {c.displayName}
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
   );
 }
 
@@ -194,6 +231,7 @@ export default async function DashboardPage() {
 
       {isWorker && <WorkerBrief workerId={session.workerId!} userId={session.userId} />}
       {isWorker && <WorkerHero workerId={session.workerId!} />}
+      {isWorker && <CampaignsOn workerId={session.workerId!} />}
 
       {isWorker && <EarningsCard workerId={session.workerId!} />}
       {isWorker && <OpenJobs workerId={session.workerId!} />}

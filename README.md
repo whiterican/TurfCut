@@ -111,6 +111,9 @@ exercise the locks, triggers and data rules, not the RLS policies.
    - Run `prisma/s1-social.sql` in the SQL editor, **after** the pending
      queue (the M5/M6 live SQL, then the C1–C4 files in order). It's safe
      to run again.
+   - Then `prisma/s2-social.sql` (S2: follows and likes), right after it,
+     before deploying the S2 code. Also safe to run again. Nothing to
+     create in Storage for S2.
    - Storage → New bucket **`campaign-media`**, set to **public**, with a
      file size limit of **2 MB** and allowed MIME types **image/png,
      image/jpeg**. Campaign avatars and header images go there. The app
@@ -402,6 +405,55 @@ are S2, after S1 is approved.
 - The legally required disclosures stay their own block, as decided in
   Q10, separate from the talking points. The note to legal before talking
   points reach the field still stands.
+
+## S2 scope — the worker side (follows, feed, likes)
+
+The social layer's worker side: a recruiting channel, not a town square.
+Chronological and follows only; nothing here is ever read by matching.
+
+- **Follows.** A worker follows a campaign from its page or from the
+  campaign card on a job's page (`Follow` / `Following`), with a per-follow
+  switch for notices of new posts. Following is private: a campaign never
+  sees who follows it, and there are no follower counts anywhere. Only a
+  public campaign (published, organization approved) can be followed;
+  unfollowing always works. Visitors are sent to sign in and brought back;
+  organization logins see no control.
+- **Home feed** (`/feed`, the **Feed** tab). The live posts of the campaigns
+  the worker follows and of the campaigns whose jobs hired them (a seat
+  held: claimed, active or completed), newest first, 20 a page by a time
+  cursor. Each post says why it's there ("Following" or "A campaign you
+  work for"). Job embeds render the job card with one-tap **Apply** into
+  the existing job page. No ranking, no suggestions, no filtering.
+- **Likes.** `Like` / `Liked` on every post a worker sees, private to them.
+  The campaign's own page shows a like total per post, never who.
+- **Today.** A "Campaigns you're on" strip (the public campaigns of jobs
+  the worker is on now) and a link to the feed that says how many posts
+  are newer than the last time this device opened it (a cookie on the
+  device, not a record).
+- **Notices of new posts.** The rule is in place (`noticeRecipients`:
+  followers who asked, at most 3 a day per campaign) and the per-follow
+  setting is stored. Delivery as in-app notifications needs the
+  Notification model from C3.5, which isn't on `master` yet; it lands
+  once C3 merges. Until then the "new in your feed" count on Today is
+  the notice.
+- **Reposts and replies** are deferred to S3.
+- **Never inferring politics, never feeding matching.** Follows and likes
+  are never read by matching, scorecards, political fit, the job feed or
+  hiring (`src/lib/social-isolation.test.ts`, extended to the new names
+  and modules; the acceptance check confirms a worker's job feed and
+  scorecard are unchanged by any of it). Who follows or likes is never
+  readable through the Data API, by anyone: both tables are server-only
+  (`src/lib/migration-grants.test.ts` fails if any migration grants or
+  adds a policy on them, or drops the revoke).
+- **Data.** `CampaignFollow` and `PostLike` (`prisma/s2-social.sql`):
+  append-only, versioned rows. A row is closed once (`revokedAt` /
+  `removedAt`) and never otherwise changed or removed; a change opens a
+  new row. One open row per worker and campaign (or post), enforced by a
+  partial unique index.
+- **API** (workers): `GET /api/feed?cursor=`, `GET`/`PUT
+  /api/feed/follows/:campaignId` (`{ following, notify? }`). Follow and
+  like changes are rate-limited per worker.
+- **Acceptance:** `tests/acceptance/s2-social.ts` (`run.sh s2`).
 
 ## M0 scope (done)
 

@@ -200,14 +200,14 @@ export async function clearCampaignImage(actor: Actor, id: string, kind: MediaKi
 const EMBED_SELECT = {
   id: true, orgId: true, title: true, type: true, status: true, startsAt: true, endsAt: true, compensationMethod: true, payRateCents: true, geography: true, campaignDisclosure: true,
 } satisfies Prisma.JobSelect;
-const POST_SELECT = {
+export const POST_SELECT = {
   id: true, profileId: true, body: true, pinnedAt: true, createdAt: true, editedAt: true, jobId: true,
   job: { select: EMBED_SELECT },
 } satisfies Prisma.CampaignPostSelect;
 export type PostRow = Prisma.CampaignPostGetPayload<{ select: typeof POST_SELECT }>;
 /** A post as the public sees it: an embedded job only while it's still published or paused (a draft or closed job shows as "no longer hiring", without its details). */
 export type PublicPost = Omit<PostRow, "job"> & { job: PostRow["job"] | null; jobGone: boolean };
-const publicPost = (p: PostRow): PublicPost => {
+export const publicPost = (p: PostRow): PublicPost => {
   const live = p.job && (p.job.status === "PUBLISHED" || p.job.status === "PAUSED");
   return { ...p, job: live ? p.job : null, jobGone: !!p.jobId && !live };
 };

@@ -4,6 +4,7 @@ import { accessTo, type Area } from "@/lib/access";
 /** The glyph a tab shows (drawn in components/AppNav; a plain id here keeps React out of lib). */
 export type TabIconId =
   | "today"
+  | "feed"
   | "work"
   | "shifts"
   | "messages"
@@ -58,6 +59,7 @@ export const PHONE_PICKS: Record<Exclude<Role, "WORKER">, OrgNavId[]> = {
 
 const WORKER_TABS: NavTab[] = [
   { href: "/dashboard", label: "Today", icon: "today" },
+  { href: "/feed", label: "Feed", icon: "feed" },
   { href: "/jobs", label: "Work", icon: "work" },
   { href: "/shifts", label: "Shifts", icon: "shifts" },
   { href: MESSAGES_HREF, label: "Messages", icon: "messages" },

@@ -18,8 +18,11 @@ import { listSupervisors } from "@/lib/field-day-data";
 import { LocalTime } from "@/components/LocalTime";
 import { ScheduleShiftForm } from "@/components/ScheduleShiftForm";
 import { DateRangeChip } from "@/components/DateRangeChip";
+import { followState } from "@/lib/campaign-follow-data";
+import { CampaignCard } from "@/components/campaign/CampaignCard";
 
-const loadJob = (id: string) => db().job.findUnique({ where: { id }, include: { org: true, jurisdiction: true } });
+const loadJob = (id: string) =>
+  db().job.findUnique({ where: { id }, include: { org: true, jurisdiction: true, campaignProfile: { select: { id: true, handle: true, displayName: true, avatarKey: true, publishedAt: true } } } });
 type JobWithRefs = NonNullable<Awaited<ReturnType<typeof loadJob>>>;
 
 export default async function JobPage({ params }: { params: Promise<{ jobId: string }> }) {
@@ -63,6 +66,11 @@ export default async function JobPage({ params }: { params: Promise<{ jobId: str
       </header>
 
       {job.description && <p className="lead">{job.description}</p>}
+
+      {/* The campaign this job works for (S2): its page and a Follow control, while the campaign is public. */}
+      {isWorker && job.campaignProfile?.publishedAt && job.org.approved && (
+        <CampaignCard campaign={job.campaignProfile} follow={await followState(session.workerId!, job.campaignProfile.id)} viewer="worker" back={`/jobs/${job.id}`} />
+      )}
 
       {isWorker && <WorkerPanel job={job} engagement={engagement} modes={modes} workerId={session.workerId!} acceptedCount={acceptedCount} />}
       {isOwnOrg && (

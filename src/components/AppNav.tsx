@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
-import { BadgeCheck, Briefcase, CalendarClock, ClipboardList, Clock, Ellipsis, LayoutDashboard, Map, Megaphone, MessageCircle, Settings, Sunrise, User, Users, Wallet, X, type LucideIcon } from "lucide-react";
+import { BadgeCheck, Briefcase, CalendarClock, ClipboardList, Clock, Ellipsis, LayoutDashboard, Map, Megaphone, MessageCircle, Newspaper, Settings, Sunrise, User, Users, Wallet, X, type LucideIcon } from "lucide-react";
 import { activeTab, MESSAGES_HREF, type NavTab, type TabIconId } from "@/lib/nav";
 import { clampScroll, MIN_DELTA, nextHidden, SHOW_NEAR_TOP } from "@/lib/scroll-hide";
 import { useUnreadCount } from "@/components/chat/UnreadProvider";
@@ -12,6 +12,7 @@ import { useUnreadCount } from "@/components/chat/UnreadProvider";
 const ICONS: Record<TabIconId, LucideIcon> = {
   campaigns: Megaphone,
   today: Sunrise, // not Sun: the theme toggle uses that
+  feed: Newspaper,
   work: Briefcase,
   shifts: CalendarClock,
   messages: MessageCircle,

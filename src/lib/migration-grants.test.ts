@@ -45,4 +45,20 @@ describe("migration grants", () => {
       expect({ file: f, schemaWide: /GRANT[^;]*ON\s+ALL\s+TABLES\s+IN\s+SCHEMA[^;]*TO[^;]*(anon|authenticated)/i.test(sql) }).toEqual({ file: f, schemaWide: false });
     }
   });
+  it("follows and likes stay server-only: no grant, no policy, in any migration (S2)", () => {
+    // Who follows a campaign and who liked a post is the worker's business: nothing is ever readable through the Data API.
+    for (const f of files) {
+      const sql = readFileSync(join(dir, f), "utf8").replace(/--[^\n]*/g, "");
+      expect({ file: f, grants: sql.match(/GRANT[^;]*"(CampaignFollow|PostLike)"[^;]*/gi) ?? [] }).toEqual({ file: f, grants: [] });
+      expect({ file: f, policies: sql.match(/CREATE\s+POLICY[^;]*"(CampaignFollow|PostLike)"[^;]*/gi) ?? [] }).toEqual({ file: f, policies: [] });
+    }
+    // And the files that create them take the API roles' default privileges back and turn RLS on (Supabase grants on new tables by default).
+    for (const f of ["s2-social.sql", "supabase-manual-setup.sql"]) {
+      const sql = readFileSync(join(dir, f), "utf8").replace(/--[^\n]*/g, "");
+      for (const t of ["CampaignFollow", "PostLike"]) {
+        expect({ file: f, table: t, rls: new RegExp(`ALTER\\s+TABLE\\s+"public"\\."${t}"\\s+ENABLE\\s+ROW\\s+LEVEL\\s+SECURITY`, "i").test(sql) }).toEqual({ file: f, table: t, rls: true });
+        expect({ file: f, table: t, revoked: new RegExp(`REVOKE\\s+ALL\\s+ON[^;]*"${t}"[^;]*FROM[^;]*anon[^;]*authenticated`, "i").test(sql) }).toEqual({ file: f, table: t, revoked: true });
+      }
+    }
+  });
 });

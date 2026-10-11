@@ -4,7 +4,7 @@ import { accessTo, ORG_ROLES } from "./access";
 
 describe("navigation", () => {
   it("gives each role its own tabs", () => {
-    expect(navTabs("WORKER", false).map((t) => t.label)).toEqual(["Today", "Work", "Shifts", "Messages", "Profile"]);
+    expect(navTabs("WORKER", false).map((t) => t.label)).toEqual(["Today", "Feed", "Work", "Shifts", "Messages", "Profile"]);
     // C1: no People directory; organizations reach workers through a job.
     expect(navTabs("OWNER", true).map((t) => t.label)).toEqual(["Desk", "Hiring", "Jobs", "Field", "Messages", "Pay", "Campaigns", "Members", "Settings"]);
     // Recruiters read the field (no actions there).

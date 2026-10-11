@@ -374,8 +374,9 @@ export async function setJobCampaign(actor: Actor, jobId: string, campaignId: st
   if (!UUID_RE.test(jobId) || (campaignId !== null && !UUID_RE.test(campaignId))) return { ok: false, reason: "Not found." };
   return db().$transaction(async (tx) => {
     await lock(tx, `job:${jobId}`);
-    const job = await tx.job.findFirst({ where: { id: jobId, orgId: actor.orgId }, select: { campaignProfileId: true } });
+    const job = await tx.job.findFirst({ where: { id: jobId, orgId: actor.orgId }, select: { campaignProfileId: true, status: true } });
     if (!job) return { ok: false as const, reason: "Job not found." };
+    if (campaignId && job.status === "CLOSED") return { ok: false as const, reason: "That job has closed." };
     if (campaignId && !(await tx.campaignProfile.findFirst({ where: { id: campaignId, orgId: actor.orgId }, select: { id: true } }))) return { ok: false as const, reason: "Campaign not found." };
     if (job.campaignProfileId === campaignId) return { ok: true as const };
     await tx.job.update({ where: { id: jobId }, data: { campaignProfileId: campaignId } });

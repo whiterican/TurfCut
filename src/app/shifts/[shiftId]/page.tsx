@@ -79,11 +79,11 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
   if (!s) notFound();
 
   const isWorker = session.role === "WORKER" && session.workerId === s.engagement.workerId;
-  // The campaign's pinned talking points, verbatim (S1): read for the brief only, never recorded about the reader.
-  const brief = await loadTalkingPoints(s.engagement.job.id);
   const isOrg = session.orgId === s.engagement.job.orgId && [...SCHEDULING_ROLES, ...FIELD_ROLES].includes(session.role);
   if (!isWorker && !isOrg) notFound();
   const canField = isOrg && FIELD_ROLES.includes(session.role);
+  // The campaign's pinned talking points, verbatim (S1): read for the brief only, never recorded about the reader.
+  const brief = isWorker || canField ? await loadTalkingPoints(s.engagement.job.id) : null;
 
   const f = facts(s);
   const st = shiftState(f);

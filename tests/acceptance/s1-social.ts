@@ -40,7 +40,8 @@ const refused = (p: Promise<unknown>) => p.then(() => "allowed", (e: unknown) =>
   const c = await createCampaign(A, { handle: "yes_on_7", displayName: "Yes on 7", bio: "Protected bike lanes.\nhttps://yeson7.org" });
   check("an organization creates a campaign as a draft", c.ok && (await loadPublicCampaign("yes_on_7")) === null, c);
   const id = c.ok ? c.id : "";
-  check("a handle is unique", !(await createCampaign(B, { handle: "yes_on_7", displayName: "x", bio: "" })).ok);
+  const dup = await createCampaign(B, { handle: "yes_on_7", displayName: "x", bio: "" });
+  check("a handle is unique", !dup.ok && /taken/.test(dup.errors?.handle ?? ""), dup);
   const b = await createCampaign(B, { handle: "pending_c", displayName: "Pending", bio: "" });
   const bPublish = b.ok ? await setCampaignPublished(B, b.id, true) : null;
   check("an organization Turfcut hasn't approved can't publish", !!bPublish && !bPublish.ok && /approved/.test(bPublish.reason), bPublish);
@@ -124,21 +125,36 @@ const refused = (p: Promise<unknown>) => p.then(() => "allowed", (e: unknown) =>
   check("a job embedded in posts can't move to another organization (database)", /can't move/.test(await refused(p.job.update({ where: { id: JOB }, data: { orgId: ORG2, campaignProfileId: null } }))));
 
   // --- Public reads through the Data API roles ---
-  const anon = await p.$transaction(async (tx) => {
-    await tx.$executeRawUnsafe("SET LOCAL ROLE anon");
-    const posts = await tx.$queryRawUnsafe<{ n: bigint }[]>(`SELECT count(*) AS n FROM "CampaignPost"`);
-    const profiles = await tx.$queryRawUnsafe<{ handle: string }[]>(`SELECT "handle" FROM "CampaignProfile"`);
-    return { posts: Number(posts[0].n), profiles: profiles.map((x) => x.handle) };
-  });
+  // A draft in the approved organization, with a post; and a published campaign, with a post, whose organization loses approval.
+  const draft = await createCampaign(A, { handle: "draft_camp", displayName: "Draft", bio: "" });
+  if (draft.ok) await createPost(A, draft.id, { body: "Draft campaign post", jobId: null });
+  await p.organization.update({ where: { id: ORG2 }, data: { approved: true } });
+  if (b.ok) {
+    await setCampaignPublished(B, b.id, true);
+    await createPost(B, b.id, { body: "Soon-unapproved post", jobId: null });
+  }
+  await p.organization.update({ where: { id: ORG2 }, data: { approved: false } });
+  const readAs = (role: "anon" | "authenticated", sub: string | null) =>
+    p.$transaction(async (tx) => {
+      await tx.$executeRawUnsafe(`SET LOCAL ROLE ${role}`);
+      if (sub) await tx.$executeRawUnsafe(`SELECT set_config('request.jwt.claim.sub', '${sub}', true)`);
+      const posts = await tx.$queryRawUnsafe<{ body: string }[]>(`SELECT "body" FROM "CampaignPost"`);
+      const profiles = await tx.$queryRawUnsafe<{ handle: string }[]>(`SELECT "handle" FROM "CampaignProfile" ORDER BY "handle"`);
+      return { posts: posts.map((x) => x.body), profiles: profiles.map((x) => x.handle) };
+    });
+  const anon = await readAs("anon", null);
+  const owner = await readAs("authenticated", OWNER);
+  const hiddenBodies = ["Draft campaign post", "Soon-unapproved post"];
   const author = await refused(p.$transaction(async (tx) => {
     await tx.$executeRawUnsafe("SET LOCAL ROLE anon");
     return tx.$queryRawUnsafe(`SELECT "authorId" FROM "CampaignPost"`);
   }));
-  check("anyone can read published campaigns and their live posts, never drafts, deleted posts or authors", anon.posts === live && JSON.stringify(anon.profiles) === JSON.stringify(["yes_on_7"]) && /permission denied/.test(author), { anon, author });
+  check("anyone can read published campaigns and their live posts, never drafts, unapproved organizations' campaigns, deleted posts or authors", anon.posts.length === live && !anon.posts.some((x) => hiddenBodies.includes(x)) && JSON.stringify(anon.profiles) === JSON.stringify(["yes_on_7"]) && /permission denied/.test(author), { anon, author });
+  check("a signed-in reader (even the campaign's own owner) reads exactly what the public reads", JSON.stringify(owner) === JSON.stringify(anon), owner);
 
   // --- Social activity is invisible to matching and the feed ---
   check("a worker's job feed is exactly what it was before any campaign activity", (await feedView()) === feedBefore);
-  check("every campaign write is on the audit record", (await p.auditEvent.count({ where: { action: { startsWith: "campaign." } } })) >= 10 && (await p.auditEvent.count({ where: { action: "job.campaign_set" } })) === 1);
+  check("every campaign write is on the audit record", (await p.auditEvent.count({ where: { action: "campaign.created" } })) === 3 && (await p.auditEvent.count({ where: { action: "campaign.post_pinned" } })) === MAX_PINNED && (await p.auditEvent.count({ where: { action: "job.campaign_set" } })) === 1);
 
   await p.$disconnect();
   process.exit(fails ? 1 : 0);

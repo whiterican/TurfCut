@@ -273,8 +273,8 @@ export interface HeldPacket {
  */
 export async function heldPackets(c: Tx | ReturnType<typeof db>, scope: { jobId?: string; orgId?: string; engagementId?: string }): Promise<HeldPacket[]> {
   // The organization-wide view (the ops page) looks back HELD_WINDOW_DAYS: a packet kept longer than that is a custody question for the job's own page, not a live count.
-  const since = scope.orgId && !scope.jobId ? { startsAt: { gte: new Date(Date.now() - HELD_WINDOW_DAYS * 86_400_000) } } : {};
-  const where = { ...since, ...(scope.engagementId ? { engagementId: scope.engagementId } : {}), engagement: { job: { ...(scope.jobId ? { id: scope.jobId } : {}), ...(scope.orgId ? { orgId: scope.orgId } : {}) } }, events: { some: { type: "PACKET_HELD" as const } } };
+  const recent = scope.orgId && !scope.jobId ? { startsAt: { gte: new Date(Date.now() - HELD_WINDOW_DAYS * 86_400_000) } } : {};
+  const where = { ...recent, ...(scope.engagementId ? { engagementId: scope.engagementId } : {}), engagement: { job: { ...(scope.jobId ? { id: scope.jobId } : {}), ...(scope.orgId ? { orgId: scope.orgId } : {}) } }, events: { some: { type: "PACKET_HELD" as const } } };
   const holders = await c.shift.findMany({ where, include: SHIFT_INCLUDE, orderBy: { startsAt: "asc" } });
   if (!holders.length) return [];
   const pid = (e: { payload: unknown }) => String((e.payload as { packetId?: unknown } | null)?.packetId ?? "");

@@ -17,7 +17,7 @@ export interface JobTools {
   canvassApp: CanvassApp | null;
   /** The list, turf or walk name to open in the app. */
   list: string | null;
-  /** How to get into it: a login code, who hands out devices, and so on. */
+  /** How to get into it: who hands out devices, where to meet, and so on — never a password or code (those come from the supervisor in person). Shown on the shift brief, not in the feed. */
   notes: string | null;
 }
 

@@ -35,6 +35,8 @@ export interface FieldGroup {
   rows: FieldRow[];
   checkedIn: number;
   packetsOut: number;
+  /** Packets workers kept for their next shift (C4.5): not out here, still in their hands. */
+  packetsHeld: number;
   signatures: number;
 }
 
@@ -44,10 +46,11 @@ export function groupField(rows: FieldRow[]): FieldGroup[] {
   for (const r of rows) {
     const k = `${r.jobId}\u0000${r.staging ?? ""}`;
     let g = by.get(k);
-    if (!g) by.set(k, (g = { jobId: r.jobId, jobTitle: r.jobTitle, staging: r.staging, rows: [], checkedIn: 0, packetsOut: 0, signatures: 0 }));
+    if (!g) by.set(k, (g = { jobId: r.jobId, jobTitle: r.jobTitle, staging: r.staging, rows: [], checkedIn: 0, packetsOut: 0, packetsHeld: 0, signatures: 0 }));
     g.rows.push(r);
     if (r.state.checkedInAt) g.checkedIn++;
     g.packetsOut += r.state.packetsOut.length;
+    g.packetsHeld += r.state.packetsHeld.length;
     g.signatures += r.state.signatures;
   }
   for (const g of by.values()) g.rows.sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime());

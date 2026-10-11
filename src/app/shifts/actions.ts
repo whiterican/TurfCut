@@ -138,7 +138,7 @@ export async function correctionStep(_prev: ActionState, fd: FormData): Promise<
   const opt = (k: string) => (str(fd, k) ? int(fd, k) : undefined);
   let action: CorrectionAction;
   if (kind === "correct_event") {
-    action = { kind, eventId: str(fd, "eventId"), at, count: opt("count"), sheetsReturned: opt("sheetsReturned"), signatures: opt("signatures"), reason };
+    action = { kind, eventId: str(fd, "eventId"), at, count: opt("count"), sheetsReturned: opt("sheetsReturned"), signatures: opt("signatures"), doors: opt("doors"), contacts: opt("contacts"), reason };
   } else if (kind === "enter_event") {
     const type = str(fd, "type");
     if (!(ENTERABLE as readonly string[]).includes(type)) return { ok: false, message: "Pick what to enter." };

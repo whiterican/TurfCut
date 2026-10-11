@@ -33,6 +33,7 @@ export default async function FieldPage() {
           { label: "Under way", value: underWay.length },
           { label: "Checked in", value: underWay.filter((r) => r.state.checkedInAt).length },
           { label: "Packets out", value: rows.reduce((n, r) => n + r.state.packetsOut.length, 0) },
+          { label: "Kept by workers", value: rows.reduce((n, r) => n + r.state.packetsHeld.length, 0) },
           { label: "Waiting for review", value: `${waiting}${more ? "+" : ""}` },
         ]}
       />

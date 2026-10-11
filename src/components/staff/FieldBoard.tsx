@@ -17,7 +17,7 @@ export function FieldBoard({ rows, empty }: { rows: FieldRow[]; empty: string })
               <span className="text-muted-sm font-normal"> · {g.staging ?? "No staging point set"}</span>
             </h2>
             <p className="text-xs text-muted tabular-nums">
-              {g.checkedIn} of {g.rows.length} checked in · {g.packetsOut} {g.packetsOut === 1 ? "packet" : "packets"} out · {g.signatures} signatures
+              {g.checkedIn} of {g.rows.length} checked in · {g.packetsOut} {g.packetsOut === 1 ? "packet" : "packets"} out{g.packetsHeld > 0 ? ` · ${g.packetsHeld} kept by workers` : ""} · {g.signatures} signatures
             </p>
           </div>
           <ul className="list-card">
@@ -31,6 +31,7 @@ export function FieldBoard({ rows, empty }: { rows: FieldRow[]; empty: string })
                       <span className="block text-xs text-muted">
                         <LocalTime iso={r.startsAt.toISOString()} mode="time" /> – <LocalTime iso={r.endsAt.toISOString()} mode="time" />
                         {r.state.packetsOut.length > 0 && ` · ${r.state.packetsOut.length} out`}
+                        {r.state.packetsHeld.length > 0 && ` · ${r.state.packetsHeld.length} kept`}
                         {r.state.signatures > 0 && ` · ${r.state.signatures} sig.`}
                       </span>
                     </span>

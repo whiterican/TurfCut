@@ -1,4 +1,5 @@
 import type { NextRequest } from "next/server";
+import { readTools } from "@/lib/job-tools";
 import { db } from "@/lib/db";
 import { getSessionProfile } from "@/lib/auth";
 import { ORG_ROLES } from "@/lib/access";
@@ -17,8 +18,9 @@ export async function GET(req: NextRequest) {
   if (!session) return Response.json({ error: "Sign in required." }, { status: 401 });
   if (session.role === "WORKER" && session.workerId) {
     const { jobs, hidden } = await loadFeed(session.workerId, parseFeedFilters(req.nextUrl.searchParams));
-    // Jurisdiction rules stay server-side; the job card already folds them in.
-    return Response.json({ jobs: jobs.map((j) => ({ ...j, jurisdiction: undefined })), hidden });
+    // Jurisdiction rules stay server-side (the job card already folds them in),
+    // and so do the app notes: those are for the shift brief, once hired (C4.4).
+    return Response.json({ jobs: jobs.map((j) => ({ ...j, jurisdiction: undefined, tools: j.tools == null ? null : { ...readTools(j.tools), notes: undefined } })), hidden });
   }
   if (ORG_ROLES.includes(session.role) && session.orgId) {
     const jobs = await db().job.findMany({ where: { orgId: session.orgId }, orderBy: { createdAt: "desc" } });

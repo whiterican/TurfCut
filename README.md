@@ -729,11 +729,24 @@ Built in C3.6b (see the C3 scope below). Approved as recommended by review:
   the supervisor reviews as usual — and it's still in the worker's hands:
   at their next check-in on the job it comes back out automatically, as a
   `PACKET_PICKUP` in the worker's name that says which shift it was carried
-  from, with the same sheet count, under the job's packet lock. If the
-  worker handed it to a colleague meanwhile and their supervisor recorded
-  that pickup, it isn't carried. The shift page shows kept packets on the
-  progress line and the hero; the field board's "packets out" count
-  excludes them.
+  from, with the same sheet count, under the job's packet lock. A kept
+  packet can still be returned on the same shift (that undoes a mis-tap);
+  the phone asks before keeping. If the worker handed it to a colleague
+  meanwhile and their supervisor recorded that pickup (the record says
+  whose kept packet it was), it isn't carried, and the holding shift says
+  so. The shift page shows kept packets on the progress line and the hero;
+  the field board counts them as "kept by workers", apart from "out".
+  Signatures logged on the holding shift sit on sheets returned on a later
+  shift, so they're counted (and paid per signature) in that later shift's
+  batch count; the reviewer is told on the holding shift. Decisions for
+  Caden: whether per-signature pay for a kept packet that's never returned
+  (the worker has no further shift) should be settled some other way than
+  a supervisor's pickup on another shift; and whether a supervisor should
+  need the worker's confirmation to take a kept packet over, rather than
+  the record alone.
+- **Correcting app totals (C4.4)**: a supervisor can correct the app's
+  doors and contacts like any counted entry, each correction a signed
+  event with a reason the worker sees.
 
 ## C3 scope — the hiring hub
 

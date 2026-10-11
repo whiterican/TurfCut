@@ -65,6 +65,15 @@ describe("worker actions", () => {
     const st = shiftState(canvass([ev("CHECK_IN", 0), ev("DOOR_KNOCK", 5, { count: 10 }), ev("CONTACT", 6, { count: 2 }), ev("APP_COUNTS", 200, { app: "MINIVAN", doors: 42, contacts: 7 }), ev("APP_COUNTS", 210, { app: "MINIVAN", doors: 45, contacts: 8 })]));
     expect(st).toMatchObject({ doors: 45, contacts: 8, appCounts: { app: "MINIVAN", doors: 45, contacts: 8 } });
     expect(shiftState(canvass([ev("CHECK_IN", 0), ev("DOOR_KNOCK", 5, { count: 10 })])).doors).toBe(10);
+    // After review the totals are the supervisor's to correct; a rejected entry falls back to the one before it, then to hand logging.
+    const reviewed = { ...canvass([ev("CHECK_IN", 0), ev("CHECK_OUT", 300)]), validations: [{ workEventId: null, status: "APPROVED" as const, reason: null, createdAt: at(400) }] };
+    expect(workerAction(reviewed, totals, at(410)).ok).toBe(false);
+    const e1 = { ...ev("APP_COUNTS", 200, { app: "MINIVAN", doors: 42, contacts: 7 }), id: "a1" };
+    const e2 = { ...ev("APP_COUNTS", 210, { app: "MINIVAN", doors: 45, contacts: 8 }), id: "a2" };
+    const rejected = { ...canvass([ev("CHECK_IN", 0), ev("DOOR_KNOCK", 5, { count: 10 }), e1, e2]), validations: [{ workEventId: "a2", status: "REJECTED" as const, reason: "typo", createdAt: at(220) }] };
+    expect(shiftState(rejected)).toMatchObject({ doors: 42, contacts: 7 });
+    const bothRejected = { ...rejected, validations: [...rejected.validations, { workEventId: "a1", status: "REJECTED" as const, reason: "typo", createdAt: at(221) }] };
+    expect(shiftState(bothRejected)).toMatchObject({ doors: 10, contacts: 0, appCounts: null });
   });
 
   it("lets a worker keep a packet for their next shift: not out here, check-out and review allowed (C4.5)", () => {
@@ -74,13 +83,25 @@ describe("worker actions", () => {
     expect(workerAction(shift(), { kind: "hold_packet", packetId: "18A" }, at(300)).ok).toBe(false);
     const held = shift([...withPacket.events, ev("PACKET_HELD", 300, { packetId: "18A" })]);
     expect(shiftState(held)).toMatchObject({ packetsOut: [], packetsHeld: ["18A"], packetsReturned: [] });
-    expect(workerAction(held, { kind: "return_packet", packetId: "18A", sheetsReturned: 20, signatures: 3 }, at(301)).ok).toBe(false);
+    // A mis-tap is undone by returning the packet on the same shift; the supervisor can't hand it back out while it's kept.
+    expect(workerAction(held, { kind: "return_packet", packetId: "18A", sheetsReturned: 20, signatures: 3 }, at(301))).toMatchObject({ ok: true, event: { type: "PACKET_RETURN" } });
+    expect(shiftState(shift([...held.events, ev("PACKET_RETURN", 301, { packetId: "18A", sheetsReturned: 20, signatures: 3 })]))).toMatchObject({ packetsOut: [], packetsHeld: [], packetsReturned: ["18A"] });
+    expect(supervisorAction(held, { kind: "packet_pickup", packetId: "18A", sheets: 20 }, [], at(301))).toMatchObject({ ok: false, reason: expect.stringMatching(/kept by the worker/) });
     expect(workerAction(held, { kind: "check_out" }, at(302)).ok).toBe(true);
     const out = shift([...held.events, ev("CHECK_OUT", 302)]);
     expect(supervisorAction(out, { kind: "closeout", status: "APPROVED", reason: null }, [], at(400)).ok).toBe(true);
-    expect(shiftProgress(out).find((p) => p.key === "return")?.detail).toMatch(/18A kept for your next shift/);
+    const steps = shiftProgress(out);
+    expect(steps.find((p) => p.key === "return")?.detail).toMatch(/18A kept for your next shift/);
+    expect(steps.find((p) => p.key === "materials")).toMatchObject({ state: "done" });
     expect(timelineProblem(held.events, held)).toBeNull();
+    expect(timelineProblem([...held.events, ev("PACKET_RETURN", 301, { packetId: "18A", sheetsReturned: 20, signatures: 3 })], held)).toBeNull();
     expect(timelineProblem([ev("CHECK_IN", 0), ev("PACKET_HELD", 1, { packetId: "18A" })], held)).toMatch(/wasn't out/);
+    // A carried-in packet is written at check-in, so a corrected (later) check-in still reads as valid; after check-out it doesn't.
+    const carried = ev("PACKET_PICKUP", 1, { packetId: "18A", sheets: 20, carriedFrom: "shift-a" });
+    expect(timelineProblem([carried, ev("CHECK_IN", 5)], held)).toBeNull();
+    expect(timelineProblem([ev("CHECK_IN", 0), ev("CHECK_OUT", 300), { ...carried, createdAt: at(301) }], held)).toMatch(/only go out/);
+    // A supervisor taking a colleague's kept packet records whose it was.
+    expect(supervisorAction(shift([ev("CHECK_IN", 0)]), { kind: "packet_pickup", packetId: "19b", sheets: 10 }, [], at(5), [{ packetId: "19B", shiftId: "shift-a" }])).toMatchObject({ ok: true, event: { payload: { packetId: "19B", sheets: 10, takenFrom: "shift-a" } } });
   });
 
   it("can't check out holding a packet or mid-break", () => {

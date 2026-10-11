@@ -26,7 +26,7 @@ export const FUTURE_SLACK_MS = 2 * 60_000;
 export const MAX_BATCH = 200;
 
 /** The field actions a phone may queue (cancelling needs a connection). */
-export type QueuedKind = "check_in" | "pause" | "resume" | "log" | "return_packet" | "check_out";
+export type QueuedKind = QueuedAction["action"]["kind"];
 
 export interface QueuedAction {
   clientId: string;

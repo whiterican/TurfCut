@@ -9,6 +9,7 @@ import { canScheduleShift, UUID_RE } from "@/lib/jobs";
 import { applyReviewPlan, payLock, planReview, reviewLockProblem, withdrawStalePay } from "@/lib/pay-data";
 import { correctTime, placeTime, timeProblem, wasOffline, type QueuedAction } from "@/lib/offline-sync";
 import {
+  correctedEvents,
   correctionAction,
   findConflicts,
   samePacket,
@@ -232,40 +233,6 @@ export async function workerShiftAction(
 }
 
 /**
- * Packets the worker kept from an earlier shift on this job (C4.5) come
- * back out at check-in: one PACKET_PICKUP per packet on the new shift, in
- * the worker's name, saying where it was carried from. A packet handed to
- * someone else since (a supervisor's pickup on another shift) stays with
- * them. Under the job's packet lock, like a supervisor's pickup.
- */
-async function carryHeldPackets(tx: Tx, s: NonNullable<Awaited<ReturnType<typeof loadShift>>>, actorId: string, now: Date) {
-  const jobId = s.engagement.job.id;
-  await lock(tx, `packets:${jobId}`);
-  const mine = await tx.shift.findMany({
-    where: { id: { not: s.id }, engagementId: s.engagement.id, events: { some: { type: "PACKET_HELD" } } },
-    include: SHIFT_INCLUDE,
-    orderBy: { startsAt: "asc" },
-  });
-  if (!mine.length) return [];
-  const pickups = await tx.workEvent.findMany({ where: { type: "PACKET_PICKUP", shift: { engagement: { jobId } } }, select: { payload: true, createdAt: true } });
-  const pickedUpAfter = (id: string, t: Date) => pickups.some((e) => e.createdAt > t && samePacket(String((e.payload as { packetId?: unknown } | null)?.packetId ?? ""), id));
-  const carried: Array<{ type: string; payload: Record<string, unknown>; createdAt: Date }> = [];
-  let at = now.getTime();
-  for (const o of mine) {
-    for (const id of shiftState(facts(o)).packetsHeld) {
-      const heldAt = o.events.filter((e) => e.type === "PACKET_HELD" && samePacket(String((e.payload as { packetId?: unknown } | null)?.packetId ?? ""), id)).at(-1)?.createdAt;
-      if (!heldAt || pickedUpAfter(id, heldAt)) continue;
-      const sheets = (o.events.filter((e) => e.type === "PACKET_PICKUP" && samePacket(String((e.payload as { packetId?: unknown } | null)?.packetId ?? ""), id)).at(-1)?.payload as { sheets?: unknown } | null)?.sheets;
-      const payload = { packetId: id, sheets: typeof sheets === "number" ? sheets : null, carriedFrom: o.id };
-      const createdAt = new Date(++at);
-      await tx.workEvent.create({ data: { shiftId: s.id, type: "PACKET_PICKUP", payload, actorId, createdAt } });
-      carried.push({ type: "PACKET_PICKUP", payload, createdAt });
-    }
-  }
-  return carried;
-}
-
-/**
  * Why a check-in's staging check can't be taken (C4.2), or null. The phone's
  * band names the radius it compared with: it has to be this shift's own, and
  * a shift with no staging point has nothing to be "at". Both the direct route
@@ -279,6 +246,68 @@ function radiusProblem(s: NonNullable<Awaited<ReturnType<typeof loadShift>>>, ac
   const radius = radiusFor(readLaunch(s.engagement.job.launch), { lat: s.stagingLat, lng: s.stagingLng });
   const agrees = !!band && (band.radius === null ? radius < 1000 : band.radius === radius);
   return agrees ? null : "This check-in was made against a different staging point. Reload the shift and check in again.";
+}
+
+/** A packet a worker kept for their next shift (C4.5), and whether someone has since taken it out. */
+export interface HeldPacket {
+  packetId: string;
+  sheets: number | null;
+  /** The shift it was kept on, and whose engagement. */
+  heldOn: string;
+  engagementId: string;
+  heldAt: Date;
+  /** The shift a later PACKET_PICKUP took it out on (the worker's next shift, or a colleague's), else null: still in the worker's hands. */
+  takenOn: string | null;
+}
+
+/**
+ * Every packet kept on this job's shifts, with the pickup that has since
+ * taken it out, if any. Read through the corrected ledger of the holding
+ * shift; pickups are read raw (nothing rejects a pickup today).
+ */
+export async function heldOnJob(c: Tx | ReturnType<typeof db>, jobId: string): Promise<HeldPacket[]> {
+  const holders = await c.shift.findMany({ where: { engagement: { jobId }, events: { some: { type: "PACKET_HELD" } } }, include: SHIFT_INCLUDE, orderBy: { startsAt: "asc" } });
+  if (!holders.length) return [];
+  const pid = (e: { payload: unknown }) => String((e.payload as { packetId?: unknown } | null)?.packetId ?? "");
+  const held: HeldPacket[] = [];
+  for (const o of holders) {
+    const corrected = correctedEvents(facts(o));
+    for (const id of shiftState(facts(o)).packetsHeld) {
+      const heldAt = corrected.filter((e) => e.type === "PACKET_HELD" && samePacket(pid(e), id)).at(-1)?.createdAt;
+      if (!heldAt) continue;
+      const sheets = (corrected.filter((e) => e.type === "PACKET_PICKUP" && samePacket(pid(e), id)).at(-1)?.payload as { sheets?: unknown } | null)?.sheets;
+      held.push({ packetId: id, sheets: typeof sheets === "number" ? sheets : null, heldOn: o.id, engagementId: o.engagement.id, heldAt, takenOn: null });
+    }
+  }
+  if (!held.length) return held;
+  const since = new Date(Math.min(...held.map((h) => h.heldAt.getTime())));
+  const pickups = await c.workEvent.findMany({ where: { type: "PACKET_PICKUP", createdAt: { gt: since }, shift: { engagement: { jobId } } }, select: { shiftId: true, payload: true, createdAt: true }, orderBy: { createdAt: "asc" } });
+  for (const h of held) h.takenOn = pickups.find((e) => e.createdAt > h.heldAt && e.shiftId !== h.heldOn && samePacket(pid(e), h.packetId))?.shiftId ?? null;
+  return held;
+}
+
+/** The packets that would come out at this shift's check-in: kept by this worker on this job, not taken out since. */
+export async function carriedInto(c: Tx | ReturnType<typeof db>, s: { id: string; engagement: { id: string; job: { id: string } } }) {
+  return (await heldOnJob(c, s.engagement.job.id)).filter((h) => h.engagementId === s.engagement.id && h.heldOn !== s.id && h.takenOn === null);
+}
+
+/**
+ * Packets the worker kept from an earlier shift on this job (C4.5) come
+ * back out at check-in: one PACKET_PICKUP per packet on the new shift, in
+ * the worker's name, saying where it was carried from. Under the job's
+ * packet lock, like a supervisor's pickup.
+ */
+async function carryHeldPackets(tx: Tx, s: NonNullable<Awaited<ReturnType<typeof loadShift>>>, actorId: string, now: Date) {
+  await lock(tx, `packets:${s.engagement.job.id}`);
+  const carried: Array<{ type: string; payload: Record<string, unknown>; createdAt: Date }> = [];
+  let at = now.getTime();
+  for (const h of await carriedInto(tx, s)) {
+    const payload = { packetId: h.packetId, sheets: h.sheets, carriedFrom: h.heldOn };
+    const createdAt = new Date(++at);
+    await tx.workEvent.create({ data: { shiftId: s.id, type: "PACKET_PICKUP", payload, actorId, createdAt } });
+    carried.push({ type: "PACKET_PICKUP", payload, createdAt });
+  }
+  return carried;
 }
 
 export async function supervisorShiftAction(
@@ -295,6 +324,7 @@ export async function supervisorShiftAction(
     const s = await loadShift(shiftId, tx);
     if (!s || s.engagement.job.orgId !== actor.orgId) return { ok: false as const, reason: "Shift not found." };
     let elsewhere: string[] = [];
+    let heldElsewhere: Array<{ packetId: string; shiftId: string }> = [];
     if (action.kind === "packet_pickup") {
       // Packets move between shifts of the same job: serialize those checks.
       await lock(tx, `packets:${s.engagement.job.id}`);
@@ -303,8 +333,9 @@ export async function supervisorShiftAction(
         include: SHIFT_INCLUDE,
       });
       elsewhere = others.flatMap((o) => shiftState(facts(o)).packetsOut);
+      heldElsewhere = (await heldOnJob(tx, s.engagement.job.id)).filter((h) => h.takenOn === null && h.heldOn !== shiftId).map((h) => ({ packetId: h.packetId, shiftId: h.heldOn }));
     }
-    const out = supervisorAction(facts(s), action, elsewhere, now);
+    const out = supervisorAction(facts(s), action, elsewhere, now, heldElsewhere);
     if (out.ok && action.kind === "batch_count") {
       // A recount changes per-signature pay: not once that pay is approved.
       await payLock(tx, s.engagement.workerId);
@@ -417,7 +448,9 @@ function syncChunk(
       const t = placeTime(corrected, floor, serverNow);
       // t is after the worker's own events, so their side of the shift is as
       // it stands. (A cancelled shift stays cancelled: nothing more is added.)
-      const problem = radiusProblem(s, q.action);
+      // The newest totals win by time entered: an older entry arriving late (another device, a slow sync) is refused rather than placed last.
+      const staleTotals = q.action.kind === "app_counts" && (latest((e) => e.type === "APP_COUNTS")?.getTime() ?? -Infinity) > corrected.getTime();
+      const problem = radiusProblem(s, q.action) ?? (staleTotals ? "Newer totals were already entered for this shift." : null);
       const out = problem ? { ok: false as const, reason: problem } : workerAction(f, q.action, t);
       if (!out.ok) {
         results.push({ clientId: q.clientId, status: "rejected", reason: out.reason });
@@ -431,7 +464,12 @@ function syncChunk(
       if (out.event) f.events.push({ type: out.event.type, payload: out.event.payload, actorId: actor.profileId, createdAt: t });
       if (out.status) f.status = out.status;
       // Packets kept from the last shift come out now, so a return later in the batch finds them.
-      if (q.action.kind === "check_in") for (const c of await carryHeldPackets(tx, s, actor.profileId, t)) f.events.push({ ...c, actorId: actor.profileId });
+      if (q.action.kind === "check_in") {
+        for (const c of await carryHeldPackets(tx, s, actor.profileId, t)) {
+          f.events.push({ ...c, actorId: actor.profileId });
+          lastWorker = c.createdAt;
+        }
+      }
       results.push({ clientId: q.clientId, status: "saved" });
     }
     return { ok: true as const, results };

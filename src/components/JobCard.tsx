@@ -52,7 +52,7 @@ export function JobCard({
           ) : "Not set"}
         </Row>
         <Row label="Dates">{day(job.startsAt)} – {day(job.endsAt)} · {job.headcount ? plural(job.headcount, "worker") : "—"}</Row>
-        {toolsText(readTools(job.tools)) && <Row label="Canvassing app">{toolsText(readTools(job.tools))}; you enter its returned totals at the end of each shift</Row>}
+        {toolsText(readTools(job.tools)) && <Row label="Canvassing app">{toolsText(readTools(job.tools))}; workers enter its returned totals at the end of each shift</Row>}
         <Row label="How each day starts">
           {launch.mode === "SELF"
             ? "Self-launch: you start from wherever you are; check-in records the time only"

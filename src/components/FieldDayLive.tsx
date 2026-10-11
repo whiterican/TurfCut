@@ -18,6 +18,8 @@ export interface LiveShift {
   startsAt: string;
   endsAt: string;
   staging: { lat: number; lng: number; radiusM: number } | null;
+  /** Packets kept from the worker's last shift on this job (C4.5): they come out at check-in, so the phone shows them as the server will. */
+  carriedIn: Array<{ packetId: string; sheets: number | null; carriedFrom: string }>;
   /** The app the job's canvassing runs in (C4.4): its totals are entered at the end of the shift. */
   canvassApp: CanvassApp | null;
   /** The scheduled end had passed when the page was made. */
@@ -35,7 +37,7 @@ const noop = () => () => {};
  * the page yet (waiting, or saved since it loaded), in the order recorded,
  * on the server's clock.
  */
-function withPending(base: ShiftFacts, pending: Pending[], offset: number): ShiftFacts {
+function withPending(base: ShiftFacts, pending: Pending[], offset: number, carriedIn: LiveShift["carriedIn"] = []): ShiftFacts {
   let f = base;
   for (const p of pending) {
     const at = new Date(p.at + offset);
@@ -43,6 +45,11 @@ function withPending(base: ShiftFacts, pending: Pending[], offset: number): Shif
     if (!out.ok || !out.event) continue;
     const ev: FieldEvent = { type: out.event.type, payload: out.event.payload, actorId: null, createdAt: at };
     f = { ...f, events: [...f.events, ev], status: out.status ?? f.status };
+    // The packets kept from the last shift come out with the check-in, as the server records them.
+    if (p.action.kind === "check_in") {
+      const carried: FieldEvent[] = carriedIn.map((c, i) => ({ type: "PACKET_PICKUP", payload: { packetId: c.packetId, sheets: c.sheets, carriedFrom: c.carriedFrom }, actorId: null, createdAt: new Date(at.getTime() + i + 1) }));
+      f = { ...f, events: [...f.events, ...carried] };
+    }
   }
   return f;
 }
@@ -102,6 +109,8 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
   const [problem, setProblem] = useState<string | null>(null);
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
   const [locating, setLocating] = useState(false);
+  // "Keep until next shift" changes custody: it asks once before recording.
+  const [keeping, setKeeping] = useState<string | null>(null);
   // Hydration-safe: the queue only exists in the browser.
   const mounted = useSyncExternalStore(noop, () => true, () => false);
 
@@ -120,8 +129,8 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
   // Entries the page already shows (saved and reloaded) aren't replayed again.
   const shown = useMemo(() => new Set(shift.events.map((e) => e.clientId).filter((x): x is string => !!x)), [shift.events]);
   const facts = useMemo(
-    () => withPending(base, pending.filter((p) => !p.rejected && !shown.has(p.clientId)), mounted ? clockOffset() : 0),
-    [base, pending, shown, mounted]
+    () => withPending(base, pending.filter((p) => !p.rejected && !shown.has(p.clientId)), mounted ? clockOffset() : 0, shift.carriedIn),
+    [base, pending, shown, mounted, shift.carriedIn]
   );
   const st = shiftState(facts);
   const waiting = pending.filter((p) => !p.rejected && !p.savedAt);
@@ -246,9 +255,15 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
   // was logged by hand here.
   const app = shift.canvassApp;
   const appForm = !petition && app && !st.closeout && (
-    <form onSubmit={submit((fd) => ({ kind: "app_counts", app, doors: num(fd, "doors"), contacts: num(fd, "contacts") }))} className="space-y-2 rounded-xl border border-border p-3">
-      <p className="text-sm font-semibold text-fg">{st.appCounts ? `Totals from ${appLabel(app)}: ${st.appCounts.doors} doors · ${st.appCounts.contacts} contacts` : `Totals from ${appLabel(app)}`}</p>
-      <p className="text-hint">At the end of the day, copy the shift totals the app shows. They replace what you logged by hand here.</p>
+    <form
+      key={`${st.appCounts?.doors ?? ""}-${st.appCounts?.contacts ?? ""}`}
+      onSubmit={submit((fd) => ({ kind: "app_counts", app, doors: num(fd, "doors"), contacts: num(fd, "contacts") }))}
+      className="space-y-2 rounded-xl border border-border p-3"
+      aria-labelledby="app-totals-heading"
+      aria-describedby="app-totals-hint"
+    >
+      <p id="app-totals-heading" className="text-sm font-semibold text-fg">{st.appCounts ? `Totals from ${appLabel(app)}: ${st.appCounts.doors} doors · ${st.appCounts.contacts} contacts` : `Totals from ${appLabel(app)}`}</p>
+      <p id="app-totals-hint" className="text-hint">At the end of the day, copy the shift totals the app shows. They replace what you logged by hand here.</p>
       <div className="flex flex-wrap items-end gap-3">
         <label className="w-28 space-y-1.5">
           <span className="label">Doors</span>
@@ -385,14 +400,52 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
                 <input name="signatures" inputMode="numeric" pattern="[0-9]*" className="field" required />
               </label>
               <button className="btn-secondary"><PackageCheck aria-hidden className="btn-icon" />Return packet {packetId}</button>
-              <button type="button" className="btn-ghost" onClick={() => record({ kind: "hold_packet", packetId })}>
-                <PackageOpen aria-hidden className="btn-icon" />Keep {packetId} until next shift
-              </button>
+              {keeping === packetId ? (
+                <span className="flex flex-wrap items-center gap-2 text-sm" role="group" aria-label={`Keep packet ${packetId}?`}>
+                  <span>Keep {packetId} until your next shift on this job? Return it instead if you&apos;re handing it in now.</span>
+                  <button
+                    type="button"
+                    className="btn-secondary btn-sm"
+                    onClick={() => {
+                      setKeeping(null);
+                      record({ kind: "hold_packet", packetId });
+                    }}
+                  >
+                    Yes, keep {packetId}
+                  </button>
+                  <button type="button" className="btn-ghost btn-sm" onClick={() => setKeeping(null)}>
+                    No
+                  </button>
+                </span>
+              ) : (
+                <button type="button" className="btn-ghost" onClick={() => setKeeping(packetId)}>
+                  <PackageOpen aria-hidden className="btn-icon" />Keep {packetId} until next shift
+                </button>
+              )}
             </form>
           ))}
           {st.packetsHeld.length > 0 && (
-            <p className="text-hint">Kept for your next shift on this job: packet {st.packetsHeld.join(", ")}. It comes back out when you check in; the sheets stay with you until then.</p>
+            <p className="text-hint">
+              Kept for your next shift on this job: packet{st.packetsHeld.length > 1 ? "s" : ""} {st.packetsHeld.join(", ")}. {st.packetsHeld.length > 1 ? "They come" : "It comes"} back out when you check in; the sheets stay with you until then. Handing {st.packetsHeld.length > 1 ? "one" : "it"} in now? Return it below.
+            </p>
           )}
+          {st.packetsHeld.map((packetId) => (
+            <form
+              key={`held-${packetId}`}
+              onSubmit={submit((fd) => ({ kind: "return_packet", packetId, sheetsReturned: num(fd, "sheetsReturned"), signatures: num(fd, "signatures") }))}
+              className="flex flex-wrap items-end gap-3"
+            >
+              <label className="w-32 space-y-1.5">
+                <span className="label">Sheets returned</span>
+                <input name="sheetsReturned" inputMode="numeric" pattern="[0-9]*" className="field" required />
+              </label>
+              <label className="w-32 space-y-1.5">
+                <span className="label">Signatures on it</span>
+                <input name="signatures" inputMode="numeric" pattern="[0-9]*" className="field" required />
+              </label>
+              <button className="btn-ghost"><PackageCheck aria-hidden className="btn-icon" />Return kept packet {packetId}</button>
+            </form>
+          ))}
           <div className="flex flex-wrap gap-3 border-t border-border pt-4">
             <button type="button" className="btn-secondary" onClick={() => record({ kind: "pause" })}>
               <Coffee aria-hidden className="btn-icon" />

@@ -331,9 +331,11 @@ export function JobForm({
           {err("toolList")}
         </label>
         <label className="space-y-1.5 sm:col-span-3">
-          <span className="label">How to get into it {optional}</span>
-          <textarea name="toolNotes" className="field min-h-16" maxLength={500} defaultValue={d("toolNotes")} placeholder="Ask your supervisor for the campaign's login code." {...describe("toolNotes")} />
-          <p className="text-hint">At the end of a shift the worker enters the app&apos;s returned totals (doors, contacts); those replace what they logged by hand.</p>
+          <span className="label">Getting in {optional}</span>
+          <textarea name="toolNotes" className="field min-h-16" maxLength={500} defaultValue={d("toolNotes")} placeholder="Sam hands out the tablets at 8:45." aria-describedby={["hint-toolNotes", describe("toolNotes")["aria-describedby"]].filter(Boolean).join(" ")} aria-invalid={describe("toolNotes")["aria-invalid"]} />
+          <p id="hint-toolNotes" className="text-hint">
+            Shown on the shift brief once a worker is hired. No passwords or login codes here — workers get those from their supervisor in person. At the end of a shift the worker enters the app&apos;s returned totals (doors, contacts); those replace what they logged by hand.
+          </p>
           {err("toolNotes")}
         </label>
         <p className="label sm:col-span-3">Who handles problems</p>

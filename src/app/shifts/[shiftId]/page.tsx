@@ -8,7 +8,7 @@ import { shiftPriority } from "@/lib/priority";
 import { FIELD_ROLES, SCHEDULING_ROLES } from "@/lib/access";
 import { readSupportContacts } from "@/lib/jobs";
 import { activeTime, earningsEstimate, readTurf, scheduleFlags, shiftProgress, shiftState, turfMarks, turfMarksClosed } from "@/lib/field-day";
-import { facts, loadShift } from "@/lib/field-day-data";
+import { carriedInto, facts, heldOnJob, loadShift } from "@/lib/field-day-data";
 import { ShiftProgress } from "@/components/ShiftProgress";
 import { TurfMap } from "@/components/TurfMap";
 import { LocalTime } from "@/components/LocalTime";
@@ -58,7 +58,7 @@ function eventDetail(type: string, payload: unknown): string {
     case "CHECK_IN":
       return p.atStaging === true ? "at staging" : p.atStaging === false ? `away from staging (${p.distance})` : "location not checked";
     case "PACKET_PICKUP":
-      return `${p.packetId}${typeof p.sheets === "number" ? ` · ${p.sheets} sheets` : ""}${p.carriedFrom ? " · carried from the worker's last shift" : ""}`;
+      return `${p.packetId}${typeof p.sheets === "number" ? ` · ${p.sheets} sheets` : ""}${p.carriedFrom ? " · carried from the worker's last shift" : p.takenFrom ? " · taken over from a packet another worker had kept" : ""}`;
     case "PACKET_HELD":
       return `${p.packetId} · stays with the worker until their next shift on this job`;
     case "PACKET_RETURN":
@@ -68,7 +68,7 @@ function eventDetail(type: string, payload: unknown): string {
     case "CONTACT":
       return `+${p.count ?? 1}`;
     case "APP_COUNTS":
-      return `${typeof p.app === "string" ? appLabel(p.app as never) : "app"}: ${p.doors} doors · ${p.contacts} contacts (replaces what was logged by hand)`;
+      return `${typeof p.app === "string" ? appLabel(p.app as never) : "app"} · ${p.doors ?? "?"} doors · ${p.contacts ?? "?"} contacts`;
     case "BATCH_COUNT":
       return `${p.accepted} accepted · ${p.rejected} rejected of ${p.reviewed} reviewed${p.exceptions ? ` · ${p.exceptions}` : ""}`;
     case "SHIFT_CANCELLED":
@@ -146,6 +146,9 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
   const petition = f.workType === "PETITION";
   // The app the canvassing runs in, for the brief and the end-of-shift totals (C4.4).
   const tools = readTools(s.engagement.job.tools);
+  // Packets kept on this shift (C4.5), and which have since gone out with someone else.
+  const kept = st.packetsHeld.length ? (await heldOnJob(db(), s.engagement.job.id)).filter((h) => h.heldOn === s.id) : [];
+  const keptLabel = (id: string) => (kept.find((h) => h.packetId === id)?.takenOn ? `${id} (since taken out by another worker)` : id);
   const live = !!st.checkedInAt && !st.checkedOutAt;
   const eyebrow = st.cancelled ? "Cancelled" : live ? (st.paused ? "On a break" : "Live shift") : st.checkedOutAt ? "Shift done" : "Upcoming shift";
 
@@ -174,6 +177,7 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
         startsAt: s.startsAt.toISOString(),
         endsAt: s.endsAt.toISOString(),
         staging,
+        carriedIn: (isWorker && !st.checkedInAt ? await carriedInto(db(), s) : []).map((h) => ({ packetId: h.packetId, sheets: h.sheets, carriedFrom: h.heldOn })),
         canvassApp: tools.canvassApp,
         ended: now > s.endsAt,
         // Who made each event isn't needed on the phone; the phone's own id
@@ -274,12 +278,23 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
           {petition && started && (
             <span>
               <span className="block font-bold">{st.packetsOut.length ? st.packetsOut.join(", ") : "—"}</span>
-              <span className="hero-muted">Packets out{st.packetsHeld.length ? ` · ${st.packetsHeld.join(", ")} kept for next shift` : ""}</span>
+              <span className="hero-muted">Packets out{st.packetsHeld.length ? ` · ${st.packetsHeld.map(keptLabel).join(", ")} kept for next shift` : ""}</span>
             </span>
           )}
         </p>
       </div>
 
+      {!petition && toolsText(tools) && (
+        <p className="text-muted-sm">
+          Canvassing app: <span className="font-medium text-fg">{toolsText(tools)}</span>
+          {tools.notes ? ` — ${tools.notes}` : ""}
+        </p>
+      )}
+      {canField && st.packetsHeld.length > 0 && (
+        <p className="text-muted-sm">
+          Packet{st.packetsHeld.length > 1 ? "s" : ""} {st.packetsHeld.map(keptLabel).join(", ")} stayed with the worker for their next shift: signatures on {st.packetsHeld.length > 1 ? "them" : "it"} are counted when it&apos;s returned on a later shift, not in this shift&apos;s batch count.
+        </p>
+      )}
       {started && workerActions}
       {canField && !st.cancelled && (
         <section className="section">
@@ -382,12 +397,6 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
             </>
           )}
           {s.stagingLocation && <p className="text-muted-sm">Check in at {s.stagingLocation}.</p>}
-          {!petition && toolsText(tools) && (
-            <p className="text-muted-sm">
-              Canvassing app: <span className="font-medium text-fg">{toolsText(tools)}</span>
-              {tools.notes ? ` — ${tools.notes}` : ""}
-            </p>
-          )}
         </section>
       )}
 

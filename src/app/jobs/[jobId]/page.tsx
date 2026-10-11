@@ -40,8 +40,8 @@ const dayTime = (d: Date) => d.toLocaleString("en-US", { month: "short", day: "n
  * sees who made each; a worker sees when and what parts changed (the words
  * their notice points them to), never the staff member's name.
  */
-async function ChangeList({ jobId, viewer }: { jobId: string; viewer: "org" | "worker" }) {
-  const changes = await loadJobChanges(jobId);
+async function ChangeList({ jobId, viewer, changes: loaded }: { jobId: string; viewer: "org" | "worker"; changes?: Awaited<ReturnType<typeof loadJobChanges>> }) {
+  const changes = loaded ?? (await loadJobChanges(jobId));
   if (!changes.length) return null;
   return (
     <details className="card p-0">
@@ -407,10 +407,11 @@ async function OrgPanel({ job, canHire, canSchedule, userId }: { job: JobWithRef
     : [];
   const facts = await loadPipelineFacts(engagements.map((e) => e.id));
   const now = new Date();
+  const changes = canHire && job.status !== "DRAFT" ? await loadJobChanges(job.id) : [];
 
   return (
     <>
-      {job.status !== "DRAFT" && canHire && (job.status !== "CLOSED" || (await loadJobChanges(job.id)).length > 0) && (
+      {job.status !== "DRAFT" && canHire && (job.status !== "CLOSED" || changes.length > 0) && (
         <section className="section">
           <h2 className="section-title">Terms</h2>
           {job.status !== "CLOSED" && (
@@ -423,7 +424,7 @@ async function OrgPanel({ job, canHire, canSchedule, userId }: { job: JobWithRef
               <Link transitionTypes={["nav-forward"]} href={`/jobs/${job.id}/edit`} className="btn-secondary">Edit job</Link>
             </>
           )}
-          <ChangeList jobId={job.id} viewer="org" />
+          <ChangeList jobId={job.id} viewer="org" changes={changes} />
         </section>
       )}
       {(job.status === "DRAFT" || job.status === "PAUSED") && (

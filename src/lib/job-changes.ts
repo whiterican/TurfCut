@@ -1,3 +1,4 @@
+import { readTools } from "@/lib/job-tools";
 /**
  * Edits to published jobs (C4.3). What changed is recorded as a JobChange;
  * the parts of a job that are its terms for workers are "material": a
@@ -45,8 +46,20 @@ function norm(v: unknown): unknown {
   return v ?? null;
 }
 
-/** Ballot-measure ids are a set: the same ids in another order are no change. */
-const ordered = (f: JobField, v: unknown) => (f === "measureIds" && Array.isArray(v) ? [...v].sort() : v);
+/**
+ * Values compared as the app reads them: ballot-measure ids are a set (the
+ * same ids in another order are no change), and tools are what readTools
+ * makes of them, "none" being the same as the null a pre-C4 job stores — so
+ * the builder's first save of such a job records no change to the app.
+ */
+function ordered(f: JobField, v: unknown): unknown {
+  if (f === "measureIds" && Array.isArray(v)) return [...v].sort();
+  if (f === "tools") {
+    const t = readTools(v);
+    return t.canvassApp ? t : null;
+  }
+  return v;
+}
 
 /** The fields whose stored value the edit changes, each with before and after. */
 export function jobDiff(before: Partial<Record<JobField, unknown>>, after: Partial<Record<JobField, unknown>>): JobChanges {

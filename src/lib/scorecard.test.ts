@@ -300,6 +300,9 @@ describe("spec formulas and verification rules", () => {
     const seg = computeScorecard([s], { now }).segments[0];
     expect(seg.doorsAttempted).toBe(42);
     expect(seg.contacts).toBe(7);
+    // A rejected entry falls back to the one before it.
+    const r = { ...s, validations: [...s.validations, { workEventId: `${s.id}-4`, status: "REJECTED" as const, createdAt: at(296) }] };
+    expect(computeScorecard([r], { now }).segments[0].doorsAttempted).toBe(40);
   });
 
   it("shows no doors-per-hour for petition work with no doors logged", () => {

@@ -5,7 +5,7 @@ import { openRelease, releaseFromJob } from "@/lib/job-changes-data";
 import { cancellationOf } from "@/lib/scorecard";
 import { validateJob } from "@/lib/jobs";
 import { radiusFor, readLaunch } from "@/lib/job-launch";
-import { facts, loadShift, scheduleShift, supervisorShiftAction, syncWorkerActions, workerShiftAction } from "@/lib/field-day-data";
+import { facts, heldOnJob, loadShift, scheduleShift, supervisorShiftAction, syncWorkerActions, workerShiftAction } from "@/lib/field-day-data";
 import { shiftState } from "@/lib/field-day";
 import { readTools } from "@/lib/job-tools";
 import { applyToJob, claimJob, inviteWorker } from "@/lib/engagements-data";
@@ -137,6 +137,8 @@ const check = (l: string, c: unknown, d?: unknown) => { if (c) console.log(`PASS
   check("a pre-C4 job keeps its unset launch through a builder edit: only the title is recorded", legacyTitle.ok && legacyTitle.changed.join() === "title" && legacyAfter.launch === null, { legacyTitle, legacyAfter });
   const legacySelf = await updatePublishedJob(legacy.id, ORG, OWNER, input({ launchMode: "SELF", title: "Launch test (legacy, renamed)" }));
   check("…until it picks a launch, which is a material change", legacySelf.ok && legacySelf.material.join() === "how each day starts", legacySelf);
+  const legacyTools = await updatePublishedJob(legacy.id, ORG, OWNER, input({ launchMode: "SELF", title: "Launch test (legacy, renamed)", canvassApp: "", toolList: "", toolNotes: "" }));
+  check("…and the builder's \"no app\" default is no change to a job that never named one", legacyTools.ok && legacyTools.changed.length === 0 && legacyTools.told === 0, legacyTools);
   // The notice is hidden while the worker's own answers hide the invitation (rule 4); a closed account isn't told.
   const W3 = "00000000-0000-0000-0000-000000000103";
   const byInvite = { launchMode: "SELF", hiringModes: ["instant_claim", "application", "invite"] };
@@ -165,9 +167,9 @@ const check = (l: string, c: unknown, d?: unknown) => { if (c) console.log(`PASS
   check("a pre-C4 draft keeps its unset launch through a builder save and still publishes", draftSaved && legacyDraftRow.launch === null && legacyDraftRow.title === "Legacy draft, renamed" && (await publishJob(legacyDraft.id, ORG, OWNER)).ok, legacyDraftRow);
 
   // --- C4.4: the canvassing app's totals ---
-  const canvass = await createJob(ORG, OWNER, input({ type: "CANVASS", launchMode: "SELF", canvassApp: "MINIVAN", toolList: "Turf 12", toolNotes: "Code 4411 from Sam" }));
+  const canvass = await createJob(ORG, OWNER, input({ type: "CANVASS", launchMode: "SELF", canvassApp: "MINIVAN", toolList: "Turf 12", toolNotes: "Sam hands out the tablets at 8:45" }));
   const tools = readTools(canvass.tools);
-  check("a job stores its canvassing app, list and notes, and publishes", tools.canvassApp === "MINIVAN" && tools.list === "Turf 12" && tools.notes === "Code 4411 from Sam" && (await publishJob(canvass.id, ORG, OWNER)).ok, tools);
+  check("a job stores its canvassing app, list and notes, and publishes", tools.canvassApp === "MINIVAN" && tools.list === "Turf 12" && tools.notes === "Sam hands out the tablets at 8:45" && (await publishJob(canvass.id, ORG, OWNER)).ok, tools);
   const noApp = validateJob({ ...base, type: "CANVASS", toolList: "Turf 12" });
   check("a list without an app is refused by the builder", !noApp.ok && /Pick the app/.test(noApp.errors.canvassApp ?? ""), noApp);
   const cClaim = await claimJob(W2, W2, canvass.id);
@@ -217,15 +219,21 @@ const check = (l: string, c: unknown, d?: unknown) => { if (c) console.log(`PASS
   const hand20 = await supervisorShiftAction(sup, p2, { kind: "packet_pickup", packetId: "20C", sheets: 10 }, day(2, 18, 2));
   const hold19 = await workerShiftAction(w2, p2, { kind: "hold_packet", packetId: "19B" }, day(2, 18, 50));
   const hold20 = await workerShiftAction(w2, p2, { kind: "hold_packet", packetId: "20C" }, day(2, 18, 51));
+  const hand21 = await supervisorShiftAction(sup, p2, { kind: "packet_pickup", packetId: "21D", sheets: 5 }, day(2, 18, 3));
+  const hold21 = await workerShiftAction(w2, p2, { kind: "hold_packet", packetId: "21D" }, day(2, 18, 52));
+  const undo21 = await workerShiftAction(w2, p2, { kind: "return_packet", packetId: "21D", sheetsReturned: 5, signatures: 2 }, day(2, 18, 53));
   const pOut2 = await workerShiftAction(w2, p2, { kind: "check_out" }, day(2, 19));
-  check("the carried packet is returned like any other; two more are kept", ret2.ok && hand19.ok && hand20.ok && hold19.ok && hold20.ok && pOut2.ok, { ret2, hand19, hand20, hold19, hold20, pOut2 });
+  const st2b = shiftState(facts((await loadShift(p2))!));
+  check("the carried packet is returned like any other; two more are kept, and a kept one returned after all (a mis-tap undone)", ret2.ok && hand19.ok && hand20.ok && hold19.ok && hold20.ok && hand21.ok && hold21.ok && undo21.ok && pOut2.ok && st2b.packetsHeld.join() === "19B,20C" && st2b.packetsReturned.includes("21D"), { ret2, hand19, hand20, hold19, hold20, hand21, hold21, undo21, pOut2, st2b });
   // The worker hands 19B to a colleague in person; the supervisor records it on the colleague's shift (a kept packet isn't "out" here).
   const otherClaim = await claimJob(W1, W1, pjob.id);
   const q1 = otherClaim.ok ? await scheduleShift(org, otherClaim.engagementId, { startsAt: day(3, 15).toISOString(), endsAt: day(3, 19).toISOString() }) : null;
   const q1Id = q1?.ok ? q1.shiftId : "";
   const qIn = await workerShiftAction(me, q1Id, { kind: "check_in", location: { checked: false } }, day(3, 14, 55));
   const reassigned = await supervisorShiftAction(sup, q1Id, { kind: "packet_pickup", packetId: "19B", sheets: 10 }, day(3, 15, 5));
-  check("a kept packet can be handed to a colleague through their supervisor", qIn.ok && reassigned.ok, { qIn, reassigned });
+  const takenRow = await p.workEvent.findFirst({ where: { shiftId: q1Id, type: "PACKET_PICKUP" }, select: { payload: true } });
+  const keptNow = (await heldOnJob(p, pjob.id)).filter((h) => h.heldOn === p2);
+  check("a kept packet can be handed to a colleague through their supervisor; the record says whose it was, and the holding shift knows", qIn.ok && reassigned.ok && (takenRow?.payload as { takenFrom?: string })?.takenFrom === p2 && keptNow.find((h) => h.packetId === "19B")?.takenOn === q1Id && keptNow.find((h) => h.packetId === "20C")?.takenOn === null, { qIn, reassigned, takenRow, keptNow });
   const p3 = await mk(4);
   const syncAt = day(4, 14, 55).getTime();
   const pSync3 = await syncWorkerActions(w2, p3, { deviceNow: syncAt, actions: [{ clientId: crypto.randomUUID(), at: syncAt, action: { kind: "check_in", location: { checked: false } } }, { clientId: crypto.randomUUID(), at: syncAt + 60_000, action: { kind: "return_packet", packetId: "20C", sheetsReturned: 10, signatures: 4 } }] }, new Date(syncAt + 120_000));

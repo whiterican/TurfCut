@@ -128,10 +128,14 @@ export function shiftState(s: ShiftFacts): ShiftState {
         st.paused = false;
         break;
       case "PACKET_PICKUP":
-        if (typeof p.packetId === "string") out.add(p.packetId);
+        if (typeof p.packetId === "string") {
+          out.add(p.packetId);
+          held.delete(p.packetId);
+        }
         break;
       case "PACKET_RETURN":
-        if (typeof p.packetId === "string" && out.delete(p.packetId)) st.packetsReturned.push(p.packetId);
+        // A return supersedes a hold on the same shift (a mis-tap on "keep" is undone by returning it).
+        if (typeof p.packetId === "string" && (out.delete(p.packetId) || held.delete(p.packetId))) st.packetsReturned.push(p.packetId);
         break;
       case "PACKET_HELD":
         if (typeof p.packetId === "string" && out.delete(p.packetId)) held.add(p.packetId);
@@ -285,7 +289,7 @@ export function shiftProgress(s: ShiftFacts, payout?: { done: boolean; detail: s
       key: "materials",
       label: "Materials received",
       at: petition ? s.events.filter((e) => e.type === "PACKET_PICKUP").sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())[0]?.createdAt : undefined,
-      done: st.packetsOut.length + st.packetsReturned.length > 0 || !petition,
+      done: st.packetsOut.length + st.packetsReturned.length + st.packetsHeld.length > 0 || !petition,
       detail: petition
         ? st.packetsOut.length + st.packetsReturned.length + st.packetsHeld.length > 0
           ? `Packet ${[...st.packetsOut, ...st.packetsReturned, ...st.packetsHeld].join(", ")}`
@@ -307,8 +311,10 @@ export function shiftProgress(s: ShiftFacts, payout?: { done: boolean; detail: s
           ? "Approved by your supervisor"
           : `Not approved${st.closeout!.reason ? `: ${st.closeout!.reason}` : ""}`
         : returned
-          ? `Awaiting supervisor review${st.packetsHeld.length ? ` · packet ${st.packetsHeld.join(", ")} kept for your next shift` : ""}`
-          : "Return or keep your packets, then check out",
+          ? `Awaiting supervisor review${st.packetsHeld.length ? ` · packet${st.packetsHeld.length > 1 ? "s" : ""} ${st.packetsHeld.join(", ")} kept for your next shift` : ""}`
+          : petition
+            ? "Return or keep your packets, then check out"
+            : "Check out",
     },
     { key: "payout", label: "Payout", done: payout?.done ?? false, at: payout?.at, detail: payout?.detail ?? "Paid in the app after your supervisor approves the shift" },
   ];
@@ -386,8 +392,8 @@ export function workerAction(s: ShiftFacts, a: WorkerAction, now: Date): Outcome
     }
     case "return_packet": {
       if (!st.checkedInAt) return no("Check in first.");
-      // Packet IDs match regardless of case ("18a" is packet 18A).
-      const packetId = st.packetsOut.find((p) => samePacket(p, a.packetId));
+      // Packet IDs match regardless of case ("18a" is packet 18A). A packet kept for the next shift can still be returned here (that undoes the keep).
+      const packetId = [...st.packetsOut, ...st.packetsHeld].find((p) => samePacket(p, a.packetId));
       if (!packetId) return no("That packet isn't checked out to you on this shift.");
       if (!Number.isInteger(a.sheetsReturned) || a.sheetsReturned < 0 || a.sheetsReturned > 1000) return no("Enter the number of sheets returned.");
       if (!Number.isInteger(a.signatures) || a.signatures < 0 || a.signatures > 10_000) return no("Enter the signatures you're claiming on this packet.");
@@ -404,7 +410,8 @@ export function workerAction(s: ShiftFacts, a: WorkerAction, now: Date): Outcome
     case "app_counts": {
       // The app's totals come at the end of the day, on shift or after checking out, until the shift is reviewed.
       if (!st.checkedInAt) return no("Check in first.");
-      if (st.closeout) return no("This shift has been reviewed. Ask your supervisor to enter the totals.");
+      if (st.closeout) return no("This shift has been reviewed. Ask your supervisor to correct the totals.");
+      if (st.paused) return no("End your break before entering totals.");
       if (s.workType !== "CANVASS") return no("App totals are for canvass shifts.");
       if (!s.canvassApp) return no("This job doesn't use a canvassing app.");
       if (a.app !== s.canvassApp) return no(`This job's work runs in ${appLabel(s.canvassApp)}. Reload the shift and try again.`);
@@ -432,7 +439,7 @@ export const samePacket = (a: string, b: string) => a.trim().toUpperCase() === b
  * Supervisor actions. `packetsOutElsewhere` lists packet IDs currently out on
  * other shifts of the same job — a packet can't be in two hands at once.
  */
-export function supervisorAction(s: ShiftFacts, a: SupervisorAction, packetsOutElsewhere: string[], now: Date): Outcome {
+export function supervisorAction(s: ShiftFacts, a: SupervisorAction, packetsOutElsewhere: string[], now: Date, heldElsewhere: Array<{ packetId: string; shiftId: string }> = []): Outcome {
   const st = shiftState(s);
   if (st.cancelled) return no("This shift was cancelled.");
   switch (a.kind) {
@@ -442,9 +449,12 @@ export function supervisorAction(s: ShiftFacts, a: SupervisorAction, packetsOutE
       if (!st.checkedInAt) return no("The worker must check in before taking packets.");
       if (st.checkedOutAt) return no("The worker has already checked out.");
       if ([...st.packetsOut, ...st.packetsReturned].some((p) => samePacket(p, id))) return no(`Packet ${id} is already recorded on this shift.`);
+      if (st.packetsHeld.some((p) => samePacket(p, id))) return no(`Packet ${id} is kept by the worker for their next shift. If they're handing it back now, they return it first.`);
       if (packetsOutElsewhere.some((p) => samePacket(p, id))) return no(`Packet ${id} is still checked out on another shift. Record its return first.`);
       if (!Number.isInteger(a.sheets) || a.sheets < 1 || a.sheets > 1000) return no("Enter the number of sheets in the packet.");
-      return { ok: true, event: { type: "PACKET_PICKUP", payload: { packetId: id, sheets: a.sheets } } };
+      // A packet another worker kept for their next shift (C4.5) can be handed over in person; the record says whose it was.
+      const taken = heldElsewhere.find((h) => samePacket(h.packetId, id));
+      return { ok: true, event: { type: "PACKET_PICKUP", payload: { packetId: id, sheets: a.sheets, ...(taken ? { takenFrom: taken.shiftId } : {}) } } };
     }
     case "batch_count": {
       if (s.workType !== "PETITION") return no("Batch counts are for petition shifts.");
@@ -487,7 +497,7 @@ export const CORRECTION_WINDOW_MS = 2 * 3_600_000;
 const COUNTED = new Set(["SIGNATURE_SUBMITTED", "DOOR_KNOCK", "CONTACT"]);
 
 export type CorrectionAction =
-  | { kind: "correct_event"; eventId: string; at?: Date; count?: number; sheetsReturned?: number; signatures?: number; reason: string }
+  | { kind: "correct_event"; eventId: string; at?: Date; count?: number; sheetsReturned?: number; signatures?: number; doors?: number; contacts?: number; reason: string }
   | { kind: "enter_event"; type: EnterableType; at: Date; count?: number; packetId?: string; sheetsReturned?: number; signatures?: number; reason: string };
 
 export type CorrectionOutcome =
@@ -508,6 +518,7 @@ export function timelineProblem(events: FieldEvent[], s: Pick<ShiftFacts, "start
   let checkOut: Date | null = null;
   let paused = false;
   const out = new Set<string>();
+  const held = new Set<string>();
   for (const e of sorted) {
     const p = (e.payload ?? {}) as Record<string, unknown>;
     switch (e.type) {
@@ -543,22 +554,29 @@ export function timelineProblem(events: FieldEvent[], s: Pick<ShiftFacts, "start
         if (!checkIn) return "App totals need a shift that started.";
         if (s.workType !== "CANVASS") return "App totals are for canvass shifts.";
         if (!intIn(p.doors, 0, APP_COUNT_MAX) || !intIn(p.contacts, 0, APP_COUNT_MAX)) return `App totals are whole numbers from 0 to ${APP_COUNT_MAX}.`;
+        if ((p.contacts as number) > (p.doors as number)) return "Contacts can't be more than doors.";
         break;
       case "PACKET_PICKUP":
-        if (!checkIn || checkOut) return "A packet can only go out while on shift.";
-        if (typeof p.packetId === "string") out.add(p.packetId);
+        // A packet carried in from the worker's last shift (C4.5) is written at check-in, so a corrected check-in time may land after it.
+        if (p.carriedFrom ? !!checkOut : !checkIn || checkOut) return "A packet can only go out while on shift.";
+        if (typeof p.packetId === "string") {
+          out.add(p.packetId);
+          held.delete(p.packetId);
+        }
         break;
       case "PACKET_RETURN": {
-        const id = typeof p.packetId === "string" ? [...out].find((x) => samePacket(x, p.packetId as string)) : undefined;
+        const id = typeof p.packetId === "string" ? [...out, ...held].find((x) => samePacket(x, p.packetId as string)) : undefined;
         if (!id) return "That packet wasn't out at that time.";
         if (!intIn(p.sheetsReturned, 0, 1000) || !intIn(p.signatures, 0, 10_000)) return "Enter the sheets returned and the signatures claimed.";
         out.delete(id);
+        held.delete(id);
         break;
       }
       case "PACKET_HELD": {
         const id = typeof p.packetId === "string" ? [...out].find((x) => samePacket(x, p.packetId as string)) : undefined;
         if (!id) return "That packet wasn't out at that time.";
         out.delete(id);
+        held.add(id);
         break;
       }
     }
@@ -598,6 +616,8 @@ export function correctionAction(s: ShiftFacts, a: CorrectionAction, signedBy: s
     if (a.count !== undefined) fields.count = a.count;
     if (a.sheetsReturned !== undefined) fields.sheetsReturned = a.sheetsReturned;
     if (a.signatures !== undefined) fields.signatures = a.signatures;
+    if (a.doors !== undefined) fields.doors = a.doors;
+    if (a.contacts !== undefined) fields.contacts = a.contacts;
     for (const k of Object.keys(fields)) if (!allowed.includes(k)) return noC(`A ${target.type.toLowerCase().replace(/_/g, " ")} entry has no ${k} to correct.`);
     if (a.at && !allowed.includes("at")) return noC("That entry's time can't be changed.");
     if (a.at && a.at.getTime() > now.getTime()) return noC("That time is in the future.");

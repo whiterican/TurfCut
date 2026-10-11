@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 
 /**
  * Rule 4 and C1-Q14, enforced: nothing social (campaign profiles, posts,
- * pins, and in S2 follows, likes, reposts, replies) is ever read by
+ * pins, follows and likes; later reposts and replies) is ever read by
  * matching, scorecards, political fit, the job feed or any ranking.
  *
  * 1. Deny by default: only the files listed in ALLOWED may name the social
@@ -12,16 +12,16 @@ import { describe, expect, it } from "vitest";
  * 2. Nothing the guarded files import, however indirectly, is a social file.
  */
 const ALLOWED = [
-  /^src\/lib\/campaign-(social|media|api)(-data)?(\.test)?\.ts$/,
+  /^src\/lib\/campaign-(social|media|api|follow)(-data)?(\.test)?\.ts$/,
   /^src\/lib\/(social-isolation|migration-grants)\.test\.ts$/, // the guards themselves
   /^src\/lib\/job-brief-data\.ts$/, // the shift brief's talking points: the pinned posts, verbatim
-  /^src\/app\/(c|campaigns|api\/campaigns|api\/campaign)\//,
+  /^src\/app\/(c|campaigns|feed|api\/campaigns|api\/campaign|api\/feed)\//,
   /^src\/app\/shifts\/\[shiftId\]\/page\.tsx$/, // shows the brief's talking points (nothing it reads goes anywhere else)
   /^src\/app\/zz-preview\//,
   /^src\/components\/campaign\//,
 ];
 /** The social layer's names: modules, models, Prisma accessors and relation fields. */
-const SOCIAL = /\b(campaign-social(-data)?|campaign-media|campaign-api|job-brief-data|components\/campaign|campaignProfiles?|campaignPosts?|campaignPostRevisions?|deletedCampaignPosts|embeddedInPosts|campaignProfileId|Campaign(Post|Profile|PostRevision))\b/;
+const SOCIAL = /\b(campaign-(social|follow)(-data)?|campaign-media|campaign-api|job-brief-data|components\/campaign|campaignProfiles?|campaignPosts?|campaignPostRevisions?|deletedCampaignPosts|embeddedInPosts|campaignProfileId|campaignFollows?|postLikes?|Campaign(Post|Profile|PostRevision|Follow)|PostLike)\b/;
 /** Code that ranks, matches, scores or explains: it must never reach the social layer. */
 const GUARDED = /^src\/(lib\/(.*match.*|scorecard.*|political-fit.*|priority|metrics|jobs-data|jobs|hiring|desk.*|experience.*)\.ts|components\/(FitSignals|ScorecardPanel|JobFeedCard|JobCard)\.tsx)$/;
 

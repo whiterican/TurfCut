@@ -37,6 +37,10 @@ export const LIMITS = {
   campaign: { max: 10, windowMs: 24 * 60 * 60_000 },
   /** Campaign image uploads per organization per day (S1). */
   media: { max: 30, windowMs: 24 * 60 * 60_000 },
+  /** Follow and unfollow changes per worker per hour (S2: a script can't churn). */
+  follow: { max: 60, windowMs: 60 * 60_000 },
+  /** Likes and unlikes per worker per hour (S2). */
+  like: { max: 120, windowMs: 60 * 60_000 },
 } as const satisfies Record<string, Limit>;
 
 export type LimitName = keyof typeof LIMITS;

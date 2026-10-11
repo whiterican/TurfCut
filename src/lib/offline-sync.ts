@@ -116,6 +116,6 @@ export const wasOffline = (t: Date, serverNow: Date) => serverNow.getTime() - t.
  * to make (lib/field-day locationCheck), returning only yes/no and a band.
  * The caller drops the position right after.
  */
-export function stagingCheck(staging: { lat: number; lng: number } | null, device: { lat: number; lng: number } | null): LocationCheck {
-  return locationCheck({ lat: staging?.lat ?? null, lng: staging?.lng ?? null }, device);
+export function stagingCheck(staging: { lat: number; lng: number; radiusM?: number } | null, device: { lat: number; lng: number } | null): LocationCheck {
+  return locationCheck({ lat: staging?.lat ?? null, lng: staging?.lng ?? null, radiusM: staging?.radiusM }, device);
 }

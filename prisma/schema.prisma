@@ -328,6 +328,11 @@ model Job {
   supportContacts         Json? // who handles emergencies, disputes, lost materials
   measureIds              String[]            @default([]) // ballot measure / initiative IDs
   cancellationNoticeHours Int                 @default(24) // later worker cancellations count as no-shows
+  // C4: how the day starts (self-launch or from a staging point, with the
+  // points and their check-in radius) and which canvassing app the work
+  // runs in. Shapes are defined and validated in src/lib/job-launch.ts.
+  launch                  Json?
+  tools                   Json?
   publishedAt             DateTime?
   // Matching weights are versioned on the job (M3); stored when matching ships.
   createdAt               DateTime            @default(now())

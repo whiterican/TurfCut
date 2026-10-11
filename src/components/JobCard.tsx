@@ -1,4 +1,5 @@
 import { affiliationLabel, cardAffiliation, jobCardAnswers, readDisclosure, type CompensationMethod, type JobType } from "@/lib/jobs";
+import { readLaunch } from "@/lib/job-launch";
 import { CAMPAIGN_TYPES, issueLabel } from "@/lib/political-fit";
 import { plural } from "@/lib/format";
 import { Row } from "@/components/Row";
@@ -22,11 +23,13 @@ export function JobCard({
     endsAt: Date | null;
     headcount: number | null;
     cancellationNoticeHours: number;
+    launch?: unknown;
     orgName: string;
     jurisdictionRules: unknown;
   };
 }) {
   const a = jobCardAnswers(job);
+  const launch = readLaunch(job.launch);
   const d = readDisclosure(job.campaignDisclosure);
   const aff = cardAffiliation(job.campaignDisclosure);
   const issues = Object.entries(d?.issues ?? {});
@@ -47,6 +50,13 @@ export function JobCard({
           ) : "Not set"}
         </Row>
         <Row label="Dates">{day(job.startsAt)} – {day(job.endsAt)} · {job.headcount ? plural(job.headcount, "worker") : "—"}</Row>
+        <Row label="How each day starts">
+          {launch.mode === "SELF"
+            ? "Self-launch: you start from wherever you are; check-in records the time only"
+            : launch.points.length
+              ? `Staged: you report to ${launch.points.length === 1 ? "a staging point" : `one of ${launch.points.length} staging points`}; check-in compares your phone's position with it once`
+              : "Staged: you report to a staging point set per shift"}
+        </Row>
         <Row label="Cancellation notice">{job.cancellationNoticeHours} hours; later cancellations count as no-shows</Row>
       </dl>
 

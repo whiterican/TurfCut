@@ -665,6 +665,19 @@ Built in C3.6b (see the C3 scope below). Approved as recommended by review:
   step. Nothing is saved until the last step; publishing stays a separate,
   gated step on the job page. `src/lib/job-builder.ts` names the steps and
   their fields; a test keeps every validator error assigned to a step.
+- **Launch mode and staging points (C4.2)**: step 2 asks how each day
+  starts. *Staged*: workers report to one of the job's staging points (a
+  name, an address for the brief, a spot tapped on the map, and a check-in
+  radius of 50–2000 m, 250 m by default); scheduling a shift picks one of
+  them (or places another on the map), and check-in compares the phone's
+  position with that point within its radius, keeping only yes/no and a
+  band. *Self-launch*: workers start from wherever they are, and check-in
+  records the time only. Stored on `Job.launch` (`prisma/c4-launch.sql`),
+  read tolerantly (`src/lib/job-launch.ts`). A staged job with no point
+  can't publish; a job that says nothing about its launch (one from before
+  C4, or made through the API without it) stays as it was, with staging set
+  per shift. The job card tells workers how the day starts. Acceptance:
+  `tests/acceptance/c4-launch.ts`.
 
 ## C3 scope — the hiring hub
 

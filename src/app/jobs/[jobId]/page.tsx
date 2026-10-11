@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { readLaunch } from "@/lib/job-launch";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
@@ -471,7 +472,7 @@ async function ShiftsSection({ job, userId }: { job: JobWithRefs; userId: string
         <p className="text-muted-sm">No shifts yet.</p>
       )}
       {hired.length > 0 ? (
-        <ScheduleShiftForm jobId={job.id} workers={hired.map((e) => ({ engagementId: e.id, name: e.worker.displayName }))} supervisors={labels} />
+        <ScheduleShiftForm jobId={job.id} workers={hired.map((e) => ({ engagementId: e.id, name: e.worker.displayName }))} supervisors={labels} launch={readLaunch(job.launch)} />
       ) : (
         <p className="text-hint">Accept a worker first — only hired workers can be scheduled.</p>
       )}

@@ -15,7 +15,7 @@ export interface BuilderStep {
 
 export const BUILDER_STEPS: readonly BuilderStep[] = [
   { id: "work", title: "The work", blurb: "What the job is and where its rules come from.", fields: ["title", "type", "jurisdictionId", "description"] },
-  { id: "when", title: "When and where", blurb: "The dates and the city workers report to.", fields: ["startsAt", "endsAt", "city", "state"] },
+  { id: "when", title: "When and where", blurb: "The dates, the city, and how each day starts.", fields: ["startsAt", "endsAt", "city", "state", "launchMode", "points"] },
   { id: "pay", title: "Pay and hiring", blurb: "What it pays, how many people, and how they get in.", fields: ["compensationMethod", "payRate", "headcount", "hiringModes", "cancellationNoticeHours"] },
   { id: "requirements", title: "Requirements and contacts", blurb: "What workers must hold, and who they call when something goes wrong.", fields: ["registration", "badge", "affidavit", "training", "script", "contactEmergency", "contactDisputes", "contactLostMaterials"] },
   { id: "campaign", title: "Campaign disclosure", blurb: "What workers see about the campaign before they apply.", fields: ["campaignType", "affiliation", "campaignName", "measureIds", "message", "issues"] },
@@ -25,11 +25,16 @@ export const BUILDER_STEPS: readonly BuilderStep[] = [
 /** The review step's index. */
 export const REVIEW_STEP = BUILDER_STEPS.length - 1;
 
-/** The step an error key belongs to (issue positions are `issue_<key>` fields under one `issues` error). */
+/**
+ * The step an error key belongs to (issue positions are `issue_<key>`
+ * fields under one `issues` error; staging points `point_<i>_<f>` under
+ * `points`). A key no step claims lands on the first step, where it's
+ * listed under the heading rather than lost on the review.
+ */
 export function stepOfField(key: string): number {
-  const k = key.startsWith("issue_") ? "issues" : key;
+  const k = key.startsWith("issue_") ? "issues" : key.startsWith("point_") ? "points" : key;
   const i = BUILDER_STEPS.findIndex((s) => s.fields.includes(k));
-  return i === -1 ? REVIEW_STEP : i;
+  return i === -1 ? 0 : i;
 }
 
 /** The first step that has one of these errors, or null when none do. */

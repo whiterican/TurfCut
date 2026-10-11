@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { radiusFor, readLaunch } from "@/lib/job-launch";
 import { notFound } from "next/navigation";
 import { requireAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -132,7 +133,8 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
       return { id: e.id, at: e.createdAt, text: e.type === "CORRECTION" ? `${EVENT_LABELS[s.events.find((x) => x.id === p.supersedesEventId)?.type ?? ""] ?? "An entry"} corrected by ${who}: ${p.reason}` : `${EVENT_LABELS[e.type] ?? e.type} entered by ${who}: ${p.reason}` };
     });
   const marksOpen = isWorker && turfMarksClosed(f, new Date()) === null;
-  const staging = s.stagingLat !== null && s.stagingLng !== null ? { lat: s.stagingLat, lng: s.stagingLng } : null;
+  // The check-in radius is the job's own for that staging point (C4.2), else the default.
+  const staging = s.stagingLat !== null && s.stagingLng !== null ? { lat: s.stagingLat, lng: s.stagingLng, radiusM: radiusFor(readLaunch(s.engagement.job.launch), { lat: s.stagingLat, lng: s.stagingLng }) } : null;
   const contacts = readSupportContacts(s.engagement.job.supportContacts);
   const petition = f.workType === "PETITION";
   const live = !!st.checkedInAt && !st.checkedOutAt;

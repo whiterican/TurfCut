@@ -32,6 +32,8 @@ function jobData(input: JobInput) {
     supportContacts: json(input.supportContacts),
     measureIds: input.measureIds,
     cancellationNoticeHours: input.cancellationNoticeHours,
+    // Nothing said about the launch leaves it as stored (an API edit from before C4).
+    ...(input.launch ? { launch: json(input.launch) } : {}),
   };
 }
 

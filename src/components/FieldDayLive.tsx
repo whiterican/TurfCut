@@ -16,7 +16,7 @@ export interface LiveShift {
   status: ShiftFacts["status"];
   startsAt: string;
   endsAt: string;
-  staging: { lat: number; lng: number } | null;
+  staging: { lat: number; lng: number; radiusM: number } | null;
   /** The scheduled end had passed when the page was made. */
   ended: boolean;
   events: Array<{ id: string; type: string; payload: unknown; clientId: string | null; createdAt: string }>;

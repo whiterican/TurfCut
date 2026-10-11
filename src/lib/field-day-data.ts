@@ -48,6 +48,7 @@ const SHIFT_INCLUDE = {
           payRateCents: true,
           org: { select: { name: true } },
           supportContacts: true,
+          launch: true,
           jurisdiction: { select: { version: true, rules: true } },
         },
       },

@@ -579,10 +579,11 @@ export function correctionAction(s: ShiftFacts, a: CorrectionAction, signedBy: s
 // Check-in location — compared, then discarded
 // ---------------------------------------------------------------------------
 
+/** The check-in radius when the shift's staging point isn't one of the job's own (C4.2: each point sets its own). */
 export const STAGING_RADIUS_M = 250;
 export type LocationCheck =
   | { checked: false }
-  | { checked: true; atStaging: boolean; distance: "under 250 m" | "250 m – 1 km" | "over 1 km" };
+  | { checked: true; atStaging: boolean; distance: string };
 
 export function distanceMeters(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
   const R = 6_371_000;
@@ -593,15 +594,22 @@ export function distanceMeters(a: { lat: number; lng: number }, b: { lat: number
   return 2 * R * Math.asin(Math.sqrt(h));
 }
 
-/** The only thing stored about where the worker was: a yes/no and a band. */
+/**
+ * The only thing stored about where the worker was: a yes/no and a band
+ * ("under 250 m", "250 m – 1 km", "over 1 km", with the point's own radius
+ * in place of 250 m).
+ */
 export function locationCheck(
-  staging: { lat: number | null; lng: number | null },
+  staging: { lat: number | null; lng: number | null; radiusM?: number },
   device: { lat: number; lng: number } | null
 ): LocationCheck {
   if (!device || staging.lat === null || staging.lng === null) return { checked: false };
   if (!isLatLng(device.lat, device.lng)) return { checked: false };
+  const radius = staging.radiusM ?? STAGING_RADIUS_M;
   const d = distanceMeters({ lat: staging.lat, lng: staging.lng }, device);
-  return { checked: true, atStaging: d <= STAGING_RADIUS_M, distance: d <= STAGING_RADIUS_M ? "under 250 m" : d <= 1000 ? "250 m – 1 km" : "over 1 km" };
+  const near = `under ${radius} m`;
+  const far = radius < 1000 ? "over 1 km" : `over ${radius} m`;
+  return { checked: true, atStaging: d <= radius, distance: d <= radius ? near : radius < 1000 && d <= 1000 ? `${radius} m – 1 km` : far };
 }
 
 const isLatLng = (lat: unknown, lng: unknown) =>

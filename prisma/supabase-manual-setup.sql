@@ -182,6 +182,8 @@ CREATE TABLE "public"."Job" (
     "supportContacts" JSONB,
     "measureIds" TEXT[] DEFAULT ARRAY[]::TEXT[],
     "cancellationNoticeHours" INTEGER NOT NULL DEFAULT 24,
+    "launch" JSONB,
+    "tools" JSONB,
     "publishedAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,

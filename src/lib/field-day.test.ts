@@ -145,6 +145,9 @@ describe("check-in location", () => {
     expect(near).toEqual({ checked: true, atStaging: true, distance: "under 250 m" });
     expect(JSON.stringify(near)).not.toMatch(/39\.|104\./);
     expect(locationCheck(DENVER_STAGING, { lat: 39.7450, lng: -104.9903 })).toEqual({ checked: true, atStaging: false, distance: "250 m – 1 km" });
+    // A job's own staging point sets its radius (C4.2); the band names it.
+    expect(locationCheck({ ...DENVER_STAGING, radiusM: 700 }, { lat: 39.7450, lng: -104.9903 })).toEqual({ checked: true, atStaging: true, distance: "under 700 m" });
+    expect(locationCheck({ ...DENVER_STAGING, radiusM: 1500 }, { lat: 39.80, lng: -104.99 })).toEqual({ checked: true, atStaging: false, distance: "over 1500 m" });
     expect(locationCheck(DENVER_STAGING, { lat: 39.80, lng: -104.99 })).toMatchObject({ atStaging: false, distance: "over 1 km" });
   });
 

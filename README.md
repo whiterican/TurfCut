@@ -107,7 +107,16 @@ exercise the locks, triggers and data rules, not the RLS policies.
    - Preview deployments run in production mode too: give each one its own
      `SITE_URL` (and add its `/auth/confirm` to Redirect URLs), or sign-in
      links stay disabled there.
-6. **Payouts (M5)** — optional until you want to send real (test) money:
+6. **Campaign pages (S1)** — before deploying the S1 code:
+   - Run `prisma/s1-social.sql` in the SQL editor, **after** the pending
+     queue (the M5/M6 live SQL, then the C1–C4 files in order). It's safe
+     to run again.
+   - Storage → New bucket **`campaign-media`**, set to **public**, with a
+     file size limit of **2 MB** and allowed MIME types **image/png,
+     image/jpeg**. Campaign avatars and header images go there. The app
+     removes location and camera details before storing, and checks size
+     and type itself too; the bucket limits are a second line.
+7. **Payouts (M5)** — optional until you want to send real (test) money:
    - Create a Stripe account and turn on **Connect** (Express accounts),
      in **test mode**.
    - Developers → API keys → copy the secret key into `STRIPE_SECRET_KEY`.
@@ -121,7 +130,7 @@ exercise the locks, triggers and data rules, not the RLS policies.
      fund by invoice. In test mode, add test funds in the Stripe dashboard.
    Without these keys the app still records, approves, disputes and exports
    pay; the **Pay** button explains that Stripe isn't connected yet.
-7. **Going live on Vercel**, in this order:
+8. **Going live on Vercel**, in this order:
    1. **One Vercel project for the site.** Importing the repo twice makes two
       projects that both build every push, and settings added to one never
       reach the other. Keep one; delete the other (its Settings, at the bottom).
@@ -336,6 +345,64 @@ WHERE status = 'PUBLISHED' AND "orgId" IN (
   SELECT (jsonb_array_elements_text(metadata -> 'orgIds'))::uuid
   FROM "AuditEvent" WHERE action = 'demo.seeded');
 ```
+
+## S1 scope — campaign pages (the social layer, campaign side)
+
+Campaigns get a public page that works as a recruiting channel, not a town
+square. Worker-side features (follows, a home feed, likes, reposts, replies)
+are S2, after S1 is approved.
+
+- **Campaign profiles.** An organization runs up to 5 campaigns, each with
+  a handle, a name, a bio, an avatar and a header image. Owners and
+  publishers edit the profile (`/campaigns/[id]`). A campaign is public at
+  `/c/[handle]` only while it's published **and** Turfcut has approved the
+  organization. A handle that has been public stays that campaign's address
+  for good, so old links and printed codes never lead to someone else.
+- **Posts.** Up to 500 characters, shown verbatim with only web links made
+  clickable. Owners, publishers and recruiters write them; recruiters change
+  only their own posts that aren't talking points. An edit is recorded as a
+  new revision (append-only), and a deleted post is hidden but kept on
+  record. Posts are ordered by time and nothing else, and each has a public
+  permalink (`/c/[handle]/p/[postId]`).
+- **Job embeds.** A post can embed one of the organization's published
+  jobs. The card shows the job as it is when read (title, place, dates,
+  type, gross pay) with an **Apply** button into the existing job page,
+  through sign-in for visitors. A closed job reads "no longer hiring".
+- **Talking points.** Up to 3 pinned posts (pinned by owners and
+  publishers) sit at the top of the campaign page. They also go in the
+  brief of every shift on the jobs linked to the campaign, verbatim, with
+  when each was written, and the offline brief carries them. Jobs are
+  linked from the campaign page.
+- **Never inferring politics.** Turfcut never labels, summarizes, scores or
+  infers anyone's politics from any of this. Viewing a page records
+  nothing. `src/lib/social-isolation.test.ts` fails if matching,
+  scorecards, political fit, the job feed or hiring code reaches the social
+  layer, directly or through imports. The S1 acceptance check confirms a
+  worker's job feed is unchanged by campaign activity.
+- **Data.** `CampaignProfile`, `CampaignPost` and the append-only
+  `CampaignPostRevision` tables, plus `Job.campaignProfileId`
+  (`prisma/s1-social.sql`). Published profiles and live posts are readable
+  through the Data API, column by column; writes are server-only.
+- **API.** Public: `GET /api/campaigns/:handle`, `/posts?cursor=` and
+  `/posts/:id`. Organization: `PUT /api/campaign/:id`,
+  `POST /api/campaign/:id/posts`, `PATCH`/`DELETE /api/campaign/posts/:id`
+  and `POST /api/campaign/posts/:id/pin`. Posting and campaign changes are
+  rate-limited per organization.
+- **Acceptance:** `tests/acceptance/s1-social.ts` (`run.sh s1`).
+
+**Decisions for Caden.**
+- An embedded job's card (title, place, dates, pay, the campaign's declared
+  affiliation) is visible to anyone who opens the post, signed in or not.
+  The job page itself still needs sign-in. Say if embeds should show less
+  to visitors.
+- Pinned posts show both under "Talking points" and in the time-ordered
+  list.
+- Releasing a squatted draft handle is a manual step for now: delete the
+  draft campaign row, which is only possible while it has no posts. A
+  handle that was ever public can't be released.
+- The legally required disclosures stay their own block, as decided in
+  Q10, separate from the talking points. The note to legal before talking
+  points reach the field still stands.
 
 ## M0 scope (done)
 

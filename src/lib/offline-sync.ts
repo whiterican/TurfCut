@@ -96,6 +96,10 @@ export function readQueued(raw: unknown): QueuedAction | null {
       if (typeof a.packetId !== "string" || a.packetId.length > 40) return null;
       action = { kind: "return_packet", packetId: a.packetId, sheetsReturned: int(a.sheetsReturned), signatures: int(a.signatures) };
       break;
+    case "hold_packet":
+      if (typeof a.packetId !== "string" || a.packetId.length > 40) return null;
+      action = { kind: "hold_packet", packetId: a.packetId };
+      break;
     case "app_counts":
       if (!isCanvassApp(a.app)) return null;
       action = { kind: "app_counts", app: a.app, doors: int(a.doors), contacts: int(a.contacts) };

@@ -75,9 +75,11 @@ export interface ShiftState {
   checkedInAt: Date | null;
   checkedOutAt: Date | null;
   paused: boolean;
-  /** Packets handed out and not yet returned, by packet ID. */
+  /** Packets handed out and not yet returned or kept, by packet ID. */
   packetsOut: string[];
   packetsReturned: string[];
+  /** Packets the worker kept for their next shift on this job (C4.5): not out here, still in their hands. */
+  packetsHeld: string[];
   signatures: number;
   doors: number;
   contacts: number;
@@ -97,6 +99,7 @@ export function shiftState(s: ShiftFacts): ShiftState {
     paused: false,
     packetsOut: [],
     packetsReturned: [],
+    packetsHeld: [],
     signatures: 0,
     doors: 0,
     contacts: 0,
@@ -106,6 +109,7 @@ export function shiftState(s: ShiftFacts): ShiftState {
     atStaging: null,
   };
   const out = new Set<string>();
+  const held = new Set<string>();
   for (const e of [...corrected].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())) {
     const p = obj(e.payload);
     switch (e.type) {
@@ -128,6 +132,9 @@ export function shiftState(s: ShiftFacts): ShiftState {
         break;
       case "PACKET_RETURN":
         if (typeof p.packetId === "string" && out.delete(p.packetId)) st.packetsReturned.push(p.packetId);
+        break;
+      case "PACKET_HELD":
+        if (typeof p.packetId === "string" && out.delete(p.packetId)) held.add(p.packetId);
         break;
       case "SIGNATURE_SUBMITTED":
         st.signatures += num(p.count) || 1;
@@ -152,6 +159,7 @@ export function shiftState(s: ShiftFacts): ShiftState {
     }
   }
   st.packetsOut = [...out];
+  st.packetsHeld = [...held];
   if (st.appCounts) {
     st.doors = st.appCounts.doors;
     st.contacts = st.appCounts.contacts;
@@ -279,8 +287,8 @@ export function shiftProgress(s: ShiftFacts, payout?: { done: boolean; detail: s
       at: petition ? s.events.filter((e) => e.type === "PACKET_PICKUP").sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())[0]?.createdAt : undefined,
       done: st.packetsOut.length + st.packetsReturned.length > 0 || !petition,
       detail: petition
-        ? st.packetsOut.length + st.packetsReturned.length > 0
-          ? `Packet ${[...st.packetsOut, ...st.packetsReturned].join(", ")}`
+        ? st.packetsOut.length + st.packetsReturned.length + st.packetsHeld.length > 0
+          ? `Packet ${[...st.packetsOut, ...st.packetsReturned, ...st.packetsHeld].join(", ")}`
           : "Your supervisor records the packets you pick up"
         : "No petition packets for this shift",
     },
@@ -299,8 +307,8 @@ export function shiftProgress(s: ShiftFacts, payout?: { done: boolean; detail: s
           ? "Approved by your supervisor"
           : `Not approved${st.closeout!.reason ? `: ${st.closeout!.reason}` : ""}`
         : returned
-          ? "Awaiting supervisor review"
-          : "Return packets and check out",
+          ? `Awaiting supervisor review${st.packetsHeld.length ? ` · packet ${st.packetsHeld.join(", ")} kept for your next shift` : ""}`
+          : "Return or keep your packets, then check out",
     },
     { key: "payout", label: "Payout", done: payout?.done ?? false, at: payout?.at, detail: payout?.detail ?? "Paid in the app after your supervisor approves the shift" },
   ];
@@ -327,6 +335,7 @@ export type WorkerAction =
   | { kind: "resume" }
   | { kind: "log"; unit: "signatures" | "doors" | "contacts"; count: number }
   | { kind: "return_packet"; packetId: string; sheetsReturned: number; signatures: number }
+  | { kind: "hold_packet"; packetId: string }
   | { kind: "app_counts"; app: CanvassApp; doors: number; contacts: number }
   | { kind: "check_out" }
   | { kind: "cancel"; reason: string };
@@ -383,6 +392,14 @@ export function workerAction(s: ShiftFacts, a: WorkerAction, now: Date): Outcome
       if (!Number.isInteger(a.sheetsReturned) || a.sheetsReturned < 0 || a.sheetsReturned > 1000) return no("Enter the number of sheets returned.");
       if (!Number.isInteger(a.signatures) || a.signatures < 0 || a.signatures > 10_000) return no("Enter the signatures you're claiming on this packet.");
       return { ok: true, event: { type: "PACKET_RETURN", payload: { packetId, sheetsReturned: a.sheetsReturned, signatures: a.signatures } } };
+    }
+    case "hold_packet": {
+      // The packet stays in the worker's hands for their next shift on this
+      // job (C4.5): it comes back out at that shift's check-in.
+      if (!st.checkedInAt) return no("Check in first.");
+      const packetId = st.packetsOut.find((p) => samePacket(p, a.packetId));
+      if (!packetId) return no("That packet isn't checked out to you on this shift.");
+      return { ok: true, event: { type: "PACKET_HELD", payload: { packetId } } };
     }
     case "app_counts": {
       // The app's totals come at the end of the day, on shift or after checking out, until the shift is reviewed.
@@ -535,6 +552,12 @@ export function timelineProblem(events: FieldEvent[], s: Pick<ShiftFacts, "start
         const id = typeof p.packetId === "string" ? [...out].find((x) => samePacket(x, p.packetId as string)) : undefined;
         if (!id) return "That packet wasn't out at that time.";
         if (!intIn(p.sheetsReturned, 0, 1000) || !intIn(p.signatures, 0, 10_000)) return "Enter the sheets returned and the signatures claimed.";
+        out.delete(id);
+        break;
+      }
+      case "PACKET_HELD": {
+        const id = typeof p.packetId === "string" ? [...out].find((x) => samePacket(x, p.packetId as string)) : undefined;
+        if (!id) return "That packet wasn't out at that time.";
         out.delete(id);
         break;
       }

@@ -225,8 +225,44 @@ export async function workerShiftAction(
     const action: WorkerAction = req;
     const problem = radiusProblem(s, action);
     if (problem) return { ok: false as const, reason: problem };
-    return apply(tx, shiftId, actor.profileId, workerAction(facts(s), action, now), now);
+    const r = await apply(tx, shiftId, actor.profileId, workerAction(facts(s), action, now), now);
+    if (r.ok && action.kind === "check_in") await carryHeldPackets(tx, s, actor.profileId, now);
+    return r;
   });
+}
+
+/**
+ * Packets the worker kept from an earlier shift on this job (C4.5) come
+ * back out at check-in: one PACKET_PICKUP per packet on the new shift, in
+ * the worker's name, saying where it was carried from. A packet handed to
+ * someone else since (a supervisor's pickup on another shift) stays with
+ * them. Under the job's packet lock, like a supervisor's pickup.
+ */
+async function carryHeldPackets(tx: Tx, s: NonNullable<Awaited<ReturnType<typeof loadShift>>>, actorId: string, now: Date) {
+  const jobId = s.engagement.job.id;
+  await lock(tx, `packets:${jobId}`);
+  const mine = await tx.shift.findMany({
+    where: { id: { not: s.id }, engagementId: s.engagement.id, events: { some: { type: "PACKET_HELD" } } },
+    include: SHIFT_INCLUDE,
+    orderBy: { startsAt: "asc" },
+  });
+  if (!mine.length) return [];
+  const pickups = await tx.workEvent.findMany({ where: { type: "PACKET_PICKUP", shift: { engagement: { jobId } } }, select: { payload: true, createdAt: true } });
+  const pickedUpAfter = (id: string, t: Date) => pickups.some((e) => e.createdAt > t && samePacket(String((e.payload as { packetId?: unknown } | null)?.packetId ?? ""), id));
+  const carried: Array<{ type: string; payload: Record<string, unknown>; createdAt: Date }> = [];
+  let at = now.getTime();
+  for (const o of mine) {
+    for (const id of shiftState(facts(o)).packetsHeld) {
+      const heldAt = o.events.filter((e) => e.type === "PACKET_HELD" && samePacket(String((e.payload as { packetId?: unknown } | null)?.packetId ?? ""), id)).at(-1)?.createdAt;
+      if (!heldAt || pickedUpAfter(id, heldAt)) continue;
+      const sheets = (o.events.filter((e) => e.type === "PACKET_PICKUP" && samePacket(String((e.payload as { packetId?: unknown } | null)?.packetId ?? ""), id)).at(-1)?.payload as { sheets?: unknown } | null)?.sheets;
+      const payload = { packetId: id, sheets: typeof sheets === "number" ? sheets : null, carriedFrom: o.id };
+      const createdAt = new Date(++at);
+      await tx.workEvent.create({ data: { shiftId: s.id, type: "PACKET_PICKUP", payload, actorId, createdAt } });
+      carried.push({ type: "PACKET_PICKUP", payload, createdAt });
+    }
+  }
+  return carried;
 }
 
 /**
@@ -289,7 +325,7 @@ export async function supervisorShiftAction(
 }
 
 /** The events a worker's own field actions write (not supervisors', not map pins). */
-const WORKER_FIELD_EVENTS = new Set(["CHECK_IN", "CHECK_OUT", "PAUSE_START", "PAUSE_END", "SIGNATURE_SUBMITTED", "DOOR_KNOCK", "CONTACT", "PACKET_RETURN", "APP_COUNTS"]);
+const WORKER_FIELD_EVENTS = new Set(["CHECK_IN", "CHECK_OUT", "PAUSE_START", "PAUSE_END", "SIGNATURE_SUBMITTED", "DOOR_KNOCK", "CONTACT", "PACKET_RETURN", "PACKET_HELD", "APP_COUNTS"]);
 
 export type SyncResult = { clientId: string; status: "saved" | "duplicate" | "rejected"; reason?: string };
 
@@ -394,6 +430,8 @@ function syncChunk(
       if (out.event) lastWorker = t;
       if (out.event) f.events.push({ type: out.event.type, payload: out.event.payload, actorId: actor.profileId, createdAt: t });
       if (out.status) f.status = out.status;
+      // Packets kept from the last shift come out now, so a return later in the batch finds them.
+      if (q.action.kind === "check_in") for (const c of await carryHeldPackets(tx, s, actor.profileId, t)) f.events.push({ ...c, actorId: actor.profileId });
       results.push({ clientId: q.clientId, status: "saved" });
     }
     return { ok: true as const, results };

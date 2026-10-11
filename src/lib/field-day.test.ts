@@ -67,6 +67,22 @@ describe("worker actions", () => {
     expect(shiftState(canvass([ev("CHECK_IN", 0), ev("DOOR_KNOCK", 5, { count: 10 })])).doors).toBe(10);
   });
 
+  it("lets a worker keep a packet for their next shift: not out here, check-out and review allowed (C4.5)", () => {
+    const withPacket = shift([ev("CHECK_IN", 0), ev("PACKET_PICKUP", 5, { packetId: "18A", sheets: 20 }, "s")]);
+    expect(workerAction(withPacket, { kind: "hold_packet", packetId: "18a" }, at(300))).toEqual({ ok: true, event: { type: "PACKET_HELD", payload: { packetId: "18A" } } });
+    expect(workerAction(withPacket, { kind: "hold_packet", packetId: "19B" }, at(300)).ok).toBe(false);
+    expect(workerAction(shift(), { kind: "hold_packet", packetId: "18A" }, at(300)).ok).toBe(false);
+    const held = shift([...withPacket.events, ev("PACKET_HELD", 300, { packetId: "18A" })]);
+    expect(shiftState(held)).toMatchObject({ packetsOut: [], packetsHeld: ["18A"], packetsReturned: [] });
+    expect(workerAction(held, { kind: "return_packet", packetId: "18A", sheetsReturned: 20, signatures: 3 }, at(301)).ok).toBe(false);
+    expect(workerAction(held, { kind: "check_out" }, at(302)).ok).toBe(true);
+    const out = shift([...held.events, ev("CHECK_OUT", 302)]);
+    expect(supervisorAction(out, { kind: "closeout", status: "APPROVED", reason: null }, [], at(400)).ok).toBe(true);
+    expect(shiftProgress(out).find((p) => p.key === "return")?.detail).toMatch(/18A kept for your next shift/);
+    expect(timelineProblem(held.events, held)).toBeNull();
+    expect(timelineProblem([ev("CHECK_IN", 0), ev("PACKET_HELD", 1, { packetId: "18A" })], held)).toMatch(/wasn't out/);
+  });
+
   it("can't check out holding a packet or mid-break", () => {
     const holding = shift([ev("CHECK_IN", 0), ev("PACKET_PICKUP", 5, { packetId: "18A", sheets: 25 }, "sup")]);
     expect(workerAction(holding, { kind: "check_out" }, at(60))).toEqual({ ok: false, reason: "Return packet 18A before checking out." });

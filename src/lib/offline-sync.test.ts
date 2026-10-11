@@ -11,6 +11,8 @@ describe("readQueued", () => {
     expect(readQueued({ clientId: id, at, action: { kind: "cancel", reason: "x" } })).toBeNull();
     expect(readQueued({ clientId: id, at, action: { kind: "app_counts", app: "MINIVAN", doors: 42, contacts: 7 } })?.action).toEqual({ kind: "app_counts", app: "MINIVAN", doors: 42, contacts: 7 });
     expect(readQueued({ clientId: id, at, action: { kind: "app_counts", app: "OTHER", doors: 1, contacts: 1 } })).toBeNull();
+    expect(readQueued({ clientId: id, at, action: { kind: "hold_packet", packetId: "18A" } })?.action).toEqual({ kind: "hold_packet", packetId: "18A" });
+    expect(readQueued({ clientId: id, at, action: { kind: "hold_packet", packetId: 7 } })).toBeNull();
     expect(readQueued({ clientId: "nope", at, action: { kind: "pause" } })).toBeNull();
     expect(readQueued({ clientId: id, at: "soon", action: { kind: "pause" } })).toBeNull();
     expect(readQueued({ clientId: id, at, action: { kind: "log", unit: "votes", count: 1 } })).toBeNull();

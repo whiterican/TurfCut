@@ -5,7 +5,7 @@ import { openRelease, releaseFromJob } from "@/lib/job-changes-data";
 import { cancellationOf } from "@/lib/scorecard";
 import { validateJob } from "@/lib/jobs";
 import { radiusFor, readLaunch } from "@/lib/job-launch";
-import { facts, loadShift, scheduleShift, syncWorkerActions, workerShiftAction } from "@/lib/field-day-data";
+import { facts, loadShift, scheduleShift, supervisorShiftAction, syncWorkerActions, workerShiftAction } from "@/lib/field-day-data";
 import { shiftState } from "@/lib/field-day";
 import { readTools } from "@/lib/job-tools";
 import { applyToJob, claimJob, inviteWorker } from "@/lib/engagements-data";
@@ -190,6 +190,47 @@ const check = (l: string, c: unknown, d?: unknown) => { if (c) console.log(`PASS
   check("the totals can still be entered after checking out", cOut.ok && afterOut.ok, { cOut, afterOut });
   const appEvents = await p.workEvent.count({ where: { shiftId: cId, type: "APP_COUNTS" } });
   check("each entry is its own event; nothing is edited", appEvents === 3, appEvents);
+
+  // --- C4.5: packets kept between shifts ---
+  const pjob = await createJob(ORG, OWNER, input({ launchMode: "SELF" }));
+  await publishJob(pjob.id, ORG, OWNER);
+  const pClaim = await claimJob(W2, W2, pjob.id);
+  const pEng = pClaim.ok ? pClaim.engagementId : "";
+  const sup = { profileId: OWNER, orgId: ORG };
+  const day = (d: number, h: number, m = 0) => new Date(Date.UTC(year, 2, 20 + d, h, m));
+  const mk = async (d: number) => { const r = await scheduleShift(org, pEng, { startsAt: day(d, 15).toISOString(), endsAt: day(d, 19).toISOString() }); if (!r.ok) throw new Error(JSON.stringify(r)); return r.shiftId; };
+  const p1 = await mk(1);
+  const pIn1 = await workerShiftAction(w2, p1, { kind: "check_in", location: { checked: false } }, day(1, 14, 55));
+  const hand = await supervisorShiftAction(sup, p1, { kind: "packet_pickup", packetId: "18A", sheets: 20 }, day(1, 15, 5));
+  const hold = await workerShiftAction(w2, p1, { kind: "hold_packet", packetId: "18a" }, day(1, 18, 50));
+  const pOut1 = await workerShiftAction(w2, p1, { kind: "check_out" }, day(1, 19));
+  const close1 = await supervisorShiftAction(sup, p1, { kind: "closeout", status: "APPROVED", reason: null }, day(1, 20));
+  const st1 = shiftState(facts((await loadShift(p1))!));
+  check("a worker keeps a packet for the next shift, checks out, and the shift is reviewed with the packet still in their hands", pIn1.ok && hand.ok && hold.ok && pOut1.ok && close1.ok && st1.packetsHeld.join() === "18A" && st1.packetsOut.length === 0, { pIn1, hand, hold, pOut1, close1, st1 });
+  const p2 = await mk(2);
+  const pIn2 = await workerShiftAction(w2, p2, { kind: "check_in", location: { checked: false } }, day(2, 14, 55));
+  const st2 = shiftState(facts((await loadShift(p2))!));
+  const carried = await p.workEvent.findFirst({ where: { shiftId: p2, type: "PACKET_PICKUP" }, select: { payload: true, actorId: true } });
+  check("…and at the next check-in the packet comes back out, in the worker's name, carried from the last shift", pIn2.ok && st2.packetsOut.join() === "18A" && (carried?.payload as { carriedFrom?: string; sheets?: number })?.carriedFrom === p1 && (carried?.payload as { sheets?: number }).sheets === 20 && carried?.actorId === W2, { pIn2, st2, carried });
+  const ret2 = await workerShiftAction(w2, p2, { kind: "return_packet", packetId: "18A", sheetsReturned: 20, signatures: 31 }, day(2, 18));
+  const hand19 = await supervisorShiftAction(sup, p2, { kind: "packet_pickup", packetId: "19B", sheets: 10 }, day(2, 18, 1));
+  const hand20 = await supervisorShiftAction(sup, p2, { kind: "packet_pickup", packetId: "20C", sheets: 10 }, day(2, 18, 2));
+  const hold19 = await workerShiftAction(w2, p2, { kind: "hold_packet", packetId: "19B" }, day(2, 18, 50));
+  const hold20 = await workerShiftAction(w2, p2, { kind: "hold_packet", packetId: "20C" }, day(2, 18, 51));
+  const pOut2 = await workerShiftAction(w2, p2, { kind: "check_out" }, day(2, 19));
+  check("the carried packet is returned like any other; two more are kept", ret2.ok && hand19.ok && hand20.ok && hold19.ok && hold20.ok && pOut2.ok, { ret2, hand19, hand20, hold19, hold20, pOut2 });
+  // The worker hands 19B to a colleague in person; the supervisor records it on the colleague's shift (a kept packet isn't "out" here).
+  const otherClaim = await claimJob(W1, W1, pjob.id);
+  const q1 = otherClaim.ok ? await scheduleShift(org, otherClaim.engagementId, { startsAt: day(3, 15).toISOString(), endsAt: day(3, 19).toISOString() }) : null;
+  const q1Id = q1?.ok ? q1.shiftId : "";
+  const qIn = await workerShiftAction(me, q1Id, { kind: "check_in", location: { checked: false } }, day(3, 14, 55));
+  const reassigned = await supervisorShiftAction(sup, q1Id, { kind: "packet_pickup", packetId: "19B", sheets: 10 }, day(3, 15, 5));
+  check("a kept packet can be handed to a colleague through their supervisor", qIn.ok && reassigned.ok, { qIn, reassigned });
+  const p3 = await mk(4);
+  const syncAt = day(4, 14, 55).getTime();
+  const pSync3 = await syncWorkerActions(w2, p3, { deviceNow: syncAt, actions: [{ clientId: crypto.randomUUID(), at: syncAt, action: { kind: "check_in", location: { checked: false } } }, { clientId: crypto.randomUUID(), at: syncAt + 60_000, action: { kind: "return_packet", packetId: "20C", sheetsReturned: 10, signatures: 4 } }] }, new Date(syncAt + 120_000));
+  const st3 = shiftState(facts((await loadShift(p3))!));
+  check("at the next check-in (offline sync too) only the packet still in the worker's hands comes out, and a return later in the batch finds it", pSync3.ok && pSync3.results.every((r) => r.status === "saved") && st3.packetsReturned.join() === "20C" && st3.packetsOut.length === 0, { pSync3, st3 });
 
   await p.$disconnect();
   process.exit(fails ? 1 : 0);

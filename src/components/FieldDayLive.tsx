@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
-import { Coffee, DoorOpen, LogIn, LogOut, PackageCheck, PenLine, Play, RefreshCw, Smartphone, UserCheck } from "lucide-react";
+import { Coffee, DoorOpen, LogIn, LogOut, PackageCheck, PackageOpen, PenLine, Play, RefreshCw, Smartphone, UserCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { shiftState, workerAction, type FieldEvent, type ShiftFacts } from "@/lib/field-day";
 import { stagingCheck, type QueuedAction } from "@/lib/offline-sync";
@@ -61,6 +61,8 @@ function describe(a: Action): string {
       return `+${a.count} ${a.unit}`;
     case "return_packet":
       return `Packet ${a.packetId} returned`;
+    case "hold_packet":
+      return `Packet ${a.packetId} kept for next shift`;
     case "app_counts":
       return `${appLabel(a.app)} totals: ${a.doors} doors · ${a.contacts} contacts`;
   }
@@ -383,8 +385,14 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
                 <input name="signatures" inputMode="numeric" pattern="[0-9]*" className="field" required />
               </label>
               <button className="btn-secondary"><PackageCheck aria-hidden className="btn-icon" />Return packet {packetId}</button>
+              <button type="button" className="btn-ghost" onClick={() => record({ kind: "hold_packet", packetId })}>
+                <PackageOpen aria-hidden className="btn-icon" />Keep {packetId} until next shift
+              </button>
             </form>
           ))}
+          {st.packetsHeld.length > 0 && (
+            <p className="text-hint">Kept for your next shift on this job: packet {st.packetsHeld.join(", ")}. It comes back out when you check in; the sheets stay with you until then.</p>
+          )}
           <div className="flex flex-wrap gap-3 border-t border-border pt-4">
             <button type="button" className="btn-secondary" onClick={() => record({ kind: "pause" })}>
               <Coffee aria-hidden className="btn-icon" />
@@ -395,7 +403,7 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
               Check out
             </button>
           </div>
-          {st.packetsOut.length > 0 && <p className="text-hint">Return your packets before checking out.</p>}
+          {st.packetsOut.length > 0 && <p className="text-hint">Return your packets, or keep them for your next shift, before checking out.</p>}
         </div>
       )}
       {live && (waiting.length > 0 || savedUnseen) && (

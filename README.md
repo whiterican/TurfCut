@@ -722,6 +722,18 @@ Built in C3.6b (see the C3 scope below). Approved as recommended by review:
   and on the scorecard (the hand-logged events stay in the record). The
   server takes totals only for the job's own app, like the check-in radius.
   Turfcut doesn't connect to the apps: nothing leaves or enters them.
+- **Packets kept between shifts (C4.5)**: on a petition shift a worker can
+  keep a packet for their next shift on the same job instead of returning
+  it (`PACKET_HELD`, one event per packet, from the field-day page, offline
+  too). A kept packet isn't out on that shift — the worker checks out and
+  the supervisor reviews as usual — and it's still in the worker's hands:
+  at their next check-in on the job it comes back out automatically, as a
+  `PACKET_PICKUP` in the worker's name that says which shift it was carried
+  from, with the same sheet count, under the job's packet lock. If the
+  worker handed it to a colleague meanwhile and their supervisor recorded
+  that pickup, it isn't carried. The shift page shows kept packets on the
+  progress line and the hero; the field board's "packets out" count
+  excludes them.
 
 ## C3 scope — the hiring hub
 

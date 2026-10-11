@@ -34,6 +34,7 @@ const EVENT_LABELS: Record<string, string> = {
   PAUSE_END: "Break ended",
   PACKET_PICKUP: "Packet handed out",
   PACKET_RETURN: "Packet returned",
+  PACKET_HELD: "Packet kept for next shift",
   SIGNATURE_SUBMITTED: "Signatures logged",
   DOOR_KNOCK: "Doors logged",
   CONTACT: "Contacts logged",
@@ -57,7 +58,9 @@ function eventDetail(type: string, payload: unknown): string {
     case "CHECK_IN":
       return p.atStaging === true ? "at staging" : p.atStaging === false ? `away from staging (${p.distance})` : "location not checked";
     case "PACKET_PICKUP":
-      return `${p.packetId} · ${p.sheets} sheets`;
+      return `${p.packetId}${typeof p.sheets === "number" ? ` · ${p.sheets} sheets` : ""}${p.carriedFrom ? " · carried from the worker's last shift" : ""}`;
+    case "PACKET_HELD":
+      return `${p.packetId} · stays with the worker until their next shift on this job`;
     case "PACKET_RETURN":
       return `${p.packetId} · ${p.sheetsReturned} sheets · ${p.signatures} signatures claimed`;
     case "SIGNATURE_SUBMITTED":
@@ -271,7 +274,7 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
           {petition && started && (
             <span>
               <span className="block font-bold">{st.packetsOut.length ? st.packetsOut.join(", ") : "—"}</span>
-              <span className="hero-muted">Packets out</span>
+              <span className="hero-muted">Packets out{st.packetsHeld.length ? ` · ${st.packetsHeld.join(", ")} kept for next shift` : ""}</span>
             </span>
           )}
         </p>

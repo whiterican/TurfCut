@@ -175,3 +175,40 @@ export function embedState(job: { status: string; endsAt: Date | null }, now: Da
   if (job.status === "PUBLISHED" && (!job.endsAt || job.endsAt.getTime() >= now.getTime() - 86_400_000)) return "open";
   return job.status === "PAUSED" ? "paused" : "closed";
 }
+
+// ---------------------------------------------------------------------------
+// Reach (S3): the directory and link previews. Nothing here ranks: the
+// directory is ordered by when a campaign last posted, and a search matches
+// names and handles the reader typed, nothing else.
+// ---------------------------------------------------------------------------
+
+/** Campaigns per directory page. */
+export const DIRECTORY_PAGE_SIZE = 20;
+/** The longest search a directory lookup takes. */
+export const QUERY_MAX = 40;
+
+/**
+ * A one-line excerpt of a bio or post for link previews and directory rows:
+ * whitespace collapsed, cut at a word, an ellipsis when something's left out.
+ */
+export function excerpt(text: string, max = 160): string {
+  const flat = text.replace(/\s+/g, " ").trim();
+  if (charCount(flat) <= max) return flat;
+  const chars = [...flat].slice(0, max - 1);
+  const cut = chars.join("");
+  const atWord = cut.lastIndexOf(" ");
+  return `${(atWord > max / 2 ? cut.slice(0, atWord) : cut).replace(/[\s.,;:!?'"(\[{-]+$/, "")}…`;
+}
+
+/** A directory search as typed, tidied: trimmed, one space between words, no control characters, at most QUERY_MAX characters; a leading @ is just a handle. */
+export function normalizeQuery(raw: unknown): string {
+  if (typeof raw !== "string") return "";
+  const q = raw.replace(/\s+/g, " ").replace(/[\p{C}]/gu, "").trim().replace(/^@/, "");
+  return [...q].slice(0, QUERY_MAX).join("").trim();
+}
+
+/** The search as a LIKE pattern: the reader's text matched anywhere, its own wildcards taken literally. */
+export function likePattern(q: string): string {
+  return `%${q.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
+}
+

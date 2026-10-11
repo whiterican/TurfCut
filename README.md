@@ -455,6 +455,38 @@ Chronological and follows only; nothing here is ever read by matching.
   like changes are rate-limited per worker.
 - **Acceptance:** `tests/acceptance/s2-social.ts` (`run.sh s2`).
 
+## S3 scope — reach (directory, sharing, link previews)
+
+How a campaign's page gets found and passed on, without a town square.
+Still chronological and follows only; still nothing read by matching.
+
+- **Directory** (`/c`, public). Every public campaign, the one that posted
+  most recently first (a campaign that hasn't posted counts from when it
+  was published), 20 a page by a time cursor. Each row: name, handle, a
+  bio excerpt, when it last posted, and how many of its jobs are hiring.
+  A search matches the name or handle the reader typed and nothing else;
+  the order never changes. Workers follow from here; the feed's empty
+  state and header link to it, and every campaign page links back.
+- **Share.** A Share control on every campaign page and every post opens
+  the device's own share sheet, or copies the link where there's none.
+  Nothing is recorded: sharing is the reader's act, on their device.
+- **Link previews.** Campaign pages and post permalinks carry Open Graph
+  and Twitter card tags: the campaign's own name, handle, bio or post
+  text (excerpted) and its own header or avatar image. Turfcut adds
+  nothing of its own. Absolute links need `SITE_URL`; without it the
+  tags carry no URL rather than a wrong one.
+- **Reposts and replies: not built, on purpose.** Workers have no public
+  surface on Turfcut, by design, and a worker's public reply or repost on
+  a political campaign's post would be political speech attached to
+  their identity, readable by every organization that might hire them.
+  That cuts against "never inferring politics" even if the code never
+  reads it. Sharing gives reach without that cost. If a way for workers
+  to ask a campaign something is wanted, it should be private (a message
+  to the campaign's recruiter), which is a data-model change to decide
+  on separately.
+- **API.** Public: `GET /api/campaigns?q=&cursor=`.
+- **Acceptance:** `tests/acceptance/s3-reach.ts` (`run.sh s3`).
+
 ## M0 scope (done)
 
 Next.js + TS scaffold, Supabase wiring, Prisma schema for all core tables,

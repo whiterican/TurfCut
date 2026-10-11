@@ -4,6 +4,7 @@ import { LocalTime } from "@/components/LocalTime";
 import { LinkedText } from "@/components/campaign/LinkedText";
 import { JobEmbedCard } from "@/components/campaign/JobEmbedCard";
 import { LikeButton } from "@/components/campaign/LikeButton";
+import { ShareButton } from "@/components/campaign/ShareButton";
 import type { PublicPost } from "@/lib/campaign-social-data";
 
 /**
@@ -52,8 +53,11 @@ export function PostCard({
       </header>
       <LinkedText text={post.body} className="text-[15px] leading-relaxed text-fg" />
       <JobEmbedCard post={post} signedIn={signedIn} />
-      {liked !== undefined && <LikeButton postId={post.id} liked={liked} />}
-      {likeTotal !== undefined && <p className="text-xs text-muted">{likeTotal === 1 ? "1 like" : `${likeTotal} likes`}</p>}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        {liked !== undefined && <LikeButton postId={post.id} liked={liked} />}
+        <ShareButton path={`/c/${handle}/p/${post.id}`} title={`${displayName} (@${handle}) on Turfcut`} text={post.body} />
+        {likeTotal !== undefined && <span className="text-xs text-muted">{likeTotal === 1 ? "1 like" : `${likeTotal} likes`}</span>}
+      </div>
       {children}
     </article>
   );

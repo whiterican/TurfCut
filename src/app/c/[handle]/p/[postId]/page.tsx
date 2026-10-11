@@ -5,13 +5,14 @@ import { getSessionProfile } from "@/lib/auth";
 import { loadPublicPost } from "@/lib/campaign-social-data";
 import { likedPostIds } from "@/lib/campaign-follow-data";
 import { PostCard } from "@/components/campaign/PostCard";
+import { campaignPreview } from "@/lib/campaign-api";
 
 type Props = { params: Promise<{ handle: string; postId: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { handle, postId } = await params;
   const r = await loadPublicPost(handle, postId);
-  return r ? { title: `${r.campaign.displayName} on Turfcut` } : { title: "Post not found" };
+  return r ? campaignPreview(r.campaign, r.post) : { title: "Post not found" };
 }
 
 /** One post's own page (S1), public: the link a campaign shares. */

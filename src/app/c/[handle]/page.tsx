@@ -8,12 +8,14 @@ import { followState, likedPostIds } from "@/lib/campaign-follow-data";
 import { FollowButton } from "@/components/campaign/FollowButton";
 import { CampaignHeader } from "@/components/campaign/CampaignHeader";
 import { PostCard } from "@/components/campaign/PostCard";
+import { ShareButton } from "@/components/campaign/ShareButton";
+import { campaignPreview } from "@/lib/campaign-api";
 
 type Props = { params: Promise<{ handle: string }>; searchParams: Promise<{ cursor?: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const c = await loadPublicCampaign((await params).handle);
-  return c ? { title: `${c.displayName} (@${c.handle})` } : { title: "Campaign not found" };
+  return c ? campaignPreview(c) : { title: "Campaign not found" };
 }
 
 /**
@@ -36,8 +38,12 @@ export default async function PublicCampaignPage({ params, searchParams }: Props
   const likedBy = (id: string) => (liked ? liked.has(id) : undefined);
   return (
     <main className="page max-w-2xl space-y-6">
+      <Link transitionTypes={["nav-back"]} href="/c" className="btn-ghost btn-sm">← All campaigns</Link>
       <CampaignHeader displayName={c.displayName} handle={c.handle} bio={c.bio} avatarUrl={mediaUrl(c.avatarKey)} headerUrl={mediaUrl(c.headerKey)}>
-        <FollowButton campaignId={c.id} state={follow} viewer={viewer} back={`/c/${c.handle}`} />
+        <span className="flex flex-wrap items-center justify-end gap-2">
+          <ShareButton path={`/c/${c.handle}`} title={`${c.displayName} (@${c.handle})`} />
+          <FollowButton campaignId={c.id} state={follow} viewer={viewer} back={`/c/${c.handle}`} />
+        </span>
       </CampaignHeader>
       {pinned.length > 0 && (
         <section className="section" aria-labelledby="talking-points">

@@ -314,7 +314,7 @@ model Job {
   // S1: the campaign this job works for (its profile's pinned talking points brief the job's shifts).
   campaignProfileId String?          @db.Uuid
   campaignProfile   CampaignProfile? @relation(fields: [campaignProfileId], references: [id], onDelete: Restrict)
-  campaignPosts     CampaignPost[]
+  embeddedInPosts   CampaignPost[]     @relation("CampaignPostJobEmbed")
 
   @@index([orgId, status])
   @@index([jurisdictionId])
@@ -827,7 +827,7 @@ model CampaignPost {
   author      Profile                @relation("CampaignPostAuthor", fields: [authorId], references: [id], onDelete: Restrict)
   body        String
   jobId       String?                @db.Uuid
-  job         Job?                   @relation(fields: [jobId], references: [id], onDelete: Restrict)
+  job         Job?                   @relation("CampaignPostJobEmbed", fields: [jobId], references: [id], onDelete: Restrict)
   pinnedAt    DateTime?
   deletedAt   DateTime?
   deletedById String?                @db.Uuid
@@ -849,7 +849,7 @@ model CampaignPostRevision {
   postId    String       @db.Uuid
   post      CampaignPost @relation(fields: [postId], references: [id], onDelete: Restrict)
   body      String
-  jobId     String?      @db.Uuid
+  jobId     String?      @db.Uuid // the embed at this version: a snapshot, deliberately not a foreign key
   editorId  String       @db.Uuid
   editor    Profile      @relation(fields: [editorId], references: [id], onDelete: Restrict)
   createdAt DateTime     @default(now())

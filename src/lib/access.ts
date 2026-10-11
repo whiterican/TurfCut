@@ -49,7 +49,7 @@ export type Area =
   | "compliance" // record the classification review
   | "orgMembers" // invite, change and remove members
   | "campaigns" // campaign profiles: the profile, its handle and bio, publishing, pins (S1)
-  | "campaignPosts"; // write and manage a campaign's posts, including hiring posts (S1)
+  | "campaignPosting"; // write and manage a campaign's posts, including hiring posts (S1)
 export type AccessLevel = "full" | "read";
 
 export const ACCESS: Record<Area, Partial<Record<OrgRole, AccessLevel>>> = {
@@ -66,7 +66,7 @@ export const ACCESS: Record<Area, Partial<Record<OrgRole, AccessLevel>>> = {
   orgMembers: { OWNER: "full" },
   campaigns: { OWNER: "full", PUBLISHER: "full" },
   // Recruiters write hiring posts too (S1 decision 2); pins and the profile stay with owners and publishers.
-  campaignPosts: { OWNER: "full", PUBLISHER: "full", RECRUITER: "full" },
+  campaignPosting: { OWNER: "full", PUBLISHER: "full", RECRUITER: "full" },
 };
 
 const isOrgRole = (role: Role): role is OrgRole => role !== "WORKER";

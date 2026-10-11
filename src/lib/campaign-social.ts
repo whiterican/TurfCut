@@ -21,15 +21,26 @@ export const PAGE_SIZE = 20;
 const RESERVED = new Set([
   "admin", "administrator", "api", "app", "campaign", "campaigns", "c", "p", "edit", "new", "settings", "help", "support",
   "turfcut", "staff", "team", "official", "jobs", "job", "login", "signup", "logout", "about", "terms", "privacy", "security",
-  "null", "undefined", "root", "system", "moderator", "mod",
+  "null", "undefined", "root", "system", "moderator", "mod", "www", "me", "feed", "search", "explore", "home", "notifications",
+  "messages", "shifts", "profile", "desk", "hiring", "field", "pay", "org", "workers",
 ]);
 
 /** Characters as Postgres counts them (code points), so the 500 here is the database's 500. */
 export const charCount = (s: string) => [...s].length;
 
-/** Whitespace tidied the way the database will store it: line endings unified, trailing spaces gone, no run of more than one blank line. */
-function tidyText(s: string): string {
-  return s.replace(/\r\n?/g, "\n").split("\n").map((l) => l.replace(/[ \t]+$/g, "")).join("\n").replace(/\n{3,}/g, "\n\n").trim();
+/**
+ * Text tidied the way the database will store it: control characters (but
+ * line breaks and tabs) and invisible formatting characters removed (no
+ * NULs, no zero-width "empty" posts, no right-to-left overrides that make a
+ * name read as something else), other whitespace read as a space, line
+ * endings unified, trailing spaces gone, at most one blank line in a row.
+ */
+export function tidyText(s: string): string {
+  return s
+    .replace(/\r\n?/g, "\n")
+    .replace(/[^\S\n\t ]/g, " ")
+    .replace(/(?![\n\t])[\p{Cc}\p{Cf}]/gu, "")
+    .split("\n").map((l) => l.replace(/[ \t]+$/g, "")).join("\n").replace(/\n{3,}/g, "\n\n").trim();
 }
 
 export function normalizeHandle(raw: unknown): string {
@@ -38,7 +49,8 @@ export function normalizeHandle(raw: unknown): string {
 
 export function handleProblem(handle: string): string | null {
   if (!HANDLE_RE.test(handle)) return "Use 3 to 30 lowercase letters, numbers or underscores.";
-  if (RESERVED.has(handle) || handle.startsWith("turfcut")) return "That handle is reserved. Pick another.";
+  const bare = handle.replace(/_/g, "");
+  if (RESERVED.has(handle) || RESERVED.has(bare) || bare.includes("turfcut")) return "That handle is reserved. Pick another.";
   return null;
 }
 
@@ -54,7 +66,7 @@ export function validateProfile(raw: Record<string, unknown>): { ok: true; value
   const handle = normalizeHandle(raw.handle);
   const hp = handleProblem(handle);
   if (hp) errors.handle = hp;
-  const displayName = typeof raw.displayName === "string" ? raw.displayName.trim().replace(/\s+/g, " ") : "";
+  const displayName = typeof raw.displayName === "string" ? tidyText(raw.displayName).replace(/\s+/g, " ") : "";
   if (!displayName) errors.displayName = "Give the campaign a name.";
   else if (charCount(displayName) > NAME_MAX) errors.displayName = `Keep the name to ${NAME_MAX} characters.`;
   const bio = typeof raw.bio === "string" ? tidyText(raw.bio) : "";
@@ -82,32 +94,54 @@ export function linkParts(text: string): TextPart[] {
   const re = /\bhttps?:\/\/[^\s<>"']+/gi;
   let last = 0;
   for (const m of text.matchAll(re)) {
-    // Trailing punctuation belongs to the sentence, not the link.
-    const url = m[0].replace(/[.,;:!?)\]]+$/, "");
+    const url = trimTrailing(m[0]);
     const start = m.index!;
     if (start > last) out.push({ kind: "text", text: text.slice(last, start) });
+    let part: TextPart = { kind: "text", text: url };
     try {
       const u = new URL(url);
-      out.push(u.protocol === "http:" || u.protocol === "https:" ? { kind: "link", text: url, href: u.toString() } : { kind: "text", text: url });
+      // A link that hides where it goes stays text: "https://turfcut.com@evil.example" is a login at evil.example.
+      if ((u.protocol === "http:" || u.protocol === "https:") && !u.username && !u.password) {
+        // A host spelled with lookalike letters is shown as the browser will reach it (punycode).
+        part = { kind: "link", text: /^[\x00-\x7f]*$/.test(url) ? url : u.href, href: u.href };
+      }
     } catch {
-      out.push({ kind: "text", text: url });
+      // not a URL after all: text
     }
+    out.push(part);
     last = start + url.length;
   }
   if (last < text.length) out.push({ kind: "text", text: text.slice(last) });
   return out;
 }
 
-/** Feed cursor: the last post shown, as (createdAt, id). Opaque to callers. */
+/** Trailing punctuation belongs to the sentence, not the link (a closing bracket only when the link didn't open it). */
+function trimTrailing(url: string): string {
+  let u = url;
+  const count = (c: string) => u.split(c).length - 1;
+  for (;;) {
+    const last = u.at(-1);
+    if (last && ".,;:!?'\"".includes(last)) u = u.slice(0, -1);
+    else if (last === ")" && count("(") < count(")")) u = u.slice(0, -1);
+    else if (last === "]" && count("[") < count("]")) u = u.slice(0, -1);
+    else return u;
+  }
+}
+
+/** Feed cursor: the last post shown, as (createdAt, id). Opaque to callers. Server-side only (Node Buffer). */
 export function encodeCursor(p: { createdAt: Date; id: string }): string {
   return Buffer.from(`${p.createdAt.toISOString()}|${p.id}`).toString("base64url");
 }
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export function decodeCursor(c: unknown): { createdAt: Date; id: string } | null {
   if (typeof c !== "string" || c.length > 200) return null;
-  const [at, id] = Buffer.from(c, "base64url").toString("utf8").split("|");
-  const createdAt = new Date(at ?? "");
-  return Number.isNaN(createdAt.getTime()) || !UUID_RE.test(id ?? "") ? null : { createdAt, id };
+  const parts = Buffer.from(c, "base64url").toString("utf8").split("|");
+  if (parts.length !== 2) return null;
+  const [at, id] = parts;
+  // Exactly what encodeCursor writes: anything looser (or outside the database's range) is junk.
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(at) || !UUID_RE.test(id)) return null;
+  const createdAt = new Date(at);
+  return Number.isNaN(createdAt.getTime()) ? null : { createdAt, id };
 }
 
 /**

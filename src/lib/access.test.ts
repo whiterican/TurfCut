@@ -43,7 +43,7 @@ describe("the C1 access map", () => {
     "/org/settings": { area: "orgSettings", owner: "full", recruiter: "read", supervisor: "read", finance: "read", publisher: "read" },
     "/org/settings/members": { area: "orgMembers", owner: "full", recruiter: null, supervisor: null, finance: null, publisher: null },
     "/campaigns": { area: "campaigns", owner: "full", recruiter: null, supervisor: null, finance: null, publisher: "full" },
-    "/campaigns (posts)": { area: "campaignPosts", owner: "full", recruiter: "full", supervisor: null, finance: null, publisher: "full" },
+    "/campaigns (posts)": { area: "campaignPosting", owner: "full", recruiter: "full", supervisor: null, finance: null, publisher: "full" },
   };
   it("matches the approved table for every route and role", () => {
     for (const [route, row] of Object.entries(T)) {

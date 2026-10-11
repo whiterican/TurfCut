@@ -10,6 +10,8 @@ describe("campaign profiles", () => {
     expect(handleProblem("x".repeat(31))).toMatch(/3 to 30/);
     expect(handleProblem("admin")).toMatch(/reserved/);
     expect(handleProblem("turfcut_news")).toMatch(/reserved/);
+    expect(handleProblem("turf_cut")).toMatch(/reserved/);
+    expect(handleProblem("_admin_")).toMatch(/reserved/);
   });
 
   it("validates the editor's fields and keeps the bio's words as written", () => {
@@ -28,6 +30,10 @@ describe("posts", () => {
     expect(validatePostBody("x".repeat(POST_MAX + 1))).toMatchObject({ ok: false, error: expect.stringMatching(/501/) });
     expect(validatePostBody("   \n ")).toMatchObject({ ok: false });
     expect(validatePostBody(42)).toMatchObject({ ok: false });
+    // No NULs (the database refuses them), no invisible-only posts, no direction overrides.
+    expect(validatePostBody("a\u0000b")).toEqual({ ok: true, value: "ab" });
+    expect(validatePostBody("\u200b\u200b")).toMatchObject({ ok: false });
+    expect(validateProfile({ handle: "ok_handle", displayName: "Yes on 7\u202e", bio: "" })).toMatchObject({ ok: true, value: { displayName: "Yes on 7" } });
   });
 
   it("turns only web links into links and keeps everything else as text", () => {
@@ -37,6 +43,10 @@ describe("posts", () => {
       { kind: "text", text: ". Thanks!" },
     ]);
     expect(linkParts("javascript:alert(1) <b>hi</b>")).toEqual([{ kind: "text", text: "javascript:alert(1) <b>hi</b>" }]);
+    // A link that hides where it goes stays text; a lookalike host shows as the browser reaches it; balanced brackets stay.
+    expect(linkParts("https://turfcut.com@evil.example/x")).toEqual([{ kind: "text", text: "https://turfcut.com@evil.example/x" }]);
+    expect(linkParts("https://exаmple.com")[0]).toMatchObject({ kind: "link", text: expect.stringContaining("xn--") });
+    expect(linkParts("(see https://en.wikipedia.org/wiki/A_(b))")[1]).toMatchObject({ kind: "link", text: "https://en.wikipedia.org/wiki/A_(b)" });
   });
 
   it("round-trips feed cursors and refuses junk", () => {
@@ -45,6 +55,9 @@ describe("posts", () => {
     expect(decodeCursor("nope")).toBeNull();
     expect(decodeCursor(Buffer.from("2026-10-11|not-a-uuid").toString("base64url"))).toBeNull();
     expect(decodeCursor(undefined)).toBeNull();
+    expect(decodeCursor(Buffer.from("1|40000000-0000-0000-0000-000000000001").toString("base64url"))).toBeNull();
+    expect(decodeCursor(Buffer.from("-271821-04-20T00:00:00.000Z|40000000-0000-0000-0000-000000000001").toString("base64url"))).toBeNull();
+    expect(decodeCursor(Buffer.from("2026-10-11T12:00:00.000Z|40000000-0000-0000-0000-000000000001|x").toString("base64url"))).toBeNull();
   });
 
   it("embeds only the organization's own published jobs, and shows them as they are now", () => {

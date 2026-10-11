@@ -37,9 +37,12 @@ describe("migration grants", () => {
       const sql = readFileSync(join(dir, f), "utf8").replace(/--[^\n]*/g, "");
       expect({ file: f, hits: sql.match(tableWide) ?? [] }).toEqual({ file: f, hits: [] });
       expect({ file: f, revisionGrant: /GRANT[^;]*"CampaignPostRevision"[^;]*TO/i.test(sql) }).toEqual({ file: f, revisionGrant: false });
-      for (const m of sql.matchAll(/GRANT\s+SELECT\s*\(([^)]*)\)\s+ON\s+"public"\."(CampaignProfile|CampaignPost)"/gi)) {
-        for (const col of m[1].split(",").map((c) => c.trim())) expect({ file: f, table: m[2], col, ok: allowed[m[2]].has(col) }).toEqual({ file: f, table: m[2], col, ok: true });
+      // Any grant naming these tables (qualified or not, with TABLE or not) is a column-limited SELECT.
+      for (const m of sql.matchAll(/GRANT\s+(\w+)\s*(\(([^)]*)\))?\s+ON\s+(TABLE\s+)?("public"\.)?"(CampaignProfile|CampaignPost)"/gi)) {
+        expect({ file: f, table: m[6], privilege: m[1].toUpperCase(), columnLimited: !!m[2] }).toEqual({ file: f, table: m[6], privilege: "SELECT", columnLimited: true });
+        for (const col of (m[3] ?? "").split(",").map((c) => c.trim())) expect({ file: f, table: m[6], col, ok: allowed[m[6]].has(col) }).toEqual({ file: f, table: m[6], col, ok: true });
       }
+      expect({ file: f, schemaWide: /GRANT[^;]*ON\s+ALL\s+TABLES\s+IN\s+SCHEMA[^;]*TO[^;]*(anon|authenticated)/i.test(sql) }).toEqual({ file: f, schemaWide: false });
     }
   });
 });

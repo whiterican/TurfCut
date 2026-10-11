@@ -748,6 +748,12 @@ BEGIN
     GRANT SELECT ("id", "conversationId", "createdAt") ON "public"."Message" TO authenticated;
     GRANT SELECT ("id", "messageId", "conversationId", "createdAt") ON "public"."MessageRevision" TO authenticated;
   END IF;
+  -- S1: campaign profiles and live posts are public (prisma/s1-social.sql), column by column.
+  IF to_regclass('"public"."CampaignProfile"') IS NOT NULL THEN
+    GRANT USAGE ON SCHEMA "turfcut_private" TO anon;
+    GRANT SELECT ("id", "handle", "displayName", "bio", "avatarKey", "headerKey", "publishedAt", "createdAt", "updatedAt") ON "public"."CampaignProfile" TO anon, authenticated;
+    GRANT SELECT ("id", "profileId", "body", "jobId", "pinnedAt", "createdAt", "editedAt") ON "public"."CampaignPost" TO anon, authenticated;
+  END IF;
 END $$;
 
 -- One active block per pair; lifted blocks stay as history.
@@ -1038,7 +1044,7 @@ CREATE TABLE IF NOT EXISTS "public"."CampaignPost" (
     CONSTRAINT "CampaignPost_authorId_fkey" FOREIGN KEY ("authorId") REFERENCES "public"."Profile"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT "CampaignPost_jobId_fkey" FOREIGN KEY ("jobId") REFERENCES "public"."Job"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT "CampaignPost_deletedById_fkey" FOREIGN KEY ("deletedById") REFERENCES "public"."Profile"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
-    CONSTRAINT "CampaignPost_body_length" CHECK (char_length("body") BETWEEN 1 AND 500),
+    CONSTRAINT "CampaignPost_body_length" CHECK (char_length("body") BETWEEN 1 AND 500 AND btrim("body") <> ''),
     CONSTRAINT "CampaignPost_deleted_pair" CHECK (("deletedAt" IS NULL) = ("deletedById" IS NULL)),
     -- A deleted post isn't pinned (the talking points are live posts).
     CONSTRAINT "CampaignPost_deleted_unpinned" CHECK ("deletedAt" IS NULL OR "pinnedAt" IS NULL)
@@ -1052,7 +1058,7 @@ CREATE TABLE IF NOT EXISTS "public"."CampaignPostRevision" (
     "id" UUID NOT NULL,
     "postId" UUID NOT NULL,
     "body" TEXT NOT NULL,
-    "jobId" UUID,
+    "jobId" UUID, -- a snapshot of the embed at that version (no FK: history, not a link)
     "editorId" UUID NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "CampaignPostRevision_pkey" PRIMARY KEY ("id"),
@@ -1083,9 +1089,25 @@ BEGIN
        SELECT 1 FROM "public"."CampaignProfile" c WHERE c."id" = NEW."campaignProfileId" AND c."orgId" = NEW."orgId") THEN
     RAISE EXCEPTION 'A job works only for its own organization''s campaign';
   END IF;
+  -- A job moving to another organization would leave posts embedding it on the old one's campaigns.
+  IF TG_OP = 'UPDATE' AND NEW."orgId" IS DISTINCT FROM OLD."orgId" AND EXISTS (
+       SELECT 1 FROM "public"."CampaignPost" p WHERE p."jobId" = NEW."id") THEN
+    RAISE EXCEPTION 'A job embedded in campaign posts can''t move to another organization';
+  END IF;
   RETURN NEW;
 END $$;
 REVOKE ALL ON FUNCTION "turfcut_private"."job_campaign_same_org"() FROM PUBLIC, anon, authenticated;
+-- A campaign belongs to one organization for good (its jobs and posts are that organization's).
+CREATE OR REPLACE FUNCTION "turfcut_private"."campaign_org_fixed"() RETURNS trigger LANGUAGE plpgsql SET search_path = '' AS $$
+BEGIN
+  IF NEW."orgId" IS DISTINCT FROM OLD."orgId" THEN
+    RAISE EXCEPTION 'A campaign can''t move to another organization';
+  END IF;
+  RETURN NEW;
+END $$;
+REVOKE ALL ON FUNCTION "turfcut_private"."campaign_org_fixed"() FROM PUBLIC, anon, authenticated;
+CREATE OR REPLACE TRIGGER "CampaignProfile_org_fixed" BEFORE UPDATE OF "orgId" ON "public"."CampaignProfile"
+  FOR EACH ROW EXECUTE FUNCTION "turfcut_private"."campaign_org_fixed"();
 CREATE OR REPLACE TRIGGER "Job_campaign_same_org" BEFORE INSERT OR UPDATE OF "campaignProfileId", "orgId" ON "public"."Job"
   FOR EACH ROW EXECUTE FUNCTION "turfcut_private"."job_campaign_same_org"();
 
@@ -1111,19 +1133,9 @@ RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = '' AS $$
     SELECT 1 FROM "public"."CampaignProfile" c JOIN "public"."Organization" o ON o."id" = c."orgId"
      WHERE c."id" = p_profile AND c."publishedAt" IS NOT NULL AND o."approved");
 $$;
--- Can the signed-in user write for this organization's campaigns? (Only
--- used by the write policies, which no grant enables today.)
-CREATE OR REPLACE FUNCTION "turfcut_private"."campaign_writer"(p_org uuid, p_roles text[])
-RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = '' AS $$
-  SELECT EXISTS (
-    SELECT 1 FROM "public"."Profile" p
-     WHERE p."id" = auth.uid() AND p."orgId" = p_org AND p."closedAt" IS NULL AND p."role"::text = ANY (p_roles));
-$$;
 REVOKE ALL ON FUNCTION "turfcut_private"."campaign_public"(uuid) FROM PUBLIC;
-REVOKE ALL ON FUNCTION "turfcut_private"."campaign_writer"(uuid, text[]) FROM PUBLIC, anon;
 GRANT USAGE ON SCHEMA "turfcut_private" TO anon;
 GRANT EXECUTE ON FUNCTION "turfcut_private"."campaign_public"(uuid) TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION "turfcut_private"."campaign_writer"(uuid, text[]) TO authenticated;
 
 ALTER TABLE "public"."CampaignProfile" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."CampaignPost" ENABLE ROW LEVEL SECURITY;
@@ -1139,16 +1151,12 @@ DROP POLICY IF EXISTS "public reads live posts" ON "public"."CampaignPost";
 CREATE POLICY "public reads live posts" ON "public"."CampaignPost"
   FOR SELECT TO anon, authenticated USING ("deletedAt" IS NULL AND "turfcut_private"."campaign_public"("profileId"));
 
+-- No write policies: nothing is granted to the API roles for writing, so
+-- every write goes through the app's server (deny by default). (An earlier
+-- draft of this file had FOR ALL policies; they're dropped if present.)
 DROP POLICY IF EXISTS "campaign staff write profiles" ON "public"."CampaignProfile";
-CREATE POLICY "campaign staff write profiles" ON "public"."CampaignProfile"
-  FOR ALL TO authenticated
-  USING ("turfcut_private"."campaign_writer"("orgId", ARRAY['OWNER', 'PUBLISHER']))
-  WITH CHECK ("turfcut_private"."campaign_writer"("orgId", ARRAY['OWNER', 'PUBLISHER']));
 DROP POLICY IF EXISTS "campaign staff write posts" ON "public"."CampaignPost";
-CREATE POLICY "campaign staff write posts" ON "public"."CampaignPost"
-  FOR ALL TO authenticated
-  USING ("turfcut_private"."campaign_writer"((SELECT c."orgId" FROM "public"."CampaignProfile" c WHERE c."id" = "profileId"), ARRAY['OWNER', 'PUBLISHER', 'RECRUITER']))
-  WITH CHECK ("turfcut_private"."campaign_writer"((SELECT c."orgId" FROM "public"."CampaignProfile" c WHERE c."id" = "profileId"), ARRAY['OWNER', 'PUBLISHER', 'RECRUITER']));
+DROP FUNCTION IF EXISTS "turfcut_private"."campaign_writer"(uuid, text[]);
 
 
 -- ---- Rate-limit store (server-only; prisma/rate-limit.sql) ----

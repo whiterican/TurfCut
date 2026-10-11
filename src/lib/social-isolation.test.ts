@@ -19,7 +19,6 @@ const ALLOWED = [
   /^src\/app\/shifts\/\[shiftId\]\/page\.tsx$/, // shows the brief's talking points (nothing it reads goes anywhere else)
   /^src\/app\/jobs\/\[jobId\]\/page\.tsx$/, // the campaign a job works for, with Follow (S2); the page ranks nothing
   /^src\/app\/dashboard\/page\.tsx$/, // Today's "Campaigns you're on" strip (S2.3); the page ranks nothing
-  /^src\/app\/feed\//, // the worker's home feed (S2)
   /^src\/app\/zz-preview\//,
   /^src\/components\/campaign\//,
 ];

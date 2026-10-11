@@ -21,7 +21,7 @@ export default async function FeedPage({ searchParams }: Props) {
   const feed = await loadHomeFeed(workerId, cursor);
   return (
     <main className="page max-w-2xl space-y-6">
-      {!cursor && <FeedSeen />}
+      {!cursor && <FeedSeen at={new Date().toISOString()} />}
       <header className="page-header">
         <div className="space-y-1.5">
           <p className="eyebrow">Feed</p>

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dayStart, feedSeenAt, feedSources, followChange, likeChange, MAX_NOTICES_PER_CAMPAIGN_PER_DAY, noticeAllowed, noticeRecipients } from "./campaign-follow";
+import { dayStart, feedBadge, feedSeenAt, feedSources, followChange, likeChange, MAX_NOTICES_PER_CAMPAIGN_PER_DAY, noticeAllowed, noticeRecipients } from "./campaign-follow";
 
 describe("feed sources", () => {
   it("are the followed and the hiring campaigns, following winning as the reason", () => {
@@ -61,6 +61,15 @@ describe("notices", () => {
     ];
     const sent = new Map([["c", MAX_NOTICES_PER_CAMPAIGN_PER_DAY], ["d", MAX_NOTICES_PER_CAMPAIGN_PER_DAY - 1]]);
     expect(noticeRecipients(followers, sent)).toEqual(["a", "d"]);
+  });
+});
+
+describe("feed badge", () => {
+  it("counts up to the cap, then says 9+", () => {
+    expect(feedBadge(0)).toBe("Your feed");
+    expect(feedBadge(1)).toBe("1 new in your feed");
+    expect(feedBadge(9)).toBe("9 new in your feed");
+    expect(feedBadge(10)).toBe("9+ new in your feed");
   });
 });
 

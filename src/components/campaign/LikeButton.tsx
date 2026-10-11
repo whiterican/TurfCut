@@ -17,7 +17,7 @@ export function LikeButton({ postId, liked }: { postId: string; liked: boolean }
     <form action={act} className="inline-flex flex-col gap-1">
       <input type="hidden" name="postId" value={postId} />
       <input type="hidden" name="liked" value={liked ? "0" : "1"} />
-      <button className="btn-ghost btn-sm inline-flex items-center gap-1.5" disabled={pending} aria-pressed={liked} aria-label={liked ? "Unlike" : "Like"}>
+      <button className="btn-ghost btn-sm inline-flex items-center gap-1.5" disabled={pending} aria-pressed={liked}>
         <Heart aria-hidden className={`h-4 w-4 ${liked ? "fill-current" : ""}`} />
         {liked ? "Liked" : "Like"}
       </button>

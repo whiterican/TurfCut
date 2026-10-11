@@ -73,6 +73,11 @@ export function noticeRecipients(followers: Iterable<{ workerId: string; notify:
   return out;
 }
 
+/** Today's feed link: how many posts are newer than the device's last visit, "9+" past the cap. */
+export function feedBadge(fresh: number, cap = 9): string {
+  return fresh <= 0 ? "Your feed" : fresh > cap ? `${cap}+ new in your feed` : `${fresh} new in your feed`;
+}
+
 /** The "feed seen" cookie: when this browser last opened the feed (per device, not a record of anything). */
 export const FEED_SEEN_COOKIE = "turfcut-feed-seen";
 /** Parses the cookie; anything but a plain ISO time (or a time in the future) counts as never. */

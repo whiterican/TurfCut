@@ -10,6 +10,8 @@ import { CampaignHeader } from "@/components/campaign/CampaignHeader";
 import { PostCard } from "@/components/campaign/PostCard";
 import { ShareButton } from "@/components/campaign/ShareButton";
 import { campaignPreview } from "@/lib/campaign-api";
+import { listResources, loadFacts } from "@/lib/campaign-kit-data";
+import { ResourceList } from "@/components/campaign/ResourceList";
 
 type Props = { params: Promise<{ handle: string }>; searchParams: Promise<{ cursor?: string }> };
 
@@ -28,6 +30,8 @@ export default async function PublicCampaignPage({ params, searchParams }: Props
   if (!c) notFound();
   const { cursor } = await searchParams;
   const [pinned, feed, session] = await Promise.all([cursor ? Promise.resolve([]) : loadPinned(c.id), loadPosts(c.id, cursor), getSessionProfile().catch(() => null)]);
+  // The briefing kit (S4): the facts behind each talking point, and what the campaign chose to show everyone.
+  const [facts, resources] = await Promise.all([loadFacts(pinned.map((p) => p.id)), cursor ? Promise.resolve([]) : listResources(c.id, "PUBLIC")]);
   const signedIn = !!session;
   // Following is a worker's own choice (S2): guests are sent to sign in; organization logins see no control.
   const workerId = session?.role === "WORKER" ? session.workerId : null;
@@ -48,7 +52,13 @@ export default async function PublicCampaignPage({ params, searchParams }: Props
       {pinned.length > 0 && (
         <section className="section" aria-labelledby="talking-points">
           <h2 id="talking-points" className="section-title">Talking points</h2>
-          {pinned.map((p) => <PostCard key={p.id} post={p} handle={c.handle} displayName={c.displayName} signedIn={signedIn} liked={likedBy(p.id)} />)}
+          {pinned.map((p) => <PostCard key={p.id} post={p} handle={c.handle} displayName={c.displayName} signedIn={signedIn} liked={likedBy(p.id)} facts={facts.get(p.id) ?? []} />)}
+        </section>
+      )}
+      {resources.length > 0 && (
+        <section className="section" aria-labelledby="from-the-campaign">
+          <h2 id="from-the-campaign" className="section-title">From the campaign</h2>
+          <ResourceList resources={resources} />
         </section>
       )}
       <section className="section" aria-labelledby="posts">

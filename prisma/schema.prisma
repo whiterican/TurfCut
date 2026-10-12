@@ -69,6 +69,8 @@ model Profile {
   campaignPosts         CampaignPost[]         @relation("CampaignPostAuthor")
   deletedCampaignPosts  CampaignPost[]         @relation("CampaignPostDeleter")
   campaignPostRevisions CampaignPostRevision[]
+  talkingPointFacts     TalkingPointFact[]   @relation("TalkingPointFactAuthor")
+  campaignResources     CampaignResource[]   @relation("CampaignResourceAuthor")
 
   @@index([orgId])
 }
@@ -817,6 +819,7 @@ model CampaignProfile {
   posts       CampaignPost[]
   jobs        Job[]
   followers   CampaignFollow[]
+  resources   CampaignResource[]
 
   @@index([orgId])
 }
@@ -842,6 +845,7 @@ model CampaignPost {
   editedAt    DateTime?
   revisions   CampaignPostRevision[]
   likes       PostLike[]
+  facts       TalkingPointFact[]
 
   @@index([profileId, createdAt])
   @@index([jobId])
@@ -863,6 +867,66 @@ model CampaignPostRevision {
 
   @@index([postId, createdAt])
   @@index([editorId])
+}
+
+/// S4: a supporting fact behind a talking point (a pinned post): a short
+/// claim with an optional source link, up to MAX_FACTS per post. Shown with
+/// the talking point on the campaign page and in every shift brief on the
+/// campaign's jobs. Edited in place by the campaign's managers; removing one
+/// hides it and keeps the row; every change is on the audit record.
+model TalkingPointFact {
+  id        String       @id @default(uuid()) @db.Uuid
+  postId    String       @db.Uuid
+  post      CampaignPost @relation(fields: [postId], references: [id], onDelete: Restrict)
+  body      String
+  sourceUrl String?
+  position  Int
+  authorId  String       @db.Uuid
+  author    Profile      @relation("TalkingPointFactAuthor", fields: [authorId], references: [id], onDelete: Restrict)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  deletedAt DateTime?
+
+  @@index([postId, position])
+  @@index([authorId])
+}
+
+/// What a campaign resource is: a script to say at the door, answers to the
+/// questions people ask, or a guide to how the day works.
+enum CampaignResourceKind {
+  SCRIPT
+  FAQ
+  GUIDE
+}
+
+/// Who a resource is for: anyone on the campaign page, or the workers on
+/// the campaign's jobs and their field staff (in the shift brief only).
+enum CampaignResourceAudience {
+  PUBLIC
+  WORKERS
+}
+
+/// S4: a campaign's field kit: scripts, common questions, guides. Written
+/// by the campaign's managers, in its own words; shown on the campaign page
+/// (PUBLIC) or in the shift brief of the campaign's jobs (both audiences).
+/// Edited in place; removing one hides it and keeps the row; audited.
+model CampaignResource {
+  id        String                   @id @default(uuid()) @db.Uuid
+  profileId String                   @db.Uuid
+  profile   CampaignProfile          @relation(fields: [profileId], references: [id], onDelete: Restrict)
+  kind      CampaignResourceKind
+  audience  CampaignResourceAudience @default(WORKERS)
+  title     String
+  body      String
+  position  Int
+  authorId  String                   @db.Uuid
+  author    Profile                  @relation("CampaignResourceAuthor", fields: [authorId], references: [id], onDelete: Restrict)
+  createdAt DateTime                 @default(now())
+  updatedAt DateTime                 @updatedAt
+  deletedAt DateTime?
+
+  @@index([profileId, kind, position])
+  @@index([authorId])
 }
 
 /// S2: a worker following a campaign. Each row is one stretch of following:

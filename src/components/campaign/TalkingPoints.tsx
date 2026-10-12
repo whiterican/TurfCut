@@ -2,9 +2,12 @@ import Link from "next/link";
 import { LinkedText } from "@/components/campaign/LinkedText";
 import { LocalTime } from "@/components/LocalTime";
 import type { loadTalkingPoints } from "@/lib/job-brief-data";
+import { FactList } from "@/components/campaign/FactList";
+import { ResourceList } from "@/components/campaign/ResourceList";
 
 /**
- * The campaign's talking points on a shift's brief (S1): its pinned posts,
+ * The campaign's talking points on a shift's brief (S1), each with its
+ * supporting facts, and its scripts, common questions and guides (S4):
  * exactly as it wrote them. Turfcut doesn't summarize, label or add to them.
  */
 export function TalkingPoints({ brief, asOf = new Date() }: { brief: NonNullable<Awaited<ReturnType<typeof loadTalkingPoints>>>; asOf?: Date }) {
@@ -23,10 +26,18 @@ export function TalkingPoints({ brief, asOf = new Date() }: { brief: NonNullable
           {brief.points.map((p) => (
             <li key={p.id} className="card space-y-2">
               <LinkedText text={p.body} className="text-[15px] leading-relaxed text-fg" />
+              <FactList facts={p.facts} />
               <p className="text-hint">Written <LocalTime iso={p.writtenAt.toISOString()} mode="datetime" /></p>
             </li>
           ))}
         </ol>
+      )}
+      {brief.resources.length > 0 && (
+        <div className="space-y-2 pt-2">
+          <h3 className="font-semibold text-fg">Scripts, questions and guides</h3>
+          <p className="text-muted-sm">From the campaign, for the people on its jobs. Saved with this brief for the field.</p>
+          <ResourceList resources={brief.resources} showAudience />
+        </div>
       )}
     </section>
   );

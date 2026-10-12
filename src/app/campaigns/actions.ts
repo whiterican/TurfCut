@@ -6,6 +6,8 @@ import type { ActionState } from "@/app/jobs/actions";
 import { requireArea } from "@/lib/employer-session";
 import { accessTo } from "@/lib/access";
 import { validatePostBody, validateProfile } from "@/lib/campaign-social";
+import { validateFact, validateResource } from "@/lib/campaign-kit";
+import { addFact, createResource, editFact, editResource, removeFact, removeResource } from "@/lib/campaign-kit-data";
 import { clearCampaignImage, createCampaign, createPost, deletePost, editPost, loadOrgCampaign, setJobCampaign, setCampaignImage, setCampaignPublished, setPostPinned, updateCampaign } from "@/lib/campaign-social-data";
 import { check, retryAfter, waitText } from "@/lib/rate-limit";
 import { supabaseMediaStore, type MediaKind } from "@/lib/campaign-media";
@@ -23,6 +25,7 @@ const editor = async () => {
 const refresh = async (orgId: string, id: string) => {
   revalidatePath("/campaigns");
   revalidatePath(`/campaigns/${id}`);
+  revalidatePath("/shifts/[shiftId]", "page"); // the brief carries the talking points and the kit
   const c = await loadOrgCampaign(orgId, id);
   if (c) revalidatePath(`/c/${c.handle}`);
 };
@@ -137,4 +140,60 @@ export async function linkJob(_prev: ActionState, fd: FormData): Promise<ActionS
   const r = await setJobCampaign(actor, jobId, unlink ? null : campaignId);
   await refresh(actor.orgId, campaignId);
   return r.ok ? { ok: true, message: unlink ? "Unlinked." : "Linked: its shifts now carry these talking points." } : { ok: false, message: r.reason };
+}
+
+// ---------------------------------------------------------------------------
+// The briefing kit (S4): supporting facts and resources are the managers' (owners and publishers).
+// ---------------------------------------------------------------------------
+
+export interface KitFormState extends ActionState {
+  errors?: Record<string, string>;
+}
+
+/** Kit writes count against the posting limit: the same organization, the same hour. */
+async function kitGate(orgId: string): Promise<KitFormState | null> {
+  const verdict = await check("post", orgId);
+  if (verdict === "ok") return null;
+  if (verdict === "unavailable") return { ok: false, message: "Saving is briefly unavailable. Try again in a minute." };
+  return { ok: false, message: `Your organization has written a lot this hour. Try again in ${waitText(await retryAfter("post", orgId))}.` };
+}
+
+/** Adds a supporting fact to a talking point, or saves an edit to one. */
+export async function saveFact(_prev: KitFormState, fd: FormData): Promise<KitFormState> {
+  const actor = await editor();
+  const v = validateFact({ body: str(fd, "body"), sourceUrl: str(fd, "sourceUrl") });
+  if (!v.ok) return { ok: false, message: "Fix the highlighted fields.", errors: v.errors };
+  const gate = await kitGate(actor.orgId);
+  if (gate) return gate;
+  const factId = str(fd, "factId");
+  const r = factId ? await editFact(actor, factId, v.value) : await addFact(actor, str(fd, "postId"), v.value);
+  await refresh(actor.orgId, str(fd, "campaignId"));
+  return r.ok ? { ok: true, message: factId ? "Saved." : "Added." } : { ok: false, message: r.reason };
+}
+
+export async function deleteFact(_prev: KitFormState, fd: FormData): Promise<KitFormState> {
+  const actor = await editor();
+  const r = await removeFact(actor, str(fd, "factId"));
+  await refresh(actor.orgId, str(fd, "campaignId"));
+  return r.ok ? { ok: true, message: "Removed." } : { ok: false, message: r.reason };
+}
+
+/** Creates a script, common question or guide, or saves an edit to one. */
+export async function saveResource(_prev: KitFormState, fd: FormData): Promise<KitFormState> {
+  const actor = await editor();
+  const v = validateResource({ kind: str(fd, "kind"), audience: str(fd, "audience"), title: str(fd, "title"), body: str(fd, "body") });
+  if (!v.ok) return { ok: false, message: "Fix the highlighted fields.", errors: v.errors };
+  const gate = await kitGate(actor.orgId);
+  if (gate) return gate;
+  const resourceId = str(fd, "resourceId");
+  const r = resourceId ? await editResource(actor, resourceId, v.value) : await createResource(actor, str(fd, "campaignId"), v.value);
+  await refresh(actor.orgId, str(fd, "campaignId"));
+  return r.ok ? { ok: true, message: resourceId ? "Saved." : "Added." } : { ok: false, message: r.reason };
+}
+
+export async function deleteResource(_prev: KitFormState, fd: FormData): Promise<KitFormState> {
+  const actor = await editor();
+  const r = await removeResource(actor, str(fd, "resourceId"));
+  await refresh(actor.orgId, str(fd, "campaignId"));
+  return r.ok ? { ok: true, message: "Removed." } : { ok: false, message: r.reason };
 }

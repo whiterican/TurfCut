@@ -149,6 +149,12 @@ export async function linkJob(_prev: ActionState, fd: FormData): Promise<ActionS
 export interface KitFormState extends ActionState {
   errors?: Record<string, string>;
 }
+/** A kit write's outcome: refresh what shows it (by the campaign the data layer names, never the form's say-so). */
+async function kitResult(orgId: string, r: { ok: true; campaignId: string } | { ok: false; reason: string }, done: string): Promise<KitFormState> {
+  if (!r.ok) return { ok: false, message: r.reason };
+  await refresh(orgId, r.campaignId);
+  return { ok: true, message: done };
+}
 
 /** Kit writes count against the posting limit: the same organization, the same hour. */
 async function kitGate(orgId: string): Promise<KitFormState | null> {
@@ -166,16 +172,12 @@ export async function saveFact(_prev: KitFormState, fd: FormData): Promise<KitFo
   const gate = await kitGate(actor.orgId);
   if (gate) return gate;
   const factId = str(fd, "factId");
-  const r = factId ? await editFact(actor, factId, v.value) : await addFact(actor, str(fd, "postId"), v.value);
-  await refresh(actor.orgId, str(fd, "campaignId"));
-  return r.ok ? { ok: true, message: factId ? "Saved." : "Added." } : { ok: false, message: r.reason };
+  return kitResult(actor.orgId, factId ? await editFact(actor, factId, v.value) : await addFact(actor, str(fd, "postId"), v.value), factId ? "Saved." : "Added.");
 }
 
 export async function deleteFact(_prev: KitFormState, fd: FormData): Promise<KitFormState> {
   const actor = await editor();
-  const r = await removeFact(actor, str(fd, "factId"));
-  await refresh(actor.orgId, str(fd, "campaignId"));
-  return r.ok ? { ok: true, message: "Removed." } : { ok: false, message: r.reason };
+  return kitResult(actor.orgId, await removeFact(actor, str(fd, "factId")), "Removed.");
 }
 
 /** Creates a script, common question or guide, or saves an edit to one. */
@@ -186,14 +188,10 @@ export async function saveResource(_prev: KitFormState, fd: FormData): Promise<K
   const gate = await kitGate(actor.orgId);
   if (gate) return gate;
   const resourceId = str(fd, "resourceId");
-  const r = resourceId ? await editResource(actor, resourceId, v.value) : await createResource(actor, str(fd, "campaignId"), v.value);
-  await refresh(actor.orgId, str(fd, "campaignId"));
-  return r.ok ? { ok: true, message: resourceId ? "Saved." : "Added." } : { ok: false, message: r.reason };
+  return kitResult(actor.orgId, resourceId ? await editResource(actor, resourceId, v.value) : await createResource(actor, str(fd, "campaignId"), v.value), resourceId ? "Saved." : "Added.");
 }
 
 export async function deleteResource(_prev: KitFormState, fd: FormData): Promise<KitFormState> {
   const actor = await editor();
-  const r = await removeResource(actor, str(fd, "resourceId"));
-  await refresh(actor.orgId, str(fd, "campaignId"));
-  return r.ok ? { ok: true, message: "Removed." } : { ok: false, message: r.reason };
+  return kitResult(actor.orgId, await removeResource(actor, str(fd, "resourceId")), "Removed.");
 }

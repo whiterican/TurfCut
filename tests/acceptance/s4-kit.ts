@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { createCampaign, createPost, deletePost, setCampaignPublished, setJobCampaign, setPostPinned } from "@/lib/campaign-social-data";
 import { addFact, createResource, editFact, editResource, listResources, loadFacts, removeFact, removeResource } from "@/lib/campaign-kit-data";
 import { loadTalkingPoints } from "@/lib/job-brief-data";
-import { MAX_FACTS, MAX_RESOURCES } from "@/lib/campaign-kit";
+import { MAX_FACTS, MAX_RESOURCES, validateFact } from "@/lib/campaign-kit";
 import { loadFeed } from "@/lib/jobs-data";
 
 const ORG = "00000000-0000-0000-0000-000000000001";
@@ -87,12 +87,16 @@ const refused = (p: Promise<unknown>) => p.then(() => "allowed", (e: unknown) =>
     "rows" in anonRes && anonRes.rows.length === 1 && anonRes.rows[0].audience === "PUBLIC" &&
     "error" in anonAuthor && /permission denied/.test(anonAuthor.error), { anonFacts, anonRes, anonAuthor });
   await setPostPinned(M, point, false);
-  check("unpinning the post takes its facts off the Data API", "rows" in (await readAs("anon", `SELECT "body" FROM "TalkingPointFact"`)) && ((await readAs("anon", `SELECT "body" FROM "TalkingPointFact"`)) as { rows: unknown[] }).rows.length === 0);
+  const unpinned = await readAs("anon", `SELECT "body" FROM "TalkingPointFact"`);
+  check("unpinning the post takes its facts off the Data API and the page", "rows" in unpinned && unpinned.rows.length === 0 && ((await loadFacts([point])).get(point) ?? []).length === 0, unpinned);
   await setPostPinned(M, point, true);
   await setCampaignPublished(M, c.id, false);
   check("an unpublished campaign shows nothing through the Data API", ((await readAs("anon", `SELECT "title" FROM "CampaignResource"`)) as { rows: unknown[] }).rows.length === 0);
   await setCampaignPublished(M, c.id, true);
-  check("a deleted talking point still holds its facts for the record, off the API", (await deletePost(M, point)).ok === false || true);
+  check("a link that parses but isn't a web address is refused by the rule, as the database would refuse it", !validateFact({ body: "x", sourceUrl: "https:example.com" }).ok && /check constraint/.test(await refused(p.talkingPointFact.create({ data: { postId: point, body: "x", sourceUrl: "https:example.com", position: 1, authorId: OWNER, updatedAt: new Date() } }))));
+  const del = await deletePost(M, point);
+  const afterDelete = await readAs("anon", `SELECT "body" FROM "TalkingPointFact"`);
+  check("a deleted talking point keeps its facts on the record, off the Data API, the page and the brief", del.ok && (await p.talkingPointFact.count({ where: { postId: point } })) === 6 && "rows" in afterDelete && afterDelete.rows.length === 0 && ((await loadFacts([point])).get(point) ?? []).length === 0 && !((await loadTalkingPoints(JOB))?.points ?? []).some((x) => x.id === point), { del, afterDelete });
 
   // --- Nothing here reaches matching ---
   check("a worker's job feed is exactly what it was", JSON.stringify((await loadFeed(W1, {})).jobs.map((j) => j.id)) === feedBefore);

@@ -507,7 +507,8 @@ What a worker reads before they knock, in the campaign's own words.
   their field staff, in the shift brief only) or **anyone** (the campaign
   page too, under "From the campaign"). Grouped by kind, folded under
   their titles. The shift brief carries all of them, so the offline brief
-  does too.
+  does too (a phone keeps the copy it saved until it's next online, so an
+  edit or a removal reaches the field with the next reload).
 - **Verbatim, always.** Turfcut shows what the campaign wrote and adds
   nothing: no summary, no fact-checking, no label. Every write is on the
   audit record; removing a fact or a resource hides it and keeps the row.

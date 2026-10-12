@@ -29,7 +29,8 @@ export async function loadFacts(postIds: string[]): Promise<Map<string, Fact[]>>
   const ids = postIds.filter((id) => UUID_RE.test(id));
   const out = new Map<string, Fact[]>(ids.map((id) => [id, []]));
   if (ids.length === 0) return out;
-  const rows = await db().talkingPointFact.findMany({ where: { postId: { in: ids }, deletedAt: null }, orderBy: [{ position: "asc" }], select: FACT_SELECT });
+  // Live facts of live talking points only, whatever ids a caller passes (the same rule as the Data API's policy).
+  const rows = await db().talkingPointFact.findMany({ where: { postId: { in: ids }, deletedAt: null, post: { deletedAt: null, pinnedAt: { not: null } } }, orderBy: [{ position: "asc" }], select: FACT_SELECT });
   for (const r of rows) out.get(r.postId)?.push(r);
   return out;
 }
@@ -42,7 +43,7 @@ async function ownTalkingPoint(tx: Prisma.TransactionClient, orgId: string, post
   return tx.campaignPost.findFirst({ where: { id: postId, deletedAt: null, pinnedAt: { not: null } }, select: { id: true, profileId: true } });
 }
 
-export async function addFact(actor: Actor, postId: string, input: FactInput, now = new Date()): Promise<Result<{ id: string }>> {
+export async function addFact(actor: Actor, postId: string, input: FactInput, now = new Date()): Promise<Result<{ id: string; campaignId: string }>> {
   if (!UUID_RE.test(postId)) return { ok: false, reason: "Talking point not found." };
   return db().$transaction(async (tx) => {
     const p = await ownTalkingPoint(tx, actor.orgId, postId);
@@ -52,7 +53,7 @@ export async function addFact(actor: Actor, postId: string, input: FactInput, no
     if (position === null) return { ok: false as const, reason: `A talking point carries up to ${MAX_FACTS} supporting facts. Remove one first.` };
     const f = await tx.talkingPointFact.create({ data: { postId: p.id, body: input.body, sourceUrl: input.sourceUrl, position, authorId: actor.profileId, createdAt: now, updatedAt: now }, select: { id: true } });
     await tx.auditEvent.create({ data: { actorId: actor.profileId, action: "campaign.fact_added", entityType: "TalkingPointFact", entityId: f.id, metadata: { postId: p.id, campaignId: p.profileId }, createdAt: now } });
-    return { ok: true as const, id: f.id };
+    return { ok: true as const, id: f.id, campaignId: p.profileId };
   });
 }
 
@@ -64,26 +65,26 @@ async function ownFact(tx: Prisma.TransactionClient, orgId: string, factId: stri
   return tx.talkingPointFact.findFirst({ where: { id: factId, deletedAt: null }, select: { id: true, postId: true, body: true, sourceUrl: true, post: { select: { profileId: true } } } });
 }
 
-export async function editFact(actor: Actor, factId: string, input: FactInput, now = new Date()): Promise<Result> {
+export async function editFact(actor: Actor, factId: string, input: FactInput, now = new Date()): Promise<Result<{ campaignId: string }>> {
   if (!UUID_RE.test(factId)) return { ok: false, reason: "Fact not found." };
   return db().$transaction(async (tx) => {
     const f = await ownFact(tx, actor.orgId, factId);
     if (!f) return { ok: false as const, reason: "Fact not found." };
-    if (f.body === input.body && f.sourceUrl === input.sourceUrl) return { ok: true as const };
+    if (f.body === input.body && f.sourceUrl === input.sourceUrl) return { ok: true as const, campaignId: f.post.profileId };
     await tx.talkingPointFact.update({ where: { id: f.id }, data: { body: input.body, sourceUrl: input.sourceUrl, updatedAt: now } });
     await tx.auditEvent.create({ data: { actorId: actor.profileId, action: "campaign.fact_edited", entityType: "TalkingPointFact", entityId: f.id, metadata: { postId: f.postId, campaignId: f.post.profileId, before: { body: f.body, sourceUrl: f.sourceUrl } }, createdAt: now } });
-    return { ok: true as const };
+    return { ok: true as const, campaignId: f.post.profileId };
   });
 }
 
-export async function removeFact(actor: Actor, factId: string, now = new Date()): Promise<Result> {
+export async function removeFact(actor: Actor, factId: string, now = new Date()): Promise<Result<{ campaignId: string }>> {
   if (!UUID_RE.test(factId)) return { ok: false, reason: "Fact not found." };
   return db().$transaction(async (tx) => {
     const f = await ownFact(tx, actor.orgId, factId);
     if (!f) return { ok: false as const, reason: "Fact not found." };
     await tx.talkingPointFact.update({ where: { id: f.id }, data: { deletedAt: now, updatedAt: now } });
     await tx.auditEvent.create({ data: { actorId: actor.profileId, action: "campaign.fact_removed", entityType: "TalkingPointFact", entityId: f.id, metadata: { postId: f.postId, campaignId: f.post.profileId, body: f.body, sourceUrl: f.sourceUrl }, createdAt: now } });
-    return { ok: true as const };
+    return { ok: true as const, campaignId: f.post.profileId };
   });
 }
 
@@ -109,7 +110,7 @@ async function ownCampaign(tx: Prisma.TransactionClient, orgId: string, campaign
   return c;
 }
 
-export async function createResource(actor: Actor, campaignId: string, input: ResourceInput, now = new Date()): Promise<Result<{ id: string }>> {
+export async function createResource(actor: Actor, campaignId: string, input: ResourceInput, now = new Date()): Promise<Result<{ id: string; campaignId: string }>> {
   if (!UUID_RE.test(campaignId)) return { ok: false, reason: "Campaign not found." };
   return db().$transaction(async (tx) => {
     const c = await ownCampaign(tx, actor.orgId, campaignId);
@@ -120,7 +121,7 @@ export async function createResource(actor: Actor, campaignId: string, input: Re
     if (position === null) return { ok: false as const, reason: "Too many of that kind. Remove one first." };
     const r = await tx.campaignResource.create({ data: { profileId: c.id, kind: input.kind, audience: input.audience, title: input.title, body: input.body, position, authorId: actor.profileId, createdAt: now, updatedAt: now }, select: { id: true } });
     await tx.auditEvent.create({ data: { actorId: actor.profileId, action: "campaign.resource_created", entityType: "CampaignResource", entityId: r.id, metadata: { campaignId: c.id, kind: input.kind, audience: input.audience }, createdAt: now } });
-    return { ok: true as const, id: r.id };
+    return { ok: true as const, id: r.id, campaignId: c.id };
   });
 }
 
@@ -131,13 +132,13 @@ async function ownResource(tx: Prisma.TransactionClient, orgId: string, resource
   return tx.campaignResource.findFirst({ where: { id: resourceId, deletedAt: null }, select: RESOURCE_SELECT });
 }
 
-export async function editResource(actor: Actor, resourceId: string, input: ResourceInput, now = new Date()): Promise<Result> {
+export async function editResource(actor: Actor, resourceId: string, input: ResourceInput, now = new Date()): Promise<Result<{ campaignId: string }>> {
   if (!UUID_RE.test(resourceId)) return { ok: false, reason: "Not found." };
   return db().$transaction(async (tx) => {
     const r = await ownResource(tx, actor.orgId, resourceId);
     if (!r) return { ok: false as const, reason: "Not found." };
     const same = r.kind === input.kind && r.audience === input.audience && r.title === input.title && r.body === input.body;
-    if (same) return { ok: true as const };
+    if (same) return { ok: true as const, campaignId: r.profileId };
     // A kind change moves it to the end of its new kind.
     let position = r.position;
     if (r.kind !== input.kind) {
@@ -148,18 +149,18 @@ export async function editResource(actor: Actor, resourceId: string, input: Reso
     }
     await tx.campaignResource.update({ where: { id: r.id }, data: { kind: input.kind, audience: input.audience, title: input.title, body: input.body, position, updatedAt: now } });
     await tx.auditEvent.create({ data: { actorId: actor.profileId, action: "campaign.resource_edited", entityType: "CampaignResource", entityId: r.id, metadata: { campaignId: r.profileId, before: { kind: r.kind, audience: r.audience, title: r.title, body: r.body } }, createdAt: now } });
-    return { ok: true as const };
+    return { ok: true as const, campaignId: r.profileId };
   });
 }
 
-export async function removeResource(actor: Actor, resourceId: string, now = new Date()): Promise<Result> {
+export async function removeResource(actor: Actor, resourceId: string, now = new Date()): Promise<Result<{ campaignId: string }>> {
   if (!UUID_RE.test(resourceId)) return { ok: false, reason: "Not found." };
   return db().$transaction(async (tx) => {
     const r = await ownResource(tx, actor.orgId, resourceId);
     if (!r) return { ok: false as const, reason: "Not found." };
     await tx.campaignResource.update({ where: { id: r.id }, data: { deletedAt: now, updatedAt: now } });
     await tx.auditEvent.create({ data: { actorId: actor.profileId, action: "campaign.resource_removed", entityType: "CampaignResource", entityId: r.id, metadata: { campaignId: r.profileId, kind: r.kind, audience: r.audience, title: r.title, body: r.body }, createdAt: now } });
-    return { ok: true as const };
+    return { ok: true as const, campaignId: r.profileId };
   });
 }
 

@@ -36,7 +36,7 @@ export function TalkingPoints({ brief, asOf = new Date() }: { brief: NonNullable
         <div className="space-y-2 pt-2">
           <h3 className="font-semibold text-fg">Scripts, questions and guides</h3>
           <p className="text-muted-sm">From the campaign, for the people on its jobs. Saved with this brief for the field.</p>
-          <ResourceList resources={brief.resources} showAudience />
+          <ResourceList resources={brief.resources} showAudience headingLevel="h4" />
         </div>
       )}
     </section>

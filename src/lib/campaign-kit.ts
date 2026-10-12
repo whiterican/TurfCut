@@ -9,6 +9,7 @@
  * nothing here is ever read by matching (C1-Q14).
  */
 import { charCount, isVisible, tidyText } from "@/lib/campaign-social";
+export { charCount };
 
 /** Supporting facts per talking point. */
 export const MAX_FACTS = 5;
@@ -44,6 +45,8 @@ export function sourceUrlProblem(raw: string): string | null {
   if (raw === "") return null;
   if (charCount(raw) > SOURCE_URL_MAX) return `Keep the link to ${SOURCE_URL_MAX} characters.`;
   if (/\s/.test(raw)) return "A link has no spaces.";
+  // As typed (the link is stored verbatim): "https:example.com" parses but isn't a web address anyone can follow.
+  if (!/^https?:\/\//i.test(raw)) return "A source link starts with http:// or https://.";
   try {
     const u = new URL(raw);
     if (u.protocol !== "http:" && u.protocol !== "https:") return "A source link starts with http:// or https://.";

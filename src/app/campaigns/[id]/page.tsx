@@ -111,7 +111,7 @@ export default async function CampaignPage({ params, searchParams }: { params: P
         </p>
         {pinned.length === 0 && <p className="card text-muted-sm">Nothing pinned yet.</p>}
         {pinned.map((p) => (
-          <PostCard key={p.id} post={p} handle={c.handle} displayName={c.displayName} signedIn likeTotal={likes.get(p.id) ?? 0} facts={facts.get(p.id) ?? []}>
+          <PostCard key={p.id} post={p} handle={c.handle} displayName={c.displayName} signedIn likeTotal={likes.get(p.id) ?? 0} facts={canEdit ? undefined : facts.get(p.id) ?? []}>
             {canEdit && (
               <div className="border-t border-border pt-3">
                 <FactEditor save={saveFact} remove={deleteFact} campaignId={c.id} postId={p.id} facts={facts.get(p.id) ?? []} />

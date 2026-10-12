@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { getSessionProfile } from "@/lib/auth";
 import { loadPublicPost } from "@/lib/campaign-social-data";
 import { likedPostIds } from "@/lib/campaign-follow-data";
+import { loadFacts } from "@/lib/campaign-kit-data";
 import { PostCard } from "@/components/campaign/PostCard";
 import { campaignPreview } from "@/lib/campaign-api";
 
@@ -22,10 +23,11 @@ export default async function PostPage({ params }: Props) {
   if (!r) notFound();
   const workerId = session?.role === "WORKER" ? session.workerId : null;
   const liked = workerId ? (await likedPostIds(workerId, [r.post.id])).has(r.post.id) : undefined;
+  const facts = r.post.pinnedAt ? (await loadFacts([r.post.id])).get(r.post.id) ?? [] : [];
   return (
     <main className="page max-w-2xl space-y-4">
       <Link href={`/c/${r.campaign.handle}`} className="btn-ghost btn-sm">{r.campaign.displayName}</Link>
-      <PostCard post={r.post} handle={r.campaign.handle} displayName={r.campaign.displayName} signedIn={!!session} liked={liked} />
+      <PostCard post={r.post} handle={r.campaign.handle} displayName={r.campaign.displayName} signedIn={!!session} liked={liked} facts={facts} />
     </main>
   );
 }

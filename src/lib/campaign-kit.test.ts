@@ -11,6 +11,8 @@ describe("supporting facts", () => {
     expect(validateFact({ body: "   ", sourceUrl: "" })).toMatchObject({ ok: false, errors: { body: expect.stringContaining("Write") } });
     expect(validateFact({ body: "x".repeat(FACT_MAX + 1), sourceUrl: "" })).toMatchObject({ ok: false, errors: { body: expect.stringContaining(String(FACT_MAX)) } });
     expect(sourceUrlProblem("javascript:alert(1)")).toMatch(/http/);
+    expect(sourceUrlProblem("https:example.com/report")).toMatch(/http/); // parses, but isn't a web address as typed
+    expect(sourceUrlProblem("http:/x.org")).toMatch(/http/);
     expect(sourceUrlProblem("https://turfcut.com@evil.example/x")).toMatch(/login/);
     expect(sourceUrlProblem("not a url")).toMatch(/spaces|address/);
     expect(sourceUrlProblem(`https://x.example/${"a".repeat(600)}`)).toMatch(/characters/);

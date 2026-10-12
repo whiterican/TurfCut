@@ -8,7 +8,7 @@ import type { Resource } from "@/lib/campaign-kit-data";
  * each folded under its title. The campaign's own words, verbatim; a
  * "workers only" mark where the campaign kept one off its public page.
  */
-export function ResourceList({ resources, showAudience = false, headingLevel = "h3" }: { resources: Resource[]; showAudience?: boolean; headingLevel?: "h2" | "h3" }) {
+export function ResourceList({ resources, showAudience = false, headingLevel = "h3" }: { resources: Resource[]; showAudience?: boolean; headingLevel?: "h2" | "h3" | "h4" }) {
   const groups = groupByKind(resources);
   if (groups.length === 0) return null;
   const H = headingLevel;

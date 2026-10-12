@@ -393,7 +393,7 @@ body {
   }
   /* Selectable pill (checkbox/radio inside). Active state = ink (light) / accent (dark). */
   .chip {
-    @apply inline-flex max-w-full min-h-10 cursor-pointer items-center gap-2 rounded-3xl border border-border bg-surface px-3 py-1.5 text-left text-sm text-fg transition;
+    @apply inline-flex max-w-full min-h-10 cursor-pointer items-center gap-2 rounded-3xl border border-border bg-surface px-3 py-1.5 text-start text-sm text-fg transition;
     overflow-wrap: break-word;
   }
   .chip:hover {
@@ -485,7 +485,7 @@ body {
   .badge-solid,
   .badge-butter,
   .badge-party {
-    @apply inline-flex max-w-full shrink-0 items-center gap-1 rounded-md border px-2 py-0.5 text-left text-xs font-semibold;
+    @apply inline-flex max-w-full shrink-0 items-center gap-1 rounded-md border px-2 py-0.5 text-start text-xs font-semibold;
     /* A badge keeps its size beside other text, and a label wider than its row
        ("Nonpartisan civic work (voter registration, GOTV)") wraps inside the
        badge instead of running past the card's edge. */

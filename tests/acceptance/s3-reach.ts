@@ -1,6 +1,7 @@
 /* S3 acceptance checks: the campaign directory and link previews, against a fresh database (tests/acceptance/run.sh). */
 import { db } from "@/lib/db";
 import { createCampaign, createPost, deletePost, listPublicCampaigns, setCampaignPublished, setJobCampaign } from "@/lib/campaign-social-data";
+import { followStates, setFollow } from "@/lib/campaign-follow-data";
 import { campaignPreview, directoryJson } from "@/lib/campaign-api";
 import { DIRECTORY_PAGE_SIZE } from "@/lib/campaign-social";
 import { loadFeed } from "@/lib/jobs-data";
@@ -11,6 +12,7 @@ const ORG2 = "00000000-0000-0000-0000-000000000002";
 const OWNER2 = "00000000-0000-0000-0000-0000000000cc";
 const JOB = "00000000-0000-0000-0000-000000000011";
 const W1 = "00000000-0000-0000-0000-000000000101";
+const W2 = "00000000-0000-0000-0000-000000000102";
 let fails = 0;
 const check = (l: string, c: unknown, d?: unknown) => { if (c) console.log(`PASS ${l}`); else { fails++; console.log(`FAIL ${l}`, d ?? ""); } };
 
@@ -41,6 +43,10 @@ const check = (l: string, c: unknown, d?: unknown) => { if (c) console.log(`PASS
   let page = await listPublicCampaigns();
   check("the directory lists published campaigns of approved organizations, nothing else", JSON.stringify(page.campaigns.map((c) => c.handle)) === JSON.stringify(["quiet_campaign", "yes_on_7"]), page.campaigns.map((c) => c.handle));
   check("a campaign that hasn't posted is dated from publishing", page.campaigns[0].lastPostAt === null && page.campaigns[0].activeAt.getTime() === day(5).getTime());
+  await setCampaignPublished(A, quiet, false);
+  check("unpublishing takes a campaign out", (await listPublicCampaigns()).campaigns.length === 1);
+  await setCampaignPublished(A, quiet, true);
+  await at(quiet, day(5));
 
   // --- Order: the one that posted most recently first; a deleted post doesn't count ---
   const post = await createPost(A, yes7, { body: "We're hiring circulators.", jobId: JOB });
@@ -51,6 +57,16 @@ const check = (l: string, c: unknown, d?: unknown) => { if (c) console.log(`PASS
   await setJobCampaign(A, JOB, yes7);
   page = await listPublicCampaigns();
   check("…and how many of its jobs are hiring", page.campaigns[0].hiring === 1 && page.campaigns[1].hiring === 0);
+  check("a published job that has ended isn't hiring (the job feed's rule)", (await listPublicCampaigns({ now: new Date(Date.UTC(2027, 0, 1)) })).campaigns[0].hiring === 0);
+  // A post while a draft, then publishing: the campaign is dated from whichever is later.
+  const late = await mk(A, "late_bloomer", "Late Bloomer");
+  const draftPost = await createPost(A, late, { body: "Posted while a draft", jobId: null });
+  if (!draftPost.ok) throw new Error(draftPost.reason);
+  await p.campaignPost.update({ where: { id: draftPost.id }, data: { createdAt: day(2) } });
+  await setCampaignPublished(A, late, true);
+  await at(late, day(12));
+  check("a campaign that posted as a draft and published later is dated from publishing", (await listPublicCampaigns()).campaigns[0].handle === "late_bloomer");
+  await setCampaignPublished(A, late, false);
   await deletePost(A, post.id);
   page = await listPublicCampaigns();
   check("a deleted post doesn't count", page.campaigns[0].handle === "quiet_campaign" && page.campaigns[1].lastPostAt === null);
@@ -64,6 +80,16 @@ const check = (l: string, c: unknown, d?: unknown) => { if (c) console.log(`PASS
   check("wildcards in a search are taken literally", (await listPublicCampaigns({ q: "%" })).campaigns.length === 0 && (await listPublicCampaigns({ q: "_" })).campaigns.length === 2);
   check("a search over everything keeps the order", JSON.stringify((await listPublicCampaigns({ q: "campaign" })).campaigns.map((c) => c.handle)) === JSON.stringify(["quiet_campaign"]));
   check("junk is an empty search, not an error", (await listPublicCampaigns({ q: ["x"] })).q === "" && (await listPublicCampaigns({ q: "\u0000" })).campaigns.length === 2);
+  const persian = await mk(A, "persian_name", "می\u200cخواهیم");
+  await setCampaignPublished(A, persian, true);
+  check("a name with a joiner is found by the same spelling", (await listPublicCampaigns({ q: "می\u200cخواهیم" })).campaigns.length === 1);
+  await setCampaignPublished(A, persian, false);
+
+  // --- Follow state on the directory: the viewer's own, nobody else's ---
+  await setFollow(W2, yes7, { follow: true });
+  const mine = await followStates(W1, [yes7, quiet]);
+  const theirs = await followStates(W2, [yes7, quiet]);
+  check("the directory shows the viewer's own follows only", !mine.get(yes7)?.following && theirs.get(yes7)?.following === true && !theirs.get(quiet)?.following);
 
   // --- Pages: keyset cursor over activeAt, id ---
   // (Straight into the table: an organization runs at most 5 campaigns through the app.)
@@ -83,6 +109,11 @@ const check = (l: string, c: unknown, d?: unknown) => { if (c) console.log(`PASS
   const pp = campaignPreview(c, { id: "x", body: "  Knock,   listen first.\n\nThanks. " });
   check("a post's preview is the post's text", pp.description === "Knock, listen first. Thanks." && pp.openGraph.type === "article" && /on Turfcut$/.test(pp.title));
   check("without SITE_URL no absolute link is made up", !("url" in pp.openGraph) && !("alternates" in pp));
+  process.env.SITE_URL = "https://turfcut.example";
+  process.env.NEXT_PUBLIC_SUPABASE_URL ??= "https://example.supabase.co"; // the image URL needs the storage host
+  const withSite = campaignPreview({ ...c, headerKey: "h/header.png" }, { id: "x", body: "Hello" });
+  check("with SITE_URL the preview links are absolute and the header image rides along", withSite.openGraph.url === "https://turfcut.example/c/yes_on_7/p/x" && withSite.alternates?.canonical === "https://turfcut.example/c/yes_on_7/p/x" && /h\/header\.png$/.test(withSite.openGraph.images?.[0]?.url ?? "") && withSite.twitter.card === "summary_large_image");
+  delete process.env.SITE_URL;
 
   // --- Nothing here reaches matching ---
   check("a worker's job feed is exactly what it was", JSON.stringify((await loadFeed(W1, {})).jobs.map((j) => j.id)) === feedBefore);

@@ -2,6 +2,7 @@ import { mediaUrl } from "@/lib/campaign-media";
 import type { CampaignProfileRow, DirectoryRow, PublicPost } from "@/lib/campaign-social-data";
 import { excerpt } from "@/lib/campaign-social";
 import { getSiteUrl } from "@/lib/env";
+import type { Metadata } from "next";
 
 /**
  * The campaign layer's JSON (S1): exactly what the public pages show, no
@@ -45,12 +46,14 @@ export function campaignPreview(c: { handle: string; displayName: string; bio: s
   const title = post ? `${c.displayName} (@${c.handle}) on Turfcut` : `${c.displayName} (@${c.handle})`;
   const description = excerpt(post ? post.body : c.bio) || `A campaign on Turfcut.`;
   const image = mediaUrl(c.headerKey) ?? mediaUrl(c.avatarKey);
+  const type = post ? ("article" as const) : ("profile" as const);
+  const card = image ? ("summary_large_image" as const) : ("summary" as const);
   return {
     title,
     description,
     ...(site ? { alternates: { canonical: `${site}${path}` } } : {}),
-    openGraph: { title, description, type: post ? "article" : "profile", siteName: "Turfcut", ...(site ? { url: `${site}${path}` } : {}), ...(image ? { images: [{ url: image }] } : {}) },
-    twitter: { card: image ? "summary_large_image" : "summary", title, description, ...(image ? { images: [image] } : {}) },
-  };
+    openGraph: { title, description, type, siteName: "Turfcut", ...(site ? { url: `${site}${path}` } : {}), ...(image ? { images: [{ url: image }] } : {}) },
+    twitter: { card, title, description, ...(image ? { images: [image] } : {}) },
+  } satisfies Metadata;
 }
 

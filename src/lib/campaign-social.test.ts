@@ -87,10 +87,12 @@ describe("reach (S3)", () => {
     expect(e).toBe("word word word word word word word…");
     expect(excerpt("x".repeat(100), 20)).toBe(`${"x".repeat(19)}…`); // no word to cut at: cut hard
     expect(excerpt("ends with punctuation, right here", 24)).toBe("ends with punctuation…");
+    expect(excerpt("🇺🇸🇺🇸🇺🇸🇺🇸 é é é é é é", 6)).toBe("🇺🇸🇺🇸🇺🇸🇺🇸…"); // never half a flag or a bare accent
   });
   it("tidies a search and takes wildcards literally", () => {
     expect(normalizeQuery("  @Yes   on\t7 ")).toBe("Yes on 7");
     expect(normalizeQuery("a\u0000b‎")).toBe("ab");
+    expect(normalizeQuery("می\u200cخواهیم 👨‍👩‍👧")).toBe("می\u200cخواهیم 👨‍👩‍👧"); // joiners stay: names are tidied the same way
     expect(normalizeQuery(42)).toBe("");
     expect([...normalizeQuery("x".repeat(100))].length).toBe(QUERY_MAX);
     expect(likePattern("100%_sure\\")).toBe("%100\\%\\_sure\\\\%");

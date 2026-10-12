@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Check, Link2, Share2 } from "lucide-react";
 
 const noop = () => () => {};
@@ -16,6 +16,7 @@ export function ShareButton({ path, title, text, className = "btn-ghost btn-sm" 
   const canShare = useCanShare();
   const [state, setState] = useState<"idle" | "copied" | "failed">("idle");
   const reset = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (reset.current) clearTimeout(reset.current); }, []);
   const flash = (next: "copied" | "failed") => {
     setState(next);
     if (reset.current) clearTimeout(reset.current);
@@ -44,8 +45,10 @@ export function ShareButton({ path, title, text, className = "btn-ghost btn-sm" 
         {state === "copied" ? <Check aria-hidden className="h-4 w-4" /> : canShare ? <Share2 aria-hidden className="h-4 w-4" /> : <Link2 aria-hidden className="h-4 w-4" />}
         {state === "copied" ? "Link copied" : canShare ? "Share" : "Copy link"}
       </button>
-      {state === "failed" && <span role="status" className="text-danger-msg text-sm">Couldn&apos;t copy. The address bar has the link.</span>}
-      {state === "copied" && <span role="status" className="sr-only">Link copied</span>}
+      {/* Always present, so screen readers announce the change. */}
+      <span role="status" className={state === "failed" ? "text-danger-msg text-sm" : "sr-only"}>
+        {state === "copied" ? "Link copied" : state === "failed" ? "Couldn't copy. Open the post and copy its address." : ""}
+      </span>
     </span>
   );
 }

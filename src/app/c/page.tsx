@@ -9,7 +9,7 @@ import { mediaUrl } from "@/lib/campaign-media";
 import { FollowButton } from "@/components/campaign/FollowButton";
 import { LocalTime } from "@/components/LocalTime";
 
-export const metadata: Metadata = { title: "Campaigns", description: "Campaigns hiring field workers on Turfcut, the one that posted most recently first." };
+export const metadata: Metadata = { title: "Campaigns", description: "Every campaign on Turfcut, the most recently active first." };
 
 type Props = { searchParams: Promise<{ cursor?: string; q?: string }> };
 
@@ -37,8 +37,8 @@ export default async function CampaignDirectoryPage({ searchParams }: Props) {
       <header className="page-header">
         <div className="space-y-1.5">
           <p className="eyebrow">Campaigns</p>
-          <h1 className="page-title">Who&apos;s hiring</h1>
-          <p className="text-muted-sm">Every campaign on Turfcut, the one that posted most recently first.</p>
+          <h1 className="page-title">Campaigns</h1>
+          <p className="text-muted-sm">Every campaign on Turfcut, the most recently active first.</p>
         </div>
       </header>
       <form action="/c" method="get" role="search" className="flex gap-2">
@@ -51,7 +51,7 @@ export default async function CampaignDirectoryPage({ searchParams }: Props) {
       </form>
       <section className="section" aria-label="Campaigns">
         {q && <p className="text-muted-sm">{campaigns.length === 0 && !cursor ? "No campaign matches" : "Matching"} “{q}”. <Link href="/c" className="link">Show all</Link></p>}
-        {campaigns.length === 0 && !q && <p className="card text-muted-sm">{cursor ? "No more campaigns." : "No campaigns are public yet."}</p>}
+        {campaigns.length === 0 && (cursor || !q) && <p className="card text-muted-sm">{cursor ? "No more campaigns." : "No campaigns are public yet."}</p>}
         <ul className="space-y-3">
           {campaigns.map((c) => (
             <li key={c.id}>

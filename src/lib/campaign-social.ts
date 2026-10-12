@@ -191,11 +191,12 @@ export const QUERY_MAX = 40;
  * A one-line excerpt of a bio or post for link previews and directory rows:
  * whitespace collapsed, cut at a word, an ellipsis when something's left out.
  */
+const GRAPHEMES = new Intl.Segmenter("und", { granularity: "grapheme" });
 export function excerpt(text: string, max = 160): string {
   const flat = text.replace(/\s+/g, " ").trim();
   if (charCount(flat) <= max) return flat;
   // Cut between graphemes (a flag, a family emoji, a letter with its accent stay whole), then back to a word.
-  const graphemes = [...new Intl.Segmenter("und", { granularity: "grapheme" }).segment(flat)].map((g) => g.segment);
+  const graphemes = [...GRAPHEMES.segment(flat)].map((g) => g.segment);
   const kept = graphemes.slice(0, Math.max(1, max - 1));
   const atWord = kept.lastIndexOf(" ");
   const cut = (atWord > kept.length / 2 ? kept.slice(0, atWord) : kept).join("");

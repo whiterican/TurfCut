@@ -419,7 +419,7 @@ export async function listPublicCampaigns(opts: { cursor?: string | null; q?: un
     SELECT c."id", c."handle", c."displayName", c."bio", c."avatarKey",
            lp."lastPostAt",
            GREATEST(lp."lastPostAt", c."publishedAt") AS "activeAt",
-           (SELECT count(*) FROM "public"."Job" j WHERE j."campaignProfileId" = c."id" AND j."status" = 'PUBLISHED' AND (j."endsAt" IS NULL OR j."endsAt" >= ${openEnd}::timestamp)) AS "hiring"
+           (SELECT count(*) FROM "public"."Job" j WHERE j."campaignProfileId" = c."id" AND j."status" = 'PUBLISHED' AND (j."endsAt" IS NULL OR j."endsAt" > ${openEnd}::timestamp)) AS "hiring"
       FROM "public"."CampaignProfile" c
       JOIN "public"."Organization" o ON o."id" = c."orgId"
       LEFT JOIN LATERAL (

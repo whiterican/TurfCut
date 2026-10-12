@@ -47,7 +47,7 @@ export function ShareButton({ path, title, text, className = "btn-ghost btn-sm" 
       </button>
       {/* Always present, so screen readers announce the change. */}
       <span role="status" className={state === "failed" ? "text-danger-msg text-sm" : "sr-only"}>
-        {state === "copied" ? "Link copied" : state === "failed" ? "Couldn't copy. Open the post and copy its address." : ""}
+        {state === "copied" ? "Link copied" : state === "failed" ? "Couldn't copy. Open the page and copy its address." : ""}
       </span>
     </span>
   );

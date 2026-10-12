@@ -97,9 +97,9 @@ export function FactEditor({ save, remove, campaignId, postId, facts }: { save: 
       <div className="space-y-4 pt-3">
         <p className="text-muted-sm">Three to five short facts that back this talking point, each with a source where you have one. Workers see them with the talking point, on your page and in their shift brief.</p>
         {facts.map((f, i) => (
-          <div key={`${f.id}-${f.updatedAt.toISOString()}`} className="card-flat space-y-2">
+          <div key={f.id} className="card-flat space-y-2">
             <p className="text-xs font-semibold text-muted">Fact {i + 1}</p>
-            <FactForm action={save} campaignId={campaignId} postId={postId} fact={f} submitLabel="Save fact" />
+            <FactForm key={f.updatedAt.toISOString()} action={save} campaignId={campaignId} postId={postId} fact={f} submitLabel="Save fact" />
             <RemoveFact action={remove} campaignId={campaignId} fact={f} />
           </div>
         ))}

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { ActionState } from "@/app/jobs/actions";
 import { requireArea } from "@/lib/employer-session";
+import { UUID_RE } from "@/lib/jobs";
 import { accessTo } from "@/lib/access";
 import { validatePostBody, validateProfile } from "@/lib/campaign-social";
 import { validateFact, validateResource } from "@/lib/campaign-kit";
@@ -24,8 +25,9 @@ const editor = async () => {
 };
 const refresh = async (orgId: string, id: string) => {
   revalidatePath("/campaigns");
-  revalidatePath(`/campaigns/${id}`);
   revalidatePath("/shifts/[shiftId]", "page"); // the brief carries the talking points and the kit
+  if (!UUID_RE.test(id)) return; // a form's say-so is never a path
+  revalidatePath(`/campaigns/${id}`);
   const c = await loadOrgCampaign(orgId, id);
   if (c) revalidatePath(`/c/${c.handle}`);
 };
@@ -150,10 +152,10 @@ export interface KitFormState extends ActionState {
   errors?: Record<string, string>;
 }
 /** A kit write's outcome: refresh what shows it (by the campaign the data layer names, never the form's say-so). */
-async function kitResult(orgId: string, r: { ok: true; campaignId: string } | { ok: false; reason: string }, done: string): Promise<KitFormState> {
-  if (!r.ok) return { ok: false, message: r.reason };
-  await refresh(orgId, r.campaignId);
-  return { ok: true, message: done };
+async function kitResult(orgId: string, campaignIdFromForm: string, r: { ok: true; campaignId: string } | { ok: false; reason: string }, done: string): Promise<KitFormState> {
+  // A refusal is often about state that changed under the user (unpinned, at the cap): show them the page as it is now.
+  await refresh(orgId, r.ok ? r.campaignId : campaignIdFromForm);
+  return r.ok ? { ok: true, message: done } : { ok: false, message: r.reason };
 }
 
 /** Kit writes count against the posting limit: the same organization, the same hour. */
@@ -172,12 +174,12 @@ export async function saveFact(_prev: KitFormState, fd: FormData): Promise<KitFo
   const gate = await kitGate(actor.orgId);
   if (gate) return gate;
   const factId = str(fd, "factId");
-  return kitResult(actor.orgId, factId ? await editFact(actor, factId, v.value) : await addFact(actor, str(fd, "postId"), v.value), factId ? "Saved." : "Added.");
+  return kitResult(actor.orgId, str(fd, "campaignId"), factId ? await editFact(actor, factId, v.value) : await addFact(actor, str(fd, "postId"), v.value), factId ? "Saved." : "Added.");
 }
 
 export async function deleteFact(_prev: KitFormState, fd: FormData): Promise<KitFormState> {
   const actor = await editor();
-  return kitResult(actor.orgId, await removeFact(actor, str(fd, "factId")), "Removed.");
+  return kitResult(actor.orgId, str(fd, "campaignId"), await removeFact(actor, str(fd, "factId")), "Removed.");
 }
 
 /** Creates a script, common question or guide, or saves an edit to one. */
@@ -188,10 +190,10 @@ export async function saveResource(_prev: KitFormState, fd: FormData): Promise<K
   const gate = await kitGate(actor.orgId);
   if (gate) return gate;
   const resourceId = str(fd, "resourceId");
-  return kitResult(actor.orgId, resourceId ? await editResource(actor, resourceId, v.value) : await createResource(actor, str(fd, "campaignId"), v.value), resourceId ? "Saved." : "Added.");
+  return kitResult(actor.orgId, str(fd, "campaignId"), resourceId ? await editResource(actor, resourceId, v.value) : await createResource(actor, str(fd, "campaignId"), v.value), resourceId ? "Saved." : "Added.");
 }
 
 export async function deleteResource(_prev: KitFormState, fd: FormData): Promise<KitFormState> {
   const actor = await editor();
-  return kitResult(actor.orgId, await removeResource(actor, str(fd, "resourceId")), "Removed.");
+  return kitResult(actor.orgId, str(fd, "campaignId"), await removeResource(actor, str(fd, "resourceId")), "Removed.");
 }

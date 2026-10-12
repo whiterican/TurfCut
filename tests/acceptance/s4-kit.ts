@@ -96,7 +96,7 @@ const refused = (p: Promise<unknown>) => p.then(() => "allowed", (e: unknown) =>
   check("a link that parses but isn't a web address is refused by the rule, as the database would refuse it", !validateFact({ body: "x", sourceUrl: "https:example.com" }).ok && /check constraint/.test(await refused(p.talkingPointFact.create({ data: { postId: point, body: "x", sourceUrl: "https:example.com", position: 1, authorId: OWNER, updatedAt: new Date() } }))));
   const del = await deletePost(M, point);
   const afterDelete = await readAs("anon", `SELECT "body" FROM "TalkingPointFact"`);
-  check("a deleted talking point keeps its facts on the record, off the Data API, the page and the brief", del.ok && (await p.talkingPointFact.count({ where: { postId: point } })) === 6 && "rows" in afterDelete && afterDelete.rows.length === 0 && ((await loadFacts([point])).get(point) ?? []).length === 0 && !((await loadTalkingPoints(JOB))?.points ?? []).some((x) => x.id === point), { del, afterDelete });
+  check("a deleted talking point keeps its facts on the record, off the Data API, the page and the brief", del.ok && (await p.talkingPointFact.count({ where: { postId: point } })) === 6 && "rows" in afterDelete && afterDelete.rows.length === 0 && ((await loadFacts([point])).get(point) ?? []).length === 0 && (await loadTalkingPoints(JOB).then((b) => b !== null && !b.points.some((x) => x.id === point))), { del, afterDelete });
 
   // --- Nothing here reaches matching ---
   check("a worker's job feed is exactly what it was", JSON.stringify((await loadFeed(W1, {})).jobs.map((j) => j.id)) === feedBefore);

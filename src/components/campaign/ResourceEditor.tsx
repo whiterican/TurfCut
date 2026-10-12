@@ -108,7 +108,7 @@ export function ResourceEditor({ save, remove, campaignId, resources }: { save: 
   return (
     <div className="space-y-4">
       {resources.map((r) => (
-        <details key={`${r.id}-${r.updatedAt.toISOString()}`} className="card group">
+        <details key={r.id} className="card group">
           <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-2 font-semibold text-fg">
             <span>{r.title}</span>
             <span className="text-xs font-normal text-muted">
@@ -116,7 +116,7 @@ export function ResourceEditor({ save, remove, campaignId, resources }: { save: 
             </span>
           </summary>
           <div className="space-y-3 pt-3">
-            <ResourceForm action={save} campaignId={campaignId} resource={r} submitLabel="Save" />
+            <ResourceForm key={r.updatedAt.toISOString()} action={save} campaignId={campaignId} resource={r} submitLabel="Save" />
             <RemoveResource action={remove} campaignId={campaignId} resource={r} />
           </div>
         </details>

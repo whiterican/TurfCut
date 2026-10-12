@@ -107,7 +107,8 @@ exercise the locks, triggers and data rules, not the RLS policies.
    - Preview deployments run in production mode too: give each one its own
      `SITE_URL` (and add its `/auth/confirm` to Redirect URLs), or sign-in
      links stay disabled there.
-6. **Campaign pages (S1)** — before deploying the S1 code:
+6. **Campaign pages (S1)** — before deploying the S1 code. (Done on the
+   live project on Oct 12: both migrations applied and the bucket created.)
    - Run `prisma/s1-social.sql` in the SQL editor, **after** the pending
      queue (the M5/M6 live SQL, then the C1–C4 files in order). It's safe
      to run again.

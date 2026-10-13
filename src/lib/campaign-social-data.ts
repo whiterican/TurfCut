@@ -1,9 +1,9 @@
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
-import { UUID_RE } from "@/lib/jobs";
+import { openJobsEndAfter, UUID_RE } from "@/lib/jobs";
 import { checkImage, type MediaKind, type MediaStore } from "@/lib/campaign-media";
 import { check, retryAfter, waitText } from "@/lib/rate-limit";
-import { decodeCursor, embedProblem, encodeCursor, MAX_CAMPAIGNS_PER_ORG, MAX_PINNED, normalizeHandle, PAGE_SIZE, type ProfileInput } from "@/lib/campaign-social";
+import { decodeCursor, DIRECTORY_PAGE_SIZE, embedProblem, encodeCursor, likePattern, MAX_CAMPAIGNS_PER_ORG, MAX_PINNED, normalizeHandle, normalizeQuery, PAGE_SIZE, type ProfileInput } from "@/lib/campaign-social";
 
 /**
  * Campaign profiles (S1), server side. Every write is scoped to the actor's
@@ -384,3 +384,54 @@ export async function setJobCampaign(actor: Actor, jobId: string, campaignId: st
     return { ok: true as const };
   });
 }
+
+// ---------------------------------------------------------------------------
+// The directory (S3): every public campaign, most recently active first.
+// ---------------------------------------------------------------------------
+
+export type DirectoryRow = {
+  id: string;
+  handle: string;
+  displayName: string;
+  bio: string;
+  avatarKey: string | null;
+  /** When the campaign last posted (a live post), or null if it hasn't yet. */
+  lastPostAt: Date | null;
+  /** What the directory is ordered by: the later of the last post and publishing. */
+  activeAt: Date;
+  /** The campaign's jobs that are hiring now: published and not ended (the job feed's rule). */
+  hiring: number;
+};
+
+/**
+ * One page of the public directory: published campaigns of approved
+ * organizations, the most recently active first (the later of its last
+ * live post and its publishing), by keyset cursor. An optional search
+ * matches the name or handle the reader typed, nothing else; the order
+ * stays the same. No ranking of any other kind.
+ */
+export async function listPublicCampaigns(opts: { cursor?: string | null; q?: unknown; now?: Date } = {}): Promise<{ campaigns: DirectoryRow[]; next: string | null; q: string }> {
+  const q = normalizeQuery(opts.q);
+  const after = decodeCursor(opts.cursor);
+  const pattern = likePattern(q);
+  const openEnd = openJobsEndAfter(opts.now ?? new Date());
+  const rows = await db().$queryRaw<(Omit<DirectoryRow, "hiring"> & { hiring: number | bigint })[]>`
+    SELECT c."id", c."handle", c."displayName", c."bio", c."avatarKey",
+           lp."lastPostAt",
+           GREATEST(lp."lastPostAt", c."publishedAt") AS "activeAt",
+           (SELECT count(*) FROM "public"."Job" j WHERE j."campaignProfileId" = c."id" AND j."status" = 'PUBLISHED' AND (j."endsAt" IS NULL OR j."endsAt" > ${openEnd}::timestamp)) AS "hiring"
+      FROM "public"."CampaignProfile" c
+      JOIN "public"."Organization" o ON o."id" = c."orgId"
+      LEFT JOIN LATERAL (
+        SELECT max(p."createdAt") AS "lastPostAt" FROM "public"."CampaignPost" p WHERE p."profileId" = c."id" AND p."deletedAt" IS NULL
+      ) lp ON true
+     WHERE c."publishedAt" IS NOT NULL AND o."approved"
+       AND (${q} = '' OR c."displayName" ILIKE ${pattern} OR c."handle" ILIKE ${pattern})
+       AND (${after === null}::boolean OR (GREATEST(lp."lastPostAt", c."publishedAt"), c."id") < (${after?.createdAt ?? new Date(0)}::timestamp, ${after?.id ?? "00000000-0000-0000-0000-000000000000"}::uuid))
+     ORDER BY "activeAt" DESC, c."id" DESC
+     LIMIT ${DIRECTORY_PAGE_SIZE + 1}`;
+  const page = rows.slice(0, DIRECTORY_PAGE_SIZE).map((r) => ({ ...r, hiring: Number(r.hiring) }));
+  const last = page[page.length - 1];
+  return { campaigns: page, next: rows.length > DIRECTORY_PAGE_SIZE && last ? encodeCursor({ createdAt: last.activeAt, id: last.id }) : null, q };
+}
+

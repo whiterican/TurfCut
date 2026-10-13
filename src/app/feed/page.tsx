@@ -28,12 +28,16 @@ export default async function FeedPage({ searchParams }: Props) {
           <h1 className="page-title">From your campaigns</h1>
           <p className="text-muted-sm">Posts from campaigns you follow and campaigns you work for, newest first.</p>
         </div>
+        <Link href="/c" className="btn-ghost">All campaigns</Link>
       </header>
       {feed.sources === 0 ? (
         <div className="empty-state">
           <p className="empty-state-title">Nothing here yet</p>
           <p className="empty-state-body">Follow a campaign from its page, or from a job you take, and its posts show up here. Who you follow is yours alone to see.</p>
-          <Link href="/jobs" className="btn-secondary">Find work</Link>
+          <span className="flex flex-wrap justify-center gap-2">
+            <Link href="/c" className="btn-primary">Find campaigns</Link>
+            <Link href="/jobs" className="btn-secondary">Find work</Link>
+          </span>
         </div>
       ) : (
         <section className="section" aria-label="Posts">

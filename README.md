@@ -107,7 +107,8 @@ exercise the locks, triggers and data rules, not the RLS policies.
    - Preview deployments run in production mode too: give each one its own
      `SITE_URL` (and add its `/auth/confirm` to Redirect URLs), or sign-in
      links stay disabled there.
-6. **Campaign pages (S1)** — before deploying the S1 code:
+6. **Campaign pages (S1)** — before deploying the S1 code. (Done on the
+   live project on Oct 12: both migrations applied and the bucket created.)
    - Run `prisma/s1-social.sql` in the SQL editor, **after** the pending
      queue (the M5/M6 live SQL, then the C1–C4 files in order). It's safe
      to run again.
@@ -454,6 +455,39 @@ Chronological and follows only; nothing here is ever read by matching.
   /api/feed/follows/:campaignId` (`{ following, notify? }`). Follow and
   like changes are rate-limited per worker.
 - **Acceptance:** `tests/acceptance/s2-social.ts` (`run.sh s2`).
+
+## S3 scope — reach (directory, sharing, link previews)
+
+How a campaign's page gets found and passed on, without a town square.
+Still chronological and follows only; still nothing read by matching.
+
+- **Directory** (`/c`, public). Every public campaign, the most recently
+  active first (the later of its last post and its publishing), 20 a page
+  by a time cursor. Each row: name, handle, a bio excerpt, when it last
+  posted, and how many of its jobs are hiring (published and not ended,
+  the job feed's own rule).
+  A search matches the name or handle the reader typed and nothing else;
+  the order never changes. Workers follow from here; the feed's empty
+  state and header link to it, and every campaign page links back.
+- **Share.** A Share control on every campaign page and every post opens
+  the device's own share sheet, or copies the link where there's none.
+  Nothing is recorded: sharing is the reader's act, on their device.
+- **Link previews.** Campaign pages and post permalinks carry Open Graph
+  and Twitter card tags: the campaign's own name, handle, bio or post
+  text (excerpted) and its own header or avatar image; Turfcut adds only
+  its name as the site. Absolute links need `SITE_URL`; without it the
+  tags carry no URL rather than a wrong one.
+- **Reposts and replies: not built, on purpose.** Workers have no public
+  surface on Turfcut, by design, and a worker's public reply or repost on
+  a political campaign's post would be political speech attached to
+  their identity, readable by every organization that might hire them.
+  That cuts against "never inferring politics" even if the code never
+  reads it. Sharing gives reach without that cost. If a way for workers
+  to ask a campaign something is wanted, it should be private (a message
+  to the campaign's recruiter), which is a data-model change to decide
+  on separately.
+- **API.** Public: `GET /api/campaigns?q=&cursor=`.
+- **Acceptance:** `tests/acceptance/s3-reach.ts` (`run.sh s3`).
 
 ## M0 scope (done)
 

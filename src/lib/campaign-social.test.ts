@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { charCount, decodeCursor, embedProblem, embedState, encodeCursor, handleProblem, linkParts, normalizeHandle, POST_MAX, validatePostBody, validateProfile } from "./campaign-social";
+import { charCount, decodeCursor, embedProblem, embedState, encodeCursor, excerpt, handleProblem, likePattern, linkParts, normalizeHandle, normalizeQuery, POST_MAX, QUERY_MAX, validatePostBody, validateProfile } from "./campaign-social";
 
 describe("campaign profiles", () => {
   it("normalizes and checks handles", () => {
@@ -74,5 +74,27 @@ describe("posts", () => {
     expect(embedState({ status: "PUBLISHED", endsAt: new Date("2026-10-01") }, now)).toBe("closed");
     expect(embedState({ status: "PAUSED", endsAt: null }, now)).toBe("paused");
     expect(embedState({ status: "CLOSED", endsAt: null }, now)).toBe("closed");
+  });
+});
+
+describe("reach (S3)", () => {
+  it("excerpts at a word with an ellipsis, and leaves short text alone", () => {
+    expect(excerpt("Protected bike lanes.\n\nhttps://yeson7.org")).toBe("Protected bike lanes. https://yeson7.org");
+    const long = "word ".repeat(50).trim();
+    const e = excerpt(long, 40);
+    expect(e.endsWith("…")).toBe(true);
+    expect([...e].length).toBeLessThanOrEqual(40);
+    expect(e).toBe("word word word word word word word…");
+    expect(excerpt("x".repeat(100), 20)).toBe(`${"x".repeat(19)}…`); // no word to cut at: cut hard
+    expect(excerpt("ends with punctuation, right here", 24)).toBe("ends with punctuation…");
+    expect(excerpt("🇺🇸🇺🇸🇺🇸🇺🇸 é é é é é é", 6)).toBe("🇺🇸🇺🇸🇺🇸🇺🇸…"); // never half a flag or a bare accent
+  });
+  it("tidies a search and takes wildcards literally", () => {
+    expect(normalizeQuery("  @Yes   on\t7 ")).toBe("Yes on 7");
+    expect(normalizeQuery("a\u0000b‎")).toBe("ab");
+    expect(normalizeQuery("می\u200cخواهیم 👨‍👩‍👧")).toBe("می\u200cخواهیم 👨‍👩‍👧"); // joiners stay: names are tidied the same way
+    expect(normalizeQuery(42)).toBe("");
+    expect([...normalizeQuery("x".repeat(100))].length).toBe(QUERY_MAX);
+    expect(likePattern("100%_sure\\")).toBe("%100\\%\\_sure\\\\%");
   });
 });

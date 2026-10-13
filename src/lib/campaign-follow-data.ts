@@ -53,6 +53,16 @@ export async function followState(workerId: string, campaignId: string): Promise
   return { following: !!open, notify: open?.notify ?? false };
 }
 
+/** The worker's follow state for several campaigns at once (the directory). */
+export async function followStates(workerId: string, campaignIds: string[]): Promise<Map<string, FollowState>> {
+  const ids = campaignIds.filter((id) => UUID_RE.test(id));
+  const out = new Map<string, FollowState>(ids.map((id) => [id, { following: false, notify: false }]));
+  if (ids.length === 0) return out;
+  const rows = await db().campaignFollow.findMany({ where: { workerId, revokedAt: null, campaignId: { in: ids } }, select: { campaignId: true, notify: true } });
+  for (const r of rows) out.set(r.campaignId, { following: true, notify: r.notify });
+  return out;
+}
+
 /** The public campaigns the worker follows, with each one's notice setting (one that went private is left out until it's back). */
 export function openFollows(workerId: string) {
   return db().campaignFollow.findMany({ where: { workerId, revokedAt: null, campaign: PUBLIC_CAMPAIGN }, select: { campaignId: true, notify: true, createdAt: true }, orderBy: { createdAt: "desc" } });

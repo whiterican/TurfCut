@@ -38,15 +38,17 @@ export function JobFeedCard({ j }: { j: FeedJob }) {
         <span className="flex flex-wrap gap-1.5">
           <DateRangeChip startsAt={j.startsAt} endsAt={j.endsAt} />
           {aff ? (
-            <span className={`badge-party badge-party-${aff.affiliation} whitespace-normal`}>{type} · {aff.label}</span>
+            <span className={`badge-party badge-party-${aff.affiliation}`}>{type} · {aff.label}</span>
           ) : (
             <span className="badge-neutral">{type}</span>
           )}
         </span>
       </span>
-      <span className="flex shrink-0 items-center justify-between gap-3 sm:flex-col sm:items-end">
-        <span className="text-sm font-bold text-fg tabular-nums">{payText(j.compensationMethod, j.payRateCents)}</span>
-        <span className="btn-primary btn-sm">View job</span>
+      <span className="flex shrink-0 flex-wrap items-center justify-between gap-3 sm:flex-col sm:items-end">
+        {/* The pay wraps, never the button: "$150.00 / completed shift (gross)" beside "View job" on a phone.
+            Where even its longest word won't fit beside the button, the button takes its own line. */}
+        <span className="flex-1 text-sm font-bold text-fg tabular-nums sm:flex-none">{payText(j.compensationMethod, j.payRateCents)}</span>
+        <span className="btn-primary btn-sm shrink-0 whitespace-nowrap">View job</span>
       </span>
     </Link>
   );

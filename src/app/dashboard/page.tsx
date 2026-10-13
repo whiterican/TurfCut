@@ -15,6 +15,8 @@ import { workerPayTotals } from "@/lib/pay-data";
 import { OfflineBrief } from "@/components/OfflineBrief";
 import { briefPaths } from "@/lib/offline-brief-data";
 import { money } from "@/lib/pay";
+import { loadLatestPreference } from "@/lib/political-fit-data";
+import type { VisibilityMode } from "@/lib/political-fit";
 
 const ROLE_LABELS: Record<string, string> = {
   WORKER: "Field worker",
@@ -110,6 +112,40 @@ async function EarningsCard({ workerId }: { workerId: string }) {
   return <NavCard href="/earnings" title="Earnings" body={any ? parts.join(" · ") : "Your pay shows up here once a supervisor approves a shift."} />;
 }
 
+/** What's on hold until the worker reconfirms, by their own choice (Private never shows or uses anything). */
+const PAUSED: Record<VisibilityMode, string> = {
+  PRIVATE: "Your answers stay private either way; reconfirm to keep them on record.",
+  MATCHING_ONLY: "Until you reconfirm, they aren't used to keep you out of work you've ruled out.",
+  APPLIED_TO: "Until you reconfirm, they aren't shown to organizations or used to keep you out of work you've ruled out.",
+  APPROVED_RECRUITERS: "Until you reconfirm, they aren't used to keep you out of work you've ruled out.",
+};
+
+/**
+ * Political-fit answers that need reconfirming (the wording changed) or have
+ * expired authorize nothing: they're neither shown nor used to keep the worker
+ * out of work they ruled out. Profile says so; Today asks.
+ */
+async function FitReconfirm({ workerId }: { workerId: string }) {
+  const fit = await loadLatestPreference(workerId);
+  if (!fit || fit.status.state === "current") return null;
+  return (
+    <section className="card space-y-2" aria-label="Political-fit answers">
+      <p className="font-semibold text-fg">
+        {fit.status.state === "expired" ? "Your political-fit answers have expired" : "Check your political-fit answers"}
+      </p>
+      <p className="text-muted-sm">
+        {fit.status.state === "expired"
+          ? "They reached the expiry you chose."
+          : fit.visibilityMode === "APPLIED_TO"
+            ? "We've changed how we describe who sees them: claiming a spot counts, as applying does."
+            : "We've updated how Turfcut describes these choices."}{" "}
+        {PAUSED[fit.visibilityMode]}
+      </p>
+      <Link href="/profile/preferences" className="btn-primary btn-sm">Review and reconfirm</Link>
+    </section>
+  );
+}
+
 /** Open jobs, soonest first (screen mockups' "Best matches", without a ranking). */
 async function OpenJobs({ workerId }: { workerId: string }) {
   const [{ jobs }, mine] = await Promise.all([
@@ -194,6 +230,7 @@ export default async function DashboardPage() {
 
       {isWorker && <WorkerBrief workerId={session.workerId!} userId={session.userId} />}
       {isWorker && <WorkerHero workerId={session.workerId!} />}
+      {isWorker && <FitReconfirm workerId={session.workerId!} />}
 
       {isWorker && <EarningsCard workerId={session.workerId!} />}
       {isWorker && <OpenJobs workerId={session.workerId!} />}

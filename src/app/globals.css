@@ -569,8 +569,13 @@ body {
   .table {
     @apply w-full text-left text-sm tabular-nums;
   }
+  /* Room between columns, so wrapped headings ("Doors", "Signatures
+     accepted") never run together; the outer edges stay flush. */
+  .table :is(th, td) {
+    @apply px-3 first:ps-0 last:pe-0;
+  }
   .table th {
-    @apply pb-2 text-xs font-medium tracking-wide text-subtle uppercase;
+    @apply pb-2 align-bottom text-xs font-medium tracking-wide text-subtle uppercase;
   }
   .table td {
     @apply border-t border-border py-2 text-fg;

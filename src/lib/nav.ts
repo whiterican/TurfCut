@@ -4,6 +4,7 @@ import { accessTo, type Area } from "@/lib/access";
 /** The glyph a tab shows (drawn in components/AppNav; a plain id here keeps React out of lib). */
 export type TabIconId =
   | "today"
+  | "feed"
   | "work"
   | "shifts"
   | "messages"
@@ -16,6 +17,7 @@ export type TabIconId =
   | "members"
   | "credentials"
   | "settings"
+  | "campaigns"
   | "more";
 
 export interface NavTab {
@@ -27,7 +29,7 @@ export interface NavTab {
 export const MESSAGES_HREF = "/messages";
 
 type OrgItem = NavTab & { area: Area; id: OrgNavId };
-type OrgNavId = "desk" | "hiring" | "jobs" | "field" | "messages" | "pay" | "credentials" | "members" | "settings";
+type OrgNavId = "desk" | "hiring" | "jobs" | "field" | "messages" | "pay" | "credentials" | "campaigns" | "members" | "settings";
 
 /** Every organization area, in rail order, tied to the access-map area its route checks. */
 export const ORG_TABS: OrgItem[] = [
@@ -38,6 +40,7 @@ export const ORG_TABS: OrgItem[] = [
   { id: "messages", href: MESSAGES_HREF, label: "Messages", icon: "messages", area: "messages" },
   { id: "pay", href: "/pay", label: "Pay", icon: "pay", area: "pay" },
   { id: "credentials", href: "/org/credentials", label: "Credentials", icon: "credentials", area: "compliance" },
+  { id: "campaigns", href: "/campaigns", label: "Campaigns", icon: "campaigns", area: "campaignPosting" },
   { id: "members", href: "/org/settings/members", label: "Members", icon: "members", area: "orgMembers" },
   { id: "settings", href: "/org/settings", label: "Settings", icon: "settings", area: "orgSettings" },
 ];
@@ -52,12 +55,13 @@ export const PHONE_PICKS: Record<Exclude<Role, "WORKER">, OrgNavId[]> = {
   RECRUITER: ["desk", "hiring", "jobs", "messages"],
   SUPERVISOR: ["desk", "field", "jobs", "messages"],
   FINANCE: ["desk", "pay", "jobs"],
-  PUBLISHER: ["desk", "jobs"],
+  PUBLISHER: ["desk", "campaigns", "jobs"],
   COMPLIANCE: ["desk", "credentials", "jobs"],
 };
 
 const WORKER_TABS: NavTab[] = [
   { href: "/dashboard", label: "Today", icon: "today" },
+  { href: "/feed", label: "Feed", icon: "feed" },
   { href: "/jobs", label: "Work", icon: "work" },
   { href: "/shifts", label: "Shifts", icon: "shifts" },
   { href: MESSAGES_HREF, label: "Messages", icon: "messages" },

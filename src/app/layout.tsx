@@ -13,6 +13,7 @@ import { PageTransition } from "@/components/PageTransition";
 import { Haptics } from "@/components/Haptics";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
 import { getSessionProfile } from "@/lib/auth";
+import { getSiteUrl } from "@/lib/env";
 import { MESSAGES_HREF, navTabs, orgNav } from "@/lib/nav";
 import { db } from "@/lib/db";
 import { unreadTotal } from "@/lib/chat-data";
@@ -37,10 +38,15 @@ const newsreader = Newsreader({
   weight: ["500", "600"],
 });
 
-export const metadata: Metadata = {
-  title: "Turfcut",
-  description: "The marketplace for political field work.",
-};
+export function generateMetadata(): Metadata {
+  // Absolute links in previews and feeds need the site's origin; with SITE_URL unset (development) Next's default is fine.
+  const site = getSiteUrl();
+  return {
+    title: "Turfcut",
+    description: "The marketplace for political field work.",
+    ...(site ? { metadataBase: new URL(site) } : {}),
+  };
+}
 
 export default async function RootLayout({
   children,

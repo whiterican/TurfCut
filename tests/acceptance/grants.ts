@@ -22,9 +22,20 @@ const check = (l: string, c: unknown, d?: unknown) => { if (c) console.log(`PASS
   check("Message: authenticated reads ids and times only", JSON.stringify(msg) === JSON.stringify(["authenticated:SELECT:conversationId", "authenticated:SELECT:createdAt", "authenticated:SELECT:id"]), msg);
   const rev = await cols("MessageRevision");
   check("MessageRevision: authenticated reads ids and times only", JSON.stringify(rev) === JSON.stringify(["authenticated:SELECT:conversationId", "authenticated:SELECT:createdAt", "authenticated:SELECT:id", "authenticated:SELECT:messageId"]), rev);
+  // S1: campaign profiles and live posts are public, column by column (never who wrote or deleted a post).
+  const both = (c: string[]) => c.flatMap((x) => [`anon:SELECT:${x}`, `authenticated:SELECT:${x}`]).sort();
+  const prof = await cols("CampaignProfile");
+  check("CampaignProfile: anyone reads the public columns only (after a lockdown re-run too)", JSON.stringify(prof) === JSON.stringify(both(["id", "handle", "displayName", "bio", "avatarKey", "headerKey", "publishedAt", "createdAt", "updatedAt"])), prof);
+  const post = await cols("CampaignPost");
+  check("CampaignPost: anyone reads the public columns only, never author or deleter", JSON.stringify(post) === JSON.stringify(both(["id", "profileId", "body", "jobId", "pinnedAt", "createdAt", "editedAt"])), post);
+  // S4: facts and resources, column by column (never who wrote them, never a removed one's deletedAt).
+  const fact = await cols("TalkingPointFact");
+  check("TalkingPointFact: anyone reads the public columns only", JSON.stringify(fact) === JSON.stringify(both(["id", "postId", "body", "sourceUrl", "position", "createdAt", "updatedAt"])), fact);
+  const res = await cols("CampaignResource");
+  check("CampaignResource: anyone reads the public columns only", JSON.stringify(res) === JSON.stringify(both(["id", "profileId", "kind", "audience", "title", "body", "position", "createdAt", "updatedAt"])), res);
   const otherCols = await p.$queryRaw<{ table_name: string }[]>`
     SELECT DISTINCT table_name FROM information_schema.column_privileges
-     WHERE table_schema = 'public' AND grantee IN ('anon', 'authenticated') AND table_name NOT IN ('Message', 'MessageRevision')`;
+     WHERE table_schema = 'public' AND grantee IN ('anon', 'authenticated') AND table_name NOT IN ('Message', 'MessageRevision', 'CampaignProfile', 'CampaignPost', 'TalkingPointFact', 'CampaignResource')`;
   check("no other public table has column grants for the API roles", otherCols.length === 0, otherCols);
 
   // As a signed-in browser would: the text column is refused outright.

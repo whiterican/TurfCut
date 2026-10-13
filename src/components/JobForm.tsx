@@ -305,7 +305,7 @@ export function JobForm({
             </label>
           ))}
         </div>
-        <p className="text-hint sm:col-span-3">The jurisdiction&apos;s own requirements are added to the job card automatically.</p>
+        <p className="text-hint sm:col-span-3">For petition jobs, the jurisdiction&apos;s circulator requirements are added to the job card automatically.</p>
         <label className="space-y-1.5">
           <span className="label">Training {optional}</span>
           <input name="training" className="field" maxLength={120} defaultValue={d("training")} {...describe("training")} />

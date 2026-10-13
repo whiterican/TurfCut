@@ -9,7 +9,7 @@ import { loadPipelineFacts } from "@/lib/engagements-data";
 import { EngagementHistory } from "@/components/EngagementHistory";
 import { HiringActions, timeLeft } from "@/components/HiringActions";
 import { ENGAGEMENT_LABELS, JOB_STATUS_LABELS, jobPageBadge } from "@/lib/engagement-labels";
-import { UUID_RE, exclusionReasons, fitReasons, jobCardAnswers, jurisdictionLabel, payText, publishBlockers, readDisclosure, readHiringModes } from "@/lib/jobs";
+import { UUID_RE, exclusionReasons, fitReasons, jobCardAnswers, jobCredentials, jurisdictionLabel, payText, publishBlockers, readDisclosure, readHiringModes } from "@/lib/jobs";
 import { loadScorecard } from "@/lib/scorecard-data";
 import { loadSharing } from "@/lib/sharing-data";
 import { PART_DETAILS, RELATIONSHIP_PHRASE, SHARE_PARTS, visibleParts, type SharePart, type SharingChoices } from "@/lib/sharing";
@@ -29,6 +29,8 @@ import { listSupervisors } from "@/lib/field-day-data";
 import { LocalTime } from "@/components/LocalTime";
 import { ScheduleShiftForm } from "@/components/ScheduleShiftForm";
 import { DateRangeChip } from "@/components/DateRangeChip";
+import { followState } from "@/lib/campaign-follow-data";
+import { CampaignCard } from "@/components/campaign/CampaignCard";
 
 // An invitation's deadline, as a day (the job's own dates are a DateRangeChip).
 const day = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
@@ -60,7 +62,8 @@ async function ChangeList({ jobId, viewer, changes: loaded }: { jobId: string; v
   );
 }
 
-const loadJob = (id: string) => db().job.findUnique({ where: { id }, include: { org: true, jurisdiction: true } });
+const loadJob = (id: string) =>
+  db().job.findUnique({ where: { id }, include: { org: true, jurisdiction: true, campaignProfile: { select: { id: true, handle: true, displayName: true, avatarKey: true, publishedAt: true } } } });
 type JobWithRefs = NonNullable<Awaited<ReturnType<typeof loadJob>>>;
 
 export default async function JobPage({ params }: { params: Promise<{ jobId: string }> }) {
@@ -104,6 +107,11 @@ export default async function JobPage({ params }: { params: Promise<{ jobId: str
       </header>
 
       {job.description && <p className="lead">{job.description}</p>}
+
+      {/* The campaign this job works for (S2): its page and a Follow control, while the campaign is public. */}
+      {isWorker && job.campaignProfile?.publishedAt && job.org.approved && (
+        <CampaignCard campaign={job.campaignProfile} follow={await followState(session.workerId!, job.campaignProfile.id)} viewer="worker" back={`/jobs/${job.id}`} />
+      )}
 
       {isWorker && <WorkerPanel job={job} engagement={engagement} modes={modes} workerId={session.workerId!} acceptedCount={acceptedCount} />}
       {isOwnOrg && (
@@ -234,7 +242,8 @@ async function WorkerPanel({
     verifiedShiftsOfType: card.segments.filter((x) => x.workType === job.type).reduce((n, x) => n + x.shiftsCount, 0),
     statesWorked: [...new Set(card.segments.flatMap((x) => x.statesWorked))],
     credentials: answers.credentials,
-    noExtraCredentials: answers.credentials.length === 1 && answers.credentials[0].startsWith("None"),
+    // The same check as the feed's "No credentials" filter.
+    noExtraCredentials: jobCredentials({ type: job.type, requirements: job.requirements, jurisdictionRules: job.jurisdiction.rules }).length === 0,
     spotsLeft: job.headcount === null ? null : Math.max(0, job.headcount - acceptedCount),
     // Only claim "within your boundaries" when they were actually checked:
     // matching-mode answers, a disclosed campaign, at least one do-not-match.

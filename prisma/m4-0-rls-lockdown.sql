@@ -44,9 +44,16 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA "public" REVOKE EXECUTE ON FUNCTIONS FROM ano
 DO $$
 BEGIN
   IF to_regclass('"public"."Message"') IS NOT NULL THEN
-    -- Ids and times only (M4.1): never message text.
+    -- Ids and times only (M4.1): never message text. The REVOKE ALL above
+    -- already cleared any table-wide grant, so this leaves only columns.
     GRANT SELECT ("id", "conversationId", "createdAt") ON "public"."Message" TO authenticated;
     GRANT SELECT ("id", "messageId", "conversationId", "createdAt") ON "public"."MessageRevision" TO authenticated;
+  END IF;
+  -- S1: campaign profiles and live posts are public (prisma/s1-social.sql), column by column.
+  IF to_regclass('"public"."CampaignProfile"') IS NOT NULL THEN
+    GRANT USAGE ON SCHEMA "turfcut_private" TO anon;
+    GRANT SELECT ("id", "handle", "displayName", "bio", "avatarKey", "headerKey", "publishedAt", "createdAt", "updatedAt") ON "public"."CampaignProfile" TO anon, authenticated;
+    GRANT SELECT ("id", "profileId", "body", "jobId", "pinnedAt", "createdAt", "editedAt") ON "public"."CampaignPost" TO anon, authenticated;
   END IF;
 END $$;
 COMMIT;

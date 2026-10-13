@@ -2,7 +2,7 @@
 
 import { useSyncExternalStore } from "react";
 import { TEXT_SIZE_KEY, TEXT_SIZES, THEME_STORAGE_KEY, type TextSize } from "@/lib/theme";
-import { HAPTICS_KEY, haptic } from "@/lib/haptics";
+import { HAPTICS_KEY, canVibrate, haptic } from "@/lib/haptics";
 
 type ThemeChoice = "system" | "light" | "dark";
 
@@ -76,6 +76,7 @@ function applyTheme(v: ThemeChoice) {
 }
 
 const hapticsSnapshot = () => read(HAPTICS_KEY) !== "off";
+const vibratingPhone = () => canVibrate() && window.matchMedia("(pointer: coarse)").matches;
 function applyHaptics(on: boolean) {
   save(HAPTICS_KEY, on ? null : "off");
   notify();
@@ -86,6 +87,10 @@ export function DisplaySettings() {
   const size = useSyncExternalStore(subscribe, sizeSnapshot, () => "md" as TextSize);
   const theme = useSyncExternalStore(subscribe, themeSnapshot, () => "system" as ThemeChoice);
   const haptics = useSyncExternalStore(subscribe, hapticsSnapshot, () => true);
+  // Known only in the browser. The server assumes it can, so Android never
+  // flickers; iPhone and computers swap the switch for the explanation right
+  // after hydration. Desktop Chrome has the Vibration API but nothing to buzz.
+  const vibrates = useSyncExternalStore(subscribe, vibratingPhone, () => true);
 
   return (
     <div className="space-y-8">
@@ -118,11 +123,19 @@ export function DisplaySettings() {
 
       <fieldset className="space-y-3">
         <legend className="section-title">Feel</legend>
-        <label className="toggle">
-          <input type="checkbox" role="switch" checked={haptics} onChange={(e) => applyHaptics(e.target.checked)} />
-          Vibrate lightly when I tap a button
-        </label>
-        <p className="text-hint">On phones that support it (most Android phones; iPhone with iOS 18 or later). Saved on this device.</p>
+        {vibrates ? (
+          <>
+            <label className="toggle">
+              <input type="checkbox" role="switch" checked={haptics} onChange={(e) => applyHaptics(e.target.checked)} />
+              Vibrate lightly when I tap a button
+            </label>
+            <p className="text-hint">Saved on this device.</p>
+          </>
+        ) : (
+          <p className="text-hint">
+            This device can&apos;t vibrate when you tap a button. On iPhone, on/off switches (like the job filters) still give a light tick.
+          </p>
+        )}
       </fieldset>
 
       <div className="card space-y-2">

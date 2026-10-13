@@ -1,13 +1,13 @@
--- Turfcut M0–M7 (with M4.1) — manual Supabase setup (one paste), FRESH databases only.
+-- Turfcut M0–M7 (with M4.1), C1 and the rate-limit store — manual Supabase setup (one paste), FRESH databases only.
 -- Generated from prisma/schema.prisma + prisma/seed.ts on 2026-10-02.
 -- Paste the entire file into the Supabase SQL editor and run it.
 -- The DDL is not re-runnable. Existing database? Run the m1-, m1-profile-, m2-, m3-,
--- m4-0-rls-lockdown, m4-, m4-1-hardening, m5-migration, m5-1-history-lock, m6-migration and m7-migration.sql files in order, then manual-seed.sql (idempotent).
+-- m4-0-rls-lockdown, m4-, m4-1-hardening, m5-migration, m5-1-history-lock, m6-migration, m7-migration and c1-roles.sql files in order, then manual-seed.sql (idempotent).
 -- CreateSchema
 CREATE SCHEMA IF NOT EXISTS "public";
 
 -- CreateEnum
-CREATE TYPE "public"."Role" AS ENUM ('WORKER', 'OWNER', 'RECRUITER', 'COMPLIANCE', 'SUPERVISOR', 'FINANCE');
+CREATE TYPE "public"."Role" AS ENUM ('WORKER', 'OWNER', 'RECRUITER', 'COMPLIANCE', 'SUPERVISOR', 'FINANCE', 'PUBLISHER');
 
 -- CreateEnum
 CREATE TYPE "public"."VerificationLevel" AS ENUM ('PLATFORM', 'ORGANIZATION', 'IMPORTED', 'SELF_REPORTED');
@@ -450,6 +450,9 @@ CREATE TABLE "public"."ProfileBlock" (
 );
 
 -- CreateIndex
+CREATE INDEX "Profile_orgId_idx" ON "public"."Profile"("orgId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "Worker_profileId_key" ON "public"."Worker"("profileId");
 
 -- CreateIndex
@@ -468,7 +471,16 @@ CREATE UNIQUE INDEX "JurisdictionProfile_state_locality_version_key" ON "public"
 CREATE INDEX "Job_orgId_status_idx" ON "public"."Job"("orgId", "status");
 
 -- CreateIndex
+CREATE INDEX "Job_jurisdictionId_idx" ON "public"."Job"("jurisdictionId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "Engagement_jobId_workerId_key" ON "public"."Engagement"("jobId", "workerId");
+
+-- CreateIndex
+CREATE INDEX "Engagement_workerId_idx" ON "public"."Engagement"("workerId");
+
+-- CreateIndex
+CREATE INDEX "Engagement_hiredById_idx" ON "public"."Engagement"("hiredById");
 
 -- CreateIndex
 CREATE INDEX "Shift_engagementId_startsAt_idx" ON "public"."Shift"("engagementId", "startsAt");
@@ -498,6 +510,12 @@ CREATE INDEX "Payout_orgId_createdAt_idx" ON "public"."Payout"("orgId", "created
 CREATE INDEX "Payout_shiftId_idx" ON "public"."Payout"("shiftId");
 
 -- CreateIndex
+CREATE INDEX "Payout_engagementId_idx" ON "public"."Payout"("engagementId");
+
+-- CreateIndex
+CREATE INDEX "Payout_adjustsId_idx" ON "public"."Payout"("adjustsId");
+
+-- CreateIndex
 CREATE INDEX "PayoutEvent_payoutId_createdAt_idx" ON "public"."PayoutEvent"("payoutId", "createdAt");
 
 -- CreateIndex
@@ -514,6 +532,12 @@ CREATE INDEX "PayDispute_orgId_createdAt_idx" ON "public"."PayDispute"("orgId", 
 
 -- CreateIndex
 CREATE INDEX "PayDispute_shiftId_idx" ON "public"."PayDispute"("shiftId");
+
+-- CreateIndex
+CREATE INDEX "PayDispute_workerId_idx" ON "public"."PayDispute"("workerId");
+
+-- CreateIndex
+CREATE INDEX "PayDispute_payoutId_idx" ON "public"."PayDispute"("payoutId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "PayDisputeResolution_disputeId_key" ON "public"."PayDisputeResolution"("disputeId");
@@ -544,6 +568,9 @@ CREATE UNIQUE INDEX "ConversationParticipant_conversationId_profileId_key" ON "p
 
 -- CreateIndex
 CREATE INDEX "Message_conversationId_createdAt_idx" ON "public"."Message"("conversationId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "Message_senderId_idx" ON "public"."Message"("senderId");
 
 -- CreateIndex
 CREATE INDEX "MessageRevision_messageId_createdAt_idx" ON "public"."MessageRevision"("messageId", "createdAt");
@@ -720,6 +747,12 @@ BEGIN
   IF to_regclass('"public"."Message"') IS NOT NULL THEN
     GRANT SELECT ("id", "conversationId", "createdAt") ON "public"."Message" TO authenticated;
     GRANT SELECT ("id", "messageId", "conversationId", "createdAt") ON "public"."MessageRevision" TO authenticated;
+  END IF;
+  -- S1: campaign profiles and live posts are public (prisma/s1-social.sql), column by column.
+  IF to_regclass('"public"."CampaignProfile"') IS NOT NULL THEN
+    GRANT USAGE ON SCHEMA "turfcut_private" TO anon;
+    GRANT SELECT ("id", "handle", "displayName", "bio", "avatarKey", "headerKey", "publishedAt", "createdAt", "updatedAt") ON "public"."CampaignProfile" TO anon, authenticated;
+    GRANT SELECT ("id", "profileId", "body", "jobId", "pinnedAt", "createdAt", "editedAt") ON "public"."CampaignPost" TO anon, authenticated;
   END IF;
 END $$;
 
@@ -949,11 +982,280 @@ CREATE OR REPLACE TRIGGER "Validation_no_truncate" BEFORE TRUNCATE ON "public"."
 CREATE OR REPLACE TRIGGER "AuditEvent_no_truncate" BEFORE TRUNCATE ON "public"."AuditEvent"
   FOR EACH STATEMENT EXECUTE FUNCTION "turfcut_private"."append_only"();
 
+-- ---- C1: member invites (server-only, like the M5 tables) ----
+CREATE TABLE "public"."OrgInvite" (
+    "id" UUID NOT NULL,
+    "orgId" UUID NOT NULL,
+    "email" TEXT NOT NULL,
+    "role" "public"."Role" NOT NULL,
+    "invitedById" UUID NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "expiresAt" TIMESTAMP(3) NOT NULL,
+    "acceptedAt" TIMESTAMP(3),
+    "acceptedById" UUID,
+    "revokedAt" TIMESTAMP(3),
+
+    CONSTRAINT "OrgInvite_pkey" PRIMARY KEY ("id"),
+    CONSTRAINT "OrgInvite_email_lowercase" CHECK ("email" = lower("email")),
+    CONSTRAINT "OrgInvite_role_not_worker" CHECK ("role" <> 'WORKER')
+);
+CREATE INDEX "OrgInvite_email_idx" ON "public"."OrgInvite"("email");
+CREATE INDEX "OrgInvite_orgId_createdAt_idx" ON "public"."OrgInvite"("orgId", "createdAt");
+CREATE UNIQUE INDEX "OrgInvite_pending_key" ON "public"."OrgInvite"("orgId", "email")
+  WHERE "acceptedAt" IS NULL AND "revokedAt" IS NULL;
+ALTER TABLE "public"."OrgInvite" ADD CONSTRAINT "OrgInvite_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "public"."Organization"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "public"."OrgInvite" ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON "public"."OrgInvite" FROM anon, authenticated;
+
+-- ---- S1: campaign profiles and posts (prisma/s1-social.sql) ----
+CREATE TABLE IF NOT EXISTS "public"."CampaignProfile" (
+    "id" UUID NOT NULL,
+    "orgId" UUID NOT NULL,
+    "handle" TEXT NOT NULL,
+    "displayName" TEXT NOT NULL,
+    "bio" TEXT NOT NULL DEFAULT '',
+    "avatarKey" TEXT,
+    "headerKey" TEXT,
+    "publishedAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    CONSTRAINT "CampaignProfile_pkey" PRIMARY KEY ("id"),
+    CONSTRAINT "CampaignProfile_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "public"."Organization"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT "CampaignProfile_handle_shape" CHECK ("handle" ~ '^[a-z0-9_]{3,30}$'),
+    CONSTRAINT "CampaignProfile_displayName_length" CHECK (char_length("displayName") BETWEEN 1 AND 80),
+    CONSTRAINT "CampaignProfile_bio_length" CHECK (char_length("bio") <= 4000)
+);
+CREATE UNIQUE INDEX IF NOT EXISTS "CampaignProfile_handle_key" ON "public"."CampaignProfile"("handle");
+CREATE INDEX IF NOT EXISTS "CampaignProfile_orgId_idx" ON "public"."CampaignProfile"("orgId");
+
+CREATE TABLE IF NOT EXISTS "public"."CampaignPost" (
+    "id" UUID NOT NULL,
+    "profileId" UUID NOT NULL,
+    "authorId" UUID NOT NULL,
+    "body" TEXT NOT NULL,
+    "jobId" UUID,
+    "pinnedAt" TIMESTAMP(3),
+    "deletedAt" TIMESTAMP(3),
+    "deletedById" UUID,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "editedAt" TIMESTAMP(3),
+    CONSTRAINT "CampaignPost_pkey" PRIMARY KEY ("id"),
+    CONSTRAINT "CampaignPost_profileId_fkey" FOREIGN KEY ("profileId") REFERENCES "public"."CampaignProfile"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT "CampaignPost_authorId_fkey" FOREIGN KEY ("authorId") REFERENCES "public"."Profile"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT "CampaignPost_jobId_fkey" FOREIGN KEY ("jobId") REFERENCES "public"."Job"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT "CampaignPost_deletedById_fkey" FOREIGN KEY ("deletedById") REFERENCES "public"."Profile"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT "CampaignPost_body_length" CHECK (char_length("body") BETWEEN 1 AND 500 AND btrim("body") <> ''),
+    CONSTRAINT "CampaignPost_deleted_pair" CHECK (("deletedAt" IS NULL) = ("deletedById" IS NULL)),
+    -- A deleted post isn't pinned (the talking points are live posts).
+    CONSTRAINT "CampaignPost_deleted_unpinned" CHECK ("deletedAt" IS NULL OR "pinnedAt" IS NULL)
+);
+CREATE INDEX IF NOT EXISTS "CampaignPost_profileId_createdAt_idx" ON "public"."CampaignPost"("profileId", "createdAt");
+CREATE INDEX IF NOT EXISTS "CampaignPost_jobId_idx" ON "public"."CampaignPost"("jobId");
+CREATE INDEX IF NOT EXISTS "CampaignPost_authorId_idx" ON "public"."CampaignPost"("authorId");
+CREATE INDEX IF NOT EXISTS "CampaignPost_deletedById_idx" ON "public"."CampaignPost"("deletedById");
+
+CREATE TABLE IF NOT EXISTS "public"."CampaignPostRevision" (
+    "id" UUID NOT NULL,
+    "postId" UUID NOT NULL,
+    "body" TEXT NOT NULL,
+    "jobId" UUID, -- a snapshot of the embed at that version (no FK: history, not a link)
+    "editorId" UUID NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "CampaignPostRevision_pkey" PRIMARY KEY ("id"),
+    CONSTRAINT "CampaignPostRevision_postId_fkey" FOREIGN KEY ("postId") REFERENCES "public"."CampaignPost"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT "CampaignPostRevision_editorId_fkey" FOREIGN KEY ("editorId") REFERENCES "public"."Profile"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT "CampaignPostRevision_body_length" CHECK (char_length("body") BETWEEN 1 AND 500)
+);
+CREATE INDEX IF NOT EXISTS "CampaignPostRevision_postId_createdAt_idx" ON "public"."CampaignPostRevision"("postId", "createdAt");
+CREATE INDEX IF NOT EXISTS "CampaignPostRevision_editorId_idx" ON "public"."CampaignPostRevision"("editorId");
+CREATE OR REPLACE TRIGGER "CampaignPostRevision_append_only" BEFORE UPDATE OR DELETE ON "public"."CampaignPostRevision"
+  FOR EACH ROW EXECUTE FUNCTION "turfcut_private"."append_only"();
+CREATE OR REPLACE TRIGGER "CampaignPostRevision_no_truncate" BEFORE TRUNCATE ON "public"."CampaignPostRevision"
+  FOR EACH STATEMENT EXECUTE FUNCTION "turfcut_private"."append_only"();
+
+ALTER TABLE "public"."Job" ADD COLUMN IF NOT EXISTS "campaignProfileId" UUID;
+CREATE INDEX IF NOT EXISTS "Job_campaignProfileId_idx" ON "public"."Job"("campaignProfileId");
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Job_campaignProfileId_fkey') THEN
+    ALTER TABLE "public"."Job" ADD CONSTRAINT "Job_campaignProfileId_fkey" FOREIGN KEY ("campaignProfileId") REFERENCES "public"."CampaignProfile"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+  END IF;
+END $$;
+
+-- Same organization, always: a job works only for its own organization's
+-- campaign, and a post embeds only its own organization's job.
+CREATE OR REPLACE FUNCTION "turfcut_private"."job_campaign_same_org"() RETURNS trigger LANGUAGE plpgsql SET search_path = '' AS $$
+BEGIN
+  IF NEW."campaignProfileId" IS NOT NULL AND NOT EXISTS (
+       SELECT 1 FROM "public"."CampaignProfile" c WHERE c."id" = NEW."campaignProfileId" AND c."orgId" = NEW."orgId") THEN
+    RAISE EXCEPTION 'A job works only for its own organization''s campaign';
+  END IF;
+  -- A job moving to another organization would leave posts embedding it on the old one's campaigns.
+  IF TG_OP = 'UPDATE' AND NEW."orgId" IS DISTINCT FROM OLD."orgId" AND EXISTS (
+       SELECT 1 FROM "public"."CampaignPost" p WHERE p."jobId" = NEW."id") THEN
+    RAISE EXCEPTION 'A job embedded in campaign posts can''t move to another organization';
+  END IF;
+  RETURN NEW;
+END $$;
+REVOKE ALL ON FUNCTION "turfcut_private"."job_campaign_same_org"() FROM PUBLIC, anon, authenticated;
+-- A campaign belongs to one organization for good (its jobs and posts are that organization's).
+CREATE OR REPLACE FUNCTION "turfcut_private"."campaign_org_fixed"() RETURNS trigger LANGUAGE plpgsql SET search_path = '' AS $$
+BEGIN
+  IF NEW."orgId" IS DISTINCT FROM OLD."orgId" THEN
+    RAISE EXCEPTION 'A campaign can''t move to another organization';
+  END IF;
+  RETURN NEW;
+END $$;
+REVOKE ALL ON FUNCTION "turfcut_private"."campaign_org_fixed"() FROM PUBLIC, anon, authenticated;
+CREATE OR REPLACE TRIGGER "CampaignProfile_org_fixed" BEFORE UPDATE OF "orgId" ON "public"."CampaignProfile"
+  FOR EACH ROW EXECUTE FUNCTION "turfcut_private"."campaign_org_fixed"();
+CREATE OR REPLACE TRIGGER "Job_campaign_same_org" BEFORE INSERT OR UPDATE OF "campaignProfileId", "orgId" ON "public"."Job"
+  FOR EACH ROW EXECUTE FUNCTION "turfcut_private"."job_campaign_same_org"();
+
+CREATE OR REPLACE FUNCTION "turfcut_private"."post_job_same_org"() RETURNS trigger LANGUAGE plpgsql SET search_path = '' AS $$
+BEGIN
+  IF NEW."jobId" IS NOT NULL AND NOT EXISTS (
+       SELECT 1 FROM "public"."Job" j JOIN "public"."CampaignProfile" c ON c."orgId" = j."orgId"
+        WHERE j."id" = NEW."jobId" AND c."id" = NEW."profileId") THEN
+    RAISE EXCEPTION 'A post embeds only its own organization''s job';
+  END IF;
+  RETURN NEW;
+END $$;
+REVOKE ALL ON FUNCTION "turfcut_private"."post_job_same_org"() FROM PUBLIC, anon, authenticated;
+CREATE OR REPLACE TRIGGER "CampaignPost_job_same_org" BEFORE INSERT OR UPDATE OF "jobId", "profileId" ON "public"."CampaignPost"
+  FOR EACH ROW EXECUTE FUNCTION "turfcut_private"."post_job_same_org"();
+
+-- Public read: a profile is public while published and its organization is
+-- approved by Turfcut. SECURITY DEFINER so the policy can read Organization,
+-- which stays closed to the API roles.
+CREATE OR REPLACE FUNCTION "turfcut_private"."campaign_public"(p_profile uuid)
+RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = '' AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM "public"."CampaignProfile" c JOIN "public"."Organization" o ON o."id" = c."orgId"
+     WHERE c."id" = p_profile AND c."publishedAt" IS NOT NULL AND o."approved");
+$$;
+REVOKE ALL ON FUNCTION "turfcut_private"."campaign_public"(uuid) FROM PUBLIC;
+GRANT USAGE ON SCHEMA "turfcut_private" TO anon;
+GRANT EXECUTE ON FUNCTION "turfcut_private"."campaign_public"(uuid) TO anon, authenticated;
+
+ALTER TABLE "public"."CampaignProfile" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."CampaignPost" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."CampaignPostRevision" ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON "public"."CampaignProfile", "public"."CampaignPost", "public"."CampaignPostRevision" FROM anon, authenticated;
+GRANT SELECT ("id", "handle", "displayName", "bio", "avatarKey", "headerKey", "publishedAt", "createdAt", "updatedAt") ON "public"."CampaignProfile" TO anon, authenticated;
+GRANT SELECT ("id", "profileId", "body", "jobId", "pinnedAt", "createdAt", "editedAt") ON "public"."CampaignPost" TO anon, authenticated;
+
+DROP POLICY IF EXISTS "public reads published campaigns" ON "public"."CampaignProfile";
+CREATE POLICY "public reads published campaigns" ON "public"."CampaignProfile"
+  FOR SELECT TO anon, authenticated USING ("turfcut_private"."campaign_public"("id"));
+DROP POLICY IF EXISTS "public reads live posts" ON "public"."CampaignPost";
+CREATE POLICY "public reads live posts" ON "public"."CampaignPost"
+  FOR SELECT TO anon, authenticated USING ("deletedAt" IS NULL AND "turfcut_private"."campaign_public"("profileId"));
+
+-- No write policies: nothing is granted to the API roles for writing, so
+-- every write goes through the app's server (deny by default). (An earlier
+-- draft of this file had FOR ALL policies; they're dropped if present.)
+DROP POLICY IF EXISTS "campaign staff write profiles" ON "public"."CampaignProfile";
+DROP POLICY IF EXISTS "campaign staff write posts" ON "public"."CampaignPost";
+DROP FUNCTION IF EXISTS "turfcut_private"."campaign_writer"(uuid, text[]);
+
+
+-- ---- S2: follows and likes (prisma/s2-social.sql) ----
+CREATE TABLE IF NOT EXISTS "public"."CampaignFollow" (
+    "id" UUID NOT NULL,
+    "workerId" UUID NOT NULL,
+    "campaignId" UUID NOT NULL,
+    "notify" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "revokedAt" TIMESTAMP(3),
+    CONSTRAINT "CampaignFollow_pkey" PRIMARY KEY ("id"),
+    CONSTRAINT "CampaignFollow_workerId_fkey" FOREIGN KEY ("workerId") REFERENCES "public"."Worker"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT "CampaignFollow_campaignId_fkey" FOREIGN KEY ("campaignId") REFERENCES "public"."CampaignProfile"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT "CampaignFollow_revoked_after_created" CHECK ("revokedAt" IS NULL OR "revokedAt" >= "createdAt")
+);
+CREATE INDEX IF NOT EXISTS "CampaignFollow_workerId_revokedAt_idx" ON "public"."CampaignFollow"("workerId", "revokedAt");
+CREATE INDEX IF NOT EXISTS "CampaignFollow_campaignId_revokedAt_idx" ON "public"."CampaignFollow"("campaignId", "revokedAt");
+-- One open follow per worker and campaign.
+CREATE UNIQUE INDEX IF NOT EXISTS "CampaignFollow_open_key" ON "public"."CampaignFollow"("workerId", "campaignId") WHERE "revokedAt" IS NULL;
+
+CREATE TABLE IF NOT EXISTS "public"."PostLike" (
+    "id" UUID NOT NULL,
+    "workerId" UUID NOT NULL,
+    "postId" UUID NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "removedAt" TIMESTAMP(3),
+    CONSTRAINT "PostLike_pkey" PRIMARY KEY ("id"),
+    CONSTRAINT "PostLike_workerId_fkey" FOREIGN KEY ("workerId") REFERENCES "public"."Worker"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT "PostLike_postId_fkey" FOREIGN KEY ("postId") REFERENCES "public"."CampaignPost"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT "PostLike_removed_after_created" CHECK ("removedAt" IS NULL OR "removedAt" >= "createdAt")
+);
+CREATE INDEX IF NOT EXISTS "PostLike_workerId_removedAt_idx" ON "public"."PostLike"("workerId", "removedAt");
+CREATE INDEX IF NOT EXISTS "PostLike_postId_removedAt_idx" ON "public"."PostLike"("postId", "removedAt");
+-- One open like per worker and post.
+CREATE UNIQUE INDEX IF NOT EXISTS "PostLike_open_key" ON "public"."PostLike"("workerId", "postId") WHERE "removedAt" IS NULL;
+
+-- Append-only, with one exception: a row is closed once (its closing column
+-- goes from null to a time) and nothing else about it ever changes. Deletes
+-- and truncates are refused.
+CREATE OR REPLACE FUNCTION "turfcut_private"."close_once"() RETURNS trigger LANGUAGE plpgsql SET search_path = '' AS $$
+DECLARE
+  col text := TG_ARGV[0];
+  old_closed timestamp;
+  new_closed timestamp;
+  old_rest jsonb;
+  new_rest jsonb;
+BEGIN
+  IF TG_OP <> 'UPDATE' THEN
+    RAISE EXCEPTION '% is append-only: % is not allowed', TG_TABLE_NAME, TG_OP USING ERRCODE = 'insufficient_privilege';
+  END IF;
+  old_closed := (to_jsonb(OLD) ->> col)::timestamp;
+  new_closed := (to_jsonb(NEW) ->> col)::timestamp;
+  old_rest := to_jsonb(OLD) - col;
+  new_rest := to_jsonb(NEW) - col;
+  IF old_rest <> new_rest OR old_closed IS NOT NULL OR new_closed IS NULL THEN
+    RAISE EXCEPTION '% is append-only: only "%" may be set, once', TG_TABLE_NAME, col USING ERRCODE = 'insufficient_privilege';
+  END IF;
+  RETURN NEW;
+END $$;
+REVOKE ALL ON FUNCTION "turfcut_private"."close_once"() FROM PUBLIC, anon, authenticated;
+CREATE OR REPLACE TRIGGER "CampaignFollow_close_once" BEFORE UPDATE OR DELETE ON "public"."CampaignFollow"
+  FOR EACH ROW EXECUTE FUNCTION "turfcut_private"."close_once"('revokedAt');
+CREATE OR REPLACE TRIGGER "CampaignFollow_no_truncate" BEFORE TRUNCATE ON "public"."CampaignFollow"
+  FOR EACH STATEMENT EXECUTE FUNCTION "turfcut_private"."append_only"();
+CREATE OR REPLACE TRIGGER "PostLike_close_once" BEFORE UPDATE OR DELETE ON "public"."PostLike"
+  FOR EACH ROW EXECUTE FUNCTION "turfcut_private"."close_once"('removedAt');
+CREATE OR REPLACE TRIGGER "PostLike_no_truncate" BEFORE TRUNCATE ON "public"."PostLike"
+  FOR EACH STATEMENT EXECUTE FUNCTION "turfcut_private"."append_only"();
+
+-- Server-only: no grants, no policies (deny by default). A lockdown re-run
+-- (prisma/m4-0-rls-lockdown.sql) leaves this as it is.
+ALTER TABLE "public"."CampaignFollow" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."PostLike" ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON "public"."CampaignFollow", "public"."PostLike" FROM anon, authenticated;
+
+
+-- ---- Rate-limit store (server-only; prisma/rate-limit.sql) ----
+CREATE TABLE "public"."RateLimitCounter" (
+    "bucket" TEXT NOT NULL,
+    "windowStart" BIGINT NOT NULL,
+    "count" INTEGER NOT NULL,
+    "expiresAt" BIGINT NOT NULL,
+
+    CONSTRAINT "RateLimitCounter_pkey" PRIMARY KEY ("bucket", "windowStart"),
+    CONSTRAINT "RateLimitCounter_count_positive" CHECK ("count" > 0)
+);
+
+CREATE INDEX "RateLimitCounter_expiresAt_idx" ON "public"."RateLimitCounter"("expiresAt");
+
+ALTER TABLE "public"."RateLimitCounter" ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON "public"."RateLimitCounter" FROM anon, authenticated;
+
 
 -- Turfcut seed (M0 + M1 events) — SQL version of prisma/seed.ts
 -- Run AFTER the DDL above. Idempotent: safe to re-run (ON CONFLICT DO NOTHING).
 
 -- --- Jurisdiction: CO / Denver v1, approved & current ---
+-- workerRegistrationRequired / badgeRequired / affidavitRequired are circulator
+-- rules: the app applies them to petition jobs only (jobCredentials in src/lib/jobs.ts).
 INSERT INTO "public"."JurisdictionProfile"
   ("id","state","locality","version","isCurrent","approved","approvedAt","rules","createdAt")
 VALUES

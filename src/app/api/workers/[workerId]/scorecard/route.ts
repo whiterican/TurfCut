@@ -1,6 +1,6 @@
 import type { NextRequest } from "next/server";
 import { getSessionProfile } from "@/lib/auth";
-import { workerAccess } from "@/lib/access";
+import { workerAccessFor } from "@/lib/worker-access-data";
 import { db } from "@/lib/db";
 import { loadScorecard, parseScorecardQuery } from "@/lib/scorecard-data";
 
@@ -31,7 +31,7 @@ export async function GET(
         select: { approved: true },
       })
     : null;
-  const access = workerAccess(session, workerId, org?.approved ?? false);
+  const access = await workerAccessFor(session, workerId, org?.approved ?? false);
   if (access.kind === "denied") {
     return Response.json({ error: access.reason }, { status: 403 });
   }

@@ -21,6 +21,7 @@ const refresh = (shiftId: string) => {
   revalidatePath(`/shifts/${shiftId}`);
   revalidatePath("/shifts");
   revalidatePath("/dashboard");
+  revalidatePath("/desk");
 };
 
 export async function schedule(_prev: ScheduleState, fd: FormData): Promise<ScheduleState> {

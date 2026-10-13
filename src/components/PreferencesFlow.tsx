@@ -84,7 +84,7 @@ export function PreferencesFlow({ initial, consentText }: { initial: FitPreferen
           <span className="text-subtle">{Math.round(((step + 1) / FLOW_STEPS.length) * 100)}%</span>
         </div>
         <div className="h-1.5 overflow-hidden rounded-full bg-surface-2" aria-hidden>
-          <div className="h-full rounded-full bg-[var(--ring-2)] transition-all dark:bg-accent" style={{ width: `${((step + 1) / FLOW_STEPS.length) * 100}%` }} />
+          <div className="h-full rounded-full bg-success transition-all" style={{ width: `${((step + 1) / FLOW_STEPS.length) * 100}%` }} />
         </div>
         <ol className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
           {FLOW_STEPS.map((s, i) => (
@@ -436,7 +436,7 @@ function Review({
   );
 
   const empty = <p className="text-sm text-subtle">Not answered</p>;
-  // Preview as an organization the worker applied to, whose campaign agrees
+  // Preview as an organization the worker works with, whose campaign agrees
   // with each of the worker's positions (the most that could ever show).
   const bestCase = {
     issues: Object.fromEntries(
@@ -542,7 +542,7 @@ function Review({
         <p className="font-medium text-fg">Preview: what organizations see</p>
         <p className="text-hint mt-1">
           {canShare && draft.visibilityMode === "APPLIED_TO"
-            ? "An organization you applied to, if its campaign agreed with every position you shared:"
+            ? "An organization you work with, if its campaign agreed with every position you shared:"
             : "Every organization:"}
         </p>
         <dl className="mt-3 divide-y divide-border text-sm">

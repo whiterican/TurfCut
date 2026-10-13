@@ -15,9 +15,17 @@ generator client {
   provider = "prisma-client-js"
 }
 
+// Two connections (Supabase):
+// - DATABASE_URL: what the app uses at runtime. On Vercel, the pooler in
+//   transaction mode, port 6543 (src/lib/env.ts adds pgbouncer=true and
+//   connection_limit=3 when missing).
+// - DIRECT_URL: the direct connection, port 5432, used by the Prisma CLI
+//   (db push, migrate) which needs a session the pooler can't give.
+// Locally both can be the same URL.
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // ---------------------------------------------------------------------------
@@ -31,10 +39,12 @@ enum Role {
   COMPLIANCE // organization compliance reviewer
   SUPERVISOR // field supervisor (reviews work)
   FINANCE // organization finance (payouts, exports)
+  PUBLISHER // C1: campaign communications (campaign profiles and feed land in C6)
 }
 
 /// Links a Supabase Auth user to a Turfcut role.
-/// M0: one role per user. Worker users get a workers row; company users get an
+/// M0: one role per user. C1: owners add members through OrgInvite; removing a
+/// member detaches them (orgId = null) and keeps their login and history. Worker users get a workers row; company users get an
 /// organizations row and one of the org roles.
 model Profile {
   id        String   @id @db.Uuid // == Supabase auth.users.id
@@ -56,6 +66,11 @@ model Profile {
   sentMessages       Message[]
   blocksMade         ProfileBlock[]            @relation("Blocker")
   blocksReceived     ProfileBlock[]            @relation("Blocked")
+  campaignPosts         CampaignPost[]         @relation("CampaignPostAuthor")
+  deletedCampaignPosts  CampaignPost[]         @relation("CampaignPostDeleter")
+  campaignPostRevisions CampaignPostRevision[]
+
+  @@index([orgId])
 }
 
 // ---------------------------------------------------------------------------
@@ -94,6 +109,11 @@ model Worker {
 
   payoutTransfers PayoutTransfer[]
   payDisputes     PayDispute[]
+
+  // S2: the worker's own social activity. Private to the worker; never read
+  // by matching, scorecards or any ranking (C1-Q14).
+  campaignFollows CampaignFollow[]
+  postLikes       PostLike[]
 }
 
 /// One past campaign on a worker's profile. The verification level travels
@@ -192,8 +212,33 @@ model Organization {
   payouts         Payout[]
   payoutTransfers PayoutTransfer[]
   payDisputes     PayDispute[]
+  invites         OrgInvite[]
+  campaignProfiles         CampaignProfile[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+/// C1: an owner's invitation for someone to join the organization in a role.
+/// Held on the server and matched to the email address the person proves
+/// they own when they first sign in (never to editable sign-up details).
+/// Operational state, not a ledger: resend moves expiresAt, revoke and
+/// accept stamp their columns. At most one pending invite per org and email
+/// (partial unique index in prisma/c1-roles.sql).
+model OrgInvite {
+  id           String       @id @default(uuid()) @db.Uuid
+  orgId        String       @db.Uuid
+  org          Organization @relation(fields: [orgId], references: [id], onDelete: Restrict)
+  email        String // lowercased
+  role         Role // never WORKER
+  invitedById  String       @db.Uuid // Profile.id of the owner who sent it
+  createdAt    DateTime     @default(now())
+  expiresAt    DateTime
+  acceptedAt   DateTime?
+  acceptedById String?      @db.Uuid // Profile.id created or attached on acceptance
+  revokedAt    DateTime?
+
+  @@index([email])
+  @@index([orgId, createdAt])
 }
 
 /// Versioned, counsel-approved rule profile per jurisdiction.
@@ -271,8 +316,14 @@ model Job {
 
   engagements      Engagement[]
   conversationJobs ConversationJob[]
+  // S1: the campaign this job works for (its profile's pinned talking points brief the job's shifts).
+  campaignProfileId String?          @db.Uuid
+  campaignProfile   CampaignProfile? @relation(fields: [campaignProfileId], references: [id], onDelete: Restrict)
+  embeddedInPosts   CampaignPost[]     @relation("CampaignPostJobEmbed")
 
   @@index([orgId, status])
+  @@index([jurisdictionId])
+  @@index([campaignProfileId])
 }
 
 enum EngagementStatus {
@@ -307,6 +358,8 @@ model Engagement {
   conversation Conversation?
 
   @@unique([jobId, workerId])
+  @@index([workerId])
+  @@index([hiredById])
 }
 
 enum ShiftStatus {
@@ -483,6 +536,8 @@ model Payout {
   @@index([workerId, createdAt])
   @@index([orgId, createdAt])
   @@index([shiftId])
+  @@index([engagementId])
+  @@index([adjustsId])
 }
 
 /// Status history of a pay line. APPEND-ONLY.
@@ -549,6 +604,8 @@ model PayDispute {
 
   @@index([orgId, createdAt])
   @@index([shiftId])
+  @@index([workerId])
+  @@index([payoutId])
 }
 
 /// How a dispute was closed. One per dispute. APPEND-ONLY.
@@ -676,6 +733,7 @@ model Message {
   reports   MessageReport[]
 
   @@index([conversationId, createdAt])
+  @@index([senderId])
 }
 
 /// Append-only edits and soft deletes (tombstones). Latest EDIT wins; any DELETE hides the text.
@@ -723,4 +781,123 @@ model ProfileBlock {
   liftedAt  DateTime?
 
   @@index([blockedId])
+}
+
+/// Rate-limit counts (src/lib/rate-limit.ts), shared by every server
+/// instance: one row per bucket ("login:203.0.113.9") per fixed window.
+/// Times are epoch milliseconds. Operational state, not a ledger: rows are
+/// deleted once expiresAt passes. Server-only (RLS on, no policies).
+model RateLimitCounter {
+  bucket      String
+  windowStart BigInt
+  count       Int
+  expiresAt   BigInt
+
+  @@id([bucket, windowStart])
+  @@index([expiresAt])
+}
+
+/// S1: a campaign's public page. An organization may run several campaigns,
+/// each with its own profile; jobs link to the one they work for. Every word
+/// is the campaign's own, shown verbatim: Turfcut never labels, summarizes or
+/// infers politics from it. Public once published, and only while the
+/// organization is approved by Turfcut.
+model CampaignProfile {
+  id          String         @id @default(uuid()) @db.Uuid
+  orgId       String         @db.Uuid
+  org         Organization   @relation(fields: [orgId], references: [id], onDelete: Restrict)
+  handle      String         @unique // lowercase a-z 0-9 _, 3-30 (checked in SQL and code)
+  displayName String
+  bio         String         @default("")
+  avatarKey   String?
+  headerKey   String?
+  publishedAt DateTime? // null = draft, not public
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  posts       CampaignPost[]
+  jobs        Job[]
+  followers   CampaignFollow[]
+
+  @@index([orgId])
+}
+
+/// S1: a post on a campaign's profile, up to 500 characters, optionally
+/// embedding one of the organization's jobs. Pinned posts (at most 3) are the
+/// campaign's talking points and brief its jobs' shifts. Deleting hides the
+/// post and keeps the row; every version of the text is a revision.
+model CampaignPost {
+  id          String                 @id @default(uuid()) @db.Uuid
+  profileId   String                 @db.Uuid
+  profile     CampaignProfile        @relation(fields: [profileId], references: [id], onDelete: Restrict)
+  authorId    String                 @db.Uuid
+  author      Profile                @relation("CampaignPostAuthor", fields: [authorId], references: [id], onDelete: Restrict)
+  body        String
+  jobId       String?                @db.Uuid
+  job         Job?                   @relation("CampaignPostJobEmbed", fields: [jobId], references: [id], onDelete: Restrict)
+  pinnedAt    DateTime?
+  deletedAt   DateTime?
+  deletedById String?                @db.Uuid
+  deletedBy   Profile?               @relation("CampaignPostDeleter", fields: [deletedById], references: [id], onDelete: Restrict)
+  createdAt   DateTime               @default(now())
+  editedAt    DateTime?
+  revisions   CampaignPostRevision[]
+  likes       PostLike[]
+
+  @@index([profileId, createdAt])
+  @@index([jobId])
+  @@index([authorId])
+  @@index([deletedById])
+}
+
+/// S1: every version of a post's text and embed, oldest first (the first is
+/// the post as written). Append-only and server-only.
+model CampaignPostRevision {
+  id        String       @id @default(uuid()) @db.Uuid
+  postId    String       @db.Uuid
+  post      CampaignPost @relation(fields: [postId], references: [id], onDelete: Restrict)
+  body      String
+  jobId     String?      @db.Uuid // the embed at this version: a snapshot, deliberately not a foreign key
+  editorId  String       @db.Uuid
+  editor    Profile      @relation(fields: [editorId], references: [id], onDelete: Restrict)
+  createdAt DateTime     @default(now())
+
+  @@index([postId, createdAt])
+  @@index([editorId])
+}
+
+/// S2: a worker following a campaign. Each row is one stretch of following:
+/// unfollowing ends it (revokedAt, set once); following again, or changing
+/// the notify setting, starts a new row. Append-only otherwise. One open row
+/// per worker and campaign (partial unique index in prisma/s2-social.sql).
+/// Private to the worker: campaigns never see who follows them, there are no
+/// follower counts, and nothing here is ever read by matching (C1-Q14).
+model CampaignFollow {
+  id         String          @id @default(uuid()) @db.Uuid
+  workerId   String          @db.Uuid
+  worker     Worker          @relation(fields: [workerId], references: [id], onDelete: Restrict)
+  campaignId String          @db.Uuid
+  campaign   CampaignProfile @relation(fields: [campaignId], references: [id], onDelete: Restrict)
+  /// Opted in to notices of the campaign's new posts (S2.4).
+  notify     Boolean         @default(false)
+  createdAt  DateTime        @default(now())
+  revokedAt  DateTime?
+
+  @@index([workerId, revokedAt])
+  @@index([campaignId, revokedAt])
+}
+
+/// S2: a worker's like on a post. Unliking ends the row (removedAt, set
+/// once); liking again starts a new one. Private to the worker: a campaign
+/// sees only how many likes a post has, never who.
+model PostLike {
+  id        String       @id @default(uuid()) @db.Uuid
+  workerId  String       @db.Uuid
+  worker    Worker       @relation(fields: [workerId], references: [id], onDelete: Restrict)
+  postId    String       @db.Uuid
+  post      CampaignPost @relation(fields: [postId], references: [id], onDelete: Restrict)
+  createdAt DateTime     @default(now())
+  removedAt DateTime?
+
+  @@index([workerId, removedAt])
+  @@index([postId, removedAt])
 }

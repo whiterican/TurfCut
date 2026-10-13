@@ -4,6 +4,7 @@ import type { EmailOtpType } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { safeNext } from "@/lib/auth-input";
 import { ensureAccount } from "@/lib/account";
+import { missingCoreSettings, unsetDetail } from "@/lib/env";
 
 /**
  * GET /auth/confirm — where a magic link lands. Handles both link styles
@@ -12,9 +13,19 @@ import { ensureAccount } from "@/lib/account";
  * continues to `next` (same-site paths only).
  */
 export async function GET(req: NextRequest) {
+  // A server missing its settings mustn't blame the link ("expired or already
+  // used"): say the server isn't set up. Nothing here exchanges the link, so
+  // a token_hash link still works later; the default style's token was
+  // already spent at Supabase, so the page offers password or a new link.
+  const unset = missingCoreSettings();
+  if (unset.length) {
+    console.error(`[turfcut] sign-in link not used: not configured (${unsetDetail(unset)})`);
+    redirect("/login?error=config");
+  }
   const p = req.nextUrl.searchParams;
   const next = safeNext(p.get("next"));
   let ok = false;
+  let setup = false;
   try {
     const supabase = await createClient();
     const code = p.get("code");
@@ -29,7 +40,9 @@ export async function GET(req: NextRequest) {
       // getSessionProfile retries on their next request.
       try {
         const { data } = await supabase.auth.getUser();
-        if (data.user) await ensureAccount(data.user);
+        // No profile and nothing to build one from (an invite that closed
+        // before they opened it): let them finish setting up.
+        if (data.user && !(await ensureAccount(data.user, { fromInviteLink: type === "invite" }))) setup = true;
       } catch (e) {
         console.error("[turfcut] account setup after confirmation failed", e);
       }
@@ -37,5 +50,5 @@ export async function GET(req: NextRequest) {
   } catch {
     ok = false;
   }
-  redirect(ok ? next : "/login?error=link");
+  redirect(!ok ? "/login?error=link" : setup ? "/welcome" : next);
 }

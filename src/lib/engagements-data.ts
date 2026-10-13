@@ -54,6 +54,10 @@ async function open(
   const job = await db().job.findUnique({ where: { id: jobId }, include: { org: { select: { name: true } } } });
   if (!job) return { ok: false, reason: "Job not found." };
   if (actor.kind === "org" && actor.orgId !== job.orgId) return { ok: false, reason: "This job belongs to another organization." };
+  // No directory (C1): an organization invites only workers who have already
+  // engaged with one of its jobs. Unknown and unrelated ids get the same
+  // answer, so invitations can't be used to probe for worker ids.
+  if (action === "invite" && !(await orgHasRelationship(workerId, job.orgId))) return { ok: false, reason: "Worker not found." };
   const w = await db().worker.findUnique({ where: { id: workerId }, select: { closedAt: true } });
   if (!w) return { ok: false, reason: "Worker not found." };
   if (w.closedAt) return { ok: false, reason: "This worker has closed their account." };

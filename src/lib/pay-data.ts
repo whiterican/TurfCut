@@ -577,6 +577,12 @@ function assertPayRole(actor: PayActor) {
   if (notPayRole(actor)) throw new Error("[turfcut] pay records are for owners and finance only");
 }
 
+/** How many pay disputes are open (the Desk's count; no cap, no rows loaded). */
+export async function countOpenDisputes(actor: PayActor): Promise<number> {
+  assertPayRole(actor);
+  return db().payDispute.count({ where: { orgId: actor.orgId, resolution: { is: null } } });
+}
+
 export async function loadOrgDisputes(actor: PayActor, open: boolean): Promise<DisputeView[]> {
   assertPayRole(actor);
   const orgId = actor.orgId;

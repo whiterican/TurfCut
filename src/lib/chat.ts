@@ -18,9 +18,15 @@
  * - Nothing here reads, infers or labels political fit or chat content.
  */
 import type { Role } from "@/lib/auth";
+import { rolesFor } from "@/lib/access";
 
-/** Org roles that run teams: create group chats and act as managers. */
-export const CHAT_STAFF_ROLES: Role[] = ["OWNER", "RECRUITER", "SUPERVISOR"];
+/**
+ * Org roles that run teams: create group chats and act as managers. From the
+ * access map's "messages" area; the Profile_end_chat_access trigger
+ * (prisma/m4-migration.sql) lists the same roles, and access.test.ts holds
+ * the two together.
+ */
+export const CHAT_STAFF_ROLES: Role[] = rolesFor("messages");
 const HIRED = new Set(["ACTIVE", "CLAIMED"]);
 
 export const MAX_BODY = 4000;

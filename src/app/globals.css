@@ -1,16 +1,17 @@
 @import "tailwindcss";
 
 /*
- * Turfcut design system — from the Turfcut screen mockups.
+ * Turfcut design system — the "Turfcut App Mockup" palette: eggplant and lime.
  *
- * Light (daytime): cream surfaces, gold fills (the next-shift card, chips,
- * your chat bubbles, the hero card's pale gold) and eggplant for every trim:
- * text, outlines, rings and links. Dark: deep eggplant surfaces with a
- * lilac accent. Pastel status badges (sky, coral, butter, and the accent)
- * carry the dark "ink" colour; solid plum badges carry --on-plum text.
- * Priority rings are eggplant in light mode and cream to lavender in dark
- * mode. There is no green anywhere in Turfcut: design-tokens.test.ts fails on
- * any green colour, and Tailwind's green palettes are switched off below.
+ * Dark (the primary theme): eggplant surfaces (#1c142c page, #281a3a cards,
+ * #36264a raised), off-white text, lime (#ccea96) for the accent fill,
+ * primary actions, links and highlights, and olive (#3e4830) chips with lime
+ * text for "verified / done". Light: off-white page (#eef0ea), white cards,
+ * green-black ink (#181e1a), lime accent fills, eggplant for links, the
+ * "done" badges and progress, and an eggplant feature card (#2b1b3d). Pastel status
+ * badges (sky, coral, butter, and the accent) carry the dark "ink" colour;
+ * solid badges (--solid) carry --on-solid text. Priority rings are eggplant around
+ * the lime card by day and lime by night (with a page-coloured gap).
  *
  * The theme is a `.dark` class on <html>, set before first paint by the
  * inline script in app/layout.tsx (saved choice, else the OS preference).
@@ -20,80 +21,103 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  /* The accent fill: gold by day, lilac by night (see .dark). */
-  --accent: #ead39a;
-  --plum: #4a3070; /* solid "done / live" badges, with --on-plum text */
-  --on-plum: #fbfaf1;
+  /* The accent fill: lime in both themes. */
+  --accent: #ccea96;
+  /* Solid (and on-solid): the fill for "done / live / verified"
+     badges, a quick filter that's on and team avatars, and the text on it. One
+     role, two colours: EGGPLANT with off-white text by day, OLIVE with lime
+     text by night (the mockup's "Verified org" chip). Was --plum, which only
+     described the light theme. */
+  --solid: #281a3a;
+  --on-solid: #f6f6f2;
   --sky: #b9dbfa;
   --coral: #f8b3a2;
   --butter: #f5d98a;
-  --ink: #281840; /* text on any accent fill: the logo's eggplant */
+  --ink: #181e1a; /* text on any accent fill */
+  /* Job cards: the type chip takes the campaign's own declared affiliation
+     (pastel fill, ink text, same in both themes; the chip names it too). */
+  --party-democratic: #a9c8f7;
+  --party-republican: #f5a8a8;
+  --party-libertarian: #f2cd60;
+  --party-green: #a3dcb3;
+  --party-other: #9fd6d2;
+  --party-nonpartisan: #cfbaf2;
 
-  /* Light mode: cream and eggplant, from the brand marks. */
-  --bg: #f4f2e4;
-  --surface: #fbfaf1;
-  --surface-2: #ecead9;
-  --field: #fffef8;
-  --border: #e0ddc9;
-  --border-strong: #bdb8a0;
-  --fg: #281840;
-  --muted: #3f3257;
-  --subtle: #52466a;
+  /* Light mode: off-white page, white cards, green-black ink, eggplant links. */
+  --bg: #eef0ea;
+  --surface: #fbfbf8;
+  --surface-2: #e4e7df;
+  --field: #ffffff;
+  --border: #d9ddd3;
+  --border-strong: #b7bdb2;
+  --fg: #181e1a;
+  --muted: #3f463f;
+  --subtle: #474f47;
   --link: #5a3a8a;
   --focus: #5a3a8a;
   --danger: #b42318;
-  --success: #4a3070;
-  --warning: #5e3424; /* dark clay, not gold (gold stays a fill); darker than --danger so the two differ by more than hue */
-  --primary: #281840;
-  --on-primary: #fbfaf1;
-  /* Hero card by day: pale gold with an eggplant trim. */
-  --hero: #f2e6c4;
-  --hero-fg: #281840;
-  --hero-muted: #4a3d5c;
-  --hero-border: #4a3070;
-  --shadow: 0 1px 2px rgb(40 24 64 / 0.05), 0 10px 28px -16px rgb(40 24 64 / 0.2);
-  /* Priority rings on the gold shift card: eggplant, lighter inside,
+  --success: #3a2754;
+  --warning: #5e3424; /* dark clay: differs from --danger in brightness, not just hue */
+  --primary: #181e1a;
+  /* A native switch's "on" track (its thumb is always white): ≥ 3:1 to the
+     thumb and to the surface. */
+  --switch-on: #181e1a;
+  --on-primary: #f6f6f2;
+  /* Secondary button: a white fill with a border at 3:1 or more against
+     the page, so it reads as a button (not disabled) yet stays quieter than
+     the solid primary. */
+  --secondary: #ffffff;
+  --secondary-border: #737b72;
+  /* Feature card: the brand eggplant (same family as the logo chip and dark
+     mode) with off-white text and a lime circle. */
+  --hero: #2b1b3d;
+  --hero-fg: #f6f6f2;
+  --hero-muted: #ddd6e6;
+  --hero-border: transparent;
+  --shadow: 0 1px 2px rgb(24 30 26 / 0.05), 0 10px 28px -16px rgb(24 30 26 / 0.18);
+  /* Priority rings on the lime shift card: eggplant, lighter inside,
      darker toward the outside edge. */
   --ring: #6a4c91;
   --ring-2: #4a3070;
-  --ring-3: #281840;
+  --ring-3: #281a3a;
   color-scheme: light;
 }
 
 .dark {
-  /* Dark mode is eggplant through and through: low-saturation purple
-     neutrals (hue ~275°) one step lighter than pitch, a brighter eggplant
-     (lilac) for the accent, and cream to lavender rims only on priority
-     rings and the current tab. */
-  --accent: #dcd1ea;
-  --bg: #1b1523;
-  --surface: #241c2e;
-  --surface-2: #2e2539;
-  --field: #1f1828;
-  --border: #3f3450;
-  --border-strong: #57496a;
-  --fg: #f4f0f7;
-  --muted: #d9d2de;
-  --subtle: #bfb6c7;
-  --plum: #5a4678;
-  --on-plum: #f4f0f7;
-  --ink: #1f1727;
-  --link: #dcd1ea;
-  --focus: #dcd1ea;
+  /* Dark mode: eggplant surfaces, lime accent, olive "verified" chips, lime
+     rims on priority rings and the current tab. */
+  --accent: #ccea96;
+  --bg: #1c142c;
+  --surface: #281a3a;
+  --surface-2: #36264a;
+  --field: #22172f;
+  --border: #4e3c64;
+  --border-strong: #6a5482;
+  --fg: #f8f8f4;
+  --muted: #d4ccde;
+  --subtle: #b9b0c4;
+  --solid: #3e4830; /* olive, not eggplant: see --solid in :root */
+  --on-solid: #ccea96;
+  --ink: #1e142c;
+  --link: #ccea96;
+  --focus: #ccea96;
   --danger: #ffb4b4;
-  --success: #dcd1ea;
+  --success: #ccea96;
   --warning: #f5d98a;
-  --primary: #dcd1ea;
-  --on-primary: #1f1727;
-  --hero: #382c47;
-  --hero-fg: #f6f2f9;
-  --hero-muted: #d0c7d7;
+  --primary: #ccea96;
+  --switch-on: #5c8b30; /* lime would leave the white thumb at 1.2:1 */
+  --on-primary: #1e142c;
+  --secondary: #36264a;
+  --secondary-border: #8a76a4;
+  --hero: #36264a;
+  --hero-fg: #f8f8f4;
+  --hero-muted: #d4ccde;
   --hero-border: transparent;
-  /* Rings: rims only, never fills or text. In dark mode a page-coloured gap
-     separates them from the lilac card (see the priority ring rules). */
-  --ring: #f6f4e2;
-  --ring-2: #b9a6d6;
-  --ring-3: #8a74ae;
+  /* Rings: rims only, never fills or text. A page-coloured gap separates
+     them from the lime card (see the priority ring rules). */
+  --ring: #eef6dc;
+  --ring-2: #b8d08a;
+  --ring-3: #8aa560;
   --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 12px 32px -16px rgb(0 0 0 / 0.6);
   color-scheme: dark;
 }
@@ -108,13 +132,8 @@
   --color-subtle: var(--subtle);
   --color-ink: var(--ink);
   --color-accent: var(--accent);
-  /* No green: Tailwind's green palettes are switched off. */
-  --color-green-*: initial;
-  --color-emerald-*: initial;
-  --color-teal-*: initial;
-  --color-lime-*: initial;
-  --color-plum: var(--plum);
-  --color-on-plum: var(--on-plum);
+  --color-solid: var(--solid);
+  --color-on-solid: var(--on-solid);
   --color-sky: var(--sky);
   --color-coral: var(--coral);
   --color-butter: var(--butter);
@@ -129,6 +148,7 @@
   --text-sm--line-height: 1.5;
   --font-sans: var(--font-dm-sans);
   --font-mono: var(--font-dm-mono);
+  --font-masthead: var(--font-newsreader);
 }
 
 /* Text size setting (Display settings): scales every rem-based size. */
@@ -145,6 +165,8 @@ body {
   font-weight: 450;
   font-family: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
   accent-color: var(--focus);
+  /* A long word or link breaks inside its box instead of running past it. */
+  overflow-wrap: break-word;
 }
 
 ::selection {
@@ -172,6 +194,14 @@ body {
   .page-title {
     @apply text-3xl leading-[1.05] font-bold tracking-[-0.03em] text-fg sm:text-4xl;
   }
+  /* Newsreader, for mastheads only: organization and job names at the top of a page. */
+  .masthead {
+    font-family: var(--font-newsreader), ui-serif, Georgia, serif;
+    @apply font-semibold tracking-[-0.01em] text-fg;
+  }
+  .page-title.masthead {
+    @apply tracking-[-0.015em];
+  }
   /* Small mono label above a title ("LIVE SHIFT", "GOOD MORNING"). */
   .eyebrow {
     @apply font-mono text-xs font-medium tracking-[0.1em] text-muted uppercase;
@@ -197,7 +227,7 @@ body {
     @apply rounded-2xl border border-border bg-surface p-4 sm:p-5;
     box-shadow: var(--shadow);
   }
-  /* The feature card (pale gold by day, eggplant by night) with an accent circle in the corner. */
+  /* The feature card (brand eggplant by day, raised eggplant by night) with a lime circle in the corner. */
   .hero-card {
     @apply relative overflow-hidden rounded-3xl p-5 sm:p-6;
     background: var(--hero);
@@ -217,8 +247,8 @@ body {
   }
   /* Priority rings (lib/priority): one narrow ring per level, each
      further out a darker shade. By day the innermost is the card's own
-     border (eggplant on gold reads at 4.7:1). By night a page-coloured gap
-     comes first, because cream on the lilac card would not show. */
+     border (eggplant on lime reads at 5:1). By night a page-coloured gap
+     comes first, so the pale inner ring stands clear of the lime card. */
   .hero-card[data-priority="1"],
   .hero-card[data-priority="2"],
   .hero-card[data-priority="3"] {
@@ -314,10 +344,12 @@ body {
     filter: brightness(1.06);
   }
   .btn-secondary {
-    @apply border border-border bg-surface-2 text-fg;
+    @apply border text-fg;
+    background: var(--secondary);
+    border-color: var(--secondary-border);
   }
   .btn-secondary:hover:not(:disabled) {
-    border-color: var(--border-strong);
+    border-color: var(--fg);
   }
   .btn-ghost {
     @apply text-muted;
@@ -361,16 +393,20 @@ body {
   }
   /* Selectable pill (checkbox/radio inside). Active state = ink (light) / accent (dark). */
   .chip {
-    @apply inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-full border border-border bg-surface px-3 py-1.5 text-sm text-fg transition;
+    @apply inline-flex max-w-full min-h-10 cursor-pointer items-center gap-2 rounded-3xl border border-border bg-surface px-3 py-1.5 text-start text-sm text-fg transition;
+    overflow-wrap: break-word;
   }
   .chip:hover {
     border-color: var(--border-strong);
   }
-  .chip:has(input:checked) {
+  /* Checked filter chips, and link chips for the page you're on (Pay tabs). */
+  .chip:has(input:checked),
+  .chip[aria-current="page"] {
     border-color: var(--accent);
     background: color-mix(in srgb, var(--accent) 16%, var(--surface));
   }
-  :root:not(.dark) .chip:has(input:checked) {
+  :root:not(.dark) .chip:has(input:checked),
+  :root:not(.dark) .chip[aria-current="page"] {
     background: var(--primary);
     color: var(--on-primary);
     border-color: transparent;
@@ -403,6 +439,22 @@ body {
     transform: translateX(1rem);
     background: var(--on-primary);
   }
+  /* Where the browser has native switches (Safari 17.4+; ::thumb ships only
+     with WebKit's switch), use them: iPhone plays its system tick only when a
+     finger toggles a real switch, so keep its native look. */
+  @supports selector(::thumb) {
+    .toggle input[switch] {
+      appearance: auto;
+      width: auto;
+      height: auto;
+      border: 0;
+      background: none;
+      accent-color: var(--switch-on);
+    }
+    .toggle input[switch]::after {
+      content: none;
+    }
+  }
   @media (forced-colors: active) {
     .toggle input {
       border-color: CanvasText;
@@ -430,9 +482,14 @@ body {
   .badge-coral,
   .badge-accent,
   .badge-sky,
-  .badge-plum,
-  .badge-butter {
-    @apply inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-semibold whitespace-nowrap;
+  .badge-solid,
+  .badge-butter,
+  .badge-party {
+    @apply inline-flex max-w-full shrink-0 items-center gap-1 rounded-md border px-2 py-0.5 text-start text-xs font-semibold;
+    /* A badge keeps its size beside other text, and a label wider than its row
+       ("Nonpartisan civic work (voter registration, GOTV)") wraps inside the
+       badge instead of running past the card's edge. */
+    overflow-wrap: break-word;
   }
   .badge-neutral {
     @apply border-border bg-surface-2 text-muted;
@@ -446,7 +503,14 @@ body {
   .badge-accent { --badge-bg: var(--accent); }
   .badge-sky { --badge-bg: var(--sky); }
   .badge-butter { --badge-bg: var(--butter); }
-  :is(.badge-coral, .badge-accent, .badge-sky, .badge-butter) {
+  /* A campaign's declared affiliation (job cards; see --party-*). */
+  .badge-party-democratic { --badge-bg: var(--party-democratic); }
+  .badge-party-republican { --badge-bg: var(--party-republican); }
+  .badge-party-libertarian { --badge-bg: var(--party-libertarian); }
+  .badge-party-green { --badge-bg: var(--party-green); }
+  .badge-party-other { --badge-bg: var(--party-other); }
+  .badge-party-nonpartisan { --badge-bg: var(--party-nonpartisan); }
+  :is(.badge-coral, .badge-accent, .badge-sky, .badge-butter, .badge-party) {
     background: var(--badge-bg);
     color: var(--ink);
     border-color: transparent;
@@ -518,7 +582,7 @@ body {
   }
   .step-done {
     @apply text-muted;
-    border-color: color-mix(in srgb, var(--plum) 50%, var(--border));
+    border-color: color-mix(in srgb, var(--solid) 50%, var(--border));
   }
   .step-current {
     background: var(--accent);
@@ -528,12 +592,17 @@ body {
   }
 
   /* ---- App navigation ------------------------------------------------- */
-  /* Phone: fixed bottom tab bar. Desktop (lg): links in the top bar. */
+  /* Phone: a floating pill above the bottom edge (and the home indicator),
+     tucked away while scrolling down (components/AppNav, lib/scroll-hide).
+     Desktop (lg): links in the top bar or the rail instead. */
   .tabbar {
-    @apply fixed inset-x-0 bottom-0 z-40 border-t border-border lg:hidden;
+    @apply fixed z-40 mx-auto max-w-md rounded-[1.75rem] border border-border px-1 lg:hidden;
+    inset-inline: 0.75rem;
+    bottom: calc(0.625rem + env(safe-area-inset-bottom));
     background: color-mix(in srgb, var(--surface) 92%, transparent);
-    backdrop-filter: blur(12px);
-    padding-bottom: env(safe-area-inset-bottom);
+    backdrop-filter: blur(16px);
+    box-shadow: 0 10px 30px -12px rgb(0 0 0 / 0.35), 0 2px 6px -2px rgb(0 0 0 / 0.12);
+    transition: transform 280ms cubic-bezier(0.2, 0.8, 0.2, 1);
   }
   .tab {
     @apply relative flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 pt-1.5 pb-1 text-xs font-semibold text-muted;
@@ -564,6 +633,86 @@ body {
     @apply absolute top-0.5 left-1/2 ml-2 min-w-[1.25rem] px-1 text-[0.7rem] leading-[1.25rem];
     box-shadow: 0 0 0 2px var(--surface);
   }
+  /* ---- Staff components (C1) ------------------------------------------ */
+  .data-table-wrap {
+    @apply max-h-[70vh] overflow-auto rounded-2xl border border-border bg-surface;
+    box-shadow: var(--shadow);
+  }
+  .data-table {
+    @apply w-full border-collapse text-sm;
+  }
+  .data-table thead th {
+    @apply sticky top-0 z-10 border-b border-border bg-surface-2 px-3 py-2 text-left text-xs font-semibold whitespace-nowrap text-muted;
+  }
+  .data-table tbody th,
+  .data-table td {
+    @apply border-b border-border px-3 py-2.5 text-left align-top text-fg;
+  }
+  /* The row label keeps a readable width; narrow screens scroll the figures instead of crushing it. */
+  .data-table tbody th {
+    @apply min-w-44 font-semibold;
+  }
+  .data-table-compact tbody th {
+    @apply min-w-32 sm:min-w-44;
+  }
+  .data-table tbody tr:last-child > * {
+    @apply border-b-0;
+  }
+  .data-table .num,
+  .data-table th.text-right {
+    @apply text-right whitespace-nowrap tabular-nums;
+  }
+  .data-table-sort {
+    @apply -mx-1 inline-flex items-center gap-1 rounded px-1 py-0.5 font-semibold hover:text-fg;
+  }
+  .summary-bar {
+    @apply grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-border bg-border sm:grid-cols-4;
+  }
+  .summary-item {
+    @apply space-y-1 bg-surface px-4 py-3;
+  }
+  .summary-value {
+    @apply text-2xl font-bold tracking-[-0.02em] text-fg tabular-nums;
+  }
+
+  /* Organization shell (C1): left rail on desktop, role tabs + More sheet on phones. */
+  .org-shell {
+    @apply mx-auto flex w-full max-w-6xl flex-1;
+  }
+  .org-rail {
+    @apply sticky top-0 hidden max-h-dvh w-60 shrink-0 self-start overflow-y-auto px-3 pt-8 pb-6 lg:block;
+  }
+  .org-rail-head {
+    @apply mb-4 space-y-1 border-b border-border px-3 pb-4;
+  }
+  .org-rail-status {
+    @apply inline-flex items-center gap-1 text-xs font-semibold text-muted;
+  }
+  .rail-link {
+    @apply flex min-h-10 items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-muted transition hover:bg-surface-2 hover:text-fg;
+  }
+  .rail-link[aria-current="page"] {
+    @apply bg-surface-2 font-semibold text-fg;
+    box-shadow: inset 3px 0 0 var(--focus);
+  }
+  /* More sheet: a native modal dialog pinned to the bottom of the screen. */
+  .more-sheet {
+    @apply m-0 mx-auto mt-auto w-full max-w-md border-0 bg-transparent p-0 lg:hidden;
+    max-height: 100dvh;
+    color: inherit;
+  }
+  .more-sheet-panel {
+    @apply rounded-t-2xl border border-b-0 border-border bg-surface p-4;
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+    box-shadow: var(--shadow);
+  }
+  /* Dims the page (never a pale wash, which reads as disabled). */
+  .more-sheet::backdrop {
+    background: rgb(24 20 30 / 0.45);
+  }
+  .dark .more-sheet::backdrop {
+    background: rgb(8 4 14 / 0.6);
+  }
   .topnav-link {
     @apply rounded-lg px-3 py-2 text-sm font-medium text-muted transition hover:bg-surface-2 hover:text-fg;
   }
@@ -587,11 +736,15 @@ body {
     background: var(--hero);
     color: var(--hero-fg);
   }
-  /* By day: gold fill, eggplant trim, so team chats stand out from people. */
+  /* By day: lime fill, so team chats stand out from people. */
   :root:not(.dark) .avatar-team {
     background: var(--accent);
     color: var(--ink);
-    border-color: var(--hero-border);
+  }
+  /* By night: the olive "verified" chip colours, distinct from people's eggplant avatars. */
+  .dark .avatar-team {
+    background: var(--solid);
+    color: var(--on-solid);
   }
   .bubble {
     @apply max-w-full rounded-2xl px-3.5 py-2 text-[0.9375rem] leading-relaxed break-words whitespace-pre-wrap;
@@ -627,10 +780,11 @@ body {
     outline: 2px solid var(--focus);
     outline-offset: 2px;
   }
-  /* The composer stays above the tab bar while you scroll the thread. */
+  /* The composer stays above the floating tab bar while you scroll the
+     thread (bar: 3.5rem tall, 0.625rem off the bottom, plus a gap). */
   .composer {
     @apply sticky z-30 -mx-4 space-y-2 border-t border-border px-4 pt-3 pb-3 backdrop-blur sm:-mx-6 sm:px-6 lg:bottom-0;
-    bottom: calc(3.5rem + env(safe-area-inset-bottom));
+    bottom: calc(4.75rem + env(safe-area-inset-bottom));
     background: color-mix(in srgb, var(--bg) 94%, transparent);
   }
   @media (min-width: 64rem) {
@@ -667,42 +821,40 @@ body {
     @apply block rounded-2xl px-4 py-3 text-fg transition;
     background: color-mix(in srgb, var(--accent) 24%, var(--surface));
   }
-  /* By day the light gold banner gets an eggplant trim so it reads as a block. */
   :root:not(.dark) .shift-banner {
     background: color-mix(in srgb, var(--accent) 50%, var(--surface));
-    border: 1px solid var(--hero-border);
+    border: 1px solid var(--border-strong);
   }
-  /* Quick filters on Find work: outlined, solid pastel when on. */
+  /* By day lime is close to the off-white page, so lime shapes get a quiet
+     outline to read as shapes (text on them is already AAA). */
+  :root:not(.dark) .badge-accent {
+    border-color: var(--border-strong);
+  }
+  :root:not(.dark) .bubble-mine {
+    box-shadow: inset 0 0 0 1px var(--border-strong);
+  }
+  /* Links inside a feature card take the card's own text colour (off-white on the
+     dark card, ink on the lime one), never the page link colour. */
+  .hero-card .link {
+    color: inherit;
+  }
+  /* Quick filters on Find work: outlined, solid when on. One "on" for all of
+     them: on the feed, a coloured chip names a campaign's declared party in
+     words; the sky date chip carries a calendar instead. */
+  /* relative: it holds its own screen-reader text (absolutely placed), so the
+     scrolling row clips that too and the page never scrolls sideways. */
   .filter-chip {
-    @apply inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-full border border-border bg-surface px-3.5 text-sm font-semibold text-fg transition;
+    @apply relative inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-full border border-border bg-surface px-3.5 text-sm font-semibold text-fg transition;
   }
   .filter-chip:hover {
     border-color: var(--border-strong);
   }
-  .filter-chip-sky,
-  .filter-chip-butter,
-  .filter-chip-accent {
-    color: var(--ink);
+  /* Solid: "done / live" badges and a quick filter that's on (eggplant by day, olive by night; see --solid). */
+  .badge-solid,
+  .filter-chip-on {
+    background: var(--solid);
+    color: var(--on-solid);
     border-color: transparent;
-  }
-  .filter-chip-sky { background: var(--sky); }
-  .filter-chip-butter { background: var(--butter); }
-  .filter-chip-accent { background: var(--accent); }
-  /* Solid plum: "done / live" badges and the Canvass filter, light text on plum. */
-  .badge-plum,
-  .filter-chip-plum {
-    background: var(--plum);
-    color: var(--on-plum);
-    border-color: transparent;
-  }
-  /* By day gold accent chips and badges carry an eggplant trim, which also
-     keeps them apart from butter (status "waiting") at a glance. */
-  :root:not(.dark) :is(.badge-accent, .filter-chip-accent) {
-    border-color: var(--hero-border);
-  }
-  /* OpenStreetMap tiles paint parks and fields green; Turfcut shows its maps in greyscale. */
-  .leaflet-tile-pane {
-    filter: grayscale(1);
   }
   .quick-reply {
     @apply inline-flex min-h-9 shrink-0 items-center rounded-full border border-border bg-surface px-3 text-xs font-semibold text-fg transition;
@@ -718,6 +870,8 @@ body {
 /* Leaflet map: keep OSM tiles readable but less glaring in the dark theme. */
 .turf-map {
   background: var(--surface-2);
+  /* Leaflet's panes (z-index 400+) stay inside the map, under the tab bar. */
+  isolation: isolate;
 }
 .dark .turf-map .leaflet-tile {
   filter: brightness(0.72) contrast(1.15);
@@ -734,6 +888,18 @@ body {
   }
   body:has(.composer-input:focus) .composer {
     bottom: 0;
+  }
+}
+
+/* Scrolling down tucks the tab bar below the screen; scrolling up brings it
+   back. It stays put when motion is reduced, while it holds keyboard focus
+   (Tab must never land on something off screen), and in chat threads,
+   where the composer sits right above it. :focus-visible, not
+   :focus-within: a tapped tab (or More, refocused after its sheet closes)
+   keeps focus, and that must not pin the bar. */
+@media (prefers-reduced-motion: no-preference) {
+  body:not(:has(.composer)) .tabbar[data-tucked]:not(:has(:focus-visible)) {
+    transform: translateY(calc(100% + 1.5rem + env(safe-area-inset-bottom)));
   }
 }
 
@@ -835,15 +1001,4 @@ summary.list-none::-webkit-details-marker {
   :is(.btn, .btn-primary, .btn-secondary, .btn-ghost, .quick-reply, .chip, .tab):active {
     transform: none;
   }
-}
-
-/* Header logo: the gold mark by day, the lilac mark by night. */
-.logo-night {
-  display: none;
-}
-.dark .logo-day {
-  display: none;
-}
-.dark .logo-night {
-  display: block;
 }

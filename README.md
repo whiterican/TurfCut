@@ -22,7 +22,7 @@ npm install
 # 1. Copy env template and fill in (see "What needs Caden")
 cp .env.example .env.local
 
-# 2. Create the database schema (needs DATABASE_URL)
+# 2. Create the database schema (needs DATABASE_URL and DIRECT_URL)
 npm run db:push
 
 # 3. Seed: 1 org, 3 workers, 1 jurisdiction, 1 job, sample shift + payout
@@ -68,10 +68,14 @@ exercise the locks, triggers and data rules, not the RLS policies.
 1. **Create a Supabase project** at https://supabase.com (free tier is fine).
 2. **Copy three values** from the Supabase dashboard into `.env.local`:
    - Project URL → `NEXT_PUBLIC_SUPABASE_URL`
-   - Anon public key → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-   - Service-role key (Settings → API, keep secret) → `SUPABASE_SERVICE_ROLE_KEY`
-3. **Copy the Postgres connection string** (Settings → Database → Connection
-   string) into `DATABASE_URL` in `.env.local`.
+   - Publishable key, or the legacy anon key → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - A secret key, or the legacy service_role key (Project Settings → API
+     Keys; keep it secret) → `SUPABASE_SERVICE_ROLE_KEY`. The app hands both
+     straight to Supabase's client libraries, which accept either kind.
+3. **Copy the Postgres connection strings** (Project → Connect) into
+   `.env.local`: `DATABASE_URL` for the running app and `DIRECT_URL` for the
+   Prisma CLI. Locally they can be the same. See **Deploying to Vercel** for
+   which one goes where in production.
 4. **Run the schema + seed:**
    ```bash
    npm run db:push
@@ -88,6 +92,14 @@ exercise the locks, triggers and data rules, not the RLS policies.
      links to `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email`.
      That style works even when the email opens in a different browser than
      the one that asked for it.
+   - **Member invites (C1) need it:** set the **Magic Link** template as above
+     and the **Invite user** template to
+     `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=invite`.
+     Invites are sent server-side, so the default link style can't complete
+     them. The pilot uses Supabase's built-in sender; switch Authentication →
+     SMTP to a real provider before scaling beyond the pilot.
+     Invites rely on **Confirm email** being on (below): an invite is matched
+     to the address the person has proven they own.
    - Keep **Confirm email** turned on in production (Authentication →
      Providers → Email). Accounts are only created after the address is
      confirmed; with confirmation off, sign-up necessarily reveals whether an
@@ -95,7 +107,19 @@ exercise the locks, triggers and data rules, not the RLS policies.
    - Preview deployments run in production mode too: give each one its own
      `SITE_URL` (and add its `/auth/confirm` to Redirect URLs), or sign-in
      links stay disabled there.
-6. **Payouts (M5)** — optional until you want to send real (test) money:
+6. **Campaign pages (S1)** — before deploying the S1 code:
+   - Run `prisma/s1-social.sql` in the SQL editor, **after** the pending
+     queue (the M5/M6 live SQL, then the C1–C4 files in order). It's safe
+     to run again.
+   - Then `prisma/s2-social.sql` (S2: follows and likes), right after it,
+     before deploying the S2 code. Also safe to run again. Nothing to
+     create in Storage for S2.
+   - Storage → New bucket **`campaign-media`**, set to **public**, with a
+     file size limit of **2 MB** and allowed MIME types **image/png,
+     image/jpeg**. Campaign avatars and header images go there. The app
+     removes location and camera details before storing, and checks size
+     and type itself too; the bucket limits are a second line.
+7. **Payouts (M5)** — optional until you want to send real (test) money:
    - Create a Stripe account and turn on **Connect** (Express accounts),
      in **test mode**.
    - Developers → API keys → copy the secret key into `STRIPE_SECRET_KEY`.
@@ -109,6 +133,54 @@ exercise the locks, triggers and data rules, not the RLS policies.
      fund by invoice. In test mode, add test funds in the Stripe dashboard.
    Without these keys the app still records, approves, disputes and exports
    pay; the **Pay** button explains that Stripe isn't connected yet.
+8. **Going live on Vercel**, in this order:
+   1. **One Vercel project for the site.** Importing the repo twice makes two
+      projects that both build every push, and settings added to one never
+      reach the other. Keep one; delete the other (its Settings, at the bottom).
+   2. **Bring the live database up to date first** (the upgrade notes below,
+      or the catch-up file from the latest handover). Pages that read new
+      tables fail until it's done.
+   3. **Settings → Environment Variables**, ticked for **Production**:
+      `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
+      `SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL` (the transaction pooler,
+      port 6543; see **Deploying to Vercel**), `SITE_URL` (the public
+      address, e.g. `https://turf-cut.vercel.app`) and
+      `CLIENT_IP_HEADER=x-vercel-forwarded-for`. Tick Preview too for all but
+      `SITE_URL` if you'll test previews (each preview needs its own, item 5).
+      The app reads exactly these names. Supabase's Vercel integration adds
+      differently named ones (`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`,
+      `SUPABASE_SECRET_KEY`, `POSTGRES_PRISMA_URL`), so add the app's names
+      as well, with the same values: the publishable key (or legacy anon key)
+      as `NEXT_PUBLIC_SUPABASE_ANON_KEY`, a secret key (or legacy
+      service_role key) as `SUPABASE_SERVICE_ROLE_KEY`, and `DATABASE_URL`
+      from Connect → Transaction pooler (or a copy of `POSTGRES_PRISMA_URL`
+      once you've checked it's port 6543; a copy doesn't follow later
+      password changes).
+   4. **Redeploy after any settings change** (Deployments → ⋯ → Redeploy).
+      Settings only reach new deployments, and the `NEXT_PUBLIC_` ones are
+      baked in when the site is built.
+      The server's region comes from `vercel.json` (`cle1`, Cleveland, next
+      to a Supabase project in us-east-2) and overrides the dashboard's
+      Function Region; change it there if the database moves.
+   5. **Use the project's public domain.** With Deployment Protection on
+      (the default for new projects), every other address, per-deployment URLs
+      and `<project>-<team>.vercel.app` included, sits behind Vercel's own
+      login, so field phones can't open them.
+   6. **Supabase → Authentication → URL Configuration:** Site URL = `SITE_URL`,
+      and add `<SITE_URL>/auth/confirm` to Redirect URLs. Set the email
+      templates as in item 5 above.
+   7. **Check it:** open `/login` and sign in.
+      - A missing setting is named on the page ("Sign-in isn't configured on
+        this server yet (DATABASE_URL).") and in Vercel → Logs
+        (`[turfcut] sign-in refused: not configured (DATABASE_URL)`). Member
+        invites do the same for `SUPABASE_SERVICE_ROLE_KEY` and `SITE_URL`.
+      - "Sign-in is briefly unavailable" for a password sign-in, with every
+        setting present, means the database is behind: most often
+        `prisma/rate-limit.sql` hasn't run (step 2). Logs show
+        `[turfcut] rate limiter error`.
+      - Signing in seems to work but lands back on the login page: the
+        address or password in `DATABASE_URL` is wrong, or the database is
+        behind. Logs show the database error that says which.
 
 **Already set up under M0?** Upgrade the live database for M1 by pasting,
 in order, `prisma/m1-migration.sql`, `prisma/m1-profile-migration.sql`, then
@@ -161,8 +233,10 @@ refuses edits and deletes of work events, shift reviews and the audit log,
 as it already does for messages and pay (safe to re-run).
 
 Until steps 1–4 are done, `npm run dev` boots fine and the login/signup pages
-render, but sign-up will fail with a clear "missing environment variable"
-message.
+render. While the Supabase URL and key or `DATABASE_URL` are unset, sign-in
+and sign-up say which is missing and create nothing. Once they're set but
+before step 4 has run, a password sign-in reads "briefly unavailable": the
+database has no tables yet.
 
 ## Project layout
 
@@ -172,14 +246,14 @@ src/
     page.tsx            # landing
     login/              # worker/company login
     signup/             # signup + role selection (worker vs company)
-    dashboard/          # role-gated dashboard skeleton
+    dashboard/          # worker: Today (saved for offline); org roles go to their desk
     profile/            # worker: scorecard, experience, fit summary
     profile/preferences # worker: 6-step political-fit consent flow
     workers/            # company: worker directory + authorized view + invite
     jobs/               # worker feed / org job list, builder, job page
     shifts/             # worker calendar + field day; supervisor custody/review
     earnings/           # worker: pay per campaign, disputes, payout setup (M5)
-    payouts/            # owners/finance: approve, hold, disputes, pay, export (M5)
+    pay/                # owners/finance: approve, hold, disputes, pay, export (M5)
     api/stripe/webhook  # Stripe events (M5)
     org/settings/       # publish-gate records, legal contact, jurisdictions
     api/workers/[workerId]/scorecard  # GET scorecard JSON
@@ -228,7 +302,158 @@ prisma/
   m5-migration.sql      # M4 → M5 upgrade (pay lines, payouts, disputes)
   m5-1-history-lock.sql # append-only triggers on work events, reviews, audit
   m6-migration.sql      # M5 → M6 upgrade (offline sync ids on work events)
+  fk-indexes.sql        # indexes on nine foreign keys (safe to re-run)
 ```
+
+## Demo data
+
+`npm run seed:demo -- --yes` (after `npm run seed`) fills the app for
+testers. Export `DATABASE_URL` in the shell first; tsx doesn't read
+`.env.local`. Without `--yes` it only says where it would write. It makes:
+
+- six organizations with their staff and twelve workers, all named "… (demo)";
+- 27 published Colorado jobs, all titled "… (demo)" and fictional: local
+  measures and civic work, plus a job for each campaign type and
+  affiliation (candidate, party committee, issue advocacy; Democratic,
+  Republican, Libertarian, Green, other). The candidates have invented
+  names and run in districts that don't exist. Between them the campaigns
+  disclose every issue, so the feed's filters and workers' own "do not
+  match me" answers have something to act on. Four canvass jobs ask for no
+  credentials (two of them open to applications);
+- about fifty worked and reviewed daytime shifts with pay lines, waiting
+  applications, claims and invitations, and a few messages.
+
+Jobs whose campaign takes a party or an issue position hire by invitation
+only, so no real worker's issue answers are matched against a demo
+campaign. The nonpartisan demo jobs stay open, so testers can apply and
+claim. Like any application, one to a demo job carries what the worker
+shares with organizations they apply to: their scorecard and the
+political-fit answers they chose to share (identity, party, campaign
+interests). Nobody signs in as demo staff, so it reaches no one. Never link
+a real login to a demo organization (it would see those applicants), and
+close the demo jobs before real workers arrive.
+
+Everything goes through the app's own rules (publish gate, hiring, field
+day, review, pay), backdated so workers have history. Audit-log entries
+carry the date of the load. It runs once: a completion marker naming the
+demo organizations is written last, and a run that stopped partway is
+reported rather than repeated. Work history, reviews, pay lines and
+messages are append-only and stay. To take the demo jobs out of the feed
+(by the ids in the marker, not by name, since anyone can name an
+organization "… (demo)"):
+
+```sql
+UPDATE "Job" SET status = 'CLOSED'
+WHERE status = 'PUBLISHED' AND "orgId" IN (
+  SELECT (jsonb_array_elements_text(metadata -> 'orgIds'))::uuid
+  FROM "AuditEvent" WHERE action = 'demo.seeded');
+```
+
+## S1 scope — campaign pages (the social layer, campaign side)
+
+Campaigns get a public page that works as a recruiting channel, not a town
+square. Worker-side features (follows, a home feed, likes, reposts, replies)
+are S2, after S1 is approved.
+
+- **Campaign profiles.** An organization runs up to 5 campaigns, each with
+  a handle, a name, a bio, an avatar and a header image. Owners and
+  publishers edit the profile (`/campaigns/[id]`). A campaign is public at
+  `/c/[handle]` only while it's published **and** Turfcut has approved the
+  organization. A handle that has been public stays that campaign's address
+  for good, so old links and printed codes never lead to someone else.
+- **Posts.** Up to 500 characters, shown verbatim with only web links made
+  clickable. Owners, publishers and recruiters write them; recruiters change
+  only their own posts that aren't talking points. An edit is recorded as a
+  new revision (append-only), and a deleted post is hidden but kept on
+  record. Posts are ordered by time and nothing else, and each has a public
+  permalink (`/c/[handle]/p/[postId]`).
+- **Job embeds.** A post can embed one of the organization's published
+  jobs. The card shows the job as it is when read (title, place, dates,
+  type, gross pay) with an **Apply** button into the existing job page,
+  through sign-in for visitors. A closed job reads "no longer hiring".
+- **Talking points.** Up to 3 pinned posts (pinned by owners and
+  publishers) sit at the top of the campaign page. They also go in the
+  brief of every shift on the jobs linked to the campaign, verbatim, with
+  when each was written, and the offline brief carries them. Jobs are
+  linked from the campaign page.
+- **Never inferring politics.** Turfcut never labels, summarizes, scores or
+  infers anyone's politics from any of this. Viewing a page records
+  nothing. `src/lib/social-isolation.test.ts` fails if matching,
+  scorecards, political fit, the job feed or hiring code reaches the social
+  layer, directly or through imports. The S1 acceptance check confirms a
+  worker's job feed is unchanged by campaign activity.
+- **Data.** `CampaignProfile`, `CampaignPost` and the append-only
+  `CampaignPostRevision` tables, plus `Job.campaignProfileId`
+  (`prisma/s1-social.sql`). Published profiles and live posts are readable
+  through the Data API, column by column; writes are server-only.
+- **API.** Public: `GET /api/campaigns/:handle`, `/posts?cursor=` and
+  `/posts/:id`. Organization: `PUT /api/campaign/:id`,
+  `POST /api/campaign/:id/posts`, `PATCH`/`DELETE /api/campaign/posts/:id`
+  and `POST /api/campaign/posts/:id/pin`. Posting and campaign changes are
+  rate-limited per organization.
+- **Acceptance:** `tests/acceptance/s1-social.ts` (`run.sh s1`).
+
+**Decided (Caden, Oct 11: the recommendations stand).**
+- An embedded job's card (title, place, dates, pay, the campaign's declared
+  affiliation) is visible to anyone who opens the post, signed in or not.
+  The job page itself still needs sign-in.
+- Pinned posts show both under "Talking points" and in the time-ordered
+  list.
+- Releasing a squatted draft handle is a manual step for now: delete the
+  draft campaign row, which is only possible while it has no posts. A
+  handle that was ever public can't be released.
+- The legally required disclosures stay their own block, as decided in
+  Q10, separate from the talking points. The note to legal before talking
+  points reach the field still stands.
+
+## S2 scope — the worker side (follows, feed, likes)
+
+The social layer's worker side: a recruiting channel, not a town square.
+Chronological and follows only; nothing here is ever read by matching.
+
+- **Follows.** A worker follows a campaign from its page or from the
+  campaign card on a job's page (`Follow` / `Following`), with a per-follow
+  switch for notices of new posts. Following is private: a campaign never
+  sees who follows it, and there are no follower counts anywhere. Only a
+  public campaign (published, organization approved) can be followed;
+  unfollowing always works. Visitors are sent to sign in and brought back;
+  organization logins see no control.
+- **Home feed** (`/feed`, the **Feed** tab). The live posts of the campaigns
+  the worker follows and of the campaigns whose jobs hired them (a seat
+  held: claimed, active or completed), newest first, 20 a page by a time
+  cursor. Each post says why it's there ("Following" or "A campaign you
+  work for"). Job embeds render the job card with one-tap **Apply** into
+  the existing job page. No ranking, no suggestions, no filtering.
+- **Likes.** `Like` / `Liked` on every post a worker sees, private to them.
+  The campaign's own page shows a like total per post, never who.
+- **Today.** A "Campaigns you're on" strip (the public campaigns of jobs
+  the worker is on now) and a link to the feed that says how many posts
+  are newer than the last time this device opened it (a cookie on the
+  device, not a record).
+- **Notices of new posts.** The rule is in place (`noticeRecipients`:
+  followers who asked, at most 3 a day per campaign) and the per-follow
+  setting is stored. Delivery as in-app notifications needs the
+  Notification model from C3.5, which isn't on `master` yet; it lands
+  once C3 merges. Until then the "new in your feed" count on Today is
+  the notice.
+- **Reposts and replies** are deferred to S3.
+- **Never inferring politics, never feeding matching.** Follows and likes
+  are never read by matching, scorecards, political fit, the job feed or
+  hiring (`src/lib/social-isolation.test.ts`, extended to the new names
+  and modules; the acceptance check confirms a worker's job feed and
+  scorecard are unchanged by any of it). Who follows or likes is never
+  readable through the Data API, by anyone: both tables are server-only
+  (`src/lib/migration-grants.test.ts` fails if any migration grants or
+  adds a policy on them, or drops the revoke).
+- **Data.** `CampaignFollow` and `PostLike` (`prisma/s2-social.sql`):
+  append-only, versioned rows. A row is closed once (`revokedAt` /
+  `removedAt`) and never otherwise changed or removed; a change opens a
+  new row. One open row per worker and campaign (or post), enforced by a
+  partial unique index.
+- **API** (workers): `GET /api/feed?cursor=`, `GET`/`PUT
+  /api/feed/follows/:campaignId` (`{ following, notify? }`). Follow and
+  like changes are rate-limited per worker.
+- **Acceptance:** `tests/acceptance/s2-social.ts` (`run.sh s2`).
 
 ## M0 scope (done)
 
@@ -283,6 +508,9 @@ Jobs and hiring, built on the M1 profile.
   separately with the reason; nothing else hides a job.
 - **Job card**: who you work for, what you're paid (gross), what counts as
   payable, credentials needed, who handles problems — plus the disclosure.
+  Credentials are what the organization asks for plus, on petition jobs
+  only, the jurisdiction's circulator rules (registration, badge,
+  affidavit). The feed's "No credentials" filter uses the same list.
 - **Apply / invite / claim / accept.** Workers apply or claim; orgs invite;
   orgs accept applications and workers accept invitations. Headcount is
   enforced under a lock, so simultaneous claims can't overfill a job.
@@ -380,7 +608,10 @@ API: `GET/POST /api/shifts`, `POST /api/shifts/:id/check-in` `{ location? }`
   server error or an 8-second wait; copies are kept for one worker and
   72 hours at most, and only for pages on that list. API calls and server
   actions are never cached. Saved pages are deleted when another worker's
-  list arrives, on the sign-in pages and when a page bounces to sign-in.
+  list arrives, on the sign-in pages and when a field page redirects
+  anywhere (signed out, or someone else's session). These pages keep no
+  loading screen, so the server's real redirect, 404 and 500 reach the
+  service worker.
   Sign-out warns about this worker's unsynced entries and clears the queue
   and saved pages. (Another worker's unsynced entries stay on the phone
   until they sign in again.)
@@ -390,6 +621,41 @@ API: `GET/POST /api/shifts`, `POST /api/shifts/:id/check-in` `{ location? }`
   Entries synced into a shift the organization cancelled in the meantime,
   or one a supervisor already reviewed, are refused with that reason — a
   supervisor enters the work instead.
+
+## Deploying to Vercel — database connections
+
+Serverless functions each open their own database connections, so the
+running app must go through Supabase's connection pooler; the direct
+connection is only for schema changes.
+
+| Env var | Where | Value (Supabase → Project → Connect) |
+|---|---|---|
+| `DATABASE_URL` | Vercel (Production and Preview) | **Transaction pooler**, port **6543**: `postgresql://postgres.<ref>:<password>@aws-0-<region>.pooler.supabase.com:6543/postgres` |
+| `DIRECT_URL` | Your machine / CI only, when running `npm run db:push` or one-off scripts | **Direct connection**, port **5432**: `postgresql://postgres:<password>@db.<ref>.supabase.co:5432/postgres` |
+
+- The app adds `pgbouncer=true` (Prisma can't use prepared statements on the
+  transaction pooler) and `connection_limit=3` to a 6543 URL that doesn't
+  set them, and logs a warning on Vercel if `DATABASE_URL` isn't port 6543.
+- A pasted value is tidied first: spaces and line breaks, wrapping quotes, a
+  `DATABASE_URL=` prefix and a phone's capital `P` in `postgresql://` are
+  undone. One that still doesn't start with `postgresql://` (or
+  `postgres://`) makes sign-in
+  name `DATABASE_URL`; a pooler user without the project ref
+  (`postgres` instead of `postgres.<ref>`) is warned about. Warnings describe
+  the URL's shape, never its password.
+- Sessions are refreshed by the proxy with `getClaims()`, which checks the
+  token locally when the project signs with an asymmetric key (Supabase →
+  JWT Keys; this project uses ES256). On a legacy symmetric key every
+  request and tab prefetch costs a call to Supabase Auth instead.
+- Everything the app does in a database transaction (advisory locks,
+  interactive transactions) is transaction-scoped, so it works through the
+  pooler.
+- SQL migration files (`prisma/*.sql`) are pasted into the Supabase SQL
+  editor and need neither URL.
+- `DIRECT_URL` isn't needed on Vercel. The build runs `prisma generate`
+  (so a cached install never ships a stale client), and that reads neither
+  URL. `db:push` connects through `DIRECT_URL`, and `prisma validate` fails
+  if it's unset (any placeholder satisfies it, as in CI).
 
 ## Infra — error reporting and rate limits
 
@@ -409,10 +675,17 @@ API: `GET/POST /api/shifts`, `POST /api/shifts/:id/check-in` `{ location? }`
   `TRUSTED_PROXY_HOPS` (behind your own proxy, so `x-forwarded-for` is read
   from the trusted end). With neither set the per-connection limits are
   skipped rather than shared by everyone; the per-email and per-worker
-  limits still apply. In memory per server process, so
-  on serverless hosting each instance counts on its own; it is a floor
-  beneath Supabase Auth's own limits, not a wall. Moving to a shared store
-  (Postgres table or Upstash) only changes the store inside that file.
+  limits still apply (on Vercel a warning is logged until one is set:
+  `CLIENT_IP_HEADER=x-vercel-forwarded-for`). Counts live in Postgres
+  (`RateLimitCounter`, created by `prisma/rate-limit.sql`), one row per key
+  per window, so every serverless instance shares them. Each request is a
+  single atomic upsert (no lock, no transaction), read as a sliding window
+  by weighting the previous window's count. If the database is unreachable
+  the request goes through (an outage mustn't lock everyone out); any
+  other failure, such as the table missing, refuses sign-in, sign-up and
+  invites rather than silently lifting the limits. Offline sync always goes
+  through. Run `prisma/rate-limit.sql` before deploying this. Member
+  invites are capped at 20 emails per organization per day the same way.
 
 ## M7 scope — field truth and leaving cleanly
 

@@ -1,4 +1,5 @@
 import { Prisma } from "@prisma/client";
+import { needsReview } from "@/lib/field-view";
 import { db } from "@/lib/db";
 import { FIELD_ROLES } from "@/lib/access";
 import { canScheduleShift, UUID_RE } from "@/lib/jobs";
@@ -25,6 +26,9 @@ type Tx = Prisma.TransactionClient;
 type Result = { ok: true } | { ok: false; reason: string };
 
 const lock = (tx: Tx, key: string) => tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${key}))`;
+
+/** When the shift's latest CORRECTION event was made, or null (events load oldest first). */
+const lastCorrection = (s: { events: { type: string; createdAt: Date }[] }) => s.events.findLast((e) => e.type === "CORRECTION")?.createdAt ?? null;
 
 /** Every shift-scoped page and action loads the same shape. */
 const SHIFT_INCLUDE = {
@@ -274,20 +278,49 @@ export type SyncResult = { clientId: string; status: "saved" | "duplicate" | "re
  * reported as a duplicate, never saved twice. One transaction under the
  * shift lock.
  */
+/**
+ * Entries per transaction when syncing. The shift lock is held for one chunk
+ * at a time, so a large batch (the API takes up to MAX_BATCH) doesn't hold
+ * it, and a 30 s transaction, for the whole upload. The phone already sends
+ * at most 50.
+ */
+export const SYNC_CHUNK = 50;
+
 export async function syncWorkerActions(
   actor: { workerId: string; profileId: string },
   shiftId: string,
   batch: { deviceNow: number; actions: QueuedAction[] },
-  serverNow = new Date()
+  serverNow = new Date(),
+  chunkSize = SYNC_CHUNK
 ): Promise<{ ok: true; results: SyncResult[] } | { ok: false; reason: string }> {
   if (!UUID_RE.test(shiftId)) return { ok: false, reason: "Shift not found." };
   if (!Number.isFinite(batch.deviceNow)) return { ok: false, reason: "Missing the phone's clock." };
+  // Chunks run in order, each under the shift lock with the shift reloaded,
+  // so later entries are still placed after earlier ones (saved ones are in
+  // the reloaded timeline). If a chunk fails, the ones before it stay saved;
+  // the phone resends the batch and those come back as duplicates.
+  const results: SyncResult[] = [];
+  for (let i = 0; i < batch.actions.length; i += chunkSize) {
+    const r = await syncChunk(actor, shiftId, batch.deviceNow, batch.actions.slice(i, i + chunkSize), serverNow);
+    if (!r.ok) return r;
+    results.push(...r.results);
+  }
+  return { ok: true, results };
+}
+
+function syncChunk(
+  actor: { workerId: string; profileId: string },
+  shiftId: string,
+  deviceNow: number,
+  actions: QueuedAction[],
+  serverNow: Date
+): Promise<{ ok: true; results: SyncResult[] } | { ok: false; reason: string }> {
   return db().$transaction(
     async (tx) => {
     await lock(tx, `shift:${shiftId}`);
     const s = await loadShift(shiftId, tx);
     if (!s || s.engagement.workerId !== actor.workerId) return { ok: false as const, reason: "Shift not found." };
-    const seen = await tx.workEvent.findMany({ where: { clientId: { in: batch.actions.map((a) => a.clientId) } }, select: { clientId: true, shiftId: true } });
+    const seen = await tx.workEvent.findMany({ where: { clientId: { in: actions.map((a) => a.clientId) } }, select: { clientId: true, shiftId: true } });
     const done = new Map(seen.map((e) => [e.clientId!, e.shiftId]));
     const f = facts(s);
     const reviewed = shiftState(f).closeout !== null;
@@ -298,7 +331,7 @@ export async function syncWorkerActions(
     // supervisor's entry in the worker's name (M7) isn't one: it must never
     // push the worker's own times later.
     let lastWorker = latest((e) => WORKER_FIELD_EVENTS.has(e.type) && !((e.payload ?? {}) as Record<string, unknown>).enteredBy);
-    for (const q of batch.actions) {
+    for (const q of actions) {
       if (done.has(q.clientId)) {
         results.push(done.get(q.clientId) === shiftId ? { clientId: q.clientId, status: "duplicate" } : { clientId: q.clientId, status: "rejected", reason: "Already used for another shift." });
         continue;
@@ -307,7 +340,7 @@ export async function syncWorkerActions(
         results.push({ clientId: q.clientId, status: "rejected", reason: "Your supervisor already reviewed this shift. Ask them to add it." });
         continue;
       }
-      const corrected = correctTime(q.at, batch.deviceNow, serverNow);
+      const corrected = correctTime(q.at, deviceNow, serverNow);
       const late = timeProblem(corrected, serverNow);
       if (late) {
         results.push({ clientId: q.clientId, status: "rejected", reason: late });
@@ -335,9 +368,9 @@ export async function syncWorkerActions(
     }
     return { ok: true as const, results };
     },
-    // A day's worth of entries can take a while on a slow connection to the
-    // database; the default 5 s would roll the whole batch back.
-    { timeout: 30_000, maxWait: 10_000 }
+    // A chunk's worth of entries on a slow connection to the database can
+    // outlast the default 5 s.
+    { timeout: 15_000, maxWait: 10_000 }
   );
 }
 
@@ -445,7 +478,8 @@ export async function loadOps(orgId: string, now = new Date()) {
   const rows = shifts.map((s) => ({ shift: s, state: shiftState(facts(s)) }));
   const live = rows.filter((r) => !r.state.cancelled);
   const late = live.filter((r) => !r.state.checkedInAt && now.getTime() > r.shift.startsAt.getTime() + 15 * 60_000 && now < r.shift.endsAt);
-  const awaitingReview = live.filter((r) => r.state.checkedOutAt && !r.state.closeout);
+  // Same rule as the review queue: never reviewed, or corrected since.
+  const awaitingReview = live.filter((r) => needsReview(r.state, lastCorrection(r.shift)));
   // "In the field" = shifts that have started (or checked in early); the
   // rest of the next 24 hours is counted separately as upcoming.
   const due = live.filter((r) => r.state.checkedInAt || r.shift.startsAt <= now);
@@ -473,4 +507,56 @@ export async function loadWorkerTurf(workerId: string, now = new Date()) {
     orderBy: { startsAt: "asc" },
     take: 20,
   });
+}
+
+/**
+ * Field views (C1.4): the organization's shifts overlapping [from, to), not
+ * cancelled, with their state, as rows for lib/field-view.
+ */
+export async function loadFieldWindow(orgId: string, from: Date, to: Date): Promise<import("@/lib/field-view").FieldRow[]> {
+  const shifts = await db().shift.findMany({
+    where: { engagement: { job: { orgId } }, status: { not: "CANCELLED" }, startsAt: { lt: to }, endsAt: { gt: from } },
+    include: SHIFT_INCLUDE,
+    orderBy: { startsAt: "asc" },
+  });
+  return shifts.map((s) => ({
+    shiftId: s.id,
+    jobId: s.engagement.job.id,
+    jobTitle: s.engagement.job.title,
+    staging: s.stagingLocation,
+    worker: s.engagement.worker.displayName,
+    startsAt: s.startsAt,
+    endsAt: s.endsAt,
+    state: shiftState(facts(s)),
+  }));
+}
+
+/** The most the review queue loads at once (oldest first); the rest wait their turn. */
+export const REVIEW_CAP = 200;
+
+/**
+ * The review queue's candidates: shifts checked out in the last `days` days
+ * with no closeout yet, or corrected since (lib/field-view needsReview
+ * decides), the longest-waiting first, at most REVIEW_CAP.
+ */
+export async function loadReviewCandidates(orgId: string, now = new Date(), days = 30) {
+  const shifts = await db().shift.findMany({
+    where: {
+      engagement: { job: { orgId } },
+      status: { not: "CANCELLED" },
+      checkOutAt: { gt: new Date(now.getTime() - days * 86_400_000) },
+      OR: [{ validations: { none: { workEventId: null } } }, { events: { some: { type: "CORRECTION" } } }],
+    },
+    include: SHIFT_INCLUDE,
+    orderBy: { checkOutAt: "asc" },
+    take: REVIEW_CAP,
+  });
+  return shifts.map((s) => ({
+    shiftId: s.id,
+    jobTitle: s.engagement.job.title,
+    worker: s.engagement.worker.displayName,
+    startsAt: s.startsAt,
+    state: shiftState(facts(s)),
+    correctedAt: lastCorrection(s),
+  }));
 }

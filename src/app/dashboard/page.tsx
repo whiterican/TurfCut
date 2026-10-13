@@ -1,18 +1,26 @@
-import { requireAuth } from "@/lib/auth";
-import { SCHEDULING_ROLES } from "@/lib/access";
+import { getAuthUser, requireAuth } from "@/lib/auth";
+import { pendingInvitesFor } from "@/lib/members-data";
+import { ActionButton } from "@/components/ActionButton";
+import { acceptOrgInvite } from "./actions";
 import { db } from "@/lib/db";
 import { shiftPriority } from "@/lib/priority";
 import { ACCEPTED_STATUSES } from "@/lib/engagements";
 import { openJobsEndAfter, payShort, payText } from "@/lib/jobs";
-import { loadOps } from "@/lib/field-day-data";
 import { loadFeed } from "@/lib/jobs-data";
 import { JobFeedCard } from "@/components/JobFeedCard";
 import { LocalTime } from "@/components/LocalTime";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { workerPayTotals } from "@/lib/pay-data";
 import { OfflineBrief } from "@/components/OfflineBrief";
 import { briefPaths } from "@/lib/offline-brief-data";
 import { money } from "@/lib/pay";
+import { campaignsOn, newFeedCount } from "@/lib/campaign-follow-data";
+import { FEED_SEEN_COOKIE, feedBadge, feedSeenAt } from "@/lib/campaign-follow";
+import { cookies } from "next/headers";
+import { mediaUrl } from "@/lib/campaign-media";
+import { loadLatestPreference } from "@/lib/political-fit-data";
+import type { VisibilityMode } from "@/lib/political-fit";
 
 const ROLE_LABELS: Record<string, string> = {
   WORKER: "Field worker",
@@ -21,6 +29,7 @@ const ROLE_LABELS: Record<string, string> = {
   COMPLIANCE: "Compliance",
   SUPERVISOR: "Supervisor",
   FINANCE: "Finance",
+  PUBLISHER: "Publisher",
 };
 
 const day = (d: Date | null) =>
@@ -89,6 +98,39 @@ async function WorkerHero({ workerId }: { workerId: string }) {
   );
 }
 
+/** The campaigns the worker is on (S2): a strip of their pages, and the way to the feed. Nothing here ranks anything. (The "new" count keys on a cookie on this device, so it's per device, not per account.) */
+async function CampaignsOn({ workerId }: { workerId: string }) {
+  const seen = feedSeenAt((await cookies()).get(FEED_SEEN_COOKIE)?.value, new Date());
+  const [campaigns, fresh] = await Promise.all([campaignsOn(workerId), newFeedCount(workerId, seen)]);
+  if (campaigns.length === 0 && fresh === 0) return null;
+  return (
+    <section className="section" aria-labelledby="campaigns-on">
+      <div className="flex items-baseline justify-between gap-3">
+        <h2 id="campaigns-on" className="section-title">{campaigns.length ? "Campaigns you're on" : "Your campaigns"}</h2>
+        <Link href="/feed" className="text-sm font-medium text-muted hover:text-fg">{feedBadge(fresh)}</Link>
+      </div>
+      <ul className="flex gap-2 overflow-x-auto pb-1">
+        {campaigns.map((c) => {
+          const avatar = mediaUrl(c.avatarKey);
+          return (
+            <li key={c.id} className="shrink-0">
+              <Link href={`/c/${c.handle}`} className="card flex items-center gap-2 px-3 py-2 text-sm font-medium text-fg">
+                {avatar ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- a public storage URL; no optimizer route for it
+                  <img src={avatar} alt="" className="h-6 w-6 rounded-full object-cover" />
+                ) : (
+                  <span aria-hidden className="h-6 w-6 rounded-full bg-surface-2" />
+                )}
+                {c.displayName}
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+}
+
 /** Saves today's and the next two days' shift pages on the phone (offline brief). */
 async function WorkerBrief({ workerId, userId }: { workerId: string; userId: string }) {
   return <OfflineBrief userId={userId} paths={await briefPaths(workerId)} />;
@@ -105,6 +147,40 @@ async function EarningsCard({ workerId }: { workerId: string }) {
   ].filter(Boolean);
   const any = t.paid || t.onTheWay || t.awaiting || t.stopped;
   return <NavCard href="/earnings" title="Earnings" body={any ? parts.join(" · ") : "Your pay shows up here once a supervisor approves a shift."} />;
+}
+
+/** What's on hold until the worker reconfirms, by their own choice (Private never shows or uses anything). */
+const PAUSED: Record<VisibilityMode, string> = {
+  PRIVATE: "Your answers stay private either way; reconfirm to keep them on record.",
+  MATCHING_ONLY: "Until you reconfirm, they aren't used to keep you out of work you've ruled out.",
+  APPLIED_TO: "Until you reconfirm, they aren't shown to organizations or used to keep you out of work you've ruled out.",
+  APPROVED_RECRUITERS: "Until you reconfirm, they aren't used to keep you out of work you've ruled out.",
+};
+
+/**
+ * Political-fit answers that need reconfirming (the wording changed) or have
+ * expired authorize nothing: they're neither shown nor used to keep the worker
+ * out of work they ruled out. Profile says so; Today asks.
+ */
+async function FitReconfirm({ workerId }: { workerId: string }) {
+  const fit = await loadLatestPreference(workerId);
+  if (!fit || fit.status.state === "current") return null;
+  return (
+    <section className="card space-y-2" aria-label="Political-fit answers">
+      <p className="font-semibold text-fg">
+        {fit.status.state === "expired" ? "Your political-fit answers have expired" : "Check your political-fit answers"}
+      </p>
+      <p className="text-muted-sm">
+        {fit.status.state === "expired"
+          ? "They reached the expiry you chose."
+          : fit.visibilityMode === "APPLIED_TO"
+            ? "We've changed how we describe who sees them: claiming a spot counts, as applying does."
+            : "We've updated how Turfcut describes these choices."}{" "}
+        {PAUSED[fit.visibilityMode]}
+      </p>
+      <Link href="/profile/preferences" className="btn-primary btn-sm">Review and reconfirm</Link>
+    </section>
+  );
 }
 
 /** Open jobs, soonest first (screen mockups' "Best matches", without a ranking). */
@@ -136,63 +212,52 @@ async function OpenJobs({ workerId }: { workerId: string }) {
   );
 }
 
-async function OrgHero({ orgId }: { orgId: string }) {
-  const ops = await loadOps(orgId);
-  const attention = [
-    ...ops.late.map((r) => ({ id: r.shift.id, title: `${r.shift.engagement.worker.displayName} hasn't checked in`, sub: r.shift.engagement.job.title, tag: "Late", badge: "badge-coral" })),
-    ...ops.awaitingReview.map((r) => ({ id: r.shift.id, title: `Review ${r.shift.engagement.worker.displayName}'s shift`, sub: r.shift.engagement.job.title, tag: "Review", badge: "badge-butter" })),
-  ];
+/** A removed member: what happened, and any invite they can choose to accept. */
+async function Detached() {
+  const user = await getAuthUser();
+  const invites = user ? await pendingInvitesFor(user) : [];
   return (
-    <>
-      <div className="hero-card space-y-4">
-        <p className="eyebrow">Active today</p>
-        <p className="hero-title">{ops.scheduled === 1 ? "1 shift" : `${ops.scheduled} shifts`} in the field</p>
-        <p className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
-          <span><span className="block text-lg font-bold tabular-nums">{ops.checkedIn} / {ops.scheduled}</span><span className="hero-muted">Checked in</span></span>
-          <span><span className="block text-lg font-bold tabular-nums">{ops.signatures}</span><span className="hero-muted">Signatures submitted</span></span>
-          {ops.doors > 0 && <span><span className="block text-lg font-bold tabular-nums">{ops.doors}</span><span className="hero-muted">Doors</span></span>}
-          {ops.upcoming > 0 && <span><span className="block text-lg font-bold tabular-nums">{ops.upcoming}</span><span className="hero-muted">Starting in the next 24h</span></span>}
+    <div className="space-y-4">
+      <div className="empty-state">
+        <p className="empty-state-title">You&apos;re no longer part of an organization</p>
+        <p className="empty-state-body">
+          An owner removed this login from their organization. Everything you did there stays on record.
+          {invites.length === 0 && " If an owner invites you, the invite appears here."}
         </p>
       </div>
-      <section className="section">
-        <h2 className="section-title flex items-center justify-between">
-          Needs attention <span className="text-xs font-medium text-subtle">{attention.length} item{attention.length === 1 ? "" : "s"}</span>
-        </h2>
-        {attention.length === 0 ? (
-          <p className="text-muted-sm">Nothing right now. Late check-ins and shifts waiting for review show up here.</p>
-        ) : (
-          <ul className="list-card">
-            {attention.map((a) => (
-              <li key={a.id + a.tag}>
-                <Link transitionTypes={["nav-forward"]} href={`/shifts/${a.id}`} className="flex min-h-14 items-center justify-between gap-3 px-4 py-3 transition hover:bg-surface-2">
-                  <span><span className="block text-sm font-semibold text-fg">{a.title}</span><span className="text-xs text-muted">{a.sub}</span></span>
-                  <span className={a.badge}>{a.tag}</span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-    </>
+      {invites.length > 0 && (
+        <ul className="list-card">
+          {invites.map((i) => (
+            <li key={i.id} className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="space-y-1">
+                <p className="font-medium text-fg">{i.org.name} invited you as {ROLE_LABELS[i.role] ?? i.role}</p>
+                <p className="text-muted-sm">Open until {i.expiresAt.toISOString().slice(0, 10)}. Nothing changes unless you accept.</p>
+              </div>
+              <ActionButton action={acceptOrgInvite} fields={{ inviteId: i.id }} label="Accept" pendingLabel="Joining…" />
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
 
 export default async function DashboardPage() {
   const session = await requireAuth();
+  // Organization roles live on the Desk (C1.3); workers and removed members stay here.
+  if (session.role !== "WORKER" && session.orgId) redirect("/desk");
 
   const isWorker = session.role === "WORKER" && !!session.workerId;
-  const canHire = session.role === "OWNER" || session.role === "RECRUITER";
-  const [worker, org] = await Promise.all([
+  const [worker] = await Promise.all([
     isWorker ? db().worker.findUnique({ where: { id: session.workerId! }, select: { displayName: true } }) : null,
-    session.orgId ? db().organization.findUnique({ where: { id: session.orgId }, select: { name: true } }) : null,
   ]);
-  const name = worker?.displayName.split(" ")[0] ?? org?.name ?? "Welcome";
+  const name = worker?.displayName.split(" ")[0] ?? "Welcome";
 
   return (
     <main className="page">
       <header className="page-header">
         <div className="space-y-1.5">
-          <p className="eyebrow">{isWorker ? "Today" : "Operations"}</p>
+          <p className="eyebrow">{isWorker ? "Today" : "Account"}</p>
           <h1 className="page-title">{name}</h1>
           <p className="text-muted-sm">
             {[ROLE_LABELS[session.role] ?? session.role, session.email].filter(Boolean).join(" · ")}
@@ -202,23 +267,14 @@ export default async function DashboardPage() {
 
       {isWorker && <WorkerBrief workerId={session.workerId!} userId={session.userId} />}
       {isWorker && <WorkerHero workerId={session.workerId!} />}
-      {!isWorker && session.orgId && SCHEDULING_ROLES.includes(session.role) && <OrgHero orgId={session.orgId} />}
+      {isWorker && <FitReconfirm workerId={session.workerId!} />}
+      {isWorker && <CampaignsOn workerId={session.workerId!} />}
 
       {isWorker && <EarningsCard workerId={session.workerId!} />}
       {isWorker && <OpenJobs workerId={session.workerId!} />}
 
-      {isWorker ? null : session.orgId ? (
-        <div className="grid gap-3 sm:grid-cols-2">
-          {!isWorker && session.orgId && (
-            <NavCard href="/jobs" title="Jobs" body={canHire ? "Build, publish and staff your jobs." : "Your organization's jobs."} />
-          )}
-          {canHire && (
-            <NavCard href="/workers" title="People" body="Verified scorecards and experience, listed alphabetically." />
-          )}
-          {!isWorker && session.orgId && (
-            <NavCard href="/org/settings" title="Organization settings" body="Publishing checks, legal contact and jurisdiction rules." />
-          )}
-        </div>
+      {isWorker ? null : session.role !== "WORKER" ? (
+        <Detached />
       ) : (
         <div className="empty-state">
           <p className="empty-state-title">Nothing here yet</p>

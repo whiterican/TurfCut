@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalizePhone, safeNext, validateSignup } from "./auth-input";
+import { normalizePhone, safeNext, validateSetup, validateSignup } from "./auth-input";
 
 describe("auth input", () => {
   it("normalises US mobile numbers", () => {
@@ -26,3 +26,12 @@ describe("auth input", () => {
     });
   });
 });
+
+describe("finishing setup (C1)", () => {
+  it("asks only for account type, name and phone", () => {
+    expect(validateSetup({ accountType: "worker", name: "  Sam   Lee ", phone: "303 555 0100" })).toEqual({ ok: true, value: { accountType: "worker", name: "Sam Lee", phone: "+13035550100" } });
+    expect(validateSetup({ accountType: "company", name: "Acme", phone: "x" })).toEqual({ ok: true, value: { accountType: "company", name: "Acme", phone: null } });
+    expect(validateSetup({ accountType: "worker", name: "" }).ok).toBe(false);
+  });
+});
+

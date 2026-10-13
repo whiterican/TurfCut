@@ -10,12 +10,15 @@
  *   is used for 72 hours at most.
  * - The copies belong to one person: they're deleted when another worker
  *   signs in on the phone, on sign-out, on the sign-in page, and when a
- *   page bounces to sign-in (the session ended).
+ *   field page redirects anywhere (signed out, someone else's session, or
+ *   a login with no profile yet). An outage isn't a sign-out: the server
+ *   answers 500 then (lib/outage.ts) and the saved copy is used.
  * - Static build files (/_next/static): cache first (their names change
  *   with every build).
  * - Never cached: API calls, server actions, data requests, other sites.
  */
-const PAGES = "turfcut-pages-v2";
+// v3: drops any copy an older worker saved of a page that redirected.
+const PAGES = "turfcut-pages-v3";
 const STATIC = "turfcut-static-v1";
 const META = "turfcut-meta-v1";
 // No trailing slash: Next.js redirects "/shifts/" to "/shifts", and a
@@ -66,7 +69,31 @@ self.addEventListener("activate", (e) => {
   );
 });
 
-const bouncedToLogin = (res) => res.type === "opaqueredirect" || (res.redirected && new URL(res.url).pathname.startsWith("/login"));
+/** The app's sign-in page, given a URL or a path relative to the app. */
+const isLoginUrl = (u) => {
+  try {
+    const url = new URL(u, self.location.origin);
+    return url.origin === self.location.origin && url.pathname === "/login";
+  } catch {
+    return false;
+  }
+};
+const bouncedToLogin = (res) => res.type === "opaqueredirect" || (res.redirected && isLoginUrl(res.url));
+
+/**
+ * Where a page sends the browser when it redirected after streaming began
+ * (behind a loading screen, the status is already 200, so Next.js adds
+ * <meta id="__next-page-redirect" content="1;url=/login">), or null.
+ * Field pages keep no loading screen (or other Suspense boundary) so they
+ * answer with a real redirect, 404 or 500; this is the backstop if one is
+ * ever added. Only &amp; is decoded; the target only says a redirect happened.
+ */
+function streamedRedirect(html) {
+  const tag = /<meta\b[^>]*\bid="__next-page-redirect"[^>]*>/i.exec(html);
+  if (!tag) return null;
+  const to = /\bcontent="\d+;url=([^"]*)"/i.exec(tag[0]);
+  return to ? to[1].replace(/&amp;/g, "&") : "";
+}
 
 async function savePage(path, res) {
   const gen = generation;
@@ -76,14 +103,20 @@ async function savePage(path, res) {
     return;
   }
   if (!res.ok || res.type !== "basic" || res.redirected) return;
-  const s = await getState();
-  if (!s.user || !s.allowed.includes(path)) return;
   try {
     const html = await res.text();
+    // Checked before who may save what. Like a real redirect (any one reads as
+    // "signed out" above), a streamed one wipes: it may lead to /login or to
+    // /welcome (someone else, with no profile yet), and is never saved.
+    if (streamedRedirect(html) !== null) return forget();
+    const s = await getState();
+    if (!s.user || !s.allowed.includes(path)) return;
     if (gen !== generation) return; // wiped meanwhile
     const headers = new Headers(res.headers);
     headers.set("x-turfcut-saved-at", String(Date.now()));
-    await (await caches.open(PAGES)).put(path, new Response(html, { status: res.status, headers }));
+    const pages = await caches.open(PAGES);
+    if (gen !== generation) return; // wiped while opening: don't bring the page back
+    await pages.put(path, new Response(html, { status: res.status, headers }));
     // A saved page is no use offline without its own scripts and styles.
     await saveAssets(html);
   } catch {
@@ -132,10 +165,13 @@ async function savedCopy(path) {
 function offlinePage() {
   return new Response(
     `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Offline · Turfcut</title>
-<body style="font:16px system-ui;background:#1b1523;color:#f4f0f7;padding:32px 16px;max-width:32rem;margin:auto">
+<body style="font:16px system-ui;background:#1c142c;color:#f8f8f4;padding:32px 16px;max-width:32rem;margin:auto">
 <h1 style="font-size:24px">No signal</h1><p>This page wasn't saved on your phone. Your shift pages are saved when you open Today or My shifts with signal.</p>
-<p><a style="color:#dcd1ea" href="" onclick="location.reload();return false">Try again</a> · <a style="color:#dcd1ea" href="/shifts">My shifts</a> · <a style="color:#dcd1ea" href="/dashboard">Today</a></p></body>`,
-    { status: 503, headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" } }
+<p><a style="color:#ccea96" href="" onclick="location.reload();return false">Try again</a> · <a style="color:#ccea96" href="/shifts">My shifts</a> · <a style="color:#ccea96" href="/dashboard">Today</a></p></body>`,
+    {
+      status: 503,
+      headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store", "Content-Security-Policy": "frame-ancestors 'none'", "X-Content-Type-Options": "nosniff" },
+    }
   );
 }
 

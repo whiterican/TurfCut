@@ -16,7 +16,7 @@ export interface MapPin {
 
 /** Map colours follow the theme tokens (accent fill, link-coloured outline), read when drawing. */
 const token = (name: string, fallback: string) => (typeof document === "undefined" ? fallback : getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback);
-const colors = () => ({ stroke: token("--link", "#5a3a8a"), fill: token("--accent", "#ead39a"), ink: token("--ink", "#281840") });
+const colors = () => ({ stroke: token("--link", "#5a3a8a"), fill: token("--accent", "#ccea96"), ink: token("--ink", "#181e1a") });
 const US_CENTER: LatLngExpression = [39.5, -98.35];
 
 /**
@@ -168,7 +168,7 @@ export function TurfMap({
           The map needs signal. The staging point and turf details are on this page.
         </p>
       ) : (
-        <div ref={el} className={`turf-map w-full overflow-hidden rounded-2xl border border-border ${className}`} role="img" aria-label={editable ? "Map: tap to draw the turf" : "Map of the assigned turf"} />
+        <div ref={el} className={`turf-map w-full overflow-hidden rounded-2xl border border-border ${className}`} role="region" aria-label={editable ? "Map: tap to draw the turf" : "Map of the assigned turf"} />
       )}
       {editable && (
         <>

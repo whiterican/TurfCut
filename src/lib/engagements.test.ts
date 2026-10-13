@@ -222,7 +222,7 @@ describe("hiring snapshot with sharing narrowed", () => {
 describe("relationship for shared fit answers", () => {
   it("counts only engagements the worker started or accepted", () => {
     // An org's invitation must never unlock answers shared with
-    // "organizations you apply to or accept an invitation from".
+    // "organizations you apply to, claim a spot with or accept an invitation from".
     expect(RELATIONSHIP_STATUSES).not.toContain("INVITED");
     expect(RELATIONSHIP_STATUSES).not.toContain("CANCELLED");
     expect(RELATIONSHIP_STATUSES).not.toContain("WITHDRAWN");

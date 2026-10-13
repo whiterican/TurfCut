@@ -1,0 +1,100 @@
+import { describe, expect, it } from "vitest";
+import { charCount, decodeCursor, embedProblem, embedState, encodeCursor, excerpt, handleProblem, likePattern, linkParts, normalizeHandle, normalizeQuery, POST_MAX, QUERY_MAX, validatePostBody, validateProfile } from "./campaign-social";
+
+describe("campaign profiles", () => {
+  it("normalizes and checks handles", () => {
+    expect(normalizeHandle(" @Yes_On_7 ")).toBe("yes_on_7");
+    expect(handleProblem("yes_on_7")).toBeNull();
+    expect(handleProblem("ab")).toMatch(/3 to 30/);
+    expect(handleProblem("has space")).toMatch(/3 to 30/);
+    expect(handleProblem("x".repeat(31))).toMatch(/3 to 30/);
+    expect(handleProblem("admin")).toMatch(/reserved/);
+    expect(handleProblem("turfcut_news")).toMatch(/reserved/);
+    expect(handleProblem("turf_cut")).toMatch(/reserved/);
+    expect(handleProblem("_admin_")).toMatch(/reserved/);
+  });
+
+  it("validates the editor's fields and keeps the bio's words as written", () => {
+    const ok = validateProfile({ handle: "@Yes_On_7", displayName: "  Yes on  7 ", bio: "Line one  \r\n\r\n\r\n\r\nLine two\n" });
+    expect(ok).toEqual({ ok: true, value: { handle: "yes_on_7", displayName: "Yes on 7", bio: "Line one\n\nLine two" } });
+    expect(validateProfile({ handle: "ok_handle", displayName: "", bio: "" })).toMatchObject({ ok: false, errors: { displayName: expect.any(String) } });
+    expect(validateProfile({ handle: "ok_handle", displayName: "x", bio: "y".repeat(4001) })).toMatchObject({ ok: false, errors: { bio: expect.any(String) } });
+  });
+});
+
+describe("posts", () => {
+  it("counts characters as the database does (an emoji is one)", () => {
+    expect(charCount("✊🏽")).toBe(2);
+    expect(validatePostBody("🗳️".repeat(250)).ok).toBe(true);
+    expect(validatePostBody("x".repeat(POST_MAX)).ok).toBe(true);
+    expect(validatePostBody("x".repeat(POST_MAX + 1))).toMatchObject({ ok: false, error: expect.stringMatching(/501/) });
+    expect(validatePostBody("   \n ")).toMatchObject({ ok: false });
+    expect(validatePostBody(42)).toMatchObject({ ok: false });
+    // No NULs (the database refuses them), no invisible-only posts, no direction overrides.
+    expect(validatePostBody("a\u0000b")).toEqual({ ok: true, value: "ab" });
+    expect(validatePostBody("\u200b\u200b")).toMatchObject({ ok: false });
+    expect(validatePostBody("\u3164")).toMatchObject({ ok: false });
+    expect(validatePostBody("\u2800 \u2800")).toMatchObject({ ok: false });
+    // The campaign's own words stay whole: joined emoji, tag flags, Persian with a non-joiner.
+    for (const s of ["👨‍👩‍👧", "🏳️‍🌈", "🏴󠁧󠁢󠁳󠁣󠁴󠁿", "می‌خواهم"]) expect(validatePostBody(s)).toEqual({ ok: true, value: s });
+    expect(validateProfile({ handle: "ok_handle", displayName: "Yes on 7\u202e", bio: "" })).toMatchObject({ ok: true, value: { displayName: "Yes on 7" } });
+  });
+
+  it("turns only web links into links and keeps everything else as text", () => {
+    expect(linkParts("Sign up: https://yeson7.org/vol. Thanks!")).toEqual([
+      { kind: "text", text: "Sign up: " },
+      { kind: "link", text: "https://yeson7.org/vol", href: "https://yeson7.org/vol" },
+      { kind: "text", text: ". Thanks!" },
+    ]);
+    expect(linkParts("javascript:alert(1) <b>hi</b>")).toEqual([{ kind: "text", text: "javascript:alert(1) <b>hi</b>" }]);
+    // A link that hides where it goes stays text; a lookalike host shows as the browser reaches it; balanced brackets stay.
+    expect(linkParts("https://turfcut.com@evil.example/x")).toEqual([{ kind: "text", text: "https://turfcut.com@evil.example/x" }]);
+    expect(linkParts("https://exаmple.com")[0]).toMatchObject({ kind: "link", text: expect.stringContaining("xn--") });
+    expect(linkParts("(see https://en.wikipedia.org/wiki/A_(b))")[1]).toMatchObject({ kind: "link", text: "https://en.wikipedia.org/wiki/A_(b)" });
+  });
+
+  it("round-trips feed cursors and refuses junk", () => {
+    const p = { createdAt: new Date("2026-10-11T12:00:00.000Z"), id: "40000000-0000-0000-0000-000000000001" };
+    expect(decodeCursor(encodeCursor(p))).toEqual(p);
+    expect(decodeCursor("nope")).toBeNull();
+    expect(decodeCursor(Buffer.from("2026-10-11|not-a-uuid").toString("base64url"))).toBeNull();
+    expect(decodeCursor(undefined)).toBeNull();
+    expect(decodeCursor(Buffer.from("1|40000000-0000-0000-0000-000000000001").toString("base64url"))).toBeNull();
+    expect(decodeCursor(Buffer.from("-271821-04-20T00:00:00.000Z|40000000-0000-0000-0000-000000000001").toString("base64url"))).toBeNull();
+    expect(decodeCursor(Buffer.from("2026-10-11T12:00:00.000Z|40000000-0000-0000-0000-000000000001|x").toString("base64url"))).toBeNull();
+  });
+
+  it("embeds only the organization's own published jobs, and shows them as they are now", () => {
+    expect(embedProblem({ orgId: "o1", status: "PUBLISHED" }, "o1")).toBeNull();
+    expect(embedProblem({ orgId: "o2", status: "PUBLISHED" }, "o1")).toMatch(/your organization/);
+    expect(embedProblem({ orgId: "o1", status: "DRAFT" }, "o1")).toMatch(/published/);
+    expect(embedProblem(null, "o1")).toMatch(/your organization/);
+    const now = new Date("2026-10-11T12:00:00Z");
+    expect(embedState({ status: "PUBLISHED", endsAt: null }, now)).toBe("open");
+    expect(embedState({ status: "PUBLISHED", endsAt: new Date("2026-10-01") }, now)).toBe("closed");
+    expect(embedState({ status: "PAUSED", endsAt: null }, now)).toBe("paused");
+    expect(embedState({ status: "CLOSED", endsAt: null }, now)).toBe("closed");
+  });
+});
+
+describe("reach (S3)", () => {
+  it("excerpts at a word with an ellipsis, and leaves short text alone", () => {
+    expect(excerpt("Protected bike lanes.\n\nhttps://yeson7.org")).toBe("Protected bike lanes. https://yeson7.org");
+    const long = "word ".repeat(50).trim();
+    const e = excerpt(long, 40);
+    expect(e.endsWith("…")).toBe(true);
+    expect([...e].length).toBeLessThanOrEqual(40);
+    expect(e).toBe("word word word word word word word…");
+    expect(excerpt("x".repeat(100), 20)).toBe(`${"x".repeat(19)}…`); // no word to cut at: cut hard
+    expect(excerpt("ends with punctuation, right here", 24)).toBe("ends with punctuation…");
+    expect(excerpt("🇺🇸🇺🇸🇺🇸🇺🇸 é é é é é é", 6)).toBe("🇺🇸🇺🇸🇺🇸🇺🇸…"); // never half a flag or a bare accent
+  });
+  it("tidies a search and takes wildcards literally", () => {
+    expect(normalizeQuery("  @Yes   on\t7 ")).toBe("Yes on 7");
+    expect(normalizeQuery("a\u0000b‎")).toBe("ab");
+    expect(normalizeQuery("می\u200cخواهیم 👨‍👩‍👧")).toBe("می\u200cخواهیم 👨‍👩‍👧"); // joiners stay: names are tidied the same way
+    expect(normalizeQuery(42)).toBe("");
+    expect([...normalizeQuery("x".repeat(100))].length).toBe(QUERY_MAX);
+    expect(likePattern("100%_sure\\")).toBe("%100\\%\\_sure\\\\%");
+  });
+});

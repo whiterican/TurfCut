@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { loadTalkingPoints } from "@/lib/job-brief-data";
+import { TalkingPoints } from "@/components/campaign/TalkingPoints";
 import { notFound } from "next/navigation";
 import { requireAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -80,6 +82,8 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
   const isOrg = session.orgId === s.engagement.job.orgId && [...SCHEDULING_ROLES, ...FIELD_ROLES].includes(session.role);
   if (!isWorker && !isOrg) notFound();
   const canField = isOrg && FIELD_ROLES.includes(session.role);
+  // The campaign's pinned talking points, verbatim (S1): read for the brief only, never recorded about the reader.
+  const brief = isWorker || canField ? await loadTalkingPoints(s.engagement.job.id) : null;
 
   const f = facts(s);
   const st = shiftState(f);
@@ -350,6 +354,8 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
       )}
 
       <ShiftProgress steps={steps} />
+
+      {brief && (isWorker || canField) && <TalkingPoints brief={brief} />}
 
       {(turf || staging || marks.dayTurf || marks.pins.length > 0 || marksOpen) && (
         <section className="section">

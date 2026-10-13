@@ -107,15 +107,34 @@ const values = (xs: readonly { value: string }[]) => xs.map((x) => x.value) as r
 const ISSUE_KEYS = ISSUES.map((i) => i.key) as readonly string[];
 export const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+// The form sends text (repeated keys as lists); POST /api/jobs sends JSON. A value
+// in a shape its field doesn't take is refused, never replaced by a default.
+
+/** A text field. Text only: String(n) could change a number (a long phone number, 1e+21). */
 function text(raw: Record<string, unknown>, k: string): string {
   const v = raw[k];
   return typeof v === "string" ? v.trim().replace(/\s+/g, " ") : "";
 }
 
-function list(raw: Record<string, unknown>, k: string): string[] {
+/** A number field: the form's text, or a JSON number (headcount: 10). */
+function numText(raw: Record<string, unknown>, k: string): string {
   const v = raw[k];
-  if (Array.isArray(v)) return v.filter((x): x is string => typeof x === "string");
-  return typeof v === "string" && v ? [v] : [];
+  return typeof v === "number" && Number.isFinite(v) ? String(v) : text(raw, k);
+}
+
+const sent = (v: unknown) => v !== undefined && v !== null && v !== "";
+const notText = (raw: Record<string, unknown>, k: string) => sent(raw[k]) && typeof raw[k] !== "string";
+const notNumber = (raw: Record<string, unknown>, k: string) => notText(raw, k) && typeof raw[k] !== "number";
+
+/** A requirement flag: a ticked box ("on"), "true"/"false", or a JSON boolean. */
+const FLAG_VALUES: unknown[] = [undefined, null, "", false, "false", true, "on", "true"];
+const checked = (v: unknown) => v === true || v === "on" || v === "true";
+
+/** Repeated values; null when one isn't text. */
+function list(raw: Record<string, unknown>, k: string): string[] | null {
+  const v = raw[k];
+  if (Array.isArray(v)) return v.every((x) => typeof x === "string") ? (v as string[]) : null;
+  return typeof v === "string" ? (v ? [v] : []) : sent(v) ? null : [];
 }
 
 /**
@@ -159,18 +178,19 @@ export function validateJob(raw: Record<string, unknown>): Validated<JobInput> {
 
   const compensationMethod = text(raw, "compensationMethod");
   if (!values(COMPENSATION_METHODS).includes(compensationMethod)) errors.compensationMethod = "Pick how workers are paid.";
-  const rate = text(raw, "payRate");
+  const rate = numText(raw, "payRate");
   let payRateCents = 0;
   if (!/^\d+(\.\d{1,2})?$/.test(rate) || Number(rate) <= 0 || Number(rate) > 10_000) {
     errors.payRate = "Enter the gross rate in dollars, e.g. 25 or 25.50.";
   } else payRateCents = Math.round(Number(rate) * 100);
 
-  const headcountStr = text(raw, "headcount");
+  const headcountStr = numText(raw, "headcount");
   const headcount = Number(headcountStr);
   if (!/^\d+$/.test(headcountStr) || headcount < 1 || headcount > 10_000) errors.headcount = "Enter how many workers you need (1–10,000).";
 
-  const hiringModes = [...new Set(list(raw, "hiringModes"))];
-  if (hiringModes.length === 0 || !hiringModes.every((m) => values(HIRING_MODES).includes(m))) {
+  const modeList = list(raw, "hiringModes");
+  const hiringModes = [...new Set(modeList ?? [])];
+  if (!modeList || hiringModes.length === 0 || !hiringModes.every((m) => values(HIRING_MODES).includes(m))) {
     errors.hiringModes = "Pick at least one way to hire.";
   }
 
@@ -201,17 +221,28 @@ export function validateJob(raw: Record<string, unknown>): Validated<JobInput> {
     lostMaterials: need("contactLostMaterials", "Lost-materials contact", 200),
   };
 
+  // Comma-separated from the form; a JSON client may send a list. Measure IDs feed
+  // workers' "do not match me" answers, so a list is never quietly dropped.
+  // A list item may itself be comma-separated ("I-305, I-12"): split it too.
+  const measureList = list(raw, "measureIds");
   const measureIds = [
     ...new Set(
-      text(raw, "measureIds")
-        .split(",")
-        .map((m) => m.trim())
+      (measureList ?? [])
+        .flatMap((m) => m.split(","))
+        .map((m) => m.trim().replace(/\s+/g, " "))
         .filter(Boolean)
     ),
   ];
-  if (measureIds.some((m) => m.length > 40) || measureIds.length > 20) errors.measureIds = "Up to 20 measure IDs, comma-separated.";
+  if (!measureList || measureIds.some((m) => m.length > 40) || measureIds.length > 20) {
+    errors.measureIds = "Up to 20 measure IDs, comma-separated.";
+  }
 
-  const noticeStr = text(raw, "cancellationNoticeHours") || "24";
+  if (notNumber(raw, "cancellationNoticeHours")) errors.cancellationNoticeHours = "Enter 0–168 hours.";
+  const noticeStr = numText(raw, "cancellationNoticeHours") || "24";
+
+  // Optional text that would otherwise be dropped quietly (campaignName feeds "do not match me").
+  for (const k of ["description", "training", "script", "campaignName"]) if (notText(raw, k)) errors[k] = "Enter this as text.";
+  for (const k of ["badge", "registration", "affidavit"]) if (!FLAG_VALUES.includes(raw[k])) errors[k] = "Tick it or leave it blank.";
   const cancellationNoticeHours = Number(noticeStr);
   if (!/^\d+$/.test(noticeStr) || cancellationNoticeHours > 168) errors.cancellationNoticeHours = "Enter 0–168 hours.";
 
@@ -232,9 +263,10 @@ export function validateJob(raw: Record<string, unknown>): Validated<JobInput> {
       headcount,
       hiringModes: hiringModes as HiringMode[],
       requirements: {
-        badge: raw.badge === "on" || raw.badge === "true",
-        registration: raw.registration === "on" || raw.registration === "true",
-        affidavit: raw.affidavit === "on" || raw.affidavit === "true",
+        // A checked form box ("on"), or true from a JSON client.
+        badge: checked(raw.badge),
+        registration: checked(raw.registration),
+        affidavit: checked(raw.affidavit),
         training,
         script,
       },
@@ -509,6 +541,25 @@ export function fitReasons(f: {
   return out;
 }
 
+/**
+ * The credentials a job needs: what the organization asked for, plus the
+ * jurisdiction's circulator rules (registration, badge, affidavit). Those
+ * rules govern petition circulation, so they apply to petition jobs only — a
+ * canvass job needs just what its organization asks for. The job card and
+ * the feed's "No credentials" filter both use this list, so they agree.
+ */
+export function jobCredentials(job: { type: JobType; requirements: unknown; jurisdictionRules: unknown }): string[] {
+  const req = readRequirements(job.requirements);
+  const rules = obj(job.jurisdictionRules);
+  const circulating = job.type === "PETITION";
+  return [
+    (req.registration || (circulating && rules.workerRegistrationRequired === true)) && "Circulator registration",
+    (req.badge || (circulating && rules.badgeRequired === true)) && "Badge",
+    (req.affidavit || (circulating && rules.affidavitRequired === true)) && "Signed affidavit",
+    req.training && `Training: ${req.training}`,
+  ].filter((x): x is string => Boolean(x));
+}
+
 export function jobCardAnswers(job: {
   type: JobType;
   compensationMethod: CompensationMethod;
@@ -518,14 +569,7 @@ export function jobCardAnswers(job: {
   orgName: string;
   jurisdictionRules: unknown;
 }) {
-  const req = readRequirements(job.requirements);
-  const rules = obj(job.jurisdictionRules);
-  const creds = [
-    (req.registration || rules.workerRegistrationRequired === true) && "Circulator registration",
-    (req.badge || rules.badgeRequired === true) && "Badge",
-    (req.affidavit || rules.affidavitRequired === true) && "Signed affidavit",
-    req.training && `Training: ${req.training}`,
-  ].filter((x): x is string => Boolean(x));
+  const creds = jobCredentials(job);
   const contacts = readSupportContacts(job.supportContacts);
   const unit = job.type === "PETITION" ? "signature" : "completed contact";
   return {

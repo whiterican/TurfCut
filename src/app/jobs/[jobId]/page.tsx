@@ -4,8 +4,8 @@ import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { HIRING_ROLES, ORG_ROLES, SCHEDULING_ROLES } from "@/lib/access";
 import { ACCEPTED_STATUSES, RELATIONSHIP_STATUSES, type EngagementStatus, type HiringSnapshot } from "@/lib/engagements";
-import { ENGAGEMENT_LABELS, JOB_STATUS_LABELS } from "@/lib/engagement-labels";
-import { UUID_RE, exclusionReasons, fitReasons, jobCardAnswers, jurisdictionLabel, payText, publishBlockers, readDisclosure, readHiringModes } from "@/lib/jobs";
+import { ENGAGEMENT_LABELS, JOB_STATUS_LABELS, jobPageBadge } from "@/lib/engagement-labels";
+import { UUID_RE, exclusionReasons, fitReasons, jobCardAnswers, jobCredentials, jurisdictionLabel, payText, publishBlockers, readDisclosure, readHiringModes } from "@/lib/jobs";
 import { loadScorecard } from "@/lib/scorecard-data";
 import { loadSharing } from "@/lib/sharing-data";
 import { PART_DETAILS, RELATIONSHIP_PHRASE, SHARE_PARTS, visibleParts, type SharePart, type SharingChoices } from "@/lib/sharing";
@@ -20,11 +20,12 @@ import { shiftState, shiftStatusLabel } from "@/lib/field-day";
 import { listSupervisors } from "@/lib/field-day-data";
 import { LocalTime } from "@/components/LocalTime";
 import { ScheduleShiftForm } from "@/components/ScheduleShiftForm";
+import { DateRangeChip } from "@/components/DateRangeChip";
+import { followState } from "@/lib/campaign-follow-data";
+import { CampaignCard } from "@/components/campaign/CampaignCard";
 
-const day = (d: Date | null) =>
-  d ? d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" }) : "—";
-
-const loadJob = (id: string) => db().job.findUnique({ where: { id }, include: { org: true, jurisdiction: true } });
+const loadJob = (id: string) =>
+  db().job.findUnique({ where: { id }, include: { org: true, jurisdiction: true, campaignProfile: { select: { id: true, handle: true, displayName: true, avatarKey: true, publishedAt: true } } } });
 type JobWithRefs = NonNullable<Awaited<ReturnType<typeof loadJob>>>;
 
 export default async function JobPage({ params }: { params: Promise<{ jobId: string }> }) {
@@ -57,9 +58,10 @@ export default async function JobPage({ params }: { params: Promise<{ jobId: str
           <p className="text-muted-sm">{job.org.name}</p>
           <p className="pt-2 text-3xl font-bold tracking-[-0.03em] text-fg tabular-nums">{payText(job.compensationMethod, job.payRateCents)}</p>
           <p className="flex flex-wrap gap-1.5 pt-1">
-            {isOwnOrg && <span className={status.badge}>{status.label}</span>}
-            <span className="badge-sky">{day(job.startsAt)} – {day(job.endsAt)}</span>
-            <span className={job.type === "PETITION" ? "badge-butter" : "badge-solid"}>{job.type === "PETITION" ? "Petition" : "Canvass"}</span>
+            {isOwnOrg && <span className={jobPageBadge(status.badge)}>{status.label}</span>}
+            {/* The dates carry a calendar so their blue never reads as a party. */}
+            <DateRangeChip startsAt={job.startsAt} endsAt={job.endsAt} />
+            <span className="badge-neutral">{job.type === "PETITION" ? "Petition" : "Canvass"}</span>
             <span className="badge-neutral">{acceptedCount} of {job.headcount ?? "—"} spots filled</span>
           </p>
         </div>
@@ -67,6 +69,11 @@ export default async function JobPage({ params }: { params: Promise<{ jobId: str
       </header>
 
       {job.description && <p className="lead">{job.description}</p>}
+
+      {/* The campaign this job works for (S2): its page and a Follow control, while the campaign is public. */}
+      {isWorker && job.campaignProfile?.publishedAt && job.org.approved && (
+        <CampaignCard campaign={job.campaignProfile} follow={await followState(session.workerId!, job.campaignProfile.id)} viewer="worker" back={`/jobs/${job.id}`} />
+      )}
 
       {isWorker && <WorkerPanel job={job} engagement={engagement} modes={modes} workerId={session.workerId!} acceptedCount={acceptedCount} />}
       {isOwnOrg && (
@@ -138,7 +145,8 @@ async function WorkerPanel({
     verifiedShiftsOfType: card.segments.filter((x) => x.workType === job.type).reduce((n, x) => n + x.shiftsCount, 0),
     statesWorked: [...new Set(card.segments.flatMap((x) => x.statesWorked))],
     credentials: answers.credentials,
-    noExtraCredentials: answers.credentials.length === 1 && answers.credentials[0].startsWith("None"),
+    // The same check as the feed's "No credentials" filter.
+    noExtraCredentials: jobCredentials({ type: job.type, requirements: job.requirements, jurisdictionRules: job.jurisdiction.rules }).length === 0,
     spotsLeft: job.headcount === null ? null : Math.max(0, job.headcount - acceptedCount),
     // Only claim "within your boundaries" when they were actually checked:
     // matching-mode answers, a disclosed campaign, at least one do-not-match.
@@ -156,7 +164,7 @@ async function WorkerPanel({
       <ul className="divide-y divide-border">
         {reasons2.map((r) => (
           <li key={r.title} className="flex items-center gap-3 py-3">
-            <span aria-hidden className={`grid size-10 shrink-0 place-items-center rounded-xl font-bold ${r.kind === "yes" ? "bg-solid text-on-solid" : "bg-butter text-ink"}`}>
+            <span aria-hidden className={`grid size-10 shrink-0 place-items-center rounded-xl font-bold ${r.kind === "yes" ? "bg-solid text-on-solid" : "border border-border bg-surface-2 text-fg"}`}>
               {r.kind === "yes" ? "✓" : "i"}
             </span>
             <span className="min-w-0">
@@ -280,7 +288,7 @@ function shiftRow(
             {s.stagingLocation ? ` · ${s.stagingLocation}` : ""}
           </span>
         </span>
-        <span className={b.badge}>{b.label}</span>
+        <span className={jobPageBadge(b.badge)}>{b.label}</span>
       </Link>
     </li>
   );

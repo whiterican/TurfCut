@@ -215,6 +215,7 @@ ALTER TABLE "public"."MessageRevision" ADD CONSTRAINT "MessageRevision_shape" CH
 -- (never callable as RPC).
 CREATE SCHEMA IF NOT EXISTS "turfcut_private";
 REVOKE ALL ON SCHEMA "turfcut_private" FROM PUBLIC, anon;
+-- (S1: re-running this takes anon's use of the schema back; re-run prisma/s1-social.sql after it, or campaign pages lose public read.)
 GRANT USAGE ON SCHEMA "turfcut_private" TO authenticated;
 
 -- Append-only, enforced: messages and their revisions are never changed or removed.

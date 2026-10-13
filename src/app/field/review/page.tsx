@@ -35,7 +35,7 @@ export default async function ReviewQueuePage() {
                 {r.state.closeout ? (
                   <span className="badge-coral shrink-0">Corrected since review</span>
                 ) : (
-                  <span className="badge-butter shrink-0">Checked out <RelativeTime iso={r.state.checkedOutAt!.toISOString()} /></span>
+                  <span className="badge-butter shrink-0"><span>Checked out <RelativeTime iso={r.state.checkedOutAt!.toISOString()} /></span></span>
                 )}
               </Link>
             </li>

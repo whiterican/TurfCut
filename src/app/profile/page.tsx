@@ -7,18 +7,39 @@ import { VISIBILITY_OPTIONS } from "@/lib/political-fit";
 import { ExperienceForm } from "@/components/ExperienceForm";
 import { ExperienceList } from "@/components/ExperienceList";
 import { ScorecardPanel } from "@/components/ScorecardPanel";
+import { ALL_SHARED, shareScorecardPeriods } from "@/lib/shared-scorecard";
 import { removeExperience } from "./actions";
 import { PhoneForm } from "@/components/PhoneForm";
+import { loadSharing } from "@/lib/sharing-data";
+import { loadAvailability } from "@/lib/availability-data";
+import { availabilitySummary, isEmptyAvailability } from "@/lib/availability";
+import { AvailabilityStatement } from "@/components/AvailabilityStatement";
+import { loadCredentials } from "@/lib/credentials-data";
+import { CredentialList } from "@/components/CredentialList";
+import { expiryToday } from "@/lib/credentials";
+import { PART_DETAILS, RELATIONSHIP_PHRASE, SHARE_PARTS, type ShareAudience } from "@/lib/sharing";
+import { UrlNotice } from "@/components/UrlNotice";
 
-export default async function ProfilePage() {
+const AUDIENCE_SHORT: Record<ShareAudience, string> = {
+  RELATIONSHIP: `Organizations you ${RELATIONSHIP_PHRASE}`,
+  ANY_APPROVED_ORG: "Any approved organization",
+  NOBODY: "Nobody",
+};
+
+export default async function ProfilePage({ searchParams }: { searchParams: Promise<{ setup?: string }> }) {
   const { workerId } = await requireWorker();
-  const [worker, records, scorecard, fit, history] = await Promise.all([
+  const setupDone = (await searchParams).setup === "done";
+  const [worker, records, scorecard, fit, history, sharing, avail, creds] = await Promise.all([
     db().worker.findUniqueOrThrow({ where: { id: workerId }, select: { displayName: true, phone: true } }),
     db().experienceRecord.findMany({ where: { workerId }, orderBy: { startDate: "desc" } }),
     loadScorecardPeriods(workerId),
     loadLatestPreference(workerId),
     loadCampaignHistory(workerId),
+    loadSharing(workerId),
+    loadAvailability(workerId),
+    loadCredentials(workerId),
   ]);
+  const today = new Date().toISOString().slice(0, 10);
   const mode = fit && VISIBILITY_OPTIONS.find((o) => o.value === fit.visibilityMode);
 
   return (
@@ -34,13 +55,36 @@ export default async function ProfilePage() {
         </div>
       </header>
 
+      {/* Only when a confirmed choice is really on record: a hand-typed ?setup=done claims nothing. */}
+      {setupDone && sharing.current && <UrlNotice param="setup" message="Saved. These are your choices now; change them any time under Who sees what." />}
+      {!sharing.current && (
+        // Until the worker saves a sharing choice under today's wording (C2-Q4): a reminder, every visit.
+        <section className="card space-y-2" aria-label="Set up who sees what">
+          <p className="font-semibold text-fg">{sharing.version === null ? "Choose who sees what" : "Check who sees what"}</p>
+          <p className="text-muted-sm">
+            {sharing.version === null
+              ? `You're on the defaults: organizations you ${RELATIONSHIP_PHRASE} see your profile, and nobody can find you.`
+              : "We've changed how Turfcut explains who sees what since you chose. Your choices stay as they are; take a look and confirm them."}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Link transitionTypes={["nav-forward"]} href="/profile/setup?from=profile" className="btn-primary btn-sm">{sharing.version === null ? "Set it up" : "Check your choices"}</Link>
+            <Link href="/profile/preview" className="btn-ghost btn-sm">See what organizations see</Link>
+          </div>
+        </section>
+      )}
+
       <section className="section">
         <h2 className="section-title">Scorecard</h2>
-        <ScorecardPanel periods={scorecard} history={history} />
+        <ScorecardPanel periods={shareScorecardPeriods(scorecard, ALL_SHARED)} history={history} />
       </section>
 
       <section className="section">
         <h2 className="section-title">Experience</h2>
+        <p className="text-hint">
+          Seen by: {AUDIENCE_SHORT[sharing.choices.audiences.history]} (experience goes with hours and history). Organizations that see it
+          never see a reference&apos;s contact details, only that you gave one.{" "}
+          <Link href="/profile/sharing" className="link">Change</Link>
+        </p>
         <ExperienceList
           records={records.map((r) => ({ ...r, hasReference: r.referenceContact !== null }))}
           removeAction={removeExperience}
@@ -58,6 +102,49 @@ export default async function ProfilePage() {
             <ExperienceForm />
           </div>
         </details>
+      </section>
+
+      <section className="section">
+        <h2 className="section-title">Availability</h2>
+        <div className="card space-y-3">
+          <AvailabilityStatement view={isEmptyAvailability(avail.availability) ? null : availabilitySummary(avail.availability, today)} />
+          <Link transitionTypes={["nav-forward"]} href="/profile/availability" className="btn-secondary">
+            {avail.version === null ? "Set your availability" : "Change availability"}
+          </Link>
+        </div>
+      </section>
+
+      <section className="section">
+        <h2 className="section-title">Credentials</h2>
+        <div className="card space-y-3">
+          <CredentialList view={creds.map((c) => ({ kind: c.kind, label: c.label, state: c.state, verification: c.verification, expiresOn: c.expiresOn }))} today={expiryToday()} />
+          <Link transitionTypes={["nav-forward"]} href="/profile/credentials" className="btn-secondary">
+            {creds.length ? "Manage credentials" : "Add a credential"}
+          </Link>
+        </div>
+      </section>
+
+      <section className="section">
+        <h2 className="section-title">Who sees what</h2>
+        <div className="card space-y-3">
+          <ul className="space-y-1.5">
+            {SHARE_PARTS.map((part) => (
+              <li key={part} className="flex flex-wrap justify-between gap-x-4 text-sm">
+                <span className="text-fg">{PART_DETAILS[part].label}</span>
+                <span className="text-muted">{AUDIENCE_SHORT[sharing.choices.audiences[part]]}</span>
+              </li>
+            ))}
+            <li className="flex flex-wrap justify-between gap-x-4 text-sm">
+              <span className="text-fg">Organizations can find you</span>
+              <span className="text-muted">{sharing.choices.findable ? `Yes, within ${sharing.choices.travelMiles} miles of ${sharing.choices.homeArea}` : "No"}</span>
+            </li>
+          </ul>
+          {sharing.version === null && <p className="text-hint">These are the defaults. Nothing changes until you choose.</p>}
+          <div className="flex flex-wrap gap-2">
+            <Link transitionTypes={["nav-forward"]} href="/profile/sharing" className="btn-secondary">Change who sees what</Link>
+            <Link transitionTypes={["nav-forward"]} href="/profile/preview" className="btn-ghost">See what organizations see</Link>
+          </div>
+        </div>
       </section>
 
       <section className="section">

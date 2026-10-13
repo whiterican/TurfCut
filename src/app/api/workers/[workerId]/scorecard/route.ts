@@ -3,12 +3,15 @@ import { getSessionProfile } from "@/lib/auth";
 import { workerAccessFor } from "@/lib/worker-access-data";
 import { db } from "@/lib/db";
 import { loadScorecard, parseScorecardQuery } from "@/lib/scorecard-data";
+import { ALL_SHARED, shareScorecard } from "@/lib/shared-scorecard";
+import { loadOrgScorecard } from "@/lib/shared-scorecard-data";
 
 /**
  * GET /api/workers/:workerId/scorecard?period=lifetime|12m|90d&workType=PETITION|CANVASS&state=CO
  * Scorecard derived from work_events, segmented by work type. Each metric
  * carries its formula, numerator, denominator and evidence. There is no
- * overall score.
+ * overall score. Organizations get the shared view: a group the worker
+ * doesn't share with them is null, never a zero.
  */
 export async function GET(
   req: NextRequest,
@@ -44,6 +47,10 @@ export async function GET(
     return Response.json({ error: "Worker not found." }, { status: 404 });
   }
 
-  const scorecard = await loadScorecard(workerId, query.opts);
-  return Response.json({ workerId, ...scorecard });
+  // The worker sees everything; an organization only what the worker shares with it (C2.3).
+  const view =
+    access.kind === "self"
+      ? shareScorecard(await loadScorecard(workerId, query.opts), ALL_SHARED)
+      : await loadOrgScorecard(workerId, access.orgId, query.opts);
+  return Response.json({ workerId, ...view });
 }

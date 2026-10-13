@@ -5,11 +5,14 @@
  *   applications; workers accept invitations.
  * - Headcount is enforced on every path that creates an accepted engagement.
  * - Each hiring decision freezes a snapshot of exactly what the organization
- *   could see: the scorecard and the worker-authorized fit signals, with the
- *   consent version and time (spec p.8, p.17). It is never recomputed.
+ *   could see: the scorecard groups the worker shared with it (C2) and the
+ *   worker-authorized fit signals, with the consent and sharing versions and
+ *   the time (spec p.8, p.17). It is never recomputed; if the worker narrows
+ *   sharing later, live views change and the snapshot stays as the record.
  */
 import type { EmployerFitView } from "@/lib/political-fit";
-import type { Scorecard } from "@/lib/scorecard";
+import type { SharedMetric, SharedScorecard } from "@/lib/shared-scorecard";
+import type { ShareGroup } from "@/lib/sharing";
 import type { HiringMode } from "@/lib/jobs";
 
 export type EngagementStatus = "APPLIED" | "INVITED" | "CLAIMED" | "ACTIVE" | "COMPLETED" | "CANCELLED";
@@ -75,6 +78,9 @@ export function transition(
   }
 }
 
+/** Counts are null when the worker didn't share hours and history (C2). */
+type FrozenMetric = { value: number | null; numerator: number | null; denominator: number | null };
+
 export interface HiringSnapshot {
   kind: "application" | "invitation" | "claim";
   capturedAt: string;
@@ -83,42 +89,54 @@ export interface HiringSnapshot {
   /** Exactly what the organization saw of political fit — authorized signals only. */
   fit: EmployerFitView;
   scorecard: {
+    /**
+     * Which scorecard groups the worker shared with this organization at
+     * that moment (C2). Absent on snapshots taken before C2, which hold the
+     * whole scorecard as organizations saw it then.
+     */
+    shared?: Record<ShareGroup, boolean>;
+    /** The worker's sharing version then; null = the defaults. Absent before C2. */
+    sharingVersion?: number | null;
     segments: Array<{
       workType: string;
-      shiftsCount: number;
-      activeHours: number;
-      averages: Record<string, { value: number | null; numerator: number; denominator: number }>;
+      /** null = hours and history weren't shared. */
+      shiftsCount: number | null;
+      activeHours: number | null;
+      /** Only the averages whose group was shared; a withheld one is null. */
+      averages: Record<string, FrozenMetric | null>;
     }>;
-    showRate: { value: number | null; numerator: number; denominator: number };
+    /** null = reliability wasn't shared. */
+    showRate: FrozenMetric | null;
     lastUpdated: string | null;
   };
 }
 
+/** Freezes the shared view of the scorecard: whatever wasn't shared is never stored. */
 export function buildSnapshot(args: {
   kind: HiringSnapshot["kind"];
-  scorecard: Scorecard;
+  scorecard: SharedScorecard;
+  sharingVersion: number | null;
   fit: EmployerFitView;
   consentVersion: number | null;
   now: Date;
 }): HiringSnapshot {
-  const pick = (m: { value: number | null; numerator: number; denominator: number }) => ({
-    value: m.value,
-    numerator: m.numerator,
-    denominator: m.denominator,
-  });
+  const pick = (m: SharedMetric | null): FrozenMetric | null =>
+    m && { value: m.value, numerator: m.numerator, denominator: m.denominator };
   return {
     kind: args.kind,
     capturedAt: args.now.toISOString(),
     consentVersion: args.consentVersion,
     fit: args.fit,
     scorecard: {
+      shared: args.scorecard.shared,
+      sharingVersion: args.sharingVersion,
       segments: args.scorecard.segments.map((s) => ({
         workType: s.workType,
-        shiftsCount: s.shiftsCount,
-        activeHours: s.activeHours,
+        shiftsCount: s.history?.shiftsCount ?? null,
+        activeHours: s.history?.activeHours ?? null,
         averages: Object.fromEntries(Object.entries(s.averages).map(([k, m]) => [k, pick(m)])),
       })),
-      showRate: pick(args.scorecard.reliability.showRate),
+      showRate: pick(args.scorecard.showRate),
       lastUpdated: args.scorecard.lastUpdated,
     },
   };

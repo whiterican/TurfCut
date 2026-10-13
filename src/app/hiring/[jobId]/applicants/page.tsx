@@ -3,95 +3,140 @@ import { notFound } from "next/navigation";
 import { requireArea } from "@/lib/employer-session";
 import { db } from "@/lib/db";
 import { UUID_RE } from "@/lib/jobs";
-import { RELATIONSHIP_STATUSES, type HiringSnapshot } from "@/lib/engagements";
-import { ENGAGEMENT_LABELS } from "@/lib/engagement-labels";
+import { expiryToday } from "@/lib/credentials";
+import { offerLapsed } from "@/lib/engagements";
+import { loadApplicants } from "@/lib/applicants-data";
+import { applicantCells, applicantJob, availableColumns, columnLabel, filtersActive, keepApplicant, parseColumns, parseFilters, tableColumns } from "@/lib/applicants";
 import { Masthead } from "@/components/staff/Masthead";
 import { DataTable } from "@/components/staff/DataTable";
-import { SnapshotView } from "@/components/SnapshotView";
-import { ActionButton } from "@/components/ActionButton";
-import { acceptApplication } from "@/app/jobs/actions";
-import { loadOrgAvailabilities } from "@/lib/availability-data";
-import { AvailabilityStatement } from "@/components/AvailabilityStatement";
+import { BulkApplicantActions } from "@/components/BulkApplicantActions";
+import { HiringTabs } from "@/components/staff/HiringTabs";
+import { hiringCounts } from "@/lib/invitations-data";
 
-const day = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+const BULK_FORM = "applicants-bulk";
 
 /**
- * One job's applications (C1.4): who is at which stage, and the hiring
- * snapshot for each waiting application. Accept is the existing action.
- * No scorecard columns: sortable lists of shared numbers arrive with C3.
+ * One job's applicants (C3.2): the people who applied or claimed, in a
+ * table whose columns the recruiter picks. Only what each worker shares
+ * with this organization now; "not shared" is never ranked or filtered
+ * out. Political answers are never a column, filter or sort (Q3) — they
+ * show on the applicant's own page, where the worker shared them.
  */
-export default async function ApplicantsPage({ params }: { params: Promise<{ jobId: string }> }) {
+export default async function ApplicantsPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ jobId: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const { jobId } = await params;
   if (!UUID_RE.test(jobId)) notFound();
   const session = await requireArea("hiring");
-  const job = await db().job.findFirst({ where: { id: jobId, orgId: session.orgId }, select: { id: true, title: true, status: true, headcount: true } });
-  if (!job) notFound();
-  const engagements = await db().engagement.findMany({
-    where: { jobId },
-    select: { id: true, status: true, createdAt: true, applicationSnapshot: true, worker: { select: { id: true, displayName: true, closedAt: true } } },
-    orderBy: { createdAt: "asc" },
+  const job = await db().job.findFirst({
+    where: { id: jobId, orgId: session.orgId },
+    select: { id: true, title: true, status: true, type: true, headcount: true, startsAt: true, endsAt: true, requirements: true, jurisdiction: { select: { state: true, rules: true } } },
   });
-  const waiting = engagements.filter((e) => e.status === "APPLIED");
-  // Live, as each worker shares it with this organization now (C2.4); never scored or sorted on.
-  const byWorker = await loadOrgAvailabilities(waiting.filter((e) => !e.worker.closedAt).map((e) => e.worker.id), session.orgId);
-  const availability = new Map(waiting.filter((e) => byWorker.has(e.worker.id)).map((e) => [e.id, byWorker.get(e.worker.id)!] as const));
+  if (!job) notFound();
+
+  const raw = await searchParams;
+  const qs = new URLSearchParams(Object.entries(raw).flatMap(([k, v]) => (Array.isArray(v) ? v.map((x) => [k, x]) : typeof v === "string" ? [[k, v]] : [])));
+  const facts = applicantJob(job);
+  const cols = parseColumns(qs.getAll("col").join(","), facts);
+  const filters = parseFilters(qs);
+  const now = new Date();
+  const today = expiryToday(now);
+
+  // Scorecards load only when a column shows one.
+  const scorecards = cols.some((c) => !["applied", "stage", "free", "credentials"].includes(c));
+  const [all, counts] = await Promise.all([loadApplicants(job.id, session.orgId, now, { scorecards }), hiringCounts(job.id, session.orgId)]);
+  const filtering = filtersActive(filters);
+  const shown = all.filter((a) => keepApplicant(a, facts, filters, today));
+  const toDecide = all.filter((a) => a.status === "APPLIED").length;
+  const offers = all.filter((a) => a.status === "OFFERED" && !offerLapsed(a.status, a.offerExpiresAt, now)).length;
+  const offerable = job.status === "PUBLISHED" || job.status === "PAUSED";
 
   return (
-    <main className="page max-w-4xl">
-      <Masthead eyebrow="Applicants" title={job.title} meta={`${engagements.length} ${engagements.length === 1 ? "person" : "people"} · ${waiting.length} waiting for a decision`}>
+    <main className="page max-w-5xl">
+      <Masthead
+        eyebrow="Applicants"
+        title={job.title}
+        meta={`${all.length} ${all.length === 1 ? "applicant" : "applicants"} · ${toDecide} to decide · ${offers} ${offers === 1 ? "offer" : "offers"} out${job.headcount !== null ? ` · ${job.headcount} spots` : ""}`}
+      >
         <Link href="/hiring" className="btn-ghost btn-sm">← Pipeline</Link>
         <Link href={`/jobs/${job.id}`} className="btn-secondary btn-sm">Job page</Link>
       </Masthead>
+      <HiringTabs jobId={job.id} current="applicants" counts={counts} />
+
+      <details className="card p-0" open={filtering || undefined}>
+        <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-fg">Columns and filters</summary>
+        <form className="space-y-4 border-t border-border p-4">
+          <fieldset className="space-y-2">
+            <legend className="label">Columns</legend>
+            <div className="flex flex-wrap gap-x-4 gap-y-2">
+              {availableColumns(facts).map((c) => (
+                <label key={c} className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" name="col" value={c} defaultChecked={cols.includes(c)} className="size-4" />
+                  {columnLabel(c)}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+          <fieldset className="grid gap-3 sm:grid-cols-2 sm:items-end">
+            <legend className="label mb-2">Filters</legend>
+            <label className="space-y-1.5">
+              <span className="label">Stage</span>
+              <select name="stage" className="field" defaultValue={filters.stage}>
+                <option value="all">Every stage</option>
+                <option value="open">Waiting on someone (applied, offered)</option>
+              </select>
+            </label>
+            <label className="space-y-1.5">
+              <span className="label">Applied on or after</span>
+              <input type="date" name="since" className="field" defaultValue={filters.since ?? ""} />
+            </label>
+            {job.startsAt && job.endsAt && (
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" name="free" value="1" defaultChecked={filters.free} className="size-4" />
+                Free on at least one of the job&apos;s days
+              </label>
+            )}
+            {availableColumns(facts).includes("credentials") && (
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" name="creds" value="1" defaultChecked={filters.credentials} className="size-4" />
+                Holds every required credential
+              </label>
+            )}
+          </fieldset>
+          <p className="text-hint">A filter narrows what workers shared. Anyone who doesn&apos;t share what it looks at stays on the list, marked &ldquo;not shared&rdquo;.</p>
+          <div className="flex flex-wrap gap-2">
+            <button className="btn-secondary btn-sm">Show</button>
+            <Link href={`/hiring/${job.id}/applicants`} className="btn-ghost btn-sm">Reset</Link>
+          </div>
+        </form>
+      </details>
+
+      {filtering && (
+        <p className="text-muted-sm" role="status">
+          Showing {shown.length} of {all.length}. <Link href={`/hiring/${job.id}/applicants${cols.length ? `?${cols.map((c) => `col=${c}`).join("&")}` : ""}`} className="link">Clear filters</Link>
+        </p>
+      )}
+
+      {offerable && shown.some((a) => a.status === "APPLIED" || a.status === "OFFERED") && <BulkApplicantActions formId={BULK_FORM} jobId={job.id} />}
 
       <DataTable
-        caption={`Everyone engaged with ${job.title}`}
-        empty="Nobody has applied yet."
-        columns={[
-          { key: "who", label: "Worker", sortable: true },
-          { key: "since", label: "Since", sortable: true },
-          { key: "stage", label: "Stage", sortable: true },
-        ]}
-        rows={engagements.map((e) => ({
-          id: e.id,
-          cells: {
-            // A profile opens once the worker has engaged (C1); closed accounts show the name only.
-            who: { text: e.worker.displayName, href: !e.worker.closedAt && RELATIONSHIP_STATUSES.includes(e.status) ? `/workers/${e.worker.id}` : undefined },
-            since: { text: day(e.createdAt), sort: e.createdAt.getTime() },
-            stage: { text: ENGAGEMENT_LABELS[e.status].label },
-          },
+        caption={`Applicants for ${job.title}`}
+        empty={all.length ? "No applicants match these filters." : "Nobody has applied yet."}
+        columns={tableColumns(cols)}
+        select={offerable ? { form: BULK_FORM, name: "engagementId" } : undefined}
+        rows={shown.map((a) => ({
+          id: a.engagementId,
+          selectable: a.status === "APPLIED" || a.status === "OFFERED",
+          cells: applicantCells(a, facts, cols, today, `/hiring/${job.id}/people/${a.engagementId}`),
         }))}
       />
-
-      <section className="section" aria-labelledby="waiting">
-        <h2 id="waiting" className="section-title">Waiting for a decision</h2>
-        {waiting.length === 0 ? (
-          <p className="text-muted-sm">No applications are waiting.</p>
-        ) : (
-          <ul className="space-y-3">
-            {waiting.map((e) => (
-              <li key={e.id} className="card space-y-3">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <p className="font-medium text-fg">
-                    {e.worker.closedAt ? e.worker.displayName : <Link href={`/workers/${e.worker.id}`} className="link">{e.worker.displayName}</Link>}
-                    <span className="text-muted-sm"> · applied {day(e.createdAt)}</span>
-                  </p>
-                  {/* The server accepts on any job that isn't closed (paused included). */}
-                  {job.status !== "CLOSED" && (
-                    <ActionButton action={acceptApplication} fields={{ jobId: job.id, engagementId: e.id }} label="Accept" variant="btn-primary btn-sm" />
-                  )}
-                </div>
-                {availability.has(e.id) && (
-                  <div className="space-y-1">
-                    <p className="label">Availability now</p>
-                    <AvailabilityStatement view={availability.get(e.id)!} />
-                  </div>
-                )}
-                {e.applicationSnapshot ? <SnapshotView snapshot={e.applicationSnapshot as unknown as HiringSnapshot} /> : null}
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+      <p className="text-hint">
+        Only what each worker shares with your organization, as of now. &ldquo;Not shared&rdquo; is never counted as zero or ranked. There is no overall score. Political answers never appear in this table.
+      </p>
     </main>
   );
 }

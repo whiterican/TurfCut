@@ -18,11 +18,19 @@ export interface TableCell {
   sort?: string | number | null;
   /** A same-site link for the cell. */
   href?: string;
+  /**
+   * The worker doesn't share this value with the viewer (C2). Never ranked:
+   * a sort on this column puts these rows in their own group, in their
+   * original order, after everyone with a value or "no data yet".
+   */
+  withheld?: boolean;
 }
 
 export interface TableRow {
   id: string;
   cells: Record<string, TableCell>;
+  /** Offer a checkbox for bulk actions on this row (DataTable `select`). */
+  selectable?: boolean;
 }
 
 export type SortDir = "asc" | "desc";
@@ -33,9 +41,19 @@ const valueOf = (row: TableRow, key: string): string | number | null => {
   return c.sort !== undefined ? c.sort : c.text === "" ? null : c.text;
 };
 
-/** Rows sorted by one column. Stable; empty values always sort last, whichever way. */
+/** Rows sorted by one column. Stable; empty values always sort last, whichever way, and withheld ones after those. */
 export function sortRows(rows: TableRow[], key: string | null, dir: SortDir): TableRow[] {
   if (!key) return rows;
+  const { ranked, withheld } = splitWithheld(rows, key);
+  return [...sortRanked(ranked, key, dir), ...withheld];
+}
+
+/** Rows whose cell in `key` is withheld, apart from the rest, each in original order. */
+export function splitWithheld(rows: TableRow[], key: string): { ranked: TableRow[]; withheld: TableRow[] } {
+  return { ranked: rows.filter((r) => !r.cells[key]?.withheld), withheld: rows.filter((r) => r.cells[key]?.withheld) };
+}
+
+function sortRanked(rows: TableRow[], key: string, dir: SortDir): TableRow[] {
   const sign = dir === "asc" ? 1 : -1;
   return rows
     .map((row, i) => ({ row, i, v: valueOf(row, key) }))

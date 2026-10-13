@@ -66,7 +66,7 @@ export interface SharingChoices {
  * Bump when the sharing wording on the worker's screens (Who sees what, and
  * the setup) changes: every worker is asked again, on Today and on Profile.
  */
-export const SHARING_TEXT_VERSION = "c2-2026-10-08b";
+export const SHARING_TEXT_VERSION = "c3-2026-10-09";
 
 /**
  * Lists the workers who dismissed the sharing note on Today, on this device.
@@ -106,9 +106,9 @@ export type Viewer =
   | { kind: "public" };
 
 /**
- * ANY_APPROVED_ORG already counts here. Today no organization reaches a
- * worker without a relationship (workerAccessFor), so it can't show yet; C3
- * decides whether Matches also requires the worker to be findable.
+ * ANY_APPROVED_ORG is what Matches (C3.4) shows of a findable worker to an
+ * approved organization they have no relationship with — and only when the
+ * worker confirmed under the wording that says so (SHARING_TEXT_VERSION).
  */
 export function canSee(audience: ShareAudience, viewer: Viewer): boolean {
   if (viewer.kind === "self") return true;

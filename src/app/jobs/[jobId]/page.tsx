@@ -3,7 +3,10 @@ import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { HIRING_ROLES, ORG_ROLES, SCHEDULING_ROLES } from "@/lib/access";
-import { ACCEPTED_STATUSES, RELATIONSHIP_STATUSES, type EngagementStatus, type HiringSnapshot } from "@/lib/engagements";
+import { ACCEPTED_STATUSES, inviteLapsed, offerLapsed, stageOf, workerStage, type EngagementStatus, type HiringSnapshot } from "@/lib/engagements";
+import { loadPipelineFacts } from "@/lib/engagements-data";
+import { EngagementHistory } from "@/components/EngagementHistory";
+import { HiringActions, timeLeft } from "@/components/HiringActions";
 import { ENGAGEMENT_LABELS, JOB_STATUS_LABELS, jobPageBadge } from "@/lib/engagement-labels";
 import { UUID_RE, exclusionReasons, fitReasons, jobCardAnswers, jobCredentials, jurisdictionLabel, payText, publishBlockers, readDisclosure, readHiringModes } from "@/lib/jobs";
 import { loadScorecard } from "@/lib/scorecard-data";
@@ -15,7 +18,7 @@ import { loadLatestPreference } from "@/lib/political-fit-data";
 import { JobCard } from "@/components/JobCard";
 import { SnapshotView } from "@/components/SnapshotView";
 import { ActionButton } from "@/components/ActionButton";
-import { acceptApplication, acceptInvitation, apply, claim, publish } from "../actions";
+import { acceptInvitation, apply, claim, closeJobAction, declineAsWorker, publish, withdrawApplication } from "../actions";
 import { shiftState, shiftStatusLabel } from "@/lib/field-day";
 import { listSupervisors } from "@/lib/field-day-data";
 import { LocalTime } from "@/components/LocalTime";
@@ -23,6 +26,9 @@ import { ScheduleShiftForm } from "@/components/ScheduleShiftForm";
 import { DateRangeChip } from "@/components/DateRangeChip";
 import { followState } from "@/lib/campaign-follow-data";
 import { CampaignCard } from "@/components/campaign/CampaignCard";
+
+// An invitation's deadline, as a day (the job's own dates are a DateRangeChip).
+const day = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
 
 const loadJob = (id: string) =>
   db().job.findUnique({ where: { id }, include: { org: true, jurisdiction: true, campaignProfile: { select: { id: true, handle: true, displayName: true, avatarKey: true, publishedAt: true } } } });
@@ -96,7 +102,7 @@ async function WorkerPanel({
   acceptedCount,
 }: {
   job: JobWithRefs;
-  engagement: { id: string; status: EngagementStatus; applicationSnapshot: unknown } | null;
+  engagement: { id: string; status: EngagementStatus; applicationSnapshot: unknown; inviteNote: string | null; inviteExpiresAt: Date | null } | null;
   modes: string[];
   workerId: string;
   acceptedCount: number;
@@ -116,19 +122,58 @@ async function WorkerPanel({
     // An invitation is the org's act: the worker's do-not-match answers
     // still keep them off the job (the org is never told why).
     if (engagement.status === "INVITED" && reasons.length) return excluded;
+    const facts = (await loadPipelineFacts([engagement.id])).get(engagement.id) ?? { events: [], inReview: false, offerExpiresAt: null };
+    const offerDeadline = engagement.status === "OFFERED" ? facts.offerExpiresAt : null;
+    const offerExpired = offerLapsed(engagement.status, offerDeadline, new Date());
+    const closed = job.status === "CLOSED";
+    const inviteExpired = inviteLapsed(engagement.status, engagement.inviteExpiresAt, new Date());
+    const fields = { jobId: job.id, engagementId: engagement.id };
+    // Declining and withdrawing end this job for good: no second application or invitation (C3 decision).
+    const final = "You can't apply to or be invited to this job again afterwards.";
     return (
       <section className="card space-y-3">
         <p className="flex items-center gap-2 font-medium text-fg">
-          Your status <span className={s.badge}>{s.label}</span>
+          Your status <span className={s.badge}>{workerStage(engagement.status, facts.events, offerExpired, inviteExpired)}</span>
         </p>
         {engagement.status === "INVITED" && (
           <>
-            <ActionButton action={acceptInvitation} fields={{ jobId: job.id, engagementId: engagement.id }} label="Accept invitation" />
+            {closed ? (
+              <p className="text-muted-sm">This job has closed.</p>
+            ) : inviteExpired ? (
+              <p className="text-muted-sm">This invitation expired before you answered.</p>
+            ) : (
+              engagement.inviteExpiresAt && <p className="text-muted-sm">Answer by {day(engagement.inviteExpiresAt)}. The organization&apos;s note, if any, is in the history below.</p>
+            )}
+            <div className="flex flex-wrap items-start gap-2">
+              {!closed && !inviteExpired && <ActionButton action={acceptInvitation} fields={fields} label="Accept invitation" />}
+              <ActionButton action={declineAsWorker} fields={fields} label="Decline" pendingLabel="Declining…" variant="btn-ghost" confirm={{ text: `Decline this invitation? ${final}`, label: "Yes, decline" }} />
+            </div>
             <WillSee sharing={(await loadSharing(workerId)).choices} approved={job.org.approved} invited kept={engagement.applicationSnapshot != null} />
           </>
         )}
-        {engagement.status === "APPLIED" && <p className="text-muted-sm">The organization will review your application.</p>}
+        {engagement.status === "OFFERED" && (
+          <div className="space-y-2">
+            <p className="text-sm text-fg">
+              {closed
+                ? "This job closed before you answered the offer."
+                : offerExpired || !offerDeadline
+                  ? "This offer expired before you answered. The organization can send a new one."
+                  : `The organization offered you a spot. Nothing starts until you accept (${timeLeft(offerDeadline)}). Any note it sent is in the history below.`}
+            </p>
+            <div className="flex flex-wrap items-start gap-2">
+              {!offerExpired && offerDeadline && !closed && <ActionButton action={acceptInvitation} fields={fields} label="Accept offer" pendingLabel="Accepting…" />}
+              <ActionButton action={declineAsWorker} fields={fields} label="Decline offer" pendingLabel="Declining…" variant="btn-ghost" confirm={{ text: `Decline this offer? ${final}`, label: "Yes, decline the offer" }} />
+            </div>
+          </div>
+        )}
+        {engagement.status === "APPLIED" && (
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-muted-sm">The organization will review your application.</p>
+            <ActionButton action={withdrawApplication} fields={fields} label="Withdraw application" pendingLabel="Withdrawing…" variant="btn-ghost btn-sm" confirm={{ text: `Withdraw your application? ${final}`, label: "Yes, withdraw" }} />
+          </div>
+        )}
         {(engagement.status === "ACTIVE" || engagement.status === "CLAIMED") && <WorkerShifts engagementId={engagement.id} />}
+        <EngagementHistory events={facts.events} />
       </section>
     );
   }
@@ -317,6 +362,8 @@ async function OrgPanel({ job, canHire, canSchedule, userId }: { job: JobWithRef
         orderBy: { createdAt: "asc" },
       })
     : [];
+  const facts = await loadPipelineFacts(engagements.map((e) => e.id));
+  const now = new Date();
 
   return (
     <>
@@ -341,6 +388,24 @@ async function OrgPanel({ job, canHire, canSchedule, userId }: { job: JobWithRef
         </section>
       )}
 
+      {canHire && (job.status === "PUBLISHED" || job.status === "PAUSED") && (
+        <section className="section">
+          <h2 className="section-title">Close this job</h2>
+          <p className="text-muted-sm">
+            When you&apos;re done hiring. Nobody can apply or be invited afterwards. Open applications, offers and invitations end, and
+            each worker is told the job closed. People already hired stay hired, and you can keep scheduling their shifts.
+          </p>
+          <ActionButton
+            action={closeJobAction}
+            fields={{ jobId: job.id }}
+            label="Close job"
+            pendingLabel="Closing…"
+            variant="btn-secondary"
+            confirm={{ text: "Close this job? Open applications, offers and invitations end now, and it can't be reopened.", label: "Yes, close it" }}
+          />
+        </section>
+      )}
+
       {canHire && job.status !== "DRAFT" && (
         <section className="section">
           <h2 className="section-title">Workers</h2>
@@ -354,22 +419,26 @@ async function OrgPanel({ job, canHire, canSchedule, userId }: { job: JobWithRef
             <ul className="space-y-3">
               {engagements.map((e) => {
                 const s = ENGAGEMENT_LABELS[e.status];
+                const f = facts.get(e.id) ?? { events: [], inReview: false, offerExpiresAt: null };
                 return (
                   <li key={e.id} className="card space-y-3">
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <p className="flex items-center gap-2 font-medium text-fg">
-                        {/* Profiles open once the worker has engaged (C1); a bare invitation or a closed account shows the name only. */}
-                        {e.worker.closedAt || !RELATIONSHIP_STATUSES.includes(e.status) ? (
-                          <span>{e.worker.displayName}</span>
-                        ) : (
-                          <Link transitionTypes={["nav-forward"]} href={`/workers/${e.worker.id}`} className="link">{e.worker.displayName}</Link>
-                        )}
-                        <span className={s.badge}>{s.label}</span>
+                        {/* The applicant page (C3.2) shows the live profile only while the worker has a relationship with you (C1). */}
+                        <Link transitionTypes={["nav-forward"]} href={`/hiring/${job.id}/people/${e.id}`} className="link">{e.worker.displayName}</Link>
+                        <span className={s.badge}>{stageOf(e, f, now)}</span>
                       </p>
-                      {e.status === "APPLIED" && (
-                        <ActionButton action={acceptApplication} fields={{ jobId: job.id, engagementId: e.id }} label="Accept" variant="btn-primary btn-sm" />
-                      )}
                     </div>
+                    <HiringActions
+                      jobId={job.id}
+                      jobStatus={job.status}
+                      engagementId={e.id}
+                      status={e.status}
+                      inReview={f.inReview}
+                      offerExpiresAt={f.offerExpiresAt}
+                      inviteExpiresAt={e.inviteExpiresAt}
+                    />
+                    <EngagementHistory events={f.events} />
                     {e.applicationSnapshot ? (
                       <SnapshotView snapshot={e.applicationSnapshot as unknown as HiringSnapshot} />
                     ) : (
@@ -383,7 +452,7 @@ async function OrgPanel({ job, canHire, canSchedule, userId }: { job: JobWithRef
         </section>
       )}
 
-      {canSchedule && job.status === "PUBLISHED" && <ShiftsSection job={job} userId={userId} />}
+      {canSchedule && (job.status === "PUBLISHED" || job.status === "CLOSED") && <ShiftsSection job={job} userId={userId} />}
     </>
   );
 }

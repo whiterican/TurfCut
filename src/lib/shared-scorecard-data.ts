@@ -1,13 +1,49 @@
 import { loadScorecard, loadScorecardPeriods } from "@/lib/scorecard-data";
 import { shareScorecard, shareScorecardPeriodsForOrg, type SharedScorecard } from "@/lib/shared-scorecard";
+import type { Prisma } from "@prisma/client";
+import { db } from "@/lib/db";
+import { RELATIONSHIP_STATUSES } from "@/lib/engagements";
 import { loadSharing, orgViewer } from "@/lib/sharing-data";
-import { visibleParts } from "@/lib/sharing";
+import { DEFAULT_SHARING, sharingFromRow, visibleParts, type SharePart } from "@/lib/sharing";
 import type { Period, ScorecardOptions } from "@/lib/scorecard";
 
 /** What an organization's staff may see of a worker's parts, right now. */
 export async function partsForOrg(workerId: string, orgId: string) {
   const [sharing, viewer] = await Promise.all([loadSharing(workerId), orgViewer(workerId, orgId)]);
   return visibleParts(sharing.choices, viewer);
+}
+
+/**
+ * partsForOrg for a list of workers in four queries, whatever its length
+ * (the applicants table). Same rules: each worker's latest sharing choice,
+ * the organization's approval, a relationship from the worker's own
+ * engagements, closed (or missing) accounts read as the public.
+ */
+export async function partsForOrgMany(
+  workerIds: string[],
+  orgId: string,
+  opts: { asStranger?: boolean; client?: Prisma.TransactionClient } = {}
+): Promise<Map<string, Record<SharePart, boolean>>> {
+  const ids = [...new Set(workerIds)];
+  const out = new Map<string, Record<SharePart, boolean>>();
+  if (!ids.length) return out;
+  // A transaction passes itself, to read under the locks it holds.
+  const c = opts.client ?? db();
+  const [org, workers, sharing, related] = await Promise.all([
+    c.organization.findUnique({ where: { id: orgId }, select: { approved: true } }),
+    c.worker.findMany({ where: { id: { in: ids } }, select: { id: true, closedAt: true } }),
+    c.workerSharing.findMany({ where: { workerId: { in: ids } }, orderBy: [{ workerId: "asc" }, { version: "desc" }], distinct: ["workerId"] }),
+    c.engagement.groupBy({ by: ["workerId"], where: { workerId: { in: ids }, job: { orgId }, status: { in: RELATIONSHIP_STATUSES } } }),
+  ]);
+  const open = new Set(workers.filter((w) => !w.closedAt).map((w) => w.id));
+  const choices = new Map(sharing.map((r) => [r.workerId, sharingFromRow(r)]));
+  const rel = new Set(related.map((r) => r.workerId));
+  for (const id of ids) {
+    // asStranger (Matches): what the worker shares with approved organizations they haven't engaged with.
+    const viewer = open.has(id) ? { kind: "org" as const, approved: org?.approved ?? false, relationship: !opts.asStranger && rel.has(id) } : { kind: "public" as const };
+    out.set(id, visibleParts(choices.get(id) ?? DEFAULT_SHARING, viewer));
+  }
+  return out;
 }
 
 /**

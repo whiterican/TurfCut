@@ -98,9 +98,9 @@ export function SharingForm({ choices }: { choices: SharingChoices }) {
         </fieldset>
       ))}
       <p className="text-hint">
-        Today an organization only sees your profile after you apply, claim a spot or accept its invite, so both of the first two
-        choices work the same for now. When Turfcut lets organizations look for workers, we&apos;ll ask you to confirm
-        your choices first.
+        &ldquo;Any organization Turfcut has approved&rdquo; matters when you let organizations find you (below): an approved
+        organization you haven&apos;t applied to then sees those parts when you come up as a match for one of its jobs.
+        Otherwise an organization sees your profile only after you apply, claim a spot or accept its invitation.
       </p>
 
       <fieldset className="card space-y-4">
@@ -119,8 +119,10 @@ export function SharingForm({ choices }: { choices: SharingChoices }) {
           Let organizations find me
         </label>
         <p id="findable-help" className="text-muted-sm">
-          Off by default. When it&apos;s on, approved organizations can find you for the work you pick, near the place you
-          type. Turfcut never uses your phone&apos;s location for this. Turning it off clears the place and distance.
+          Off by default. When it&apos;s on, organizations Turfcut has approved can find you for the work you pick, on
+          published jobs within the distance you set of the place you type, and invite you. They see your name, the distance
+          rounded to 5 miles, the distance you&apos;d travel, and the parts above you share with any approved organization.
+          They never see the place you type. Turfcut never uses your phone&apos;s location. Turning it off clears the place and distance.
         </p>
         {/* Disabled while off: nothing hidden is submitted or checked. */}
         <fieldset disabled={!findable} className={findable ? "space-y-4" : "hidden"}>

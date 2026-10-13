@@ -137,6 +137,20 @@ exercise the locks, triggers and data rules, not the RLS policies.
      fund by invoice. In test mode, add test funds in the Stripe dashboard.
    Without these keys the app still records, approves, disputes and exports
    pay; the **Pay** button explains that Stripe isn't connected yet.
+6a. **Credential proof photos (C3.6b)** — optional until workers should add
+   photos of their Colorado training certificate:
+   - Run `prisma/c3-hiring.sql` (it creates the private `credential-proofs`
+     bucket). Check Supabase → Storage shows it with **Public: off**; only
+     the server reaches it, with the service-role key.
+   - Generate a key on your own machine with `openssl rand -base64 32` and
+     set it as `CREDENTIAL_PROOF_KEY` in Vercel (Production and Preview). It
+     encrypts the photos and nothing else; keep a copy somewhere safe, since
+     losing it makes the stored photos unreadable. Never paste it anywhere
+     else.
+   - Set `CRON_SECRET` in Vercel (any long random string) so the daily
+     photo purge in `vercel.json` can run.
+   Without these, the credentials page says photos aren't available yet, and
+   nothing else changes.
 8. **Going live on Vercel**, in this order:
    1. **One Vercel project for the site.** Importing the repo twice makes two
       projects that both build every push, and settings added to one never
@@ -308,6 +322,7 @@ prisma/
   m6-migration.sql      # M5 → M6 upgrade (offline sync ids on work events)
   fk-indexes.sql        # indexes on nine foreign keys (safe to re-run)
   c2-consent.sql        # C1 → C2 upgrade (worker sharing, availability, credentials)
+  c3-hiring.sql         # C2 → C3 upgrade (hiring pipeline: offers, history)
 ```
 
 ## Demo data
@@ -583,14 +598,17 @@ Jobs and hiring, built on the M1 profile.
   only, the jurisdiction's circulator rules (registration, badge,
   affidavit). The feed's "No credentials" filter uses the same list.
 - **Apply / invite / claim / accept.** Workers apply or claim; orgs invite;
-  orgs accept applications and workers accept invitations. Headcount is
-  enforced under a lock, so simultaneous claims can't overfill a job.
+  orgs answer applications with an offer (C3) and workers accept offers and
+  invitations. Headcount is enforced under a lock, so simultaneous claims
+  can't overfill a job.
 - **Hiring snapshot.** Each engagement freezes what the org could see at that
   moment — scorecard summary and authorized fit signals only, with consent
   version and time. Issue overlap compares the worker's shared answers with
   the job's disclosed positions. An invitation shows fit answers only if
   the worker already applied to, claimed or accepted one of the org's jobs;
-  an invitation alone (even a second one) is never a relationship.
+  an invitation alone (even a second one) is never a relationship. Nor is
+  an engagement the worker withdrew or declined, or one the org closed as
+  not selected (C3): the relationship lasts while one is open or worked.
 - **Late cancellations.** A worker `SHIFT_CANCELLED` inside the job's notice
   window counts as a no-show; timely and organization cancellations don't.
   A shift scheduled with less notice than the window can be cancelled
@@ -601,7 +619,9 @@ Jobs and hiring, built on the M1 profile.
 API: `GET/POST /api/jobs`, `POST /api/jobs/:id/publish`,
 `GET/POST /api/jobs/:id/applications`, `POST /api/jobs/:id/claims`,
 `POST /api/jobs/:id/invitations` `{ workerId }`,
-`POST /api/engagements/:id/accept`.
+`POST /api/engagements/:id/accept` (a worker accepts an invitation or an
+offer; an org calling it on an application sends an offer). Review, not
+selected and withdraw are in the app only for now.
 
 ## M3 scope — field day
 
@@ -796,8 +816,7 @@ connection is only for schema changes.
 
 ### Credential proof photos — decided for C3 (owner, 2026-10-09)
 
-Not built yet; C2 only tells Colorado petition circulators to keep their training
-certificate. Approved as recommended by review:
+Built in C3.6b (see the C3 scope below). Approved as recommended by review:
 
 - A photo is evidence a person checks, never proof by itself: it doesn't
   change the verification level, and organizations get no "proof on file"
@@ -822,6 +841,183 @@ certificate. Approved as recommended by review:
   unused.
 - Counsel reviews the Colorado rule profile and document handling before
   the pilot.
+
+## C3 scope — the hiring hub (in progress)
+
+- **Pipeline (C3.1)**: an organization can mark an application *in review*
+  (the worker sees "In review"), send an *offer*, or mark it *not selected*
+  with a reason code from a fixed list and an optional note the worker
+  reads; there are no private notes about workers. Nothing starts until the
+  worker accepts: an offer lapses after 48 hours (`OFFER_HOURS`). Workers
+  can decline an invitation or offer and withdraw until hired; an
+  organization can withdraw an unanswered invitation. "Accept" from an
+  organization (the pre-C3 API) now sends an offer. A lapsed offer can be
+  sent again. An offer holds a seat while it's live, so an organization
+  can't have more offers out than open spots, and claims and invitations
+  can't take an offered seat. On a closed job only the close-outs remain.
+- **Ending is final for that job** (decision for Caden): once a worker
+  withdraws or declines, or the organization withdraws an invitation or
+  closes it as not selected, that worker and job can't start again; the
+  worker is asked to confirm first. Closing an account withdraws open
+  applications, invitations and offers, each with a history line.
+- **Applicants (C3.2)**: `/hiring/[jobId]/applicants` is a table of the
+  people who applied or claimed (invitations, and hires that began as one,
+  stay on the job page's Workers list until the Invites view in C3.3). The
+  recruiter picks the columns: applied date, stage, free days on the job's
+  dates, the credentials the job or its jurisdiction requires (circulator
+  ones on petition jobs only; any training course counts), and the job's
+  work-type metrics
+  (each with its sample), show rate and verified shifts. One column sorts
+  at a time; a worker who doesn't share the sorted value sits in a separate
+  "not shared" group in arrival order, never ranked as zero. Filters
+  (stage, applied since, free on a job day, holds the required
+  credentials) narrow what was shared and never drop someone for not
+  sharing. Bulk steps: in review, offer (earliest applicant first while
+  spots last) and not selected with one reason. There is no overall score,
+  and political answers are never a column, filter or sort.
+- **Applicant page (C3.2)**: `/hiring/[jobId]/people/[engagementId]`: the
+  stage, actions and history; free days and required credentials for this
+  job; the live profile with political-fit answers (display only, issue
+  overlap against this job's disclosure only on an application, claim or
+  accepted invitation that is still open or worked, never on an
+  unanswered invitation) while the worker
+  has a relationship with the organization; and the copy taken when they
+  applied.
+  Supervisors' access to hired workers' pages comes later.
+- **Invitations (C3.3)**: an organization invites a worker it already has
+  a relationship with (C1) from the worker's or applicant's page, with an
+  optional note the worker reads (also on the history). An invitation
+  lapses after 7 days and can then be sent again, and one organization can
+  send one worker at most 3 in any 7 days (withdrawn and resent ones
+  count; the API answers 429 past that). There are no read receipts:
+  opening one records nothing. The worker's inbox (`/jobs/invitations`)
+  offers Accept, Decline, and Decline and mute: a muted organization's
+  invitations read "Worker not found", as for any worker it can't reach
+  (it isn't told, though it may notice); its jobs still show in the feed
+  (a "do not match" answer hides them). An expired invitation can be muted
+  from the inbox too. Decision for Caden: a worker can't turn a lapsed
+  invitation into an application on their own; the organization resends
+  it, or the worker declines (which ends that job for them).
+  Mutes can be lifted from the inbox, are audited, and are in the data
+  export with the invitation notes. The organization's Invites view
+  (`/hiring/[jobId]/invites`) lists who was invited, by whom, the note and
+  what happened. `prisma/c3-hiring.sql` adds `Engagement.inviteNote`,
+  `inviteExpiresAt` and the `OrgMute` table. The API invitation accepts
+  `{ workerId, note? }`.
+- **Matches (C3.4)**: `/hiring/[jobId]/matches`, a separate tab from
+  Applicants, lists workers who turned on "organizations can find me" for
+  the job's kind of work, confirmed under the wording that says what
+  Matches shows (`SHARING_TEXT_VERSION` was bumped, so everyone is asked
+  again), and whose home area is within the distance they'd travel to the
+  job's city. Never anyone already on the job, anyone who muted the
+  organization, or anyone whose own "do not match" answers rule the job
+  out, applied exactly as in their feed (Private answers are never used;
+  an organization boundary applies even to a job without a disclosure).
+  Published or paused jobs only, so a draft's city or campaign can't be
+  moved around to probe. Each column is one fact with its evidence from
+  what the worker shares with any approved organization (even one they work
+  with); distance is sent in 5-mile bands only; there is no combined score.
+  Only approved organizations see matches, and a match can be invited
+  without an earlier relationship (the only exception to C1's no-directory
+  rule, because the worker opted in). Decision for Caden: an organization
+  with several published jobs that disclose different campaigns can still
+  notice a worker who appears for one and not another; the alternative is
+  not applying boundaries to Matches at all. Distances use bundled Census tables
+  (`src/data/geo`, ZIP and place centroids, public domain; rebuild with
+  `scripts/geo/build-geo.mjs`; consolidated city-counties and alternate
+  names such as "Nashville" or "Honolulu" are included, accents don't
+  matter, and places sharing a name in a state are left out rather than
+  guessed, unless a town's same-name census-designated place lies within 10
+  miles of it, which makes them one place). A worker whose
+  home area Turfcut can't place (unknown, or a city name shared by several
+  places) isn't matched, and their profile says so. `/hiring` shows each job's match count.
+- **Notifications (C3.5)**: in-app notices for hiring steps
+  (`/notifications`, a bell with the unread count in the header). Workers
+  hear about invitations, offers, not selected, withdrawn invitations and
+  closed jobs; an organization's contact for the engagement (else its
+  hiring staff) hears about applications, claims, and answers to its
+  invitations and offers. Never the person who took the step; "in review"
+  stays quiet. Only the kind and the engagement are stored; the words are
+  drawn when shown, and staff who leave an organization stop seeing its
+  notices, as do members whose role no longer includes hiring. A worker's
+  notices about invitations their own "do not match" answers rule out are
+  never shown. Reading is private: nothing records or shows it to anyone
+  else, and only "Mark these as read" marks the notices on the page (never
+  newer ones). In the worker's export. Closing an account ends the
+  worker's open engagements without notices (their name becomes "Former
+  worker"). Email and push come later.
+- **Closing a job (C3.5)**: owners and recruiters can close a published or
+  paused job from its page. Open applications and offers end as not
+  selected ("another reason", with Turfcut's note that the job closed),
+  invitations are withdrawn, each worker is notified (not for ones that had
+  already lapsed); people already hired stay hired and can still be
+  scheduled. It can't be reopened.
+- **Credential checks (C3.6a)**: on `/org/credentials` (owners and
+  compliance members of an approved organization), an organization records
+  that it checked a credential of a worker it hired (claimed, active or
+  completed on one of its jobs) who shares credentials with it, and how:
+  "checked the state's registry", "saw the original document" or, once it
+  opened a photo the worker shared (C3.6b), "looked at the worker's proof
+  photo". Recording appends a row that supersedes the
+  self-reported one (`WorkerCredential.verificationMethod`, added by
+  `prisma/c3-hiring.sql`), names the person who checked and is audited
+  with the organization. Nobody verifies their own credential, an expired
+  one isn't verified, and a worker's edit makes it self-reported again.
+  The worker sees which organization verified each credential, how and
+  when, even if the person who checked later leaves that organization.
+  Other organizations see "Verified by an organization" and how, never
+  which one. Organizations never see a credential's number, so a registry
+  check is by the worker's name, and is offered only for circulator and
+  notary credentials with a state. Already ran `c3-hiring.sql`? Run it
+  once more before deploying C3.6: every credentials screen reads the new
+  column. Decisions for Caden: an organization can't take back a check it
+  recorded by mistake (only the worker's edit resets it; a withdrawal row
+  could come later), and a worker whose shared history names a single
+  organization lets others guess which one verified.
+- **Proof photos (C3.6b)**: a worker adds a photo of their Colorado
+  circulator training certificate (front and back) to a training credential
+  with the state CO and a training date that has passed, on
+  `/profile/credentials`. Sharing is off until they tick it, per photo, and
+  the form says an organization sees everything printed on the certificate.
+  JPEG or PNG only, up to 4 MB and 40 megapixels, 12 uploads a day; a large
+  phone photo is shrunk in the browser first, then the server re-encodes it
+  as a fresh JPEG (upright, at most 2400 px, no location or camera details),
+  seals it with AES-256-GCM under `CREDENTIAL_PROOF_KEY` (a key id byte is
+  reserved for rotation; the photo's id is bound in), and stores it in the
+  private `credential-proofs` bucket (`c3-hiring.sql` creates the bucket
+  when Supabase Storage is present). Only the worker,
+  and owners and compliance members of an approved organization that hired
+  them (claimed or active, not completed) while they share credentials with
+  it, can open a shared photo, through `/api/credential-proofs/[id]`
+  (signed in, never cached, never a link to the bucket; a member's looks are
+  limited to 120 an hour). Each look and download is recorded only once the
+  photo is really served, and listed under the photo for the worker by
+  organization: how many times, the last one, and downloads. Once an
+  organization has opened one since the credential's last edit, it can
+  record "looked at the worker's proof photo" as how it checked; the photo
+  alone never changes the verification level. Photos are deleted (a
+  `CredentialProofDeletion` row with the reason, then the file) when the
+  worker deletes one, removes the credential or edits it into one that takes
+  no photo, closes the account, or a year after the training date (or after
+  the upload, if the date was later moved forward); access stops at once,
+  and a daily purge (`/api/cron/purge-proofs`, Vercel Cron, bearer
+  `CRON_SECRET`) deletes what's due, retries files from the last 30 days'
+  deletions, and removes any stored file older than an hour that has no
+  row. The export includes the photos (up to 3 MB of them; the README inside
+  points to the Download link under each photo for the rest), their history
+  and every look. The export is still one response, so a worker with a very
+  long history and 3 MB of photos could meet the host's response limit; a
+  streamed export is a follow-up if that happens. Setup: the bucket,
+  `CREDENTIAL_PROOF_KEY` and `CRON_SECRET` (README "What needs Caden").
+  Counsel reviews the document handling before the pilot.
+- **History**: every step is an append-only `EngagementEvent`, shown the
+  same way to the worker and the organization, and in the worker's data
+  export (`engagement-history.csv`). `prisma/c3-hiring.sql` adds the
+  statuses (OFFERED, DECLINED, WITHDRAWN) and the table, and gives each
+  existing engagement its opening event. Run it **before** deploying the
+  C3 code; it is safe to run again, so a second run after the deploy fills
+  in any engagement made in between. Acceptance:
+  `tests/acceptance/c3-hiring.ts`.
 
 ## M7 scope — field truth and leaving cleanly
 
@@ -934,7 +1130,7 @@ once in the Supabase SQL editor (two nullable columns on `WorkEvent`).
 ## M4 scope — messaging
 
 - **Direct messages**: one thread per hire, between the worker and the person
-  who hired them (the inviter, the person who accepted the application, or —
+  who hired them (the inviter, the person who sent the offer, or —
   for instant claims — the job's creator, else the owner). Opens only once
   the hire is confirmed; read-only when it ends. If that contact leaves the
   organization, the worker can reopen the thread with a current contact, who

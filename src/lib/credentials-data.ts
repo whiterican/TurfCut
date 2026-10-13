@@ -1,12 +1,13 @@
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
+import { lockProofs, purgeWorkerProofs } from "@/lib/proof-data";
 import { UUID_RE } from "@/lib/jobs";
 import { partsForOrg } from "@/lib/shared-scorecard-data";
 import { currentCredentials, orgCredentialView, validateCredential, type CredentialInput, type CredentialRow, type OrgCredentialView } from "@/lib/credentials";
 
 const SELECT = {
   id: true, kind: true, label: true, state: true, identifier: true, issuedOn: true, expiresOn: true,
-  verification: true, supersedesId: true, removed: true, createdAt: true,
+  verification: true, verificationMethod: true, supersedesId: true, removed: true, createdAt: true,
 } as const;
 
 /** The worker's wallet now (rows nothing supersedes, minus removals), newest first. */
@@ -60,7 +61,9 @@ export async function editCredential(workerId: string, actorId: string, id: stri
   if (!v.ok) return { ok: false, reason: "Fix the fields marked below.", errors: v.errors };
   const clear = !!raw && typeof raw === "object" && (raw as Record<string, unknown>).clearIdentifier === true;
   try {
-    return await db().$transaction(async (tx) => {
+    const r = await db().$transaction(async (tx) => {
+      // Photos follow the credential: no photo lands on a row this edit is replacing (proof-data.ts).
+      await lockProofs(tx, workerId);
       const cur = await ownCurrent(tx, workerId, id);
       if (!cur) return { ok: false as const, reason: STALE };
       if (cur.kind !== v.value.kind) return { ok: false as const, reason: "A credential's kind can't change. Remove it and add a new one." };
@@ -74,6 +77,9 @@ export async function editCredential(workerId: string, actorId: string, id: stri
       await tx.auditEvent.create({ data: { actorId, action: "credential.edited", entityType: "WorkerCredential", entityId: row.id, metadata: { supersedes: cur.id } } });
       return { ok: true as const, id: row.id, changed: true };
     });
+    // An edit can make the credential one that takes no photo (C3.6b).
+    if (r.ok && r.changed) await purgeWorkerProofs(workerId);
+    return r;
   } catch (e) {
     if (isUnique(e)) return { ok: false, reason: STALE };
     throw e;
@@ -83,13 +89,17 @@ export async function editCredential(workerId: string, actorId: string, id: stri
 /** Takes a credential down by appending a removal row; the history stays (rule 3). */
 export async function removeCredential(workerId: string, actorId: string, id: string): Promise<CredentialResult> {
   try {
-    return await db().$transaction(async (tx) => {
+    const r = await db().$transaction(async (tx) => {
+      await lockProofs(tx, workerId);
       const cur = await ownCurrent(tx, workerId, id);
       if (!cur) return { ok: false as const, reason: STALE };
       const row = await tx.workerCredential.create({ data: { workerId, actorId, kind: cur.kind, removed: true, supersedesId: cur.id }, select: { id: true } });
       await tx.auditEvent.create({ data: { actorId, action: "credential.removed", entityType: "WorkerCredential", entityId: row.id, metadata: { removes: cur.id } } });
       return { ok: true as const, id: row.id };
     });
+    // Its photos go with it (C3.6b).
+    if (r.ok) await purgeWorkerProofs(workerId);
+    return r;
   } catch (e) {
     if (isUnique(e)) return { ok: false, reason: STALE };
     throw e;

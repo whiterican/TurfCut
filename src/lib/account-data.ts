@@ -1,10 +1,14 @@
 import { createClient } from "@supabase/supabase-js";
+import { exportProofs, purgeWorkerProofs } from "@/lib/proof-data";
+import type { ProofStore } from "@/lib/proof-storage";
+import { loadVerifiers } from "@/lib/verification-data";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { getSupabaseServiceRoleKey, getSupabaseUrl } from "@/lib/env";
 import { CLOSED_NAME, closureProblems, type ClosureFacts } from "@/lib/account-closure";
 import { lineState } from "@/lib/pay";
 import { csvTable } from "@/lib/zip";
+import { ACCOUNT_CLOSED_NOTE } from "@/lib/engagements";
 
 type Client = Prisma.TransactionClient | ReturnType<typeof db>;
 const lock = (tx: Prisma.TransactionClient, key: string) => tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${key}))`;
@@ -40,17 +44,20 @@ export type CloseResult = { ok: true; cancelledShifts: number } | { ok: false; p
 /**
  * Closes a worker's account. Nothing is deleted from the ledger (rule 3):
  * the name and phone are anonymized, future shifts are cancelled as excused
- * (owner decision: closing is never a no-show), open applications and
- * invitations are withdrawn, and the login is removed afterwards so the
+ * (owner decision: closing is never a no-show), open applications,
+ * invitations and offers are withdrawn, and the login is removed afterwards so the
  * email is gone and they can't sign in. Everything else stays as recorded.
  */
-export async function closeAccount(actor: { userId: string; workerId: string }, now = new Date(), opts: { unsyncedEntries?: number } = {}): Promise<CloseResult> {
+export async function closeAccount(actor: { userId: string; workerId: string }, at?: Date, opts: { unsyncedEntries?: number } = {}): Promise<CloseResult> {
   const result = await db().$transaction(async (tx) => {
     // Lock order everywhere else is worker (scheduling) or shift → pay, so:
     // the worker, then the unstarted shifts (sorted), then pay. A shift that
     // starts between the listing and its lock is left alone (the update is
     // conditional).
     await lock(tx, `worker:${actor.workerId}`);
+    // The clock is read once the worker lock is held (unless a time is
+    // passed), so closure history lands after anything that held it first.
+    const now = at ?? new Date();
     const worker = await tx.worker.findUnique({ where: { id: actor.workerId }, select: { closedAt: true, profileId: true } });
     if (!worker || worker.profileId !== actor.userId) return { ok: false as const, problems: ["Account not found."] };
     if (worker.closedAt) return { ok: false as const, problems: ["This account is already closed."] };
@@ -71,7 +78,19 @@ export async function closeAccount(actor: { userId: string; workerId: string }, 
       await tx.workEvent.create({ data: { shiftId: id, type: "SHIFT_CANCELLED", payload, actorId: actor.userId, createdAt: now } });
       await tx.auditEvent.create({ data: { actorId: actor.userId, action: "shift.cancelled", entityType: "Shift", entityId: id, metadata: payload, createdAt: now } });
     }
-    await tx.engagement.updateMany({ where: { workerId: actor.workerId, status: { in: ["APPLIED", "INVITED"] } }, data: { status: "CANCELLED" } });
+    // Open applications, invitations and offers end with the account, each
+    // with a history line in the worker's name (an invitation reads as
+    // declined, anything the worker started as withdrawn) that says why.
+    const open = await tx.engagement.findMany({ where: { workerId: actor.workerId, status: { in: ["APPLIED", "INVITED", "OFFERED"] } }, select: { id: true, status: true } });
+    // One by one, each only if still as read: closing a job (which holds the job's lock, not the
+    // worker's) may have ended it meanwhile, and its history must not get a second ending.
+    for (const e of open) {
+      const { count } = await tx.engagement.updateMany({ where: { id: e.id, status: e.status }, data: { status: "CANCELLED" } });
+      if (!count) continue;
+      await tx.engagementEvent.create({
+        data: { engagementId: e.id, type: e.status === "INVITED" ? "INVITE_DECLINED" : "WITHDRAWN", actorId: actor.userId, note: ACCOUNT_CLOSED_NOTE, createdAt: now },
+      });
+    }
 
     await tx.worker.update({ where: { id: actor.workerId }, data: { displayName: CLOSED_NAME, phone: null, closedAt: now } });
     await tx.profile.update({ where: { id: actor.userId }, data: { displayName: null, closedAt: now } });
@@ -91,6 +110,8 @@ export async function closeAccount(actor: { userId: string; workerId: string }, 
     console.error("[turfcut] account closed but the auth user could not be deleted", actor.userId, e);
     await db().auditEvent.create({ data: { actorId: actor.userId, action: "account.login_delete_failed", entityType: "Profile", entityId: actor.userId, metadata: { message: e instanceof Error ? e.message : String(e) } } }).catch(() => {});
   }
+  // Credential photos are deleted on closing (C3.6b); the daily purge retries a failure.
+  await purgeWorkerProofs(actor.workerId);
   return result;
 }
 
@@ -101,15 +122,23 @@ export async function closeAccount(actor: { userId: string; workerId: string }, 
 const json = (v: unknown) => JSON.stringify(v, null, 2) + "\n";
 
 /** The files of a worker's data export (zipped by the route). */
-export async function exportAccount(actor: { userId: string; workerId: string; email?: string }, now = new Date()): Promise<Array<{ name: string; text: string }>> {
+export async function exportAccount(
+  actor: { userId: string; workerId: string; email?: string },
+  now = new Date(),
+  opts: { proofStore?: ProofStore } = {}
+): Promise<Array<{ name: string; text: string; bytes?: Uint8Array }>> {
   const p = db();
+  const proofs = await exportProofs(actor.workerId, opts.proofStore ?? null, now);
   const w = actor.workerId;
-  const [worker, experience, preferences, metrics, engagements, shifts, lines, transfers, disputes, messages, sharing, availability, credentials] = await Promise.all([
+  const [worker, experience, preferences, metrics, engagements, history, mutes, notices, shifts, lines, transfers, disputes, messages, sharing, availability, credentials] = await Promise.all([
     p.worker.findUniqueOrThrow({ where: { id: w }, select: { id: true, displayName: true, phone: true, createdAt: true, closedAt: true, payoutsEnabled: true, stripeAccountId: true } }),
     p.experienceRecord.findMany({ where: { workerId: w }, omit: { verifiedById: true }, orderBy: { startDate: "desc" } }),
     p.politicalPreference.findMany({ where: { workerId: w }, orderBy: { consentVersion: "asc" } }),
     p.profileMetric.findMany({ where: { workerId: w }, orderBy: { version: "asc" } }),
     p.engagement.findMany({ where: { workerId: w }, include: { job: { select: { id: true, title: true, org: { select: { name: true } } } } }, orderBy: { createdAt: "asc" } }),
+    p.engagementEvent.findMany({ where: { engagement: { workerId: w } }, select: { id: true, engagementId: true, type: true, reasonCode: true, note: true, createdAt: true, actorId: true }, orderBy: { createdAt: "asc" } }),
+    p.orgMute.findMany({ where: { workerId: w }, select: { createdAt: true, org: { select: { name: true } } }, orderBy: { createdAt: "asc" } }),
+    p.notification.findMany({ where: { recipientId: actor.userId }, select: { id: true, kind: true, engagementId: true, createdAt: true, readAt: true }, orderBy: { createdAt: "asc" } }),
     p.shift.findMany({
       where: { engagement: { workerId: w } },
       include: { engagement: { select: { job: { select: { title: true, org: { select: { name: true } } } } } }, events: { orderBy: { createdAt: "asc" } }, validations: { orderBy: { createdAt: "asc" } } },
@@ -124,7 +153,7 @@ export async function exportAccount(actor: { userId: string; workerId: string; e
     p.workerCredential.findMany({ where: { workerId: w }, omit: { verifiedById: true }, orderBy: { createdAt: "asc" } }),
   ]);
 
-  const files: Array<{ name: string; text: string }> = [];
+  const files: Array<{ name: string; text: string; bytes?: Uint8Array }> = [];
   files.push({
     name: "README.txt",
     text: [
@@ -136,6 +165,9 @@ export async function exportAccount(actor: { userId: string; workerId: string; e
       "preferences.json    every version of your political-fit answers and consent (newest last)",
       "metrics.json        every version of your computed scorecard aggregates",
       "engagements.csv     jobs you applied to, were invited to, claimed or worked",
+      "mutes.json          organizations you muted (they can't invite you)",
+      "notifications.csv   the notices Turfcut showed you, and when you marked them read",
+      "engagement-history.csv  each step of those: offers, reviews, reasons and notes (yours to read, or Turfcut's on closure)",
       "shifts.csv          your shifts, with the supervisor's review",
       "work-events.csv     the field ledger: every check-in, count, break, packet, correction",
       "reviews.csv         every supervisor review decision",
@@ -147,6 +179,10 @@ export async function exportAccount(actor: { userId: string; workerId: string; e
       "sharing.json        every version of who sees what, and whether you can be found",
       "availability.json   every version of your usual week, dates and note",
       "credentials.csv     every credential row: additions, edits and removals",
+      "credential-photos.csv  every certificate photo you added, and when and why each was deleted",
+      "credential-photo-looks.csv  each time an organization looked at or downloaded one of them",
+      "credential-photos/  the photos you have now, as Turfcut keeps them (re-encoded, no location data)",
+      ...(proofs.filesNote ? ["", proofs.filesNote] : []),
       "",
       "Times are UTC (ISO 8601). Nothing here is ever deleted from Turfcut's",
       "ledger — closing your account anonymizes your name and phone and removes",
@@ -160,8 +196,23 @@ export async function exportAccount(actor: { userId: string; workerId: string; e
   files.push({ name: "metrics.json", text: json(metrics) });
   files.push({ name: "sharing.json", text: json(sharing) });
   files.push({ name: "availability.json", text: json(availability) });
-  files.push({ name: "credentials.csv", text: csvTable(credentials) });
-  files.push({ name: "engagements.csv", text: csvTable(engagements.map((e) => ({ id: e.id, jobId: e.job.id, job: e.job.title, organization: e.job.org.name, status: e.status, createdAt: e.createdAt, updatedAt: e.updatedAt, applicationSnapshot: e.applicationSnapshot }))) });
+  // Which organization verified a row is the worker's to know (others see only that one did).
+  const verifiers = await loadVerifiers(w);
+  files.push({ name: "credential-photos.csv", text: csvTable(proofs.rows, ["id", "credentialId", "side", "shared", "sha256", "sizeBytes", "width", "height", "createdAt", "deletedAt", "deletionReason"]) });
+  files.push({ name: "credential-photo-looks.csv", text: csvTable(proofs.looks, ["photoId", "organization", "at", "downloaded"]) });
+  // Binary entries: the photo bytes, with no text.
+  files.push(...proofs.files.map((f) => ({ ...f, text: "" })));
+  files.push({ name: "credentials.csv", text: csvTable(credentials.map((c) => ({ ...c, verifiedByOrg: verifiers.get(c.id)?.org ?? "" }))) });
+  files.push({ name: "notifications.csv", text: csvTable(notices.map((n) => ({ id: n.id, kind: n.kind, engagementId: n.engagementId, at: n.createdAt, readAt: n.readAt ?? "" })), ["id", "kind", "engagementId", "at", "readAt"]) });
+  files.push({ name: "mutes.json", text: json(mutes.map((m) => ({ organization: m.org.name, since: m.createdAt }))) });
+  files.push({ name: "engagements.csv", text: csvTable(engagements.map((e) => ({ id: e.id, jobId: e.job.id, job: e.job.title, organization: e.job.org.name, status: e.status, createdAt: e.createdAt, updatedAt: e.updatedAt, inviteNote: e.inviteNote ?? "", inviteExpiresAt: e.inviteExpiresAt ?? "", applicationSnapshot: e.applicationSnapshot }))) });
+  files.push({
+    name: "engagement-history.csv",
+    text: csvTable(
+      history.map((h) => ({ id: h.id, engagementId: h.engagementId, step: h.type, at: h.createdAt, byMe: h.actorId === actor.userId, reasonCode: h.reasonCode ?? "", note: h.note ?? "" })),
+      ["id", "engagementId", "step", "at", "byMe", "reasonCode", "note"]
+    ),
+  });
   files.push({
     name: "shifts.csv",
     text: csvTable(

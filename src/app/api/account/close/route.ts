@@ -16,7 +16,7 @@ export async function POST(req: Request) {
   const unsyncedEntries = typeof body?.unsyncedEntries === "number" && Number.isFinite(body.unsyncedEntries) ? Math.max(0, Math.floor(body.unsyncedEntries)) : 0;
   let r;
   try {
-    r = await closeAccount({ userId: auth.session.userId, workerId: auth.session.workerId }, new Date(), { unsyncedEntries });
+    r = await closeAccount({ userId: auth.session.userId, workerId: auth.session.workerId }, undefined, { unsyncedEntries });
   } catch (e) {
     console.error("[turfcut] closing an account failed", auth.session.userId, e);
     const busy = "Something else is happening on your account right now (a review, a pay run or a sync). Try again in a minute.";

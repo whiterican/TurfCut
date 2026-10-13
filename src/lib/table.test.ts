@@ -41,4 +41,15 @@ describe("staff table sorting", () => {
     expect(ids(sortRows(mixed, "v", "asc"))).toEqual(["n", "t", "e", "m"]);
     expect(ids(sortRows(mixed, "v", "desc")).slice(-2)).toEqual(["e", "m"]);
   });
+  it("withheld values are never ranked: their own group, in arrival order, in both directions", () => {
+    const w = (id: string, v: number | null | "withheld"): TableRow => ({
+      id,
+      cells: { m: v === "withheld" ? { text: "not shared", sort: null, withheld: true } : { text: String(v), sort: v } },
+    });
+    const list = [w("a", "withheld"), w("b", 5), w("c", null), w("d", "withheld"), w("e", 9)];
+    expect(ids(sortRows(list, "m", "desc"))).toEqual(["e", "b", "c", "a", "d"]);
+    expect(ids(sortRows(list, "m", "asc"))).toEqual(["b", "e", "c", "a", "d"]);
+    // Sorting by another column doesn't treat them specially.
+    expect(ids(sortRows(list, "x", "asc"))).toEqual(["a", "b", "c", "d", "e"]);
+  });
 });

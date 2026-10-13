@@ -6,7 +6,7 @@ import { DM_Mono, DM_Sans, Newsreader } from "next/font/google";
 import { OrgRail, OrgTabBar, TabBar, TopNav } from "@/components/AppNav";
 import { InlineScript } from "@/components/InlineScript";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { SlidersHorizontal } from "lucide-react";
+import { Bell, SlidersHorizontal } from "lucide-react";
 import { UnreadProvider } from "@/components/chat/UnreadProvider";
 import { ViewerKindProvider } from "@/components/ViewerKind";
 import { PageTransition } from "@/components/PageTransition";
@@ -17,6 +17,7 @@ import { getSiteUrl } from "@/lib/env";
 import { MESSAGES_HREF, navTabs, orgNav } from "@/lib/nav";
 import { db } from "@/lib/db";
 import { unreadTotal } from "@/lib/chat-data";
+import { unreadNotifications } from "@/lib/notifications-data";
 import "./globals.css";
 
 const dmSans = DM_Sans({
@@ -58,13 +59,16 @@ export default async function RootLayout({
   const tabs = navTabs(session?.role ?? null, !!session?.orgId);
   const org = orgNav(session?.role ?? null, !!session?.orgId);
   const isOrg = org.rail.length > 0;
-  const [unread, orgInfo] = await Promise.all([
+  const [unread, orgInfo, notices] = await Promise.all([
     session && tabs.some((t) => t.href === MESSAGES_HREF)
       ? unreadTotal({ userId: session.userId, role: session.role, orgId: session.orgId }).catch(() => 0)
       : 0,
     isOrg && session?.orgId
       ? db().organization.findUnique({ where: { id: session.orgId }, select: { name: true, approved: true } }).catch(() => null)
       : null,
+    session
+      ? unreadNotifications({ userId: session.userId, role: session.role, workerId: session.workerId ?? null, orgId: session.orgId ?? null }).catch(() => 0)
+      : 0,
   ]);
   return (
     <html
@@ -91,6 +95,12 @@ export default async function RootLayout({
             </Link>
             <div className="flex items-center gap-2">
               {!isOrg && <TopNav tabs={tabs} />}
+              {session && (
+                <Link href="/notifications" className="btn-ghost btn-sm relative" aria-label={notices ? `Notifications, ${notices} unread` : "Notifications"}>
+                  <Bell aria-hidden className="btn-icon" />
+                  {notices > 0 && <span className="unread-badge" aria-hidden>{notices > 99 ? "99+" : notices}</span>}
+                </Link>
+              )}
               <Link href="/settings" className="btn-ghost btn-sm" title="Settings: text size, theme, sign out" aria-label="Settings">
                 <SlidersHorizontal aria-hidden className="btn-icon" />
               </Link>

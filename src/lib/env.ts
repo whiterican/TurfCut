@@ -316,6 +316,34 @@ export function unsetDetail(names: readonly string[], databaseUrl = process.env.
   return names.includes("DATABASE_URL") && databaseUrl?.trim() ? `${base}; DATABASE_URL ${describeDatabaseUrl(databaseUrl)}` : base;
 }
 
+/** CREDENTIAL_PROOF_KEY as 32 bytes, or null when unset or malformed (never a default). */
+export function credentialProofKeyOf(v: string | undefined): Buffer | null {
+  const t = v?.trim();
+  if (!t || !/^[A-Za-z0-9+/]+={0,2}$/.test(t)) return null;
+  const key = Buffer.from(t, "base64");
+  return key.length === 32 ? key : null;
+}
+
+/**
+ * Settings proof photos need (C3.6b): the service-role key for the private
+ * "credential-proofs" bucket, and the separate key the photos are encrypted
+ * with (CREDENTIAL_PROOF_KEY, 32 random bytes in base64; see
+ * proof-photos.ts). A missing or malformed one is named, never defaulted.
+ */
+export function missingProofSettings(
+  env: Record<string, string | undefined> = {
+    NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
+    CREDENTIAL_PROOF_KEY: process.env.CREDENTIAL_PROOF_KEY,
+  }
+): string[] {
+  const out: string[] = [];
+  if (!supabaseUrlOf(env.NEXT_PUBLIC_SUPABASE_URL)) out.push("NEXT_PUBLIC_SUPABASE_URL");
+  if (!env.SUPABASE_SERVICE_ROLE_KEY?.trim()) out.push("SUPABASE_SERVICE_ROLE_KEY");
+  if (!credentialProofKeyOf(env.CREDENTIAL_PROOF_KEY)) out.push("CREDENTIAL_PROOF_KEY");
+  return out;
+}
+
 /** "Sign-in isn't configured on this server yet (DATABASE_URL)." */
 export function notConfiguredMessage(what: string, missingNames: readonly string[]): string {
   return `${what} isn't configured on this server yet (${missingNames.join(", ")}).`;

@@ -5,7 +5,10 @@ import { acceptEngagement } from "@/lib/engagements-data";
 
 /**
  * POST /api/engagements/:engagementId/accept
- * Owners and recruiters accept applications; workers accept invitations.
+ * Workers accept an invitation or an offer (→ ACTIVE). Owners and
+ * recruiters calling it on an application send an offer instead (→
+ * OFFERED, C3): only the worker's accept hires. Another organization's
+ * engagement answers 404.
  */
 export async function POST(_req: Request, { params }: { params: Promise<{ engagementId: string }> }) {
   const { engagementId } = await params;

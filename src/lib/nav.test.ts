@@ -6,14 +6,14 @@ describe("navigation", () => {
   it("gives each role its own tabs", () => {
     expect(navTabs("WORKER", false).map((t) => t.label)).toEqual(["Today", "Feed", "Work", "Shifts", "Messages", "Profile"]);
     // C1: no People directory; organizations reach workers through a job.
-    expect(navTabs("OWNER", true).map((t) => t.label)).toEqual(["Desk", "Hiring", "Jobs", "Field", "Messages", "Pay", "Campaigns", "Members", "Settings"]);
+    expect(navTabs("OWNER", true).map((t) => t.label)).toEqual(["Desk", "Hiring", "Jobs", "Field", "Messages", "Pay", "Credentials", "Campaigns", "Members", "Settings"]);
     // Recruiters read the field (no actions there).
     expect(navTabs("RECRUITER", true).map((t) => t.label)).toEqual(["Desk", "Hiring", "Jobs", "Field", "Messages", "Campaigns", "Settings"]);
     expect(navTabs("PUBLISHER", true).map((t) => t.label)).toEqual(["Desk", "Jobs", "Campaigns", "Settings"]);
     expect(navTabs("FINANCE", true).map((t) => t.label)).toEqual(["Desk", "Jobs", "Pay", "Settings"]);
     expect(navTabs("SUPERVISOR", true).map((t) => t.label)).toEqual(["Desk", "Jobs", "Field", "Messages", "Settings"]);
     // Chat is for team staff.
-    expect(navTabs("COMPLIANCE", true).map((t) => t.label)).toEqual(["Desk", "Jobs", "Settings"]);
+    expect(navTabs("COMPLIANCE", true).map((t) => t.label)).toEqual(["Desk", "Jobs", "Credentials", "Settings"]);
     expect(navTabs("RECRUITER", false)).toEqual([]);
     expect(navTabs(null, false)).toEqual([]);
   });
@@ -41,10 +41,11 @@ describe("navigation", () => {
       return { rail: n.rail.map((t) => t.label), phone: n.phone.map((t) => t.label), more: n.more.map((t) => t.label) };
     };
     // The plan's phone bars.
-    expect(labels("OWNER")).toEqual({ rail: ["Desk", "Hiring", "Jobs", "Field", "Messages", "Pay", "Campaigns", "Members", "Settings"], phone: ["Desk", "Hiring", "Field", "Messages"], more: ["Jobs", "Pay", "Campaigns", "Members", "Settings"] });
+    expect(labels("OWNER")).toEqual({ rail: ["Desk", "Hiring", "Jobs", "Field", "Messages", "Pay", "Credentials", "Campaigns", "Members", "Settings"], phone: ["Desk", "Hiring", "Field", "Messages"], more: ["Jobs", "Pay", "Credentials", "Campaigns", "Members", "Settings"] });
     expect(labels("RECRUITER")).toEqual({ rail: ["Desk", "Hiring", "Jobs", "Field", "Messages", "Campaigns", "Settings"], phone: ["Desk", "Hiring", "Jobs", "Messages"], more: ["Field", "Campaigns", "Settings"] });
     expect(labels("SUPERVISOR")).toEqual({ rail: ["Desk", "Jobs", "Field", "Messages", "Settings"], phone: ["Desk", "Field", "Jobs", "Messages"], more: ["Settings"] });
     expect(labels("FINANCE")).toEqual({ rail: ["Desk", "Jobs", "Pay", "Settings"], phone: ["Desk", "Pay", "Jobs"], more: ["Settings"] });
+    expect(labels("COMPLIANCE")).toEqual({ rail: ["Desk", "Jobs", "Credentials", "Settings"], phone: ["Desk", "Credentials", "Jobs"], more: ["Settings"] });
     expect(labels("PUBLISHER")).toEqual({ rail: ["Desk", "Jobs", "Campaigns", "Settings"], phone: ["Desk", "Campaigns", "Jobs"], more: ["Settings"] });
     expect(orgNav("WORKER", false)).toEqual({ rail: [], phone: [], more: [] });
     expect(orgNav("OWNER", false)).toEqual({ rail: [], phone: [], more: [] });

@@ -31,6 +31,10 @@ export const LIMITS = {
   sync: { max: 60, windowMs: 60_000 },
   /** Member invite emails (sends and resends) per organization per day. */
   invite: { max: 20, windowMs: 24 * 60 * 60_000 },
+  /** Credential photo uploads per worker per day (each is re-encoded and stored). */
+  "proof-upload": { max: 12, windowMs: 24 * 60 * 60_000 },
+  /** An organization member's looks at credential photos per hour (each look is recorded for the worker). */
+  "proof-view": { max: 120, windowMs: 60 * 60_000 },
   /** Campaign posts per organization per hour (S1: a script can't flood a feed). */
   post: { max: 30, windowMs: 60 * 60_000 },
   /** New campaigns and handle changes per organization per day (S1: handles aren't free to reserve in bulk). */

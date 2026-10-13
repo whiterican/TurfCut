@@ -2,10 +2,11 @@ import { crc32 } from "node:zlib";
 
 /**
  * A plain ZIP file (entries stored, not compressed) — enough for a data
- * export of JSON and CSV text without adding a dependency. Node 22's
+ * export of JSON and CSV text, and the worker's photos, without adding a dependency. Node 22's
  * zlib.crc32 supplies the checksum the format needs.
  */
-export function zipFile(entries: Array<{ name: string; text: string }>): Uint8Array {
+/** An entry is text, or raw bytes when `bytes` is given. */
+export function zipFile(entries: Array<{ name: string; text?: string; bytes?: Uint8Array }>): Uint8Array {
   const enc = new TextEncoder();
   const parts: Uint8Array[] = [];
   const central: Uint8Array[] = [];
@@ -28,7 +29,7 @@ export function zipFile(entries: Array<{ name: string; text: string }>): Uint8Ar
   const dosTime = le(0, 2), dosDate = le(0x21, 2);
   for (const e of entries) {
     const name = enc.encode(e.name);
-    const data = enc.encode(e.text);
+    const data = e.bytes ?? enc.encode(e.text ?? "");
     const crc = crc32(data);
     // UTF-8 names (general purpose bit 11).
     const local = cat(le(0x04034b50, 4), le(20, 2), le(0x0800, 2), le(0, 2), dosTime, dosDate, le(crc, 4), le(data.length, 4), le(data.length, 4), le(name.length, 2), le(0, 2), name, data);

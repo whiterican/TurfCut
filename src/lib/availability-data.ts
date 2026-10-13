@@ -1,9 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { availabilityFromRow, EMPTY_AVAILABILITY, orgAvailabilityView, sameAvailability, validateAvailability, withoutPastDates, type Availability, type OrgAvailabilityView } from "@/lib/availability";
-import { partsForOrg } from "@/lib/shared-scorecard-data";
-import { DEFAULT_SHARING, sharingFromRow, visibleParts, type Viewer } from "@/lib/sharing";
-import { RELATIONSHIP_STATUSES } from "@/lib/engagements";
+import { partsForOrg, partsForOrgMany } from "@/lib/shared-scorecard-data";
 
 export interface LoadedAvailability {
   availability: Availability;
@@ -78,21 +76,11 @@ export async function loadOrgAvailabilities(workerIds: string[], orgId: string, 
   const ids = [...new Set(workerIds)];
   const out = new Map<string, OrgAvailabilityView>();
   if (!ids.length) return out;
-  const [org, workers, sharing, related, rows] = await Promise.all([
-    db().organization.findUnique({ where: { id: orgId }, select: { approved: true } }),
-    db().worker.findMany({ where: { id: { in: ids } }, select: { id: true, closedAt: true } }),
-    db().workerSharing.findMany({ where: { workerId: { in: ids } }, orderBy: [{ workerId: "asc" }, { version: "desc" }], distinct: ["workerId"] }),
-    db().engagement.groupBy({ by: ["workerId"], where: { workerId: { in: ids }, job: { orgId }, status: { in: RELATIONSHIP_STATUSES } } }),
+  const [parts, rows] = await Promise.all([
+    partsForOrgMany(ids, orgId),
     db().workerAvailability.findMany({ where: { workerId: { in: ids } }, orderBy: [{ workerId: "asc" }, { version: "desc" }], distinct: ["workerId"] }),
   ]);
-  const open = new Set(workers.filter((w) => !w.closedAt).map((w) => w.id));
-  const choices = new Map(sharing.map((s) => [s.workerId, sharingFromRow(s)]));
-  const rel = new Set(related.map((r) => r.workerId));
   const avail = new Map(rows.map((r) => [r.workerId, availabilityFromRow(r)]));
-  for (const id of ids) {
-    const viewer: Viewer = open.has(id) ? { kind: "org", approved: org?.approved ?? false, relationship: rel.has(id) } : { kind: "public" };
-    const shared = visibleParts(choices.get(id) ?? DEFAULT_SHARING, viewer).availability;
-    out.set(id, orgAvailabilityView(avail.get(id) ?? EMPTY_AVAILABILITY, shared, today));
-  }
+  for (const id of ids) out.set(id, orgAvailabilityView(avail.get(id) ?? EMPTY_AVAILABILITY, parts.get(id)?.availability ?? false, today));
   return out;
 }

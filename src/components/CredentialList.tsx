@@ -1,4 +1,4 @@
-import { credentialName, VERIFICATION_LABELS, type OrgCredentialView } from "@/lib/credentials";
+import { credentialName, METHOD_LABELS, VERIFICATION_LABELS, type OrgCredentialView } from "@/lib/credentials";
 import { NotSharedChip } from "@/components/staff/NotSharedChip";
 
 const dateText = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
@@ -16,6 +16,7 @@ export function CredentialList({ view, today }: { view: OrgCredentialView[] | "w
             <span className="font-medium text-fg">{credentialName(c)}</span>
             <span className="flex flex-wrap items-center gap-2">
               <span className={c.verification === "SELF_REPORTED" ? "badge-dashed" : "badge-accent"}>{VERIFICATION_LABELS[c.verification]}</span>
+              {c.verificationMethod && <span className="text-muted">({METHOD_LABELS[c.verificationMethod]})</span>}
               {c.expiresOn && <span className={expired ? "text-danger-msg" : "text-muted"}>{expired ? "Expired" : "Expires"} {dateText(c.expiresOn)}</span>}
             </span>
           </li>

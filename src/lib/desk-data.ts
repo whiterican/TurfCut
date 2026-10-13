@@ -62,6 +62,16 @@ export async function loadDesk(actor: { profileId: string; orgId: string; role: 
     parts.pay ? countOpenDisputes(actor) : null,
   ]);
 
+  // A closed job still has its hires' shifts (C3.5): the week ahead shows those jobs too.
+  const known = new Set((jobs ?? []).map((j) => j.id));
+  const missing = [...new Set((upcoming ?? []).map((s) => s.engagement.jobId))].filter((id) => !known.has(id));
+  const closedWithShifts = parts.week && missing.length
+    ? await db().job.findMany({
+        where: { id: { in: missing }, orgId },
+        select: { id: true, title: true, headcount: true, startsAt: true, endsAt: true, _count: { select: { engagements: { where: { status: { in: ACCEPTED_STATUSES } } } } } },
+      })
+    : [];
+
   const needs: DeskItem[] = [];
   if (parts.field && ops) {
     for (const r of ops.late) needs.push({ key: `late-${r.shift.id}`, title: `${r.shift.engagement.worker.displayName} hasn't checked in`, sub: r.shift.engagement.job.title, tag: "Late", badge: "badge-coral", href: `/shifts/${r.shift.id}` });
@@ -90,7 +100,7 @@ export async function loadDesk(actor: { profileId: string; orgId: string; role: 
     // The week ahead: live jobs that run during the next 7 days (undated ones too).
     week: parts.week && jobs && upcoming
       ? weekAhead(
-          jobs.filter((j) => !j.startsAt || j.startsAt < weekEnd),
+          [...jobs.filter((j) => !j.startsAt || j.startsAt < weekEnd), ...closedWithShifts],
           upcoming.map((s) => ({ jobId: s.engagement.jobId, workerId: s.engagement.workerId, startsAt: s.startsAt, endsAt: s.endsAt })),
           now,
         )

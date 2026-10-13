@@ -30,6 +30,15 @@ const nextConfig: NextConfig = {
           { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(self)" },
         ],
       },
+      // A credential photo (C3.6b) is an image and nothing else: no scripts,
+      // no frames, no fetches, and never cached.
+      {
+        source: "/api/credential-proofs/:path*",
+        headers: [
+          { key: "Content-Security-Policy", value: "default-src 'none'; img-src 'self'; frame-ancestors 'none'; sandbox" },
+          { key: "Cache-Control", value: "private, no-store" },
+        ],
+      },
       // The offline brief's service worker must never be served stale. Listed
       // after the rule above so its own policy wins (the last match does).
       // As the Next.js PWA guide sets them for a service worker.

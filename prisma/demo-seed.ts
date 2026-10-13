@@ -18,10 +18,11 @@
  * demo jobs before real workers arrive (README).
  *
  * Built through the app's own rules — jobs pass the publish gate, workers
- * apply and are accepted, shifts are scheduled, worked and reviewed with the
- * field-day functions — backdated so workers have real verified history and
- * pay lines computed by the pay rules. The only hand-set values are the
- * hire dates (acceptEngagement stamps the current time).
+ * apply, the organization sends an offer and the worker accepts it (C3),
+ * shifts are scheduled, worked and reviewed with the field-day functions —
+ * backdated so workers have real verified history and pay lines computed by
+ * the pay rules. The only hand-set values are the engagement row's own
+ * dates (the hiring history events carry the backdated times).
  *
  * Run: npm run seed:demo -- --yes (DATABASE_URL must be set in the shell;
  * the base seed's approved CO/Denver jurisdiction must exist). It runs once:
@@ -36,7 +37,7 @@ import { db } from "../src/lib/db";
 import { compensationProblem, jurisdictionProblems, validateJob, type Affiliation, type CampaignType, type JobInput } from "../src/lib/jobs";
 import type { IssueKey } from "../src/lib/political-fit";
 import { createJob, publishJob } from "../src/lib/jobs-data";
-import { acceptEngagement, applyToJob, claimJob, inviteWorker } from "../src/lib/engagements-data";
+import { acceptEngagement, applyToJob, claimJob, inviteWorker, moveEngagement } from "../src/lib/engagements-data";
 import { scheduleShift, supervisorShiftAction, workerShiftAction } from "../src/lib/field-day-data";
 import { ensureDirect, sendMessage } from "../src/lib/chat-data";
 
@@ -274,10 +275,15 @@ async function main() {
       const { org, owner, sup } = orgs[job.orgIdx];
       // Applied two days before the start, but never before the job or the worker existed.
       const appliedAt = new Date(Math.max(job.startsAt.getTime() - 2 * DAY, T0.getTime() + HOUR));
-      const acceptedAt = new Date(appliedAt.getTime() + int(2, 20) * HOUR);
+      const offeredAt = new Date(appliedAt.getTime() + int(2, 20) * HOUR);
+      const acceptedAt = new Date(offeredAt.getTime() + int(1, 12) * HOUR);
       const applied = must(await applyToJob(worker.id, profile.id, job.id, appliedAt), "apply");
-      must(await acceptEngagement(applied.engagementId, { kind: "org", profileId: owner.id, orgId: org.id }), "accept");
-      // acceptEngagement stamps the current time; the demo's hire happened back then.
+      // C3: the organization offers, and only the worker's accept hires.
+      const offered = must(await moveEngagement(applied.engagementId, "offer", { kind: "org", profileId: owner.id, orgId: org.id }, {}, offeredAt), "offer");
+      if (offered.status !== "OFFERED") throw new Error(`demo seed: offer left the engagement ${offered.status}`);
+      const hired = must(await acceptEngagement(applied.engagementId, { kind: "worker", profileId: profile.id, workerId: worker.id }, acceptedAt), "accept");
+      if (hired.status !== "ACTIVE") throw new Error(`demo seed: accepting left the engagement ${hired.status}`);
+      // The row's own timestamps are the database's; the demo's hire happened back then.
       await p.engagement.update({ where: { id: applied.engagementId }, data: { createdAt: appliedAt, updatedAt: acceptedAt } });
 
       const shifts = int(2, 5);
@@ -331,6 +337,9 @@ async function main() {
       }
     }
   }
+  // Every hire above must have worked: none means hiring stopped producing
+  // hired workers, and the demo would have no history (stop before the marker).
+  if (shiftsWorked === 0) throw new Error("demo seed: no shifts were worked — the hires above didn't take");
 
   // --- Upcoming jobs: applications waiting for a decision, claimed spots and invitations out ---
   let pending = 0;

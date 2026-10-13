@@ -16,6 +16,26 @@ import { hasHiddenChars } from "@/lib/text-guard";
 
 export type CredentialKind = "CIRCULATOR_REGISTRATION" | "NOTARY_OR_AFFIDAVIT" | "TRAINING" | "OTHER";
 export type VerificationLevel = "PLATFORM" | "ORGANIZATION" | "IMPORTED" | "SELF_REPORTED";
+export type VerificationMethod = "REGISTRY_LOOKUP" | "ORIGINAL_DOCUMENT" | "PROOF_PHOTO";
+
+/** How a verified credential was checked (C3.6), as the worker and organizations read it. */
+export const METHOD_LABELS: Record<VerificationMethod, string> = {
+  REGISTRY_LOOKUP: "checked the state's registry",
+  ORIGINAL_DOCUMENT: "saw the original document",
+  PROOF_PHOTO: "looked at the worker's proof photo",
+};
+/** The methods an organization can record. */
+export const ORG_METHODS: VerificationMethod[] = ["REGISTRY_LOOKUP", "ORIGINAL_DOCUMENT", "PROOF_PHOTO"];
+/**
+ * The methods that fit a credential: a state keeps a registry of
+ * circulators and notaries, not of training courses, so registry lookups
+ * only fit those, with a state; "looked at the proof photo" only once the
+ * organization has opened a photo of it the worker shared (C3.6b).
+ */
+export function methodsFor(c: Pick<CredentialRow, "kind" | "state">, opts: { photoSeen?: boolean } = {}): VerificationMethod[] {
+  const registry = (c.kind === "CIRCULATOR_REGISTRATION" || c.kind === "NOTARY_OR_AFFIDAVIT") && !!c.state;
+  return ORG_METHODS.filter((m) => (m === "REGISTRY_LOOKUP" ? registry : m === "PROOF_PHOTO" ? !!opts.photoSeen : true));
+}
 
 export const CREDENTIAL_KINDS: Array<{ value: CredentialKind; label: string; needsLabel: boolean; hint: string }> = [
   { value: "CIRCULATOR_REGISTRATION", label: "Circulator registration", needsLabel: false, hint: "Your state's petition circulator registration." },
@@ -49,6 +69,7 @@ export interface CredentialRow {
   issuedOn: Date | null;
   expiresOn: Date | null;
   verification: VerificationLevel;
+  verificationMethod?: VerificationMethod | null;
   supersedesId: string | null;
   removed: boolean;
   createdAt: Date;
@@ -195,11 +216,13 @@ export interface OrgCredentialView {
   label: string | null;
   state: string | null;
   verification: VerificationLevel;
+  /** How it was checked, when verified. Which organization verified it is never shown to others. */
+  verificationMethod: VerificationMethod | null;
   expiresOn: Date | null;
 }
 
 /** The wallet as an organization sees it, or "withheld" when the worker doesn't share credentials with it. */
 export function orgCredentialView(creds: CredentialRow[], shared: boolean): OrgCredentialView[] | "withheld" {
   if (!shared) return "withheld";
-  return creds.map((c) => ({ kind: c.kind, label: c.label, state: c.state, verification: c.verification, expiresOn: c.expiresOn }));
+  return creds.map((c) => ({ kind: c.kind, label: c.label, state: c.state, verification: c.verification, verificationMethod: c.verificationMethod ?? null, expiresOn: c.expiresOn }));
 }

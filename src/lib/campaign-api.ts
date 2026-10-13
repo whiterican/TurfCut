@@ -1,5 +1,6 @@
 import { mediaUrl } from "@/lib/campaign-media";
 import type { CampaignProfileRow, DirectoryRow, PublicPost } from "@/lib/campaign-social-data";
+import type { Fact, Resource } from "@/lib/campaign-kit-data";
 import { excerpt } from "@/lib/campaign-social";
 import { getSiteUrl } from "@/lib/env";
 import type { Metadata } from "next";
@@ -55,5 +56,15 @@ export function campaignPreview(c: { handle: string; displayName: string; bio: s
     openGraph: { title, description, type, siteName: "Turfcut", ...(site ? { url: `${site}${path}` } : {}), ...(image ? { images: [{ url: image }] } : {}) },
     twitter: { card, title, description, ...(image ? { images: [image] } : {}) },
   } satisfies Metadata;
+}
+
+/** A supporting fact (S4): the claim, its source, its place. Never who wrote it. */
+export function factJson(f: Fact) {
+  return { id: f.id, body: f.body, sourceUrl: f.sourceUrl, position: f.position, updatedAt: f.updatedAt };
+}
+
+/** A resource (S4) the campaign shows everyone: kind, title, text. Never who wrote it. */
+export function resourceJson(r: Resource) {
+  return { id: r.id, kind: r.kind, title: r.title, body: r.body, position: r.position, updatedAt: r.updatedAt };
 }
 

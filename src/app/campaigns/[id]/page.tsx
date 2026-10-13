@@ -7,6 +7,11 @@ import { embeddableJobs, listOrgCampaigns, loadOrgCampaign, loadPinned, loadPost
 import { MAX_PINNED } from "@/lib/campaign-social";
 import { PostCard } from "@/components/campaign/PostCard";
 import { likeCounts } from "@/lib/campaign-follow-data";
+import { listResources, loadFacts } from "@/lib/campaign-kit-data";
+import { FactEditor } from "@/components/campaign/FactEditor";
+import { ResourceEditor } from "@/components/campaign/ResourceEditor";
+import { ResourceList } from "@/components/campaign/ResourceList";
+import { deleteFact, deleteResource, saveFact, saveResource } from "@/app/campaigns/actions";
 import { PostComposer } from "@/components/campaign/PostComposer";
 import { mediaUrl } from "@/lib/campaign-media";
 import { ActionButton } from "@/components/ActionButton";
@@ -25,6 +30,8 @@ export default async function CampaignPage({ params, searchParams }: { params: P
   const org = await db().organization.findUniqueOrThrow({ where: { id: session.orgId }, select: { approved: true } });
   const fields = { id: c.id };
   const [jobs, pinned, feed, orgJobs, campaigns] = await Promise.all([embeddableJobs(session.orgId), loadPinned(c.id), loadPosts(c.id, cursor), orgJobsForLinking(session.orgId), listOrgCampaigns(session.orgId)]);
+  // The briefing kit (S4): facts behind the talking points, and the scripts, questions and guides.
+  const [facts, resources] = await Promise.all([loadFacts(pinned.map((p) => p.id)), listResources(c.id, "ALL")]);
   const linked = orgJobs.filter((j) => j.campaignProfileId === c.id);
   const linkable = orgJobs.filter((j) => j.campaignProfileId !== c.id);
   const campaignName = new Map(campaigns.map((x) => [x.id, x.displayName]));
@@ -104,10 +111,30 @@ export default async function CampaignPage({ params, searchParams }: { params: P
         </p>
         {pinned.length === 0 && <p className="card text-muted-sm">Nothing pinned yet.</p>}
         {pinned.map((p) => (
-          <PostCard key={p.id} post={p} handle={c.handle} displayName={c.displayName} signedIn likeTotal={likes.get(p.id) ?? 0}>
+          <PostCard key={p.id} post={p} handle={c.handle} displayName={c.displayName} signedIn likeTotal={likes.get(p.id) ?? 0} facts={canEdit ? undefined : facts.get(p.id) ?? []}>
+            {canEdit && (
+              <div className="border-t border-border pt-3">
+                <FactEditor save={saveFact} remove={deleteFact} campaignId={c.id} postId={p.id} facts={facts.get(p.id) ?? []} />
+              </div>
+            )}
             {controls(p)}
           </PostCard>
         ))}
+      </section>
+
+      <section className="section" aria-labelledby="field-kit">
+        <h2 id="field-kit" className="section-title">Scripts, questions and guides</h2>
+        <p className="text-muted-sm">
+          Your field kit, in your own words: what to say at the door, the answers to what people ask, how the day works. Everything here goes in the shift brief of every job linked to this campaign;
+          what you mark for anyone shows on your public page too.{canEdit ? "" : " Owners and publishers write it."}
+        </p>
+        {canEdit ? (
+          <ResourceEditor save={saveResource} remove={deleteResource} campaignId={c.id} resources={resources} />
+        ) : resources.length === 0 ? (
+          <p className="card text-muted-sm">Nothing here yet.</p>
+        ) : (
+          <ResourceList resources={resources} showAudience />
+        )}
       </section>
 
       <section className="section">

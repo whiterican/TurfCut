@@ -115,6 +115,9 @@ exercise the locks, triggers and data rules, not the RLS policies.
    - Then `prisma/s2-social.sql` (S2: follows and likes), right after it,
      before deploying the S2 code. Also safe to run again. Nothing to
      create in Storage for S2.
+   - Then `prisma/s4-briefing.sql` (S4: supporting facts, scripts,
+     questions and guides). Also safe to run again. (Applied to the live
+     project on Oct 12.)
    - Storage → New bucket **`campaign-media`**, set to **public**, with a
      file size limit of **2 MB** and allowed MIME types **image/png,
      image/jpeg**. Campaign avatars and header images go there. The app
@@ -488,6 +491,36 @@ Still chronological and follows only; still nothing read by matching.
   on separately.
 - **API.** Public: `GET /api/campaigns?q=&cursor=`.
 - **Acceptance:** `tests/acceptance/s3-reach.ts` (`run.sh s3`).
+
+## S4 scope — the briefing kit (supporting facts, scripts, questions, guides)
+
+What a worker reads before they knock, in the campaign's own words.
+
+- **Supporting facts.** Each talking point (a pinned post) carries up to 5
+  short facts, each with an optional source link. On the campaign page
+  and in every shift brief a talking point folds its facts under it; a tap
+  opens them. Managers (owners and publishers) write them under the
+  talking point on `/campaigns/[id]`.
+- **Scripts, common questions, guides.** A campaign keeps up to 20 of
+  these, each with a title and text (up to 8,000 characters, links made
+  clickable) and an audience: **workers** (the people on its jobs and
+  their field staff, in the shift brief only) or **anyone** (the campaign
+  page too, under "From the campaign"). Grouped by kind, folded under
+  their titles. The shift brief carries all of them, so the offline brief
+  does too (a phone keeps the copy it saved until it's next online, so an
+  edit or a removal reaches the field with the next reload).
+- **Verbatim, always.** Turfcut shows what the campaign wrote and adds
+  nothing: no summary, no fact-checking, no label. Every write is on the
+  audit record; removing a fact or a resource hides it and keeps the row.
+- **Data.** `TalkingPointFact` and `CampaignResource`
+  (`prisma/s4-briefing.sql`). Facts of live talking points on public
+  campaigns, and resources marked for anyone, are readable through the
+  Data API column by column (never who wrote them); resources for workers
+  are server-only. Nothing here is read by matching
+  (`src/lib/social-isolation.test.ts` covers the new names).
+- **API.** `GET /api/campaigns/:handle` now carries each talking point's
+  `facts` and the campaign's public `resources`.
+- **Acceptance:** `tests/acceptance/s4-kit.ts` (`run.sh s4`).
 
 ## M0 scope (done)
 

@@ -31,14 +31,17 @@ describe("migration grants", () => {
     const allowed: Record<string, Set<string>> = {
       CampaignProfile: new Set(['"id"', '"handle"', '"displayName"', '"bio"', '"avatarKey"', '"headerKey"', '"publishedAt"', '"createdAt"', '"updatedAt"']),
       CampaignPost: new Set(['"id"', '"profileId"', '"body"', '"jobId"', '"pinnedAt"', '"createdAt"', '"editedAt"']),
+      // S4: never who wrote a fact or a resource, never a removed one's deletedAt.
+      TalkingPointFact: new Set(['"id"', '"postId"', '"body"', '"sourceUrl"', '"position"', '"createdAt"', '"updatedAt"']),
+      CampaignResource: new Set(['"id"', '"profileId"', '"kind"', '"audience"', '"title"', '"body"', '"position"', '"createdAt"', '"updatedAt"']),
     };
-    const tableWide = /GRANT\s+(SELECT|INSERT|UPDATE|DELETE|ALL)(\s+PRIVILEGES)?\s+ON\s+(TABLE\s+)?[^;(]*"(CampaignProfile|CampaignPost|CampaignPostRevision)"[^;]*TO\s+[^;]*(authenticated|anon)/gi;
+    const tableWide = /GRANT\s+(SELECT|INSERT|UPDATE|DELETE|ALL)(\s+PRIVILEGES)?\s+ON\s+(TABLE\s+)?[^;(]*"(CampaignProfile|CampaignPost|CampaignPostRevision|TalkingPointFact|CampaignResource)"[^;]*TO\s+[^;]*(authenticated|anon)/gi;
     for (const f of files) {
       const sql = readFileSync(join(dir, f), "utf8").replace(/--[^\n]*/g, "");
       expect({ file: f, hits: sql.match(tableWide) ?? [] }).toEqual({ file: f, hits: [] });
       expect({ file: f, revisionGrant: /GRANT[^;]*"CampaignPostRevision"[^;]*TO/i.test(sql) }).toEqual({ file: f, revisionGrant: false });
       // Any grant naming these tables (qualified or not, with TABLE or not) is a column-limited SELECT.
-      for (const m of sql.matchAll(/GRANT\s+(\w+)\s*(\(([^)]*)\))?\s+ON\s+(TABLE\s+)?("public"\.)?"(CampaignProfile|CampaignPost)"/gi)) {
+      for (const m of sql.matchAll(/GRANT\s+(\w+)\s*(\(([^)]*)\))?\s+ON\s+(TABLE\s+)?("public"\.)?"(CampaignProfile|CampaignPost|TalkingPointFact|CampaignResource)"/gi)) {
         expect({ file: f, table: m[6], privilege: m[1].toUpperCase(), columnLimited: !!m[2] }).toEqual({ file: f, table: m[6], privilege: "SELECT", columnLimited: true });
         for (const col of (m[3] ?? "").split(",").map((c) => c.trim())) expect({ file: f, table: m[6], col, ok: allowed[m[6]].has(col) }).toEqual({ file: f, table: m[6], col, ok: true });
       }

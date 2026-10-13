@@ -5,6 +5,8 @@ import { LinkedText } from "@/components/campaign/LinkedText";
 import { JobEmbedCard } from "@/components/campaign/JobEmbedCard";
 import { LikeButton } from "@/components/campaign/LikeButton";
 import { ShareButton } from "@/components/campaign/ShareButton";
+import { FactList } from "@/components/campaign/FactList";
+import type { Fact } from "@/lib/campaign-kit-data";
 import type { PublicPost } from "@/lib/campaign-social-data";
 
 /**
@@ -21,6 +23,7 @@ export function PostCard({
   signedIn,
   liked,
   likeTotal,
+  facts,
   children,
 }: {
   post: PublicPost;
@@ -31,6 +34,8 @@ export function PostCard({
   liked?: boolean;
   /** For the campaign's own view: how many likes the post has. */
   likeTotal?: number;
+  /** A talking point's supporting facts (S4), folded under it. */
+  facts?: Fact[];
   /** The organization's own controls (edit, pin, delete). */
   children?: React.ReactNode;
 }) {
@@ -52,6 +57,7 @@ export function PostCard({
         )}
       </header>
       <LinkedText text={post.body} className="text-[15px] leading-relaxed text-fg" />
+      {facts && facts.length > 0 && <FactList facts={facts} />}
       <JobEmbedCard post={post} signedIn={signedIn} />
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
         {liked !== undefined && <LikeButton postId={post.id} liked={liked} />}

@@ -12,7 +12,7 @@ import { describe, expect, it } from "vitest";
  * 2. Nothing the guarded files import, however indirectly, is a social file.
  */
 const ALLOWED = [
-  /^src\/lib\/campaign-(social|media|api|follow)(-data)?(\.test)?\.ts$/,
+  /^src\/lib\/campaign-(social|media|api|follow|kit)(-data)?(\.test)?\.ts$/,
   /^src\/lib\/(social-isolation|migration-grants)\.test\.ts$/, // the guards themselves
   /^src\/lib\/job-brief-data\.ts$/, // the shift brief's talking points: the pinned posts, verbatim
   /^src\/app\/(c|campaigns|feed|api\/campaigns|api\/campaign|api\/feed)\//,
@@ -23,7 +23,7 @@ const ALLOWED = [
   /^src\/components\/campaign\//,
 ];
 /** The social layer's names: modules, models, Prisma accessors and relation fields. */
-const SOCIAL = /\b(campaign-(social|follow)(-data)?|campaign-media|campaign-api|job-brief-data|components\/campaign|campaignProfiles?|campaignPosts?|campaignPostRevisions?|deletedCampaignPosts|embeddedInPosts|campaignProfileId|campaignFollows?|postLikes?|Campaign(Post|Profile|PostRevision|Follow)|PostLike)\b/;
+const SOCIAL = /\b(campaign-(social|follow|kit)(-data)?|campaign-media|campaign-api|job-brief-data|components\/campaign|campaignProfiles?|campaignPosts?|campaignPostRevisions?|deletedCampaignPosts|embeddedInPosts|campaignProfileId|campaignFollows?|postLikes?|talkingPointFacts?|campaignResources?|Campaign(Post|Profile|PostRevision|Follow|Resource)|PostLike|TalkingPointFact)\b/;
 /** Code that ranks, matches, scores or explains: it must never reach the social layer. */
 const GUARDED = /^src\/(lib\/(.*match.*|scorecard.*|political-fit.*|priority|metrics|jobs-data|jobs|hiring|desk.*|experience.*)\.ts|components\/(FitSignals|ScorecardPanel|JobFeedCard|JobCard)\.tsx)$/;
 
@@ -71,7 +71,7 @@ describe("social isolation", () => {
     // the signed-in worker's rows only.
     const social = all.filter((f) => ALLOWED.some((re) => re.test(f)) && !/campaign-follow(-data)?\.ts$|\.test\.ts$/.test(f));
     const rows = /\b(followers|likes)\s*:|["'](followers|likes)["']\s*:|_count[\s\S]{0,80}?\b(followers|likes)\b|\.(campaignFollow|postLike)\b/;
-    const orgSide = all.filter((f) => /^src\/(app\/(campaigns|api\/campaign)\/|lib\/campaign-(social|media|api)(-data)?\.ts$)/.test(f));
+    const orgSide = all.filter((f) => /^src\/(app\/(campaigns|api\/campaign)\/|lib\/campaign-(social|media|api|kit)(-data)?\.ts$)/.test(f));
     const workerOnly = /\b(openFollows|followState|feedCampaigns|loadHomeFeed|likedPostIds|campaignsOn|setFollow|setLike)\b/;
     expect(social.filter((f) => rows.test(source(f)))).toEqual([]);
     expect(orgSide.filter((f) => workerOnly.test(source(f)))).toEqual([]);

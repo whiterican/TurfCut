@@ -55,5 +55,10 @@ BEGIN
     GRANT SELECT ("id", "handle", "displayName", "bio", "avatarKey", "headerKey", "publishedAt", "createdAt", "updatedAt") ON "public"."CampaignProfile" TO anon, authenticated;
     GRANT SELECT ("id", "profileId", "body", "jobId", "pinnedAt", "createdAt", "editedAt") ON "public"."CampaignPost" TO anon, authenticated;
   END IF;
+  -- S4: facts behind live talking points and PUBLIC resources are public too (prisma/s4-briefing.sql).
+  IF to_regclass('"public"."TalkingPointFact"') IS NOT NULL THEN
+    GRANT SELECT ("id", "postId", "body", "sourceUrl", "position", "createdAt", "updatedAt") ON "public"."TalkingPointFact" TO anon, authenticated;
+    GRANT SELECT ("id", "profileId", "kind", "audience", "title", "body", "position", "createdAt", "updatedAt") ON "public"."CampaignResource" TO anon, authenticated;
+  END IF;
 END $$;
 COMMIT;

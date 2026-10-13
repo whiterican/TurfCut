@@ -169,7 +169,8 @@ export function ScorecardPanel({ periods, history }: { periods: Record<Period, S
 
       <div className="card space-y-3">
         <h3 className="font-medium text-fg">Recent activity</h3>
-        <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+        {/* Focusable and named: on a phone the table scrolls sideways, and keyboard users must be able to scroll it too. */}
+        <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0" tabIndex={0} role="region" aria-label="Recent activity table">
         <table className="table min-w-[28rem]">
           <thead>
             <tr>

@@ -168,7 +168,7 @@ export function TurfMap({
           The map needs signal. The staging point and turf details are on this page.
         </p>
       ) : (
-        <div ref={el} className={`turf-map w-full overflow-hidden rounded-2xl border border-border ${className}`} role="img" aria-label={editable ? "Map: tap to draw the turf" : "Map of the assigned turf"} />
+        <div ref={el} className={`turf-map w-full overflow-hidden rounded-2xl border border-border ${className}`} role="region" aria-label={editable ? "Map: tap to draw the turf" : "Map of the assigned turf"} />
       )}
       {editable && (
         <>

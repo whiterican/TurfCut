@@ -184,7 +184,7 @@ export function ScorecardPanel({ periods, history }: { periods: Record<Period, S
           <tbody>
             {(["90d", "12m", "lifetime"] as const).map((p) => (
               <tr key={p}>
-                <td>{PERIOD_LABELS[p]}</td>
+                <td className="whitespace-nowrap">{PERIOD_LABELS[p]}</td>
                 <td>{sumOf(periods[p], (x) => x.shiftsCount)}</td>
                 <td>{Math.round(sumOf(periods[p], (x) => x.activeHours) * 100) / 100}</td>
                 <td>{sumOf(periods[p], (x) => x.doorsAttempted)}</td>

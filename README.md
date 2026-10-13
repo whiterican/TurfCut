@@ -390,6 +390,9 @@ Jobs and hiring, built on the M1 profile.
   separately with the reason; nothing else hides a job.
 - **Job card**: who you work for, what you're paid (gross), what counts as
   payable, credentials needed, who handles problems — plus the disclosure.
+  Credentials are what the organization asks for plus, on petition jobs
+  only, the jurisdiction's circulator rules (registration, badge,
+  affidavit). The feed's "No credentials" filter uses the same list.
 - **Apply / invite / claim / accept.** Workers apply or claim; orgs invite;
   orgs accept applications and workers accept invitations. Headcount is
   enforced under a lock, so simultaneous claims can't overfill a job.

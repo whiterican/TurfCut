@@ -1022,6 +1022,8 @@ REVOKE ALL ON "public"."RateLimitCounter" FROM anon, authenticated;
 -- Run AFTER the DDL above. Idempotent: safe to re-run (ON CONFLICT DO NOTHING).
 
 -- --- Jurisdiction: CO / Denver v1, approved & current ---
+-- workerRegistrationRequired / badgeRequired / affidavitRequired are circulator
+-- rules: the app applies them to petition jobs only (jobCredentials in src/lib/jobs.ts).
 INSERT INTO "public"."JurisdictionProfile"
   ("id","state","locality","version","isCurrent","approved","approvedAt","rules","createdAt")
 VALUES

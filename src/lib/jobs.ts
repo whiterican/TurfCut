@@ -16,6 +16,8 @@
  *   and nothing about a worker is ever inferred.
  */
 import type { Validated } from "@/lib/experience";
+import { hasLaunchFields, launchBlocker, launchToForm, readLaunch, validateLaunch, type JobLaunch } from "@/lib/job-launch";
+import { hasToolsFields, readTools, toolsToForm, validateTools, type JobTools } from "@/lib/job-tools";
 import {
   boundaryText,
   CAMPAIGN_TYPES as FIT_CAMPAIGN_TYPES,
@@ -97,6 +99,10 @@ export interface JobInput {
   supportContacts: SupportContacts;
   measureIds: string[];
   cancellationNoticeHours: number;
+  /** Null when the submission said nothing about it (kept as stored; staged, set per shift, for a new job). */
+  launch: JobLaunch | null;
+  /** Null when the submission said nothing about it (kept as stored). */
+  tools: JobTools | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -246,6 +252,12 @@ export function validateJob(raw: Record<string, unknown>): Validated<JobInput> {
   const cancellationNoticeHours = Number(noticeStr);
   if (!/^\d+$/.test(noticeStr) || cancellationNoticeHours > 168) errors.cancellationNoticeHours = "Enter 0–168 hours.";
 
+  // How the day starts (C4.2) and the canvassing app (C4.4); their errors keep their own keys.
+  const launch = validateLaunch(raw);
+  if (!launch.ok) Object.assign(errors, launch.errors);
+  const tools = validateTools(raw);
+  if (!tools.ok) Object.assign(errors, tools.errors);
+
   if (Object.keys(errors).length) return { ok: false, errors };
   return {
     ok: true,
@@ -280,6 +292,8 @@ export function validateJob(raw: Record<string, unknown>): Validated<JobInput> {
       supportContacts,
       measureIds,
       cancellationNoticeHours,
+      launch: hasLaunchFields(raw) && launch.ok ? launch.value : null,
+      tools: hasToolsFields(raw) && tools.ok ? tools.value : null,
     },
   };
 }
@@ -409,6 +423,7 @@ export interface PublishFacts {
     supportContacts: unknown;
     hiringMethod: unknown;
     geography: unknown;
+    launch?: unknown;
   };
   jurisdiction: JurisdictionFacts | null;
   org: { approved: boolean; contractorTermsSignedAt: Date | null; classificationReviewedAt: Date | null };
@@ -456,6 +471,9 @@ export function publishBlockers(f: PublishFacts, now: Date = new Date()): string
   if (!readDisclosure(f.job.campaignDisclosure)) out.push("Disclose the campaign's type, affiliation and message.");
   if (!readSupportContacts(f.job.supportContacts)) out.push("Name who handles emergencies, disputes and lost materials.");
   if (readHiringModes(f.job.hiringMethod).length === 0) out.push("Pick at least one way to hire.");
+  // A job that says how its days start has to say it fully; one from before C4 (no launch) stays as it was: staging set per shift.
+  const launchProblem = f.job.launch == null ? null : launchBlocker(readLaunch(f.job.launch));
+  if (launchProblem) out.push(launchProblem);
   return out;
 }
 
@@ -668,6 +686,8 @@ export function jobToForm(job: {
   supportContacts: unknown;
   measureIds: string[];
   cancellationNoticeHours: number;
+  launch?: unknown;
+  tools?: unknown;
 }): Record<string, unknown> {
   const geo = obj(job.geography);
   const req = readRequirements(job.requirements);
@@ -702,6 +722,10 @@ export function jobToForm(job: {
     contactLostMaterials: c?.lostMaterials ?? "",
     measureIds: job.measureIds.join(", "),
     cancellationNoticeHours: String(job.cancellationNoticeHours),
+    // A job that says nothing about its launch gives the builder no launch fields: an API edit round-trips, and the
+    // builder (whose radio always picks a mode) makes the choice explicit on its next save.
+    ...(job.launch == null ? {} : launchToForm(readLaunch(job.launch))),
+    ...(job.tools == null ? {} : toolsToForm(readTools(job.tools))),
   };
 }
 

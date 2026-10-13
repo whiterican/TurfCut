@@ -1,4 +1,5 @@
 import { getSessionProfile } from "@/lib/auth";
+import { isCanvassApp } from "@/lib/job-tools";
 import { FIELD_ROLES } from "@/lib/access";
 import { badId, resultResponse } from "@/lib/api-session";
 import { supervisorShiftAction, workerShiftAction, type WorkerRequest } from "@/lib/field-day-data";
@@ -38,6 +39,13 @@ export async function POST(req: Request, { params }: { params: Promise<{ shiftId
         break;
       case "return_packet":
         r = { kind: "return_packet", packetId: s(b.packetId), sheetsReturned: n(b.sheetsReturned), signatures: n(b.signatures) };
+        break;
+      case "app_counts":
+        if (!isCanvassApp(b.app)) return Response.json({ error: "app must be one of the canvassing apps." }, { status: 400 });
+        r = { kind: "app_counts", app: b.app, doors: n(b.doors), contacts: n(b.contacts) };
+        break;
+      case "hold_packet":
+        r = { kind: "hold_packet", packetId: s(b.packetId) };
         break;
       case "cancel":
         r = { kind: "cancel", reason: s(b.reason) };

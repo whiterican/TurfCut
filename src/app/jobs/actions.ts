@@ -6,7 +6,9 @@ import { db } from "@/lib/db";
 import { requireEmployer } from "@/lib/employer-session";
 import { requireWorker } from "@/lib/worker-session";
 import { formToObject, jurisdictionStateProblem, validateJob } from "@/lib/jobs";
-import { createJob, publishJob, updateDraftJob } from "@/lib/jobs-data";
+import { createJob, publishJob, updateDraftJob, updatePublishedJob } from "@/lib/jobs-data";
+import { releaseFromJob } from "@/lib/job-changes-data";
+import { listText } from "@/lib/job-changes";
 import { acceptEngagement, applyToJob, claimJob, closeJob, inviteWorker, moveEngagement, moveEngagements } from "@/lib/engagements-data";
 import { OFFER_HOURS } from "@/lib/engagements";
 import { declineInvitation, muteOrg, unmuteOrg } from "@/lib/invitations-data";
@@ -35,13 +37,32 @@ export async function saveJob(_prev: JobFormState, formData: FormData): Promise<
   const jobId = String(formData.get("jobId") ?? "");
   let id = jobId;
   if (jobId) {
+    const status = (await db().job.findFirst({ where: { id: jobId, orgId }, select: { status: true } }))?.status;
+    if (status === "PUBLISHED" || status === "PAUSED") {
+      // A live job (C4.3): the edit is recorded, everyone on the job is told, and hired workers may leave over a material change.
+      const r = await updatePublishedJob(jobId, orgId, userId, result.value);
+      if (!r.ok) return { message: r.reasons.join(" "), errors: {} };
+      revalidatePath("/jobs");
+      redirect(`/jobs/${id}?changed=${r.changed.length ? encodeURIComponent(listText(r.changed)) : "none"}&told=${r.told}&material=${r.material.length ? 1 : 0}`);
+    }
     const saved = await updateDraftJob(jobId, orgId, userId, result.value);
-    if (!saved) return { message: "Only draft jobs can be edited.", errors: {} };
+    if (!saved) return { message: "Only a draft, published or paused job can be edited.", errors: {} };
   } else {
     id = (await createJob(orgId, userId, result.value)).id;
   }
   revalidatePath("/jobs");
   redirect(`/jobs/${id}`);
+}
+
+/** A hired worker leaves a job whose terms changed, within the release window (C4.3): no penalty. */
+export async function leaveChangedJob(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const { workerId, userId } = await requireWorker();
+  const jobId = field(formData, "jobId");
+  const r = await releaseFromJob({ workerId, profileId: userId }, field(formData, "engagementId"));
+  refresh(jobId);
+  revalidatePath("/shifts");
+  if (!r.ok) return { ok: false, message: r.reason };
+  return { ok: true, message: r.cancelledShifts ? `You've left this job. ${r.cancelledShifts === 1 ? "One upcoming shift was" : `${r.cancelledShifts} upcoming shifts were`} cancelled with no effect on your reliability.` : "You've left this job, with no effect on your reliability." };
 }
 
 /** Closes a job (C3.5): open applications, offers and invitations end, each worker is told. */

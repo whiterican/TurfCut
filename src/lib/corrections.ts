@@ -37,6 +37,7 @@ export const CORRECTABLE: Record<string, readonly string[]> = {
   DOOR_KNOCK: ["at", "count"],
   CONTACT: ["at", "count"],
   PACKET_RETURN: ["at", "sheetsReturned", "signatures"],
+  APP_COUNTS: ["at", "doors", "contacts"],
 };
 
 const obj = (v: unknown): Record<string, unknown> => (v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {});

@@ -1,12 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
-import { Coffee, DoorOpen, LogIn, LogOut, PackageCheck, PenLine, Play, RefreshCw, UserCheck } from "lucide-react";
+import { Coffee, DoorOpen, LogIn, LogOut, PackageCheck, PackageOpen, PenLine, Play, RefreshCw, Smartphone, UserCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { shiftState, workerAction, type FieldEvent, type ShiftFacts } from "@/lib/field-day";
 import { stagingCheck, type QueuedAction } from "@/lib/offline-sync";
 import { clockOffset, dismiss, enqueue, flush, isFlushing, pendingFor, prune, serverClock, subscribe, type Pending } from "@/lib/offline-queue";
 import { haptic } from "@/lib/haptics";
+import { appLabel, type CanvassApp } from "@/lib/job-tools";
 import { refreshSavedPage } from "@/components/OfflineBrief";
 
 export interface LiveShift {
@@ -16,7 +17,11 @@ export interface LiveShift {
   status: ShiftFacts["status"];
   startsAt: string;
   endsAt: string;
-  staging: { lat: number; lng: number } | null;
+  staging: { lat: number; lng: number; radiusM: number } | null;
+  /** Packets kept from the worker's last shift on this job (C4.5): they come out at check-in, so the phone shows them as the server will. */
+  carriedIn: Array<{ packetId: string; sheets: number | null; carriedFrom: string }>;
+  /** The app the job's canvassing runs in (C4.4): its totals are entered at the end of the shift. */
+  canvassApp: CanvassApp | null;
   /** The scheduled end had passed when the page was made. */
   ended: boolean;
   events: Array<{ id: string; type: string; payload: unknown; clientId: string | null; createdAt: string }>;
@@ -32,7 +37,7 @@ const noop = () => () => {};
  * the page yet (waiting, or saved since it loaded), in the order recorded,
  * on the server's clock.
  */
-function withPending(base: ShiftFacts, pending: Pending[], offset: number): ShiftFacts {
+function withPending(base: ShiftFacts, pending: Pending[], offset: number, carriedIn: LiveShift["carriedIn"] = []): ShiftFacts {
   let f = base;
   for (const p of pending) {
     const at = new Date(p.at + offset);
@@ -40,6 +45,11 @@ function withPending(base: ShiftFacts, pending: Pending[], offset: number): Shif
     if (!out.ok || !out.event) continue;
     const ev: FieldEvent = { type: out.event.type, payload: out.event.payload, actorId: null, createdAt: at };
     f = { ...f, events: [...f.events, ev], status: out.status ?? f.status };
+    // The packets kept from the last shift come out with the check-in, as the server records them.
+    if (p.action.kind === "check_in") {
+      const carried: FieldEvent[] = carriedIn.map((c, i) => ({ type: "PACKET_PICKUP", payload: { packetId: c.packetId, sheets: c.sheets, carriedFrom: c.carriedFrom }, actorId: null, createdAt: new Date(at.getTime() + i + 1) }));
+      f = { ...f, events: [...f.events, ...carried] };
+    }
   }
   return f;
 }
@@ -58,6 +68,10 @@ function describe(a: Action): string {
       return `+${a.count} ${a.unit}`;
     case "return_packet":
       return `Packet ${a.packetId} returned`;
+    case "hold_packet":
+      return `Packet ${a.packetId} kept for next shift`;
+    case "app_counts":
+      return `${appLabel(a.app)} totals: ${a.doors} doors · ${a.contacts} contacts`;
   }
 }
 
@@ -95,6 +109,8 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
   const [problem, setProblem] = useState<string | null>(null);
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
   const [locating, setLocating] = useState(false);
+  // "Keep until next shift" changes custody: it asks once before recording.
+  const [keeping, setKeeping] = useState<string | null>(null);
   // Hydration-safe: the queue only exists in the browser.
   const mounted = useSyncExternalStore(noop, () => true, () => false);
 
@@ -106,14 +122,15 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
       workType: shift.workType,
       events: shift.events.map((e) => ({ id: e.id, type: e.type, payload: e.payload, actorId: null, createdAt: new Date(e.createdAt) })),
       validations: shift.validations.map((v) => ({ ...v, createdAt: new Date(v.createdAt) })),
+      canvassApp: shift.canvassApp,
     }),
     [shift]
   );
   // Entries the page already shows (saved and reloaded) aren't replayed again.
   const shown = useMemo(() => new Set(shift.events.map((e) => e.clientId).filter((x): x is string => !!x)), [shift.events]);
   const facts = useMemo(
-    () => withPending(base, pending.filter((p) => !p.rejected && !shown.has(p.clientId)), mounted ? clockOffset() : 0),
-    [base, pending, shown, mounted]
+    () => withPending(base, pending.filter((p) => !p.rejected && !shown.has(p.clientId)), mounted ? clockOffset() : 0, shift.carriedIn),
+    [base, pending, shown, mounted, shift.carriedIn]
   );
   const st = shiftState(facts);
   const waiting = pending.filter((p) => !p.rejected && !p.savedAt);
@@ -233,6 +250,33 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
 
   const live = !!st.checkedInAt && !st.checkedOutAt;
   const petition = shift.workType === "PETITION";
+  // The app's totals for the shift (C4.4): entered once the day's work is
+  // done, on shift or after checking out; the newest entry replaces what
+  // was logged by hand here.
+  const app = shift.canvassApp;
+  const appForm = !petition && app && !st.closeout && (
+    <form
+      key={`${st.appCounts?.doors ?? ""}-${st.appCounts?.contacts ?? ""}`}
+      onSubmit={submit((fd) => ({ kind: "app_counts", app, doors: num(fd, "doors"), contacts: num(fd, "contacts") }))}
+      className="space-y-2 rounded-xl border border-border p-3"
+      aria-labelledby="app-totals-heading"
+      aria-describedby="app-totals-hint"
+    >
+      <p id="app-totals-heading" className="text-sm font-semibold text-fg">{st.appCounts ? `Totals from ${appLabel(app)}: ${st.appCounts.doors} doors · ${st.appCounts.contacts} contacts` : `Totals from ${appLabel(app)}`}</p>
+      <p id="app-totals-hint" className="text-hint">At the end of the day, copy the shift totals the app shows. They replace what you logged by hand here.</p>
+      <div className="flex flex-wrap items-end gap-3">
+        <label className="w-28 space-y-1.5">
+          <span className="label">Doors</span>
+          <input name="doors" inputMode="numeric" pattern="[0-9]*" className="field" required defaultValue={st.appCounts?.doors} />
+        </label>
+        <label className="w-28 space-y-1.5">
+          <span className="label">Contacts</span>
+          <input name="contacts" inputMode="numeric" pattern="[0-9]*" className="field" required defaultValue={st.appCounts?.contacts} />
+        </label>
+        <button className="btn-secondary"><Smartphone aria-hidden className="btn-icon" />{st.appCounts ? "Update totals" : "Enter totals"}</button>
+      </div>
+    </form>
+  );
   const status = !mounted
     ? null
     : refused.length
@@ -303,7 +347,10 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
           {!waiting.length && beforeCheckIn}
         </div>
       ) : st.checkedOutAt ? (
-        <p className="text-muted-sm">{waiting.length ? "Checked out — it'll sync when you have signal." : "Checked out."}</p>
+        <div className="space-y-4">
+          <p className="text-muted-sm">{waiting.length ? "Checked out — it'll sync when you have signal." : "Checked out."}</p>
+          {appForm}
+        </div>
       ) : st.paused ? (
         <button type="button" className="btn-primary" onClick={() => record({ kind: "resume" })}>
           <Play aria-hidden className="btn-icon" />
@@ -337,6 +384,7 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
               </form>
             </>
           )}
+          {appForm}
           {st.packetsOut.map((packetId) => (
             <form
               key={packetId}
@@ -352,6 +400,50 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
                 <input name="signatures" inputMode="numeric" pattern="[0-9]*" className="field" required />
               </label>
               <button className="btn-secondary"><PackageCheck aria-hidden className="btn-icon" />Return packet {packetId}</button>
+              {keeping === packetId ? (
+                <span className="flex flex-wrap items-center gap-2 text-sm" role="group" aria-label={`Keep packet ${packetId}?`}>
+                  <span>Keep {packetId} until your next shift on this job? Return it instead if you&apos;re handing it in now.</span>
+                  <button
+                    type="button"
+                    className="btn-secondary btn-sm"
+                    onClick={() => {
+                      setKeeping(null);
+                      record({ kind: "hold_packet", packetId });
+                    }}
+                  >
+                    Yes, keep {packetId}
+                  </button>
+                  <button type="button" className="btn-ghost btn-sm" autoFocus onClick={() => setKeeping(null)}>
+                    No
+                  </button>
+                </span>
+              ) : (
+                <button type="button" className="btn-ghost" onClick={() => setKeeping(packetId)}>
+                  <PackageOpen aria-hidden className="btn-icon" />Keep {packetId} until next shift
+                </button>
+              )}
+            </form>
+          ))}
+          {st.packetsHeld.length > 0 && (
+            <p className="text-hint">
+              Kept for your next shift on this job: packet{st.packetsHeld.length > 1 ? "s" : ""} {st.packetsHeld.join(", ")}. {st.packetsHeld.length > 1 ? "They come" : "It comes"} back out when you check in; the sheets stay with you until then. Handing {st.packetsHeld.length > 1 ? "one" : "it"} in now? Return it below.
+            </p>
+          )}
+          {st.packetsHeld.map((packetId) => (
+            <form
+              key={`held-${packetId}`}
+              onSubmit={submit((fd) => ({ kind: "return_packet", packetId, sheetsReturned: num(fd, "sheetsReturned"), signatures: num(fd, "signatures") }))}
+              className="flex flex-wrap items-end gap-3"
+            >
+              <label className="w-32 space-y-1.5">
+                <span className="label">Sheets returned</span>
+                <input name="sheetsReturned" inputMode="numeric" pattern="[0-9]*" className="field" required />
+              </label>
+              <label className="w-32 space-y-1.5">
+                <span className="label">Signatures on it</span>
+                <input name="signatures" inputMode="numeric" pattern="[0-9]*" className="field" required />
+              </label>
+              <button className="btn-ghost"><PackageCheck aria-hidden className="btn-icon" />Return kept packet {packetId}</button>
             </form>
           ))}
           <div className="flex flex-wrap gap-3 border-t border-border pt-4">
@@ -364,12 +456,12 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
               Check out
             </button>
           </div>
-          {st.packetsOut.length > 0 && <p className="text-hint">Return your packets before checking out.</p>}
+          {st.packetsOut.length > 0 && <p className="text-hint">Return your packets, or keep them for your next shift, before checking out.</p>}
         </div>
       )}
       {live && (waiting.length > 0 || savedUnseen) && (
         <p className="text-hint">
-          On this phone: {petition ? `${st.signatures} signatures` : `${st.doors} doors · ${st.contacts} contacts`}
+          On this phone: {petition ? `${st.signatures} signatures` : `${st.doors} doors · ${st.contacts} contacts${st.appCounts ? `, from ${appLabel(st.appCounts.app as CanvassApp)}` : ""}`}
           {waiting.length > 0 ? " including what's waiting to sync." : " including entries synced since this page loaded."}
         </p>
       )}

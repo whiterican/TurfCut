@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import { schedule, type ScheduleState } from "@/app/shifts/actions";
 import { TurfMap } from "@/components/TurfMap";
+import type { JobLaunch } from "@/lib/job-launch";
 
 const initial: ScheduleState = { ok: false, message: "", errors: {} };
 /** datetime-local value (organizer's own zone) → ISO; the server never guesses a zone. */
@@ -15,14 +16,24 @@ export function ScheduleShiftForm({
   jobId,
   workers,
   supervisors,
+  launch,
 }: {
   jobId: string;
   workers: Array<{ engagementId: string; name: string }>;
   supervisors: Array<{ id: string; label: string }>;
+  /** How the job's days start (C4.2): its staging points to pick from, or self-launch. */
+  launch: JobLaunch;
 }) {
   const [state, action, pending] = useActionState(schedule, initial);
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");
+  // One of the job's points fills the staging fields; "elsewhere" leaves the map to place it.
+  const [pointId, setPointId] = useState(launch.points[0]?.id ?? "");
+  const point = launch.points.find((p) => p.id === pointId) ?? null;
+  const self = launch.mode === "SELF";
+  // Where the pin is now: moved off the chosen point, the shift loses that point's radius.
+  const [pin, setPin] = useState<{ lat: number; lng: number } | null>(null);
+  const offPoint = !!point && !!pin && (Math.abs(pin.lat - point.lat) >= 1e-5 || Math.abs(pin.lng - point.lng) >= 1e-5);
   const err = (k: string) => (state.errors[k] ? <p className="field-error">{state.errors[k]}</p> : null);
 
   return (
@@ -50,11 +61,26 @@ export function ScheduleShiftForm({
           {readback(end)}
           {err("endsAt")}
         </label>
-        <label className="min-w-0 space-y-1.5">
-          <span className="label">Staging location</span>
-          <input name="stagingLocation" className="field" maxLength={200} placeholder="Denver Central, table 3" />
-          {err("stagingLocation")}
-        </label>
+        {self ? (
+          <p className="text-muted-sm sm:col-span-2">Self-launch: the worker starts from wherever they are, and check-in records the time only.</p>
+        ) : (
+          <>
+            {launch.points.length > 0 && (
+              <label className="min-w-0 space-y-1.5">
+                <span className="label">Staging point</span>
+                <select className="field" value={pointId} onChange={(e) => setPointId(e.target.value)}>
+                  {launch.points.map((p) => <option key={p.id} value={p.id}>{p.name} · check-in within {p.radiusM} m</option>)}
+                  <option value="">Somewhere else (place it on the map)</option>
+                </select>
+              </label>
+            )}
+            <label className="min-w-0 space-y-1.5">
+              <span className="label">Staging location</span>
+              <input key={pointId} name="stagingLocation" className="field" maxLength={200} placeholder="Denver Central, table 3" defaultValue={point ? [point.name, point.address].filter(Boolean).join(", ") : ""} />
+              {err("stagingLocation")}
+            </label>
+          </>
+        )}
         <label className="min-w-0 space-y-1.5">
           <span className="label">Supervisor</span>
           <select name="supervisorId" className="field" defaultValue="">
@@ -65,8 +91,12 @@ export function ScheduleShiftForm({
         </label>
       </div>
       <div className="space-y-1.5">
-        <span className="label">Turf and staging point</span>
-        <TurfMap editable className="h-80" />
+        <span className="label">{self ? "Turf" : "Turf and staging point"}</span>
+        <TurfMap editable allowStaging={!self} staging={point ? { lat: point.lat, lng: point.lng } : null} onStagingChange={setPin} className="h-80" />
+        {offPoint && (
+          <p className="text-hint">The pin has moved off {point!.name}: check-in will use the usual 250 m radius, not this point&apos;s {point!.radiusM} m. Pick the point again to put it back.</p>
+        )}
+        {!self && launch.points.length > 0 && <p className="text-hint">Picking another staging point keeps the turf you drew; the staging location text is replaced.</p>}
         {err("turfArea")}
         {err("stagingLat")}
       </div>

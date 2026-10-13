@@ -31,7 +31,7 @@ CREATE TYPE "public"."EngagementStatus" AS ENUM ('APPLIED', 'INVITED', 'CLAIMED'
 CREATE TYPE "public"."ShiftStatus" AS ENUM ('SCHEDULED', 'ACTIVE', 'COMPLETED', 'CANCELLED');
 
 -- CreateEnum
-CREATE TYPE "public"."WorkEventType" AS ENUM ('CHECK_IN', 'CHECK_OUT', 'PAUSE_START', 'PAUSE_END', 'DOOR_KNOCK', 'CONTACT', 'SIGNATURE_SUBMITTED', 'CALL', 'INTERVIEW', 'PACKET_PICKUP', 'PACKET_RETURN', 'BATCH_COUNT', 'INCIDENT', 'CORRECTION', 'SHIFT_CANCELLED', 'NOTE');
+CREATE TYPE "public"."WorkEventType" AS ENUM ('CHECK_IN', 'CHECK_OUT', 'PAUSE_START', 'PAUSE_END', 'DOOR_KNOCK', 'CONTACT', 'SIGNATURE_SUBMITTED', 'CALL', 'INTERVIEW', 'PACKET_PICKUP', 'PACKET_RETURN', 'BATCH_COUNT', 'INCIDENT', 'CORRECTION', 'SHIFT_CANCELLED', 'NOTE', 'APP_COUNTS', 'PACKET_HELD');
 
 -- CreateEnum
 CREATE TYPE "public"."ValidationStatus" AS ENUM ('APPROVED', 'REJECTED', 'FLAGGED');
@@ -182,6 +182,8 @@ CREATE TABLE "public"."Job" (
     "supportContacts" JSONB,
     "measureIds" TEXT[] DEFAULT ARRAY[]::TEXT[],
     "cancellationNoticeHours" INTEGER NOT NULL DEFAULT 24,
+    "launch" JSONB,
+    "tools" JSONB,
     "publishedAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -1562,7 +1564,7 @@ REVOKE ALL ON "public"."OrgMute" FROM anon, authenticated;
 DO $$ BEGIN
   CREATE TYPE "public"."NotificationKind" AS ENUM (
     'APPLICATION_RECEIVED', 'CLAIM_RECEIVED', 'INVITATION_RECEIVED', 'INVITATION_ACCEPTED', 'INVITATION_DECLINED',
-    'INVITATION_WITHDRAWN', 'OFFER_RECEIVED', 'OFFER_ACCEPTED', 'OFFER_DECLINED', 'NOT_SELECTED', 'APPLICATION_WITHDRAWN', 'JOB_CLOSED');
+    'INVITATION_WITHDRAWN', 'OFFER_RECEIVED', 'OFFER_ACCEPTED', 'OFFER_DECLINED', 'NOT_SELECTED', 'APPLICATION_WITHDRAWN', 'JOB_CLOSED', 'JOB_CHANGED');
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 CREATE TABLE "public"."Notification" (
@@ -1849,6 +1851,27 @@ DO $$ BEGIN
     ON CONFLICT (id) DO UPDATE SET public = false;
   END IF;
 END $$;
+
+-- Edits to published jobs (C4.3): what changed, who, when, and which of it
+-- is material (hired workers may leave within 24 hours, no penalty).
+CREATE TABLE IF NOT EXISTS "public"."JobChange" (
+    "id" UUID NOT NULL,
+    "jobId" UUID NOT NULL,
+    "actorId" UUID NOT NULL,
+    "changes" JSONB NOT NULL,
+    "material" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "JobChange_pkey" PRIMARY KEY ("id"),
+    CONSTRAINT "JobChange_jobId_fkey" FOREIGN KEY ("jobId") REFERENCES "public"."Job"("id") ON DELETE RESTRICT ON UPDATE CASCADE
+);
+CREATE INDEX IF NOT EXISTS "JobChange_jobId_createdAt_idx" ON "public"."JobChange"("jobId", "createdAt");
+CREATE OR REPLACE TRIGGER "JobChange_append_only" BEFORE UPDATE OR DELETE ON "public"."JobChange"
+  FOR EACH ROW EXECUTE FUNCTION "turfcut_private"."append_only"();
+CREATE OR REPLACE TRIGGER "JobChange_no_truncate" BEFORE TRUNCATE ON "public"."JobChange"
+  FOR EACH STATEMENT EXECUTE FUNCTION "turfcut_private"."append_only"();
+ALTER TABLE "public"."JobChange" ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON "public"."JobChange" FROM anon, authenticated;
+
 
 -- ---- C3: history so far (prisma/c3-hiring.sql), after the seed as on a migrated database ----
 -- History so far: the opening event of each engagement that kept a copy of

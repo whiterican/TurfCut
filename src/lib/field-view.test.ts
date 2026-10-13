@@ -4,7 +4,7 @@ import type { ShiftState } from "./field-day";
 
 const st = (o: Partial<ShiftState> = {}): ShiftState => ({
   cancelled: false, checkedInAt: null, checkedOutAt: null, paused: false, packetsOut: [], packetsReturned: [],
-  signatures: 0, doors: 0, contacts: 0, batchCounted: false, closeout: null, atStaging: null, ...o,
+  packetsHeld: [], signatures: 0, doors: 0, contacts: 0, batchCounted: false, appCounts: null, closeout: null, atStaging: null, ...o,
 });
 const d = (s: string) => new Date(s);
 const row = (id: string, jobId: string, staging: string | null, startsAt: string, s: Partial<ShiftState> = {}): FieldRow => ({

@@ -154,7 +154,11 @@ export interface ScorecardOptions {
   state?: string | null;
 }
 
-const ACCEPTED_ENGAGEMENT = new Set(["CLAIMED", "ACTIVE", "COMPLETED", "CANCELLED"]);
+// Shifts exist only once a worker is hired, so a WITHDRAWN engagement's shifts
+// are those of a hired worker who left (since C4.3, over a changed job):
+// their past verified work stays, and the shifts cancelled on leaving are
+// judged by cancellationOf like any other.
+const ACCEPTED_ENGAGEMENT = new Set(["CLAIMED", "ACTIVE", "COMPLETED", "CANCELLED", "WITHDRAWN"]);
 
 function num(v: unknown): number | null {
   return typeof v === "number" && Number.isFinite(v) && v >= 0 ? v : null;
@@ -217,10 +221,18 @@ function shiftFacts(shift: ScorecardShift): ShiftFacts {
   let checkIn: Date | null = null;
   let checkOut: Date | null = null;
   const pauses: Array<{ start: Date; end: Date | null }> = [];
+  // The canvassing app's totals (C4.4), newest entry: they replace what was logged by hand.
+  let app: { doors: number; contacts: number } | null = null;
   for (const e of events) {
     const p = obj(e.payload);
     const count = num(p.count) ?? 1;
     switch (e.type) {
+      case "APP_COUNTS": {
+        const doors = num(p.doors);
+        const contacts = num(p.contacts);
+        if (doors !== null && contacts !== null && Number.isInteger(doors) && Number.isInteger(contacts)) app = { doors, contacts };
+        break;
+      }
       case "CHECK_IN":
         if (!checkIn) checkIn = e.createdAt;
         break;
@@ -260,6 +272,10 @@ function shiftFacts(shift: ScorecardShift): ShiftFacts {
     }
   }
 
+  if (app) {
+    f.doors = app.doors;
+    f.contacts = app.contacts;
+  }
   f.started = checkIn !== null;
   const completed = checkIn !== null && checkOut !== null && checkOut > checkIn;
   f.completed = completed;
@@ -500,7 +516,8 @@ export function cancellationOf(shift: ScorecardShift): "late" | "excused" | null
   if (at > shift.endsAt.getTime()) return "late";
   // Closing an account cancels future shifts in the worker's name, but it is
   // never a no-show (owner decision, M7).
-  if (obj(c.payload).by !== "WORKER" || obj(c.payload).accountClosed === true) return "excused";
+  // Leaving within a day of a material change to the job's terms is the worker's right (C4.3), never a no-show.
+  if (obj(c.payload).by !== "WORKER" || obj(c.payload).accountClosed === true || obj(c.payload).jobChanged === true) return "excused";
   const start = shift.startsAt.getTime();
   const noticeDeadline = start - (shift.cancellationNoticeHours ?? 24) * 3_600_000;
   const scheduled = shift.scheduledAt.getTime();

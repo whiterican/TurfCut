@@ -842,7 +842,101 @@ Built in C3.6b (see the C3 scope below). Approved as recommended by review:
 - Counsel reviews the Colorado rule profile and document handling before
   the pilot.
 
-## C3 scope — the hiring hub (in progress)
+## C4 scope — job launch and tools (in progress)
+
+- **Job builder (C4.1)**: `/jobs/new` and a draft's edit page are six
+  steps over one form: the work, when and where, pay and hiring,
+  requirements and contacts, campaign disclosure, review. Next checks only
+  that step's fields with the same validator the server runs
+  (`validateJob`), the review lists everything entered with a way back to
+  each step, and a problem the server finds sends the builder back to its
+  step. Nothing is saved until the last step; publishing stays a separate,
+  gated step on the job page. `src/lib/job-builder.ts` names the steps and
+  their fields; a test keeps every validator error assigned to a step.
+- **Launch mode and staging points (C4.2)**: step 2 asks how each day
+  starts. *Staged*: workers report to one of the job's staging points (a
+  name, an address for the brief, a spot tapped on the map, and a check-in
+  radius of 50–2000 m, 250 m by default); scheduling a shift picks one of
+  them (or places another on the map), and check-in compares the phone's
+  position with that point within its radius, keeping only yes/no and a
+  band. *Self-launch*: workers start from wherever they are, and check-in
+  records the time only. Stored on `Job.launch` (`prisma/c4-launch.sql`),
+  read tolerantly (`src/lib/job-launch.ts`). A staged job with no point
+  can't publish; a job that says nothing about its launch (one from before
+  C4, or made through the API without it) stays as it was, with staging set
+  per shift, until the builder saves it (the builder always picks a mode).
+  A self-launch job refuses a staging point on its shifts. The phone's
+  check-in band names the point's radius, and the server confirms it is the
+  shift's own. The job card tells workers how the day starts. Acceptance:
+  `tests/acceptance/c4-launch.ts`.
+- **Editing a live job (C4.3)**: a published or paused job can be edited
+  from its page (the same six-step builder). The job has to stay
+  publishable, so an edit that would fail a check is refused. Every change
+  is recorded as an append-only `JobChange` (what changed, before and
+  after, who, when; `prisma/c4-launch.sql`), listed on the job page for the
+  organization, and everyone on the job (applied, invited, offered, hired)
+  gets a `JOB_CHANGED` notice. A change to pay, dates, location,
+  requirements, the campaign, the cancellation notice, the type of work,
+  the rule profile or how the day starts is *material*: for 24 hours
+  (`RELEASE_HOURS`) workers hired before it may leave the job from its
+  page, their upcoming shifts cancelled as excused (the scorecard never
+  counts them as no-shows), the engagement withdrawn with a history line
+  that says why (ending is final for that job, as for any withdrawal). A
+  worker hired after the change agreed to the new terms and isn't offered
+  the release, and a worker mid-shift checks out before leaving. Workers
+  on the job see when and what parts changed (never before/after values or
+  the staff member's name); the organization sees the full record, kept
+  after the job closes. A released worker's past verified work stays on
+  their scorecard. A worker's own do-not-match answers hide the notice
+  while an invitation stands, as they hide the invitation (rule 4), and a
+  lapsed invitation or offer isn't told. A job from before C4 (no launch
+  stored) keeps that until the builder picks self-launch or adds a point:
+  the builder's default, staged with no points, means "as it was" for it.
+  Decisions for Caden: title, description, headcount, hiring modes, the
+  canvassing app, contacts and ballot-measure ids are recorded and
+  announced but don't open the release; and while the organization isn't
+  approved (or its terms are unsigned) no edit saves, even a typo fix,
+  since a live job has to pass the publishing checks (rule 6). Say if
+  either should change.
+- **Canvassing-app handoff (C4.4)**: step 4 of the builder names the app
+  the job's canvassing runs in (MiniVAN, PDI or Ecanvasser), the list or
+  turf to open in it, and a line of instructions; stored on `Job.tools`
+  (`src/lib/job-tools.ts`, read tolerantly, never invented). The job card
+  and the shift brief show it. At the end of a canvass shift — on shift or
+  after checking out, until the shift is reviewed — the worker copies the
+  app's shift totals (doors, contacts) into the field-day page; each entry
+  is an `APP_COUNTS` event naming the app, and the newest replaces what
+  was logged by hand for that shift, on the page, in the supervisor's view
+  and on the scorecard (the hand-logged events stay in the record). The
+  server takes totals only for the job's own app, like the check-in radius.
+  Turfcut doesn't connect to the apps: nothing leaves or enters them.
+- **Packets kept between shifts (C4.5)**: on a petition shift a worker can
+  keep a packet for their next shift on the same job instead of returning
+  it (`PACKET_HELD`, one event per packet, from the field-day page, offline
+  too). A kept packet isn't out on that shift — the worker checks out and
+  the supervisor reviews as usual — and it's still in the worker's hands:
+  at their next check-in on the job it comes back out automatically, as a
+  `PACKET_PICKUP` in the worker's name that says which shift it was carried
+  from, with the same sheet count, under the job's packet lock. A kept
+  packet can still be returned on the same shift (that undoes a mis-tap);
+  the phone asks before keeping. If the worker handed it to a colleague
+  meanwhile and their supervisor recorded that pickup (the record says
+  whose kept packet it was), it isn't carried, and the holding shift says
+  so. The shift page shows kept packets on the progress line and the hero;
+  the field board counts them as "kept by workers", apart from "out".
+  Signatures logged on the holding shift sit on sheets returned on a later
+  shift, so they're counted (and paid per signature) in that later shift's
+  batch count; the reviewer is told on the holding shift. Decisions for
+  Caden: whether per-signature pay for a kept packet that's never returned
+  (the worker has no further shift) should be settled some other way than
+  a supervisor's pickup on another shift; and whether a supervisor should
+  need the worker's confirmation to take a kept packet over, rather than
+  the record alone.
+- **Correcting app totals (C4.4)**: a supervisor can correct the app's
+  doors and contacts like any counted entry, each correction a signed
+  event with a reason the worker sees.
+
+## C3 scope — the hiring hub
 
 - **Pipeline (C3.1)**: an organization can mark an application *in review*
   (the worker sees "In review"), send an *offer*, or mark it *not selected*

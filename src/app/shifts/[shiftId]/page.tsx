@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { radiusFor, readLaunch } from "@/lib/job-launch";
+import { appLabel, readTools, toolsText } from "@/lib/job-tools";
 import { loadTalkingPoints } from "@/lib/job-brief-data";
 import { TalkingPoints } from "@/components/campaign/TalkingPoints";
 import { notFound } from "next/navigation";
@@ -8,7 +10,7 @@ import { shiftPriority } from "@/lib/priority";
 import { FIELD_ROLES, SCHEDULING_ROLES } from "@/lib/access";
 import { readSupportContacts } from "@/lib/jobs";
 import { activeTime, earningsEstimate, readTurf, scheduleFlags, shiftProgress, shiftState, turfMarks, turfMarksClosed } from "@/lib/field-day";
-import { facts, loadShift } from "@/lib/field-day-data";
+import { carriedInto, facts, heldOnJob, loadShift } from "@/lib/field-day-data";
 import { ShiftProgress } from "@/components/ShiftProgress";
 import { TurfMap } from "@/components/TurfMap";
 import { LocalTime } from "@/components/LocalTime";
@@ -34,9 +36,11 @@ const EVENT_LABELS: Record<string, string> = {
   PAUSE_END: "Break ended",
   PACKET_PICKUP: "Packet handed out",
   PACKET_RETURN: "Packet returned",
+  PACKET_HELD: "Packet kept for next shift",
   SIGNATURE_SUBMITTED: "Signatures logged",
   DOOR_KNOCK: "Doors logged",
   CONTACT: "Contacts logged",
+  APP_COUNTS: "App totals entered",
   BATCH_COUNT: "Batch counted",
   SHIFT_CANCELLED: "Shift cancelled",
   INCIDENT: "Incident reported",
@@ -56,13 +60,17 @@ function eventDetail(type: string, payload: unknown): string {
     case "CHECK_IN":
       return p.atStaging === true ? "at staging" : p.atStaging === false ? `away from staging (${p.distance})` : "location not checked";
     case "PACKET_PICKUP":
-      return `${p.packetId} · ${p.sheets} sheets`;
+      return `${p.packetId}${typeof p.sheets === "number" ? ` · ${p.sheets} sheets` : ""}${p.carriedFrom ? " · carried from the worker's last shift" : p.takenFrom ? " · taken over from a packet another worker had kept" : ""}`;
+    case "PACKET_HELD":
+      return `${p.packetId} · stays with the worker until their next shift on this job`;
     case "PACKET_RETURN":
       return `${p.packetId} · ${p.sheetsReturned} sheets · ${p.signatures} signatures claimed`;
     case "SIGNATURE_SUBMITTED":
     case "DOOR_KNOCK":
     case "CONTACT":
       return `+${p.count ?? 1}`;
+    case "APP_COUNTS":
+      return `${typeof p.app === "string" ? appLabel(p.app as never) : "app"} · ${p.doors ?? "?"} doors · ${p.contacts ?? "?"} contacts`;
     case "BATCH_COUNT":
       return `${p.accepted} accepted · ${p.rejected} rejected of ${p.reviewed} reviewed${p.exceptions ? ` · ${p.exceptions}` : ""}`;
     case "SHIFT_CANCELLED":
@@ -136,9 +144,18 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
       return { id: e.id, at: e.createdAt, text: e.type === "CORRECTION" ? `${EVENT_LABELS[s.events.find((x) => x.id === p.supersedesEventId)?.type ?? ""] ?? "An entry"} corrected by ${who}: ${p.reason}` : `${EVENT_LABELS[e.type] ?? e.type} entered by ${who}: ${p.reason}` };
     });
   const marksOpen = isWorker && turfMarksClosed(f, new Date()) === null;
-  const staging = s.stagingLat !== null && s.stagingLng !== null ? { lat: s.stagingLat, lng: s.stagingLng } : null;
+  // The check-in radius is the job's own for that staging point (C4.2), else the default.
+  const staging = s.stagingLat !== null && s.stagingLng !== null ? { lat: s.stagingLat, lng: s.stagingLng, radiusM: radiusFor(readLaunch(s.engagement.job.launch), { lat: s.stagingLat, lng: s.stagingLng }) } : null;
   const contacts = readSupportContacts(s.engagement.job.supportContacts);
   const petition = f.workType === "PETITION";
+  // The app the canvassing runs in, for the brief and the end-of-shift totals (C4.4).
+  const tools = readTools(s.engagement.job.tools);
+  // Packets kept on this shift (C4.5), and which have since gone out with someone else.
+  const kept = st.packetsHeld.length ? (await heldOnJob(db(), s.engagement.job.id)).filter((h) => h.heldOn === s.id) : [];
+  const keptLabel = (id: string) => {
+    const h = kept.find((k) => k.packetId === id);
+    return h?.takenBy === "worker" ? `${id} (carried to their next shift)` : h?.takenBy === "colleague" ? `${id} (since taken out by another worker)` : id;
+  };
   const live = !!st.checkedInAt && !st.checkedOutAt;
   const eyebrow = st.cancelled ? "Cancelled" : live ? (st.paused ? "On a break" : "Live shift") : st.checkedOutAt ? "Shift done" : "Upcoming shift";
 
@@ -167,6 +184,8 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
         startsAt: s.startsAt.toISOString(),
         endsAt: s.endsAt.toISOString(),
         staging,
+        carriedIn: (isWorker && !st.checkedInAt ? await carriedInto(db(), s) : []).map((h) => ({ packetId: h.packetId, sheets: h.sheets, carriedFrom: h.heldOn })),
+        canvassApp: tools.canvassApp,
         ended: now > s.endsAt,
         // Who made each event isn't needed on the phone; the phone's own id
         // for an entry lets it drop that entry once it shows here, and the
@@ -266,12 +285,23 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
           {petition && started && (
             <span>
               <span className="block font-bold">{st.packetsOut.length ? st.packetsOut.join(", ") : "—"}</span>
-              <span className="hero-muted">Packets out</span>
+              <span className="hero-muted">Packets out{st.packetsHeld.length ? ` · ${st.packetsHeld.map(keptLabel).join(", ")} kept for next shift` : ""}</span>
             </span>
           )}
         </p>
       </div>
 
+      {!petition && toolsText(tools) && (
+        <p className="text-muted-sm">
+          Canvassing app: <span className="font-medium text-fg">{toolsText(tools)}</span>
+          {tools.notes ? ` — ${tools.notes}` : ""}
+        </p>
+      )}
+      {canField && st.packetsHeld.length > 0 && (
+        <p className="text-muted-sm">
+          Packet{st.packetsHeld.length > 1 ? "s" : ""} {st.packetsHeld.map(keptLabel).join(", ")} stayed with the worker for their next shift: signatures on {st.packetsHeld.length > 1 ? "them" : "it"} are counted when it&apos;s returned on a later shift, not in this shift&apos;s batch count.
+        </p>
+      )}
       {started && workerActions}
       {canField && !st.cancelled && (
         <section className="section">

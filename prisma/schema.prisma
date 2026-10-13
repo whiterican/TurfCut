@@ -339,6 +339,11 @@ model Job {
   supportContacts         Json? // who handles emergencies, disputes, lost materials
   measureIds              String[]            @default([]) // ballot measure / initiative IDs
   cancellationNoticeHours Int                 @default(24) // later worker cancellations count as no-shows
+  // C4: how the day starts (self-launch or from a staging point, with the
+  // points and their check-in radius) and which canvassing app the work
+  // runs in. Shapes are defined and validated in src/lib/job-launch.ts.
+  launch                  Json?
+  tools                   Json?
   publishedAt             DateTime?
   // Matching weights are versioned on the job (M3); stored when matching ships.
   createdAt               DateTime            @default(now())
@@ -346,6 +351,7 @@ model Job {
 
   engagements      Engagement[]
   conversationJobs ConversationJob[]
+  changes          JobChange[]
   // S1: the campaign this job works for (its profile's pinned talking points brief the job's shifts).
   campaignProfileId String?          @db.Uuid
   campaignProfile   CampaignProfile? @relation(fields: [campaignProfileId], references: [id], onDelete: Restrict)
@@ -496,6 +502,8 @@ enum WorkEventType {
   CORRECTION // signed metric correction event (supersedes, never rewrites)
   SHIFT_CANCELLED // payload: { by: "WORKER" | "ORGANIZATION", reason } — append-only record of a cancellation
   NOTE
+  APP_COUNTS // C4.4: the canvassing app's returned totals for the shift — payload: { app, doors, contacts }; the newest replaces logged doors/contacts
+  PACKET_HELD // C4.5: a packet the worker keeps between shifts — payload: { packetId }; it is picked up again on their next shift
 }
 
 /// Immutable ledger of everything that happened on a shift.
@@ -1002,6 +1010,7 @@ enum NotificationKind {
   NOT_SELECTED
   APPLICATION_WITHDRAWN
   JOB_CLOSED
+  JOB_CHANGED // C4.3: a published job's terms changed
 }
 
 /// C3.5: an in-app notice for one person about one engagement. readAt is the
@@ -1056,6 +1065,24 @@ model CredentialProofDeletion {
   reason    ProofDeletionReason
   actorId   String?             @db.Uuid
   createdAt DateTime            @default(now())
+}
+
+/// C4.3: an edit to a published job, as a record: what changed (field →
+/// before and after), who, when, and which of it is material (pay, dates,
+/// location, requirements, the campaign, how the day starts, the notice
+/// window). Append-only. Hired workers are told, and for a material change
+/// may leave within RELEASE_HOURS with no reliability penalty.
+model JobChange {
+  id        String   @id @default(uuid()) @db.Uuid
+  jobId     String   @db.Uuid
+  job       Job      @relation(fields: [jobId], references: [id], onDelete: Restrict)
+  actorId   String   @db.Uuid
+  changes   Json
+  /// The material parts that changed, as labels ("pay", "dates"); empty for a change workers aren't released over.
+  material  String[] @default([])
+  createdAt DateTime @default(now())
+
+  @@index([jobId, createdAt])
 }
 
 /// S1: a campaign's public page. An organization may run several campaigns,

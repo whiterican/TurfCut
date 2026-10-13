@@ -1,4 +1,6 @@
 import { affiliationLabel, cardAffiliation, jobCardAnswers, readDisclosure, type CompensationMethod, type JobType } from "@/lib/jobs";
+import { readLaunch } from "@/lib/job-launch";
+import { readTools, toolsText } from "@/lib/job-tools";
 import { CAMPAIGN_TYPES, issueLabel } from "@/lib/political-fit";
 import { plural } from "@/lib/format";
 import { Row } from "@/components/Row";
@@ -22,11 +24,14 @@ export function JobCard({
     endsAt: Date | null;
     headcount: number | null;
     cancellationNoticeHours: number;
+    launch?: unknown;
+    tools?: unknown;
     orgName: string;
     jurisdictionRules: unknown;
   };
 }) {
   const a = jobCardAnswers(job);
+  const launch = readLaunch(job.launch);
   const d = readDisclosure(job.campaignDisclosure);
   const aff = cardAffiliation(job.campaignDisclosure);
   const issues = Object.entries(d?.issues ?? {});
@@ -47,6 +52,14 @@ export function JobCard({
           ) : "Not set"}
         </Row>
         <Row label="Dates">{day(job.startsAt)} – {day(job.endsAt)} · {job.headcount ? plural(job.headcount, "worker") : "—"}</Row>
+        {toolsText(readTools(job.tools)) && <Row label="Canvassing app">{toolsText(readTools(job.tools))}; workers enter its returned totals at the end of each shift</Row>}
+        <Row label="How each day starts">
+          {launch.mode === "SELF"
+            ? "Self-launch: you start from wherever you are; check-in records the time only"
+            : launch.points.length
+              ? `Staged: you report to ${launch.points.length === 1 ? "a staging point" : `one of ${launch.points.length} staging points`}; when a shift has one, check-in compares your phone's position with it once`
+              : "Staged: you report to a staging point set per shift; when a shift has one, check-in compares your phone's position with it once"}
+        </Row>
         <Row label="Cancellation notice">{job.cancellationNoticeHours} hours; later cancellations count as no-shows</Row>
       </dl>
 

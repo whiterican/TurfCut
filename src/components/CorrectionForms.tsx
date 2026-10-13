@@ -46,7 +46,7 @@ export function CorrectEntry({ action, shiftId, eventId, type, atIso, values }: 
   );
 }
 
-const LABELS: Record<string, string> = { count: "Count", sheetsReturned: "Sheets returned", signatures: "Signatures claimed" };
+const LABELS: Record<string, string> = { count: "Count", sheetsReturned: "Sheets returned", signatures: "Signatures claimed", doors: "Doors (app total)", contacts: "Contacts (app total)" };
 const TYPE_WORD: Record<string, string> = {
   CHECK_IN: "check-in",
   CHECK_OUT: "check-out",
@@ -56,6 +56,7 @@ const TYPE_WORD: Record<string, string> = {
   DOOR_KNOCK: "count",
   CONTACT: "count",
   PACKET_RETURN: "packet return",
+  APP_COUNTS: "app totals",
 };
 
 /** Enter an entry the worker's phone never recorded (a missed check-out, work older than a day). */

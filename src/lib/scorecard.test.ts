@@ -239,6 +239,24 @@ describe("spec formulas and verification rules", () => {
     expect(computeScorecard([s], { now }).reliability.showRate.denominator).toBe(0);
   });
 
+  it("keeps the verified work of a worker who left a changed job, with the cancelled shifts excused (C4.3)", () => {
+    const start = new Date("2026-09-28T09:00:00Z");
+    const worked = shift([["CHECK_IN", 0], ["CHECK_OUT", 300]], { engagementStatus: "WITHDRAWN", engagementId: "left" });
+    const dropped = shift([], {
+      engagementStatus: "WITHDRAWN",
+      engagementId: "left",
+      startsAt: start,
+      endsAt: new Date(start.getTime() + 8 * 3_600_000),
+      status: "CANCELLED",
+      cancellationNoticeHours: 24,
+      validations: [],
+      events: [{ id: "c-left", type: "SHIFT_CANCELLED", payload: { by: "WORKER", reason: "The job's terms changed", jobChanged: true, jobChangeId: "ch1" }, createdAt: new Date(start.getTime() - 3_600_000) }],
+    });
+    const s = computeScorecard([worked, dropped], { now });
+    expect(s.segments[0].verificationBreakdown.verifiedShifts).toBe(1);
+    expect(s.reliability.showRate).toMatchObject({ numerator: 1, denominator: 1 });
+  });
+
   it("gives a shift scheduled inside the notice window until its start to cancel", () => {
     const start = new Date("2026-09-28T09:00:00Z");
     const cancelled = (scheduledHoursBefore: number, cancelHoursBefore: number) =>
@@ -275,6 +293,16 @@ describe("spec formulas and verification rules", () => {
     const missed = shift([], { status: "SCHEDULED", startsAt: at(-300, now), endsAt: at(-60, now), validations: [] });
     expect(computeScorecard([started, justStarted], { now }).reliability.showRate).toMatchObject({ value: 1, numerator: 1, denominator: 1 });
     expect(computeScorecard([started, missed], { now }).reliability.showRate).toMatchObject({ value: 0.5, numerator: 1, denominator: 2 });
+  });
+
+  it("takes the canvassing app's newest totals over hand-logged doors and contacts (C4.4)", () => {
+    const s = shift([["CHECK_IN", 0], ["DOOR_KNOCK", 10, { count: 10 }], ["CONTACT", 11, { count: 3 }], ["APP_COUNTS", 290, { app: "MINIVAN", doors: 40, contacts: 9 }], ["APP_COUNTS", 295, { app: "MINIVAN", doors: 42, contacts: 7 }], ["CHECK_OUT", 300]], { workType: "CANVASS" });
+    const seg = computeScorecard([s], { now }).segments[0];
+    expect(seg.doorsAttempted).toBe(42);
+    expect(seg.contacts).toBe(7);
+    // A rejected entry falls back to the one before it.
+    const r = { ...s, validations: [...s.validations, { workEventId: `${s.id}-4`, status: "REJECTED" as const, createdAt: at(296) }] };
+    expect(computeScorecard([r], { now }).segments[0].doorsAttempted).toBe(40);
   });
 
   it("shows no doors-per-hour for petition work with no doors logged", () => {

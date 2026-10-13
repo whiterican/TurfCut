@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { readLaunch } from "@/lib/job-launch";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
@@ -18,7 +19,11 @@ import { loadLatestPreference } from "@/lib/political-fit-data";
 import { JobCard } from "@/components/JobCard";
 import { SnapshotView } from "@/components/SnapshotView";
 import { ActionButton } from "@/components/ActionButton";
-import { acceptInvitation, apply, claim, closeJobAction, declineAsWorker, publish, withdrawApplication } from "../actions";
+import { acceptInvitation, apply, claim, closeJobAction, declineAsWorker, leaveChangedJob, publish, withdrawApplication } from "../actions";
+import { openRelease } from "@/lib/job-changes-data";
+import { loadJobChanges } from "@/lib/jobs-data";
+import { listText as andList, materialText, RELEASE_HOURS } from "@/lib/job-changes";
+import { JobChangedNotice } from "@/components/JobChangedNotice";
 import { shiftState, shiftStatusLabel } from "@/lib/field-day";
 import { listSupervisors } from "@/lib/field-day-data";
 import { LocalTime } from "@/components/LocalTime";
@@ -29,6 +34,33 @@ import { CampaignCard } from "@/components/campaign/CampaignCard";
 
 // An invitation's deadline, as a day (the job's own dates are a DateRangeChip).
 const day = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+
+const dayTime = (d: Date) => d.toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/Denver" }) + " MT";
+
+/**
+ * The record of edits to a live job (C4.3), newest first. The organization
+ * sees who made each; a worker sees when and what parts changed (the words
+ * their notice points them to), never the staff member's name.
+ */
+async function ChangeList({ jobId, viewer, changes: loaded }: { jobId: string; viewer: "org" | "worker"; changes?: Awaited<ReturnType<typeof loadJobChanges>> }) {
+  const changes = loaded ?? (await loadJobChanges(jobId));
+  if (!changes.length) return null;
+  return (
+    <details className="card p-0">
+      <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-fg">{viewer === "org" ? "Changes since publishing" : "What changed on this job"} ({changes.length})</summary>
+      <ul className="divide-y divide-border border-t border-border">
+        {changes.map((c) => (
+          <li key={c.id} className="px-4 py-2.5 text-sm">
+            <span className="text-fg">{dayTime(c.createdAt)}</span> · {viewer === "org" ? `${c.by ?? "a member"} changed` : "changed"} {andList(c.labels)}
+            {c.material.length > 0 && (
+              <span className="text-muted"> · material: {andList(c.material)}; {viewer === "org" ? "hired workers could" : "if you were hired before it, you could"} leave until {dayTime(new Date(c.createdAt.getTime() + RELEASE_HOURS * 3_600_000))}</span>
+            )}
+          </li>
+        ))}
+      </ul>
+    </details>
+  );
+}
 
 const loadJob = (id: string) =>
   db().job.findUnique({ where: { id }, include: { org: true, jurisdiction: true, campaignProfile: { select: { id: true, handle: true, displayName: true, avatarKey: true, publishedAt: true } } } });
@@ -102,7 +134,7 @@ async function WorkerPanel({
   acceptedCount,
 }: {
   job: JobWithRefs;
-  engagement: { id: string; status: EngagementStatus; applicationSnapshot: unknown; inviteNote: string | null; inviteExpiresAt: Date | null } | null;
+  engagement: { id: string; jobId: string; status: EngagementStatus; createdAt: Date; applicationSnapshot: unknown; inviteNote: string | null; inviteExpiresAt: Date | null } | null;
   modes: string[];
   workerId: string;
   acceptedCount: number;
@@ -128,6 +160,8 @@ async function WorkerPanel({
     const closed = job.status === "CLOSED";
     const inviteExpired = inviteLapsed(engagement.status, engagement.inviteExpiresAt, new Date());
     const fields = { jobId: job.id, engagementId: engagement.id };
+    // A material change since they were hired, while the release window is open (C4.3).
+    const release = await openRelease(engagement);
     // Declining and withdrawing end this job for good: no second application or invitation (C3 decision).
     const final = "You can't apply to or be invited to this job again afterwards.";
     return (
@@ -166,6 +200,23 @@ async function WorkerPanel({
             </div>
           </div>
         )}
+        {release && (
+          <div className="alert-warning space-y-2">
+            <p className="font-medium">This job&apos;s terms changed on {dayTime(release.createdAt)}: {andList(release.material)}.</p>
+            <p className="text-sm">
+              You were hired under the earlier terms, so you can leave until {dayTime(release.deadline)} with no effect on your reliability: your upcoming
+              shifts would be cancelled as excused. Staying means the new terms apply. If a shift is under way, check out of it first.
+            </p>
+            <ActionButton
+              action={leaveChangedJob}
+              fields={fields}
+              label="Leave this job (no penalty)"
+              pendingLabel="Leaving…"
+              variant="btn-secondary btn-sm"
+              confirm={{ text: `Leave ${job.title}? Your upcoming shifts are cancelled as excused. ${final}`, label: "Yes, leave" }}
+            />
+          </div>
+        )}
         {engagement.status === "APPLIED" && (
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="text-muted-sm">The organization will review your application.</p>
@@ -173,6 +224,7 @@ async function WorkerPanel({
           </div>
         )}
         {(engagement.status === "ACTIVE" || engagement.status === "CLAIMED") && <WorkerShifts engagementId={engagement.id} />}
+        <ChangeList jobId={job.id} viewer="worker" />
         <EngagementHistory events={facts.events} />
       </section>
     );
@@ -364,9 +416,26 @@ async function OrgPanel({ job, canHire, canSchedule, userId }: { job: JobWithRef
     : [];
   const facts = await loadPipelineFacts(engagements.map((e) => e.id));
   const now = new Date();
+  const changes = canHire && job.status !== "DRAFT" ? await loadJobChanges(job.id) : [];
 
   return (
     <>
+      {job.status !== "DRAFT" && canHire && (job.status !== "CLOSED" || changes.length > 0) && (
+        <section className="section">
+          <h2 className="section-title">Terms</h2>
+          {job.status !== "CLOSED" && (
+            <>
+              <JobChangedNotice />
+              <p className="text-muted-sm">
+                Edits to a live job are recorded and everyone on it is told. After a change to the {materialText()}, hired workers may leave within{" "}
+                {RELEASE_HOURS} hours with no penalty.
+              </p>
+              <Link transitionTypes={["nav-forward"]} href={`/jobs/${job.id}/edit`} className="btn-secondary">Edit job</Link>
+            </>
+          )}
+          <ChangeList jobId={job.id} viewer="org" changes={changes} />
+        </section>
+      )}
       {(job.status === "DRAFT" || job.status === "PAUSED") && (
         <section className="section">
           <h2 className="section-title">Publishing</h2>
@@ -480,7 +549,7 @@ async function ShiftsSection({ job, userId }: { job: JobWithRefs; userId: string
         <p className="text-muted-sm">No shifts yet.</p>
       )}
       {hired.length > 0 ? (
-        <ScheduleShiftForm jobId={job.id} workers={hired.map((e) => ({ engagementId: e.id, name: e.worker.displayName }))} supervisors={labels} />
+        <ScheduleShiftForm jobId={job.id} workers={hired.map((e) => ({ engagementId: e.id, name: e.worker.displayName }))} supervisors={labels} launch={readLaunch(job.launch)} />
       ) : (
         <p className="text-hint">Accept a worker first — only hired workers can be scheduled.</p>
       )}

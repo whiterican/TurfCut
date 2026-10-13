@@ -15,7 +15,8 @@ const w1 = { workerId: W1, profileId: W1 };
   const p = db();
   const now = new Date();
   const start = new Date(now.getTime() - 5 * H);
-  const shift = await p.shift.create({ data: { engagementId: ENG, startsAt: start, endsAt: new Date(start.getTime() + 4 * H) } });
+  // A staging point, so the phone's "at staging" check has something to be at (C4.2).
+  const shift = await p.shift.create({ data: { engagementId: ENG, startsAt: start, endsAt: new Date(start.getTime() + 4 * H), stagingLocation: "Library steps", stagingLat: 39.737, stagingLng: -104.989 } });
   const slow = 10 * M; // the phone's clock is 10 minutes slow
   const phone = (t: number) => t - slow;
   const q = (offset: number, action: object) => ({ clientId: randomUUID(), at: phone(start.getTime() + offset), action: action as never });
@@ -48,7 +49,7 @@ const w1 = { workerId: W1, profileId: W1 };
 
   // Server-side chunking (the shift lock is held per chunk): the same batch
   // synced two entries at a time gives the same results and the same timeline.
-  const chunked = await p.shift.create({ data: { engagementId: ENG, startsAt: start, endsAt: new Date(start.getTime() + 4 * H) } });
+  const chunked = await p.shift.create({ data: { engagementId: ENG, startsAt: start, endsAt: new Date(start.getTime() + 4 * H), stagingLocation: "Library steps", stagingLat: 39.737, stagingLng: -104.989 } });
   const replay = batch.map((x) => ({ ...x, clientId: randomUUID() }));
   const rc = await syncWorkerActions(w1, chunked.id, { deviceNow: phone(now.getTime()), actions: replay }, now, 2);
   const shape = (rs: typeof res) => rs.map((x) => `${x.status}:${x.reason ?? ""}`);

@@ -5,9 +5,10 @@ import { readLocationCheck } from "@/lib/offline-sync";
 /**
  * POST /api/shifts/:shiftId/check-in { location? }
  * `location` is the phone's own staging check — { checked: true, atStaging,
- * distance: "under 250 m" | "250 m – 1 km" | "over 1 km" } or { checked:
- * false } — made on the device (lib/offline-sync stagingCheck). The server
- * never takes a position: a request with coordinates is refused.
+ * distance: "under R m" | "R m – 1 km" | "over R m" | "over 1 km", R the
+ * shift's staging radius (C4.2) } or { checked: false } — made on the device
+ * (lib/offline-sync stagingCheck). The server never takes a position: a
+ * request with coordinates is refused, and a band naming another radius is.
  */
 export async function POST(req: Request, { params }: { params: Promise<{ shiftId: string }> }) {
   const { shiftId } = await params;

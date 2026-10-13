@@ -27,4 +27,38 @@ describe("migration grants", () => {
       }
     }
   });
+  it("campaign tables: column grants only, never who wrote or deleted a post, never revisions (S1)", () => {
+    const allowed: Record<string, Set<string>> = {
+      CampaignProfile: new Set(['"id"', '"handle"', '"displayName"', '"bio"', '"avatarKey"', '"headerKey"', '"publishedAt"', '"createdAt"', '"updatedAt"']),
+      CampaignPost: new Set(['"id"', '"profileId"', '"body"', '"jobId"', '"pinnedAt"', '"createdAt"', '"editedAt"']),
+    };
+    const tableWide = /GRANT\s+(SELECT|INSERT|UPDATE|DELETE|ALL)(\s+PRIVILEGES)?\s+ON\s+(TABLE\s+)?[^;(]*"(CampaignProfile|CampaignPost|CampaignPostRevision)"[^;]*TO\s+[^;]*(authenticated|anon)/gi;
+    for (const f of files) {
+      const sql = readFileSync(join(dir, f), "utf8").replace(/--[^\n]*/g, "");
+      expect({ file: f, hits: sql.match(tableWide) ?? [] }).toEqual({ file: f, hits: [] });
+      expect({ file: f, revisionGrant: /GRANT[^;]*"CampaignPostRevision"[^;]*TO/i.test(sql) }).toEqual({ file: f, revisionGrant: false });
+      // Any grant naming these tables (qualified or not, with TABLE or not) is a column-limited SELECT.
+      for (const m of sql.matchAll(/GRANT\s+(\w+)\s*(\(([^)]*)\))?\s+ON\s+(TABLE\s+)?("public"\.)?"(CampaignProfile|CampaignPost)"/gi)) {
+        expect({ file: f, table: m[6], privilege: m[1].toUpperCase(), columnLimited: !!m[2] }).toEqual({ file: f, table: m[6], privilege: "SELECT", columnLimited: true });
+        for (const col of (m[3] ?? "").split(",").map((c) => c.trim())) expect({ file: f, table: m[6], col, ok: allowed[m[6]].has(col) }).toEqual({ file: f, table: m[6], col, ok: true });
+      }
+      expect({ file: f, schemaWide: /GRANT[^;]*ON\s+ALL\s+TABLES\s+IN\s+SCHEMA[^;]*TO[^;]*(anon|authenticated)/i.test(sql) }).toEqual({ file: f, schemaWide: false });
+    }
+  });
+  it("follows and likes stay server-only: no grant, no policy, in any migration (S2)", () => {
+    // Who follows a campaign and who liked a post is the worker's business: nothing is ever readable through the Data API.
+    for (const f of files) {
+      const sql = readFileSync(join(dir, f), "utf8").replace(/--[^\n]*/g, "");
+      expect({ file: f, grants: sql.match(/GRANT[^;]*"(CampaignFollow|PostLike)"[^;]*/gi) ?? [] }).toEqual({ file: f, grants: [] });
+      expect({ file: f, policies: sql.match(/CREATE\s+POLICY[^;]*"(CampaignFollow|PostLike)"[^;]*/gi) ?? [] }).toEqual({ file: f, policies: [] });
+    }
+    // And the files that create them take the API roles' default privileges back and turn RLS on (Supabase grants on new tables by default).
+    for (const f of ["s2-social.sql", "supabase-manual-setup.sql"]) {
+      const sql = readFileSync(join(dir, f), "utf8").replace(/--[^\n]*/g, "");
+      for (const t of ["CampaignFollow", "PostLike"]) {
+        expect({ file: f, table: t, rls: new RegExp(`ALTER\\s+TABLE\\s+"public"\\."${t}"\\s+ENABLE\\s+ROW\\s+LEVEL\\s+SECURITY`, "i").test(sql) }).toEqual({ file: f, table: t, rls: true });
+        expect({ file: f, table: t, revoked: new RegExp(`REVOKE\\s+ALL\\s+ON[^;]*"${t}"[^;]*FROM[^;]*anon[^;]*authenticated`, "i").test(sql) }).toEqual({ file: f, table: t, revoked: true });
+      }
+    }
+  });
 });

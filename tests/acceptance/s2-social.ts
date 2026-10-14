@@ -1,11 +1,11 @@
 /* S2 acceptance checks: follows, the home feed, likes and their privacy, against a fresh database (tests/acceptance/run.sh). */
 import { db } from "@/lib/db";
 import { createCampaign, createPost, deletePost, setCampaignPublished, setJobCampaign } from "@/lib/campaign-social-data";
-import { campaignsOn, feedCampaigns, followState, likeCounts, likedPostIds, loadHomeFeed, newFeedCount, openFollows, setFollow, setLike } from "@/lib/campaign-follow-data";
+import { campaignsOn, feedCampaigns, followState, likeCounts, likedPostIds, loadHomeFeed, loadPostNotices, newFeedCount, openFollows, setFollow, setLike, unreadPostNotices } from "@/lib/campaign-follow-data";
 import { FEED_PAGE_SIZE } from "@/lib/campaign-follow";
 import { loadFeed } from "@/lib/jobs-data";
 import { loadScorecard } from "@/lib/scorecard-data";
-import { loadNotifications, unreadNotifications } from "@/lib/notifications-data";
+import { loadNotifications, NOTIFICATION_PAGE } from "@/lib/notifications-data";
 import { postNoticeText } from "@/lib/campaign-follow";
 
 const ORG = "00000000-0000-0000-0000-000000000001";
@@ -105,34 +105,54 @@ const refused = (p: Promise<unknown>) => p.then(() => "allowed", (e: unknown) =>
   // --- Notices of new posts (S2.4) ---
   const pw1 = (await p.worker.findUniqueOrThrow({ where: { id: W1 }, select: { profileId: true } })).profileId;
   const pw2 = (await p.worker.findUniqueOrThrow({ where: { id: W2 }, select: { profileId: true } })).profileId;
+  // A third worker, who asks for notices and then closes their account.
+  const W3 = "00000000-0000-0000-0000-0000000001f3", PW3 = "00000000-0000-0000-0000-0000000000d3";
+  await p.profile.create({ data: { id: PW3, role: "WORKER", displayName: "Closed Worker" } });
+  await p.worker.create({ data: { id: W3, profileId: PW3, displayName: "Closed Worker" } });
   await setFollow(W1, followed, { follow: true, notify: true });
   await setFollow(W2, followed, { follow: true });
+  await setFollow(W3, followed, { follow: true, notify: true });
+  await p.worker.update({ where: { id: W3 }, data: { closedAt: new Date() } });
   const noticed = (pid: string) => p.notification.count({ where: { recipientId: pid, kind: "CAMPAIGN_POST" } });
   const at = new Date(); // one moment for every post here, so the day's cap can't straddle midnight
   const n0 = await noticed(pw1);
+  const u0 = await unreadPostNotices(pw1, 100);
+  const audits0 = await p.auditEvent.count();
   const first = await createPost(B, followed, { body: `A new canvass weekend starts Saturday. ${"Details ".repeat(30)}`, jobId: null }, at);
   if (!first.ok) throw new Error(first.reason);
   check("a post reaches a follower who asked for notices", (await noticed(pw1)) === n0 + 1);
-  check("…but not one who follows without notices", (await noticed(pw2)) === 0);
+  check("…not one who follows without notices, nor a closed account", (await noticed(pw2)) === 0 && (await noticed(PW3)) === 0);
+  const audit = await p.auditEvent.findFirstOrThrow({ where: { entityId: first.id, action: "campaign.post_created" } });
+  check("the campaign learns nothing of who was told: the post's result and audit record carry no recipients or count",
+    JSON.stringify(first) === JSON.stringify({ ok: true, id: first.id }) && JSON.stringify(Object.keys(audit.metadata as object).sort()) === JSON.stringify(["campaignId", "jobId"]) && (audit.metadata as { campaignId?: string }).campaignId === followed && (await p.auditEvent.count()) === audits0 + 1, { first, metadata: audit.metadata, audits: (await p.auditEvent.count()) - audits0 });
   const more: string[] = [];
   for (let i = 0; i < 3; i++) { const r = await createPost(B, followed, { body: `Update ${i + 1}`, jobId: null }, at); if (r.ok) more.push(r.id); }
   check("at most 3 notices a day from one campaign", (await noticed(pw1)) === n0 + 3);
+  const tomorrow = new Date(Date.UTC(at.getUTCFullYear(), at.getUTCMonth(), at.getUTCDate() + 1, 0, 5));
+  const next = await createPost(B, followed, { body: "Next day", jobId: null }, tomorrow);
+  check("…and the count starts again the next (UTC) day", next.ok && (await noticed(pw1)) === n0 + 4);
   await createPost(A, hiring, { body: "From the campaign whose job W1 is on", jobId: null }, at);
-  check("working a campaign's job doesn't send its posts as notices (only asking does)", (await noticed(pw1)) === n0 + 3);
-  const viewer = { userId: pw1, role: "WORKER" as const, workerId: W1, orgId: null };
-  const listed = (await loadNotifications(viewer)).filter((n) => n.post);
+  check("working a campaign's job doesn't send its posts as notices (only asking does)", (await noticed(pw1)) === n0 + 4);
+  await setCampaignPublished(A, hiring, false);
+  await setFollow(W2, hiring, { follow: false });
+  await p.campaignFollow.create({ data: { workerId: W2, campaignId: hiring, notify: true } }); // as if they'd asked while it was public
+  await createPost(A, hiring, { body: "While private", jobId: null }, at);
+  check("a campaign that's private when it posts sends nothing", (await noticed(pw2)) === 0);
+  await setCampaignPublished(A, hiring, true);
+  const listed = await loadPostNotices(pw1, NOTIFICATION_PAGE);
   const t = listed[0]?.post ? postNoticeText(listed[0].post) : null;
-  check("the worker's notices list them, in the campaign's words, linked to the post", listed.length === 3 && !!t && t.href === `/c/other_campaign/p/${listed[0].post!.id}` && t.text.startsWith("other_campaign posted: “") && t.text.length < 140, t);
-  const unread0 = await unreadNotifications(viewer);
-  check("…and count on the bell", unread0 >= 3);
+  check("the worker's notices list them, newest first, in the campaign's words, linked to the post",
+    listed.length === 4 && next.ok && listed[0].post?.id === next.id && !!t && t.href === `/c/other_campaign/p/${listed[0].post!.id}` && t.text === "other_campaign posted: “Next day”", t);
+  check("…and count on the bell, exactly", (await unreadPostNotices(pw1, 100)) === u0 + 4);
+  check("hiring code never loads them (the social layer does)", !(await loadNotifications({ userId: pw1, role: "WORKER", workerId: W1, orgId: null })).some((n) => n.kind === "CAMPAIGN_POST"));
   await deletePost(B, first.id);
-  check("a deleted post takes its notice off the list and the bell", (await loadNotifications(viewer)).filter((n) => n.post).length === 2 && (await unreadNotifications(viewer)) === unread0 - 1);
+  check("a deleted post takes its notice off the list and the bell", (await loadPostNotices(pw1, NOTIFICATION_PAGE)).length === 3 && (await unreadPostNotices(pw1, 100)) === u0 + 3);
   await setCampaignPublished(B, followed, false);
-  check("a campaign gone private hides its notices", (await loadNotifications(viewer)).filter((n) => n.post).length === 0);
+  check("a campaign gone private hides its notices", (await loadPostNotices(pw1, NOTIFICATION_PAGE)).length === 0 && (await unreadPostNotices(pw1, 100)) === u0);
   await setCampaignPublished(B, followed, true);
-  check("…and they come back when it's public again", (await loadNotifications(viewer)).filter((n) => n.post).length === 2);
-  const staff = { userId: OWNER2, role: "OWNER" as const, workerId: null, orgId: ORG2 };
-  check("the campaign's staff never see who was notified", !(await loadNotifications(staff)).some((n) => n.post));
+  check("…and they come back when it's public again", (await loadPostNotices(pw1, NOTIFICATION_PAGE)).length === 3);
+  await setFollow(W1, followed, { follow: true, notify: false });
+  check("turning notices off stops new ones; the ones already sent stay", (await createPost(B, followed, { body: "After notices off", jobId: null }, tomorrow)).ok && (await noticed(pw1)) === n0 + 4 && (await loadPostNotices(pw1, NOTIFICATION_PAGE)).length === 3);
   check("the database refuses a post notice without its post, or a hiring notice about a post",
     /Notification_subject/.test(await refused(p.notification.create({ data: { recipientId: pw1, kind: "CAMPAIGN_POST" } }))) &&
     /Notification_subject/.test(await refused(p.notification.create({ data: { recipientId: pw1, kind: "OFFER_RECEIVED", postId: more[0] } }))));

@@ -249,3 +249,25 @@ export async function notifyCampaignPost(tx: Prisma.TransactionClient, campaignI
   if (rows.length) await tx.notification.createMany({ data: rows });
   return rows.length;
 }
+
+/** A notice of a followed campaign's post shows while the post is up and the campaign public. */
+const LIVE_POST_NOTICE = { kind: "CAMPAIGN_POST", post: { deletedAt: null, profile: PUBLIC_CAMPAIGN } } satisfies Prisma.NotificationWhereInput;
+
+/**
+ * A worker's notices of followed campaigns' posts (S2.4), newest first, up
+ * to `take`: loaded here, by the social layer, so hiring code never reads
+ * posts. A deleted post or a campaign gone private takes its notices off.
+ */
+export function loadPostNotices(profileId: string, take: number) {
+  return db().notification.findMany({
+    where: { recipientId: profileId, ...LIVE_POST_NOTICE },
+    select: { id: true, createdAt: true, readAt: true, post: { select: { id: true, body: true, profile: { select: { handle: true, displayName: true } } } } },
+    orderBy: [{ createdAt: "desc" }, { id: "asc" }],
+    take,
+  });
+}
+
+/** Unread post notices for the header bell, up to `cap`. */
+export function unreadPostNotices(profileId: string, cap: number) {
+  return db().notification.count({ where: { recipientId: profileId, readAt: null, ...LIVE_POST_NOTICE }, take: cap });
+}

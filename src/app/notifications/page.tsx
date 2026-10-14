@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { requireAuth } from "@/lib/auth";
-import { loadNotifications } from "@/lib/notifications-data";
+import { loadNotifications, NOTIFICATION_PAGE } from "@/lib/notifications-data";
 import { notificationText } from "@/lib/notification-text";
 import { postNoticeText } from "@/lib/campaign-follow";
+import { loadPostNotices } from "@/lib/campaign-follow-data";
 import { LocalTime } from "@/components/LocalTime";
 import { markNotificationsRead } from "./actions";
 
@@ -16,7 +17,19 @@ export const metadata = { title: "Notifications · Turfcut" };
 export default async function NotificationsPage() {
   const session = await requireAuth();
   const viewer = session.role === "WORKER" ? "worker" : "org";
-  const items = await loadNotifications({ userId: session.userId, role: session.role, workerId: session.workerId ?? null, orgId: session.orgId ?? null });
+  const [hiring, posts] = await Promise.all([
+    loadNotifications({ userId: session.userId, role: session.role, workerId: session.workerId ?? null, orgId: session.orgId ?? null }),
+    // A worker's notices of followed campaigns' posts (S2.4), loaded by the social layer.
+    viewer === "worker" && session.workerId ? loadPostNotices(session.userId, NOTIFICATION_PAGE) : Promise.resolve([]),
+  ]);
+  // The newest page of both, as one list (each source is already its own newest page).
+  const items = [
+    ...hiring.map((n) => ({ id: n.id, createdAt: n.createdAt, readAt: n.readAt, t: n.engagement ? notificationText(n.kind, { ...n.engagement, wasOffer: n.engagement.events.length > 0 }, viewer) : null })),
+    ...posts.map((n) => ({ id: n.id, createdAt: n.createdAt, readAt: n.readAt, t: n.post ? postNoticeText(n.post) : null })),
+  ]
+    .filter((n): n is typeof n & { t: NonNullable<typeof n.t> } => !!n.t)
+    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime() || (a.id < b.id ? -1 : 1))
+    .slice(0, NOTIFICATION_PAGE);
   const unread = items.filter((n) => !n.readAt).length;
 
   return (
@@ -45,8 +58,7 @@ export default async function NotificationsPage() {
       ) : (
         <ul className="list-card">
           {items.map((n) => {
-            const t = n.post ? postNoticeText(n.post) : n.engagement ? notificationText(n.kind, { ...n.engagement, wasOffer: n.engagement.events.length > 0 }, viewer) : null;
-            if (!t) return null;
+            const t = n.t;
             return (
               <li key={n.id}>
                 <Link href={t.href} className="flex items-start gap-3 px-4 py-3 text-fg transition hover:bg-surface-2">

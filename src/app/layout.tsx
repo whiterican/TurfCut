@@ -17,7 +17,8 @@ import { getSiteUrl } from "@/lib/env";
 import { MESSAGES_HREF, navTabs, orgNav } from "@/lib/nav";
 import { db } from "@/lib/db";
 import { unreadTotal } from "@/lib/chat-data";
-import { unreadNotifications } from "@/lib/notifications-data";
+import { unreadNotifications, UNREAD_CAP } from "@/lib/notifications-data";
+import { unreadPostNotices } from "@/lib/campaign-follow-data";
 import "./globals.css";
 
 const dmSans = DM_Sans({
@@ -69,7 +70,9 @@ export default async function RootLayout({
     session
       ? unreadNotifications({ userId: session.userId, role: session.role, workerId: session.workerId ?? null, orgId: session.orgId ?? null }).catch(() => 0)
       : 0,
-  ]);
+    // A worker's unread notices of followed campaigns' posts (S2.4), counted by the social layer.
+    session?.role === "WORKER" && session.workerId ? unreadPostNotices(session.userId, UNREAD_CAP).catch(() => 0) : 0,
+  ]).then(([u, o, hiringNotices, postNotices]) => [u, o, Math.min(hiringNotices + postNotices, UNREAD_CAP)] as const);
   return (
     <html
       lang="en"

@@ -455,9 +455,13 @@ Chronological and follows only; nothing here is ever read by matching.
   per campaign (`noticeRecipients`, UTC days), never to a closed account.
   The notice quotes the start of the post in the campaign's words and links
   to it; a deleted post or a campaign gone private takes its notices off the
-  list and the bell. Who was notified is never visible to the campaign.
-  Migration: `prisma/s2-notices.sql` (a notice is about an engagement or a
-  post, checked in SQL). Email and push come later.
+  list and the bell (it comes back, still unread, if the campaign is made
+  public again). Turning notices off or unfollowing stops new ones; ones
+  already sent stay. Who was notified is never visible to the campaign.
+  The social layer sends, loads and counts these notices itself, so hiring
+  code never reads posts (`social-isolation.test.ts`). Migration:
+  `prisma/s2-notices.sql` (a notice is about an engagement or a post,
+  checked in SQL). Email and push come later.
 - **Reposts and replies** are deferred to S3.
 - **Never inferring politics, never feeding matching.** Follows and likes
   are never read by matching, scorecards, political fit, the job feed or

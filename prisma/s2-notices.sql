@@ -12,7 +12,9 @@
 --      the only kind about a post (checked below), so every existing row
 --      (all about an engagement) already fits.
 
--- The new enum value first, outside the transaction: the check below uses it.
+-- The new enum value first. The check below compares the kind as text, so it
+-- works whether this file runs statement by statement (psql -f) or as one
+-- block (the Supabase SQL editor), where the new value isn't committed yet.
 ALTER TYPE "public"."NotificationKind" ADD VALUE IF NOT EXISTS 'CAMPAIGN_POST';
 
 BEGIN;
@@ -29,7 +31,7 @@ END $$;
 DO $$ BEGIN
   ALTER TABLE "public"."Notification" ADD CONSTRAINT "Notification_subject" CHECK (
     ("engagementId" IS NULL) <> ("postId" IS NULL)
-    AND (("kind" = 'CAMPAIGN_POST') = ("postId" IS NOT NULL)));
+    AND (("kind"::text = 'CAMPAIGN_POST') = ("postId" IS NOT NULL)));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 CREATE INDEX IF NOT EXISTS "Notification_postId_idx" ON "public"."Notification"("postId");

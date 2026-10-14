@@ -1582,7 +1582,7 @@ CREATE TABLE "public"."Notification" (
     CONSTRAINT "Notification_postId_fkey" FOREIGN KEY ("postId") REFERENCES "public"."CampaignPost"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT "Notification_subject" CHECK (
       ("engagementId" IS NULL) <> ("postId" IS NULL)
-      AND (("kind" = 'CAMPAIGN_POST') = ("postId" IS NOT NULL)))
+      AND (("kind"::text = 'CAMPAIGN_POST') = ("postId" IS NOT NULL)))
 );
 CREATE INDEX "Notification_recipientId_readAt_createdAt_idx" ON "public"."Notification"("recipientId", "readAt", "createdAt");
 CREATE INDEX "Notification_engagementId_idx" ON "public"."Notification"("engagementId");

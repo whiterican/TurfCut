@@ -9,9 +9,8 @@ import { loadLatestPreference } from "@/lib/political-fit-data";
 type Tx = Prisma.TransactionClient;
 
 /**
- * In-app notices for hiring steps (C3.5) and for new posts of campaigns a
- * worker follows with notices on (S2.4). Each row stores only who it's for,
- * what kind and which engagement or post; the words are drawn when it's
+ * In-app notices for hiring steps (C3.5). Each row stores only who it's for,
+ * what kind of step and which engagement; the words are drawn when it's
  * shown, from what the recipient may see then. Whether someone read a notice
  * is theirs alone: nothing shows it to anyone else (no read receipts).
  */
@@ -94,12 +93,9 @@ type Viewer = { userId: string; role: Role; workerId: string | null; orgId: stri
  * (staff who left or moved to another role see none of its applicants).
  */
 function scopeFor(v: Viewer): Prisma.NotificationWhereInput | null {
-  if (v.role === "WORKER") {
-    if (!v.workerId) return null;
-    // A post notice shows while its post is up and its campaign public;
-    // a deleted post or a campaign gone private takes its notices with it.
-    return { OR: [{ engagement: { workerId: v.workerId } }, { kind: "CAMPAIGN_POST", post: { deletedAt: null, profile: { publishedAt: { not: null }, org: { approved: true } } } }] };
-  }
+  // Hiring notices only: notices about a followed campaign's posts are the
+  // social layer's to load and count (they never pass through hiring code).
+  if (v.role === "WORKER") return v.workerId ? { engagement: { workerId: v.workerId } } : null;
   return v.orgId && HIRING_ROLES.includes(v.role) ? { engagement: { job: { orgId: v.orgId } } } : null;
 }
 
@@ -114,7 +110,6 @@ const SELECT = {
       events: { where: { type: "OFFERED" as const }, take: 1, select: { id: true } },
     },
   },
-  post: { select: { id: true, body: true, profile: { select: { handle: true, displayName: true } } } },
 } satisfies Prisma.NotificationSelect;
 
 /**
@@ -132,7 +127,6 @@ function visible<T extends { kind: NotificationKind; engagement: { status: strin
   rows: T[]
 ): T[] {
   if (v.role !== "WORKER" || !v.workerId || !rows.length) return rows;
-  // Post notices are about campaigns the worker chose to hear from: never hidden here.
   const invitation = (r: T): r is T & { engagement: NonNullable<T["engagement"]> } =>
     !!r.engagement &&
     (r.kind === "INVITATION_RECEIVED" || r.kind === "INVITATION_WITHDRAWN" || (r.kind === "JOB_CLOSED" && r.engagement.status === "WITHDRAWN") || (r.kind === "JOB_CHANGED" && r.engagement.status === "INVITED"));

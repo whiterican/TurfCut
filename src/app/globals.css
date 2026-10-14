@@ -952,7 +952,7 @@ summary.list-none::-webkit-details-marker {
     z-index: 45;
   }
   /* Focused or linked-to content never lands under the sticky header. */
-  html:has(body:not(:has(.thread-top))) {
+  html:not(:has(.thread-top)) {
     scroll-padding-top: 5rem;
   }
   /* The page melts into the glass at the bottom edge: content behind the
@@ -1021,7 +1021,7 @@ summary.list-none::-webkit-details-marker {
 @media (prefers-reduced-transparency: reduce) {
   html { --glass-bg: var(--surface); --glass-filter: none; }
   .tabbar { background: var(--surface); }
-  body::after { display: none; }
+  body:has(.tabbar):not(:has(.tabbar[data-tucked], .composer-input:focus, .turf-map))::after { display: none; }
 }
 @media (forced-colors: active) {
   .tabbar, .icon-btn, .site-header { border-color: CanvasText; }

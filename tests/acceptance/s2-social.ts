@@ -5,6 +5,8 @@ import { campaignsOn, feedCampaigns, followState, likeCounts, likedPostIds, load
 import { FEED_PAGE_SIZE } from "@/lib/campaign-follow";
 import { loadFeed } from "@/lib/jobs-data";
 import { loadScorecard } from "@/lib/scorecard-data";
+import { loadNotifications, unreadNotifications } from "@/lib/notifications-data";
+import { postNoticeText } from "@/lib/campaign-follow";
 
 const ORG = "00000000-0000-0000-0000-000000000001";
 const OWNER = "00000000-0000-0000-0000-0000000000aa";
@@ -100,6 +102,41 @@ const refused = (p: Promise<unknown>) => p.then(() => "allowed", (e: unknown) =>
   const like = await p.postLike.findFirstOrThrow({ where: { workerId: W1, postId: liked, removedAt: null } });
   check("the database refuses changing or deleting a like", /append-only/.test(await refused(p.postLike.update({ where: { id: like.id }, data: { workerId: W2 } }))) && /append-only/.test(await refused(p.postLike.delete({ where: { id: like.id } }))));
 
+  // --- Notices of new posts (S2.4) ---
+  const pw1 = (await p.worker.findUniqueOrThrow({ where: { id: W1 }, select: { profileId: true } })).profileId;
+  const pw2 = (await p.worker.findUniqueOrThrow({ where: { id: W2 }, select: { profileId: true } })).profileId;
+  await setFollow(W1, followed, { follow: true, notify: true });
+  await setFollow(W2, followed, { follow: true });
+  const noticed = (pid: string) => p.notification.count({ where: { recipientId: pid, kind: "CAMPAIGN_POST" } });
+  const at = new Date(); // one moment for every post here, so the day's cap can't straddle midnight
+  const n0 = await noticed(pw1);
+  const first = await createPost(B, followed, { body: `A new canvass weekend starts Saturday. ${"Details ".repeat(30)}`, jobId: null }, at);
+  if (!first.ok) throw new Error(first.reason);
+  check("a post reaches a follower who asked for notices", (await noticed(pw1)) === n0 + 1);
+  check("…but not one who follows without notices", (await noticed(pw2)) === 0);
+  const more: string[] = [];
+  for (let i = 0; i < 3; i++) { const r = await createPost(B, followed, { body: `Update ${i + 1}`, jobId: null }, at); if (r.ok) more.push(r.id); }
+  check("at most 3 notices a day from one campaign", (await noticed(pw1)) === n0 + 3);
+  await createPost(A, hiring, { body: "From the campaign whose job W1 is on", jobId: null }, at);
+  check("working a campaign's job doesn't send its posts as notices (only asking does)", (await noticed(pw1)) === n0 + 3);
+  const viewer = { userId: pw1, role: "WORKER" as const, workerId: W1, orgId: null };
+  const listed = (await loadNotifications(viewer)).filter((n) => n.post);
+  const t = listed[0]?.post ? postNoticeText(listed[0].post) : null;
+  check("the worker's notices list them, in the campaign's words, linked to the post", listed.length === 3 && !!t && t.href === `/c/other_campaign/p/${listed[0].post!.id}` && t.text.startsWith("other_campaign posted: “") && t.text.length < 140, t);
+  const unread0 = await unreadNotifications(viewer);
+  check("…and count on the bell", unread0 >= 3);
+  await deletePost(B, first.id);
+  check("a deleted post takes its notice off the list and the bell", (await loadNotifications(viewer)).filter((n) => n.post).length === 2 && (await unreadNotifications(viewer)) === unread0 - 1);
+  await setCampaignPublished(B, followed, false);
+  check("a campaign gone private hides its notices", (await loadNotifications(viewer)).filter((n) => n.post).length === 0);
+  await setCampaignPublished(B, followed, true);
+  check("…and they come back when it's public again", (await loadNotifications(viewer)).filter((n) => n.post).length === 2);
+  const staff = { userId: OWNER2, role: "OWNER" as const, workerId: null, orgId: ORG2 };
+  check("the campaign's staff never see who was notified", !(await loadNotifications(staff)).some((n) => n.post));
+  check("the database refuses a post notice without its post, or a hiring notice about a post",
+    /Notification_subject/.test(await refused(p.notification.create({ data: { recipientId: pw1, kind: "CAMPAIGN_POST" } }))) &&
+    /Notification_subject/.test(await refused(p.notification.create({ data: { recipientId: pw1, kind: "OFFER_RECEIVED", postId: more[0] } }))));
+
   // --- Privacy: nothing readable through the Data API ---
   const readAs = (role: "anon" | "authenticated", sub: string | null, sql: string) =>
     refused(p.$transaction(async (tx) => {
@@ -107,11 +144,12 @@ const refused = (p: Promise<unknown>) => p.then(() => "allowed", (e: unknown) =>
       if (sub) await tx.$executeRawUnsafe(`SELECT set_config('request.jwt.claim.sub', '${sub}', true)`);
       return tx.$queryRawUnsafe(sql);
     }));
-  check("nobody reads follows or likes through the Data API, not even the signed-in worker or the campaign's owner",
+  check("nobody reads follows, likes or notices through the Data API, not even the signed-in worker or the campaign's owner",
     /permission denied/.test(await readAs("anon", null, `SELECT "workerId" FROM "CampaignFollow"`)) &&
     /permission denied/.test(await readAs("authenticated", W1, `SELECT count(*) FROM "CampaignFollow"`)) &&
     /permission denied/.test(await readAs("authenticated", OWNER, `SELECT "workerId" FROM "PostLike"`)) &&
-    /permission denied/.test(await readAs("authenticated", W1, `INSERT INTO "PostLike"("id","workerId","postId") VALUES (gen_random_uuid(), '${W1}', '${liked}')`)));
+    /permission denied/.test(await readAs("authenticated", W1, `INSERT INTO "PostLike"("id","workerId","postId") VALUES (gen_random_uuid(), '${W1}', '${liked}')`)) &&
+    /permission denied/.test(await readAs("authenticated", OWNER2, `SELECT "recipientId" FROM "Notification"`)));
 
   // --- Social activity is invisible to matching ---
   const after = await matchingView();

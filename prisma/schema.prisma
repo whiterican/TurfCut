@@ -61,17 +61,17 @@ model Profile {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
-  hiredEngagements   Engagement[]              @relation("HiredBy")
-  notifications      Notification[]
-  chatParticipations ConversationParticipant[]
-  sentMessages       Message[]
-  blocksMade         ProfileBlock[]            @relation("Blocker")
-  blocksReceived     ProfileBlock[]            @relation("Blocked")
-  campaignPosts         CampaignPost[]         @relation("CampaignPostAuthor")
-  deletedCampaignPosts  CampaignPost[]         @relation("CampaignPostDeleter")
+  hiredEngagements      Engagement[]              @relation("HiredBy")
+  notifications         Notification[]
+  chatParticipations    ConversationParticipant[]
+  sentMessages          Message[]
+  blocksMade            ProfileBlock[]            @relation("Blocker")
+  blocksReceived        ProfileBlock[]            @relation("Blocked")
+  campaignPosts         CampaignPost[]            @relation("CampaignPostAuthor")
+  deletedCampaignPosts  CampaignPost[]            @relation("CampaignPostDeleter")
   campaignPostRevisions CampaignPostRevision[]
-  talkingPointFacts     TalkingPointFact[]   @relation("TalkingPointFactAuthor")
-  campaignResources     CampaignResource[]   @relation("CampaignResourceAuthor")
+  talkingPointFacts     TalkingPointFact[]        @relation("TalkingPointFactAuthor")
+  campaignResources     CampaignResource[]        @relation("CampaignResourceAuthor")
 
   @@index([orgId])
 }
@@ -228,9 +228,9 @@ model PoliticalPreference {
 // ---------------------------------------------------------------------------
 
 model Organization {
-  id                       String           @id @default(uuid()) @db.Uuid
+  id                       String            @id @default(uuid()) @db.Uuid
   name                     String
-  approved                 Boolean          @default(false) // manual approval for the private pilot
+  approved                 Boolean           @default(false) // manual approval for the private pilot
   // Publish gate (spec p.15): no job publishes until both are recorded.
   contractorTermsSignedAt  DateTime?
   classificationReviewedAt DateTime?
@@ -244,8 +244,8 @@ model Organization {
   invites                  OrgInvite[]
   mutedBy                  OrgMute[]
   campaignProfiles         CampaignProfile[]
-  createdAt                DateTime         @default(now())
-  updatedAt                DateTime         @updatedAt
+  createdAt                DateTime          @default(now())
+  updatedAt                DateTime          @updatedAt
 }
 
 /// C1: an owner's invitation for someone to join the organization in a role.
@@ -349,13 +349,13 @@ model Job {
   createdAt               DateTime            @default(now())
   updatedAt               DateTime            @updatedAt
 
-  engagements      Engagement[]
-  conversationJobs ConversationJob[]
-  changes          JobChange[]
+  engagements       Engagement[]
+  conversationJobs  ConversationJob[]
+  changes           JobChange[]
   // S1: the campaign this job works for (its profile's pinned talking points brief the job's shifts).
-  campaignProfileId String?          @db.Uuid
-  campaignProfile   CampaignProfile? @relation(fields: [campaignProfileId], references: [id], onDelete: Restrict)
-  embeddedInPosts   CampaignPost[]     @relation("CampaignPostJobEmbed")
+  campaignProfileId String?           @db.Uuid
+  campaignProfile   CampaignProfile?  @relation(fields: [campaignProfileId], references: [id], onDelete: Restrict)
+  embeddedInPosts   CampaignPost[]    @relation("CampaignPostJobEmbed")
 
   @@index([orgId, status])
   @@index([jurisdictionId])
@@ -1011,6 +1011,7 @@ enum NotificationKind {
   APPLICATION_WITHDRAWN
   JOB_CLOSED
   JOB_CHANGED // C4.3: a published job's terms changed
+  CAMPAIGN_POST // S2.4: a campaign the worker follows (with notices on) posted
 }
 
 /// C3.5: an in-app notice for one person about one engagement. readAt is the
@@ -1020,13 +1021,18 @@ model Notification {
   recipientId  String           @db.Uuid
   recipient    Profile          @relation(fields: [recipientId], references: [id], onDelete: Restrict)
   kind         NotificationKind
-  engagementId String           @db.Uuid
-  engagement   Engagement       @relation(fields: [engagementId], references: [id], onDelete: Restrict)
+  /// What it's about: exactly one of an engagement (hiring steps) or a
+  /// campaign post (CAMPAIGN_POST); checked in SQL (prisma/s2-notices.sql).
+  engagementId String?          @db.Uuid
+  engagement   Engagement?      @relation(fields: [engagementId], references: [id], onDelete: Restrict)
+  postId       String?          @db.Uuid
+  post         CampaignPost?    @relation(fields: [postId], references: [id], onDelete: Restrict)
   createdAt    DateTime         @default(now())
   readAt       DateTime?
 
   @@index([recipientId, readAt, createdAt])
   @@index([engagementId])
+  @@index([postId])
 }
 
 /// A photo of a Colorado circulator training certificate, added by the
@@ -1091,17 +1097,17 @@ model JobChange {
 /// infers politics from it. Public once published, and only while the
 /// organization is approved by Turfcut.
 model CampaignProfile {
-  id          String         @id @default(uuid()) @db.Uuid
-  orgId       String         @db.Uuid
-  org         Organization   @relation(fields: [orgId], references: [id], onDelete: Restrict)
-  handle      String         @unique // lowercase a-z 0-9 _, 3-30 (checked in SQL and code)
+  id          String             @id @default(uuid()) @db.Uuid
+  orgId       String             @db.Uuid
+  org         Organization       @relation(fields: [orgId], references: [id], onDelete: Restrict)
+  handle      String             @unique // lowercase a-z 0-9 _, 3-30 (checked in SQL and code)
   displayName String
-  bio         String         @default("")
+  bio         String             @default("")
   avatarKey   String?
   headerKey   String?
   publishedAt DateTime? // null = draft, not public
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
   posts       CampaignPost[]
   jobs        Job[]
   followers   CampaignFollow[]
@@ -1132,6 +1138,7 @@ model CampaignPost {
   revisions   CampaignPostRevision[]
   likes       PostLike[]
   facts       TalkingPointFact[]
+  notices     Notification[]
 
   @@index([profileId, createdAt])
   @@index([jobId])

@@ -1564,22 +1564,29 @@ REVOKE ALL ON "public"."OrgMute" FROM anon, authenticated;
 DO $$ BEGIN
   CREATE TYPE "public"."NotificationKind" AS ENUM (
     'APPLICATION_RECEIVED', 'CLAIM_RECEIVED', 'INVITATION_RECEIVED', 'INVITATION_ACCEPTED', 'INVITATION_DECLINED',
-    'INVITATION_WITHDRAWN', 'OFFER_RECEIVED', 'OFFER_ACCEPTED', 'OFFER_DECLINED', 'NOT_SELECTED', 'APPLICATION_WITHDRAWN', 'JOB_CLOSED', 'JOB_CHANGED');
+    'INVITATION_WITHDRAWN', 'OFFER_RECEIVED', 'OFFER_ACCEPTED', 'OFFER_DECLINED', 'NOT_SELECTED', 'APPLICATION_WITHDRAWN', 'JOB_CLOSED', 'JOB_CHANGED', 'CAMPAIGN_POST');
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 CREATE TABLE "public"."Notification" (
     "id" UUID NOT NULL,
     "recipientId" UUID NOT NULL,
     "kind" "public"."NotificationKind" NOT NULL,
-    "engagementId" UUID NOT NULL,
+    "engagementId" UUID,
+    -- S2.4 (prisma/s2-notices.sql): a notice is about an engagement or a campaign post.
+    "postId" UUID,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "readAt" TIMESTAMP(3),
     CONSTRAINT "Notification_pkey" PRIMARY KEY ("id"),
     CONSTRAINT "Notification_recipientId_fkey" FOREIGN KEY ("recipientId") REFERENCES "public"."Profile"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
-    CONSTRAINT "Notification_engagementId_fkey" FOREIGN KEY ("engagementId") REFERENCES "public"."Engagement"("id") ON DELETE RESTRICT ON UPDATE CASCADE
+    CONSTRAINT "Notification_engagementId_fkey" FOREIGN KEY ("engagementId") REFERENCES "public"."Engagement"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT "Notification_postId_fkey" FOREIGN KEY ("postId") REFERENCES "public"."CampaignPost"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT "Notification_subject" CHECK (
+      ("engagementId" IS NULL) <> ("postId" IS NULL)
+      AND (("kind" = 'CAMPAIGN_POST') = ("postId" IS NOT NULL)))
 );
 CREATE INDEX "Notification_recipientId_readAt_createdAt_idx" ON "public"."Notification"("recipientId", "readAt", "createdAt");
 CREATE INDEX "Notification_engagementId_idx" ON "public"."Notification"("engagementId");
+CREATE INDEX "Notification_postId_idx" ON "public"."Notification"("postId");
 ALTER TABLE "public"."Notification" ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON "public"."Notification" FROM anon, authenticated;
 

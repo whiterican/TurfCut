@@ -231,11 +231,16 @@ export async function createPost(actor: Actor, campaignId: string, input: PostIn
   return db().$transaction(async (tx) => {
     const c = await tx.campaignProfile.findFirst({ where: { id: campaignId, orgId: actor.orgId }, select: { id: true } });
     if (!c) return { ok: false as const, reason: "Campaign not found." };
+    // The campaign's lock: notices of two posts at once can't both take the day's last slot (S2.4).
+    await lock(tx, `campaign:${c.id}`);
     const bad = await checkEmbed(tx, actor.orgId, input.jobId);
     if (bad) return { ok: false as const, reason: bad, errors: { jobId: bad } };
     const p = await tx.campaignPost.create({ data: { profileId: c.id, authorId: actor.profileId, body: input.body, jobId: input.jobId, createdAt: now }, select: { id: true } });
     await tx.campaignPostRevision.create({ data: { postId: p.id, body: input.body, jobId: input.jobId, editorId: actor.profileId, createdAt: now } });
     await tx.auditEvent.create({ data: { actorId: actor.profileId, action: "campaign.post_created", entityType: "CampaignPost", entityId: p.id, metadata: { campaignId: c.id, jobId: input.jobId }, createdAt: now } });
+    // Loaded here: the follow module imports this one (no import cycle).
+    const { notifyCampaignPost } = await import("@/lib/campaign-follow-data");
+    await notifyCampaignPost(tx, c.id, p.id, now);
     return { ok: true as const, id: p.id };
   });
 }

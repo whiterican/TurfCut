@@ -450,12 +450,14 @@ Chronological and follows only; nothing here is ever read by matching.
   the worker is on now) and a link to the feed that says how many posts
   are newer than the last time this device opened it (a cookie on the
   device, not a record).
-- **Notices of new posts.** The rule is in place (`noticeRecipients`:
-  followers who asked, at most 3 a day per campaign) and the per-follow
-  setting is stored. Delivery as in-app notifications needs the
-  Notification model from C3.5, which isn't on `master` yet; it lands
-  once C3 merges. Until then the "new in your feed" count on Today is
-  the notice.
+- **Notices of new posts (S2.4).** A post on a public campaign sends an
+  in-app notice to each follower who switched notices on, at most 3 a day
+  per campaign (`noticeRecipients`, UTC days), never to a closed account.
+  The notice quotes the start of the post in the campaign's words and links
+  to it; a deleted post or a campaign gone private takes its notices off the
+  list and the bell. Who was notified is never visible to the campaign.
+  Migration: `prisma/s2-notices.sql` (a notice is about an engagement or a
+  post, checked in SQL). Email and push come later.
 - **Reposts and replies** are deferred to S3.
 - **Never inferring politics, never feeding matching.** Follows and likes
   are never read by matching, scorecards, political fit, the job feed or

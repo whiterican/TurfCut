@@ -9,8 +9,9 @@ import { loadLatestPreference } from "@/lib/political-fit-data";
 type Tx = Prisma.TransactionClient;
 
 /**
- * In-app notices for hiring steps (C3.5). Each row stores only who it's for,
- * what kind of step and which engagement; the words are drawn when it's
+ * In-app notices for hiring steps (C3.5) and for new posts of campaigns a
+ * worker follows with notices on (S2.4). Each row stores only who it's for,
+ * what kind and which engagement or post; the words are drawn when it's
  * shown, from what the recipient may see then. Whether someone read a notice
  * is theirs alone: nothing shows it to anyone else (no read receipts).
  */
@@ -92,9 +93,14 @@ type Viewer = { userId: string; role: Role; workerId: string | null; orgId: stri
  * — for hiring staff only — the jobs of the organization they belong to now
  * (staff who left or moved to another role see none of its applicants).
  */
-function scopeFor(v: Viewer): Prisma.EngagementWhereInput | null {
-  if (v.role === "WORKER") return v.workerId ? { workerId: v.workerId } : null;
-  return v.orgId && HIRING_ROLES.includes(v.role) ? { job: { orgId: v.orgId } } : null;
+function scopeFor(v: Viewer): Prisma.NotificationWhereInput | null {
+  if (v.role === "WORKER") {
+    if (!v.workerId) return null;
+    // A post notice shows while its post is up and its campaign public;
+    // a deleted post or a campaign gone private takes its notices with it.
+    return { OR: [{ engagement: { workerId: v.workerId } }, { kind: "CAMPAIGN_POST", post: { deletedAt: null, profile: { publishedAt: { not: null }, org: { approved: true } } } }] };
+  }
+  return v.orgId && HIRING_ROLES.includes(v.role) ? { engagement: { job: { orgId: v.orgId } } } : null;
 }
 
 const SELECT = {
@@ -108,6 +114,7 @@ const SELECT = {
       events: { where: { type: "OFFERED" as const }, take: 1, select: { id: true } },
     },
   },
+  post: { select: { id: true, body: true, profile: { select: { handle: true, displayName: true } } } },
 } satisfies Prisma.NotificationSelect;
 
 /**
@@ -119,14 +126,16 @@ const SELECT = {
 type Pref = ReturnType<typeof effectivePreference>;
 const prefFor = async (v: Viewer): Promise<Pref> => (v.role === "WORKER" && v.workerId ? effectivePreference(await loadLatestPreference(v.workerId)) : null);
 
-function visible<T extends { kind: NotificationKind; engagement: { status: string; job: { campaignDisclosure: unknown; measureIds: string[]; org: { name: string } } } }>(
+function visible<T extends { kind: NotificationKind; engagement: { status: string; job: { campaignDisclosure: unknown; measureIds: string[]; org: { name: string } } } | null }>(
   v: Viewer,
   pref: Pref,
   rows: T[]
 ): T[] {
   if (v.role !== "WORKER" || !v.workerId || !rows.length) return rows;
-  const invitation = (r: T) =>
-    r.kind === "INVITATION_RECEIVED" || r.kind === "INVITATION_WITHDRAWN" || (r.kind === "JOB_CLOSED" && r.engagement.status === "WITHDRAWN") || (r.kind === "JOB_CHANGED" && r.engagement.status === "INVITED");
+  // Post notices are about campaigns the worker chose to hear from: never hidden here.
+  const invitation = (r: T): r is T & { engagement: NonNullable<T["engagement"]> } =>
+    !!r.engagement &&
+    (r.kind === "INVITATION_RECEIVED" || r.kind === "INVITATION_WITHDRAWN" || (r.kind === "JOB_CLOSED" && r.engagement.status === "WITHDRAWN") || (r.kind === "JOB_CHANGED" && r.engagement.status === "INVITED"));
   return rows.filter(
     (r) => !invitation(r) || !exclusionReasons(pref, { disclosure: readDisclosure(r.engagement.job.campaignDisclosure), orgName: r.engagement.job.org.name, measureIds: r.engagement.job.measureIds }).length
   );
@@ -141,12 +150,12 @@ export async function loadNotifications(v: Viewer) {
   const scope = scopeFor(v);
   if (!scope) return [];
   const pref = await prefFor(v);
-  const where = { recipientId: v.userId, engagement: scope };
+  const where: Prisma.NotificationWhereInput = { AND: [{ recipientId: v.userId }, scope] };
   const out: Array<Awaited<ReturnType<typeof page>>[number]> = [];
   // Keyset pages (createdAt, then id): a notice arriving meanwhile can't shift a row onto the next page.
   const page = (after: { createdAt: Date; id: string } | null) =>
     db().notification.findMany({
-      where: after ? { ...where, OR: [{ createdAt: { lt: after.createdAt } }, { createdAt: after.createdAt, id: { gt: after.id } }] } : where,
+      where: after ? { AND: [where, { OR: [{ createdAt: { lt: after.createdAt } }, { createdAt: after.createdAt, id: { gt: after.id } }] }] } : where,
       select: SELECT,
       orderBy: [{ createdAt: "desc" }, { id: "asc" }],
       take: NOTIFICATION_PAGE,
@@ -171,7 +180,7 @@ const COUNT_SELECT = {
 export async function unreadNotifications(v: Viewer): Promise<number> {
   const scope = scopeFor(v);
   if (!scope) return 0;
-  const where = { recipientId: v.userId, readAt: null, engagement: scope };
+  const where: Prisma.NotificationWhereInput = { AND: [{ recipientId: v.userId, readAt: null }, scope] };
   // Staff notices are never hidden, so a capped count is enough.
   if (v.role !== "WORKER") return db().notification.count({ where, take: UNREAD_CAP });
   // A worker's hidden ones never get marked read, so count past them, a keyset page at a time.
@@ -180,7 +189,7 @@ export async function unreadNotifications(v: Viewer): Promise<number> {
   let after: { createdAt: Date; id: string } | null = null;
   while (n < UNREAD_CAP) {
     const rows: Array<Prisma.NotificationGetPayload<{ select: typeof COUNT_SELECT & { id: true; createdAt: true } }>> = await db().notification.findMany({
-      where: after ? { ...where, OR: [{ createdAt: { lt: after.createdAt } }, { createdAt: after.createdAt, id: { gt: after.id } }] } : where,
+      where: after ? { AND: [where, { OR: [{ createdAt: { lt: after.createdAt } }, { createdAt: after.createdAt, id: { gt: after.id } }] }] } : where,
       select: { ...COUNT_SELECT, id: true, createdAt: true },
       orderBy: [{ createdAt: "desc" }, { id: "asc" }],
       take: UNREAD_CAP,

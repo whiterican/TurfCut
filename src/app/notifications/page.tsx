@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireAuth } from "@/lib/auth";
 import { loadNotifications } from "@/lib/notifications-data";
 import { notificationText } from "@/lib/notification-text";
+import { postNoticeText } from "@/lib/campaign-follow";
 import { LocalTime } from "@/components/LocalTime";
 import { markNotificationsRead } from "./actions";
 
@@ -24,7 +25,9 @@ export default async function NotificationsPage() {
         <div className="space-y-1">
           <p className="eyebrow">Updates</p>
           <h1 className="page-title">Notifications</h1>
-          <p className="text-muted-sm">Hiring steps that concern you. Nobody is told whether you read them.</p>
+          <p className="text-muted-sm">
+            {viewer === "worker" ? "Hiring steps that concern you, and new posts from campaigns you asked to hear from." : "Hiring steps that concern you."} Nobody is told whether you read them.
+          </p>
         </div>
         {unread > 0 && (
           <form action={markNotificationsRead}>
@@ -37,12 +40,13 @@ export default async function NotificationsPage() {
       {items.length === 0 ? (
         <div className="empty-state">
           <p className="empty-state-title">Nothing yet</p>
-          <p className="empty-state-body">Offers, invitations and answers appear here.</p>
+          <p className="empty-state-body">{viewer === "worker" ? "Offers, invitations, answers and posts from campaigns you get notices from appear here." : "Applications, claims and answers appear here."}</p>
         </div>
       ) : (
         <ul className="list-card">
           {items.map((n) => {
-            const t = notificationText(n.kind, { ...n.engagement, wasOffer: n.engagement.events.length > 0 }, viewer);
+            const t = n.post ? postNoticeText(n.post) : n.engagement ? notificationText(n.kind, { ...n.engagement, wasOffer: n.engagement.events.length > 0 }, viewer) : null;
+            if (!t) return null;
             return (
               <li key={n.id}>
                 <Link href={t.href} className="flex items-start gap-3 px-4 py-3 text-fg transition hover:bg-surface-2">

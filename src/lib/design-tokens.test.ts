@@ -108,6 +108,11 @@ describe.each([
     expect(ratio(t.primary, t.bg)).toBeGreaterThan(ratio(t.secondary, t.bg));
   });
 
+  it("tab labels use the text colour the contrast check below assumes", () => {
+    expect(css).toMatch(/\.tab \{[^}]*?text-fg[^}]*\}/);
+    expect(css).not.toMatch(/\.tab \{[^}]*?text-muted[^}]*\}/);
+  });
+
   it("the tab bar's text is AAA on its translucent surface, over anything it floats above", () => {
     // Read the bar's opacity from the stylesheet, so lowering it is caught here.
     const m = css.match(/\.tabbar \{[^}]*?background: color-mix\(in srgb, var\(--surface\) (\d+)%, transparent\)/);
@@ -116,8 +121,7 @@ describe.each([
     // Floating, it can sit over photos and the map too: black and white are the worst cases.
     for (const under of [...SURFACES.map((s) => t[s]), "#000000", "#ffffff"]) {
       const bar = mix(t.surface, alpha, under);
-      expect(ratio(t.muted, bar)).toBeGreaterThanOrEqual(7); // tab labels
-      expect(ratio(t.fg, bar)).toBeGreaterThanOrEqual(7); // current tab
+      expect(ratio(t.fg, bar)).toBeGreaterThanOrEqual(7); // tab labels (all in the text colour; the current tab is marked by its pill)
     }
   });
 

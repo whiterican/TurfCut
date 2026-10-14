@@ -122,6 +122,26 @@
   color-scheme: dark;
 }
 
+/* Liquid glass (tab bar, header, round buttons): a tint of the card colour
+   that blurs and brightens whatever scrolls under it, a hairline edge, a
+   soft top highlight, and a deeper pill for the tab you're on. 78% keeps
+   every label on it AAA over anything, black and white included
+   (design-tokens.test.ts). Kept out of the colour blocks above. */
+html {
+  --glass-bg: color-mix(in srgb, var(--surface) 78%, transparent);
+  --glass-border: rgb(24 30 26 / 0.1);
+  --glass-highlight: inset 0 1px 0 rgb(255 255 255 / 0.7);
+  --glass-active: rgb(24 30 26 / 0.11);
+  --glass-active-border: rgb(24 30 26 / 0.16);
+  --glass-filter: blur(24px) saturate(180%);
+}
+html.dark {
+  --glass-border: rgb(255 255 255 / 0.12);
+  --glass-highlight: inset 0 1px 0 rgb(255 255 255 / 0.08);
+  --glass-active: rgb(0 0 0 / 0.4);
+  --glass-active-border: rgb(255 255 255 / 0.16);
+}
+
 @theme inline {
   --color-bg: var(--bg);
   --color-surface: var(--surface);
@@ -601,31 +621,30 @@ body {
      tucked away while scrolling down (components/AppNav, lib/scroll-hide).
      Desktop (lg): links in the top bar or the rail instead. */
   .tabbar {
-    @apply fixed z-40 mx-auto max-w-md rounded-[1.75rem] border border-border px-1 lg:hidden;
+    @apply fixed z-40 mx-auto max-w-md rounded-full border p-1 lg:hidden;
     inset-inline: 0.75rem;
     bottom: calc(0.625rem + env(safe-area-inset-bottom));
-    background: color-mix(in srgb, var(--surface) 92%, transparent);
-    backdrop-filter: blur(16px);
-    box-shadow: 0 10px 30px -12px rgb(0 0 0 / 0.35), 0 2px 6px -2px rgb(0 0 0 / 0.12);
+    background: color-mix(in srgb, var(--surface) 78%, transparent);
+    border-color: var(--glass-border);
+    -webkit-backdrop-filter: var(--glass-filter);
+    backdrop-filter: var(--glass-filter);
+    box-shadow: var(--glass-highlight), 0 10px 30px -12px rgb(0 0 0 / 0.35), 0 2px 6px -2px rgb(0 0 0 / 0.12);
     transition: transform 280ms cubic-bezier(0.2, 0.8, 0.2, 1);
   }
   .tab {
-    @apply relative flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 pt-1.5 pb-1 text-xs font-semibold text-muted;
+    @apply relative flex min-h-[3.25rem] flex-1 flex-col items-center justify-center gap-0.5 rounded-full border border-transparent pt-1 pb-0.5 text-xs font-semibold text-fg transition;
   }
+  /* The tab you're on: a deeper glass pill around icon and label. */
   .tab[aria-current="page"] {
-    @apply text-fg;
+    @apply font-extrabold;
+    background: var(--glass-active);
+    border-color: var(--glass-active-border);
   }
   .tab-icon {
     @apply size-6 rounded-lg p-0.5 transition;
   }
   .tab[aria-current="page"] .tab-icon {
     color: var(--fg);
-    background: color-mix(in srgb, var(--fg) 10%, transparent);
-  }
-  .dark .tab[aria-current="page"] .tab-icon {
-    color: var(--accent);
-    background: color-mix(in srgb, var(--accent) 14%, transparent);
-    box-shadow: inset 0 0 0 2px var(--ring);
   }
   /* Icons inside buttons: sized to the text, never the hit target. */
   .btn-icon {
@@ -780,7 +799,12 @@ body {
   }
   /* Round icon buttons: back, ··· menu, attach. */
   .icon-btn {
-    @apply grid size-11 shrink-0 place-items-center rounded-full border border-border bg-transparent text-fg transition;
+    @apply grid size-11 shrink-0 place-items-center rounded-full border text-fg transition;
+    background: var(--glass-bg);
+    border-color: var(--glass-border);
+    -webkit-backdrop-filter: var(--glass-filter);
+    backdrop-filter: var(--glass-filter);
+    box-shadow: var(--glass-highlight);
   }
   .icon-btn:hover {
     border-color: var(--border-strong);
@@ -915,6 +939,98 @@ body {
 /* Summaries styled as buttons: no disclosure triangle (Safari draws its own). */
 summary.list-none::-webkit-details-marker {
   display: none;
+}
+
+/* ---- Liquid glass frame ------------------------------------------------- */
+/* The header is glass too. On phones it stays at the top while the page
+   scrolls under it (not in chat threads, which pin their own top bar). */
+.site-header {
+  background: var(--glass-bg);
+  border-color: var(--glass-border);
+  -webkit-backdrop-filter: var(--glass-filter);
+  backdrop-filter: var(--glass-filter);
+}
+@media (max-width: 63.99rem) {
+  body:not(:has(.thread-top)) .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 45;
+  }
+  /* Focused or linked-to content never lands under the sticky header. */
+  html:not(:has(.thread-top)) {
+    scroll-padding-top: 5rem;
+  }
+  /* The page melts into the glass at the bottom edge: content behind the
+     floating tab bar blurs more the closer it gets, instead of being cut off. */
+  body:has(.tabbar):not(:has(.tabbar[data-tucked], .composer-input:focus, .turf-map))::after {
+    content: "";
+    position: fixed;
+    inset-inline: 0;
+    bottom: 0;
+    height: calc(6.5rem + env(safe-area-inset-bottom));
+    z-index: 20;
+    pointer-events: none;
+    background: linear-gradient(to top, color-mix(in srgb, var(--bg) 70%, transparent), transparent);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    -webkit-mask-image: linear-gradient(to top, #000 35%, transparent);
+    mask-image: linear-gradient(to top, #000 35%, transparent);
+  }
+}
+/* Icon-only header buttons (notifications, preferences, theme) are round
+   glass bubbles, like the tab bar. */
+.site-header :is(a, button).btn-ghost:has(> svg):not(:has(> :not(svg, .unread-badge))),
+.site-header .glass-orb-phone {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  border-radius: 9999px;
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: var(--glass-filter);
+  backdrop-filter: var(--glass-filter);
+  box-shadow: var(--glass-highlight);
+}
+@media (hover: hover) {
+  .site-header :is(a, button).btn-ghost:has(> svg):not(:has(> :not(svg, .unread-badge))):hover,
+  .site-header .glass-orb-phone:hover {
+    background: color-mix(in srgb, var(--surface-2) 90%, transparent);
+    border-color: var(--border-strong);
+  }
+}
+/* The theme switch shows its label from sm up; below that it's a bubble too. */
+@media (min-width: 40rem) {
+  .site-header .glass-orb-phone {
+    display: inline-flex;
+    width: auto;
+    height: auto;
+    padding: 0.375rem 0.75rem;
+    border-radius: 0.5rem;
+    border: 0;
+    background: transparent;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    box-shadow: none;
+  }
+  .site-header .glass-orb-phone:hover {
+    background: var(--surface-2);
+  }
+}
+/* Solid where glass can't be drawn, or isn't wanted. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  html { --glass-bg: var(--surface); }
+  .tabbar { background: var(--surface); }
+}
+@media (prefers-reduced-transparency: reduce) {
+  html { --glass-bg: var(--surface); --glass-filter: none; }
+  .tabbar { background: var(--surface); }
+  body:has(.tabbar):not(:has(.tabbar[data-tucked], .composer-input:focus, .turf-map))::after { display: none; }
+}
+@media (forced-colors: active) {
+  .tabbar, .icon-btn, .site-header { border-color: CanvasText; }
+  .tab[aria-current="page"] { border-color: Highlight; }
 }
 
 /* ---- Page transitions (components/PageTransition.tsx) ------------------ */

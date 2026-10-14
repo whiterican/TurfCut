@@ -21,7 +21,7 @@ export function ThemeToggle() {
   }
 
   return (
-    <button type="button" onClick={toggle} className="btn-ghost btn-sm gap-1.5" title="Switch light / dark mode">
+    <button type="button" onClick={toggle} className="btn-ghost btn-sm glass-orb-phone gap-1.5" title="Switch light / dark mode">
       <Moon aria-hidden className="btn-icon dark:hidden" />
       <Sun aria-hidden className="btn-icon hidden dark:block" />
       <span className="sr-only sm:not-sr-only dark:hidden">Dark mode</span>

@@ -84,7 +84,7 @@ export default async function RootLayout({
       <body className="min-h-full flex flex-col">
         <ViewerKindProvider kind={!session ? "none" : session.role === "WORKER" ? "worker" : session.orgId ? "org" : "none"}>
         <UnreadProvider initial={unread} enabled={tabs.some((t) => t.href === MESSAGES_HREF)}>
-        <header className="site-header border-b border-border bg-surface/80 backdrop-blur">
+        <header className="site-header border-b">
           <div className={`mx-auto flex w-full ${isOrg ? "max-w-6xl" : "max-w-5xl"} items-center justify-between gap-3 px-4 py-3 sm:px-6`}>
             <Link href={!session ? "/" : isOrg ? "/desk" : "/dashboard"} className="flex items-center gap-2 text-xl font-bold tracking-[-0.04em] text-fg">
               {/* The founder's pin-check-nib mark: lime on eggplant, the same in both

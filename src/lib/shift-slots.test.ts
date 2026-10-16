@@ -24,6 +24,8 @@ describe("validateSlot", () => {
   it("caps notes", () => {
     const v = validateSlot({ ...base, notes: "x".repeat(501) }, job);
     expect(!v.ok && v.errors.notes).toBeTruthy();
+    const h = validateSlot({ ...base, notes: "meet\u202Ehere" }, job);
+    expect(!h.ok && h.errors.notes).toBeTruthy();
   });
 });
 
@@ -38,6 +40,7 @@ describe("claims", () => {
     expect(seatsLeft(slot({ taken: 5 }))).toBe(0);
     expect(slotState(slot({ status: "CLOSED" }), now)).toBe("closed");
     expect(slotState(slot(), new Date(base.startsAt))).toBe("started");
+    expect(slotState(slot({ status: "CLOSED" }), new Date(base.endsAt))).toBe("ended");
   });
   it("checks each refusal", () => {
     expect(claimCheck(slot(), false, now)).toEqual({ ok: true });
@@ -68,6 +71,24 @@ describe("slotFit", () => {
     expect(slotFit(s, a({ weekly: w, exceptions: [{ date: "2026-11-02", ranges: [] }] }), tz)).toBe("outside");
     expect(slotFit(s, a({ exceptions: [{ date: "2026-11-02", ranges: [{ from: "09:00", to: "15:00" }] }] }), tz)).toBe("fits");
   });
+  it("handles clocks falling back and springing forward", () => {
+    // Nov 1 2026: 05:30Z = 01:30 EDT, 06:10Z = 01:10 EST (40 minutes later).
+    const back = { startsAt: new Date("2026-11-01T05:30:00Z"), endsAt: new Date("2026-11-01T06:10:00Z") };
+    expect(slotFit(back, a({ weekly: { tue: [{ from: "09:00", to: "10:00" }] } }), tz)).toBe("outside");
+    expect(slotFit(back, a({ weekly: { sun: [{ from: "01:00", to: "03:00" }] } }), tz)).toBe("fits");
+    // Mar 8 2026: 06:30Z = 01:30 EST, 07:30Z = 03:30 EDT.
+    const fwd = { startsAt: new Date("2026-03-08T06:30:00Z"), endsAt: new Date("2026-03-08T07:30:00Z") };
+    expect(slotFit(fwd, a({ weekly: { sun: [{ from: "01:00", to: "04:00" }] } }), tz)).toBe("fits");
+  });
+  it("ends at local midnight, and copes with a bad time zone", () => {
+    const eve = { startsAt: new Date("2026-11-03T01:00:00Z"), endsAt: new Date("2026-11-03T05:00:00Z") }; // Mon 8pm – midnight
+    expect(slotFit(eve, a({ weekly: { mon: [{ from: "20:00", to: "24:00" }] } }), tz)).toBe("fits");
+    expect(slotFit(eve, a({ weekly: { mon: [{ from: "20:00", to: "24:00" }] } }), "Not/AZone")).toBe("unknown");
+  });
+  it("empty days and only past dates read as unknown", () => {
+    expect(slotFit(s, a({ weekly: { mon: [] } }), tz)).toBe("unknown");
+    expect(slotFit(s, a({ exceptions: [{ date: "2026-10-01", ranges: [] }] }), tz, "2026-11-01")).toBe("unknown");
+  });
   it("splits a slot across midnight", () => {
     const late = { startsAt: new Date("2026-11-03T03:00:00Z"), endsAt: new Date("2026-11-03T06:00:00Z") }; // Mon 10pm – Tue 1am
     expect(slotFit(late, a({ weekly: { mon: [{ from: "20:00", to: "24:00" }], tue: [{ from: "00:00", to: "02:00" }] } }), tz)).toBe("fits");
@@ -76,11 +97,12 @@ describe("slotFit", () => {
   it("sorts fits first, then by start", () => {
     const d = (h: number) => new Date(Date.UTC(2026, 10, 2, h));
     const out = sortForWorker([
-      { id: "a", startsAt: d(9), fit: "outside" as const },
-      { id: "b", startsAt: d(12), fit: "fits" as const },
-      { id: "c", startsAt: d(8), fit: "unknown" as const },
-      { id: "d", startsAt: d(10), fit: "fits" as const },
+      { id: "a", startsAt: d(9), fit: "outside" as const, state: "open" as const },
+      { id: "b", startsAt: d(12), fit: "fits" as const, state: "open" as const },
+      { id: "c", startsAt: d(8), fit: "unknown" as const, state: "open" as const },
+      { id: "d", startsAt: d(10), fit: "fits" as const, state: "open" as const },
+      { id: "e", startsAt: d(7), fit: "fits" as const, state: "full" as const },
     ]);
-    expect(out.map((x) => x.id)).toEqual(["d", "b", "c", "a"]);
+    expect(out.map((x) => x.id)).toEqual(["d", "b", "c", "a", "e"]);
   });
 });

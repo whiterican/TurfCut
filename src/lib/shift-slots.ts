@@ -10,6 +10,7 @@
 import { validateShift, type ShiftInput } from "@/lib/field-day";
 import type { Validated } from "@/lib/experience";
 import { DAYS, type Availability, type TimeRange } from "@/lib/availability";
+import { hasHiddenChars } from "@/lib/text-guard";
 
 export const HEADCOUNT_MAX = 200;
 export const SLOT_NOTES_MAX = 500;
@@ -28,6 +29,7 @@ export function validateSlot(raw: Record<string, unknown>, job: { startsAt: Date
   if (!/^\d+$/.test(hc) || headcount < 1 || headcount > HEADCOUNT_MAX) errors.headcount = `Seats must be a whole number from 1 to ${HEADCOUNT_MAX}.`;
   const notes = (typeof raw.notes === "string" ? raw.notes.trim() : "") || null;
   if (notes && notes.length > SLOT_NOTES_MAX) errors.notes = `Keep notes under ${SLOT_NOTES_MAX} characters.`;
+  else if (notes && hasHiddenChars(notes)) errors.notes = "Remove the hidden formatting characters from the notes.";
   if (!base.ok || Object.keys(errors).length) return { ok: false, errors };
   return { ok: true, value: { ...base.value, headcount, notes } };
 }
@@ -45,9 +47,10 @@ export interface SlotFacts {
 
 export const seatsLeft = (s: SlotFacts) => Math.max(0, s.headcount - s.taken);
 
-export type SlotState = "open" | "full" | "closed" | "started";
+export type SlotState = "open" | "full" | "closed" | "started" | "ended";
 
 export function slotState(s: SlotFacts, now: Date): SlotState {
+  if (now >= s.endsAt) return "ended";
   if (s.status === "CLOSED") return "closed";
   if (now >= s.startsAt) return "started";
   return seatsLeft(s) === 0 ? "full" : "open";
@@ -63,6 +66,8 @@ export function slotStateLabel(st: SlotState, left: number): { label: string; ba
       return { label: "Closed", badge: "badge-neutral" };
     case "started":
       return { label: "Started", badge: "badge-neutral" };
+    case "ended":
+      return { label: "Ended", badge: "badge-neutral" };
   }
 }
 
@@ -75,7 +80,7 @@ export function claimCheck(s: SlotFacts, holdsSeat: boolean, now: Date): { ok: t
   if (holdsSeat) return { ok: false, reason: "You already have a seat on this shift." };
   const st = slotState(s, now);
   if (st === "closed") return { ok: false, reason: "This shift is closed to new sign-ups." };
-  if (st === "started") return { ok: false, reason: "This shift has already started." };
+  if (st === "started" || st === "ended") return { ok: false, reason: "This shift has already started." };
   if (st === "full") return { ok: false, reason: "Every seat on this shift is taken." };
   return { ok: true };
 }
@@ -118,12 +123,22 @@ function rangesOn(a: Availability, date: string, day: (typeof DAYS)[number]): Ti
 /**
  * How a slot sits against the worker's availability, in the slot's local
  * time. A slot that crosses midnight is judged on its start day up to
- * midnight and its end day from midnight. Empty availability is "unknown".
+ * midnight and its end day from midnight. Availability with no usual week
+ * and no upcoming dates, or an unusable time zone, is "unknown". Expects
+ * validated availability (no overlapping ranges within a day).
  */
-export function slotFit(slot: { startsAt: Date; endsAt: Date }, a: Availability, timeZone: string): SlotFit {
-  if (!Object.keys(a.weekly).length && !a.exceptions.length) return "unknown";
-  const s = localParts(slot.startsAt, timeZone);
-  const e = localParts(slot.endsAt, timeZone);
+export function slotFit(slot: { startsAt: Date; endsAt: Date }, a: Availability, timeZone: string, today?: string): SlotFit {
+  const hasWeek = DAYS.some((d) => a.weekly[d]?.length);
+  if (!hasWeek && !a.exceptions.some((x) => !today || x.date >= today)) return "unknown";
+  let s: ReturnType<typeof localParts>, e: ReturnType<typeof localParts>;
+  try {
+    s = localParts(slot.startsAt, timeZone);
+    e = localParts(slot.endsAt, timeZone);
+  } catch {
+    return "unknown";
+  }
+  // The repeated hour when clocks fall back: wall-clock end before start.
+  if (s.date === e.date && e.min <= s.min) e = { ...e, min: Math.min(1440, s.min + Math.round((slot.endsAt.getTime() - slot.startsAt.getTime()) / 60_000)) };
   const pieces: Array<{ date: string; day: (typeof DAYS)[number]; from: number; to: number }> =
     s.date === e.date ? [{ date: s.date, day: s.day, from: s.min, to: e.min }] : [{ date: s.date, day: s.day, from: s.min, to: 1440 }, ...(e.min > 0 ? [{ date: e.date, day: e.day, from: 0, to: e.min }] : [])];
   let total = 0;
@@ -132,13 +147,14 @@ export function slotFit(slot: { startsAt: Date; endsAt: Date }, a: Availability,
     total += p.to - p.from;
     for (const r of rangesOn(a, p.date, p.day)) covered += Math.max(0, Math.min(p.to, minutes(r.to)) - Math.max(p.from, minutes(r.from)));
   }
-  if (covered >= total) return "fits";
+  if (total > 0 && covered >= total) return "fits";
   return covered > 0 ? "partly" : "outside";
 }
 
 const FIT_ORDER: Record<SlotFit, number> = { fits: 0, partly: 1, unknown: 1, outside: 2 };
+const STATE_ORDER: Record<SlotState, number> = { open: 0, full: 1, started: 2, closed: 2, ended: 3 };
 
-/** The worker's list: slots that fit first, then by start time. */
-export function sortForWorker<T extends { startsAt: Date; fit: SlotFit }>(slots: T[]): T[] {
-  return [...slots].sort((x, y) => FIT_ORDER[x.fit] - FIT_ORDER[y.fit] || x.startsAt.getTime() - y.startsAt.getTime());
+/** The worker's list: open slots first, then those that fit, then by start time. */
+export function sortForWorker<T extends { startsAt: Date; fit: SlotFit; state: SlotState }>(slots: T[]): T[] {
+  return [...slots].sort((x, y) => STATE_ORDER[x.state] - STATE_ORDER[y.state] || FIT_ORDER[x.fit] - FIT_ORDER[y.fit] || x.startsAt.getTime() - y.startsAt.getTime());
 }

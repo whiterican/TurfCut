@@ -5,7 +5,7 @@ import { ACCEPTED_STATUSES } from "@/lib/engagements";
 import { check, retryAfter, waitText } from "@/lib/rate-limit";
 import { decodeCursor, encodeCursor } from "@/lib/campaign-social";
 import { POST_SELECT, publicPost, type PublicPost } from "@/lib/campaign-social-data";
-import { FEED_PAGE_SIZE, feedSources, followChange, likeChange, type FeedReason } from "@/lib/campaign-follow";
+import { dayStart, FEED_PAGE_SIZE, feedSources, followChange, likeChange, noticeRecipients, type FeedReason } from "@/lib/campaign-follow";
 
 /**
  * Follows, the home feed and likes (S2), server side. Every read and write
@@ -218,4 +218,56 @@ export async function likeCounts(orgId: string, postIds: string[]): Promise<Map<
   if (ids.length === 0) return new Map();
   const rows = await db().postLike.groupBy({ by: ["postId"], where: { removedAt: null, postId: { in: ids }, post: { profile: { orgId } } }, _count: { _all: true } });
   return new Map(rows.map((r) => [r.postId, r._count._all]));
+}
+
+/**
+ * A campaign posted (S2.4): its followers who asked for notices hear about
+ * it, each at most MAX_NOTICES_PER_CAMPAIGN_PER_DAY times a day for that
+ * campaign (noticeRecipients). Only while the campaign is public, never to
+ * a closed account. Runs in the post's transaction, under the campaign's
+ * lock, so two posts at once can't both take the last slot of the day.
+ * Who follows stays private: nothing here is visible to the campaign.
+ */
+export async function notifyCampaignPost(tx: Prisma.TransactionClient, campaignId: string, postId: string, at: Date): Promise<number> {
+  const live = await tx.campaignProfile.count({ where: { id: campaignId, publishedAt: { not: null }, org: { approved: true } } });
+  if (!live) return 0;
+  const followers = await tx.campaignFollow.findMany({
+    where: { campaignId, revokedAt: null, notify: true, worker: { closedAt: null } },
+    select: { workerId: true, notify: true, worker: { select: { profileId: true } } },
+    orderBy: { createdAt: "asc" },
+  });
+  if (!followers.length) return 0;
+  const workerOf = new Map(followers.map((f) => [f.worker.profileId, f.workerId]));
+  const sent = await tx.notification.groupBy({
+    by: ["recipientId"],
+    where: { kind: "CAMPAIGN_POST", recipientId: { in: [...workerOf.keys()] }, createdAt: { gte: dayStart(at) }, post: { profileId: campaignId } },
+    _count: { _all: true },
+  });
+  const sentToday = new Map(sent.map((r) => [workerOf.get(r.recipientId)!, r._count._all]));
+  const profileOf = new Map(followers.map((f) => [f.workerId, f.worker.profileId]));
+  const rows = noticeRecipients(followers, sentToday).map((workerId) => ({ recipientId: profileOf.get(workerId)!, kind: "CAMPAIGN_POST" as const, postId, createdAt: at }));
+  if (rows.length) await tx.notification.createMany({ data: rows });
+  return rows.length;
+}
+
+/** A notice of a followed campaign's post shows while the post is up and the campaign public. */
+const LIVE_POST_NOTICE = { kind: "CAMPAIGN_POST", post: { deletedAt: null, profile: PUBLIC_CAMPAIGN } } satisfies Prisma.NotificationWhereInput;
+
+/**
+ * A worker's notices of followed campaigns' posts (S2.4), newest first, up
+ * to `take`: loaded here, by the social layer, so hiring code never reads
+ * posts. A deleted post or a campaign gone private takes its notices off.
+ */
+export function loadPostNotices(profileId: string, take: number) {
+  return db().notification.findMany({
+    where: { recipientId: profileId, ...LIVE_POST_NOTICE },
+    select: { id: true, createdAt: true, readAt: true, post: { select: { id: true, body: true, profile: { select: { handle: true, displayName: true } } } } },
+    orderBy: [{ createdAt: "desc" }, { id: "asc" }],
+    take,
+  });
+}
+
+/** Unread post notices for the header bell, up to `cap`. */
+export function unreadPostNotices(profileId: string, cap: number) {
+  return db().notification.count({ where: { recipientId: profileId, readAt: null, ...LIVE_POST_NOTICE }, take: cap });
 }

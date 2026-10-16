@@ -19,11 +19,13 @@ const ALLOWED = [
   /^src\/app\/shifts\/\[shiftId\]\/page\.tsx$/, // shows the brief's talking points (nothing it reads goes anywhere else)
   /^src\/app\/jobs\/\[jobId\]\/page\.tsx$/, // the campaign a job works for, with Follow (S2); the page ranks nothing
   /^src\/app\/dashboard\/page\.tsx$/, // Today's "Campaigns you're on" strip (S2.3); the page ranks nothing
+  /^src\/app\/notifications\/page\.tsx$/, // words of a followed campaign's post notice (S2.4); the page ranks nothing
+  /^src\/app\/layout\.tsx$/, // the bell's count of a worker's unread post notices (S2.4); ranks nothing
   /^src\/app\/zz-preview\//,
   /^src\/components\/campaign\//,
 ];
 /** The social layer's names: modules, models, Prisma accessors and relation fields. */
-const SOCIAL = /\b(campaign-(social|follow|kit)(-data)?|campaign-media|campaign-api|job-brief-data|components\/campaign|campaignProfiles?|campaignPosts?|campaignPostRevisions?|deletedCampaignPosts|embeddedInPosts|campaignProfileId|campaignFollows?|postLikes?|talkingPointFacts?|campaignResources?|Campaign(Post|Profile|PostRevision|Follow|Resource)|PostLike|TalkingPointFact)\b/;
+const SOCIAL = /\b(campaign-(social|follow|kit)(-data)?|campaign-media|campaign-api|job-brief-data|components\/campaign|campaignProfiles?|campaignPosts?|campaignPostRevisions?|deletedCampaignPosts|embeddedInPosts|campaignProfileId|campaignFollows?|postLikes?|talkingPointFacts?|campaignResources?|Campaign(Post|Profile|PostRevision|Follow|Resource)|PostLike|TalkingPointFact|CAMPAIGN_POST|notifyCampaignPost|postNoticeText|POST_NOTICE_EXCERPT)\b/;
 /** Code that ranks, matches, scores or explains: it must never reach the social layer. */
 const GUARDED = /^src\/(lib\/(.*match.*|scorecard.*|political-fit.*|priority|metrics|jobs-data|jobs|hiring|desk.*|experience.*)\.ts|components\/(FitSignals|ScorecardPanel|JobFeedCard|JobCard)\.tsx)$/;
 

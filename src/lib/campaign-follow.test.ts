@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dayStart, feedBadge, feedSeenAt, feedSources, followChange, likeChange, MAX_NOTICES_PER_CAMPAIGN_PER_DAY, noticeAllowed, noticeRecipients } from "./campaign-follow";
+import { POST_NOTICE_EXCERPT, postNoticeText, dayStart, feedBadge, feedSeenAt, feedSources, followChange, likeChange, MAX_NOTICES_PER_CAMPAIGN_PER_DAY, noticeAllowed, noticeRecipients } from "./campaign-follow";
 
 describe("feed sources", () => {
   it("are the followed and the hiring campaigns, following winning as the reason", () => {
@@ -81,5 +81,17 @@ describe("feed seen cookie", () => {
     expect(feedSeenAt("yesterday", now)).toBeNull();
     expect(feedSeenAt("2026-10-11T11:00:00Z", now)).toBeNull();
     expect(feedSeenAt("2026-10-11T13:00:00.000Z", now)).toBeNull(); // a clock ahead of ours would hide new posts
+  });
+});
+
+describe("a followed campaign's new post (S2.4)", () => {
+  const post = { id: "p1", body: "Canvass this Saturday  \n at the library.", profile: { handle: "yes_on_7", displayName: "Yes on 7" } };
+  it("names the campaign, quotes the post on one line, and links to it", () => {
+    expect(postNoticeText(post)).toEqual({ text: "Yes on 7 posted: “Canvass this Saturday at the library.”", href: "/c/yes_on_7/p/p1" });
+  });
+  it("cuts a long post short, at a word", () => {
+    const t = postNoticeText({ ...post, body: "word ".repeat(100) }).text;
+    expect(t.endsWith("…”")).toBe(true);
+    expect([...t].length).toBeLessThan(POST_NOTICE_EXCERPT + 30);
   });
 });

@@ -1,3 +1,4 @@
+import { excerpt } from "@/lib/campaign-social";
 /**
  * The social layer, worker side (S2): follows, the home feed and likes.
  * Pure rules — no database access.
@@ -95,4 +96,15 @@ export function likeChange(liked: boolean, want: boolean): "open" | "close" | "n
 /** The start of the current day in UTC: notice caps and "today" are counted on it (S2.4). */
 export function dayStart(now: Date): Date {
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+}
+
+/** Most of a post a notice quotes: enough to tell posts apart, short enough for a list. */
+export const POST_NOTICE_EXCERPT = 90;
+
+/**
+ * A followed campaign's new post (S2.4), in the campaign's own words: its
+ * name and the start of the post, leading to the post's page.
+ */
+export function postNoticeText(post: { id: string; body: string; profile: { handle: string; displayName: string } }): { text: string; href: string } {
+  return { text: `${post.profile.displayName} posted: “${excerpt(post.body, POST_NOTICE_EXCERPT)}”`, href: `/c/${post.profile.handle}/p/${post.id}` };
 }

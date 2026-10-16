@@ -488,15 +488,15 @@ const types = async (id: string) => (await loadEngagementEvents(id)).map((e) => 
   const oOld = idOf(await applyToJob(N(3), N(3), jo.id, new Date(Date.now() - 60 * HOUR)));
   await moveEngagement(oOld, "offer", org, {}, new Date(Date.now() - 50 * HOUR));
   await closeJob(jo.id, { profileId: OWNER, orgId: ORG });
-  const n2closed = (await loadNotifications({ userId: N(2), role: "WORKER", workerId: N(2), orgId: null })).find((n) => n.engagement.id === oLive && n.kind === "JOB_CLOSED");
-  check("a live offer ends with the job, and the worker is told it was an offer", (await p.engagement.findUniqueOrThrow({ where: { id: oLive } })).status === "DECLINED" && !!n2closed && n2closed.engagement.events.length > 0, n2closed);
+  const n2closed = (await loadNotifications({ userId: N(2), role: "WORKER", workerId: N(2), orgId: null })).find((n) => n.engagement!.id === oLive && n.kind === "JOB_CLOSED");
+  check("a live offer ends with the job, and the worker is told it was an offer", (await p.engagement.findUniqueOrThrow({ where: { id: oLive } })).status === "DECLINED" && !!n2closed && n2closed.engagement!.events.length > 0, n2closed);
   check("a lapsed offer ends quietly", !(await notices(oOld)).some((x) => x.kind === "JOB_CLOSED"));
   check("closing is audited", (await p.auditEvent.count({ where: { action: "job.closed", entityId: jn.id } })) === 1);
 
   const asWorker = (w: string) => ({ userId: w, role: "WORKER" as const, workerId: w, orgId: null });
   const asStaff = (id: string, role: "OWNER" | "RECRUITER" | "SUPERVISOR", orgId: string) => ({ userId: id, role, workerId: null, orgId });
   const mine = await loadNotifications(asWorker(N(1)));
-  check("a worker's notices are theirs, newest first", mine.length >= 3 && mine.every((n) => n.engagement.jobId === jn.id || n.engagement.jobId === jn2.id) && mine[0].createdAt >= mine.at(-1)!.createdAt, mine.map((n) => n.kind));
+  check("a worker's notices are theirs, newest first", mine.length >= 3 && mine.every((n) => n.engagement!.jobId === jn.id || n.engagement!.jobId === jn2.id) && mine[0].createdAt >= mine.at(-1)!.createdAt, mine.map((n) => n.kind));
   const hirerBefore = (await loadNotifications(asStaff(HIRER, "RECRUITER", ORG))).length;
   await p.profile.update({ where: { id: HIRER }, data: { orgId: ORG2 } });
   check("staff who move to another organization no longer see the old one's notices", hirerBefore > 0 && (await loadNotifications(asStaff(HIRER, "RECRUITER", ORG2))).length === 0 && (await unreadNotifications(asStaff(HIRER, "RECRUITER", ORG2))) === 0, hirerBefore);
@@ -515,11 +515,11 @@ const types = async (id: string) => (await loadEngagementEvents(id)).map((e) => 
   // A worker's own do-not-match answers hide notices about invitations they rule out (rule 4).
   const jx = await newJob("Excluded invite job", 2, { campaignDisclosure: { campaignType: "ballot_measure", affiliation: "nonpartisan", message: "Paid for by the committee." } });
   const xInv = idOf(await inviteWorker(ORG, OWNER, jx.id, N(1)));
-  const beforeBoundary = (await loadNotifications(asWorker(N(1)))).some((n) => n.engagement.id === xInv);
+  const beforeBoundary = (await loadNotifications(asWorker(N(1)))).some((n) => n.engagement!.id === xInv);
   const unreadBefore = await unreadNotifications(asWorker(N(1)));
   await savePreferences(N(1), N(1), { visibilityMode: "MATCHING_ONLY", identityLabels: [], partyRelationship: null, issuePositions: {}, campaignBoundaries: [{ kind: "campaign_type", target: "ballot_measure", stance: "do_not_match" }] } as never, null);
   const unreadAfter = await unreadNotifications(asWorker(N(1)));
-  check("a notice about an invitation the worker's own answers rule out isn't shown or counted", beforeBoundary && !(await loadNotifications(asWorker(N(1)))).some((n) => n.engagement.id === xInv) && unreadAfter === unreadBefore - 1, { beforeBoundary, unreadBefore, unreadAfter });
+  check("a notice about an invitation the worker's own answers rule out isn't shown or counted", beforeBoundary && !(await loadNotifications(asWorker(N(1)))).some((n) => n.engagement!.id === xInv) && unreadAfter === unreadBefore - 1, { beforeBoundary, unreadBefore, unreadAfter });
 
   const ownerUnread = await unreadNotifications(asStaff(OWNER, "OWNER", ORG));
   const shown = await loadNotifications(asWorker(N(1)));

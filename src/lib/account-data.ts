@@ -138,7 +138,7 @@ export async function exportAccount(
     p.engagement.findMany({ where: { workerId: w }, include: { job: { select: { id: true, title: true, org: { select: { name: true } } } } }, orderBy: { createdAt: "asc" } }),
     p.engagementEvent.findMany({ where: { engagement: { workerId: w } }, select: { id: true, engagementId: true, type: true, reasonCode: true, note: true, createdAt: true, actorId: true }, orderBy: { createdAt: "asc" } }),
     p.orgMute.findMany({ where: { workerId: w }, select: { createdAt: true, org: { select: { name: true } } }, orderBy: { createdAt: "asc" } }),
-    p.notification.findMany({ where: { recipientId: actor.userId }, select: { id: true, kind: true, engagementId: true, createdAt: true, readAt: true }, orderBy: { createdAt: "asc" } }),
+    p.notification.findMany({ where: { recipientId: actor.userId }, select: { id: true, kind: true, engagementId: true, postId: true, createdAt: true, readAt: true }, orderBy: { createdAt: "asc" } }),
     p.shift.findMany({
       where: { engagement: { workerId: w } },
       include: { engagement: { select: { job: { select: { title: true, org: { select: { name: true } } } } } }, events: { orderBy: { createdAt: "asc" } }, validations: { orderBy: { createdAt: "asc" } } },
@@ -203,7 +203,7 @@ export async function exportAccount(
   // Binary entries: the photo bytes, with no text.
   files.push(...proofs.files.map((f) => ({ ...f, text: "" })));
   files.push({ name: "credentials.csv", text: csvTable(credentials.map((c) => ({ ...c, verifiedByOrg: verifiers.get(c.id)?.org ?? "" }))) });
-  files.push({ name: "notifications.csv", text: csvTable(notices.map((n) => ({ id: n.id, kind: n.kind, engagementId: n.engagementId, at: n.createdAt, readAt: n.readAt ?? "" })), ["id", "kind", "engagementId", "at", "readAt"]) });
+  files.push({ name: "notifications.csv", text: csvTable(notices.map((n) => ({ id: n.id, kind: n.kind, engagementId: n.engagementId ?? "", postId: n.postId ?? "", at: n.createdAt, readAt: n.readAt ?? "" })), ["id", "kind", "engagementId", "postId", "at", "readAt"]) });
   files.push({ name: "mutes.json", text: json(mutes.map((m) => ({ organization: m.org.name, since: m.createdAt }))) });
   files.push({ name: "engagements.csv", text: csvTable(engagements.map((e) => ({ id: e.id, jobId: e.job.id, job: e.job.title, organization: e.job.org.name, status: e.status, createdAt: e.createdAt, updatedAt: e.updatedAt, inviteNote: e.inviteNote ?? "", inviteExpiresAt: e.inviteExpiresAt ?? "", applicationSnapshot: e.applicationSnapshot }))) });
   files.push({

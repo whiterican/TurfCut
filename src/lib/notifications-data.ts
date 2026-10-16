@@ -92,9 +92,11 @@ type Viewer = { userId: string; role: Role; workerId: string | null; orgId: stri
  * — for hiring staff only — the jobs of the organization they belong to now
  * (staff who left or moved to another role see none of its applicants).
  */
-function scopeFor(v: Viewer): Prisma.EngagementWhereInput | null {
-  if (v.role === "WORKER") return v.workerId ? { workerId: v.workerId } : null;
-  return v.orgId && HIRING_ROLES.includes(v.role) ? { job: { orgId: v.orgId } } : null;
+function scopeFor(v: Viewer): Prisma.NotificationWhereInput | null {
+  // Hiring notices only: notices about a followed campaign's posts are the
+  // social layer's to load and count (they never pass through hiring code).
+  if (v.role === "WORKER") return v.workerId ? { engagement: { workerId: v.workerId } } : null;
+  return v.orgId && HIRING_ROLES.includes(v.role) ? { engagement: { job: { orgId: v.orgId } } } : null;
 }
 
 const SELECT = {
@@ -119,14 +121,15 @@ const SELECT = {
 type Pref = ReturnType<typeof effectivePreference>;
 const prefFor = async (v: Viewer): Promise<Pref> => (v.role === "WORKER" && v.workerId ? effectivePreference(await loadLatestPreference(v.workerId)) : null);
 
-function visible<T extends { kind: NotificationKind; engagement: { status: string; job: { campaignDisclosure: unknown; measureIds: string[]; org: { name: string } } } }>(
+function visible<T extends { kind: NotificationKind; engagement: { status: string; job: { campaignDisclosure: unknown; measureIds: string[]; org: { name: string } } } | null }>(
   v: Viewer,
   pref: Pref,
   rows: T[]
 ): T[] {
   if (v.role !== "WORKER" || !v.workerId || !rows.length) return rows;
-  const invitation = (r: T) =>
-    r.kind === "INVITATION_RECEIVED" || r.kind === "INVITATION_WITHDRAWN" || (r.kind === "JOB_CLOSED" && r.engagement.status === "WITHDRAWN") || (r.kind === "JOB_CHANGED" && r.engagement.status === "INVITED");
+  const invitation = (r: T): r is T & { engagement: NonNullable<T["engagement"]> } =>
+    !!r.engagement &&
+    (r.kind === "INVITATION_RECEIVED" || r.kind === "INVITATION_WITHDRAWN" || (r.kind === "JOB_CLOSED" && r.engagement.status === "WITHDRAWN") || (r.kind === "JOB_CHANGED" && r.engagement.status === "INVITED"));
   return rows.filter(
     (r) => !invitation(r) || !exclusionReasons(pref, { disclosure: readDisclosure(r.engagement.job.campaignDisclosure), orgName: r.engagement.job.org.name, measureIds: r.engagement.job.measureIds }).length
   );
@@ -141,12 +144,12 @@ export async function loadNotifications(v: Viewer) {
   const scope = scopeFor(v);
   if (!scope) return [];
   const pref = await prefFor(v);
-  const where = { recipientId: v.userId, engagement: scope };
+  const where: Prisma.NotificationWhereInput = { AND: [{ recipientId: v.userId }, scope] };
   const out: Array<Awaited<ReturnType<typeof page>>[number]> = [];
   // Keyset pages (createdAt, then id): a notice arriving meanwhile can't shift a row onto the next page.
   const page = (after: { createdAt: Date; id: string } | null) =>
     db().notification.findMany({
-      where: after ? { ...where, OR: [{ createdAt: { lt: after.createdAt } }, { createdAt: after.createdAt, id: { gt: after.id } }] } : where,
+      where: after ? { AND: [where, { OR: [{ createdAt: { lt: after.createdAt } }, { createdAt: after.createdAt, id: { gt: after.id } }] }] } : where,
       select: SELECT,
       orderBy: [{ createdAt: "desc" }, { id: "asc" }],
       take: NOTIFICATION_PAGE,
@@ -171,7 +174,7 @@ const COUNT_SELECT = {
 export async function unreadNotifications(v: Viewer): Promise<number> {
   const scope = scopeFor(v);
   if (!scope) return 0;
-  const where = { recipientId: v.userId, readAt: null, engagement: scope };
+  const where: Prisma.NotificationWhereInput = { AND: [{ recipientId: v.userId, readAt: null }, scope] };
   // Staff notices are never hidden, so a capped count is enough.
   if (v.role !== "WORKER") return db().notification.count({ where, take: UNREAD_CAP });
   // A worker's hidden ones never get marked read, so count past them, a keyset page at a time.
@@ -180,7 +183,7 @@ export async function unreadNotifications(v: Viewer): Promise<number> {
   let after: { createdAt: Date; id: string } | null = null;
   while (n < UNREAD_CAP) {
     const rows: Array<Prisma.NotificationGetPayload<{ select: typeof COUNT_SELECT & { id: true; createdAt: true } }>> = await db().notification.findMany({
-      where: after ? { ...where, OR: [{ createdAt: { lt: after.createdAt } }, { createdAt: after.createdAt, id: { gt: after.id } }] } : where,
+      where: after ? { AND: [where, { OR: [{ createdAt: { lt: after.createdAt } }, { createdAt: after.createdAt, id: { gt: after.id } }] }] } : where,
       select: { ...COUNT_SELECT, id: true, createdAt: true },
       orderBy: [{ createdAt: "desc" }, { id: "asc" }],
       take: UNREAD_CAP,

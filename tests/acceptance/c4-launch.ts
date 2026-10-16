@@ -148,7 +148,7 @@ const check = (l: string, c: unknown, d?: unknown) => { if (c) console.log(`PASS
   const invited = await inviteWorker(ORG, OWNER, inviteJob.id, W3);
   await savePreferences(W3, W3, { visibilityMode: "MATCHING_ONLY", identityLabels: [], partyRelationship: null, issuePositions: {}, campaignBoundaries: [{ kind: "campaign_type", target: "ballot_measure", stance: "do_not_match" }] } as never, null);
   const toInvited = await updatePublishedJob(inviteJob.id, ORG, OWNER, input({ ...byInvite, title: "Launch test (invite, renamed)" }));
-  const w3Notices = (await loadNotifications({ userId: W3, role: "WORKER", workerId: W3, orgId: null })).filter((n) => n.kind === "JOB_CHANGED" && n.engagement.jobId === inviteJob.id);
+  const w3Notices = (await loadNotifications({ userId: W3, role: "WORKER", workerId: W3, orgId: null })).filter((n) => n.kind === "JOB_CHANGED" && n.engagement!.jobId === inviteJob.id);
   const w3Row = await p.notification.count({ where: { recipientId: W3, kind: "JOB_CHANGED", engagement: { jobId: inviteJob.id } } });
   check("an invited worker whose answers rule the job out is told nothing of its edits (rule 4), though the row exists", invited.ok && toInvited.ok && toInvited.told === 1 && w3Row === 1 && w3Notices.length === 0, { invited, toInvited, w3Row, w3Notices });
   await p.worker.update({ where: { id: W3 }, data: { closedAt: new Date() } });

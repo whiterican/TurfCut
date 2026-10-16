@@ -80,6 +80,13 @@ describe("slotFit", () => {
     const fwd = { startsAt: new Date("2026-03-08T06:30:00Z"), endsAt: new Date("2026-03-08T07:30:00Z") };
     expect(slotFit(fwd, a({ weekly: { sun: [{ from: "01:00", to: "04:00" }] } }), tz)).toBe("fits");
   });
+  it("handles a zone that falls back at midnight", () => {
+    // America/Santiago, Apr 5 2026 03:00Z: midnight (-03) goes back to 23:00 Sat Apr 4 (-04).
+    const z = "America/Santiago";
+    const slot = { startsAt: new Date("2026-04-05T02:30:00Z"), endsAt: new Date("2026-04-05T03:10:00Z") }; // 23:30 → 23:10, both Sat
+    expect(slotFit(slot, a({ weekly: { sat: [{ from: "23:00", to: "24:00" }] } }), z)).toBe("fits");
+    expect(slotFit(slot, a({ weekly: { mon: [{ from: "09:00", to: "10:00" }] } }), z)).toBe("outside");
+  });
   it("ends at local midnight, and copes with a bad time zone", () => {
     const eve = { startsAt: new Date("2026-11-03T01:00:00Z"), endsAt: new Date("2026-11-03T05:00:00Z") }; // Mon 8pm – midnight
     expect(slotFit(eve, a({ weekly: { mon: [{ from: "20:00", to: "24:00" }] } }), tz)).toBe("fits");
@@ -87,7 +94,10 @@ describe("slotFit", () => {
   });
   it("empty days and only past dates read as unknown", () => {
     expect(slotFit(s, a({ weekly: { mon: [] } }), tz)).toBe("unknown");
-    expect(slotFit(s, a({ exceptions: [{ date: "2026-10-01", ranges: [] }] }), tz, "2026-11-01")).toBe("unknown");
+    expect(slotFit(s, a({ exceptions: [{ date: "2026-10-01", ranges: [] }] }), tz)).toBe("unknown");
+    // An exception on the slot's local day counts, even after UTC midnight.
+    const late = { startsAt: new Date("2026-11-03T01:00:00Z"), endsAt: new Date("2026-11-03T03:00:00Z") }; // Mon 8–10pm
+    expect(slotFit(late, a({ exceptions: [{ date: "2026-11-02", ranges: [{ from: "19:00", to: "23:00" }] }] }), tz)).toBe("fits");
   });
   it("splits a slot across midnight", () => {
     const late = { startsAt: new Date("2026-11-03T03:00:00Z"), endsAt: new Date("2026-11-03T06:00:00Z") }; // Mon 10pm – Tue 1am

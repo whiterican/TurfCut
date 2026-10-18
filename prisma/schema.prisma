@@ -72,6 +72,8 @@ model Profile {
   campaignPostRevisions CampaignPostRevision[]
   talkingPointFacts     TalkingPointFact[]        @relation("TalkingPointFactAuthor")
   campaignResources     CampaignResource[]        @relation("CampaignResourceAuthor")
+  slotsPosted           ShiftSlot[]               @relation("ShiftSlotCreator")
+  slotsSupervised       ShiftSlot[]               @relation("ShiftSlotSupervisor")
 
   @@index([orgId])
 }
@@ -356,6 +358,7 @@ model Job {
   campaignProfileId String?           @db.Uuid
   campaignProfile   CampaignProfile?  @relation(fields: [campaignProfileId], references: [id], onDelete: Restrict)
   embeddedInPosts   CampaignPost[]    @relation("CampaignPostJobEmbed")
+  slots             ShiftSlot[]
 
   @@index([orgId, status])
   @@index([jurisdictionId])
@@ -470,6 +473,9 @@ model Shift {
   stagingLng      Float?
   supervisorId    String?     @db.Uuid // Profile.id who accepts custody and reviews
   turfArea        Json? // GeoJSON Polygon of the assigned turf
+  // M8.2: the open slot this shift took a seat on, if any.
+  slotId          String?     @db.Uuid
+  slot            ShiftSlot?  @relation(fields: [slotId], references: [id], onDelete: Restrict)
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
 
@@ -479,6 +485,44 @@ model Shift {
   payDisputes PayDispute[]
 
   @@index([engagementId, startsAt])
+  @@index([slotId])
+}
+
+enum ShiftSlotStatus {
+  OPEN
+  CLOSED
+}
+
+// M8.2: an open shift staff post on a job. Hired workers take a seat first
+// come, first served; each seat is a real Shift (slotId). Seats held = the
+// slot's shifts that aren't cancelled. Times and place are fixed once posted
+// (close it and post another); only the seats and the status change.
+model ShiftSlot {
+  id              String          @id @default(uuid()) @db.Uuid
+  jobId           String          @db.Uuid
+  job             Job             @relation(fields: [jobId], references: [id], onDelete: Restrict)
+  startsAt        DateTime
+  endsAt          DateTime
+  headcount       Int
+  stagingLocation String?
+  stagingLat      Float?
+  stagingLng      Float?
+  supervisorId    String?         @db.Uuid
+  supervisor      Profile?        @relation("ShiftSlotSupervisor", fields: [supervisorId], references: [id], onDelete: Restrict)
+  turfArea        Json?
+  notes           String?
+  status          ShiftSlotStatus @default(OPEN)
+  closedAt        DateTime?
+  createdById     String          @db.Uuid
+  createdBy       Profile         @relation("ShiftSlotCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  shifts Shift[]
+
+  @@index([jobId, startsAt])
+  @@index([supervisorId])
+  @@index([createdById])
 }
 
 // ---------------------------------------------------------------------------

@@ -64,4 +64,16 @@ describe("migration grants", () => {
       }
     }
   });
+  it("shift slots stay server-only (M8.2)", () => {
+    for (const f of files) {
+      const sql = readFileSync(join(dir, f), "utf8").replace(/--[^\n]*/g, "");
+      expect({ file: f, grants: sql.match(/GRANT[^;]*"ShiftSlot"[^;]*/gi) ?? [] }).toEqual({ file: f, grants: [] });
+      expect({ file: f, policies: sql.match(/CREATE\s+POLICY[^;]*"ShiftSlot"[^;]*/gi) ?? [] }).toEqual({ file: f, policies: [] });
+    }
+    for (const f of ["m8-slots.sql", "supabase-manual-setup.sql"]) {
+      const sql = readFileSync(join(dir, f), "utf8").replace(/--[^\n]*/g, "");
+      expect({ file: f, rls: /ALTER\s+TABLE\s+"public"\."ShiftSlot"\s+ENABLE\s+ROW\s+LEVEL\s+SECURITY/i.test(sql) }).toEqual({ file: f, rls: true });
+      expect({ file: f, revoked: /REVOKE\s+ALL\s+ON\s+"public"\."ShiftSlot"\s+FROM\s+anon,\s*authenticated/i.test(sql) }).toEqual({ file: f, revoked: true });
+    }
+  });
 });

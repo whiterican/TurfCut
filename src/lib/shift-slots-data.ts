@@ -257,7 +257,7 @@ export async function loadJobSlots(orgId: string, jobId: string, now = new Date(
 export async function loadWorkerSlots(workerId: string, now = new Date(), jobId?: string) {
   const slots = await db().shiftSlot.findMany({
     // Closed slots take no one, so they aren't offered.
-    where: { endsAt: { gt: now }, status: "OPEN", ...(jobId ? { jobId } : {}), job: { status: { in: [...WORKING_JOB] }, engagements: { some: { workerId, status: { in: [...HIRED] } } } } },
+    where: { endsAt: { gt: now }, status: "OPEN", ...(jobId ? { jobId } : {}), job: { status: { in: [...WORKING_JOB] }, engagements: { some: { workerId, status: { in: [...HIRED] }, worker: { closedAt: null } } } } },
     orderBy: { startsAt: "asc" },
     take: 200,
     include: {

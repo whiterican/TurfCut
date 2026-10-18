@@ -132,6 +132,7 @@ const check = (l: string, c: unknown, d?: unknown) => { if (c) console.log(`PASS
   const afterAcct = await p.shift.count({ where: { slotId: s4Id, status: { not: "CANCELLED" } } });
   const reclaim = await claimSlot({ workerId: W[2], profileId: W[2] }, s4Id, now);
   const staffPlace = await assignToSlot(owner, s4Id, eng[2], now);
+  check("a closed account is offered no open shifts", (await loadWorkerSlots(W[2], now)).length === 0 && (await seatsOnOffer(W[2], now)).size === 0);
   check("closing the account gives the seat back; a closed account can't take or be given one", pre.ok && closedAcct.ok && afterAcct === 0 && !reclaim.ok && !staffPlace.ok, { pre, closedAcct, afterAcct, reclaim, staffPlace });
 
   // --- A rush: 20 hired workers at once for 3 seats ---

@@ -38,10 +38,14 @@ export function ScheduleShiftForm({
   const [engagementId, setEngagementId] = useState("");
   const chosen = workers.find((w) => w.engagementId === engagementId) ?? null;
   // In the scheduler's own time zone: the worker set their hours as local wall-clock times.
-  const fit =
-    chosen?.availability && start && end && new Date(end) > new Date(start)
-      ? slotFit({ startsAt: new Date(start), endsAt: new Date(end) }, chosen.availability, Intl.DateTimeFormat().resolvedOptions().timeZone)
-      : null;
+  const span = start && end && new Date(end) > new Date(start) ? { startsAt: new Date(start), endsAt: new Date(end) } : null;
+  const fitOf = (w: (typeof workers)[number]) => (span && w.availability ? slotFit(span, w.availability, Intl.DateTimeFormat().resolvedOptions().timeZone) : null);
+  const fit = chosen ? fitOf(chosen) : null;
+  // Once times are picked, each option says whether they fall in that worker's usual hours. The order never changes: it's a note, not a ranking.
+  const optionNote = (w: (typeof workers)[number]) => {
+    const f = fitOf(w);
+    return f === "fits" ? " · in their usual hours" : f === "partly" || f === "outside" ? " · outside their usual hours" : "";
+  };
   // Kept in state so a refused post doesn't clear them (React resets uncontrolled fields after an action).
   const [seats, setSeats] = useState("4");
   const [notes, setNotes] = useState("");
@@ -78,8 +82,9 @@ export function ScheduleShiftForm({
             <span className="label">Worker</span>
             <select name="engagementId" className="field" required value={engagementId} onChange={(e) => setEngagementId(e.target.value)}>
               <option value="" disabled>Choose a hired worker…</option>
-              {workers.map((w) => <option key={w.engagementId} value={w.engagementId}>{w.name}</option>)}
+              {workers.map((w) => <option key={w.engagementId} value={w.engagementId}>{w.name}{optionNote(w)}</option>)}
             </select>
+            {!span && workers.some((w) => w.availability) && <span className="text-hint block">Once you pick the times below, each worker who shares their availability shows here whether it fits.</span>}
             {chosen && chosen.view !== undefined && (
               <span className="block space-y-1 pt-1">
                 <span className="text-hint block">{chosen.name}&apos;s availability</span>

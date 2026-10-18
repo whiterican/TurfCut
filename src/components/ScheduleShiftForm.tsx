@@ -4,6 +4,9 @@ import { useActionState, useState } from "react";
 import { postSlotAction, schedule, type ScheduleState } from "@/app/shifts/actions";
 import { TurfMap } from "@/components/TurfMap";
 import type { JobLaunch } from "@/lib/job-launch";
+import { AvailabilityStatement } from "@/components/AvailabilityStatement";
+import type { Availability, OrgAvailabilityView } from "@/lib/availability";
+import { slotFit } from "@/lib/shift-slots";
 
 const initial: ScheduleState = { ok: false, message: "", errors: {} };
 /** datetime-local value (organizer's own zone) → ISO; the server never guesses a zone. */
@@ -20,7 +23,8 @@ export function ScheduleShiftForm({
   variant = "shift",
 }: {
   jobId: string;
-  workers: Array<{ engagementId: string; name: string }>;
+  /** Hired workers, with their availability only where they share it with this organization. */
+  workers: Array<{ engagementId: string; name: string; availability?: Availability | null; view?: OrgAvailabilityView }>;
   supervisors: Array<{ id: string; label: string }>;
   /** How the job's days start (C4.2): its staging points to pick from, or self-launch. */
   launch: JobLaunch;
@@ -31,6 +35,13 @@ export function ScheduleShiftForm({
   const [state, action, pending] = useActionState(slot ? postSlotAction : schedule, initial);
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");
+  const [engagementId, setEngagementId] = useState("");
+  const chosen = workers.find((w) => w.engagementId === engagementId) ?? null;
+  // In the scheduler's own time zone: the worker set their hours as local wall-clock times.
+  const fit =
+    chosen?.availability && start && end && new Date(end) > new Date(start)
+      ? slotFit({ startsAt: new Date(start), endsAt: new Date(end) }, chosen.availability, Intl.DateTimeFormat().resolvedOptions().timeZone)
+      : null;
   // Kept in state so a refused post doesn't clear them (React resets uncontrolled fields after an action).
   const [seats, setSeats] = useState("4");
   const [notes, setNotes] = useState("");
@@ -65,10 +76,21 @@ export function ScheduleShiftForm({
         ) : (
           <label className="min-w-0 space-y-1.5 sm:col-span-2">
             <span className="label">Worker</span>
-            <select name="engagementId" className="field" required defaultValue="">
+            <select name="engagementId" className="field" required value={engagementId} onChange={(e) => setEngagementId(e.target.value)}>
               <option value="" disabled>Choose a hired worker…</option>
               {workers.map((w) => <option key={w.engagementId} value={w.engagementId}>{w.name}</option>)}
             </select>
+            {chosen && chosen.view !== undefined && (
+              <span className="block space-y-1 pt-1">
+                <span className="text-hint block">{chosen.name}&apos;s availability</span>
+                <AvailabilityStatement view={chosen.view} />
+              </span>
+            )}
+            {(fit === "outside" || fit === "partly") && (
+              <span role="status" className="block text-sm font-semibold text-fg">
+                {fit === "outside" ? "This is outside" : "This runs past"} the hours {chosen!.name} usually works. You can still schedule it; check with them first.
+              </span>
+            )}
           </label>
         )}
         <label className="min-w-0 space-y-1.5">

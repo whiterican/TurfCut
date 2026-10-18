@@ -1124,7 +1124,10 @@ Built in C3.6b (see the C3 scope below). Approved as recommended by review:
 
 ## M8 scope — open shifts (slice 2: shift slots)
 
-Availability (slice 1) shipped with C2 (`WorkerAvailability`).
+Availability (slice 1) shipped with C2 (`WorkerAvailability`). M8 adds the
+scheduler's side: picking a worker in the schedule form shows their
+availability (only if they share it with the organization, as in C2) and
+says, without blocking, when the shift falls outside it.
 
 - **Posting.** On a job's page, owners, recruiters and supervisors (the
   scheduling roles) post an open shift: times, seats (1–200), staging point,
@@ -1141,6 +1144,13 @@ Availability (slice 1) shipped with C2 (`WorkerAvailability`).
   campaigns (the usual overlap check). A worker gives a seat back by
   cancelling the shift, under the usual cancellation rules; the seat
   frees up. Closing an account gives back its future seats.
+- **Finding them.** Today shows "N open shifts on your jobs" and the job
+  page shows the count for that job, both linking to the list under
+  Shifts. Closed slots aren't offered; a slot the worker can't take (a
+  shift they already have then, or a paused jurisdiction) says why in place
+  of the button. In a rush, a worker is told "full" or "busy, try again",
+  never an error page; a database index allows one live seat per worker
+  per slot as a backstop.
 - **Staff.** Close a slot to sign-ups (seats already taken stay
   scheduled), change its seats, or place a hired worker by hand, even on
   a closed slot. Each step is audited (`shift_slot.*`, and

@@ -73,14 +73,25 @@ export async function loadOrgAvailability(workerId: string, orgId: string, today
  * engagements, closed accounts withheld.
  */
 export async function loadOrgAvailabilities(workerIds: string[], orgId: string, today = new Date().toISOString().slice(0, 10)) {
-  const ids = [...new Set(workerIds)];
   const out = new Map<string, OrgAvailabilityView>();
+  for (const [id, a] of await loadSharedAvailabilities(workerIds, orgId)) out.set(id, a === "withheld" ? "withheld" : orgAvailabilityView(a, true, today));
+  return out;
+}
+
+/**
+ * The availability itself, for the scheduler's "outside their usual hours"
+ * hint (M8.1), under exactly the same rules as loadOrgAvailabilities:
+ * "withheld" unless the worker shares it with this organization.
+ */
+export async function loadSharedAvailabilities(workerIds: string[], orgId: string): Promise<Map<string, Availability | "withheld">> {
+  const ids = [...new Set(workerIds)];
+  const out = new Map<string, Availability | "withheld">();
   if (!ids.length) return out;
   const [parts, rows] = await Promise.all([
     partsForOrgMany(ids, orgId),
     db().workerAvailability.findMany({ where: { workerId: { in: ids } }, orderBy: [{ workerId: "asc" }, { version: "desc" }], distinct: ["workerId"] }),
   ]);
   const avail = new Map(rows.map((r) => [r.workerId, availabilityFromRow(r)]));
-  for (const id of ids) out.set(id, orgAvailabilityView(avail.get(id) ?? EMPTY_AVAILABILITY, parts.get(id)?.availability ?? false, today));
+  for (const id of ids) out.set(id, parts.get(id)?.availability ? (avail.get(id) ?? EMPTY_AVAILABILITY) : "withheld");
   return out;
 }

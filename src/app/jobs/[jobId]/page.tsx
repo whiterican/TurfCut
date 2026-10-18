@@ -30,6 +30,8 @@ import { LocalTime } from "@/components/LocalTime";
 import { ScheduleShiftForm } from "@/components/ScheduleShiftForm";
 import { OpenShifts } from "@/components/staff/OpenShifts";
 import { loadJobSlots, seatsOnOffer } from "@/lib/shift-slots-data";
+import { loadSharedAvailabilities } from "@/lib/availability-data";
+import { orgAvailabilityView } from "@/lib/availability";
 import { DateRangeChip } from "@/components/DateRangeChip";
 import { followState } from "@/lib/campaign-follow-data";
 import { CampaignCard } from "@/components/campaign/CampaignCard";
@@ -547,13 +549,20 @@ async function ShiftsSection({ job, userId }: { job: JobWithRefs; userId: string
     db().shift.findMany({ where: { engagement: { jobId: job.id } }, include: SHIFT_LIST, orderBy: { startsAt: "asc" } }),
     db().engagement.findMany({
       where: { jobId: job.id, status: { in: ["ACTIVE", "CLAIMED"] }, worker: { closedAt: null } },
-      select: { id: true, worker: { select: { displayName: true } } },
+      select: { id: true, worker: { select: { id: true, displayName: true } } },
       orderBy: { createdAt: "asc" },
     }),
     listSupervisors(job.orgId),
     loadJobSlots(job.orgId, job.id),
   ]);
   const hiredList = hired.map((e) => ({ engagementId: e.id, name: e.worker.displayName }));
+  // Each worker's availability, only where they share it with this organization (C2): a hint, never a gate.
+  const shared = await loadSharedAvailabilities(hired.map((e) => e.worker.id), job.orgId);
+  const today = new Date().toISOString().slice(0, 10);
+  const schedulable = hired.map((e) => {
+    const a = shared.get(e.worker.id) ?? "withheld";
+    return { engagementId: e.id, name: e.worker.displayName, availability: a === "withheld" ? null : a, view: a === "withheld" ? ("withheld" as const) : orgAvailabilityView(a, true, today) };
+  });
   const labels = supervisors.map((p) => ({
     id: p.id,
     label: p.id === userId ? "You" : `${p.role === "OWNER" ? "Owner" : "Supervisor"} · ${p.id.slice(0, 8)}`,
@@ -567,7 +576,7 @@ async function ShiftsSection({ job, userId }: { job: JobWithRefs; userId: string
         <p className="text-muted-sm">No shifts yet.</p>
       )}
       {hired.length > 0 ? (
-        <ScheduleShiftForm jobId={job.id} workers={hiredList} supervisors={labels} launch={readLaunch(job.launch)} />
+        <ScheduleShiftForm jobId={job.id} workers={schedulable} supervisors={labels} launch={readLaunch(job.launch)} />
       ) : (
         <p className="text-hint">Accept a worker first — only hired workers can be scheduled.</p>
       )}

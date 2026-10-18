@@ -44,7 +44,7 @@ export function ScheduleShiftForm({
   // Once times are picked, each option says whether they fall in that worker's usual hours. The order never changes: it's a note, not a ranking.
   const optionNote = (w: (typeof workers)[number]) => {
     const f = fitOf(w);
-    return f === "fits" ? " · in their usual hours" : f === "partly" || f === "outside" ? " · outside their usual hours" : "";
+    return f === "fits" ? " · in their usual hours" : f === "partly" ? " · partly outside their usual hours" : f === "outside" ? " · outside their usual hours" : "";
   };
   // Kept in state so a refused post doesn't clear them (React resets uncontrolled fields after an action).
   const [seats, setSeats] = useState("4");

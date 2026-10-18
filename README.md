@@ -1163,7 +1163,10 @@ says, without blocking, when the shift falls outside it.
 - **Data.** `ShiftSlot` and `Shift.slotId` (`prisma/m8-slots.sql`).
   Server-only: RLS on, no policies, no grants
   (`src/lib/migration-grants.test.ts`). Seats taken are the slot's shifts
-  that aren't cancelled; nothing is counted twice.
+  that aren't cancelled; nothing is counted twice. The one-seat index
+  (`Shift_slot_seat_key`) lives only in the SQL, like the other partial
+  indexes: schema.prisma can't express it, so never run `npm run db:push`
+  against a database that has it (it would drop them). Use the SQL files.
 - **Acceptance:** `tests/acceptance/m8-slots.ts` (`run.sh m8`).
 
 ## M7 scope — field truth and leaving cleanly

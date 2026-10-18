@@ -11,7 +11,7 @@ type Slot = Awaited<ReturnType<typeof loadJobSlots>>[number];
  * three things staff do: change the seats, close to sign-ups, place a hired
  * worker by hand.
  */
-export function OpenShifts({ jobId, slots, hired }: { jobId: string; slots: Slot[]; hired: Array<{ engagementId: string; name: string }> }) {
+export function OpenShifts({ slots, hired, now }: { slots: Slot[]; hired: Array<{ engagementId: string; name: string }>; now: Date }) {
   if (!slots.length) return <p className="text-muted-sm">No open shifts yet. Post one below and hired workers can take a seat.</p>;
   return (
     <ul className="space-y-3">
@@ -19,7 +19,8 @@ export function OpenShifts({ jobId, slots, hired }: { jobId: string; slots: Slot
         const b = slotStateLabel(s.state, seatsLeft(s.facts));
         const holding = new Set(s.shifts.map((x) => x.engagementId));
         const free = hired.filter((h) => !holding.has(h.engagementId));
-        const live = s.state !== "started" && s.state !== "ended";
+        // Started is judged by time: a closed slot reads "Closed" but can't be changed once under way either.
+        const live = now < s.startsAt;
         return (
           <li key={s.id} className="card space-y-3">
             <div className="flex flex-wrap items-start justify-between gap-3">
@@ -41,14 +42,14 @@ export function OpenShifts({ jobId, slots, hired }: { jobId: string; slots: Slot
             )}
             {live && (
               <div className="flex flex-wrap items-start gap-4">
-                <ActionButton action={slotSeatsAction} fields={{ slotId: s.id, jobId }} label="Set seats" pendingLabel="Saving…" variant="btn-secondary btn-sm">
+                <ActionButton action={slotSeatsAction} fields={{ slotId: s.id }} label="Set seats" pendingLabel="Saving…" variant="btn-secondary btn-sm">
                   <label className="space-y-1.5">
                     <span className="label">Seats</span>
                     <input name="headcount" type="number" inputMode="numeric" min={Math.max(1, s.facts.taken)} max={200} step={1} defaultValue={s.headcount} className="field w-24" required />
                   </label>
                 </ActionButton>
                 {free.length > 0 && seatsLeft(s.facts) > 0 && (
-                  <ActionButton action={assignSlotAction} fields={{ slotId: s.id, jobId }} label="Place worker" pendingLabel="Placing…" variant="btn-secondary btn-sm">
+                  <ActionButton action={assignSlotAction} fields={{ slotId: s.id }} label="Place worker" pendingLabel="Placing…" variant="btn-secondary btn-sm">
                     <label className="space-y-1.5">
                       <span className="label">Hired worker</span>
                       <select name="engagementId" className="field" required defaultValue="">
@@ -61,7 +62,7 @@ export function OpenShifts({ jobId, slots, hired }: { jobId: string; slots: Slot
                 {s.status === "OPEN" && (
                   <ActionButton
                     action={closeSlotAction}
-                    fields={{ slotId: s.id, jobId }}
+                    fields={{ slotId: s.id }}
                     label="Close to sign-ups"
                     pendingLabel="Closing…"
                     variant="btn-ghost btn-sm"

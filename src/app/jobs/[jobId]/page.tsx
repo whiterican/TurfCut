@@ -559,7 +559,7 @@ async function ShiftsSection({ job, userId }: { job: JobWithRefs; userId: string
       )}
       <h3 className="pt-4 text-base font-bold text-fg">Open shifts</h3>
       <p className="text-muted-sm">Post a shift with a number of seats; people hired on this job take one, first come, first served. Each seat becomes a shift on their calendar.</p>
-      <OpenShifts jobId={job.id} slots={slots} hired={hiredList} />
+      <OpenShifts slots={slots} hired={hiredList} now={new Date()} />
       <details className="group">
         <summary className="btn-secondary cursor-pointer list-none [&::-webkit-details-marker]:hidden">Post an open shift</summary>
         <div className="mt-3">

@@ -80,6 +80,7 @@ export default async function MyShiftsPage() {
               notes: s.notes,
               facts: { status: s.facts.status, headcount: s.facts.headcount, taken: s.facts.taken },
               state: s.state,
+              blocked: s.blocked,
             }))}
           />
         </section>

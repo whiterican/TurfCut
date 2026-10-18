@@ -17,6 +17,7 @@ type Tx = Prisma.TransactionClient;
 type Fail = { ok: false; reason: string; errors?: Record<string, string> };
 type Staff = { profileId: string; orgId: string };
 type WorkerActor = { workerId: string; profileId: string };
+type Seat = { ok: true; shiftId: string; jobId: string } | Fail;
 
 const lock = (tx: Tx, key: string) => tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${key}))`;
 const HIRED = ["ACTIVE", "CLAIMED"] as const;
@@ -29,7 +30,7 @@ const taken = (tx: Tx | ReturnType<typeof db>, slotId: string) => tx.shift.count
 // Staff: post, change seats, close
 // ---------------------------------------------------------------------------
 
-export async function postSlot(actor: Staff, jobId: string, raw: Record<string, unknown>, now = new Date()): Promise<{ ok: true; slotId: string } | Fail> {
+export async function postSlot(actor: Staff, jobId: string, raw: Record<string, unknown>, now = new Date()): Promise<{ ok: true; slotId: string; jobId: string } | Fail> {
   if (!UUID_RE.test(jobId)) return { ok: false, reason: "Job not found." };
   const job = await db().job.findFirst({ where: { id: jobId, orgId: actor.orgId }, include: { jurisdiction: true } });
   if (!job) return { ok: false, reason: "Job not found." };
@@ -55,7 +56,7 @@ export async function postSlot(actor: Staff, jobId: string, raw: Record<string, 
     await tx.auditEvent.create({
       data: { actorId: actor.profileId, action: "shift_slot.posted", entityType: "ShiftSlot", entityId: slot.id, metadata: { jobId, headcount: rest.headcount, jurisdictionVersion: job.jurisdiction.version }, createdAt: now },
     });
-    return { ok: true as const, slotId: slot.id };
+    return { ok: true as const, slotId: slot.id, jobId };
   });
 }
 
@@ -66,7 +67,7 @@ async function staffSlot(tx: Tx, actor: Staff, slotId: string) {
 }
 
 /** More or fewer seats; never fewer than are taken. */
-export async function setSlotSeats(actor: Staff, slotId: string, headcountRaw: string, now = new Date()): Promise<{ ok: true } | Fail> {
+export async function setSlotSeats(actor: Staff, slotId: string, headcountRaw: string, now = new Date()): Promise<{ ok: true; jobId: string } | Fail> {
   const hc = headcountRaw.trim();
   const headcount = Number(hc);
   if (!/^\d+$/.test(hc) || headcount < 1 || headcount > 200) return { ok: false, reason: "Seats must be a whole number from 1 to 200." };
@@ -76,22 +77,22 @@ export async function setSlotSeats(actor: Staff, slotId: string, headcountRaw: s
     if (now >= slot.endsAt) return { ok: false as const, reason: "This shift is over." };
     const problem = headcountCheck(headcount, await taken(tx, slot.id));
     if (problem) return { ok: false as const, reason: problem };
-    if (headcount === slot.headcount) return { ok: true as const };
+    if (headcount === slot.headcount) return { ok: true as const, jobId: slot.jobId };
     await tx.shiftSlot.update({ where: { id: slot.id }, data: { headcount } });
     await tx.auditEvent.create({ data: { actorId: actor.profileId, action: "shift_slot.seats_changed", entityType: "ShiftSlot", entityId: slot.id, metadata: { from: slot.headcount, to: headcount }, createdAt: now } });
-    return { ok: true as const };
+    return { ok: true as const, jobId: slot.jobId };
   });
 }
 
 /** Closes a slot to new sign-ups. Seats already taken stay scheduled. */
-export async function closeSlot(actor: Staff, slotId: string, now = new Date()): Promise<{ ok: true } | Fail> {
+export async function closeSlot(actor: Staff, slotId: string, now = new Date()): Promise<{ ok: true; jobId: string } | Fail> {
   return db().$transaction(async (tx) => {
     const slot = await staffSlot(tx, actor, slotId);
     if (!slot) return { ok: false as const, reason: "Open shift not found." };
-    if (slot.status === "CLOSED") return { ok: true as const };
+    if (slot.status === "CLOSED") return { ok: true as const, jobId: slot.jobId };
     await tx.shiftSlot.update({ where: { id: slot.id }, data: { status: "CLOSED", closedAt: now } });
     await tx.auditEvent.create({ data: { actorId: actor.profileId, action: "shift_slot.closed", entityType: "ShiftSlot", entityId: slot.id, metadata: {}, createdAt: now } });
-    return { ok: true as const };
+    return { ok: true as const, jobId: slot.jobId };
   });
 }
 
@@ -110,7 +111,7 @@ async function takeSeat(
   engagementId: string,
   by: { actorId: string; kind: "WORKER" | "STAFF" },
   now: Date
-): Promise<{ ok: true; shiftId: string } | Fail> {
+): Promise<Seat> {
   const e = await tx.engagement.findUnique({ where: { id: engagementId }, select: { id: true, workerId: true, status: true, jobId: true } });
   if (!e) return { ok: false, reason: "Engagement not found." };
   await lock(tx, `worker:${e.workerId}`);
@@ -138,6 +139,8 @@ async function takeSeat(
   if (findConflicts(slot, theirs).length) {
     return { ok: false, reason: by.kind === "WORKER" ? "You already have a shift then (on this or another campaign)." : "This worker already has a shift then (on this or another campaign)." };
   }
+  // The supervisor named when the slot was posted may have left the organization since.
+  const supervisorId = slot.supervisorId && (await tx.profile.findFirst({ where: { id: slot.supervisorId, orgId: slot.job.orgId, role: { in: FIELD_ROLES } }, select: { id: true } })) ? slot.supervisorId : null;
   const shift = await tx.shift.create({
     data: {
       engagementId: e.id,
@@ -147,7 +150,7 @@ async function takeSeat(
       stagingLocation: slot.stagingLocation,
       stagingLat: slot.stagingLat,
       stagingLng: slot.stagingLng,
-      supervisorId: slot.supervisorId,
+      supervisorId,
       turfArea: slot.turfArea === null ? Prisma.DbNull : (slot.turfArea as Prisma.InputJsonValue),
       createdAt: now,
     },
@@ -162,11 +165,40 @@ async function takeSeat(
       createdAt: now,
     },
   });
-  return { ok: true, shiftId: shift.id };
+  return { ok: true, shiftId: shift.id, jobId: slot.jobId };
+}
+
+/**
+ * A fast "no" before queueing on the locks, so a rush on a popular shift
+ * answers "full" at once instead of waiting in line for a connection.
+ * Only ever refuses: everything is judged again under the locks.
+ */
+async function quickRefusal(slotId: string, engagementId: string, staff: boolean, now: Date): Promise<string | null> {
+  const slot = await db().shiftSlot.findUnique({ where: { id: slotId }, select: { status: true, startsAt: true, endsAt: true, headcount: true } });
+  if (!slot) return "Open shift not found.";
+  const [held, mine] = await Promise.all([taken(db(), slotId), db().shift.count({ where: { slotId, engagementId, status: { not: "CANCELLED" } } })]);
+  const check = claimCheck({ ...slot, status: staff ? "OPEN" : slot.status, taken: held }, mine > 0, now);
+  if (check.ok) return null;
+  return staff && mine > 0 ? "This worker already has a seat on this shift." : check.reason;
+}
+
+const BUSY = "Lots of people are signing up right now. Try again in a moment.";
+
+/** Runs a seat-taking transaction; a queue that times out or a racing duplicate answers in words. */
+async function seatTransaction(run: (tx: Tx) => Promise<Seat>, staff: boolean): Promise<Seat> {
+  try {
+    // Waiting on the slot's lock in a rush can outlast the default 5 s.
+    return await db().$transaction(run, { timeout: 15_000, maxWait: 10_000 });
+  } catch (e) {
+    if (e instanceof Prisma.PrismaClientKnownRequestError && (e.code === "P2028" || e.code === "P2024")) return { ok: false, reason: BUSY };
+    // The database's own backstop: one live seat per engagement per slot (Shift_slot_seat_key).
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") return { ok: false, reason: staff ? "This worker already has a seat on this shift." : "You already have a seat on this shift." };
+    throw e;
+  }
 }
 
 /** A hired worker takes a seat. Final at once: they give it back by cancelling the shift. */
-export async function claimSlot(actor: WorkerActor, slotId: string, now = new Date()): Promise<{ ok: true; shiftId: string } | Fail> {
+export async function claimSlot(actor: WorkerActor, slotId: string, now = new Date()): Promise<Seat> {
   if (!UUID_RE.test(slotId)) return { ok: false, reason: "Open shift not found." };
   const slot = await db().shiftSlot.findUnique({ where: { id: slotId }, select: { jobId: true } });
   if (!slot) return { ok: false, reason: "Open shift not found." };
@@ -176,15 +208,19 @@ export async function claimSlot(actor: WorkerActor, slotId: string, now = new Da
   });
   // Not hired on the job: the slot isn't theirs to see, so it reads as missing.
   if (!e) return { ok: false, reason: "Open shift not found." };
-  return db().$transaction((tx) => takeSeat(tx, slotId, e.id, { actorId: actor.profileId, kind: "WORKER" }, now));
+  const quick = await quickRefusal(slotId, e.id, false, now);
+  if (quick) return { ok: false, reason: quick };
+  return seatTransaction((tx) => takeSeat(tx, slotId, e.id, { actorId: actor.profileId, kind: "WORKER" }, now), false);
 }
 
 /** Staff place a hired worker on a slot by hand. */
-export async function assignToSlot(actor: Staff, slotId: string, engagementId: string, now = new Date()): Promise<{ ok: true; shiftId: string } | Fail> {
+export async function assignToSlot(actor: Staff, slotId: string, engagementId: string, now = new Date()): Promise<Seat> {
   if (!UUID_RE.test(slotId) || !UUID_RE.test(engagementId)) return { ok: false, reason: "Open shift not found." };
   const slot = await db().shiftSlot.findFirst({ where: { id: slotId, job: { orgId: actor.orgId } }, select: { id: true } });
   if (!slot) return { ok: false, reason: "Open shift not found." };
-  return db().$transaction((tx) => takeSeat(tx, slotId, engagementId, { actorId: actor.profileId, kind: "STAFF" }, now));
+  const quick = await quickRefusal(slotId, engagementId, true, now);
+  if (quick) return { ok: false, reason: quick };
+  return seatTransaction((tx) => takeSeat(tx, slotId, engagementId, { actorId: actor.profileId, kind: "STAFF" }, now), true);
 }
 
 // ---------------------------------------------------------------------------
@@ -220,14 +256,22 @@ export async function loadJobSlots(orgId: string, jobId: string, now = new Date(
  */
 export async function loadWorkerSlots(workerId: string, now = new Date()) {
   const slots = await db().shiftSlot.findMany({
-    where: { endsAt: { gt: now }, job: { status: { in: [...WORKING_JOB] }, engagements: { some: { workerId, status: { in: [...HIRED] } } } } },
+    // Closed slots take no one, so they aren't offered.
+    where: { endsAt: { gt: now }, status: "OPEN", job: { status: { in: [...WORKING_JOB] }, engagements: { some: { workerId, status: { in: [...HIRED] } } } } },
     orderBy: { startsAt: "asc" },
     take: 200,
     include: {
-      job: { select: { id: true, title: true, org: { select: { name: true } } } },
+      job: { select: { id: true, title: true, org: { select: { name: true } }, jurisdiction: true } },
       shifts: { where: { status: { not: "CANCELLED" } }, select: { id: true, engagement: { select: { workerId: true } } } },
     },
   });
+  // Their own shifts in the same span, so a slot they couldn't take says why up front (the claim checks again).
+  const theirs = slots.length
+    ? await db().shift.findMany({
+        where: { engagement: { workerId }, status: { not: "CANCELLED" }, endsAt: { gt: slots[0].startsAt }, startsAt: { lt: new Date(Math.max(...slots.map((s) => s.endsAt.getTime()))) } },
+        select: { startsAt: true, endsAt: true, status: true },
+      })
+    : [];
   return slots.map((s) => {
     const facts: SlotFacts = { status: s.status, startsAt: s.startsAt, endsAt: s.endsAt, headcount: s.headcount, taken: s.shifts.length };
     const mine = s.shifts.find((x) => x.engagement.workerId === workerId)?.id ?? null;
@@ -241,6 +285,12 @@ export async function loadWorkerSlots(workerId: string, now = new Date()) {
       facts,
       state: slotState(facts, now),
       myShiftId: mine,
+      /** Why they can't take a seat even though one is free: a frozen jurisdiction or a shift they already have then. */
+      blocked: !canScheduleShift(s.job.jurisdiction, now).ok
+        ? "New shifts on this job are paused until its rules are re-approved."
+        : !mine && findConflicts(s, theirs).length
+          ? "You already have a shift then."
+          : null,
     };
   });
 }

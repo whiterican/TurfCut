@@ -31,6 +31,9 @@ export function ScheduleShiftForm({
   const [state, action, pending] = useActionState(slot ? postSlotAction : schedule, initial);
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");
+  // Kept in state so a refused post doesn't clear them (React resets uncontrolled fields after an action).
+  const [seats, setSeats] = useState("4");
+  const [notes, setNotes] = useState("");
   // One of the job's points fills the staging fields; "elsewhere" leaves the map to place it.
   const [pointId, setPointId] = useState(launch.points[0]?.id ?? "");
   const point = launch.points.find((p) => p.id === pointId) ?? null;
@@ -50,12 +53,12 @@ export function ScheduleShiftForm({
           <>
             <label className="min-w-0 space-y-1.5">
               <span className="label">Seats</span>
-              <input name="headcount" type="number" inputMode="numeric" min={1} max={200} step={1} className="field" required defaultValue="4" />
+              <input name="headcount" type="number" inputMode="numeric" min={1} max={200} step={1} className="field" required value={seats} onChange={(e) => setSeats(e.target.value)} />
               {err("headcount")}
             </label>
             <label className="min-w-0 space-y-1.5 sm:col-span-2">
               <span className="label">Notes for the crew <span className="text-hint">(optional)</span></span>
-              <textarea name="notes" className="field" rows={2} maxLength={500} placeholder="Bring water; we'll pair up at the table." />
+              <textarea name="notes" className="field" rows={2} maxLength={500} placeholder="Bring water; we'll pair up at the table." value={notes} onChange={(e) => setNotes(e.target.value)} />
               {err("notes")}
             </label>
           </>

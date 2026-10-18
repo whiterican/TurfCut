@@ -47,7 +47,7 @@ export async function postSlotAction(_prev: ScheduleState, fd: FormData): Promis
   const s = await requireRole(SCHEDULING_ROLES);
   if (!s.orgId) return { ok: false, message: "No organization on this account.", errors: {} };
   const r = await postSlot({ profileId: s.userId, orgId: s.orgId }, str(fd, "jobId"), formToObject(fd));
-  slotsChanged(str(fd, "jobId"));
+  if (r.ok) slotsChanged(r.jobId);
   return r.ok ? { ok: true, message: "Open shift posted. Hired workers can take a seat now.", errors: {} } : { ok: false, message: r.reason, errors: r.errors ?? {} };
 }
 
@@ -60,7 +60,7 @@ export async function slotSeatsAction(_prev: ActionState, fd: FormData): Promise
   const actor = await staff();
   if (!actor) return { ok: false, message: "No organization on this account." };
   const r = await setSlotSeats(actor, str(fd, "slotId"), str(fd, "headcount"));
-  slotsChanged(str(fd, "jobId"));
+  if (r.ok) slotsChanged(r.jobId);
   return r.ok ? { ok: true, message: "Seats updated." } : { ok: false, message: r.reason };
 }
 
@@ -68,7 +68,7 @@ export async function closeSlotAction(_prev: ActionState, fd: FormData): Promise
   const actor = await staff();
   if (!actor) return { ok: false, message: "No organization on this account." };
   const r = await closeSlot(actor, str(fd, "slotId"));
-  slotsChanged(str(fd, "jobId"));
+  if (r.ok) slotsChanged(r.jobId);
   return r.ok ? { ok: true, message: "Closed to new sign-ups. Seats already taken stay scheduled." } : { ok: false, message: r.reason };
 }
 
@@ -76,7 +76,7 @@ export async function assignSlotAction(_prev: ActionState, fd: FormData): Promis
   const actor = await staff();
   if (!actor) return { ok: false, message: "No organization on this account." };
   const r = await assignToSlot(actor, str(fd, "slotId"), str(fd, "engagementId"));
-  slotsChanged(str(fd, "jobId"));
+  if (r.ok) slotsChanged(r.jobId);
   return r.ok ? { ok: true, message: "Placed. The shift is on their calendar." } : { ok: false, message: r.reason };
 }
 
@@ -84,8 +84,7 @@ export async function assignSlotAction(_prev: ActionState, fd: FormData): Promis
 export async function claimSlotAction(_prev: ActionState, fd: FormData): Promise<ActionState> {
   const { workerId, userId } = await requireWorker();
   const r = await claimSlot({ workerId, profileId: userId }, str(fd, "slotId"));
-  revalidatePath("/shifts");
-  revalidatePath("/dashboard");
+  if (r.ok) slotsChanged(r.jobId);
   return r.ok ? { ok: true, message: "It's yours. The shift is on your calendar." } : { ok: false, message: r.reason };
 }
 

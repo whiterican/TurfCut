@@ -24,7 +24,7 @@ const check = (l: string, c: unknown, d?: unknown) => { if (c) console.log(`PASS
   const job = await createJob(ORG, OWNER, (() => {
     const v = validateJob({
       type: "PETITION", title: "Slots test", jurisdictionId: seeded.jurisdictionId, startsAt: `${year}-03-01`, endsAt: `${year}-04-01`, city: "Denver", state: "CO",
-      compensationMethod: "HOURLY", payRate: "24", headcount: "10", hiringModes: ["instant_claim"], campaignType: "ballot_measure", affiliation: "nonpartisan",
+      compensationMethod: "HOURLY", payRate: "24", headcount: "40", hiringModes: ["instant_claim"], campaignType: "ballot_measure", affiliation: "nonpartisan",
       message: "Qualify a measure.", contactEmergency: "a", contactDisputes: "b", contactLostMaterials: "c", launchMode: "SELF",
     });
     if (!v.ok) throw new Error(JSON.stringify(v.errors));
@@ -122,7 +122,7 @@ const check = (l: string, c: unknown, d?: unknown) => { if (c) console.log(`PASS
   check("staff see each slot's seats and who holds them", !!first && first.facts.taken === 2 && first.shifts.length === 2 && first.shifts.every((x) => !!x.engagement.worker.displayName), first);
   check("staff of another organization see nothing", (await loadJobSlots("00000000-0000-0000-0000-0000000000ff", job.id, now)).length === 0);
   const mine = await loadWorkerSlots(winner, now);
-  check("the worker sees the job's slots and which seat is theirs", mine.length === 3 && !!mine.find((s) => s.id === slotId)?.myShiftId && mine.every((s) => !("shifts" in s)), mine);
+  check("the worker sees the job's open slots (not the closed one) and which seat is theirs", mine.length === 2 && !mine.some((s) => s.id === s3Id) && !!mine.find((s) => s.id === slotId)?.myShiftId && mine.every((s) => !("shifts" in s)), mine);
 
   // --- Closed accounts ---
   const s4 = await postSlot(owner, job.id, form(9, 15, 19, "3"), now);
@@ -133,6 +133,47 @@ const check = (l: string, c: unknown, d?: unknown) => { if (c) console.log(`PASS
   const reclaim = await claimSlot({ workerId: W[2], profileId: W[2] }, s4Id, now);
   const staffPlace = await assignToSlot(owner, s4Id, eng[2], now);
   check("closing the account gives the seat back; a closed account can't take or be given one", pre.ok && closedAcct.ok && afterAcct === 0 && !reclaim.ok && !staffPlace.ok, { pre, closedAcct, afterAcct, reclaim, staffPlace });
+
+  // --- A rush: 20 hired workers at once for 3 seats ---
+  const crowd = await Promise.all(Array.from({ length: 20 }, async (_, i) => {
+    const id = `00000000-0000-0000-0000-0000000005${String(i).padStart(2, "0")}`;
+    await p.profile.create({ data: { id, role: "WORKER" } });
+    await p.worker.create({ data: { id, profileId: id, displayName: `Crowd ${i}` } });
+    const h = await claimJob(id, id, job.id);
+    return { id, ok: h.ok };
+  }));
+  const rush = await postSlot(owner, job.id, form(12, 15, 19, "3"), now);
+  const rushId = rush.ok ? rush.slotId : "";
+  const rushResults = await Promise.all(crowd.map((c) => claimSlot({ workerId: c.id, profileId: c.id }, rushId, now)));
+  const rushHeld = await p.shift.count({ where: { slotId: rushId, status: { not: "CANCELLED" } } });
+  check("20 at once for 3 seats: exactly 3 get one, and everyone else is told in words (never an error page)", crowd.every((c) => c.ok) && rushHeld === 3 && rushResults.filter((r) => r.ok).length === 3 && rushResults.filter((r) => !r.ok).every((r) => !r.ok && /seat on this shift is taken|signing up right now/.test(r.reason)), { rushHeld, rushResults: rushResults.filter((r) => !r.ok).map((r) => !r.ok && r.reason) });
+
+  // --- The database backstop: one live seat per engagement per slot ---
+  const seatShift = await p.shift.findFirst({ where: { slotId: rushId, status: { not: "CANCELLED" } } });
+  let dupRefused = false;
+  try {
+    if (seatShift) await p.shift.create({ data: { engagementId: seatShift.engagementId, slotId: rushId, startsAt: seatShift.startsAt, endsAt: seatShift.endsAt } });
+  } catch { dupRefused = true; }
+  check("the database refuses a second live seat for the same engagement on one slot", dupRefused);
+
+  // --- A supervisor who left isn't copied onto new seats ---
+  const supSlot = await postSlot(owner, job.id, { ...form(14, 15, 19, "3"), supervisorId: SUP }, now);
+  await p.profile.update({ where: { id: SUP }, data: { orgId: null, role: "WORKER" } });
+  const supClaim = supSlot.ok ? await claimSlot({ workerId: crowd[0].id, profileId: crowd[0].id }, supSlot.slotId, now) : null;
+  const supRow = supClaim?.ok ? await p.shift.findUnique({ where: { id: supClaim.shiftId } }) : null;
+  check("a seat taken after the slot's supervisor left the organization gets no supervisor", !!supRow && supRow.supervisorId === null, { supSlot, supClaim, supRow });
+
+  // --- What the worker's list says up front ---
+  const listed = await loadWorkerSlots(crowd[0].id, now);
+  const rushSlot = listed.find((s) => s.id === rushId);
+  check("closed slots aren't offered to workers; a full one shows as full", !listed.some((s) => s.id === s3Id) && rushSlot?.state === "full", listed.map((s) => [s.id, s.state]));
+  const overlapSlot = await postSlot(owner, job.id, form(14, 16, 18, "3"), now);
+  const listed2 = await loadWorkerSlots(crowd[0].id, now);
+  check("a slot overlapping a shift the worker already has says so instead of offering a seat", overlapSlot.ok && listed2.find((s) => s.id === overlapSlot.slotId)?.blocked === "You already have a shift then.", listed2.map((s) => [s.id, s.blocked]));
+  await p.jurisdictionProfile.update({ where: { id: seeded.jurisdictionId }, data: { isCurrent: false } });
+  const listed3 = await loadWorkerSlots(crowd[1].id, now);
+  await p.jurisdictionProfile.update({ where: { id: seeded.jurisdictionId }, data: { isCurrent: true } });
+  check("…and a frozen jurisdiction says shifts are paused", listed3.length > 0 && listed3.every((s) => /paused/.test(s.blocked ?? "")), listed3.map((s) => s.blocked));
 
   await p.$disconnect();
   process.exit(fails ? 1 : 0);

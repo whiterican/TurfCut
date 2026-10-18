@@ -8,7 +8,8 @@
 --      Times and place are fixed once posted; only the seats and the status
 --      change. Server-only (RLS on, no policies, no grants).
 --   2. Shift.slotId: the slot a shift took a seat on, if any. Existing
---      shifts keep NULL.
+--      shifts keep NULL. A partial unique index allows one live seat per
+--      engagement per slot.
 
 BEGIN;
 -- Don't queue the app behind a long transaction: after 5 seconds of waiting
@@ -63,6 +64,9 @@ END $$;
 
 ALTER TABLE "public"."Shift" ADD COLUMN IF NOT EXISTS "slotId" UUID;
 CREATE INDEX IF NOT EXISTS "Shift_slotId_idx" ON "public"."Shift"("slotId");
+-- A backstop under the app's locks: one live seat per engagement per slot.
+-- (Not in schema.prisma, which can't express a partial index.)
+CREATE UNIQUE INDEX IF NOT EXISTS "Shift_slot_seat_key" ON "public"."Shift"("slotId", "engagementId") WHERE "slotId" IS NOT NULL AND "status" <> 'CANCELLED';
 DO $$ BEGIN
   ALTER TABLE "public"."Shift" ADD CONSTRAINT "Shift_slotId_fkey" FOREIGN KEY ("slotId") REFERENCES "public"."ShiftSlot"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;

@@ -16,6 +16,7 @@ export interface OpenShiftItem {
   notes: string | null;
   facts: Omit<SlotFacts, "startsAt" | "endsAt">;
   state: SlotState;
+  blocked: string | null;
 }
 
 const noop = () => () => {};
@@ -56,9 +57,19 @@ export function OpenShiftList({ items, availability }: { items: OpenShiftItem[];
               </div>
               <span className={b.badge}>{b.label}</span>
             </div>
-            {s.state === "open" && (
-              <ActionButton action={claimSlotAction} fields={{ slotId: s.id }} label="Take a seat" pendingLabel="Taking it…" variant="btn-primary btn-sm" />
-            )}
+            {s.state === "open" &&
+              (s.blocked ? (
+                <p className="text-muted-sm">{s.blocked}</p>
+              ) : (
+                <ActionButton
+                  action={claimSlotAction}
+                  fields={{ slotId: s.id }}
+                  label="Take a seat"
+                  pendingLabel="Taking it…"
+                  variant="btn-primary btn-sm"
+                  ariaLabel={`Take a seat: ${s.job.title}, ${s.startsAt.toLocaleString("en-US", { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", ...(zone ? {} : { timeZone: "UTC" }) })}`}
+                />
+              ))}
           </li>
         );
       })}

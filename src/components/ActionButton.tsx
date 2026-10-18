@@ -16,6 +16,7 @@ export function ActionButton({
   icon,
   children,
   confirm,
+  ariaLabel,
 }: {
   action: (prev: ActionState, fd: FormData) => Promise<ActionState>;
   fields: Record<string, string>;
@@ -31,6 +32,8 @@ export function ActionButton({
    * and a second button that confirms.
    */
   confirm?: { text: string; label: string };
+  /** A fuller name for the button when the visible label repeats down a list. */
+  ariaLabel?: string;
 }) {
   const [state, formAction, pending] = useActionState(action, initial);
   // A disabled confirm step is just a disabled button: there's nothing to open.
@@ -58,7 +61,7 @@ export function ActionButton({
       {Object.entries(fields).map(([k, v]) => <input key={k} type="hidden" name={k} value={v} />)}
       <div className="flex flex-wrap items-end gap-3">
         {children}
-        <button className={variant} disabled={disabled || pending}>
+        <button className={variant} disabled={disabled || pending} aria-label={ariaLabel}>
           {icon}
           {pending ? (pendingLabel ?? "Working…") : label}
         </button>

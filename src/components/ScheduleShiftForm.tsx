@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { schedule, type ScheduleState } from "@/app/shifts/actions";
+import { postSlotAction, schedule, type ScheduleState } from "@/app/shifts/actions";
 import { TurfMap } from "@/components/TurfMap";
 import type { JobLaunch } from "@/lib/job-launch";
 
@@ -17,14 +17,18 @@ export function ScheduleShiftForm({
   workers,
   supervisors,
   launch,
+  variant = "shift",
 }: {
   jobId: string;
   workers: Array<{ engagementId: string; name: string }>;
   supervisors: Array<{ id: string; label: string }>;
   /** How the job's days start (C4.2): its staging points to pick from, or self-launch. */
   launch: JobLaunch;
+  /** "slot" posts an open shift with seats for hired workers to take (M8.2) instead of scheduling one worker. */
+  variant?: "shift" | "slot";
 }) {
-  const [state, action, pending] = useActionState(schedule, initial);
+  const slot = variant === "slot";
+  const [state, action, pending] = useActionState(slot ? postSlotAction : schedule, initial);
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");
   // One of the job's points fills the staging fields; "elsewhere" leaves the map to place it.
@@ -42,13 +46,28 @@ export function ScheduleShiftForm({
       <input type="hidden" name="startsAt" value={toIso(start)} />
       <input type="hidden" name="endsAt" value={toIso(end)} />
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <label className="min-w-0 space-y-1.5 sm:col-span-2">
-          <span className="label">Worker</span>
-          <select name="engagementId" className="field" required defaultValue="">
-            <option value="" disabled>Choose a hired worker…</option>
-            {workers.map((w) => <option key={w.engagementId} value={w.engagementId}>{w.name}</option>)}
-          </select>
-        </label>
+        {slot ? (
+          <>
+            <label className="min-w-0 space-y-1.5">
+              <span className="label">Seats</span>
+              <input name="headcount" type="number" inputMode="numeric" min={1} max={200} step={1} className="field" required defaultValue="4" />
+              {err("headcount")}
+            </label>
+            <label className="min-w-0 space-y-1.5 sm:col-span-2">
+              <span className="label">Notes for the crew <span className="text-hint">(optional)</span></span>
+              <textarea name="notes" className="field" rows={2} maxLength={500} placeholder="Bring water; we'll pair up at the table." />
+              {err("notes")}
+            </label>
+          </>
+        ) : (
+          <label className="min-w-0 space-y-1.5 sm:col-span-2">
+            <span className="label">Worker</span>
+            <select name="engagementId" className="field" required defaultValue="">
+              <option value="" disabled>Choose a hired worker…</option>
+              {workers.map((w) => <option key={w.engagementId} value={w.engagementId}>{w.name}</option>)}
+            </select>
+          </label>
+        )}
         <label className="min-w-0 space-y-1.5">
           <span className="label">Starts</span>
           <input type="datetime-local" className="field" required value={start} onChange={(e) => setStart(e.target.value)} />
@@ -101,7 +120,7 @@ export function ScheduleShiftForm({
         {err("stagingLat")}
       </div>
       <div className="flex flex-wrap items-center gap-3">
-        <button className="btn-primary" disabled={pending}>{pending ? "Scheduling…" : "Schedule shift"}</button>
+        <button className="btn-primary" disabled={pending}>{slot ? (pending ? "Posting…" : "Post open shift") : pending ? "Scheduling…" : "Schedule shift"}</button>
         {state.message && <p role="status" className={state.ok ? "text-success-msg" : "text-danger-msg"}>{state.message}</p>}
       </div>
     </form>

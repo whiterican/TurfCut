@@ -5,6 +5,7 @@ import { requireRole } from "@/lib/auth";
 import { FIELD_ROLES, SCHEDULING_ROLES } from "@/lib/access";
 import { requireWorker } from "@/lib/worker-session";
 import { formToObject } from "@/lib/jobs";
+import { assignToSlot, claimSlot, closeSlot, postSlot, setSlotSeats } from "@/lib/shift-slots-data";
 import { scheduleShift, supervisorCorrection, supervisorShiftAction, workerShiftAction, workerTurfAction } from "@/lib/field-day-data";
 import { ENTERABLE, type CorrectionAction, type EnterableType, type SupervisorAction, type TurfAction } from "@/lib/field-day";
 import type { ActionState } from "@/app/jobs/actions";
@@ -30,6 +31,62 @@ export async function schedule(_prev: ScheduleState, fd: FormData): Promise<Sche
   const r = await scheduleShift({ profileId: s.userId, orgId: s.orgId }, str(fd, "engagementId"), formToObject(fd));
   revalidatePath(`/jobs/${str(fd, "jobId")}`);
   return r.ok ? { ok: true, message: "Shift scheduled.", errors: {} } : { ok: false, message: r.reason, errors: r.errors ?? {} };
+}
+
+// ---------------------------------------------------------------------------
+// Open shifts (M8.2)
+// ---------------------------------------------------------------------------
+
+const slotsChanged = (jobId: string) => {
+  revalidatePath(`/jobs/${jobId}`);
+  revalidatePath("/shifts");
+  revalidatePath("/dashboard");
+};
+
+export async function postSlotAction(_prev: ScheduleState, fd: FormData): Promise<ScheduleState> {
+  const s = await requireRole(SCHEDULING_ROLES);
+  if (!s.orgId) return { ok: false, message: "No organization on this account.", errors: {} };
+  const r = await postSlot({ profileId: s.userId, orgId: s.orgId }, str(fd, "jobId"), formToObject(fd));
+  slotsChanged(str(fd, "jobId"));
+  return r.ok ? { ok: true, message: "Open shift posted. Hired workers can take a seat now.", errors: {} } : { ok: false, message: r.reason, errors: r.errors ?? {} };
+}
+
+async function staff() {
+  const s = await requireRole(SCHEDULING_ROLES);
+  return s.orgId ? { profileId: s.userId, orgId: s.orgId } : null;
+}
+
+export async function slotSeatsAction(_prev: ActionState, fd: FormData): Promise<ActionState> {
+  const actor = await staff();
+  if (!actor) return { ok: false, message: "No organization on this account." };
+  const r = await setSlotSeats(actor, str(fd, "slotId"), str(fd, "headcount"));
+  slotsChanged(str(fd, "jobId"));
+  return r.ok ? { ok: true, message: "Seats updated." } : { ok: false, message: r.reason };
+}
+
+export async function closeSlotAction(_prev: ActionState, fd: FormData): Promise<ActionState> {
+  const actor = await staff();
+  if (!actor) return { ok: false, message: "No organization on this account." };
+  const r = await closeSlot(actor, str(fd, "slotId"));
+  slotsChanged(str(fd, "jobId"));
+  return r.ok ? { ok: true, message: "Closed to new sign-ups. Seats already taken stay scheduled." } : { ok: false, message: r.reason };
+}
+
+export async function assignSlotAction(_prev: ActionState, fd: FormData): Promise<ActionState> {
+  const actor = await staff();
+  if (!actor) return { ok: false, message: "No organization on this account." };
+  const r = await assignToSlot(actor, str(fd, "slotId"), str(fd, "engagementId"));
+  slotsChanged(str(fd, "jobId"));
+  return r.ok ? { ok: true, message: "Placed. The shift is on their calendar." } : { ok: false, message: r.reason };
+}
+
+/** A hired worker takes a seat: final at once, given back by cancelling the shift. */
+export async function claimSlotAction(_prev: ActionState, fd: FormData): Promise<ActionState> {
+  const { workerId, userId } = await requireWorker();
+  const r = await claimSlot({ workerId, profileId: userId }, str(fd, "slotId"));
+  revalidatePath("/shifts");
+  revalidatePath("/dashboard");
+  return r.ok ? { ok: true, message: "It's yours. The shift is on your calendar." } : { ok: false, message: r.reason };
 }
 
 /**

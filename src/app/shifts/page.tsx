@@ -5,12 +5,17 @@ import { facts, loadWorkerShifts } from "@/lib/field-day-data";
 import { LocalTime } from "@/components/LocalTime";
 import { OfflineBrief } from "@/components/OfflineBrief";
 import { briefPaths } from "@/lib/offline-brief-data";
+import { loadWorkerSlots } from "@/lib/shift-slots-data";
+import { loadAvailability } from "@/lib/availability-data";
+import { OpenShiftList } from "@/components/OpenShiftList";
 
 /** Every shift across every campaign — the multi-campaign calendar. */
 export default async function MyShiftsPage() {
   const { workerId, userId } = await requireWorker();
   const now = new Date();
-  const [shifts, brief] = await Promise.all([loadWorkerShifts(workerId, now), briefPaths(workerId, now)]);
+  const [shifts, brief, slots, avail] = await Promise.all([loadWorkerShifts(workerId, now), briefPaths(workerId, now), loadWorkerSlots(workerId, now), loadAvailability(workerId)]);
+  // Seats already taken show as shifts above; the list offers the rest.
+  const open = slots.filter((s) => !s.myShiftId && s.state !== "ended");
   const upcoming = shifts.filter((s) => s.endsAt >= now);
   const recent = shifts.filter((s) => s.endsAt < now).reverse();
 
@@ -59,6 +64,25 @@ export default async function MyShiftsPage() {
         </div>
       ) : (
         list(upcoming)
+      )}
+      {open.length > 0 && (
+        <section className="section">
+          <h2 className="section-title">Open shifts</h2>
+          <p className="text-muted-sm">On jobs you&apos;re hired for. First come, first served: a seat you take is yours at once and joins your shifts above (cancel it there if you can&apos;t make it, and the seat goes back). Shifts that fit the availability you set come first.</p>
+          <OpenShiftList
+            availability={avail.availability}
+            items={open.map((s) => ({
+              id: s.id,
+              job: s.job,
+              startsAt: s.startsAt.toISOString(),
+              endsAt: s.endsAt.toISOString(),
+              stagingLocation: s.stagingLocation,
+              notes: s.notes,
+              facts: { status: s.facts.status, headcount: s.facts.headcount, taken: s.facts.taken },
+              state: s.state,
+            }))}
+          />
+        </section>
       )}
       {recent.length > 0 && (
         <section className="section">

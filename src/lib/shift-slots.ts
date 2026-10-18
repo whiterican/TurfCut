@@ -59,7 +59,7 @@ export function slotState(s: SlotFacts, now: Date): SlotState {
 export function slotStateLabel(st: SlotState, left: number): { label: string; badge: string } {
   switch (st) {
     case "open":
-      return { label: `${left} ${left === 1 ? "seat" : "seats"} left`, badge: "badge-success" };
+      return { label: `${left} ${left === 1 ? "seat" : "seats"} left`, badge: "badge-accent" };
     case "full":
       return { label: "Full", badge: "badge-neutral" };
     case "closed":

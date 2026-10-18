@@ -118,6 +118,9 @@ exercise the locks, triggers and data rules, not the RLS policies.
    - Then `prisma/s4-briefing.sql` (S4: supporting facts, scripts,
      questions and guides). Also safe to run again. (Applied to the live
      project on Oct 12.)
+   - Then `prisma/s2-notices.sql` (S2.4: notices of followed campaigns'
+     posts) and `prisma/m8-slots.sql` (M8.2: open shifts), each before
+     deploying its code. Both are safe to run again.
    - Storage → New bucket **`campaign-media`**, set to **public**, with a
      file size limit of **2 MB** and allowed MIME types **image/png,
      image/jpeg**. Campaign avatars and header images go there. The app
@@ -1118,6 +1121,40 @@ Built in C3.6b (see the C3 scope below). Approved as recommended by review:
   C3 code; it is safe to run again, so a second run after the deploy fills
   in any engagement made in between. Acceptance:
   `tests/acceptance/c3-hiring.ts`.
+
+## M8 scope — open shifts (slice 2: shift slots)
+
+Availability (slice 1) shipped with C2 (`WorkerAvailability`).
+
+- **Posting.** On a job's page, owners, recruiters and supervisors (the
+  scheduling roles) post an open shift: times, seats (1–200), staging point,
+  supervisor, turf and notes for the crew. Times and place are fixed once
+  posted; to change them, close it and post another. Seats can grow, and
+  can shrink no lower than the seats already taken. Posting obeys the
+  jurisdiction hard stop: a superseded, unapproved or expired rule profile
+  freezes it, with the reason, as it freezes scheduling.
+- **Taking a seat.** People hired on the job see its open shifts under
+  Shifts and take a seat, first come, first served. A seat is final at
+  once and becomes an ordinary shift on their calendar, with the slot's
+  details. It runs under the worker's lock and then the slot's, so two
+  people can't take the last seat and no one double-books across
+  campaigns (the usual overlap check). A worker gives a seat back by
+  cancelling the shift, under the usual cancellation rules; the seat
+  frees up. Closing an account gives back its future seats.
+- **Staff.** Close a slot to sign-ups (seats already taken stay
+  scheduled), change its seats, or place a hired worker by hand, even on
+  a closed slot. Each step is audited (`shift_slot.*`, and
+  `shift.scheduled` with `by: WORKER | STAFF`).
+- **Availability only orders the worker's own list.** Shifts that fit the
+  availability they set come first, labelled in plain words ("Fits your
+  availability"), worked out in their own browser and time zone
+  (`src/lib/shift-slots.ts`). It is never a score, never shown to staff
+  here, and never decides who gets a seat.
+- **Data.** `ShiftSlot` and `Shift.slotId` (`prisma/m8-slots.sql`).
+  Server-only: RLS on, no policies, no grants
+  (`src/lib/migration-grants.test.ts`). Seats taken are the slot's shifts
+  that aren't cancelled; nothing is counted twice.
+- **Acceptance:** `tests/acceptance/m8-slots.ts` (`run.sh m8`).
 
 ## M7 scope — field truth and leaving cleanly
 

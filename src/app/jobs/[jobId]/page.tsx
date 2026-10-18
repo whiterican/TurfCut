@@ -28,6 +28,8 @@ import { shiftState, shiftStatusLabel } from "@/lib/field-day";
 import { listSupervisors } from "@/lib/field-day-data";
 import { LocalTime } from "@/components/LocalTime";
 import { ScheduleShiftForm } from "@/components/ScheduleShiftForm";
+import { OpenShifts } from "@/components/staff/OpenShifts";
+import { loadJobSlots } from "@/lib/shift-slots-data";
 import { DateRangeChip } from "@/components/DateRangeChip";
 import { followState } from "@/lib/campaign-follow-data";
 import { CampaignCard } from "@/components/campaign/CampaignCard";
@@ -527,7 +529,7 @@ async function OrgPanel({ job, canHire, canSchedule, userId }: { job: JobWithRef
 }
 
 async function ShiftsSection({ job, userId }: { job: JobWithRefs; userId: string }) {
-  const [shifts, hired, supervisors] = await Promise.all([
+  const [shifts, hired, supervisors, slots] = await Promise.all([
     db().shift.findMany({ where: { engagement: { jobId: job.id } }, include: SHIFT_LIST, orderBy: { startsAt: "asc" } }),
     db().engagement.findMany({
       where: { jobId: job.id, status: { in: ["ACTIVE", "CLAIMED"] }, worker: { closedAt: null } },
@@ -535,7 +537,9 @@ async function ShiftsSection({ job, userId }: { job: JobWithRefs; userId: string
       orderBy: { createdAt: "asc" },
     }),
     listSupervisors(job.orgId),
+    loadJobSlots(job.orgId, job.id),
   ]);
+  const hiredList = hired.map((e) => ({ engagementId: e.id, name: e.worker.displayName }));
   const labels = supervisors.map((p) => ({
     id: p.id,
     label: p.id === userId ? "You" : `${p.role === "OWNER" ? "Owner" : "Supervisor"} · ${p.id.slice(0, 8)}`,
@@ -549,10 +553,19 @@ async function ShiftsSection({ job, userId }: { job: JobWithRefs; userId: string
         <p className="text-muted-sm">No shifts yet.</p>
       )}
       {hired.length > 0 ? (
-        <ScheduleShiftForm jobId={job.id} workers={hired.map((e) => ({ engagementId: e.id, name: e.worker.displayName }))} supervisors={labels} launch={readLaunch(job.launch)} />
+        <ScheduleShiftForm jobId={job.id} workers={hiredList} supervisors={labels} launch={readLaunch(job.launch)} />
       ) : (
         <p className="text-hint">Accept a worker first — only hired workers can be scheduled.</p>
       )}
+      <h3 className="pt-4 text-base font-bold text-fg">Open shifts</h3>
+      <p className="text-muted-sm">Post a shift with a number of seats; people hired on this job take one, first come, first served. Each seat becomes a shift on their calendar.</p>
+      <OpenShifts jobId={job.id} slots={slots} hired={hiredList} />
+      <details className="group">
+        <summary className="btn-secondary cursor-pointer list-none [&::-webkit-details-marker]:hidden">Post an open shift</summary>
+        <div className="mt-3">
+          <ScheduleShiftForm jobId={job.id} workers={[]} supervisors={labels} launch={readLaunch(job.launch)} variant="slot" />
+        </div>
+      </details>
     </section>
   );
 }

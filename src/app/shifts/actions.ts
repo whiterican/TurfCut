@@ -84,7 +84,9 @@ export async function assignSlotAction(_prev: ActionState, fd: FormData): Promis
 export async function claimSlotAction(_prev: ActionState, fd: FormData): Promise<ActionState> {
   const { workerId, userId } = await requireWorker();
   const r = await claimSlot({ workerId, profileId: userId }, str(fd, "slotId"));
+  // A refusal ("full", "closed") refreshes the list too, so the seat counts it shows catch up.
   if (r.ok) slotsChanged(r.jobId);
+  else revalidatePath("/shifts");
   return r.ok ? { ok: true, message: "It's yours. The shift is on your calendar." } : { ok: false, message: r.reason };
 }
 

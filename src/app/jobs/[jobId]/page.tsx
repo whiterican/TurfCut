@@ -31,7 +31,7 @@ import { ScheduleShiftForm } from "@/components/ScheduleShiftForm";
 import { OpenShifts } from "@/components/staff/OpenShifts";
 import { loadJobSlots, seatsOnOffer } from "@/lib/shift-slots-data";
 import { loadSharedAvailabilities } from "@/lib/availability-data";
-import { orgAvailabilityView } from "@/lib/availability";
+import { orgAvailabilityView, withoutPastDates } from "@/lib/availability";
 import { DateRangeChip } from "@/components/DateRangeChip";
 import { followState } from "@/lib/campaign-follow-data";
 import { CampaignCard } from "@/components/campaign/CampaignCard";
@@ -398,7 +398,7 @@ function shiftRow(
 async function WorkerShifts({ engagementId, workerId, jobId }: { engagementId: string; workerId: string; jobId: string }) {
   const [shifts, offer] = await Promise.all([
     db().shift.findMany({ where: { engagementId }, include: SHIFT_LIST, orderBy: { startsAt: "asc" } }),
-    seatsOnOffer(workerId),
+    seatsOnOffer(workerId, new Date(), jobId),
   ]);
   const open = offer.get(jobId) ?? 0;
   const seats = open > 0 && (
@@ -561,7 +561,9 @@ async function ShiftsSection({ job, userId }: { job: JobWithRefs; userId: string
   const today = new Date().toISOString().slice(0, 10);
   const schedulable = hired.map((e) => {
     const a = shared.get(e.worker.id) ?? "withheld";
-    return { engagementId: e.id, name: e.worker.displayName, availability: a === "withheld" ? null : a, view: a === "withheld" ? ("withheld" as const) : orgAvailabilityView(a, true, today) };
+    // The browser gets only what the outside-hours hint needs: the usual week and dates still to come (the note shows in the statement).
+    const hint = a === "withheld" ? null : { ...withoutPastDates(a, today), note: null };
+    return { engagementId: e.id, name: e.worker.displayName, availability: hint, view: a === "withheld" ? ("withheld" as const) : orgAvailabilityView(a, true, today) };
   });
   const labels = supervisors.map((p) => ({
     id: p.id,

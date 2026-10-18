@@ -172,6 +172,8 @@ const check = (l: string, c: unknown, d?: unknown) => { if (c) console.log(`PASS
   check("a slot overlapping a shift the worker already has says so instead of offering a seat", overlapSlot.ok && listed2.find((s) => s.id === overlapSlot.slotId)?.blocked === "You already have a shift then.", listed2.map((s) => [s.id, s.blocked]));
   const offer = await seatsOnOffer(crowd[0].id, now);
   const expected = listed2.filter((x) => x.state === "open" && !x.myShiftId && !x.blocked).length;
+  const offerOne = await seatsOnOffer(crowd[0].id, now, job.id);
+  check("…and the job page's count, loaded for that job alone, agrees", offerOne.get(job.id) === offer.get(job.id) && offerOne.size <= 1, [...offerOne]);
   check("Today's count is the open shifts the worker could take now (not full, blocked or already theirs)", (offer.get(job.id) ?? 0) === expected && expected < listed2.length, { offer: [...offer], expected, n: listed2.length });
   await p.jurisdictionProfile.update({ where: { id: seeded.jurisdictionId }, data: { isCurrent: false } });
   const listed3 = await loadWorkerSlots(crowd[1].id, now);

@@ -254,10 +254,10 @@ export async function loadJobSlots(orgId: string, jobId: string, now = new Date(
  * ended, with whether they hold a seat. Fit to their availability is worked
  * out in their browser, in their own time zone (components/OpenShiftList).
  */
-export async function loadWorkerSlots(workerId: string, now = new Date()) {
+export async function loadWorkerSlots(workerId: string, now = new Date(), jobId?: string) {
   const slots = await db().shiftSlot.findMany({
     // Closed slots take no one, so they aren't offered.
-    where: { endsAt: { gt: now }, status: "OPEN", job: { status: { in: [...WORKING_JOB] }, engagements: { some: { workerId, status: { in: [...HIRED] } } } } },
+    where: { endsAt: { gt: now }, status: "OPEN", ...(jobId ? { jobId } : {}), job: { status: { in: [...WORKING_JOB] }, engagements: { some: { workerId, status: { in: [...HIRED] } } } } },
     orderBy: { startsAt: "asc" },
     take: 200,
     include: {
@@ -298,9 +298,9 @@ export async function loadWorkerSlots(workerId: string, now = new Date()) {
 export type WorkerSlot = Awaited<ReturnType<typeof loadWorkerSlots>>[number];
 
 /** Open shifts the worker could take a seat on now, per job (for Today and the job page). */
-export async function seatsOnOffer(workerId: string, now = new Date()): Promise<Map<string, number>> {
+export async function seatsOnOffer(workerId: string, now = new Date(), jobId?: string): Promise<Map<string, number>> {
   const out = new Map<string, number>();
-  for (const s of await loadWorkerSlots(workerId, now)) {
+  for (const s of await loadWorkerSlots(workerId, now, jobId)) {
     if (s.state === "open" && !s.myShiftId && !s.blocked) out.set(s.job.id, (out.get(s.job.id) ?? 0) + 1);
   }
   return out;

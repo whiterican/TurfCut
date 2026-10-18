@@ -27,6 +27,7 @@ import { FEED_SEEN_COOKIE, feedBadge, feedSeenAt } from "@/lib/campaign-follow";
 import { mediaUrl } from "@/lib/campaign-media";
 import { loadLatestPreference } from "@/lib/political-fit-data";
 import type { VisibilityMode } from "@/lib/political-fit";
+import { seatsOnOffer } from "@/lib/shift-slots-data";
 
 const ROLE_LABELS: Record<string, string> = {
   WORKER: "Field worker",
@@ -100,6 +101,21 @@ async function WorkerHero({ workerId }: { workerId: string }) {
       <p className="eyebrow">Your next job · starts {day(next.job.startsAt)}</p>
       <p className="hero-title">{next.job.title}</p>
       <p className="text-sm font-semibold">{payText(next.job.compensationMethod, next.job.payRateCents)}</p>
+    </Link>
+  );
+}
+
+/** Open shifts on jobs the worker is hired on (M8.2): a pointer to Shifts, not a list. */
+async function OpenSeats({ workerId }: { workerId: string }) {
+  const n = [...(await seatsOnOffer(workerId)).values()].reduce((a, b) => a + b, 0);
+  if (!n) return null;
+  return (
+    <Link transitionTypes={["nav-forward"]} href="/shifts#open-shifts" className="card flex items-center justify-between gap-3 transition hover:border-[var(--border-strong)]">
+      <span className="min-w-0">
+        <span className="block font-bold text-fg">{n === 1 ? "1 open shift" : `${n} open shifts`} on your jobs</span>
+        <span className="text-muted-sm block">First come, first served. Take a seat under Shifts.</span>
+      </span>
+      <span className="badge-accent">Open</span>
     </Link>
   );
 }
@@ -329,6 +345,7 @@ export default async function DashboardPage() {
 
       {isWorker && <WorkerBrief workerId={session.workerId!} userId={session.userId} />}
       {isWorker && <WorkerHero workerId={session.workerId!} />}
+      {isWorker && <OpenSeats workerId={session.workerId!} />}
       {isWorker && <FitReconfirm workerId={session.workerId!} />}
       {isWorker && <CredentialReminder workerId={session.workerId!} />}
       {isWorker && <SharingNote workerId={session.workerId!} />}

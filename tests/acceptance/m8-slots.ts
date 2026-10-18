@@ -5,7 +5,7 @@ import { validateJob } from "@/lib/jobs";
 import { claimJob } from "@/lib/engagements-data";
 import { scheduleShift, workerShiftAction } from "@/lib/field-day-data";
 import { closeAccount } from "@/lib/account-data";
-import { assignToSlot, claimSlot, closeSlot, loadJobSlots, loadWorkerSlots, postSlot, setSlotSeats } from "@/lib/shift-slots-data";
+import { assignToSlot, claimSlot, closeSlot, loadJobSlots, loadWorkerSlots, postSlot, seatsOnOffer, setSlotSeats } from "@/lib/shift-slots-data";
 
 const ORG = "00000000-0000-0000-0000-000000000001";
 const OWNER = "00000000-0000-0000-0000-0000000000aa";
@@ -170,6 +170,9 @@ const check = (l: string, c: unknown, d?: unknown) => { if (c) console.log(`PASS
   const overlapSlot = await postSlot(owner, job.id, form(14, 16, 18, "3"), now);
   const listed2 = await loadWorkerSlots(crowd[0].id, now);
   check("a slot overlapping a shift the worker already has says so instead of offering a seat", overlapSlot.ok && listed2.find((s) => s.id === overlapSlot.slotId)?.blocked === "You already have a shift then.", listed2.map((s) => [s.id, s.blocked]));
+  const offer = await seatsOnOffer(crowd[0].id, now);
+  const expected = listed2.filter((x) => x.state === "open" && !x.myShiftId && !x.blocked).length;
+  check("Today's count is the open shifts the worker could take now (not full, blocked or already theirs)", (offer.get(job.id) ?? 0) === expected && expected < listed2.length, { offer: [...offer], expected, n: listed2.length });
   await p.jurisdictionProfile.update({ where: { id: seeded.jurisdictionId }, data: { isCurrent: false } });
   const listed3 = await loadWorkerSlots(crowd[1].id, now);
   await p.jurisdictionProfile.update({ where: { id: seeded.jurisdictionId }, data: { isCurrent: true } });

@@ -29,7 +29,7 @@ import { listSupervisors } from "@/lib/field-day-data";
 import { LocalTime } from "@/components/LocalTime";
 import { ScheduleShiftForm } from "@/components/ScheduleShiftForm";
 import { OpenShifts } from "@/components/staff/OpenShifts";
-import { loadJobSlots } from "@/lib/shift-slots-data";
+import { loadJobSlots, seatsOnOffer } from "@/lib/shift-slots-data";
 import { DateRangeChip } from "@/components/DateRangeChip";
 import { followState } from "@/lib/campaign-follow-data";
 import { CampaignCard } from "@/components/campaign/CampaignCard";
@@ -225,7 +225,7 @@ async function WorkerPanel({
             <ActionButton action={withdrawApplication} fields={fields} label="Withdraw application" pendingLabel="Withdrawing…" variant="btn-ghost btn-sm" confirm={{ text: `Withdraw your application? ${final}`, label: "Yes, withdraw" }} />
           </div>
         )}
-        {(engagement.status === "ACTIVE" || engagement.status === "CLAIMED") && <WorkerShifts engagementId={engagement.id} />}
+        {(engagement.status === "ACTIVE" || engagement.status === "CLAIMED") && <WorkerShifts engagementId={engagement.id} workerId={workerId} jobId={job.id} />}
         <ChangeList jobId={job.id} viewer="worker" />
         <EngagementHistory events={facts.events} />
       </section>
@@ -393,15 +393,29 @@ function shiftRow(
   );
 }
 
-async function WorkerShifts({ engagementId }: { engagementId: string }) {
-  const shifts = await db().shift.findMany({ where: { engagementId }, include: SHIFT_LIST, orderBy: { startsAt: "asc" } });
+async function WorkerShifts({ engagementId, workerId, jobId }: { engagementId: string; workerId: string; jobId: string }) {
+  const [shifts, offer] = await Promise.all([
+    db().shift.findMany({ where: { engagementId }, include: SHIFT_LIST, orderBy: { startsAt: "asc" } }),
+    seatsOnOffer(workerId),
+  ]);
+  const open = offer.get(jobId) ?? 0;
+  const seats = open > 0 && (
+    <p className="text-sm">
+      <Link transitionTypes={["nav-forward"]} href="/shifts#open-shifts" className="link">{open === 1 ? "1 open shift" : `${open} open shifts`} on this job</Link>
+      <span className="text-muted"> · take a seat, first come, first served.</span>
+    </p>
+  );
   return shifts.length ? (
     <div className="space-y-2">
       <p className="text-sm font-semibold text-fg">Your shifts</p>
       <ShiftList shifts={shifts} showWorker={false} />
+      {seats}
     </div>
   ) : (
-    <p className="text-muted-sm">You&apos;re hired. The organization will schedule your shifts — they&apos;ll appear here and under Shifts.</p>
+    <div className="space-y-2">
+      <p className="text-muted-sm">You&apos;re hired. The organization will schedule your shifts or post open ones to take — they&apos;ll appear here and under Shifts.</p>
+      {seats}
+    </div>
   );
 }
 

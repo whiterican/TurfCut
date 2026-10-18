@@ -66,7 +66,7 @@ export default async function MyShiftsPage() {
         list(upcoming)
       )}
       {open.length > 0 && (
-        <section className="section">
+        <section className="section" id="open-shifts">
           <h2 className="section-title">Open shifts</h2>
           <p className="text-muted-sm">On jobs you&apos;re hired for. First come, first served: a seat you take is yours at once and joins your shifts above (cancel it there if you can&apos;t make it, and the seat goes back). Shifts that fit the availability you set come first.</p>
           <OpenShiftList

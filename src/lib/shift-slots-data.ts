@@ -296,3 +296,12 @@ export async function loadWorkerSlots(workerId: string, now = new Date()) {
 }
 
 export type WorkerSlot = Awaited<ReturnType<typeof loadWorkerSlots>>[number];
+
+/** Open shifts the worker could take a seat on now, per job (for Today and the job page). */
+export async function seatsOnOffer(workerId: string, now = new Date()): Promise<Map<string, number>> {
+  const out = new Map<string, number>();
+  for (const s of await loadWorkerSlots(workerId, now)) {
+    if (s.state === "open" && !s.myShiftId && !s.blocked) out.set(s.job.id, (out.get(s.job.id) ?? 0) + 1);
+  }
+  return out;
+}

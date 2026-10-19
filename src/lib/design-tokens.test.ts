@@ -55,7 +55,8 @@ const ratio = (a: RGB | string, b: RGB | string) => {
 };
 
 const PASTELS = ["accent", "sky", "coral", "butter"] as const;
-const SURFACES = ["bg", "surface", "surface-2", "field"] as const;
+// The page is a gradient from bg-light to bg-deep, so both ends count as surfaces too.
+const SURFACES = ["bg", "bg-light", "bg-deep", "surface", "surface-2", "field"] as const;
 
 describe.each([
   ["dark", dark],
@@ -115,24 +116,58 @@ describe.each([
 
   it("the tab bar's text is AAA on its translucent surface, over anything it floats above", () => {
     // Read the bar's opacity from the stylesheet, so lowering it is caught here.
-    const m = css.match(/\.tabbar \{[^}]*?background: color-mix\(in srgb, var\(--surface\) (\d+)%, transparent\)/);
+    const m = css.match(/\.tabbar \{[^}]*?background:[^;]*color-mix\(in srgb, var\(--surface\) (\d+)%, transparent\)/);
     expect(m, "the .tabbar background is a surface/transparent mix").not.toBeNull();
     const alpha = Number(m![1]) / 100;
     // Floating, it can sit over photos and the map too: black and white are the worst cases.
-    for (const under of [...SURFACES.map((s) => t[s]), "#000000", "#ffffff"]) {
+    // The current tab's lens is a translucent fill over the bar (html / html.dark --glass-active).
+    const active = themeBody(css, _name === "dark" ? "html.dark" : "html").match(/--glass-active:\s*rgb\((\d+) (\d+) (\d+) \/ ([\d.]+)\)/);
+    expect(active, "--glass-active is an rgb(r g b / a) fill").not.toBeNull();
+    const fill = `#${[1, 2, 3].map((i) => Number(active![i]).toString(16).padStart(2, "0")).join("")}`;
+    const fillAlpha = Number(active![4]);
+    // AAA over the app's own surfaces; AA over pure black or white (a photo, the map), where the bar rarely sits.
+    for (const [under, bar_min] of [...SURFACES.map((s) => [t[s], 7] as const), ["#000000", 4.5] as const, ["#ffffff", 4.5] as const]) {
       const bar = mix(t.surface, alpha, under);
-      expect(ratio(t.fg, bar)).toBeGreaterThanOrEqual(7); // tab labels (all in the text colour; the current tab is marked by its pill)
+      expect(ratio(t.fg, bar)).toBeGreaterThanOrEqual(bar_min); // tab labels (all in the text colour; the current tab is marked by its lens)
+      const lens = mix(fill, fillAlpha, `#${bar.map((v) => Math.round(v).toString(16).padStart(2, "0")).join("")}`);
+      expect(ratio(t.fg, lens)).toBeGreaterThanOrEqual(7); // the current tab's label over its lens (a dense fill)
     }
   });
 
-  it("glass surfaces (header, composer, sheet, map controls, table headers) keep their text readable over anything", () => {
-    // Read both glass mixes from the stylesheet, so lowering either is caught here.
+  it("cards are translucent slabs: every text colour on them stays what it is on the opaque surface, over every page tone", () => {
+    const m = css.match(/--card-bg: color-mix\(in srgb, var\(--surface\) (\d+)%, transparent\)/);
+    expect(m, "--card-bg is a surface/transparent mix").not.toBeNull();
+    const alpha = Number(m![1]) / 100;
+    for (const under of ["bg", "bg-light", "bg-deep"] as const) {
+      const card = mix(t.surface, alpha, t[under]);
+      expect(ratio(t.fg, card)).toBeGreaterThanOrEqual(7);
+      expect(ratio(t.muted, card)).toBeGreaterThanOrEqual(7);
+      expect(ratio(t.subtle, card)).toBeGreaterThanOrEqual(6);
+      expect(ratio(t.link, card)).toBeGreaterThanOrEqual(4.5);
+      expect(ratio(t.danger, card)).toBeGreaterThanOrEqual(4.5);
+    }
+    const h = css.match(/--hero-bg: color-mix\(in srgb, var\(--hero\) (\d+)%, transparent\)/);
+    expect(h, "--hero-bg is a hero/transparent mix").not.toBeNull();
+    for (const under of ["bg", "bg-light", "bg-deep"] as const) {
+      const hero = mix(t.hero, Number(h![1]) / 100, t[under]);
+      expect(ratio(t["hero-fg"], hero)).toBeGreaterThanOrEqual(7);
+      expect(ratio(t["hero-muted"], hero)).toBeGreaterThanOrEqual(7);
+    }
+  });
+
+  it("glass surfaces (header, orbs, composer, sheet, map controls, table headers) keep their text readable over anything", () => {
+    // Read every glass mix from the stylesheet, so lowering any of them is caught here.
     const g = css.match(/--glass-bg: color-mix\(in srgb, var\(--surface\) (\d+)%, transparent\)/);
     const d = css.match(/--glass-bg-dense: color-mix\(in srgb, var\(--surface-2\) (\d+)%, transparent\)/);
+    const h = css.match(/\.site-header \{[^}]*?background: color-mix\(in srgb, var\(--bg\) (\d+)%, transparent\)/);
     expect(g, "--glass-bg is a surface/transparent mix").not.toBeNull();
     expect(d, "--glass-bg-dense is a surface-2/transparent mix").not.toBeNull();
-    const [glass, dense] = [Number(g![1]) / 100, Number(d![1]) / 100];
+    expect(h, "the header is a bg/transparent mix").not.toBeNull();
+    const [glass, dense, header] = [Number(g![1]) / 100, Number(d![1]) / 100, Number(h![1]) / 100];
     for (const under of [...SURFACES.map((s) => t[s]), "#000000", "#ffffff"]) {
+      // The header band: the wordmark and the desktop links sit straight on it.
+      expect(ratio(t.fg, mix(t.bg, header, under))).toBeGreaterThanOrEqual(7);
+      expect(ratio(t.muted, mix(t.bg, header, under))).toBeGreaterThanOrEqual(4.5);
       const over = mix(t.surface, glass, under);
       expect(ratio(t.fg, over)).toBeGreaterThanOrEqual(7); // names, chips, zoom glyphs
       expect(ratio(t.muted, over)).toBeGreaterThanOrEqual(4.5); // small notes (the custody line, the map attribution)
@@ -245,9 +280,9 @@ describe("the Turfcut App Mockup palette (eggplant and lime)", () => {
     expect(dark.accent).toBe("#ccea96");
     expect(dark.solid).toBe("#3e4830"); // olive "verified" chip
   });
-  it("light mode uses the mockup's off-white page, green-black ink and lime accent", () => {
-    expect(light.bg).toBe("#eef0ea");
-    expect(light.fg).toBe("#181e1a");
+  it("light mode uses the glass mockup's cool grey page, near-black ink and lime accent", () => {
+    expect(light.bg).toBe("#e6e7eb");
+    expect(light.fg).toBe("#17181c");
     expect(light.accent).toBe("#ccea96");
     expect(light.solid).toBe("#281a3a"); // eggplant "done" badge
   });
@@ -268,7 +303,7 @@ describe("the Turfcut App Mockup palette (eggplant and lime)", () => {
       for (const [, name, value] of body.matchAll(/--([\w-]+):\s*([^;]+);/g)) {
         if (/^#[0-9a-fA-F]{6}$/.test(value.trim())) expect(parsed[name]).toBe(value.trim());
         else if (name === "hero-border") expect(value.trim()).toBe("transparent");
-        else expect(name).toBe("shadow"); // the only non-colour token
+        else expect(["shadow", "shadow-depth"]).toContain(name); // the only non-colour tokens
       }
     }
   });

@@ -497,8 +497,11 @@ body {
     @apply block text-sm font-semibold text-fg;
   }
   .field {
-    @apply block w-full min-h-11 rounded-xl border border-border px-3 py-2 text-base text-fg sm:text-sm;
+    @apply block w-full min-h-11 rounded-xl border px-3 py-2 text-base text-fg sm:text-sm;
     background: var(--field);
+    /* The same edge as the glass bar, and a faint bevel: the field is set into the surface, not laid on it. */
+    border-color: var(--glass-border);
+    box-shadow: var(--card-edge);
   }
   .field::placeholder {
     color: var(--subtle);
@@ -506,7 +509,7 @@ body {
   .field:focus {
     @apply outline-none;
     border-color: var(--focus);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus) 30%, transparent);
+    box-shadow: var(--card-edge), 0 0 0 3px color-mix(in srgb, var(--focus) 30%, transparent);
   }
   .field-error {
     @apply mt-1 text-sm font-semibold;
@@ -1189,8 +1192,8 @@ summary.list-none::-webkit-details-marker {
 .site-header .glass-orb-phone {
   display: grid;
   place-items: center;
-  width: 2.625rem;
-  height: 2.625rem;
+  width: 2.5rem;
+  height: 2.5rem;
   padding: 0;
   border-radius: 9999px;
   border: 1px solid var(--glass-border);

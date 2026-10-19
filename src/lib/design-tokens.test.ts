@@ -125,6 +125,23 @@ describe.each([
     }
   });
 
+  it("glass surfaces (header, composer, sheet, map controls, table headers) keep their text readable over anything", () => {
+    // Read both glass mixes from the stylesheet, so lowering either is caught here.
+    const g = css.match(/--glass-bg: color-mix\(in srgb, var\(--surface\) (\d+)%, transparent\)/);
+    const d = css.match(/--glass-bg-dense: color-mix\(in srgb, var\(--surface-2\) (\d+)%, transparent\)/);
+    expect(g, "--glass-bg is a surface/transparent mix").not.toBeNull();
+    expect(d, "--glass-bg-dense is a surface-2/transparent mix").not.toBeNull();
+    const [glass, dense] = [Number(g![1]) / 100, Number(d![1]) / 100];
+    for (const under of [...SURFACES.map((s) => t[s]), "#000000", "#ffffff"]) {
+      const over = mix(t.surface, glass, under);
+      expect(ratio(t.fg, over)).toBeGreaterThanOrEqual(7); // names, chips, zoom glyphs
+      expect(ratio(t.muted, over)).toBeGreaterThanOrEqual(4.5); // small notes (the custody line, the map attribution)
+      expect(ratio(t.link, over)).toBeGreaterThanOrEqual(4.5); // attribution links
+      // Table headers: small muted labels, so the dense mix must keep them AAA.
+      expect(ratio(t.muted, mix(t["surface-2"], dense, under))).toBeGreaterThanOrEqual(7);
+    }
+  });
+
   it("body text stays AAA on tinted alerts and selected chips", () => {
     expect(ratio(t.fg, mix(t.butter, 0.14, t.surface))).toBeGreaterThanOrEqual(7);
     expect(ratio(t.fg, mix(t.sky, 0.12, t.surface))).toBeGreaterThanOrEqual(7);

@@ -129,8 +129,8 @@
    (design-tokens.test.ts). Kept out of the colour blocks above. */
 html {
   --glass-bg: color-mix(in srgb, var(--surface) 78%, transparent);
-  /* Text-dense glass (table headers): denser, so small muted labels keep their contrast. */
-  --glass-bg-dense: color-mix(in srgb, var(--surface-2) 92%, transparent);
+  /* Text-dense glass (table headers): denser, so the small muted labels stay AAA (design-tokens.test.ts). */
+  --glass-bg-dense: color-mix(in srgb, var(--surface-2) 96%, transparent);
   --glass-border: rgb(24 30 26 / 0.1);
   --glass-highlight: inset 0 1px 0 rgb(255 255 255 / 0.7);
   --glass-active: rgb(24 30 26 / 0.11);
@@ -671,8 +671,6 @@ body {
     @apply sticky top-0 z-10 border-b px-3 py-2 text-left text-xs font-semibold whitespace-nowrap text-muted;
     background: var(--glass-bg-dense);
     border-color: var(--glass-border);
-    -webkit-backdrop-filter: var(--glass-filter);
-    backdrop-filter: var(--glass-filter);
   }
   .data-table tbody th,
   .data-table td {
@@ -926,7 +924,10 @@ body {
 .dark .turf-map .leaflet-tile {
   filter: brightness(0.72) contrast(1.15);
 }
-.turf-map .leaflet-control-attribution {
+/* Leaflet's own stylesheet loads after this one and matches with two classes
+   (.leaflet-touch .leaflet-bar), so these name the container twice to win on
+   specificity rather than order. */
+.turf-map.leaflet-container .leaflet-control-attribution {
   font-size: 10px;
   margin: 0 6px 6px 0;
   padding: 2px 8px;
@@ -937,22 +938,24 @@ body {
   -webkit-backdrop-filter: var(--glass-filter);
   backdrop-filter: var(--glass-filter);
 }
-.turf-map .leaflet-control-attribution a {
-  color: var(--fg);
+.turf-map.leaflet-container .leaflet-control-attribution a {
+  color: var(--link);
+  text-decoration: underline;
 }
 /* The zoom buttons: one glass pill, like the header orbs. */
-.turf-map .leaflet-bar {
+.turf-map.leaflet-container .leaflet-bar {
   border: 1px solid var(--glass-border);
   border-radius: 9999px;
   overflow: hidden;
   background: var(--glass-bg);
+  background-clip: border-box;
   -webkit-backdrop-filter: var(--glass-filter);
   backdrop-filter: var(--glass-filter);
   box-shadow: var(--glass-highlight), 0 6px 18px -8px rgb(0 0 0 / 0.35);
 }
-.turf-map .leaflet-bar a,
-.turf-map .leaflet-bar a:hover,
-.turf-map .leaflet-bar a:focus {
+.turf-map.leaflet-container .leaflet-bar a,
+.turf-map.leaflet-container .leaflet-bar a:hover,
+.turf-map.leaflet-container .leaflet-bar a:focus {
   width: 2.5rem;
   height: 2.5rem;
   line-height: 2.5rem;
@@ -960,13 +963,19 @@ body {
   color: var(--fg);
   border-bottom: 1px solid var(--glass-border);
 }
-.turf-map .leaflet-bar a:last-child {
+.turf-map.leaflet-container .leaflet-bar a:last-child {
   border-bottom: 0;
 }
-.turf-map .leaflet-bar a:hover {
+.turf-map.leaflet-container .leaflet-bar a:hover {
   background: var(--glass-active);
 }
-.turf-map .leaflet-bar a.leaflet-disabled {
+/* The pill clips overflow, so the focus ring sits inside it. */
+.turf-map.leaflet-container .leaflet-bar a:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -3px;
+}
+.turf-map.leaflet-container .leaflet-bar a.leaflet-disabled {
+  background: transparent;
   color: var(--subtle);
 }
 
@@ -1086,7 +1095,7 @@ summary.list-none::-webkit-details-marker {
   body:has(.tabbar):not(:has(.tabbar[data-tucked], .composer-input:focus, .turf-map))::after { display: none; }
 }
 @media (forced-colors: active) {
-  .tabbar, .icon-btn, .site-header, .composer, .thread-top, .more-sheet-panel, .data-table thead th, .turf-map .leaflet-bar { border-color: CanvasText; }
+  .tabbar, .icon-btn, .site-header, .composer, .thread-top, .more-sheet-panel, .data-table thead th, .turf-map.leaflet-container .leaflet-bar, .turf-map.leaflet-container .leaflet-control-attribution { border-color: CanvasText; }
   .tab[aria-current="page"] { border-color: Highlight; }
 }
 

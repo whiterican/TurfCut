@@ -119,9 +119,16 @@ describe.each([
     expect(m, "the .tabbar background is a surface/transparent mix").not.toBeNull();
     const alpha = Number(m![1]) / 100;
     // Floating, it can sit over photos and the map too: black and white are the worst cases.
+    // The current tab's lens is a translucent fill over the bar (html / html.dark --glass-active).
+    const active = themeBody(css, _name === "dark" ? "html.dark" : "html").match(/--glass-active:\s*rgb\((\d+) (\d+) (\d+) \/ ([\d.]+)\)/);
+    expect(active, "--glass-active is an rgb(r g b / a) fill").not.toBeNull();
+    const fill = `#${[1, 2, 3].map((i) => Number(active![i]).toString(16).padStart(2, "0")).join("")}`;
+    const fillAlpha = Number(active![4]);
     for (const under of [...SURFACES.map((s) => t[s]), "#000000", "#ffffff"]) {
       const bar = mix(t.surface, alpha, under);
       expect(ratio(t.fg, bar)).toBeGreaterThanOrEqual(7); // tab labels (all in the text colour; the current tab is marked by its pill)
+      const lens = mix(fill, fillAlpha, `#${bar.map((v) => Math.round(v).toString(16).padStart(2, "0")).join("")}`);
+      expect(ratio(t.fg, lens)).toBeGreaterThanOrEqual(7); // the current tab's label over its lens
     }
   });
 

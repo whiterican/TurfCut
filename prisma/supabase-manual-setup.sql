@@ -1564,7 +1564,8 @@ REVOKE ALL ON "public"."OrgMute" FROM anon, authenticated;
 DO $$ BEGIN
   CREATE TYPE "public"."NotificationKind" AS ENUM (
     'APPLICATION_RECEIVED', 'CLAIM_RECEIVED', 'INVITATION_RECEIVED', 'INVITATION_ACCEPTED', 'INVITATION_DECLINED',
-    'INVITATION_WITHDRAWN', 'OFFER_RECEIVED', 'OFFER_ACCEPTED', 'OFFER_DECLINED', 'NOT_SELECTED', 'APPLICATION_WITHDRAWN', 'JOB_CLOSED', 'JOB_CHANGED', 'CAMPAIGN_POST');
+    'INVITATION_WITHDRAWN', 'OFFER_RECEIVED', 'OFFER_ACCEPTED', 'OFFER_DECLINED', 'NOT_SELECTED', 'APPLICATION_WITHDRAWN', 'JOB_CLOSED', 'JOB_CHANGED', 'CAMPAIGN_POST',
+    'DISPUTE_OPENED', 'DISPUTE_MESSAGE', 'DISPUTE_RESOLVED', 'DISPUTE_OVERDUE', 'PAYOUT_SENT', 'PAYOUT_REVERSED');
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 CREATE TABLE "public"."Notification" (
@@ -1572,23 +1573,59 @@ CREATE TABLE "public"."Notification" (
     "recipientId" UUID NOT NULL,
     "kind" "public"."NotificationKind" NOT NULL,
     "engagementId" UUID,
-    -- S2.4 (prisma/s2-notices.sql): a notice is about an engagement or a campaign post.
+    -- S2.4 (prisma/s2-notices.sql): a notice is about an engagement or a campaign post;
+    -- M9 (prisma/m9-money.sql): or a pay dispute, or a payout transfer.
     "postId" UUID,
+    "disputeId" UUID,
+    "transferId" UUID,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "readAt" TIMESTAMP(3),
     CONSTRAINT "Notification_pkey" PRIMARY KEY ("id"),
     CONSTRAINT "Notification_recipientId_fkey" FOREIGN KEY ("recipientId") REFERENCES "public"."Profile"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT "Notification_engagementId_fkey" FOREIGN KEY ("engagementId") REFERENCES "public"."Engagement"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT "Notification_postId_fkey" FOREIGN KEY ("postId") REFERENCES "public"."CampaignPost"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT "Notification_disputeId_fkey" FOREIGN KEY ("disputeId") REFERENCES "public"."PayDispute"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT "Notification_transferId_fkey" FOREIGN KEY ("transferId") REFERENCES "public"."PayoutTransfer"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT "Notification_subject" CHECK (
-      ("engagementId" IS NULL) <> ("postId" IS NULL)
-      AND (("kind"::text = 'CAMPAIGN_POST') = ("postId" IS NOT NULL)))
+      (("engagementId" IS NOT NULL)::int + ("postId" IS NOT NULL)::int + ("disputeId" IS NOT NULL)::int + ("transferId" IS NOT NULL)::int) = 1
+      AND (("kind"::text = 'CAMPAIGN_POST') = ("postId" IS NOT NULL))
+      AND (("kind"::text LIKE 'DISPUTE\_%') = ("disputeId" IS NOT NULL))
+      AND (("kind"::text LIKE 'PAYOUT\_%') = ("transferId" IS NOT NULL)))
 );
 CREATE INDEX "Notification_recipientId_readAt_createdAt_idx" ON "public"."Notification"("recipientId", "readAt", "createdAt");
 CREATE INDEX "Notification_engagementId_idx" ON "public"."Notification"("engagementId");
 CREATE INDEX "Notification_postId_idx" ON "public"."Notification"("postId");
+CREATE INDEX "Notification_disputeId_idx" ON "public"."Notification"("disputeId");
+CREATE INDEX "Notification_transferId_idx" ON "public"."Notification"("transferId");
 ALTER TABLE "public"."Notification" ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON "public"."Notification" FROM anon, authenticated;
+
+-- The dispute thread (M9, prisma/m9-money.sql): append-only, server-only.
+CREATE TABLE IF NOT EXISTS "public"."PayDisputeMessage" (
+    "id" UUID NOT NULL,
+    "disputeId" UUID NOT NULL,
+    "authorId" UUID NOT NULL,
+    "body" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "PayDisputeMessage_pkey" PRIMARY KEY ("id"),
+    CONSTRAINT "PayDisputeMessage_body_length" CHECK (char_length("body") BETWEEN 1 AND 2000)
+);
+CREATE INDEX IF NOT EXISTS "PayDisputeMessage_disputeId_createdAt_idx" ON "public"."PayDisputeMessage"("disputeId", "createdAt");
+CREATE INDEX IF NOT EXISTS "PayDisputeMessage_authorId_idx" ON "public"."PayDisputeMessage"("authorId");
+DO $$ BEGIN
+  ALTER TABLE "public"."PayDisputeMessage" ADD CONSTRAINT "PayDisputeMessage_disputeId_fkey" FOREIGN KEY ("disputeId") REFERENCES "public"."PayDispute"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+DO $$ BEGIN
+  ALTER TABLE "public"."PayDisputeMessage" ADD CONSTRAINT "PayDisputeMessage_authorId_fkey" FOREIGN KEY ("authorId") REFERENCES "public"."Profile"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+-- Append-only, like the other dispute rows; server-only (RLS on, no policies, no grants).
+CREATE OR REPLACE TRIGGER "PayDisputeMessage_append_only" BEFORE UPDATE OR DELETE ON "public"."PayDisputeMessage"
+  FOR EACH ROW EXECUTE FUNCTION "turfcut_private"."append_only"();
+ALTER TABLE "public"."PayDisputeMessage" ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON "public"."PayDisputeMessage" FROM anon, authenticated;
 
 -- Shift slots (M8.2, prisma/m8-slots.sql): open shifts staff post on a job;
 -- each seat a worker takes is a Shift with slotId.

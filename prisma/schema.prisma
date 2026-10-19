@@ -73,6 +73,7 @@ model Profile {
   talkingPointFacts     TalkingPointFact[]        @relation("TalkingPointFactAuthor")
   campaignResources     CampaignResource[]        @relation("CampaignResourceAuthor")
   slotsPosted           ShiftSlot[]               @relation("ShiftSlotCreator")
+  disputeMessages       PayDisputeMessage[]       @relation("DisputeMessageAuthor")
   slotsSupervised       ShiftSlot[]               @relation("ShiftSlotSupervisor")
 
   @@index([orgId])
@@ -703,7 +704,8 @@ model PayoutTransfer {
   createdById String       @db.Uuid
   createdAt   DateTime     @default(now())
 
-  events PayoutEvent[]
+  events  PayoutEvent[]
+  notices Notification[]
 
   @@index([orgId, createdAt])
   @@index([workerId, createdAt])
@@ -732,11 +734,28 @@ model PayDispute {
   createdAt  DateTime     @default(now())
 
   resolution PayDisputeResolution?
+  messages   PayDisputeMessage[]
+  notices    Notification[]
 
   @@index([orgId, createdAt])
   @@index([shiftId])
   @@index([workerId])
   @@index([payoutId])
+}
+
+/// A message in a dispute's thread (M9): the worker, or an owner or finance
+/// member, writing to the other side. APPEND-ONLY (database trigger).
+model PayDisputeMessage {
+  id        String     @id @default(uuid()) @db.Uuid
+  disputeId String     @db.Uuid
+  dispute   PayDispute @relation(fields: [disputeId], references: [id], onDelete: Restrict)
+  authorId  String     @db.Uuid
+  author    Profile    @relation("DisputeMessageAuthor", fields: [authorId], references: [id], onDelete: Restrict)
+  body      String
+  createdAt DateTime   @default(now())
+
+  @@index([disputeId, createdAt])
+  @@index([authorId])
 }
 
 /// How a dispute was closed. One per dispute. APPEND-ONLY.
@@ -1056,6 +1075,13 @@ enum NotificationKind {
   JOB_CLOSED
   JOB_CHANGED // C4.3: a published job's terms changed
   CAMPAIGN_POST // S2.4: a campaign the worker follows (with notices on) posted
+  // M9: pay disputes (about a dispute) and payouts (about a transfer)
+  DISPUTE_OPENED // to the organization's pay roles: a worker disputed a shift's pay
+  DISPUTE_MESSAGE // to the other side: a message in the dispute thread
+  DISPUTE_RESOLVED // to the worker: the dispute was closed
+  DISPUTE_OVERDUE // to the pay roles: a deadline passed
+  PAYOUT_SENT // to the worker: a transfer went through (the receipt)
+  PAYOUT_REVERSED // to the worker: a paid transfer was reversed
 }
 
 /// C3.5: an in-app notice for one person about one engagement. readAt is the
@@ -1065,18 +1091,25 @@ model Notification {
   recipientId  String           @db.Uuid
   recipient    Profile          @relation(fields: [recipientId], references: [id], onDelete: Restrict)
   kind         NotificationKind
-  /// What it's about: exactly one of an engagement (hiring steps) or a
-  /// campaign post (CAMPAIGN_POST); checked in SQL (prisma/s2-notices.sql).
+  /// What it's about: exactly one of an engagement (hiring steps), a
+  /// campaign post (CAMPAIGN_POST), a pay dispute (DISPUTE_*) or a payout
+  /// transfer (PAYOUT_*); checked in SQL (prisma/m9-money.sql).
   engagementId String?          @db.Uuid
   engagement   Engagement?      @relation(fields: [engagementId], references: [id], onDelete: Restrict)
   postId       String?          @db.Uuid
   post         CampaignPost?    @relation(fields: [postId], references: [id], onDelete: Restrict)
+  disputeId    String?          @db.Uuid
+  dispute      PayDispute?      @relation(fields: [disputeId], references: [id], onDelete: Restrict)
+  transferId   String?          @db.Uuid
+  transfer     PayoutTransfer?  @relation(fields: [transferId], references: [id], onDelete: Restrict)
   createdAt    DateTime         @default(now())
   readAt       DateTime?
 
   @@index([recipientId, readAt, createdAt])
   @@index([engagementId])
   @@index([postId])
+  @@index([disputeId])
+  @@index([transferId])
 }
 
 /// A photo of a Colorado circulator training certificate, added by the

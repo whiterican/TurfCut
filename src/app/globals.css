@@ -1101,7 +1101,7 @@ summary.list-none::-webkit-details-marker {
 
 /* ---- Print (receipts and statements, M9) --------------------------------- */
 @media print {
-  .site-header, .tabbar, .no-print, nextjs-portal { display: none !important; }
+  .site-header, .tabbar, .no-print, nextjs-portal, body::after { display: none !important; }
   body { background: white; color: black; }
   .page { padding: 0; max-width: none; }
   .card { border-color: #999; box-shadow: none; break-inside: avoid; }

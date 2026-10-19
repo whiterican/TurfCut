@@ -53,27 +53,17 @@ export function ReceiptView({ r }: { r: Receipt }) {
           </>
         )}
       </dl>
-      <table className="table w-full text-sm">
-        <thead>
-          <tr>
-            <th className="text-left">Shift</th>
-            <th className="text-left">How it was worked out</th>
-            <th className="text-right">Gross</th>
-          </tr>
-        </thead>
-        <tbody>
-          {r.lines.map((l) => (
-            <tr key={l.id}>
-              <td className="align-top whitespace-nowrap">
-                {l.shift ? (
-                  <Link href={`/shifts/${l.shift.id}`} className="link"><LocalTime iso={l.shift.startsAt.toISOString()} mode="date" /></Link>
-                ) : (
-                  "—"
-                )}
-                {l.jobTitle && <span className="block text-xs text-muted">{l.jobTitle}</span>}
-              </td>
-              <td className="align-top text-fg">
-                {l.kind === "ADJUSTMENT" ? "Adjustment: " : ""}
+      <ul className="divide-y divide-border text-sm">
+        {r.lines.map((l) => (
+          <li key={l.id} className="flex items-start justify-between gap-4 py-2">
+            <div className="min-w-0">
+              {l.shift ? (
+                <Link href={`/shifts/${l.shift.id}`} className="link font-medium"><LocalTime iso={l.shift.startsAt.toISOString()} mode="date" /></Link>
+              ) : (
+                <span className="font-medium text-fg">Adjustment</span>
+              )}
+              {l.jobTitle && <span className="block text-xs text-muted">{l.jobTitle}</span>}
+              <span className="block text-muted">
                 {l.formula}
                 {l.disputeId && (
                   <>
@@ -81,18 +71,16 @@ export function ReceiptView({ r }: { r: Receipt }) {
                     <Link href={`/earnings/disputes/${l.disputeId}`} className="link text-xs">dispute</Link>
                   </>
                 )}
-              </td>
-              <td className={`align-top text-right whitespace-nowrap tabular-nums ${l.amountCents < 0 ? "text-fg" : "text-fg"}`}>{money(l.amountCents)}</td>
-            </tr>
-          ))}
-        </tbody>
-        <tfoot>
-          <tr>
-            <td colSpan={2} className="pt-2 text-right font-semibold text-fg">Total sent</td>
-            <td className="pt-2 text-right font-bold text-fg tabular-nums">{money(r.amountCents)}</td>
-          </tr>
-        </tfoot>
-      </table>
+              </span>
+            </div>
+            <span className="shrink-0 text-fg tabular-nums">{money(l.amountCents)}</span>
+          </li>
+        ))}
+        <li className="flex items-start justify-between gap-4 pt-3">
+          <span className="font-semibold text-fg">Total sent</span>
+          <span className="font-bold text-fg tabular-nums">{money(r.amountCents)}</span>
+        </li>
+      </ul>
       <p className="text-xs text-muted">Gross pay. Turfcut never takes a cut of your pay; the platform fee is charged to {r.orgName}. Every amount was worked out when a supervisor approved the shift and never changed after.</p>
     </article>
   );

@@ -11,6 +11,7 @@ import type { Role } from "@/lib/auth";
 import { UUID_RE } from "@/lib/jobs";
 import { hasHiddenChars } from "@/lib/text-guard";
 import { disputeClock, type DisputeClock } from "@/lib/dispute-sla";
+import { allow } from "@/lib/rate-limit";
 
 type Tx = Prisma.TransactionClient;
 type Client = Tx | ReturnType<typeof db>;
@@ -46,8 +47,9 @@ export async function notifyDispute(
   at: Date
 ) {
   const recipients = to === "worker" ? (d.worker.profileId === actorId ? [] : [d.worker.profileId]) : await payRecipients(c, d.orgId, actorId);
-  if (!recipients.length) return;
+  if (!recipients.length) return 0;
   await c.notification.createMany({ data: recipients.map((recipientId) => ({ recipientId, kind, disputeId: d.id, createdAt: at })) });
+  return recipients.length;
 }
 
 /** The clock from a dispute's rows: the organization's first message is any not written by the worker. */
@@ -64,6 +66,8 @@ const THREAD_INCLUDE = {
 } satisfies Prisma.PayDisputeInclude;
 
 export type DisputeSide = "worker" | "org";
+/** Who is looking: the worker, a pay role, or the shift's supervisor (reads only). */
+export type ThreadViewer = DisputeSide | "supervisor";
 
 export interface ThreadView {
   id: string;
@@ -76,7 +80,7 @@ export interface ThreadView {
   messages: Array<{ id: string; body: string; createdAt: Date; side: DisputeSide; mine: boolean; author: string }>;
   clock: DisputeClock;
   /** What this viewer is to the dispute. */
-  viewer: DisputeSide;
+  viewer: ThreadViewer;
   /** Writing needs the dispute open, and the worker or a pay role (a supervisor only reads). */
   canWrite: boolean;
   canResolve: boolean;
@@ -108,12 +112,12 @@ export async function loadDisputeThread(actor: DisputeActor, disputeId: string, 
     resolution: d.resolution ? { outcome: d.resolution.outcome, response: d.resolution.response, createdAt: d.resolution.createdAt } : null,
     messages: d.messages.map((m) => {
       const side: DisputeSide = m.authorId === d.worker.profileId ? "worker" : "org";
-      // The organization's people are named by role to the worker, as on the Pay tab; the worker by display name.
+      // The organization's people are shown as name · role, as in chat; the worker by display name.
       const author = side === "worker" ? d.worker.displayName : `${m.author.displayName ?? d.shift.engagement.job.org.name} · ${ROLE_WORDS[m.author.role] ?? "Staff"}`;
       return { id: m.id, body: m.body, createdAt: m.createdAt, side, mine: m.authorId === actor.profileId, author };
     }),
     clock: clockOf(d, now),
-    viewer: isWorker ? "worker" : "org",
+    viewer: isWorker ? "worker" : isPay ? "org" : "supervisor",
     canWrite: open && (isWorker || isPay),
     canResolve: open && isPay,
   };
@@ -126,6 +130,8 @@ export async function postDisputeMessage(actor: DisputeActor, disputeId: string,
   if (!body) return { ok: false, reason: "Write a message." };
   if (body.length > DISPUTE_MESSAGE_MAX) return { ok: false, reason: `Keep it under ${DISPUTE_MESSAGE_MAX.toLocaleString("en-US")} characters.` };
   if (hasHiddenChars(body)) return { ok: false, reason: "The message has a character that can't be shown. Retype it rather than pasting." };
+  // Each message tells the other side: a flood would be a flood of notices.
+  if (!(await allow("disputeMessage", actor.profileId, now.getTime()))) return { ok: false, reason: "That's a lot of messages at once. Wait a few minutes and try again." };
   return db().$transaction(async (tx) => {
     await lock(tx, `dispute:${disputeId}`);
     const d = await tx.payDispute.findUnique({ where: { id: disputeId }, select: { id: true, orgId: true, workerId: true, worker: { select: { profileId: true, closedAt: true } }, resolution: { select: { id: true } } } });
@@ -163,7 +169,8 @@ export async function noteOverdueDisputes(orgId: string, now = new Date()): Prom
     await db().$transaction(async (tx) => {
       await lock(tx, `dispute:${d.id}`);
       if (await tx.notification.count({ where: { disputeId: d.id, kind: "DISPUTE_OVERDUE" } })) return;
-      await notifyDispute(tx, "DISPUTE_OVERDUE", { id: d.id, orgId, worker: { profileId: d.worker.profileId } }, "org", null, now);
+      // Nobody with a live pay login to tell: nothing is recorded, and the next load looks again.
+      if (!(await notifyDispute(tx, "DISPUTE_OVERDUE", { id: d.id, orgId, worker: { profileId: d.worker.profileId } }, "org", null, now))) return;
       await tx.auditEvent.create({ data: { actorId: null, action: "pay.dispute_overdue", entityType: "PayDispute", entityId: d.id, metadata: {}, createdAt: now } });
       sent++;
     });

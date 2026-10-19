@@ -7,6 +7,7 @@ import { DisputeThread } from "@/components/DisputeThread";
 import { ResolveDispute } from "@/components/PayForms";
 import { disputeMessage, resolve } from "../../actions";
 import { db } from "@/lib/db";
+import { hasLivePayLine } from "@/lib/pay-data";
 
 export const metadata = { title: "Pay dispute · Turfcut" };
 
@@ -18,7 +19,7 @@ export default async function OrgDisputePage({ params }: { params: Promise<{ dis
   if (!t) notFound();
   // Whether a supervisor re-reviewed the shift since the dispute opened (the REREVIEWED outcome needs it).
   const reReviewed = t.canResolve ? !!(await db().validation.findFirst({ where: { shiftId: t.shift.id, workEventId: null, createdAt: { gt: t.createdAt } }, select: { id: true } })) : false;
-  const noPayLine = t.canResolve ? !(await db().payout.findFirst({ where: { shiftId: t.shift.id, kind: "SHIFT", events: { none: { type: "VOIDED" } } }, select: { id: true } })) : true;
+  const noPayLine = t.canResolve ? !(await hasLivePayLine(t.shift.id)) : true;
   return (
     <main className="page max-w-2xl">
       <header className="page-header">

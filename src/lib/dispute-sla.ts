@@ -19,7 +19,7 @@ export const DISPUTE_SLA = {
 const DAY = 86_400_000;
 const isWeekend = (d: Date) => d.getUTCDay() === 0 || d.getUTCDay() === 6;
 
-/** `from` plus `n` business days, keeping the time of day; a weekend start counts from Monday. */
+/** `from` plus `n` business days, keeping the time of day; from a weekend, Monday is the first business day. */
 export function addBusinessDays(from: Date, n: number): Date {
   const d = new Date(from.getTime());
   let left = n;
@@ -83,7 +83,26 @@ export function disputeClock(f: DisputeClockFacts, now: Date): DisputeClock {
   };
 }
 
-/** The worker's line under an open dispute, or the organization's, in plain words. */
+/**
+ * The clock in words for a page: the deadline is a moment (it keeps the
+ * opening's time of day), so the page shows it with the viewer's own clock
+ * (`LocalTime`) between `before` and `after`. A supervisor reads about the
+ * organization, never "you".
+ */
+export function clockParts(c: DisputeClock, viewer: "worker" | "org" | "supervisor", orgName: string): { before: string; due: Date; after: string; overdue: boolean } | null {
+  if (!c.next) return null;
+  const they = viewer === "org" ? "You" : orgName;
+  const has = viewer === "org" ? "have" : "has";
+  const verb = c.next.kind === "first" ? "reply" : "resolve this";
+  if (c.overdue) {
+    return viewer === "org"
+      ? { before: `Overdue: this was due to be ${c.next.kind === "first" ? "answered" : "resolved"} by`, due: c.next.due, after: ".", overdue: true }
+      : { before: `${orgName} was due to ${verb} by`, due: c.next.due, after: " and hasn't yet.", overdue: true };
+  }
+  return { before: `${they} ${has} until`, due: c.next.due, after: ` to ${verb}.`, overdue: false };
+}
+
+/** The same in one string, for logs and checks (dates through `dateText`). */
 export function clockText(c: DisputeClock, viewer: "worker" | "org", orgName: string, dateText: (d: Date) => string): string {
   if (!c.next) return "";
   const they = viewer === "worker" ? orgName : "You";

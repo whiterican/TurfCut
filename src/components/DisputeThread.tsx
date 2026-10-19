@@ -1,12 +1,11 @@
 import Link from "next/link";
 import { ActionButton } from "@/components/ActionButton";
 import { LocalTime } from "@/components/LocalTime";
-import { clockText } from "@/lib/dispute-sla";
+import { clockParts } from "@/lib/dispute-sla";
 import type { ThreadView } from "@/lib/dispute-thread-data";
 import type { ActionState } from "@/app/jobs/actions";
 
 const OUTCOME: Record<string, string> = { KEPT: "Pay kept as it was", ADJUSTED: "Pay adjusted", REREVIEWED: "Shift re-reviewed" };
-const day = (d: Date) => d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" });
 
 /**
  * A pay dispute's thread (M9): the reason, the clock, every message, and a
@@ -15,7 +14,7 @@ const day = (d: Date) => d.toLocaleDateString("en-US", { weekday: "short", month
  */
 export function DisputeThread({ t, send, children }: { t: ThreadView; send: (p: ActionState, fd: FormData) => Promise<ActionState>; children?: React.ReactNode }) {
   const worker = t.viewer === "worker";
-  const clock = clockText(t.clock, t.viewer, t.job.orgName, day);
+  const clock = clockParts(t.clock, t.viewer, t.job.orgName);
   const badge = t.resolution ? { label: "Closed", badge: "badge-neutral" } : t.clock.overdue ? { label: "Overdue", badge: "badge-coral" } : { label: "Open", badge: "badge-butter" };
   return (
     <div className="space-y-6">
@@ -35,12 +34,16 @@ export function DisputeThread({ t, send, children }: { t: ThreadView; send: (p: 
         <blockquote className="border-l-2 border-border pl-3 text-sm text-fg">{t.reason}</blockquote>
         <p className="text-xs text-muted">
           Opened <LocalTime iso={t.createdAt.toISOString()} />
-          {clock ? ` · ${clock}` : ""}
+          {clock && (
+            <>
+              {" · "}{clock.before} <LocalTime iso={clock.due.toISOString()} />{clock.after}
+            </>
+          )}
         </p>
         {!t.resolution && (
           <p className="text-xs text-muted">
-            Deadlines: first reply by {day(t.clock.firstResponseDue)}
-            {t.clock.firstResponseMetAt ? " (met)" : ""}, resolution by {day(t.clock.resolutionDue)}. Business days, Monday to Friday.
+            Deadlines, in your own time: first reply by <LocalTime iso={t.clock.firstResponseDue.toISOString()} />
+            {t.clock.firstResponseMetAt ? " (met)" : ""}, resolution by <LocalTime iso={t.clock.resolutionDue.toISOString()} />. Counted in business days, Monday to Friday.
           </p>
         )}
         {t.resolution && (
@@ -71,7 +74,7 @@ export function DisputeThread({ t, send, children }: { t: ThreadView; send: (p: 
             </label>
           </ActionButton>
         ) : (
-          !t.resolution && <p className="text-hint">{worker ? "" : "You can read this thread; only owners and finance write in it."}</p>
+          !t.resolution && t.viewer === "supervisor" && <p className="text-hint">You can read this thread; only owners and finance write in it.</p>
         )}
       </section>
       {children}

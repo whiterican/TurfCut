@@ -60,7 +60,7 @@ export async function loadDesk(actor: { profileId: string; orgId: string; role: 
         })
       : null,
     parts.pay ? loadOrgPay(actor) : null,
-    parts.pay ? noteOverdueDisputes(orgId, now).then(() => disputeCounts(orgId, now)) : null,
+    parts.pay ? noteOverdueDisputes(orgId, now).catch(() => 0).then(() => disputeCounts(orgId, now)) : null,
   ]);
 
   // A closed job still has its hires' shifts (C3.5): the week ahead shows those jobs too.

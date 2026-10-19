@@ -3,9 +3,7 @@ import { requireWorker } from "@/lib/worker-session";
 import { loadWorkerEarnings, type EarningShift } from "@/lib/pay-data";
 import { money, statusLabel } from "@/lib/pay";
 import { LocalTime } from "@/components/LocalTime";
-import { clockText } from "@/lib/dispute-sla";
-
-const dayText = (d: Date) => d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" });
+import { clockParts } from "@/lib/dispute-sla";
 import { ActionButton } from "@/components/ActionButton";
 import { dispute, managePayouts, setUpPayouts } from "./actions";
 import { payoutSetup } from "@/lib/pay-data";
@@ -59,6 +57,16 @@ const OUTCOME: Record<string, string> = {
   REREVIEWED: "Shift re-reviewed",
 };
 
+/** The dispute's deadline in the worker's own time. */
+function Clock({ parts }: { parts: ReturnType<typeof clockParts> }) {
+  if (!parts) return null;
+  return (
+    <>
+      {parts.before} <LocalTime iso={parts.due.toISOString()} />{parts.after}
+    </>
+  );
+}
+
 function ShiftRow({ s, orgName }: { s: EarningShift; orgName: string }) {
   const main = s.lines.find((l) => l.kind === "SHIFT");
   const adjustments = s.lines.filter((l) => l.kind === "ADJUSTMENT");
@@ -101,7 +109,7 @@ function ShiftRow({ s, orgName }: { s: EarningShift; orgName: string }) {
       {open ? (
         <p className="text-xs text-muted">
           You disputed this on <LocalTime iso={open.createdAt.toISOString()} mode="date" />.{" "}
-          {clockText(open.clock, "worker", orgName, dayText)}
+          <Clock parts={clockParts(open.clock, "worker", orgName)} />
           {main && main.state.status === "DISPUTED" ? " Payment waits for the outcome." : ""}{" "}
           <Link href={`/earnings/disputes/${open.id}`} className="link font-semibold">
             {open.messages ? `Open the thread (${open.messages})` : "Open the thread"}

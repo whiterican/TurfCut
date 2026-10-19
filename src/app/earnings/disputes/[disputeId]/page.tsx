@@ -19,7 +19,7 @@ export default async function WorkerDisputePage({ params }: { params: Promise<{ 
         <div className="space-y-1">
           <p className="eyebrow"><Link href="/earnings" className="link">Earnings</Link></p>
           <h1 className="page-title">Your dispute</h1>
-          <p className="text-muted-sm">{t.job.orgName} has three business days to reply and ten to resolve it. Unpaid pay waits for the outcome; a missed deadline is shown here and to them.</p>
+          <p className="text-muted-sm">{t.job.orgName} has three business days to reply and ten to resolve it. Pay that hasn't gone out yet waits for the outcome; a missed deadline is shown here and to them.</p>
         </div>
       </header>
       <DisputeThread t={t} send={disputeMessage} />

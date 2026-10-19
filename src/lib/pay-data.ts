@@ -653,6 +653,8 @@ export async function resolveDispute(actor: PayActor, disputeId: string, r: Reso
   return db().$transaction(async (tx) => {
     await lock(tx, `shift:${head.shiftId}`);
     await payLock(tx, head.workerId);
+    // The thread's lock too (M9): a message can't land in a thread being closed.
+    await lock(tx, `dispute:${disputeId}`);
     const d = await tx.payDispute.findUniqueOrThrow({
       where: { id: disputeId },
       include: {
@@ -725,6 +727,12 @@ export async function resolveDispute(actor: PayActor, disputeId: string, r: Reso
     });
     return { ok: true as const };
   });
+}
+
+/** Whether a shift has a current SHIFT line (not voided): what a dispute can adjust. */
+export async function hasLivePayLine(shiftId: string): Promise<boolean> {
+  const lines = await db().payout.findMany({ where: { shiftId, kind: "SHIFT" }, include: { events: true } });
+  return lines.some((l) => lineState(l, asFacts(l.events), false).status !== "VOIDED");
 }
 
 export interface WorkerToPay {

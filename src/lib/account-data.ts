@@ -4,6 +4,7 @@ import type { ProofStore } from "@/lib/proof-storage";
 import { loadVerifiers } from "@/lib/verification-data";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
+import { receiptNumber } from "@/lib/money-views";
 import { getSupabaseServiceRoleKey, getSupabaseUrl } from "@/lib/env";
 import { CLOSED_NAME, closureProblems, type ClosureFacts } from "@/lib/account-closure";
 import { lineState } from "@/lib/pay";
@@ -237,7 +238,7 @@ export async function exportAccount(
     ),
   });
   files.push({ name: "pay-events.csv", text: csvTable(lines.flatMap((l) => l.events.map((e) => ({ id: e.id, payoutId: l.id, type: e.type, reason: e.reason, transferId: e.transferId, providerRef: e.providerRef, at: e.createdAt }))), ["id", "payoutId", "type", "reason", "transferId", "providerRef", "at"]) });
-  files.push({ name: "transfers.csv", text: csvTable(transfers.map((t) => ({ id: t.id, organization: t.org.name, amountCents: t.amountCents, destination: t.destination, createdAt: t.createdAt })), ["id", "organization", "amountCents", "destination", "createdAt"]) });
+  files.push({ name: "transfers.csv", text: csvTable(transfers.map((t) => ({ id: t.id, receipt: receiptNumber(t.receiptNo), organization: t.org.name, amountCents: t.amountCents, destination: t.destination, createdAt: t.createdAt })), ["id", "receipt", "organization", "amountCents", "destination", "createdAt"]) });
   files.push({
     name: "disputes.csv",
     text: csvTable(

@@ -1,6 +1,6 @@
 import type { NotificationKind, Prisma, Role } from "@prisma/client";
 import { db } from "@/lib/db";
-import { HIRING_ROLES } from "@/lib/access";
+import { HIRING_ROLES, PAY_ROLES } from "@/lib/access";
 import { inviteLapsed, offerExpiresAt, offerLapsed, type EngagementEventType } from "@/lib/engagements";
 import { exclusionReasons, readDisclosure, UUID_RE } from "@/lib/jobs";
 import { effectivePreference } from "@/lib/political-fit";
@@ -93,10 +93,15 @@ type Viewer = { userId: string; role: Role; workerId: string | null; orgId: stri
  * (staff who left or moved to another role see none of its applicants).
  */
 function scopeFor(v: Viewer): Prisma.NotificationWhereInput | null {
-  // Hiring notices only: notices about a followed campaign's posts are the
-  // social layer's to load and count (they never pass through hiring code).
-  if (v.role === "WORKER") return v.workerId ? { engagement: { workerId: v.workerId } } : null;
-  return v.orgId && HIRING_ROLES.includes(v.role) ? { engagement: { job: { orgId: v.orgId } } } : null;
+  // Hiring and pay notices (M9: disputes and payouts). Notices about a
+  // followed campaign's posts are the social layer's to load and count
+  // (they never pass through hiring code).
+  if (v.role === "WORKER") return v.workerId ? { OR: [{ engagement: { workerId: v.workerId } }, { dispute: { workerId: v.workerId } }, { transfer: { workerId: v.workerId } }] } : null;
+  if (!v.orgId) return null;
+  const parts: Prisma.NotificationWhereInput[] = [];
+  if (HIRING_ROLES.includes(v.role)) parts.push({ engagement: { job: { orgId: v.orgId } } });
+  if (PAY_ROLES.includes(v.role)) parts.push({ dispute: { orgId: v.orgId } }, { transfer: { orgId: v.orgId } });
+  return parts.length ? { OR: parts } : null;
 }
 
 const SELECT = {
@@ -110,6 +115,9 @@ const SELECT = {
       events: { where: { type: "OFFERED" as const }, take: 1, select: { id: true } },
     },
   },
+  // M9: a dispute or a payout transfer, for the pay notices' words.
+  dispute: { select: { id: true, worker: { select: { displayName: true } }, shift: { select: { engagement: { select: { job: { select: { title: true, org: { select: { name: true } } } } } } } } } },
+  transfer: { select: { id: true, amountCents: true, worker: { select: { displayName: true } }, org: { select: { name: true } } } },
 } satisfies Prisma.NotificationSelect;
 
 /**

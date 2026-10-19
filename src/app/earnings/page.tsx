@@ -3,6 +3,7 @@ import { requireWorker } from "@/lib/worker-session";
 import { loadWorkerEarnings, type EarningShift } from "@/lib/pay-data";
 import { money, statusLabel } from "@/lib/pay";
 import { LocalTime } from "@/components/LocalTime";
+import { clockParts } from "@/lib/dispute-sla";
 import { ActionButton } from "@/components/ActionButton";
 import { dispute, managePayouts, setUpPayouts } from "./actions";
 import { payoutSetup } from "@/lib/pay-data";
@@ -23,6 +24,7 @@ async function PayoutSetup({ workerId, note }: { workerId: string; note: string 
       <div className="flex items-start justify-between gap-3">
         <div className="space-y-1">
           <p className="font-semibold text-fg">Payouts</p>
+          <p className="text-muted-sm"><Link href="/earnings/receipts" className="link">Receipts</Link> · one for every payment sent to you.</p>
           <p className="text-muted-sm">
             {!provider.configured()
               ? "In-app payouts aren't switched on yet. Approved pay is kept and sent once they are."
@@ -55,6 +57,16 @@ const OUTCOME: Record<string, string> = {
   ADJUSTED: "Pay adjusted",
   REREVIEWED: "Shift re-reviewed",
 };
+
+/** The dispute's deadline in the worker's own time. */
+function Clock({ parts }: { parts: ReturnType<typeof clockParts> }) {
+  if (!parts) return null;
+  return (
+    <>
+      {parts.before} <LocalTime iso={parts.due.toISOString()} />{parts.after}
+    </>
+  );
+}
 
 function ShiftRow({ s, orgName }: { s: EarningShift; orgName: string }) {
   const main = s.lines.find((l) => l.kind === "SHIFT");
@@ -97,13 +109,19 @@ function ShiftRow({ s, orgName }: { s: EarningShift; orgName: string }) {
       ))}
       {open ? (
         <p className="text-xs text-muted">
-          You disputed this on <LocalTime iso={open.createdAt.toISOString()} mode="date" />. {orgName} will respond here
-          {main && main.state.status === "DISPUTED" ? "; payment waits until then." : "."}
+          You disputed this on <LocalTime iso={open.createdAt.toISOString()} mode="date" />.{" "}
+          <Clock parts={clockParts(open.clock, "worker", orgName)} />
+          {main && main.state.status === "DISPUTED" ? " Payment waits for the outcome." : ""}{" "}
+          <Link href={`/earnings/disputes/${open.id}`} className="link font-semibold">
+            {open.messages ? `Open the thread (${open.messages})` : "Open the thread"}
+          </Link>
+          {open.clock.overdue && <span className="badge-coral ml-2">Overdue</span>}
         </p>
       ) : (
         last?.resolution && (
           <p className="text-xs text-muted">
-            {OUTCOME[last.resolution.outcome] ?? "Dispute closed"}: {last.resolution.response}
+            {OUTCOME[last.resolution.outcome] ?? "Dispute closed"}: {last.resolution.response}{" "}
+            <Link href={`/earnings/disputes/${last.id}`} className="link">Thread</Link>
           </p>
         )
       )}

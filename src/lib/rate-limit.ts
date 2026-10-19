@@ -31,6 +31,8 @@ export const LIMITS = {
   sync: { max: 60, windowMs: 60_000 },
   /** Member invite emails (sends and resends) per organization per day. */
   invite: { max: 20, windowMs: 24 * 60 * 60_000 },
+  /** Messages in pay-dispute threads per person (M9): each one tells the other side. */
+  disputeMessage: { max: 30, windowMs: 60 * 60_000 },
   /** Credential photo uploads per worker per day (each is re-encoded and stored). */
   "proof-upload": { max: 12, windowMs: 24 * 60 * 60_000 },
   /** An organization member's looks at credential photos per hour (each look is recorded for the worker). */

@@ -1,4 +1,5 @@
 import type { NotificationKind } from "@prisma/client";
+import { money } from "@/lib/pay";
 
 /**
  * A notice's words and where it leads (C3.5), drawn from the engagement as
@@ -40,4 +41,51 @@ export function notificationText(
     case "APPLICATION_WITHDRAWN": return { text: `${who} withdrew from ${job}.`, href: personHref };
     default: return { text: `An update on ${job}.`, href: personHref };
   }
+}
+
+/**
+ * A pay notice's words (M9): about a dispute (its thread) or a payout
+ * transfer (its receipt). A worker reads the organization; staff read the
+ * worker's display name.
+ */
+export function payNoticeText(
+  kind: NotificationKind,
+  n: {
+    dispute: { id: string; worker: { displayName: string }; shift: { engagement: { job: { title: string; org: { name: string } } } } } | null;
+    transfer: { id: string; amountCents: number; worker: { displayName: string }; org: { name: string } } | null;
+  },
+  viewer: "worker" | "org"
+): { text: string; href: string } | null {
+  if (n.dispute) {
+    const job = n.dispute.shift.engagement.job.title;
+    const org = n.dispute.shift.engagement.job.org.name;
+    const who = n.dispute.worker.displayName;
+    const href = viewer === "worker" ? `/earnings/disputes/${n.dispute.id}` : `/pay/disputes/${n.dispute.id}`;
+    if (viewer === "worker") {
+      switch (kind) {
+        case "DISPUTE_MESSAGE": return { text: `${org} replied on your pay dispute for ${job}.`, href };
+        case "DISPUTE_RESOLVED": return { text: `${org} closed your pay dispute for ${job}. The outcome is on the thread.`, href };
+        default: return { text: `An update on your pay dispute for ${job}.`, href };
+      }
+    }
+    switch (kind) {
+      case "DISPUTE_OPENED": return { text: `${who} disputed their pay for ${job}. First reply is due in 3 business days.`, href };
+      case "DISPUTE_MESSAGE": return { text: `${who} wrote on their pay dispute for ${job}.`, href };
+      case "DISPUTE_OVERDUE": return { text: `${who}'s pay dispute for ${job} is overdue.`, href };
+      default: return { text: `An update on ${who}'s pay dispute for ${job}.`, href };
+    }
+  }
+  if (n.transfer) {
+    const amount = money(n.transfer.amountCents);
+    if (viewer === "worker") {
+      const href = `/earnings/receipts/${n.transfer.id}`;
+      switch (kind) {
+        case "PAYOUT_SENT": return { text: `${amount} from ${n.transfer.org.name} was sent to your account. Your receipt is ready.`, href };
+        case "PAYOUT_REVERSED": return { text: `A ${amount} payment from ${n.transfer.org.name} was reversed. The receipt says what happened.`, href };
+        default: return { text: `An update on a ${amount} payment from ${n.transfer.org.name}.`, href };
+      }
+    }
+    return { text: `A ${amount} payment to ${n.transfer.worker.displayName}.`, href: "/pay?tab=paid" };
+  }
+  return null;
 }

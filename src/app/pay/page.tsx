@@ -2,6 +2,8 @@ import Link from "next/link";
 import { requireRole } from "@/lib/auth";
 import { FIELD_ROLES, PAY_ROLES } from "@/lib/access";
 import { loadOrgDisputes, loadOrgPay, partialReversals, pendingTransfers, reviewerOf, selfApproval, type OrgLine } from "@/lib/pay-data";
+import { noteOverdueDisputes } from "@/lib/dispute-thread-data";
+import { clockParts } from "@/lib/dispute-sla";
 import { stripeProvider } from "@/lib/payout-provider";
 import { money, PLATFORM_FEE_BPS, statusLabel } from "@/lib/pay";
 import { LocalTime } from "@/components/LocalTime";
@@ -55,6 +57,8 @@ export default async function PayPage({ searchParams }: { searchParams: Promise<
   }
   const actor = { profileId: s.userId, orgId: s.orgId, role: s.role };
   const canOpenShifts = FIELD_ROLES.includes(s.role);
+  // Deadlines missed since anyone looked: the pay roles are told once per dispute (M9).
+  await noteOverdueDisputes(s.orgId).catch(() => 0);
   const [pay, disputes, closed, pending, partial] = await Promise.all([
     loadOrgPay(actor),
     loadOrgDisputes(actor, true),
@@ -91,7 +95,7 @@ export default async function PayPage({ searchParams }: { searchParams: Promise<
           <p className="text-muted-sm">
             Supervisors approve the work; you approve the pay. Workers receive the full gross amount — the {PLATFORM_FEE_BPS / 100}% platform fee is invoiced to your organization.
           </p>
-          <p className="text-muted-sm"><Link href="/pay?tab=paid#export" className="link">Export the ledger (CSV)</Link></p>
+          <p className="text-muted-sm"><Link href="/pay/statements" className="link">Monthly statements</Link> · <Link href="/pay?tab=paid#export" className="link">Export the ledger (CSV)</Link></p>
           {!stripeOn && <p className="text-hint">Stripe isn&apos;t connected yet: you can approve pay, and it&apos;s sent once Stripe is set up.</p>}
         </div>
       </header>
@@ -200,9 +204,13 @@ export default async function PayPage({ searchParams }: { searchParams: Promise<
                           : ""}
                   </p>
                 </div>
-                <span className="badge-coral shrink-0">Disputed</span>
+                <span className={`shrink-0 ${d.clock.overdue ? "badge-coral" : "badge-butter"}`}>{d.clock.overdue ? "Overdue" : "Disputed"}</span>
               </div>
               <blockquote className="border-l-2 border-border pl-3 text-sm text-fg">{d.reason}</blockquote>
+              <p className="text-xs text-muted">
+                {(() => { const c = clockParts(d.clock, "org", ""); return c ? <>{c.before} <LocalTime iso={c.due.toISOString()} />{c.after}</> : null; })()}{" "}
+                <Link href={`/pay/disputes/${d.id}`} className="link font-semibold">{d.messages ? `Open the thread (${d.messages})` : "Reply in the thread"}</Link>
+              </p>
               <ResolveDispute action={resolve} disputeId={d.id} reReviewed={!!d.review && d.review.at > d.createdAt} canAdjust={!d.noPayLine} />
             </div>
           ))}

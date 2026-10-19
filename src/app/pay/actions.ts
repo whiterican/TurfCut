@@ -5,6 +5,7 @@ import { requireRole } from "@/lib/auth";
 import { PAY_ROLES } from "@/lib/access";
 import { lineAction, payWorker, recordPartialReversal, resolveDispute, settleTransfer, type PayActor } from "@/lib/pay-data";
 import { stripeProvider } from "@/lib/payout-provider";
+import { postDisputeMessage } from "@/lib/dispute-thread-data";
 import { money, parseMoney, type Resolution } from "@/lib/pay";
 import type { ActionState } from "@/app/jobs/actions";
 
@@ -25,6 +26,19 @@ const refresh = () => {
   revalidatePath("/desk");
   revalidatePath("/earnings");
 };
+
+/** An owner or finance member writes in a dispute's thread (M9). */
+export async function disputeMessage(_prev: ActionState, fd: FormData): Promise<ActionState> {
+  const s = await requireRole(PAY_ROLES);
+  if (!s.orgId) return { ok: false, message: "No organization on this account." };
+  const disputeId = str(fd, "disputeId").trim();
+  const r = await postDisputeMessage({ profileId: s.userId, role: s.role, orgId: s.orgId, workerId: null }, disputeId, str(fd, "body"));
+  if (!r.ok) return { ok: false, message: r.reason };
+  revalidatePath(`/pay/disputes/${disputeId}`);
+  revalidatePath(`/earnings/disputes/${disputeId}`);
+  refresh();
+  return { ok: true, message: "Sent. The worker is told." };
+}
 
 export async function approve(_prev: ActionState, fd: FormData): Promise<ActionState> {
   const a = await actor();

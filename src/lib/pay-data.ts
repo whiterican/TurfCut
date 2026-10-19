@@ -5,6 +5,8 @@ import { PAY_ROLES } from "@/lib/access";
 import type { Role } from "@/lib/auth";
 import { ProviderError, type PayoutProvider, type ProviderEvent } from "@/lib/payout-provider";
 import { verifiedWork } from "@/lib/scorecard";
+import { clockOf, notifyDispute } from "@/lib/dispute-thread-data";
+import type { DisputeClock } from "@/lib/dispute-sla";
 import {
   computeShiftPay,
   disputeProblem,
@@ -262,7 +264,7 @@ export interface EarningShift {
   lines: EarningLine[];
   /** Sum of the shift's live (not replaced) lines. */
   totalCents: number;
-  disputes: Array<{ id: string; reason: string; createdAt: Date; resolution: { outcome: string; response: string; createdAt: Date } | null }>;
+  disputes: Array<{ id: string; reason: string; createdAt: Date; resolution: { outcome: string; response: string; createdAt: Date } | null; clock: DisputeClock; messages: number }>;
   canDispute: boolean;
   /** Reasons a supervisor gave for correcting or entering entries on this shift. */
   corrections: Array<{ reason: string; createdAt: Date }>;
@@ -307,9 +309,10 @@ function addTo(t: Totals, l: EarningLine) {
 /** A worker's own pay, by campaign. Only ever loaded for the signed-in worker. */
 export async function loadWorkerEarnings(workerId: string): Promise<{ campaigns: EarningCampaign[]; totals: Totals }> {
   const jobSel = { select: { id: true, title: true, org: { select: { name: true } } } } as const;
+  const now = new Date();
   const [lines, disputes, reviewed] = await Promise.all([
     db().payout.findMany({ where: { workerId }, include: { events: true }, orderBy: { createdAt: "asc" } }),
-    db().payDispute.findMany({ where: { workerId }, include: { resolution: true }, orderBy: { createdAt: "asc" } }),
+    db().payDispute.findMany({ where: { workerId }, include: { resolution: true, worker: { select: { profileId: true } }, messages: { select: { authorId: true, createdAt: true } } }, orderBy: { createdAt: "asc" } }),
     db().shift.findMany({
       where: { engagement: { workerId }, validations: { some: { workEventId: null } } },
       select: {
@@ -364,6 +367,8 @@ export async function loadWorkerEarnings(workerId: string): Promise<{ campaigns:
         reason: d.reason,
         createdAt: d.createdAt,
         resolution: d.resolution ? { outcome: d.resolution.outcome, response: d.resolution.response, createdAt: d.resolution.createdAt } : null,
+        clock: clockOf(d, now),
+        messages: d.messages.length,
       })),
       canDispute: disputeProblem({ reviewed: true, openDispute: open.has(s.id), disputes: ds.length, reason: "x".repeat(10) }) === null,
       corrections: s.events
@@ -419,6 +424,7 @@ export async function openDispute(
     const d = await tx.payDispute.create({
       data: { shiftId, workerId: actor.workerId, orgId: s.engagement.job.orgId, payoutId: line?.id ?? null, openedById: actor.profileId, reason: text, createdAt: now },
     });
+    await notifyDispute(tx, "DISPUTE_OPENED", { id: d.id, orgId: d.orgId, worker: { profileId: actor.profileId } }, "org", actor.profileId, now);
     await tx.auditEvent.create({
       data: { actorId: actor.profileId, action: "pay.dispute_opened", entityType: "PayDispute", entityId: d.id, metadata: { shiftId, payoutId: line?.id ?? null } },
     });
@@ -454,6 +460,8 @@ const LINE_INCLUDE = {
   },
   engagement: { select: { job: { select: { id: true, title: true, type: true, measureIds: true, jurisdiction: { select: { rules: true } } } } } },
   validation: { select: { reviewerId: true, createdAt: true } },
+  // When the corrected line was recorded: a statement names the month it belongs to (M9.3).
+  adjusts: { select: { createdAt: true } },
 } satisfies Prisma.PayoutInclude;
 
 type LoadedLine = Prisma.PayoutGetPayload<{ include: typeof LINE_INCLUDE }>;
@@ -467,7 +475,7 @@ export interface OrgLine {
   hoursFlag: string | null;
 }
 
-async function orgLines(c: Client, where: Prisma.PayoutWhereInput): Promise<OrgLine[]> {
+export async function orgLines(c: Client, where: Prisma.PayoutWhereInput): Promise<OrgLine[]> {
   const lines = await c.payout.findMany({ where, include: LINE_INCLUDE, orderBy: { createdAt: "asc" } });
   const open = await openDisputeShifts(c, { shiftId: { in: lines.map((l) => l.shiftId).filter((x): x is string => !!x) } });
   return lines.map((line) => {
@@ -571,9 +579,11 @@ export interface DisputeView {
   noPayLine: boolean;
   review: { status: string; reason: string | null; at: Date } | null;
   resolution: { outcome: string; response: string; createdAt: Date } | null;
+  clock: DisputeClock;
+  messages: number;
 }
 
-function assertPayRole(actor: PayActor) {
+export function assertPayRole(actor: PayActor) {
   if (notPayRole(actor)) throw new Error("[turfcut] pay records are for owners and finance only");
 }
 
@@ -583,14 +593,15 @@ export async function countOpenDisputes(actor: PayActor): Promise<number> {
   return db().payDispute.count({ where: { orgId: actor.orgId, resolution: { is: null } } });
 }
 
-export async function loadOrgDisputes(actor: PayActor, open: boolean): Promise<DisputeView[]> {
+export async function loadOrgDisputes(actor: PayActor, open: boolean, now = new Date()): Promise<DisputeView[]> {
   assertPayRole(actor);
   const orgId = actor.orgId;
   const ds = await db().payDispute.findMany({
     where: { orgId, resolution: open ? { is: null } : { isNot: null } },
     include: {
       resolution: true,
-      worker: { select: { displayName: true } },
+      worker: { select: { displayName: true, profileId: true } },
+      messages: { select: { authorId: true, createdAt: true } },
       shift: {
         select: {
           startsAt: true,
@@ -623,8 +634,11 @@ export async function loadOrgDisputes(actor: PayActor, open: boolean): Promise<D
       noPayLine: !d.shift.payouts.some((l) => l.kind === "SHIFT" && lineState(l, asFacts(l.events), false).status !== "VOIDED"),
       review: v ? { status: v.status, reason: v.reason, at: v.createdAt } : null,
       resolution: d.resolution ? { outcome: d.resolution.outcome, response: d.resolution.response, createdAt: d.resolution.createdAt } : null,
+      clock: clockOf(d, now),
+      messages: d.messages.length,
     };
-  });
+  // Open ones: overdue first, then whichever deadline comes soonest.
+  }).sort((a, b) => (open ? Number(!!b.clock.overdue) - Number(!!a.clock.overdue) || (a.clock.next?.due.getTime() ?? 0) - (b.clock.next?.due.getTime() ?? 0) : 0));
 }
 
 /**
@@ -641,6 +655,8 @@ export async function resolveDispute(actor: PayActor, disputeId: string, r: Reso
   return db().$transaction(async (tx) => {
     await lock(tx, `shift:${head.shiftId}`);
     await payLock(tx, head.workerId);
+    // The thread's lock too (M9): a message can't land in a thread being closed.
+    await lock(tx, `dispute:${disputeId}`);
     const d = await tx.payDispute.findUniqueOrThrow({
       where: { id: disputeId },
       include: {
@@ -700,6 +716,8 @@ export async function resolveDispute(actor: PayActor, disputeId: string, r: Reso
     await tx.payDisputeResolution.create({
       data: { disputeId, outcome: r.outcome, response, resolvedById: actor.profileId, adjustmentId, createdAt: now },
     });
+    const w = await tx.worker.findUniqueOrThrow({ where: { id: d.workerId }, select: { profileId: true } });
+    await notifyDispute(tx, "DISPUTE_RESOLVED", { id: disputeId, orgId: d.orgId, worker: { profileId: w.profileId } }, "worker", actor.profileId, now);
     await tx.auditEvent.create({
       data: {
         actorId: actor.profileId,
@@ -711,6 +729,12 @@ export async function resolveDispute(actor: PayActor, disputeId: string, r: Reso
     });
     return { ok: true as const };
   });
+}
+
+/** Whether a shift has a current SHIFT line (not voided): what a dispute can adjust. */
+export async function hasLivePayLine(shiftId: string): Promise<boolean> {
+  const lines = await db().payout.findMany({ where: { shiftId, kind: "SHIFT" }, include: { events: true } });
+  return lines.some((l) => lineState(l, asFacts(l.events), false).status !== "VOIDED");
 }
 
 export interface WorkerToPay {
@@ -918,8 +942,11 @@ export async function payWorker(actor: PayActor, workerId: string, provider: Pay
     if (expectedCents !== null && expectedCents !== t.amountCents) {
       return { ok: false as const, reason: `The amount changed to ${money(t.amountCents)} since you opened this page. Nothing was sent — check it and pay again.` };
     }
+    // The receipt number: the organization's next, under the organization's receipt lock (M9).
+    await lock(tx, `receipts:${actor.orgId}`);
+    const last = await tx.payoutTransfer.aggregate({ where: { orgId: actor.orgId }, _max: { receiptNo: true } });
     const transfer = await tx.payoutTransfer.create({
-      data: { workerId, orgId: actor.orgId, amountCents: t.amountCents, feeCents: t.feeCents, destination: worker.stripeAccountId!, createdById: actor.profileId, createdAt: now },
+      data: { workerId, orgId: actor.orgId, amountCents: t.amountCents, feeCents: t.feeCents, receiptNo: (last._max.receiptNo ?? 0) + 1, destination: worker.stripeAccountId!, createdById: actor.profileId, createdAt: now },
     });
     const ids = ready.map((l) => l.line.id);
     const at = await eventAt(tx, ids, now);
@@ -950,6 +977,14 @@ async function transferLines(tx: Tx, transferId: string) {
   };
 }
 
+/** The worker's notice about a transfer (M9): the money went out, or came back. Once per kind per transfer. */
+async function notifyTransfer(tx: Tx, kind: "PAYOUT_SENT" | "PAYOUT_REVERSED", transferId: string, at: Date) {
+  const t = await tx.payoutTransfer.findUnique({ where: { id: transferId }, select: { worker: { select: { profileId: true, closedAt: true } } } });
+  if (!t || t.worker.closedAt) return;
+  if (await tx.notification.count({ where: { transferId, kind } })) return;
+  await tx.notification.create({ data: { recipientId: t.worker.profileId, kind, transferId, createdAt: at } });
+}
+
 /** Records that Stripe made this transfer: every line of it not yet marked paid. */
 async function recordPaid(tx: Tx, transferId: string, ref: string, actorId: string | null, source: string, now: Date, tl?: TransferLines) {
   const x = tl ?? (await transferLines(tx, transferId));
@@ -959,6 +994,7 @@ async function recordPaid(tx: Tx, transferId: string, ref: string, actorId: stri
   await tx.auditEvent.create({
     data: { actorId, action: x.failed ? "payout.paid_after_failure" : "payout.paid", entityType: "PayoutTransfer", entityId: transferId, metadata: { providerRef: ref, source, payoutIds: x.unpaid.map((l) => l.id) } },
   });
+  await notifyTransfer(tx, "PAYOUT_SENT", transferId, at);
 }
 
 /**
@@ -1071,6 +1107,7 @@ export async function handleProviderEvent(e: ProviderEvent, now = new Date()): P
           const at = await eventAt(tx, hit.map((l) => l.id), now);
           await tx.payoutEvent.createMany({ data: hit.map((l) => ({ payoutId: l.id, type: "REVERSED" as const, transferId: transfer.id, providerRef: t.id, reason: "Reversed in Stripe", createdAt: at })) });
           await tx.auditEvent.create({ data: { action: "payout.reversed", entityType: "PayoutTransfer", entityId: transfer.id, metadata: { orgId: transfer.orgId, providerRef: t.id, payoutIds: hit.map((l) => l.id) } } });
+          await notifyTransfer(tx, "PAYOUT_REVERSED", transfer.id, at);
         }
       } else {
         // A partial reversal isn't a line-by-line event: flag it for finance.

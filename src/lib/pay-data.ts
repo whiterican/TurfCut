@@ -460,6 +460,8 @@ const LINE_INCLUDE = {
   },
   engagement: { select: { job: { select: { id: true, title: true, type: true, measureIds: true, jurisdiction: { select: { rules: true } } } } } },
   validation: { select: { reviewerId: true, createdAt: true } },
+  // When the corrected line was recorded: a statement names the month it belongs to (M9.3).
+  adjusts: { select: { createdAt: true } },
 } satisfies Prisma.PayoutInclude;
 
 type LoadedLine = Prisma.PayoutGetPayload<{ include: typeof LINE_INCLUDE }>;
@@ -473,7 +475,7 @@ export interface OrgLine {
   hoursFlag: string | null;
 }
 
-async function orgLines(c: Client, where: Prisma.PayoutWhereInput): Promise<OrgLine[]> {
+export async function orgLines(c: Client, where: Prisma.PayoutWhereInput): Promise<OrgLine[]> {
   const lines = await c.payout.findMany({ where, include: LINE_INCLUDE, orderBy: { createdAt: "asc" } });
   const open = await openDisputeShifts(c, { shiftId: { in: lines.map((l) => l.shiftId).filter((x): x is string => !!x) } });
   return lines.map((line) => {
@@ -581,7 +583,7 @@ export interface DisputeView {
   messages: number;
 }
 
-function assertPayRole(actor: PayActor) {
+export function assertPayRole(actor: PayActor) {
   if (notPayRole(actor)) throw new Error("[turfcut] pay records are for owners and finance only");
 }
 

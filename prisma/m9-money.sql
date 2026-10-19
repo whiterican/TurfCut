@@ -17,6 +17,8 @@
 --      organization. Existing transfers are numbered in the order they
 --      were recorded (the one time this append-only table is updated: a
 --      new column is filled, no recorded value changes).
+--   5. Statement: one organization's calendar month of pay, written once
+--      the month is over with its totals frozen (M9.3). Append-only.
 
 -- The new enum values first. The check below compares the kind as text, so
 -- it works whether this file runs statement by statement (psql -f) or as one
@@ -92,5 +94,36 @@ DO $$ BEGIN
 END $$;
 ALTER TABLE "public"."PayoutTransfer" ALTER COLUMN "receiptNo" SET NOT NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS "PayoutTransfer_orgId_receiptNo_key" ON "public"."PayoutTransfer"("orgId", "receiptNo");
+
+-- Monthly statements (M9.3).
+CREATE TABLE IF NOT EXISTS "public"."Statement" (
+    "id" UUID NOT NULL,
+    "orgId" UUID NOT NULL,
+    "period" TEXT NOT NULL,
+    "number" TEXT NOT NULL,
+    "grossCents" INTEGER NOT NULL,
+    "feeCents" INTEGER NOT NULL,
+    "lineCount" INTEGER NOT NULL,
+    "paidCents" INTEGER NOT NULL,
+    "paidCount" INTEGER NOT NULL,
+    "reversedCents" INTEGER NOT NULL,
+    "correctionsCents" INTEGER NOT NULL,
+    "closedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "closedById" UUID,
+
+    CONSTRAINT "Statement_pkey" PRIMARY KEY ("id"),
+    CONSTRAINT "Statement_period_shape" CHECK ("period" ~ '^[0-9]{4}-(0[1-9]|1[0-2])$' AND "number" = 'S-' || "period")
+);
+CREATE UNIQUE INDEX IF NOT EXISTS "Statement_orgId_period_key" ON "public"."Statement"("orgId", "period");
+CREATE INDEX IF NOT EXISTS "Statement_orgId_closedAt_idx" ON "public"."Statement"("orgId", "closedAt");
+DO $$ BEGIN
+  ALTER TABLE "public"."Statement" ADD CONSTRAINT "Statement_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "public"."Organization"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+-- A closed statement never changes; server-only (RLS on, no policies, no grants).
+CREATE OR REPLACE TRIGGER "Statement_append_only" BEFORE UPDATE OR DELETE ON "public"."Statement"
+  FOR EACH ROW EXECUTE FUNCTION "turfcut_private"."append_only"();
+ALTER TABLE "public"."Statement" ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON "public"."Statement" FROM anon, authenticated;
 
 COMMIT;

@@ -1630,6 +1630,38 @@ CREATE OR REPLACE TRIGGER "PayDisputeMessage_append_only" BEFORE UPDATE OR DELET
 ALTER TABLE "public"."PayDisputeMessage" ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON "public"."PayDisputeMessage" FROM anon, authenticated;
 
+-- Monthly statements (M9.3, prisma/m9-money.sql): one per organization per
+-- closed month, totals frozen at close; append-only, server-only.
+CREATE TABLE IF NOT EXISTS "public"."Statement" (
+    "id" UUID NOT NULL,
+    "orgId" UUID NOT NULL,
+    "period" TEXT NOT NULL,
+    "number" TEXT NOT NULL,
+    "grossCents" INTEGER NOT NULL,
+    "feeCents" INTEGER NOT NULL,
+    "lineCount" INTEGER NOT NULL,
+    "paidCents" INTEGER NOT NULL,
+    "paidCount" INTEGER NOT NULL,
+    "reversedCents" INTEGER NOT NULL,
+    "correctionsCents" INTEGER NOT NULL,
+    "closedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "closedById" UUID,
+
+    CONSTRAINT "Statement_pkey" PRIMARY KEY ("id"),
+    CONSTRAINT "Statement_period_shape" CHECK ("period" ~ '^[0-9]{4}-(0[1-9]|1[0-2])$' AND "number" = 'S-' || "period")
+);
+CREATE UNIQUE INDEX IF NOT EXISTS "Statement_orgId_period_key" ON "public"."Statement"("orgId", "period");
+CREATE INDEX IF NOT EXISTS "Statement_orgId_closedAt_idx" ON "public"."Statement"("orgId", "closedAt");
+DO $$ BEGIN
+  ALTER TABLE "public"."Statement" ADD CONSTRAINT "Statement_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "public"."Organization"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+-- A closed statement never changes; server-only (RLS on, no policies, no grants).
+CREATE OR REPLACE TRIGGER "Statement_append_only" BEFORE UPDATE OR DELETE ON "public"."Statement"
+  FOR EACH ROW EXECUTE FUNCTION "turfcut_private"."append_only"();
+ALTER TABLE "public"."Statement" ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON "public"."Statement" FROM anon, authenticated;
+
 -- Shift slots (M8.2, prisma/m8-slots.sql): open shifts staff post on a job;
 -- each seat a worker takes is a Shift with slotId.
 DO $$ BEGIN

@@ -244,6 +244,7 @@ model Organization {
   payouts                  Payout[]
   payoutTransfers          PayoutTransfer[]
   payDisputes              PayDispute[]
+  statements               Statement[]
   invites                  OrgInvite[]
   mutedBy                  OrgMute[]
   campaignProfiles         CampaignProfile[]
@@ -759,6 +760,31 @@ model PayDisputeMessage {
 
   @@index([disputeId, createdAt])
   @@index([authorId])
+}
+
+/// One organization's calendar month of pay (M9.3), written once when the
+/// month is over and someone with a pay role first looks at it. The totals
+/// are frozen then; the lines are always read from the ledger by period, so
+/// the statement can't disagree with it. Corrections after close land on
+/// the next statement and name this one. NEVER updated or deleted (trigger).
+model Statement {
+  id               String       @id @default(uuid()) @db.Uuid
+  orgId            String       @db.Uuid
+  org              Organization @relation(fields: [orgId], references: [id])
+  period           String // UTC calendar month, "2026-10"
+  number           String // "S-2026-10"
+  grossCents       Int // lines recorded in the month and not withdrawn at close
+  feeCents         Int // their platform fees
+  lineCount        Int
+  paidCents        Int // gross that reached workers in the month
+  paidCount        Int // transfers
+  reversedCents    Int // gross that came back in the month
+  correctionsCents Int // adjustments and withdrawals, recorded this month, to earlier months' lines
+  closedAt         DateTime     @default(now())
+  closedById       String?      @db.Uuid // Profile whose visit closed it; null when closed by the system
+
+  @@unique([orgId, period])
+  @@index([orgId, closedAt])
 }
 
 /// How a dispute was closed. One per dispute. APPEND-ONLY.

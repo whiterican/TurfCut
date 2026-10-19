@@ -1,4 +1,4 @@
-/* M9 acceptance checks: dispute threads and the clock, pay notices (slice 1); receipts and statements follow (tests/acceptance/run.sh). */
+/* M9 acceptance checks: dispute threads and the clock, pay notices (slice 1); receipts (slice 2); monthly statements (slice 3) (tests/acceptance/run.sh). */
 import { db } from "@/lib/db";
 import { supervisorShiftAction } from "@/lib/field-day-data";
 import * as pay from "@/lib/pay-data";
@@ -7,6 +7,8 @@ import { loadNotifications, unreadNotifications } from "@/lib/notifications-data
 import { payNoticeText } from "@/lib/notification-text";
 import { loadReceipt, loadReceipts } from "@/lib/receipts-data";
 import { exportAccount } from "@/lib/account-data";
+import { listStatements, loadStatement, statementCsv } from "@/lib/statements-data";
+import { periodOf } from "@/lib/money-views";
 import { ProviderError, type PayoutProvider } from "@/lib/payout-provider";
 
 /** A fake Stripe (as in the M5 checks): records transfers by idempotency key. */
@@ -183,6 +185,52 @@ const check = (l: string, c: unknown, d?: unknown) => { if (c) console.log(`PASS
   const files = await exportAccount({ userId: W1, workerId: W1 });
   const transfersCsv = files.find((f) => f.name === "transfers.csv")?.text ?? "";
   check("the data export carries the receipt number", /receipt/.test(transfersCsv.split("\n")[0]) && /R-000001/.test(transfersCsv), transfersCsv.split("\n").slice(0, 2));
+
+  // ============ Slice 3: monthly statements ============
+  // Lines were recorded this month (real time); the payments went out on Nov 2 and one came back on Nov 4.
+  const recMonth = periodOf(new Date());
+  const dec1 = new Date("2026-12-01T09:00:00Z");
+  const sumLedger = async (period: string) => {
+    const [y, m] = period.split("-").map(Number);
+    const ls = await p.payout.findMany({ where: { orgId: ORG, createdAt: { gte: new Date(Date.UTC(y, m - 1, 1)), lt: new Date(Date.UTC(y, m, 1)) } }, include: { events: { where: { type: "VOIDED" } } } });
+    const live = ls.filter((l) => l.events.length === 0);
+    return { gross: live.reduce((n, l) => n + l.amountCents, 0), fee: live.reduce((n, l) => n + l.feeCents, 0), count: live.length };
+  };
+  check("a supervisor can't read statements", await loadStatement({ profileId: SUP, orgId: ORG, role: "SUPERVISOR" }, recMonth, dec1).then(() => false, () => true));
+  check("a bad or future period is nothing", (await loadStatement(finPay, "2026-13", dec1)) === null && (await loadStatement(finPay, "2027-01", dec1)) === null && (await loadStatement(finPay, "x", dec1)) === null);
+  const oct = await loadStatement(finPay, recMonth, dec1);
+  const ledgerOct = await sumLedger(recMonth);
+  check("the recorded month's statement closes on first look, numbered, with totals equal to the ledger", !!oct && oct.status === "closed" && oct.number === `S-${recMonth}` && oct.totals.grossCents === ledgerOct.gross && oct.totals.feeCents === ledgerOct.fee && oct.totals.lineCount === ledgerOct.count && oct.lines.length === ledgerOct.count, { oct: oct?.totals, ledgerOct });
+  check("no payment went out that month; the campaign section adds up to the total", oct!.totals.paidCents === 0 && oct!.payments.length === 0 && oct!.campaigns.reduce((n, c) => n + c.grossCents, 0) === oct!.totals.grossCents, oct!.campaigns);
+  const stRow = await p.statement.findUnique({ where: { orgId_period: { orgId: ORG, period: recMonth } } });
+  check("one row, closed by finance, with an audit event", !!stRow && stRow.closedById === FIN && stRow.closedAt.getTime() === dec1.getTime() && (await p.auditEvent.count({ where: { action: "pay.statement_closed", entityId: stRow.id } })) === 1, stRow);
+  const octAgain = await loadStatement(ownPay, recMonth, new Date("2026-12-05T00:00:00Z"));
+  check("a second look finds the same statement, unchanged", octAgain!.closedAt?.getTime() === dec1.getTime() && (await p.statement.count({ where: { orgId: ORG } })) === 1);
+  check("the dispute is on it: first reply late, so the month's handling reads late", oct!.disputes.length === 1 && oct!.disputes[0].id === d.id && oct!.disputes[0].onTime === false && oct!.disputes[0].clock.daysToFirstResponse === 4, oct!.disputes);
+  check("a line paid the next month carries its receipt; lines whose payment came back carry none", oct!.lines.filter((l) => l.receipt === "R-000002").length === 1 && oct!.lines.filter((l) => l.workerId === W1).every((l) => l.receipt === null && l.status !== "PAID"), oct!.lines.map((l) => [l.receipt, l.status]));
+  const nov = await loadStatement(finPay, "2026-11", dec1);
+  check("November: two payments sent, one came back, nothing recorded", !!nov && nov.status === "closed" && nov.totals.paidCount === 2 && nov.totals.paidCents === t1!.amountCents + t2!.amountCents && nov.totals.reversedCents === t1!.amountCents && nov.totals.lineCount === 0 && nov.payments[0].receipt === "R-000001" && !!nov.payments[0].reversedAt && !nov.payments[1].reversedAt, nov?.totals);
+  check("the other organization's statement is empty, and never shows this one's lines", (await loadStatement(other, recMonth, dec1))!.totals.lineCount === 0 && (await loadStatement(other, "2026-11", dec1))!.totals.paidCount === 0);
+  // A dispute resolved after the month closed: the adjustment lands on the month it happened in and names the statement it corrects.
+  const lateD = await pay.openDispute({ workerId: W2, profileId: W2 }, s2.id, "The rate was wrong; the posting said $30.", new Date("2026-12-02T10:00:00Z"));
+  const d2 = await p.payDispute.findFirstOrThrow({ where: { shiftId: s2.id } });
+  const fix = await pay.resolveDispute(finPay, d2.id, { outcome: "ADJUSTED", response: "Right: $5 more an hour for 4 hours.", amountCents: 2000 }, new Date("2026-12-03T10:00:00Z"));
+  const dec = await loadStatement(finPay, "2026-12", new Date("2026-12-04T00:00:00Z"));
+  const octAfter = await loadStatement(finPay, recMonth, new Date("2026-12-04T00:00:00Z"));
+  check("December (in progress) carries the correction, naming the closed statement; the closed one is untouched", lateD.ok && fix.ok && !!dec && dec.status === "open" && dec.corrections.length === 1 && dec.corrections[0].corrects === `S-${recMonth}` && dec.corrections[0].amountCents === 2000 && dec.totals.correctionsCents === 2000 && dec.totals.grossCents === 2000 && octAfter!.totals.grossCents === oct!.totals.grossCents && octAfter!.live.grossCents === oct!.totals.grossCents, { lateD, fix, dec: dec?.totals, corr: dec?.corrections });
+  check("December's dispute is open and on time so far", dec!.disputes.length === 1 && dec!.disputes[0].id === d2.id && dec!.disputes[0].onTime === true, dec!.disputes);
+  const months = await listStatements(finPay, new Date("2026-12-04T00:00:00Z"));
+  check("the list runs from the first recorded month to now, newest first, closed months closed", months.length >= 3 && months[0].period === "2026-12" && months[0].status === "open" && months[1].period === "2026-11" && months[1].status === "closed" && months.at(-1)!.period === recMonth && months.at(-1)!.status === "closed" && months.at(-1)!.grossCents === oct!.totals.grossCents, months);
+  check("December is not closed by listing it", (await p.statement.count({ where: { orgId: ORG, period: "2026-12" } })) === 0);
+  const csv = statementCsv(oct!);
+  const rows = csv.trim().split("\r\n");
+  const totalRow = rows.find((r) => r.includes('"total"') && r.includes('"RECORDED"')) ?? "";
+  check("the CSV has every line and the same totals", rows.filter((r) => r.includes('"recorded"')).length === oct!.lines.length && totalRow.includes(`"${(oct!.totals.grossCents / 100).toFixed(2)}"`) && rows.filter((r) => r.includes('"payment"')).length === 0, { totalRow, n: rows.length });
+  const novCsv = statementCsv(nov!);
+  check("November's CSV lists both payments with their receipts", novCsv.includes("R-000001") && novCsv.includes("R-000002") && novCsv.split("\r\n").filter((r) => r.includes('"payment"')).length === 2);
+  let frozen = false;
+  try { await p.statement.update({ where: { id: stRow!.id }, data: { grossCents: 1 } }); } catch { frozen = true; }
+  check("a closed statement can't be changed", frozen);
 
   await p.$disconnect();
   process.exit(fails ? 1 : 0);

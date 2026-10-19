@@ -129,6 +129,8 @@
    (design-tokens.test.ts). Kept out of the colour blocks above. */
 html {
   --glass-bg: color-mix(in srgb, var(--surface) 78%, transparent);
+  /* Text-dense glass (table headers): denser, so small muted labels keep their contrast. */
+  --glass-bg-dense: color-mix(in srgb, var(--surface-2) 92%, transparent);
   --glass-border: rgb(24 30 26 / 0.1);
   --glass-highlight: inset 0 1px 0 rgb(255 255 255 / 0.7);
   --glass-active: rgb(24 30 26 / 0.11);
@@ -666,7 +668,11 @@ body {
     @apply w-full border-collapse text-sm;
   }
   .data-table thead th {
-    @apply sticky top-0 z-10 border-b border-border bg-surface-2 px-3 py-2 text-left text-xs font-semibold whitespace-nowrap text-muted;
+    @apply sticky top-0 z-10 border-b px-3 py-2 text-left text-xs font-semibold whitespace-nowrap text-muted;
+    background: var(--glass-bg-dense);
+    border-color: var(--glass-border);
+    -webkit-backdrop-filter: var(--glass-filter);
+    backdrop-filter: var(--glass-filter);
   }
   .data-table tbody th,
   .data-table td {
@@ -726,9 +732,13 @@ body {
     color: inherit;
   }
   .more-sheet-panel {
-    @apply rounded-t-2xl border border-b-0 border-border bg-surface p-4;
+    @apply rounded-t-3xl border border-b-0 p-4;
     padding-bottom: calc(1rem + env(safe-area-inset-bottom));
-    box-shadow: var(--shadow);
+    background: var(--glass-bg);
+    border-color: var(--glass-border);
+    -webkit-backdrop-filter: var(--glass-filter);
+    backdrop-filter: var(--glass-filter);
+    box-shadow: var(--glass-highlight), var(--shadow);
   }
   /* Dims the page (never a pale wash, which reads as disabled). */
   .more-sheet::backdrop {
@@ -816,9 +826,13 @@ body {
   /* The composer stays above the floating tab bar while you scroll the
      thread (bar: 3.5rem tall, 0.625rem off the bottom, plus a gap). */
   .composer {
-    @apply sticky z-30 -mx-4 space-y-2 border-t border-border px-4 pt-3 pb-3 backdrop-blur sm:-mx-6 sm:px-6 lg:bottom-0;
+    @apply sticky z-30 -mx-4 space-y-2 border-t px-4 pt-3 pb-3 sm:-mx-6 sm:px-6 lg:bottom-0;
     bottom: calc(4.75rem + env(safe-area-inset-bottom));
-    background: color-mix(in srgb, var(--bg) 94%, transparent);
+    background: var(--glass-bg);
+    border-color: var(--glass-border);
+    -webkit-backdrop-filter: var(--glass-filter);
+    backdrop-filter: var(--glass-filter);
+    box-shadow: var(--glass-highlight);
   }
   @media (min-width: 64rem) {
     .composer {
@@ -846,8 +860,11 @@ body {
   }
   /* z-50: its ··· menu must open above the composer and the tab bar. */
   .thread-top {
-    @apply sticky top-0 z-50 -mx-4 -mt-4 space-y-3 px-4 pt-3 pb-3 backdrop-blur sm:-mx-6 sm:px-6;
-    background: color-mix(in srgb, var(--bg) 94%, transparent);
+    @apply sticky top-0 z-50 -mx-4 -mt-4 space-y-3 border-b px-4 pt-3 pb-3 sm:-mx-6 sm:px-6;
+    background: var(--glass-bg);
+    border-color: var(--glass-border);
+    -webkit-backdrop-filter: var(--glass-filter);
+    backdrop-filter: var(--glass-filter);
   }
   /* Next-shift banner atop a job conversation. */
   .shift-banner {
@@ -911,6 +928,46 @@ body {
 }
 .turf-map .leaflet-control-attribution {
   font-size: 10px;
+  margin: 0 6px 6px 0;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  color: var(--muted);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  -webkit-backdrop-filter: var(--glass-filter);
+  backdrop-filter: var(--glass-filter);
+}
+.turf-map .leaflet-control-attribution a {
+  color: var(--fg);
+}
+/* The zoom buttons: one glass pill, like the header orbs. */
+.turf-map .leaflet-bar {
+  border: 1px solid var(--glass-border);
+  border-radius: 9999px;
+  overflow: hidden;
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: var(--glass-filter);
+  backdrop-filter: var(--glass-filter);
+  box-shadow: var(--glass-highlight), 0 6px 18px -8px rgb(0 0 0 / 0.35);
+}
+.turf-map .leaflet-bar a,
+.turf-map .leaflet-bar a:hover,
+.turf-map .leaflet-bar a:focus {
+  width: 2.5rem;
+  height: 2.5rem;
+  line-height: 2.5rem;
+  background: transparent;
+  color: var(--fg);
+  border-bottom: 1px solid var(--glass-border);
+}
+.turf-map .leaflet-bar a:last-child {
+  border-bottom: 0;
+}
+.turf-map .leaflet-bar a:hover {
+  background: var(--glass-active);
+}
+.turf-map .leaflet-bar a.leaflet-disabled {
+  color: var(--subtle);
 }
 
 /* While typing a message, the keyboard covers the tab bar: hide it and let
@@ -1020,16 +1077,16 @@ summary.list-none::-webkit-details-marker {
 }
 /* Solid where glass can't be drawn, or isn't wanted. */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  html { --glass-bg: var(--surface); }
+  html { --glass-bg: var(--surface); --glass-bg-dense: var(--surface-2); }
   .tabbar { background: var(--surface); }
 }
 @media (prefers-reduced-transparency: reduce) {
-  html { --glass-bg: var(--surface); --glass-filter: none; }
+  html { --glass-bg: var(--surface); --glass-bg-dense: var(--surface-2); --glass-filter: none; }
   .tabbar { background: var(--surface); }
   body:has(.tabbar):not(:has(.tabbar[data-tucked], .composer-input:focus, .turf-map))::after { display: none; }
 }
 @media (forced-colors: active) {
-  .tabbar, .icon-btn, .site-header { border-color: CanvasText; }
+  .tabbar, .icon-btn, .site-header, .composer, .thread-top, .more-sheet-panel, .data-table thead th, .turf-map .leaflet-bar { border-color: CanvasText; }
   .tab[aria-current="page"] { border-color: Highlight; }
 }
 

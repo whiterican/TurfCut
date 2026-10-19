@@ -48,7 +48,7 @@ const check = (l: string, c: unknown, d?: unknown) => { if (c) console.log(`PASS
 
 (async () => {
   const p = db();
-  await p.organization.create({ data: { id: ORG2, name: "Other Campaign Co", approved: true, updatedAt: new Date() } });
+  await p.organization.create({ data: { id: ORG2, name: "Other Campaign Co", approved: true, createdAt: new Date("2026-10-01T00:00:00Z"), updatedAt: new Date() } });
   await p.profile.createMany({
     data: [
       { id: OWNER, role: "OWNER", orgId: ORG, displayName: "Maya Chen" },

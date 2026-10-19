@@ -168,7 +168,7 @@ const check = (l: string, c: unknown, d?: unknown) => { if (c) console.log(`PASS
   const t2 = run2.ok ? await p.payoutTransfer.findUniqueOrThrow({ where: { id: run2.transferId } }) : null;
   check("the organization's next receipt is R-000002", run2.ok && t2?.receiptNo === 2, { run2, t2 });
   let dup = false;
-  try { await p.payoutTransfer.create({ data: { workerId: W2, orgId: ORG, amountCents: 1, feeCents: 0, receiptNo: 2, destination: "x", createdById: OWNER } }); } catch { dup = true; }
+  try { await p.payoutTransfer.create({ data: { workerId: W2, orgId: ORG, amountCents: 1, feeCents: 0, receiptNo: 2, destination: "x", createdById: OWNER } }); } catch (e) { dup = (e as { code?: string }).code === "P2002"; }
   check("two receipts can't share a number in one organization (the database refuses)", dup);
   // A full reversal: the worker is told, the receipt says so and stays.
   const full = { id: "evt_rev_1", type: "transfer.reversed", transfer: { id: "tr_1", group: t1!.id, amountCents: t1!.amountCents, reversedCents: t1!.amountCents } };

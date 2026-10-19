@@ -3,7 +3,10 @@
 -- again: everything it adds is skipped when it already exists. (Fresh
 -- databases: supabase-manual-setup.sql already includes it.)
 --
--- Changes (M9 plan, approved Oct 19). Additive; no existing row changes:
+-- Changes (M9 plan, approved Oct 19). Nothing recorded changes; one new
+-- column is filled in (item 4). Deploy the M9 build right after this runs:
+-- until it is live, sending pay fails (the old code doesn't set the new
+-- NOT NULL receipt number); approving and everything else keeps working.
 --   1. PayDisputeMessage: the dispute thread (worker and pay roles).
 --      Append-only, server-only.
 --   2. NotificationKind gains the dispute and payout kinds.

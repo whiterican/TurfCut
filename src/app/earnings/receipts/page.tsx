@@ -18,7 +18,7 @@ export default async function ReceiptsPage() {
         <div className="space-y-1">
           <p className="eyebrow"><Link href="/earnings" className="link">Earnings</Link></p>
           <h1 className="page-title">Receipts</h1>
-          <p className="text-muted-sm">One for every payment sent to your Stripe account, with the shifts it paid.</p>
+          <p className="text-muted-sm">One for every payment an organization started to your Stripe account, with the shifts it paid.</p>
         </div>
       </header>
       {receipts.length === 0 ? (
@@ -33,7 +33,7 @@ export default async function ReceiptsPage() {
               <Link href={`/earnings/receipts/${r.id}`} className="flex items-center justify-between gap-3 px-4 py-3 transition hover:bg-surface-2">
                 <span className="min-w-0 space-y-0.5">
                   <span className="block font-semibold text-fg">{r.number} · {money(r.amountCents)}</span>
-                  <span className="text-muted-sm block">{r.orgName} · <LocalTime iso={(r.paidAt ?? r.createdAt).toISOString()} mode="date" /> · {r.lines.length} {r.lines.length === 1 ? "line" : "lines"}</span>
+                  <span className="text-muted-sm block">{r.orgName} · <LocalTime iso={(r.paidAt ?? r.createdAt).toISOString()} mode="fulldate" /> · {r.lines.length} {r.lines.length === 1 ? "line" : "lines"}</span>
                 </span>
                 <span className={r.status === "sent" ? "badge-accent" : r.status === "sending" ? "badge-butter" : "badge-coral"}>{LABEL[r.status]}</span>
               </Link>

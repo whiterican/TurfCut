@@ -45,8 +45,8 @@ const INCLUDE = {
 } as const;
 
 type Row = Awaited<ReturnType<typeof rows>>[number];
-const rows = (workerId: string, transferId?: string) =>
-  db().payoutTransfer.findMany({ where: { workerId, ...(transferId ? { id: transferId } : {}) }, include: INCLUDE, orderBy: { createdAt: "desc" } });
+const rows = (workerId: string, transferId: string | null, take: number) =>
+  db().payoutTransfer.findMany({ where: { workerId, ...(transferId ? { id: transferId } : {}) }, include: INCLUDE, orderBy: { createdAt: "desc" }, take });
 
 function view(t: Row): Receipt {
   const first = (type: string) => t.events.find((e) => e.type === type) ?? null;
@@ -72,7 +72,7 @@ function view(t: Row): Receipt {
       disputeId: typeof raw.disputeId === "string" ? raw.disputeId : null,
     });
   }
-  lines.sort((a, b) => (a.shift?.startsAt.getTime() ?? 0) - (b.shift?.startsAt.getTime() ?? 0) || (a.kind === "SHIFT" ? -1 : 1));
+  lines.sort((a, b) => (a.shift?.startsAt.getTime() ?? 0) - (b.shift?.startsAt.getTime() ?? 0) || (a.kind === b.kind ? 0 : a.kind === "SHIFT" ? -1 : 1));
   return {
     id: t.id,
     number: receiptNumber(t.receiptNo),
@@ -91,12 +91,12 @@ function view(t: Row): Receipt {
 
 /** The worker's receipts, newest first. */
 export async function loadReceipts(workerId: string, take = 100): Promise<Receipt[]> {
-  return (await rows(workerId)).slice(0, take).map(view);
+  return (await rows(workerId, null, take)).map(view);
 }
 
 /** One receipt, the worker's own; null for anyone else's. */
 export async function loadReceipt(workerId: string, transferId: string): Promise<Receipt | null> {
   if (!UUID_RE.test(transferId)) return null;
-  const t = (await rows(workerId, transferId))[0];
+  const t = (await rows(workerId, transferId, 1))[0];
   return t ? view(t) : null;
 }

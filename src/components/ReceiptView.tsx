@@ -25,27 +25,27 @@ export function ReceiptView({ r }: { r: Receipt }) {
       </header>
       <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
         <dt className="text-muted">Recorded</dt>
-        <dd className="text-fg"><LocalTime iso={r.createdAt.toISOString()} /></dd>
+        <dd className="text-fg"><LocalTime iso={r.createdAt.toISOString()} mode="full" /></dd>
         {r.paidAt && (
           <>
             <dt className="text-muted">Sent</dt>
-            <dd className="text-fg"><LocalTime iso={r.paidAt.toISOString()} /></dd>
+            <dd className="text-fg"><LocalTime iso={r.paidAt.toISOString()} mode="full" /></dd>
           </>
         )}
         {r.reversedAt && (
           <>
             <dt className="text-muted">Reversed</dt>
-            <dd className="text-fg"><LocalTime iso={r.reversedAt.toISOString()} /> · the money came back to {r.orgName}; the lines go out with your next payment or wait on hold</dd>
+            <dd className="text-fg"><LocalTime iso={r.reversedAt.toISOString()} mode="full" /> · the money came back to {r.orgName}; the lines go out with your next payment or wait on hold</dd>
           </>
         )}
         {r.failedAt && !r.paidAt && (
           <>
             <dt className="text-muted">Not sent</dt>
-            <dd className="text-fg"><LocalTime iso={r.failedAt.toISOString()} /> · Stripe refused the transfer; {r.orgName} can send it again</dd>
+            <dd className="text-fg"><LocalTime iso={r.failedAt.toISOString()} mode="full" /> · Stripe refused the transfer; {r.orgName} can send it again</dd>
           </>
         )}
         <dt className="text-muted">To</dt>
-        <dd className="text-fg">Your Stripe account ending {r.destinationTail}</dd>
+        <dd className="text-fg">Your Stripe account (…{r.destinationTail})</dd>
         {r.providerRef && (
           <>
             <dt className="text-muted">Stripe reference</dt>
@@ -58,7 +58,7 @@ export function ReceiptView({ r }: { r: Receipt }) {
           <li key={l.id} className="flex items-start justify-between gap-4 py-2">
             <div className="min-w-0">
               {l.shift ? (
-                <Link href={`/shifts/${l.shift.id}`} className="link font-medium"><LocalTime iso={l.shift.startsAt.toISOString()} mode="date" /></Link>
+                <Link href={`/shifts/${l.shift.id}`} className="link font-medium"><LocalTime iso={l.shift.startsAt.toISOString()} mode="fulldate" /></Link>
               ) : (
                 <span className="font-medium text-fg">Adjustment</span>
               )}
@@ -77,11 +77,11 @@ export function ReceiptView({ r }: { r: Receipt }) {
           </li>
         ))}
         <li className="flex items-start justify-between gap-4 pt-3">
-          <span className="font-semibold text-fg">Total sent</span>
+          <span className="font-semibold text-fg">{r.status === "sent" ? "Total sent" : "Total"}</span>
           <span className="font-bold text-fg tabular-nums">{money(r.amountCents)}</span>
         </li>
       </ul>
-      <p className="text-xs text-muted">Gross pay. Turfcut never takes a cut of your pay; the platform fee is charged to {r.orgName}. Every amount was worked out when a supervisor approved the shift and never changed after.</p>
+      <p className="text-xs text-muted">Gross pay. Turfcut never takes a cut of your pay; the platform fee is charged to {r.orgName}. Every amount was fixed when it was approved and never changed after.</p>
     </article>
   );
 }

@@ -43,16 +43,19 @@
   --party-other: #9fd6d2;
   --party-nonpartisan: #cfbaf2;
 
-  /* Light mode: off-white page, white cards, green-black ink, eggplant links. */
-  --bg: #eef0ea;
-  --surface: #fbfbf8;
-  --surface-2: #e4e7df;
+  /* Light mode (the glass mockups): a cool grey page that lightens toward the
+     top left, glossy white cards, near-black ink, eggplant links. */
+  --bg: #e6e7eb;
+  --bg-light: #f2f2f5;
+  --bg-deep: #d9dadf;
+  --surface: #fafafb;
+  --surface-2: #ededf0;
   --field: #ffffff;
-  --border: #d9ddd3;
-  --border-strong: #b7bdb2;
-  --fg: #181e1a;
-  --muted: #3f463f;
-  --subtle: #474f47;
+  --border: #d6d7dc;
+  --border-strong: #b1b3bb;
+  --fg: #17181c;
+  --muted: #3f4148;
+  --subtle: #474a52;
   --link: #5a3a8a;
   --focus: #5a3a8a;
   --danger: #b42318;
@@ -67,14 +70,15 @@
      the page, so it reads as a button (not disabled) yet stays quieter than
      the solid primary. */
   --secondary: #ffffff;
-  --secondary-border: #737b72;
+  --secondary-border: #71747c;
   /* Feature card: the brand eggplant (same family as the logo chip and dark
      mode) with off-white text and a lime circle. */
   --hero: #2b1b3d;
   --hero-fg: #f6f6f2;
   --hero-muted: #ddd6e6;
   --hero-border: transparent;
-  --shadow: 0 1px 2px rgb(24 30 26 / 0.05), 0 10px 28px -16px rgb(24 30 26 / 0.18);
+  /* Cards sit on the page like slabs of glass: a bright top edge, a soft deep shadow. */
+  --shadow: inset 0 1px 0 rgb(255 255 255 / 0.9), 0 1px 2px rgb(20 20 26 / 0.06), 0 18px 40px -20px rgb(20 20 26 / 0.35);
   /* Priority rings on the lime shift card: eggplant, lighter inside,
      darker toward the outside edge. */
   --ring: #6a4c91;
@@ -88,6 +92,9 @@
      rims on priority rings and the current tab. */
   --accent: #ccea96;
   --bg: #1c142c;
+  /* The same light-from-the-top-left sheet, by night. */
+  --bg-light: #231a35;
+  --bg-deep: #150f22;
   --surface: #281a3a;
   --surface-2: #36264a;
   --field: #22172f;
@@ -133,19 +140,23 @@ html {
   --glass-bg-dense: color-mix(in srgb, var(--surface-2) 96%, transparent);
   --glass-border: rgb(24 30 26 / 0.12);
   /* A bright edge along the top and a faint one along the bottom: the slab has thickness. */
-  --glass-highlight: inset 0 1px 0 rgb(255 255 255 / 0.85), inset 0 -1px 0 rgb(24 30 26 / 0.05);
+  /* Thick glass: a bright top edge and a bright bottom edge too, where light leaves the slab. */
+  --glass-highlight: inset 0 1.5px 0 rgb(255 255 255 / 0.95), inset 0 -1px 0 rgb(255 255 255 / 0.55);
   /* The tab you're on: a brighter lens raised off the slab. */
-  --glass-active: rgb(255 255 255 / 0.62);
-  --glass-active-border: rgb(24 30 26 / 0.14);
-  --glass-active-shadow: inset 0 1px 0 rgb(255 255 255 / 0.95), inset 0 -2px 3px rgb(24 30 26 / 0.06), 0 6px 14px -6px rgb(0 0 0 / 0.3);
-  --glass-filter: blur(28px) saturate(190%) brightness(1.03);
-  /* Light catching the top of the glass (.glass-lens surfaces). */
-  --glass-sheen: radial-gradient(140% 100% at 50% -30%, rgb(255 255 255 / 0.65), transparent 60%);
+  --glass-active: rgb(255 255 255 / 0.78);
+  --glass-active-border: rgb(20 20 26 / 0.1);
+  --glass-active-shadow: inset 0 1.5px 0 rgb(255 255 255 / 1), inset 0 -2px 4px rgb(20 20 26 / 0.05), 0 10px 22px -8px rgb(0 0 0 / 0.35);
+  --glass-filter: blur(32px) saturate(160%) brightness(1.04);
+  /* Light catching the top of the glass. */
+  --glass-sheen: radial-gradient(140% 100% at 50% -30%, rgb(255 255 255 / 0.75), transparent 60%);
+  /* The bright line under the bar where light refracts out of the slab. */
+  --glass-caustic: rgb(255 255 255 / 0.95);
   /* The rim: a hairline that brightens and dims around the edge, like the edge of a lens. Neutral, so it never fights the brand colours. */
   --glass-rim: conic-gradient(from 200deg, rgb(255 255 255 / 0.98), rgb(255 255 255 / 0.45) 22%, rgb(255 255 255 / 0.98) 40%, rgb(255 255 255 / 0.4) 62%, rgb(255 255 255 / 0.95) 80%, rgb(255 255 255 / 0.5), rgb(255 255 255 / 0.98));
-  --glass-depth: 0 12px 34px -14px rgb(0 0 0 / 0.4), 0 2px 8px -3px rgb(0 0 0 / 0.14);
+  --glass-depth: 0 16px 40px -16px rgb(0 0 0 / 0.45), 0 2px 8px -3px rgb(0 0 0 / 0.14);
 }
 html.dark {
+  --glass-caustic: rgb(255 255 255 / 0.3);
   --glass-border: rgb(255 255 255 / 0.14);
   --glass-highlight: inset 0 1px 0 rgb(255 255 255 / 0.14), inset 0 -1px 0 rgb(0 0 0 / 0.25);
   --glass-active: rgb(0 0 0 / 0.25);
@@ -168,6 +179,19 @@ html.dark {
 }
 /* Each surface's own rule sets `background: var(--glass-sheen), var(--glass-bg)`
    (the tab bar's names the mix, where design-tokens.test.ts reads it). */
+/* Under the bar, a soft bright line: light leaving the glass. */
+.tabbar::after {
+  content: "";
+  position: absolute;
+  inset-inline: 18%;
+  bottom: -6px;
+  height: 12px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at 50% 0%, var(--glass-caustic), transparent 70%);
+  filter: blur(3px);
+  pointer-events: none;
+  z-index: -1;
+}
 .tabbar::before,
 .site-header :is(a, button).btn-ghost:has(> svg):not(:has(> :not(svg, .unread-badge)))::before,
 .site-header .glass-orb-phone::before,
@@ -229,7 +253,10 @@ html[data-text="xl"] {
 }
 
 body {
-  background: var(--bg);
+  background-color: var(--bg);
+  /* Light falls from the top left; the page is one sheet the glass floats on. */
+  background-image: linear-gradient(165deg, var(--bg-light, var(--bg)) 0%, var(--bg) 45%, var(--bg-deep, var(--bg)) 100%);
+  min-height: 100dvh;
   color: var(--fg);
   font-weight: 450;
   font-family: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
@@ -293,7 +320,7 @@ body {
 
   /* ---- Surfaces -------------------------------------------------------- */
   .card {
-    @apply rounded-2xl border border-border bg-surface p-4 sm:p-5;
+    @apply rounded-3xl border border-border bg-surface p-4 sm:p-5;
     box-shadow: var(--shadow);
   }
   /* The feature card (brand eggplant by day, raised eggplant by night) with a lime circle in the corner. */
@@ -380,11 +407,11 @@ body {
     border-color: var(--border-strong);
   }
   .list-card {
-    @apply divide-y divide-border overflow-hidden rounded-2xl border border-border bg-surface;
+    @apply divide-y divide-border overflow-hidden rounded-3xl border border-border bg-surface;
     box-shadow: var(--shadow);
   }
   .empty-state {
-    @apply rounded-2xl border border-border bg-surface px-6 py-10 text-center;
+    @apply rounded-3xl border border-border bg-surface px-6 py-10 text-center;
     box-shadow: var(--shadow);
   }
   .empty-state-title {
@@ -1071,15 +1098,11 @@ summary.list-none::-webkit-details-marker {
 /* The header is glass too. On phones it stays at the top while the page
    scrolls under it (not in chat threads, which pin their own top bar). */
 .site-header {
-  background: var(--glass-bg);
-  /* No hard line under it: the page simply fades out beneath the glass. */
+  /* No band and no line: the page runs behind it, blurred, and only the round buttons are glass. */
+  background: color-mix(in srgb, var(--bg) 78%, transparent);
   border-color: transparent;
-  box-shadow: 0 10px 28px -20px rgb(0 0 0 / 0.35);
   -webkit-backdrop-filter: var(--glass-filter);
   backdrop-filter: var(--glass-filter);
-}
-.dark .site-header {
-  box-shadow: 0 10px 28px -18px rgb(0 0 0 / 0.8);
 }
 @media (max-width: 63.99rem) {
   body:not(:has(.thread-top)) .site-header {
@@ -1122,7 +1145,7 @@ summary.list-none::-webkit-details-marker {
   background: var(--glass-sheen), var(--glass-bg);
   -webkit-backdrop-filter: var(--glass-filter);
   backdrop-filter: var(--glass-filter);
-  box-shadow: var(--glass-highlight);
+  box-shadow: var(--glass-highlight), 0 8px 20px -10px rgb(0 0 0 / 0.35);
 }
 @media (hover: hover) {
   .site-header :is(a, button).btn-ghost:has(> svg):not(:has(> :not(svg, .unread-badge))):hover,
@@ -1154,16 +1177,16 @@ summary.list-none::-webkit-details-marker {
 }
 /* Solid where glass can't be drawn, or isn't wanted. */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  html { --glass-bg: var(--surface); --glass-bg-dense: var(--surface-2); --glass-sheen: none; --glass-rim: none; }
+  html { --glass-bg: var(--surface); --glass-bg-dense: var(--surface-2); --glass-sheen: none; --glass-rim: none; --glass-caustic: transparent; }
   .tabbar { background: var(--surface); }
 }
 @media (prefers-reduced-transparency: reduce) {
-  html { --glass-bg: var(--surface); --glass-bg-dense: var(--surface-2); --glass-filter: none; --glass-sheen: none; --glass-rim: none; }
+  html { --glass-bg: var(--surface); --glass-bg-dense: var(--surface-2); --glass-filter: none; --glass-sheen: none; --glass-rim: none; --glass-caustic: transparent; }
   .tabbar { background: var(--surface); }
   body:has(.tabbar):not(:has(.tabbar[data-tucked], .composer-input:focus, .turf-map))::after { display: none; }
 }
 @media (forced-colors: active) {
-  html { --glass-sheen: none; --glass-rim: none; }
+  html { --glass-sheen: none; --glass-rim: none; --glass-caustic: transparent; }
   .tabbar, .icon-btn, .site-header, .composer, .thread-top, .more-sheet-panel, .data-table thead th, .turf-map.leaflet-container .leaflet-bar, .turf-map.leaflet-container .leaflet-control-attribution { border-color: CanvasText; }
   .tab[aria-current="page"] { border-color: Highlight; }
 }

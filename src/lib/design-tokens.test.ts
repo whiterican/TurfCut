@@ -252,9 +252,9 @@ describe("the Turfcut App Mockup palette (eggplant and lime)", () => {
     expect(dark.accent).toBe("#ccea96");
     expect(dark.solid).toBe("#3e4830"); // olive "verified" chip
   });
-  it("light mode uses the mockup's off-white page, green-black ink and lime accent", () => {
-    expect(light.bg).toBe("#eef0ea");
-    expect(light.fg).toBe("#181e1a");
+  it("light mode uses the glass mockup's cool grey page, near-black ink and lime accent", () => {
+    expect(light.bg).toBe("#e6e7eb");
+    expect(light.fg).toBe("#17181c");
     expect(light.accent).toBe("#ccea96");
     expect(light.solid).toBe("#281a3a"); // eggplant "done" badge
   });

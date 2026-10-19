@@ -2,6 +2,8 @@ import Link from "next/link";
 import { requireRole } from "@/lib/auth";
 import { FIELD_ROLES, PAY_ROLES } from "@/lib/access";
 import { loadOrgDisputes, loadOrgPay, partialReversals, pendingTransfers, reviewerOf, selfApproval, type OrgLine } from "@/lib/pay-data";
+import { noteOverdueDisputes } from "@/lib/dispute-thread-data";
+import { clockText } from "@/lib/dispute-sla";
 import { stripeProvider } from "@/lib/payout-provider";
 import { money, PLATFORM_FEE_BPS, statusLabel } from "@/lib/pay";
 import { LocalTime } from "@/components/LocalTime";
@@ -10,6 +12,8 @@ import { ApproveLines, HoldLine, RecordReversal, ResolveDispute } from "@/compon
 import { approve, checkPayment, hold, payNow, recordReversal, release, resolve } from "./actions";
 
 const day = (d: Date) => d.toISOString().slice(0, 10);
+
+const dayText = (d: Date) => d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" });
 
 const TABS = [
   { id: "approve", label: "To approve" },
@@ -55,6 +59,8 @@ export default async function PayPage({ searchParams }: { searchParams: Promise<
   }
   const actor = { profileId: s.userId, orgId: s.orgId, role: s.role };
   const canOpenShifts = FIELD_ROLES.includes(s.role);
+  // Deadlines missed since anyone looked: the pay roles are told once per dispute (M9).
+  await noteOverdueDisputes(s.orgId).catch(() => 0);
   const [pay, disputes, closed, pending, partial] = await Promise.all([
     loadOrgPay(actor),
     loadOrgDisputes(actor, true),
@@ -200,9 +206,13 @@ export default async function PayPage({ searchParams }: { searchParams: Promise<
                           : ""}
                   </p>
                 </div>
-                <span className="badge-coral shrink-0">Disputed</span>
+                <span className={`shrink-0 ${d.clock.overdue ? "badge-coral" : "badge-butter"}`}>{d.clock.overdue ? "Overdue" : "Disputed"}</span>
               </div>
               <blockquote className="border-l-2 border-border pl-3 text-sm text-fg">{d.reason}</blockquote>
+              <p className="text-xs text-muted">
+                {clockText(d.clock, "org", "", dayText)}{" "}
+                <Link href={`/pay/disputes/${d.id}`} className="link font-semibold">{d.messages ? `Open the thread (${d.messages})` : "Reply in the thread"}</Link>
+              </p>
               <ResolveDispute action={resolve} disputeId={d.id} reReviewed={!!d.review && d.review.at > d.createdAt} canAdjust={!d.noPayLine} />
             </div>
           ))}

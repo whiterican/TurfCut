@@ -6,10 +6,23 @@ import { requireWorker } from "@/lib/worker-session";
 import { db } from "@/lib/db";
 import { siteOrigin } from "@/lib/site-origin";
 import { ensurePayoutAccount, openDispute } from "@/lib/pay-data";
+import { postDisputeMessage } from "@/lib/dispute-thread-data";
 import { stripeProvider } from "@/lib/payout-provider";
 import type { ActionState } from "@/app/jobs/actions";
 
 const str = (fd: FormData, k: string) => String(fd.get(k) ?? "");
+
+/** The worker writes in a dispute's thread (M9). */
+export async function disputeMessage(_prev: ActionState, fd: FormData): Promise<ActionState> {
+  const { workerId, userId } = await requireWorker();
+  const disputeId = str(fd, "disputeId").trim();
+  const r = await postDisputeMessage({ profileId: userId, role: "WORKER", orgId: null, workerId }, disputeId, str(fd, "body"));
+  if (!r.ok) return { ok: false, message: r.reason };
+  revalidatePath(`/earnings/disputes/${disputeId}`);
+  revalidatePath(`/pay/disputes/${disputeId}`);
+  revalidatePath("/pay");
+  return { ok: true, message: "Sent." };
+}
 
 /** The worker disputes their pay for one shift. */
 export async function dispute(_prev: ActionState, fd: FormData): Promise<ActionState> {

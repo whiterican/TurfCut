@@ -5,6 +5,8 @@ import { PAY_ROLES } from "@/lib/access";
 import type { Role } from "@/lib/auth";
 import { ProviderError, type PayoutProvider, type ProviderEvent } from "@/lib/payout-provider";
 import { verifiedWork } from "@/lib/scorecard";
+import { clockOf, notifyDispute } from "@/lib/dispute-thread-data";
+import type { DisputeClock } from "@/lib/dispute-sla";
 import {
   computeShiftPay,
   disputeProblem,
@@ -262,7 +264,7 @@ export interface EarningShift {
   lines: EarningLine[];
   /** Sum of the shift's live (not replaced) lines. */
   totalCents: number;
-  disputes: Array<{ id: string; reason: string; createdAt: Date; resolution: { outcome: string; response: string; createdAt: Date } | null }>;
+  disputes: Array<{ id: string; reason: string; createdAt: Date; resolution: { outcome: string; response: string; createdAt: Date } | null; clock: DisputeClock; messages: number }>;
   canDispute: boolean;
   /** Reasons a supervisor gave for correcting or entering entries on this shift. */
   corrections: Array<{ reason: string; createdAt: Date }>;
@@ -307,9 +309,10 @@ function addTo(t: Totals, l: EarningLine) {
 /** A worker's own pay, by campaign. Only ever loaded for the signed-in worker. */
 export async function loadWorkerEarnings(workerId: string): Promise<{ campaigns: EarningCampaign[]; totals: Totals }> {
   const jobSel = { select: { id: true, title: true, org: { select: { name: true } } } } as const;
+  const now = new Date();
   const [lines, disputes, reviewed] = await Promise.all([
     db().payout.findMany({ where: { workerId }, include: { events: true }, orderBy: { createdAt: "asc" } }),
-    db().payDispute.findMany({ where: { workerId }, include: { resolution: true }, orderBy: { createdAt: "asc" } }),
+    db().payDispute.findMany({ where: { workerId }, include: { resolution: true, worker: { select: { profileId: true } }, messages: { select: { authorId: true, createdAt: true } } }, orderBy: { createdAt: "asc" } }),
     db().shift.findMany({
       where: { engagement: { workerId }, validations: { some: { workEventId: null } } },
       select: {
@@ -364,6 +367,8 @@ export async function loadWorkerEarnings(workerId: string): Promise<{ campaigns:
         reason: d.reason,
         createdAt: d.createdAt,
         resolution: d.resolution ? { outcome: d.resolution.outcome, response: d.resolution.response, createdAt: d.resolution.createdAt } : null,
+        clock: clockOf(d, now),
+        messages: d.messages.length,
       })),
       canDispute: disputeProblem({ reviewed: true, openDispute: open.has(s.id), disputes: ds.length, reason: "x".repeat(10) }) === null,
       corrections: s.events
@@ -419,6 +424,7 @@ export async function openDispute(
     const d = await tx.payDispute.create({
       data: { shiftId, workerId: actor.workerId, orgId: s.engagement.job.orgId, payoutId: line?.id ?? null, openedById: actor.profileId, reason: text, createdAt: now },
     });
+    await notifyDispute(tx, "DISPUTE_OPENED", { id: d.id, orgId: d.orgId, worker: { profileId: actor.profileId } }, "org", actor.profileId, now);
     await tx.auditEvent.create({
       data: { actorId: actor.profileId, action: "pay.dispute_opened", entityType: "PayDispute", entityId: d.id, metadata: { shiftId, payoutId: line?.id ?? null } },
     });
@@ -571,6 +577,8 @@ export interface DisputeView {
   noPayLine: boolean;
   review: { status: string; reason: string | null; at: Date } | null;
   resolution: { outcome: string; response: string; createdAt: Date } | null;
+  clock: DisputeClock;
+  messages: number;
 }
 
 function assertPayRole(actor: PayActor) {
@@ -583,14 +591,15 @@ export async function countOpenDisputes(actor: PayActor): Promise<number> {
   return db().payDispute.count({ where: { orgId: actor.orgId, resolution: { is: null } } });
 }
 
-export async function loadOrgDisputes(actor: PayActor, open: boolean): Promise<DisputeView[]> {
+export async function loadOrgDisputes(actor: PayActor, open: boolean, now = new Date()): Promise<DisputeView[]> {
   assertPayRole(actor);
   const orgId = actor.orgId;
   const ds = await db().payDispute.findMany({
     where: { orgId, resolution: open ? { is: null } : { isNot: null } },
     include: {
       resolution: true,
-      worker: { select: { displayName: true } },
+      worker: { select: { displayName: true, profileId: true } },
+      messages: { select: { authorId: true, createdAt: true } },
       shift: {
         select: {
           startsAt: true,
@@ -623,8 +632,11 @@ export async function loadOrgDisputes(actor: PayActor, open: boolean): Promise<D
       noPayLine: !d.shift.payouts.some((l) => l.kind === "SHIFT" && lineState(l, asFacts(l.events), false).status !== "VOIDED"),
       review: v ? { status: v.status, reason: v.reason, at: v.createdAt } : null,
       resolution: d.resolution ? { outcome: d.resolution.outcome, response: d.resolution.response, createdAt: d.resolution.createdAt } : null,
+      clock: clockOf(d, now),
+      messages: d.messages.length,
     };
-  });
+  // Open ones: overdue first, then whichever deadline comes soonest.
+  }).sort((a, b) => (open ? Number(!!b.clock.overdue) - Number(!!a.clock.overdue) || (a.clock.next?.due.getTime() ?? 0) - (b.clock.next?.due.getTime() ?? 0) : 0));
 }
 
 /**
@@ -700,6 +712,8 @@ export async function resolveDispute(actor: PayActor, disputeId: string, r: Reso
     await tx.payDisputeResolution.create({
       data: { disputeId, outcome: r.outcome, response, resolvedById: actor.profileId, adjustmentId, createdAt: now },
     });
+    const w = await tx.worker.findUniqueOrThrow({ where: { id: d.workerId }, select: { profileId: true } });
+    await notifyDispute(tx, "DISPUTE_RESOLVED", { id: disputeId, orgId: d.orgId, worker: { profileId: w.profileId } }, "worker", actor.profileId, now);
     await tx.auditEvent.create({
       data: {
         actorId: actor.profileId,

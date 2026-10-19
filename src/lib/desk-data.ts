@@ -2,7 +2,8 @@ import { db } from "@/lib/db";
 import type { Role } from "@/lib/auth";
 import { ACCEPTED_STATUSES } from "@/lib/engagements";
 import { loadOps } from "@/lib/field-day-data";
-import { countOpenDisputes, loadOrgPay } from "@/lib/pay-data";
+import { loadOrgPay } from "@/lib/pay-data";
+import { disputeCounts, noteOverdueDisputes } from "@/lib/dispute-thread-data";
 import { openJobsEndAfter } from "@/lib/jobs";
 import { money } from "@/lib/pay";
 import { applicationsByJob, deskParts, shortOfHeadcount, weekAhead, type DeskParts, type WeekRow } from "@/lib/desk";
@@ -59,7 +60,7 @@ export async function loadDesk(actor: { profileId: string; orgId: string; role: 
         })
       : null,
     parts.pay ? loadOrgPay(actor) : null,
-    parts.pay ? countOpenDisputes(actor) : null,
+    parts.pay ? noteOverdueDisputes(orgId, now).then(() => disputeCounts(orgId, now)) : null,
   ]);
 
   // A closed job still has its hires' shifts (C3.5): the week ahead shows those jobs too.
@@ -90,7 +91,10 @@ export async function loadDesk(actor: { profileId: string; orgId: string; role: 
       const cents = pay.awaiting.reduce((n, l) => n + l.line.amountCents, 0);
       needs.push({ key: "pay-approve", title: `${plural(pay.awaiting.length, "pay line")} to approve`, sub: `${money(cents)} in total`, tag: "Approve", badge: "badge-butter", href: "/pay?tab=approve" });
     }
-    if (disputes) needs.push({ key: "pay-disputes", title: `${plural(disputes, "open dispute")}`, sub: "Workers questioning their pay", tag: "Dispute", badge: "badge-coral", href: "/pay?tab=disputes" });
+    if (disputes.overdue) needs.push({ key: "pay-disputes-overdue", title: `${plural(disputes.overdue, "dispute")} overdue`, sub: "A reply or a resolution is past its deadline", tag: "Overdue", badge: "badge-coral", href: "/pay?tab=disputes" });
+    if (disputes.dueToday) needs.push({ key: "pay-disputes-today", title: `${plural(disputes.dueToday, "dispute")} due today`, sub: "Reply or resolve before the day ends", tag: "Due", badge: "badge-butter", href: "/pay?tab=disputes" });
+    const rest = disputes.open - disputes.overdue - disputes.dueToday;
+    if (rest) needs.push({ key: "pay-disputes", title: `${plural(rest, "open dispute")}`, sub: "Workers questioning their pay", tag: "Dispute", badge: "badge-coral", href: "/pay?tab=disputes" });
   }
 
   return {

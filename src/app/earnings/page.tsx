@@ -3,6 +3,9 @@ import { requireWorker } from "@/lib/worker-session";
 import { loadWorkerEarnings, type EarningShift } from "@/lib/pay-data";
 import { money, statusLabel } from "@/lib/pay";
 import { LocalTime } from "@/components/LocalTime";
+import { clockText } from "@/lib/dispute-sla";
+
+const dayText = (d: Date) => d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" });
 import { ActionButton } from "@/components/ActionButton";
 import { dispute, managePayouts, setUpPayouts } from "./actions";
 import { payoutSetup } from "@/lib/pay-data";
@@ -97,13 +100,19 @@ function ShiftRow({ s, orgName }: { s: EarningShift; orgName: string }) {
       ))}
       {open ? (
         <p className="text-xs text-muted">
-          You disputed this on <LocalTime iso={open.createdAt.toISOString()} mode="date" />. {orgName} will respond here
-          {main && main.state.status === "DISPUTED" ? "; payment waits until then." : "."}
+          You disputed this on <LocalTime iso={open.createdAt.toISOString()} mode="date" />.{" "}
+          {clockText(open.clock, "worker", orgName, dayText)}
+          {main && main.state.status === "DISPUTED" ? " Payment waits for the outcome." : ""}{" "}
+          <Link href={`/earnings/disputes/${open.id}`} className="link font-semibold">
+            {open.messages ? `Open the thread (${open.messages})` : "Open the thread"}
+          </Link>
+          {open.clock.overdue && <span className="badge-coral ml-2">Overdue</span>}
         </p>
       ) : (
         last?.resolution && (
           <p className="text-xs text-muted">
-            {OUTCOME[last.resolution.outcome] ?? "Dispute closed"}: {last.resolution.response}
+            {OUTCOME[last.resolution.outcome] ?? "Dispute closed"}: {last.resolution.response}{" "}
+            <Link href={`/earnings/disputes/${last.id}`} className="link">Thread</Link>
           </p>
         )
       )}

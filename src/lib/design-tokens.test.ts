@@ -133,6 +133,27 @@ describe.each([
     }
   });
 
+  it("cards are translucent slabs: every text colour on them stays what it is on the opaque surface, over every page tone", () => {
+    const m = css.match(/--card-bg: color-mix\(in srgb, var\(--surface\) (\d+)%, transparent\)/);
+    expect(m, "--card-bg is a surface/transparent mix").not.toBeNull();
+    const alpha = Number(m![1]) / 100;
+    for (const under of ["bg", "bg-light", "bg-deep"] as const) {
+      const card = mix(t.surface, alpha, t[under]);
+      expect(ratio(t.fg, card)).toBeGreaterThanOrEqual(7);
+      expect(ratio(t.muted, card)).toBeGreaterThanOrEqual(7);
+      expect(ratio(t.subtle, card)).toBeGreaterThanOrEqual(6);
+      expect(ratio(t.link, card)).toBeGreaterThanOrEqual(4.5);
+      expect(ratio(t.danger, card)).toBeGreaterThanOrEqual(4.5);
+    }
+    const h = css.match(/--hero-bg: color-mix\(in srgb, var\(--hero\) (\d+)%, transparent\)/);
+    expect(h, "--hero-bg is a hero/transparent mix").not.toBeNull();
+    for (const under of ["bg", "bg-light", "bg-deep"] as const) {
+      const hero = mix(t.hero, Number(h![1]) / 100, t[under]);
+      expect(ratio(t["hero-fg"], hero)).toBeGreaterThanOrEqual(7);
+      expect(ratio(t["hero-muted"], hero)).toBeGreaterThanOrEqual(7);
+    }
+  });
+
   it("glass surfaces (header, orbs, composer, sheet, map controls, table headers) keep their text readable over anything", () => {
     // Read every glass mix from the stylesheet, so lowering any of them is caught here.
     const g = css.match(/--glass-bg: color-mix\(in srgb, var\(--surface\) (\d+)%, transparent\)/);

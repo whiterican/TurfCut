@@ -76,4 +76,19 @@ describe("migration grants", () => {
       expect({ file: f, revoked: /REVOKE\s+ALL\s+ON\s+"public"\."ShiftSlot"\s+FROM\s+anon,\s*authenticated/i.test(sql) }).toEqual({ file: f, revoked: true });
     }
   });
+  it("dispute messages and statements stay server-only and append-only (M9)", () => {
+    for (const t of ["PayDisputeMessage", "Statement"]) {
+      for (const f of files) {
+        const sql = readFileSync(join(dir, f), "utf8").replace(/--[^\n]*/g, "");
+        expect({ file: f, table: t, grants: sql.match(new RegExp(`GRANT[^;]*"${t}"[^;]*`, "gi")) ?? [] }).toEqual({ file: f, table: t, grants: [] });
+        expect({ file: f, table: t, policies: sql.match(new RegExp(`CREATE\\s+POLICY[^;]*"${t}"[^;]*`, "gi")) ?? [] }).toEqual({ file: f, table: t, policies: [] });
+      }
+      for (const f of ["m9-money.sql", "supabase-manual-setup.sql"]) {
+        const sql = readFileSync(join(dir, f), "utf8").replace(/--[^\n]*/g, "");
+        expect({ file: f, table: t, rls: new RegExp(`ALTER\\s+TABLE\\s+"public"\\."${t}"\\s+ENABLE\\s+ROW\\s+LEVEL\\s+SECURITY`, "i").test(sql) }).toEqual({ file: f, table: t, rls: true });
+        expect({ file: f, table: t, revoked: new RegExp(`REVOKE\\s+ALL\\s+ON\\s+"public"\\."${t}"\\s+FROM\\s+anon,\\s*authenticated`, "i").test(sql) }).toEqual({ file: f, table: t, revoked: true });
+        expect({ file: f, table: t, appendOnly: new RegExp(`TRIGGER\\s+"${t}_append_only"\\s+BEFORE\\s+UPDATE\\s+OR\\s+DELETE\\s+ON\\s+"public"\\."${t}"`, "i").test(sql) }).toEqual({ file: f, table: t, appendOnly: true });
+      }
+    }
+  });
 });

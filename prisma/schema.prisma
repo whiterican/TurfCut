@@ -700,6 +700,8 @@ model PayoutTransfer {
   org         Organization @relation(fields: [orgId], references: [id])
   amountCents Int // sum of the lines' gross pay — what the worker receives
   feeCents    Int // sum of the lines' platform fees (invoiced to the organization)
+  // M9: the worker's receipt number, counted per organization (R-000123), assigned when the transfer is recorded.
+  receiptNo   Int
   destination String // the worker's Stripe account at the time
   createdById String       @db.Uuid
   createdAt   DateTime     @default(now())
@@ -707,6 +709,7 @@ model PayoutTransfer {
   events  PayoutEvent[]
   notices Notification[]
 
+  @@unique([orgId, receiptNo])
   @@index([orgId, createdAt])
   @@index([workerId, createdAt])
 }

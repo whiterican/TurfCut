@@ -307,6 +307,8 @@ CREATE TABLE "public"."PayoutTransfer" (
     "createdById" UUID NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
+    -- M9 (prisma/m9-money.sql): the worker's receipt number, counted per organization.
+    "receiptNo" INTEGER NOT NULL,
     CONSTRAINT "PayoutTransfer_pkey" PRIMARY KEY ("id")
 );
 
@@ -525,6 +527,7 @@ CREATE INDEX "PayoutEvent_transferId_idx" ON "public"."PayoutEvent"("transferId"
 
 -- CreateIndex
 CREATE INDEX "PayoutTransfer_orgId_createdAt_idx" ON "public"."PayoutTransfer"("orgId", "createdAt");
+CREATE UNIQUE INDEX "PayoutTransfer_orgId_receiptNo_key" ON "public"."PayoutTransfer"("orgId", "receiptNo");
 
 -- CreateIndex
 CREATE INDEX "PayoutTransfer_workerId_createdAt_idx" ON "public"."PayoutTransfer"("workerId", "createdAt");

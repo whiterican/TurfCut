@@ -24,6 +24,7 @@ async function PayoutSetup({ workerId, note }: { workerId: string; note: string 
       <div className="flex items-start justify-between gap-3">
         <div className="space-y-1">
           <p className="font-semibold text-fg">Payouts</p>
+          <p className="text-muted-sm"><Link href="/earnings/receipts" className="link">Receipts</Link> · one for every payment sent to you.</p>
           <p className="text-muted-sm">
             {!provider.configured()
               ? "In-app payouts aren't switched on yet. Approved pay is kept and sent once they are."

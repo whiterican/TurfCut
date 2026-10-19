@@ -10,6 +10,10 @@
 --   3. Notification.disputeId and .transferId: a notice can be about a
 --      dispute or a payout transfer. Exactly one subject, and the kind says
 --      which (checked below); every existing row already fits.
+--   4. PayoutTransfer.receiptNo: the worker's receipt number, counted per
+--      organization. Existing transfers are numbered in the order they
+--      were recorded (the one time this append-only table is updated: a
+--      new column is filled, no recorded value changes).
 
 -- The new enum values first. The check below compares the kind as text, so
 -- it works whether this file runs statement by statement (psql -f) or as one
@@ -71,5 +75,19 @@ ALTER TABLE "public"."Notification" ADD CONSTRAINT "Notification_subject" CHECK 
   AND (("kind"::text = 'CAMPAIGN_POST') = ("postId" IS NOT NULL))
   AND (("kind"::text LIKE 'DISPUTE\_%') = ("disputeId" IS NOT NULL))
   AND (("kind"::text LIKE 'PAYOUT\_%') = ("transferId" IS NOT NULL)));
+
+-- Receipt numbers (M9.2).
+ALTER TABLE "public"."PayoutTransfer" ADD COLUMN IF NOT EXISTS "receiptNo" INTEGER;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM "public"."PayoutTransfer" WHERE "receiptNo" IS NULL) THEN
+    ALTER TABLE "public"."PayoutTransfer" DISABLE TRIGGER "PayoutTransfer_append_only";
+    UPDATE "public"."PayoutTransfer" t SET "receiptNo" = n."rn"
+      FROM (SELECT "id", row_number() OVER (PARTITION BY "orgId" ORDER BY "createdAt", "id") AS "rn" FROM "public"."PayoutTransfer") n
+     WHERE n."id" = t."id" AND t."receiptNo" IS NULL;
+    ALTER TABLE "public"."PayoutTransfer" ENABLE TRIGGER "PayoutTransfer_append_only";
+  END IF;
+END $$;
+ALTER TABLE "public"."PayoutTransfer" ALTER COLUMN "receiptNo" SET NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS "PayoutTransfer_orgId_receiptNo_key" ON "public"."PayoutTransfer"("orgId", "receiptNo");
 
 COMMIT;

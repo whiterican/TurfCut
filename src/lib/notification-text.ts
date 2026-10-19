@@ -78,7 +78,7 @@ export function payNoticeText(
   if (n.transfer) {
     const amount = money(n.transfer.amountCents);
     if (viewer === "worker") {
-      const href = `/earnings/payouts/${n.transfer.id}`;
+      const href = `/earnings/receipts/${n.transfer.id}`;
       switch (kind) {
         case "PAYOUT_SENT": return { text: `${amount} from ${n.transfer.org.name} was sent to your account. Your receipt is ready.`, href };
         case "PAYOUT_REVERSED": return { text: `A ${amount} payment from ${n.transfer.org.name} was reversed. The receipt says what happened.`, href };

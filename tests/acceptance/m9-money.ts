@@ -5,6 +5,33 @@ import * as pay from "@/lib/pay-data";
 import { disputeCounts, loadDisputeThread, noteOverdueDisputes, postDisputeMessage } from "@/lib/dispute-thread-data";
 import { loadNotifications, unreadNotifications } from "@/lib/notifications-data";
 import { payNoticeText } from "@/lib/notification-text";
+import { loadReceipt, loadReceipts } from "@/lib/receipts-data";
+import { exportAccount } from "@/lib/account-data";
+import { ProviderError, type PayoutProvider } from "@/lib/payout-provider";
+
+/** A fake Stripe (as in the M5 checks): records transfers by idempotency key. */
+function fakeStripe() {
+  const accounts = new Map<string, { enabled: boolean }>();
+  const byWorker = new Map<string, string>();
+  const transfers = new Map<string, { id: string; amountCents: number; destination: string }>();
+  const provider: PayoutProvider = {
+    configured: () => true,
+    async createAccount({ workerId }) {
+      if (!byWorker.has(workerId)) { const id = `acct_${workerId.slice(-4)}`; byWorker.set(workerId, id); accounts.set(id, { enabled: true }); }
+      return byWorker.get(workerId)!;
+    },
+    async onboardingLink(a) { return `https://connect.stripe.test/setup/${a}`; },
+    async dashboardLink(a) { return `https://connect.stripe.test/express/${a}`; },
+    async payoutsEnabled(a) { return accounts.get(a)?.enabled ?? false; },
+    async findTransfer(group) { const t = transfers.get(group); return t ? { id: t.id } : null; },
+    async transfer({ amountCents, destination, key }) {
+      if (!transfers.has(key)) transfers.set(key, { id: `tr_${transfers.size + 1}`, amountCents, destination });
+      return { id: transfers.get(key)!.id };
+    },
+    parseWebhook() { throw new ProviderError("not used", true); },
+  };
+  return { provider, transfers };
+}
 
 const ORG = "00000000-0000-0000-0000-000000000001";
 const ORG2 = "00000000-0000-0000-0000-000000000002";
@@ -112,6 +139,50 @@ const check = (l: string, c: unknown, d?: unknown) => { if (c) console.log(`PASS
   let noSubject = false;
   try { await p.notification.create({ data: { recipientId: W1, kind: "DISPUTE_OPENED", engagementId: ENG_W1_A } }); } catch { noSubject = true; }
   check("a dispute notice must be about a dispute (the database checks)", noSubject);
+
+  // ============ Slice 2: receipts ============
+  const stripe = fakeStripe();
+  const W2 = "00000000-0000-0000-0000-000000000102";
+  const ownPay = { profileId: OWNER, orgId: ORG, role: "OWNER" as const };
+  await pay.ensurePayoutAccount(W1, stripe.provider);
+  await pay.ensurePayoutAccount(W2, stripe.provider);
+  // The shift line and the dispute's adjustment, approved by the owner (finance made the adjustment). The seed's
+  // already-approved line for this worker rides along in the same payment.
+  const linesW1 = await p.payout.findMany({ where: { shiftId: shift.id }, select: { id: true } });
+  const approveW1 = await pay.lineAction(ownPay, linesW1.map((l) => l.id), "approve", null, new Date());
+  const run1 = await pay.payWorker(ownPay, W1, stripe.provider, null, new Date("2026-11-02T18:00:00Z"));
+  const t1 = run1.ok ? await p.payoutTransfer.findUniqueOrThrow({ where: { id: run1.transferId } }) : null;
+  check("paying a worker records a transfer with receipt number 1 for the organization", approveW1.ok && run1.ok && run1.outcome === "paid" && t1?.receiptNo === 1, { approveW1, run1, t1 });
+  check("the worker is told the money was sent, once, about the transfer", (await notices("PAYOUT_SENT", W1)) === 1 && (await p.notification.findFirst({ where: { kind: "PAYOUT_SENT" } }))?.transferId === t1?.id);
+  const r1 = await loadReceipt(W1, t1!.id);
+  check("the receipt: R-000001, sent, the Stripe reference, the account's last four, every line, the total", !!r1 && r1.number === "R-000001" && r1.status === "sent" && r1.providerRef === "tr_1" && r1.destinationTail === "0101" && r1.lines.length === 3 && r1.lines.reduce((n, l) => n + l.amountCents, 0) === r1.amountCents && r1.amountCents === t1!.amountCents, r1);
+  check("the adjustment line names its dispute; the shift line its formula", r1!.lines.some((l) => l.kind === "ADJUSTMENT" && l.disputeId === d.id) && r1!.lines.some((l) => l.kind === "SHIFT" && /4h verified/.test(l.formula)), r1!.lines);
+  check("another worker can't open it, and it isn't in their list", (await loadReceipt(W2, t1!.id)) === null && (await loadReceipts(W2)).length === 0);
+  // A second worker paid by the same organization gets receipt 2; another organization starts at 1.
+  const s2 = await p.shift.create({ data: { engagementId: (await p.engagement.create({ data: { jobId: (await p.job.findFirstOrThrow({ where: { orgId: ORG } })).id, workerId: W2, status: "ACTIVE", hiredById: OWNER } })).id, startsAt: start, endsAt: new Date(start.getTime() + 4 * H), status: "COMPLETED", checkInAt: start, checkOutAt: new Date(start.getTime() + 4 * H) } });
+  await p.workEvent.createMany({ data: [{ type: "CHECK_IN", at: 0 }, { type: "CHECK_OUT", at: 4 * H }].map((e) => ({ shiftId: s2.id, type: e.type as never, payload: {}, createdAt: new Date(start.getTime() + e.at) })) });
+  await supervisorShiftAction({ profileId: SUP, orgId: ORG }, s2.id, { kind: "closeout", status: "APPROVED", reason: null }, new Date());
+  const l2 = await p.payout.findFirstOrThrow({ where: { shiftId: s2.id } });
+  await pay.lineAction(ownPay, [l2.id], "approve", null, new Date());
+  const run2 = await pay.payWorker(ownPay, W2, stripe.provider, null, new Date("2026-11-02T19:00:00Z"));
+  const t2 = run2.ok ? await p.payoutTransfer.findUniqueOrThrow({ where: { id: run2.transferId } }) : null;
+  check("the organization's next receipt is R-000002", run2.ok && t2?.receiptNo === 2, { run2, t2 });
+  let dup = false;
+  try { await p.payoutTransfer.create({ data: { workerId: W2, orgId: ORG, amountCents: 1, feeCents: 0, receiptNo: 2, destination: "x", createdById: OWNER } }); } catch { dup = true; }
+  check("two receipts can't share a number in one organization (the database refuses)", dup);
+  // A full reversal: the worker is told, the receipt says so and stays.
+  const full = { id: "evt_rev_1", type: "transfer.reversed", transfer: { id: "tr_1", group: t1!.id, amountCents: t1!.amountCents, reversedCents: t1!.amountCents } };
+  const applied = await pay.handleProviderEvent(full, new Date("2026-11-04T10:00:00Z"));
+  const r1b = await loadReceipt(W1, t1!.id);
+  check("a reversal tells the worker once and the receipt records it, keeping its number and lines", applied === "applied" && (await notices("PAYOUT_REVERSED", W1)) === 1 && r1b?.status === "reversed" && !!r1b.reversedAt && r1b.number === "R-000001" && r1b.lines.length === 3, r1b);
+  check("the same reversal again changes nothing", (await pay.handleProviderEvent(full, new Date())) === "duplicate" && (await notices("PAYOUT_REVERSED", W1)) === 1);
+  const list = await loadReceipts(W1);
+  check("the worker's list has the one receipt, newest first", list.length === 1 && list[0].id === t1!.id);
+  const pt = payNoticeText("PAYOUT_SENT", { dispute: null, transfer: { id: t1!.id, amountCents: 12500, worker: { displayName: "Alex Rivera" }, org: { name: "Front Range Circulators" } } }, "worker");
+  check("the notice says the amount and leads to the receipt", !!pt && /\$125\.00 from Front Range Circulators was sent/.test(pt.text) && pt.href === `/earnings/receipts/${t1!.id}`, pt);
+  const files = await exportAccount({ userId: W1, workerId: W1 });
+  const transfersCsv = files.find((f) => f.name === "transfers.csv")?.text ?? "";
+  check("the data export carries the receipt number", /receipt/.test(transfersCsv.split("\n")[0]) && /R-000001/.test(transfersCsv), transfersCsv.split("\n").slice(0, 2));
 
   await p.$disconnect();
   process.exit(fails ? 1 : 0);

@@ -940,8 +940,11 @@ export async function payWorker(actor: PayActor, workerId: string, provider: Pay
     if (expectedCents !== null && expectedCents !== t.amountCents) {
       return { ok: false as const, reason: `The amount changed to ${money(t.amountCents)} since you opened this page. Nothing was sent — check it and pay again.` };
     }
+    // The receipt number: the organization's next, under the organization's receipt lock (M9).
+    await lock(tx, `receipts:${actor.orgId}`);
+    const last = await tx.payoutTransfer.aggregate({ where: { orgId: actor.orgId }, _max: { receiptNo: true } });
     const transfer = await tx.payoutTransfer.create({
-      data: { workerId, orgId: actor.orgId, amountCents: t.amountCents, feeCents: t.feeCents, destination: worker.stripeAccountId!, createdById: actor.profileId, createdAt: now },
+      data: { workerId, orgId: actor.orgId, amountCents: t.amountCents, feeCents: t.feeCents, receiptNo: (last._max.receiptNo ?? 0) + 1, destination: worker.stripeAccountId!, createdById: actor.profileId, createdAt: now },
     });
     const ids = ready.map((l) => l.line.id);
     const at = await eventAt(tx, ids, now);
@@ -972,6 +975,14 @@ async function transferLines(tx: Tx, transferId: string) {
   };
 }
 
+/** The worker's notice about a transfer (M9): the money went out, or came back. Once per kind per transfer. */
+async function notifyTransfer(tx: Tx, kind: "PAYOUT_SENT" | "PAYOUT_REVERSED", transferId: string, at: Date) {
+  const t = await tx.payoutTransfer.findUnique({ where: { id: transferId }, select: { worker: { select: { profileId: true, closedAt: true } } } });
+  if (!t || t.worker.closedAt) return;
+  if (await tx.notification.count({ where: { transferId, kind } })) return;
+  await tx.notification.create({ data: { recipientId: t.worker.profileId, kind, transferId, createdAt: at } });
+}
+
 /** Records that Stripe made this transfer: every line of it not yet marked paid. */
 async function recordPaid(tx: Tx, transferId: string, ref: string, actorId: string | null, source: string, now: Date, tl?: TransferLines) {
   const x = tl ?? (await transferLines(tx, transferId));
@@ -981,6 +992,7 @@ async function recordPaid(tx: Tx, transferId: string, ref: string, actorId: stri
   await tx.auditEvent.create({
     data: { actorId, action: x.failed ? "payout.paid_after_failure" : "payout.paid", entityType: "PayoutTransfer", entityId: transferId, metadata: { providerRef: ref, source, payoutIds: x.unpaid.map((l) => l.id) } },
   });
+  await notifyTransfer(tx, "PAYOUT_SENT", transferId, at);
 }
 
 /**
@@ -1093,6 +1105,7 @@ export async function handleProviderEvent(e: ProviderEvent, now = new Date()): P
           const at = await eventAt(tx, hit.map((l) => l.id), now);
           await tx.payoutEvent.createMany({ data: hit.map((l) => ({ payoutId: l.id, type: "REVERSED" as const, transferId: transfer.id, providerRef: t.id, reason: "Reversed in Stripe", createdAt: at })) });
           await tx.auditEvent.create({ data: { action: "payout.reversed", entityType: "PayoutTransfer", entityId: transfer.id, metadata: { orgId: transfer.orgId, providerRef: t.id, payoutIds: hit.map((l) => l.id) } } });
+          await notifyTransfer(tx, "PAYOUT_REVERSED", transfer.id, at);
         }
       } else {
         // A partial reversal isn't a line-by-line event: flag it for finance.

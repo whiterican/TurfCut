@@ -77,9 +77,9 @@ export function StatementView({ s }: { s: View }) {
             <dd className="text-xs text-muted">{t.paidCount} {t.paidCount === 1 ? "payment" : "payments"}{t.reversedCents ? ` · ${money(t.reversedCents)} came back` : ""}</dd>
           </div>
           <div>
-            <dt className="text-muted">Corrections to earlier months</dt>
+            <dt className="text-muted">Corrections</dt>
             <dd className="text-lg font-bold text-fg tabular-nums">{money(t.correctionsCents)}</dd>
-            <dd className="text-xs text-muted">{s.corrections.length ? `${s.corrections.length} ${s.corrections.length === 1 ? "line" : "lines"} below` : "none"}</dd>
+            <dd className="text-xs text-muted">to earlier months{s.corrections.length ? ` · ${s.corrections.length} ${s.corrections.length === 1 ? "line" : "lines"} below` : ""}</dd>
           </div>
         </dl>
         {drift && (

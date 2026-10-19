@@ -8,7 +8,6 @@ import { payNoticeText } from "@/lib/notification-text";
 import { loadReceipt, loadReceipts } from "@/lib/receipts-data";
 import { exportAccount } from "@/lib/account-data";
 import { listStatements, loadStatement, statementCsv } from "@/lib/statements-data";
-import { periodOf } from "@/lib/money-views";
 import { ProviderError, type PayoutProvider } from "@/lib/payout-provider";
 
 /** A fake Stripe (as in the M5 checks): records transfers by idempotency key. */
@@ -59,10 +58,11 @@ const check = (l: string, c: unknown, d?: unknown) => { if (c) console.log(`PASS
     ],
   });
   // A finished shift, reviewed, so it has a pay line to dispute.
-  const start = new Date(Date.now() - 2 * 24 * H);
+  // Pinned to October 2026 so the statements (slice 3) read the same months whenever this runs.
+  const start = new Date("2026-10-17T15:00:00Z");
   const shift = await p.shift.create({ data: { engagementId: ENG_W1_A, startsAt: start, endsAt: new Date(start.getTime() + 4 * H), status: "COMPLETED", checkInAt: start, checkOutAt: new Date(start.getTime() + 4 * H) } });
   await p.workEvent.createMany({ data: [{ type: "CHECK_IN", at: 0 }, { type: "SIGNATURE_SUBMITTED", at: 2 * H, payload: { count: 30 } }, { type: "CHECK_OUT", at: 4 * H }].map((e) => ({ shiftId: shift.id, type: e.type as never, payload: (e as { payload?: object }).payload ?? {}, createdAt: new Date(start.getTime() + e.at) })) });
-  const approved = await supervisorShiftAction({ profileId: SUP, orgId: ORG }, shift.id, { kind: "closeout", status: "APPROVED", reason: null }, new Date());
+  const approved = await supervisorShiftAction({ profileId: SUP, orgId: ORG }, shift.id, { kind: "closeout", status: "APPROVED", reason: null }, new Date("2026-10-19T12:00:00Z"));
   check("the shift is approved and has a pay line", approved.ok && (await p.payout.count({ where: { shiftId: shift.id } })) === 1, approved);
 
   const worker = { profileId: W1, role: "WORKER" as const, orgId: null, workerId: W1 };
@@ -151,7 +151,7 @@ const check = (l: string, c: unknown, d?: unknown) => { if (c) console.log(`PASS
   // The shift line and the dispute's adjustment, approved by the owner (finance made the adjustment). The seed's
   // already-approved line for this worker rides along in the same payment.
   const linesW1 = await p.payout.findMany({ where: { shiftId: shift.id }, select: { id: true } });
-  const approveW1 = await pay.lineAction(ownPay, linesW1.map((l) => l.id), "approve", null, new Date());
+  const approveW1 = await pay.lineAction(ownPay, linesW1.map((l) => l.id), "approve", null, new Date("2026-10-30T12:00:00Z"));
   const run1 = await pay.payWorker(ownPay, W1, stripe.provider, null, new Date("2026-11-02T18:00:00Z"));
   const t1 = run1.ok ? await p.payoutTransfer.findUniqueOrThrow({ where: { id: run1.transferId } }) : null;
   check("paying a worker records a transfer with receipt number 1 for the organization", approveW1.ok && run1.ok && run1.outcome === "paid" && t1?.receiptNo === 1, { approveW1, run1, t1 });
@@ -163,9 +163,9 @@ const check = (l: string, c: unknown, d?: unknown) => { if (c) console.log(`PASS
   // A second worker paid by the same organization gets receipt 2; another organization starts at 1.
   const s2 = await p.shift.create({ data: { engagementId: (await p.engagement.create({ data: { jobId: (await p.job.findFirstOrThrow({ where: { orgId: ORG } })).id, workerId: W2, status: "ACTIVE", hiredById: OWNER } })).id, startsAt: start, endsAt: new Date(start.getTime() + 4 * H), status: "COMPLETED", checkInAt: start, checkOutAt: new Date(start.getTime() + 4 * H) } });
   await p.workEvent.createMany({ data: [{ type: "CHECK_IN", at: 0 }, { type: "CHECK_OUT", at: 4 * H }].map((e) => ({ shiftId: s2.id, type: e.type as never, payload: {}, createdAt: new Date(start.getTime() + e.at) })) });
-  await supervisorShiftAction({ profileId: SUP, orgId: ORG }, s2.id, { kind: "closeout", status: "APPROVED", reason: null }, new Date());
+  await supervisorShiftAction({ profileId: SUP, orgId: ORG }, s2.id, { kind: "closeout", status: "APPROVED", reason: null }, new Date("2026-10-20T12:00:00Z"));
   const l2 = await p.payout.findFirstOrThrow({ where: { shiftId: s2.id } });
-  await pay.lineAction(ownPay, [l2.id], "approve", null, new Date());
+  await pay.lineAction(ownPay, [l2.id], "approve", null, new Date("2026-10-30T12:30:00Z"));
   const run2 = await pay.payWorker(ownPay, W2, stripe.provider, null, new Date("2026-11-02T19:00:00Z"));
   const t2 = run2.ok ? await p.payoutTransfer.findUniqueOrThrow({ where: { id: run2.transferId } }) : null;
   check("the organization's next receipt is R-000002", run2.ok && t2?.receiptNo === 2, { run2, t2 });
@@ -188,7 +188,7 @@ const check = (l: string, c: unknown, d?: unknown) => { if (c) console.log(`PASS
 
   // ============ Slice 3: monthly statements ============
   // Lines were recorded this month (real time); the payments went out on Nov 2 and one came back on Nov 4.
-  const recMonth = periodOf(new Date());
+  const recMonth = "2026-10";
   const dec1 = new Date("2026-12-01T09:00:00Z");
   const sumLedger = async (period: string) => {
     const [y, m] = period.split("-").map(Number);
@@ -196,6 +196,12 @@ const check = (l: string, c: unknown, d?: unknown) => { if (c) console.log(`PASS
     const live = ls.filter((l) => l.events.length === 0);
     return { gross: live.reduce((n, l) => n + l.amountCents, 0), fee: live.reduce((n, l) => n + l.feeCents, 0), count: live.length };
   };
+  // A line recorded in October but never approved, withdrawn by a re-review in December: the closed statement keeps its
+  // totals and marks the line; December carries the credit, naming S-2026-10.
+  const s3 = await p.shift.create({ data: { engagementId: (await p.engagement.findFirstOrThrow({ where: { workerId: W2, job: { orgId: ORG } } })).id, startsAt: new Date("2026-10-24T15:00:00Z"), endsAt: new Date("2026-10-24T19:00:00Z"), status: "COMPLETED", checkInAt: new Date("2026-10-24T15:00:00Z"), checkOutAt: new Date("2026-10-24T19:00:00Z") } });
+  await p.workEvent.createMany({ data: [{ type: "CHECK_IN", at: 0 }, { type: "SIGNATURE_SUBMITTED", at: 2 * H, payload: { count: 20 } }, { type: "CHECK_OUT", at: 4 * H }].map((e) => ({ shiftId: s3.id, type: e.type as never, payload: (e as { payload?: object }).payload ?? {}, createdAt: new Date(s3.startsAt.getTime() + e.at) })) });
+  await supervisorShiftAction({ profileId: SUP, orgId: ORG }, s3.id, { kind: "closeout", status: "APPROVED", reason: null }, new Date("2026-10-25T12:00:00Z"));
+  const l3 = await p.payout.findFirstOrThrow({ where: { shiftId: s3.id } });
   check("a supervisor can't read statements", await loadStatement({ profileId: SUP, orgId: ORG, role: "SUPERVISOR" }, recMonth, dec1).then(() => false, () => true));
   check("a bad or future period is nothing", (await loadStatement(finPay, "2026-13", dec1)) === null && (await loadStatement(finPay, "2027-01", dec1)) === null && (await loadStatement(finPay, "x", dec1)) === null);
   const oct = await loadStatement(finPay, recMonth, dec1);
@@ -209,8 +215,11 @@ const check = (l: string, c: unknown, d?: unknown) => { if (c) console.log(`PASS
   check("the dispute is on it: first reply late, so the month's handling reads late", oct!.disputes.length === 1 && oct!.disputes[0].id === d.id && oct!.disputes[0].onTime === false && oct!.disputes[0].clock.daysToFirstResponse === 4, oct!.disputes);
   check("a line paid the next month carries its receipt; lines whose payment came back carry none", oct!.lines.filter((l) => l.receipt === "R-000002").length === 1 && oct!.lines.filter((l) => l.workerId === W1).every((l) => l.receipt === null && l.status !== "PAID"), oct!.lines.map((l) => [l.receipt, l.status]));
   const nov = await loadStatement(finPay, "2026-11", dec1);
-  check("November: two payments sent, one came back, nothing recorded", !!nov && nov.status === "closed" && nov.totals.paidCount === 2 && nov.totals.paidCents === t1!.amountCents + t2!.amountCents && nov.totals.reversedCents === t1!.amountCents && nov.totals.lineCount === 0 && nov.payments[0].receipt === "R-000001" && !!nov.payments[0].reversedAt && !nov.payments[1].reversedAt, nov?.totals);
-  check("the other organization's statement is empty, and never shows this one's lines", (await loadStatement(other, recMonth, dec1))!.totals.lineCount === 0 && (await loadStatement(other, "2026-11", dec1))!.totals.paidCount === 0);
+  check("November: two payments sent, one came back, none of these shifts' lines recorded", !!nov && nov.status === "closed" && nov.totals.paidCount === 2 && nov.totals.paidCents === t1!.amountCents + t2!.amountCents && nov.totals.reversedCents === t1!.amountCents && !nov.lines.some((l) => l.shiftId === shift.id || l.shiftId === s2.id) && nov.payments[0].receipt === "R-000001" && !!nov.payments[0].reversedAt && !nov.payments[1].reversedAt, nov?.totals);
+  check("the other organization's statement is empty, and never shows this one's lines", (await loadStatement(other, recMonth, dec1))!.totals.lineCount === 0);
+  const [twinA, twinB] = await Promise.all([loadStatement(other, "2026-11", dec1), loadStatement(other, "2026-11", dec1)]);
+  check("two people closing a month at once get one statement", twinA!.status === "closed" && twinB!.status === "closed" && (await p.statement.count({ where: { orgId: ORG2, period: "2026-11" } })) === 1);
+  check("a month before the organization existed has no statement, and none is written", (await loadStatement(finPay, "2019-01", dec1)) === null && (await p.statement.count({ where: { period: "2019-01" } })) === 0);
   // A dispute resolved after the month closed: the adjustment lands on the month it happened in and names the statement it corrects.
   const lateD = await pay.openDispute({ workerId: W2, profileId: W2 }, s2.id, "The rate was wrong; the posting said $30.", new Date("2026-12-02T10:00:00Z"));
   const d2 = await p.payDispute.findFirstOrThrow({ where: { shiftId: s2.id } });
@@ -218,7 +227,13 @@ const check = (l: string, c: unknown, d?: unknown) => { if (c) console.log(`PASS
   const dec = await loadStatement(finPay, "2026-12", new Date("2026-12-04T00:00:00Z"));
   const octAfter = await loadStatement(finPay, recMonth, new Date("2026-12-04T00:00:00Z"));
   check("December (in progress) carries the correction, naming the closed statement; the closed one is untouched", lateD.ok && fix.ok && !!dec && dec.status === "open" && dec.corrections.length === 1 && dec.corrections[0].corrects === `S-${recMonth}` && dec.corrections[0].amountCents === 2000 && dec.totals.correctionsCents === 2000 && dec.totals.grossCents === 2000 && octAfter!.totals.grossCents === oct!.totals.grossCents && octAfter!.live.grossCents === oct!.totals.grossCents, { lateD, fix, dec: dec?.totals, corr: dec?.corrections });
-  check("December's dispute is open and on time so far", dec!.disputes.length === 1 && dec!.disputes[0].id === d2.id && dec!.disputes[0].onTime === true, dec!.disputes);
+  check("December's dispute is resolved on time (first reply and resolution both within their deadlines)", dec!.disputes.length === 1 && dec!.disputes[0].id === d2.id && dec!.disputes[0].onTime === true, dec!.disputes);
+  const redo = await supervisorShiftAction({ profileId: SUP, orgId: ORG }, s3.id, { kind: "closeout", status: "REJECTED", reason: "The sheets were never returned." }, new Date("2026-12-05T12:00:00Z"));
+  const octVoid = await loadStatement(finPay, recMonth, new Date("2026-12-06T00:00:00Z"));
+  const decVoid = await loadStatement(finPay, "2026-12", new Date("2026-12-06T00:00:00Z"));
+  check("withdrawn after close: the closed statement keeps its totals, marks the line and says the ledger moved", redo.ok && octVoid!.totals.grossCents === oct!.totals.grossCents && octVoid!.live.grossCents === oct!.totals.grossCents - l3.amountCents && octVoid!.lines.find((l) => l.id === l3.id)?.withdrawnAfterClose === true, { redo, totals: octVoid?.totals, live: octVoid?.live });
+  check("December carries the withdrawal as a credit naming S-2026-10, net of its adjustment", decVoid!.corrections.some((l) => l.id === l3.id && l.corrects === `S-${recMonth}`) && decVoid!.parts.withdrawnEarlierCents === l3.amountCents && decVoid!.parts.adjustmentsToEarlierCents === 2000 && decVoid!.totals.correctionsCents === 2000 - l3.amountCents && decVoid!.totals.grossCents === 2000, { parts: decVoid?.parts, totals: decVoid?.totals });
+  check("the campaign section still adds up to the frozen total", octVoid!.campaigns.reduce((n, c) => n + c.grossCents, 0) === octVoid!.totals.grossCents, octVoid!.campaigns);
   const months = await listStatements(finPay, new Date("2026-12-04T00:00:00Z"));
   check("the list runs from the first recorded month to now, newest first, closed months closed", months.length >= 3 && months[0].period === "2026-12" && months[0].status === "open" && months[1].period === "2026-11" && months[1].status === "closed" && months.at(-1)!.period === recMonth && months.at(-1)!.status === "closed" && months.at(-1)!.grossCents === oct!.totals.grossCents, months);
   check("December is not closed by listing it", (await p.statement.count({ where: { orgId: ORG, period: "2026-12" } })) === 0);

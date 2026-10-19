@@ -29,12 +29,8 @@ export default async function StatementsPage() {
           <p className="text-muted-sm">One for each calendar month (UTC): the pay recorded, the payments sent, corrections to earlier months, and how disputes were handled. A month&apos;s totals are fixed once it ends.</p>
         </div>
       </header>
-      {statements.length === 0 ? (
-        <div className="empty-state">
-          <p className="empty-state-title">Nothing yet</p>
-          <p className="empty-state-body">The first statement appears once a shift&apos;s pay is recorded.</p>
-        </div>
-      ) : (
+      {/* The running month is always listed, so there is always at least one. */}
+      {(
         <ul className="list-card">
           {statements.map((st) => (
             <li key={st.period}>

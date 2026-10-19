@@ -11,7 +11,7 @@ import { db } from "@/lib/db";
 import { assertPayRole, csvCell, orgLines, type OrgLine, type PayActor } from "@/lib/pay-data";
 import { readBasis, type PayStatus } from "@/lib/pay";
 import { clockOf } from "@/lib/dispute-thread-data";
-import { DISPUTE_SLA, type DisputeClock } from "@/lib/dispute-sla";
+import type { DisputeClock } from "@/lib/dispute-sla";
 import { parsePeriod, periodBounds, periodClosed, periodLabel, periodOf, periodsBetween, receiptNumber, statementNumber, type Period } from "@/lib/money-views";
 
 type Tx = Prisma.TransactionClient;
@@ -27,8 +27,18 @@ export interface StatementTotals {
   paidCount: number;
   /** Gross that came back (reversed) in the month. */
   reversedCents: number;
-  /** Adjustments and withdrawals recorded this month to earlier months' lines (signed). */
+  /**
+   * Corrections to earlier months, net: adjustments recorded this month to
+   * earlier months' lines (also inside grossCents) minus earlier months'
+   * lines withdrawn this month (a credit; never in grossCents).
+   */
   correctionsCents: number;
+}
+
+/** The two sides of correctionsCents. Both are fixed once the month ends (they're dated events in it), so they're read live. */
+export interface CorrectionParts {
+  adjustmentsToEarlierCents: number;
+  withdrawnEarlierCents: number;
 }
 
 export interface StatementLine {
@@ -50,7 +60,7 @@ export interface StatementLine {
   receipt: string | null;
   /** For a correction: the statement whose line it changes. */
   corrects: string | null;
-  /** A line withdrawn (voided) after this statement closed: it counts on the next one. */
+  /** A line withdrawn (voided) after this statement closed: the frozen totals still count it; the next month's statement carries the credit. */
   withdrawnAfterClose: boolean;
 }
 
@@ -86,7 +96,8 @@ export interface StatementView {
   closedAt: Date | null;
   closedBy: string | null;
   totals: StatementTotals;
-  /** The same totals read from the ledger now; differs from a closed statement's only when a line was withdrawn after close. */
+  parts: CorrectionParts;
+  /** The same totals read from the ledger now; a closed statement's differ only when something was recorded against the month after it closed. */
   live: StatementTotals;
   campaigns: Array<{ jobId: string | null; title: string; grossCents: number; feeCents: number; lineCount: number }>;
   lines: StatementLine[];
@@ -136,7 +147,7 @@ async function facts(c: Client, orgId: string, period: Period): Promise<Facts> {
 }
 
 /** The totals as they stood at `at`: a line withdrawn after `at` still counts. */
-function totalsAt(f: Facts, period: Period, at: Date): StatementTotals {
+function totalsAt(f: Facts, period: Period, at: Date): StatementTotals & CorrectionParts {
   const { start } = periodBounds(period);
   const live = f.recorded.filter((l) => {
     const v = voidedAt(l);
@@ -152,6 +163,8 @@ function totalsAt(f: Facts, period: Period, at: Date): StatementTotals {
     paidCount: f.payments.filter((p) => p.paidAt <= at).length,
     reversedCents: f.reversedCents,
     correctionsCents: sum(toEarlier, (l) => l.line.amountCents) - sum(withdrawn, (l) => l.line.amountCents),
+    adjustmentsToEarlierCents: sum(toEarlier, (l) => l.line.amountCents),
+    withdrawnEarlierCents: sum(withdrawn, (l) => l.line.amountCents),
   };
 }
 
@@ -197,46 +210,59 @@ async function disputesIn(c: Client, orgId: string, period: Period, now: Date): 
   });
   return ds.map((d) => {
     const clock = clockOf(d, now);
-    const onTime = d.resolution ? (clock.daysToFirstResponse ?? 0) <= DISPUTE_SLA.firstResponseDays && (clock.daysToResolution ?? 0) <= DISPUTE_SLA.resolutionDays : null;
+    // The same test the thread and the Desk apply: each deadline is a moment, met or not.
+    const onTime = d.resolution ? !!clock.firstResponseMetAt && clock.firstResponseMetAt <= clock.firstResponseDue && d.resolution.createdAt <= clock.resolutionDue : null;
     return { id: d.id, worker: d.worker.displayName, jobTitle: d.shift.engagement.job.title, openedAt: d.createdAt, resolvedAt: d.resolution?.createdAt ?? null, outcome: d.resolution?.outcome ?? null, clock, onTime };
   });
 }
 
-type Row = Prisma.StatementGetPayload<{ select: { id: true; closedAt: true; closedById: true; grossCents: true; feeCents: true; lineCount: true; paidCents: true; paidCount: true; reversedCents: true; correctionsCents: true } }>;
+type Row = Prisma.StatementGetPayload<Record<string, never>>;
+
+const strip = (t: StatementTotals & CorrectionParts): StatementTotals => ({ grossCents: t.grossCents, feeCents: t.feeCents, lineCount: t.lineCount, paidCents: t.paidCents, paidCount: t.paidCount, reversedCents: t.reversedCents, correctionsCents: t.correctionsCents });
 
 /**
  * The month's row, written now if the month is over and nobody has looked
- * yet. One writer at a time per organization; a second visitor finds the row.
+ * yet, from facts read before the transaction (the totals are "as of now"
+ * either way, and a big month mustn't time the transaction out). One writer
+ * at a time per organization; a second visitor finds the row.
  */
-async function closeIfDue(actor: PayActor, period: Period, now: Date): Promise<Row | null> {
-  const existing = await db().statement.findUnique({ where: { orgId_period: { orgId: actor.orgId, period } } });
-  if (existing || !periodClosed(period, now)) return existing;
+async function closeIfDue(actor: PayActor, period: Period, now: Date, f: Facts): Promise<Row> {
+  const t = strip(totalsAt(f, period, now));
   return db().$transaction(async (tx) => {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`statements:${actor.orgId}`}))`;
     const again = await tx.statement.findUnique({ where: { orgId_period: { orgId: actor.orgId, period } } });
     if (again) return again;
-    const t = totalsAt(await facts(tx, actor.orgId, period), period, now);
     const row = await tx.statement.create({ data: { orgId: actor.orgId, period, number: statementNumber(period), ...t, closedAt: now, closedById: actor.profileId } });
     await tx.auditEvent.create({ data: { actorId: actor.profileId, action: "pay.statement_closed", entityType: "Statement", entityId: row.id, metadata: { period, ...t }, createdAt: now } });
     return row;
   });
 }
 
-/** One month's statement; null for a month that hasn't started or a bad period. */
+/** The first month an organization can have a statement for: its first pay line's, or its creation's. */
+async function firstPeriod(orgId: string): Promise<Period> {
+  const [org, first] = await Promise.all([
+    db().organization.findUniqueOrThrow({ where: { id: orgId }, select: { createdAt: true } }),
+    db().payout.findFirst({ where: { orgId }, orderBy: { createdAt: "asc" }, select: { createdAt: true } }),
+  ]);
+  return periodOf(first && first.createdAt < org.createdAt ? first.createdAt : org.createdAt);
+}
+
+/** One month's statement; null for a month before the organization, after now, or badly named. */
 export async function loadStatement(actor: PayActor, raw: unknown, now = new Date()): Promise<StatementView | null> {
   assertPayRole(actor);
   const period = parsePeriod(raw);
-  if (!period || period > periodOf(now)) return null;
-  const row = await closeIfDue(actor, period, now);
+  if (!period || period > periodOf(now) || period < (await firstPeriod(actor.orgId))) return null;
   const c = db();
-  const [f, disputes, closer] = await Promise.all([
+  const [f, disputes, existing] = await Promise.all([
     facts(c, actor.orgId, period),
     disputesIn(c, actor.orgId, period, now),
-    row?.closedById ? c.profile.findUnique({ where: { id: row.closedById }, select: { displayName: true } }) : null,
+    c.statement.findUnique({ where: { orgId_period: { orgId: actor.orgId, period } } }),
   ]);
+  const row = existing ?? (periodClosed(period, now) ? await closeIfDue(actor, period, now, f) : null);
+  const closer = row?.closedById ? await c.profile.findUnique({ where: { id: row.closedById }, select: { displayName: true } }) : null;
   const closedAt = row?.closedAt ?? null;
   const live = totalsAt(f, period, now);
-  const totals: StatementTotals = row ? { grossCents: row.grossCents, feeCents: row.feeCents, lineCount: row.lineCount, paidCents: row.paidCents, paidCount: row.paidCount, reversedCents: row.reversedCents, correctionsCents: row.correctionsCents } : live;
+  const totals: StatementTotals = row ? { grossCents: row.grossCents, feeCents: row.feeCents, lineCount: row.lineCount, paidCents: row.paidCents, paidCount: row.paidCount, reversedCents: row.reversedCents, correctionsCents: row.correctionsCents } : strip(live);
   const lines = f.recorded.map((l) => lineView(l, f, period, closedAt));
   const corrections = [...lines.filter((l) => l.corrects), ...f.withdrawn.map((l) => lineView(l, f, period, closedAt))];
   const byJob = new Map<string, StatementView["campaigns"][number]>();
@@ -254,7 +280,8 @@ export async function loadStatement(actor: PayActor, raw: unknown, now = new Dat
     closedAt,
     closedBy: closer?.displayName ?? (row ? "Turfcut" : null),
     totals,
-    live,
+    parts: { adjustmentsToEarlierCents: live.adjustmentsToEarlierCents, withdrawnEarlierCents: live.withdrawnEarlierCents },
+    live: strip(live),
     campaigns: [...byJob.values()].sort((a, b) => b.grossCents - a.grossCents || a.title.localeCompare(b.title)),
     lines,
     payments: f.payments,
@@ -274,21 +301,25 @@ export interface StatementSummary {
 
 /**
  * Every month from the organization's first pay line (or its creation) to
- * now, newest first. Months already over are closed on the way, so the list
- * is also what keeps statements current.
+ * now, newest first: one query for the closed rows, the ledger only for the
+ * running month and for a month that is over but nobody has looked at yet
+ * (closed on the way, so the list is also what keeps statements current).
  */
 export async function listStatements(actor: PayActor, now = new Date()): Promise<StatementSummary[]> {
   assertPayRole(actor);
-  const [org, first] = await Promise.all([
-    db().organization.findUniqueOrThrow({ where: { id: actor.orgId }, select: { createdAt: true } }),
-    db().payout.findFirst({ where: { orgId: actor.orgId }, orderBy: { createdAt: "asc" }, select: { createdAt: true } }),
-  ]);
-  const from = first?.createdAt ?? org.createdAt;
-  const periods = periodsBetween(from < now ? from : now, now);
+  const first = await firstPeriod(actor.orgId);
+  const periods = periodsBetween(periodBounds(first).start < now ? periodBounds(first).start : now, now);
+  const rows = new Map((await db().statement.findMany({ where: { orgId: actor.orgId } })).map((r) => [r.period, r]));
   const out: StatementSummary[] = [];
   for (const period of periods) {
-    const row = await closeIfDue(actor, period, now);
-    const t = row ?? totalsAt(await facts(db(), actor.orgId, period), period, now);
+    let row = rows.get(period) ?? null;
+    let t: Pick<StatementTotals, "grossCents" | "paidCents">;
+    if (row) t = row;
+    else {
+      const f = await facts(db(), actor.orgId, period);
+      if (periodClosed(period, now)) t = row = await closeIfDue(actor, period, now, f);
+      else t = totalsAt(f, period, now);
+    }
     out.push({ period, number: statementNumber(period), label: periodLabel(period), status: row ? "closed" : "open", grossCents: t.grossCents, paidCents: t.paidCents });
   }
   return out;

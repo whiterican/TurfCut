@@ -10,7 +10,7 @@ function Amount({ cents, bold = false }: { cents: number; bold?: boolean }) {
   return <span className={`shrink-0 tabular-nums ${bold ? "font-bold" : ""} text-fg`}>{money(cents)}</span>;
 }
 
-function LineRow({ l, showStatus = true }: { l: StatementLine; showStatus?: boolean }) {
+function LineRow({ l }: { l: StatementLine }) {
   const st = l.withdrawnAfterClose ? { label: "Withdrawn after this statement closed", badge: "badge-neutral" } : statusLabel(l.status, l.amountCents);
   return (
     <li className="flex items-start justify-between gap-4 py-2">
@@ -29,7 +29,7 @@ function LineRow({ l, showStatus = true }: { l: StatementLine; showStatus?: bool
           {l.corrects ? ` · corrects ${l.corrects}` : ""}
           {l.receipt ? ` · ${l.receipt}` : ""}
         </p>
-        {showStatus && <span className={st.badge}>{st.label}</span>}
+        <span className={st.badge}>{st.label}</span>
       </div>
       <div className="shrink-0 text-right">
         <Amount cents={l.amountCents} />
@@ -42,14 +42,15 @@ function LineRow({ l, showStatus = true }: { l: StatementLine; showStatus?: bool
 /** One month's statement (M9.3) for owners and finance. Printable. */
 export function StatementView({ s }: { s: View }) {
   const t = s.totals;
-  const drift = s.status === "closed" && (s.live.grossCents !== t.grossCents || s.live.lineCount !== t.lineCount);
+  const NAMES: Record<keyof typeof t, string> = { grossCents: "pay recorded", feeCents: "platform fee", lineCount: "lines", paidCents: "sent to workers", paidCount: "payments", reversedCents: "came back", correctionsCents: "corrections" };
+  const drift = s.status === "closed" ? (Object.keys(NAMES) as Array<keyof typeof t>).filter((k) => s.live[k] !== t[k]) : [];
   return (
     <article className="space-y-6">
       <section className="card space-y-4 print:border-0 print:shadow-none">
         <header className="flex flex-wrap items-start justify-between gap-3">
           <div className="space-y-0.5">
             <p className="eyebrow">Statement {s.number}</p>
-            <p className="text-2xl font-bold text-fg">{s.label}</p>
+            <h2 className="text-2xl font-bold text-fg">{s.label}</h2>
             <p className="text-muted-sm">
               {s.status === "closed" && s.closedAt ? (
                 <>Closed <LocalTime iso={s.closedAt.toISOString()} mode="full" />{s.closedBy ? ` · first opened by ${s.closedBy}` : ""}. Its totals never change.</>
@@ -75,16 +76,20 @@ export function StatementView({ s }: { s: View }) {
             <dt className="text-muted">Sent to workers</dt>
             <dd className="text-lg font-bold text-fg tabular-nums">{money(t.paidCents)}</dd>
             <dd className="text-xs text-muted">{t.paidCount} {t.paidCount === 1 ? "payment" : "payments"}{t.reversedCents ? ` · ${money(t.reversedCents)} came back` : ""}</dd>
+            {t.reversedCents > 0 && <dd className="text-xs text-muted">A full reversal brings the lines back to pay; a partial one is a deduction line under Pay recorded.</dd>}
           </div>
           <div>
             <dt className="text-muted">Corrections</dt>
             <dd className="text-lg font-bold text-fg tabular-nums">{money(t.correctionsCents)}</dd>
-            <dd className="text-xs text-muted">to earlier months{s.corrections.length ? ` · ${s.corrections.length} ${s.corrections.length === 1 ? "line" : "lines"} below` : ""}</dd>
+            <dd className="text-xs text-muted">
+              to earlier months
+              {t.correctionsCents !== 0 || s.corrections.length ? `: ${money(s.parts.adjustmentsToEarlierCents)} adjusted (already in Pay recorded) and ${money(s.parts.withdrawnEarlierCents)} withdrawn (a credit, not in any total above)` : ""}
+            </dd>
           </div>
         </dl>
-        {drift && (
+        {drift.length > 0 && (
           <p className="text-hint">
-            Since this statement closed, a line was withdrawn: the ledger now shows {money(s.live.grossCents)} recorded for the month. The withdrawal counts as a correction on the next statement; the totals above stay as they were.
+            Since this statement closed, the ledger changed for this month ({drift.map((k) => NAMES[k]).join(", ")}; pay recorded now reads {money(s.live.grossCents)}). The totals above stay as they were; a line withdrawn after close is marked below and carried as a credit on the statement for the month it happened in.
           </p>
         )}
       </section>
@@ -156,7 +161,7 @@ export function StatementView({ s }: { s: View }) {
           <ul className="card divide-y divide-border text-sm">
             {s.corrections.map((l) => <LineRow key={`c-${l.id}`} l={l} />)}
           </ul>
-          <p className="text-hint">A closed statement never changes. An adjustment or a withdrawal that lands after it closed is recorded here, in the month it happened, naming the statement it corrects.</p>
+          <p className="text-hint">A closed statement never changes. An adjustment or a withdrawal that lands after it closed is recorded here, in the month it happened, naming the statement it corrects. An adjustment is also a line of this month&apos;s Pay recorded; a withdrawn line is a credit against what that earlier statement showed, counted nowhere else.</p>
         </section>
       )}
 

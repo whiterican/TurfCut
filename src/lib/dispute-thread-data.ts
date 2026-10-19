@@ -11,7 +11,7 @@ import type { Role } from "@/lib/auth";
 import { UUID_RE } from "@/lib/jobs";
 import { hasHiddenChars } from "@/lib/text-guard";
 import { disputeClock, type DisputeClock } from "@/lib/dispute-sla";
-import { allow } from "@/lib/rate-limit";
+import { check } from "@/lib/rate-limit";
 
 type Tx = Prisma.TransactionClient;
 type Client = Tx | ReturnType<typeof db>;
@@ -131,7 +131,9 @@ export async function postDisputeMessage(actor: DisputeActor, disputeId: string,
   if (body.length > DISPUTE_MESSAGE_MAX) return { ok: false, reason: `Keep it under ${DISPUTE_MESSAGE_MAX.toLocaleString("en-US")} characters.` };
   if (hasHiddenChars(body)) return { ok: false, reason: "The message has a character that can't be shown. Retype it rather than pasting." };
   // Each message tells the other side: a flood would be a flood of notices.
-  if (!(await allow("disputeMessage", actor.profileId, now.getTime()))) return { ok: false, reason: "That's a lot of messages at once. Wait a few minutes and try again." };
+  const limit = await check("disputeMessage", actor.profileId, now.getTime());
+  if (limit === "limited") return { ok: false, reason: "That's a lot of messages at once. Wait a few minutes and try again." };
+  if (limit === "unavailable") return { ok: false, reason: "Can't send right now. Try again in a moment." };
   return db().$transaction(async (tx) => {
     await lock(tx, `dispute:${disputeId}`);
     const d = await tx.payDispute.findUnique({ where: { id: disputeId }, select: { id: true, orgId: true, workerId: true, worker: { select: { profileId: true, closedAt: true } }, resolution: { select: { id: true } } } });

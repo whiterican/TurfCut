@@ -28,6 +28,10 @@ import { shiftState, shiftStatusLabel } from "@/lib/field-day";
 import { listSupervisors } from "@/lib/field-day-data";
 import { LocalTime } from "@/components/LocalTime";
 import { ScheduleShiftForm } from "@/components/ScheduleShiftForm";
+import { OpenShifts } from "@/components/staff/OpenShifts";
+import { loadJobSlots, seatsOnOffer } from "@/lib/shift-slots-data";
+import { loadSharedAvailabilities } from "@/lib/availability-data";
+import { orgAvailabilityView, withoutPastDates } from "@/lib/availability";
 import { DateRangeChip } from "@/components/DateRangeChip";
 import { followState } from "@/lib/campaign-follow-data";
 import { CampaignCard } from "@/components/campaign/CampaignCard";
@@ -223,7 +227,7 @@ async function WorkerPanel({
             <ActionButton action={withdrawApplication} fields={fields} label="Withdraw application" pendingLabel="Withdrawing…" variant="btn-ghost btn-sm" confirm={{ text: `Withdraw your application? ${final}`, label: "Yes, withdraw" }} />
           </div>
         )}
-        {(engagement.status === "ACTIVE" || engagement.status === "CLAIMED") && <WorkerShifts engagementId={engagement.id} />}
+        {(engagement.status === "ACTIVE" || engagement.status === "CLAIMED") && <WorkerShifts engagementId={engagement.id} workerId={workerId} jobId={job.id} />}
         <ChangeList jobId={job.id} viewer="worker" />
         <EngagementHistory events={facts.events} />
       </section>
@@ -391,15 +395,29 @@ function shiftRow(
   );
 }
 
-async function WorkerShifts({ engagementId }: { engagementId: string }) {
-  const shifts = await db().shift.findMany({ where: { engagementId }, include: SHIFT_LIST, orderBy: { startsAt: "asc" } });
+async function WorkerShifts({ engagementId, workerId, jobId }: { engagementId: string; workerId: string; jobId: string }) {
+  const [shifts, offer] = await Promise.all([
+    db().shift.findMany({ where: { engagementId }, include: SHIFT_LIST, orderBy: { startsAt: "asc" } }),
+    seatsOnOffer(workerId, new Date(), jobId),
+  ]);
+  const open = offer.get(jobId) ?? 0;
+  const seats = open > 0 && (
+    <p className="text-sm">
+      <Link transitionTypes={["nav-forward"]} href="/shifts#open-shifts" className="link">{open === 1 ? "1 open shift" : `${open} open shifts`} on this job</Link>
+      <span className="text-muted"> · take a seat, first come, first served.</span>
+    </p>
+  );
   return shifts.length ? (
     <div className="space-y-2">
       <p className="text-sm font-semibold text-fg">Your shifts</p>
       <ShiftList shifts={shifts} showWorker={false} />
+      {seats}
     </div>
   ) : (
-    <p className="text-muted-sm">You&apos;re hired. The organization will schedule your shifts — they&apos;ll appear here and under Shifts.</p>
+    <div className="space-y-2">
+      <p className="text-muted-sm">You&apos;re hired. The organization will schedule your shifts or post open ones to take — they&apos;ll appear here and under Shifts.</p>
+      {seats}
+    </div>
   );
 }
 
@@ -527,15 +545,26 @@ async function OrgPanel({ job, canHire, canSchedule, userId }: { job: JobWithRef
 }
 
 async function ShiftsSection({ job, userId }: { job: JobWithRefs; userId: string }) {
-  const [shifts, hired, supervisors] = await Promise.all([
+  const [shifts, hired, supervisors, slots] = await Promise.all([
     db().shift.findMany({ where: { engagement: { jobId: job.id } }, include: SHIFT_LIST, orderBy: { startsAt: "asc" } }),
     db().engagement.findMany({
       where: { jobId: job.id, status: { in: ["ACTIVE", "CLAIMED"] }, worker: { closedAt: null } },
-      select: { id: true, worker: { select: { displayName: true } } },
+      select: { id: true, worker: { select: { id: true, displayName: true } } },
       orderBy: { createdAt: "asc" },
     }),
     listSupervisors(job.orgId),
+    loadJobSlots(job.orgId, job.id),
   ]);
+  const hiredList = hired.map((e) => ({ engagementId: e.id, name: e.worker.displayName }));
+  // Each worker's availability, only where they share it with this organization (C2): a hint, never a gate.
+  const shared = await loadSharedAvailabilities(hired.map((e) => e.worker.id), job.orgId);
+  const today = new Date().toISOString().slice(0, 10);
+  const schedulable = hired.map((e) => {
+    const a = shared.get(e.worker.id) ?? "withheld";
+    // The browser gets only what the outside-hours hint needs: the usual week and dates still to come (the note shows in the statement).
+    const hint = a === "withheld" ? null : { ...withoutPastDates(a, today), note: null };
+    return { engagementId: e.id, name: e.worker.displayName, availability: hint, view: a === "withheld" ? ("withheld" as const) : orgAvailabilityView(a, true, today) };
+  });
   const labels = supervisors.map((p) => ({
     id: p.id,
     label: p.id === userId ? "You" : `${p.role === "OWNER" ? "Owner" : "Supervisor"} · ${p.id.slice(0, 8)}`,
@@ -549,10 +578,19 @@ async function ShiftsSection({ job, userId }: { job: JobWithRefs; userId: string
         <p className="text-muted-sm">No shifts yet.</p>
       )}
       {hired.length > 0 ? (
-        <ScheduleShiftForm jobId={job.id} workers={hired.map((e) => ({ engagementId: e.id, name: e.worker.displayName }))} supervisors={labels} launch={readLaunch(job.launch)} />
+        <ScheduleShiftForm jobId={job.id} workers={schedulable} supervisors={labels} launch={readLaunch(job.launch)} />
       ) : (
         <p className="text-hint">Accept a worker first — only hired workers can be scheduled.</p>
       )}
+      <h3 className="pt-4 text-base font-bold text-fg">Open shifts</h3>
+      <p className="text-muted-sm">Post a shift with a number of seats; people hired on this job take one, first come, first served. Each seat becomes a shift on their calendar.</p>
+      <OpenShifts slots={slots} hired={hiredList} now={new Date()} />
+      <details className="group">
+        <summary className="btn-secondary cursor-pointer list-none [&::-webkit-details-marker]:hidden">Post an open shift</summary>
+        <div className="mt-3">
+          <ScheduleShiftForm jobId={job.id} workers={[]} supervisors={labels} launch={readLaunch(job.launch)} variant="slot" />
+        </div>
+      </details>
     </section>
   );
 }

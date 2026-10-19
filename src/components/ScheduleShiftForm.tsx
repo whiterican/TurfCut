@@ -1,9 +1,12 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { schedule, type ScheduleState } from "@/app/shifts/actions";
+import { postSlotAction, schedule, type ScheduleState } from "@/app/shifts/actions";
 import { TurfMap } from "@/components/TurfMap";
 import type { JobLaunch } from "@/lib/job-launch";
+import { AvailabilityStatement } from "@/components/AvailabilityStatement";
+import type { Availability, OrgAvailabilityView } from "@/lib/availability";
+import { slotFit } from "@/lib/shift-slots";
 
 const initial: ScheduleState = { ok: false, message: "", errors: {} };
 /** datetime-local value (organizer's own zone) → ISO; the server never guesses a zone. */
@@ -17,16 +20,35 @@ export function ScheduleShiftForm({
   workers,
   supervisors,
   launch,
+  variant = "shift",
 }: {
   jobId: string;
-  workers: Array<{ engagementId: string; name: string }>;
+  /** Hired workers, with their availability only where they share it with this organization. */
+  workers: Array<{ engagementId: string; name: string; availability?: Availability | null; view?: OrgAvailabilityView }>;
   supervisors: Array<{ id: string; label: string }>;
   /** How the job's days start (C4.2): its staging points to pick from, or self-launch. */
   launch: JobLaunch;
+  /** "slot" posts an open shift with seats for hired workers to take (M8.2) instead of scheduling one worker. */
+  variant?: "shift" | "slot";
 }) {
-  const [state, action, pending] = useActionState(schedule, initial);
+  const slot = variant === "slot";
+  const [state, action, pending] = useActionState(slot ? postSlotAction : schedule, initial);
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");
+  const [engagementId, setEngagementId] = useState("");
+  const chosen = workers.find((w) => w.engagementId === engagementId) ?? null;
+  // In the scheduler's own time zone: the worker set their hours as local wall-clock times.
+  const span = start && end && new Date(end) > new Date(start) ? { startsAt: new Date(start), endsAt: new Date(end) } : null;
+  const fitOf = (w: (typeof workers)[number]) => (span && w.availability ? slotFit(span, w.availability, Intl.DateTimeFormat().resolvedOptions().timeZone) : null);
+  const fit = chosen ? fitOf(chosen) : null;
+  // Once times are picked, each option says whether they fall in that worker's usual hours. The order never changes: it's a note, not a ranking.
+  const optionNote = (w: (typeof workers)[number]) => {
+    const f = fitOf(w);
+    return f === "fits" ? " · in their usual hours" : f === "partly" ? " · partly outside their usual hours" : f === "outside" ? " · outside their usual hours" : "";
+  };
+  // Kept in state so a refused post doesn't clear them (React resets uncontrolled fields after an action).
+  const [seats, setSeats] = useState("4");
+  const [notes, setNotes] = useState("");
   // One of the job's points fills the staging fields; "elsewhere" leaves the map to place it.
   const [pointId, setPointId] = useState(launch.points[0]?.id ?? "");
   const point = launch.points.find((p) => p.id === pointId) ?? null;
@@ -42,13 +64,40 @@ export function ScheduleShiftForm({
       <input type="hidden" name="startsAt" value={toIso(start)} />
       <input type="hidden" name="endsAt" value={toIso(end)} />
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <label className="min-w-0 space-y-1.5 sm:col-span-2">
-          <span className="label">Worker</span>
-          <select name="engagementId" className="field" required defaultValue="">
-            <option value="" disabled>Choose a hired worker…</option>
-            {workers.map((w) => <option key={w.engagementId} value={w.engagementId}>{w.name}</option>)}
-          </select>
-        </label>
+        {slot ? (
+          <>
+            <label className="min-w-0 space-y-1.5">
+              <span className="label">Seats</span>
+              <input name="headcount" type="number" inputMode="numeric" min={1} max={200} step={1} className="field" required value={seats} onChange={(e) => setSeats(e.target.value)} />
+              {err("headcount")}
+            </label>
+            <label className="min-w-0 space-y-1.5 sm:col-span-2">
+              <span className="label">Notes for the crew <span className="text-hint">(optional)</span></span>
+              <textarea name="notes" className="field" rows={2} maxLength={500} placeholder="Bring water; we'll pair up at the table." value={notes} onChange={(e) => setNotes(e.target.value)} />
+              {err("notes")}
+            </label>
+          </>
+        ) : (
+          <label className="min-w-0 space-y-1.5 sm:col-span-2">
+            <span className="label">Worker</span>
+            <select name="engagementId" className="field" required value={engagementId} onChange={(e) => setEngagementId(e.target.value)}>
+              <option value="" disabled>Choose a hired worker…</option>
+              {workers.map((w) => <option key={w.engagementId} value={w.engagementId}>{w.name}{optionNote(w)}</option>)}
+            </select>
+            {!span && workers.some((w) => w.availability) && <span className="text-hint block">Once you pick the times below, each worker who shares their availability shows here whether it fits.</span>}
+            {chosen && chosen.view !== undefined && (
+              <span className="block space-y-1 pt-1">
+                <span className="text-hint block">{chosen.name}&apos;s availability</span>
+                <AvailabilityStatement view={chosen.view} />
+              </span>
+            )}
+            {(fit === "outside" || fit === "partly") && (
+              <span role="status" className="block text-sm font-semibold text-fg">
+                {fit === "outside" ? "This is outside" : "This runs past"} the hours {chosen!.name} usually works. You can still schedule it; check with them first.
+              </span>
+            )}
+          </label>
+        )}
         <label className="min-w-0 space-y-1.5">
           <span className="label">Starts</span>
           <input type="datetime-local" className="field" required value={start} onChange={(e) => setStart(e.target.value)} />
@@ -101,7 +150,7 @@ export function ScheduleShiftForm({
         {err("stagingLat")}
       </div>
       <div className="flex flex-wrap items-center gap-3">
-        <button className="btn-primary" disabled={pending}>{pending ? "Scheduling…" : "Schedule shift"}</button>
+        <button className="btn-primary" disabled={pending}>{slot ? (pending ? "Posting…" : "Post open shift") : pending ? "Scheduling…" : "Schedule shift"}</button>
         {state.message && <p role="status" className={state.ok ? "text-success-msg" : "text-danger-msg"}>{state.message}</p>}
       </div>
     </form>

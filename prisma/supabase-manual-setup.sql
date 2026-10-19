@@ -1590,6 +1590,68 @@ CREATE INDEX "Notification_postId_idx" ON "public"."Notification"("postId");
 ALTER TABLE "public"."Notification" ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON "public"."Notification" FROM anon, authenticated;
 
+-- Shift slots (M8.2, prisma/m8-slots.sql): open shifts staff post on a job;
+-- each seat a worker takes is a Shift with slotId.
+DO $$ BEGIN
+  CREATE TYPE "public"."ShiftSlotStatus" AS ENUM ('OPEN', 'CLOSED');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+CREATE TABLE IF NOT EXISTS "public"."ShiftSlot" (
+    "id" UUID NOT NULL,
+    "jobId" UUID NOT NULL,
+    "startsAt" TIMESTAMP(3) NOT NULL,
+    "endsAt" TIMESTAMP(3) NOT NULL,
+    "headcount" INTEGER NOT NULL,
+    "stagingLocation" TEXT,
+    "stagingLat" DOUBLE PRECISION,
+    "stagingLng" DOUBLE PRECISION,
+    "supervisorId" UUID,
+    "turfArea" JSONB,
+    "notes" TEXT,
+    "status" "public"."ShiftSlotStatus" NOT NULL DEFAULT 'OPEN',
+    "closedAt" TIMESTAMP(3),
+    "createdById" UUID NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "ShiftSlot_pkey" PRIMARY KEY ("id"),
+    CONSTRAINT "ShiftSlot_times" CHECK ("endsAt" > "startsAt" AND "endsAt" <= "startsAt" + interval '14 hours'),
+    CONSTRAINT "ShiftSlot_headcount" CHECK ("headcount" BETWEEN 1 AND 200),
+    CONSTRAINT "ShiftSlot_notes_length" CHECK ("notes" IS NULL OR char_length("notes") <= 500),
+    CONSTRAINT "ShiftSlot_staging_pair" CHECK (("stagingLat" IS NULL) = ("stagingLng" IS NULL)),
+    CONSTRAINT "ShiftSlot_closed" CHECK (("status" = 'CLOSED') = ("closedAt" IS NOT NULL))
+);
+CREATE INDEX IF NOT EXISTS "ShiftSlot_jobId_startsAt_idx" ON "public"."ShiftSlot"("jobId", "startsAt");
+CREATE INDEX IF NOT EXISTS "ShiftSlot_supervisorId_idx" ON "public"."ShiftSlot"("supervisorId");
+CREATE INDEX IF NOT EXISTS "ShiftSlot_createdById_idx" ON "public"."ShiftSlot"("createdById");
+DO $$ BEGIN
+  ALTER TABLE "public"."ShiftSlot" ADD CONSTRAINT "ShiftSlot_jobId_fkey" FOREIGN KEY ("jobId") REFERENCES "public"."Job"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+DO $$ BEGIN
+  ALTER TABLE "public"."ShiftSlot" ADD CONSTRAINT "ShiftSlot_supervisorId_fkey" FOREIGN KEY ("supervisorId") REFERENCES "public"."Profile"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+DO $$ BEGIN
+  ALTER TABLE "public"."ShiftSlot" ADD CONSTRAINT "ShiftSlot_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "public"."Profile"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+ALTER TABLE "public"."Shift" ADD COLUMN IF NOT EXISTS "slotId" UUID;
+CREATE INDEX IF NOT EXISTS "Shift_slotId_idx" ON "public"."Shift"("slotId");
+-- A backstop under the app's locks: one live seat per engagement per slot.
+-- (Not in schema.prisma, which can't express a partial index.)
+CREATE UNIQUE INDEX IF NOT EXISTS "Shift_slot_seat_key" ON "public"."Shift"("slotId", "engagementId") WHERE "slotId" IS NOT NULL AND "status" <> 'CANCELLED';
+DO $$ BEGIN
+  ALTER TABLE "public"."Shift" ADD CONSTRAINT "Shift_slotId_fkey" FOREIGN KEY ("slotId") REFERENCES "public"."ShiftSlot"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+-- Server-only: no grants, no policies (deny by default).
+ALTER TABLE "public"."ShiftSlot" ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON "public"."ShiftSlot" FROM anon, authenticated;
+
 -- Credential verification records how it was checked (C3.6). Set exactly
 -- when a credential is verified. (c3-hiring.sql adds this check NOT VALID,
 -- for databases with earlier rows; a fresh database checks every row.)

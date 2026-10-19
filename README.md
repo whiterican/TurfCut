@@ -121,6 +121,10 @@ exercise the locks, triggers and data rules, not the RLS policies.
    - Then `prisma/s2-notices.sql` (S2.4: notices of followed campaigns'
      posts) and `prisma/m8-slots.sql` (M8.2: open shifts), each before
      deploying its code. Both are safe to run again.
+   - Then `prisma/m9-money.sql` (M9: dispute threads, receipts,
+     statements), and deploy the M9 build right after: it numbers the
+     existing transfers and until the new code is live, sending pay fails
+     (approving and everything else keeps working). Safe to run again.
    - Storage → New bucket **`campaign-media`**, set to **public**, with a
      file size limit of **2 MB** and allowed MIME types **image/png,
      image/jpeg**. Campaign avatars and header images go there. The app
@@ -1121,6 +1125,58 @@ Built in C3.6b (see the C3 scope below). Approved as recommended by review:
   C3 code; it is safe to run again, so a second run after the deploy fills
   in any engagement made in between. Acceptance:
   `tests/acceptance/c3-hiring.ts`.
+
+## M9 scope — money, visibly
+
+Pay is transparent on both sides: a worker can show what they were paid
+and why, an organization can show what it paid and how it handled
+disputes, and a dispute has a clock.
+
+- **Dispute threads.** A pay dispute is a conversation: the worker and
+  the organization's owner or finance write in it (up to 2,000
+  characters a message, 30 an hour); the shift's supervisor can read it,
+  never write. Opening, each message, the resolution and a missed
+  deadline send in-app notices to the other side (`DISPUTE_*`). Messages
+  are append-only (`PayDisputeMessage`).
+- **The clock.** A first reply within **3 business days** and a
+  resolution within **10** (Monday to Friday, UTC; `src/lib/dispute-sla.ts`),
+  counted from when the worker opened it. Overdue is a flag and a notice,
+  never an automatic outcome: the Desk counts due-today and overdue
+  disputes, the Pay tab sorts overdue first, the worker's Earnings show
+  the same deadline, and the pay roles are told once per dispute when one
+  is missed. The resolution's business days are recorded on the statement.
+- **Receipts.** Every payout transfer is a receipt, numbered per
+  organization (`R-000123`, `PayoutTransfer.receiptNo`, assigned under
+  the organization's receipt lock; existing transfers are numbered by the
+  migration in the order they were recorded). Under Earnings → Receipts
+  a worker sees each one with the lines it paid (the formula, the shift,
+  the job, the dispute if any), where it went (the Stripe account's last
+  four) and the Stripe reference; a reversal or a failure is recorded on
+  it, and it keeps its number and lines. Printable (browser print, no
+  dependency). `PAYOUT_SENT` and `PAYOUT_REVERSED` tell the worker once
+  each. The account export's `transfers.csv` carries the number.
+- **Statements.** One per organization per calendar month (UTC), under
+  Pay → Monthly statements, numbered `S-2026-10`. The month's row
+  (`Statement`) is written the first time an owner or finance looks at
+  it after the month ends, with its totals frozen then: pay recorded (and
+  the platform fee), payments sent, reversals, and corrections to earlier
+  months. Its lines are always read from the ledger by period, so the
+  document can't disagree with it; a correction after close (an
+  adjustment, or a line withdrawn by a re-review) lands on the month it
+  happened in and names the statement it corrects, and the closed
+  statement says so without changing. Sections: totals, by campaign,
+  every line with its receipt, payments, corrections, and the month's
+  disputes with their business-day handling (on time or late, per
+  dispute; nothing is aggregated per worker). Printable, with a matching
+  CSV (`/pay/statements/<period>/csv`). Statement rows are append-only
+  and server-only.
+- **Data.** `prisma/m9-money.sql`: `PayDisputeMessage`, the new
+  notification kinds and subjects (`Notification.disputeId`,
+  `.transferId`; one subject per notice, checked), `PayoutTransfer.receiptNo`
+  (unique per organization), `Statement` (unique per organization and
+  month). Nothing recorded changes; the receipt number is the one new
+  column filled in on an append-only table, inside the migration.
+- **Acceptance:** `tests/acceptance/m9-money.ts` (`run.sh m9`).
 
 ## M8 scope — open shifts (slice 2: shift slots)
 

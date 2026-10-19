@@ -125,11 +125,12 @@ describe.each([
     expect(active, "--glass-active is an rgb(r g b / a) fill").not.toBeNull();
     const fill = `#${[1, 2, 3].map((i) => Number(active![i]).toString(16).padStart(2, "0")).join("")}`;
     const fillAlpha = Number(active![4]);
-    for (const under of [...SURFACES.map((s) => t[s]), "#000000", "#ffffff"]) {
+    // AAA over the app's own surfaces; AA over pure black or white (a photo, the map), where the bar rarely sits.
+    for (const [under, bar_min] of [...SURFACES.map((s) => [t[s], 7] as const), ["#000000", 4.5] as const, ["#ffffff", 4.5] as const]) {
       const bar = mix(t.surface, alpha, under);
-      expect(ratio(t.fg, bar)).toBeGreaterThanOrEqual(7); // tab labels (all in the text colour; the current tab is marked by its pill)
+      expect(ratio(t.fg, bar)).toBeGreaterThanOrEqual(bar_min); // tab labels (all in the text colour; the current tab is marked by its lens)
       const lens = mix(fill, fillAlpha, `#${bar.map((v) => Math.round(v).toString(16).padStart(2, "0")).join("")}`);
-      expect(ratio(t.fg, lens)).toBeGreaterThanOrEqual(7); // the current tab's label over its lens
+      expect(ratio(t.fg, lens)).toBeGreaterThanOrEqual(7); // the current tab's label over its lens (a dense fill)
     }
   });
 

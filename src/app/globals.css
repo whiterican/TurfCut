@@ -670,6 +670,10 @@ body {
   }
 
   /* ---- Data ------------------------------------------------------------ */
+  /* A card that floats over other content (the thread menu): opaque, so nothing shows through it. */
+  .card-solid {
+    background: var(--card-sheen), var(--surface);
+  }
   .stat {
     @apply rounded-2xl border border-border p-4;
     background: var(--card-sheen), var(--card-bg);
@@ -728,7 +732,10 @@ body {
     @apply fixed z-40 mx-auto max-w-md rounded-full border p-1.5 lg:hidden;
     inset-inline: 1rem;
     bottom: calc(0.75rem + env(safe-area-inset-bottom));
-    background: var(--glass-sheen), color-mix(in srgb, var(--surface) 78%, transparent);
+    /* 66%: clearer than the other glass, so the page shows through the bar.
+       Labels stay AAA over the app's own surfaces and AA over pure black or
+       white (photos, the map) (design-tokens.test.ts). */
+    background: var(--glass-sheen), color-mix(in srgb, var(--surface) 66%, transparent);
     border-color: var(--glass-border);
     -webkit-backdrop-filter: var(--glass-filter);
     backdrop-filter: var(--glass-filter);
@@ -781,8 +788,9 @@ body {
   }
   /* ---- Staff components (C1) ------------------------------------------ */
   .data-table-wrap {
-    @apply max-h-[70vh] overflow-auto rounded-2xl border border-border bg-surface;
-    box-shadow: var(--shadow);
+    @apply max-h-[70vh] overflow-auto rounded-2xl border border-border;
+    background: var(--card-sheen), var(--card-bg);
+    box-shadow: var(--card-edge), var(--shadow-depth);
   }
   .data-table {
     @apply w-full border-collapse text-sm;
@@ -1187,8 +1195,8 @@ summary.list-none::-webkit-details-marker {
 .site-header .glass-orb-phone {
   display: grid;
   place-items: center;
-  width: 2.625rem;
-  height: 2.625rem;
+  width: 2.5rem;
+  height: 2.5rem;
   padding: 0;
   border-radius: 9999px;
   border: 1px solid var(--glass-border);
@@ -1227,7 +1235,7 @@ summary.list-none::-webkit-details-marker {
 }
 /* Solid where glass can't be drawn, or isn't wanted. */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  html { --glass-bg: var(--surface); --glass-bg-dense: var(--surface-2); --glass-sheen: none; --glass-rim: none; --glass-caustic: transparent; }
+  html { --glass-bg: var(--surface); --glass-bg-dense: var(--surface-2); --glass-sheen: none; --glass-rim: none; --glass-caustic: transparent; --card-bg: var(--surface); --card-sheen: none; --hero-bg: var(--hero); --hero-sheen: none; }
   .tabbar { background: var(--surface); }
   .site-header, body:not(:has(.thread-top)) .site-header { background: var(--bg); animation: none; }
 }

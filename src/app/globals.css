@@ -1189,8 +1189,8 @@ summary.list-none::-webkit-details-marker {
 .site-header .glass-orb-phone {
   display: grid;
   place-items: center;
-  width: 2.5rem;
-  height: 2.5rem;
+  width: 2.625rem;
+  height: 2.625rem;
   padding: 0;
   border-radius: 9999px;
   border: 1px solid var(--glass-border);

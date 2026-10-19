@@ -115,7 +115,7 @@ describe.each([
 
   it("the tab bar's text is AAA on its translucent surface, over anything it floats above", () => {
     // Read the bar's opacity from the stylesheet, so lowering it is caught here.
-    const m = css.match(/\.tabbar \{[^}]*?background: color-mix\(in srgb, var\(--surface\) (\d+)%, transparent\)/);
+    const m = css.match(/\.tabbar \{[^}]*?background:[^;]*color-mix\(in srgb, var\(--surface\) (\d+)%, transparent\)/);
     expect(m, "the .tabbar background is a surface/transparent mix").not.toBeNull();
     const alpha = Number(m![1]) / 100;
     // Floating, it can sit over photos and the map too: black and white are the worst cases.

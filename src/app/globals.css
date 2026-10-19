@@ -131,17 +131,60 @@ html {
   --glass-bg: color-mix(in srgb, var(--surface) 78%, transparent);
   /* Text-dense glass (table headers): denser, so the small muted labels stay AAA (design-tokens.test.ts). */
   --glass-bg-dense: color-mix(in srgb, var(--surface-2) 96%, transparent);
-  --glass-border: rgb(24 30 26 / 0.1);
-  --glass-highlight: inset 0 1px 0 rgb(255 255 255 / 0.7);
-  --glass-active: rgb(24 30 26 / 0.11);
-  --glass-active-border: rgb(24 30 26 / 0.16);
-  --glass-filter: blur(24px) saturate(180%);
+  --glass-border: rgb(24 30 26 / 0.12);
+  /* A bright edge along the top and a faint one along the bottom: the slab has thickness. */
+  --glass-highlight: inset 0 1px 0 rgb(255 255 255 / 0.85), inset 0 -1px 0 rgb(24 30 26 / 0.05);
+  /* The tab you're on: a brighter lens raised off the slab. */
+  --glass-active: rgb(255 255 255 / 0.62);
+  --glass-active-border: rgb(24 30 26 / 0.14);
+  --glass-active-shadow: inset 0 1px 0 rgb(255 255 255 / 0.95), inset 0 -2px 3px rgb(24 30 26 / 0.06), 0 6px 14px -6px rgb(0 0 0 / 0.3);
+  --glass-filter: blur(28px) saturate(190%) brightness(1.03);
+  /* Light catching the top of the glass (.glass-lens surfaces). */
+  --glass-sheen: radial-gradient(140% 100% at 50% -30%, rgb(255 255 255 / 0.65), transparent 60%);
+  /* The refracting rim: a hairline that shifts hue around the edge, like the edge of a lens. */
+  --glass-rim: conic-gradient(from 200deg, rgb(255 255 255 / 0.95), rgb(190 220 255 / 0.6) 22%, rgb(255 255 255 / 0.98) 40%, rgb(255 214 232 / 0.55) 62%, rgb(255 255 255 / 0.95) 80%, rgb(205 240 215 / 0.6), rgb(255 255 255 / 0.95));
+  --glass-depth: 0 12px 34px -14px rgb(0 0 0 / 0.4), 0 2px 8px -3px rgb(0 0 0 / 0.14);
 }
 html.dark {
-  --glass-border: rgb(255 255 255 / 0.12);
-  --glass-highlight: inset 0 1px 0 rgb(255 255 255 / 0.08);
-  --glass-active: rgb(0 0 0 / 0.4);
-  --glass-active-border: rgb(255 255 255 / 0.16);
+  --glass-border: rgb(255 255 255 / 0.14);
+  --glass-highlight: inset 0 1px 0 rgb(255 255 255 / 0.14), inset 0 -1px 0 rgb(0 0 0 / 0.25);
+  --glass-active: rgb(255 255 255 / 0.1);
+  --glass-active-border: rgb(255 255 255 / 0.2);
+  --glass-active-shadow: inset 0 1px 0 rgb(255 255 255 / 0.22), inset 0 -2px 3px rgb(0 0 0 / 0.25), 0 6px 14px -6px rgb(0 0 0 / 0.6);
+  --glass-sheen: radial-gradient(140% 100% at 50% -30%, rgb(255 255 255 / 0.14), transparent 60%);
+  --glass-rim: conic-gradient(from 200deg, rgb(255 255 255 / 0.4), rgb(190 220 255 / 0.3) 22%, rgb(255 255 255 / 0.45) 40%, rgb(255 214 232 / 0.3) 62%, rgb(255 255 255 / 0.4) 80%, rgb(205 240 215 / 0.3), rgb(255 255 255 / 0.4));
+  --glass-depth: 0 12px 34px -14px rgb(0 0 0 / 0.7), 0 2px 8px -3px rgb(0 0 0 / 0.4);
+}
+/* Lens surfaces: the tab bar, the header's round buttons, the More sheet,
+   the map's controls and the round icon buttons. Sheen over the glass tint
+   and a refracting rim drawn as a ring (a padded pseudo-element masked to
+   its padding). */
+.site-header :is(a, button).btn-ghost:has(> svg):not(:has(> :not(svg, .unread-badge))),
+.site-header .glass-orb-phone,
+.more-sheet-panel,
+.icon-btn,
+.turf-map.leaflet-container .leaflet-bar {
+  position: relative;
+  background: var(--glass-sheen), var(--glass-bg);
+}
+/* (The tab bar is fixed already; its background is set in its own rule, where design-tokens.test.ts reads the mix.) */
+.tabbar::before,
+.site-header :is(a, button).btn-ghost:has(> svg):not(:has(> :not(svg, .unread-badge)))::before,
+.site-header .glass-orb-phone::before,
+.more-sheet-panel::before,
+.icon-btn::before,
+.turf-map.leaflet-container .leaflet-bar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: var(--glass-rim);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
 }
 
 @theme inline {
@@ -626,11 +669,11 @@ body {
     @apply fixed z-40 mx-auto max-w-md rounded-full border p-1 lg:hidden;
     inset-inline: 0.75rem;
     bottom: calc(0.625rem + env(safe-area-inset-bottom));
-    background: color-mix(in srgb, var(--surface) 78%, transparent);
+    background: var(--glass-sheen), color-mix(in srgb, var(--surface) 78%, transparent);
     border-color: var(--glass-border);
     -webkit-backdrop-filter: var(--glass-filter);
     backdrop-filter: var(--glass-filter);
-    box-shadow: var(--glass-highlight), 0 10px 30px -12px rgb(0 0 0 / 0.35), 0 2px 6px -2px rgb(0 0 0 / 0.12);
+    box-shadow: var(--glass-highlight), var(--glass-depth);
     transition: transform 280ms cubic-bezier(0.2, 0.8, 0.2, 1);
   }
   .tab {
@@ -641,11 +684,13 @@ body {
     font-size: clamp(10px, 2.6vw, 12px);
     letter-spacing: -0.01em;
   }
-  /* The tab you're on: a deeper glass pill around icon and label. */
+  /* The tab you're on: a brighter lens, raised a little proud of the bar. */
   .tab[aria-current="page"] {
     @apply font-extrabold;
-    background: var(--glass-active);
+    margin-block: -0.375rem;
+    background: var(--glass-sheen), var(--glass-active);
     border-color: var(--glass-active-border);
+    box-shadow: var(--glass-active-shadow);
   }
   .tab-icon {
     @apply size-6 rounded-lg p-0.5 transition;
@@ -1091,15 +1136,16 @@ summary.list-none::-webkit-details-marker {
 }
 /* Solid where glass can't be drawn, or isn't wanted. */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  html { --glass-bg: var(--surface); --glass-bg-dense: var(--surface-2); }
+  html { --glass-bg: var(--surface); --glass-bg-dense: var(--surface-2); --glass-sheen: none; --glass-rim: none; }
   .tabbar { background: var(--surface); }
 }
 @media (prefers-reduced-transparency: reduce) {
-  html { --glass-bg: var(--surface); --glass-bg-dense: var(--surface-2); --glass-filter: none; }
+  html { --glass-bg: var(--surface); --glass-bg-dense: var(--surface-2); --glass-filter: none; --glass-sheen: none; --glass-rim: none; }
   .tabbar { background: var(--surface); }
   body:has(.tabbar):not(:has(.tabbar[data-tucked], .composer-input:focus, .turf-map))::after { display: none; }
 }
 @media (forced-colors: active) {
+  html { --glass-sheen: none; --glass-rim: none; }
   .tabbar, .icon-btn, .site-header, .composer, .thread-top, .more-sheet-panel, .data-table thead th, .turf-map.leaflet-container .leaflet-bar, .turf-map.leaflet-container .leaflet-control-attribution { border-color: CanvasText; }
   .tab[aria-current="page"] { border-color: Highlight; }
 }

@@ -13,7 +13,7 @@ function Amount({ cents, bold = false }: { cents: number; bold?: boolean }) {
 function LineRow({ l }: { l: StatementLine }) {
   const st = l.withdrawnAfterClose ? { label: "Withdrawn after this statement closed", badge: "badge-neutral" } : statusLabel(l.status, l.amountCents);
   return (
-    <li className="flex items-start justify-between gap-4 py-2">
+    <li className="flex items-start justify-between gap-4 px-4 py-3">
       <div className="min-w-0 space-y-0.5">
         <p className="font-medium text-fg">
           {l.worker}
@@ -97,9 +97,9 @@ export function StatementView({ s }: { s: View }) {
       {s.campaigns.length > 0 && (
         <section className="section">
           <h2 className="section-title">By campaign</h2>
-          <ul className="card divide-y divide-border text-sm">
+          <ul className="list-card text-sm">
             {s.campaigns.map((c) => (
-              <li key={c.jobId ?? "other"} className="flex items-center justify-between gap-4 py-2">
+              <li key={c.jobId ?? "other"} className="flex items-center justify-between gap-4 px-4 py-3">
                 <span className="min-w-0">
                   <span className="block font-medium text-fg">{c.jobId ? <Link href={`/jobs/${c.jobId}`} className="link">{c.title}</Link> : c.title}</span>
                   <span className="block text-xs text-muted">{c.lineCount} {c.lineCount === 1 ? "line" : "lines"} · {money(c.feeCents)} fee</span>
@@ -116,9 +116,9 @@ export function StatementView({ s }: { s: View }) {
         {s.lines.length === 0 ? (
           <p className="text-muted-sm">No pay was recorded this month.</p>
         ) : (
-          <ul className="card divide-y divide-border text-sm">
+          <ul className="list-card text-sm">
             {s.lines.map((l) => <LineRow key={l.id} l={l} />)}
-            <li className="flex items-center justify-between gap-4 pt-3">
+            <li className="flex items-center justify-between gap-4 bg-surface-2 px-4 py-3">
               <span className="font-semibold text-fg">Recorded</span>
               <Amount cents={t.grossCents} bold />
             </li>
@@ -132,9 +132,9 @@ export function StatementView({ s }: { s: View }) {
         {s.payments.length === 0 ? (
           <p className="text-muted-sm">No payments went out this month.</p>
         ) : (
-          <ul className="card divide-y divide-border text-sm">
+          <ul className="list-card text-sm">
             {s.payments.map((p) => (
-              <li key={p.transferId} className="flex items-start justify-between gap-4 py-2">
+              <li key={p.transferId} className="flex items-start justify-between gap-4 px-4 py-3">
                 <span className="min-w-0 space-y-0.5">
                   <span className="block font-medium text-fg">{p.worker} · {p.receipt}</span>
                   <span className="block text-xs text-muted">
@@ -146,7 +146,7 @@ export function StatementView({ s }: { s: View }) {
                 <Amount cents={p.amountCents} />
               </li>
             ))}
-            <li className="flex items-center justify-between gap-4 pt-3">
+            <li className="flex items-center justify-between gap-4 bg-surface-2 px-4 py-3">
               <span className="font-semibold text-fg">Sent</span>
               <Amount cents={t.paidCents} bold />
             </li>
@@ -158,7 +158,7 @@ export function StatementView({ s }: { s: View }) {
       {s.corrections.length > 0 && (
         <section className="section">
           <h2 className="section-title">Corrections to earlier statements</h2>
-          <ul className="card divide-y divide-border text-sm">
+          <ul className="list-card text-sm">
             {s.corrections.map((l) => <LineRow key={`c-${l.id}`} l={l} />)}
           </ul>
           <p className="text-hint">A closed statement never changes. An adjustment or a withdrawal that lands after it closed is recorded here, in the month it happened, naming the statement it corrects. An adjustment is also a line of this month&apos;s Pay recorded; a withdrawn line is a credit against what that earlier statement showed, counted nowhere else.</p>
@@ -170,9 +170,9 @@ export function StatementView({ s }: { s: View }) {
         {s.disputes.length === 0 ? (
           <p className="text-muted-sm">No pay disputes were open this month.</p>
         ) : (
-          <ul className="card divide-y divide-border text-sm">
+          <ul className="list-card text-sm">
             {s.disputes.map((d) => (
-              <li key={d.id} className="space-y-0.5 py-2">
+              <li key={d.id} className="space-y-0.5 px-4 py-3">
                 <p className="font-medium text-fg">
                   <Link href={`/pay/disputes/${d.id}`} className="link">{d.worker} · {d.jobTitle}</Link>
                 </p>

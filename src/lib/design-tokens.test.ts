@@ -55,7 +55,8 @@ const ratio = (a: RGB | string, b: RGB | string) => {
 };
 
 const PASTELS = ["accent", "sky", "coral", "butter"] as const;
-const SURFACES = ["bg", "surface", "surface-2", "field"] as const;
+// The page is a gradient from bg-light to bg-deep, so both ends count as surfaces too.
+const SURFACES = ["bg", "bg-light", "bg-deep", "surface", "surface-2", "field"] as const;
 
 describe.each([
   ["dark", dark],
@@ -132,14 +133,19 @@ describe.each([
     }
   });
 
-  it("glass surfaces (header, composer, sheet, map controls, table headers) keep their text readable over anything", () => {
-    // Read both glass mixes from the stylesheet, so lowering either is caught here.
+  it("glass surfaces (header, orbs, composer, sheet, map controls, table headers) keep their text readable over anything", () => {
+    // Read every glass mix from the stylesheet, so lowering any of them is caught here.
     const g = css.match(/--glass-bg: color-mix\(in srgb, var\(--surface\) (\d+)%, transparent\)/);
     const d = css.match(/--glass-bg-dense: color-mix\(in srgb, var\(--surface-2\) (\d+)%, transparent\)/);
+    const h = css.match(/\.site-header \{[^}]*?background: color-mix\(in srgb, var\(--bg\) (\d+)%, transparent\)/);
     expect(g, "--glass-bg is a surface/transparent mix").not.toBeNull();
     expect(d, "--glass-bg-dense is a surface-2/transparent mix").not.toBeNull();
-    const [glass, dense] = [Number(g![1]) / 100, Number(d![1]) / 100];
+    expect(h, "the header is a bg/transparent mix").not.toBeNull();
+    const [glass, dense, header] = [Number(g![1]) / 100, Number(d![1]) / 100, Number(h![1]) / 100];
     for (const under of [...SURFACES.map((s) => t[s]), "#000000", "#ffffff"]) {
+      // The header band: the wordmark and the desktop links sit straight on it.
+      expect(ratio(t.fg, mix(t.bg, header, under))).toBeGreaterThanOrEqual(7);
+      expect(ratio(t.muted, mix(t.bg, header, under))).toBeGreaterThanOrEqual(4.5);
       const over = mix(t.surface, glass, under);
       expect(ratio(t.fg, over)).toBeGreaterThanOrEqual(7); // names, chips, zoom glyphs
       expect(ratio(t.muted, over)).toBeGreaterThanOrEqual(4.5); // small notes (the custody line, the map attribution)
@@ -275,7 +281,7 @@ describe("the Turfcut App Mockup palette (eggplant and lime)", () => {
       for (const [, name, value] of body.matchAll(/--([\w-]+):\s*([^;]+);/g)) {
         if (/^#[0-9a-fA-F]{6}$/.test(value.trim())) expect(parsed[name]).toBe(value.trim());
         else if (name === "hero-border") expect(value.trim()).toBe("transparent");
-        else expect(name).toBe("shadow"); // the only non-colour token
+        else expect(["shadow", "shadow-depth"]).toContain(name); // the only non-colour tokens
       }
     }
   });

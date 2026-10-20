@@ -84,13 +84,19 @@ async function rowsFor(orgs: OrgRecord[]): Promise<AdminOrgRow[]> {
   });
 }
 
-/** The queue (M10.2): organizations awaiting approval, oldest first, then the approved ones, latest decision first. */
+/**
+ * The queue (M10.2): organizations awaiting approval, longest-waiting first
+ * (since sign-up, or since the approval was withdrawn), then the approved
+ * ones, latest decision first. An organization approved by hand without a
+ * date sorts last among the approved, not first.
+ */
 export async function listOrganizationsForAdmin(): Promise<{ awaiting: AdminOrgRow[]; approved: AdminOrgRow[] }> {
   const [awaiting, approved] = await Promise.all([
     db().organization.findMany({ where: { approved: false }, select: ORG_SELECT, orderBy: { createdAt: "asc" } }),
-    db().organization.findMany({ where: { approved: true }, select: ORG_SELECT, orderBy: [{ approvedAt: "desc" }, { createdAt: "desc" }] }),
+    db().organization.findMany({ where: { approved: true }, select: ORG_SELECT, orderBy: [{ approvedAt: { sort: "desc", nulls: "last" } }, { createdAt: "desc" }] }),
   ]);
-  const [a, b] = await Promise.all([rowsFor(awaiting), rowsFor(approved)]);
+  const waitingSince = (o: OrgRecord) => (o.approvedAt ?? o.createdAt).getTime();
+  const [a, b] = await Promise.all([rowsFor([...awaiting].sort((x, y) => waitingSince(x) - waitingSince(y))), rowsFor(approved)]);
   return { awaiting: a, approved: b };
 }
 

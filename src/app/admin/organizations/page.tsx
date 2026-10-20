@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requireStaff } from "@/lib/staff-session";
-import { listOrganizationsForAdmin, type AdminOrgRow } from "@/lib/admin-orgs-data";
+import { approvalStanding, listOrganizationsForAdmin, type AdminOrgRow } from "@/lib/admin-orgs-data";
 import { LocalTime } from "@/components/LocalTime";
 
 function GateChips({ gate }: { gate: AdminOrgRow["gate"] }) {
@@ -19,13 +19,22 @@ function OrgRow({ o }: { o: AdminOrgRow }) {
     <li>
       <Link transitionTypes={["nav-forward"]} href={`/admin/organizations/${o.id}`} className="block space-y-2 px-4 py-3 transition hover:bg-surface-2">
         <span className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-          <span className="font-semibold text-fg">{o.name}</span>
+          <span className="flex flex-wrap items-center gap-2 font-semibold text-fg">
+            {o.name}
+            {approvalStanding(o) === "withdrawn" && <span className="badge-coral">Approval withdrawn</span>}
+          </span>
           <span className="text-xs text-subtle">
-            {o.approved && o.approvedAt ? <>Approved <LocalTime iso={o.approvedAt.toISOString()} mode="fulldate" /></> : <>Signed up <LocalTime iso={o.createdAt.toISOString()} mode="fulldate" /></>}
+            {o.approved && o.approvedAt ? (
+              <>Approved <LocalTime iso={o.approvedAt.toISOString()} mode="fulldate" /></>
+            ) : !o.approved && o.approvedAt ? (
+              <>Withdrawn; last approved <LocalTime iso={o.approvedAt.toISOString()} mode="fulldate" /></>
+            ) : (
+              <>Signed up <LocalTime iso={o.createdAt.toISOString()} mode="fulldate" /></>
+            )}
           </span>
         </span>
         <span className="block text-sm text-muted">
-          {o.members} {o.members === 1 ? "member" : "members"} · {o.owners[0]?.email ?? "no owner login"}{o.owners.length > 1 ? ` +${o.owners.length - 1}` : ""} · {o.jobs.draft} draft, {o.jobs.published} published
+          {o.members} {o.members === 1 ? "member" : "members"} · {o.owners[0] ? (o.owners[0].email ?? o.owners[0].name ?? "owner without a login") : "no owner yet"}{o.owners.length > 1 ? ` +${o.owners.length - 1}` : ""} · {o.jobs.draft} draft, {o.jobs.published} published
         </span>
         <GateChips gate={o.gate} />
       </Link>

@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import { decideOrg } from "@/app/admin/organizations/actions";
 import type { ActionState } from "@/app/jobs/actions";
-import { REASON_MAX } from "@/lib/admin-data";
+import { REASON_MAX } from "@/lib/admin-reason";
 
 const initial: ActionState = { ok: false, message: "" };
 

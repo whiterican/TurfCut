@@ -101,7 +101,11 @@ function scopeFor(v: Viewer): Prisma.NotificationWhereInput | null {
   // (they never pass through hiring code).
   if (v.role === "WORKER") return v.workerId ? { OR: [{ engagement: { workerId: v.workerId } }, { dispute: { workerId: v.workerId } }, { transfer: { workerId: v.workerId } }] } : null;
   if (!v.orgId) return null;
-  // Turfcut's decision on the organization (M10.2) goes to its owners; it has no subject row.
+  // Turfcut's decision on the organization (M10.2) goes to its owners. It
+  // has no subject row, so it can't be tied to the organization the viewer
+  // belongs to now: a removed owner later invited into another organization
+  // keeps seeing their old one's decisions (dated, worded generically). A
+  // subject column would close that; it is a data-model change (M10 plan).
   const parts: Prisma.NotificationWhereInput[] = [{ kind: { in: ORG_NOTICE_KINDS } }];
   if (HIRING_ROLES.includes(v.role)) parts.push({ engagement: { job: { orgId: v.orgId } } });
   if (PAY_ROLES.includes(v.role)) parts.push({ dispute: { orgId: v.orgId } }, { transfer: { orgId: v.orgId } });

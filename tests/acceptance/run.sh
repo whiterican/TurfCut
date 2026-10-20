@@ -23,7 +23,8 @@ checks=("$@"); [ ${#checks[@]} -eq 0 ] && checks=(m5 m6 m7 c1 c2 c3 c4 rl sec s1
 declare -A FILE=([m5]=m5-payouts.ts [m6]=m6-offline.ts [m7]=m7-corrections-closure.ts [c1]=c1-roles.ts [c2]=c2-consent.ts [c3]=c3-hiring.ts [c4]=c4-launch.ts [rl]=rate-limit.ts [sec]=grants.ts [s1]=s1-social.ts [s2]=s2-social.ts [s3]=s3-reach.ts [s4]=s4-kit.ts [m8]=m8-slots.ts [m9]=m9-money.ts [m10]=m10-admin.ts)
 # Extra SQL run after the setup for a check (sec: re-running the lockdown,
 # as it is designed to be, must leave message grants column-limited).
-declare -A AFTER=([sec]=prisma/m4-0-rls-lockdown.sql)
+# m10: the M10 migration itself must be safe to run on a database that already has everything (it runs on the live project that way).
+declare -A AFTER=([sec]=prisma/m4-0-rls-lockdown.sql [m10]=prisma/m10-admin.sql)
 for c in "${checks[@]}"; do [[ -v FILE[$c] ]] || { echo "unknown check: $c (m5, m6, m7, c1, c2, c3, c4, rl, sec, s1, s2, s3, s4, m8, m9, m10)"; exit 2; }; done
 fail=0
 for c in "${checks[@]}"; do

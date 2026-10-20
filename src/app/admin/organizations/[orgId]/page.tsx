@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { UUID_RE } from "@/lib/jobs";
 import { requireStaff } from "@/lib/staff-session";
 import { approvalStanding, loadOrganizationForAdmin } from "@/lib/admin-orgs-data";
 import { OrgDecisionForm } from "@/components/admin/OrgDecisionForm";
@@ -21,6 +22,7 @@ function GateItem({ label, done, detail }: { label: string; done: boolean; detai
 export default async function AdminOrganizationPage({ params }: { params: Promise<{ orgId: string }> }) {
   await requireStaff();
   const { orgId } = await params;
+  if (!UUID_RE.test(orgId)) notFound();
   const org = await loadOrganizationForAdmin(orgId);
   if (!org) notFound();
   const standing = approvalStanding(org);

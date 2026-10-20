@@ -1,4 +1,4 @@
-/* M10.1 acceptance checks: the staff gate and the staff ledger on real Postgres — staff is a flag independent of role, the ledger needs a reason and never changes, the overview reads the queues (tests/acceptance/run.sh). */
+/* M10 acceptance checks on real Postgres: the staff gate and ledger (M10.1: staff is a flag independent of role, the ledger needs a reason and never changes, the overview reads the queues) and the organization approval queue (M10.2: decisions, notices, the publish gate). The runner applies prisma/m10-admin.sql on top of the full setup first, so the migration's re-run safety is checked too (tests/acceptance/run.sh). */
 import { db } from "@/lib/db";
 import { checkReason, loadAdminOverview, recordAdminAction } from "@/lib/admin-data";
 import { approvalStanding, decideOrganization, listOrganizationsForAdmin, loadOrganizationForAdmin } from "@/lib/admin-orgs-data";

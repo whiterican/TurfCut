@@ -10,8 +10,18 @@ import { LocalTime } from "@/components/LocalTime";
 
 /** Today in the field: the strip owners and supervisors see first. */
 function FieldToday({ ops }: { ops: NonNullable<Awaited<ReturnType<typeof loadDesk>>["today"]> }) {
+  // Nothing under way and nothing starting soon: every figure is zero, so say so in words instead of a row of zeros.
+  if (ops.scheduled === 0 && ops.upcoming === 0) {
+    return (
+      <div className="hero-card hero-card-quiet space-y-3">
+        <p className="eyebrow">In the field today</p>
+        <p className="hero-title">Nothing in the field today</p>
+        <p className="hero-muted text-sm">Shifts starting in the next 24 hours show up here.</p>
+      </div>
+    );
+  }
   return (
-    <div className={`hero-card space-y-4${ops.scheduled === 0 && ops.upcoming === 0 ? " hero-card-quiet" : ""}`}>
+    <div className="hero-card space-y-4">
       <p className="eyebrow">In the field today</p>
       <p className="hero-title">{ops.scheduled === 1 ? "1 shift" : `${ops.scheduled} shifts`} under way</p>
       <p className="flex flex-wrap gap-x-6 gap-y-1 text-sm">

@@ -4,6 +4,9 @@ import { checkReason, loadAdminOverview, recordAdminAction } from "@/lib/admin-d
 import { approvalStanding, decideOrganization, listOrganizationsForAdmin, loadOrganizationForAdmin } from "@/lib/admin-orgs-data";
 import { approveJurisdictionVersion, listJurisdictionsForAdmin, loadJurisdictionForAdmin, proposeJurisdictionVersion, retireJurisdictionProposal, withdrawJurisdictionApproval } from "@/lib/admin-jurisdictions-data";
 import { readRules } from "@/lib/jurisdiction-rules";
+import { LEDGER_MOMENTS, listAuditVocabulary, loadTimeline, parseAuditFilter } from "@/lib/admin-audit-data";
+import { loadPerson, searchPeople, staffRemoveMember, staffResendInvite } from "@/lib/admin-people-data";
+import { inviteMember } from "@/lib/members-data";
 import { jurisdictionOptions } from "@/lib/jurisdiction-options";
 import { canScheduleShift, jurisdictionProblems, publishBlockers, type PublishFacts } from "@/lib/jobs";
 import { orgNoticeText } from "@/lib/notification-text";
@@ -191,7 +194,57 @@ const fails_ = async (f: () => Promise<unknown>): Promise<string> => { try { awa
   check("the overview counts two current profiles, one of them blocked", ov.jurisdictionsCurrent === 2 && ov.jurisdictionsBlocked === 1, ov);
   check("the expiry has to be tomorrow or later", /tomorrow or later/.test((await approveJurisdictionVersion(asOwner, p5.ok ? p5.id : prop.id, { approvalExpiresAt: new Date(now.getTime() - 1000), reason: "Trying" }, t7) as { message?: string }).message ?? ""));
 
-  // 8. No Data API path to the ledger.
+  // 9. The audit viewer and the people lookup (M10.4).
+  const t8 = new Date(now.getTime() + 70_000);
+  await p.auditEvent.create({ data: { actorId: OWNER, action: "job.published", entityType: "Job", entityId: JOB, metadata: { by: "test" }, createdAt: t8 } });
+  const page1 = await loadTimeline(parseAuditFilter({}), null, 10);
+  check("the timeline merges the organizations' audit events and Turfcut's acts, newest first, a page at a time", page1.rows.length === 10 && page1.rows.some((r) => r.source === "staff") && page1.rows.some((r) => r.source === "audit") && page1.rows.every((r, i, a) => i === 0 || a[i - 1].createdAt.getTime() >= r.createdAt.getTime()) && !!page1.next, page1.rows.map((r) => [r.source, r.action]));
+  const page2 = await loadTimeline(parseAuditFilter({}), page1.next, 10);
+  check("the next page continues after the cursor with no overlap", page2.rows.length > 0 && !page2.rows.some((r) => page1.rows.some((x) => x.id === r.id && x.source === r.source)), page2.rows.length);
+  const mine = (await loadTimeline(parseAuditFilter({ kind: "job.published", id: JOB }))).rows.find((r) => r.source === "audit" && JSON.stringify(r.metadata) === '{"by":"test"}');
+  check("an audit event names its actor the way the app does, links nothing it has no page for, and carries its details", mine?.action === "job.published" && mine.actorName === "Maya Chen" && mine.href === null && mine.entityType === "Job", mine);
+  const byOrg = await loadTimeline(parseAuditFilter({ type: "organization", id: ORG_B }));
+  check("filtering by record finds Turfcut's decisions on an organization, with the staff name and reason, linked to its page", byOrg.rows.length === 2 && byOrg.rows.every((r) => r.source === "staff" && r.orgName === "Boulder Canvass Co" && r.href === `/admin/organizations/${ORG_B}` && r.actorName === "Maya Chen" && !!r.reason) && byOrg.next === null, byOrg.rows);
+  const byKind = await loadTimeline(parseAuditFilter({ kind: "job." }));
+  check("a kind filter matches part of an action name across both sources", byKind.rows.length >= 2 && byKind.rows.every((r) => r.action.includes("job.")) && byKind.rows.some((r) => r.action === "job.jurisdiction_moved"), byKind.rows.map((r) => r.action));
+  const ledger = await loadTimeline(parseAuditFilter({ ledger: "1" }));
+  check("the Ledger quick filter keeps only the five moments", ledger.rows.length >= 1 && ledger.rows.some((r) => r.action === "job.published" && r.entityId === JOB) && ledger.rows.every((r) => r.source === "audit" && (LEDGER_MOMENTS as readonly string[]).includes(r.action)), ledger.rows.map((r) => r.action));
+  const byActor = await loadTimeline(parseAuditFilter({ actor: OWNER, from: t8.toISOString().slice(0, 10), to: t8.toISOString().slice(0, 10) }));
+  check("actor and date filters apply to both sources", byActor.rows.length >= 1 && byActor.rows.every((r) => r.actorId === OWNER && r.createdAt.toISOString().slice(0, 10) === t8.toISOString().slice(0, 10)), byActor.rows.map((r) => [r.source, r.action, r.createdAt]));
+  const vocab = await listAuditVocabulary();
+  check("the filter's suggestions come from what the tables hold", vocab.kinds.includes("job.published") && vocab.kinds.includes("org.approved") && vocab.entityTypes.includes("Organization") && vocab.entityTypes.includes("JurisdictionProfile"), vocab);
+
+  const byEmail = await searchPeople("riley@");
+  check("lookup by sign-in email prefix finds the account with its name, organization and standing", byEmail.kind === "email" && byEmail.hits.length === 1 && byEmail.hits[0].profileId === OWNER_B && byEmail.hits[0].name === "Riley Park" && byEmail.hits[0].org?.name === "Boulder Canvass Co" && byEmail.hits[0].org.approved === false && !byEmail.hits[0].staff, byEmail);
+  const byName = await searchPeople("alex riv");
+  check("lookup by name finds a worker by their worker name, with no organization, and shows the staff flag", byName.kind === "name" && byName.hits.some((h) => h.profileId === WORKER && h.role === "WORKER" && h.org === null && h.staff), byName.hits);
+  await p.campaignProfile.create({ data: { orgId: ORG, handle: "frontrange", displayName: "Front Range Circulators" } });
+  const byHandle = await searchPeople("@frontr");
+  check("lookup by campaign handle lists the organization's members, never its workers", byHandle.kind === "handle" && byHandle.hits.length === 2 && byHandle.hits.every((h) => h.org?.id === ORG && h.role !== "WORKER"), byHandle.hits.map((h) => [h.name, h.role]));
+  const byId = await searchPeople(OWNER);
+  check("lookup by account id", byId.kind === "id" && byId.hits.length === 1 && byId.hits[0].name === "Maya Chen" && byId.hits[0].staff, byId);
+  const person = await loadPerson(OWNER_B, t8);
+  check("an account's page shows its basics and organization, and nothing of what a worker controls", person?.email === "riley@boulder.test" && person.org?.id === ORG_B && person.workerId === null && !/preference|scorecard|sharing/i.test(JSON.stringify(person)), person);
+  check("an unknown account reads as null", (await loadPerson("00000000-0000-0000-0000-00000000dead")) === null && (await loadPerson("abc")) === null);
+
+  const mail = async () => ({ ok: true as const });
+  const inv = await inviteMember({ userId: OWNER, orgId: ORG }, { email: "new-recruiter@example.org", role: "RECRUITER" }, mail, t8);
+  const t9 = new Date(now.getTime() + 80_000);
+  const rs = inv.ok ? await staffResendInvite(asOwner, inv.inviteId, mail, "The owner asked us to nudge their recruiter", t9) : { ok: false as const, message: "no invite" };
+  const invRow = inv.ok ? await p.orgInvite.findUnique({ where: { id: inv.inviteId } }) : null;
+  check("staff can resend an owner's invite: the expiry moves, the organization's trail says Turfcut staff did it, the ledger says who and why", inv.ok && rs.ok && invRow?.expiresAt.getTime() === t9.getTime() + 7 * 86_400_000 && (await p.auditEvent.count({ where: { action: "invite.resent", entityId: inv.inviteId, actorId: null } })) === 1 && (await p.adminAction.count({ where: { action: "invite.resent_for_org", targetId: inv.inviteId, orgId: ORG } })) === 1, { inv, rs, invRow });
+  const invB = await p.orgInvite.create({ data: { orgId: ORG_B, email: "someone@boulder.test", role: "RECRUITER", invitedById: OWNER_B, expiresAt: t9 } });
+  check("a resend for an organization whose approval was withdrawn is refused", /approved the organization/.test((await staffResendInvite(asOwner, invB.id, mail, "Trying", t9) as { message?: string }).message ?? ""));
+  const rmOwner = await staffRemoveMember(asOwner, OWNER, "Trying", t9);
+  check("the last owner stays, for staff as for owners", !rmOwner.ok && /at least one owner/.test(rmOwner.message));
+  const rmSup = await staffRemoveMember(asOwner, SUP, "Left the organization in September; the owner asked us to close the seat", t9);
+  const supRow = await p.profile.findUniqueOrThrow({ where: { id: SUP } });
+  check("staff can remove a member with the owner's rules: access ends, the login and role stay, the trail says Turfcut staff and the ledger says who and why", rmSup.ok && supRow.orgId === null && supRow.role === "SUPERVISOR" && supRow.closedAt === null && (await p.auditEvent.count({ where: { action: "member.removed", entityId: SUP, actorId: null } })) === 1 && (await p.adminAction.count({ where: { action: "member.removed_for_org", targetId: SUP, orgId: ORG } })) === 1, { rmSup, supRow });
+  check("a worker isn't a member of anything to be removed from", !(await staffRemoveMember(asOwner, WORKER, "Trying", t9)).ok);
+  const sup = await loadPerson(SUP, t9);
+  check("the removed member's page shows the removal by Turfcut staff in the history and the ledger row with its reason", sup?.org === null && sup.history[0]?.action === "member.removed" && sup.history[0].orgName === "Front Range Circulators" && /by Turfcut staff/.test(sup.history[0].detail ?? "") && sup.ledger[0]?.action === "member.removed_for_org" && sup.ledger[0].staffName === "Maya Chen", sup && { history: sup.history, ledger: sup.ledger });
+
+  // 10. No Data API path to the ledger.
   const grants = await p.$queryRaw<{ grantee: string }[]>`SELECT grantee FROM information_schema.role_table_grants WHERE table_schema = 'public' AND table_name = 'AdminAction' AND grantee IN ('anon', 'authenticated')`;
   const rls = await p.$queryRaw<{ relrowsecurity: boolean }[]>`SELECT relrowsecurity FROM pg_class WHERE relname = 'AdminAction'`;
   check("AdminAction has RLS on and no grant to the API roles", grants.length === 0 && rls[0]?.relrowsecurity === true, { grants, rls });

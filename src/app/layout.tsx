@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import brandMark from "../../public/brand/icons/icon-96.png";
-import { DM_Mono, DM_Sans, Newsreader } from "next/font/google";
+import { Barlow, Barlow_Condensed, DM_Mono } from "next/font/google";
 import { OrgRail, OrgTabBar, TabBar, TopNav } from "@/components/AppNav";
 import { InlineScript } from "@/components/InlineScript";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -21,22 +21,24 @@ import { unreadNotifications, UNREAD_CAP } from "@/lib/notifications-data";
 import { unreadPostNotices } from "@/lib/campaign-follow-data";
 import "./globals.css";
 
-const dmSans = DM_Sans({
-  variable: "--font-dm-sans",
+// The brand face (DESIGN.md): Barlow for UI, Barlow Condensed for kickers,
+// table eyebrows and the tab labels.
+const barlow = Barlow({
+  variable: "--font-barlow",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+});
+
+const barlowCondensed = Barlow_Condensed({
+  variable: "--font-barlow-condensed",
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
 });
 
 const dmMono = DM_Mono({
   variable: "--font-dm-mono",
   subsets: ["latin"],
   weight: ["400", "500"],
-});
-
-// Mastheads only: organization and job names at the top of a page (C1).
-const newsreader = Newsreader({
-  variable: "--font-newsreader",
-  subsets: ["latin"],
-  weight: ["500", "600"],
 });
 
 export function generateMetadata(): Metadata {
@@ -78,7 +80,7 @@ export default async function RootLayout({
       lang="en"
       // Server renders dark (the primary theme); the inline script corrects
       // it before first paint, so React must accept the DOM's class.
-      className={`dark ${dmSans.variable} ${dmMono.variable} ${newsreader.variable} h-full antialiased`}
+      className={`dark ${barlow.variable} ${dmMono.variable} ${barlowCondensed.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <head>
@@ -94,7 +96,8 @@ export default async function RootLayout({
                   themes. The word is live text in the theme's ink. Static import +
                   unoptimized: served from /_next/static, saved offline by the service worker. */}
               <Image src={brandMark} alt="" width={28} height={28} unoptimized className="size-7 rounded-lg" />
-              turfcut
+              {/* The wordmark: lowercase, with "cut" in the kicker colour. */}
+              <span>turf<span className="wordmark-cut">cut</span></span>
             </Link>
             <div className="flex items-center gap-2">
               {!isOrg && <TopNav tabs={tabs} />}

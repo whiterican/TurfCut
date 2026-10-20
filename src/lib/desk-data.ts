@@ -14,7 +14,7 @@ export interface DeskItem {
   title: string;
   sub: string;
   tag: string;
-  badge: "badge-coral" | "badge-butter" | "badge-sky" | "badge-neutral";
+  badge: "badge-coral" | "badge-butter" | "badge-sky" | "badge-neutral" | "badge-accent";
   href: string;
 }
 
@@ -89,7 +89,7 @@ export async function loadDesk(actor: { profileId: string; orgId: string; role: 
   if (parts.pay && pay && disputes !== null) {
     if (pay.awaiting.length) {
       const cents = pay.awaiting.reduce((n, l) => n + l.line.amountCents, 0);
-      needs.push({ key: "pay-approve", title: `${plural(pay.awaiting.length, "pay line")} to approve`, sub: `${money(cents)} in total`, tag: "Approve", badge: "badge-butter", href: "/pay?tab=approve" });
+      needs.push({ key: "pay-approve", title: `${plural(pay.awaiting.length, "pay line")} to approve`, sub: `${money(cents)} in total`, tag: "Approve", badge: "badge-accent", href: "/pay?tab=approve" });
     }
     if (disputes.overdue) needs.push({ key: "pay-disputes-overdue", title: `${plural(disputes.overdue, "dispute")} overdue`, sub: "A reply or a resolution is past its deadline", tag: "Overdue", badge: "badge-coral", href: "/pay?tab=disputes" });
     if (disputes.dueToday) needs.push({ key: "pay-disputes-today", title: `${plural(disputes.dueToday, "dispute")} due today`, sub: "Reply or resolve before the day ends", tag: "Due", badge: "badge-butter", href: "/pay?tab=disputes" });

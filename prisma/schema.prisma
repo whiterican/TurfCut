@@ -58,6 +58,10 @@ model Profile {
   // Account closure (M7): set when the person closed their account. The
   // auth user is deleted; this row and everything it anchors stay (rule 3).
   closedAt    DateTime?
+  // Turfcut staff (M10): when this account was made staff; null for everyone
+  // else. Independent of role (a staff member can also be a worker or an
+  // owner). Set by hand in SQL, never by the app (README, "Turfcut staff").
+  staffSince  DateTime?
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
@@ -75,6 +79,7 @@ model Profile {
   slotsPosted           ShiftSlot[]               @relation("ShiftSlotCreator")
   disputeMessages       PayDisputeMessage[]       @relation("DisputeMessageAuthor")
   slotsSupervised       ShiftSlot[]               @relation("ShiftSlotSupervisor")
+  adminActions          AdminAction[]             @relation("AdminActionStaff")
 
   @@index([orgId])
 }
@@ -248,6 +253,7 @@ model Organization {
   invites                  OrgInvite[]
   mutedBy                  OrgMute[]
   campaignProfiles         CampaignProfile[]
+  adminActions             AdminAction[]
   createdAt                DateTime          @default(now())
   updatedAt                DateTime          @updatedAt
 }
@@ -823,6 +829,31 @@ model AuditEvent {
   createdAt  DateTime @default(now())
 
   @@index([entityType, entityId])
+  @@index([createdAt])
+}
+
+/// M10: the staff ledger. One row per act a Turfcut staff member takes on
+/// the platform (approving an organization, a jurisdiction version, a
+/// campaign verification, a support action): who, what, on which record,
+/// for which organization, and why, in their own words. Append-only (rule
+/// 3): a correction is a new row that supersedes. Server-only: no Data API
+/// grants. Staff notes stay out of the organization's own audit trail.
+model AdminAction {
+  id         String        @id @default(uuid()) @db.Uuid
+  staffId    String        @db.Uuid
+  staff      Profile       @relation("AdminActionStaff", fields: [staffId], references: [id], onDelete: Restrict)
+  action     String // e.g. "org.approved", "jurisdiction.version_approved"
+  targetType String // e.g. "Organization", "JurisdictionProfile", "CampaignProfile", "Profile"
+  targetId   String
+  orgId      String?       @db.Uuid // the organization the act concerns, when there is one
+  org        Organization? @relation(fields: [orgId], references: [id], onDelete: Restrict)
+  reason     String // never empty (checked in code and in SQL)
+  metadata   Json?
+  createdAt  DateTime      @default(now())
+
+  @@index([targetType, targetId])
+  @@index([orgId, createdAt])
+  @@index([staffId, createdAt])
   @@index([createdAt])
 }
 

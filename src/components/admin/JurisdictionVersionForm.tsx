@@ -24,20 +24,21 @@ export function JurisdictionVersionForm({ defaults, fromLabel }: { defaults: { s
         <p className="eyebrow eyebrow-quiet">Place</p>
         {fromLabel && <p className="text-muted-sm">A new version of {fromLabel}. The place stays the same; edit the rules below.</p>}
         <div className="grid gap-3 sm:grid-cols-[6rem_1fr]">
-          <label className="block space-y-1.5">
-            <span className="label">State</span>
-            {fromLabel ? (
-              <>
-                <input type="hidden" name="state" value={defaults.state} />
-                <span className="field block" aria-readonly>{defaults.state}</span>
-              </>
-            ) : (
+          {fromLabel ? (
+            <div className="block space-y-1.5">
+              <span className="label">State</span>
+              <input type="hidden" name="state" value={defaults.state} />
+              <span className="field block">{defaults.state}</span>
+            </div>
+          ) : (
+            <label className="block space-y-1.5">
+              <span className="label">State</span>
               <select name="state" className="field" defaultValue={defaults.state} required>
                 <option value="" disabled>Pick</option>
                 {US_STATES.map((s) => <option key={s} value={s}>{s}</option>)}
               </select>
-            )}
-          </label>
+            </label>
+          )}
           <label className="block space-y-1.5">
             <span className="label">Locality (blank for statewide)</span>
             <input name="locality" className="field" defaultValue={defaults.locality} maxLength={LOCALITY_MAX} readOnly={!!fromLabel} placeholder="Denver" />

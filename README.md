@@ -1219,8 +1219,8 @@ roles, one slice at a time.
   two current versions.
 - **The organization's side.** A published job that froze under it shows a
   Frozen panel on its job page with the reasons and the edit link (the gate
-  itself now says "superseded by a newer version; edit the job to file it
-  under the current rules"). The hard stop is otherwise unchanged:
+  itself now says "superseded by a newer version; the organization has to
+  file the job under the current rules", words a worker can read too). The hard stop is otherwise unchanged:
   publishing, scheduling, posting a seat and claiming one already refuse
   under an unapproved, superseded, lapsed or not-yet-effective profile.
   Expiries last through the day counsel named.

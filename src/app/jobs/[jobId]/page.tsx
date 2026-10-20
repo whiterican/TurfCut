@@ -435,9 +435,10 @@ async function OrgPanel({ job, canHire, canSchedule, userId }: { job: JobWithRef
   const facts = await loadPipelineFacts(engagements.map((e) => e.id));
   const now = new Date();
   const changes = canHire && job.status !== "DRAFT" ? await loadJobChanges(job.id) : [];
-  // A published job can freeze under it without anyone editing it (M10.3): a newer version of its place's rules, or a withdrawn approval.
-  const current = job.status === "PUBLISHED" ? await db().jurisdictionProfile.findFirst({ where: { state: job.jurisdiction.state, locality: job.jurisdiction.locality, isCurrent: true }, select: { id: true, rules: true } }) : null;
-  const frozen = job.status === "PUBLISHED" ? jobFreezeReasons(job, job.jurisdiction, current, now) : [];
+  // A live job can freeze under it without anyone editing it (M10.3): a newer version of its place's rules, or a withdrawn approval.
+  const live = job.status === "PUBLISHED" || job.status === "PAUSED";
+  const current = live ? await db().jurisdictionProfile.findFirst({ where: { state: job.jurisdiction.state, locality: job.jurisdiction.locality, isCurrent: true }, select: { id: true, rules: true } }) : null;
+  const frozen = live ? jobFreezeReasons(job, job.jurisdiction, current, now) : [];
 
   return (
     <>

@@ -384,7 +384,7 @@ export function jurisdictionProblems(j: JurisdictionFacts | null, now: Date = ne
   const label = jurisdictionLabel(j);
   const out: string[] = [];
   if (!j.approved) out.push(`${label} hasn't been approved by counsel.`);
-  if (!j.isCurrent) out.push(`${label} has been superseded by a newer version. Edit the job to file it under the current rules.`);
+  if (!j.isCurrent) out.push(`${label} has been superseded by a newer version; the organization has to file the job under the current rules.`);
   if (j.effectiveFrom && j.effectiveFrom > now) out.push(`${label} isn't effective until ${j.effectiveFrom.toISOString().slice(0, 10)}.`);
   if (j.approvalExpiresAt && j.approvalExpiresAt <= now) out.push(`Counsel approval for ${label} expired on ${j.approvalExpiresAt.toISOString().slice(0, 10)}.`);
   if (!Array.isArray(obj(j.rules).compensationAllowed)) out.push(`${label} has no compensation rules on file.`);

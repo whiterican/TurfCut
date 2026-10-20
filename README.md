@@ -125,6 +125,9 @@ exercise the locks, triggers and data rules, not the RLS policies.
      statements), and deploy the M9 build right after: it numbers the
      existing transfers and until the new code is live, sending pay fails
      (approving and everything else keeps working). Safe to run again.
+   - Then `prisma/m10-admin.sql` (M10.1: the staff flag and the staff
+     ledger), before deploying the M10 build; then make your own account
+     staff (see **Turfcut staff** below). Safe to run again.
    - Storage → New bucket **`campaign-media`**, set to **public**, with a
      file size limit of **2 MB** and allowed MIME types **image/png,
      image/jpeg**. Campaign avatars and header images go there. The app
@@ -1125,6 +1128,49 @@ Built in C3.6b (see the C3 scope below). Approved as recommended by review:
   C3 code; it is safe to run again, so a second run after the deploy fills
   in any engagement made in between. Acceptance:
   `tests/acceptance/c3-hiring.ts`.
+
+## M10 scope — self-serve admin (in progress)
+
+Turfcut staff run the platform without SQL, organizations manage their own
+roles, and every administrative act is recorded with who, what and why. The
+plan (approved Oct 20) builds the staff console first, then organization
+roles, one slice at a time.
+
+### M10.1 — the staff gate and the staff ledger (done)
+
+- **Staff is a flag, not a role.** `Profile.staffSince` marks a Turfcut
+  staff account; it is independent of the account's role, so a staff member
+  can also be a worker or an owner. Nobody is staff until the flag is set
+  by hand (below); the app never sets it.
+- **`/admin` is the console's shell.** Staff only. Anyone else — signed
+  out, a worker, an organization role — gets the same 404 as a page that
+  doesn't exist, so the console is never confirmed to someone who can't use
+  it. The overview shows the queues the later slices manage (organizations
+  awaiting approval, current and frozen jurisdiction profiles, published
+  campaign profiles) and the last ten staff acts.
+- **`AdminAction` is the staff ledger.** One row per act: who (the staff
+  profile), what (`org.approved`, …), on which record, for which
+  organization, and why, in the staff member's words. A reason is required
+  in code and by the table; the row is append-only (an update or delete is
+  refused by the database) and server-only (no Data API grants). Staff
+  notes stay out of the organization's own audit trail.
+- **Where staff find it.** Settings shows an "Open admin" link to staff of
+  every role; organization roles also get Admin at the end of the desktop
+  rail and in More. The phone bar's picks stay the role's own work.
+- **Migration:** `prisma/m10-admin.sql` (safe to run again; later slices
+  extend the same file). Checks: `tests/acceptance/m10-admin.ts`.
+
+### Turfcut staff — making an account staff
+
+Only by hand, in the Supabase SQL editor, after `prisma/m10-admin.sql`:
+
+```sql
+update "Profile" set "staffSince" = now() where "id" = '<auth user id>';
+```
+
+The id is the account's Supabase auth user id (Authentication → Users). To
+revoke, set the column back to `null`. Keep it rare: a staff login can
+approve organizations and change jurisdiction rules.
 
 ## M9 scope — money, visibly
 

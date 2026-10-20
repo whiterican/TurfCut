@@ -28,8 +28,8 @@
      role, two colours: EGGPLANT with off-white text by day, OLIVE with lime
      text by night (the mockup's "Verified org" chip). Was --plum, which only
      described the light theme. */
-  --solid: #3a2154;
-  --on-solid: #d6f25a;
+  --solid: #d6f25a; /* live status (Active, Approved, Ready, You): a lime chip with ink text */
+  --on-solid: #1b1422;
   /* One accent: date emphasis is a lime chip too; holds are a clay tint; waiting is stone. */
   --sky: #d6f25a;
   --coral: #f1c6bd;
@@ -306,10 +306,7 @@ body {
     clip-path: polygon(0 55%, 100% 0, 100% 100%);
     border-top-right-radius: inherit;
   }
-  /* On a lime hero the cut is a deeper turf green. */
-  .hero-card-accent::after {
-    background: #9fb92b;
-  }
+
   /* The worker's next shift (mockup): a bright accent card with dark ink. */
   .hero-card-accent {
     background: var(--hero-sheen), var(--accent);
@@ -347,7 +344,8 @@ body {
     outline-offset: 9px;
   }
   .hero-card.hero-card-accent::after {
-    background: color-mix(in srgb, white 35%, var(--accent));
+    /* On a lime hero the cut is a deeper turf green, not a paler lime. */
+    background: #9fb92b;
   }
   .hero-card.hero-card-accent .eyebrow,
   .hero-card.hero-card-accent .hero-muted {

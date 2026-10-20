@@ -231,7 +231,7 @@ describe("the Turfcut App Mockup palette (eggplant and lime)", () => {
     expect(light.bg).toBe("#efeae1");
     expect(light.fg).toBe("#1b1422");
     expect(light.accent).toBe("#d6f25a");
-    expect(light.solid).toBe("#3a2154"); // eggplant "done" badge
+    expect(light.solid).toBe("#d6f25a"); // live status: a lime chip
     expect(light.hero).toBe("#3a2154");
     expect(light.primary).toBe("#2a173e");
     expect(light["on-primary"]).toBe("#d6f25a");

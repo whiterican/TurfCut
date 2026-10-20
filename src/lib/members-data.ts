@@ -23,7 +23,8 @@ const fail = (reason: string): Fail => ({ ok: false, reason });
 class Refusal extends Error {}
 const orgApproved = async (tx: Tx, orgId: string) => !!(await tx.organization.findUnique({ where: { id: orgId }, select: { approved: true } }))?.approved;
 // One lock per organization's membership: the last-owner guard reads then writes.
-const lockOrg = (tx: Tx, orgId: string) => tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`org-members:${orgId}`}))`;
+/** One organization's membership changes under one lock (the console's support actions take it too, M10.4). */
+export const lockOrg = (tx: Tx, orgId: string) => tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`org-members:${orgId}`}))`;
 const lockEmail = (tx: Tx, email: string) => tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`invite-email:${email}`}))`;
 
 /**
@@ -212,8 +213,8 @@ async function memberFor(tx: Tx, actor: Actor, profileId: string) {
   return p;
 }
 
-const LAST_OWNER = "An organization needs at least one owner. Make someone else an owner first.";
-const otherOwners = (tx: Tx, orgId: string, profileId: string) =>
+export const LAST_OWNER = "An organization needs at least one owner. Make someone else an owner first.";
+export const otherOwners = (tx: Tx, orgId: string, profileId: string) =>
   tx.profile.count({ where: { orgId, role: "OWNER", closedAt: null, id: { not: profileId } } });
 
 export async function changeMemberRole(actor: Actor, profileId: string, role: unknown, now = new Date()): Promise<{ ok: true } | Fail> {

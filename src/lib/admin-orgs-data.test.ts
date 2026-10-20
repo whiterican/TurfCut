@@ -2,9 +2,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const tx = {
   organization: { findUnique: vi.fn(), updateMany: vi.fn() },
-  adminAction: { create: vi.fn(async (_args: { data: Record<string, unknown> }) => ({ id: "ledger-1" })) },
+  adminAction: { create: vi.fn<(args: { data: Record<string, unknown> }) => Promise<{ id: string }>>() },
   profile: { findMany: vi.fn() },
-  notification: { createMany: vi.fn(async (_args: { data: Array<Record<string, unknown>> }) => ({ count: 0 })) },
+  notification: { createMany: vi.fn<(args: { data: Array<Record<string, unknown>> }) => Promise<{ count: number }>>() },
 };
 const client = {
   organization: { findUnique: vi.fn(), findMany: vi.fn() },
@@ -13,7 +13,7 @@ const client = {
   adminAction: { findMany: vi.fn() },
   $transaction: (fn: (t: typeof tx) => unknown) => fn(tx),
 };
-const emailsFor = vi.fn(async (_ids: string[]) => new Map<string, string>());
+const emailsFor = vi.fn<(ids: string[]) => Promise<Map<string, string>>>();
 vi.mock("@/lib/db", () => ({ db: () => client }));
 vi.mock("@/lib/members-data", () => ({ emailsFor: (ids: string[]) => emailsFor(ids) }));
 

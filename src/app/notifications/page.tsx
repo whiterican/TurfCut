@@ -39,7 +39,7 @@ export default async function NotificationsPage() {
           <p className="eyebrow">Updates</p>
           <h1 className="page-title">Notifications</h1>
           <p className="text-muted-sm">
-            {viewer === "worker" ? "Hiring steps, your pay disputes and payouts, and new posts from campaigns you asked to hear from." : "Hiring steps, pay disputes and Turfcut&apos;s decisions that concern you."} Nobody is told whether you read them.
+            {viewer === "worker" ? "Hiring steps, your pay disputes and payouts, and new posts from campaigns you asked to hear from." : "Hiring steps, pay disputes and Turfcut's decisions that concern you."} Nobody is told whether you read them.
           </p>
         </div>
         {unread > 0 && (

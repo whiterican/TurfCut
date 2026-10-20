@@ -14,7 +14,7 @@ export default async function AdminOverviewPage() {
         items={[
           { label: "Awaiting approval", value: o.orgsAwaiting, hint: "Organizations" },
           { label: "Approved", value: o.orgsApproved, hint: "Organizations" },
-          { label: "Jurisdictions", value: o.jurisdictionsCurrent, hint: o.jurisdictionsFrozen ? `${o.jurisdictionsFrozen} frozen` : "All approved" },
+          { label: "Jurisdictions", value: o.jurisdictionsCurrent, hint: o.jurisdictionsBlocked ? `${o.jurisdictionsBlocked} can't be used` : o.jurisdictionsCurrent ? "All usable" : "None on file" },
         ]}
       />
 

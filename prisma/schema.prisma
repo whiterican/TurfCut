@@ -843,7 +843,7 @@ model AdminAction {
   staffId    String        @db.Uuid
   staff      Profile       @relation("AdminActionStaff", fields: [staffId], references: [id], onDelete: Restrict)
   action     String // e.g. "org.approved", "jurisdiction.version_approved"
-  targetType String // e.g. "Organization", "JurisdictionProfile", "CampaignProfile", "Profile"
+  targetType String // e.g. "Organization", "JurisdictionProfile", "Profile", "OrgInvite" (lib/admin-data.ts lists them)
   targetId   String
   orgId      String?       @db.Uuid // the organization the act concerns, when there is one
   org        Organization? @relation(fields: [orgId], references: [id], onDelete: Restrict)

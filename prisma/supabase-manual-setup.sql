@@ -61,6 +61,7 @@ CREATE TABLE "public"."Profile" (
     "orgId" UUID,
     "displayName" TEXT,
     "closedAt" TIMESTAMP(3),
+    "staffSince" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -1662,11 +1663,10 @@ CREATE OR REPLACE TRIGGER "Statement_append_only" BEFORE UPDATE OR DELETE ON "pu
 ALTER TABLE "public"."Statement" ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON "public"."Statement" FROM anon, authenticated;
 
--- Turfcut staff (M10.1, prisma/m10-admin.sql): the staff flag on a profile
--- (set by hand; see README, "Turfcut staff") and the staff ledger: one row
--- per act a staff member takes, with who, what, on which record and why.
--- Append-only, server-only.
-ALTER TABLE "public"."Profile" ADD COLUMN IF NOT EXISTS "staffSince" TIMESTAMP(3);
+-- Turfcut staff (M10.1, prisma/m10-admin.sql): the staff flag is
+-- Profile.staffSince above (set by hand; see README, "Turfcut staff"). The
+-- staff ledger: one row per act a staff member takes, with who, what, on
+-- which record and why. Append-only, server-only.
 CREATE TABLE IF NOT EXISTS "public"."AdminAction" (
     "id" UUID NOT NULL,
     "staffId" UUID NOT NULL,

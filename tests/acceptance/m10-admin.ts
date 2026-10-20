@@ -34,12 +34,13 @@ const fails_ = async (f: () => Promise<unknown>): Promise<string> => { try { awa
   check("non-staff owners never see Admin", !orgNav("OWNER", true, false).rail.some((t) => t.href === "/admin"));
 
   // 2. The ledger: a reason is required, trimmed, and the row never changes.
-  const noReason = await fails_(() => recordAdminAction(p, { staffId: OWNER, action: "org.approved", targetType: "Organization", targetId: ORG, orgId: ORG, reason: "  " }, now));
+  const asOwner = { userId: OWNER, staff: true as const };
+  const noReason = await fails_(() => recordAdminAction(p, { staff: asOwner, action: "org.approved", targetType: "Organization", targetId: ORG, orgId: ORG, reason: "  " }, now));
   check("recording without a reason throws before anything is written", /without a reason/.test(noReason) && (await p.adminAction.count()) === 0, noReason);
   check("checkReason tells the person what to say", checkReason("").ok === false);
   const sqlNoReason = await fails_(() => p.$executeRaw`INSERT INTO "AdminAction" ("id", "staffId", "action", "targetType", "targetId", "reason") VALUES (gen_random_uuid(), ${OWNER}::uuid, 'org.approved', 'Organization', ${ORG}, '   ')`);
   check("the database refuses a blank reason too", /AdminAction_reason_given/.test(sqlNoReason), sqlNoReason);
-  const row = await recordAdminAction(p, { staffId: OWNER, action: "org.approved", targetType: "Organization", targetId: ORG, orgId: ORG, reason: "  Pilot partner, terms signed on the call  ", metadata: { approved: true } }, now);
+  const row = await recordAdminAction(p, { staff: asOwner, action: "org.approved", targetType: "Organization", targetId: ORG, orgId: ORG, reason: "  Pilot partner, terms signed on the call  ", metadata: { approved: true } }, now);
   const stored = await p.adminAction.findUnique({ where: { id: row.id } });
   check("a staff act records who, what, on which record, for which organization and why, trimmed", stored?.staffId === OWNER && stored.action === "org.approved" && stored.targetType === "Organization" && stored.targetId === ORG && stored.orgId === ORG && stored.reason === "Pilot partner, terms signed on the call" && stored.createdAt.getTime() === now.getTime(), stored);
   const upd = await fails_(() => p.adminAction.update({ where: { id: row.id }, data: { reason: "changed my mind" } }));
@@ -47,7 +48,7 @@ const fails_ = async (f: () => Promise<unknown>): Promise<string> => { try { awa
   check("the ledger is append-only: UPDATE and DELETE are refused by the database", /append-only/.test(upd) && /append-only/.test(del), { upd, del });
   const stillThere = await p.adminAction.findUnique({ where: { id: row.id }, select: { reason: true } });
   check("the row is unchanged after the refused update and delete", stillThere?.reason === "Pilot partner, terms signed on the call");
-  const other = await recordAdminAction(p, { staffId: WORKER, action: "profile.support_note", targetType: "Profile", targetId: WORKER, reason: "Checked sync status with the worker on the phone" }, new Date(now.getTime() + 1000));
+  const other = await recordAdminAction(p, { staff: { userId: WORKER, staff: true }, action: "profile.support_note", targetType: "Profile", targetId: WORKER, reason: "Checked sync status with the worker on the phone" }, new Date(now.getTime() + 1000));
   check("an act with no organization records a null orgId", (await p.adminAction.findUnique({ where: { id: other.id } }))?.orgId === null);
 
   // 3. The overview reads the queues the later slices manage, and the last acts newest first.
@@ -56,12 +57,14 @@ const fails_ = async (f: () => Promise<unknown>): Promise<string> => { try { awa
   const awaiting = orgs.find((g) => !g.approved)?._count ?? 0;
   const approved = orgs.find((g) => g.approved)?._count ?? 0;
   check("the overview counts organizations awaiting and approved", o.orgsAwaiting === awaiting && o.orgsApproved === approved, o);
-  check("the overview counts current jurisdiction profiles and the frozen ones", o.jurisdictionsCurrent === (await p.jurisdictionProfile.count({ where: { isCurrent: true } })) && o.jurisdictionsFrozen === 0, o);
-  check("the overview lists the last acts newest first with the staff member's name, never an email", o.recent.length === 2 && o.recent[0].action === "profile.support_note" && o.recent[1].action === "org.approved" && o.recent[1].staffName === "Maya Chen" && o.recent.every((a) => !a.staffName.includes("@")), o.recent);
+  check("the overview counts current jurisdiction profiles and the ones the publish gate refuses", o.jurisdictionsCurrent === (await p.jurisdictionProfile.count({ where: { isCurrent: true } })) && o.jurisdictionsBlocked === 0, o);
+  check("the overview lists the last acts newest first, naming a worker by their worker name and a member by their chat name, never an email", o.recent.length === 2 && o.recent[0].action === "profile.support_note" && o.recent[0].staffName === "Alex Rivera" && o.recent[1].action === "org.approved" && o.recent[1].staffName === "Maya Chen" && o.recent.every((a) => !a.staffName.includes("@")), o.recent);
   check("the overview shows when the viewer became staff", o.staffSince?.getTime() === now.getTime());
-  // A lapsed approval counts as frozen.
+  // The same rule as the publish gate: a lapsed approval, or an effective date still ahead, counts as blocked.
   await p.jurisdictionProfile.updateMany({ where: { isCurrent: true }, data: { approvalExpiresAt: new Date(now.getTime() - 1000) } });
-  check("a current profile whose counsel approval has expired counts as frozen", (await loadAdminOverview(OWNER, now)).jurisdictionsFrozen === 1);
+  check("a current profile whose counsel approval has expired counts as blocked", (await loadAdminOverview(OWNER, now)).jurisdictionsBlocked === 1);
+  await p.jurisdictionProfile.updateMany({ where: { isCurrent: true }, data: { approvalExpiresAt: null, effectiveFrom: new Date(now.getTime() + 86_400_000) } });
+  check("a current profile not yet effective counts as blocked too", (await loadAdminOverview(OWNER, now)).jurisdictionsBlocked === 1);
 
   // 4. No Data API path to the ledger.
   const grants = await p.$queryRaw<{ grantee: string }[]>`SELECT grantee FROM information_schema.role_table_grants WHERE table_schema = 'public' AND table_name = 'AdminAction' AND grantee IN ('anon', 'authenticated')`;

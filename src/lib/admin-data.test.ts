@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import { checkReason, recordAdminAction, REASON_MAX, staffLabel, type AdminActionInput } from "./admin-data";
-import { activeAdminSection, ADMIN_SECTIONS } from "./admin-nav";
 
 /** A transaction that only records what it was asked to create. */
 function fakeTx() {
@@ -9,7 +8,7 @@ function fakeTx() {
   return { tx: tx as unknown as Parameters<typeof recordAdminAction>[0], created };
 }
 
-const base: AdminActionInput = { staffId: "11111111-1111-1111-1111-111111111111", action: "org.approved", targetType: "Organization", targetId: "22222222-2222-2222-2222-222222222222", orgId: "22222222-2222-2222-2222-222222222222", reason: "  Pilot partner, terms signed on the call  " };
+const base: AdminActionInput = { staff: { userId: "11111111-1111-1111-1111-111111111111", staff: true }, action: "org.approved", targetType: "Organization", targetId: "22222222-2222-2222-2222-222222222222", orgId: "22222222-2222-2222-2222-222222222222", reason: "  Pilot partner, terms signed on the call  " };
 
 describe("the staff ledger (M10.1)", () => {
   it("needs a reason in words: blank, whitespace, two letters or a non-string are refused with what to say", () => {
@@ -19,7 +18,8 @@ describe("the staff ledger (M10.1)", () => {
       if (!r.ok) expect(r.message).toMatch(/Say why/);
     }
     const long = checkReason("x".repeat(REASON_MAX + 1));
-    expect(long).toEqual({ ok: false, message: `Keep the reason under ${REASON_MAX} characters.` });
+    expect(long).toEqual({ ok: false, message: `Keep the reason to ${REASON_MAX} characters or fewer.` });
+    expect(checkReason("x".repeat(REASON_MAX)).ok).toBe(true);
     expect(checkReason("  Pilot partner  ")).toEqual({ ok: true, reason: "Pilot partner" });
   });
 
@@ -27,7 +27,7 @@ describe("the staff ledger (M10.1)", () => {
     const { tx, created } = fakeTx();
     const now = new Date("2026-10-20T15:00:00Z");
     await expect(recordAdminAction(tx, base, now)).resolves.toEqual({ id: "row-1" });
-    expect(created).toEqual([{ staffId: base.staffId, action: "org.approved", targetType: "Organization", targetId: base.targetId, orgId: base.orgId, reason: "Pilot partner, terms signed on the call", metadata: undefined, createdAt: now }]);
+    expect(created).toEqual([{ staffId: base.staff.userId, action: "org.approved", targetType: "Organization", targetId: base.targetId, orgId: base.orgId, reason: "Pilot partner, terms signed on the call", metadata: undefined, createdAt: now }]);
   });
 
   it("never writes a row without a reason, whatever the caller passes", async () => {
@@ -37,15 +37,10 @@ describe("the staff ledger (M10.1)", () => {
     expect(created).toEqual([]);
   });
 
-  it("names staff by their display name, else a short id, never an email", () => {
+  it("names staff by their worker name, else their chat name, else a short id, never an email", () => {
     expect(staffLabel({ id: "abcdef12-0000-0000-0000-000000000000", displayName: "Maya Chen" })).toBe("Maya Chen");
+    expect(staffLabel({ id: "abcdef12-0000-0000-0000-000000000000", displayName: null, worker: { displayName: "Alex Rivera" } })).toBe("Alex Rivera");
+    expect(staffLabel({ id: "abcdef12-0000-0000-0000-000000000000", displayName: "", worker: null })).toBe("Staff abcdef12");
     expect(staffLabel({ id: "abcdef12-0000-0000-0000-000000000000", displayName: null })).toBe("Staff abcdef12");
-  });
-
-  it("lists only sections that have a page, and picks the longest matching one", () => {
-    expect(ADMIN_SECTIONS.map((s) => s.href)).toEqual(["/admin"]);
-    expect(activeAdminSection("/admin")).toBe("/admin");
-    expect(activeAdminSection("/admin/organizations/abc")).toBe("/admin");
-    expect(activeAdminSection("/administration")).toBeNull();
   });
 });

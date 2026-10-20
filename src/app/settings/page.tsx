@@ -61,7 +61,7 @@ export default async function SettingsPage() {
           <h2 className="section-title">Turfcut staff</h2>
           <div className="card flex flex-wrap items-center justify-between gap-3">
             <p className="text-muted-sm">You can use the admin console. Everything you do there is recorded with your name and reason.</p>
-            <Link href="/admin" className="btn btn-secondary btn-sm">Open admin</Link>
+            <Link href="/admin" className="btn-secondary btn-sm">Open admin</Link>
           </div>
         </section>
       )}

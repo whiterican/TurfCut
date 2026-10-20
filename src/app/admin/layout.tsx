@@ -1,9 +1,18 @@
 import type { Metadata } from "next";
+import { getSessionProfile } from "@/lib/auth";
 import { requireStaff } from "@/lib/staff-session";
 import { ADMIN_SECTIONS } from "@/lib/admin-nav";
 import { AdminSectionNav } from "@/components/admin/AdminSectionNav";
 
-export const metadata: Metadata = { title: "Admin · Turfcut", robots: { index: false, follow: false } };
+/**
+ * Next collects a layout's metadata even when the layout answers 404, so a
+ * static title here would name the console on the not-found page. The title
+ * exists only for staff (the session is cached: no second query).
+ */
+export async function generateMetadata(): Promise<Metadata> {
+  const session = await getSessionProfile().catch(() => null);
+  return session?.staff ? { title: "Admin · Turfcut", robots: { index: false, follow: false } } : {};
+}
 
 /** The admin console's frame (M10.1): staff only, every section behind the same gate. */
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {

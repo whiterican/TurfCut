@@ -1146,8 +1146,8 @@ roles, one slice at a time.
   out, a worker, an organization role — gets the same 404 as a page that
   doesn't exist, so the console is never confirmed to someone who can't use
   it. The overview shows the queues the later slices manage (organizations
-  awaiting approval, current and frozen jurisdiction profiles, published
-  campaign profiles) and the last ten staff acts.
+  awaiting approval, current jurisdiction profiles and how many the publish
+  gate refuses) and the last ten staff acts.
 - **`AdminAction` is the staff ledger.** One row per act: who (the staff
   profile), what (`org.approved`, …), on which record, for which
   organization, and why, in the staff member's words. A reason is required

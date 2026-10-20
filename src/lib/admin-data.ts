@@ -1,14 +1,18 @@
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
+import { jurisdictionProblems } from "@/lib/jobs";
 
 type Tx = Prisma.TransactionClient;
 
 /** The kinds of record a staff act can be about (M10). Each slice adds its own; the campaign verification queue's (M10.5) comes with the social layer's allowance. */
 export type AdminTargetType = "Organization" | "JurisdictionProfile" | "Profile" | "OrgInvite";
 
+/** The session a staff act is recorded under: only what requireStaff() returns type-checks here. */
+export type StaffActor = { userId: string; staff: true };
+
 /** What a staff act records (M10.1). The reason is in the staff member's words and is never optional. */
 export interface AdminActionInput {
-  staffId: string;
+  staff: StaffActor;
   /** Dotted, past tense, like audit events: "org.approved", "jurisdiction.version_approved". */
   action: string;
   targetType: AdminTargetType;
@@ -26,7 +30,7 @@ export const REASON_MAX = 500;
 export function checkReason(raw: unknown): { ok: true; reason: string } | { ok: false; message: string } {
   const reason = typeof raw === "string" ? raw.trim() : "";
   if (reason.length < REASON_MIN) return { ok: false, message: "Say why, in a few words. Every staff action is recorded with its reason." };
-  if (reason.length > REASON_MAX) return { ok: false, message: `Keep the reason under ${REASON_MAX} characters.` };
+  if (reason.length > REASON_MAX) return { ok: false, message: `Keep the reason to ${REASON_MAX} characters or fewer.` };
   return { ok: true, reason };
 }
 
@@ -41,7 +45,7 @@ export async function recordAdminAction(tx: Tx, input: AdminActionInput, now = n
   if (!r.ok) throw new Error(`admin action ${input.action} recorded without a reason: ${r.message}`);
   return tx.adminAction.create({
     data: {
-      staffId: input.staffId,
+      staffId: input.staff.userId,
       action: input.action,
       targetType: input.targetType,
       targetId: input.targetId,
@@ -70,14 +74,14 @@ export interface AdminOverview {
   orgsAwaiting: number;
   orgsApproved: number;
   jurisdictionsCurrent: number;
-  /** Current profiles that are unapproved or whose counsel approval has expired: their jobs are frozen. */
-  jurisdictionsFrozen: number;
+  /** Current profiles the publish gate refuses right now (unapproved, lapsed, not yet effective, no compensation rules): the same rule as jobs.ts. */
+  jurisdictionsBlocked: number;
   recent: RecentAdminAction[];
 }
 
-/** How a staff member is named in the ledger: their chat display name, else a short id. Never an email on a page. */
-export function staffLabel(p: { id: string; displayName: string | null }): string {
-  return p.displayName ?? `Staff ${p.id.slice(0, 8)}`;
+/** How a staff member is named in the ledger: a worker's name, else an organization member's chat name, else a short id. Never an email on a page. */
+export function staffLabel(p: { id: string; displayName: string | null; worker?: { displayName: string } | null }): string {
+  return p.worker?.displayName || p.displayName || `Staff ${p.id.slice(0, 8)}`;
 }
 
 /**
@@ -91,11 +95,11 @@ export async function loadAdminOverview(staffId: string, now = new Date()): Prom
     db().profile.findUnique({ where: { id: staffId }, select: { staffSince: true } }),
     db().organization.count({ where: { approved: false } }),
     db().organization.count({ where: { approved: true } }),
-    db().jurisdictionProfile.findMany({ where: { isCurrent: true }, select: { approved: true, approvalExpiresAt: true } }),
+    db().jurisdictionProfile.findMany({ where: { isCurrent: true }, select: { state: true, locality: true, version: true, approved: true, isCurrent: true, effectiveFrom: true, approvalExpiresAt: true, rules: true } }),
     db().adminAction.findMany({
-      orderBy: { createdAt: "desc" },
+      orderBy: [{ createdAt: "desc" }, { id: "asc" }],
       take: 10,
-      select: { id: true, action: true, targetType: true, targetId: true, reason: true, createdAt: true, org: { select: { name: true } }, staff: { select: { id: true, displayName: true } } },
+      select: { id: true, action: true, targetType: true, targetId: true, reason: true, createdAt: true, org: { select: { name: true } }, staff: { select: { id: true, displayName: true, worker: { select: { displayName: true } } } } },
     }),
   ]);
   return {
@@ -103,7 +107,7 @@ export async function loadAdminOverview(staffId: string, now = new Date()): Prom
     orgsAwaiting,
     orgsApproved,
     jurisdictionsCurrent: current.length,
-    jurisdictionsFrozen: current.filter((j) => !j.approved || (j.approvalExpiresAt !== null && j.approvalExpiresAt <= now)).length,
+    jurisdictionsBlocked: current.filter((j) => jurisdictionProblems(j, now).length > 0).length,
     recent: recent.map((a) => ({ id: a.id, action: a.action, targetType: a.targetType, targetId: a.targetId, orgName: a.org?.name ?? null, reason: a.reason, staffName: staffLabel(a.staff), createdAt: a.createdAt })),
   };
 }

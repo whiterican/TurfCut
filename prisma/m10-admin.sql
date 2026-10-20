@@ -14,6 +14,9 @@
 --      server-only (RLS on, no policies, no grants).
 
 BEGIN;
+-- Don't queue the app behind a long transaction: after 5 seconds of waiting
+-- this stops and rolls back (nothing changes); run it again.
+SET LOCAL lock_timeout = '5s';
 
 ALTER TABLE "public"."Profile" ADD COLUMN IF NOT EXISTS "staffSince" TIMESTAMP(3);
 

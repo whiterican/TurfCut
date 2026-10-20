@@ -60,7 +60,7 @@ export default async function RootLayout({
   // throws (same cached call), so field pages answer 500, not a sign-in bounce.
   const session = await getSessionProfile().catch(() => null);
   const tabs = navTabs(session?.role ?? null, !!session?.orgId);
-  const org = orgNav(session?.role ?? null, !!session?.orgId);
+  const org = orgNav(session?.role ?? null, !!session?.orgId, !!session?.staff);
   const isOrg = org.rail.length > 0;
   const [unread, orgInfo, notices] = await Promise.all([
     session && tabs.some((t) => t.href === MESSAGES_HREF)

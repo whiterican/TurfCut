@@ -18,6 +18,7 @@ export type TabIconId =
   | "credentials"
   | "settings"
   | "campaigns"
+  | "admin"
   | "more";
 
 export interface NavTab {
@@ -91,14 +92,23 @@ export interface OrgNav {
   more: NavTab[];
 }
 
-/** The organization shell's navigation for a role (empty for workers and removed members). */
-export function orgNav(role: Role | null, hasOrg: boolean): OrgNav {
+/** The admin console (M10): a place Turfcut staff go, never a tab of the role's own work. */
+const ADMIN_TAB: NavTab = { href: "/admin", label: "Admin", icon: "admin" };
+
+/**
+ * The organization shell's navigation for a role (empty for workers and
+ * removed members). Staff get Admin at the end of the rail and in More,
+ * never in the phone bar's picks: those stay the role's work. (Staff who
+ * are workers reach the console from Settings; the worker bar has no More.)
+ */
+export function orgNav(role: Role | null, hasOrg: boolean, staff = false): OrgNav {
   if (!role || role === "WORKER" || !hasOrg) return { rail: [], phone: [], more: [] };
   const reach = ORG_TABS.filter((t) => accessTo(role, t.area) !== null);
   const picks = PHONE_PICKS[role];
   const phone = picks.map((id) => reach.find((t) => t.id === id)).filter((t): t is OrgItem => !!t);
   for (const t of reach) if (phone.length < picks.length && !phone.includes(t)) phone.push(t);
-  return { rail: reach.map(plain), phone: phone.map(plain), more: reach.filter((t) => !phone.includes(t)).map(plain) };
+  const extra = staff ? [ADMIN_TAB] : [];
+  return { rail: [...reach.map(plain), ...extra], phone: phone.map(plain), more: [...reach.filter((t) => !phone.includes(t)).map(plain), ...extra] };
 }
 
 /** The tab a path belongs to: the longest matching prefix wins. */

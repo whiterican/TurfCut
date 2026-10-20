@@ -18,6 +18,21 @@ describe("navigation", () => {
     expect(navTabs(null, false)).toEqual([]);
   });
 
+  it("gives staff the admin console at the end of the rail and in More, never in the phone bar (M10)", () => {
+    const owner = orgNav("OWNER", true, true);
+    expect(owner.rail.at(-1)).toEqual({ href: "/admin", label: "Admin", icon: "admin" });
+    expect(owner.more.at(-1)?.href).toBe("/admin");
+    expect(owner.phone.some((t) => t.href === "/admin")).toBe(false);
+    // Not staff: no trace of it, whatever the role.
+    for (const role of ORG_ROLES) {
+      const nav = orgNav(role, true);
+      expect([...nav.rail, ...nav.phone, ...nav.more].some((t) => t.href === "/admin")).toBe(false);
+    }
+    // A staff worker keeps the worker bar (six tabs, no More): the console is reached from Settings.
+    expect(navTabs("WORKER", false).map((t) => t.label)).toEqual(["Today", "Feed", "Work", "Shifts", "Messages", "Profile"]);
+    expect(orgNav("WORKER", false, true)).toEqual({ rail: [], phone: [], more: [] });
+  });
+
   it("highlights the tab a page belongs to", () => {
     const tabs = navTabs("WORKER", false);
     expect(activeTab(tabs, "/profile/preferences")).toBe("/profile");

@@ -20,10 +20,18 @@ describe("session profile", () => {
 
   it("loads the profile and the worker link in one query", async () => {
     getUser.mockResolvedValue({ data: { user: { id: "u1", email: "a@b.org" } } });
-    findUnique.mockResolvedValue({ id: "u1", role: "WORKER", orgId: null, closedAt: null, worker: { id: "w1" } });
-    expect(await getSessionProfile()).toEqual({ userId: "u1", email: "a@b.org", role: "WORKER", workerId: "w1", orgId: null });
+    findUnique.mockResolvedValue({ id: "u1", role: "WORKER", orgId: null, closedAt: null, staffSince: null, worker: { id: "w1" } });
+    expect(await getSessionProfile()).toEqual({ userId: "u1", email: "a@b.org", role: "WORKER", workerId: "w1", orgId: null, staff: false });
     expect(findUnique).toHaveBeenCalledTimes(1);
     expect(findUnique.mock.calls[0][0]).toMatchObject({ where: { id: "u1" }, include: { worker: { select: { id: true } } } });
+  });
+
+  it("marks Turfcut staff from the profile's flag, whatever the role (M10)", async () => {
+    getUser.mockResolvedValue({ data: { user: { id: "u4", email: "s@turfcut.test" } } });
+    findUnique.mockResolvedValueOnce({ id: "u4", role: "WORKER", orgId: null, closedAt: null, staffSince: new Date("2026-10-20"), worker: { id: "w4" } });
+    expect(await getSessionProfile()).toMatchObject({ role: "WORKER", workerId: "w4", staff: true });
+    findUnique.mockResolvedValueOnce({ id: "u4", role: "OWNER", orgId: "org", closedAt: null, staffSince: null, worker: null });
+    expect(await getSessionProfile()).toMatchObject({ role: "OWNER", staff: false });
   });
 
   it("gives organization roles no worker id, and closed accounts no session", async () => {

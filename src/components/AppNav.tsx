@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
-import { BadgeCheck, Briefcase, CalendarClock, ClipboardList, Clock, Ellipsis, LayoutDashboard, Map, Megaphone, MessageCircle, Newspaper, Settings, Sunrise, User, Users, Wallet, X, type LucideIcon } from "lucide-react";
+import { BadgeCheck, Briefcase, CalendarClock, ClipboardList, Clock, Ellipsis, LayoutDashboard, Map, Megaphone, MessageCircle, Newspaper, Settings, ShieldCheck, Sunrise, User, Users, Wallet, X, type LucideIcon } from "lucide-react";
 import { activeTab, MESSAGES_HREF, type NavTab, type TabIconId } from "@/lib/nav";
 import { clampScroll, MIN_DELTA, nextHidden, SHOW_NEAR_TOP } from "@/lib/scroll-hide";
 import { useUnreadCount } from "@/components/chat/UnreadProvider";
@@ -25,6 +25,7 @@ const ICONS: Record<TabIconId, LucideIcon> = {
   members: Users,
   credentials: BadgeCheck,
   settings: Settings,
+  admin: ShieldCheck,
   more: Ellipsis,
 };
 const iconFor = (t: NavTab): LucideIcon => ICONS[t.icon];

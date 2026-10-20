@@ -20,6 +20,8 @@ export interface SessionProfile {
   role: Role;
   workerId: string | null;
   orgId: string | null;
+  /** Turfcut staff (M10): may use the admin console. A flag on the profile, independent of role. */
+  staff: boolean;
 }
 
 /**
@@ -80,6 +82,7 @@ export const getSessionProfile = cache(async (): Promise<SessionProfile | null> 
     role: profile.role as Role,
     workerId: profile.role === "WORKER" ? (profile.worker?.id ?? null) : null,
     orgId: profile.orgId,
+    staff: !!profile.staffSince,
   };
 });
 

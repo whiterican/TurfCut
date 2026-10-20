@@ -55,8 +55,7 @@ const ratio = (a: RGB | string, b: RGB | string) => {
 };
 
 const PASTELS = ["accent", "sky", "coral", "butter"] as const;
-// The page is a gradient from bg-light to bg-deep, so both ends count as surfaces too.
-const SURFACES = ["bg", "bg-light", "bg-deep", "surface", "surface-2", "field"] as const;
+const SURFACES = ["bg", "surface", "surface-2", "field"] as const;
 
 describe.each([
   ["dark", dark],
@@ -114,67 +113,19 @@ describe.each([
     expect(css).not.toMatch(/\.tab \{[^}]*?text-muted[^}]*\}/);
   });
 
-  it("the tab bar's text is AAA on its translucent surface, over anything it floats above", () => {
-    // Read the bar's opacity from the stylesheet, so lowering it is caught here.
-    const m = css.match(/\.tabbar \{[^}]*?background:[^;]*color-mix\(in srgb, var\(--surface\) (\d+)%, transparent\)/);
-    expect(m, "the .tabbar background is a surface/transparent mix").not.toBeNull();
-    const alpha = Number(m![1]) / 100;
-    // Floating, it can sit over photos and the map too: black and white are the worst cases.
-    // The current tab's lens is a translucent fill over the bar (html / html.dark --glass-active).
-    const active = themeBody(css, _name === "dark" ? "html.dark" : "html").match(/--glass-active:\s*rgb\((\d+) (\d+) (\d+) \/ ([\d.]+)\)/);
-    expect(active, "--glass-active is an rgb(r g b / a) fill").not.toBeNull();
-    const fill = `#${[1, 2, 3].map((i) => Number(active![i]).toString(16).padStart(2, "0")).join("")}`;
-    const fillAlpha = Number(active![4]);
-    // AAA over the app's own surfaces; AA over pure black or white (a photo, the map), where the bar rarely sits.
-    for (const [under, bar_min] of [...SURFACES.map((s) => [t[s], 7] as const), ["#000000", 4.5] as const, ["#ffffff", 4.5] as const]) {
-      const bar = mix(t.surface, alpha, under);
-      expect(ratio(t.fg, bar)).toBeGreaterThanOrEqual(bar_min); // tab labels (all in the text colour; the current tab is marked by its lens)
-      const lens = mix(fill, fillAlpha, `#${bar.map((v) => Math.round(v).toString(16).padStart(2, "0")).join("")}`);
-      expect(ratio(t.fg, lens)).toBeGreaterThanOrEqual(7); // the current tab's label over its lens (a dense fill)
-    }
+  it("the tab bar is paper: labels AAA on it, and lime type AAA on the current tab's eggplant tile", () => {
+    // The frame is opaque paper (DESIGN.md: no glass); a translucent bar or header is caught here.
+    expect(css).toMatch(/\.tabbar \{[^}]*?background: var\(--surface\);/);
+    expect(css).toMatch(/\.site-header \{[^}]*?background: var\(--bg\);/);
+    expect(css).toMatch(/\.eyebrow \{[^}]*?color: var\(--kicker\);/);
+    expect(ratio(t.fg, t.surface)).toBeGreaterThanOrEqual(7);
+    expect(ratio(t["tab-active-fg"], t["tab-active-bg"])).toBeGreaterThanOrEqual(7);
+    // The tile is told apart from the bar by its lime type; its fill still differs visibly from the bar.
+    expect(ratio(t["tab-active-bg"], t.surface)).toBeGreaterThanOrEqual(1.5);
   });
 
-  it("cards are translucent slabs: every text colour on them stays what it is on the opaque surface, over every page tone", () => {
-    const m = css.match(/--card-bg: color-mix\(in srgb, var\(--surface\) (\d+)%, transparent\)/);
-    expect(m, "--card-bg is a surface/transparent mix").not.toBeNull();
-    const alpha = Number(m![1]) / 100;
-    for (const under of ["bg", "bg-light", "bg-deep"] as const) {
-      const card = mix(t.surface, alpha, t[under]);
-      expect(ratio(t.fg, card)).toBeGreaterThanOrEqual(7);
-      expect(ratio(t.muted, card)).toBeGreaterThanOrEqual(7);
-      expect(ratio(t.subtle, card)).toBeGreaterThanOrEqual(6);
-      expect(ratio(t.link, card)).toBeGreaterThanOrEqual(4.5);
-      expect(ratio(t.danger, card)).toBeGreaterThanOrEqual(4.5);
-    }
-    const h = css.match(/--hero-bg: color-mix\(in srgb, var\(--hero\) (\d+)%, transparent\)/);
-    expect(h, "--hero-bg is a hero/transparent mix").not.toBeNull();
-    for (const under of ["bg", "bg-light", "bg-deep"] as const) {
-      const hero = mix(t.hero, Number(h![1]) / 100, t[under]);
-      expect(ratio(t["hero-fg"], hero)).toBeGreaterThanOrEqual(7);
-      expect(ratio(t["hero-muted"], hero)).toBeGreaterThanOrEqual(7);
-    }
-  });
-
-  it("glass surfaces (header, orbs, composer, sheet, map controls, table headers) keep their text readable over anything", () => {
-    // Read every glass mix from the stylesheet, so lowering any of them is caught here.
-    const g = css.match(/--glass-bg: color-mix\(in srgb, var\(--surface\) (\d+)%, transparent\)/);
-    const d = css.match(/--glass-bg-dense: color-mix\(in srgb, var\(--surface-2\) (\d+)%, transparent\)/);
-    const h = css.match(/\.site-header \{[^}]*?background: color-mix\(in srgb, var\(--bg\) (\d+)%, transparent\)/);
-    expect(g, "--glass-bg is a surface/transparent mix").not.toBeNull();
-    expect(d, "--glass-bg-dense is a surface-2/transparent mix").not.toBeNull();
-    expect(h, "the header is a bg/transparent mix").not.toBeNull();
-    const [glass, dense, header] = [Number(g![1]) / 100, Number(d![1]) / 100, Number(h![1]) / 100];
-    for (const under of [...SURFACES.map((s) => t[s]), "#000000", "#ffffff"]) {
-      // The header band: the wordmark and the desktop links sit straight on it.
-      expect(ratio(t.fg, mix(t.bg, header, under))).toBeGreaterThanOrEqual(7);
-      expect(ratio(t.muted, mix(t.bg, header, under))).toBeGreaterThanOrEqual(4.5);
-      const over = mix(t.surface, glass, under);
-      expect(ratio(t.fg, over)).toBeGreaterThanOrEqual(7); // names, chips, zoom glyphs
-      expect(ratio(t.muted, over)).toBeGreaterThanOrEqual(4.5); // small notes (the custody line, the map attribution)
-      expect(ratio(t.link, over)).toBeGreaterThanOrEqual(4.5); // attribution links
-      // Table headers: small muted labels, so the dense mix must keep them AAA.
-      expect(ratio(t.muted, mix(t["surface-2"], dense, under))).toBeGreaterThanOrEqual(7);
-    }
+  it("the kicker reads on every surface (its lime dash is decorative: hue, not brightness, sets it apart)", () => {
+    for (const k of SURFACES) expect(ratio(t.kicker, t[k])).toBeGreaterThanOrEqual(4.5);
   });
 
   it("body text stays AAA on tinted alerts and selected chips", () => {
@@ -242,6 +193,17 @@ describe("priority rings", () => {
   });
 });
 
+describe("token plumbing", () => {
+  it("every var(--x) without a fallback names a token the stylesheet (or next/font) defines", () => {
+    // A var() of an undefined property makes its whole declaration invalid, silently: a removed token
+    // must not leave a reference behind (it took the priority rings' shadow with it once).
+    const defined = new Set([...css.matchAll(/--([\w-]+)\s*:/g)].map((m) => m[1]));
+    const fromFonts = new Set(["font-barlow", "font-barlow-condensed", "font-dm-mono"]);
+    const dangling = [...new Set([...css.matchAll(/var\(--([\w-]+)\)/g)].map((m) => m[1]))].filter((n) => !defined.has(n) && !fromFonts.has(n));
+    expect(dangling).toEqual([]);
+  });
+});
+
 describe("solid badges", () => {
   it("text on the solid fill (eggplant by day, olive by night) is AAA in both themes", () => {
     for (const th of [light, dark]) expect(ratio(th["on-solid"], th.solid)).toBeGreaterThanOrEqual(7);
@@ -274,17 +236,20 @@ describe("party chips (job cards)", () => {
 
 describe("the Turfcut App Mockup palette (eggplant and lime)", () => {
   it("dark mode uses the mockup's eggplant surfaces and lime accent", () => {
-    expect(dark.bg).toBe("#1c142c");
-    expect(dark.surface).toBe("#281a3a");
-    expect(dark["surface-2"]).toBe("#36264a");
-    expect(dark.accent).toBe("#ccea96");
-    expect(dark.solid).toBe("#3e4830"); // olive "verified" chip
+    expect(dark.bg).toBe("#120d18");
+    expect(dark.surface).toBe("#23182f");
+    expect(dark["surface-2"]).toBe("#30223f");
+    expect(dark.accent).toBe("#d6f25a");
+    expect(dark.solid).toBe("#d6f25a"); // live status by night: a lime chip
   });
-  it("light mode uses the glass mockup's cool grey page, near-black ink and lime accent", () => {
-    expect(light.bg).toBe("#e6e7eb");
-    expect(light.fg).toBe("#17181c");
-    expect(light.accent).toBe("#ccea96");
-    expect(light.solid).toBe("#281a3a"); // eggplant "done" badge
+  it("light mode uses the clipboard brand's warm paper, eggplant ink and lime accent (DESIGN.md)", () => {
+    expect(light.bg).toBe("#efeae1");
+    expect(light.fg).toBe("#1b1422");
+    expect(light.accent).toBe("#d6f25a");
+    expect(light.solid).toBe("#d6f25a"); // live status: a lime chip
+    expect(light.hero).toBe("#3a2154");
+    expect(light.primary).toBe("#2a173e");
+    expect(light["on-primary"]).toBe("#d6f25a");
   });
   it("progress fills (the success colour) show against surfaces in both themes (≥ 3:1)", () => {
     for (const th of [light, dark]) for (const k of ["surface", "surface-2"] as const) expect(ratio(th.success, th[k])).toBeGreaterThanOrEqual(3);

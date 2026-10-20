@@ -5,7 +5,7 @@
  *
  * Dark (the primary theme): eggplant surfaces (#1c142c page, #281a3a cards,
  * #36264a raised), off-white text, lime (#ccea96) for the accent fill,
- * primary actions, links and highlights, and olive (#3e4830) chips with lime
+ * primary actions, links and highlights, and lime status chips with lime
  * text for "verified / done". Light: off-white page (#eef0ea), white cards,
  * green-black ink (#181e1a), lime accent fills, eggplant for links, the
  * "done" badges and progress, and an eggplant feature card (#2b1b3d). Pastel status
@@ -22,18 +22,19 @@
 
 :root {
   /* The accent fill: lime in both themes. */
-  --accent: #ccea96;
-  /* Solid (and on-solid): the fill for "done / live / verified"
-     badges, a quick filter that's on and team avatars, and the text on it. One
-     role, two colours: EGGPLANT with off-white text by day, OLIVE with lime
-     text by night (the mockup's "Verified org" chip). Was --plum, which only
-     described the light theme. */
-  --solid: #281a3a;
-  --on-solid: #f6f6f2;
-  --sky: #b9dbfa;
-  --coral: #f8b3a2;
-  --butter: #f5d98a;
-  --ink: #181e1a; /* text on any accent fill */
+  --accent: #d6f25a;
+  /* Solid (and on-solid): the fill for live status ("Active", "Approved",
+     "Ready", "You"), a quick filter that's on and team avatars, and the text
+     on it: a lime chip with ink text in both themes (DESIGN.md). */
+  --solid: #d6f25a; /* live status (Active, Approved, Ready, You): a lime chip with ink text */
+  --on-solid: #1b1422;
+  /* One accent. Informational states that aren't live (scheduled, waiting,
+     a role) take a lavender tint; holds a clay tint; closed and short, stone.
+     Date emphasis is a lime chip (DateRangeChip). */
+  --sky: #d9cfe6;
+  --coral: #f1c6bd;
+  --butter: #ddd3c3;
+  --ink: #1b1422; /* text on any accent fill */
   /* Job cards: the type chip takes the campaign's own declared affiliation
      (pastel fill, ink text, same in both themes; the chip names it too). */
   --party-democratic: #a9c8f7;
@@ -43,203 +44,111 @@
   --party-other: #9fd6d2;
   --party-nonpartisan: #cfbaf2;
 
-  /* Light mode (the glass mockups): a cool grey page that lightens toward the
-     top left, glossy white cards, near-black ink, eggplant links. */
-  --bg: #e6e7eb;
-  --bg-light: #f2f2f5;
-  --bg-deep: #d9dadf;
-  --surface: #fafafb;
-  --surface-2: #ededf0;
-  --field: #ffffff;
-  --border: #d6d7dc;
-  --border-strong: #b1b3bb;
-  --fg: #17181c;
-  --muted: #3f4148;
-  --subtle: #474a52;
-  --link: #5a3a8a;
-  --focus: #5a3a8a;
-  --danger: #b42318;
-  --success: #3a2754;
-  --warning: #5e3424; /* dark clay: differs from --danger in brightness, not just hue */
-  --primary: #181e1a;
-  /* A native switch's "on" track (its thumb is always white): ≥ 3:1 to the
-     thumb and to the surface. */
-  --switch-on: #181e1a;
-  --on-primary: #f6f6f2;
-  /* Secondary button: a white fill with a border at 3:1 or more against
-     the page, so it reads as a button (not disabled) yet stays quieter than
-     the solid primary. */
-  --secondary: #ffffff;
-  --secondary-border: #71747c;
-  /* Feature card: the brand eggplant (same family as the logo chip and dark
-     mode) with off-white text and a lime circle. */
-  --hero: #2b1b3d;
-  --hero-fg: #f6f6f2;
-  --hero-muted: #ddd6e6;
+  /* Light mode (the clipboard brand): warm paper, cream cards, eggplant ink
+     and links, lime for the cut, live status and the one primary action.
+     Muted and subtle are a step darker than the design's so every note on
+     every surface stays AAA (design-tokens.test.ts). */
+  --bg: #efeae1;
+  --surface: #fbf7f0;
+  --surface-2: #e9e3d8;
+  --field: #fffdf8;
+  --border: #e3dcd0;
+  --border-strong: #c9c0b2;
+  --fg: #1b1422;
+  --muted: #4a4254;
+  --subtle: #574f61;
+  --link: #3a2154;
+  --kicker: #3a2154;
+  --focus: #3a2154;
+  --selected: #3a2154; /* the chosen option's ring and card edge */
+  --danger: #a8402f;
+  --success: #3a2154;
+  --warning: #5a3a14;
+  --primary: #2a173e;
+  --switch-on: #3a2154;
+  --on-primary: #d6f25a;
+  --secondary: #fbf7f0;
+  --secondary-border: #7f7688;
+  --hero: #3a2154;
+  --hero-fg: #f6f1e6;
+  --hero-muted: #d8cce4;
   --hero-border: transparent;
-  /* Cards sit on the page like slabs of glass: a soft deep shadow, and on white surfaces a bright top edge. */
-  --shadow-depth: 0 1px 2px rgb(20 20 26 / 0.06), 0 18px 40px -20px rgb(20 20 26 / 0.35);
-  --shadow: inset 0 1px 0 rgb(255 255 255 / 0.9), var(--shadow-depth);
-  /* Priority rings on the lime shift card: eggplant, lighter inside,
-     darker toward the outside edge. */
+  /* The current tab: an eggplant tile with lime icon and label. */
+  --tab-active-bg: #3a2154;
+  --tab-active-fg: #d6f25a;
+  /* Cards sit on the paper with a hairline and almost no shadow. */
+  --shadow-depth: 0 1px 2px rgb(27 20 34 / 0.04), 0 6px 18px -16px rgb(27 20 34 / 0.25);
+  --shadow: var(--shadow-depth);
   --ring: #6a4c91;
   --ring-2: #4a3070;
-  --ring-3: #281a3a;
+  --ring-3: #2a173e;
   color-scheme: light;
 }
 
 .dark {
-  /* Dark mode: eggplant surfaces, lime accent, olive "verified" chips, lime
-     rims on priority rings and the current tab. */
-  --accent: #ccea96;
-  --bg: #1c142c;
-  /* The same light-from-the-top-left sheet, by night. */
-  --bg-light: #231a35;
-  --bg-deep: #150f22;
-  --surface: #281a3a;
-  --surface-2: #36264a;
-  --field: #22172f;
-  --border: #4e3c64;
-  --border-strong: #6a5482;
-  --fg: #f8f8f4;
-  --muted: #d4ccde;
-  --subtle: #b9b0c4;
-  --solid: #3e4830; /* olive, not eggplant: see --solid in :root */
-  --on-solid: #ccea96;
-  --ink: #1e142c;
-  --link: #ccea96;
-  --focus: #ccea96;
-  --danger: #ffb4b4;
-  --success: #ccea96;
-  --warning: #f5d98a;
-  --primary: #ccea96;
+  /* Dark mode: near-black paper, eggplant cards and heroes, lime for the
+     cut, live status, the primary action and the current tab's type. */
+  --accent: #d6f25a;
+  --bg: #120d18;
+  --surface: #23182f;
+  --surface-2: #30223f;
+  --field: #1a1224;
+  --border: #3c2d4c;
+  --border-strong: #5a4a6e;
+  --fg: #f6f1e6;
+  --muted: #cbbdd8;
+  --subtle: #b2a3c0;
+  --solid: #d6f25a; /* live status by night: a lime chip with ink text */
+  --on-solid: #1b1422;
+  --ink: #1b1422;
+  --link: #f6f1e6;
+  --kicker: #d6f25a;
+  --focus: #d6f25a; /* the keyboard outline only */
+  --selected: #5a3b82; /* the chosen option stays eggplant by night */
+  --danger: #eb9082;
+  --success: #d6f25a;
+  --warning: #f0d08a;
+  --primary: #d6f25a;
   --switch-on: #5c8b30; /* lime would leave the white thumb at 1.2:1 */
-  --on-primary: #1e142c;
-  --secondary: #36264a;
-  --secondary-border: #8a76a4;
-  --hero: #36264a;
-  --hero-fg: #f8f8f4;
-  --hero-muted: #d4ccde;
+  --on-primary: #1b1422;
+  --secondary: #30223f;
+  --secondary-border: #8f7da6;
+  --hero: #5a3b82;
+  --hero-fg: #f6f1e6;
+  --hero-muted: #f1eaf8;
   --hero-border: transparent;
+  --tab-active-bg: #5a3b82;
+  --tab-active-fg: #d6f25a;
   /* Rings: rims only, never fills or text. A page-coloured gap separates
      them from the lime card (see the priority ring rules). */
   --ring: #eef6dc;
   --ring-2: #b8d08a;
   --ring-3: #8aa560;
-  --shadow-depth: 0 1px 2px rgb(0 0 0 / 0.4), 0 12px 32px -16px rgb(0 0 0 / 0.6);
+  --shadow-depth: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px -18px rgb(0 0 0 / 0.5);
   --shadow: var(--shadow-depth);
   color-scheme: dark;
 }
 
-/* Liquid glass (tab bar, header, round buttons): a tint of the card colour
-   that blurs and brightens whatever scrolls under it, a hairline edge, a
-   soft top highlight, and a deeper pill for the tab you're on. 78% keeps
-   every label on it AAA over anything, black and white included
-   (design-tokens.test.ts). Kept out of the colour blocks above. */
+/* Frame tokens: the surfaces that float (tab bar, header buttons, the More
+   sheet, map controls, icon buttons, sticky table headers). Plain paper now;
+   the names stay so every surface rule reads the same way. */
 html {
-  /* The root paints the flat page colour (what overscroll shows); with a
-     background of its own, body's gradient stays in body's box instead of
-     propagating to the canvas, where it would tile every viewport height. */
+  /* The root paints the page colour (what overscroll shows). */
   background: var(--bg);
-  --glass-bg: color-mix(in srgb, var(--surface) 78%, transparent);
-  /* Text-dense glass (table headers): denser, so the small muted labels stay AAA (design-tokens.test.ts). */
-  --glass-bg-dense: color-mix(in srgb, var(--surface-2) 96%, transparent);
-  --glass-border: rgb(24 30 26 / 0.12);
-  /* A bright edge along the top and a faint one along the bottom: the slab has thickness. */
-  /* Thick glass: a bright top edge and a bright bottom edge too, where light leaves the slab. */
-  --glass-highlight: inset 0 2px 0 rgb(255 255 255 / 0.95), inset 0 -2px 0 rgb(255 255 255 / 0.6), inset 0 0 0 1px rgb(255 255 255 / 0.5);
-  /* The tab you're on: a brighter lens raised off the slab. */
-  --glass-active: rgb(255 255 255 / 0.78);
-  --glass-active-border: rgb(20 20 26 / 0.1);
-  --glass-active-shadow: inset 0 1.5px 0 rgb(255 255 255 / 1), inset 0 -1px 0 rgb(255 255 255 / 0.7), inset 0 0 16px rgb(255 255 255 / 0.65);
-  --glass-filter: blur(32px) saturate(160%) brightness(1.04);
-  /* Light catching the top of the glass. */
-  --glass-sheen: radial-gradient(140% 100% at 50% -30%, rgb(255 255 255 / 0.75), transparent 60%);
-  /* The bright line under the bar where light refracts out of the slab. */
-  --glass-caustic: rgb(255 255 255 / 0.95);
-  /* The header's round buttons: solid white by day (the mockup), glass by night. */
-  --orb-bg: var(--field);
-  /* Cards are glass slabs too: a translucent fill the page shows through
-     (no blur: the page behind a card is a flat gradient, and a list of
-     blurred cards would tax a phone), a bevel edge and a soft sheen. 88%
-     keeps every text colour on them AAA (design-tokens.test.ts). */
-  --card-bg: color-mix(in srgb, var(--surface) 88%, transparent);
-  --card-edge: inset 0 1.5px 0 rgb(255 255 255 / 0.9), inset 0 0 0 1px rgb(255 255 255 / 0.45);
-  --card-sheen: radial-gradient(120% 80% at 50% -20%, rgb(255 255 255 / 0.4), transparent 60%);
-  /* The feature card: the same slab in the brand eggplant (or lime). */
-  --hero-bg: color-mix(in srgb, var(--hero) 90%, transparent);
-  --hero-edge: inset 0 1.5px 0 rgb(255 255 255 / 0.22), inset 0 0 0 1px rgb(255 255 255 / 0.08);
-  --hero-sheen: radial-gradient(120% 80% at 50% -20%, rgb(255 255 255 / 0.12), transparent 60%);
-  /* The rim: a hairline that brightens and dims around the edge, like the edge of a lens. Neutral, so it never fights the brand colours. */
-  --glass-rim: conic-gradient(from 200deg, rgb(255 255 255 / 0.98), rgb(255 255 255 / 0.45) 22%, rgb(255 255 255 / 0.98) 40%, rgb(255 255 255 / 0.4) 62%, rgb(255 255 255 / 0.95) 80%, rgb(255 255 255 / 0.5), rgb(255 255 255 / 0.98));
-  --glass-depth: 0 16px 40px -16px rgb(0 0 0 / 0.45), 0 2px 8px -3px rgb(0 0 0 / 0.14);
+  /* Frame surfaces (the tab bar, header buttons, the More sheet, map
+     controls, icon buttons, sticky table headers): plain card colour with a
+     hairline, no blur. The token names stay so every surface rule reads the
+     same way; the values are what the clipboard brand asks for. */
+  --glass-bg: var(--surface);
+  --glass-border: var(--border);
+  --glass-highlight: 0 0 0 0 transparent;
+  --glass-filter: none;
+  --glass-sheen: none;
+  --card-bg: var(--surface);
+  --card-edge: 0 0 0 0 transparent;
+  --card-sheen: none;
+  --hero-bg: var(--hero);
 }
-html.dark {
-  /* By night the edges catch the page's own colour: a pale lavender from the eggplant, never a white line. */
-  --glass-caustic: rgb(196 178 224 / 0.35);
-  --orb-bg: var(--glass-bg);
-  --card-edge: inset 0 1.5px 0 rgb(196 178 224 / 0.18), inset 0 0 0 1px rgb(196 178 224 / 0.07);
-  --card-sheen: radial-gradient(120% 80% at 50% -20%, rgb(196 178 224 / 0.1), transparent 60%);
-  --hero-edge: inset 0 1.5px 0 rgb(196 178 224 / 0.22), inset 0 0 0 1px rgb(196 178 224 / 0.08);
-  --hero-sheen: radial-gradient(120% 80% at 50% -20%, rgb(196 178 224 / 0.1), transparent 60%);
-  --glass-border: rgb(196 178 224 / 0.22);
-  --glass-highlight: inset 0 2px 0 rgb(196 178 224 / 0.2), inset 0 -2px 0 rgb(196 178 224 / 0.08), inset 0 0 0 1px rgb(196 178 224 / 0.08);
-  --glass-active: rgb(0 0 0 / 0.25);
-  --glass-active-border: rgb(196 178 224 / 0.3);
-  --glass-active-shadow: inset 0 1px 0 rgb(196 178 224 / 0.26), inset 0 0 16px rgb(196 178 224 / 0.09);
-  --glass-sheen: radial-gradient(140% 100% at 50% -30%, rgb(196 178 224 / 0.16), transparent 60%);
-  --glass-rim: conic-gradient(from 200deg, rgb(196 178 224 / 0.5), rgb(196 178 224 / 0.2) 22%, rgb(196 178 224 / 0.55) 40%, rgb(196 178 224 / 0.18) 62%, rgb(196 178 224 / 0.48) 80%, rgb(196 178 224 / 0.22), rgb(196 178 224 / 0.5));
-  --glass-depth: 0 12px 34px -14px rgb(0 0 0 / 0.7), 0 2px 8px -3px rgb(0 0 0 / 0.4);
-}
-/* Lens surfaces: the tab bar, the header's round buttons, the More sheet,
-   the map's controls and the round icon buttons. Sheen over the glass tint
-   and a refracting rim drawn as a ring (a padded pseudo-element masked to
-   its padding). */
-.site-header :is(a, button).btn-ghost:has(> svg):not(:has(> :not(svg, .unread-badge))),
-.site-header .glass-orb-phone,
-.more-sheet-panel,
-.icon-btn,
-.turf-map.leaflet-container .leaflet-bar {
-  position: relative;
-}
-/* Each surface's own rule sets `background: var(--glass-sheen), var(--glass-bg)`
-   (the tab bar's names the mix, where design-tokens.test.ts reads it). */
-/* Under the bar, a soft bright line: light leaving the glass. */
-.tabbar::after {
-  content: "";
-  position: absolute;
-  inset-inline: 10%;
-  bottom: -17px;
-  height: 16px;
-  border-radius: 50%;
-  background: radial-gradient(ellipse at 50% 0%, var(--glass-caustic), transparent 70%);
-  filter: blur(4px);
-  pointer-events: none;
-  z-index: -1;
-}
-.tabbar::before,
-.site-header :is(a, button).btn-ghost:has(> svg):not(:has(> :not(svg, .unread-badge)))::before,
-.site-header .glass-orb-phone::before,
-.more-sheet-panel::before,
-.icon-btn::before,
-.turf-map.leaflet-container .leaflet-bar::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  padding: 2px;
-  background: var(--glass-rim);
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  pointer-events: none;
-}
-/* The sheet has no bottom edge: the ring's mask runs to the bottom, so no rim is drawn there and nothing overhangs the dialog. */
-.more-sheet-panel::before {
-  padding-bottom: 0;
-}
-
 @theme inline {
   --color-bg: var(--bg);
   --color-surface: var(--surface);
@@ -264,9 +173,9 @@ html.dark {
   --text-xs--line-height: 1.4;
   --text-sm: 0.9375rem;
   --text-sm--line-height: 1.5;
-  --font-sans: var(--font-dm-sans);
+  --font-sans: var(--font-barlow);
   --font-mono: var(--font-dm-mono);
-  --font-masthead: var(--font-newsreader);
+  --font-condensed: var(--font-barlow-condensed);
 }
 
 /* Text size setting (Display settings): scales every rem-based size. */
@@ -278,13 +187,9 @@ html[data-text="xl"] {
 }
 
 body {
-  background-color: var(--bg);
-  /* Light falls from the top left; the page is one sheet the glass floats on. */
-  background-image: linear-gradient(165deg, var(--bg-light, var(--bg)) 0%, var(--bg) 45%, var(--bg-deep, var(--bg)) 100%);
-  background-repeat: no-repeat;
+  background: var(--bg);
   color: var(--fg);
-  font-weight: 450;
-  font-family: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-barlow), ui-sans-serif, system-ui, sans-serif;
   accent-color: var(--focus);
   /* A long word or link breaks inside its box instead of running past it. */
   overflow-wrap: break-word;
@@ -315,17 +220,49 @@ body {
   .page-title {
     @apply text-3xl leading-[1.05] font-bold tracking-[-0.03em] text-fg sm:text-4xl;
   }
-  /* Newsreader, for mastheads only: organization and job names at the top of a page. */
+  /* the brand face: organization and job names at the top of a page. */
   .masthead {
-    font-family: var(--font-newsreader), ui-serif, Georgia, serif;
-    @apply font-semibold tracking-[-0.01em] text-fg;
+    /* Headlines are the brand face, semibold and tight: never a serif. */
+    @apply font-semibold tracking-[-0.02em] text-fg;
   }
   .page-title.masthead {
     @apply tracking-[-0.015em];
   }
-  /* Small mono label above a title ("LIVE SHIFT", "GOOD MORNING"). */
+  /* Small condensed label above a title ("LIVE SHIFT", "GOOD MORNING"). */
   .eyebrow {
-    @apply font-mono text-xs font-medium tracking-[0.1em] text-muted uppercase;
+    @apply font-condensed font-semibold tracking-[0.18em] uppercase;
+    font-size: 0.8125rem;
+    color: var(--kicker);
+  }
+  /* The lime dash: the page kicker's mark of turf. Inline, so a long kicker
+     wraps as one line of text with the dash on its first line. Not inside a
+     hero, a summary bar or the More sheet (the frames show none there). */
+  .eyebrow::before {
+    content: "";
+    display: inline-block;
+    width: 1.25rem;
+    height: 3px;
+    margin-inline-end: 0.75rem;
+    border-radius: 2px;
+    vertical-align: middle;
+    background: var(--accent);
+  }
+  .card .eyebrow::before,
+  .list-card .eyebrow::before,
+  .hero-card .eyebrow::before,
+  .summary-item .eyebrow::before,
+  .more-sheet-panel .eyebrow::before {
+    display: none;
+  }
+  /* Inside a card, or heading a block within the page, a kicker is a quiet
+     label (a shift's date), not the page's mark. */
+  .card .eyebrow,
+  .list-card .eyebrow,
+  .eyebrow-quiet {
+    color: var(--muted);
+  }
+  .eyebrow-quiet::before {
+    display: none;
   }
   .section {
     @apply space-y-4;
@@ -349,22 +286,30 @@ body {
     background: var(--card-sheen), var(--card-bg);
     box-shadow: var(--card-edge), var(--shadow-depth);
   }
-  /* The feature card (brand eggplant by day, raised eggplant by night) with a lime circle in the corner. */
+  /* The feature card (brand eggplant by day, raised eggplant by night) with a lime cut in the corner. */
   .hero-card {
     @apply relative overflow-hidden rounded-3xl p-5 sm:p-6;
-    background: var(--hero-sheen), var(--hero-bg);
+    background: var(--hero-bg);
+    /* The fill stops at the border, so the cut reaches the visible edge. */
+    background-clip: padding-box;
     color: var(--hero-fg);
     border: 2px solid var(--hero-border);
-    box-shadow: var(--hero-edge), var(--shadow-depth);
+    box-shadow: var(--shadow-depth);
   }
+  /* The cut: a lime wedge in the top corner, never over the headline. */
   .hero-card::after {
     content: "";
-    @apply pointer-events-none absolute -top-10 -right-10 size-32 rounded-full;
+    @apply pointer-events-none absolute top-0 right-0;
+    width: 4.25rem;
+    height: 2.75rem;
     background: var(--accent);
+    clip-path: polygon(0 60%, 100% 0, 100% 100%);
   }
+
   /* The worker's next shift (mockup): a bright accent card with dark ink. */
   .hero-card-accent {
-    background: var(--hero-sheen), var(--accent);
+    background: var(--accent);
+    background-clip: padding-box;
     color: var(--ink);
   }
   /* Priority rings (lib/priority): one narrow ring per level, each
@@ -377,10 +322,10 @@ body {
     border-color: var(--ring);
   }
   .hero-card[data-priority="2"] {
-    box-shadow: var(--hero-edge), 0 0 0 2px var(--ring-2), var(--shadow-depth);
+    box-shadow: 0 0 0 2px var(--ring-2), var(--shadow-depth);
   }
   .hero-card[data-priority="3"] {
-    box-shadow: var(--hero-edge), 0 0 0 2px var(--ring-2), 0 0 0 4px var(--ring-3), var(--shadow-depth);
+    box-shadow: 0 0 0 2px var(--ring-2), 0 0 0 4px var(--ring-3), var(--shadow-depth);
   }
   .dark .hero-card:is([data-priority="1"], [data-priority="2"], [data-priority="3"]) {
     border-color: var(--bg);
@@ -399,7 +344,8 @@ body {
     outline-offset: 9px;
   }
   .hero-card.hero-card-accent::after {
-    background: color-mix(in srgb, white 35%, var(--accent));
+    /* On a lime hero the cut is a deeper turf green, not a paler lime. */
+    background: #9fb92b;
   }
   .hero-card.hero-card-accent .eyebrow,
   .hero-card.hero-card-accent .hero-muted {
@@ -417,7 +363,7 @@ body {
   }
   .hero-card .eyebrow {
     color: var(--hero-muted);
-    max-width: calc(100% - 5.5rem); /* clear the corner highlight */
+    max-width: calc(100% - 4rem); /* clear the corner cut */
   }
   .hero-title {
     @apply max-w-[80%] text-2xl leading-tight font-bold tracking-[-0.02em] sm:text-3xl;
@@ -486,10 +432,11 @@ body {
   }
   .link {
     color: var(--link);
-    @apply font-medium underline decoration-1 underline-offset-4;
+    @apply font-medium underline decoration-2 underline-offset-4;
+    text-decoration-color: var(--accent);
   }
   .link:hover {
-    @apply decoration-2;
+    text-decoration-thickness: 3px;
   }
 
   /* ---- Forms ----------------------------------------------------------- */
@@ -499,7 +446,7 @@ body {
   .field {
     @apply block w-full min-h-11 rounded-xl border px-3 py-2 text-base text-fg sm:text-sm;
     background: var(--field);
-    /* The same edge as the glass bar, and a faint bevel: the field is set into the surface, not laid on it. */
+    /* The same hairline as the tab bar. */
     border-color: var(--glass-border);
     box-shadow: var(--card-edge);
   }
@@ -516,7 +463,7 @@ body {
     color: var(--danger);
   }
   .fieldset-title {
-    @apply mb-2 font-mono text-xs font-medium tracking-[0.12em] text-subtle uppercase;
+    @apply mb-2 font-condensed text-xs font-semibold tracking-[0.14em] text-subtle uppercase;
   }
   /* Selectable pill (checkbox/radio inside). Active state = ink (light) / accent (dark). */
   .chip {
@@ -598,8 +545,24 @@ body {
     border-color: var(--border-strong);
   }
   .option-card:has(input:checked) {
-    border-color: var(--focus);
-    box-shadow: 0 0 0 1px var(--focus);
+    border-color: var(--selected);
+    box-shadow: 0 0 0 1px var(--selected);
+  }
+  /* Radios: an eggplant ring with a lime dot. Sized here (appearance: none
+     leaves a radio with no size of its own). */
+  .option-card input[type="radio"] {
+    appearance: none;
+    width: 1.25rem;
+    height: 1.25rem;
+    flex: none;
+    border-radius: 9999px;
+    border: 2px solid var(--border-strong);
+    background: var(--surface);
+  }
+  .option-card input[type="radio"]:checked {
+    border-color: var(--selected);
+    background: var(--accent);
+    box-shadow: inset 0 0 0 2px var(--surface);
   }
 
   /* ---- Badges ---------------------------------------------------------- */
@@ -736,14 +699,9 @@ body {
     @apply fixed z-40 mx-auto max-w-md rounded-full border p-1.5 lg:hidden;
     inset-inline: 1rem;
     bottom: calc(0.75rem + env(safe-area-inset-bottom));
-    /* 66%: clearer than the other glass, so the page shows through the bar.
-       Labels stay AAA over the app's own surfaces and AA over pure black or
-       white (photos, the map) (design-tokens.test.ts). */
-    background: var(--glass-sheen), color-mix(in srgb, var(--surface) 66%, transparent);
-    border-color: var(--glass-border);
-    -webkit-backdrop-filter: var(--glass-filter);
-    backdrop-filter: var(--glass-filter);
-    box-shadow: var(--glass-highlight), var(--glass-depth);
+    background: var(--surface);
+    border-color: var(--border);
+    box-shadow: 0 10px 28px -14px rgb(27 20 34 / 0.35), 0 1px 2px rgb(27 20 34 / 0.06);
     transition: transform 280ms cubic-bezier(0.2, 0.8, 0.2, 1);
   }
   .tab {
@@ -751,26 +709,27 @@ body {
     /* Six labels share the pill: the label follows the screen width, never
        the phone's text size (pixel bounds, not rem), so "Messages" and
        "Profile" stay inside the border at any Dynamic Type setting. */
-    font-size: clamp(10px, 2.4vw, 11px);
-    letter-spacing: -0.01em;
+    /* Condensed labels: six of them fit the pill at any text size. */
+    font-family: var(--font-condensed);
+    font-size: clamp(11px, 2.8vw, 12px);
+    letter-spacing: 0.01em;
   }
-  /* The tab you're on: a brighter lens, raised a little proud of the bar. */
+  /* The tab you're on: an eggplant tile. */
   .tab[aria-current="page"] {
-    @apply font-extrabold;
-    /* A soft lens set into the bar with air around it: a little wider than
-       its neighbours, lit from inside, the bar's outline left whole. It
-       glides to the next tab on navigation (view-transition-name below). */
-    flex-grow: 1.25;
-    background: var(--glass-sheen), var(--glass-active);
-    border-color: var(--glass-active-border);
-    box-shadow: var(--glass-active-shadow);
+    @apply font-bold;
+    /* An eggplant tile with rounded corners (not a circle, so six labels
+       still fit), lime icon and label. It glides to the next tab on
+       navigation (view-transition-name below). */
+    border-radius: 1.125rem;
+    background: var(--tab-active-bg);
+    color: var(--tab-active-fg);
     view-transition-name: tab-current;
   }
   .tab-icon {
     @apply size-5 rounded-lg transition;
   }
   .tab[aria-current="page"] .tab-icon {
-    color: var(--fg);
+    color: var(--tab-active-fg);
   }
   /* Icons inside buttons: sized to the text, never the hit target. */
   .btn-icon {
@@ -793,9 +752,9 @@ body {
     @apply w-full border-collapse text-sm;
   }
   .data-table thead th {
-    @apply sticky top-0 z-10 border-b px-3 py-2 text-left text-xs font-semibold whitespace-nowrap text-muted;
-    background: var(--glass-bg-dense);
-    border-color: var(--glass-border);
+    @apply sticky top-0 z-10 border-b px-3 py-2 text-left font-condensed text-xs font-semibold tracking-[0.1em] whitespace-nowrap text-muted uppercase;
+    background: var(--surface-2);
+    border-color: var(--border);
   }
   .data-table tbody th,
   .data-table td {
@@ -855,13 +814,22 @@ body {
     color: inherit;
   }
   .more-sheet-panel {
-    @apply rounded-t-3xl border border-b-0 p-4;
+    @apply relative rounded-t-3xl border border-b-0 p-4;
     padding-bottom: calc(1rem + env(safe-area-inset-bottom));
-    background: var(--glass-sheen), var(--glass-bg);
-    border-color: var(--glass-border);
-    -webkit-backdrop-filter: var(--glass-filter);
-    backdrop-filter: var(--glass-filter);
-    box-shadow: var(--glass-highlight), var(--shadow);
+    background: var(--surface);
+    border-color: var(--border);
+    box-shadow: var(--shadow);
+  }
+  /* The sheet's handle: a lime rule along the top edge, the turf mark of the brand. */
+  .more-sheet-panel::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 10%;
+    right: 10%;
+    height: 4px;
+    border-radius: 0 0 4px 4px;
+    background: var(--accent);
   }
   /* Dims the page (never a pale wash, which reads as disabled). */
   .more-sheet::backdrop {
@@ -902,7 +870,7 @@ body {
     background: var(--accent);
     color: var(--ink);
   }
-  /* By night: the olive "verified" chip colours, distinct from people's eggplant avatars. */
+  /* By night: the lime status chip colours, distinct from people's eggplant avatars. */
   .dark .avatar-team {
     background: var(--solid);
     color: var(--on-solid);
@@ -1022,7 +990,7 @@ body {
   .filter-chip:hover {
     border-color: var(--border-strong);
   }
-  /* Solid: "done / live" badges and a quick filter that's on (eggplant by day, olive by night; see --solid). */
+  /* Solid: "done / live" badges and a quick filter that's on (a lime chip in both themes; see --solid). */
   .badge-solid,
   .filter-chip-on {
     background: var(--solid);
@@ -1067,7 +1035,7 @@ body {
   color: var(--link);
   text-decoration: underline;
 }
-/* The zoom buttons: one glass pill, like the header orbs. */
+/* The zoom buttons: one paper pill, like the header buttons. */
 .turf-map.leaflet-container .leaflet-bar {
   border: 1px solid var(--glass-border);
   border-radius: 9999px;
@@ -1092,7 +1060,7 @@ body {
   border-bottom: 0;
 }
 .turf-map.leaflet-container .leaflet-bar a:hover {
-  background: var(--glass-active);
+  background: var(--surface-2);
 }
 /* The pill clips overflow, so the focus ring sits inside it. */
 .turf-map.leaflet-container .leaflet-bar a:focus-visible {
@@ -1132,32 +1100,13 @@ summary.list-none::-webkit-details-marker {
   display: none;
 }
 
-/* ---- Liquid glass frame ------------------------------------------------- */
-/* The header is glass too. On phones it stays at the top while the page
+/* ---- The frame ------------------------------------------------- */
+/* The header is paper. On phones it stays at the top while the page
    scrolls under it (not in chat threads, which pin their own top bar). */
 .site-header {
-  /* No band and no line: the page runs behind it, blurred, and only the round buttons are glass. */
-  background: color-mix(in srgb, var(--bg) 78%, transparent);
+  /* Paper, no line under it: content scrolls under a plain band of the page colour. */
+  background: var(--bg);
   border-color: transparent;
-  -webkit-backdrop-filter: var(--glass-filter);
-  backdrop-filter: var(--glass-filter);
-}
-/* At the top of the page the header is clear glass (the page is one sheet);
-   the tint comes in over the first 4rem of scrolling, where content starts
-   to pass under it. Browsers without scroll-driven animations keep the tint. */
-@supports (animation-timeline: scroll()) {
-  @media (max-width: 63.99rem) {
-    body:not(:has(.thread-top)) .site-header {
-      animation: header-tint linear both;
-      animation-timeline: scroll(root);
-      /* Full tint by the time the page's top padding (2rem) has scrolled past and content reaches the header. */
-      animation-range: 0 2rem;
-    }
-  }
-}
-@keyframes header-tint {
-  from { background-color: transparent; }
-  to { background-color: color-mix(in srgb, var(--bg) 78%, transparent); }
 }
 @media (max-width: 63.99rem) {
   body:not(:has(.thread-top)) .site-header {
@@ -1169,25 +1118,12 @@ summary.list-none::-webkit-details-marker {
   html:not(:has(.thread-top)) {
     scroll-padding-top: 5rem;
   }
-  /* The page melts into the glass at the bottom edge: content behind the
-     floating tab bar blurs more the closer it gets, instead of being cut off. */
-  body:has(.tabbar):not(:has(.tabbar[data-tucked], .composer-input:focus, .turf-map))::after {
-    content: "";
-    position: fixed;
-    inset-inline: 0;
-    bottom: 0;
-    height: calc(7.5rem + env(safe-area-inset-bottom));
-    z-index: 20;
-    pointer-events: none;
-    background: linear-gradient(to top, color-mix(in srgb, var(--bg) 70%, transparent), transparent);
-    -webkit-backdrop-filter: blur(10px);
-    backdrop-filter: blur(10px);
-    -webkit-mask-image: linear-gradient(to top, #000 35%, transparent);
-    mask-image: linear-gradient(to top, #000 35%, transparent);
-  }
+}
+.wordmark-cut {
+  color: var(--kicker);
 }
 /* Icon-only header buttons (notifications, preferences, theme) are round
-   glass bubbles, like the tab bar. */
+   paper buttons with a hairline, like the tab bar. */
 .site-header :is(a, button).btn-ghost:has(> svg):not(:has(> :not(svg, .unread-badge))),
 .site-header .glass-orb-phone {
   display: grid;
@@ -1196,11 +1132,9 @@ summary.list-none::-webkit-details-marker {
   height: 2.5rem;
   padding: 0;
   border-radius: 9999px;
-  border: 1px solid var(--glass-border);
-  background: var(--glass-sheen), var(--orb-bg, var(--glass-bg));
-  -webkit-backdrop-filter: var(--glass-filter);
-  backdrop-filter: var(--glass-filter);
-  box-shadow: var(--glass-highlight), 0 10px 24px -10px rgb(0 0 0 / 0.4);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: var(--shadow-depth);
 }
 @media (hover: hover) {
   .site-header :is(a, button).btn-ghost:has(> svg):not(:has(> :not(svg, .unread-badge))):hover,
@@ -1219,38 +1153,21 @@ summary.list-none::-webkit-details-marker {
     border-radius: 0.5rem;
     border: 0;
     background: transparent;
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
     box-shadow: none;
-  }
-  .site-header .glass-orb-phone::before {
-    content: none;
   }
   .site-header .glass-orb-phone:hover {
     background: var(--surface-2);
   }
 }
-/* Solid where glass can't be drawn, or isn't wanted. */
-@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  html { --glass-bg: var(--surface); --glass-bg-dense: var(--surface-2); --glass-sheen: none; --glass-rim: none; --glass-caustic: transparent; --card-bg: var(--surface); --card-sheen: none; --hero-bg: var(--hero); --hero-sheen: none; }
-  .tabbar { background: var(--surface); }
-  .site-header, body:not(:has(.thread-top)) .site-header { background: var(--bg); animation: none; }
-}
-@media (prefers-reduced-transparency: reduce) {
-  html { --glass-bg: var(--surface); --glass-bg-dense: var(--surface-2); --glass-filter: none; --glass-sheen: none; --glass-rim: none; --glass-caustic: transparent; --card-bg: var(--surface); --card-sheen: none; --hero-bg: var(--hero); --hero-sheen: none; }
-  .tabbar { background: var(--surface); }
-  .site-header, body:not(:has(.thread-top)) .site-header { background: var(--bg); animation: none; }
-  body:has(.tabbar):not(:has(.tabbar[data-tucked], .composer-input:focus, .turf-map))::after { display: none; }
-}
 @media (forced-colors: active) {
-  html { --glass-sheen: none; --glass-rim: none; --glass-caustic: transparent; --card-sheen: none; --hero-sheen: none; }
   .tabbar, .icon-btn, .site-header, .composer, .thread-top, .more-sheet-panel, .data-table thead th, .turf-map.leaflet-container .leaflet-bar, .turf-map.leaflet-container .leaflet-control-attribution { border-color: CanvasText; }
   .tab[aria-current="page"] { border-color: Highlight; }
+  .option-card input[type="radio"] { appearance: auto; }
 }
 
 /* ---- Print (receipts and statements, M9) --------------------------------- */
 @media print {
-  .site-header, .tabbar, .no-print, nextjs-portal, body::after { display: none !important; }
+  .site-header, .tabbar, .no-print, nextjs-portal { display: none !important; }
   html, body { background: white; color: black; }
   .page { padding: 0; max-width: none; }
   .card, .list-card, .empty-state, .stat { background: white; border-color: #999; box-shadow: none; break-inside: avoid; }

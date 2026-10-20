@@ -85,6 +85,9 @@ export const NOTIFICATION_PAGE = 50;
 /** The badge shows "99+" past this: counting further would only cost time. */
 export const UNREAD_CAP = 100;
 
+/** Notices about the recipient's own organization (M10.2): no engagement, post, dispute or transfer behind them. */
+export const ORG_NOTICE_KINDS: NotificationKind[] = ["ORG_APPROVED", "ORG_APPROVAL_REVOKED"];
+
 type Viewer = { userId: string; role: Role; workerId: string | null; orgId: string | null };
 
 /**
@@ -98,10 +101,11 @@ function scopeFor(v: Viewer): Prisma.NotificationWhereInput | null {
   // (they never pass through hiring code).
   if (v.role === "WORKER") return v.workerId ? { OR: [{ engagement: { workerId: v.workerId } }, { dispute: { workerId: v.workerId } }, { transfer: { workerId: v.workerId } }] } : null;
   if (!v.orgId) return null;
-  const parts: Prisma.NotificationWhereInput[] = [];
+  // Turfcut's decision on the organization (M10.2) goes to its owners; it has no subject row.
+  const parts: Prisma.NotificationWhereInput[] = [{ kind: { in: ORG_NOTICE_KINDS } }];
   if (HIRING_ROLES.includes(v.role)) parts.push({ engagement: { job: { orgId: v.orgId } } });
   if (PAY_ROLES.includes(v.role)) parts.push({ dispute: { orgId: v.orgId } }, { transfer: { orgId: v.orgId } });
-  return parts.length ? { OR: parts } : null;
+  return { OR: parts };
 }
 
 const SELECT = {

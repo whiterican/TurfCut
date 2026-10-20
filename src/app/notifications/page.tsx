@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireAuth } from "@/lib/auth";
 import { loadNotifications, NOTIFICATION_PAGE } from "@/lib/notifications-data";
-import { notificationText, payNoticeText } from "@/lib/notification-text";
+import { notificationText, orgNoticeText, payNoticeText } from "@/lib/notification-text";
 import { postNoticeText } from "@/lib/campaign-follow";
 import { loadPostNotices } from "@/lib/campaign-follow-data";
 import { LocalTime } from "@/components/LocalTime";
@@ -24,7 +24,7 @@ export default async function NotificationsPage() {
   ]);
   // The newest page of both, as one list (each source is already its own newest page).
   const items = [
-    ...hiring.map((n) => ({ id: n.id, createdAt: n.createdAt, readAt: n.readAt, t: n.engagement ? notificationText(n.kind, { ...n.engagement, wasOffer: n.engagement.events.length > 0 }, viewer) : payNoticeText(n.kind, n, viewer) })),
+    ...hiring.map((n) => ({ id: n.id, createdAt: n.createdAt, readAt: n.readAt, t: n.engagement ? notificationText(n.kind, { ...n.engagement, wasOffer: n.engagement.events.length > 0 }, viewer) : n.kind.startsWith("ORG_") ? orgNoticeText(n.kind) : payNoticeText(n.kind, n, viewer) })),
     ...posts.map((n) => ({ id: n.id, createdAt: n.createdAt, readAt: n.readAt, t: n.post ? postNoticeText(n.post) : null })),
   ]
     .filter((n): n is typeof n & { t: NonNullable<typeof n.t> } => !!n.t)
@@ -39,7 +39,7 @@ export default async function NotificationsPage() {
           <p className="eyebrow">Updates</p>
           <h1 className="page-title">Notifications</h1>
           <p className="text-muted-sm">
-            {viewer === "worker" ? "Hiring steps, your pay disputes and payouts, and new posts from campaigns you asked to hear from." : "Hiring steps and pay disputes that concern you."} Nobody is told whether you read them.
+            {viewer === "worker" ? "Hiring steps, your pay disputes and payouts, and new posts from campaigns you asked to hear from." : "Hiring steps, pay disputes and Turfcut&apos;s decisions that concern you."} Nobody is told whether you read them.
           </p>
         </div>
         {unread > 0 && (

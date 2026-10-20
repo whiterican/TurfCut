@@ -8,7 +8,10 @@ export interface AdminSection {
   label: string;
 }
 
-export const ADMIN_SECTIONS: AdminSection[] = [{ href: "/admin", label: "Overview" }];
+export const ADMIN_SECTIONS: AdminSection[] = [
+  { href: "/admin", label: "Overview" },
+  { href: "/admin/organizations", label: "Organizations" },
+];
 
 /** The section a path belongs to: the longest matching prefix wins. */
 export function activeAdminSection(pathname: string): string | null {

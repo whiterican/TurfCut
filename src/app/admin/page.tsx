@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireStaff } from "@/lib/staff-session";
 import { loadAdminOverview } from "@/lib/admin-data";
 import { SummaryBar } from "@/components/staff/SummaryBar";
@@ -17,6 +18,10 @@ export default async function AdminOverviewPage() {
           { label: "Jurisdictions", value: o.jurisdictionsCurrent, hint: o.jurisdictionsBlocked ? `${o.jurisdictionsBlocked} can't be used` : o.jurisdictionsCurrent ? "All usable" : "None on file" },
         ]}
       />
+
+      <p className="text-muted-sm">
+        <Link transitionTypes={["nav-forward"]} href="/admin/organizations" className="link">Open the approval queue</Link>
+      </p>
 
       <section className="section" aria-labelledby="recent-acts">
         <h2 id="recent-acts" className="section-title">Recent staff actions</h2>

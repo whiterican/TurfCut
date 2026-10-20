@@ -52,7 +52,13 @@ export default async function OrgSettingsPage() {
           <GateRow
             label="Turfcut approval"
             done={org.approved}
-            detail={org.approved ? "Approved for the private pilot." : "Turfcut reviews every organization by hand during the pilot."}
+            detail={
+              org.approved
+                ? `Approved for the private pilot${org.approvedAt ? ` on ${day(org.approvedAt)}` : ""}.`
+                : org.approvedAt
+                  ? "Turfcut withdrew the approval. Publishing and hiring are paused until it is restored."
+                  : "Turfcut reviews every organization by hand during the pilot."
+            }
           />
           <GateRow
             label="Contractor terms"

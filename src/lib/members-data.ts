@@ -61,7 +61,8 @@ export function isInviteRole(raw: unknown): raw is Role {
 }
 
 /** Emails for auth users, by id. Server only: auth.users is never exposed to clients. */
-async function emailsFor(ids: string[]): Promise<Map<string, string>> {
+/** The sign-in email behind each profile id, from Supabase auth (C1; the admin console reads it too, M10.2). */
+export async function emailsFor(ids: string[]): Promise<Map<string, string>> {
   if (!ids.length) return new Map();
   const rows = await db().$queryRaw<{ id: string; email: string | null }[]>`SELECT id::text AS id, email FROM auth.users WHERE id = ANY(${ids}::uuid[])`;
   return new Map(rows.filter((r) => r.email).map((r) => [r.id, r.email as string]));

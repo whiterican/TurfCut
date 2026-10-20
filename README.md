@@ -1184,6 +1184,38 @@ roles, one slice at a time.
   already approved, and the notice-subject check relaxed for `ORG_*`
   notices, which have no subject row).
 
+### M10.3 — jurisdiction rule profiles (done)
+
+- **Admin → Jurisdictions** lists every place and every version of its
+  rules, newest first, with its standing (current, proposed, superseded),
+  approval and expiry, effective date, and the open jobs under it. A
+  version's page shows the rules as the gate reads them, each open job and
+  what freezes it, the other versions of the place, and Turfcut's decisions
+  on it.
+- **A rule change is a new version.** "Propose a new version" prefills the
+  form from the current rules: pay methods (ticking per-unit records
+  counsel's explicit per-unit approval, which the gate requires), the three
+  circulator requirements, notes, an optional effective date, and the
+  reason. The proposal is version N+1 of the place, not current and not
+  approved, so nothing changes for any job yet. A new place starts at
+  version 1.
+- **Approval moves what fits and freezes the rest.** Recording counsel's
+  approval (with an optional expiry) makes the version current and
+  supersedes the previous one. Open jobs on the old version whose pay
+  method the new rules allow move to it, each with a `job.jurisdiction_moved`
+  entry on its own audit trail; the rest stay on the superseded version,
+  frozen by the existing hard stop, and their organizations' owners and
+  recruiters get an `ORG_JOBS_FROZEN` notice. A current version whose
+  approval lapsed is renewed in place.
+- **Withdraw and retire.** Withdrawing a current version's approval freezes
+  everything under it (and tells the organizations); a proposal that won't
+  be approved is retired. The hard stop itself is unchanged: publishing,
+  scheduling, posting a seat and claiming one already refuse under an
+  unapproved, superseded, lapsed or not-yet-effective profile.
+- **Migration:** the same `prisma/m10-admin.sql` (the notice kind and three
+  columns on `JurisdictionProfile`: who proposed, who approved, when it was
+  superseded).
+
 ### Turfcut staff — making an account staff
 
 Only by hand, in the Supabase SQL editor, after `prisma/m10-admin.sql`:

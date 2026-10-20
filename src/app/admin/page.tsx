@@ -20,7 +20,7 @@ export default async function AdminOverviewPage() {
       />
 
       <p className="text-muted-sm">
-        <Link transitionTypes={["nav-forward"]} href="/admin/organizations" className="link">Open the approval queue</Link>
+        <Link transitionTypes={["nav-forward"]} href="/admin/organizations" className="link">Open the approval queue</Link> · <Link transitionTypes={["nav-forward"]} href="/admin/jurisdictions" className="link">Jurisdiction rule profiles</Link>
       </p>
 
       <section className="section" aria-labelledby="recent-acts">

@@ -11,6 +11,7 @@ export interface AdminSection {
 export const ADMIN_SECTIONS: AdminSection[] = [
   { href: "/admin", label: "Overview" },
   { href: "/admin/organizations", label: "Organizations" },
+  { href: "/admin/jurisdictions", label: "Jurisdictions" },
 ];
 
 /** The section a path belongs to: the longest matching prefix wins. */

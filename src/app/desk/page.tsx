@@ -15,7 +15,7 @@ function FieldToday({ ops }: { ops: NonNullable<Awaited<ReturnType<typeof loadDe
     return (
       <div className="hero-card hero-card-quiet space-y-3">
         <p className="eyebrow">In the field today</p>
-        <p className="hero-title">Nothing in the field today</p>
+        <p className="hero-title">Nothing under way</p>
         <p className="hero-muted text-sm">Shifts starting in the next 24 hours show up here.</p>
       </div>
     );

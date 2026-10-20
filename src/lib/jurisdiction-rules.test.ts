@@ -25,7 +25,9 @@ describe("jurisdiction rules (M10.3)", () => {
   it("reads a place: two letters for the state, a cleaned optional locality", () => {
     expect(readPlace(" co ", "  Denver   County ")).toEqual({ ok: true, state: "CO", locality: "Denver County" });
     expect(readPlace("CO", "")).toEqual({ ok: true, state: "CO", locality: null });
-    expect(readPlace("Colorado", "")).toMatchObject({ ok: false, message: expect.stringMatching(/two letters/) });
+    expect(readPlace("Colorado", "")).toMatchObject({ ok: false, message: "Pick a state." });
+    expect(readPlace("XX", "")).toMatchObject({ ok: false, message: "Pick a state." });
+    expect(readPlace("dc", "")).toEqual({ ok: true, state: "DC", locality: null });
     expect(readPlace(null, undefined)).toMatchObject({ ok: false });
     expect(readPlace("CO", "x".repeat(LOCALITY_MAX + 1))).toMatchObject({ ok: false, message: expect.stringMatching(/80 characters/) });
   });

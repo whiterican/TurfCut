@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { proposeVersion } from "@/app/admin/jurisdictions/actions";
 import type { ActionState } from "@/app/jobs/actions";
 import { REASON_MAX } from "@/lib/admin-reason";
+import { US_STATES } from "@/lib/experience";
 import { COMPENSATION_METHODS } from "@/lib/jobs";
 import { LOCALITY_MAX, NOTES_MAX, type JurisdictionRules } from "@/lib/jurisdiction-rules";
 
@@ -25,7 +26,17 @@ export function JurisdictionVersionForm({ defaults, fromLabel }: { defaults: { s
         <div className="grid gap-3 sm:grid-cols-[6rem_1fr]">
           <label className="block space-y-1.5">
             <span className="label">State</span>
-            <input name="state" className="field uppercase" defaultValue={defaults.state} maxLength={2} required pattern="[A-Za-z]{2}" readOnly={!!fromLabel} placeholder="CO" />
+            {fromLabel ? (
+              <>
+                <input type="hidden" name="state" value={defaults.state} />
+                <span className="field block" aria-readonly>{defaults.state}</span>
+              </>
+            ) : (
+              <select name="state" className="field" defaultValue={defaults.state} required>
+                <option value="" disabled>Pick</option>
+                {US_STATES.map((s) => <option key={s} value={s}>{s}</option>)}
+              </select>
+            )}
           </label>
           <label className="block space-y-1.5">
             <span className="label">Locality (blank for statewide)</span>

@@ -34,11 +34,11 @@ export default async function AdminJurisdictionPage({ params }: { params: Promis
         <p className="flex flex-wrap items-center gap-2 text-sm text-muted">
           <StandingChip v={j} />
           {j.approved && j.approvedAt ? <span>Approved <LocalTime iso={j.approvedAt.toISOString()} mode="fulldate" /></span> : <span>Not approved</span>}
-          {j.approvalExpiresAt && <span>· expires <LocalTime iso={j.approvalExpiresAt.toISOString()} mode="fulldate" /></span>}
+          {j.approved && j.approvalExpiresAt && <span>· expires <LocalTime iso={j.approvalExpiresAt.toISOString()} mode="fulldate" /></span>}
           {j.effectiveFrom && <span>· effective <LocalTime iso={j.effectiveFrom.toISOString()} mode="fulldate" /></span>}
           {j.supersededAt && <span>· superseded <LocalTime iso={j.supersededAt.toISOString()} mode="fulldate" /></span>}
         </p>
-        {j.problems.length > 0 && (
+        {j.standing === "current" && j.problems.length > 0 && (
           <ul className="text-warning-msg list-disc space-y-0.5 pl-5 text-sm">
             {j.problems.map((p) => <li key={p}>{p}</li>)}
           </ul>
@@ -64,12 +64,14 @@ export default async function AdminJurisdictionPage({ params }: { params: Promis
       </section>
 
       <section className="section" aria-labelledby="decide">
-        <h3 id="decide" className="section-title">{j.standing === "superseded" ? "Superseded" : j.standing === "proposed" ? "Approve or retire" : j.approved ? "Renew or withdraw" : "Approve"}</h3>
+        <h3 id="decide" className="section-title">{j.standing === "superseded" ? "Superseded" : j.standing === "retired" ? "Retired" : j.standing === "proposed" ? "Approve or retire" : j.approved ? "Renew or withdraw" : "Approve"}</h3>
         {j.standing === "superseded" ? (
-          <p className="text-muted-sm">A newer version took this one&apos;s place. Jobs still on it are frozen until their organization changes their pay method; propose a new version to change the rules again.</p>
+          <p className="text-muted-sm">A newer version took this one&apos;s place. Jobs still on it are frozen until their organization files them under the current rules; propose a new version to change the rules again.</p>
+        ) : j.standing === "retired" ? (
+          <p className="text-muted-sm">Retired before approval; nothing was ever filed under it.</p>
         ) : (
           <div className="grid gap-4 lg:grid-cols-2">
-            <JurisdictionDecisionForm id={j.id} mode="approve" label={j.standing === "current" && j.approved ? "Renew approval" : j.standing === "current" ? "Approve again" : `Approve version ${j.version}`} />
+            <JurisdictionDecisionForm id={j.id} mode="approve" label={j.standing === "current" && j.approved ? "Renew approval" : j.standing === "current" ? "Approve again" : `Approve version ${j.version}`} defaultExpiry={j.approvalExpiresAt?.toISOString().slice(0, 10)} />
             {j.standing === "proposed" && <JurisdictionDecisionForm id={j.id} mode="retire" label="Retire this proposal" />}
             {j.standing === "current" && j.approved && <JurisdictionDecisionForm id={j.id} mode="withdraw" label="Withdraw approval" />}
           </div>
@@ -77,7 +79,7 @@ export default async function AdminJurisdictionPage({ params }: { params: Promis
       </section>
 
       <section className="section" aria-labelledby="jobs">
-        <h3 id="jobs" className="section-title">Open jobs under this version</h3>
+        <h3 id="jobs" className="section-title">Open jobs under this version{j.jobs > j.jobList.length ? <span className="ml-2 text-xs font-medium text-subtle">newest {j.jobList.length} of {j.jobs}</span> : null}</h3>
         {j.jobList.length === 0 ? (
           <p className="text-muted-sm">None.</p>
         ) : (
@@ -89,7 +91,7 @@ export default async function AdminJurisdictionPage({ params }: { params: Promis
                   {job.problems.length ? <span className="badge-coral">Frozen</span> : <span className="badge-solid">Usable</span>}
                 </p>
                 <p className="text-sm text-muted">{job.orgName} · {job.status.toLowerCase()} · {COMPENSATION_METHODS.find((c) => c.value === job.compensationMethod)?.label ?? job.compensationMethod}</p>
-                {job.problems.length > 0 && <p className="text-sm text-warning-msg">{job.problems[job.problems.length - 1]}</p>}
+                {job.problems.length > 0 && <p className="text-sm text-warning-msg">{job.problems[0]}</p>}
               </li>
             ))}
           </ul>

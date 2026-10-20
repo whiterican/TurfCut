@@ -9,7 +9,7 @@ import { loadPipelineFacts } from "@/lib/engagements-data";
 import { EngagementHistory } from "@/components/EngagementHistory";
 import { HiringActions, timeLeft } from "@/components/HiringActions";
 import { ENGAGEMENT_LABELS, JOB_STATUS_LABELS, jobPageBadge } from "@/lib/engagement-labels";
-import { UUID_RE, exclusionReasons, fitReasons, jobCardAnswers, jobCredentials, jurisdictionLabel, payText, publishBlockers, readDisclosure, readHiringModes } from "@/lib/jobs";
+import { UUID_RE, exclusionReasons, fitReasons, jobCardAnswers, jobCredentials, jobFreezeReasons, jurisdictionLabel, payText, publishBlockers, readDisclosure, readHiringModes } from "@/lib/jobs";
 import { loadScorecard } from "@/lib/scorecard-data";
 import { loadSharing } from "@/lib/sharing-data";
 import { PART_DETAILS, RELATIONSHIP_PHRASE, SHARE_PARTS, visibleParts, type SharePart, type SharingChoices } from "@/lib/sharing";
@@ -435,6 +435,9 @@ async function OrgPanel({ job, canHire, canSchedule, userId }: { job: JobWithRef
   const facts = await loadPipelineFacts(engagements.map((e) => e.id));
   const now = new Date();
   const changes = canHire && job.status !== "DRAFT" ? await loadJobChanges(job.id) : [];
+  // A published job can freeze under it without anyone editing it (M10.3): a newer version of its place's rules, or a withdrawn approval.
+  const current = job.status === "PUBLISHED" ? await db().jurisdictionProfile.findFirst({ where: { state: job.jurisdiction.state, locality: job.jurisdiction.locality, isCurrent: true }, select: { id: true, rules: true } }) : null;
+  const frozen = job.status === "PUBLISHED" ? jobFreezeReasons(job, job.jurisdiction, current, now) : [];
 
   return (
     <>
@@ -452,6 +455,16 @@ async function OrgPanel({ job, canHire, canSchedule, userId }: { job: JobWithRef
             </>
           )}
           <ChangeList jobId={job.id} viewer="org" changes={changes} />
+        </section>
+      )}
+      {frozen.length > 0 && (
+        <section className="section">
+          <h2 className="section-title">Frozen</h2>
+          <div className="alert-warning space-y-2">
+            <p className="font-medium">No new shifts or seats until this job fits the current rules</p>
+            <ul className="list-disc space-y-0.5 pl-5">{frozen.map((f) => <li key={f}>{f}</li>)}</ul>
+            {canHire && <Link transitionTypes={["nav-forward"]} href={`/jobs/${job.id}/edit`} className="link">Edit the job to file it under the current rules</Link>}
+          </div>
         </section>
       )}
       {(job.status === "DRAFT" || job.status === "PAUSED") && (

@@ -1,3 +1,4 @@
+import { US_STATES } from "@/lib/experience";
 import { COMPENSATION_METHODS, type CompensationMethod } from "@/lib/jobs";
 
 /**
@@ -57,13 +58,12 @@ export function rulesFromForm(get: (name: string) => string[]): JurisdictionRule
   };
 }
 
-export const STATE_RE = /^[A-Z]{2}$/;
 export const LOCALITY_MAX = 80;
 
-/** A place for a profile: a two-letter state and an optional locality, cleaned, or what is wrong. */
+/** A place for a profile: a state (two letters, one of the fifty plus DC) and an optional locality, cleaned, or what is wrong. */
 export function readPlace(rawState: unknown, rawLocality: unknown): { ok: true; state: string; locality: string | null } | { ok: false; message: string } {
   const state = typeof rawState === "string" ? rawState.trim().toUpperCase() : "";
-  if (!STATE_RE.test(state)) return { ok: false, message: "Give the state as two letters, like CO." };
+  if (!(US_STATES as readonly string[]).includes(state)) return { ok: false, message: "Pick a state." };
   const locality = typeof rawLocality === "string" ? rawLocality.trim().replace(/\s+/g, " ") : "";
   if (locality.length > LOCALITY_MAX) return { ok: false, message: `Keep the locality to ${LOCALITY_MAX} characters or fewer.` };
   return { ok: true, state, locality: locality || null };

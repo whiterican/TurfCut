@@ -28,10 +28,10 @@ export default async function AdminJurisdictionsPage() {
           const current = p.versions.find((v) => v.standing === "current");
           return (
             <section key={`${p.state}|${p.locality ?? ""}`} className="section" aria-label={placeName(p)}>
-              <h2 className="section-title flex flex-wrap items-center justify-between gap-2">
-                {placeName(p)}
-                <Link transitionTypes={["nav-forward"]} href={`/admin/jurisdictions/new${current ? `?from=${current.id}` : ""}`} className="link text-sm font-medium">Propose a new version</Link>
-              </h2>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 className="section-title">{placeName(p)}</h2>
+                <Link transitionTypes={["nav-forward"]} href={`/admin/jurisdictions/new?from=${(current ?? p.versions[0]).id}`} className="link text-sm font-medium">Propose a new version</Link>
+              </div>
               <ul className="list-card">
                 {p.versions.map((v) => (
                   <li key={v.id}>
@@ -44,7 +44,7 @@ export default async function AdminJurisdictionsPage() {
                       </span>
                       <span className="block text-sm text-muted">
                         {v.approved && v.approvedAt ? <>Approved <LocalTime iso={v.approvedAt.toISOString()} mode="fulldate" /></> : "Not approved"}
-                        {v.approvalExpiresAt && <> · expires <LocalTime iso={v.approvalExpiresAt.toISOString()} mode="fulldate" /></>}
+                        {v.approved && v.approvalExpiresAt && <> · expires <LocalTime iso={v.approvalExpiresAt.toISOString()} mode="fulldate" /></>}
                         {v.effectiveFrom && <> · effective <LocalTime iso={v.effectiveFrom.toISOString()} mode="fulldate" /></>}
                         {" · "}{v.rulesRead.compensationAllowed.length} pay {v.rulesRead.compensationAllowed.length === 1 ? "method" : "methods"}
                       </span>

@@ -8,7 +8,7 @@ import { REASON_MAX } from "@/lib/admin-reason";
 const initial: ActionState = { ok: false, message: "" };
 
 /** One decision on a version (M10.3): approve or renew (with an optional expiry), withdraw approval, or retire a proposal. Always with a reason. */
-export function JurisdictionDecisionForm({ id, mode, label }: { id: string; mode: "approve" | "withdraw" | "retire"; label: string }) {
+export function JurisdictionDecisionForm({ id, mode, label, defaultExpiry }: { id: string; mode: "approve" | "withdraw" | "retire"; label: string; defaultExpiry?: string }) {
   const [state, action, pending] = useActionState(decideJurisdiction, initial);
   return (
     <form action={action} className="card space-y-3">
@@ -17,8 +17,8 @@ export function JurisdictionDecisionForm({ id, mode, label }: { id: string; mode
       {mode === "approve" && (
         <label className="block space-y-1.5">
           <span className="label">Counsel approval expires (optional)</span>
-          <input type="date" name="approvalExpiresAt" className="field" />
-          <span className="text-hint block">Past that day the gate freezes every job under this version until it is renewed.</span>
+          <input type="date" name="approvalExpiresAt" className="field" defaultValue={defaultExpiry} />
+          <span className="text-hint block">Lasts through that day; blank means no expiry. Past it the gate freezes every job under this version until it is renewed.</span>
         </label>
       )}
       <label className="block space-y-1.5">

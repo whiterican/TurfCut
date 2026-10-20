@@ -1209,9 +1209,21 @@ roles, one slice at a time.
   approval lapsed is renewed in place.
 - **Withdraw and retire.** Withdrawing a current version's approval freezes
   everything under it (and tells the organizations); a proposal that won't
-  be approved is retired. The hard stop itself is unchanged: publishing,
-  scheduling, posting a seat and claiming one already refuse under an
-  unapproved, superseded, lapsed or not-yet-effective profile.
+  be approved is retired (never current, nothing was ever filed under it).
+  A proposal older than the version in force can't be approved over it. A
+  version approved ahead of its effective date moves the jobs that fit but
+  they stay frozen until that date, and their organizations are told.
+- **One lock per place.** Every write to a place's versions takes the
+  place's advisory lock first, so two staff acting at once can't make two
+  "version 2"s (the unique index can't tell statewide profiles apart) or
+  two current versions.
+- **The organization's side.** A published job that froze under it shows a
+  Frozen panel on its job page with the reasons and the edit link (the gate
+  itself now says "superseded by a newer version; edit the job to file it
+  under the current rules"). The hard stop is otherwise unchanged:
+  publishing, scheduling, posting a seat and claiming one already refuse
+  under an unapproved, superseded, lapsed or not-yet-effective profile.
+  Expiries last through the day counsel named.
 - **Migration:** the same `prisma/m10-admin.sql` (the notice kind and three
   columns on `JurisdictionProfile`: who proposed, who approved, when it was
   superseded).

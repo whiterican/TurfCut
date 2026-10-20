@@ -9,8 +9,10 @@ import { approveJurisdictionVersion, isJurisdictionDecision, proposeJurisdiction
 import { rulesFromForm } from "@/lib/jurisdiction-rules";
 
 const str = (fd: FormData, k: string) => String(fd.get(k) ?? "");
-/** A date input's value ("YYYY-MM-DD") as that day at midnight UTC, null when empty, an invalid Date when malformed. */
-const day = (raw: string): Date | null => (raw.trim() ? new Date(`${raw.trim()}T00:00:00Z`) : null);
+/** A date input's value ("YYYY-MM-DD") as the start of that day (UTC), null when empty, an invalid Date when malformed. */
+const dayStart = (raw: string): Date | null => (raw.trim() ? new Date(`${raw.trim()}T00:00:00Z`) : null);
+/** The same value as the end of that day: an approval lasts through the day counsel named. */
+const dayEnd = (raw: string): Date | null => (raw.trim() ? new Date(`${raw.trim()}T23:59:59.999Z`) : null);
 const refresh = (id?: string) => {
   for (const path of ["/admin", "/admin/jurisdictions", ...(id ? [`/admin/jurisdictions/${id}`] : [])]) revalidatePath(path);
 };
@@ -20,7 +22,7 @@ export async function proposeVersion(_prev: ActionState, fd: FormData): Promise<
   const staff = await requireStaff();
   const r = await proposeJurisdictionVersion(
     { userId: staff.userId, staff: true },
-    { state: str(fd, "state"), locality: str(fd, "locality"), rules: rulesFromForm((name) => fd.getAll(name).map(String)), effectiveFrom: day(str(fd, "effectiveFrom")), reason: str(fd, "reason") }
+    { state: str(fd, "state"), locality: str(fd, "locality"), rules: rulesFromForm((name) => fd.getAll(name).map(String)), effectiveFrom: dayStart(str(fd, "effectiveFrom")), reason: str(fd, "reason") }
   );
   if (!r.ok) return r;
   refresh(r.id);
@@ -36,12 +38,13 @@ export async function decideJurisdiction(_prev: ActionState, fd: FormData): Prom
   const actor = { userId: staff.userId, staff: true as const };
   const reason = str(fd, "reason");
   if (decision === "approve") {
-    const r = await approveJurisdictionVersion(actor, id, { approvalExpiresAt: day(str(fd, "approvalExpiresAt")), reason });
+    const r = await approveJurisdictionVersion(actor, id, { approvalExpiresAt: dayEnd(str(fd, "approvalExpiresAt")), reason });
     if (!r.ok) return r;
     refresh(id);
     const moved = r.moved ? ` ${r.moved} ${r.moved === 1 ? "job" : "jobs"} moved to this version.` : "";
     const frozen = r.frozen ? ` ${r.frozen} ${r.frozen === 1 ? "job stays" : "jobs stay"} frozen on the old one; the organizations have been told.` : "";
-    return { ok: true, message: `Approved.${moved}${frozen}` };
+    const waiting = r.notEffectiveUntil ? ` This version isn't effective until ${r.notEffectiveUntil.toISOString().slice(0, 10)}: the moved jobs are frozen until then, and their organizations have been told.` : "";
+    return { ok: true, message: `Approved.${moved}${frozen}${waiting}` };
   }
   if (decision === "withdraw") {
     const r = await withdrawJurisdictionApproval(actor, id, reason);

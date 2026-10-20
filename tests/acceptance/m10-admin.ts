@@ -1,10 +1,10 @@
-/* M10 acceptance checks on real Postgres: the staff gate and ledger (M10.1: staff is a flag independent of role, the ledger needs a reason and never changes, the overview reads the queues) and the organization approval queue (M10.2: decisions, notices, the publish gate). The runner applies prisma/m10-admin.sql on top of the full setup first, so the migration's re-run safety is checked too (tests/acceptance/run.sh). */
+/* M10 acceptance checks on real Postgres: the staff gate and ledger (M10.1: staff is a flag independent of role, the ledger needs a reason and never changes, the overview reads the queues), the organization approval queue (M10.2: decisions, notices, the publish gate) and jurisdiction rule profiles (M10.3: proposals, approval that moves what fits and freezes the rest, withdrawal, retirement, the place lock). The runner applies prisma/m10-admin.sql on top of the full setup first, so the migration's re-run safety is checked too (tests/acceptance/run.sh). */
 import { db } from "@/lib/db";
 import { checkReason, loadAdminOverview, recordAdminAction } from "@/lib/admin-data";
 import { approvalStanding, decideOrganization, listOrganizationsForAdmin, loadOrganizationForAdmin } from "@/lib/admin-orgs-data";
 import { approveJurisdictionVersion, listJurisdictionsForAdmin, loadJurisdictionForAdmin, proposeJurisdictionVersion, retireJurisdictionProposal, withdrawJurisdictionApproval } from "@/lib/admin-jurisdictions-data";
 import { readRules } from "@/lib/jurisdiction-rules";
-import { listJurisdictions } from "@/lib/jobs-data";
+import { jurisdictionOptions } from "@/lib/jurisdiction-options";
 import { canScheduleShift, jurisdictionProblems, publishBlockers, type PublishFacts } from "@/lib/jobs";
 import { orgNoticeText } from "@/lib/notification-text";
 import { loadNotifications, unreadNotifications } from "@/lib/notifications-data";
@@ -122,6 +122,8 @@ const fails_ = async (f: () => Promise<unknown>): Promise<string> => { try { awa
   // 7. Jurisdiction rule profiles (M10.3): a rule change is a new version; approval moves the jobs that fit and freezes the rest.
   const JOB = "00000000-0000-0000-0000-000000000011";
   const SHIFT_JOB = "00000000-0000-0000-0000-0000000000c1";
+  // Section 3 moved the seed profile's dates to test the overview; put them back so this section starts from a usable version 1.
+  await p.jurisdictionProfile.updateMany({ where: { state: "CO", locality: "Denver", isCurrent: true }, data: { effectiveFrom: null, approvalExpiresAt: null } });
   const v1 = await p.jurisdictionProfile.findFirstOrThrow({ where: { state: "CO", locality: "Denver", isCurrent: true } });
   // A shift-rate job under version 1 (which allows hourly and shift rates), cloned from the seed job.
   await p.$executeRaw`INSERT INTO "Job" SELECT * FROM jsonb_populate_record(null::"Job", (SELECT to_jsonb(j) || jsonb_build_object('id', ${SHIFT_JOB}, 'title', 'Shift-rate canvass', 'compensationMethod', 'SHIFT_RATE', 'status', 'PUBLISHED') FROM "Job" j WHERE j.id = ${JOB}::uuid))`;
@@ -130,7 +132,8 @@ const fails_ = async (f: () => Promise<unknown>): Promise<string> => { try { awa
   check("the seed's rules read as hourly and shift rates, no per-unit", rules1.compensationAllowed.join(",") === "HOURLY,SHIFT_RATE" && !rules1.perUnitAllowed, rules1);
   const prop = await proposeJurisdictionVersion(asOwner, { state: "co", locality: "Denver", rules: { ...rules1, compensationAllowed: ["HOURLY"], badgeRequired: true, notes: "Counsel memo of Oct 20: shift rates no longer allowed." }, effectiveFrom: null, reason: "Counsel memo of Oct 20" }, t3);
   const v2 = prop.ok ? await p.jurisdictionProfile.findUniqueOrThrow({ where: { id: prop.id } }) : null;
-  check("a proposed version is version 2 of the place: not current, not approved, with its proposer, and not offered to the job form", prop.ok && v2?.version === 2 && !v2.isCurrent && !v2.approved && v2.createdById === OWNER && !(await listJurisdictions()).some((j) => j.id === prop.id), { prop, v2 });
+  const opt1 = await jurisdictionOptions(t3);
+  check("a proposed version is version 2 of the place: not current, not approved, with its proposer; the job form lists it as unusable", prop.ok && v2?.version === 2 && !v2.isCurrent && !v2.approved && v2.createdById === OWNER && (opt1.find((o) => o.id === prop.id)?.problems.length ?? 0) > 0 && opt1.find((o) => o.id === v1.id)?.problems.length === 0, { prop, v2, opt1 });
   const list1 = await listJurisdictionsForAdmin(t3);
   const denver = list1.find((pl) => pl.state === "CO" && pl.locality === "Denver");
   check("the admin list groups a place's versions newest first with their standing and open jobs", denver?.versions.map((v) => `${v.version}:${v.standing}:${v.jobs}`).join(" ") === "2:proposed:0 1:current:2", denver?.versions.map((v) => [v.version, v.standing, v.jobs]));
@@ -148,31 +151,45 @@ const fails_ = async (f: () => Promise<unknown>): Promise<string> => { try { awa
   check("the hourly job moves to version 2 and the shift-rate job stays frozen on version 1", apv.ok && apv.moved === 1 && apv.frozen === 1 && seedJob.jurisdictionId === prop.id && shiftJob.jurisdictionId === v1.id, { apv, seedJob, shiftJob });
   check("the move is on the job's own audit trail, by nobody in particular", (await p.auditEvent.count({ where: { action: "job.jurisdiction_moved", entityId: JOB, actorId: null } })) === 1 && (await p.auditEvent.count({ where: { action: "job.jurisdiction_moved", entityId: SHIFT_JOB } })) === 0);
   check("the organization's owner is told its job froze; its supervisor is not", (await p.notification.count({ where: { recipientId: OWNER, kind: "ORG_JOBS_FROZEN" } })) === 1 && (await p.notification.count({ where: { recipientId: SUP, kind: "ORG_JOBS_FROZEN" } })) === 0);
-  check("the gate follows: the moved job can schedule, the frozen one can't, and the job form offers only version 2", canScheduleShift(v2After, t4).ok && !canScheduleShift(v1After, t4).ok && (await listJurisdictions()).map((j) => j.id).join(",") === prop.id);
+  const opt2 = await jurisdictionOptions(t4);
+  check("the gate follows: the moved job can schedule, the frozen one can't, and the job form now marks version 1 unusable and version 2 usable", canScheduleShift(v2After, t4).ok && !canScheduleShift(v1After, t4).ok && opt2.find((o) => o.id === prop.id)?.problems.length === 0 && (opt2.find((o) => o.id === v1.id)?.problems.length ?? 0) > 0 && /newer version/.test(canScheduleShift(v1After, t4).reasons.join(" ")), opt2);
   const d1 = await loadJurisdictionForAdmin(v1.id, t4);
-  check("the superseded version's page shows its frozen job with the reason, its successor, and no ledger rows from before the console", d1?.standing === "superseded" && d1.jobList.length === 1 && d1.jobList[0].id === SHIFT_JOB && /superseded/.test(d1.jobList[0].problems.join(" ")) && d1.siblings.map((s) => s.version).join(",") === "2" && d1.history.length === 0, d1 && { standing: d1.standing, jobs: d1.jobList.map((j) => [j.id, j.problems]), siblings: d1.siblings.length, history: d1.history.length });
+  check("the superseded version's page shows its frozen job, explained by the current rules first, its successor, and no ledger rows from before the console", d1?.standing === "superseded" && d1.jobs === 1 && d1.jobList.length === 1 && d1.jobList[0].id === SHIFT_JOB && /per shift/.test(d1.jobList[0].problems[0]) && /newer version/.test(d1.jobList[0].problems.join(" ")) && d1.siblings.map((s) => s.version).join(",") === "2" && d1.history.length === 0, d1 && { standing: d1.standing, jobs: d1.jobList.map((j) => [j.id, j.problems]), siblings: d1.siblings.length, history: d1.history.length });
   const d2 = await loadJurisdictionForAdmin(prop.id, t4);
   check("the current version's page lists its decisions newest first with the staff member's name", d2?.history.map((h) => h.action).join(",") === "jurisdiction.version_approved,jurisdiction.version_proposed" && d2.history[0].staffName === "Maya Chen" && d2.jobList.length === 1 && d2.jobList[0].problems.length === 0, d2?.history);
   check("approving an already superseded version is refused", !(await approveJurisdictionVersion(asOwner, v1.id, { approvalExpiresAt: null, reason: "Trying" }, t4)).ok);
   const t5 = new Date(now.getTime() + 40_000);
   const wd = await withdrawJurisdictionApproval(asOwner, prop.id, "Counsel pulled the opinion pending a court ruling", t5);
-  check("withdrawing approval freezes the job under version 2, tells the owner again, and empties the job form's list", wd.ok && wd.frozen === 1 && !(await p.jurisdictionProfile.findUniqueOrThrow({ where: { id: prop.id } })).approved && (await p.notification.count({ where: { recipientId: OWNER, kind: "ORG_JOBS_FROZEN" } })) === 2 && (await listJurisdictions()).length === 0, wd);
+  check("withdrawing approval freezes the job under version 2, tells the owner again, and the job form marks every version unusable", wd.ok && wd.frozen === 1 && !(await p.jurisdictionProfile.findUniqueOrThrow({ where: { id: prop.id } })).approved && (await p.notification.count({ where: { recipientId: OWNER, kind: "ORG_JOBS_FROZEN" } })) === 2 && (await jurisdictionOptions(t5)).every((o) => o.problems.length > 0), wd);
   const t6 = new Date(now.getTime() + 50_000);
   const rn = await approveJurisdictionVersion(asOwner, prop.id, { approvalExpiresAt: null, reason: "The ruling came in; counsel restored the opinion" }, t6);
-  check("approving the current version again renews it in place: nothing moves, the expiry is cleared, and the ledger says renewed", rn.ok && rn.moved === 0 && rn.frozen === 0 && (await p.jurisdictionProfile.findUniqueOrThrow({ where: { id: prop.id } })).approvalExpiresAt === null && (await p.adminAction.count({ where: { targetId: prop.id, action: "jurisdiction.approval_renewed" } })) === 1 && (await listJurisdictions()).length === 1, rn);
+  check("approving the current version again renews it in place: nothing moves, the expiry is what was given, and the ledger says renewed", rn.ok && rn.moved === 0 && rn.frozen === 0 && (await p.jurisdictionProfile.findUniqueOrThrow({ where: { id: prop.id } })).approvalExpiresAt === null && (await p.adminAction.count({ where: { targetId: prop.id, action: "jurisdiction.approval_renewed" } })) === 1 && (await jurisdictionOptions(t6)).find((o) => o.id === prop.id)?.problems.length === 0, rn);
   const p3 = await proposeJurisdictionVersion(asOwner, { state: "CO", locality: "Denver", rules: rules1, effectiveFrom: null, reason: "A draft to retire" }, t6);
   const t7 = new Date(now.getTime() + 60_000);
   const rt = p3.ok ? await retireJurisdictionProposal(asOwner, p3.id, "Counsel changed the draft", t7) : { ok: false as const, message: "no proposal" };
   const list2 = await listJurisdictionsForAdmin(t7);
-  check("a retired proposal reads as superseded without ever being current, and the place lists three versions", rt.ok && list2.find((pl) => pl.locality === "Denver")?.versions.map((v) => `${v.version}:${v.standing}`).join(" ") === "3:superseded 2:current 1:superseded", list2.find((pl) => pl.locality === "Denver")?.versions.map((v) => [v.version, v.standing]));
+  check("a retired proposal reads as retired, never current, and the place lists three versions", rt.ok && list2.find((pl) => pl.locality === "Denver")?.versions.map((v) => `${v.version}:${v.standing}`).join(" ") === "3:retired 2:current 1:superseded", list2.find((pl) => pl.locality === "Denver")?.versions.map((v) => [v.version, v.standing]));
+  check("approving a retired proposal is refused", /retired/.test((await approveJurisdictionVersion(asOwner, p3.ok ? p3.id : prop.id, { approvalExpiresAt: null, reason: "Trying" }, t7) as { message?: string }).message ?? ""));
+  // An older proposal can't be approved over a newer version in force.
+  const p4 = await proposeJurisdictionVersion(asOwner, { state: "CO", locality: "Denver", rules: rules1, effectiveFrom: null, reason: "Version 4 draft" }, t7);
+  const p5 = await proposeJurisdictionVersion(asOwner, { state: "CO", locality: "Denver", rules: rules1, effectiveFrom: null, reason: "Version 5 draft" }, t7);
+  const ap5 = p5.ok ? await approveJurisdictionVersion(asOwner, p5.id, { approvalExpiresAt: null, reason: "Version 5 signed" }, t7) : { ok: false as const, message: "no proposal" };
+  const ap4 = p4.ok ? await approveJurisdictionVersion(asOwner, p4.id, { approvalExpiresAt: null, reason: "Version 4 signed late" }, t7) : { ok: false as const, message: "no proposal" };
+  check("after version 5 is approved, approving the older proposal 4 is refused and 5 stays current", p4.ok && p5.ok && ap5.ok && !ap4.ok && /Version 5 is newer/.test(ap4.message) && (await p.jurisdictionProfile.findUniqueOrThrow({ where: { id: p5.id } })).isCurrent, { ap4, ap5 });
+  // Two proposals at once for a statewide place (where the unique index can't tell NULL localities apart) still get distinct numbers.
+  const [ut1, ut2] = await Promise.all([
+    proposeJurisdictionVersion(asOwner, { state: "UT", locality: "", rules: readRules(null), effectiveFrom: null, reason: "Utah, first draft" }, t7),
+    proposeJurisdictionVersion(asOwner, { state: "UT", locality: "", rules: readRules(null), effectiveFrom: null, reason: "Utah, second draft" }, t7),
+  ]);
+  check("two proposals at once for a statewide place are versions 1 and 2, never two of the same", ut1.ok && ut2.ok && [ut1.version, ut2.version].sort().join(",") === "1,2" && (await p.jurisdictionProfile.count({ where: { state: "UT" } })) === 2, { ut1, ut2 });
   check("retiring a current version is refused", !(await retireJurisdictionProposal(asOwner, prop.id, "Trying", t7)).ok);
   const nm = await proposeJurisdictionVersion(asOwner, { state: "nm", locality: "", rules: readRules({ compensationAllowed: ["HOURLY"] }), effectiveFrom: new Date(t7.getTime() + 30 * 86_400_000), reason: "The pilot expands to New Mexico" }, t7);
   const nmAp = nm.ok ? await approveJurisdictionVersion(asOwner, nm.id, { approvalExpiresAt: null, reason: "Counsel's New Mexico memo" }, t7) : { ok: false as const, message: "no proposal" };
   const nmRow = nm.ok ? await p.jurisdictionProfile.findUniqueOrThrow({ where: { id: nm.id } }) : null;
-  check("a new statewide place starts at version 1, becomes current on approval, and is blocked until its effective date", nm.ok && nm.version === 1 && nmAp.ok && nmRow?.locality === null && nmRow.isCurrent && jurisdictionProblems(nmRow, t7).length === 1 && /effective/.test(jurisdictionProblems(nmRow, t7)[0]), { nm, nmAp });
+  check("a new statewide place starts at version 1, becomes current on approval, is blocked until its effective date, and the approval says so", nm.ok && nm.version === 1 && nmAp.ok && nmAp.notEffectiveUntil?.getTime() === nmRow?.effectiveFrom?.getTime() && nmRow?.locality === null && nmRow.isCurrent && jurisdictionProblems(nmRow, t7).length === 1 && /effective/.test(jurisdictionProblems(nmRow, t7)[0]), { nm, nmAp });
   const ov = await loadAdminOverview(OWNER, t7);
   check("the overview counts two current profiles, one of them blocked", ov.jurisdictionsCurrent === 2 && ov.jurisdictionsBlocked === 1, ov);
-  check("the expiry has to be in the future", !(await approveJurisdictionVersion(asOwner, prop.id, { approvalExpiresAt: new Date(now.getTime() - 1000), reason: "Trying" }, t7)).ok);
+  check("the expiry has to be tomorrow or later", /tomorrow or later/.test((await approveJurisdictionVersion(asOwner, p5.ok ? p5.id : prop.id, { approvalExpiresAt: new Date(now.getTime() - 1000), reason: "Trying" }, t7) as { message?: string }).message ?? ""));
 
   // 8. No Data API path to the ledger.
   const grants = await p.$queryRaw<{ grantee: string }[]>`SELECT grantee FROM information_schema.role_table_grants WHERE table_schema = 'public' AND table_name = 'AdminAction' AND grantee IN ('anon', 'authenticated')`;

@@ -11,7 +11,7 @@ import { LocalTime } from "@/components/LocalTime";
 /** Today in the field: the strip owners and supervisors see first. */
 function FieldToday({ ops }: { ops: NonNullable<Awaited<ReturnType<typeof loadDesk>>["today"]> }) {
   return (
-    <div className="hero-card space-y-4">
+    <div className={`hero-card space-y-4${ops.scheduled === 0 && ops.upcoming === 0 ? " hero-card-quiet" : ""}`}>
       <p className="eyebrow">In the field today</p>
       <p className="hero-title">{ops.scheduled === 1 ? "1 shift" : `${ops.scheduled} shifts`} under way</p>
       <p className="flex flex-wrap gap-x-6 gap-y-1 text-sm">

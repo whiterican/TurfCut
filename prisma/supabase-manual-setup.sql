@@ -136,6 +136,7 @@ CREATE TABLE "public"."Organization" (
     "id" UUID NOT NULL,
     "name" TEXT NOT NULL,
     "approved" BOOLEAN NOT NULL DEFAULT false,
+    "approvedAt" TIMESTAMP(3),
     "contractorTermsSignedAt" TIMESTAMP(3),
     "classificationReviewedAt" TIMESTAMP(3),
     "legalContact" TEXT,
@@ -1569,7 +1570,8 @@ DO $$ BEGIN
   CREATE TYPE "public"."NotificationKind" AS ENUM (
     'APPLICATION_RECEIVED', 'CLAIM_RECEIVED', 'INVITATION_RECEIVED', 'INVITATION_ACCEPTED', 'INVITATION_DECLINED',
     'INVITATION_WITHDRAWN', 'OFFER_RECEIVED', 'OFFER_ACCEPTED', 'OFFER_DECLINED', 'NOT_SELECTED', 'APPLICATION_WITHDRAWN', 'JOB_CLOSED', 'JOB_CHANGED', 'CAMPAIGN_POST',
-    'DISPUTE_OPENED', 'DISPUTE_MESSAGE', 'DISPUTE_RESOLVED', 'DISPUTE_OVERDUE', 'PAYOUT_SENT', 'PAYOUT_REVERSED');
+    'DISPUTE_OPENED', 'DISPUTE_MESSAGE', 'DISPUTE_RESOLVED', 'DISPUTE_OVERDUE', 'PAYOUT_SENT', 'PAYOUT_REVERSED',
+    'ORG_APPROVED', 'ORG_APPROVAL_REVOKED');
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 CREATE TABLE "public"."Notification" (
@@ -1591,7 +1593,8 @@ CREATE TABLE "public"."Notification" (
     CONSTRAINT "Notification_disputeId_fkey" FOREIGN KEY ("disputeId") REFERENCES "public"."PayDispute"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT "Notification_transferId_fkey" FOREIGN KEY ("transferId") REFERENCES "public"."PayoutTransfer"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT "Notification_subject" CHECK (
-      (("engagementId" IS NOT NULL)::int + ("postId" IS NOT NULL)::int + ("disputeId" IS NOT NULL)::int + ("transferId" IS NOT NULL)::int) = 1
+      (("engagementId" IS NOT NULL)::int + ("postId" IS NOT NULL)::int + ("disputeId" IS NOT NULL)::int + ("transferId" IS NOT NULL)::int)
+        = (CASE WHEN "kind"::text LIKE 'ORG\_%' THEN 0 ELSE 1 END)
       AND (("kind"::text = 'CAMPAIGN_POST') = ("postId" IS NOT NULL))
       AND (("kind"::text LIKE 'DISPUTE\_%') = ("disputeId" IS NOT NULL))
       AND (("kind"::text LIKE 'PAYOUT\_%') = ("transferId" IS NOT NULL)))

@@ -239,6 +239,10 @@ model Organization {
   id                       String            @id @default(uuid()) @db.Uuid
   name                     String
   approved                 Boolean           @default(false) // manual approval for the private pilot
+  // When Turfcut last approved it (M10.2). Stays set when approval is
+  // withdrawn (approved goes false), so Settings can say the approval was
+  // withdrawn rather than never given. The reason lives on the staff ledger.
+  approvedAt               DateTime?
   // Publish gate (spec p.15): no job publishes until both are recorded.
   contractorTermsSignedAt  DateTime?
   classificationReviewedAt DateTime?
@@ -1142,6 +1146,10 @@ enum NotificationKind {
   DISPUTE_OVERDUE // to the pay roles: a deadline passed
   PAYOUT_SENT // to the worker: a transfer went through (the receipt)
   PAYOUT_REVERSED // to the worker: a paid transfer was reversed
+  // M10.2: Turfcut's decision on the organization, to its owners. No subject
+  // row: the notice is about the organization the recipient belongs to.
+  ORG_APPROVED
+  ORG_APPROVAL_REVOKED
 }
 
 /// C3.5: an in-app notice for one person about one engagement. readAt is the
@@ -1153,7 +1161,8 @@ model Notification {
   kind         NotificationKind
   /// What it's about: exactly one of an engagement (hiring steps), a
   /// campaign post (CAMPAIGN_POST), a pay dispute (DISPUTE_*) or a payout
-  /// transfer (PAYOUT_*); checked in SQL (prisma/m9-money.sql).
+  /// transfer (PAYOUT_*); checked in SQL (prisma/m9-money.sql). An ORG_*
+  /// notice (M10.2) has no subject: it is about the recipient's organization.
   engagementId String?          @db.Uuid
   engagement   Engagement?      @relation(fields: [engagementId], references: [id], onDelete: Restrict)
   postId       String?          @db.Uuid

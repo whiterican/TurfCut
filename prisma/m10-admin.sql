@@ -12,6 +12,20 @@
 --   2. AdminAction: one row per act a staff member takes, with who, what,
 --      on which record, for which organization, and why. Append-only,
 --      server-only (RLS on, no policies, no grants).
+-- Slice 2: the organization approval queue.
+--   3. NotificationKind gains ORG_APPROVED and ORG_APPROVAL_REVOKED: Turfcut's
+--      decision, to the organization's owners. These notices have no subject
+--      row (the Notification_subject check below allows exactly that).
+--   4. Organization.approvedAt: when Turfcut last approved it. Organizations
+--      already approved are dated from their creation (the one value filled
+--      in; nothing recorded changes).
+
+-- The new enum values first, outside the transaction (Postgres can't use a
+-- value added in the same transaction). The check below compares the kind
+-- as text, so it works statement by statement (psql -f) or as one block
+-- (the Supabase SQL editor), where the new values aren't committed yet.
+ALTER TYPE "public"."NotificationKind" ADD VALUE IF NOT EXISTS 'ORG_APPROVED';
+ALTER TYPE "public"."NotificationKind" ADD VALUE IF NOT EXISTS 'ORG_APPROVAL_REVOKED';
 
 BEGIN;
 -- Don't queue the app behind a long transaction: after 5 seconds of waiting
@@ -52,5 +66,19 @@ CREATE OR REPLACE TRIGGER "AdminAction_append_only" BEFORE UPDATE OR DELETE ON "
   FOR EACH ROW EXECUTE FUNCTION "turfcut_private"."append_only"();
 ALTER TABLE "public"."AdminAction" ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON "public"."AdminAction" FROM anon, authenticated;
+
+-- Slice 2: when Turfcut last approved an organization (M10.2).
+ALTER TABLE "public"."Organization" ADD COLUMN IF NOT EXISTS "approvedAt" TIMESTAMP(3);
+UPDATE "public"."Organization" SET "approvedAt" = "createdAt" WHERE "approved" AND "approvedAt" IS NULL;
+
+-- One subject per notice and the kind says which, as in M9; an ORG_* notice
+-- (Turfcut's decision on the recipient's organization) has none.
+ALTER TABLE "public"."Notification" DROP CONSTRAINT IF EXISTS "Notification_subject";
+ALTER TABLE "public"."Notification" ADD CONSTRAINT "Notification_subject" CHECK (
+  (("engagementId" IS NOT NULL)::int + ("postId" IS NOT NULL)::int + ("disputeId" IS NOT NULL)::int + ("transferId" IS NOT NULL)::int)
+    = (CASE WHEN "kind"::text LIKE 'ORG\_%' THEN 0 ELSE 1 END)
+  AND (("kind"::text = 'CAMPAIGN_POST') = ("postId" IS NOT NULL))
+  AND (("kind"::text LIKE 'DISPUTE\_%') = ("disputeId" IS NOT NULL))
+  AND (("kind"::text LIKE 'PAYOUT\_%') = ("transferId" IS NOT NULL)));
 
 COMMIT;

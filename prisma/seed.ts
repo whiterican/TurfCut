@@ -63,6 +63,7 @@ async function main() {
       id: "00000000-0000-0000-0000-000000000001",
       name: "Front Range Circulators",
       approved: true,
+      approvedAt: new Date(), // M10.2: the pilot's first organization, approved from the start
     },
   });
 

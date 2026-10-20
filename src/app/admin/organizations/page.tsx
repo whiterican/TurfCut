@@ -52,7 +52,7 @@ export default async function AdminOrganizationsPage() {
         <h2 id="awaiting" className="section-title flex items-center justify-between">
           Awaiting approval <span className="text-xs font-medium text-subtle">{awaiting.length}</span>
         </h2>
-        <p className="text-muted-sm">Oldest first. Approval lets an organization see worker profiles, publish once its gate is complete, and be found by workers.</p>
+        <p className="text-muted-sm">Waiting longest first. Approval lets an organization see worker profiles, publish once its gate is complete, and be found by workers.</p>
         {awaiting.length === 0 ? (
           <div className="empty-state">
             <p className="empty-state-title">Nothing waiting</p>

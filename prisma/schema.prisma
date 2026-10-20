@@ -299,6 +299,12 @@ model JurisdictionProfile {
   // Versioned by effective date; counsel approval can lapse (spec p.13, p.15).
   effectiveFrom     DateTime? // null = effective immediately
   approvalExpiresAt DateTime? // null = no expiry set by counsel
+  // M10.3: who proposed and approved this version (staff Profile ids), and
+  // when a newer approved version took its place. The reasons live on the
+  // staff ledger (AdminAction).
+  createdById       String?   @db.Uuid
+  approvedById      String?   @db.Uuid
+  supersededAt      DateTime?
   // Compensation/eligibility/registration/badge/affidavit/disclosure rules.
   rules             Json
   jobs              Job[]
@@ -1150,6 +1156,7 @@ enum NotificationKind {
   // row: the notice is about the organization the recipient belongs to.
   ORG_APPROVED
   ORG_APPROVAL_REVOKED
+  ORG_JOBS_FROZEN // M10.3: a jurisdiction rule change or a withdrawn approval froze some of the organization's jobs
 }
 
 /// C3.5: an in-app notice for one person about one engagement. readAt is the

@@ -19,6 +19,12 @@
 --   4. Organization.approvedAt: when Turfcut last approved it. Organizations
 --      already approved are dated from their creation (the one value filled
 --      in; nothing recorded changes).
+-- Slice 3: jurisdiction rule profiles.
+--   5. NotificationKind gains ORG_JOBS_FROZEN: to an organization's owners
+--      and recruiters when a rule change or a withdrawn approval froze some
+--      of its jobs. No subject row, like the other ORG_ notices.
+--   6. JurisdictionProfile.createdById, approvedById (staff) and
+--      supersededAt (when a newer approved version took its place).
 
 -- The new enum values first, outside the transaction (Postgres can't use a
 -- value added in the same transaction). The check below compares the kind
@@ -26,6 +32,7 @@
 -- (the Supabase SQL editor), where the new values aren't committed yet.
 ALTER TYPE "public"."NotificationKind" ADD VALUE IF NOT EXISTS 'ORG_APPROVED';
 ALTER TYPE "public"."NotificationKind" ADD VALUE IF NOT EXISTS 'ORG_APPROVAL_REVOKED';
+ALTER TYPE "public"."NotificationKind" ADD VALUE IF NOT EXISTS 'ORG_JOBS_FROZEN';
 
 BEGIN;
 -- Don't queue the app behind a long transaction: after 5 seconds of waiting
@@ -80,5 +87,10 @@ ALTER TABLE "public"."Notification" ADD CONSTRAINT "Notification_subject" CHECK 
   AND (("kind"::text = 'CAMPAIGN_POST') = ("postId" IS NOT NULL))
   AND (("kind"::text LIKE 'DISPUTE\_%') = ("disputeId" IS NOT NULL))
   AND (("kind"::text LIKE 'PAYOUT\_%') = ("transferId" IS NOT NULL)));
+
+-- Slice 3: who proposed and approved a jurisdiction version, and when it was superseded (M10.3).
+ALTER TABLE "public"."JurisdictionProfile" ADD COLUMN IF NOT EXISTS "createdById" UUID;
+ALTER TABLE "public"."JurisdictionProfile" ADD COLUMN IF NOT EXISTS "approvedById" UUID;
+ALTER TABLE "public"."JurisdictionProfile" ADD COLUMN IF NOT EXISTS "supersededAt" TIMESTAMP(3);
 
 COMMIT;

@@ -29,6 +29,7 @@ describe("notification words", () => {
     expect(orgNoticeText("ORG_APPROVED")).toEqual({ text: "Turfcut approved your organization for the pilot. Jobs can publish once the rest of the gate in Settings is done.", href: "/org/settings" });
     expect(orgNoticeText("ORG_APPROVAL_REVOKED")?.href).toBe("/org/settings");
     expect(orgNoticeText("ORG_APPROVAL_REVOKED")?.text).not.toMatch(/@|reason/i);
+    expect(orgNoticeText("ORG_JOBS_FROZEN")).toMatchObject({ href: "/jobs" });
     expect(orgNoticeText("PAYOUT_SENT")).toBeNull();
   });
 });

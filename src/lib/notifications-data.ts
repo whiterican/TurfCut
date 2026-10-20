@@ -86,7 +86,7 @@ export const NOTIFICATION_PAGE = 50;
 export const UNREAD_CAP = 100;
 
 /** Notices about the recipient's own organization (M10.2): no engagement, post, dispute or transfer behind them. */
-export const ORG_NOTICE_KINDS: NotificationKind[] = ["ORG_APPROVED", "ORG_APPROVAL_REVOKED"];
+export const ORG_NOTICE_KINDS: NotificationKind[] = ["ORG_APPROVED", "ORG_APPROVAL_REVOKED", "ORG_JOBS_FROZEN"];
 
 type Viewer = { userId: string; role: Role; workerId: string | null; orgId: string | null };
 

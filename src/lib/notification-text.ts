@@ -10,6 +10,7 @@ export function orgNoticeText(kind: NotificationKind): { text: string; href: str
   switch (kind) {
     case "ORG_APPROVED": return { text: "Turfcut approved your organization for the pilot. Jobs can publish once the rest of the gate in Settings is done.", href: "/org/settings" };
     case "ORG_APPROVAL_REVOKED": return { text: "Turfcut withdrew your organization's approval. Publishing and hiring are paused until it is restored; Settings shows where things stand.", href: "/org/settings" };
+    case "ORG_JOBS_FROZEN": return { text: "A jurisdiction rule change froze one or more of your jobs: no new shifts or seats until they fit the new rules. Each job page says what to change.", href: "/jobs" };
     default: return null;
   }
 }

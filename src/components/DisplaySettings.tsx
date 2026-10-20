@@ -99,7 +99,7 @@ export function DisplaySettings() {
         <div className="grid gap-2 sm:grid-cols-3">
           {TEXT_SIZES.map((t, i) => (
             <label key={t.value} className="option-card items-center">
-              <input type="radio" name="textSize" checked={size === t.value} onChange={() => applySize(t.value)} className="size-4 shrink-0" />
+              <input type="radio" name="textSize" checked={size === t.value} onChange={() => applySize(t.value)} className="shrink-0" />
               <span className="font-semibold text-fg" style={{ fontSize: `${1 + i * 0.125}rem` }}>
                 {t.label}
               </span>
@@ -114,7 +114,7 @@ export function DisplaySettings() {
         <div className="grid gap-2 sm:grid-cols-3">
           {([["system", "Match my phone"], ["light", "Light"], ["dark", "Dark"]] as const).map(([v, label]) => (
             <label key={v} className="option-card items-center">
-              <input type="radio" name="theme" checked={theme === v} onChange={() => applyTheme(v)} className="size-4 shrink-0" />
+              <input type="radio" name="theme" checked={theme === v} onChange={() => applyTheme(v)} className="shrink-0" />
               <span className="font-semibold text-fg">{label}</span>
             </label>
           ))}

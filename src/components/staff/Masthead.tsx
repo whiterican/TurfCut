@@ -1,6 +1,6 @@
 /**
  * The top of a staff page: a small label, the organization's or job's name
- * in Newsreader (the only place it's used), an optional line under it, and
+ * in the brand face, an optional line under it, and
  * actions on the right.
  */
 export function Masthead({ eyebrow, title, meta, children }: { eyebrow: string; title: string; meta?: React.ReactNode; children?: React.ReactNode }) {

@@ -114,6 +114,10 @@ describe.each([
   });
 
   it("the tab bar is paper: labels AAA on it, and lime type AAA on the current tab's eggplant tile", () => {
+    // The frame is opaque paper (DESIGN.md: no glass); a translucent bar or header is caught here.
+    expect(css).toMatch(/\.tabbar \{[^}]*?background: var\(--surface\);/);
+    expect(css).toMatch(/\.site-header \{[^}]*?background: var\(--bg\);/);
+    expect(css).toMatch(/\.eyebrow \{[^}]*?color: var\(--kicker\);/);
     expect(ratio(t.fg, t.surface)).toBeGreaterThanOrEqual(7);
     expect(ratio(t["tab-active-fg"], t["tab-active-bg"])).toBeGreaterThanOrEqual(7);
     // The tile is told apart from the bar by its lime type; its fill still differs visibly from the bar.

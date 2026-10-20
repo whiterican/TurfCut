@@ -23,15 +23,15 @@
 :root {
   /* The accent fill: lime in both themes. */
   --accent: #d6f25a;
-  /* Solid (and on-solid): the fill for "done / live / verified"
-     badges, a quick filter that's on and team avatars, and the text on it. One
-     role, two colours: EGGPLANT with off-white text by day, OLIVE with lime
-     text by night (the mockup's "Verified org" chip). Was --plum, which only
-     described the light theme. */
+  /* Solid (and on-solid): the fill for live status ("Active", "Approved",
+     "Ready", "You"), a quick filter that's on and team avatars, and the text
+     on it: a lime chip with ink text in both themes (DESIGN.md). */
   --solid: #d6f25a; /* live status (Active, Approved, Ready, You): a lime chip with ink text */
   --on-solid: #1b1422;
-  /* One accent: date emphasis is a lime chip too; holds are a clay tint; waiting is stone. */
-  --sky: #d6f25a;
+  /* One accent. Informational states that aren't live (scheduled, waiting,
+     a role) take a lavender tint; holds a clay tint; closed and short, stone.
+     Date emphasis is a lime chip (DateRangeChip). */
+  --sky: #e3dbee;
   --coral: #f1c6bd;
   --butter: #ddd3c3;
   --ink: #1b1422; /* text on any accent fill */
@@ -60,6 +60,7 @@
   --link: #3a2154;
   --kicker: #3a2154;
   --focus: #3a2154;
+  --selected: #3a2154; /* the chosen option's ring and card edge */
   --danger: #a8402f;
   --success: #3a2154;
   --warning: #5a3a14;
@@ -102,7 +103,8 @@
   --ink: #1b1422;
   --link: #f6f1e6;
   --kicker: #d6f25a;
-  --focus: #d6f25a;
+  --focus: #d6f25a; /* the keyboard outline only */
+  --selected: #5a3b82; /* the chosen option stays eggplant by night */
   --danger: #eb9082;
   --success: #d6f25a;
   --warning: #f0d08a;
@@ -127,11 +129,9 @@
   color-scheme: dark;
 }
 
-/* Liquid glass (tab bar, header, round buttons): a tint of the card colour
-   that blurs and brightens whatever scrolls under it, a hairline edge, a
-   soft top highlight, and a deeper pill for the tab you're on. 78% keeps
-   every label on it AAA over anything, black and white included
-   (design-tokens.test.ts). Kept out of the colour blocks above. */
+/* Frame tokens: the surfaces that float (tab bar, header buttons, the More
+   sheet, map controls, icon buttons, sticky table headers). Plain paper now;
+   the names stay so every surface rule reads the same way. */
 html {
   /* The root paints the page colour (what overscroll shows). */
   background: var(--bg);
@@ -143,21 +143,12 @@ html {
   --glass-bg-dense: var(--surface-2);
   --glass-border: var(--border);
   --glass-highlight: 0 0 0 0 transparent;
-  --glass-active: var(--tab-active-bg);
-  --glass-active-border: transparent;
-  --glass-active-shadow: 0 0 0 0 transparent;
   --glass-filter: none;
   --glass-sheen: none;
-  --glass-caustic: transparent;
-  --orb-bg: var(--surface);
   --card-bg: var(--surface);
   --card-edge: 0 0 0 0 transparent;
   --card-sheen: none;
   --hero-bg: var(--hero);
-  --hero-edge: 0 0 0 0 transparent;
-  --hero-sheen: none;
-  --glass-rim: none;
-  --glass-depth: var(--shadow-depth);
 }
 @theme inline {
   --color-bg: var(--bg);
@@ -233,38 +224,34 @@ body {
   /* Newsreader, for mastheads only: organization and job names at the top of a page. */
   .masthead {
     /* Headlines are the brand face, semibold and tight: never a serif. */
-    font-family: var(--font-barlow), ui-sans-serif, system-ui, sans-serif;
-    font-weight: 600;
-    letter-spacing: -0.02em;
-    @apply font-semibold tracking-[-0.01em] text-fg;
+    @apply font-semibold tracking-[-0.02em] text-fg;
   }
   .page-title.masthead {
     @apply tracking-[-0.015em];
   }
   /* Small mono label above a title ("LIVE SHIFT", "GOOD MORNING"). */
   .eyebrow {
-    @apply flex items-center gap-3 font-semibold tracking-[0.18em] uppercase;
-    font-family: var(--font-barlow-condensed), var(--font-barlow), sans-serif;
+    @apply font-condensed font-semibold tracking-[0.18em] uppercase;
     font-size: 0.8125rem;
     color: var(--kicker);
   }
-  .hero-card .eyebrow {
-    color: var(--hero-muted);
-  }
-  .hero-card-accent .eyebrow {
-    color: var(--ink);
-  }
-  .hero-card .eyebrow::before {
-    display: none;
-  }
-  /* The lime dash: the one mark of turf on every page. */
+  /* The lime dash: the page kicker's mark of turf. Inline, so a long kicker
+     wraps as one line of text with the dash on its first line. Not inside a
+     hero, a summary bar or the More sheet (the frames show none there). */
   .eyebrow::before {
     content: "";
+    display: inline-block;
     width: 1.25rem;
     height: 3px;
-    flex: none;
+    margin-inline-end: 0.75rem;
     border-radius: 2px;
+    vertical-align: middle;
     background: var(--accent);
+  }
+  .hero-card .eyebrow::before,
+  .summary-item .eyebrow::before,
+  .more-sheet-panel .eyebrow::before {
+    display: none;
   }
   .section {
     @apply space-y-4;
@@ -291,25 +278,27 @@ body {
   /* The feature card (brand eggplant by day, raised eggplant by night) with a lime circle in the corner. */
   .hero-card {
     @apply relative overflow-hidden rounded-3xl p-5 sm:p-6;
-    background: var(--hero-sheen), var(--hero-bg);
+    background: var(--hero-bg);
+    /* The fill stops at the border, so the cut reaches the visible edge. */
+    background-clip: padding-box;
     color: var(--hero-fg);
     border: 2px solid var(--hero-border);
-    box-shadow: var(--hero-edge), var(--shadow-depth);
+    box-shadow: var(--shadow-depth);
   }
   /* The cut: a lime wedge in the top corner, never over the headline. */
   .hero-card::after {
     content: "";
     @apply pointer-events-none absolute top-0 right-0;
-    width: 6rem;
-    height: 3.75rem;
+    width: 4.25rem;
+    height: 2.75rem;
     background: var(--accent);
-    clip-path: polygon(0 55%, 100% 0, 100% 100%);
-    border-top-right-radius: inherit;
+    clip-path: polygon(0 60%, 100% 0, 100% 100%);
   }
 
   /* The worker's next shift (mockup): a bright accent card with dark ink. */
   .hero-card-accent {
-    background: var(--hero-sheen), var(--accent);
+    background: var(--accent);
+    background-clip: padding-box;
     color: var(--ink);
   }
   /* Priority rings (lib/priority): one narrow ring per level, each
@@ -363,7 +352,7 @@ body {
   }
   .hero-card .eyebrow {
     color: var(--hero-muted);
-    max-width: calc(100% - 5.5rem); /* clear the corner highlight */
+    max-width: calc(100% - 4rem); /* clear the corner cut */
   }
   .hero-title {
     @apply max-w-[80%] text-2xl leading-tight font-bold tracking-[-0.02em] sm:text-3xl;
@@ -436,7 +425,7 @@ body {
     text-decoration-color: var(--accent);
   }
   .link:hover {
-    @apply decoration-2;
+    text-decoration-color: var(--link);
   }
 
   /* ---- Forms ----------------------------------------------------------- */
@@ -463,8 +452,7 @@ body {
     color: var(--danger);
   }
   .fieldset-title {
-    @apply mb-2 text-xs font-semibold tracking-[0.14em] text-subtle uppercase;
-    font-family: var(--font-barlow-condensed), var(--font-barlow), sans-serif;
+    @apply mb-2 font-condensed text-xs font-semibold tracking-[0.14em] text-subtle uppercase;
   }
   /* Selectable pill (checkbox/radio inside). Active state = ink (light) / accent (dark). */
   .chip {
@@ -546,18 +534,22 @@ body {
     border-color: var(--border-strong);
   }
   .option-card:has(input:checked) {
-    border-color: var(--focus);
-    box-shadow: 0 0 0 1px var(--focus);
+    border-color: var(--selected);
+    box-shadow: 0 0 0 1px var(--selected);
   }
-  /* Radios: an eggplant ring with a lime dot. */
+  /* Radios: an eggplant ring with a lime dot. Sized here (appearance: none
+     leaves a radio with no size of its own). */
   .option-card input[type="radio"] {
     appearance: none;
+    width: 1.25rem;
+    height: 1.25rem;
+    flex: none;
     border-radius: 9999px;
     border: 2px solid var(--border-strong);
     background: var(--surface);
   }
   .option-card input[type="radio"]:checked {
-    border-color: var(--focus);
+    border-color: var(--selected);
     background: var(--accent);
     box-shadow: inset 0 0 0 2px var(--surface);
   }
@@ -707,20 +699,19 @@ body {
        the phone's text size (pixel bounds, not rem), so "Messages" and
        "Profile" stay inside the border at any Dynamic Type setting. */
     /* Condensed labels: six of them fit the pill at any text size. */
-    font-family: var(--font-barlow-condensed), var(--font-barlow), sans-serif;
-    font-size: clamp(11px, 3vw, 13px);
+    font-family: var(--font-condensed);
+    font-size: clamp(11px, 2.8vw, 12px);
     letter-spacing: 0.01em;
   }
   /* The tab you're on: a brighter lens, raised a little proud of the bar. */
   .tab[aria-current="page"] {
-    @apply font-extrabold;
+    @apply font-bold;
     /* An eggplant tile with rounded corners (not a circle, so six labels
        still fit), lime icon and label. It glides to the next tab on
        navigation (view-transition-name below). */
     border-radius: 1.125rem;
     background: var(--tab-active-bg);
     color: var(--tab-active-fg);
-    border-color: transparent;
     view-transition-name: tab-current;
   }
   .tab-icon {
@@ -750,9 +741,9 @@ body {
     @apply w-full border-collapse text-sm;
   }
   .data-table thead th {
-    @apply sticky top-0 z-10 border-b px-3 py-2 text-left text-xs font-semibold whitespace-nowrap text-muted;
-    background: var(--glass-bg-dense);
-    border-color: var(--glass-border);
+    @apply sticky top-0 z-10 border-b px-3 py-2 text-left font-condensed text-xs font-semibold tracking-[0.1em] whitespace-nowrap text-muted uppercase;
+    background: var(--surface-2);
+    border-color: var(--border);
   }
   .data-table tbody th,
   .data-table td {
@@ -814,6 +805,9 @@ body {
   .more-sheet-panel {
     @apply relative rounded-t-3xl border border-b-0 p-4;
     padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+    background: var(--surface);
+    border-color: var(--border);
+    box-shadow: var(--shadow);
   }
   /* The sheet's handle: a lime rule along the top edge, the turf mark of the brand. */
   .more-sheet-panel::before {
@@ -825,13 +819,6 @@ body {
     height: 4px;
     border-radius: 0 0 4px 4px;
     background: var(--accent);
-  }
-  .more-sheet-panel {
-    background: var(--glass-sheen), var(--glass-bg);
-    border-color: var(--glass-border);
-    -webkit-backdrop-filter: var(--glass-filter);
-    backdrop-filter: var(--glass-filter);
-    box-shadow: var(--glass-highlight), var(--shadow);
   }
   /* Dims the page (never a pale wash, which reads as disabled). */
   .more-sheet::backdrop {
@@ -1062,7 +1049,7 @@ body {
   border-bottom: 0;
 }
 .turf-map.leaflet-container .leaflet-bar a:hover {
-  background: var(--glass-active);
+  background: var(--surface-2);
 }
 /* The pill clips overflow, so the focus ring sits inside it. */
 .turf-map.leaflet-container .leaflet-bar a:focus-visible {
@@ -1125,7 +1112,7 @@ summary.list-none::-webkit-details-marker {
   color: var(--kicker);
 }
 /* Icon-only header buttons (notifications, preferences, theme) are round
-   glass bubbles, like the tab bar. */
+   paper buttons with a hairline, like the tab bar. */
 .site-header :is(a, button).btn-ghost:has(> svg):not(:has(> :not(svg, .unread-badge))),
 .site-header .glass-orb-phone {
   display: grid;
@@ -1155,8 +1142,6 @@ summary.list-none::-webkit-details-marker {
     border-radius: 0.5rem;
     border: 0;
     background: transparent;
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
     box-shadow: none;
   }
   .site-header .glass-orb-phone:hover {
@@ -1166,11 +1151,12 @@ summary.list-none::-webkit-details-marker {
 @media (forced-colors: active) {
   .tabbar, .icon-btn, .site-header, .composer, .thread-top, .more-sheet-panel, .data-table thead th, .turf-map.leaflet-container .leaflet-bar, .turf-map.leaflet-container .leaflet-control-attribution { border-color: CanvasText; }
   .tab[aria-current="page"] { border-color: Highlight; }
+  .option-card input[type="radio"] { appearance: auto; }
 }
 
 /* ---- Print (receipts and statements, M9) --------------------------------- */
 @media print {
-  .site-header, .tabbar, .no-print, nextjs-portal, body::after { display: none !important; }
+  .site-header, .tabbar, .no-print, nextjs-portal { display: none !important; }
   html, body { background: white; color: black; }
   .page { padding: 0; max-width: none; }
   .card, .list-card, .empty-state, .stat { background: white; border-color: #999; box-shadow: none; break-inside: avoid; }

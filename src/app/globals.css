@@ -5,7 +5,7 @@
  *
  * Dark (the primary theme): eggplant surfaces (#1c142c page, #281a3a cards,
  * #36264a raised), off-white text, lime (#ccea96) for the accent fill,
- * primary actions, links and highlights, and olive (#3e4830) chips with lime
+ * primary actions, links and highlights, and lime status chips with lime
  * text for "verified / done". Light: off-white page (#eef0ea), white cards,
  * green-black ink (#181e1a), lime accent fills, eggplant for links, the
  * "done" badges and progress, and an eggplant feature card (#2b1b3d). Pastel status
@@ -31,7 +31,7 @@
   /* One accent. Informational states that aren't live (scheduled, waiting,
      a role) take a lavender tint; holds a clay tint; closed and short, stone.
      Date emphasis is a lime chip (DateRangeChip). */
-  --sky: #e3dbee;
+  --sky: #d9cfe6;
   --coral: #f1c6bd;
   --butter: #ddd3c3;
   --ink: #1b1422; /* text on any accent fill */
@@ -140,7 +140,6 @@ html {
      hairline, no blur. The token names stay so every surface rule reads the
      same way; the values are what the clipboard brand asks for. */
   --glass-bg: var(--surface);
-  --glass-bg-dense: var(--surface-2);
   --glass-border: var(--border);
   --glass-highlight: 0 0 0 0 transparent;
   --glass-filter: none;
@@ -221,7 +220,7 @@ body {
   .page-title {
     @apply text-3xl leading-[1.05] font-bold tracking-[-0.03em] text-fg sm:text-4xl;
   }
-  /* Newsreader, for mastheads only: organization and job names at the top of a page. */
+  /* the brand face: organization and job names at the top of a page. */
   .masthead {
     /* Headlines are the brand face, semibold and tight: never a serif. */
     @apply font-semibold tracking-[-0.02em] text-fg;
@@ -229,7 +228,7 @@ body {
   .page-title.masthead {
     @apply tracking-[-0.015em];
   }
-  /* Small mono label above a title ("LIVE SHIFT", "GOOD MORNING"). */
+  /* Small condensed label above a title ("LIVE SHIFT", "GOOD MORNING"). */
   .eyebrow {
     @apply font-condensed font-semibold tracking-[0.18em] uppercase;
     font-size: 0.8125rem;
@@ -255,10 +254,15 @@ body {
   .more-sheet-panel .eyebrow::before {
     display: none;
   }
-  /* Inside a card a kicker is a quiet label (a shift's date), not the page's mark. */
+  /* Inside a card, or heading a block within the page, a kicker is a quiet
+     label (a shift's date), not the page's mark. */
   .card .eyebrow,
-  .list-card .eyebrow {
+  .list-card .eyebrow,
+  .eyebrow-quiet {
     color: var(--muted);
+  }
+  .eyebrow-quiet::before {
+    display: none;
   }
   .section {
     @apply space-y-4;
@@ -282,7 +286,7 @@ body {
     background: var(--card-sheen), var(--card-bg);
     box-shadow: var(--card-edge), var(--shadow-depth);
   }
-  /* The feature card (brand eggplant by day, raised eggplant by night) with a lime circle in the corner. */
+  /* The feature card (brand eggplant by day, raised eggplant by night) with a lime cut in the corner. */
   .hero-card {
     @apply relative overflow-hidden rounded-3xl p-5 sm:p-6;
     background: var(--hero-bg);
@@ -318,10 +322,10 @@ body {
     border-color: var(--ring);
   }
   .hero-card[data-priority="2"] {
-    box-shadow: var(--hero-edge), 0 0 0 2px var(--ring-2), var(--shadow-depth);
+    box-shadow: 0 0 0 2px var(--ring-2), var(--shadow-depth);
   }
   .hero-card[data-priority="3"] {
-    box-shadow: var(--hero-edge), 0 0 0 2px var(--ring-2), 0 0 0 4px var(--ring-3), var(--shadow-depth);
+    box-shadow: 0 0 0 2px var(--ring-2), 0 0 0 4px var(--ring-3), var(--shadow-depth);
   }
   .dark .hero-card:is([data-priority="1"], [data-priority="2"], [data-priority="3"]) {
     border-color: var(--bg);
@@ -432,7 +436,7 @@ body {
     text-decoration-color: var(--accent);
   }
   .link:hover {
-    text-decoration-color: var(--link);
+    text-decoration-thickness: 3px;
   }
 
   /* ---- Forms ----------------------------------------------------------- */
@@ -442,7 +446,7 @@ body {
   .field {
     @apply block w-full min-h-11 rounded-xl border px-3 py-2 text-base text-fg sm:text-sm;
     background: var(--field);
-    /* The same edge as the glass bar, and a faint bevel: the field is set into the surface, not laid on it. */
+    /* The same hairline as the tab bar. */
     border-color: var(--glass-border);
     box-shadow: var(--card-edge);
   }
@@ -710,7 +714,7 @@ body {
     font-size: clamp(11px, 2.8vw, 12px);
     letter-spacing: 0.01em;
   }
-  /* The tab you're on: a brighter lens, raised a little proud of the bar. */
+  /* The tab you're on: an eggplant tile. */
   .tab[aria-current="page"] {
     @apply font-bold;
     /* An eggplant tile with rounded corners (not a circle, so six labels
@@ -866,7 +870,7 @@ body {
     background: var(--accent);
     color: var(--ink);
   }
-  /* By night: the olive "verified" chip colours, distinct from people's eggplant avatars. */
+  /* By night: the lime status chip colours, distinct from people's eggplant avatars. */
   .dark .avatar-team {
     background: var(--solid);
     color: var(--on-solid);
@@ -986,7 +990,7 @@ body {
   .filter-chip:hover {
     border-color: var(--border-strong);
   }
-  /* Solid: "done / live" badges and a quick filter that's on (eggplant by day, olive by night; see --solid). */
+  /* Solid: "done / live" badges and a quick filter that's on (a lime chip in both themes; see --solid). */
   .badge-solid,
   .filter-chip-on {
     background: var(--solid);
@@ -1031,7 +1035,7 @@ body {
   color: var(--link);
   text-decoration: underline;
 }
-/* The zoom buttons: one glass pill, like the header orbs. */
+/* The zoom buttons: one paper pill, like the header buttons. */
 .turf-map.leaflet-container .leaflet-bar {
   border: 1px solid var(--glass-border);
   border-radius: 9999px;
@@ -1096,8 +1100,8 @@ summary.list-none::-webkit-details-marker {
   display: none;
 }
 
-/* ---- Liquid glass frame ------------------------------------------------- */
-/* The header is glass too. On phones it stays at the top while the page
+/* ---- The frame ------------------------------------------------- */
+/* The header is paper. On phones it stays at the top while the page
    scrolls under it (not in chat threads, which pin their own top bar). */
 .site-header {
   /* Paper, no line under it: content scrolls under a plain band of the page colour. */

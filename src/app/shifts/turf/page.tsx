@@ -43,7 +43,7 @@ export default async function MyTurfPage() {
             <section key={s.id} className="section">
               <div className="flex flex-wrap items-end justify-between gap-2">
                 <div className="space-y-0.5">
-                  <p className="eyebrow">
+                  <p className="eyebrow eyebrow-quiet">
                     <LocalTime iso={s.startsAt.toISOString()} mode="date" /> · <LocalTime iso={s.startsAt.toISOString()} mode="time" />
                   </p>
                   <h2 className="section-title">{s.engagement.job.title}</h2>

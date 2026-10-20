@@ -193,6 +193,17 @@ describe("priority rings", () => {
   });
 });
 
+describe("token plumbing", () => {
+  it("every var(--x) without a fallback names a token the stylesheet (or next/font) defines", () => {
+    // A var() of an undefined property makes its whole declaration invalid, silently: a removed token
+    // must not leave a reference behind (it took the priority rings' shadow with it once).
+    const defined = new Set([...css.matchAll(/--([\w-]+)\s*:/g)].map((m) => m[1]));
+    const fromFonts = new Set(["font-barlow", "font-barlow-condensed", "font-dm-mono"]);
+    const dangling = [...new Set([...css.matchAll(/var\(--([\w-]+)\)/g)].map((m) => m[1]))].filter((n) => !defined.has(n) && !fromFonts.has(n));
+    expect(dangling).toEqual([]);
+  });
+});
+
 describe("solid badges", () => {
   it("text on the solid fill (eggplant by day, olive by night) is AAA in both themes", () => {
     for (const th of [light, dark]) expect(ratio(th["on-solid"], th.solid)).toBeGreaterThanOrEqual(7);

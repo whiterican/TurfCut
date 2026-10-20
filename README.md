@@ -1143,9 +1143,9 @@ roles, one slice at a time.
   can also be a worker or an owner. Nobody is staff until the flag is set
   by hand (below); the app never sets it.
 - **`/admin` is the console's shell.** Staff only. Anyone else — signed
-  out, a worker, an organization role — gets the same 404 as a page that
-  doesn't exist, so the console is never confirmed to someone who can't use
-  it. The overview shows the queues the later slices manage (organizations
+  out, a worker, an organization role — gets the same 404 page, with the
+  same title, as any address that doesn't exist, so the console is never
+  confirmed to someone who can't use it. The overview shows the queues the later slices manage (organizations
   awaiting approval, current jurisdiction profiles and how many the publish
   gate refuses) and the last ten staff acts.
 - **`AdminAction` is the staff ledger.** One row per act: who (the staff
@@ -1159,6 +1159,30 @@ roles, one slice at a time.
   rail and in More. The phone bar's picks stay the role's own work.
 - **Migration:** `prisma/m10-admin.sql` (safe to run again; later slices
   extend the same file). Checks: `tests/acceptance/m10-admin.ts`.
+
+### M10.2 — the organization approval queue (done)
+
+- **Admin → Organizations** lists who is waiting (oldest first) and who is
+  in, each with its owner's sign-in email, member count, the three
+  publish-gate items the organization records itself (contractor terms,
+  classification review, legal contact) and its jobs by status. The detail
+  page adds Turfcut's decisions on it so far, newest first, with the staff
+  member's name and reason.
+- **Approve, or withdraw approval, with a reason.** One transaction records
+  the standing, `Organization.approvedAt` (kept after a withdrawal, so
+  Settings can say the approval was withdrawn rather than never given), the
+  ledger row, and an in-app notice to every current owner (`ORG_APPROVED`,
+  `ORG_APPROVAL_REVOKED`: the decision and where to look, never the
+  reason). The update is conditional on the standing it changes from, so
+  two staff deciding at once can't record the same decision twice.
+- **What approval gates** is unchanged from M2: publishing a job, seeing
+  worker profiles, what workers share with "any approved organization",
+  public campaign pages, credential verification. Withdrawing approval
+  blocks the next publish with the existing message.
+- **Migration:** the same `prisma/m10-admin.sql` (two notice kinds, the
+  column, a backfill of `approvedAt` from `createdAt` for organizations
+  already approved, and the notice-subject check relaxed for `ORG_*`
+  notices, which have no subject row).
 
 ### Turfcut staff — making an account staff
 

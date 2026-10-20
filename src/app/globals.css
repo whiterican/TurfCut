@@ -248,10 +248,17 @@ body {
     vertical-align: middle;
     background: var(--accent);
   }
+  .card .eyebrow::before,
+  .list-card .eyebrow::before,
   .hero-card .eyebrow::before,
   .summary-item .eyebrow::before,
   .more-sheet-panel .eyebrow::before {
     display: none;
+  }
+  /* Inside a card a kicker is a quiet label (a shift's date), not the page's mark. */
+  .card .eyebrow,
+  .list-card .eyebrow {
+    color: var(--muted);
   }
   .section {
     @apply space-y-4;

@@ -18,7 +18,7 @@
  * - Nothing here reads, infers or labels political fit or chat content.
  */
 import type { Role } from "@/lib/auth";
-import { rolesFor } from "@/lib/access";
+import { canUse, rolesFor, type Grants } from "@/lib/access";
 
 /**
  * Org roles that run teams: create group chats and act as managers. From the
@@ -39,7 +39,7 @@ export type Kind = "DIRECT" | "GROUP";
 export interface ChatFacts {
   kind: Kind;
   orgId: string;
-  me: { profileId: string; role: Role; orgId: string | null };
+  me: { profileId: string; role: Role; grants?: Grants | null; orgId: string | null };
   /** My participant row, if any. */
   participant: { role: "WORKER" | "MANAGER"; removedAt: Date | null; addedAt?: Date } | null;
   /** DIRECT: the engagement's status. */
@@ -78,7 +78,7 @@ export function chatAccess(f: ChatFacts): Access {
   const frozen = (closed: string): Access => ({ read: true, readUntil: null, readFrom, post: false, closed });
 
   if (p.role === "MANAGER") {
-    if (f.me.orgId !== f.orgId || !CHAT_STAFF_ROLES.includes(f.me.role)) return frozen("You no longer manage this conversation. History is read-only.");
+    if (f.me.orgId !== f.orgId || !canUse(f.me, "messages")) return frozen("You no longer manage this conversation. History is read-only.");
   }
   if (f.kind === "DIRECT") {
     if (!HIRED.has(f.engagementStatus ?? "")) return frozen("This job has ended. The conversation is read-only.");
@@ -206,11 +206,11 @@ export function canEdit(access: Access, msg: ViewMessage, me: string, body: stri
  * moderating a message with an open report. The original stays in the store and in
  * any report's snapshot.
  */
-export function canDelete(access: Access, msg: ViewMessage, me: { profileId: string; role: Role; orgId: string | null }, orgId: string, reported: boolean): Check {
+export function canDelete(access: Access, msg: ViewMessage, me: { profileId: string; role: Role; grants?: Grants | null; orgId: string | null }, orgId: string, reported: boolean): Check {
   if (msg.deleted) return no("That message is already deleted.");
   // Read-only members (removed, hire ended, blocked) can't change history.
   if (msg.senderId === me.profileId && access.post) return yes;
-  if (me.role === "OWNER" && me.orgId === orgId && reported) return yes;
+  if (canUse(me, "moderation") && me.orgId === orgId && reported) return yes;
   if (msg.senderId === me.profileId) return no(access.closed ?? "This conversation is read-only.");
   return no("You can only delete your own messages.");
 }
@@ -234,14 +234,14 @@ export function canBlock(me: { role: Role }, target: { role: "WORKER" | "MANAGER
 /** Group members are managed by the chat's active managers and the org owner. */
 export function canManageMembers(f: ChatFacts): Check {
   if (f.kind !== "GROUP") return no("Direct conversations have fixed members.");
-  if (f.me.role === "OWNER" && f.me.orgId === f.orgId) return yes;
+  if (canUse(f.me, "moderation") && f.me.orgId === f.orgId) return yes;
   const a = chatAccess(f);
   if (f.participant?.role === "MANAGER" && a.post) return yes;
   return no("Only this team's managers can add or remove members.");
 }
 
-export function canCreateGroup(me: { role: Role; orgId: string | null }): Check {
-  if (!me.orgId || !CHAT_STAFF_ROLES.includes(me.role)) return no("Owners, recruiters and supervisors create team chats.");
+export function canCreateGroup(me: { role: Role; grants?: Grants | null; orgId: string | null }): Check {
+  if (!me.orgId || !canUse(me, "messages")) return no("Owners, recruiters and supervisors create team chats.");
   return yes;
 }
 

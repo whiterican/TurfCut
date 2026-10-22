@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { requireRole } from "@/lib/auth";
-import { ORG_ROLES } from "@/lib/access";
+import { requireArea } from "@/lib/employer-session";
 import { loadDisputeThread } from "@/lib/dispute-thread-data";
 import { DisputeThread } from "@/components/DisputeThread";
 import { ResolveDispute } from "@/components/PayForms";
@@ -14,8 +13,8 @@ export const metadata = { title: "Pay dispute · Turfcut" };
 /** The organization's side of a pay dispute: the thread, the clock, and closing it (M9). */
 export default async function OrgDisputePage({ params }: { params: Promise<{ disputeId: string }> }) {
   const { disputeId } = await params;
-  const s = await requireRole(ORG_ROLES);
-  const t = await loadDisputeThread({ profileId: s.userId, role: s.role, orgId: s.orgId ?? null, workerId: null }, disputeId);
+  const s = await requireArea("pay");
+  const t = await loadDisputeThread({ profileId: s.userId, role: s.role, grants: s.grants, orgId: s.orgId ?? null, workerId: null }, disputeId);
   if (!t) notFound();
   // Whether a supervisor re-reviewed the shift since the dispute opened (the REREVIEWED outcome needs it).
   const reReviewed = t.canResolve ? !!(await db().validation.findFirst({ where: { shiftId: t.shift.id, workEventId: null, createdAt: { gt: t.createdAt } }, select: { id: true } })) : false;

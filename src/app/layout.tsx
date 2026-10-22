@@ -59,18 +59,18 @@ export default async function RootLayout({
   // The nav shows as signed out during an outage; the page itself still
   // throws (same cached call), so field pages answer 500, not a sign-in bounce.
   const session = await getSessionProfile().catch(() => null);
-  const tabs = navTabs(session?.role ?? null, !!session?.orgId);
-  const org = orgNav(session?.role ?? null, !!session?.orgId, !!session?.staff);
+  const tabs = navTabs(session?.role ?? null, !!session?.orgId, session?.grants ?? null);
+  const org = orgNav(session?.role ?? null, !!session?.orgId, !!session?.staff, session?.grants ?? null);
   const isOrg = org.rail.length > 0;
   const [unread, orgInfo, notices] = await Promise.all([
     session && tabs.some((t) => t.href === MESSAGES_HREF)
-      ? unreadTotal({ userId: session.userId, role: session.role, orgId: session.orgId }).catch(() => 0)
+      ? unreadTotal({ userId: session.userId, role: session.role, grants: session.grants, orgId: session.orgId }).catch(() => 0)
       : 0,
     isOrg && session?.orgId
       ? db().organization.findUnique({ where: { id: session.orgId }, select: { name: true, approved: true } }).catch(() => null)
       : null,
     session
-      ? unreadNotifications({ userId: session.userId, role: session.role, workerId: session.workerId ?? null, orgId: session.orgId ?? null }).catch(() => 0)
+      ? unreadNotifications({ userId: session.userId, role: session.role, grants: session.grants, workerId: session.workerId ?? null, orgId: session.orgId ?? null }).catch(() => 0)
       : 0,
     // A worker's unread notices of followed campaigns' posts (S2.4), counted by the social layer.
     session?.role === "WORKER" && session.workerId ? unreadPostNotices(session.userId, UNREAD_CAP).catch(() => 0) : 0,

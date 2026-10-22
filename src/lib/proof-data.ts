@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
-import { can } from "@/lib/access";
+import { can, type Grants } from "@/lib/access";
 import type { Role } from "@/lib/auth";
 import { UUID_RE } from "@/lib/jobs";
 import { expiryToday } from "@/lib/credentials";
@@ -23,7 +23,7 @@ import { proofPath, supabaseProofStore, type ProofStore } from "@/lib/proof-stor
 type Tx = Prisma.TransactionClient;
 type Client = ReturnType<typeof db> | Tx;
 export type WorkerActor = { workerId: string; profileId: string };
-export type Staff = { profileId: string; orgId: string; role: Role };
+export type Staff = { profileId: string; orgId: string; role: Role; grants?: Grants | null };
 export type Viewer = ({ kind: "worker" } & WorkerActor) | ({ kind: "staff" } & Staff);
 
 /** Hired and not yet done: the engagements during which an organization may look at shared photos. */
@@ -241,7 +241,7 @@ export async function openProof(viewer: Viewer, proofId: string, mode: "view" | 
     const own = await db().worker.findFirst({ where: { id: p.workerId, profileId: viewer.profileId }, select: { id: true } });
     if (!own || viewer.workerId !== p.workerId) return null;
   } else {
-    if (!can(viewer.role, "compliance") || !p.shared) return null;
+    if (!can(viewer, "compliance") || !p.shared) return null;
     const org = await db().organization.findUnique({ where: { id: viewer.orgId }, select: { approved: true } });
     if (!org?.approved || !(await orgMaySee(viewer.orgId, [p.workerId])).has(p.workerId)) return null;
   }

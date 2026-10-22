@@ -1,7 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { UUID_RE } from "@/lib/jobs";
-import { PAY_ROLES } from "@/lib/access";
+import { canUse, type Grants } from "@/lib/access";
 import type { Role } from "@/lib/auth";
 import { ProviderError, type PayoutProvider, type ProviderEvent } from "@/lib/payout-provider";
 import { verifiedWork } from "@/lib/scorecard";
@@ -440,9 +440,11 @@ export interface PayActor {
   profileId: string;
   orgId: string;
   role: Role;
+  /** A custom-role member's grants (M10.6). */
+  grants?: Grants | null;
 }
 
-const notPayRole = (a: PayActor) => !PAY_ROLES.includes(a.role);
+const notPayRole = (a: PayActor) => !canUse(a, "pay");
 
 const LINE_INCLUDE = {
   events: true,

@@ -7,7 +7,7 @@ import { notFound } from "next/navigation";
 import { requireAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { shiftPriority } from "@/lib/priority";
-import { FIELD_ROLES, SCHEDULING_ROLES } from "@/lib/access";
+import { canUse } from "@/lib/access";
 import { readSupportContacts } from "@/lib/jobs";
 import { activeTime, earningsEstimate, readTurf, scheduleFlags, shiftProgress, shiftState, turfMarks, turfMarksClosed } from "@/lib/field-day";
 import { carriedInto, facts, heldOnJob, loadShift } from "@/lib/field-day-data";
@@ -87,9 +87,9 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
   if (!s) notFound();
 
   const isWorker = session.role === "WORKER" && session.workerId === s.engagement.workerId;
-  const isOrg = session.orgId === s.engagement.job.orgId && [...SCHEDULING_ROLES, ...FIELD_ROLES].includes(session.role);
+  const isOrg = session.orgId === s.engagement.job.orgId && (canUse(session, "scheduling") || canUse(session, "field"));
   if (!isWorker && !isOrg) notFound();
-  const canField = isOrg && FIELD_ROLES.includes(session.role);
+  const canField = isOrg && canUse(session, "field");
   // The campaign's pinned talking points, verbatim (S1): read for the brief only, never recorded about the reader.
   const brief = isWorker || canField ? await loadTalkingPoints(s.engagement.job.id) : null;
 

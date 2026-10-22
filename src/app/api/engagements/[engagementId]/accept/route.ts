@@ -1,5 +1,5 @@
 import { getSessionProfile } from "@/lib/auth";
-import { HIRING_ROLES } from "@/lib/access";
+import { canUse } from "@/lib/access";
 import { badId, engagementResponse } from "@/lib/api-session";
 import { acceptEngagement } from "@/lib/engagements-data";
 
@@ -22,7 +22,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ engage
       false
     );
   }
-  if (HIRING_ROLES.includes(session.role) && session.orgId) {
+  if (canUse(session, "hiring") && session.orgId) {
     return engagementResponse(await acceptEngagement(engagementId, { kind: "org", profileId: session.userId, orgId: session.orgId }), false);
   }
   return Response.json({ error: "Only the worker or the hiring organization can accept." }, { status: 403 });

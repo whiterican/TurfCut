@@ -1,4 +1,4 @@
-/* M10 acceptance checks on real Postgres: the staff gate and ledger (M10.1: staff is a flag independent of role, the ledger needs a reason and never changes, the overview reads the queues), the organization approval queue (M10.2: decisions, notices, the publish gate) and jurisdiction rule profiles (M10.3: proposals, approval that moves what fits and freezes the rest, withdrawal, retirement, the place lock), the audit viewer and people lookup (M10.4: the merged timeline and its filters, the lookups, the two support actions with the owner's rules) and campaign verification (M10.5: the queue, verify and remove with a reason, the mark on the public page and directory, lapse on rename). The runner applies prisma/m10-admin.sql on top of the full setup first, so the migration's re-run safety is checked too (tests/acceptance/run.sh). */
+/* M10 acceptance checks on real Postgres: the staff gate and ledger (M10.1: staff is a flag independent of role, the ledger needs a reason and never changes, the overview reads the queues), the organization approval queue (M10.2: decisions, notices, the publish gate) and jurisdiction rule profiles (M10.3: proposals, approval that moves what fits and freezes the rest, withdrawal, retirement, the place lock), the audit viewer and people lookup (M10.4: the merged timeline and its filters, the lookups, the two support actions with the owner's rules) campaign verification (M10.5: the queue, verify and remove with a reason, the mark on the public page and directory, lapse on rename) and organization roles (M10.6: custom roles from presets, assignment through invites and role changes, delegated member administration held to what the delegate holds, archive rules, history). The runner applies prisma/m10-admin.sql on top of the full setup first, so the migration's re-run safety is checked too (tests/acceptance/run.sh). */
 import { db } from "@/lib/db";
 import { checkReason, loadAdminOverview, recordAdminAction } from "@/lib/admin-data";
 import { approvalStanding, decideOrganization, listOrganizationsForAdmin, loadOrganizationForAdmin } from "@/lib/admin-orgs-data";
@@ -6,7 +6,12 @@ import { approveJurisdictionVersion, listJurisdictionsForAdmin, loadJurisdiction
 import { readRules } from "@/lib/jurisdiction-rules";
 import { LEDGER_MOMENTS, listAuditVocabulary, loadTimeline, parseAuditFilter } from "@/lib/admin-audit-data";
 import { loadPerson, searchPeople, staffRemoveMember, staffResendInvite } from "@/lib/admin-people-data";
-import { inviteMember } from "@/lib/members-data";
+import { acceptInvite, changeMemberRole, inviteMember, memberHistory, removeMember } from "@/lib/members-data";
+import { archiveOrgRole, createOrgRole, listOrgRoles, updateOrgRole } from "@/lib/org-roles-data";
+import { validateRole } from "@/lib/org-roles";
+import { areaMembers } from "@/lib/access-data";
+import { accessFor, parseGrants, presetGrants } from "@/lib/access";
+import { assertPayRole } from "@/lib/pay-data";
 import { jurisdictionOptions } from "@/lib/jurisdiction-options";
 import { canScheduleShift, jurisdictionProblems, publishBlockers, type PublishFacts } from "@/lib/jobs";
 import { orgNoticeText } from "@/lib/notification-text";
@@ -323,7 +328,74 @@ const fails_ = async (f: () => Promise<unknown>): Promise<string> => { try { awa
   const wdLedger = await p.adminAction.findFirst({ where: { orgId: ORG_B, action: "org.approval_revoked" }, orderBy: { createdAt: "desc" } });
   check("withdrawing an organization's approval takes the marks off its profiles and the ledger row counts them", apB.ok && vB.ok && wdB.ok && boulder.verifiedAt === null && JSON.stringify(wdLedger?.metadata) === '{"campaignMarksCleared":1}', { apB, vB, wdB, boulder, wdLedger });
 
-  // 11. No Data API path to the ledger.
+  // 11. Organization roles (M10.6).
+  const t11 = new Date(now.getTime() + 100_000);
+  const ids = { fin: "00000000-0000-0000-0000-0000000000c1", lead: "00000000-0000-0000-0000-0000000000c2", delegate: "00000000-0000-0000-0000-0000000000c3", viewer: "00000000-0000-0000-0000-0000000000c4" };
+  await p.profile.createMany({ data: [{ id: ids.fin, role: "FINANCE", orgId: ORG, displayName: "Fin Ance" }, { id: ids.delegate, role: "SUPERVISOR", orgId: ORG, displayName: "Dee Legate" }] });
+  const asOrgOwner = { userId: OWNER, orgId: ORG };
+  const form = (o: Record<string, string>) => ({ get: (k: string) => o[k] });
+  const fieldLeadForm = validateRole(form({ name: "  Field   lead ", description: "Runs a turf", basedOn: "SUPERVISOR", ...Object.fromEntries(Object.entries(presetGrants("SUPERVISOR")).map(([a, l]) => [`area:${a}`, l as string])) }));
+  check("a role form is read into a name, a preset and grants; no areas, a level the area isn't offered at, or a blank name are refused", fieldLeadForm.ok && fieldLeadForm.value.name === "Field lead" && fieldLeadForm.value.basedOn === "SUPERVISOR" && !validateRole(form({ name: "X" })).ok && !validateRole(form({ name: "X", "area:pay": "read" })).ok && !validateRole(form({ name: "  ", "area:desk": "full" })).ok, fieldLeadForm);
+  const fieldLead = fieldLeadForm.ok ? await createOrgRole(asOrgOwner, fieldLeadForm.value, t11) : { ok: false as const, reason: "no form" };
+  check("an owner builds a role from a preset: its grants are stored and the creation is on the organization's trail", fieldLead.ok && JSON.stringify((await listOrgRoles(ORG)).find((r) => r.id === fieldLead.id)?.grants) === JSON.stringify(presetGrants("SUPERVISOR")) && (await p.auditEvent.count({ where: { action: "org_role.created", entityId: fieldLead.ok ? fieldLead.id : "" } })) === 1, fieldLead);
+  const dupe = await createOrgRole(asOrgOwner, { name: "FIELD LEAD", description: "", basedOn: null, grants: { desk: "full" } }, t11);
+  check("a role name is taken whatever its case", !dupe.ok && dupe.errors?.name === "You already have a role with that name.", dupe);
+  const notOwnerRole = await createOrgRole({ userId: ids.fin, orgId: ORG }, { name: "Sneaky", description: "", basedOn: null, grants: { pay: "full" } }, t11);
+  check("only an owner builds roles", !notOwnerRole.ok && /Only an owner/.test(notOwnerRole.reason) && !(await updateOrgRole({ userId: ids.fin, orgId: ORG }, fieldLead.ok ? fieldLead.id : "", { name: "Field lead", description: "", basedOn: null, grants: { pay: "full" } }, t11)).ok && !(await archiveOrgRole({ userId: ids.fin, orgId: ORG }, fieldLead.ok ? fieldLead.id : "", t11)).ok);
+  const leadChoice = `custom:${fieldLead.ok ? fieldLead.id : ""}`;
+  await p.$executeRaw`INSERT INTO auth.users (id, email, email_confirmed_at) VALUES (${ids.lead}::uuid, 'lead@front.test', now())`;
+  const inv1 = await inviteMember(asOrgOwner, { email: "lead@front.test", role: leadChoice }, mail, t11);
+  const leadInvite = inv1.ok ? await p.orgInvite.findUniqueOrThrow({ where: { id: inv1.inviteId } }) : null;
+  check("an invite can carry a custom role", inv1.ok && leadInvite?.role === "CUSTOM" && leadInvite.orgRoleId === (fieldLead.ok ? fieldLead.id : null), leadInvite);
+  const joined = inv1.ok ? await acceptInvite({ id: ids.lead, email: "lead@front.test", email_confirmed_at: "2026-10-20T00:00:00Z" }, { inviteId: inv1.inviteId, name: "Lee Ader", now: t11 }) : false;
+  const leadProfile = await p.profile.findUnique({ where: { id: ids.lead }, include: { orgRole: { include: { grants: true } } } });
+  const leadGrants = parseGrants(leadProfile?.orgRole?.grants ?? []);
+  check("accepting it makes the member a custom-role member with the role's grants", joined && leadProfile?.role === "CUSTOM" && leadProfile.orgRoleId === (fieldLead.ok ? fieldLead.id : null) && accessFor({ role: "CUSTOM", grants: leadGrants }, "field") === "full" && accessFor({ role: "CUSTOM", grants: leadGrants }, "pay") === null && accessFor({ role: "CUSTOM", grants: leadGrants }, "jobs") === "read", { joined, leadGrants });
+  const fieldFolks = (await p.profile.findMany({ where: { orgId: ORG, closedAt: null, ...areaMembers("field") }, select: { id: true } })).map((x) => x.id);
+  const payFolks = (await p.profile.findMany({ where: { orgId: ORG, closedAt: null, ...areaMembers("pay") }, select: { id: true } })).map((x) => x.id);
+  check("queries by area find the built-in roles the map names and the custom roles granted it, and no one else", fieldFolks.includes(ids.lead) && fieldFolks.includes(OWNER) && fieldFolks.includes(ids.delegate) && !fieldFolks.includes(ids.fin) && payFolks.includes(ids.fin) && payFolks.includes(OWNER) && !payFolks.includes(ids.lead), { fieldFolks, payFolks });
+  const payThrows = await fails_(async () => assertPayRole({ profileId: ids.lead, orgId: ORG, role: "CUSTOM", grants: leadGrants }));
+  check("the pay guard turns a custom role without the pay area away, and admits one granted it", /pay|owner|finance/i.test(payThrows) && (await fails_(async () => assertPayRole({ profileId: ids.lead, orgId: ORG, role: "CUSTOM", grants: { ...leadGrants, pay: "full" } }))) === "", payThrows);
+  const widened = fieldLeadForm.ok ? await updateOrgRole(asOrgOwner, fieldLead.ok ? fieldLead.id : "", { ...fieldLeadForm.value, grants: { desk: "full", jobs: "read" } }, new Date(t11.getTime() + 1000)) : { ok: false as const, reason: "x" };
+  const fieldAfter = (await p.profile.findMany({ where: { orgId: ORG, closedAt: null, ...areaMembers("field") }, select: { id: true } })).map((x) => x.id);
+  const updEvent = await p.auditEvent.findFirst({ where: { action: "org_role.updated", entityId: fieldLead.ok ? fieldLead.id : "" } });
+  check("narrowing a role takes effect for its members at once and the before and after are on the trail", widened.ok && !fieldAfter.includes(ids.lead) && JSON.stringify(updEvent?.metadata).includes('"before"') && JSON.stringify(updEvent?.metadata).includes('"after"'), { widened, fieldAfter });
+  // A member whose role is a custom one with the members area administers members, within what they hold.
+  const delegateRole = await createOrgRole(asOrgOwner, { name: "People ops", description: "", basedOn: null, grants: { desk: "full", jobs: "read", orgMembers: "full" } }, t11);
+  const viewerRole = await createOrgRole(asOrgOwner, { name: "Viewer", description: "", basedOn: null, grants: { desk: "full", jobs: "read" } }, t11);
+  await p.profile.update({ where: { id: ids.delegate }, data: { role: "CUSTOM", orgRoleId: delegateRole.ok ? delegateRole.id : null } });
+  const asDelegate = { userId: ids.delegate, orgId: ORG };
+  const dViewer = await inviteMember(asDelegate, { email: "viewer@front.test", role: `custom:${viewerRole.ok ? viewerRole.id : ""}` }, mail, t11);
+  check("a member with the members area invites to a role that reaches no more than they hold", dViewer.ok, dViewer);
+  const dRecruiter = await inviteMember(asDelegate, { email: "recruit@front.test", role: "RECRUITER" }, mail, t11);
+  const dOwner = await inviteMember(asDelegate, { email: "boss@front.test", role: "OWNER" }, mail, t11);
+  check("they can't give more than they hold, nor an owner seat", !dRecruiter.ok && /no more than yours/.test(dRecruiter.reason) && !dOwner.ok && /owner/i.test(dOwner.reason), { dRecruiter, dOwner });
+  check("they can't change or remove an owner, or someone with more access than they have", !(await changeMemberRole(asDelegate, OWNER, "RECRUITER", t11)).ok && !(await removeMember(asDelegate, OWNER, t11)).ok && !(await removeMember(asDelegate, ids.fin, t11)).ok && !(await changeMemberRole(asDelegate, ids.fin, "RECRUITER", t11)).ok && (await p.profile.findUniqueOrThrow({ where: { id: ids.fin } })).orgId === ORG);
+  const lower = await changeMemberRole(asDelegate, ids.lead, `custom:${viewerRole.ok ? viewerRole.id : ""}`, new Date(t11.getTime() + 2000));
+  const leadNow = await p.profile.findUniqueOrThrow({ where: { id: ids.lead } });
+  check("they can move a member whose access is within theirs to another role within theirs", lower.ok && leadNow.role === "CUSTOM" && leadNow.orgRoleId === (viewerRole.ok ? viewerRole.id : null), lower);
+  const hist = (await memberHistory(ORG, [ids.lead])).get(ids.lead) ?? [];
+  check("a member's role history reads from the audit trail, newest first, by role name", hist.length === 2 && hist[0].action === "member.role_changed" && hist[0].text === "Field lead → Viewer" && hist[1].text === "Joined as Field lead", hist);
+  const selfUp = await changeMemberRole(asDelegate, ids.delegate, "RECRUITER", t11);
+  check("a delegate can't raise their own role beyond what they hold", !selfUp.ok, selfUp);
+  const ownerDemotes = await changeMemberRole(asOrgOwner, OWNER, "RECRUITER", t11);
+  check("the last owner still can't be demoted, whoever asks", !ownerDemotes.ok && /at least one owner/.test(ownerDemotes.ok ? "" : ownerDemotes.reason), ownerDemotes);
+  const holdsIt = await archiveOrgRole(asOrgOwner, viewerRole.ok ? viewerRole.id : "", t11);
+  check("a role someone holds, or an invite carries, can't be archived", !holdsIt.ok && /member holds|members hold/.test(holdsIt.ok ? "" : holdsIt.reason) && /invite/.test(holdsIt.ok ? "" : holdsIt.reason), holdsIt);
+  await changeMemberRole(asOrgOwner, ids.lead, "SUPERVISOR", new Date(t11.getTime() + 3000));
+  await p.orgInvite.updateMany({ where: { orgId: ORG, email: "viewer@front.test" }, data: { revokedAt: t11 } });
+  const archived = await archiveOrgRole(asOrgOwner, viewerRole.ok ? viewerRole.id : "", new Date(t11.getTime() + 4000));
+  const archivedRow = await p.orgRole.findUniqueOrThrow({ where: { id: viewerRole.ok ? viewerRole.id : "" } });
+  const toArchived = await changeMemberRole(asOrgOwner, ids.lead, `custom:${viewerRole.ok ? viewerRole.id : ""}`, t11);
+  const inviteArchived = await inviteMember(asOrgOwner, { email: "late@front.test", role: `custom:${viewerRole.ok ? viewerRole.id : ""}` }, mail, t11);
+  check("once nobody holds it a role is archived, not deleted; it can't be given again and its name stays taken", archived.ok && !!archivedRow.archivedAt && !toArchived.ok && !inviteArchived.ok && !(await createOrgRole(asOrgOwner, { name: "viewer", description: "", basedOn: null, grants: { desk: "full" } }, t11)).ok, { archived, toArchived, inviteArchived });
+  const roleSql1 = await fails_(() => p.$executeRaw`UPDATE "Profile" SET "role" = 'CUSTOM', "orgRoleId" = NULL WHERE "id" = ${ids.fin}::uuid`);
+  const roleSql2 = await fails_(() => p.$executeRaw`UPDATE "Profile" SET "orgRoleId" = ${delegateRole.ok ? delegateRole.id : ""}::uuid WHERE "id" = ${ids.fin}::uuid`);
+  check("the database keeps a custom role and its OrgRole together", /Profile_custom_role/.test(roleSql1) && /Profile_custom_role/.test(roleSql2), { roleSql1, roleSql2 });
+  const roleGrants = await p.$queryRaw<{ grantee: string }[]>`SELECT grantee FROM information_schema.role_table_grants WHERE table_schema = 'public' AND table_name IN ('OrgRole', 'OrgRoleGrant') AND grantee IN ('anon', 'authenticated')`;
+  check("custom roles are server-only: no grant to the API roles", roleGrants.length === 0, roleGrants);
+
+  // 12. No Data API path to the ledger.
   const grants = await p.$queryRaw<{ grantee: string }[]>`SELECT grantee FROM information_schema.role_table_grants WHERE table_schema = 'public' AND table_name = 'AdminAction' AND grantee IN ('anon', 'authenticated')`;
   const rls = await p.$queryRaw<{ relrowsecurity: boolean }[]>`SELECT relrowsecurity FROM pg_class WHERE relname = 'AdminAction'`;
   check("AdminAction has RLS on and no grant to the API roles", grants.length === 0 && rls[0]?.relrowsecurity === true, { grants, rls });

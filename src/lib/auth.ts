@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { db } from "@/lib/db";
 import { ensureAccount } from "@/lib/account";
+import { parseGrants, type Grants } from "@/lib/access";
 import { ServiceUnavailableError, isAuthOutage, isConfigError } from "@/lib/outage";
 
 export type Role =
@@ -12,7 +13,8 @@ export type Role =
   | "COMPLIANCE"
   | "SUPERVISOR"
   | "FINANCE"
-  | "PUBLISHER";
+  | "PUBLISHER"
+  | "CUSTOM"; // M10.6: an organization-defined role; its reach is the grants below
 
 export interface SessionProfile {
   userId: string;
@@ -22,6 +24,15 @@ export interface SessionProfile {
   orgId: string | null;
   /** Turfcut staff (M10): may use the admin console. A flag on the profile, independent of role. */
   staff: boolean;
+  /**
+   * A custom-role member's grants on the access map's areas, read once per
+   * request with the session (M10.6); null for everyone else, whose reach is
+   * the built-in role's row of the map. An archived or missing role is an
+   * empty set: no access.
+   */
+  grants: Grants | null;
+  /** The custom role's name as the organization gave it; null for a built-in role. */
+  roleName: string | null;
 }
 
 /**
@@ -58,7 +69,11 @@ export const getSessionProfile = cache(async (): Promise<SessionProfile | null> 
   if (!user) return null;
 
   // The worker link lives on the Worker row (Profile 1:1 Worker); one query loads both.
-  const load = () => db().profile.findUnique({ where: { id: user.id }, include: { worker: { select: { id: true } } } });
+  const load = () =>
+    db().profile.findUnique({
+      where: { id: user.id },
+      include: { worker: { select: { id: true } }, orgRole: { select: { name: true, archivedAt: true, grants: { select: { area: true, level: true } } } } },
+    });
   let profile;
   try {
     profile = await load();
@@ -83,6 +98,8 @@ export const getSessionProfile = cache(async (): Promise<SessionProfile | null> 
     workerId: profile.role === "WORKER" ? (profile.worker?.id ?? null) : null,
     orgId: profile.orgId,
     staff: !!profile.staffSince,
+    grants: profile.role === "CUSTOM" ? (profile.orgRole && !profile.orgRole.archivedAt ? parseGrants(profile.orgRole.grants) : {}) : null,
+    roleName: profile.role === "CUSTOM" ? (profile.orgRole?.name ?? null) : null,
   };
 });
 

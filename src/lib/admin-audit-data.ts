@@ -117,7 +117,7 @@ export const HIDDEN_ENTITY_TYPES = ["Conversation", "Message", "MessageReport", 
 /** Record types that are a worker's own, whatever the action is called. */
 const WORKER_OWN_TYPES = new Set(["Worker", "WorkerCredential", "CredentialProof", "ExperienceRecord"]);
 /** The kinds of event whose details are the organization's or the record's own: shown whole. A new kind of event is withheld until someone adds its prefix here. */
-export const SHOWN_ACTION_PREFIXES = ["job.", "shift.", "shift_slot.", "payout.", "pay.", "org.", "member.", "invite.", "campaign.", "jurisdiction.", "engagement.", "account."] as const;
+export const SHOWN_ACTION_PREFIXES = ["job.", "shift.", "shift_slot.", "payout.", "pay.", "org.", "org_role.", "member.", "invite.", "campaign.", "jurisdiction.", "engagement.", "account."] as const;
 
 /**
  * What of an audit event's details the viewer shows. The timeline is for

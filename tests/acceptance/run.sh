@@ -24,7 +24,7 @@ declare -A FILE=([m5]=m5-payouts.ts [m6]=m6-offline.ts [m7]=m7-corrections-closu
 # Extra SQL run after the setup for a check (sec: re-running the lockdown,
 # as it is designed to be, must leave message grants column-limited).
 # m10: the M10 migrations themselves must be safe to run on a database that already has everything (it runs on the live project that way).
-declare -A AFTER=([sec]=prisma/m4-0-rls-lockdown.sql [m10]="prisma/m10-admin.sql prisma/m10-verification.sql")
+declare -A AFTER=([sec]=prisma/m4-0-rls-lockdown.sql [m10]="prisma/m10-admin.sql prisma/m10-verification.sql prisma/m10-roles.sql")
 for c in "${checks[@]}"; do [[ -v FILE[$c] ]] || { echo "unknown check: $c (m5, m6, m7, c1, c2, c3, c4, rl, sec, s1, s2, s3, s4, m8, m9, m10)"; exit 2; }; done
 fail=0
 for c in "${checks[@]}"; do

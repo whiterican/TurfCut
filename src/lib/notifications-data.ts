@@ -1,6 +1,7 @@
 import type { NotificationKind, Prisma, Role } from "@prisma/client";
 import { db } from "@/lib/db";
-import { HIRING_ROLES, PAY_ROLES } from "@/lib/access";
+import { canUse, type Grants } from "@/lib/access";
+import { areaMembers } from "@/lib/access-data";
 import { inviteLapsed, offerExpiresAt, offerLapsed, type EngagementEventType } from "@/lib/engagements";
 import { exclusionReasons, readDisclosure, UUID_RE } from "@/lib/jobs";
 import { effectivePreference } from "@/lib/political-fit";
@@ -21,10 +22,10 @@ type Tx = Prisma.TransactionClient;
  */
 async function orgRecipients(tx: Tx, orgId: string, contactId: string | null): Promise<string[]> {
   if (contactId) {
-    const c = await tx.profile.findFirst({ where: { id: contactId, orgId, role: { in: HIRING_ROLES }, closedAt: null }, select: { id: true } });
+    const c = await tx.profile.findFirst({ where: { id: contactId, orgId, ...areaMembers("hiring"), closedAt: null }, select: { id: true } });
     if (c) return [c.id];
   }
-  const staff = await tx.profile.findMany({ where: { orgId, role: { in: HIRING_ROLES }, closedAt: null }, select: { id: true } });
+  const staff = await tx.profile.findMany({ where: { orgId, ...areaMembers("hiring"), closedAt: null }, select: { id: true } });
   return staff.map((s) => s.id);
 }
 
@@ -88,7 +89,7 @@ export const UNREAD_CAP = 100;
 /** Notices about the recipient's own organization (M10.2): no engagement, post, dispute or transfer behind them. */
 export const ORG_NOTICE_KINDS: NotificationKind[] = ["ORG_APPROVED", "ORG_APPROVAL_REVOKED", "ORG_JOBS_FROZEN"];
 
-type Viewer = { userId: string; role: Role; workerId: string | null; orgId: string | null };
+type Viewer = { userId: string; role: Role; grants?: Grants | null; workerId: string | null; orgId: string | null };
 
 /**
  * Which engagements a person's notices may be about now: a worker's own, or
@@ -107,8 +108,8 @@ function scopeFor(v: Viewer): Prisma.NotificationWhereInput | null {
   // keeps seeing their old one's decisions (dated, worded generically). A
   // subject column would close that; it is a data-model change (M10 plan).
   const parts: Prisma.NotificationWhereInput[] = [{ kind: { in: ORG_NOTICE_KINDS } }];
-  if (HIRING_ROLES.includes(v.role)) parts.push({ engagement: { job: { orgId: v.orgId } } });
-  if (PAY_ROLES.includes(v.role)) parts.push({ dispute: { orgId: v.orgId } }, { transfer: { orgId: v.orgId } });
+  if (canUse(v, "hiring")) parts.push({ engagement: { job: { orgId: v.orgId } } });
+  if (canUse(v, "pay")) parts.push({ dispute: { orgId: v.orgId } }, { transfer: { orgId: v.orgId } });
   return { OR: parts };
 }
 

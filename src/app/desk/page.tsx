@@ -29,7 +29,7 @@ export default async function DeskPage() {
   const session = await requireArea("desk");
   const [org, desk] = await Promise.all([
     db().organization.findUnique({ where: { id: session.orgId }, select: { name: true } }),
-    loadDesk({ profileId: session.userId, orgId: session.orgId, role: session.role }),
+    loadDesk({ profileId: session.userId, orgId: session.orgId, role: session.role, grants: session.grants }),
   ]);
   const { parts } = desk;
 

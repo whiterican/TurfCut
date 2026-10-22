@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { areaMembers } from "@/lib/access-data";
 
 const tx = {
   $executeRaw: vi.fn(),
@@ -104,7 +105,7 @@ describe("jurisdiction rule profiles (M10.3)", () => {
     expect(tx.job.update.mock.calls.map((c) => c[0])).toEqual([{ where: { id: "job-hourly" }, data: { jurisdictionId: V2 } }, { where: { id: "job-shift" }, data: { jurisdictionId: V2 } }]);
     expect(tx.auditEvent.create.mock.calls.map((c) => c[0].data)).toMatchObject([{ actorId: null, action: "job.jurisdiction_moved", entityType: "Job", entityId: "job-hourly", metadata: { from: V1, to: V2, fromVersion: 1, toVersion: 2 } }, { entityId: "job-shift" }]);
     expect(tx.adminAction.create.mock.calls[0][0]).toMatchObject({ data: { action: "jurisdiction.version_approved", targetId: V2, metadata: { version: 2, supersededId: V1, moved: 2, frozen: 1, approvalExpiresAt: expires.toISOString() } } });
-    expect(tx.profile.findMany).toHaveBeenCalledWith({ where: { orgId: { in: ["org-b"] }, role: { in: ["OWNER", "RECRUITER"] }, closedAt: null }, select: { id: true } });
+    expect(tx.profile.findMany).toHaveBeenCalledWith({ where: { orgId: { in: ["org-b"] }, ...areaMembers("jobsEdit"), closedAt: null }, select: { id: true } });
     expect(tx.notification.createMany).toHaveBeenCalledWith({ data: [{ recipientId: "owner-b", kind: "ORG_JOBS_FROZEN", createdAt: now }, { recipientId: "recruiter-b", kind: "ORG_JOBS_FROZEN", createdAt: now }] });
   });
 

@@ -18,7 +18,7 @@ export default async function NotificationsPage() {
   const session = await requireAuth();
   const viewer = session.role === "WORKER" ? "worker" : "org";
   const [hiring, posts] = await Promise.all([
-    loadNotifications({ userId: session.userId, role: session.role, workerId: session.workerId ?? null, orgId: session.orgId ?? null }),
+    loadNotifications({ userId: session.userId, role: session.role, grants: session.grants, workerId: session.workerId ?? null, orgId: session.orgId ?? null }),
     // A worker's notices of followed campaigns' posts (S2.4), loaded by the social layer.
     viewer === "worker" && session.workerId ? loadPostNotices(session.userId, NOTIFICATION_PAGE) : Promise.resolve([]),
   ]);

@@ -1,9 +1,10 @@
 import { Prisma, type PrismaClient } from "@prisma/client";
 import { db } from "@/lib/db";
 import type { Role } from "@/lib/auth";
+import { canUse, type Grants } from "@/lib/access";
+import { areaMembers } from "@/lib/access-data";
 import { UUID_RE } from "@/lib/jobs";
 import {
-  CHAT_STAFF_ROLES,
   EDIT_WINDOW_MS,
   canBlock,
   canCreateGroup,
@@ -34,8 +35,13 @@ import { supabaseStore, type AttachmentStore } from "@/lib/chat-storage";
 export interface ChatUser {
   userId: string;
   role: Role;
+  /** A custom-role member's grants (M10.6). */
+  grants?: Grants | null;
   orgId: string | null;
 }
+
+/** Whether a profile still runs teams in the organization: the messages area, by built-in role or custom grant (M10.6). */
+const runsTeams = async (c: Client, profileId: string, orgId: string): Promise<boolean> => (await c.profile.count({ where: { id: profileId, orgId, closedAt: null, ...areaMembers("messages") } })) > 0;
 
 type Client = Prisma.TransactionClient | PrismaClient;
 type Fail = { ok: false; reason: string };
@@ -86,7 +92,7 @@ async function loadContext(c: Client, me: ChatUser, conversationId: string) {
   const facts: ChatFacts = {
     kind: conv.kind,
     orgId: conv.orgId,
-    me: { profileId: me.userId, role: me.role, orgId: me.orgId },
+    me: { profileId: me.userId, role: me.role, grants: me.grants, orgId: me.orgId },
     participant: mine ? { role: mine.role, removedAt: mine.removedAt, addedAt: mine.addedAt } : null,
   };
   if (conv.kind === "DIRECT" && conv.engagement) {
@@ -292,7 +298,7 @@ async function startableDirects(me: ChatUser): Promise<StartableDirect[]> {
     });
     return rows.map((e) => ({ engagementId: e.id, name: e.hiredBy ? personName(e.hiredBy) : `${e.job.org.name} hiring manager`, jobTitle: e.job.title }));
   }
-  if (!me.orgId || !CHAT_STAFF_ROLES.includes(me.role)) return [];
+  if (!me.orgId || !canUse(me, "messages")) return [];
   const rows = await db().engagement.findMany({
     where: { ...base, hiredById: me.userId, job: { orgId: me.orgId } },
     include: { job: { select: { title: true } }, worker: { select: { displayName: true } } },
@@ -434,8 +440,7 @@ export async function defaultBoss(c: Client, jobId: string, orgId: string): Prom
     select: { actorId: true },
   });
   if (created?.actorId) {
-    const p = await c.profile.findUnique({ where: { id: created.actorId }, select: { id: true, orgId: true, role: true } });
-    if (p && p.orgId === orgId && CHAT_STAFF_ROLES.includes(p.role as Role)) return p.id;
+    if (await runsTeams(c, created.actorId, orgId)) return created.actorId;
   }
   const owner = await c.profile.findFirst({ where: { orgId, role: "OWNER" }, orderBy: { createdAt: "asc" }, select: { id: true } });
   return owner?.id ?? null;
@@ -462,13 +467,13 @@ async function ensureDirectInner(me: ChatUser, engagementId: string): Promise<{ 
     });
     if (!e) return NOT_FOUND;
     const isWorker = e.worker.profileId === me.userId;
-    const isBoss = e.hiredById === me.userId && me.orgId === e.job.orgId && CHAT_STAFF_ROLES.includes(me.role);
+    const isBoss = e.hiredById === me.userId && me.orgId === e.job.orgId && canUse(me, "messages");
     if (!isWorker && !isBoss) return NOT_FOUND;
     if (!e.conversation && !isHired(e.status)) return NOT_HIRED;
 
     // The contact must still run this org's teams; otherwise fall back.
-    const boss = e.hiredById ? await tx.profile.findUnique({ where: { id: e.hiredById }, select: { id: true, orgId: true, role: true } }) : null;
-    const stillStaff = !!boss && boss.orgId === e.job.orgId && CHAT_STAFF_ROLES.includes(boss.role as Role);
+    const boss = e.hiredById ? await tx.profile.findUnique({ where: { id: e.hiredById }, select: { id: true, orgId: true } }) : null;
+    const stillStaff = !!boss && boss.orgId === e.job.orgId && (await runsTeams(tx, boss.id, e.job.orgId));
 
     if (e.conversation) {
       await lock(tx, `conv:${e.conversation.id}`); // order: conv:engagement → conv
@@ -626,10 +631,10 @@ export async function editMessage(me: ChatUser, messageId: string, rawBody: unkn
 export async function deleteMessage(me: ChatUser, messageId: string): Promise<{ ok: true } | Fail> {
   return db().$transaction(async (tx) => {
     const m = await lockedMessage(tx, me, messageId);
-    const moderator = me.role === "OWNER" && !!m && me.orgId === m.ctx.conv.orgId;
+    const moderator = canUse(me, "moderation") && !!m && me.orgId === m.ctx.conv.orgId;
     if (!m || !m.msg || (!m.ctx.access.read && !moderator)) return fail("Message not found.");
     const reported = (await tx.messageReport.count({ where: { messageId, resolvedAt: null } })) > 0;
-    const ok = canDelete(m.ctx.access, m.msg, { profileId: me.userId, role: me.role, orgId: me.orgId }, m.ctx.conv.orgId, reported);
+    const ok = canDelete(m.ctx.access, m.msg, { profileId: me.userId, role: me.role, grants: me.grants, orgId: me.orgId }, m.ctx.conv.orgId, reported);
     if (!ok.ok) return ok;
     const now = await dbNow(tx);
     await tx.messageRevision.create({ data: { messageId, conversationId: m.ctx.conv.id, kind: "DELETE", actorId: me.userId, createdAt: now } });
@@ -683,7 +688,7 @@ export interface OpenReport {
 
 /** The org owner's queue. */
 export async function listOpenReports(me: ChatUser): Promise<OpenReport[]> {
-  if (me.role !== "OWNER" || !me.orgId) return [];
+  if (!canUse(me, "moderation") || !me.orgId) return [];
   const reports = await db().messageReport.findMany({
     where: { orgId: me.orgId, resolvedAt: null },
     orderBy: { createdAt: "asc" },
@@ -722,7 +727,7 @@ export async function listOpenReports(me: ChatUser): Promise<OpenReport[]> {
 
 /** Owner closes a report without removing the message. */
 export async function dismissReport(me: ChatUser, reportId: string): Promise<{ ok: true } | Fail> {
-  if (me.role !== "OWNER" || !me.orgId || !UUID_RE.test(reportId)) return fail("Report not found.");
+  if (!canUse(me, "moderation") || !me.orgId || !UUID_RE.test(reportId)) return fail("Report not found.");
   return db().$transaction(async (tx) => {
     const r = await tx.messageReport.findUnique({ where: { id: reportId } });
     if (!r || r.orgId !== me.orgId) return fail("Report not found.");
@@ -793,7 +798,7 @@ export async function teamChatJobs(me: ChatUser) {
 export async function teamCandidates(me: ChatUser, jobIds: string[], c: Client = db()): Promise<Candidate[]> {
   if (!canCreateGroup(me).ok || !me.orgId || !jobIds.every((id) => UUID_RE.test(id))) return [];
   const [staff, hires] = await Promise.all([
-    c.profile.findMany({ where: { orgId: me.orgId, role: { in: CHAT_STAFF_ROLES } }, select: PERSON.select, orderBy: { createdAt: "asc" } }),
+    c.profile.findMany({ where: { orgId: me.orgId, ...areaMembers("messages") }, select: PERSON.select, orderBy: { createdAt: "asc" } }),
     c.engagement.findMany({
       where: { jobId: { in: jobIds }, job: { orgId: me.orgId }, status: { in: [...HIRED] } },
       select: { job: { select: { title: true } }, worker: { select: { profileId: true, displayName: true } } },

@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { requireEmployer } from "@/lib/employer-session";
+import { requireJobEditor } from "@/lib/employer-session";
 import { jurisdictionOptions } from "@/lib/jurisdiction-options";
 import { JobForm } from "@/components/JobForm";
 
 export default async function NewJobPage() {
-  await requireEmployer();
+  await requireJobEditor();
   const jurisdictions = await jurisdictionOptions();
   return (
     <main className="page max-w-3xl">

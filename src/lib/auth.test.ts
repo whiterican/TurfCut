@@ -21,9 +21,9 @@ describe("session profile", () => {
   it("loads the profile and the worker link in one query", async () => {
     getUser.mockResolvedValue({ data: { user: { id: "u1", email: "a@b.org" } } });
     findUnique.mockResolvedValue({ id: "u1", role: "WORKER", orgId: null, closedAt: null, staffSince: null, worker: { id: "w1" } });
-    expect(await getSessionProfile()).toEqual({ userId: "u1", email: "a@b.org", role: "WORKER", workerId: "w1", orgId: null, staff: false });
+    expect(await getSessionProfile()).toEqual({ userId: "u1", email: "a@b.org", role: "WORKER", workerId: "w1", orgId: null, staff: false, grants: null, roleName: null });
     expect(findUnique).toHaveBeenCalledTimes(1);
-    expect(findUnique.mock.calls[0][0]).toMatchObject({ where: { id: "u1" }, include: { worker: { select: { id: true } } } });
+    expect(findUnique.mock.calls[0][0]).toMatchObject({ where: { id: "u1" }, include: { worker: { select: { id: true } }, orgRole: { select: { name: true, archivedAt: true } } } });
   });
 
   it("marks Turfcut staff from the profile's flag, whatever the role (M10)", async () => {
@@ -32,6 +32,19 @@ describe("session profile", () => {
     expect(await getSessionProfile()).toMatchObject({ role: "WORKER", workerId: "w4", staff: true });
     findUnique.mockResolvedValueOnce({ id: "u4", role: "OWNER", orgId: "org", closedAt: null, staffSince: null, worker: null });
     expect(await getSessionProfile()).toMatchObject({ role: "OWNER", staff: false });
+  });
+
+  it("resolves a custom role's grants once, with the session; an archived or missing role has none (M10.6)", async () => {
+    getUser.mockResolvedValue({ data: { user: { id: "u5", email: "c@b.org" } } });
+    const base = { id: "u5", role: "CUSTOM", orgId: "org", closedAt: null, staffSince: null, worker: null };
+    findUnique.mockResolvedValueOnce({ ...base, orgRole: { name: "Field lead", archivedAt: null, grants: [{ area: "jobs", level: "READ" }, { area: "field", level: "FULL" }, { area: "nonsense", level: "FULL" }, { area: "pay", level: "READ" }] } });
+    expect(await getSessionProfile()).toMatchObject({ role: "CUSTOM", roleName: "Field lead", grants: { jobs: "read", field: "full" } });
+    findUnique.mockResolvedValueOnce({ ...base, orgRole: { name: "Old", archivedAt: new Date(), grants: [{ area: "jobs", level: "READ" }] } });
+    expect(await getSessionProfile()).toMatchObject({ role: "CUSTOM", grants: {} });
+    findUnique.mockResolvedValueOnce({ ...base, orgRole: null });
+    expect(await getSessionProfile()).toMatchObject({ role: "CUSTOM", grants: {}, roleName: null });
+    findUnique.mockResolvedValueOnce({ id: "u5", role: "FINANCE", orgId: "org", closedAt: null, staffSince: null, worker: null, orgRole: null });
+    expect(await getSessionProfile()).toMatchObject({ role: "FINANCE", grants: null, roleName: null });
   });
 
   it("gives organization roles no worker id, and closed accounts no session", async () => {

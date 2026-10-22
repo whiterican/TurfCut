@@ -3,7 +3,7 @@ import { readLaunch } from "@/lib/job-launch";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
-import { HIRING_ROLES, ORG_ROLES, SCHEDULING_ROLES } from "@/lib/access";
+import { canUse } from "@/lib/access";
 import { ACCEPTED_STATUSES, inviteLapsed, offerLapsed, stageOf, workerStage, type EngagementStatus, type HiringSnapshot } from "@/lib/engagements";
 import { loadPipelineFacts } from "@/lib/engagements-data";
 import { EngagementHistory } from "@/components/EngagementHistory";
@@ -78,7 +78,7 @@ export default async function JobPage({ params }: { params: Promise<{ jobId: str
   if (!job) notFound();
 
   const isWorker = session.role === "WORKER" && !!session.workerId;
-  const isOwnOrg = ORG_ROLES.includes(session.role) && session.orgId === job.orgId;
+  const isOwnOrg = canUse(session, "jobs", "read") && session.orgId === job.orgId;
   const engagement = isWorker
     ? await db().engagement.findUnique({ where: { jobId_workerId: { jobId, workerId: session.workerId! } } })
     : null;
@@ -119,7 +119,7 @@ export default async function JobPage({ params }: { params: Promise<{ jobId: str
 
       {isWorker && <WorkerPanel job={job} engagement={engagement} modes={modes} workerId={session.workerId!} acceptedCount={acceptedCount} />}
       {isOwnOrg && (
-        <OrgPanel job={job} canHire={HIRING_ROLES.includes(session.role)} canSchedule={SCHEDULING_ROLES.includes(session.role)} userId={session.userId} />
+        <OrgPanel job={job} canHire={canUse(session, "hiring")} canEdit={canUse(session, "jobsEdit")} canSchedule={canUse(session, "scheduling")} userId={session.userId} />
       )}
 
       <section className="section">
@@ -421,7 +421,7 @@ async function WorkerShifts({ engagementId, workerId, jobId }: { engagementId: s
   );
 }
 
-async function OrgPanel({ job, canHire, canSchedule, userId }: { job: JobWithRefs; canHire: boolean; canSchedule: boolean; userId: string }) {
+async function OrgPanel({ job, canHire, canEdit, canSchedule, userId }: { job: JobWithRefs; canHire: boolean; canEdit: boolean; canSchedule: boolean; userId: string }) {
   const blockers = job.status === "DRAFT" || job.status === "PAUSED"
     ? publishBlockers({ job, jurisdiction: job.jurisdiction, org: job.org })
     : [];
@@ -434,7 +434,7 @@ async function OrgPanel({ job, canHire, canSchedule, userId }: { job: JobWithRef
     : [];
   const facts = await loadPipelineFacts(engagements.map((e) => e.id));
   const now = new Date();
-  const changes = canHire && job.status !== "DRAFT" ? await loadJobChanges(job.id) : [];
+  const changes = canEdit && job.status !== "DRAFT" ? await loadJobChanges(job.id) : [];
   // A live job can freeze under it without anyone editing it (M10.3): a newer version of its place's rules, or a withdrawn approval.
   const live = job.status === "PUBLISHED" || job.status === "PAUSED";
   const current = live ? await db().jurisdictionProfile.findFirst({ where: { state: job.jurisdiction.state, locality: job.jurisdiction.locality, isCurrent: true }, select: { id: true, rules: true } }) : null;
@@ -442,7 +442,7 @@ async function OrgPanel({ job, canHire, canSchedule, userId }: { job: JobWithRef
 
   return (
     <>
-      {job.status !== "DRAFT" && canHire && (job.status !== "CLOSED" || changes.length > 0) && (
+      {job.status !== "DRAFT" && canEdit && (job.status !== "CLOSED" || changes.length > 0) && (
         <section className="section">
           <h2 className="section-title">Terms</h2>
           {job.status !== "CLOSED" && (
@@ -464,7 +464,7 @@ async function OrgPanel({ job, canHire, canSchedule, userId }: { job: JobWithRef
           <div className="alert-warning space-y-2">
             <p className="font-medium">No new shifts or seats until this job fits the current rules</p>
             <ul className="list-disc space-y-0.5 pl-5">{frozen.map((f) => <li key={f}>{f}</li>)}</ul>
-            {canHire && <Link transitionTypes={["nav-forward"]} href={`/jobs/${job.id}/edit`} className="link">Edit the job to file it under the current rules</Link>}
+            {canEdit && <Link transitionTypes={["nav-forward"]} href={`/jobs/${job.id}/edit`} className="link">Edit the job to file it under the current rules</Link>}
           </div>
         </section>
       )}
@@ -480,7 +480,7 @@ async function OrgPanel({ job, canHire, canSchedule, userId }: { job: JobWithRef
           ) : (
             <p className="text-muted-sm">Every check passes. Publishing re-runs them at that moment.</p>
           )}
-          {canHire && (
+          {canEdit && (
             <div className="flex flex-wrap items-start gap-3">
               <ActionButton action={publish} fields={{ jobId: job.id }} label="Publish" pendingLabel="Publishing…" disabled={blockers.length > 0} />
               {job.status === "DRAFT" && <Link transitionTypes={["nav-forward"]} href={`/jobs/${job.id}/edit`} className="btn-secondary">Edit draft</Link>}
@@ -489,7 +489,7 @@ async function OrgPanel({ job, canHire, canSchedule, userId }: { job: JobWithRef
         </section>
       )}
 
-      {canHire && (job.status === "PUBLISHED" || job.status === "PAUSED") && (
+      {canEdit && (job.status === "PUBLISHED" || job.status === "PAUSED") && (
         <section className="section">
           <h2 className="section-title">Close this job</h2>
           <p className="text-muted-sm">

@@ -1,5 +1,4 @@
-import { SCHEDULING_ROLES } from "@/lib/access";
-import { apiOrgRole, apiWorker, badId } from "@/lib/api-session";
+import { apiArea, apiWorker, badId } from "@/lib/api-session";
 import { shiftState } from "@/lib/field-day";
 import { facts, loadWorkerShifts, scheduleShift } from "@/lib/field-day-data";
 
@@ -35,7 +34,7 @@ export async function GET() {
  * already has an overlapping shift on any campaign.
  */
 export async function POST(req: Request) {
-  const auth = await apiOrgRole(SCHEDULING_ROLES);
+  const auth = await apiArea("scheduling");
   if ("error" in auth) return auth.error;
   const body = (await req.json().catch(() => null)) as Record<string, unknown> | null;
   if (!body || typeof body !== "object" || typeof body.engagementId !== "string") return Response.json({ error: "Send { engagementId, startsAt, endsAt, … }." }, { status: 400 });

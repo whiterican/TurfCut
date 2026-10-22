@@ -1,6 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
-import { rolesFor } from "@/lib/access";
+import { areaMembers } from "@/lib/access-data";
 import { recordAdminAction, staffLabel, type StaffActor } from "@/lib/admin-data";
 import { checkReason } from "@/lib/admin-reason";
 import { compensationProblem, jurisdictionLabel, jurisdictionProblems, type CompensationMethod } from "@/lib/jobs";
@@ -128,7 +128,7 @@ export async function loadJurisdictionForAdmin(id: string, now = new Date()): Pr
 /** Tells the owners and recruiters of these organizations that some of their jobs froze (one notice per person, whatever the count). */
 async function notifyJobsFrozen(tx: Tx, orgIds: string[], now: Date): Promise<number> {
   if (!orgIds.length) return 0;
-  const people = await tx.profile.findMany({ where: { orgId: { in: orgIds }, role: { in: rolesFor("jobsEdit") }, closedAt: null }, select: { id: true } });
+  const people = await tx.profile.findMany({ where: { orgId: { in: orgIds }, ...areaMembers("jobsEdit"), closedAt: null }, select: { id: true } });
   if (!people.length) return 0;
   await tx.notification.createMany({ data: people.map((p) => ({ recipientId: p.id, kind: "ORG_JOBS_FROZEN" as const, createdAt: now })) });
   return people.length;

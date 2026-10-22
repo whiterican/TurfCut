@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
-import { requireEmployer } from "@/lib/employer-session";
+import { requireJobEditor } from "@/lib/employer-session";
 import { jobToForm, UUID_RE } from "@/lib/jobs";
 import { jurisdictionOptions } from "@/lib/jurisdiction-options";
 import { JobForm } from "@/components/JobForm";
@@ -10,7 +10,7 @@ import { materialText, RELEASE_HOURS } from "@/lib/job-changes";
 export default async function EditJobPage({ params }: { params: Promise<{ jobId: string }> }) {
   const { jobId } = await params;
   if (!UUID_RE.test(jobId)) notFound();
-  const { orgId } = await requireEmployer();
+  const { orgId } = await requireJobEditor();
   const job = orgId ? await db().job.findFirst({ where: { id: jobId, orgId } }) : null;
   if (!job) notFound();
   const jurisdictions = await jurisdictionOptions();

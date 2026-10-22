@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireArea } from "@/lib/employer-session";
-import { accessTo } from "@/lib/access";
+import { canUse } from "@/lib/access";
 import { db } from "@/lib/db";
 import { embeddableJobs, listOrgCampaigns, loadOrgCampaign, loadPinned, loadPosts, orgJobsForLinking } from "@/lib/campaign-social-data";
 import { MAX_PINNED } from "@/lib/campaign-social";
@@ -26,7 +26,7 @@ export default async function CampaignPage({ params, searchParams }: { params: P
   const session = await requireArea("campaignPosting");
   const c = await loadOrgCampaign(session.orgId, id);
   if (!c) notFound();
-  const canEdit = accessTo(session.role, "campaigns") === "full";
+  const canEdit = canUse(session, "campaigns");
   const org = await db().organization.findUniqueOrThrow({ where: { id: session.orgId }, select: { approved: true } });
   const fields = { id: c.id };
   const [jobs, pinned, feed, orgJobs, campaigns] = await Promise.all([embeddableJobs(session.orgId), loadPinned(c.id), loadPosts(c.id, cursor), orgJobsForLinking(session.orgId), listOrgCampaigns(session.orgId)]);

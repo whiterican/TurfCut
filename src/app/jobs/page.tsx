@@ -5,7 +5,7 @@ import { Masthead } from "@/components/staff/Masthead";
 import { DataTable } from "@/components/staff/DataTable";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
-import { HIRING_ROLES, ORG_ROLES } from "@/lib/access";
+import { canUse } from "@/lib/access";
 import { ENGAGEMENT_LABELS, JOB_STATUS_LABELS } from "@/lib/engagement-labels";
 import { JOB_TYPES, exclusionReasons, parseFeedFilters, readDisclosure } from "@/lib/jobs";
 import { effectivePreference } from "@/lib/political-fit";
@@ -22,7 +22,7 @@ type Search = Promise<Record<string, string | string[] | undefined>>;
 export default async function JobsPage({ searchParams }: { searchParams: Search }) {
   const session = await requireAuth();
   if (session.role === "WORKER" && session.workerId) return <WorkerFeed workerId={session.workerId} searchParams={searchParams} />;
-  if (ORG_ROLES.includes(session.role) && session.orgId) return <OrgJobs orgId={session.orgId} canHire={HIRING_ROLES.includes(session.role)} />;
+  if (session.orgId && canUse(session, "jobs", "read")) return <OrgJobs orgId={session.orgId} canHire={canUse(session, "jobsEdit")} />;
   return (
     <main className="page max-w-2xl">
       <div className="empty-state">

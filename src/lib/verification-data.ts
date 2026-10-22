@@ -1,6 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
-import { can } from "@/lib/access";
+import { can, type Grants } from "@/lib/access";
 import type { Role } from "@/lib/auth";
 import { UUID_RE } from "@/lib/jobs";
 import { ACCEPTED_STATUSES } from "@/lib/engagements";
@@ -18,7 +18,7 @@ import { loadOrgProofs } from "@/lib/proof-data";
  * see "Verified by an organization" and how, never which one.
  */
 
-type Staff = { profileId: string; orgId: string; role: Role };
+type Staff = { profileId: string; orgId: string; role: Role; grants?: Grants | null };
 
 const hiredWhere = (orgId: string) => ({ status: { in: ACCEPTED_STATUSES }, job: { orgId } });
 
@@ -47,7 +47,7 @@ async function verifierOrgs(rowIds: string[]) {
  * (its role, or Turfcut hasn't approved it). Only current rows are read.
  */
 export async function loadHiredCredentials(staff: Staff) {
-  if (!can(staff.role, "compliance")) return null;
+  if (!can(staff, "compliance")) return null;
   const org = await db().organization.findUnique({ where: { id: staff.orgId }, select: { approved: true } });
   if (!org?.approved) return null;
   const hired = await db().engagement.findMany({
@@ -118,7 +118,7 @@ export function checkFailure(e: unknown): { ok: false; reason: string } | null {
  * neither can land between the checks and the record.
  */
 export async function verifyCredential(staff: Staff, credentialId: string, method: string): Promise<{ ok: true; id: string } | { ok: false; reason: string }> {
-  if (!can(staff.role, "compliance")) return { ok: false, reason: "Only owners and compliance members verify credentials." };
+  if (!can(staff, "compliance")) return { ok: false, reason: "Only owners and compliance members verify credentials." };
   if (!ORG_METHODS.includes(method as VerificationMethod)) return { ok: false, reason: "Say how you checked it." };
   if (!UUID_RE.test(credentialId)) return NOT_FOUND;
   // No worker lock for an organization that can't verify at all (checked again under the lock).

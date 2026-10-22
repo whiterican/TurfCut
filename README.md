@@ -1300,6 +1300,51 @@ roles, one slice at a time.
   `verifiedById`, both null or both set; neither is granted to the API
   roles (the app serves the mark). Run it after `m10-admin.sql` and before deploying this code.
 
+### M10.6 — organization roles (done)
+
+- **Custom roles.** An owner builds roles for the seats the six built-in
+  roles don't fit: **Members → Roles**. A role is a name, a short
+  description and, for each area of the access map, none, read or full
+  (an area is offered only at the levels the built-in roles use there: Pay
+  and Members are full or nothing). The form starts from a preset, which
+  is any built-in role's row of the map (so **Compliance** is offered here,
+  as a preset: classification review and credential checks, read on jobs
+  and settings), or blank. Up to twenty live roles per organization; names
+  are unique whatever their case. Roles are never deleted: a role nobody
+  holds (no member, no pending invite) is archived, and its name stays
+  taken.
+- **Assigning.** Invite someone to a role, or change a member's role, from
+  the role select on **Members**, where your roles sit under the built-in
+  ones. A member on a custom role has `Profile.role = CUSTOM` and an
+  `orgRoleId` (a check keeps the two together); an invite carries the
+  same pair. Each member shows a **role history** from the audit trail
+  (joined as, then each change by role name).
+- **One map, read once per request.** The session resolves a custom-role
+  member's grants with the profile (`grants` on the session); a built-in
+  role is its row of the map. `requireArea`, the API guards, the nav and
+  every query for "who in this organization can do X" (`areaMembers`) read
+  that and nothing else; the role lists that guarded pages before are gone.
+  A custom role fails closed anywhere a check still asks by role alone, and
+  an archived or missing role has no grants. Chat gets a `moderation` area
+  for reports and removing reported messages (owners by default); creating
+  and publishing jobs is the `jobsEdit` area, so a role with read on Jobs
+  sees the list and cannot publish.
+- **Delegating member administration.** Grant the **Members** area. A
+  delegate invites, resends, revokes, changes roles and removes members,
+  but only up to what they hold themselves: no role that reaches more than
+  theirs, no owner seat, nobody who is an owner or has more access than
+  they do. Building roles stays with owners, and the last owner can never
+  be removed or demoted. Every check runs again in the transaction, under
+  the membership lock.
+- **Chat:** a custom role with Messages can run teams and be a manager;
+  the database trigger that ends a member's chat access when their role
+  changes still treats any change of role as the end of it (a person moved
+  to a custom role is re-added by hand).
+- **Migration:** `prisma/m10-roles.sql` (also in `supabase-manual-setup.sql`):
+  `Role` gains `CUSTOM`, tables `OrgRole` and `OrgRoleGrant` (server-only),
+  `Profile.orgRoleId` and `OrgInvite.orgRoleId`. Run it after
+  `m10-verification.sql` and before deploying this code.
+
 ### Turfcut staff — making an account staff
 
 Only by hand, in the Supabase SQL editor, after `prisma/m10-admin.sql`:

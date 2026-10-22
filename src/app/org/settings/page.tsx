@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
-import { ORG_ROLES } from "@/lib/access";
-import { requireOrgMember } from "@/lib/employer-session";
+import { canUse } from "@/lib/access";
+import { requireArea } from "@/lib/employer-session";
 import { COMPENSATION_METHODS, jurisdictionLabel, jurisdictionProblems } from "@/lib/jobs";
 import { recordClassificationReview, saveLegalContact, signContractorTerms } from "./actions";
 
@@ -24,13 +24,13 @@ function GateRow({ label, done, detail, children }: { label: string; done: boole
 
 /** Publish-gate records and the jurisdiction rule profiles jobs can use. */
 export default async function OrgSettingsPage() {
-  const session = await requireOrgMember(ORG_ROLES);
+  const session = await requireArea("orgSettings", "read");
   const [org, jurisdictions] = await Promise.all([
     db().organization.findUniqueOrThrow({ where: { id: session.orgId } }),
     db().jurisdictionProfile.findMany({ orderBy: [{ state: "asc" }, { locality: "asc" }, { version: "desc" }] }),
   ]);
-  const isOwner = session.role === "OWNER";
-  const canReview = isOwner || session.role === "COMPLIANCE";
+  const isOwner = canUse(session, "orgSettings"); // full: the owner, or a custom role granted it
+  const canReview = canUse(session, "compliance");
   const now = new Date();
 
   return (
@@ -41,7 +41,7 @@ export default async function OrgSettingsPage() {
           <h1 className="page-title masthead">{org.name}</h1>
         </div>
         <div className="flex flex-wrap gap-2">
-          {isOwner && <Link href="/org/settings/members" className="btn-secondary btn-sm">Members</Link>}
+          {canUse(session, "orgMembers") && <Link href="/org/settings/members" className="btn-secondary btn-sm">Members</Link>}
           <Link href="/settings" className="btn-ghost btn-sm">Settings &amp; sign out</Link>
         </div>
       </header>

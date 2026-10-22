@@ -40,6 +40,13 @@ enum Role {
   SUPERVISOR // field supervisor (reviews work)
   FINANCE // organization finance (payouts, exports)
   PUBLISHER // C1: campaign communications (campaign profiles and feed land in C6)
+  CUSTOM // M10.6: an organization-defined role; what it reaches is its OrgRole's grants (Profile.orgRoleId)
+}
+
+/// How far a role's grant on an area goes (M10.6): the access map's full or read.
+enum RoleAccessLevel {
+  FULL
+  READ
 }
 
 /// Links a Supabase Auth user to a Turfcut role.
@@ -47,23 +54,27 @@ enum Role {
 /// member detaches them (orgId = null) and keeps their login and history. Worker users get a workers row; company users get an
 /// organizations row and one of the org roles.
 model Profile {
-  id          String        @id @db.Uuid // == Supabase auth.users.id
-  role        Role
-  worker      Worker?
-  orgId       String?       @db.Uuid
-  org         Organization? @relation(fields: [orgId], references: [id])
+  id              String        @id @db.Uuid // == Supabase auth.users.id
+  role            Role
+  worker          Worker?
+  orgId           String?       @db.Uuid
+  org             Organization? @relation(fields: [orgId], references: [id])
+  /// M10.6: set exactly when role is CUSTOM (a CHECK keeps the two in step).
+  orgRoleId       String?       @db.Uuid
+  orgRole         OrgRole?      @relation("OrgRoleMembers", fields: [orgRoleId], references: [id], onDelete: Restrict)
+  orgRolesCreated OrgRole[]     @relation("OrgRoleCreator")
   // Org staff's name as shown in chat ("Maya Chen · Manager"). Workers use
   // Worker.displayName. Never shown to anyone outside a shared conversation.
-  displayName String?
+  displayName     String?
   // Account closure (M7): set when the person closed their account. The
   // auth user is deleted; this row and everything it anchors stay (rule 3).
-  closedAt    DateTime?
+  closedAt        DateTime?
   // Turfcut staff (M10): when this account was made staff; null for everyone
   // else. Independent of role (a staff member can also be a worker or an
   // owner). Set by hand in SQL, never by the app (README, "Turfcut staff").
-  staffSince  DateTime?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  staffSince      DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
 
   hiredEngagements      Engagement[]              @relation("HiredBy")
   notifications         Notification[]
@@ -259,6 +270,7 @@ model Organization {
   mutedBy                  OrgMute[]
   campaignProfiles         CampaignProfile[]
   adminActions             AdminAction[]
+  orgRoles                 OrgRole[]
   createdAt                DateTime          @default(now())
   updatedAt                DateTime          @updatedAt
 }
@@ -275,6 +287,9 @@ model OrgInvite {
   org          Organization @relation(fields: [orgId], references: [id], onDelete: Restrict)
   email        String // lowercased
   role         Role // never WORKER
+  /// M10.6: the custom role an invite is for; set exactly when role is CUSTOM.
+  orgRoleId    String?      @db.Uuid
+  orgRole      OrgRole?     @relation("OrgRoleInvites", fields: [orgRoleId], references: [id], onDelete: Restrict)
   invitedById  String       @db.Uuid // Profile.id of the owner who sent it
   createdAt    DateTime     @default(now())
   expiresAt    DateTime
@@ -284,6 +299,40 @@ model OrgInvite {
 
   @@index([email])
   @@index([orgId, createdAt])
+}
+
+/// M10.6: a role an organization defines for itself: a name and what it
+/// reaches, as grants on the access map's areas. Started from a built-in
+/// role as a preset (basedOn). Never deleted: archived once nobody holds it
+/// (the history of who held what stays readable on the audit trail).
+model OrgRole {
+  id          String         @id @default(uuid()) @db.Uuid
+  orgId       String         @db.Uuid
+  org         Organization   @relation(fields: [orgId], references: [id], onDelete: Restrict)
+  name        String
+  description String         @default("")
+  basedOn     Role? // the built-in role it started from, if any
+  createdById String         @db.Uuid
+  createdBy   Profile        @relation("OrgRoleCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  createdAt   DateTime       @default(now())
+  archivedAt  DateTime?
+  grants      OrgRoleGrant[]
+  members     Profile[]      @relation("OrgRoleMembers")
+  invites     OrgInvite[]    @relation("OrgRoleInvites")
+
+  @@unique([orgId, name])
+  @@index([orgId, archivedAt])
+}
+
+/// One grant of a custom role: an area (checked in code against the access
+/// map's list, so a new area never needs a migration) at full or read.
+model OrgRoleGrant {
+  roleId String          @db.Uuid
+  role   OrgRole         @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  area   String
+  level  RoleAccessLevel
+
+  @@id([roleId, area])
 }
 
 /// Versioned, counsel-approved rule profile per jurisdiction.

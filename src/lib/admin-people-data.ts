@@ -6,8 +6,7 @@ import { checkReason } from "@/lib/admin-reason";
 import { UUID_RE } from "@/lib/jobs";
 import { emailsFor, INVITE_DAYS, LAST_OWNER, lockOrg, otherOwners, type InviteMailer } from "@/lib/members-data";
 import { orgIdsByCampaignHandle } from "@/lib/campaign-admin-data";
-
-type Tx = Prisma.TransactionClient;
+import { approvalStanding, type ApprovalStanding } from "@/lib/admin-orgs-data";
 
 /*
  * The people lookup (M10.4) shows what support needs and nothing a worker
@@ -38,18 +37,18 @@ export interface PersonHit {
   email: string | null;
   createdAt: Date;
   closedAt: Date | null;
-  org: { id: string; name: string; approved: boolean } | null;
+  org: { id: string; name: string; approved: boolean; standing: ApprovalStanding } | null;
 }
 
 const HIT_SELECT = {
   id: true, role: true, staffSince: true, displayName: true, createdAt: true, closedAt: true,
   worker: { select: { id: true, displayName: true } },
-  org: { select: { id: true, name: true, approved: true } },
+  org: { select: { id: true, name: true, approved: true, approvedAt: true } },
 } satisfies Prisma.ProfileSelect;
 type HitRecord = Prisma.ProfileGetPayload<{ select: typeof HIT_SELECT }>;
 const toHit = (p: HitRecord, emails: Map<string, string>): PersonHit => ({
   profileId: p.id, role: p.role as Role, staff: !!p.staffSince, name: p.worker?.displayName || p.displayName || null, email: emails.get(p.id) ?? null,
-  createdAt: p.createdAt, closedAt: p.closedAt, org: p.org ? { id: p.org.id, name: p.org.name, approved: p.org.approved } : null,
+  createdAt: p.createdAt, closedAt: p.closedAt, org: p.org ? { id: p.org.id, name: p.org.name, approved: p.org.approved, standing: approvalStanding(p.org) } : null,
 });
 
 /** Accounts matching a search (M10.4): by id, by email prefix (sign-in emails), by campaign handle (the organization's members), or by name. */
@@ -59,9 +58,11 @@ export async function searchPeople(raw: string): Promise<{ kind: QueryKind | nul
   const kind = queryKind(q);
   let where: Prisma.ProfileWhereInput;
   if (kind === "id") {
-    where = { id: q };
+    // An account id, or a worker id pasted from the audit timeline.
+    where = { OR: [{ id: q }, { worker: { id: q } }] };
   } else if (kind === "email") {
-    const prefix = `${q.toLowerCase().replace(/[%_\\]/g, "")}%`;
+    // The address is a LIKE pattern: escape its wildcards (Postgres' default escape is a backslash) rather than drop them; underscores are common in addresses.
+    const prefix = `${q.toLowerCase().replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
     const rows = await db().$queryRaw<{ id: string }[]>`SELECT id::text AS id FROM auth.users WHERE lower(email) LIKE ${prefix} ORDER BY email LIMIT ${HITS_MAX}`;
     if (!rows.length) return { kind, hits: [] };
     where = { id: { in: rows.map((r) => r.id) } };
@@ -151,16 +152,20 @@ export async function loadPerson(profileId: string, now = new Date()): Promise<P
   };
 }
 
-type Outcome = { ok: true } | { ok: false; message: string };
+type Refusal = { ok: false; message: string };
+/** A check the caller runs once the invite is known to be pending and its organization approved: the organization's own daily invite limit. */
+export type InviteGate = (orgId: string) => Promise<{ ok: true } | Refusal>;
 
 /**
  * Resend a pending invite on an organization's behalf (M10.4): the owner's
  * own rules (the organization must be approved; a failed send never revives
- * an invite; an address that can't join is never emailed and never learns
- * why), minus "you must be an owner". The organization's audit trail records
+ * an invite; an address that can't join is never emailed, and the owner is
+ * never told why), minus "you must be an owner". `sent` says whether an
+ * email went out: staff see the account's standing on the same page, so for
+ * them silence would only mislead. The organization's audit trail records
  * it by nobody in particular; the ledger records the staff member and why.
  */
-export async function staffResendInvite(staff: StaffActor, inviteId: string, mail: InviteMailer, reason: unknown, now = new Date()): Promise<Outcome> {
+export async function staffResendInvite(staff: StaffActor, inviteId: string, mail: InviteMailer, reason: unknown, now = new Date(), gate: InviteGate | null = null): Promise<{ ok: true; sent: boolean } | Refusal> {
   const r = checkReason(reason);
   if (!r.ok) return r;
   if (!UUID_RE.test(inviteId)) return { ok: false, message: "Invite not found." };
@@ -178,6 +183,10 @@ export async function staffResendInvite(staff: StaffActor, inviteId: string, mai
     return { ok: true as const, orgId: inv.orgId, email: inv.email, canJoin };
   });
   if (!pre.ok) return pre;
+  if (gate) {
+    const g = await gate(pre.orgId);
+    if (!g.ok) return g;
+  }
   const sent = !pre.canJoin ? { ok: true as const } : await mail(pre.email).catch((e: unknown) => ({ ok: false as const, message: e instanceof Error ? e.message : String(e) }));
   if (!sent.ok) {
     console.error("[turfcut] invite email failed (staff resend)", sent.message);
@@ -189,8 +198,8 @@ export async function staffResendInvite(staff: StaffActor, inviteId: string, mai
     const { count } = await tx.orgInvite.updateMany({ where: { id: inviteId, acceptedAt: null, revokedAt: null }, data: { expiresAt } });
     if (!count) return { ok: false as const, message: "Invite not found, or no longer pending." };
     await tx.auditEvent.create({ data: { actorId: null, action: "invite.resent", entityType: "OrgInvite", entityId: inviteId, metadata: { orgId: pre.orgId, by: "turfcut-staff" }, createdAt: now } });
-    await recordAdminAction(tx, { staff, action: "invite.resent_for_org", targetType: "OrgInvite", targetId: inviteId, orgId: pre.orgId, reason: r.reason }, now);
-    return { ok: true as const };
+    await recordAdminAction(tx, { staff, action: "invite.resent_for_org", targetType: "OrgInvite", targetId: inviteId, orgId: pre.orgId, reason: r.reason, metadata: { sent: pre.canJoin } }, now);
+    return { ok: true as const, sent: pre.canJoin };
   });
 }
 
@@ -200,7 +209,7 @@ export async function staffResendInvite(staff: StaffActor, inviteId: string, mai
  * ends), minus "you must be an owner". Audit trail by nobody in particular;
  * the ledger names the staff member and why.
  */
-export async function staffRemoveMember(staff: StaffActor, profileId: string, reason: unknown, now = new Date()): Promise<Outcome> {
+export async function staffRemoveMember(staff: StaffActor, profileId: string, reason: unknown, now = new Date()): Promise<{ ok: true; orgId: string } | Refusal> {
   const r = checkReason(reason);
   if (!r.ok) return r;
   if (!UUID_RE.test(profileId)) return { ok: false, message: "Member not found." };
@@ -214,6 +223,6 @@ export async function staffRemoveMember(staff: StaffActor, profileId: string, re
     await tx.profile.update({ where: { id: p.id }, data: { orgId: null } });
     await tx.auditEvent.create({ data: { actorId: null, action: "member.removed", entityType: "Profile", entityId: p.id, metadata: { orgId: p.orgId, role: p.role, by: "turfcut-staff" }, createdAt: now } });
     await recordAdminAction(tx, { staff, action: "member.removed_for_org", targetType: "Profile", targetId: p.id, orgId: p.orgId, reason: r.reason, metadata: { role: p.role } }, now);
-    return { ok: true as const };
+    return { ok: true as const, orgId: p.orgId };
   });
 }

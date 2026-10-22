@@ -1,15 +1,36 @@
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/db", () => ({ db: () => ({}) }));
-const { cursorString, filterQuery, LEDGER_MOMENTS, mergeTimeline, parseAuditFilter, parseCursor, recordHref } = await import("./admin-audit-data");
+const { cursorString, filterQuery, LEDGER_MOMENTS, mergeTimeline, parseAuditFilter, parseCursor, presentDetails, recordHref } = await import("./admin-audit-data");
 
 const A = "aaaaaaaa-0000-0000-0000-000000000001";
 const B = "bbbbbbbb-0000-0000-0000-000000000002";
 const at = (s: string) => new Date(s);
 
 describe("the audit timeline (M10.4)", () => {
-  it("pins the five ledger moments", () => {
-    expect([...LEDGER_MOMENTS]).toEqual(["job.published", "shift.reviewed", "approve", "payout.created", "pay.statement_closed"]);
+  it("pins the five ledger moments, each an action some module actually records", () => {
+    expect([...LEDGER_MOMENTS]).toEqual(["job.published", "shift.reviewed", "payout.approved", "payout.created", "pay.statement_closed"]);
+    const dir = join(process.cwd(), "src/lib");
+    const recorded = readdirSync(dir).filter((f) => f.endsWith(".ts") && !f.endsWith(".test.ts") && f !== "admin-audit-data.ts").map((f) => readFileSync(join(dir, f), "utf8")).join("\n");
+    for (const moment of LEDGER_MOMENTS) expect(recorded, `${moment} is recorded somewhere`).toContain(`"${moment}"`);
+  });
+
+  it("drops a day that doesn't exist instead of rounding it into another", () => {
+    expect(parseAuditFilter({ from: "2026-02-30" }).from).toBeNull();
+    expect(parseAuditFilter({ to: "2026-13-45" }).to).toBeNull();
+    expect(parseAuditFilter({ from: "2024-02-29" }).from).toEqual(at("2024-02-29T00:00:00Z"));
+  });
+
+  it("withholds a worker's own details and a credential's, drops the consent version from an engagement, and shows everything else whole", () => {
+    expect(presentDetails("audit", "org.muted", "Worker", { orgId: A })).toEqual({ metadata: null, withheld: true });
+    expect(presentDetails("audit", "sharing.saved", "Worker", null)).toEqual({ metadata: null, withheld: false });
+    expect(presentDetails("audit", "credential.added", "WorkerCredential", { kind: "NOTARY" })).toEqual({ metadata: null, withheld: true });
+    expect(presentDetails("audit", "credential_proof.added", "CredentialProof", { credentialId: A, side: "front", shared: true })).toEqual({ metadata: null, withheld: true });
+    expect(presentDetails("audit", "engagement.applied", "Engagement", { jobId: A, workerId: B, status: "APPLIED", consentVersion: 3 })).toEqual({ metadata: { jobId: A, workerId: B, status: "APPLIED" }, withheld: false });
+    expect(presentDetails("audit", "job.published", "Job", { by: "x" })).toEqual({ metadata: { by: "x" }, withheld: false });
+    expect(presentDetails("staff", "member.removed_for_org", "Profile", { role: "OWNER" })).toEqual({ metadata: { role: "OWNER" }, withheld: false });
   });
 
   it("reads the query string as a filter, dropping what doesn't parse instead of refusing", () => {
@@ -42,13 +63,13 @@ describe("the audit timeline (M10.4)", () => {
     expect(recordHref("Organization", "not-a-uuid")).toBeNull();
   });
 
-  it("merges two sources newest first, ids ascending within a moment, and hands back a cursor only while more exist", () => {
+  it("merges the sources newest first, ids ascending within a moment, and hands back a cursor only while more exist", () => {
     const a = [{ id: B, createdAt: at("2026-10-20T12:00:00Z") }, { id: A, createdAt: at("2026-10-20T10:00:00Z") }, { id: A, createdAt: at("2026-10-20T09:00:00Z") }];
     const b = [{ id: A, createdAt: at("2026-10-20T12:00:00Z") }, { id: B, createdAt: at("2026-10-20T11:00:00Z") }];
-    const page = mergeTimeline(a, b, 3);
+    const page = mergeTimeline([...a, ...b], 3);
     expect(page.rows.map((r) => `${r.createdAt.toISOString().slice(11, 13)}${r.id[0]}`)).toEqual(["12a", "12b", "11b"]);
     expect(page.next).toEqual({ createdAt: at("2026-10-20T11:00:00Z"), id: B });
-    expect(mergeTimeline(a, b, 10).next).toBeNull();
-    expect(mergeTimeline([], [], 10)).toEqual({ rows: [], next: null });
+    expect(mergeTimeline([...a, ...b], 10).next).toBeNull();
+    expect(mergeTimeline([], 10)).toEqual({ rows: [], next: null });
   });
 });

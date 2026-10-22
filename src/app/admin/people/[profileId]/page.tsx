@@ -9,11 +9,11 @@ import { LocalTime } from "@/components/LocalTime";
 
 const WORDS: Record<string, string> = {
   "member.joined": "Joined",
-  "member.invited": "Invited",
   "member.role_changed": "Role changed",
   "member.removed": "Removed",
   "account.created": "Account created",
   "account.closed": "Account closed",
+  "account.login_delete_failed": "Account closed, but the login could not be deleted",
   "member.removed_for_org": "Removed from the organization",
   "invite.resent_for_org": "Invite resent",
 };
@@ -26,6 +26,9 @@ export default async function AdminPersonPage({ params }: { params: Promise<{ pr
   const p = await loadPerson(profileId);
   if (!p) notFound();
   const member = p.role !== "WORKER" && !!p.org && !p.closedAt;
+  // The owner's rule: an invite is only ever accepted by an account with no organization, no worker role and not closed.
+  const canAccept = p.role !== "WORKER" && !p.org && !p.closedAt;
+  const cannotAcceptWhy = p.closedAt ? "the account is closed" : p.role === "WORKER" ? "it belongs to a field worker" : p.org ? `it is already a member of ${p.org.name}` : null;
   return (
     <>
       <p>
@@ -55,7 +58,7 @@ export default async function AdminPersonPage({ params }: { params: Promise<{ pr
           <div>
             <dt className="eyebrow eyebrow-quiet">Organization</dt>
             <dd className="text-sm text-fg">
-              {p.org ? <><Link href={`/admin/organizations/${p.org.id}`} className="link">{p.org.name}</Link>{p.org.approved ? "" : " · awaiting approval"}</> : p.role === "WORKER" ? "Field worker; no organization" : "None (removed, or never joined)"}
+              {p.org ? <><Link href={`/admin/organizations/${p.org.id}`} className="link">{p.org.name}</Link>{p.org.standing === "awaiting" ? " · awaiting approval" : p.org.standing === "withdrawn" ? " · approval withdrawn" : ""}</> : p.role === "WORKER" ? "Field worker; no organization" : "None (removed, or never joined)"}
             </dd>
           </div>
           <div>
@@ -77,7 +80,11 @@ export default async function AdminPersonPage({ params }: { params: Promise<{ pr
                   <span className="text-sm font-semibold text-fg">{i.orgName} · {ROLE_LABELS[i.role]}</span>
                   <span className="text-xs text-subtle">{i.expired ? "expired" : "expires"} <LocalTime iso={i.expiresAt.toISOString()} mode="fulldate" /></span>
                 </p>
-                <PersonActionForm kind="resend" fields={{ inviteId: i.id, orgId: i.orgId, profileId: p.profileId }} label="Resend this invite" prompt="Why resend it" />
+                {canAccept ? (
+                  <PersonActionForm kind="resend" fields={{ inviteId: i.id, profileId: p.profileId }} label="Resend this invite" prompt="Why resend it" />
+                ) : (
+                  <p className="text-muted-sm">This account can&apos;t accept it ({cannotAcceptWhy}), so there is nothing to resend; the organization&apos;s owner sees only a pending invite.</p>
+                )}
               </li>
             ))}
           </ul>

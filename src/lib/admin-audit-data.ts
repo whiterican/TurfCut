@@ -3,8 +3,8 @@ import { db } from "@/lib/db";
 import { staffLabel } from "@/lib/admin-data";
 import { UUID_RE } from "@/lib/jobs";
 
-/** The five ledger moments the Ledger quick filter pins (M10 plan, decision 8): a job goes live, a shift is reviewed, a pay line is approved, a payout is created, a statement is closed. */
-export const LEDGER_MOMENTS = ["job.published", "shift.reviewed", "approve", "payout.created", "pay.statement_closed"] as const;
+/** The five ledger moments the Ledger quick filter pins (M10 plan, decision 8): a job goes live, a shift is reviewed, a pay line is approved, a payout is created, a statement is closed. A test checks each is an action some module records. */
+export const LEDGER_MOMENTS = ["job.published", "shift.reviewed", "payout.approved", "payout.created", "pay.statement_closed"] as const;
 export const TIMELINE_PAGE = 50;
 
 export interface AuditFilter {
@@ -29,8 +29,14 @@ const one = (sp: Record<string, string | string[] | undefined>, k: string): stri
   return typeof s === "string" ? s.trim() : "";
 };
 const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
-const dayStart = (s: string): Date | null => (DAY_RE.test(s) ? new Date(`${s}T00:00:00Z`) : null);
-const dayEnd = (s: string): Date | null => (DAY_RE.test(s) ? new Date(`${s}T23:59:59.999Z`) : null);
+/** A calendar day (UTC) that exists: "2026-02-30" and "2026-13-45" are dropped, not rounded. */
+const day = (s: string, time: string): Date | null => {
+  if (!DAY_RE.test(s)) return null;
+  const d = new Date(`${s}T${time}Z`);
+  return Number.isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== s ? null : d;
+};
+const dayStart = (s: string) => day(s, "00:00:00");
+const dayEnd = (s: string) => day(s, "23:59:59.999");
 
 /** The viewer's query string as a filter. Anything malformed is dropped, never refused: a filter is a view, not an act. */
 export function parseAuditFilter(sp: Record<string, string | string[] | undefined>): AuditFilter {
@@ -94,20 +100,41 @@ export interface TimelineRow {
   orgName: string | null;
   reason: string | null;
   metadata: unknown;
+  /** True when the event's details are a worker's own business (see presentDetails) and are not shown. */
+  withheld: boolean;
   createdAt: Date;
   href: string | null;
 }
 
 /**
- * Keyset merge of two sources each already sorted newest first (createdAt
- * desc, id asc) and each fetched one row past the page: the page, and the
- * cursor for what follows, or null when both sources ran out.
+ * What of an audit event's details the viewer shows. The timeline is for
+ * support, not surveillance: an event on a worker's own record (sharing,
+ * consent, availability, which organizations they muted) and a credential
+ * event (which kinds they hold, what they shared) keep their details to
+ * themselves; an engagement event drops the consent version it snapshots.
+ * Everything else, and every staff act, is shown whole.
  */
-export function mergeTimeline<T extends { createdAt: Date; id: string }>(a: T[], b: T[], limit: number): { rows: T[]; next: Cursor | null } {
-  const all = [...a, ...b].sort((x, y) => y.createdAt.getTime() - x.createdAt.getTime() || (x.id < y.id ? -1 : x.id > y.id ? 1 : 0));
-  const rows = all.slice(0, limit);
-  const last = rows[rows.length - 1];
-  return { rows, next: all.length > limit && last ? { createdAt: last.createdAt, id: last.id } : null };
+export function presentDetails(source: TimelineRow["source"], action: string, entityType: string, metadata: unknown): { metadata: unknown; withheld: boolean } {
+  if (source === "staff") return { metadata, withheld: false };
+  if (entityType === "Worker" || action.startsWith("credential")) return { metadata: null, withheld: metadata !== null && metadata !== undefined };
+  if (action.startsWith("engagement.") && metadata && typeof metadata === "object" && !Array.isArray(metadata) && "consentVersion" in metadata) {
+    const rest = { ...(metadata as Record<string, unknown>) };
+    delete rest.consentVersion;
+    return { metadata: rest, withheld: false };
+  }
+  return { metadata, withheld: false };
+}
+
+/**
+ * Keyset merge of rows from sources each already sorted newest first
+ * (createdAt desc, id asc) and each fetched one row past the page: the
+ * page, and the cursor for what follows, or null when every source ran out.
+ */
+export function mergeTimeline<T extends { createdAt: Date; id: string }>(rows: T[], limit: number): { rows: T[]; next: Cursor | null } {
+  const all = [...rows].sort((x, y) => y.createdAt.getTime() - x.createdAt.getTime() || (x.id < y.id ? -1 : x.id > y.id ? 1 : 0));
+  const page = all.slice(0, limit);
+  const last = page[page.length - 1];
+  return { rows: page, next: all.length > limit && last ? { createdAt: last.createdAt, id: last.id } : null };
 }
 
 /** How an actor is named on the timeline: a worker's name, else a member's chat name, else a short id. Never an email. */
@@ -124,7 +151,8 @@ export async function loadTimeline(f: AuditFilter, cursor: Cursor | null = null,
     AND: [
       { createdAt: time },
       after,
-      f.ledger ? { action: { in: [...LEDGER_MOMENTS] } } : f.kind ? { action: { contains: f.kind, mode: "insensitive" } } : {},
+      f.ledger ? { action: { in: [...LEDGER_MOMENTS] } } : {},
+      f.kind ? { action: { contains: f.kind, mode: "insensitive" } } : {},
       f.actorId ? { actorId: f.actorId } : {},
       f.entityType ? { entityType: { equals: f.entityType, mode: "insensitive" } } : {},
       f.entityId ? { entityId: f.entityId } : {},
@@ -152,16 +180,31 @@ export async function loadTimeline(f: AuditFilter, cursor: Cursor | null = null,
         }),
   ]);
   const actorIds = [...new Set(audit.map((a) => a.actorId).filter((x): x is string => !!x))];
-  const actors = actorIds.length ? await db().profile.findMany({ where: { id: { in: actorIds } }, select: { id: true, displayName: true, worker: { select: { displayName: true } } } }) : [];
+  const workerIds = [...new Set(audit.filter((a) => a.entityType === "Worker" && UUID_RE.test(a.entityId)).map((a) => a.entityId))];
+  const [actors, workers] = await Promise.all([
+    actorIds.length ? db().profile.findMany({ where: { id: { in: actorIds } }, select: { id: true, displayName: true, worker: { select: { displayName: true } } } }) : [],
+    workerIds.length ? db().worker.findMany({ where: { id: { in: workerIds } }, select: { id: true, profileId: true } }) : [],
+  ]);
   const nameOf = new Map(actors.map((p) => [p.id, personLabel(p)]));
+  const accountOfWorker = new Map(workers.map((w) => [w.id, w.profileId]));
   const rows: TimelineRow[] = [
-    ...audit.map((a) => ({ id: a.id, source: "audit" as const, action: a.action, actorId: a.actorId, actorName: a.actorId ? (nameOf.get(a.actorId) ?? `Account ${a.actorId.slice(0, 8)}`) : null, entityType: a.entityType, entityId: a.entityId, orgName: null, reason: null, metadata: a.metadata, createdAt: a.createdAt, href: recordHref(a.entityType, a.entityId) })),
-    ...staff.map((s) => ({ id: s.id, source: "staff" as const, action: s.action, actorId: s.staffId, actorName: staffLabel(s.staff), entityType: s.targetType, entityId: s.targetId, orgName: s.org?.name ?? null, reason: s.reason, metadata: s.metadata, createdAt: s.createdAt, href: recordHref(s.targetType, s.targetId) })),
+    ...audit.map((a) => {
+      const details = presentDetails("audit", a.action, a.entityType, a.metadata);
+      const profileId = a.entityType === "Worker" ? accountOfWorker.get(a.entityId) : undefined;
+      return { id: a.id, source: "audit" as const, action: a.action, actorId: a.actorId, actorName: a.actorId ? (nameOf.get(a.actorId) ?? `Account ${a.actorId.slice(0, 8)}`) : null, entityType: a.entityType, entityId: a.entityId, orgName: null, reason: null, ...details, createdAt: a.createdAt, href: profileId ? recordHref("Profile", profileId) : recordHref(a.entityType, a.entityId) };
+    }),
+    ...staff.map((s) => ({ id: s.id, source: "staff" as const, action: s.action, actorId: s.staffId, actorName: staffLabel(s.staff), entityType: s.targetType, entityId: s.targetId, orgName: s.org?.name ?? null, reason: s.reason, metadata: s.metadata, withheld: false, createdAt: s.createdAt, href: recordHref(s.targetType, s.targetId) })),
   ];
-  return mergeTimeline(rows.filter((r) => r.source === "audit"), rows.filter((r) => r.source === "staff"), limit);
+  return mergeTimeline(rows, limit);
 }
 
-/** Every action name and record type the two tables hold, for the filter's suggestions. */
+/**
+ * Every action name and record type the two tables hold, for the filter's
+ * suggestions. Four DISTINCT scans on every view: fine at pilot size, and
+ * AuditEvent has no index on action or entityType. Before scale, cache this
+ * for a few minutes (the vocabulary changes only when code ships) or index
+ * the two columns.
+ */
 export async function listAuditVocabulary(): Promise<{ kinds: string[]; entityTypes: string[] }> {
   const [k1, k2, t1, t2] = await Promise.all([
     db().$queryRaw<{ action: string }[]>`SELECT DISTINCT "action" FROM "AuditEvent"`,

@@ -1234,12 +1234,21 @@ roles, one slice at a time.
   audit events and Turfcut's ledger rows, newest first, fifty at a time with
   an "Older" cursor. Filters: part of an action name, record type and id,
   actor (account id), a date range, and a Ledger quick filter that pins the
-  five ledger moments (`job.published`, `shift.reviewed`, `approve`,
-  `payout.created`, `pay.statement_closed`). A record with a console page
-  (organization, jurisdiction version, account) is linked. Actors are named
-  the way the app names them; a system event says System.
+  five ledger moments (`job.published`, `shift.reviewed`, `payout.approved`,
+  `payout.created`, `pay.statement_closed`; a kind filter narrows it further).
+  Days are UTC. A record with a console page (organization, jurisdiction
+  version, account) is linked; an event on a worker's record links to the
+  worker's account. Actors are named the way the app names them; a system
+  event says System. Details are shown whole for every staff act and every
+  organization event; an event on a worker's own record (sharing, consent,
+  availability, muted organizations) and a credential event show no details
+  ("details withheld"), and an engagement event drops the consent version it
+  snapshots. The `political_preferences.consented` row itself (the action
+  and the worker's name) still appears: the trail records that act on
+  purpose.
 - **Admin → People** finds an account by sign-in email (prefix), name, a
-  campaign handle (the organization's members) or account id, and shows who
+  campaign handle (the organization's members) or an account or worker id,
+  and shows who
   they are and where they belong: role, organization and its standing,
   sign-in email, when the account was made or closed, pending invites, the
   account's own membership history, and Turfcut's acts on it. It never
@@ -1248,8 +1257,11 @@ roles, one slice at a time.
   any such access).
 - **Two support actions, with the owner's own rules.** Resend a pending
   invite (the organization must be approved; its daily invite limit
-  applies; an address that can't join is never emailed and never told why;
-  a failed send revives nothing) and remove a member (the last owner stays;
+  applies, checked against the invite's own organization; an address that
+  can't join is never emailed, and while the owner is never told why, the
+  staff member is: the page hides Resend for an account that can't accept,
+  and the action says when no email went out; a failed send revives
+  nothing) and remove a member (the last owner stays;
   the login, role and history stay; access ends). The organization's own
   audit trail records "by Turfcut staff"; the ledger records who and why.
 - **No migration:** M10.4 reads and writes tables that exist.

@@ -32,6 +32,7 @@ export default async function AdminAuditPage({ searchParams }: { searchParams: P
           <select name="type" className="field" defaultValue={filter.entityType ?? ""}>
             <option value="">Any</option>
             {vocab.entityTypes.map((t) => <option key={t} value={t}>{t}</option>)}
+            {filter.entityType && !vocab.entityTypes.includes(filter.entityType) && <option value={filter.entityType}>{filter.entityType} (no such record type)</option>}
           </select>
         </label>
         <label className="block space-y-1.5">
@@ -43,11 +44,11 @@ export default async function AdminAuditPage({ searchParams }: { searchParams: P
           <input name="actor" className="field font-mono" defaultValue={filter.actorId ?? ""} />
         </label>
         <label className="block space-y-1.5">
-          <span className="label">From</span>
+          <span className="label">From (UTC day)</span>
           <input type="date" name="from" className="field" defaultValue={filter.from?.toISOString().slice(0, 10) ?? ""} />
         </label>
         <label className="block space-y-1.5">
-          <span className="label">To</span>
+          <span className="label">To (UTC day)</span>
           <input type="date" name="to" className="field" defaultValue={filter.to?.toISOString().slice(0, 10) ?? ""} />
         </label>
         <label className="flex items-center gap-2 text-sm text-fg sm:col-span-2">
@@ -88,6 +89,7 @@ export default async function AdminAuditPage({ searchParams }: { searchParams: P
                   </p>
                   {r.reason && <p className="text-sm text-fg">{r.reason}</p>}
                   {details && <p className="font-mono text-xs text-subtle break-all">{details}</p>}
+                  {r.withheld && <p className="text-xs text-subtle">Details withheld: a worker&apos;s own record.</p>}
                 </li>
               );
             })}

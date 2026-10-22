@@ -48,7 +48,7 @@ export default async function AdminPeoplePage({ searchParams }: { searchParams: 
                       <span className="text-xs text-subtle">since <LocalTime iso={h.createdAt.toISOString()} mode="fulldate" /></span>
                     </span>
                     <span className="block text-sm text-muted">
-                      {ROLE_LABELS[h.role]}{h.org ? <> · {h.org.name}{h.org.approved ? "" : " (awaiting approval)"}</> : h.role !== "WORKER" ? " · no organization" : null}{h.email ? <> · {h.email}</> : null}
+                      {ROLE_LABELS[h.role]}{h.org ? <> · {h.org.name}{h.org.standing === "awaiting" ? " (awaiting approval)" : h.org.standing === "withdrawn" ? " (approval withdrawn)" : ""}</> : h.role !== "WORKER" ? " · no organization" : null}{h.email ? <> · {h.email}</> : null}
                     </span>
                   </Link>
                 </li>

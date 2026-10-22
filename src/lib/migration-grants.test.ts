@@ -27,9 +27,9 @@ describe("migration grants", () => {
       }
     }
   });
-  it("campaign tables: column grants only, never who wrote or deleted a post, never revisions (S1)", () => {
+  it("campaign tables: column grants only, never who wrote or deleted a post, never revisions (S1), never who verified a profile (M10.5)", () => {
     const allowed: Record<string, Set<string>> = {
-      CampaignProfile: new Set(['"id"', '"handle"', '"displayName"', '"bio"', '"avatarKey"', '"headerKey"', '"publishedAt"', '"createdAt"', '"updatedAt"']),
+      CampaignProfile: new Set(['"id"', '"handle"', '"displayName"', '"bio"', '"avatarKey"', '"headerKey"', '"publishedAt"', '"verifiedAt"', '"createdAt"', '"updatedAt"']),
       CampaignPost: new Set(['"id"', '"profileId"', '"body"', '"jobId"', '"pinnedAt"', '"createdAt"', '"editedAt"']),
       // S4: never who wrote a fact or a resource, never a removed one's deletedAt.
       TalkingPointFact: new Set(['"id"', '"postId"', '"body"', '"sourceUrl"', '"position"', '"createdAt"', '"updatedAt"']),

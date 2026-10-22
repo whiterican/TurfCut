@@ -2070,3 +2070,19 @@ SELECT gen_random_uuid(), e."id",
   FROM "public"."Engagement" e JOIN "public"."Worker" w ON w."id" = e."workerId"
  WHERE e."applicationSnapshot"->>'kind' IN ('application', 'claim', 'invitation')
    AND NOT EXISTS (SELECT 1 FROM "public"."EngagementEvent" x WHERE x."engagementId" = e."id");
+
+-- Campaign verification (M10.5, prisma/m10-verification.sql): when Turfcut
+-- staff confirmed a campaign profile is the organization's official account,
+-- and who. Both null or both set. The public may read the date (the mark).
+ALTER TABLE "public"."CampaignProfile" ADD COLUMN IF NOT EXISTS "verifiedAt" TIMESTAMP(3);
+ALTER TABLE "public"."CampaignProfile" ADD COLUMN IF NOT EXISTS "verifiedById" UUID;
+DO $$ BEGIN
+  ALTER TABLE "public"."CampaignProfile" ADD CONSTRAINT "CampaignProfile_verifiedById_fkey" FOREIGN KEY ("verifiedById") REFERENCES "public"."Profile"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+DO $$ BEGIN
+  ALTER TABLE "public"."CampaignProfile" ADD CONSTRAINT "CampaignProfile_verified_together" CHECK (("verifiedAt" IS NULL) = ("verifiedById" IS NULL));
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+CREATE INDEX IF NOT EXISTS "CampaignProfile_verifiedAt_idx" ON "public"."CampaignProfile"("verifiedAt");
+GRANT SELECT ("verifiedAt") ON "public"."CampaignProfile" TO anon, authenticated;

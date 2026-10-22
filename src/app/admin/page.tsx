@@ -1,13 +1,14 @@
 import Link from "next/link";
 import { requireStaff } from "@/lib/staff-session";
 import { loadAdminOverview } from "@/lib/admin-data";
+import { countAwaitingVerification } from "@/lib/campaign-admin-data";
 import { SummaryBar } from "@/components/staff/SummaryBar";
 import { LocalTime } from "@/components/LocalTime";
 
-/** The console's front page (M10.1): the platform at a glance and the last staff acts. The queues themselves arrive in M10.2 to M10.5. */
+/** The console's front page (M10.1): the platform at a glance and the last staff acts. The queues are under their own tabs. */
 export default async function AdminOverviewPage() {
   const session = await requireStaff();
-  const o = await loadAdminOverview(session.userId);
+  const [o, campaignsAwaiting] = await Promise.all([loadAdminOverview(session.userId), countAwaitingVerification()]);
   return (
     <>
       <SummaryBar
@@ -16,11 +17,12 @@ export default async function AdminOverviewPage() {
           { label: "Awaiting approval", value: o.orgsAwaiting, hint: "Organizations" },
           { label: "Approved", value: o.orgsApproved, hint: "Organizations" },
           { label: "Jurisdictions", value: o.jurisdictionsCurrent, hint: o.jurisdictionsBlocked ? `${o.jurisdictionsBlocked} can't be used` : o.jurisdictionsCurrent ? "All usable" : "None on file" },
+          { label: "To verify", value: campaignsAwaiting, hint: "Public campaign profiles" },
         ]}
       />
 
       <p className="text-muted-sm">
-        <Link transitionTypes={["nav-forward"]} href="/admin/organizations" className="link">Open the approval queue</Link> · <Link transitionTypes={["nav-forward"]} href="/admin/jurisdictions" className="link">Jurisdiction rule profiles</Link> · <Link transitionTypes={["nav-forward"]} href="/admin/people" className="link">Find a person</Link> · <Link transitionTypes={["nav-forward"]} href="/admin/audit" className="link">Audit timeline</Link>
+        <Link transitionTypes={["nav-forward"]} href="/admin/organizations" className="link">Open the approval queue</Link> · <Link transitionTypes={["nav-forward"]} href="/admin/jurisdictions" className="link">Jurisdiction rule profiles</Link> · <Link transitionTypes={["nav-forward"]} href="/admin/campaigns" className="link">Campaign verification</Link> · <Link transitionTypes={["nav-forward"]} href="/admin/people" className="link">Find a person</Link> · <Link transitionTypes={["nav-forward"]} href="/admin/audit" className="link">Audit timeline</Link>
       </p>
 
       <section className="section" aria-labelledby="recent-acts">

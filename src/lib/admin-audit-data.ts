@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { staffLabel } from "@/lib/admin-data";
 import { UUID_RE } from "@/lib/jobs";
+import { campaignRecordHref } from "@/lib/campaign-admin-data";
 
 /** The five ledger moments the Ledger quick filter pins (M10 plan, decision 8): a job goes live, a shift is reviewed, a pay line is approved, a payout is created, a statement is closed. A test checks each is an action some module records. */
 export const LEDGER_MOMENTS = ["job.published", "shift.reviewed", "payout.approved", "payout.created", "pay.statement_closed"] as const;
@@ -85,7 +86,7 @@ export function recordHref(entityType: string, entityId: string): string | null 
     case "Organization": return `/admin/organizations/${entityId}`;
     case "JurisdictionProfile": return `/admin/jurisdictions/${entityId}`;
     case "Profile": return `/admin/people/${entityId}`;
-    default: return null;
+    default: return campaignRecordHref(entityType, entityId);
   }
 }
 

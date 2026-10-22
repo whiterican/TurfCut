@@ -67,7 +67,7 @@ async function ChangeList({ jobId, viewer, changes: loaded }: { jobId: string; v
 }
 
 const loadJob = (id: string) =>
-  db().job.findUnique({ where: { id }, include: { org: true, jurisdiction: true, campaignProfile: { select: { id: true, handle: true, displayName: true, avatarKey: true, publishedAt: true } } } });
+  db().job.findUnique({ where: { id }, include: { org: true, jurisdiction: true, campaignProfile: { select: { id: true, handle: true, displayName: true, avatarKey: true, publishedAt: true, verifiedAt: true } } } });
 type JobWithRefs = NonNullable<Awaited<ReturnType<typeof loadJob>>>;
 
 export default async function JobPage({ params }: { params: Promise<{ jobId: string }> }) {

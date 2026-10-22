@@ -1267,6 +1267,34 @@ roles, one slice at a time.
   audit trail records "by Turfcut staff"; the ledger records who and why.
 - **No migration:** M10.4 reads and writes tables that exist.
 
+### M10.5 — campaign verification (done)
+
+- **Admin → Campaigns** lists public campaign profiles (published, organization
+  approved) that nobody has verified yet, longest-public first, and the ones
+  that carry the mark. A profile page shows the organization, its owners
+  and sign-in emails, its posts and bio (a draft's bio stays hidden), and
+  Turfcut's decisions so far.
+- **Verify or remove, always with a reason.** Verifying says Turfcut
+  confirmed the profile is the organization's official account. The
+  decision is one conditional update that holds only while the profile is
+  still unverified, still public, and still has the name and handle the
+  staff member looked at; a rename in between voids it. Removing works at
+  any standing. Both write a ledger row with who and why; the
+  organization is not sent the reason.
+- **The mark** is a "Verified" badge on the public page, the directory, the
+  campaign card on a job, and in a shared link's description (profile
+  only), and `verified` in the public JSON. It is information, never a
+  ranking input: the directory order, the feed and matching don't read it
+  (the isolation test and an acceptance check cover this).
+- **Renaming takes it off.** If the organization changes a verified
+  profile's name or handle, the mark clears and its own trail records
+  "verification lapsed"; a bio edit keeps it. The organization's campaign
+  page says whether the profile is verified.
+- **Migration:** `prisma/m10-verification.sql` (also in
+  `supabase-manual-setup.sql`): `CampaignProfile.verifiedAt` and
+  `verifiedById`, both null or both set; the public may read `verifiedAt`
+  only. Run it after `m10-admin.sql` and before deploying this code.
+
 ### Turfcut staff — making an account staff
 
 Only by hand, in the Supabase SQL editor, after `prisma/m10-admin.sql`:

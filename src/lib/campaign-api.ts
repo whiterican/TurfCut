@@ -12,7 +12,7 @@ import type { Metadata } from "next";
  * open.
  */
 export function profileJson(c: CampaignProfileRow) {
-  return { handle: c.handle, displayName: c.displayName, bio: c.bio, avatarUrl: mediaUrl(c.avatarKey), headerUrl: mediaUrl(c.headerKey), publishedAt: c.publishedAt };
+  return { handle: c.handle, displayName: c.displayName, bio: c.bio, avatarUrl: mediaUrl(c.avatarKey), headerUrl: mediaUrl(c.headerKey), publishedAt: c.publishedAt, verified: !!c.verifiedAt };
 }
 
 export function postJson(p: PublicPost) {
@@ -32,20 +32,23 @@ export function postJson(p: PublicPost) {
 
 /** A directory row (S3): the public profile fields, when it last posted, and how many of its jobs are hiring. */
 export function directoryJson(c: DirectoryRow) {
-  return { handle: c.handle, displayName: c.displayName, bio: excerpt(c.bio), avatarUrl: mediaUrl(c.avatarKey), lastPostAt: c.lastPostAt, hiring: c.hiring };
+  return { handle: c.handle, displayName: c.displayName, bio: excerpt(c.bio), avatarUrl: mediaUrl(c.avatarKey), verified: c.verified, lastPostAt: c.lastPostAt, hiring: c.hiring };
 }
 
 /**
  * What a shared link shows before it's opened (S3): the campaign's own name
- * and words, and its own image. Turfcut adds nothing of its own about it.
+ * and words, and its own image. Turfcut adds nothing of its own about it,
+ * except "Verified" once staff have verified the profile.
  * Absolute URLs need SITE_URL; without it (development) the images are left
  * out rather than pointed at the wrong host.
  */
-export function campaignPreview(c: { handle: string; displayName: string; bio: string; avatarKey: string | null; headerKey: string | null }, post?: { id: string; body: string }) {
+export function campaignPreview(c: { handle: string; displayName: string; bio: string; avatarKey: string | null; headerKey: string | null; verified?: boolean }, post?: { id: string; body: string }) {
   const site = getSiteUrl();
   const path = post ? `/c/${c.handle}/p/${post.id}` : `/c/${c.handle}`;
   const title = post ? `${c.displayName} (@${c.handle}) on Turfcut` : `${c.displayName} (@${c.handle})`;
-  const description = excerpt(post ? post.body : c.bio) || `A campaign on Turfcut.`;
+  // The one thing Turfcut says about a campaign, and only when staff have verified it (M10.5); a post's preview is the post's own words.
+  const verified = !post && c.verified ? "Verified campaign account. " : "";
+  const description = `${verified}${excerpt(post ? post.body : c.bio) || "A campaign on Turfcut."}`;
   const image = mediaUrl(c.headerKey) ?? mediaUrl(c.avatarKey);
   const type = post ? ("article" as const) : ("profile" as const);
   const card = image ? ("summary_large_image" as const) : ("summary" as const);

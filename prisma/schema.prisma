@@ -80,6 +80,7 @@ model Profile {
   disputeMessages       PayDisputeMessage[]       @relation("DisputeMessageAuthor")
   slotsSupervised       ShiftSlot[]               @relation("ShiftSlotSupervisor")
   adminActions          AdminAction[]             @relation("AdminActionStaff")
+  campaignsVerified     CampaignProfile[]         @relation("CampaignVerifier")
 
   @@index([orgId])
 }
@@ -1259,6 +1260,10 @@ model CampaignProfile {
   avatarKey   String?
   headerKey   String?
   publishedAt DateTime? // null = draft, not public
+  /// M10.5: when Turfcut staff confirmed this is the organization's official campaign account, and who. Both null or both set; the reason is on the AdminAction ledger. Editing the name or handle clears it.
+  verifiedAt   DateTime?
+  verifiedById String?           @db.Uuid
+  verifiedBy   Profile?          @relation("CampaignVerifier", fields: [verifiedById], references: [id], onDelete: Restrict)
   createdAt   DateTime           @default(now())
   updatedAt   DateTime           @updatedAt
   posts       CampaignPost[]
@@ -1267,6 +1272,7 @@ model CampaignProfile {
   resources   CampaignResource[]
 
   @@index([orgId])
+  @@index([verifiedAt])
 }
 
 /// S1: a post on a campaign's profile, up to 500 characters, optionally

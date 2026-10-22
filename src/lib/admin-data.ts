@@ -2,13 +2,14 @@ import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { jurisdictionProblems } from "@/lib/jobs";
 import { checkReason } from "@/lib/admin-reason";
+import type { CampaignTarget } from "@/lib/campaign-admin-data";
 
 export { checkReason, REASON_MAX, REASON_MIN } from "@/lib/admin-reason";
 
 type Tx = Prisma.TransactionClient;
 
-/** The kinds of record a staff act can be about (M10). Each slice adds its own; the campaign verification queue's (M10.5) comes with the social layer's allowance. */
-export type AdminTargetType = "Organization" | "JurisdictionProfile" | "Profile" | "OrgInvite";
+/** The kinds of record a staff act can be about (M10). Each slice adds its own; the campaign profile's name lives with the social layer's allowance (campaign-admin-data). */
+export type AdminTargetType = "Organization" | "JurisdictionProfile" | "Profile" | "OrgInvite" | CampaignTarget;
 
 /** The session a staff act is recorded under: only what requireStaff() returns type-checks here. */
 export type StaffActor = { userId: string; staff: true };

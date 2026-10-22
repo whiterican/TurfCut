@@ -1,4 +1,4 @@
-/* M10 acceptance checks on real Postgres: the staff gate and ledger (M10.1: staff is a flag independent of role, the ledger needs a reason and never changes, the overview reads the queues), the organization approval queue (M10.2: decisions, notices, the publish gate) and jurisdiction rule profiles (M10.3: proposals, approval that moves what fits and freezes the rest, withdrawal, retirement, the place lock), and the audit viewer and people lookup (M10.4: the merged timeline and its filters, the lookups, the two support actions with the owner's rules). The runner applies prisma/m10-admin.sql on top of the full setup first, so the migration's re-run safety is checked too (tests/acceptance/run.sh). */
+/* M10 acceptance checks on real Postgres: the staff gate and ledger (M10.1: staff is a flag independent of role, the ledger needs a reason and never changes, the overview reads the queues), the organization approval queue (M10.2: decisions, notices, the publish gate) and jurisdiction rule profiles (M10.3: proposals, approval that moves what fits and freezes the rest, withdrawal, retirement, the place lock), the audit viewer and people lookup (M10.4: the merged timeline and its filters, the lookups, the two support actions with the owner's rules) and campaign verification (M10.5: the queue, verify and remove with a reason, the mark on the public page and directory, lapse on rename). The runner applies prisma/m10-admin.sql on top of the full setup first, so the migration's re-run safety is checked too (tests/acceptance/run.sh). */
 import { db } from "@/lib/db";
 import { checkReason, loadAdminOverview, recordAdminAction } from "@/lib/admin-data";
 import { approvalStanding, decideOrganization, listOrganizationsForAdmin, loadOrganizationForAdmin } from "@/lib/admin-orgs-data";
@@ -12,6 +12,8 @@ import { canScheduleShift, jurisdictionProblems, publishBlockers, type PublishFa
 import { orgNoticeText } from "@/lib/notification-text";
 import { loadNotifications, unreadNotifications } from "@/lib/notifications-data";
 import { orgNav } from "@/lib/nav";
+import { listCampaignsForVerification, loadCampaignForVerification, unverifyCampaign, verifyCampaign } from "@/lib/campaign-admin-data";
+import { listPublicCampaigns, loadPublicCampaign, updateCampaign } from "@/lib/campaign-social-data";
 
 const ORG = "00000000-0000-0000-0000-000000000001";
 const OWNER = "00000000-0000-0000-0000-0000000000aa";
@@ -258,7 +260,55 @@ const fails_ = async (f: () => Promise<unknown>): Promise<string> => { try { awa
   const sup = await loadPerson(SUP, t9);
   check("the removed member's page shows the removal by Turfcut staff in the history and the ledger row with its reason", sup?.org === null && sup.history[0]?.action === "member.removed" && sup.history[0].orgName === "Front Range Circulators" && /by Turfcut staff/.test(sup.history[0].detail ?? "") && sup.ledger[0]?.action === "member.removed_for_org" && sup.ledger[0].staffName === "Maya Chen", sup && { history: sup.history, ledger: sup.ledger });
 
-  // 10. No Data API path to the ledger.
+  // 10. Campaign verification (M10.5).
+  const t10 = new Date(now.getTime() + 90_000);
+  const FR = (await p.campaignProfile.findUniqueOrThrow({ where: { handle: "frontrange" } })).id;
+  await p.campaignProfile.update({ where: { id: FR }, data: { publishedAt: new Date(now.getTime() - 3_600_000) } });
+  const second = await p.campaignProfile.create({ data: { orgId: ORG, handle: "frontrange_two", displayName: "Front Range Two", publishedAt: new Date(now.getTime() - 7_200_000) } });
+  const draft = await p.campaignProfile.create({ data: { orgId: ORG, handle: "frontrange_draft", displayName: "Front Range Draft" } });
+  const unapproved = await p.campaignProfile.create({ data: { orgId: ORG_B, handle: "boulder", displayName: "Boulder Canvass", publishedAt: now } });
+  const q0 = await listCampaignsForVerification();
+  check("the queue lists public profiles of approved organizations, longest public first, and neither drafts nor an unapproved organization's profile", q0.awaiting.map((c) => c.id).join() === [second.id, FR].join() && q0.verified.length === 0, q0.awaiting.map((c) => c.handle));
+  const dirBefore = (await listPublicCampaigns({})).campaigns.map((c) => c.id);
+  const seenFr = { handle: "frontrange", displayName: "Front Range Circulators" };
+  check("verifying without a reason is refused before anything changes", !(await verifyCampaign(asOwner, FR, seenFr, "  ", t10)).ok && !(await p.campaignProfile.findUniqueOrThrow({ where: { id: FR } })).verifiedAt);
+  check("a draft and an unapproved organization's profile can't be verified", !(await verifyCampaign(asOwner, draft.id, { handle: "frontrange_draft", displayName: "Front Range Draft" }, "Trying", t10)).ok && !(await verifyCampaign(asOwner, unapproved.id, { handle: "boulder", displayName: "Boulder Canvass" }, "Trying", t10)).ok);
+  await p.campaignProfile.update({ where: { id: FR }, data: { displayName: "Front Range PAC" } });
+  const renamed = await verifyCampaign(asOwner, FR, seenFr, "Looked at the old name", t10);
+  check("a rename between look and click voids the verification", !renamed.ok && /changed since you opened/.test(renamed.message) && !(await p.campaignProfile.findUniqueOrThrow({ where: { id: FR } })).verifiedAt, renamed);
+  await p.campaignProfile.update({ where: { id: FR }, data: { displayName: "Front Range Circulators" } });
+  const vr = await verifyCampaign(asOwner, FR, seenFr, "  Called the owner; the handle matches their website  ", t10);
+  const frVerified = await p.campaignProfile.findUniqueOrThrow({ where: { id: FR } });
+  const vrLedger = await p.adminAction.findFirst({ where: { targetType: "CampaignProfile", targetId: FR, action: "campaign.verified" } });
+  check("verifying records the date and the staff member, and a ledger row with the trimmed reason for the organization", vr.ok && frVerified.verifiedAt?.getTime() === t10.getTime() && frVerified.verifiedById === OWNER && vrLedger?.reason === "Called the owner; the handle matches their website" && vrLedger.orgId === ORG && vrLedger.staffId === OWNER, { vr, vrLedger });
+  check("verifying a verified profile changes nothing", !(await verifyCampaign(asOwner, FR, seenFr, "Twice", t10)).ok && (await p.adminAction.count({ where: { targetId: FR, action: "campaign.verified" } })) === 1);
+  const pub = await loadPublicCampaign("frontrange");
+  const dirAfter = await listPublicCampaigns({});
+  check("the public page and the directory carry the mark, and the directory order does not move because of it", !!pub?.verifiedAt && dirAfter.campaigns.find((c) => c.id === FR)?.verified === true && dirAfter.campaigns.find((c) => c.id === second.id)?.verified === false && dirAfter.campaigns.map((c) => c.id).join() === dirBefore.join(), dirAfter.campaigns.map((c) => [c.handle, c.verified]));
+  const cq1 = await listCampaignsForVerification();
+  check("a verified profile leaves the queue and is listed as verified with who verified it", cq1.awaiting.map((c) => c.id).join() === second.id && cq1.verified.length === 1 && cq1.verified[0].id === FR && cq1.verified[0].verifiedBy === "Maya Chen", cq1);
+  const detailC = await loadCampaignForVerification(FR);
+  check("the detail page shows the organization and its owners", detailC?.orgName === "Front Range Circulators" && detailC.owners.some((o) => o.profileId === OWNER) && detailC.posts === 0, detailC);
+  check("a draft's bio is withheld from the console", (await loadCampaignForVerification(draft.id))?.bio === null && typeof detailC?.bio === "string");
+  const lapse = await updateCampaign({ profileId: OWNER, orgId: ORG }, FR, { handle: "frontrange", displayName: "Front Range Circulators of Denver", bio: "" });
+  const frLapsed = await p.campaignProfile.findUniqueOrThrow({ where: { id: FR } });
+  const lapseEvent = await p.auditEvent.findFirst({ where: { entityType: "CampaignProfile", entityId: FR, action: "campaign.updated" }, orderBy: { createdAt: "desc" } });
+  check("renaming a verified profile takes the mark off and says so in the organization's own trail", lapse.ok && frLapsed.verifiedAt === null && frLapsed.verifiedById === null && JSON.stringify(lapseEvent?.metadata).includes("verificationLapsed"), { lapse, lapseEvent });
+  const bioOnly = await verifyCampaign(asOwner, FR, { handle: "frontrange", displayName: "Front Range Circulators of Denver" }, "Re-checked the new name", new Date(t10.getTime() + 1000));
+  const edit = await updateCampaign({ profileId: OWNER, orgId: ORG }, FR, { handle: "frontrange", displayName: "Front Range Circulators of Denver", bio: "Now with a bio" });
+  check("changing only the bio keeps the mark", bioOnly.ok && edit.ok && !!(await p.campaignProfile.findUniqueOrThrow({ where: { id: FR } })).verifiedAt);
+  const un = await unverifyCampaign(asOwner, FR, "The organization changed hands", new Date(t10.getTime() + 2000));
+  check("removing the mark records the ledger row with the reason and clears both fields; a second removal changes nothing", un.ok && (await p.campaignProfile.findUniqueOrThrow({ where: { id: FR } })).verifiedById === null && (await p.adminAction.count({ where: { targetId: FR, action: "campaign.unverified" } })) === 1 && !(await unverifyCampaign(asOwner, FR, "Again", t10)).ok);
+  const history = await loadCampaignForVerification(FR);
+  check("the detail page lists the decisions newest first", history?.history.map((h) => h.action).join() === "campaign.unverified,campaign.verified,campaign.verified", history?.history);
+  const viaAudit = await loadTimeline(parseAuditFilter({ type: "CampaignProfile", id: FR }));
+  check("the audit viewer shows Turfcut's campaign decisions linked to the console page", viaAudit.rows.some((r) => r.source === "staff" && r.action === "campaign.verified" && r.href === `/admin/campaigns/${FR}`), viaAudit.rows.map((r) => [r.source, r.action, r.href]));
+  const onlyOne = await fails_(() => p.$executeRaw`UPDATE "CampaignProfile" SET "verifiedAt" = now() WHERE "id" = ${FR}::uuid`);
+  check("the database refuses a mark without a verifier", /verified_together/.test(onlyOne), onlyOne);
+  const cols = await p.$queryRaw<{ grantee: string; column_name: string }[]>`SELECT grantee, column_name FROM information_schema.column_privileges WHERE table_schema = 'public' AND table_name = 'CampaignProfile' AND column_name IN ('verifiedAt', 'verifiedById') AND grantee IN ('anon', 'authenticated') AND privilege_type = 'SELECT'`;
+  check("the public may read the date of the mark and never who set it", cols.some((c) => c.column_name === "verifiedAt" && c.grantee === "anon") && !cols.some((c) => c.column_name === "verifiedById"), cols);
+
+  // 11. No Data API path to the ledger.
   const grants = await p.$queryRaw<{ grantee: string }[]>`SELECT grantee FROM information_schema.role_table_grants WHERE table_schema = 'public' AND table_name = 'AdminAction' AND grantee IN ('anon', 'authenticated')`;
   const rls = await p.$queryRaw<{ relrowsecurity: boolean }[]>`SELECT relrowsecurity FROM pg_class WHERE relname = 'AdminAction'`;
   check("AdminAction has RLS on and no grant to the API roles", grants.length === 0 && rls[0]?.relrowsecurity === true, { grants, rls });

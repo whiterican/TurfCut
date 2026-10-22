@@ -19,7 +19,7 @@ type Writer = Actor & { manages: boolean };
 type Result<T = Record<never, never>> = ({ ok: true } & T) | { ok: false; reason: string; errors?: Record<string, string> };
 
 const PROFILE_SELECT = {
-  id: true, orgId: true, handle: true, displayName: true, bio: true, avatarKey: true, headerKey: true, publishedAt: true, createdAt: true, updatedAt: true,
+  id: true, orgId: true, handle: true, displayName: true, bio: true, avatarKey: true, headerKey: true, publishedAt: true, verifiedAt: true, createdAt: true, updatedAt: true,
 } satisfies Prisma.CampaignProfileSelect;
 export type CampaignProfileRow = Prisma.CampaignProfileGetPayload<{ select: typeof PROFILE_SELECT }>;
 
@@ -102,7 +102,7 @@ export async function updateCampaign(actor: Actor, id: string, input: ProfileInp
   try {
     return await db().$transaction(async (tx) => {
       await lock(tx, `campaign:${id}`);
-      const c = await tx.campaignProfile.findFirst({ where: { id, orgId: actor.orgId }, select: { handle: true } });
+      const c = await tx.campaignProfile.findFirst({ where: { id, orgId: actor.orgId }, select: { handle: true, displayName: true, verifiedAt: true } });
       if (!c) return { ok: false as const, reason: "Campaign not found." };
       if (c.handle !== input.handle) {
         // Once a campaign has been public its handle is its address for good: links and printed codes point at it.
@@ -110,8 +110,10 @@ export async function updateCampaign(actor: Actor, id: string, input: ProfileInp
         if (everPublic) return { ok: false as const, reason: "Fix the highlighted fields.", errors: { handle: "The handle can't change once the campaign has been public: links to it would break." } };
         if (await handleRetired(tx, input.handle, id)) return TAKEN;
       }
-      await tx.campaignProfile.update({ where: { id }, data: input });
-      await tx.auditEvent.create({ data: { actorId: actor.profileId, action: "campaign.updated", entityType: "CampaignProfile", entityId: id, metadata: { handle: input.handle } } });
+      // Verification (M10.5) vouches for a name and a handle: changing either takes the mark off until Turfcut looks again.
+      const lapses = !!c.verifiedAt && (c.displayName !== input.displayName || c.handle !== input.handle);
+      await tx.campaignProfile.update({ where: { id }, data: lapses ? { ...input, verifiedAt: null, verifiedById: null } : input });
+      await tx.auditEvent.create({ data: { actorId: actor.profileId, action: "campaign.updated", entityType: "CampaignProfile", entityId: id, metadata: lapses ? { handle: input.handle, verificationLapsed: true } : { handle: input.handle } } });
       return { ok: true as const };
     });
   } catch (e) {
@@ -404,6 +406,8 @@ export type DirectoryRow = {
   lastPostAt: Date | null;
   /** What the directory is ordered by: the later of the last post and publishing. */
   activeAt: Date;
+  /** Whether Turfcut staff have verified this as the organization's official campaign account (M10.5). */
+  verified: boolean;
   /** The campaign's jobs that are hiring now: published and not ended (the job feed's rule). */
   hiring: number;
 };
@@ -422,6 +426,7 @@ export async function listPublicCampaigns(opts: { cursor?: string | null; q?: un
   const openEnd = openJobsEndAfter(opts.now ?? new Date());
   const rows = await db().$queryRaw<(Omit<DirectoryRow, "hiring"> & { hiring: number | bigint })[]>`
     SELECT c."id", c."handle", c."displayName", c."bio", c."avatarKey",
+           (c."verifiedAt" IS NOT NULL) AS "verified",
            lp."lastPostAt",
            GREATEST(lp."lastPostAt", c."publishedAt") AS "activeAt",
            (SELECT count(*) FROM "public"."Job" j WHERE j."campaignProfileId" = c."id" AND j."status" = 'PUBLISHED' AND (j."endsAt" IS NULL OR j."endsAt" > ${openEnd}::timestamp)) AS "hiring"

@@ -17,7 +17,7 @@ type Props = { params: Promise<{ handle: string }>; searchParams: Promise<{ curs
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const c = await loadPublicCampaign((await params).handle);
-  return c ? campaignPreview(c) : { title: "Campaign not found" };
+  return c ? campaignPreview({ ...c, verified: !!c.verifiedAt }) : { title: "Campaign not found" };
 }
 
 /**
@@ -43,7 +43,7 @@ export default async function PublicCampaignPage({ params, searchParams }: Props
   return (
     <main className="page max-w-2xl space-y-6">
       <Link transitionTypes={["nav-back"]} href="/c" className="btn-ghost btn-sm">← All campaigns</Link>
-      <CampaignHeader displayName={c.displayName} handle={c.handle} bio={c.bio} avatarUrl={mediaUrl(c.avatarKey)} headerUrl={mediaUrl(c.headerKey)}>
+      <CampaignHeader displayName={c.displayName} handle={c.handle} bio={c.bio} avatarUrl={mediaUrl(c.avatarKey)} headerUrl={mediaUrl(c.headerKey)} verified={!!c.verifiedAt}>
         <span className="flex flex-wrap items-center justify-end gap-2">
           <ShareButton path={`/c/${c.handle}`} title={`${c.displayName} (@${c.handle})`} />
           <FollowButton campaignId={c.id} state={follow} viewer={viewer} back={`/c/${c.handle}`} />

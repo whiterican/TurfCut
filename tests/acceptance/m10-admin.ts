@@ -6,7 +6,7 @@ import { approveJurisdictionVersion, listJurisdictionsForAdmin, loadJurisdiction
 import { readRules } from "@/lib/jurisdiction-rules";
 import { LEDGER_MOMENTS, listAuditVocabulary, loadTimeline, parseAuditFilter } from "@/lib/admin-audit-data";
 import { loadPerson, searchPeople, staffRemoveMember, staffResendInvite } from "@/lib/admin-people-data";
-import { acceptInvite, changeMemberRole, inviteMember, memberHistory, removeMember } from "@/lib/members-data";
+import { acceptInvite, changeMemberRole, inviteMember, memberHistory, removeMember, resendInvite, revokeInvite } from "@/lib/members-data";
 import { archiveOrgRole, createOrgRole, listOrgRoles, updateOrgRole } from "@/lib/org-roles-data";
 import { validateRole } from "@/lib/org-roles";
 import { areaMembers } from "@/lib/access-data";
@@ -389,6 +389,37 @@ const fails_ = async (f: () => Promise<unknown>): Promise<string> => { try { awa
   const toArchived = await changeMemberRole(asOrgOwner, ids.lead, `custom:${viewerRole.ok ? viewerRole.id : ""}`, t11);
   const inviteArchived = await inviteMember(asOrgOwner, { email: "late@front.test", role: `custom:${viewerRole.ok ? viewerRole.id : ""}` }, mail, t11);
   check("once nobody holds it a role is archived, not deleted; it can't be given again and its name stays taken", archived.ok && !!archivedRow.archivedAt && !toArchived.ok && !inviteArchived.ok && !(await createOrgRole(asOrgOwner, { name: "viewer", description: "", basedOn: null, grants: { desk: "full" } }, t11)).ok, { archived, toArchived, inviteArchived });
+  // A delegate acts on invites only within their own reach; an owner's pending invite is the owner's.
+  const recInv = await inviteMember(asOrgOwner, { email: "recruiter-invite@front.test", role: "RECRUITER" }, mail, t11);
+  const delResend = recInv.ok ? await resendInvite(asDelegate, recInv.inviteId, mail, t11) : { ok: true as const };
+  const delRevoke = recInv.ok ? await revokeInvite(asDelegate, recInv.inviteId, t11) : { ok: true as const };
+  check("a delegate can't resend or revoke an invite to a role beyond their own", !delResend.ok && /no more than yours/.test(delResend.ok ? "" : delResend.reason) && !delRevoke.ok && recInv.ok && !(await p.orgInvite.findUniqueOrThrow({ where: { id: recInv.inviteId } })).revokedAt, { delResend, delRevoke });
+  const tempRole = await createOrgRole(asOrgOwner, { name: "Temp", description: "", basedOn: null, grants: { desk: "full", jobs: "read" } }, t11);
+  const tempInv = await inviteMember(asOrgOwner, { email: "temp@front.test", role: `custom:${tempRole.ok ? tempRole.id : ""}` }, mail, t11);
+  if (tempInv.ok) await p.orgInvite.update({ where: { id: tempInv.inviteId }, data: { expiresAt: new Date(t11.getTime() - 1000) } });
+  const tempArchived = await archiveOrgRole(asOrgOwner, tempRole.ok ? tempRole.id : "", new Date(t11.getTime() + 5000));
+  const tempResend = tempInv.ok ? await resendInvite(asOrgOwner, tempInv.inviteId, mail, new Date(t11.getTime() + 6000)) : { ok: true as const };
+  check("an invite to a role archived since can't be resent", tempArchived.ok && !tempResend.ok && /archived/.test(tempResend.ok ? "" : tempResend.reason), { tempArchived, tempResend });
+  // Chat access follows Messages: narrowing a role, or moving a member to a role without it, ends the conversations they manage.
+  const chatRole = await createOrgRole(asOrgOwner, { name: "Chat lead", description: "", basedOn: null, grants: { desk: "full", messages: "full" } }, t11);
+  const CHATTER = "00000000-0000-0000-0000-0000000000c5";
+  const CHATTER2 = "00000000-0000-0000-0000-0000000000c6";
+  await p.profile.createMany({ data: [{ id: CHATTER, role: "CUSTOM", orgRoleId: chatRole.ok ? chatRole.id : null, orgId: ORG, displayName: "Chat Ter" }, { id: CHATTER2, role: "CUSTOM", orgRoleId: chatRole.ok ? chatRole.id : null, orgId: ORG, displayName: "Chat Ter Two" }] });
+  const teamChat = await p.conversation.create({ data: { kind: "GROUP", orgId: ORG, name: "Team B", createdById: OWNER } });
+  await p.conversationParticipant.createMany({ data: [CHATTER, CHATTER2].map((id) => ({ conversationId: teamChat.id, profileId: id, role: "MANAGER" as const, addedById: OWNER })) });
+  const openManagers = () => p.conversationParticipant.count({ where: { conversationId: teamChat.id, role: "MANAGER", removedAt: null } });
+  const toViewerRole = await changeMemberRole(asOrgOwner, CHATTER2, `custom:${chatRole.ok ? chatRole.id : ""}`, t11); // same role: nothing changes
+  const kept = await openManagers();
+  // Moving CHATTER2 to a custom role without Messages is a change of orgRoleId only: the trigger (and the app) end it.
+  const noChatRole = await createOrgRole(asOrgOwner, { name: "No chat", description: "", basedOn: null, grants: { desk: "full", jobs: "read" } }, t11);
+  await changeMemberRole(asOrgOwner, CHATTER2, `custom:${noChatRole.ok ? noChatRole.id : ""}`, new Date(t11.getTime() + 7000));
+  const afterMove = await openManagers();
+  const narrowed = chatRole.ok ? await updateOrgRole(asOrgOwner, chatRole.id, { name: "Chat lead", description: "", basedOn: null, grants: { desk: "full", jobs: "read" } }, new Date(t11.getTime() + 8000)) : { ok: false as const, reason: "x" };
+  const afterNarrow = await openManagers();
+  check("a manager's chats end when their role loses Messages, whether they move to another role or the role is narrowed", toViewerRole.ok && kept === 2 && afterMove === 1 && narrowed.ok && afterNarrow === 0, { kept, afterMove, afterNarrow });
+  const trigOnly = await p.$executeRaw`UPDATE "ConversationParticipant" SET "removedAt" = NULL WHERE "conversationId" = ${teamChat.id}::uuid AND "profileId" = ${CHATTER}::uuid`;
+  await p.$executeRaw`UPDATE "Profile" SET "orgRoleId" = ${noChatRole.ok ? noChatRole.id : ""}::uuid WHERE "id" = ${CHATTER}::uuid`;
+  check("the database trigger ends it too when only the custom role changes", trigOnly === 1 && (await openManagers()) === 0);
   const roleSql1 = await fails_(() => p.$executeRaw`UPDATE "Profile" SET "role" = 'CUSTOM', "orgRoleId" = NULL WHERE "id" = ${ids.fin}::uuid`);
   const roleSql2 = await fails_(() => p.$executeRaw`UPDATE "Profile" SET "orgRoleId" = ${delegateRole.ok ? delegateRole.id : ""}::uuid WHERE "id" = ${ids.fin}::uuid`);
   check("the database keeps a custom role and its OrgRole together", /Profile_custom_role/.test(roleSql1) && /Profile_custom_role/.test(roleSql2), { roleSql1, roleSql2 });

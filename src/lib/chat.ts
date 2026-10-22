@@ -18,15 +18,8 @@
  * - Nothing here reads, infers or labels political fit or chat content.
  */
 import type { Role } from "@/lib/auth";
-import { canUse, rolesFor, type Grants } from "@/lib/access";
+import { canUse, type Grants } from "@/lib/access";
 
-/**
- * Org roles that run teams: create group chats and act as managers. From the
- * access map's "messages" area; the Profile_end_chat_access trigger
- * (prisma/m4-migration.sql) lists the same roles, and access.test.ts holds
- * the two together.
- */
-export const CHAT_STAFF_ROLES: Role[] = rolesFor("messages");
 const HIRED = new Set(["ACTIVE", "CLAIMED"]);
 
 export const MAX_BODY = 4000;
@@ -78,7 +71,8 @@ export function chatAccess(f: ChatFacts): Access {
   const frozen = (closed: string): Access => ({ read: true, readUntil: null, readFrom, post: false, closed });
 
   if (p.role === "MANAGER") {
-    if (f.me.orgId !== f.orgId || !canUse(f.me, "messages")) return frozen("You no longer manage this conversation. History is read-only.");
+    // Someone who no longer runs this organization's teams (left, or their role lost Messages) reads nothing more: the participant row is ended when that happens, and this holds if a path missed it.
+    if (f.me.orgId !== f.orgId || !canUse(f.me, "messages")) return { read: false, readUntil: null, readFrom, post: false, closed: "You no longer manage this conversation." };
   }
   if (f.kind === "DIRECT") {
     if (!HIRED.has(f.engagementStatus ?? "")) return frozen("This job has ended. The conversation is read-only.");

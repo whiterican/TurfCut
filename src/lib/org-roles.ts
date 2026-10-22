@@ -21,7 +21,7 @@ export const AREA_LABELS: Record<Area, { label: string; help: string }> = {
   field: { label: "Field", help: "Run field days: packets, counts, check-ins, shift review." },
   pay: { label: "Pay", help: "Approve and hold pay, resolve disputes, pay workers, export." },
   messages: { label: "Messages", help: "Chat with workers and run team chats." },
-  moderation: { label: "Chat moderation", help: "Review chat reports and remove reported messages." },
+  moderation: { label: "Chat moderation", help: "Review chat reports, remove reported messages, and add or remove people in any of the organization's team chats." },
   orgSettings: { label: "Organization settings", help: "Read, or (full) edit the organization's records, such as contractor terms." },
   compliance: { label: "Compliance", help: "Classification review and credential checks." },
   orgMembers: { label: "Members", help: "Invite, change and remove members, within the access they have themselves." },
@@ -67,7 +67,20 @@ export function validateRole(raw: { get(key: string): unknown }): { ok: true; va
     grants[area] = v;
   }
   if (!errors.grants && Object.keys(grants).length === 0) errors.grants = "Give the role access to at least one area.";
-  return Object.keys(errors).length ? { ok: false, errors } : { ok: true, value: { name, description, basedOn, grants } };
+  return Object.keys(errors).length ? { ok: false, errors } : { ok: true, value: { name, description, basedOn, grants: coherentGrants(grants) } };
+}
+
+/**
+ * What a role needs to be usable, added rather than refused: every role
+ * lands on the Desk (a member without it would bounce between pages with
+ * nowhere to land), and a role that hires, edits jobs or schedules shifts
+ * needs the job list to find the job. Idempotent.
+ */
+export function coherentGrants(g: Grants): Grants {
+  const out: Grants = { ...g };
+  if (Object.keys(out).length && !out.desk) out.desk = "full";
+  if ((out.hiring || out.jobsEdit || out.scheduling) && !out.jobs) out.jobs = "read";
+  return out;
 }
 
 const RANK: Record<AccessLevel, number> = { read: 1, full: 2 };

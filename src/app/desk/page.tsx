@@ -7,6 +7,7 @@ import { Masthead } from "@/components/staff/Masthead";
 import { DataTable } from "@/components/staff/DataTable";
 import { SummaryBar } from "@/components/staff/SummaryBar";
 import { LocalTime } from "@/components/LocalTime";
+import { roleName } from "@/lib/org-roles";
 
 /** Today in the field: the strip owners and supervisors see first. */
 function FieldToday({ ops }: { ops: NonNullable<Awaited<ReturnType<typeof loadDesk>>["today"]> }) {
@@ -35,7 +36,7 @@ export default async function DeskPage() {
 
   return (
     <main className="page">
-      <Masthead eyebrow="Desk" title={org?.name ?? "Your organization"} meta={ROLE_LABELS[session.role]} />
+      <Masthead eyebrow="Desk" title={org?.name ?? "Your organization"} meta={roleName(session, ROLE_LABELS)} />
 
       {parts.today && desk.today && <FieldToday ops={desk.today} />}
 

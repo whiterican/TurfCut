@@ -1336,10 +1336,20 @@ roles, one slice at a time.
   they do. Building roles stays with owners, and the last owner can never
   be removed or demoted. Every check runs again in the transaction, under
   the membership lock.
-- **Chat:** a custom role with Messages can run teams and be a manager;
-  the database trigger that ends a member's chat access when their role
-  changes still treats any change of role as the end of it (a person moved
-  to a custom role is re-added by hand).
+- **Chat:** a custom role with full Messages can run teams and be a
+  manager. A manager's chats end when their role loses Messages: the
+  database trigger now watches the custom role too, and the app ends them
+  in the same transaction when a role is narrowed or a member moves to a
+  role without it. Moving someone from a role that had Messages to one that
+  has it keeps them in.
+- **Coherent by default.** Every custom role gets the Desk, and a role that
+  hires, edits jobs or schedules shifts can also read the job list; they
+  are added when the role is saved. A member whose role has no Desk lands
+  on the first page their role reaches.
+- **Applicants and jobs are different areas:** moving applicants, offers and
+  invitations are Hiring; creating, editing, publishing and closing jobs
+  are Create and publish jobs. For the built-in roles the two are the same
+  rows of the map.
 - **Migration:** `prisma/m10-roles.sql` (also in `supabase-manual-setup.sql`):
   `Role` gains `CUSTOM`, tables `OrgRole` and `OrgRoleGrant` (server-only),
   `Profile.orgRoleId` and `OrgInvite.orgRoleId`. Run it after

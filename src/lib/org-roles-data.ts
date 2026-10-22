@@ -2,7 +2,7 @@ import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { parseGrants, type Grants } from "@/lib/access";
 import { UUID_RE } from "@/lib/jobs";
-import { lockOrg } from "@/lib/members-data";
+import { endManagerChats, lockOrg } from "@/lib/members-data";
 import { ROLES_MAX, validateRole, type RoleInput } from "@/lib/org-roles";
 import type { Role } from "@/lib/auth";
 
@@ -106,6 +106,8 @@ export async function updateOrgRole(actor: RoleActor, id: string, input: RoleInp
       await tx.orgRole.update({ where: { id }, data: { name: input.name, description: input.description } });
       await tx.orgRoleGrant.deleteMany({ where: { roleId: id } });
       await tx.orgRoleGrant.createMany({ data: toGrantRows(input.grants).map((g) => ({ roleId: id, ...g })) });
+      // Members who ran team chats through this role stop when it loses Messages (no Profile column changes, so the database trigger can't see it).
+      if (input.grants.messages !== "full") await endManagerChats(tx, actor.orgId, { orgRoleId: id });
       await tx.auditEvent.create({ data: { actorId: actor.userId, action: "org_role.updated", entityType: "OrgRole", entityId: id, metadata: { orgId: actor.orgId, name: input.name, before: grantsMeta(parseGrants(cur.grants)), after: grantsMeta(input.grants), renamedFrom: cur.name !== input.name ? cur.name : null }, createdAt: now } });
       return { ok: true as const };
     });

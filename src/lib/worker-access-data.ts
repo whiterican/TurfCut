@@ -13,7 +13,7 @@ const NOT_YOURS = "You can see a worker's profile once they've applied to, claim
  * nothing.
  */
 export async function workerAccessFor(
-  session: Pick<SessionProfile, "role" | "workerId" | "orgId">,
+  session: Pick<SessionProfile, "role" | "workerId" | "orgId"> & { grants?: SessionProfile["grants"] },
   workerId: string,
   orgApproved: boolean
 ): Promise<WorkerAccess> {

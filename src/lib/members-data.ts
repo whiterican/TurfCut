@@ -1,6 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
-import { canUse, INVITE_ROLES, ORG_ROLES, parseGrants, presetGrants, ROLE_LABELS, type BuiltInRole, type Grants } from "@/lib/access";
+import { canUse, INVITE_ROLES, liveGrants, ORG_ROLES, parseGrants, presetGrants, ROLE_LABELS, type BuiltInRole, type Grants } from "@/lib/access";
 import { parseRoleChoice, withinReach, type RoleChoice } from "@/lib/org-roles";
 import { UUID_RE } from "@/lib/jobs";
 import type { Role } from "@/lib/auth";
@@ -42,9 +42,9 @@ interface Admin {
  * after lockOrg.
  */
 async function stillAdmin(tx: Tx, actor: Actor): Promise<Admin | null> {
-  const me = await tx.profile.findUnique({ where: { id: actor.userId }, select: { role: true, orgId: true, closedAt: true, orgRole: { select: { archivedAt: true, grants: { select: { area: true, level: true } } } } } });
+  const me = await tx.profile.findUnique({ where: { id: actor.userId }, select: { role: true, orgId: true, closedAt: true, orgRole: { select: { orgId: true, archivedAt: true, grants: { select: { area: true, level: true } } } } } });
   if (!me || me.orgId !== actor.orgId || me.closedAt) return null;
-  const grants = me.role === "CUSTOM" ? (me.orgRole && !me.orgRole.archivedAt ? parseGrants(me.orgRole.grants) : {}) : me.role === "WORKER" ? {} : presetGrants(me.role as BuiltInRole);
+  const grants = me.role === "CUSTOM" ? liveGrants(me.orgRole, me.orgId) : me.role === "WORKER" ? {} : presetGrants(me.role as BuiltInRole);
   if (!canUse({ role: me.role as Role, grants }, "orgMembers")) return null;
   return { owner: me.role === "OWNER", grants };
 }
@@ -136,6 +136,22 @@ export async function listMembers(orgId: string, now = new Date()): Promise<{ me
     members: profiles.map((p) => ({ profileId: p.id, role: p.role as Role, roleName: p.orgRole?.name ?? null, orgRoleId: p.orgRoleId, name: p.displayName, email: emails.get(p.id) ?? null, since: p.createdAt })),
     invites: invites.map((i) => ({ id: i.id, email: i.email, role: i.role as Role, roleName: i.orgRole?.name ?? null, orgRoleId: i.orgRoleId, createdAt: i.createdAt, expiresAt: i.expiresAt, expired: i.expiresAt <= now })),
   };
+}
+
+/**
+ * Ends the chat access of managers who no longer run teams (M10.6): their
+ * participant rows are closed now, as the database trigger does when a
+ * built-in role changes. A custom role losing Messages, or a member moved
+ * to a role without it, changes no Profile column the trigger watches, so
+ * the app does it in the same transaction. Pass the members, or the custom
+ * role they all hold.
+ */
+export async function endManagerChats(tx: Tx, orgId: string, who: { profileId: string } | { orgRoleId: string }): Promise<void> {
+  if ("profileId" in who) {
+    await tx.$executeRaw`UPDATE "public"."ConversationParticipant" p SET "removedAt" = (clock_timestamp() AT TIME ZONE 'UTC')::timestamp(3) FROM "public"."Conversation" c WHERE c."id" = p."conversationId" AND c."orgId" = ${orgId}::uuid AND p."role" = 'MANAGER' AND p."removedAt" IS NULL AND p."profileId" = ${who.profileId}::uuid`;
+  } else {
+    await tx.$executeRaw`UPDATE "public"."ConversationParticipant" p SET "removedAt" = (clock_timestamp() AT TIME ZONE 'UTC')::timestamp(3) FROM "public"."Conversation" c WHERE c."id" = p."conversationId" AND c."orgId" = ${orgId}::uuid AND p."role" = 'MANAGER' AND p."removedAt" IS NULL AND p."profileId" IN (SELECT "id" FROM "public"."Profile" WHERE "orgRoleId" = ${who.orgRoleId}::uuid)`;
+  }
 }
 
 export interface MemberHistoryRow {
@@ -244,9 +260,12 @@ export async function resendInvite(actor: Actor, inviteId: string, mail: InviteM
     const admin = await stillAdmin(tx, actor);
     if (!admin) return fail(NOT_ADMIN);
     if (!(await orgApproved(tx, actor.orgId))) return fail(UNAPPROVED);
-    const inv = await tx.orgInvite.findFirst({ where: { id: inviteId, orgId: actor.orgId, acceptedAt: null, revokedAt: null }, select: { email: true, role: true } });
+    const inv = await tx.orgInvite.findFirst({ where: { id: inviteId, orgId: actor.orgId, acceptedAt: null, revokedAt: null }, select: { email: true, role: true, orgRoleId: true } });
     if (!inv) return fail("Invite not found.");
-    if (!admin.owner && inv.role === "OWNER") return fail(NOT_OWNER_ROLE);
+    // The invite's role must still exist (an archived one can never be joined), and a delegate acts only on invites within their own reach.
+    const reach = await reachOf(tx, actor.orgId, inv.role === "CUSTOM" ? { role: "CUSTOM", orgRoleId: inv.orgRoleId ?? "" } : { role: inv.role as BuiltInRole, orgRoleId: null });
+    if (!reach) return fail("The role this invite carries has been archived. Revoke it and invite again.");
+    if (!admin.owner && (inv.role === "OWNER" || !withinReach(admin.grants, reach))) return fail(inv.role === "OWNER" ? NOT_OWNER_ROLE : BEYOND);
     // The pending invite itself doesn't block its own resend.
     const users = await tx.$queryRaw<{ id: string }[]>`SELECT id::text AS id FROM auth.users WHERE lower(email) = ${inv.email}`;
     let canJoin = true;
@@ -274,8 +293,15 @@ export async function revokeInvite(actor: Actor, inviteId: string, now = new Dat
     await lockOrg(tx, actor.orgId);
     const admin = await stillAdmin(tx, actor);
     if (!admin) return fail(NOT_ADMIN);
-    // Only an owner withdraws an invitation to become an owner.
-    const { count } = await tx.orgInvite.updateMany({ where: { id: inviteId, orgId: actor.orgId, acceptedAt: null, revokedAt: null, ...(admin.owner ? {} : { role: { not: "OWNER" } }) }, data: { revokedAt: now } });
+    // Only an owner withdraws an invitation to become an owner, or to a role beyond a delegate's own reach.
+    if (!admin.owner) {
+      const inv = await tx.orgInvite.findFirst({ where: { id: inviteId, orgId: actor.orgId, acceptedAt: null, revokedAt: null }, select: { role: true, orgRoleId: true } });
+      if (!inv) return fail("Invite not found.");
+      const reach = inv.role === "OWNER" ? null : await reachOf(tx, actor.orgId, inv.role === "CUSTOM" ? { role: "CUSTOM", orgRoleId: inv.orgRoleId ?? "" } : { role: inv.role as BuiltInRole, orgRoleId: null });
+      // A role archived since the invite was sent has no reach to compare: anyone who administers members may clear that invite away.
+      if (inv.role === "OWNER" || (reach && !withinReach(admin.grants, reach))) return fail(inv.role === "OWNER" ? NOT_OWNER_ROLE : BEYOND);
+    }
+    const { count } = await tx.orgInvite.updateMany({ where: { id: inviteId, orgId: actor.orgId, acceptedAt: null, revokedAt: null }, data: { revokedAt: now } });
     if (!count) return fail("Invite not found.");
     await tx.auditEvent.create({ data: { actorId: actor.userId, action: "invite.revoked", entityType: "OrgInvite", entityId: inviteId, metadata: { orgId: actor.orgId }, createdAt: now } });
     return { ok: true as const };
@@ -285,9 +311,9 @@ export async function revokeInvite(actor: Actor, inviteId: string, now = new Dat
 /** Loads a current member of the actor's organization under the membership lock. */
 async function memberFor(tx: Tx, actor: Actor, profileId: string) {
   await lockOrg(tx, actor.orgId);
-  const p = await tx.profile.findUnique({ where: { id: profileId }, select: { id: true, role: true, orgRoleId: true, orgId: true, closedAt: true, orgRole: { select: { name: true, archivedAt: true, grants: { select: { area: true, level: true } } } } } });
+  const p = await tx.profile.findUnique({ where: { id: profileId }, select: { id: true, role: true, orgRoleId: true, orgId: true, closedAt: true, orgRole: { select: { name: true, orgId: true, archivedAt: true, grants: { select: { area: true, level: true } } } } } });
   if (!p || p.orgId !== actor.orgId || p.closedAt || p.role === "WORKER") return null;
-  return { ...p, reach: p.role === "CUSTOM" ? (p.orgRole && !p.orgRole.archivedAt ? parseGrants(p.orgRole.grants) : {}) : presetGrants(p.role as BuiltInRole) };
+  return { ...p, reach: p.role === "CUSTOM" ? liveGrants(p.orgRole, p.orgId) : presetGrants(p.role as BuiltInRole) };
 }
 
 export const LAST_OWNER = "An organization needs at least one owner. Make someone else an owner first.";
@@ -312,6 +338,8 @@ export async function changeMemberRole(actor: Actor, profileId: string, role: un
     if (p.role === "OWNER" && !(await otherOwners(tx, actor.orgId, p.id))) return fail(LAST_OWNER);
     const to = choice.orgRoleId ? await tx.orgRole.findUnique({ where: { id: choice.orgRoleId }, select: { name: true } }) : null;
     await tx.profile.update({ where: { id: p.id }, data: { role: choice.role, orgRoleId: choice.orgRoleId } });
+    const newReach = await reachOf(tx, actor.orgId, choice);
+    if (!newReach || newReach.messages !== "full") await endManagerChats(tx, actor.orgId, { profileId: p.id });
     await tx.auditEvent.create({
       data: {
         actorId: actor.userId,
@@ -359,7 +387,7 @@ export async function pendingInvitesFor(user: VerifiedUser, now = new Date()) {
   if (!email) return [];
   return db().orgInvite.findMany({
     where: { email, acceptedAt: null, revokedAt: null, expiresAt: { gt: now } },
-    select: { id: true, role: true, expiresAt: true, org: { select: { name: true } } },
+    select: { id: true, role: true, expiresAt: true, org: { select: { name: true } }, orgRole: { select: { name: true } } },
     orderBy: { createdAt: "desc" },
   });
 }

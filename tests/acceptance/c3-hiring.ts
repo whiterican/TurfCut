@@ -12,7 +12,7 @@ import { scheduleShift as scheduleShiftC35 } from "@/lib/field-day-data";
 import { loadDesk } from "@/lib/desk-data";
 import { closeJob } from "@/lib/engagements-data";
 import { JOB_CLOSED_NOTE } from "@/lib/engagements";
-import { HIRING_ROLES } from "@/lib/access";
+import { areaMembers } from "@/lib/access-data";
 import { declineInvitation, hiringCounts, invitesLeft, loadInvitations, loadJobInvites, muteOrg, unmuteOrg } from "@/lib/invitations-data";
 import { DEFAULT_SHARING } from "@/lib/sharing";
 import { closeAccount, exportAccount } from "@/lib/account-data";
@@ -440,7 +440,7 @@ const types = async (id: string) => (await loadEngagementEvents(id)).map((e) => 
   await p.profile.createMany({ data: [1, 2, 3].map((n) => ({ id: N(n), role: "WORKER" as const })) });
   await p.worker.createMany({ data: [1, 2, 3].map((n) => ({ id: N(n), profileId: N(n), displayName: `Notice ${n}` })) });
   const notices = (engagementId: string) => p.notification.findMany({ where: { engagementId }, select: { recipientId: true, kind: true }, orderBy: { createdAt: "asc" } });
-  const hiringStaff = (await p.profile.findMany({ where: { orgId: ORG, role: { in: HIRING_ROLES }, closedAt: null }, select: { id: true } })).map((x) => x.id).sort();
+  const hiringStaff = (await p.profile.findMany({ where: { orgId: ORG, ...areaMembers("hiring"), closedAt: null }, select: { id: true } })).map((x) => x.id).sort();
   const jn = await newJob("Notice job", 3);
   const nn1 = idOf(await applyToJob(N(1), N(1), jn.id));
   const n1a = await notices(nn1);

@@ -31,6 +31,7 @@ export function RoleForm({ roleId, basedOn, defaults, submitLabel }: { roleId?: 
       </label>
       <fieldset className="space-y-2">
         <legend className="label">What it can do</legend>
+        <p className="text-hint">Every role gets the Desk, and a role that hires, edits jobs or schedules shifts can also read the job list: they are added when you save.</p>
         <ul className="list-card">
           {AREAS.map((area) => {
             const levels = levelsFor(area);

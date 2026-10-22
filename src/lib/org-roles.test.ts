@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { ROLE_LABELS, presetGrants } from "./access";
-import { AREA_LABELS, customChoice, parseRoleChoice, roleName, ROLE_NAME_MAX, validateRole, withinReach } from "./org-roles";
+import { AREA_LABELS, coherentGrants, customChoice, parseRoleChoice, roleName, ROLE_NAME_MAX, validateRole, withinReach } from "./org-roles";
 import { AREAS } from "./access";
 
 const form = (o: Record<string, string>) => ({ get: (k: string) => o[k] });
@@ -50,5 +50,14 @@ describe("custom roles (M10.6)", () => {
     expect(roleName({ role: "CUSTOM", roleName: "Field lead" }, ROLE_LABELS)).toBe("Field lead");
     expect(roleName({ role: "CUSTOM", roleName: null }, ROLE_LABELS)).toBe("Custom role");
     expect(roleName({ role: "FINANCE" }, ROLE_LABELS)).toBe("Finance");
+  });
+
+  it("gives every role the Desk and the job list it needs, and leaves a complete role alone", () => {
+    expect(coherentGrants({ pay: "full" })).toEqual({ pay: "full", desk: "full" });
+    expect(coherentGrants({ hiring: "full" })).toEqual({ hiring: "full", desk: "full", jobs: "read" });
+    expect(coherentGrants({ jobsEdit: "full", jobs: "full" })).toEqual({ jobsEdit: "full", jobs: "full", desk: "full" });
+    expect(coherentGrants({ desk: "read", jobs: "read", scheduling: "full" })).toEqual({ desk: "read", jobs: "read", scheduling: "full" });
+    expect(coherentGrants({})).toEqual({});
+    expect(validateRole(form({ name: "Cashier", "area:pay": "full" }))).toMatchObject({ ok: true, value: { grants: { pay: "full", desk: "full" } } });
   });
 });

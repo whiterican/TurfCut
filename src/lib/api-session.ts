@@ -1,4 +1,4 @@
-import { getSessionProfile, type Role, type SessionProfile } from "@/lib/auth";
+import { getSessionProfile, type SessionProfile } from "@/lib/auth";
 import { canUse, type AccessLevel, type Area } from "@/lib/access";
 import { db } from "@/lib/db";
 import { UUID_RE } from "@/lib/jobs";
@@ -49,14 +49,6 @@ export async function apiArea(area: Area, level: AccessLevel = "full"): Promise<
   const session = await getSessionProfile();
   if (!session) return deny(401, "Sign in required.");
   if (!canUse(session, area, level) || !session.orgId) return deny(403, "Your role can't do this.");
-  return { session: { ...session, orgId: session.orgId } };
-}
-
-/** API guard: a member of an organization in one of `roles`. Built-in roles only: a custom role fails closed here, so prefer apiArea. */
-export async function apiOrgRole(roles: Role[]): Promise<{ session: SessionProfile & { orgId: string } } | Denied> {
-  const session = await getSessionProfile();
-  if (!session) return deny(401, "Sign in required.");
-  if (!roles.includes(session.role) || !session.orgId) return deny(403, "Your role can't do this.");
   return { session: { ...session, orgId: session.orgId } };
 }
 

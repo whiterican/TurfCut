@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { db } from "@/lib/db";
 import { ensureAccount } from "@/lib/account";
-import { parseGrants, type Grants } from "@/lib/access";
+import { liveGrants, type Grants } from "@/lib/access";
 import { ServiceUnavailableError, isAuthOutage, isConfigError } from "@/lib/outage";
 
 export type Role =
@@ -72,7 +72,7 @@ export const getSessionProfile = cache(async (): Promise<SessionProfile | null> 
   const load = () =>
     db().profile.findUnique({
       where: { id: user.id },
-      include: { worker: { select: { id: true } }, orgRole: { select: { name: true, archivedAt: true, grants: { select: { area: true, level: true } } } } },
+      include: { worker: { select: { id: true } }, orgRole: { select: { name: true, orgId: true, archivedAt: true, grants: { select: { area: true, level: true } } } } },
     });
   let profile;
   try {
@@ -98,7 +98,7 @@ export const getSessionProfile = cache(async (): Promise<SessionProfile | null> 
     workerId: profile.role === "WORKER" ? (profile.worker?.id ?? null) : null,
     orgId: profile.orgId,
     staff: !!profile.staffSince,
-    grants: profile.role === "CUSTOM" ? (profile.orgRole && !profile.orgRole.archivedAt ? parseGrants(profile.orgRole.grants) : {}) : null,
+    grants: profile.role === "CUSTOM" ? liveGrants(profile.orgRole, profile.orgId) : null,
     roleName: profile.role === "CUSTOM" ? (profile.orgRole?.name ?? null) : null,
   };
 });

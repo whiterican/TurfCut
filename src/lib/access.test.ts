@@ -1,8 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { accessFor, accessTo, ACCESS, AREAS, BUILT_IN_ROLES, can, canUse, HIRING_ROLES, levelsFor, parseGrants, presetGrants, rolesFor, workerAccess, type AccessLevel, type Area } from "./access";
-import { CHAT_STAFF_ROLES } from "./chat";
+import { accessFor, accessTo, ACCESS, AREAS, BUILT_IN_ROLES, can, canUse, levelsFor, parseGrants, presetGrants, rolesFor, workerAccess, type AccessLevel, type Area } from "./access";
 
 const W = "worker-1";
 
@@ -68,14 +67,14 @@ describe("the C1 access map", () => {
     expect(can("OWNER", "jobs", "read")).toBe(true);
   });
   it("derives the role lists from the map", () => {
-    expect(HIRING_ROLES).toEqual(["OWNER", "RECRUITER"]);
+    expect(rolesFor("hiring")).toEqual(["OWNER", "RECRUITER"]);
     expect(rolesFor("orgMembers")).toEqual(["OWNER"]);
   });
-  it("chat staff match the roles the database trigger keeps as managers", () => {
-    const sql = readFileSync(join(__dirname, "../../prisma/m4-migration.sql"), "utf8");
-    const m = /NOT IN \(('OWNER', 'RECRUITER', 'SUPERVISOR')\)/.exec(sql);
+  it("the built-in roles that run team chats match the ones the database trigger keeps as managers", () => {
+    const sql = readFileSync(join(__dirname, "../../prisma/m10-roles.sql"), "utf8");
+    const m = /NEW\."role"::text IN \(('OWNER', 'RECRUITER', 'SUPERVISOR')\)/.exec(sql);
     expect(m).not.toBeNull();
-    expect(CHAT_STAFF_ROLES).toEqual(["OWNER", "RECRUITER", "SUPERVISOR"]);
+    expect(rolesFor("messages")).toEqual(["OWNER", "RECRUITER", "SUPERVISOR"]);
   });
 });
 

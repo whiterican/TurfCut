@@ -12,6 +12,8 @@
 --      against the access map, so a new area never needs a migration.
 --   3. Profile.orgRoleId and OrgInvite.orgRoleId: set exactly when the role
 --      is CUSTOM (a CHECK keeps the two in step).
+--   4. The chat-access trigger also watches orgRoleId and treats a custom
+--      role as staff only while its role has full Messages.
 -- Nothing recorded changes: built-in members keep their role and a null
 -- orgRoleId.
 
@@ -93,5 +95,28 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 CREATE INDEX IF NOT EXISTS "Profile_orgRoleId_idx" ON "public"."Profile"("orgRoleId");
+
+-- Chat access follows the role (M10.6). Team chats are run by owners,
+-- recruiters, supervisors and custom roles with full Messages: a manager
+-- leaves every conversation they manage when they stop being one, whatever
+-- path makes the change (role, organization or custom role).
+CREATE OR REPLACE FUNCTION "turfcut_private"."end_staff_chat_access"() RETURNS trigger LANGUAGE plpgsql SET search_path = '' AS $$
+BEGIN
+  UPDATE "public"."ConversationParticipant" p
+     SET "removedAt" = (clock_timestamp() AT TIME ZONE 'UTC')::timestamp(3)
+    FROM "public"."Conversation" c
+   WHERE c."id" = p."conversationId" AND p."profileId" = NEW."id" AND p."role" = 'MANAGER' AND p."removedAt" IS NULL
+     AND (NEW."orgId" IS DISTINCT FROM c."orgId"
+          OR NOT (NEW."role"::text IN ('OWNER', 'RECRUITER', 'SUPERVISOR')
+                  OR (NEW."role"::text = 'CUSTOM' AND EXISTS (
+                        SELECT 1 FROM "public"."OrgRole" r JOIN "public"."OrgRoleGrant" g ON g."roleId" = r."id"
+                         WHERE r."id" = NEW."orgRoleId" AND r."orgId" = NEW."orgId" AND r."archivedAt" IS NULL AND g."area" = 'messages' AND g."level"::text = 'FULL'))));
+  RETURN NULL;
+END $$;
+REVOKE ALL ON FUNCTION "turfcut_private"."end_staff_chat_access"() FROM PUBLIC, anon, authenticated;
+DROP TRIGGER IF EXISTS "Profile_end_chat_access" ON "public"."Profile";
+CREATE TRIGGER "Profile_end_chat_access" AFTER UPDATE OF "orgId", "role", "orgRoleId" ON "public"."Profile"
+  FOR EACH ROW WHEN (OLD."orgId" IS DISTINCT FROM NEW."orgId" OR OLD."role" IS DISTINCT FROM NEW."role" OR OLD."orgRoleId" IS DISTINCT FROM NEW."orgRoleId")
+  EXECUTE FUNCTION "turfcut_private"."end_staff_chat_access"();
 
 COMMIT;

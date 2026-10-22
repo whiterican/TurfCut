@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
-import { requireJobEditor } from "@/lib/employer-session";
+import { requireEmployer, requireJobEditor } from "@/lib/employer-session";
 import { requireWorker } from "@/lib/worker-session";
 import { formToObject, jurisdictionStateProblem, validateJob } from "@/lib/jobs";
 import { createJob, publishJob, updateDraftJob, updatePublishedJob } from "@/lib/jobs-data";
@@ -164,7 +164,7 @@ async function orgMove(
   action: "review" | "offer" | "decline" | "withdraw",
   okMessage: string
 ): Promise<ActionState> {
-  const { orgId, userId } = await requireJobEditor();
+  const { orgId, userId } = await requireEmployer();
   if (!orgId) return { ok: false, message: "No organization on this account." };
   const r = await moveEngagement(field(formData, "engagementId"), action, { kind: "org", profileId: userId, orgId }, {
     reasonCode: field(formData, "reasonCode"),
@@ -185,7 +185,7 @@ const BULK_DONE: Record<"review" | "offer" | "decline", (n: string) => string> =
 
 /** One step for several applicants of one job (C3.2); see moveEngagements. */
 export async function bulkMove(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const { orgId, userId } = await requireJobEditor();
+  const { orgId, userId } = await requireEmployer();
   if (!orgId) return { ok: false, message: "No organization on this account." };
   const jobId = field(formData, "jobId");
   const action = field(formData, "bulk");
@@ -205,7 +205,7 @@ export async function bulkMove(_prev: ActionState, formData: FormData): Promise<
 export const withdrawInvitation = async (_prev: ActionState, fd: FormData) => orgMove(fd, "withdraw", "Invitation withdrawn.");
 
 export async function invite(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const { orgId, userId, orgApproved } = await requireJobEditor();
+  const { orgId, userId, orgApproved } = await requireEmployer();
   if (!orgId || !orgApproved) return { ok: false, message: "Your organization is awaiting approval." };
   const jobId = String(formData.get("jobId") ?? "");
   const workerId = String(formData.get("workerId") ?? "");

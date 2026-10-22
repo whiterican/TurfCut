@@ -5,6 +5,8 @@ import { pendingInvitesFor } from "@/lib/members-data";
 import { ActionButton } from "@/components/ActionButton";
 import { acceptFromWelcome } from "./actions";
 import { WelcomeForm } from "./WelcomeForm";
+import { roleName } from "@/lib/org-roles";
+import type { Role } from "@/lib/auth";
 
 /** A signed-in login with no Turfcut profile yet (see needsSetup). */
 export default async function WelcomePage() {
@@ -19,7 +21,7 @@ export default async function WelcomePage() {
           <ul className="space-y-3">
             {invites.map((i) => (
               <li key={i.id} className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-fg">{i.org.name} · {ROLE_LABELS[i.role] ?? i.role}</p>
+                <p className="text-fg">{i.org.name} · {roleName({ role: i.role as Role, roleName: i.orgRole?.name }, ROLE_LABELS)}</p>
                 <ActionButton action={acceptFromWelcome} fields={{ inviteId: i.id }} label="Accept" pendingLabel="Joining…" variant="btn-primary btn-sm" />
               </li>
             ))}

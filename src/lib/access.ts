@@ -113,6 +113,16 @@ export function parseGrants(rows: Array<{ area: string; level: string }>): Grant
 }
 
 /**
+ * The grants a custom-role member holds, from their role as stored: none
+ * for a missing or archived role, and none when the role belongs to another
+ * organization than the member's (nothing in the schema forbids it, so the
+ * reader does).
+ */
+export function liveGrants(orgRole: { orgId: string; archivedAt: Date | null; grants: Array<{ area: string; level: string }> } | null | undefined, memberOrgId: string | null): Grants {
+  return orgRole && !orgRole.archivedAt && orgRole.orgId === memberOrgId ? parseGrants(orgRole.grants) : {};
+}
+
+/**
  * A member's access to an area: a built-in role's row of the map, or a
  * custom role's grant. A custom-role member without grants (an archived or
  * missing role) has none, and so does any check that still asks by role
@@ -148,32 +158,6 @@ export function rolesFor(area: Area, level: AccessLevel = "full"): OrgRole[] {
   return ORG_ROLE_LIST.filter((r) => can(r, area, level));
 }
 
-/**
- * Roles that see a worker's hiring profile (spec p.11: "Recruiters see the
- * hiring profile; supervisors see assignment data; finance sees pay
- * records"). Owners administer the org and can recruit.
- */
-export const HIRING_ROLES: Role[] = rolesFor("hiring");
-
-/** Who schedules shifts for hired workers. */
-export const SCHEDULING_ROLES: Role[] = rolesFor("scheduling");
-
-/**
- * Who approves pay, resolves pay disputes, pays workers and exports the pay
- * ledger (spec p.11 "finance sees pay records"). Supervisors approve the
- * work itself on the shift page.
- */
-export const PAY_ROLES: Role[] = rolesFor("pay");
-
-/** Who runs the field: hands out packets, counts batches, reviews shifts. */
-export const FIELD_ROLES: Role[] = rolesFor("field");
-
-/** Who records the classification review on the organization's settings. */
-export const COMPLIANCE_ROLES: Role[] = rolesFor("compliance");
-
-/** Who invites, changes and removes members (owners only in C1; M10 widens it). */
-export const MEMBER_ADMIN_ROLES: Role[] = rolesFor("orgMembers");
-
 export type WorkerAccess =
   | { kind: "self" }
   | { kind: "employer"; orgId: string }
@@ -190,7 +174,7 @@ export type WorkerAccess =
  * passing this check never exposes them on its own.
  */
 export function workerAccess(
-  session: Pick<SessionProfile, "role" | "workerId" | "orgId">,
+  session: Pick<SessionProfile, "role" | "workerId" | "orgId"> & { grants?: Grants | null },
   workerId: string,
   orgApproved: boolean
 ): WorkerAccess {
@@ -202,7 +186,7 @@ export function workerAccess(
   if (!ORG_ROLES.includes(session.role) || !session.orgId) {
     return { kind: "denied", reason: "No organization on this account." };
   }
-  if (!HIRING_ROLES.includes(session.role)) {
+  if (!canUse(session, "hiring")) {
     return { kind: "denied", reason: "Worker hiring profiles are available to owners and recruiters." };
   }
   if (!orgApproved) {

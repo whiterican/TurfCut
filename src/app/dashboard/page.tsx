@@ -29,6 +29,10 @@ import { VerifiedMark } from "@/components/campaign/VerifiedMark";
 import { loadLatestPreference } from "@/lib/political-fit-data";
 import type { VisibilityMode } from "@/lib/political-fit";
 import { seatsOnOffer } from "@/lib/shift-slots-data";
+import { canUse } from "@/lib/access";
+import { orgNav } from "@/lib/nav";
+import { roleName } from "@/lib/org-roles";
+import type { Role } from "@/lib/auth";
 
 const ROLE_LABELS: Record<string, string> = {
   WORKER: "Field worker",
@@ -310,7 +314,7 @@ async function Detached() {
           {invites.map((i) => (
             <li key={i.id} className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="space-y-1">
-                <p className="font-medium text-fg">{i.org.name} invited you as {ROLE_LABELS[i.role] ?? i.role}</p>
+                <p className="font-medium text-fg">{i.org.name} invited you as {roleName({ role: i.role as Role, roleName: i.orgRole?.name }, ROLE_LABELS)}</p>
                 <p className="text-muted-sm">Open until {i.expiresAt.toISOString().slice(0, 10)}. Nothing changes unless you accept.</p>
               </div>
               <ActionButton action={acceptOrgInvite} fields={{ inviteId: i.id }} label="Accept" pendingLabel="Joining…" />
@@ -325,7 +329,10 @@ async function Detached() {
 export default async function DashboardPage() {
   const session = await requireAuth();
   // Organization roles live on the Desk (C1.3); workers and removed members stay here.
-  if (session.role !== "WORKER" && session.orgId) redirect("/desk");
+  if (session.role !== "WORKER" && session.orgId) {
+    // A member whose role has no Desk (a role saved before every role got one) lands on the first page their role reaches, never back here.
+    redirect(canUse(session, "desk") ? "/desk" : (orgNav(session.role, true, session.staff, session.grants).rail[0]?.href ?? "/settings"));
+  }
 
   const isWorker = session.role === "WORKER" && !!session.workerId;
   const [worker] = await Promise.all([
@@ -340,7 +347,7 @@ export default async function DashboardPage() {
           <p className="eyebrow">{isWorker ? "Today" : "Account"}</p>
           <h1 className="page-title">{name}</h1>
           <p className="text-muted-sm">
-            {[ROLE_LABELS[session.role] ?? session.role, session.email].filter(Boolean).join(" · ")}
+            {[roleName(session, ROLE_LABELS), session.email].filter(Boolean).join(" · ")}
           </p>
         </div>
       </header>

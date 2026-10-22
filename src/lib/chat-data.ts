@@ -63,11 +63,11 @@ async function dbNow(c: Client): Promise<Date> {
   return row.now;
 }
 
-const PERSON = { select: { id: true, role: true, displayName: true, worker: { select: { displayName: true } } } } as const;
-type Person = { role: string; displayName: string | null; worker: { displayName: string } | null };
-const ROLE_LABEL: Record<string, string> = { OWNER: "Owner", RECRUITER: "Recruiter", SUPERVISOR: "Supervisor", COMPLIANCE: "Compliance", FINANCE: "Finance" };
+const PERSON = { select: { id: true, role: true, displayName: true, worker: { select: { displayName: true } }, orgRole: { select: { name: true } } } } as const;
+type Person = { role: string; displayName: string | null; worker: { displayName: string } | null; orgRole?: { name: string } | null };
+const ROLE_LABEL: Record<string, string> = { OWNER: "Owner", RECRUITER: "Recruiter", SUPERVISOR: "Supervisor", COMPLIANCE: "Compliance", FINANCE: "Finance", PUBLISHER: "Publisher" };
 /** Worker → their profile name; staff → their chat name, else their role. */
-export const personName = (p: Person | null | undefined) => p?.worker?.displayName ?? p?.displayName ?? (p ? ROLE_LABEL[p.role] : undefined) ?? "Former member";
+export const personName = (p: Person | null | undefined) => p?.worker?.displayName ?? p?.displayName ?? (p ? (p.role === "CUSTOM" ? (p.orgRole?.name ?? "Team member") : ROLE_LABEL[p.role]) : undefined) ?? "Former member";
 
 async function audit(c: Client, actorId: string, action: string, entityType: string, entityId: string, metadata: Prisma.InputJsonValue) {
   await c.auditEvent.create({ data: { actorId, action, entityType, entityId, metadata } });

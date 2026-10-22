@@ -37,9 +37,12 @@ describe("session profile", () => {
   it("resolves a custom role's grants once, with the session; an archived or missing role has none (M10.6)", async () => {
     getUser.mockResolvedValue({ data: { user: { id: "u5", email: "c@b.org" } } });
     const base = { id: "u5", role: "CUSTOM", orgId: "org", closedAt: null, staffSince: null, worker: null };
-    findUnique.mockResolvedValueOnce({ ...base, orgRole: { name: "Field lead", archivedAt: null, grants: [{ area: "jobs", level: "READ" }, { area: "field", level: "FULL" }, { area: "nonsense", level: "FULL" }, { area: "pay", level: "READ" }] } });
+    findUnique.mockResolvedValueOnce({ ...base, orgRole: { name: "Field lead", orgId: "org", archivedAt: null, grants: [{ area: "jobs", level: "READ" }, { area: "field", level: "FULL" }, { area: "nonsense", level: "FULL" }, { area: "pay", level: "READ" }] } });
     expect(await getSessionProfile()).toMatchObject({ role: "CUSTOM", roleName: "Field lead", grants: { jobs: "read", field: "full" } });
-    findUnique.mockResolvedValueOnce({ ...base, orgRole: { name: "Old", archivedAt: new Date(), grants: [{ area: "jobs", level: "READ" }] } });
+    findUnique.mockResolvedValueOnce({ ...base, orgRole: { name: "Old", orgId: "org", archivedAt: new Date(), grants: [{ area: "jobs", level: "READ" }] } });
+    expect(await getSessionProfile()).toMatchObject({ role: "CUSTOM", grants: {} });
+    // A role that belongs to another organization than the member's reaches nothing.
+    findUnique.mockResolvedValueOnce({ ...base, orgRole: { name: "Theirs", orgId: "other-org", archivedAt: null, grants: [{ area: "pay", level: "FULL" }] } });
     expect(await getSessionProfile()).toMatchObject({ role: "CUSTOM", grants: {} });
     findUnique.mockResolvedValueOnce({ ...base, orgRole: null });
     expect(await getSessionProfile()).toMatchObject({ role: "CUSTOM", grants: {}, roleName: null });

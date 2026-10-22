@@ -125,9 +125,15 @@ exercise the locks, triggers and data rules, not the RLS policies.
      statements), and deploy the M9 build right after: it numbers the
      existing transfers and until the new code is live, sending pay fails
      (approving and everything else keeps working). Safe to run again.
-   - Then `prisma/m10-admin.sql` (M10.1: the staff flag and the staff
-     ledger), before deploying the M10 build; then make your own account
-     staff (see **Turfcut staff** below). Safe to run again.
+   - Then the three M10 files, in this order, all before deploying the M10
+     build, each safe to run again: `prisma/m10-admin.sql` (the staff flag
+     and ledger, organization approvals, jurisdiction versions),
+     `prisma/m10-verification.sql` (campaign verification) and
+     `prisma/m10-roles.sql` (organization roles; it also replaces the chat
+     access trigger). Then make your own account staff (see **Turfcut
+     staff** below). The roles file adds an enum value, so run it as its
+     own paste (the Supabase editor runs the first statement outside the
+     transaction).
    - Storage → New bucket **`campaign-media`**, set to **public**, with a
      file size limit of **2 MB** and allowed MIME types **image/png,
      image/jpeg**. Campaign avatars and header images go there. The app
@@ -1340,8 +1346,11 @@ roles, one slice at a time.
   manager. A manager's chats end when their role loses Messages: the
   database trigger now watches the custom role too, and the app ends them
   in the same transaction when a role is narrowed or a member moves to a
-  role without it. Moving someone from a role that had Messages to one that
-  has it keeps them in.
+  role without it; a trigger on the grant rows does the same if a Messages
+  grant is deleted or lowered by hand. Moving someone from a role that had
+  Messages to one that has it keeps them in. Chat names show a custom-role
+  member's own name, else "Team member" (role names are the organization's
+  own labels and aren't shown to workers).
 - **Coherent by default.** Every custom role gets the Desk, and a role that
   hires, edits jobs or schedules shifts can also read the job list; they
   are added when the role is saved. A member whose role has no Desk lands

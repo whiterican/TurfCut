@@ -13,7 +13,8 @@
 --   3. Profile.orgRoleId and OrgInvite.orgRoleId: set exactly when the role
 --      is CUSTOM (a CHECK keeps the two in step).
 --   4. The chat-access trigger also watches orgRoleId and treats a custom
---      role as staff only while its role has full Messages.
+--      role as staff only while its role has full Messages; a grant row
+--      losing full Messages ends the chat access of members on that role.
 -- Nothing recorded changes: built-in members keep their role and a null
 -- orgRoleId.
 
@@ -118,5 +119,26 @@ DROP TRIGGER IF EXISTS "Profile_end_chat_access" ON "public"."Profile";
 CREATE TRIGGER "Profile_end_chat_access" AFTER UPDATE OF "orgId", "role", "orgRoleId" ON "public"."Profile"
   FOR EACH ROW WHEN (OLD."orgId" IS DISTINCT FROM NEW."orgId" OR OLD."role" IS DISTINCT FROM NEW."role" OR OLD."orgRoleId" IS DISTINCT FROM NEW."orgRoleId")
   EXECUTE FUNCTION "turfcut_private"."end_staff_chat_access"();
+
+-- A grant row losing full Messages ends chat access for the managers on that
+-- role, whatever makes the change (the app edits grants in place; a hand edit
+-- in the SQL editor must not leave a manager reading).
+CREATE OR REPLACE FUNCTION "turfcut_private"."end_role_chat_access"() RETURNS trigger LANGUAGE plpgsql SET search_path = '' AS $$
+BEGIN
+  UPDATE "public"."ConversationParticipant" p
+     SET "removedAt" = (clock_timestamp() AT TIME ZONE 'UTC')::timestamp(3)
+   WHERE p."role" = 'MANAGER' AND p."removedAt" IS NULL
+     AND p."profileId" IN (SELECT pr."id" FROM "public"."Profile" pr WHERE pr."orgRoleId" = OLD."roleId");
+  RETURN NULL;
+END $$;
+REVOKE ALL ON FUNCTION "turfcut_private"."end_role_chat_access"() FROM PUBLIC, anon, authenticated;
+DROP TRIGGER IF EXISTS "OrgRoleGrant_end_chat_access_delete" ON "public"."OrgRoleGrant";
+CREATE TRIGGER "OrgRoleGrant_end_chat_access_delete" AFTER DELETE ON "public"."OrgRoleGrant"
+  FOR EACH ROW WHEN (OLD."area" = 'messages')
+  EXECUTE FUNCTION "turfcut_private"."end_role_chat_access"();
+DROP TRIGGER IF EXISTS "OrgRoleGrant_end_chat_access_update" ON "public"."OrgRoleGrant";
+CREATE TRIGGER "OrgRoleGrant_end_chat_access_update" AFTER UPDATE OF "area", "level" ON "public"."OrgRoleGrant"
+  FOR EACH ROW WHEN (OLD."area" = 'messages' AND (NEW."area" <> 'messages' OR NEW."level"::text <> 'FULL'))
+  EXECUTE FUNCTION "turfcut_private"."end_role_chat_access"();
 
 COMMIT;

@@ -67,7 +67,7 @@ const PERSON = { select: { id: true, role: true, displayName: true, worker: { se
 type Person = { role: string; displayName: string | null; worker: { displayName: string } | null; orgRole?: { name: string } | null };
 const ROLE_LABEL: Record<string, string> = { OWNER: "Owner", RECRUITER: "Recruiter", SUPERVISOR: "Supervisor", COMPLIANCE: "Compliance", FINANCE: "Finance", PUBLISHER: "Publisher" };
 /** Worker → their profile name; staff → their chat name, else their role. */
-export const personName = (p: Person | null | undefined) => p?.worker?.displayName ?? p?.displayName ?? (p ? (p.role === "CUSTOM" ? (p.orgRole?.name ?? "Team member") : ROLE_LABEL[p.role]) : undefined) ?? "Former member";
+export const personName = (p: Person | null | undefined) => p?.worker?.displayName ?? p?.displayName ?? (p ? (p.role === "CUSTOM" ? "Team member" : ROLE_LABEL[p.role]) : undefined) ?? "Former member";
 
 async function audit(c: Client, actorId: string, action: string, entityType: string, entityId: string, metadata: Prisma.InputJsonValue) {
   await c.auditEvent.create({ data: { actorId, action, entityType, entityId, metadata } });
@@ -811,7 +811,7 @@ export async function teamCandidates(me: ChatUser, jobIds: string[], c: Client =
     else workers.set(h.worker.profileId, { profileId: h.worker.profileId, name: h.worker.displayName, role: "WORKER", detail: h.job.title });
   }
   return [
-    ...staff.map((p): Candidate => ({ profileId: p.id, name: personName(p), role: "MANAGER", detail: ROLE_LABEL[p.role] ?? p.role })),
+    ...staff.map((p): Candidate => ({ profileId: p.id, name: personName(p), role: "MANAGER", detail: p.role === "CUSTOM" ? (p.orgRole?.name ?? "Team member") : (ROLE_LABEL[p.role] ?? p.role) })),
     ...[...workers.values()].sort((a, b) => a.name.localeCompare(b.name)),
   ];
 }

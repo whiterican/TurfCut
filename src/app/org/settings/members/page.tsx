@@ -40,6 +40,8 @@ export default async function MembersPage() {
   const custom = roles.filter((r) => !r.archivedAt);
   const myReach: Grants = session.role === "CUSTOM" ? (session.grants ?? {}) : presetGrants(session.role as BuiltInRole);
   const reachOfMember = (m: { role: Role; orgRoleId: string | null }): Grants => (m.role === "CUSTOM" ? (roles.find((r) => r.id === m.orgRoleId)?.grants ?? {}) : presetGrants(m.role as BuiltInRole));
+  // The same limit for a waiting invite: an owner's to any, a delegate's only to a role within their own reach.
+  const mayActOnInvite = (i: { role: Role; orgRoleId: string | null }) => session.role === "OWNER" || (i.role !== "OWNER" && withinReach(myReach, reachOfMember(i)));
   // Whether this person is the signed-in member's to change: an owner's to anyone, a delegate's only within their own reach.
   const mayChange = (m: { role: Role; orgRoleId: string | null; profileId: string }) => session.role === "OWNER" || m.profileId === session.userId || (m.role !== "OWNER" && withinReach(myReach, reachOfMember(m)));
   const history = await memberHistory(session.orgId, members.map((m) => m.profileId));
@@ -88,10 +90,14 @@ export default async function MembersPage() {
                   </p>
                   <p className="text-muted-sm">Invited {day(i.createdAt)} · {i.expired ? "expired" : "expires"} {day(i.expiresAt)}</p>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  <ActionButton action={resend} fields={{ inviteId: i.id }} label="Resend" pendingLabel="Sending…" variant="btn-secondary btn-sm" />
-                  <ActionButton action={revoke} fields={{ inviteId: i.id }} label="Revoke" pendingLabel="Revoking…" variant="btn-ghost btn-sm" />
-                </div>
+                {mayActOnInvite(i) ? (
+                  <div className="flex flex-wrap gap-2">
+                    <ActionButton action={resend} fields={{ inviteId: i.id }} label="Resend" pendingLabel="Sending…" variant="btn-secondary btn-sm" />
+                    <ActionButton action={revoke} fields={{ inviteId: i.id }} label="Revoke" pendingLabel="Revoking…" variant="btn-ghost btn-sm" />
+                  </div>
+                ) : (
+                  <p className="text-muted-sm sm:max-w-48">Only an owner can resend or revoke an invite to a role with more access than yours.</p>
+                )}
               </li>
             ))}
           </ul>

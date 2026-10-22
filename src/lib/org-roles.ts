@@ -74,12 +74,15 @@ export function validateRole(raw: { get(key: string): unknown }): { ok: true; va
  * What a role needs to be usable, added rather than refused: every role
  * lands on the Desk (a member without it would bounce between pages with
  * nowhere to land), and a role that hires, edits jobs or schedules shifts
- * needs the job list to find the job. Idempotent.
+ * needs the job list to find the job; running campaign profiles brings
+ * posting with it. Idempotent.
  */
 export function coherentGrants(g: Grants): Grants {
   const out: Grants = { ...g };
   if (Object.keys(out).length && !out.desk) out.desk = "full";
   if ((out.hiring || out.jobsEdit || out.scheduling) && !out.jobs) out.jobs = "read";
+  // The campaign page opens on the posting area; whoever runs the profile can post.
+  if (out.campaigns && !out.campaignPosting) out.campaignPosting = "full";
   return out;
 }
 

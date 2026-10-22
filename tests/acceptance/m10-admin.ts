@@ -420,6 +420,20 @@ const fails_ = async (f: () => Promise<unknown>): Promise<string> => { try { awa
   const trigOnly = await p.$executeRaw`UPDATE "ConversationParticipant" SET "removedAt" = NULL WHERE "conversationId" = ${teamChat.id}::uuid AND "profileId" = ${CHATTER}::uuid`;
   await p.$executeRaw`UPDATE "Profile" SET "orgRoleId" = ${noChatRole.ok ? noChatRole.id : ""}::uuid WHERE "id" = ${CHATTER}::uuid`;
   check("the database trigger ends it too when only the custom role changes", trigOnly === 1 && (await openManagers()) === 0);
+  // Editing a role in place keeps chats while Messages stays; deleting its Messages grant by hand ends them (the grant-row trigger).
+  const keepRole = await createOrgRole(asOrgOwner, { name: "Chat keeper", description: "", basedOn: null, grants: { desk: "full", messages: "full" } }, t11);
+  const KEEPER = "00000000-0000-0000-0000-0000000000c7";
+  await p.profile.create({ data: { id: KEEPER, role: "CUSTOM", orgRoleId: keepRole.ok ? keepRole.id : null, orgId: ORG, displayName: "Kee Per" } });
+  const keepChat = await p.conversation.create({ data: { kind: "GROUP", orgId: ORG, name: "Team C", createdById: OWNER } });
+  await p.conversationParticipant.create({ data: { conversationId: keepChat.id, profileId: KEEPER, role: "MANAGER", addedById: OWNER } });
+  const edited = await updateOrgRole(asOrgOwner, keepRole.ok ? keepRole.id : "", { name: "Chat keeper", description: "Keeps its chats", basedOn: null, grants: { desk: "full", messages: "full", jobs: "read" } }, new Date(t11.getTime() + 9000));
+  const stillIn = await p.conversationParticipant.count({ where: { conversationId: keepChat.id, removedAt: null } });
+  await p.$executeRaw`DELETE FROM "OrgRoleGrant" WHERE "roleId" = ${keepRole.ok ? keepRole.id : ""}::uuid AND "area" = 'messages'`;
+  const afterDelete = await p.conversationParticipant.count({ where: { conversationId: keepChat.id, removedAt: null } });
+  check("editing a role in place keeps its managers' chats while Messages stays, and deleting the Messages grant by hand ends them", edited.ok && stillIn === 1 && afterDelete === 0, { edited, stillIn, afterDelete });
+  const noDeskRole = await createOrgRole(asOrgOwner, { name: "Payer", description: "", basedOn: null, grants: { pay: "full" } }, t11);
+  const noDeskGrants = noDeskRole.ok ? (await listOrgRoles(ORG)).find((r) => r.id === noDeskRole.id)?.grants : null;
+  check("a role saved without the Desk gets it", noDeskGrants?.desk === "full" && noDeskGrants.pay === "full", noDeskGrants);
   const roleSql1 = await fails_(() => p.$executeRaw`UPDATE "Profile" SET "role" = 'CUSTOM', "orgRoleId" = NULL WHERE "id" = ${ids.fin}::uuid`);
   const roleSql2 = await fails_(() => p.$executeRaw`UPDATE "Profile" SET "orgRoleId" = ${delegateRole.ok ? delegateRole.id : ""}::uuid WHERE "id" = ${ids.fin}::uuid`);
   check("the database keeps a custom role and its OrgRole together", /Profile_custom_role/.test(roleSql1) && /Profile_custom_role/.test(roleSql2), { roleSql1, roleSql2 });

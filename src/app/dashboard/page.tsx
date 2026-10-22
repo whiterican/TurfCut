@@ -29,8 +29,7 @@ import { VerifiedMark } from "@/components/campaign/VerifiedMark";
 import { loadLatestPreference } from "@/lib/political-fit-data";
 import type { VisibilityMode } from "@/lib/political-fit";
 import { seatsOnOffer } from "@/lib/shift-slots-data";
-import { canUse } from "@/lib/access";
-import { orgNav } from "@/lib/nav";
+import { landingFor } from "@/lib/nav";
 import { roleName } from "@/lib/org-roles";
 import type { Role } from "@/lib/auth";
 
@@ -331,7 +330,7 @@ export default async function DashboardPage() {
   // Organization roles live on the Desk (C1.3); workers and removed members stay here.
   if (session.role !== "WORKER" && session.orgId) {
     // A member whose role has no Desk (a role saved before every role got one) lands on the first page their role reaches, never back here.
-    redirect(canUse(session, "desk") ? "/desk" : (orgNav(session.role, true, session.staff, session.grants).rail[0]?.href ?? "/settings"));
+    redirect(landingFor(session.role, session.grants, session.staff));
   }
 
   const isWorker = session.role === "WORKER" && !!session.workerId;

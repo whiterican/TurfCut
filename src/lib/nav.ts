@@ -113,6 +113,18 @@ export function orgNav(role: Role | null, hasOrg: boolean, staff = false, grants
   return { rail: [...reach.map(plain), ...extra], phone: phone.map(plain), more: [...reach.filter((t) => !phone.includes(t)).map(plain), ...extra] };
 }
 
+/**
+ * Where an organization member lands after signing in: the Desk when their
+ * role has one, else the first page their role reaches, else Settings. A
+ * page a member can't use sends them to /dashboard, which sends them here,
+ * so every tab's guard has to admit exactly the grants that show its tab
+ * (the test walks every grant against the pages' guards).
+ */
+export function landingFor(role: Role, grants: Grants | null, staff = false): string {
+  if (accessFor({ role, grants }, "desk") === "full") return "/desk";
+  return orgNav(role, true, staff, grants).rail[0]?.href ?? "/settings";
+}
+
 /** The tab a path belongs to: the longest matching prefix wins. */
 export function activeTab(tabs: NavTab[], pathname: string): string | null {
   const hits = tabs.filter((t) => pathname === t.href || pathname.startsWith(`${t.href}/`));

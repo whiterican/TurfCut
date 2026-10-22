@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { parseGrants, type Grants } from "@/lib/access";
 import { UUID_RE } from "@/lib/jobs";
 import { endManagerChats, lockOrg } from "@/lib/members-data";
-import { ROLES_MAX, validateRole, type RoleInput } from "@/lib/org-roles";
+import { coherentGrants, ROLES_MAX, validateRole, type RoleInput } from "@/lib/org-roles";
 import type { Role } from "@/lib/auth";
 
 /**
@@ -73,7 +73,8 @@ const TAKEN = fail("Fix the highlighted fields.", { name: "You already have a ro
 
 const grantsMeta = (g: Grants) => g as Prisma.InputJsonObject;
 
-export async function createOrgRole(actor: RoleActor, input: RoleInput, now = new Date()): Promise<{ ok: true; id: string } | Fail> {
+export async function createOrgRole(actor: RoleActor, raw: RoleInput, now = new Date()): Promise<{ ok: true; id: string } | Fail> {
+  const input = { ...raw, grants: coherentGrants(raw.grants) };
   try {
     return await db().$transaction(async (tx) => {
       await lockOrg(tx, actor.orgId);
@@ -94,8 +95,9 @@ export async function createOrgRole(actor: RoleActor, input: RoleInput, now = ne
 }
 
 /** Renames a role, changes its description and replaces what it reaches. Members on it have the new reach on their next page. */
-export async function updateOrgRole(actor: RoleActor, id: string, input: RoleInput, now = new Date()): Promise<{ ok: true } | Fail> {
+export async function updateOrgRole(actor: RoleActor, id: string, raw: RoleInput, now = new Date()): Promise<{ ok: true } | Fail> {
   if (!UUID_RE.test(id)) return fail("Role not found.");
+  const input = { ...raw, grants: coherentGrants(raw.grants) };
   try {
     return await db().$transaction(async (tx) => {
       await lockOrg(tx, actor.orgId);
@@ -104,8 +106,10 @@ export async function updateOrgRole(actor: RoleActor, id: string, input: RoleInp
       if (!cur) throw new Refusal("Role not found.");
       if (cur.archivedAt) throw new Refusal("An archived role can't be changed. Make a new one.");
       await tx.orgRole.update({ where: { id }, data: { name: input.name, description: input.description } });
-      await tx.orgRoleGrant.deleteMany({ where: { roleId: id } });
-      await tx.orgRoleGrant.createMany({ data: toGrantRows(input.grants).map((g) => ({ roleId: id, ...g })) });
+      // Change only what differs: a grant row that stays isn't touched (the chat trigger on grant rows reads a removed or lowered Messages row as the end of chat access).
+      const rows = toGrantRows(input.grants);
+      await tx.orgRoleGrant.deleteMany({ where: { roleId: id, area: { notIn: rows.map((g) => g.area) } } });
+      for (const g of rows) await tx.orgRoleGrant.upsert({ where: { roleId_area: { roleId: id, area: g.area } }, create: { roleId: id, ...g }, update: { level: g.level } });
       // Members who ran team chats through this role stop when it loses Messages (no Profile column changes, so the database trigger can't see it).
       if (input.grants.messages !== "full") await endManagerChats(tx, actor.orgId, { orgRoleId: id });
       await tx.auditEvent.create({ data: { actorId: actor.userId, action: "org_role.updated", entityType: "OrgRole", entityId: id, metadata: { orgId: actor.orgId, name: input.name, before: grantsMeta(parseGrants(cur.grants)), after: grantsMeta(input.grants), renamedFrom: cur.name !== input.name ? cur.name : null }, createdAt: now } });

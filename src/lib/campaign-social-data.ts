@@ -24,7 +24,15 @@ const PROFILE_SELECT = {
 export type CampaignProfileRow = Prisma.CampaignProfileGetPayload<{ select: typeof PROFILE_SELECT }>;
 
 const lock = (tx: Prisma.TransactionClient, key: string) => tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${key}))`;
-/** The lock every writer of one profile takes (the organization's edits and Turfcut's verification), so a rename and a verification can't interleave (M10.5). */
+/**
+ * The lock every writer of one profile takes (the organization's edits, its
+ * posts and kit, and Turfcut's verification), so a rename and a verification
+ * can't interleave (M10.5). Lock order: hold at most one campaign lock at a
+ * time; only clearOrgVerifications takes several, in ascending id order; and
+ * never take an Organization row lock while holding one (a decision holds
+ * the organization row and then asks for these, so the reverse would
+ * deadlock).
+ */
 export const lockCampaign = (tx: Prisma.TransactionClient, id: string) => lock(tx, `campaign:${id}`);
 const handleTaken = (e: unknown) => e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002";
 const TAKEN = { ok: false as const, reason: "Fix the highlighted fields.", errors: { handle: "That handle is taken. Pick another." } };
@@ -103,7 +111,7 @@ export async function updateCampaign(actor: Actor, id: string, input: ProfileInp
   }
   try {
     return await db().$transaction(async (tx) => {
-      await lock(tx, `campaign:${id}`);
+      await lockCampaign(tx, id);
       const c = await tx.campaignProfile.findFirst({ where: { id, orgId: actor.orgId }, select: { handle: true, displayName: true, verifiedAt: true } });
       if (!c) return { ok: false as const, reason: "Campaign not found." };
       if (c.handle !== input.handle) {
@@ -131,7 +139,7 @@ export async function updateCampaign(actor: Actor, id: string, input: ProfileInp
 export async function setCampaignPublished(actor: Actor, id: string, publish: boolean, now = new Date()): Promise<Result> {
   if (!UUID_RE.test(id)) return { ok: false, reason: "Campaign not found." };
   return db().$transaction(async (tx) => {
-    await lock(tx, `campaign:${id}`);
+    await lockCampaign(tx, id);
     const c = await tx.campaignProfile.findFirst({ where: { id, orgId: actor.orgId }, select: { handle: true, publishedAt: true, verifiedAt: true, org: { select: { approved: true } } } });
     if (!c) return { ok: false as const, reason: "Campaign not found." };
     if (publish && !c.org.approved) return { ok: false as const, reason: "Turfcut hasn't approved your organization yet. A campaign can go public once it has." };
@@ -158,7 +166,7 @@ export async function setCampaignImage(actor: Actor, id: string, kind: MediaKind
   let old: string | null | undefined;
   try {
     old = await db().$transaction(async (tx) => {
-    await lock(tx, `campaign:${id}`);
+    await lockCampaign(tx, id);
     const c = await tx.campaignProfile.findFirst({ where: { id, orgId: actor.orgId }, select: { avatarKey: true, headerKey: true } });
     if (!c) return undefined;
     await tx.campaignProfile.update({ where: { id }, data: { [field]: key } });
@@ -183,7 +191,7 @@ export async function clearCampaignImage(actor: Actor, id: string, kind: MediaKi
   if (!UUID_RE.test(id)) return { ok: false, reason: "Campaign not found." };
   const field = kind === "avatar" ? "avatarKey" : "headerKey";
   const old = await db().$transaction(async (tx) => {
-    await lock(tx, `campaign:${id}`);
+    await lockCampaign(tx, id);
     const c = await tx.campaignProfile.findFirst({ where: { id, orgId: actor.orgId }, select: { avatarKey: true, headerKey: true } });
     if (!c) return undefined;
     if (c[field]) {
@@ -238,7 +246,7 @@ export async function createPost(actor: Actor, campaignId: string, input: PostIn
     const c = await tx.campaignProfile.findFirst({ where: { id: campaignId, orgId: actor.orgId }, select: { id: true } });
     if (!c) return { ok: false as const, reason: "Campaign not found." };
     // The campaign's lock: notices of two posts at once can't both take the day's last slot (S2.4).
-    await lock(tx, `campaign:${c.id}`);
+    await lockCampaign(tx, c.id);
     const bad = await checkEmbed(tx, actor.orgId, input.jobId);
     if (bad) return { ok: false as const, reason: bad, errors: { jobId: bad } };
     const p = await tx.campaignPost.create({ data: { profileId: c.id, authorId: actor.profileId, body: input.body, jobId: input.jobId, createdAt: now }, select: { id: true } });
@@ -255,7 +263,7 @@ export async function createPost(actor: Actor, campaignId: string, input: PostIn
 async function ownPost(tx: Prisma.TransactionClient, orgId: string, postId: string) {
   const p = await tx.campaignPost.findFirst({ where: { id: postId, profile: { orgId } }, select: { id: true, profileId: true } });
   if (!p) return null;
-  await lock(tx, `campaign:${p.profileId}`);
+  await lockCampaign(tx, p.profileId);
   return tx.campaignPost.findFirst({ where: { id: postId, deletedAt: null }, select: { id: true, profileId: true, authorId: true, body: true, jobId: true, pinnedAt: true } });
 }
 

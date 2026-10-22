@@ -145,8 +145,9 @@ export async function decideOrganization(staff: StaffActor, orgId: string, decis
     if (problem) return { ok: false, message: problem };
     const changed = await tx.organization.updateMany({ where: { id: orgId, approved: !approve }, data: approve ? { approved: true, approvedAt: now } : { approved: false } });
     if (changed.count !== 1) return { ok: false, message: "Someone else just decided this. Reload to see the current standing." };
-    // Withdrawing approval hides the organization's campaign pages; their Verified marks come off too, to be looked at again if it is restored (M10.5).
-    const marksCleared = approve ? 0 : await clearOrgVerifications(tx, orgId);
+    // Marks come off when approval is withdrawn (the profiles are hidden meanwhile) and again when it is restored: a verification that
+    // committed concurrently with a withdrawal can't be seen by it, and must not come back unlooked-at (M10.5). A first approval has none.
+    const marksCleared = await clearOrgVerifications(tx, orgId);
     await recordAdminAction(tx, { staff, action: approve ? "org.approved" : "org.approval_revoked", targetType: "Organization", targetId: orgId, orgId, reason: r.reason, ...(marksCleared ? { metadata: { campaignMarksCleared: marksCleared } } : {}) }, now);
     const owners = await tx.profile.findMany({ where: { orgId, role: "OWNER", closedAt: null }, select: { id: true } });
     if (owners.length) await tx.notification.createMany({ data: owners.map((o) => ({ recipientId: o.id, kind: approve ? ("ORG_APPROVED" as const) : ("ORG_APPROVAL_REVOKED" as const), createdAt: now })) });

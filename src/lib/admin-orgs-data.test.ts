@@ -75,16 +75,19 @@ describe("the organization approval queue (M10.2)", () => {
     expect(tx.notification.createMany.mock.calls[0][0]).toMatchObject({ data: [{ kind: "ORG_APPROVAL_REVOKED" }, { kind: "ORG_APPROVAL_REVOKED" }] });
   });
 
-  it("withdrawing takes the organization's campaign marks off in the same transaction and the ledger row counts them; approving never does", async () => {
+  it("approving or withdrawing takes the organization's campaign marks off in the same transaction, and the ledger row counts them", async () => {
     tx.organization.findUnique.mockResolvedValue({ approved: true });
     clearOrgVerifications.mockResolvedValueOnce(2);
     await decideOrganization(staff, ORG, "revoke", "Terms lapsed", now);
     expect(clearOrgVerifications).toHaveBeenCalledWith(tx, ORG);
     expect(tx.adminAction.create.mock.calls.at(-1)?.[0]).toMatchObject({ data: { action: "org.approval_revoked", metadata: { campaignMarksCleared: 2 } } });
+    // Restoring approval clears any mark a concurrent verification slipped in under the withdrawal.
     clearOrgVerifications.mockClear();
+    clearOrgVerifications.mockResolvedValueOnce(1);
     tx.organization.findUnique.mockResolvedValue({ approved: false });
     await decideOrganization(staff, ORG, "approve", "Signed", now);
-    expect(clearOrgVerifications).not.toHaveBeenCalled();
+    expect(clearOrgVerifications).toHaveBeenCalledWith(tx, ORG);
+    expect(tx.adminAction.create.mock.calls.at(-1)?.[0]).toMatchObject({ data: { action: "org.approved", metadata: { campaignMarksCleared: 1 } } });
   });
 
   it("refuses a blank or oversized reason, a decision that changes nothing, and a missing organization before anything is written", async () => {

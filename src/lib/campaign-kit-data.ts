@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { UUID_RE } from "@/lib/jobs";
+import { lockCampaign } from "@/lib/campaign-social-data";
 import { MAX_FACTS, MAX_RESOURCES, nextPosition, type FactInput, type ResourceAudience, type ResourceInput, type ResourceKind } from "@/lib/campaign-kit";
 
 /**
@@ -13,7 +14,6 @@ import { MAX_FACTS, MAX_RESOURCES, nextPosition, type FactInput, type ResourceAu
 
 type Actor = { profileId: string; orgId: string };
 type Result<T = Record<never, never>> = ({ ok: true } & T) | { ok: false; reason: string; errors?: Record<string, string> };
-const lock = (tx: Prisma.TransactionClient, key: string) => tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${key}))`;
 
 const FACT_SELECT = { id: true, postId: true, body: true, sourceUrl: true, position: true, updatedAt: true } satisfies Prisma.TalkingPointFactSelect;
 export type Fact = Prisma.TalkingPointFactGetPayload<{ select: typeof FACT_SELECT }>;
@@ -39,7 +39,7 @@ export async function loadFacts(postIds: string[]): Promise<Map<string, Fact[]>>
 async function ownTalkingPoint(tx: Prisma.TransactionClient, orgId: string, postId: string) {
   const p = await tx.campaignPost.findFirst({ where: { id: postId, profile: { orgId } }, select: { id: true, profileId: true } });
   if (!p) return null;
-  await lock(tx, `campaign:${p.profileId}`);
+  await lockCampaign(tx, p.profileId);
   return tx.campaignPost.findFirst({ where: { id: postId, deletedAt: null, pinnedAt: { not: null } }, select: { id: true, profileId: true } });
 }
 
@@ -61,7 +61,7 @@ export async function addFact(actor: Actor, postId: string, input: FactInput, no
 async function ownFact(tx: Prisma.TransactionClient, orgId: string, factId: string) {
   const f = await tx.talkingPointFact.findFirst({ where: { id: factId, post: { profile: { orgId } } }, select: { id: true, post: { select: { profileId: true } } } });
   if (!f) return null;
-  await lock(tx, `campaign:${f.post.profileId}`);
+  await lockCampaign(tx, f.post.profileId);
   return tx.talkingPointFact.findFirst({ where: { id: factId, deletedAt: null }, select: { id: true, postId: true, body: true, sourceUrl: true, post: { select: { profileId: true } } } });
 }
 
@@ -106,7 +106,7 @@ export function listResources(campaignId: string, audience: "PUBLIC" | "ALL"): P
 async function ownCampaign(tx: Prisma.TransactionClient, orgId: string, campaignId: string) {
   const c = await tx.campaignProfile.findFirst({ where: { id: campaignId, orgId }, select: { id: true } });
   if (!c) return null;
-  await lock(tx, `campaign:${c.id}`);
+  await lockCampaign(tx, c.id);
   return c;
 }
 
@@ -128,7 +128,7 @@ export async function createResource(actor: Actor, campaignId: string, input: Re
 async function ownResource(tx: Prisma.TransactionClient, orgId: string, resourceId: string) {
   const r = await tx.campaignResource.findFirst({ where: { id: resourceId, profile: { orgId } }, select: { id: true, profileId: true } });
   if (!r) return null;
-  await lock(tx, `campaign:${r.profileId}`);
+  await lockCampaign(tx, r.profileId);
   return tx.campaignResource.findFirst({ where: { id: resourceId, deletedAt: null }, select: RESOURCE_SELECT });
 }
 

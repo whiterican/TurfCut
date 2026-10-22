@@ -2,7 +2,7 @@ import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { staffLabel } from "@/lib/admin-data";
 import { UUID_RE } from "@/lib/jobs";
-import { campaignRecordHref } from "@/lib/campaign-admin-data";
+import { campaignRecordHref } from "@/lib/campaign-admin-target";
 
 /** The five ledger moments the Ledger quick filter pins (M10 plan, decision 8): a job goes live, a shift is reviewed, a pay line is approved, a payout is created, a statement is closed. A test checks each is an action some module records. */
 export const LEDGER_MOMENTS = ["job.published", "shift.reviewed", "payout.approved", "payout.created", "pay.statement_closed"] as const;
@@ -125,12 +125,19 @@ export const SHOWN_ACTION_PREFIXES = ["job.", "shift.", "shift_slot.", "payout."
  * event in SHOWN_ACTION_PREFIXES show their details, and even those keep
  * them back when the record is a worker's own (sharing, consent,
  * availability, muted organizations, credentials, experience). An
- * engagement event drops the consent version it snapshots. Every staff act
+ * engagement event drops the consent version it snapshots, a shift event
+ * the free-text reason someone typed. Every staff act
  * is shown whole.
  */
 export function presentDetails(source: TimelineRow["source"], action: string, entityType: string, metadata: unknown): { metadata: unknown; withheld: boolean } {
   if (source === "staff") return { metadata, withheld: false };
   if (WORKER_OWN_TYPES.has(entityType) || !SHOWN_ACTION_PREFIXES.some((p) => action.startsWith(p))) return { metadata: null, withheld: metadata !== null && metadata !== undefined };
+  // A worker's or organization's typed reason on a shift event is free text support doesn't need.
+  if (action.startsWith("shift.") && metadata && typeof metadata === "object" && !Array.isArray(metadata) && "reason" in metadata) {
+    const rest = { ...(metadata as Record<string, unknown>) };
+    delete rest.reason;
+    return { metadata: rest, withheld: false };
+  }
   if (action.startsWith("engagement.") && metadata && typeof metadata === "object" && !Array.isArray(metadata) && "consentVersion" in metadata) {
     const rest = { ...(metadata as Record<string, unknown>) };
     delete rest.consentVersion;

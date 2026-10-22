@@ -35,6 +35,7 @@ describe("the audit timeline (M10.4)", () => {
     expect(presentDetails("audit", "profile.blocked", "Profile", { blockedId: A })).toEqual({ metadata: null, withheld: true });
     expect(presentDetails("audit", "something.new", "Thing", { x: 1 })).toEqual({ metadata: null, withheld: true });
     expect(presentDetails("audit", "engagement.applied", "Engagement", { jobId: A, workerId: B, status: "APPLIED", consentVersion: 3 })).toEqual({ metadata: { jobId: A, workerId: B, status: "APPLIED" }, withheld: false });
+    expect(presentDetails("audit", "shift.cancelled", "Shift", { by: "ORG", reason: "Sam called in sick, again" })).toEqual({ metadata: { by: "ORG" }, withheld: false });
     expect(presentDetails("audit", "job.published", "Job", { by: "x" })).toEqual({ metadata: { by: "x" }, withheld: false });
     expect(presentDetails("audit", "payout.approved", "Payout", { payoutIds: [A] })).toEqual({ metadata: { payoutIds: [A] }, withheld: false });
     expect(presentDetails("staff", "member.removed_for_org", "Profile", { role: "OWNER" })).toEqual({ metadata: { role: "OWNER" }, withheld: false });

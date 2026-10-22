@@ -97,7 +97,7 @@ export default async function CampaignPage({ params, searchParams }: { params: P
         <p className="text-muted-sm">
           {c.verifiedAt
             ? "Turfcut has verified this as your official campaign account. Changing the name or handle takes the mark off until Turfcut looks again."
-            : "Not verified. Turfcut verifies official accounts by hand; ask them once your page is public."}
+            : "Not verified. Turfcut verifies official accounts by hand, for public pages of approved organizations."}
         </p>
       </section>
 

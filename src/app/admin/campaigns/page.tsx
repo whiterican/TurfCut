@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requireStaff } from "@/lib/staff-session";
-import { isPublic, listCampaignsForVerification, type AdminCampaignRow } from "@/lib/campaign-admin-data";
+import { isPublic, LIST_MAX, listCampaignsForVerification, type AdminCampaignRow } from "@/lib/campaign-admin-data";
 import { LocalTime } from "@/components/LocalTime";
 
 function Row({ c }: { c: AdminCampaignRow }) {
@@ -25,12 +25,12 @@ function Row({ c }: { c: AdminCampaignRow }) {
 /** The campaign verification queue (M10.5): public profiles waiting for a look, and the ones that carry the mark. */
 export default async function AdminCampaignsPage() {
   await requireStaff();
-  const { awaiting, verified } = await listCampaignsForVerification();
+  const { awaiting, verified, awaitingTotal, verifiedTotal } = await listCampaignsForVerification();
   return (
     <>
       <section className="section" aria-labelledby="awaiting">
         <h2 id="awaiting" className="section-title flex items-center justify-between">
-          To verify <span className="text-xs font-medium text-subtle">{awaiting.length}</span>
+          To verify <span className="text-xs font-medium text-subtle">{awaitingTotal}</span>
         </h2>
         <p className="text-muted-sm">Public profiles of approved organizations, waiting longest first. The Verified mark says Turfcut confirmed this is the organization&apos;s official account; it does not rank, recommend or change who sees a profile.</p>
         {awaiting.length === 0 ? (
@@ -41,13 +41,15 @@ export default async function AdminCampaignsPage() {
         ) : (
           <ul className="list-card">{awaiting.map((c) => <Row key={c.id} c={c} />)}</ul>
         )}
+        {awaitingTotal > LIST_MAX && <p className="text-hint">Showing the {LIST_MAX} that have waited longest.</p>}
       </section>
 
       <section className="section" aria-labelledby="verified">
         <h2 id="verified" className="section-title flex items-center justify-between">
-          Verified <span className="text-xs font-medium text-subtle">{verified.length}</span>
+          Verified <span className="text-xs font-medium text-subtle">{verifiedTotal}</span>
         </h2>
         {verified.length === 0 ? <p className="text-muted-sm">No profile is verified yet.</p> : <ul className="list-card">{verified.map((c) => <Row key={c.id} c={c} />)}</ul>}
+        {verifiedTotal > LIST_MAX && <p className="text-hint">Showing the {LIST_MAX} most recently verified.</p>}
       </section>
     </>
   );

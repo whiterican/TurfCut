@@ -1251,25 +1251,25 @@ model JobChange {
 /// infers politics from it. Public once published, and only while the
 /// organization is approved by Turfcut.
 model CampaignProfile {
-  id          String             @id @default(uuid()) @db.Uuid
-  orgId       String             @db.Uuid
-  org         Organization       @relation(fields: [orgId], references: [id], onDelete: Restrict)
-  handle      String             @unique // lowercase a-z 0-9 _, 3-30 (checked in SQL and code)
-  displayName String
-  bio         String             @default("")
-  avatarKey   String?
-  headerKey   String?
-  publishedAt DateTime? // null = draft, not public
-  /// M10.5: when Turfcut staff confirmed this is the organization's official campaign account, and who. Both null or both set; the reason is on the AdminAction ledger. Editing the name or handle clears it.
+  id           String             @id @default(uuid()) @db.Uuid
+  orgId        String             @db.Uuid
+  org          Organization       @relation(fields: [orgId], references: [id], onDelete: Restrict)
+  handle       String             @unique // lowercase a-z 0-9 _, 3-30 (checked in SQL and code)
+  displayName  String
+  bio          String             @default("")
+  avatarKey    String?
+  headerKey    String?
+  publishedAt  DateTime? // null = draft, not public
+  /// M10.5: when Turfcut staff confirmed this is the organization's official campaign account, and who. Both null or both set; the reason is on the AdminAction ledger. Changing the name or handle, unpublishing, or withdrawing the organization's approval clears it.
   verifiedAt   DateTime?
-  verifiedById String?           @db.Uuid
-  verifiedBy   Profile?          @relation("CampaignVerifier", fields: [verifiedById], references: [id], onDelete: Restrict)
-  createdAt   DateTime           @default(now())
-  updatedAt   DateTime           @updatedAt
-  posts       CampaignPost[]
-  jobs        Job[]
-  followers   CampaignFollow[]
-  resources   CampaignResource[]
+  verifiedById String?            @db.Uuid
+  verifiedBy   Profile?           @relation("CampaignVerifier", fields: [verifiedById], references: [id], onDelete: Restrict)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  posts        CampaignPost[]
+  jobs         Job[]
+  followers    CampaignFollow[]
+  resources    CampaignResource[]
 
   @@index([orgId])
   @@index([verifiedAt])

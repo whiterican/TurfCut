@@ -101,7 +101,7 @@ export async function setFollow(workerId: string, campaignId: string, wish: { fo
 // The home feed
 // ---------------------------------------------------------------------------
 
-const FEED_CAMPAIGN_SELECT = { id: true, handle: true, displayName: true, avatarKey: true } satisfies Prisma.CampaignProfileSelect;
+const FEED_CAMPAIGN_SELECT = { id: true, handle: true, displayName: true, avatarKey: true, verifiedAt: true } satisfies Prisma.CampaignProfileSelect;
 export type FeedCampaign = Prisma.CampaignProfileGetPayload<{ select: typeof FEED_CAMPAIGN_SELECT }>;
 export type FeedPost = PublicPost & { campaign: FeedCampaign; reason: FeedReason; liked: boolean };
 export type FeedPage = { posts: FeedPost[]; next: string | null; sources: number };

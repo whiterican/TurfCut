@@ -2073,7 +2073,7 @@ SELECT gen_random_uuid(), e."id",
 
 -- Campaign verification (M10.5, prisma/m10-verification.sql): when Turfcut
 -- staff confirmed a campaign profile is the organization's official account,
--- and who. Both null or both set. The public may read the date (the mark).
+-- and who. Both null or both set. Server-only: no grant to the API roles.
 ALTER TABLE "public"."CampaignProfile" ADD COLUMN IF NOT EXISTS "verifiedAt" TIMESTAMP(3);
 ALTER TABLE "public"."CampaignProfile" ADD COLUMN IF NOT EXISTS "verifiedById" UUID;
 DO $$ BEGIN
@@ -2085,4 +2085,3 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 CREATE INDEX IF NOT EXISTS "CampaignProfile_verifiedAt_idx" ON "public"."CampaignProfile"("verifiedAt");
-GRANT SELECT ("verifiedAt") ON "public"."CampaignProfile" TO anon, authenticated;

@@ -6,9 +6,9 @@
 -- CampaignProfile.verifiedAt / verifiedById: when a Turfcut staff member
 -- confirmed that this is the organization's official campaign account, and
 -- who. Both null, or both set. The reason lives on the staff ledger
--- (AdminAction), not here. The public may read verifiedAt (it is the mark on
--- the page); verifiedById stays server-only like every staff identity.
--- Nothing recorded changes.
+-- (AdminAction), not here. Neither column is granted to the API roles: the
+-- mark is served by the app, and a staff identity is never public. Nothing
+-- recorded changes.
 
 BEGIN;
 SET LOCAL lock_timeout = '5s';
@@ -24,8 +24,5 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 CREATE INDEX IF NOT EXISTS "CampaignProfile_verifiedAt_idx" ON "public"."CampaignProfile"("verifiedAt");
-
--- The public column list (the same rows the read policy already allows) gains the mark.
-GRANT SELECT ("verifiedAt") ON "public"."CampaignProfile" TO anon, authenticated;
 
 COMMIT;

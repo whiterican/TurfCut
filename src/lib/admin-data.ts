@@ -2,7 +2,7 @@ import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { jurisdictionProblems } from "@/lib/jobs";
 import { checkReason } from "@/lib/admin-reason";
-import type { CampaignTarget } from "@/lib/campaign-admin-data";
+import type { CampaignTarget } from "@/lib/campaign-admin-target";
 
 export { checkReason, REASON_MAX, REASON_MIN } from "@/lib/admin-reason";
 

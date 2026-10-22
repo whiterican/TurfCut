@@ -25,6 +25,7 @@ import { dismissSharingNote } from "./actions";
 import { campaignsOn, newFeedCount } from "@/lib/campaign-follow-data";
 import { FEED_SEEN_COOKIE, feedBadge, feedSeenAt } from "@/lib/campaign-follow";
 import { mediaUrl } from "@/lib/campaign-media";
+import { VerifiedMark } from "@/components/campaign/VerifiedMark";
 import { loadLatestPreference } from "@/lib/political-fit-data";
 import type { VisibilityMode } from "@/lib/political-fit";
 import { seatsOnOffer } from "@/lib/shift-slots-data";
@@ -200,6 +201,7 @@ async function CampaignsOn({ workerId }: { workerId: string }) {
                   <span aria-hidden className="h-6 w-6 rounded-full bg-surface-2" />
                 )}
                 {c.displayName}
+                {c.verifiedAt && <VerifiedMark compact />}
               </Link>
             </li>
           );

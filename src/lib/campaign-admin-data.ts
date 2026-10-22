@@ -2,6 +2,8 @@ import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { checkReason, recordAdminAction, staffLabel, type StaffActor } from "@/lib/admin-data";
 import { emailsFor } from "@/lib/members-data";
+import { lockCampaign } from "@/lib/campaign-social-data";
+import { CAMPAIGN_TARGET } from "@/lib/campaign-admin-target";
 
 /**
  * The staff console's view of campaign profiles (M10.4 lookup by handle,
@@ -10,14 +12,7 @@ import { emailsFor } from "@/lib/members-data";
  * feed, matching or any order a worker sees.
  */
 
-/** The record type staff acts on a campaign profile are filed under. */
-export const CAMPAIGN_TARGET = "CampaignProfile" as const;
-export type CampaignTarget = typeof CAMPAIGN_TARGET;
-
-/** Where a campaign profile's console page is, for the audit viewer's links. */
-export function campaignRecordHref(entityType: string, entityId: string): string | null {
-  return entityType === CAMPAIGN_TARGET ? `/admin/campaigns/${entityId}` : null;
-}
+export { CAMPAIGN_TARGET, campaignRecordHref, type CampaignTarget } from "@/lib/campaign-admin-target";
 
 /**
  * The organizations behind campaign profiles whose handle starts with `q`
@@ -80,7 +75,7 @@ const toRow = (c: RowRecord): AdminCampaignRow => ({
 /** A profile is public (and so can be verified) while it is published and its organization approved. */
 export const isPublic = (c: { publishedAt: Date | null; orgApproved: boolean }) => !!c.publishedAt && c.orgApproved;
 
-const LIST_MAX = 200;
+export const LIST_MAX = 200;
 
 /**
  * The queue (M10.5): public profiles not yet verified, longest-waiting
@@ -88,12 +83,14 @@ const LIST_MAX = 200;
  * organization has since been withdrawn or unpublished is still listed, so
  * staff can see what the mark is attached to.
  */
-export async function listCampaignsForVerification(): Promise<{ awaiting: AdminCampaignRow[]; verified: AdminCampaignRow[] }> {
-  const [awaiting, verified] = await Promise.all([
+export async function listCampaignsForVerification(): Promise<{ awaiting: AdminCampaignRow[]; verified: AdminCampaignRow[]; awaitingTotal: number; verifiedTotal: number }> {
+  const [awaiting, verified, awaitingTotal, verifiedTotal] = await Promise.all([
     db().campaignProfile.findMany({ where: { verifiedAt: null, publishedAt: { not: null }, org: { approved: true } }, select: ROW_SELECT, orderBy: [{ publishedAt: "asc" }, { id: "asc" }], take: LIST_MAX }),
     db().campaignProfile.findMany({ where: { verifiedAt: { not: null } }, select: ROW_SELECT, orderBy: [{ verifiedAt: "desc" }, { id: "asc" }], take: LIST_MAX }),
+    countAwaitingVerification(),
+    db().campaignProfile.count({ where: { verifiedAt: { not: null } } }),
   ]);
-  return { awaiting: awaiting.map(toRow), verified: verified.map(toRow) };
+  return { awaiting: awaiting.map(toRow), verified: verified.map(toRow), awaitingTotal, verifiedTotal };
 }
 
 /** How many public profiles wait for a decision, for the console's overview. */
@@ -141,6 +138,8 @@ export async function verifyCampaign(staff: StaffActor, id: string, seen: SeenId
   const r = checkReason(reason);
   if (!r.ok) return r;
   return db().$transaction(async (tx) => {
+    // The same lock the organization's own edits take: a rename lands wholly before this (and the mark is refused or lapses) or wholly after.
+    await lockCampaign(tx, id);
     const changed = await tx.campaignProfile.updateMany({
       where: { id, verifiedAt: null, publishedAt: { not: null }, org: { approved: true }, handle: seen.handle, displayName: seen.displayName },
       data: { verifiedAt: now, verifiedById: staff.userId },
@@ -163,6 +162,7 @@ export async function unverifyCampaign(staff: StaffActor, id: string, reason: un
   const r = checkReason(reason);
   if (!r.ok) return r;
   return db().$transaction(async (tx) => {
+    await lockCampaign(tx, id);
     const c = await tx.campaignProfile.findUnique({ where: { id }, select: { orgId: true, handle: true, verifiedAt: true } });
     if (!c) return { ok: false as const, message: "That campaign no longer exists." };
     const changed = await tx.campaignProfile.updateMany({ where: { id, verifiedAt: { not: null } }, data: { verifiedAt: null, verifiedById: null } });
@@ -170,4 +170,20 @@ export async function unverifyCampaign(staff: StaffActor, id: string, reason: un
     await recordAdminAction(tx, { staff, action: "campaign.unverified", targetType: CAMPAIGN_TARGET, targetId: id, orgId: c.orgId, reason: r.reason, metadata: { handle: c.handle, verifiedAt: c.verifiedAt?.toISOString() ?? null } }, now);
     return { ok: true as const };
   });
+}
+
+/**
+ * Withdrawing an organization's approval takes the mark off its profiles
+ * (M10.5): they are hidden while it stands, and they should be looked at
+ * again once it is restored. Runs inside the decision's transaction;
+ * returns how many marks came off, for the ledger row.
+ */
+export async function clearOrgVerifications(tx: Prisma.TransactionClient, orgId: string): Promise<number> {
+  const marked = await tx.campaignProfile.findMany({ where: { orgId, verifiedAt: { not: null } }, select: { id: true }, orderBy: { id: "asc" } });
+  let cleared = 0;
+  for (const { id } of marked) {
+    await lockCampaign(tx, id);
+    cleared += (await tx.campaignProfile.updateMany({ where: { id, verifiedAt: { not: null } }, data: { verifiedAt: null, verifiedById: null } })).count;
+  }
+  return cleared;
 }

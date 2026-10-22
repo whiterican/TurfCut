@@ -13,7 +13,7 @@ import { orgNoticeText } from "@/lib/notification-text";
 import { loadNotifications, unreadNotifications } from "@/lib/notifications-data";
 import { orgNav } from "@/lib/nav";
 import { listCampaignsForVerification, loadCampaignForVerification, unverifyCampaign, verifyCampaign } from "@/lib/campaign-admin-data";
-import { listPublicCampaigns, loadPublicCampaign, updateCampaign } from "@/lib/campaign-social-data";
+import { listPublicCampaigns, loadPublicCampaign, setCampaignPublished, updateCampaign } from "@/lib/campaign-social-data";
 
 const ORG = "00000000-0000-0000-0000-000000000001";
 const OWNER = "00000000-0000-0000-0000-0000000000aa";
@@ -297,6 +297,9 @@ const fails_ = async (f: () => Promise<unknown>): Promise<string> => { try { awa
   const bioOnly = await verifyCampaign(asOwner, FR, { handle: "frontrange", displayName: "Front Range Circulators of Denver" }, "Re-checked the new name", new Date(t10.getTime() + 1000));
   const edit = await updateCampaign({ profileId: OWNER, orgId: ORG }, FR, { handle: "frontrange", displayName: "Front Range Circulators of Denver", bio: "Now with a bio" });
   check("changing only the bio keeps the mark", bioOnly.ok && edit.ok && !!(await p.campaignProfile.findUniqueOrThrow({ where: { id: FR } })).verifiedAt);
+  const vSecond = await verifyCampaign(asOwner, second.id, { handle: "frontrange_two", displayName: "Front Range Two" }, "Checked the second page too", new Date(t10.getTime() + 1500));
+  const dirOlderVerified = await listPublicCampaigns({});
+  check("verifying the older of two profiles does not move it up the directory", vSecond.ok && dirOlderVerified.campaigns.find((c) => c.id === second.id)?.verified === true && dirOlderVerified.campaigns.map((c) => c.id).join() === dirBefore.join(), dirOlderVerified.campaigns.map((c) => [c.handle, c.verified]));
   const un = await unverifyCampaign(asOwner, FR, "The organization changed hands", new Date(t10.getTime() + 2000));
   check("removing the mark records the ledger row with the reason and clears both fields; a second removal changes nothing", un.ok && (await p.campaignProfile.findUniqueOrThrow({ where: { id: FR } })).verifiedById === null && (await p.adminAction.count({ where: { targetId: FR, action: "campaign.unverified" } })) === 1 && !(await unverifyCampaign(asOwner, FR, "Again", t10)).ok);
   const history = await loadCampaignForVerification(FR);
@@ -305,8 +308,20 @@ const fails_ = async (f: () => Promise<unknown>): Promise<string> => { try { awa
   check("the audit viewer shows Turfcut's campaign decisions linked to the console page", viaAudit.rows.some((r) => r.source === "staff" && r.action === "campaign.verified" && r.href === `/admin/campaigns/${FR}`), viaAudit.rows.map((r) => [r.source, r.action, r.href]));
   const onlyOne = await fails_(() => p.$executeRaw`UPDATE "CampaignProfile" SET "verifiedAt" = now() WHERE "id" = ${FR}::uuid`);
   check("the database refuses a mark without a verifier", /verified_together/.test(onlyOne), onlyOne);
-  const cols = await p.$queryRaw<{ grantee: string; column_name: string }[]>`SELECT grantee, column_name FROM information_schema.column_privileges WHERE table_schema = 'public' AND table_name = 'CampaignProfile' AND column_name IN ('verifiedAt', 'verifiedById') AND grantee IN ('anon', 'authenticated') AND privilege_type = 'SELECT'`;
-  check("the public may read the date of the mark and never who set it", cols.some((c) => c.column_name === "verifiedAt" && c.grantee === "anon") && !cols.some((c) => c.column_name === "verifiedById"), cols);
+  const cols = await p.$queryRaw<{ grantee: string; column_name: string }[]>`SELECT grantee, column_name FROM information_schema.column_privileges WHERE table_schema = 'public' AND table_name = 'CampaignProfile' AND column_name IN ('verifiedAt', 'verifiedById') AND grantee IN ('anon', 'authenticated')`;
+  check("the verification columns are server-only: no grant to the API roles", cols.length === 0, cols);
+  // The mark comes off when the page comes down, and when the organization's approval is withdrawn.
+  await p.campaignProfile.update({ where: { id: second.id }, data: { publishedAt: new Date(now.getTime() - 7_200_000) } });
+  const down = await setCampaignPublished({ profileId: OWNER, orgId: ORG }, second.id, false, new Date(t10.getTime() + 3000));
+  const secondDown = await p.campaignProfile.findUniqueOrThrow({ where: { id: second.id } });
+  const downEvent = await p.auditEvent.findFirst({ where: { entityType: "CampaignProfile", entityId: second.id, action: "campaign.unpublished" } });
+  check("unpublishing a verified profile takes the mark off and says so in the organization's trail", down.ok && secondDown.publishedAt === null && secondDown.verifiedAt === null && secondDown.verifiedById === null && JSON.stringify(downEvent?.metadata).includes("verificationLapsed"), { down, secondDown, downEvent });
+  const apB = await decideOrganization(asOwner, ORG_B, "approve", "Approved again for the verification check", new Date(t10.getTime() + 4000));
+  const vB = await verifyCampaign(asOwner, unapproved.id, { handle: "boulder", displayName: "Boulder Canvass" }, "Their own site links to this page", new Date(t10.getTime() + 5000));
+  const wdB = await decideOrganization(asOwner, ORG_B, "revoke", "Withdrawn again for the verification check", new Date(t10.getTime() + 6000));
+  const boulder = await p.campaignProfile.findUniqueOrThrow({ where: { id: unapproved.id } });
+  const wdLedger = await p.adminAction.findFirst({ where: { orgId: ORG_B, action: "org.approval_revoked" }, orderBy: { createdAt: "desc" } });
+  check("withdrawing an organization's approval takes the marks off its profiles and the ledger row counts them", apB.ok && vB.ok && wdB.ok && boulder.verifiedAt === null && JSON.stringify(wdLedger?.metadata) === '{"campaignMarksCleared":1}', { apB, vB, wdB, boulder, wdLedger });
 
   // 11. No Data API path to the ledger.
   const grants = await p.$queryRaw<{ grantee: string }[]>`SELECT grantee FROM information_schema.role_table_grants WHERE table_schema = 'public' AND table_name = 'AdminAction' AND grantee IN ('anon', 'authenticated')`;

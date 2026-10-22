@@ -24,6 +24,8 @@ const PROFILE_SELECT = {
 export type CampaignProfileRow = Prisma.CampaignProfileGetPayload<{ select: typeof PROFILE_SELECT }>;
 
 const lock = (tx: Prisma.TransactionClient, key: string) => tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${key}))`;
+/** The lock every writer of one profile takes (the organization's edits and Turfcut's verification), so a rename and a verification can't interleave (M10.5). */
+export const lockCampaign = (tx: Prisma.TransactionClient, id: string) => lock(tx, `campaign:${id}`);
 const handleTaken = (e: unknown) => e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002";
 const TAKEN = { ok: false as const, reason: "Fix the highlighted fields.", errors: { handle: "That handle is taken. Pick another." } };
 /**
@@ -130,13 +132,15 @@ export async function setCampaignPublished(actor: Actor, id: string, publish: bo
   if (!UUID_RE.test(id)) return { ok: false, reason: "Campaign not found." };
   return db().$transaction(async (tx) => {
     await lock(tx, `campaign:${id}`);
-    const c = await tx.campaignProfile.findFirst({ where: { id, orgId: actor.orgId }, select: { handle: true, publishedAt: true, org: { select: { approved: true } } } });
+    const c = await tx.campaignProfile.findFirst({ where: { id, orgId: actor.orgId }, select: { handle: true, publishedAt: true, verifiedAt: true, org: { select: { approved: true } } } });
     if (!c) return { ok: false as const, reason: "Campaign not found." };
     if (publish && !c.org.approved) return { ok: false as const, reason: "Turfcut hasn't approved your organization yet. A campaign can go public once it has." };
     if (!!c.publishedAt === publish) return { ok: true as const };
-    await tx.campaignProfile.update({ where: { id }, data: { publishedAt: publish ? now : null } });
+    // Verification (M10.5) vouches for a public profile: taking it down takes the mark off, so going public again is looked at again.
+    const lapses = !publish && !!c.verifiedAt;
+    await tx.campaignProfile.update({ where: { id }, data: publish ? { publishedAt: now } : lapses ? { publishedAt: null, verifiedAt: null, verifiedById: null } : { publishedAt: null } });
     // The handle goes on the record: once public, it's this campaign's address for good (handleRetired).
-    await tx.auditEvent.create({ data: { actorId: actor.profileId, action: publish ? "campaign.published" : "campaign.unpublished", entityType: "CampaignProfile", entityId: id, metadata: { handle: c.handle } } });
+    await tx.auditEvent.create({ data: { actorId: actor.profileId, action: publish ? "campaign.published" : "campaign.unpublished", entityType: "CampaignProfile", entityId: id, metadata: lapses ? { handle: c.handle, verificationLapsed: true } : { handle: c.handle } } });
     return { ok: true as const };
   });
 }

@@ -38,17 +38,17 @@ export function directoryJson(c: DirectoryRow) {
 /**
  * What a shared link shows before it's opened (S3): the campaign's own name
  * and words, and its own image. Turfcut adds nothing of its own about it,
- * except "Verified" once staff have verified the profile.
+ * except a "Verified" suffix on the title once staff have verified the profile.
  * Absolute URLs need SITE_URL; without it (development) the images are left
  * out rather than pointed at the wrong host.
  */
 export function campaignPreview(c: { handle: string; displayName: string; bio: string; avatarKey: string | null; headerKey: string | null; verified?: boolean }, post?: { id: string; body: string }) {
   const site = getSiteUrl();
   const path = post ? `/c/${c.handle}/p/${post.id}` : `/c/${c.handle}`;
-  const title = post ? `${c.displayName} (@${c.handle}) on Turfcut` : `${c.displayName} (@${c.handle})`;
-  // The one thing Turfcut says about a campaign, and only when staff have verified it (M10.5); a post's preview is the post's own words.
-  const verified = !post && c.verified ? "Verified campaign account. " : "";
-  const description = `${verified}${excerpt(post ? post.body : c.bio) || "A campaign on Turfcut."}`;
+  // The one thing Turfcut says about a campaign, and only when staff have verified it (M10.5), goes after the handle in the title:
+  // the campaign's own words (name, bio) can't reach that spot, so an unverified profile can't imitate it. A post's preview is the post's own.
+  const title = post ? `${c.displayName} (@${c.handle}) on Turfcut` : `${c.displayName} (@${c.handle})${c.verified ? " · Verified on Turfcut" : ""}`;
+  const description = excerpt(post ? post.body : c.bio) || `A campaign on Turfcut.`;
   const image = mediaUrl(c.headerKey) ?? mediaUrl(c.avatarKey);
   const type = post ? ("article" as const) : ("profile" as const);
   const card = image ? ("summary_large_image" as const) : ("summary" as const);

@@ -1282,18 +1282,23 @@ roles, one slice at a time.
   any standing. Both write a ledger row with who and why; the
   organization is not sent the reason.
 - **The mark** is a "Verified" badge on the public page, the directory, the
-  campaign card on a job, and in a shared link's description (profile
-  only), and `verified` in the public JSON. It is information, never a
+  campaign card on a job, post cards (feed, permalink, profile), the Today
+  strip, a shared link's title (profile only), and `verified` in the public JSON. It is information, never a
   ranking input: the directory order, the feed and matching don't read it
   (the isolation test and an acceptance check cover this).
-- **Renaming takes it off.** If the organization changes a verified
-  profile's name or handle, the mark clears and its own trail records
-  "verification lapsed"; a bio edit keeps it. The organization's campaign
-  page says whether the profile is verified.
+- **The mark comes off by itself** when the organization changes a
+  verified profile's name or handle, unpublishes it, or Turfcut withdraws
+  the organization's approval (its trail or the ledger row records it); a
+  bio or image edit keeps it. Renames and verification take the same
+  per-profile lock, so a rename can't slip past a verification. The
+  organization's campaign page says whether the profile is verified.
+- **In a shared link** the mark is a suffix of the title after the handle
+  ("Name (@handle) · Verified on Turfcut"), where the profile's own words
+  (name, bio) can't reach.
 - **Migration:** `prisma/m10-verification.sql` (also in
   `supabase-manual-setup.sql`): `CampaignProfile.verifiedAt` and
-  `verifiedById`, both null or both set; the public may read `verifiedAt`
-  only. Run it after `m10-admin.sql` and before deploying this code.
+  `verifiedById`, both null or both set; neither is granted to the API
+  roles (the app serves the mark). Run it after `m10-admin.sql` and before deploying this code.
 
 ### Turfcut staff — making an account staff
 

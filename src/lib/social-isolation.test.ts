@@ -15,7 +15,7 @@ const ALLOWED = [
   /^src\/lib\/campaign-(social|media|api|follow|kit)(-data)?(\.test)?\.ts$/,
   /^src\/lib\/(social-isolation|migration-grants)\.test\.ts$/, // the guards themselves
   /^src\/lib\/job-brief-data\.ts$/, // the shift brief's talking points: the pinned posts, verbatim
-  /^src\/lib\/campaign-(admin-data|verified)(\.test)?\.ts$/, // M10.4/M10.5: the console finds an organization by its campaign handle and verifies a profile; reads names and standing only, ranks nothing
+  /^src\/lib\/campaign-admin-(data|target)(\.test)?\.ts$/, // M10.4/M10.5: the console finds an organization by its campaign handle and verifies a profile; reads names and standing only, ranks nothing
   /^src\/app\/admin\/campaigns\//, // M10.5: the verification queue (shows the Verified mark; nothing it reads goes anywhere else)
   /^src\/app\/(c|campaigns|feed|api\/campaigns|api\/campaign|api\/feed)\//,
   /^src\/app\/shifts\/\[shiftId\]\/page\.tsx$/, // shows the brief's talking points (nothing it reads goes anywhere else)

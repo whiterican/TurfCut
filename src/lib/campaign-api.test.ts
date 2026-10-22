@@ -16,10 +16,14 @@ describe("the Verified mark in what the public reads (M10.5)", () => {
     expect(directoryJson({ ...dir, verified: false }).verified).toBe(false);
   });
 
-  it("puts it in a shared link's description for a profile, never in a post's preview", () => {
-    expect(campaignPreview({ ...base, verified: true }).description).toBe("Verified campaign account. Petition circulators in Denver.");
-    expect(campaignPreview({ ...base, verified: false }).description).toBe("Petition circulators in Denver.");
-    expect(campaignPreview({ ...base }).description).toBe("Petition circulators in Denver.");
-    expect(campaignPreview({ ...base, verified: true }, { id: "p", body: "Sign here." }).description).toBe("Sign here.");
+  it("puts it after the handle in a profile's shared-link title, where the campaign's own words can't reach, and never in a post's preview", () => {
+    expect(campaignPreview({ ...base, verified: true }).title).toBe("Front Range Circulators (@frontrange) · Verified on Turfcut");
+    expect(campaignPreview({ ...base, verified: true }).openGraph.title).toBe("Front Range Circulators (@frontrange) · Verified on Turfcut");
+    expect(campaignPreview({ ...base, verified: true }).description).toBe("Petition circulators in Denver.");
+    expect(campaignPreview({ ...base, verified: false }).title).toBe("Front Range Circulators (@frontrange)");
+    expect(campaignPreview({ ...base }).title).toBe("Front Range Circulators (@frontrange)");
+    // A bio (or a name) that says "Verified" is only ever its own words.
+    expect(campaignPreview({ ...base, bio: "Verified campaign account. Hi.", verified: false }).title).not.toMatch(/Verified on Turfcut/);
+    expect(campaignPreview({ ...base, verified: true }, { id: "p", body: "Sign here." }).title).toBe("Front Range Circulators (@frontrange) on Turfcut");
   });
 });

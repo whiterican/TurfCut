@@ -52,7 +52,7 @@ export default async function PublicCampaignPage({ params, searchParams }: Props
       {pinned.length > 0 && (
         <section className="section" aria-labelledby="talking-points">
           <h2 id="talking-points" className="section-title">Talking points</h2>
-          {pinned.map((p) => <PostCard key={p.id} post={p} handle={c.handle} displayName={c.displayName} signedIn={signedIn} liked={likedBy(p.id)} facts={facts.get(p.id) ?? []} />)}
+          {pinned.map((p) => <PostCard key={p.id} post={p} handle={c.handle} displayName={c.displayName} verified={!!c.verifiedAt} signedIn={signedIn} liked={likedBy(p.id)} facts={facts.get(p.id) ?? []} />)}
         </section>
       )}
       {resources.length > 0 && (
@@ -64,7 +64,7 @@ export default async function PublicCampaignPage({ params, searchParams }: Props
       <section className="section" aria-labelledby="posts">
         <h2 id="posts" className="section-title">Posts</h2>
         {feed.posts.length === 0 && <p className="card text-muted-sm">{cursor ? "No older posts." : "No posts yet."}</p>}
-        {feed.posts.map((p) => <PostCard key={p.id} post={p} handle={c.handle} displayName={c.displayName} signedIn={signedIn} liked={likedBy(p.id)} />)}
+        {feed.posts.map((p) => <PostCard key={p.id} post={p} handle={c.handle} displayName={c.displayName} verified={!!c.verifiedAt} signedIn={signedIn} liked={likedBy(p.id)} />)}
         {feed.next && <Link href={`/c/${c.handle}?cursor=${feed.next}`} className="btn-secondary">Older posts</Link>}
       </section>
     </main>

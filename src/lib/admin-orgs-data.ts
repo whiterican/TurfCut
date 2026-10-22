@@ -2,6 +2,7 @@ import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { checkReason, recordAdminAction, staffLabel, type StaffActor } from "@/lib/admin-data";
 import { emailsFor } from "@/lib/members-data";
+import { clearOrgVerifications } from "@/lib/campaign-admin-data";
 
 /** The publish gate as the queue shows it: the three things an organization records itself (spec p.15). */
 export interface OrgGate {
@@ -144,7 +145,9 @@ export async function decideOrganization(staff: StaffActor, orgId: string, decis
     if (problem) return { ok: false, message: problem };
     const changed = await tx.organization.updateMany({ where: { id: orgId, approved: !approve }, data: approve ? { approved: true, approvedAt: now } : { approved: false } });
     if (changed.count !== 1) return { ok: false, message: "Someone else just decided this. Reload to see the current standing." };
-    await recordAdminAction(tx, { staff, action: approve ? "org.approved" : "org.approval_revoked", targetType: "Organization", targetId: orgId, orgId, reason: r.reason }, now);
+    // Withdrawing approval hides the organization's campaign pages; their Verified marks come off too, to be looked at again if it is restored (M10.5).
+    const marksCleared = approve ? 0 : await clearOrgVerifications(tx, orgId);
+    await recordAdminAction(tx, { staff, action: approve ? "org.approved" : "org.approval_revoked", targetType: "Organization", targetId: orgId, orgId, reason: r.reason, ...(marksCleared ? { metadata: { campaignMarksCleared: marksCleared } } : {}) }, now);
     const owners = await tx.profile.findMany({ where: { orgId, role: "OWNER", closedAt: null }, select: { id: true } });
     if (owners.length) await tx.notification.createMany({ data: owners.map((o) => ({ recipientId: o.id, kind: approve ? ("ORG_APPROVED" as const) : ("ORG_APPROVAL_REVOKED" as const), createdAt: now })) });
     return { ok: true };

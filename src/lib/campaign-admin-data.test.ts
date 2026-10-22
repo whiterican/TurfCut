@@ -1,14 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const tx = {
-  campaignProfile: { updateMany: vi.fn(), findUnique: vi.fn(), findUniqueOrThrow: vi.fn() },
+  campaignProfile: { updateMany: vi.fn(), findUnique: vi.fn(), findUniqueOrThrow: vi.fn(), findMany: vi.fn() },
   adminAction: { create: vi.fn<(args: { data: Record<string, unknown> }) => Promise<{ id: string }>>() },
 };
 const client = { $transaction: (fn: (t: typeof tx) => unknown) => fn(tx) };
 vi.mock("@/lib/db", () => ({ db: () => client }));
 vi.mock("@/lib/members-data", () => ({ emailsFor: async () => new Map() }));
+const lockCampaign = vi.fn();
+vi.mock("@/lib/campaign-social-data", () => ({ lockCampaign: (...a: unknown[]) => lockCampaign(...a) }));
 
-const { campaignRecordHref, CAMPAIGN_TARGET, isPublic, unverifyCampaign, verifyCampaign } = await import("./campaign-admin-data");
+const { campaignRecordHref, CAMPAIGN_TARGET, clearOrgVerifications, isPublic, unverifyCampaign, verifyCampaign } = await import("./campaign-admin-data");
 
 const staff = { userId: "11111111-1111-1111-1111-111111111111", staff: true as const };
 const ID = "22222222-2222-2222-2222-222222222222";
@@ -18,7 +20,7 @@ const now = new Date("2026-10-22T15:00:00Z");
 
 describe("campaign verification (M10.5)", () => {
   beforeEach(() => {
-    for (const m of [tx.campaignProfile.updateMany, tx.campaignProfile.findUnique, tx.campaignProfile.findUniqueOrThrow, tx.adminAction.create]) m.mockReset();
+    for (const m of [tx.campaignProfile.updateMany, tx.campaignProfile.findUnique, tx.campaignProfile.findUniqueOrThrow, tx.campaignProfile.findMany, tx.adminAction.create, lockCampaign]) m.mockReset();
     tx.adminAction.create.mockResolvedValue({ id: "ledger-1" });
     tx.campaignProfile.findUniqueOrThrow.mockResolvedValue({ orgId: ORG });
   });
@@ -72,5 +74,24 @@ describe("campaign verification (M10.5)", () => {
     tx.campaignProfile.updateMany.mockResolvedValueOnce({ count: 0 });
     await expect(unverifyCampaign(staff, ID, "Again", now)).resolves.toMatchObject({ ok: false, message: expect.stringMatching(/isn't verified/) });
     expect(tx.adminAction.create).toHaveBeenCalledTimes(1);
+  });
+
+  it("takes the profile's own lock first, the one the organization's edits take, so a rename can't interleave with a verification", async () => {
+    tx.campaignProfile.updateMany.mockResolvedValue({ count: 1 });
+    await verifyCampaign(staff, ID, seen, "Checked", now);
+    expect(lockCampaign).toHaveBeenCalledWith(tx, ID);
+    expect(lockCampaign.mock.invocationCallOrder[0]).toBeLessThan(tx.campaignProfile.updateMany.mock.invocationCallOrder[0]);
+    lockCampaign.mockClear();
+    tx.campaignProfile.findUnique.mockResolvedValue({ orgId: ORG, handle: "frontrange", verifiedAt: now });
+    await unverifyCampaign(staff, ID, "Changed hands", now);
+    expect(lockCampaign).toHaveBeenCalledWith(tx, ID);
+  });
+
+  it("withdrawing an organization's approval clears the marks on its profiles, each under its own lock, and counts them", async () => {
+    tx.campaignProfile.findMany.mockResolvedValue([{ id: ID }, { id: "44444444-4444-4444-4444-444444444444" }]);
+    tx.campaignProfile.updateMany.mockResolvedValueOnce({ count: 1 }).mockResolvedValueOnce({ count: 0 });
+    await expect(clearOrgVerifications(tx as never, ORG)).resolves.toBe(1);
+    expect(lockCampaign).toHaveBeenCalledTimes(2);
+    expect(tx.campaignProfile.updateMany).toHaveBeenCalledWith({ where: { id: ID, verifiedAt: { not: null } }, data: { verifiedAt: null, verifiedById: null } });
   });
 });

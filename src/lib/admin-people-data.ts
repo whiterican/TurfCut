@@ -183,7 +183,8 @@ export async function staffResendInvite(staff: StaffActor, inviteId: string, mai
     return { ok: true as const, orgId: inv.orgId, email: inv.email, canJoin };
   });
   if (!pre.ok) return pre;
-  if (gate) {
+  // The organization's daily invite limit counts emails sent: a resend to an account that can't join sends none and spends none.
+  if (gate && pre.canJoin) {
     const g = await gate(pre.orgId);
     if (!g.ok) return g;
   }

@@ -85,7 +85,7 @@ export default async function AdminAuditPage({ searchParams }: { searchParams: P
                     {r.actorName ?? "System"}
                     {r.orgName ? <> · {r.orgName}</> : null}
                     {" · "}{r.entityType}{" "}
-                    {r.href ? <Link href={r.href} className="link font-mono text-xs">{r.entityId.slice(0, 8)}</Link> : <span className="font-mono text-xs">{r.entityId.slice(0, 8)}</span>}
+                    {r.href ? <Link href={r.href} className="link font-mono text-xs">{r.entityType === "Worker" ? "account" : r.entityId.slice(0, 8)}</Link> : <span className="font-mono text-xs">{r.entityId.slice(0, 8)}</span>}
                   </p>
                   {r.reason && <p className="text-sm text-fg">{r.reason}</p>}
                   {details && <p className="font-mono text-xs text-subtle break-all">{details}</p>}

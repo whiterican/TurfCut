@@ -232,8 +232,10 @@ const fails_ = async (f: () => Promise<unknown>): Promise<string> => { try { awa
   check("lookup by account id", byId.kind === "id" && byId.hits.length === 1 && byId.hits[0].name === "Maya Chen" && byId.hits[0].staff, byId);
   const byWorkerId = await searchPeople(WORKER_ID);
   check("lookup by a worker id (as pasted from the timeline) finds the worker's account", byWorkerId.kind === "id" && byWorkerId.hits.length === 1 && byWorkerId.hits[0].profileId === WORKER, byWorkerId);
-  const byUnderscore = await searchPeople("riley_x@");
-  check("an underscore in an email prefix is a character, not a wildcard", byUnderscore.kind === "email" && byUnderscore.hits.length === 0, byUnderscore);
+  await p.$executeRaw`INSERT INTO auth.users (id, email, email_confirmed_at) VALUES (${SUP}::uuid, 'first_last@front.test', now())`;
+  const underscore = await searchPeople("first_last@fr");
+  const wildcard = await searchPeople("first_l_st@fr"); // with "_" as a LIKE wildcard this would match first_last@
+  check("an underscore in an email prefix is a character, not a wildcard", underscore.hits.length === 1 && underscore.hits[0].profileId === SUP && wildcard.hits.length === 0, { underscore, wildcard });
   const person = await loadPerson(OWNER_B, t8);
   check("an account's page shows its basics and organization, and nothing of what a worker controls", person?.email === "riley@boulder.test" && person.org?.id === ORG_B && person.workerId === null && !/preference|scorecard|sharing/i.test(JSON.stringify(person)), person);
   check("an unknown account reads as null", (await loadPerson("00000000-0000-0000-0000-00000000dead")) === null && (await loadPerson("abc")) === null);

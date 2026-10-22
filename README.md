@@ -1239,17 +1239,18 @@ roles, one slice at a time.
   Days are UTC. A record with a console page (organization, jurisdiction
   version, account) is linked; an event on a worker's record links to the
   worker's account. Actors are named the way the app names them; a system
-  event says System. Details are shown whole for every staff act and every
-  organization event; an event on a worker's own record (sharing, consent,
-  availability, muted organizations) and a credential event show no details
-  ("details withheld"), and an engagement event drops the consent version it
-  snapshots. The `political_preferences.consented` row itself (the action
-  and the worker's name) still appears: the trail records that act on
-  purpose.
+  event says System. Details are an allowlist: staff acts and the
+  organization's own events (jobs, shifts, pay, organizations, members,
+  invites, campaigns, jurisdictions, engagements, accounts) show them; an
+  event on a worker's own record (sharing, consent, availability, muted
+  organizations, credentials, experience) and any new kind of event shows
+  "details withheld", and an engagement event drops the consent version it
+  snapshots. Chat and block-list events never appear. The
+  `political_preferences.consented` row itself (the action and the
+  worker's name) still appears: the trail records that act on purpose.
 - **Admin → People** finds an account by sign-in email (prefix), name, a
   campaign handle (the organization's members) or an account or worker id,
-  and shows who
-  they are and where they belong: role, organization and its standing,
+  and shows who they are and where they belong: role, organization and its standing,
   sign-in email, when the account was made or closed, pending invites, the
   account's own membership history, and Turfcut's acts on it. It never
   shows what a worker shares with organizations, their political-fit

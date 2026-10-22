@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/db", () => ({ db: () => ({}) }));
-const { cursorString, filterQuery, LEDGER_MOMENTS, mergeTimeline, parseAuditFilter, parseCursor, presentDetails, recordHref } = await import("./admin-audit-data");
+const { cursorString, filterQuery, HIDDEN_ENTITY_TYPES, LEDGER_MOMENTS, mergeTimeline, parseAuditFilter, parseCursor, presentDetails, recordHref } = await import("./admin-audit-data");
 
 const A = "aaaaaaaa-0000-0000-0000-000000000001";
 const B = "bbbbbbbb-0000-0000-0000-000000000002";
@@ -21,16 +21,27 @@ describe("the audit timeline (M10.4)", () => {
     expect(parseAuditFilter({ from: "2026-02-30" }).from).toBeNull();
     expect(parseAuditFilter({ to: "2026-13-45" }).to).toBeNull();
     expect(parseAuditFilter({ from: "2024-02-29" }).from).toEqual(at("2024-02-29T00:00:00Z"));
+    // Postgres has no year 0: a crafted date or cursor that early is dropped.
+    expect(parseAuditFilter({ from: "0000-01-01" }).from).toBeNull();
+    expect(parseCursor(`0000-01-01T00:00:00.000Z_${A}`)).toBeNull();
   });
 
-  it("withholds a worker's own details and a credential's, drops the consent version from an engagement, and shows everything else whole", () => {
+  it("shows details only for the kinds of event that are the organization's or the record's own, withholds a worker's own and anything new, and drops the consent version from an engagement", () => {
     expect(presentDetails("audit", "org.muted", "Worker", { orgId: A })).toEqual({ metadata: null, withheld: true });
     expect(presentDetails("audit", "sharing.saved", "Worker", null)).toEqual({ metadata: null, withheld: false });
     expect(presentDetails("audit", "credential.added", "WorkerCredential", { kind: "NOTARY" })).toEqual({ metadata: null, withheld: true });
     expect(presentDetails("audit", "credential_proof.added", "CredentialProof", { credentialId: A, side: "front", shared: true })).toEqual({ metadata: null, withheld: true });
+    expect(presentDetails("audit", "experience.added", "ExperienceRecord", { verificationLevel: "SELF" })).toEqual({ metadata: null, withheld: true });
+    expect(presentDetails("audit", "profile.blocked", "Profile", { blockedId: A })).toEqual({ metadata: null, withheld: true });
+    expect(presentDetails("audit", "something.new", "Thing", { x: 1 })).toEqual({ metadata: null, withheld: true });
     expect(presentDetails("audit", "engagement.applied", "Engagement", { jobId: A, workerId: B, status: "APPLIED", consentVersion: 3 })).toEqual({ metadata: { jobId: A, workerId: B, status: "APPLIED" }, withheld: false });
     expect(presentDetails("audit", "job.published", "Job", { by: "x" })).toEqual({ metadata: { by: "x" }, withheld: false });
+    expect(presentDetails("audit", "payout.approved", "Payout", { payoutIds: [A] })).toEqual({ metadata: { payoutIds: [A] }, withheld: false });
     expect(presentDetails("staff", "member.removed_for_org", "Profile", { role: "OWNER" })).toEqual({ metadata: { role: "OWNER" }, withheld: false });
+  });
+
+  it("keeps chat and block events out of the timeline altogether", () => {
+    expect([...HIDDEN_ENTITY_TYPES]).toEqual(["Conversation", "Message", "MessageReport", "ProfileBlock"]);
   });
 
   it("reads the query string as a filter, dropping what doesn't parse instead of refusing", () => {

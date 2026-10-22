@@ -1,4 +1,4 @@
-import type { Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { staffLabel } from "@/lib/admin-data";
 import { UUID_RE } from "@/lib/jobs";
@@ -28,12 +28,14 @@ const one = (sp: Record<string, string | string[] | undefined>, k: string): stri
   const s = Array.isArray(v) ? v[0] : v;
   return typeof s === "string" ? s.trim() : "";
 };
+const MIN_YEAR = 2000;
 const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
 /** A calendar day (UTC) that exists: "2026-02-30" and "2026-13-45" are dropped, not rounded. */
 const day = (s: string, time: string): Date | null => {
   if (!DAY_RE.test(s)) return null;
   const d = new Date(`${s}T${time}Z`);
-  return Number.isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== s ? null : d;
+  // Postgres has no year 0 (and nothing here is older than the product): a crafted URL is dropped, not sent to the database.
+  return Number.isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== s || d.getUTCFullYear() < MIN_YEAR ? null : d;
 };
 const dayStart = (s: string) => day(s, "00:00:00");
 const dayEnd = (s: string) => day(s, "23:59:59.999");
@@ -57,7 +59,7 @@ export function parseCursor(raw: unknown): Cursor | null {
   const m = typeof raw === "string" ? CURSOR_RE.exec(raw.trim()) : null;
   if (!m) return null;
   const createdAt = new Date(m[1]);
-  return Number.isNaN(createdAt.getTime()) ? null : { createdAt, id: m[2] };
+  return Number.isNaN(createdAt.getTime()) || createdAt.getUTCFullYear() < MIN_YEAR ? null : { createdAt, id: m[2] };
 }
 export const cursorString = (c: Cursor) => `${c.createdAt.toISOString()}_${c.id}`;
 
@@ -107,16 +109,27 @@ export interface TimelineRow {
 }
 
 /**
+ * Events about chat and block lists never appear in the timeline: who talks
+ * to whom, and whom a worker has blocked, are not support's business.
+ */
+export const HIDDEN_ENTITY_TYPES = ["Conversation", "Message", "MessageReport", "ProfileBlock"] as const;
+/** Record types that are a worker's own, whatever the action is called. */
+const WORKER_OWN_TYPES = new Set(["Worker", "WorkerCredential", "CredentialProof", "ExperienceRecord"]);
+/** The kinds of event whose details are the organization's or the record's own: shown whole. A new kind of event is withheld until someone adds its prefix here. */
+export const SHOWN_ACTION_PREFIXES = ["job.", "shift.", "shift_slot.", "payout.", "pay.", "org.", "member.", "invite.", "campaign.", "jurisdiction.", "engagement.", "account."] as const;
+
+/**
  * What of an audit event's details the viewer shows. The timeline is for
- * support, not surveillance: an event on a worker's own record (sharing,
- * consent, availability, which organizations they muted) and a credential
- * event (which kinds they hold, what they shared) keep their details to
- * themselves; an engagement event drops the consent version it snapshots.
- * Everything else, and every staff act, is shown whole.
+ * support, not surveillance, so the rule is an allowlist: only the kinds of
+ * event in SHOWN_ACTION_PREFIXES show their details, and even those keep
+ * them back when the record is a worker's own (sharing, consent,
+ * availability, muted organizations, credentials, experience). An
+ * engagement event drops the consent version it snapshots. Every staff act
+ * is shown whole.
  */
 export function presentDetails(source: TimelineRow["source"], action: string, entityType: string, metadata: unknown): { metadata: unknown; withheld: boolean } {
   if (source === "staff") return { metadata, withheld: false };
-  if (entityType === "Worker" || action.startsWith("credential")) return { metadata: null, withheld: metadata !== null && metadata !== undefined };
+  if (WORKER_OWN_TYPES.has(entityType) || !SHOWN_ACTION_PREFIXES.some((p) => action.startsWith(p))) return { metadata: null, withheld: metadata !== null && metadata !== undefined };
   if (action.startsWith("engagement.") && metadata && typeof metadata === "object" && !Array.isArray(metadata) && "consentVersion" in metadata) {
     const rest = { ...(metadata as Record<string, unknown>) };
     delete rest.consentVersion;
@@ -151,6 +164,7 @@ export async function loadTimeline(f: AuditFilter, cursor: Cursor | null = null,
     AND: [
       { createdAt: time },
       after,
+      { entityType: { notIn: [...HIDDEN_ENTITY_TYPES] } },
       f.ledger ? { action: { in: [...LEDGER_MOMENTS] } } : {},
       f.kind ? { action: { contains: f.kind, mode: "insensitive" } } : {},
       f.actorId ? { actorId: f.actorId } : {},
@@ -207,9 +221,9 @@ export async function loadTimeline(f: AuditFilter, cursor: Cursor | null = null,
  */
 export async function listAuditVocabulary(): Promise<{ kinds: string[]; entityTypes: string[] }> {
   const [k1, k2, t1, t2] = await Promise.all([
-    db().$queryRaw<{ action: string }[]>`SELECT DISTINCT "action" FROM "AuditEvent"`,
+    db().$queryRaw<{ action: string }[]>`SELECT DISTINCT "action" FROM "AuditEvent" WHERE "entityType" NOT IN (${Prisma.join([...HIDDEN_ENTITY_TYPES])})`,
     db().$queryRaw<{ action: string }[]>`SELECT DISTINCT "action" FROM "AdminAction"`,
-    db().$queryRaw<{ t: string }[]>`SELECT DISTINCT "entityType" AS t FROM "AuditEvent"`,
+    db().$queryRaw<{ t: string }[]>`SELECT DISTINCT "entityType" AS t FROM "AuditEvent" WHERE "entityType" NOT IN (${Prisma.join([...HIDDEN_ENTITY_TYPES])})`,
     db().$queryRaw<{ t: string }[]>`SELECT DISTINCT "targetType" AS t FROM "AdminAction"`,
   ]);
   return { kinds: [...new Set([...k1, ...k2].map((r) => r.action))].sort(), entityTypes: [...new Set([...t1, ...t2].map((r) => r.t))].sort() };

@@ -132,6 +132,6 @@ describe("the people lookup and support actions (M10.4)", () => {
     const src = readFileSync(join(process.cwd(), "src/lib/admin-people-data.ts"), "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
     expect(src).not.toMatch(/\b(preferences?|politicalPreferences?|sharing\w*|profileMetrics|metrics|scorecards?|conversations?|messages|sentMessages|chatParticipations|politic\w*)\b/i);
     // The Prisma accessors for those models, and the relation keys that would reach them from a Profile or Worker select.
-    expect(src).not.toMatch(/\.(workerSharing|politicalPreference|profileMetric|conversation\w*|orgMute)\b|\.message\.(create|find\w*|count|update\w*|delete\w*|aggregate|groupBy)\b|\b(preferences|sharing|metrics|conversations|sentMessages|chatParticipations|orgMutes)\s*:/);
+    expect(src).not.toMatch(/\.(workerSharing|politicalPreference|profileMetric|conversation\w*|orgMute)\b|\.(profileBlock|messageReport|workerAvailability|workerCredential|credentialProof|experienceRecord)\b|\.message\.(create|find\w*|count|update\w*|delete\w*|aggregate|groupBy)\b|\b(preferences|sharing|metrics|conversations|sentMessages|chatParticipations|orgMutes|blocksMade|blocksReceived|availabilities|credentials)\s*:/);
   });
 });

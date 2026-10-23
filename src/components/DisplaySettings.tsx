@@ -3,6 +3,7 @@
 import { useSyncExternalStore } from "react";
 import { TEXT_SIZE_KEY, TEXT_SIZES, THEME_STORAGE_KEY, type TextSize } from "@/lib/theme";
 import { HAPTICS_KEY, canVibrate, haptic } from "@/lib/haptics";
+import { MOTION_KEY, type MotionChoice } from "@/lib/motion";
 
 type ThemeChoice = "system" | "light" | "dark";
 
@@ -75,6 +76,17 @@ function applyTheme(v: ThemeChoice) {
   notify();
 }
 
+const motionSnapshot = (): MotionChoice => (document.documentElement.getAttribute("data-motion") === "reduce" ? "reduce" : "system");
+/** Whether the phone itself asks for less motion (then "Match my phone" already means less). */
+const phoneReducesMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+function applyMotion(v: MotionChoice) {
+  const html = document.documentElement;
+  if (v === "reduce") html.setAttribute("data-motion", "reduce");
+  else html.removeAttribute("data-motion");
+  save(MOTION_KEY, v === "reduce" ? "reduce" : null);
+  notify();
+}
+
 const hapticsSnapshot = () => read(HAPTICS_KEY) !== "off";
 const vibratingPhone = () => canVibrate() && window.matchMedia("(pointer: coarse)").matches;
 function applyHaptics(on: boolean) {
@@ -87,6 +99,8 @@ export function DisplaySettings() {
   const size = useSyncExternalStore(subscribe, sizeSnapshot, () => "md" as TextSize);
   const theme = useSyncExternalStore(subscribe, themeSnapshot, () => "system" as ThemeChoice);
   const haptics = useSyncExternalStore(subscribe, hapticsSnapshot, () => true);
+  const motion = useSyncExternalStore(subscribe, motionSnapshot, () => "system" as MotionChoice);
+  const phoneReduces = useSyncExternalStore(subscribe, phoneReducesMotion, () => false);
   // Known only in the browser. The server assumes it can, so Android never
   // flickers; iPhone and computers swap the switch for the explanation right
   // after hydration. Desktop Chrome has the Vibration API but nothing to buzz.
@@ -119,6 +133,19 @@ export function DisplaySettings() {
             </label>
           ))}
         </div>
+      </fieldset>
+
+      <fieldset className="space-y-3">
+        <legend className="section-title">Motion</legend>
+        <div className="grid gap-2 sm:grid-cols-2">
+          {([["system", phoneReduces ? "Match my phone (less motion)" : "Match my phone"], ["reduce", "Less motion"]] as const).map(([v, label]) => (
+            <label key={v} className="option-card items-center">
+              <input type="radio" name="motion" checked={motion === v} onChange={() => applyMotion(v)} className="size-4 shrink-0" />
+              <span className="font-semibold text-fg">{label}</span>
+            </label>
+          ))}
+        </div>
+        <p className="text-hint">Less motion: pages swap instead of sliding, counts and rings jump to their value, nothing presses or glides. Saved on this device.</p>
       </fieldset>
 
       <fieldset className="space-y-3">

@@ -791,6 +791,33 @@ connection is only for schema changes.
   through. Run `prisma/rate-limit.sql` before deploying this. Member
   invites are capped at 20 emails per organization per day the same way.
 
+## P1 — motion and polish
+
+The plan (approved Oct 23): the app feels finished on a phone in the field.
+Motion explains, never decorates; everything respects "Less motion"; nothing
+here is a ranking input. Eight slices, no new dependency.
+
+### P1.1 — the motion foundation (done)
+
+- **One set of tokens.** Every duration and curve in `app/globals.css` comes
+  from the Motion block (`--dur-fast` 120 ms, `--dur-base` 220, `--dur-page`
+  320, `--dur-slow` 360, `--dur-lag` 90; four easings; one `--spring`, a
+  damped spring sampled for CSS `linear()` by `springCurve()` in
+  `src/lib/motion.ts`). Tailwind's `transition` utility runs on them too.
+  `src/lib/motion.test.ts` refuses a raw millisecond value anywhere else in
+  the stylesheet and holds the script-side mirror (`DURATION`) to the same
+  numbers, so a new animation can't bring its own.
+- **One switch.** Motion is reduced when the phone asks for it
+  (`prefers-reduced-motion`) or when the person chooses **Less motion** in
+  Display settings (saved on the device as `<html data-motion="reduce">`,
+  applied by the inline script before first paint). Under either, every
+  token is zero, every animation and transition ends at once, pages swap
+  instead of sliding, the tab bar doesn't tuck, and nothing presses. Script
+  reads the same switch through `motionReduced()` / `duration()`.
+- **A haptic vocabulary.** `haptic("tap" | "success" | "warning")`: a tick,
+  a tick with a beat and a firmer tick, two longer pulses. Still Android
+  only (the Vibration API), still off with the existing setting.
+
 ## C2 scope — workers decide what each organization sees
 
 - **Who sees what** (Profile): each part of the profile — output rates,

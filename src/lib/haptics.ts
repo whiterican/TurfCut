@@ -22,10 +22,23 @@ export function canVibrate(): boolean {
   return typeof navigator !== "undefined" && typeof navigator.vibrate === "function";
 }
 
-/** A short tap tick. Call from a user gesture (click/pointer handlers). */
-export function haptic(): void {
+/**
+ * The haptic vocabulary (P1.1): a tap is a tick; success is a tick, a beat,
+ * and a firmer tick (the check-in landed, the pay arrived); a warning is two
+ * longer pulses (something needs a look). Each is a pattern of on/off
+ * milliseconds for the Vibration API; nothing here is ever decorative.
+ */
+export type HapticKind = "tap" | "success" | "warning";
+export const HAPTIC_PATTERNS: Record<HapticKind, number | number[]> = {
+  tap: 8,
+  success: [12, 40, 24],
+  warning: [30, 50, 30],
+};
+
+/** A haptic, from a user gesture (click/pointer handlers) or at the moment something lands. */
+export function haptic(kind: HapticKind = "tap"): void {
   if (typeof window === "undefined" || !hapticsEnabled() || !canVibrate()) return;
-  navigator.vibrate(8);
+  navigator.vibrate(HAPTIC_PATTERNS[kind]);
 }
 
 /** What counts as a "button" for feedback: real controls, not plain text links. */

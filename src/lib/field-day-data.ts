@@ -1,3 +1,4 @@
+import { fail } from "@/lib/result-codes";
 import { Prisma } from "@prisma/client";
 import { radiusFor, readLaunch } from "@/lib/job-launch";
 import { bandRadius } from "@/lib/offline-sync";
@@ -93,12 +94,12 @@ export async function scheduleShift(
   raw: Record<string, unknown>,
   now = new Date()
 ): Promise<{ ok: true; shiftId: string } | { ok: false; reason: string; errors?: Record<string, string> }> {
-  if (!UUID_RE.test(engagementId)) return { ok: false, reason: "Engagement not found." };
+  if (!UUID_RE.test(engagementId)) return fail("not_found", "Engagement not found.");
   const e = await db().engagement.findUnique({
     where: { id: engagementId },
     include: { job: { include: { jurisdiction: true } }, worker: { select: { closedAt: true } } },
   });
-  if (!e || e.job.orgId !== actor.orgId) return { ok: false, reason: "Engagement not found." };
+  if (!e || e.job.orgId !== actor.orgId) return fail("not_found", "Engagement not found.");
   if (e.status !== "ACTIVE" && e.status !== "CLAIMED") return { ok: false, reason: "Only hired workers can be scheduled." };
   if (e.worker.closedAt) return { ok: false, reason: "This worker has closed their account." };
   // A closed job stops hiring, not the work: people already hired can still be scheduled (C3.5).
@@ -216,13 +217,13 @@ export async function workerShiftAction(
   req: WorkerRequest,
   at?: Date
 ): Promise<Result> {
-  if (!UUID_RE.test(shiftId)) return { ok: false, reason: "Shift not found." };
+  if (!UUID_RE.test(shiftId)) return fail("not_found", "Shift not found.");
   return db().$transaction(async (tx) => {
     await lock(tx, `shift:${shiftId}`);
     // Timed after the lock, so events land in the order they were judged.
     const now = at ?? new Date();
     const s = await loadShift(shiftId, tx);
-    if (!s || s.engagement.workerId !== actor.workerId) return { ok: false as const, reason: "Shift not found." };
+    if (!s || s.engagement.workerId !== actor.workerId) return fail("not_found", "Shift not found.");
     const action: WorkerAction = req;
     const problem = radiusProblem(s, action);
     if (problem) return { ok: false as const, reason: problem };
@@ -338,13 +339,13 @@ export async function supervisorShiftAction(
   action: SupervisorAction,
   at?: Date
 ): Promise<Result> {
-  if (!UUID_RE.test(shiftId)) return { ok: false, reason: "Shift not found." };
+  if (!UUID_RE.test(shiftId)) return fail("not_found", "Shift not found.");
   return db().$transaction(async (tx) => {
     await lock(tx, `shift:${shiftId}`);
     // Timed after the lock, so events land in the order they were judged.
     const now = at ?? new Date();
     const s = await loadShift(shiftId, tx);
-    if (!s || s.engagement.job.orgId !== actor.orgId) return { ok: false as const, reason: "Shift not found." };
+    if (!s || s.engagement.job.orgId !== actor.orgId) return fail("not_found", "Shift not found.");
     let elsewhere: string[] = [];
     let heldElsewhere: Array<{ packetId: string; shiftId: string }> = [];
     if (action.kind === "packet_pickup") {
@@ -411,7 +412,7 @@ export async function syncWorkerActions(
   serverNow = new Date(),
   chunkSize = SYNC_CHUNK
 ): Promise<{ ok: true; results: SyncResult[] } | { ok: false; reason: string }> {
-  if (!UUID_RE.test(shiftId)) return { ok: false, reason: "Shift not found." };
+  if (!UUID_RE.test(shiftId)) return fail("not_found", "Shift not found.");
   if (!Number.isFinite(batch.deviceNow)) return { ok: false, reason: "Missing the phone's clock." };
   // Chunks run in order, each under the shift lock with the shift reloaded,
   // so later entries are still placed after earlier ones (saved ones are in
@@ -437,7 +438,7 @@ function syncChunk(
     async (tx) => {
     await lock(tx, `shift:${shiftId}`);
     const s = await loadShift(shiftId, tx);
-    if (!s || s.engagement.workerId !== actor.workerId) return { ok: false as const, reason: "Shift not found." };
+    if (!s || s.engagement.workerId !== actor.workerId) return fail("not_found", "Shift not found.");
     const seen = await tx.workEvent.findMany({ where: { clientId: { in: actions.map((a) => a.clientId) } }, select: { clientId: true, shiftId: true } });
     const done = new Map(seen.map((e) => [e.clientId!, e.shiftId]));
     const f = facts(s);
@@ -520,12 +521,12 @@ export async function supervisorCorrection(
   action: CorrectionAction,
   at?: Date
 ): Promise<Result> {
-  if (!UUID_RE.test(shiftId)) return { ok: false, reason: "Shift not found." };
+  if (!UUID_RE.test(shiftId)) return fail("not_found", "Shift not found.");
   return db().$transaction(async (tx) => {
     await lock(tx, `shift:${shiftId}`);
     const now = at ?? new Date();
     const s = await loadShift(shiftId, tx);
-    if (!s || s.engagement.job.orgId !== actor.orgId) return { ok: false as const, reason: "Shift not found." };
+    if (!s || s.engagement.job.orgId !== actor.orgId) return fail("not_found", "Shift not found.");
     const out = correctionAction(facts(s), action, actor.profileId, now);
     if (!out.ok) return out;
     await payLock(tx, s.engagement.workerId);
@@ -565,13 +566,13 @@ export async function workerTurfAction(
   action: TurfAction,
   at?: Date
 ): Promise<Result> {
-  if (!UUID_RE.test(shiftId)) return { ok: false, reason: "Shift not found." };
+  if (!UUID_RE.test(shiftId)) return fail("not_found", "Shift not found.");
   return db().$transaction(async (tx) => {
     await lock(tx, `shift:${shiftId}`);
     // Timed after the lock, so events land in the order they were judged.
     const now = at ?? new Date();
     const s = await loadShift(shiftId, tx);
-    if (!s || s.engagement.workerId !== actor.workerId) return { ok: false as const, reason: "Shift not found." };
+    if (!s || s.engagement.workerId !== actor.workerId) return fail("not_found", "Shift not found.");
     return apply(tx, shiftId, actor.profileId, turfAction(facts(s), action, now), now);
   });
 }

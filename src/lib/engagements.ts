@@ -16,6 +16,7 @@
  *   the time (spec p.8, p.17). It is never recomputed; if the worker narrows
  *   sharing later, live views change and the snapshot stays as the record.
  */
+import { fail } from "@/lib/result-codes";
 import type { EmployerFitView } from "@/lib/political-fit";
 import type { SharedMetric, SharedScorecard } from "@/lib/shared-scorecard";
 import type { ShareGroup } from "@/lib/sharing";
@@ -152,7 +153,7 @@ export function transition(
     return no(current === "INVITED" && actor === "org" ? "An invitation is already waiting on this worker." : "There's already an engagement for this worker on this job.");
   }
   if (opens && ctx.jobStatus !== "PUBLISHED") return no("This job isn't open.");
-  if (!opens && current === null) return no("Engagement not found.");
+  if (!opens && current === null) return fail("not_found", "Engagement not found.");
 
   switch (action) {
     case "apply":

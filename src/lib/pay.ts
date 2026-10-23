@@ -426,3 +426,41 @@ export function parseMoney(s: string): number | null {
   const cents = Number(whole) * 100 + Number(frac.padEnd(2, "0"));
   return t.startsWith("-") ? -cents : cents;
 }
+
+/**
+ * G1: an organization's funding position. `credited` is the sum of its
+ * funding entries; `committed` what its transfers have sent or are sending
+ * (failed transfers excluded). Reversed money is not credited back here:
+ * staff record it as a new entry once it is actually back in the balance.
+ */
+export interface FundingPosition {
+  creditedCents: number;
+  committedCents: number;
+  availableCents: number;
+}
+
+export function fundingPosition(creditedCents: number, committedCents: number): FundingPosition {
+  return { creditedCents, committedCents, availableCents: creditedCents - committedCents };
+}
+
+/** Why a pay run of `amountCents` can't go out under this position, or null when it's covered. */
+export function fundingShortfall(p: FundingPosition, amountCents: number): string | null {
+  if (amountCents <= p.availableCents) return null;
+  const short = amountCents - Math.max(0, p.availableCents);
+  return `Your organization's funded balance is ${money(Math.max(0, p.availableCents))}, ${money(short)} short of this payment. Nothing was sent. Add funds, then pay again.`;
+}
+
+export const FUNDING_REFERENCE_MAX = 200;
+/** One entry's magnitude cap ($1M), a guard against a mistyped amount. */
+export const FUNDING_ENTRY_MAX_CENTS = 100_000_000;
+
+/** Why a funding entry can't be recorded (null = fine). A correction can't take the balance below what's committed. */
+export function fundingEntryProblem(amountCents: number, reference: string, p: FundingPosition): string | null {
+  if (!Number.isInteger(amountCents) || amountCents === 0) return "Enter a non-zero amount in cents.";
+  if (Math.abs(amountCents) > FUNDING_ENTRY_MAX_CENTS) return `One entry can be at most ${money(FUNDING_ENTRY_MAX_CENTS)}.`;
+  const ref = reference.trim();
+  if (!ref) return "Give the invoice, payment id, or reason for this entry.";
+  if (ref.length > FUNDING_REFERENCE_MAX) return `Keep the reference to ${FUNDING_REFERENCE_MAX} characters or fewer.`;
+  if (amountCents < 0 && p.availableCents + amountCents < 0) return `That correction would take the balance below what's already been sent (${money(p.availableCents)} available).`;
+  return null;
+}

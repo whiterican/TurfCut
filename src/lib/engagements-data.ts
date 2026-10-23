@@ -1,3 +1,4 @@
+import { fail } from "@/lib/result-codes";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import {
@@ -95,20 +96,20 @@ async function open(
   // again once the locks are held, so history stays in commit order.
   const before = now ?? new Date();
   const note = action === "invite" ? cleanNote(opts.note) : null;
-  if (note && note.length > NOTE_MAX) return { ok: false, reason: `Keep the note to ${NOTE_MAX} characters or fewer.` };
-  if (!UUID_RE.test(jobId)) return { ok: false, reason: "Job not found." };
-  if (!UUID_RE.test(workerId)) return { ok: false, reason: "Worker not found." };
+  if (note && note.length > NOTE_MAX) return fail("invalid", `Keep the note to ${NOTE_MAX} characters or fewer.`);
+  if (!UUID_RE.test(jobId)) return fail("not_found", "Job not found.");
+  if (!UUID_RE.test(workerId)) return fail("not_found", "Worker not found.");
   const job = await db().job.findUnique({ where: { id: jobId }, include: { org: { select: { name: true } } } });
-  if (!job) return { ok: false, reason: "Job not found." };
-  if (actor.kind === "org" && actor.orgId !== job.orgId) return { ok: false, reason: "This job belongs to another organization." };
+  if (!job) return fail("not_found", "Job not found.");
+  if (actor.kind === "org" && actor.orgId !== job.orgId) return fail("forbidden", "This job belongs to another organization.");
   // No directory (C1): an organization invites only workers who have already
   // engaged with one of its jobs. Unknown and unrelated ids get the same
   // answer, so invitations can't be used to probe for worker ids.
   // ...or, since C3.4, a worker who chose to be findable and matches this job (Matches).
   const viaMatch = action === "invite" && !(await orgHasRelationship(workerId, job.orgId));
-  if (viaMatch && !(await isMatch(workerId, jobId, job.orgId, before))) return { ok: false, reason: "Worker not found." };
+  if (viaMatch && !(await isMatch(workerId, jobId, job.orgId, before))) return fail("not_found", "Worker not found.");
   const w = await db().worker.findUnique({ where: { id: workerId }, select: { closedAt: true } });
-  if (!w) return { ok: false, reason: "Worker not found." };
+  if (!w) return fail("not_found", "Worker not found.");
   if (w.closedAt) return { ok: false, reason: "This worker has closed their account." };
 
   // A worker never lands on a job their own do-not-match answers exclude.
@@ -137,17 +138,17 @@ async function open(
     if (action === "invite") {
       // A worker who muted this organization reads like any worker it can't reach (no directory, C1).
       const muted = await tx.orgMute.findUnique({ where: { workerId_orgId: { workerId, orgId: fresh.orgId } } });
-      if (muted) return { ok: false as const, reason: "Worker not found." };
+      if (muted) return fail("not_found", "Worker not found.");
       // Reached through Matches: still findable now, under the lock (they may have just turned it off).
       if (viaMatch) {
         const s = await tx.workerSharing.findFirst({ where: { workerId }, orderBy: { version: "desc" }, select: { findable: true } });
-        if (!s?.findable) return { ok: false as const, reason: "Worker not found." };
+        if (!s?.findable) return fail("not_found", "Worker not found.");
       }
       // At most INVITES_PER_WEEK invitations from one organization to one worker in any 7 days (C3).
       const recent = await tx.engagementEvent.count({
         where: { type: "INVITED", createdAt: { gt: new Date(at.getTime() - 7 * 86_400_000), lte: at }, engagement: { workerId, job: { orgId: fresh.orgId } } },
       });
-      if (recent >= INVITES_PER_WEEK) return { ok: false as const, reason: `You've sent this worker ${INVITES_PER_WEEK} invitations this week, the most allowed. Try again in a few days.` };
+      if (recent >= INVITES_PER_WEEK) return fail("rate_limited", `You've sent this worker ${INVITES_PER_WEEK} invitations this week, the most allowed. Try again in a few days.`);
     }
     const t = transition(existing?.status ?? null, action, actor.kind, {
       jobStatus: fresh.status,
@@ -226,17 +227,17 @@ export async function moveEngagement(
   opts: { reasonCode?: string; note?: string } = {},
   now?: Date
 ): Promise<Result> {
-  if (!UUID_RE.test(engagementId)) return { ok: false, reason: "Engagement not found." };
+  if (!UUID_RE.test(engagementId)) return fail("not_found", "Engagement not found.");
   const e = await db().engagement.findUnique({ where: { id: engagementId }, include: { job: { include: { org: { select: { name: true } } } } } });
-  if (!e) return { ok: false, reason: "Engagement not found." };
-  if (actor.kind === "worker" && e.workerId !== actor.workerId) return { ok: false, reason: "Engagement not found." };
-  if (actor.kind === "org" && e.job.orgId !== actor.orgId) return { ok: false, reason: "Engagement not found." };
+  if (!e) return fail("not_found", "Engagement not found.");
+  if (actor.kind === "worker" && e.workerId !== actor.workerId) return fail("not_found", "Engagement not found.");
+  if (actor.kind === "org" && e.job.orgId !== actor.orgId) return fail("not_found", "Engagement not found.");
 
   const declining = action === "decline" && actor.kind === "org";
   const reasonCode = declining ? (opts.reasonCode ?? "") : null;
   if (declining && !NOT_SELECTED_REASONS.some((r) => r.value === reasonCode)) return { ok: false, reason: "Pick a reason." };
   const note = actor.kind === "org" && (action === "decline" || action === "offer") ? cleanNote(opts.note) : null;
-  if (note && note.length > NOTE_MAX) return { ok: false, reason: `Keep the note to ${NOTE_MAX} characters or fewer.` };
+  if (note && note.length > NOTE_MAX) return fail("invalid", `Keep the note to ${NOTE_MAX} characters or fewer.`);
 
   // Taking a job never overrides the worker's own do-not-match answers.
   if (action === "accept" && actor.kind === "worker") {
@@ -311,7 +312,7 @@ export async function moveEngagements(
   engagementIds: string[],
   opts: { reasonCode?: string; note?: string } = {}
 ): Promise<{ ok: true; moved: number; refused: Array<{ reason: string; names: string[] }> } | { ok: false; reason: string }> {
-  if (!UUID_RE.test(jobId)) return { ok: false, reason: "Job not found." };
+  if (!UUID_RE.test(jobId)) return fail("not_found", "Job not found.");
   const picked = [...new Set(engagementIds)];
   if (!picked.length) return { ok: false, reason: "Select at least one applicant." };
   if (picked.length > BULK_MAX) return { ok: false, reason: `Select at most ${BULK_MAX} at a time.` };
@@ -373,12 +374,12 @@ export function loadEngagementEvents(engagementId: string) {
  * Under the job's lock, so no application or offer slips in meanwhile.
  */
 export async function closeJob(jobId: string, actor: { profileId: string; orgId: string }, now?: Date): Promise<{ ok: true; closed: number } | { ok: false; reason: string }> {
-  if (!UUID_RE.test(jobId)) return { ok: false, reason: "Job not found." };
+  if (!UUID_RE.test(jobId)) return fail("not_found", "Job not found.");
   return db().$transaction(async (tx) => {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`job:${jobId}`}))`;
     const at = now ?? new Date();
     const job = await tx.job.findFirst({ where: { id: jobId, orgId: actor.orgId }, select: { status: true, orgId: true } });
-    if (!job) return { ok: false as const, reason: "Job not found." };
+    if (!job) return fail("not_found", "Job not found.");
     if (job.status !== "PUBLISHED" && job.status !== "PAUSED") return { ok: false as const, reason: job.status === "CLOSED" ? "This job is already closed." : "Only a published or paused job can be closed." };
     await tx.job.update({ where: { id: jobId }, data: { status: "CLOSED" } });
     const open = await tx.engagement.findMany({

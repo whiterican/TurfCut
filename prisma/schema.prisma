@@ -271,6 +271,7 @@ model Organization {
   campaignProfiles         CampaignProfile[]
   adminActions             AdminAction[]
   orgRoles                 OrgRole[]
+  fundingEntries           OrgFundingEntry[]
   createdAt                DateTime          @default(now())
   updatedAt                DateTime          @updatedAt
 }
@@ -864,6 +865,23 @@ model PayDisputeResolution {
   adjustmentId String?        @unique @db.Uuid
   adjustment   Payout?        @relation(fields: [adjustmentId], references: [id], onDelete: Restrict)
   createdAt    DateTime       @default(now())
+}
+
+/// G1: money an organization has put in for worker pay (a paid invoice, an
+/// ACH top-up), or a staff correction. APPEND-ONLY. When funding is required
+/// (PAYOUT_FUNDING_REQUIRED=1), a pay run may send only what the
+/// organization's entries cover beyond its transfers already made or in flight.
+model OrgFundingEntry {
+  id          String       @id @default(uuid()) @db.Uuid
+  orgId       String       @db.Uuid
+  org         Organization @relation(fields: [orgId], references: [id])
+  amountCents Int // positive: money in; negative: a correction (never below what's committed)
+  reference   String // invoice number, Stripe charge/payment id, or the correction's reason
+  createdById String       @db.Uuid
+  createdAt   DateTime     @default(now())
+
+  @@unique([orgId, reference])
+  @@index([orgId, createdAt])
 }
 
 /// Stripe webhook events already handled (each is processed once). APPEND-ONLY.

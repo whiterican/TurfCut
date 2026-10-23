@@ -817,7 +817,7 @@ here is a ranking input. Eight slices, no new dependency.
   the stylesheet, refuses Tailwind `duration-`/`delay-`/`animate-` classes
   and inline `transitionDuration` styles in components, and holds the
   script-side mirror (`DURATION`) to the same numbers, so a new animation
-  has to read the tokens.
+  has to read the tokens from CSS (not Tailwind classes or inline styles).
 - **One switch.** Motion is reduced when the phone asks for it
   (`prefers-reduced-motion`) or when the person chooses **Less motion** in
   Display settings (saved on the device as `<html data-motion="reduce">`,

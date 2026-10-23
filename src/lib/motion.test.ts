@@ -45,19 +45,20 @@ describe("motion tokens (P1.1)", () => {
   it("is the only place a duration or curve is written: every animation and transition in the stylesheet reads a token", () => {
     const outside = noComments.replace(block(":where(html) {"), "").replace(block("@media (prefers-reduced-motion: reduce) {"), "").replace(/:root\[data-motion="reduce"\][^{]*\{[^}]*\}/g, "");
     expect(outside.match(/\b\d+(\.\d+)?m?s\b/gi) ?? []).toEqual([]);
-    expect(outside.match(/cubic-bezier\(|(?<![-\w])linear\(|(?<![-\w])ease(-in|-out|-in-out)?\b/g) ?? []).toEqual([]);
+    expect(outside.match(/cubic-bezier\(|steps\(|(?<![-\w])linear(\(|\b)|(?<![-\w])ease(-in-out|-in|-out)?\b|\bstep-(start|end)\b/g) ?? []).toEqual([]);
     // Tailwind's own duration, delay and animation classes carry raw numbers too.
     expect(outside.match(/@apply[^;]*\b(duration|delay|animate|ease)-/g) ?? []).toEqual([]);
   });
 
   it("keeps components on the tokens too: no Tailwind duration, delay or animation classes, no inline durations", () => {
     const files = readdirSync(join(__dirname, ".."), { recursive: true, encoding: "utf8" })
-      .filter((f) => /\.(tsx|ts)$/.test(f) && !f.endsWith(".test.ts") && !f.startsWith("app/zz-preview"))
+      .filter((f) => /\.(tsx|ts)$/.test(f) && !/\.test\.tsx?$/.test(f) && !f.includes("zz-preview"))
       .map((f) => join(__dirname, "..", f));
     const offenders: string[] = [];
     for (const file of files) {
-      const text = readFileSync(file, "utf8");
-      if (/\b(duration|delay|animate|ease)-(\d|\[|in\b|out\b|linear\b|none\b|spin\b|pulse\b|bounce\b|ping\b)/.test(text) || /transitionDuration|animationDuration|transitionTimingFunction/.test(text)) offenders.push(file);
+      // Comments stripped, so prose may say "ease-in"; a token reference (--ease-out) is not a class.
+      const text = readFileSync(file, "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
+      if (/(?<![-\w])(duration|delay|animate|ease)-(\d|\[|in\b|out\b|linear\b|none\b|spin\b|pulse\b|bounce\b|ping\b)/.test(text) || /transitionDuration|animationDuration|transitionTimingFunction/.test(text)) offenders.push(file);
     }
     expect(offenders).toEqual([]);
   });

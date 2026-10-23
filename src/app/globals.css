@@ -1347,6 +1347,7 @@ summary.list-none::-webkit-details-marker {
     transition-delay: 0s !important;
     scroll-behavior: auto !important;
   }
+  /* Same specificity as the press rule above: it wins by coming after it, so it must stay below. */
   :is(.btn, .btn-primary, .btn-secondary, .btn-ghost, .quick-reply, .chip, .tab):active:not(:disabled) {
     transform: none;
   }

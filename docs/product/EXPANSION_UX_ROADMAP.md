@@ -93,3 +93,35 @@ Baseline metrics to instrument ethically: worker onboarding completion; job → 
 - Implement M1 only under its specific approved brief, on isolated branch and draft PR.
 - Approve M2–M10 independently before implementation.
 - Any schema/dependency, compensation, party-related matching, geolocation, legal or production changes require explicit approval, even within approved milestone.
+
+## Approved expansion direction — One-stop shop for all door-to-door work (founder approved 2026-10-23)
+**Proposed public headline:** **“The One-Stop Shop for All Door-to-Door Work.”**
+**Three top-level sectors:**
+1. **Political — Candidates & Issues:** petition circulation, electoral candidate canvassing, ballot/issue outreach.
+2. **Nonprofit — Fundraising & Outreach:** charitable door-to-door fundraising, awareness, membership recruitment.
+3. **Private — Sales & More:** commercial door-to-door sales, customer acquisition, lead generation, market surveys and permitted neighborhood outreach.
+
+**Product definition:** A cross-sector field-work marketplace and operations system, covering discover → hire → schedule → brief → work → verify → pay. The political, nonprofit and private sectors share a common operational foundation but must retain distinct campaign identification, training, compensation, outcome units, safety and compliance requirements.
+
+**Approved design direction:** Introduce a prominent three-sector navigational concept and improve campaign category labeling, job discovery, worker-first mobile UI and launch onboarding. This approval is strategic/product UX approval; it is **not** permission to represent private-sector or nonprofit job types as already launched, enable donation processing, change payroll accounting, bypass jurisdiction rules, or merge/deploy without verification.
+
+### Implementation stages
+**Stage A — low-risk, no schema:** On existing political jobs, clearly label candidate vs ballot-measure vs civic canvassing using already stored campaignDisclosure; preserve petition pay unit and legacy jobs. Add tests and a draft PR. For marketing/docs, distinguish **available** and **coming later** clearly.
+**Stage B — sector taxonomy architecture:** Design separate `sector`, `campaignPurpose` and `workActivity` values. Existing JobType PETITION/CANVASS and existing political disclosures stay backward compatible. Propose migration and data ownership/RBAC plan for approval before modifying schema.
+**Stage C — nonprofit:** nonprofit account identification, genuine charity/paid solicitor verification as appropriate by jurisdiction; fundraising job disclosure and consent; avoid collecting donor credit cards or sensitive donor data in worker devices; donation processor and worker wages must be separated.
+**Stage D — private:** private company identities, clear employer/contractor classification, sales training/compliance, no misleading pay/rate or unverified commission statements, lead privacy, territory assignments only after opt-in/authority and security review.
+**Stage E — unify:** sector tabs for worker discovery (All / Political / Nonprofit / Private), appropriate job cards and category-specific wizard paths; verified history remains activity-specific without a universal worker score.
+
+### UX design principles
+- Be **one brand, three paths**; use a neutral clean design and sector icons, never party colors for private/nonprofit work.
+- Make *who is hiring, what activity, where, when, pay basis and what counts as verified* immediately visible.
+- Show 'Coming later' on any nonprofit/private sections until end-to-end onboarding, hiring, compliance and payment are actually usable.
+- Mobile-first large targets, readable high-contrast typography, clear current shift state and offline status.
+- Do not infer political leanings, causes or personal interests from user demographics or job behavior; follow worker-controlled preferences.
+- Maintain explicit verification distinction between donations pledged vs received and leads collected vs independently accepted; avoid ungrounded outcome claims.
+
+### Risks and approval gates
+- Different state/local charitable solicitation and professional fundraising rules, commercial solicitation licensing, consumer protection, no-soliciting laws, wage/hour and independent contractor treatment must be reviewed before launch.
+- Charity contributions **must not** be routed through existing worker payout flows.
+- Candidate-specific and nonprofit/private enhancements should be phased; do not silently reclassify existing political data.
+- Schema, legal policy, new provider integrations and production rollout require separately reviewed plans.

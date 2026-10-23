@@ -62,4 +62,17 @@ describe("time-zone boundary and DST regression cases", () => {
     expect(checkApprovedShiftWindow(context("2026-11-01T05:30:00Z", "2026-11-01T06:30:00Z"), fallPolicy, now).allowedByConfiguredWindow).toBe(true);
     expect(checkApprovedShiftWindow(context("2026-11-01T05:30:00Z", "2026-11-01T07:01:00Z"), fallPolicy, now).allowedByConfiguredWindow).toBe(false);
   });
+  it("denies malformed or missing day restrictions without crashing", () => {
+    const shift = context("2026-10-26T14:00:00Z", "2026-10-26T18:00:00Z");
+    for (const malformed of [
+      { ...policy, allowedWeekdays: null },
+      { ...policy, allowedWeekdays: [] },
+      { ...policy, blockedDates: null },
+      { ...policy, blockedDates: ["not-a-date"] },
+      { ...policy, blockedDates: ["2026-13-26"] },
+    ]) {
+      expect(checkApprovedShiftWindow(shift, malformed as unknown as ApprovedShiftWindow, now).allowedByConfiguredWindow).toBe(false);
+    }
+  });
+
 });

@@ -89,7 +89,7 @@ async function WorkerHero({ workerId }: { workerId: string }) {
   });
   if (!next) {
     return (
-      <Link href="/jobs" className="hero-card block space-y-3">
+      <Link transitionTypes={["nav-forward"]} href="/jobs" className="hero-card hero-card-quiet block space-y-3">
         <p className="eyebrow">Nothing scheduled</p>
         <p className="hero-title">Find your next field job</p>
         <p className="hero-muted text-sm">Open jobs show the gross rate, credentials and who to call before you apply.</p>

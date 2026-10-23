@@ -347,6 +347,27 @@ body {
     /* On a lime hero the cut is a deeper turf green, not a paler lime. */
     background: #9fb92b;
   }
+  /* A hero with nothing to report steps down to a plain card: no eggplant, no cut, a hairline edge, muted type. Never combined with hero-card-accent or data-priority. */
+  .hero-card.hero-card-quiet {
+    background: var(--surface);
+    background-clip: padding-box;
+    color: var(--fg);
+    border-width: 1px;
+    border-color: var(--border);
+  }
+  a.hero-card.hero-card-quiet {
+    transition: border-color 150ms;
+  }
+  a.hero-card.hero-card-quiet:hover {
+    border-color: var(--border-strong);
+  }
+  .hero-card.hero-card-quiet::after {
+    display: none;
+  }
+  .hero-card.hero-card-quiet .eyebrow,
+  .hero-card.hero-card-quiet .hero-muted {
+    color: var(--muted);
+  }
   .hero-card.hero-card-accent .eyebrow,
   .hero-card.hero-card-accent .hero-muted {
     color: color-mix(in srgb, var(--ink) 90%, var(--accent));
@@ -355,7 +376,8 @@ body {
   .hero-card-plain::after {
     display: none;
   }
-  .hero-card.hero-card-plain .eyebrow {
+  .hero-card.hero-card-plain .eyebrow,
+  .hero-card.hero-card-quiet .eyebrow {
     max-width: none;
   }
   .hero-card > * {
@@ -383,10 +405,10 @@ body {
     background: var(--card-sheen), var(--card-bg);
     box-shadow: var(--card-edge), var(--shadow-depth);
   }
+  /* An empty state sits in a card, quietly: a hairline, no shadow, room for one button. Never the centrepiece. */
   .empty-state {
-    @apply rounded-3xl border border-border px-6 py-10 text-center;
-    background: var(--card-sheen), var(--card-bg);
-    box-shadow: var(--card-edge), var(--shadow-depth);
+    @apply rounded-2xl border border-border px-5 py-6 text-center;
+    background: var(--surface);
   }
   .empty-state-title {
     @apply font-medium text-fg;
@@ -777,11 +799,18 @@ body {
   .data-table-sort {
     @apply -mx-1 inline-flex items-center gap-1 rounded px-1 py-0.5 font-semibold hover:text-fg;
   }
+  /* Figures wrap two to a row on a phone and at least 10rem wide above it; a straggler stretches across the rest of its row, so no slot is ever an empty border-coloured block. */
   .summary-bar {
-    @apply grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-border bg-border sm:grid-cols-4;
+    @apply flex flex-wrap gap-px overflow-hidden rounded-2xl border border-border bg-border;
   }
   .summary-item {
-    @apply space-y-1 bg-surface px-4 py-3;
+    @apply min-w-0 space-y-1 bg-surface px-4 py-3;
+    flex: 1 1 calc(50% - 1px);
+  }
+  @media (width >= 40rem) {
+    .summary-item {
+      flex-basis: 10rem;
+    }
   }
   .summary-value {
     @apply text-2xl font-bold tracking-[-0.02em] text-fg tabular-nums;

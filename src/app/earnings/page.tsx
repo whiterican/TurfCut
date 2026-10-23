@@ -8,6 +8,7 @@ import { ActionButton } from "@/components/ActionButton";
 import { dispute, managePayouts, setUpPayouts } from "./actions";
 import { payoutSetup } from "@/lib/pay-data";
 import { stripeProvider } from "@/lib/payout-provider";
+import { EmptyArt } from "@/components/EmptyState";
 
 const SETUP_NOTE: Record<string, string> = {
   done: "Thanks — Stripe is checking your details. This can take a minute.",
@@ -184,6 +185,7 @@ export default async function EarningsPage({ searchParams }: { searchParams: Pro
 
       {campaigns.length === 0 ? (
         <div className="empty-state">
+          <EmptyArt kind="earnings" />
           <p className="empty-state-title">No pay yet</p>
           <p className="empty-state-body">Pay shows up here as soon as a supervisor approves one of your shifts, with how it was worked out.</p>
           <Link href="/shifts" className="btn-primary mt-4">My shifts</Link>

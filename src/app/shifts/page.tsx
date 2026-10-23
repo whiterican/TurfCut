@@ -8,6 +8,7 @@ import { briefPaths } from "@/lib/offline-brief-data";
 import { loadWorkerSlots } from "@/lib/shift-slots-data";
 import { loadAvailability } from "@/lib/availability-data";
 import { OpenShiftList } from "@/components/OpenShiftList";
+import { EmptyArt } from "@/components/EmptyState";
 
 /** Every shift across every campaign — the multi-campaign calendar. */
 export default async function MyShiftsPage() {
@@ -58,6 +59,7 @@ export default async function MyShiftsPage() {
       </header>
       {upcoming.length === 0 ? (
         <div className="empty-state">
+          <EmptyArt kind="shifts" />
           <p className="empty-state-title">No shifts scheduled</p>
           <p className="empty-state-body">Once you&apos;re hired, organizations schedule your shifts here.</p>
           <Link href="/jobs" className="btn-primary mt-4">Find work</Link>

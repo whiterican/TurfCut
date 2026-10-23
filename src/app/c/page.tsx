@@ -9,6 +9,7 @@ import { mediaUrl } from "@/lib/campaign-media";
 import { FollowButton } from "@/components/campaign/FollowButton";
 import { VerifiedMark } from "@/components/campaign/VerifiedMark";
 import { LocalTime } from "@/components/LocalTime";
+import { EmptyState } from "@/components/EmptyState";
 
 export const metadata: Metadata = { title: "Campaigns", description: "Every campaign on Turfcut, the most recently active first." };
 
@@ -52,7 +53,12 @@ export default async function CampaignDirectoryPage({ searchParams }: Props) {
       </form>
       <section className="section" aria-label="Campaigns">
         {q && <p className="text-muted-sm">{campaigns.length === 0 && !cursor ? "No campaign matches" : "Matching"} “{q}”. <Link href="/c" className="link">Show all</Link></p>}
-        {campaigns.length === 0 && (cursor || !q) && <p className="card text-muted-sm">{cursor ? "No more campaigns." : "No campaigns are public yet."}</p>}
+        {campaigns.length === 0 && cursor && <p className="card text-muted-sm">No more campaigns.</p>}
+        {campaigns.length === 0 && !cursor && !q && (
+          <EmptyState art="campaigns" title="No campaigns are public yet">
+            Campaigns that hire on Turfcut show their page here once it&apos;s public.
+          </EmptyState>
+        )}
         <ul className="space-y-3">
           {campaigns.map((c) => (
             <li key={c.id}>

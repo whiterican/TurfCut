@@ -4,6 +4,7 @@ import { requireWorker } from "@/lib/worker-session";
 import { loadHomeFeed, type FeedPost } from "@/lib/campaign-follow-data";
 import { PostCard } from "@/components/campaign/PostCard";
 import { FeedSeen } from "@/components/campaign/FeedSeen";
+import { EmptyArt } from "@/components/EmptyState";
 
 export const metadata: Metadata = { title: "Feed" };
 
@@ -32,6 +33,7 @@ export default async function FeedPage({ searchParams }: Props) {
       </header>
       {feed.sources === 0 ? (
         <div className="empty-state">
+          <EmptyArt kind="campaigns" />
           <p className="empty-state-title">Nothing here yet</p>
           <p className="empty-state-body">Follow a campaign from its page, or from a job you take, and its posts show up here. Who you follow is yours alone to see.</p>
           <span className="flex flex-wrap justify-center gap-2">

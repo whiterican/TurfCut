@@ -830,6 +830,25 @@ here is a ranking input. Eight slices, no new dependency.
   a tick with a beat and a firmer tick, two longer pulses. Still Android
   only (the Vibration API), still off with the existing setting.
 
+### P1.2 — buttons and empty states (done)
+
+- **Buttons that morph.** `ActionButton` and `PendingButton` (55 call sites)
+  show three faces stacked in one grid cell (`components/ButtonFaces.tsx`):
+  the label, a spinner with the pending label while the action runs, and a
+  drawn check for a moment once it lands. The button never changes width;
+  the faces cross-fade on the motion tokens and simply swap under Less
+  motion. While working the button is `aria-busy` and a polite status says
+  the pending label; the result is still announced by the form's own message.
+  A landed action gives the success haptic, a refused one the warning.
+  Forms with hand-written submit buttons keep their text swap until they are
+  next touched.
+- **Branded empty states.** Eight line drawings (`components/EmptyState.tsx`:
+  jobs, shifts, messages, earnings, applicants, campaigns, notices, offline)
+  in the theme's lime, ink and muted tokens, decorative to screen readers.
+  They head the empty Work feed and jobs list, My shifts, Messages,
+  Earnings, the Feed, Notifications, the campaign directory, a job's
+  applicants, and the offline brief's "No signal" page.
+
 ## C2 scope — workers decide what each organization sees
 
 - **Who sees what** (Profile): each part of the profile — output rates,

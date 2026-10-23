@@ -2,10 +2,14 @@
 
 import { useActionState } from "react";
 import type { ActionState } from "@/app/jobs/actions";
+import { ButtonFaces, PendingAnnouncement, useButtonPhase } from "@/components/ButtonFaces";
 
 const initial: ActionState = { ok: false, message: "" };
 
-/** A one-button server action that shows its outcome in plain words. */
+/**
+ * A one-button server action that shows its outcome in plain words. The
+ * button morphs (P1.2): a spinner while it runs, a check when it lands.
+ */
 export function ActionButton({
   action,
   fields,
@@ -36,6 +40,9 @@ export function ActionButton({
   ariaLabel?: string;
 }) {
   const [state, formAction, pending] = useActionState(action, initial);
+  // The initial state is not a result: only what the action returns is.
+  const phase = useButtonPhase(pending, state === initial ? null : state);
+  const working = pendingLabel ?? "Working…";
   // A disabled confirm step is just a disabled button: there's nothing to open.
   if (confirm && !disabled) {
     return (
@@ -48,7 +55,10 @@ export function ActionButton({
           {Object.entries(fields).map(([k, v]) => <input key={k} type="hidden" name={k} value={v} />)}
           {children}
           <p className="text-sm text-fg">{confirm.text}</p>
-          <button className="btn-secondary btn-sm" disabled={disabled || pending}>{pending ? (pendingLabel ?? "Working…") : confirm.label}</button>
+          <button className="btn-secondary btn-sm" disabled={disabled || pending} aria-busy={pending || undefined}>
+            <ButtonFaces phase={phase} label={confirm.label} pendingLabel={working} />
+          </button>
+          <PendingAnnouncement pending={pending} text={working} />
           {state.message && (
             <p role="status" className={state.ok ? "text-success-msg" : "text-danger-msg"}>{state.message}</p>
           )}
@@ -61,10 +71,10 @@ export function ActionButton({
       {Object.entries(fields).map(([k, v]) => <input key={k} type="hidden" name={k} value={v} />)}
       <div className="flex flex-wrap items-end gap-3">
         {children}
-        <button className={variant} disabled={disabled || pending} aria-label={ariaLabel}>
-          {icon}
-          {pending ? (pendingLabel ?? "Working…") : label}
+        <button className={variant} disabled={disabled || pending} aria-label={ariaLabel} aria-busy={pending || undefined}>
+          <ButtonFaces phase={phase} icon={icon} label={label} pendingLabel={working} />
         </button>
+        <PendingAnnouncement pending={pending} text={working} />
       </div>
       {state.message && (
         <p role="status" className={state.ok ? "text-success-msg" : "text-danger-msg"}>{state.message}</p>

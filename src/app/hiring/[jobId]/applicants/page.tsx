@@ -12,6 +12,7 @@ import { DataTable } from "@/components/staff/DataTable";
 import { BulkApplicantActions } from "@/components/BulkApplicantActions";
 import { HiringTabs } from "@/components/staff/HiringTabs";
 import { hiringCounts } from "@/lib/invitations-data";
+import { EmptyState } from "@/components/EmptyState";
 
 const BULK_FORM = "applicants-bulk";
 
@@ -123,9 +124,14 @@ export default async function ApplicantsPage({
 
       {offerable && shown.some((a) => a.status === "APPLIED" || a.status === "OFFERED") && <BulkApplicantActions formId={BULK_FORM} jobId={job.id} />}
 
-      <DataTable
+      {all.length === 0 ? (
+        <EmptyState art="applicants" title="Nobody has applied yet">
+          Workers who apply show up here, with what each one shares with your organization.
+        </EmptyState>
+      ) : (
+        <DataTable
         caption={`Applicants for ${job.title}`}
-        empty={all.length ? "No applicants match these filters." : "Nobody has applied yet."}
+        empty="No applicants match these filters."
         columns={tableColumns(cols)}
         select={offerable ? { form: BULK_FORM, name: "engagementId" } : undefined}
         rows={shown.map((a) => ({
@@ -134,6 +140,7 @@ export default async function ApplicantsPage({
           cells: applicantCells(a, facts, cols, today, `/hiring/${job.id}/people/${a.engagementId}`),
         }))}
       />
+      )}
       <p className="text-hint">
         Only what each worker shares with your organization, as of now. &ldquo;Not shared&rdquo; is never counted as zero or ranked. There is no overall score. Political answers never appear in this table.
       </p>

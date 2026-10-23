@@ -8,6 +8,7 @@ import { Avatar } from "@/components/chat/Avatar";
 import { RelativeTime } from "@/components/RelativeTime";
 import { ChatNameForm } from "@/components/chat/ChatNameForm";
 import { canUse } from "@/lib/access";
+import { EmptyArt } from "@/components/EmptyState";
 
 export const metadata = { title: "Messages · Turfcut" };
 
@@ -118,6 +119,7 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
       {threads.length === 0 ? (
         startable.length === 0 && (
           <div className="empty-state">
+            <EmptyArt kind="messages" />
             <p className="empty-state-title">No conversations yet</p>
             <p className="empty-state-body">
               {session.role === "WORKER"

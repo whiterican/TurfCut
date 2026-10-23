@@ -77,7 +77,7 @@ export function checkApprovedShiftWindow(
   }
   if (rule.blockedDates !== undefined &&
       (!Array.isArray(rule.blockedDates) || rule.blockedDates.some((d) => typeof d !== "string" ||
-        !/^\\d{4}-\\d{2}-\\d{2}$/.test(d) || Number.isNaN(Date.parse(d))))) {
+        !/^\d{4}-\d{2}-\d{2}$/.test(d) || Number.isNaN(Date.parse(d))))) {
     return denied("Approved restricted dates are invalid.");
   }
   let fmt: Intl.DateTimeFormat;

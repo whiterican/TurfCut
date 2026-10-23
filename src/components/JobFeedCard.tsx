@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { DateRangeChip } from "@/components/DateRangeChip";
-import { cardAffiliation, payText } from "@/lib/jobs";
+import { cardAffiliation, jobDiscoveryLabel, payText, readDisclosure } from "@/lib/jobs";
 import type { CompensationMethod, JobType } from "@prisma/client";
 
 export interface FeedJob {
@@ -24,7 +24,8 @@ export interface FeedJob {
 export function JobFeedCard({ j }: { j: FeedJob }) {
   const geo = (j.geography ?? {}) as { city?: string; state?: string };
   const place = [geo.city, geo.state].filter(Boolean).join(", ");
-  const type = j.type === "PETITION" ? "Petition" : "Canvass";
+  const type = jobDiscoveryLabel(j.type, j.campaignDisclosure);
+  const campaign = readDisclosure(j.campaignDisclosure);
   const aff = cardAffiliation(j.campaignDisclosure);
   return (
     <Link transitionTypes={["nav-forward"]} href={`/jobs/${j.id}`} className="card group flex flex-col gap-3 transition hover:border-[var(--border-strong)] sm:flex-row sm:items-start sm:justify-between">
@@ -35,6 +36,9 @@ export function JobFeedCard({ j }: { j: FeedJob }) {
           {j.org.approved && <span className="badge-solid">Approved org</span>}
         </span>
         <span className="block text-base font-bold tracking-[-0.01em] text-fg">{j.title}</span>
+        {j.type === "CANVASS" && campaign?.campaignType === "candidate" && campaign.campaignName && (
+          <span className="block text-sm font-medium text-fg">Candidate: {campaign.campaignName}</span>
+        )}
         <span className="flex flex-wrap gap-1.5">
           <DateRangeChip startsAt={j.startsAt} endsAt={j.endsAt} />
           {aff ? (

@@ -21,4 +21,17 @@ describe("policy metadata preflight; not actual legal permission", () => {
     expect(preflightCompliancePolicy(context, { ...policy, officialSources: [] }, at).eligibleForReview).toBe(false);
     expect(preflightCompliancePolicy(context, { ...policy, version: 0 }, at).eligibleForReview).toBe(false);
   });
+  it("rejects unsupported classifications even when a supplied policy repeats them", () => {
+    const unknown = { ...context, activity: "future_unreviewed_activity" } as unknown as ComplianceContext;
+    const fabricated = { ...policy, activity: unknown.activity };
+    expect(preflightCompliancePolicy(unknown, fabricated, at).eligibleForReview).toBe(false);
+    const invalidMethod = { ...context, method: "new_technology" } as unknown as ComplianceContext;
+    expect(preflightCompliancePolicy(invalidMethod, { ...policy, method: invalidMethod.method }, at).eligibleForReview).toBe(false);
+  });
+  it("fails closed on malformed source collections at runtime", () => {
+    const malformed = { ...policy, officialSources: null } as unknown as CompliancePolicy;
+    expect(preflightCompliancePolicy(context, malformed, at).eligibleForReview).toBe(false);
+    expect(preflightCompliancePolicy(context, { ...policy, officialSources: [42] as unknown as string[] }, at).eligibleForReview).toBe(false);
+  });
+
 });

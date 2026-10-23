@@ -125,3 +125,35 @@ Baseline metrics to instrument ethically: worker onboarding completion; job → 
 - Charity contributions **must not** be routed through existing worker payout flows.
 - Candidate-specific and nonprofit/private enhancements should be phased; do not silently reclassify existing political data.
 - Schema, legal policy, new provider integrations and production rollout require separately reviewed plans.
+
+## Founder-approved additional job category — Phone Banking (2026-10-23)
+Phone banking is a **first-class work activity** alongside door-to-door canvassing, petition circulation, nonprofit fundraising and private outreach. It is available as a proposed job type for all three sectors where relevant; do not force it into the existing `CANVASS` classification.
+
+### Required job-type options and naming
+- **Phone Banking**
+  - **Remote / Work From Home** — phone outreach completed off-site; disclose timezone, technical requirements, remote supervision/attendance rules, required systems and equipment, training, compensation and calling hours.
+  - **Office / On-Site** — phone outreach at a designated office or call center; disclose actual worksite, arrival/check-in instructions, available equipment, training, compensation and calling hours.
+Both options must be distinct in filters, job cards, job creation and scheduling. The primary work-activity category stays `phone_banking` with a separate `workMode` of `REMOTE` or `ONSITE`, not two independent enums per sector. Do not assume a third `HYBRID` option without further approval.
+
+### Sector examples
+- Political: candidate voter-contact calls, ballot/issue education and outreach, volunteer recruitment.
+- Nonprofit: supporter engagement, fundraising calls, donor follow-up and membership outreach.
+- Private: sales calls, appointment setting, customer outreach, research, subject to applicable permissions and rules.
+No worker is presumed willing to work for a particular party or cause; workers decide what jobs to apply to, and private political preferences stay protected.
+
+### Functional implications for Claude
+1. Extend planned three-axis architecture: `sector`, `campaignPurpose`, `workActivity`, plus `workMode` and `worksite/remoteRequirements`. The existing Prisma JobType only encodes PETITION/CANVASS and cannot accurately encode phone banking; request a reviewed schema/API/backward compatibility plan before implementation.
+2. Create job form progressive disclosure: phone bank selection reveals Remote or Office radio choices; location field becomes optional for remote but timezone and eligibility, operating hours, equipment and communications protocols must be explicit. For onsite, require actual worksite details and jurisdictional rule profile.
+3. Worker feed filters: category `Phone Banking`, with subfilters `Work From Home` and `Office / On-Site`; preserve one-click mobile browse and honest status for unavailable categories.
+4. Scheduling/shift workflows must support remote start and wrap-up without GPS check-in expectations; office shifts use appropriate location confirmations. Never require geolocation for remote work solely because the door-to-door workflow supports it.
+5. Work verification must distinguish calls attempted, connected conversations, consented follow-ups, appointments, pledges or contributions and other outcomes; **do not** count attempted calls as completed conversations or donations. Ensure compensation rates and payable units are approved before launch; maintain auditable, append-only work/pay histories.
+6. Integrations with calling software, numbers, CRM or donor systems are future optional integrations needing provider, security and privacy approval. **Do not implement bulk dialing, upload contact lists or record calls** by default. Review consent, telemarketing/calling-hour restrictions, privacy, recording laws, nonprofit fundraising obligations and election rules per jurisdiction and outreach purpose.
+7. Tests: remote vs onsite form validation, default/legacy card handling, filter intersections, shift status and pay invariant, permissions and access control, no accidental location requirement for remote, no leaks of phone numbers or donor/voter information.
+
+### Positioning adjustment
+The founder's preferred three-sector headline remains **“The One-Stop Shop for All Door-to-Door Work”** for the field-work market, but it is no longer a complete umbrella description once Phone Banking is offered. Suggested umbrella headline:
+**“TurfCut — One Platform for Field Work and Phone Outreach.”**
+Subhead: **“Political • Nonprofit • Private — From door-to-door canvassing and fundraising to remote and in-office phone banking.”**
+Consider reserving “One-Stop Shop for All Door-to-Door Work” as a campaign tagline / door-to-door landing-page headline rather than the entire product definition.
+
+**Status:** Founder direction approved; document and design now. Actual phone banking job type, payment units, legal review, database migration and production release each require implementation review and validation. Do not advertise as currently shipped.

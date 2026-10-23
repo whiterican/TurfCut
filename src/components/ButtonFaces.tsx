@@ -64,13 +64,16 @@ export function useButtonPhase(pending: boolean, result: { ok: boolean } | null 
   const [spent, setSpent] = useState(result);
   const felt = useRef(result);
   useEffect(() => {
-    if (!result || result === felt.current) return;
-    felt.current = result;
-    haptic(result.ok ? "success" : "warning");
-    if (!result.ok) return;
+    // The haptic once per result; the timer whenever the check is showing, so
+    // an effect re-run (Fast Refresh, a hidden-then-shown tree) can't strand it.
+    if (result && result !== felt.current) {
+      felt.current = result;
+      haptic(result.ok ? "success" : "warning");
+    }
+    if (!result?.ok || result === spent) return;
     const t = setTimeout(() => setSpent(result), DONE_HOLD_MS);
     return () => clearTimeout(t);
-  }, [result]);
+  }, [result, spent]);
   if (pending) return "pending";
   return result?.ok && result !== spent ? "done" : "idle";
 }

@@ -441,7 +441,8 @@ body {
     @apply mx-auto mt-1 max-w-sm text-sm text-muted;
   }
   /* Empty-state art (components/EmptyState.tsx): lime field, ink lines, dim
-     context lines, paper fills. Theme tokens, so light and dark both work. */
+     context lines, paper fills. Theme tokens, so light and dark both work.
+     Its settle-in animation is unlayered, with the other motion (Button faces). */
   .empty-art {
     display: block;
     width: 5.5rem;
@@ -1249,6 +1250,7 @@ summary.list-none::-webkit-details-marker {
   html, body { background: white; color: black; }
   .page { padding: 0; max-width: none; }
   .card, .list-card, .empty-state, .stat { background: white; border-color: #999; box-shadow: none; break-inside: avoid; }
+  .empty-art { display: none; } /* theme colours don't survive white paper; the words carry the meaning */
   a { color: inherit; text-decoration: none; }
 }
 
@@ -1393,7 +1395,7 @@ summary.list-none::-webkit-details-marker {
   opacity: 0.85;
   cursor: progress;
 }
-/* An empty state's drawing settles in with the page. */
+/* An empty state's drawing settles in with the page (size and colours: .empty-art in the components layer). */
 .empty-art {
   animation: tc-rise var(--dur-slow) var(--ease-out) both;
 }

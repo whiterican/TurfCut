@@ -6,7 +6,9 @@ import { ButtonFaces, PendingAnnouncement, useButtonPhase } from "@/components/B
 /**
  * A form's submit button that can't be pressed twice: disabled, with a
  * spinner and its pending label, while the form's action runs. Pass the
- * action's latest `result` and it shows a check when that result is ok.
+ * action's latest `result` and it shows a check when that result is ok:
+ * it must be the `useActionState` state object itself, never an object built
+ * during render (a new object each render would replay the check).
  */
 export function PendingButton({
   children,

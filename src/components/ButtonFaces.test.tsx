@@ -44,12 +44,12 @@ describe("empty states (P1.2)", () => {
 
   it("keeps the words as the meaning: a title, a sentence, next steps", () => {
     const html = renderToStaticMarkup(
-      <EmptyState art="shifts" title="No shifts scheduled" actions={<a href="/jobs">Find work</a>}>
+      <EmptyState art="shifts" title="No shifts scheduled" actions={<button type="button">Find work</button>}>
         Once you&apos;re hired, shifts show up here.
       </EmptyState>,
     );
     expect(html).toContain('<p class="empty-state-title">No shifts scheduled</p>');
     expect(html).toContain('<p class="empty-state-body">');
-    expect(html).toContain('href="/jobs"');
+    expect(html).toContain("Find work</button>");
   });
 });

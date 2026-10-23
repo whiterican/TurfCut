@@ -130,16 +130,16 @@ export default async function ApplicantsPage({
         </EmptyState>
       ) : (
         <DataTable
-        caption={`Applicants for ${job.title}`}
-        empty="No applicants match these filters."
-        columns={tableColumns(cols)}
-        select={offerable ? { form: BULK_FORM, name: "engagementId" } : undefined}
-        rows={shown.map((a) => ({
-          id: a.engagementId,
-          selectable: a.status === "APPLIED" || a.status === "OFFERED",
-          cells: applicantCells(a, facts, cols, today, `/hiring/${job.id}/people/${a.engagementId}`),
-        }))}
-      />
+          caption={`Applicants for ${job.title}`}
+          empty="No applicants match these filters."
+          columns={tableColumns(cols)}
+          select={offerable ? { form: BULK_FORM, name: "engagementId" } : undefined}
+          rows={shown.map((a) => ({
+            id: a.engagementId,
+            selectable: a.status === "APPLIED" || a.status === "OFFERED",
+            cells: applicantCells(a, facts, cols, today, `/hiring/${job.id}/people/${a.engagementId}`),
+          }))}
+        />
       )}
       <p className="text-hint">
         Only what each worker shares with your organization, as of now. &ldquo;Not shared&rdquo; is never counted as zero or ranked. There is no overall score. Political answers never appear in this table.

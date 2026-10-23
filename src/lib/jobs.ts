@@ -653,6 +653,18 @@ export function exclusionReasons(
 // Display + form round-trip
 // ---------------------------------------------------------------------------
 
+/** Display field activity and campaign category using only disclosed information. */
+export function jobDiscoveryLabel(type: JobType, disclosure: unknown): string {
+  const category = readDisclosure(disclosure)?.campaignType;
+  if (type === "PETITION") return "Petition circulation";
+  if (category === "candidate") return "Candidate campaign canvassing";
+  if (category === "ballot_measure") return "Ballot initiative canvassing";
+  if (category === "nonpartisan_civic") return "Nonpartisan civic canvassing";
+  if (category === "issue_advocacy") return "Issue advocacy canvassing";
+  if (category === "party_committee") return "Party committee canvassing";
+  return "Door-to-door canvassing";
+}
+
 export function affiliationLabel(a: string): string {
   return a === "nonpartisan" ? "Nonpartisan" : `${a[0].toUpperCase()}${a.slice(1)} party`;
 }

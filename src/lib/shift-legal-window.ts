@@ -72,8 +72,13 @@ export function checkApprovedShiftWindow(
   if (opens === null || closes === null || opens >= closes) {
     return denied("Approved local work-hour window is invalid.");
   }
-  if (rule.allowedWeekdays.length === 0 || rule.allowedWeekdays.some((d) => !Number.isInteger(d) || d < 0 || d > 6)) {
+  if (!Array.isArray(rule.allowedWeekdays) || rule.allowedWeekdays.length === 0 || rule.allowedWeekdays.some((d) => !Number.isInteger(d) || d < 0 || d > 6)) {
     return denied("Approved working days are missing or invalid.");
+  }
+  if (rule.blockedDates !== undefined &&
+      (!Array.isArray(rule.blockedDates) || rule.blockedDates.some((d) => typeof d !== "string" ||
+        !/^\\d{4}-\\d{2}-\\d{2}$/.test(d) || Number.isNaN(Date.parse(d))))) {
+    return denied("Approved restricted dates are invalid.");
   }
   let fmt: Intl.DateTimeFormat;
   try {

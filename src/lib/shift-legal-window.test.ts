@@ -38,3 +38,28 @@ describe("future counsel-approved shift-hour guard, not wired into live scheduli
     expect(checkApprovedShiftWindow(context("2026-10-26T14:00:00Z", "2026-10-27T15:00:00Z"), policy, now).allowedByConfiguredWindow).toBe(false);
   });
 });
+
+describe("time-zone boundary and DST regression cases", () => {
+  const allDays = { ...policy, allowedWeekdays: [0, 1, 2, 3, 4, 5, 6] };
+  it("allows an end exactly at closing time but rejects one minute afterward", () => {
+    const closesExactly = context("2026-10-26T22:00:00Z", "2026-10-27T00:00:00Z"); // 18:00–20:00 EDT
+    expect(checkApprovedShiftWindow(closesExactly, allDays, now).allowedByConfiguredWindow).toBe(true);
+    expect(checkApprovedShiftWindow(context("2026-10-26T22:00:00Z", "2026-10-27T00:01:00Z"), allDays, now).allowedByConfiguredWindow).toBe(false);
+  });
+  it("uses the work-location timezone instead of the server's UTC clock", () => {
+    const eastern = context("2026-10-26T12:59:00Z", "2026-10-26T14:00:00Z"); // 08:59 EDT to 10:00 EDT
+    expect(checkApprovedShiftWindow(eastern, allDays, now).allowedByConfiguredWindow).toBe(false);
+    expect(checkApprovedShiftWindow(context("2026-10-26T13:00:00Z", "2026-10-26T14:00:00Z"), allDays, now).allowedByConfiguredWindow).toBe(true);
+  });
+  it("evaluates every real minute across spring DST jump", () => {
+    const springPolicy = { ...allDays, localStart: "01:00", localEnd: "04:00" };
+    // DST jumps from 01:59 to 03:00 in New York on March 8, 2026.
+    expect(checkApprovedShiftWindow(context("2026-03-08T06:30:00Z", "2026-03-08T07:30:00Z"), springPolicy, new Date("2026-03-07T12:00:00Z")).allowedByConfiguredWindow).toBe(true);
+  });
+  it("evaluates both repetitions of a local hour during fall DST reversal", () => {
+    const fallPolicy = { ...allDays, localStart: "01:00", localEnd: "02:00", expiresAt: "2027-01-01T00:00:00Z" };
+    // 01:30 occurs twice on November 1, 2026. Both instants must be evaluated.
+    expect(checkApprovedShiftWindow(context("2026-11-01T05:30:00Z", "2026-11-01T06:30:00Z"), fallPolicy, now).allowedByConfiguredWindow).toBe(true);
+    expect(checkApprovedShiftWindow(context("2026-11-01T05:30:00Z", "2026-11-01T07:01:00Z"), fallPolicy, now).allowedByConfiguredWindow).toBe(false);
+  });
+});

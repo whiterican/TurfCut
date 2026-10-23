@@ -74,9 +74,13 @@ END $$;
 CREATE INDEX IF NOT EXISTS "Notification_disputeId_idx" ON "public"."Notification"("disputeId");
 CREATE INDEX IF NOT EXISTS "Notification_transferId_idx" ON "public"."Notification"("transferId");
 -- One subject per notice, and the kind says which (replaces the S2.4 check).
+-- Relaxed in M10.2 (the same text as m10-admin.sql): a notice about the
+-- recipient's own organization (ORG_*) has no subject row. Carried here too
+-- so re-running this file after M10 still succeeds.
 ALTER TABLE "public"."Notification" DROP CONSTRAINT IF EXISTS "Notification_subject";
 ALTER TABLE "public"."Notification" ADD CONSTRAINT "Notification_subject" CHECK (
-  (("engagementId" IS NOT NULL)::int + ("postId" IS NOT NULL)::int + ("disputeId" IS NOT NULL)::int + ("transferId" IS NOT NULL)::int) = 1
+  (("engagementId" IS NOT NULL)::int + ("postId" IS NOT NULL)::int + ("disputeId" IS NOT NULL)::int + ("transferId" IS NOT NULL)::int)
+    = (CASE WHEN "kind"::text LIKE 'ORG\_%' THEN 0 ELSE 1 END)
   AND (("kind"::text = 'CAMPAIGN_POST') = ("postId" IS NOT NULL))
   AND (("kind"::text LIKE 'DISPUTE\_%') = ("disputeId" IS NOT NULL))
   AND (("kind"::text LIKE 'PAYOUT\_%') = ("transferId" IS NOT NULL)));

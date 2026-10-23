@@ -6,7 +6,8 @@
  */
 import { Prisma, type NotificationKind } from "@prisma/client";
 import { db } from "@/lib/db";
-import { PAY_ROLES } from "@/lib/access";
+import { canUse, type Grants } from "@/lib/access";
+import { areaMembers } from "@/lib/access-data";
 import type { Role } from "@/lib/auth";
 import { UUID_RE } from "@/lib/jobs";
 import { hasHiddenChars } from "@/lib/text-guard";
@@ -25,15 +26,17 @@ export const DISPUTE_MESSAGE_MAX = 2000;
 export interface DisputeActor {
   profileId: string;
   role: Role;
+  /** A custom-role member's grants (M10.6). */
+  grants?: Grants | null;
   orgId: string | null;
   workerId: string | null;
 }
 
-const payRole = (a: { role: Role; orgId: string | null }) => !!a.orgId && PAY_ROLES.includes(a.role);
+const payRole = (a: { role: Role; grants?: Grants | null; orgId: string | null }) => !!a.orgId && canUse(a, "pay");
 
 /** The organization's pay roles with a live login, minus the person acting. */
 async function payRecipients(c: Client, orgId: string, except: string | null) {
-  const rows = await c.profile.findMany({ where: { orgId, role: { in: PAY_ROLES }, closedAt: null, ...(except ? { id: { not: except } } : {}) }, select: { id: true } });
+  const rows = await c.profile.findMany({ where: { orgId, ...areaMembers("pay"), closedAt: null, ...(except ? { id: { not: except } } : {}) }, select: { id: true } });
   return rows.map((r) => r.id);
 }
 

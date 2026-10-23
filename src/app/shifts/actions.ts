@@ -1,14 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireRole } from "@/lib/auth";
-import { FIELD_ROLES, SCHEDULING_ROLES } from "@/lib/access";
+
 import { requireWorker } from "@/lib/worker-session";
 import { formToObject } from "@/lib/jobs";
 import { assignToSlot, claimSlot, closeSlot, postSlot, setSlotSeats } from "@/lib/shift-slots-data";
 import { scheduleShift, supervisorCorrection, supervisorShiftAction, workerShiftAction, workerTurfAction } from "@/lib/field-day-data";
 import { ENTERABLE, type CorrectionAction, type EnterableType, type SupervisorAction, type TurfAction } from "@/lib/field-day";
 import type { ActionState } from "@/app/jobs/actions";
+import { requireArea } from "@/lib/employer-session";
 
 export interface ScheduleState {
   ok: boolean;
@@ -26,7 +26,7 @@ const refresh = (shiftId: string) => {
 };
 
 export async function schedule(_prev: ScheduleState, fd: FormData): Promise<ScheduleState> {
-  const s = await requireRole(SCHEDULING_ROLES);
+  const s = await requireArea("scheduling");
   if (!s.orgId) return { ok: false, message: "No organization on this account.", errors: {} };
   const r = await scheduleShift({ profileId: s.userId, orgId: s.orgId }, str(fd, "engagementId"), formToObject(fd));
   revalidatePath(`/jobs/${str(fd, "jobId")}`);
@@ -44,7 +44,7 @@ const slotsChanged = (jobId: string) => {
 };
 
 export async function postSlotAction(_prev: ScheduleState, fd: FormData): Promise<ScheduleState> {
-  const s = await requireRole(SCHEDULING_ROLES);
+  const s = await requireArea("scheduling");
   if (!s.orgId) return { ok: false, message: "No organization on this account.", errors: {} };
   const r = await postSlot({ profileId: s.userId, orgId: s.orgId }, str(fd, "jobId"), formToObject(fd));
   if (r.ok) slotsChanged(r.jobId);
@@ -52,7 +52,7 @@ export async function postSlotAction(_prev: ScheduleState, fd: FormData): Promis
 }
 
 async function staff() {
-  const s = await requireRole(SCHEDULING_ROLES);
+  const s = await requireArea("scheduling");
   return s.orgId ? { profileId: s.userId, orgId: s.orgId } : null;
 }
 
@@ -119,7 +119,7 @@ const DONE: Record<string, string> = {
 };
 
 export async function supervisorStep(_prev: ActionState, fd: FormData): Promise<ActionState> {
-  const s = await requireRole(FIELD_ROLES);
+  const s = await requireArea("field");
   if (!s.orgId) return { ok: false, message: "No organization on this account." };
   const shiftId = str(fd, "shiftId");
   const kind = str(fd, "kind");
@@ -185,7 +185,7 @@ export async function turfStep(
 
 /** A supervisor corrects an entry or enters a missing one (M7). */
 export async function correctionStep(_prev: ActionState, fd: FormData): Promise<ActionState> {
-  const s = await requireRole(FIELD_ROLES);
+  const s = await requireArea("field");
   if (!s.orgId) return { ok: false, message: "No organization on this account." };
   const shiftId = str(fd, "shiftId");
   const kind = str(fd, "kind");

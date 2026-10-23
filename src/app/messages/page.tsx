@@ -7,6 +7,7 @@ import { startDirect } from "@/app/messages/actions";
 import { Avatar } from "@/components/chat/Avatar";
 import { RelativeTime } from "@/components/RelativeTime";
 import { ChatNameForm } from "@/components/chat/ChatNameForm";
+import { canUse } from "@/lib/access";
 
 export const metadata = { title: "Messages · Turfcut" };
 
@@ -50,12 +51,12 @@ function ThreadRow({ t }: { t: ThreadSummary }) {
 
 export default async function MessagesPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   const session = await requireAuth();
-  const me = { userId: session.userId, role: session.role, orgId: session.orgId };
+  const me = { userId: session.userId, role: session.role, grants: session.grants, orgId: session.orgId };
   const error = ERRORS[(await searchParams).error ?? ""];
   const staff = canCreateGroup(me).ok;
   const [{ threads, startable }, reports, profile] = await Promise.all([
     listThreads(me),
-    session.role === "OWNER" ? listOpenReports(me) : Promise.resolve([]),
+    canUse(session, "moderation") ? listOpenReports(me) : Promise.resolve([]),
     staff ? db().profile.findUnique({ where: { id: me.userId }, select: { displayName: true } }) : Promise.resolve(null),
   ]);
 
@@ -73,7 +74,7 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
         </div>
         {staff && (
           <div className="flex flex-wrap gap-2">
-            {session.role === "OWNER" && (
+            {canUse(session, "moderation") && (
               <Link transitionTypes={["nav-forward"]} href="/messages/reports" className="btn-secondary">
                 Reports{reports.length > 0 && <span className="unread-badge">{reports.length}</span>}
               </Link>

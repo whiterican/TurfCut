@@ -384,7 +384,7 @@ export function jurisdictionProblems(j: JurisdictionFacts | null, now: Date = ne
   const label = jurisdictionLabel(j);
   const out: string[] = [];
   if (!j.approved) out.push(`${label} hasn't been approved by counsel.`);
-  if (!j.isCurrent) out.push(`${label} has been superseded by a rule change that is awaiting re-approval.`);
+  if (!j.isCurrent) out.push(`${label} has been superseded by a newer version; the organization has to file the job under the current rules.`);
   if (j.effectiveFrom && j.effectiveFrom > now) out.push(`${label} isn't effective until ${j.effectiveFrom.toISOString().slice(0, 10)}.`);
   if (j.approvalExpiresAt && j.approvalExpiresAt <= now) out.push(`Counsel approval for ${label} expired on ${j.approvalExpiresAt.toISOString().slice(0, 10)}.`);
   if (!Array.isArray(obj(j.rules).compensationAllowed)) out.push(`${label} has no compensation rules on file.`);
@@ -399,6 +399,20 @@ export function jurisdictionProblems(j: JurisdictionFacts | null, now: Date = ne
 export function canScheduleShift(j: JurisdictionFacts | null, now: Date = new Date()): { ok: boolean; reasons: string[] } {
   const reasons = jurisdictionProblems(j, now);
   return { ok: reasons.length === 0, reasons };
+}
+
+/**
+ * Why an organization can't add shifts or seats to a published job right
+ * now (M10.3): the profile it is filed under fails the gate, or the place's
+ * current version no longer allows its pay method. Empty = nothing is frozen.
+ */
+export function jobFreezeReasons(job: { compensationMethod: CompensationMethod; jurisdictionId: string }, filed: JurisdictionFacts, current: { id: string; rules: unknown } | null, now: Date = new Date()): string[] {
+  const out = jurisdictionProblems(filed, now);
+  if (current && current.id !== job.jurisdictionId) {
+    const c = compensationProblem(job.compensationMethod, current.rules);
+    if (c) out.push(`Under the current rules: ${c}`);
+  }
+  return out;
 }
 
 export function compensationProblem(method: CompensationMethod, rules: unknown): string | null {
@@ -652,6 +666,18 @@ export function exclusionReasons(
 // ---------------------------------------------------------------------------
 // Display + form round-trip
 // ---------------------------------------------------------------------------
+
+/** Display field activity and campaign category using only disclosed information. */
+export function jobDiscoveryLabel(type: JobType, disclosure: unknown): string {
+  const category = readDisclosure(disclosure)?.campaignType;
+  if (type === "PETITION") return "Petition circulation";
+  if (category === "candidate") return "Candidate campaign canvassing";
+  if (category === "ballot_measure") return "Ballot initiative canvassing";
+  if (category === "nonpartisan_civic") return "Nonpartisan civic canvassing";
+  if (category === "issue_advocacy") return "Issue advocacy canvassing";
+  if (category === "party_committee") return "Party committee canvassing";
+  return "Door-to-door canvassing";
+}
 
 export function affiliationLabel(a: string): string {
   return a === "nonpartisan" ? "Nonpartisan" : `${a[0].toUpperCase()}${a.slice(1)} party`;

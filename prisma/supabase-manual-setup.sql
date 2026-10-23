@@ -7,7 +7,7 @@
 CREATE SCHEMA IF NOT EXISTS "public";
 
 -- CreateEnum
-CREATE TYPE "public"."Role" AS ENUM ('WORKER', 'OWNER', 'RECRUITER', 'COMPLIANCE', 'SUPERVISOR', 'FINANCE', 'PUBLISHER');
+CREATE TYPE "public"."Role" AS ENUM ('WORKER', 'OWNER', 'RECRUITER', 'COMPLIANCE', 'SUPERVISOR', 'FINANCE', 'PUBLISHER', 'CUSTOM');
 
 -- CreateEnum
 CREATE TYPE "public"."VerificationLevel" AS ENUM ('PLATFORM', 'ORGANIZATION', 'IMPORTED', 'SELF_REPORTED');
@@ -61,6 +61,7 @@ CREATE TABLE "public"."Profile" (
     "orgId" UUID,
     "displayName" TEXT,
     "closedAt" TIMESTAMP(3),
+    "staffSince" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -135,6 +136,7 @@ CREATE TABLE "public"."Organization" (
     "id" UUID NOT NULL,
     "name" TEXT NOT NULL,
     "approved" BOOLEAN NOT NULL DEFAULT false,
+    "approvedAt" TIMESTAMP(3),
     "contractorTermsSignedAt" TIMESTAMP(3),
     "classificationReviewedAt" TIMESTAMP(3),
     "legalContact" TEXT,
@@ -157,6 +159,9 @@ CREATE TABLE "public"."JurisdictionProfile" (
     "approvalExpiresAt" TIMESTAMP(3),
     "rules" JSONB NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "createdById" UUID,
+    "approvedById" UUID,
+    "supersededAt" TIMESTAMP(3),
 
     CONSTRAINT "JurisdictionProfile_pkey" PRIMARY KEY ("id")
 );
@@ -1568,7 +1573,8 @@ DO $$ BEGIN
   CREATE TYPE "public"."NotificationKind" AS ENUM (
     'APPLICATION_RECEIVED', 'CLAIM_RECEIVED', 'INVITATION_RECEIVED', 'INVITATION_ACCEPTED', 'INVITATION_DECLINED',
     'INVITATION_WITHDRAWN', 'OFFER_RECEIVED', 'OFFER_ACCEPTED', 'OFFER_DECLINED', 'NOT_SELECTED', 'APPLICATION_WITHDRAWN', 'JOB_CLOSED', 'JOB_CHANGED', 'CAMPAIGN_POST',
-    'DISPUTE_OPENED', 'DISPUTE_MESSAGE', 'DISPUTE_RESOLVED', 'DISPUTE_OVERDUE', 'PAYOUT_SENT', 'PAYOUT_REVERSED');
+    'DISPUTE_OPENED', 'DISPUTE_MESSAGE', 'DISPUTE_RESOLVED', 'DISPUTE_OVERDUE', 'PAYOUT_SENT', 'PAYOUT_REVERSED',
+    'ORG_APPROVED', 'ORG_APPROVAL_REVOKED', 'ORG_JOBS_FROZEN');
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 CREATE TABLE "public"."Notification" (
@@ -1590,7 +1596,8 @@ CREATE TABLE "public"."Notification" (
     CONSTRAINT "Notification_disputeId_fkey" FOREIGN KEY ("disputeId") REFERENCES "public"."PayDispute"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT "Notification_transferId_fkey" FOREIGN KEY ("transferId") REFERENCES "public"."PayoutTransfer"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT "Notification_subject" CHECK (
-      (("engagementId" IS NOT NULL)::int + ("postId" IS NOT NULL)::int + ("disputeId" IS NOT NULL)::int + ("transferId" IS NOT NULL)::int) = 1
+      (("engagementId" IS NOT NULL)::int + ("postId" IS NOT NULL)::int + ("disputeId" IS NOT NULL)::int + ("transferId" IS NOT NULL)::int)
+        = (CASE WHEN "kind"::text LIKE 'ORG\_%' THEN 0 ELSE 1 END)
       AND (("kind"::text = 'CAMPAIGN_POST') = ("postId" IS NOT NULL))
       AND (("kind"::text LIKE 'DISPUTE\_%') = ("disputeId" IS NOT NULL))
       AND (("kind"::text LIKE 'PAYOUT\_%') = ("transferId" IS NOT NULL)))
@@ -1661,6 +1668,42 @@ CREATE OR REPLACE TRIGGER "Statement_append_only" BEFORE UPDATE OR DELETE ON "pu
   FOR EACH ROW EXECUTE FUNCTION "turfcut_private"."append_only"();
 ALTER TABLE "public"."Statement" ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON "public"."Statement" FROM anon, authenticated;
+
+-- Turfcut staff (M10.1, prisma/m10-admin.sql): the staff flag is
+-- Profile.staffSince above (set by hand; see README, "Turfcut staff"). The
+-- staff ledger: one row per act a staff member takes, with who, what, on
+-- which record and why. Append-only, server-only.
+CREATE TABLE IF NOT EXISTS "public"."AdminAction" (
+    "id" UUID NOT NULL,
+    "staffId" UUID NOT NULL,
+    "action" TEXT NOT NULL,
+    "targetType" TEXT NOT NULL,
+    "targetId" TEXT NOT NULL,
+    "orgId" UUID,
+    "reason" TEXT NOT NULL,
+    "metadata" JSONB,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "AdminAction_pkey" PRIMARY KEY ("id"),
+    CONSTRAINT "AdminAction_reason_given" CHECK (length(btrim("reason")) > 0)
+);
+CREATE INDEX IF NOT EXISTS "AdminAction_targetType_targetId_idx" ON "public"."AdminAction"("targetType", "targetId");
+CREATE INDEX IF NOT EXISTS "AdminAction_orgId_createdAt_idx" ON "public"."AdminAction"("orgId", "createdAt");
+CREATE INDEX IF NOT EXISTS "AdminAction_staffId_createdAt_idx" ON "public"."AdminAction"("staffId", "createdAt");
+CREATE INDEX IF NOT EXISTS "AdminAction_createdAt_idx" ON "public"."AdminAction"("createdAt");
+DO $$ BEGIN
+  ALTER TABLE "public"."AdminAction" ADD CONSTRAINT "AdminAction_staffId_fkey" FOREIGN KEY ("staffId") REFERENCES "public"."Profile"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+DO $$ BEGIN
+  ALTER TABLE "public"."AdminAction" ADD CONSTRAINT "AdminAction_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "public"."Organization"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+-- A staff act, once recorded, never changes; server-only (RLS on, no policies, no grants).
+CREATE OR REPLACE TRIGGER "AdminAction_append_only" BEFORE UPDATE OR DELETE ON "public"."AdminAction"
+  FOR EACH ROW EXECUTE FUNCTION "turfcut_private"."append_only"();
+ALTER TABLE "public"."AdminAction" ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON "public"."AdminAction" FROM anon, authenticated;
 
 -- Shift slots (M8.2, prisma/m8-slots.sql): open shifts staff post on a job;
 -- each seat a worker takes is a Shift with slotId.
@@ -2027,3 +2070,134 @@ SELECT gen_random_uuid(), e."id",
   FROM "public"."Engagement" e JOIN "public"."Worker" w ON w."id" = e."workerId"
  WHERE e."applicationSnapshot"->>'kind' IN ('application', 'claim', 'invitation')
    AND NOT EXISTS (SELECT 1 FROM "public"."EngagementEvent" x WHERE x."engagementId" = e."id");
+
+-- Campaign verification (M10.5, prisma/m10-verification.sql): when Turfcut
+-- staff confirmed a campaign profile is the organization's official account,
+-- and who. Both null or both set. Server-only: no grant to the API roles.
+ALTER TABLE "public"."CampaignProfile" ADD COLUMN IF NOT EXISTS "verifiedAt" TIMESTAMP(3);
+ALTER TABLE "public"."CampaignProfile" ADD COLUMN IF NOT EXISTS "verifiedById" UUID;
+DO $$ BEGIN
+  ALTER TABLE "public"."CampaignProfile" ADD CONSTRAINT "CampaignProfile_verifiedById_fkey" FOREIGN KEY ("verifiedById") REFERENCES "public"."Profile"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+DO $$ BEGIN
+  ALTER TABLE "public"."CampaignProfile" ADD CONSTRAINT "CampaignProfile_verified_together" CHECK (("verifiedAt" IS NULL) = ("verifiedById" IS NULL));
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+CREATE INDEX IF NOT EXISTS "CampaignProfile_verifiedAt_idx" ON "public"."CampaignProfile"("verifiedAt");
+
+-- Organization roles (M10.6, prisma/m10-roles.sql): custom roles an organization defines for itself.
+-- (Role.CUSTOM is in the Role enum above.)
+DO $$ BEGIN
+  CREATE TYPE "public"."RoleAccessLevel" AS ENUM ('FULL', 'READ');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+CREATE TABLE IF NOT EXISTS "public"."OrgRole" (
+    "id" UUID NOT NULL,
+    "orgId" UUID NOT NULL,
+    "name" TEXT NOT NULL,
+    "description" TEXT NOT NULL DEFAULT '',
+    "basedOn" "public"."Role",
+    "createdById" UUID NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "archivedAt" TIMESTAMP(3),
+
+    CONSTRAINT "OrgRole_pkey" PRIMARY KEY ("id"),
+    CONSTRAINT "OrgRole_name_length" CHECK (char_length(btrim("name")) BETWEEN 1 AND 60),
+    CONSTRAINT "OrgRole_description_length" CHECK (char_length("description") <= 300),
+    CONSTRAINT "OrgRole_basedOn_builtin" CHECK ("basedOn" IS NULL OR "basedOn"::text NOT IN ('WORKER', 'CUSTOM'))
+);
+CREATE UNIQUE INDEX IF NOT EXISTS "OrgRole_orgId_name_key" ON "public"."OrgRole"("orgId", "name");
+-- Names are compared without case: "Field lead" and "field lead" are one name.
+CREATE UNIQUE INDEX IF NOT EXISTS "OrgRole_orgId_lower_name_key" ON "public"."OrgRole"("orgId", lower("name"));
+CREATE INDEX IF NOT EXISTS "OrgRole_orgId_archivedAt_idx" ON "public"."OrgRole"("orgId", "archivedAt");
+DO $$ BEGIN
+  ALTER TABLE "public"."OrgRole" ADD CONSTRAINT "OrgRole_orgId_fkey" FOREIGN KEY ("orgId") REFERENCES "public"."Organization"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+DO $$ BEGIN
+  ALTER TABLE "public"."OrgRole" ADD CONSTRAINT "OrgRole_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "public"."Profile"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+CREATE TABLE IF NOT EXISTS "public"."OrgRoleGrant" (
+    "roleId" UUID NOT NULL,
+    "area" TEXT NOT NULL,
+    "level" "public"."RoleAccessLevel" NOT NULL,
+
+    CONSTRAINT "OrgRoleGrant_pkey" PRIMARY KEY ("roleId", "area")
+);
+DO $$ BEGIN
+  ALTER TABLE "public"."OrgRoleGrant" ADD CONSTRAINT "OrgRoleGrant_roleId_fkey" FOREIGN KEY ("roleId") REFERENCES "public"."OrgRole"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+ALTER TABLE "public"."OrgRole" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."OrgRoleGrant" ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON "public"."OrgRole", "public"."OrgRoleGrant" FROM anon, authenticated;
+
+ALTER TABLE "public"."Profile" ADD COLUMN IF NOT EXISTS "orgRoleId" UUID;
+ALTER TABLE "public"."OrgInvite" ADD COLUMN IF NOT EXISTS "orgRoleId" UUID;
+DO $$ BEGIN
+  ALTER TABLE "public"."Profile" ADD CONSTRAINT "Profile_orgRoleId_fkey" FOREIGN KEY ("orgRoleId") REFERENCES "public"."OrgRole"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+DO $$ BEGIN
+  ALTER TABLE "public"."OrgInvite" ADD CONSTRAINT "OrgInvite_orgRoleId_fkey" FOREIGN KEY ("orgRoleId") REFERENCES "public"."OrgRole"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+-- A custom role has an OrgRole and nothing else does.
+DO $$ BEGIN
+  ALTER TABLE "public"."Profile" ADD CONSTRAINT "Profile_custom_role" CHECK (("role"::text = 'CUSTOM') = ("orgRoleId" IS NOT NULL));
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+DO $$ BEGIN
+  ALTER TABLE "public"."OrgInvite" ADD CONSTRAINT "OrgInvite_custom_role" CHECK (("role"::text = 'CUSTOM') = ("orgRoleId" IS NOT NULL));
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+CREATE INDEX IF NOT EXISTS "Profile_orgRoleId_idx" ON "public"."Profile"("orgRoleId");
+
+-- Chat access follows the role (M10.6). Team chats are run by owners,
+-- recruiters, supervisors and custom roles with full Messages: a manager
+-- leaves every conversation they manage when they stop being one, whatever
+-- path makes the change (role, organization or custom role).
+CREATE OR REPLACE FUNCTION "turfcut_private"."end_staff_chat_access"() RETURNS trigger LANGUAGE plpgsql SET search_path = '' AS $$
+BEGIN
+  UPDATE "public"."ConversationParticipant" p
+     SET "removedAt" = (clock_timestamp() AT TIME ZONE 'UTC')::timestamp(3)
+    FROM "public"."Conversation" c
+   WHERE c."id" = p."conversationId" AND p."profileId" = NEW."id" AND p."role" = 'MANAGER' AND p."removedAt" IS NULL
+     AND (NEW."orgId" IS DISTINCT FROM c."orgId"
+          OR NOT (NEW."role"::text IN ('OWNER', 'RECRUITER', 'SUPERVISOR')
+                  OR (NEW."role"::text = 'CUSTOM' AND EXISTS (
+                        SELECT 1 FROM "public"."OrgRole" r JOIN "public"."OrgRoleGrant" g ON g."roleId" = r."id"
+                         WHERE r."id" = NEW."orgRoleId" AND r."orgId" = NEW."orgId" AND r."archivedAt" IS NULL AND g."area" = 'messages' AND g."level"::text = 'FULL'))));
+  RETURN NULL;
+END $$;
+REVOKE ALL ON FUNCTION "turfcut_private"."end_staff_chat_access"() FROM PUBLIC, anon, authenticated;
+DROP TRIGGER IF EXISTS "Profile_end_chat_access" ON "public"."Profile";
+CREATE TRIGGER "Profile_end_chat_access" AFTER UPDATE OF "orgId", "role", "orgRoleId" ON "public"."Profile"
+  FOR EACH ROW WHEN (OLD."orgId" IS DISTINCT FROM NEW."orgId" OR OLD."role" IS DISTINCT FROM NEW."role" OR OLD."orgRoleId" IS DISTINCT FROM NEW."orgRoleId")
+  EXECUTE FUNCTION "turfcut_private"."end_staff_chat_access"();
+
+-- A grant row losing full Messages ends chat access for the managers on that
+-- role, whatever makes the change (the app edits grants in place; a hand edit
+-- in the SQL editor must not leave a manager reading).
+CREATE OR REPLACE FUNCTION "turfcut_private"."end_role_chat_access"() RETURNS trigger LANGUAGE plpgsql SET search_path = '' AS $$
+BEGIN
+  UPDATE "public"."ConversationParticipant" p
+     SET "removedAt" = (clock_timestamp() AT TIME ZONE 'UTC')::timestamp(3)
+   WHERE p."role" = 'MANAGER' AND p."removedAt" IS NULL
+     AND p."profileId" IN (SELECT pr."id" FROM "public"."Profile" pr WHERE pr."orgRoleId" = OLD."roleId");
+  RETURN NULL;
+END $$;
+REVOKE ALL ON FUNCTION "turfcut_private"."end_role_chat_access"() FROM PUBLIC, anon, authenticated;
+DROP TRIGGER IF EXISTS "OrgRoleGrant_end_chat_access_delete" ON "public"."OrgRoleGrant";
+CREATE TRIGGER "OrgRoleGrant_end_chat_access_delete" AFTER DELETE ON "public"."OrgRoleGrant"
+  FOR EACH ROW WHEN (OLD."area" = 'messages')
+  EXECUTE FUNCTION "turfcut_private"."end_role_chat_access"();
+DROP TRIGGER IF EXISTS "OrgRoleGrant_end_chat_access_update" ON "public"."OrgRoleGrant";
+CREATE TRIGGER "OrgRoleGrant_end_chat_access_update" AFTER UPDATE OF "area", "level" ON "public"."OrgRoleGrant"
+  FOR EACH ROW WHEN (OLD."area" = 'messages' AND (NEW."area" <> 'messages' OR NEW."level"::text <> 'FULL'))
+  EXECUTE FUNCTION "turfcut_private"."end_role_chat_access"();

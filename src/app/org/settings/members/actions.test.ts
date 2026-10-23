@@ -10,7 +10,7 @@ vi.mock("@/lib/members-data", () => ({
   revokeInvite: vi.fn(),
   changeMemberRole: vi.fn(),
   removeMember: vi.fn(),
-  isInviteRole: (r: string) => ["OWNER", "RECRUITER", "SUPERVISOR", "FINANCE", "PUBLISHER"].includes(r),
+  readRoleChoice: (r: string) => (["OWNER", "RECRUITER", "SUPERVISOR", "FINANCE", "PUBLISHER"].includes(r) || /^custom:[0-9a-f-]{36}$/.test(r) ? { role: r } : null),
   normalizeEmail: (e: string) => (/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e.trim()) ? e.trim().toLowerCase() : null),
 }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));

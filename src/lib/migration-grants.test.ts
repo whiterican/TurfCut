@@ -27,7 +27,7 @@ describe("migration grants", () => {
       }
     }
   });
-  it("campaign tables: column grants only, never who wrote or deleted a post, never revisions (S1)", () => {
+  it("campaign tables: column grants only, never who wrote or deleted a post, never revisions (S1), never the verification columns (M10.5)", () => {
     const allowed: Record<string, Set<string>> = {
       CampaignProfile: new Set(['"id"', '"handle"', '"displayName"', '"bio"', '"avatarKey"', '"headerKey"', '"publishedAt"', '"createdAt"', '"updatedAt"']),
       CampaignPost: new Set(['"id"', '"profileId"', '"body"', '"jobId"', '"pinnedAt"', '"createdAt"', '"editedAt"']),
@@ -88,6 +88,23 @@ describe("migration grants", () => {
         expect({ file: f, table: t, rls: new RegExp(`ALTER\\s+TABLE\\s+"public"\\."${t}"\\s+ENABLE\\s+ROW\\s+LEVEL\\s+SECURITY`, "i").test(sql) }).toEqual({ file: f, table: t, rls: true });
         expect({ file: f, table: t, revoked: new RegExp(`REVOKE\\s+ALL\\s+ON\\s+"public"\\."${t}"\\s+FROM\\s+anon,\\s*authenticated`, "i").test(sql) }).toEqual({ file: f, table: t, revoked: true });
         expect({ file: f, table: t, appendOnly: new RegExp(`TRIGGER\\s+"${t}_append_only"\\s+BEFORE\\s+UPDATE\\s+OR\\s+DELETE\\s+ON\\s+"public"\\."${t}"`, "i").test(sql) }).toEqual({ file: f, table: t, appendOnly: true });
+      }
+    }
+  });
+  it("the staff ledger stays server-only and append-only (M10)", () => {
+    for (const t of ["AdminAction"]) {
+      for (const f of files) {
+        const sql = readFileSync(join(dir, f), "utf8").replace(/--[^\n]*/g, "");
+        expect({ file: f, table: t, grants: sql.match(new RegExp(`GRANT[^;]*"${t}"[^;]*`, "gi")) ?? [] }).toEqual({ file: f, table: t, grants: [] });
+        expect({ file: f, table: t, policies: sql.match(new RegExp(`CREATE\\s+POLICY[^;]*"${t}"[^;]*`, "gi")) ?? [] }).toEqual({ file: f, table: t, policies: [] });
+      }
+      for (const f of ["m10-admin.sql", "supabase-manual-setup.sql"]) {
+        const sql = readFileSync(join(dir, f), "utf8").replace(/--[^\n]*/g, "");
+        expect({ file: f, table: t, rls: new RegExp(`ALTER\\s+TABLE\\s+"public"\\."${t}"\\s+ENABLE\\s+ROW\\s+LEVEL\\s+SECURITY`, "i").test(sql) }).toEqual({ file: f, table: t, rls: true });
+        expect({ file: f, table: t, revoked: new RegExp(`REVOKE\\s+ALL\\s+ON\\s+"public"\\."${t}"\\s+FROM\\s+anon,\\s*authenticated`, "i").test(sql) }).toEqual({ file: f, table: t, revoked: true });
+        expect({ file: f, table: t, appendOnly: new RegExp(`TRIGGER\\s+"${t}_append_only"\\s+BEFORE\\s+UPDATE\\s+OR\\s+DELETE\\s+ON\\s+"public"\\."${t}"`, "i").test(sql) }).toEqual({ file: f, table: t, appendOnly: true });
+        // A blank reason is refused by the table itself, not only by the code.
+        expect({ file: f, table: t, reasonCheck: /AdminAction_reason_given"\s+CHECK\s*\(length\(btrim\("reason"\)\)\s*>\s*0\)/i.test(sql) }).toEqual({ file: f, table: t, reasonCheck: true });
       }
     }
   });

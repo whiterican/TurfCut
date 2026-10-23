@@ -20,7 +20,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ proo
     session.role === "WORKER" && session.workerId
       ? { kind: "worker", workerId: session.workerId, profileId: session.userId }
       : session.orgId
-        ? { kind: "staff", profileId: session.userId, orgId: session.orgId, role: session.role }
+        ? { kind: "staff", profileId: session.userId, orgId: session.orgId, role: session.role, grants: session.grants }
         : null;
   if (!viewer) return Response.json({ error: "Photo not found." }, { status: 404 });
   const unset = missingProofSettings();

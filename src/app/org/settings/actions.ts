@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { requireOrgMember } from "@/lib/employer-session";
+import { requireArea } from "@/lib/employer-session";
 
 /**
  * Publish-gate records (spec p.15). Signing and the classification review
@@ -10,7 +10,7 @@ import { requireOrgMember } from "@/lib/employer-session";
  * submission changes nothing, and the original timestamp stands.
  */
 export async function signContractorTerms(): Promise<void> {
-  const { orgId, userId } = await requireOrgMember(["OWNER"]);
+  const { orgId, userId } = await requireArea("orgSettings");
   const { count } = await db().organization.updateMany({
     where: { id: orgId, contractorTermsSignedAt: null },
     data: { contractorTermsSignedAt: new Date() },
@@ -22,7 +22,7 @@ export async function signContractorTerms(): Promise<void> {
 }
 
 export async function recordClassificationReview(): Promise<void> {
-  const { orgId, userId } = await requireOrgMember(["OWNER", "COMPLIANCE"]);
+  const { orgId, userId } = await requireArea("compliance");
   const { count } = await db().organization.updateMany({
     where: { id: orgId, classificationReviewedAt: null },
     data: { classificationReviewedAt: new Date() },
@@ -36,7 +36,7 @@ export async function recordClassificationReview(): Promise<void> {
 }
 
 export async function saveLegalContact(formData: FormData): Promise<void> {
-  const { orgId, userId } = await requireOrgMember(["OWNER"]);
+  const { orgId, userId } = await requireArea("orgSettings");
   const value = String(formData.get("legalContact") ?? "").trim().replace(/\s+/g, " ").slice(0, 200) || null;
   const before = await db().organization.findUnique({ where: { id: orgId }, select: { legalContact: true } });
   if (before?.legalContact === value) return;

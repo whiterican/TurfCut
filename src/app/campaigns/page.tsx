@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requireArea } from "@/lib/employer-session";
-import { accessTo } from "@/lib/access";
+import { canUse } from "@/lib/access";
 import { listOrgCampaigns } from "@/lib/campaign-social-data";
 import { CampaignProfileForm } from "@/components/campaign/CampaignProfileForm";
 import { saveCampaign } from "./actions";
@@ -8,7 +8,7 @@ import { saveCampaign } from "./actions";
 /** The organization's campaigns: their public profiles and posts (S1). */
 export default async function CampaignsPage() {
   const session = await requireArea("campaignPosting");
-  const canEdit = accessTo(session.role, "campaigns") === "full";
+  const canEdit = canUse(session, "campaigns");
   const campaigns = await listOrgCampaigns(session.orgId);
   return (
     <main className="page max-w-3xl">

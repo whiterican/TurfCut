@@ -56,7 +56,7 @@ function FeedItem({ post }: { post: FeedPost }) {
       <p className="px-1 text-xs text-muted">
         <Link href={`/c/${post.campaign.handle}`} className="font-medium hover:underline">{post.reason === "hired" ? "A campaign you work for" : "Following"}</Link>
       </p>
-      <PostCard post={post} handle={post.campaign.handle} displayName={post.campaign.displayName} signedIn liked={post.liked} />
+      <PostCard post={post} handle={post.campaign.handle} displayName={post.campaign.displayName} verified={!!post.campaign.verifiedAt} signedIn liked={post.liked} />
     </div>
   );
 }

@@ -40,6 +40,13 @@ enum Role {
   SUPERVISOR // field supervisor (reviews work)
   FINANCE // organization finance (payouts, exports)
   PUBLISHER // C1: campaign communications (campaign profiles and feed land in C6)
+  CUSTOM // M10.6: an organization-defined role; what it reaches is its OrgRole's grants (Profile.orgRoleId)
+}
+
+/// How far a role's grant on an area goes (M10.6): the access map's full or read.
+enum RoleAccessLevel {
+  FULL
+  READ
 }
 
 /// Links a Supabase Auth user to a Turfcut role.
@@ -47,19 +54,27 @@ enum Role {
 /// member detaches them (orgId = null) and keeps their login and history. Worker users get a workers row; company users get an
 /// organizations row and one of the org roles.
 model Profile {
-  id          String        @id @db.Uuid // == Supabase auth.users.id
-  role        Role
-  worker      Worker?
-  orgId       String?       @db.Uuid
-  org         Organization? @relation(fields: [orgId], references: [id])
+  id              String        @id @db.Uuid // == Supabase auth.users.id
+  role            Role
+  worker          Worker?
+  orgId           String?       @db.Uuid
+  org             Organization? @relation(fields: [orgId], references: [id])
+  /// M10.6: set exactly when role is CUSTOM (a CHECK keeps the two in step).
+  orgRoleId       String?       @db.Uuid
+  orgRole         OrgRole?      @relation("OrgRoleMembers", fields: [orgRoleId], references: [id], onDelete: Restrict)
+  orgRolesCreated OrgRole[]     @relation("OrgRoleCreator")
   // Org staff's name as shown in chat ("Maya Chen · Manager"). Workers use
   // Worker.displayName. Never shown to anyone outside a shared conversation.
-  displayName String?
+  displayName     String?
   // Account closure (M7): set when the person closed their account. The
   // auth user is deleted; this row and everything it anchors stay (rule 3).
-  closedAt    DateTime?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  closedAt        DateTime?
+  // Turfcut staff (M10): when this account was made staff; null for everyone
+  // else. Independent of role (a staff member can also be a worker or an
+  // owner). Set by hand in SQL, never by the app (README, "Turfcut staff").
+  staffSince      DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
 
   hiredEngagements      Engagement[]              @relation("HiredBy")
   notifications         Notification[]
@@ -75,6 +90,8 @@ model Profile {
   slotsPosted           ShiftSlot[]               @relation("ShiftSlotCreator")
   disputeMessages       PayDisputeMessage[]       @relation("DisputeMessageAuthor")
   slotsSupervised       ShiftSlot[]               @relation("ShiftSlotSupervisor")
+  adminActions          AdminAction[]             @relation("AdminActionStaff")
+  campaignsVerified     CampaignProfile[]         @relation("CampaignVerifier")
 
   @@index([orgId])
 }
@@ -234,6 +251,10 @@ model Organization {
   id                       String            @id @default(uuid()) @db.Uuid
   name                     String
   approved                 Boolean           @default(false) // manual approval for the private pilot
+  // When Turfcut last approved it (M10.2). Stays set when approval is
+  // withdrawn (approved goes false), so Settings can say the approval was
+  // withdrawn rather than never given. The reason lives on the staff ledger.
+  approvedAt               DateTime?
   // Publish gate (spec p.15): no job publishes until both are recorded.
   contractorTermsSignedAt  DateTime?
   classificationReviewedAt DateTime?
@@ -248,6 +269,8 @@ model Organization {
   invites                  OrgInvite[]
   mutedBy                  OrgMute[]
   campaignProfiles         CampaignProfile[]
+  adminActions             AdminAction[]
+  orgRoles                 OrgRole[]
   createdAt                DateTime          @default(now())
   updatedAt                DateTime          @updatedAt
 }
@@ -264,6 +287,9 @@ model OrgInvite {
   org          Organization @relation(fields: [orgId], references: [id], onDelete: Restrict)
   email        String // lowercased
   role         Role // never WORKER
+  /// M10.6: the custom role an invite is for; set exactly when role is CUSTOM.
+  orgRoleId    String?      @db.Uuid
+  orgRole      OrgRole?     @relation("OrgRoleInvites", fields: [orgRoleId], references: [id], onDelete: Restrict)
   invitedById  String       @db.Uuid // Profile.id of the owner who sent it
   createdAt    DateTime     @default(now())
   expiresAt    DateTime
@@ -273,6 +299,40 @@ model OrgInvite {
 
   @@index([email])
   @@index([orgId, createdAt])
+}
+
+/// M10.6: a role an organization defines for itself: a name and what it
+/// reaches, as grants on the access map's areas. Started from a built-in
+/// role as a preset (basedOn). Never deleted: archived once nobody holds it
+/// (the history of who held what stays readable on the audit trail).
+model OrgRole {
+  id          String         @id @default(uuid()) @db.Uuid
+  orgId       String         @db.Uuid
+  org         Organization   @relation(fields: [orgId], references: [id], onDelete: Restrict)
+  name        String
+  description String         @default("")
+  basedOn     Role? // the built-in role it started from, if any
+  createdById String         @db.Uuid
+  createdBy   Profile        @relation("OrgRoleCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  createdAt   DateTime       @default(now())
+  archivedAt  DateTime?
+  grants      OrgRoleGrant[]
+  members     Profile[]      @relation("OrgRoleMembers")
+  invites     OrgInvite[]    @relation("OrgRoleInvites")
+
+  @@unique([orgId, name])
+  @@index([orgId, archivedAt])
+}
+
+/// One grant of a custom role: an area (checked in code against the access
+/// map's list, so a new area never needs a migration) at full or read.
+model OrgRoleGrant {
+  roleId String          @db.Uuid
+  role   OrgRole         @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  area   String
+  level  RoleAccessLevel
+
+  @@id([roleId, area])
 }
 
 /// Versioned, counsel-approved rule profile per jurisdiction.
@@ -289,6 +349,12 @@ model JurisdictionProfile {
   // Versioned by effective date; counsel approval can lapse (spec p.13, p.15).
   effectiveFrom     DateTime? // null = effective immediately
   approvalExpiresAt DateTime? // null = no expiry set by counsel
+  // M10.3: who proposed and approved this version (staff Profile ids), and
+  // when a newer approved version took its place. The reasons live on the
+  // staff ledger (AdminAction).
+  createdById       String?   @db.Uuid
+  approvedById      String?   @db.Uuid
+  supersededAt      DateTime?
   // Compensation/eligibility/registration/badge/affidavit/disclosure rules.
   rules             Json
   jobs              Job[]
@@ -826,6 +892,31 @@ model AuditEvent {
   @@index([createdAt])
 }
 
+/// M10: the staff ledger. One row per act a Turfcut staff member takes on
+/// the platform (approving an organization, a jurisdiction version, a
+/// campaign verification, a support action): who, what, on which record,
+/// for which organization, and why, in their own words. Append-only (rule
+/// 3): a correction is a new row that supersedes. Server-only: no Data API
+/// grants. Staff notes stay out of the organization's own audit trail.
+model AdminAction {
+  id         String        @id @default(uuid()) @db.Uuid
+  staffId    String        @db.Uuid
+  staff      Profile       @relation("AdminActionStaff", fields: [staffId], references: [id], onDelete: Restrict)
+  action     String // e.g. "org.approved", "jurisdiction.version_approved"
+  targetType String // e.g. "Organization", "JurisdictionProfile", "Profile", "OrgInvite" (lib/admin-data.ts lists them)
+  targetId   String
+  orgId      String?       @db.Uuid // the organization the act concerns, when there is one
+  org        Organization? @relation(fields: [orgId], references: [id], onDelete: Restrict)
+  reason     String // never empty (checked in code and in SQL)
+  metadata   Json?
+  createdAt  DateTime      @default(now())
+
+  @@index([targetType, targetId])
+  @@index([orgId, createdAt])
+  @@index([staffId, createdAt])
+  @@index([createdAt])
+}
+
 // ---------------------------------------------------------------------------
 // M4 — in-app messaging. Access is decided in src/lib/chat.ts (server) and,
 // for Supabase Realtime, by RLS policies in prisma/m4-migration.sql.
@@ -1111,6 +1202,11 @@ enum NotificationKind {
   DISPUTE_OVERDUE // to the pay roles: a deadline passed
   PAYOUT_SENT // to the worker: a transfer went through (the receipt)
   PAYOUT_REVERSED // to the worker: a paid transfer was reversed
+  // M10.2: Turfcut's decision on the organization, to its owners. No subject
+  // row: the notice is about the organization the recipient belongs to.
+  ORG_APPROVED
+  ORG_APPROVAL_REVOKED
+  ORG_JOBS_FROZEN // M10.3: a jurisdiction rule change or a withdrawn approval froze some of the organization's jobs
 }
 
 /// C3.5: an in-app notice for one person about one engagement. readAt is the
@@ -1122,7 +1218,8 @@ model Notification {
   kind         NotificationKind
   /// What it's about: exactly one of an engagement (hiring steps), a
   /// campaign post (CAMPAIGN_POST), a pay dispute (DISPUTE_*) or a payout
-  /// transfer (PAYOUT_*); checked in SQL (prisma/m9-money.sql).
+  /// transfer (PAYOUT_*); checked in SQL (prisma/m9-money.sql). An ORG_*
+  /// notice (M10.2) has no subject: it is about the recipient's organization.
   engagementId String?          @db.Uuid
   engagement   Engagement?      @relation(fields: [engagementId], references: [id], onDelete: Restrict)
   postId       String?          @db.Uuid
@@ -1203,23 +1300,28 @@ model JobChange {
 /// infers politics from it. Public once published, and only while the
 /// organization is approved by Turfcut.
 model CampaignProfile {
-  id          String             @id @default(uuid()) @db.Uuid
-  orgId       String             @db.Uuid
-  org         Organization       @relation(fields: [orgId], references: [id], onDelete: Restrict)
-  handle      String             @unique // lowercase a-z 0-9 _, 3-30 (checked in SQL and code)
-  displayName String
-  bio         String             @default("")
-  avatarKey   String?
-  headerKey   String?
-  publishedAt DateTime? // null = draft, not public
-  createdAt   DateTime           @default(now())
-  updatedAt   DateTime           @updatedAt
-  posts       CampaignPost[]
-  jobs        Job[]
-  followers   CampaignFollow[]
-  resources   CampaignResource[]
+  id           String             @id @default(uuid()) @db.Uuid
+  orgId        String             @db.Uuid
+  org          Organization       @relation(fields: [orgId], references: [id], onDelete: Restrict)
+  handle       String             @unique // lowercase a-z 0-9 _, 3-30 (checked in SQL and code)
+  displayName  String
+  bio          String             @default("")
+  avatarKey    String?
+  headerKey    String?
+  publishedAt  DateTime? // null = draft, not public
+  /// M10.5: when Turfcut staff confirmed this is the organization's official campaign account, and who. Both null or both set; the reason is on the AdminAction ledger. Changing the name or handle, unpublishing, or withdrawing the organization's approval clears it.
+  verifiedAt   DateTime?
+  verifiedById String?            @db.Uuid
+  verifiedBy   Profile?           @relation("CampaignVerifier", fields: [verifiedById], references: [id], onDelete: Restrict)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  posts        CampaignPost[]
+  jobs         Job[]
+  followers    CampaignFollow[]
+  resources    CampaignResource[]
 
   @@index([orgId])
+  @@index([verifiedAt])
 }
 
 /// S1: a post on a campaign's profile, up to 500 characters, optionally

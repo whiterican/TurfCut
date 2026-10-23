@@ -1,14 +1,14 @@
 import Link from "next/link";
-import { requireRole } from "@/lib/auth";
-import { PAY_ROLES } from "@/lib/access";
+
 import { listStatements } from "@/lib/statements-data";
 import { money } from "@/lib/pay";
+import { requireArea } from "@/lib/employer-session";
 
 export const metadata = { title: "Statements · Turfcut" };
 
 /** The organization's monthly statements (M9.3): owners and finance. */
 export default async function StatementsPage() {
-  const s = await requireRole(PAY_ROLES);
+  const s = await requireArea("pay");
   if (!s.orgId) {
     return (
       <main className="page max-w-2xl">
@@ -24,7 +24,7 @@ export default async function StatementsPage() {
   const statements = await listStatements({
     profileId: s.userId,
     orgId: s.orgId,
-    role: s.role,
+    role: s.role, grants: s.grants,
   });
   return (
     <main className="page max-w-2xl">

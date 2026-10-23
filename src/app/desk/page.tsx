@@ -7,9 +7,20 @@ import { Masthead } from "@/components/staff/Masthead";
 import { DataTable } from "@/components/staff/DataTable";
 import { SummaryBar } from "@/components/staff/SummaryBar";
 import { LocalTime } from "@/components/LocalTime";
+import { roleName } from "@/lib/org-roles";
 
 /** Today in the field: the strip owners and supervisors see first. */
 function FieldToday({ ops }: { ops: NonNullable<Awaited<ReturnType<typeof loadDesk>>["today"]> }) {
+  // Nothing under way and nothing starting soon: every figure is zero, so say so in words instead of a row of zeros.
+  if (ops.scheduled === 0 && ops.upcoming === 0) {
+    return (
+      <div className="hero-card hero-card-quiet space-y-3">
+        <p className="eyebrow">In the field today</p>
+        <p className="hero-title">Nothing under way</p>
+        <p className="hero-muted text-sm">Shifts starting in the next 24 hours show up here.</p>
+      </div>
+    );
+  }
   return (
     <div className="hero-card space-y-4">
       <p className="eyebrow">In the field today</p>
@@ -29,13 +40,13 @@ export default async function DeskPage() {
   const session = await requireArea("desk");
   const [org, desk] = await Promise.all([
     db().organization.findUnique({ where: { id: session.orgId }, select: { name: true } }),
-    loadDesk({ profileId: session.userId, orgId: session.orgId, role: session.role }),
+    loadDesk({ profileId: session.userId, orgId: session.orgId, role: session.role, grants: session.grants }),
   ]);
   const { parts } = desk;
 
   return (
     <main className="page">
-      <Masthead eyebrow="Desk" title={org?.name ?? "Your organization"} meta={ROLE_LABELS[session.role]} />
+      <Masthead eyebrow="Desk" title={org?.name ?? "Your organization"} meta={roleName(session, ROLE_LABELS)} />
 
       {parts.today && desk.today && <FieldToday ops={desk.today} />}
 

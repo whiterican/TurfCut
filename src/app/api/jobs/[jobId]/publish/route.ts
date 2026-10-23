@@ -6,7 +6,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ jobId:
   const { jobId } = await params;
   const bad = badId(jobId);
   if (bad) return bad;
-  const auth = await apiEmployer();
+  const auth = await apiEmployer("jobsEdit");
   if ("error" in auth) return auth.error;
   const r = await publishJob(jobId, auth.session.orgId, auth.session.userId);
   if (r.ok) return Response.json({ status: "PUBLISHED" });

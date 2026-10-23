@@ -9,7 +9,7 @@ export const metadata = { title: "New team chat · Turfcut" };
 
 export default async function NewTeamChatPage() {
   const session = await requireAuth();
-  const me = { userId: session.userId, role: session.role, orgId: session.orgId };
+  const me = { userId: session.userId, role: session.role, grants: session.grants, orgId: session.orgId };
   if (!canCreateGroup(me).ok) redirect("/messages");
   const jobs = await teamChatJobs(me);
 

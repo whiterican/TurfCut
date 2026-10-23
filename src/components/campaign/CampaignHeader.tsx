@@ -1,8 +1,10 @@
 import { LinkedText } from "@/components/campaign/LinkedText";
+import { VerifiedMark } from "@/components/campaign/VerifiedMark";
 
 /**
  * A campaign profile's header: header image, avatar, name, handle and bio,
- * as the campaign wrote them. Turfcut adds no label of its own.
+ * as the campaign wrote them. Turfcut adds one label of its own, and only
+ * when staff have verified the profile (M10.5).
  */
 export function CampaignHeader({
   displayName,
@@ -10,6 +12,7 @@ export function CampaignHeader({
   bio,
   avatarUrl,
   headerUrl,
+  verified = false,
   children,
 }: {
   displayName: string;
@@ -17,6 +20,7 @@ export function CampaignHeader({
   bio: string;
   avatarUrl: string | null;
   headerUrl: string | null;
+  verified?: boolean;
   children?: React.ReactNode;
 }) {
   const initials = displayName.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => [...w][0]?.toUpperCase() ?? "").join("");
@@ -42,7 +46,10 @@ export function CampaignHeader({
         </div>
         <div>
           <h1 className="page-title">{displayName}</h1>
-          <p className="text-muted-sm">@{handle}</p>
+          <p className="flex flex-wrap items-center gap-2 text-muted-sm">
+            <span>@{handle}</span>
+            {verified && <VerifiedMark />}
+          </p>
         </div>
         {bio && <LinkedText text={bio} className="text-sm text-fg" />}
       </div>

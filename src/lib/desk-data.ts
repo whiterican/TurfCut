@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import type { Role } from "@/lib/auth";
+import type { Grants } from "@/lib/access";
 import { ACCEPTED_STATUSES } from "@/lib/engagements";
 import { loadOps } from "@/lib/field-day-data";
 import { loadOrgPay } from "@/lib/pay-data";
@@ -30,8 +31,8 @@ export interface Desk {
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
 /** Everything a role's Desk shows, from data that exists today (C1.3). */
-export async function loadDesk(actor: { profileId: string; orgId: string; role: Role }, now = new Date()): Promise<Desk> {
-  const parts = deskParts(actor.role);
+export async function loadDesk(actor: { profileId: string; orgId: string; role: Role; grants?: Grants | null }, now = new Date()): Promise<Desk> {
+  const parts = deskParts(actor);
   const orgId = actor.orgId;
   const needsOps = parts.today || parts.field || parts.readOnly;
   const needsJobs = parts.hiring || parts.week || parts.readOnly;

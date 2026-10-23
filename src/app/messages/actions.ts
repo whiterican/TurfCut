@@ -13,7 +13,7 @@ import type { ActionState } from "@/app/jobs/actions";
 
 const me = async (): Promise<chat.ChatUser> => {
   const s = await requireAuth();
-  return { userId: s.userId, role: s.role, orgId: s.orgId };
+  return { userId: s.userId, role: s.role, grants: s.grants, orgId: s.orgId };
 };
 const str = (v: unknown) => (typeof v === "string" ? v : "");
 const done = (r: { ok: true } | { ok: false; reason: string }, message: string): ActionState =>
@@ -28,7 +28,7 @@ export async function unreadCount(): Promise<number> {
   const s = await getSessionProfile();
   if (!s) return 0;
   try {
-    return await chat.unreadTotal({ userId: s.userId, role: s.role, orgId: s.orgId });
+    return await chat.unreadTotal({ userId: s.userId, role: s.role, grants: s.grants, orgId: s.orgId });
   } catch {
     return 0;
   }

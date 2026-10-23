@@ -1,5 +1,5 @@
 import type { Role } from "@/lib/auth";
-import { can } from "@/lib/access";
+import { can, type AccessSubject } from "@/lib/access";
 
 /**
  * The Desk (C1.3): each organization role's home. Which parts a role sees
@@ -21,11 +21,11 @@ export interface DeskParts {
   readOnly: boolean;
 }
 
-export function deskParts(role: Role): DeskParts {
-  const hiring = can(role, "hiring");
-  const field = can(role, "field");
-  const week = can(role, "scheduling");
-  const pay = can(role, "pay");
+export function deskParts(member: Role | AccessSubject): DeskParts {
+  const hiring = can(member, "hiring");
+  const field = can(member, "field");
+  const week = can(member, "scheduling");
+  const pay = can(member, "pay");
   return { hiring, field, today: field, week, pay, readOnly: !hiring && !field && !week && !pay };
 }
 

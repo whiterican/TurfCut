@@ -19,6 +19,9 @@ export type ComplianceActivity = (typeof COMPLIANCE_ACTIVITIES)[number];
 export type ComplianceSector = "political" | "nonprofit" | "private";
 export type CommunicationMethod = "in_person" | "manual_voice" | "automated_voice" | "prerecorded_voice" | "sms";
 
+export const COMPLIANCE_SECTORS: readonly ComplianceSector[] = ["political", "nonprofit", "private"];
+export const COMMUNICATION_METHODS: readonly CommunicationMethod[] = ["in_person", "manual_voice", "automated_voice", "prerecorded_voice", "sms"];
+
 export interface CompliancePolicy {
   id: string;
   version: number;
@@ -61,6 +64,11 @@ export function preflightCompliancePolicy(
     reasons.push("Compliance policy identity or version is invalid.");
   }
   if (!policy.approved) reasons.push("Compliance policy is not approved.");
+  if (!(COMPLIANCE_ACTIVITIES as readonly string[]).includes(context.activity) ||
+      !COMPLIANCE_SECTORS.includes(context.sector) ||
+      !COMMUNICATION_METHODS.includes(context.method)) {
+    reasons.push("Work classification or contact method is not supported.");
+  }
   if (!context.jurisdiction.trim() || policy.jurisdiction !== context.jurisdiction ||
       policy.activity !== context.activity || policy.sector !== context.sector || policy.method !== context.method) {
     reasons.push("Compliance policy does not match this jurisdiction, sector, activity and method.");
@@ -73,8 +81,9 @@ export function preflightCompliancePolicy(
   } else if (now < from || now >= until) {
     reasons.push("Compliance policy is not currently effective.");
   }
-  if (!policy.officialSources.length || policy.officialSources.some((s) => {
+  if (!Array.isArray(policy.officialSources) || !policy.officialSources.length || policy.officialSources.some((s) => {
     try {
+      if (typeof s !== "string") return true;
       const u = new URL(s);
       return u.protocol !== "https:" || !u.hostname;
     } catch { return true; }

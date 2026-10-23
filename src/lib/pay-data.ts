@@ -1,7 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { UUID_RE } from "@/lib/jobs";
-import { PAY_ROLES } from "@/lib/access";
+import { canUse, type Grants } from "@/lib/access";
 import type { Role } from "@/lib/auth";
 import { ProviderError, type PayoutProvider, type ProviderEvent } from "@/lib/payout-provider";
 import { verifiedWork } from "@/lib/scorecard";
@@ -440,9 +440,11 @@ export interface PayActor {
   profileId: string;
   orgId: string;
   role: Role;
+  /** A custom-role member's grants (M10.6). */
+  grants?: Grants | null;
 }
 
-const notPayRole = (a: PayActor) => !PAY_ROLES.includes(a.role);
+const notPayRole = (a: PayActor) => !canUse(a, "pay");
 
 const LINE_INCLUDE = {
   events: true,
@@ -491,6 +493,8 @@ export async function orgLines(c: Client, where: Prisma.PayoutWhereInput): Promi
 }
 
 type LineAction = "approve" | "hold" | "release";
+/** The audit action each decision records (payout.approved is a ledger moment the staff console pins). */
+const LINE_AUDIT_ACTION: Record<LineAction, string> = { approve: "payout.approved", hold: "payout.held", release: "payout.released" };
 
 /**
  * Who reviewed the work behind a line, for display and the ledger: the
@@ -559,7 +563,7 @@ export async function lineAction(actor: PayActor, payoutIds: string[], action: L
     const type = action === "approve" ? "APPROVED" : action === "hold" ? "HELD" : "RELEASED";
     await tx.payoutEvent.createMany({ data: all.map((payoutId) => ({ payoutId, type, actorId: actor.profileId, reason: why, createdAt: at })) });
     await tx.auditEvent.create({
-      data: { actorId: actor.profileId, action: `payout.${action === "approve" ? "approved" : action === "hold" ? "held" : "released"}`, entityType: "Payout", entityId: ids[0], metadata: { payoutIds: all, reason: why } },
+      data: { actorId: actor.profileId, action: LINE_AUDIT_ACTION[action], entityType: "Payout", entityId: ids[0], metadata: { payoutIds: all, reason: why } },
     });
     return { ok: true as const, count: ids.length, deductions: deductions.length };
   });

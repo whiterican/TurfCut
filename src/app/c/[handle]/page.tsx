@@ -17,7 +17,7 @@ type Props = { params: Promise<{ handle: string }>; searchParams: Promise<{ curs
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const c = await loadPublicCampaign((await params).handle);
-  return c ? campaignPreview(c) : { title: "Campaign not found" };
+  return c ? campaignPreview({ ...c, verified: !!c.verifiedAt }) : { title: "Campaign not found" };
 }
 
 /**
@@ -43,7 +43,7 @@ export default async function PublicCampaignPage({ params, searchParams }: Props
   return (
     <main className="page max-w-2xl space-y-6">
       <Link transitionTypes={["nav-back"]} href="/c" className="btn-ghost btn-sm">← All campaigns</Link>
-      <CampaignHeader displayName={c.displayName} handle={c.handle} bio={c.bio} avatarUrl={mediaUrl(c.avatarKey)} headerUrl={mediaUrl(c.headerKey)}>
+      <CampaignHeader displayName={c.displayName} handle={c.handle} bio={c.bio} avatarUrl={mediaUrl(c.avatarKey)} headerUrl={mediaUrl(c.headerKey)} verified={!!c.verifiedAt}>
         <span className="flex flex-wrap items-center justify-end gap-2">
           <ShareButton path={`/c/${c.handle}`} title={`${c.displayName} (@${c.handle})`} />
           <FollowButton campaignId={c.id} state={follow} viewer={viewer} back={`/c/${c.handle}`} />
@@ -52,7 +52,7 @@ export default async function PublicCampaignPage({ params, searchParams }: Props
       {pinned.length > 0 && (
         <section className="section" aria-labelledby="talking-points">
           <h2 id="talking-points" className="section-title">Talking points</h2>
-          {pinned.map((p) => <PostCard key={p.id} post={p} handle={c.handle} displayName={c.displayName} signedIn={signedIn} liked={likedBy(p.id)} facts={facts.get(p.id) ?? []} />)}
+          {pinned.map((p) => <PostCard key={p.id} post={p} handle={c.handle} displayName={c.displayName} verified={!!c.verifiedAt} signedIn={signedIn} liked={likedBy(p.id)} facts={facts.get(p.id) ?? []} />)}
         </section>
       )}
       {resources.length > 0 && (
@@ -64,7 +64,7 @@ export default async function PublicCampaignPage({ params, searchParams }: Props
       <section className="section" aria-labelledby="posts">
         <h2 id="posts" className="section-title">Posts</h2>
         {feed.posts.length === 0 && <p className="card text-muted-sm">{cursor ? "No older posts." : "No posts yet."}</p>}
-        {feed.posts.map((p) => <PostCard key={p.id} post={p} handle={c.handle} displayName={c.displayName} signedIn={signedIn} liked={likedBy(p.id)} />)}
+        {feed.posts.map((p) => <PostCard key={p.id} post={p} handle={c.handle} displayName={c.displayName} verified={!!c.verifiedAt} signedIn={signedIn} liked={likedBy(p.id)} />)}
         {feed.next && <Link href={`/c/${c.handle}?cursor=${feed.next}`} className="btn-secondary">Older posts</Link>}
       </section>
     </main>

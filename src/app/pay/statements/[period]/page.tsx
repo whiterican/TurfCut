@@ -1,19 +1,19 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { requireRole } from "@/lib/auth";
-import { PAY_ROLES } from "@/lib/access";
+
 import { loadStatement } from "@/lib/statements-data";
 import { StatementView } from "@/components/StatementView";
 import { PrintButton } from "@/components/PrintButton";
+import { requireArea } from "@/lib/employer-session";
 
 export const metadata = { title: "Statement · Turfcut" };
 
 /** One month's statement (M9.3), printable, with a matching CSV. */
 export default async function StatementPage({ params }: { params: Promise<{ period: string }> }) {
   const { period } = await params;
-  const s = await requireRole(PAY_ROLES);
+  const s = await requireArea("pay");
   if (!s.orgId) notFound();
-  const st = await loadStatement({ profileId: s.userId, orgId: s.orgId, role: s.role }, period);
+  const st = await loadStatement({ profileId: s.userId, orgId: s.orgId, role: s.role, grants: s.grants }, period);
   if (!st) notFound();
   return (
     <main className="page max-w-3xl">

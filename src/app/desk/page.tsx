@@ -7,6 +7,7 @@ import { Masthead } from "@/components/staff/Masthead";
 import { DataTable } from "@/components/staff/DataTable";
 import { SummaryBar } from "@/components/staff/SummaryBar";
 import { LocalTime } from "@/components/LocalTime";
+import { roleName } from "@/lib/org-roles";
 
 /** Today in the field: the strip owners and supervisors see first. */
 function FieldToday({ ops }: { ops: NonNullable<Awaited<ReturnType<typeof loadDesk>>["today"]> }) {
@@ -39,13 +40,13 @@ export default async function DeskPage() {
   const session = await requireArea("desk");
   const [org, desk] = await Promise.all([
     db().organization.findUnique({ where: { id: session.orgId }, select: { name: true } }),
-    loadDesk({ profileId: session.userId, orgId: session.orgId, role: session.role }),
+    loadDesk({ profileId: session.userId, orgId: session.orgId, role: session.role, grants: session.grants }),
   ]);
   const { parts } = desk;
 
   return (
     <main className="page">
-      <Masthead eyebrow="Desk" title={org?.name ?? "Your organization"} meta={ROLE_LABELS[session.role]} />
+      <Masthead eyebrow="Desk" title={org?.name ?? "Your organization"} meta={roleName(session, ROLE_LABELS)} />
 
       {parts.today && desk.today && <FieldToday ops={desk.today} />}
 

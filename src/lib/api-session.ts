@@ -1,5 +1,5 @@
-import { getSessionProfile, type Role, type SessionProfile } from "@/lib/auth";
-import { HIRING_ROLES } from "@/lib/access";
+import { getSessionProfile, type SessionProfile } from "@/lib/auth";
+import { canUse, type AccessLevel, type Area } from "@/lib/access";
 import { db } from "@/lib/db";
 import { UUID_RE } from "@/lib/jobs";
 
@@ -15,10 +15,10 @@ export async function apiWorker(): Promise<{ session: SessionProfile & { workerI
 }
 
 /** API guard: owner or recruiter of an organization. */
-export async function apiEmployer(): Promise<{ session: SessionProfile & { orgId: string; orgApproved: boolean } } | Denied> {
+export async function apiEmployer(area: Area = "hiring"): Promise<{ session: SessionProfile & { orgId: string; orgApproved: boolean } } | Denied> {
   const session = await getSessionProfile();
   if (!session) return deny(401, "Sign in required.");
-  if (!HIRING_ROLES.includes(session.role) || !session.orgId) return deny(403, "Only owners and recruiters can do this.");
+  if (!canUse(session, area) || !session.orgId) return deny(403, "Your role can't do this.");
   const org = await db().organization.findUnique({ where: { id: session.orgId }, select: { approved: true } });
   return { session: { ...session, orgId: session.orgId, orgApproved: org?.approved ?? false } };
 }
@@ -44,11 +44,11 @@ export function badId(...ids: string[]): Response | null {
   return ids.every((id) => UUID_RE.test(id)) ? null : Response.json({ error: "Not found." }, { status: 404 });
 }
 
-/** API guard: a member of an organization in one of `roles`. */
-export async function apiOrgRole(roles: Role[]): Promise<{ session: SessionProfile & { orgId: string } } | Denied> {
+/** API guard: a member of an organization who reaches `area` at `level`: the access map for a built-in role, the grants of a custom one (M10.6). */
+export async function apiArea(area: Area, level: AccessLevel = "full"): Promise<{ session: SessionProfile & { orgId: string } } | Denied> {
   const session = await getSessionProfile();
   if (!session) return deny(401, "Sign in required.");
-  if (!roles.includes(session.role) || !session.orgId) return deny(403, "Your role can't do this.");
+  if (!canUse(session, area, level) || !session.orgId) return deny(403, "Your role can't do this.");
   return { session: { ...session, orgId: session.orgId } };
 }
 

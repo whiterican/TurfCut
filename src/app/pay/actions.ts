@@ -1,13 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireRole } from "@/lib/auth";
-import { PAY_ROLES } from "@/lib/access";
+
 import { lineAction, payWorker, recordPartialReversal, resolveDispute, settleTransfer, type PayActor } from "@/lib/pay-data";
 import { stripeProvider } from "@/lib/payout-provider";
 import { postDisputeMessage } from "@/lib/dispute-thread-data";
 import { money, parseMoney, type Resolution } from "@/lib/pay";
 import type { ActionState } from "@/app/jobs/actions";
+import { requireArea } from "@/lib/employer-session";
 
 /*
  * Server actions are public endpoints: each one authenticates as an owner
@@ -17,8 +17,8 @@ import type { ActionState } from "@/app/jobs/actions";
 const str = (fd: FormData, k: string) => String(fd.get(k) ?? "");
 
 async function actor(): Promise<PayActor | null> {
-  const s = await requireRole(PAY_ROLES);
-  return s.orgId ? { profileId: s.userId, orgId: s.orgId, role: s.role } : null;
+  const s = await requireArea("pay");
+  return s.orgId ? { profileId: s.userId, orgId: s.orgId, role: s.role, grants: s.grants } : null;
 }
 
 const refresh = () => {
@@ -29,10 +29,10 @@ const refresh = () => {
 
 /** An owner or finance member writes in a dispute's thread (M9). */
 export async function disputeMessage(_prev: ActionState, fd: FormData): Promise<ActionState> {
-  const s = await requireRole(PAY_ROLES);
+  const s = await requireArea("pay");
   if (!s.orgId) return { ok: false, message: "No organization on this account." };
   const disputeId = str(fd, "disputeId").trim();
-  const r = await postDisputeMessage({ profileId: s.userId, role: s.role, orgId: s.orgId, workerId: null }, disputeId, str(fd, "body"));
+  const r = await postDisputeMessage({ profileId: s.userId, role: s.role, grants: s.grants, orgId: s.orgId, workerId: null }, disputeId, str(fd, "body"));
   if (!r.ok) return { ok: false, message: r.reason };
   revalidatePath(`/pay/disputes/${disputeId}`);
   revalidatePath(`/earnings/disputes/${disputeId}`);

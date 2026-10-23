@@ -1,5 +1,5 @@
-import { apiOrgRole, badId, resultResponse } from "@/lib/api-session";
-import { accessTo, rolesFor } from "@/lib/access";
+import { apiArea, badId, resultResponse } from "@/lib/api-session";
+import { canUse } from "@/lib/access";
 import { check } from "@/lib/rate-limit";
 import { validatePostBody } from "@/lib/campaign-social";
 import { deletePost, editPost } from "@/lib/campaign-social-data";
@@ -13,7 +13,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ postId
   const { postId } = await params;
   const bad = badId(postId);
   if (bad) return bad;
-  const auth = await apiOrgRole(rolesFor("campaignPosting", "full"));
+  const auth = await apiArea("campaignPosting");
   if ("error" in auth) return auth.error;
   const b = ((await req.json().catch(() => null)) ?? {}) as Record<string, unknown>;
   const body = validatePostBody(b.body);
@@ -21,7 +21,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ postId
   const jobId = !("jobId" in b) ? undefined : typeof b.jobId === "string" && b.jobId ? b.jobId : null;
   const verdict = await check("post", auth.session.orgId);
   if (verdict !== "ok") return Response.json({ error: "Too many posts this hour." }, { status: verdict === "unavailable" ? 503 : 429 });
-  return resultResponse(await editPost({ profileId: auth.session.userId, orgId: auth.session.orgId, manages: accessTo(auth.session.role, "campaigns") === "full" }, postId, { body: body.value, jobId }));
+  return resultResponse(await editPost({ profileId: auth.session.userId, orgId: auth.session.orgId, manages: canUse(auth.session, "campaigns") }, postId, { body: body.value, jobId }));
 }
 
 /** DELETE /api/campaign/posts/:postId — takes a post down (kept on record). */
@@ -29,7 +29,7 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ post
   const { postId } = await params;
   const bad = badId(postId);
   if (bad) return bad;
-  const auth = await apiOrgRole(rolesFor("campaignPosting", "full"));
+  const auth = await apiArea("campaignPosting");
   if ("error" in auth) return auth.error;
-  return resultResponse(await deletePost({ profileId: auth.session.userId, orgId: auth.session.orgId, manages: accessTo(auth.session.role, "campaigns") === "full" }, postId));
+  return resultResponse(await deletePost({ profileId: auth.session.userId, orgId: auth.session.orgId, manages: canUse(auth.session, "campaigns") }, postId));
 }

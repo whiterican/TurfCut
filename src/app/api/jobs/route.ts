@@ -2,7 +2,7 @@ import type { NextRequest } from "next/server";
 import { readTools } from "@/lib/job-tools";
 import { db } from "@/lib/db";
 import { getSessionProfile } from "@/lib/auth";
-import { ORG_ROLES } from "@/lib/access";
+import { canUse } from "@/lib/access";
 import { apiEmployer } from "@/lib/api-session";
 import { jurisdictionStateProblem, parseFeedFilters, validateJob } from "@/lib/jobs";
 import { createJob, loadFeed } from "@/lib/jobs-data";
@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
     // and so do the app notes: those are for the shift brief, once hired (C4.4).
     return Response.json({ jobs: jobs.map((j) => ({ ...j, jurisdiction: undefined, tools: j.tools == null ? null : { ...readTools(j.tools), notes: undefined } })), hidden });
   }
-  if (ORG_ROLES.includes(session.role) && session.orgId) {
+  if (canUse(session, "jobs", "read") && session.orgId) {
     const jobs = await db().job.findMany({ where: { orgId: session.orgId }, orderBy: { createdAt: "desc" } });
     return Response.json({ jobs });
   }
@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
 
 /** POST /api/jobs — creates a DRAFT from the job-builder fields (JSON). Publishing is separate. */
 export async function POST(req: NextRequest) {
-  const auth = await apiEmployer();
+  const auth = await apiEmployer("jobsEdit");
   if ("error" in auth) return auth.error;
   const body = await req.json().catch(() => null);
   if (!body || typeof body !== "object" || Array.isArray(body)) {

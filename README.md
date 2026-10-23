@@ -125,6 +125,15 @@ exercise the locks, triggers and data rules, not the RLS policies.
      statements), and deploy the M9 build right after: it numbers the
      existing transfers and until the new code is live, sending pay fails
      (approving and everything else keeps working). Safe to run again.
+   - Then the three M10 files, in this order, all before deploying the M10
+     build, each safe to run again: `prisma/m10-admin.sql` (the staff flag
+     and ledger, organization approvals, jurisdiction versions),
+     `prisma/m10-verification.sql` (campaign verification) and
+     `prisma/m10-roles.sql` (organization roles; it also replaces the chat
+     access trigger). Then make your own account staff (see **Turfcut
+     staff** below). The roles file adds an enum value, so run it as its
+     own paste (the Supabase editor runs the first statement outside the
+     transaction).
    - Storage → New bucket **`campaign-media`**, set to **public**, with a
      file size limit of **2 MB** and allowed MIME types **image/png,
      image/jpeg**. Campaign avatars and header images go there. The app
@@ -1125,6 +1134,247 @@ Built in C3.6b (see the C3 scope below). Approved as recommended by review:
   C3 code; it is safe to run again, so a second run after the deploy fills
   in any engagement made in between. Acceptance:
   `tests/acceptance/c3-hiring.ts`.
+
+## M10 scope — self-serve admin (in progress)
+
+Turfcut staff run the platform without SQL, organizations manage their own
+roles, and every administrative act is recorded with who, what and why. The
+plan (approved Oct 20) builds the staff console first, then organization
+roles, one slice at a time.
+
+### M10.1 — the staff gate and the staff ledger (done)
+
+- **Staff is a flag, not a role.** `Profile.staffSince` marks a Turfcut
+  staff account; it is independent of the account's role, so a staff member
+  can also be a worker or an owner. Nobody is staff until the flag is set
+  by hand (below); the app never sets it.
+- **`/admin` is the console's shell.** Staff only. Anyone else — signed
+  out, a worker, an organization role — gets the same 404 page, with the
+  same title, as any address that doesn't exist, so the console is never
+  confirmed to someone who can't use it. The overview shows the queues the later slices manage (organizations
+  awaiting approval, current jurisdiction profiles and how many the publish
+  gate refuses) and the last ten staff acts.
+- **`AdminAction` is the staff ledger.** One row per act: who (the staff
+  profile), what (`org.approved`, …), on which record, for which
+  organization, and why, in the staff member's words. A reason is required
+  in code and by the table; the row is append-only (an update or delete is
+  refused by the database) and server-only (no Data API grants). Staff
+  notes stay out of the organization's own audit trail.
+- **Where staff find it.** Settings shows an "Open admin" link to staff of
+  every role; organization roles also get Admin at the end of the desktop
+  rail and in More. The phone bar's picks stay the role's own work.
+- **Migration:** `prisma/m10-admin.sql` (safe to run again; later slices
+  extend the same file). Checks: `tests/acceptance/m10-admin.ts`.
+
+### M10.2 — the organization approval queue (done)
+
+- **Admin → Organizations** lists who is waiting (oldest first) and who is
+  in, each with its owner's sign-in email, member count, the three
+  publish-gate items the organization records itself (contractor terms,
+  classification review, legal contact) and its jobs by status. The detail
+  page adds Turfcut's decisions on it so far, newest first, with the staff
+  member's name and reason.
+- **Approve, or withdraw approval, with a reason.** One transaction records
+  the standing, `Organization.approvedAt` (kept after a withdrawal, so
+  Settings can say the approval was withdrawn rather than never given), the
+  ledger row, and an in-app notice to every current owner (`ORG_APPROVED`,
+  `ORG_APPROVAL_REVOKED`: the decision and where to look, never the
+  reason). The update is conditional on the standing it changes from, so
+  two staff deciding at once can't record the same decision twice.
+- **What approval gates** is unchanged from M2: publishing a job, seeing
+  worker profiles, what workers share with "any approved organization",
+  public campaign pages, credential verification. Withdrawing approval
+  blocks the next publish with the existing message.
+- **Migration:** the same `prisma/m10-admin.sql` (two notice kinds, the
+  column, a backfill of `approvedAt` from `createdAt` for organizations
+  already approved, and the notice-subject check relaxed for `ORG_*`
+  notices, which have no subject row).
+
+### M10.3 — jurisdiction rule profiles (done)
+
+- **Admin → Jurisdictions** lists every place and every version of its
+  rules, newest first, with its standing (current, proposed, superseded),
+  approval and expiry, effective date, and the open jobs under it. A
+  version's page shows the rules as the gate reads them, each open job and
+  what freezes it, the other versions of the place, and Turfcut's decisions
+  on it.
+- **A rule change is a new version.** "Propose a new version" prefills the
+  form from the current rules: pay methods (ticking per-unit records
+  counsel's explicit per-unit approval, which the gate requires), the three
+  circulator requirements, notes, an optional effective date, and the
+  reason. The proposal is version N+1 of the place, not current and not
+  approved, so nothing changes for any job yet. A new place starts at
+  version 1.
+- **Approval moves what fits and freezes the rest.** Recording counsel's
+  approval (with an optional expiry) makes the version current and
+  supersedes the previous one. Open jobs on the old version whose pay
+  method the new rules allow move to it, each with a `job.jurisdiction_moved`
+  entry on its own audit trail; the rest stay on the superseded version,
+  frozen by the existing hard stop, and their organizations' owners and
+  recruiters get an `ORG_JOBS_FROZEN` notice. A current version whose
+  approval lapsed is renewed in place.
+- **Withdraw and retire.** Withdrawing a current version's approval freezes
+  everything under it (and tells the organizations); a proposal that won't
+  be approved is retired (never current, nothing was ever filed under it).
+  A proposal older than the version in force can't be approved over it. A
+  version approved ahead of its effective date moves the jobs that fit but
+  they stay frozen until that date, and their organizations are told.
+- **One lock per place.** Every write to a place's versions takes the
+  place's advisory lock first, so two staff acting at once can't make two
+  "version 2"s (the unique index can't tell statewide profiles apart) or
+  two current versions.
+- **The organization's side.** A published job that froze under it shows a
+  Frozen panel on its job page with the reasons and the edit link (the gate
+  itself now says "superseded by a newer version; the organization has to
+  file the job under the current rules", words a worker can read too). The hard stop is otherwise unchanged:
+  publishing, scheduling, posting a seat and claiming one already refuse
+  under an unapproved, superseded, lapsed or not-yet-effective profile.
+  Expiries last through the day counsel named.
+- **Migration:** the same `prisma/m10-admin.sql` (the notice kind and three
+  columns on `JurisdictionProfile`: who proposed, who approved, when it was
+  superseded).
+
+### M10.4 — the audit viewer and the people lookup (done)
+
+- **Admin → Audit** is one timeline of the organizations' and workers' own
+  audit events and Turfcut's ledger rows, newest first, fifty at a time with
+  an "Older" cursor. Filters: part of an action name, record type and id,
+  actor (account id), a date range, and a Ledger quick filter that pins the
+  five ledger moments (`job.published`, `shift.reviewed`, `payout.approved`,
+  `payout.created`, `pay.statement_closed`; a kind filter narrows it further).
+  Days are UTC. A record with a console page (organization, jurisdiction
+  version, account) is linked; an event on a worker's record links to the
+  worker's account. Actors are named the way the app names them; a system
+  event says System. Details are an allowlist: staff acts and the
+  organization's own events (jobs, shifts, pay, organizations, members,
+  invites, campaigns, jurisdictions, engagements, accounts) show them; an
+  event on a worker's own record (sharing, consent, availability, muted
+  organizations, credentials, experience) and any new kind of event shows
+  "details withheld", and an engagement event drops the consent version it
+  snapshots. Chat and block-list events never appear. The
+  `political_preferences.consented` row itself (the action and the
+  worker's name) still appears: the trail records that act on purpose.
+- **Admin → People** finds an account by sign-in email (prefix), name, a
+  campaign handle (the organization's members) or an account or worker id,
+  and shows who they are and where they belong: role, organization and its standing,
+  sign-in email, when the account was made or closed, pending invites, the
+  account's own membership history, and Turfcut's acts on it. It never
+  shows what a worker shares with organizations, their political-fit
+  answers, their scorecard or their messages (a test greps the module for
+  any such access).
+- **Two support actions, with the owner's own rules.** Resend a pending
+  invite (the organization must be approved; its daily invite limit
+  applies, checked against the invite's own organization; an address that
+  can't join is never emailed, and while the owner is never told why, the
+  staff member is: the page hides Resend for an account that can't accept,
+  and the action says when no email went out; a failed send revives
+  nothing) and remove a member (the last owner stays;
+  the login, role and history stay; access ends). The organization's own
+  audit trail records "by Turfcut staff"; the ledger records who and why.
+- **No migration:** M10.4 reads and writes tables that exist.
+
+### M10.5 — campaign verification (done)
+
+- **Admin → Campaigns** lists public campaign profiles (published, organization
+  approved) that nobody has verified yet, longest-public first, and the ones
+  that carry the mark. A profile page shows the organization, its owners
+  and sign-in emails, its posts and bio (a draft's bio stays hidden), and
+  Turfcut's decisions so far.
+- **Verify or remove, always with a reason.** Verifying says Turfcut
+  confirmed the profile is the organization's official account. The
+  decision is one conditional update that holds only while the profile is
+  still unverified, still public, and still has the name and handle the
+  staff member looked at; a rename in between voids it. Removing works at
+  any standing. Both write a ledger row with who and why; the
+  organization is not sent the reason.
+- **The mark** is a "Verified" badge on the public page, the directory, the
+  campaign card on a job, post cards (feed, permalink, profile), the Today
+  strip, a shared link's title (profile only), and `verified` in the public JSON. It is information, never a
+  ranking input: the directory order, the feed and matching don't read it
+  (the isolation test and an acceptance check cover this).
+- **The mark comes off by itself** when the organization changes a
+  verified profile's name or handle, unpublishes it, or Turfcut withdraws
+  the organization's approval (its trail or the ledger row records it); a
+  bio or image edit keeps it. Renames and verification take the same
+  per-profile lock, so a rename can't slip past a verification. The
+  organization's campaign page says whether the profile is verified.
+- **In a shared link** the mark is a suffix of the title after the handle
+  ("Name (@handle) · Verified on Turfcut"), where the profile's own words
+  (name, bio) can't reach.
+- **Migration:** `prisma/m10-verification.sql` (also in
+  `supabase-manual-setup.sql`): `CampaignProfile.verifiedAt` and
+  `verifiedById`, both null or both set; neither is granted to the API
+  roles (the app serves the mark). Run it after `m10-admin.sql` and before deploying this code.
+
+### M10.6 — organization roles (done)
+
+- **Custom roles.** An owner builds roles for the seats the six built-in
+  roles don't fit: **Members → Roles**. A role is a name, a short
+  description and, for each area of the access map, none, read or full
+  (an area is offered only at the levels the built-in roles use there: Pay
+  and Members are full or nothing). The form starts from a preset, which
+  is any built-in role's row of the map (so **Compliance** is offered here,
+  as a preset: classification review and credential checks, read on jobs
+  and settings), or blank. Up to twenty live roles per organization; names
+  are unique whatever their case. Roles are never deleted: a role nobody
+  holds (no member, no pending invite) is archived, and its name stays
+  taken.
+- **Assigning.** Invite someone to a role, or change a member's role, from
+  the role select on **Members**, where your roles sit under the built-in
+  ones. A member on a custom role has `Profile.role = CUSTOM` and an
+  `orgRoleId` (a check keeps the two together); an invite carries the
+  same pair. Each member shows a **role history** from the audit trail
+  (joined as, then each change by role name).
+- **One map, read once per request.** The session resolves a custom-role
+  member's grants with the profile (`grants` on the session); a built-in
+  role is its row of the map. `requireArea`, the API guards, the nav and
+  every query for "who in this organization can do X" (`areaMembers`) read
+  that and nothing else; the role lists that guarded pages before are gone.
+  A custom role fails closed anywhere a check still asks by role alone, and
+  an archived or missing role has no grants. Chat gets a `moderation` area
+  for reports and removing reported messages (owners by default); creating
+  and publishing jobs is the `jobsEdit` area, so a role with read on Jobs
+  sees the list and cannot publish.
+- **Delegating member administration.** Grant the **Members** area. A
+  delegate invites, resends, revokes, changes roles and removes members,
+  but only up to what they hold themselves: no role that reaches more than
+  theirs, no owner seat, nobody who is an owner or has more access than
+  they do. Building roles stays with owners, and the last owner can never
+  be removed or demoted. Every check runs again in the transaction, under
+  the membership lock.
+- **Chat:** a custom role with full Messages can run teams and be a
+  manager. A manager's chats end when their role loses Messages: the
+  database trigger now watches the custom role too, and the app ends them
+  in the same transaction when a role is narrowed or a member moves to a
+  role without it; a trigger on the grant rows does the same if a Messages
+  grant is deleted or lowered by hand. Moving someone from a role that had
+  Messages to one that has it keeps them in. Chat names show a custom-role
+  member's own name, else "Team member" (role names are the organization's
+  own labels and aren't shown to workers).
+- **Coherent by default.** Every custom role gets the Desk, and a role that
+  hires, edits jobs or schedules shifts can also read the job list; they
+  are added when the role is saved. A member whose role has no Desk lands
+  on the first page their role reaches.
+- **Applicants and jobs are different areas:** moving applicants, offers and
+  invitations are Hiring; creating, editing, publishing and closing jobs
+  are Create and publish jobs. For the built-in roles the two are the same
+  rows of the map.
+- **Migration:** `prisma/m10-roles.sql` (also in `supabase-manual-setup.sql`):
+  `Role` gains `CUSTOM`, tables `OrgRole` and `OrgRoleGrant` (server-only),
+  `Profile.orgRoleId` and `OrgInvite.orgRoleId`. Run it after
+  `m10-verification.sql` and before deploying this code.
+
+### Turfcut staff — making an account staff
+
+Only by hand, in the Supabase SQL editor, after `prisma/m10-admin.sql`:
+
+```sql
+update "Profile" set "staffSince" = now() where "id" = '<auth user id>';
+```
+
+The id is the account's Supabase auth user id (Authentication → Users). To
+revoke, set the column back to `null`. Keep it rare: a staff login can
+approve organizations and change jurisdiction rules.
 
 ## M9 scope — money, visibly
 

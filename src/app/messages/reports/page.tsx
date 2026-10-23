@@ -4,14 +4,15 @@ import { requireAuth } from "@/lib/auth";
 import { listOpenReports } from "@/lib/chat-data";
 import { ReportActions } from "@/components/chat/ReportActions";
 import { LocalTime } from "@/components/LocalTime";
+import { canUse } from "@/lib/access";
 
 export const metadata = { title: "Message reports · Turfcut" };
 
 /** The org owner's queue of reported messages. Every decision is audited. */
 export default async function ReportsPage() {
   const session = await requireAuth();
-  if (session.role !== "OWNER" || !session.orgId) redirect("/messages");
-  const reports = await listOpenReports({ userId: session.userId, role: session.role, orgId: session.orgId });
+  if (!canUse(session, "moderation") || !session.orgId) redirect("/messages");
+  const reports = await listOpenReports({ userId: session.userId, role: session.role, grants: session.grants, orgId: session.orgId });
 
   return (
     <main className="page max-w-2xl">

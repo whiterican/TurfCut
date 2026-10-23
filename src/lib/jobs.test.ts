@@ -134,7 +134,7 @@ describe("compensation engine (spec p.13)", () => {
 });
 
 describe("shift freeze on rule change (spec p.13)", () => {
-  it("blocks new shifts while a jurisdiction is superseded and awaiting re-approval", () => {
+  it("blocks new shifts while a job is filed under a superseded version", () => {
     expect(canScheduleShift(denver, now).ok).toBe(true);
     expect(canScheduleShift({ ...denver, isCurrent: false }, now)).toMatchObject({ ok: false });
   });

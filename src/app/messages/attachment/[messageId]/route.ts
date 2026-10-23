@@ -10,7 +10,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ messageId: str
   const s = await getSessionProfile();
   if (!s) return new NextResponse("Sign in to download this file.", { status: 401 });
   const { messageId } = await ctx.params;
-  const url = await attachmentLink({ userId: s.userId, role: s.role, orgId: s.orgId }, messageId);
+  const url = await attachmentLink({ userId: s.userId, role: s.role, grants: s.grants, orgId: s.orgId }, messageId);
   if (!url) return new NextResponse("File not found.", { status: 404 });
   return NextResponse.redirect(url, { status: 303, headers: { "Cache-Control": "private, no-store", "Referrer-Policy": "no-referrer" } });
 }

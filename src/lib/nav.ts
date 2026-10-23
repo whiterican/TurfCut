@@ -1,5 +1,5 @@
 import type { Role } from "@/lib/auth";
-import { accessTo, type Area } from "@/lib/access";
+import { accessFor, type Area, type Grants } from "@/lib/access";
 
 /** The glyph a tab shows (drawn in components/AppNav; a plain id here keeps React out of lib). */
 export type TabIconId =
@@ -18,6 +18,7 @@ export type TabIconId =
   | "credentials"
   | "settings"
   | "campaigns"
+  | "admin"
   | "more";
 
 export interface NavTab {
@@ -57,6 +58,8 @@ export const PHONE_PICKS: Record<Exclude<Role, "WORKER">, OrgNavId[]> = {
   FINANCE: ["desk", "pay", "jobs"],
   PUBLISHER: ["desk", "campaigns", "jobs"],
   COMPLIANCE: ["desk", "credentials", "jobs"],
+  // A custom role's bar is whatever of these it reaches, filled from the rail order (M10.6).
+  CUSTOM: ["desk", "hiring", "jobs", "field"],
 };
 
 const WORKER_TABS: NavTab[] = [
@@ -76,10 +79,10 @@ const plain = ({ href, label, icon }: NavTab): NavTab => ({ href, label, icon })
  * never appears for a route that would refuse you. A removed member (no
  * organization) gets none.
  */
-export function navTabs(role: Role | null, hasOrg: boolean): NavTab[] {
+export function navTabs(role: Role | null, hasOrg: boolean, grants: Grants | null = null): NavTab[] {
   if (role === "WORKER") return WORKER_TABS;
   if (!role || !hasOrg) return [];
-  return ORG_TABS.filter((t) => accessTo(role, t.area) !== null).map(plain);
+  return ORG_TABS.filter((t) => accessFor({ role, grants }, t.area) !== null).map(plain);
 }
 
 export interface OrgNav {
@@ -91,14 +94,35 @@ export interface OrgNav {
   more: NavTab[];
 }
 
-/** The organization shell's navigation for a role (empty for workers and removed members). */
-export function orgNav(role: Role | null, hasOrg: boolean): OrgNav {
+/** The admin console (M10): a place Turfcut staff go, never a tab of the role's own work. */
+const ADMIN_TAB: NavTab = { href: "/admin", label: "Admin", icon: "admin" };
+
+/**
+ * The organization shell's navigation for a role (empty for workers and
+ * removed members). Staff get Admin at the end of the rail and in More,
+ * never in the phone bar's picks: those stay the role's work. (Staff who
+ * are workers reach the console from Settings; the worker bar has no More.)
+ */
+export function orgNav(role: Role | null, hasOrg: boolean, staff = false, grants: Grants | null = null): OrgNav {
   if (!role || role === "WORKER" || !hasOrg) return { rail: [], phone: [], more: [] };
-  const reach = ORG_TABS.filter((t) => accessTo(role, t.area) !== null);
+  const reach = ORG_TABS.filter((t) => accessFor({ role, grants }, t.area) !== null);
   const picks = PHONE_PICKS[role];
   const phone = picks.map((id) => reach.find((t) => t.id === id)).filter((t): t is OrgItem => !!t);
   for (const t of reach) if (phone.length < picks.length && !phone.includes(t)) phone.push(t);
-  return { rail: reach.map(plain), phone: phone.map(plain), more: reach.filter((t) => !phone.includes(t)).map(plain) };
+  const extra = staff ? [ADMIN_TAB] : [];
+  return { rail: [...reach.map(plain), ...extra], phone: phone.map(plain), more: [...reach.filter((t) => !phone.includes(t)).map(plain), ...extra] };
+}
+
+/**
+ * Where an organization member lands after signing in: the Desk when their
+ * role has one, else the first page their role reaches, else Settings. A
+ * page a member can't use sends them to /dashboard, which sends them here,
+ * so every tab's guard has to admit exactly the grants that show its tab
+ * (the test walks every grant against the pages' guards).
+ */
+export function landingFor(role: Role, grants: Grants | null, staff = false): string {
+  if (accessFor({ role, grants }, "desk") === "full") return "/desk";
+  return orgNav(role, true, staff, grants).rail[0]?.href ?? "/settings";
 }
 
 /** The tab a path belongs to: the longest matching prefix wins. */

@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { requireRole } from "@/lib/auth";
-import { FIELD_ROLES, PAY_ROLES } from "@/lib/access";
+import { canUse } from "@/lib/access";
+import { requireArea } from "@/lib/employer-session";
 import { loadOrgDisputes, loadOrgPay, partialReversals, pendingTransfers, reviewerOf, selfApproval, type OrgLine } from "@/lib/pay-data";
 import { noteOverdueDisputes } from "@/lib/dispute-thread-data";
 import { clockParts } from "@/lib/dispute-sla";
@@ -44,7 +44,7 @@ function LineText({ l, names }: { l: OrgLine; names: Map<string, string> }) {
 export default async function PayPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   const asked = (await searchParams).tab;
   const tab: Tab = TABS.some((t) => t.id === asked) ? (asked as Tab) : "approve";
-  const s = await requireRole(PAY_ROLES);
+  const s = await requireArea("pay");
   if (!s.orgId) {
     return (
       <main className="page max-w-2xl">
@@ -55,8 +55,8 @@ export default async function PayPage({ searchParams }: { searchParams: Promise<
       </main>
     );
   }
-  const actor = { profileId: s.userId, orgId: s.orgId, role: s.role };
-  const canOpenShifts = FIELD_ROLES.includes(s.role);
+  const actor = { profileId: s.userId, orgId: s.orgId, role: s.role, grants: s.grants };
+  const canOpenShifts = canUse(s, "field");
   // Deadlines missed since anyone looked: the pay roles are told once per dispute (M9).
   await noteOverdueDisputes(s.orgId).catch(() => 0);
   const [pay, disputes, closed, pending, partial] = await Promise.all([

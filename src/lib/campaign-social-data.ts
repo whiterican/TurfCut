@@ -19,11 +19,21 @@ type Writer = Actor & { manages: boolean };
 type Result<T = Record<never, never>> = ({ ok: true } & T) | { ok: false; reason: string; errors?: Record<string, string> };
 
 const PROFILE_SELECT = {
-  id: true, orgId: true, handle: true, displayName: true, bio: true, avatarKey: true, headerKey: true, publishedAt: true, createdAt: true, updatedAt: true,
+  id: true, orgId: true, handle: true, displayName: true, bio: true, avatarKey: true, headerKey: true, publishedAt: true, verifiedAt: true, createdAt: true, updatedAt: true,
 } satisfies Prisma.CampaignProfileSelect;
 export type CampaignProfileRow = Prisma.CampaignProfileGetPayload<{ select: typeof PROFILE_SELECT }>;
 
 const lock = (tx: Prisma.TransactionClient, key: string) => tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${key}))`;
+/**
+ * The lock every writer of one profile takes (the organization's edits, its
+ * posts and kit, and Turfcut's verification), so a rename and a verification
+ * can't interleave (M10.5). Lock order: hold at most one campaign lock at a
+ * time; only clearOrgVerifications takes several, in ascending id order; and
+ * never take an Organization row lock while holding one (a decision holds
+ * the organization row and then asks for these, so the reverse would
+ * deadlock).
+ */
+export const lockCampaign = (tx: Prisma.TransactionClient, id: string) => lock(tx, `campaign:${id}`);
 const handleTaken = (e: unknown) => e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002";
 const TAKEN = { ok: false as const, reason: "Fix the highlighted fields.", errors: { handle: "That handle is taken. Pick another." } };
 /**
@@ -101,8 +111,8 @@ export async function updateCampaign(actor: Actor, id: string, input: ProfileInp
   }
   try {
     return await db().$transaction(async (tx) => {
-      await lock(tx, `campaign:${id}`);
-      const c = await tx.campaignProfile.findFirst({ where: { id, orgId: actor.orgId }, select: { handle: true } });
+      await lockCampaign(tx, id);
+      const c = await tx.campaignProfile.findFirst({ where: { id, orgId: actor.orgId }, select: { handle: true, displayName: true, verifiedAt: true } });
       if (!c) return { ok: false as const, reason: "Campaign not found." };
       if (c.handle !== input.handle) {
         // Once a campaign has been public its handle is its address for good: links and printed codes point at it.
@@ -110,8 +120,10 @@ export async function updateCampaign(actor: Actor, id: string, input: ProfileInp
         if (everPublic) return { ok: false as const, reason: "Fix the highlighted fields.", errors: { handle: "The handle can't change once the campaign has been public: links to it would break." } };
         if (await handleRetired(tx, input.handle, id)) return TAKEN;
       }
-      await tx.campaignProfile.update({ where: { id }, data: input });
-      await tx.auditEvent.create({ data: { actorId: actor.profileId, action: "campaign.updated", entityType: "CampaignProfile", entityId: id, metadata: { handle: input.handle } } });
+      // Verification (M10.5) vouches for a name and a handle: changing either takes the mark off until Turfcut looks again.
+      const lapses = !!c.verifiedAt && (c.displayName !== input.displayName || c.handle !== input.handle);
+      await tx.campaignProfile.update({ where: { id }, data: lapses ? { ...input, verifiedAt: null, verifiedById: null } : input });
+      await tx.auditEvent.create({ data: { actorId: actor.profileId, action: "campaign.updated", entityType: "CampaignProfile", entityId: id, metadata: lapses ? { handle: input.handle, verificationLapsed: true } : { handle: input.handle } } });
       return { ok: true as const };
     });
   } catch (e) {
@@ -127,14 +139,16 @@ export async function updateCampaign(actor: Actor, id: string, input: ProfileInp
 export async function setCampaignPublished(actor: Actor, id: string, publish: boolean, now = new Date()): Promise<Result> {
   if (!UUID_RE.test(id)) return { ok: false, reason: "Campaign not found." };
   return db().$transaction(async (tx) => {
-    await lock(tx, `campaign:${id}`);
-    const c = await tx.campaignProfile.findFirst({ where: { id, orgId: actor.orgId }, select: { handle: true, publishedAt: true, org: { select: { approved: true } } } });
+    await lockCampaign(tx, id);
+    const c = await tx.campaignProfile.findFirst({ where: { id, orgId: actor.orgId }, select: { handle: true, publishedAt: true, verifiedAt: true, org: { select: { approved: true } } } });
     if (!c) return { ok: false as const, reason: "Campaign not found." };
     if (publish && !c.org.approved) return { ok: false as const, reason: "Turfcut hasn't approved your organization yet. A campaign can go public once it has." };
     if (!!c.publishedAt === publish) return { ok: true as const };
-    await tx.campaignProfile.update({ where: { id }, data: { publishedAt: publish ? now : null } });
+    // Verification (M10.5) vouches for a public profile: taking it down takes the mark off, so going public again is looked at again.
+    const lapses = !publish && !!c.verifiedAt;
+    await tx.campaignProfile.update({ where: { id }, data: publish ? { publishedAt: now } : lapses ? { publishedAt: null, verifiedAt: null, verifiedById: null } : { publishedAt: null } });
     // The handle goes on the record: once public, it's this campaign's address for good (handleRetired).
-    await tx.auditEvent.create({ data: { actorId: actor.profileId, action: publish ? "campaign.published" : "campaign.unpublished", entityType: "CampaignProfile", entityId: id, metadata: { handle: c.handle } } });
+    await tx.auditEvent.create({ data: { actorId: actor.profileId, action: publish ? "campaign.published" : "campaign.unpublished", entityType: "CampaignProfile", entityId: id, metadata: lapses ? { handle: c.handle, verificationLapsed: true } : { handle: c.handle } } });
     return { ok: true as const };
   });
 }
@@ -152,7 +166,7 @@ export async function setCampaignImage(actor: Actor, id: string, kind: MediaKind
   let old: string | null | undefined;
   try {
     old = await db().$transaction(async (tx) => {
-    await lock(tx, `campaign:${id}`);
+    await lockCampaign(tx, id);
     const c = await tx.campaignProfile.findFirst({ where: { id, orgId: actor.orgId }, select: { avatarKey: true, headerKey: true } });
     if (!c) return undefined;
     await tx.campaignProfile.update({ where: { id }, data: { [field]: key } });
@@ -177,7 +191,7 @@ export async function clearCampaignImage(actor: Actor, id: string, kind: MediaKi
   if (!UUID_RE.test(id)) return { ok: false, reason: "Campaign not found." };
   const field = kind === "avatar" ? "avatarKey" : "headerKey";
   const old = await db().$transaction(async (tx) => {
-    await lock(tx, `campaign:${id}`);
+    await lockCampaign(tx, id);
     const c = await tx.campaignProfile.findFirst({ where: { id, orgId: actor.orgId }, select: { avatarKey: true, headerKey: true } });
     if (!c) return undefined;
     if (c[field]) {
@@ -232,7 +246,7 @@ export async function createPost(actor: Actor, campaignId: string, input: PostIn
     const c = await tx.campaignProfile.findFirst({ where: { id: campaignId, orgId: actor.orgId }, select: { id: true } });
     if (!c) return { ok: false as const, reason: "Campaign not found." };
     // The campaign's lock: notices of two posts at once can't both take the day's last slot (S2.4).
-    await lock(tx, `campaign:${c.id}`);
+    await lockCampaign(tx, c.id);
     const bad = await checkEmbed(tx, actor.orgId, input.jobId);
     if (bad) return { ok: false as const, reason: bad, errors: { jobId: bad } };
     const p = await tx.campaignPost.create({ data: { profileId: c.id, authorId: actor.profileId, body: input.body, jobId: input.jobId, createdAt: now }, select: { id: true } });
@@ -249,7 +263,7 @@ export async function createPost(actor: Actor, campaignId: string, input: PostIn
 async function ownPost(tx: Prisma.TransactionClient, orgId: string, postId: string) {
   const p = await tx.campaignPost.findFirst({ where: { id: postId, profile: { orgId } }, select: { id: true, profileId: true } });
   if (!p) return null;
-  await lock(tx, `campaign:${p.profileId}`);
+  await lockCampaign(tx, p.profileId);
   return tx.campaignPost.findFirst({ where: { id: postId, deletedAt: null }, select: { id: true, profileId: true, authorId: true, body: true, jobId: true, pinnedAt: true } });
 }
 
@@ -404,6 +418,8 @@ export type DirectoryRow = {
   lastPostAt: Date | null;
   /** What the directory is ordered by: the later of the last post and publishing. */
   activeAt: Date;
+  /** Whether Turfcut staff have verified this as the organization's official campaign account (M10.5). */
+  verified: boolean;
   /** The campaign's jobs that are hiring now: published and not ended (the job feed's rule). */
   hiring: number;
 };
@@ -422,6 +438,7 @@ export async function listPublicCampaigns(opts: { cursor?: string | null; q?: un
   const openEnd = openJobsEndAfter(opts.now ?? new Date());
   const rows = await db().$queryRaw<(Omit<DirectoryRow, "hiring"> & { hiring: number | bigint })[]>`
     SELECT c."id", c."handle", c."displayName", c."bio", c."avatarKey",
+           (c."verifiedAt" IS NOT NULL) AS "verified",
            lp."lastPostAt",
            GREATEST(lp."lastPostAt", c."publishedAt") AS "activeAt",
            (SELECT count(*) FROM "public"."Job" j WHERE j."campaignProfileId" = c."id" AND j."status" = 'PUBLISHED' AND (j."endsAt" IS NULL OR j."endsAt" > ${openEnd}::timestamp)) AS "hiring"

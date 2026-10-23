@@ -7,6 +7,7 @@ import { followStates } from "@/lib/campaign-follow-data";
 import { excerpt, QUERY_MAX } from "@/lib/campaign-social";
 import { mediaUrl } from "@/lib/campaign-media";
 import { FollowButton } from "@/components/campaign/FollowButton";
+import { VerifiedMark } from "@/components/campaign/VerifiedMark";
 import { LocalTime } from "@/components/LocalTime";
 
 export const metadata: Metadata = { title: "Campaigns", description: "Every campaign on Turfcut, the most recently active first." };
@@ -81,7 +82,10 @@ function CampaignRow({ campaign: c, viewer, follow, back }: { campaign: Director
           )}
         </Link>
         <div className="min-w-0 flex-1">
-          <Link href={`/c/${c.handle}`} className="block truncate font-semibold text-fg hover:underline">{c.displayName}</Link>
+          <p className="flex items-center gap-2">
+            <Link href={`/c/${c.handle}`} className="truncate font-semibold text-fg hover:underline">{c.displayName}</Link>
+            {c.verified && <VerifiedMark compact />}
+          </p>
           <p className="truncate text-sm text-muted">@{c.handle}</p>
           {bio && <p className="mt-1 text-sm text-fg">{bio}</p>}
           <p className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted">

@@ -14,7 +14,7 @@ export const metadata = { title: "Conversation · Turfcut" };
 
 export default async function ThreadPage({ params }: { params: Promise<{ conversationId: string }> }) {
   const session = await requireAuth();
-  const me = { userId: session.userId, role: session.role, orgId: session.orgId };
+  const me = { userId: session.userId, role: session.role, grants: session.grants, orgId: session.orgId };
   const { conversationId } = await params;
   // Not a participant → the same 404 as a thread that doesn't exist.
   const t = await openThread(me, conversationId);

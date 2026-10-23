@@ -137,7 +137,7 @@ const confirmed = (id: string, email: string) => ({ id, email, email_confirmed_a
   // --- 4. Roles and the last-owner guard ---
   check("a role change to something that isn't an org role is refused", !(await changeMemberRole(owner, NEW1, "WORKER")).ok);
   const toSup = await changeMemberRole(owner, NEW1, "SUPERVISOR");
-  check("the owner changes a member's role; audited from → to", toSup.ok && (await p.profile.findUniqueOrThrow({ where: { id: NEW1 } })).role === "SUPERVISOR" && !!(await p.auditEvent.findFirst({ where: { action: "member.role_changed", entityId: NEW1, metadata: { equals: { orgId: ORG, from: "RECRUITER", to: "SUPERVISOR" } } } })));
+  check("the owner changes a member's role; audited from → to", toSup.ok && (await p.profile.findUniqueOrThrow({ where: { id: NEW1 } })).role === "SUPERVISOR" && !!(await p.auditEvent.findFirst({ where: { action: "member.role_changed", entityId: NEW1, AND: [{ metadata: { path: ["orgId"], equals: ORG } }, { metadata: { path: ["from"], equals: "RECRUITER" } }, { metadata: { path: ["to"], equals: "SUPERVISOR" } }] } })));
   const demoteSelf = await changeMemberRole(owner, OWNER, "RECRUITER");
   check("the last owner can't step down", !demoteSelf.ok && /at least one owner/.test(demoteSelf.ok ? "" : demoteSelf.reason));
   check("…or be removed", !(await removeMember(owner, OWNER)).ok);

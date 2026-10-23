@@ -27,7 +27,7 @@ export default async function PostPage({ params }: Props) {
   return (
     <main className="page max-w-2xl space-y-4">
       <Link href={`/c/${r.campaign.handle}`} className="btn-ghost btn-sm">{r.campaign.displayName}</Link>
-      <PostCard post={r.post} handle={r.campaign.handle} displayName={r.campaign.displayName} signedIn={!!session} liked={liked} facts={facts} />
+      <PostCard post={r.post} handle={r.campaign.handle} displayName={r.campaign.displayName} verified={!!r.campaign.verifiedAt} signedIn={!!session} liked={liked} facts={facts} />
     </main>
   );
 }

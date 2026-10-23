@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireArea } from "@/lib/employer-session";
-import { accessTo } from "@/lib/access";
+import { canUse } from "@/lib/access";
 import { db } from "@/lib/db";
 import { embeddableJobs, listOrgCampaigns, loadOrgCampaign, loadPinned, loadPosts, orgJobsForLinking } from "@/lib/campaign-social-data";
 import { MAX_PINNED } from "@/lib/campaign-social";
@@ -26,7 +26,7 @@ export default async function CampaignPage({ params, searchParams }: { params: P
   const session = await requireArea("campaignPosting");
   const c = await loadOrgCampaign(session.orgId, id);
   if (!c) notFound();
-  const canEdit = accessTo(session.role, "campaigns") === "full";
+  const canEdit = canUse(session, "campaigns");
   const org = await db().organization.findUniqueOrThrow({ where: { id: session.orgId }, select: { approved: true } });
   const fields = { id: c.id };
   const [jobs, pinned, feed, orgJobs, campaigns] = await Promise.all([embeddableJobs(session.orgId), loadPinned(c.id), loadPosts(c.id, cursor), orgJobsForLinking(session.orgId), listOrgCampaigns(session.orgId)]);
@@ -93,7 +93,12 @@ export default async function CampaignPage({ params, searchParams }: { params: P
       </header>
 
       <section className="section" aria-label="Preview">
-        <CampaignHeader displayName={c.displayName} handle={c.handle} bio={c.bio} avatarUrl={mediaUrl(c.avatarKey)} headerUrl={mediaUrl(c.headerKey)} />
+        <CampaignHeader displayName={c.displayName} handle={c.handle} bio={c.bio} avatarUrl={mediaUrl(c.avatarKey)} headerUrl={mediaUrl(c.headerKey)} verified={!!c.verifiedAt} />
+        <p className="text-muted-sm">
+          {c.verifiedAt
+            ? "Turfcut has verified this as your official campaign account. Changing the name or handle takes the mark off until Turfcut looks again."
+            : "Not verified. Turfcut verifies official accounts by hand, for public pages of approved organizations."}
+        </p>
       </section>
 
       <section className="section">

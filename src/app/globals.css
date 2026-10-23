@@ -379,7 +379,7 @@ body {
     border-color: var(--border);
   }
   a.hero-card.hero-card-quiet {
-    transition: border-color 150ms;
+    transition: border-color var(--dur-fast) var(--ease-standard);
   }
   a.hero-card.hero-card-quiet:hover {
     border-color: var(--border-strong);
@@ -1056,8 +1056,13 @@ body {
     border-color: var(--border-strong);
   }
   .skeleton {
-    @apply animate-pulse rounded-xl bg-surface-2;
+    @apply rounded-xl bg-surface-2;
+    /* A slow breath while content loads: six slow beats a cycle. */
+    animation: tc-pulse calc(var(--dur-slow) * 6) var(--ease-standard) infinite;
   }
+}
+@keyframes tc-pulse {
+  50% { opacity: 0.5; }
 }
 
 /* Leaflet map: keep OSM tiles readable but less glaring in the dark theme. */
@@ -1342,7 +1347,7 @@ summary.list-none::-webkit-details-marker {
     transition-delay: 0s !important;
     scroll-behavior: auto !important;
   }
-  :is(.btn, .btn-primary, .btn-secondary, .btn-ghost, .quick-reply, .chip, .tab):active {
+  :is(.btn, .btn-primary, .btn-secondary, .btn-ghost, .quick-reply, .chip, .tab):active:not(:disabled) {
     transform: none;
   }
 }
@@ -1353,6 +1358,7 @@ summary.list-none::-webkit-details-marker {
   --dur-slow: 0ms;
   --dur-lag: 0ms;
 }
+:root[data-motion="reduce"],
 :root[data-motion="reduce"] *,
 :root[data-motion="reduce"] ::before,
 :root[data-motion="reduce"] ::after,
@@ -1366,6 +1372,6 @@ summary.list-none::-webkit-details-marker {
   transition-delay: 0s !important;
   scroll-behavior: auto !important;
 }
-:root[data-motion="reduce"] :is(.btn, .btn-primary, .btn-secondary, .btn-ghost, .quick-reply, .chip, .tab):active {
+:root[data-motion="reduce"] :is(.btn, .btn-primary, .btn-secondary, .btn-ghost, .quick-reply, .chip, .tab):active:not(:disabled) {
   transform: none;
 }

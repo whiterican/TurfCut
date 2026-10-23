@@ -27,10 +27,14 @@ function subscribe(cb: () => void) {
     cb();
   };
   mq.addEventListener("change", follow);
+  // The Motion label changes when the phone's own setting does.
+  const motionMq = window.matchMedia("(prefers-reduced-motion: reduce)");
+  motionMq.addEventListener("change", cb);
   return () => {
     window.removeEventListener(EVENT, cb);
     window.removeEventListener("storage", cb);
     mq.removeEventListener("change", follow);
+    motionMq.removeEventListener("change", cb);
   };
 }
 
@@ -140,12 +144,12 @@ export function DisplaySettings() {
         <div className="grid gap-2 sm:grid-cols-2">
           {([["system", phoneReduces ? "Match my phone (less motion)" : "Match my phone"], ["reduce", "Less motion"]] as const).map(([v, label]) => (
             <label key={v} className="option-card items-center">
-              <input type="radio" name="motion" checked={motion === v} onChange={() => applyMotion(v)} className="size-4 shrink-0" />
+              <input type="radio" name="motion" checked={motion === v} onChange={() => applyMotion(v)} />
               <span className="font-semibold text-fg">{label}</span>
             </label>
           ))}
         </div>
-        <p className="text-hint">Less motion: pages swap instead of sliding, counts and rings jump to their value, nothing presses or glides. Saved on this device.</p>
+        <p className="text-hint">Less motion: pages swap instead of sliding and nothing presses or glides. Saved on this device.</p>
       </fieldset>
 
       <fieldset className="space-y-3">

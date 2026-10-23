@@ -35,10 +35,15 @@ export const HAPTIC_PATTERNS: Record<HapticKind, number | number[]> = {
   warning: [30, 50, 30],
 };
 
-/** A haptic, from a user gesture (click/pointer handlers) or at the moment something lands. */
+/**
+ * A haptic. Browsers only vibrate after the person has interacted with the
+ * page (a tap, a key), so call it from a gesture handler, or at the moment
+ * something lands after one; before any interaction the call is a silent
+ * no-op, never an error. An unknown kind falls back to a tap.
+ */
 export function haptic(kind: HapticKind = "tap"): void {
   if (typeof window === "undefined" || !hapticsEnabled() || !canVibrate()) return;
-  navigator.vibrate(HAPTIC_PATTERNS[kind]);
+  navigator.vibrate(HAPTIC_PATTERNS[kind] ?? HAPTIC_PATTERNS.tap);
 }
 
 /** What counts as a "button" for feedback: real controls, not plain text links. */

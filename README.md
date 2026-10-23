@@ -813,15 +813,18 @@ here is a ranking input. Eight slices, no new dependency.
   320, `--dur-slow` 360, `--dur-lag` 90; four easings; one `--spring`, a
   damped spring sampled for CSS `linear()` by `springCurve()` in
   `src/lib/motion.ts`). Tailwind's `transition` utility runs on them too.
-  `src/lib/motion.test.ts` refuses a raw millisecond value anywhere else in
-  the stylesheet and holds the script-side mirror (`DURATION`) to the same
-  numbers, so a new animation can't bring its own.
+  `src/lib/motion.test.ts` refuses a raw duration or curve anywhere else in
+  the stylesheet, refuses Tailwind `duration-`/`delay-`/`animate-` classes
+  and inline `transitionDuration` styles in components, and holds the
+  script-side mirror (`DURATION`) to the same numbers, so a new animation
+  has to read the tokens.
 - **One switch.** Motion is reduced when the phone asks for it
   (`prefers-reduced-motion`) or when the person chooses **Less motion** in
   Display settings (saved on the device as `<html data-motion="reduce">`,
   applied by the inline script before first paint). Under either, every
   token is zero, every animation and transition ends at once, pages swap
-  instead of sliding, the tab bar doesn't tuck, and nothing presses. Script
+  instead of sliding, the tab bar doesn't tuck, and nothing presses. Later
+  slices add the counts and rings that jump to their value here. Script
   reads the same switch through `motionReduced()` / `duration()`.
 - **A haptic vocabulary.** `haptic("tap" | "success" | "warning")`: a tick,
   a tick with a beat and a firmer tick, two longer pulses. Still Android

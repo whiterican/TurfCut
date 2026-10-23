@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   cardAffiliation,
+  jobDiscoveryLabel,
   fitReasons,
   payParts,
   payShort,
@@ -366,5 +367,21 @@ describe("cardAffiliation (the job card's colour)", () => {
   });
   it("is null without a readable disclosure or with an unknown affiliation (never a guess)", () => {
     for (const v of [null, undefined, {}, "democratic", disclosure("whig"), disclosure("")]) expect(cardAffiliation(v)).toBeNull();
+  });
+});
+
+describe("job discovery category labels", () => {
+  const disclosed = (campaignType: string) => ({ campaignType, affiliation: "nonpartisan", message: "Public campaign disclosure" });
+  it("distinguishes canvassing purpose while preserving the work type", () => {
+    expect(jobDiscoveryLabel("CANVASS", disclosed("candidate"))).toBe("Candidate campaign canvassing");
+    expect(jobDiscoveryLabel("CANVASS", disclosed("ballot_measure"))).toBe("Ballot initiative canvassing");
+    expect(jobDiscoveryLabel("CANVASS", disclosed("issue_advocacy"))).toBe("Issue advocacy canvassing");
+    expect(jobDiscoveryLabel("CANVASS", disclosed("party_committee"))).toBe("Party committee canvassing");
+    expect(jobDiscoveryLabel("CANVASS", disclosed("nonpartisan_civic"))).toBe("Nonpartisan civic canvassing");
+    expect(jobDiscoveryLabel("PETITION", disclosed("candidate"))).toBe("Petition circulation");
+  });
+  it("does not infer a category from incomplete or absent disclosure", () => {
+    expect(jobDiscoveryLabel("CANVASS", null)).toBe("Door-to-door canvassing");
+    expect(jobDiscoveryLabel("CANVASS", { campaignType: "candidate" })).toBe("Door-to-door canvassing");
   });
 });

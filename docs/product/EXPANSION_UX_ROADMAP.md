@@ -157,3 +157,40 @@ Subhead: **“Political • Nonprofit • Private — From door-to-door canvassi
 Consider reserving “One-Stop Shop for All Door-to-Door Work” as a campaign tagline / door-to-door landing-page headline rather than the entire product definition.
 
 **Status:** Founder direction approved; document and design now. Actual phone banking job type, payment units, legal review, database migration and production release each require implementation review and validation. Do not advertise as currently shipped.
+
+## Founder-requested job activities — Polling (2026-10-23)
+
+Add TWO **first-class, separately discoverable job types** to the cross-sector work taxonomy:
+
+1. **Phone Polling** — structured telephone surveys / opinion research, separate from **Phone Banking** (organizing, outreach, persuasion, fundraising or contact campaigns). Required sub-options:
+   - **Remote / Work From Home**
+   - **Office / On-Site**
+2. **Door-to-Door Polling** — in-person interviewer / survey enumerator visiting residences or assigned field areas, separate from **Door-to-Door Canvassing** (outreach, persuasion, fundraising, sales, petitions).
+
+Both polling categories may serve **Political**, **Nonprofit**, and **Private** sectors when appropriate. Examples: public-opinion surveys, program evaluation, customer research, and community feedback. Do not assume surveys are inherently partisan.
+
+### Taxonomy and UX rules
+- Sector (political/nonprofit/private), campaign purpose, activity and work arrangement are **distinct dimensions**. `phone_polling` and `door_to_door_polling` must not be encoded as `CANVASS` merely to avoid migration.
+- Suggested top-level activities for design: Petition Circulation; Door-to-Door Canvassing; Door-to-Door Fundraising; Door-to-Door Sales; Phone Banking; **Phone Polling**; **Door-to-Door Polling**. Only show as live selectable postings after each is end-to-end supported.
+- Phone Polling form requires a `workMode` choice (Remote or Office); remote needs disclosed calling timezone/hours, equipment/software and accessibility expectations; office needs physical worksite and check-in details. No GPS requirement for remote phone polling.
+- Door-to-Door Polling form needs service area, shift route/assignment if permitted, interview protocol, travel/staging instructions, safety escalation contact, required training and accessibility considerations.
+- Feed filters and job cards must distinguish **Phone Banking vs Phone Polling** and **Door-to-Door Canvassing vs Door-to-Door Polling**; display clear paid unit and confirmation criteria. Avoid misleading outcome counts.
+- Work verification distinguishes attempted calls/visits, live interviews started, completed interviews, interviewer-reported data and independently validated survey completions. Never count attempted contact as a completed survey.
+- Workers should receive a truthful disclosure of who sponsors/conducts the research and whether the work involves collecting sensitive personal responses. Keep individual respondent identities, survey answers, and respondent contact details out of worker scorecards and broad employer views by default.
+- Seek legal/privacy review on survey consent, calling-hour restrictions, automated/prerecorded calls, call recording consent, consumer contact rules, election/political-research regulations, data minimization, retention and vendor obligations. Don't build dialers, scraping, respondent profiling or data exports by default.
+- Payroll and compensation design needs explicit approval of polling-specific units (e.g., verified completed interview) prior to any per-unit pay; do not treat a survey as an accepted canvass contact using existing formulas.
+- Backward compatibility: keep existing PETITION and CANVASS jobs, historical records and jurisdiction publish gates unchanged; propose versioned schema/API changes separately for approval.
+
+### Claude implementation milestones
+**Polling P0 — Architecture and interaction design:** wireframe candidate flows and approve job taxonomy, database changes, privacy and employment/compliance assumptions. Documentation only until approved.
+**Polling P1 — Discovery + hiring:** add validated job-category and work-mode data, create/edit form, worker filters, badges, organization jobs list, read-only details, unit tests and tenant isolation checks.
+**Polling P2 — Shifts + activity:** phone/field shift readiness, permitted attendance check, offline field event queue, survey-completion audit evidence (without storing raw sensitive survey answers in generalized work events), manager review.
+**Polling P3 — Payments + optional integrations:** verified interview compensation if legally/operationally approved; separate integration review for approved survey software/telephony.
+**Acceptance cases:** phone poll (remote and office), door poll, phone banking (remote and office), door canvassing, malformed/legacy jobs, combined filters, timezone, internet loss, privacy boundary, employer access isolation, pay dispute and duplicate activity replay.
+
+### Brand positioning refinement
+The three organization sectors remain **Political • Nonprofit • Private**. Activities now include both **Field Work and Phone Outreach & Research**, suggesting:
+**“TurfCut — One Platform for Field Work, Polling and Outreach.”**
+Keep “One-Stop Shop for All Door-to-Door Work” as a memorable vertical tagline, not the entire scope.
+
+**Delivery status:** Polling is now **specified for future implementation, not released**. No production schema or pay changes occur from this roadmap entry.

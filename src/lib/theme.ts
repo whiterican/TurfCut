@@ -100,15 +100,23 @@ export function leaveSunlight() {
   setTheme(back === "sun" ? "system" : back);
 }
 
-/** Another tab changed the theme: show it here too. */
+/** Another tab changed the theme, or the phone did while "match my phone" is chosen: show it here too. */
 export function followOtherTabs(): () => void {
   const onStorage = (e: StorageEvent) => {
     if (e.key !== THEME_STORAGE_KEY && e.key !== null) return;
     applyThemeClasses(currentTheme());
     window.dispatchEvent(new Event(DISPLAY_EVENT));
   };
+  const phone = window.matchMedia("(prefers-color-scheme: light)");
+  const onPhone = () => {
+    if (currentTheme() === "system") applyThemeClasses("system");
+  };
   window.addEventListener("storage", onStorage);
-  return () => window.removeEventListener("storage", onStorage);
+  phone.addEventListener("change", onPhone);
+  return () => {
+    window.removeEventListener("storage", onStorage);
+    phone.removeEventListener("change", onPhone);
+  };
 }
 /** Where the visitor's text-size choice is remembered (this device only). */
 export const TEXT_SIZE_KEY = "turfcut-text";

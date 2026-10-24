@@ -1524,7 +1524,7 @@ summary.list-none::-webkit-details-marker {
   .sun .hero-card-accent:not([data-priority="1"], [data-priority="2"], [data-priority="3"]) {
     border-color: var(--border-strong);
   }
-  .sun :is(.tabbar, .leaflet-bar) {
+  .sun :is(.tabbar, .turf-map.leaflet-container .leaflet-bar) {
     box-shadow: none;
   }
   .sun svg.lucide {
@@ -1551,6 +1551,12 @@ summary.list-none::-webkit-details-marker {
   .sun .toggle input:not(:checked)::after {
     background: var(--fg);
   }
+  /* Safari's native switch keeps its own look. */
+  @supports selector(::thumb) {
+    .sun .toggle input[switch]:not(:checked) {
+      background: none;
+    }
+  }
   /* A disabled button can't hide behind faded colour in glare: it turns grey
      with a dashed outline (an outline, so nothing shifts when it flips). A busy
      one keeps its look, solid. */
@@ -1558,6 +1564,7 @@ summary.list-none::-webkit-details-marker {
     opacity: 1;
     background: var(--surface-2);
     color: var(--fg);
+    border-color: transparent;
     outline: 2px dashed var(--border);
     outline-offset: -2px;
   }

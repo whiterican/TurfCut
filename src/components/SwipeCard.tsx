@@ -45,7 +45,10 @@ export function SwipeCard({
     // The server refused: put the card back the way it was and show why (the optimistic change was wrong).
     if (!result.ok && result.message) {
       leaving.current = false;
+      // A refused hide mid-slide: stop the slide and bring the card back to rest where it was.
+      for (const a of card.current?.getAnimations() ?? []) a.cancel();
       setGone(false);
+      setDx(0);
       setSaved(saved);
     }
     return result;
@@ -80,7 +83,11 @@ export function SwipeCard({
     // The card slides off first; it leaves the list once the slide has played (the state change would detach it mid-way).
     const easing = getComputedStyle(document.documentElement).getPropertyValue("--ease-in").trim() || undefined;
     const slide = el.animate([{ translate: `${dx}px 0`, opacity: 1 }, { translate: "-110% 0", opacity: 0 }], { duration: ms, easing, fill: "forwards" });
-    slide.finished.then(() => setGone(true), () => setGone(true));
+    // Gone only if the server hasn't refused meanwhile (a refusal clears `leaving` and cancels the slide).
+    const leave = () => {
+      if (leaving.current) setGone(true);
+    };
+    slide.finished.then(leave, leave);
   }
   function unhide() {
     haptic("tap");
@@ -149,8 +156,9 @@ export function SwipeCard({
     }
   };
 
-  // The live region is always in the tree, so the text it receives is announced.
-  const status = gone ? state.message || (hidden ? "Back in your feed." : "Hidden from your feed.") : "";
+  // The live region is always in the tree, so the text it receives is announced. While the mark is still on its
+  // way, `state` is the previous action's result, so the fallback is what was just done.
+  const status = gone ? (pending ? "" : state.message) || (hidden ? "Back in your feed." : "Hidden from your feed.") : "";
   if (gone) {
     return (
       <div className="swipe">

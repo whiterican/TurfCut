@@ -31,6 +31,8 @@ export function Sheet({
   const dialog = useRef<HTMLDialogElement>(null);
   const panel = useRef<HTMLDivElement>(null);
   const drag = useRef<{ y0: number; t0: number; y: number; t: number } | null>(null);
+  /** A slide-away is playing: a second Escape or tap meanwhile must not restart it from the top. */
+  const closing = useRef(false);
 
   useEffect(() => {
     const d = dialog.current;
@@ -44,14 +46,17 @@ export function Sheet({
         for (const a of p.getAnimations()) a.cancel();
         p.style.translate = "";
       }
+      closing.current = false;
     }
   }, [open]);
 
   /** Slides the panel down, then closes; a cancelled drag springs it back. */
   function dismiss() {
+    if (closing.current) return;
     const p = panel.current;
     const ms = duration("base");
     if (!p || !ms) return setOpen(false);
+    closing.current = true;
     const from = p.style.translate || "0 0";
     const easing = getComputedStyle(document.documentElement).getPropertyValue("--ease-in").trim() || undefined;
     p.animate([{ translate: from }, { translate: "0 110%" }], { duration: ms, easing, fill: "forwards" }).finished.then(() => setOpen(false), () => setOpen(false));

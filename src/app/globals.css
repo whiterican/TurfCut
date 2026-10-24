@@ -1014,7 +1014,7 @@ body {
     @apply relative;
   }
   .swipe-card {
-    @apply relative rounded-3xl border border-border p-4 sm:p-5;
+    @apply relative rounded-3xl border border-border p-4 transition-colors sm:p-5;
     background: var(--card-sheen), var(--card-bg);
     box-shadow: var(--card-edge), var(--shadow-depth);
     touch-action: pan-y;

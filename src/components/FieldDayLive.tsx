@@ -223,7 +223,7 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
       !stored
         ? { ok: false, text: "This phone's storage is full, so this is only kept while the page is open. Keep it open until it syncs." }
         : checkedIn
-          ? { ok: true, text: navigator.onLine ? "You're checked in. The clock is running." : "You're checked in on this phone. The clock is running, and it'll sync when you have signal." }
+          ? { ok: true, text: navigator.onLine ? "You're checked in. The clock is running." : "Check-in saved on this phone. The clock started when you tapped; it'll sync when you have signal." }
           : { ok: true, text: navigator.onLine ? "Saved." : "Saved on this phone. It'll sync when you have signal." }
     );
     void sync();
@@ -284,7 +284,7 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
     </form>
   );
   // One pill, always there once the page is live on the phone, sliding between states (P1.4).
-  const pill = !mounted ? null : pillState({ online, reachable: !unreachable && !(problem && waiting.length), syncing, waiting: waiting.length, refused: refused.length });
+  const pill = !mounted ? null : pillState({ online, reachable: !((unreachable || problem) && waiting.length), syncing, waiting: waiting.length, refused: refused.length });
   const status = !pill
     ? null
     : {
@@ -302,7 +302,7 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
                 ? "Syncing…"
                 : pill === "waiting"
                   ? `${waiting.length} waiting to sync`
-                  : "Online · all saved",
+                  : "All saved",
       };
 
   return (

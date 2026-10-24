@@ -888,7 +888,8 @@ here is a ranking input. Eight slices, no new dependency.
   whole numbers. They never jump and never show a number that wasn't real
   at either end. Screen readers hear only the settled value.
 - **One connection pill.** It always sits on the field-day card: online,
-  syncing, waiting, no signal or couldn't save. Its colour follows the state
+  syncing, waiting, no signal or couldn't save ("All saved" when nothing is
+  waiting). Its colour follows the state
   and its words slide in.
 - **Rings on rates.** Show rate, contact rate and signature acceptance on
   the scorecard fill from the value this phone last saw. Each keeps its own
@@ -898,7 +899,10 @@ here is a ranking input. Eight slices, no new dependency.
   look, a reload or another device shows just "Paid". No confetti.
 - Every moment runs on the motion tokens and settles at once under Less
   motion. What a phone "last saw" lives in its own storage
-  (`turfcut-seen:*`); without storage the moment simply doesn't play.
+  (`turfcut-seen:*`); without storage the moment simply doesn't play. Pay
+  lines drop their key once paid, voided or nothing due. Scorecard rings
+  remember only on the worker's own profile; organization views draw them
+  plainly.
 
 ## C2 scope — workers decide what each organization sees
 

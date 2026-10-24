@@ -1413,7 +1413,13 @@ summary.list-none::-webkit-details-marker {
   stroke: var(--success);
   stroke-linecap: round;
   stroke-dasharray: 1;
-  transition: stroke-dashoffset var(--dur-slow) var(--ease-out);
+}
+/* On a hero card the ring takes the card's own ink: lime and eggplant cards both keep it visible. */
+.hero-card .progress-ring-fill {
+  stroke: currentColor;
+}
+.hero-card .progress-ring-track {
+  stroke: color-mix(in srgb, currentColor 25%, transparent);
 }
 /* The connection pill: its colour follows the state, its words slide in. */
 .pill {

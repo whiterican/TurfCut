@@ -21,7 +21,7 @@ import { isInstalled, PULL_THRESHOLD_PX, pullOffset, pullRelease } from "@/lib/p
 const subscribeNever = () => () => {};
 /** Clearly downward: twice as far down as across. A card swipe is the other way round. */
 const DOWNWARD = 2;
-const DECIDE_PX = 4;
+const DECIDE_PX = 8;
 
 /** An ancestor that has scrolled: the drag belongs to it. */
 function insideScrolled(el: Element | null): boolean {
@@ -37,6 +37,8 @@ export function PullToRefresh() {
   const [refreshing, startRefresh] = useTransition();
   const [spinning, setSpinning] = useState(false);
   const [said, setSaid] = useState<"" | "Refreshing" | "Refreshed">("");
+  /** The fill the ring keeps while it springs back (the offset is already 0 by then). */
+  const [settling, setSettling] = useState(0);
   const ring = useRef<HTMLDivElement>(null);
   const touch = useRef<{ x0: number; y0: number; id: number; armed: boolean; pulling: boolean; offset: number } | null>(null);
 
@@ -58,14 +60,15 @@ export function PullToRefresh() {
     return () => window.clearTimeout(t);
   }, [said]);
 
-  /** Slides the ring back under the header (fading at the end, where no header hides it). */
+  /** Slides the ring back under the header (fading at the end, where no header hides it), its arc as it was. */
   function settle(from: number) {
     setOffset(0);
     const el = ring.current;
     const ms = duration("slow");
     if (!el || !ms || !from) return;
+    setSettling(Math.min(1, from / PULL_THRESHOLD_PX));
     const easing = getComputedStyle(document.documentElement).getPropertyValue("--spring").trim() || undefined;
-    el.animate(
+    const slide = el.animate(
       [
         { translate: `0 ${from}px`, opacity: 1, offset: 0 },
         { opacity: 1, offset: 0.7 },
@@ -73,6 +76,8 @@ export function PullToRefresh() {
       ],
       { duration: ms, easing }
     );
+    const done = () => setSettling(0);
+    slide.finished.then(done, done);
   }
 
   useEffect(() => {
@@ -100,6 +105,11 @@ export function PullToRefresh() {
         }
         if (dy < DECIDE_PX) return;
         d.pulling = true;
+      } else if (dy <= 0) {
+        // The finger came back up past where it started: a scroll after all, so the page gets it (the ring is already away).
+        touch.current = null;
+        setOffset(0);
+        return;
       }
       // Ours now, from the first clear move: the page must not rubber-band or scroll under the finger
       // (a browser locks a touch into scrolling on the first move it is allowed).
@@ -145,10 +155,10 @@ export function PullToRefresh() {
   }, [installed, spinning, router]);
 
   if (!installed) return null;
-  const fill = Math.min(1, offset / PULL_THRESHOLD_PX);
+  const fill = spinning ? 0.75 : offset ? Math.min(1, offset / PULL_THRESHOLD_PX) : settling;
   return (
     <div ref={ring} className={spinning ? "pull pull-spin" : "pull"} style={{ translate: `0 ${offset}px`, opacity: offset ? 1 : 0 }} role="status">
-      <Ring fill={spinning ? 0.75 : fill} size={28} />
+      <Ring fill={fill} size={28} />
       {said && <span className="sr-only">{said}</span>}
     </div>
   );

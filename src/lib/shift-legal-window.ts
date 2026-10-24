@@ -1,4 +1,4 @@
-import { parseComplianceInstant } from "./compliance-policy";
+import { COMPLIANCE_ACTIVITIES, parseComplianceInstant } from "./compliance-policy";
 /**
  * Scheduling guard for counsel-approved, activity-scoped local-hours rules.
  * This module is intentionally not wired to shift creation yet: current
@@ -54,8 +54,10 @@ export function checkApprovedShiftWindow(
   if (rule.approved !== true) return denied("Scheduling rule is not approved.");
   if (typeof rule.jurisdiction !== "string" || !rule.jurisdiction.trim() || rule.jurisdiction !== rule.jurisdiction.trim() ||
       typeof shift.jurisdiction !== "string" || !shift.jurisdiction.trim() || shift.jurisdiction !== shift.jurisdiction.trim() ||
-      typeof rule.activity !== "string" || !rule.activity.trim() ||
-      typeof shift.activity !== "string" || !shift.activity.trim() ||
+      typeof rule.activity !== "string" || !rule.activity.trim() || rule.activity !== rule.activity.trim() ||
+      typeof shift.activity !== "string" || !shift.activity.trim() || shift.activity !== shift.activity.trim() ||
+      !(COMPLIANCE_ACTIVITIES as readonly string[]).includes(rule.activity) ||
+      !(COMPLIANCE_ACTIVITIES as readonly string[]).includes(shift.activity) ||
       rule.jurisdiction !== shift.jurisdiction || rule.activity !== shift.activity) {
     return denied("Scheduling rule does not match this activity and jurisdiction.");
   }

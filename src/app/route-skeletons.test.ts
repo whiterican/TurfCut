@@ -11,11 +11,13 @@ import { PageSkeleton, SKELETON_SHAPES } from "@/components/PageSkeleton";
  * would hide behind a streamed 200:
  *   - the offline brief's field routes (Today and the Shifts pages) and the
  *     root above them (field-routes-status.test.ts);
- *   - a campaign's public page and its posts, which campaigns share as links:
- *     a deleted one must be a real 404 to link checkers and monitors.
+ *   - the public campaign pages (the directory, each campaign and its posts),
+ *     which campaigns share as links: a deleted one must be a real 404 to
+ *     link checkers and monitors. The directory is exempt too, because a
+ *     loading screen there would also wrap every campaign page below it.
  */
 const APP = join(__dirname);
-const NO_SKELETON = ["", "dashboard", "shifts", "c/[handle]"]; // "" = the root page; the others include everything below them
+const NO_SKELETON = ["", "dashboard", "shifts", "c"]; // "" = the root page; the others include everything below them
 const PAGE = /^page\.(tsx|ts|jsx|js|mdx)$/;
 
 function pageDirs(dir: string): string[] {
@@ -59,9 +61,12 @@ describe("route skeletons (P1.3)", () => {
     expect(wrong, "loading.tsx must render <PageSkeleton> with one of SKELETON_SHAPES").toEqual([]);
   });
 
-  it("leaves the field routes, the root and the public campaign pages without one", () => {
-    expect(existsSync(join(APP, "loading.tsx"))).toBe(false);
-    for (const d of dirs.filter((x) => exempt(route(x)))) expect(existsSync(join(d, "loading.tsx")), `/${route(d)}`).toBe(false);
+  it("leaves the field routes, the root and the public campaign pages without one, on themselves or above them", () => {
+    const boundary = (dir: string) => readdirSync(dir).some((f) => /^(loading|template)\.(tsx|ts|jsx|js)$/.test(f));
+    for (const d of dirs.filter((x) => exempt(route(x)))) {
+      // A loading screen wraps everything below it, so every folder up to the app root counts.
+      for (let up = d; up.startsWith(APP); up = join(up, "..")) expect(boundary(up), `/${route(d)} is wrapped by ${relative(APP, up) || "the root"}`).toBe(false);
+    }
   });
 
   it("draws every shape as a busy, labelled placeholder", () => {
@@ -70,13 +75,13 @@ describe("route skeletons (P1.3)", () => {
       expect(html).toMatch(/^<main class="page" aria-busy="true" aria-label="Loading jobs">/);
       expect(html).toContain('class="skeleton');
     }
-    expect(renderToStaticMarkup(createElement(PageSkeleton, { shape: "form", width: "narrow" }))).toMatch(/^<main class="page-narrow flex flex-1 flex-col justify-center"/);
+    expect(renderToStaticMarkup(createElement(PageSkeleton, { shape: "form", width: "narrow" }))).toMatch(/^<main class="page-narrow flex flex-1 flex-col justify-center gap-6"/);
     expect(renderToStaticMarkup(createElement(PageSkeleton, { shape: "thread", width: "2xl", gap: 4 }))).toMatch(/^<main class="page max-w-2xl space-y-4"/);
   });
 
   it("draws an unframed skeleton as a plain block with no heading, for the staff console", () => {
     const html = renderToStaticMarkup(createElement(PageSkeleton, { shape: "list", framed: false, label: "Loading people" }));
-    expect(html).toMatch(/^<div class="space-y-10" aria-busy="true" aria-label="Loading people">/);
+    expect(html).toMatch(/^<div class="space-y-10" role="status" aria-busy="true" aria-label="Loading people">/);
     expect(html).not.toContain("<main");
     expect(html).not.toContain("h-8 w-48"); // the heading bars
   });

@@ -861,9 +861,11 @@ here is a ranking input. Eight slices, no new dependency.
 - **Except where a real status code matters.** Today, My shifts and
   everything under them, and the root above them, have no loading screen:
   the offline brief needs their real status codes (see
-  `field-routes-status.test.ts`). A campaign's public page and its posts
-  don't either: campaigns share those links, and a deleted one must be a
-  real 404 to link checkers and monitors.
+  `field-routes-status.test.ts`). The public campaign pages (the directory,
+  each campaign and its posts) don't either: campaigns share those links, and
+  a deleted one must be a real 404 to link checkers and monitors. A loading
+  screen wraps everything below it, so the test checks each exempt page's
+  parent folders too.
 - **Matched to the page.** Width and spacing follow the page's own container
   (2xl to 5xl, centred for sign-in). The staff console's skeletons sit inside
   its frame with no second heading. Work shows workers the card feed and

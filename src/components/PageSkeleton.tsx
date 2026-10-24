@@ -170,7 +170,7 @@ const WIDTH: Record<SkeletonWidth, string> = {
   "2xl": "page max-w-2xl",
   "4xl": "page max-w-4xl",
   "5xl": "page max-w-5xl",
-  narrow: "page-narrow flex flex-1 flex-col justify-center",
+  narrow: "page-narrow flex flex-1 flex-col justify-center gap-6",
 };
 const GAP: Record<SkeletonGap, string> = { 4: "space-y-4", 6: "space-y-6", 8: "space-y-8", 10: "space-y-10" };
 
@@ -201,7 +201,7 @@ export function PageSkeleton({
   const rhythm = gap ? GAP[gap] : "";
   if (!framed) {
     return (
-      <div className={GAP[gap ?? 10]} aria-busy="true" aria-label={label}>
+      <div className={GAP[gap ?? 10]} role="status" aria-busy="true" aria-label={label}>
         {body}
       </div>
     );

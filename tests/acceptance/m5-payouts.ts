@@ -530,12 +530,76 @@ async function slice5(ctx: { e2: string }) {
   check("the export has a paid_in_period column, yes for a line paid in the period", header.endsWith("paid_in_period") && !!yRow && /"?yes"?$/.test(yRow), { header, yRow });
 }
 
+/** G1 + G2: the funding ledger gates pay runs; the scheduled job settles stale transfers. */
+async function slice6() {
+  const p = db();
+  const now = () => new Date();
+  const later = () => new Date(Date.now() + pay.STALE_TRANSFER_MS + 60_000);
+  const fin = { profileId: FIN, orgId: ORG, role: "FINANCE" as const };
+  const fake = fakeStripe();
+  const st = fake.provider;
+  const acct = (await p.worker.findUniqueOrThrow({ where: { id: W1 } })).stripeAccountId!;
+  fake.accounts.set(acct, { enabled: true });
+  const approveNew = async (daysAgo: number) => {
+    const s = await workedShift(ENG_W1_A, daysAgo);
+    await supervisorShiftAction(supA, s, { kind: "closeout", status: "APPROVED", reason: null }, now());
+    const l = await p.payout.findFirstOrThrow({ where: { shiftId: s } });
+    await pay.lineAction(fin, [l.id], "approve", null, now());
+    return l;
+  };
+
+  // Anything earlier slices left "sending" is settled by the scheduled job, not by a click.
+  await pay.settleStaleTransfers(st, later());
+  const leftover = await p.payoutTransfer.count({ where: { events: { some: { type: "TRANSFER_STARTED" }, none: { type: { in: ["PAID", "TRANSFER_FAILED", "REVERSED"] } } } } });
+  check("G2: the scheduled job leaves no stale transfer sending", leftover === 0, leftover);
+
+  process.env.PAYOUT_FUNDING_REQUIRED = "1";
+  try {
+    const pos0 = await pay.orgFunding(p, ORG);
+    check("G1: nothing credited yet; committed counts transfers already sent, not failed ones", pos0.creditedCents === 0 && pos0.committedCents > 0, pos0);
+    await approveNew(20);
+    const sends0 = fake.transfers.size;
+    const t0 = await p.payoutTransfer.count();
+    const r1 = await pay.payWorker(fin, W1, st, null, now());
+    check("G1: an unfunded organization can't pay", !r1.ok && /funded balance/.test(r1.reason), r1);
+    check("G1: …and nothing was recorded or sent", (await p.payoutTransfer.count()) === t0 && fake.transfers.size === sends0);
+
+    const f = await pay.recordOrgFunding(FIN, ORG, pos0.committedCents + 100_000, "INV-1001", now());
+    check("G1: staff record a funding entry", f.ok, f);
+    check("G1: the same reference can't be recorded twice", !(await pay.recordOrgFunding(FIN, ORG, 100, "INV-1001", now())).ok);
+    check("G1: a correction can't go below what's committed", !(await pay.recordOrgFunding(FIN, ORG, -200_000, "fix", now())).ok);
+    check("G1: entries are append-only", await p.orgFundingEntry.deleteMany({ where: { orgId: ORG } }).then(() => false, () => true));
+
+    const r2 = await pay.payWorker(fin, W1, st, null, now());
+    check("G1: a funded organization pays", r2.ok && r2.outcome === "paid", r2);
+    const pos1 = await pay.orgFunding(p, ORG);
+    const sent = r2.ok ? (await p.payoutTransfer.findUniqueOrThrow({ where: { id: r2.transferId } })).amountCents : -1;
+    check("G1: the payment is committed against the balance", pos1.committedCents === pos0.committedCents + sent, { pos0, pos1, sent });
+
+    // --- G2: a transfer whose send timed out is settled by the scheduled job ---
+    const l2 = await approveNew(21);
+    fake.failNext("timeout-before-send");
+    const r3 = await pay.payWorker(fin, W1, st, null, now());
+    check("G2: a timeout leaves the transfer sending", r3.ok && r3.outcome === "pending", r3);
+    const early = await pay.settleStaleTransfers(st, now());
+    check("G2: a fresh transfer isn't touched yet", early.checked === 0, early);
+    const run = await pay.settleStaleTransfers(st, later());
+    check("G2: a stale one is settled", run.checked === 1 && run.paid === 1, run);
+    const ev = await p.payoutEvent.findMany({ where: { payoutId: l2.id } });
+    check("G2: …and its line is paid, sent once", ev.some((e) => e.type === "PAID") && [...fake.transfers.values()].filter((t) => t.amountCents === l2.amountCents).length >= 1);
+    check("G2: running again settles nothing", (await pay.settleStaleTransfers(st, later())).checked === 0);
+  } finally {
+    delete process.env.PAYOUT_FUNDING_REQUIRED;
+  }
+}
+
 async function main() {
   await setup();
   const ctx = await slice2();
   await slice3(ctx);
   await slice4();
   await slice5(ctx);
+  await slice6();
   console.log(fails ? `\n${fails} FAILED` : "\nALL PASS");
   process.exit(fails ? 1 : 0);
 }

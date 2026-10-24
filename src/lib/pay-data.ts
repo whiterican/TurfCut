@@ -3,12 +3,16 @@ import { db } from "@/lib/db";
 import { UUID_RE } from "@/lib/jobs";
 import { canUse, type Grants } from "@/lib/access";
 import type { Role } from "@/lib/auth";
+import { fundingRequired } from "@/lib/env";
 import { ProviderError, type PayoutProvider, type ProviderEvent } from "@/lib/payout-provider";
 import { verifiedWork } from "@/lib/scorecard";
 import { clockOf, notifyDispute } from "@/lib/dispute-thread-data";
 import type { DisputeClock } from "@/lib/dispute-sla";
 import {
   computeShiftPay,
+  fundingEntryProblem,
+  fundingPosition,
+  fundingShortfall,
   disputeProblem,
   hoursFlag,
   lineActionProblem,
@@ -22,6 +26,7 @@ import {
   resolutionProblem,
   sortEvents,
   wageFlag,
+  type FundingPosition,
   type LineState,
   type PayEventFact,
   type PayResult,
@@ -947,7 +952,12 @@ export async function payWorker(actor: PayActor, workerId: string, provider: Pay
       return { ok: false as const, reason: `The amount changed to ${money(t.amountCents)} since you opened this page. Nothing was sent — check it and pay again.` };
     }
     // The receipt number: the organization's next, under the organization's receipt lock (M9).
+    // The same lock serializes the organization's pay runs, so the funding check below can't race.
     await lock(tx, `receipts:${actor.orgId}`);
+    if (fundingRequired()) {
+      const short = fundingShortfall(await orgFunding(tx, actor.orgId), t.amountCents);
+      if (short) return { ok: false as const, reason: short };
+    }
     const last = await tx.payoutTransfer.aggregate({ where: { orgId: actor.orgId }, _max: { receiptNo: true } });
     const transfer = await tx.payoutTransfer.create({
       data: { workerId, orgId: actor.orgId, amountCents: t.amountCents, feeCents: t.feeCents, receiptNo: (last._max.receiptNo ?? 0) + 1, destination: worker.stripeAccountId!, createdById: actor.profileId, createdAt: now },
@@ -1254,4 +1264,78 @@ export async function recordPartialReversal(actor: PayActor, transferId: string,
     });
     return { ok: true as const, cents: outstanding };
   });
+}
+
+/**
+ * G1: an organization's funding position: its funding entries less what its
+ * transfers have sent or are sending. A transfer counts unless Stripe
+ * definitively refused it (TRANSFER_FAILED), so money in flight is never
+ * spent twice.
+ */
+export async function orgFunding(c: Client, orgId: string): Promise<FundingPosition> {
+  const [credited, committed] = await Promise.all([
+    c.orgFundingEntry.aggregate({ where: { orgId }, _sum: { amountCents: true } }),
+    c.payoutTransfer.aggregate({ where: { orgId, events: { none: { type: "TRANSFER_FAILED" } } }, _sum: { amountCents: true } }),
+  ]);
+  return fundingPosition(credited._sum.amountCents ?? 0, committed._sum.amountCents ?? 0);
+}
+
+/**
+ * G1: Turfcut staff record money an organization put in (or a correction).
+ * The caller must already have checked the staff session (requireStaff).
+ * Idempotent per (organization, reference): recording the same invoice twice
+ * is refused, not doubled.
+ */
+export async function recordOrgFunding(staffId: string, orgId: string, amountCents: number, reference: string, now = new Date()): Promise<Result & { position?: FundingPosition }> {
+  if (!UUID_RE.test(orgId)) return { ok: false, reason: "Organization not found." };
+  const ref = reference.trim();
+  try {
+    return await db().$transaction(async (tx) => {
+      await lock(tx, `receipts:${orgId}`);
+      const org = await tx.organization.findUnique({ where: { id: orgId }, select: { id: true } });
+      if (!org) return { ok: false as const, reason: "Organization not found." };
+      const before = await orgFunding(tx, orgId);
+      const problem = fundingEntryProblem(amountCents, ref, before);
+      if (problem) return { ok: false as const, reason: problem };
+      const entry = await tx.orgFundingEntry.create({ data: { orgId, amountCents, reference: ref, createdById: staffId, createdAt: now } });
+      await tx.auditEvent.create({ data: { actorId: staffId, action: "org.funding_recorded", entityType: "OrgFundingEntry", entityId: entry.id, metadata: { orgId, amountCents, reference: ref } } });
+      return { ok: true as const, position: fundingPosition(before.creditedCents + amountCents, before.committedCents) };
+    });
+  } catch (e) {
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") return { ok: false, reason: "That reference is already recorded for this organization." };
+    throw e;
+  }
+}
+
+/** How long a transfer stays "sending" before the scheduled job asks Stripe about it. */
+export const STALE_TRANSFER_MS = 15 * 60_000;
+/** Most transfers settled per run, so one run stays well inside the function's time limit. */
+export const SETTLE_BATCH = 25;
+
+/**
+ * Scheduled (G2): settles transfers left "sending" — a Stripe timeout, a
+ * closed tab, a lost webhook — so a worker's pay isn't blocked until someone
+ * clicks "Check payment". Uses settleTransfer with no actor: it looks the
+ * transfer up by its Turfcut id first and re-sends only under the same
+ * idempotency key, so it never pays twice.
+ */
+export async function settleStaleTransfers(provider: PayoutProvider, now = new Date()): Promise<{ checked: number; paid: number; failed: number; pending: number }> {
+  const out = { checked: 0, paid: 0, failed: 0, pending: 0 };
+  if (!provider.configured()) return out;
+  const stale = await db().payoutTransfer.findMany({
+    where: {
+      createdAt: { lt: new Date(now.getTime() - STALE_TRANSFER_MS) },
+      events: { some: { type: "TRANSFER_STARTED" }, none: { type: { in: ["PAID", "TRANSFER_FAILED", "REVERSED"] } } },
+    },
+    select: { id: true },
+    orderBy: { createdAt: "asc" },
+    take: SETTLE_BATCH,
+  });
+  for (const { id } of stale) {
+    out.checked++;
+    const r = await settleTransfer(null, id, provider, now);
+    if (!r.ok) continue;
+    out[r.outcome]++;
+  }
+  return out;
 }

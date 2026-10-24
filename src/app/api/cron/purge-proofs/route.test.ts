@@ -1,7 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const m = vi.hoisted(() => ({ purgeProofs: vi.fn() }));
+const m = vi.hoisted(() => ({ purgeProofs: vi.fn(), settle: vi.fn() }));
 vi.mock("@/lib/proof-data", () => ({ purgeProofs: m.purgeProofs }));
+vi.mock("@/lib/pay-data", () => ({ settleStaleTransfers: m.settle }));
+vi.mock("@/lib/payout-provider", () => ({ stripeProvider: () => ({}) }));
 
 import { GET } from "./route";
 
@@ -13,6 +15,7 @@ describe("GET /api/cron/purge-proofs", () => {
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://example.supabase.co");
     vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "service");
     vi.stubEnv("CREDENTIAL_PROOF_KEY", Buffer.alloc(32, 7).toString("base64"));
+    m.settle.mockReset().mockResolvedValue({ checked: 1, paid: 1, failed: 0, pending: 0 });
     m.purgeProofs.mockReset().mockResolvedValue({ deleted: 2, orphans: 1, filesRemoved: 3 });
     vi.spyOn(console, "error").mockImplementation(() => {});
     vi.spyOn(console, "log").mockImplementation(() => {});
@@ -28,9 +31,10 @@ describe("GET /api/cron/purge-proofs", () => {
     expect((await GET(req("Bearer s3cret-valu"))).status).toBe(404);
     expect((await GET(req("Bearer s3cret-value-and-more"))).status).toBe(404);
     expect(m.purgeProofs).not.toHaveBeenCalled();
+    expect(m.settle).not.toHaveBeenCalled();
     const ok = await GET(req("Bearer s3cret-value"));
     expect(ok.status).toBe(200);
-    expect(await ok.json()).toEqual({ deleted: 2, orphans: 1, filesRemoved: 3 });
+    expect(await ok.json()).toEqual({ deleted: 2, orphans: 1, filesRemoved: 3, settlement: { checked: 1, paid: 1, failed: 0, pending: 0 } });
   });
 
   it("refuses to run on a server without the secret or the photo settings", async () => {
@@ -40,5 +44,17 @@ describe("GET /api/cron/purge-proofs", () => {
     vi.stubEnv("CREDENTIAL_PROOF_KEY", "");
     expect((await GET(req("Bearer s3cret-value"))).status).toBe(503);
     expect(m.purgeProofs).not.toHaveBeenCalled();
+  });
+
+  it("settles stale transfers even when the photo settings are missing, and purges even when settlement fails", async () => {
+    vi.stubEnv("CREDENTIAL_PROOF_KEY", "");
+    expect((await GET(req("Bearer s3cret-value"))).status).toBe(503);
+    expect(m.settle).toHaveBeenCalledTimes(1);
+    vi.stubEnv("CREDENTIAL_PROOF_KEY", Buffer.alloc(32, 7).toString("base64"));
+    m.settle.mockRejectedValue(new Error("stripe down"));
+    const r = await GET(req("Bearer s3cret-value"));
+    expect(r.status).toBe(200);
+    expect(m.purgeProofs).toHaveBeenCalledTimes(1);
+    expect((await r.json()).settlement).toEqual({ error: "failed" });
   });
 });

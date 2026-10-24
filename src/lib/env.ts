@@ -255,6 +255,11 @@ export function getStripeWebhookSecrets(): string[] {
 }
 
 /** True when payouts can reach Stripe. Without it, pay is tracked but not sent. */
+/** G1: whether a pay run must be covered by the organization's funding ledger. Off unless set to "1". */
+export function fundingRequired(): boolean {
+  return process.env.PAYOUT_FUNDING_REQUIRED?.trim() === "1";
+}
+
 export function hasStripeConfig(): boolean {
   return Boolean(process.env.STRIPE_SECRET_KEY);
 }

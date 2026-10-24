@@ -1685,8 +1685,9 @@ summary.list-none::-webkit-details-marker {
    that comes out from under the header as the page is pulled, in the
    installed app only. Spins while the page re-renders. */
 .pull {
+  /* Under the sticky header (z 45) at rest, so it comes out from beneath it; at the threshold it sits clear below. */
   position: fixed;
-  top: -2.75rem;
+  top: 0.25rem;
   left: 50%;
   z-index: 30;
   display: flex;
@@ -1701,8 +1702,17 @@ summary.list-none::-webkit-details-marker {
   box-shadow: var(--shadow-depth);
   pointer-events: none;
 }
+/* The ring's own turn (it rests at -90deg so the arc starts at the top; a plain tc-spin would snap each lap). */
 .pull-spin .progress-ring {
-  animation: tc-spin calc(var(--dur-slow) * 2) var(--ease-linear) infinite;
+  animation: tc-spin-ring calc(var(--dur-slow) * 2) var(--ease-linear) infinite;
+}
+@keyframes tc-spin-ring {
+  from {
+    rotate: -90deg;
+  }
+  to {
+    rotate: 270deg;
+  }
 }
 /* Installed: the page's own pull does the refreshing, so the browser's must stay out of it (and the top never rubber-bands past the header). */
 @media (display-mode: standalone) {

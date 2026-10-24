@@ -984,7 +984,8 @@ here is a ranking input. Eight slices, no new dependency.
   coverage map restyles existing polygons rather than redrawing. All of it
   stops under "Less motion" and the OS setting.
 - **Screenshots** of Today, Work, a shift, the Desk and the field page in
-  light, dark and Sunlight are in the PR.
+  light, dark and Sunlight were made for the milestone review (local
+  fixture data; see the P1 session).
 
 ## C2 scope — workers decide what each organization sees
 

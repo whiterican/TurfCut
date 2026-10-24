@@ -34,4 +34,18 @@ describe("policy metadata preflight; not actual legal permission", () => {
     expect(preflightCompliancePolicy(context, { ...policy, officialSources: [42] as unknown as string[] }, at).eligibleForReview).toBe(false);
   });
 
+  it("rejects truthy nonboolean approval, invalid contexts, malformed identifiers and ambiguous dates", () => {
+    for (const approved of ["false", 1, {}]) {
+      expect(preflightCompliancePolicy(context, { ...policy, approved } as unknown as CompliancePolicy, at).eligibleForReview).toBe(false);
+    }
+    for (const broken of [null, [], { ...policy, id: 42 }, { ...policy, id: null }]) {
+      expect(preflightCompliancePolicy(context, broken as unknown as CompliancePolicy, at).eligibleForReview).toBe(false);
+    }
+    expect(preflightCompliancePolicy(null as unknown as ComplianceContext, policy, at).eligibleForReview).toBe(false);
+    expect(preflightCompliancePolicy({ ...context, jurisdiction: " US-MD" }, { ...policy, jurisdiction: " US-MD" }, at).eligibleForReview).toBe(false);
+    for (const timestamp of ["2027", "10/24/2026", "2026-10-23T23:00", "2026-10-27"]) {
+      expect(preflightCompliancePolicy(context, { ...policy, expiresAt: timestamp }, at).eligibleForReview).toBe(false);
+    }
+  });
+
 });

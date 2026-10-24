@@ -9,8 +9,10 @@
 export type SkeletonShape = "home" | "cards" | "table" | "detail" | "form" | "thread" | "list";
 export const SKELETON_SHAPES: readonly SkeletonShape[] = ["home", "cards", "table", "detail", "form", "thread", "list"];
 
-/** The page's own container width: `.page`, `.page max-w-2xl`, or `.page-narrow`. */
-export type SkeletonWidth = "page" | "2xl" | "narrow";
+/** The page's own container: `.page` (3xl), `.page max-w-2xl|4xl|5xl`, or the centred `.page-narrow`. */
+export type SkeletonWidth = "page" | "2xl" | "4xl" | "5xl" | "narrow";
+/** The page's own vertical rhythm when it sets one (`space-y-4|6|8`); `.page` itself is 10. */
+export type SkeletonGap = 4 | 6 | 8 | 10;
 
 const Bar = ({ className }: { className: string }) => <div className={`skeleton ${className}`} />;
 
@@ -40,11 +42,17 @@ function Rows({ n, avatar = false }: { n: number; avatar?: boolean }) {
   );
 }
 
-const SHAPES: Record<SkeletonShape, () => React.ReactNode> = {
+interface ShapeOptions {
+  heading: boolean;
+  filters: boolean;
+  avatars: boolean;
+}
+
+const SHAPES: Record<SkeletonShape, (o: ShapeOptions) => React.ReactNode> = {
   // Today, the Desk, a shift, Earnings: a hero card, a row of figures, a list.
-  home: () => (
+  home: (o) => (
     <>
-      <Heading />
+      {o.heading && <Heading />}
       <Bar className="h-40 w-full rounded-3xl" />
       <div className="grid grid-cols-3 gap-3">
         {Array.from({ length: 3 }, (_, i) => <Bar key={i} className="h-16 rounded-2xl" />)}
@@ -52,13 +60,15 @@ const SHAPES: Record<SkeletonShape, () => React.ReactNode> = {
       <Rows n={3} />
     </>
   ),
-  // The Work feed, campaign feeds, directories: a filter row, then cards.
-  cards: () => (
+  // The Work feed, campaign feeds, directories: a filter row (when the page has one), then cards.
+  cards: (o) => (
     <>
-      <Heading />
-      <div className="flex gap-2">
-        {Array.from({ length: 4 }, (_, i) => <Bar key={i} className="h-9 w-20 rounded-full" />)}
-      </div>
+      {o.heading && <Heading />}
+      {o.filters && (
+        <div className="flex gap-2">
+          {Array.from({ length: 4 }, (_, i) => <Bar key={i} className="h-9 w-20 rounded-full" />)}
+        </div>
+      )}
       <div className="space-y-3">
         {Array.from({ length: 3 }, (_, i) => (
           <div key={i} className="card space-y-3">
@@ -74,9 +84,9 @@ const SHAPES: Record<SkeletonShape, () => React.ReactNode> = {
     </>
   ),
   // Hiring's tables: a summary line, then a header row and rows.
-  table: () => (
+  table: (o) => (
     <>
-      <Heading />
+      {o.heading && <Heading />}
       <Bar className="h-4 w-64" />
       <div className="overflow-hidden rounded-2xl border border-border">
         <Bar className="h-10 w-full rounded-none" />
@@ -92,9 +102,9 @@ const SHAPES: Record<SkeletonShape, () => React.ReactNode> = {
     </>
   ),
   // One record: its facts card, then a section or two.
-  detail: () => (
+  detail: (o) => (
     <>
-      <Heading />
+      {o.heading && <Heading />}
       <div className="card space-y-3">
         {Array.from({ length: 4 }, (_, i) => (
           <div key={i} className="flex justify-between gap-4">
@@ -112,9 +122,9 @@ const SHAPES: Record<SkeletonShape, () => React.ReactNode> = {
     </>
   ),
   // Settings, sign-in, job editor: labelled fields and a button.
-  form: () => (
+  form: (o) => (
     <>
-      <Heading />
+      {o.heading && <Heading />}
       <div className="space-y-5">
         {Array.from({ length: 4 }, (_, i) => (
           <div key={i} className="space-y-2">
@@ -143,24 +153,62 @@ const SHAPES: Record<SkeletonShape, () => React.ReactNode> = {
           </div>
         ))}
       </div>
-      <Bar className="h-28 w-full rounded-2xl" />
+      <Bar className="h-40 w-full rounded-2xl" />
     </>
   ),
-  // Inboxes, notices, statements, admin queues: a list of rows.
-  list: () => (
+  // Inboxes, notices, statements, admin queues: a list of rows (with a face per row for people).
+  list: (o) => (
     <>
-      <Heading />
-      <Rows n={5} avatar={false} />
+      {o.heading && <Heading />}
+      <Rows n={5} avatar={o.avatars} />
     </>
   ),
 };
 
-const WIDTH: Record<SkeletonWidth, string> = { page: "page", "2xl": "page max-w-2xl", narrow: "page-narrow space-y-6" };
+const WIDTH: Record<SkeletonWidth, string> = {
+  page: "page",
+  "2xl": "page max-w-2xl",
+  "4xl": "page max-w-4xl",
+  "5xl": "page max-w-5xl",
+  narrow: "page-narrow flex flex-1 flex-col justify-center",
+};
+const GAP: Record<SkeletonGap, string> = { 4: "space-y-4", 6: "space-y-6", 8: "space-y-8", 10: "space-y-10" };
 
-export function PageSkeleton({ shape = "list", width = "page", label = "Loading" }: { shape?: SkeletonShape; width?: SkeletonWidth; label?: string }) {
+export function PageSkeleton({
+  shape = "list",
+  width = "page",
+  gap,
+  label = "Loading",
+  framed = true,
+  filters = true,
+  avatars = false,
+}: {
+  shape?: SkeletonShape;
+  width?: SkeletonWidth;
+  gap?: SkeletonGap;
+  label?: string;
+  /**
+   * False inside a layout that already draws the page and its heading (the
+   * staff console): then the skeleton is a plain block, never a second main.
+   */
+  framed?: boolean;
+  /** Cards: draw the filter row (the Work feed has one; a campaign's page doesn't). */
+  filters?: boolean;
+  /** Lists: a face on each row (inboxes, members). */
+  avatars?: boolean;
+}) {
+  const body = SHAPES[shape]({ heading: framed, filters, avatars });
+  const rhythm = gap ? GAP[gap] : "";
+  if (!framed) {
+    return (
+      <div className={GAP[gap ?? 10]} aria-busy="true" aria-label={label}>
+        {body}
+      </div>
+    );
+  }
   return (
-    <main className={WIDTH[width]} aria-busy="true" aria-label={label}>
-      {SHAPES[shape]()}
+    <main className={[WIDTH[width], rhythm].filter(Boolean).join(" ")} aria-busy="true" aria-label={label}>
+      {body}
     </main>
   );
 }

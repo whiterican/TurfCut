@@ -858,15 +858,23 @@ here is a ranking input. Eight slices, no new dependency.
   Each page's `loading.tsx` names its shape, its page width and what a
   screen reader hears ("Loading applicants"). The pulse is on the motion
   tokens and stops under Less motion.
-- **Except the field routes.** Today, My shifts and everything under them,
-  and the root above them, have no loading screen: the offline brief needs
-  their real status codes (see `field-routes-status.test.ts`).
+- **Except where a real status code matters.** Today, My shifts and
+  everything under them, and the root above them, have no loading screen:
+  the offline brief needs their real status codes (see
+  `field-routes-status.test.ts`). A campaign's public page and its posts
+  don't either: campaigns share those links, and a deleted one must be a
+  real 404 to link checkers and monitors.
+- **Matched to the page.** Width and spacing follow the page's own container
+  (2xl to 5xl, centred for sign-in). The staff console's skeletons sit inside
+  its frame with no second heading. Work shows workers the card feed and
+  organizations the jobs table. Inboxes and member lists show a face per row.
 - **A new page can't ship without one.** `src/app/route-skeletons.test.ts`
   fails any page outside the field routes that has no `loading.tsx`
   rendering a known shape.
-- A page that calls not-found behind a loading screen answers 200 with a
-  `noindex` tag rather than a 404, which Next.js handles for crawlers.
-  No test or tool here relies on page-level 404s.
+- Elsewhere, a page that calls not-found behind a loading screen answers
+  200 with a `noindex` tag rather than a 404. Those pages are all signed-in,
+  so nothing depends on the status. On a first visit the skeleton appears
+  once the root layout has read the session; on navigation it is immediate.
 
 ## C2 scope — workers decide what each organization sees
 

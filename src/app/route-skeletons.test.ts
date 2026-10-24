@@ -7,23 +7,28 @@ import { PageSkeleton, SKELETON_SHAPES } from "@/components/PageSkeleton";
 
 /**
  * P1.3: every route shows a skeleton of its own layout the moment it opens.
- * The exceptions are the offline brief's field routes (Today and the Shifts
- * pages) and the root above them: they must answer with real status codes,
- * so they carry no loading screen at all (field-routes-status.test.ts).
+ * The exceptions must answer with real status codes, which a loading screen
+ * would hide behind a streamed 200:
+ *   - the offline brief's field routes (Today and the Shifts pages) and the
+ *     root above them (field-routes-status.test.ts);
+ *   - a campaign's public page and its posts, which campaigns share as links:
+ *     a deleted one must be a real 404 to link checkers and monitors.
  */
 const APP = join(__dirname);
-const NO_SKELETON = ["", "dashboard", "shifts"]; // "" = the root page; dashboard and shifts include everything below them
+const NO_SKELETON = ["", "dashboard", "shifts", "c/[handle]"]; // "" = the root page; the others include everything below them
+const PAGE = /^page\.(tsx|ts|jsx|js|mdx)$/;
 
 function pageDirs(dir: string): string[] {
   return readdirSync(dir).flatMap((f) => {
     const p = join(dir, f);
     if (!statSync(p).isDirectory()) return [];
-    if (f === "zz-preview" || f === "api") return [];
-    return [...(existsSync(join(p, "page.tsx")) ? [p] : []), ...pageDirs(p)];
+    if (f === "zz-preview" || (dir === APP && f === "api")) return [];
+    return [...(readdirSync(p).some((x) => PAGE.test(x)) ? [p] : []), ...pageDirs(p)];
   });
 }
 
-const route = (dir: string) => relative(APP, dir).split(sep).join("/");
+/** The URL path of a page folder: route groups "(name)" don't appear in it. */
+const route = (dir: string) => relative(APP, dir).split(sep).filter((x) => !/^\(.*\)$/.test(x)).join("/");
 const exempt = (r: string) => NO_SKELETON.some((x) => (x === "" ? r === "" : r === x || r.startsWith(`${x}/`)));
 
 describe("route skeletons (P1.3)", () => {
@@ -45,14 +50,16 @@ describe("route skeletons (P1.3)", () => {
         continue;
       }
       const src = readFileSync(f, "utf8");
-      const shape = src.match(/<PageSkeleton\b[^>]*\bshape="([a-z]+)"/)?.[1];
-      if (!shape || !(SKELETON_SHAPES as readonly string[]).includes(shape)) wrong.push(`/${r}`);
+      const shapes = [...src.matchAll(/\bshape="([a-z]+)"/g)].map((m) => m[1]);
+      if (!src.includes("<PageSkeleton") || !shapes.length || shapes.some((x) => !(SKELETON_SHAPES as readonly string[]).includes(x))) wrong.push(`/${r}`);
+      // The staff console's layout draws the page and its heading: its skeletons must not add a second main.
+      if (r.startsWith("admin") && !src.includes("framed={false}")) wrong.push(`/${r} (needs framed={false})`);
     }
     expect(missing, "add a loading.tsx that renders <PageSkeleton shape=…>").toEqual([]);
     expect(wrong, "loading.tsx must render <PageSkeleton> with one of SKELETON_SHAPES").toEqual([]);
   });
 
-  it("leaves the field routes and the root without one", () => {
+  it("leaves the field routes, the root and the public campaign pages without one", () => {
     expect(existsSync(join(APP, "loading.tsx"))).toBe(false);
     for (const d of dirs.filter((x) => exempt(route(x)))) expect(existsSync(join(d, "loading.tsx")), `/${route(d)}`).toBe(false);
   });
@@ -63,6 +70,19 @@ describe("route skeletons (P1.3)", () => {
       expect(html).toMatch(/^<main class="page" aria-busy="true" aria-label="Loading jobs">/);
       expect(html).toContain('class="skeleton');
     }
-    expect(renderToStaticMarkup(createElement(PageSkeleton, { shape: "form", width: "narrow" }))).toMatch(/^<main class="page-narrow space-y-6"/);
+    expect(renderToStaticMarkup(createElement(PageSkeleton, { shape: "form", width: "narrow" }))).toMatch(/^<main class="page-narrow flex flex-1 flex-col justify-center"/);
+    expect(renderToStaticMarkup(createElement(PageSkeleton, { shape: "thread", width: "2xl", gap: 4 }))).toMatch(/^<main class="page max-w-2xl space-y-4"/);
+  });
+
+  it("draws an unframed skeleton as a plain block with no heading, for the staff console", () => {
+    const html = renderToStaticMarkup(createElement(PageSkeleton, { shape: "list", framed: false, label: "Loading people" }));
+    expect(html).toMatch(/^<div class="space-y-10" aria-busy="true" aria-label="Loading people">/);
+    expect(html).not.toContain("<main");
+    expect(html).not.toContain("h-8 w-48"); // the heading bars
+  });
+
+  it("gives people lists a face per row and drops the filter row where a page has none", () => {
+    expect(renderToStaticMarkup(createElement(PageSkeleton, { shape: "list", avatars: true }))).toContain("size-10");
+    expect(renderToStaticMarkup(createElement(PageSkeleton, { shape: "cards", filters: false }))).not.toContain("h-9 w-20 rounded-full");
   });
 });

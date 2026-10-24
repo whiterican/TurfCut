@@ -48,4 +48,9 @@ describe("policy metadata preflight; not actual legal permission", () => {
     }
   });
 
+  it("accepts only public https source pages", () => {
+    for (const bad of ["https://x", "https://law.cornell.edu@evil.example/x", "https://127.0.0.1/", "https://[::1]/", "http://www.ftc.gov/x"]) {
+      expect(preflightCompliancePolicy(context, { ...policy, officialSources: [bad] }, at).eligibleForReview, bad).toBe(false);
+    }
+  });
 });

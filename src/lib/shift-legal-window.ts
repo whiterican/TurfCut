@@ -90,8 +90,14 @@ export function checkApprovedShiftWindow(
   }
   let fmt: Intl.DateTimeFormat;
   try {
-    if (typeof rule.timezone !== "string" || !/^[A-Za-z_]+\/[A-Za-z_+-]+(?:\/[A-Za-z_+-]+)?$/.test(rule.timezone) || rule.timezone.startsWith("Etc/") ||
-        !Intl.supportedValuesOf("timeZone").includes(rule.timezone)) return denied("Work-location time zone must be a reviewed IANA region.");
+    // A region name ("America/New_York"), never UTC, an abbreviation, an offset
+    // or an Etc/ zone. Validity is checked by building the formatter below (it
+    // throws on an unknown zone), not against Intl.supportedValuesOf: that list
+    // holds ICU's older canonical names, so it would reject current IANA names
+    // such as America/Indiana/Indianapolis or America/Kentucky/Louisville.
+    if (typeof rule.timezone !== "string" || !/^[A-Za-z_]+\/[A-Za-z_+-]+(?:\/[A-Za-z_+-]+)?$/.test(rule.timezone) || rule.timezone.startsWith("Etc/")) {
+      return denied("Work-location time zone must be a reviewed IANA region.");
+    }
     fmt = new Intl.DateTimeFormat("en-US", {
       timeZone: rule.timezone, year: "numeric", month: "2-digit",
       day: "2-digit", weekday: "short", hour: "2-digit", minute: "2-digit",

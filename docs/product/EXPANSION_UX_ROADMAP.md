@@ -1,6 +1,8 @@
 # TurfCut — Product Expansion & UX Roadmap
 **Status:** Strategic plan / Claude handoff. Not authorization for unrestricted implementation, schema changes, production merges or deployment. Owner requested continued planning and feature expansion after Candidate Campaign Canvassing.
 
+> Not legal advice. Statements about what the law requires are planning notes until counsel confirms them per jurisdiction.
+
 ## North star
 TurfCut connects campaigns, political field workers and organizations through discovery → hiring → scheduling → briefing → field activity → independent verification → transparent pay. Political neutrality at platform level. Explicit worker-controlled preference sharing and evidence-based verification are differentiators, not optional extras.
 
@@ -170,7 +172,7 @@ Add TWO **first-class, separately discoverable job types** to the cross-sector w
 Both polling categories may serve **Political**, **Nonprofit**, and **Private** sectors when appropriate. Examples: public-opinion surveys, program evaluation, customer research, and community feedback. Do not assume surveys are inherently partisan.
 
 ### Taxonomy and UX rules
-- Sector (political/nonprofit/private), campaign purpose, activity and work arrangement are **distinct dimensions**. `phone_polling` and `door_to_door_polling` must not be encoded as `CANVASS` merely to avoid migration.
+- Sector (political/nonprofit/private), campaign purpose, activity and work arrangement are **distinct dimensions**. `phone_polling` and `door_polling` must not be encoded as `CANVASS` merely to avoid migration.
 - Suggested top-level activities for design: Petition Circulation; Door-to-Door Canvassing; Door-to-Door Fundraising; Door-to-Door Sales; Phone Banking; **Phone Polling**; **Door-to-Door Polling**. Only show as live selectable postings after each is end-to-end supported.
 - Phone Polling form requires a `workMode` choice (Remote or Office); remote needs disclosed calling timezone/hours, equipment/software and accessibility expectations; office needs physical worksite and check-in details. No GPS requirement for remote phone polling.
 - Door-to-Door Polling form needs service area, shift route/assignment if permitted, interview protocol, travel/staging instructions, safety escalation contact, required training and accessibility considerations.

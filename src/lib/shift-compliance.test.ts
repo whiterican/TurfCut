@@ -49,4 +49,8 @@ describe("combined compliance review preflight; not legal permission", () => {
     expect(preflightProposedShift(within, { ...policy, approved: false }, window, now).readyForLegalReview).toBe(false);
     expect(preflightProposedShift(shift("bad", "2026-10-26T18:00:00Z"), policy, window, now).readyForLegalReview).toBe(false);
   });
+  it("reports a policy id only when it is text", () => {
+    expect(preflightProposedShift(within, { ...policy, id: 5 } as unknown as CompliancePolicy, window, now).policyId).toBeNull();
+    expect(preflightProposedShift(within, { ...policy, id: "" }, window, now).policyId).toBeNull();
+  });
 });

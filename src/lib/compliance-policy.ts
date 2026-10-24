@@ -95,7 +95,11 @@ export function preflightCompliancePolicy(
     try {
       if (typeof s !== "string") return true;
       const u = new URL(s);
-      return u.protocol !== "https:" || !u.hostname;
+      // A public https page: no credentials in the link (https://law.gov@evil.example),
+      // no IP address and no single-label host.
+      const host = u.hostname;
+      const ip = /^\d+(\.\d+){3}$/.test(host) || host.startsWith("[");
+      return u.protocol !== "https:" || !host || u.username !== "" || u.password !== "" || ip || !host.includes(".");
     } catch { return true; }
   })) {
     reasons.push("Compliance policy requires valid HTTPS source links.");

@@ -71,7 +71,7 @@ export function preflightProposedShift(
   return {
     readyForLegalReview: reasons.length === 0,
     reasons,
-    policyId: policy?.id || null,
+    policyId: typeof policy?.id === "string" && policy.id.trim() ? policy.id : null,
     policyVersion: policy?.version ?? null,
   };
 }

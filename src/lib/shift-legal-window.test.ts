@@ -92,3 +92,19 @@ describe("time-zone boundary and DST regression cases", () => {
   });
 
 });
+
+describe("review follow-ups: current IANA names", () => {
+  const shift = { startsAt: new Date("2026-10-26T14:00:00Z"), endsAt: new Date("2026-10-26T18:00:00Z"), activity: "door_sales", jurisdiction: "US-MD-example" };
+  const rule = { timezone: "America/New_York", allowedWeekdays: [0, 1, 2, 3, 4, 5, 6], localStart: "09:00", localEnd: "20:00", blockedDates: [], approved: true, expiresAt: "2027-01-01T00:00:00Z", activity: "door_sales", jurisdiction: "US-MD-example" } satisfies ApprovedShiftWindow;
+  const now = new Date("2026-10-23T12:00:00Z");
+  it("accepts current region names the runtime lists under an older spelling", () => {
+    for (const tz of ["America/Indiana/Indianapolis", "America/Kentucky/Louisville", "America/New_York"]) {
+      expect(checkApprovedShiftWindow(shift, { ...rule, timezone: tz }, now).allowedByConfiguredWindow, tz).toBe(true);
+    }
+  });
+  it("still rejects unknown zones, offsets, abbreviations and Etc/ zones", () => {
+    for (const tz of ["Bad/Zone", "UTC", "EST", "+05:00", "Etc/GMT+5"]) {
+      expect(checkApprovedShiftWindow(shift, { ...rule, timezone: tz }, now).allowedByConfiguredWindow, tz).toBe(false);
+    }
+  });
+});

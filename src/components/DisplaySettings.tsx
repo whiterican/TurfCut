@@ -1,11 +1,10 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { TEXT_SIZE_KEY, TEXT_SIZES, THEME_STORAGE_KEY, type TextSize } from "@/lib/theme";
+import { BEFORE_SUN_KEY, TEXT_SIZE_KEY, TEXT_SIZES, THEME_CHOICES, THEME_STORAGE_KEY, applyThemeClasses, storedTheme, type TextSize, type ThemeChoice } from "@/lib/theme";
 import { HAPTICS_KEY, canVibrate, haptic } from "@/lib/haptics";
 import { MOTION_KEY, type MotionChoice } from "@/lib/motion";
 
-type ThemeChoice = "system" | "light" | "dark";
 
 /**
  * A tiny store over <html> + localStorage. Every write notifies listeners
@@ -23,7 +22,7 @@ function subscribe(cb: () => void) {
   const mq = window.matchMedia("(prefers-color-scheme: light)");
   // "Match my phone" follows the phone live while no theme is saved.
   const follow = () => {
-    if (themeSnapshot() === "system") document.documentElement.classList.toggle("dark", !mq.matches);
+    if (themeSnapshot() === "system") applyThemeClasses("system");
     cb();
   };
   mq.addEventListener("change", follow);
@@ -56,8 +55,8 @@ function save(key: string, value: string | null): boolean {
 }
 
 function themeSnapshot(): ThemeChoice {
-  const stored = read(THEME_STORAGE_KEY);
-  if (stored === "light" || stored === "dark") return stored;
+  const stored = storedTheme(read(THEME_STORAGE_KEY));
+  if (stored !== "system") return stored;
   return lastTheme ?? "system";
 }
 const sizeSnapshot = (): TextSize => {
@@ -75,8 +74,8 @@ function applySize(v: TextSize) {
 function applyTheme(v: ThemeChoice) {
   lastTheme = v;
   save(THEME_STORAGE_KEY, v === "system" ? null : v);
-  const dark = v === "system" ? !window.matchMedia("(prefers-color-scheme: light)").matches : v === "dark";
-  document.documentElement.classList.toggle("dark", dark);
+  save(BEFORE_SUN_KEY, null); // a choice made here is the one to keep
+  applyThemeClasses(v);
   notify();
 }
 
@@ -129,14 +128,15 @@ export function DisplaySettings() {
 
       <fieldset className="space-y-3">
         <legend className="section-title">Theme</legend>
-        <div className="grid gap-2 sm:grid-cols-3">
-          {([["system", "Match my phone"], ["light", "Light"], ["dark", "Dark"]] as const).map(([v, label]) => (
+        <div className="grid gap-2 sm:grid-cols-2">
+          {THEME_CHOICES.map(({ value: v, label }) => (
             <label key={v} className="option-card items-center">
               <input type="radio" name="theme" checked={theme === v} onChange={() => applyTheme(v)} />
               <span className="font-semibold text-fg">{label}</span>
             </label>
           ))}
         </div>
+        <p className="text-hint">Sunlight is for working outdoors: black on white, heavier lines and bolder text, nothing see-through. Pair it with Large text if the screen is hard to read. The field-day screen has a Sunlight switch too.</p>
       </fieldset>
 
       <fieldset className="space-y-3">

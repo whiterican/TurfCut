@@ -904,6 +904,22 @@ here is a ranking input. Eight slices, no new dependency.
   remember only on the worker's own profile; organization views draw them
   plainly.
 
+### P1.5 — Sunlight mode (done)
+
+- **A third theme for outdoors.** Display settings has Match my phone,
+  Light, Dark and Sunlight. The field-day screen has a Sunlight switch that
+  goes back to whatever was chosen before.
+- **How it looks:** black text on white, near-black 2px edges, heavier
+  icons, body text a weight up. There are no shadows and nothing is
+  see-through. A disabled button turns grey with a dashed edge instead of
+  fading. It is built on the light theme and never carries `.dark`.
+- **Checked pairing by pairing.** Sunlight runs every contrast check the
+  other themes pass, then a higher bar: body text at least 18:1, secondary
+  15:1, edges 7:1, links and status 7:1 (`design-tokens.test.ts`). The saved
+  choice is applied before first paint like the others.
+- Larger text stays its own setting. The Sunlight hint suggests pairing it
+  with Large.
+
 ## C2 scope — workers decide what each organization sees
 
 - **Who sees what** (Profile): each part of the profile — output rates,

@@ -129,6 +129,50 @@
   color-scheme: dark;
 }
 
+.sun {
+  /* Sunlight (P1.5): the outdoor theme. Built on light (it never carries
+     .dark): white paper, black text, near-black edges, and the brand kept
+     to the lime fill and the eggplant tab tile. Every pairing clears a
+     higher bar than the other themes (design-tokens.test.ts). Nothing is
+     see-through and nothing casts a shadow. */
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --surface-2: #eeeeee;
+  --field: #ffffff;
+  --border: #4a4254;
+  --border-strong: #000000;
+  --fg: #000000;
+  --muted: #1b1422;
+  --subtle: #2b2433;
+  --link: #2a173e;
+  --kicker: #2a173e;
+  --focus: #2a173e;
+  --selected: #000000;
+  --danger: #8a1c0c;
+  --success: #2a173e;
+  --warning: #4a2c00;
+  --primary: #000000;
+  --switch-on: #2a173e;
+  --on-primary: #d6f25a;
+  --secondary: #ffffff;
+  --secondary-border: #000000;
+  --hero: #000000;
+  --hero-fg: #ffffff;
+  --hero-muted: #ebebeb;
+  --hero-border: transparent;
+  --tab-active-bg: #000000;
+  --tab-active-fg: #d6f25a;
+  --sky: #d9cfe6;
+  --coral: #f1c6bd;
+  --butter: #e4dccd;
+  --ring: #6a4c91;
+  --ring-2: #4a3070;
+  --ring-3: #2a173e;
+  --shadow-depth: 0 0 0 0 transparent;
+  --shadow: var(--shadow-depth);
+  color-scheme: light;
+}
+
 /* Frame tokens: the surfaces that float (tab bar, header buttons, the More
    sheet, map controls, icon buttons, sticky table headers). Plain paper now;
    the names stay so every surface rule reads the same way. */
@@ -1456,6 +1500,33 @@ summary.list-none::-webkit-details-marker {
 }
 @keyframes tc-draw {
   from { stroke-dashoffset: 1; }
+}
+/* ---- Sunlight: heavier strokes ------------------------------------------ */
+/* Outdoors a hairline vanishes: edges go to 2px, icons draw heavier, body
+   text a weight up, and anything see-through is made solid. */
+.sun body {
+  font-weight: 500;
+}
+.sun :is(.card, .stat, .list-card, .empty-state, .hero-card, .field, .option-card, .btn-secondary, .tabbar, .kv) {
+  border-width: 2px;
+}
+.sun :is(.badge-solid, .badge-butter, .badge-party, .badge-neutral, .badge-sky, .badge-coral, .badge-accent, .chip) {
+  border-width: 2px;
+  border-color: var(--border-strong);
+}
+.sun svg.lucide {
+  stroke-width: 2.5;
+}
+.sun :is(.hero-muted, .text-subtle, .empty-art .dim) {
+  opacity: 1;
+}
+/* A disabled button can't hide behind faded colour in sun glare: it turns
+   grey with a dashed edge. A busy one (its action running) keeps its look. */
+.sun :is(.btn, .btn-primary, .btn-secondary, .btn-ghost):disabled:not([aria-busy="true"]) {
+  opacity: 1;
+  background: var(--surface-2);
+  color: var(--fg);
+  border: 2px dashed var(--border);
 }
 /* ---- Less motion ------------------------------------------------------- */
 /* Two doors, one rule: the phone's setting, or "Less motion" in Display

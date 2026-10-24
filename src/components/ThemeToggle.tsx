@@ -1,7 +1,7 @@
 "use client";
 
 import { Moon, Sun } from "lucide-react";
-import { THEME_STORAGE_KEY } from "@/lib/theme";
+import { BEFORE_SUN_KEY, THEME_STORAGE_KEY } from "@/lib/theme";
 
 /**
  * Light/dark switch. The current theme lives on <html class="dark">, so the
@@ -10,10 +10,13 @@ import { THEME_STORAGE_KEY } from "@/lib/theme";
  */
 export function ThemeToggle() {
   function toggle() {
+    // From Sunlight this goes to dark, like from light: the button names the theme it switches to.
     const next = !document.documentElement.classList.contains("dark");
     document.documentElement.classList.toggle("dark", next);
+    document.documentElement.classList.remove("sun");
     try {
       localStorage.setItem(THEME_STORAGE_KEY, next ? "dark" : "light");
+      localStorage.removeItem(BEFORE_SUN_KEY);
     } catch {
       // Storage unavailable (private mode): the choice lasts for this page.
     }

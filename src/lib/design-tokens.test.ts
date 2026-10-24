@@ -34,6 +34,7 @@ function block(selector: string, source = css): Record<string, string> {
 
 const light = block(":root");
 const dark = { ...light, ...block(".dark") };
+const sun = { ...light, ...block(".sun") };
 
 type RGB = [number, number, number];
 const rgb = (hex: string): RGB => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)) as RGB;
@@ -60,6 +61,7 @@ const SURFACES = ["bg", "surface", "surface-2", "field"] as const;
 describe.each([
   ["dark", dark],
   ["light", light],
+  ["sunlight", sun],
 ] as const)("%s theme contrast", (_name, t) => {
   it("body text is AAA (≥ 7:1) on every surface", () => {
     for (const s of SURFACES) expect(ratio(t.fg, t[s])).toBeGreaterThanOrEqual(7);
@@ -132,6 +134,41 @@ describe.each([
     expect(ratio(t.fg, mix(t.butter, 0.14, t.surface))).toBeGreaterThanOrEqual(7);
     expect(ratio(t.fg, mix(t.sky, 0.12, t.surface))).toBeGreaterThanOrEqual(7);
     expect(ratio(t.fg, mix(t.accent, 0.16, t.surface))).toBeGreaterThanOrEqual(7);
+  });
+});
+
+describe("sunlight theme (P1.5): a higher bar for outdoor glare", () => {
+  it("body text is near-maximal (≥ 18:1) and secondary text ≥ 15:1 on every surface", () => {
+    for (const s of SURFACES) {
+      expect(ratio(sun.fg, sun[s])).toBeGreaterThanOrEqual(18);
+      expect(ratio(sun.muted, sun[s])).toBeGreaterThanOrEqual(15);
+      expect(ratio(sun.subtle, sun[s])).toBeGreaterThanOrEqual(12);
+    }
+  });
+  it("edges are drawn, not hinted: borders ≥ 7:1 against the page and every surface", () => {
+    for (const s of SURFACES) {
+      expect(ratio(sun.border, sun[s])).toBeGreaterThanOrEqual(7);
+      expect(ratio(sun["border-strong"], sun[s])).toBeGreaterThanOrEqual(15);
+    }
+  });
+  it("links, status text, buttons, the hero and the current tab are ≥ 7:1", () => {
+    for (const c of ["link", "danger", "success", "warning", "focus"] as const) for (const s of SURFACES) expect(ratio(sun[c], sun[s])).toBeGreaterThanOrEqual(7);
+    expect(ratio(sun["on-primary"], sun.primary)).toBeGreaterThanOrEqual(15);
+    expect(ratio(sun["hero-fg"], sun.hero)).toBeGreaterThanOrEqual(18);
+    expect(ratio(sun["hero-muted"], sun.hero)).toBeGreaterThanOrEqual(15);
+    expect(ratio(sun["tab-active-fg"], sun["tab-active-bg"])).toBeGreaterThanOrEqual(15);
+  });
+  it("is light-based, opaque and shadowless", () => {
+    const body = themeBody(css, ".sun");
+    expect(body).toMatch(/color-scheme: light;/);
+    expect(body).toMatch(/--shadow-depth: 0 0 0 0 transparent;/);
+    expect(body).not.toMatch(/rgb\([^)]*\/|rgba\(|transparent\s*\)/); // no translucent colours
+  });
+  it("heavier strokes: 2px edges, heavier icons, bolder body text, solid disabled buttons", () => {
+    expect(css).toMatch(/\.sun body \{\s*font-weight: 500;/);
+    expect(css).toMatch(/\.sun :is\(\.card,[^)]*\) \{\s*border-width: 2px;/);
+    expect(css).toMatch(/\.sun svg\.lucide \{\s*stroke-width: 2\.5;/);
+    expect(css).toMatch(/\.sun :is\(\.btn,[^)]*\):disabled:not\(\[aria-busy="true"\]\) \{\s*opacity: 1;/);
   });
 });
 

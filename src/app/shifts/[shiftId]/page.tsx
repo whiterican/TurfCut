@@ -16,6 +16,7 @@ import { TurfMap } from "@/components/TurfMap";
 import { LocalTime } from "@/components/LocalTime";
 import { LiveShiftStats } from "@/components/LiveShiftStats";
 import { CountUp } from "@/components/Moments";
+import { SunlightToggle } from "@/components/SunlightToggle";
 import { ActionButton } from "@/components/ActionButton";
 import { Ban, CheckCircle2, ListChecks, Package, XCircle } from "lucide-react";
 import { FieldDayLive } from "@/components/FieldDayLive";
@@ -232,7 +233,11 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
             <Link href={`/jobs/${s.engagement.job.id}`} className="link">{s.engagement.job.title}</Link> · {s.engagement.job.org.name}
           </p>
         </div>
-        {live && <span className={`${st.paused ? "badge-butter" : "badge-solid"} mt-5 shrink-0`}>{st.paused ? "On break" : "On shift"}</span>}
+        <div className="mt-5 flex shrink-0 flex-col items-end gap-2">
+          {live && <span className={st.paused ? "badge-butter" : "badge-solid"}>{st.paused ? "On break" : "On shift"}</span>}
+          {/* Outdoors in glare: the Sunlight theme, one tap away on the field-day screen (P1.5). */}
+          {isWorker && <SunlightToggle />}
+        </div>
       </header>
 
       {!started && workerActions}

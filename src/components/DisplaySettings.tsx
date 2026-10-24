@@ -1,7 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { BEFORE_SUN_KEY, TEXT_SIZE_KEY, TEXT_SIZES, THEME_CHOICES, THEME_STORAGE_KEY, applyThemeClasses, storedTheme, type TextSize, type ThemeChoice } from "@/lib/theme";
+import { DISPLAY_EVENT, TEXT_SIZE_KEY, TEXT_SIZES, THEME_CHOICES, applyThemeClasses, currentTheme, setTheme, type TextSize, type ThemeChoice } from "@/lib/theme";
 import { HAPTICS_KEY, canVibrate, haptic } from "@/lib/haptics";
 import { MOTION_KEY, type MotionChoice } from "@/lib/motion";
 
@@ -12,8 +12,7 @@ import { MOTION_KEY, type MotionChoice } from "@/lib/motion";
  * the `storage` event keeps other tabs in sync, and the last choice is kept
  * in memory for when storage is unavailable (private mode).
  */
-const EVENT = "turfcut-display";
-let lastTheme: ThemeChoice | null = null;
+const EVENT = DISPLAY_EVENT;
 const notify = () => window.dispatchEvent(new Event(EVENT));
 
 function subscribe(cb: () => void) {
@@ -22,7 +21,7 @@ function subscribe(cb: () => void) {
   const mq = window.matchMedia("(prefers-color-scheme: light)");
   // "Match my phone" follows the phone live while no theme is saved.
   const follow = () => {
-    if (themeSnapshot() === "system") applyThemeClasses("system");
+    if (currentTheme() === "system") applyThemeClasses("system");
     cb();
   };
   mq.addEventListener("change", follow);
@@ -54,11 +53,7 @@ function save(key: string, value: string | null): boolean {
   }
 }
 
-function themeSnapshot(): ThemeChoice {
-  const stored = storedTheme(read(THEME_STORAGE_KEY));
-  if (stored !== "system") return stored;
-  return lastTheme ?? "system";
-}
+const themeSnapshot = (): ThemeChoice => currentTheme();
 const sizeSnapshot = (): TextSize => {
   const v = document.documentElement.getAttribute("data-text");
   return v === "lg" || v === "xl" ? v : "md";
@@ -71,13 +66,7 @@ function applySize(v: TextSize) {
   save(TEXT_SIZE_KEY, v === "md" ? null : v);
   notify();
 }
-function applyTheme(v: ThemeChoice) {
-  lastTheme = v;
-  save(THEME_STORAGE_KEY, v === "system" ? null : v);
-  save(BEFORE_SUN_KEY, null); // a choice made here is the one to keep
-  applyThemeClasses(v);
-  notify();
-}
+const applyTheme = (v: ThemeChoice) => setTheme(v);
 
 const motionSnapshot = (): MotionChoice => (document.documentElement.getAttribute("data-motion") === "reduce" ? "reduce" : "system");
 /** Whether the phone itself asks for less motion (then "Match my phone" already means less). */
@@ -136,7 +125,7 @@ export function DisplaySettings() {
             </label>
           ))}
         </div>
-        <p className="text-hint">Sunlight is for working outdoors: black on white, heavier lines and bolder text, nothing see-through. Pair it with Large text if the screen is hard to read. The field-day screen has a Sunlight switch too.</p>
+        <p className="text-hint">Sunlight is for working outdoors: black on white, heavier lines and bolder text. Pair it with Large text if the screen is hard to read. The field-day screen has a Sunlight switch too. Saved on this device.</p>
       </fieldset>
 
       <fieldset className="space-y-3">

@@ -132,7 +132,7 @@
 .sun {
   /* Sunlight (P1.5): the outdoor theme. Built on light (it never carries
      .dark): white paper, black text, near-black edges, and the brand kept
-     to the lime fill and the eggplant tab tile. Every pairing clears a
+     to the lime fill and lime type on the black tab tile. Every pairing clears a
      higher bar than the other themes (design-tokens.test.ts). Nothing is
      see-through and nothing casts a shadow. */
   --bg: #ffffff;
@@ -150,7 +150,7 @@
   --selected: #000000;
   --danger: #8a1c0c;
   --success: #2a173e;
-  --warning: #4a2c00;
+  --warning: #3a2200;
   --primary: #000000;
   --switch-on: #2a173e;
   --on-primary: #d6f25a;
@@ -1502,31 +1502,74 @@ summary.list-none::-webkit-details-marker {
   from { stroke-dashoffset: 1; }
 }
 /* ---- Sunlight: heavier strokes ------------------------------------------ */
-/* Outdoors a hairline vanishes: edges go to 2px, icons draw heavier, body
-   text a weight up, and anything see-through is made solid. */
-.sun body {
-  font-weight: 500;
-}
-.sun :is(.card, .stat, .list-card, .empty-state, .hero-card, .field, .option-card, .btn-secondary, .tabbar, .kv) {
-  border-width: 2px;
-}
-.sun :is(.badge-solid, .badge-butter, .badge-party, .badge-neutral, .badge-sky, .badge-coral, .badge-accent, .chip) {
-  border-width: 2px;
-  border-color: var(--border-strong);
-}
-.sun svg.lucide {
-  stroke-width: 2.5;
-}
-.sun :is(.hero-muted, .text-subtle, .empty-art .dim) {
-  opacity: 1;
-}
-/* A disabled button can't hide behind faded colour in sun glare: it turns
-   grey with a dashed edge. A busy one (its action running) keeps its look. */
-.sun :is(.btn, .btn-primary, .btn-secondary, .btn-ghost):disabled:not([aria-busy="true"]) {
-  opacity: 1;
-  background: var(--surface-2);
-  color: var(--fg);
-  border: 2px dashed var(--border);
+/* Outdoors a hairline vanishes and see-through reads as missing: edges go to
+   2px, icons draw heavier, body text a weight up, links underline in their
+   own colour, and faded or translucent things are made solid. Screen only:
+   printing keeps its own plain look. */
+@media screen {
+  .sun body {
+    font-weight: 500;
+  }
+  .sun :is(.card, .card-flat, .card-dashed, .stat, .list-card, .empty-state, .hero-card, .field, .option-card, .btn-secondary, .tabbar, .kv, .alert, .alert-warning, .alert-info, .quick-reply, .icon-btn, .summary-bar, .data-table-wrap, .composer-input) {
+    border-width: 2px;
+  }
+  .sun :is(.alert, .alert-warning, .alert-info) {
+    border-color: var(--border);
+  }
+  .sun :is(.badge-solid, .badge-butter, .badge-party, .badge-neutral, .badge-sky, .badge-coral, .badge-accent, .badge-dashed, .chip, .filter-chip, .filter-chip-on) {
+    border-width: 2px;
+    border-color: var(--border-strong);
+  }
+  /* The lime card has no edge of its own; on white it needs one (priority rings bring theirs). */
+  .sun .hero-card-accent:not([data-priority="1"], [data-priority="2"], [data-priority="3"]) {
+    border-color: var(--border-strong);
+  }
+  .sun :is(.tabbar, .leaflet-bar) {
+    box-shadow: none;
+  }
+  .sun svg.lucide {
+    stroke-width: 2.5;
+  }
+  .sun .link {
+    text-decoration-color: currentColor;
+  }
+  .sun .empty-art .dim {
+    stroke: var(--border);
+    opacity: 1;
+  }
+  .sun :is(.opacity-50, .opacity-75) {
+    opacity: 1;
+  }
+  .sun [class*="ring-success/"] {
+    --tw-ring-color: var(--success);
+  }
+  /* The on/off switch: off is an outlined white track with a black knob, on is black with lime. */
+  .sun .toggle input:not(:checked) {
+    background: var(--surface-2);
+    border-color: var(--border-strong);
+  }
+  .sun .toggle input:not(:checked)::after {
+    background: var(--fg);
+  }
+  /* A disabled button can't hide behind faded colour in glare: it turns grey
+     with a dashed outline (an outline, so nothing shifts when it flips). A busy
+     one keeps its look, solid. */
+  .sun :is(.btn, .btn-primary, .btn-secondary, .btn-ghost, .send-btn, .step):disabled:not([aria-busy="true"]) {
+    opacity: 1;
+    background: var(--surface-2);
+    color: var(--fg);
+    outline: 2px dashed var(--border);
+    outline-offset: -2px;
+  }
+  .sun :is(.btn, .btn-primary, .btn-secondary, .btn-ghost)[aria-busy="true"]:disabled {
+    opacity: 1;
+  }
+  /* The field-day Sunlight switch reads as pressed while Sunlight is on. */
+  .sun .sun-toggle {
+    background: var(--primary);
+    color: var(--on-primary);
+    border-color: transparent;
+  }
 }
 /* ---- Less motion ------------------------------------------------------- */
 /* Two doors, one rule: the phone's setting, or "Less motion" in Display

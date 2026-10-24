@@ -849,6 +849,25 @@ here is a ranking input. Eight slices, no new dependency.
   Earnings, the Feed, Notifications, the campaign directory, a job's
   applicants, and the offline brief's "No signal" page.
 
+### P1.3 — skeletons (done)
+
+- **Every route shows its own layout while it loads.** `PageSkeleton` has
+  seven shapes, each mirroring a layout: `home` (Today-style hero, figures,
+  list), `cards` (filters and cards), `table` (Hiring's tables), `detail`
+  (one record), `form`, `thread` (a conversation or dispute) and `list`.
+  Each page's `loading.tsx` names its shape, its page width and what a
+  screen reader hears ("Loading applicants"). The pulse is on the motion
+  tokens and stops under Less motion.
+- **Except the field routes.** Today, My shifts and everything under them,
+  and the root above them, have no loading screen: the offline brief needs
+  their real status codes (see `field-routes-status.test.ts`).
+- **A new page can't ship without one.** `src/app/route-skeletons.test.ts`
+  fails any page outside the field routes that has no `loading.tsx`
+  rendering a known shape.
+- A page that calls not-found behind a loading screen answers 200 with a
+  `noindex` tag rather than a 404, which Next.js handles for crawlers.
+  No test or tool here relies on page-level 404s.
+
 ## C2 scope — workers decide what each organization sees
 
 - **Who sees what** (Profile): each part of the profile — output rates,

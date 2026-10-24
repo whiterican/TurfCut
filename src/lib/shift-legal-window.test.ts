@@ -108,3 +108,9 @@ describe("review follow-ups: current IANA names", () => {
     }
   });
 });
+
+it("rejects Etc/ zones in any letter case", () => {
+  const shift = { startsAt: new Date("2026-10-26T14:00:00Z"), endsAt: new Date("2026-10-26T18:00:00Z"), activity: "door_sales", jurisdiction: "X" };
+  const rule = { timezone: "etc/utc", allowedWeekdays: [0, 1, 2, 3, 4, 5, 6], localStart: "09:00", localEnd: "20:00", approved: true, expiresAt: "2027-01-01T00:00:00Z", activity: "door_sales", jurisdiction: "X" };
+  for (const tz of ["etc/utc", "eTc/Universal", "etc/Greenwich"]) expect(checkApprovedShiftWindow(shift, { ...rule, timezone: tz }, new Date("2026-10-23T12:00:00Z")).allowedByConfiguredWindow, tz).toBe(false);
+});

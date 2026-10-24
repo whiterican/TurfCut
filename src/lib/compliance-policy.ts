@@ -25,6 +25,10 @@ export const COMMUNICATION_METHODS: readonly CommunicationMethod[] = ["in_person
 /** Only explicit instants are accepted; never depend on the server's local zone. */
 export function parseComplianceInstant(value: unknown): number {
   if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}T(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d{1,3})?(?:Z|[+-](?:[01]\d|2[0-3]):[0-5]\d)$/.test(value)) return NaN;
+  // Date.parse rolls impossible dates forward (02-30 becomes 03-02): require the calendar day to exist.
+  const [y, m, d] = value.slice(0, 10).split("-").map(Number);
+  const day = new Date(Date.UTC(y, m - 1, d));
+  if (day.getUTCFullYear() !== y || day.getUTCMonth() + 1 !== m || day.getUTCDate() !== d) return NaN;
   const parsed = Date.parse(value);
   return Number.isFinite(parsed) ? parsed : NaN;
 }
@@ -99,7 +103,7 @@ export function preflightCompliancePolicy(
       // no IP address and no single-label host.
       const host = u.hostname;
       const ip = /^\d+(\.\d+){3}$/.test(host) || host.startsWith("[");
-      return u.protocol !== "https:" || !host || u.username !== "" || u.password !== "" || ip || !host.includes(".");
+      return u.protocol !== "https:" || !host || u.username !== "" || u.password !== "" || ip || !host.includes(".") || host.endsWith(".") || /^localhost\b|\.(local|localdomain|internal)$/i.test(host);
     } catch { return true; }
   })) {
     reasons.push("Compliance policy requires valid HTTPS source links.");

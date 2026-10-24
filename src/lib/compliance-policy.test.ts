@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { preflightCompliancePolicy, type ComplianceContext, type CompliancePolicy } from "./compliance-policy";
+import { parseComplianceInstant, preflightCompliancePolicy, type ComplianceContext, type CompliancePolicy } from "./compliance-policy";
 
 const context: ComplianceContext = { jurisdiction: "US-MD", sector: "political", activity: "door_canvassing", method: "in_person" };
 const policy: CompliancePolicy = { id: "example", version: 1, ...context, approved: true, effectiveAt: "2026-01-01T00:00:00Z", expiresAt: "2027-01-01T00:00:00Z", officialSources: ["https://www.law.cornell.edu/supremecourt/text/536/150"] };
@@ -50,6 +50,13 @@ describe("policy metadata preflight; not actual legal permission", () => {
 
   it("accepts only public https source pages", () => {
     for (const bad of ["https://x", "https://law.cornell.edu@evil.example/x", "https://127.0.0.1/", "https://[::1]/", "http://www.ftc.gov/x"]) {
+      expect(preflightCompliancePolicy(context, { ...policy, officialSources: [bad] }, at).eligibleForReview, bad).toBe(false);
+    }
+  });
+  it("rejects impossible calendar dates and internal or trailing-dot hosts", () => {
+    expect(preflightCompliancePolicy(context, { ...policy, expiresAt: "2027-02-30T00:00:00Z" }, at).eligibleForReview).toBe(false);
+    expect(parseComplianceInstant("2028-02-29T00:00:00Z")).toBe(Date.UTC(2028, 1, 29));
+    for (const bad of ["https://localhost./", "https://www.ftc.gov./x", "https://localhost.localdomain/", "https://metadata.google.internal/"]) {
       expect(preflightCompliancePolicy(context, { ...policy, officialSources: [bad] }, at).eligibleForReview, bad).toBe(false);
     }
   });

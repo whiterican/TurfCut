@@ -95,7 +95,7 @@ export function checkApprovedShiftWindow(
     // throws on an unknown zone), not against Intl.supportedValuesOf: that list
     // holds ICU's older canonical names, so it would reject current IANA names
     // such as America/Indiana/Indianapolis or America/Kentucky/Louisville.
-    if (typeof rule.timezone !== "string" || !/^[A-Za-z_]+\/[A-Za-z_+-]+(?:\/[A-Za-z_+-]+)?$/.test(rule.timezone) || rule.timezone.startsWith("Etc/")) {
+    if (typeof rule.timezone !== "string" || !/^[A-Za-z_]+\/[A-Za-z_+-]+(?:\/[A-Za-z_+-]+)?$/.test(rule.timezone) || /^etc\//i.test(rule.timezone)) {
       return denied("Work-location time zone must be a reviewed IANA region.");
     }
     fmt = new Intl.DateTimeFormat("en-US", {

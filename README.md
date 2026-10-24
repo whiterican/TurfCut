@@ -134,6 +134,8 @@ exercise the locks, triggers and data rules, not the RLS policies.
      staff** below). The roles file adds an enum value, so run it as its
      own paste (the Supabase editor runs the first statement outside the
      transaction).
+   - Then `prisma/p1-discovery.sql` (P1.6: saved and hidden jobs on the
+     feed), before deploying the P1.6 build. Safe to run again.
    - Storage → New bucket **`campaign-media`**, set to **public**, with a
      file size limit of **2 MB** and allowed MIME types **image/png,
      image/jpeg**. Campaign avatars and header images go there. The app
@@ -919,6 +921,30 @@ here is a ranking input. Eight slices, no new dependency.
   choice is applied before first paint like the others.
 - Larger text stays its own setting. The Sunlight hint suggests pairing it
   with Large.
+
+### P1.6 — discovery (done)
+
+- **A card grows into its page.** Tapping a job on the Work feed names that
+  card's title and pay for the view transition, and the job page names its
+  heading and pay the same way, so they travel into place while the page
+  slides in. Only the tapped card is named, so a long feed snapshots one.
+- **Spring bottom sheets.** `components/Sheet.tsx` is a native modal dialog
+  that springs up from the bottom edge (centred on wide screens), with a
+  lime handle to drag it down and away; a short drag springs it back. The
+  feed's More filters and a job's "What changed" open in one.
+- **Swipe to save, swipe to hide.** On the feed, right saves a job and left
+  hides it; the card follows the finger over a lime Save or a stone Hide
+  underlay and commits past a third of its width or on a flick. The same
+  two actions are buttons under every card. "Saved" is a quick filter;
+  hidden jobs are listed on request with Unhide.
+- **Private, never a rank.** `SavedJob` and `DismissedJob`
+  (`prisma/p1-discovery.sql`: append-only, server-only, no grants, no
+  policies) are the worker's own. `job-marks-isolation.test.ts` holds
+  matching, scorecards, political fit, the feed's data layer, hiring and
+  every organization view away from them, and the feed says so in words.
+  The feed's order is the job's; a mark changes which cards show, never
+  where. The acceptance script (`run.sh p1`) checks the rules on a real
+  database.
 
 ## C2 scope — workers decide what each organization sees
 

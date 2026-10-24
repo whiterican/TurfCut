@@ -956,6 +956,73 @@ body {
   .dark .more-sheet::backdrop {
     background: rgb(8 4 14 / 0.6);
   }
+  /* Bottom sheet (components/Sheet.tsx, P1.6): a native modal dialog that
+     springs up from the bottom edge; centred on wide screens. */
+  .sheet {
+    @apply w-full max-w-md border-0 bg-transparent p-0;
+    max-height: 100dvh;
+    color: inherit;
+  }
+  .sheet-panel {
+    @apply relative flex max-h-[85dvh] flex-col rounded-t-3xl border border-b-0;
+    padding-bottom: env(safe-area-inset-bottom);
+    background: var(--surface);
+    border-color: var(--border);
+    box-shadow: var(--shadow);
+  }
+  .sheet-grip {
+    @apply shrink-0 cursor-grab px-4 pt-2 pb-2 select-none;
+    touch-action: none;
+  }
+  .sheet-handle {
+    @apply mx-auto mb-3 block h-1 w-12 rounded-full;
+    background: var(--accent);
+  }
+  .sheet-body {
+    @apply min-h-0 overflow-y-auto px-4 pb-4;
+  }
+  .sheet::backdrop {
+    background: rgb(24 20 30 / 0.45);
+  }
+  .dark .sheet::backdrop {
+    background: rgb(8 4 14 / 0.6);
+  }
+  @media (min-width: 40rem) {
+    .sheet-panel {
+      @apply rounded-3xl border-b;
+      padding-bottom: 0;
+    }
+  }
+  /* Swipeable feed card (components/SwipeCard.tsx, P1.6): the card rides over
+     a lime Save or a stone Hide underlay. */
+  .swipe {
+    @apply relative;
+  }
+  .swipe-card {
+    @apply relative rounded-3xl border border-border p-4 sm:p-5;
+    background: var(--card-sheen), var(--card-bg);
+    box-shadow: var(--card-edge), var(--shadow-depth);
+    touch-action: pan-y;
+  }
+  .card-link {
+    @apply block text-fg;
+  }
+  .swipe-under {
+    @apply pointer-events-none absolute inset-0 flex items-center gap-2 rounded-3xl px-6 text-sm font-bold;
+  }
+  .swipe-under-save {
+    @apply justify-start;
+    background: var(--accent);
+    color: var(--ink);
+  }
+  .swipe-under-hide {
+    @apply justify-end;
+    background: var(--surface-2);
+    color: var(--fg);
+  }
+  .swipe-actions {
+    @apply mt-3 flex flex-wrap gap-2 border-t border-border pt-3;
+  }
   .topnav-link {
     @apply rounded-lg px-3 py-2 text-sm font-medium text-muted transition hover:bg-surface-2 hover:text-fg;
   }
@@ -1510,7 +1577,7 @@ summary.list-none::-webkit-details-marker {
   .sun body {
     font-weight: 500;
   }
-  .sun :is(.card, .card-flat, .card-dashed, .stat, .list-card, .empty-state, .hero-card, .field, .option-card, .btn-secondary, .tabbar, .kv, .alert, .alert-warning, .alert-info, .quick-reply, .icon-btn, .summary-bar, .data-table-wrap, .composer-input) {
+  .sun :is(.card, .card-flat, .card-dashed, .stat, .list-card, .empty-state, .hero-card, .field, .option-card, .btn-secondary, .tabbar, .kv, .alert, .alert-warning, .alert-info, .quick-reply, .icon-btn, .summary-bar, .data-table-wrap, .composer-input, .sheet-panel, .swipe-card) {
     border-width: 2px;
   }
   .sun :is(.alert, .alert-warning, .alert-info) {
@@ -1577,6 +1644,39 @@ summary.list-none::-webkit-details-marker {
     color: var(--on-primary);
     border-color: transparent;
   }
+}
+/* The sheet's place is set outside the layers: it is a DOM child of whatever
+   section opened it, and that section's spacing utility (space-y-*) would
+   otherwise give it a bottom margin and lift it off the edge. */
+.sheet {
+  inset: auto 0 0 0;
+  margin: 0 auto;
+}
+@media (min-width: 40rem) {
+  .sheet {
+    inset: 0;
+    margin: auto;
+  }
+}
+/* The sheet springs up when it opens (components/Sheet.tsx). */
+.sheet[open] .sheet-panel {
+  animation: tc-sheet-in var(--dur-slow) var(--spring) both;
+}
+@keyframes tc-sheet-in {
+  from { translate: 0 100%; }
+}
+/* A job card's title and pay grow into the job page's heading (P1.6): the
+   tapped card names them, the page names its own the same way. */
+::view-transition-group(.job-share) {
+  animation-duration: var(--dur-page);
+  animation-timing-function: var(--ease-out);
+  z-index: 102;
+}
+::view-transition-old(.job-share) {
+  animation: var(--dur-fast) var(--ease-in) both tc-fade-out;
+}
+::view-transition-new(.job-share) {
+  animation: var(--dur-base) var(--ease-out) both tc-fade-in;
 }
 /* ---- Less motion ------------------------------------------------------- */
 /* Two doors, one rule: the phone's setting, or "Less motion" in Display

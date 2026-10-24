@@ -163,6 +163,11 @@ model Worker {
   // by matching, scorecards or any ranking (C1-Q14).
   campaignFollows CampaignFollow[]
   postLikes       PostLike[]
+
+  // P1.6: jobs the worker saved or hid on the feed. Private to the worker;
+  // never read by matching, ranking or the scorecards (job-marks isolation test).
+  savedJobs     SavedJob[]
+  dismissedJobs DismissedJob[]
 }
 
 /// One past campaign on a worker's profile. The verification level travels
@@ -427,6 +432,8 @@ model Job {
   campaignProfile   CampaignProfile?  @relation(fields: [campaignProfileId], references: [id], onDelete: Restrict)
   embeddedInPosts   CampaignPost[]    @relation("CampaignPostJobEmbed")
   slots             ShiftSlot[]
+  savedBy           SavedJob[]
+  dismissedBy       DismissedJob[]
 
   @@index([orgId, status])
   @@index([jurisdictionId])
@@ -1465,4 +1472,34 @@ model PostLike {
 
   @@index([workerId, removedAt])
   @@index([postId, removedAt])
+}
+
+/// P1.6: a worker saved a job on the feed (swipe right, or the Save button).
+/// Unsaving ends the row (removedAt, set once); saving again starts a new one.
+/// Private to the worker and server-only: never read by matching, ranking or
+/// the scorecards, and never shown to an organization.
+model SavedJob {
+  id        String    @id @default(uuid()) @db.Uuid
+  workerId  String    @db.Uuid
+  worker    Worker    @relation(fields: [workerId], references: [id], onDelete: Restrict)
+  jobId     String    @db.Uuid
+  job       Job       @relation(fields: [jobId], references: [id], onDelete: Restrict)
+  createdAt DateTime  @default(now())
+  removedAt DateTime?
+
+  @@index([workerId, removedAt])
+}
+
+/// P1.6: a worker hid a job from their feed (swipe left, or the Hide button).
+/// Unhiding ends the row. Same privacy as SavedJob.
+model DismissedJob {
+  id        String    @id @default(uuid()) @db.Uuid
+  workerId  String    @db.Uuid
+  worker    Worker    @relation(fields: [workerId], references: [id], onDelete: Restrict)
+  jobId     String    @db.Uuid
+  job       Job       @relation(fields: [jobId], references: [id], onDelete: Restrict)
+  createdAt DateTime  @default(now())
+  removedAt DateTime?
+
+  @@index([workerId, removedAt])
 }

@@ -106,7 +106,8 @@ export function SwipeCard({
   }
 
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (e.button !== 0 || hidden) return;
+    // No new drag on a card that's sliding away.
+    if (e.button !== 0 || hidden || leaving.current) return;
     drag.current = { x0: e.clientX, y0: e.clientY, t0: e.timeStamp, x: e.clientX, t: e.timeStamp, moving: false };
   };
   const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {

@@ -74,7 +74,7 @@ export function Sheet({
 
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     // A press on the Close button is a click, not a drag: capturing it would hand the click to the grip.
-    if (e.button !== 0 || (e.target as Element).closest("button")) return;
+    if (closing.current || e.button !== 0 || (e.target as Element).closest("button")) return;
     drag.current = { y0: e.clientY, t0: e.timeStamp, y: e.clientY, t: e.timeStamp };
     e.currentTarget.setPointerCapture(e.pointerId);
   };

@@ -17,7 +17,7 @@ const dateText = (d: Date) => d.toLocaleDateString("en-US", { month: "short", da
  */
 export default async function OrgCredentialsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const session = await requireArea("compliance");
-  const [workers, { checked }] = await Promise.all([loadHiredCredentials({ profileId: session.userId, orgId: session.orgId, role: session.role }), searchParams]);
+  const [workers, { checked }] = await Promise.all([loadHiredCredentials({ profileId: session.userId, orgId: session.orgId, role: session.role, grants: session.grants }), searchParams]);
   const today = expiryToday();
 
   return (

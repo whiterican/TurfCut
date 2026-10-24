@@ -7,7 +7,7 @@
  */
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
-import { FIELD_ROLES } from "@/lib/access";
+import { areaMembers } from "@/lib/access-data";
 import { canScheduleShift, UUID_RE } from "@/lib/jobs";
 import { readLaunch } from "@/lib/job-launch";
 import { findConflicts } from "@/lib/field-day";
@@ -45,7 +45,7 @@ export async function postSlot(actor: Staff, jobId: string, raw: Record<string, 
   }
   if (v.value.startsAt <= now) return { ok: false, reason: "Open shifts are for later: this one has already started.", errors: { startsAt: "Pick a time in the future." } };
   if (v.value.supervisorId) {
-    const sup = await db().profile.findFirst({ where: { id: v.value.supervisorId, orgId: actor.orgId, role: { in: FIELD_ROLES } } });
+    const sup = await db().profile.findFirst({ where: { id: v.value.supervisorId, orgId: actor.orgId, ...areaMembers("field") } });
     if (!sup) return { ok: false, reason: "Fix the highlighted fields.", errors: { supervisorId: "Pick a supervisor from your organization." } };
   }
   const { turfArea, ...rest } = v.value;
@@ -140,7 +140,7 @@ async function takeSeat(
     return { ok: false, reason: by.kind === "WORKER" ? "You already have a shift then (on this or another campaign)." : "This worker already has a shift then (on this or another campaign)." };
   }
   // The supervisor named when the slot was posted may have left the organization since.
-  const supervisorId = slot.supervisorId && (await tx.profile.findFirst({ where: { id: slot.supervisorId, orgId: slot.job.orgId, role: { in: FIELD_ROLES } }, select: { id: true } })) ? slot.supervisorId : null;
+  const supervisorId = slot.supervisorId && (await tx.profile.findFirst({ where: { id: slot.supervisorId, orgId: slot.job.orgId, ...areaMembers("field") }, select: { id: true } })) ? slot.supervisorId : null;
   const shift = await tx.shift.create({
     data: {
       engagementId: e.id,

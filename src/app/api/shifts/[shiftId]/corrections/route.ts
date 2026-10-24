@@ -1,5 +1,5 @@
 import { getSessionProfile } from "@/lib/auth";
-import { FIELD_ROLES } from "@/lib/access";
+import { canUse } from "@/lib/access";
 import { badId, resultResponse } from "@/lib/api-session";
 import { supervisorCorrection } from "@/lib/field-day-data";
 import { ENTERABLE, type CorrectionAction, type EnterableType } from "@/lib/field-day";
@@ -25,7 +25,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ shiftId
   if (bad) return bad;
   const session = await getSessionProfile();
   if (!session) return Response.json({ error: "Sign in required." }, { status: 401 });
-  if (!FIELD_ROLES.includes(session.role) || !session.orgId) return Response.json({ error: "Only the organization's owners and supervisors can correct a shift." }, { status: 403 });
+  if (!canUse(session, "field") || !session.orgId) return Response.json({ error: "Only the organization's owners and supervisors can correct a shift." }, { status: 403 });
   const b = (await req.json().catch(() => null)) as Record<string, unknown> | null;
   if (!b || typeof b.kind !== "string") return Response.json({ error: "Send { kind, … }." }, { status: 400 });
   const at = when(b.at);

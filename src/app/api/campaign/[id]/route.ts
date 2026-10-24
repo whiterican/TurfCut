@@ -1,5 +1,4 @@
-import { apiOrgRole, badId, resultResponse } from "@/lib/api-session";
-import { rolesFor } from "@/lib/access";
+import { apiArea, badId, resultResponse } from "@/lib/api-session";
 import { validateProfile } from "@/lib/campaign-social";
 import { setCampaignPublished, updateCampaign } from "@/lib/campaign-social-data";
 
@@ -12,7 +11,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   const { id } = await params;
   const bad = badId(id);
   if (bad) return bad;
-  const auth = await apiOrgRole(rolesFor("campaigns", "full"));
+  const auth = await apiArea("campaigns");
   if ("error" in auth) return auth.error;
   const b = ((await req.json().catch(() => null)) ?? {}) as Record<string, unknown>;
   const actor = { profileId: auth.session.userId, orgId: auth.session.orgId };

@@ -1,5 +1,4 @@
-import { FIELD_ROLES } from "@/lib/access";
-import { apiOrgRole, badId, resultResponse } from "@/lib/api-session";
+import { apiArea, badId, resultResponse } from "@/lib/api-session";
 import { supervisorShiftAction } from "@/lib/field-day-data";
 
 /**
@@ -11,7 +10,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ shiftId
   const { shiftId } = await params;
   const bad = badId(shiftId);
   if (bad) return bad;
-  const auth = await apiOrgRole(FIELD_ROLES);
+  const auth = await apiArea("field");
   if ("error" in auth) return auth.error;
   const b = (await req.json().catch(() => null)) as { status?: unknown; reason?: unknown } | null;
   if (b?.status !== "APPROVED" && b?.status !== "REJECTED") return Response.json({ error: "status must be APPROVED or REJECTED." }, { status: 400 });

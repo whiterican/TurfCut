@@ -7,7 +7,9 @@ import { followStates } from "@/lib/campaign-follow-data";
 import { excerpt, QUERY_MAX } from "@/lib/campaign-social";
 import { mediaUrl } from "@/lib/campaign-media";
 import { FollowButton } from "@/components/campaign/FollowButton";
+import { VerifiedMark } from "@/components/campaign/VerifiedMark";
 import { LocalTime } from "@/components/LocalTime";
+import { EmptyState } from "@/components/EmptyState";
 
 export const metadata: Metadata = { title: "Campaigns", description: "Every campaign on Turfcut, the most recently active first." };
 
@@ -51,7 +53,12 @@ export default async function CampaignDirectoryPage({ searchParams }: Props) {
       </form>
       <section className="section" aria-label="Campaigns">
         {q && <p className="text-muted-sm">{campaigns.length === 0 && !cursor ? "No campaign matches" : "Matching"} “{q}”. <Link href="/c" className="link">Show all</Link></p>}
-        {campaigns.length === 0 && (cursor || !q) && <p className="card text-muted-sm">{cursor ? "No more campaigns." : "No campaigns are public yet."}</p>}
+        {campaigns.length === 0 && cursor && <p className="card text-muted-sm">No more campaigns.</p>}
+        {campaigns.length === 0 && !cursor && !q && (
+          <EmptyState art="campaigns" title="No campaigns are public yet">
+            Campaigns that hire on Turfcut show their page here once it&apos;s public.
+          </EmptyState>
+        )}
         <ul className="space-y-3">
           {campaigns.map((c) => (
             <li key={c.id}>
@@ -81,7 +88,10 @@ function CampaignRow({ campaign: c, viewer, follow, back }: { campaign: Director
           )}
         </Link>
         <div className="min-w-0 flex-1">
-          <Link href={`/c/${c.handle}`} className="block truncate font-semibold text-fg hover:underline">{c.displayName}</Link>
+          <p className="flex items-center gap-2">
+            <Link href={`/c/${c.handle}`} className="truncate font-semibold text-fg hover:underline">{c.displayName}</Link>
+            {c.verified && <VerifiedMark compact />}
+          </p>
           <p className="truncate text-sm text-muted">@{c.handle}</p>
           {bio && <p className="mt-1 text-sm text-fg">{bio}</p>}
           <p className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted">

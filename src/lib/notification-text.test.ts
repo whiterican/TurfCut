@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { notificationText } from "./notification-text";
+import { notificationText, orgNoticeText } from "./notification-text";
 
 const e = (over: Partial<{ status: string; wasOffer: boolean }> = {}) => ({
   id: "eng", jobId: "job", status: "APPLIED", wasOffer: false, ...over,
@@ -23,5 +23,13 @@ describe("notification words", () => {
     for (const k of ["INVITATION_RECEIVED", "OFFER_RECEIVED", "NOT_SELECTED", "INVITATION_WITHDRAWN", "JOB_CLOSED"] as const) {
       expect(notificationText(k, e(), "worker").text).not.toMatch(/Alex Rivera/);
     }
+  });
+
+  it("Turfcut's decision on the organization names no staff member and no reason, and leads to Settings (M10.2)", () => {
+    expect(orgNoticeText("ORG_APPROVED")).toEqual({ text: "Turfcut approved your organization for the pilot. Jobs can publish once the rest of the gate in Settings is done.", href: "/org/settings" });
+    expect(orgNoticeText("ORG_APPROVAL_REVOKED")?.href).toBe("/org/settings");
+    expect(orgNoticeText("ORG_APPROVAL_REVOKED")?.text).not.toMatch(/@|reason/i);
+    expect(orgNoticeText("ORG_JOBS_FROZEN")).toMatchObject({ href: "/jobs" });
+    expect(orgNoticeText("PAYOUT_SENT")).toBeNull();
   });
 });

@@ -100,7 +100,7 @@ const check = (l: string, c: unknown, d?: unknown) => { if (c) console.log(`PASS
   check("20 a page, then the rest, each campaign once, newest activity first", p1.campaigns.length === DIRECTORY_PAGE_SIZE && p2.campaigns.length === 4 && p2.next === null && new Set(all.map((c) => c.id)).size === all.length && all.every((c, i) => i === 0 || c.activeAt <= all[i - 1].activeAt), { p1: p1.campaigns.length, p2: p2.campaigns.length });
   check("a junk cursor reads as the first page", (await listPublicCampaigns({ cursor: "junk" })).campaigns[0].id === p1.campaigns[0].id);
   check("a cursor keeps the search", (await listPublicCampaigns({ q: "Campaign", cursor: p1.next })).campaigns.every((c) => /campaign/i.test(c.displayName)));
-  check("the API row carries the public fields only", JSON.stringify(Object.keys(directoryJson(p1.campaigns[0])).sort()) === JSON.stringify(["avatarUrl", "bio", "displayName", "handle", "hiring", "lastPostAt"]));
+  check("the API row carries the public fields only", JSON.stringify(Object.keys(directoryJson(p1.campaigns[0])).sort()) === JSON.stringify(["avatarUrl", "bio", "displayName", "handle", "hiring", "lastPostAt", "verified"]));
 
   // --- Link previews: the campaign's own words, nothing Turfcut adds ---
   const c = await p.campaignProfile.findUniqueOrThrow({ where: { id: yes7 } });

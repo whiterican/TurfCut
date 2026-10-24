@@ -2,6 +2,20 @@ import type { NotificationKind } from "@prisma/client";
 import { money } from "@/lib/pay";
 
 /**
+ * Turfcut's decision on the recipient's organization (M10.2). The staff
+ * member's reason stays on the ledger; the owner reads the decision and
+ * where to look.
+ */
+export function orgNoticeText(kind: NotificationKind): { text: string; href: string } | null {
+  switch (kind) {
+    case "ORG_APPROVED": return { text: "Turfcut approved your organization for the pilot. Jobs can publish once the rest of the gate in Settings is done.", href: "/org/settings" };
+    case "ORG_APPROVAL_REVOKED": return { text: "Turfcut withdrew your organization's approval. Publishing and hiring are paused until it is restored; Settings shows where things stand.", href: "/org/settings" };
+    case "ORG_JOBS_FROZEN": return { text: "Turfcut changed the rules some of your jobs are filed under, or withdrew their approval. Those jobs take no new shifts or seats until they fit the current rules: edit each one to file it under the current version and, if needed, change its pay method.", href: "/jobs" };
+    default: return null;
+  }
+}
+
+/**
  * A notice's words and where it leads (C3.5), drawn from the engagement as
  * the recipient may see it: a worker reads the organization and job, the
  * organization's staff read the worker's display name and job.

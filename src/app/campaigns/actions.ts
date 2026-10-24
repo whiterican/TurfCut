@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import type { ActionState } from "@/app/jobs/actions";
 import { requireArea } from "@/lib/employer-session";
 import { UUID_RE } from "@/lib/jobs";
-import { accessTo } from "@/lib/access";
+import { canUse } from "@/lib/access";
 import { validatePostBody, validateProfile } from "@/lib/campaign-social";
 import { validateFact, validateResource } from "@/lib/campaign-kit";
 import { addFact, createResource, editFact, editResource, removeFact, removeResource } from "@/lib/campaign-kit-data";
@@ -95,7 +95,7 @@ export interface PostFormState extends ActionState {
 
 const poster = async () => {
   const s = await requireArea("campaignPosting");
-  return { profileId: s.userId, orgId: s.orgId, manages: accessTo(s.role, "campaigns") === "full" };
+  return { profileId: s.userId, orgId: s.orgId, manages: canUse(s, "campaigns") };
 };
 const jobOf = (fd: FormData) => str(fd, "jobId") || null;
 

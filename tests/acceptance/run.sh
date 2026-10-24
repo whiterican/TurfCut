@@ -3,7 +3,7 @@
 # built from prisma/supabase-manual-setup.sql plus the seed, then exercises the
 # data layer end to end (locks, append-only rules, pay, sync, closure).
 #
-# Usage: PGURL=postgresql://user:pass@host:port tests/acceptance/run.sh [m5|m6|m7|c1|c2|c3|c4|rl|sec|s1|s2|s3|s4|m8|m9 ...]
+# Usage: PGURL=postgresql://user:pass@host:port tests/acceptance/run.sh [m5|m6|m7|c1|c2|c3|c4|rl|sec|s1|s2|s3|s4|m8|m9|m10 ...]
 # Needs bash 4+ (macOS: brew install bash).
 # PGURL points at the server (database "postgres"); the script creates
 # turfcut_acc_<name> databases and drops them first if they exist. PGQUERY
@@ -19,19 +19,20 @@ PGURL="${PGURL%/}"
 PGQUERY="${PGQUERY:-}"
 P="psql -v ON_ERROR_STOP=1 -q -X"
 export PGOPTIONS="-c client_min_messages=warning"
-checks=("$@"); [ ${#checks[@]} -eq 0 ] && checks=(m5 m6 m7 c1 c2 c3 c4 rl sec s1 s2 s3 s4 m8 m9)
-declare -A FILE=([m5]=m5-payouts.ts [m6]=m6-offline.ts [m7]=m7-corrections-closure.ts [c1]=c1-roles.ts [c2]=c2-consent.ts [c3]=c3-hiring.ts [c4]=c4-launch.ts [rl]=rate-limit.ts [sec]=grants.ts [s1]=s1-social.ts [s2]=s2-social.ts [s3]=s3-reach.ts [s4]=s4-kit.ts [m8]=m8-slots.ts [m9]=m9-money.ts)
+checks=("$@"); [ ${#checks[@]} -eq 0 ] && checks=(m5 m6 m7 c1 c2 c3 c4 rl sec s1 s2 s3 s4 m8 m9 m10)
+declare -A FILE=([m5]=m5-payouts.ts [m6]=m6-offline.ts [m7]=m7-corrections-closure.ts [c1]=c1-roles.ts [c2]=c2-consent.ts [c3]=c3-hiring.ts [c4]=c4-launch.ts [rl]=rate-limit.ts [sec]=grants.ts [s1]=s1-social.ts [s2]=s2-social.ts [s3]=s3-reach.ts [s4]=s4-kit.ts [m8]=m8-slots.ts [m9]=m9-money.ts [m10]=m10-admin.ts)
 # Extra SQL run after the setup for a check (sec: re-running the lockdown,
 # as it is designed to be, must leave message grants column-limited).
-declare -A AFTER=([sec]=prisma/m4-0-rls-lockdown.sql)
-for c in "${checks[@]}"; do [[ -v FILE[$c] ]] || { echo "unknown check: $c (m5, m6, m7, c1, c2, c3, c4, rl, sec, s1, s2, s3, s4, m8, m9)"; exit 2; }; done
+# m10: the M10 migrations themselves must be safe to run on a database that already has everything (it runs on the live project that way).
+declare -A AFTER=([sec]=prisma/m4-0-rls-lockdown.sql [m10]="prisma/m10-admin.sql prisma/m10-verification.sql prisma/m10-roles.sql")
+for c in "${checks[@]}"; do [[ -v FILE[$c] ]] || { echo "unknown check: $c (m5, m6, m7, c1, c2, c3, c4, rl, sec, s1, s2, s3, s4, m8, m9, m10)"; exit 2; }; done
 fail=0
 for c in "${checks[@]}"; do
   db="turfcut_acc_$c"
   $P "$PGURL/postgres$PGQUERY" -c "DROP DATABASE IF EXISTS $db" -c "CREATE DATABASE $db"
   $P "$PGURL/$db$PGQUERY" -f tests/acceptance/supabase-shim.sql >/dev/null
   $P "$PGURL/$db$PGQUERY" -f prisma/supabase-manual-setup.sql >/dev/null
-  if [[ -v AFTER[$c] ]]; then $P "$PGURL/$db$PGQUERY" -f "${AFTER[$c]}" >/dev/null; fi
+  if [[ -v AFTER[$c] ]]; then for f in ${AFTER[$c]}; do $P "$PGURL/$db$PGQUERY" -f "$f" >/dev/null; done; fi
   export DATABASE_URL="$PGURL/$db$PGQUERY"
   npx tsx prisma/seed.ts >/dev/null
   echo "== $c"

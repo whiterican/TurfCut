@@ -1,3 +1,4 @@
+import { VerifiedMark } from "@/components/campaign/VerifiedMark";
 import Link from "next/link";
 import { Pin } from "lucide-react";
 import { LocalTime } from "@/components/LocalTime";
@@ -20,6 +21,7 @@ export function PostCard({
   post,
   handle,
   displayName,
+  verified = false,
   signedIn,
   liked,
   likeTotal,
@@ -29,6 +31,8 @@ export function PostCard({
   post: PublicPost;
   handle: string;
   displayName: string;
+  /** Turfcut has verified the campaign's profile (M10.5). */
+  verified?: boolean;
   signedIn: boolean;
   /** For a signed-in worker: whether they liked this post (shows the control). */
   liked?: boolean;
@@ -43,6 +47,7 @@ export function PostCard({
     <article className="card space-y-3" aria-label={`Post by ${displayName}`}>
       <header className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
         <span className="font-semibold text-fg">{displayName}</span>
+        {verified && <VerifiedMark compact />}
         <span>@{handle}</span>
         <span aria-hidden>·</span>
         <Link href={`/c/${handle}/p/${post.id}`} className="hover:underline">

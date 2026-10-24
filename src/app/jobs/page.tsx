@@ -5,7 +5,7 @@ import { Masthead } from "@/components/staff/Masthead";
 import { DataTable } from "@/components/staff/DataTable";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
-import { HIRING_ROLES, ORG_ROLES } from "@/lib/access";
+import { canUse } from "@/lib/access";
 import { ENGAGEMENT_LABELS, JOB_STATUS_LABELS } from "@/lib/engagement-labels";
 import { JOB_TYPES, exclusionReasons, parseFeedFilters, readDisclosure } from "@/lib/jobs";
 import { effectivePreference } from "@/lib/political-fit";
@@ -13,6 +13,7 @@ import { loadLatestPreference } from "@/lib/political-fit-data";
 import { plural } from "@/lib/format";
 import { loadFeed } from "@/lib/jobs-data";
 import { JobFeedCard } from "@/components/JobFeedCard";
+import { EmptyArt } from "@/components/EmptyState";
 
 const day = (d: Date | null) =>
   d ? d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" }) : "—";
@@ -22,7 +23,7 @@ type Search = Promise<Record<string, string | string[] | undefined>>;
 export default async function JobsPage({ searchParams }: { searchParams: Search }) {
   const session = await requireAuth();
   if (session.role === "WORKER" && session.workerId) return <WorkerFeed workerId={session.workerId} searchParams={searchParams} />;
-  if (ORG_ROLES.includes(session.role) && session.orgId) return <OrgJobs orgId={session.orgId} canHire={HIRING_ROLES.includes(session.role)} />;
+  if (session.orgId && canUse(session, "jobs", "read")) return <OrgJobs orgId={session.orgId} canHire={canUse(session, "jobsEdit")} />;
   return (
     <main className="page max-w-2xl">
       <div className="empty-state">
@@ -167,6 +168,7 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
 
         {open.length === 0 ? (
           <div className="empty-state">
+            <EmptyArt kind="jobs" />
             <p className="empty-state-title">No open jobs match</p>
             <p className="empty-state-body">Try fewer filters, or check back soon.</p>
           </div>
@@ -216,6 +218,7 @@ async function OrgJobs({ orgId, canHire }: { orgId: string; canHire: boolean }) 
       </Masthead>
       {jobs.length === 0 ? (
         <div className="empty-state">
+          <EmptyArt kind="jobs" />
           <p className="empty-state-title">No jobs yet</p>
           <p className="empty-state-body">{canHire ? "Create a draft, then publish once every check passes." : "Owners and recruiters create jobs."}</p>
         </div>

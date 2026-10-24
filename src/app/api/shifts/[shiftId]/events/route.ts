@@ -1,6 +1,6 @@
 import { getSessionProfile } from "@/lib/auth";
 import { isCanvassApp } from "@/lib/job-tools";
-import { FIELD_ROLES } from "@/lib/access";
+import { canUse } from "@/lib/access";
 import { badId, resultResponse } from "@/lib/api-session";
 import { supervisorShiftAction, workerShiftAction, type WorkerRequest } from "@/lib/field-day-data";
 import type { SupervisorAction } from "@/lib/field-day";
@@ -56,7 +56,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ shiftId
     return resultResponse(await workerShiftAction({ workerId: session.workerId, profileId: session.userId }, shiftId, r));
   }
 
-  if (FIELD_ROLES.includes(session.role) && session.orgId) {
+  if (canUse(session, "field") && session.orgId) {
     let a: SupervisorAction;
     switch (b.kind) {
       case "packet_pickup":

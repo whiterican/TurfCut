@@ -4,7 +4,7 @@ import { bandRadius } from "@/lib/offline-sync";
 import { readTools } from "@/lib/job-tools";
 import { needsReview } from "@/lib/field-view";
 import { db } from "@/lib/db";
-import { FIELD_ROLES } from "@/lib/access";
+import { areaMembers } from "@/lib/access-data";
 import { canScheduleShift, UUID_RE } from "@/lib/jobs";
 import { applyReviewPlan, payLock, planReview, reviewLockProblem, withdrawStalePay } from "@/lib/pay-data";
 import { correctTime, placeTime, timeProblem, wasOffline, type QueuedAction } from "@/lib/offline-sync";
@@ -115,7 +115,7 @@ export async function scheduleShift(
   }
   if (v.value.endsAt <= now) return { ok: false, reason: "That shift is already over.", errors: { endsAt: "Pick a time in the future." } };
   if (v.value.supervisorId) {
-    const sup = await db().profile.findFirst({ where: { id: v.value.supervisorId, orgId: actor.orgId, role: { in: FIELD_ROLES } } });
+    const sup = await db().profile.findFirst({ where: { id: v.value.supervisorId, orgId: actor.orgId, ...areaMembers("field") } });
     if (!sup) return { ok: false, reason: "Fix the highlighted fields.", errors: { supervisorId: "Pick a supervisor from your organization." } };
   }
 
@@ -590,7 +590,7 @@ export async function loadWorkerShifts(workerId: string, now = new Date()) {
 }
 
 export async function listSupervisors(orgId: string) {
-  return db().profile.findMany({ where: { orgId, role: { in: FIELD_ROLES } }, select: { id: true, role: true } });
+  return db().profile.findMany({ where: { orgId, ...areaMembers("field") }, select: { id: true, role: true } });
 }
 
 /** The organizer's live view (mockup "Operations"): today's field work. */

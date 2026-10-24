@@ -1,5 +1,4 @@
-import { apiOrgRole, badId } from "@/lib/api-session";
-import { rolesFor } from "@/lib/access";
+import { apiArea, badId } from "@/lib/api-session";
 import { validatePostBody } from "@/lib/campaign-social";
 import { createPost } from "@/lib/campaign-social-data";
 import { check } from "@/lib/rate-limit";
@@ -9,7 +8,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const { id } = await params;
   const bad = badId(id);
   if (bad) return bad;
-  const auth = await apiOrgRole(rolesFor("campaignPosting", "full"));
+  const auth = await apiArea("campaignPosting");
   if ("error" in auth) return auth.error;
   const b = ((await req.json().catch(() => null)) ?? {}) as Record<string, unknown>;
   const body = validatePostBody(b.body);

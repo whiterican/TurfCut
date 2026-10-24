@@ -22,6 +22,13 @@ export type CommunicationMethod = "in_person" | "manual_voice" | "automated_voic
 export const COMPLIANCE_SECTORS: readonly ComplianceSector[] = ["political", "nonprofit", "private"];
 export const COMMUNICATION_METHODS: readonly CommunicationMethod[] = ["in_person", "manual_voice", "automated_voice", "prerecorded_voice", "sms"];
 
+/** Only explicit instants are accepted; never depend on the server's local zone. */
+export function parseComplianceInstant(value: unknown): number {
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}T(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d{1,3})?(?:Z|[+-](?:[01]\d|2[0-3]):[0-5]\d)$/.test(value)) return NaN;
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? parsed : NaN;
+}
+
 export interface CompliancePolicy {
   id: string;
   version: number;
@@ -58,24 +65,27 @@ export function preflightCompliancePolicy(
   policy: CompliancePolicy | null | undefined,
   at: Date = new Date(),
 ): PolicyPreflight {
-  if (!policy) return { eligibleForReview: false, reasons: ["No approved compliance policy is on file."], policyVersion: null };
+  if (!policy || typeof policy !== "object" || Array.isArray(policy)) return { eligibleForReview: false, reasons: ["No valid compliance policy is on file."], policyVersion: null };
+  if (!context || typeof context !== "object" || Array.isArray(context)) return { eligibleForReview: false, reasons: ["Work context is invalid."], policyVersion: null };
   const reasons: string[] = [];
-  if (!policy.id.trim() || !Number.isSafeInteger(policy.version) || policy.version < 1) {
+  if ((typeof policy.id !== "string" || !policy.id.trim()) || !Number.isSafeInteger(policy.version) || policy.version < 1) {
     reasons.push("Compliance policy identity or version is invalid.");
   }
-  if (!policy.approved) reasons.push("Compliance policy is not approved.");
+  if (policy.approved !== true) reasons.push("Compliance policy is not approved.");
   if (!(COMPLIANCE_ACTIVITIES as readonly string[]).includes(context.activity) ||
       !COMPLIANCE_SECTORS.includes(context.sector) ||
       !COMMUNICATION_METHODS.includes(context.method)) {
     reasons.push("Work classification or contact method is not supported.");
   }
-  if (!context.jurisdiction.trim() || policy.jurisdiction !== context.jurisdiction ||
+  if (typeof context.jurisdiction !== "string" || !context.jurisdiction.trim() || context.jurisdiction !== context.jurisdiction.trim() ||
+      typeof policy.jurisdiction !== "string" || !policy.jurisdiction.trim() || policy.jurisdiction !== policy.jurisdiction.trim() ||
+      policy.jurisdiction !== context.jurisdiction ||
       policy.activity !== context.activity || policy.sector !== context.sector || policy.method !== context.method) {
     reasons.push("Compliance policy does not match this jurisdiction, sector, activity and method.");
   }
-  const from = Date.parse(policy.effectiveAt);
-  const until = Date.parse(policy.expiresAt);
-  const now = at.getTime();
+  const from = parseComplianceInstant(policy.effectiveAt);
+  const until = parseComplianceInstant(policy.expiresAt);
+  const now = at instanceof Date ? at.getTime() : NaN;
   if (!Number.isFinite(now) || !Number.isFinite(from) || !Number.isFinite(until) || from >= until) {
     reasons.push("Compliance policy dates are invalid.");
   } else if (now < from || now >= until) {

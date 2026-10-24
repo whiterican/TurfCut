@@ -17,6 +17,15 @@ describe("haptics", () => {
     haptic();
     expect(vibrate).toHaveBeenCalledWith(8);
   });
+  it("has a vocabulary: a tap, a success with a beat in it, a warning of two longer pulses (P1.1)", () => {
+    const vibrate = stubBrowser({ vibrate: true });
+    haptic("success");
+    expect(vibrate).toHaveBeenLastCalledWith([12, 40, 24]);
+    haptic("warning");
+    expect(vibrate).toHaveBeenLastCalledWith([30, 50, 30]);
+    haptic("tap");
+    expect(vibrate).toHaveBeenLastCalledWith(8);
+  });
   it("is on by default and respects the off setting", () => {
     stubBrowser({});
     expect(hapticsEnabled()).toBe(true);

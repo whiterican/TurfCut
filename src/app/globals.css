@@ -149,6 +149,27 @@ html {
   --card-sheen: none;
   --hero-bg: var(--hero);
 }
+/* ---- Motion (P1.1) ------------------------------------------------------ */
+/* Every duration and curve in the app comes from these (src/lib/motion.ts
+   mirrors them for script-driven motion, and motion.test.ts refuses a raw
+   millisecond value anywhere else in this file). Under "Less motion" (the
+   phone's setting, or Display settings) they all go to zero: one switch. */
+:where(html) {
+  --dur-fast: 120ms; /* a press, a colour, a toggle: felt, not watched */
+  --dur-base: 220ms; /* a control changing shape, a card settling, a count ticking */
+  --dur-page: 320ms; /* a page sliding */
+  --dur-slow: 360ms; /* a sheet, a ring filling, the tab lens gliding */
+  --dur-lag: 90ms; /* the pause before the new page fades in, behind the old one going */
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ease-enter: cubic-bezier(0, 0, 0.2, 1);
+  --ease-linear: linear; /* only for things that turn: a spinner */
+  /* A damped spring with one small overshoot (springCurve() in motion.ts): a
+     sheet or a card lands rather than stops. */
+  --spring: linear(0, 0.0357, 0.1228, 0.2372, 0.3615, 0.4839, 0.5969, 0.6964, 0.7806, 0.8493, 0.9035, 0.9448, 0.975, 0.9961, 1.01, 1.0182, 1.0223, 1.0234, 1.0226, 1.0205, 1.0179, 1.015, 1.0121, 1.0095, 1);
+}
+
 @theme inline {
   --color-bg: var(--bg);
   --color-surface: var(--surface);
@@ -176,6 +197,9 @@ html {
   --font-sans: var(--font-barlow);
   --font-mono: var(--font-dm-mono);
   --font-condensed: var(--font-barlow-condensed);
+  /* Tailwind's `transition` utility runs on the tokens too. */
+  --default-transition-duration: var(--dur-fast);
+  --default-transition-timing-function: var(--ease-standard);
 }
 
 /* Text size setting (Display settings): scales every rem-based size. */
@@ -356,7 +380,7 @@ body {
     border-color: var(--border);
   }
   a.hero-card.hero-card-quiet {
-    transition: border-color 150ms;
+    transition: border-color var(--dur-fast) var(--ease-standard);
   }
   a.hero-card.hero-card-quiet:hover {
     border-color: var(--border-strong);
@@ -416,6 +440,27 @@ body {
   .empty-state-body {
     @apply mx-auto mt-1 max-w-sm text-sm text-muted;
   }
+  /* Empty-state art (components/EmptyState.tsx): lime field, ink lines, dim
+     context lines, paper fills. Theme tokens, so light and dark both work.
+     Its settle-in animation is unlayered, with the other motion (Button faces). */
+  .empty-art {
+    display: block;
+    width: 5.5rem;
+    height: 5.5rem;
+    margin: 0 auto 0.75rem;
+    color: var(--fg);
+  }
+  .empty-art .lime { fill: var(--accent); }
+  .empty-art .ink,
+  .empty-art .dim {
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .empty-art .ink { stroke: currentColor; }
+  .empty-art .dim { stroke: var(--muted); opacity: 0.55; }
+  .empty-art .paper { fill: var(--surface); }
 
   /* ---- Buttons & links ------------------------------------------------- */
   .btn,
@@ -724,7 +769,7 @@ body {
     background: var(--surface);
     border-color: var(--border);
     box-shadow: 0 10px 28px -14px rgb(27 20 34 / 0.35), 0 1px 2px rgb(27 20 34 / 0.06);
-    transition: transform 280ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    transition: transform var(--dur-slow) var(--ease-out);
   }
   .tab {
     @apply relative flex min-h-[3.75rem] min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-full border border-transparent pt-1 pb-0.5 font-semibold whitespace-nowrap text-fg transition;
@@ -1033,8 +1078,13 @@ body {
     border-color: var(--border-strong);
   }
   .skeleton {
-    @apply animate-pulse rounded-xl bg-surface-2;
+    @apply rounded-xl bg-surface-2;
+    /* A slow breath while content loads: six slow beats a cycle. */
+    animation: tc-pulse calc(var(--dur-slow) * 6) var(--ease-standard) infinite;
   }
+}
+@keyframes tc-pulse {
+  50% { opacity: 0.5; }
 }
 
 /* Leaflet map: keep OSM tiles readable but less glaring in the dark theme. */
@@ -1119,7 +1169,7 @@ body {
    :focus-within: a tapped tab (or More, refocused after its sheet closes)
    keeps focus, and that must not pin the bar. */
 @media (prefers-reduced-motion: no-preference) {
-  body:not(:has(.composer)) .tabbar[data-tucked]:not(:has(:focus-visible)) {
+  html:not([data-motion="reduce"]) body:not(:has(.composer)) .tabbar[data-tucked]:not(:has(:focus-visible)) {
     transform: translateY(calc(100% + 1.5rem + env(safe-area-inset-bottom)));
   }
 }
@@ -1200,6 +1250,7 @@ summary.list-none::-webkit-details-marker {
   html, body { background: white; color: black; }
   .page { padding: 0; max-width: none; }
   .card, .list-card, .empty-state, .stat { background: white; border-color: #999; box-shadow: none; break-inside: avoid; }
+  .empty-art { display: none; } /* theme colours don't survive white paper; the words carry the meaning */
   a { color: inherit; text-decoration: none; }
 }
 
@@ -1226,8 +1277,8 @@ summary.list-none::-webkit-details-marker {
 }
 /* The current tab's lens glides from the old tab to the new one. */
 ::view-transition-group(tab-current) {
-  animation-duration: 360ms;
-  animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+  animation-duration: var(--dur-slow);
+  animation-timing-function: var(--ease-out);
   z-index: 101;
 }
 /* Taps during an animation reach the new page. */
@@ -1237,37 +1288,37 @@ summary.list-none::-webkit-details-marker {
 
 /* Default (tabs, buttons): the old page fades quickly, the new one rises in. */
 ::view-transition-old(.page-out) {
-  animation: 140ms cubic-bezier(0.4, 0, 1, 1) both tc-fade-out;
+  animation: var(--dur-fast) var(--ease-in) both tc-fade-out;
 }
 ::view-transition-new(.page-in) {
   animation:
-    220ms cubic-bezier(0, 0, 0.2, 1) 90ms both tc-fade-in,
-    340ms cubic-bezier(0.2, 0.8, 0.2, 1) both tc-rise;
+    var(--dur-base) var(--ease-enter) var(--dur-lag) both tc-fade-in,
+    var(--dur-slow) var(--ease-out) both tc-rise;
 }
 /* Deeper (open a thread, a shift): slide left. Back: slide right. */
 ::view-transition-old(.nav-forward) {
   --tc-offset: -48px;
   animation:
-    150ms ease-in both tc-fade-out,
-    320ms cubic-bezier(0.4, 0, 0.2, 1) both tc-slide-out;
+    var(--dur-fast) var(--ease-in) both tc-fade-out,
+    var(--dur-page) var(--ease-standard) both tc-slide-out;
 }
 ::view-transition-new(.nav-forward) {
   --tc-offset: 48px;
   animation:
-    210ms ease-out 110ms both tc-fade-in,
-    320ms cubic-bezier(0.4, 0, 0.2, 1) both tc-slide-in;
+    var(--dur-base) var(--ease-out) var(--dur-lag) both tc-fade-in,
+    var(--dur-page) var(--ease-standard) both tc-slide-in;
 }
 ::view-transition-old(.nav-back) {
   --tc-offset: 48px;
   animation:
-    150ms ease-in both tc-fade-out,
-    320ms cubic-bezier(0.4, 0, 0.2, 1) both tc-slide-out;
+    var(--dur-fast) var(--ease-in) both tc-fade-out,
+    var(--dur-page) var(--ease-standard) both tc-slide-out;
 }
 ::view-transition-new(.nav-back) {
   --tc-offset: -48px;
   animation:
-    210ms ease-out 110ms both tc-fade-in,
-    320ms cubic-bezier(0.4, 0, 0.2, 1) both tc-slide-in;
+    var(--dur-base) var(--ease-out) var(--dur-lag) both tc-fade-in,
+    var(--dur-page) var(--ease-standard) both tc-slide-in;
 }
 @keyframes tc-fade-in {
   from { opacity: 0; }
@@ -1290,16 +1341,123 @@ summary.list-none::-webkit-details-marker {
 }
 :is(.btn, .btn-primary, .btn-secondary, .btn-ghost, .quick-reply, .chip, .tab) {
   transition-property: color, background-color, border-color, transform, filter;
-  transition-duration: 120ms;
+  transition-duration: var(--dur-fast);
 }
+/* Button faces (components/ButtonFaces.tsx): label, spinner, check, stacked in
+   one cell so the button keeps its width; the shown face fades and settles
+   in, the others fade out. */
+.btn-faces {
+  display: inline-grid;
+}
+.btn-face {
+  grid-area: 1 / 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  opacity: 0;
+  visibility: hidden;
+  translate: 0 0.25rem;
+  transition-property: opacity, translate, visibility;
+  transition-duration: var(--dur-fast), var(--dur-base), var(--dur-fast);
+  transition-timing-function: var(--ease-standard), var(--spring), var(--ease-standard);
+}
+.btn-face[data-on] {
+  opacity: 1;
+  visibility: visible;
+  translate: none;
+}
+.btn-spinner {
+  width: 1em;
+  height: 1em;
+  flex: none;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 9999px;
+  animation: tc-spin calc(var(--dur-slow) * 2) var(--ease-linear) infinite;
+}
+.btn-check {
+  width: 1em;
+  height: 1em;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.25;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.btn-face[data-on] .btn-check path {
+  stroke-dasharray: 1;
+  animation: tc-draw var(--dur-base) var(--ease-out) both;
+}
+/* A busy button stays readable: disabled, but not faded like an unavailable one. */
+:is(.btn, .btn-primary, .btn-secondary, .btn-ghost)[aria-busy="true"]:disabled {
+  opacity: 0.85;
+  cursor: progress;
+}
+/* An empty state's drawing settles in with the page (size and colours: .empty-art in the components layer). */
+.empty-art {
+  animation: tc-rise var(--dur-slow) var(--ease-out) both;
+}
+@keyframes tc-spin {
+  to { rotate: 1turn; }
+}
+@keyframes tc-draw {
+  from { stroke-dashoffset: 1; }
+}
+/* ---- Less motion ------------------------------------------------------- */
+/* Two doors, one rule: the phone's setting, or "Less motion" in Display
+   settings (<html data-motion="reduce">, applied before first paint). Every
+   duration token goes to zero, every animation and transition ends at once
+   (0.01ms: a transitionend still fires for code that waits on one), pages
+   swap instead of sliding, and nothing presses. */
 @media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-fast: 0ms;
+    --dur-base: 0ms;
+    --dur-page: 0ms;
+    --dur-slow: 0ms;
+    --dur-lag: 0ms;
+  }
+  *,
+  ::before,
+  ::after,
   ::view-transition-old(*),
   ::view-transition-new(*),
   ::view-transition-group(*) {
-    animation-duration: 0s !important;
+    animation-duration: 0.01ms !important;
     animation-delay: 0s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0s !important;
+    scroll-behavior: auto !important;
   }
-  :is(.btn, .btn-primary, .btn-secondary, .btn-ghost, .quick-reply, .chip, .tab):active {
+  /* Same specificity as the press rule above: it wins by coming after it, so it must stay below. */
+  :is(.btn, .btn-primary, .btn-secondary, .btn-ghost, .quick-reply, .chip, .tab):active:not(:disabled) {
     transform: none;
   }
+}
+:root[data-motion="reduce"] {
+  --dur-fast: 0ms;
+  --dur-base: 0ms;
+  --dur-page: 0ms;
+  --dur-slow: 0ms;
+  --dur-lag: 0ms;
+}
+:root[data-motion="reduce"],
+:root[data-motion="reduce"] *,
+:root[data-motion="reduce"] ::before,
+:root[data-motion="reduce"] ::after,
+:root[data-motion="reduce"]::view-transition-old(*),
+:root[data-motion="reduce"]::view-transition-new(*),
+:root[data-motion="reduce"]::view-transition-group(*) {
+  animation-duration: 0.01ms !important;
+  animation-delay: 0s !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  transition-delay: 0s !important;
+  scroll-behavior: auto !important;
+}
+:root[data-motion="reduce"] :is(.btn, .btn-primary, .btn-secondary, .btn-ghost, .quick-reply, .chip, .tab):active:not(:disabled) {
+  transform: none;
 }

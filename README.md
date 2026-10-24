@@ -800,6 +800,55 @@ connection is only for schema changes.
   through. Run `prisma/rate-limit.sql` before deploying this. Member
   invites are capped at 20 emails per organization per day the same way.
 
+## P1 — motion and polish
+
+The plan (approved Oct 23): the app feels finished on a phone in the field.
+Motion explains, never decorates; everything respects "Less motion"; nothing
+here is a ranking input. Eight slices, no new dependency.
+
+### P1.1 — the motion foundation (done)
+
+- **One set of tokens.** Every duration and curve in `app/globals.css` comes
+  from the Motion block (`--dur-fast` 120 ms, `--dur-base` 220, `--dur-page`
+  320, `--dur-slow` 360, `--dur-lag` 90; four easings; one `--spring`, a
+  damped spring sampled for CSS `linear()` by `springCurve()` in
+  `src/lib/motion.ts`). Tailwind's `transition` utility runs on them too.
+  `src/lib/motion.test.ts` refuses a raw duration or curve anywhere else in
+  the stylesheet, refuses Tailwind `duration-`/`delay-`/`animate-` classes
+  and inline `transitionDuration` styles in components, and holds the
+  script-side mirror (`DURATION`) to the same numbers, so a new animation
+  has to read the tokens from CSS (not Tailwind classes or inline styles).
+- **One switch.** Motion is reduced when the phone asks for it
+  (`prefers-reduced-motion`) or when the person chooses **Less motion** in
+  Display settings (saved on the device as `<html data-motion="reduce">`,
+  applied by the inline script before first paint). Under either, every
+  token is zero, every animation and transition ends at once, pages swap
+  instead of sliding, the tab bar doesn't tuck, and nothing presses. Later
+  slices add the counts and rings that jump to their value here. Script
+  reads the same switch through `motionReduced()` / `duration()`.
+- **A haptic vocabulary.** `haptic("tap" | "success" | "warning")`: a tick,
+  a tick with a beat and a firmer tick, two longer pulses. Still Android
+  only (the Vibration API), still off with the existing setting.
+
+### P1.2 — buttons and empty states (done)
+
+- **Buttons that morph.** `ActionButton` and `PendingButton` (55 call sites)
+  show three faces stacked in one grid cell (`components/ButtonFaces.tsx`):
+  the label, a spinner with the pending label while the action runs, and a
+  drawn check for a moment once it lands. The button never changes width;
+  the faces cross-fade on the motion tokens and simply swap under Less
+  motion. While working the button is `aria-busy` and a polite status says
+  the pending label; the result is still announced by the form's own message.
+  A landed action gives the success haptic, a refused one the warning.
+  Forms with hand-written submit buttons keep their text swap until they are
+  next touched.
+- **Branded empty states.** Eight line drawings (`components/EmptyState.tsx`:
+  jobs, shifts, messages, earnings, applicants, campaigns, notices, offline)
+  in the theme's lime, ink and muted tokens, decorative to screen readers.
+  They head the empty Work feed and jobs list, My shifts, Messages,
+  Earnings, the Feed, Notifications, the campaign directory, a job's
+  applicants, and the offline brief's "No signal" page.
+
 ## C2 scope — workers decide what each organization sees
 
 - **Who sees what** (Profile): each part of the profile — output rates,

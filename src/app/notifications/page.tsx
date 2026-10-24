@@ -6,6 +6,7 @@ import { postNoticeText } from "@/lib/campaign-follow";
 import { loadPostNotices } from "@/lib/campaign-follow-data";
 import { LocalTime } from "@/components/LocalTime";
 import { markNotificationsRead } from "./actions";
+import { EmptyArt } from "@/components/EmptyState";
 
 export const metadata = { title: "Notifications · Turfcut" };
 
@@ -52,6 +53,7 @@ export default async function NotificationsPage() {
       </header>
       {items.length === 0 ? (
         <div className="empty-state">
+          <EmptyArt kind="notices" />
           <p className="empty-state-title">Nothing yet</p>
           <p className="empty-state-body">{viewer === "worker" ? "Offers, invitations, answers and posts from campaigns you get notices from appear here." : "Applications, claims and answers appear here."}</p>
         </div>

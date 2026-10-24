@@ -849,6 +849,77 @@ here is a ranking input. Eight slices, no new dependency.
   Earnings, the Feed, Notifications, the campaign directory, a job's
   applicants, and the offline brief's "No signal" page.
 
+### P1.3 — skeletons (done)
+
+- **Every route shows its own layout while it loads.** `PageSkeleton` has
+  seven shapes, each mirroring a layout: `home` (Today-style hero, figures,
+  list), `cards` (filters and cards), `table` (Hiring's tables), `detail`
+  (one record), `form`, `thread` (a conversation or dispute) and `list`.
+  Each page's `loading.tsx` names its shape, its page width and what a
+  screen reader hears ("Loading applicants"). The pulse is on the motion
+  tokens and stops under Less motion.
+- **Except where a real status code matters.** Today, My shifts and
+  everything under them, and the root above them, have no loading screen:
+  the offline brief needs their real status codes (see
+  `field-routes-status.test.ts`). The public campaign pages (the directory,
+  each campaign and its posts) don't either: campaigns share those links, and
+  a deleted one must be a real 404 to link checkers and monitors. A loading
+  screen wraps everything below it, so the test checks each exempt page's
+  parent folders too.
+- **Matched to the page.** Width and spacing follow the page's own container
+  (2xl to 5xl, centred for sign-in). The staff console's skeletons sit inside
+  its frame with no second heading. Work shows workers the card feed and
+  organizations the jobs table. Inboxes and member lists show a face per row.
+- **A new page can't ship without one.** `src/app/route-skeletons.test.ts`
+  fails any page outside the field routes that has no `loading.tsx`
+  rendering a known shape.
+- Elsewhere, a page that calls not-found behind a loading screen answers
+  200 with a `noindex` tag rather than a 404. Those pages are all signed-in,
+  so nothing depends on the status. On a first visit the skeleton appears
+  once the root layout has read the session; on navigation it is immediate.
+
+### P1.4 — field-worker moments (done)
+
+- **Check-in is a moment.** The success haptic and "You're checked in. The
+  clock is running." The shift page's ring then starts filling with the
+  share of the scheduled time worked, and moves on with each tick.
+- **Counts count up by the change.** The shift's signatures, doors and
+  contacts, and the pay estimate, step from the old value to the new in
+  whole numbers. They never jump and never show a number that wasn't real
+  at either end. Screen readers hear only the settled value.
+- **One connection pill.** It always sits on the field-day card: online,
+  syncing, waiting, no signal or couldn't save ("All saved" when nothing is
+  waiting). Its colour follows the state
+  and its words slide in.
+- **Rings on rates.** Show rate, contact rate and signature acceptance on
+  the scorecard fill from the value this phone last saw. Each keeps its own
+  formula and evidence, and there is still no overall score.
+- **Paid, plainly.** A pay line this phone last saw approved or sending
+  morphs once to paid, from its old colour with a check drawn in. A first
+  look, a reload or another device shows just "Paid". No confetti.
+- Every moment runs on the motion tokens and settles at once under Less
+  motion. What a phone "last saw" lives in its own storage
+  (`turfcut-seen:*`); without storage the moment simply doesn't play. Pay
+  lines drop their key once paid, voided or nothing due. Scorecard rings
+  remember only on the worker's own profile; organization views draw them
+  plainly.
+
+### P1.5 — Sunlight mode (done)
+
+- **A third theme for outdoors.** Display settings has Match my phone,
+  Light, Dark and Sunlight. The field-day screen has a Sunlight switch that
+  goes back to whatever was chosen before.
+- **How it looks:** black text on white, near-black 2px edges, heavier
+  icons, body text a weight up. There are no shadows and nothing is
+  see-through. A disabled button turns grey with a dashed edge instead of
+  fading. It is built on the light theme and never carries `.dark`.
+- **Checked pairing by pairing.** Sunlight runs every contrast check the
+  other themes pass, then a higher bar: body text at least 18:1, secondary
+  15:1, edges 7:1, links and status 7:1 (`design-tokens.test.ts`). The saved
+  choice is applied before first paint like the others.
+- Larger text stays its own setting. The Sunlight hint suggests pairing it
+  with Large.
+
 ## C2 scope — workers decide what each organization sees
 
 - **Who sees what** (Profile): each part of the profile — output rates,

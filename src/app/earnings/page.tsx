@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireWorker } from "@/lib/worker-session";
 import { loadWorkerEarnings, type EarningShift } from "@/lib/pay-data";
+import { PayBadge } from "@/components/Moments";
 import { money, statusLabel } from "@/lib/pay";
 import { LocalTime } from "@/components/LocalTime";
 import { clockParts } from "@/lib/dispute-sla";
@@ -93,7 +94,7 @@ function ShiftRow({ s, orgName }: { s: EarningShift; orgName: string }) {
         </div>
         <div className="shrink-0 space-y-1 text-right">
           {s.lines.length > 0 && <p className="font-bold text-fg">{money(s.totalCents)}</p>}
-          {badge && <span className={badge.badge}>{badge.label}</span>}
+          {main ? <PayBadge lineId={main.id} status={main.state.status} amountCents={main.amountCents} /> : badge && <span className={badge.badge}>{badge.label}</span>}
         </div>
       </div>
       {main?.state.status === "PAID" && main.state.paidAt && (

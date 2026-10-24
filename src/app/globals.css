@@ -129,6 +129,50 @@
   color-scheme: dark;
 }
 
+.sun {
+  /* Sunlight (P1.5): the outdoor theme. Built on light (it never carries
+     .dark): white paper, black text, near-black edges, and the brand kept
+     to the lime fill and lime type on the black tab tile. Every pairing clears a
+     higher bar than the other themes (design-tokens.test.ts). Nothing is
+     see-through and nothing casts a shadow. */
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --surface-2: #eeeeee;
+  --field: #ffffff;
+  --border: #4a4254;
+  --border-strong: #000000;
+  --fg: #000000;
+  --muted: #1b1422;
+  --subtle: #2b2433;
+  --link: #2a173e;
+  --kicker: #2a173e;
+  --focus: #2a173e;
+  --selected: #000000;
+  --danger: #8a1c0c;
+  --success: #2a173e;
+  --warning: #3a2200;
+  --primary: #000000;
+  --switch-on: #2a173e;
+  --on-primary: #d6f25a;
+  --secondary: #ffffff;
+  --secondary-border: #000000;
+  --hero: #000000;
+  --hero-fg: #ffffff;
+  --hero-muted: #ebebeb;
+  --hero-border: transparent;
+  --tab-active-bg: #000000;
+  --tab-active-fg: #d6f25a;
+  --sky: #d9cfe6;
+  --coral: #f1c6bd;
+  --butter: #e4dccd;
+  --ring: #6a4c91;
+  --ring-2: #4a3070;
+  --ring-3: #2a173e;
+  --shadow-depth: 0 0 0 0 transparent;
+  --shadow: var(--shadow-depth);
+  color-scheme: light;
+}
+
 /* Frame tokens: the surfaces that float (tab bar, header buttons, the More
    sheet, map controls, icon buttons, sticky table headers). Plain paper now;
    the names stay so every surface rule reads the same way. */
@@ -1395,6 +1439,58 @@ summary.list-none::-webkit-details-marker {
   opacity: 0.85;
   cursor: progress;
 }
+/* Field-worker moments (components/Moments.tsx, P1.4). */
+/* A ring that fills: the shift's time worked, a rate on the scorecard. */
+.progress-ring {
+  flex: none;
+  rotate: -90deg;
+}
+.progress-ring-track,
+.progress-ring-fill {
+  fill: none;
+  stroke-width: 4;
+}
+.progress-ring-track {
+  stroke: var(--border);
+}
+.progress-ring-fill {
+  stroke: var(--success);
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+}
+/* On a hero card the ring takes the card's own ink: lime and eggplant cards both keep it visible. */
+.hero-card .progress-ring-fill {
+  stroke: currentColor;
+}
+.hero-card .progress-ring-track {
+  stroke: color-mix(in srgb, currentColor 25%, transparent);
+}
+/* The connection pill: its colour follows the state, its words slide in. */
+.pill {
+  transition-property: background-color, border-color, color;
+  transition-duration: var(--dur-base);
+  transition-timing-function: var(--ease-standard);
+}
+.pill-face {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  animation: tc-pill-in var(--dur-base) var(--spring) both;
+}
+@keyframes tc-pill-in {
+  from { opacity: 0; translate: 0 0.5em; }
+}
+/* A pay line arriving at paid: from its old colour, with a check drawn in. */
+.pay-morph {
+  animation: tc-badge-morph var(--dur-slow) var(--ease-out) both;
+}
+.pay-morph .btn-check path {
+  stroke-dasharray: 1;
+  animation: tc-draw var(--dur-base) var(--ease-out) var(--dur-fast) both;
+}
+@keyframes tc-badge-morph {
+  from { background-color: var(--from-bg, var(--sky)); }
+}
 /* An empty state's drawing settles in with the page (size and colours: .empty-art in the components layer). */
 .empty-art {
   animation: tc-rise var(--dur-slow) var(--ease-out) both;
@@ -1404,6 +1500,83 @@ summary.list-none::-webkit-details-marker {
 }
 @keyframes tc-draw {
   from { stroke-dashoffset: 1; }
+}
+/* ---- Sunlight: heavier strokes ------------------------------------------ */
+/* Outdoors a hairline vanishes and see-through reads as missing: edges go to
+   2px, icons draw heavier, body text a weight up, links underline in their
+   own colour, and faded or translucent things are made solid. Screen only:
+   printing keeps its own plain look. */
+@media screen {
+  .sun body {
+    font-weight: 500;
+  }
+  .sun :is(.card, .card-flat, .card-dashed, .stat, .list-card, .empty-state, .hero-card, .field, .option-card, .btn-secondary, .tabbar, .kv, .alert, .alert-warning, .alert-info, .quick-reply, .icon-btn, .summary-bar, .data-table-wrap, .composer-input) {
+    border-width: 2px;
+  }
+  .sun :is(.alert, .alert-warning, .alert-info) {
+    border-color: var(--border);
+  }
+  .sun :is(.badge-solid, .badge-butter, .badge-party, .badge-neutral, .badge-sky, .badge-coral, .badge-accent, .badge-dashed, .chip, .filter-chip, .filter-chip-on) {
+    border-width: 2px;
+    border-color: var(--border-strong);
+  }
+  /* The lime card has no edge of its own; on white it needs one (priority rings bring theirs). */
+  .sun .hero-card-accent:not([data-priority="1"], [data-priority="2"], [data-priority="3"]) {
+    border-color: var(--border-strong);
+  }
+  .sun :is(.tabbar, .turf-map.leaflet-container .leaflet-bar) {
+    box-shadow: none;
+  }
+  .sun svg.lucide {
+    stroke-width: 2.5;
+  }
+  .sun .link {
+    text-decoration-color: currentColor;
+  }
+  .sun .empty-art .dim {
+    stroke: var(--border);
+    opacity: 1;
+  }
+  .sun :is(.opacity-50, .opacity-75) {
+    opacity: 1;
+  }
+  .sun [class*="ring-success/"] {
+    --tw-ring-color: var(--success);
+  }
+  /* The on/off switch: off is an outlined white track with a black knob, on is black with lime. */
+  .sun .toggle input:not(:checked) {
+    background: var(--surface-2);
+    border-color: var(--border-strong);
+  }
+  .sun .toggle input:not(:checked)::after {
+    background: var(--fg);
+  }
+  /* Safari's native switch keeps its own look. */
+  @supports selector(::thumb) {
+    .sun .toggle input[switch]:not(:checked) {
+      background: none;
+    }
+  }
+  /* A disabled button can't hide behind faded colour in glare: it turns grey
+     with a dashed outline (an outline, so nothing shifts when it flips). A busy
+     one keeps its look, solid. */
+  .sun :is(.btn, .btn-primary, .btn-secondary, .btn-ghost, .send-btn, .step):disabled:not([aria-busy="true"]) {
+    opacity: 1;
+    background: var(--surface-2);
+    color: var(--fg);
+    border-color: transparent;
+    outline: 2px dashed var(--border);
+    outline-offset: -2px;
+  }
+  .sun :is(.btn, .btn-primary, .btn-secondary, .btn-ghost)[aria-busy="true"]:disabled {
+    opacity: 1;
+  }
+  /* The field-day Sunlight switch reads as pressed while Sunlight is on. */
+  .sun .sun-toggle {
+    background: var(--primary);
+    color: var(--on-primary);
+    border-color: transparent;
+  }
 }
 /* ---- Less motion ------------------------------------------------------- */
 /* Two doors, one rule: the phone's setting, or "Less motion" in Display

@@ -34,6 +34,7 @@ function block(selector: string, source = css): Record<string, string> {
 
 const light = block(":root");
 const dark = { ...light, ...block(".dark") };
+const sun = { ...light, ...block(".sun") };
 
 type RGB = [number, number, number];
 const rgb = (hex: string): RGB => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)) as RGB;
@@ -60,6 +61,7 @@ const SURFACES = ["bg", "surface", "surface-2", "field"] as const;
 describe.each([
   ["dark", dark],
   ["light", light],
+  ["sunlight", sun],
 ] as const)("%s theme contrast", (_name, t) => {
   it("body text is AAA (≥ 7:1) on every surface", () => {
     for (const s of SURFACES) expect(ratio(t.fg, t[s])).toBeGreaterThanOrEqual(7);
@@ -135,6 +137,46 @@ describe.each([
   });
 });
 
+describe("sunlight theme (P1.5): a higher bar for outdoor glare", () => {
+  it("body text is near-maximal (≥ 18:1) and secondary text ≥ 15:1 on every surface", () => {
+    for (const s of SURFACES) {
+      expect(ratio(sun.fg, sun[s])).toBeGreaterThanOrEqual(18);
+      expect(ratio(sun.muted, sun[s])).toBeGreaterThanOrEqual(15);
+      expect(ratio(sun.subtle, sun[s])).toBeGreaterThanOrEqual(12);
+    }
+  });
+  it("edges are drawn, not hinted: borders ≥ 7:1 against the page and every surface", () => {
+    for (const s of SURFACES) {
+      expect(ratio(sun.border, sun[s])).toBeGreaterThanOrEqual(7);
+      expect(ratio(sun["border-strong"], sun[s])).toBeGreaterThanOrEqual(15);
+    }
+  });
+  it("links, status text, buttons, the hero and the current tab are ≥ 7:1", () => {
+    for (const c of ["link", "danger", "success", "warning", "focus"] as const) for (const s of SURFACES) expect(ratio(sun[c], sun[s])).toBeGreaterThanOrEqual(7);
+    expect(ratio(sun["on-primary"], sun.primary)).toBeGreaterThanOrEqual(15);
+    expect(ratio(sun["hero-fg"], sun.hero)).toBeGreaterThanOrEqual(18);
+    expect(ratio(sun["hero-muted"], sun.hero)).toBeGreaterThanOrEqual(15);
+    expect(ratio(sun["tab-active-fg"], sun["tab-active-bg"])).toBeGreaterThanOrEqual(15);
+  });
+  it("is light-based, opaque and shadowless", () => {
+    const body = themeBody(css, ".sun");
+    expect(body).toMatch(/color-scheme: light;/);
+    expect(body).toMatch(/--shadow-depth: 0 0 0 0 transparent;/);
+    expect(body).not.toMatch(/rgb\([^)]*\/|rgba\(|transparent\s*\)/); // no translucent colours
+  });
+  it("heavier strokes: 2px edges, heavier icons, bolder body text, solid disabled buttons", () => {
+    expect(css).toMatch(/\.sun body \{\s*font-weight: 500;/);
+    expect(css).toMatch(/\.sun :is\(\.card,[^)]*\) \{\s*border-width: 2px;/);
+    expect(css).toMatch(/\.sun svg\.lucide \{\s*stroke-width: 2\.5;/);
+    expect(css).toMatch(/\.sun :is\(\.btn,[^)]*\):disabled:not\(\[aria-busy="true"\]\) \{\s*opacity: 1;[^}]*outline: 2px dashed/);
+    // Links are told apart from text by an underline in their own colour, not a lime one that vanishes on white.
+    expect(css).toMatch(/\.sun \.link \{\s*text-decoration-color: currentColor;/);
+    // The switch's off track differs from its on track.
+    expect(css).toMatch(/\.sun \.toggle input:not\(:checked\) \{\s*background: var\(--surface-2\);/);
+    expect(ratio(sun["border-strong"], sun["surface-2"])).toBeGreaterThanOrEqual(3);
+  });
+});
+
 describe("dark theme accents", () => {
   it("solid badges (ink on pastel) are AAA in dark mode too", () => {
     for (const p of PASTELS) expect(ratio(dark.ink, dark[p])).toBeGreaterThanOrEqual(7);
@@ -149,7 +191,7 @@ describe("dark theme accents", () => {
 
 describe("mockup surfaces", () => {
   it("lime next-shift card: title AAA, secondary text AAA", () => {
-    for (const th of [light, dark]) {
+    for (const th of [light, dark, sun]) {
       expect(ratio(th.ink, th.accent)).toBeGreaterThanOrEqual(7);
       expect(ratio(mix(th.ink, 0.9, th.accent), th.accent)).toBeGreaterThanOrEqual(7);
     }
@@ -167,7 +209,7 @@ describe("mockup surfaces", () => {
 describe("priority rings", () => {
   // The rings circle the next-shift card, which is filled with --accent.
   it("the outermost ring stands out from the page (WCAG non-text, ≥ 3:1)", () => {
-    for (const th of [light, dark]) {
+    for (const th of [light, dark, sun]) {
       for (const s of ["bg", "surface", "surface-2"] as const) expect(ratio(th["ring-3"], th[s])).toBeGreaterThanOrEqual(3);
     }
   });
@@ -181,12 +223,12 @@ describe("priority rings", () => {
     for (const k of ["ring", "ring-2", "ring-3"] as const) expect(lum(rgb(dark[k]))).toBeGreaterThan(lum(rgb(dark.surface)));
   });
   it("a single ring (priority 1) stands out from the page (≥ 3:1)", () => {
-    for (const th of [light, dark]) {
+    for (const th of [light, dark, sun]) {
       for (const s of ["bg", "surface", "surface-2"] as const) expect(ratio(th.ring, th[s])).toBeGreaterThanOrEqual(3);
     }
   });
   it("each ring is darker than the one inside it", () => {
-    for (const th of [light, dark]) {
+    for (const th of [light, dark, sun]) {
       expect(lum(rgb(th["ring-2"]))).toBeLessThan(lum(rgb(th.ring)));
       expect(lum(rgb(th["ring-3"]))).toBeLessThan(lum(rgb(th["ring-2"])));
     }
@@ -206,7 +248,7 @@ describe("token plumbing", () => {
 
 describe("solid badges", () => {
   it("text on the solid fill (eggplant by day, olive by night) is AAA in both themes", () => {
-    for (const th of [light, dark]) expect(ratio(th["on-solid"], th.solid)).toBeGreaterThanOrEqual(7);
+    for (const th of [light, dark, sun]) expect(ratio(th["on-solid"], th.solid)).toBeGreaterThanOrEqual(7);
   });
 });
 
@@ -224,7 +266,7 @@ describe("party chips (job cards)", () => {
     expect(rule?.[1].split(",").map((x) => x.trim())).toContain(".badge-party");
   });
   it("ink on every party fill is AAA in both themes", () => {
-    for (const th of [light, dark]) for (const p of PARTIES) expect(ratio(th.ink, th[`party-${p}`])).toBeGreaterThanOrEqual(7);
+    for (const th of [light, dark, sun]) for (const p of PARTIES) expect(ratio(th.ink, th[`party-${p}`])).toBeGreaterThanOrEqual(7);
   });
   // By day the pastel chips sit close to the white card, like the other pastel
   // badges; that's not checked, since the party's name in the chip carries the
@@ -252,7 +294,7 @@ describe("the Turfcut App Mockup palette (eggplant and lime)", () => {
     expect(light["on-primary"]).toBe("#d6f25a");
   });
   it("progress fills (the success colour) show against surfaces in both themes (≥ 3:1)", () => {
-    for (const th of [light, dark]) for (const k of ["surface", "surface-2"] as const) expect(ratio(th.success, th[k])).toBeGreaterThanOrEqual(3);
+    for (const th of [light, dark, sun]) for (const k of ["surface", "surface-2"] as const) expect(ratio(th.success, th[k])).toBeGreaterThanOrEqual(3);
   });
   it("by night team avatars (olive) differ from people's avatars (raised eggplant)", () => {
     expect(css).toMatch(/\.dark \.avatar-team \{\s*background: var\(--solid\);/);
@@ -260,9 +302,10 @@ describe("the Turfcut App Mockup palette (eggplant and lime)", () => {
   });
   it("warning text differs from error text by brightness, not only hue", () => {
     expect(ratio(light.warning, light.danger)).toBeGreaterThanOrEqual(1.5);
+    expect(ratio(sun.warning, sun.danger)).toBeGreaterThanOrEqual(1.5);
   });
   it("every token in the theme blocks was parsed (so the contrast checks see them all)", () => {
-    for (const sel of [":root", ".dark"]) {
+    for (const sel of [":root", ".dark", ".sun"]) {
       const body = themeBody(css, sel);
       const parsed = block(sel);
       for (const [, name, value] of body.matchAll(/--([\w-]+):\s*([^;]+);/g)) {

@@ -475,7 +475,7 @@ const types = async (id: string) => (await loadEngagementEvents(id)).map((e) => 
   check("a closed job takes no applications or invitations", !lateApply.ok && lateApply.reason === "This job isn't open." && !lateInvite.ok && lateInvite.reason === "This job isn't open.", { lateApply, lateInvite });
   check("…and can't be closed twice", JSON.stringify(await closeJob(jn.id, { profileId: OWNER, orgId: ORG })) === JSON.stringify({ ok: false, reason: "This job is already closed." }));
   const stillOpen = await newJob("Other org can't close", 2);
-  check("another organization can't close a job (reads as not found)", JSON.stringify(await closeJob(stillOpen.id, { profileId: OTHER, orgId: ORG2 })) === JSON.stringify({ ok: false, reason: "Job not found." }) && (await p.job.findUniqueOrThrow({ where: { id: stillOpen.id } })).status === "PUBLISHED");
+  check("another organization can't close a job (reads as not found)", JSON.stringify(await closeJob(stillOpen.id, { profileId: OTHER, orgId: ORG2 })) === JSON.stringify({ ok: false, reason: "Job not found.", code: "not_found" }) && (await p.job.findUniqueOrThrow({ where: { id: stillOpen.id } })).status === "PUBLISHED");
   const hiredShift = await scheduleShiftC35({ profileId: OWNER, orgId: ORG }, nn1, { startsAt: new Date(Date.now() + 50 * HOUR).toISOString(), endsAt: new Date(Date.now() + 54 * HOUR).toISOString(), stagingLocation: "Library parking lot" });
   check("people hired on a closed job can still be scheduled", hiredShift.ok, hiredShift);
   const desk = await loadDesk({ profileId: OWNER, orgId: ORG, role: "OWNER" });

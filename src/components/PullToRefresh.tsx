@@ -41,6 +41,8 @@ export function PullToRefresh() {
   const [settling, setSettling] = useState(0);
   const ring = useRef<HTMLDivElement>(null);
   const touch = useRef<{ x0: number; y0: number; id: number; armed: boolean; pulling: boolean; offset: number } | null>(null);
+  /** The spring-back that is playing, if one is: a new pull or settle cancels it rather than fighting it. */
+  const slide = useRef<Animation | null>(null);
 
   // The spinner stays until the server has answered, and for a moment at least so it reads as "refreshed" rather than a flicker.
   useEffect(() => {
@@ -67,8 +69,9 @@ export function PullToRefresh() {
     const ms = duration("slow");
     if (!el || !ms || !from) return;
     setSettling(Math.min(1, from / PULL_THRESHOLD_PX));
+    slide.current?.cancel();
     const easing = getComputedStyle(document.documentElement).getPropertyValue("--spring").trim() || undefined;
-    const slide = el.animate(
+    const anim = el.animate(
       [
         { translate: `0 ${from}px`, opacity: 1, offset: 0 },
         { opacity: 1, offset: 0.7 },
@@ -76,8 +79,15 @@ export function PullToRefresh() {
       ],
       { duration: ms, easing }
     );
-    const done = () => setSettling(0);
-    slide.finished.then(done, done);
+    slide.current = anim;
+    // Only the slide still playing clears the arc: an older one, cancelled by a newer, must not empty it mid-way.
+    const done = () => {
+      if (slide.current === anim) {
+        slide.current = null;
+        setSettling(0);
+      }
+    };
+    anim.finished.then(done, done);
   }
 
   useEffect(() => {
@@ -105,6 +115,8 @@ export function PullToRefresh() {
         }
         if (dy < DECIDE_PX) return;
         d.pulling = true;
+        // A spring-back still playing would hold the ring away from the finger.
+        slide.current?.cancel();
       } else if (dy <= 0) {
         // The finger came back up past where it started: a scroll after all, so the page gets it (the ring is already away).
         touch.current = null;

@@ -1,3 +1,4 @@
+import { parseComplianceInstant } from "./compliance-policy";
 /**
  * Scheduling guard for counsel-approved, activity-scoped local-hours rules.
  * This module is intentionally not wired to shift creation yet: current
@@ -48,17 +49,24 @@ export function checkApprovedShiftWindow(
   const denied = (reason: string): ShiftLegalityResult => ({
     allowedByConfiguredWindow: false, reasons: [reason],
   });
-  if (!rule) return denied("No approved activity-specific scheduling rule is on file.");
-  if (!rule.approved) return denied("Scheduling rule is not approved.");
-  if (rule.jurisdiction !== shift.jurisdiction || rule.activity !== shift.activity) {
+  if (!rule || typeof rule !== "object" || Array.isArray(rule)) return denied("No valid approved scheduling rule is on file.");
+  if (!shift || typeof shift !== "object" || Array.isArray(shift)) return denied("Shift details are invalid.");
+  if (rule.approved !== true) return denied("Scheduling rule is not approved.");
+  if (typeof rule.jurisdiction !== "string" || !rule.jurisdiction.trim() || rule.jurisdiction !== rule.jurisdiction.trim() ||
+      typeof shift.jurisdiction !== "string" || !shift.jurisdiction.trim() || shift.jurisdiction !== shift.jurisdiction.trim() ||
+      typeof rule.activity !== "string" || !rule.activity.trim() ||
+      typeof shift.activity !== "string" || !shift.activity.trim() ||
+      rule.jurisdiction !== shift.jurisdiction || rule.activity !== shift.activity) {
     return denied("Scheduling rule does not match this activity and jurisdiction.");
   }
-  const expires = Date.parse(rule.expiresAt);
-  if (!Number.isFinite(expires) || expires <= now.getTime() || expires <= shift.endsAt.getTime()) {
+  const expires = parseComplianceInstant(rule.expiresAt);
+  if (!Number.isFinite(expires) || !(now instanceof Date) || !Number.isFinite(now.getTime()) ||
+      !(shift.endsAt instanceof Date) || !Number.isFinite(shift.endsAt.getTime()) ||
+      expires <= now.getTime() || expires < shift.endsAt.getTime()) {
     return denied("Scheduling rule expires before the requested shift ends.");
   }
-  const start = shift.startsAt.getTime();
-  const end = shift.endsAt.getTime();
+  const start = shift.startsAt instanceof Date ? shift.startsAt.getTime() : NaN;
+  const end = shift.endsAt instanceof Date ? shift.endsAt.getTime() : NaN;
   if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start || end - start > 24 * 3600000) {
     return denied("Shift times must be valid, positive and no longer than 24 hours.");
   }
@@ -77,11 +85,13 @@ export function checkApprovedShiftWindow(
   }
   if (rule.blockedDates !== undefined &&
       (!Array.isArray(rule.blockedDates) || rule.blockedDates.some((d) => typeof d !== "string" ||
-        !/^\d{4}-\d{2}-\d{2}$/.test(d) || Number.isNaN(Date.parse(d))))) {
+        !/^\d{4}-\d{2}-\d{2}$/.test(d) || (() => { const [y,m,day] = d.split("-").map(Number); const normalized = new Date(Date.UTC(y,m-1,day)); return normalized.getUTCFullYear() !== y || normalized.getUTCMonth()+1 !== m || normalized.getUTCDate() !== day; })()))) {
     return denied("Approved restricted dates are invalid.");
   }
   let fmt: Intl.DateTimeFormat;
   try {
+    if (typeof rule.timezone !== "string" || !/^[A-Za-z_]+\/[A-Za-z_+-]+(?:\/[A-Za-z_+-]+)?$/.test(rule.timezone) || rule.timezone.startsWith("Etc/") ||
+        !Intl.supportedValuesOf("timeZone").includes(rule.timezone)) return denied("Work-location time zone must be a reviewed IANA region.");
     fmt = new Intl.DateTimeFormat("en-US", {
       timeZone: rule.timezone, year: "numeric", month: "2-digit",
       day: "2-digit", weekday: "short", hour: "2-digit", minute: "2-digit",

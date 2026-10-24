@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { UUID_RE } from "@/lib/jobs";
 import type { Mark, Marks } from "@/lib/job-marks";
@@ -38,7 +39,7 @@ export async function markJob(workerId: string, jobId: string, mark: Mark, now =
       else await p.dismissedJob.create({ data: { workerId, jobId, createdAt: now } });
     } catch (e) {
       // Two taps at once: the partial unique index keeps one open row; the other tap is already done.
-      if (!(e instanceof Error && /unique/i.test(e.message))) throw e;
+      if (!(e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002")) throw e;
     }
     return { ok: true };
   }

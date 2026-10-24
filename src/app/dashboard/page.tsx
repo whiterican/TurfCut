@@ -286,7 +286,7 @@ async function OpenJobs({ workerId }: { workerId: string }) {
         <ul className="space-y-3">
           {open.map((j) => (
             <li key={j.id}>
-              <JobFeedCard j={j} />
+              <JobFeedCard j={j} framed />
             </li>
           ))}
         </ul>

@@ -17,7 +17,7 @@ const ALLOWED = [
 /** The marks' names: modules, models, Prisma accessors and relation fields. */
 const MARKS = /\b(job-marks(-data)?|savedJobs?|dismissedJobs?|savedBy|dismissedBy|SavedJob|DismissedJob|loadMarks|markJob(Action)?|applyMarks|swipeOutcome)\b/;
 /** Code that ranks, matches, scores or explains, and everything an organization is served. */
-const GUARDED = /^src\/(lib\/(.*match.*|scorecard.*|political-fit.*|priority|metrics|jobs-data|jobs|hiring.*|desk.*|experience.*|applicants.*|invitations.*|engagements.*|org-profile.*)\.ts|components\/(FitSignals|ScorecardPanel|JobCard|OrgProfileSections)\.tsx|app\/(hiring|desk|workers|org|admin|api)\/.*\.tsx?)$/;
+const GUARDED = /^src\/(lib\/(.*match.*|scorecard.*|political-fit.*|priority|metrics|jobs-data|jobs|hiring.*|desk.*|experience.*|applicants.*|invitations.*|engagements.*|org-profile.*)\.ts|lib\/campaign-.*\.ts|components\/(FitSignals|ScorecardPanel|JobCard|OrgProfileSections)\.tsx|components\/staff\/.*\.tsx?|app\/(hiring|desk|workers|org|admin|api|campaigns|c|messages)\/.*\.tsx?)$/;
 
 function files(dir: string): string[] {
   return readdirSync(dir).flatMap((f) => {

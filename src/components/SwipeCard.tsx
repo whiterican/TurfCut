@@ -33,12 +33,25 @@ export function SwipeCard({
   /** The server action that records the mark (the real one; a fixture may pass its own). */
   action?: typeof markJobAction;
 }) {
-  const [state, formAction, pending] = useActionState(action, initial);
   const [isSaved, setSaved] = useState(saved);
   const [gone, setGone] = useState(false);
   const [dx, setDx] = useState(0);
   const card = useRef<HTMLDivElement>(null);
-  const drag = useRef<{ x0: number; y0: number; t0: number; x: number; t: number; moving: boolean; swiped: boolean } | null>(null);
+  const drag = useRef<{ x0: number; y0: number; t0: number; x: number; t: number; moving: boolean } | null>(null);
+  /** The card is sliding away: a second Hide while it does is nothing. */
+  const leaving = useRef(false);
+  const [state, formAction, pending] = useActionState(async (prev: ActionState, fd: FormData) => {
+    const result = await action(prev, fd);
+    // The server refused: put the card back the way it was and show why (the optimistic change was wrong).
+    if (!result.ok && result.message) {
+      leaving.current = false;
+      setGone(false);
+      setSaved(saved);
+    }
+    return result;
+  }, initial);
+  /** When the last swipe ended: the click that follows it (if any does) must not open the job. */
+  const swipedAt = useRef(-Infinity);
 
   function send(mark: Mark) {
     const fd = new FormData();
@@ -57,15 +70,17 @@ export function SwipeCard({
     send("unsave");
   }
   function hide() {
+    if (leaving.current) return;
+    leaving.current = true;
     haptic("tap");
+    send("hide");
     const el = card.current;
     const ms = duration("base");
-    setGone(true);
-    if (el && ms) {
-      const easing = getComputedStyle(document.documentElement).getPropertyValue("--ease-in").trim() || undefined;
-      el.animate([{ translate: `${dx}px 0`, opacity: 1 }, { translate: "-110% 0", opacity: 0 }], { duration: ms, easing, fill: "forwards" });
-    }
-    send("hide");
+    if (!el || !ms) return setGone(true);
+    // The card slides off first; it leaves the list once the slide has played (the state change would detach it mid-way).
+    const easing = getComputedStyle(document.documentElement).getPropertyValue("--ease-in").trim() || undefined;
+    const slide = el.animate([{ translate: `${dx}px 0`, opacity: 1 }, { translate: "-110% 0", opacity: 0 }], { duration: ms, easing, fill: "forwards" });
+    slide.finished.then(() => setGone(true), () => setGone(true));
   }
   function unhide() {
     haptic("tap");
@@ -85,7 +100,7 @@ export function SwipeCard({
 
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (e.button !== 0 || hidden) return;
-    drag.current = { x0: e.clientX, y0: e.clientY, t0: e.timeStamp, x: e.clientX, t: e.timeStamp, moving: false, swiped: false };
+    drag.current = { x0: e.clientX, y0: e.clientY, t0: e.timeStamp, x: e.clientX, t: e.timeStamp, moving: false };
   };
   const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     const d = drag.current;
@@ -96,7 +111,6 @@ export function SwipeCard({
       // Sideways by a clear margin: a swipe. Otherwise it's a tap or the page scrolling.
       if (Math.abs(mx) < SWIPE_START_PX || Math.abs(mx) < Math.abs(my) * 1.5) return;
       d.moving = true;
-      d.swiped = true;
       e.currentTarget.setPointerCapture(e.pointerId);
     }
     d.x = e.clientX;
@@ -107,6 +121,7 @@ export function SwipeCard({
     const d = drag.current;
     drag.current = null;
     if (!d?.moving) return;
+    swipedAt.current = e.timeStamp;
     const travel = d.x - d.x0;
     const vx = d.t > d.t0 ? travel / (d.t - d.t0) : 0;
     const width = e.currentTarget.offsetWidth;
@@ -117,22 +132,37 @@ export function SwipeCard({
     } else if (outcome === "hide") hide();
     else settle(travel);
   };
-  // The click that ends a swipe must not open the job.
+  // The browser took the pointer (a system gesture, a palm): nothing is committed, the card springs back.
+  const onPointerCancel = () => {
+    const d = drag.current;
+    drag.current = null;
+    if (d?.moving) settle(d.x - d.x0);
+  };
+  // The click that ends a swipe must not open the job. A touch swipe often
+  // produces no click at all, so the mark is a time, not a flag: a tap much
+  // later is a tap.
   const onClickCapture = (e: React.MouseEvent<HTMLDivElement>) => {
-    const el = e.currentTarget as HTMLDivElement & { dataset: DOMStringMap };
-    if (el.dataset.swiped === "1") {
+    if (e.timeStamp - swipedAt.current < 400) {
       e.preventDefault();
       e.stopPropagation();
-      el.dataset.swiped = "";
+      swipedAt.current = -Infinity;
     }
   };
 
-  if (gone && !hidden) return <p role="status" className="sr-only">{state.message || "Hidden from your feed."}</p>;
-  if (gone && hidden) return <p role="status" className="sr-only">{state.message || "Back in your feed."}</p>;
+  // The live region is always in the tree, so the text it receives is announced.
+  const status = gone ? state.message || (hidden ? "Back in your feed." : "Hidden from your feed.") : "";
+  if (gone) {
+    return (
+      <div className="swipe">
+        <p role="status" className="sr-only">{status}</p>
+      </div>
+    );
+  }
 
   const reveal = Math.min(1, Math.abs(dx) / 120);
   return (
     <div className="swipe">
+      <p role="status" className="sr-only">{status}</p>
       {!hidden && (
         <>
           <span className="swipe-under swipe-under-save" style={{ opacity: dx > 0 ? reveal : 0 }} aria-hidden="true">
@@ -152,11 +182,8 @@ export function SwipeCard({
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
-        onPointerCancel={onPointerUp}
+        onPointerCancel={onPointerCancel}
         onClickCapture={onClickCapture}
-        onPointerUpCapture={(e) => {
-          if (drag.current?.moving) (e.currentTarget as HTMLDivElement).dataset.swiped = "1";
-        }}
       >
         {children}
         <div className="swipe-actions">
@@ -167,7 +194,7 @@ export function SwipeCard({
             </button>
           ) : (
             <>
-              <button type="button" className={isSaved ? "btn-secondary btn-sm" : "btn-ghost btn-sm"} onClick={isSaved ? unsave : save} aria-pressed={isSaved} disabled={pending && !isSaved}>
+              <button type="button" className={isSaved ? "btn-secondary btn-sm" : "btn-ghost btn-sm"} onClick={isSaved ? unsave : save} disabled={pending && !isSaved}>
                 {isSaved ? <BookmarkCheck aria-hidden className="btn-icon" /> : <Bookmark aria-hidden className="btn-icon" />}
                 {isSaved ? "Saved" : "Save"}
               </button>

@@ -21,8 +21,6 @@ import { SnapshotView } from "@/components/SnapshotView";
 import { ActionButton } from "@/components/ActionButton";
 import { Sheet } from "@/components/Sheet";
 
-/** A view-transition name and class as inline style (React knows the name; the class property isn't in its CSS types yet). */
-const shared = (name: string) => ({ viewTransitionName: name, viewTransitionClass: "job-share" }) as React.CSSProperties;
 import { acceptInvitation, apply, claim, closeJobAction, declineAsWorker, leaveChangedJob, publish, withdrawApplication } from "../actions";
 import { openRelease } from "@/lib/job-changes-data";
 import { loadJobChanges } from "@/lib/jobs-data";
@@ -39,6 +37,9 @@ import { orgAvailabilityView, withoutPastDates } from "@/lib/availability";
 import { DateRangeChip } from "@/components/DateRangeChip";
 import { followState } from "@/lib/campaign-follow-data";
 import { CampaignCard } from "@/components/campaign/CampaignCard";
+
+/** A view-transition name and class as inline style (React knows the name; the class property isn't in its CSS types yet). */
+const shareStyle = (name: string) => ({ viewTransitionName: name, viewTransitionClass: "job-share" }) as React.CSSProperties;
 
 // An invitation's deadline, as a day (the job's own dates are a DateRangeChip).
 const day = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
@@ -100,9 +101,9 @@ export default async function JobPage({ params }: { params: Promise<{ jobId: str
             {job.type === "PETITION" ? "Petition circulation" : "Door-to-door canvass"} · {jurisdictionLabel(job.jurisdiction)}
           </p>
           {/* Shared with the feed card that was tapped (P1.6): same names, so the title and pay grow into place. */}
-          <h1 className="page-title masthead w-fit" style={shared(`job-${job.id}`)}>{job.title}</h1>
+          <h1 className="page-title masthead w-fit" style={shareStyle(`job-${job.id}`)}>{job.title}</h1>
           <p className="text-muted-sm">{job.org.name}</p>
-          <p className="w-fit pt-2 text-3xl font-bold tracking-[-0.03em] text-fg tabular-nums" style={shared(`pay-${job.id}`)}>{payText(job.compensationMethod, job.payRateCents)}</p>
+          <p className="w-fit pt-2 text-3xl font-bold tracking-[-0.03em] text-fg tabular-nums" style={shareStyle(`pay-${job.id}`)}>{payText(job.compensationMethod, job.payRateCents)}</p>
           <p className="flex flex-wrap gap-1.5 pt-1">
             {isOwnOrg && <span className={jobPageBadge(status.badge)}>{status.label}</span>}
             {/* The dates carry a calendar so their blue never reads as a party. */}

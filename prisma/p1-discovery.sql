@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS "public"."SavedJob" (
     CONSTRAINT "SavedJob_jobId_fkey" FOREIGN KEY ("jobId") REFERENCES "public"."Job"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT "SavedJob_removed_after_created" CHECK ("removedAt" IS NULL OR "removedAt" >= "createdAt")
 );
+-- Read by worker only; jobs are never deleted, so no index on "jobId" (the RESTRICT check would scan).
 CREATE INDEX IF NOT EXISTS "SavedJob_workerId_removedAt_idx" ON "public"."SavedJob"("workerId", "removedAt");
 -- One open save per worker and job.
 CREATE UNIQUE INDEX IF NOT EXISTS "SavedJob_open_key" ON "public"."SavedJob"("workerId", "jobId") WHERE "removedAt" IS NULL;

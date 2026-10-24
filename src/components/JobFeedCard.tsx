@@ -22,9 +22,10 @@ export interface FeedJob {
  * An open job: who · where, the title, dates and type; gross pay and a button
  * on the right. The type chip is coloured by the campaign's own declared
  * affiliation and names it, e.g. "Canvass · Democratic party". Rendered
- * inside SwipeCard on the feed, which adds the card frame, Save and Hide.
+ * inside SwipeCard on the feed, which adds the card frame, Save and Hide;
+ * `framed` draws the frame itself (the dashboard's open-jobs list).
  */
-export function JobFeedCard({ j }: { j: FeedJob }) {
+export function JobFeedCard({ j, framed = false }: { j: FeedJob; framed?: boolean }) {
   const geo = (j.geography ?? {}) as { city?: string; state?: string };
   const place = [geo.city, geo.state].filter(Boolean).join(", ");
   const type = jobDiscoveryLabel(j.type, j.campaignDisclosure);
@@ -34,7 +35,7 @@ export function JobFeedCard({ j }: { j: FeedJob }) {
     <Link
       transitionTypes={["nav-forward"]}
       href={`/jobs/${j.id}`}
-      className="card-link group flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"
+      className={`card-link group flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between ${framed ? "card" : ""}`}
       // A mouse drag on a link starts the browser's own link drag, which cancels the swipe: off, so a swipe is a swipe.
       draggable={false}
       onDragStart={(e) => e.preventDefault()}

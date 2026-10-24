@@ -36,7 +36,15 @@ export function Sheet({
     const d = dialog.current;
     if (!d) return;
     if (open && !d.open) d.showModal();
-    if (!open && d.open) d.close();
+    if (!open) {
+      if (d.open) d.close();
+      // The slide-away (filled forwards) and any drag offset would outrank the next entrance: clear them once closed.
+      const p = panel.current;
+      if (p) {
+        for (const a of p.getAnimations()) a.cancel();
+        p.style.translate = "";
+      }
+    }
   }, [open]);
 
   /** Slides the panel down, then closes; a cancelled drag springs it back. */
@@ -60,7 +68,8 @@ export function Sheet({
   }
 
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (e.button !== 0) return;
+    // A press on the Close button is a click, not a drag: capturing it would hand the click to the grip.
+    if (e.button !== 0 || (e.target as Element).closest("button")) return;
     drag.current = { y0: e.clientY, t0: e.timeStamp, y: e.clientY, t: e.timeStamp };
     e.currentTarget.setPointerCapture(e.pointerId);
   };
@@ -83,6 +92,10 @@ export function Sheet({
     if (sheetRelease(dy, vy, p.offsetHeight) === "dismiss") dismiss();
     else settle();
   };
+  const onPointerCancel = () => {
+    drag.current = null;
+    settle();
+  };
 
   return (
     <>
@@ -95,6 +108,11 @@ export function Sheet({
         aria-label={label}
         className="sheet"
         onClose={() => setOpen(false)}
+        onCancel={(e) => {
+          // Escape slides the sheet away like the button does (the browser honours this because Escape is a user action).
+          e.preventDefault();
+          dismiss();
+        }}
         onClick={(e) => {
           if (e.target === e.currentTarget) dismiss();
         }}
@@ -103,7 +121,7 @@ export function Sheet({
         }}
       >
         <div ref={panel} className="sheet-panel" data-open={open || undefined}>
-          <div className="sheet-grip" onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}>
+          <div className="sheet-grip" onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerCancel}>
             <span className="sheet-handle" aria-hidden="true" />
             <div className="flex items-center justify-between gap-3">
               <p className="eyebrow">{label}</p>

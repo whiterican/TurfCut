@@ -1005,7 +1005,12 @@ body {
     touch-action: pan-y;
   }
   .card-link {
-    @apply block text-fg;
+    @apply block text-fg transition;
+  }
+  /* The hover affordance the card had before the swipe wrapper took its frame. */
+  .card-link.card:hover,
+  .swipe-card:has(.card-link:hover) {
+    border-color: var(--border-strong);
   }
   .swipe-under {
     @apply pointer-events-none absolute inset-0 flex items-center gap-2 rounded-3xl px-6 text-sm font-bold;
@@ -1647,7 +1652,10 @@ summary.list-none::-webkit-details-marker {
 }
 /* The sheet's place is set outside the layers: it is a DOM child of whatever
    section opened it, and that section's spacing utility (space-y-*) would
-   otherwise give it a bottom margin and lift it off the edge. */
+   otherwise give it a bottom margin and lift it off the edge. (Tailwind v4
+   compiles space-y-* to a zero-specificity rule in the utilities layer, which
+   beats anything in the components layer; a parent whose spacing came from
+   .section's @apply would not need this.) */
 .sheet {
   inset: auto 0 0 0;
   margin: 0 auto;

@@ -30,7 +30,7 @@ export function FieldLiveProvider({ initial, endpoint = "/api/field/summary", ch
     setSeen(initial);
     if (initial.at > summary.at) setSummary(initial);
   }
-  const version = useRef(initial.version);
+  // What the page shows now, for the poll to compare against (a server render adopted above counts too).
   const latest = useRef(summary);
   useEffect(() => {
     latest.current = summary;
@@ -47,12 +47,11 @@ export function FieldLiveProvider({ initial, endpoint = "/api/field/summary", ch
         if (!res.ok) return;
         const next = readSummary(await res.json());
         if (stopped || !next || next.at <= latest.current.at) return;
+        const changed = next.version !== latest.current.version;
+        latest.current = next;
         setSummary(next);
-        if (next.version !== version.current) {
-          version.current = next.version;
-          // Something about a shift changed: the names and badges under the figures re-render on the server.
-          router.refresh();
-        }
+        // Something about a shift changed: the names, badges and words under the figures re-render on the server.
+        if (changed) router.refresh();
       } catch {
         // No signal or a slow server: the page keeps the figures it has and tries again next tick.
       } finally {
@@ -75,10 +74,25 @@ export function FieldLiveProvider({ initial, endpoint = "/api/field/summary", ch
   return <Live.Provider value={summary}>{children}</Live.Provider>;
 }
 
-/** One of today's totals, counting to each new value. Falls back to `fallback` outside a provider. */
-export function LiveFigure({ of, fallback }: { of: keyof FieldTotals; fallback: number }) {
+/** "shift" / "shifts" after a figure, following the live value rather than the server's. */
+const unitFor = (n: number, unit?: [string, string]) => (unit ? ` ${n === 1 ? unit[0] : unit[1]}` : "");
+
+/** One of today's totals, counting to each new value (with its unit word, if given). Falls back to `fallback` outside a provider. */
+export function LiveFigure({ of, fallback, unit }: { of: keyof FieldTotals; fallback: number; unit?: [string, string] }) {
   const s = useFieldLive();
-  return <CountUp value={s ? s.today[of] : fallback} />;
+  const n = s ? s.today[of] : fallback;
+  return (
+    <>
+      <CountUp value={n} />
+      {unitFor(n, unit)}
+    </>
+  );
+}
+
+/** Renders its children only while one of today's totals is above zero (a "Doors" figure that has none yet stays out). */
+export function LiveShow({ of, fallback, children }: { of: keyof FieldTotals; fallback: number; children: ReactNode }) {
+  const s = useFieldLive();
+  return (s ? s.today[of] : fallback) > 0 ? <>{children}</> : null;
 }
 
 /** "3 / 8": two of today's totals, each counting on its own. */
@@ -91,16 +105,30 @@ export function LiveRatio({ of, over, fallback }: { of: keyof FieldTotals; over:
   );
 }
 
-/** A ring filled by the share of one total in another (checked in over under way). */
+/** A ring filled by the share of one total in another (checked in over under way): from empty on load, then from where it was. */
 export function LiveRing({ of, over, fallback, className }: { of: keyof FieldTotals; over: keyof FieldTotals; fallback: [number, number]; className?: string }) {
   const s = useFieldLive();
   const [a, b] = s ? [s.today[of], s.today[over]] : fallback;
-  return <Ring fill={b > 0 ? ringFill(a / b) : 0} from={0} className={className} />;
+  const fill = b > 0 ? ringFill(a / b) : 0;
+  // The previous fill, kept as state so each change tweens from it (state adjusted while rendering, as React suggests).
+  const [seen, setSeen] = useState(fill);
+  const [from, setFrom] = useState(0);
+  if (seen !== fill) {
+    setFrom(seen);
+    setSeen(fill);
+  }
+  return <Ring fill={fill} from={from} className={className} />;
 }
 
-/** One of a board group's totals (`key` as groupField keys them). */
-export function LiveGroupFigure({ group, of, fallback }: { group: string; of: Exclude<keyof GroupTotals, "key">; fallback: number }) {
+/** One of a board group's totals (`key` as groupField keys them), with its unit word if given. */
+export function LiveGroupFigure({ group, of, fallback, unit }: { group: string; of: Exclude<keyof GroupTotals, "key">; fallback: number; unit?: [string, string] }) {
   const s = useFieldLive();
   const g = s?.groups.find((x) => x.key === group);
-  return <CountUp value={g ? g[of] : fallback} />;
+  const n = g ? g[of] : fallback;
+  return (
+    <>
+      <CountUp value={n} />
+      {unitFor(n, unit)}
+    </>
+  );
 }

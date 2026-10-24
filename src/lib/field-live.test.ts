@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { ShiftState } from "./field-day";
 import { groupField } from "./field-view";
-import { groupKey, readSummary, shortHash, summarizeField, zoneFill, type LiveRow } from "./field-live";
+import { fillOpacity, groupKey, readSummary, shortHash, summarizeField, zoneFill, type LiveRow } from "./field-live";
 
 const now = new Date("2026-10-24T18:00:00Z");
 const turfA = { type: "Polygon" as const, coordinates: [[[-73.9, 40.7], [-73.8, 40.7], [-73.8, 40.8], [-73.9, 40.7]]] as [number, number][][] };
@@ -75,6 +75,10 @@ describe("summarizeField", () => {
     const b = s.zones.find((z) => z.turf.coordinates[0][0][0] === -74.1)!;
     expect(b).toMatchObject({ total: 1, onGround: 1 });
     expect(zoneFill({ total: 0, onGround: 0 })).toBe(0);
+    expect(fillOpacity(0)).toBeCloseTo(0.12);
+    expect(fillOpacity(1)).toBeCloseTo(0.72);
+    expect(fillOpacity(-1)).toBeCloseTo(0.12);
+    expect(fillOpacity(5)).toBeCloseTo(0.72);
     // Same polygon, same id, whatever the poll.
     expect(summarizeField(rows.slice().reverse(), now).zones.map((z) => z.id)).toEqual(s.zones.map((z) => z.id));
   });
@@ -86,10 +90,16 @@ describe("summarizeField", () => {
     expect(Object.keys(JSON.parse(json)).sort()).toEqual(["at", "groups", "today", "version", "zones"]);
   });
 
-  it("changes its version when a shift's state changes, and not when the time does", () => {
+  it("changes its version when a shift's state changes, or one becomes due, and not with the clock alone", () => {
     const base = [row("a"), row("b", { s: { checkedInAt: inAt } })];
     const v1 = summarizeField(base, now).version;
     expect(summarizeField(base, new Date(now.getTime() + 60_000)).version).toBe(v1);
+    // A shift whose start the clock has just passed: the words around the figures change, so the page must refresh.
+    const soon = row("c", { startsAt: new Date(now.getTime() + 30_000) });
+    expect(summarizeField([...base, soon], new Date(now.getTime() + 60_000)).version).not.toBe(summarizeField([...base, soon], now).version);
+    // A closeout changes the badge in the list under the figures.
+    const reviewed = row("b", { s: { checkedInAt: inAt, checkedOutAt: outAt, closeout: { workEventId: null, status: "APPROVED", reason: null, createdAt: outAt } } });
+    expect(summarizeField([base[0], reviewed], now).version).not.toBe(summarizeField([base[0], row("b", { s: { checkedInAt: inAt, checkedOutAt: outAt } })], now).version);
     expect(summarizeField(base.slice().reverse(), now).version).toBe(v1);
     expect(summarizeField([row("a", { s: { checkedInAt: inAt } }), base[1]], now).version).not.toBe(v1);
     expect(summarizeField([base[0], row("b", { s: { checkedInAt: inAt, signatures: 1 } })], now).version).not.toBe(v1);
@@ -104,5 +114,8 @@ describe("summarizeField", () => {
     expect(readSummary({ error: "Sign in required." })).toBeNull();
     expect(readSummary({ ...s, today: { ...s.today, due: "3" } })).toBeNull();
     expect(readSummary({ ...s, zones: undefined })).toBeNull();
+    expect(readSummary({ ...s, zones: [{ id: "z", total: 1, onGround: 0 }] })).toBeNull();
+    expect(readSummary({ ...s, groups: [{ key: 1, total: 1, checkedIn: 0, packetsOut: 0, packetsHeld: 0, signatures: 0 }] })).toBeNull();
+    expect(readSummary({ ...s, zones: [{ id: "z", total: 1, onGround: 0, turf: turfA }] })).not.toBeNull();
   });
 });

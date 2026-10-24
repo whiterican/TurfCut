@@ -10,7 +10,7 @@ import { LocalTime } from "@/components/LocalTime";
 import { roleName } from "@/lib/org-roles";
 import { liveRows } from "@/lib/field-day-data";
 import { summarizeField } from "@/lib/field-live";
-import { FieldLiveProvider, LiveFigure, LiveRatio, LiveRing } from "@/components/staff/FieldLive";
+import { FieldLiveProvider, LiveFigure, LiveRatio, LiveRing, LiveShow } from "@/components/staff/FieldLive";
 
 /** Today in the field: the strip owners and supervisors see first. Its figures tick while the page is open (P1.7). */
 function FieldToday({ ops, now }: { ops: NonNullable<Awaited<ReturnType<typeof loadDesk>>["today"]>; now: Date }) {
@@ -32,13 +32,13 @@ function FieldToday({ ops, now }: { ops: NonNullable<Awaited<ReturnType<typeof l
         <p className="eyebrow">In the field today</p>
         <div className="flex items-center gap-3">
           <LiveRing of="dueCheckedIn" over="due" fallback={[t.dueCheckedIn, t.due]} className="shrink-0" />
-          <p className="hero-title"><LiveFigure of="due" fallback={t.due} /> {t.due === 1 ? "shift" : "shifts"} under way</p>
+          <p className="hero-title"><LiveFigure of="due" fallback={t.due} unit={["shift", "shifts"]} /> under way</p>
         </div>
         <p className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
           <span><span className="block text-lg font-bold tabular-nums"><LiveRatio of="dueCheckedIn" over="due" fallback={[t.dueCheckedIn, t.due]} /></span><span className="hero-muted">Checked in</span></span>
           <span><span className="block text-lg font-bold tabular-nums"><LiveFigure of="signatures" fallback={t.signatures} /></span><span className="hero-muted">Signatures submitted</span></span>
-          {t.doors > 0 && <span><span className="block text-lg font-bold tabular-nums"><LiveFigure of="doors" fallback={t.doors} /></span><span className="hero-muted">Doors</span></span>}
-          {t.upcoming > 0 && <span><span className="block text-lg font-bold tabular-nums"><LiveFigure of="upcoming" fallback={t.upcoming} /></span><span className="hero-muted">Starting in the next 24h</span></span>}
+          <LiveShow of="doors" fallback={t.doors}><span><span className="block text-lg font-bold tabular-nums"><LiveFigure of="doors" fallback={t.doors} /></span><span className="hero-muted">Doors</span></span></LiveShow>
+          <LiveShow of="upcoming" fallback={t.upcoming}><span><span className="block text-lg font-bold tabular-nums"><LiveFigure of="upcoming" fallback={t.upcoming} /></span><span className="hero-muted">Starting in the next 24h</span></span></LiveShow>
         </p>
       </div>
     </FieldLiveProvider>

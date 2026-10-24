@@ -20,7 +20,7 @@ export function FieldBoard({ rows, empty }: { rows: FieldRow[]; empty: string })
             </h2>
             {/* The group's figures tick with the live summary when the page has one (P1.7); the counts the server rendered are the fallback. */}
             <p className="text-xs text-muted tabular-nums">
-              <LiveGroupFigure group={groupKey(g)} of="checkedIn" fallback={g.checkedIn} /> of {g.rows.length} checked in · <LiveGroupFigure group={groupKey(g)} of="packetsOut" fallback={g.packetsOut} /> {g.packetsOut === 1 ? "packet" : "packets"} out
+              <LiveGroupFigure group={groupKey(g)} of="checkedIn" fallback={g.checkedIn} /> of {g.rows.length} checked in · <LiveGroupFigure group={groupKey(g)} of="packetsOut" fallback={g.packetsOut} unit={["packet", "packets"]} /> out
               {g.packetsHeld > 0 ? <> · {g.packetsHeld} kept by workers</> : null} · <LiveGroupFigure group={groupKey(g)} of="signatures" fallback={g.signatures} /> signatures
             </p>
           </div>

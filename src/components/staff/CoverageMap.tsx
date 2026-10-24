@@ -4,12 +4,9 @@ import "leaflet/dist/leaflet.css";
 import { useEffect, useRef, useState } from "react";
 import type { LayerGroup, Map as LeafletMap, Polygon } from "leaflet";
 import { useFieldLive } from "@/components/staff/FieldLive";
-import { zoneFill, type ZoneSummary } from "@/lib/field-live";
+import { fillOpacity, zoneFill, type ZoneSummary } from "@/lib/field-live";
 
 const token = (name: string, fallback: string) => (typeof document === "undefined" ? fallback : getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback);
-
-/** How solid a zone draws: faint when empty so the turf is still on the map, near-solid when everyone assigned is out. */
-export const fillOpacity = (fill: number) => 0.12 + 0.6 * Math.min(1, Math.max(0, fill));
 
 const tip = (z: ZoneSummary) => {
   const el = document.createElement("span");
@@ -51,7 +48,9 @@ export function CoverageMap({ initial, className = "h-72" }: { initial: ZoneSumm
       else m.setView([39.5, -98.35], 4);
       map.current = m;
       setReady(true);
-    }, () => setFailed(true));
+    }, () => {
+      if (!cancelled) setFailed(true);
+    });
     return () => {
       cancelled = true;
       map.current?.remove();
@@ -98,5 +97,6 @@ export function CoverageMap({ initial, className = "h-72" }: { initial: ZoneSumm
   if (failed) {
     return <p className={`turf-map coverage-map flex w-full items-center justify-center rounded-2xl border border-border p-4 text-center text-muted-sm ${className}`}>The map needs signal. {label.replace("Coverage map: ", "")}.</p>;
   }
-  return <div ref={el} className={`turf-map coverage-map w-full overflow-hidden rounded-2xl border border-border ${className}`} role="img" aria-label={label} />;
+  // A region, not an image: the map's zoom buttons and attribution link inside it must stay reachable.
+  return <div ref={el} className={`turf-map coverage-map w-full overflow-hidden rounded-2xl border border-border ${className}`} role="region" aria-label={label} />;
 }

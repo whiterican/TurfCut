@@ -102,9 +102,13 @@ export function summarizeField(rows: LiveRow[], now: Date): FieldSummary {
     if (onGround(r)) z.onGround++;
   }
 
-  // Sorted by id so the same facts always hash the same way, whatever order the rows came in.
+  // Sorted by id so the same facts always hash the same way, whatever order the rows came in. Whether a shift
+  // is due yet is a fact too: the clock moving one into "under way" changes the words around the figures.
   const facts = live
-    .map((r) => `${r.shiftId}:${r.state.checkedInAt ? 1 : 0}${r.state.checkedOutAt ? 1 : 0}${r.state.paused ? 1 : 0}:${r.state.signatures}:${r.state.doors}:${r.state.packetsOut.length}:${r.state.packetsHeld.length}`)
+    .map(
+      (r) =>
+        `${r.shiftId}:${r.state.checkedInAt ? 1 : 0}${r.state.checkedOutAt ? 1 : 0}${r.state.paused ? 1 : 0}${r.startsAt <= now ? 1 : 0}:${r.state.signatures}:${r.state.doors}:${r.state.packetsOut.length}:${r.state.packetsHeld.length}:${r.state.closeout?.status ?? ""}`
+    )
     .sort();
 
   return {
@@ -128,6 +132,9 @@ export function summarizeField(rows: LiveRow[], now: Date): FieldSummary {
 /** How full a zone draws: a floor so an empty zone is still visible, rising with the share on the ground. */
 export const zoneFill = (z: { total: number; onGround: number }) => (z.total === 0 ? 0 : z.onGround / z.total);
 
+/** How solid a zone draws: faint when empty so the turf is still on the map, near-solid when everyone assigned is out. */
+export const fillOpacity = (fill: number) => 0.12 + 0.6 * Math.min(1, Math.max(0, fill));
+
 /** Reads a summary off the wire; anything malformed is ignored (the page keeps what it has). */
 export function readSummary(v: unknown): FieldSummary | null {
   if (!v || typeof v !== "object") return null;
@@ -136,5 +143,8 @@ export function readSummary(v: unknown): FieldSummary | null {
   if (typeof o.at !== "string" || typeof o.version !== "string" || !t || !Array.isArray(o.groups) || !Array.isArray(o.zones)) return null;
   const keys: (keyof FieldTotals)[] = ["due", "dueCheckedIn", "underWay", "onGround", "upcoming", "signatures", "doors", "packetsOut"];
   if (!keys.every((k) => Number.isInteger(t[k]))) return null;
+  const rec = (x: unknown): x is Record<string, unknown> => !!x && typeof x === "object";
+  if (!o.groups.every((g) => rec(g) && typeof g.key === "string" && ["total", "checkedIn", "packetsOut", "packetsHeld", "signatures"].every((k) => Number.isInteger(g[k])))) return null;
+  if (!o.zones.every((z) => rec(z) && typeof z.id === "string" && Number.isInteger(z.total) && Number.isInteger(z.onGround) && rec(z.turf) && Array.isArray(z.turf.coordinates) && Array.isArray(z.turf.coordinates[0]))) return null;
   return o as unknown as FieldSummary;
 }

@@ -1395,6 +1395,52 @@ summary.list-none::-webkit-details-marker {
   opacity: 0.85;
   cursor: progress;
 }
+/* Field-worker moments (components/Moments.tsx, P1.4). */
+/* A ring that fills: the shift's time worked, a rate on the scorecard. */
+.progress-ring {
+  flex: none;
+  rotate: -90deg;
+}
+.progress-ring-track,
+.progress-ring-fill {
+  fill: none;
+  stroke-width: 4;
+}
+.progress-ring-track {
+  stroke: var(--border);
+}
+.progress-ring-fill {
+  stroke: var(--success);
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  transition: stroke-dashoffset var(--dur-slow) var(--ease-out);
+}
+/* The connection pill: its colour follows the state, its words slide in. */
+.pill {
+  transition-property: background-color, border-color, color;
+  transition-duration: var(--dur-base);
+  transition-timing-function: var(--ease-standard);
+}
+.pill-face {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  animation: tc-pill-in var(--dur-base) var(--spring) both;
+}
+@keyframes tc-pill-in {
+  from { opacity: 0; translate: 0 0.5em; }
+}
+/* A pay line arriving at paid: from its old colour, with a check drawn in. */
+.pay-morph {
+  animation: tc-badge-morph var(--dur-slow) var(--ease-out) both;
+}
+.pay-morph .btn-check path {
+  stroke-dasharray: 1;
+  animation: tc-draw var(--dur-base) var(--ease-out) var(--dur-fast) both;
+}
+@keyframes tc-badge-morph {
+  from { background-color: var(--from-bg, var(--sky)); }
+}
 /* An empty state's drawing settles in with the page (size and colours: .empty-art in the components layer). */
 .empty-art {
   animation: tc-rise var(--dur-slow) var(--ease-out) both;

@@ -15,6 +15,7 @@ import { ShiftProgress } from "@/components/ShiftProgress";
 import { TurfMap } from "@/components/TurfMap";
 import { LocalTime } from "@/components/LocalTime";
 import { LiveShiftStats } from "@/components/LiveShiftStats";
+import { CountUp } from "@/components/Moments";
 import { ActionButton } from "@/components/ActionButton";
 import { Ban, CheckCircle2, ListChecks, Package, XCircle } from "lucide-react";
 import { FieldDayLive } from "@/components/FieldDayLive";
@@ -242,7 +243,11 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
         </p>
         {started ? (
           <p className="hero-title">
-            {petition ? `${st.signatures} signature${st.signatures === 1 ? "" : "s"} submitted` : `${st.doors} doors · ${st.contacts} contacts`}
+            {petition ? (
+              <><CountUp value={st.signatures} /> signature{st.signatures === 1 ? "" : "s"} submitted</>
+            ) : (
+              <><CountUp value={st.doors} /> doors · <CountUp value={st.contacts} /> contacts</>
+            )}
           </p>
         ) : (
           // Before the shift: when and where, not a zero.
@@ -254,7 +259,9 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
           <LiveShiftStats
             // A fresh clock with every server render (each action refreshes the page).
             key={now.getTime()}
+            shiftId={s.id}
             activeMs={worked.ms}
+            scheduledMs={s.endsAt.getTime() - s.startsAt.getTime()}
             running={worked.running}
             maxExtraMs={s.endsAt.getTime() - now.getTime()}
             pay={

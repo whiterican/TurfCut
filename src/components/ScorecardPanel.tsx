@@ -1,3 +1,4 @@
+import { Ring } from "@/components/Moments";
 import { num, percent, plural } from "@/lib/format";
 import type { CampaignHistory, Period } from "@/lib/scorecard";
 import type { AverageKey, SharedMetric, SharedScorecard, SharedSegment } from "@/lib/shared-scorecard";
@@ -20,7 +21,8 @@ function fmt(m: SharedMetric, pct?: boolean): string {
   return pct ? percent(m.value) : num(m.value);
 }
 
-function Metric({ label, m, pct, dot }: { label: string; m: SharedMetric | null; pct?: boolean; dot?: string }) {
+/** A rate fills its ring from what this phone last saw (P1.4): only rates, each with its own formula and evidence. */
+function Metric({ label, m, pct, dot, ringKey }: { label: string; m: SharedMetric | null; pct?: boolean; dot?: string; ringKey?: string }) {
   if (!m) {
     return (
       <li className="stat">
@@ -38,7 +40,14 @@ function Metric({ label, m, pct, dot }: { label: string; m: SharedMetric | null;
         {dot && <span aria-hidden className={`dot ${dot}`} />}
         {label}
       </p>
-      <p className={m.value === null ? "mt-1 text-base font-medium text-subtle" : "stat-value"}>{fmt(m, pct)}</p>
+      {pct && ringKey && m.value !== null ? (
+        <p className="mt-1 flex items-center gap-3">
+          <Ring fill={m.value} seenKey={ringKey} size={36} />
+          <span className="stat-value mt-0">{fmt(m, pct)}</span>
+        </p>
+      ) : (
+        <p className={m.value === null ? "mt-1 text-base font-medium text-subtle" : "stat-value"}>{fmt(m, pct)}</p>
+      )}
       <p className="text-hint mt-2">{m.formula}</p>
       <p className="mt-1 text-xs leading-relaxed text-muted">{m.evidence}</p>
     </li>
@@ -85,7 +94,7 @@ function Segment({ seg }: { seg: SharedSegment }) {
       )}
       <ul className="grid gap-3 sm:grid-cols-2">
         {AVERAGES.map(({ key, label, pct }) => (
-          <Metric key={key} label={label} m={seg.averages[key]} pct={pct} />
+          <Metric key={key} label={label} m={seg.averages[key]} pct={pct} ringKey={`score:${seg.workType}:${key}`} />
         ))}
       </ul>
       {h && v && (
@@ -200,7 +209,7 @@ export function ScorecardPanel({ periods, history }: { periods: Record<Period, S
       )}
 
       <ul className="grid gap-3 sm:grid-cols-2">
-        <Metric label="Show rate" m={lifetime.showRate} pct dot="bg-success" />
+        <Metric label="Show rate" m={lifetime.showRate} pct dot="bg-success" ringKey="score:show" />
       </ul>
 
       {sharesHistory && (

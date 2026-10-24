@@ -8,9 +8,12 @@ import { DataTable } from "@/components/staff/DataTable";
 import { SummaryBar } from "@/components/staff/SummaryBar";
 import { LocalTime } from "@/components/LocalTime";
 import { roleName } from "@/lib/org-roles";
+import { liveRows } from "@/lib/field-day-data";
+import { summarizeField } from "@/lib/field-live";
+import { FieldLiveProvider, LiveFigure, LiveRatio, LiveRing } from "@/components/staff/FieldLive";
 
-/** Today in the field: the strip owners and supervisors see first. */
-function FieldToday({ ops }: { ops: NonNullable<Awaited<ReturnType<typeof loadDesk>>["today"]> }) {
+/** Today in the field: the strip owners and supervisors see first. Its figures tick while the page is open (P1.7). */
+function FieldToday({ ops, now }: { ops: NonNullable<Awaited<ReturnType<typeof loadDesk>>["today"]>; now: Date }) {
   // Nothing under way and nothing starting soon: every figure is zero, so say so in words instead of a row of zeros.
   if (ops.scheduled === 0 && ops.upcoming === 0) {
     return (
@@ -21,26 +24,34 @@ function FieldToday({ ops }: { ops: NonNullable<Awaited<ReturnType<typeof loadDe
       </div>
     );
   }
+  const live = summarizeField(liveRows(ops.rows), now);
+  const t = live.today;
   return (
-    <div className="hero-card space-y-4">
-      <p className="eyebrow">In the field today</p>
-      <p className="hero-title">{ops.scheduled === 1 ? "1 shift" : `${ops.scheduled} shifts`} under way</p>
-      <p className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
-        <span><span className="block text-lg font-bold tabular-nums">{ops.checkedIn} / {ops.scheduled}</span><span className="hero-muted">Checked in</span></span>
-        <span><span className="block text-lg font-bold tabular-nums">{ops.signatures}</span><span className="hero-muted">Signatures submitted</span></span>
-        {ops.doors > 0 && <span><span className="block text-lg font-bold tabular-nums">{ops.doors}</span><span className="hero-muted">Doors</span></span>}
-        {ops.upcoming > 0 && <span><span className="block text-lg font-bold tabular-nums">{ops.upcoming}</span><span className="hero-muted">Starting in the next 24h</span></span>}
-      </p>
-    </div>
+    <FieldLiveProvider initial={live}>
+      <div className="hero-card space-y-4">
+        <p className="eyebrow">In the field today</p>
+        <div className="flex items-center gap-3">
+          <LiveRing of="dueCheckedIn" over="due" fallback={[t.dueCheckedIn, t.due]} className="shrink-0" />
+          <p className="hero-title"><LiveFigure of="due" fallback={t.due} /> {t.due === 1 ? "shift" : "shifts"} under way</p>
+        </div>
+        <p className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
+          <span><span className="block text-lg font-bold tabular-nums"><LiveRatio of="dueCheckedIn" over="due" fallback={[t.dueCheckedIn, t.due]} /></span><span className="hero-muted">Checked in</span></span>
+          <span><span className="block text-lg font-bold tabular-nums"><LiveFigure of="signatures" fallback={t.signatures} /></span><span className="hero-muted">Signatures submitted</span></span>
+          {t.doors > 0 && <span><span className="block text-lg font-bold tabular-nums"><LiveFigure of="doors" fallback={t.doors} /></span><span className="hero-muted">Doors</span></span>}
+          {t.upcoming > 0 && <span><span className="block text-lg font-bold tabular-nums"><LiveFigure of="upcoming" fallback={t.upcoming} /></span><span className="hero-muted">Starting in the next 24h</span></span>}
+        </p>
+      </div>
+    </FieldLiveProvider>
   );
 }
 
 /** Each organization role's home (C1.3): what needs them, today, and the week ahead. */
 export default async function DeskPage() {
   const session = await requireArea("desk");
+  const now = new Date();
   const [org, desk] = await Promise.all([
     db().organization.findUnique({ where: { id: session.orgId }, select: { name: true } }),
-    loadDesk({ profileId: session.userId, orgId: session.orgId, role: session.role, grants: session.grants }),
+    loadDesk({ profileId: session.userId, orgId: session.orgId, role: session.role, grants: session.grants }, now),
   ]);
   const { parts } = desk;
 
@@ -48,7 +59,7 @@ export default async function DeskPage() {
     <main className="page">
       <Masthead eyebrow="Desk" title={org?.name ?? "Your organization"} meta={roleName(session, ROLE_LABELS)} />
 
-      {parts.today && desk.today && <FieldToday ops={desk.today} />}
+      {parts.today && desk.today && <FieldToday ops={desk.today} now={now} />}
 
       {!parts.readOnly && (
         <section className="section" aria-labelledby="needs-you">
@@ -96,7 +107,8 @@ export default async function DeskPage() {
               cells: {
                 job: { text: r.title, href: `/jobs/${r.jobId}` },
                 // "1 of 10": three columns fit a phone without sideways scrolling.
-                scheduled: { text: r.headcount === null ? String(r.scheduled) : `${r.scheduled} of ${r.headcount}`, sort: r.scheduled },
+                // The bar builds on load (P1.7): the share of seats with someone scheduled; full when the job sets no number.
+                scheduled: { text: r.headcount === null ? String(r.scheduled) : `${r.scheduled} of ${r.headcount}`, sort: r.scheduled, bar: r.headcount === null ? (r.scheduled > 0 ? 1 : 0) : Math.min(1, r.scheduled / r.headcount) },
                 gap: { text: r.gap === null ? "—" : String(r.gap), sort: r.gap },
               },
             }))}

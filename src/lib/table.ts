@@ -18,6 +18,8 @@ export interface TableCell {
   sort?: string | number | null;
   /** A same-site link for the cell. */
   href?: string;
+  /** A share (0..1) drawn as a bar under the text, building on load (P1.7). */
+  bar?: number;
   /**
    * The worker doesn't share this value with the viewer (C2). Never ranked:
    * a sort on this column puts these rows in their own group, in their

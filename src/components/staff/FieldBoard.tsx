@@ -2,6 +2,8 @@ import Link from "next/link";
 import { shiftStatusLabel } from "@/lib/field-day";
 import { groupField, type FieldRow } from "@/lib/field-view";
 import { LocalTime } from "@/components/LocalTime";
+import { LiveGroupFigure } from "@/components/staff/FieldLive";
+import { groupKey } from "@/lib/field-live";
 
 /** Shifts grouped by job and staging point, each with its state, packets out and signatures. */
 export function FieldBoard({ rows, empty }: { rows: FieldRow[]; empty: string }) {
@@ -16,8 +18,10 @@ export function FieldBoard({ rows, empty }: { rows: FieldRow[]; empty: string })
               {g.jobTitle}
               <span className="text-muted-sm font-normal"> · {g.staging ?? "No staging point set"}</span>
             </h2>
+            {/* The group's figures tick with the live summary when the page has one (P1.7); the counts the server rendered are the fallback. */}
             <p className="text-xs text-muted tabular-nums">
-              {g.checkedIn} of {g.rows.length} checked in · {g.packetsOut} {g.packetsOut === 1 ? "packet" : "packets"} out{g.packetsHeld > 0 ? ` · ${g.packetsHeld} kept by workers` : ""} · {g.signatures} signatures
+              <LiveGroupFigure group={groupKey(g)} of="checkedIn" fallback={g.checkedIn} /> of {g.rows.length} checked in · <LiveGroupFigure group={groupKey(g)} of="packetsOut" fallback={g.packetsOut} /> {g.packetsOut === 1 ? "packet" : "packets"} out
+              {g.packetsHeld > 0 ? <> · {g.packetsHeld} kept by workers</> : null} · <LiveGroupFigure group={groupKey(g)} of="signatures" fallback={g.signatures} /> signatures
             </p>
           </div>
           <ul className="list-card">

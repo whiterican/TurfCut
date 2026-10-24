@@ -1,5 +1,5 @@
 /** A row of headline figures over a staff page ("12 applied · 3 short"). Tabular figures; no single score. */
-export function SummaryBar({ items, label }: { items: Array<{ label: string; value: string | number; hint?: string }>; label: string }) {
+export function SummaryBar({ items, label }: { items: Array<{ label: string; value: React.ReactNode; hint?: string }>; label: string }) {
   return (
     <section aria-label={label}>
       <dl className="summary-bar">

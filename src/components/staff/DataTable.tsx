@@ -85,7 +85,13 @@ export function DataTable({
                 )}
                 {columns.map((c, i) => {
                   const cell = r.cells[c.key];
-                  const content = cell?.href ? <Link href={cell.href} className="link">{cell.text}</Link> : (cell?.text ?? "");
+                  const text = cell?.href ? <Link href={cell.href} className="link">{cell.text}</Link> : (cell?.text ?? "");
+                  const content = cell?.bar === undefined ? text : (
+                    <span className="cell-barred">
+                      {text}
+                      <span className="cell-bar" style={{ "--bar": Math.min(1, Math.max(0, cell.bar)) } as React.CSSProperties} aria-hidden="true" />
+                    </span>
+                  );
                   return i === 0 ? (
                     <th key={c.key} scope="row" className={c.numeric ? "num" : undefined}>{content}</th>
                   ) : (

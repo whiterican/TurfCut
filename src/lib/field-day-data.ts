@@ -11,6 +11,7 @@ import { correctTime, placeTime, timeProblem, wasOffline, type QueuedAction } fr
 import {
   correctedEvents,
   correctionAction,
+  readTurf,
   findConflicts,
   samePacket,
   shiftState,
@@ -657,6 +658,22 @@ export async function loadFieldWindow(orgId: string, from: Date, to: Date): Prom
     startsAt: s.startsAt,
     endsAt: s.endsAt,
     state: shiftState(facts(s)),
+    turf: readTurf(s.turfArea),
+  }));
+}
+
+/** The Desk's loaded shifts in the field page's row shape, so both pages count from the same summary (P1.7). */
+export function liveRows(rows: Array<{ shift: LoadedShift; state: ReturnType<typeof shiftState> }>): import("@/lib/field-view").FieldRow[] {
+  return rows.map(({ shift: s, state }) => ({
+    shiftId: s.id,
+    jobId: s.engagement.job.id,
+    jobTitle: s.engagement.job.title,
+    staging: s.stagingLocation,
+    worker: s.engagement.worker.displayName,
+    startsAt: s.startsAt,
+    endsAt: s.endsAt,
+    state,
+    turf: readTurf(s.turfArea),
   }));
 }
 

@@ -885,6 +885,21 @@ body {
   .data-table th.text-right {
     @apply text-right whitespace-nowrap tabular-nums;
   }
+  /* A share drawn under a figure (lib/table `bar`): grows from the left when the table appears. */
+  .cell-barred {
+    @apply inline-flex flex-col items-end gap-1;
+  }
+  .cell-bar {
+    @apply block h-1 w-16 overflow-hidden rounded-full;
+    background: var(--border);
+  }
+  .cell-bar::after {
+    @apply block h-full rounded-full;
+    content: "";
+    background: var(--accent);
+    width: calc(var(--bar, 0) * 100%);
+    animation: tc-grow var(--dur-slow) var(--ease-out) both;
+  }
   .data-table-sort {
     @apply -mx-1 inline-flex items-center gap-1 rounded px-1 py-0.5 font-semibold hover:text-fg;
   }
@@ -1669,6 +1684,16 @@ summary.list-none::-webkit-details-marker {
 /* The sheet springs up when it opens (components/Sheet.tsx). */
 .sheet[open] .sheet-panel {
   animation: tc-sheet-in var(--dur-slow) var(--spring) both;
+}
+/* A bar's fill growing from nothing to its share. */
+@keyframes tc-grow {
+  from {
+    width: 0;
+  }
+}
+/* Coverage zones (components/staff/CoverageMap.tsx): the fill moves with the figures. */
+.coverage-map .coverage-zone {
+  transition: fill-opacity var(--dur-slow) var(--ease-out);
 }
 @keyframes tc-sheet-in {
   from { translate: 0 100%; }

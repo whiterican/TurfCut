@@ -946,6 +946,25 @@ here is a ranking input. Eight slices, no new dependency.
   where. The acceptance script (`run.sh p1`) checks the rules on a real
   database.
 
+### P1.7 — organizer views (done)
+
+- **Figures that tick.** The Desk's "In the field today" hero and the field
+  page's totals and group lines poll `GET /api/field/summary` every 10
+  seconds while the tab is visible (`components/staff/FieldLive.tsx`) and
+  count from the shown value to the new one. The summary is counts only:
+  no shift ids, names or positions (`lib/field-live.ts`, with a test that
+  the wire body names nobody). When any shift's state changes, the page
+  also re-renders on the server, so the names and badges under the figures
+  catch up.
+- **Coverage map.** `components/staff/CoverageMap.tsx` draws every turf
+  given to a shift in the window and fills it by the share of its shifts
+  on the ground (checked in, not out), emptying as they check out. Turfs
+  only, never pins (decision 3).
+- **Charts build on load.** The week-ahead table's Scheduled column draws
+  a bar of seats filled that grows from the left (`bar` on a table cell),
+  and the hero's ring fills to the checked-in share. All of it reads the
+  motion tokens and stops under "Less motion".
+
 ## C2 scope — workers decide what each organization sees
 
 - **Who sees what** (Profile): each part of the profile — output rates,
@@ -981,6 +1000,7 @@ here is a ranking input. Eight slices, no new dependency.
 - Database: `prisma/c2-consent.sql` (three append-only, server-only tables
   with checks that refuse self-verification, foreign proof paths and
   carried-forward verification). Acceptance: `tests/acceptance/c2-consent.ts`.
+
 
 ### Credential proof photos — decided for C3 (owner, 2026-10-09)
 

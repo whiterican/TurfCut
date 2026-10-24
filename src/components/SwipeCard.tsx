@@ -35,7 +35,10 @@ export function SwipeCard({
 }) {
   const [isSaved, setSaved] = useState(saved);
   const [gone, setGone] = useState(false);
-  const [dx, setDx] = useState(0);
+  const saveUnder = useRef<HTMLSpanElement>(null);
+  const hideUnder = useRef<HTMLSpanElement>(null);
+  /** Where the card sits during a drag, in px. Written straight to the DOM: a render per finger move would redraw the whole card. */
+  const dx = useRef(0);
   const card = useRef<HTMLDivElement>(null);
   const drag = useRef<{ x0: number; y0: number; t0: number; x: number; t: number; moving: boolean } | null>(null);
   /** The card is sliding away: a second Hide while it does is nothing. */
@@ -48,13 +51,23 @@ export function SwipeCard({
       // A refused hide mid-slide: stop the slide and bring the card back to rest where it was.
       for (const a of card.current?.getAnimations() ?? []) a.cancel();
       setGone(false);
-      setDx(0);
+      place(0);
       setSaved(saved);
     }
     return result;
   }, initial);
   /** When the last swipe ended: the click that follows it (if any does) must not open the job. */
   const swipedAt = useRef(-Infinity);
+
+  /** Moves the card and shows the underlay for a drag of `x` px (0 puts everything back). */
+  function place(x: number) {
+    dx.current = x;
+    const el = card.current;
+    if (el) el.style.translate = x ? `${x}px 0` : "";
+    const reveal = Math.min(1, Math.abs(x) / 120);
+    if (saveUnder.current) saveUnder.current.style.opacity = x > 0 ? String(reveal) : "0";
+    if (hideUnder.current) hideUnder.current.style.opacity = x < 0 ? String(reveal) : "0";
+  }
 
   function send(mark: Mark) {
     const fd = new FormData();
@@ -82,7 +95,7 @@ export function SwipeCard({
     if (!el || !ms) return setGone(true);
     // The card slides off first; it leaves the list once the slide has played (the state change would detach it mid-way).
     const easing = getComputedStyle(document.documentElement).getPropertyValue("--ease-in").trim() || undefined;
-    const slide = el.animate([{ translate: `${dx}px 0`, opacity: 1 }, { translate: "-110% 0", opacity: 0 }], { duration: ms, easing, fill: "forwards" });
+    const slide = el.animate([{ translate: `${dx.current}px 0`, opacity: 1 }, { translate: "-110% 0", opacity: 0 }], { duration: ms, easing, fill: "forwards" });
     // Gone only if the server hasn't refused meanwhile (a refusal clears `leaving` and cancels the slide).
     const leave = () => {
       if (leaving.current) setGone(true);
@@ -97,7 +110,7 @@ export function SwipeCard({
 
   /** Springs the card back to rest after a short swipe. */
   function settle(from: number) {
-    setDx(0);
+    place(0);
     const el = card.current;
     const ms = duration("slow");
     if (!el || !ms || !from) return;
@@ -123,7 +136,7 @@ export function SwipeCard({
     }
     d.x = e.clientX;
     d.t = e.timeStamp;
-    setDx(mx);
+    place(mx);
   };
   const onPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
     const d = drag.current;
@@ -168,17 +181,16 @@ export function SwipeCard({
     );
   }
 
-  const reveal = Math.min(1, Math.abs(dx) / 120);
   return (
     <div className="swipe">
       <p role="status" className="sr-only">{status}</p>
       {!hidden && (
         <>
-          <span className="swipe-under swipe-under-save" style={{ opacity: dx > 0 ? reveal : 0 }} aria-hidden="true">
+          <span ref={saveUnder} className="swipe-under swipe-under-save" style={{ opacity: 0 }} aria-hidden="true">
             <Bookmark className="size-5" />
             Save
           </span>
-          <span className="swipe-under swipe-under-hide" style={{ opacity: dx < 0 ? reveal : 0 }} aria-hidden="true">
+          <span ref={hideUnder} className="swipe-under swipe-under-hide" style={{ opacity: 0 }} aria-hidden="true">
             <EyeOff className="size-5" />
             Hide
           </span>
@@ -187,7 +199,6 @@ export function SwipeCard({
       <div
         ref={card}
         className="swipe-card"
-        style={dx ? { translate: `${dx}px 0` } : undefined}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}

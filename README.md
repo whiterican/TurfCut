@@ -965,6 +965,27 @@ here is a ranking input. Eight slices, no new dependency.
   and the hero's ring fills to the checked-in share. All of it reads the
   motion tokens and stops under "Less motion".
 
+### P1.8 — pull to refresh, performance pass, screenshots (done)
+
+- **Pull to refresh, installed app only.** From the home screen there is no
+  reload button, so with the page at the top a downward drag brings a ring
+  out from under the header (`components/PullToRefresh.tsx`, rules in
+  `lib/pull.ts`). It fills as the finger travels, taps once at the
+  threshold, and letting go re-renders the page on the server while it
+  spins; short of the threshold it springs back. Touch only. In a browser
+  tab nothing is mounted. In standalone mode the page's overscroll is
+  contained, so the browser's own pull-to-refresh stays out of the way.
+- **Performance pass.** Every piece of motion added in P1 moves only
+  `translate`, `opacity`, `scale`, `rotate`, SVG dash offsets or a fill
+  width (compositor- or paint-cheap; nothing animates layout). The swipe
+  and the sheet write the drag straight to the element instead of
+  re-rendering on every finger move. Count-ups run for one slow duration
+  and stop; the field summary polls every 10 s and only while visible; the
+  coverage map restyles existing polygons rather than redrawing. All of it
+  stops under "Less motion" and the OS setting.
+- **Screenshots** of Today, Work, a shift, the Desk and the field page in
+  light, dark and Sunlight are in the PR.
+
 ## C2 scope — workers decide what each organization sees
 
 - **Who sees what** (Profile): each part of the profile — output rates,

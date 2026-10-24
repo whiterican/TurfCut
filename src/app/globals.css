@@ -1681,6 +1681,35 @@ summary.list-none::-webkit-details-marker {
     margin: auto;
   }
 }
+/* Pull to refresh (components/PullToRefresh.tsx, P1.8): a ring on a card
+   that comes out from under the header as the page is pulled, in the
+   installed app only. Spins while the page re-renders. */
+.pull {
+  position: fixed;
+  top: -2.75rem;
+  left: 50%;
+  z-index: 30;
+  display: flex;
+  width: 2.75rem;
+  height: 2.75rem;
+  margin-left: -1.375rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: 9999px;
+  background: var(--surface);
+  box-shadow: var(--shadow-depth);
+  pointer-events: none;
+}
+.pull-spin .progress-ring {
+  animation: tc-spin calc(var(--dur-slow) * 2) var(--ease-linear) infinite;
+}
+/* Installed: the page's own pull does the refreshing, so the browser's must stay out of it (and the top never rubber-bands past the header). */
+@media (display-mode: standalone) {
+  html {
+    overscroll-behavior-y: contain;
+  }
+}
 /* The sheet springs up when it opens (components/Sheet.tsx). */
 .sheet[open] .sheet-panel {
   animation: tc-sheet-in var(--dur-slow) var(--spring) both;

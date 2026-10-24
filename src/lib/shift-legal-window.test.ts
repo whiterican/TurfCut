@@ -75,4 +75,20 @@ describe("time-zone boundary and DST regression cases", () => {
     }
   });
 
+  it("rejects truthy approval, missing timezone, impossible dates and malformed shifts", () => {
+    const shift = context("2026-10-26T14:00:00Z", "2026-10-26T18:00:00Z");
+    for (const approved of ["false", 1, {}]) {
+      expect(checkApprovedShiftWindow(shift, { ...policy, approved } as unknown as ApprovedShiftWindow, now).allowedByConfiguredWindow).toBe(false);
+    }
+    for (const timezone of [undefined, "UTC", "EST", "Etc/GMT+5"]) {
+      expect(checkApprovedShiftWindow(shift, { ...policy, timezone } as unknown as ApprovedShiftWindow, now).allowedByConfiguredWindow).toBe(false);
+    }
+    for (const blockedDates of [["2026-02-29"], ["2026-02-30"], ["2026-04-31"]]) {
+      expect(checkApprovedShiftWindow(shift, { ...policy, blockedDates }, now).allowedByConfiguredWindow).toBe(false);
+    }
+    expect(checkApprovedShiftWindow(shift, { ...policy, jurisdiction: "" }, now).allowedByConfiguredWindow).toBe(false);
+    expect(checkApprovedShiftWindow({ ...shift, startsAt: "bad" } as unknown as typeof shift, policy, now).allowedByConfiguredWindow).toBe(false);
+    expect(checkApprovedShiftWindow(null as unknown as typeof shift, policy, now).allowedByConfiguredWindow).toBe(false);
+  });
+
 });

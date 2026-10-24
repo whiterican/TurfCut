@@ -44,6 +44,12 @@ export function preflightProposedShift(
   window: ApprovedShiftWindow | null,
   now = new Date(),
 ): ScheduleComplianceResult {
+  if (!shift || typeof shift !== "object" || Array.isArray(shift) ||
+      !(shift.startsAt instanceof Date) || !Number.isFinite(shift.startsAt.getTime()) ||
+      !(shift.endsAt instanceof Date) || !Number.isFinite(shift.endsAt.getTime()) ||
+      shift.endsAt <= shift.startsAt) {
+    return { readyForLegalReview: false, reasons: ["Shift start and end must form a valid positive interval."], policyId: null, policyVersion: null };
+  }
   const context: ComplianceContext = {
     jurisdiction: shift.jurisdiction,
     sector: shift.sector,
@@ -62,10 +68,6 @@ export function preflightProposedShift(
     ...atEnd.reasons.map((r) => `Shift end: ${r}`),
     ...hours.reasons,
   ])];
-  if (!Number.isFinite(shift.startsAt.getTime()) || !Number.isFinite(shift.endsAt.getTime()) ||
-      shift.endsAt <= shift.startsAt) {
-    reasons.push("Shift start and end must form a valid positive interval.");
-  }
   return {
     readyForLegalReview: reasons.length === 0,
     reasons,

@@ -58,7 +58,7 @@ export function JobFeedCard({ j }: { j: FeedJob }) {
         {j.org.approved && <span className="badge-solid">Approved org</span>}
       </span>
       <span className="min-w-0 space-y-1">
-        <span data-share="title" className="masthead block w-fit text-lg leading-tight text-fg">{j.title}</span>
+        <span data-share="title" className="masthead block w-fit text-lg leading-tight">{j.title}</span>
         {j.type === "CANVASS" && campaign?.campaignType === "candidate" && campaign.campaignName && (
           <span className="block text-sm font-medium text-fg">Candidate: {campaign.campaignName}</span>
         )}

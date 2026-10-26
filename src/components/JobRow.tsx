@@ -6,8 +6,8 @@ import type { FeedJob } from "@/components/JobFeedCard";
 /**
  * A job as one row (F02): the same facts as the feed card, in the same
  * order, at list density. Who and where (with Turfcut's approval mark);
- * the title; dates, type and declared affiliation, and the candidate when
- * there is one; pay on the right in tabular figures. Today's open-jobs list
+ * the title, and the candidate under it when there is one; dates, type and
+ * declared affiliation; pay on the right in tabular figures. Today's open-jobs list
  * and every other list of jobs use it, so a job looks the same everywhere
  * it appears. The link is the whole row.
  */
@@ -30,9 +30,9 @@ export function JobRow({ j, status }: { j: FeedJob; /** A status chip for the vi
           {j.org.approved && <span className="badge-solid shrink-0">Approved org</span>}
         </span>
         <span className="block truncate text-sm font-semibold text-fg">{j.title}</span>
+        {candidate && <span className="block truncate text-xs font-medium text-fg">Candidate: {candidate}</span>}
         <span className="block truncate text-xs text-muted">
           {dates} · {aff ? `${type} · ${aff.label}` : type}
-          {candidate && ` · Candidate: ${candidate}`}
         </span>
       </span>
       <span className="flex shrink-0 flex-col items-end gap-1">

@@ -288,7 +288,7 @@ body {
   .page-title {
     @apply text-3xl leading-[1.05] font-bold tracking-[-0.03em] text-fg sm:text-4xl;
   }
-  /* the brand face: organization and job names at the top of a page. */
+  /* the brand face: organization and job names, in page heads and on job cards. */
   .masthead {
     /* Headlines are the brand face, semibold and tight: never a serif. */
     @apply font-semibold tracking-[-0.02em] text-fg;
@@ -1045,7 +1045,7 @@ body {
     color: var(--fg);
   }
   .swipe-actions {
-    @apply mt-3 flex flex-wrap gap-2 border-t border-border pt-3;
+    @apply mt-3 flex flex-wrap gap-2;
   }
   .topnav-link {
     @apply rounded-lg px-3 py-2 text-sm font-medium text-muted transition hover:bg-surface-2 hover:text-fg;

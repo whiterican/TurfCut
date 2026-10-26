@@ -295,7 +295,7 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
           pill === "refused"
             ? `${refused.length} couldn't be saved`
             : pill === "unsaved"
-              ? `${waiting.length} kept in memory only — keep this page open until it syncs`
+              ? `${problem ? `${problem} ` : !online || unreachable ? "No signal — " : ""}${waiting.length} kept in memory only — keep this tab open until it syncs`
               : pill === "offline"
               ? waiting.length
                 ? problem

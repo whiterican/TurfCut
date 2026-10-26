@@ -24,7 +24,7 @@ export function AccountData({ userId, problems }: { userId: string; problems: st
     ...(unsynced
       ? [
           memoryOnly
-            ? `${unsynced} field ${unsynced === 1 ? "entry is" : "entries are"} kept in this page's memory only (the phone couldn't store ${unsynced === 1 ? "it" : "them"}). Open the shift with signal in this same tab and let it sync first.`
+            ? `${unsynced} field ${unsynced === 1 ? "entry is" : "entries are"} kept in this tab's memory only (the phone couldn't store ${unsynced === 1 ? "it" : "them"}). Open the shift with signal in this same tab and let it sync first.`
             : `${unsynced} field ${unsynced === 1 ? "entry hasn't" : "entries haven't"} synced from this phone. Open the shift with signal and let it sync first.`,
         ]
       : []),

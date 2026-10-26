@@ -8,7 +8,6 @@ import { clockParts } from "@/lib/dispute-sla";
 import { ActionButton } from "@/components/ActionButton";
 import { dispute, managePayouts, setUpPayouts } from "./actions";
 import { payoutSetup } from "@/lib/pay-data";
-import { db } from "@/lib/db";
 import { stripeProvider } from "@/lib/payout-provider";
 import { EmptyArt } from "@/components/EmptyState";
 
@@ -19,9 +18,10 @@ const SETUP_NOTE: Record<string, string> = {
 };
 
 /** Where the worker's payouts go, and the button to set them up. */
-async function PayoutSetup({ workerId, note }: { workerId: string; note: string | null }) {
+type PayoutState = Awaited<ReturnType<typeof payoutSetup>>;
+
+async function PayoutSetup({ w, note }: { w: PayoutState; note: string | null }) {
   const provider = stripeProvider();
-  const w = await payoutSetup(workerId, provider, note === "done");
   return (
     <section className="card space-y-3">
       <div className="flex items-start justify-between gap-3">
@@ -153,9 +153,9 @@ export default async function EarningsPage({ searchParams }: { searchParams: Pro
   const { workerId } = await requireWorker();
   const q = (await searchParams).payouts;
   const note = typeof q === "string" ? q : null;
-  const [{ campaigns, totals }, me] = await Promise.all([loadWorkerEarnings(workerId), db().worker.findUnique({ where: { id: workerId }, select: { payoutsEnabled: true } })]);
-  // Approved money is "on the way" only once this worker can receive it; otherwise it waits on their payout setup (P0).
-  const payouts = me?.payoutsEnabled ?? false;
+  // One read of the payout state (refreshed from Stripe when just back or stale), so the hero, the rows and the setup card agree (P0).
+  const [{ campaigns, totals }, w] = await Promise.all([loadWorkerEarnings(workerId), payoutSetup(workerId, stripeProvider(), note === "done")]);
+  const payouts = w.payoutsEnabled;
   const onTheWay = payouts ? "On the way" : "Approved · payout setup needed";
   return (
     <main className="page max-w-2xl">
@@ -186,7 +186,7 @@ export default async function EarningsPage({ searchParams }: { searchParams: Pro
         </p>
       </div>
 
-      <PayoutSetup workerId={workerId} note={note} />
+      <PayoutSetup w={w} note={note} />
 
       {campaigns.length === 0 ? (
         <div className="empty-state">

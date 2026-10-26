@@ -29,7 +29,7 @@ export interface ClosureFacts {
 export function closureProblems(f: ClosureFacts): string[] {
   const out: string[] = [];
   if (f.transfersInFlight > 0) out.push("A payment to you is still going through Stripe. Wait for it to land.");
-  if (f.unpaidLines > 0) out.push(`You have pay on the way (${f.unpaidLines === 1 ? "1 line" : `${f.unpaidLines} lines`}). Closing now would leave it unpaid — wait until it's paid, or ask the organization.`);
+  if (f.unpaidLines > 0) out.push(`You have unpaid pay (${f.unpaidLines === 1 ? "1 line" : `${f.unpaidLines} lines`}). Closing now would leave it unpaid — wait until it's paid, or ask the organization.`);
   if (f.openDisputes > 0) out.push(`You have ${f.openDisputes === 1 ? "an open pay dispute" : `${f.openDisputes} open pay disputes`}. Wait for the organization's answer.`);
   if (f.liveShifts > 0) out.push("You're checked in on a shift. Check out first.");
   if (f.pendingReviews > 0) out.push(`${f.pendingReviews === 1 ? "A shift you worked is" : `${f.pendingReviews} shifts you worked are`} waiting for the supervisor's review. Its pay isn't recorded yet — wait for the review.`);

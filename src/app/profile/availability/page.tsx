@@ -14,7 +14,7 @@ export default async function AvailabilityPage() {
 
   return (
     <main className="page max-w-2xl space-y-8">
-      <header className="space-y-3">
+      <div className="space-y-3">
         <Masthead eyebrow="Your profile" title="Availability">
           <Link transitionTypes={["nav-back"]} href="/profile" className="btn-ghost">← Profile</Link>
         </Masthead>
@@ -23,7 +23,7 @@ export default async function AvailabilityPage() {
           Who sees it: {audience.label}.{" "}
           <Link href="/profile/sharing" className="link">Change</Link>
         </p>
-      </header>
+      </div>
       {/* Past dates drop off here too, so the form's rows match what saving keeps. */}
       <AvailabilityForm availability={withoutPastDates(availability, new Date().toISOString().slice(0, 10))} />
     </main>

@@ -52,10 +52,8 @@ export default async function MembersPage() {
   return (
     <main className="page max-w-3xl">
       <Masthead eyebrow="Organization settings" title="Members">
-        <div className="flex flex-wrap gap-2">
-          <Link href="/org/settings/members/roles" className="btn-secondary btn-sm">Roles</Link>
-          <Link href="/org/settings" className="btn-ghost btn-sm">Back to settings</Link>
-        </div>
+        <Link href="/org/settings/members/roles" className="btn-secondary btn-sm">Roles</Link>
+        <Link href="/org/settings" className="btn-ghost btn-sm">Back to settings</Link>
       </Masthead>
 
       <section className="section">

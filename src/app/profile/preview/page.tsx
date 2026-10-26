@@ -34,7 +34,7 @@ export default async function PreviewPage({ searchParams }: { searchParams: Prom
 
   return (
     <main className="page space-y-8">
-      <header className="space-y-3">
+      <div className="space-y-3">
         <Masthead eyebrow="Your profile" title="See what organizations see">
           <Link transitionTypes={["nav-back"]} href="/profile" className="btn-ghost">← Profile</Link>
         </Masthead>
@@ -48,7 +48,7 @@ export default async function PreviewPage({ searchParams }: { searchParams: Prom
         <p className="text-hint">
           {HINTS[tab.key]} <Link href="/profile/sharing" className="link">Change who sees what</Link>
         </p>
-      </header>
+      </div>
 
       {!view ? (
         <div className="empty-state">

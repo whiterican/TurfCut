@@ -12,7 +12,7 @@ export default async function PreferencesPage() {
 
   return (
     <main className="page max-w-2xl space-y-8">
-      <header className="space-y-3">
+      <div className="space-y-3">
         <Masthead eyebrow="Your profile" title="Political-fit preferences">
           <Link transitionTypes={["nav-back"]} href="/profile" className="btn-ghost">← Profile</Link>
         </Masthead>
@@ -39,7 +39,7 @@ export default async function PreferencesPage() {
             matching and organizations see &quot;not shared&quot;.
           </p>
         )}
-      </header>
+      </div>
       <PreferencesFlow
         initial={latest ? {
           visibilityMode: latest.visibilityMode,

@@ -50,10 +50,8 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
   return (
     <main className="page">
       <Masthead eyebrow="Your profile" title={worker.displayName}>
-        <div className="flex flex-wrap justify-end gap-2">
-          <Link transitionTypes={["nav-forward"]} href="/earnings" className="btn-secondary btn-sm">Earnings</Link>
-          <Link href="/settings" className="btn-ghost btn-sm">Settings &amp; sign out</Link>
-        </div>
+        <Link transitionTypes={["nav-forward"]} href="/earnings" className="btn-secondary btn-sm">Earnings</Link>
+        <Link href="/settings" className="btn-ghost btn-sm">Settings &amp; sign out</Link>
       </Masthead>
 
       {/* Only when a confirmed choice is really on record: a hand-typed ?setup=done claims nothing. */}

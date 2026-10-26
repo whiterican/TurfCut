@@ -64,18 +64,20 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
 
   return (
     <main className="page max-w-2xl">
-      <Masthead eyebrow="Messages" title="Messages" meta={session.role === "WORKER"
-              ? "Talk with the people who hired you, and your team. Messages open once you're hired."
-              : "Talk with the workers you hired, and run team chats for your campaigns."}>
+      <Masthead
+        eyebrow="Messages"
+        title="Messages"
+        meta={session.role === "WORKER" ? "Talk with the people who hired you, and your team. Messages open once you're hired." : "Talk with the workers you hired, and run team chats for your campaigns."}
+      >
         {staff && (
-          <div className="flex flex-wrap gap-2">
+          <>
             {canUse(session, "moderation") && (
               <Link transitionTypes={["nav-forward"]} href="/messages/reports" className="btn-secondary">
                 Reports{reports.length > 0 && <span className="unread-badge">{reports.length}</span>}
               </Link>
             )}
             <Link transitionTypes={["nav-forward"]} href="/messages/new" className="btn-primary">New team chat</Link>
-          </div>
+          </>
         )}
       </Masthead>
 

@@ -29,11 +29,11 @@ export default async function StatementsPage() {
   });
   return (
     <main className="page max-w-2xl">
-      <Masthead eyebrow={<><Link href="/pay" className="link">
-              Pay
-            </Link></>} title="Statements" meta={<>One for each calendar month (UTC): the pay recorded, the payments
-            sent, corrections to earlier months, and how disputes were handled.
-            A month&apos;s totals are fixed once it ends.</>} />
+      <Masthead
+        eyebrow={<Link href="/pay" className="link">Pay</Link>}
+        title="Statements"
+        meta="One for each calendar month (UTC): the pay recorded, the payments sent, corrections to earlier months, and how disputes were handled. A month's totals are fixed once it ends."
+      />
       {/* The running month is always listed, so there is always at least one. */}
       <ul className="list-card">
         {statements.map((st) => (

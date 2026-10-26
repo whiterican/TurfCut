@@ -18,11 +18,9 @@ export default async function StatementPage({ params }: { params: Promise<{ peri
   if (!st) notFound();
   return (
     <main className="page max-w-3xl">
-      <Masthead className="no-print" eyebrow={<><Link href="/pay/statements" className="link">Statements</Link></>} title={<>{st.label}</>} meta={<>Statement {st.number}. Every line links to the record behind it.</>}>
-        <div className="flex flex-wrap gap-2">
-          <a href={`/pay/statements/${st.period}/csv`} className="btn-secondary btn-sm">Download CSV</a>
-          <PrintButton />
-        </div>
+      <Masthead className="no-print" eyebrow={<Link href="/pay/statements" className="link">Statements</Link>} title={st.label} meta={`Statement ${st.number}. Every line links to the record behind it.`}>
+        <a href={`/pay/statements/${st.period}/csv`} className="btn-secondary btn-sm">Download CSV</a>
+        <PrintButton />
       </Masthead>
       <StatementView s={st} />
     </main>

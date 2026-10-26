@@ -13,7 +13,7 @@ export default async function SharingPage() {
 
   return (
     <main className="page max-w-2xl space-y-8">
-      <header className="space-y-3">
+      <div className="space-y-3">
         <Masthead eyebrow="Your profile" title="Who sees what">
           <Link transitionTypes={["nav-back"]} href="/profile" className="btn-ghost">← Profile</Link>
         </Masthead>
@@ -27,7 +27,7 @@ export default async function SharingPage() {
             : `You haven't changed anything yet: organizations you ${RELATIONSHIP_PHRASE} see your profile, nobody else does, and nobody can find you.`}
         </p>
         <p className="text-hint">Your political-fit answers have their own settings, under Political fit on your profile.</p>
-      </header>
+      </div>
       <SharingForm choices={sharing.choices} />
     </main>
   );

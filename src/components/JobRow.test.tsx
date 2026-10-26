@@ -17,10 +17,10 @@ const job: FeedJob = {
 };
 
 describe("JobRow (F02)", () => {
-  it("shows the feed card's facts in the row's order: title, organization and place, dates and type, pay", () => {
+  it("shows the feed card's facts in the card's order: organization and place with the approval mark, title, dates and type, pay", () => {
     const html = renderToStaticMarkup(<JobRow j={job} />);
     const text = html.replace(/<[^>]+>/g, "|").replace(/\|+/g, "|");
-    const order = ["Denver Ballot Initiative", "Front Range Circulators · Denver, CO", "Oct 24 – Oct 25", "Petition circulation", "$25/hr"].map((s) => text.indexOf(s));
+    const order = ["Front Range Circulators · Denver, CO", "Approved org", "Denver Ballot Initiative", "Oct 24 – Oct 25", "Petition circulation", "$25/hr"].map((s) => text.indexOf(s));
     expect(order.every((i) => i >= 0)).toBe(true);
     expect([...order].sort((a, b) => a - b)).toEqual(order);
     expect(html).toContain(`href="/jobs/${job.id}"`);
@@ -32,5 +32,8 @@ describe("JobRow (F02)", () => {
     expect(html).toContain("Petition circulation · Nonpartisan");
     expect(html).toContain('class="badge-sky">Applied<');
     expect(renderToStaticMarkup(<JobRow j={{ ...job, startsAt: null, endsAt: null }} />)).toContain("Dates to be set");
+    expect(renderToStaticMarkup(<JobRow j={{ ...job, org: { name: "New Org", approved: false } }} />)).not.toContain("Approved org");
+    const canvass = renderToStaticMarkup(<JobRow j={{ ...job, type: "CANVASS", campaignDisclosure: { campaignType: "candidate", campaignName: "Jo Ortiz for Council", affiliation: "democratic", message: "Vote Jo" } }} />);
+    expect(canvass).toContain("Candidate campaign canvassing · Democratic party · Candidate: Jo Ortiz for Council");
   });
 });

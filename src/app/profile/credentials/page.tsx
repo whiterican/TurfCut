@@ -39,7 +39,7 @@ export default async function CredentialsPage() {
 
   return (
     <main className="page max-w-2xl space-y-8">
-      <header className="space-y-3">
+      <div className="space-y-3">
         <Masthead eyebrow="Your profile" title="Credentials">
           <Link transitionTypes={["nav-back"]} href="/profile" className="btn-ghost">← Profile</Link>
         </Masthead>
@@ -48,7 +48,7 @@ export default async function CredentialsPage() {
           Who sees them (name, verification and expiry, never the number): {audience.label}.{" "}
           <Link href="/profile/sharing" className="link">Change</Link>
         </p>
-      </header>
+      </div>
 
       {/* Around both sections: a removal's message lands in the list; any save, here or below, clears it. */}
       <WalletStatus>

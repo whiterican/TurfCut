@@ -1,3 +1,4 @@
+import { MAX_PAGE, type Cursor } from "@/lib/pagination";
 import type { ErrorCode } from "@/lib/api-errors";
 import { Prisma } from "@prisma/client";
 import { radiusFor, readLaunch } from "@/lib/job-launch";
@@ -581,12 +582,21 @@ export async function workerTurfAction(
 // Views
 // ---------------------------------------------------------------------------
 
-/** A worker's shifts across every campaign, upcoming first. */
-export async function loadWorkerShifts(workerId: string, now = new Date()) {
+/**
+ * A worker's shifts across every campaign, upcoming first, at most `limit`
+ * (keyset-paged by startsAt then id: pass the last row's as `after`).
+ */
+export async function loadWorkerShifts(workerId: string, now = new Date(), opts: { limit?: number; after?: Cursor } = {}) {
+  const { limit = MAX_PAGE, after } = opts;
   return db().shift.findMany({
-    where: { engagement: { workerId }, endsAt: { gte: new Date(now.getTime() - 7 * 86_400_000) } },
+    where: {
+      engagement: { workerId },
+      endsAt: { gte: new Date(now.getTime() - 7 * 86_400_000) },
+      ...(after ? { OR: [{ startsAt: { gt: after.at } }, { startsAt: after.at, id: { gt: after.id } }] } : {}),
+    },
     include: SHIFT_INCLUDE,
-    orderBy: { startsAt: "asc" },
+    orderBy: [{ startsAt: "asc" }, { id: "asc" }],
+    take: limit,
   });
 }
 

@@ -1165,7 +1165,8 @@ export async function partialReversals(actor: PayActor): Promise<{ partial: Part
   const since = new Date(Date.now() - 30 * 86_400_000);
   const ofOrg = { entityType: "PayoutTransfer", metadata: { path: ["orgId"], equals: orgId } };
   const [partials, mismatchAudits] = await Promise.all([
-    db().auditEvent.findMany({ where: { action: "payout.partially_reversed", ...ofOrg }, orderBy: { createdAt: "desc" } }),
+    // Newest first and bounded: the banner lists recent partial reversals, not the archive.
+    db().auditEvent.findMany({ where: { action: "payout.partially_reversed", ...ofOrg }, orderBy: { createdAt: "desc" }, take: 500 }),
     db().auditEvent.findMany({ where: { action: "payout.amount_mismatch", ...ofOrg, createdAt: { gt: since } }, orderBy: { createdAt: "desc" }, take: 50 }),
   ]);
   // Stripe reports the total reversed so far: the largest is the latest.

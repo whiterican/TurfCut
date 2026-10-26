@@ -6,6 +6,7 @@ import { jobToForm, UUID_RE } from "@/lib/jobs";
 import { jurisdictionOptions } from "@/lib/jurisdiction-options";
 import { JobForm } from "@/components/JobForm";
 import { materialText, RELEASE_HOURS } from "@/lib/job-changes";
+import { Masthead } from "@/components/Masthead";
 
 export default async function EditJobPage({ params }: { params: Promise<{ jobId: string }> }) {
   const { jobId } = await params;
@@ -17,13 +18,9 @@ export default async function EditJobPage({ params }: { params: Promise<{ jobId:
 
   return (
     <main className="page max-w-3xl">
-      <header className="page-header">
-        <div className="space-y-1">
-          <p className="eyebrow">{job.status === "DRAFT" ? "Edit draft" : "Edit published job"}</p>
-          <h1 className="page-title masthead">{job.title}</h1>
-        </div>
+      <Masthead eyebrow={job.status === "DRAFT" ? "Edit draft" : "Edit published job"} title={job.title}>
         <Link transitionTypes={["nav-back"]} href={`/jobs/${job.id}`} className="btn-ghost">← Job</Link>
-      </header>
+      </Masthead>
       {job.status === "DRAFT" || job.status === "PUBLISHED" || job.status === "PAUSED" ? (
         <>
           {job.status !== "DRAFT" && (

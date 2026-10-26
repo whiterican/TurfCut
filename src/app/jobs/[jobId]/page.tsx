@@ -20,6 +20,7 @@ import { JobCard } from "@/components/JobCard";
 import { SnapshotView } from "@/components/SnapshotView";
 import { ActionButton } from "@/components/ActionButton";
 import { Sheet } from "@/components/Sheet";
+import { Masthead } from "@/components/Masthead";
 
 import { acceptInvitation, apply, claim, closeJobAction, declineAsWorker, leaveChangedJob, publish, withdrawApplication } from "../actions";
 import { openRelease } from "@/lib/job-changes-data";
@@ -95,25 +96,26 @@ export default async function JobPage({ params }: { params: Promise<{ jobId: str
 
   return (
     <main className="page max-w-3xl">
-      <header className="page-header">
-        <div className="space-y-2">
-          <p className="eyebrow">
-            {job.type === "PETITION" ? "Petition circulation" : "Door-to-door canvass"} · {jurisdictionLabel(job.jurisdiction)}
-          </p>
-          {/* Shared with the feed card that was tapped (P1.6): same names, so the title and pay grow into place. */}
-          <h1 className="page-title masthead w-fit" style={shareStyle(`job-${job.id}`)}>{job.title}</h1>
-          <p className="text-muted-sm">{job.org.name}</p>
-          <p className="w-fit pt-2 text-3xl font-bold tracking-[-0.03em] text-fg tabular-nums" style={shareStyle(`pay-${job.id}`)}>{payText(job.compensationMethod, job.payRateCents)}</p>
-          <p className="flex flex-wrap gap-1.5 pt-1">
+      {/* The record head (F03b): the title and pay are shared with the feed card that was tapped (P1.6), so they grow into place. */}
+      <Masthead
+        eyebrow={`${job.type === "PETITION" ? "Petition circulation" : "Door-to-door canvass"} · ${jurisdictionLabel(job.jurisdiction)}`}
+        title={job.title}
+        titleClassName="w-fit"
+        titleStyle={shareStyle(`job-${job.id}`)}
+        meta={job.org.name}
+        figure={<span className="block w-fit" style={shareStyle(`pay-${job.id}`)}>{payText(job.compensationMethod, job.payRateCents)}</span>}
+        chips={
+          <>
             {isOwnOrg && <span className={jobPageBadge(status.badge)}>{status.label}</span>}
             {/* The dates carry a calendar so their blue never reads as a party. */}
             <DateRangeChip startsAt={job.startsAt} endsAt={job.endsAt} />
             <span className="badge-neutral">{job.type === "PETITION" ? "Petition" : "Canvass"}</span>
             <span className="badge-neutral">{acceptedCount} of {job.headcount ?? "—"} spots filled</span>
-          </p>
-        </div>
+          </>
+        }
+      >
         <Link transitionTypes={["nav-back"]} href="/jobs" className="btn-ghost">← Jobs</Link>
-      </header>
+      </Masthead>
 
       {job.description && <p className="lead">{job.description}</p>}
 

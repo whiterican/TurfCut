@@ -296,6 +296,10 @@ body {
   .page-title.masthead {
     @apply tracking-[-0.015em];
   }
+  /* A record head's one display figure (a job's gross pay): the display role, tabular. */
+  .masthead-figure {
+    @apply pt-2 text-3xl font-bold tracking-[-0.03em] text-fg tabular-nums;
+  }
   /* Small condensed label above a title ("LIVE SHIFT", "GOOD MORNING"). */
   .eyebrow {
     @apply font-condensed font-semibold tracking-[0.18em] uppercase;

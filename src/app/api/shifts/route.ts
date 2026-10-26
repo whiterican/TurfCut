@@ -1,3 +1,4 @@
+import { failureResponse } from "@/lib/api-errors";
 import { apiArea, apiWorker, badId } from "@/lib/api-session";
 import { shiftState } from "@/lib/field-day";
 import { facts, loadWorkerShifts, scheduleShift } from "@/lib/field-day-data";
@@ -44,5 +45,5 @@ export async function POST(req: Request) {
   for (const k of ["stagingLat", "stagingLng"]) if (typeof raw[k] === "number") raw[k] = String(raw[k]);
   const r = await scheduleShift({ profileId: auth.session.userId, orgId: auth.session.orgId }, body.engagementId, raw);
   if (r.ok) return Response.json({ shiftId: r.shiftId }, { status: 201 });
-  return Response.json({ error: r.reason, errors: r.errors }, { status: r.errors ? 400 : /not found/i.test(r.reason) ? 404 : 409 });
+  return failureResponse(r);
 }

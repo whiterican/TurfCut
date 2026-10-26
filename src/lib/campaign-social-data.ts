@@ -1,3 +1,4 @@
+import type { ErrorCode } from "@/lib/api-errors";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { openJobsEndAfter, UUID_RE } from "@/lib/jobs";
@@ -16,7 +17,7 @@ import { decodeCursor, DIRECTORY_PAGE_SIZE, embedProblem, encodeCursor, likePatt
 type Actor = { profileId: string; orgId: string };
 /** A post writer: owners and publishers manage every post and the talking points; recruiters their own unpinned posts. */
 type Writer = Actor & { manages: boolean };
-type Result<T = Record<never, never>> = ({ ok: true } & T) | { ok: false; reason: string; errors?: Record<string, string> };
+type Result<T = Record<never, never>> = ({ ok: true } & T) | { ok: false; code?: ErrorCode; reason: string; errors?: Record<string, string> };
 
 const PROFILE_SELECT = {
   id: true, orgId: true, handle: true, displayName: true, bio: true, avatarKey: true, headerKey: true, publishedAt: true, verifiedAt: true, createdAt: true, updatedAt: true,
@@ -74,7 +75,7 @@ export function loadPublicCampaign(handle: string) {
 }
 
 /** New campaigns and handle changes are rate-limited per organization, whoever calls (page or API). */
-async function campaignGate(orgId: string): Promise<{ ok: false; reason: string } | null> {
+async function campaignGate(orgId: string): Promise<{ ok: false; code?: ErrorCode; reason: string } | null> {
   const verdict = await check("campaign", orgId);
   if (verdict === "ok") return null;
   if (verdict === "unavailable") return { ok: false, reason: "Saving is briefly unavailable. Try again in a minute." };
@@ -103,7 +104,7 @@ export async function createCampaign(actor: Actor, input: ProfileInput): Promise
 
 /** Edits the profile. The handle is the public address: it can change only while the campaign is a draft. */
 export async function updateCampaign(actor: Actor, id: string, input: ProfileInput): Promise<Result> {
-  if (!UUID_RE.test(id)) return { ok: false, reason: "Campaign not found." };
+  if (!UUID_RE.test(id)) return { ok: false, code: "not_found", reason: "Campaign not found." };
   const before = await db().campaignProfile.findFirst({ where: { id, orgId: actor.orgId }, select: { handle: true } });
   if (before && before.handle !== input.handle) {
     const gate = await campaignGate(actor.orgId);
@@ -113,7 +114,7 @@ export async function updateCampaign(actor: Actor, id: string, input: ProfileInp
     return await db().$transaction(async (tx) => {
       await lockCampaign(tx, id);
       const c = await tx.campaignProfile.findFirst({ where: { id, orgId: actor.orgId }, select: { handle: true, displayName: true, verifiedAt: true } });
-      if (!c) return { ok: false as const, reason: "Campaign not found." };
+      if (!c) return { ok: false as const, code: "not_found", reason: "Campaign not found." };
       if (c.handle !== input.handle) {
         // Once a campaign has been public its handle is its address for good: links and printed codes point at it.
         const everPublic = await tx.auditEvent.findFirst({ where: { entityType: "CampaignProfile", entityId: id, action: "campaign.published" }, select: { id: true } });
@@ -137,11 +138,11 @@ export async function updateCampaign(actor: Actor, id: string, input: ProfileInp
  * approved its organization (the impersonation guard, S1 decision 3).
  */
 export async function setCampaignPublished(actor: Actor, id: string, publish: boolean, now = new Date()): Promise<Result> {
-  if (!UUID_RE.test(id)) return { ok: false, reason: "Campaign not found." };
+  if (!UUID_RE.test(id)) return { ok: false, code: "not_found", reason: "Campaign not found." };
   return db().$transaction(async (tx) => {
     await lockCampaign(tx, id);
     const c = await tx.campaignProfile.findFirst({ where: { id, orgId: actor.orgId }, select: { handle: true, publishedAt: true, verifiedAt: true, org: { select: { approved: true } } } });
-    if (!c) return { ok: false as const, reason: "Campaign not found." };
+    if (!c) return { ok: false as const, code: "not_found", reason: "Campaign not found." };
     if (publish && !c.org.approved) return { ok: false as const, reason: "Turfcut hasn't approved your organization yet. A campaign can go public once it has." };
     if (!!c.publishedAt === publish) return { ok: true as const };
     // Verification (M10.5) vouches for a public profile: taking it down takes the mark off, so going public again is looked at again.
@@ -155,11 +156,11 @@ export async function setCampaignPublished(actor: Actor, id: string, publish: bo
 
 /** Replaces the campaign's avatar or header image (the old file is removed once the new one is recorded). */
 export async function setCampaignImage(actor: Actor, id: string, kind: MediaKind, bytes: Uint8Array, store: MediaStore): Promise<Result> {
-  if (!UUID_RE.test(id)) return { ok: false, reason: "Campaign not found." };
+  if (!UUID_RE.test(id)) return { ok: false, code: "not_found", reason: "Campaign not found." };
   const img = checkImage(bytes);
   if (!img.ok) return { ok: false, reason: img.reason };
   const owned = await db().campaignProfile.findFirst({ where: { id, orgId: actor.orgId }, select: { id: true } });
-  if (!owned) return { ok: false, reason: "Campaign not found." };
+  if (!owned) return { ok: false, code: "not_found", reason: "Campaign not found." };
   const key = `${id}/${kind}-${crypto.randomUUID()}.${img.ext}`;
   await store.put(key, img.bytes, img.type);
   const field = kind === "avatar" ? "avatarKey" : "headerKey";
@@ -180,7 +181,7 @@ export async function setCampaignImage(actor: Actor, id: string, kind: MediaKind
   }
   if (old === undefined) {
     await store.remove(key);
-    return { ok: false, reason: "Campaign not found." };
+    return { ok: false, code: "not_found", reason: "Campaign not found." };
   }
   if (old) await store.remove(old);
   return { ok: true };
@@ -188,7 +189,7 @@ export async function setCampaignImage(actor: Actor, id: string, kind: MediaKind
 
 /** Takes the image down. */
 export async function clearCampaignImage(actor: Actor, id: string, kind: MediaKind, store: MediaStore): Promise<Result> {
-  if (!UUID_RE.test(id)) return { ok: false, reason: "Campaign not found." };
+  if (!UUID_RE.test(id)) return { ok: false, code: "not_found", reason: "Campaign not found." };
   const field = kind === "avatar" ? "avatarKey" : "headerKey";
   const old = await db().$transaction(async (tx) => {
     await lockCampaign(tx, id);
@@ -200,7 +201,7 @@ export async function clearCampaignImage(actor: Actor, id: string, kind: MediaKi
     }
     return c[field];
   });
-  if (old === undefined) return { ok: false, reason: "Campaign not found." };
+  if (old === undefined) return { ok: false, code: "not_found", reason: "Campaign not found." };
   if (old) await store.remove(old);
   return { ok: true };
 }
@@ -241,10 +242,10 @@ async function checkEmbed(tx: Prisma.TransactionClient, orgId: string, jobId: st
 
 /** Writes a post on one of the organization's campaigns (its first revision is the post as written). */
 export async function createPost(actor: Actor, campaignId: string, input: PostInput, now = new Date()): Promise<Result<{ id: string }>> {
-  if (!UUID_RE.test(campaignId)) return { ok: false, reason: "Campaign not found." };
+  if (!UUID_RE.test(campaignId)) return { ok: false, code: "not_found", reason: "Campaign not found." };
   return db().$transaction(async (tx) => {
     const c = await tx.campaignProfile.findFirst({ where: { id: campaignId, orgId: actor.orgId }, select: { id: true } });
-    if (!c) return { ok: false as const, reason: "Campaign not found." };
+    if (!c) return { ok: false as const, code: "not_found", reason: "Campaign not found." };
     // The campaign's lock: notices of two posts at once can't both take the day's last slot (S2.4).
     await lockCampaign(tx, c.id);
     const bad = await checkEmbed(tx, actor.orgId, input.jobId);
@@ -281,10 +282,10 @@ function writeProblem(w: Writer, p: { pinnedAt: Date | null; authorId: string })
  * job has since closed is fine; a new embed has to be a published job.
  */
 export async function editPost(actor: Writer, postId: string, input: { body: string; jobId?: string | null }, now = new Date()): Promise<Result> {
-  if (!UUID_RE.test(postId)) return { ok: false, reason: "Post not found." };
+  if (!UUID_RE.test(postId)) return { ok: false, code: "not_found", reason: "Post not found." };
   return db().$transaction(async (tx) => {
     const found = await ownPost(tx, actor.orgId, postId);
-    if (!found) return { ok: false as const, reason: "Post not found." };
+    if (!found) return { ok: false as const, code: "not_found", reason: "Post not found." };
     const p = found;
     const denied = writeProblem(actor, p);
     if (denied) return { ok: false as const, reason: denied };
@@ -304,10 +305,10 @@ export async function editPost(actor: Writer, postId: string, input: { body: str
 
 /** Takes a post down: hidden everywhere, unpinned, and kept with its revisions (who deleted it is recorded). */
 export async function deletePost(actor: Writer, postId: string, now = new Date()): Promise<Result> {
-  if (!UUID_RE.test(postId)) return { ok: false, reason: "Post not found." };
+  if (!UUID_RE.test(postId)) return { ok: false, code: "not_found", reason: "Post not found." };
   return db().$transaction(async (tx) => {
     const p = await ownPost(tx, actor.orgId, postId);
-    if (!p) return { ok: false as const, reason: "Post not found." };
+    if (!p) return { ok: false as const, code: "not_found", reason: "Post not found." };
     const denied = writeProblem(actor, p);
     if (denied) return { ok: false as const, reason: denied };
     await tx.campaignPost.update({ where: { id: p.id }, data: { deletedAt: now, deletedById: actor.profileId, pinnedAt: null } });
@@ -321,10 +322,10 @@ export async function deletePost(actor: Writer, postId: string, now = new Date()
  * at most MAX_PINNED, counted under the campaign's lock.
  */
 export async function setPostPinned(actor: Actor, postId: string, pin: boolean, now = new Date()): Promise<Result> {
-  if (!UUID_RE.test(postId)) return { ok: false, reason: "Post not found." };
+  if (!UUID_RE.test(postId)) return { ok: false, code: "not_found", reason: "Post not found." };
   return db().$transaction(async (tx) => {
     const p = await ownPost(tx, actor.orgId, postId);
-    if (!p) return { ok: false as const, reason: "Post not found." };
+    if (!p) return { ok: false as const, code: "not_found", reason: "Post not found." };
     if (!!p.pinnedAt === pin) return { ok: true as const };
     if (pin) {
       const pinned = await tx.campaignPost.count({ where: { profileId: p.profileId, deletedAt: null, pinnedAt: { not: null } } });
@@ -390,13 +391,13 @@ export function orgJobsForLinking(orgId: string) {
 
 /** Links one of the organization's jobs to one of its campaigns, or unlinks it (campaignId null). */
 export async function setJobCampaign(actor: Actor, jobId: string, campaignId: string | null): Promise<Result> {
-  if (!UUID_RE.test(jobId) || (campaignId !== null && !UUID_RE.test(campaignId))) return { ok: false, reason: "Not found." };
+  if (!UUID_RE.test(jobId) || (campaignId !== null && !UUID_RE.test(campaignId))) return { ok: false, code: "not_found", reason: "Not found." };
   return db().$transaction(async (tx) => {
     await lock(tx, `job:${jobId}`);
     const job = await tx.job.findFirst({ where: { id: jobId, orgId: actor.orgId }, select: { campaignProfileId: true, status: true } });
-    if (!job) return { ok: false as const, reason: "Job not found." };
+    if (!job) return { ok: false as const, code: "not_found", reason: "Job not found." };
     if (campaignId && job.status === "CLOSED") return { ok: false as const, reason: "That job has closed." };
-    if (campaignId && !(await tx.campaignProfile.findFirst({ where: { id: campaignId, orgId: actor.orgId }, select: { id: true } }))) return { ok: false as const, reason: "Campaign not found." };
+    if (campaignId && !(await tx.campaignProfile.findFirst({ where: { id: campaignId, orgId: actor.orgId }, select: { id: true } }))) return { ok: false as const, code: "not_found", reason: "Campaign not found." };
     if (job.campaignProfileId === campaignId) return { ok: true as const };
     await tx.job.update({ where: { id: jobId }, data: { campaignProfileId: campaignId } });
     await tx.auditEvent.create({ data: { actorId: actor.profileId, action: "job.campaign_set", entityType: "Job", entityId: jobId, metadata: { from: job.campaignProfileId, to: campaignId } } });

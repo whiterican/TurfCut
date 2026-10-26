@@ -76,6 +76,11 @@ export function pendingFor(userId: string, shiftId: string): Pending[] {
 }
 
 /** How many of this user's entries haven't reached the server yet. */
+/** True while the phone couldn't store the worker's latest entries: only this page holds them (P0). */
+export function memoryOnlyFor(userId: string): boolean {
+  return memoryOnly.has(userId);
+}
+
 export function unsentCount(userId: string): number {
   return read(userId).filter((p) => !p.rejected && !p.savedAt).length;
 }

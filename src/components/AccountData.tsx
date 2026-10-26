@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useSyncExternalStore } from "react";
 import { Download, UserX } from "lucide-react";
 import { CLOSE_PHRASE, confirmed } from "@/lib/account-closure";
-import { clearUser, subscribe, unsentCount } from "@/lib/offline-queue";
+import { clearUser, memoryOnlyFor, subscribe, unsentCount } from "@/lib/offline-queue";
 
 /**
  * "Your data" on Settings (M7): download everything, and close the account
@@ -18,7 +18,17 @@ export function AccountData({ userId, problems }: { userId: string; problems: st
   const [error, setError] = useState<string[] | null>(null);
   const router = useRouter();
   const unsynced = useSyncExternalStore(subscribe, () => unsentCount(userId), () => 0);
-  const blockers = [...problems, ...(unsynced ? [`${unsynced} field ${unsynced === 1 ? "entry hasn't" : "entries haven't"} synced from this phone. Open the shift with signal and let it sync first.`] : [])];
+  const memoryOnly = useSyncExternalStore(subscribe, () => memoryOnlyFor(userId), () => false);
+  const blockers = [
+    ...problems,
+    ...(unsynced
+      ? [
+          memoryOnly
+            ? `${unsynced} field ${unsynced === 1 ? "entry is" : "entries are"} kept in this page's memory only (the phone couldn't store ${unsynced === 1 ? "it" : "them"}). Open the shift with signal in this same tab and let it sync first.`
+            : `${unsynced} field ${unsynced === 1 ? "entry hasn't" : "entries haven't"} synced from this phone. Open the shift with signal and let it sync first.`,
+        ]
+      : []),
+  ];
 
   async function close() {
     setBusy(true);

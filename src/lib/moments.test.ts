@@ -31,6 +31,11 @@ describe("field-worker moments (P1.4)", () => {
     const base = { online: true, reachable: true, syncing: false, waiting: 0, refused: 0 };
     expect(pillState(base)).toBe("online");
     expect(pillState({ ...base, waiting: 2 })).toBe("waiting");
+    // Entries the phone couldn't store outrank signal: the page is all that holds them.
+    expect(pillState({ ...base, waiting: 2, memoryOnly: true })).toBe("unsaved");
+    expect(pillState({ ...base, online: false, waiting: 2, memoryOnly: true })).toBe("unsaved");
+    expect(pillState({ ...base, waiting: 0, memoryOnly: true })).toBe("online");
+    expect(pillState({ ...base, waiting: 2, refused: 1, memoryOnly: true })).toBe("refused");
     expect(pillState({ ...base, waiting: 2, syncing: true })).toBe("syncing");
     expect(pillState({ ...base, waiting: 2, online: false })).toBe("offline");
     expect(pillState({ ...base, reachable: false })).toBe("offline");

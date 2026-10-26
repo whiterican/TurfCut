@@ -9,6 +9,7 @@ import { RelativeTime } from "@/components/RelativeTime";
 import { ChatNameForm } from "@/components/chat/ChatNameForm";
 import { canUse } from "@/lib/access";
 import { EmptyArt } from "@/components/EmptyState";
+import { Masthead } from "@/components/Masthead";
 
 export const metadata = { title: "Messages · Turfcut" };
 
@@ -63,16 +64,9 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
 
   return (
     <main className="page max-w-2xl">
-      <header className="page-header">
-        <div className="space-y-1">
-          <p className="eyebrow">Messages</p>
-          <h1 className="page-title">Messages</h1>
-          <p className="text-muted-sm">
-            {session.role === "WORKER"
+      <Masthead eyebrow="Messages" title="Messages" meta={session.role === "WORKER"
               ? "Talk with the people who hired you, and your team. Messages open once you're hired."
-              : "Talk with the workers you hired, and run team chats for your campaigns."}
-          </p>
-        </div>
+              : "Talk with the workers you hired, and run team chats for your campaigns."}>
         {staff && (
           <div className="flex flex-wrap gap-2">
             {canUse(session, "moderation") && (
@@ -83,7 +77,7 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
             <Link transitionTypes={["nav-forward"]} href="/messages/new" className="btn-primary">New team chat</Link>
           </div>
         )}
-      </header>
+      </Masthead>
 
       {error && <p role="alert" className="alert alert-warning">{error}</p>}
 

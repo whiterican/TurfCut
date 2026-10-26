@@ -4,6 +4,7 @@ import { requireWorker } from "@/lib/worker-session";
 import { loadReceipt } from "@/lib/receipts-data";
 import { ReceiptView } from "@/components/ReceiptView";
 import { PrintButton } from "@/components/PrintButton";
+import { Masthead } from "@/components/Masthead";
 
 export const metadata = { title: "Receipt · Turfcut" };
 
@@ -15,14 +16,9 @@ export default async function ReceiptPage({ params }: { params: Promise<{ transf
   if (!r) notFound();
   return (
     <main className="page max-w-2xl">
-      <header className="page-header no-print">
-        <div className="space-y-1">
-          <p className="eyebrow"><Link href="/earnings/receipts" className="link">Receipts</Link></p>
-          <h1 className="page-title">Receipt {r.number}</h1>
-          <p className="text-muted-sm">Keep it: it stays here even if the payment is later reversed, and it&apos;s in your data export.</p>
-        </div>
+      <Masthead className="no-print" eyebrow={<><Link href="/earnings/receipts" className="link">Receipts</Link></>} title={<>Receipt {r.number}</>} meta={<>Keep it: it stays here even if the payment is later reversed, and it&apos;s in your data export.</>}>
         <PrintButton />
-      </header>
+      </Masthead>
       <ReceiptView r={r} />
     </main>
   );

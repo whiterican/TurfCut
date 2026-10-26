@@ -7,6 +7,7 @@ import { listMembers, memberHistory } from "@/lib/members-data";
 import { listOrgRoles } from "@/lib/org-roles-data";
 import { customChoice, roleName, withinReach } from "@/lib/org-roles";
 import { changeRole, invite, remove, resend, revoke } from "./actions";
+import { Masthead } from "@/components/Masthead";
 
 const day = (d: Date) => d.toISOString().slice(0, 10);
 
@@ -50,16 +51,12 @@ export default async function MembersPage() {
 
   return (
     <main className="page max-w-3xl">
-      <header className="page-header">
-        <div className="space-y-1">
-          <p className="eyebrow">Organization settings</p>
-          <h1 className="page-title">Members</h1>
-        </div>
+      <Masthead eyebrow="Organization settings" title="Members">
         <div className="flex flex-wrap gap-2">
           <Link href="/org/settings/members/roles" className="btn-secondary btn-sm">Roles</Link>
           <Link href="/org/settings" className="btn-ghost btn-sm">Back to settings</Link>
         </div>
-      </header>
+      </Masthead>
 
       <section className="section">
         <h2 className="section-title">Invite someone</h2>

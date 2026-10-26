@@ -5,6 +5,7 @@ import { requireEmployer } from "@/lib/employer-session";
 import { loadOrgProfile } from "@/lib/org-profile-data";
 import { OrgProfileSections } from "@/components/OrgProfileSections";
 import { InviteComposer } from "@/components/InviteComposer";
+import { Masthead } from "@/components/Masthead";
 
 /** A worker as an organization sees them: only what the worker authorized. */
 export default async function EmployerWorkerPage({
@@ -32,14 +33,10 @@ export default async function EmployerWorkerPage({
 
   return (
     <main className="page">
-      <header className="page-header">
-        <div className="space-y-1">
-          <p className="eyebrow">Worker profile</p>
-          {/* Only the display name — no phone or other contact details. (No name for an unapproved viewer, which can't reach here today.) */}
-          <h1 className="page-title">{view.displayName ?? "Name not shared"}</h1>
-        </div>
+      {/* Only the display name — no phone or other contact details. (No name for an unapproved viewer, which can't reach here today.) */}
+      <Masthead eyebrow="Worker profile" title={view.displayName ?? "Name not shared"}>
         <Link transitionTypes={["nav-back"]} href="/jobs" className="btn-ghost">← Jobs</Link>
-      </header>
+      </Masthead>
 
       <InviteComposer workerId={workerId} orgId={access.orgId} />
 

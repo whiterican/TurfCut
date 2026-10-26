@@ -1022,6 +1022,10 @@ body {
   .card-link {
     @apply block text-fg transition;
   }
+  /* A job as one row in a list-card (components/JobRow.tsx, F02): the link is the row. */
+  .job-row {
+    @apply flex min-h-14 items-center justify-between gap-3 px-4 py-3 text-fg transition hover:bg-surface-2;
+  }
   /* The hover affordance the card had before the swipe wrapper took its frame. */
   .card-link.card:hover,
   .swipe-card:has(.card-link:hover) {

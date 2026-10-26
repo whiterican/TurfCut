@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ACCEPTED_STATUSES, inviteLapsed, stageOf } from "@/lib/engagements";
 import { loadPipelineFacts } from "@/lib/engagements-data";
-import { Masthead } from "@/components/staff/Masthead";
+import { Masthead } from "@/components/Masthead";
 import { DataTable } from "@/components/staff/DataTable";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
@@ -91,13 +91,7 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
 
   return (
     <main className="page">
-      <header className="page-header">
-        <div className="space-y-1">
-          <p className="eyebrow">Work</p>
-          <h1 className="page-title">Find your next field job.</h1>
-          <p className="text-muted-sm">Open jobs, soonest first, with pay, place and dates up front.</p>
-        </div>
-      </header>
+      <Masthead eyebrow="Work" title="Find your next field job." meta="Open jobs, soonest first, with pay, place and dates up front." />
 
       {waitingInvites > 0 && (
         <Link href="/jobs/invitations" className="alert-info flex items-center justify-between gap-3">

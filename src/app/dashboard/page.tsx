@@ -7,7 +7,7 @@ import { shiftPriority } from "@/lib/priority";
 import { ACCEPTED_STATUSES } from "@/lib/engagements";
 import { openJobsEndAfter, payShort, payText } from "@/lib/jobs";
 import { loadFeed } from "@/lib/jobs-data";
-import { JobFeedCard } from "@/components/JobFeedCard";
+import { JobRow } from "@/components/JobRow";
 import { LocalTime } from "@/components/LocalTime";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -32,6 +32,7 @@ import { seatsOnOffer } from "@/lib/shift-slots-data";
 import { landingFor } from "@/lib/nav";
 import { roleName } from "@/lib/org-roles";
 import type { Role } from "@/lib/auth";
+import { Masthead } from "@/components/Masthead";
 
 const ROLE_LABELS: Record<string, string> = {
   WORKER: "Field worker",
@@ -284,10 +285,10 @@ async function OpenJobs({ workerId }: { workerId: string }) {
       {open.length === 0 ? (
         <p className="text-muted-sm">No open jobs right now. New ones show up here first.</p>
       ) : (
-        <ul className="space-y-3">
+        <ul className="list-card">
           {open.map((j) => (
             <li key={j.id}>
-              <JobFeedCard j={j} framed />
+              <JobRow j={j} />
             </li>
           ))}
         </ul>
@@ -342,15 +343,7 @@ export default async function DashboardPage() {
 
   return (
     <main className="page">
-      <header className="page-header">
-        <div className="space-y-1.5">
-          <p className="eyebrow">{isWorker ? "Today" : "Account"}</p>
-          <h1 className="page-title">{name}</h1>
-          <p className="text-muted-sm">
-            {[roleName(session, ROLE_LABELS), session.email].filter(Boolean).join(" · ")}
-          </p>
-        </div>
-      </header>
+      <Masthead eyebrow={isWorker ? "Today" : "Account"} title={name} meta={[roleName(session, ROLE_LABELS), session.email].filter(Boolean).join(" · ")} />
 
       {isWorker && <WorkerBrief workerId={session.workerId!} userId={session.userId} />}
       {isWorker && <WorkerHero workerId={session.workerId!} />}

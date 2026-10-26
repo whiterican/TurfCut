@@ -10,6 +10,7 @@ import { LocalTime } from "@/components/LocalTime";
 import { ActionButton } from "@/components/ActionButton";
 import { ApproveLines, HoldLine, RecordReversal, ResolveDispute } from "@/components/PayForms";
 import { approve, checkPayment, hold, payNow, recordReversal, release, resolve } from "./actions";
+import { Masthead } from "@/components/Masthead";
 
 const day = (d: Date) => d.toISOString().slice(0, 10);
 
@@ -88,17 +89,11 @@ export default async function PayPage({ searchParams }: { searchParams: Promise<
 
   return (
     <main className="page max-w-3xl">
-      <header className="page-header">
-        <div className="space-y-1">
-          <p className="eyebrow">Pay</p>
-          <h1 className="page-title">Pay</h1>
-          <p className="text-muted-sm">
+      <Masthead eyebrow="Pay" title="Pay" meta={<div className="space-y-1"><p className="text-muted-sm">
             Supervisors approve the work; you approve the pay. Workers receive the full gross amount — the {PLATFORM_FEE_BPS / 100}% platform fee is invoiced to your organization.
           </p>
           <p className="text-muted-sm"><Link href="/pay/statements" className="link">Monthly statements</Link> · <Link href="/pay?tab=paid#export" className="link">Export the ledger (CSV)</Link></p>
-          {!stripeOn && <p className="text-hint">Stripe isn&apos;t connected yet: you can approve pay, and it&apos;s sent once Stripe is set up.</p>}
-        </div>
-      </header>
+          {!stripeOn && <p className="text-hint">Stripe isn&apos;t connected yet: you can approve pay, and it&apos;s sent once Stripe is set up.</p>}</div>} />
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <div className="stat">

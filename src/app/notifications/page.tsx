@@ -7,6 +7,7 @@ import { loadPostNotices } from "@/lib/campaign-follow-data";
 import { LocalTime } from "@/components/LocalTime";
 import { markNotificationsRead } from "./actions";
 import { EmptyArt } from "@/components/EmptyState";
+import { Masthead } from "@/components/Masthead";
 
 export const metadata = { title: "Notifications · Turfcut" };
 
@@ -35,14 +36,7 @@ export default async function NotificationsPage() {
 
   return (
     <main className="page max-w-2xl">
-      <header className="page-header">
-        <div className="space-y-1">
-          <p className="eyebrow">Updates</p>
-          <h1 className="page-title">Notifications</h1>
-          <p className="text-muted-sm">
-            {viewer === "worker" ? "Hiring steps, your pay disputes and payouts, and new posts from campaigns you asked to hear from." : "Hiring steps, pay disputes and Turfcut's decisions that concern you."} Nobody is told whether you read them.
-          </p>
-        </div>
+      <Masthead eyebrow="Updates" title="Notifications" meta={<>{viewer === "worker" ? "Hiring steps, your pay disputes and payouts, and new posts from campaigns you asked to hear from." : "Hiring steps, pay disputes and Turfcut's decisions that concern you."} Nobody is told whether you read them.</>}>
         {unread > 0 && (
           <form action={markNotificationsRead}>
             {/* Only the ones shown here: anything newer stays unread until it's seen. */}
@@ -50,7 +44,7 @@ export default async function NotificationsPage() {
             <button className="btn-secondary btn-sm">Mark these as read</button>
           </form>
         )}
-      </header>
+      </Masthead>
       {items.length === 0 ? (
         <div className="empty-state">
           <EmptyArt kind="notices" />

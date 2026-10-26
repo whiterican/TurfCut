@@ -3,6 +3,7 @@ import { requireWorker } from "@/lib/worker-session";
 import { loadReceipts } from "@/lib/receipts-data";
 import { LocalTime } from "@/components/LocalTime";
 import { money } from "@/lib/pay";
+import { Masthead } from "@/components/Masthead";
 
 export const metadata = { title: "Receipts · Turfcut" };
 
@@ -14,13 +15,7 @@ export default async function ReceiptsPage() {
   const receipts = await loadReceipts(workerId);
   return (
     <main className="page max-w-2xl">
-      <header className="page-header">
-        <div className="space-y-1">
-          <p className="eyebrow"><Link href="/earnings" className="link">Earnings</Link></p>
-          <h1 className="page-title">Receipts</h1>
-          <p className="text-muted-sm">One for every payment an organization started to your Stripe account, with the shifts it paid.</p>
-        </div>
-      </header>
+      <Masthead eyebrow={<><Link href="/earnings" className="link">Earnings</Link></>} title="Receipts" meta="One for every payment an organization started to your Stripe account, with the shifts it paid." />
       {receipts.length === 0 ? (
         <div className="empty-state">
           <p className="empty-state-title">No payments yet</p>

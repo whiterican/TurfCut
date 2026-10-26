@@ -7,6 +7,7 @@ import { AREA_LABELS, ROLES_MAX } from "@/lib/org-roles";
 import { listOrgRoles } from "@/lib/org-roles-data";
 import { db } from "@/lib/db";
 import { archiveRole } from "./actions";
+import { Masthead } from "@/components/Masthead";
 
 export const metadata = { title: "Roles · Turfcut" };
 
@@ -26,14 +27,9 @@ export default async function RolesPage({ searchParams }: { searchParams: Promis
 
   return (
     <main className="page max-w-3xl">
-      <header className="page-header">
-        <div className="space-y-1">
-          <p className="eyebrow">Organization settings</p>
-          <h1 className="page-title">Roles</h1>
-          <p className="text-muted-sm">The built-in roles stay as they are. Build your own for the seats that don&apos;t fit them, then choose one when you invite someone or change a member&apos;s role.</p>
-        </div>
+      <Masthead eyebrow="Organization settings" title="Roles" meta={<>The built-in roles stay as they are. Build your own for the seats that don&apos;t fit them, then choose one when you invite someone or change a member&apos;s role.</>}>
         <Link href="/org/settings/members" className="btn-ghost btn-sm">Back to members</Link>
-      </header>
+      </Masthead>
 
       {!isOwner && <p className="card text-muted-sm">Only an owner builds roles. You can see them here, and assign the ones that reach no more than you do.</p>}
 

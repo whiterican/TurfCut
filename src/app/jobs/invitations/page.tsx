@@ -7,6 +7,7 @@ import { INVITE_DAYS } from "@/lib/engagements";
 import { ActionButton } from "@/components/ActionButton";
 import { acceptInvitation, declineAsWorker, mute, unmute } from "../actions";
 import { LocalTime } from "@/components/LocalTime";
+import { Masthead } from "@/components/Masthead";
 
 export const metadata = { title: "Invitations · Turfcut" };
 
@@ -38,16 +39,9 @@ export default async function InvitationsPage() {
 
   return (
     <main className="page max-w-2xl">
-      <header className="page-header">
-        <div className="space-y-1">
-          <p className="eyebrow">Work</p>
-          <h1 className="page-title">Invitations</h1>
-          <p className="text-muted-sm">
-            Organizations you&apos;ve worked or applied with can invite you to a job. Each invitation lasts {INVITE_DAYS} days. They can&apos;t see whether you&apos;ve opened it.
-          </p>
-        </div>
+      <Masthead eyebrow="Work" title="Invitations" meta={<>Organizations you&apos;ve worked or applied with can invite you to a job. Each invitation lasts {INVITE_DAYS} days. They can&apos;t see whether you&apos;ve opened it.</>}>
         <Link transitionTypes={["nav-back"]} href="/jobs" className="btn-ghost">← Jobs</Link>
-      </header>
+      </Masthead>
 
       {open.length === 0 ? (
         <div className="empty-state">

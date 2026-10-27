@@ -60,9 +60,9 @@ The owner named the **forest-dark set** as the strongest and asked for the best 
 | Public entry | The photo-led entry "Field work that matters." with a single white CTA | |
 | Jobs list | Photo/tile thumbnails; pay as the second line; a save mark | |
 | Job details | Image header, title + pay, organization with its verification mark, icon fact rows, a requirements checklist, one full-width green "Apply" | |
-| My schedule | Upcoming / Past / Availability segments; day groups; status pills (Confirmed, Pending) with two quiet actions; a "Required actions" list | |
+| My schedule | Upcoming / Past / Availability segments; day groups; status pills **mapped to real states** (Scheduled, On shift, No check-out received, Awaiting review, Approved; §4.1.3) with two quiet actions; a "Required actions" list | "Confirmed" and "Pending" labels with no matching state |
 | Profile | Initials avatar, name and place; a menu of icon rows with a status word on the right | Ratings and stats; a photo |
-| Desktop | Dark rail with the org switcher and user; a wide cream work area; tables with status pills; a map with a list panel on the right | KPI deltas, Rating column |
+| Desktop | Dark rail with the org name and the signed-in person; a wide cream work area; tables with status pills; a map with a list panel on the right | KPI deltas; Rating column; an org *switcher* (a profile belongs to one org; switching would be a schema change) |
 
 **The eggplant sets (images of 27 Oct)**
 
@@ -78,11 +78,12 @@ The owner named the **forest-dark set** as the strongest and asked for the best 
 | Identity | Eggplant as the identity colour: the brand mark, the **active nav tile** (dock and rail), selection and focus | |
 
 **Colour roles:**
-- **Frame:** deep eggplant. The phone shell, dark header, dock and desktop rail use `#281539`, or `#1A0F26`/`#120D18` by night.
+- **Frame:** deep eggplant `#281539` (`#1A0F26` by night) for the desktop rail, the phone header band on Field pages and the public hero overlay. The floating phone dock is a cream sheet (plum by night) with the eggplant active tile, as set in §2.0a.
 - **Content:** cream sheets.
 - **Identity, current place and selection:** eggplant.
   - On a cream surface the active tile is eggplant `#281539` with cream type.
-  - On the eggplant frame it is the raised eggplant `#4A3365` with cream type and a light edge, so it reads against the frame.
+  - On the eggplant frame it is a **lavender `#D8CCE4` tile with ink type** (§2.0a).
+  - **Focus is not eggplant:** it is set per surface (§2.0a, "Focus ring by surface").
 - **The one thing to do, and live state:** forest green, the only saturated green on a screen.
 
 This keeps the v4 brief exactly: "green is the primary-action colour, eggplant is the signature identity/navigation colour".
@@ -154,13 +155,19 @@ The Sunlight frame is black (`--rail-bg` today is white; B1 changes it to black 
 
 - **Colour roles (§2.0).**
   - Forest marks the one primary action and live state.
-  - Eggplant marks the frame (shell), identity, the active nav tile, selection and focus.
+  - Eggplant marks the frame (shell), identity, the active nav tile and selection.
+  - Focus is per surface (§2.0a).
   - Cream sheets carry the content.
   - Status pills always carry words.
 - **Signature details.** The folded corner (`--cut`) appears on primary objects only.
 
 ### 2.1a What today's app does better than the mockups (keep; C1 Q10)
-- **Earnings:** the lifecycle wording ("Approved · payout setup needed", "On hold or disputed") and the per-line formula ("3h 30m verified × $25.00/hr"), from `worker__earnings__worker__390-light.png`.
+- **Earnings:** the lifecycle wording ("On hold or disputed") and the per-line formula ("3h 30m verified × $25.00/hr"), from `worker__earnings__worker__390-light.png`.
+  - **One approved correction (C2):** "Approved · payout setup needed" shows today even when in-app payouts are switched off and there is nothing to set up (`lib/pay.ts:320`, `earnings/page.tsx:160,203`, `dashboard/page.tsx:281`). The label follows the provider state:
+    - provider off → "Approved · sent once in-app payouts are switched on"
+    - provider on, worker not set up → "Approved · payout setup needed", next to the existing `PayoutSetup` action
+    - payouts enabled → "Approved · in the next pay run"
+  - This is a one-function change in `lib/pay.ts` `statusLabel`, plus its callers, with tests.
 - **Job page:** "What counts as payable", the rules profile and version, credentials needed, and "Why it fits" with "no hidden score", from `worker__jobs_jobId__worker__1440-light.png`.
 - **Shift page:** packet custody (picked up, returned, kept), signed corrections, and sync truth ("Nothing waiting to send", memory-only).
 - **Desk:** the "Needs you" operations table (PR #98).
@@ -268,7 +275,7 @@ Each of these strings survives B1–B3 word for word unless a reviewer approves 
    | Domain (source) | Value → badge state, word |
    |---|---|
    | Pay line (`lib/pay` `PayStatus` + `statusLabel`) | `AWAITING_APPROVAL` → `pending` "Awaiting payment approval"<br>`APPROVED` → `approved`, with the payout context word: "Approved · payout setup needed" (state **`approved-blocked`**, ring with a square), "Approved · in the next pay run" or "Approved"<br>`HELD` → **`held`** (square, coral) "On hold"<br>`DISPUTED` → `disputed`<br>`PROCESSING` → **`sending`** (half-filled circle, eggplant) "Sending"<br>`PAID` → `paid`<br>`VOIDED` → `closed` "Replaced"<br>`NOTHING_DUE` → `closed` "Nothing to pay"<br>Negative amounts → `closed` "Deducted…" |
-   | Shift (status + field-day replay) | Scheduled → `pending` "Scheduled"<br>Checked in, now ≤ `endsAt` → `live` "On shift"<br>**Checked in, now > `endsAt` → `overdue` (triangle, warning) "Still checked in · due to end {time}"**. Never `live`<br>On break → `live` "On break"<br>Checked out, awaiting review → `pending`<br>Approved → `approved`; Not approved → `blocked`<br>Cancelled → `closed`<br>Ended without check-in → `closed` "Ended without a check-in" |
+   | Shift (status + field-day replay) | Scheduled → `pending` "Scheduled"<br>Checked in, now ≤ `endsAt` → `live` "On shift"<br>**Checked in, now > `endsAt` → `overdue` (triangle, warning) "No check-out received · was due to end {time}"**. Never `live`. A check-out still queued on the worker's phone reads as checked in on the server, so the worker's own view also shows the queued state<br>On break → `live` "On break"<br>Checked out, awaiting review → `pending`<br>Approved → `approved`; Not approved → `blocked`<br>Cancelled → `closed`<br>Ended without check-in → `closed` "Ended without a check-in" |
    | Sync (`lib/moments` `PillState` + `offline-queue`) | `online` and nothing waiting → `closed`-style quiet "Nothing waiting to send"<br>`syncing` → `sending`<br>`waiting` → **`queued`** (dotted ring) "On this phone, not sent yet"<br>`unsaved` / memory-only → **`memory-only`** (dotted ring plus warning) "Only in memory: don't close the app"<br>`refused` → `blocked` "Refused by the server"<br>`offline` → `queued` "Offline" |
    | Engagement (C3 stages) | applied → `pending`<br>in review → `pending`<br>offered → `approved` "Offer out"<br>hired → `approved` "Hired" (never `live`)<br>declined / withdrawn → `closed`<br>The words come from `engagement-labels` |
    | Sharing | not shared → `not-shared` (never zero) |
@@ -317,7 +324,10 @@ Each of these strings survives B1–B3 word for word unless a reviewer approves 
 | `FieldPage` | in-shift task mode (today: the shift day) | primary object, persistent `ActionBar` above the dock, Sunlight one tap away | the same, two columns (task / brief and map) |
 | `HeroPage` | public landing, sign-in | photo top then form | 45/55 photo/form split; landing: full-bleed hero |
 
-Each template owns, so a page can't get them wrong:
+Each template owns, so a page can't get them wrong (C2):
+- **No new loading UI:** Home, My schedule, campaign pages and `/` stay free of `loading.tsx` and `Suspense` fallbacks (today's choice). No `template.tsx` files are created.
+
+And also:
 - gutters;
 - bottom clearance;
 - the heading slot (`Masthead`);
@@ -345,12 +355,12 @@ Components take **view models** (plain props shaped for display), not Prisma typ
 | `PrimaryObject` | `.hero-card` + variants (4 files) | **New wrapper** over the hero-card CSS. Props:<br>• eyebrow, headline<br>• facts[] and figures[]<br>• state (StatusBadge)<br>• primary action plus up to 2 secondary<br>• optional `aside` (map thumbnail)<br>One per screen |
 | `ListRow` | `JobRow`, `.shift-row`, `Row`, ad-hoc rows | **New base** with leading (icon, avatar or tile), title, meta lines, trailing (figure, badge, chevron) and density. `JobRow`, shift rows, message rows and notification rows become thin adapters |
 | `DataTable` | `staff/DataTable` (sortable, "not shared" grouping, bulk select) | **Promote** to `components/table/`. Add:<br>• a linked filter bar<br>• a selected row driving the inspector<br>• a phone mode that renders `ListRow`s instead of a squeezed table |
-| `Inspector` | none | **New.** A side panel at ≥1024 that is a route segment, so deep links and Back work. On phones it is the detail route.<br>**Access rule (C3):** the inspector segment runs its own guard (`requireArea` with the area and level of the route it belongs to) and its own loader, scoped by the session's `orgId`. It never receives fields from the list's client state. A foreign or out-of-grant id gives the same 404/redirect as the full detail route; a test covers this per inspector |
+| `Inspector` | none | **New.** A side panel at ≥1024.<br>**Mechanism (C2):**<br>• *Not* parallel or intercepting routes. The list page reads `?selected=<id>` and, only when it is present, renders the inspector on the server by calling **the same checked loader as the full detail page**.<br>• Loaders are `load…ForViewer(session, id)` in `lib/*-data.ts`. They do the access checks inside (area, level, `orgId` scope) and return only shared, in-grant fields. Today's inline checks on the applicant page move into these loaders, so there is one copy.<br>• Nothing renders when nothing is selected.<br>• Each row carries two links: the detail route (shown below 1024) and `?selected=` (shown at 1024 and up). CSS hides one, which also removes it from the accessibility tree.<br>• A `?selected=` URL opened on a phone shows the detail content in place of the list.<br>• A foreign or out-of-grant id gives the same 404 or redirect as the detail route.<br>• B1 adds a test that every inspector goes through a `…ForViewer` loader and that no inspector file imports `db()` directly.<br>• **Credentials inspector:** proof photos stay behind an explicit "View proof" link, since every organization look is recorded for the worker. |
 | `StatusBadge` | `badge-*`, `.st` in studies | **New** (§4.1.3) |
 | `FactList` / `KeyValue` | `.fact-list`, `Row`, `.kv` | **Merge** into one with icon support |
 | `Stat` / `Figure` | `.stat`, `LiveFigure` | **Keep**, plus `MathDisclosure` ("how this was worked out": the existing pay formula strings) |
 | `FilterBar` / `Segmented` | chips, `JobsSwitch` | **Generalise** `JobsSwitch` into `Segmented` (links with `aria-current`); chips into a `FilterBar` |
-| `ActionBar` | none (field actions are in flow) | **New**, for `FieldPage`:<br>• **One state-driven primary action** (check in / log signatures / return or keep packet / check out) plus "More actions", which opens a `Sheet`<br>• At most 72px tall<br>• While it shows, the dock tucks (phone); static at ≥1024<br>• Reserves its own height, so content is never under it<br>• A disabled action always shows its reason ("Return or keep PKT-0701 first") |
+| `ActionBar` | none (field actions are in flow) | **New**, for `FieldPage`:<br>• **One state-driven primary action** (check in / log signatures / return or keep packet / check out) plus "More actions", which opens a `Sheet`<br>• At most 72px tall<br>• While it shows, the dock tucks (phone); while a text field has focus the ActionBar steps aside too; static at ≥1024<br>• Reserves its own height, so content is never under it<br>• A disabled action always shows its reason ("Return or keep PKT-0701 first") |
 | `MapPanel` | `TurfMap` (Leaflet/OSM), `TurfWorkbench` | **Keep** the engine. Wrap it in `MapPanel` with layer slots, a legend, a no-map fallback and a provenance line |
 | `EmptyState`, `Sheet`, `NotSharedChip`, `LocalTime`, `ActionButton`, `PageSkeleton` | | **Keep** and restyle through tokens only |
 | `PhotoHero` | none | **New.** Public pages only. Licensed placeholder image, eggplant overlay, labelled until replaced |
@@ -364,7 +374,7 @@ The expansion (walkbooks, territories, imports, visits) plugs into these. None o
 2. **`ListDetailPage` + `ListRow` + `Inspector`.** Applicants today. Stops, households and territories tomorrow. Rows take view models.
 3. **`WorkspacePage` + `MapPanel` with layer slots.** Today's turf polygons and pins. Tomorrow's territory layers and walkbook boundaries, as extra layers rather than a new map.
 4. **Navigation slots.**
-   - The org rail's **Field** section can hold "Territories" and "Walkbooks" entries behind grants. Grant areas come from `lib/access`, so new areas are added there, not in a parallel system.
+   - The org rail's **Field** section can hold "Territories" and "Walkbooks" entries behind grants. Grant areas come from `lib/access`, so new areas are added there, not in a parallel system. A new area changes the access model and needs the owner's approval (CLAUDE.md rule 8); the redesign adds none.
    - The worker shift record can link to a future "Field mode" from the same `PrimaryObject` action.
 5. **Offline-first rows.** `ListRow` and `ActionBar` show the existing sync states (sent / on this phone / memory only / refused) from the M6 queue, so visit entries can reuse them.
 6. **Privacy defaults in components.**
@@ -390,7 +400,7 @@ The **768** column below lists exceptions only. "Panel" means the ≥1024 side c
 
 | Route | Template | Primary object | Panel at ≥1024 | 768 |
 |---|---|---|---|---|
-| `/dashboard` (Home) | `ListPage` | The live or next shift. Overdue: "Still checked in · was due to end …" with "Open shift" | Aside: pay summary (by state, never a blended total), your choices (sharing / political-fit), campaigns | aside below |
+| `/dashboard` (Home) | `ListPage` | The live or next shift. Overdue: "No check-out received · was due to end …" with "Open shift". This needs a new query: today's loader drops shifts past their end | Aside: pay summary (by state, never a blended total), your choices (sharing / political-fit), campaigns | aside below |
 | `/feed` | `ListPage` (reading width) | none | none | |
 | `/notifications` | `ListPage` (reading width), grouped Today / This week / Earlier | none | none | |
 | `/jobs` (Find work) | `ListPage` + `Segmented` + `FilterBar` | none | Inspector: the selected job's preview with Apply | |
@@ -415,7 +425,7 @@ The **768** column below lists exceptions only. "Panel" means the ≥1024 side c
 
 | Route | Template | Primary object | Panel at ≥1024 | 768 |
 |---|---|---|---|---|
-| `/desk` | `WorkspacePage` | "In the field": live now, plus shifts still open after their end | Inspector: the selected "Needs you" row | |
+| `/desk` | `WorkspacePage` | "In the field": live now, plus shifts with **no check-out received** after their end. **Visibility, enforced in the loader** (`desk-data.ts`, new query on `Shift.status = ACTIVE AND endsAt < now`, existing fields only):<br>• full `field` access: names and times<br>• compliance and publisher: counts only, names removed on the server<br>• finance: not shown | Inspector: the selected "Needs you" row | |
 | `/hiring` | `WorkspacePage` | none | Inspector: the selected job's people and what each shares | |
 | `/hiring/[jobId]/applicants`, `/invites`, `/matches` | `ListDetailPage` (`DataTable`) | none | Inspector: the applicant (shared evidence only) | rows, not a squeezed table |
 | `/hiring/[jobId]/people/[engagementId]` | `RecordPage` | The person's stage and next action | Aside: history, snapshot | |
@@ -480,7 +490,8 @@ Nothing merges without the owner's word.
 - Sign-in itself (Supabase) is not exercised.
 - Sign-in stays covered by the existing acceptance scripts against a real auth stack.
 
-**Guarding the harness:**
+**Guarding the harness** (C2: today it gives any visitor a cookie-chosen session, Owner included, against the real database):
+- It must never be deployed, moved or committed.
 - `zz-preview` is in `.git/info/exclude`.
 - B1 adds a test that fails if any tracked file imports `zz-preview` or if the directory is tracked.
 
@@ -515,7 +526,7 @@ Nothing merges without the owner's word.
 ## 7. Invariants every stage must keep (tests or checks)
 
 - **Pay:** amounts, formulas and lifecycle states unchanged (pay tests).
-- **Sharing:** "not shared" is never zero or ranked (applicants/scorecard tests). No political answers in org views.
+- **Sharing:** "not shared" is never zero or ranked (applicants/scorecard tests). Political-fit answers appear only where the worker chose to share them, and only in the single-applicant view, never in tables, lists or inspectors (unchanged from today).
 - **Access:** grants and role access unchanged (`lib/access`, nav tests). Hidden UI is never the only check.
 - **Jurisdiction:** the hard stop is unchanged.
 - **Field day:**
@@ -530,7 +541,7 @@ Nothing merges without the owner's word.
 | Risk | Response |
 |---|---|
 | Template migration touches ~65 routes | Mechanical and reviewed per batch. Data loaders are untouched; only containers change |
-| Drafts #75 and #91 overlap pay/schema | No pay/schema code is edited; C2 confirms |
+| Drafts #75 and #91 overlap: both edit `field-day-data.ts`, `pay-data.ts` and `api-session.ts`; #91 bumps Next to 16.4.3 | The redesign edits none of those three files. New queries (overdue shifts) go in `desk-data.ts` or new files; the payout label change is in `lib/pay.ts` only. Whichever lands second rebases; no schema change |
 | Fraunces adds a font file on every route | One variable file, `display: swap`. **B1** records a baseline and sets budgets on `/`, `/dashboard`, `/shifts/[id]` and `/desk`: LCP ≤2.5s, CLS ≤0.05, font bytes ≤120 KB on a throttled mid-range phone profile. Every later stage is checked against them |
 | Photo licences | Public placeholders from a free-licence library with credits, swapped for the owner's photos before launch |
 

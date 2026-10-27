@@ -7,7 +7,7 @@ import { loadOrgPay } from "@/lib/pay-data";
 import { disputeCounts, noteOverdueDisputes } from "@/lib/dispute-thread-data";
 import { openJobsEndAfter } from "@/lib/jobs";
 import { money } from "@/lib/pay";
-import { applicationsByJob, deskParts, shortOfHeadcount, weekAhead, type DeskParts, type WeekRow } from "@/lib/desk";
+import { URGENCY, applicationsByJob, byUrgency, deskParts, seatsWhenLabel, shortOfHeadcount, weekAhead, type DeskParts, type WeekRow } from "@/lib/desk";
 
 /** One row in "Needs you": what, what it's about, since when, and the next step with where to take it. */
 export interface DeskItem {
@@ -21,17 +21,10 @@ export interface DeskItem {
   action: string;
   /** The time the item rests on, from the record itself (never estimated). */
   when?: { label: string; at: Date };
-  /** Urgency (lower first), by URGENCY below. */
+  /** Urgency, lower first (lib/desk URGENCY). */
   rank: number;
 }
 
-/**
- * "Needs you" order, most urgent first: what is going wrong right now (a
- * worker late to check in, a dispute past its deadline), then what has a
- * deadline today or blocks pay, then what is waiting on a person, then gaps
- * to fill. Within a kind, rows keep their own order (oldest or soonest first).
- */
-const URGENCY = { late: 0, overdue: 1, review: 2, dueToday: 3, payApprove: 4, applications: 5, dispute: 6, short: 7 } as const;
 
 export interface Desk {
   parts: DeskParts;
@@ -98,7 +91,7 @@ export async function loadDesk(actor: { profileId: string; orgId: string; role: 
       needs.push({ key: `apps-${g.jobId}`, title: `${plural(g.count, "application")} waiting`, sub: g.title, tag: "Applied", badge: "badge-sky", href: `/hiring/${g.jobId}/applicants`, action: "See applicants", when: { label: "Oldest", at: g.oldest }, rank: URGENCY.applications });
     }
     for (const j of shortOfHeadcount(jobs.map((j) => ({ id: j.id, title: j.title, headcount: j.headcount, hired: j._count.engagements, startsAt: j.startsAt })))) {
-      needs.push({ key: `short-${j.id}`, title: `${j.short} of ${j.headcount} ${j.headcount === 1 ? "seat" : "seats"} open`, sub: j.title, tag: "Short", badge: "badge-neutral", href: `/jobs/${j.id}`, action: "Open job", when: j.startsAt ? { label: j.startsAt > now ? "Starts" : "Started", at: j.startsAt } : undefined, rank: URGENCY.short });
+      needs.push({ key: `short-${j.id}`, title: `${j.short} of ${j.headcount} ${j.headcount === 1 ? "seat" : "seats"} open`, sub: j.title, tag: "Short", badge: "badge-neutral", href: `/jobs/${j.id}`, action: "Open job", when: j.startsAt ? { label: seatsWhenLabel(j.startsAt, now), at: j.startsAt } : undefined, rank: URGENCY.short });
     }
   }
   if (parts.pay && pay && disputes !== null) {
@@ -115,7 +108,7 @@ export async function loadDesk(actor: { profileId: string; orgId: string; role: 
 
   return {
     parts,
-    needs: [...needs].sort((a, b) => a.rank - b.rank), // a stable sort: each kind keeps its own order
+    needs: byUrgency(needs),
     today: parts.today || parts.readOnly ? ops : null,
     // The week ahead: live jobs that run during the next 7 days (undated ones too).
     week: parts.week && jobs && upcoming

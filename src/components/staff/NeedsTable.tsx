@@ -5,7 +5,7 @@ import type { DeskItem } from "@/lib/desk-data";
 
 /**
  * "Needs you" on the Desk (plan #78, Desk P1): one compact row per thing a
- * role can act on, most urgent first (lib/desk-data URGENCY), with its state,
+ * role can act on, most urgent first (lib/desk URGENCY), with its state,
  * what it's about, the time it rests on and the next step. A table on wide
  * screens; stacked rows below 64rem. Only items the role may act on reach it.
  * The explicit roles keep it a table for screen readers when the stacked

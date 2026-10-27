@@ -1056,6 +1056,10 @@ body {
   .ops-table tbody > tr > * {
     @apply lg:align-middle;
   }
+  /* The rail leaves ~720px at 1024px: the title gives up the table's usual minimum width. */
+  .ops-table tbody th.ops-title {
+    @apply lg:min-w-32;
+  }
   .ops-link {
     @apply inline-flex min-h-11 items-center gap-1 rounded-[var(--radius-control)] px-2 font-semibold underline-offset-4 hover:underline;
     color: var(--kicker);

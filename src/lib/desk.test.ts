@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applicationsByJob, deskParts, shortOfHeadcount, weekAhead } from "./desk";
+import { URGENCY, applicationsByJob, byUrgency, deskParts, seatsWhenLabel, shortOfHeadcount, weekAhead } from "./desk";
 
 const d = (iso: string) => new Date(iso);
 
@@ -53,5 +53,26 @@ describe("the Desk", () => {
       { jobId: "j1", title: "Drive", count: 2, oldest: d("2026-09-30") },
       { jobId: "j2", title: "Canvass", count: 1, oldest: d("2026-10-01") },
     ]);
+  });
+});
+
+describe("Needs you order and times", () => {
+  it("puts what is going wrong now first, gaps to fill last, and keeps each kind's own order", () => {
+    expect(Object.entries(URGENCY).sort((a, b) => a[1] - b[1]).map(([k]) => k)).toEqual(["late", "overdue", "review", "dueToday", "payApprove", "applications", "dispute", "short"]);
+    const rows = [
+      { key: "short-a", rank: URGENCY.short },
+      { key: "apps-a", rank: URGENCY.applications },
+      { key: "late-a", rank: URGENCY.late },
+      { key: "short-b", rank: URGENCY.short },
+      { key: "overdue", rank: URGENCY.overdue },
+      { key: "late-b", rank: URGENCY.late },
+    ];
+    expect(byUrgency(rows).map((r) => r.key)).toEqual(["late-a", "late-b", "overdue", "apps-a", "short-a", "short-b"]);
+    expect(rows[0].key).toBe("short-a"); // not sorted in place
+  });
+  it("says Starts for a job ahead and Started for one under way", () => {
+    const now = d("2026-10-27T12:00:00Z");
+    expect(seatsWhenLabel(d("2026-10-28T12:00:00Z"), now)).toBe("Starts");
+    expect(seatsWhenLabel(d("2026-10-26T12:00:00Z"), now)).toBe("Started");
   });
 });

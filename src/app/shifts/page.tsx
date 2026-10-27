@@ -22,8 +22,9 @@ export default async function MyShiftsPage() {
   const recent = shifts.filter((s) => s.endsAt < now).reverse();
 
   // Grouped under their day (D2): times, place, organization and the status pill on each row.
-  const list = (items: typeof shifts) => (
+  const list = (items: typeof shifts, headingLevel: 2 | 3) => (
     <ShiftDayList
+      headingLevel={headingLevel}
       shifts={items.map((s) => ({
         id: s.id,
         startsAt: s.startsAt.toISOString(),
@@ -51,7 +52,7 @@ export default async function MyShiftsPage() {
           <Link href="/jobs" className="btn-primary mt-4">Find work</Link>
         </div>
       ) : (
-        list(upcoming)
+        list(upcoming, 2)
       )}
       {open.length > 0 && (
         <section className="section" id="open-shifts">
@@ -76,7 +77,7 @@ export default async function MyShiftsPage() {
       {recent.length > 0 && (
         <section className="section">
           <h2 className="section-title">Last 7 days</h2>
-          {list(recent)}
+          {list(recent, 3)}
         </section>
       )}
     </main>

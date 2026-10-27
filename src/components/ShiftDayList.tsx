@@ -26,11 +26,12 @@ const localDay = (offset: number) => {
  * Shifts grouped under the day they start (D2, from the owner's schedule
  * mockup): a day heading ("Today", "Tomorrow", "Sat, Oct 25"), then one row
  * per shift with its times, place and organization, and its status as a pill.
- * Days keep the order they're given in (soonest first, or newest first for
- * the past week). Days are the viewer's own: the server doesn't know the time zone, so it
+ * Days keep the order they're given in, so pass the shifts sorted by start
+ * (soonest first, or newest first for the past week). Days are the viewer's own: the server doesn't know the time zone, so it
  * groups by UTC and the browser regroups after hydration, as LocalTime does.
  */
-export function ShiftDayList({ shifts }: { shifts: DayShift[] }) {
+export function ShiftDayList({ shifts, headingLevel = 3 }: { shifts: DayShift[]; /** The day headings' level under the page's own headings. */ headingLevel?: 2 | 3 }) {
+  const H = headingLevel === 2 ? "h2" : "h3";
   const local = useSyncExternalStore(noop, () => true, () => false);
   const zone = local ? undefined : "UTC";
   const dayKey = (iso: string) => new Date(iso).toLocaleDateString("en-CA", { timeZone: zone });
@@ -48,7 +49,7 @@ export function ShiftDayList({ shifts }: { shifts: DayShift[] }) {
   const groups: Array<{ key: string; label: string; items: DayShift[] }> = [];
   for (const s of shifts) {
     const key = dayKey(s.startsAt);
-    const last = groups.at(-1);
+    const last = groups.at(-1); // sorted input: a day's shifts are consecutive
     if (last?.key === key) last.items.push(s);
     else groups.push({ key, label: heading(key, s.startsAt), items: [s] });
   }
@@ -56,8 +57,8 @@ export function ShiftDayList({ shifts }: { shifts: DayShift[] }) {
   return (
     <div className="space-y-5">
       {groups.map((g) => (
-        <section key={g.key} className="space-y-2" aria-label={g.label}>
-          <h3 className="day-heading">{g.label}</h3>
+        <div key={`${g.key}-${g.items[0].id}`} className="space-y-2">
+          <H className="day-heading">{g.label}</H>
           <ul className="list-card divide-y divide-border">
             {g.items.map((s) => (
               <li key={s.id}>
@@ -76,7 +77,7 @@ export function ShiftDayList({ shifts }: { shifts: DayShift[] }) {
               </li>
             ))}
           </ul>
-        </section>
+        </div>
       ))}
     </div>
   );

@@ -3,7 +3,7 @@ import type { ComponentType, ReactNode } from "react";
 import { day } from "@/components/DateRangeChip";
 import { readLaunch } from "@/lib/job-launch";
 import { jobCardAnswers, jurisdictionLabel, jurisdictionProblems, readHiringModes, type CompensationMethod, type JobType } from "@/lib/jobs";
-import type { JurisdictionProfile } from "@prisma/client";
+import type { JobStatus, JurisdictionProfile } from "@prisma/client";
 
 /**
  * The facts a worker decides on, at the top of a job page (D2): when, where
@@ -18,7 +18,7 @@ export function JobFacts({
 }: {
   job: {
     type: JobType;
-    status: string;
+    status: JobStatus;
     hiringMethod: unknown;
     compensationMethod: CompensationMethod;
     payRateCents: number | null;
@@ -48,11 +48,9 @@ export function JobFacts({
       <Fact icon={MapPin} title={place || "Place to be set"}>
         {launch.mode === "SELF"
           ? "Self-launch: you start from wherever you are."
-          : launch.points.length > 1
-            ? `Staged: you report to one of ${launch.points.length} staging points.`
-            : launch.points.length === 1
-              ? "Staged: you report to the job's staging point."
-              : "Staged: you report to a staging point set for each shift."}
+          : launch.points.length
+            ? "Staged: you report to a staging point; each shift names it."
+            : "Staged: you report to a staging point set for each shift."}
       </Fact>
       <Fact icon={Users} title={job.headcount ? `${acceptedCount} of ${job.headcount} spots filled` : `${acceptedCount} hired so far`}>
         {job.headcount && acceptedCount >= job.headcount
@@ -71,8 +69,8 @@ export function JobFacts({
         {rulesOk
           ? "A current, approved rule profile for this place."
           : job.status === "DRAFT"
-            ? "This place's rules need approval before the job can publish."
-            : "This place's rules need re-approval, so no new shifts can be scheduled until they are."}
+            ? "This place's rules must be current and approved before the job can publish."
+            : "This place's rules aren't current, so no new shifts or open seats can be added until they are."}
       </Fact>
     </ul>
   );

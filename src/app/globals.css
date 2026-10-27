@@ -394,8 +394,9 @@ body {
   .shift-row {
     @apply flex items-start gap-3 px-4 py-3 transition-colors hover:bg-surface-2;
   }
-  li:first-child > .shift-row {
-    @apply rounded-t-[inherit];
+  /* Rows inside a clipped list card draw their keyboard ring inside the row. */
+  :is(.shift-row, .job-row):focus-visible {
+    outline-offset: -3px;
   }
 
   /* ---- Surfaces -------------------------------------------------------- */

@@ -149,9 +149,11 @@
   --on-primary: #fbf7f0;
   --secondary: #30223f;
   --secondary-border: #8f7da6;
-  --hero: #4a3365;
-  --hero-fg: #f6f1e6;
-  --hero-muted: #f1eaf8;
+  /* The primary object by night is cream (v4 hybrid): ink type on paper, the
+     deep eggplant shell and plum secondary surfaces around it. */
+  --hero: #fbf7f0;
+  --hero-fg: #1b1422;
+  --hero-muted: #4a4254;
   --hero-border: transparent;
   --tab-active-bg: #4a3365;
   --tab-active-fg: #fbf7f0;
@@ -242,9 +244,9 @@ html {
   /* Shape (G2): calm, precise corners. Cards 14px, panels inside them 12px,
      buttons 10px. The floating dock, status pills, chat bubbles and sheets keep
      their rounder shapes on purpose. */
-  --radius-card: 0.875rem;
-  --radius-inner: 0.75rem;
-  --radius-control: 0.625rem;
+  --radius-card: 1.25rem;
+  --radius-inner: 1rem;
+  --radius-control: 0.75rem;
 }
 /* ---- Motion (P1.1) ------------------------------------------------------ */
 /* Every duration and curve in the app comes from these (src/lib/motion.ts
@@ -294,6 +296,8 @@ html {
   --font-sans: var(--font-barlow);
   --font-mono: var(--font-dm-mono);
   --font-condensed: var(--font-barlow-condensed);
+  /* The editorial display face (redesign E1): page titles, hero headlines, section titles. */
+  --font-display: var(--font-fraunces), Georgia, "Times New Roman", serif;
   /* Tailwind's `transition` utility runs on the tokens too. */
   --default-transition-duration: var(--dur-fast);
   --default-transition-timing-function: var(--ease-standard);
@@ -348,12 +352,13 @@ body {
     @apply flex flex-wrap items-end justify-between gap-3;
   }
   .page-title {
-    @apply text-3xl leading-[1.05] font-bold tracking-[-0.03em] text-fg sm:text-4xl;
+    @apply font-display text-[2rem] leading-[1.06] font-semibold tracking-[-0.02em] text-fg sm:text-[2.75rem];
+    font-optical-sizing: auto;
     text-wrap: balance;
   }
   /* the brand face: organization and job names, in page heads and on job cards. */
   .masthead {
-    /* Headlines are the brand face, semibold and tight: never a serif. */
+    /* Names on cards stay in the workhorse sans; a page head's title (.page-title) takes the display serif. */
     @apply font-semibold tracking-[-0.02em] text-fg;
   }
   .page-title.masthead {
@@ -388,7 +393,8 @@ body {
     @apply space-y-4;
   }
   .section-title {
-    @apply text-lg font-bold tracking-[-0.01em] text-fg;
+    @apply font-display text-xl leading-tight font-semibold tracking-[-0.01em] text-fg sm:text-[1.375rem];
+    font-optical-sizing: auto;
   }
   .lead {
     @apply max-w-prose text-base leading-relaxed text-muted;
@@ -567,7 +573,9 @@ body {
     max-width: calc(100% - 4rem); /* clear the corner cut */
   }
   .hero-title {
-    @apply max-w-[80%] text-2xl leading-tight font-bold tracking-[-0.02em] sm:text-3xl;
+    @apply font-display max-w-[85%] text-[1.5rem] leading-[1.12] font-semibold tracking-[-0.015em] sm:text-[2.125rem];
+    font-optical-sizing: auto;
+    text-wrap: balance;
   }
   .hero-muted {
     color: var(--hero-muted);

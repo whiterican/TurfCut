@@ -248,7 +248,7 @@ describe("token plumbing", () => {
     // A var() of an undefined property makes its whole declaration invalid, silently: a removed token
     // must not leave a reference behind (it took the priority rings' shadow with it once).
     const defined = new Set([...css.matchAll(/--([\w-]+)\s*:/g)].map((m) => m[1]));
-    const fromFonts = new Set(["font-barlow", "font-barlow-condensed", "font-dm-mono"]);
+    const fromFonts = new Set(["font-barlow", "font-barlow-condensed", "font-dm-mono", "font-fraunces"]);
     const dangling = [...new Set([...css.matchAll(/var\(--([\w-]+)\)/g)].map((m) => m[1]))].filter((n) => !defined.has(n) && !fromFonts.has(n));
     expect(dangling).toEqual([]);
   });

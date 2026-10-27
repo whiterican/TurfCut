@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import brandMark from "../../public/brand/icons/icon-96.png";
-import { Barlow, Barlow_Condensed, DM_Mono } from "next/font/google";
+import { Barlow, Barlow_Condensed, DM_Mono, Fraunces } from "next/font/google";
 import { OrgRail, OrgTabBar, TabBar, TopNav } from "@/components/AppNav";
 import { InlineScript } from "@/components/InlineScript";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -34,6 +34,14 @@ const barlowCondensed = Barlow_Condensed({
   variable: "--font-barlow-condensed",
   subsets: ["latin"],
   weight: ["600", "700"],
+});
+
+// The display face (redesign E1): page titles, hero headlines and section
+// titles only. Data, labels, forms and card titles stay in Barlow.
+const fraunces = Fraunces({
+  variable: "--font-fraunces",
+  subsets: ["latin"],
+  axes: ["opsz"],
 });
 
 const dmMono = DM_Mono({
@@ -81,7 +89,7 @@ export default async function RootLayout({
       lang="en"
       // Server renders dark (the primary theme); the inline script corrects
       // it before first paint, so React must accept the DOM's class.
-      className={`dark ${barlow.variable} ${dmMono.variable} ${barlowCondensed.variable} h-full antialiased`}
+      className={`dark ${barlow.variable} ${dmMono.variable} ${barlowCondensed.variable} ${fraunces.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <head>

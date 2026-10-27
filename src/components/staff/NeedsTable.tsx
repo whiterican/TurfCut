@@ -5,40 +5,45 @@ import type { DeskItem } from "@/lib/desk-data";
 
 /**
  * "Needs you" on the Desk (plan #78, Desk P1): one compact row per thing a
- * role can act on, most urgent first, with what it's about, the time it rests
- * on and the next step. A table from tablet width up; stacked rows on a phone.
- * Only items the role may act on reach it (lib/desk-data).
+ * role can act on, most urgent first (lib/desk-data URGENCY), with its state,
+ * what it's about, the time it rests on and the next step. A table on wide
+ * screens; stacked rows below 64rem. Only items the role may act on reach it.
+ * The explicit roles keep it a table for screen readers when the stacked
+ * layout changes the cells' display (WebKit drops table semantics then).
  */
 export function NeedsTable({ items }: { items: DeskItem[] }) {
   return (
     <div className="data-table-wrap ops-table-wrap">
-      <table className="data-table ops-table">
+      <table role="table" className="data-table ops-table">
         <caption className="sr-only">Things that need you, most urgent first</caption>
-        <thead>
-          <tr>
-            <th scope="col">State</th>
-            <th scope="col">What needs you</th>
-            <th scope="col">About</th>
-            <th scope="col">Since</th>
-            <th scope="col"><span className="sr-only">Next step</span></th>
+        <thead role="rowgroup">
+          <tr role="row">
+            <th role="columnheader" scope="col">What needs you</th>
+            <th role="columnheader" scope="col">State</th>
+            <th role="columnheader" scope="col">About</th>
+            <th role="columnheader" scope="col">When</th>
+            <th role="columnheader" scope="col"><span className="sr-only">Next step</span></th>
           </tr>
         </thead>
-        <tbody>
+        <tbody role="rowgroup">
           {items.map((n) => (
-            <tr key={n.key}>
-              <td className="ops-state"><span className={n.badge}>{n.tag}</span></td>
-              <th scope="row" className="ops-title">{n.title}</th>
-              <td className="ops-about">{n.sub}</td>
-              <td className="ops-when">
+            <tr role="row" key={n.key}>
+              <th role="rowheader" scope="row" className="ops-title">{n.title}</th>
+              <td role="cell" className="ops-state"><span className={n.badge}>{n.tag}</span></td>
+              <td role="cell" className="ops-about">{n.sub}</td>
+              <td role="cell" className="ops-when">
                 {n.when ? (
                   <>
-                    {n.when.label} <LocalTime iso={n.when.at.toISOString()} />
+                    {n.when.label} <LocalTime iso={n.when.at.toISOString()} mode="short" />
                   </>
                 ) : (
-                  <span aria-label="No time">—</span>
+                  <>
+                    <span aria-hidden>—</span>
+                    <span className="sr-only">No time</span>
+                  </>
                 )}
               </td>
-              <td className="ops-action">
+              <td role="cell" className="ops-action">
                 <Link transitionTypes={["nav-forward"]} href={n.href} className="ops-link" aria-label={`${n.action}: ${n.title}`}>
                   {n.action}
                   <ChevronRight aria-hidden className="size-4" />

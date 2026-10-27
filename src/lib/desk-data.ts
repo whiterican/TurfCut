@@ -21,7 +21,17 @@ export interface DeskItem {
   action: string;
   /** The time the item rests on, from the record itself (never estimated). */
   when?: { label: string; at: Date };
+  /** Urgency (lower first), by URGENCY below. */
+  rank: number;
 }
+
+/**
+ * "Needs you" order, most urgent first: what is going wrong right now (a
+ * worker late to check in, a dispute past its deadline), then what has a
+ * deadline today or blocks pay, then what is waiting on a person, then gaps
+ * to fill. Within a kind, rows keep their own order (oldest or soonest first).
+ */
+const URGENCY = { late: 0, overdue: 1, review: 2, dueToday: 3, payApprove: 4, applications: 5, dispute: 6, short: 7 } as const;
 
 export interface Desk {
   parts: DeskParts;
@@ -80,31 +90,32 @@ export async function loadDesk(actor: { profileId: string; orgId: string; role: 
 
   const needs: DeskItem[] = [];
   if (parts.field && ops) {
-    for (const r of ops.late) needs.push({ key: `late-${r.shift.id}`, title: `${r.shift.engagement.worker.displayName} hasn't checked in`, sub: r.shift.engagement.job.title, tag: "Late", badge: "badge-coral", href: `/shifts/${r.shift.id}`, action: "Open shift", when: { label: "Started", at: r.shift.startsAt } });
-    for (const r of ops.awaitingReview) needs.push({ key: `review-${r.shift.id}`, title: `Review ${r.shift.engagement.worker.displayName}'s shift`, sub: r.shift.engagement.job.title, tag: "Review", badge: "badge-butter", href: `/shifts/${r.shift.id}`, action: "Review shift", when: r.state.checkedOutAt ? { label: "Checked out", at: r.state.checkedOutAt } : undefined });
+    for (const r of ops.late) needs.push({ key: `late-${r.shift.id}`, title: `${r.shift.engagement.worker.displayName} hasn't checked in`, sub: r.shift.engagement.job.title, tag: "Late", badge: "badge-coral", href: `/shifts/${r.shift.id}`, action: "Open shift", when: { label: "Due", at: r.shift.startsAt }, rank: URGENCY.late });
+    for (const r of ops.awaitingReview) needs.push({ key: `review-${r.shift.id}`, title: `Review ${r.shift.engagement.worker.displayName}'s shift`, sub: r.shift.engagement.job.title, tag: "Review", badge: "badge-butter", href: `/shifts/${r.shift.id}`, action: "Review shift", when: r.state.checkedOutAt ? { label: "Checked out", at: r.state.checkedOutAt } : undefined, rank: URGENCY.review });
   }
   if (parts.hiring && apps && jobs) {
     for (const g of applicationsByJob(apps.map((a) => ({ jobId: a.jobId, title: a.job.title, appliedAt: a.createdAt })))) {
-      needs.push({ key: `apps-${g.jobId}`, title: `${plural(g.count, "application")} waiting`, sub: g.title, tag: "Applied", badge: "badge-sky", href: `/hiring/${g.jobId}/applicants`, action: "See applicants", when: { label: "Oldest", at: g.oldest } });
+      needs.push({ key: `apps-${g.jobId}`, title: `${plural(g.count, "application")} waiting`, sub: g.title, tag: "Applied", badge: "badge-sky", href: `/hiring/${g.jobId}/applicants`, action: "See applicants", when: { label: "Oldest", at: g.oldest }, rank: URGENCY.applications });
     }
     for (const j of shortOfHeadcount(jobs.map((j) => ({ id: j.id, title: j.title, headcount: j.headcount, hired: j._count.engagements, startsAt: j.startsAt })))) {
-      needs.push({ key: `short-${j.id}`, title: `${j.short} of ${j.headcount} ${j.headcount === 1 ? "seat" : "seats"} open`, sub: j.title, tag: "Short", badge: "badge-neutral", href: `/jobs/${j.id}`, action: "Open job", when: j.startsAt ? { label: "Starts", at: j.startsAt } : undefined });
+      needs.push({ key: `short-${j.id}`, title: `${j.short} of ${j.headcount} ${j.headcount === 1 ? "seat" : "seats"} open`, sub: j.title, tag: "Short", badge: "badge-neutral", href: `/jobs/${j.id}`, action: "Open job", when: j.startsAt ? { label: j.startsAt > now ? "Starts" : "Started", at: j.startsAt } : undefined, rank: URGENCY.short });
     }
   }
   if (parts.pay && pay && disputes !== null) {
     if (pay.awaiting.length) {
       const cents = pay.awaiting.reduce((n, l) => n + l.line.amountCents, 0);
-      needs.push({ key: "pay-approve", title: `${plural(pay.awaiting.length, "pay line")} to approve`, sub: `${money(cents)} in total`, tag: "Approve", badge: "badge-accent", href: "/pay?tab=approve", action: "Approve pay" });
+      const oldest = pay.awaiting.reduce((d, l) => (l.line.createdAt < d ? l.line.createdAt : d), pay.awaiting[0].line.createdAt);
+      needs.push({ key: "pay-approve", title: `${plural(pay.awaiting.length, "pay line")} to approve`, sub: `${money(cents)} in total`, tag: "Approve", badge: "badge-accent", href: "/pay?tab=approve", action: "Approve pay", when: { label: "Oldest", at: oldest }, rank: URGENCY.payApprove });
     }
-    if (disputes.overdue) needs.push({ key: "pay-disputes-overdue", title: `${plural(disputes.overdue, "dispute")} overdue`, sub: "A reply or a resolution is past its deadline", tag: "Overdue", badge: "badge-coral", href: "/pay?tab=disputes", action: "Open disputes" });
-    if (disputes.dueToday) needs.push({ key: "pay-disputes-today", title: `${plural(disputes.dueToday, "dispute")} due today`, sub: "Reply or resolve before the day ends", tag: "Due", badge: "badge-butter", href: "/pay?tab=disputes", action: "Open disputes" });
+    if (disputes.overdue) needs.push({ key: "pay-disputes-overdue", title: `${plural(disputes.overdue, "dispute")} overdue`, sub: "A reply or a resolution is past its deadline", tag: "Overdue", badge: "badge-coral", href: "/pay?tab=disputes", action: "Open disputes", rank: URGENCY.overdue });
+    if (disputes.dueToday) needs.push({ key: "pay-disputes-today", title: `${plural(disputes.dueToday, "dispute")} due today`, sub: "Reply or resolve before the day ends", tag: "Due", badge: "badge-butter", href: "/pay?tab=disputes", action: "Open disputes", rank: URGENCY.dueToday });
     const rest = disputes.open - disputes.overdue - disputes.dueToday;
-    if (rest) needs.push({ key: "pay-disputes", title: `${plural(rest, "open dispute")}`, sub: "Workers questioning their pay", tag: "Dispute", badge: "badge-coral", href: "/pay?tab=disputes", action: "Open disputes" });
+    if (rest) needs.push({ key: "pay-disputes", title: `${plural(rest, "open dispute")}`, sub: "Workers questioning their pay", tag: "Dispute", badge: "badge-coral", href: "/pay?tab=disputes", action: "Open disputes", rank: URGENCY.dispute });
   }
 
   return {
     parts,
-    needs,
+    needs: [...needs].sort((a, b) => a.rank - b.rank), // a stable sort: each kind keeps its own order
     today: parts.today || parts.readOnly ? ops : null,
     // The week ahead: live jobs that run during the next 7 days (undated ones too).
     week: parts.week && jobs && upcoming

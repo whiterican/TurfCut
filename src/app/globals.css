@@ -1035,34 +1035,38 @@ body {
     width: calc(var(--bar, 0) * 100%);
     animation: tc-grow var(--dur-slow) var(--ease-out) both;
   }
-  /* "Needs you" (Desk): a table from tablet width up; on a phone each row stacks
-     as title + state, what it's about, since when, and the next step. */
+  /* "Needs you" (Desk): a table from 64rem up; below, each row stacks as
+     title + state, what it's about, then when beside the next step. */
   .ops-table-wrap {
     @apply max-h-none;
   }
   .ops-table thead {
-    @apply max-sm:sr-only;
+    @apply max-lg:sr-only;
   }
   .ops-table .ops-about,
   .ops-table .ops-when {
     @apply text-muted;
   }
   .ops-table .ops-when {
-    @apply whitespace-nowrap tabular-nums;
+    @apply tabular-nums lg:whitespace-nowrap;
   }
   .ops-table .ops-action {
     @apply text-right whitespace-nowrap;
   }
-  .ops-link {
-    @apply inline-flex min-h-11 items-center gap-1 rounded-[var(--radius-control)] px-2 font-semibold text-kicker underline-offset-4 hover:underline;
+  .ops-table tbody > tr > * {
+    @apply lg:align-middle;
   }
-  @media (max-width: 39.99rem) {
+  .ops-link {
+    @apply inline-flex min-h-11 items-center gap-1 rounded-[var(--radius-control)] px-2 font-semibold underline-offset-4 hover:underline;
+    color: var(--kicker);
+  }
+  @media (width < 64rem) {
     .ops-table,
     .ops-table tbody {
       @apply block;
     }
     .ops-table tbody tr {
-      @apply grid border-b border-border px-3 py-3;
+      @apply grid items-center border-b border-border px-3 py-3;
       grid-template-columns: minmax(0, 1fr) auto;
       grid-template-areas: "title state" "about about" "when action";
       column-gap: 0.75rem;
@@ -1078,13 +1082,15 @@ body {
       grid-area: title;
     }
     .ops-table .ops-state {
+      @apply self-start justify-self-end;
       grid-area: state;
     }
     .ops-table .ops-about {
       grid-area: about;
     }
+    /* Wraps rather than running under the link. */
     .ops-table .ops-when {
-      @apply self-center text-xs;
+      @apply min-w-0 text-xs;
       grid-area: when;
     }
     .ops-table .ops-action {

@@ -129,6 +129,50 @@
   color-scheme: dark;
 }
 
+.sun {
+  /* Sunlight (P1.5): the outdoor theme. Built on light (it never carries
+     .dark): white paper, black text, near-black edges, and the brand kept
+     to the lime fill and lime type on the black tab tile. Every pairing clears a
+     higher bar than the other themes (design-tokens.test.ts). Nothing is
+     see-through and nothing casts a shadow. */
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --surface-2: #eeeeee;
+  --field: #ffffff;
+  --border: #4a4254;
+  --border-strong: #000000;
+  --fg: #000000;
+  --muted: #1b1422;
+  --subtle: #2b2433;
+  --link: #2a173e;
+  --kicker: #2a173e;
+  --focus: #2a173e;
+  --selected: #000000;
+  --danger: #8a1c0c;
+  --success: #2a173e;
+  --warning: #3a2200;
+  --primary: #000000;
+  --switch-on: #2a173e;
+  --on-primary: #d6f25a;
+  --secondary: #ffffff;
+  --secondary-border: #000000;
+  --hero: #000000;
+  --hero-fg: #ffffff;
+  --hero-muted: #ebebeb;
+  --hero-border: transparent;
+  --tab-active-bg: #000000;
+  --tab-active-fg: #d6f25a;
+  --sky: #d9cfe6;
+  --coral: #f1c6bd;
+  --butter: #e4dccd;
+  --ring: #6a4c91;
+  --ring-2: #4a3070;
+  --ring-3: #2a173e;
+  --shadow-depth: 0 0 0 0 transparent;
+  --shadow: var(--shadow-depth);
+  color-scheme: light;
+}
+
 /* Frame tokens: the surfaces that float (tab bar, header buttons, the More
    sheet, map controls, icon buttons, sticky table headers). Plain paper now;
    the names stay so every surface rule reads the same way. */
@@ -841,6 +885,21 @@ body {
   .data-table th.text-right {
     @apply text-right whitespace-nowrap tabular-nums;
   }
+  /* A share drawn under a figure (lib/table `bar`): grows from the left when the table appears. */
+  .cell-barred {
+    @apply inline-flex flex-col items-end gap-1;
+  }
+  .cell-bar {
+    @apply block h-1 w-16 overflow-hidden rounded-full;
+    background: var(--border);
+  }
+  .cell-bar::after {
+    @apply block h-full rounded-full;
+    content: "";
+    background: var(--accent);
+    width: calc(var(--bar, 0) * 100%);
+    animation: tc-grow var(--dur-slow) var(--ease-out) both;
+  }
   .data-table-sort {
     @apply -mx-1 inline-flex items-center gap-1 rounded px-1 py-0.5 font-semibold hover:text-fg;
   }
@@ -911,6 +970,78 @@ body {
   }
   .dark .more-sheet::backdrop {
     background: rgb(8 4 14 / 0.6);
+  }
+  /* Bottom sheet (components/Sheet.tsx, P1.6): a native modal dialog that
+     springs up from the bottom edge; centred on wide screens. */
+  .sheet {
+    @apply w-full max-w-md border-0 bg-transparent p-0;
+    max-height: 100dvh;
+    color: inherit;
+  }
+  .sheet-panel {
+    @apply relative flex max-h-[85dvh] flex-col rounded-t-3xl border border-b-0;
+    padding-bottom: env(safe-area-inset-bottom);
+    background: var(--surface);
+    border-color: var(--border);
+    box-shadow: var(--shadow);
+  }
+  .sheet-grip {
+    @apply shrink-0 cursor-grab px-4 pt-2 pb-2 select-none;
+    touch-action: none;
+  }
+  .sheet-handle {
+    @apply mx-auto mb-3 block h-1 w-12 rounded-full;
+    background: var(--accent);
+  }
+  .sheet-body {
+    @apply min-h-0 overflow-y-auto px-4 pb-4;
+  }
+  .sheet::backdrop {
+    background: rgb(24 20 30 / 0.45);
+  }
+  .dark .sheet::backdrop {
+    background: rgb(8 4 14 / 0.6);
+  }
+  @media (min-width: 40rem) {
+    .sheet-panel {
+      @apply rounded-3xl border-b;
+      padding-bottom: 0;
+    }
+  }
+  /* Swipeable feed card (components/SwipeCard.tsx, P1.6): the card rides over
+     a lime Save or a stone Hide underlay. */
+  .swipe {
+    @apply relative;
+  }
+  .swipe-card {
+    @apply relative rounded-3xl border border-border p-4 transition-colors sm:p-5;
+    background: var(--card-sheen), var(--card-bg);
+    box-shadow: var(--card-edge), var(--shadow-depth);
+    touch-action: pan-y;
+  }
+  .card-link {
+    @apply block text-fg transition;
+  }
+  /* The hover affordance the card had before the swipe wrapper took its frame. */
+  .card-link.card:hover,
+  .swipe-card:has(.card-link:hover) {
+    border-color: var(--border-strong);
+  }
+  .swipe-under {
+    @apply pointer-events-none absolute inset-0 flex items-center gap-2 rounded-3xl px-6 text-sm font-bold;
+  }
+  .swipe-under-save {
+    @apply justify-start;
+    background: var(--accent);
+    color: var(--ink);
+  }
+  .swipe-under-hide {
+    @apply justify-end;
+    background: var(--surface-2);
+    color: var(--fg);
+  }
+  .swipe-actions {
+    @apply mt-3 flex flex-wrap gap-2 border-t border-border pt-3;
   }
   .topnav-link {
     @apply rounded-lg px-3 py-2 text-sm font-medium text-muted transition hover:bg-surface-2 hover:text-fg;
@@ -1395,6 +1526,58 @@ summary.list-none::-webkit-details-marker {
   opacity: 0.85;
   cursor: progress;
 }
+/* Field-worker moments (components/Moments.tsx, P1.4). */
+/* A ring that fills: the shift's time worked, a rate on the scorecard. */
+.progress-ring {
+  flex: none;
+  rotate: -90deg;
+}
+.progress-ring-track,
+.progress-ring-fill {
+  fill: none;
+  stroke-width: 4;
+}
+.progress-ring-track {
+  stroke: var(--border);
+}
+.progress-ring-fill {
+  stroke: var(--success);
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+}
+/* On a hero card the ring takes the card's own ink: lime and eggplant cards both keep it visible. */
+.hero-card .progress-ring-fill {
+  stroke: currentColor;
+}
+.hero-card .progress-ring-track {
+  stroke: color-mix(in srgb, currentColor 25%, transparent);
+}
+/* The connection pill: its colour follows the state, its words slide in. */
+.pill {
+  transition-property: background-color, border-color, color;
+  transition-duration: var(--dur-base);
+  transition-timing-function: var(--ease-standard);
+}
+.pill-face {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  animation: tc-pill-in var(--dur-base) var(--spring) both;
+}
+@keyframes tc-pill-in {
+  from { opacity: 0; translate: 0 0.5em; }
+}
+/* A pay line arriving at paid: from its old colour, with a check drawn in. */
+.pay-morph {
+  animation: tc-badge-morph var(--dur-slow) var(--ease-out) both;
+}
+.pay-morph .btn-check path {
+  stroke-dasharray: 1;
+  animation: tc-draw var(--dur-base) var(--ease-out) var(--dur-fast) both;
+}
+@keyframes tc-badge-morph {
+  from { background-color: var(--from-bg, var(--sky)); }
+}
 /* An empty state's drawing settles in with the page (size and colours: .empty-art in the components layer). */
 .empty-art {
   animation: tc-rise var(--dur-slow) var(--ease-out) both;
@@ -1404,6 +1587,168 @@ summary.list-none::-webkit-details-marker {
 }
 @keyframes tc-draw {
   from { stroke-dashoffset: 1; }
+}
+/* ---- Sunlight: heavier strokes ------------------------------------------ */
+/* Outdoors a hairline vanishes and see-through reads as missing: edges go to
+   2px, icons draw heavier, body text a weight up, links underline in their
+   own colour, and faded or translucent things are made solid. Screen only:
+   printing keeps its own plain look. */
+@media screen {
+  .sun body {
+    font-weight: 500;
+  }
+  .sun :is(.card, .card-flat, .card-dashed, .stat, .list-card, .empty-state, .hero-card, .field, .option-card, .btn-secondary, .tabbar, .kv, .alert, .alert-warning, .alert-info, .quick-reply, .icon-btn, .summary-bar, .data-table-wrap, .composer-input, .sheet-panel, .swipe-card) {
+    border-width: 2px;
+  }
+  .sun :is(.alert, .alert-warning, .alert-info) {
+    border-color: var(--border);
+  }
+  .sun :is(.badge-solid, .badge-butter, .badge-party, .badge-neutral, .badge-sky, .badge-coral, .badge-accent, .badge-dashed, .chip, .filter-chip, .filter-chip-on) {
+    border-width: 2px;
+    border-color: var(--border-strong);
+  }
+  /* The lime card has no edge of its own; on white it needs one (priority rings bring theirs). */
+  .sun .hero-card-accent:not([data-priority="1"], [data-priority="2"], [data-priority="3"]) {
+    border-color: var(--border-strong);
+  }
+  .sun :is(.tabbar, .turf-map.leaflet-container .leaflet-bar) {
+    box-shadow: none;
+  }
+  .sun svg.lucide {
+    stroke-width: 2.5;
+  }
+  .sun .link {
+    text-decoration-color: currentColor;
+  }
+  .sun .empty-art .dim {
+    stroke: var(--border);
+    opacity: 1;
+  }
+  .sun :is(.opacity-50, .opacity-75) {
+    opacity: 1;
+  }
+  .sun [class*="ring-success/"] {
+    --tw-ring-color: var(--success);
+  }
+  /* The on/off switch: off is an outlined white track with a black knob, on is black with lime. */
+  .sun .toggle input:not(:checked) {
+    background: var(--surface-2);
+    border-color: var(--border-strong);
+  }
+  .sun .toggle input:not(:checked)::after {
+    background: var(--fg);
+  }
+  /* Safari's native switch keeps its own look. */
+  @supports selector(::thumb) {
+    .sun .toggle input[switch]:not(:checked) {
+      background: none;
+    }
+  }
+  /* A disabled button can't hide behind faded colour in glare: it turns grey
+     with a dashed outline (an outline, so nothing shifts when it flips). A busy
+     one keeps its look, solid. */
+  .sun :is(.btn, .btn-primary, .btn-secondary, .btn-ghost, .send-btn, .step):disabled:not([aria-busy="true"]) {
+    opacity: 1;
+    background: var(--surface-2);
+    color: var(--fg);
+    border-color: transparent;
+    outline: 2px dashed var(--border);
+    outline-offset: -2px;
+  }
+  .sun :is(.btn, .btn-primary, .btn-secondary, .btn-ghost)[aria-busy="true"]:disabled {
+    opacity: 1;
+  }
+  /* The field-day Sunlight switch reads as pressed while Sunlight is on. */
+  .sun .sun-toggle {
+    background: var(--primary);
+    color: var(--on-primary);
+    border-color: transparent;
+  }
+}
+/* The sheet's place is set outside the layers: it is a DOM child of whatever
+   section opened it, and that section's spacing utility (space-y-*) would
+   otherwise give it a bottom margin and lift it off the edge. (Tailwind v4
+   compiles space-y-* to a zero-specificity rule in the utilities layer, which
+   beats anything in the components layer; a parent whose spacing came from
+   .section's @apply would not need this.) */
+.sheet {
+  inset: auto 0 0 0;
+  margin: 0 auto;
+}
+@media (min-width: 40rem) {
+  .sheet {
+    inset: 0;
+    margin: auto;
+  }
+}
+/* Pull to refresh (components/PullToRefresh.tsx, P1.8): a ring on a card
+   that comes out from under the header as the page is pulled, in the
+   installed app only. Spins while the page re-renders. */
+.pull {
+  /* Under the sticky header (z 45) at rest, so it comes out from beneath it; at the threshold it sits clear below. */
+  position: fixed;
+  top: 0.25rem;
+  left: 50%;
+  z-index: 30;
+  display: flex;
+  width: 2.75rem;
+  height: 2.75rem;
+  margin-left: -1.375rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: 9999px;
+  background: var(--surface);
+  box-shadow: var(--shadow-depth);
+  pointer-events: none;
+}
+/* The ring's own turn (it rests at -90deg so the arc starts at the top; a plain tc-spin would snap each lap). */
+.pull-spin .progress-ring {
+  animation: tc-spin-ring calc(var(--dur-slow) * 2) var(--ease-linear) infinite;
+}
+@keyframes tc-spin-ring {
+  from {
+    rotate: -90deg;
+  }
+  to {
+    rotate: 270deg;
+  }
+}
+/* Installed: the page's own pull does the refreshing, so the browser's must stay out of it (and the top never rubber-bands past the header). */
+@media (display-mode: standalone) {
+  html {
+    overscroll-behavior-y: contain;
+  }
+}
+/* The sheet springs up when it opens (components/Sheet.tsx). */
+.sheet[open] .sheet-panel {
+  animation: tc-sheet-in var(--dur-slow) var(--spring) both;
+}
+/* A bar's fill growing from nothing to its share. */
+@keyframes tc-grow {
+  from {
+    width: 0;
+  }
+}
+/* Coverage zones (components/staff/CoverageMap.tsx): the fill moves with the figures. */
+.coverage-map .coverage-zone {
+  transition: fill-opacity var(--dur-slow) var(--ease-out);
+}
+@keyframes tc-sheet-in {
+  from { translate: 0 100%; }
+}
+/* A job card's title and pay grow into the job page's heading (P1.6): the
+   tapped card names them, the page names its own the same way. */
+::view-transition-group(.job-share) {
+  animation-duration: var(--dur-page);
+  animation-timing-function: var(--ease-out);
+  z-index: 102;
+}
+::view-transition-old(.job-share) {
+  animation: var(--dur-fast) var(--ease-in) both tc-fade-out;
+}
+::view-transition-new(.job-share) {
+  animation: var(--dur-base) var(--ease-out) both tc-fade-in;
 }
 /* ---- Less motion ------------------------------------------------------- */
 /* Two doors, one rule: the phone's setting, or "Less motion" in Display

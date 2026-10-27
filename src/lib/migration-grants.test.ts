@@ -48,12 +48,12 @@ describe("migration grants", () => {
       expect({ file: f, schemaWide: /GRANT[^;]*ON\s+ALL\s+TABLES\s+IN\s+SCHEMA[^;]*TO[^;]*(anon|authenticated)/i.test(sql) }).toEqual({ file: f, schemaWide: false });
     }
   });
-  it("follows and likes stay server-only: no grant, no policy, in any migration (S2)", () => {
-    // Who follows a campaign and who liked a post is the worker's business: nothing is ever readable through the Data API.
+  it("follows, likes, saved and hidden jobs stay server-only: no grant, no policy, in any migration (S2, P1.6)", () => {
+    // Who follows a campaign, who liked a post, who saved or hid a job: the worker's business; never readable through the Data API.
     for (const f of files) {
       const sql = readFileSync(join(dir, f), "utf8").replace(/--[^\n]*/g, "");
-      expect({ file: f, grants: sql.match(/GRANT[^;]*"(CampaignFollow|PostLike)"[^;]*/gi) ?? [] }).toEqual({ file: f, grants: [] });
-      expect({ file: f, policies: sql.match(/CREATE\s+POLICY[^;]*"(CampaignFollow|PostLike)"[^;]*/gi) ?? [] }).toEqual({ file: f, policies: [] });
+      expect({ file: f, grants: sql.match(/GRANT[^;]*"(CampaignFollow|PostLike|SavedJob|DismissedJob)"[^;]*/gi) ?? [] }).toEqual({ file: f, grants: [] });
+      expect({ file: f, policies: sql.match(/CREATE\s+POLICY[^;]*"(CampaignFollow|PostLike|SavedJob|DismissedJob)"[^;]*/gi) ?? [] }).toEqual({ file: f, policies: [] });
     }
     // And the files that create them take the API roles' default privileges back and turn RLS on (Supabase grants on new tables by default).
     for (const f of ["s2-social.sql", "supabase-manual-setup.sql"]) {
@@ -61,6 +61,14 @@ describe("migration grants", () => {
       for (const t of ["CampaignFollow", "PostLike"]) {
         expect({ file: f, table: t, rls: new RegExp(`ALTER\\s+TABLE\\s+"public"\\."${t}"\\s+ENABLE\\s+ROW\\s+LEVEL\\s+SECURITY`, "i").test(sql) }).toEqual({ file: f, table: t, rls: true });
         expect({ file: f, table: t, revoked: new RegExp(`REVOKE\\s+ALL\\s+ON[^;]*"${t}"[^;]*FROM[^;]*anon[^;]*authenticated`, "i").test(sql) }).toEqual({ file: f, table: t, revoked: true });
+      }
+    }
+    for (const f of ["p1-discovery.sql", "supabase-manual-setup.sql"]) {
+      const sql = readFileSync(join(dir, f), "utf8").replace(/--[^\n]*/g, "");
+      for (const t of ["SavedJob", "DismissedJob"]) {
+        expect({ file: f, table: t, rls: new RegExp(`ALTER TABLE "public"\\."${t}" ENABLE ROW LEVEL SECURITY`).test(sql) }).toEqual({ file: f, table: t, rls: true });
+        expect({ file: f, table: t, revoked: new RegExp(`REVOKE ALL ON[^;]*"public"\\."${t}"[^;]*FROM[^;]*anon[^;]*authenticated`).test(sql) }).toEqual({ file: f, table: t, revoked: true });
+        expect({ file: f, table: t, closeOnce: new RegExp(`"${t}_close_once" BEFORE UPDATE OR DELETE`).test(sql) }).toEqual({ file: f, table: t, closeOnce: true });
       }
     }
   });

@@ -11,6 +11,7 @@ import { UnreadProvider } from "@/components/chat/UnreadProvider";
 import { ViewerKindProvider } from "@/components/ViewerKind";
 import { PageTransition } from "@/components/PageTransition";
 import { Haptics } from "@/components/Haptics";
+import { PullToRefresh } from "@/components/PullToRefresh";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
 import { getSessionProfile } from "@/lib/auth";
 import { getSiteUrl } from "@/lib/env";
@@ -125,6 +126,7 @@ export default async function RootLayout({
           <PageTransition>{children}</PageTransition>
         )}
         <Haptics />
+        <PullToRefresh />
         {isOrg ? <OrgTabBar tabs={org.phone} more={org.more} /> : <TabBar tabs={tabs} />}
         </UnreadProvider>
         </ViewerKindProvider>

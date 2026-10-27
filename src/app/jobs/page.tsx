@@ -13,7 +13,11 @@ import { loadLatestPreference } from "@/lib/political-fit-data";
 import { plural } from "@/lib/format";
 import { loadFeed } from "@/lib/jobs-data";
 import { JobFeedCard } from "@/components/JobFeedCard";
+import { SwipeCard } from "@/components/SwipeCard";
+import { Sheet } from "@/components/Sheet";
 import { EmptyArt } from "@/components/EmptyState";
+import { applyMarks } from "@/lib/job-marks";
+import { loadMarks } from "@/lib/job-marks-data";
 
 const day = (d: Date | null) =>
   d ? d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" }) : "—";
@@ -38,7 +42,7 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
   const raw = await searchParams;
   const params = new URLSearchParams(Object.entries(raw).flatMap(([k, v]) => (typeof v === "string" ? [[k, v]] : [])));
   const filters = parseFeedFilters(params);
-  const [{ jobs, hidden }, engagements, latest] = await Promise.all([
+  const [{ jobs, hidden }, engagements, latest, marks] = await Promise.all([
     loadFeed(workerId, filters),
     db().engagement.findMany({
       where: { workerId },
@@ -46,6 +50,7 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
       orderBy: { createdAt: "desc" },
     }),
     loadLatestPreference(workerId),
+    loadMarks(workerId),
   ]);
   // An invitation to a job the worker's own do-not-match answers rule out
   // never shows in "Your jobs" with an Accept (whatever the feed filters).
@@ -57,7 +62,11 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
   const now = new Date();
   const waitingInvites = mine.filter((e) => e.status === "INVITED" && !inviteLapsed(e.status, e.inviteExpiresAt, now) && e.job.status !== "CLOSED").length;
   const engagedIds = new Set(engagements.map((e) => e.jobId));
-  const open = jobs.filter((j) => !engagedIds.has(j.id));
+  // The worker's own marks (P1.6): hidden jobs leave the list (shown on request), "Saved" narrows to saved ones.
+  // Order is the feed's own; a mark never ranks.
+  const showHidden = params.get("hidden") === "1";
+  const savedOnly = params.get("saved") === "1";
+  const { shown: open, hiddenCount } = applyMarks(jobs.filter((j) => !engagedIds.has(j.id)), marks, { showHidden, savedOnly });
 
   // Quick-filter chips toggle one URL parameter each.
   const toggle = (key: string, value: string) => {
@@ -74,8 +83,9 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
     { label: "Petition", href: toggle("type", "PETITION"), on: filters.type === "PETITION" },
     { label: "Canvass", href: toggle("type", "CANVASS"), on: filters.type === "CANVASS" },
     { label: "No credentials", href: toggle("noCredentials", "1"), on: !!filters.noCredentials },
+    { label: "Saved", href: toggle("saved", "1"), on: savedOnly },
   ];
-  const anyFilter = !!(filters.type || filters.minRateCents || filters.startsBefore || filters.noCredentials);
+  const anyFilter = !!(filters.type || filters.minRateCents || filters.startsBefore || filters.noCredentials || savedOnly || showHidden);
   // The date field shows a typed date only, not the "This week" window.
   const typedStartsBefore = parseFeedFilters(new URLSearchParams(params.get("startsBefore") ? { startsBefore: params.get("startsBefore")! } : {})).startsBefore;
 
@@ -134,13 +144,12 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
           ))}
         </nav>
         <div className="flex items-baseline justify-between gap-3">
-          <h2 className="section-title">{plural(open.length, "opportunity", "opportunities")}</h2>
-          {anyFilter && <Link href="/jobs" scroll={false} className="link text-sm">Clear filters</Link>}
+          <h2 className="section-title">{showHidden ? plural(open.length, "hidden job", "hidden jobs") : savedOnly ? plural(open.length, "saved job", "saved jobs") : plural(open.length, "opportunity", "opportunities")}</h2>
+          {anyFilter && <Link href="/jobs" scroll={false} className="link text-sm">{showHidden ? "Back to the feed" : "Clear filters"}</Link>}
         </div>
 
-        <details className="card p-0" open={!!filters.minRateCents}>
-          <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-fg">More filters</summary>
-          <form className="grid gap-3 border-t border-border p-4 sm:grid-cols-4 sm:items-end">
+        <Sheet label="More filters" trigger="More filters" triggerClassName="btn-secondary w-full sm:w-auto">
+          <form className="grid gap-3 sm:grid-cols-2">
             <label className="space-y-1.5">
               <span className="label">Type</span>
               <select name="type" className="field" defaultValue={filters.type ?? ""}>
@@ -161,26 +170,36 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
                 <input type="checkbox" role="switch" switch="" name="noCredentials" value="1" defaultChecked={filters.noCredentials} />
                 No credentials required
               </label>
-              <button className="btn-secondary">Apply</button>
+              <button className="btn-primary">Apply</button>
             </div>
           </form>
-        </details>
+        </Sheet>
 
         {open.length === 0 ? (
           <div className="empty-state">
             <EmptyArt kind="jobs" />
-            <p className="empty-state-title">No open jobs match</p>
-            <p className="empty-state-body">Try fewer filters, or check back soon.</p>
+            <p className="empty-state-title">{showHidden ? "Nothing hidden" : savedOnly ? "Nothing saved yet" : "No open jobs match"}</p>
+            <p className="empty-state-body">{showHidden ? "Jobs you hide from the feed show up here." : savedOnly ? "Swipe a job right, or tap Save, to keep it here." : "Try fewer filters, or check back soon."}</p>
           </div>
         ) : (
           <ul className="space-y-3">
             {open.map((j) => (
               <li key={j.id}>
-                <JobFeedCard j={j} />
+                <SwipeCard jobId={j.id} saved={marks.saved.has(j.id)} hidden={showHidden}>
+                  <JobFeedCard j={j} />
+                </SwipeCard>
               </li>
             ))}
           </ul>
         )}
+        <p className="text-hint">
+          {showHidden
+            ? "Unhide brings a job back to your feed. Hiding and saving are private to you: neither is ever used to rank jobs or people."
+            : "Swipe right to save a job, left to hide it, or use the buttons. Both are private to you: neither is ever used to rank jobs or people."}
+          {hiddenCount > 0 && !showHidden && (
+            <> <Link href="/jobs?hidden=1" scroll={false} className="link">{plural(hiddenCount, "hidden job", "hidden jobs")}</Link>.</>
+          )}
+        </p>
         <Link href="/profile/preferences" className="btn-secondary w-full">Adjust who you won&apos;t be matched with</Link>
       </section>
 

@@ -5,6 +5,8 @@ import { Coffee, DoorOpen, LogIn, LogOut, PackageCheck, PackageOpen, PenLine, Pl
 import { useRouter } from "next/navigation";
 import { shiftState, workerAction, type FieldEvent, type ShiftFacts } from "@/lib/field-day";
 import { stagingCheck, type QueuedAction } from "@/lib/offline-sync";
+import { ConnectionPill } from "@/components/Moments";
+import { pillState } from "@/lib/moments";
 import { clockOffset, dismiss, enqueue, flush, isFlushing, pendingFor, prune, serverClock, subscribe, type Pending } from "@/lib/offline-queue";
 import { haptic } from "@/lib/haptics";
 import { appLabel, type CanvassApp } from "@/lib/job-tools";
@@ -214,11 +216,15 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
       return false;
     }
     const { stored } = enqueue(shift.userId, shift.shiftId, action);
-    haptic();
+    // Checking in is the moment the day starts: a firmer haptic and words that say so.
+    const checkedIn = action.kind === "check_in";
+    haptic(checkedIn ? "success" : "tap");
     setMessage(
       !stored
         ? { ok: false, text: "This phone's storage is full, so this is only kept while the page is open. Keep it open until it syncs." }
-        : { ok: true, text: navigator.onLine ? "Saved." : "Saved on this phone. It'll sync when you have signal." }
+        : checkedIn
+          ? { ok: true, text: navigator.onLine ? "You're checked in. The clock is running." : "Check-in saved on this phone. The clock started when you tapped; it'll sync when you have signal." }
+          : { ok: true, text: navigator.onLine ? "Saved." : "Saved on this phone. It'll sync when you have signal." }
     );
     void sync();
     return true;
@@ -277,25 +283,33 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
       </div>
     </form>
   );
-  const status = !mounted
+  // One pill, always there once the page is live on the phone, sliding between states (P1.4).
+  const pill = !mounted ? null : pillState({ online, reachable: !((unreachable || problem) && waiting.length), syncing, waiting: waiting.length, refused: refused.length });
+  const status = !pill
     ? null
-    : refused.length
-      ? { tone: "badge-coral", text: `${refused.length} couldn't be saved` }
-      : waiting.length
-        ? problem
-          ? { tone: "badge-butter", text: `${problem} ${waiting.length} saved on this phone.` }
-          : !online || unreachable
-          ? { tone: "badge-butter", text: `No signal — ${waiting.length} saved on this phone` }
-          : { tone: "badge-sky", text: syncing ? "Syncing…" : `${waiting.length} waiting to sync` }
-        : !online
-          ? { tone: "badge-butter", text: "No signal — you can keep working" }
-          : null;
+    : {
+        state: pill,
+        text:
+          pill === "refused"
+            ? `${refused.length} couldn't be saved`
+            : pill === "offline"
+              ? waiting.length
+                ? problem
+                  ? `${problem} ${waiting.length} saved on this phone.`
+                  : `No signal — ${waiting.length} saved on this phone`
+                : "No signal — you can keep working"
+              : pill === "syncing"
+                ? "Syncing…"
+                : pill === "waiting"
+                  ? `${waiting.length} waiting to sync`
+                  : "All saved",
+      };
 
   return (
     <section className="card space-y-4" aria-label="Field day controls">
       {status && (
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <span role="status" className={status.tone}>{status.text}</span>
+          <ConnectionPill state={status.state} text={status.text} />
           {waiting.length > 0 && online && !syncing && (
             <button type="button" className="btn-ghost btn-sm" onClick={() => void sync()}>
               <RefreshCw aria-hidden className="btn-icon" />

@@ -2201,3 +2201,54 @@ DROP TRIGGER IF EXISTS "OrgRoleGrant_end_chat_access_update" ON "public"."OrgRol
 CREATE TRIGGER "OrgRoleGrant_end_chat_access_update" AFTER UPDATE OF "area", "level" ON "public"."OrgRoleGrant"
   FOR EACH ROW WHEN (OLD."area" = 'messages' AND (NEW."area" <> 'messages' OR NEW."level"::text <> 'FULL'))
   EXECUTE FUNCTION "turfcut_private"."end_role_chat_access"();
+
+-- Saved and hidden jobs (P1.6, prisma/p1-discovery.sql): a worker's own feed marks, private and server-only.
+
+CREATE TABLE IF NOT EXISTS "public"."SavedJob" (
+    "id" UUID NOT NULL,
+    "workerId" UUID NOT NULL,
+    "jobId" UUID NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "removedAt" TIMESTAMP(3),
+    CONSTRAINT "SavedJob_pkey" PRIMARY KEY ("id"),
+    CONSTRAINT "SavedJob_workerId_fkey" FOREIGN KEY ("workerId") REFERENCES "public"."Worker"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT "SavedJob_jobId_fkey" FOREIGN KEY ("jobId") REFERENCES "public"."Job"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT "SavedJob_removed_after_created" CHECK ("removedAt" IS NULL OR "removedAt" >= "createdAt")
+);
+-- Read by worker only; jobs are never deleted, so no index on "jobId" (the RESTRICT check would scan).
+CREATE INDEX IF NOT EXISTS "SavedJob_workerId_removedAt_idx" ON "public"."SavedJob"("workerId", "removedAt");
+-- One open save per worker and job.
+CREATE UNIQUE INDEX IF NOT EXISTS "SavedJob_open_key" ON "public"."SavedJob"("workerId", "jobId") WHERE "removedAt" IS NULL;
+
+CREATE TABLE IF NOT EXISTS "public"."DismissedJob" (
+    "id" UUID NOT NULL,
+    "workerId" UUID NOT NULL,
+    "jobId" UUID NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "removedAt" TIMESTAMP(3),
+    CONSTRAINT "DismissedJob_pkey" PRIMARY KEY ("id"),
+    CONSTRAINT "DismissedJob_workerId_fkey" FOREIGN KEY ("workerId") REFERENCES "public"."Worker"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT "DismissedJob_jobId_fkey" FOREIGN KEY ("jobId") REFERENCES "public"."Job"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT "DismissedJob_removed_after_created" CHECK ("removedAt" IS NULL OR "removedAt" >= "createdAt")
+);
+CREATE INDEX IF NOT EXISTS "DismissedJob_workerId_removedAt_idx" ON "public"."DismissedJob"("workerId", "removedAt");
+CREATE UNIQUE INDEX IF NOT EXISTS "DismissedJob_open_key" ON "public"."DismissedJob"("workerId", "jobId") WHERE "removedAt" IS NULL;
+
+-- Append-only, like the social tables: a row is closed once (removedAt goes
+-- from null to a time) and nothing else about it ever changes; deletes and
+-- truncates are refused. (The functions come from s2-social.sql.)
+CREATE OR REPLACE TRIGGER "SavedJob_close_once" BEFORE UPDATE OR DELETE ON "public"."SavedJob"
+  FOR EACH ROW EXECUTE FUNCTION "turfcut_private"."close_once"('removedAt');
+CREATE OR REPLACE TRIGGER "SavedJob_no_truncate" BEFORE TRUNCATE ON "public"."SavedJob"
+  FOR EACH STATEMENT EXECUTE FUNCTION "turfcut_private"."append_only"();
+CREATE OR REPLACE TRIGGER "DismissedJob_close_once" BEFORE UPDATE OR DELETE ON "public"."DismissedJob"
+  FOR EACH ROW EXECUTE FUNCTION "turfcut_private"."close_once"('removedAt');
+CREATE OR REPLACE TRIGGER "DismissedJob_no_truncate" BEFORE TRUNCATE ON "public"."DismissedJob"
+  FOR EACH STATEMENT EXECUTE FUNCTION "turfcut_private"."append_only"();
+
+-- Private to the worker, server-only: the API roles' default privileges are
+-- taken back and RLS is on with no policies.
+ALTER TABLE "public"."SavedJob" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."DismissedJob" ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON "public"."SavedJob", "public"."DismissedJob" FROM anon, authenticated;
+

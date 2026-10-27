@@ -1,4 +1,4 @@
-import type { ShiftState } from "@/lib/field-day";
+import type { ShiftState, TurfPolygon } from "@/lib/field-day";
 
 /**
  * The organization's field views (C1.4): shifts grouped by job and staging
@@ -26,6 +26,8 @@ export interface FieldRow {
   startsAt: Date;
   endsAt: Date;
   state: ShiftState;
+  /** The turf the shift was given, for the coverage map (P1.7). */
+  turf: TurfPolygon | null;
 }
 
 export interface FieldGroup {

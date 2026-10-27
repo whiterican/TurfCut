@@ -79,7 +79,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
 
       <section className="section">
         <h2 className="section-title">Scorecard</h2>
-        <ScorecardPanel periods={shareScorecardPeriods(scorecard, ALL_SHARED)} history={history} />
+        <ScorecardPanel periods={shareScorecardPeriods(scorecard, ALL_SHARED)} history={history} ringScope={workerId} />
       </section>
 
       <section className="section">

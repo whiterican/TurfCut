@@ -8,7 +8,7 @@ const st = (o: Partial<ShiftState> = {}): ShiftState => ({
 });
 const d = (s: string) => new Date(s);
 const row = (id: string, jobId: string, staging: string | null, startsAt: string, s: Partial<ShiftState> = {}): FieldRow => ({
-  shiftId: id, jobId, jobTitle: jobId === "j1" ? "Alpha drive" : "Beta drive", staging, worker: id, startsAt: d(startsAt), endsAt: d(startsAt), state: st(s),
+  shiftId: id, jobId, jobTitle: jobId === "j1" ? "Alpha drive" : "Beta drive", staging, worker: id, startsAt: d(startsAt), endsAt: d(startsAt), state: st(s), turf: null,
 });
 
 describe("field views", () => {

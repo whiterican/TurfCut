@@ -134,6 +134,8 @@ exercise the locks, triggers and data rules, not the RLS policies.
      staff** below). The roles file adds an enum value, so run it as its
      own paste (the Supabase editor runs the first statement outside the
      transaction).
+   - Then `prisma/p1-discovery.sql` (P1.6: saved and hidden jobs on the
+     feed), before deploying the P1.6 build. Safe to run again.
    - Storage → New bucket **`campaign-media`**, set to **public**, with a
      file size limit of **2 MB** and allowed MIME types **image/png,
      image/jpeg**. Campaign avatars and header images go there. The app
@@ -849,6 +851,142 @@ here is a ranking input. Eight slices, no new dependency.
   Earnings, the Feed, Notifications, the campaign directory, a job's
   applicants, and the offline brief's "No signal" page.
 
+### P1.3 — skeletons (done)
+
+- **Every route shows its own layout while it loads.** `PageSkeleton` has
+  seven shapes, each mirroring a layout: `home` (Today-style hero, figures,
+  list), `cards` (filters and cards), `table` (Hiring's tables), `detail`
+  (one record), `form`, `thread` (a conversation or dispute) and `list`.
+  Each page's `loading.tsx` names its shape, its page width and what a
+  screen reader hears ("Loading applicants"). The pulse is on the motion
+  tokens and stops under Less motion.
+- **Except where a real status code matters.** Today, My shifts and
+  everything under them, and the root above them, have no loading screen:
+  the offline brief needs their real status codes (see
+  `field-routes-status.test.ts`). The public campaign pages (the directory,
+  each campaign and its posts) don't either: campaigns share those links, and
+  a deleted one must be a real 404 to link checkers and monitors. A loading
+  screen wraps everything below it, so the test checks each exempt page's
+  parent folders too.
+- **Matched to the page.** Width and spacing follow the page's own container
+  (2xl to 5xl, centred for sign-in). The staff console's skeletons sit inside
+  its frame with no second heading. Work shows workers the card feed and
+  organizations the jobs table. Inboxes and member lists show a face per row.
+- **A new page can't ship without one.** `src/app/route-skeletons.test.ts`
+  fails any page outside the field routes that has no `loading.tsx`
+  rendering a known shape.
+- Elsewhere, a page that calls not-found behind a loading screen answers
+  200 with a `noindex` tag rather than a 404. Those pages are all signed-in,
+  so nothing depends on the status. On a first visit the skeleton appears
+  once the root layout has read the session; on navigation it is immediate.
+
+### P1.4 — field-worker moments (done)
+
+- **Check-in is a moment.** The success haptic and "You're checked in. The
+  clock is running." The shift page's ring then starts filling with the
+  share of the scheduled time worked, and moves on with each tick.
+- **Counts count up by the change.** The shift's signatures, doors and
+  contacts, and the pay estimate, step from the old value to the new in
+  whole numbers. They never jump and never show a number that wasn't real
+  at either end. Screen readers hear only the settled value.
+- **One connection pill.** It always sits on the field-day card: online,
+  syncing, waiting, no signal or couldn't save ("All saved" when nothing is
+  waiting). Its colour follows the state
+  and its words slide in.
+- **Rings on rates.** Show rate, contact rate and signature acceptance on
+  the scorecard fill from the value this phone last saw. Each keeps its own
+  formula and evidence, and there is still no overall score.
+- **Paid, plainly.** A pay line this phone last saw approved or sending
+  morphs once to paid, from its old colour with a check drawn in. A first
+  look, a reload or another device shows just "Paid". No confetti.
+- Every moment runs on the motion tokens and settles at once under Less
+  motion. What a phone "last saw" lives in its own storage
+  (`turfcut-seen:*`); without storage the moment simply doesn't play. Pay
+  lines drop their key once paid, voided or nothing due. Scorecard rings
+  remember only on the worker's own profile; organization views draw them
+  plainly.
+
+### P1.5 — Sunlight mode (done)
+
+- **A third theme for outdoors.** Display settings has Match my phone,
+  Light, Dark and Sunlight. The field-day screen has a Sunlight switch that
+  goes back to whatever was chosen before.
+- **How it looks:** black text on white, near-black 2px edges, heavier
+  icons, body text a weight up. There are no shadows and nothing is
+  see-through. A disabled button turns grey with a dashed edge instead of
+  fading. It is built on the light theme and never carries `.dark`.
+- **Checked pairing by pairing.** Sunlight runs every contrast check the
+  other themes pass, then a higher bar: body text at least 18:1, secondary
+  15:1, edges 7:1, links and status 7:1 (`design-tokens.test.ts`). The saved
+  choice is applied before first paint like the others.
+- Larger text stays its own setting. The Sunlight hint suggests pairing it
+  with Large.
+
+### P1.6 — discovery (done)
+
+- **A card grows into its page.** Tapping a job on the Work feed names that
+  card's title and pay for the view transition, and the job page names its
+  heading and pay the same way, so they travel into place while the page
+  slides in. Only the tapped card is named, so a long feed snapshots one.
+- **Spring bottom sheets.** `components/Sheet.tsx` is a native modal dialog
+  that springs up from the bottom edge (centred on wide screens), with a
+  lime handle to drag it down and away; a short drag springs it back. The
+  feed's More filters and a job's "What changed" open in one.
+- **Swipe to save, swipe to hide.** On the feed, right saves a job and left
+  hides it; the card follows the finger over a lime Save or a stone Hide
+  underlay and commits past a third of its width or on a flick. The same
+  two actions are buttons under every card. "Saved" is a quick filter;
+  hidden jobs are listed on request with Unhide.
+- **Private, never a rank.** `SavedJob` and `DismissedJob`
+  (`prisma/p1-discovery.sql`: append-only, server-only, no grants, no
+  policies) are the worker's own. `job-marks-isolation.test.ts` holds
+  matching, scorecards, political fit, the feed's data layer, hiring and
+  every organization view away from them, and the feed says so in words.
+  The feed's order is the job's; a mark changes which cards show, never
+  where. The acceptance script (`run.sh p1`) checks the rules on a real
+  database.
+
+### P1.7 — organizer views (done)
+
+- **Figures that tick.** The Desk's "In the field today" hero and the field
+  page's totals and group lines poll `GET /api/field/summary` every 10
+  seconds while the tab is visible (`components/staff/FieldLive.tsx`) and
+  count from the shown value to the new one. The summary is counts only:
+  no shift ids, names or positions (`lib/field-live.ts`, with a test that
+  the wire body names nobody). When any shift's state changes, the page
+  also re-renders on the server, so the names and badges under the figures
+  catch up.
+- **Coverage map.** `components/staff/CoverageMap.tsx` draws every turf
+  given to a shift in the window and fills it by the share of its shifts
+  on the ground (checked in, not out), emptying as they check out. Turfs
+  only, never pins (decision 3).
+- **Charts build on load.** The week-ahead table's Scheduled column draws
+  a bar of seats filled that grows from the left (`bar` on a table cell),
+  and the hero's ring fills to the checked-in share. All of it reads the
+  motion tokens and stops under "Less motion".
+
+### P1.8 — pull to refresh, performance pass, screenshots (done)
+
+- **Pull to refresh, installed app only.** From the home screen there is no
+  reload button, so with the page at the top a downward drag brings a ring
+  out from under the header (`components/PullToRefresh.tsx`, rules in
+  `lib/pull.ts`). It fills as the finger travels, taps once at the
+  threshold, and letting go re-renders the page on the server while it
+  spins; short of the threshold it springs back. Touch only. In a browser
+  tab nothing is mounted. In standalone mode the page's overscroll is
+  contained, so the browser's own pull-to-refresh stays out of the way.
+- **Performance pass.** Every piece of motion added in P1 moves only
+  `translate`, `opacity`, `scale`, `rotate`, SVG dash offsets or a fill
+  width (compositor- or paint-cheap; nothing animates layout). The swipe
+  and the sheet write the drag straight to the element instead of
+  re-rendering on every finger move. Count-ups run for one slow duration
+  and stop; the field summary polls every 10 s and only while visible; the
+  coverage map restyles existing polygons rather than redrawing. All of it
+  stops under "Less motion" and the OS setting.
+- **Screenshots** of Today, Work, a shift, the Desk and the field page in
+  light, dark and Sunlight were made for the milestone review (local
+  fixture data; see the P1 session).
+
 ## C2 scope — workers decide what each organization sees
 
 - **Who sees what** (Profile): each part of the profile — output rates,
@@ -884,6 +1022,7 @@ here is a ranking input. Eight slices, no new dependency.
 - Database: `prisma/c2-consent.sql` (three append-only, server-only tables
   with checks that refuse self-verification, foreign proof paths and
   carried-forward verification). Acceptance: `tests/acceptance/c2-consent.ts`.
+
 
 ### Credential proof photos — decided for C3 (owner, 2026-10-09)
 

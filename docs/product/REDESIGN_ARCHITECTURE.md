@@ -104,7 +104,7 @@ The frame, sheets and primary object in each mode. Values are existing G1 tokens
 | Role | Light | Dark | Sunlight |
 |---|---|---|---|
 | Page | paper `#EFEAE1` | `#120D18` | white |
-| Frame: org rail; the phone header band on Field pages; the public hero overlay | eggplant `#281539` | `#1A0F26` (*new* `--shell-bg`) | black |
+| Frame: org rail; the phone header band on Field pages; the public hero overlay | eggplant `#281539` | `#1A0F26` (*new* `--shell-bg`), with a 1px `#3C2D4C` edge so it separates from the `#120D18` page | black |
 | Sheet: lists, sections, tables | cream `#FBF7F0` | plum `#23182F` | white, 2px black border |
 | **Primary object** (one per screen) | eggplant `#281539`, cream type | **cream `#FBF7F0`, ink type** (E1) | black, white type |
 | Secondary surface | `#F5F0E6` | `#30223F` | white |
@@ -185,7 +185,7 @@ Each of these strings survives B1–B3 word for word unless a reviewer approves 
   - **Profile**, which holds Earnings, Availability, Credentials, Sharing and Settings.
 - **Worker desktop:** the same four sections in the top bar, plus a direct Earnings entry.
 - **Organization:** the rail on desktop. On phones the dock is Desk, Hiring, Field, Messages and More. Grants decide what shows, unchanged (`lib/access`, `lib/nav`).
-- **Staff admin:** the organization shell with the Admin section and its sub-nav.
+- **Staff admin:** its own shell identity: a "Turfcut staff" header band and the Admin nav in the rail (§4.2.1). Never inside an organization's rail.
 - **Public:** landing, login, signup, campaign pages (`/c/...`).
 
 ### 2.3 What the mockups are, and are not
@@ -281,7 +281,29 @@ Each of these strings survives B1–B3 word for word unless a reviewer approves 
    | Sharing | not shared → `not-shared` (never zero) |
    | Jurisdiction gate | unknown / expired / unapproved → `blocked` "Can't publish", with the reason. Never a silent default |
 
-   New states this adds to the table above: `overdue`, `held`, `approved-blocked`, `sending`, `queued`, `memory-only`. Each gets a glyph and a tested colour per mode in B1.
+   New states this adds to the table above: `overdue`, `held`, `approved-blocked`, `sending`, `queued`, `memory-only`.
+
+   **Unique glyphs** (C1 round 2: no two states may share a glyph and colour, since overdue and disputed can sit on one screen). B1 tests that the (glyph, colour) pairs are unique.
+
+   | State | Glyph | Colour |
+   |---|---|---|
+   | live | filled dot with halo | forest |
+   | paid | filled circle with check | eggplant |
+   | approved | ring | eggplant |
+   | approved-blocked | ring with a small lock | eggplant |
+   | sending | half-filled circle | eggplant |
+   | pending | dashed ring | muted |
+   | queued | clock | muted |
+   | memory-only | clock with "!" | warning |
+   | draft | dotted ring | subtle |
+   | overdue | hourglass | warning |
+   | disputed | triangle "!" | warning |
+   | held | pause bars | danger |
+   | blocked | filled square | danger |
+   | not-shared | eye-off | muted italic |
+   | closed | dash | subtle |
+
+   **Future field states** (`visited`, `not home`, `refused`, …) are added as new rows here, not as new components (§4.4).
 
    **Rules:**
    - Only `live` uses forest, and only while the shift is genuinely under way.
@@ -324,14 +346,24 @@ Each of these strings survives B1–B3 word for word unless a reviewer approves 
 | `FieldPage` | in-shift task mode (today: the shift day) | primary object, persistent `ActionBar` above the dock, Sunlight one tap away | the same, two columns (task / brief and map) |
 | `HeroPage` | public landing, sign-in | photo top then form | 45/55 photo/form split; landing: full-bleed hero |
 
-Each template owns, so a page can't get them wrong (C2):
-- **No new loading UI:** Home, My schedule, campaign pages and `/` stay free of `loading.tsx` and `Suspense` fallbacks (today's choice). No `template.tsx` files are created.
-
-And also:
+Each template owns these, so a page can't get them wrong:
 - gutters;
 - bottom clearance;
 - the heading slot (`Masthead`);
 - skeleton parity (`PageSkeleton` takes the template name).
+
+**No new loading UI** (C2): Home, My schedule, campaign pages and `/` stay free of `loading.tsx` and `Suspense` fallbacks (today's choice). No `template.tsx` files are created.
+
+**Inspector widths (C1 round 2):**
+- *Worker pages* show their panel from 1024.
+- *Organization and admin pages* (with the ~240px rail) show the inspector only from **1280**. At 1024–1279 the row opens the detail route, so the main table never drops below about 720px.
+- B2's exit check measures 1024 as well as 1280 and 1440.
+
+**Inspector focus:**
+- Selecting a row moves focus to the inspector's heading.
+- Esc or "Close" returns focus to the row.
+- The inspector is a labelled `region`, not a modal, so the list stays usable.
+
 
 #### 4.2.3 Dock and keyboard contract (shell-level, P0-1)
 
@@ -550,4 +582,5 @@ Nothing merges without the owner's word.
 1. The worker's first tab is labelled **Home** (dock), and the page title reads "Today".
 2. Desktop worker nav adds **Earnings** as a fifth top-bar item. Phones keep four tabs, with Earnings under Profile.
 3. Public hero placeholders: free-licence stock, labelled, until the owner's photos arrive.
-4. Whether to add `@playwright/test` as a dev dependency, so the §6.3 checks also run in CI. Default: no; the checks run from the pre-installed Playwright each stage, with saved results.
+4. **Light-mode primary card** (C1 round 2): eggplant with a *cream* action button (forest never sits on eggplant), against the brief's "one clear green action". An alternative is a cream card with an eggplant edge and the green action inside. Shown both ways at the Home pilot; the owner picks.
+5. Whether to add `@playwright/test` as a dev dependency, so the §6.3 checks also run in CI. Default: no; the checks run from the pre-installed Playwright each stage, with saved results.

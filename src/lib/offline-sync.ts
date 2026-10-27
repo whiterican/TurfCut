@@ -131,7 +131,7 @@ export function placeTime(corrected: Date, lastSaved: Date | null, serverNow: Da
 /** Why a corrected time can't be recorded automatically, or null. */
 export function timeProblem(t: Date, serverNow: Date): string | null {
   if (t.getTime() > serverNow.getTime() + FUTURE_SLACK_MS) return "This was timed in the future. Check your phone's clock.";
-  if (serverNow.getTime() - t.getTime() > MAX_OFFLINE_MS) return "Recorded more than 24 hours ago. Ask your supervisor to enter it.";
+  if (serverNow.getTime() - t.getTime() > MAX_OFFLINE_MS) return "This is from more than 24 hours ago. Ask your supervisor to add it.";
   return null;
 }
 

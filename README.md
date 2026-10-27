@@ -882,16 +882,17 @@ here is a ranking input. Eight slices, no new dependency.
 
 ### P1.4 — field-worker moments (done)
 
-- **Check-in is a moment.** The success haptic and "You're checked in. The
-  clock is running." The shift page's ring then starts filling with the
+- **Check-in is a moment.** A tick at the tap, and the success haptic once
+  the server has recorded it (S1: never before). The shift page's ring then starts filling with the
   share of the scheduled time worked, and moves on with each tick.
 - **Counts count up by the change.** The shift's signatures, doors and
   contacts, and the pay estimate, step from the old value to the new in
   whole numbers. They never jump and never show a number that wasn't real
   at either end. Screen readers hear only the settled value.
 - **One connection pill.** It always sits on the field-day card: online,
-  syncing, waiting, no signal or couldn't save ("All saved" when nothing is
-  waiting). Its colour follows the state
+  sending, saved on this phone (not sent yet), only on this page, no signal,
+  can't connect or not recorded ("Nothing waiting to send" when nothing is
+  waiting; S1 retired "All saved"). Its colour follows the state
   and its words slide in.
 - **Rings on rates.** Show rate, contact rate and signature acceptance on
   the scorecard fill from the value this phone last saw. Each keeps its own

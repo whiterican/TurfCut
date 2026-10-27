@@ -68,11 +68,12 @@ export function CoverageMap({ initial, className = "h-72" }: { initial: ZoneSumm
     const group = layer.current;
     if (!ready || !L || !group) return;
     const stroke = token("--link", "#5a3a8a");
-    const fill = token("--accent", "#ccea96");
+    const fill = token("--map-fill", "#5a3b82");
     const keep = new Set<string>();
     for (const z of zones) {
       keep.add(z.id);
-      const opacity = fillOpacity(zoneFill(z));
+      // Capped so the streets under a busy zone stay readable.
+      const opacity = Math.min(0.5, fillOpacity(zoneFill(z)));
       let p = drawn.current.get(z.id);
       if (!p) {
         p = L.polygon(z.turf.coordinates[0].map(([lng, lat]) => [lat, lng] as [number, number]), { color: stroke, weight: 2, fillColor: fill, fillOpacity: opacity, className: "coverage-zone" });

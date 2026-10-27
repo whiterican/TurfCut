@@ -166,8 +166,8 @@ function offlinePage() {
   return new Response(
     `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Offline · Turfcut</title>
 <body style="font:16px system-ui;background:#1c142c;color:#f8f8f4;padding:32px 16px;max-width:32rem;margin:auto">
-<svg viewBox="0 0 96 96" width="88" height="88" aria-hidden="true" style="display:block;margin:8px 0 16px" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="#b9b0c4" opacity=".55" d="M30 30a26 26 0 0 1 36 0M22 22a38 38 0 0 1 52 0M20 84h56"/><circle fill="#ccea96" cx="48" cy="52" r="17"/><path stroke="#f8f8f4" d="M48 80c-10-11-18-19-18-28a18 18 0 0 1 36 0c0 9-8 17-18 28zM41 49l14 8M55 49l-14 8"/></svg><h1 style="font-size:24px">No signal</h1><p>This page wasn't saved on your phone. Your shift pages are saved when you open Today or My shifts with signal.</p>
-<p><a style="color:#ccea96" href="" onclick="location.reload();return false">Try again</a> · <a style="color:#ccea96" href="/shifts">My shifts</a> · <a style="color:#ccea96" href="/dashboard">Today</a></p></body>`,
+<svg viewBox="0 0 96 96" width="88" height="88" aria-hidden="true" style="display:block;margin:8px 0 16px" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="#b9b0c4" opacity=".55" d="M30 30a26 26 0 0 1 36 0M22 22a38 38 0 0 1 52 0M20 84h56"/><circle fill="#82bc9b" cx="48" cy="52" r="17"/><path stroke="#f8f8f4" d="M48 80c-10-11-18-19-18-28a18 18 0 0 1 36 0c0 9-8 17-18 28zM41 49l14 8M55 49l-14 8"/></svg><h1 style="font-size:24px">No signal</h1><p>This page wasn't saved on your phone. Your shift pages are saved when you open Today or My shifts with signal.</p>
+<p><a style="color:#82bc9b" href="" onclick="location.reload();return false">Try again</a> · <a style="color:#82bc9b" href="/shifts">My shifts</a> · <a style="color:#82bc9b" href="/dashboard">Today</a></p></body>`,
     {
       status: 503,
       headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store", "Content-Security-Policy": "frame-ancestors 'none'", "X-Content-Type-Options": "nosniff" },

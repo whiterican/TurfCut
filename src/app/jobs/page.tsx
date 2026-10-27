@@ -91,7 +91,7 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
   const typedStartsBefore = parseFeedFilters(new URLSearchParams(params.get("startsBefore") ? { startsBefore: params.get("startsBefore")! } : {})).startsBefore;
 
   return (
-    <main className="page">
+    <main className="page lg:max-w-5xl">
       <Masthead title="Work" meta="Open jobs, soonest first, with pay, place and dates up front." />
 
       {waitingInvites > 0 && (
@@ -165,7 +165,7 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
                 <input type="checkbox" role="switch" switch="" name="noCredentials" value="1" defaultChecked={filters.noCredentials} />
                 No credentials required
               </label>
-              <button className="btn-primary">Show jobs</button>
+              <button className="btn-secondary">Show jobs</button>
             </div>
           </form>
         </Sheet>
@@ -177,7 +177,7 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
             <p className="empty-state-body">{showHidden ? "Jobs you hide from the feed show up here." : savedOnly ? "Swipe a job right, or tap Save, to keep it here." : "Try fewer filters, or check back soon."}</p>
           </div>
         ) : (
-          <ul className="space-y-3">
+          <ul className="grid gap-3 lg:grid-cols-2" /* two columns from a desktop width up */>
             {open.map((j) => (
               <li key={j.id}>
                 <SwipeCard jobId={j.id} saved={marks.saved.has(j.id)} hidden={showHidden}>

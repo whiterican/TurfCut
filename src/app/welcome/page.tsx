@@ -22,7 +22,7 @@ export default async function WelcomePage() {
             {invites.map((i) => (
               <li key={i.id} className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-fg">{i.org.name} · {roleName({ role: i.role as Role, roleName: i.orgRole?.name }, ROLE_LABELS)}</p>
-                <ActionButton action={acceptFromWelcome} fields={{ inviteId: i.id }} label="Accept" pendingLabel="Joining…" variant="btn-primary btn-sm" />
+                <ActionButton action={acceptFromWelcome} fields={{ inviteId: i.id }} label="Accept" pendingLabel="Joining…" variant="btn-secondary btn-sm" />
               </li>
             ))}
           </ul>

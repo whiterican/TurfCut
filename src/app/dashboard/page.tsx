@@ -10,6 +10,7 @@ import { loadFeed } from "@/lib/jobs-data";
 import { JobRow } from "@/components/JobRow";
 import { LocalTime } from "@/components/LocalTime";
 import { TodayDate } from "@/components/TodayDate";
+import { ShiftDayList } from "@/components/ShiftDayList";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { workerPayTotals } from "@/lib/pay-data";
@@ -61,11 +62,58 @@ function NavCard({ href, title, body }: { href: string; title: string; body: str
   );
 }
 
+/**
+ * The next few real shifts after the one in the hero (Today, #78): the same
+ * query as the hero, skipping it, up to three. Not started yet, so each is
+ * "Scheduled"; cancelled shifts aren't listed. Grouped by the viewer's day.
+ */
+async function LaterShifts({ workerId }: { workerId: string }) {
+  const now = new Date();
+  // The hero shows the first upcoming shift (or the live one, which has a check-in and isn't in this list).
+  const [later, hero] = await Promise.all([
+    db().shift.findMany({
+      where: { engagement: { workerId }, status: { not: "CANCELLED" }, endsAt: { gte: now }, checkOutAt: null, checkInAt: null },
+      select: { id: true, startsAt: true, endsAt: true, stagingLocation: true, engagement: { select: { job: { select: { title: true, org: { select: { name: true } } } } } } },
+      orderBy: [{ startsAt: "asc" }, { id: "asc" }],
+      take: 4,
+    }),
+    db().shift.findFirst({
+      where: { engagement: { workerId }, status: { not: "CANCELLED" }, endsAt: { gte: now }, checkOutAt: null },
+      select: { id: true },
+      orderBy: [{ startsAt: "asc" }, { id: "asc" }],
+    }),
+  ]);
+  const rest = later.filter((s) => s.id !== hero?.id).slice(0, 3);
+  if (rest.length === 0) return null;
+  return (
+    <section className="section">
+      <div className="section-head">
+        <h2 className="section-title">Coming up</h2>
+        <Link transitionTypes={["nav-forward"]} href="/shifts" className="row-link">
+          All shifts
+          <ChevronRight aria-hidden className="size-4 shrink-0" />
+        </Link>
+      </div>
+      <ShiftDayList
+        shifts={rest.map((s) => ({
+          id: s.id,
+          startsAt: s.startsAt.toISOString(),
+          endsAt: s.endsAt.toISOString(),
+          title: s.engagement.job.title,
+          org: s.engagement.job.org.name,
+          staging: s.stagingLocation,
+          status: { label: "Scheduled", badge: "badge-sky" },
+        }))}
+      />
+    </section>
+  );
+}
+
 async function WorkerHero({ workerId }: { workerId: string }) {
   const shift = await db().shift.findFirst({
     where: { engagement: { workerId }, status: { not: "CANCELLED" }, endsAt: { gte: new Date() }, checkOutAt: null },
     include: { engagement: { select: { job: { select: { title: true, type: true, compensationMethod: true, payRateCents: true } } } } },
-    orderBy: { startsAt: "asc" },
+    orderBy: [{ startsAt: "asc" }, { id: "asc" }],
   });
   if (shift) {
     const live = shift.checkInAt !== null;
@@ -75,6 +123,8 @@ async function WorkerHero({ workerId }: { workerId: string }) {
           {live ? "Live shift" : "Next shift"} · <LocalTime iso={shift.startsAt.toISOString()} mode="date" />
         </p>
         <p className="hero-title">{shift.engagement.job.title}</p>
+        {/* The card stays eggplant; the forest-ink chip is what says it's live. */}
+        {live && <span className="badge-live">On shift</span>}
         <p className="flex flex-wrap gap-x-8 gap-y-2">
           <span>
             <span className="block text-lg font-bold"><LocalTime iso={shift.startsAt.toISOString()} mode="time" /></span>
@@ -144,7 +194,7 @@ async function SharingNote({ workerId }: { workerId: string }) {
           ? `Choose who sees each part of your scorecard, your availability and your credentials, and whether organizations can find you. Until you do, organizations you ${RELATIONSHIP_PHRASE} see your profile, and nobody can find you.`
           : "We've changed how Turfcut explains who sees what since you chose. Your choices stay as they are; take a look and confirm them. If you let organizations find you, they can't until you confirm."}
       </p>
-      <Link transitionTypes={["nav-forward"]} href="/profile/setup" className="btn-primary btn-sm">{never ? "Set it up (4 short steps)" : "Check your choices"}</Link>
+      <Link transitionTypes={["nav-forward"]} href="/profile/setup" className="btn-secondary btn-sm">{never ? "Set it up (4 short steps)" : "Check your choices"}</Link>
     </DismissibleNote>
   );
 }
@@ -265,7 +315,7 @@ async function FitReconfirm({ workerId }: { workerId: string }) {
             : "We've updated how Turfcut describes these choices."}{" "}
         {PAUSED[fit.visibilityMode]}
       </p>
-      <Link href="/profile/preferences" className="btn-primary btn-sm">Review and reconfirm</Link>
+      <Link href="/profile/preferences" className="btn-secondary btn-sm">Review and reconfirm</Link>
     </section>
   );
 }
@@ -320,7 +370,7 @@ async function Detached() {
                 <p className="font-medium text-fg">{i.org.name} invited you as {roleName({ role: i.role as Role, roleName: i.orgRole?.name }, ROLE_LABELS)}</p>
                 <p className="text-muted-sm">Open until {i.expiresAt.toISOString().slice(0, 10)}. Nothing changes unless you accept.</p>
               </div>
-              <ActionButton action={acceptOrgInvite} fields={{ inviteId: i.id }} label="Accept" pendingLabel="Joining…" />
+              <ActionButton action={acceptOrgInvite} fields={{ inviteId: i.id }} label="Accept" pendingLabel="Joining…" variant="btn-secondary" />
             </li>
           ))}
         </ul>
@@ -350,6 +400,7 @@ export default async function DashboardPage() {
 
       {isWorker && <WorkerBrief workerId={session.workerId!} userId={session.userId} />}
       {isWorker && <WorkerHero workerId={session.workerId!} />}
+      {isWorker && <LaterShifts workerId={session.workerId!} />}
       {isWorker && <OpenSeats workerId={session.workerId!} />}
       {isWorker && <FitReconfirm workerId={session.workerId!} />}
       {isWorker && <CredentialReminder workerId={session.workerId!} />}

@@ -1,17 +1,16 @@
 @import "tailwindcss";
 
 /*
- * Turfcut design system — the "Turfcut App Mockup" palette: eggplant and lime.
+ * Turfcut design system — deep eggplant, warm paper, forest ink (G1, 2026-10-27).
  *
- * Dark (the primary theme): eggplant surfaces (#1c142c page, #281a3a cards,
- * #36264a raised), off-white text, lime (#ccea96) for the accent fill,
- * primary actions, links and highlights, and lime status chips with lime
- * text for "verified / done". Light: off-white page (#eef0ea), white cards,
- * green-black ink (#181e1a), lime accent fills, eggplant for links, the
- * "done" badges and progress, and an eggplant feature card (#2b1b3d). Pastel status
- * badges (sky, coral, butter, and the accent) carry the dark "ink" colour;
- * solid badges (--solid) carry --on-solid text. Priority rings are eggplant around
- * the live (lime) card, with a page-coloured gap around eggplant cards.
+ * Eggplant owns identity: page ink, links, the feature (hero) card, settled
+ * status chips and the dock's active tile (cream label). Warm paper and cream
+ * are the surfaces. Forest ink (#164B38) is the one restricted accent: the
+ * primary action and what is live now, always with cream type; never text on a
+ * dark surface. Soft green (#82BC9B) is the night focus ring, the edge around
+ * green fills by night, and the hero's decorative corner cut. Pastel badges
+ * (sky, coral, butter, party colours) carry the dark "ink" colour; solid badges
+ * carry --on-solid. Lime (#D6F25A) is retired.
  *
  * The theme is a `.dark` class on <html>, set before first paint by the
  * inline script in app/layout.tsx (saved choice, else the OS preference).
@@ -36,11 +35,29 @@
 }
 
 :root {
-  /* The accent fill: lime in both themes. */
-  --accent: #d6f25a;
+  /* G1 (founder, 2026-10-27): deep eggplant owns identity; forest ink is the one
+     restricted accent (lime retired). Forest ink fills the primary action and what
+     is live now, always with cream type (--on-accent). It is never text on a dark
+     surface; by night green fills get a soft-green edge (--accent-edge). */
+  --accent: #164b38;
+  --on-accent: #fbf7f0;
+  --accent-edge: #164b38;
+  /* The hero's corner cut: soft green, decorative only (never behind text). */
+  --cut: #82bc9b;
+  /* Turf polygons and staging markers on the (always light) map tiles: mid eggplant,
+     never a park-like green. */
+  --map-fill: #5a3b82;
+  /* The organization's desktop rail (G3): a deep eggplant panel, the brand's
+     own surface, with cream type and a raised-eggplant current tile. */
+  --rail-bg: #281539;
+  --rail-fg: #fbf7f0;
+  --rail-muted: #d8cce4;
+  --rail-line: #3f2b57;
+  --rail-active-bg: #4a3365;
+  --rail-active-fg: #fbf7f0;
   /* Solid (and on-solid): settled status ("Active", "Approved", "Paid",
      "You"), a quick filter that's on and team avatars: an eggplant chip with
-     paper text, the dock's own tile colour. Lime is kept for what is live now
+     paper text, the dock's own tile colour. Forest ink is kept for what is live now
      (.badge-live, the live shift card), the one primary action and the cut,
      so it still means something. */
   --solid: #3a2154;
@@ -61,7 +78,7 @@
   --party-nonpartisan: #cfbaf2;
 
   /* Light mode (the clipboard brand): warm paper, cream cards, eggplant ink
-     and links, lime for the cut, live status and the one primary action.
+     and links; forest ink for live status and the one primary action.
      Muted and subtle are a step darker than the design's so every note on
      every surface stays AAA (design-tokens.test.ts). */
   --bg: #efeae1;
@@ -80,18 +97,18 @@
   --danger: #a8402f;
   --success: #3a2154;
   --warning: #5a3a14;
-  --primary: #2a173e;
+  --primary: #164b38;
   --switch-on: #3a2154;
-  --on-primary: #d6f25a;
+  --on-primary: #fbf7f0;
   --secondary: #fbf7f0;
   --secondary-border: #7f7688;
-  --hero: #3a2154;
+  --hero: #281539;
   --hero-fg: #f6f1e6;
   --hero-muted: #d8cce4;
   --hero-border: transparent;
-  /* The current tab: an eggplant tile with lime icon and label. */
-  --tab-active-bg: #3a2154;
-  --tab-active-fg: #d6f25a;
+  /* The current tab: a deep eggplant tile with cream icon and label. */
+  --tab-active-bg: #281539;
+  --tab-active-fg: #fbf7f0;
   /* Cards sit on the paper with a hairline and almost no shadow. */
   --shadow-depth: 0 1px 2px rgb(27 20 34 / 0.04), 0 6px 18px -16px rgb(27 20 34 / 0.25);
   --shadow: var(--shadow-depth);
@@ -102,9 +119,12 @@
 }
 
 .dark {
-  /* Dark mode: near-black paper, eggplant cards and heroes, lime for the
-     cut, live status, the primary action and the current tab's type. */
-  --accent: #d6f25a;
+  /* Dark mode: near-black paper, eggplant cards and heroes; forest-ink fills
+     with cream type and a soft-green edge for live status and the primary action. */
+  --accent: #164b38;
+  --on-accent: #fbf7f0;
+  --accent-edge: #cbbdd8; /* forest ink is 1.7:1 on the night surfaces: a light lavender edge shows the shape */
+  --cut: #82bc9b;
   --bg: #120d18;
   --surface: #23182f;
   --surface-2: #30223f;
@@ -114,32 +134,32 @@
   --fg: #f6f1e6;
   --muted: #cbbdd8;
   --subtle: #b2a3c0;
-  --solid: #5a3b82; /* settled status by night: the raised eggplant tile */
+  --solid: #4a3365; /* settled status by night: the raised eggplant tile */
   --on-solid: #f6f1e6;
   --ink: #1b1422;
   --link: #f6f1e6;
   --kicker: #cbbdd8;
-  --focus: #d6f25a; /* the keyboard outline only */
+  --focus: #82bc9b; /* the keyboard outline only: soft green, 8.8:1 on the night page */
   --selected: #5a3b82; /* the chosen option stays eggplant by night */
   --danger: #eb9082;
-  --success: #d8cce4; /* done and verified by night: pale lavender, not lime (lime is live) */
+  --success: #d8cce4; /* done and verified by night: pale lavender, not green (green is live) */
   --warning: #f0d08a;
-  --primary: #d6f25a;
-  --switch-on: #5c8b30; /* lime would leave the white thumb at 1.2:1 */
-  --on-primary: #1b1422;
+  --primary: #164b38;
+  --switch-on: #8f7da6; /* a setting is a selection, not live: a lavender track, 3.7:1 to the white thumb, 4:1 or more on every night surface */
+  --on-primary: #fbf7f0;
   --secondary: #30223f;
   --secondary-border: #8f7da6;
-  --hero: #5a3b82;
+  --hero: #4a3365;
   --hero-fg: #f6f1e6;
   --hero-muted: #f1eaf8;
   --hero-border: transparent;
-  --tab-active-bg: #5a3b82;
-  --tab-active-fg: #d6f25a;
+  --tab-active-bg: #4a3365;
+  --tab-active-fg: #fbf7f0;
   /* Rings: rims only, never fills or text. A page-coloured gap separates
      them from the card (see the priority ring rules). */
-  --ring: #eef6dc;
-  --ring-2: #b8d08a;
-  --ring-3: #8aa560;
+  --ring: #ece4f5;
+  --ring-2: #cbb8e0;
+  --ring-3: #a991c9;
   --shadow-depth: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px -18px rgb(0 0 0 / 0.5);
   --shadow: var(--shadow-depth);
   color-scheme: dark;
@@ -147,8 +167,8 @@
 
 .sun {
   /* Sunlight (P1.5): the outdoor theme. Built on light (it never carries
-     .dark): white paper, black text, near-black edges, and the brand kept
-     to the lime fill and lime type on the black tab tile. Every pairing clears a
+     .dark): white paper, black text, near-black edges, black primary and tab
+     tile with white type, forest ink only for what is live. Every pairing clears a
      higher bar than the other themes (design-tokens.test.ts). Nothing is
      see-through and nothing casts a shadow. */
   --bg: #ffffff;
@@ -171,7 +191,10 @@
   --warning: #3a2200;
   --primary: #000000;
   --switch-on: #2a173e;
-  --on-primary: #d6f25a;
+  --on-primary: #ffffff;
+  --on-accent: #ffffff;
+  --accent-edge: #000000;
+  --cut: #164b38;
   --secondary: #ffffff;
   --secondary-border: #000000;
   --hero: #000000;
@@ -179,7 +202,7 @@
   --hero-muted: #ebebeb;
   --hero-border: transparent;
   --tab-active-bg: #000000;
-  --tab-active-fg: #d6f25a;
+  --tab-active-fg: #ffffff;
   --sky: #d9cfe6;
   --coral: #f1c6bd;
   --butter: #e4dccd;
@@ -189,6 +212,12 @@
   --shadow-depth: 0 0 0 0 transparent;
   --shadow: var(--shadow-depth);
   color-scheme: light;
+  --rail-bg: #ffffff;
+  --rail-fg: #000000;
+  --rail-muted: #1b1422;
+  --rail-line: #000000;
+  --rail-active-bg: #000000;
+  --rail-active-fg: #ffffff;
 }
 
 /* Frame tokens: the surfaces that float (tab bar, header buttons, the More
@@ -210,6 +239,12 @@ html {
   --card-edge: 0 0 0 0 transparent;
   --card-sheen: none;
   --hero-bg: var(--hero);
+  /* Shape (G2): calm, precise corners. Cards 14px, panels inside them 12px,
+     buttons 10px. The floating dock, status pills, chat bubbles and sheets keep
+     their rounder shapes on purpose. */
+  --radius-card: 0.875rem;
+  --radius-inner: 0.75rem;
+  --radius-control: 0.625rem;
 }
 /* ---- Motion (P1.1) ------------------------------------------------------ */
 /* Every duration and curve in the app comes from these (src/lib/motion.ts
@@ -283,6 +318,11 @@ body {
 
 ::selection {
   background: var(--accent);
+  color: var(--on-accent);
+}
+/* By night forest ink would hide the selection (1.7:1): soft green with ink type. */
+.dark ::selection {
+  background: var(--cut);
   color: var(--ink);
 }
 
@@ -336,7 +376,7 @@ body {
   }
   /* No decorative dash before a kicker: a kicker is only there when it
      carries a fact (a job's type and place, a shift's date), and it reads as
-     plain text. Lime is not spent on page furniture. */
+     plain text. The accent is not spent on page furniture. */
   /* Inside a card, or heading a block within the page, a kicker is a quiet
      label (a shift's date), not the page's mark. */
   .card .eyebrow,
@@ -405,13 +445,13 @@ body {
 
   /* ---- Surfaces -------------------------------------------------------- */
   .card {
-    @apply rounded-3xl border border-border p-4 sm:p-5;
+    @apply rounded-[var(--radius-card)] border border-border p-4 sm:p-5;
     background: var(--card-sheen), var(--card-bg);
     box-shadow: var(--card-edge), var(--shadow-depth);
   }
-  /* The feature card (brand eggplant by day, raised eggplant by night) with a lime cut in the corner. */
+  /* The feature card (deep eggplant by day, raised eggplant by night) with a soft-green cut in the corner. */
   .hero-card {
-    @apply relative overflow-hidden rounded-3xl p-5 sm:p-6;
+    @apply relative overflow-hidden rounded-[var(--radius-card)] p-5 sm:p-6;
     background: var(--hero-bg);
     /* The fill stops at the border, so the cut reaches the visible edge. */
     background-clip: padding-box;
@@ -419,26 +459,28 @@ body {
     border: 2px solid var(--hero-border);
     box-shadow: var(--shadow-depth);
   }
-  /* The cut: a lime wedge in the top corner, never over the headline. */
+  /* The cut: a soft-green wedge in the top corner, never over the headline. */
   .hero-card::after {
     content: "";
     @apply pointer-events-none absolute top-0 right-0;
     width: 4.25rem;
     height: 2.75rem;
-    background: var(--accent);
+    background: var(--cut);
     clip-path: polygon(0 60%, 100% 0, 100% 100%);
   }
 
-  /* A live shift (checked in, breaks included): the one lime card, with dark ink. */
+  /* A live shift (checked in, breaks included) keeps the eggplant canvas: the hero is
+     the brand's surface. "Live" is said by the forest-ink On shift chip and the words,
+     not by repainting the card (G1 review: green stays restricted). */
   .hero-card-accent {
-    background: var(--accent);
+    background: var(--hero);
     background-clip: padding-box;
-    color: var(--ink);
+    color: var(--hero-fg);
   }
   /* Priority rings (lib/priority): one narrow ring per level, each
      further out a darker shade. By day the innermost is the card's own
-     border (eggplant on lime reads at 5:1). By night a page-coloured gap
-     comes first, so the pale inner ring stands clear of the card (lime or eggplant). */
+     border. Around an eggplant card, and always by night, a page-coloured gap
+     comes first so the inner ring stands clear of the card. */
   .hero-card[data-priority="1"],
   .hero-card[data-priority="2"],
   .hero-card[data-priority="3"] {
@@ -453,18 +495,18 @@ body {
   .dark .hero-card:is([data-priority="1"], [data-priority="2"], [data-priority="3"]) {
     border-color: var(--bg);
   }
-  /* By day an eggplant (not live) card gets the same page-coloured gap, so its
-     eggplant rings stand clear of the eggplant fill (D1). */
-  :root:not(.dark) .hero-card:not(.hero-card-accent):is([data-priority="1"], [data-priority="2"], [data-priority="3"]) {
+  /* By day every hero card gets the same page-coloured gap, so the eggplant
+     rings stand clear of the eggplant or forest-ink fill. */
+  :root:not(.dark) .hero-card:is([data-priority="1"], [data-priority="2"], [data-priority="3"]) {
     border-color: var(--bg);
   }
-  :root:not(.dark) .hero-card:not(.hero-card-accent)[data-priority="1"] {
+  :root:not(.dark) .hero-card[data-priority="1"] {
     box-shadow: 0 0 0 2px var(--ring), var(--shadow);
   }
-  :root:not(.dark) .hero-card:not(.hero-card-accent)[data-priority="2"] {
+  :root:not(.dark) .hero-card[data-priority="2"] {
     box-shadow: 0 0 0 2px var(--ring), 0 0 0 4px var(--ring-2), var(--shadow);
   }
-  :root:not(.dark) .hero-card:not(.hero-card-accent)[data-priority="3"] {
+  :root:not(.dark) .hero-card[data-priority="3"] {
     box-shadow: 0 0 0 2px var(--ring), 0 0 0 4px var(--ring-2), 0 0 0 6px var(--ring-3), var(--shadow);
   }
   .dark .hero-card[data-priority="1"] {
@@ -481,8 +523,8 @@ body {
     outline-offset: 9px;
   }
   .hero-card.hero-card-accent::after {
-    /* On a lime hero the cut is a deeper turf green, not a paler lime. */
-    background: #9fb92b;
+    /* The live (forest-ink) card keeps the same soft-green cut. */
+    background: var(--cut);
   }
   /* A hero with nothing to report steps down to a plain card: no eggplant, no cut, a hairline edge, muted type. Never combined with hero-card-accent or data-priority. */
   .hero-card.hero-card-quiet {
@@ -507,7 +549,7 @@ body {
   }
   .hero-card.hero-card-accent .eyebrow,
   .hero-card.hero-card-accent .hero-muted {
-    color: color-mix(in srgb, var(--ink) 90%, var(--accent));
+    color: var(--hero-muted);
   }
   /* Data-dense hero cards skip the corner highlight so numbers stay clear. */
   .hero-card-plain::after {
@@ -531,20 +573,20 @@ body {
     color: var(--hero-muted);
   }
   .card-flat {
-    @apply rounded-2xl border border-border bg-surface-2 p-4;
+    @apply rounded-[var(--radius-inner)] border border-border bg-surface-2 p-4;
   }
   .card-dashed {
-    @apply rounded-2xl border border-dashed border-border bg-transparent p-4;
+    @apply rounded-[var(--radius-inner)] border border-dashed border-border bg-transparent p-4;
     border-color: var(--border-strong);
   }
   .list-card {
-    @apply divide-y divide-border overflow-hidden rounded-3xl border border-border;
+    @apply divide-y divide-border overflow-hidden rounded-[var(--radius-card)] border border-border;
     background: var(--card-sheen), var(--card-bg);
     box-shadow: var(--card-edge), var(--shadow-depth);
   }
   /* An empty state sits in a card, quietly: a hairline, no shadow, room for one button. Never the centrepiece. */
   .empty-state {
-    @apply rounded-2xl border border-border px-5 py-6 text-center;
+    @apply rounded-[var(--radius-inner)] border border-border px-5 py-6 text-center;
     background: var(--surface);
   }
   .empty-state-title {
@@ -553,7 +595,7 @@ body {
   .empty-state-body {
     @apply mx-auto mt-1 max-w-sm text-sm text-muted;
   }
-  /* Empty-state art (components/EmptyState.tsx): lime field, ink lines, dim
+  /* Empty-state art (components/EmptyState.tsx): soft-green field, ink lines, dim
      context lines, paper fills. Theme tokens, so light and dark both work.
      Its settle-in animation is unlayered, with the other motion (Button faces). */
   .empty-art {
@@ -563,7 +605,7 @@ body {
     margin: 0 auto 0.75rem;
     color: var(--fg);
   }
-  .empty-art .lime { fill: var(--accent); }
+  .empty-art .lime { fill: var(--cut); }
   .empty-art .ink,
   .empty-art .dim {
     fill: none;
@@ -580,12 +622,17 @@ body {
   .btn-primary,
   .btn-secondary,
   .btn-ghost {
-    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition;
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-[var(--radius-control)] px-4 py-2 text-sm font-semibold transition;
     @apply disabled:cursor-not-allowed disabled:opacity-50;
   }
   .btn-primary {
     background: var(--primary);
     color: var(--on-primary);
+  }
+  /* By night forest ink barely differs from the page: a light edge keeps the button's shape,
+     and secondary buttons drop their fill so the one green action stands apart. */
+  .dark .btn-primary {
+    box-shadow: inset 0 0 0 1px var(--accent-edge);
   }
   .btn-primary:hover:not(:disabled) {
     filter: brightness(1.15);
@@ -597,6 +644,9 @@ body {
     @apply border text-fg;
     background: var(--secondary);
     border-color: var(--secondary-border);
+  }
+  .dark .btn-secondary {
+    background: transparent;
   }
   .btn-secondary:hover:not(:disabled) {
     border-color: var(--fg);
@@ -624,7 +674,7 @@ body {
     @apply block text-sm font-semibold text-fg;
   }
   .field {
-    @apply block w-full min-h-11 rounded-xl border px-3 py-2 text-base text-fg sm:text-sm;
+    @apply block w-full min-h-11 rounded-[var(--radius-control)] border px-3 py-2 text-base text-fg sm:text-sm;
     background: var(--field);
     /* The same hairline as the tab bar. */
     border-color: var(--glass-border);
@@ -686,8 +736,10 @@ body {
     @apply absolute top-[3px] left-[3px] size-[1.125rem] rounded-full transition;
     background: var(--surface);
   }
+  /* On is the switch colour (eggplant by day, a green track by night, eggplant in
+     Sunlight), the same as the native switch: a setting is a selection, not the primary action. */
   .toggle input:checked {
-    background: var(--primary);
+    background: var(--switch-on);
   }
   .toggle input:checked::after {
     transform: translateX(1rem);
@@ -719,7 +771,7 @@ body {
   }
   /* Large selectable option (radio card). */
   .option-card {
-    @apply flex cursor-pointer gap-3 rounded-2xl border border-border bg-surface p-4 transition;
+    @apply flex cursor-pointer gap-3 rounded-[var(--radius-inner)] border border-border bg-surface p-4 transition;
   }
   .option-card:hover {
     border-color: var(--border-strong);
@@ -776,7 +828,7 @@ body {
   }
   /* Pastel fill + ink text in both themes. badge-accent is the lavender
      "worth noticing, not live" chip (a date, an open seat, a sent receipt);
-     only .badge-live is lime. */
+     only .badge-live is forest ink. */
   .badge-coral { --badge-bg: var(--coral); }
   .badge-accent { --badge-bg: var(--sky); }
   .badge-sky { --badge-bg: var(--sky); }
@@ -793,11 +845,11 @@ body {
     color: var(--ink);
     border-color: transparent;
   }
-  /* Live now (on shift): the one lime chip. */
+  /* Live now (on shift): the one forest-ink chip, cream type; by night a soft-green edge shows its shape. */
   .badge-live {
     background: var(--accent);
-    color: var(--ink);
-    border-color: transparent;
+    color: var(--on-accent);
+    border-color: var(--accent-edge);
   }
   .dot {
     @apply inline-block size-2 shrink-0 rounded-full;
@@ -807,7 +859,7 @@ body {
   .alert,
   .alert-warning,
   .alert-info {
-    @apply rounded-2xl border p-4 text-sm text-fg;
+    @apply rounded-[var(--radius-inner)] border p-4 text-sm text-fg;
   }
   .alert-warning {
     border-color: color-mix(in srgb, var(--butter) 60%, var(--border));
@@ -836,7 +888,7 @@ body {
     background: var(--card-sheen), var(--surface);
   }
   .stat {
-    @apply rounded-2xl border border-border p-4;
+    @apply rounded-[var(--radius-inner)] border border-border p-4;
     background: var(--card-sheen), var(--card-bg);
     box-shadow: var(--card-edge), var(--shadow-depth);
   }
@@ -912,7 +964,7 @@ body {
   .tab[aria-current="page"] {
     @apply font-bold;
     /* An eggplant tile with rounded corners (not a circle, so six labels
-       still fit), lime icon and label. It glides to the next tab on
+       still fit), cream icon and label. It glides to the next tab on
        navigation (view-transition-name below). */
     border-radius: 1.125rem;
     background: var(--tab-active-bg);
@@ -938,7 +990,7 @@ body {
   }
   /* ---- Staff components (C1) ------------------------------------------ */
   .data-table-wrap {
-    @apply max-h-[70vh] overflow-auto rounded-2xl border border-border;
+    @apply max-h-[70vh] overflow-auto rounded-[var(--radius-inner)] border border-border;
     background: var(--card-sheen), var(--card-bg);
     box-shadow: var(--card-edge), var(--shadow-depth);
   }
@@ -988,7 +1040,7 @@ body {
   }
   /* Figures wrap two to a row on a phone and at least 10rem wide above it; a straggler stretches across the rest of its row, so no slot is ever an empty border-coloured block. */
   .summary-bar {
-    @apply flex flex-wrap gap-px overflow-hidden rounded-2xl border border-border bg-border;
+    @apply flex flex-wrap gap-px overflow-hidden rounded-[var(--radius-inner)] border border-border bg-border;
   }
   .summary-item {
     @apply min-w-0 space-y-1 bg-surface px-4 py-3;
@@ -1007,23 +1059,55 @@ body {
   .org-shell {
     @apply mx-auto flex w-full max-w-6xl flex-1;
   }
+  /* The keyboard ring on things inside eggplant surfaces takes the surface's own type colour
+     (eggplant on eggplant is 1.2:1). Only descendants: a hero card that is itself a link keeps
+     the page's ring, which sits on the paper around it. */
+  .org-rail * {
+    --focus: var(--rail-fg);
+  }
+  .hero-card:not(.hero-card-quiet) * {
+    --focus: var(--hero-fg);
+  }
   .org-rail {
-    @apply sticky top-0 hidden max-h-dvh w-60 shrink-0 self-start overflow-y-auto px-3 pt-8 pb-6 lg:block;
+    @apply sticky top-4 my-4 ms-4 hidden max-h-[calc(100dvh-2rem)] w-60 shrink-0 self-start overflow-y-auto rounded-[var(--radius-card)] px-3 pt-6 pb-4 lg:block;
+    background: var(--rail-bg);
+    color: var(--rail-fg);
+  }
+  .sun .org-rail {
+    border: 2px solid var(--rail-line);
   }
   .org-rail-head {
-    @apply mb-4 space-y-1 border-b border-border px-3 pb-4;
+    @apply mb-4 space-y-1 border-b px-3 pb-4;
+    border-color: var(--rail-line);
+  }
+  .org-rail .masthead {
+    color: var(--rail-fg);
   }
   .org-rail-status {
-    @apply inline-flex items-center gap-1 text-xs font-semibold text-muted;
+    @apply inline-flex items-center gap-1 text-xs font-semibold;
+    color: var(--rail-muted);
   }
   .rail-link {
-    @apply flex min-h-10 items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-muted transition hover:bg-surface-2 hover:text-fg;
+    @apply flex min-h-10 items-center gap-2.5 rounded-[var(--radius-control)] px-3 py-2 text-sm font-medium transition;
+    color: var(--rail-muted);
   }
-  /* The current area: the dock's eggplant tile, no side stripe. */
+  .rail-link:hover {
+    color: var(--rail-fg);
+    background: color-mix(in srgb, var(--rail-fg) 8%, transparent);
+  }
+  /* The current area: a raised-eggplant tile inside the eggplant rail, no side stripe. */
   .rail-link[aria-current="page"] {
     @apply font-semibold;
-    background: var(--tab-active-bg);
-    color: var(--tab-active-fg);
+    background: var(--rail-active-bg);
+    color: var(--rail-active-fg);
+  }
+  /* By night the eggplant tile is only 1.6:1 from the bar and its cream label is the
+     same as the others', so the current tab and every chosen chip get a light edge too. */
+  .dark :is(.tab[aria-current="page"], .chip:has(input:checked), .chip[aria-current="page"], .filter-chip-on, .step-current, .topnav-link[aria-current="page"]) {
+    box-shadow: inset 0 0 0 1px var(--muted);
+  }
+  .rail-link[aria-current="page"] {
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--rail-fg) 45%, transparent);
   }
   /* More sheet: a native modal dialog pinned to the bottom of the screen. */
   .more-sheet {
@@ -1038,7 +1122,7 @@ body {
     border-color: var(--border);
     box-shadow: var(--shadow);
   }
-  /* The sheet's handle: a quiet rule along the top edge (lime is kept for live state). */
+  /* The sheet's handle: a quiet rule along the top edge (green is kept for live state). */
   .more-sheet-panel::before {
     content: "";
     position: absolute;
@@ -1094,12 +1178,12 @@ body {
     }
   }
   /* Swipeable feed card (components/SwipeCard.tsx, P1.6): the card rides over
-     a lime Save or a stone Hide underlay. */
+     a forest-ink Save or a stone Hide underlay. */
   .swipe {
     @apply relative;
   }
   .swipe-card {
-    @apply relative rounded-3xl border border-border p-4 transition-colors sm:p-5;
+    @apply relative rounded-[var(--radius-card)] border border-border p-4 transition-colors sm:p-5;
     background: var(--card-sheen), var(--card-bg);
     box-shadow: var(--card-edge), var(--shadow-depth);
     touch-action: pan-y;
@@ -1117,12 +1201,12 @@ body {
     border-color: var(--border-strong);
   }
   .swipe-under {
-    @apply pointer-events-none absolute inset-0 flex items-center gap-2 rounded-3xl px-6 text-sm font-bold;
+    @apply pointer-events-none absolute inset-0 flex items-center gap-2 rounded-[var(--radius-card)] px-6 text-sm font-bold;
   }
   .swipe-under-save {
     @apply justify-start;
     background: var(--accent);
-    color: var(--ink);
+    color: var(--on-accent);
   }
   .swipe-under-hide {
     @apply justify-end;
@@ -1238,7 +1322,8 @@ body {
   .send-btn {
     @apply grid size-11 shrink-0 place-items-center rounded-2xl transition disabled:cursor-not-allowed disabled:opacity-40;
     background: var(--accent);
-    color: var(--ink);
+    color: var(--on-accent);
+    border: 1px solid var(--accent-edge);
   }
   /* z-50: its ··· menu must open above the composer and the tab bar. */
   .thread-top {
@@ -1263,7 +1348,7 @@ body {
     border-color: var(--border-strong);
   }
   /* Links inside a feature card take the card's own text colour (off-white on the
-     dark card, ink on the lime one), never the page link colour. */
+     eggplant card, cream on the forest-ink one), never the page link colour. */
   .hero-card .link {
     color: inherit;
   }
@@ -1634,7 +1719,7 @@ summary.list-none::-webkit-details-marker {
   stroke-linecap: round;
   stroke-dasharray: 1;
 }
-/* On a hero card the ring takes the card's own ink: lime and eggplant cards both keep it visible. */
+/* On a hero card the ring takes the card's own ink: forest-ink and eggplant cards both keep it visible. */
 .hero-card .progress-ring-fill {
   stroke: currentColor;
 }
@@ -1696,7 +1781,7 @@ summary.list-none::-webkit-details-marker {
     border-width: 2px;
     border-color: var(--border-strong);
   }
-  /* The lime card has no edge of its own; on white it needs one (priority rings bring theirs). */
+  /* The live card keeps a defined edge on white (priority rings bring their own). */
   .sun .hero-card-accent:not([data-priority="1"], [data-priority="2"], [data-priority="3"]) {
     border-color: var(--border-strong);
   }
@@ -1719,7 +1804,7 @@ summary.list-none::-webkit-details-marker {
   .sun [class*="ring-success/"] {
     --tw-ring-color: var(--success);
   }
-  /* The on/off switch: off is an outlined white track with a black knob, on is black with lime. */
+  /* The on/off switch: off is an outlined white track with a black knob, on is black. */
   .sun .toggle input:not(:checked) {
     background: var(--surface-2);
     border-color: var(--border-strong);

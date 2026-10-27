@@ -48,8 +48,31 @@ Owner direction, 27 Oct, which governs this document:
 
 ## 2. Decisions that are locked
 
+### 2.0 Primary visual reference (owner, 27 Oct)
+The owner named the **forest-dark mockup set** as the strongest version and the main inspiration:
+- **Phone:** photo hero, Jobs, Job details, My Schedule, Profile.
+- **Desktop:** Overview, Workers and Field Map.
+
+**What it establishes:**
+- **Shell and frame.** A near-black deep-forest shell: phone frame, headers, dock, desktop rail.
+- **Content surfaces.** Cream content sheets that carry the work: lists, details, tables.
+- **Action.** Forest green for the one primary action ("Apply for This Job", "Find Jobs", "Invite Worker").
+- **Status.** Small sage/forest status pills ("Confirmed", "Verified") and amber for pending.
+- **Type.** Serif titles ("Field work that matters.", "My Schedule", "Profile").
+- **Imagery.** Photo-led public entry and job imagery.
+- **Desktop.** A dark rail plus a wide cream work area.
+
+**What it means for the build:**
+- The shell hue is a token family (`--shell-*`: `bg`, `raised`, `line`, `fg`, `muted`, `active`).
+- Deep forest is the default; the earlier eggplant shell is one token swap away.
+- Cream sheets, the forest action, serif titles and the component grammar are the same in both.
+- Eggplant stays the brand mark's colour and remains available as an accent. It is no longer the shell.
+
+**The mockup's content rules still apply.** None of these are built: avg rating, the Rating column, "Background Check", payment-card digits, "% complete" route progress, KPI deltas such as "+12%", or map dots for live workers.
+
+
 ### 2.1 Visual
-- **Palette.** The existing G1 tokens already match the brief: paper `#EFEAE1`, cream `#FBF7F0`, eggplant `#281539`/`#3A2154`/`#4A3365`, forest action `#164B38` and the soft-green cut `#82BC9B`. There is no palette rewrite and no lime.
+- **Palette.** Per §2.0, the shell is deep forest (`--shell-*` tokens, new); cream sheets and the forest action already exist in G1. The other G1 tokens already match the brief: paper `#EFEAE1`, cream `#FBF7F0`, eggplant `#281539`/`#3A2154`/`#4A3365`, forest action `#164B38` and the soft-green cut `#82BC9B`. There is no palette rewrite and no lime.
 - **Modes.** Light, Dark and Sunlight are all first-class. By night the *one primary object* is cream with ink type (the v4 hybrid). Secondary surfaces stay plum. Chat bubbles stay eggplant.
 - **Type.**
 
@@ -60,7 +83,11 @@ Owner direction, 27 Oct, which governs this document:
   | Labels | Barlow Condensed | Eyebrows and dock labels |
   | Figures | DM Mono | Money, counts, IDs (packets, receipts) |
 
-- **Colour roles.** Green marks the one primary action and genuine live state. Eggplant marks identity, navigation and selection.
+- **Colour roles.**
+  - Forest marks the one primary action and genuine live state.
+  - Shell tokens mark navigation and frame.
+  - Selection uses a sage/forest tile on dark and an ink tile on cream.
+  - Status pills always carry words.
 - **Signature details.** The folded corner (`--cut`) appears on primary objects only.
 
 ### 2.2 Information architecture

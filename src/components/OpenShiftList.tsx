@@ -66,7 +66,7 @@ export function OpenShiftList({ items, availability }: { items: OpenShiftItem[];
                   fields={{ slotId: s.id }}
                   label="Take a seat"
                   pendingLabel="Taking it…"
-                  variant="btn-primary btn-sm"
+                  variant="btn-secondary btn-sm"
                   ariaLabel={`Take a seat: ${s.job.title}, ${s.startsAt.toLocaleString("en-US", { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", ...(zone ? {} : { timeZone: "UTC" }) })}`}
                 />
               ))}

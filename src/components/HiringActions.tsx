@@ -39,7 +39,7 @@ export function HiringActions({
   if (status === "APPLIED") {
     return (
       <div className="flex flex-wrap items-start gap-2">
-        {!closed && <ActionButton action={offerApplication} fields={fields} label="Send offer" pendingLabel="Sending…" variant="btn-primary btn-sm" />}
+        {!closed && <ActionButton action={offerApplication} fields={fields} label="Send offer" pendingLabel="Sending…" variant="btn-secondary btn-sm" />}
         {!closed && !inReview && <ActionButton action={reviewApplication} fields={fields} label="Mark in review" pendingLabel="Saving…" variant="btn-secondary btn-sm" />}
         <NotSelectedForm jobId={jobId} engagementId={engagementId} />
       </div>

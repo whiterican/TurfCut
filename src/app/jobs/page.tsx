@@ -165,7 +165,7 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
                 <input type="checkbox" role="switch" switch="" name="noCredentials" value="1" defaultChecked={filters.noCredentials} />
                 No credentials required
               </label>
-              <button className="btn-primary">Show jobs</button>
+              <button className="btn-secondary">Show jobs</button>
             </div>
           </form>
         </Sheet>

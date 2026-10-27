@@ -189,15 +189,16 @@ describe("dark theme accents", () => {
 });
 
 describe("mockup surfaces", () => {
-  it("forest-ink fills (live card and chip, primary, send, swipe-to-save): cream type AAA, secondary text AAA", () => {
+  it("forest-ink fills (live chip, primary, send, swipe-to-save): cream type AAA, secondary text AAA", () => {
     for (const th of [light, dark, sun]) {
       expect(ratio(th["on-accent"], th.accent)).toBeGreaterThanOrEqual(7);
       expect(ratio(mix(th["on-accent"], 0.88, th.accent), th.accent)).toBeGreaterThanOrEqual(7);
     }
-    expect(css).toMatch(/\.hero-card-accent \{[^}]*?color: var\(--on-accent\);/);
+    // The live shift card keeps the eggplant canvas (the chip says "live").
+    expect(css).toMatch(/\.hero-card-accent \{[^}]*?background: var\(--hero\);/);
     expect(css).toMatch(/\.badge-live \{[^}]*?color: var\(--on-accent\);/);
   });
-  it("by night a green fill has a soft-green edge (forest ink alone is under 3:1 on the night surfaces)", () => {
+  it("by night a green fill has a light edge (forest ink alone is under 3:1 on the night surfaces)", () => {
     for (const s of SURFACES) expect(ratio(dark["accent-edge"], dark[s])).toBeGreaterThanOrEqual(3);
     expect(css).toMatch(/\.dark \.btn-primary \{\s*box-shadow: inset 0 0 0 1px var\(--accent-edge\);/);
     expect(css).toMatch(/\.badge-live \{[^}]*?border-color: var\(--accent-edge\);/);
@@ -363,9 +364,6 @@ describe("forest ink is for what is live and the one primary action (G1)", () =>
     const allowed = new Set([
       "@theme inline",
       "::selection",
-      ".hero-card-accent",
-      ".hero-card.hero-card-accent .eyebrow",
-      ".hero-card.hero-card-accent .hero-muted",
       ".badge-live",
       ".swipe-under-save",
       ".send-btn",

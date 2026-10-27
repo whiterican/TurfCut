@@ -144,7 +144,7 @@ async function SharingNote({ workerId }: { workerId: string }) {
           ? `Choose who sees each part of your scorecard, your availability and your credentials, and whether organizations can find you. Until you do, organizations you ${RELATIONSHIP_PHRASE} see your profile, and nobody can find you.`
           : "We've changed how Turfcut explains who sees what since you chose. Your choices stay as they are; take a look and confirm them. If you let organizations find you, they can't until you confirm."}
       </p>
-      <Link transitionTypes={["nav-forward"]} href="/profile/setup" className="btn-primary btn-sm">{never ? "Set it up (4 short steps)" : "Check your choices"}</Link>
+      <Link transitionTypes={["nav-forward"]} href="/profile/setup" className="btn-secondary btn-sm">{never ? "Set it up (4 short steps)" : "Check your choices"}</Link>
     </DismissibleNote>
   );
 }
@@ -265,7 +265,7 @@ async function FitReconfirm({ workerId }: { workerId: string }) {
             : "We've updated how Turfcut describes these choices."}{" "}
         {PAUSED[fit.visibilityMode]}
       </p>
-      <Link href="/profile/preferences" className="btn-primary btn-sm">Review and reconfirm</Link>
+      <Link href="/profile/preferences" className="btn-secondary btn-sm">Review and reconfirm</Link>
     </section>
   );
 }

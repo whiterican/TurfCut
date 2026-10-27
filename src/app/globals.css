@@ -44,6 +44,9 @@
   --accent-edge: #164b38;
   /* The hero's corner cut: soft green, decorative only (never behind text). */
   --cut: #82bc9b;
+  /* Turf polygons and staging markers on the (always light) map tiles: mid eggplant,
+     never a park-like green. */
+  --map-fill: #5a3b82;
   /* Solid (and on-solid): settled status ("Active", "Approved", "Paid",
      "You"), a quick filter that's on and team avatars: an eggplant chip with
      paper text, the dock's own tile colour. Forest ink is kept for what is live now
@@ -112,7 +115,7 @@
      with cream type and a soft-green edge for live status and the primary action. */
   --accent: #164b38;
   --on-accent: #fbf7f0;
-  --accent-edge: #82bc9b; /* forest ink is 1.7:1 on the night surfaces: a soft-green edge shows the shape */
+  --accent-edge: #cbbdd8; /* forest ink is 1.7:1 on the night surfaces: a light lavender edge shows the shape */
   --cut: #82bc9b;
   --bg: #120d18;
   --surface: #23182f;
@@ -146,9 +149,9 @@
   --tab-active-fg: #fbf7f0;
   /* Rings: rims only, never fills or text. A page-coloured gap separates
      them from the card (see the priority ring rules). */
-  --ring: #d9ebe0;
-  --ring-2: #a8d1b8;
-  --ring-3: #82bc9b;
+  --ring: #ece4f5;
+  --ring-2: #cbb8e0;
+  --ring-3: #a991c9;
   --shadow-depth: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px -18px rgb(0 0 0 / 0.5);
   --shadow: var(--shadow-depth);
   color-scheme: dark;
@@ -441,11 +444,13 @@ body {
     clip-path: polygon(0 60%, 100% 0, 100% 100%);
   }
 
-  /* A live shift (checked in, breaks included): the one forest-ink card, with cream type. */
+  /* A live shift (checked in, breaks included) keeps the eggplant canvas: the hero is
+     the brand's surface. "Live" is said by the forest-ink On shift chip and the words,
+     not by repainting the card (G1 review: green stays restricted). */
   .hero-card-accent {
-    background: var(--accent);
+    background: var(--hero);
     background-clip: padding-box;
-    color: var(--on-accent);
+    color: var(--hero-fg);
   }
   /* Priority rings (lib/priority): one narrow ring per level, each
      further out a darker shade. By day the innermost is the card's own
@@ -519,7 +524,7 @@ body {
   }
   .hero-card.hero-card-accent .eyebrow,
   .hero-card.hero-card-accent .hero-muted {
-    color: color-mix(in srgb, var(--on-accent) 88%, var(--accent));
+    color: var(--hero-muted);
   }
   /* Data-dense hero cards skip the corner highlight so numbers stay clear. */
   .hero-card-plain::after {
@@ -599,7 +604,8 @@ body {
     background: var(--primary);
     color: var(--on-primary);
   }
-  /* By night forest ink barely differs from the page: a soft-green edge keeps the button's shape. */
+  /* By night forest ink barely differs from the page: a light edge keeps the button's shape,
+     and secondary buttons drop their fill so the one green action stands apart. */
   .dark .btn-primary {
     box-shadow: inset 0 0 0 1px var(--accent-edge);
   }
@@ -613,6 +619,9 @@ body {
     @apply border text-fg;
     background: var(--secondary);
     border-color: var(--secondary-border);
+  }
+  .dark .btn-secondary {
+    background: transparent;
   }
   .btn-secondary:hover:not(:disabled) {
     border-color: var(--fg);

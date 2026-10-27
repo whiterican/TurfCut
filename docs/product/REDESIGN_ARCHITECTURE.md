@@ -48,14 +48,14 @@ Owner direction, 27 Oct, which governs this document:
 
 ## 2. Decisions that are locked
 
-### 2.0 Visual reference: the best of every set (owner, 27 Oct)
+### 2.0 Visual reference: the best of every set, eggplant frame (owner, 27 Oct)
 The owner named the **forest-dark set** as the strongest and asked for the best parts of the others too. The v4 brief stays the contract: "green is the primary-action colour, eggplant is the signature identity/navigation colour". The synthesis keeps both.
 
 **The forest-dark set (primary)**
 
 | Area | Taken | Not taken |
 |---|---|---|
-| Frame | A near-black deep-forest frame for the header, dock, desktop rail and phone shell (`--shell-*` tokens) | |
+| Frame | **Composition only.** The frame colour is **deep eggplant** (owner, 27 Oct: "Go back to eggplant frame"). The dark header, dock, desktop rail and phone shell take the eggplant shell (`--shell-*` tokens), not forest | The forest frame colour |
 | Content | Cream content sheets carrying the work: lists, details, tables | |
 | Public entry | The photo-led entry "Field work that matters." with a single white CTA | |
 | Jobs list | Photo/tile thumbnails; pay as the second line; a save mark | |
@@ -77,7 +77,15 @@ The owner named the **forest-dark set** as the strongest and asked for the best 
 | Earnings | A large paid figure; breakdown rows with icons and chevrons (paid, approved, waiting, disputed); "Recent payouts" with Paid pills | Bonuses; an unlabelled monthly "total earnings" |
 | Identity | Eggplant as the identity colour: the brand mark, the **active nav tile** (dock and rail), selection and focus | |
 
-**What eggplant does:** it marks *where you are and what's selected*. Forest marks *the one thing to do* and *live state*. The frame is near-black forest. This answers C3's risk of a green action on a green frame: the active tab is an eggplant tile, never green, and the action is the only saturated green on a screen.
+**Colour roles:**
+- **Frame:** deep eggplant. The phone shell, dark header, dock and desktop rail use `#281539`, or `#1A0F26`/`#120D18` by night.
+- **Content:** cream sheets.
+- **Identity, current place and selection:** eggplant.
+  - On a cream surface the active tile is eggplant `#281539` with cream type.
+  - On the eggplant frame it is the raised eggplant `#4A3365` with cream type and a light edge, so it reads against the frame.
+- **The one thing to do, and live state:** forest green, the only saturated green on a screen.
+
+This keeps the v4 brief exactly: "green is the primary-action colour, eggplant is the signature identity/navigation colour".
 
 **Content rules from every set still apply.** None of these are built:
 - avg rating, rating columns or stars;
@@ -86,10 +94,10 @@ The owner named the **forest-dark set** as the strongest and asked for the best 
 - live worker dots, routes or "% complete";
 - KPI deltas ("+12%"), audience stats ("10K+") or testimonials.
 
-**Engineering:** the shell hue is a token family, so the frame can move between forest and eggplant without touching components.
+**Engineering:** the shell hue is still a token family (`--shell-*`), defaulting to eggplant.
 
 ### 2.1 Visual
-- **Palette.** Per §2.0, the shell is deep forest (`--shell-*` tokens, new); cream sheets and the forest action already exist in G1. The other G1 tokens already match the brief: paper `#EFEAE1`, cream `#FBF7F0`, eggplant `#281539`/`#3A2154`/`#4A3365`, forest action `#164B38` and the soft-green cut `#82BC9B`. There is no palette rewrite and no lime.
+- **Palette.** Per §2.0, the shell is deep eggplant (`--shell-*` tokens, new; G1 already holds these values); cream sheets and the forest action already exist in G1. The other G1 tokens already match the brief: paper `#EFEAE1`, cream `#FBF7F0`, eggplant `#281539`/`#3A2154`/`#4A3365`, forest action `#164B38` and the soft-green cut `#82BC9B`. There is no palette rewrite and no lime.
 - **Modes.** Light, Dark and Sunlight are all first-class. By night the *one primary object* is cream with ink type (the v4 hybrid). Secondary surfaces stay plum. Chat bubbles stay eggplant.
 - **Type.**
 
@@ -102,8 +110,8 @@ The owner named the **forest-dark set** as the strongest and asked for the best 
 
 - **Colour roles (§2.0).**
   - Forest marks the one primary action and live state.
-  - Eggplant marks identity, the active nav tile, selection and focus.
-  - The near-black forest frame is the shell.
+  - Eggplant marks the frame (shell), identity, the active nav tile, selection and focus.
+  - Cream sheets carry the content.
   - Status pills always carry words.
 - **Signature details.** The folded corner (`--cut`) appears on primary objects only.
 

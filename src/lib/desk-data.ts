@@ -25,7 +25,6 @@ export interface DeskItem {
   rank: number;
 }
 
-
 export interface Desk {
   parts: DeskParts;
   needs: DeskItem[];

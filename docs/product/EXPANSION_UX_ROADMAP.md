@@ -1,6 +1,8 @@
 # TurfCut — Product Expansion & UX Roadmap
 **Status:** Strategic plan / Claude handoff. Not authorization for unrestricted implementation, schema changes, production merges or deployment. Owner requested continued planning and feature expansion after Candidate Campaign Canvassing.
 
+> Not legal advice. Statements about what the law requires are planning notes until counsel confirms them per jurisdiction.
+
 ## North star
 TurfCut connects campaigns, political field workers and organizations through discovery → hiring → scheduling → briefing → field activity → independent verification → transparent pay. Political neutrality at platform level. Explicit worker-controlled preference sharing and evidence-based verification are differentiators, not optional extras.
 
@@ -170,7 +172,7 @@ Add TWO **first-class, separately discoverable job types** to the cross-sector w
 Both polling categories may serve **Political**, **Nonprofit**, and **Private** sectors when appropriate. Examples: public-opinion surveys, program evaluation, customer research, and community feedback. Do not assume surveys are inherently partisan.
 
 ### Taxonomy and UX rules
-- Sector (political/nonprofit/private), campaign purpose, activity and work arrangement are **distinct dimensions**. `phone_polling` and `door_to_door_polling` must not be encoded as `CANVASS` merely to avoid migration.
+- Sector (political/nonprofit/private), campaign purpose, activity and work arrangement are **distinct dimensions**. `phone_polling` and `door_polling` must not be encoded as `CANVASS` merely to avoid migration.
 - Suggested top-level activities for design: Petition Circulation; Door-to-Door Canvassing; Door-to-Door Fundraising; Door-to-Door Sales; Phone Banking; **Phone Polling**; **Door-to-Door Polling**. Only show as live selectable postings after each is end-to-end supported.
 - Phone Polling form requires a `workMode` choice (Remote or Office); remote needs disclosed calling timezone/hours, equipment/software and accessibility expectations; office needs physical worksite and check-in details. No GPS requirement for remote phone polling.
 - Door-to-Door Polling form needs service area, shift route/assignment if permitted, interview protocol, travel/staging instructions, safety escalation contact, required training and accessibility considerations.
@@ -194,3 +196,27 @@ The three organization sectors remain **Political • Nonprofit • Private**. A
 Keep “One-Stop Shop for All Door-to-Door Work” as a memorable vertical tagline, not the entire scope.
 
 **Delivery status:** Polling is now **specified for future implementation, not released**. No production schema or pay changes occur from this roadmap entry.
+
+## Founder-requested additional work type — Polling Place Outreach (2026-10-23)
+
+**Recommended user-facing label: "Polling Place Outreach"** (not "Polling Sites" and not "Polling"). This refers to eligible campaign, petition, or civic field representatives who work **near** voting locations, within applicable laws and restricted-distance rules. It must not suggest that they run the polling place, work for election officials, or have authorization to operate inside voting facilities.
+
+### Separate, noninterchangeable categories
+- **Polling Place Outreach** — external campaign/initiative work, voter information or permissible petition activity at or near voting locations, subject to location-specific approval and restrictions.
+- **Election Poll Worker / Election Operations** — personnel officially engaged by an election authority to administer voting and assist voters; *not* equivalent to private campaign jobs. Treat as a separately vetted future category only if partnerships and legal authority support it.
+- **Phone Polling / Door-to-Door Polling** — surveys and public-opinion research, already specified elsewhere. Never label these "Polling Place Outreach."
+- **Election Observation** — only if separately authorized and approved under applicable local rules; never assume canvassers are observers.
+
+### Proposed create-job and worker discovery design
+- Activity: `polling_place_outreach` (dedicated enum/value only after approved taxonomy migration); campaign sector and purpose independently disclosed. Suitable only for organizations and activities permitted under local election rules.
+- Work location: specific approved polling-site assignment or public area, event dates and permitted shift times; avoid publishing inaccurate or sensitive voter-level locations.
+- Site-specific preflight: current verified jurisdiction/site rules, restricted buffer zone and exact permitted work area (if legally confirmed), approved sponsor, required permits/badges/training, contact for escalations, no-solicitation rules, and closure/cancellation contingencies.
+- Publishing hard stop: if jurisdiction/site permissions, buffer zone, activity rules, or operator status are unknown or expired, **block publishing** with explicit reasons; never infer permission from a generic address.
+- Worker card: "Polling Place Outreach" category badge; campaign identity, purpose, pay terms, date/time, authorized area and required credentials. An explicit **"Not an election official"** disclosure when relevant.
+- Field interface: shift brief, location-aware arrival instructions only where approved and needed, accessible safety/incident reporting, end-of-shift verification. No voter interference, intimidation, collection of ballots, impersonation, unauthorized tracking, or restricted area access.
+- Jurisdiction-specific policies and legal review needed for electioneering distances, petition collection, campaign materials, voter assistance and observation. Separation from state/local election worker roles must remain visible.
+
+### Design labels and positioning
+Add the job-activity option **Polling Place Outreach** to the proposed Political-sector catalog, *distinct* from survey polling. Optionally display **Election Day & Early Voting Outreach** as explanatory subtitle, but don't imply it is limited to Election Day: early voting locations may have separate regulations.
+
+**Status:** Product taxonomy and implementation plan only, not a launched job type or evidence of legal authorization at any specific site. Do not change the database, enable publishing or deploy without further scoped approval and legal verification.

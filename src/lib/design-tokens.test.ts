@@ -431,6 +431,14 @@ describe("forest ink is for what is live and the one primary action (G1)", () =>
       expect(ratio(th["rail-active-fg"], th["rail-active-bg"])).toBeGreaterThanOrEqual(7);
     }
   });
+  it("the keyboard ring stays visible inside the eggplant rail and hero cards (every theme)", () => {
+    expect(css).toMatch(/\.org-rail \* \{\s*--focus: var\(--rail-fg\);/);
+    expect(css).toMatch(/\.hero-card \* \{\s*--focus: var\(--hero-fg\);/);
+    for (const th of [light, dark, sun]) {
+      expect(ratio(th["rail-fg"], th["rail-bg"])).toBeGreaterThanOrEqual(3);
+      expect(ratio(th["hero-fg"], th.hero)).toBeGreaterThanOrEqual(3);
+    }
+  });
   it("the rail and the desktop top nav mark the current page with an eggplant tile, not a side stripe", () => {
     expect(css).toMatch(/\.rail-link\[aria-current="page"\] \{[^}]*?background: var\(--rail-active-bg\);/);
     expect(css).toMatch(/\.topnav-link\[aria-current="page"\] \{[^}]*?background: var\(--tab-active-bg\);/);

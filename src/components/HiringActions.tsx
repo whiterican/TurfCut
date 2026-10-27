@@ -53,7 +53,7 @@ export function HiringActions({
           {expired || !offerExpiresAt ? "The offer lapsed before the worker answered." : `Offer sent, waiting on the worker (${timeLeft(offerExpiresAt)} to accept).`}
         </p>
         <div className="flex flex-wrap items-start gap-2">
-          {expired && !closed && <ActionButton action={offerApplication} fields={fields} label="Send a new offer" pendingLabel="Sending…" variant="btn-primary btn-sm" />}
+          {expired && !closed && <ActionButton action={offerApplication} fields={fields} label="Send a new offer" pendingLabel="Sending…" variant="btn-secondary btn-sm" />}
           <NotSelectedForm jobId={jobId} engagementId={engagementId} label={expired ? "Close as not selected" : "Withdraw the offer"} />
         </div>
       </div>

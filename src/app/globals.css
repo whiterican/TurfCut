@@ -145,7 +145,7 @@
   --success: #d8cce4; /* done and verified by night: pale lavender, not green (green is live) */
   --warning: #f0d08a;
   --primary: #164b38;
-  --switch-on: #338a5f; /* a switch track: 4.3:1 to the white thumb, 3.5:1 or more on every night surface */
+  --switch-on: #8f7da6; /* a setting is a selection, not live: a lavender track, 3.7:1 to the white thumb, 4:1 or more on every night surface */
   --on-primary: #fbf7f0;
   --secondary: #30223f;
   --secondary-border: #8f7da6;
@@ -1058,6 +1058,15 @@ body {
   /* Organization shell (C1): left rail on desktop, role tabs + More sheet on phones. */
   .org-shell {
     @apply mx-auto flex w-full max-w-6xl flex-1;
+  }
+  /* The keyboard ring on things inside eggplant surfaces takes the surface's own type colour
+     (eggplant on eggplant is 1.2:1). Only descendants: a hero card that is itself a link keeps
+     the page's ring, which sits on the paper around it. */
+  .org-rail * {
+    --focus: var(--rail-fg);
+  }
+  .hero-card * {
+    --focus: var(--hero-fg);
   }
   .org-rail {
     @apply sticky top-4 my-4 ms-4 hidden max-h-[calc(100dvh-2rem)] w-60 shrink-0 self-start overflow-y-auto rounded-[var(--radius-card)] px-3 pt-6 pb-4 lg:block;

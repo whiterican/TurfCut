@@ -120,6 +120,8 @@ async function WorkerHero({ workerId }: { workerId: string }) {
           {live ? "Live shift" : "Next shift"} · <LocalTime iso={shift.startsAt.toISOString()} mode="date" />
         </p>
         <p className="hero-title">{shift.engagement.job.title}</p>
+        {/* The card stays eggplant; the forest-ink chip is what says it's live. */}
+        {live && <span className="badge-live">On shift</span>}
         <p className="flex flex-wrap gap-x-8 gap-y-2">
           <span>
             <span className="block text-lg font-bold"><LocalTime iso={shift.startsAt.toISOString()} mode="time" /></span>
@@ -365,7 +367,7 @@ async function Detached() {
                 <p className="font-medium text-fg">{i.org.name} invited you as {roleName({ role: i.role as Role, roleName: i.orgRole?.name }, ROLE_LABELS)}</p>
                 <p className="text-muted-sm">Open until {i.expiresAt.toISOString().slice(0, 10)}. Nothing changes unless you accept.</p>
               </div>
-              <ActionButton action={acceptOrgInvite} fields={{ inviteId: i.id }} label="Accept" pendingLabel="Joining…" />
+              <ActionButton action={acceptOrgInvite} fields={{ inviteId: i.id }} label="Accept" pendingLabel="Joining…" variant="btn-secondary" />
             </li>
           ))}
         </ul>

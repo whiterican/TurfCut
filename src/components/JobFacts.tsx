@@ -49,7 +49,7 @@ export function JobFacts({
         {launch.mode === "SELF"
           ? "Self-launch: you start from wherever you are."
           : launch.points.length
-            ? "Staged: you report to a staging point; each shift names it."
+            ? "Staged: each shift sets the staging point you report to."
             : "Staged: you report to a staging point set for each shift."}
       </Fact>
       <Fact icon={Users} title={job.headcount ? `${acceptedCount} of ${job.headcount} spots filled` : `${acceptedCount} hired so far`}>

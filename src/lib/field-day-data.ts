@@ -1,3 +1,5 @@
+import { MAX_PAGE, type Cursor } from "@/lib/pagination";
+import type { ErrorCode } from "@/lib/api-errors";
 import { Prisma } from "@prisma/client";
 import { radiusFor, readLaunch } from "@/lib/job-launch";
 import { bandRadius } from "@/lib/offline-sync";
@@ -28,7 +30,7 @@ import {
 } from "@/lib/field-day";
 
 type Tx = Prisma.TransactionClient;
-type Result = { ok: true } | { ok: false; reason: string };
+type Result = { ok: true } | { ok: false; code?: ErrorCode; reason: string };
 
 const lock = (tx: Tx, key: string) => tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${key}))`;
 
@@ -93,13 +95,13 @@ export async function scheduleShift(
   engagementId: string,
   raw: Record<string, unknown>,
   now = new Date()
-): Promise<{ ok: true; shiftId: string } | { ok: false; reason: string; errors?: Record<string, string> }> {
-  if (!UUID_RE.test(engagementId)) return { ok: false, reason: "Engagement not found." };
+): Promise<{ ok: true; shiftId: string } | { ok: false; code?: ErrorCode; reason: string; errors?: Record<string, string> }> {
+  if (!UUID_RE.test(engagementId)) return { ok: false, code: "not_found", reason: "Engagement not found." };
   const e = await db().engagement.findUnique({
     where: { id: engagementId },
     include: { job: { include: { jurisdiction: true } }, worker: { select: { closedAt: true } } },
   });
-  if (!e || e.job.orgId !== actor.orgId) return { ok: false, reason: "Engagement not found." };
+  if (!e || e.job.orgId !== actor.orgId) return { ok: false, code: "not_found", reason: "Engagement not found." };
   if (e.status !== "ACTIVE" && e.status !== "CLAIMED") return { ok: false, reason: "Only hired workers can be scheduled." };
   if (e.worker.closedAt) return { ok: false, reason: "This worker has closed their account." };
   // A closed job stops hiring, not the work: people already hired can still be scheduled (C3.5).
@@ -217,13 +219,13 @@ export async function workerShiftAction(
   req: WorkerRequest,
   at?: Date
 ): Promise<Result> {
-  if (!UUID_RE.test(shiftId)) return { ok: false, reason: "Shift not found." };
+  if (!UUID_RE.test(shiftId)) return { ok: false, code: "not_found", reason: "Shift not found." };
   return db().$transaction(async (tx) => {
     await lock(tx, `shift:${shiftId}`);
     // Timed after the lock, so events land in the order they were judged.
     const now = at ?? new Date();
     const s = await loadShift(shiftId, tx);
-    if (!s || s.engagement.workerId !== actor.workerId) return { ok: false as const, reason: "Shift not found." };
+    if (!s || s.engagement.workerId !== actor.workerId) return { ok: false as const, code: "not_found", reason: "Shift not found." };
     const action: WorkerAction = req;
     const problem = radiusProblem(s, action);
     if (problem) return { ok: false as const, reason: problem };
@@ -339,13 +341,13 @@ export async function supervisorShiftAction(
   action: SupervisorAction,
   at?: Date
 ): Promise<Result> {
-  if (!UUID_RE.test(shiftId)) return { ok: false, reason: "Shift not found." };
+  if (!UUID_RE.test(shiftId)) return { ok: false, code: "not_found", reason: "Shift not found." };
   return db().$transaction(async (tx) => {
     await lock(tx, `shift:${shiftId}`);
     // Timed after the lock, so events land in the order they were judged.
     const now = at ?? new Date();
     const s = await loadShift(shiftId, tx);
-    if (!s || s.engagement.job.orgId !== actor.orgId) return { ok: false as const, reason: "Shift not found." };
+    if (!s || s.engagement.job.orgId !== actor.orgId) return { ok: false as const, code: "not_found", reason: "Shift not found." };
     let elsewhere: string[] = [];
     let heldElsewhere: Array<{ packetId: string; shiftId: string }> = [];
     if (action.kind === "packet_pickup") {
@@ -411,8 +413,8 @@ export async function syncWorkerActions(
   batch: { deviceNow: number; actions: QueuedAction[] },
   serverNow = new Date(),
   chunkSize = SYNC_CHUNK
-): Promise<{ ok: true; results: SyncResult[] } | { ok: false; reason: string }> {
-  if (!UUID_RE.test(shiftId)) return { ok: false, reason: "Shift not found." };
+): Promise<{ ok: true; results: SyncResult[] } | { ok: false; code?: ErrorCode; reason: string }> {
+  if (!UUID_RE.test(shiftId)) return { ok: false, code: "not_found", reason: "Shift not found." };
   if (!Number.isFinite(batch.deviceNow)) return { ok: false, reason: "Missing the phone's clock." };
   // Chunks run in order, each under the shift lock with the shift reloaded,
   // so later entries are still placed after earlier ones (saved ones are in
@@ -433,12 +435,12 @@ function syncChunk(
   deviceNow: number,
   actions: QueuedAction[],
   serverNow: Date
-): Promise<{ ok: true; results: SyncResult[] } | { ok: false; reason: string }> {
+): Promise<{ ok: true; results: SyncResult[] } | { ok: false; code?: ErrorCode; reason: string }> {
   return db().$transaction(
     async (tx) => {
     await lock(tx, `shift:${shiftId}`);
     const s = await loadShift(shiftId, tx);
-    if (!s || s.engagement.workerId !== actor.workerId) return { ok: false as const, reason: "Shift not found." };
+    if (!s || s.engagement.workerId !== actor.workerId) return { ok: false as const, code: "not_found", reason: "Shift not found." };
     const seen = await tx.workEvent.findMany({ where: { clientId: { in: actions.map((a) => a.clientId) } }, select: { clientId: true, shiftId: true } });
     const done = new Map(seen.map((e) => [e.clientId!, e.shiftId]));
     const f = facts(s);
@@ -521,12 +523,12 @@ export async function supervisorCorrection(
   action: CorrectionAction,
   at?: Date
 ): Promise<Result> {
-  if (!UUID_RE.test(shiftId)) return { ok: false, reason: "Shift not found." };
+  if (!UUID_RE.test(shiftId)) return { ok: false, code: "not_found", reason: "Shift not found." };
   return db().$transaction(async (tx) => {
     await lock(tx, `shift:${shiftId}`);
     const now = at ?? new Date();
     const s = await loadShift(shiftId, tx);
-    if (!s || s.engagement.job.orgId !== actor.orgId) return { ok: false as const, reason: "Shift not found." };
+    if (!s || s.engagement.job.orgId !== actor.orgId) return { ok: false as const, code: "not_found", reason: "Shift not found." };
     const out = correctionAction(facts(s), action, actor.profileId, now);
     if (!out.ok) return out;
     await payLock(tx, s.engagement.workerId);
@@ -566,13 +568,13 @@ export async function workerTurfAction(
   action: TurfAction,
   at?: Date
 ): Promise<Result> {
-  if (!UUID_RE.test(shiftId)) return { ok: false, reason: "Shift not found." };
+  if (!UUID_RE.test(shiftId)) return { ok: false, code: "not_found", reason: "Shift not found." };
   return db().$transaction(async (tx) => {
     await lock(tx, `shift:${shiftId}`);
     // Timed after the lock, so events land in the order they were judged.
     const now = at ?? new Date();
     const s = await loadShift(shiftId, tx);
-    if (!s || s.engagement.workerId !== actor.workerId) return { ok: false as const, reason: "Shift not found." };
+    if (!s || s.engagement.workerId !== actor.workerId) return { ok: false as const, code: "not_found", reason: "Shift not found." };
     return apply(tx, shiftId, actor.profileId, turfAction(facts(s), action, now), now);
   });
 }
@@ -581,12 +583,21 @@ export async function workerTurfAction(
 // Views
 // ---------------------------------------------------------------------------
 
-/** A worker's shifts across every campaign, upcoming first. */
-export async function loadWorkerShifts(workerId: string, now = new Date()) {
+/**
+ * A worker's shifts across every campaign, upcoming first, at most `limit`
+ * (keyset-paged by startsAt then id: pass the last row's as `after`).
+ */
+export async function loadWorkerShifts(workerId: string, now = new Date(), opts: { limit?: number; after?: Cursor } = {}) {
+  const { limit = MAX_PAGE, after } = opts;
   return db().shift.findMany({
-    where: { engagement: { workerId }, endsAt: { gte: new Date(now.getTime() - 7 * 86_400_000) } },
+    where: {
+      engagement: { workerId },
+      endsAt: { gte: new Date(now.getTime() - 7 * 86_400_000) },
+      ...(after ? { OR: [{ startsAt: { gt: after.at } }, { startsAt: after.at, id: { gt: after.id } }] } : {}),
+    },
     include: SHIFT_INCLUDE,
-    orderBy: { startsAt: "asc" },
+    orderBy: [{ startsAt: "asc" }, { id: "asc" }],
+    take: limit,
   });
 }
 

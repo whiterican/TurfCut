@@ -22,6 +22,9 @@ import { proofPath, supabaseProofStore, type ProofStore } from "@/lib/proof-stor
 
 type Tx = Prisma.TransactionClient;
 type Client = ReturnType<typeof db> | Tx;
+/** Rows per query when the purge walks every recorded photo. */
+const PURGE_BATCH = 1000;
+
 export type WorkerActor = { workerId: string; profileId: string };
 export type Staff = { profileId: string; orgId: string; role: Role; grants?: Grants | null };
 export type Viewer = ({ kind: "worker" } & WorkerActor) | ({ kind: "staff" } & Staff);
@@ -188,7 +191,15 @@ export async function purgeProofs(store: ProofStore = supabaseProofStore(), opts
   let orphans = 0;
   if (!opts.workerId) {
     const stored = await store.list();
-    const known = new Set((await db().credentialProof.findMany({ select: { id: true, workerId: true } })).map((p) => proofPath(p.workerId, p.id)));
+    // Every recorded photo's path, read in keyset batches so the purge's memory
+    // and query size stay flat however many photos there are.
+    const known = new Set<string>();
+    for (let after: string | undefined; ; ) {
+      const batch = await db().credentialProof.findMany({ select: { id: true, workerId: true }, orderBy: { id: "asc" }, take: PURGE_BATCH, ...(after ? { where: { id: { gt: after } } } : {}) });
+      for (const p of batch) known.add(proofPath(p.workerId, p.id));
+      if (batch.length < PURGE_BATCH) break;
+      after = batch[batch.length - 1].id;
+    }
     const cutoff = now.getTime() - ORPHAN_MINUTES * 60_000;
     for (const f of stored) {
       // A file the store can't date is left alone: it may be an upload being recorded right now.

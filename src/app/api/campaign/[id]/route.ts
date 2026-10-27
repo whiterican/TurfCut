@@ -1,3 +1,4 @@
+import { failureResponse } from "@/lib/api-errors";
 import { apiArea, badId, resultResponse } from "@/lib/api-session";
 import { validateProfile } from "@/lib/campaign-social";
 import { setCampaignPublished, updateCampaign } from "@/lib/campaign-social-data";
@@ -18,7 +19,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   const v = validateProfile(b);
   if (!v.ok) return Response.json({ error: "Fix the fields.", errors: v.errors }, { status: 400 });
   const r = await updateCampaign(actor, id, v.value);
-  if (!r.ok) return Response.json({ error: r.reason, errors: r.errors }, { status: /not found/i.test(r.reason) ? 404 : 409 });
+  if (!r.ok) return failureResponse(r);
   if (typeof b.published === "boolean") return resultResponse(await setCampaignPublished(actor, id, b.published));
   return Response.json({ ok: true });
 }

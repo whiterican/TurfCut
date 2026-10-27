@@ -113,6 +113,28 @@ The frame, sheets and primary object in each mode. Values are existing G1 tokens
 | Primary action on the frame, a photo or the eggplant primary object | cream `#FBF7F0`, ink type | cream, ink | white, black |
 | Muted text | `#4A4254` | `#CBBDD8` | `#1B1422` |
 
+**Focus ring by surface** (replaces "eggplant = focus"; C3 F2):
+- One `--focus` value per surface, set by the surface's class.
+- 2px ring with a 2px offset; the ring must be ≥3:1 against both the surface and the control.
+- B1 tests every pair.
+
+| Surface | Light | Dark | Sunlight |
+|---|---|---|---|
+| Paper, cream sheet | eggplant `#3A2154` | soft green `#82BC9B` (7.6:1 or more) | black |
+| Plum sheet (dark) | — | soft green `#82BC9B` | — |
+| Eggplant frame or primary object | cream `#FBF7F0` | lavender `#D8CCE4` | white |
+| Cream primary object (dark) | — | ink `#1B1422` | — |
+| Forest action, active tile | the ring sits outside, in the page-coloured gap (offset 3px), so it's measured against the surface, never the fill | same | same |
+
+**Active nav tile, every mode** (C3 F3). Besides colour, every active tile carries **bold weight plus `aria-current`**, and in the dock a 3px bar above the icon.
+
+| Where | Light | Dark | Sunlight |
+|---|---|---|---|
+| On cream or plum (dock, top bar) | eggplant `#281539` tile, cream type (14:1 on cream) | `#4A3365` tile, cream type, **1px edge `#CBBDD8`** (6.0:1 against the tile, 7:1 or more against plum) | black tile, white type |
+| On the frame (rail) | lavender `#D8CCE4` tile, ink type (about 11:1 against `#281539`) | lavender `#D8CCE4` on `#1A0F26` | white tile, black type, on a black rail |
+
+The Sunlight frame is black (`--rail-bg` today is white; B1 changes it to black with white type, then tests it).
+
 **Rules:**
 - **Forest only on paper or cream.** Forest never sits directly on eggplant or a photo: forest on `#281539` is about 1.3:1.
 - **The active tile on the frame is lavender.** The lavender tile with ink type is above 8:1 against `#281539` and `#1A0F26`. The raised-eggplant tile (`#4A3365` on `#281539`, about 1.6:1) is never used on the frame.
@@ -189,10 +211,10 @@ Each of these strings survives B1–B3 word for word unless a reviewer approves 
 | Page width is set by hand per page | `page max-w-2xl` ×62, `3xl` ×28, `4xl` ×8, `5xl` ×8 (≈100 routes or sections) | **Root cause of "stretched phone column" on desktop.** Replace with named templates (§4.2); don't restyle page by page |
 | Shared CSS components carry the UI | `.card` in 75 files, `.list-card` 43, `btn-*` 50–69, `.section-title` 43, `.empty-state` 37 | A foundation change re-skins most of the app at once; layouts and workflows then change only where they need to |
 | Shared React components | `Masthead` 44 importers, `PageSkeleton` 57, `LocalTime` 34, `ActionButton` 18, `EmptyState` 9; `DataTable` only used by staff (5) | Promote `DataTable` to the shared table; add the missing primitives (§4.3) |
-| Dock collisions (P0-1) | **Measured.** Fully hidden behind the dock: "Continue" on `/welcome` at 320 and at 200% text; the focused toggle on Availability at 320. Focus 97% hidden: "Sheets returned" on the shift page at 390. A field under the dock with the keyboard open on 6 forms | A shell-level **dock contract** (§4.2.3), not per-page fixes. A prototype measured fully hidden 2→0, partly hidden ~30→2, keyboard collisions 10→0 |
-| Header at 200% text | 458px wide at 390 → 149 of 154 pages scroll sideways | Pixel-bounded icon buttons and wordmark in the shell |
+| Dock collisions (P0-1) | **Measured.** Fully hidden behind the dock: "Continue" on `/welcome` at 320 and at 200% text; the focused toggle on Availability at 320. Focus 97–99% hidden: "Sheets returned" on the shift page at 390, `/desk` and the pay dispute page. A field under the dock with the keyboard open on 6 forms | A shell-level **dock contract** (§4.2.3), not per-page fixes.<br>**Prototype result, corrected per C3:**<br>• Tab focus fully hidden 2→0, partly hidden ~30→2<br>• Keyboard, *touch context*: dock hidden in 10 of 10 runs<br>• Keyboard, *no touch context* (a narrow desktop window): still 2 collisions at 320, on `/jobs/new` and `/jobs/[jobId]/edit`<br>• 6 keyboard rows timed out in the first run and were not measured<br>The contract is not proven until B1's check passes with errors counted as failures |
+| Header at 200% text | 458px wide at 390 → 149 of 154 *route/role/width rows* (77 route/role pairs × 2 widths) scroll sideways | Pixel-bounded icon buttons and wordmark in the shell |
 | Worker desktop nav (P0-2) | Exists (`TopNav`, ≥1024, `aria-current`). The earlier "missing" claim came from a preview artefact | Keep. Make it more visible; add Earnings |
-| Contrast (P0-3) | 0 WCAG failures across 1,656 text runs (5 pages × 3 modes × 2 widths); dark mode 49–64% plum at 390 | Legibility is fine; the problem is monotony → the cream primary object by night (done in E1) |
+| Contrast (P0-3) | 0 WCAG failures across 1,656 text runs (5 pages × 3 modes × 2 widths); dark mode 49–64% plum at 390. *Before E1; main content only: the header, dock, rail and non-text elements were not measured (C3)* | Legibility is fine; the problem is monotony → the cream primary object by night (done in E1) |
 | Payout CTA (P0-4) | The label is 69–171px from the `PayoutSetup` card, not linked; no button while Stripe is off | Primary-object pattern for Earnings: the block and its existing action sit together (§5) |
 | State truth (P0-5) | Desk says "Nothing under way" while 3 shifts are still checked in from 3 days ago; Today shows a stale "next job" for a live shift | The workflow stage must render state from the data (`ACTIVE` + `endsAt < now`), not a 24h window. No schema change |
 | Times | All rendered times follow the viewer's clock (15 pages checked) | No change |
@@ -241,8 +263,21 @@ Each of these strings survives B1–B3 word for word unless a reviewer approves 
    | `draft` | Draft / Not sent yet | dotted ring | `--subtle` | `--subtle` | `--subtle` |
    | `closed` | Closed / Ended | dash | `--subtle` | `--subtle` | `--subtle` |
 
+   **Exhaustive mapping from the domain** (C3 F4). `StatusBadge` takes a *domain* value, not a free state. Each domain gets a mapping function written as a `switch` with **no default branch**, so TypeScript fails the build if a new domain state appears unmapped. Words come from the existing functions; nothing is renamed in the UI.
+
+   | Domain (source) | Value → badge state, word |
+   |---|---|
+   | Pay line (`lib/pay` `PayStatus` + `statusLabel`) | `AWAITING_APPROVAL` → `pending` "Awaiting payment approval"<br>`APPROVED` → `approved`, with the payout context word: "Approved · payout setup needed" (state **`approved-blocked`**, ring with a square), "Approved · in the next pay run" or "Approved"<br>`HELD` → **`held`** (square, coral) "On hold"<br>`DISPUTED` → `disputed`<br>`PROCESSING` → **`sending`** (half-filled circle, eggplant) "Sending"<br>`PAID` → `paid`<br>`VOIDED` → `closed` "Replaced"<br>`NOTHING_DUE` → `closed` "Nothing to pay"<br>Negative amounts → `closed` "Deducted…" |
+   | Shift (status + field-day replay) | Scheduled → `pending` "Scheduled"<br>Checked in, now ≤ `endsAt` → `live` "On shift"<br>**Checked in, now > `endsAt` → `overdue` (triangle, warning) "Still checked in · due to end {time}"**. Never `live`<br>On break → `live` "On break"<br>Checked out, awaiting review → `pending`<br>Approved → `approved`; Not approved → `blocked`<br>Cancelled → `closed`<br>Ended without check-in → `closed` "Ended without a check-in" |
+   | Sync (`lib/moments` `PillState` + `offline-queue`) | `online` and nothing waiting → `closed`-style quiet "Nothing waiting to send"<br>`syncing` → `sending`<br>`waiting` → **`queued`** (dotted ring) "On this phone, not sent yet"<br>`unsaved` / memory-only → **`memory-only`** (dotted ring plus warning) "Only in memory: don't close the app"<br>`refused` → `blocked` "Refused by the server"<br>`offline` → `queued` "Offline" |
+   | Engagement (C3 stages) | applied → `pending`<br>in review → `pending`<br>offered → `approved` "Offer out"<br>hired → `approved` "Hired" (never `live`)<br>declined / withdrawn → `closed`<br>The words come from `engagement-labels` |
+   | Sharing | not shared → `not-shared` (never zero) |
+   | Jurisdiction gate | unknown / expired / unapproved → `blocked` "Can't publish", with the reason. Never a silent default |
+
+   New states this adds to the table above: `overdue`, `held`, `approved-blocked`, `sending`, `queued`, `memory-only`. Each gets a glyph and a tested colour per mode in B1.
+
    **Rules:**
-   - Only `live` uses forest.
+   - Only `live` uses forest, and only while the shift is genuinely under way.
    - Pay states never share a fill: paid is filled eggplant, approved is a ring, pending is dashed.
    - Callers pass the state and may override the word; the glyph and colours are fixed.
    - The 9 files using `badge-*` move to `StatusBadge` in B1.
@@ -310,7 +345,7 @@ Components take **view models** (plain props shaped for display), not Prisma typ
 | `PrimaryObject` | `.hero-card` + variants (4 files) | **New wrapper** over the hero-card CSS. Props:<br>• eyebrow, headline<br>• facts[] and figures[]<br>• state (StatusBadge)<br>• primary action plus up to 2 secondary<br>• optional `aside` (map thumbnail)<br>One per screen |
 | `ListRow` | `JobRow`, `.shift-row`, `Row`, ad-hoc rows | **New base** with leading (icon, avatar or tile), title, meta lines, trailing (figure, badge, chevron) and density. `JobRow`, shift rows, message rows and notification rows become thin adapters |
 | `DataTable` | `staff/DataTable` (sortable, "not shared" grouping, bulk select) | **Promote** to `components/table/`. Add:<br>• a linked filter bar<br>• a selected row driving the inspector<br>• a phone mode that renders `ListRow`s instead of a squeezed table |
-| `Inspector` | none | **New.** A side panel at ≥1024 that is a route segment, so deep links and Back work. On phones it is the detail route |
+| `Inspector` | none | **New.** A side panel at ≥1024 that is a route segment, so deep links and Back work. On phones it is the detail route.<br>**Access rule (C3):** the inspector segment runs its own guard (`requireArea` with the area and level of the route it belongs to) and its own loader, scoped by the session's `orgId`. It never receives fields from the list's client state. A foreign or out-of-grant id gives the same 404/redirect as the full detail route; a test covers this per inspector |
 | `StatusBadge` | `badge-*`, `.st` in studies | **New** (§4.1.3) |
 | `FactList` / `KeyValue` | `.fact-list`, `Row`, `.kv` | **Merge** into one with icon support |
 | `Stat` / `Figure` | `.stat`, `LiveFigure` | **Keep**, plus `MathDisclosure` ("how this was worked out": the existing pay formula strings) |
@@ -416,26 +451,66 @@ The **768** column below lists exceptions only. "Panel" means the ≥1024 side c
 | `/login`, `/signup` | `HeroPage` (split 45/55) | Never fields over a photo; validation, recovery and keyboard |
 | `/c`, `/c/[handle]`, `/c/[handle]/p/[postId]` | `RecordPage` | Campaign pages, public view |
 
-## 6. Build sequence (owner's order)
+## 6. Build sequence (owner's order, with measurable exits)
 
-Each stage is a set of small commits on `redesign`. At the end of each stage:
+Each stage is a set of small commits on `redesign`. Every stage, from B1, ends with:
 - typecheck and tests;
+- **the QA checks in §6.3** (run, results saved, script errors counted as failures);
 - an independent reviewer pass (CLAUDE.md rule 9);
-- before/after screenshots at 390 and 1440 × light/dark/Sunlight, sent to the owner.
+- before/after screenshots at 390 and 1440 × light/dark/Sunlight for the owner.
 
 Nothing merges without the owner's word.
 
-| Stage | Contents | Files (main) | Done when |
-|---|---|---|---|
-| **B1 Foundation** | Role tokens; type utilities; `StatusBadge`; shells (header bounds, dock contract, safe area, worker desktop nav with Earnings, org workspace width) | `globals.css`, `layout.tsx`, `AppNav.tsx`, `lib/nav.ts`, new `components/status/`, `zz`-free tests | Dock/keyboard/overflow scripts pass (§4.2.3); token tests pass; screens visibly re-skinned |
-| **B2 Layouts** | **First, one pilot route per template, shown to the owner before the rest:**<br>• Home (`ListPage`)<br>• Job (`RecordPage`)<br>• Shift (`FieldPage`)<br>• Desk (`WorkspacePage`)<br>• Applicants (`ListDetailPage`)<br>• Profile (`ReadingPage`)<br>• Landing and login (`HeroPage`, placeholder photo)<br>**Then** every route moves off hand-set widths onto its template (§5), and `PageSkeleton` follows the template | new `components/layout/*`, all `page.tsx` (mechanical), `loading.tsx` | No `page max-w-*` left; 1280/1440 show multi-zone layouts for desk, hiring, jobs, messages, earnings, shift; route-skeleton test updated |
-| **B3 Core workflows** | Primary objects and screen content per §5, in this order:<br>1. Today<br>2. Find work and Job<br>3. Schedule and Shift (`FieldPage`, `ActionBar`)<br>4. Earnings<br>5. Desk (in-the-field truth)<br>6. Hiring and applicants (`DataTable` + `Inspector`)<br>7. Messages<br>8. Profile<br>9. Public landing and sign-in<br>10. Pay, field, admin | the routes' `page.tsx` + new components (§4.3) | Each workflow's states (empty, busy, blocked, overdue, offline, Sunlight) captured; invariants tested (pay figures, requirements, sync, roles) |
-| **B4 Visual polish** | Photography (public), type tiles, empty-state art, motion review, final status colours | assets, `globals.css` | Owner sees the full set; C1-style design review |
-| **B5 Regression** | Full capture matrix (routes × roles × 320/390/768/1280/1440 × 3 modes); P0 scripts as checks; accessibility pass; role and grant matrix | `scratchpad` scripts → `scripts/visual/` if approved | Every route valid; 0 P0 regressions; reviewers READY |
+| Stage | Contents | Exit: all must be true |
+|---|---|---|
+| **B1 Foundation** | <ul><li>Shell, type and colour: role tokens; type utilities (§4.1.2); mode surfaces, focus and tiles (§2.0a); the Sunlight frame</li><li>Status: `StatusBadge` with the exhaustive domain mapping (§4.1.3), replacing the `badge-*` uses</li><li>`SiteHeader` extracted from `layout.tsx` (used by the real layout and the harness)</li><li>Dock contract; a skip link; `aria-current` on Earnings; the stale-state truth (overdue shift on Home, Shift and Desk; no stale "next job"), using existing fields only</li><li>Performance baseline and budgets (§8)</li></ul> | <ul><li>Token and contrast tests pass for every pair in §2.0a and §4.1, including header, dock, rail, focus, tile edges and badges</li><li>The §6.3 dock, keyboard, overflow and nav checks pass</li><li>The status mapping test covers every domain value</li><li>`grep -rc 'badge-' src/app src/components` = 0</li><li>The owner has seen the B1 screenshots</li></ul> |
+| **B2 Layouts** | <ul><li>**Pilots first** (one per template; shown to the owner): Home, Job, Shift, Desk, Applicants, Profile, Landing and Login</li><li>Then every route moves onto its template (§5), with `PageSkeleton` per template</li></ul> | <ul><li>`grep -rE 'className="page( |")' src/app` = 0 hand-set widths (`page max-w-*` gone)</li><li>At 1280 and 1440, every route marked "panel" in §5 renders its aside or inspector, and main is ≥60% of the viewport width minus the rail</li><li>§6.3 checks pass on every route</li><li>The route-skeleton test is updated</li></ul> |
+| **B3 Core workflows** | The primary objects and screen content per §5:<br>1. Home<br>2. Find work and Job<br>3. Schedule and Shift (`FieldPage`, `ActionBar`)<br>4. Earnings<br>5. Desk and Field (truth)<br>6. Hiring and applicants<br>7. Messages<br>8. Profile<br>9. Public landing and sign-in<br>10. Pay<br>11. Admin | <ul><li>One named test file per invariant in §7, all passing</li><li>Every B3 fixture state (§6.2) captured in 3 modes</li><li>The state-truth check (§6.3) matches the domain functions word for word</li></ul> |
+| **B4 Visual polish** | Photography (public placeholders), type tiles, empty-state art, motion review | <ul><li>A fixed checklist: hero photo; job tiles; empty states for every `ListPage`; reduced-motion pass</li><li>Timebox: 2 working sessions</li><li>The only exit is the owner's sign-off</li></ul> |
+| **B5 Regression** | Full matrix and real devices | <ul><li>Every route × role × grant returns an **authorized 200, or the same 403/redirect as master**, under the harness's real access checks (§6.1)</li><li>All §6.3 checks pass at full scope</li><li>The real-device checklist is recorded by the owner (container emulation can't prove iOS Safari keyboard, safe-area or page zoom)</li><li>Reviewers READY</li></ul> |
 
-**Stash on hold:** prototypes of the dock contract and the review fixes for R1/E1. These were measured working and fold into B1.
+### 6.1 Test harness (C3 F1)
 
----
+**How it runs today.** The local preview (`src/app/zz-preview`) is git-excluded and never committed. It simulates the *session source* only:
+- **Before B1 (today):** its guards are no-ops. Captures so far prove rendering, not access.
+- **From B1:** the harness builds each identity's session from the **database** (role, `orgId`, grants via the real `liveGrants`). Its guards call the real decision functions (`canUse` / `can` from `lib/access`) and follow the real guards' redirect and 404 behaviour line for line.
+- **Shell:** the harness renders the real `SiteHeader`, `TopNav`, `TabBar` and `OrgRail`, so shell changes are tested as shipped.
+
+**Limits, stated honestly:**
+- Sign-in itself (Supabase) is not exercised.
+- Sign-in stays covered by the existing acceptance scripts against a real auth stack.
+
+**Guarding the harness:**
+- `zz-preview` is in `.git/info/exclude`.
+- B1 adds a test that fails if any tracked file imports `zz-preview` or if the directory is tracked.
+
+**Playwright:** pre-installed in the environment; the check scripts import it from there. No project dependency is added. Making the checks part of CI (`@playwright/test` in `package.json`) is an **owner decision** (§9) and is not needed to run the stages.
+
+**Fixtures:**
+- Clock-relative, generated against a frozen `now` per run, with the known artefacts removed (the 0201/0701 overlap, the 0703/0704 mismatch).
+- Each run's manifest keeps SHA-256 hashes and timestamps.
+
+### 6.2 Fixtures each stage needs first (local preview DB only, synthetic)
+
+| Stage | Must exist |
+|---|---|
+| B1 | Harness sessions for worker, new worker, owner, recruiter, supervisor, finance, publisher, staff, and a custom role with restricted grants; 60+ character org, job and worker names; a shift checked in past its end |
+| B2 | An empty org (no jobs, no members); 1 / 100 / 1,000 rows for jobs, applicants, pay lines and the audit log |
+| B3 | Applicants (`APPLIED`, `OFFERED`, `DECLINED`) with mixed sharing and not-shared parts; Stripe off / Stripe on with the worker unonboarded / payouts enabled; held pay; an overdue dispute; an adjustment; a packet out, kept and returned; server-refused sync and every client sync state; an expired or unapproved jurisdiction; a revoked credential; an ineligible job |
+| B5 | All of the above with a frozen clock; for the map, no geometry and the network blocked |
+
+### 6.3 QA checks (every stage from B1; full scope at B5)
+
+| Check | Scope | Pass |
+|---|---|---|
+| Dock and focus | Every route with the dock × 320/390 × default/XL/200% text × motion reduce/on | No focused control more than 50% covered; the page's primary action 0% covered; 0 script errors |
+| Keyboard | Every form × 320/390 × touch context **and** a narrow desktop window | The field and its submit button are never under the dock or the ActionBar |
+| Overflow | Every route × 320/390/1024 × default/XL/200% text | 0 sideways scroll (header and content), except tables inside their own scroller |
+| Contrast | 8 priority routes × 3 modes × 390/1440, including the header, dock, rail and non-text elements | Text ≥4.5:1 (≥3:1 large); non-text ≥3:1; 0 green-on-plum text |
+| State truth | Home, Shift, Earnings, Desk, Field and Pay with the B3 fixtures | The words match the domain functions; the badge mapping test passes |
+| Access | Role × route × grant under the harness; inspectors opened by foreign id | Same 403/redirect as master; the RSC payload has no out-of-grant fields |
+| Nav | Worker and org × 1024/1280/1440 | Exactly one `aria-current="page"` (or `"true"` for a parent section); a skip link; Tab order logged |
+| Performance | `/`, `/dashboard`, `/shifts/[id]`, `/desk`, throttled to a mid-range phone | Within the B1 budgets (§8); Leaflet loaded only where a map shows |
 
 ## 7. Invariants every stage must keep (tests or checks)
 
@@ -456,7 +531,7 @@ Nothing merges without the owner's word.
 |---|---|
 | Template migration touches ~65 routes | Mechanical and reviewed per batch. Data loaders are untouched; only containers change |
 | Drafts #75 and #91 overlap pay/schema | No pay/schema code is edited; C2 confirms |
-| Fraunces adds a font file on every route | One variable file, `display: swap`; measure LCP before/after in B5 |
+| Fraunces adds a font file on every route | One variable file, `display: swap`. **B1** records a baseline and sets budgets on `/`, `/dashboard`, `/shifts/[id]` and `/desk`: LCP ≤2.5s, CLS ≤0.05, font bytes ≤120 KB on a throttled mid-range phone profile. Every later stage is checked against them |
 | Photo licences | Public placeholders from a free-licence library with credits, swapped for the owner's photos before launch |
 
 ## 9. Owner choices (defaults applied unless the owner says otherwise)
@@ -464,3 +539,4 @@ Nothing merges without the owner's word.
 1. The worker's first tab is labelled **Home** (dock), and the page title reads "Today".
 2. Desktop worker nav adds **Earnings** as a fifth top-bar item. Phones keep four tabs, with Earnings under Profile.
 3. Public hero placeholders: free-licence stock, labelled, until the owner's photos arrive.
+4. Whether to add `@playwright/test` as a dev dependency, so the §6.3 checks also run in CI. Default: no; the checks run from the pre-installed Playwright each stage, with saved results.

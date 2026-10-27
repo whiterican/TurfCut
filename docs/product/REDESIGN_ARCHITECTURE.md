@@ -61,7 +61,7 @@ The owner named the **forest-dark set** as the strongest and asked for the best 
 | Jobs list | Photo/tile thumbnails; pay as the second line; a save mark | |
 | Job details | Image header, title + pay, organization with its verification mark, icon fact rows, a requirements checklist, one full-width green "Apply" | |
 | My schedule | Upcoming / Past / Availability segments; day groups; status pills (Confirmed, Pending) with two quiet actions; a "Required actions" list | |
-| Profile | Avatar, name and place; a menu of icon rows with a status word on the right | Ratings and stats |
+| Profile | Initials avatar, name and place; a menu of icon rows with a status word on the right | Ratings and stats; a photo |
 | Desktop | Dark rail with the org switcher and user; a wide cream work area; tables with status pills; a map with a list panel on the right | KPI deltas, Rating column |
 
 **The eggplant sets (images of 27 Oct)**
@@ -69,11 +69,11 @@ The owner named the **forest-dark set** as the strongest and asked for the best 
 | Area | Taken | Not taken |
 |---|---|---|
 | Home / Today | The dominant cream "next shift" card with a map thumbnail and a green "View shift details →", then "Upcoming shifts" rows | |
-| Messages | Segmented filter (All / Unread / Organizations); avatar rows with time on the right | |
+| Messages | Segmented filter (All / Unread / Organizations); rows with an **initials** avatar (or the campaign's own image for a campaign thread) and time on the right | Worker photos: workers have no photo field, and a face in org views is a demographic proxy (CLAUDE.md rule 4) |
 | Notifications | Today / This week grouping; icon rows | |
-| More menu | Help, safety, legal, compliance, about | |
-| Shift details | Tab strip (Overview / Instructions / Requirements) over the record; a three-fact row (pay, type, setting) | |
-| Field mode header | Big counts row (doors, conversations, time) for the live shift | Route map, "next address" |
+| More menu | The org phone "More" sheet that exists today, styled as icon rows | Help/safety/legal/compliance/about pages: no such routes; no content pages are created |
+| Shift details | A three-fact row (pay, type, setting). A tab strip **only for the brief** (instructions, requirements); while a shift is live, the status, packet custody, sync state and the check-out reason are always visible above any tabs | Tabs that can hide custody, sync or blockers |
+| Field mode header | Big counts row for the live shift, from what TurfCut records: signatures or doors and contacts, packets out, time to the scheduled end | A "conversations" count (not measured); route map; "next address" |
 | Earnings | A large paid figure; breakdown rows with icons and chevrons (paid, approved, waiting, disputed); "Recent payouts" with Paid pills | Bonuses; an unlabelled monthly "total earnings" |
 | Identity | Eggplant as the identity colour: the brand mark, the **active nav tile** (dock and rail), selection and focus | |
 
@@ -96,9 +96,31 @@ This keeps the v4 brief exactly: "green is the primary-action colour, eggplant i
 
 **Engineering:** the shell hue is still a token family (`--shell-*`), defaulting to eggplant.
 
+### 2.0a Surfaces by mode (resolves C1 P0-1)
+
+The frame, sheets and primary object in each mode. Values are existing G1 tokens unless marked *new*. B1 adds a test for every ratio given here.
+
+| Role | Light | Dark | Sunlight |
+|---|---|---|---|
+| Page | paper `#EFEAE1` | `#120D18` | white |
+| Frame: org rail; the phone header band on Field pages; the public hero overlay | eggplant `#281539` | `#1A0F26` (*new* `--shell-bg`) | black |
+| Sheet: lists, sections, tables | cream `#FBF7F0` | plum `#23182F` | white, 2px black border |
+| **Primary object** (one per screen) | eggplant `#281539`, cream type | **cream `#FBF7F0`, ink type** (E1) | black, white type |
+| Secondary surface | `#F5F0E6` | `#30223F` | white |
+| Active nav tile on cream (dock, top bar, segmented) | eggplant `#281539`, cream type | raised `#4A3365`, cream type, plus a lavender edge | black, white type |
+| Active nav tile on the frame (rail) | lavender `#D8CCE4`, ink type (*new* `--shell-active`) | lavender `#D8CCE4`, ink type | white, black type |
+| Primary action | forest `#164B38`, cream type, on paper or cream only | forest `#164B38`, cream type, plus a lavender edge (existing) | black, white type |
+| Primary action on the frame, a photo or the eggplant primary object | cream `#FBF7F0`, ink type | cream, ink | white, black |
+| Muted text | `#4A4254` | `#CBBDD8` | `#1B1422` |
+
+**Rules:**
+- **Forest only on paper or cream.** Forest never sits directly on eggplant or a photo: forest on `#281539` is about 1.3:1.
+- **The active tile on the frame is lavender.** The lavender tile with ink type is above 8:1 against `#281539` and `#1A0F26`. The raised-eggplant tile (`#4A3365` on `#281539`, about 1.6:1) is never used on the frame.
+- **By night, cream is only for the one primary object.** All other content sits on plum sheets. This is the v4 hybrid; "cream sheets" in §2.0 means light mode.
+
 ### 2.1 Visual
 - **Palette.** Per §2.0, the shell is deep eggplant (`--shell-*` tokens, new; G1 already holds these values); cream sheets and the forest action already exist in G1. The other G1 tokens already match the brief: paper `#EFEAE1`, cream `#FBF7F0`, eggplant `#281539`/`#3A2154`/`#4A3365`, forest action `#164B38` and the soft-green cut `#82BC9B`. There is no palette rewrite and no lime.
-- **Modes.** Light, Dark and Sunlight are all first-class. By night the *one primary object* is cream with ink type (the v4 hybrid). Secondary surfaces stay plum. Chat bubbles stay eggplant.
+- **Modes.** Light, Dark and Sunlight are all first-class. Surfaces by mode are set in §2.0a. Chat bubbles stay eggplant.
 - **Type.**
 
   | Role | Face | Where |
@@ -114,6 +136,17 @@ This keeps the v4 brief exactly: "green is the primary-action colour, eggplant i
   - Cream sheets carry the content.
   - Status pills always carry words.
 - **Signature details.** The folded corner (`--cut`) appears on primary objects only.
+
+### 2.1a What today's app does better than the mockups (keep; C1 Q10)
+- **Earnings:** the lifecycle wording ("Approved · payout setup needed", "On hold or disputed") and the per-line formula ("3h 30m verified × $25.00/hr"), from `worker__earnings__worker__390-light.png`.
+- **Job page:** "What counts as payable", the rules profile and version, credentials needed, and "Why it fits" with "no hidden score", from `worker__jobs_jobId__worker__1440-light.png`.
+- **Shift page:** packet custody (picked up, returned, kept), signed corrections, and sync truth ("Nothing waiting to send", memory-only).
+- **Desk:** the "Needs you" operations table (PR #98).
+- **Applicants:** "Not shared is never counted as zero or ranked. There is no overall score."
+- **Admin:** "Everything you do here is recorded with your name and your reason."
+- **Chat:** quick replies and the report flow.
+
+Each of these strings survives B1–B3 word for word unless a reviewer approves a change.
 
 ### 2.2 Information architecture
 - **Worker dock (R1, four tabs):**
@@ -177,32 +210,44 @@ This keeps the v4 brief exactly: "green is the primary-action colour, eggplant i
      - `--measure-reading` (42rem), `--measure-content` (48rem), `--workspace-max` (90rem);
      - `--inspector-w` (24rem);
      - `--dock-clearance`.
-2. **Type scale.**
+2. **Type scale** (rem scales with the text-size setting; minimum 13px).
 
-   | Role | Size, phone → desktop | Face and weight |
-   |---|---|---|
-   | `display` (public hero) | | Fraunces |
-   | `title` (page) | 2rem → 2.75rem | Fraunces 600 |
-   | `headline` (primary object) | 1.5rem → 2.125rem | Fraunces 600 |
-   | `section` | 1.25rem → 1.375rem | Fraunces 600 |
-   | `body`, `small`, `label`, `figure` | | Barlow / DM Mono |
+   | Role | Phone | ≥1024 | Line height | Face, weight, tracking |
+   |---|---|---|---|---|
+   | `display` (public hero only) | `clamp(2.75rem, 11vw, 3.5rem)` | 4.5rem | 0.98 | Fraunces 600, −0.02em, opsz auto |
+   | `title` (page) | 2rem | 2.75rem | 1.06 | Fraunces 600, −0.02em |
+   | `headline` (primary object) | 1.5rem | 2.125rem | 1.12 | Fraunces 600, −0.015em |
+   | `section` | 1.25rem | 1.375rem | 1.2 | Fraunces 600, −0.01em |
+   | `body` | 1rem | 1rem | 1.5 | Barlow 400 (500 in Sunlight) |
+   | `strong` (names on rows and cards) | 1.0625rem | 1.0625rem | 1.35 | Barlow 600, −0.01em |
+   | `small` (secondary) | 0.9375rem | 0.9375rem | 1.5 | Barlow 400/500 |
+   | `hint` | 0.8125rem | 0.8125rem | 1.4 | Barlow 500 |
+   | `label` (eyebrows, table heads) | 0.8125rem | 0.8125rem | 1.2 | Barlow Condensed 600, uppercase, 0.14em |
+   | `figure` | 1rem / 1.5rem / 2rem (sm/md/lg) | same | 1.1 | DM Mono 500, tabular |
 
-   Utility classes only. No component chooses a font directly.
-3. **Status vocabulary.** One `StatusBadge` with fixed states. Each state has a word, a glyph shape (filled, ring, dashed, square) and a colour, so no two look alike in any mode:
+   Utility classes only (`.t-display` … `.t-figure`). No component sets a font family or size outside them.
 
-   | State | Meaning |
-   |---|---|
-   | `live` | |
-   | `paid` | |
-   | `approved` | Approved, not yet paid |
-   | `pending` | |
-   | `blocked` | |
-   | `disputed` | |
-   | `not-shared` | |
-   | `draft` | |
-   | `closed` | |
+3. **Status vocabulary.** One `StatusBadge`. Each state pairs a word with a glyph *shape*, so state survives greyscale, colour blindness and Sunlight. Colours are tokens. B1 tests every text/background pair at ≥4.5:1 and every glyph at ≥3:1 in all three modes.
 
-   It replaces the ad-hoc `badge-*` uses (9 files) over time. Later field states (`visited`, `not home`, `refused`) slot in as new states, not new components.
+   | State | Default word | Glyph | Light | Dark | Sunlight |
+   |---|---|---|---|---|---|
+   | `live` | On shift / Open now | filled dot with a halo | cream on forest pill | cream on forest pill, lavender edge | white on black pill |
+   | `paid` | Paid | filled circle with a check | cream on eggplant `--solid` pill | `--on-solid` on `#4A3365` | white on black |
+   | `approved` | Approved (not yet paid) | ring | ink text, `--solid` ring, no fill | cream text, lavender ring | black text, black ring |
+   | `pending` | Waiting for approval / Pending | dashed ring | `--muted` text | `--muted` text | `--muted` text |
+   | `blocked` | Blocked / Can't publish / Not approved | filled square | `--danger` text on a 14% coral tint | `--danger` text on a 14% coral tint | `--danger` text, square |
+   | `disputed` | Disputed | triangle | `--warning` text on a 14% butter tint | `--warning` text on a 14% butter tint | `--warning` text |
+   | `not-shared` | Not shared | hollow thin ring | `--muted` italic, no fill | `--muted` italic | `--muted` italic |
+   | `draft` | Draft / Not sent yet | dotted ring | `--subtle` | `--subtle` | `--subtle` |
+   | `closed` | Closed / Ended | dash | `--subtle` | `--subtle` | `--subtle` |
+
+   **Rules:**
+   - Only `live` uses forest.
+   - Pay states never share a fill: paid is filled eggplant, approved is a ring, pending is dashed.
+   - Callers pass the state and may override the word; the glyph and colours are fixed.
+   - The 9 files using `badge-*` move to `StatusBadge` in B1.
+   - Final status colours are a **B1** deliverable, not B4.
+
 4. **Elevation and radii.**
    - Paper page → cream card → (night) plum secondary, with one shadow scale.
    - Radii: card 20px, inner 16px, control 12px (E1).
@@ -217,10 +262,10 @@ This keeps the v4 brief exactly: "green is the primary-action colour, eggplant i
   - ≥1024: top nav with Home, Jobs, Messages, Profile and Earnings.
   - <1024: the floating four-tab dock.
 - **Organization shell.**
-  - ≥1024: a rail (with org name and approval state) plus the main area, with an optional inspector column.
+  - ≥1024: a **full-height** eggplant rail (org name and approval state at the top, the signed-in person at the bottom), instead of today's floating card. Then the main area, with an optional inspector column.
   - <1024: the org dock.
   - Width: up to `--workspace-max` (90rem), instead of today's `max-w-6xl`.
-- **Admin shell.** The organization shell with the Admin sub-nav kept as is.
+- **Admin shell.** Its own identity: a "Turfcut staff" header band and the Admin nav in the rail. It never appears inside an organization's rail.
 - **Public shell.** Transparent header over the hero; plain header elsewhere.
 
 #### 4.2.2 Page templates (replacing the ~100 hand-set widths)
@@ -270,7 +315,7 @@ Components take **view models** (plain props shaped for display), not Prisma typ
 | `FactList` / `KeyValue` | `.fact-list`, `Row`, `.kv` | **Merge** into one with icon support |
 | `Stat` / `Figure` | `.stat`, `LiveFigure` | **Keep**, plus `MathDisclosure` ("how this was worked out": the existing pay formula strings) |
 | `FilterBar` / `Segmented` | chips, `JobsSwitch` | **Generalise** `JobsSwitch` into `Segmented` (links with `aria-current`); chips into a `FilterBar` |
-| `ActionBar` | none (field actions are in flow) | **New**, for `FieldPage`. Dock-aware, never covers content (it reserves its own height) |
+| `ActionBar` | none (field actions are in flow) | **New**, for `FieldPage`:<br>• **One state-driven primary action** (check in / log signatures / return or keep packet / check out) plus "More actions", which opens a `Sheet`<br>• At most 72px tall<br>• While it shows, the dock tucks (phone); static at ≥1024<br>• Reserves its own height, so content is never under it<br>• A disabled action always shows its reason ("Return or keep PKT-0701 first") |
 | `MapPanel` | `TurfMap` (Leaflet/OSM), `TurfWorkbench` | **Keep** the engine. Wrap it in `MapPanel` with layer slots, a legend, a no-map fallback and a provenance line |
 | `EmptyState`, `Sheet`, `NotSharedChip`, `LocalTime`, `ActionButton`, `PageSkeleton` | | **Keep** and restyle through tokens only |
 | `PhotoHero` | none | **New.** Public pages only. Licensed placeholder image, eggplant overlay, labelled until replaced |
@@ -293,43 +338,83 @@ The expansion (walkbooks, territories, imports, visits) plugs into these. None o
 
 ---
 
-## 5. Screen map (route → template → primary object)
+## 5. Screen map: every route (resolves C1 P0-3)
+
+**Template defaults at 768 (no dock change below 1024):**
+
+| Template | At 768 |
+|---|---|
+| `ReadingPage`, `ListPage`, `RecordPage`, `FieldPage` | One column at `--measure-content` |
+| `ListDetailPage` | List only; the detail opens as its own route |
+| `WorkspacePage` | Tables in their own horizontal scroller with a sticky first column. Maps take the full width with the list below |
+| `HeroPage` | Photo on top (40%), form below |
+
+The **768** column below lists exceptions only. "Panel" means the ≥1024 side column: an aside (facts and actions) or an inspector (a selected row).
 
 ### Worker
 
-| Route | Template | Primary object | Notes |
-|---|---|---|---|
-| `/dashboard` (Home) | `ListPage` plus right rail ≥1024 | The live or next shift. When a shift is checked in and past its end, say so, with "Open shift to check out" | Then: coming up; open near you (`ListRow`); campaigns strip; choices (sharing / political-fit) as rows, not cards |
-| `/jobs` (Find work) | `ListPage` + `FilterBar` + `Segmented` | none (scan) | ≥1280: list plus a preview inspector of the selected job |
-| `/jobs/[id]` | `RecordPage` | Pay and when, with the Apply/Claim action | Aside: apply panel, requirements status, rules version, "What this organizer sees" link |
-| `/shifts` (My schedule) | `ListPage` + `Segmented` | the next shift | Day-grouped `ListRow`s |
-| `/shifts/[id]` | `FieldPage` | Shift status (on shift / due to end / ended), counts, packet custody | `ActionBar`: log, packet return/keep, break, check out (disabled with the reason while a packet is out). Timeline. Brief, Sunlight and map in the aside |
-| `/earnings` | `RecordPage` | "Where your pay is": paid / disputed / approved-not-sent / awaiting, each with words and a figure. The existing `PayoutSetup` action sits beside approved-not-sent when it blocks | Per-line `MathDisclosure`. ≥1024: table |
-| `/profile`, `/profile/*`, `/settings` | `ReadingPage` | none | Icon `ListRow` menu (mockup style), real items only |
-| `/messages`, `/messages/[id]` | `ListDetailPage` | | ≥1024: list plus thread side by side |
-| `/notifications`, `/feed` | `ListPage` | | |
+| Route | Template | Primary object | Panel at ≥1024 | 768 |
+|---|---|---|---|---|
+| `/dashboard` (Home) | `ListPage` | The live or next shift. Overdue: "Still checked in · was due to end …" with "Open shift" | Aside: pay summary (by state, never a blended total), your choices (sharing / political-fit), campaigns | aside below |
+| `/feed` | `ListPage` (reading width) | none | none | |
+| `/notifications` | `ListPage` (reading width), grouped Today / This week / Earlier | none | none | |
+| `/jobs` (Find work) | `ListPage` + `Segmented` + `FilterBar` | none | Inspector: the selected job's preview with Apply | |
+| `/jobs/invitations` | `ListPage` | none | Inspector: invitation detail (note, expiry, accept/decline) | |
+| `/jobs/[jobId]` | `RecordPage` | Pay, dates and the Apply/Claim action, with requirement status | Aside: apply panel, requirements, rules version, "What this organizer sees" | aside below the object |
+| `/shifts` (My schedule) | `ListPage` + `Segmented` (Upcoming / Past / Availability → `/profile/availability`) | Next shift | Aside: required actions (real only: credentials missing, sharing not chosen) | |
+| `/shifts/[shiftId]` | `FieldPage` | Shift status, counts, packet custody | Aside: brief, staging, map, Sunlight | |
+| `/shifts/turf` | `WorkspacePage` + `MapPanel` | none | Shift list beside the map | |
+| `/earnings` | `RecordPage` | "Where your pay is" by state, with `PayoutSetup` beside the blocked amount | Aside: payout account, receipts | table becomes rows |
+| `/earnings/receipts` | `ListPage` | none | none | |
+| `/earnings/receipts/[transferId]` | `RecordPage` (printable) | The receipt | none | |
+| `/earnings/disputes/[disputeId]` | `RecordPage` | The dispute line and its clock | Aside: the pay line and its maths | |
+| `/messages` | `ListDetailPage` | none | Inspector = the open thread | |
+| `/messages/[conversationId]` | `ListDetailPage` (thread side) | none | List on the left at ≥1024 | thread only |
+| `/profile` | `ReadingPage` + sub-nav | Initials, name and place | ≥1024: sub-nav on the left (Earnings, Availability, Credentials, Sharing, Preferences, Preview, Settings), the section on the right | menu of rows |
+| `/profile/availability`, `/profile/credentials`, `/profile/preferences`, `/profile/sharing`, `/profile/setup`, `/profile/preview` | `ReadingPage` + the profile sub-nav | none | sub-nav | |
+| `/settings` | `ReadingPage` | none | none | |
+| `/welcome` | `HeroPage` (form side only, no photo once signed in) | none | none | |
+| `/c`, `/c/[handle]`, `/c/[handle]/p/[postId]` (signed in) | `RecordPage` | The campaign header | Aside: follow, jobs from this campaign | |
 
-### Organization
+### Organization (grants decide what renders and what loads)
 
-| Route | Template | Primary object | Notes |
+| Route | Template | Primary object | Panel at ≥1024 | 768 |
+|---|---|---|---|---|
+| `/desk` | `WorkspacePage` | "In the field": live now, plus shifts still open after their end | Inspector: the selected "Needs you" row | |
+| `/hiring` | `WorkspacePage` | none | Inspector: the selected job's people and what each shares | |
+| `/hiring/[jobId]/applicants`, `/invites`, `/matches` | `ListDetailPage` (`DataTable`) | none | Inspector: the applicant (shared evidence only) | rows, not a squeezed table |
+| `/hiring/[jobId]/people/[engagementId]` | `RecordPage` | The person's stage and next action | Aside: history, snapshot | |
+| `/jobs` (org) | `WorkspacePage` | none | Inspector: the job's staffing | |
+| `/jobs/new`, `/jobs/[jobId]/edit` | `ReadingPage` (steps) | none | Aside: step list and the publish blockers (jurisdiction) | |
+| `/jobs/[jobId]` (org view) | `RecordPage` | Staffing and status | Aside: facts, rules, edit | |
+| `/field` | `WorkspacePage` + `MapPanel` | none; counts include still-open shifts (§3, C1) | List of shifts beside the map | |
+| `/field/[date]`, `/field/review` | `WorkspacePage` | none | Inspector: the selected shift's custody and review | |
+| `/shifts/[shiftId]` (org view) | `RecordPage` | Status, custody, review actions | Aside: corrections, timeline | |
+| `/workers/[workerId]` | `RecordPage` | The worker as this org may see them (shared only) | Aside: engagements with this org | |
+| `/messages`, `/messages/[id]`, `/messages/new`, `/messages/reports` | `ListDetailPage` / `ReadingPage` (new) | | Inspector: the thread | |
+| `/pay`, `/pay/statements`, `/pay/statements/[period]` | `WorkspacePage` / `RecordPage` (statement) | none / the statement | Inspector: the selected pay line | |
+| `/pay/disputes/[disputeId]` | `RecordPage` | The dispute and its clock | Aside: the pay line and its maths | |
+| `/org/credentials` | `WorkspacePage` | none | Inspector: the credential and its proof | |
+| `/org/settings`, `/org/settings/members`, `/org/settings/members/roles` | `ReadingPage` (settings) / `WorkspacePage` (members table) | none | Inspector: the member and their role | |
+| `/campaigns`, `/campaigns/[id]` | `ListPage` / `RecordPage` | none / the campaign profile | Aside: posts, resources | |
+
+### Staff admin (own shell identity, C1 P1: "Turfcut staff" header, not an org's rail)
+
+| Route | Template | Primary object | Panel at ≥1024 |
 |---|---|---|---|
-| `/desk` | `WorkspacePage` + `Inspector` | "In the field": shifts live now and shifts still open after their end (from `ACTIVE`) | Needs-you table (PR #98) gains a selected row to inspector. Fixes P0-5 |
-| `/hiring`, `/hiring/[job]/*` | `ListDetailPage` | | Jobs table to inspector (people and what each shares). Applicants: `DataTable` (phone: rows) |
-| `/jobs` (org), `/jobs/new`, `/jobs/[id]/edit` | `WorkspacePage` / `ReadingPage` (steps) | | Job create stays 6 steps with no autosave (E5); only layout changes |
-| `/field`, `/field/*` | `WorkspacePage` + `MapPanel` | | Map plus shift list; packet review |
-| `/pay`, `/pay/*` | `WorkspacePage` + `Inspector` | | Dense table; dispute inspector |
-| `/org/*`, `/campaigns/*` | `ReadingPage` / `ListPage` | | |
-| `/admin/*` | `WorkspacePage` + `Inspector` | | Audit and jurisdiction workflows; reason and evidence visible |
+| `/admin` | `WorkspacePage` | Queues: orgs, campaigns, jurisdictions waiting | none |
+| `/admin/organizations`, `/admin/campaigns`, `/admin/jurisdictions`, `/admin/people` | `WorkspacePage` (`DataTable`) | none | Inspector: the selected record |
+| `/admin/organizations/[orgId]`, `/admin/campaigns/[campaignId]`, `/admin/jurisdictions/[id]`, `/admin/people/[profileId]` | `RecordPage` | The decision needed, with reason and evidence | Aside: provenance, history |
+| `/admin/jurisdictions/new` | `ReadingPage` | none | Aside: what the gate does |
+| `/admin/audit` | `WorkspacePage` | none. Columns: event, entity, actor, reason, evidence, effective time, next action | Inspector: the event |
 
 ### Public
 
 | Route | Template | Notes |
 |---|---|---|
-| `/` | `HeroPage` | "Field work that matters." Worker-led, photo hero (placeholder). Organizer section "The work behind every campaign." below. Evidence-over-ratings proof row |
-| `/login`, `/signup`, `/welcome` | `HeroPage` (split) | Never fields over a photo. Validation, recovery and keyboard states covered |
-| `/c/...` | `RecordPage` | |
-
----
+| `/` | `HeroPage` (landing) | "Field work that matters." (worker-led). An organizer band "The work behind every campaign."; the evidence-over-ratings proof row |
+| `/login`, `/signup` | `HeroPage` (split 45/55) | Never fields over a photo; validation, recovery and keyboard |
+| `/c`, `/c/[handle]`, `/c/[handle]/p/[postId]` | `RecordPage` | Campaign pages, public view |
 
 ## 6. Build sequence (owner's order)
 
@@ -343,7 +428,7 @@ Nothing merges without the owner's word.
 | Stage | Contents | Files (main) | Done when |
 |---|---|---|---|
 | **B1 Foundation** | Role tokens; type utilities; `StatusBadge`; shells (header bounds, dock contract, safe area, worker desktop nav with Earnings, org workspace width) | `globals.css`, `layout.tsx`, `AppNav.tsx`, `lib/nav.ts`, new `components/status/`, `zz`-free tests | Dock/keyboard/overflow scripts pass (§4.2.3); token tests pass; screens visibly re-skinned |
-| **B2 Layouts** | Templates (§4.2.2); every route moved off hand-set widths onto a template; `PageSkeleton` follows the template | new `components/layout/*`, all `page.tsx` (mechanical), `loading.tsx` | No `page max-w-*` left; 1280/1440 show multi-zone layouts for desk, hiring, jobs, messages, earnings, shift; route-skeleton test updated |
+| **B2 Layouts** | **First, one pilot route per template, shown to the owner before the rest:**<br>• Home (`ListPage`)<br>• Job (`RecordPage`)<br>• Shift (`FieldPage`)<br>• Desk (`WorkspacePage`)<br>• Applicants (`ListDetailPage`)<br>• Profile (`ReadingPage`)<br>• Landing and login (`HeroPage`, placeholder photo)<br>**Then** every route moves off hand-set widths onto its template (§5), and `PageSkeleton` follows the template | new `components/layout/*`, all `page.tsx` (mechanical), `loading.tsx` | No `page max-w-*` left; 1280/1440 show multi-zone layouts for desk, hiring, jobs, messages, earnings, shift; route-skeleton test updated |
 | **B3 Core workflows** | Primary objects and screen content per §5, in this order:<br>1. Today<br>2. Find work and Job<br>3. Schedule and Shift (`FieldPage`, `ActionBar`)<br>4. Earnings<br>5. Desk (in-the-field truth)<br>6. Hiring and applicants (`DataTable` + `Inspector`)<br>7. Messages<br>8. Profile<br>9. Public landing and sign-in<br>10. Pay, field, admin | the routes' `page.tsx` + new components (§4.3) | Each workflow's states (empty, busy, blocked, overdue, offline, Sunlight) captured; invariants tested (pay figures, requirements, sync, roles) |
 | **B4 Visual polish** | Photography (public), type tiles, empty-state art, motion review, final status colours | assets, `globals.css` | Owner sees the full set; C1-style design review |
 | **B5 Regression** | Full capture matrix (routes × roles × 320/390/768/1280/1440 × 3 modes); P0 scripts as checks; accessibility pass; role and grant matrix | `scratchpad` scripts → `scripts/visual/` if approved | Every route valid; 0 P0 regressions; reviewers READY |

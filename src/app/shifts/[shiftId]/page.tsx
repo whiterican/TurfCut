@@ -100,7 +100,7 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
   const pay = await shiftPay(s.id);
   // Amounts go to the worker and to the field team approving them.
   const seesPay = isWorker || canField;
-  const payLabel = pay ? statusLabel(pay.state.status).label : null;
+  const payLabel = pay ? statusLabel(pay.state.status, pay.amountCents, { payouts: s.engagement.worker.payoutsEnabled }).label : null;
   const steps = shiftProgress(
     f,
     pay

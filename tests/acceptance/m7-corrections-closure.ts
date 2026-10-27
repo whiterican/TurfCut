@@ -158,7 +158,7 @@ const approve = (id: string) => supervisorShiftAction(supA, id, { kind: "closeou
   const W1P = "00000000-0000-0000-0000-000000000101";
   const facts1 = await closureFacts(W1);
   const refused = await closeAccount({ userId: W1P, workerId: W1 });
-  check("closing is refused while pay is on the way", !refused.ok && refused.problems.some((x) => /pay on the way/.test(x)) && facts1.unpaidLines > 0, { refused, facts1 });
+  check("closing is refused while pay is on the way", !refused.ok && refused.problems.some((x) => /unpaid pay/.test(x)) && facts1.unpaidLines > 0, { refused, facts1 });
   check("…and nothing changed", (await p.worker.findUniqueOrThrow({ where: { id: W1 } })).closedAt === null);
 
   // A second worker (Jordan) with a future shift, an open application and a pay history.
@@ -178,7 +178,7 @@ const approve = (id: string) => supervisorShiftAction(supA, id, { kind: "closeou
   const active2 = await p.shift.create({ data: { engagementId: eng2.id, startsAt: new Date(Date.now() - 2 * H), endsAt: new Date(Date.now() + 2 * H), status: "ACTIVE", checkInAt: new Date(Date.now() - 2 * H) } });
   await p.workEvent.create({ data: { shiftId: active2.id, type: "CHECK_IN", payload: {}, actorId: W2P, createdAt: active2.startsAt } });
   const r1 = await closeAccount({ userId: W2P, workerId: W2 });
-  check("refused with every blocker named: unpaid line + live shift", !r1.ok && r1.problems.length === 2 && /pay on the way/.test(r1.problems[0]) && /checked in/.test(r1.problems[1]), r1);
+  check("refused with every blocker named: unpaid line + live shift", !r1.ok && r1.problems.length === 2 && /unpaid pay/.test(r1.problems[0]) && /checked in/.test(r1.problems[1]), r1);
   // Settle: pay the line (approve + mark paid), check out of the live shift.
   await pay.lineAction(fin, [line2.id], "approve");
   await p.payoutEvent.create({ data: { payoutId: line2.id, type: "PAID", providerRef: "tr_test", createdAt: new Date() } });

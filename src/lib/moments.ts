@@ -26,11 +26,17 @@ export const ringFill = (fraction: number | null | undefined) =>
 /** The shift ring: share of the scheduled time worked so far. */
 export const shiftFill = (workedMs: number, scheduledMs: number) => (scheduledMs > 0 ? ringFill(workedMs / scheduledMs) : 0);
 
-export type PillState = "online" | "offline" | "syncing" | "waiting" | "refused";
+export type PillState = "online" | "offline" | "syncing" | "waiting" | "refused" | "unsaved";
 
-/** The connection pill on the field-day card: one state, most urgent first. */
-export function pillState(o: { online: boolean; reachable: boolean; syncing: boolean; waiting: number; refused: number }): PillState {
+/**
+ * The connection pill on the field-day card: one state, most urgent first.
+ * "unsaved": entries wait but the phone couldn't store them, so only this
+ * page holds them; said before anything about signal, since closing the page
+ * loses them (P0).
+ */
+export function pillState(o: { online: boolean; reachable: boolean; syncing: boolean; waiting: number; refused: number; memoryOnly?: boolean }): PillState {
   if (o.refused > 0) return "refused";
+  if (o.memoryOnly && o.waiting > 0) return "unsaved";
   if (!o.online || !o.reachable) return "offline";
   if (o.syncing) return "syncing";
   if (o.waiting > 0) return "waiting";

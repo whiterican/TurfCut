@@ -288,7 +288,19 @@ describe("two people per payment", () => {
 describe("labels", () => {
   it("names deductions as deductions", () => {
     expect(statusLabel("APPROVED", -500).label).toBe("Deducted from your next payment");
-    expect(statusLabel("APPROVED", 500).label).toBe("Approved · on the way");
+    expect(statusLabel("APPROVED", 500).label).toBe("Approved");
+  });
+
+  it("says what an approved line is waiting on, and promises nothing it doesn't know (P0)", () => {
+    expect(statusLabel("APPROVED", 500, { payouts: false })).toEqual({ label: "Approved · payout setup needed", badge: "badge-butter" });
+    expect(statusLabel("APPROVED", 500, { payouts: true }).label).toBe("Approved · in the next pay run");
+    expect(statusLabel("APPROVED", 500).label).toBe("Approved");
+    // Only "Sending" means money is moving; a deduction never claims a payout.
+    expect(statusLabel("PROCESSING", 500, { payouts: false }).label).toBe("Sending");
+    expect(statusLabel("APPROVED", -500, { payouts: false }).label).toBe("Deducted from your next payment");
+    for (const s of ["AWAITING_APPROVAL", "HELD", "DISPUTED", "PAID", "VOIDED", "NOTHING_DUE"] as const) {
+      expect(statusLabel(s, 500, { payouts: false })).toEqual(statusLabel(s, 500));
+    }
   });
 });
 

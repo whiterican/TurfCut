@@ -13,7 +13,7 @@ describe("closing an account (M7)", () => {
     const all = closureProblems({ unpaidLines: 2, openDisputes: 1, liveShifts: 1, pendingReviews: 2, transfersInFlight: 1, unsyncedEntries: 3 });
     expect(all).toHaveLength(6);
     expect(all[0]).toMatch(/going through Stripe/);
-    expect(all[1]).toMatch(/pay on the way \(2 lines\)/);
+    expect(all[1]).toMatch(/unpaid pay \(2 lines\)/);
     expect(all[2]).toMatch(/an open pay dispute/);
     expect(all[3]).toMatch(/checked in on a shift/);
     expect(all[4]).toMatch(/2 shifts you worked are waiting/);

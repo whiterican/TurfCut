@@ -304,14 +304,22 @@ export function hoursFlag(basis: { method: CompMethod | null; activeMs: number }
   return `${hoursText(basis.activeMs)} verified; the shift was scheduled for ${hoursText(scheduledMs)}.`;
 }
 
-export function statusLabel(s: PayStatus, amountCents = 1): { label: string; badge: string } {
+/**
+ * The words for a pay line's state. "Approved" says only what is known:
+ * with the worker's payout setup known, it says whether the money can move
+ * at all; without it, it promises nothing ("on the way" was never true for
+ * a worker who hasn't set up payouts).
+ */
+export function statusLabel(s: PayStatus, amountCents = 1, ctx: { payouts?: boolean } = {}): { label: string; badge: string } {
   if (amountCents < 0 && (s === "APPROVED" || s === "PROCESSING")) return { label: "Deducted from your next payment", badge: "badge-neutral" };
   if (amountCents < 0 && s === "PAID") return { label: "Deducted", badge: "badge-neutral" };
   switch (s) {
     case "AWAITING_APPROVAL":
       return { label: "Awaiting payment approval", badge: "badge-butter" };
     case "APPROVED":
-      return { label: "Approved · on the way", badge: "badge-sky" };
+      if (ctx.payouts === false) return { label: "Approved · payout setup needed", badge: "badge-butter" };
+      if (ctx.payouts === true) return { label: "Approved · in the next pay run", badge: "badge-sky" };
+      return { label: "Approved", badge: "badge-sky" };
     case "HELD":
       return { label: "On hold", badge: "badge-coral" };
     case "DISPUTED":

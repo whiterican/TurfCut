@@ -330,7 +330,7 @@ export default async function PayPage({ searchParams }: { searchParams: Promise<
                 </span>
                 <span className="shrink-0 text-right">
                   <span className="block font-bold text-fg">{money(l.line.amountCents)}</span>
-                  <span className={statusLabel(l.state.status, l.line.amountCents).badge}>{statusLabel(l.state.status, l.line.amountCents).label}</span>
+                  <span className={statusLabel(l.state.status, l.line.amountCents, { payouts: l.line.worker.payoutsEnabled }).badge}>{statusLabel(l.state.status, l.line.amountCents, { payouts: l.line.worker.payoutsEnabled }).label}</span>
                 </span>
               </li>
             ))}

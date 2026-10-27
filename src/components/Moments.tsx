@@ -108,6 +108,7 @@ const PILL_TONE: Record<PillState, string> = {
   syncing: "badge-sky",
   waiting: "badge-sky",
   refused: "badge-coral",
+  unsaved: "badge-coral",
 };
 
 /** The field-day card's connection pill: its words slide in when the state changes, its colour follows. */
@@ -134,8 +135,8 @@ const BADGE_BG: Record<string, string> = {
  * and it's now paid, the badge morphs once from the old colour, with a check
  * drawn in: a plain moment, no celebration.
  */
-export function PayBadge({ lineId, status, amountCents }: { lineId: string; status: PayStatus; amountCents: number }) {
-  const { label, badge } = statusLabel(status, amountCents);
+export function PayBadge({ lineId, status, amountCents, payouts }: { lineId: string; status: PayStatus; amountCents: number; /** Whether the worker can receive payouts, when known. */ payouts?: boolean }) {
+  const { label, badge } = statusLabel(status, amountCents, { payouts });
   const [fromBg, setFromBg] = useState<string | null>(null);
   useEffect(() => {
     const key = `pay:${lineId}`;
@@ -149,10 +150,10 @@ export function PayBadge({ lineId, status, amountCents }: { lineId: string; stat
     // Decided and remembered in the frame, so a dev double-run of the effect can't eat the moment.
     const raf = requestAnimationFrame(() => {
       keep();
-      setFromBg(BADGE_BG[statusLabel(prev!, amountCents).badge] ?? null);
+      setFromBg(BADGE_BG[statusLabel(prev!, amountCents, { payouts }).badge] ?? null);
     });
     return () => cancelAnimationFrame(raf);
-  }, [lineId, status, amountCents]);
+  }, [lineId, status, amountCents, payouts]);
   return (
     <span className={`${badge}${fromBg ? " pay-morph" : ""}`} style={fromBg ? ({ "--from-bg": fromBg } as React.CSSProperties) : undefined}>
       {fromBg && (

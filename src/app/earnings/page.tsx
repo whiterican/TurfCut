@@ -18,9 +18,10 @@ const SETUP_NOTE: Record<string, string> = {
 };
 
 /** Where the worker's payouts go, and the button to set them up. */
-async function PayoutSetup({ workerId, note }: { workerId: string; note: string | null }) {
+type PayoutState = Awaited<ReturnType<typeof payoutSetup>>;
+
+async function PayoutSetup({ w, note }: { w: PayoutState; note: string | null }) {
   const provider = stripeProvider();
-  const w = await payoutSetup(workerId, provider, note === "done");
   return (
     <section className="card space-y-3">
       <div className="flex items-start justify-between gap-3">
@@ -70,12 +71,12 @@ function Clock({ parts }: { parts: ReturnType<typeof clockParts> }) {
   );
 }
 
-function ShiftRow({ s, orgName }: { s: EarningShift; orgName: string }) {
+function ShiftRow({ s, orgName, payouts }: { s: EarningShift; orgName: string; payouts: boolean }) {
   const main = s.lines.find((l) => l.kind === "SHIFT");
   const adjustments = s.lines.filter((l) => l.kind === "ADJUSTMENT");
   const open = s.disputes.find((d) => !d.resolution);
   const last = s.disputes.at(-1);
-  const badge = main ? statusLabel(main.state.status, main.amountCents) : s.review?.status === "REJECTED" ? { label: "Not approved", badge: "badge-coral" } : null;
+  const badge = main ? statusLabel(main.state.status, main.amountCents, { payouts }) : s.review?.status === "REJECTED" ? { label: "Not approved", badge: "badge-coral" } : null;
   return (
     <li className="space-y-2 px-4 py-3">
       <div className="flex items-start justify-between gap-3">
@@ -94,7 +95,7 @@ function ShiftRow({ s, orgName }: { s: EarningShift; orgName: string }) {
         </div>
         <div className="shrink-0 space-y-1 text-right">
           {s.lines.length > 0 && <p className="font-bold text-fg">{money(s.totalCents)}</p>}
-          {main ? <PayBadge lineId={main.id} status={main.state.status} amountCents={main.amountCents} /> : badge && <span className={badge.badge}>{badge.label}</span>}
+          {main ? <PayBadge lineId={main.id} status={main.state.status} amountCents={main.amountCents} payouts={payouts} /> : badge && <span className={badge.badge}>{badge.label}</span>}
         </div>
       </div>
       {main?.state.status === "PAID" && main.state.paidAt && (
@@ -105,7 +106,7 @@ function ShiftRow({ s, orgName }: { s: EarningShift; orgName: string }) {
       {main?.state.heldReason && <p className="text-xs text-muted">On hold: {main.state.heldReason}</p>}
       {adjustments.map((a) => (
         <p key={a.id} className="text-xs text-muted">
-          Adjustment {money(a.amountCents)} · {statusLabel(a.state.status, a.amountCents).label}
+          Adjustment {money(a.amountCents)} · {statusLabel(a.state.status, a.amountCents, { payouts }).label}
           {a.reason ? ` — ${a.reason}` : ""}
         </p>
       ))}
@@ -152,7 +153,10 @@ export default async function EarningsPage({ searchParams }: { searchParams: Pro
   const { workerId } = await requireWorker();
   const q = (await searchParams).payouts;
   const note = typeof q === "string" ? q : null;
-  const { campaigns, totals } = await loadWorkerEarnings(workerId);
+  // One read of the payout state (refreshed from Stripe when just back or stale), so the hero, the rows and the setup card agree (P0).
+  const [{ campaigns, totals }, w] = await Promise.all([loadWorkerEarnings(workerId), payoutSetup(workerId, stripeProvider(), note === "done")]);
+  const payouts = w.payoutsEnabled;
+  const onTheWay = payouts ? "On the way" : "Approved · payout setup needed";
   return (
     <main className="page max-w-2xl">
       <header className="space-y-1">
@@ -167,7 +171,7 @@ export default async function EarningsPage({ searchParams }: { searchParams: Pro
         <p className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
           <span>
             <span className="block font-bold">{money(totals.onTheWay)}</span>
-            <span className="hero-muted">On the way</span>
+            <span className="hero-muted">{onTheWay}</span>
           </span>
           <span>
             <span className="block font-bold">{money(totals.awaiting)}</span>
@@ -182,7 +186,7 @@ export default async function EarningsPage({ searchParams }: { searchParams: Pro
         </p>
       </div>
 
-      <PayoutSetup workerId={workerId} note={note} />
+      <PayoutSetup w={w} note={note} />
 
       {campaigns.length === 0 ? (
         <div className="empty-state">
@@ -199,11 +203,11 @@ export default async function EarningsPage({ searchParams }: { searchParams: Pro
               <span className="text-xs text-subtle">{c.orgName}</span>
             </div>
             <p className="text-muted-sm">
-              {money(c.totals.paid)} paid · {money(c.totals.onTheWay)} on the way · {money(c.totals.awaiting)} awaiting approval
+              {money(c.totals.paid)} paid · {money(c.totals.onTheWay)} {payouts ? "on the way" : "approved, payout setup needed"} · {money(c.totals.awaiting)} awaiting approval
             </p>
             <ul className="list-card">
               {c.shifts.map((s) => (
-                <ShiftRow key={s.shiftId} s={s} orgName={c.orgName} />
+                <ShiftRow key={s.shiftId} s={s} orgName={c.orgName} payouts={payouts} />
               ))}
             </ul>
           </section>

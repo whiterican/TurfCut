@@ -221,10 +221,11 @@ async function WorkerBrief({ workerId, userId }: { workerId: string; userId: str
 
 /** The worker's pay at a glance (their own totals only). */
 async function EarningsCard({ workerId }: { workerId: string }) {
-  const t = await workerPayTotals(workerId);
+  const [t, me] = await Promise.all([workerPayTotals(workerId), db().worker.findUnique({ where: { id: workerId }, select: { payoutsEnabled: true } })]);
+  // Approved money is "on the way" only once this worker can receive it (P0, same words as Earnings).
   const parts = [
     `${money(t.paid)} paid`,
-    t.onTheWay ? `${money(t.onTheWay)} on the way` : null,
+    t.onTheWay ? `${money(t.onTheWay)} ${me?.payoutsEnabled ? "on the way" : "approved, payout setup needed"}` : null,
     t.awaiting ? `${money(t.awaiting)} awaiting approval` : null,
     t.stopped ? `${money(t.stopped)} on hold or disputed` : null,
   ].filter(Boolean);

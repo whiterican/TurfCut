@@ -75,6 +75,11 @@ export function pendingFor(userId: string, shiftId: string): Pending[] {
   return read(userId).filter((p) => p.shiftId === shiftId);
 }
 
+/** True while the phone couldn't store the worker's latest entries: only this tab holds them (P0). */
+export function memoryOnlyFor(userId: string): boolean {
+  return memoryOnly.has(userId);
+}
+
 /** How many of this user's entries haven't reached the server yet. */
 export function unsentCount(userId: string): number {
   return read(userId).filter((p) => !p.rejected && !p.savedAt).length;

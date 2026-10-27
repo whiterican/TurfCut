@@ -42,7 +42,7 @@ const SHIFT_INCLUDE = {
       id: true,
       workerId: true,
       status: true,
-      worker: { select: { id: true, displayName: true, profileId: true } },
+      worker: { select: { id: true, displayName: true, profileId: true, payoutsEnabled: true } },
       job: {
         select: {
           id: true,

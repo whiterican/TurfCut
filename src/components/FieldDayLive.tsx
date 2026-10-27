@@ -7,7 +7,7 @@ import { shiftState, workerAction, type FieldEvent, type ShiftFacts } from "@/li
 import { stagingCheck, type QueuedAction } from "@/lib/offline-sync";
 import { ConnectionPill } from "@/components/Moments";
 import { pillState } from "@/lib/moments";
-import { clockOffset, dismiss, enqueue, flush, isFlushing, pendingFor, prune, serverClock, subscribe, type Pending } from "@/lib/offline-queue";
+import { clockOffset, dismiss, enqueue, flush, isFlushing, memoryOnlyFor, pendingFor, prune, serverClock, subscribe, type Pending } from "@/lib/offline-queue";
 import { haptic } from "@/lib/haptics";
 import { appLabel, type CanvassApp } from "@/lib/job-tools";
 import { refreshSavedPage } from "@/components/OfflineBrief";
@@ -115,6 +115,8 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
   const [keeping, setKeeping] = useState<string | null>(null);
   // Hydration-safe: the queue only exists in the browser.
   const mounted = useSyncExternalStore(noop, () => true, () => false);
+  // The phone couldn't store the latest entries: only this page holds them, and the pill must say so (P0).
+  const memoryOnly = useSyncExternalStore(subscribe, () => memoryOnlyFor(shift.userId), () => false);
 
   const base = useMemo<ShiftFacts>(
     () => ({
@@ -284,7 +286,7 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
     </form>
   );
   // One pill, always there once the page is live on the phone, sliding between states (P1.4).
-  const pill = !mounted ? null : pillState({ online, reachable: !((unreachable || problem) && waiting.length), syncing, waiting: waiting.length, refused: refused.length });
+  const pill = !mounted ? null : pillState({ online, reachable: !((unreachable || problem) && waiting.length), syncing, waiting: waiting.length, refused: refused.length, memoryOnly });
   const status = !pill
     ? null
     : {
@@ -292,7 +294,9 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
         text:
           pill === "refused"
             ? `${refused.length} couldn't be saved`
-            : pill === "offline"
+            : pill === "unsaved"
+              ? `${problem ? `${problem} ` : !online || unreachable ? "No signal — " : ""}${waiting.length} kept in memory only — keep this tab open until it syncs`
+              : pill === "offline"
               ? waiting.length
                 ? problem
                   ? `${problem} ${waiting.length} saved on this phone.`

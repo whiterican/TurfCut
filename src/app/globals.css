@@ -938,26 +938,28 @@ body {
   }
 
   /* ---- App navigation ------------------------------------------------- */
-  /* Phone: a floating pill above the bottom edge (and the home indicator),
+  /* Phone: a floating bar above the bottom edge (and the home indicator),
      tucked away while scrolling down (components/AppNav, lib/scroll-hide).
      Desktop (lg): links in the top bar or the rail instead. */
+  /* Proportions after the owner's Lovable concept: a compact rounded slab
+     (not a full pill), 370px at most, 44px tiles with small labels. */
   .tabbar {
-    @apply fixed z-40 mx-auto max-w-md rounded-full border p-1.5 lg:hidden;
-    inset-inline: 1rem;
+    @apply fixed z-40 mx-auto max-w-[23.125rem] rounded-2xl border p-1.5 lg:hidden;
+    inset-inline: 0.75rem;
     bottom: calc(0.75rem + env(safe-area-inset-bottom));
     background: var(--surface);
     border-color: var(--border);
-    box-shadow: 0 10px 28px -14px rgb(27 20 34 / 0.35), 0 1px 2px rgb(27 20 34 / 0.06);
+    box-shadow: 0 6px 24px -8px rgb(40 21 57 / 0.35), 0 1px 2px rgb(27 20 34 / 0.06);
     transition: transform var(--dur-slow) var(--ease-out);
   }
   .tab {
-    @apply relative flex min-h-[3.75rem] min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-full border border-transparent pt-1 pb-0.5 font-semibold whitespace-nowrap text-fg transition;
+    @apply relative flex min-h-11 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-xl border border-transparent py-1.5 font-semibold whitespace-nowrap text-fg transition;
     /* Six labels share the pill: the label follows the screen width, never
        the phone's text size (pixel bounds, not rem), so "Messages" and
        "Profile" stay inside the border at any Dynamic Type setting. */
     /* Condensed labels: six of them fit the pill at any text size. */
     font-family: var(--font-condensed);
-    font-size: clamp(11px, 2.8vw, 12px);
+    font-size: clamp(10px, 2.6vw, 11px);
     letter-spacing: 0.01em;
   }
   /* The tab you're on: an eggplant tile. */
@@ -966,13 +968,16 @@ body {
     /* An eggplant tile with rounded corners (not a circle, so six labels
        still fit), cream icon and label. It glides to the next tab on
        navigation (view-transition-name below). */
-    border-radius: 1.125rem;
+    border-radius: 0.75rem;
     background: var(--tab-active-bg);
     color: var(--tab-active-fg);
     view-transition-name: tab-current;
   }
   .tab-icon {
-    @apply size-5 rounded-lg transition;
+    @apply size-[1.125rem] rounded-lg transition;
+  }
+  .tabbar > div {
+    gap: 0.125rem;
   }
   .tab[aria-current="page"] .tab-icon {
     color: var(--tab-active-fg);

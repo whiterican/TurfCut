@@ -234,14 +234,14 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
           </p>
         </div>
         <div className="mt-5 flex shrink-0 flex-col items-end gap-2">
-          {live && <span className={st.paused ? "badge-butter" : "badge-solid"}>{st.paused ? "On break" : "On shift"}</span>}
+          {live && <span className={st.paused ? "badge-butter" : "badge-live"}>{st.paused ? "On break" : "On shift"}</span>}
           {/* Outdoors in glare: the Sunlight theme, one tap away on the field-day screen (P1.5). */}
           {isWorker && <SunlightToggle />}
         </div>
       </header>
 
       {!started && workerActions}
-      <div className={`hero-card space-y-4 ${isWorker ? "hero-card-accent" : ""}`} data-priority={isWorker ? shiftPriority(s, now) : undefined}>
+      <div className={`hero-card space-y-4 ${isWorker && live && !st.paused ? "hero-card-accent" : ""}`} data-priority={isWorker ? shiftPriority(s, now) : undefined}>
         <p className="eyebrow">
           <LocalTime iso={s.startsAt.toISOString()} mode="date" />
           {started && s.stagingLocation ? ` · ${s.stagingLocation}` : ""}

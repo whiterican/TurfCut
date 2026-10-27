@@ -68,7 +68,7 @@ async function WorkerHero({ workerId }: { workerId: string }) {
   if (shift) {
     const live = shift.checkInAt !== null;
     return (
-      <Link transitionTypes={["nav-forward"]} href={`/shifts/${shift.id}`} className="hero-card hero-card-accent block space-y-4" data-priority={shiftPriority(shift)}>
+      <Link transitionTypes={["nav-forward"]} href={`/shifts/${shift.id}`} className={`hero-card block space-y-4 ${live ? "hero-card-accent" : ""}`} data-priority={shiftPriority(shift)}>
         <p className="eyebrow">
           {live ? "Live shift" : "Next shift"} · <LocalTime iso={shift.startsAt.toISOString()} mode="date" />
         </p>

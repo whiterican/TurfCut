@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { BadgeCheck, ChevronRight } from "lucide-react";
 import { DateRangeChip } from "@/components/DateRangeChip";
 import { cardAffiliation, jobDiscoveryLabel, payText, readDisclosure } from "@/lib/jobs";
 import type { CompensationMethod, JobType } from "@prisma/client";
@@ -55,7 +56,12 @@ export function JobFeedCard({ j }: { j: FeedJob }) {
       <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-semibold text-muted">
         {j.org.name}
         {place && <><span aria-hidden>·</span>{place}</>}
-        {j.org.approved && <span className="badge-solid">Approved org</span>}
+        {j.org.approved && (
+          <span className="inline-flex items-center gap-1 text-fg">
+            <BadgeCheck aria-hidden className="size-3.5 shrink-0" />
+            Approved org
+          </span>
+        )}
       </span>
       <span className="min-w-0 space-y-1">
         <span data-share="title" className="masthead block w-fit text-lg leading-tight">{j.title}</span>
@@ -71,10 +77,14 @@ export function JobFeedCard({ j }: { j: FeedJob }) {
           <span className="badge-neutral">{type}</span>
         )}
       </span>
-      {/* Pay and the action share the last line at every width; the pay wraps before the button ever does. */}
+      {/* Pay and the way in share the last line at every width. The whole card is the link, so the
+          way in is a quiet label, not a filled button repeated on every card (one primary per view). */}
       <span className="flex items-center justify-between gap-3 border-t border-border pt-3">
         <span data-share="pay" className="min-w-0 text-sm font-bold text-fg tabular-nums">{payText(j.compensationMethod, j.payRateCents)}</span>
-        <span className="btn-primary btn-sm shrink-0 whitespace-nowrap">View job</span>
+        <span className="inline-flex shrink-0 items-center gap-0.5 text-sm font-semibold whitespace-nowrap text-fg">
+          View job
+          <ChevronRight aria-hidden className="size-4 transition-transform group-hover:translate-x-0.5" />
+        </span>
       </span>
     </Link>
   );

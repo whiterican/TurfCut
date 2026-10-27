@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BadgeCheck } from "lucide-react";
 import { day } from "@/components/DateRangeChip";
 import { cardAffiliation, jobDiscoveryLabel, payShort, readDisclosure } from "@/lib/jobs";
 import type { FeedJob } from "@/components/JobFeedCard";
@@ -27,16 +28,24 @@ export function JobRow({ j, status }: { j: FeedJob; /** A status chip for the vi
             {j.org.name}
             {place && ` · ${place}`}
           </span>
-          {j.org.approved && <span className="badge-solid shrink-0">Approved org</span>}
+          {j.org.approved && (
+            <span className="inline-flex shrink-0 items-center gap-1 text-fg">
+              <BadgeCheck aria-hidden className="size-3.5" />
+              Approved org
+            </span>
+          )}
         </span>
-        <span className="block truncate text-sm font-semibold text-fg">{j.title}</span>
+        <span className="line-clamp-2 block text-sm font-semibold text-fg">{j.title}</span>
         {candidate && <span className="block truncate text-xs font-medium text-fg">Candidate: {candidate}</span>}
         <span className="block truncate text-xs text-muted">
           {dates} · {aff ? `${type} · ${aff.label}` : type}
         </span>
       </span>
       <span className="flex shrink-0 flex-col items-end gap-1">
-        <span className="text-sm font-bold text-fg tabular-nums">{payShort(j.compensationMethod, j.payRateCents, j.type)}</span>
+        <span className="text-end">
+          <span className="block text-sm font-bold text-fg tabular-nums">{payShort(j.compensationMethod, j.payRateCents, j.type)}</span>
+          {!!j.payRateCents && <span className="block text-xs text-muted">gross</span>}
+        </span>
         {status && <span className={status.badge}>{status.label}</span>}
       </span>
     </Link>

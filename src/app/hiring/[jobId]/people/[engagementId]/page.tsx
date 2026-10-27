@@ -22,6 +22,7 @@ import { SnapshotView } from "@/components/SnapshotView";
 import { NotSharedChip } from "@/components/staff/NotSharedChip";
 import { startDirect } from "@/app/messages/actions";
 import { InviteComposer } from "@/components/InviteComposer";
+import { ChevronLeft } from "lucide-react";
 
 /**
  * One person in the context of one job (C3.2): where they stand, what they
@@ -72,7 +73,7 @@ export default async function ApplicantPage({ params }: { params: Promise<{ jobI
   return (
     <main className="page max-w-3xl">
       <Masthead eyebrow={`Applicant · ${job.title}`} title={e.worker.displayName} meta={`Since ${e.createdAt.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" })}`}>
-        <Link href={`/hiring/${job.id}/applicants`} className="btn-ghost btn-sm">← Applicants</Link>
+        <Link href={`/hiring/${job.id}/applicants`} className="btn-ghost btn-sm"><ChevronLeft aria-hidden className="size-4 shrink-0" />Applicants</Link>
         <Link href={`/jobs/${job.id}`} className="btn-secondary btn-sm">Job page</Link>
       </Masthead>
 

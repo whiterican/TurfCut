@@ -38,6 +38,7 @@ import { orgAvailabilityView, withoutPastDates } from "@/lib/availability";
 import { DateRangeChip } from "@/components/DateRangeChip";
 import { followState } from "@/lib/campaign-follow-data";
 import { CampaignCard } from "@/components/campaign/CampaignCard";
+import { ChevronLeft, CircleCheck, Info } from "lucide-react";
 
 /** A view-transition name and class as inline style (React knows the name; the class property isn't in its CSS types yet). */
 const shareStyle = (name: string) => ({ viewTransitionName: name, viewTransitionClass: "job-share" }) as React.CSSProperties;
@@ -114,7 +115,7 @@ export default async function JobPage({ params }: { params: Promise<{ jobId: str
           </>
         }
       >
-        <Link transitionTypes={["nav-back"]} href="/jobs" className="btn-ghost">← Jobs</Link>
+        <Link transitionTypes={["nav-back"]} href="/jobs" className="btn-ghost"><ChevronLeft aria-hidden className="size-4 shrink-0" />Jobs</Link>
       </Masthead>
 
       {job.description && <p className="lead">{job.description}</p>}
@@ -271,10 +272,12 @@ async function WorkerPanel({
       <h2 className="section-title">Why it fits</h2>
       <ul className="divide-y divide-border">
         {reasons2.map((r) => (
-          <li key={r.title} className="flex items-center gap-3 py-3">
-            <span aria-hidden className={`grid size-10 shrink-0 place-items-center rounded-xl font-bold ${r.kind === "yes" ? "bg-solid text-on-solid" : "border border-border bg-surface-2 text-fg"}`}>
-              {r.kind === "yes" ? "✓" : "i"}
-            </span>
+          <li key={r.title} className="flex items-start gap-3 py-3">
+            {r.kind === "yes" ? (
+              <CircleCheck aria-hidden className="size-5 shrink-0 text-fg" />
+            ) : (
+              <Info aria-hidden className="size-5 shrink-0 text-muted" />
+            )}
             <span className="min-w-0">
               <span className="block font-semibold text-fg">{r.title}</span>
               <span className="block text-sm text-muted">{r.detail}</span>

@@ -49,7 +49,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
 
   return (
     <main className="page">
-      <Masthead eyebrow="Your profile" title={worker.displayName}>
+      <Masthead title={worker.displayName}>
         <Link transitionTypes={["nav-forward"]} href="/earnings" className="btn-secondary btn-sm">Earnings</Link>
         <Link href="/settings" className="btn-ghost btn-sm">Settings &amp; sign out</Link>
       </Masthead>

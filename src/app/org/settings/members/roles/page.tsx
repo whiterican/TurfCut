@@ -27,7 +27,7 @@ export default async function RolesPage({ searchParams }: { searchParams: Promis
 
   return (
     <main className="page max-w-3xl">
-      <Masthead eyebrow="Organization settings" title="Roles" meta={<>The built-in roles stay as they are. Build your own for the seats that don&apos;t fit them, then choose one when you invite someone or change a member&apos;s role.</>}>
+      <Masthead title="Roles" meta={<>The built-in roles stay as they are. Build your own for the seats that don&apos;t fit them, then choose one when you invite someone or change a member&apos;s role.</>}>
         <Link href="/org/settings/members" className="btn-ghost btn-sm">Back to members</Link>
       </Masthead>
 

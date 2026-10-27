@@ -3,6 +3,7 @@ import { num, percent, plural } from "@/lib/format";
 import type { CampaignHistory, Period } from "@/lib/scorecard";
 import type { AverageKey, SharedMetric, SharedScorecard, SharedSegment } from "@/lib/shared-scorecard";
 import { NotSharedChip } from "@/components/staff/NotSharedChip";
+import { CircleCheck } from "lucide-react";
 
 const WORK_TYPE_LABELS = { PETITION: "Petition circulation", CANVASS: "Door-to-door canvass" } as const;
 const WORK_TYPE_BADGE = { PETITION: "badge-butter", CANVASS: "badge-solid" } as const;
@@ -177,7 +178,7 @@ export function ScorecardPanel({ periods, history, ringScope }: { periods: Recor
             <ul className="divide-y divide-border">
               {history.map((h) => (
                 <li key={h.jobId} className="flex items-center gap-3 py-3">
-                  <span aria-hidden className="grid size-10 shrink-0 place-items-center rounded-xl bg-solid font-bold text-on-solid">✓</span>
+                  <CircleCheck aria-hidden className="size-5 shrink-0 text-fg" />
                   <span className="min-w-0">
                     <span className="block truncate font-semibold text-fg">{h.title}</span>
                     <span className="block text-sm text-muted">

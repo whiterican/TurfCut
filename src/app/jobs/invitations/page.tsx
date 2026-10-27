@@ -8,6 +8,7 @@ import { ActionButton } from "@/components/ActionButton";
 import { acceptInvitation, declineAsWorker, mute, unmute } from "../actions";
 import { LocalTime } from "@/components/LocalTime";
 import { Masthead } from "@/components/Masthead";
+import { ChevronLeft } from "lucide-react";
 
 export const metadata = { title: "Invitations · Turfcut" };
 
@@ -39,8 +40,8 @@ export default async function InvitationsPage() {
 
   return (
     <main className="page max-w-2xl">
-      <Masthead eyebrow="Work" title="Invitations" meta={<>Organizations you&apos;ve worked or applied with can invite you to a job. Each invitation lasts {INVITE_DAYS} days. They can&apos;t see whether you&apos;ve opened it.</>}>
-        <Link transitionTypes={["nav-back"]} href="/jobs" className="btn-ghost">← Jobs</Link>
+      <Masthead title="Invitations" meta={<>Organizations you&apos;ve worked or applied with can invite you to a job. Each invitation lasts {INVITE_DAYS} days. They can&apos;t see whether you&apos;ve opened it.</>}>
+        <Link transitionTypes={["nav-back"]} href="/jobs" className="btn-ghost"><ChevronLeft aria-hidden className="size-4 shrink-0" />Jobs</Link>
       </Masthead>
 
       {open.length === 0 ? (

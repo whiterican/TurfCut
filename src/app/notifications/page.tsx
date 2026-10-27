@@ -36,7 +36,7 @@ export default async function NotificationsPage() {
 
   return (
     <main className="page max-w-2xl">
-      <Masthead eyebrow="Updates" title="Notifications" meta={<>{viewer === "worker" ? "Hiring steps, your pay disputes and payouts, and new posts from campaigns you asked to hear from." : "Hiring steps, pay disputes and Turfcut's decisions that concern you."} Nobody is told whether you read them.</>}>
+      <Masthead title="Notifications" meta={<>{viewer === "worker" ? "Hiring steps, your pay disputes and payouts, and new posts from campaigns you asked to hear from." : "Hiring steps, pay disputes and Turfcut's decisions that concern you."} Nobody is told whether you read them.</>}>
         {unread > 0 && (
           <form action={markNotificationsRead}>
             {/* Only the ones shown here: anything newer stays unread until it's seen. */}

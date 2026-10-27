@@ -10,6 +10,7 @@ import { Masthead } from "@/components/staff/Masthead";
 import { HiringTabs } from "@/components/staff/HiringTabs";
 import { HiringActions } from "@/components/HiringActions";
 import { EngagementHistory } from "@/components/EngagementHistory";
+import { ChevronLeft } from "lucide-react";
 
 const day = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
 
@@ -32,7 +33,7 @@ export default async function InvitesPage({ params }: { params: Promise<{ jobId:
   return (
     <main className="page max-w-3xl">
       <Masthead eyebrow="Invites" title={job.title} meta={`${invites.length} sent · ${waiting} waiting for an answer`}>
-        <Link href="/hiring" className="btn-ghost btn-sm">← Pipeline</Link>
+        <Link href="/hiring" className="btn-ghost btn-sm"><ChevronLeft aria-hidden className="size-4 shrink-0" />Pipeline</Link>
         <Link href={`/jobs/${job.id}`} className="btn-secondary btn-sm">Job page</Link>
       </Masthead>
       <HiringTabs jobId={job.id} current="invites" counts={counts} />

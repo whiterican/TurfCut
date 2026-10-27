@@ -13,6 +13,7 @@ import { BulkApplicantActions } from "@/components/BulkApplicantActions";
 import { HiringTabs } from "@/components/staff/HiringTabs";
 import { hiringCounts } from "@/lib/invitations-data";
 import { EmptyState } from "@/components/EmptyState";
+import { ChevronLeft } from "lucide-react";
 
 const BULK_FORM = "applicants-bulk";
 
@@ -63,7 +64,7 @@ export default async function ApplicantsPage({
         title={job.title}
         meta={`${all.length} ${all.length === 1 ? "applicant" : "applicants"} · ${toDecide} to decide · ${offers} ${offers === 1 ? "offer" : "offers"} out${job.headcount !== null ? ` · ${job.headcount} spots` : ""}`}
       >
-        <Link href="/hiring" className="btn-ghost btn-sm">← Pipeline</Link>
+        <Link href="/hiring" className="btn-ghost btn-sm"><ChevronLeft aria-hidden className="size-4 shrink-0" />Pipeline</Link>
         <Link href={`/jobs/${job.id}`} className="btn-secondary btn-sm">Job page</Link>
       </Masthead>
       <HiringTabs jobId={job.id} current="applicants" counts={counts} />

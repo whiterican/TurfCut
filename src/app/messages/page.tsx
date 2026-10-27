@@ -65,7 +65,6 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
   return (
     <main className="page max-w-2xl">
       <Masthead
-        eyebrow="Messages"
         title="Messages"
         meta={session.role === "WORKER" ? "Talk with the people who hired you, and your team. Messages open once you're hired." : "Talk with the workers you hired, and run team chats for your campaigns."}
       >

@@ -4,6 +4,7 @@ import { loadSharing } from "@/lib/sharing-data";
 import { RELATIONSHIP_PHRASE } from "@/lib/sharing";
 import { SharingForm } from "@/components/SharingForm";
 import { Masthead } from "@/components/Masthead";
+import { ChevronLeft } from "lucide-react";
 
 const dateText = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
 
@@ -14,8 +15,8 @@ export default async function SharingPage() {
   return (
     <main className="page max-w-2xl space-y-8">
       <div className="space-y-3">
-        <Masthead eyebrow="Your profile" title="Who sees what">
-          <Link transitionTypes={["nav-back"]} href="/profile" className="btn-ghost">← Profile</Link>
+        <Masthead title="Who sees what">
+          <Link transitionTypes={["nav-back"]} href="/profile" className="btn-ghost"><ChevronLeft aria-hidden className="size-4 shrink-0" />Profile</Link>
         </Masthead>
         <p className="lead">
           Choose who sees each part of your profile. Anything you don&apos;t share shows as

@@ -14,6 +14,7 @@ import { HiringTabs } from "@/components/staff/HiringTabs";
 import { DataTable } from "@/components/staff/DataTable";
 import { ActionButton } from "@/components/ActionButton";
 import { invite } from "@/app/jobs/actions";
+import { ChevronLeft } from "lucide-react";
 
 /** In 5-mile bands only — the exact distance never leaves the server — so a home ZIP can't be worked back out. */
 const distanceText = (m: MatchRow) =>
@@ -66,7 +67,7 @@ export default async function MatchesPage({
   return (
     <main className="page max-w-5xl">
       <Masthead eyebrow="Matches" title={job.title} meta={r.ok ? `${all.length} ${all.length === 1 ? "worker" : "workers"} who chose to be found for this work` : ""}>
-        <Link href="/hiring" className="btn-ghost btn-sm">← Pipeline</Link>
+        <Link href="/hiring" className="btn-ghost btn-sm"><ChevronLeft aria-hidden className="size-4 shrink-0" />Pipeline</Link>
         <Link href={`/jobs/${job.id}`} className="btn-secondary btn-sm">Job page</Link>
       </Masthead>
       <HiringTabs jobId={job.id} current="matches" counts={counts} />

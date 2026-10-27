@@ -14,6 +14,7 @@ import { ProofUploadForm } from "@/components/ProofUploadForm";
 import { removeProofAction } from "./proof-actions";
 import { CredentialForm, RemoveCredential, WalletStatus, WalletStatusLine } from "@/components/CredentialForm";
 import { Masthead } from "@/components/Masthead";
+import { ChevronLeft } from "lucide-react";
 
 const dateText = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
 
@@ -40,8 +41,8 @@ export default async function CredentialsPage() {
   return (
     <main className="page max-w-2xl space-y-8">
       <div className="space-y-3">
-        <Masthead eyebrow="Your profile" title="Credentials">
-          <Link transitionTypes={["nav-back"]} href="/profile" className="btn-ghost">← Profile</Link>
+        <Masthead title="Credentials">
+          <Link transitionTypes={["nav-back"]} href="/profile" className="btn-ghost"><ChevronLeft aria-hidden className="size-4 shrink-0" />Profile</Link>
         </Masthead>
         <p className="lead">Registrations, notary status and training you hold. Everything you add here is self-reported until an organization verifies it.</p>
         <p className="text-hint">

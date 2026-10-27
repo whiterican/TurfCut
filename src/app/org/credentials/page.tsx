@@ -7,6 +7,7 @@ import { loadHiredCredentials } from "@/lib/verification-data";
 import { SIDE_LABELS } from "@/lib/proof-sides";
 import { verify } from "./actions";
 import { Masthead } from "@/components/Masthead";
+import { ChevronLeft } from "lucide-react";
 
 const dateText = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
 
@@ -23,8 +24,8 @@ export default async function OrgCredentialsPage({ searchParams }: { searchParam
 
   return (
     <main className="page max-w-3xl">
-      <Masthead eyebrow="Compliance" title="Credentials">
-        <Link href="/dashboard" className="btn-ghost btn-sm">← Desk</Link>
+      <Masthead title="Credentials">
+        <Link href="/dashboard" className="btn-ghost btn-sm"><ChevronLeft aria-hidden className="size-4 shrink-0" />Desk</Link>
       </Masthead>
       <p className="lead">
         Record that you checked a hired worker&apos;s credential, and how. Workers see which organization verified it. Other organizations see only that an

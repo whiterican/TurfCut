@@ -36,7 +36,7 @@ export default async function SettingsPage() {
   }
   return (
     <main className="page max-w-2xl">
-      <Masthead eyebrow="Settings" title="Text size, theme and feel" meta="Make Turfcut easier to read and use on your phone." />
+      <Masthead title="Text size, theme and feel" meta="Make Turfcut easier to read and use on your phone." />
       <DisplaySettings />
       {session && (
         <section className="section">

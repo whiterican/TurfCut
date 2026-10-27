@@ -5,6 +5,7 @@ import { previewOrgProfile } from "@/lib/org-profile-data";
 import type { OrgOrPublic } from "@/lib/org-profile";
 import { OrgProfileSections } from "@/components/OrgProfileSections";
 import { Masthead } from "@/components/Masthead";
+import { ChevronLeft } from "lucide-react";
 
 const TABS = [
   { key: "applied", label: "An organization you work with", viewer: { kind: "org", approved: true, relationship: true } },
@@ -35,8 +36,8 @@ export default async function PreviewPage({ searchParams }: { searchParams: Prom
   return (
     <main className="page space-y-8">
       <div className="space-y-3">
-        <Masthead eyebrow="Your profile" title="See what organizations see">
-          <Link transitionTypes={["nav-back"]} href="/profile" className="btn-ghost">← Profile</Link>
+        <Masthead title="See what organizations see">
+          <Link transitionTypes={["nav-back"]} href="/profile" className="btn-ghost"><ChevronLeft aria-hidden className="size-4 shrink-0" />Profile</Link>
         </Masthead>
         <nav aria-label="Viewer" className="flex flex-wrap gap-2">
           {TABS.map((t) => (

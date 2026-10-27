@@ -90,7 +90,6 @@ export default async function PayPage({ searchParams }: { searchParams: Promise<
   return (
     <main className="page max-w-3xl">
       <Masthead
-        eyebrow="Pay"
         title="Pay"
         meta={
           <div className="space-y-1">

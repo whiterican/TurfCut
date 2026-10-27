@@ -13,7 +13,7 @@ export default async function CampaignsPage() {
   const campaigns = await listOrgCampaigns(session.orgId);
   return (
     <main className="page max-w-3xl">
-      <Masthead eyebrow="Campaigns" title="Your campaigns" meta="Each campaign has a public page: your bio, your posts, and your pinned talking points, which brief your workers before each shift." />
+      <Masthead title="Your campaigns" meta="Each campaign has a public page: your bio, your posts, and your pinned talking points, which brief your workers before each shift." />
 
       {campaigns.length > 0 ? (
         <ul className="list-card">

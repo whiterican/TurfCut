@@ -18,6 +18,7 @@ import { Sheet } from "@/components/Sheet";
 import { EmptyArt } from "@/components/EmptyState";
 import { applyMarks } from "@/lib/job-marks";
 import { loadMarks } from "@/lib/job-marks-data";
+import { Check, ChevronRight } from "lucide-react";
 
 const day = (d: Date | null) =>
   d ? d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" }) : "—";
@@ -91,14 +92,14 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
 
   return (
     <main className="page">
-      <Masthead eyebrow="Work" title="Find your next field job." meta="Open jobs, soonest first, with pay, place and dates up front." />
+      <Masthead title="Work" meta="Open jobs, soonest first, with pay, place and dates up front." />
 
       {waitingInvites > 0 && (
         <Link href="/jobs/invitations" className="alert-info flex items-center justify-between gap-3">
           <span className="font-medium">
             {waitingInvites} {waitingInvites === 1 ? "invitation is" : "invitations are"} waiting for your answer
           </span>
-          <span aria-hidden>→</span>
+          <ChevronRight aria-hidden className="size-4 shrink-0" />
         </Link>
       )}
 
@@ -131,7 +132,7 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
         <nav aria-label="Quick filters" className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
           {quick.map((q) => (
             <Link key={q.label} href={q.href} scroll={false} className={`filter-chip ${q.on ? "filter-chip-on" : ""}`}>
-              {q.on && <span aria-hidden>✓</span>}
+              {q.on && <Check aria-hidden className="size-4 shrink-0" />}
               {q.label}
               <span className="sr-only">{q.on ? " (on — tap to turn off)" : " (off)"}</span>
             </Link>
@@ -164,7 +165,7 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
                 <input type="checkbox" role="switch" switch="" name="noCredentials" value="1" defaultChecked={filters.noCredentials} />
                 No credentials required
               </label>
-              <button className="btn-primary">Apply</button>
+              <button className="btn-primary">Show jobs</button>
             </div>
           </form>
         </Sheet>
@@ -226,7 +227,7 @@ async function OrgJobs({ orgId, canHire }: { orgId: string; canHire: boolean }) 
   });
   return (
     <main className="page max-w-4xl">
-      <Masthead eyebrow="Jobs" title="Your jobs" meta="Your organization's jobs, newest first. Sort by any column.">
+      <Masthead title="Your jobs" meta="Your organization's jobs, newest first. Sort by any column.">
         {canHire && <Link href="/jobs/new" className="btn-primary">New job</Link>}
       </Masthead>
       {jobs.length === 0 ? (

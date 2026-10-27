@@ -20,6 +20,21 @@
  */
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Type that sets well: headings balance their lines, running text avoids a
+   lone last word (D1d). Readable measure comes from .lead and the page head. */
+@layer base {
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+  p,
+  li,
+  dd {
+    text-wrap: pretty;
+  }
+}
+
 :root {
   /* The accent fill: lime in both themes. */
   --accent: #d6f25a;
@@ -290,6 +305,7 @@ body {
   }
   .page-title {
     @apply text-3xl leading-[1.05] font-bold tracking-[-0.03em] text-fg sm:text-4xl;
+    text-wrap: balance;
   }
   /* the brand face: organization and job names, in page heads and on job cards. */
   .masthead {
@@ -303,7 +319,12 @@ body {
   .masthead-figure {
     @apply pt-2 text-3xl font-bold tracking-[-0.03em] text-fg tabular-nums;
   }
-  /* Small condensed label above a title ("LIVE SHIFT", "GOOD MORNING"). */
+  /* A page head's context line (Masthead's optional eyebrow): a fact the
+     title doesn't carry, in sentence case. Not a kicker. */
+  .masthead-context {
+    @apply text-sm font-medium text-muted;
+  }
+  /* Small condensed label above a title inside a card or hero ("LIVE SHIFT · OCT 24"). */
   .eyebrow {
     @apply font-condensed font-semibold tracking-[0.18em] uppercase;
     font-size: 0.8125rem;
@@ -326,7 +347,7 @@ body {
     @apply text-lg font-bold tracking-[-0.01em] text-fg;
   }
   .lead {
-    @apply text-base leading-relaxed text-muted;
+    @apply max-w-prose text-base leading-relaxed text-muted;
   }
   .text-muted-sm {
     @apply text-sm text-muted;
@@ -1483,7 +1504,8 @@ summary.list-none::-webkit-details-marker {
   translate: 0 0.25rem;
   transition-property: opacity, translate, visibility;
   transition-duration: var(--dur-fast), var(--dur-base), var(--dur-fast);
-  transition-timing-function: var(--ease-standard), var(--spring), var(--ease-standard);
+  /* Status feedback settles without overshoot; the spring is kept for the sheet alone. */
+  transition-timing-function: var(--ease-standard), var(--ease-out), var(--ease-standard);
 }
 .btn-face[data-on] {
   opacity: 1;
@@ -1554,7 +1576,7 @@ summary.list-none::-webkit-details-marker {
   display: inline-flex;
   align-items: center;
   gap: 0.375rem;
-  animation: tc-pill-in var(--dur-base) var(--spring) both;
+  animation: tc-pill-in var(--dur-base) var(--ease-out) both;
 }
 @keyframes tc-pill-in {
   from { opacity: 0; translate: 0 0.5em; }
@@ -1712,7 +1734,9 @@ summary.list-none::-webkit-details-marker {
     overscroll-behavior-y: contain;
   }
 }
-/* The sheet springs up when it opens (components/Sheet.tsx). */
+/* The sheet springs up when it opens (components/Sheet.tsx): the one place the
+   spring's small overshoot is used, because a sheet is a physical thing landing.
+   Status (the connection pill, button check faces) eases out without it. */
 .sheet[open] .sheet-panel {
   animation: tc-sheet-in var(--dur-slow) var(--spring) both;
 }

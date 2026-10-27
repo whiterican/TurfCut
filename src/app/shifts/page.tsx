@@ -50,7 +50,7 @@ export default async function MyShiftsPage() {
     <main className="page max-w-2xl">
       {/* Saved on the phone for dead zones: today's and the next two days' shifts. */}
       <OfflineBrief userId={userId} paths={brief} />
-      <Masthead eyebrow="Shifts" title="My shifts" meta="Every campaign in one calendar. Shifts never overlap — scheduling checks across all of them.">
+      <Masthead title="My shifts" meta="Every campaign in one calendar. Shifts never overlap — scheduling checks across all of them.">
         <Link transitionTypes={["nav-forward"]} href="/shifts/turf" className="btn-secondary">My turf</Link>
       </Masthead>
       {upcoming.length === 0 ? (

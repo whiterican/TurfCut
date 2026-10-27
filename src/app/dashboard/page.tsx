@@ -33,6 +33,7 @@ import { landingFor } from "@/lib/nav";
 import { roleName } from "@/lib/org-roles";
 import type { Role } from "@/lib/auth";
 import { Masthead } from "@/components/Masthead";
+import { ChevronRight } from "lucide-react";
 
 const ROLE_LABELS: Record<string, string> = {
   WORKER: "Field worker",
@@ -52,7 +53,7 @@ function NavCard({ href, title, body }: { href: string; title: string; body: str
     <Link href={href} className="card group block transition hover:border-[var(--border-strong)]">
       <p className="flex items-center justify-between font-semibold text-fg">
         {title}
-        <span aria-hidden className="text-subtle transition group-hover:translate-x-0.5">→</span>
+        <ChevronRight aria-hidden className="size-4 shrink-0 text-subtle transition-transform group-hover:translate-x-0.5" />
       </p>
       <p className="text-muted-sm mt-1">{body}</p>
     </Link>
@@ -336,14 +337,15 @@ export default async function DashboardPage() {
   }
 
   const isWorker = session.role === "WORKER" && !!session.workerId;
-  const [worker] = await Promise.all([
-    isWorker ? db().worker.findUnique({ where: { id: session.workerId! }, select: { displayName: true } }) : null,
-  ]);
-  const name = worker?.displayName.split(" ")[0] ?? "Welcome";
 
   return (
     <main className="page">
-      <Masthead eyebrow={isWorker ? "Today" : "Account"} title={name} meta={[roleName(session, ROLE_LABELS), session.email].filter(Boolean).join(" · ")} />
+      {/* Today is the day, not a greeting: the date under the title, no name or email (D1b). */}
+      {isWorker ? (
+        <Masthead title="Today" meta={<LocalTime iso={new Date().toISOString()} mode="fulldate" />} />
+      ) : (
+        <Masthead title="Your account" meta={[roleName(session, ROLE_LABELS), session.email].filter(Boolean).join(" · ")} />
+      )}
 
       {isWorker && <WorkerBrief workerId={session.workerId!} userId={session.userId} />}
       {isWorker && <WorkerHero workerId={session.workerId!} />}

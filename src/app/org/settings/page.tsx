@@ -36,7 +36,7 @@ export default async function OrgSettingsPage() {
 
   return (
     <main className="page max-w-3xl">
-      <Masthead eyebrow="Organization settings" title={org.name}>
+      <Masthead title={org.name}>
         {canUse(session, "orgMembers") && <Link href="/org/settings/members" className="btn-secondary btn-sm">Members</Link>}
         <Link href="/settings" className="btn-ghost btn-sm">Settings &amp; sign out</Link>
       </Masthead>

@@ -7,14 +7,17 @@ const noop = () => () => {};
 /**
  * A time in the viewer's own time zone. The server doesn't know it, so the
  * server render shows UTC and the browser replaces it after hydration.
+ * "short" is a date and time without the weekday, for dense tables.
  * "full" and "fulldate" carry the year: for receipts and statements that are kept.
  */
-export function LocalTime({ iso, mode = "datetime" }: { iso: string; mode?: "datetime" | "time" | "date" | "full" | "fulldate" }) {
+export function LocalTime({ iso, mode = "datetime" }: { iso: string; mode?: "datetime" | "short" | "time" | "date" | "full" | "fulldate" }) {
   const local = useSyncExternalStore(noop, () => true, () => false);
   const d = new Date(iso);
   const opts: Intl.DateTimeFormatOptions =
     mode === "time"
       ? { hour: "numeric", minute: "2-digit" }
+      : mode === "short"
+        ? { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }
       : mode === "date"
         ? { weekday: "short", month: "short", day: "numeric" }
         : mode === "fulldate"

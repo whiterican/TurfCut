@@ -98,3 +98,19 @@ export function applicationsByJob(apps: Array<{ jobId: string; title: string; ap
   }
   return [...by.values()].sort((a, b) => a.oldest.getTime() - b.oldest.getTime());
 }
+
+/**
+ * "Needs you" order, most urgent first: what is going wrong right now (a
+ * worker late to check in, a dispute past its deadline), then what has a
+ * deadline today or blocks pay, then what is waiting on a person, then gaps
+ * to fill. Within a kind, rows keep their own order (oldest or soonest first).
+ */
+export const URGENCY = { late: 0, overdue: 1, review: 2, dueToday: 3, payApprove: 4, applications: 5, dispute: 6, short: 7 } as const;
+
+/** Rows most urgent first; a stable sort, so each kind keeps its own order. */
+export function byUrgency<T extends { rank: number }>(rows: T[]): T[] {
+  return [...rows].sort((a, b) => a.rank - b.rank);
+}
+
+/** An open-seats row's time: the job's start, said as past or future. */
+export const seatsWhenLabel = (startsAt: Date, now: Date) => (startsAt > now ? "Starts" : "Started");

@@ -996,6 +996,19 @@ body {
     @apply absolute top-0.5 left-1/2 ml-1.5 min-w-[1.25rem] px-1 text-[0.7rem] leading-[1.25rem];
     box-shadow: 0 0 0 2px var(--surface);
   }
+  /* Two or three places under one tab (Jobs: Find work / My schedule): a
+     segmented control, the current one an eggplant tile like the dock's. */
+  .segmented {
+    @apply flex gap-1 rounded-2xl border border-border p-1;
+    background: var(--surface-2);
+  }
+  .segmented > a {
+    @apply flex min-h-11 flex-1 items-center justify-center rounded-xl px-3 text-sm font-semibold text-muted transition hover:text-fg;
+  }
+  .segmented > a[aria-current="page"] {
+    background: var(--tab-active-bg);
+    color: var(--tab-active-fg);
+  }
   /* ---- Staff components (C1) ------------------------------------------ */
   .data-table-wrap {
     @apply max-h-[70vh] overflow-auto rounded-[var(--radius-inner)] border border-border;

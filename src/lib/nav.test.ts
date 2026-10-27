@@ -4,7 +4,7 @@ import { accessTo, AREAS, canUse, levelsFor, ORG_ROLES, type AccessLevel, type A
 
 describe("navigation", () => {
   it("gives each role its own tabs", () => {
-    expect(navTabs("WORKER", false).map((t) => t.label)).toEqual(["Today", "Feed", "Work", "Shifts", "Messages", "Profile"]);
+    expect(navTabs("WORKER", false).map((t) => t.label)).toEqual(["Home", "Jobs", "Messages", "Profile"]);
     // C1: no People directory; organizations reach workers through a job.
     expect(navTabs("OWNER", true).map((t) => t.label)).toEqual(["Desk", "Hiring", "Jobs", "Field", "Messages", "Pay", "Credentials", "Campaigns", "Members", "Settings"]);
     // Recruiters read the field (no actions there).
@@ -28,8 +28,8 @@ describe("navigation", () => {
       const nav = orgNav(role, true);
       expect([...nav.rail, ...nav.phone, ...nav.more].some((t) => t.href === "/admin")).toBe(false);
     }
-    // A staff worker keeps the worker bar (six tabs, no More): the console is reached from Settings.
-    expect(navTabs("WORKER", false).map((t) => t.label)).toEqual(["Today", "Feed", "Work", "Shifts", "Messages", "Profile"]);
+    // A staff worker keeps the worker bar (four tabs, no More): the console is reached from Settings.
+    expect(navTabs("WORKER", false).map((t) => t.label)).toEqual(["Home", "Jobs", "Messages", "Profile"]);
     expect(orgNav("WORKER", false, true)).toEqual({ rail: [], phone: [], more: [] });
   });
 
@@ -38,6 +38,11 @@ describe("navigation", () => {
     expect(activeTab(tabs, "/profile/preferences")).toBe("/profile");
     expect(activeTab(tabs, "/jobs/abc")).toBe("/jobs");
     expect(activeTab(tabs, "/jobsearch")).toBeNull();
+    // Home holds the feed; Jobs holds the schedule (owner's 4-tab dock).
+    expect(activeTab(tabs, "/feed")).toBe("/dashboard");
+    expect(activeTab(tabs, "/shifts")).toBe("/jobs");
+    expect(activeTab(tabs, "/shifts/abc")).toBe("/jobs");
+    expect(activeTab(tabs, "/shiftsx")).toBeNull();
     expect(activeTab(tabs, "/login")).toBeNull();
   });
 

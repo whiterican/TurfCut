@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ACCEPTED_STATUSES, inviteLapsed, stageOf } from "@/lib/engagements";
 import { loadPipelineFacts } from "@/lib/engagements-data";
 import { Masthead } from "@/components/Masthead";
+import { JobsSwitch } from "@/components/JobsSwitch";
 import { DataTable } from "@/components/staff/DataTable";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
@@ -92,7 +93,8 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
 
   return (
     <main className="page lg:max-w-5xl">
-      <Masthead title="Work" meta="Open jobs, soonest first, with pay, place and dates up front." />
+      <Masthead title="Jobs" meta="Open jobs, soonest first, with pay, place and dates up front." />
+      <JobsSwitch current="find" />
 
       {waitingInvites > 0 && (
         <Link href="/jobs/invitations" className="alert-info flex items-center justify-between gap-3">

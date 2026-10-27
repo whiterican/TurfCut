@@ -386,6 +386,18 @@ describe("forest ink is for what is live and the one primary action (G1)", () =>
       expect(green.filter((k) => !mayBeGreen.has(k))).toEqual([]);
     }
   });
+  it("by night a chosen tile has a light edge as well as its fill (the fill alone is under 3:1)", () => {
+    expect(css).toMatch(/\.dark :is\(\.tab\[aria-current="page"\][^{]*\{\s*box-shadow: inset 0 0 0 1px var\(--muted\);/);
+    expect(ratio(dark.muted, dark.surface)).toBeGreaterThanOrEqual(3);
+  });
+  it("the custom switch is the switch colour, not the primary action's green", () => {
+    expect(css).toMatch(/\.toggle input:checked \{\s*background: var\(--switch-on\);/);
+    for (const th of [light, dark, sun]) expect(ratio(th["on-primary"], th["switch-on"])).toBeGreaterThanOrEqual(3);
+  });
+  it("by night selected text stays readable (soft green with ink)", () => {
+    expect(css).toMatch(/\.dark ::selection \{\s*background: var\(--cut\);\s*color: var\(--ink\);/);
+    expect(ratio(dark.ink, dark.cut)).toBeGreaterThanOrEqual(7);
+  });
   it("forest ink is never text on the night surfaces", () => {
     // 1.9:1 on #120D18: green type by night would be unreadable, so the dark text tokens aren't green.
     for (const k of ["fg", "muted", "subtle", "link", "kicker", "on-primary", "tab-active-fg"] as const) expect(dark[k]).not.toBe("#164b38");
@@ -398,9 +410,11 @@ describe("forest ink is for what is live and the one primary action (G1)", () =>
     // Moments maps a badge class to its fill for the paid-badge morph; .badge-live's is the accent.
     const ok = new Set(["components/Moments.tsx"]);
     const hits = files.filter((f) => !ok.has(f.replaceAll("\\", "/"))).filter((f) =>
-      /\b(bg|text|border|fill|stroke|ring|outline|decoration|from|via|to|shadow|caret|accent|divide)-accent\b|var\(--(color-)?accent\)|#d6f25a/i.test(readFileSync(join(root, f), "utf8"))
+      /\b(bg|text|border|fill|stroke|ring|outline|decoration|from|via|to|shadow|caret|accent|divide)-accent\b|var\(--(color-)?accent\)|#d6f25a|#ccea96|#164b38/i.test(readFileSync(join(root, f), "utf8"))
     );
     expect(hits).toEqual([]);
+    // The offline page (public/sw.js) is plain HTML outside the stylesheet: no retired lime there either.
+    expect(readFileSync(join(__dirname, "../../public/sw.js"), "utf8")).not.toMatch(/#ccea96|#d6f25a/i);
   });
 
   it("by night the checked radio dot reads on the card (≥ 3:1)", () => {

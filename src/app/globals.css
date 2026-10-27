@@ -320,6 +320,11 @@ body {
   background: var(--accent);
   color: var(--on-accent);
 }
+/* By night forest ink would hide the selection (1.7:1): soft green with ink type. */
+.dark ::selection {
+  background: var(--cut);
+  color: var(--ink);
+}
 
 /* The keyboard ring, in the base layer so a component can place it (inside a
    clipped row) or draw its own (fields): unlayered, it beat every component rule. */
@@ -731,8 +736,10 @@ body {
     @apply absolute top-[3px] left-[3px] size-[1.125rem] rounded-full transition;
     background: var(--surface);
   }
+  /* On is the switch colour (eggplant by day, a green track by night, eggplant in
+     Sunlight), the same as the native switch: a setting is a selection, not the primary action. */
   .toggle input:checked {
-    background: var(--primary);
+    background: var(--switch-on);
   }
   .toggle input:checked::after {
     transform: translateX(1rem);
@@ -1084,6 +1091,14 @@ body {
     @apply font-semibold;
     background: var(--rail-active-bg);
     color: var(--rail-active-fg);
+  }
+  /* By night the eggplant tile is only 1.6:1 from the bar and its cream label is the
+     same as the others', so the current tab and every chosen chip get a light edge too. */
+  .dark :is(.tab[aria-current="page"], .chip:has(input:checked), .chip[aria-current="page"], .filter-chip-on, .step-current, .topnav-link[aria-current="page"]) {
+    box-shadow: inset 0 0 0 1px var(--muted);
+  }
+  .rail-link[aria-current="page"] {
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--rail-fg) 45%, transparent);
   }
   /* More sheet: a native modal dialog pinned to the bottom of the screen. */
   .more-sheet {

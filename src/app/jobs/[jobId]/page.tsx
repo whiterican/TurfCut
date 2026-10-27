@@ -9,7 +9,7 @@ import { loadPipelineFacts } from "@/lib/engagements-data";
 import { EngagementHistory } from "@/components/EngagementHistory";
 import { HiringActions, timeLeft } from "@/components/HiringActions";
 import { ENGAGEMENT_LABELS, JOB_STATUS_LABELS, jobPageBadge } from "@/lib/engagement-labels";
-import { UUID_RE, exclusionReasons, fitReasons, jobCardAnswers, jobCredentials, jobFreezeReasons, jurisdictionLabel, payText, publishBlockers, readDisclosure, readHiringModes } from "@/lib/jobs";
+import { UUID_RE, exclusionReasons, fitReasons, jobCardAnswers, jobCredentials, jobFreezeReasons, jurisdictionLabel, payShort, publishBlockers, readDisclosure, readHiringModes } from "@/lib/jobs";
 import { loadScorecard } from "@/lib/scorecard-data";
 import { loadSharing } from "@/lib/sharing-data";
 import { PART_DETAILS, RELATIONSHIP_PHRASE, SHARE_PARTS, visibleParts, type SharePart, type SharingChoices } from "@/lib/sharing";
@@ -104,7 +104,13 @@ export default async function JobPage({ params }: { params: Promise<{ jobId: str
         titleClassName="w-fit"
         titleStyle={shareStyle(`job-${job.id}`)}
         meta={job.org.name}
-        figure={<span className="block w-fit" style={shareStyle(`pay-${job.id}`)}>{payText(job.compensationMethod, job.payRateCents)}</span>}
+        figure={
+          <>
+            {/* The same words as the card's pay, so the shared element grows rather than swaps its text. */}
+            <span className="inline-block w-fit" style={shareStyle(`pay-${job.id}`)}>{payShort(job.compensationMethod, job.payRateCents, job.type)}</span>
+            {!!job.payRateCents && <span className="ms-2 text-base font-medium tracking-normal text-muted">gross</span>}
+          </>
+        }
         chips={
           <>
             {isOwnOrg && <span className={jobPageBadge(status.badge)}>{status.label}</span>}

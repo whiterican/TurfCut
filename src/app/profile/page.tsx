@@ -22,6 +22,7 @@ import { UrlNotice } from "@/components/UrlNotice";
 import { geoTables, resolveArea } from "@/lib/geo";
 import { DEFAULT_TRAVEL_MILES } from "@/lib/matches-data";
 import { Masthead } from "@/components/Masthead";
+import { ChevronRight } from "lucide-react";
 
 const AUDIENCE_SHORT: Record<ShareAudience, string> = {
   RELATIONSHIP: `Organizations you ${RELATIONSHIP_PHRASE}`,
@@ -104,27 +105,39 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
       </section>
 
       <section className="section">
-        <h2 className="section-title">Availability</h2>
-        <div className="card space-y-3">
+        <div className="section-head">
+          <h2 className="section-title">Availability</h2>
+          <Link transitionTypes={["nav-forward"]} href="/profile/availability" className="row-link">
+            {avail.version === null ? "Set" : "Change"}<span className="sr-only"> availability</span>
+            <ChevronRight aria-hidden className="size-4 shrink-0" />
+          </Link>
+        </div>
+        <div className="card">
           <AvailabilityStatement view={isEmptyAvailability(avail.availability) ? null : availabilitySummary(avail.availability, today)} />
-          <Link transitionTypes={["nav-forward"]} href="/profile/availability" className="btn-secondary">
-            {avail.version === null ? "Set your availability" : "Change availability"}
-          </Link>
         </div>
       </section>
 
       <section className="section">
-        <h2 className="section-title">Credentials</h2>
-        <div className="card space-y-3">
+        <div className="section-head">
+          <h2 className="section-title">Credentials</h2>
+          <Link transitionTypes={["nav-forward"]} href="/profile/credentials" className="row-link">
+            {creds.length ? "Manage" : "Add"}<span className="sr-only"> credentials</span>
+            <ChevronRight aria-hidden className="size-4 shrink-0" />
+          </Link>
+        </div>
+        <div className="card">
           <CredentialList view={orgCredentialView(creds, true)} today={expiryToday()} />
-          <Link transitionTypes={["nav-forward"]} href="/profile/credentials" className="btn-secondary">
-            {creds.length ? "Manage credentials" : "Add a credential"}
-          </Link>
         </div>
       </section>
 
       <section className="section">
-        <h2 className="section-title">Who sees what</h2>
+        <div className="section-head">
+          <h2 className="section-title">Who sees what</h2>
+          <Link transitionTypes={["nav-forward"]} href="/profile/sharing" className="row-link">
+            Change<span className="sr-only"> who sees what</span>
+            <ChevronRight aria-hidden className="size-4 shrink-0" />
+          </Link>
+        </div>
         <div className="card space-y-3">
           <ul className="space-y-1.5">
             {SHARE_PARTS.map((part) => (
@@ -150,15 +163,18 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
             </p>
           )}
           {sharing.version === null && <p className="text-hint">These are the defaults. Nothing changes until you choose.</p>}
-          <div className="flex flex-wrap gap-2">
-            <Link transitionTypes={["nav-forward"]} href="/profile/sharing" className="btn-secondary">Change who sees what</Link>
-            <Link transitionTypes={["nav-forward"]} href="/profile/preview" className="btn-ghost">See what organizations see</Link>
-          </div>
+          <Link transitionTypes={["nav-forward"]} href="/profile/preview" className="link text-sm">See what organizations see</Link>
         </div>
       </section>
 
       <section className="section">
-        <h2 className="section-title">Political fit</h2>
+        <div className="section-head">
+          <h2 className="section-title">Political fit</h2>
+          <Link href="/profile/preferences" className="row-link">
+            {mode ? "Review" : "Set"}<span className="sr-only"> political-fit preferences</span>
+            <ChevronRight aria-hidden className="size-4 shrink-0" />
+          </Link>
+        </div>
         <div className="card space-y-3">
           {mode ? (
             <>
@@ -184,9 +200,6 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
               <p className="text-muted-sm">Until you choose, nothing is used for matching or shown to anyone.</p>
             </div>
           )}
-          <Link href="/profile/preferences" className={mode ? "btn-secondary" : "btn-primary"}>
-            {mode ? "Review or change" : "Set preferences"}
-          </Link>
         </div>
       </section>
       <section className="section">

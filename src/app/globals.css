@@ -366,13 +366,36 @@ body {
   }
   /* The facts a worker decides on, at the top of a job page: icon, title, one line of detail. */
   .fact-list {
-    @apply divide-y divide-border py-1 sm:py-1;
+    @apply divide-y divide-border;
+  }
+  /* As a card, the rows carry their own vertical space. */
+  .card.fact-list {
+    @apply py-1 sm:py-1;
   }
   .fact {
     @apply flex items-start gap-3 py-3;
   }
   .fact-icon {
     @apply mt-0.5 size-5 shrink-0 text-muted;
+  }
+
+  /* A section's title with its one way in on the right ("Change ›"), instead of
+     a full-width button under every card (Profile). */
+  .section-head {
+    @apply flex items-baseline justify-between gap-3;
+  }
+  .row-link {
+    @apply -me-2 inline-flex min-h-11 shrink-0 items-center gap-0.5 rounded-lg px-2 text-sm font-semibold text-fg transition-colors hover:bg-surface-2;
+  }
+  /* A list grouped by day (My shifts): the day's name over its rows. */
+  .day-heading {
+    @apply px-1 text-sm font-semibold text-fg;
+  }
+  .shift-row {
+    @apply flex items-start gap-3 px-4 py-3 transition-colors hover:bg-surface-2;
+  }
+  li:first-child > .shift-row {
+    @apply rounded-t-[inherit];
   }
 
   /* ---- Surfaces -------------------------------------------------------- */

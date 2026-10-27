@@ -2,7 +2,7 @@ import { CalendarDays, MapPin, Scale, ShieldCheck, Users, Wallet } from "lucide-
 import type { ComponentType, ReactNode } from "react";
 import { day } from "@/components/DateRangeChip";
 import { readLaunch } from "@/lib/job-launch";
-import { jobCardAnswers, jurisdictionLabel, jurisdictionProblems, type CompensationMethod, type JobType } from "@/lib/jobs";
+import { jobCardAnswers, jurisdictionLabel, jurisdictionProblems, readHiringModes, type CompensationMethod, type JobType } from "@/lib/jobs";
 import type { JurisdictionProfile } from "@prisma/client";
 
 /**
@@ -18,6 +18,8 @@ export function JobFacts({
 }: {
   job: {
     type: JobType;
+    status: string;
+    hiringMethod: unknown;
     compensationMethod: CompensationMethod;
     payRateCents: number | null;
     requirements: unknown;
@@ -37,8 +39,9 @@ export function JobFacts({
   const geo = (job.geography ?? {}) as { city?: string; state?: string };
   const place = [geo.city, geo.state].filter(Boolean).join(", ");
   const rulesOk = jurisdictionProblems(job.jurisdiction).length === 0;
+  const canClaim = readHiringModes(job.hiringMethod).includes("instant_claim");
   return (
-    <ul className="fact-list card" aria-label="Key facts">
+    <ul role="list" className="card fact-list" aria-label="Key facts">
       <Fact icon={CalendarDays} title={job.startsAt || job.endsAt ? `${day(job.startsAt)} – ${day(job.endsAt)}` : "Dates to be set"}>
         Shifts are scheduled inside these dates.
       </Fact>
@@ -47,10 +50,16 @@ export function JobFacts({
           ? "Self-launch: you start from wherever you are."
           : launch.points.length > 1
             ? `Staged: you report to one of ${launch.points.length} staging points.`
-            : "Staged: you report to a staging point set for each shift."}
+            : launch.points.length === 1
+              ? "Staged: you report to the job's staging point."
+              : "Staged: you report to a staging point set for each shift."}
       </Fact>
       <Fact icon={Users} title={job.headcount ? `${acceptedCount} of ${job.headcount} spots filled` : `${acceptedCount} hired so far`}>
-        {job.headcount && acceptedCount >= job.headcount ? "Every spot is filled." : "Spots go to people who are hired or claim one."}
+        {job.headcount && acceptedCount >= job.headcount
+          ? "Every spot is filled."
+          : canClaim
+            ? "A spot goes to each person hired or who claims one."
+            : "A spot goes to each person hired."}
       </Fact>
       <Fact icon={Wallet} title="What counts as payable">
         {a.payable}
@@ -59,7 +68,11 @@ export function JobFacts({
         {a.credentials.join(" · ")}
       </Fact>
       <Fact icon={Scale} title={`Rules: ${jurisdictionLabel(job.jurisdiction)}`}>
-        {rulesOk ? "A current, approved rule profile for this place." : "This place's rule profile isn't current, so the job is paused for changes."}
+        {rulesOk
+          ? "A current, approved rule profile for this place."
+          : job.status === "DRAFT"
+            ? "This place's rules need approval before the job can publish."
+            : "This place's rules need re-approval, so no new shifts can be scheduled until they are."}
       </Fact>
     </ul>
   );

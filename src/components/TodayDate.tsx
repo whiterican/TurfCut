@@ -17,5 +17,5 @@ const label = () => new Date().toLocaleDateString("en-US", { weekday: "long", mo
 /** Today's date in the viewer's own time zone ("Tuesday, Oct 27"). The server can't know it, so it renders a blank line that the browser fills. */
 export function TodayDate() {
   const text = useSyncExternalStore(subscribe, label, () => "");
-  return <span suppressHydrationWarning>{text || " "}</span>;
+  return <span suppressHydrationWarning>{text || "\u00a0"}</span>;
 }

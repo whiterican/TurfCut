@@ -2,7 +2,7 @@ import Link from "next/link";
 import { requireWorker } from "@/lib/worker-session";
 import { shiftState, shiftStatusLabel } from "@/lib/field-day";
 import { facts, loadWorkerShifts } from "@/lib/field-day-data";
-import { LocalTime } from "@/components/LocalTime";
+import { ShiftDayList } from "@/components/ShiftDayList";
 import { OfflineBrief } from "@/components/OfflineBrief";
 import { briefPaths } from "@/lib/offline-brief-data";
 import { loadWorkerSlots } from "@/lib/shift-slots-data";
@@ -21,29 +21,19 @@ export default async function MyShiftsPage() {
   const upcoming = shifts.filter((s) => s.endsAt >= now);
   const recent = shifts.filter((s) => s.endsAt < now).reverse();
 
+  // Grouped under their day (D2): times, place, organization and the status pill on each row.
   const list = (items: typeof shifts) => (
-    <ul className="space-y-3">
-      {items.map((s) => {
-        const b = shiftStatusLabel(shiftState(facts(s)));
-        return (
-          <li key={s.id}>
-            <Link transitionTypes={["nav-forward"]} href={`/shifts/${s.id}`} className="card flex items-start justify-between gap-3 transition hover:border-[var(--border-strong)]">
-              <span className="min-w-0 space-y-1">
-                <span className="eyebrow block">
-                  <LocalTime iso={s.startsAt.toISOString()} mode="date" />
-                </span>
-                <span className="block font-bold text-fg">{s.engagement.job.title}</span>
-                <span className="text-muted-sm block">
-                  <LocalTime iso={s.startsAt.toISOString()} mode="time" /> – <LocalTime iso={s.endsAt.toISOString()} mode="time" />
-                  {s.stagingLocation ? ` · ${s.stagingLocation}` : ""} · {s.engagement.job.org.name}
-                </span>
-              </span>
-              <span className={b.badge}>{b.label}</span>
-            </Link>
-          </li>
-        );
-      })}
-    </ul>
+    <ShiftDayList
+      shifts={items.map((s) => ({
+        id: s.id,
+        startsAt: s.startsAt.toISOString(),
+        endsAt: s.endsAt.toISOString(),
+        title: s.engagement.job.title,
+        org: s.engagement.job.org.name,
+        staging: s.stagingLocation,
+        status: shiftStatusLabel(shiftState(facts(s))),
+      }))}
+    />
   );
 
   return (

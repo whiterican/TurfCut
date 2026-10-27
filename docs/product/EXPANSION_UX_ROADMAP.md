@@ -220,3 +220,30 @@ Keep “One-Stop Shop for All Door-to-Door Work” as a memorable vertical tagli
 Add the job-activity option **Polling Place Outreach** to the proposed Political-sector catalog, *distinct* from survey polling. Optionally display **Election Day & Early Voting Outreach** as explanatory subtitle, but don't imply it is limited to Election Day: early voting locations may have separate regulations.
 
 **Status:** Product taxonomy and implementation plan only, not a launched job type or evidence of legal authorization at any specific site. Do not change the database, enable publishing or deploy without further scoped approval and legal verification.
+
+## Complete planned job categories — founder list (2026-10-27)
+
+**One shared workforce platform, three specialized sectors (Political • Nonprofit • Private), seven work categories.** This consolidates the sections above into the founder's canonical list. It is product direction only: **two categories are live today** (`PETITION`, `CANVASS` in the Prisma `JobType` enum); the rest are planned and must show as "Coming later" until each is supported end to end (posting, hiring, scheduling, verification, pay, jurisdiction rules). No schema, pay unit or legal assumption changes from this entry.
+
+| # | Category | What it covers | Work arrangement | Sectors | Live today |
+|---|---|---|---|---|---|
+| 1 | **Petition Circulation** | Ballot initiative, referendum and candidate nomination petitions; other lawful signature gathering | In the field | Political | **Yes** (`PETITION`) |
+| 2 | **Door-to-Door Canvassing** | Candidate campaigns, ballot-measure advocacy, voter outreach and registration, GOTV, issue advocacy, general campaign field work | In the field | Political (nonprofit issue advocacy later) | **Yes** (`CANVASS`, with candidate / ballot / civic disclosure) |
+| 3 | **Phone Banking** | Political outreach, supporter recruitment, nonprofit calling campaigns, fundraising calls, permitted commercial outreach | **Remote / Work From Home** or **Office / On-Site** | Political, Nonprofit, Private | No |
+| 4 | **Phone Polling** | Political opinion research, public surveys, nonprofit research, customer or market research. **Distinct from phone banking** | **Remote / Work From Home** or **Office / On-Site** | Political, Nonprofit, Private | No |
+| 5 | **Door-to-Door Polling** | In-person survey interviewing, public-opinion studies, community research, program evaluation, market research | In the field | Political, Nonprofit, Private | No |
+| 6 | **Door-to-Door Fundraising** | Charitable fundraising, nonprofit donation campaigns, membership recruitment, cause-based fundraising | In the field | Nonprofit | No |
+| 7 | **Door-to-Door Sales** | Residential sales, customer acquisition, lead generation, appointment setting, other permitted commercial neighborhood outreach | In the field | Private | No |
+
+**Data model direction (unchanged from above, still needs its own approved migration):** separate `sector`, `workActivity` (the seven values), `workMode` (`REMOTE` / `ONSITE`, only for phone banking and phone polling) and campaign purpose/disclosure. Existing `PETITION` and `CANVASS` jobs map to activities 1 and 2 without rewriting history. Never encode a planned category as `CANVASS` to avoid a migration.
+
+**Polling Place Outreach** (specified above) is not in the founder's list of seven. It stays a separately gated political sub-activity until the founder confirms whether it remains planned.
+
+### Why one platform with three sectors (strategy notes, 2026-10-27)
+- **Universal problems, sector-specific rules.** Political canvassing and private door-to-door sales share the same worker pain: inconsistent recruiting, disorganized scheduling, territory assignment, communication gaps, questionable performance tracking and opaque pay. Those are the shared foundation (hire → schedule → brief → work → verify → pay). Disclosure, compliance, pay units and outcome definitions stay sector- and activity-specific.
+- **Seasonality.** Political work peaks around elections; nonprofit fundraising and private sales run year-round. Serving all three can give TurfCut a steadier customer base than election cycles alone.
+- **Portable, verified experience.** A worker's verified record (activity, place, verified shifts and outcomes, each with its source) can show transferable skills for sales, fundraising or community outreach **without a generic or universal worker score**. Verified history stays activity-specific and worker-controlled, as the scorecard rules already require.
+
+### Research to do before private-sector design
+- Which tools private door-to-door companies use today for territories, work tracking and pay, and where workers felt they failed. Commonly cited in that market: SalesRabbit, Spotio, Knockio, RepCard and Enerflo for territories and leads; ADP, Gusto or commission spreadsheets for pay. Political canvassing commonly uses VAN/MiniVAN, PDI, Ecanvasser and Reach. **These names need confirming from founder and worker experience; none is an integration commitment.**
+- Contractor-vs-employee classification and commission disclosure by state, licensing for commercial solicitation, no-knock and no-solicitation rules, lead privacy.

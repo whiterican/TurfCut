@@ -10,6 +10,7 @@ import { loadFeed } from "@/lib/jobs-data";
 import { JobRow } from "@/components/JobRow";
 import { LocalTime } from "@/components/LocalTime";
 import { TodayDate } from "@/components/TodayDate";
+import { ShiftDayList } from "@/components/ShiftDayList";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { workerPayTotals } from "@/lib/pay-data";
@@ -58,6 +59,50 @@ function NavCard({ href, title, body }: { href: string; title: string; body: str
       </p>
       <p className="text-muted-sm mt-1">{body}</p>
     </Link>
+  );
+}
+
+/**
+ * The next few real shifts after the one in the hero (Today, #78): the same
+ * query as the hero, skipping it, up to three. Not started yet, so each is
+ * "Scheduled"; cancelled shifts aren't listed. Grouped by the viewer's day.
+ */
+async function LaterShifts({ workerId }: { workerId: string }) {
+  const later = await db().shift.findMany({
+    where: { engagement: { workerId }, status: { not: "CANCELLED" }, endsAt: { gte: new Date() }, checkOutAt: null, checkInAt: null },
+    select: { id: true, startsAt: true, endsAt: true, stagingLocation: true, engagement: { select: { job: { select: { title: true, org: { select: { name: true } } } } } } },
+    orderBy: { startsAt: "asc" },
+    take: 4,
+  });
+  // The hero shows the first upcoming shift (or the live one, which has a check-in and isn't in this list).
+  const hero = await db().shift.findFirst({
+    where: { engagement: { workerId }, status: { not: "CANCELLED" }, endsAt: { gte: new Date() }, checkOutAt: null },
+    select: { id: true },
+    orderBy: { startsAt: "asc" },
+  });
+  const rest = later.filter((s) => s.id !== hero?.id).slice(0, 3);
+  if (rest.length === 0) return null;
+  return (
+    <section className="section">
+      <div className="section-head">
+        <h2 className="section-title">Coming up</h2>
+        <Link transitionTypes={["nav-forward"]} href="/shifts" className="row-link">
+          All shifts
+          <ChevronRight aria-hidden className="size-4 shrink-0" />
+        </Link>
+      </div>
+      <ShiftDayList
+        shifts={rest.map((s) => ({
+          id: s.id,
+          startsAt: s.startsAt.toISOString(),
+          endsAt: s.endsAt.toISOString(),
+          title: s.engagement.job.title,
+          org: s.engagement.job.org.name,
+          staging: s.stagingLocation,
+          status: { label: "Scheduled", badge: "badge-sky" },
+        }))}
+      />
+    </section>
   );
 }
 
@@ -350,6 +395,7 @@ export default async function DashboardPage() {
 
       {isWorker && <WorkerBrief workerId={session.workerId!} userId={session.userId} />}
       {isWorker && <WorkerHero workerId={session.workerId!} />}
+      {isWorker && <LaterShifts workerId={session.workerId!} />}
       {isWorker && <OpenSeats workerId={session.workerId!} />}
       {isWorker && <FitReconfirm workerId={session.workerId!} />}
       {isWorker && <CredentialReminder workerId={session.workerId!} />}

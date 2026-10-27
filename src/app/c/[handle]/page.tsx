@@ -12,6 +12,7 @@ import { ShareButton } from "@/components/campaign/ShareButton";
 import { campaignPreview } from "@/lib/campaign-api";
 import { listResources, loadFacts } from "@/lib/campaign-kit-data";
 import { ResourceList } from "@/components/campaign/ResourceList";
+import { ChevronLeft } from "lucide-react";
 
 type Props = { params: Promise<{ handle: string }>; searchParams: Promise<{ cursor?: string }> };
 
@@ -42,7 +43,7 @@ export default async function PublicCampaignPage({ params, searchParams }: Props
   const likedBy = (id: string) => (liked ? liked.has(id) : undefined);
   return (
     <main className="page max-w-2xl space-y-6">
-      <Link transitionTypes={["nav-back"]} href="/c" className="btn-ghost btn-sm">← All campaigns</Link>
+      <Link transitionTypes={["nav-back"]} href="/c" className="btn-ghost btn-sm"><ChevronLeft aria-hidden className="size-4 shrink-0" />All campaigns</Link>
       <CampaignHeader displayName={c.displayName} handle={c.handle} bio={c.bio} avatarUrl={mediaUrl(c.avatarKey)} headerUrl={mediaUrl(c.headerKey)} verified={!!c.verifiedAt}>
         <span className="flex flex-wrap items-center justify-end gap-2">
           <ShareButton path={`/c/${c.handle}`} title={`${c.displayName} (@${c.handle})`} />

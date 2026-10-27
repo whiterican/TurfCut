@@ -11,7 +11,7 @@
  * "done" badges and progress, and an eggplant feature card (#2b1b3d). Pastel status
  * badges (sky, coral, butter, and the accent) carry the dark "ink" colour;
  * solid badges (--solid) carry --on-solid text. Priority rings are eggplant around
- * the lime card by day and lime by night (with a page-coloured gap).
+ * the live (lime) card, with a page-coloured gap around eggplant cards.
  *
  * The theme is a `.dark` class on <html>, set before first paint by the
  * inline script in app/layout.tsx (saved choice, else the OS preference).
@@ -20,17 +20,33 @@
  */
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Type that sets well: headings balance their lines, running text avoids a
+   lone last word (D1d). Readable measure comes from .lead and the page head. */
+@layer base {
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+  p,
+  li,
+  dd {
+    text-wrap: pretty;
+  }
+}
+
 :root {
   /* The accent fill: lime in both themes. */
   --accent: #d6f25a;
-  /* Solid (and on-solid): the fill for live status ("Active", "Approved",
-     "Ready", "You"), a quick filter that's on and team avatars, and the text
-     on it: a lime chip with ink text in both themes (DESIGN.md). */
-  --solid: #d6f25a; /* live status (Active, Approved, Ready, You): a lime chip with ink text */
-  --on-solid: #1b1422;
-  /* One accent. Informational states that aren't live (scheduled, waiting,
-     a role) take a lavender tint; holds a clay tint; closed and short, stone.
-     Date emphasis is a lime chip (DateRangeChip). */
+  /* Solid (and on-solid): settled status ("Active", "Approved", "Paid",
+     "You"), a quick filter that's on and team avatars: an eggplant chip with
+     paper text, the dock's own tile colour. Lime is kept for what is live now
+     (.badge-live, the live shift card), the one primary action and the cut,
+     so it still means something. */
+  --solid: #3a2154;
+  --on-solid: #f6f1e6;
+  /* Informational states that aren't live (scheduled, waiting, a role, a
+     date) take a lavender tint; holds a clay tint; closed and short, stone. */
   --sky: #d9cfe6;
   --coral: #f1c6bd;
   --butter: #ddd3c3;
@@ -98,15 +114,15 @@
   --fg: #f6f1e6;
   --muted: #cbbdd8;
   --subtle: #b2a3c0;
-  --solid: #d6f25a; /* live status by night: a lime chip with ink text */
-  --on-solid: #1b1422;
+  --solid: #5a3b82; /* settled status by night: the raised eggplant tile */
+  --on-solid: #f6f1e6;
   --ink: #1b1422;
   --link: #f6f1e6;
-  --kicker: #d6f25a;
+  --kicker: #cbbdd8;
   --focus: #d6f25a; /* the keyboard outline only */
   --selected: #5a3b82; /* the chosen option stays eggplant by night */
   --danger: #eb9082;
-  --success: #d6f25a;
+  --success: #d8cce4; /* done and verified by night: pale lavender, not lime (lime is live) */
   --warning: #f0d08a;
   --primary: #d6f25a;
   --switch-on: #5c8b30; /* lime would leave the white thumb at 1.2:1 */
@@ -120,7 +136,7 @@
   --tab-active-bg: #5a3b82;
   --tab-active-fg: #d6f25a;
   /* Rings: rims only, never fills or text. A page-coloured gap separates
-     them from the lime card (see the priority ring rules). */
+     them from the card (see the priority ring rules). */
   --ring: #eef6dc;
   --ring-2: #b8d08a;
   --ring-3: #8aa560;
@@ -148,6 +164,8 @@
   --kicker: #2a173e;
   --focus: #2a173e;
   --selected: #000000;
+  --solid: #2a173e;
+  --on-solid: #ffffff;
   --danger: #8a1c0c;
   --success: #2a173e;
   --warning: #3a2200;
@@ -268,9 +286,13 @@ body {
   color: var(--ink);
 }
 
-:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 2px;
+/* The keyboard ring, in the base layer so a component can place it (inside a
+   clipped row) or draw its own (fields): unlayered, it beat every component rule. */
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
 }
 
 @layer components {
@@ -287,8 +309,9 @@ body {
   }
   .page-title {
     @apply text-3xl leading-[1.05] font-bold tracking-[-0.03em] text-fg sm:text-4xl;
+    text-wrap: balance;
   }
-  /* the brand face: organization and job names at the top of a page. */
+  /* the brand face: organization and job names, in page heads and on job cards. */
   .masthead {
     /* Headlines are the brand face, semibold and tight: never a serif. */
     @apply font-semibold tracking-[-0.02em] text-fg;
@@ -296,41 +319,30 @@ body {
   .page-title.masthead {
     @apply tracking-[-0.015em];
   }
-  /* Small condensed label above a title ("LIVE SHIFT", "GOOD MORNING"). */
+  /* A record head's one display figure (a job's gross pay): the display role, tabular. */
+  .masthead-figure {
+    @apply pt-2 text-3xl font-bold tracking-[-0.03em] text-fg tabular-nums;
+  }
+  /* A page head's context line (Masthead's optional eyebrow): a fact the
+     title doesn't carry, in sentence case. Not a kicker. */
+  .masthead-context {
+    @apply text-sm font-medium text-muted;
+  }
+  /* Small condensed label above a title inside a card or hero ("LIVE SHIFT · OCT 24"). */
   .eyebrow {
     @apply font-condensed font-semibold tracking-[0.18em] uppercase;
     font-size: 0.8125rem;
     color: var(--kicker);
   }
-  /* The lime dash: the page kicker's mark of turf. Inline, so a long kicker
-     wraps as one line of text with the dash on its first line. Not inside a
-     hero, a summary bar or the More sheet (the frames show none there). */
-  .eyebrow::before {
-    content: "";
-    display: inline-block;
-    width: 1.25rem;
-    height: 3px;
-    margin-inline-end: 0.75rem;
-    border-radius: 2px;
-    vertical-align: middle;
-    background: var(--accent);
-  }
-  .card .eyebrow::before,
-  .list-card .eyebrow::before,
-  .hero-card .eyebrow::before,
-  .summary-item .eyebrow::before,
-  .more-sheet-panel .eyebrow::before {
-    display: none;
-  }
+  /* No decorative dash before a kicker: a kicker is only there when it
+     carries a fact (a job's type and place, a shift's date), and it reads as
+     plain text. Lime is not spent on page furniture. */
   /* Inside a card, or heading a block within the page, a kicker is a quiet
      label (a shift's date), not the page's mark. */
   .card .eyebrow,
   .list-card .eyebrow,
   .eyebrow-quiet {
     color: var(--muted);
-  }
-  .eyebrow-quiet::before {
-    display: none;
   }
   .section {
     @apply space-y-4;
@@ -339,13 +351,56 @@ body {
     @apply text-lg font-bold tracking-[-0.01em] text-fg;
   }
   .lead {
-    @apply text-base leading-relaxed text-muted;
+    @apply max-w-prose text-base leading-relaxed text-muted;
   }
   .text-muted-sm {
     @apply text-sm text-muted;
   }
   .text-hint {
     @apply text-xs leading-relaxed font-medium text-subtle;
+  }
+
+  /* ---- Facts with icons (D2) -------------------------------------------- */
+  /* A card's who / where / when, one icon-led line each, in muted type. */
+  .fact-rows {
+    @apply flex flex-col gap-1;
+  }
+  .fact-row {
+    @apply flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 text-sm text-muted;
+  }
+  /* The facts a worker decides on, at the top of a job page: icon, title, one line of detail. */
+  .fact-list {
+    @apply divide-y divide-border;
+  }
+  /* As a card, the rows carry their own vertical space. */
+  .card.fact-list {
+    @apply py-1 sm:py-1;
+  }
+  .fact {
+    @apply flex items-start gap-3 py-3;
+  }
+  .fact-icon {
+    @apply mt-0.5 size-5 shrink-0 text-muted;
+  }
+
+  /* A section's title with its one way in on the right ("Change ›"), instead of
+     a full-width button under every card (Profile). */
+  .section-head {
+    @apply flex items-baseline justify-between gap-3;
+  }
+  .row-link {
+    @apply -me-2 inline-flex min-h-11 shrink-0 items-center gap-0.5 rounded-lg px-2 text-sm font-semibold text-fg transition-colors hover:bg-surface-2;
+  }
+  /* A list grouped by day (My shifts): the day's name over its rows. */
+  .day-heading {
+    @apply px-1 text-sm font-semibold text-fg;
+  }
+  .shift-row {
+    @apply flex items-start gap-3 px-4 py-3 transition-colors hover:bg-surface-2;
+  }
+  /* Rows inside a clipped list card draw their keyboard ring inside the row. */
+  :is(.shift-row, .job-row):focus-visible {
+    outline-offset: -3px;
   }
 
   /* ---- Surfaces -------------------------------------------------------- */
@@ -374,7 +429,7 @@ body {
     clip-path: polygon(0 60%, 100% 0, 100% 100%);
   }
 
-  /* The worker's next shift (mockup): a bright accent card with dark ink. */
+  /* A live shift (checked in, breaks included): the one lime card, with dark ink. */
   .hero-card-accent {
     background: var(--accent);
     background-clip: padding-box;
@@ -383,7 +438,7 @@ body {
   /* Priority rings (lib/priority): one narrow ring per level, each
      further out a darker shade. By day the innermost is the card's own
      border (eggplant on lime reads at 5:1). By night a page-coloured gap
-     comes first, so the pale inner ring stands clear of the lime card. */
+     comes first, so the pale inner ring stands clear of the card (lime or eggplant). */
   .hero-card[data-priority="1"],
   .hero-card[data-priority="2"],
   .hero-card[data-priority="3"] {
@@ -397,6 +452,20 @@ body {
   }
   .dark .hero-card:is([data-priority="1"], [data-priority="2"], [data-priority="3"]) {
     border-color: var(--bg);
+  }
+  /* By day an eggplant (not live) card gets the same page-coloured gap, so its
+     eggplant rings stand clear of the eggplant fill (D1). */
+  :root:not(.dark) .hero-card:not(.hero-card-accent):is([data-priority="1"], [data-priority="2"], [data-priority="3"]) {
+    border-color: var(--bg);
+  }
+  :root:not(.dark) .hero-card:not(.hero-card-accent)[data-priority="1"] {
+    box-shadow: 0 0 0 2px var(--ring), var(--shadow);
+  }
+  :root:not(.dark) .hero-card:not(.hero-card-accent)[data-priority="2"] {
+    box-shadow: 0 0 0 2px var(--ring), 0 0 0 4px var(--ring-2), var(--shadow);
+  }
+  :root:not(.dark) .hero-card:not(.hero-card-accent)[data-priority="3"] {
+    box-shadow: 0 0 0 2px var(--ring), 0 0 0 4px var(--ring-2), 0 0 0 6px var(--ring-3), var(--shadow);
   }
   .dark .hero-card[data-priority="1"] {
     box-shadow: 0 0 0 2px var(--ring), var(--shadow);
@@ -544,7 +613,7 @@ body {
   .link {
     color: var(--link);
     @apply font-medium underline decoration-2 underline-offset-4;
-    text-decoration-color: var(--accent);
+    text-decoration-color: color-mix(in srgb, currentColor 40%, transparent);
   }
   .link:hover {
     text-decoration-thickness: 3px;
@@ -576,7 +645,7 @@ body {
   .fieldset-title {
     @apply mb-2 font-condensed text-xs font-semibold tracking-[0.14em] text-subtle uppercase;
   }
-  /* Selectable pill (checkbox/radio inside). Active state = ink (light) / accent (dark). */
+  /* Selectable pill (checkbox/radio inside). Active state = the dock's eggplant tile. */
   .chip {
     @apply inline-flex max-w-full min-h-10 cursor-pointer items-center gap-2 rounded-3xl border border-border bg-surface px-3 py-1.5 text-start text-sm text-fg transition;
     overflow-wrap: break-word;
@@ -585,16 +654,16 @@ body {
     border-color: var(--border-strong);
   }
   /* Checked filter chips, and link chips for the page you're on (Pay tabs). */
+  /* The chosen one is the dock's eggplant tile, in every theme. */
   .chip:has(input:checked),
   .chip[aria-current="page"] {
-    border-color: var(--accent);
-    background: color-mix(in srgb, var(--accent) 16%, var(--surface));
-  }
-  :root:not(.dark) .chip:has(input:checked),
-  :root:not(.dark) .chip[aria-current="page"] {
-    background: var(--primary);
-    color: var(--on-primary);
+    background: var(--tab-active-bg);
+    color: var(--tab-active-fg);
     border-color: transparent;
+  }
+  /* Secondary text inside the tile takes the tile's own colour (grey would sink into eggplant). */
+  :is(.chip:has(input:checked), .chip[aria-current="page"]) :is(.text-subtle, .text-muted) {
+    color: inherit;
   }
   .chip:has(input:focus-visible) {
     outline: 2px solid var(--focus);
@@ -659,7 +728,7 @@ body {
     border-color: var(--selected);
     box-shadow: 0 0 0 1px var(--selected);
   }
-  /* Radios: an eggplant ring with a lime dot. Sized here (appearance: none
+  /* Radios: an eggplant ring with an eggplant dot (paper by night). Sized here (appearance: none
      leaves a radio with no size of its own). */
   .option-card input[type="radio"] {
     appearance: none;
@@ -672,8 +741,13 @@ body {
   }
   .option-card input[type="radio"]:checked {
     border-color: var(--selected);
-    background: var(--accent);
+    /* Eggplant by day; by night the dot is paper, since eggplant on eggplant is under 3:1. */
+    background: var(--selected);
     box-shadow: inset 0 0 0 2px var(--surface);
+  }
+
+  .dark .option-card input[type="radio"]:checked {
+    background: var(--fg);
   }
 
   /* ---- Badges ---------------------------------------------------------- */
@@ -682,6 +756,7 @@ body {
   .badge-dashed,
   .badge-coral,
   .badge-accent,
+  .badge-live,
   .badge-sky,
   .badge-solid,
   .badge-butter,
@@ -699,9 +774,11 @@ body {
     @apply border-dashed bg-transparent text-muted;
     border-color: var(--border-strong);
   }
-  /* Pastel fill + ink text in both themes. */
+  /* Pastel fill + ink text in both themes. badge-accent is the lavender
+     "worth noticing, not live" chip (a date, an open seat, a sent receipt);
+     only .badge-live is lime. */
   .badge-coral { --badge-bg: var(--coral); }
-  .badge-accent { --badge-bg: var(--accent); }
+  .badge-accent { --badge-bg: var(--sky); }
   .badge-sky { --badge-bg: var(--sky); }
   .badge-butter { --badge-bg: var(--butter); }
   /* A campaign's declared affiliation (job cards; see --party-*). */
@@ -713,6 +790,12 @@ body {
   .badge-party-nonpartisan { --badge-bg: var(--party-nonpartisan); }
   :is(.badge-coral, .badge-accent, .badge-sky, .badge-butter, .badge-party) {
     background: var(--badge-bg);
+    color: var(--ink);
+    border-color: transparent;
+  }
+  /* Live now (on shift): the one lime chip. */
+  .badge-live {
+    background: var(--accent);
     color: var(--ink);
     border-color: transparent;
   }
@@ -796,8 +879,8 @@ body {
     border-color: color-mix(in srgb, var(--solid) 50%, var(--border));
   }
   .step-current {
-    background: var(--accent);
-    color: var(--ink);
+    background: var(--tab-active-bg);
+    color: var(--tab-active-fg);
     border-color: transparent;
     @apply font-semibold;
   }
@@ -896,7 +979,7 @@ body {
   .cell-bar::after {
     @apply block h-full rounded-full;
     content: "";
-    background: var(--accent);
+    background: var(--kicker);
     width: calc(var(--bar, 0) * 100%);
     animation: tc-grow var(--dur-slow) var(--ease-out) both;
   }
@@ -936,9 +1019,11 @@ body {
   .rail-link {
     @apply flex min-h-10 items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-muted transition hover:bg-surface-2 hover:text-fg;
   }
+  /* The current area: the dock's eggplant tile, no side stripe. */
   .rail-link[aria-current="page"] {
-    @apply bg-surface-2 font-semibold text-fg;
-    box-shadow: inset 3px 0 0 var(--focus);
+    @apply font-semibold;
+    background: var(--tab-active-bg);
+    color: var(--tab-active-fg);
   }
   /* More sheet: a native modal dialog pinned to the bottom of the screen. */
   .more-sheet {
@@ -953,7 +1038,7 @@ body {
     border-color: var(--border);
     box-shadow: var(--shadow);
   }
-  /* The sheet's handle: a lime rule along the top edge, the turf mark of the brand. */
+  /* The sheet's handle: a quiet rule along the top edge (lime is kept for live state). */
   .more-sheet-panel::before {
     content: "";
     position: absolute;
@@ -962,7 +1047,7 @@ body {
     right: 10%;
     height: 4px;
     border-radius: 0 0 4px 4px;
-    background: var(--accent);
+    background: var(--border-strong);
   }
   /* Dims the page (never a pale wash, which reads as disabled). */
   .more-sheet::backdrop {
@@ -991,7 +1076,7 @@ body {
   }
   .sheet-handle {
     @apply mx-auto mb-3 block h-1 w-12 rounded-full;
-    background: var(--accent);
+    background: var(--border-strong);
   }
   .sheet-body {
     @apply min-h-0 overflow-y-auto px-4 pb-4;
@@ -1045,13 +1130,15 @@ body {
     color: var(--fg);
   }
   .swipe-actions {
-    @apply mt-3 flex flex-wrap gap-2 border-t border-border pt-3;
+    @apply mt-3 flex flex-wrap gap-2;
   }
   .topnav-link {
     @apply rounded-lg px-3 py-2 text-sm font-medium text-muted transition hover:bg-surface-2 hover:text-fg;
   }
   .topnav-link[aria-current="page"] {
-    @apply bg-surface-2 text-fg;
+    @apply font-semibold;
+    background: var(--tab-active-bg);
+    color: var(--tab-active-fg);
   }
 
   /* ---- Messages -------------------------------------------------------- */
@@ -1074,12 +1161,7 @@ body {
     background: var(--hero);
     color: var(--hero-fg);
   }
-  /* By day: lime fill, so team chats stand out from people. */
-  :root:not(.dark) .avatar-team {
-    background: var(--accent);
-    color: var(--ink);
-  }
-  /* By night: the lime status chip colours, distinct from people's eggplant avatars. */
+  /* By night: the raised eggplant tile, distinct from people's darker avatars. */
   .dark .avatar-team {
     background: var(--solid);
     color: var(--on-solid);
@@ -1090,14 +1172,14 @@ body {
   .bubble-theirs {
     @apply rounded-bl-md bg-surface-2 text-fg;
   }
-  /* Your own messages: solid accent with dark ink (screen mockups). */
+  /* Your own messages: the eggplant feature colour with paper text. */
   .bubble-mine {
     @apply rounded-br-md;
-    background: var(--accent);
-    color: var(--ink);
+    background: var(--hero);
+    color: var(--hero-fg);
   }
   .bubble-mine .link {
-    color: var(--ink);
+    color: inherit;
   }
   .bubble-deleted {
     @apply border border-dashed border-border bg-transparent text-subtle italic;
@@ -1166,22 +1248,19 @@ body {
     -webkit-backdrop-filter: var(--glass-filter);
     backdrop-filter: var(--glass-filter);
   }
-  /* Next-shift banner atop a job conversation. */
+  /* Next-shift banner atop a job conversation: a lavender note, not live. */
   .shift-banner {
     @apply block rounded-2xl px-4 py-3 text-fg transition;
-    background: color-mix(in srgb, var(--accent) 24%, var(--surface));
+    background: color-mix(in srgb, var(--sky) 14%, var(--surface));
+    border: 1px solid var(--border);
   }
   :root:not(.dark) .shift-banner {
-    background: color-mix(in srgb, var(--accent) 50%, var(--surface));
-    border: 1px solid var(--border-strong);
+    background: color-mix(in srgb, var(--sky) 45%, var(--surface));
   }
-  /* By day lime is close to the off-white page, so lime shapes get a quiet
-     outline to read as shapes (text on them is already AAA). */
-  :root:not(.dark) .badge-accent {
+  /* By day the lavender chip is close to the paper, so it gets a quiet
+     outline to read as a shape (text on it is already AAA). */
+  :root:not(.dark) :is(.badge-accent, .badge-live) {
     border-color: var(--border-strong);
-  }
-  :root:not(.dark) .bubble-mine {
-    box-shadow: inset 0 0 0 1px var(--border-strong);
   }
   /* Links inside a feature card take the card's own text colour (off-white on the
      dark card, ink on the lime one), never the page link colour. */
@@ -1190,7 +1269,7 @@ body {
   }
   /* Quick filters on Find work: outlined, solid when on. One "on" for all of
      them: on the feed, a coloured chip names a campaign's declared party in
-     words; the sky date chip carries a calendar instead. */
+     words; the lavender date chip carries a calendar instead. */
   /* relative: it holds its own screen-reader text (absolutely placed), so the
      scrolling row clips that too and the page never scrolls sideways. */
   .filter-chip {
@@ -1199,11 +1278,16 @@ body {
   .filter-chip:hover {
     border-color: var(--border-strong);
   }
-  /* Solid: "done / live" badges and a quick filter that's on (a lime chip in both themes; see --solid). */
-  .badge-solid,
-  .filter-chip-on {
+  /* Solid: settled-status badges (an eggplant chip; see --solid). */
+  .badge-solid {
     background: var(--solid);
     color: var(--on-solid);
+    border-color: transparent;
+  }
+  /* A quick filter that's on, or the current view: the dock's tile, like every other "you are here". */
+  .filter-chip-on {
+    background: var(--tab-active-bg);
+    color: var(--tab-active-fg);
     border-color: transparent;
   }
   .quick-reply {
@@ -1495,7 +1579,8 @@ summary.list-none::-webkit-details-marker {
   translate: 0 0.25rem;
   transition-property: opacity, translate, visibility;
   transition-duration: var(--dur-fast), var(--dur-base), var(--dur-fast);
-  transition-timing-function: var(--ease-standard), var(--spring), var(--ease-standard);
+  /* Status feedback settles without overshoot; the spring is kept for the sheet alone. */
+  transition-timing-function: var(--ease-standard), var(--ease-out), var(--ease-standard);
 }
 .btn-face[data-on] {
   opacity: 1;
@@ -1566,7 +1651,7 @@ summary.list-none::-webkit-details-marker {
   display: inline-flex;
   align-items: center;
   gap: 0.375rem;
-  animation: tc-pill-in var(--dur-base) var(--spring) both;
+  animation: tc-pill-in var(--dur-base) var(--ease-out) both;
 }
 @keyframes tc-pill-in {
   from { opacity: 0; translate: 0 0.5em; }
@@ -1607,7 +1692,7 @@ summary.list-none::-webkit-details-marker {
   .sun :is(.alert, .alert-warning, .alert-info) {
     border-color: var(--border);
   }
-  .sun :is(.badge-solid, .badge-butter, .badge-party, .badge-neutral, .badge-sky, .badge-coral, .badge-accent, .badge-dashed, .chip, .filter-chip, .filter-chip-on) {
+  .sun :is(.badge-solid, .badge-butter, .badge-party, .badge-neutral, .badge-sky, .badge-coral, .badge-accent, .badge-live, .badge-dashed, .chip, .filter-chip, .filter-chip-on) {
     border-width: 2px;
     border-color: var(--border-strong);
   }
@@ -1724,7 +1809,9 @@ summary.list-none::-webkit-details-marker {
     overscroll-behavior-y: contain;
   }
 }
-/* The sheet springs up when it opens (components/Sheet.tsx). */
+/* The sheet springs up when it opens (components/Sheet.tsx): the one place the
+   spring's small overshoot is used, because a sheet is a physical thing landing.
+   Status (the connection pill, button check faces) eases out without it. */
 .sheet[open] .sheet-panel {
   animation: tc-sheet-in var(--dur-slow) var(--spring) both;
 }

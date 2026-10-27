@@ -1,4 +1,4 @@
-/** Initials in a circle; team chats get the lime accent fill by day and the raised eggplant hero colour by night. Purely decorative. */
+/** Initials in a circle; team chats get the eggplant feature colour (the raised eggplant tile by night). Purely decorative. */
 export function Avatar({ name, team = false, size = "md", tone }: { name: string; team?: boolean; size?: "sm" | "md"; tone?: "sky" }) {
   const initials = name
     .split(/\s+/)

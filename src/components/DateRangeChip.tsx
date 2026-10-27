@@ -4,9 +4,9 @@ import { CalendarDays } from "lucide-react";
 export const day = (d: Date | null) => (d ? d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" }) : "—");
 
 /**
- * A job's dates, the same on every card and page: sky blue with a calendar,
- * so it reads as a date and never as a party chip beside it (party chips
- * name the party in words).
+ * A job's dates, the same on every card and page: a lavender chip with a
+ * calendar (never lime: a date is not live), so it reads as a date and never
+ * as a party chip beside it (party chips name the party in words).
  */
 export function DateRangeChip({ startsAt, endsAt }: { startsAt: Date | null; endsAt: Date | null }) {
   return (

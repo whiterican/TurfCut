@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { consentToPreferences, type ConsentState } from "@/app/profile/preferences/actions";
+import { Check } from "lucide-react";
 import {
   boundaryText,
   CAMPAIGN_TYPES,
@@ -96,7 +97,7 @@ export function PreferencesFlow({ initial, consentText }: { initial: FitPreferen
                 disabled={i > reached || (i > 0 && !draft.visibilityMode)}
                 onClick={() => setStep(i)}
               >
-                {i < step && <span aria-hidden>✓</span>}
+                {i < step && <Check aria-hidden className="size-3.5 shrink-0" />}
                 {STEP_TITLES[s]}
               </button>
             </li>

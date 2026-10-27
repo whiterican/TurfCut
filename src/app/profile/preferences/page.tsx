@@ -3,6 +3,7 @@ import { requireWorker } from "@/lib/worker-session";
 import { CONSENT_TEXT, loadLatestPreference } from "@/lib/political-fit-data";
 import { PreferencesFlow } from "@/components/PreferencesFlow";
 import { Masthead } from "@/components/Masthead";
+import { ChevronLeft } from "lucide-react";
 
 const dateText = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
 
@@ -13,8 +14,8 @@ export default async function PreferencesPage() {
   return (
     <main className="page max-w-2xl space-y-8">
       <div className="space-y-3">
-        <Masthead eyebrow="Your profile" title="Political-fit preferences">
-          <Link transitionTypes={["nav-back"]} href="/profile" className="btn-ghost">← Profile</Link>
+        <Masthead title="Political-fit preferences">
+          <Link transitionTypes={["nav-back"]} href="/profile" className="btn-ghost"><ChevronLeft aria-hidden className="size-4 shrink-0" />Profile</Link>
         </Masthead>
         <p className="lead">
           Every answer here is optional and comes only from you. Turfcut never

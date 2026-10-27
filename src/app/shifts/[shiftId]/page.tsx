@@ -9,7 +9,7 @@ import { db } from "@/lib/db";
 import { shiftPriority } from "@/lib/priority";
 import { canUse } from "@/lib/access";
 import { readSupportContacts } from "@/lib/jobs";
-import { activeTime, earningsEstimate, readTurf, scheduleFlags, shiftProgress, shiftState, turfMarks, turfMarksClosed } from "@/lib/field-day";
+import { activeTime, earningsEstimate, readTurf, scheduleFlags, shiftProgress, shiftState, shiftStatusLabel, turfMarks, turfMarksClosed } from "@/lib/field-day";
 import { carriedInto, facts, heldOnJob, loadShift } from "@/lib/field-day-data";
 import { ShiftProgress } from "@/components/ShiftProgress";
 import { TurfMap } from "@/components/TurfMap";
@@ -30,6 +30,7 @@ import { CORRECTABLE, correctionsByEvent } from "@/lib/corrections";
 import { reviewFinal, shiftPay } from "@/lib/pay-data";
 import { computeShiftPay, money, statusLabel } from "@/lib/pay";
 import { verifiedWork } from "@/lib/scorecard";
+import { Masthead } from "@/components/Masthead";
 
 const EVENT_LABELS: Record<string, string> = {
   CHECK_IN: "Checked in",
@@ -159,7 +160,8 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
     return h?.takenBy === "worker" ? `${id} (carried to their next shift)` : h?.takenBy === "colleague" ? `${id} (since taken out by another worker)` : id;
   };
   const live = !!st.checkedInAt && !st.checkedOutAt;
-  const eyebrow = st.cancelled ? "Cancelled" : live ? (st.paused ? "On a break" : "Live shift") : st.checkedOutAt ? "Shift done" : "Upcoming shift";
+  // The shift's state as a pill beside the title (the same words and colours as every shift list).
+  const state = shiftStatusLabel(st);
 
   const started = !!st.checkedInAt;
   const now = new Date();
@@ -225,23 +227,28 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
 
   return (
     <main className="page max-w-2xl">
-      <header className="flex items-start justify-between gap-3">
-        <div className="space-y-1.5">
-          <p className="eyebrow">{eyebrow}</p>
-          <h1 className="page-title">{isWorker ? "Field day" : s.engagement.worker.displayName}</h1>
-          <p className="text-muted-sm">
-            <Link href={`/jobs/${s.engagement.job.id}`} className="link">{s.engagement.job.title}</Link> · {s.engagement.job.org.name}
-          </p>
-        </div>
-        <div className="mt-5 flex shrink-0 flex-col items-end gap-2">
-          {live && <span className={st.paused ? "badge-butter" : "badge-solid"}>{st.paused ? "On break" : "On shift"}</span>}
-          {/* Outdoors in glare: the Sunlight theme, one tap away on the field-day screen (P1.5). */}
-          {isWorker && <SunlightToggle />}
-        </div>
-      </header>
+      {/* The worker sees the job they're working as the title; staff see the worker, with the job under it (D2). */}
+      <Masthead
+        title={isWorker ? s.engagement.job.title : s.engagement.worker.displayName}
+        meta={
+          isWorker ? (
+            <>
+              {s.engagement.job.org.name} · <Link href={`/jobs/${s.engagement.job.id}`} className="link">Job details</Link>
+            </>
+          ) : (
+            <>
+              <Link href={`/jobs/${s.engagement.job.id}`} className="link">{s.engagement.job.title}</Link> · {s.engagement.job.org.name}
+            </>
+          )
+        }
+        chips={<span className={state.badge}>{state.label}</span>}
+      >
+        {/* Outdoors in glare: the Sunlight theme, one tap away on the field-day screen (P1.5). */}
+        {isWorker && <SunlightToggle />}
+      </Masthead>
 
       {!started && workerActions}
-      <div className={`hero-card space-y-4 ${isWorker ? "hero-card-accent" : ""}`} data-priority={isWorker ? shiftPriority(s, now) : undefined}>
+      <div className={`hero-card space-y-4 ${isWorker && live ? "hero-card-accent" : ""}`} data-priority={isWorker ? shiftPriority(s, now) : undefined}>
         <p className="eyebrow">
           <LocalTime iso={s.startsAt.toISOString()} mode="date" />
           {started && s.stagingLocation ? ` · ${s.stagingLocation}` : ""}

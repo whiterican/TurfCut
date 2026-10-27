@@ -24,7 +24,7 @@ export default async function FeedPage({ searchParams }: Props) {
   return (
     <main className="page max-w-2xl space-y-6">
       {!cursor && <FeedSeen at={new Date().toISOString()} />}
-      <Masthead eyebrow="Feed" title="From your campaigns" meta="Posts from campaigns you follow and campaigns you work for, newest first.">
+      <Masthead title="From your campaigns" meta="Posts from campaigns you follow and campaigns you work for, newest first.">
         <Link href="/c" className="btn-ghost">All campaigns</Link>
       </Masthead>
       {feed.sources === 0 ? (

@@ -25,7 +25,7 @@ export function HiringTabs({
           key={t.key}
           href={`/hiring/${jobId}/${t.key}`}
           aria-current={t.key === current ? "page" : undefined}
-          className={`filter-chip ${t.key === current ? "filter-chip-solid" : ""}`}
+          className={`filter-chip ${t.key === current ? "filter-chip-on" : ""}`}
         >
           {t.label}
           {t.n !== undefined && <span className="tabular-nums"> {t.n}</span>}

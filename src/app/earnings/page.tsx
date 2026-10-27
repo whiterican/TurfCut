@@ -10,6 +10,7 @@ import { dispute, managePayouts, setUpPayouts } from "./actions";
 import { payoutSetup } from "@/lib/pay-data";
 import { stripeProvider } from "@/lib/payout-provider";
 import { EmptyArt } from "@/components/EmptyState";
+import { Masthead } from "@/components/Masthead";
 
 const SETUP_NOTE: Record<string, string> = {
   done: "Thanks — Stripe is checking your details. This can take a minute.",
@@ -159,13 +160,9 @@ export default async function EarningsPage({ searchParams }: { searchParams: Pro
   const onTheWay = payouts ? "On the way" : "Approved · payout setup needed";
   return (
     <main className="page max-w-2xl">
-      <header className="space-y-1">
-        <p className="eyebrow">Earnings</p>
-        <h1 className="page-title">Your pay</h1>
-        <p className="text-muted-sm">Gross pay for shifts your supervisors approved. Turfcut never takes a cut of your pay — campaigns pay the platform fee.</p>
-      </header>
+      <Masthead title="Earnings" meta="Gross pay for shifts your supervisors approved. Turfcut never takes a cut of your pay — campaigns pay the platform fee." />
 
-      <div className={`hero-card space-y-4 ${campaigns.length === 0 ? "hero-card-quiet" : "hero-card-accent"}`}>
+      <div className={`hero-card space-y-4 ${campaigns.length === 0 ? "hero-card-quiet" : ""}`}>
         <p className="eyebrow">All campaigns</p>
         <p className="hero-title">{money(totals.paid)} paid</p>
         <p className="flex flex-wrap gap-x-6 gap-y-2 text-sm">

@@ -9,7 +9,7 @@ import { loadPipelineFacts } from "@/lib/engagements-data";
 import { EngagementHistory } from "@/components/EngagementHistory";
 import { HiringActions, timeLeft } from "@/components/HiringActions";
 import { ENGAGEMENT_LABELS, JOB_STATUS_LABELS, jobPageBadge } from "@/lib/engagement-labels";
-import { UUID_RE, exclusionReasons, fitReasons, jobCardAnswers, jobCredentials, jobFreezeReasons, jurisdictionLabel, payText, publishBlockers, readDisclosure, readHiringModes } from "@/lib/jobs";
+import { UUID_RE, exclusionReasons, fitReasons, jobCardAnswers, jobCredentials, jobFreezeReasons, jurisdictionLabel, payShort, publishBlockers, readDisclosure, readHiringModes } from "@/lib/jobs";
 import { loadScorecard } from "@/lib/scorecard-data";
 import { loadSharing } from "@/lib/sharing-data";
 import { PART_DETAILS, RELATIONSHIP_PHRASE, SHARE_PARTS, visibleParts, type SharePart, type SharingChoices } from "@/lib/sharing";
@@ -17,9 +17,11 @@ import { PART_DETAILS, RELATIONSHIP_PHRASE, SHARE_PARTS, visibleParts, type Shar
 import { effectivePreference } from "@/lib/political-fit";
 import { loadLatestPreference } from "@/lib/political-fit-data";
 import { JobCard } from "@/components/JobCard";
+import { JobFacts } from "@/components/JobFacts";
 import { SnapshotView } from "@/components/SnapshotView";
 import { ActionButton } from "@/components/ActionButton";
 import { Sheet } from "@/components/Sheet";
+import { Masthead } from "@/components/Masthead";
 
 import { acceptInvitation, apply, claim, closeJobAction, declineAsWorker, leaveChangedJob, publish, withdrawApplication } from "../actions";
 import { openRelease } from "@/lib/job-changes-data";
@@ -34,14 +36,14 @@ import { OpenShifts } from "@/components/staff/OpenShifts";
 import { loadJobSlots, seatsOnOffer } from "@/lib/shift-slots-data";
 import { loadSharedAvailabilities } from "@/lib/availability-data";
 import { orgAvailabilityView, withoutPastDates } from "@/lib/availability";
-import { DateRangeChip } from "@/components/DateRangeChip";
 import { followState } from "@/lib/campaign-follow-data";
 import { CampaignCard } from "@/components/campaign/CampaignCard";
+import { ChevronLeft, CircleCheck, Info } from "lucide-react";
 
 /** A view-transition name and class as inline style (React knows the name; the class property isn't in its CSS types yet). */
 const shareStyle = (name: string) => ({ viewTransitionName: name, viewTransitionClass: "job-share" }) as React.CSSProperties;
 
-// An invitation's deadline, as a day (the job's own dates are a DateRangeChip).
+// An invitation's deadline, as a day (the job's own dates are in the facts list).
 const day = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
 
 const dayTime = (d: Date) => d.toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/Denver" }) + " MT";
@@ -95,25 +97,33 @@ export default async function JobPage({ params }: { params: Promise<{ jobId: str
 
   return (
     <main className="page max-w-3xl">
-      <header className="page-header">
-        <div className="space-y-2">
-          <p className="eyebrow">
-            {job.type === "PETITION" ? "Petition circulation" : "Door-to-door canvass"} · {jurisdictionLabel(job.jurisdiction)}
-          </p>
-          {/* Shared with the feed card that was tapped (P1.6): same names, so the title and pay grow into place. */}
-          <h1 className="page-title masthead w-fit" style={shareStyle(`job-${job.id}`)}>{job.title}</h1>
-          <p className="text-muted-sm">{job.org.name}</p>
-          <p className="w-fit pt-2 text-3xl font-bold tracking-[-0.03em] text-fg tabular-nums" style={shareStyle(`pay-${job.id}`)}>{payText(job.compensationMethod, job.payRateCents)}</p>
-          <p className="flex flex-wrap gap-1.5 pt-1">
+      {/* The record head (F03b): the title and pay are shared with the feed card that was tapped (P1.6), so they grow into place. */}
+      <Masthead
+        eyebrow={`${job.type === "PETITION" ? "Petition circulation" : "Door-to-door canvass"} · ${jurisdictionLabel(job.jurisdiction)}`}
+        title={job.title}
+        titleClassName="w-fit"
+        titleStyle={shareStyle(`job-${job.id}`)}
+        meta={job.org.name}
+        figure={
+          <>
+            {/* The same words as the card's pay, so the shared element grows rather than swaps its text. */}
+            <span className="inline-block w-fit" style={shareStyle(`pay-${job.id}`)}>{payShort(job.compensationMethod, job.payRateCents, job.type)}</span>
+            {!!job.payRateCents && <span className="ms-2 text-base font-medium tracking-normal text-muted">gross</span>}
+          </>
+        }
+        chips={
+          <>
             {isOwnOrg && <span className={jobPageBadge(status.badge)}>{status.label}</span>}
-            {/* The dates carry a calendar so their blue never reads as a party. */}
-            <DateRangeChip startsAt={job.startsAt} endsAt={job.endsAt} />
-            <span className="badge-neutral">{job.type === "PETITION" ? "Petition" : "Canvass"}</span>
-            <span className="badge-neutral">{acceptedCount} of {job.headcount ?? "—"} spots filled</span>
-          </p>
-        </div>
-        <Link transitionTypes={["nav-back"]} href="/jobs" className="btn-ghost">← Jobs</Link>
-      </header>
+          </>
+        }
+        back={
+          <Link transitionTypes={["nav-back"]} href="/jobs" className="btn-ghost -ms-4"><ChevronLeft aria-hidden className="size-4 shrink-0" />Jobs</Link>
+        }
+      />
+
+      {/* The facts a worker decides on, before anything else (D2): dates, place and how each day starts, spots,
+          what counts as payable, credentials and the rules. The full job card below keeps every detail. */}
+      <JobFacts job={job} acceptedCount={acceptedCount} />
 
       {job.description && <p className="lead">{job.description}</p>}
 
@@ -128,7 +138,7 @@ export default async function JobPage({ params }: { params: Promise<{ jobId: str
       )}
 
       <section className="section">
-        <h2 className="section-title">Job card</h2>
+        <h2 className="section-title">Full job card</h2>
         <JobCard job={{ ...job, orgName: job.org.name, jurisdictionRules: job.jurisdiction.rules }} />
       </section>
     </main>
@@ -269,10 +279,12 @@ async function WorkerPanel({
       <h2 className="section-title">Why it fits</h2>
       <ul className="divide-y divide-border">
         {reasons2.map((r) => (
-          <li key={r.title} className="flex items-center gap-3 py-3">
-            <span aria-hidden className={`grid size-10 shrink-0 place-items-center rounded-xl font-bold ${r.kind === "yes" ? "bg-solid text-on-solid" : "border border-border bg-surface-2 text-fg"}`}>
-              {r.kind === "yes" ? "✓" : "i"}
-            </span>
+          <li key={r.title} className="flex items-start gap-3 py-3">
+            {r.kind === "yes" ? (
+              <CircleCheck aria-hidden className="mt-0.5 size-5 shrink-0 text-fg" />
+            ) : (
+              <Info aria-hidden className="mt-0.5 size-5 shrink-0 text-muted" />
+            )}
             <span className="min-w-0">
               <span className="block font-semibold text-fg">{r.title}</span>
               <span className="block text-sm text-muted">{r.detail}</span>
@@ -284,10 +296,10 @@ async function WorkerPanel({
     </section>
     <section className="card space-y-4">
       {modes.includes("application") && (
-        <ActionButton action={apply} fields={{ jobId: job.id }} label="Apply with verified profile" pendingLabel="Applying…" />
+        <ActionButton action={apply} fields={{ jobId: job.id }} label="Apply with verified profile" pendingLabel="Applying…" variant="btn-primary w-full" />
       )}
       {modes.includes("instant_claim") && (
-        <ActionButton action={claim} fields={{ jobId: job.id }} label="Claim a spot" pendingLabel="Claiming…" variant={modes.includes("application") ? "btn-secondary" : "btn-primary"} />
+        <ActionButton action={claim} fields={{ jobId: job.id }} label="Claim a spot" pendingLabel="Claiming…" variant={modes.includes("application") ? "btn-secondary w-full" : "btn-primary w-full"} />
       )}
       {!modes.includes("application") && !modes.includes("instant_claim") && (
         <p className="text-muted-sm">This job hires by invitation only.</p>

@@ -57,7 +57,7 @@ export default async function DeskPage() {
 
   return (
     <main className="page">
-      <Masthead eyebrow="Desk" title={org?.name ?? "Your organization"} meta={roleName(session, ROLE_LABELS)} />
+      <Masthead title={org?.name ?? "Your organization"} meta={roleName(session, ROLE_LABELS)} />
 
       {parts.today && desk.today && <FieldToday ops={desk.today} now={now} />}
 
@@ -145,7 +145,6 @@ export default async function DeskPage() {
             ) : (
               <p className="text-muted-sm">No published jobs right now.</p>
             )}
-            <p className="text-hint">Campaign profiles and posts arrive in a later release; for now the Desk shows what&apos;s live.</p>
           </section>
         </>
       )}

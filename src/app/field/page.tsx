@@ -30,7 +30,7 @@ export default async function FieldPage() {
   return (
     <FieldLiveProvider initial={live}>
     <main className="page max-w-4xl">
-      <Masthead eyebrow="Field" title="In the field" meta="The last 12 hours and the next 24. Figures update on their own while this page is open.">
+      <Masthead title="In the field" meta="The last 12 hours and the next 24. Figures update on their own while this page is open.">
         <Link href={`/field/${isoDay(now)}`} className="btn-ghost btn-sm">By date (UTC)</Link>
         <Link href="/field/review" className="btn-secondary btn-sm">Review queue{waiting ? ` (${waiting}${more ? "+" : ""})` : ""}</Link>
       </Masthead>

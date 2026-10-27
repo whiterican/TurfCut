@@ -125,7 +125,8 @@ export function ConnectionPill({ state, text }: { state: PillState; text: string
 
 const BADGE_BG: Record<string, string> = {
   "badge-sky": "var(--sky)",
-  "badge-accent": "var(--accent)",
+  "badge-accent": "var(--sky)",
+  "badge-live": "var(--accent)",
   "badge-butter": "var(--butter)",
   "badge-coral": "var(--coral)",
 };

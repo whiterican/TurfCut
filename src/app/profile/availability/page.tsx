@@ -6,6 +6,7 @@ import { AUDIENCE_OPTIONS } from "@/lib/sharing";
 import { AvailabilityForm } from "@/components/AvailabilityForm";
 import { withoutPastDates } from "@/lib/availability";
 import { Masthead } from "@/components/Masthead";
+import { ChevronLeft } from "lucide-react";
 
 export default async function AvailabilityPage() {
   const { workerId } = await requireWorker();
@@ -15,8 +16,8 @@ export default async function AvailabilityPage() {
   return (
     <main className="page max-w-2xl space-y-8">
       <div className="space-y-3">
-        <Masthead eyebrow="Your profile" title="Availability">
-          <Link transitionTypes={["nav-back"]} href="/profile" className="btn-ghost">← Profile</Link>
+        <Masthead title="Availability">
+          <Link transitionTypes={["nav-back"]} href="/profile" className="btn-ghost"><ChevronLeft aria-hidden className="size-4 shrink-0" />Profile</Link>
         </Masthead>
         <p className="lead">When you&apos;re usually free to work. It helps schedulers plan; it&apos;s never scored or used to rank you.</p>
         <p className="text-hint">

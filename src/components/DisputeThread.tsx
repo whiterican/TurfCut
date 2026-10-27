@@ -59,7 +59,7 @@ export function DisputeThread({ t, send, children }: { t: ThreadView; send: (p: 
         <ol className="space-y-3">
           {t.messages.map((m) => (
             <li key={m.id} className={`max-w-[85%] space-y-1 ${m.mine ? "ml-auto" : ""}`}>
-              <div className={`rounded-2xl px-4 py-3 text-sm whitespace-pre-wrap ${m.mine ? "bg-[var(--accent)] text-[var(--ink)]" : "bg-surface-2 text-fg"}`}>{m.body}</div>
+              <div className={`rounded-2xl px-4 py-3 text-sm whitespace-pre-wrap ${m.mine ? "bg-[var(--hero)] text-[var(--hero-fg)]" : "bg-surface-2 text-fg"}`}>{m.body}</div>
               <p className={`text-xs text-muted ${m.mine ? "text-right" : ""}`}>
                 {m.author} · <LocalTime iso={m.createdAt.toISOString()} />
               </p>

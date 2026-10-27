@@ -179,7 +179,7 @@ export function shiftStatusLabel(st: ShiftState): { label: string; badge: string
   if (st.closeout?.status === "APPROVED") return { label: "Approved", badge: "badge-solid" };
   if (st.closeout?.status === "REJECTED") return { label: "Not approved", badge: "badge-coral" };
   if (st.checkedOutAt) return { label: "In review", badge: "badge-butter" };
-  if (st.checkedInAt) return { label: st.paused ? "On break" : "On shift", badge: "badge-accent" };
+  if (st.checkedInAt) return { label: st.paused ? "On break" : "On shift", badge: st.paused ? "badge-butter" : "badge-live" };
   return { label: "Scheduled", badge: "badge-sky" };
 }
 

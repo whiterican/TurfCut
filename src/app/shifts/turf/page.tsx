@@ -7,6 +7,7 @@ import { TurfMap } from "@/components/TurfMap";
 import { PinLegend, TurfWorkbench } from "@/components/TurfWorkbench";
 import { toMapPins } from "@/lib/turf-pins";
 import { Masthead } from "@/components/Masthead";
+import { ChevronLeft } from "lucide-react";
 
 /**
  * My turf: what each campaign assigned (or what the worker marked for the
@@ -19,8 +20,8 @@ export default async function MyTurfPage() {
 
   return (
     <main className="page max-w-2xl">
-      <Masthead eyebrow="Shifts" title="My turf" meta="Turf each campaign assigned you, or the area you marked for the day — plus your pins.">
-        <Link transitionTypes={["nav-back"]} href="/shifts" className="btn-ghost">← My shifts</Link>
+      <Masthead title="My turf" meta="Turf each campaign assigned you, or the area you marked for the day — plus your pins.">
+        <Link transitionTypes={["nav-back"]} href="/shifts" className="btn-ghost"><ChevronLeft aria-hidden className="size-4 shrink-0" />My shifts</Link>
       </Masthead>
 
       {shifts.length === 0 ? (

@@ -22,7 +22,7 @@ export default async function HiringPage() {
 
   return (
     <main className="page max-w-4xl">
-      <Masthead eyebrow="Hiring" title="Pipeline" meta="Open jobs and the people at each stage. Open a job's applicants to compare what each worker shares with you." />
+      <Masthead title="Pipeline" meta="Open jobs and the people at each stage. Open a job's applicants to compare what each worker shares with you." />
       <SummaryBar
         label="Hiring totals"
         items={[

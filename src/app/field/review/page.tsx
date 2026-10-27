@@ -4,6 +4,7 @@ import { loadReviewCandidates, REVIEW_CAP } from "@/lib/field-day-data";
 import { reviewQueue } from "@/lib/field-view";
 import { Masthead } from "@/components/staff/Masthead";
 import { RelativeTime } from "@/components/RelativeTime";
+import { ChevronLeft } from "lucide-react";
 
 /** Shifts waiting for a closeout (C1.4), the longest-waiting first. Each opens the shift page, where the review happens. */
 export default async function ReviewQueuePage() {
@@ -12,8 +13,8 @@ export default async function ReviewQueuePage() {
   const queue = reviewQueue(candidates);
   return (
     <main className="page max-w-3xl">
-      <Masthead eyebrow="Field" title="Review queue" meta="Checked-out shifts from the last 30 days without a closeout, or corrected since theirs, longest waiting first.">
-        <Link href="/field" className="btn-ghost btn-sm">← In the field</Link>
+      <Masthead title="Review queue" meta="Checked-out shifts from the last 30 days without a closeout, or corrected since theirs, longest waiting first.">
+        <Link href="/field" className="btn-ghost btn-sm"><ChevronLeft aria-hidden className="size-4 shrink-0" />In the field</Link>
       </Masthead>
       {candidates.length >= REVIEW_CAP && (
         <p className="text-hint">Showing the oldest {REVIEW_CAP} checked-out shifts; review these and the next ones appear.</p>

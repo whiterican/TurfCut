@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { DateRangeChip } from "@/components/DateRangeChip";
-import { cardAffiliation, jobDiscoveryLabel, payText, readDisclosure } from "@/lib/jobs";
+import { BadgeCheck, CalendarDays, MapPin } from "lucide-react";
+import { day } from "@/components/DateRangeChip";
+import { cardAffiliation, jobDiscoveryLabel, payShort, readDisclosure } from "@/lib/jobs";
 import type { CompensationMethod, JobType } from "@prisma/client";
 
 export interface FeedJob {
@@ -19,10 +20,11 @@ export interface FeedJob {
 }
 
 /**
- * An open job: who · where, the title, dates and type; gross pay and a button
- * on the right. The type chip is coloured by the campaign's own declared
- * affiliation and names it, e.g. "Canvass · Democratic party". Rendered
- * inside SwipeCard on the feed, which adds the card frame, Save and Hide.
+ * An open job as a card (D2): the kind of work as a chip, then the title
+ * with the gross pay on the right (the two things scanned first), the
+ * candidate when there is one, and icon rows for who (with Turfcut's
+ * approval), where and when. The whole card is the link. Rendered inside
+ * SwipeCard on the feed, which adds the frame, Save and Hide.
  */
 export function JobFeedCard({ j }: { j: FeedJob }) {
   const geo = (j.geography ?? {}) as { city?: string; state?: string };
@@ -34,7 +36,7 @@ export function JobFeedCard({ j }: { j: FeedJob }) {
     <Link
       transitionTypes={["nav-forward"]}
       href={`/jobs/${j.id}`}
-      className="card-link group flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"
+      className="card-link group flex flex-col gap-3"
       // A mouse drag on a link starts the browser's own link drag, which cancels the swipe: off, so a swipe is a swipe.
       draggable={false}
       onDragStart={(e) => e.preventDefault()}
@@ -50,30 +52,45 @@ export function JobFeedCard({ j }: { j: FeedJob }) {
         }
       }}
     >
-      <span className="min-w-0 space-y-2">
-        <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-semibold text-muted">
-          {j.org.name}
-          {place && <><span aria-hidden>·</span>{place}</>}
-          {j.org.approved && <span className="badge-solid">Approved org</span>}
-        </span>
-        <span data-share="title" className="block w-fit text-base font-bold tracking-[-0.01em] text-fg">{j.title}</span>
-        {j.type === "CANVASS" && campaign?.campaignType === "candidate" && campaign.campaignName && (
-          <span className="block text-sm font-medium text-fg">Candidate: {campaign.campaignName}</span>
+      {/* What kind of work, in the campaign's own declared words (a party chip names the party). */}
+      <span className="flex flex-wrap gap-1.5">
+        {aff ? (
+          <span className={`badge-party badge-party-${aff.affiliation}`}>{type} · {aff.label}</span>
+        ) : (
+          <span className="badge-neutral">{type}</span>
         )}
-        <span className="flex flex-wrap gap-1.5">
-          <DateRangeChip startsAt={j.startsAt} endsAt={j.endsAt} />
-          {aff ? (
-            <span className={`badge-party badge-party-${aff.affiliation}`}>{type} · {aff.label}</span>
-          ) : (
-            <span className="badge-neutral">{type}</span>
+      </span>
+      {/* The title and the gross pay on one line: the two things a worker scans for first. */}
+      <span className="flex items-start justify-between gap-3">
+        <span className="min-w-0 space-y-1">
+          <span data-share="title" className="masthead block w-fit text-lg leading-tight">{j.title}</span>
+          {j.type === "CANVASS" && campaign?.campaignType === "candidate" && campaign.campaignName && (
+            <span className="block text-sm font-medium text-fg">Candidate: {campaign.campaignName}</span>
           )}
         </span>
+        <span className="shrink-0 text-end">
+          <span data-share="pay" className="block text-base font-bold text-fg tabular-nums">{payShort(j.compensationMethod, j.payRateCents, j.type)}</span>
+          {!!j.payRateCents && <span className="block text-xs text-muted">gross</span>}
+        </span>
       </span>
-      <span className="flex shrink-0 flex-wrap items-center justify-between gap-3 sm:flex-col sm:items-end">
-        {/* The pay wraps, never the button: "$150.00 / completed shift (gross)" beside "View job" on a phone.
-            Where even its longest word won't fit beside the button, the button takes its own line. */}
-        <span data-share="pay" className="flex-1 text-sm font-bold text-fg tabular-nums sm:flex-none">{payText(j.compensationMethod, j.payRateCents)}</span>
-        <span className="btn-primary btn-sm shrink-0 whitespace-nowrap">View job</span>
+      <span className="fact-rows">
+        <span className="fact-row font-medium text-fg">
+          {j.org.name}
+          {j.org.approved && (
+            <span className="inline-flex items-center gap-1 text-muted">
+              <BadgeCheck aria-hidden className="size-4 shrink-0 text-fg" />
+              <span>Approved org</span>
+            </span>
+          )}
+        </span>
+        <span className="fact-row">
+          <MapPin aria-hidden className="size-4 shrink-0" />
+          {place || "Place to be set"}
+        </span>
+        <span className="fact-row">
+          <CalendarDays aria-hidden className="size-4 shrink-0" />
+          {j.startsAt || j.endsAt ? `${day(j.startsAt)} – ${day(j.endsAt)}` : "Dates to be set"}
+        </span>
       </span>
     </Link>
   );

@@ -5,6 +5,7 @@ import { listOpenReports } from "@/lib/chat-data";
 import { ReportActions } from "@/components/chat/ReportActions";
 import { LocalTime } from "@/components/LocalTime";
 import { canUse } from "@/lib/access";
+import { ChevronLeft } from "lucide-react";
 
 export const metadata = { title: "Message reports · Turfcut" };
 
@@ -17,7 +18,7 @@ export default async function ReportsPage() {
   return (
     <main className="page max-w-2xl">
       <header className="space-y-1">
-        <Link transitionTypes={["nav-back"]} href="/messages" className="link text-sm">← Messages</Link>
+        <Link transitionTypes={["nav-back"]} href="/messages" className="link inline-flex items-center gap-1 text-sm"><ChevronLeft aria-hidden className="size-4 shrink-0" />Messages</Link>
         <h1 className="page-title">Message reports</h1>
         <p className="text-muted-sm">
           Messages people in your organization reported. Remove one to replace it with &ldquo;Message deleted&rdquo; for everyone — the original stays in the audit trail — or dismiss the report.

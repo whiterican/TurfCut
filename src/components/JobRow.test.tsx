@@ -34,6 +34,7 @@ describe("JobRow (F02)", () => {
     expect(renderToStaticMarkup(<JobRow j={{ ...job, startsAt: null, endsAt: null }} />)).toContain("Dates to be set");
     expect(renderToStaticMarkup(<JobRow j={{ ...job, org: { name: "New Org", approved: false } }} />)).not.toContain("Approved org");
     const canvass = renderToStaticMarkup(<JobRow j={{ ...job, type: "CANVASS", campaignDisclosure: { campaignType: "candidate", campaignName: "Jo Ortiz for Council", affiliation: "democratic", message: "Vote Jo" } }} />);
-    expect(canvass).toContain("Candidate campaign canvassing · Democratic party · Candidate: Jo Ortiz for Council");
+    expect(canvass).toContain("Candidate: Jo Ortiz for Council");
+    expect(canvass.indexOf("Candidate: Jo Ortiz")).toBeLessThan(canvass.indexOf("Candidate campaign canvassing · Democratic party"));
   });
 });

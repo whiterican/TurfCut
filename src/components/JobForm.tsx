@@ -9,6 +9,7 @@ import { CANVASS_APPS } from "@/lib/job-tools";
 import { CAMPAIGN_TYPES, ISSUES } from "@/lib/political-fit";
 import { US_STATES } from "@/lib/experience";
 import { StagingPointsEditor } from "@/components/StagingPointsEditor";
+import { ChevronLeft } from "lucide-react";
 
 const initial: JobFormState = { message: "", errors: {} };
 const optional = <span className="font-normal text-subtle">(optional)</span>;
@@ -416,7 +417,8 @@ export function JobForm({
       <div className="flex flex-wrap items-center gap-3">
         {step > 0 && (
           <button type="button" className="btn-ghost" onClick={() => goTo(step - 1)}>
-            ← Back
+            <ChevronLeft aria-hidden className="size-4 shrink-0" />
+            Back
           </button>
         )}
         {step < REVIEW_STEP ? (

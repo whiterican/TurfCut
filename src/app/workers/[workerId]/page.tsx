@@ -6,6 +6,7 @@ import { loadOrgProfile } from "@/lib/org-profile-data";
 import { OrgProfileSections } from "@/components/OrgProfileSections";
 import { InviteComposer } from "@/components/InviteComposer";
 import { Masthead } from "@/components/Masthead";
+import { ChevronLeft } from "lucide-react";
 
 /** A worker as an organization sees them: only what the worker authorized. */
 export default async function EmployerWorkerPage({
@@ -34,8 +35,8 @@ export default async function EmployerWorkerPage({
   return (
     <main className="page">
       {/* Only the display name — no phone or other contact details. (No name for an unapproved viewer, which can't reach here today.) */}
-      <Masthead eyebrow="Worker profile" title={view.displayName ?? "Name not shared"}>
-        <Link transitionTypes={["nav-back"]} href="/jobs" className="btn-ghost">← Jobs</Link>
+      <Masthead title={view.displayName ?? "Name not shared"}>
+        <Link transitionTypes={["nav-back"]} href="/jobs" className="btn-ghost"><ChevronLeft aria-hidden className="size-4 shrink-0" />Jobs</Link>
       </Masthead>
 
       <InviteComposer workerId={workerId} orgId={access.orgId} />

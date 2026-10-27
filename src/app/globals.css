@@ -954,10 +954,9 @@ body {
   }
   .tab {
     @apply relative flex min-h-11 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-xl border border-transparent py-1.5 font-semibold whitespace-nowrap text-fg transition;
-    /* Six labels share the pill: the label follows the screen width, never
-       the phone's text size (pixel bounds, not rem), so "Messages" and
-       "Profile" stay inside the border at any Dynamic Type setting. */
-    /* Condensed labels: six of them fit the pill at any text size. */
+    /* Up to six condensed labels share the bar: the label follows the screen
+       width, never the phone's text size (pixel bounds, not rem), so
+       "Messages" and "Profile" stay inside the border at any Dynamic Type setting. */
     font-family: var(--font-condensed);
     font-size: clamp(10px, 2.6vw, 11px);
     letter-spacing: 0.01em;
@@ -979,6 +978,10 @@ body {
   .tabbar > div {
     gap: 0.125rem;
   }
+  /* A focused tab sits above its neighbours, so the active tile never covers its ring. */
+  .tab:focus-visible {
+    z-index: 1;
+  }
   .tab[aria-current="page"] .tab-icon {
     color: var(--tab-active-fg);
   }
@@ -990,7 +993,7 @@ body {
     @apply size-3.5;
   }
   .tab .unread-badge {
-    @apply absolute top-0.5 left-1/2 ml-2 min-w-[1.25rem] px-1 text-[0.7rem] leading-[1.25rem];
+    @apply absolute top-0.5 left-1/2 ml-1.5 min-w-[1.25rem] px-1 text-[0.7rem] leading-[1.25rem];
     box-shadow: 0 0 0 2px var(--surface);
   }
   /* ---- Staff components (C1) ------------------------------------------ */

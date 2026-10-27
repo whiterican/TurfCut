@@ -68,18 +68,21 @@ function NavCard({ href, title, body }: { href: string; title: string; body: str
  * "Scheduled"; cancelled shifts aren't listed. Grouped by the viewer's day.
  */
 async function LaterShifts({ workerId }: { workerId: string }) {
-  const later = await db().shift.findMany({
-    where: { engagement: { workerId }, status: { not: "CANCELLED" }, endsAt: { gte: new Date() }, checkOutAt: null, checkInAt: null },
-    select: { id: true, startsAt: true, endsAt: true, stagingLocation: true, engagement: { select: { job: { select: { title: true, org: { select: { name: true } } } } } } },
-    orderBy: { startsAt: "asc" },
-    take: 4,
-  });
+  const now = new Date();
   // The hero shows the first upcoming shift (or the live one, which has a check-in and isn't in this list).
-  const hero = await db().shift.findFirst({
-    where: { engagement: { workerId }, status: { not: "CANCELLED" }, endsAt: { gte: new Date() }, checkOutAt: null },
-    select: { id: true },
-    orderBy: { startsAt: "asc" },
-  });
+  const [later, hero] = await Promise.all([
+    db().shift.findMany({
+      where: { engagement: { workerId }, status: { not: "CANCELLED" }, endsAt: { gte: now }, checkOutAt: null, checkInAt: null },
+      select: { id: true, startsAt: true, endsAt: true, stagingLocation: true, engagement: { select: { job: { select: { title: true, org: { select: { name: true } } } } } } },
+      orderBy: [{ startsAt: "asc" }, { id: "asc" }],
+      take: 4,
+    }),
+    db().shift.findFirst({
+      where: { engagement: { workerId }, status: { not: "CANCELLED" }, endsAt: { gte: now }, checkOutAt: null },
+      select: { id: true },
+      orderBy: [{ startsAt: "asc" }, { id: "asc" }],
+    }),
+  ]);
   const rest = later.filter((s) => s.id !== hero?.id).slice(0, 3);
   if (rest.length === 0) return null;
   return (
@@ -110,7 +113,7 @@ async function WorkerHero({ workerId }: { workerId: string }) {
   const shift = await db().shift.findFirst({
     where: { engagement: { workerId }, status: { not: "CANCELLED" }, endsAt: { gte: new Date() }, checkOutAt: null },
     include: { engagement: { select: { job: { select: { title: true, type: true, compensationMethod: true, payRateCents: true } } } } },
-    orderBy: { startsAt: "asc" },
+    orderBy: [{ startsAt: "asc" }, { id: "asc" }],
   });
   if (shift) {
     const live = shift.checkInAt !== null;

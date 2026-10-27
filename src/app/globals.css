@@ -1065,7 +1065,7 @@ body {
   .org-rail * {
     --focus: var(--rail-fg);
   }
-  .hero-card * {
+  .hero-card:not(.hero-card-quiet) * {
     --focus: var(--hero-fg);
   }
   .org-rail {

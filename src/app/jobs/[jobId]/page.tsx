@@ -108,15 +108,15 @@ export default async function JobPage({ params }: { params: Promise<{ jobId: str
         chips={
           <>
             {isOwnOrg && <span className={jobPageBadge(status.badge)}>{status.label}</span>}
-            {/* The dates carry a calendar so their blue never reads as a party. */}
+            {/* The dates carry a calendar so their lavender never reads as a party. */}
             <DateRangeChip startsAt={job.startsAt} endsAt={job.endsAt} />
-            <span className="badge-neutral">{job.type === "PETITION" ? "Petition" : "Canvass"}</span>
             <span className="badge-neutral">{acceptedCount} of {job.headcount ?? "—"} spots filled</span>
           </>
         }
-      >
-        <Link transitionTypes={["nav-back"]} href="/jobs" className="btn-ghost"><ChevronLeft aria-hidden className="size-4 shrink-0" />Jobs</Link>
-      </Masthead>
+        back={
+          <Link transitionTypes={["nav-back"]} href="/jobs" className="btn-ghost btn-sm -ms-3"><ChevronLeft aria-hidden className="size-4 shrink-0" />Jobs</Link>
+        }
+      />
 
       {job.description && <p className="lead">{job.description}</p>}
 

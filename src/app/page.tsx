@@ -33,7 +33,7 @@ export default async function Home() {
         <div className="overflow-hidden rounded-[1.5rem] border border-border bg-surface shadow-sm">
           <div className="flex items-center justify-between border-b border-border px-6 py-4">
             <span className="text-xs font-semibold uppercase tracking-[0.16em] text-subtle">How TurfCut works</span>
-            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted"><span className="size-1.5 rounded-full bg-accent" /> Private pilot</span>
+            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted"><span className="size-1.5 rounded-full bg-[var(--kicker)]" /> Private pilot</span>
           </div>
           <div className="divide-y divide-border">
             {steps.map(({ number, title, description, icon: Icon }) => (

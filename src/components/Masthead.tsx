@@ -12,6 +12,7 @@ import type { CSSProperties, ReactNode } from "react";
  * carry a view-transition name so it travels from the card that was tapped.
  */
 export function Masthead({
+  back,
   eyebrow,
   title,
   meta,
@@ -22,6 +23,8 @@ export function Masthead({
   titleClassName = "",
   titleStyle,
 }: {
+  /** A way back (one link), shown above the title on every width. */
+  back?: ReactNode;
   eyebrow?: ReactNode;
   title: ReactNode;
   meta?: ReactNode;
@@ -36,6 +39,7 @@ export function Masthead({
 }) {
   return (
     <header className={`page-header ${className}`.trim()}>
+      {back && <div className="-mb-1 basis-full">{back}</div>}
       <div className="min-w-0 space-y-1.5">
         {eyebrow && <p className="masthead-context">{eyebrow}</p>}
         <h1 className={`page-title masthead break-words ${titleClassName}`.trim()} style={titleStyle}>{title}</h1>

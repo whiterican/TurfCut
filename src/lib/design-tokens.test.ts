@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { AFFILIATIONS } from "@/lib/jobs";
@@ -345,15 +345,61 @@ describe("lime is for what is live and the one primary action (Direction A)", ()
     expect(css).toMatch(/\.badge-accent \{ --badge-bg: var\(--sky\); \}/);
   });
   it("only an allowed list of rules paints with the accent", () => {
-    // Every rule whose declarations use var(--accent): the live chip and the live shift card, the
-    // cut, the send button and swipe-to-save (the action being taken), text selection and the
-    // empty-state art. A new lime surface fails here until it is argued for.
-    const allowed = ["@theme inline", "::selection", ".hero-card::after", ".hero-card-accent", ".empty-art .lime", ".badge-live", ".swipe-under-save", ".send-btn"];
-    const rules = [...css.replace(/\/\*[\s\S]*?\*\//g, "").matchAll(/([^{};]+)\{([^{}]*)\}/g)]
-      .filter((m) => /var\(--accent\)/.test(m[2]))
-      .map((m) => m[1].trim().replace(/\s+/g, " "));
-    const unexpected = rules.filter((sel) => !allowed.some((a) => sel.includes(a)));
-    expect(unexpected).toEqual([]);
+    // Every rule whose declarations use the accent: the live chip and the live shift card (and
+    // its eyebrow tint), the cut, the send button and swipe-to-save (the action being taken), text
+    // selection and the empty-state art. Selectors are compared one by one, exactly, so a new
+    // lime surface fails here until it is argued for.
+    const allowed = new Set([
+      "@theme inline",
+      "::selection",
+      ".hero-card::after",
+      ".hero-card-accent",
+      ".hero-card.hero-card-accent .eyebrow",
+      ".hero-card.hero-card-accent .hero-muted",
+      ".empty-art .lime",
+      ".badge-live",
+      ".swipe-under-save",
+      ".send-btn",
+    ]);
+    const bare = css.replace(/\/\*[\s\S]*?\*\//g, "");
+    const selectors = [...bare.matchAll(/([^{};]+)\{([^{}]*)\}/g)]
+      .filter((m) => /var\(--(color-)?accent\)|#d6f25a|@apply[^;]*\b(bg|text|border|fill|stroke|ring|outline|decoration)-accent\b/i.test(m[2]))
+      .flatMap((m) => m[1].split(",").map((x) => x.trim().replace(/\s+/g, " ")));
+    // The theme blocks define the tokens; which tokens may hold lime is checked below.
+    const themes = new Set([":root", ".dark", ".sun"]);
+    expect(selectors.filter((sel) => !allowed.has(sel) && !themes.has(sel))).toEqual([]);
+  });
+  it("only the live, primary and current-tab tokens hold lime", () => {
+    // The accent itself; the primary action (lime type on eggplant by day, a lime fill by night);
+    // the current tab's type; and the keyboard focus ring by night.
+    const mayBeLime = new Set(["accent", "on-primary", "primary", "tab-active-fg", "focus"]);
+    for (const sel of [":root", ".dark", ".sun"]) {
+      const lime = Object.entries(block(sel)).filter(([, v]) => v.toLowerCase() === "#d6f25a").map(([k]) => k);
+      expect(lime.filter((k) => !mayBeLime.has(k))).toEqual([]);
+    }
+  });
+  it("no component paints with lime directly (classes, arbitrary values or the hex)", () => {
+    const root = join(__dirname, "..");
+    const files = readdirSync(root, { recursive: true, encoding: "utf8" }).filter(
+      (f) => /\.tsx?$/.test(f) && !/\.test\.tsx?$/.test(f) && !f.startsWith("app/zz-preview")
+    );
+    // Moments maps a badge class to its fill for the paid-badge morph; .badge-live's is the accent.
+    const ok = new Set(["components/Moments.tsx"]);
+    const hits = files.filter((f) => !ok.has(f.replaceAll("\\", "/"))).filter((f) =>
+      /\b(bg|text|border|fill|stroke|ring|outline|decoration)-accent\b|var\(--(color-)?accent\)|#d6f25a/i.test(readFileSync(join(root, f), "utf8"))
+    );
+    expect(hits).toEqual([]);
+  });
+  it("by day the first ring reads against the page gap around an eggplant card", () => {
+    expect(ratio(light.ring, light.bg)).toBeGreaterThanOrEqual(3);
+    expect(css).toMatch(/:root:not\(\.dark\) \.hero-card:not\(\.hero-card-accent\):is\(\[data-priority="1"\][^{]*\{\s*border-color: var\(--bg\);/);
+  });
+  it("by night the checked radio dot reads on the card (≥ 3:1)", () => {
+    expect(css).toMatch(/\.dark \.option-card input\[type="radio"\]:checked \{\s*background: var\(--fg\);/);
+    expect(ratio(dark.fg, dark.surface)).toBeGreaterThanOrEqual(3);
+  });
+  it("success (done, verified) is not lime in any theme", () => {
+    for (const th of [light, dark, sun]) expect(th.success).not.toBe(th.accent);
   });
   it("the rail and the desktop top nav mark the current page with the dock's eggplant tile, not a side stripe", () => {
     expect(css).toMatch(/\.rail-link\[aria-current="page"\] \{[^}]*?background: var\(--tab-active-bg\);/);

@@ -241,7 +241,7 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
       </header>
 
       {!started && workerActions}
-      <div className={`hero-card space-y-4 ${isWorker && live && !st.paused ? "hero-card-accent" : ""}`} data-priority={isWorker ? shiftPriority(s, now) : undefined}>
+      <div className={`hero-card space-y-4 ${isWorker && live ? "hero-card-accent" : ""}`} data-priority={isWorker ? shiftPriority(s, now) : undefined}>
         <p className="eyebrow">
           <LocalTime iso={s.startsAt.toISOString()} mode="date" />
           {started && s.stagingLocation ? ` · ${s.stagingLocation}` : ""}

@@ -5,6 +5,7 @@ import { loadHomeFeed, type FeedPost } from "@/lib/campaign-follow-data";
 import { PostCard } from "@/components/campaign/PostCard";
 import { FeedSeen } from "@/components/campaign/FeedSeen";
 import { EmptyArt } from "@/components/EmptyState";
+import { Masthead } from "@/components/Masthead";
 
 export const metadata: Metadata = { title: "Feed" };
 
@@ -23,14 +24,9 @@ export default async function FeedPage({ searchParams }: Props) {
   return (
     <main className="page max-w-2xl space-y-6">
       {!cursor && <FeedSeen at={new Date().toISOString()} />}
-      <header className="page-header">
-        <div className="space-y-1.5">
-          <p className="eyebrow">Feed</p>
-          <h1 className="page-title">From your campaigns</h1>
-          <p className="text-muted-sm">Posts from campaigns you follow and campaigns you work for, newest first.</p>
-        </div>
+      <Masthead eyebrow="Feed" title="From your campaigns" meta="Posts from campaigns you follow and campaigns you work for, newest first.">
         <Link href="/c" className="btn-ghost">All campaigns</Link>
-      </header>
+      </Masthead>
       {feed.sources === 0 ? (
         <div className="empty-state">
           <EmptyArt kind="campaigns" />

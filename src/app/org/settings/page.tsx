@@ -4,6 +4,7 @@ import { canUse } from "@/lib/access";
 import { requireArea } from "@/lib/employer-session";
 import { COMPENSATION_METHODS, jurisdictionLabel, jurisdictionProblems } from "@/lib/jobs";
 import { recordClassificationReview, saveLegalContact, signContractorTerms } from "./actions";
+import { Masthead } from "@/components/Masthead";
 
 const day = (d: Date) => d.toISOString().slice(0, 10);
 
@@ -35,16 +36,10 @@ export default async function OrgSettingsPage() {
 
   return (
     <main className="page max-w-3xl">
-      <header className="page-header">
-        <div className="space-y-1">
-          <p className="eyebrow">Organization settings</p>
-          <h1 className="page-title masthead">{org.name}</h1>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {canUse(session, "orgMembers") && <Link href="/org/settings/members" className="btn-secondary btn-sm">Members</Link>}
-          <Link href="/settings" className="btn-ghost btn-sm">Settings &amp; sign out</Link>
-        </div>
-      </header>
+      <Masthead eyebrow="Organization settings" title={org.name}>
+        {canUse(session, "orgMembers") && <Link href="/org/settings/members" className="btn-secondary btn-sm">Members</Link>}
+        <Link href="/settings" className="btn-ghost btn-sm">Settings &amp; sign out</Link>
+      </Masthead>
 
       <section className="section">
         <h2 className="section-title">Before any job can publish</h2>

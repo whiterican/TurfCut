@@ -4,6 +4,7 @@ import { requireWorker } from "@/lib/worker-session";
 import { previewOrgProfile } from "@/lib/org-profile-data";
 import type { OrgOrPublic } from "@/lib/org-profile";
 import { OrgProfileSections } from "@/components/OrgProfileSections";
+import { Masthead } from "@/components/Masthead";
 
 const TABS = [
   { key: "applied", label: "An organization you work with", viewer: { kind: "org", approved: true, relationship: true } },
@@ -33,11 +34,10 @@ export default async function PreviewPage({ searchParams }: { searchParams: Prom
 
   return (
     <main className="page space-y-8">
-      <header className="space-y-3">
-        <div className="page-header">
-          <h1 className="page-title">See what organizations see</h1>
+      <div className="space-y-3">
+        <Masthead eyebrow="Your profile" title="See what organizations see">
           <Link transitionTypes={["nav-back"]} href="/profile" className="btn-ghost">← Profile</Link>
-        </div>
+        </Masthead>
         <nav aria-label="Viewer" className="flex flex-wrap gap-2">
           {TABS.map((t) => (
             <Link key={t.key} href={`/profile/preview?as=${t.key}`} className="chip" aria-current={t.key === tab.key ? "page" : undefined} replace scroll={false}>
@@ -48,7 +48,7 @@ export default async function PreviewPage({ searchParams }: { searchParams: Prom
         <p className="text-hint">
           {HINTS[tab.key]} <Link href="/profile/sharing" className="link">Change who sees what</Link>
         </p>
-      </header>
+      </div>
 
       {!view ? (
         <div className="empty-state">

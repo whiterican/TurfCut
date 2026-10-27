@@ -6,6 +6,7 @@ import { LocalTime } from "@/components/LocalTime";
 import { TurfMap } from "@/components/TurfMap";
 import { PinLegend, TurfWorkbench } from "@/components/TurfWorkbench";
 import { toMapPins } from "@/lib/turf-pins";
+import { Masthead } from "@/components/Masthead";
 
 /**
  * My turf: what each campaign assigned (or what the worker marked for the
@@ -18,14 +19,9 @@ export default async function MyTurfPage() {
 
   return (
     <main className="page max-w-2xl">
-      <header className="page-header">
-        <div className="space-y-1">
-          <p className="eyebrow">Shifts</p>
-          <h1 className="page-title">My turf</h1>
-          <p className="text-muted-sm">Turf each campaign assigned you, or the area you marked for the day — plus your pins.</p>
-        </div>
+      <Masthead eyebrow="Shifts" title="My turf" meta="Turf each campaign assigned you, or the area you marked for the day — plus your pins.">
         <Link transitionTypes={["nav-back"]} href="/shifts" className="btn-ghost">← My shifts</Link>
-      </header>
+      </Masthead>
 
       {shifts.length === 0 ? (
         <div className="empty-state">

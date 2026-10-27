@@ -10,6 +10,7 @@ import { FollowButton } from "@/components/campaign/FollowButton";
 import { VerifiedMark } from "@/components/campaign/VerifiedMark";
 import { LocalTime } from "@/components/LocalTime";
 import { EmptyState } from "@/components/EmptyState";
+import { Masthead } from "@/components/Masthead";
 
 export const metadata: Metadata = { title: "Campaigns", description: "Every campaign on Turfcut, the most recently active first." };
 
@@ -36,13 +37,7 @@ export default async function CampaignDirectoryPage({ searchParams }: Props) {
   };
   return (
     <main className="page max-w-2xl space-y-6">
-      <header className="page-header">
-        <div className="space-y-1.5">
-          <p className="eyebrow">Campaigns</p>
-          <h1 className="page-title">Campaigns</h1>
-          <p className="text-muted-sm">Every campaign on Turfcut, the most recently active first.</p>
-        </div>
-      </header>
+      <Masthead eyebrow="Campaigns" title="Campaigns" meta="Every campaign on Turfcut, the most recently active first." />
       <form action="/c" method="get" role="search" className="flex gap-2">
         <label className="sr-only" htmlFor="q">Search campaigns by name or handle</label>
         <input id="q" name="q" type="search" defaultValue={q} maxLength={QUERY_MAX} placeholder="Name or @handle" className="field flex-1" autoComplete="off" />

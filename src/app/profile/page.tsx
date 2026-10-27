@@ -21,6 +21,7 @@ import { PART_DETAILS, RELATIONSHIP_PHRASE, SHARE_PARTS, type ShareAudience } fr
 import { UrlNotice } from "@/components/UrlNotice";
 import { geoTables, resolveArea } from "@/lib/geo";
 import { DEFAULT_TRAVEL_MILES } from "@/lib/matches-data";
+import { Masthead } from "@/components/Masthead";
 
 const AUDIENCE_SHORT: Record<ShareAudience, string> = {
   RELATIONSHIP: `Organizations you ${RELATIONSHIP_PHRASE}`,
@@ -48,16 +49,10 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
 
   return (
     <main className="page">
-      <header className="page-header">
-        <div className="space-y-1">
-          <p className="eyebrow">Your profile</p>
-          <h1 className="page-title">{worker.displayName}</h1>
-        </div>
-        <div className="flex flex-wrap justify-end gap-2">
-          <Link transitionTypes={["nav-forward"]} href="/earnings" className="btn-secondary btn-sm">Earnings</Link>
-          <Link href="/settings" className="btn-ghost btn-sm">Settings &amp; sign out</Link>
-        </div>
-      </header>
+      <Masthead eyebrow="Your profile" title={worker.displayName}>
+        <Link transitionTypes={["nav-forward"]} href="/earnings" className="btn-secondary btn-sm">Earnings</Link>
+        <Link href="/settings" className="btn-ghost btn-sm">Settings &amp; sign out</Link>
+      </Masthead>
 
       {/* Only when a confirmed choice is really on record: a hand-typed ?setup=done claims nothing. */}
       {setupDone && sharing.current && <UrlNotice param="setup" message="Saved. These are your choices now; change them any time under Who sees what." />}

@@ -7,6 +7,7 @@ import Link from "next/link";
 import { getSessionProfile, type SessionProfile } from "@/lib/auth";
 import { closureFacts } from "@/lib/account-data";
 import { closureProblems } from "@/lib/account-closure";
+import { Masthead } from "@/components/Masthead";
 
 export const metadata = { title: "Display settings · Turfcut" };
 
@@ -35,13 +36,7 @@ export default async function SettingsPage() {
   }
   return (
     <main className="page max-w-2xl">
-      <header className="page-header">
-        <div className="space-y-1">
-          <p className="eyebrow">Settings</p>
-          <h1 className="page-title">Text size, theme and feel</h1>
-          <p className="text-muted-sm">Make Turfcut easier to read and use on your phone.</p>
-        </div>
-      </header>
+      <Masthead eyebrow="Settings" title="Text size, theme and feel" meta="Make Turfcut easier to read and use on your phone." />
       <DisplaySettings />
       {session && (
         <section className="section">

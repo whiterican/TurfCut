@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireWorker } from "@/lib/worker-session";
 import { CONSENT_TEXT, loadLatestPreference } from "@/lib/political-fit-data";
 import { PreferencesFlow } from "@/components/PreferencesFlow";
+import { Masthead } from "@/components/Masthead";
 
 const dateText = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
 
@@ -11,11 +12,10 @@ export default async function PreferencesPage() {
 
   return (
     <main className="page max-w-2xl space-y-8">
-      <header className="space-y-3">
-        <div className="page-header">
-          <h1 className="page-title">Political-fit preferences</h1>
+      <div className="space-y-3">
+        <Masthead eyebrow="Your profile" title="Political-fit preferences">
           <Link transitionTypes={["nav-back"]} href="/profile" className="btn-ghost">← Profile</Link>
-        </div>
+        </Masthead>
         <p className="lead">
           Every answer here is optional and comes only from you. Turfcut never
           guesses your politics from anything else. Nothing is saved until you
@@ -39,7 +39,7 @@ export default async function PreferencesPage() {
             matching and organizations see &quot;not shared&quot;.
           </p>
         )}
-      </header>
+      </div>
       <PreferencesFlow
         initial={latest ? {
           visibilityMode: latest.visibilityMode,

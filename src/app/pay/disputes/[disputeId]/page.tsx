@@ -7,6 +7,7 @@ import { ResolveDispute } from "@/components/PayForms";
 import { disputeMessage, resolve } from "../../actions";
 import { db } from "@/lib/db";
 import { hasLivePayLine } from "@/lib/pay-data";
+import { Masthead } from "@/components/Masthead";
 
 export const metadata = { title: "Pay dispute · Turfcut" };
 
@@ -23,13 +24,7 @@ export default async function OrgDisputePage({ params }: { params: Promise<{ dis
   const noPayLine = t.canResolve ? !(await hasLivePayLine(t.shift.id)) : true;
   return (
     <main className="page max-w-2xl">
-      <header className="page-header">
-        <div className="space-y-1">
-          <p className="eyebrow"><Link href="/pay?tab=disputes" className="link">Pay · Disputes</Link></p>
-          <h1 className="page-title">{t.worker.name}&apos;s dispute</h1>
-          <p className="text-muted-sm">Reply within three business days and resolve within ten. The worker sees the same clock. Missing a deadline flags the dispute; it never decides it.</p>
-        </div>
-      </header>
+      <Masthead eyebrow={<><Link href="/pay?tab=disputes" className="link">Pay · Disputes</Link></>} title={<>{t.worker.name}&apos;s dispute</>} meta="Reply within three business days and resolve within ten. The worker sees the same clock. Missing a deadline flags the dispute; it never decides it." />
       <DisputeThread t={t} send={disputeMessage}>
         {t.canResolve && (
           <section className="card space-y-3">

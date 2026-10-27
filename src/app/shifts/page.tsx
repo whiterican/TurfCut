@@ -9,6 +9,7 @@ import { loadWorkerSlots } from "@/lib/shift-slots-data";
 import { loadAvailability } from "@/lib/availability-data";
 import { OpenShiftList } from "@/components/OpenShiftList";
 import { EmptyArt } from "@/components/EmptyState";
+import { Masthead } from "@/components/Masthead";
 
 /** Every shift across every campaign — the multi-campaign calendar. */
 export default async function MyShiftsPage() {
@@ -49,14 +50,9 @@ export default async function MyShiftsPage() {
     <main className="page max-w-2xl">
       {/* Saved on the phone for dead zones: today's and the next two days' shifts. */}
       <OfflineBrief userId={userId} paths={brief} />
-      <header className="page-header">
-        <div className="space-y-1">
-          <p className="eyebrow">Shifts</p>
-          <h1 className="page-title">My shifts</h1>
-          <p className="text-muted-sm">Every campaign in one calendar. Shifts never overlap — scheduling checks across all of them.</p>
-        </div>
+      <Masthead eyebrow="Shifts" title="My shifts" meta="Every campaign in one calendar. Shifts never overlap — scheduling checks across all of them.">
         <Link transitionTypes={["nav-forward"]} href="/shifts/turf" className="btn-secondary">My turf</Link>
-      </header>
+      </Masthead>
       {upcoming.length === 0 ? (
         <div className="empty-state">
           <EmptyArt kind="shifts" />

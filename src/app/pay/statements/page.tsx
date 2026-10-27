@@ -3,6 +3,7 @@ import Link from "next/link";
 import { listStatements } from "@/lib/statements-data";
 import { money } from "@/lib/pay";
 import { requireArea } from "@/lib/employer-session";
+import { Masthead } from "@/components/Masthead";
 
 export const metadata = { title: "Statements · Turfcut" };
 
@@ -28,21 +29,11 @@ export default async function StatementsPage() {
   });
   return (
     <main className="page max-w-2xl">
-      <header className="page-header">
-        <div className="space-y-1">
-          <p className="eyebrow">
-            <Link href="/pay" className="link">
-              Pay
-            </Link>
-          </p>
-          <h1 className="page-title">Statements</h1>
-          <p className="text-muted-sm">
-            One for each calendar month (UTC): the pay recorded, the payments
-            sent, corrections to earlier months, and how disputes were handled.
-            A month&apos;s totals are fixed once it ends.
-          </p>
-        </div>
-      </header>
+      <Masthead
+        eyebrow={<Link href="/pay" className="link">Pay</Link>}
+        title="Statements"
+        meta="One for each calendar month (UTC): the pay recorded, the payments sent, corrections to earlier months, and how disputes were handled. A month's totals are fixed once it ends."
+      />
       {/* The running month is always listed, so there is always at least one. */}
       <ul className="list-card">
         {statements.map((st) => (

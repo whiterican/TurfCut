@@ -6,6 +6,7 @@ import { credentialName, expiryState, expiryToday, METHOD_LABELS, methodsFor, VE
 import { loadHiredCredentials } from "@/lib/verification-data";
 import { SIDE_LABELS } from "@/lib/proof-sides";
 import { verify } from "./actions";
+import { Masthead } from "@/components/Masthead";
 
 const dateText = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
 
@@ -22,13 +23,9 @@ export default async function OrgCredentialsPage({ searchParams }: { searchParam
 
   return (
     <main className="page max-w-3xl">
-      <header className="page-header">
-        <div className="space-y-1">
-          <p className="eyebrow">Compliance</p>
-          <h1 className="page-title">Credentials</h1>
-        </div>
+      <Masthead eyebrow="Compliance" title="Credentials">
         <Link href="/dashboard" className="btn-ghost btn-sm">← Desk</Link>
-      </header>
+      </Masthead>
       <p className="lead">
         Record that you checked a hired worker&apos;s credential, and how. Workers see which organization verified it. Other organizations see only that an
         organization did, and how.

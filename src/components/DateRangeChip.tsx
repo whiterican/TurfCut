@@ -1,6 +1,7 @@
 import { CalendarDays } from "lucide-react";
 
-const day = (d: Date | null) => (d ? d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" }) : "—");
+/** A job date as "Oct 24", in UTC so the same day prints the same everywhere. */
+export const day = (d: Date | null) => (d ? d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" }) : "—");
 
 /**
  * A job's dates, the same on every card and page: sky blue with a calendar,

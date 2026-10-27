@@ -9,7 +9,7 @@ import { openJobsEndAfter } from "@/lib/jobs";
 import { money } from "@/lib/pay";
 import { applicationsByJob, deskParts, shortOfHeadcount, weekAhead, type DeskParts, type WeekRow } from "@/lib/desk";
 
-/** One line in "Needs you": what, where it's from, and where to act on it. */
+/** One row in "Needs you": what, what it's about, since when, and the next step with where to take it. */
 export interface DeskItem {
   key: string;
   title: string;
@@ -17,6 +17,10 @@ export interface DeskItem {
   tag: string;
   badge: "badge-coral" | "badge-butter" | "badge-sky" | "badge-neutral" | "badge-accent";
   href: string;
+  /** The next step, as the link's words ("Open shift"). */
+  action: string;
+  /** The time the item rests on, from the record itself (never estimated). */
+  when?: { label: string; at: Date };
 }
 
 export interface Desk {
@@ -76,26 +80,26 @@ export async function loadDesk(actor: { profileId: string; orgId: string; role: 
 
   const needs: DeskItem[] = [];
   if (parts.field && ops) {
-    for (const r of ops.late) needs.push({ key: `late-${r.shift.id}`, title: `${r.shift.engagement.worker.displayName} hasn't checked in`, sub: r.shift.engagement.job.title, tag: "Late", badge: "badge-coral", href: `/shifts/${r.shift.id}` });
-    for (const r of ops.awaitingReview) needs.push({ key: `review-${r.shift.id}`, title: `Review ${r.shift.engagement.worker.displayName}'s shift`, sub: r.shift.engagement.job.title, tag: "Review", badge: "badge-butter", href: `/shifts/${r.shift.id}` });
+    for (const r of ops.late) needs.push({ key: `late-${r.shift.id}`, title: `${r.shift.engagement.worker.displayName} hasn't checked in`, sub: r.shift.engagement.job.title, tag: "Late", badge: "badge-coral", href: `/shifts/${r.shift.id}`, action: "Open shift", when: { label: "Started", at: r.shift.startsAt } });
+    for (const r of ops.awaitingReview) needs.push({ key: `review-${r.shift.id}`, title: `Review ${r.shift.engagement.worker.displayName}'s shift`, sub: r.shift.engagement.job.title, tag: "Review", badge: "badge-butter", href: `/shifts/${r.shift.id}`, action: "Review shift", when: r.state.checkedOutAt ? { label: "Checked out", at: r.state.checkedOutAt } : undefined });
   }
   if (parts.hiring && apps && jobs) {
     for (const g of applicationsByJob(apps.map((a) => ({ jobId: a.jobId, title: a.job.title, appliedAt: a.createdAt })))) {
-      needs.push({ key: `apps-${g.jobId}`, title: `${plural(g.count, "application")} waiting`, sub: g.title, tag: "Applied", badge: "badge-sky", href: `/hiring/${g.jobId}/applicants` });
+      needs.push({ key: `apps-${g.jobId}`, title: `${plural(g.count, "application")} waiting`, sub: g.title, tag: "Applied", badge: "badge-sky", href: `/hiring/${g.jobId}/applicants`, action: "See applicants", when: { label: "Oldest", at: g.oldest } });
     }
     for (const j of shortOfHeadcount(jobs.map((j) => ({ id: j.id, title: j.title, headcount: j.headcount, hired: j._count.engagements, startsAt: j.startsAt })))) {
-      needs.push({ key: `short-${j.id}`, title: `${j.short} of ${j.headcount} ${j.headcount === 1 ? "seat" : "seats"} open`, sub: j.title, tag: "Short", badge: "badge-neutral", href: `/jobs/${j.id}` });
+      needs.push({ key: `short-${j.id}`, title: `${j.short} of ${j.headcount} ${j.headcount === 1 ? "seat" : "seats"} open`, sub: j.title, tag: "Short", badge: "badge-neutral", href: `/jobs/${j.id}`, action: "Open job", when: j.startsAt ? { label: "Starts", at: j.startsAt } : undefined });
     }
   }
   if (parts.pay && pay && disputes !== null) {
     if (pay.awaiting.length) {
       const cents = pay.awaiting.reduce((n, l) => n + l.line.amountCents, 0);
-      needs.push({ key: "pay-approve", title: `${plural(pay.awaiting.length, "pay line")} to approve`, sub: `${money(cents)} in total`, tag: "Approve", badge: "badge-accent", href: "/pay?tab=approve" });
+      needs.push({ key: "pay-approve", title: `${plural(pay.awaiting.length, "pay line")} to approve`, sub: `${money(cents)} in total`, tag: "Approve", badge: "badge-accent", href: "/pay?tab=approve", action: "Approve pay" });
     }
-    if (disputes.overdue) needs.push({ key: "pay-disputes-overdue", title: `${plural(disputes.overdue, "dispute")} overdue`, sub: "A reply or a resolution is past its deadline", tag: "Overdue", badge: "badge-coral", href: "/pay?tab=disputes" });
-    if (disputes.dueToday) needs.push({ key: "pay-disputes-today", title: `${plural(disputes.dueToday, "dispute")} due today`, sub: "Reply or resolve before the day ends", tag: "Due", badge: "badge-butter", href: "/pay?tab=disputes" });
+    if (disputes.overdue) needs.push({ key: "pay-disputes-overdue", title: `${plural(disputes.overdue, "dispute")} overdue`, sub: "A reply or a resolution is past its deadline", tag: "Overdue", badge: "badge-coral", href: "/pay?tab=disputes", action: "Open disputes" });
+    if (disputes.dueToday) needs.push({ key: "pay-disputes-today", title: `${plural(disputes.dueToday, "dispute")} due today`, sub: "Reply or resolve before the day ends", tag: "Due", badge: "badge-butter", href: "/pay?tab=disputes", action: "Open disputes" });
     const rest = disputes.open - disputes.overdue - disputes.dueToday;
-    if (rest) needs.push({ key: "pay-disputes", title: `${plural(rest, "open dispute")}`, sub: "Workers questioning their pay", tag: "Dispute", badge: "badge-coral", href: "/pay?tab=disputes" });
+    if (rest) needs.push({ key: "pay-disputes", title: `${plural(rest, "open dispute")}`, sub: "Workers questioning their pay", tag: "Dispute", badge: "badge-coral", href: "/pay?tab=disputes", action: "Open disputes" });
   }
 
   return {

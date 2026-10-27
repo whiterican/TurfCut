@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { loadDesk } from "@/lib/desk-data";
 import { Masthead } from "@/components/staff/Masthead";
 import { DataTable } from "@/components/staff/DataTable";
+import { NeedsTable } from "@/components/staff/NeedsTable";
 import { SummaryBar } from "@/components/staff/SummaryBar";
 import { LocalTime } from "@/components/LocalTime";
 import { roleName } from "@/lib/org-roles";
@@ -56,35 +57,26 @@ export default async function DeskPage() {
   const { parts } = desk;
 
   return (
-    <main className="page">
+    <main className="page lg:max-w-5xl">
       <Masthead title={org?.name ?? "Your organization"} meta={roleName(session, ROLE_LABELS)} />
 
       {parts.today && desk.today && <FieldToday ops={desk.today} now={now} />}
 
       {!parts.readOnly && (
         <section className="section" aria-labelledby="needs-you">
-          <h2 id="needs-you" className="section-title flex items-center justify-between">
-            Needs you <span className="text-xs font-medium text-subtle">{desk.needs.length} {desk.needs.length === 1 ? "item" : "items"}</span>
-          </h2>
+          <div className="section-head">
+            <h2 id="needs-you" className="section-title">Needs you</h2>
+            <p className="text-xs text-subtle">
+              {desk.needs.length} {desk.needs.length === 1 ? "item" : "items"} · as of <LocalTime iso={now.toISOString()} mode="time" />
+            </p>
+          </div>
           {desk.needs.length === 0 ? (
             <p className="text-muted-sm">
               Nothing right now.{" "}
               {[parts.field && "Late check-ins and shifts to review", parts.hiring && "applications and open seats", parts.pay && "pay to approve and disputes"].filter(Boolean).join(", ")} show up here.
             </p>
           ) : (
-            <ul className="list-card">
-              {desk.needs.map((n) => (
-                <li key={n.key}>
-                  <Link transitionTypes={["nav-forward"]} href={n.href} className="flex min-h-14 items-center justify-between gap-3 px-4 py-3 transition hover:bg-surface-2">
-                    <span className="min-w-0">
-                      <span className="block text-sm font-semibold text-fg">{n.title}</span>
-                      <span className="block truncate text-xs text-muted">{n.sub}</span>
-                    </span>
-                    <span className={n.badge}>{n.tag}</span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
+            <NeedsTable items={desk.needs} />
           )}
         </section>
       )}

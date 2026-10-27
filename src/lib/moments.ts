@@ -61,8 +61,9 @@ export type EntryLike = { savedAt?: number; rejected?: string };
 export type SendState = "sending" | "no-signal" | "unreachable" | "problem";
 
 export function sendState(o: { syncing: boolean; online: boolean; unreachable: boolean; problem: boolean }): SendState {
-  if (o.syncing) return "sending";
+  // No signal outranks a send in flight (it will fail), as in pillState.
   if (!o.online) return "no-signal";
+  if (o.syncing) return "sending";
   if (o.problem) return "problem";
   if (o.unreachable) return "unreachable";
   return "sending";

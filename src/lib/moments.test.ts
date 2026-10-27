@@ -59,7 +59,8 @@ describe("field-day sync language (S1): never 'saved' for something only queued"
   it("works out whether a waiting entry is on its way", () => {
     const s = { syncing: false, online: true, unreachable: false, problem: false };
     expect(sendState(s)).toBe("sending");
-    expect(sendState({ ...s, syncing: true, online: false })).toBe("sending");
+    expect(sendState({ ...s, syncing: true, problem: true })).toBe("sending");
+    expect(sendState({ ...s, syncing: true, online: false })).toBe("no-signal");
     expect(sendState({ ...s, online: false, problem: true })).toBe("no-signal");
     expect(sendState({ ...s, problem: true, unreachable: true })).toBe("problem");
     expect(sendState({ ...s, unreachable: true })).toBe("unreachable");

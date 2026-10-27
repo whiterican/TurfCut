@@ -68,7 +68,7 @@ export function CoverageMap({ initial, className = "h-72" }: { initial: ZoneSumm
     const group = layer.current;
     if (!ready || !L || !group) return;
     const stroke = token("--link", "#5a3a8a");
-    const fill = token("--accent", "#ccea96");
+    const fill = token("--accent", "#164b38");
     const keep = new Set<string>();
     for (const z of zones) {
       keep.add(z.id);

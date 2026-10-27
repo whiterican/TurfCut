@@ -55,7 +55,7 @@ const ratio = (a: RGB | string, b: RGB | string) => {
   return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
 };
 
-const PASTELS = ["accent", "sky", "coral", "butter"] as const;
+const PASTELS = ["sky", "coral", "butter"] as const;
 const SURFACES = ["bg", "surface", "surface-2", "field"] as const;
 
 describe.each([
@@ -122,7 +122,7 @@ describe.each([
     expect(css).toMatch(/\.eyebrow \{[^}]*?color: var\(--kicker\);/);
     expect(ratio(t.fg, t.surface)).toBeGreaterThanOrEqual(7);
     expect(ratio(t["tab-active-fg"], t["tab-active-bg"])).toBeGreaterThanOrEqual(7);
-    // The tile is told apart from the bar by its lime type; its fill still differs visibly from the bar.
+    // The tile is told apart from the bar by its deep eggplant fill and cream type.
     expect(ratio(t["tab-active-bg"], t.surface)).toBeGreaterThanOrEqual(1.5);
   });
 
@@ -133,7 +133,6 @@ describe.each([
   it("body text stays AAA on tinted alerts and selected chips", () => {
     expect(ratio(t.fg, mix(t.butter, 0.14, t.surface))).toBeGreaterThanOrEqual(7);
     expect(ratio(t.fg, mix(t.sky, 0.12, t.surface))).toBeGreaterThanOrEqual(7);
-    expect(ratio(t.fg, mix(t.accent, 0.16, t.surface))).toBeGreaterThanOrEqual(7);
   });
 });
 
@@ -190,15 +189,22 @@ describe("dark theme accents", () => {
 });
 
 describe("mockup surfaces", () => {
-  it("lime next-shift card: title AAA, secondary text AAA", () => {
+  it("forest-ink fills (live card and chip, primary, send, swipe-to-save): cream type AAA, secondary text AAA", () => {
     for (const th of [light, dark, sun]) {
-      expect(ratio(th.ink, th.accent)).toBeGreaterThanOrEqual(7);
-      expect(ratio(mix(th.ink, 0.9, th.accent), th.accent)).toBeGreaterThanOrEqual(7);
+      expect(ratio(th["on-accent"], th.accent)).toBeGreaterThanOrEqual(7);
+      expect(ratio(mix(th["on-accent"], 0.88, th.accent), th.accent)).toBeGreaterThanOrEqual(7);
     }
+    expect(css).toMatch(/\.hero-card-accent \{[^}]*?color: var\(--on-accent\);/);
+    expect(css).toMatch(/\.badge-live \{[^}]*?color: var\(--on-accent\);/);
+  });
+  it("by night a green fill has a soft-green edge (forest ink alone is under 3:1 on the night surfaces)", () => {
+    for (const s of SURFACES) expect(ratio(dark["accent-edge"], dark[s])).toBeGreaterThanOrEqual(3);
+    expect(css).toMatch(/\.dark \.btn-primary \{\s*box-shadow: inset 0 0 0 1px var\(--accent-edge\);/);
+    expect(css).toMatch(/\.badge-live \{[^}]*?border-color: var\(--accent-edge\);/);
   });
   it("chat shift banner text is AAA, its second line AA", () => {
-    const lightBanner = mix(light.accent, 0.5, light.surface);
-    const dk = mix(dark.accent, 0.24, dark.surface);
+    const lightBanner = mix(light.sky, 0.45, light.surface);
+    const dk = mix(dark.sky, 0.14, dark.surface);
     expect(ratio(light.fg, lightBanner)).toBeGreaterThanOrEqual(7);
     expect(ratio(dark.fg, dk)).toBeGreaterThanOrEqual(7);
     expect(ratio(light.muted, lightBanner)).toBeGreaterThanOrEqual(4.5);
@@ -207,17 +213,18 @@ describe("mockup surfaces", () => {
 });
 
 describe("priority rings", () => {
-  // The rings circle the next-shift card, which is filled with --accent.
+  // The rings circle the next-shift card: eggplant, or forest ink while the shift is live.
   it("the outermost ring stands out from the page (WCAG non-text, ≥ 3:1)", () => {
     for (const th of [light, dark, sun]) {
       for (const s of ["bg", "surface", "surface-2"] as const) expect(ratio(th["ring-3"], th[s])).toBeGreaterThanOrEqual(3);
     }
   });
-  it("by day the innermost ring stands out from the lime card (≥ 3:1)", () => {
-    expect(ratio(light.ring, light.accent)).toBeGreaterThanOrEqual(3);
+  it("by day a page-coloured gap separates the rings from any hero card", () => {
+    expect(css).toMatch(/:root:not\(\.dark\) \.hero-card:is\(\[data-priority="1"\][^{]*\{\s*border-color: var\(--bg\);/);
+    expect(ratio(light.ring, light.bg)).toBeGreaterThanOrEqual(3);
   });
-  it("by night a page-coloured gap separates the rings from the lime card", () => {
-    // The pale inner ring is close to the lime card, so the card's border takes the page colour.
+  it("by night a page-coloured gap separates the rings from the card", () => {
+    // The pale inner ring would sit close to the card, so the card's border takes the page colour.
     expect(css).toMatch(/\.dark \.hero-card:is\(\[data-priority="1"\], \[data-priority="2"\], \[data-priority="3"\]\) \{\s*border-color: var\(--bg\);/);
     expect(ratio(dark.ring, dark.bg)).toBeGreaterThanOrEqual(3);
     for (const k of ["ring", "ring-2", "ring-3"] as const) expect(lum(rgb(dark[k]))).toBeGreaterThan(lum(rgb(dark.surface)));
@@ -276,22 +283,26 @@ describe("party chips (job cards)", () => {
   });
 });
 
-describe("the Turfcut App Mockup palette (eggplant and lime)", () => {
-  it("dark mode uses the mockup's eggplant surfaces and lime accent", () => {
+describe("the Turfcut palette: deep eggplant, warm paper, forest ink (G1)", () => {
+  it("dark mode keeps the eggplant surfaces, raised eggplant tiles and forest-ink accent", () => {
     expect(dark.bg).toBe("#120d18");
     expect(dark.surface).toBe("#23182f");
     expect(dark["surface-2"]).toBe("#30223f");
-    expect(dark.accent).toBe("#d6f25a");
-    expect(dark.solid).toBe("#5a3b82"); // settled status by night: the raised eggplant tile
+    expect(dark.accent).toBe("#164b38");
+    expect(dark.solid).toBe("#4a3365"); // settled status by night: the raised eggplant tile
+    expect(dark["tab-active-bg"]).toBe("#4a3365");
+    expect(dark.focus).toBe("#82bc9b");
   });
-  it("light mode uses the clipboard brand's warm paper, eggplant ink and lime accent (DESIGN.md)", () => {
+  it("light mode uses warm paper, deep eggplant identity and the forest-ink accent (founder, 2026-10-27)", () => {
     expect(light.bg).toBe("#efeae1");
     expect(light.fg).toBe("#1b1422");
-    expect(light.accent).toBe("#d6f25a");
-    expect(light.solid).toBe("#3a2154"); // settled status: the eggplant tile, not lime
-    expect(light.hero).toBe("#3a2154");
-    expect(light.primary).toBe("#2a173e");
-    expect(light["on-primary"]).toBe("#d6f25a");
+    expect(light.accent).toBe("#164b38");
+    expect(light.solid).toBe("#3a2154"); // settled status: the eggplant tile
+    expect(light.hero).toBe("#281539");
+    expect(light["tab-active-bg"]).toBe("#281539");
+    expect(light.primary).toBe("#164b38");
+    expect(light["on-primary"]).toBe("#fbf7f0");
+    expect(light["tab-active-fg"]).toBe("#fbf7f0"); // cream on the eggplant tile, never green type
   });
   it("progress fills (the success colour) show against surfaces in both themes (≥ 3:1)", () => {
     for (const th of [light, dark, sun]) for (const k of ["surface", "surface-2"] as const) expect(ratio(th.success, th[k])).toBeGreaterThanOrEqual(3);
@@ -338,25 +349,23 @@ describe("the token parser itself", () => {
 });
 
 
-describe("lime is for what is live and the one primary action (Direction A)", () => {
-  // Status that has settled (approved, paid, active, you) is the eggplant tile, never lime.
-  it("settled status, the date chip and selected filters are not lime", () => {
+describe("forest ink is for what is live and the one primary action (G1)", () => {
+  // Status that has settled (approved, paid, active, you) is the eggplant tile, never green.
+  it("settled status, the date chip and selected filters are not the accent", () => {
     for (const th of [light, dark, sun]) expect(th.solid).not.toBe(th.accent);
     expect(css).toMatch(/\.badge-accent \{ --badge-bg: var\(--sky\); \}/);
   });
   it("only an allowed list of rules paints with the accent", () => {
     // Every rule whose declarations use the accent: the live chip and the live shift card (and
     // its eyebrow tint), the cut, the send button and swipe-to-save (the action being taken), text
-    // selection and the empty-state art. Selectors are compared one by one, exactly, so a new
-    // lime surface fails here until it is argued for.
+    // selection. Selectors are compared one by one, exactly, so a new green surface fails here
+    // until it is argued for.
     const allowed = new Set([
       "@theme inline",
       "::selection",
-      ".hero-card::after",
       ".hero-card-accent",
       ".hero-card.hero-card-accent .eyebrow",
       ".hero-card.hero-card-accent .hero-muted",
-      ".empty-art .lime",
       ".badge-live",
       ".swipe-under-save",
       ".send-btn",
@@ -365,20 +374,25 @@ describe("lime is for what is live and the one primary action (Direction A)", ()
     const selectors = [...bare.matchAll(/([^{};]+)\{([^{}]*)\}/g)]
       .filter((m) => /var\(--(color-)?accent\)|#d6f25a|@apply[^;]*\b(bg|text|border|fill|stroke|ring|outline|decoration)-accent\b/i.test(m[2]))
       .flatMap((m) => m[1].split(",").map((x) => x.trim().replace(/\s+/g, " ")));
-    // The theme blocks define the tokens; which tokens may hold lime is checked below.
+    // The theme blocks define the tokens.
     const themes = new Set([":root", ".dark", ".sun"]);
     expect(selectors.filter((sel) => !allowed.has(sel) && !themes.has(sel))).toEqual([]);
   });
-  it("only the live, primary and current-tab tokens hold lime", () => {
-    // The accent itself; the primary action (lime type on eggplant by day, a lime fill by night);
-    // the current tab's type; and the keyboard focus ring by night.
-    const mayBeLime = new Set(["accent", "on-primary", "primary", "tab-active-fg", "focus"]);
+  it("lime is retired: no token or rule holds it", () => {
+    expect(css.replace(/\/\*[\s\S]*?\*\//g, "")).not.toMatch(/#d6f25a/i);
+  });
+  it("only the primary action and the accent tokens hold forest ink", () => {
+    const mayBeGreen = new Set(["accent", "primary", "accent-edge", "cut"]);
     for (const sel of [":root", ".dark", ".sun"]) {
-      const lime = Object.entries(block(sel)).filter(([, v]) => v.toLowerCase() === "#d6f25a").map(([k]) => k);
-      expect(lime.filter((k) => !mayBeLime.has(k))).toEqual([]);
+      const green = Object.entries(block(sel)).filter(([, v]) => v.toLowerCase() === "#164b38").map(([k]) => k);
+      expect(green.filter((k) => !mayBeGreen.has(k))).toEqual([]);
     }
   });
-  it("no component paints with lime directly (classes, arbitrary values or the hex)", () => {
+  it("forest ink is never text on the night surfaces", () => {
+    // 1.9:1 on #120D18: green type by night would be unreadable, so the dark text tokens aren't green.
+    for (const k of ["fg", "muted", "subtle", "link", "kicker", "on-primary", "tab-active-fg"] as const) expect(dark[k]).not.toBe("#164b38");
+  });
+  it("no component paints with the accent or lime directly (classes, arbitrary values or the hex)", () => {
     const root = join(__dirname, "..");
     const files = readdirSync(root, { recursive: true, encoding: "utf8" }).filter(
       (f) => /\.tsx?$/.test(f) && !/\.test\.tsx?$/.test(f) && !f.replaceAll("\\", "/").startsWith("app/zz-preview")
@@ -390,15 +404,12 @@ describe("lime is for what is live and the one primary action (Direction A)", ()
     );
     expect(hits).toEqual([]);
   });
-  it("by day the first ring reads against the page gap around an eggplant card", () => {
-    expect(ratio(light.ring, light.bg)).toBeGreaterThanOrEqual(3);
-    expect(css).toMatch(/:root:not\(\.dark\) \.hero-card:not\(\.hero-card-accent\):is\(\[data-priority="1"\][^{]*\{\s*border-color: var\(--bg\);/);
-  });
+
   it("by night the checked radio dot reads on the card (≥ 3:1)", () => {
     expect(css).toMatch(/\.dark \.option-card input\[type="radio"\]:checked \{\s*background: var\(--fg\);/);
     expect(ratio(dark.fg, dark.surface)).toBeGreaterThanOrEqual(3);
   });
-  it("success (done, verified) is not lime in any theme", () => {
+  it("success (done, verified) is not the live accent in any theme", () => {
     for (const th of [light, dark, sun]) expect(th.success).not.toBe(th.accent);
   });
   it("the rail and the desktop top nav mark the current page with the dock's eggplant tile, not a side stripe", () => {

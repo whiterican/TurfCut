@@ -53,7 +53,7 @@ const SHAPES: Record<SkeletonShape, (o: ShapeOptions) => React.ReactNode> = {
   home: (o) => (
     <>
       {o.heading && <Heading />}
-      <Bar className="h-40 w-full rounded-3xl" />
+      <Bar className="h-40 w-full rounded-[var(--radius-card)]" />
       <div className="grid grid-cols-3 gap-3">
         {Array.from({ length: 3 }, (_, i) => <Bar key={i} className="h-16 rounded-2xl" />)}
       </div>

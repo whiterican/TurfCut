@@ -410,8 +410,15 @@ describe("forest ink is for what is live and the one primary action (G1)", () =>
   it("success (done, verified) is not the live accent in any theme", () => {
     for (const th of [light, dark, sun]) expect(th.success).not.toBe(th.accent);
   });
-  it("the rail and the desktop top nav mark the current page with the dock's eggplant tile, not a side stripe", () => {
-    expect(css).toMatch(/\.rail-link\[aria-current="page"\] \{[^}]*?background: var\(--tab-active-bg\);/);
+  it("the organization rail is a deep eggplant panel: cream and lavender type AAA, the current tile AAA (every theme)", () => {
+    for (const th of [light, dark, sun]) {
+      expect(ratio(th["rail-fg"], th["rail-bg"])).toBeGreaterThanOrEqual(7);
+      expect(ratio(th["rail-muted"], th["rail-bg"])).toBeGreaterThanOrEqual(7);
+      expect(ratio(th["rail-active-fg"], th["rail-active-bg"])).toBeGreaterThanOrEqual(7);
+    }
+  });
+  it("the rail and the desktop top nav mark the current page with an eggplant tile, not a side stripe", () => {
+    expect(css).toMatch(/\.rail-link\[aria-current="page"\] \{[^}]*?background: var\(--rail-active-bg\);/);
     expect(css).toMatch(/\.topnav-link\[aria-current="page"\] \{[^}]*?background: var\(--tab-active-bg\);/);
     expect(css).not.toMatch(/inset 3px 0 0/);
   });

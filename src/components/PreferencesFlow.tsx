@@ -97,7 +97,7 @@ export function PreferencesFlow({ initial, consentText }: { initial: FitPreferen
                 disabled={i > reached || (i > 0 && !draft.visibilityMode)}
                 onClick={() => setStep(i)}
               >
-                {i < step && <Check aria-hidden className="size-4 shrink-0" />}
+                {i < step && <Check aria-hidden className="size-3.5 shrink-0" />}
                 {STEP_TITLES[s]}
               </button>
             </li>

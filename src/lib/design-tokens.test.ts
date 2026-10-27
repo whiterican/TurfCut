@@ -381,12 +381,12 @@ describe("lime is for what is live and the one primary action (Direction A)", ()
   it("no component paints with lime directly (classes, arbitrary values or the hex)", () => {
     const root = join(__dirname, "..");
     const files = readdirSync(root, { recursive: true, encoding: "utf8" }).filter(
-      (f) => /\.tsx?$/.test(f) && !/\.test\.tsx?$/.test(f) && !f.startsWith("app/zz-preview")
+      (f) => /\.tsx?$/.test(f) && !/\.test\.tsx?$/.test(f) && !f.replaceAll("\\", "/").startsWith("app/zz-preview")
     );
     // Moments maps a badge class to its fill for the paid-badge morph; .badge-live's is the accent.
     const ok = new Set(["components/Moments.tsx"]);
     const hits = files.filter((f) => !ok.has(f.replaceAll("\\", "/"))).filter((f) =>
-      /\b(bg|text|border|fill|stroke|ring|outline|decoration)-accent\b|var\(--(color-)?accent\)|#d6f25a/i.test(readFileSync(join(root, f), "utf8"))
+      /\b(bg|text|border|fill|stroke|ring|outline|decoration|from|via|to|shadow|caret|accent|divide)-accent\b|var\(--(color-)?accent\)|#d6f25a/i.test(readFileSync(join(root, f), "utf8"))
     );
     expect(hits).toEqual([]);
   });

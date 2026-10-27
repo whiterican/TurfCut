@@ -17,6 +17,7 @@ import { PART_DETAILS, RELATIONSHIP_PHRASE, SHARE_PARTS, visibleParts, type Shar
 import { effectivePreference } from "@/lib/political-fit";
 import { loadLatestPreference } from "@/lib/political-fit-data";
 import { JobCard } from "@/components/JobCard";
+import { JobFacts } from "@/components/JobFacts";
 import { SnapshotView } from "@/components/SnapshotView";
 import { ActionButton } from "@/components/ActionButton";
 import { Sheet } from "@/components/Sheet";
@@ -35,7 +36,6 @@ import { OpenShifts } from "@/components/staff/OpenShifts";
 import { loadJobSlots, seatsOnOffer } from "@/lib/shift-slots-data";
 import { loadSharedAvailabilities } from "@/lib/availability-data";
 import { orgAvailabilityView, withoutPastDates } from "@/lib/availability";
-import { DateRangeChip } from "@/components/DateRangeChip";
 import { followState } from "@/lib/campaign-follow-data";
 import { CampaignCard } from "@/components/campaign/CampaignCard";
 import { ChevronLeft, CircleCheck, Info } from "lucide-react";
@@ -43,7 +43,7 @@ import { ChevronLeft, CircleCheck, Info } from "lucide-react";
 /** A view-transition name and class as inline style (React knows the name; the class property isn't in its CSS types yet). */
 const shareStyle = (name: string) => ({ viewTransitionName: name, viewTransitionClass: "job-share" }) as React.CSSProperties;
 
-// An invitation's deadline, as a day (the job's own dates are a DateRangeChip).
+// An invitation's deadline, as a day (the job's own dates are in the facts list).
 const day = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
 
 const dayTime = (d: Date) => d.toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/Denver" }) + " MT";
@@ -108,15 +108,16 @@ export default async function JobPage({ params }: { params: Promise<{ jobId: str
         chips={
           <>
             {isOwnOrg && <span className={jobPageBadge(status.badge)}>{status.label}</span>}
-            {/* The dates carry a calendar so their lavender never reads as a party. */}
-            <DateRangeChip startsAt={job.startsAt} endsAt={job.endsAt} />
-            <span className="badge-neutral">{acceptedCount} of {job.headcount ?? "—"} spots filled</span>
           </>
         }
         back={
-          <Link transitionTypes={["nav-back"]} href="/jobs" className="btn-ghost btn-sm -ms-3"><ChevronLeft aria-hidden className="size-4 shrink-0" />Jobs</Link>
+          <Link transitionTypes={["nav-back"]} href="/jobs" className="btn-ghost -ms-4"><ChevronLeft aria-hidden className="size-4 shrink-0" />Jobs</Link>
         }
       />
+
+      {/* The facts a worker decides on, before anything else (D2): dates, place and how each day starts, spots,
+          what counts as payable, credentials and the rules. The full job card below keeps every detail. */}
+      <JobFacts job={job} acceptedCount={acceptedCount} />
 
       {job.description && <p className="lead">{job.description}</p>}
 
@@ -131,7 +132,7 @@ export default async function JobPage({ params }: { params: Promise<{ jobId: str
       )}
 
       <section className="section">
-        <h2 className="section-title">Job card</h2>
+        <h2 className="section-title">Full job card</h2>
         <JobCard job={{ ...job, orgName: job.org.name, jurisdictionRules: job.jurisdiction.rules }} />
       </section>
     </main>
@@ -274,9 +275,9 @@ async function WorkerPanel({
         {reasons2.map((r) => (
           <li key={r.title} className="flex items-start gap-3 py-3">
             {r.kind === "yes" ? (
-              <CircleCheck aria-hidden className="size-5 shrink-0 text-fg" />
+              <CircleCheck aria-hidden className="mt-0.5 size-5 shrink-0 text-fg" />
             ) : (
-              <Info aria-hidden className="size-5 shrink-0 text-muted" />
+              <Info aria-hidden className="mt-0.5 size-5 shrink-0 text-muted" />
             )}
             <span className="min-w-0">
               <span className="block font-semibold text-fg">{r.title}</span>
@@ -289,10 +290,10 @@ async function WorkerPanel({
     </section>
     <section className="card space-y-4">
       {modes.includes("application") && (
-        <ActionButton action={apply} fields={{ jobId: job.id }} label="Apply with verified profile" pendingLabel="Applying…" />
+        <ActionButton action={apply} fields={{ jobId: job.id }} label="Apply with verified profile" pendingLabel="Applying…" variant="btn-primary w-full" />
       )}
       {modes.includes("instant_claim") && (
-        <ActionButton action={claim} fields={{ jobId: job.id }} label="Claim a spot" pendingLabel="Claiming…" variant={modes.includes("application") ? "btn-secondary" : "btn-primary"} />
+        <ActionButton action={claim} fields={{ jobId: job.id }} label="Claim a spot" pendingLabel="Claiming…" variant={modes.includes("application") ? "btn-secondary w-full" : "btn-primary w-full"} />
       )}
       {!modes.includes("application") && !modes.includes("instant_claim") && (
         <p className="text-muted-sm">This job hires by invitation only.</p>

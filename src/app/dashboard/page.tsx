@@ -9,6 +9,7 @@ import { openJobsEndAfter, payShort, payText } from "@/lib/jobs";
 import { loadFeed } from "@/lib/jobs-data";
 import { JobRow } from "@/components/JobRow";
 import { LocalTime } from "@/components/LocalTime";
+import { TodayDate } from "@/components/TodayDate";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { workerPayTotals } from "@/lib/pay-data";
@@ -342,7 +343,7 @@ export default async function DashboardPage() {
     <main className="page">
       {/* Today is the day, not a greeting: the date under the title, no name or email (D1b). */}
       {isWorker ? (
-        <Masthead title="Today" meta={<LocalTime iso={new Date().toISOString()} mode="fulldate" />} />
+        <Masthead title="Today" meta={<TodayDate />} />
       ) : (
         <Masthead title="Your account" meta={[roleName(session, ROLE_LABELS), session.email].filter(Boolean).join(" · ")} />
       )}

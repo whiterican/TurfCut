@@ -356,6 +356,25 @@ body {
     @apply text-xs leading-relaxed font-medium text-subtle;
   }
 
+  /* ---- Facts with icons (D2) -------------------------------------------- */
+  /* A card's who / where / when, one icon-led line each, in muted type. */
+  .fact-rows {
+    @apply flex flex-col gap-1;
+  }
+  .fact-row {
+    @apply flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 text-sm text-muted;
+  }
+  /* The facts a worker decides on, at the top of a job page: icon, title, one line of detail. */
+  .fact-list {
+    @apply divide-y divide-border py-1 sm:py-1;
+  }
+  .fact {
+    @apply flex items-start gap-3 py-3;
+  }
+  .fact-icon {
+    @apply mt-0.5 size-5 shrink-0 text-muted;
+  }
+
   /* ---- Surfaces -------------------------------------------------------- */
   .card {
     @apply rounded-3xl border border-border p-4 sm:p-5;
@@ -681,7 +700,7 @@ body {
     border-color: var(--selected);
     box-shadow: 0 0 0 1px var(--selected);
   }
-  /* Radios: an eggplant ring with a lime dot. Sized here (appearance: none
+  /* Radios: an eggplant ring with an eggplant dot (paper by night). Sized here (appearance: none
      leaves a radio with no size of its own). */
   .option-card input[type="radio"] {
     appearance: none;

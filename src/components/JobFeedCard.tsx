@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { BadgeCheck, ChevronRight } from "lucide-react";
-import { DateRangeChip } from "@/components/DateRangeChip";
-import { cardAffiliation, jobDiscoveryLabel, payText, readDisclosure } from "@/lib/jobs";
+import { BadgeCheck, CalendarDays, MapPin } from "lucide-react";
+import { day } from "@/components/DateRangeChip";
+import { cardAffiliation, jobDiscoveryLabel, payShort, readDisclosure } from "@/lib/jobs";
 import type { CompensationMethod, JobType } from "@prisma/client";
 
 export interface FeedJob {
@@ -20,12 +20,11 @@ export interface FeedJob {
 }
 
 /**
- * An open job as a card (F03a): the meta line (who · where, and Turfcut's
- * approval), the title in the brand face, the candidate when there is one,
- * the facts as chips (dates, type and declared affiliation), and one bottom
- * line with gross pay on the left and the action on the right, whatever the
- * width. The same facts as JobRow, in the same order, at card density.
- * Rendered inside SwipeCard on the feed, which adds the frame, Save and Hide.
+ * An open job as a card (D2): the kind of work as a chip, then the title
+ * with the gross pay on the right (the two things scanned first), the
+ * candidate when there is one, and icon rows for who (with Turfcut's
+ * approval), where and when. The whole card is the link. Rendered inside
+ * SwipeCard on the feed, which adds the frame, Save and Hide.
  */
 export function JobFeedCard({ j }: { j: FeedJob }) {
   const geo = (j.geography ?? {}) as { city?: string; state?: string };
@@ -53,37 +52,44 @@ export function JobFeedCard({ j }: { j: FeedJob }) {
         }
       }}
     >
-      <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-semibold text-muted">
-        {j.org.name}
-        {place && <><span aria-hidden>·</span>{place}</>}
-        {j.org.approved && (
-          <span className="inline-flex items-center gap-1 text-fg">
-            <BadgeCheck aria-hidden className="size-3.5 shrink-0" />
-            Approved org
-          </span>
-        )}
-      </span>
-      <span className="min-w-0 space-y-1">
-        <span data-share="title" className="masthead block w-fit text-lg leading-tight">{j.title}</span>
-        {j.type === "CANVASS" && campaign?.campaignType === "candidate" && campaign.campaignName && (
-          <span className="block text-sm font-medium text-fg">Candidate: {campaign.campaignName}</span>
-        )}
-      </span>
+      {/* What kind of work, in the campaign's own declared words (a party chip names the party). */}
       <span className="flex flex-wrap gap-1.5">
-        <DateRangeChip startsAt={j.startsAt} endsAt={j.endsAt} />
         {aff ? (
           <span className={`badge-party badge-party-${aff.affiliation}`}>{type} · {aff.label}</span>
         ) : (
           <span className="badge-neutral">{type}</span>
         )}
       </span>
-      {/* Pay and the way in share the last line at every width. The whole card is the link, so the
-          way in is a quiet label, not a filled button repeated on every card (one primary per view). */}
-      <span className="flex items-center justify-between gap-3 border-t border-border pt-3">
-        <span data-share="pay" className="min-w-0 text-sm font-bold text-fg tabular-nums">{payText(j.compensationMethod, j.payRateCents)}</span>
-        <span className="inline-flex shrink-0 items-center gap-0.5 text-sm font-semibold whitespace-nowrap text-fg">
-          View job
-          <ChevronRight aria-hidden className="size-4 transition-transform group-hover:translate-x-0.5" />
+      {/* The title and the gross pay on one line: the two things a worker scans for first. */}
+      <span className="flex items-start justify-between gap-3">
+        <span className="min-w-0 space-y-1">
+          <span data-share="title" className="masthead block w-fit text-lg leading-tight">{j.title}</span>
+          {j.type === "CANVASS" && campaign?.campaignType === "candidate" && campaign.campaignName && (
+            <span className="block text-sm font-medium text-fg">Candidate: {campaign.campaignName}</span>
+          )}
+        </span>
+        <span className="shrink-0 text-end">
+          <span data-share="pay" className="block text-base font-bold text-fg tabular-nums">{payShort(j.compensationMethod, j.payRateCents, j.type)}</span>
+          {!!j.payRateCents && <span className="block text-xs text-muted">gross</span>}
+        </span>
+      </span>
+      <span className="fact-rows">
+        <span className="fact-row font-medium text-fg">
+          {j.org.name}
+          {j.org.approved && (
+            <span className="inline-flex items-center gap-1 text-muted">
+              <BadgeCheck aria-hidden className="size-4 shrink-0 text-fg" />
+              <span>Approved org</span>
+            </span>
+          )}
+        </span>
+        <span className="fact-row">
+          <MapPin aria-hidden className="size-4 shrink-0" />
+          {place || "Place to be set"}
+        </span>
+        <span className="fact-row">
+          <CalendarDays aria-hidden className="size-4 shrink-0" />
+          {j.startsAt || j.endsAt ? `${day(j.startsAt)} – ${day(j.endsAt)}` : "Dates to be set"}
         </span>
       </span>
     </Link>

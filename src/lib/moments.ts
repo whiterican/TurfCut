@@ -35,12 +35,91 @@ export type PillState = "online" | "offline" | "syncing" | "waiting" | "refused"
  * loses them (P0).
  */
 export function pillState(o: { online: boolean; reachable: boolean; syncing: boolean; waiting: number; refused: number; memoryOnly?: boolean }): PillState {
-  if (o.refused > 0) return "refused";
+  // Entries only on this page outrank a refusal: closing the page loses them.
   if (o.memoryOnly && o.waiting > 0) return "unsaved";
+  if (o.refused > 0) return "refused";
   if (!o.online || !o.reachable) return "offline";
   if (o.syncing) return "syncing";
   if (o.waiting > 0) return "waiting";
   return "online";
+}
+
+/**
+ * Field-day sync language (S1, plan #78): one word per truth, never "saved"
+ * for something only queued.
+ * - saved on this phone: in the phone's storage, not sent yet
+ * - only on this page: the phone couldn't store it (storage full or blocked);
+ *   closing the page loses it
+ * - sending: a send is under way
+ * - recorded: the server has it
+ * - not recorded: the server refused it (not "rejected": that's a review word)
+ * Nothing sends in the background, so unsent entries go the next time Turfcut
+ * is open with signal.
+ */
+export type EntryLike = { savedAt?: number; rejected?: string };
+
+/** Why a waiting entry isn't on its way right now, or "sending" if it is (or is about to be). */
+export type SendState = "sending" | "no-signal" | "unreachable" | "problem";
+
+export function sendState(o: { syncing: boolean; online: boolean; unreachable: boolean; problem: boolean }): SendState {
+  // No signal outranks a send in flight (it will fail), as in pillState.
+  if (!o.online) return "no-signal";
+  if (o.syncing) return "sending";
+  if (o.problem) return "problem";
+  if (o.unreachable) return "unreachable";
+  return "sending";
+}
+
+/**
+ * The message under the field-day controls about the entry just recorded,
+ * named (several can be in flight), derived on every render from the queue
+ * rather than from one look after a send, which another tab or Today's
+ * send-all can pre-empt. `entry` is the queued entry, or undefined once it
+ * left the queue; `shownOnPage` says the page already shows it (the server
+ * had it and the page reloaded). Null: nothing to say.
+ */
+/** done: the server has it; pending: on its way or waiting; problem: needs the worker. */
+export type Tone = "done" | "pending" | "problem";
+
+export function entryMessage(o: {
+  what: string;
+  entry: EntryLike | undefined;
+  shownOnPage: boolean;
+  /** The phone's storage holds the queue (false: only this page does). */
+  stored: boolean;
+  send: SendState;
+}): { tone: Tone; text: string } | null {
+  if (o.entry?.rejected) return { tone: "problem", text: `${o.what} — not recorded: ${o.entry.rejected}` };
+  if (o.entry?.savedAt || (!o.entry && o.shownOnPage)) return { tone: "done", text: `${o.what} — recorded.` };
+  if (!o.entry) return null;
+  if (!o.stored) return { tone: "problem", text: `${o.what} — not saved on this phone: storage is full or blocked. Keep this page open until it's sent, or it will be lost.` };
+  const later =
+    o.send === "no-signal"
+      ? " It'll send when Turfcut is open with signal."
+      : o.send === "unreachable"
+        ? " It'll keep trying while Turfcut is open."
+        : ""; // a problem's reason is shown under the pill
+  return { tone: "pending", text: o.send === "sending" ? `${o.what} — saved on this phone. Sending…` : `${o.what} — saved on this phone, not sent yet.${later}` };
+}
+
+/** The connection pill's words for its state (see pillState): short (two lines at most at 320px), never "All saved". */
+export function pillText(state: PillState, o: { waiting: number; refused: number; send: SendState }): string {
+  const lead = o.send === "no-signal" ? "No signal — " : o.send === "problem" || o.send === "unreachable" ? "Not sent — " : "";
+  switch (state) {
+    case "refused":
+      return `${o.refused} not recorded`;
+    case "unsaved":
+      return lead ? `${lead}${o.waiting} only on this page. Keep it open.` : `${o.waiting} only on this page — keep it open`;
+    case "offline":
+      if (!o.waiting) return "No signal — you can keep working";
+      return `${o.send === "unreachable" ? "Can't connect — " : lead || "No signal — "}${o.waiting} saved on this phone`;
+    case "syncing":
+      return "Sending…";
+    case "waiting":
+      return `${o.waiting} saved on this phone, not sent yet`;
+    default:
+      return "Nothing waiting to send";
+  }
 }
 
 /** Statuses that mean "on its way", from which arriving at PAID is worth showing. */

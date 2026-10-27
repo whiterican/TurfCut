@@ -9,6 +9,7 @@
  * the reason until the worker dismisses it. Kept in localStorage per
  * signed-in user, so it survives the app closing; cleared on sign-out.
  */
+import * as Sentry from "@sentry/nextjs";
 import { MAX_BATCH, type QueuedAction } from "@/lib/offline-sync";
 
 export interface Pending extends QueuedAction {
@@ -199,14 +200,17 @@ export async function flush(userId: string, shiftId: string): Promise<FlushResul
         // else (signed out, a hiccup finding the shift, rate limits, server
         // trouble) leaves them waiting for the next try.
         if (res.status === 400) {
-          const why = body?.error ?? "The server couldn't read these.";
+          // The server's reason here is for developers ("Send { deviceNow, actions }."): the worker gets plain words.
+          const why = "Something went wrong sending this. Tell your supervisor.";
+          // Support keeps the server's reason (usually an old app version against a new server).
+          Sentry.captureMessage("Field sync batch refused (400)", { level: "warning", extra: { error: body?.error ?? null, entries: batch.length } });
           const ids = new Set(batch.map((b) => b.clientId));
           write(userId, read(userId).map((p) => (ids.has(p.clientId) ? { ...p, rejected: why } : p)));
           result.rejected += batch.length;
           continue;
         }
-        if (res.status === 401 || res.status === 403) return { ...result, problem: "Sign in again to sync." };
-        if (res.status === 404) return { ...result, problem: body?.error ?? "The server couldn't find this shift. It'll try again." };
+        if (res.status === 401 || res.status === 403) return { ...result, problem: "Sign in again to send your entries." };
+        if (res.status === 404) return { ...result, problem: "Couldn't find this shift. It'll try again." };
         return { ...result, offline: true };
       }
       saveOffset(body.serverNow, sentAt, Date.now());
@@ -219,14 +223,14 @@ export async function flush(userId: string, shiftId: string): Promise<FlushResul
           if (!r) return p;
           if (r.status === "rejected") {
             result.rejected++;
-            return { ...p, rejected: r.reason ?? "Couldn't be saved." };
+            return { ...p, rejected: r.reason ?? "The server turned it down." };
           }
           result.saved++;
           return { ...p, savedAt: now };
         })
       );
       // An answer without these entries would loop forever: stop here.
-      if (!batch.some((b) => by.has(b.clientId))) return result;
+      if (!batch.some((b) => by.has(b.clientId))) return { ...result, problem: "The server didn't answer for these. It'll try again." };
     }
   } finally {
     inFlight.delete(shiftId);

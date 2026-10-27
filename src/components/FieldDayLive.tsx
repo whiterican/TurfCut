@@ -141,9 +141,11 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
   );
   // Entries the page already shows (saved and reloaded) aren't replayed again.
   const shown = useMemo(() => new Set(shift.events.map((e) => e.clientId).filter((x): x is string => !!x)), [shift.events]);
+  // Entry times on the server's clock, as the activity log shows them.
+  const offset = mounted ? clockOffset() : 0;
   const facts = useMemo(
-    () => withPending(base, pending.filter((p) => !p.rejected && !shown.has(p.clientId)), mounted ? clockOffset() : 0, shift.carriedIn),
-    [base, pending, shown, mounted, shift.carriedIn]
+    () => withPending(base, pending.filter((p) => !p.rejected && !shown.has(p.clientId)), offset, shift.carriedIn),
+    [base, pending, shown, offset, shift.carriedIn]
   );
   const st = shiftState(facts);
   const waiting = pending.filter((p) => !p.rejected && !p.savedAt);
@@ -324,7 +326,7 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
         <ul className="space-y-0.5 text-xs text-muted">
           {waiting.map((p) => (
             <li key={p.clientId}>
-              {describe(p.action)} · {when(p.at)} · {memoryOnly ? "only on this page" : "not sent yet"}
+              {describe(p.action)} · {when(p.at + offset)} · {memoryOnly ? "only on this page" : "not sent yet"}
             </li>
           ))}
         </ul>
@@ -335,7 +337,7 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
             <li key={p.clientId} className="flex items-start justify-between gap-3 rounded-xl border border-border px-3 py-2 text-sm">
               <span>
                 <span className="font-semibold text-fg">{describe(p.action)}</span>{" "}
-                <span className="text-muted">({when(p.at)}) wasn&apos;t recorded: {p.rejected}</span>
+                <span className="text-muted">({when(p.at + offset)}) wasn&apos;t recorded: {p.rejected}</span>
               </span>
               <button type="button" className="btn-ghost btn-sm shrink-0" onClick={() => dismiss(shift.userId, p.clientId)}>
                 Dismiss

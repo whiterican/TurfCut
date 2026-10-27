@@ -395,6 +395,27 @@ Components take **view models** (plain props shaped for display), not Prisma typ
 | `PhotoHero` | none | **New.** Public pages only. Licensed placeholder image, eggplant overlay, labelled until replaced |
 | `TypeTile` | none | **New.** The job-type tile used when a job has no campaign image |
 
+### 4.3a Logo and wordmark (issue #78, founder addition)
+
+Today's mark reads too light against the paper, eggplant and forest palette. This is a review and concept deliverable only.
+
+- **Inventory.** List the real assets and where each is used:
+  - `public/brand/mark-light.png`, `wordmark-lockup.webp`, `app-icon-master-1024.png`, `apple-touch-icon.png`, `favicon.ico`, `public/brand/icons/`, and the `src/app/` icon files;
+  - which of them each surface actually loads;
+  - whether any are raster only (no vector original; recorded as a limitation, not invented).
+- **Three treatments,** same silhouette:
+  - **A:** deep forest `#164B38` mark and wordmark on cream or paper;
+  - **B:** eggplant `#281539` on paper;
+  - **C:** cream `#FBF7F0` on dark eggplant.
+- **Per-surface lockups.** Light, dark and Sunlight each get their own variant; no single colour has to work on opposite backgrounds.
+- **Shown in context:**
+  - the landing hero, sign-in and the cream Home header;
+  - the dark shell and the desktop org rail;
+  - the favicon and home-screen icon, at icon and wordmark scale.
+- **Measured contrast,** never claimed without measuring.
+- **Output:** one recommended usage system covering variants, exact colours, asset mapping, minimum size and clear space, plus a KEEP / ADJUST / REDRAW rationale.
+- **Gates:** C1, C2 and C3 review it as part of the B1 review. The founder approves the variants **before any brand asset is replaced**. Until then the header keeps today's mark.
+
 ### 4.4 Ready for field operations, without building it
 
 The expansion (walkbooks, territories, imports, visits) plugs into these. None of them needs a schema change now.
@@ -502,7 +523,7 @@ Nothing merges without the owner's word.
 
 | Stage | Contents | Exit: all must be true |
 |---|---|---|
-| **B1 Foundation** | <ul><li>Shell, type and colour: role tokens; type utilities (§4.1.2); mode surfaces, focus and tiles (§2.0a); the Sunlight frame</li><li>Status: `StatusBadge` with the exhaustive domain mapping (§4.1.3), replacing the `badge-*` uses</li><li>`SiteHeader` extracted from `layout.tsx` (used by the real layout and the harness)</li><li>Dock contract; a skip link; `aria-current` on Earnings; the stale-state truth (overdue shift on Home, Shift and Desk; no stale "next job"), using existing fields only</li><li>Performance baseline and budgets (§8)</li></ul> | <ul><li>Token and contrast tests pass for every pair in §2.0a and §4.1, including header, dock, rail, focus, tile edges and badges</li><li>The §6.3 dock, keyboard, overflow and nav checks pass</li><li>The status mapping test covers every domain value</li><li>No *status* `badge-*` class remains in any `.tsx` (the party chips and their CSS stay; the token tests are not weakened)</li><li>The owner has seen the B1 screenshots and done a quick check on a real phone (dock, keyboard, safe area)</li></ul> |
+| **B1 Foundation** | <ul><li>Shell, type and colour: role tokens; type utilities (§4.1.2); mode surfaces, focus and tiles (§2.0a); the Sunlight frame</li><li>Status: `StatusBadge` with the exhaustive domain mapping (§4.1.3), replacing the `badge-*` uses</li><li>`SiteHeader` extracted from `layout.tsx` (used by the real layout and the harness)</li><li>Dock contract; a skip link; `aria-current` on Earnings; the stale-state truth (overdue shift on Home, Shift and Desk; no stale "next job"), using existing fields only</li><li>Performance baseline and budgets (§8)</li><li>Logo concepts A/B/C in context (§4.3a), for founder approval only</li></ul> | <ul><li>Token and contrast tests pass for every pair in §2.0a and §4.1, including header, dock, rail, focus, tile edges and badges</li><li>The §6.3 dock, keyboard, overflow and nav checks pass</li><li>The status mapping test covers every domain value</li><li>No *status* `badge-*` class remains in any `.tsx` (the party chips and their CSS stay; the token tests are not weakened)</li><li>The owner has seen the B1 screenshots and done a quick check on a real phone (dock, keyboard, safe area)</li></ul> |
 | **B2 Layouts** | <ul><li>**Pilots first** (one per template; shown to the owner): Home, Job, Shift, Desk, Applicants, Profile, Landing and Login</li><li>Then every route moves onto its template (§5), with `PageSkeleton` per template</li></ul> | <ul><li>`grep -rE 'className="page( |")' src/app` = 0 hand-set widths (`page max-w-*` gone)</li><li>At 1280 and 1440, every route marked "panel" in §5 renders its aside or inspector, and main is ≥60% of the viewport width minus the rail</li><li>§6.3 checks pass on every route</li><li>The route-skeleton test is updated</li></ul> |
 | **B3 Core workflows** | The primary objects and screen content per §5:<br>1. Home<br>2. Find work and Job<br>3. Schedule and Shift (`FieldPage`, `ActionBar`)<br>4. Earnings<br>5. Desk and Field (truth)<br>6. Hiring and applicants<br>7. Messages<br>8. Profile<br>9. Public landing and sign-in<br>10. Pay<br>11. Admin | <ul><li>One named test file per invariant in §7, all passing</li><li>Every B3 fixture state (§6.2) captured in 3 modes</li><li>The state-truth check (§6.3) matches the domain functions word for word</li></ul> |
 | **B4 Visual polish** | Photography (public placeholders), type tiles, empty-state art, motion review | <ul><li>A fixed checklist: hero photo; job tiles; empty states for every `ListPage`; reduced-motion pass</li><li>Timebox: 2 working sessions</li><li>The only exit is the owner's sign-off</li></ul> |

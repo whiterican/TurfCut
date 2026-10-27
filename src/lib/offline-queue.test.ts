@@ -1,5 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+const captureMessage = vi.hoisted(() => vi.fn());
+vi.mock("@sentry/nextjs", () => ({ captureMessage }));
+
 /**
  * The queue's honesty about where an entry lives (P0): once the phone
  * refuses to store it, the page is the only copy and says so until a later
@@ -116,6 +119,27 @@ describe("offline queue: flush results behind 'recorded' and 'not recorded'", ()
     answer(400, { error: "Send { deviceNow, actions }." });
     await q.flush("u1", "s1");
     expect(entry()?.rejected).toBe("Something went wrong sending this. Tell your supervisor.");
+    // Support still gets the server's reason.
+    expect(captureMessage).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ extra: { error: "Send { deviceNow, actions }.", entries: 1 } }));
+  });
+  it("sends an entry added during a send in that same send", async () => {
+    const { q, id, entry } = await one();
+    let second = "";
+    vi.stubGlobal("fetch", vi.fn(async (_url: string, init: RequestInit) => {
+      const ids = (JSON.parse(String(init.body)) as { actions: Array<{ clientId: string }> }).actions.map((a) => a.clientId);
+      if (!second) second = q.enqueue("u1", "s1", { kind: "check_out" } as never).item.clientId;
+      return new Response(JSON.stringify({ serverNow: Date.now(), results: ids.map((clientId) => ({ clientId, status: "saved" })) }), { status: 200 });
+    }));
+    expect((await q.flush("u1", "s1")).saved).toBe(2);
+    expect(entry()?.savedAt).toBeTypeOf("number");
+    expect(q.pendingFor("u1", "s1").find((p) => p.clientId === second)?.savedAt).toBeTypeOf("number");
+    expect(id).not.toBe(second);
+  });
+  it("an answer that leaves these entries out is a problem, not silence", async () => {
+    const { q, entry } = await one();
+    answer(200, { serverNow: Date.now(), results: [] });
+    expect((await q.flush("u1", "s1")).problem).toMatch(/didn't answer/);
+    expect(entry()?.savedAt).toBeUndefined();
   });
   it("reading the queue doesn't write to it", async () => {
     const { q } = await one();

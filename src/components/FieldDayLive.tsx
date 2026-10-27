@@ -230,7 +230,7 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
     // A tick now; the firmer success buzz waits until a check-in is recorded.
     haptic("tap");
     const checkIn = action.kind === "check_in";
-    setNote({ kind: "entry", id: item.clientId, what: checkIn ? `Check-in at ${when(item.at)}` : describe(action), checkIn });
+    setNote({ kind: "entry", id: item.clientId, what: checkIn ? `Check-in at ${when(item.at + clockOffset())}` : describe(action), checkIn });
     void sync();
     return true;
   }
@@ -291,7 +291,8 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
   // One pill, always there once the page is live on the phone, sliding between states (P1.4).
   const send = sendState({ syncing, online, unreachable, problem: !!problem });
   const pill = !mounted ? null : pillState({ online, reachable: !((unreachable || problem) && waiting.length), syncing, waiting: waiting.length, refused: refused.length, memoryOnly });
-  const status = pill && { state: pill, text: pillText(pill, { waiting: waiting.length, refused: refused.length, send }) };
+  // The pill's lead names why entries wait (no signal, can't connect, a problem), not a retry under way.
+  const status = pill && { state: pill, text: pillText(pill, { waiting: waiting.length, refused: refused.length, send: sendState({ syncing: false, online, unreachable, problem: !!problem }) }) };
   // Worked out from the queue on every render, so it can't stick on "Sending…"
   // when Today's send, another tab or a failed try decided otherwise.
   const noted = note?.kind === "entry" ? pending.find((p) => p.clientId === note.id) : undefined;

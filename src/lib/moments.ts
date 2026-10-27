@@ -35,8 +35,9 @@ export type PillState = "online" | "offline" | "syncing" | "waiting" | "refused"
  * loses them (P0).
  */
 export function pillState(o: { online: boolean; reachable: boolean; syncing: boolean; waiting: number; refused: number; memoryOnly?: boolean }): PillState {
-  if (o.refused > 0) return "refused";
+  // Entries only on this page outrank a refusal: closing the page loses them.
   if (o.memoryOnly && o.waiting > 0) return "unsaved";
+  if (o.refused > 0) return "refused";
   if (!o.online || !o.reachable) return "offline";
   if (o.syncing) return "syncing";
   if (o.waiting > 0) return "waiting";

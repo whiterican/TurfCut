@@ -35,7 +35,8 @@ describe("field-worker moments (P1.4)", () => {
     expect(pillState({ ...base, waiting: 2, memoryOnly: true })).toBe("unsaved");
     expect(pillState({ ...base, online: false, waiting: 2, memoryOnly: true })).toBe("unsaved");
     expect(pillState({ ...base, waiting: 0, memoryOnly: true })).toBe("online");
-    expect(pillState({ ...base, waiting: 2, refused: 1, memoryOnly: true })).toBe("refused");
+    expect(pillState({ ...base, waiting: 2, refused: 1, memoryOnly: true })).toBe("unsaved");
+    expect(pillState({ ...base, waiting: 0, refused: 1, memoryOnly: true })).toBe("refused");
     expect(pillState({ ...base, waiting: 2, syncing: true })).toBe("syncing");
     expect(pillState({ ...base, waiting: 2, online: false })).toBe("offline");
     expect(pillState({ ...base, reachable: false })).toBe("offline");
@@ -94,6 +95,15 @@ describe("field-day sync language (S1): never 'saved' for something only queued"
     for (const stored of [true, false]) for (const send of SENDS) {
       const m = entryMessage({ ...base, stored, send })!;
       expect(m.text).not.toMatch(/^Saved\.?$|clock is running|accepted|— recorded/i);
+    }
+  });
+  it("the pill never says 'No signal' while the phone is online, even mid-retry (as FieldDayLive composes it)", () => {
+    for (const syncing of [true, false]) for (const [unreachable, problem] of [[true, false], [false, true]]) {
+      const send = sendState({ syncing: false, online: true, unreachable, problem });
+      const state = pillState({ online: true, reachable: false, syncing, waiting: 3, refused: 0 });
+      const text = pillText(state, { waiting: 3, refused: 0, send });
+      expect(text).not.toMatch(/No signal/);
+      expect(text).toBe(unreachable ? "Can't connect — 3 saved on this phone" : "Not sent — 3 saved on this phone");
     }
   });
   it("the pill stays short and says unsent, only on this page, sending and not recorded; never 'All saved'", () => {

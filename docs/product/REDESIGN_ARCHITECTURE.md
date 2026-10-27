@@ -48,28 +48,45 @@ Owner direction, 27 Oct, which governs this document:
 
 ## 2. Decisions that are locked
 
-### 2.0 Primary visual reference (owner, 27 Oct)
-The owner named the **forest-dark mockup set** as the strongest version and the main inspiration:
-- **Phone:** photo hero, Jobs, Job details, My Schedule, Profile.
-- **Desktop:** Overview, Workers and Field Map.
+### 2.0 Visual reference: the best of every set (owner, 27 Oct)
+The owner named the **forest-dark set** as the strongest and asked for the best parts of the others too. The v4 brief stays the contract: "green is the primary-action colour, eggplant is the signature identity/navigation colour". The synthesis keeps both.
 
-**What it establishes:**
-- **Shell and frame.** A near-black deep-forest shell: phone frame, headers, dock, desktop rail.
-- **Content surfaces.** Cream content sheets that carry the work: lists, details, tables.
-- **Action.** Forest green for the one primary action ("Apply for This Job", "Find Jobs", "Invite Worker").
-- **Status.** Small sage/forest status pills ("Confirmed", "Verified") and amber for pending.
-- **Type.** Serif titles ("Field work that matters.", "My Schedule", "Profile").
-- **Imagery.** Photo-led public entry and job imagery.
-- **Desktop.** A dark rail plus a wide cream work area.
+**The forest-dark set (primary)**
 
-**What it means for the build:**
-- The shell hue is a token family (`--shell-*`: `bg`, `raised`, `line`, `fg`, `muted`, `active`).
-- Deep forest is the default; the earlier eggplant shell is one token swap away.
-- Cream sheets, the forest action, serif titles and the component grammar are the same in both.
-- Eggplant stays the brand mark's colour and remains available as an accent. It is no longer the shell.
+| Area | Taken | Not taken |
+|---|---|---|
+| Frame | A near-black deep-forest frame for the header, dock, desktop rail and phone shell (`--shell-*` tokens) | |
+| Content | Cream content sheets carrying the work: lists, details, tables | |
+| Public entry | The photo-led entry "Field work that matters." with a single white CTA | |
+| Jobs list | Photo/tile thumbnails; pay as the second line; a save mark | |
+| Job details | Image header, title + pay, organization with its verification mark, icon fact rows, a requirements checklist, one full-width green "Apply" | |
+| My schedule | Upcoming / Past / Availability segments; day groups; status pills (Confirmed, Pending) with two quiet actions; a "Required actions" list | |
+| Profile | Avatar, name and place; a menu of icon rows with a status word on the right | Ratings and stats |
+| Desktop | Dark rail with the org switcher and user; a wide cream work area; tables with status pills; a map with a list panel on the right | KPI deltas, Rating column |
 
-**The mockup's content rules still apply.** None of these are built: avg rating, the Rating column, "Background Check", payment-card digits, "% complete" route progress, KPI deltas such as "+12%", or map dots for live workers.
+**The eggplant sets (images of 27 Oct)**
 
+| Area | Taken | Not taken |
+|---|---|---|
+| Home / Today | The dominant cream "next shift" card with a map thumbnail and a green "View shift details →", then "Upcoming shifts" rows | |
+| Messages | Segmented filter (All / Unread / Organizations); avatar rows with time on the right | |
+| Notifications | Today / This week grouping; icon rows | |
+| More menu | Help, safety, legal, compliance, about | |
+| Shift details | Tab strip (Overview / Instructions / Requirements) over the record; a three-fact row (pay, type, setting) | |
+| Field mode header | Big counts row (doors, conversations, time) for the live shift | Route map, "next address" |
+| Earnings | A large paid figure; breakdown rows with icons and chevrons (paid, approved, waiting, disputed); "Recent payouts" with Paid pills | Bonuses; an unlabelled monthly "total earnings" |
+| Identity | Eggplant as the identity colour: the brand mark, the **active nav tile** (dock and rail), selection and focus | |
+
+**What eggplant does:** it marks *where you are and what's selected*. Forest marks *the one thing to do* and *live state*. The frame is near-black forest. This answers C3's risk of a green action on a green frame: the active tab is an eggplant tile, never green, and the action is the only saturated green on a screen.
+
+**Content rules from every set still apply.** None of these are built:
+- avg rating, rating columns or stars;
+- "Background check", ID-verified rows, payment-card digits;
+- bonuses;
+- live worker dots, routes or "% complete";
+- KPI deltas ("+12%"), audience stats ("10K+") or testimonials.
+
+**Engineering:** the shell hue is a token family, so the frame can move between forest and eggplant without touching components.
 
 ### 2.1 Visual
 - **Palette.** Per §2.0, the shell is deep forest (`--shell-*` tokens, new); cream sheets and the forest action already exist in G1. The other G1 tokens already match the brief: paper `#EFEAE1`, cream `#FBF7F0`, eggplant `#281539`/`#3A2154`/`#4A3365`, forest action `#164B38` and the soft-green cut `#82BC9B`. There is no palette rewrite and no lime.
@@ -83,10 +100,10 @@ The owner named the **forest-dark mockup set** as the strongest version and the 
   | Labels | Barlow Condensed | Eyebrows and dock labels |
   | Figures | DM Mono | Money, counts, IDs (packets, receipts) |
 
-- **Colour roles.**
-  - Forest marks the one primary action and genuine live state.
-  - Shell tokens mark navigation and frame.
-  - Selection uses a sage/forest tile on dark and an ink tile on cream.
+- **Colour roles (§2.0).**
+  - Forest marks the one primary action and live state.
+  - Eggplant marks identity, the active nav tile, selection and focus.
+  - The near-black forest frame is the shell.
   - Status pills always carry words.
 - **Signature details.** The folded corner (`--cut`) appears on primary objects only.
 

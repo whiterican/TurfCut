@@ -12,7 +12,7 @@ export default function GlobalError({ error }: { error: Error & { digest?: strin
     <html lang="en">
       <body style={{ fontFamily: "system-ui", padding: "32px 16px", maxWidth: "32rem", margin: "auto" }}>
         <h1 style={{ fontSize: 24 }}>Something went wrong</h1>
-        <p>The page hit an error. Reloading usually fixes it; your field entries are safe on this phone until they sync.</p>
+        <p>The page hit an error. Reloading usually fixes it. Field entries saved on this phone are kept and still get sent. Entries that were only on this page, because the phone&apos;s storage was full or blocked, are lost when you reload.</p>
         <button type="button" onClick={() => window.location.reload()} style={{ padding: "10px 16px", fontSize: 16 }}>Reload</button>
       </body>
     </html>

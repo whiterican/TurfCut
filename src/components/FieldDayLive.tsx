@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { shiftState, workerAction, type FieldEvent, type ShiftFacts } from "@/lib/field-day";
 import { stagingCheck, type QueuedAction } from "@/lib/offline-sync";
 import { ConnectionPill } from "@/components/Moments";
-import { pillState } from "@/lib/moments";
+import { entryMessage, pillState, pillText, sendState } from "@/lib/moments";
 import { clockOffset, dismiss, enqueue, flush, isFlushing, memoryOnlyFor, pendingFor, prune, serverClock, subscribe, type Pending } from "@/lib/offline-queue";
 import { haptic } from "@/lib/haptics";
 import { appLabel, type CanvassApp } from "@/lib/job-tools";
@@ -77,6 +77,13 @@ function describe(a: Action): string {
   }
 }
 
+/** An entry's time; with the day when it wasn't today (a refusal can be about an older entry). */
+function when(at: number): string {
+  const d = new Date(at);
+  const time = d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  return d.toDateString() === new Date().toDateString() ? time : `${d.toLocaleDateString([], { weekday: "short" })} ${time}`;
+}
+
 function useOnline() {
   return useSyncExternalStore(
     (cb) => {
@@ -109,7 +116,9 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
   const [syncing, setSyncing] = useState(false);
   const [unreachable, setUnreachable] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
-  const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
+  // The latest thing to say under the controls: a refusal on the phone, or the
+  // entry just recorded, whose words follow its real state (S1).
+  const [note, setNote] = useState<{ kind: "refused"; text: string } | { kind: "entry"; id: string; what: string; checkIn: boolean } | null>(null);
   const [locating, setLocating] = useState(false);
   // "Keep until next shift" changes custody: it asks once before recording.
   const [keeping, setKeeping] = useState<string | null>(null);
@@ -214,20 +223,14 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
     // Judged on the server's clock (as of the last sync), like the server will.
     const out = workerAction(facts, action, serverClock());
     if (!out.ok) {
-      setMessage({ ok: false, text: out.reason });
+      setNote({ kind: "refused", text: out.reason });
       return false;
     }
-    const { stored } = enqueue(shift.userId, shift.shiftId, action);
-    // Checking in is the moment the day starts: a firmer haptic and words that say so.
-    const checkedIn = action.kind === "check_in";
-    haptic(checkedIn ? "success" : "tap");
-    setMessage(
-      !stored
-        ? { ok: false, text: "This phone's storage is full, so this is only kept while the page is open. Keep it open until it syncs." }
-        : checkedIn
-          ? { ok: true, text: navigator.onLine ? "You're checked in. The clock is running." : "Check-in saved on this phone. The clock started when you tapped; it'll sync when you have signal." }
-          : { ok: true, text: navigator.onLine ? "Saved." : "Saved on this phone. It'll sync when you have signal." }
-    );
+    const { item } = enqueue(shift.userId, shift.shiftId, action);
+    // A tick now; the firmer success buzz waits until a check-in is recorded.
+    haptic("tap");
+    const checkIn = action.kind === "check_in";
+    setNote({ kind: "entry", id: item.clientId, what: checkIn ? `Check-in at ${when(item.at)}` : describe(action), checkIn });
     void sync();
     return true;
   }
@@ -286,28 +289,21 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
     </form>
   );
   // One pill, always there once the page is live on the phone, sliding between states (P1.4).
+  const send = sendState({ syncing, online, unreachable, problem: !!problem });
   const pill = !mounted ? null : pillState({ online, reachable: !((unreachable || problem) && waiting.length), syncing, waiting: waiting.length, refused: refused.length, memoryOnly });
-  const status = !pill
-    ? null
-    : {
-        state: pill,
-        text:
-          pill === "refused"
-            ? `${refused.length} couldn't be saved`
-            : pill === "unsaved"
-              ? `${problem ? `${problem} ` : !online || unreachable ? "No signal — " : ""}${waiting.length} kept in memory only — keep this tab open until it syncs`
-              : pill === "offline"
-              ? waiting.length
-                ? problem
-                  ? `${problem} ${waiting.length} saved on this phone.`
-                  : `No signal — ${waiting.length} saved on this phone`
-                : "No signal — you can keep working"
-              : pill === "syncing"
-                ? "Syncing…"
-                : pill === "waiting"
-                  ? `${waiting.length} waiting to sync`
-                  : "All saved",
-      };
+  const status = pill && { state: pill, text: pillText(pill, { waiting: waiting.length, refused: refused.length, send }) };
+  // Worked out from the queue on every render, so it can't stick on "Sending…"
+  // when Today's send, another tab or a failed try decided otherwise.
+  const noted = note?.kind === "entry" ? pending.find((p) => p.clientId === note.id) : undefined;
+  const message =
+    note?.kind === "refused"
+      ? { tone: "problem" as const, text: note.text }
+      : note && entryMessage({ what: note.what, entry: noted, shownOnPage: shown.has(note.id), stored: !memoryOnly, send });
+  // The check-in recorded: now the day has started, a firmer buzz.
+  const checkInRecorded = note?.kind === "entry" && note.checkIn && (noted ? !!noted.savedAt : shown.has(note.id)) ? note.id : null;
+  useEffect(() => {
+    if (checkInRecorded) haptic("success");
+  }, [checkInRecorded]);
 
   return (
     <section className="card space-y-4" aria-label="Field day controls">
@@ -317,16 +313,17 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
           {waiting.length > 0 && online && !syncing && (
             <button type="button" className="btn-ghost btn-sm" onClick={() => void sync()}>
               <RefreshCw aria-hidden className="btn-icon" />
-              Sync now
+              Send now
             </button>
           )}
         </div>
       )}
+      {mounted && problem && waiting.length > 0 && <p className="text-hint">{problem}</p>}
       {mounted && waiting.length > 0 && (
         <ul className="space-y-0.5 text-xs text-muted">
           {waiting.map((p) => (
             <li key={p.clientId}>
-              {describe(p.action)} · {new Date(p.at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })} · waiting to sync
+              {describe(p.action)} · {when(p.at)} · {memoryOnly ? "only on this page" : "not sent yet"}
             </li>
           ))}
         </ul>
@@ -337,7 +334,7 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
             <li key={p.clientId} className="flex items-start justify-between gap-3 rounded-xl border border-border px-3 py-2 text-sm">
               <span>
                 <span className="font-semibold text-fg">{describe(p.action)}</span>{" "}
-                <span className="text-muted">({new Date(p.at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}) wasn&apos;t saved: {p.rejected}</span>
+                <span className="text-muted">({when(p.at)}) wasn&apos;t recorded: {p.rejected}</span>
               </span>
               <button type="button" className="btn-ghost btn-sm shrink-0" onClick={() => dismiss(shift.userId, p.clientId)}>
                 Dismiss
@@ -366,7 +363,7 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
         </div>
       ) : st.checkedOutAt ? (
         <div className="space-y-4">
-          <p className="text-muted-sm">{waiting.length ? "Checked out — it'll sync when you have signal." : "Checked out."}</p>
+          <p className="text-muted-sm">{waiting.length ? `Checked out. ${waiting.length} not sent yet — ${memoryOnly ? "only on this page" : "saved on this phone"}.` : "Checked out."}</p>
           {appForm}
         </div>
       ) : st.paused ? (
@@ -480,10 +477,10 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
       {live && (waiting.length > 0 || savedUnseen) && (
         <p className="text-hint">
           On this phone: {petition ? `${st.signatures} signatures` : `${st.doors} doors · ${st.contacts} contacts${st.appCounts ? `, from ${appLabel(st.appCounts.app as CanvassApp)}` : ""}`}
-          {waiting.length > 0 ? " including what's waiting to sync." : " including entries synced since this page loaded."}
+          {waiting.length > 0 ? " including what hasn't been sent yet." : " including entries sent since this page loaded."}
         </p>
       )}
-      {message && <p role="status" className={message.ok ? "text-success-msg" : "text-danger-msg"}>{message.text}</p>}
+      {message && <p role="status" className={message.tone === "done" ? "text-success-msg" : message.tone === "problem" ? "text-danger-msg" : "text-sm text-fg"}>{message.text}</p>}
     </section>
   );
 }

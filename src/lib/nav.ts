@@ -3,6 +3,7 @@ import { accessFor, type Area, type Grants } from "@/lib/access";
 
 /** The glyph a tab shows (drawn in components/AppNav; a plain id here keeps React out of lib). */
 export type TabIconId =
+  | "home"
   | "today"
   | "feed"
   | "work"
@@ -25,6 +26,8 @@ export interface NavTab {
   href: string;
   label: string;
   icon: TabIconId;
+  /** Other paths this tab owns (the worker's Jobs tab holds the schedule too). */
+  also?: string[];
 }
 
 export const MESSAGES_HREF = "/messages";
@@ -62,11 +65,13 @@ export const PHONE_PICKS: Record<Exclude<Role, "WORKER">, OrgNavId[]> = {
   CUSTOM: ["desk", "hiring", "jobs", "field"],
 };
 
+/**
+ * The worker's four tabs (owner's redesign mockup, 2026-10-27): Home holds
+ * the campaign feed, Jobs holds finding work and the worker's own schedule.
+ */
 const WORKER_TABS: NavTab[] = [
-  { href: "/dashboard", label: "Today", icon: "today" },
-  { href: "/feed", label: "Feed", icon: "feed" },
-  { href: "/jobs", label: "Work", icon: "work" },
-  { href: "/shifts", label: "Shifts", icon: "shifts" },
+  { href: "/dashboard", label: "Home", icon: "home", also: ["/feed"] },
+  { href: "/jobs", label: "Jobs", icon: "work", also: ["/shifts"] },
   { href: MESSAGES_HREF, label: "Messages", icon: "messages" },
   { href: "/profile", label: "Profile", icon: "profile" },
 ];
@@ -74,7 +79,7 @@ const WORKER_TABS: NavTab[] = [
 const plain = ({ href, label, icon }: NavTab): NavTab => ({ href, label, icon });
 
 /**
- * Tabs per role (screen mockups: Today / Work / Shifts / Profile for workers).
+ * Tabs per role (workers: Home / Jobs / Messages / Profile).
  * Organization roles get every area the access map grants them, so a tab
  * never appears for a route that would refuse you. A removed member (no
  * organization) gets none.
@@ -127,6 +132,8 @@ export function landingFor(role: Role, grants: Grants | null, staff = false): st
 
 /** The tab a path belongs to: the longest matching prefix wins. */
 export function activeTab(tabs: NavTab[], pathname: string): string | null {
-  const hits = tabs.filter((t) => pathname === t.href || pathname.startsWith(`${t.href}/`));
-  return hits.sort((a, b) => b.href.length - a.href.length)[0]?.href ?? null;
+  const under = (p: string) => pathname === p || pathname.startsWith(`${p}/`);
+  // Each tab's longest matching path, its own or one it also owns.
+  const hits = tabs.flatMap((t) => [t.href, ...(t.also ?? [])].filter(under).map((p) => ({ href: t.href, len: p.length })));
+  return hits.sort((a, b) => b.len - a.len)[0]?.href ?? null;
 }

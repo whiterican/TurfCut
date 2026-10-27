@@ -143,7 +143,7 @@ The Sunlight frame is black (`--rail-bg` today is white; B1 changes it to black 
 
 ### 2.1 Visual
 - **Palette.** Per §2.0, the shell is deep eggplant (`--shell-*` tokens, new; G1 already holds these values); cream sheets and the forest action already exist in G1. The other G1 tokens already match the brief: paper `#EFEAE1`, cream `#FBF7F0`, eggplant `#281539`/`#3A2154`/`#4A3365`, forest action `#164B38` and the soft-green cut `#82BC9B`. There is no palette rewrite and no lime.
-- **Modes.** Light, Dark and Sunlight are all first-class. Surfaces by mode are set in §2.0a. Chat bubbles stay eggplant.
+- **Modes.** Light, Dark and Sunlight are all first-class. Surfaces by mode are set in §2.0a. Chat bubbles stay eggplant, through their own `--bubble-mine` token (not `--hero`, which E1 made cream by night); this also covers `DisputeThread`. Fixed in B1.
 - **Type.**
 
   | Role | Face | Where |
@@ -372,10 +372,7 @@ Each template owns these, so a page can't get them wrong:
 - Every template's bottom padding is derived from `--dock-clearance`; no page sets its own.
 - Sticky actions (`ActionBar`) sit at `bottom: dock + gap` and become static at ≥1024.
 - `viewport-fit=cover` plus `env(safe-area-inset-*)` on the header, dock and ActionBar.
-- **Acceptance** (automated, the scripts from the P0 run):
-  - 0 fully hidden focus targets and 0 keyboard collisions at 320 and 390;
-  - 0 sideways overflow at default and XL text on every route;
-  - header ≤ viewport at 200% text.
+- **Acceptance:** the Dock and focus, Keyboard and Overflow checks in §6.3, the single standard. That means no focused control more than 50% covered, the primary action 0% covered, and both keyboard modes.
 
 ### 4.3 Component layer
 
@@ -505,7 +502,7 @@ Nothing merges without the owner's word.
 
 | Stage | Contents | Exit: all must be true |
 |---|---|---|
-| **B1 Foundation** | <ul><li>Shell, type and colour: role tokens; type utilities (§4.1.2); mode surfaces, focus and tiles (§2.0a); the Sunlight frame</li><li>Status: `StatusBadge` with the exhaustive domain mapping (§4.1.3), replacing the `badge-*` uses</li><li>`SiteHeader` extracted from `layout.tsx` (used by the real layout and the harness)</li><li>Dock contract; a skip link; `aria-current` on Earnings; the stale-state truth (overdue shift on Home, Shift and Desk; no stale "next job"), using existing fields only</li><li>Performance baseline and budgets (§8)</li></ul> | <ul><li>Token and contrast tests pass for every pair in §2.0a and §4.1, including header, dock, rail, focus, tile edges and badges</li><li>The §6.3 dock, keyboard, overflow and nav checks pass</li><li>The status mapping test covers every domain value</li><li>No *status* `badge-*` class remains in any `.tsx` (the party chips and their CSS stay; the token tests are not weakened)</li><li>The owner has seen the B1 screenshots</li></ul> |
+| **B1 Foundation** | <ul><li>Shell, type and colour: role tokens; type utilities (§4.1.2); mode surfaces, focus and tiles (§2.0a); the Sunlight frame</li><li>Status: `StatusBadge` with the exhaustive domain mapping (§4.1.3), replacing the `badge-*` uses</li><li>`SiteHeader` extracted from `layout.tsx` (used by the real layout and the harness)</li><li>Dock contract; a skip link; `aria-current` on Earnings; the stale-state truth (overdue shift on Home, Shift and Desk; no stale "next job"), using existing fields only</li><li>Performance baseline and budgets (§8)</li></ul> | <ul><li>Token and contrast tests pass for every pair in §2.0a and §4.1, including header, dock, rail, focus, tile edges and badges</li><li>The §6.3 dock, keyboard, overflow and nav checks pass</li><li>The status mapping test covers every domain value</li><li>No *status* `badge-*` class remains in any `.tsx` (the party chips and their CSS stay; the token tests are not weakened)</li><li>The owner has seen the B1 screenshots and done a quick check on a real phone (dock, keyboard, safe area)</li></ul> |
 | **B2 Layouts** | <ul><li>**Pilots first** (one per template; shown to the owner): Home, Job, Shift, Desk, Applicants, Profile, Landing and Login</li><li>Then every route moves onto its template (§5), with `PageSkeleton` per template</li></ul> | <ul><li>`grep -rE 'className="page( |")' src/app` = 0 hand-set widths (`page max-w-*` gone)</li><li>At 1280 and 1440, every route marked "panel" in §5 renders its aside or inspector, and main is ≥60% of the viewport width minus the rail</li><li>§6.3 checks pass on every route</li><li>The route-skeleton test is updated</li></ul> |
 | **B3 Core workflows** | The primary objects and screen content per §5:<br>1. Home<br>2. Find work and Job<br>3. Schedule and Shift (`FieldPage`, `ActionBar`)<br>4. Earnings<br>5. Desk and Field (truth)<br>6. Hiring and applicants<br>7. Messages<br>8. Profile<br>9. Public landing and sign-in<br>10. Pay<br>11. Admin | <ul><li>One named test file per invariant in §7, all passing</li><li>Every B3 fixture state (§6.2) captured in 3 modes</li><li>The state-truth check (§6.3) matches the domain functions word for word</li></ul> |
 | **B4 Visual polish** | Photography (public placeholders), type tiles, empty-state art, motion review | <ul><li>A fixed checklist: hero photo; job tiles; empty states for every `ListPage`; reduced-motion pass</li><li>Timebox: 2 working sessions</li><li>The only exit is the owner's sign-off</li></ul> |
@@ -517,6 +514,7 @@ Nothing merges without the owner's word.
 - **Before B1 (today):** its guards are no-ops. Captures so far prove rendering, not access.
 - **From B1:** the harness builds each identity's session from the **database** (role, `orgId`, grants via the real `liveGrants`). Its guards call the real decision functions (`canUse` / `can` from `lib/access`) and follow the real guards' redirect and 404 behaviour line for line.
 - **Shell:** the harness renders the real `SiteHeader`, `TopNav`, `TabBar` and `OrgRail`, so shell changes are tested as shipped.
+- **Pages (C3 round 2):** the harness pages are **regenerated from the real pages on every run**. A diff check fails the run if anything but import lines differs. The guards reuse the real redirect and 404 wrappers, with only the session source swapped.
 
 **Limits, stated honestly:**
 - Sign-in itself (Supabase) is not exercised.

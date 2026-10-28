@@ -23,8 +23,10 @@ export function JobRow({ j, status }: { j: FeedJob; /** A status chip for the vi
   const dates = j.startsAt || j.endsAt ? `${day(j.startsAt)} – ${day(j.endsAt)}` : "Dates to be set";
   const campaign = readDisclosure(j.campaignDisclosure);
   const candidate = j.type === "CANVASS" && campaign?.campaignType === "candidate" ? campaign.campaignName : null;
-  // "in development" after the category, so a row never presents an unfinished category as launched.
+  // "in development" right after the category (before the affiliation), so a row never presents an
+  // unfinished category as launched: the line truncates on narrow phones, and the tag must survive the cut.
   const stage = CATEGORY_STATUS_LABEL[categoryStatusOf(j.type, j.campaignDisclosure)];
+  const category = stage ? `${type} · ${stage.toLowerCase()}` : type;
   return (
     <Link transitionTypes={["nav-forward"]} href={`/jobs/${j.id}`} className="job-row">
       <span className="min-w-0 flex-1">
@@ -43,8 +45,7 @@ export function JobRow({ j, status }: { j: FeedJob; /** A status chip for the vi
         <span className="line-clamp-2 block text-sm font-semibold text-fg">{j.title}</span>
         {candidate && <span className="block truncate text-xs font-medium text-fg">Candidate: {candidate}</span>}
         <span className="block truncate text-xs text-muted">
-          {dates} · {aff ? `${type} · ${aff.label}` : type}
-          {stage && ` · ${stage.toLowerCase()}`}
+          {dates} · {aff ? `${category} · ${aff.label}` : category}
         </span>
       </span>
       <span className="flex shrink-0 flex-col items-end gap-1">

@@ -10,7 +10,9 @@ import { loadPipelineFacts } from "@/lib/engagements-data";
 import { EngagementHistory } from "@/components/EngagementHistory";
 import { HiringActions, timeLeft } from "@/components/HiringActions";
 import { engagementStatus, JOB_STATUS_LABELS } from "@/lib/engagement-labels";
-import { UUID_RE, exclusionReasons, fitReasons, jobCardAnswers, jobCredentials, jobFreezeReasons, jurisdictionLabel, payText, publishBlockers, readDisclosure, readHiringModes } from "@/lib/jobs";
+import { UUID_RE, exclusionReasons, fitReasons, jobCardAnswers, jobCredentials, jobDiscoveryLabel, jobFreezeReasons, jurisdictionLabel, payText, publishBlockers, readDisclosure, readHiringModes } from "@/lib/jobs";
+import { categoryStatusOf } from "@/lib/job-categories";
+import { CategoryStatusTag } from "@/components/CategoryStatusTag";
 import { loadScorecard } from "@/lib/scorecard-data";
 import { loadSharing } from "@/lib/sharing-data";
 import { PART_DETAILS, RELATIONSHIP_PHRASE, SHARE_PARTS, visibleParts, type SharePart, type SharingChoices } from "@/lib/sharing";
@@ -100,7 +102,9 @@ export default async function JobPage({ params }: { params: Promise<{ jobId: str
   // The record head (F03b): the title and pay are shared with the feed card that was tapped (P1.6), so they grow into place.
   const head = (
     <Masthead
-      eyebrow={`${job.type === "PETITION" ? "Petition circulation" : "Door-to-door canvass"} · ${jurisdictionLabel(job.jurisdiction)}`}
+      // The category as the feed names it, so a candidate drive reads "Candidate campaign canvassing" here too,
+      // and the "In development" tag sits in the head rather than only in the Campaign card below.
+      eyebrow={`${jobDiscoveryLabel(job.type, job.campaignDisclosure)} · ${jurisdictionLabel(job.jurisdiction)}`}
       title={job.title}
       titleClassName="w-fit"
       titleStyle={shareStyle(`job-${job.id}`)}
@@ -110,6 +114,7 @@ export default async function JobPage({ params }: { params: Promise<{ jobId: str
       chips={
         <>
           {isOwnOrg && <StatusBadge status={status} />}
+          <CategoryStatusTag status={categoryStatusOf(job.type, job.campaignDisclosure)} />
         </>
       }
       back={

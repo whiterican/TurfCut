@@ -36,12 +36,12 @@ describe("JobRow (F02)", () => {
     expect(renderToStaticMarkup(<JobRow j={{ ...job, org: { name: "New Org", approved: false } }} />)).not.toContain("Approved org");
     const canvass = renderToStaticMarkup(<JobRow j={{ ...job, type: "CANVASS", campaignDisclosure: { campaignType: "candidate", campaignName: "Jo Ortiz for Council", affiliation: "democratic", message: "Vote Jo" } }} />);
     expect(canvass).toContain("Candidate: Jo Ortiz for Council");
-    expect(canvass.indexOf("Candidate: Jo Ortiz")).toBeLessThan(canvass.indexOf("Candidate campaign canvassing · Democratic party"));
+    expect(canvass.indexOf("Candidate: Jo Ortiz")).toBeLessThan(canvass.indexOf("Candidate campaign canvassing · in development · Democratic party"));
   });
 
-  it("says when a category is still in development, and nothing for a built one", () => {
+  it("says when a category is still in development, right after the category so a truncated line keeps it, and nothing for a built one", () => {
     const canvass = renderToStaticMarkup(<JobRow j={{ ...job, type: "CANVASS", campaignDisclosure: { campaignType: "candidate", campaignName: "Jo Ortiz for Council", affiliation: "democratic", message: "Vote Jo" } }} />);
-    expect(canvass).toContain("Candidate campaign canvassing · Democratic party · in development");
+    expect(canvass).toContain("Candidate campaign canvassing · in development · Democratic party");
     expect(renderToStaticMarkup(<JobRow j={job} />)).not.toContain("in development");
   });
 });

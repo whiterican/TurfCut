@@ -30,6 +30,9 @@ describe("job categories (data honesty: built / in development / planned)", () =
   it("a candidate canvass is in development; every other live job is built; malformed disclosure never promotes or demotes", () => {
     expect(categoryStatusOf("CANVASS", candidate)).toBe("in_development");
     expect(categoryStatusOf("CANVASS", ballot)).toBe("built");
+    // Party committee and issue advocacy drives are door-to-door canvassing, which is built (roadmap row 2).
+    expect(categoryStatusOf("CANVASS", { ...ballot, campaignType: "party_committee", affiliation: "republican" })).toBe("built");
+    expect(categoryStatusOf("CANVASS", { ...ballot, campaignType: "issue_advocacy" })).toBe("built");
     expect(categoryStatusOf("PETITION", candidate)).toBe("built");
     expect(categoryStatusOf("CANVASS", null)).toBe("built");
     expect(categoryStatusOf("CANVASS", { campaignType: "candidate" })).toBe("built"); // incomplete disclosure reads as none

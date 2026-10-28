@@ -104,7 +104,7 @@
   --danger: #a8402f;
   --success: #3a2154;
   --warning: #5a3a14;
-  --primary: #2b1b3d; /* the one primary action is plum, as on the board (founder, 2026-10-28); green is for what is live */
+  --primary: #164b38; /* the one primary action is deep green, so it stands apart from the plum structure (founder, 2026-10-28) */
   --switch-on: #3a2154;
   --on-primary: #fbf7f0;
   --secondary: #fbf7f0;
@@ -160,9 +160,9 @@
   --danger: #eb9082;
   --success: #d8cce4; /* done and verified by night: pale lavender, not green (green is live) */
   --warning: #f0d08a;
-  --primary: #fbf7f0; /* by night the one primary action is the cream object on the eggplant shell; inside a cream card it inverts to plum (.dark .hero-card .btn-primary) */
+  --primary: #164b38;
   --switch-on: #9887ae; /* a setting is a selection, not live: a lavender track, 3.7:1 to the white thumb, 4:1 or more on every night surface */
-  --on-primary: #2b1b3d;
+  --on-primary: #fbf7f0;
   --secondary: #3a2850;
   --secondary-border: #9887ae;
   /* The primary object by night is cream (v4 hybrid): ink type on paper, the
@@ -990,17 +990,16 @@ body {
     background: var(--primary);
     color: var(--on-primary);
   }
-  /* By night the primary action is cream on the eggplant shell (no edge needed: 14:1); inside the cream
-     primary card it inverts to plum, so the card stays the one cream object and the button still reads. */
-  .dark .hero-card:not(.hero-card-quiet) .btn-primary {
-    background: #2b1b3d;
-    color: #fbf7f0;
+  /* By night forest ink barely differs from the page: a light edge keeps the button's shape,
+     and secondary buttons drop their fill so the one green action stands apart. */
+  .dark .btn-primary {
+    box-shadow: inset 0 0 0 1px var(--accent-edge);
   }
   .btn-primary:hover:not(:disabled) {
     filter: brightness(1.15);
   }
   .dark .btn-primary:hover:not(:disabled) {
-    filter: brightness(0.96);
+    filter: brightness(1.06);
   }
   .btn-secondary {
     @apply border text-fg;

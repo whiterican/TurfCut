@@ -1,3 +1,9 @@
+> **CURRENT HANDOFF — SUPERSEDES THIS FILE'S VISUAL DIRECTIONS (28 October 2026)**
+>
+> The founder's latest twelve-screen concept and issue [#111](https://github.com/whiterican/TurfCut/issues/111) supersede conflicting older tab counts, fonts, colors and “concept only” visual directions below. Read [the current reference and corrective plan](https://github.com/whiterican/TurfCut/blob/docs/hero-board-audit-2026-10-28/docs/design/hero-board/README.md) in [draft PR #112](https://github.com/whiterican/TurfCut/pull/112). **The actual founder reference image is now committed in that package**; this file's old image-transfer limitations are historical. Preserve compatible data honesty, authorization and workflow requirements. The older rejected 64 renders remain rejected. This file is retained as history, not a competing design target.
+
+---
+
 # Claude acceptance criteria — TurfCut hero-board static references
 
 ## Real-data fidelity

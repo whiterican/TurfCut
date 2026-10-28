@@ -170,7 +170,7 @@ async function WorkerHero({ workerId }: { workerId: string }) {
         <Link transitionTypes={["nav-forward"]} href={`/shifts/${shift.id}`} className={`hero-card block space-y-4 ${isLive ? "hero-card-accent" : ""}`} data-priority={shiftPriority(shift)}>
           {/* Relative first ("tomorrow"), the date after it; the server shows the date alone. */}
           <p className="eyebrow">
-            {isLive ? "Live shift" : "Next shift"} · <RelativeDay iso={shift.startsAt.toISOString()} /><LocalTime iso={shift.startsAt.toISOString()} mode="date" />
+            {isLive ? "Live shift" : "Next shift"} · <RelativeDay iso={shift.startsAt.toISOString()} pastPrefix="started" /><LocalTime iso={shift.startsAt.toISOString()} mode="date" />
           </p>
           <p className="hero-title">{shift.engagement.job.title}</p>
           {/* The card stays eggplant; the forest-ink chip is what says it's live. */}

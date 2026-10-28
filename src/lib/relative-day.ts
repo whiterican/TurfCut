@@ -12,15 +12,20 @@ export interface RelativeDay {
   words: string;
 }
 
-/** The calendar day a moment falls on in `zone`, as YYYY-MM-DD. */
+/** The calendar day a moment falls on in `zone`, as YYYY-MM-DD (from the parts, so no locale's own date order can creep in). */
 export function dayIn(d: Date, zone: string): string {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: zone, year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
+  const parts = new Intl.DateTimeFormat("en-US", { timeZone: zone, year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(d);
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
+  return `${get("year")}-${get("month")}-${get("day")}`;
 }
 
 const dayNumber = (key: string) => Date.UTC(Number(key.slice(0, 4)), Number(key.slice(5, 7)) - 1, Number(key.slice(8, 10))) / 86_400_000;
 
-export function relativeDay(target: Date, now: Date, zone: string): RelativeDay {
+/** Null for an invalid date, so a caller can show nothing rather than "NaN days ago". */
+export function relativeDay(target: Date, now: Date, zone: string): RelativeDay | null {
+  if (Number.isNaN(target.getTime()) || Number.isNaN(now.getTime())) return null;
   const days = dayNumber(dayIn(target, zone)) - dayNumber(dayIn(now, zone));
+  if (!Number.isFinite(days)) return null;
   if (days === 0) return { kind: "today", days, words: "today" };
   if (days === 1) return { kind: "tomorrow", days, words: "tomorrow" };
   if (days === -1) return { kind: "yesterday", days, words: "yesterday" };

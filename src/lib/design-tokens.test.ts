@@ -221,8 +221,19 @@ describe("mockup surfaces", () => {
   });
   it("by night a green fill has a light edge (forest ink alone is under 3:1 on the night surfaces)", () => {
     for (const s of SURFACES) expect(ratio(dark["accent-edge"], dark[s])).toBeGreaterThanOrEqual(3);
-    expect(css).toMatch(/\.dark \.btn-primary \{\s*box-shadow: inset 0 0 0 1px var\(--accent-edge\);/);
     expect(css).toMatch(/\.badge-live \{[^}]*?border-color: var\(--accent-edge\);/);
+  });
+  it("the primary action is plum by day and cream by night, inverting inside the cream primary card (plum board, founder 2026-10-28)", () => {
+    expect(light.primary).toBe("#2b1b3d");
+    expect(dark.primary).toBe("#fbf7f0");
+    for (const s of SURFACES) expect(ratio(dark.primary, dark[s])).toBeGreaterThanOrEqual(7); // no edge needed by night
+    // A quiet hero is an eggplant surface by night, so the inversion skips it and the cream button stays.
+    expect(css).toMatch(/\.dark \.hero-card:not\(\.hero-card-quiet\) \.btn-primary \{\s*background: #2b1b3d;\s*color: #fbf7f0;/);
+    expect(ratio("#fbf7f0", "#2b1b3d")).toBeGreaterThanOrEqual(7);
+    // Titles are the display serif; body stays the sans.
+    expect(css).toMatch(/@utility t-title \{\s*font-family: var\(--font-display\);/);
+    expect(css).toMatch(/@utility t-section \{\s*font-family: var\(--font-display\);/);
+    expect(css).toMatch(/@utility t-body \{\s*font-family: var\(--font-barlow\)/);
   });
   it("chat shift banner text is AAA, its second line AA", () => {
     const lightBanner = mix(light.sky, 0.45, light.surface);
@@ -343,7 +354,7 @@ describe("the Turfcut palette: cream, paper, eggplant, deep green, lime (hero bo
     expect(light.solid).toBe("#3a2154"); // settled status: the eggplant tile
     expect(light.hero).toBe("#2b1b3d");
     expect(light["tab-active-bg"]).toBe("#2b1b3d");
-    expect(light.primary).toBe("#164b38");
+    expect(light.primary).toBe("#2b1b3d"); // plum primary action (founder, 2026-10-28); green is the live accent
     expect(light["on-primary"]).toBe("#fbf7f0");
     expect(light["tab-active-fg"]).toBe("#fbf7f0"); // cream on the eggplant tile, never green type
   });

@@ -104,7 +104,7 @@
   --danger: #a8402f;
   --success: #3a2154;
   --warning: #5a3a14;
-  --primary: #164b38;
+  --primary: #2b1b3d; /* the one primary action is plum, as on the board (founder, 2026-10-28); green is for what is live */
   --switch-on: #3a2154;
   --on-primary: #fbf7f0;
   --secondary: #fbf7f0;
@@ -160,9 +160,9 @@
   --danger: #eb9082;
   --success: #d8cce4; /* done and verified by night: pale lavender, not green (green is live) */
   --warning: #f0d08a;
-  --primary: #164b38;
+  --primary: #fbf7f0; /* by night the one primary action is the cream object on the eggplant shell; inside a cream card it inverts to plum (.dark .hero-card .btn-primary) */
   --switch-on: #9887ae; /* a setting is a selection, not live: a lavender track, 3.7:1 to the white thumb, 4:1 or more on every night surface */
-  --on-primary: #fbf7f0;
+  --on-primary: #2b1b3d;
   --secondary: #3a2850;
   --secondary-border: #9887ae;
   /* The primary object by night is cream (v4 hybrid): ink type on paper, the
@@ -376,8 +376,8 @@ body {
 /* ---- Type scale (redesign §4.1.2) --------------------------------------
    One utility per role; components use these, never their own font family or
    size. rem sizes follow the text-size setting; nothing falls below 13px.
-   Hero board: page, card and section titles are the bold sans; the serif is
-   kept for the display line alone ("Field work that matters."). */
+   Plum board (founder, 2026-10-28): page, card and section titles are the
+   display serif; body, labels, the dock and figures stay in the sans and mono. */
 @utility t-display {
   font-family: var(--font-display);
   font-size: clamp(2.75rem, 11vw, 3.5rem);
@@ -391,33 +391,36 @@ body {
   }
 }
 @utility t-title {
-  font-family: var(--font-barlow), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-display);
   font-size: 2rem;
-  line-height: 1.06;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  line-height: 1.08;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  font-optical-sizing: auto;
   text-wrap: balance;
   @media (width >= 64rem) {
     font-size: 2.75rem;
   }
 }
 @utility t-headline {
-  font-family: var(--font-barlow), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-display);
   font-size: 1.5rem;
-  line-height: 1.12;
-  font-weight: 700;
-  letter-spacing: -0.015em;
+  line-height: 1.14;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  font-optical-sizing: auto;
   text-wrap: balance;
   @media (width >= 64rem) {
     font-size: 2.125rem;
   }
 }
 @utility t-section {
-  font-family: var(--font-barlow), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-display);
   font-size: 1.25rem;
   line-height: 1.2;
-  font-weight: 700;
-  letter-spacing: -0.01em;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  font-optical-sizing: auto;
   @media (width >= 64rem) {
     font-size: 1.375rem;
   }
@@ -987,16 +990,17 @@ body {
     background: var(--primary);
     color: var(--on-primary);
   }
-  /* By night forest ink barely differs from the page: a light edge keeps the button's shape,
-     and secondary buttons drop their fill so the one green action stands apart. */
-  .dark .btn-primary {
-    box-shadow: inset 0 0 0 1px var(--accent-edge);
+  /* By night the primary action is cream on the eggplant shell (no edge needed: 14:1); inside the cream
+     primary card it inverts to plum, so the card stays the one cream object and the button still reads. */
+  .dark .hero-card:not(.hero-card-quiet) .btn-primary {
+    background: #2b1b3d;
+    color: #fbf7f0;
   }
   .btn-primary:hover:not(:disabled) {
     filter: brightness(1.15);
   }
   .dark .btn-primary:hover:not(:disabled) {
-    filter: brightness(1.06);
+    filter: brightness(0.96);
   }
   .btn-secondary {
     @apply border text-fg;

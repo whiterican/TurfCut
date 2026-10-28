@@ -34,29 +34,33 @@ interface FrameProps {
    * (a job's full card comes after the Apply panel there; beside it from 1024).
    */
   tail?: ReactNode;
+  /** The panel leads: first in reading order and the left column from 1024 (a section's sub-nav). */
+  panelStart?: boolean;
 }
 
 /** The shared frame; exported for PageSkeleton, which draws the same frame around its placeholder. */
-export function Frame({ template, head, children, panel, panelKind, gap = 10, busy, org, panelLabel, tail }: FrameProps & { template: TemplateName; panel?: ReactNode; panelKind?: "aside" | "inspector" }) {
+export function Frame({ template, head, children, panel, panelKind, gap = 10, busy, org, panelLabel, tail, panelStart }: FrameProps & { template: TemplateName; panel?: ReactNode; panelKind?: "aside" | "inspector" }) {
   return (
     <main
       className="tpl"
       data-template={template}
       data-panel={panel ? panelKind : undefined}
       data-org={org || undefined}
+      data-start={(panel && panelStart) || undefined}
       style={{ "--tpl-gap": `${gap / 4}rem` } as CSSProperties}
       aria-busy={busy ? true : undefined}
       aria-label={busy}
     >
       {head && <div className="tpl-head">{head}</div>}
       <div className="tpl-body">
-        <div className="tpl-main">{children}</div>
+        {!panelStart && <div className="tpl-main">{children}</div>}
         {panel &&
           (panelKind === "inspector" ? (
             <section className="tpl-panel" aria-label={panelLabel ?? "Details"}>{panel}</section>
           ) : (
             <aside className="tpl-panel" aria-label={panelLabel}>{panel}</aside>
           ))}
+        {panelStart && <div className="tpl-main">{children}</div>}
         {tail && <div className="tpl-tail">{tail}</div>}
       </div>
     </main>

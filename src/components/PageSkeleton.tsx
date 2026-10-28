@@ -187,6 +187,7 @@ export function PageSkeleton({
   template,
   panel = false,
   org = false,
+  panelStart = false,
 }: {
   shape?: SkeletonShape;
   /** The page's template (redesign §4.2.2): the skeleton draws the same frame, so nothing moves when the page arrives. */
@@ -195,6 +196,8 @@ export function PageSkeleton({
   panel?: boolean;
   /** An organization page: its inspector shows from 1280, as the page's does. */
   org?: boolean;
+  /** The panel leads (a section's sub-nav on the left), as the page's does. */
+  panelStart?: boolean;
   width?: SkeletonWidth;
   gap?: SkeletonGap;
   label?: string;
@@ -216,7 +219,7 @@ export function PageSkeleton({
       </>
     );
     return (
-      <Frame template={template} head={<Heading />} gap={gap} busy={label} panel={panel ? side : undefined} panelKind={template === "listDetail" || template === "workspace" ? "inspector" : "aside"} org={template === "workspace" || org}>
+      <Frame template={template} head={<Heading />} gap={gap} busy={label} panel={panel ? side : undefined} panelKind={template === "listDetail" || template === "workspace" ? "inspector" : "aside"} org={template === "workspace" || org} panelStart={panelStart}>
         {SHAPES[shape]({ heading: false, filters, avatars })}
       </Frame>
     );

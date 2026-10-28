@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { ReadingPage } from "@/components/layout/Page";
+import { ProfileNav } from "@/components/ProfileNav";
 import { db } from "@/lib/db";
 import { requireWorker } from "@/lib/worker-session";
 import { loadCampaignHistory, loadScorecardPeriods } from "@/lib/scorecard-data";
@@ -48,12 +50,16 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
   // Matches (C3.4) need a home area Turfcut can place; say so rather than leave the worker unfindable.
   const homePlaced = !sharing.choices.findable || !!resolveArea(sharing.choices.homeArea, await geoTables());
 
+  // A ReadingPage with the profile's sections as a sub-nav: on the left from 1024, rows on a phone (redesign §5).
   return (
-    <main className="page">
-      <Masthead title={worker.displayName}>
-        <Link transitionTypes={["nav-forward"]} href="/earnings" className="btn-secondary btn-sm">Earnings</Link>
-        <Link href="/settings" className="btn-ghost btn-sm">Settings &amp; sign out</Link>
-      </Masthead>
+    <ReadingPage
+      panelStart
+      panelLabel="Profile sections"
+      aside={<ProfileNav />}
+      head={
+        <Masthead title={worker.displayName} />
+      }
+    >
 
       {/* Only when a confirmed choice is really on record: a hand-typed ?setup=done claims nothing. */}
       {setupDone && sharing.current && <UrlNotice param="setup" message="Saved. These are your choices now; change them any time under Who sees what." />}
@@ -206,6 +212,6 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
         <h2 className="section-title">Contact</h2>
         <PhoneForm phone={worker.phone} />
       </section>
-    </main>
+    </ReadingPage>
   );
 }

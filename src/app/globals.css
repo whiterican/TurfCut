@@ -559,6 +559,23 @@ body {
     .tpl[data-panel="aside"]:not([data-org]) > .tpl-body:has(> .tpl-tail) > .tpl-panel {
       grid-row: 1 / span 2;
     }
+    /* A leading panel (a section's sub-nav): the narrow left column. */
+    .tpl[data-start]:not([data-org]) {
+      --tpl-panel: 14rem;
+    }
+    .tpl[data-start]:not([data-org]) > .tpl-body {
+      grid-template-columns: var(--tpl-panel) minmax(0, var(--tpl-measure));
+    }
+    .tpl[data-start]:not([data-org]) > .tpl-body > .tpl-panel {
+      grid-column: 1;
+      position: sticky;
+      top: calc(var(--site-header-h) + 1rem);
+      max-height: calc(100dvh - var(--site-header-h) - 2rem);
+      overflow-y: auto;
+    }
+    .tpl[data-start]:not([data-org]) > .tpl-body > .tpl-main {
+      grid-column: 2;
+    }
     /* A record's facts and actions stay in view while the object scrolls; never taller than the
        window, so a focused control inside is always scrolled into view (WCAG 2.4.11). */
     .tpl[data-template="record"]:not([data-org]) > .tpl-body > .tpl-panel {

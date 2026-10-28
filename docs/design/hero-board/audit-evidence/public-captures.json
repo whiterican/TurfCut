@@ -1,0 +1,370 @@
+[
+  {
+    "filename": "public-home-390-light-before.png",
+    "route": "/",
+    "theme": "light",
+    "dpr": 2,
+    "httpStatus": 200,
+    "scope": "public signed-out development render; not authenticated visual acceptance",
+    "sourceCommit": "c0f8115bfa9fd0d4ce1e4a0297c491b944f668d5",
+    "title": "The work behind every campaign.",
+    "bodyFont": "Barlow, \"Barlow Fallback\", ui-sans-serif, system-ui, sans-serif",
+    "titleFont": "Barlow, \"Barlow Fallback\", ui-sans-serif, system-ui, sans-serif",
+    "width": 390,
+    "scrollWidth": 390,
+    "height": 844,
+    "htmlClass": "barlow_1964f174-module__3nlc_W__variable dm_mono_ed3df95c-module__D4oVwa__variable barlow_condensed_a775b54e-module__ZBO5dW__variable fraunces_93adee12-module__6h-eVq__variable h-full antialiased",
+    "fonts": [
+      {
+        "family": "Barlow",
+        "status": "unloaded",
+        "weight": "400"
+      },
+      {
+        "family": "Barlow",
+        "status": "unloaded",
+        "weight": "400"
+      },
+      {
+        "family": "Barlow",
+        "status": "loaded",
+        "weight": "400"
+      },
+      {
+        "family": "Barlow",
+        "status": "unloaded",
+        "weight": "500"
+      },
+      {
+        "family": "Barlow",
+        "status": "unloaded",
+        "weight": "500"
+      },
+      {
+        "family": "Barlow",
+        "status": "unloaded",
+        "weight": "500"
+      },
+      {
+        "family": "Barlow",
+        "status": "unloaded",
+        "weight": "600"
+      },
+      {
+        "family": "Barlow",
+        "status": "unloaded",
+        "weight": "600"
+      },
+      {
+        "family": "Barlow",
+        "status": "loaded",
+        "weight": "600"
+      },
+      {
+        "family": "Barlow",
+        "status": "unloaded",
+        "weight": "700"
+      },
+      {
+        "family": "Barlow",
+        "status": "unloaded",
+        "weight": "700"
+      },
+      {
+        "family": "Barlow",
+        "status": "loaded",
+        "weight": "700"
+      },
+      {
+        "family": "Barlow Fallback",
+        "status": "unloaded",
+        "weight": "normal"
+      },
+      {
+        "family": "Barlow Condensed",
+        "status": "unloaded",
+        "weight": "600"
+      },
+      {
+        "family": "Barlow Condensed",
+        "status": "unloaded",
+        "weight": "600"
+      },
+      {
+        "family": "Barlow Condensed",
+        "status": "loaded",
+        "weight": "600"
+      },
+      {
+        "family": "Barlow Condensed",
+        "status": "unloaded",
+        "weight": "700"
+      },
+      {
+        "family": "Barlow Condensed",
+        "status": "unloaded",
+        "weight": "700"
+      },
+      {
+        "family": "Barlow Condensed",
+        "status": "unloaded",
+        "weight": "700"
+      },
+      {
+        "family": "Barlow Condensed Fallback",
+        "status": "unloaded",
+        "weight": "normal"
+      },
+      {
+        "family": "Fraunces",
+        "status": "unloaded",
+        "weight": "100 900"
+      },
+      {
+        "family": "Fraunces",
+        "status": "unloaded",
+        "weight": "100 900"
+      },
+      {
+        "family": "Fraunces",
+        "status": "unloaded",
+        "weight": "100 900"
+      },
+      {
+        "family": "Fraunces Fallback",
+        "status": "unloaded",
+        "weight": "normal"
+      },
+      {
+        "family": "DM Mono",
+        "status": "unloaded",
+        "weight": "400"
+      },
+      {
+        "family": "DM Mono",
+        "status": "unloaded",
+        "weight": "400"
+      },
+      {
+        "family": "DM Mono",
+        "status": "unloaded",
+        "weight": "500"
+      },
+      {
+        "family": "DM Mono",
+        "status": "unloaded",
+        "weight": "500"
+      },
+      {
+        "family": "DM Mono Fallback",
+        "status": "unloaded",
+        "weight": "normal"
+      },
+      {
+        "family": "__nextjs-Geist",
+        "status": "unloaded",
+        "weight": "400 600"
+      },
+      {
+        "family": "__nextjs-Geist Mono",
+        "status": "unloaded",
+        "weight": "400 600"
+      },
+      {
+        "family": "__nextjs-Geist",
+        "status": "unloaded",
+        "weight": "400 600"
+      },
+      {
+        "family": "__nextjs-Geist Mono",
+        "status": "unloaded",
+        "weight": "400 600"
+      }
+    ],
+    "bg": "rgb(239, 234, 225)"
+  },
+  {
+    "filename": "public-home-1440-light-before.png",
+    "route": "/",
+    "theme": "light",
+    "dpr": 2,
+    "httpStatus": 200,
+    "scope": "public signed-out development render; not authenticated visual acceptance",
+    "sourceCommit": "c0f8115bfa9fd0d4ce1e4a0297c491b944f668d5",
+    "title": "The work behind every campaign.",
+    "bodyFont": "Barlow, \"Barlow Fallback\", ui-sans-serif, system-ui, sans-serif",
+    "titleFont": "Barlow, \"Barlow Fallback\", ui-sans-serif, system-ui, sans-serif",
+    "width": 1440,
+    "scrollWidth": 1440,
+    "height": 900,
+    "htmlClass": "barlow_1964f174-module__3nlc_W__variable dm_mono_ed3df95c-module__D4oVwa__variable barlow_condensed_a775b54e-module__ZBO5dW__variable fraunces_93adee12-module__6h-eVq__variable h-full antialiased",
+    "fonts": [
+      {
+        "family": "Barlow",
+        "status": "unloaded",
+        "weight": "400"
+      },
+      {
+        "family": "Barlow",
+        "status": "unloaded",
+        "weight": "400"
+      },
+      {
+        "family": "Barlow",
+        "status": "loaded",
+        "weight": "400"
+      },
+      {
+        "family": "Barlow",
+        "status": "unloaded",
+        "weight": "500"
+      },
+      {
+        "family": "Barlow",
+        "status": "unloaded",
+        "weight": "500"
+      },
+      {
+        "family": "Barlow",
+        "status": "unloaded",
+        "weight": "500"
+      },
+      {
+        "family": "Barlow",
+        "status": "unloaded",
+        "weight": "600"
+      },
+      {
+        "family": "Barlow",
+        "status": "unloaded",
+        "weight": "600"
+      },
+      {
+        "family": "Barlow",
+        "status": "loaded",
+        "weight": "600"
+      },
+      {
+        "family": "Barlow",
+        "status": "unloaded",
+        "weight": "700"
+      },
+      {
+        "family": "Barlow",
+        "status": "unloaded",
+        "weight": "700"
+      },
+      {
+        "family": "Barlow",
+        "status": "loaded",
+        "weight": "700"
+      },
+      {
+        "family": "Barlow Fallback",
+        "status": "unloaded",
+        "weight": "normal"
+      },
+      {
+        "family": "Barlow Condensed",
+        "status": "unloaded",
+        "weight": "600"
+      },
+      {
+        "family": "Barlow Condensed",
+        "status": "unloaded",
+        "weight": "600"
+      },
+      {
+        "family": "Barlow Condensed",
+        "status": "loaded",
+        "weight": "600"
+      },
+      {
+        "family": "Barlow Condensed",
+        "status": "unloaded",
+        "weight": "700"
+      },
+      {
+        "family": "Barlow Condensed",
+        "status": "unloaded",
+        "weight": "700"
+      },
+      {
+        "family": "Barlow Condensed",
+        "status": "unloaded",
+        "weight": "700"
+      },
+      {
+        "family": "Barlow Condensed Fallback",
+        "status": "unloaded",
+        "weight": "normal"
+      },
+      {
+        "family": "Fraunces",
+        "status": "unloaded",
+        "weight": "100 900"
+      },
+      {
+        "family": "Fraunces",
+        "status": "unloaded",
+        "weight": "100 900"
+      },
+      {
+        "family": "Fraunces",
+        "status": "unloaded",
+        "weight": "100 900"
+      },
+      {
+        "family": "Fraunces Fallback",
+        "status": "unloaded",
+        "weight": "normal"
+      },
+      {
+        "family": "DM Mono",
+        "status": "unloaded",
+        "weight": "400"
+      },
+      {
+        "family": "DM Mono",
+        "status": "unloaded",
+        "weight": "400"
+      },
+      {
+        "family": "DM Mono",
+        "status": "unloaded",
+        "weight": "500"
+      },
+      {
+        "family": "DM Mono",
+        "status": "unloaded",
+        "weight": "500"
+      },
+      {
+        "family": "DM Mono Fallback",
+        "status": "unloaded",
+        "weight": "normal"
+      },
+      {
+        "family": "__nextjs-Geist",
+        "status": "unloaded",
+        "weight": "400 600"
+      },
+      {
+        "family": "__nextjs-Geist Mono",
+        "status": "unloaded",
+        "weight": "400 600"
+      },
+      {
+        "family": "__nextjs-Geist",
+        "status": "unloaded",
+        "weight": "400 600"
+      },
+      {
+        "family": "__nextjs-Geist Mono",
+        "status": "unloaded",
+        "weight": "400 600"
+      }
+    ],
+    "bg": "rgb(239, 234, 225)"
+  }
+]

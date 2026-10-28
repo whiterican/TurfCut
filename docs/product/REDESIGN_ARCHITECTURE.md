@@ -1,5 +1,7 @@
 # TurfCut redesign — architecture and build sequence
 
+> **Visual authority update — 28 October 2026:** this document's old palette, Fraunces/Barlow typography, four-tab plan, cream/lavender dock treatment and “inspiration only” wording are superseded by the founder's latest twelve-screen concept and issue #111. Read [the current corrective handoff](../design/hero-board/README.md) first. Its original image is committed there. Preserve compatible architecture, authorization, data honesty and workflow requirements from this historical document; do not use the old visual sections or their old READY reviews as approval of the new design. The audited implementation at `c0f8115` has already progressed beyond several “draft/out of scope” statements here.
+
 Status: **draft for the C1/C2/C3 gates**. No new production code is written
 until all three reviews say READY. Two commits already on branch `redesign`
 are kept as the start of the foundation:

@@ -1807,6 +1807,39 @@ body {
   .job-row {
     @apply flex min-h-14 items-center justify-between gap-3 px-4 py-3 text-fg transition hover:bg-surface-2;
   }
+  /* The green board's job row (components/JobPhotoRow.tsx): the category picture on the left,
+     the facts beside it, on a white card. Four fit above the dock at 390. */
+  .job-photo-row {
+    @apply flex gap-3 rounded-[var(--radius-card)] border border-border p-3 text-fg transition;
+    background: var(--surface);
+    box-shadow: var(--card-edge), var(--shadow-depth);
+  }
+  .job-photo-row:hover {
+    border-color: var(--border-strong);
+  }
+  .job-photo-row-art {
+    @apply block size-[5.5rem] shrink-0 overflow-hidden rounded-[var(--radius-inner)];
+  }
+  .job-art {
+    @apply block h-full w-full;
+  }
+  /* A job's head (green board): the title block and the gross pay share one line while there is room;
+     the pay wraps under the title only on the narrowest phones at large text. */
+  .job-head {
+    @apply items-start;
+  }
+  .job-head > div:nth-child(2) {
+    flex: 1 1 12rem;
+  }
+  /* The job's apply card: on a phone it stays above the dock while the facts scroll under it (green board). */
+  .job-apply-card {
+    @apply sticky z-10 lg:static;
+    bottom: var(--dock-clearance);
+  }
+  /* A job page's picture: full width under the site header, the sheet below it. */
+  .job-photo-head {
+    @apply -mx-4 mb-4 aspect-[16/7] overflow-hidden sm:-mx-6 sm:rounded-[var(--radius-card)] lg:mx-0;
+  }
   /* The hover affordance the card had before the swipe wrapper took its frame. */
   .card-link.card:hover,
   .swipe-card:has(.card-link:hover) {
@@ -1827,6 +1860,21 @@ body {
   }
   .swipe-actions {
     @apply mt-3 flex flex-wrap gap-2;
+  }
+  /* The green board's row: the wrapper is the white card, the row inside it loses its own frame,
+     and Save / Hide are a column of icon buttons at the right edge. */
+  .swipe-card-compact {
+    @apply flex items-start p-0;
+  }
+  .swipe-card-compact .job-photo-row {
+    @apply min-w-0 flex-1 rounded-none border-0 shadow-none;
+    background: transparent;
+  }
+  .swipe-card-compact .swipe-actions {
+    @apply mt-1 mr-1 flex-col gap-0;
+  }
+  .swipe-icon {
+    @apply size-11 min-h-11 p-0;
   }
   .topnav-link {
     @apply rounded-lg px-3 py-2 text-sm font-medium text-muted transition hover:bg-surface-2 hover:text-fg;

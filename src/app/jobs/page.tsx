@@ -14,7 +14,7 @@ import { effectivePreference } from "@/lib/political-fit";
 import { loadLatestPreference } from "@/lib/political-fit-data";
 import { plural } from "@/lib/format";
 import { loadFeed } from "@/lib/jobs-data";
-import { JobFeedCard } from "@/components/JobFeedCard";
+import { JobPhotoRow } from "@/components/JobPhotoRow";
 import { SwipeCard } from "@/components/SwipeCard";
 import { Sheet } from "@/components/Sheet";
 import { EmptyArt } from "@/components/EmptyState";
@@ -93,8 +93,8 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
   const typedStartsBefore = parseFeedFilters(new URLSearchParams(params.get("startsBefore") ? { startsBefore: params.get("startsBefore")! } : {})).startsBefore;
 
   return (
-    <main className="page lg:max-w-5xl">
-      <Masthead title="Jobs" meta="Open jobs, soonest first, with pay, place and dates up front." />
+    <main className="page space-y-5 lg:max-w-5xl">
+      <Masthead title="Jobs" />
       <JobsSwitch current="find" />
 
       {waitingInvites > 0 && (
@@ -107,28 +107,26 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
       )}
 
       {mine.length > 0 && (
-        <section className="section">
-          <div className="flex items-baseline justify-between gap-3">
-            <h2 className="section-title">Your jobs</h2>
-            <Link href="/jobs/invitations" className="link text-sm">Invitations</Link>
-          </div>
+        // Compact (green board: the feed's rows come first): one line per job the worker is on, no heading.
+        <section className="space-y-2" aria-label="Your jobs">
           <ul className="list-card">
             {mine.map((e) => {
               const st = engagementStatus(e, facts.get(e.id) ?? { events: [], offerExpiresAt: null }, now);
               return (
                 <li key={e.id}>
-                  <Link transitionTypes={["nav-forward"]} href={`/jobs/${e.job.id}`} className="flex min-h-14 items-center justify-between gap-3 px-4 py-3 text-fg transition hover:bg-surface-2">
-                    <span className="font-medium">{e.job.title}</span>
+                  <Link transitionTypes={["nav-forward"]} href={`/jobs/${e.job.id}`} className="flex min-h-12 items-center justify-between gap-3 px-4 py-2.5 text-fg transition hover:bg-surface-2">
+                    <span className="min-w-0 truncate text-sm font-medium"><span className="text-muted">Your job · </span>{e.job.title}</span>
                     <StatusBadge status={st} />
                   </Link>
                 </li>
               );
             })}
           </ul>
+          <Link href="/jobs/invitations" className="link text-sm">Invitations</Link>
         </section>
       )}
 
-      <section className="section space-y-4">
+      <section className="section space-y-3">
         {/* Quick filters (screen mockups): one tap on, one tap off. */}
         <nav aria-label="Quick filters" className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
           {quick.map((q) => (
@@ -139,12 +137,12 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
             </Link>
           ))}
         </nav>
+        {/* One line: the count, then the way to more filters (the rows come right after, as on the board). */}
         <div className="flex items-baseline justify-between gap-3">
-          <h2 className="section-title">{showHidden ? plural(open.length, "hidden job", "hidden jobs") : savedOnly ? plural(open.length, "saved job", "saved jobs") : plural(open.length, "opportunity", "opportunities")}</h2>
-          {anyFilter && <Link href="/jobs" scroll={false} className="link text-sm">{showHidden ? "Back to the feed" : "Clear filters"}</Link>}
-        </div>
-
-        <Sheet label="More filters" trigger="More filters" triggerClassName="btn-secondary w-full sm:w-auto">
+          <h2 className="text-sm font-semibold text-muted">{showHidden ? plural(open.length, "hidden job", "hidden jobs") : savedOnly ? plural(open.length, "saved job", "saved jobs") : plural(open.length, "open job", "open jobs")}</h2>
+          <span className="flex items-center gap-3">
+            {anyFilter && <Link href="/jobs" scroll={false} className="link text-sm">{showHidden ? "Back to the feed" : "Clear filters"}</Link>}
+            <Sheet label="More filters" trigger="More filters" triggerClassName="link text-sm">
           <form className="grid gap-3 sm:grid-cols-2">
             <label className="space-y-1.5">
               <span className="label">Type</span>
@@ -169,7 +167,9 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
               <button className="btn-secondary">Show jobs</button>
             </div>
           </form>
-        </Sheet>
+            </Sheet>
+          </span>
+        </div>
 
         {open.length === 0 ? (
           <div className="empty-state">
@@ -181,8 +181,8 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
           <ul className="grid gap-3 lg:grid-cols-2" /* two columns from a desktop width up */>
             {open.map((j) => (
               <li key={j.id}>
-                <SwipeCard jobId={j.id} saved={marks.saved.has(j.id)} hidden={showHidden}>
-                  <JobFeedCard j={j} />
+                <SwipeCard jobId={j.id} saved={marks.saved.has(j.id)} hidden={showHidden} compact>
+                  <JobPhotoRow j={j} />
                 </SwipeCard>
               </li>
             ))}

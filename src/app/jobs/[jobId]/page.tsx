@@ -10,9 +10,10 @@ import { loadPipelineFacts } from "@/lib/engagements-data";
 import { EngagementHistory } from "@/components/EngagementHistory";
 import { HiringActions, timeLeft } from "@/components/HiringActions";
 import { engagementStatus, JOB_STATUS_LABELS } from "@/lib/engagement-labels";
-import { UUID_RE, exclusionReasons, fitReasons, jobCardAnswers, jobCredentials, jobDiscoveryLabel, jobFreezeReasons, jurisdictionLabel, payText, publishBlockers, readDisclosure, readHiringModes } from "@/lib/jobs";
+import { UUID_RE, exclusionReasons, fitReasons, jobCardAnswers, jobCredentials, jobDiscoveryLabel, jobFreezeReasons, jurisdictionLabel, payShort, payText, publishBlockers, readDisclosure, readHiringModes } from "@/lib/jobs";
 import { categoryStatusOf } from "@/lib/job-categories";
 import { CategoryStatusTag } from "@/components/CategoryStatusTag";
+import { JobArt } from "@/components/JobArt";
 import { loadScorecard } from "@/lib/scorecard-data";
 import { loadSharing } from "@/lib/sharing-data";
 import { PART_DETAILS, RELATIONSHIP_PHRASE, SHARE_PARTS, visibleParts, type SharePart, type SharingChoices } from "@/lib/sharing";
@@ -101,7 +102,13 @@ export default async function JobPage({ params }: { params: Promise<{ jobId: str
 
   // The record head (F03b): the title and pay are shared with the feed card that was tapped (P1.6), so they grow into place.
   const head = (
+    <>
+    {/* The job's picture first (green board): the category's art until organizations can set their own. */}
+    <div className="job-photo-head">
+      <JobArt type={job.type} />
+    </div>
     <Masthead
+      className="job-head"
       // The category as the feed names it, so a candidate drive reads "Candidate campaign canvassing" here too,
       // and the "In development" tag sits in the head rather than only in the Campaign card below.
       eyebrow={`${jobDiscoveryLabel(job.type, job.campaignDisclosure)} · ${jurisdictionLabel(job.jurisdiction)}`}
@@ -109,8 +116,6 @@ export default async function JobPage({ params }: { params: Promise<{ jobId: str
       titleClassName="w-fit"
       titleStyle={shareStyle(`job-${job.id}`)}
       meta={job.org.name}
-      // The same words as the feed card's pay (gross, exact basis), so the shared element grows rather than swaps its text.
-      figure={<span className="block w-fit" style={shareStyle(`pay-${job.id}`)}>{payText(job.compensationMethod, job.payRateCents)}</span>}
       chips={
         <>
           {isOwnOrg && <StatusBadge status={status} />}
@@ -120,7 +125,14 @@ export default async function JobPage({ params }: { params: Promise<{ jobId: str
       back={
         <Link transitionTypes={["nav-back"]} href="/jobs" className="btn-ghost -ms-4"><ChevronLeft aria-hidden className="size-4 shrink-0" />Jobs</Link>
       }
-    />
+    >
+      {/* The gross pay beside the title (green board), in the feed card's words so the shared element grows rather than swaps its text. */}
+      <span className="text-end">
+        <span className="masthead-figure block pt-0 text-2xl" style={shareStyle(`pay-${job.id}`)}>{payShort(job.compensationMethod, job.payRateCents, job.type)}</span>
+        <span className="block text-xs text-muted">gross · {payText(job.compensationMethod, job.payRateCents).replace(/ \(gross\)$/, "")}</span>
+      </span>
+    </Masthead>
+    </>
   );
   const fullCard = (
     <section className="section">
@@ -283,8 +295,9 @@ async function WorkerPanel({
 
   return (
     <>
-    {/* The action first (redesign §5: the aside leads with the apply panel), then why it fits. */}
-    <section className="card space-y-4">
+    {/* The action first (redesign §5: the aside leads with the apply panel), then why it fits.
+        On a phone the card stays above the dock while the page scrolls (green board's bottom action). */}
+    <section className="card job-apply-card space-y-4">
       {modes.includes("application") && (
         <ActionButton action={apply} fields={{ jobId: job.id }} label="Apply with verified profile" pendingLabel="Applying…" variant="btn-primary w-full" />
       )}

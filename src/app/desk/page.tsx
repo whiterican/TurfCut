@@ -63,6 +63,14 @@ export default async function DeskPage() {
 
       {parts.today && desk.today && <FieldToday ops={desk.today} now={now} />}
 
+      {/* A count only: names stay with the roles that run the field (the loader never reads them here). */}
+      {!!desk.noCheckoutCount && (
+        <p className="flex flex-wrap items-center gap-2 text-sm text-fg">
+          <StatusChip state="overdue" label="No check-out received" />
+          {desk.noCheckoutCount === 1 ? "1 shift ended" : `${desk.noCheckoutCount} shifts ended`} without a check-out reaching Turfcut. Whoever runs your field days follows these up.
+        </p>
+      )}
+
       {!parts.readOnly && (
         <section className="section" aria-labelledby="needs-you">
           <div className="section-head">
@@ -121,13 +129,6 @@ export default async function DeskPage() {
                 { label: "Doors", value: desk.today.doors },
               ]}
             />
-          )}
-          {/* A count only: names stay with the roles that run the field (the loader never reads them here). */}
-          {!!desk.noCheckoutCount && (
-            <p className="flex flex-wrap items-center gap-2 text-sm text-fg">
-              <StatusChip state="overdue" label="No check-out received" />
-              {desk.noCheckoutCount === 1 ? "1 shift ended" : `${desk.noCheckoutCount} shifts ended`} without a check-out reaching Turfcut. Your supervisors follow these up.
-            </p>
           )}
           <section className="section" aria-labelledby="live-jobs">
             <h2 id="live-jobs" className="section-title">Live jobs</h2>

@@ -110,13 +110,13 @@ export const URGENCY = { late: 0, noCheckout: 1, overdue: 2, review: 3, dueToday
 /**
  * Shifts still checked in after their end ("No check-out received", redesign
  * §5 Desk): who may see what. Full field access sees each worker and time;
- * roles with only the read-only Desk (compliance, publisher) see a count;
- * everyone else (finance, recruiters) nothing. The loader never selects
- * names for a count.
+ * read access to the field (recruiters) and the read-only Desk (compliance,
+ * publisher) see a count; everyone else (finance) nothing. The loader never
+ * selects names for a count.
  */
-export function noCheckoutVisibility(parts: DeskParts): "names" | "count" | null {
-  if (parts.field) return "names";
-  if (parts.readOnly) return "count";
+export function noCheckoutVisibility(member: Role | AccessSubject): "names" | "count" | null {
+  if (can(member, "field")) return "names";
+  if (can(member, "field", "read") || deskParts(member).readOnly) return "count";
   return null;
 }
 

@@ -6,7 +6,7 @@ const candidate = { campaignType: "candidate", affiliation: "democratic", campai
 const ballot = { campaignType: "ballot_measure", affiliation: "nonpartisan", message: "Yes on 1" };
 
 describe("job categories (data honesty: built / in development / planned)", () => {
-  it("lists the founder's seven categories, two built, one in development, five planned", () => {
+  it("lists the founder's categories: two built, one in development, six planned (sales roles are inside a job, not categories)", () => {
     expect(JOB_CATEGORIES.map((c) => c.label)).toEqual([
       "Petition circulation",
       "Door-to-door canvassing",
@@ -16,9 +16,10 @@ describe("job categories (data honesty: built / in development / planned)", () =
       "Door-to-door polling",
       "Door-to-door fundraising",
       "Door-to-door sales",
+      "Phone sales and cold calling",
     ]);
     expect(JOB_CATEGORIES.filter((c) => c.status === "built").map((c) => c.type)).toEqual(["PETITION", "CANVASS"]);
-    expect(PLANNED_CATEGORIES).toHaveLength(5);
+    expect(PLANNED_CATEGORIES).toHaveLength(6);
     expect(PLANNED_CATEGORIES.every((c) => !c.type)).toBe(true);
   });
 

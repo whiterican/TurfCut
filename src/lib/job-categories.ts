@@ -1,7 +1,7 @@
 import { readDisclosure, type JobType } from "@/lib/jobs";
 
 /**
- * The founder's seven work categories and how far each one is: built (live
+ * The founder's work categories and how far each one is: built (live
  * in the app), in development (postable, its own tools not launched), or
  * planned (not live at all). Wherever a category is named to a reader, the
  * two unfinished kinds carry their tag (CategoryStatusTag), so a planned
@@ -28,6 +28,8 @@ export const JOB_CATEGORIES: readonly JobCategory[] = [
   { id: "door_polling", label: "Door-to-door polling", status: "planned" },
   { id: "door_fundraising", label: "Door-to-door fundraising", status: "planned" },
   { id: "door_sales", label: "Door-to-door sales", status: "planned" },
+  // Sales work by phone (2026-10-28). Setter, closer and manager are roles inside one sales job, not categories.
+  { id: "phone_sales", label: "Phone sales and cold calling", status: "planned" },
 ];
 
 /** The tag's words; a built category carries none. */

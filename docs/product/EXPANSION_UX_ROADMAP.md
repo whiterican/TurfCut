@@ -234,8 +234,11 @@ Add the job-activity option **Polling Place Outreach** to the proposed Political
 | 5 | **Door-to-Door Polling** | In-person survey interviewing, public-opinion studies, community research, program evaluation, market research | In the field | Political, Nonprofit, Private | No |
 | 6 | **Door-to-Door Fundraising** | Charitable fundraising, nonprofit donation campaigns, membership recruitment, cause-based fundraising | In the field | Nonprofit | No |
 | 7 | **Door-to-Door Sales** | Residential sales, customer acquisition, lead generation, appointment setting, other permitted commercial neighborhood outreach | In the field | Private | No |
+| 8 | **Phone Sales and Cold Calling** (added 2026-10-28) | Outbound sales calls, cold calling, phone appointment setting; Do-Not-Call and call-recording consent rules apply | **Remote / Work From Home** or **Office / On-Site** | Private | No |
 
-**In the app (`src/lib/job-categories.ts`, 2026-10-28):** every category carries a status the reader sees — built (no tag), **In development** (candidate campaign canvassing) or **Planned** (the five below) — on job cards, rows and the job's own page, and the job form lists the planned categories as disabled options. A planned category is never presented as launched.
+**Sales roles (founder decision, 2026-10-28):** appointment setter, closer and team manager are **roles inside one sales job** (one campaign, several role slots), not job categories. The lead model is designed for the handoff (a setter's appointment is a lead event; the lead is assigned to a closer), and the manager is an organization role with field and scheduling grants. Commission pay is its own later milestone: pay today is verified time or accepted units, never a reported sale.
+
+**In the app (`src/lib/job-categories.ts`, 2026-10-28):** every category carries a status the reader sees — built (no tag), **In development** (candidate campaign canvassing) or **Planned** (the six below) — on job cards, rows and the job's own page, and the job form lists the planned categories as disabled options. A planned category is never presented as launched.
 
 **Data model direction (unchanged from above, still needs its own approved migration):** separate `sector`, `workActivity` (the seven values), `workMode` (`REMOTE` / `ONSITE`, only for phone banking and phone polling) and campaign purpose/disclosure. Existing `PETITION` and `CANVASS` jobs map to activities 1 and 2 without rewriting history. Never encode a planned category as `CANVASS` to avoid a migration.
 

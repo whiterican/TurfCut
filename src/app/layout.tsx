@@ -1,12 +1,8 @@
 import type { Metadata } from "next";
-import Image from "next/image";
-import Link from "next/link";
-import brandMark from "../../public/brand/icons/icon-96.png";
 import { Barlow, Barlow_Condensed, DM_Mono, Fraunces } from "next/font/google";
-import { OrgRail, OrgTabBar, TabBar, TopNav } from "@/components/AppNav";
+import { OrgRail, OrgTabBar, TabBar } from "@/components/AppNav";
+import { SiteHeader } from "@/components/SiteHeader";
 import { InlineScript } from "@/components/InlineScript";
-import { ThemeToggle } from "@/components/ThemeToggle";
-import { Bell, SlidersHorizontal } from "lucide-react";
 import { UnreadProvider } from "@/components/chat/UnreadProvider";
 import { ViewerKindProvider } from "@/components/ViewerKind";
 import { PageTransition } from "@/components/PageTransition";
@@ -15,7 +11,7 @@ import { PullToRefresh } from "@/components/PullToRefresh";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
 import { getSessionProfile } from "@/lib/auth";
 import { getSiteUrl } from "@/lib/env";
-import { MESSAGES_HREF, navTabs, orgNav } from "@/lib/nav";
+import { MESSAGES_HREF, navTabs, orgNav, railPerson, topNavTabs } from "@/lib/nav";
 import { db } from "@/lib/db";
 import { unreadTotal } from "@/lib/chat-data";
 import { unreadNotifications, UNREAD_CAP } from "@/lib/notifications-data";
@@ -98,40 +94,18 @@ export default async function RootLayout({
       <body className="min-h-full flex flex-col">
         <ViewerKindProvider kind={!session ? "none" : session.role === "WORKER" ? "worker" : session.orgId ? "org" : "none"}>
         <UnreadProvider initial={unread} enabled={tabs.some((t) => t.href === MESSAGES_HREF)}>
-        <header className="site-header border-b">
-          <div className={`mx-auto flex w-full ${isOrg ? "max-w-6xl" : "max-w-5xl"} items-center justify-between gap-3 px-4 py-3 sm:px-6`}>
-            <Link href={!session ? "/" : isOrg ? "/desk" : "/dashboard"} className="flex shrink-0 items-center gap-2 text-[20px] font-bold tracking-[-0.04em] text-fg">
-              {/* The founder's pin-check-nib mark: lime on eggplant, the same in both
-                  themes. The word is live text in the theme's ink. Static import +
-                  unoptimized: served from /_next/static, saved offline by the service worker. */}
-              <Image src={brandMark} alt="" width={28} height={28} unoptimized className="size-7 rounded-lg" />
-              {/* The wordmark: lowercase, with "cut" in the kicker colour. */}
-              <span>turf<span className="wordmark-cut">cut</span></span>
-            </Link>
-            <div className="flex items-center gap-2">
-              {!isOrg && <TopNav tabs={tabs} />}
-              {session && (
-                <Link href="/notifications" className="btn-ghost btn-sm relative" aria-label={notices ? `Notifications, ${notices} unread` : "Notifications"}>
-                  <Bell aria-hidden className="btn-icon" />
-                  {notices > 0 && <span className="unread-badge" aria-hidden>{notices > 99 ? "99+" : notices}</span>}
-                </Link>
-              )}
-              <Link href="/settings" className="btn-ghost btn-sm" title="Settings: text size, theme, sign out" aria-label="Settings">
-                <SlidersHorizontal aria-hidden className="btn-icon" />
-              </Link>
-              <ThemeToggle />
-            </div>
-          </div>
-        </header>
-        {isOrg ? (
+        <SiteHeader signedIn={!!session} isOrg={isOrg} tabs={topNavTabs(session?.role ?? null)} notices={notices} />
+        {isOrg && session ? (
           <div className="org-shell">
-            <OrgRail tabs={org.rail} orgName={orgInfo?.name ?? "Your organization"} approved={orgInfo ? orgInfo.approved : null} />
-            <div className="min-w-0 flex-1">
+            <OrgRail tabs={org.rail} orgName={orgInfo?.name ?? "Your organization"} approved={orgInfo ? orgInfo.approved : null} person={railPerson(session)} />
+            <div id="content" tabIndex={-1} className="skip-target min-w-0 flex-1">
               <PageTransition>{children}</PageTransition>
             </div>
           </div>
         ) : (
-          <PageTransition>{children}</PageTransition>
+          <div id="content" tabIndex={-1} className="skip-target flex flex-1 flex-col">
+            <PageTransition>{children}</PageTransition>
+          </div>
         )}
         <Haptics />
         <PullToRefresh />

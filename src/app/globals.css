@@ -267,6 +267,8 @@ html {
   --measure-reading: 42rem;
   --measure-content: 48rem;
   --workspace-max: 90rem;
+  /* The header's fixed height: px controls and padding (12 + 40 + 12 + a 1px border), so text size never changes it. */
+  --site-header-h: 65px;
   --inspector-w: 24rem;
   --dock-clearance: calc(6rem + env(safe-area-inset-bottom));
 }
@@ -1364,7 +1366,7 @@ body {
 
   /* Organization shell (C1): left rail on desktop, role tabs + More sheet on phones. */
   .org-shell {
-    @apply mx-auto flex w-full max-w-6xl flex-1;
+    @apply mx-auto flex w-full max-w-[var(--workspace-max)] flex-1;
   }
   /* The keyboard ring on things inside eggplant surfaces takes the surface's own type colour
      (eggplant on eggplant is 1.2:1). Only descendants: a hero card that is itself a link keeps
@@ -1375,13 +1377,41 @@ body {
   .hero-card:not(.hero-card-quiet) * {
     --focus: var(--hero-fg);
   }
+  /* Full height (redesign §4.2.1): the eggplant frame runs from under the header to the
+     bottom of the window and stays there while the page scrolls; the person sits at its foot. */
   .org-rail {
-    @apply sticky top-4 my-4 ms-4 hidden max-h-[calc(100dvh-2rem)] w-60 shrink-0 self-start overflow-y-auto rounded-[var(--radius-card)] px-3 pt-6 pb-4 lg:block;
+    @apply sticky hidden w-60 shrink-0 flex-col self-start overflow-y-auto px-3 pt-6 pb-4 lg:flex;
     background: var(--shell-bg);
     color: var(--shell-fg);
+    border-inline-end: 1px solid var(--shell-edge);
   }
-  .org-rail {
-    border: 1px solid var(--shell-edge);
+  .org-rail > nav {
+    @apply flex-1;
+  }
+  /* The staff console's own identity: an eggplant band over the page, and no
+     organization's rail beside it (an organization's areas are not the console's). */
+  .staff-band {
+    @apply flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2.5 text-sm sm:px-6;
+    background: var(--shell-bg);
+    color: var(--shell-fg);
+    border-block-end: 1px solid var(--shell-edge);
+  }
+  .staff-band * {
+    --focus: var(--shell-fg);
+  }
+  .staff-band-note {
+    @apply min-w-0 flex-1;
+    color: var(--shell-muted);
+  }
+  .staff-band-link {
+    @apply font-semibold underline underline-offset-2;
+  }
+  body:has(.staff-band) .org-rail {
+    display: none;
+  }
+  .org-rail-foot {
+    @apply mt-4 space-y-0.5 border-t px-3 pt-4 text-sm;
+    border-color: var(--shell-line);
   }
   .org-rail-head {
     @apply mb-4 space-y-1 border-b px-3 pb-4;
@@ -1394,29 +1424,42 @@ body {
     @apply inline-flex items-center gap-1 text-xs font-semibold;
     color: var(--shell-muted);
   }
+  /* A row of navigation. On a card or sheet (the phone's More sheet) it takes the
+     page's own tokens; inside the eggplant frame it takes the frame's (below). */
   .rail-link {
     @apply flex min-h-10 items-center gap-2.5 rounded-[var(--radius-control)] px-3 py-2 text-sm font-medium transition;
-    color: var(--shell-muted);
+    color: var(--muted);
   }
   .rail-link:hover {
+    color: var(--fg);
+    background: color-mix(in srgb, var(--fg) 6%, transparent);
+  }
+  .rail-link[aria-current] {
+    @apply font-bold;
+    background: var(--tab-active-bg);
+    color: var(--tab-active-fg);
+  }
+  .org-rail .rail-link {
+    color: var(--shell-muted);
+  }
+  .org-rail .rail-link:hover {
     color: var(--shell-fg);
     background: color-mix(in srgb, var(--shell-fg) 8%, transparent);
   }
   /* The current area: a lavender tile with ink type on the eggplant frame
      (about 11:1 to the frame), bold, no side stripe. */
-  .rail-link[aria-current="page"] {
-    @apply font-bold;
+  .org-rail .rail-link[aria-current] {
     background: var(--shell-active);
     color: var(--on-shell-active);
   }
   /* By night the eggplant tile is only 1.6:1 from the bar and its cream label is the
      same as the others', so the current tab and every chosen chip get a light edge too. */
-  .dark :is(.tab[aria-current], .chip:has(input:checked), .chip[aria-current="page"], .filter-chip-on, .step-current, .topnav-link[aria-current]) {
+  .dark :is(.tab[aria-current], .more-sheet .rail-link[aria-current], .chip:has(input:checked), .chip[aria-current="page"], .filter-chip-on, .step-current, .topnav-link[aria-current]) {
     box-shadow: inset 0 0 0 1px var(--muted);
   }
   /* Forest fills and current tiles keep their keyboard ring outside, in the gap,
      so it is measured against the surface, never against the fill. */
-  :is(.btn-primary, .tab[aria-current], .topnav-link[aria-current], .rail-link[aria-current="page"]):focus-visible {
+  :is(.btn-primary, .tab[aria-current], .topnav-link[aria-current], .rail-link[aria-current]):focus-visible {
     outline-offset: 3px;
   }
   /* The dock's current tab also carries a short bar above its icon: a cue
@@ -1788,10 +1831,11 @@ body {
   body:has(.composer-input:focus) .composer {
     bottom: 0;
   }
-  /* Any text field on a touch phone opens the keyboard: the dock steps aside
+  /* A field that takes typing on a touch phone opens the keyboard: the dock steps aside
+     (not for a select: its picker closes but focus stays, and the dock would stay gone)
      so the field being typed in is never behind it (on a 320px phone the
      keyboard leaves about 230px, too little for the header, a field and the dock). */
-  body:has(:is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="button"], [type="submit"], [type="file"]), textarea, select, [contenteditable="true"]):focus) .tabbar {
+  body:has(:is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="button"], [type="submit"], [type="reset"], [type="image"], [type="color"], [type="file"], [readonly]), textarea:not([readonly]), [contenteditable]:not([contenteditable="false"])):focus) .tabbar {
     display: none;
   }
 }
@@ -1814,12 +1858,49 @@ summary.list-none::-webkit-details-marker {
 }
 
 /* ---- The frame ------------------------------------------------- */
+/* The skip link: off screen until a keyboard reaches it, then a plain tile
+   over the header's top-left corner. */
+.skip-link {
+  position: absolute;
+  inset-inline-start: 1rem;
+  top: 0.5rem;
+  z-index: 60;
+  padding: 0.5rem 0.875rem;
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--fg);
+  font-weight: 700;
+  translate: 0 -200%;
+}
+.skip-link:focus-visible {
+  translate: 0 0;
+}
+/* The skip link's landing spot is a wrapper, not a control: no ring on it. */
+.skip-target:focus {
+  outline: none;
+}
 /* The header is paper. On phones it stays at the top while the page
    scrolls under it (not in chat threads, which pin their own top bar). */
 .site-header {
   /* Paper, no line under it: content scrolls under a plain band of the page colour. */
   background: var(--bg);
   border-color: transparent;
+}
+/* Organizations on desktop: the header stays put too, so the full-height rail
+   can sit exactly under it (--site-header-h). */
+@media (width >= 64rem) {
+  body:has(.org-rail) .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 45;
+  }
+  html:has(.org-rail) {
+    scroll-padding-top: calc(var(--site-header-h) + 1rem);
+  }
+  .org-rail {
+    top: var(--site-header-h);
+    height: calc(100dvh - var(--site-header-h));
+  }
 }
 @media (max-width: 63.99rem) {
   body:not(:has(.thread-top)) .site-header {

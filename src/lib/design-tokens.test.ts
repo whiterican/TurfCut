@@ -491,8 +491,49 @@ describe("forest ink is for what is live and the one primary action (G1)", () =>
     }
   });
   it("the rail and the desktop top nav mark the current page with an eggplant tile, not a side stripe", () => {
-    expect(css).toMatch(/\.rail-link\[aria-current="page"\] \{[^}]*?background: var\(--shell-active\);/);
+    expect(css).toMatch(/\.org-rail \.rail-link\[aria-current\] \{[^}]*?background: var\(--shell-active\);/);
     expect(css).toMatch(/\.topnav-link\[aria-current\] \{[^}]*?background: var\(--tab-active-bg\);/);
     expect(css).not.toMatch(/inset 3px 0 0/);
+  });
+});
+
+describe("the shell (redesign B1.4)", () => {
+  it("the dock steps aside only for fields that take typing (never a select, a read-only field or a button)", () => {
+    const rule = css.match(/body:has\(:is\(input:not\(([^)]*)\)[^{]*\.tabbar \{\s*display: none;/);
+    expect(rule).not.toBeNull();
+    for (const t of ["checkbox", "radio", "range", "button", "submit", "reset", "image", "color", "file"]) expect(rule![1]).toContain(`[type="${t}"]`);
+    expect(rule![1]).toContain("[readonly]");
+    expect(rule![0]).toContain("textarea:not([readonly])");
+    expect(rule![0]).not.toMatch(/,\s*select\b/);
+  });
+  it("the phone's More sheet is a page-coloured panel: its rows use the page's tokens, never the frame's (every theme)", () => {
+    expect(css).toMatch(/\.rail-link \{[^}]*?color: var\(--muted\);/);
+    expect(css).toMatch(/\.rail-link\[aria-current\] \{[^}]*?background: var\(--tab-active-bg\);\s*color: var\(--tab-active-fg\);/);
+    expect(css).toMatch(/\.org-rail \.rail-link \{\s*color: var\(--shell-muted\);/);
+    for (const th of [light, dark, sun]) {
+      expect(ratio(th.muted, th.surface)).toBeGreaterThanOrEqual(4.5);
+      expect(ratio(th["tab-active-fg"], th["tab-active-bg"])).toBeGreaterThanOrEqual(7);
+      // The current row is told apart from the panel (by night with a lavender edge as well).
+      expect(ratio(th["tab-active-bg"], th.surface)).toBeGreaterThanOrEqual(th === dark ? 1.5 : 3);
+    }
+    expect(css).toMatch(/\.dark :is\(\.tab\[aria-current\], \.more-sheet \.rail-link\[aria-current\]/);
+  });
+
+  it("has a skip link that appears on keyboard focus, landing on a wrapper without a ring", () => {
+    expect(css).toMatch(/\.skip-link \{[^}]*translate: 0 -200%;/);
+    expect(css).toMatch(/\.skip-link:focus-visible \{\s*translate: 0 0;/);
+    expect(css).toMatch(/\.skip-target:focus \{\s*outline: none;/);
+  });
+
+  it("runs the organization rail full height under a header of fixed height", () => {
+    expect(css).toMatch(/--site-header-h: 65px;/);
+    expect(css).toMatch(/\.org-rail \{\s*top: var\(--site-header-h\);\s*height: calc\(100dvh - var\(--site-header-h\)\);/);
+    expect(css).toMatch(/\.org-shell \{\s*@apply mx-auto flex w-full max-w-\[var\(--workspace-max\)\] flex-1;/);
+  });
+
+  it("gives the staff console its own band and never an organization's rail beside it", () => {
+    expect(css).toMatch(/\.staff-band \{[^}]*background: var\(--shell-bg\);[^}]*color: var\(--shell-fg\);/);
+    expect(css).toMatch(/\.staff-band \* \{\s*--focus: var\(--shell-fg\);/);
+    expect(css).toMatch(/body:has\(\.staff-band\) \.org-rail \{\s*display: none;/);
   });
 });

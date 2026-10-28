@@ -130,9 +130,14 @@ export function TabBar({ tabs }: { tabs: NavTab[] }) {
   );
 }
 
-/** Desktop (lg): the organization's left rail — its name and approval, then every area the role reaches. */
-export function OrgRail({ tabs, orgName, approved }: { tabs: NavTab[]; orgName: string; approved: boolean | null }) {
-  const current = activeTab(tabs, usePathname());
+/**
+ * Desktop (lg): the organization's full-height rail (redesign §4.2.1) — its
+ * name and approval at the top, every area the role reaches, and who is
+ * signed in at the bottom.
+ */
+export function OrgRail({ tabs, orgName, approved, person }: { tabs: NavTab[]; orgName: string; approved: boolean | null; person: { name: string; role: string } }) {
+  const pathname = usePathname();
+  const current = activeTab(tabs, pathname);
   const count = useUnreadCount();
   return (
     <aside className="org-rail" aria-label="Organization">
@@ -146,7 +151,7 @@ export function OrgRail({ tabs, orgName, approved }: { tabs: NavTab[]; orgName: 
         <ul className="space-y-0.5">
           {tabs.map((t) => (
             <li key={t.href}>
-              <Link href={t.href} className="rail-link" aria-current={t.href === current ? "page" : undefined}>
+              <Link href={t.href} className="rail-link" aria-current={currentAttr(t.href, current, pathname)}>
                 <Icon of={iconFor(t)} className="size-4 shrink-0" />
                 <span className="flex-1">{t.label}</span>
                 {t.href === MESSAGES_HREF && <Badge count={count} />}
@@ -156,6 +161,11 @@ export function OrgRail({ tabs, orgName, approved }: { tabs: NavTab[]; orgName: 
           ))}
         </ul>
       </nav>
+      <div className="org-rail-foot">
+        <p className="org-rail-status">Signed in as</p>
+        <p className="truncate font-semibold" title={person.name}>{person.name}</p>
+        <p className="truncate org-rail-status">{person.role}</p>
+      </div>
     </aside>
   );
 }
@@ -237,7 +247,7 @@ export function OrgTabBar({ tabs, more }: { tabs: NavTab[]; more: NavTab[] }) {
               {more.map((t) => (
                 <li key={t.href}>
                   {/* Closes even when the link is the page you're on (no navigation happens). */}
-                  <Link href={t.href} className="rail-link" onClick={close} aria-current={t.href === current ? "page" : undefined}>
+                  <Link href={t.href} className="rail-link" onClick={close} aria-current={currentAttr(t.href, current, pathname)}>
                     <Icon of={iconFor(t)} className="size-4 shrink-0" />
                     {t.label}
                   </Link>
@@ -265,7 +275,7 @@ export function OrgTabBar({ tabs, more }: { tabs: NavTab[]; more: NavTab[] }) {
               aria-haspopup="dialog"
               aria-expanded={open}
               aria-controls={sheetId}
-              aria-current={inMore ? "page" : undefined}
+              aria-current={inMore ? "true" : undefined}
               onClick={() => setOpen(true)}
             >
               <Icon of={Ellipsis} className="tab-icon" />

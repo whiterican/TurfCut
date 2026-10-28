@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { activeTab, landingFor, navTabs, ORG_TABS, orgNav } from "./nav";
+import { activeTab, landingFor, navTabs, ORG_TABS, orgNav, railPerson, topNavTabs } from "./nav";
 import { accessTo, AREAS, canUse, levelsFor, ORG_ROLES, type AccessLevel, type Area, type Grants } from "./access";
 
 describe("navigation", () => {
@@ -44,6 +44,20 @@ describe("navigation", () => {
     expect(activeTab(tabs, "/shifts/abc")).toBe("/jobs");
     expect(activeTab(tabs, "/shiftsx")).toBeNull();
     expect(activeTab(tabs, "/login")).toBeNull();
+    // On phones Earnings sits under Profile, so the dock still marks a section there.
+    expect(activeTab(tabs, "/earnings")).toBe("/profile");
+    expect(activeTab(tabs, "/earnings/receipts")).toBe("/profile");
+  });
+
+  it("gives the worker's desktop top bar a direct Earnings entry, and nobody else a top bar (redesign §4.2.1)", () => {
+    const top = topNavTabs("WORKER");
+    expect(top.map((t) => t.label)).toEqual(["Home", "Jobs", "Earnings", "Messages", "Profile"]);
+    // Exactly one tab owns each page: Earnings there, Profile everywhere else under /profile.
+    expect(activeTab(top, "/earnings")).toBe("/earnings");
+    expect(activeTab(top, "/earnings/receipts")).toBe("/earnings");
+    expect(activeTab(top, "/profile/preferences")).toBe("/profile");
+    expect(activeTab(top, "/shifts")).toBe("/jobs");
+    for (const role of [...ORG_ROLES, null] as const) expect(topNavTabs(role)).toEqual([]);
   });
 
   it("never shows an organization tab for a route the role can't reach", () => {
@@ -112,5 +126,11 @@ describe("navigation", () => {
     expect(landingFor("CUSTOM", {})).toBe("/settings");
     expect(landingFor("OWNER", null)).toBe("/desk");
     expect(landingFor("CUSTOM", {}, true)).toBe("/admin");
+  });
+
+  it("names who is signed in at the foot of the rail: their own name, else their email; the role as the organization calls it", () => {
+    expect(railPerson({ displayName: "Maya Chen", email: "m@x.org", role: "OWNER", roleName: null })).toEqual({ name: "Maya Chen", role: "Owner" });
+    expect(railPerson({ displayName: "  ", email: "m@x.org", role: "CUSTOM", roleName: "Door captain" })).toEqual({ name: "m@x.org", role: "Door captain" });
+    expect(railPerson({ email: undefined, role: "FINANCE", roleName: null })).toEqual({ name: "Your account", role: "Finance" });
   });
 });

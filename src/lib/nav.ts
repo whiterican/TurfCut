@@ -1,5 +1,5 @@
-import type { Role } from "@/lib/auth";
-import { accessFor, type Area, type Grants } from "@/lib/access";
+import type { Role, SessionProfile } from "@/lib/auth";
+import { accessFor, ROLE_LABELS, type Area, type Grants } from "@/lib/access";
 
 /** The glyph a tab shows (drawn in components/AppNav; a plain id here keeps React out of lib). */
 export type TabIconId =
@@ -73,8 +73,11 @@ const WORKER_TABS: NavTab[] = [
   { href: "/dashboard", label: "Home", icon: "home", also: ["/feed"] },
   { href: "/jobs", label: "Jobs", icon: "work", also: ["/shifts"] },
   { href: MESSAGES_HREF, label: "Messages", icon: "messages" },
-  { href: "/profile", label: "Profile", icon: "profile" },
+  { href: "/profile", label: "Profile", icon: "profile", also: ["/earnings"] },
 ];
+
+/** Desktop only (redesign §4.2.1): the worker's top bar adds a direct Earnings entry; on phones Earnings sits under Profile. */
+const WORKER_TOP_TABS: NavTab[] = [WORKER_TABS[0], WORKER_TABS[1], { href: "/earnings", label: "Earnings", icon: "pay" }, WORKER_TABS[2], { ...WORKER_TABS[3], also: undefined }];
 
 const plain = ({ href, label, icon }: NavTab): NavTab => ({ href, label, icon });
 
@@ -88,6 +91,11 @@ export function navTabs(role: Role | null, hasOrg: boolean, grants: Grants | nul
   if (role === "WORKER") return WORKER_TABS;
   if (!role || !hasOrg) return [];
   return ORG_TABS.filter((t) => accessFor({ role, grants }, t.area) !== null).map(plain);
+}
+
+/** The desktop top bar's tabs: the worker's, with Earnings; nobody else has a top bar (organizations use the rail). */
+export function topNavTabs(role: Role | null): NavTab[] {
+  return role === "WORKER" ? WORKER_TOP_TABS : [];
 }
 
 export interface OrgNav {
@@ -136,4 +144,9 @@ export function activeTab(tabs: NavTab[], pathname: string): string | null {
   // Each tab's longest matching path, its own or one it also owns.
   const hits = tabs.flatMap((t) => [t.href, ...(t.also ?? [])].filter(under).map((p) => ({ href: t.href, len: p.length })));
   return hits.sort((a, b) => b.len - a.len)[0]?.href ?? null;
+}
+
+/** Who the rail says is signed in: their own name (else their email), and their role as the organization names it. */
+export function railPerson(s: Pick<SessionProfile, "displayName" | "email" | "role" | "roleName">): { name: string; role: string } {
+  return { name: s.displayName?.trim() || s.email || "Your account", role: s.roleName ?? ROLE_LABELS[s.role] };
 }

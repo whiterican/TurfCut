@@ -105,8 +105,8 @@ export function Ring({ fill, from, seenKey, size = 44, className = "" }: { fill:
 }
 
 /** The field-day card's connection pill: its words slide in when the state changes; its status (glyph and colour) follows. */
-export function ConnectionPill({ state, text }: { state: PillState; text: string }) {
-  const s = syncStatus(state, text);
+export function ConnectionPill({ state, text, waiting }: { state: PillState; text: string; /** Entries not yet sent; with none, no signal isn't "queued". */ waiting?: number }) {
+  const s = syncStatus(state, text, waiting);
   return (
     <span role="status" className={`pill status status-${s.state}`} data-state={state}>
       <span key={state} className="pill-face">

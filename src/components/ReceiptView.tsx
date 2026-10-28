@@ -9,7 +9,8 @@ export const RECEIPT_STATUS: Record<Receipt["status"], Status> = {
   sending: { label: "Sending", state: "sending" },
   sent: { label: "Sent", state: "paid" },
   failed: { label: "Not sent", state: "blocked" },
-  reversed: { label: "Reversed", state: "held" },
+  // Final: the payment came back. Not a pause (held is "On hold" on the pay screens).
+  reversed: { label: "Reversed", state: "closed" },
 };
 
 /** A worker's receipt for one payout (M9.2): what was sent, where, and every line it paid. Printable. */

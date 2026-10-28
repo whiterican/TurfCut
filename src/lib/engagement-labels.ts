@@ -1,4 +1,4 @@
-import type { EngagementStatus } from "@/lib/engagements";
+import { inviteLapsed, offerLapsed, stageOf, type EngagementEventType, type EngagementStatus } from "@/lib/engagements";
 import type { Status } from "@/lib/status";
 
 /**
@@ -26,3 +26,17 @@ export const JOB_STATUS_LABELS: Record<"DRAFT" | "PUBLISHED" | "PAUSED" | "CLOSE
   PAUSED: { label: "Paused", state: "held" },
   CLOSED: { label: "Closed", state: "closed" },
 };
+
+/**
+ * An engagement's status as a chip: the worker's-words stage (stageOf) and a
+ * state that matches it. A lapsed offer or invitation is over, so it reads
+ * closed, never as still waiting.
+ */
+export function engagementStatus(
+  e: { status: EngagementStatus; inviteExpiresAt: Date | null },
+  facts: { events: Array<{ type: EngagementEventType }>; offerExpiresAt: Date | null },
+  now: Date
+): Status {
+  const lapsed = offerLapsed(e.status, facts.offerExpiresAt, now) || inviteLapsed(e.status, e.inviteExpiresAt, now);
+  return { label: stageOf(e, facts, now), state: lapsed ? "closed" : ENGAGEMENT_LABELS[e.status].state };
+}

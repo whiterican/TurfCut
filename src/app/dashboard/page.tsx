@@ -38,6 +38,8 @@ import { roleName } from "@/lib/org-roles";
 import type { Role } from "@/lib/auth";
 import { Masthead } from "@/components/Masthead";
 import { ChevronRight } from "lucide-react";
+import { cache } from "react";
+import { laterShifts, pickHero } from "@/lib/home-hero";
 
 const ROLE_LABELS: Record<string, string> = {
   WORKER: "Field worker",
@@ -65,27 +67,47 @@ function NavCard({ href, title, body }: { href: string; title: string; body: str
 }
 
 /**
- * The next few real shifts after the one in the hero (Today, #78): the same
- * query as the hero, skipping it, up to three. Not started yet, so each is
- * "Scheduled"; cancelled shifts aren't listed. Grouped by the viewer's day.
+ * The worker's shifts as Home needs them, read once per request and shared by
+ * the hero and "Coming up" (lib/home-hero decides which shows where): the
+ * shift under way, the latest one still checked in after its end, and the
+ * next four scheduled ones.
  */
-async function LaterShifts({ workerId }: { workerId: string }) {
+const homeShifts = cache(async (workerId: string) => {
   const now = new Date();
-  // The hero shows the first upcoming shift (or the live one, which has a check-in and isn't in this list).
-  const [later, hero] = await Promise.all([
+  const mine = { engagement: { workerId } };
+  const job = { engagement: { select: { job: { select: { title: true, type: true, compensationMethod: true, payRateCents: true, org: { select: { name: true } } } } } } };
+  const [live, overdue, scheduled] = await Promise.all([
+    db().shift.findFirst({
+      where: { ...mine, status: { not: "CANCELLED" }, checkInAt: { not: null }, checkOutAt: null, endsAt: { gte: now } },
+      select: { id: true, startsAt: true, endsAt: true, stagingLocation: true, status: true, checkInAt: true, checkOutAt: true, ...job },
+      orderBy: [{ checkInAt: "desc" }, { id: "asc" }],
+    }),
+    // Still checked in after its end: the server has no check-out, so it is neither
+    // live nor "next" (C2: the words say what the server has; a check-out queued on
+    // the phone shows on the shift page).
+    db().shift.findFirst({
+      where: { ...mine, status: "ACTIVE", checkInAt: { not: null }, checkOutAt: null, endsAt: { lt: now } },
+      select: { id: true, endsAt: true, engagement: { select: { job: { select: { title: true } } } } },
+      orderBy: [{ endsAt: "desc" }, { id: "asc" }],
+    }),
     db().shift.findMany({
-      where: { engagement: { workerId }, status: { not: "CANCELLED" }, endsAt: { gte: now }, checkOutAt: null, checkInAt: null },
-      select: { id: true, startsAt: true, endsAt: true, stagingLocation: true, engagement: { select: { job: { select: { title: true, org: { select: { name: true } } } } } } },
+      where: { ...mine, status: { not: "CANCELLED" }, endsAt: { gte: now }, checkOutAt: null, checkInAt: null },
+      select: { id: true, startsAt: true, endsAt: true, stagingLocation: true, status: true, checkInAt: true, checkOutAt: true, ...job },
       orderBy: [{ startsAt: "asc" }, { id: "asc" }],
       take: 4,
     }),
-    db().shift.findFirst({
-      where: { engagement: { workerId }, status: { not: "CANCELLED" }, endsAt: { gte: now }, checkOutAt: null },
-      select: { id: true },
-      orderBy: [{ startsAt: "asc" }, { id: "asc" }],
-    }),
   ]);
-  const rest = later.filter((s) => s.id !== hero?.id).slice(0, 3);
+  return { live, overdue, scheduled, hero: pickHero(live, overdue, scheduled[0] ?? null) };
+});
+
+/**
+ * The next few real shifts after the one in the hero (Today, #78), up to
+ * three. Not started yet, so each is "Scheduled"; cancelled shifts aren't
+ * listed. Grouped by the viewer's day.
+ */
+async function LaterShifts({ workerId }: { workerId: string }) {
+  const { scheduled, hero } = await homeShifts(workerId);
+  const rest = laterShifts(scheduled, hero);
   if (rest.length === 0) return null;
   return (
     <section className="section">
@@ -111,54 +133,61 @@ async function LaterShifts({ workerId }: { workerId: string }) {
   );
 }
 
-async function WorkerHero({ workerId }: { workerId: string }) {
-  const now = new Date();
-  // A shift still checked in after its end comes first (P0 state truth): the
-  // server has no check-out, so it is neither live nor "next" (C2: the words
-  // say what the server has; a check-out queued on the phone shows on the shift page).
-  const overdue = await db().shift.findFirst({
-    where: { engagement: { workerId }, status: "ACTIVE", checkInAt: { not: null }, checkOutAt: null, endsAt: { lt: now } },
-    select: { id: true, endsAt: true, engagement: { select: { job: { select: { title: true } } } } },
-    orderBy: [{ endsAt: "desc" }, { id: "asc" }],
-  });
-  if (overdue) {
+/** A shift still checked in after its end: the words and the way to fix it. */
+function OverdueShift({ shift, compact }: { shift: { id: string; endsAt: Date; engagement: { job: { title: string } } }; compact?: boolean }) {
+  const how = "Open the shift to check out, or ask your organizer to correct the end time. Pay counts verified time only.";
+  if (compact) {
     return (
-      <Link transitionTypes={["nav-forward"]} href={`/shifts/${overdue.id}`} className="hero-card block space-y-4">
+      <Link transitionTypes={["nav-forward"]} href={`/shifts/${shift.id}`} className="card block space-y-2 transition hover:border-[var(--border-strong)]">
         <StatusChip state="overdue" label="No check-out received" />
-        <p className="hero-title">{overdue.engagement.job.title}</p>
-        <p className="hero-muted text-sm">
-          Was due to end <LocalTime iso={overdue.endsAt.toISOString()} />. Open the shift to check out, or ask your organizer to correct the end time. Pay counts verified time only.
+        <p className="font-semibold text-fg">{shift.engagement.job.title}</p>
+        <p className="text-muted-sm">
+          Was due to end <LocalTime iso={shift.endsAt.toISOString()} />. {how}
         </p>
       </Link>
     );
   }
-  const shift = await db().shift.findFirst({
-    where: { engagement: { workerId }, status: { not: "CANCELLED" }, endsAt: { gte: now }, checkOutAt: null },
-    include: { engagement: { select: { job: { select: { title: true, type: true, compensationMethod: true, payRateCents: true } } } } },
-    orderBy: [{ startsAt: "asc" }, { id: "asc" }],
-  });
+  return (
+    <Link transitionTypes={["nav-forward"]} href={`/shifts/${shift.id}`} className="hero-card block space-y-4">
+      <StatusChip state="overdue" label="No check-out received" />
+      <p className="hero-title">{shift.engagement.job.title}</p>
+      <p className="hero-muted text-sm">
+        Was due to end <LocalTime iso={shift.endsAt.toISOString()} />. {how}
+      </p>
+    </Link>
+  );
+}
+
+async function WorkerHero({ workerId }: { workerId: string }) {
+  const now = new Date();
+  const { live, overdue, scheduled, hero } = await homeShifts(workerId);
+  if (hero.kind === "overdue" && overdue) return <OverdueShift shift={overdue} />;
+  const shift = hero.kind === "live" ? live : hero.kind === "next" ? scheduled[0] : null;
   if (shift) {
-    const live = shift.checkInAt !== null;
+    const isLive = hero.kind === "live";
     return (
-      <Link transitionTypes={["nav-forward"]} href={`/shifts/${shift.id}`} className={`hero-card block space-y-4 ${live ? "hero-card-accent" : ""}`} data-priority={shiftPriority(shift)}>
-        <p className="eyebrow">
-          {live ? "Live shift" : "Next shift"} · <LocalTime iso={shift.startsAt.toISOString()} mode="date" />
-        </p>
-        <p className="hero-title">{shift.engagement.job.title}</p>
-        {/* The card stays eggplant; the forest-ink chip is what says it's live. */}
-        {live && <StatusChip state="live" label="On shift" />}
-        <p className="flex flex-wrap gap-x-8 gap-y-2">
-          <span>
-            <span className="block text-lg font-bold"><LocalTime iso={shift.startsAt.toISOString()} mode="time" /></span>
-            <span className="hero-muted text-sm">{live ? "Started" : "Check-in"}</span>
-          </span>
-          <span>
-            <span className="block text-lg font-bold">{payShort(shift.engagement.job.compensationMethod, shift.engagement.job.payRateCents, shift.engagement.job.type)}</span>
-            <span className="hero-muted text-sm">gross</span>
-          </span>
-        </p>
-        {shift.stagingLocation && <p className="hero-muted text-sm">Staging · {shift.stagingLocation}</p>}
-      </Link>
+      <>
+        {isLive && overdue && <OverdueShift shift={overdue} compact />}
+        <Link transitionTypes={["nav-forward"]} href={`/shifts/${shift.id}`} className={`hero-card block space-y-4 ${isLive ? "hero-card-accent" : ""}`} data-priority={shiftPriority(shift)}>
+          <p className="eyebrow">
+            {isLive ? "Live shift" : "Next shift"} · <LocalTime iso={shift.startsAt.toISOString()} mode="date" />
+          </p>
+          <p className="hero-title">{shift.engagement.job.title}</p>
+          {/* The card stays eggplant; the forest-ink chip is what says it's live. */}
+          {isLive && <StatusChip state="live" label="On shift" />}
+          <p className="flex flex-wrap gap-x-8 gap-y-2">
+            <span>
+              <span className="block text-lg font-bold"><LocalTime iso={shift.startsAt.toISOString()} mode="time" /></span>
+              <span className="hero-muted text-sm">{isLive ? "Started" : "Check-in"}</span>
+            </span>
+            <span>
+              <span className="block text-lg font-bold">{payShort(shift.engagement.job.compensationMethod, shift.engagement.job.payRateCents, shift.engagement.job.type)}</span>
+              <span className="hero-muted text-sm">gross</span>
+            </span>
+          </p>
+          {shift.stagingLocation && <p className="hero-muted text-sm">Staging · {shift.stagingLocation}</p>}
+        </Link>
+      </>
     );
   }
   const next = await db().engagement.findFirst({

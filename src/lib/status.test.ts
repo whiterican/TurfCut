@@ -23,5 +23,8 @@ describe("status vocabulary", () => {
     const all: PillState[] = ["online", "offline", "syncing", "waiting", "refused", "unsaved"];
     const states = Object.fromEntries(all.map((p) => [p, syncStatus(p, "x").state]));
     expect(states).toEqual({ online: "closed", offline: "queued", syncing: "sending", waiting: "queued", refused: "blocked", unsaved: "memory-only" });
+    // No signal with nothing waiting: nothing is queued, so the clock glyph would mislead.
+    expect(syncStatus("offline", "No signal — you can keep working", 0).state).toBe("closed");
+    expect(syncStatus("offline", "No signal — 2 saved on this phone", 2).state).toBe("queued");
   });
 });

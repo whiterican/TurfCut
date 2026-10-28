@@ -1,13 +1,13 @@
-import { StatusChip } from "@/components/StatusBadge";
+import { StatusBadge } from "@/components/StatusBadge";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireArea } from "@/lib/employer-session";
 import { readDisclosure, UUID_RE } from "@/lib/jobs";
 import { expiryToday } from "@/lib/credentials";
-import { stageOf, type HiringSnapshot } from "@/lib/engagements";
+import { type HiringSnapshot } from "@/lib/engagements";
 import { loadPipelineFacts } from "@/lib/engagements-data";
-import { ENGAGEMENT_LABELS } from "@/lib/engagement-labels";
+import { engagementStatus } from "@/lib/engagement-labels";
 import { applicantJob, fitCampaignAllowed, freeCell, heldCredentials, requiredKinds } from "@/lib/applicants";
 import { loadOrgProfile } from "@/lib/org-profile-data";
 import { workerAccessFor } from "@/lib/worker-access-data";
@@ -51,7 +51,6 @@ export default async function ApplicantPage({ params }: { params: Promise<{ jobI
   const now = new Date();
   const job = e.job;
   const facts = (await loadPipelineFacts([e.id])).get(e.id) ?? { events: [], inReview: false, offerExpiresAt: null };
-  const stage = stageOf(e, facts, now);
   const access = e.worker.closedAt ? null : await workerAccessFor(session, e.worker.id, job.org.approved);
   const open = access?.kind === "employer";
 
@@ -69,7 +68,6 @@ export default async function ApplicantPage({ params }: { params: Promise<{ jobI
   };
   const free = view && view.availability !== "withheld" && avail ? freeCell(avail.availability, appJob, expiryToday(now)) : null;
   const hired = e.status === "ACTIVE" || e.status === "CLAIMED";
-  const s = ENGAGEMENT_LABELS[e.status];
 
   return (
     <main className="page max-w-3xl">
@@ -79,7 +77,7 @@ export default async function ApplicantPage({ params }: { params: Promise<{ jobI
       </Masthead>
 
       <section className="card space-y-3">
-        <p className="flex items-center gap-2 font-medium text-fg">Stage <StatusChip state={s.state} label={stage} /></p>
+        <p className="flex items-center gap-2 font-medium text-fg">Stage <StatusBadge status={engagementStatus(e, facts, now)} /></p>
         <HiringActions jobId={job.id} jobStatus={job.status} engagementId={e.id} status={e.status} inReview={facts.inReview} offerExpiresAt={facts.offerExpiresAt} inviteExpiresAt={e.inviteExpiresAt} />
         {hired && (
           <form action={startDirect}>

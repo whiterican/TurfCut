@@ -1,15 +1,15 @@
-import { StatusBadge, StatusChip } from "@/components/StatusBadge";
+import { StatusBadge } from "@/components/StatusBadge";
 import Link from "next/link";
 import { readLaunch } from "@/lib/job-launch";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { canUse } from "@/lib/access";
-import { ACCEPTED_STATUSES, inviteLapsed, offerLapsed, stageOf, workerStage, type EngagementStatus, type HiringSnapshot } from "@/lib/engagements";
+import { ACCEPTED_STATUSES, inviteLapsed, offerLapsed, type EngagementStatus, type HiringSnapshot } from "@/lib/engagements";
 import { loadPipelineFacts } from "@/lib/engagements-data";
 import { EngagementHistory } from "@/components/EngagementHistory";
 import { HiringActions, timeLeft } from "@/components/HiringActions";
-import { ENGAGEMENT_LABELS, JOB_STATUS_LABELS } from "@/lib/engagement-labels";
+import { engagementStatus, JOB_STATUS_LABELS } from "@/lib/engagement-labels";
 import { UUID_RE, exclusionReasons, fitReasons, jobCardAnswers, jobCredentials, jobFreezeReasons, jurisdictionLabel, payText, publishBlockers, readDisclosure, readHiringModes } from "@/lib/jobs";
 import { loadScorecard } from "@/lib/scorecard-data";
 import { loadSharing } from "@/lib/sharing-data";
@@ -165,7 +165,6 @@ async function WorkerPanel({
   );
 
   if (engagement) {
-    const s = ENGAGEMENT_LABELS[engagement.status];
     // An invitation is the org's act: the worker's do-not-match answers
     // still keep them off the job (the org is never told why).
     if (engagement.status === "INVITED" && reasons.length) return excluded;
@@ -182,7 +181,7 @@ async function WorkerPanel({
     return (
       <section className="card space-y-3">
         <p className="flex items-center gap-2 font-medium text-fg">
-          Your status <StatusChip state={s.state} label={workerStage(engagement.status, facts.events, offerExpired, inviteExpired)} />
+          Your status <StatusBadge status={engagementStatus(engagement, facts, new Date())} />
         </p>
         {engagement.status === "INVITED" && (
           <>
@@ -532,7 +531,6 @@ async function OrgPanel({ job, canHire, canEdit, canSchedule, userId }: { job: J
           ) : (
             <ul className="space-y-3">
               {engagements.map((e) => {
-                const s = ENGAGEMENT_LABELS[e.status];
                 const f = facts.get(e.id) ?? { events: [], inReview: false, offerExpiresAt: null };
                 return (
                   <li key={e.id} className="card space-y-3">
@@ -540,7 +538,7 @@ async function OrgPanel({ job, canHire, canEdit, canSchedule, userId }: { job: J
                       <p className="flex items-center gap-2 font-medium text-fg">
                         {/* The applicant page (C3.2) shows the live profile only while the worker has a relationship with you (C1). */}
                         <Link transitionTypes={["nav-forward"]} href={`/hiring/${job.id}/people/${e.id}`} className="link">{e.worker.displayName}</Link>
-                        <StatusChip state={s.state} label={stageOf(e, f, now)} />
+                        <StatusBadge status={engagementStatus(e, f, now)} />
                       </p>
                     </div>
                     <HiringActions

@@ -1,6 +1,6 @@
-import { StatusChip } from "@/components/StatusBadge";
+import { StatusBadge } from "@/components/StatusBadge";
 import Link from "next/link";
-import { ACCEPTED_STATUSES, inviteLapsed, stageOf } from "@/lib/engagements";
+import { ACCEPTED_STATUSES, inviteLapsed } from "@/lib/engagements";
 import { loadPipelineFacts } from "@/lib/engagements-data";
 import { Masthead } from "@/components/Masthead";
 import { JobsSwitch } from "@/components/JobsSwitch";
@@ -8,7 +8,7 @@ import { DataTable } from "@/components/staff/DataTable";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { canUse } from "@/lib/access";
-import { ENGAGEMENT_LABELS, JOB_STATUS_LABELS } from "@/lib/engagement-labels";
+import { engagementStatus, JOB_STATUS_LABELS } from "@/lib/engagement-labels";
 import { JOB_TYPES, exclusionReasons, parseFeedFilters, readDisclosure } from "@/lib/jobs";
 import { effectivePreference } from "@/lib/political-fit";
 import { loadLatestPreference } from "@/lib/political-fit-data";
@@ -114,14 +114,12 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
           </div>
           <ul className="list-card">
             {mine.map((e) => {
-              const s = ENGAGEMENT_LABELS[e.status];
-              const f = facts.get(e.id);
-              const stage = stageOf(e, f ?? { events: [], offerExpiresAt: null }, now);
+              const st = engagementStatus(e, facts.get(e.id) ?? { events: [], offerExpiresAt: null }, now);
               return (
                 <li key={e.id}>
                   <Link transitionTypes={["nav-forward"]} href={`/jobs/${e.job.id}`} className="flex min-h-14 items-center justify-between gap-3 px-4 py-3 text-fg transition hover:bg-surface-2">
                     <span className="font-medium">{e.job.title}</span>
-                    <StatusChip state={s.state} label={stage} />
+                    <StatusBadge status={st} />
                   </Link>
                 </li>
               );

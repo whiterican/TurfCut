@@ -11,6 +11,8 @@ import {
   scheduleFlags,
   shiftProgress,
   shiftState,
+  shiftStatusLabel,
+  type ShiftState,
   supervisorAction,
   validateShift,
   workerAction,
@@ -432,5 +434,43 @@ describe("supervisor corrections (M7)", () => {
     s.validations = [{ workEventId: "co", status: "REJECTED", reason: "not them", createdAt: at(300) }];
     expect(shiftState(s).checkedOutAt).toBeNull();
     expect(shiftState(s).signatures).toBe(20);
+  });
+});
+
+describe("shift status for lists and heads (redesign §4.1.3)", () => {
+  const base: ShiftState = { ...shiftState(shift()) };
+  const end = at(8 * 60);
+  const t = (min: number) => ({ endsAt: end, now: at(min) });
+  const inAt = { ...base, checkedInAt: at(0) };
+
+  it("is live only while checked in and not past the end; at the end itself still live", () => {
+    expect(shiftStatusLabel(inAt, t(60))).toEqual({ label: "On shift", state: "live" });
+    expect(shiftStatusLabel({ ...inAt, paused: true }, t(60))).toEqual({ label: "On break", state: "live" });
+    expect(shiftStatusLabel(inAt, t(8 * 60))).toEqual({ label: "On shift", state: "live" });
+  });
+
+  it("says a check-in past the end has no check-out received (overdue), never live", () => {
+    expect(shiftStatusLabel(inAt, t(8 * 60 + 1))).toEqual({ label: "No check-out received", state: "overdue" });
+    expect(shiftStatusLabel({ ...inAt, paused: true }, t(9 * 60))).toEqual({ label: "No check-out received", state: "overdue" });
+  });
+
+  it("lets a check-out win over the end: in review, then the closeout's verdict", () => {
+    const out = { ...inAt, checkedOutAt: at(8 * 60 + 30) };
+    expect(shiftStatusLabel(out, t(10 * 60))).toEqual({ label: "In review", state: "pending" });
+    const closeout = (status: "APPROVED" | "REJECTED") => ({ ...out, closeout: { status } as ShiftState["closeout"] });
+    expect(shiftStatusLabel(closeout("APPROVED"), t(10 * 60))).toEqual({ label: "Approved", state: "approved" });
+    expect(shiftStatusLabel(closeout("REJECTED"), t(10 * 60))).toEqual({ label: "Not approved", state: "blocked" });
+  });
+
+  it("ends a shift nobody checked in to as closed, and cancelled always reads cancelled", () => {
+    expect(shiftStatusLabel(base, t(-30))).toEqual({ label: "Scheduled", state: "pending" });
+    expect(shiftStatusLabel(base, t(9 * 60))).toEqual({ label: "Ended without a check-in", state: "closed" });
+    expect(shiftStatusLabel({ ...inAt, cancelled: true }, t(9 * 60))).toEqual({ label: "Cancelled", state: "closed" });
+  });
+
+  it("without the schedule and time, never claims overdue or ended", () => {
+    expect(shiftStatusLabel(inAt)).toEqual({ label: "On shift", state: "live" });
+    expect(shiftStatusLabel(base)).toEqual({ label: "Scheduled", state: "pending" });
+    expect(shiftStatusLabel(inAt, { endsAt: null, now: at(99 * 60) })).toEqual({ label: "On shift", state: "live" });
   });
 });

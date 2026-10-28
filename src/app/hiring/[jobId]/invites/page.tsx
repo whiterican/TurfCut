@@ -1,10 +1,11 @@
-import { StatusChip } from "@/components/StatusBadge";
+import { StatusBadge } from "@/components/StatusBadge";
+import { engagementStatus } from "@/lib/engagement-labels";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireArea } from "@/lib/employer-session";
 import { db } from "@/lib/db";
 import { UUID_RE } from "@/lib/jobs";
-import { INVITE_DAYS, INVITES_PER_WEEK, inviteLapsed, stageOf } from "@/lib/engagements";
+import { INVITE_DAYS, INVITES_PER_WEEK, inviteLapsed } from "@/lib/engagements";
 import { loadPipelineFacts } from "@/lib/engagements-data";
 import { hiringCounts, loadJobInvites } from "@/lib/invitations-data";
 import { Masthead } from "@/components/staff/Masthead";
@@ -55,7 +56,7 @@ export default async function InvitesPage({ params }: { params: Promise<{ jobId:
               <li key={i.id} className="card space-y-3">
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <Link href={`/hiring/${job.id}/people/${i.id}`} className="link font-semibold">{i.worker.displayName}</Link>
-                  <StatusChip state="pending" label={stageOf(i, f, now)} />
+                  <StatusBadge status={engagementStatus(i, f, now)} />
                 </div>
                 <p className="text-muted-sm">
                   Sent {day(i.sentAt)}{i.sentBy ? ` by ${i.sentBy}` : ""}

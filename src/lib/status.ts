@@ -50,8 +50,11 @@ export const STATUS_LOOK: Record<StatusState, { glyph: string; tone: "forest" | 
   closed: { glyph: "minus", tone: "subtle" },
 };
 
-/** The field-day connection pill as a status: what the phone holds and whether it reached the server. */
-export function syncStatus(state: PillState, text: string): Status {
+/**
+ * The field-day connection pill as a status: what the phone holds and whether
+ * it reached the server. No signal with nothing waiting has nothing queued.
+ */
+export function syncStatus(state: PillState, text: string, waiting = 1): Status {
   switch (state) {
     case "online":
       return { label: text, state: "closed" };
@@ -60,7 +63,7 @@ export function syncStatus(state: PillState, text: string): Status {
     case "waiting":
       return { label: text, state: "queued" };
     case "offline":
-      return { label: text, state: "queued" };
+      return { label: text, state: waiting > 0 ? "queued" : "closed" };
     case "unsaved":
       return { label: text, state: "memory-only" };
     case "refused":

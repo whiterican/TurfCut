@@ -229,10 +229,10 @@ describe("mockup surfaces", () => {
     expect(dark.primary).toBe("#164b38");
     expect(light["on-primary"]).toBe("#fbf7f0");
     expect(css).not.toMatch(/\.hero-card[^{]*\.btn-primary \{\s*background: #2b1b3d/);
-    // Titles are the display serif; body stays the sans.
-    expect(css).toMatch(/@utility t-title \{\s*font-family: var\(--font-display\);/);
-    expect(css).toMatch(/@utility t-section \{\s*font-family: var\(--font-display\);/);
-    expect(css).toMatch(/@utility t-body \{\s*font-family: var\(--font-barlow\)/);
+    // Green board: titles are the bold sans; the serif is the public hero line only.
+    expect(css).toMatch(/@utility t-title \{\s*font-family: var\(--font-barlow\)/);
+    expect(css).toMatch(/@utility t-section \{\s*font-family: var\(--font-barlow\)/);
+    expect(css).toMatch(/@utility t-display \{\s*font-family: var\(--font-display\);/);
   });
   it("chat shift banner text is AAA, its second line AA", () => {
     const lightBanner = mix(light.sky, 0.45, light.surface);
@@ -347,7 +347,9 @@ describe("the Turfcut palette: cream, paper, eggplant, deep green, lime (hero bo
     }
   });
   it("light mode uses warm paper, eggplant identity and the deep-green accent", () => {
-    expect(light.bg).toBe("#efeae1");
+    expect(light.bg).toBe("#f5f3ee"); // green board: a near-white working canvas; cream is framing (--surface-2)
+    expect(light.surface).toBe("#ffffff");
+    expect(light["surface-2"]).toBe("#efeae1");
     expect(light.fg).toBe("#1b1422");
     expect(light.accent).toBe("#164b38");
     expect(light.solid).toBe("#3a2154"); // settled status: the eggplant tile
@@ -505,7 +507,8 @@ describe("forest ink is for what is live and the one primary action (G1)", () =>
       expect(ratio(th["on-shell-active"], th["shell-active"])).toBeGreaterThanOrEqual(7);
     }
     expect(light["shell-active"]).toBe("#d8cce4");
-    expect(dark["shell-bg"]).toBe("#21142f");
+    expect(light["shell-bg"]).toBe("#17101f"); // green board: the frame is a near-black eggplant slab
+    expect(dark["shell-bg"]).toBe("#120c19");
     expect(sun["shell-bg"]).toBe("#000000");
     // By night the dock's current tile has a lavender edge: visible against the tile and the bar.
     expect(ratio(dark.muted, dark["tab-active-bg"])).toBeGreaterThanOrEqual(3);

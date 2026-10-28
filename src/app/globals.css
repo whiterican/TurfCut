@@ -55,10 +55,11 @@
      own surface, with cream type and a raised-eggplant current tile. */
   /* The frame (shell): the org rail, the Field header band, the hero overlay.
      The current place on the frame is a lavender tile with ink type (§2.0a). */
-  --shell-bg: #2b1b3d;
+  /* Green board: the frame is a near-black eggplant slab (dock, org rail, hero scrim). */
+  --shell-bg: #17101f;
   --shell-fg: #fbf7f0;
   --shell-muted: #d8cce4;
-  --shell-line: #3f2b57;
+  --shell-line: #2e2140;
   --shell-edge: #2b1b3d;
   --shell-active: #d8cce4;
   --on-shell-active: #1b1422;
@@ -88,11 +89,13 @@
      and links; forest ink for live status and the one primary action.
      Muted and subtle are a step darker than the design's so every note on
      every surface stays AAA (design-tokens.test.ts). */
-  --bg: #efeae1;
-  --surface: #fbf7f0;
-  --surface-2: #e9e3d8;
-  --field: #fffdf8;
-  --border: #d9cfbf;
+  /* Green board (founder, 2026-10-28): a near-white working canvas with white
+     cards; cream is framing (raised surfaces, the public hero), not the page. */
+  --bg: #f5f3ee;
+  --surface: #ffffff;
+  --surface-2: #efeae1;
+  --field: #ffffff;
+  --border: #e0d9cc;
   --border-strong: #bfb3a1;
   --fg: #1b1422;
   --muted: #4a4254;
@@ -129,7 +132,7 @@
 
 .dark {
   /* The frame by night: a deeper eggplant than the page, with a hairline edge. */
-  --shell-bg: #21142f;
+  --shell-bg: #120c19;
   --shell-edge: #54406c;
   /* The dock and rail are a deeper eggplant than the page: their hairline is what sets them apart. */
   --shell-line: #6e5a88;
@@ -376,8 +379,8 @@ body {
 /* ---- Type scale (redesign §4.1.2) --------------------------------------
    One utility per role; components use these, never their own font family or
    size. rem sizes follow the text-size setting; nothing falls below 13px.
-   Plum board (founder, 2026-10-28): page, card and section titles are the
-   display serif; body, labels, the dock and figures stay in the sans and mono. */
+   Green board (founder, 2026-10-28): page, card and section titles are the
+   bold sans; the serif is kept for the public hero line alone. */
 @utility t-display {
   font-family: var(--font-display);
   font-size: clamp(2.75rem, 11vw, 3.5rem);
@@ -391,36 +394,33 @@ body {
   }
 }
 @utility t-title {
-  font-family: var(--font-display);
+  font-family: var(--font-barlow), ui-sans-serif, system-ui, sans-serif;
   font-size: 2rem;
-  line-height: 1.08;
-  font-weight: 600;
-  letter-spacing: -0.015em;
-  font-optical-sizing: auto;
+  line-height: 1.06;
+  font-weight: 700;
+  letter-spacing: -0.02em;
   text-wrap: balance;
   @media (width >= 64rem) {
     font-size: 2.75rem;
   }
 }
 @utility t-headline {
-  font-family: var(--font-display);
+  font-family: var(--font-barlow), ui-sans-serif, system-ui, sans-serif;
   font-size: 1.5rem;
-  line-height: 1.14;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  font-optical-sizing: auto;
+  line-height: 1.12;
+  font-weight: 700;
+  letter-spacing: -0.015em;
   text-wrap: balance;
   @media (width >= 64rem) {
     font-size: 2.125rem;
   }
 }
 @utility t-section {
-  font-family: var(--font-display);
+  font-family: var(--font-barlow), ui-sans-serif, system-ui, sans-serif;
   font-size: 1.25rem;
   line-height: 1.2;
-  font-weight: 600;
-  letter-spacing: -0.005em;
-  font-optical-sizing: auto;
+  font-weight: 700;
+  letter-spacing: -0.01em;
   @media (width >= 64rem) {
     font-size: 1.375rem;
   }
@@ -1399,7 +1399,7 @@ body {
   /* A compact rounded slab (not a full pill), 384px at most: five 44px tiles
      with small labels, on the frame's eggplant (hero board). */
   .tabbar {
-    @apply fixed z-40 mx-auto max-w-[24rem] rounded-2xl border p-1 lg:hidden;
+    @apply fixed z-40 mx-auto max-w-[22rem] rounded-2xl border p-1 lg:hidden;
     inset-inline: 0.75rem;
     bottom: calc(0.75rem + env(safe-area-inset-bottom));
     /* The dock is the frame (hero board): eggplant in every theme but Sunlight

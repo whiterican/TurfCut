@@ -66,23 +66,23 @@ export const PHONE_PICKS: Record<Exclude<Role, "WORKER">, OrgNavId[]> = {
 };
 
 /**
- * The worker's five tabs, one unified dock on every worker screen (hero
- * board, founder 2026-10-28): Today holds the campaign feed, Jobs holds
- * finding work and the worker's own schedule. The desktop top bar shows the
- * same five.
+ * The worker's six tabs, one unified dock on every worker screen (green
+ * board, founder 2026-10-28: the live app's six, never fewer). Earnings
+ * lives under Profile. The desktop top bar shows the same six.
  */
 const WORKER_TABS: NavTab[] = [
-  { href: "/dashboard", label: "Today", icon: "home", also: ["/feed"] },
-  { href: "/jobs", label: "Jobs", icon: "work", also: ["/shifts"] },
+  { href: "/dashboard", label: "Today", icon: "today" },
+  { href: "/feed", label: "Feed", icon: "feed" },
+  { href: "/jobs", label: "Work", icon: "work" },
+  { href: "/shifts", label: "Shifts", icon: "shifts" },
   { href: MESSAGES_HREF, label: "Messages", icon: "messages" },
-  { href: "/earnings", label: "Earnings", icon: "pay" },
-  { href: "/profile", label: "Profile", icon: "profile" },
+  { href: "/profile", label: "Profile", icon: "profile", also: ["/earnings"] },
 ];
 
 const plain = ({ href, label, icon }: NavTab): NavTab => ({ href, label, icon });
 
 /**
- * Tabs per role (workers: Today / Jobs / Messages / Earnings / Profile).
+ * Tabs per role (workers: Today / Feed / Work / Shifts / Messages / Profile).
  * Organization roles get every area the access map grants them, so a tab
  * never appears for a route that would refuse you. A removed member (no
  * organization) gets none.

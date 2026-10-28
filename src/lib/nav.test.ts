@@ -4,7 +4,7 @@ import { accessTo, AREAS, canUse, levelsFor, ORG_ROLES, type AccessLevel, type A
 
 describe("navigation", () => {
   it("gives each role its own tabs", () => {
-    expect(navTabs("WORKER", false).map((t) => t.label)).toEqual(["Today", "Jobs", "Messages", "Earnings", "Profile"]);
+    expect(navTabs("WORKER", false).map((t) => t.label)).toEqual(["Today", "Feed", "Work", "Shifts", "Messages", "Profile"]);
     // C1: no People directory; organizations reach workers through a job.
     expect(navTabs("OWNER", true).map((t) => t.label)).toEqual(["Desk", "Hiring", "Jobs", "Field", "Messages", "Pay", "Credentials", "Campaigns", "Members", "Settings"]);
     // Recruiters read the field (no actions there).
@@ -28,8 +28,8 @@ describe("navigation", () => {
       const nav = orgNav(role, true);
       expect([...nav.rail, ...nav.phone, ...nav.more].some((t) => t.href === "/admin")).toBe(false);
     }
-    // A staff worker keeps the worker bar (five tabs, no More): the console is reached from Settings.
-    expect(navTabs("WORKER", false).map((t) => t.label)).toEqual(["Today", "Jobs", "Messages", "Earnings", "Profile"]);
+    // A staff worker keeps the worker bar (six tabs, no More): the console is reached from Settings.
+    expect(navTabs("WORKER", false).map((t) => t.label)).toEqual(["Today", "Feed", "Work", "Shifts", "Messages", "Profile"]);
     expect(orgNav("WORKER", false, true)).toEqual({ rail: [], phone: [], more: [] });
   });
 
@@ -38,26 +38,26 @@ describe("navigation", () => {
     expect(activeTab(tabs, "/profile/preferences")).toBe("/profile");
     expect(activeTab(tabs, "/jobs/abc")).toBe("/jobs");
     expect(activeTab(tabs, "/jobsearch")).toBeNull();
-    // Today holds the feed; Jobs holds the schedule (hero board's 5-tab dock).
-    expect(activeTab(tabs, "/feed")).toBe("/dashboard");
-    expect(activeTab(tabs, "/shifts")).toBe("/jobs");
-    expect(activeTab(tabs, "/shifts/abc")).toBe("/jobs");
+    // Feed and Shifts are their own tabs (green board, founder 2026-10-28: the live app's six).
+    expect(activeTab(tabs, "/feed")).toBe("/feed");
+    expect(activeTab(tabs, "/shifts")).toBe("/shifts");
+    expect(activeTab(tabs, "/shifts/abc")).toBe("/shifts");
     expect(activeTab(tabs, "/shiftsx")).toBeNull();
     expect(activeTab(tabs, "/login")).toBeNull();
-    // Earnings is its own tab on phones too.
-    expect(activeTab(tabs, "/earnings")).toBe("/earnings");
-    expect(activeTab(tabs, "/earnings/receipts")).toBe("/earnings");
+    // Earnings lives under Profile.
+    expect(activeTab(tabs, "/earnings")).toBe("/profile");
+    expect(activeTab(tabs, "/earnings/receipts")).toBe("/profile");
   });
 
-  it("gives the worker's desktop top bar the same five tabs as the dock, and nobody else a top bar", () => {
+  it("gives the worker's desktop top bar the same six tabs as the dock, and nobody else a top bar", () => {
     const top = topNavTabs("WORKER");
     expect(top).toEqual(navTabs("WORKER", false));
-    expect(top.map((t) => t.label)).toEqual(["Today", "Jobs", "Messages", "Earnings", "Profile"]);
-    // Exactly one tab owns each page: Earnings there, Profile everywhere else under /profile.
-    expect(activeTab(top, "/earnings")).toBe("/earnings");
-    expect(activeTab(top, "/earnings/receipts")).toBe("/earnings");
+    expect(top.map((t) => t.label)).toEqual(["Today", "Feed", "Work", "Shifts", "Messages", "Profile"]);
+    // Exactly one tab owns each page: Profile owns Earnings and everything under /profile.
+    expect(activeTab(top, "/earnings")).toBe("/profile");
+    expect(activeTab(top, "/earnings/receipts")).toBe("/profile");
     expect(activeTab(top, "/profile/preferences")).toBe("/profile");
-    expect(activeTab(top, "/shifts")).toBe("/jobs");
+    expect(activeTab(top, "/shifts")).toBe("/shifts");
     for (const role of [...ORG_ROLES, null] as const) expect(topNavTabs(role)).toEqual([]);
   });
 

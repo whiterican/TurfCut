@@ -254,9 +254,10 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
       </Masthead>
     </>
   );
+  const hasTurf = !!(turf || staging || marks.dayTurf || marks.pins.length > 0 || marksOpen);
   const turfSection = (
     <>
-      {(turf || staging || marks.dayTurf || marks.pins.length > 0 || marksOpen) && (
+      {hasTurf && (
         <section className="section">
           <h2 className="section-title">Turf</h2>
           {turf ? (
@@ -297,7 +298,6 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
   );
   const Template = isWorker ? FieldPage : RecordPage;
   // No empty column: the aside only when it holds something.
-  const hasTurf = !!(turf || staging || marks.dayTurf || marks.pins.length > 0 || marksOpen);
   const hasAside = !!(brief && (isWorker || canField)) || !!contacts || (isWorker && hasTurf);
   return (
     <Template head={head} aside={hasAside ? aside : undefined} panelLabel={isWorker ? "Brief and turf" : "Brief and contacts"} org={!isWorker}>

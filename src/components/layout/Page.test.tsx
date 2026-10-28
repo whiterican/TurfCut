@@ -46,7 +46,7 @@ describe("page templates (redesign §4.2.2)", () => {
     expect(out).toMatch(/<div class="tpl-main">job<\/div><aside class="tpl-panel" aria-label="Your place on this job"><p>apply<\/p><\/aside><div class="tpl-tail"><p>full card<\/p><\/div>/);
     expect(html(<RecordPage org aside={<p>facts</p>}>x</RecordPage>)).toContain('data-org="true"');
     // Wide screens put the tail back under the main column, the panel spanning both.
-    expect(css).toMatch(/> \.tpl-body > \.tpl-panel \{\s*grid-column: 2;\s*grid-row: 1 \/ span 2;/);
+    expect(css).toMatch(/> \.tpl-body:has\(> \.tpl-tail\) > \.tpl-panel \{\s*grid-row: 1 \/ span 2;/);
   });
 
   it("a sticky panel is never taller than the window (a focused control inside stays reachable)", () => {

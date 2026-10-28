@@ -554,6 +554,9 @@ body {
     }
     .tpl[data-panel="aside"]:not([data-org]) > .tpl-body > .tpl-panel {
       grid-column: 2;
+    }
+    /* With a tail, the panel runs beside both the main column and the tail. */
+    .tpl[data-panel="aside"]:not([data-org]) > .tpl-body:has(> .tpl-tail) > .tpl-panel {
       grid-row: 1 / span 2;
     }
     /* A record's facts and actions stay in view while the object scrolls; never taller than the
@@ -597,6 +600,9 @@ body {
     }
     .tpl[data-panel="aside"][data-org] > .tpl-body > .tpl-panel {
       grid-column: 2;
+    }
+    /* With a tail, the panel runs beside both the main column and the tail. */
+    .tpl[data-panel="aside"][data-org] > .tpl-body:has(> .tpl-tail) > .tpl-panel {
       grid-row: 1 / span 2;
     }
     .tpl[data-template="record"][data-org] > .tpl-body > .tpl-panel {

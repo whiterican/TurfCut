@@ -35,15 +35,18 @@
 }
 
 :root {
-  /* G1 (founder, 2026-10-27): deep eggplant owns identity; forest ink is the one
-     restricted accent (lime retired). Forest ink fills the primary action and what
-     is live now, always with cream type (--on-accent). It is never text on a dark
-     surface; by night green fills get a soft-green edge (--accent-edge). */
+  /* Hero board (founder, 2026-10-28): cream #fbf7f0, paper #efeae1, eggplant
+     #2b1b3d, deep green #164b38, lime #c6ec8c. Eggplant is where you are
+     (navigation, structure, headlines). Deep green is "do this" and what is
+     true now: the one primary action and live status, always with cream type
+     (--on-accent), never as text on a dark surface. Lime is the signature
+     detail on primary cards only (the folded corner, --cut): never a fill
+     behind text, never text. */
   --accent: #164b38;
   --on-accent: #fbf7f0;
   --accent-edge: #164b38;
   /* The hero's corner cut: soft green, decorative only (never behind text). */
-  --cut: #82bc9b;
+  --cut: #c6ec8c;
   /* Turf polygons and staging markers on the (always light) map tiles: mid eggplant,
      never a park-like green. */
   --map-fill: #5a3b82;
@@ -51,11 +54,11 @@
      own surface, with cream type and a raised-eggplant current tile. */
   /* The frame (shell): the org rail, the Field header band, the hero overlay.
      The current place on the frame is a lavender tile with ink type (§2.0a). */
-  --shell-bg: #281539;
+  --shell-bg: #2b1b3d;
   --shell-fg: #fbf7f0;
   --shell-muted: #d8cce4;
   --shell-line: #3f2b57;
-  --shell-edge: #281539;
+  --shell-edge: #2b1b3d;
   --shell-active: #d8cce4;
   --on-shell-active: #1b1422;
   /* Solid (and on-solid): settled status ("Active", "Approved", "Paid",
@@ -88,8 +91,8 @@
   --surface: #fbf7f0;
   --surface-2: #e9e3d8;
   --field: #fffdf8;
-  --border: #e3dcd0;
-  --border-strong: #c9c0b2;
+  --border: #d9cfbf;
+  --border-strong: #bfb3a1;
   --fg: #1b1422;
   --muted: #4a4254;
   --subtle: #574f61;
@@ -105,17 +108,17 @@
   --on-primary: #fbf7f0;
   --secondary: #fbf7f0;
   --secondary-border: #7f7688;
-  --bubble-mine: #281539;
+  --bubble-mine: #2b1b3d;
   --on-bubble-mine: #fbf7f0;
-  --hero: #281539;
+  --hero: #2b1b3d;
   --hero-fg: #f6f1e6;
   --hero-muted: #d8cce4;
   --hero-border: transparent;
   /* The current tab: a deep eggplant tile with cream icon and label. */
-  --tab-active-bg: #281539;
+  --tab-active-bg: #2b1b3d;
   --tab-active-fg: #fbf7f0;
   /* Cards sit on the paper with a hairline and almost no shadow. */
-  --shadow-depth: 0 1px 2px rgb(27 20 34 / 0.04), 0 6px 18px -16px rgb(27 20 34 / 0.25);
+  --shadow-depth: 0 1px 2px rgb(43 27 61 / 0.06), 0 10px 24px -16px rgb(43 27 61 / 0.32);
   --shadow: var(--shadow-depth);
   --ring: #6a4c91;
   --ring-2: #4a3070;
@@ -124,56 +127,57 @@
 }
 
 .dark {
-  /* The frame by night: a deeper eggplant with a hairline edge, so the rail
-     separates from the #120d18 page. */
-  --shell-bg: #1a0f26;
-  --shell-edge: #3c2d4c;
-  /* Dark mode: near-black paper, eggplant cards and heroes; forest-ink fills
-     with cream type and a soft-green edge for live status and the primary action. */
+  /* The frame by night: a deeper eggplant than the page, with a hairline edge. */
+  --shell-bg: #21142f;
+  --shell-edge: #54406c;
+  /* Dark mode (hero board rule): an eggplant shell, raised-eggplant secondary
+     surfaces, and exactly one cream primary object with ink type per key screen
+     (--hero). Not a black-purple wall, not all cream. Forest-ink fills keep cream
+     type and a light edge. */
   --accent: #164b38;
   --on-accent: #fbf7f0;
   --accent-edge: #cbbdd8; /* forest ink is 1.7:1 on the night surfaces: a light lavender edge shows the shape */
-  --cut: #82bc9b;
-  --bg: #120d18;
-  --surface: #23182f;
-  --surface-2: #30223f;
-  --field: #1a1224;
-  --border: #3c2d4c;
-  --border-strong: #5a4a6e;
+  --cut: #c6ec8c;
+  --bg: #2b1b3d;
+  --surface: #3a2850;
+  --surface-2: #46335e;
+  --field: #33224a;
+  --border: #54406c;
+  --border-strong: #7a6694;
   --fg: #f6f1e6;
-  --muted: #cbbdd8;
-  --subtle: #b2a3c0;
-  --solid: #4a3365; /* settled status by night: the raised eggplant tile */
+  --muted: #d8cce4;
+  --subtle: #cbbdd8;
+  --solid: #5a4377; /* settled status by night: the raised eggplant tile */
   --on-solid: #f6f1e6;
   --ink: #1b1422;
   --link: #f6f1e6;
   --kicker: #cbbdd8;
-  --focus: #82bc9b; /* the keyboard outline only: soft green, 8.8:1 on the night page */
+  --focus: #82bc9b; /* the keyboard outline only: soft green, 7.2:1 on the eggplant page */
   --selected: #5a3b82; /* the chosen option stays eggplant by night */
   --danger: #eb9082;
   --success: #d8cce4; /* done and verified by night: pale lavender, not green (green is live) */
   --warning: #f0d08a;
   --primary: #164b38;
-  --switch-on: #8f7da6; /* a setting is a selection, not live: a lavender track, 3.7:1 to the white thumb, 4:1 or more on every night surface */
+  --switch-on: #9887ae; /* a setting is a selection, not live: a lavender track, 3.7:1 to the white thumb, 4:1 or more on every night surface */
   --on-primary: #fbf7f0;
-  --secondary: #30223f;
-  --secondary-border: #8f7da6;
+  --secondary: #3a2850;
+  --secondary-border: #9887ae;
   /* The primary object by night is cream (v4 hybrid): ink type on paper, the
      deep eggplant shell and plum secondary surfaces around it. */
-  --bubble-mine: #4a3365;
+  --bubble-mine: #5a4377;
   --on-bubble-mine: #f6f1e6;
   --hero: #fbf7f0;
   --hero-fg: #1b1422;
   --hero-muted: #4a4254;
   --hero-border: transparent;
-  --tab-active-bg: #4a3365;
+  --tab-active-bg: #5a4377;
   --tab-active-fg: #fbf7f0;
   /* Rings: rims only, never fills or text. A page-coloured gap separates
      them from the card (see the priority ring rules). */
   --ring: #ece4f5;
   --ring-2: #cbb8e0;
   --ring-3: #a991c9;
-  --shadow-depth: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px -18px rgb(0 0 0 / 0.5);
+  --shadow-depth: 0 1px 2px rgb(16 8 24 / 0.45), 0 10px 28px -18px rgb(16 8 24 / 0.7);
   --shadow: var(--shadow-depth);
   color-scheme: dark;
 }
@@ -184,9 +188,9 @@
      tile with white type, forest ink only for what is live. Every pairing clears a
      higher bar than the other themes (design-tokens.test.ts). Nothing is
      see-through and nothing casts a shadow. */
-  --bg: #ffffff;
-  --surface: #ffffff;
-  --surface-2: #eeeeee;
+  --bg: #fbf7f0;
+  --surface: #fffdf8;
+  --surface-2: #f4efe6;
   --field: #ffffff;
   --border: #4a4254;
   --border-strong: #000000;
@@ -207,7 +211,7 @@
   --on-primary: #ffffff;
   --on-accent: #ffffff;
   --accent-edge: #000000;
-  --cut: #164b38;
+  --cut: #c6ec8c;
   --secondary: #ffffff;
   --secondary-border: #000000;
   --bubble-mine: #000000;
@@ -367,7 +371,9 @@ body {
 
 /* ---- Type scale (redesign §4.1.2) --------------------------------------
    One utility per role; components use these, never their own font family or
-   size. rem sizes follow the text-size setting; nothing falls below 13px. */
+   size. rem sizes follow the text-size setting; nothing falls below 13px.
+   Hero board: page, card and section titles are the bold sans; the serif is
+   kept for the display line alone ("Field work that matters."). */
 @utility t-display {
   font-family: var(--font-display);
   font-size: clamp(2.75rem, 11vw, 3.5rem);
@@ -381,36 +387,33 @@ body {
   }
 }
 @utility t-title {
-  font-family: var(--font-display);
+  font-family: var(--font-barlow), ui-sans-serif, system-ui, sans-serif;
   font-size: 2rem;
   line-height: 1.06;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: -0.02em;
-  font-optical-sizing: auto;
   text-wrap: balance;
   @media (width >= 64rem) {
     font-size: 2.75rem;
   }
 }
 @utility t-headline {
-  font-family: var(--font-display);
+  font-family: var(--font-barlow), ui-sans-serif, system-ui, sans-serif;
   font-size: 1.5rem;
   line-height: 1.12;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: -0.015em;
-  font-optical-sizing: auto;
   text-wrap: balance;
   @media (width >= 64rem) {
     font-size: 2.125rem;
   }
 }
 @utility t-section {
-  font-family: var(--font-display);
+  font-family: var(--font-barlow), ui-sans-serif, system-ui, sans-serif;
   font-size: 1.25rem;
   line-height: 1.2;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: -0.01em;
-  font-optical-sizing: auto;
   @media (width >= 64rem) {
     font-size: 1.375rem;
   }
@@ -546,8 +549,12 @@ body {
     background: var(--shell-bg);
     color: var(--shell-fg);
   }
+  /* The hero line is the one place the serif stays (hero board). */
   .hero-split-line {
     @apply t-headline;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-optical-sizing: auto;
     color: var(--shell-fg);
   }
   .hero-split-form {
@@ -1377,7 +1384,7 @@ body {
     bottom: calc(0.75rem + env(safe-area-inset-bottom));
     background: var(--surface);
     border-color: var(--border);
-    box-shadow: 0 6px 24px -8px rgb(40 21 57 / 0.35), 0 1px 2px rgb(27 20 34 / 0.06);
+    box-shadow: 0 6px 24px -8px rgb(43 27 61 / 0.35), 0 1px 2px rgb(27 20 34 / 0.06);
     transition: transform var(--dur-slow) var(--ease-out);
   }
   .tab {
@@ -2431,6 +2438,14 @@ summary.list-none::-webkit-details-marker {
 @media screen {
   .sun body {
     font-weight: 500;
+  }
+  /* Field mode is used outdoors and one-handed: every control is at least 48px
+     tall (compact ones 44px), so a gloved or hurried thumb still lands. */
+  .sun :is(.btn, .btn-primary, .btn-secondary, .btn-ghost, .filter-chip, .row-link, .segmented > a, .field) {
+    min-height: 3rem;
+  }
+  .sun .btn-sm {
+    min-height: 2.75rem;
   }
   .sun :is(.card, .card-flat, .card-dashed, .stat, .list-card, .empty-state, .hero-card, .field, .option-card, .btn-secondary, .tabbar, .kv, .alert, .alert-warning, .alert-info, .quick-reply, .icon-btn, .summary-bar, .data-table-wrap, .composer-input, .sheet-panel, .swipe-card) {
     border-width: 2px;

@@ -304,23 +304,33 @@ describe("party chips (job cards)", () => {
   });
 });
 
-describe("the Turfcut palette: deep eggplant, warm paper, forest ink (G1)", () => {
-  it("dark mode keeps the eggplant surfaces, raised eggplant tiles and forest-ink accent", () => {
-    expect(dark.bg).toBe("#120d18");
-    expect(dark.surface).toBe("#23182f");
-    expect(dark["surface-2"]).toBe("#30223f");
+describe("the Turfcut palette: cream, paper, eggplant, deep green, lime (hero board, founder 2026-10-28)", () => {
+  it("dark mode is an eggplant shell with raised-eggplant surfaces and one cream primary object", () => {
+    expect(dark.bg).toBe("#2b1b3d"); // the shell is eggplant, not a black-purple wall
+    expect(dark.surface).toBe("#3a2850");
+    expect(dark["surface-2"]).toBe("#46335e");
+    expect(dark.hero).toBe("#fbf7f0"); // the one cream primary object, ink type
+    expect(dark["hero-fg"]).toBe("#1b1422");
     expect(dark.accent).toBe("#164b38");
-    expect(dark.solid).toBe("#4a3365"); // settled status by night: the raised eggplant tile
-    expect(dark["tab-active-bg"]).toBe("#4a3365");
+    expect(dark.solid).toBe("#5a4377"); // settled status by night: the raised eggplant tile
+    expect(dark["tab-active-bg"]).toBe("#5a4377");
     expect(dark.focus).toBe("#82bc9b");
   });
-  it("light mode uses warm paper, deep eggplant identity and the forest-ink accent (founder, 2026-10-27)", () => {
+  it("lime is the primary card's signature corner and nothing else", () => {
+    for (const th of [light, dark, sun]) expect(th.cut).toBe("#c6ec8c");
+    const lime = Object.entries(light).filter(([, v]) => v.toLowerCase() === "#c6ec8c").map(([k]) => k);
+    expect(lime).toEqual(["cut"]);
+    // Only the corner rules read it (never a fill behind text, never text).
+    const users = [...css.replace(/\/\*[\s\S]*?\*\//g, "").matchAll(/([^{}]+)\{[^}]*var\(--cut\)/g)].map((m) => m[1].trim());
+    expect(users.every((sel) => /::after|::before|\.empty-art|::selection/.test(sel)), users.join(" | ")).toBe(true);
+  });
+  it("light mode uses warm paper, eggplant identity and the deep-green accent", () => {
     expect(light.bg).toBe("#efeae1");
     expect(light.fg).toBe("#1b1422");
     expect(light.accent).toBe("#164b38");
     expect(light.solid).toBe("#3a2154"); // settled status: the eggplant tile
-    expect(light.hero).toBe("#281539");
-    expect(light["tab-active-bg"]).toBe("#281539");
+    expect(light.hero).toBe("#2b1b3d");
+    expect(light["tab-active-bg"]).toBe("#2b1b3d");
     expect(light.primary).toBe("#164b38");
     expect(light["on-primary"]).toBe("#fbf7f0");
     expect(light["tab-active-fg"]).toBe("#fbf7f0"); // cream on the eggplant tile, never green type
@@ -473,7 +483,7 @@ describe("forest ink is for what is live and the one primary action (G1)", () =>
       expect(ratio(th["on-shell-active"], th["shell-active"])).toBeGreaterThanOrEqual(7);
     }
     expect(light["shell-active"]).toBe("#d8cce4");
-    expect(dark["shell-bg"]).toBe("#1a0f26");
+    expect(dark["shell-bg"]).toBe("#21142f");
     expect(sun["shell-bg"]).toBe("#000000");
     // By night the dock's current tile has a lavender edge: visible against the tile and the bar.
     expect(ratio(dark.muted, dark["tab-active-bg"])).toBeGreaterThanOrEqual(3);

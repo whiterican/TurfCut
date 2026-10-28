@@ -41,12 +41,28 @@ describe("page templates (redesign §4.2.2)", () => {
     expect(html(<ListPage>body</ListPage>)).not.toContain("tpl-panel");
   });
 
+  it("a tail follows the panel in the markup (a phone shows it after the Apply panel), and panels carry their names", () => {
+    const out = html(<RecordPage aside={<p>apply</p>} panelLabel="Your place on this job" tail={<p>full card</p>}>job</RecordPage>);
+    expect(out).toMatch(/<div class="tpl-main">job<\/div><aside class="tpl-panel" aria-label="Your place on this job"><p>apply<\/p><\/aside><div class="tpl-tail"><p>full card<\/p><\/div>/);
+    expect(html(<RecordPage org aside={<p>facts</p>}>x</RecordPage>)).toContain('data-org="true"');
+    // Wide screens put the tail back under the main column, the panel spanning both.
+    expect(css).toMatch(/> \.tpl-body > \.tpl-panel \{\s*grid-column: 2;\s*grid-row: 1 \/ span 2;/);
+  });
+
+  it("a sticky panel is never taller than the window (a focused control inside stays reachable)", () => {
+    const sticky = [...css.matchAll(/\{\s*(?:display: flex;\s*)?position: sticky;\s*top: calc\(var\(--site-header-h\) \+ 1rem\);([^}]*)\}/g)];
+    expect(sticky.length).toBeGreaterThanOrEqual(3);
+    for (const m of sticky) expect(m[1]).toMatch(/max-height: calc\(100dvh - var\(--site-header-h\) - 2rem\);\s*overflow-y: auto;/);
+    // Beside the organization rail an aside waits for 1280, like the inspector.
+    expect(css).toMatch(/@media \(width >= 80rem\) \{\s*\.tpl\[data-panel="aside"\]\[data-org\] \{/);
+  });
+
   it("the stylesheet owns gutters, dock clearance and the inspector breakpoints", () => {
     expect(css).toMatch(/\.tpl \{[^}]*padding-bottom: calc\(var\(--dock-clearance\) \+ 2rem\);/);
     expect(css).toMatch(/\.tpl\[data-panel="inspector"\] > \.tpl-body > \.tpl-panel \{\s*display: none;/);
     // Worker inspector from 64rem; organization inspector only from 80rem.
     expect(css).toMatch(/@media \(width >= 64rem\) \{[\s\S]*?\.tpl\[data-panel="inspector"\]:not\(\[data-org\]\) > \.tpl-body > \.tpl-panel \{\s*display: flex;/);
-    expect(css).toMatch(/@media \(width >= 80rem\) \{\s*\.tpl\[data-panel="inspector"\]\[data-org\] > \.tpl-body \{/);
+    expect(css).toMatch(/@media \(width >= 80rem\) \{[^@]*?\.tpl\[data-panel="inspector"\]\[data-org\] > \.tpl-body \{/);
     expect(css).toMatch(/\.tpl\[data-template="reading"\] \{\s*--tpl-measure: var\(--measure-reading\);/);
   });
 

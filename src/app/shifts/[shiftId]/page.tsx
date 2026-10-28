@@ -300,7 +300,7 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
   const hasTurf = !!(turf || staging || marks.dayTurf || marks.pins.length > 0 || marksOpen);
   const hasAside = !!(brief && (isWorker || canField)) || !!contacts || (isWorker && hasTurf);
   return (
-    <Template head={head} aside={hasAside ? aside : undefined}>
+    <Template head={head} aside={hasAside ? aside : undefined} panelLabel={isWorker ? "Brief and turf" : "Brief and contacts"} org={!isWorker}>
 
       {!started && workerActions}
       <div className={`hero-card space-y-4 ${isWorker && live ? "hero-card-accent" : ""}`} data-priority={isWorker ? shiftPriority(s, now) : undefined}>

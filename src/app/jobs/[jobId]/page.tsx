@@ -128,15 +128,15 @@ export default async function JobPage({ params }: { params: Promise<{ jobId: str
   // a worker's is the job itself, with what they can do about it beside it (below it on a phone).
   if (isOwnOrg) {
     return (
-      <RecordPage head={head} aside={<JobFacts job={job} acceptedCount={acceptedCount} />}>
+      <RecordPage org head={head} aside={<JobFacts job={job} acceptedCount={acceptedCount} />} panelLabel="Job facts" tail={fullCard}>
         <OrgPanel job={job} canHire={canUse(session, "hiring")} canEdit={canUse(session, "jobsEdit")} canSchedule={canUse(session, "scheduling")} userId={session.userId} />
         {job.description && <p className="lead">{job.description}</p>}
-        {fullCard}
       </RecordPage>
     );
   }
   return (
-    <RecordPage head={head} aside={<WorkerPanel job={job} engagement={engagement} modes={modes} workerId={session.workerId!} acceptedCount={acceptedCount} />}>
+    // The full card is the tail: after the Apply panel on a phone, under the job beside it from 1024.
+    <RecordPage head={head} aside={<WorkerPanel job={job} engagement={engagement} modes={modes} workerId={session.workerId!} acceptedCount={acceptedCount} />} panelLabel="Your place on this job" tail={fullCard}>
       {/* The facts a worker decides on, before anything else (D2): dates, place and how each day starts, spots,
           what counts as payable, credentials and the rules. The full job card below keeps every detail. */}
       <JobFacts job={job} acceptedCount={acceptedCount} />
@@ -145,7 +145,6 @@ export default async function JobPage({ params }: { params: Promise<{ jobId: str
       {job.campaignProfile?.publishedAt && job.org.approved && (
         <CampaignCard campaign={job.campaignProfile} follow={await followState(session.workerId!, job.campaignProfile.id)} viewer="worker" back={`/jobs/${job.id}`} />
       )}
-      {fullCard}
     </RecordPage>
   );
 }

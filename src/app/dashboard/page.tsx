@@ -467,10 +467,10 @@ export default async function DashboardPage() {
   return (
     <ListPage
       head={head}
+      panelLabel="Your summary"
       aside={
         <>
           <EarningsCard workerId={workerId} />
-          <FitReconfirm workerId={workerId} />
           <SharingNote workerId={workerId} />
           <CampaignsOn workerId={workerId} />
         </>
@@ -478,6 +478,8 @@ export default async function DashboardPage() {
     >
       <WorkerBrief workerId={workerId} userId={session.userId} />
       <WorkerHero workerId={workerId} />
+      {/* Consent that lapsed is time-sensitive: it stays in the main column, not after the jobs on a phone. */}
+      <FitReconfirm workerId={workerId} />
       <CredentialReminder workerId={workerId} />
       <LaterShifts workerId={workerId} />
       <OpenSeats workerId={workerId} />

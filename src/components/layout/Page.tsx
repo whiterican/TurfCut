@@ -25,10 +25,19 @@ interface FrameProps {
   gap?: TemplateGap;
   /** For a skeleton: busy, with its own label. */
   busy?: string;
+  /** The panel's landmark name ("Apply", "Your summary", the selected row's kind). */
+  panelLabel?: string;
+  /** Beside the organization rail: the panel waits for 1280, so the main column keeps about 720px. */
+  org?: boolean;
+  /**
+   * The main column's last part, which on a phone follows the panel rather than preceding it
+   * (a job's full card comes after the Apply panel there; beside it from 1024).
+   */
+  tail?: ReactNode;
 }
 
 /** The shared frame; exported for PageSkeleton, which draws the same frame around its placeholder. */
-export function Frame({ template, head, children, panel, panelKind, gap = 10, busy, org }: FrameProps & { template: TemplateName; panel?: ReactNode; panelKind?: "aside" | "inspector"; org?: boolean }) {
+export function Frame({ template, head, children, panel, panelKind, gap = 10, busy, org, panelLabel, tail }: FrameProps & { template: TemplateName; panel?: ReactNode; panelKind?: "aside" | "inspector" }) {
   return (
     <main
       className="tpl"
@@ -44,10 +53,11 @@ export function Frame({ template, head, children, panel, panelKind, gap = 10, bu
         <div className="tpl-main">{children}</div>
         {panel &&
           (panelKind === "inspector" ? (
-            <section className="tpl-panel" aria-label="Details">{panel}</section>
+            <section className="tpl-panel" aria-label={panelLabel ?? "Details"}>{panel}</section>
           ) : (
-            <aside className="tpl-panel">{panel}</aside>
+            <aside className="tpl-panel" aria-label={panelLabel}>{panel}</aside>
           ))}
+        {tail && <div className="tpl-tail">{tail}</div>}
       </div>
     </main>
   );
@@ -69,8 +79,8 @@ export function ListPage({ aside, ...p }: FrameProps & { aside?: ReactNode }) {
  * pages (beside the rail), so the list never drops below about 720px; below
  * that the row opens its own route, which always exists for deep links.
  */
-export function ListDetailPage({ inspector, org = false, ...p }: FrameProps & { inspector?: ReactNode; org?: boolean }) {
-  return <Frame template="listDetail" panel={inspector} panelKind="inspector" org={org} {...p} />;
+export function ListDetailPage({ inspector, ...p }: FrameProps & { inspector?: ReactNode }) {
+  return <Frame template="listDetail" panel={inspector} panelKind="inspector" {...p} />;
 }
 
 /** One thing (a job, a shift under review, a receipt, a dispute): the object first, then a sticky aside of facts and actions. */
@@ -80,7 +90,7 @@ export function RecordPage({ aside, ...p }: FrameProps & { aside?: ReactNode }) 
 
 /** Tables and maps (desk, field, pay, audit): full width up to --workspace-max, with an optional inspector from 1280. */
 export function WorkspacePage({ inspector, ...p }: FrameProps & { inspector?: ReactNode }) {
-  return <Frame template="workspace" panel={inspector} panelKind="inspector" org {...p} />;
+  return <Frame template="workspace" panel={inspector} panelKind="inspector" {...p} org />;
 }
 
 /** In-shift task mode: the task, and beside it from 1024 the brief and map (below it on a phone). */

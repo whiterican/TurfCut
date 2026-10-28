@@ -507,6 +507,12 @@ body {
   .tpl-panel {
     gap: 1.5rem;
   }
+  .tpl-tail {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: var(--tpl-gap, 2.5rem);
+  }
   .tpl[data-template="reading"] {
     --tpl-measure: var(--measure-reading);
   }
@@ -534,18 +540,29 @@ body {
     .tpl {
       padding-bottom: 3rem;
     }
-    /* Asides sit beside the main column from 1024. */
-    .tpl[data-panel="aside"] {
+    /* Asides sit beside the main column from 1024 (from 1280 beside the organization rail, below). */
+    .tpl[data-panel="aside"]:not([data-org]) {
       max-width: calc(var(--tpl-measure) + var(--tpl-panel) + var(--tpl-gap, 2.5rem) + 2 * var(--tpl-gutter));
     }
-    .tpl[data-panel="aside"] > .tpl-body {
+    .tpl[data-panel="aside"]:not([data-org]) > .tpl-body {
       grid-template-columns: minmax(0, var(--tpl-measure)) var(--tpl-panel);
       align-items: start;
     }
-    /* A record's facts and actions stay in view while the object scrolls. */
-    .tpl[data-template="record"] > .tpl-body > .tpl-panel {
+    .tpl[data-panel="aside"]:not([data-org]) > .tpl-body > .tpl-main,
+    .tpl[data-panel="aside"]:not([data-org]) > .tpl-body > .tpl-tail {
+      grid-column: 1;
+    }
+    .tpl[data-panel="aside"]:not([data-org]) > .tpl-body > .tpl-panel {
+      grid-column: 2;
+      grid-row: 1 / span 2;
+    }
+    /* A record's facts and actions stay in view while the object scrolls; never taller than the
+       window, so a focused control inside is always scrolled into view (WCAG 2.4.11). */
+    .tpl[data-template="record"]:not([data-org]) > .tpl-body > .tpl-panel {
       position: sticky;
       top: calc(var(--site-header-h) + 1rem);
+      max-height: calc(100dvh - var(--site-header-h) - 2rem);
+      overflow-y: auto;
     }
     /* The field page: the task and, beside it, the brief and map, at equal weight. */
     .tpl[data-template="field"][data-panel="aside"] {
@@ -567,6 +584,27 @@ body {
   /* Organization and staff pages, beside the ~240px rail: the inspector from 1280,
      so the table keeps about 720px (C1 round 2). */
   @media (width >= 80rem) {
+    .tpl[data-panel="aside"][data-org] {
+      max-width: calc(var(--tpl-measure) + var(--tpl-panel) + var(--tpl-gap, 2.5rem) + 2 * var(--tpl-gutter));
+    }
+    .tpl[data-panel="aside"][data-org] > .tpl-body {
+      grid-template-columns: minmax(0, var(--tpl-measure)) var(--tpl-panel);
+      align-items: start;
+    }
+    .tpl[data-panel="aside"][data-org] > .tpl-body > .tpl-main,
+    .tpl[data-panel="aside"][data-org] > .tpl-body > .tpl-tail {
+      grid-column: 1;
+    }
+    .tpl[data-panel="aside"][data-org] > .tpl-body > .tpl-panel {
+      grid-column: 2;
+      grid-row: 1 / span 2;
+    }
+    .tpl[data-template="record"][data-org] > .tpl-body > .tpl-panel {
+      position: sticky;
+      top: calc(var(--site-header-h) + 1rem);
+      max-height: calc(100dvh - var(--site-header-h) - 2rem);
+      overflow-y: auto;
+    }
     .tpl[data-panel="inspector"][data-org] > .tpl-body {
       grid-template-columns: minmax(0, 1fr) var(--inspector-w);
       align-items: start;
@@ -575,6 +613,8 @@ body {
       display: flex;
       position: sticky;
       top: calc(var(--site-header-h) + 1rem);
+      max-height: calc(100dvh - var(--site-header-h) - 2rem);
+      overflow-y: auto;
     }
   }
   .page-header {
@@ -2100,7 +2140,7 @@ summary.list-none::-webkit-details-marker {
 @media print {
   .site-header, .tabbar, .no-print, nextjs-portal { display: none !important; }
   html, body { background: white; color: black; }
-  .page { padding: 0; max-width: none; }
+  .page, .tpl { padding: 0; max-width: none; }
   .card, .list-card, .empty-state, .stat { background: white; border-color: #999; box-shadow: none; break-inside: avoid; }
   .empty-art { display: none; } /* theme colours don't survive white paper; the words carry the meaning */
   a { color: inherit; text-decoration: none; }

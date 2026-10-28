@@ -21,7 +21,8 @@ export async function addExperience(
   formData: FormData
 ): Promise<ExperienceFormState> {
   const { workerId, userId } = await requireWorker();
-  const result = validateExperience(Object.fromEntries(formData));
+  // Object.fromEntries keeps one value per key; turf is a list of ticked boxes.
+  const result = validateExperience({ ...Object.fromEntries(formData), turfType: formData.getAll("turfType") });
   if (!result.ok) {
     return { ok: false, message: "Fix the highlighted fields.", errors: result.errors };
   }

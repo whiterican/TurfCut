@@ -74,14 +74,19 @@ export function ExperienceForm() {
           <input name="countyOrDistrict" className={input} maxLength={100} />
           {err("countyOrDistrict")}
         </label>
-        <label className="space-y-1.5">
-          <span className="label">Turf</span>
-          <select name="turfType" className={input} defaultValue="">
-            <option value="">—</option>
-            {TURF_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
-          </select>
+        <div className="space-y-1.5" role="group" aria-label="Turf">
+          <span className="label">Turf {optional}</span>
+          {/* Any of the three (a canvass can cover suburban and rural turf in one campaign). */}
+          <div className="flex flex-wrap gap-2">
+            {TURF_TYPES.map((t) => (
+              <label key={t} className="chip">
+                <input type="checkbox" name="turfType" value={t} className="sr-only" />
+                {t}
+              </label>
+            ))}
+          </div>
           {err("turfType")}
-        </label>
+        </div>
       </fieldset>
 
       <fieldset className="grid gap-3 sm:grid-cols-2">

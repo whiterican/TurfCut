@@ -65,6 +65,23 @@ export const CHANNELS = [
 
 export const TURF_TYPES = ["urban", "suburban", "rural"] as const;
 
+/**
+ * Turf is any of the three (founder, 2026-10-28): the record's `turfType`
+ * column keeps a comma-joined list in TURF_TYPES order ("urban,suburban").
+ * One value, as every record held before, reads the same as a one-item list.
+ */
+export function turfTypes(stored: string | null | undefined): string[] {
+  if (!stored) return [];
+  const set = new Set(stored.split(",").map((s) => s.trim()));
+  return TURF_TYPES.filter((t) => set.has(t));
+}
+
+/** The turf list for a reader: "urban · suburban", or null when none was given. */
+export function turfLabel(stored: string | null | undefined): string | null {
+  const list = turfTypes(stored);
+  return list.length ? list.join(" · ") : null;
+}
+
 export const US_STATES = [
   "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "DC", "FL", "GA", "HI", "ID", "IL", "IN", "IA", "KS",
   "KY", "LA", "ME", "MD", "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC",
@@ -147,7 +164,13 @@ export function validateExperience(
   const channel = optionalChoice("channel", values(CHANNELS), "Pick a channel from the list.");
   const state = optionalChoice("state", US_STATES, "Pick a US state.");
   const countyOrDistrict = optionalText("countyOrDistrict", 100, "County or district");
-  const turfType = optionalChoice("turfType", TURF_TYPES, "Pick urban, suburban or rural.");
+  // Any of the three: the form sends the key once per ticked box (a list), a JSON client one string or a list.
+  const turfRaw = raw.turfType;
+  const turfPicks = (Array.isArray(turfRaw) ? turfRaw : typeof turfRaw === "string" ? turfRaw.split(",") : [])
+    .map((v) => (typeof v === "string" ? v.trim() : ""))
+    .filter(Boolean);
+  if (turfPicks.some((v) => !(TURF_TYPES as readonly string[]).includes(v))) errors.turfType = "Pick any of urban, suburban or rural.";
+  const turfType = turfPicks.length ? TURF_TYPES.filter((t) => turfPicks.includes(t)).join(",") : null;
   const completedShifts = optionalInt("completedShifts", 10_000, "Enter a whole number of shifts (10,000 max).");
   const approvedCount = optionalInt("approvedCount", 1_000_000, "Enter a whole number from 0 to 1,000,000.");
   const referenceContact = optionalText("referenceContact", 200, "Reference");

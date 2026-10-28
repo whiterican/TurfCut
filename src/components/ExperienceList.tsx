@@ -3,6 +3,7 @@ import {
   CHANNELS,
   EXPERIENCE_GROUPS,
   experienceTotals,
+  turfLabel,
   VERIFICATION_LABELS,
   workerCanModify,
   type VerificationLevel,
@@ -113,7 +114,7 @@ export function ExperienceList({
                   {join([
                     `${fmtDate(r.startDate)} – ${r.endDate ? fmtDate(r.endDate) : "ongoing"}`,
                     join([r.countyOrDistrict, r.state]) || null,
-                    r.turfType,
+                    turfLabel(r.turfType),
                   ])}
                 </p>
                 <p className="text-sm text-fg tabular-nums">

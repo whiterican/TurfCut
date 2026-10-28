@@ -191,7 +191,7 @@ model ExperienceRecord {
   // Where
   state             String?           @db.VarChar(2)
   countyOrDistrict  String?
-  turfType          String? // "urban" | "suburban" | "rural"
+  turfType          String? // any of "urban" | "suburban" | "rural", comma-joined in that order (src/lib/experience.ts turfTypes); one value on older records
   // When
   startDate         DateTime          @db.Date
   endDate           DateTime?         @db.Date // null = ongoing

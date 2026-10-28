@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { experienceTotals, validateExperience, workerCanModify } from "./experience";
+import { experienceTotals, turfLabel, turfTypes, validateExperience, workerCanModify } from "./experience";
 
 const today = new Date("2026-09-30T12:00:00Z");
 const good = {
@@ -130,5 +130,28 @@ describe("experienceTotals", () => {
     expect(workerCanModify("PLATFORM")).toBe(false);
     expect(workerCanModify("ORGANIZATION")).toBe(false);
     expect(workerCanModify("IMPORTED")).toBe(false);
+  });
+});
+
+describe("turf: any of urban, suburban and rural (founder, 2026-10-28)", () => {
+  it("keeps every ticked box, in a fixed order, once, in the one column", () => {
+    const r = validateExperience({ ...fullRecord, turfType: ["rural", "urban", "rural"] }, today);
+    expect(r.ok && r.value.turfType).toBe("urban,rural");
+    const one = validateExperience({ ...fullRecord, turfType: ["suburban"] }, today);
+    expect(one.ok && one.value.turfType).toBe("suburban");
+    const none = validateExperience({ ...fullRecord, turfType: [] }, today);
+    expect(none.ok && none.value.turfType).toBeNull();
+  });
+
+  it("reads a stored single value or list, and refuses an unknown one even among good ones", () => {
+    expect(turfTypes("urban")).toEqual(["urban"]);
+    expect(turfTypes("rural,urban")).toEqual(["urban", "rural"]);
+    expect(turfTypes(null)).toEqual([]);
+    expect(turfLabel("urban,suburban")).toBe("urban · suburban");
+    expect(turfLabel("")).toBeNull();
+    const bad = validateExperience({ ...fullRecord, turfType: ["urban", "lunar"] }, today);
+    expect(!bad.ok && bad.errors.turfType).toBeTruthy();
+    // A JSON client may still send one string, or a comma-joined one.
+    expect(validateExperience({ ...fullRecord, turfType: "suburban,rural" }, today)).toMatchObject({ ok: true, value: { turfType: "suburban,rural" } });
   });
 });

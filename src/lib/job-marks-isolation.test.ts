@@ -11,7 +11,8 @@ const ALLOWED = [
   /^src\/lib\/job-marks(-data|-isolation\.test|\.test)?\.ts$/,
   /^src\/lib\/migration-grants\.test\.ts$/,
   /^src\/app\/jobs\/(page\.tsx|mark-actions\.ts)$/, // the worker's own feed and its mark action (its own file: the shared actions file is imported everywhere)
-  /^src\/components\/(JobFeedCard|SwipeCard)\.tsx$/, // the card's Save and Hide
+  /^src\/components\/(JobFeedCard|SwipeCard|JobHeadActions)\.tsx$/, // the card's Save and Hide; the job page's Save (#111, screen 3)
+  /^src\/app\/jobs\/\[jobId\]\/page\.tsx$/, // reads the worker's own saved mark for that Save button; the page ranks nothing
   /^src\/app\/zz-preview\//,
 ];
 /** The marks' names: modules, models, Prisma accessors and relation fields. */

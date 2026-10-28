@@ -13,7 +13,8 @@ import { engagementStatus, JOB_STATUS_LABELS } from "@/lib/engagement-labels";
 import { UUID_RE, exclusionReasons, fitReasons, jobCardAnswers, jobCredentials, jobDiscoveryLabel, jobFreezeReasons, jurisdictionLabel, payShort, payText, publishBlockers, readDisclosure, readHiringModes } from "@/lib/jobs";
 import { categoryStatusOf } from "@/lib/job-categories";
 import { CategoryStatusTag } from "@/components/CategoryStatusTag";
-import { JobArt } from "@/components/JobArt";
+import { JobPhoto } from "@/components/JobPhoto";
+import { mediaUrl } from "@/lib/campaign-media";
 import { loadScorecard } from "@/lib/scorecard-data";
 import { loadSharing } from "@/lib/sharing-data";
 import { PART_DETAILS, RELATIONSHIP_PHRASE, SHARE_PARTS, visibleParts, type SharePart, type SharingChoices } from "@/lib/sharing";
@@ -43,7 +44,10 @@ import { loadSharedAvailabilities } from "@/lib/availability-data";
 import { orgAvailabilityView, withoutPastDates } from "@/lib/availability";
 import { followState } from "@/lib/campaign-follow-data";
 import { CampaignCard } from "@/components/campaign/CampaignCard";
-import { ChevronLeft, CircleCheck, Info } from "lucide-react";
+import { BadgeCheck, Building2, ChevronLeft, CircleCheck, Info, MapPinned, Tag } from "lucide-react";
+import { JobHeadActions } from "@/components/JobHeadActions";
+import { loadMarks } from "@/lib/job-marks-data";
+import { readLaunch as readLaunchMode } from "@/lib/job-launch";
 
 /** A view-transition name and class as inline style (React knows the name; the class property isn't in its CSS types yet). */
 const shareStyle = (name: string) => ({ viewTransitionName: name, viewTransitionClass: "job-share" }) as React.CSSProperties;
@@ -78,7 +82,7 @@ async function ChangeList({ jobId, viewer, changes: loaded }: { jobId: string; v
 }
 
 const loadJob = (id: string) =>
-  db().job.findUnique({ where: { id }, include: { org: true, jurisdiction: true, campaignProfile: { select: { id: true, handle: true, displayName: true, avatarKey: true, publishedAt: true, verifiedAt: true } } } });
+  db().job.findUnique({ where: { id }, include: { org: true, jurisdiction: true, campaignProfile: { select: { id: true, handle: true, displayName: true, avatarKey: true, headerKey: true, publishedAt: true, verifiedAt: true } } } });
 type JobWithRefs = NonNullable<Awaited<ReturnType<typeof loadJob>>>;
 
 export default async function JobPage({ params }: { params: Promise<{ jobId: string }> }) {
@@ -100,38 +104,71 @@ export default async function JobPage({ params }: { params: Promise<{ jobId: str
   const modes = readHiringModes(job.hiringMethod);
   const status = JOB_STATUS_LABELS[job.status];
 
-  // The record head (F03b): the title and pay are shared with the feed card that was tapped (P1.6), so they grow into place.
+  // The record head (#111, screen 3): the photograph with back, save and share over it; then the title with the
+  // gross pay beside it, the organization with Turfcut's approval mark, the facts, the chips. The title and pay are
+  // shared with the feed row that was tapped (P1.6), so they grow into place.
+  const photo = job.campaignProfile?.publishedAt && job.org.approved ? mediaUrl(job.campaignProfile.headerKey) : null;
+  const saved = isWorker ? (await loadMarks(session.workerId!)).saved.has(job.id) : false;
   const head = (
     <>
-    {/* The job's picture first (green board): the category's art until organizations can set their own. */}
     <div className="job-photo-head">
-      <JobArt type={job.type} />
+      <JobPhoto type={job.type} src={photo} sizes="(min-width: 64rem) 720px, 100vw" priority />
+      <JobHeadActions jobId={job.id} back="/jobs" saved={saved} canSave={isWorker} title={job.title} />
     </div>
-    <Masthead
-      className="job-head"
-      // The category as the feed names it, so a candidate drive reads "Candidate campaign canvassing" here too,
-      // and the "In development" tag sits in the head rather than only in the Campaign card below.
-      eyebrow={`${jobDiscoveryLabel(job.type, job.campaignDisclosure)} · ${jurisdictionLabel(job.jurisdiction)}`}
-      title={job.title}
-      titleClassName="w-fit"
-      titleStyle={shareStyle(`job-${job.id}`)}
-      meta={job.org.name}
-      chips={
-        <>
-          {isOwnOrg && <StatusBadge status={status} />}
+    {isOwnOrg ? (
+      <Masthead
+        className="job-head"
+        eyebrow={`${jobDiscoveryLabel(job.type, job.campaignDisclosure)} · ${jurisdictionLabel(job.jurisdiction)}`}
+        title={job.title}
+        titleClassName="w-fit"
+        titleStyle={shareStyle(`job-${job.id}`)}
+        meta={job.org.name}
+        chips={
+          <>
+            <StatusBadge status={status} />
+            <CategoryStatusTag status={categoryStatusOf(job.type, job.campaignDisclosure)} />
+          </>
+        }
+        back={
+          <Link transitionTypes={["nav-back"]} href="/jobs" className="btn-ghost -ms-4"><ChevronLeft aria-hidden className="size-4 shrink-0" />Jobs</Link>
+        }
+      >
+        <span className="text-end">
+          <span className="masthead-figure block pt-0 text-2xl" style={shareStyle(`pay-${job.id}`)}>{payShort(job.compensationMethod, job.payRateCents, job.type)}</span>
+          <span className="block text-xs text-muted">gross · {payText(job.compensationMethod, job.payRateCents).replace(/ \(gross\)$/, "")}</span>
+        </span>
+      </Masthead>
+    ) : (
+      <header className="job-head-sheet">
+        <div className="flex items-start justify-between gap-4">
+          <h1 className="t-headline min-w-0 text-fg" style={shareStyle(`job-${job.id}`)}>{job.title}</h1>
+          {/* The gross pay, in the feed row's words so the shared element grows rather than swaps its text. */}
+          <span className="shrink-0 text-end">
+            <span className="t-headline block whitespace-nowrap text-fg tabular-nums" style={shareStyle(`pay-${job.id}`)}>{payShort(job.compensationMethod, job.payRateCents, job.type)}</span>
+            <span className="block whitespace-nowrap text-xs text-subtle">gross</span>
+          </span>
+        </div>
+        <p className="mt-2 flex items-center gap-2 text-sm text-muted">
+          <span className="org-mark" aria-hidden><Building2 className="size-3.5" /></span>
+          <span className="min-w-0 truncate">{job.org.name}</span>
+          {/* Turfcut's approval of the organization (not the campaign's verification: a different fact, on the campaign card). */}
+          {job.org.approved && (
+            <>
+              <BadgeCheck aria-hidden className="size-5 shrink-0 text-[var(--success)]" />
+              <span className="sr-only">Approved by Turfcut</span>
+            </>
+          )}
+        </p>
+        <div className="mt-4">
+          <JobFacts job={job} acceptedCount={acceptedCount} compact />
+        </div>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <span className="fact-chip"><Tag aria-hidden className="size-4" />{jobDiscoveryLabel(job.type, job.campaignDisclosure)}</span>
+          <span className="fact-chip"><MapPinned aria-hidden className="size-4" />{readLaunchMode(job.launch).mode === "SELF" ? "Self-launch" : "Staged"}</span>
           <CategoryStatusTag status={categoryStatusOf(job.type, job.campaignDisclosure)} />
-        </>
-      }
-      back={
-        <Link transitionTypes={["nav-back"]} href="/jobs" className="btn-ghost -ms-4"><ChevronLeft aria-hidden className="size-4 shrink-0" />Jobs</Link>
-      }
-    >
-      {/* The gross pay beside the title (green board), in the feed card's words so the shared element grows rather than swaps its text. */}
-      <span className="text-end">
-        <span className="masthead-figure block pt-0 text-2xl" style={shareStyle(`pay-${job.id}`)}>{payShort(job.compensationMethod, job.payRateCents, job.type)}</span>
-        <span className="block text-xs text-muted">gross · {payText(job.compensationMethod, job.payRateCents).replace(/ \(gross\)$/, "")}</span>
-      </span>
-    </Masthead>
+        </div>
+      </header>
+    )}
     </>
   );
   const fullCard = (
@@ -154,10 +191,13 @@ export default async function JobPage({ params }: { params: Promise<{ jobId: str
   return (
     // The full card is the tail: after the Apply panel on a phone, under the job beside it from 1024.
     <RecordPage head={head} aside={<WorkerPanel job={job} engagement={engagement} modes={modes} workerId={session.workerId!} acceptedCount={acceptedCount} />} panelLabel="Your place on this job" tail={fullCard}>
-      {/* The facts a worker decides on, before anything else (D2): dates, place and how each day starts, spots,
-          what counts as payable, credentials and the rules. The full job card below keeps every detail. */}
-      <JobFacts job={job} acceptedCount={acceptedCount} />
-      {job.description && <p className="lead">{job.description}</p>}
+      {/* The facts a worker decides on are in the head (D2); the description follows, then the full card below keeps every detail. */}
+      {job.description && (
+        <section className="section">
+          <h2 className="section-title">About this job</h2>
+          <p className="text-base leading-6 text-muted">{job.description}</p>
+        </section>
+      )}
       {/* The campaign this job works for (S2): its page and a Follow control, while the campaign is public. */}
       {job.campaignProfile?.publishedAt && job.org.approved && (
         <CampaignCard campaign={job.campaignProfile} follow={await followState(session.workerId!, job.campaignProfile.id)} viewer="worker" back={`/jobs/${job.id}`} />
@@ -297,16 +337,19 @@ async function WorkerPanel({
     <>
     {/* The action first (redesign §5: the aside leads with the apply panel), then why it fits.
         On a phone the card stays above the dock while the page scrolls (green board's bottom action). */}
-    <section className="card job-apply-card space-y-4">
-      {modes.includes("application") && (
-        <ActionButton action={apply} fields={{ jobId: job.id }} label="Apply with verified profile" pendingLabel="Applying…" variant="btn-primary w-full" />
-      )}
-      {modes.includes("instant_claim") && (
-        <ActionButton action={claim} fields={{ jobId: job.id }} label="Claim a spot" pendingLabel="Claiming…" variant={modes.includes("application") ? "btn-secondary w-full" : "btn-primary w-full"} />
-      )}
-      {!modes.includes("application") && !modes.includes("instant_claim") && (
-        <p className="text-muted-sm">This job hires by invitation only.</p>
-      )}
+    <section className="space-y-4" aria-label="Apply">
+      {/* The one Forest action, kept above the dock while the page scrolls (#111, screen 3). */}
+      <div className="job-cta-bar">
+        {modes.includes("application") && (
+          <ActionButton action={apply} fields={{ jobId: job.id }} label="Apply for This Job" pendingLabel="Applying…" variant="btn-primary btn-lg w-full" />
+        )}
+        {modes.includes("instant_claim") && (
+          <ActionButton action={claim} fields={{ jobId: job.id }} label="Claim a spot" pendingLabel="Claiming…" variant={modes.includes("application") ? "btn-secondary btn-lg w-full" : "btn-primary btn-lg w-full"} />
+        )}
+        {!modes.includes("application") && !modes.includes("instant_claim") && (
+          <p className="text-muted-sm">This job hires by invitation only.</p>
+        )}
+      </div>
       <WillSee sharing={sharing.choices} approved={job.org.approved} join={joinText(modes)} />
     </section>
     <section className="section">

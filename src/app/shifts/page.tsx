@@ -10,7 +10,6 @@ import { loadAvailability } from "@/lib/availability-data";
 import { OpenShiftList } from "@/components/OpenShiftList";
 import { EmptyArt } from "@/components/EmptyState";
 import { Masthead } from "@/components/Masthead";
-import { JobsSwitch } from "@/components/JobsSwitch";
 
 /** Every shift across every campaign — the multi-campaign calendar. */
 export default async function MyShiftsPage() {
@@ -45,7 +44,6 @@ export default async function MyShiftsPage() {
       <Masthead title="My schedule" meta="Every campaign in one calendar. Shifts never overlap — scheduling checks across all of them.">
         <Link transitionTypes={["nav-forward"]} href="/shifts/turf" className="btn-secondary">My turf</Link>
       </Masthead>
-      <JobsSwitch current="schedule" />
       {upcoming.length === 0 ? (
         <div className="empty-state">
           <EmptyArt kind="shifts" />

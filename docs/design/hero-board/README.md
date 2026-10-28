@@ -1,3 +1,9 @@
+# IMPORTANT — VISUAL HANDOFF REJECTED BY FOUNDER (2026-10-28)
+
+**Do NOT use the previously delivered 64-screen images/HTML as the implementation visual target.** The founder explicitly found them unlike the supplied references. **START WITH [REFERENCE_FIDELITY_CORRECTION.md](./REFERENCE_FIDELITY_CORRECTION.md)** and the real founder-supplied source images. Preserve the prior files only for audited product/data/navigation constraints. This README's older asset descriptions are historical, not a visual signoff.
+
+---
+
 # TurfCut hero-board — Claude review handoff
 
 **Design-only branch** `docs/turfcut-hero-board-handoff-2026-10-28` based on master `fec571252dbec0c5e69629e1ae71870c6e36f983` (2026-10-27). No production code, runtime dependencies, schema, migrations, or deployment changes.

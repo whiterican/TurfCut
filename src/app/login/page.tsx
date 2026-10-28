@@ -1,11 +1,18 @@
 import { safeNext } from "@/lib/auth-input";
 import { LoginForm } from "./LoginForm";
 import { ForgetSavedPages } from "@/components/OfflineBrief";
+import { HeroPage } from "@/components/layout/Page";
+import { HeroArt } from "@/components/layout/HeroArt";
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string; error?: string; closed?: string }> }) {
   const { next, error, closed } = await searchParams;
   return (
-    <main className="page-narrow flex flex-1 flex-col justify-center">
+    // Sign-in (redesign §5): the art beside the form from 1024, a band above it on a phone; never fields over a picture.
+    <HeroPage>
+      <div className="hero-split">
+        <HeroArt />
+        <div className="hero-split-form">
+          <div className="w-full max-w-md">
       <ForgetSavedPages />
       {closed === "1" && (
         <p role="status" className="alert-success mb-4">
@@ -23,6 +30,9 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
         </p>
       )}
       <LoginForm next={safeNext(next)} />
-    </main>
+          </div>
+        </div>
+      </div>
+    </HeroPage>
   );
 }

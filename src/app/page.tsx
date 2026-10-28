@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, BadgeCheck, CalendarDays, ClipboardCheck, MapPinned, ShieldCheck } from "lucide-react";
 import { getSessionProfile } from "@/lib/auth";
+import { HeroPage } from "@/components/layout/Page";
 
 const steps = [
   { number: "01", title: "Find field work", description: "Browse canvassing and petition shifts with clear expectations before you commit.", icon: MapPinned },
@@ -11,11 +12,13 @@ const steps = [
 export default async function Home() {
   const session = await getSessionProfile().catch(() => null);
   return (
-    <main className="mx-auto w-full max-w-6xl flex-1 px-5 pb-32 pt-10 sm:px-8 lg:pb-20 lg:pt-20">
+    <HeroPage>
+      <div className="mx-auto w-full max-w-6xl flex-1 px-5 pb-32 pt-10 sm:px-8 lg:pb-20 lg:pt-20">
       <div className="grid items-end gap-10 border-b border-border pb-14 lg:grid-cols-[minmax(0,1.2fr)_minmax(19rem,0.8fr)] lg:gap-20 lg:pb-20">
-        <div>
+        <div className="min-w-0">
           <p className="eyebrow mb-5">TurfCut / Field work, connected</p>
-          <h1 className="max-w-[14ch] text-[clamp(3.3rem,8vw,7.5rem)] font-bold leading-[0.94] tracking-[-0.065em] text-fg">
+          {/* Wraps inside a word only when it must (very large text on a phone): never sideways scroll. */}
+          <h1 className="max-w-[14ch] [overflow-wrap:anywhere] text-[clamp(3.3rem,8vw,7.5rem)] font-bold leading-[0.94] tracking-[-0.065em] text-fg">
             The work behind every campaign.
           </h1>
           <p className="mt-8 max-w-xl text-lg leading-relaxed text-muted">
@@ -30,9 +33,9 @@ export default async function Home() {
             </Link>
           </div>
         </div>
-        <div className="overflow-hidden rounded-[1.5rem] border border-border bg-surface shadow-sm">
-          <div className="flex items-center justify-between border-b border-border px-6 py-4">
-            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-subtle">How TurfCut works</span>
+        <div className="min-w-0 overflow-hidden rounded-[1.5rem] border border-border bg-surface shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-6 py-4">
+            <span className="min-w-0 text-xs font-semibold uppercase tracking-[0.16em] text-subtle">How TurfCut works</span>
             <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted"><span className="size-1.5 rounded-full bg-[var(--kicker)]" /> Private pilot</span>
           </div>
           <div className="divide-y divide-border">
@@ -68,6 +71,7 @@ export default async function Home() {
         </div>
       </section>
       <p className="border-t border-border pt-5 text-xs leading-relaxed text-subtle">TurfCut is in private pilot. Features and availability vary by role and organization.</p>
-    </main>
+      </div>
+    </HeroPage>
   );
 }

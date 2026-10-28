@@ -531,6 +531,42 @@ body {
     padding: 0;
     max-width: none;
   }
+  /* Sign-in: a band of art above the form on a phone, 45/55 beside it from 1024 (redesign §5).
+     The form never sits over the art. */
+  .tpl[data-template="hero"] {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+  }
+  .hero-split {
+    @apply flex flex-1 flex-col;
+  }
+  .hero-split-art {
+    @apply flex flex-col items-start justify-end gap-3 px-6 py-8 sm:px-10;
+    background: var(--shell-bg);
+    color: var(--shell-fg);
+  }
+  .hero-split-line {
+    @apply t-headline;
+    color: var(--shell-fg);
+  }
+  .hero-split-form {
+    @apply flex flex-1 justify-center px-4 py-10 sm:py-16;
+    padding-bottom: calc(var(--dock-clearance) + 2rem);
+  }
+  @media (width >= 64rem) {
+    .hero-split {
+      display: grid;
+      grid-template-columns: 45fr 55fr;
+    }
+    .hero-split-art {
+      @apply p-12;
+    }
+    .hero-split-form {
+      @apply items-center;
+      padding-bottom: 4rem;
+    }
+  }
   @media (width >= 40rem) {
     .tpl {
       --tpl-gutter: 1.5rem;

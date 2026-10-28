@@ -817,9 +817,11 @@ body {
      behind the lime one draws a thin line along the fold, so the corner still reads. */
   .dark .hero-card:not(.hero-card-quiet, .hero-card-plain)::before {
     content: "";
-    @apply pointer-events-none absolute top-0 right-0;
+    @apply pointer-events-none absolute right-0;
+    /* Raised and enlarged, so both diagonals of the fold get a line (the overhang is clipped by the card). */
+    top: -1.5px;
     width: calc(4.25rem + 2px);
-    height: calc(2.75rem + 1.5px);
+    height: calc(2.75rem + 3px);
     background: var(--ink);
     clip-path: polygon(0 60%, 100% 0, 100% 100%);
   }
@@ -1698,9 +1700,10 @@ body {
     background: var(--shell-active);
     color: var(--on-shell-active);
   }
-  /* By night the eggplant tile is only 1.6:1 from the bar and its cream label is the
-     same as the others', so the current tab and every chosen chip get a light edge too. */
-  .dark :is(.tab[aria-current], .more-sheet .rail-link[aria-current], .chip:has(input:checked), .chip[aria-current="page"], .filter-chip-on, .step-current, .topnav-link[aria-current]) {
+  /* By night an eggplant tile is only 1.6:1 from its surface and its cream label is the
+     same as the others', so every chosen chip gets a light edge too (the dock's current
+     tab is the lavender frame tile, 11:1 from the bar, and needs none). */
+  .dark :is(.more-sheet .rail-link[aria-current], .chip:has(input:checked), .chip[aria-current="page"], .filter-chip-on, .step-current, .topnav-link[aria-current]) {
     box-shadow: inset 0 0 0 1px var(--muted);
   }
   /* Forest fills and current tiles keep their keyboard ring outside, in the gap,
@@ -2465,6 +2468,10 @@ summary.list-none::-webkit-details-marker {
   }
   .sun .btn-sm {
     min-height: 2.75rem;
+  }
+  /* The header's round buttons keep their 40px pin (the theme toggle carries .btn-sm). */
+  .sun .site-header :is(.btn-ghost, .glass-orb-phone) {
+    min-height: 40px;
   }
   .sun :is(.card, .card-flat, .card-dashed, .stat, .list-card, .empty-state, .hero-card, .field, .option-card, .btn-secondary, .tabbar, .kv, .alert, .alert-warning, .alert-info, .quick-reply, .icon-btn, .summary-bar, .data-table-wrap, .composer-input, .sheet-panel, .swipe-card) {
     border-width: 2px;

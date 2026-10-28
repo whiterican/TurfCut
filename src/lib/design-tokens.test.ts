@@ -429,8 +429,8 @@ describe("forest ink is for what is live and the one primary action (G1)", () =>
       expect(green.filter((k) => !mayBeGreen.has(k))).toEqual([]);
     }
   });
-  it("by night a chosen tile has a light edge as well as its fill (the fill alone is under 3:1)", () => {
-    expect(css).toMatch(/\.dark :is\(\.tab\[aria-current\][^{]*\{\s*box-shadow: inset 0 0 0 1px var\(--muted\);/);
+  it("by night a chosen chip has a light edge as well as its fill (the fill alone is under 3:1; the dock's lavender tile needs none)", () => {
+    expect(css).toMatch(/\.dark :is\(\.more-sheet \.rail-link\[aria-current\][^{]*\{\s*box-shadow: inset 0 0 0 1px var\(--muted\);/);
     expect(ratio(dark.muted, dark.surface)).toBeGreaterThanOrEqual(3);
   });
   it("the custom switch is the switch colour, not the primary action's green", () => {
@@ -538,7 +538,7 @@ describe("the shell (redesign B1.4)", () => {
       // The current row is told apart from the panel (by night with a lavender edge as well).
       expect(ratio(th["tab-active-bg"], th.surface)).toBeGreaterThanOrEqual(th === dark ? 1.5 : 3);
     }
-    expect(css).toMatch(/\.dark :is\(\.tab\[aria-current\], \.more-sheet \.rail-link\[aria-current\]/);
+    expect(css).toMatch(/\.dark :is\(\.more-sheet \.rail-link\[aria-current\], \.more-sheet \.rail-link\[aria-current\]/);
   });
 
   it("has a skip link that appears on keyboard focus, landing on a wrapper without a ring", () => {

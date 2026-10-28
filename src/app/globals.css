@@ -1560,8 +1560,11 @@ body {
   .staff-band-link {
     @apply font-semibold underline underline-offset-2;
   }
-  body:has(.staff-band) .org-rail {
+  body:has(.staff-band) .org-rail:not(.staff-rail) {
     display: none;
+  }
+  .admin-shell {
+    @apply flex;
   }
   .org-rail-foot {
     @apply mt-4 space-y-0.5 border-t px-3 pt-4 text-sm;

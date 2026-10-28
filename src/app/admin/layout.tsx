@@ -5,6 +5,7 @@ import { getSessionProfile } from "@/lib/auth";
 import { requireStaff } from "@/lib/staff-session";
 import { ADMIN_SECTIONS } from "@/lib/admin-nav";
 import { AdminSectionNav } from "@/components/admin/AdminSectionNav";
+import { StaffRail } from "@/components/admin/StaffRail";
 
 /**
  * Next collects a layout's metadata even when the layout answers 404, so a
@@ -19,7 +20,8 @@ export async function generateMetadata(): Promise<Metadata> {
 /**
  * The admin console's frame (M10.1): staff only, every section behind the
  * same gate. Its own identity (redesign §4.2.1): a "Turfcut staff" band, and
- * never an organization's rail beside it (globals.css hides the rail here).
+ * its own rail of the console's sections, never an organization's beside it
+ * (globals.css hides that one here).
  */
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   await requireStaff();
@@ -33,13 +35,18 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         <p className="staff-band-note">Everything you do here is recorded with your name and your reason.</p>
         <Link href="/dashboard" className="staff-band-link">Leave admin</Link>
       </div>
-      <main className="page">
-        <header className="page-header">
-          <h1 className="page-title">Admin</h1>
-        </header>
-        <AdminSectionNav sections={ADMIN_SECTIONS} />
-        {children}
-      </main>
+      <div className="admin-shell">
+        <StaffRail sections={ADMIN_SECTIONS} />
+        <main className="page min-w-0 flex-1">
+          <header className="page-header">
+            <h1 className="page-title">Admin</h1>
+          </header>
+          <div className="lg:hidden">
+            <AdminSectionNav sections={ADMIN_SECTIONS} />
+          </div>
+          {children}
+        </main>
+      </div>
     </>
   );
 }

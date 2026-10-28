@@ -537,6 +537,6 @@ describe("the shell (redesign B1.4)", () => {
   it("gives the staff console its own band and never an organization's rail beside it", () => {
     expect(css).toMatch(/\.staff-band \{[^}]*background: var\(--shell-bg\);[^}]*color: var\(--shell-fg\);/);
     expect(css).toMatch(/\.staff-band \* \{\s*--focus: var\(--shell-fg\);/);
-    expect(css).toMatch(/body:has\(\.staff-band\) \.org-rail \{\s*display: none;/);
+    expect(css).toMatch(/body:has\(\.staff-band\) \.org-rail:not\(\.staff-rail\) \{\s*display: none;/);
   });
 });

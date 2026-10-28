@@ -2,7 +2,8 @@ import Link from "next/link";
 import { requireWorker } from "@/lib/worker-session";
 import { loadWorkerEarnings, type EarningShift } from "@/lib/pay-data";
 import { PayBadge } from "@/components/Moments";
-import { money, statusLabel } from "@/lib/pay";
+import { approvedPhrase, money, payoutReadiness, statusLabel, type PayoutReadiness } from "@/lib/pay";
+import { StatusChip } from "@/components/StatusBadge";
 import { LocalTime } from "@/components/LocalTime";
 import { clockParts } from "@/lib/dispute-sla";
 import { ActionButton } from "@/components/ActionButton";
@@ -39,7 +40,7 @@ async function PayoutSetup({ w, note }: { w: PayoutState; note: string | null })
                   : "Set up payouts once and approved pay goes straight to your bank. Stripe collects your bank and tax details — Turfcut never sees them."}
           </p>
         </div>
-        {w.payoutsEnabled && <span className="badge-solid shrink-0">Ready</span>}
+        {w.payoutsEnabled && <StatusChip state="approved" label="Ready" className="shrink-0" />}
       </div>
       {provider.configured() &&
         (w.payoutsEnabled ? (
@@ -72,12 +73,12 @@ function Clock({ parts }: { parts: ReturnType<typeof clockParts> }) {
   );
 }
 
-function ShiftRow({ s, orgName, payouts }: { s: EarningShift; orgName: string; payouts: boolean }) {
+function ShiftRow({ s, orgName, payouts }: { s: EarningShift; orgName: string; payouts: PayoutReadiness }) {
   const main = s.lines.find((l) => l.kind === "SHIFT");
   const adjustments = s.lines.filter((l) => l.kind === "ADJUSTMENT");
   const open = s.disputes.find((d) => !d.resolution);
   const last = s.disputes.at(-1);
-  const badge = main ? statusLabel(main.state.status, main.amountCents, { payouts }) : s.review?.status === "REJECTED" ? { label: "Not approved", badge: "badge-coral" } : null;
+  const rejected = !main && s.review?.status === "REJECTED";
   return (
     <li className="space-y-2 px-4 py-3">
       <div className="flex items-start justify-between gap-3">
@@ -96,7 +97,7 @@ function ShiftRow({ s, orgName, payouts }: { s: EarningShift; orgName: string; p
         </div>
         <div className="shrink-0 space-y-1 text-right">
           {s.lines.length > 0 && <p className="font-bold text-fg">{money(s.totalCents)}</p>}
-          {main ? <PayBadge lineId={main.id} status={main.state.status} amountCents={main.amountCents} payouts={payouts} /> : badge && <span className={badge.badge}>{badge.label}</span>}
+          {main ? <PayBadge lineId={main.id} status={main.state.status} amountCents={main.amountCents} payouts={payouts} /> : rejected && <StatusChip state="blocked" label="Not approved" />}
         </div>
       </div>
       {main?.state.status === "PAID" && main.state.paidAt && (
@@ -119,7 +120,7 @@ function ShiftRow({ s, orgName, payouts }: { s: EarningShift; orgName: string; p
           <Link href={`/earnings/disputes/${open.id}`} className="link font-semibold">
             {open.messages ? `Open the thread (${open.messages})` : "Open the thread"}
           </Link>
-          {open.clock.overdue && <span className="badge-coral ml-2">Overdue</span>}
+          {open.clock.overdue && <StatusChip state="overdue" label="Overdue" className="ml-2" />}
         </p>
       ) : (
         last?.resolution && (
@@ -156,8 +157,8 @@ export default async function EarningsPage({ searchParams }: { searchParams: Pro
   const note = typeof q === "string" ? q : null;
   // One read of the payout state (refreshed from Stripe when just back or stale), so the hero, the rows and the setup card agree (P0).
   const [{ campaigns, totals }, w] = await Promise.all([loadWorkerEarnings(workerId), payoutSetup(workerId, stripeProvider(), note === "done")]);
-  const payouts = w.payoutsEnabled;
-  const onTheWay = payouts ? "On the way" : "Approved · payout setup needed";
+  const payouts = payoutReadiness(stripeProvider().configured(), w.payoutsEnabled);
+  const onTheWay = payouts === "enabled" ? "On the way" : `A${approvedPhrase(payouts).slice(1)}`;
   return (
     <main className="page max-w-2xl">
       <Masthead title="Earnings" meta="Gross pay for shifts your supervisors approved. Turfcut never takes a cut of your pay — campaigns pay the platform fee." />
@@ -200,7 +201,7 @@ export default async function EarningsPage({ searchParams }: { searchParams: Pro
               <span className="text-xs text-subtle">{c.orgName}</span>
             </div>
             <p className="text-muted-sm">
-              {money(c.totals.paid)} paid · {money(c.totals.onTheWay)} {payouts ? "on the way" : "approved, payout setup needed"} · {money(c.totals.awaiting)} awaiting approval
+              {money(c.totals.paid)} paid · {money(c.totals.onTheWay)} {approvedPhrase(payouts)} · {money(c.totals.awaiting)} awaiting approval
             </p>
             <ul className="list-card">
               {c.shifts.map((s) => (

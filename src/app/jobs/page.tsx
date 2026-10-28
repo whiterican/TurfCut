@@ -1,3 +1,4 @@
+import { StatusChip } from "@/components/StatusBadge";
 import Link from "next/link";
 import { ACCEPTED_STATUSES, inviteLapsed, stageOf } from "@/lib/engagements";
 import { loadPipelineFacts } from "@/lib/engagements-data";
@@ -120,7 +121,7 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
                 <li key={e.id}>
                   <Link transitionTypes={["nav-forward"]} href={`/jobs/${e.job.id}`} className="flex min-h-14 items-center justify-between gap-3 px-4 py-3 text-fg transition hover:bg-surface-2">
                     <span className="font-medium">{e.job.title}</span>
-                    <span className={s.badge}>{stage}</span>
+                    <StatusChip state={s.state} label={stage} />
                   </Link>
                 </li>
               );

@@ -4,6 +4,8 @@ import {
   hoursFlag,
   selfApprovalProblem,
   statusLabel,
+  payoutReadiness,
+  approvedPhrase,
   disputeProblem,
   lineActionProblem,
   lineState,
@@ -292,15 +294,33 @@ describe("labels", () => {
   });
 
   it("says what an approved line is waiting on, and promises nothing it doesn't know (P0)", () => {
-    expect(statusLabel("APPROVED", 500, { payouts: false })).toEqual({ label: "Approved · payout setup needed", badge: "badge-butter" });
-    expect(statusLabel("APPROVED", 500, { payouts: true }).label).toBe("Approved · in the next pay run");
+    // Payouts switched off: there is nothing to set up, so "setup needed" is never said (C2).
+    expect(statusLabel("APPROVED", 500, { payouts: "off" })).toEqual({ label: "Approved · sent once in-app payouts are switched on", state: "approved-blocked" });
+    expect(statusLabel("APPROVED", 500, { payouts: "setup" })).toEqual({ label: "Approved · payout setup needed", state: "approved-blocked" });
+    expect(statusLabel("APPROVED", 500, { payouts: "enabled" })).toEqual({ label: "Approved · in the next pay run", state: "approved" });
     expect(statusLabel("APPROVED", 500).label).toBe("Approved");
     // Only "Sending" means money is moving; a deduction never claims a payout.
-    expect(statusLabel("PROCESSING", 500, { payouts: false }).label).toBe("Sending");
-    expect(statusLabel("APPROVED", -500, { payouts: false }).label).toBe("Deducted from your next payment");
-    for (const s of ["AWAITING_APPROVAL", "HELD", "DISPUTED", "PAID", "VOIDED", "NOTHING_DUE"] as const) {
-      expect(statusLabel(s, 500, { payouts: false })).toEqual(statusLabel(s, 500));
+    expect(statusLabel("PROCESSING", 500, { payouts: "setup" })).toEqual({ label: "Sending", state: "sending" });
+    expect(statusLabel("APPROVED", -500, { payouts: "setup" }).label).toBe("Deducted from your next payment");
+    for (const r of ["off", "setup", "enabled"] as const) {
+      for (const s of ["AWAITING_APPROVAL", "HELD", "DISPUTED", "PAID", "VOIDED", "NOTHING_DUE"] as const) {
+        expect(statusLabel(s, 500, { payouts: r })).toEqual(statusLabel(s, 500));
+      }
     }
+  });
+
+  it("maps every pay state to its own status, never live (§4.1.3)", () => {
+    const states = (["AWAITING_APPROVAL", "APPROVED", "HELD", "DISPUTED", "PROCESSING", "PAID", "VOIDED", "NOTHING_DUE"] as const).map((s) => statusLabel(s, 500).state);
+    expect(states).toEqual(["pending", "approved", "held", "disputed", "sending", "paid", "closed", "closed"]);
+  });
+
+  it("readiness follows the provider first, then the worker", () => {
+    expect(payoutReadiness(false, true)).toBe("off");
+    expect(payoutReadiness(true, false)).toBe("setup");
+    expect(payoutReadiness(true, null)).toBe("setup");
+    expect(payoutReadiness(true, true)).toBe("enabled");
+    expect(approvedPhrase("off")).toBe("approved, sent once in-app payouts are switched on");
+    expect(approvedPhrase("enabled")).toBe("on the way");
   });
 });
 

@@ -1,3 +1,4 @@
+import { StatusBadge } from "@/components/StatusBadge";
 import Link from "next/link";
 import { shiftStatusLabel } from "@/lib/field-day";
 import { groupField, type FieldRow } from "@/lib/field-view";
@@ -26,7 +27,7 @@ export function FieldBoard({ rows, empty }: { rows: FieldRow[]; empty: string })
           </div>
           <ul className="list-card">
             {g.rows.map((r) => {
-              const label = shiftStatusLabel(r.state);
+              const label = shiftStatusLabel(r.state, { endsAt: r.endsAt, now: new Date() });
               return (
                 <li key={r.shiftId}>
                   <Link transitionTypes={["nav-forward"]} href={`/shifts/${r.shiftId}`} className="flex min-h-14 items-center justify-between gap-3 px-4 py-3 transition hover:bg-surface-2">
@@ -39,7 +40,7 @@ export function FieldBoard({ rows, empty }: { rows: FieldRow[]; empty: string })
                         {r.state.signatures > 0 && ` · ${r.state.signatures} sig.`}
                       </span>
                     </span>
-                    <span className={label.badge}>{label.label}</span>
+                    <StatusBadge status={label} />
                   </Link>
                 </li>
               );

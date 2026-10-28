@@ -1,3 +1,4 @@
+import { StatusChip } from "@/components/StatusBadge";
 import { getAuthUser, requireAuth } from "@/lib/auth";
 import { pendingInvitesFor } from "@/lib/members-data";
 import { ActionButton } from "@/components/ActionButton";
@@ -16,7 +17,8 @@ import { redirect } from "next/navigation";
 import { workerPayTotals } from "@/lib/pay-data";
 import { OfflineBrief } from "@/components/OfflineBrief";
 import { briefPaths } from "@/lib/offline-brief-data";
-import { money } from "@/lib/pay";
+import { approvedPhrase, money, payoutReadiness } from "@/lib/pay";
+import { stripeProvider } from "@/lib/payout-provider";
 import { cookies } from "next/headers";
 import { loadSharing } from "@/lib/sharing-data";
 import { noteDismissedBy, RELATIONSHIP_PHRASE, SHARING_NOTE_COOKIE } from "@/lib/sharing";
@@ -102,7 +104,7 @@ async function LaterShifts({ workerId }: { workerId: string }) {
           title: s.engagement.job.title,
           org: s.engagement.job.org.name,
           staging: s.stagingLocation,
-          status: { label: "Scheduled", badge: "badge-sky" },
+          status: { label: "Scheduled", state: "pending" },
         }))}
       />
     </section>
@@ -110,8 +112,28 @@ async function LaterShifts({ workerId }: { workerId: string }) {
 }
 
 async function WorkerHero({ workerId }: { workerId: string }) {
+  const now = new Date();
+  // A shift still checked in after its end comes first (P0 state truth): the
+  // server has no check-out, so it is neither live nor "next" (C2: the words
+  // say what the server has; a check-out queued on the phone shows on the shift page).
+  const overdue = await db().shift.findFirst({
+    where: { engagement: { workerId }, status: "ACTIVE", checkInAt: { not: null }, checkOutAt: null, endsAt: { lt: now } },
+    select: { id: true, endsAt: true, engagement: { select: { job: { select: { title: true } } } } },
+    orderBy: [{ endsAt: "desc" }, { id: "asc" }],
+  });
+  if (overdue) {
+    return (
+      <Link transitionTypes={["nav-forward"]} href={`/shifts/${overdue.id}`} className="hero-card block space-y-4">
+        <StatusChip state="overdue" label="No check-out received" />
+        <p className="hero-title">{overdue.engagement.job.title}</p>
+        <p className="hero-muted text-sm">
+          Was due to end <LocalTime iso={overdue.endsAt.toISOString()} />. Open the shift to check out, or ask your organizer to correct the end time. Pay counts verified time only.
+        </p>
+      </Link>
+    );
+  }
   const shift = await db().shift.findFirst({
-    where: { engagement: { workerId }, status: { not: "CANCELLED" }, endsAt: { gte: new Date() }, checkOutAt: null },
+    where: { engagement: { workerId }, status: { not: "CANCELLED" }, endsAt: { gte: now }, checkOutAt: null },
     include: { engagement: { select: { job: { select: { title: true, type: true, compensationMethod: true, payRateCents: true } } } } },
     orderBy: [{ startsAt: "asc" }, { id: "asc" }],
   });
@@ -124,7 +146,7 @@ async function WorkerHero({ workerId }: { workerId: string }) {
         </p>
         <p className="hero-title">{shift.engagement.job.title}</p>
         {/* The card stays eggplant; the forest-ink chip is what says it's live. */}
-        {live && <span className="badge-live">On shift</span>}
+        {live && <StatusChip state="live" label="On shift" />}
         <p className="flex flex-wrap gap-x-8 gap-y-2">
           <span>
             <span className="block text-lg font-bold"><LocalTime iso={shift.startsAt.toISOString()} mode="time" /></span>
@@ -140,7 +162,7 @@ async function WorkerHero({ workerId }: { workerId: string }) {
     );
   }
   const next = await db().engagement.findFirst({
-    where: { workerId, status: { in: ACCEPTED_STATUSES }, job: { endsAt: { gt: openJobsEndAfter(new Date()) } } },
+    where: { workerId, status: { in: ACCEPTED_STATUSES }, job: { endsAt: { gt: openJobsEndAfter(now) } } },
     include: { job: { select: { id: true, title: true, startsAt: true, compensationMethod: true, payRateCents: true } } },
     orderBy: { job: { startsAt: "asc" } },
   });
@@ -155,7 +177,7 @@ async function WorkerHero({ workerId }: { workerId: string }) {
   }
   return (
     <Link transitionTypes={["nav-forward"]} href={`/jobs/${next.job.id}`} className="hero-card block space-y-4">
-      <p className="eyebrow">Your next job · starts {day(next.job.startsAt)}</p>
+      <p className="eyebrow">{next.job.startsAt && next.job.startsAt <= now ? `Your job · started ${day(next.job.startsAt)}` : `Your next job · starts ${day(next.job.startsAt)}`}</p>
       <p className="hero-title">{next.job.title}</p>
       <p className="text-sm font-semibold">{payText(next.job.compensationMethod, next.job.payRateCents)}</p>
     </Link>
@@ -278,7 +300,7 @@ async function EarningsCard({ workerId }: { workerId: string }) {
   // Approved money is "on the way" only once this worker can receive it (P0, same words as Earnings).
   const parts = [
     `${money(t.paid)} paid`,
-    t.onTheWay ? `${money(t.onTheWay)} ${me?.payoutsEnabled ? "on the way" : "approved, payout setup needed"}` : null,
+    t.onTheWay ? `${money(t.onTheWay)} ${approvedPhrase(payoutReadiness(stripeProvider().configured(), me?.payoutsEnabled))}` : null,
     t.awaiting ? `${money(t.awaiting)} awaiting approval` : null,
     t.stopped ? `${money(t.stopped)} on hold or disputed` : null,
   ].filter(Boolean);

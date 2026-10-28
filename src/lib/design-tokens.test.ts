@@ -188,6 +188,26 @@ describe("dark theme accents", () => {
   });
 });
 
+describe("status chips (redesign §4.1.3)", () => {
+  it("every status label is AA on its own fill, every mode", () => {
+    for (const th of [light, dark, sun]) {
+      const night = th === dark;
+      expect(ratio(th["on-accent"], th.accent)).toBeGreaterThanOrEqual(4.5); // live
+      expect(ratio(th["on-solid"], th.solid)).toBeGreaterThanOrEqual(4.5); // paid
+      expect(ratio(th.fg, th.surface)).toBeGreaterThanOrEqual(4.5); // approved
+      expect(ratio(th.fg, mix(th.sky, night ? 0.16 : 0.45, th.surface))).toBeGreaterThanOrEqual(4.5); // sending
+      expect(ratio(th.muted, th.surface)).toBeGreaterThanOrEqual(4.5); // pending, not shared
+      expect(ratio(th.muted, th["surface-2"])).toBeGreaterThanOrEqual(4.5); // queued
+      expect(ratio(th.warning, mix(th.butter, night ? 0.12 : 0.3, th.surface))).toBeGreaterThanOrEqual(4.5); // memory-only, overdue, disputed
+      expect(ratio(th.danger, mix(th.coral, night ? 0.08 : 0.22, th.surface))).toBeGreaterThanOrEqual(4.5); // held, blocked
+      expect(ratio(th.subtle, th["surface-2"])).toBeGreaterThanOrEqual(4.5); // closed
+      expect(ratio(th.subtle, th.surface)).toBeGreaterThanOrEqual(4.5); // draft
+      // The approved ring (no fill) is a non-text edge: 3:1 on the surface.
+      expect(ratio(th.success, th.surface)).toBeGreaterThanOrEqual(3);
+    }
+  });
+});
+
 describe("mockup surfaces", () => {
   it("forest-ink fills (live chip, primary, send, swipe-to-save): cream type AAA, secondary text AAA", () => {
     for (const th of [light, dark, sun]) {
@@ -365,6 +385,7 @@ describe("forest ink is for what is live and the one primary action (G1)", () =>
       "@theme inline",
       "::selection",
       ".badge-live",
+      ".status-live",
       ".swipe-under-save",
       ".send-btn",
     ]);
@@ -458,6 +479,7 @@ describe("forest ink is for what is live and the one primary action (G1)", () =>
     expect(ratio(dark.muted, dark["tab-active-bg"])).toBeGreaterThanOrEqual(3);
     expect(ratio(dark.muted, dark.surface)).toBeGreaterThanOrEqual(3);
     expect(css).toMatch(/\.tab\[aria-current\]::before \{/);
+    expect(css).toMatch(/\.dark \.status-sending \{\s*background: color-mix\(in srgb, var\(--sky\) 16%/);
     expect(css).toMatch(/:is\(\.btn-primary, \.tab\[aria-current\][^{]*:focus-visible \{\s*outline-offset: 3px;/);
   });
   it("the keyboard ring stays visible inside the eggplant rail and hero cards (every theme)", () => {

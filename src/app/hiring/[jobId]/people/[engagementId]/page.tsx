@@ -1,3 +1,4 @@
+import { StatusChip } from "@/components/StatusBadge";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
@@ -78,7 +79,7 @@ export default async function ApplicantPage({ params }: { params: Promise<{ jobI
       </Masthead>
 
       <section className="card space-y-3">
-        <p className="flex items-center gap-2 font-medium text-fg">Stage <span className={s.badge}>{stage}</span></p>
+        <p className="flex items-center gap-2 font-medium text-fg">Stage <StatusChip state={s.state} label={stage} /></p>
         <HiringActions jobId={job.id} jobStatus={job.status} engagementId={e.id} status={e.status} inReview={facts.inReview} offerExpiresAt={facts.offerExpiresAt} inviteExpiresAt={e.inviteExpiresAt} />
         {hired && (
           <form action={startDirect}>

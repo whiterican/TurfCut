@@ -1,5 +1,6 @@
 "use client";
 
+import { StatusBadge } from "@/components/StatusBadge";
 import { useSyncExternalStore } from "react";
 import { ActionButton } from "@/components/ActionButton";
 import { LocalTime } from "@/components/LocalTime";
@@ -55,7 +56,7 @@ export function OpenShiftList({ items, availability }: { items: OpenShiftItem[];
                 {s.fit !== "unknown" && <p className="text-hint">{SLOT_FIT_LABELS[s.fit]}</p>}
                 {s.notes && <p className="text-sm text-fg">{s.notes}</p>}
               </div>
-              <span className={b.badge}>{b.label}</span>
+              <StatusBadge status={b} />
             </div>
             {s.state === "open" &&
               (s.blocked ? (

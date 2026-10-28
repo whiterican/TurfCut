@@ -15,6 +15,7 @@
  * - A worker can't hold two overlapping shifts, across every campaign.
  */
 import type { Validated } from "@/lib/experience";
+import type { Status } from "@/lib/status";
 import { appLabel, type CanvassApp } from "@/lib/job-tools";
 import { CORRECTABLE, effectiveEvents } from "@/lib/corrections";
 
@@ -173,14 +174,23 @@ export function shiftState(s: ShiftFacts): ShiftState {
   return st;
 }
 
-/** One-word status for lists, with its badge style. */
-export function shiftStatusLabel(st: ShiftState): { label: string; badge: string } {
-  if (st.cancelled) return { label: "Cancelled", badge: "badge-neutral" };
-  if (st.closeout?.status === "APPROVED") return { label: "Approved", badge: "badge-solid" };
-  if (st.closeout?.status === "REJECTED") return { label: "Not approved", badge: "badge-coral" };
-  if (st.checkedOutAt) return { label: "In review", badge: "badge-butter" };
-  if (st.checkedInAt) return { label: st.paused ? "On break" : "On shift", badge: st.paused ? "badge-butter" : "badge-live" };
-  return { label: "Scheduled", badge: "badge-sky" };
+/**
+ * A shift's status for lists and heads (redesign §4.1.3). With the schedule
+ * and the time, a check-in past the shift's end reads "No check-out
+ * received" (overdue), never "On shift": a check-out still queued on the
+ * worker's phone reads as checked in here, so the words say what the server
+ * has, not what the worker did. Only a shift genuinely under way is live.
+ */
+export function shiftStatusLabel(st: ShiftState, timing?: { endsAt: Date | null; now: Date }): Status {
+  const ended = !!timing?.endsAt && timing.now.getTime() > timing.endsAt.getTime();
+  if (st.cancelled) return { label: "Cancelled", state: "closed" };
+  if (st.closeout?.status === "APPROVED") return { label: "Approved", state: "approved" };
+  if (st.closeout?.status === "REJECTED") return { label: "Not approved", state: "blocked" };
+  if (st.checkedOutAt) return { label: "In review", state: "pending" };
+  if (st.checkedInAt && ended) return { label: "No check-out received", state: "overdue" };
+  if (st.checkedInAt) return { label: st.paused ? "On break" : "On shift", state: "live" };
+  if (ended) return { label: "Ended without a check-in", state: "closed" };
+  return { label: "Scheduled", state: "pending" };
 }
 
 // ---------------------------------------------------------------------------

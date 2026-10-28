@@ -1,3 +1,4 @@
+import { StatusBadge } from "@/components/StatusBadge";
 import { ActionButton } from "@/components/ActionButton";
 import { LocalTime } from "@/components/LocalTime";
 import { assignSlotAction, closeSlotAction, slotSeatsAction } from "@/app/shifts/actions";
@@ -33,7 +34,7 @@ export function OpenShifts({ slots, hired, now }: { slots: Slot[]; hired: Array<
                 <p className="text-muted-sm">{s.facts.taken} of {s.headcount} {s.headcount === 1 ? "seat" : "seats"} taken</p>
                 {s.notes && <p className="text-sm text-fg">{s.notes}</p>}
               </div>
-              <span className={b.badge}>{b.label}</span>
+              <StatusBadge status={b} />
             </div>
             {s.shifts.length > 0 && (
               <p className="text-sm text-fg">

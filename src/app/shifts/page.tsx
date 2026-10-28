@@ -33,7 +33,7 @@ export default async function MyShiftsPage() {
         title: s.engagement.job.title,
         org: s.engagement.job.org.name,
         staging: s.stagingLocation,
-        status: shiftStatusLabel(shiftState(facts(s))),
+        status: shiftStatusLabel(shiftState(facts(s)), { endsAt: s.endsAt, now }),
       }))}
     />
   );

@@ -1,5 +1,7 @@
 "use client";
 
+import type { Status } from "@/lib/status";
+import { StatusBadge } from "@/components/StatusBadge";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { useSyncExternalStore } from "react";
@@ -11,7 +13,7 @@ export interface DayShift {
   title: string;
   org: string;
   staging: string | null;
-  status: { label: string; badge: string };
+  status: Status;
 }
 
 const noop = () => () => {};
@@ -71,7 +73,7 @@ export function ShiftDayList({ shifts, headingLevel = 3 }: { shifts: DayShift[];
                     </span>
                     <span className="block text-sm text-muted">{s.org}</span>
                   </span>
-                  <span className={`${s.status.badge} self-start`}>{s.status.label}</span>
+                  <StatusBadge status={s.status} className="self-start" />
                   <ChevronRight aria-hidden className="size-4 shrink-0 self-center text-subtle transition-transform group-hover:translate-x-0.5" />
                 </Link>
               </li>

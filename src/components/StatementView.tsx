@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { LocalTime } from "@/components/LocalTime";
 import { money, statusLabel } from "@/lib/pay";
+import type { Status } from "@/lib/status";
+import { StatusBadge } from "@/components/StatusBadge";
 import { DISPUTE_SLA } from "@/lib/dispute-sla";
 import type { StatementLine, StatementView as View } from "@/lib/statements-data";
 
@@ -11,7 +13,7 @@ function Amount({ cents, bold = false }: { cents: number; bold?: boolean }) {
 }
 
 function LineRow({ l }: { l: StatementLine }) {
-  const st = l.withdrawnAfterClose ? { label: "Withdrawn after this statement closed", badge: "badge-neutral" } : statusLabel(l.status, l.amountCents);
+  const st: Status = l.withdrawnAfterClose ? { label: "Withdrawn after this statement closed", state: "closed" } : statusLabel(l.status, l.amountCents);
   return (
     <li className="flex items-start justify-between gap-4 px-4 py-3">
       <div className="min-w-0 space-y-0.5">
@@ -29,7 +31,7 @@ function LineRow({ l }: { l: StatementLine }) {
           {l.corrects ? ` · corrects ${l.corrects}` : ""}
           {l.receipt ? ` · ${l.receipt}` : ""}
         </p>
-        <span className={st.badge}>{st.label}</span>
+        <StatusBadge status={st} />
       </div>
       <div className="shrink-0 text-right">
         <Amount cents={l.amountCents} />

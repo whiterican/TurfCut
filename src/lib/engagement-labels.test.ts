@@ -1,16 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { ENGAGEMENT_LABELS, JOB_STATUS_LABELS, jobPageBadge } from "@/lib/engagement-labels";
+import { ENGAGEMENT_LABELS, JOB_STATUS_LABELS } from "@/lib/engagement-labels";
 
-describe("status chips beside a party chip", () => {
-  it("a pastel status becomes plain on a job page; solid and dashed stay", () => {
-    for (const b of ["badge-sky", "badge-butter", "badge-coral", "badge-accent"]) expect(jobPageBadge(b)).toBe("badge-neutral");
-    expect(jobPageBadge("badge-solid")).toBe("badge-solid");
-    expect(jobPageBadge("badge-dashed")).toBe("badge-dashed");
+describe("engagement and job statuses", () => {
+  it("no hire or job status is ever live (live is a shift under way)", () => {
+    for (const s of [...Object.values(ENGAGEMENT_LABELS), ...Object.values(JOB_STATUS_LABELS)]) expect(s.state).not.toBe("live");
   });
-  it("engagement statuses never use a pastel fill", () => {
-    for (const { badge } of Object.values(ENGAGEMENT_LABELS)) expect(["badge-solid", "badge-dashed", "badge-neutral"]).toContain(badge);
-  });
-  it("a paused job reads plain on its page", () => {
-    expect(jobPageBadge(JOB_STATUS_LABELS.PAUSED.badge)).toBe("badge-neutral");
+  it("waiting states read as pending, ended ones as closed", () => {
+    expect(ENGAGEMENT_LABELS.APPLIED.state).toBe("pending");
+    expect(ENGAGEMENT_LABELS.OFFERED.state).toBe("pending");
+    expect(ENGAGEMENT_LABELS.ACTIVE.state).toBe("approved");
+    expect(ENGAGEMENT_LABELS.WITHDRAWN.state).toBe("closed");
+    expect(JOB_STATUS_LABELS.DRAFT.state).toBe("draft");
+    expect(JOB_STATUS_LABELS.PAUSED.state).toBe("held");
   });
 });

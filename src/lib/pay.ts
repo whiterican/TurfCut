@@ -13,6 +13,8 @@
  * - A line's status is replayed from its append-only events.
  */
 
+import type { Status } from "@/lib/status";
+
 export type CompMethod = "HOURLY" | "SHIFT_RATE" | "PER_UNIT";
 export type WorkType = "PETITION" | "CANVASS";
 
@@ -305,33 +307,56 @@ export function hoursFlag(basis: { method: CompMethod | null; activeMs: number }
 }
 
 /**
- * The words for a pay line's state. "Approved" says only what is known:
- * with the worker's payout setup known, it says whether the money can move
- * at all; without it, it promises nothing ("on the way" was never true for
- * a worker who hasn't set up payouts).
+ * Whether approved pay can move to the worker: in-app payouts switched off
+ * (no provider configured), switched on but this worker not set up yet, or
+ * enabled. The words for approved pay follow it, so "setup needed" is never
+ * said when there is nothing the worker could set up.
  */
-export function statusLabel(s: PayStatus, amountCents = 1, ctx: { payouts?: boolean } = {}): { label: string; badge: string } {
-  if (amountCents < 0 && (s === "APPROVED" || s === "PROCESSING")) return { label: "Deducted from your next payment", badge: "badge-neutral" };
-  if (amountCents < 0 && s === "PAID") return { label: "Deducted", badge: "badge-neutral" };
+export type PayoutReadiness = "off" | "setup" | "enabled";
+
+export const payoutReadiness = (providerOn: boolean, payoutsEnabled: boolean | null | undefined): PayoutReadiness =>
+  !providerOn ? "off" : payoutsEnabled ? "enabled" : "setup";
+
+/** Approved pay in a running total, by readiness: "… on the way", or why not. */
+export function approvedPhrase(r: PayoutReadiness): string {
+  switch (r) {
+    case "off":
+      return "approved, sent once in-app payouts are switched on";
+    case "setup":
+      return "approved, payout setup needed";
+    case "enabled":
+      return "on the way";
+  }
+}
+
+/**
+ * The words and status for a pay line's state. "Approved" says only what is
+ * known: with payout readiness known, it says whether the money can move and
+ * why not; without it, it promises nothing.
+ */
+export function statusLabel(s: PayStatus, amountCents = 1, ctx: { payouts?: PayoutReadiness } = {}): Status {
+  if (amountCents < 0 && (s === "APPROVED" || s === "PROCESSING")) return { label: "Deducted from your next payment", state: "closed" };
+  if (amountCents < 0 && s === "PAID") return { label: "Deducted", state: "closed" };
   switch (s) {
     case "AWAITING_APPROVAL":
-      return { label: "Awaiting payment approval", badge: "badge-butter" };
+      return { label: "Awaiting payment approval", state: "pending" };
     case "APPROVED":
-      if (ctx.payouts === false) return { label: "Approved · payout setup needed", badge: "badge-butter" };
-      if (ctx.payouts === true) return { label: "Approved · in the next pay run", badge: "badge-sky" };
-      return { label: "Approved", badge: "badge-sky" };
+      if (ctx.payouts === "off") return { label: "Approved · sent once in-app payouts are switched on", state: "approved-blocked" };
+      if (ctx.payouts === "setup") return { label: "Approved · payout setup needed", state: "approved-blocked" };
+      if (ctx.payouts === "enabled") return { label: "Approved · in the next pay run", state: "approved" };
+      return { label: "Approved", state: "approved" };
     case "HELD":
-      return { label: "On hold", badge: "badge-coral" };
+      return { label: "On hold", state: "held" };
     case "DISPUTED":
-      return { label: "Disputed", badge: "badge-coral" };
+      return { label: "Disputed", state: "disputed" };
     case "PROCESSING":
-      return { label: "Sending", badge: "badge-accent" };
+      return { label: "Sending", state: "sending" };
     case "PAID":
-      return { label: "Paid", badge: "badge-solid" };
+      return { label: "Paid", state: "paid" };
     case "VOIDED":
-      return { label: "Replaced", badge: "badge-neutral" };
+      return { label: "Replaced", state: "closed" };
     case "NOTHING_DUE":
-      return { label: "Nothing to pay", badge: "badge-neutral" };
+      return { label: "Nothing to pay", state: "closed" };
   }
 }
 

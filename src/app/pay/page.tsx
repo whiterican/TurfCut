@@ -5,7 +5,8 @@ import { loadOrgDisputes, loadOrgPay, partialReversals, pendingTransfers, review
 import { noteOverdueDisputes } from "@/lib/dispute-thread-data";
 import { clockParts } from "@/lib/dispute-sla";
 import { stripeProvider } from "@/lib/payout-provider";
-import { money, PLATFORM_FEE_BPS, statusLabel } from "@/lib/pay";
+import { money, payoutReadiness, PLATFORM_FEE_BPS, statusLabel } from "@/lib/pay";
+import { StatusBadge } from "@/components/StatusBadge";
 import { LocalTime } from "@/components/LocalTime";
 import { ActionButton } from "@/components/ActionButton";
 import { ApproveLines, HoldLine, RecordReversal, ResolveDispute } from "@/components/PayForms";
@@ -332,7 +333,7 @@ export default async function PayPage({ searchParams }: { searchParams: Promise<
                 </span>
                 <span className="shrink-0 text-right">
                   <span className="block font-bold text-fg">{money(l.line.amountCents)}</span>
-                  <span className={statusLabel(l.state.status, l.line.amountCents, { payouts: l.line.worker.payoutsEnabled }).badge}>{statusLabel(l.state.status, l.line.amountCents, { payouts: l.line.worker.payoutsEnabled }).label}</span>
+                  <StatusBadge status={statusLabel(l.state.status, l.line.amountCents, { payouts: payoutReadiness(stripeOn, l.line.worker.payoutsEnabled) })} />
                 </span>
               </li>
             ))}

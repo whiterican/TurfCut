@@ -3,7 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { duration } from "@/lib/motion";
 import { countAt, morphsToPaid, ringFill, type PillState } from "@/lib/moments";
-import { statusLabel, type PayStatus } from "@/lib/pay";
+import { statusLabel, type PayoutReadiness, type PayStatus } from "@/lib/pay";
+import { syncStatus, type StatusState } from "@/lib/status";
+import { StatusGlyph } from "@/components/StatusBadge";
 
 const FINAL = new Set<PayStatus>(["PAID", "VOIDED", "NOTHING_DUE"]);
 
@@ -102,33 +104,25 @@ export function Ring({ fill, from, seenKey, size = 44, className = "" }: { fill:
   );
 }
 
-const PILL_TONE: Record<PillState, string> = {
-  online: "badge-neutral",
-  offline: "badge-butter",
-  syncing: "badge-sky",
-  waiting: "badge-sky",
-  refused: "badge-coral",
-  unsaved: "badge-coral",
-};
-
-/** The field-day card's connection pill: its words slide in when the state changes, its colour follows. */
+/** The field-day card's connection pill: its words slide in when the state changes; its status (glyph and colour) follows. */
 export function ConnectionPill({ state, text }: { state: PillState; text: string }) {
+  const s = syncStatus(state, text);
   return (
-    <span role="status" className={`pill ${PILL_TONE[state]}`} data-state={state}>
+    <span role="status" className={`pill status status-${s.state}`} data-state={state}>
       <span key={state} className="pill-face">
-        {state === "syncing" && <span className="btn-spinner" aria-hidden="true" />}
-        {text}
+        {state === "syncing" ? <span className="btn-spinner" aria-hidden="true" /> : <StatusGlyph state={s.state} />}
+        {s.label}
       </span>
     </span>
   );
 }
 
-const BADGE_BG: Record<string, string> = {
-  "badge-sky": "var(--sky)",
-  "badge-accent": "var(--sky)",
-  "badge-live": "var(--accent)",
-  "badge-butter": "var(--butter)",
-  "badge-coral": "var(--coral)",
+/** The fill a pay chip had before it turned paid, for the one-time morph. */
+const MORPH_FROM: Partial<Record<StatusState, string>> = {
+  sending: "color-mix(in srgb, var(--sky) 45%, var(--surface))",
+  approved: "var(--surface)",
+  "approved-blocked": "var(--surface)",
+  pending: "var(--surface)",
 };
 
 /**
@@ -136,8 +130,8 @@ const BADGE_BG: Record<string, string> = {
  * and it's now paid, the badge morphs once from the old colour, with a check
  * drawn in: a plain moment, no celebration.
  */
-export function PayBadge({ lineId, status, amountCents, payouts }: { lineId: string; status: PayStatus; amountCents: number; /** Whether the worker can receive payouts, when known. */ payouts?: boolean }) {
-  const { label, badge } = statusLabel(status, amountCents, { payouts });
+export function PayBadge({ lineId, status, amountCents, payouts }: { lineId: string; status: PayStatus; amountCents: number; /** Whether approved pay can reach the worker, when known. */ payouts?: PayoutReadiness }) {
+  const { label, state } = statusLabel(status, amountCents, { payouts });
   const [fromBg, setFromBg] = useState<string | null>(null);
   useEffect(() => {
     const key = `pay:${lineId}`;
@@ -151,16 +145,18 @@ export function PayBadge({ lineId, status, amountCents, payouts }: { lineId: str
     // Decided and remembered in the frame, so a dev double-run of the effect can't eat the moment.
     const raf = requestAnimationFrame(() => {
       keep();
-      setFromBg(BADGE_BG[statusLabel(prev!, amountCents, { payouts }).badge] ?? null);
+      setFromBg(MORPH_FROM[statusLabel(prev!, amountCents, { payouts }).state] ?? null);
     });
     return () => cancelAnimationFrame(raf);
   }, [lineId, status, amountCents, payouts]);
   return (
-    <span className={`${badge}${fromBg ? " pay-morph" : ""}`} style={fromBg ? ({ "--from-bg": fromBg } as React.CSSProperties) : undefined}>
-      {fromBg && (
+    <span className={`status status-${state}${fromBg ? " pay-morph" : ""}`} data-state={state} style={fromBg ? ({ "--from-bg": fromBg } as React.CSSProperties) : undefined}>
+      {fromBg ? (
         <svg className="btn-check" viewBox="0 0 16 16" aria-hidden="true">
           <path d="M3 8.5l3.2 3L13 4.5" pathLength={1} />
         </svg>
+      ) : (
+        <StatusGlyph state={state} />
       )}
       {label}
     </span>

@@ -1,3 +1,4 @@
+import { StatusBadge } from "@/components/StatusBadge";
 import Link from "next/link";
 import { radiusFor, readLaunch } from "@/lib/job-launch";
 import { appLabel, readTools, toolsText } from "@/lib/job-tools";
@@ -28,7 +29,8 @@ import { correctionStep, supervisorStep, workerStep } from "../actions";
 import { CorrectEntry, EnterEntry } from "@/components/CorrectionForms";
 import { CORRECTABLE, correctionsByEvent } from "@/lib/corrections";
 import { reviewFinal, shiftPay } from "@/lib/pay-data";
-import { computeShiftPay, money, statusLabel } from "@/lib/pay";
+import { computeShiftPay, money, payoutReadiness, statusLabel } from "@/lib/pay";
+import { stripeProvider } from "@/lib/payout-provider";
 import { verifiedWork } from "@/lib/scorecard";
 import { Masthead } from "@/components/Masthead";
 
@@ -101,7 +103,7 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
   const pay = await shiftPay(s.id);
   // Amounts go to the worker and to the field team approving them.
   const seesPay = isWorker || canField;
-  const payLabel = pay ? statusLabel(pay.state.status, pay.amountCents, { payouts: s.engagement.worker.payoutsEnabled }).label : null;
+  const payLabel = pay ? statusLabel(pay.state.status, pay.amountCents, { payouts: payoutReadiness(stripeProvider().configured(), s.engagement.worker.payoutsEnabled) }).label : null;
   const steps = shiftProgress(
     f,
     pay
@@ -161,7 +163,7 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
   };
   const live = !!st.checkedInAt && !st.checkedOutAt;
   // The shift's state as a pill beside the title (the same words and colours as every shift list).
-  const state = shiftStatusLabel(st);
+  const state = shiftStatusLabel(st, { endsAt: s.endsAt, now: new Date() });
 
   const started = !!st.checkedInAt;
   const now = new Date();
@@ -241,7 +243,7 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
             </>
           )
         }
-        chips={<span className={state.badge}>{state.label}</span>}
+        chips={<StatusBadge status={state} />}
       >
         {/* Outdoors in glare: the Sunlight theme, one tap away on the field-day screen (P1.5). */}
         {isWorker && <SunlightToggle />}

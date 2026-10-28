@@ -1,3 +1,4 @@
+import { StatusBadge, StatusChip } from "@/components/StatusBadge";
 import Link from "next/link";
 import { readLaunch } from "@/lib/job-launch";
 import { notFound } from "next/navigation";
@@ -8,7 +9,7 @@ import { ACCEPTED_STATUSES, inviteLapsed, offerLapsed, stageOf, workerStage, typ
 import { loadPipelineFacts } from "@/lib/engagements-data";
 import { EngagementHistory } from "@/components/EngagementHistory";
 import { HiringActions, timeLeft } from "@/components/HiringActions";
-import { ENGAGEMENT_LABELS, JOB_STATUS_LABELS, jobPageBadge } from "@/lib/engagement-labels";
+import { ENGAGEMENT_LABELS, JOB_STATUS_LABELS } from "@/lib/engagement-labels";
 import { UUID_RE, exclusionReasons, fitReasons, jobCardAnswers, jobCredentials, jobFreezeReasons, jurisdictionLabel, payText, publishBlockers, readDisclosure, readHiringModes } from "@/lib/jobs";
 import { loadScorecard } from "@/lib/scorecard-data";
 import { loadSharing } from "@/lib/sharing-data";
@@ -108,7 +109,7 @@ export default async function JobPage({ params }: { params: Promise<{ jobId: str
         figure={<span className="block w-fit" style={shareStyle(`pay-${job.id}`)}>{payText(job.compensationMethod, job.payRateCents)}</span>}
         chips={
           <>
-            {isOwnOrg && <span className={jobPageBadge(status.badge)}>{status.label}</span>}
+            {isOwnOrg && <StatusBadge status={status} />}
           </>
         }
         back={
@@ -181,7 +182,7 @@ async function WorkerPanel({
     return (
       <section className="card space-y-3">
         <p className="flex items-center gap-2 font-medium text-fg">
-          Your status <span className={s.badge}>{workerStage(engagement.status, facts.events, offerExpired, inviteExpired)}</span>
+          Your status <StatusChip state={s.state} label={workerStage(engagement.status, facts.events, offerExpired, inviteExpired)} />
         </p>
         {engagement.status === "INVITED" && (
           <>
@@ -390,7 +391,7 @@ function shiftRow(
   s: { id: string; startsAt: Date; endsAt: Date; status: "SCHEDULED" | "ACTIVE" | "COMPLETED" | "CANCELLED"; stagingLocation: string | null; events: Array<{ type: string; payload: unknown; actorId: string | null; createdAt: Date }>; validations: Array<{ workEventId: string | null; status: "PENDING" | "APPROVED" | "REJECTED" | "FLAGGED"; reason: string | null; createdAt: Date }>; engagement: { worker: { displayName: string }; job: { type: "PETITION" | "CANVASS" } } },
   showWorker: boolean
 ) {
-  const b = shiftStatusLabel(shiftState({ status: s.status, startsAt: s.startsAt, endsAt: s.endsAt, workType: s.engagement.job.type, events: s.events, validations: s.validations }));
+  const b = shiftStatusLabel(shiftState({ status: s.status, startsAt: s.startsAt, endsAt: s.endsAt, workType: s.engagement.job.type, events: s.events, validations: s.validations }), { endsAt: s.endsAt, now: new Date() });
   return (
     <li key={s.id}>
       <Link transitionTypes={["nav-forward"]} href={`/shifts/${s.id}`} className="flex min-h-14 items-center justify-between gap-3 px-4 py-3 text-sm transition hover:bg-surface-2">
@@ -401,7 +402,7 @@ function shiftRow(
             {s.stagingLocation ? ` · ${s.stagingLocation}` : ""}
           </span>
         </span>
-        <span className={jobPageBadge(b.badge)}>{b.label}</span>
+        <StatusBadge status={b} />
       </Link>
     </li>
   );
@@ -539,7 +540,7 @@ async function OrgPanel({ job, canHire, canEdit, canSchedule, userId }: { job: J
                       <p className="flex items-center gap-2 font-medium text-fg">
                         {/* The applicant page (C3.2) shows the live profile only while the worker has a relationship with you (C1). */}
                         <Link transitionTypes={["nav-forward"]} href={`/hiring/${job.id}/people/${e.id}`} className="link">{e.worker.displayName}</Link>
-                        <span className={s.badge}>{stageOf(e, f, now)}</span>
+                        <StatusChip state={s.state} label={stageOf(e, f, now)} />
                       </p>
                     </div>
                     <HiringActions

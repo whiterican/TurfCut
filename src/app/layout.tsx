@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
-import { Barlow, Barlow_Condensed, DM_Mono, Fraunces } from "next/font/google";
-import { OrgRail, OrgTabBar, TabBar } from "@/components/AppNav";
+import { Inter } from "next/font/google";
+import { OrgRail, OrgTabBar } from "@/components/AppNav";
+import { SignOutButton } from "@/components/SignOutButton";
+import { signOut } from "@/app/settings/actions";
 import { SiteHeader } from "@/components/SiteHeader";
 import { InlineScript } from "@/components/InlineScript";
 import { UnreadProvider } from "@/components/chat/UnreadProvider";
@@ -11,39 +13,19 @@ import { PullToRefresh } from "@/components/PullToRefresh";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
 import { getSessionProfile } from "@/lib/auth";
 import { getSiteUrl } from "@/lib/env";
-import { MESSAGES_HREF, navTabs, orgNav, railPerson, topNavTabs } from "@/lib/nav";
+import { MESSAGES_HREF, navTabs, orgNav, railPerson, topNavTabs, workerMore } from "@/lib/nav";
 import { db } from "@/lib/db";
 import { unreadTotal } from "@/lib/chat-data";
 import { unreadNotifications, UNREAD_CAP } from "@/lib/notifications-data";
 import { unreadPostNotices } from "@/lib/campaign-follow-data";
 import "./globals.css";
 
-// The brand face (DESIGN.md): Barlow for UI, Barlow Condensed for kickers,
-// table eyebrows and the tab labels.
-const barlow = Barlow({
-  variable: "--font-barlow",
+// The one face (#111): Inter for every role, the four weights the type scale
+// uses. Figures take tabular numerals from the CSS, not a second font.
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
-});
-
-const barlowCondensed = Barlow_Condensed({
-  variable: "--font-barlow-condensed",
-  subsets: ["latin"],
-  weight: ["600", "700"],
-});
-
-// The display face: the hero line only ("Field work that matters."). Page,
-// hero and section titles are the bold sans (hero board, 2026-10-28).
-const fraunces = Fraunces({
-  variable: "--font-fraunces",
-  subsets: ["latin"],
-  axes: ["opsz"],
-});
-
-const dmMono = DM_Mono({
-  variable: "--font-dm-mono",
-  subsets: ["latin"],
-  weight: ["400", "500"],
 });
 
 export function generateMetadata(): Metadata {
@@ -85,7 +67,7 @@ export default async function RootLayout({
       lang="en"
       // Server renders dark (the primary theme); the inline script corrects
       // it before first paint, so React must accept the DOM's class.
-      className={`dark ${barlow.variable} ${dmMono.variable} ${barlowCondensed.variable} ${fraunces.variable} h-full antialiased`}
+      className={`dark ${inter.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <head>
@@ -109,7 +91,12 @@ export default async function RootLayout({
         )}
         <Haptics />
         <PullToRefresh />
-        {isOrg ? <OrgTabBar tabs={org.phone} more={org.more} /> : <TabBar tabs={tabs} />}
+        {isOrg ? (
+          <OrgTabBar tabs={org.phone} more={org.more} />
+        ) : (
+          // The worker's dock: Home · Jobs · Work · Map · Messages · More (Profile, Feed, Earnings, Settings, Sign out).
+          <OrgTabBar tabs={tabs} more={workerMore(session?.role ?? null)} extra={session ? <SignOutButton action={signOut} userId={session.userId} /> : undefined} />
+        )}
         </UnreadProvider>
         </ViewerKindProvider>
       </body>

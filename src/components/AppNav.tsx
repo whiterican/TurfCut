@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useId, useRef, useState } from "react";
-import { BadgeCheck, Briefcase, CalendarClock, ClipboardList, Clock, Ellipsis, House, LayoutDashboard, Map, Megaphone, MessageCircle, Newspaper, Settings, ShieldCheck, Sunrise, User, Users, Wallet, X, type LucideIcon } from "lucide-react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { BadgeCheck, Briefcase, CalendarClock, ChevronRight, ClipboardList, Clock, House, LayoutDashboard, Map, MapPin, Megaphone, Menu, MessageCircle, Newspaper, Settings, ShieldCheck, Sunrise, User, Users, Wallet, X, type LucideIcon } from "lucide-react";
 import { activeTab, MESSAGES_HREF, type NavTab, type TabIconId } from "@/lib/nav";
 import { clampScroll, MIN_DELTA, nextHidden, SHOW_NEAR_TOP } from "@/lib/scroll-hide";
 import { useUnreadCount } from "@/components/chat/UnreadProvider";
@@ -27,7 +27,9 @@ const ICONS: Record<TabIconId, LucideIcon> = {
   credentials: BadgeCheck,
   settings: Settings,
   admin: ShieldCheck,
-  more: Ellipsis,
+  map: MapPin,
+  earnings: Wallet,
+  more: Menu,
 };
 const iconFor = (t: NavTab): LucideIcon => ICONS[t.icon];
 
@@ -120,7 +122,7 @@ export function TabBar({ tabs }: { tabs: NavTab[] }) {
     <nav aria-label="Main" className="tabbar" data-tucked={tucked || undefined}>
       <div className="mx-auto flex max-w-md">
         {tabs.map((t) => (
-          <Link key={t.href} href={t.href} className="tab" aria-current={currentAttr(t.href, current, pathname)}>
+          <Link key={t.href} href={t.href} className="tab" data-wide={t.href.endsWith(MESSAGES_HREF) || undefined} aria-current={currentAttr(t.href, current, pathname)}>
             <Icon of={iconFor(t)} className="tab-icon" />
             {t.label}
             {t.href === MESSAGES_HREF && <Badge count={count} />}
@@ -173,11 +175,12 @@ export function OrgRail({ tabs, orgName, approved, person }: { tabs: NavTab[]; o
 }
 
 /**
- * Phone and tablet, organization roles: the role's tabs, and More for the
- * rest. More is a native modal <dialog>: the browser traps focus, makes the
- * page behind it inert, closes on Escape and returns focus to More.
+ * Phone and tablet: the role's tabs, and More for the rest (workers and
+ * organization roles alike). More is a native modal <dialog>: the browser
+ * traps focus, makes the page behind it inert, closes on Escape and returns
+ * focus to More. `extra` is drawn under the list (the worker's Sign out).
  */
-export function OrgTabBar({ tabs, more }: { tabs: NavTab[]; more: NavTab[] }) {
+export function OrgTabBar({ tabs, more, extra }: { tabs: NavTab[]; more: NavTab[]; extra?: ReactNode }) {
   const pathname = usePathname();
   const current = activeTab([...tabs, ...more], pathname);
   const count = useUnreadCount();
@@ -245,24 +248,26 @@ export function OrgTabBar({ tabs, more }: { tabs: NavTab[]; more: NavTab[] }) {
                 <X aria-hidden className="btn-icon" />
               </button>
             </div>
-            <ul className="space-y-0.5">
+            <ul className="more-list">
               {more.map((t) => (
                 <li key={t.href}>
                   {/* Closes even when the link is the page you're on (no navigation happens). */}
-                  <Link href={t.href} className="rail-link" onClick={close} aria-current={currentAttr(t.href, current, pathname)}>
-                    <Icon of={iconFor(t)} className="size-4 shrink-0" />
-                    {t.label}
+                  <Link href={t.href} className="rail-link more-row" onClick={close} aria-current={currentAttr(t.href, current, pathname)}>
+                    <Icon of={iconFor(t)} className="size-5 shrink-0" />
+                    <span className="flex-1">{t.label}</span>
+                    <ChevronRight aria-hidden className="size-4 shrink-0 text-subtle" />
                   </Link>
                 </li>
               ))}
             </ul>
+            {extra && <div className="more-extra">{extra}</div>}
           </div>
         </dialog>
       )}
       <nav aria-label="Main" className="tabbar" data-tucked={tucked || undefined}>
         <div className="mx-auto flex max-w-md">
           {tabs.map((t) => (
-            <Link key={t.href} href={t.href} className="tab" aria-current={currentAttr(t.href, current, pathname)}>
+            <Link key={t.href} href={t.href} className="tab" data-wide={t.href.endsWith(MESSAGES_HREF) || undefined} aria-current={currentAttr(t.href, current, pathname)}>
               <Icon of={iconFor(t)} className="tab-icon" />
               {t.label}
               {t.href === MESSAGES_HREF && <Badge count={count} />}
@@ -280,7 +285,7 @@ export function OrgTabBar({ tabs, more }: { tabs: NavTab[]; more: NavTab[] }) {
               aria-current={inMore ? "true" : undefined}
               onClick={() => setOpen(true)}
             >
-              <Icon of={Ellipsis} className="tab-icon" />
+              <Icon of={Menu} className="tab-icon" />
               More
             </button>
           )}

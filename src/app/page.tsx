@@ -4,9 +4,9 @@ import { getSessionProfile } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { openJobsEndAfter, payShort } from "@/lib/jobs";
 import { day } from "@/components/DateRangeChip";
+import Image from "next/image";
 import { HeroPage } from "@/components/layout/Page";
-import { LandingArt } from "@/components/layout/LandingArt";
-import { JobArt } from "@/components/JobArt";
+import { JobPhoto } from "@/components/JobPhoto";
 
 const steps = [
   { number: "01", title: "Find field work", description: "Browse canvassing and petition shifts with clear expectations before you commit.", icon: MapPinned },
@@ -37,9 +37,9 @@ export default async function Home() {
   const place = [geo.city, geo.state].filter(Boolean).join(", ");
   return (
     <HeroPage>
-      {/* The public hero (green board): the picture, the line, one green action, one real open job. */}
+      {/* The public hero (#111, screen 1): the photograph, the line, one Forest action, one real open job. */}
       <section className="landing-hero">
-        <LandingArt />
+        <Image src="/photos/hero-neighborhood.jpg" alt="" fill priority sizes="100vw" className="landing-hero-art object-cover" />
         <div className="landing-hero-scrim" aria-hidden />
         <div className="landing-hero-body">
           <div className="landing-hero-copy">
@@ -58,7 +58,7 @@ export default async function Home() {
             <div className="landing-hero-featured">
               <p className="landing-hero-kicker">Open now</p>
               <Link href={`/jobs/${featured.id}`} className="landing-featured-card">
-                <span className="landing-featured-art"><JobArt type={featured.type} /></span>
+                <span className="landing-featured-art"><JobPhoto type={featured.type} sizes="64px" /></span>
                 <span className="min-w-0 flex-1">
                   <span className="block text-base font-bold leading-tight text-fg">{featured.title}</span>
                   <span className="mt-0.5 block text-sm font-bold text-fg tabular-nums">{payShort(featured.compensationMethod, featured.payRateCents, featured.type)}</span>

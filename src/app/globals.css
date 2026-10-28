@@ -1,22 +1,19 @@
 @import "tailwindcss";
 
 /*
- * Turfcut design system — the hero board (founder, 2026-10-28): cream #FBF7F0,
- * paper #EFEAE1, eggplant #2B1B3D, deep green #164B38, lime #C6EC8C.
- *
- * Eggplant is where you are: the frame (dock, rail), structure, headlines,
- * the day's feature (hero) card and settled status chips. Warm paper and cream
- * are the surfaces. Deep green is "do this" and what is true now: the one
- * primary action and live status, always with cream type, never text on a
- * dark surface. Lime is the signature detail on primary cards only (the
- * folded corner), never a fill behind text and never text. Soft green
- * (#82BC9B) is the night focus ring. Pastel badges (sky, coral, butter, party
- * colours) carry the dark "ink" colour; solid badges carry --on-solid.
+ * Turfcut design system — the founder's twelve-screen concept (issue #111,
+ * 2026-10-28). Ten locked colours: Eggplant #1C0F2E (dock, rail, brand shell),
+ * Forest #157A46 (the one action colour; live, confirmed, selected), Cream
+ * #FAF9F4 (the page), Surface #FFFFFF (cards, rows, forms), Muted #E7E6ED
+ * (shaded fills), Border #D7D2E0, Text #0F172A, Subtle #64748B, Warning
+ * #F59E0B and Error #EF4444 (accents and fills). Inter throughout. Anything
+ * else (dark surfaces, map fills, status text) is a derived extension and says
+ * so beside its token.
  *
  * The theme is a `.dark` class on <html>, set before first paint by the
  * inline script in app/layout.tsx (saved choice, else the OS preference).
  * src/lib/design-tokens.test.ts reads the tokens below and checks WCAG
- * contrast for every text/background pairing, in both themes.
+ * contrast for every text/background pairing, in every theme.
  */
 @custom-variant dark (&:where(.dark, .dark *));
 
@@ -36,46 +33,54 @@
 }
 
 :root {
-  /* Hero board (founder, 2026-10-28): cream #fbf7f0, paper #efeae1, eggplant
-     #2b1b3d, deep green #164b38, lime #c6ec8c. Eggplant is where you are
-     (navigation, structure, headlines). Deep green is "do this" and what is
-     true now: the one primary action and live status, always with cream type
-     (--on-accent), never as text on a dark surface. Lime is the signature
-     detail on primary cards only (the folded corner, --cut): never a fill
-     behind text, never text. */
-  --accent: #164b38;
-  --on-accent: #fbf7f0;
-  --accent-edge: #164b38;
-  /* The hero's corner cut: soft green, decorative only (never behind text). */
-  --cut: #c6ec8c;
-  /* Turf polygons and staging markers on the (always light) map tiles: mid eggplant,
-     never a park-like green. */
+  /* ---- The ten locked base colours (founder's twelve-screen concept, #111) ----
+     Copied verbatim; every role below names the base it takes. Anything that is
+     not one of these ten is a documented derived extension (dark surfaces, map
+     fills, status text that has to read as text), never a replacement. */
+  --base-eggplant: #1c0f2e;
+  --base-forest: #157a46;
+  --base-cream: #faf9f4;
+  --base-surface: #ffffff;
+  --base-muted: #e7e6ed;
+  --base-border: #d7d2e0;
+  --base-text: #0f172a;
+  --base-subtle: #64748b;
+  --base-warning: #f59e0b;
+  --base-error: #ef4444;
+
+  /* Forest: the one primary action, and what is live/confirmed/selected. White
+     type on it is 5.38:1 (AA; the locked pair is not AAA and is kept as printed). */
+  --accent: #157a46; /* = Forest */
+  --on-accent: #ffffff;
+  --accent-edge: #157a46;
+  /* Turf polygons and staging markers on the (always light) map tiles: derived
+     mid eggplant so turf never reads as a park. */
   --map-fill: #5a3b82;
-  /* The organization's desktop rail (G3): a deep eggplant panel, the brand's
-     own surface, with cream type and a raised-eggplant current tile. */
-  /* The frame (shell): the org rail, the Field header band, the hero overlay.
-     The current place on the frame is a lavender tile with ink type (§2.0a). */
-  /* Green board: the frame is a near-black eggplant slab (dock, org rail, hero scrim). */
-  --shell-bg: #17101f;
-  --shell-fg: #fbf7f0;
-  --shell-muted: #d8cce4;
-  --shell-line: #2e2140;
-  --shell-edge: #2b1b3d;
-  --shell-active: #d8cce4;
-  --on-shell-active: #1b1422;
+  /* The frame (shell): the floating dock, the organization rail, the hero scrim.
+     Eggplant in every theme but Sunlight (black there). Inactive dock labels and
+     icons are Cream; the current destination is the lighter dock green below. */
+  --shell-bg: #1c0f2e; /* = Eggplant */
+  --shell-fg: #ffffff;
+  --shell-muted: #faf9f4; /* = Cream */
+  --shell-line: #2f1f4a; /* derived: a hairline one step up from Eggplant */
+  --shell-edge: #1c0f2e;
+  /* The rail's current row: one step up from Eggplant, white type (derived). */
+  --shell-active: #2f1f4a;
+  --on-shell-active: #ffffff;
+  /* The dock's current icon and label: Forest on Eggplant is 3.37:1, under AA
+     for a 12px label, so the dock uses this lighter green (9.7:1), a derived
+     extension pending the founder's visual review. Buttons stay Forest. */
+  --dock-active-fg: #5ed39b;
   /* Solid (and on-solid): settled status ("Active", "Approved", "Paid",
-     "You"), a quick filter that's on and team avatars: an eggplant chip with
-     paper text, the dock's own tile colour. Forest ink is kept for what is live now
-     (.badge-live, the live shift card), the one primary action and the cut,
-     so it still means something. */
-  --solid: #3a2154;
-  --on-solid: #f6f1e6;
-  /* Informational states that aren't live (scheduled, waiting, a role, a
-     date) take a lavender tint; holds a clay tint; closed and short, stone. */
+     "You"), a quick filter that's on: an Eggplant chip with white text. */
+  --solid: #1c0f2e; /* = Eggplant */
+  --on-solid: #ffffff;
+  /* Tints behind ink type: scheduled/waiting (lavender), held/blocked (the
+     Error base, lightened), attention (the Warning base, lightened). */
   --sky: #d9cfe6;
-  --coral: #f1c6bd;
-  --butter: #ddd3c3;
-  --ink: #1b1422; /* text on any accent fill */
+  --coral: #fecaca; /* derived from Error */
+  --butter: #fde68a; /* derived from Warning */
+  --ink: #0f172a; /* = Text: type on any tint */
   /* Job cards: the type chip takes the campaign's own declared affiliation
      (pastel fill, ink text, same in both themes; the chip names it too). */
   --party-democratic: #a9c8f7;
@@ -85,114 +90,109 @@
   --party-other: #9fd6d2;
   --party-nonpartisan: #cfbaf2;
 
-  /* Light mode (the clipboard brand): warm paper, cream cards, eggplant ink
-     and links; forest ink for live status and the one primary action.
-     Muted and subtle are a step darker than the design's so every note on
-     every surface stays AAA (design-tokens.test.ts). */
-  /* Green board (founder, 2026-10-28): a near-white working canvas with white
-     cards; cream is framing (raised surfaces, the public hero), not the page. */
-  --bg: #f5f3ee;
-  --surface: #ffffff;
-  --surface-2: #efeae1;
-  --field: #ffffff;
-  --border: #e0d9cc;
-  --border-strong: #bfb3a1;
-  --fg: #1b1422;
-  --muted: #4a4254;
-  --subtle: #574f61;
-  --link: #3a2154;
-  --kicker: #3a2154;
-  --focus: #3a2154;
-  --selected: #3a2154; /* the chosen option's ring and card edge */
-  --danger: #a8402f;
-  --success: #3a2154;
-  --warning: #5a3a14;
-  --primary: #164b38; /* the one primary action is deep green, so it stands apart from the plum structure (founder, 2026-10-28) */
-  --switch-on: #3a2154;
-  --on-primary: #fbf7f0;
-  --secondary: #fbf7f0;
-  --secondary-border: #7f7688;
-  --bubble-mine: #2b1b3d;
-  --on-bubble-mine: #fbf7f0;
-  --hero: #2b1b3d;
-  --hero-fg: #f6f1e6;
+  /* Light mode: the Cream page, white cards and rows, Muted fills, Border
+     dividers, Text and Subtle type. */
+  --bg: #faf9f4; /* = Cream */
+  --surface: #ffffff; /* = Surface */
+  --surface-2: #e7e6ed; /* = Muted: neutral shaded cards, chips, segmented tracks (a fill, never type) */
+  --field: #ffffff; /* = Surface */
+  --border: #d7d2e0; /* = Border */
+  --border-strong: #8d879e; /* derived: Border, darker, for an edge that must read (3:1 on white) */
+  --fg: #0f172a; /* = Text */
+  /* Secondary type that may sit on a Muted fill: one step darker than Subtle
+     (derived; Subtle itself is 3.84:1 on Muted, so it stays on white and Cream). */
+  --muted: #475569;
+  --subtle: #64748b; /* = Subtle: captions and hints on white and Cream */
+  --link: #1c0f2e; /* = Eggplant: 14:1 on every light surface (Forest is 4.3:1 on Muted) */
+  --kicker: #475569;
+  --focus: #157a46; /* = Forest */
+  --selected: #157a46; /* = Forest: the chosen option's ring and card edge */
+  /* Status as text has to read on Muted too: these are the Error and Warning
+     bases darkened (derived); the bases themselves are fills and icons. */
+  --danger: #c42020;
+  --success: #116b3d; /* derived: Forest darkened so done/verified reads as text on Muted (5.3:1) */
+  --warning: #78350f;
+  --primary: #157a46; /* = Forest */
+  --switch-on: #157a46; /* = Forest */
+  --on-primary: #ffffff;
+  --secondary: #ffffff; /* = Surface */
+  --secondary-border: #6f6a80; /* derived: a step past Subtle, 3:1 on white and Cream */
+  --bubble-mine: #1c0f2e; /* = Eggplant */
+  --on-bubble-mine: #ffffff;
+  /* The day's feature card (Today's next shift): Eggplant with white type. */
+  --hero: #1c0f2e; /* = Eggplant */
+  --hero-fg: #ffffff;
   --hero-muted: #d8cce4;
   --hero-border: transparent;
-  /* The current tab: a deep eggplant tile with cream icon and label. */
-  --tab-active-bg: #2b1b3d;
-  --tab-active-fg: #fbf7f0;
-  /* Cards sit on the paper with a hairline and almost no shadow. */
-  --shadow-depth: 0 1px 2px rgb(43 27 61 / 0.06), 0 10px 24px -16px rgb(43 27 61 / 0.32);
+  /* A chosen chip or row on a card or sheet: Eggplant with white type. */
+  --tab-active-bg: #1c0f2e; /* = Eggplant */
+  --tab-active-fg: #ffffff;
+  /* Cards sit on the Cream with a hairline and almost no shadow; the dock floats. */
+  --shadow-depth: 0 2px 8px rgb(28 15 46 / 0.06);
   --shadow: var(--shadow-depth);
-  --ring: #6a4c91;
-  --ring-2: #4a3070;
-  --ring-3: #2a173e;
+  /* Priority rings around the next-shift card: the Eggplant family, each ring darker. */
+  --ring: #7a6f8e;
+  --ring-2: #5a4a78;
+  --ring-3: #1c0f2e;
   color-scheme: light;
 }
 
 .dark {
-  /* The frame by night: a deeper eggplant than the page, with a hairline edge. */
-  --shell-bg: #120c19;
-  --shell-edge: #54406c;
-  /* The dock and rail are a deeper eggplant than the page: their hairline is what sets them apart. */
-  --shell-line: #6e5a88;
-  /* Dark mode (hero board rule): an eggplant shell, raised-eggplant secondary
-     surfaces, and exactly one cream primary object with ink type per key screen
-     (--hero). Not a black-purple wall, not all cream. Forest-ink fills keep cream
-     type and a light edge. */
-  --accent: #164b38;
-  --on-accent: #fbf7f0;
-  --accent-edge: #cbbdd8; /* forest ink is 1.7:1 on the night surfaces: a light lavender edge shows the shape */
-  --cut: #c6ec8c;
-  --bg: #2b1b3d;
-  --surface: #3a2850;
-  --surface-2: #46335e;
-  --field: #33224a;
-  --border: #54406c;
-  --border-strong: #7a6694;
-  --fg: #f6f1e6;
-  --muted: #d8cce4;
-  --subtle: #cbbdd8;
-  --solid: #5a4377; /* settled status by night: the raised eggplant tile */
-  --on-solid: #f6f1e6;
-  --ink: #1b1422;
-  --link: #f6f1e6;
-  --kicker: #cbbdd8;
-  --focus: #82bc9b; /* the keyboard outline only: soft green, 7.2:1 on the eggplant page */
-  --selected: #9887ae; /* the chosen option's edge by night: lavender, 4:1 on the eggplant surface (the eggplant tile was 1.5:1) */
-  --danger: #eb9082;
-  --success: #d8cce4; /* done and verified by night: pale lavender, not green (green is live) */
-  --warning: #f0d08a;
-  --primary: #164b38;
-  --switch-on: #9887ae; /* a setting is a selection, not live: a lavender track, 3.7:1 to the white thumb, 4:1 or more on every night surface */
-  --on-primary: #fbf7f0;
-  --secondary: #3a2850;
-  --secondary-border: #9887ae;
-  /* The primary object by night is cream (v4 hybrid): ink type on paper, the
-     deep eggplant shell and plum secondary surfaces around it. */
-  --bubble-mine: #5a4377;
-  --on-bubble-mine: #f6f1e6;
-  --hero: #fbf7f0;
-  --hero-fg: #1b1422;
-  --hero-muted: #4a4254;
+  /* Dark mode (proposed, not in the founder's concept): the same Eggplant dock
+     and rail, the page a step deeper than Eggplant so the frame still stands
+     apart, raised eggplant cards, white type. Forest stays the action colour.
+     Every value here is a derived extension until the dark renders are signed off. */
+  --shell-bg: #1c0f2e; /* = Eggplant, the same dock as by day */
+  --shell-edge: #4a3a66;
+  --shell-line: #4a3a66; /* the dock's edge against the deeper page (1.9:1), since both are eggplant */
+  --accent: #157a46; /* = Forest */
+  --on-accent: #ffffff;
+  --accent-edge: #cbbdd8; /* Forest alone is under 3:1 on the night surfaces: a light edge shows the shape */
+  --bg: #140a22;
+  --surface: #231538;
+  --surface-2: #2f2048;
+  --field: #1c0f2e;
+  --border: #3d2c57;
+  --border-strong: #6b5a88;
+  --fg: #f4f2f8;
+  --muted: #c9c2d6;
+  --subtle: #b3abc4;
+  --solid: #5a4a78; /* a chosen chip or settled status by night: two steps up from the card (1.9:1), white type */
+  --on-solid: #f4f2f8;
+  --ink: #0f172a;
+  --link: #5ed39b;
+  --kicker: #b3abc4;
+  --focus: #5ed39b;
+  --selected: #5ed39b;
+  --danger: #f87171;
+  --success: #5ed39b;
+  --warning: #fbbf24;
+  --primary: #157a46; /* = Forest */
+  --switch-on: #1f9a5b; /* Forest lifted so the track clears 3:1 on the night surfaces */
+  --on-primary: #ffffff;
+  --secondary: #231538;
+  --secondary-border: #8b80a3;
+  --bubble-mine: #5a4a78;
+  --on-bubble-mine: #f4f2f8;
+  --hero: #2f2048;
+  --hero-fg: #f4f2f8;
+  --hero-muted: #c9c2d6;
   --hero-border: transparent;
-  --tab-active-bg: #5a4377;
-  --tab-active-fg: #fbf7f0;
-  /* Rings: rims only, never fills or text. A page-coloured gap separates
-     them from the card (see the priority ring rules). */
+  --tab-active-bg: #5a4a78;
+  --tab-active-fg: #f4f2f8;
   --ring: #ece4f5;
   --ring-2: #cbb8e0;
   --ring-3: #a991c9;
-  --shadow-depth: 0 1px 2px rgb(16 8 24 / 0.45), 0 10px 28px -18px rgb(16 8 24 / 0.7);
+  --shadow-depth: 0 2px 8px rgb(8 3 16 / 0.5);
   --shadow: var(--shadow-depth);
   color-scheme: dark;
 }
 
 .sun {
-  /* Sunlight (P1.5): the outdoor theme. Built on light (it never carries
-     .dark): cream paper, black text, near-black edges, black primary and tab
-     tile with white type, forest ink only for what is live. Every pairing clears a
-     higher bar than the other themes (design-tokens.test.ts). Nothing is
+  /* Sunlight (P1.5): the outdoor theme, kept for glare. Built on light (it never
+     carries .dark): cream paper, black text, near-black edges, black primary and
+     dock tile with white type, Forest only for what is live. Every pairing clears
+     a higher bar than the other themes (design-tokens.test.ts). Nothing is
      see-through and nothing casts a shadow. */
   --bg: #fbf7f0;
   --surface: #fffdf8;
@@ -217,7 +217,6 @@
   --on-primary: #ffffff;
   --on-accent: #ffffff;
   --accent-edge: #000000;
-  --cut: #c6ec8c;
   --secondary: #ffffff;
   --secondary-border: #000000;
   --bubble-mine: #000000;
@@ -229,7 +228,7 @@
   --tab-active-bg: #000000;
   --tab-active-fg: #ffffff;
   --sky: #d9cfe6;
-  --coral: #f1c6bd;
+  --coral: #fecaca;
   --butter: #e4dccd;
   --ring: #6a4c91;
   --ring-2: #4a3070;
@@ -237,7 +236,7 @@
   --shadow-depth: 0 0 0 0 transparent;
   --shadow: var(--shadow-depth);
   color-scheme: light;
-  /* Sunlight: a black frame with white type, a white current tile. */
+  /* Sunlight: a black frame with white type, a white current tile with black type. */
   --shell-bg: #000000;
   --shell-fg: #ffffff;
   --shell-muted: #ebebeb;
@@ -245,6 +244,7 @@
   --shell-edge: #000000;
   --shell-active: #ffffff;
   --on-shell-active: #000000;
+  --dock-active-fg: #ffffff;
 }
 
 /* Frame tokens: the surfaces that float (tab bar, header buttons, the More
@@ -266,12 +266,16 @@ html {
   --card-edge: 0 0 0 0 transparent;
   --card-sheen: none;
   --hero-bg: var(--hero);
-  /* Shape (G2): calm, precise corners. Cards 14px, panels inside them 12px,
-     buttons 10px. The floating dock, status pills, chat bubbles and sheets keep
-     their rounder shapes on purpose. */
-  --radius-card: 1.25rem;
-  --radius-inner: 1rem;
-  --radius-control: 0.75rem;
+  /* Shape: the printed scale, xs 6 · sm 10 · md 14 · lg 20 · xl 28. Cards and
+     rows md, controls and thumbnails sm, pills xs, the dock and sheets lg. */
+  --radius-xs: 6px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --radius-card: var(--radius-md);
+  --radius-inner: var(--radius-sm);
+  --radius-control: var(--radius-sm);
   /* Layout roles (redesign §4.1): page measures, the workspace cap, the
      inspector column and the space the floating dock needs below content. */
   --measure-reading: 42rem;
@@ -324,16 +328,20 @@ html {
   --color-danger: var(--danger);
   --color-success: var(--success);
   --color-warning: var(--warning);
-  /* Legibility: small text is never below 13px, and secondary text is 15px. */
-  --text-xs: 0.8125rem;
-  --text-xs--line-height: 1.4;
-  --text-sm: 0.9375rem;
-  --text-sm--line-height: 1.5;
-  --font-sans: var(--font-barlow);
-  --font-mono: var(--font-dm-mono);
-  --font-condensed: var(--font-barlow-condensed);
-  /* The editorial display face (redesign E1): page titles, hero headlines, section titles. */
-  --font-display: var(--font-fraunces), Georgia, "Times New Roman", serif;
+  /* The printed type scale: Small 12/16, Caption 14/20, Body 16/24. */
+  --text-xs: 0.75rem;
+  --text-xs--line-height: calc(4 / 3);
+  --text-sm: 0.875rem;
+  --text-sm--line-height: calc(10 / 7);
+  --text-base: 1rem;
+  --text-base--line-height: 1.5;
+  /* Inter for every role (#111). The old role names stay so no rule dangles:
+     "condensed" and "display" are Inter too, and figures are Inter with
+     tabular numerals. */
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-condensed: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   /* Tailwind's `transition` utility runs on the tokens too. */
   --default-transition-duration: var(--dur-fast);
   --default-transition-timing-function: var(--ease-standard);
@@ -350,7 +358,7 @@ html[data-text="xl"] {
 body {
   background: var(--bg);
   color: var(--fg);
-  font-family: var(--font-barlow), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   accent-color: var(--focus);
   /* A long word or link breaks inside its box instead of running past it. */
   overflow-wrap: break-word;
@@ -362,9 +370,9 @@ body {
 }
 /* By night forest ink would hide the selection (1.7:1): soft green with ink type. */
 .dark ::selection {
-  /* Lavender with ink (lime is never behind text; forest ink would hide the selection at 1.7:1). */
-  background: var(--shell-active);
-  color: var(--on-shell-active);
+  /* Forest would hide the selection by night (1.7:1): the dock green with ink type. */
+  background: var(--dock-active-fg);
+  color: var(--ink);
 }
 
 /* The keyboard ring, in the base layer so a component can place it (inside a
@@ -380,99 +388,93 @@ body {
    One utility per role; components use these, never their own font family or
    size. rem sizes follow the text-size setting; nothing falls below 13px.
    Green board (founder, 2026-10-28): page, card and section titles are the
-   bold sans; the serif is kept for the public hero line alone. */
+   bold sans (Inter, #111). */
 @utility t-display {
-  font-family: var(--font-display);
-  font-size: clamp(2.75rem, 11vw, 3.5rem);
-  line-height: 0.98;
-  font-weight: 600;
+  /* The public hero line: Inter, bold, the one size above H1. */
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  font-size: 2rem;
+  line-height: 1.15;
+  font-weight: 700;
   letter-spacing: -0.02em;
-  font-optical-sizing: auto;
   text-wrap: balance;
   @media (width >= 64rem) {
-    font-size: 4.5rem;
+    font-size: 3rem;
   }
 }
 @utility t-title {
-  font-family: var(--font-barlow), ui-sans-serif, system-ui, sans-serif;
-  font-size: 2rem;
-  line-height: 1.06;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  text-wrap: balance;
-  @media (width >= 64rem) {
-    font-size: 2.75rem;
-  }
-}
-@utility t-headline {
-  font-family: var(--font-barlow), ui-sans-serif, system-ui, sans-serif;
-  font-size: 1.5rem;
-  line-height: 1.12;
-  font-weight: 700;
-  letter-spacing: -0.015em;
-  text-wrap: balance;
-  @media (width >= 64rem) {
-    font-size: 2.125rem;
-  }
-}
-@utility t-section {
-  font-family: var(--font-barlow), ui-sans-serif, system-ui, sans-serif;
-  font-size: 1.25rem;
-  line-height: 1.2;
+  /* H1 28/36 bold */
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  font-size: 1.75rem;
+  line-height: 2.25rem;
   font-weight: 700;
   letter-spacing: -0.01em;
-  @media (width >= 64rem) {
-    font-size: 1.375rem;
-  }
+  text-wrap: balance;
+}
+@utility t-headline {
+  /* H2 20/28 semibold */
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  font-size: 1.25rem;
+  line-height: 1.75rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+@utility t-section {
+  /* H3 16/24 semibold */
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  font-size: 1rem;
+  line-height: 1.5rem;
+  font-weight: 600;
 }
 @utility t-body {
-  font-family: var(--font-barlow), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   font-size: 1rem;
   line-height: 1.5;
 }
 @utility t-strong {
-  font-family: var(--font-barlow), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   font-size: 1.0625rem;
   line-height: 1.35;
   font-weight: 600;
   letter-spacing: -0.01em;
 }
 @utility t-small {
-  font-size: 0.9375rem;
-  line-height: 1.5;
+  /* Caption 14/20 */
+  font-size: 0.875rem;
+  line-height: 1.25rem;
 }
 @utility t-hint {
-  font-size: 0.8125rem;
-  line-height: 1.4;
-  font-weight: 500;
+  /* Small 12/16 */
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 400;
 }
 @utility t-label {
-  font-family: var(--font-condensed);
-  font-size: 0.8125rem;
-  line-height: 1.2;
+  /* A small label: Small 12/16, semibold, sentence case (no tracked capitals on the board). */
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.75rem;
+  line-height: 1rem;
   font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
 }
 @utility t-figure {
-  font-family: var(--font-mono);
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   font-size: 1.5rem;
   line-height: 1.1;
-  font-weight: 500;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 @utility t-figure-sm {
-  font-family: var(--font-mono);
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   font-size: 1rem;
   line-height: 1.1;
-  font-weight: 500;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 @utility t-figure-lg {
-  font-family: var(--font-mono);
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   font-size: 2rem;
   line-height: 1.1;
-  font-weight: 500;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 
@@ -588,7 +590,7 @@ body {
     border-color: var(--border-strong);
   }
   .landing-featured-art {
-    @apply block size-16 shrink-0 overflow-hidden rounded-[var(--radius-inner)];
+    @apply relative block size-16 shrink-0 overflow-hidden rounded-[var(--radius-inner)];
   }
   .hero-split {
     @apply flex flex-1 flex-col;
@@ -598,7 +600,7 @@ body {
     background: var(--shell-bg);
     color: var(--shell-fg);
   }
-  /* The hero line is the one place the serif stays (hero board). */
+  /* The public hero line: Inter bold, the one size above H1 (#111). */
   .hero-split-line {
     @apply t-headline;
     font-family: var(--font-display);
@@ -743,7 +745,7 @@ body {
   }
   /* the brand face: organization and job names, in page heads and on job cards. */
   .masthead {
-    /* Names on cards stay in the workhorse sans; a page head's title (.page-title) takes the display serif. */
+    /* Names on cards and page titles alike: Inter, semibold or bold by role. */
     @apply font-semibold tracking-[-0.02em] text-fg;
   }
   .page-title.masthead {
@@ -760,8 +762,7 @@ body {
   }
   /* Small condensed label above a title inside a card or hero ("LIVE SHIFT · OCT 24"). */
   .eyebrow {
-    @apply font-condensed font-semibold tracking-[0.18em] uppercase;
-    font-size: 0.8125rem;
+    @apply text-xs font-semibold;
     color: var(--kicker);
   }
   /* No decorative dash before a kicker: a kicker is only there when it
@@ -843,32 +844,10 @@ body {
   .hero-card {
     @apply relative overflow-hidden rounded-[var(--radius-card)] p-5 sm:p-6;
     background: var(--hero-bg);
-    /* The fill stops at the border, so the cut reaches the visible edge. */
     background-clip: padding-box;
     color: var(--hero-fg);
     border: 2px solid var(--hero-border);
     box-shadow: var(--shadow-depth);
-  }
-  /* The cut: the lime fold in the top corner, never over the headline. */
-  .hero-card::after {
-    content: "";
-    @apply pointer-events-none absolute top-0 right-0;
-    width: 4.25rem;
-    height: 2.75rem;
-    background: var(--cut);
-    clip-path: polygon(0 60%, 100% 0, 100% 100%);
-  }
-  /* By night the card is cream and lime sits at 1.25:1 on it: a slightly larger ink wedge
-     behind the lime one draws a thin line along the fold, so the corner still reads. */
-  .dark .hero-card:not(.hero-card-quiet, .hero-card-plain)::before {
-    content: "";
-    @apply pointer-events-none absolute right-0;
-    /* Raised and enlarged, so both diagonals of the fold get a line (the overhang is clipped by the card). */
-    top: -1.5px;
-    width: calc(4.25rem + 2px);
-    height: calc(2.75rem + 3px);
-    background: var(--ink);
-    clip-path: polygon(0 60%, 100% 0, 100% 100%);
   }
 
   /* A live shift (checked in, breaks included) keeps the hero canvas (eggplant by day, cream by night): the hero is
@@ -924,10 +903,6 @@ body {
   .hero-card:is([data-priority="1"], [data-priority="2"], [data-priority="3"]):focus-visible {
     outline-offset: 9px;
   }
-  .hero-card.hero-card-accent::after {
-    /* The live card keeps the same lime cut. */
-    background: var(--cut);
-  }
   /* A hero with nothing to report steps down to a plain card: no eggplant, no cut, a hairline edge, muted type. Never combined with hero-card-accent or data-priority. */
   .hero-card.hero-card-quiet {
     background: var(--surface);
@@ -942,9 +917,6 @@ body {
   a.hero-card.hero-card-quiet:hover {
     border-color: var(--border-strong);
   }
-  .hero-card.hero-card-quiet::after {
-    display: none;
-  }
   .hero-card.hero-card-quiet .eyebrow,
   .hero-card.hero-card-quiet .hero-muted {
     color: var(--muted);
@@ -952,10 +924,6 @@ body {
   .hero-card.hero-card-accent .eyebrow,
   .hero-card.hero-card-accent .hero-muted {
     color: var(--hero-muted);
-  }
-  /* Data-dense hero cards skip the corner highlight so numbers stay clear. */
-  .hero-card-plain::after {
-    display: none;
   }
   .hero-card.hero-card-plain .eyebrow,
   .hero-card.hero-card-quiet .eyebrow {
@@ -1348,8 +1316,9 @@ body {
     border-color: var(--border);
   }
   .status-closed {
+    /* On the Muted fill the type is --muted, not Subtle (Subtle is 3.84:1 on Muted). */
     background: var(--surface-2);
-    color: var(--subtle);
+    color: var(--muted);
   }
 
   /* ---- Feedback -------------------------------------------------------- */
@@ -1441,48 +1410,57 @@ body {
   /* A compact rounded slab (not a full pill), 384px at most: five 44px tiles
      with small labels, on the frame's eggplant (hero board). */
   .tabbar {
-    @apply fixed z-40 mx-auto max-w-[22rem] rounded-2xl border p-1 lg:hidden;
-    inset-inline: 0.75rem;
-    bottom: calc(0.75rem + env(safe-area-inset-bottom));
-    /* The dock is the frame (hero board): eggplant in every theme but Sunlight
-       (black there), cream labels, the current tab a lavender tile with ink type. */
+    /* The floating dock (#111): one Eggplant slab on every worker and
+       organization screen, 20px corners, 12px side inset, 10px above the
+       safe area, 4px inside. Inactive icons and labels are Cream; the current
+       destination is the dock green (--dock-active-fg), no filled tile. */
+    @apply fixed z-40 mx-auto max-w-[23rem] rounded-[var(--radius-lg)] p-1 lg:hidden;
+    inset-inline: 12px;
+    bottom: calc(10px + env(safe-area-inset-bottom));
     background: var(--shell-bg);
-    border-color: var(--shell-line);
     color: var(--shell-muted);
-    box-shadow: var(--shadow-depth);
+    box-shadow: 0 6px 20px rgb(28 15 46 / 0.28);
     transition: transform var(--dur-slow) var(--ease-out);
   }
   .tab {
-    @apply relative flex min-h-11 min-w-11 flex-1 flex-col items-center justify-center gap-0.5 rounded-xl border border-transparent py-1.5 font-semibold whitespace-nowrap transition;
+    /* A 52px tile: a 20px icon over a complete 12/16 Inter label. Six share
+       the slab; Messages (the longest word, and the badge) gets a little more. */
+    @apply relative flex min-h-[52px] min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-[var(--radius-md)] px-0.5 py-1.5 font-medium whitespace-nowrap transition;
+    flex-basis: 0;
     color: var(--shell-muted);
-    /* Up to six condensed labels share the bar: the label follows the screen
-       width, never the phone's text size (pixel bounds, not rem), so
-       "Messages" and "Profile" stay inside the border at any Dynamic Type setting. */
-    font-family: var(--font-condensed);
-    font-size: clamp(10px, 2.6vw, 11px);
-    letter-spacing: 0.01em;
+    font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+    font-size: 12px;
+    line-height: 16px;
+    letter-spacing: -0.01em;
   }
-  /* The tab you're on: the frame's current tile (lavender, ink type), as on the org rail. */
+  .tab[data-wide] {
+    flex-grow: 1.3;
+  }
+  /* The destination you're on: the dock green for icon and label, a little bolder. */
   .tab[aria-current] {
-    @apply font-bold;
-    /* Rounded corners (not a circle, so five labels fit). It glides to the
-       next tab on navigation (view-transition-name below). */
-    border-radius: 0.75rem;
-    background: var(--shell-active);
-    color: var(--on-shell-active);
+    @apply font-semibold;
+    color: var(--dock-active-fg);
     view-transition-name: tab-current;
   }
   .tab-icon {
-    @apply size-[1.125rem] rounded-lg transition;
+    @apply size-5 shrink-0 transition;
   }
   .tabbar > div {
-    gap: 0.125rem;
+    gap: 0;
   }
-  /* A focused tab sits above its neighbours, so the active tile never covers its ring. */
+  /* A focused tab sits above its neighbours, so its ring is never covered. */
   .tab:focus-visible {
     z-index: 1;
   }
   .tab[aria-current] .tab-icon {
+    color: var(--dock-active-fg);
+  }
+  /* Sunlight keeps its white current tile with black type (outdoor glare). */
+  .sun .tab[aria-current] {
+    background: var(--shell-active);
+    color: var(--on-shell-active);
+  }
+  .sun .tab[aria-current] .tab-icon {
     color: var(--on-shell-active);
   }
   /* Icons inside buttons: sized to the text, never the hit target. */
@@ -1626,6 +1604,52 @@ body {
     @apply -mx-1 inline-flex items-center gap-1 rounded px-1 py-0.5 font-semibold hover:text-fg;
   }
   /* Figures wrap two to a row on a phone and at least 10rem wide above it; a straggler stretches across the rest of its row, so no slot is ever an empty border-coloured block. */
+  /* The organizer overview (#111, screen 10): three white tiles, then the map beside its key and the needs counts. */
+  .stat-tiles {
+    @apply grid gap-4 sm:grid-cols-3;
+  }
+  .stat-tile {
+    @apply rounded-[var(--radius-card)] border border-border p-4;
+    background: var(--surface);
+  }
+  .stat-tile-figure {
+    @apply t-figure text-fg;
+  }
+  .stat-tile-label {
+    @apply mt-1 text-base font-medium text-fg;
+  }
+  .stat-tile-note {
+    @apply mt-0.5 text-sm text-subtle;
+  }
+  .overview-grid {
+    @apply grid gap-5 xl:grid-cols-[minmax(0,1fr)_300px];
+  }
+  .overview-map {
+    @apply h-[360px] min-h-[320px] rounded-[var(--radius-card)] border border-border xl:h-[440px];
+    background: var(--surface);
+  }
+  .legend-dot {
+    @apply inline-block size-2.5 rounded-full;
+  }
+  .legend-turf {
+    background: var(--map-fill);
+  }
+  .legend-on {
+    background: var(--primary);
+  }
+  .need-tile {
+    @apply flex items-center gap-3 rounded-[var(--radius-card)] border border-border p-2.5 transition hover:bg-surface-2;
+    background: var(--surface);
+  }
+  .need-tile-count {
+    @apply inline-flex size-11 shrink-0 items-center justify-center rounded-[var(--radius-sm)] text-lg font-bold tabular-nums;
+    background: var(--primary);
+    color: var(--on-primary);
+  }
+  .period-chip {
+    @apply inline-flex min-h-10 items-center gap-2 rounded-[var(--radius-sm)] border border-border px-3 text-sm font-medium text-fg;
+    background: var(--surface);
+  }
   .summary-bar {
     @apply flex flex-wrap gap-px overflow-hidden rounded-[var(--radius-inner)] border border-border bg-border;
   }
@@ -1666,7 +1690,8 @@ body {
   /* Full height (redesign §4.2.1): the eggplant frame runs from under the header to the
      bottom of the window and stays there while the page scrolls; the person sits at its foot. */
   .org-rail {
-    @apply sticky hidden w-60 shrink-0 flex-col self-start overflow-y-auto px-3 pt-6 pb-4 lg:flex;
+    /* The organization's desktop rail (#111): a 220px Eggplant column, pale type, the current row one step up. */
+    @apply sticky hidden w-[220px] shrink-0 flex-col self-start overflow-y-auto px-3 pt-6 pb-4 lg:flex;
     background: var(--shell-bg);
     color: var(--shell-fg);
     border-inline-end: 1px solid var(--shell-edge);
@@ -1739,15 +1764,13 @@ body {
     color: var(--shell-fg);
     background: color-mix(in srgb, var(--shell-fg) 8%, transparent);
   }
-  /* The current area: a lavender tile with ink type on the eggplant frame
-     (about 11:1 to the frame), bold, no side stripe. */
+  /* The current area: a row one step up from Eggplant, white type, semibold, no side stripe. */
   .org-rail .rail-link[aria-current] {
     background: var(--shell-active);
     color: var(--on-shell-active);
   }
-  /* By night an eggplant tile is only 1.6:1 from its surface and its cream label is the
-     same as the others', so every chosen chip gets a light edge too (the dock's current
-     tab is the lavender frame tile, 11:1 from the bar, and needs none). */
+  /* By night an eggplant tile is only 1.6:1 from its surface and its label is the
+     same colour as the others', so every chosen chip gets a light edge too. */
   .dark :is(.more-sheet .rail-link[aria-current], .chip:has(input:checked), .chip[aria-current="page"], .filter-chip-on, .step-current, .topnav-link[aria-current]) {
     box-shadow: inset 0 0 0 1px var(--muted);
   }
@@ -1756,21 +1779,25 @@ body {
   :is(.btn-primary, .tab[aria-current], .topnav-link[aria-current], .rail-link[aria-current]):focus-visible {
     outline-offset: 3px;
   }
-  /* The dock's current tab also carries a short bar above its icon: a cue
-     besides colour (bold and aria-current are the others). */
-  .tab[aria-current]::before {
-    content: "";
-    @apply pointer-events-none absolute top-1 left-1/2 h-[3px] w-4 -translate-x-1/2 rounded-full;
-    background: currentColor;
-  }
   /* More sheet: a native modal dialog pinned to the bottom of the screen. */
   .more-sheet {
     @apply m-0 mx-auto mt-auto w-full max-w-md border-0 bg-transparent p-0 lg:hidden;
     max-height: 100dvh;
     color: inherit;
   }
+  /* The More sheet's rows (#111, screen 12): icon, label, a chevron; a divider between rows. */
+  .more-list {
+    @apply divide-y divide-border;
+  }
+  .more-row {
+    @apply min-h-12 rounded-none px-1 text-base;
+    color: var(--fg);
+  }
+  .more-extra {
+    @apply mt-2 border-t border-border pt-3;
+  }
   .more-sheet-panel {
-    @apply relative rounded-t-3xl border border-b-0 p-4;
+    @apply relative rounded-t-[var(--radius-lg)] border border-b-0 p-4;
     padding-bottom: calc(1rem + env(safe-area-inset-bottom));
     background: var(--surface);
     border-color: var(--border);
@@ -1859,8 +1886,73 @@ body {
   .job-photo-row:hover {
     border-color: var(--border-strong);
   }
+  /* The row's photograph: 76×92, sm corners, cropped to cover; the head's is 200px tall at phone width. */
   .job-photo-row-art {
-    @apply block size-[5.5rem] shrink-0 overflow-hidden rounded-[var(--radius-inner)];
+    @apply relative block h-[92px] w-[76px] shrink-0 overflow-hidden rounded-[var(--radius-sm)];
+    background: var(--surface-2);
+  }
+  .job-photo {
+    object-fit: cover;
+  }
+  /* Jobs (#111, screen 2): the search row, a 44px field with a filter button beside it. */
+  .jobs-search {
+    @apply flex items-stretch gap-2;
+  }
+  .jobs-search-field {
+    @apply flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-[var(--radius-sm)] border px-3;
+    background: var(--field);
+    border-color: var(--border);
+  }
+  .jobs-search-field:focus-within {
+    border-color: var(--focus);
+  }
+  .jobs-filter-btn {
+    @apply inline-flex size-11 shrink-0 items-center justify-center rounded-[var(--radius-sm)] border text-fg transition;
+    background: var(--surface);
+    border-color: var(--border);
+  }
+  .page-jobs {
+    @apply pt-4 sm:pt-6;
+  }
+  /* Job details (#111, screen 3): the controls over the photograph, the white sheet under it. */
+  .job-head-actions {
+    @apply absolute inset-x-4 top-4 flex items-center justify-between;
+  }
+  .job-head-btn {
+    @apply inline-flex size-11 items-center justify-center rounded-full border-0 transition;
+    background: rgb(255 255 255 / 0.92);
+    color: var(--base-text);
+    box-shadow: 0 1px 3px rgb(15 23 42 / 0.2);
+  }
+  .job-head-sheet {
+    @apply -mt-2;
+  }
+  .org-mark {
+    @apply inline-flex size-6 shrink-0 items-center justify-center rounded-full;
+    background: var(--surface-2);
+    color: var(--muted);
+  }
+  .fact-list-compact {
+    @apply space-y-2.5;
+  }
+  .fact-compact {
+    @apply flex items-start gap-2.5 text-base leading-6;
+  }
+  .fact-compact > svg {
+    @apply mt-0.5;
+  }
+  .fact-chip {
+    @apply inline-flex min-h-9 items-center gap-1.5 rounded-[var(--radius-sm)] px-3 text-sm font-medium text-fg;
+    background: var(--surface-2);
+  }
+  /* The one Forest action stays above the dock while the page scrolls; from 1024 it sits in the aside. */
+  .job-cta-bar {
+    @apply sticky z-10 -mx-4 px-4 py-2 sm:-mx-6 sm:px-6 lg:static lg:m-0 lg:p-0;
+    bottom: var(--dock-clearance);
+    background: var(--bg);
+  }
+  .btn-lg {
+    @apply min-h-12 text-base;
   }
   .job-art {
     @apply block h-full w-full;
@@ -1880,7 +1972,8 @@ body {
   }
   /* A job page's picture: full width under the site header, the sheet below it. */
   .job-photo-head {
-    @apply -mx-4 mb-4 aspect-[16/7] overflow-hidden sm:-mx-6 sm:rounded-[var(--radius-card)] lg:mx-0;
+    @apply relative -mx-4 -mt-4 mb-4 h-[200px] overflow-hidden sm:-mx-6 sm:-mt-6 sm:h-[260px] lg:mx-0 lg:mt-0 lg:rounded-[var(--radius-card)];
+    background: var(--surface-2);
   }
   /* The hover affordance the card had before the swipe wrapper took its frame. */
   .card-link.card:hover,

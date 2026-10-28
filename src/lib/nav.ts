@@ -20,6 +20,8 @@ export type TabIconId =
   | "settings"
   | "campaigns"
   | "admin"
+  | "map"
+  | "earnings"
   | "more";
 
 export interface NavTab {
@@ -66,23 +68,35 @@ export const PHONE_PICKS: Record<Exclude<Role, "WORKER">, OrgNavId[]> = {
 };
 
 /**
- * The worker's six tabs, one unified dock on every worker screen (green
- * board, founder 2026-10-28: the live app's six, never fewer). Earnings
- * lives under Profile. The desktop top bar shows the same six.
+ * The worker's dock (founder's twelve-screen concept, #111): Home · Jobs ·
+ * Work · Map · Messages · More. The concept's seventh destination, Leads,
+ * has no route yet (#110 is the feature that would back it), so it is left
+ * out rather than shown dead: a recorded exception, not a design change.
+ * More holds everything else the worker reaches: Profile, Feed, Earnings,
+ * Settings (and Sign out, drawn by the shell). The desktop top bar shows the
+ * dock's tabs and More's destinations as plain links.
  */
 const WORKER_TABS: NavTab[] = [
-  { href: "/dashboard", label: "Today", icon: "today" },
-  { href: "/feed", label: "Feed", icon: "feed" },
-  { href: "/jobs", label: "Work", icon: "work" },
-  { href: "/shifts", label: "Shifts", icon: "shifts" },
+  { href: "/dashboard", label: "Home", icon: "home" },
+  { href: "/jobs", label: "Jobs", icon: "jobs" },
+  { href: "/shifts", label: "Work", icon: "work" },
+  // The worker's own turf for the current shift; it must win over /shifts (longest match does).
+  { href: "/shifts/turf", label: "Map", icon: "map" },
   { href: MESSAGES_HREF, label: "Messages", icon: "messages" },
-  { href: "/profile", label: "Profile", icon: "profile", also: ["/earnings"] },
+];
+
+/** What the worker's More sheet lists, in order. */
+export const WORKER_MORE: NavTab[] = [
+  { href: "/profile", label: "Profile", icon: "profile" },
+  { href: "/feed", label: "Feed", icon: "feed" },
+  { href: "/earnings", label: "Earnings", icon: "earnings" },
+  { href: "/settings", label: "Settings", icon: "settings" },
 ];
 
 const plain = ({ href, label, icon }: NavTab): NavTab => ({ href, label, icon });
 
 /**
- * Tabs per role (workers: Today / Feed / Work / Shifts / Messages / Profile).
+ * Tabs per role (workers: Home / Jobs / Work / Map / Messages, with More beside them).
  * Organization roles get every area the access map grants them, so a tab
  * never appears for a route that would refuse you. A removed member (no
  * organization) gets none.
@@ -93,9 +107,14 @@ export function navTabs(role: Role | null, hasOrg: boolean, grants: Grants | nul
   return ORG_TABS.filter((t) => accessFor({ role, grants }, t.area) !== null).map(plain);
 }
 
-/** The desktop top bar's tabs: the worker's dock tabs; nobody else has a top bar (organizations use the rail). */
+/** The desktop top bar's links: the worker's dock tabs, then More's (Settings is the header's own button); nobody else has a top bar. */
 export function topNavTabs(role: Role | null): NavTab[] {
-  return role === "WORKER" ? WORKER_TABS : [];
+  return role === "WORKER" ? [...WORKER_TABS, ...WORKER_MORE.filter((t) => t.href !== "/settings")] : [];
+}
+
+/** The worker's More sheet (empty for everyone else). */
+export function workerMore(role: Role | null): NavTab[] {
+  return role === "WORKER" ? WORKER_MORE : [];
 }
 
 export interface OrgNav {
@@ -138,7 +157,7 @@ export function landingFor(role: Role, grants: Grants | null, staff = false): st
   return orgNav(role, true, staff, grants).rail[0]?.href ?? "/settings";
 }
 
-/** The tab a path belongs to: the longest matching prefix wins. */
+/** The tab a path belongs to: the longest matching prefix wins (so /shifts/turf is Map, /shifts/abc is Work). */
 export function activeTab(tabs: NavTab[], pathname: string): string | null {
   const under = (p: string) => pathname === p || pathname.startsWith(`${p}/`);
   // Each tab's longest matching path, its own or one it also owns.

@@ -365,6 +365,10 @@ describe("feed filters", () => {
       noCredentials: true,
     });
     expect(parseFeedFilters(new URLSearchParams("type=DROP TABLE&minRate=-3&startsBefore=soon"))).toEqual({});
+    // The search box: trimmed, whitespace collapsed, cut at 80 characters; blank means no search.
+    expect(parseFeedFilters(new URLSearchParams("q=  front   range "))).toEqual({ q: "front range" });
+    expect(parseFeedFilters(new URLSearchParams("q=%20%20"))).toEqual({});
+    expect(parseFeedFilters(new URLSearchParams(`q=${"x".repeat(100)}`)).q).toHaveLength(80);
     // "This week" quick filter: the next 7 days from now.
     const now = new Date("2026-10-01T12:00:00Z");
     expect(parseFeedFilters(new URLSearchParams("week=1"), now)).toEqual({ startsBefore: new Date("2026-10-08T12:00:00Z") });

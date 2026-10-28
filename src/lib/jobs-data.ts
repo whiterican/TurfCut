@@ -248,8 +248,12 @@ export async function loadFeed(workerId: string | null, f: FeedFilters = {}) {
   const jobs = await db().job.findMany({
     where: {
       status: "PUBLISHED",
-      // Jobs that have already ended aren't open work.
-      OR: [{ endsAt: null }, { endsAt: { gt: openJobsEndAfter(new Date()) } }],
+      AND: [
+        // Jobs that have already ended aren't open work.
+        { OR: [{ endsAt: null }, { endsAt: { gt: openJobsEndAfter(new Date()) } }] },
+        // The search box: the words anywhere in the title or the organization's name (never in anything private).
+        ...(f.q ? [{ OR: [{ title: { contains: f.q, mode: "insensitive" as const } }, { org: { name: { contains: f.q, mode: "insensitive" as const } } }] }] : []),
+      ],
       ...(f.type ? { type: f.type } : {}),
       ...(f.minRateCents ? { payRateCents: { gte: f.minRateCents } } : {}),
       ...(f.startsBefore ? { startsAt: { lte: f.startsBefore } } : {}),

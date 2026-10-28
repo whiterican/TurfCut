@@ -8,7 +8,7 @@ import { loadOrgPay } from "@/lib/pay-data";
 import { disputeCounts, noteOverdueDisputes } from "@/lib/dispute-thread-data";
 import { openJobsEndAfter } from "@/lib/jobs";
 import { money } from "@/lib/pay";
-import { URGENCY, applicationsByJob, byUrgency, deskParts, seatsWhenLabel, shortOfHeadcount, weekAhead, type DeskParts, type WeekRow } from "@/lib/desk";
+import { URGENCY, applicationsByJob, byUrgency, deskParts, noCheckoutVisibility, seatsWhenLabel, shortOfHeadcount, weekAhead, type DeskParts, type WeekRow } from "@/lib/desk";
 
 /** One row in "Needs you": what, what it's about, since when, and the next step with where to take it. */
 export interface DeskItem {
@@ -32,6 +32,8 @@ export interface Desk {
   needs: DeskItem[];
   today: Awaited<ReturnType<typeof loadOps>> | null;
   week: WeekRow[] | null;
+  /** Read-only roles: how many shifts have no check-out received after their end (no names); null when not shown. */
+  noCheckoutCount: number | null;
   /** Read-only roles: live jobs and today's totals (no names). */
   live: Array<{ id: string; title: string; startsAt: Date | null; endsAt: Date | null }> | null;
 }
@@ -48,8 +50,11 @@ export async function loadDesk(actor: { profileId: string; orgId: string; role: 
   // ended jobs stay PUBLISHED until someone closes them, so filter here.
   const live = { status: "PUBLISHED" as const, OR: [{ endsAt: null }, { endsAt: { gt: openJobsEndAfter(now) } }] };
   const weekEnd = new Date(now.getTime() + 7 * 86_400_000);
+  // Checked in, past the end, no check-out on the server (P0 state truth).
+  const noCheckout = noCheckoutVisibility(parts);
+  const stillIn = { status: "ACTIVE" as const, checkInAt: { not: null }, checkOutAt: null, endsAt: { lt: now }, engagement: { job: { orgId } } };
 
-  const [ops, jobs, apps, upcoming, pay, disputes] = await Promise.all([
+  const [ops, jobs, apps, upcoming, pay, disputes, stillInRows, stillInCount] = await Promise.all([
     needsOps ? loadOps(orgId, now) : null,
     needsJobs
       ? db().job.findMany({
@@ -70,6 +75,15 @@ export async function loadDesk(actor: { profileId: string; orgId: string; role: 
       : null,
     parts.pay ? loadOrgPay(actor) : null,
     parts.pay ? noteOverdueDisputes(orgId, now).catch(() => 0).then(() => disputeCounts(orgId, now)) : null,
+    noCheckout === "names"
+      ? db().shift.findMany({
+          where: stillIn,
+          select: { id: true, endsAt: true, engagement: { select: { worker: { select: { displayName: true } }, job: { select: { title: true } } } } },
+          orderBy: [{ endsAt: "desc" }, { id: "asc" }],
+          take: 50,
+        })
+      : null,
+    noCheckout === "count" ? db().shift.count({ where: stillIn }) : null,
   ]);
 
   // A closed job still has its hires' shifts (C3.5): the week ahead shows those jobs too.
@@ -85,6 +99,7 @@ export async function loadDesk(actor: { profileId: string; orgId: string; role: 
   const needs: DeskItem[] = [];
   if (parts.field && ops) {
     for (const r of ops.late) needs.push({ key: `late-${r.shift.id}`, title: `${r.shift.engagement.worker.displayName} hasn't checked in`, sub: r.shift.engagement.job.title, tag: "Late", state: "overdue", href: `/shifts/${r.shift.id}`, action: "Open shift", when: { label: "Due", at: r.shift.startsAt }, rank: URGENCY.late });
+    for (const s of stillInRows ?? []) needs.push({ key: `nocheckout-${s.id}`, title: `No check-out from ${s.engagement.worker.displayName}`, sub: s.engagement.job.title, tag: "No check-out", state: "overdue", href: `/shifts/${s.id}`, action: "Open shift", when: { label: "Was due to end", at: s.endsAt }, rank: URGENCY.noCheckout });
     for (const r of ops.awaitingReview) needs.push({ key: `review-${r.shift.id}`, title: `Review ${r.shift.engagement.worker.displayName}'s shift`, sub: r.shift.engagement.job.title, tag: "Review", state: "pending", href: `/shifts/${r.shift.id}`, action: "Review shift", when: r.state.checkedOutAt ? { label: "Checked out", at: r.state.checkedOutAt } : undefined, rank: URGENCY.review });
   }
   if (parts.hiring && apps && jobs) {
@@ -119,6 +134,7 @@ export async function loadDesk(actor: { profileId: string; orgId: string; role: 
           now,
         )
       : null,
+    noCheckoutCount: stillInCount,
     live: parts.readOnly && jobs ? jobs.map((j) => ({ id: j.id, title: j.title, startsAt: j.startsAt, endsAt: j.endsAt })) : null,
   };
 }

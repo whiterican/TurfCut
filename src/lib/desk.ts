@@ -105,7 +105,20 @@ export function applicationsByJob(apps: Array<{ jobId: string; title: string; ap
  * deadline today or blocks pay, then what is waiting on a person, then gaps
  * to fill. Within a kind, rows keep their own order (oldest or soonest first).
  */
-export const URGENCY = { late: 0, overdue: 1, review: 2, dueToday: 3, payApprove: 4, applications: 5, dispute: 6, short: 7 } as const;
+export const URGENCY = { late: 0, noCheckout: 1, overdue: 2, review: 3, dueToday: 4, payApprove: 5, applications: 6, dispute: 7, short: 8 } as const;
+
+/**
+ * Shifts still checked in after their end ("No check-out received", redesign
+ * §5 Desk): who may see what. Full field access sees each worker and time;
+ * roles with only the read-only Desk (compliance, publisher) see a count;
+ * everyone else (finance, recruiters) nothing. The loader never selects
+ * names for a count.
+ */
+export function noCheckoutVisibility(parts: DeskParts): "names" | "count" | null {
+  if (parts.field) return "names";
+  if (parts.readOnly) return "count";
+  return null;
+}
 
 /** Rows most urgent first; a stable sort, so each kind keeps its own order. */
 export function byUrgency<T extends { rank: number }>(rows: T[]): T[] {

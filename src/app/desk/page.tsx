@@ -8,6 +8,7 @@ import { DataTable } from "@/components/staff/DataTable";
 import { NeedsTable } from "@/components/staff/NeedsTable";
 import { SummaryBar } from "@/components/staff/SummaryBar";
 import { LocalTime } from "@/components/LocalTime";
+import { StatusChip } from "@/components/StatusBadge";
 import { roleName } from "@/lib/org-roles";
 import { liveRows } from "@/lib/field-day-data";
 import { summarizeField } from "@/lib/field-live";
@@ -73,7 +74,7 @@ export default async function DeskPage() {
           {desk.needs.length === 0 ? (
             <p className="text-muted-sm">
               Nothing right now.{" "}
-              {[parts.field && "Late check-ins and shifts to review", parts.hiring && "applications and open seats", parts.pay && "pay to approve and disputes"].filter(Boolean).join(", ")} show up here.
+              {[parts.field && "Late check-ins, missing check-outs and shifts to review", parts.hiring && "applications and open seats", parts.pay && "pay to approve and disputes"].filter(Boolean).join(", ")} show up here.
             </p>
           ) : (
             <NeedsTable items={desk.needs} />
@@ -120,6 +121,13 @@ export default async function DeskPage() {
                 { label: "Doors", value: desk.today.doors },
               ]}
             />
+          )}
+          {/* A count only: names stay with the roles that run the field (the loader never reads them here). */}
+          {!!desk.noCheckoutCount && (
+            <p className="flex flex-wrap items-center gap-2 text-sm text-fg">
+              <StatusChip state="overdue" label="No check-out received" />
+              {desk.noCheckoutCount === 1 ? "1 shift ended" : `${desk.noCheckoutCount} shifts ended`} without a check-out reaching Turfcut. Your supervisors follow these up.
+            </p>
           )}
           <section className="section" aria-labelledby="live-jobs">
             <h2 id="live-jobs" className="section-title">Live jobs</h2>

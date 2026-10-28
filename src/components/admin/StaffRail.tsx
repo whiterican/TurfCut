@@ -13,6 +13,8 @@ import { activeAdminSection, type AdminSection } from "@/lib/admin-nav";
 export function StaffRail({ sections }: { sections: AdminSection[] }) {
   const pathname = usePathname();
   const current = activeAdminSection(pathname);
+  const at = pathname.search(/\/admin(\/|$)/);
+  const path = at < 0 ? pathname : pathname.slice(at);
   return (
     <aside className="org-rail staff-rail" aria-label="Turfcut staff">
       <div className="org-rail-head">
@@ -23,7 +25,7 @@ export function StaffRail({ sections }: { sections: AdminSection[] }) {
         <ul className="space-y-0.5">
           {sections.map((s) => (
             <li key={s.href}>
-              <Link href={s.href} className="rail-link" aria-current={s.href === current ? (pathname.endsWith(s.href) ? "page" : "true") : undefined}>
+              <Link href={s.href} className="rail-link" aria-current={s.href === current ? (path === s.href ? "page" : "true") : undefined}>
                 {s.label}
               </Link>
             </li>

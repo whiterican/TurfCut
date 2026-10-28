@@ -38,10 +38,16 @@ export function InspectorSelect({ rowHref, minWidth = "80rem" }: { /** The detai
     return () => document.removeEventListener("click", onClick);
   }, [rowHref, minWidth, params, pathname, router]);
 
-  // A newly selected row: focus the inspector's heading.
+  // A newly selected row: focus the inspector's heading, and mark the row that is open.
   useEffect(() => {
     if (selected) document.getElementById("inspector-heading")?.focus();
-  }, [selected]);
+    const links = document.querySelectorAll<HTMLElement>(`[data-inspector-source] a[href^="${CSS.escape(rowHref)}/"]`);
+    links.forEach((a) => {
+      const open = !!selected && a.getAttribute("href")?.startsWith(`${rowHref}/${selected}`);
+      if (open) a.setAttribute("aria-current", "true");
+      else a.removeAttribute("aria-current");
+    });
+  }, [selected, rowHref]);
 
   // Esc or Close: back to the list, focus on the row that was open.
   useEffect(() => {
@@ -50,10 +56,15 @@ export function InspectorSelect({ rowHref, minWidth = "80rem" }: { /** The detai
       const next = new URLSearchParams(params.toString());
       next.delete("selected");
       router.replace(next.size ? `${pathname}?${next}` : pathname, { scroll: false });
-      requestAnimationFrame(() => document.querySelector<HTMLElement>(`[data-inspector-source] a[href^="${rowHref}/${selected}"]`)?.focus());
+      requestAnimationFrame(() => document.querySelector<HTMLElement>(`[data-inspector-source] a[href^="${CSS.escape(rowHref)}/${CSS.escape(selected)}"]`)?.focus());
     };
     const onKey = (ev: KeyboardEvent) => {
-      if (ev.key === "Escape" && (ev.target as Element | null)?.closest?.("[data-inspector]")) back();
+      if (ev.key !== "Escape" || ev.defaultPrevented) return;
+      const t = ev.target as Element | null;
+      if (!t?.closest?.("[data-inspector]")) return;
+      // Esc in a field or an open disclosure belongs to it (a half-typed note is never thrown away).
+      if (t.closest("input, textarea, select, [contenteditable]:not([contenteditable='false']), details[open], dialog[open]")) return;
+      back();
     };
     const onClose = (ev: MouseEvent) => {
       if ((ev.target as Element | null)?.closest?.("[data-inspector-close]")) {

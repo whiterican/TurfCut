@@ -426,9 +426,9 @@ describe("forest ink is for what is live and the one primary action (G1)", () =>
   });
   it("the organization rail is a deep eggplant panel: cream and lavender type AAA, the current tile AAA (every theme)", () => {
     for (const th of [light, dark, sun]) {
-      expect(ratio(th["rail-fg"], th["rail-bg"])).toBeGreaterThanOrEqual(7);
-      expect(ratio(th["rail-muted"], th["rail-bg"])).toBeGreaterThanOrEqual(7);
-      expect(ratio(th["rail-active-fg"], th["rail-active-bg"])).toBeGreaterThanOrEqual(7);
+      expect(ratio(th["shell-fg"], th["shell-bg"])).toBeGreaterThanOrEqual(7);
+      expect(ratio(th["shell-muted"], th["shell-bg"])).toBeGreaterThanOrEqual(7);
+      expect(ratio(th["on-shell-active"], th["shell-active"])).toBeGreaterThanOrEqual(7);
     }
   });
   it("by night the primary object is a cream card that stands out from the eggplant shell (v4 hybrid)", () => {
@@ -445,16 +445,31 @@ describe("forest ink is for what is live and the one primary action (G1)", () =>
     expect(css).toMatch(/\.segmented \{[^}]*?background: var\(--surface\);/);
     for (const th of [light, dark]) expect(ratio(th["tab-active-bg"], th.surface)).toBeGreaterThanOrEqual(1.5);
   });
+  it("the frame (shell) and its current tile, every mode (§2.0a)", () => {
+    for (const th of [light, dark, sun]) {
+      // The lavender current tile stands out from the frame, and its ink label reads.
+      expect(ratio(th["shell-active"], th["shell-bg"])).toBeGreaterThanOrEqual(7);
+      expect(ratio(th["on-shell-active"], th["shell-active"])).toBeGreaterThanOrEqual(7);
+    }
+    expect(light["shell-active"]).toBe("#d8cce4");
+    expect(dark["shell-bg"]).toBe("#1a0f26");
+    expect(sun["shell-bg"]).toBe("#000000");
+    // By night the dock's current tile has a lavender edge: visible against the tile and the bar.
+    expect(ratio(dark.muted, dark["tab-active-bg"])).toBeGreaterThanOrEqual(3);
+    expect(ratio(dark.muted, dark.surface)).toBeGreaterThanOrEqual(3);
+    expect(css).toMatch(/\.tab\[aria-current\]::before \{/);
+    expect(css).toMatch(/:is\(\.btn-primary, \.tab\[aria-current\][^{]*:focus-visible \{\s*outline-offset: 3px;/);
+  });
   it("the keyboard ring stays visible inside the eggplant rail and hero cards (every theme)", () => {
-    expect(css).toMatch(/\.org-rail \* \{\s*--focus: var\(--rail-fg\);/);
+    expect(css).toMatch(/\.org-rail \* \{\s*--focus: var\(--shell-fg\);/);
     expect(css).toMatch(/\.hero-card:not\(\.hero-card-quiet\) \* \{\s*--focus: var\(--hero-fg\);/);
     for (const th of [light, dark, sun]) {
-      expect(ratio(th["rail-fg"], th["rail-bg"])).toBeGreaterThanOrEqual(3);
+      expect(ratio(th["shell-fg"], th["shell-bg"])).toBeGreaterThanOrEqual(3);
       expect(ratio(th["hero-fg"], th.hero)).toBeGreaterThanOrEqual(3);
     }
   });
   it("the rail and the desktop top nav mark the current page with an eggplant tile, not a side stripe", () => {
-    expect(css).toMatch(/\.rail-link\[aria-current="page"\] \{[^}]*?background: var\(--rail-active-bg\);/);
+    expect(css).toMatch(/\.rail-link\[aria-current="page"\] \{[^}]*?background: var\(--shell-active\);/);
     expect(css).toMatch(/\.topnav-link\[aria-current\] \{[^}]*?background: var\(--tab-active-bg\);/);
     expect(css).not.toMatch(/inset 3px 0 0/);
   });

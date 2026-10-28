@@ -49,12 +49,15 @@
   --map-fill: #5a3b82;
   /* The organization's desktop rail (G3): a deep eggplant panel, the brand's
      own surface, with cream type and a raised-eggplant current tile. */
-  --rail-bg: #281539;
-  --rail-fg: #fbf7f0;
-  --rail-muted: #d8cce4;
-  --rail-line: #3f2b57;
-  --rail-active-bg: #4a3365;
-  --rail-active-fg: #fbf7f0;
+  /* The frame (shell): the org rail, the Field header band, the hero overlay.
+     The current place on the frame is a lavender tile with ink type (§2.0a). */
+  --shell-bg: #281539;
+  --shell-fg: #fbf7f0;
+  --shell-muted: #d8cce4;
+  --shell-line: #3f2b57;
+  --shell-edge: #281539;
+  --shell-active: #d8cce4;
+  --on-shell-active: #1b1422;
   /* Solid (and on-solid): settled status ("Active", "Approved", "Paid",
      "You"), a quick filter that's on and team avatars: an eggplant chip with
      paper text, the dock's own tile colour. Forest ink is kept for what is live now
@@ -121,6 +124,10 @@
 }
 
 .dark {
+  /* The frame by night: a deeper eggplant with a hairline edge, so the rail
+     separates from the #120d18 page. */
+  --shell-bg: #1a0f26;
+  --shell-edge: #3c2d4c;
   /* Dark mode: near-black paper, eggplant cards and heroes; forest-ink fills
      with cream type and a soft-green edge for live status and the primary action. */
   --accent: #164b38;
@@ -220,12 +227,14 @@
   --shadow-depth: 0 0 0 0 transparent;
   --shadow: var(--shadow-depth);
   color-scheme: light;
-  --rail-bg: #ffffff;
-  --rail-fg: #000000;
-  --rail-muted: #1b1422;
-  --rail-line: #000000;
-  --rail-active-bg: #000000;
-  --rail-active-fg: #ffffff;
+  /* Sunlight: a black frame with white type, a white current tile. */
+  --shell-bg: #000000;
+  --shell-fg: #ffffff;
+  --shell-muted: #ebebeb;
+  --shell-line: #ffffff;
+  --shell-edge: #000000;
+  --shell-active: #ffffff;
+  --on-shell-active: #000000;
 }
 
 /* Frame tokens: the surfaces that float (tab bar, header buttons, the More
@@ -253,6 +262,13 @@ html {
   --radius-card: 1.25rem;
   --radius-inner: 1rem;
   --radius-control: 0.75rem;
+  /* Layout roles (redesign §4.1): page measures, the workspace cap, the
+     inspector column and the space the floating dock needs below content. */
+  --measure-reading: 42rem;
+  --measure-content: 48rem;
+  --workspace-max: 90rem;
+  --inspector-w: 24rem;
+  --dock-clearance: calc(6rem + env(safe-area-inset-bottom));
 }
 /* ---- Motion (P1.1) ------------------------------------------------------ */
 /* Every duration and curve in the app comes from these (src/lib/motion.ts
@@ -345,6 +361,107 @@ body {
   }
 }
 
+/* ---- Type scale (redesign §4.1.2) --------------------------------------
+   One utility per role; components use these, never their own font family or
+   size. rem sizes follow the text-size setting; nothing falls below 13px. */
+@utility t-display {
+  font-family: var(--font-display);
+  font-size: clamp(2.75rem, 11vw, 3.5rem);
+  line-height: 0.98;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  font-optical-sizing: auto;
+  text-wrap: balance;
+  @media (width >= 64rem) {
+    font-size: 4.5rem;
+  }
+}
+@utility t-title {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  line-height: 1.06;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  font-optical-sizing: auto;
+  text-wrap: balance;
+  @media (width >= 64rem) {
+    font-size: 2.75rem;
+  }
+}
+@utility t-headline {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  line-height: 1.12;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  font-optical-sizing: auto;
+  text-wrap: balance;
+  @media (width >= 64rem) {
+    font-size: 2.125rem;
+  }
+}
+@utility t-section {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  line-height: 1.2;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  font-optical-sizing: auto;
+  @media (width >= 64rem) {
+    font-size: 1.375rem;
+  }
+}
+@utility t-body {
+  font-family: var(--font-barlow), ui-sans-serif, system-ui, sans-serif;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+@utility t-strong {
+  font-family: var(--font-barlow), ui-sans-serif, system-ui, sans-serif;
+  font-size: 1.0625rem;
+  line-height: 1.35;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+@utility t-small {
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+@utility t-hint {
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  font-weight: 500;
+}
+@utility t-label {
+  font-family: var(--font-condensed);
+  font-size: 0.8125rem;
+  line-height: 1.2;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+@utility t-figure {
+  font-family: var(--font-mono);
+  font-size: 1.5rem;
+  line-height: 1.1;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+@utility t-figure-sm {
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  line-height: 1.1;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+@utility t-figure-lg {
+  font-family: var(--font-mono);
+  font-size: 2rem;
+  line-height: 1.1;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
 @layer components {
   /* ---- Layout ---------------------------------------------------------- */
   /* Bottom padding clears the phone tab bar (see .tabbar). */
@@ -358,9 +475,7 @@ body {
     @apply flex flex-wrap items-end justify-between gap-3;
   }
   .page-title {
-    @apply font-display text-[2rem] leading-[1.06] font-semibold tracking-[-0.02em] text-fg sm:text-[2.75rem];
-    font-optical-sizing: auto;
-    text-wrap: balance;
+    @apply t-title text-fg;
   }
   /* the brand face: organization and job names, in page heads and on job cards. */
   .masthead {
@@ -399,8 +514,7 @@ body {
     @apply space-y-4;
   }
   .section-title {
-    @apply font-display text-xl leading-tight font-semibold tracking-[-0.01em] text-fg sm:text-[1.375rem];
-    font-optical-sizing: auto;
+    @apply t-section text-fg;
   }
   .lead {
     @apply max-w-prose text-base leading-relaxed text-muted;
@@ -579,9 +693,7 @@ body {
     max-width: calc(100% - 4rem); /* clear the corner cut */
   }
   .hero-title {
-    @apply font-display max-w-[85%] break-words text-[1.5rem] leading-[1.12] font-semibold tracking-[-0.015em] sm:text-[2.125rem];
-    font-optical-sizing: auto;
-    text-wrap: balance;
+    @apply t-headline max-w-[85%] break-words;
   }
   .hero-muted {
     color: var(--hero-muted);
@@ -1164,51 +1276,61 @@ body {
      (eggplant on eggplant is 1.2:1). Only descendants: a hero card that is itself a link keeps
      the page's ring, which sits on the paper around it. */
   .org-rail * {
-    --focus: var(--rail-fg);
+    --focus: var(--shell-fg);
   }
   .hero-card:not(.hero-card-quiet) * {
     --focus: var(--hero-fg);
   }
   .org-rail {
     @apply sticky top-4 my-4 ms-4 hidden max-h-[calc(100dvh-2rem)] w-60 shrink-0 self-start overflow-y-auto rounded-[var(--radius-card)] px-3 pt-6 pb-4 lg:block;
-    background: var(--rail-bg);
-    color: var(--rail-fg);
+    background: var(--shell-bg);
+    color: var(--shell-fg);
   }
-  .sun .org-rail {
-    border: 2px solid var(--rail-line);
+  .org-rail {
+    border: 1px solid var(--shell-edge);
   }
   .org-rail-head {
     @apply mb-4 space-y-1 border-b px-3 pb-4;
-    border-color: var(--rail-line);
+    border-color: var(--shell-line);
   }
   .org-rail .masthead {
-    color: var(--rail-fg);
+    color: var(--shell-fg);
   }
   .org-rail-status {
     @apply inline-flex items-center gap-1 text-xs font-semibold;
-    color: var(--rail-muted);
+    color: var(--shell-muted);
   }
   .rail-link {
     @apply flex min-h-10 items-center gap-2.5 rounded-[var(--radius-control)] px-3 py-2 text-sm font-medium transition;
-    color: var(--rail-muted);
+    color: var(--shell-muted);
   }
   .rail-link:hover {
-    color: var(--rail-fg);
-    background: color-mix(in srgb, var(--rail-fg) 8%, transparent);
+    color: var(--shell-fg);
+    background: color-mix(in srgb, var(--shell-fg) 8%, transparent);
   }
-  /* The current area: a raised-eggplant tile inside the eggplant rail, no side stripe. */
+  /* The current area: a lavender tile with ink type on the eggplant frame
+     (about 11:1 to the frame), bold, no side stripe. */
   .rail-link[aria-current="page"] {
-    @apply font-semibold;
-    background: var(--rail-active-bg);
-    color: var(--rail-active-fg);
+    @apply font-bold;
+    background: var(--shell-active);
+    color: var(--on-shell-active);
   }
   /* By night the eggplant tile is only 1.6:1 from the bar and its cream label is the
      same as the others', so the current tab and every chosen chip get a light edge too. */
   .dark :is(.tab[aria-current], .chip:has(input:checked), .chip[aria-current="page"], .filter-chip-on, .step-current, .topnav-link[aria-current]) {
     box-shadow: inset 0 0 0 1px var(--muted);
   }
-  .rail-link[aria-current="page"] {
-    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--rail-fg) 45%, transparent);
+  /* Forest fills and current tiles keep their keyboard ring outside, in the gap,
+     so it is measured against the surface, never against the fill. */
+  :is(.btn-primary, .tab[aria-current], .topnav-link[aria-current], .rail-link[aria-current="page"]):focus-visible {
+    outline-offset: 3px;
+  }
+  /* The dock's current tab also carries a short bar above its icon: a cue
+     besides colour (bold and aria-current are the others). */
+  .tab[aria-current]::before {
+    content: "";
+    @apply pointer-events-none absolute top-1 left-1/2 h-[3px] w-4 -translate-x-1/2 rounded-full;
+    background: currentColor;
   }
   /* More sheet: a native modal dialog pinned to the bottom of the screen. */
   .more-sheet {
@@ -1618,11 +1740,11 @@ summary.list-none::-webkit-details-marker {
      scrolled clear of it (it measured 97% hidden on the shift page's packet
      form, and fully hidden on Availability at 320px). */
   html:has(.tabbar):not(:has(.thread-top)) {
-    scroll-padding-bottom: calc(6rem + env(safe-area-inset-bottom));
+    scroll-padding-bottom: var(--dock-clearance);
   }
   /* Short centred pages (welcome, invites) end above the dock too. */
   body:has(.tabbar) .page-narrow {
-    padding-bottom: calc(7rem + env(safe-area-inset-bottom));
+    padding-bottom: calc(var(--dock-clearance) + 1rem);
   }
 }
 .wordmark-cut {

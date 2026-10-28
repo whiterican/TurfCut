@@ -1623,6 +1623,10 @@ body {
   body:has(.staff-band) .org-rail:not(.staff-rail) {
     display: none;
   }
+  /* The console's rail is its main navigation: a staff login's worker top bar steps aside there. */
+  body:has(.staff-band) .site-header nav[aria-label="Main"] {
+    display: none;
+  }
   .admin-shell {
     @apply flex;
   }

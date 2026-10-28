@@ -93,6 +93,8 @@ export function TopNav({ tabs }: { tabs: NavTab[] }) {
   const pathname = usePathname();
   const current = activeTab(tabs, pathname);
   const count = useUnreadCount();
+  // No tabs, no landmark (an empty "Main" nav would compete with the page's own).
+  if (tabs.length === 0) return null;
   return (
     <nav aria-label="Main" className="hidden items-center gap-1 lg:flex">
       {tabs.map((t) => (

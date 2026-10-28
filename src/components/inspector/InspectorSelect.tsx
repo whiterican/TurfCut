@@ -38,15 +38,21 @@ export function InspectorSelect({ rowHref, minWidth = "80rem" }: { /** The detai
     return () => document.removeEventListener("click", onClick);
   }, [rowHref, minWidth, params, pathname, router]);
 
-  // A newly selected row: focus the inspector's heading, and mark the row that is open.
+  // A newly selected row: focus the inspector's heading, and mark the row that is open (again
+  // whenever the table re-renders its rows, e.g. on a sort).
   useEffect(() => {
     if (selected) document.getElementById("inspector-heading")?.focus();
-    const links = document.querySelectorAll<HTMLElement>(`[data-inspector-source] a[href^="${CSS.escape(rowHref)}/"]`);
-    links.forEach((a) => {
-      const open = !!selected && a.getAttribute("href")?.startsWith(`${rowHref}/${selected}`);
-      if (open) a.setAttribute("aria-current", "true");
-      else a.removeAttribute("aria-current");
-    });
+    const mark = () =>
+      document.querySelectorAll<HTMLElement>(`[data-inspector-source] a[href^="${CSS.escape(rowHref)}/"]`).forEach((a) => {
+        const open = !!selected && a.getAttribute("href")?.startsWith(`${rowHref}/${selected}`);
+        if (open && a.getAttribute("aria-current") !== "true") a.setAttribute("aria-current", "true");
+        else if (!open && a.hasAttribute("aria-current")) a.removeAttribute("aria-current");
+      });
+    mark();
+    const source = document.querySelector("[data-inspector-source]");
+    const watch = source && new MutationObserver(mark);
+    watch?.observe(source!, { childList: true, subtree: true });
+    return () => watch?.disconnect();
   }, [selected, rowHref]);
 
   // Esc or Close: back to the list, focus on the row that was open.

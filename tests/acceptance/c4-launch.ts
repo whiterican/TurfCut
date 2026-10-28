@@ -167,11 +167,18 @@ const check = (l: string, c: unknown, d?: unknown) => { if (c) console.log(`PASS
   check("a pre-C4 draft keeps its unset launch through a builder save and still publishes", draftSaved && legacyDraftRow.launch === null && legacyDraftRow.title === "Legacy draft, renamed" && (await publishJob(legacyDraft.id, ORG, OWNER)).ok, legacyDraftRow);
 
   // --- P0 3: the builder saves progress as a draft from the first step ---
-  const step1 = validateDraft({ title: "Autosaved drive", type: "PETITION", jurisdictionId: seeded.jurisdictionId, payRate: "-1" });
+  // The builder's real first-step payload: every field is submitted (hidden steps included), most of them blank.
+  const step1 = validateDraft({
+    title: "Autosaved drive", type: "PETITION", jurisdictionId: seeded.jurisdictionId, description: "", startsAt: "", endsAt: "", city: "", state: "CO", launchMode: "STAGED",
+    point_0_name: "", point_0_address: "", point_0_lat: "", point_0_lng: "", point_0_radius: "", compensationMethod: "HOURLY", payRate: "-1", headcount: "", hiringModes: ["application"],
+    cancellationNoticeHours: "24", training: "", script: "", canvassApp: "", toolList: "", toolNotes: "", contactEmergency: "", contactDisputes: "", contactLostMaterials: "",
+    campaignType: "ballot_measure", affiliation: "nonpartisan", campaignName: "", measureIds: "", message: "",
+  });
   const started = step1.ok ? await saveDraftProgress(ORG, OWNER, null, step1.draft) : null;
   const startedRow = started ? await p.job.findUniqueOrThrow({ where: { id: started.id } }) : null;
   check("the first step alone creates a draft: no rate, no dates, nothing invented; the bad rate was left out", started?.created === true && startedRow?.status === "DRAFT" && startedRow.payRateCents === null && startedRow.startsAt === null && startedRow.campaignDisclosure === null, startedRow);
-  const step3 = validateDraft({ ...base, title: "Autosaved drive", payRate: "24" });
+  // A later step picks self-launch (the first step's default, staged with no point yet, would block publishing).
+  const step3 = validateDraft({ ...base, title: "Autosaved drive", payRate: "24", launchMode: "SELF" });
   const grown = started && step3.ok ? await saveDraftProgress(ORG, OWNER, started.id, step3.draft) : null;
   const resaved = started && step3.ok ? await saveDraftProgress(ORG, OWNER, started.id, step3.draft) : null;
   const autosaves = started ? await p.auditEvent.count({ where: { entityId: started.id, action: "job.draft_autosaved" } }) : 0;

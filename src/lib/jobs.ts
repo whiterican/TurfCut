@@ -169,10 +169,15 @@ export function validateDraft(raw: Record<string, unknown>): { ok: true; draft: 
   const clean = (...keys: string[]) => keys.every((k) => !errors[k]);
   const draft: DraftInput = { type: value.type, title: value.title, jurisdictionId: value.jurisdictionId };
   if (clean("description")) draft.description = value.description;
-  if (clean("startsAt")) draft.startsAt = value.startsAt;
-  if (clean("endsAt")) draft.endsAt = value.endsAt;
-  if (clean("city")) draft.city = value.city;
-  if (clean("state")) draft.state = value.state;
+  // Pairs are kept together: a start moved past the stored end would otherwise be saved on its own.
+  if (clean("startsAt", "endsAt")) {
+    draft.startsAt = value.startsAt;
+    draft.endsAt = value.endsAt;
+  }
+  if (clean("city", "state")) {
+    draft.city = value.city;
+    draft.state = value.state;
+  }
   if (clean("compensationMethod")) draft.compensationMethod = value.compensationMethod;
   if (clean("payRate")) draft.payRateCents = value.payRateCents;
   if (clean("headcount")) draft.headcount = value.headcount;
@@ -537,6 +542,7 @@ export function publishBlockers(f: PublishFacts, now: Date = new Date()): string
   if (!f.job.payRateCents || f.job.payRateCents <= 0) out.push("Set the gross pay rate.");
   if (!f.job.headcount || f.job.headcount < 1) out.push("Set the headcount.");
   if (!f.job.startsAt || !f.job.endsAt) out.push("Set the start and end dates.");
+  else if (f.job.endsAt < f.job.startsAt) out.push("The end date is before the start date.");
   else if (jobEndPassed(f.job.endsAt, now)) out.push("The job's end date has passed.");
   if (!readDisclosure(f.job.campaignDisclosure)) out.push("Disclose the campaign's type, affiliation and message.");
   if (!readSupportContacts(f.job.supportContacts)) out.push("Name who handles emergencies, disputes and lost materials.");

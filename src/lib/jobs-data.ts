@@ -79,11 +79,12 @@ function draftData(d: DraftInput) {
  * job is never touched this way (null: the builder stops saving as it goes),
  * so a live job only ever changes through updatePublishedJob's record.
  */
-export async function saveDraftProgress(orgId: string, actorId: string, jobId: string | null, draft: DraftInput): Promise<{ id: string; created: boolean; changed: string[] } | null> {
+export async function saveDraftProgress(orgId: string, actorId: string, jobId: string | null, draft: DraftInput, newId?: string): Promise<{ id: string; created: boolean; changed: string[] } | null> {
   const data = draftData(draft);
   if (!jobId) {
     return db().$transaction(async (tx) => {
-      const job = await tx.job.create({ data: { ...data, orgId, status: "DRAFT" }, select: { id: true } });
+      // `newId`: the builder's own id for the draft, so a lost answer doesn't lead to a second draft (the action checks it first).
+      const job = await tx.job.create({ data: { ...(newId ? { id: newId } : {}), ...data, orgId, status: "DRAFT" }, select: { id: true } });
       await tx.auditEvent.create({ data: { actorId, action: "job.created", entityType: "Job", entityId: job.id, metadata: { status: "DRAFT", autosaved: true } } });
       return { id: job.id, created: true, changed: changeLabels(jobDiff({}, data)) };
     });

@@ -69,18 +69,27 @@ export type AutosaveResult =
 export async function autosaveDraft(formData: FormData): Promise<AutosaveResult> {
   const { orgId, userId } = await requireJobEditor();
   if (!orgId) return { ok: false, kind: "error", reason: "No organization on this account." };
+  const d = validateDraft(formToObject(formData));
+  if (!d.ok) return { ok: false, kind: "incomplete", reason: "add a title, type and rule profile first." };
+  // Counted only once there is something to save, so blank step changes don't spend the organization's allowance.
   const verdict = await check("autosave", orgId);
   if (verdict !== "ok") return { ok: false, kind: "limited", reason: verdict === "limited" ? "saving too often; it'll try again after your next change." : "saving is briefly unavailable; it'll try again after your next change." };
-  const d = validateDraft(formToObject(formData));
-  if (!d.ok) return { ok: false, kind: "incomplete", reason: "add a title, type and place first." };
   if (!(await db().jurisdictionProfile.findUnique({ where: { id: d.draft.jurisdictionId }, select: { id: true } }))) {
-    return { ok: false, kind: "incomplete", reason: "pick a jurisdiction first." };
+    return { ok: false, kind: "incomplete", reason: "pick a rule profile first." };
   }
-  const jobId = String(formData.get("jobId") ?? "");
+  let jobId = String(formData.get("jobId") ?? "");
   if (jobId && !UUID_RE.test(jobId)) return { ok: false, kind: "error", reason: "this job can't be found." };
-  const r = await saveDraftProgress(orgId, userId, jobId || null, d.draft);
+  // The builder names the draft it is about to create (one id per form), so a save whose answer was lost
+  // (network drop) resumes that draft on the next try instead of creating a second one.
+  const draftId = String(formData.get("draftId") ?? "");
+  if (!jobId && draftId) {
+    if (!UUID_RE.test(draftId)) return { ok: false, kind: "error", reason: "this job can't be found." };
+    if (await db().job.findFirst({ where: { id: draftId, orgId }, select: { id: true } })) jobId = draftId;
+  }
+  const r = await saveDraftProgress(orgId, userId, jobId || null, d.draft, jobId ? undefined : draftId || undefined);
   if (!r) return { ok: false, kind: "error", reason: "only a draft saves as you go." };
-  if (r.created || r.changed.length) revalidatePath("/jobs");
+  // No revalidatePath here: a revalidating action makes the router re-render the page at the address the
+  // builder swapped in (the draft's edit page) and remount the form mid-edit. The final save revalidates.
   return { ok: true, jobId: r.id, savedAt: new Date().toISOString() };
 }
 

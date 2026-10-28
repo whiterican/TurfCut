@@ -78,6 +78,9 @@ export function JobForm({
   const inFlight = useRef<Promise<void> | null>(null);
   const dirty = useRef(false);
   const lastSent = useRef("");
+  // The id the first save creates the draft under (one per form, made in the browser), so a save whose answer
+  // never arrived resumes the same draft next time instead of creating a second one.
+  const draftId = useRef<string | null>(null);
   const form = useRef<HTMLFormElement>(null);
   const heading = useRef<HTMLHeadingElement>(null);
   const [step, setStep] = useState(0);
@@ -143,9 +146,11 @@ export function JobForm({
       saveTimer.current = null;
     }
     const fd = new FormData(form.current);
-    if (savedIdRef.current) fd.set("jobId", savedIdRef.current);
-    const snapshot = [...fd.entries()].map(([k, v]) => `${k}=${typeof v === "string" ? v : ""}`).join("&");
+    // What the form holds, without the ids: the same content after the first save is still "unchanged".
+    const snapshot = [...fd.entries()].filter(([k]) => k !== "jobId").map(([k, v]) => `${k}=${typeof v === "string" ? v : ""}`).join("&");
     if (snapshot === lastSent.current) return Promise.resolve();
+    if (savedIdRef.current) fd.set("jobId", savedIdRef.current);
+    else fd.set("draftId", (draftId.current ??= crypto.randomUUID()));
     if (inFlight.current) {
       dirty.current = true;
       return inFlight.current;
@@ -163,8 +168,8 @@ export function JobForm({
           }
           setSave({ kind: "saved", at: new Date(r.savedAt) });
         } else {
-          // Nothing to save yet: no retry until something changes.
-          if (r.kind === "incomplete") lastSent.current = snapshot;
+          // Nothing to save yet, or nothing that can be saved this way (the job went live elsewhere): no retry until something changes.
+          if (r.kind !== "limited") lastSent.current = snapshot;
           setSave({ kind: r.kind === "incomplete" ? "incomplete" : "error", reason: r.reason });
         }
       } catch {
@@ -232,6 +237,7 @@ export function JobForm({
     // An autosave still in flight may be creating the draft: wait for it, so the final save updates that draft rather than making a second one.
     const run = () => {
       if (savedIdRef.current) fd.set("jobId", savedIdRef.current);
+      pendingRef.current = true; // so no autosave starts before React reports the transition as pending
       startTransition(() => action(fd));
     };
     if (inFlight.current) void inFlight.current.then(run);

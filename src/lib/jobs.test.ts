@@ -56,6 +56,12 @@ describe("publish gate (jurisdiction hard stop, spec p.15)", () => {
     expect(publishBlockers(ready(), now)).toEqual([]);
   });
 
+  it("blocks an end date before the start date (a part-way draft could hold one)", () => {
+    const f = ready();
+    f.job.startsAt = new Date("2026-11-10");
+    expect(publishBlockers(f, now)).toEqual(["The end date is before the start date."]);
+  });
+
   it("blocks unknown, unapproved, superseded, not-yet-effective and expired jurisdictions — with reasons", () => {
     const cases: Array<[Partial<JurisdictionFacts> | null, RegExp]> = [
       [null, /unknown/],
@@ -238,12 +244,23 @@ describe("validateJob", () => {
       expect(r.draft.payRateCents).toBeUndefined();
       expect(r.draft.compensationMethod).toBe("HOURLY");
       expect(r.draft.headcount).toBe(10);
-      expect(r.draft.startsAt).toEqual(new Date("2026-10-05T00:00:00Z"));
-      expect(r.draft.endsAt).toBeUndefined(); // before the start date
+      expect(r.draft.startsAt).toBeUndefined(); // the end is before the start: the pair waits
+      expect(r.draft.endsAt).toBeUndefined();
       // One bad name inside a group drops that name only: the badge box and the message survive.
       expect(r.draft.requirements).toEqual({ badge: true, registration: false, affidavit: false, training: null, script: null });
       expect(r.draft.disclosure).toMatchObject({ campaignType: "ballot_measure", campaignName: null, message: "Put affordable housing on the ballot." });
       expect(r.dropped.sort()).toEqual(["campaignName", "endsAt", "payRate", "training"]);
+    });
+
+    it("keeps the dates, and the city and state, as pairs, so a start moved past the stored end is never saved alone", () => {
+      const r = validateDraft({ ...form, startsAt: "2026-11-20" }); // after the end date
+      if (!r.ok) throw new Error("draft");
+      expect(r.draft.startsAt).toBeUndefined();
+      expect(r.draft.endsAt).toBeUndefined();
+      const g = validateDraft({ ...form, state: "Colorado" });
+      if (!g.ok) throw new Error("draft");
+      expect(g.draft.city).toBeUndefined();
+      expect(g.draft.state).toBeUndefined();
     });
 
     it("is the full job when the form is complete, so the final save and the autosave agree", () => {

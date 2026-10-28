@@ -42,6 +42,12 @@ describe("saveDraftProgress (job-builder autosave, P0 3)", () => {
     expect(tx.auditEvent.create.mock.calls[0][0].data).toMatchObject({ actorId: ME, action: "job.created", entityId: JOB, metadata: { status: "DRAFT", autosaved: true } });
   });
 
+  it("creates the draft under the builder's own id when it brings one, so a lost answer can resume it", async () => {
+    tx.job.create.mockResolvedValue({ id: JOB });
+    await saveDraftProgress(ORG, ME, null, first, JOB);
+    expect(tx.job.create.mock.calls[0][0].data).toMatchObject({ id: JOB, orgId: ORG, status: "DRAFT" });
+  });
+
   it("updates a draft with only the parts that changed, under the job's lock, with one audit event naming them", async () => {
     tx.job.findFirst.mockResolvedValue(stored);
     tx.job.updateMany.mockResolvedValue({ count: 1 });

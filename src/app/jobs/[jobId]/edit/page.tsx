@@ -31,7 +31,7 @@ export default async function EditJobPage({ params }: { params: Promise<{ jobId:
               check is refused.
             </p>
           )}
-          <JobForm jobId={job.id} defaults={jobToForm(job)} jurisdictions={jurisdictions} />
+          <JobForm jobId={job.id} autosave={job.status === "DRAFT"} defaults={jobToForm(job)} jurisdictions={jurisdictions} />
         </>
       ) : (
         <div className="empty-state">

@@ -9,6 +9,7 @@ import {
   publishBlockers,
   readDisclosure,
   UUID_RE,
+  type DraftInput,
   type FeedFilters,
   type JobInput,
 } from "@/lib/jobs";
@@ -39,6 +40,70 @@ function jobData(input: JobInput) {
     ...(input.launch ? { launch: json(input.launch) } : {}),
     ...(input.tools ? { tools: json(input.tools) } : {}),
   };
+}
+
+/**
+ * The columns a part-way draft can set: what the builder has so far (P0 3,
+ * autosave). A key left out keeps the stored value; the title, type and
+ * rule profile are always there (the database needs them).
+ */
+function draftData(d: DraftInput) {
+  const geo = d.city !== undefined || d.state !== undefined ? { ...(d.city ? { city: d.city } : {}), ...(d.state ? { state: d.state } : {}) } : null;
+  return {
+    type: d.type,
+    title: d.title,
+    jurisdictionId: d.jurisdictionId,
+    ...(d.description !== undefined ? { description: d.description } : {}),
+    ...(d.startsAt ? { startsAt: d.startsAt } : {}),
+    ...(d.endsAt ? { endsAt: d.endsAt } : {}),
+    ...(geo ? { geography: json(geo) } : {}),
+    ...(d.compensationMethod ? { compensationMethod: d.compensationMethod } : {}),
+    ...(d.payRateCents ? { payRateCents: d.payRateCents } : {}),
+    ...(d.headcount ? { headcount: d.headcount } : {}),
+    ...(d.hiringModes ? { hiringMethod: json({ modes: d.hiringModes }) } : {}),
+    ...(d.requirements ? { requirements: json(d.requirements) } : {}),
+    ...(d.disclosure ? { campaignDisclosure: json(d.disclosure) } : {}),
+    ...(d.supportContacts ? { supportContacts: json(d.supportContacts) } : {}),
+    ...(d.measureIds ? { measureIds: d.measureIds } : {}),
+    ...(d.cancellationNoticeHours !== undefined ? { cancellationNoticeHours: d.cancellationNoticeHours } : {}),
+    ...(d.launch ? { launch: json(d.launch) } : {}),
+    ...(d.tools ? { tools: json(d.tools) } : {}),
+  };
+}
+
+/**
+ * Saves the builder's progress as a draft (P0 3): creates one on the first
+ * save, then updates it under the job's lock while it stays a draft. Only
+ * what changed is written, with one `job.draft_autosaved` audit event naming
+ * the parts; nothing is written when nothing changed. A published or paused
+ * job is never touched this way (null: the builder stops saving as it goes),
+ * so a live job only ever changes through updatePublishedJob's record.
+ */
+export async function saveDraftProgress(orgId: string, actorId: string, jobId: string | null, draft: DraftInput): Promise<{ id: string; created: boolean; changed: string[] } | null> {
+  const data = draftData(draft);
+  if (!jobId) {
+    return db().$transaction(async (tx) => {
+      const job = await tx.job.create({ data: { ...data, orgId, status: "DRAFT" }, select: { id: true } });
+      await tx.auditEvent.create({ data: { actorId, action: "job.created", entityType: "Job", entityId: job.id, metadata: { status: "DRAFT", autosaved: true } } });
+      return { id: job.id, created: true, changed: changeLabels(jobDiff({}, data)) };
+    });
+  }
+  if (!UUID_RE.test(jobId)) return null;
+  return db().$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`job:${jobId}`}))`;
+    const stored = await tx.job.findFirst({ where: { id: jobId, orgId, status: "DRAFT" } });
+    if (!stored) return null;
+    // As keepUnsetLaunch: the builder's default launch (staged, no points yet) means "as it was" for a pre-C4 draft.
+    const next: Partial<typeof data> = { ...data };
+    if (stored.launch === null && draft.launch?.mode === "STAGED" && draft.launch.points.length === 0) delete next.launch;
+    const changes = jobDiff(stored, next);
+    const changed = changeLabels(changes);
+    if (!changed.length) return { id: jobId, created: false, changed };
+    const { count } = await tx.job.updateMany({ where: { id: jobId, orgId, status: "DRAFT" }, data: next });
+    if (count === 0) return null;
+    await tx.auditEvent.create({ data: { actorId, action: "job.draft_autosaved", entityType: "Job", entityId: jobId, metadata: { changed } } });
+    return { id: jobId, created: false, changed };
+  });
 }
 
 /**

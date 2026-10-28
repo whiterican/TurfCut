@@ -149,6 +149,62 @@ function list(raw: Record<string, unknown>, k: string): string[] | null {
  * `issue_<key>` = "support" | "oppose" | "".
  */
 export function validateJob(raw: Record<string, unknown>): Validated<JobInput> {
+  const { errors, value } = parseJob(raw);
+  return Object.keys(errors).length ? { ok: false, errors } : { ok: true, value };
+}
+
+/**
+ * The job builder's submission with the parts a draft can keep so far: the
+ * title, type and rule profile the database needs, plus every other field
+ * that has no problem. A field with a problem is left out (an invalid rate
+ * is never saved as a draft), and the builder says so. Nothing here
+ * publishes: the publish gate judges the stored draft as before.
+ */
+export type DraftInput = Pick<JobInput, "type" | "title" | "jurisdictionId"> & Partial<Omit<JobInput, "type" | "title" | "jurisdictionId">>;
+
+export function validateDraft(raw: Record<string, unknown>): { ok: true; draft: DraftInput; dropped: string[] } | { ok: false; errors: Record<string, string> } {
+  const { errors, value } = parseJob(raw);
+  const must = ["title", "type", "jurisdictionId"].filter((k) => errors[k]);
+  if (must.length) return { ok: false, errors: Object.fromEntries(must.map((k) => [k, errors[k]])) };
+  const clean = (...keys: string[]) => keys.every((k) => !errors[k]);
+  const draft: DraftInput = { type: value.type, title: value.title, jurisdictionId: value.jurisdictionId };
+  if (clean("description")) draft.description = value.description;
+  if (clean("startsAt")) draft.startsAt = value.startsAt;
+  if (clean("endsAt")) draft.endsAt = value.endsAt;
+  if (clean("city")) draft.city = value.city;
+  if (clean("state")) draft.state = value.state;
+  if (clean("compensationMethod")) draft.compensationMethod = value.compensationMethod;
+  if (clean("payRate")) draft.payRateCents = value.payRateCents;
+  if (clean("headcount")) draft.headcount = value.headcount;
+  if (clean("hiringModes")) draft.hiringModes = value.hiringModes;
+  // Flags and names are kept one by one: a training name that runs long doesn't drop the badge box.
+  draft.requirements = {
+    badge: clean("badge") && value.requirements.badge,
+    registration: clean("registration") && value.requirements.registration,
+    affidavit: clean("affidavit") && value.requirements.affidavit,
+    training: clean("training") ? value.requirements.training : null,
+    script: clean("script") ? value.requirements.script : null,
+  };
+  // A disclosure is its type, affiliation and message together (readDisclosure wants all three).
+  if (clean("campaignType", "affiliation", "message")) {
+    draft.disclosure = { ...value.disclosure, campaignName: clean("campaignName") ? value.disclosure.campaignName : null, issues: clean("issues") ? value.disclosure.issues : {} };
+  }
+  if (clean("contactEmergency", "contactDisputes", "contactLostMaterials")) draft.supportContacts = value.supportContacts;
+  if (clean("measureIds")) draft.measureIds = value.measureIds;
+  if (clean("cancellationNoticeHours")) draft.cancellationNoticeHours = value.cancellationNoticeHours;
+  const launchKeys = Object.keys(errors).filter((k) => k === "launchMode" || k === "points" || k.startsWith("point_"));
+  if (launchKeys.length === 0) draft.launch = value.launch;
+  if (clean("canvassApp", "toolList", "toolNotes")) draft.tools = value.tools;
+  return { ok: true, draft, dropped: Object.keys(errors) };
+}
+
+/**
+ * Reads every field, noting each problem under the field's key. `value`
+ * holds what was read; a field under `errors` holds a placeholder there and
+ * is only ever used through validateJob (all or nothing) or validateDraft
+ * (which leaves such fields out).
+ */
+function parseJob(raw: Record<string, unknown>): { errors: Record<string, string>; value: JobInput } {
   const errors: Record<string, string> = {};
   const need = (k: string, label: string, max: number) => {
     const v = text(raw, k);
@@ -258,16 +314,16 @@ export function validateJob(raw: Record<string, unknown>): Validated<JobInput> {
   const tools = validateTools(raw);
   if (!tools.ok) Object.assign(errors, tools.errors);
 
-  if (Object.keys(errors).length) return { ok: false, errors };
   return {
-    ok: true,
+    errors,
     value: {
       type: type as JobType,
       title,
       description,
       jurisdictionId,
-      startsAt: startsAt!,
-      endsAt: endsAt!,
+      // Placeholders when the date has a problem (see parseJob): never read through validateJob.
+      startsAt: startsAt as Date,
+      endsAt: endsAt as Date,
       city,
       state,
       compensationMethod: compensationMethod as CompensationMethod,

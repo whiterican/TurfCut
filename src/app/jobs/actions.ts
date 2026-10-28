@@ -5,8 +5,9 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireEmployer, requireJobEditor } from "@/lib/employer-session";
 import { requireWorker } from "@/lib/worker-session";
-import { formToObject, jurisdictionStateProblem, validateJob } from "@/lib/jobs";
-import { createJob, publishJob, updateDraftJob, updatePublishedJob } from "@/lib/jobs-data";
+import { formToObject, jurisdictionStateProblem, UUID_RE, validateDraft, validateJob } from "@/lib/jobs";
+import { createJob, publishJob, saveDraftProgress, updateDraftJob, updatePublishedJob } from "@/lib/jobs-data";
+import { check } from "@/lib/rate-limit";
 import { releaseFromJob } from "@/lib/job-changes-data";
 import { listText } from "@/lib/job-changes";
 import { acceptEngagement, applyToJob, claimJob, closeJob, inviteWorker, moveEngagement, moveEngagements } from "@/lib/engagements-data";
@@ -52,6 +53,35 @@ export async function saveJob(_prev: JobFormState, formData: FormData): Promise<
   }
   revalidatePath("/jobs");
   redirect(`/jobs/${id}`);
+}
+
+export type AutosaveResult =
+  | { ok: true; jobId: string; savedAt: string }
+  /** `incomplete`: nothing to save yet (title, type and place first); `limited`/`error`: try again later. */
+  | { ok: false; kind: "incomplete" | "limited" | "error"; reason: string };
+
+/**
+ * Saves the builder's progress as a draft (P0 3), from the first step on:
+ * what has no problem is kept, the rest waits for the final save's full
+ * check. Creates the draft on the first call and updates it after; never
+ * touches a published or paused job.
+ */
+export async function autosaveDraft(formData: FormData): Promise<AutosaveResult> {
+  const { orgId, userId } = await requireJobEditor();
+  if (!orgId) return { ok: false, kind: "error", reason: "No organization on this account." };
+  const verdict = await check("autosave", orgId);
+  if (verdict !== "ok") return { ok: false, kind: "limited", reason: verdict === "limited" ? "saving too often; it'll try again after your next change." : "saving is briefly unavailable; it'll try again after your next change." };
+  const d = validateDraft(formToObject(formData));
+  if (!d.ok) return { ok: false, kind: "incomplete", reason: "add a title, type and place first." };
+  if (!(await db().jurisdictionProfile.findUnique({ where: { id: d.draft.jurisdictionId }, select: { id: true } }))) {
+    return { ok: false, kind: "incomplete", reason: "pick a jurisdiction first." };
+  }
+  const jobId = String(formData.get("jobId") ?? "");
+  if (jobId && !UUID_RE.test(jobId)) return { ok: false, kind: "error", reason: "this job can't be found." };
+  const r = await saveDraftProgress(orgId, userId, jobId || null, d.draft);
+  if (!r) return { ok: false, kind: "error", reason: "only a draft saves as you go." };
+  if (r.created || r.changed.length) revalidatePath("/jobs");
+  return { ok: true, jobId: r.id, savedAt: new Date().toISOString() };
 }
 
 /** A hired worker leaves a job whose terms changed, within the release window (C4.3): no penalty. */

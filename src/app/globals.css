@@ -473,6 +473,108 @@ body {
   .page-narrow {
     @apply mx-auto w-full max-w-md px-4 py-10 sm:py-16;
   }
+
+  /* ---- Page templates (redesign §4.2.2, components/layout/Page.tsx) ----
+     The template owns the gutters, the clearance above the dock, the heading
+     slot and the panel; a page never sets a width. One column below 1024
+     (an aside follows the main column; an inspector isn't drawn, the row opens
+     its own route). Widths come from the role tokens. */
+  .tpl {
+    --tpl-gutter: 1rem;
+    --tpl-panel: 18rem;
+    --tpl-measure: var(--measure-content);
+    @apply mx-auto w-full pt-8 sm:pt-12;
+    padding-inline: var(--tpl-gutter);
+    padding-bottom: calc(var(--dock-clearance) + 2rem);
+    max-width: calc(var(--tpl-measure) + 2 * var(--tpl-gutter));
+  }
+  .tpl-head {
+    margin-bottom: var(--tpl-gap, 2.5rem);
+  }
+  .tpl-body {
+    display: grid;
+    gap: var(--tpl-gap, 2.5rem);
+  }
+  .tpl-main,
+  .tpl-panel {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: var(--tpl-gap, 2.5rem);
+  }
+  .tpl-panel {
+    gap: 1.5rem;
+  }
+  .tpl[data-template="reading"] {
+    --tpl-measure: var(--measure-reading);
+  }
+  .tpl[data-template="workspace"],
+  .tpl[data-template="listDetail"] {
+    --tpl-measure: var(--workspace-max);
+  }
+  .tpl[data-template="field"] {
+    --tpl-measure: var(--measure-content);
+  }
+  /* An inspector below its breakpoint: not drawn; the row's own route stands in. */
+  .tpl[data-panel="inspector"] > .tpl-body > .tpl-panel {
+    display: none;
+  }
+  .tpl[data-template="hero"] {
+    padding: 0;
+    max-width: none;
+  }
+  @media (width >= 40rem) {
+    .tpl {
+      --tpl-gutter: 1.5rem;
+    }
+  }
+  @media (width >= 64rem) {
+    .tpl {
+      padding-bottom: 3rem;
+    }
+    /* Asides sit beside the main column from 1024. */
+    .tpl[data-panel="aside"] {
+      max-width: calc(var(--tpl-measure) + var(--tpl-panel) + var(--tpl-gap, 2.5rem) + 2 * var(--tpl-gutter));
+    }
+    .tpl[data-panel="aside"] > .tpl-body {
+      grid-template-columns: minmax(0, var(--tpl-measure)) var(--tpl-panel);
+      align-items: start;
+    }
+    /* A record's facts and actions stay in view while the object scrolls. */
+    .tpl[data-template="record"] > .tpl-body > .tpl-panel {
+      position: sticky;
+      top: calc(var(--site-header-h) + 1rem);
+    }
+    /* The field page: the task and, beside it, the brief and map, at equal weight. */
+    .tpl[data-template="field"][data-panel="aside"] {
+      --tpl-panel: minmax(0, 1fr);
+      max-width: calc(2 * var(--measure-content) + var(--tpl-gap, 2.5rem) + 2 * var(--tpl-gutter));
+    }
+    .tpl[data-template="field"][data-panel="aside"] > .tpl-body {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+    /* Worker pages: the inspector from 1024. */
+    .tpl[data-panel="inspector"]:not([data-org]) > .tpl-body {
+      grid-template-columns: minmax(0, 1fr) var(--inspector-w);
+      align-items: start;
+    }
+    .tpl[data-panel="inspector"]:not([data-org]) > .tpl-body > .tpl-panel {
+      display: flex;
+    }
+  }
+  /* Organization and staff pages, beside the ~240px rail: the inspector from 1280,
+     so the table keeps about 720px (C1 round 2). */
+  @media (width >= 80rem) {
+    .tpl[data-panel="inspector"][data-org] > .tpl-body {
+      grid-template-columns: minmax(0, 1fr) var(--inspector-w);
+      align-items: start;
+    }
+    .tpl[data-panel="inspector"][data-org] > .tpl-body > .tpl-panel {
+      display: flex;
+      position: sticky;
+      top: calc(var(--site-header-h) + 1rem);
+    }
+  }
   .page-header {
     @apply flex flex-wrap items-end justify-between gap-3;
   }

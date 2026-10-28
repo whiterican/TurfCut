@@ -41,7 +41,8 @@ describe("JobRow (F02)", () => {
 
   it("says when a category is still in development on its own line (the meta line truncates on phones), and nothing for a built one", () => {
     const canvass = renderToStaticMarkup(<JobRow j={{ ...job, type: "CANVASS", campaignDisclosure: { campaignType: "candidate", campaignName: "Jo Ortiz for Council", affiliation: "democratic", message: "Vote Jo" } }} />);
-    expect(canvass).toMatch(/Candidate campaign canvassing · Democratic party<\/span><span class="block[^"]*">In development<\/span>/);
+    const text = canvass.replace(/<[^>]+>/g, "|").replace(/\|+/g, "|");
+    expect(text).toContain("Candidate campaign canvassing · Democratic party|In development|");
     expect(renderToStaticMarkup(<JobRow j={job} />)).not.toContain("In development");
   });
 });

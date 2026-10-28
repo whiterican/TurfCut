@@ -109,7 +109,7 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
   // Approved pay blocked on the worker's own payout setup carries the way to fix it, for the worker only (P0):
   // a link to the Payouts card on Earnings. The label needs to know whether a Stripe account was started.
   const payCta =
-    isWorker && pay?.state.status === "APPROVED" && readiness === "setup"
+    isWorker && pay?.state.status === "APPROVED" && pay.amountCents > 0 && readiness === "setup"
       ? payoutCta(readiness, !!(await db().worker.findUnique({ where: { id: s.engagement.workerId }, select: { stripeAccountId: true } }))?.stripeAccountId)
       : null;
   const steps = shiftProgress(

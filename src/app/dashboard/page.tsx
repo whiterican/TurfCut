@@ -349,12 +349,15 @@ async function EarningsCard({ workerId }: { workerId: string }) {
   // wherever payout is blocked). A button can't sit inside the NavCard link, so the card opens up: title link, words, action.
   if (t.onTheWay > 0 && payoutCta(readiness, !!me?.stripeAccountId)) {
     return (
-      <section className="card space-y-2" aria-label="Earnings">
-        <Link href="/earnings" className="group flex items-center justify-between font-semibold text-fg">
-          Earnings
-          <ChevronRight aria-hidden className="size-4 shrink-0 text-subtle transition-transform group-hover:translate-x-0.5" />
+      <section className="card space-y-3">
+        {/* Title and words stay one link (the same tap area as NavCard); only the action sits outside it. */}
+        <Link href="/earnings" className="group block">
+          <p className="flex items-center justify-between font-semibold text-fg">
+            Earnings
+            <ChevronRight aria-hidden className="size-4 shrink-0 text-subtle transition-transform group-hover:translate-x-0.5" />
+          </p>
+          <p className="text-muted-sm mt-1">{parts.join(" · ")}</p>
         </Link>
-        <p className="text-muted-sm">{parts.join(" · ")}</p>
         <PayoutSetupCta readiness={readiness} stripeAccountId={me?.stripeAccountId} />
       </section>
     );

@@ -1,5 +1,6 @@
 "use server";
 
+import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
@@ -56,8 +57,9 @@ export async function saveJob(_prev: JobFormState, formData: FormData): Promise<
 }
 
 export type AutosaveResult =
-  | { ok: true; jobId: string; savedAt: string }
-  /** `incomplete`: nothing to save yet (title, type and place first); `limited`/`error`: try again later. */
+  /** `waiting`: fields left out of this save because they have a problem (the status line says so). */
+  | { ok: true; jobId: string; savedAt: string; waiting: number }
+  /** `incomplete`: nothing to save yet (title, type and rule profile first); `limited`/`error`: try again later. */
   | { ok: false; kind: "incomplete" | "limited" | "error"; reason: string };
 
 /**
@@ -86,11 +88,18 @@ export async function autosaveDraft(formData: FormData): Promise<AutosaveResult>
     if (!UUID_RE.test(draftId)) return { ok: false, kind: "error", reason: "this job can't be found." };
     if (await db().job.findFirst({ where: { id: draftId, orgId }, select: { id: true } })) jobId = draftId;
   }
-  const r = await saveDraftProgress(orgId, userId, jobId || null, d.draft, jobId ? undefined : draftId || undefined);
+  let r: Awaited<ReturnType<typeof saveDraftProgress>>;
+  try {
+    r = await saveDraftProgress(orgId, userId, jobId || null, d.draft, jobId ? undefined : draftId || undefined);
+  } catch (e) {
+    // The builder's id already names a job outside this organization: not ours to resume, never created over.
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") return { ok: false, kind: "error", reason: "this job can't be found." };
+    throw e;
+  }
   if (!r) return { ok: false, kind: "error", reason: "only a draft saves as you go." };
   // No revalidatePath here: a revalidating action makes the router re-render the page at the address the
   // builder swapped in (the draft's edit page) and remount the form mid-edit. The final save revalidates.
-  return { ok: true, jobId: r.id, savedAt: new Date().toISOString() };
+  return { ok: true, jobId: r.id, savedAt: new Date().toISOString(), waiting: d.dropped.length };
 }
 
 /** A hired worker leaves a job whose terms changed, within the release window (C4.3): no penalty. */

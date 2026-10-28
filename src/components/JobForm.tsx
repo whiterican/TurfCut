@@ -18,7 +18,7 @@ const FIX = "Fix the highlighted fields.";
 
 /** Autosave (P0 3) runs on every step change and this long after the last edit; never on a keystroke. */
 const AUTOSAVE_IDLE_MS = 15_000;
-type SaveState = { kind: "idle" } | { kind: "saving" } | { kind: "saved"; at: Date } | { kind: "incomplete" | "error"; reason: string };
+type SaveState = { kind: "idle" } | { kind: "saving" } | { kind: "saved"; at: Date; waiting: number } | { kind: "incomplete" | "error"; reason: string };
 function saveWords(s: SaveState): string {
   switch (s.kind) {
     case "idle":
@@ -26,7 +26,8 @@ function saveWords(s: SaveState): string {
     case "saving":
       return "Saving draft…";
     case "saved":
-      return `Draft saved ${s.at.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`;
+      // Fields with a problem were left out of the save (an invalid rate is never saved): say so, rather than "saved" alone.
+      return `Draft saved ${s.at.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}${s.waiting ? ` · ${s.waiting === 1 ? "1 field waits" : `${s.waiting} fields wait`} for a fix` : ""}`;
     case "incomplete":
       return `Not saved yet: ${s.reason}`;
     case "error":
@@ -166,7 +167,7 @@ export function JobForm({
             setSavedId(r.jobId);
             window.history.replaceState(window.history.state, "", `/jobs/${r.jobId}/edit`);
           }
-          setSave({ kind: "saved", at: new Date(r.savedAt) });
+          setSave({ kind: "saved", at: new Date(r.savedAt), waiting: r.waiting });
         } else {
           // Nothing to save yet, or nothing that can be saved this way (the job went live elsewhere): no retry until something changes.
           if (r.kind !== "limited") lastSent.current = snapshot;

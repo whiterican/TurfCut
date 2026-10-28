@@ -30,7 +30,7 @@ import { correctionStep, supervisorStep, workerStep } from "../actions";
 import { CorrectEntry, EnterEntry } from "@/components/CorrectionForms";
 import { CORRECTABLE, correctionsByEvent } from "@/lib/corrections";
 import { reviewFinal, shiftPay } from "@/lib/pay-data";
-import { computeShiftPay, money, payoutReadiness, statusLabel } from "@/lib/pay";
+import { computeShiftPay, money, payoutCta, payoutReadiness, statusLabel } from "@/lib/pay";
 import { stripeProvider } from "@/lib/payout-provider";
 import { verifiedWork } from "@/lib/scorecard";
 import { Masthead } from "@/components/Masthead";
@@ -104,7 +104,14 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
   const pay = await shiftPay(s.id);
   // Amounts go to the worker and to the field team approving them.
   const seesPay = isWorker || canField;
-  const payLabel = pay ? statusLabel(pay.state.status, pay.amountCents, { payouts: payoutReadiness(stripeProvider().configured(), s.engagement.worker.payoutsEnabled) }).label : null;
+  const readiness = payoutReadiness(stripeProvider().configured(), s.engagement.worker.payoutsEnabled);
+  const payLabel = pay ? statusLabel(pay.state.status, pay.amountCents, { payouts: readiness }).label : null;
+  // Approved pay blocked on the worker's own payout setup carries the way to fix it, for the worker only (P0):
+  // a link to the Payouts card on Earnings. The label needs to know whether a Stripe account was started.
+  const payCta =
+    isWorker && pay?.state.status === "APPROVED" && readiness === "setup"
+      ? payoutCta(readiness, !!(await db().worker.findUnique({ where: { id: s.engagement.workerId }, select: { stripeAccountId: true } }))?.stripeAccountId)
+      : null;
   const steps = shiftProgress(
     f,
     pay
@@ -112,6 +119,7 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
           done: pay.state.status === "PAID",
           at: pay.state.paidAt ?? undefined,
           detail: seesPay ? `${money(pay.amountCents)} · ${payLabel}` : payLabel!,
+          action: payCta ? { label: payCta.label, href: "/earnings#payouts" } : undefined,
         }
       : st.closeout?.status === "REJECTED"
         ? { done: false, detail: "No pay recorded — the shift wasn't approved" }

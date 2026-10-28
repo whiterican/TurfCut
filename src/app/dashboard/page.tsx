@@ -18,8 +18,9 @@ import { redirect } from "next/navigation";
 import { workerPayTotals } from "@/lib/pay-data";
 import { OfflineBrief } from "@/components/OfflineBrief";
 import { briefPaths } from "@/lib/offline-brief-data";
-import { approvedPhrase, money, payoutReadiness } from "@/lib/pay";
+import { approvedPhrase, money, payoutCta, payoutReadiness } from "@/lib/pay";
 import { stripeProvider } from "@/lib/payout-provider";
+import { PayoutSetupCta } from "@/components/PayoutSetupCta";
 import { cookies } from "next/headers";
 import { loadSharing } from "@/lib/sharing-data";
 import { noteDismissedBy, RELATIONSHIP_PHRASE, SHARING_NOTE_COOKIE } from "@/lib/sharing";
@@ -334,15 +335,30 @@ async function WorkerBrief({ workerId, userId }: { workerId: string; userId: str
 
 /** The worker's pay at a glance (their own totals only). */
 async function EarningsCard({ workerId }: { workerId: string }) {
-  const [t, me] = await Promise.all([workerPayTotals(workerId), db().worker.findUnique({ where: { id: workerId }, select: { payoutsEnabled: true } })]);
+  const [t, me] = await Promise.all([workerPayTotals(workerId), db().worker.findUnique({ where: { id: workerId }, select: { payoutsEnabled: true, stripeAccountId: true } })]);
   // Approved money is "on the way" only once this worker can receive it (P0, same words as Earnings).
+  const readiness = payoutReadiness(stripeProvider().configured(), me?.payoutsEnabled);
   const parts = [
     `${money(t.paid)} paid`,
-    t.onTheWay ? `${money(t.onTheWay)} ${approvedPhrase(payoutReadiness(stripeProvider().configured(), me?.payoutsEnabled))}` : null,
+    t.onTheWay ? `${money(t.onTheWay)} ${approvedPhrase(readiness)}` : null,
     t.awaiting ? `${money(t.awaiting)} awaiting approval` : null,
     t.stopped ? `${money(t.stopped)} on hold or disputed` : null,
   ].filter(Boolean);
   const any = t.paid || t.onTheWay || t.awaiting || t.stopped;
+  // Approved pay blocked on payout setup: the card says so and carries the way to fix it (P0: "Set up payout"
+  // wherever payout is blocked). A button can't sit inside the NavCard link, so the card opens up: title link, words, action.
+  if (t.onTheWay > 0 && payoutCta(readiness, !!me?.stripeAccountId)) {
+    return (
+      <section className="card space-y-2" aria-label="Earnings">
+        <Link href="/earnings" className="group flex items-center justify-between font-semibold text-fg">
+          Earnings
+          <ChevronRight aria-hidden className="size-4 shrink-0 text-subtle transition-transform group-hover:translate-x-0.5" />
+        </Link>
+        <p className="text-muted-sm">{parts.join(" · ")}</p>
+        <PayoutSetupCta readiness={readiness} stripeAccountId={me?.stripeAccountId} />
+      </section>
+    );
+  }
   return <NavCard href="/earnings" title="Earnings" body={any ? parts.join(" · ") : "Your pay shows up here once a supervisor approves a shift."} />;
 }
 

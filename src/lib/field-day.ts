@@ -277,10 +277,12 @@ export interface ProgressStep {
   detail: string;
   /** When the step happened, for the browser to show in local time. */
   at?: Date;
+  /** The one thing the viewer can do to move the step along (a link), when there is one. */
+  action?: { label: string; href: string };
 }
 
-/** `payout`: the pay step as the caller may show it (lib/pay-data shiftPay). */
-export function shiftProgress(s: ShiftFacts, payout?: { done: boolean; detail: string; at?: Date }): ProgressStep[] {
+/** `payout`: the pay step as the caller may show it (lib/pay-data shiftPay), with the way to unblock it when there is one. */
+export function shiftProgress(s: ShiftFacts, payout?: { done: boolean; detail: string; at?: Date; action?: ProgressStep["action"] }): ProgressStep[] {
   const st = shiftState(s);
   const petition = s.workType === "PETITION";
   const returned = st.checkedOutAt !== null && st.packetsOut.length === 0;
@@ -326,7 +328,7 @@ export function shiftProgress(s: ShiftFacts, payout?: { done: boolean; detail: s
             ? "Return or keep your packets, then check out"
             : "Check out",
     },
-    { key: "payout", label: "Payout", done: payout?.done ?? false, at: payout?.at, detail: payout?.detail ?? "Paid in the app after your supervisor approves the shift" },
+    { key: "payout", label: "Payout", done: payout?.done ?? false, at: payout?.at, detail: payout?.detail ?? "Paid in the app after your supervisor approves the shift", ...(payout?.action ? { action: payout.action } : {}) },
   ];
   let current = false;
   return raw.map(({ done, ...step }) => {

@@ -12,6 +12,7 @@ import { payoutSetup } from "@/lib/pay-data";
 import { stripeProvider } from "@/lib/payout-provider";
 import { EmptyArt } from "@/components/EmptyState";
 import { Masthead } from "@/components/Masthead";
+import { PayoutSetupCta } from "@/components/PayoutSetupCta";
 
 const SETUP_NOTE: Record<string, string> = {
   done: "Thanks — Stripe is checking your details. This can take a minute.",
@@ -25,7 +26,8 @@ type PayoutState = Awaited<ReturnType<typeof payoutSetup>>;
 async function PayoutSetup({ w, note }: { w: PayoutState; note: string | null }) {
   const provider = stripeProvider();
   return (
-    <section className="card space-y-3">
+    // `#payouts`: where every "Set up payouts" link on Earnings, Today and a shift page lands (scroll margin clears the header).
+    <section id="payouts" className="card scroll-mt-24 space-y-3">
       <div className="flex items-start justify-between gap-3">
         <div className="space-y-1">
           <p className="font-semibold text-fg">Payouts</p>
@@ -170,6 +172,8 @@ export default async function EarningsPage({ searchParams }: { searchParams: Pro
           <span>
             <span className="block font-bold">{money(totals.onTheWay)}</span>
             <span className="hero-muted">{onTheWay}</span>
+            {/* The way to unblock it, right beside the blocked amount: a link down to the Payouts card and its button (one primary per screen). */}
+            {totals.onTheWay > 0 && <PayoutSetupCta readiness={payouts} stripeAccountId={w.stripeAccountId} href="#payouts" className="link mt-1 block w-fit text-sm" />}
           </span>
           <span>
             <span className="block font-bold">{money(totals.awaiting)}</span>
@@ -202,6 +206,12 @@ export default async function EarningsPage({ searchParams }: { searchParams: Pro
             </div>
             <p className="text-muted-sm">
               {money(c.totals.paid)} paid · {money(c.totals.onTheWay)} {approvedPhrase(payouts)} · {money(c.totals.awaiting)} awaiting approval
+              {c.totals.onTheWay > 0 && payouts === "setup" && (
+                <>
+                  {" · "}
+                  <PayoutSetupCta readiness={payouts} stripeAccountId={w.stripeAccountId} href="#payouts" className="link" />
+                </>
+              )}
             </p>
             <ul className="list-card">
               {c.shifts.map((s) => (

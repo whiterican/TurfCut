@@ -5,6 +5,7 @@ import {
   selfApprovalProblem,
   statusLabel,
   payoutReadiness,
+  payoutCta,
   approvedPhrase,
   disputeProblem,
   lineActionProblem,
@@ -321,6 +322,13 @@ describe("labels", () => {
     expect(payoutReadiness(true, true)).toBe("enabled");
     expect(approvedPhrase("off")).toBe("approved, sent once in-app payouts are switched on");
     expect(approvedPhrase("enabled")).toBe("on the way");
+  });
+
+  it("offers payout setup only when the worker can do something about blocked pay (P0: set up payout wherever payout is blocked)", () => {
+    expect(payoutCta("setup", false)).toEqual({ label: "Set up payouts" });
+    expect(payoutCta("setup", true)).toEqual({ label: "Finish setup with Stripe" });
+    expect(payoutCta("off", false)).toBeNull(); // nothing to set up: in-app payouts aren't switched on
+    expect(payoutCta("enabled", true)).toBeNull();
   });
 });
 

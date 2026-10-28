@@ -237,6 +237,16 @@ describe("progress timeline", () => {
     expect(shiftProgress(s)[3]).toMatchObject({ state: "done", detail: "Not approved: Sheets missing" });
   });
 
+  it("carries the pay step's way to unblock it only when the caller gives one", () => {
+    const s = shift([ev("CHECK_IN", 0), ev("CHECK_OUT", 240)], {
+      validations: [{ workEventId: null, status: "APPROVED", reason: null, createdAt: at(250) }],
+    });
+    const action = { label: "Set up payouts", href: "/earnings#payouts" };
+    expect(shiftProgress(s, { done: false, detail: "$60.00 · Approved · payout setup needed", action })[4]).toMatchObject({ key: "payout", action });
+    expect(shiftProgress(s, { done: false, detail: "$60.00 · Approved · in the next pay run" })[4]).not.toHaveProperty("action");
+    expect(shiftProgress(s)[4]).not.toHaveProperty("action");
+  });
+
   it("tracks packets in and out", () => {
     const st = shiftState(shift([ev("PACKET_PICKUP", 1, { packetId: "A" }), ev("PACKET_PICKUP", 2, { packetId: "B" }), ev("PACKET_RETURN", 3, { packetId: "A" })]));
     expect(st.packetsOut).toEqual(["B"]);

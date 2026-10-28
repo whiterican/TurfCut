@@ -330,6 +330,17 @@ export function approvedPhrase(r: PayoutReadiness): string {
 }
 
 /**
+ * The one thing a worker can do about approved pay that can't move: set
+ * payouts up (or finish doing so). Nothing when there is nothing to set up
+ * (in-app payouts off) or it's already done, so no screen ever offers a
+ * button that leads nowhere. The pay-state words are unchanged by this.
+ */
+export function payoutCta(r: PayoutReadiness, hasAccount: boolean): { label: string } | null {
+  if (r !== "setup") return null;
+  return { label: hasAccount ? "Finish setup with Stripe" : "Set up payouts" };
+}
+
+/**
  * The words and status for a pay line's state. "Approved" says only what is
  * known: with payout readiness known, it says whether the money can move and
  * why not; without it, it promises nothing.

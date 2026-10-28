@@ -2,6 +2,7 @@ import Link from "next/link";
 import { BadgeCheck } from "lucide-react";
 import { day } from "@/components/DateRangeChip";
 import { cardAffiliation, jobDiscoveryLabel, payShort, readDisclosure } from "@/lib/jobs";
+import { CATEGORY_STATUS_LABEL, categoryStatusOf } from "@/lib/job-categories";
 import type { FeedJob } from "@/components/JobFeedCard";
 import type { Status } from "@/lib/status";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -22,6 +23,8 @@ export function JobRow({ j, status }: { j: FeedJob; /** A status chip for the vi
   const dates = j.startsAt || j.endsAt ? `${day(j.startsAt)} – ${day(j.endsAt)}` : "Dates to be set";
   const campaign = readDisclosure(j.campaignDisclosure);
   const candidate = j.type === "CANVASS" && campaign?.campaignType === "candidate" ? campaign.campaignName : null;
+  // "in development" after the category, so a row never presents an unfinished category as launched.
+  const stage = CATEGORY_STATUS_LABEL[categoryStatusOf(j.type, j.campaignDisclosure)];
   return (
     <Link transitionTypes={["nav-forward"]} href={`/jobs/${j.id}`} className="job-row">
       <span className="min-w-0 flex-1">
@@ -41,6 +44,7 @@ export function JobRow({ j, status }: { j: FeedJob; /** A status chip for the vi
         {candidate && <span className="block truncate text-xs font-medium text-fg">Candidate: {candidate}</span>}
         <span className="block truncate text-xs text-muted">
           {dates} · {aff ? `${type} · ${aff.label}` : type}
+          {stage && ` · ${stage.toLowerCase()}`}
         </span>
       </span>
       <span className="flex shrink-0 flex-col items-end gap-1">

@@ -3,6 +3,8 @@ import { readLaunch } from "@/lib/job-launch";
 import { readTools, toolsText } from "@/lib/job-tools";
 import { CAMPAIGN_TYPES, issueLabel } from "@/lib/political-fit";
 import { plural } from "@/lib/format";
+import { categoryStatusOf } from "@/lib/job-categories";
+import { CategoryStatusTag } from "@/components/CategoryStatusTag";
 import { Row } from "@/components/Row";
 
 const day = (d: Date | null) =>
@@ -70,6 +72,7 @@ export function JobCard({
             <span className="tag">{CAMPAIGN_TYPES.find((c) => c.value === d.campaignType)?.label ?? d.campaignType}</span>
             {/* Coloured as on the job feed: the campaign's own declared affiliation. */}
             <span className={aff ? `badge-party badge-party-${aff.affiliation}` : "tag"}>{affiliationLabel(d.affiliation)}</span>
+            <CategoryStatusTag status={categoryStatusOf(job.type, job.campaignDisclosure)} />
           </p>
           {(d.campaignName || job.measureIds.length > 0) && (
             <p className="text-muted-sm">{[d.campaignName, ...job.measureIds].filter(Boolean).join(" · ")}</p>

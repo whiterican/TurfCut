@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { BadgeCheck, ChevronRight } from "lucide-react";
 import { DateRangeChip } from "@/components/DateRangeChip";
+import { CategoryStatusTag } from "@/components/CategoryStatusTag";
+import { categoryStatusOf } from "@/lib/job-categories";
 import { cardAffiliation, jobDiscoveryLabel, payText, readDisclosure } from "@/lib/jobs";
 import type { CompensationMethod, JobType } from "@prisma/client";
 
@@ -76,6 +78,7 @@ export function JobFeedCard({ j }: { j: FeedJob }) {
         ) : (
           <span className="tag">{type}</span>
         )}
+        <CategoryStatusTag status={categoryStatusOf(j.type, j.campaignDisclosure)} />
       </span>
       {/* Pay and the way in share the last line at every width. The whole card is the link, so the
           way in is a quiet label, not a filled button repeated on every card (one primary per view). */}

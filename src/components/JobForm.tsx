@@ -3,6 +3,7 @@
 import { startTransition, useActionState, useEffect, useRef, useState } from "react";
 import { saveJob, type JobFormState } from "@/app/jobs/actions";
 import { AFFILIATIONS, affiliationLabel, COMPENSATION_METHODS, formToObject, HIRING_MODES, JOB_TYPES, validateJob } from "@/lib/jobs";
+import { PLANNED_CATEGORIES } from "@/lib/job-categories";
 import { BUILDER_STEPS, errorsForStep, firstStepWithErrors, REVIEW_STEP, stepOfField } from "@/lib/job-builder";
 import { LAUNCH_MODES, readLaunch, validateLaunch } from "@/lib/job-launch";
 import { CANVASS_APPS } from "@/lib/job-tools";
@@ -191,6 +192,8 @@ export function JobForm({
           <span className="label">Type</span>
           <select name="type" className="field" defaultValue={d("type", "PETITION")} {...describe("type")}>
             {JOB_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+            {/* What's coming, visible but not postable: a planned category is never a job type. */}
+            {PLANNED_CATEGORIES.map((c) => <option key={c.id} value="" disabled>{c.label} (planned)</option>)}
           </select>
           {err("type")}
         </label>
@@ -370,6 +373,7 @@ export function JobForm({
             {CAMPAIGN_TYPES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
           </select>
           {err("campaignType")}
+          <span className="text-hint block">Candidate campaign canvassing is in development: a candidate job can be posted, and workers see it tagged so until its own tools launch.</span>
         </label>
         <label className="space-y-1.5">
           <span className="label">Affiliation</span>

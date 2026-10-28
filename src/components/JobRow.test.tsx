@@ -38,4 +38,10 @@ describe("JobRow (F02)", () => {
     expect(canvass).toContain("Candidate: Jo Ortiz for Council");
     expect(canvass.indexOf("Candidate: Jo Ortiz")).toBeLessThan(canvass.indexOf("Candidate campaign canvassing · Democratic party"));
   });
+
+  it("says when a category is still in development, and nothing for a built one", () => {
+    const canvass = renderToStaticMarkup(<JobRow j={{ ...job, type: "CANVASS", campaignDisclosure: { campaignType: "candidate", campaignName: "Jo Ortiz for Council", affiliation: "democratic", message: "Vote Jo" } }} />);
+    expect(canvass).toContain("Candidate campaign canvassing · Democratic party · in development");
+    expect(renderToStaticMarkup(<JobRow j={job} />)).not.toContain("in development");
+  });
 });

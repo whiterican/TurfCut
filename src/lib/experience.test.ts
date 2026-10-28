@@ -151,6 +151,9 @@ describe("turf: any of urban, suburban and rural (founder, 2026-10-28)", () => {
     expect(turfLabel("")).toBeNull();
     const bad = validateExperience({ ...fullRecord, turfType: ["urban", "lunar"] }, today);
     expect(!bad.ok && bad.errors.turfType).toBeTruthy();
+    const notText = validateExperience({ ...fullRecord, turfType: ["urban", 1] }, today);
+    expect(!notText.ok && notText.errors.turfType).toBeTruthy();
+    expect(validateExperience({ ...fullRecord, turfType: " , " }, today)).toMatchObject({ ok: true, value: { turfType: null } });
     // A JSON client may still send one string, or a comma-joined one.
     expect(validateExperience({ ...fullRecord, turfType: "suburban,rural" }, today)).toMatchObject({ ok: true, value: { turfType: "suburban,rural" } });
   });

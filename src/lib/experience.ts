@@ -166,8 +166,8 @@ export function validateExperience(
   const countyOrDistrict = optionalText("countyOrDistrict", 100, "County or district");
   // Any of the three: the form sends the key once per ticked box (a list), a JSON client one string or a list.
   const turfRaw = raw.turfType;
-  const turfPicks = (Array.isArray(turfRaw) ? turfRaw : typeof turfRaw === "string" ? turfRaw.split(",") : [])
-    .map((v) => (typeof v === "string" ? v.trim() : ""))
+  const turfPicks = (Array.isArray(turfRaw) ? turfRaw : typeof turfRaw === "string" ? turfRaw.split(",") : turfRaw == null ? [] : [turfRaw])
+    .map((v) => (typeof v === "string" ? v.trim() : "\u0000")) // a non-string item is an unknown value, never dropped quietly
     .filter(Boolean);
   if (turfPicks.some((v) => !(TURF_TYPES as readonly string[]).includes(v))) errors.turfType = "Pick any of urban, suburban or rural.";
   const turfType = turfPicks.length ? TURF_TYPES.filter((t) => turfPicks.includes(t)).join(",") : null;

@@ -427,7 +427,7 @@ async function WorkerShifts({ engagementId, workerId, jobId }: { engagementId: s
     </div>
   ) : (
     <div className="space-y-2">
-      <p className="text-muted-sm">You&apos;re hired. The organization will schedule your shifts or post open ones to take — they&apos;ll appear here and under Shifts.</p>
+      <p className="text-muted-sm">You&apos;re hired. The organization will schedule your shifts or post open ones to take — they&apos;ll appear here and in My schedule.</p>
       {seats}
     </div>
   );

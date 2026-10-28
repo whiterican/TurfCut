@@ -194,7 +194,7 @@ describe("mockup surfaces", () => {
       expect(ratio(th["on-accent"], th.accent)).toBeGreaterThanOrEqual(7);
       expect(ratio(mix(th["on-accent"], 0.88, th.accent), th.accent)).toBeGreaterThanOrEqual(7);
     }
-    // The live shift card keeps the eggplant canvas (the chip says "live").
+    // The live shift card keeps the hero canvas (the chip says "live"): eggplant by day, cream by night.
     expect(css).toMatch(/\.hero-card-accent \{[^}]*?background: var\(--hero\);/);
     expect(css).toMatch(/\.badge-live \{[^}]*?color: var\(--on-accent\);/);
   });
@@ -387,7 +387,7 @@ describe("forest ink is for what is live and the one primary action (G1)", () =>
     }
   });
   it("by night a chosen tile has a light edge as well as its fill (the fill alone is under 3:1)", () => {
-    expect(css).toMatch(/\.dark :is\(\.tab\[aria-current="page"\][^{]*\{\s*box-shadow: inset 0 0 0 1px var\(--muted\);/);
+    expect(css).toMatch(/\.dark :is\(\.tab\[aria-current\][^{]*\{\s*box-shadow: inset 0 0 0 1px var\(--muted\);/);
     expect(ratio(dark.muted, dark.surface)).toBeGreaterThanOrEqual(3);
   });
   it("the custom switch is the switch colour, not the primary action's green", () => {
@@ -431,6 +431,20 @@ describe("forest ink is for what is live and the one primary action (G1)", () =>
       expect(ratio(th["rail-active-fg"], th["rail-active-bg"])).toBeGreaterThanOrEqual(7);
     }
   });
+  it("by night the primary object is a cream card that stands out from the eggplant shell (v4 hybrid)", () => {
+    expect(ratio(dark.hero, dark.bg)).toBeGreaterThanOrEqual(7);
+    expect(ratio(dark.hero, dark.surface)).toBeGreaterThanOrEqual(7);
+    // Your own chat bubbles stay eggplant by night, with the ring in their own ink.
+    expect(css).toMatch(/\.bubble-mine \{[^}]*?background: var\(--bubble-mine\);/);
+    for (const th of [light, dark, sun]) expect(ratio(th["on-bubble-mine"], th["bubble-mine"])).toBeGreaterThanOrEqual(7);
+    expect(dark["bubble-mine"]).not.toBe(dark.hero);
+    expect(css).toMatch(/\.bubble-mine \* \{\s*--focus: currentColor;/);
+    expect(ratio(dark["on-solid"], dark.solid)).toBeGreaterThanOrEqual(7);
+  });
+  it("the current Jobs view stands out from the switch's track (≥ 1.5:1, like the dock)", () => {
+    expect(css).toMatch(/\.segmented \{[^}]*?background: var\(--surface\);/);
+    for (const th of [light, dark]) expect(ratio(th["tab-active-bg"], th.surface)).toBeGreaterThanOrEqual(1.5);
+  });
   it("the keyboard ring stays visible inside the eggplant rail and hero cards (every theme)", () => {
     expect(css).toMatch(/\.org-rail \* \{\s*--focus: var\(--rail-fg\);/);
     expect(css).toMatch(/\.hero-card:not\(\.hero-card-quiet\) \* \{\s*--focus: var\(--hero-fg\);/);
@@ -441,7 +455,7 @@ describe("forest ink is for what is live and the one primary action (G1)", () =>
   });
   it("the rail and the desktop top nav mark the current page with an eggplant tile, not a side stripe", () => {
     expect(css).toMatch(/\.rail-link\[aria-current="page"\] \{[^}]*?background: var\(--rail-active-bg\);/);
-    expect(css).toMatch(/\.topnav-link\[aria-current="page"\] \{[^}]*?background: var\(--tab-active-bg\);/);
+    expect(css).toMatch(/\.topnav-link\[aria-current\] \{[^}]*?background: var\(--tab-active-bg\);/);
     expect(css).not.toMatch(/inset 3px 0 0/);
   });
 });

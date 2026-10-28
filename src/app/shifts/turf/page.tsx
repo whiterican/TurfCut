@@ -21,7 +21,7 @@ export default async function MyTurfPage() {
   return (
     <main className="page max-w-2xl">
       <Masthead title="My turf" meta="Turf each campaign assigned you, or the area you marked for the day — plus your pins.">
-        <Link transitionTypes={["nav-back"]} href="/shifts" className="btn-ghost"><ChevronLeft aria-hidden className="size-4 shrink-0" />My shifts</Link>
+        <Link transitionTypes={["nav-back"]} href="/shifts" className="btn-ghost"><ChevronLeft aria-hidden className="size-4 shrink-0" />My schedule</Link>
       </Masthead>
 
       {shifts.length === 0 ? (

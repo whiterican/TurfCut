@@ -82,14 +82,21 @@ export function TabIcon({ tab }: { tab: NavTab }) {
   return <Icon of={iconFor(tab)} className="tab-icon" />;
 }
 
+/** The current tab is "page" only on its own page; under it (a job, /feed under Home, /shifts under Jobs) it is the current section. */
+function currentAttr(href: string, current: string | null | undefined, pathname: string | null): "page" | "true" | undefined {
+  if (href !== current) return undefined;
+  return pathname === href ? "page" : "true";
+}
+
 /** Desktop: links in the top bar. */
 export function TopNav({ tabs }: { tabs: NavTab[] }) {
-  const current = activeTab(tabs, usePathname());
+  const pathname = usePathname();
+  const current = activeTab(tabs, pathname);
   const count = useUnreadCount();
   return (
     <nav aria-label="Main" className="hidden items-center gap-1 lg:flex">
       {tabs.map((t) => (
-        <Link key={t.href} href={t.href} className="topnav-link inline-flex items-center gap-1.5" aria-current={t.href === current ? "page" : undefined}>
+        <Link key={t.href} href={t.href} className="topnav-link inline-flex items-center gap-1.5" aria-current={currentAttr(t.href, current, pathname)}>
           <Icon of={iconFor(t)} className="size-4" />
           {t.label}
           {t.href === MESSAGES_HREF && <Badge count={count} />}
@@ -102,7 +109,8 @@ export function TopNav({ tabs }: { tabs: NavTab[] }) {
 
 /** Phone and tablet: a floating bottom tab bar that tucks away on scroll; a tinted icon marks the current tab. */
 export function TabBar({ tabs }: { tabs: NavTab[] }) {
-  const current = activeTab(tabs, usePathname());
+  const pathname = usePathname();
+  const current = activeTab(tabs, pathname);
   const count = useUnreadCount();
   const tucked = useTuckOnScroll();
   if (tabs.length === 0) return null;
@@ -110,7 +118,7 @@ export function TabBar({ tabs }: { tabs: NavTab[] }) {
     <nav aria-label="Main" className="tabbar" data-tucked={tucked || undefined}>
       <div className="mx-auto flex max-w-md">
         {tabs.map((t) => (
-          <Link key={t.href} href={t.href} className="tab" aria-current={t.href === current ? "page" : undefined}>
+          <Link key={t.href} href={t.href} className="tab" aria-current={currentAttr(t.href, current, pathname)}>
             <Icon of={iconFor(t)} className="tab-icon" />
             {t.label}
             {t.href === MESSAGES_HREF && <Badge count={count} />}
@@ -242,7 +250,7 @@ export function OrgTabBar({ tabs, more }: { tabs: NavTab[]; more: NavTab[] }) {
       <nav aria-label="Main" className="tabbar" data-tucked={tucked || undefined}>
         <div className="mx-auto flex max-w-md">
           {tabs.map((t) => (
-            <Link key={t.href} href={t.href} className="tab" aria-current={t.href === current ? "page" : undefined}>
+            <Link key={t.href} href={t.href} className="tab" aria-current={currentAttr(t.href, current, pathname)}>
               <Icon of={iconFor(t)} className="tab-icon" />
               {t.label}
               {t.href === MESSAGES_HREF && <Badge count={count} />}

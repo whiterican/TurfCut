@@ -12,7 +12,7 @@ export default function DashboardError({ retry }: { error: Error & { digest?: st
   const kind = useViewerKind();
   const copy =
     kind === "worker"
-      ? { title: "Today didn't load", body: "Check your connection and try again. Your shifts and pay are unchanged.", href: "/shifts", label: "My shifts" }
+      ? { title: "Today didn't load", body: "Check your connection and try again. Your shifts and pay are unchanged.", href: "/shifts", label: "My schedule" }
       : kind === "org"
         ? { title: "Operations didn't load", body: "Something went wrong loading your organization's overview. Nothing was changed; try again.", href: "/jobs", label: "Jobs" }
         : { title: "This page didn't load", body: "Something went wrong on our side. Nothing was changed; try again.", href: "/settings", label: "Settings" };

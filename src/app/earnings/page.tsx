@@ -190,7 +190,7 @@ export default async function EarningsPage({ searchParams }: { searchParams: Pro
           <EmptyArt kind="earnings" />
           <p className="empty-state-title">No pay yet</p>
           <p className="empty-state-body">Pay shows up here as soon as a supervisor approves one of your shifts, with how it was worked out.</p>
-          <Link href="/shifts" className="btn-primary mt-4">My shifts</Link>
+          <Link href="/shifts" className="btn-primary mt-4">My schedule</Link>
         </div>
       ) : (
         campaigns.map((c) => (

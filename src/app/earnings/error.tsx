@@ -11,7 +11,7 @@ export default function EarningsError({ retry }: { error: Error; retry: () => vo
         <p className="empty-state-body">Check your connection and try again. Nothing about your pay has changed.</p>
         <div className="mt-4 flex justify-center gap-2">
           <button className="btn-primary" onClick={() => retry()}>Try again</button>
-          <Link href="/shifts" className="btn-secondary">My shifts</Link>
+          <Link href="/shifts" className="btn-secondary">My schedule</Link>
         </div>
       </div>
     </main>

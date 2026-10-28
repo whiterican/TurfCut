@@ -170,7 +170,7 @@ async function OpenSeats({ workerId }: { workerId: string }) {
     <Link transitionTypes={["nav-forward"]} href="/shifts#open-shifts" className="card flex items-center justify-between gap-3 transition hover:border-[var(--border-strong)]">
       <span className="min-w-0">
         <span className="block font-bold text-fg">{n === 1 ? "1 open shift" : `${n} open shifts`} on your jobs</span>
-        <span className="text-muted-sm block">First come, first served. Take a seat under Shifts.</span>
+        <span className="text-muted-sm block">First come, first served. Take a seat under Jobs › My schedule.</span>
       </span>
       <span className="badge-accent">Open</span>
     </Link>

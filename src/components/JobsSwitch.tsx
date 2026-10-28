@@ -6,7 +6,7 @@ import Link from "next/link";
  */
 export function JobsSwitch({ current }: { current: "find" | "schedule" }) {
   return (
-    <nav aria-label="Jobs" className="segmented">
+    <nav aria-label="Jobs views" className="segmented">
       <Link href="/jobs" aria-current={current === "find" ? "page" : undefined}>
         Find work
       </Link>

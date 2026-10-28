@@ -102,6 +102,8 @@
   --on-primary: #fbf7f0;
   --secondary: #fbf7f0;
   --secondary-border: #7f7688;
+  --bubble-mine: #281539;
+  --on-bubble-mine: #fbf7f0;
   --hero: #281539;
   --hero-fg: #f6f1e6;
   --hero-muted: #d8cce4;
@@ -151,6 +153,8 @@
   --secondary-border: #8f7da6;
   /* The primary object by night is cream (v4 hybrid): ink type on paper, the
      deep eggplant shell and plum secondary surfaces around it. */
+  --bubble-mine: #4a3365;
+  --on-bubble-mine: #f6f1e6;
   --hero: #fbf7f0;
   --hero-fg: #1b1422;
   --hero-muted: #4a4254;
@@ -199,6 +203,8 @@
   --cut: #164b38;
   --secondary: #ffffff;
   --secondary-border: #000000;
+  --bubble-mine: #000000;
+  --on-bubble-mine: #ffffff;
   --hero: #000000;
   --hero-fg: #ffffff;
   --hero-muted: #ebebeb;
@@ -455,7 +461,7 @@ body {
     background: var(--card-sheen), var(--card-bg);
     box-shadow: var(--card-edge), var(--shadow-depth);
   }
-  /* The feature card (deep eggplant by day, raised eggplant by night) with a soft-green cut in the corner. */
+  /* The feature card (deep eggplant by day, cream with ink type by night) with a soft-green cut in the corner. */
   .hero-card {
     @apply relative overflow-hidden rounded-[var(--radius-card)] p-5 sm:p-6;
     background: var(--hero-bg);
@@ -475,7 +481,7 @@ body {
     clip-path: polygon(0 60%, 100% 0, 100% 100%);
   }
 
-  /* A live shift (checked in, breaks included) keeps the eggplant canvas: the hero is
+  /* A live shift (checked in, breaks included) keeps the hero canvas (eggplant by day, cream by night): the hero is
      the brand's surface. "Live" is said by the forest-ink On shift chip and the words,
      not by repainting the card (G1 review: green stays restricted). */
   .hero-card-accent {
@@ -573,7 +579,7 @@ body {
     max-width: calc(100% - 4rem); /* clear the corner cut */
   }
   .hero-title {
-    @apply font-display max-w-[85%] text-[1.5rem] leading-[1.12] font-semibold tracking-[-0.015em] sm:text-[2.125rem];
+    @apply font-display max-w-[85%] break-words text-[1.5rem] leading-[1.12] font-semibold tracking-[-0.015em] sm:text-[2.125rem];
     font-optical-sizing: auto;
     text-wrap: balance;
   }
@@ -970,7 +976,7 @@ body {
     letter-spacing: 0.01em;
   }
   /* The tab you're on: an eggplant tile. */
-  .tab[aria-current="page"] {
+  .tab[aria-current] {
     @apply font-bold;
     /* An eggplant tile with rounded corners (not a circle, so six labels
        still fit), cream icon and label. It glides to the next tab on
@@ -990,7 +996,7 @@ body {
   .tab:focus-visible {
     z-index: 1;
   }
-  .tab[aria-current="page"] .tab-icon {
+  .tab[aria-current] .tab-icon {
     color: var(--tab-active-fg);
   }
   /* Icons inside buttons: sized to the text, never the hit target. */
@@ -1008,12 +1014,12 @@ body {
      segmented control, the current one an eggplant tile like the dock's. */
   .segmented {
     @apply flex gap-1 rounded-2xl border border-border p-1;
-    background: var(--surface-2);
+    background: var(--surface);
   }
   .segmented > a {
     @apply flex min-h-11 flex-1 items-center justify-center rounded-xl px-3 text-sm font-semibold text-muted transition hover:text-fg;
   }
-  .segmented > a[aria-current="page"] {
+  .segmented > a[aria-current] {
     background: var(--tab-active-bg);
     color: var(--tab-active-fg);
   }
@@ -1198,7 +1204,7 @@ body {
   }
   /* By night the eggplant tile is only 1.6:1 from the bar and its cream label is the
      same as the others', so the current tab and every chosen chip get a light edge too. */
-  .dark :is(.tab[aria-current="page"], .chip:has(input:checked), .chip[aria-current="page"], .filter-chip-on, .step-current, .topnav-link[aria-current="page"]) {
+  .dark :is(.tab[aria-current], .chip:has(input:checked), .chip[aria-current="page"], .filter-chip-on, .step-current, .topnav-link[aria-current]) {
     box-shadow: inset 0 0 0 1px var(--muted);
   }
   .rail-link[aria-current="page"] {
@@ -1314,7 +1320,7 @@ body {
   .topnav-link {
     @apply rounded-lg px-3 py-2 text-sm font-medium text-muted transition hover:bg-surface-2 hover:text-fg;
   }
-  .topnav-link[aria-current="page"] {
+  .topnav-link[aria-current] {
     @apply font-semibold;
     background: var(--tab-active-bg);
     color: var(--tab-active-fg);
@@ -1351,11 +1357,17 @@ body {
   .bubble-theirs {
     @apply rounded-bl-md bg-surface-2 text-fg;
   }
-  /* Your own messages: the eggplant feature colour with paper text. */
+  /* Your own messages: their own token (--bubble-mine), deep eggplant with
+     paper text by day and the raised eggplant tile by night, never the hero's
+     cream (that is for the one primary object). The keyboard ring takes the
+     bubble's ink. */
   .bubble-mine {
     @apply rounded-br-md;
-    background: var(--hero);
-    color: var(--hero-fg);
+    background: var(--bubble-mine);
+    color: var(--on-bubble-mine);
+  }
+  .bubble-mine * {
+    --focus: currentColor;
   }
   .bubble-mine .link {
     color: inherit;
@@ -1559,6 +1571,12 @@ body {
   body:has(.composer-input:focus) .composer {
     bottom: 0;
   }
+  /* Any text field on a touch phone opens the keyboard: the dock steps aside
+     so the field being typed in is never behind it (on a 320px phone the
+     keyboard leaves about 230px, too little for the header, a field and the dock). */
+  body:has(:is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="button"], [type="submit"], [type="file"]), textarea, select, [contenteditable="true"]):focus) .tabbar {
+    display: none;
+  }
 }
 
 /* Scrolling down tucks the tab bar below the screen; scrolling up brings it
@@ -1596,6 +1614,16 @@ summary.list-none::-webkit-details-marker {
   html:not(:has(.thread-top)) {
     scroll-padding-top: 5rem;
   }
+  /* ...nor under the floating dock: a field the keyboard or Tab moves to is
+     scrolled clear of it (it measured 97% hidden on the shift page's packet
+     form, and fully hidden on Availability at 320px). */
+  html:has(.tabbar):not(:has(.thread-top)) {
+    scroll-padding-bottom: calc(6rem + env(safe-area-inset-bottom));
+  }
+  /* Short centred pages (welcome, invites) end above the dock too. */
+  body:has(.tabbar) .page-narrow {
+    padding-bottom: calc(7rem + env(safe-area-inset-bottom));
+  }
 }
 .wordmark-cut {
   color: var(--kicker);
@@ -1606,8 +1634,10 @@ summary.list-none::-webkit-details-marker {
 .site-header .glass-orb-phone {
   display: grid;
   place-items: center;
-  width: 2.5rem;
-  height: 2.5rem;
+  /* Pixel bounds: icons don't grow with the text-size setting, so a phone at
+     200% text keeps the header inside the screen (it measured 458px wide). */
+  width: 40px;
+  height: 40px;
   padding: 0;
   border-radius: 9999px;
   border: 1px solid var(--border);
@@ -1639,7 +1669,7 @@ summary.list-none::-webkit-details-marker {
 }
 @media (forced-colors: active) {
   .tabbar, .icon-btn, .site-header, .composer, .thread-top, .more-sheet-panel, .data-table thead th, .turf-map.leaflet-container .leaflet-bar, .turf-map.leaflet-container .leaflet-control-attribution { border-color: CanvasText; }
-  .tab[aria-current="page"] { border-color: Highlight; }
+  .tab[aria-current] { border-color: Highlight; }
   .option-card input[type="radio"] { appearance: auto; }
 }
 

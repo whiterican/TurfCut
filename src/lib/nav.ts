@@ -66,23 +66,23 @@ export const PHONE_PICKS: Record<Exclude<Role, "WORKER">, OrgNavId[]> = {
 };
 
 /**
- * The worker's four tabs (owner's redesign mockup, 2026-10-27): Home holds
- * the campaign feed, Jobs holds finding work and the worker's own schedule.
+ * The worker's five tabs, one unified dock on every worker screen (hero
+ * board, founder 2026-10-28): Today holds the campaign feed, Jobs holds
+ * finding work and the worker's own schedule. The desktop top bar shows the
+ * same five.
  */
 const WORKER_TABS: NavTab[] = [
-  { href: "/dashboard", label: "Home", icon: "home", also: ["/feed"] },
+  { href: "/dashboard", label: "Today", icon: "home", also: ["/feed"] },
   { href: "/jobs", label: "Jobs", icon: "work", also: ["/shifts"] },
   { href: MESSAGES_HREF, label: "Messages", icon: "messages" },
-  { href: "/profile", label: "Profile", icon: "profile", also: ["/earnings"] },
+  { href: "/earnings", label: "Earnings", icon: "pay" },
+  { href: "/profile", label: "Profile", icon: "profile" },
 ];
-
-/** Desktop only (redesign §4.2.1): the worker's top bar adds a direct Earnings entry; on phones Earnings sits under Profile. */
-const WORKER_TOP_TABS: NavTab[] = [WORKER_TABS[0], WORKER_TABS[1], { href: "/earnings", label: "Earnings", icon: "pay" }, WORKER_TABS[2], { ...WORKER_TABS[3], also: undefined }];
 
 const plain = ({ href, label, icon }: NavTab): NavTab => ({ href, label, icon });
 
 /**
- * Tabs per role (workers: Home / Jobs / Messages / Profile).
+ * Tabs per role (workers: Today / Jobs / Messages / Earnings / Profile).
  * Organization roles get every area the access map grants them, so a tab
  * never appears for a route that would refuse you. A removed member (no
  * organization) gets none.
@@ -93,9 +93,9 @@ export function navTabs(role: Role | null, hasOrg: boolean, grants: Grants | nul
   return ORG_TABS.filter((t) => accessFor({ role, grants }, t.area) !== null).map(plain);
 }
 
-/** The desktop top bar's tabs: the worker's, with Earnings; nobody else has a top bar (organizations use the rail). */
+/** The desktop top bar's tabs: the worker's dock tabs; nobody else has a top bar (organizations use the rail). */
 export function topNavTabs(role: Role | null): NavTab[] {
-  return role === "WORKER" ? WORKER_TOP_TABS : [];
+  return role === "WORKER" ? WORKER_TABS : [];
 }
 
 export interface OrgNav {

@@ -1,16 +1,17 @@
 @import "tailwindcss";
 
 /*
- * Turfcut design system — deep eggplant, warm paper, forest ink (G1, 2026-10-27).
+ * Turfcut design system — the hero board (founder, 2026-10-28): cream #FBF7F0,
+ * paper #EFEAE1, eggplant #2B1B3D, deep green #164B38, lime #C6EC8C.
  *
- * Eggplant owns identity: page ink, links, the feature (hero) card, settled
- * status chips and the dock's active tile (cream label). Warm paper and cream
- * are the surfaces. Forest ink (#164B38) is the one restricted accent: the
- * primary action and what is live now, always with cream type; never text on a
- * dark surface. Soft green (#82BC9B) is the night focus ring, the edge around
- * green fills by night, and the hero's decorative corner cut. Pastel badges
- * (sky, coral, butter, party colours) carry the dark "ink" colour; solid badges
- * carry --on-solid. Lime (#D6F25A) is retired.
+ * Eggplant is where you are: the frame (dock, rail), structure, headlines,
+ * the day's feature (hero) card and settled status chips. Warm paper and cream
+ * are the surfaces. Deep green is "do this" and what is true now: the one
+ * primary action and live status, always with cream type, never text on a
+ * dark surface. Lime is the signature detail on primary cards only (the
+ * folded corner), never a fill behind text and never text. Soft green
+ * (#82BC9B) is the night focus ring. Pastel badges (sky, coral, butter, party
+ * colours) carry the dark "ink" colour; solid badges carry --on-solid.
  *
  * The theme is a `.dark` class on <html>, set before first paint by the
  * inline script in app/layout.tsx (saved choice, else the OS preference).
@@ -130,6 +131,8 @@
   /* The frame by night: a deeper eggplant than the page, with a hairline edge. */
   --shell-bg: #21142f;
   --shell-edge: #54406c;
+  /* The dock and rail are a deeper eggplant than the page: their hairline is what sets them apart. */
+  --shell-line: #6e5a88;
   /* Dark mode (hero board rule): an eggplant shell, raised-eggplant secondary
      surfaces, and exactly one cream primary object with ink type per key screen
      (--hero). Not a black-purple wall, not all cream. Forest-ink fills keep cream
@@ -153,7 +156,7 @@
   --link: #f6f1e6;
   --kicker: #cbbdd8;
   --focus: #82bc9b; /* the keyboard outline only: soft green, 7.2:1 on the eggplant page */
-  --selected: #5a3b82; /* the chosen option stays eggplant by night */
+  --selected: #9887ae; /* the chosen option's edge by night: lavender, 4:1 on the eggplant surface (the eggplant tile was 1.5:1) */
   --danger: #eb9082;
   --success: #d8cce4; /* done and verified by night: pale lavender, not green (green is live) */
   --warning: #f0d08a;
@@ -184,7 +187,7 @@
 
 .sun {
   /* Sunlight (P1.5): the outdoor theme. Built on light (it never carries
-     .dark): white paper, black text, near-black edges, black primary and tab
+     .dark): cream paper, black text, near-black edges, black primary and tab
      tile with white type, forest ink only for what is live. Every pairing clears a
      higher bar than the other themes (design-tokens.test.ts). Nothing is
      see-through and nothing casts a shadow. */
@@ -356,8 +359,9 @@ body {
 }
 /* By night forest ink would hide the selection (1.7:1): soft green with ink type. */
 .dark ::selection {
-  background: var(--cut);
-  color: var(--ink);
+  /* Lavender with ink (lime is never behind text; forest ink would hide the selection at 1.7:1). */
+  background: var(--shell-active);
+  color: var(--on-shell-active);
 }
 
 /* The keyboard ring, in the base layer so a component can place it (inside a
@@ -790,7 +794,7 @@ body {
     background: var(--card-sheen), var(--card-bg);
     box-shadow: var(--card-edge), var(--shadow-depth);
   }
-  /* The feature card (deep eggplant by day, cream with ink type by night) with a soft-green cut in the corner. */
+  /* The feature card (deep eggplant by day, cream with ink type by night) with the lime fold in the corner. */
   .hero-card {
     @apply relative overflow-hidden rounded-[var(--radius-card)] p-5 sm:p-6;
     background: var(--hero-bg);
@@ -800,13 +804,23 @@ body {
     border: 2px solid var(--hero-border);
     box-shadow: var(--shadow-depth);
   }
-  /* The cut: a soft-green wedge in the top corner, never over the headline. */
+  /* The cut: the lime fold in the top corner, never over the headline. */
   .hero-card::after {
     content: "";
     @apply pointer-events-none absolute top-0 right-0;
     width: 4.25rem;
     height: 2.75rem;
     background: var(--cut);
+    clip-path: polygon(0 60%, 100% 0, 100% 100%);
+  }
+  /* By night the card is cream and lime sits at 1.25:1 on it: a slightly larger ink wedge
+     behind the lime one draws a thin line along the fold, so the corner still reads. */
+  .dark .hero-card:not(.hero-card-quiet, .hero-card-plain)::before {
+    content: "";
+    @apply pointer-events-none absolute top-0 right-0;
+    width: calc(4.25rem + 2px);
+    height: calc(2.75rem + 1.5px);
+    background: var(--ink);
     clip-path: polygon(0 60%, 100% 0, 100% 100%);
   }
 
@@ -864,7 +878,7 @@ body {
     outline-offset: 9px;
   }
   .hero-card.hero-card-accent::after {
-    /* The live (forest-ink) card keeps the same soft-green cut. */
+    /* The live card keeps the same lime cut. */
     background: var(--cut);
   }
   /* A hero with nothing to report steps down to a plain card: no eggplant, no cut, a hairline edge, muted type. Never combined with hero-card-accent or data-priority. */
@@ -936,7 +950,7 @@ body {
   .empty-state-body {
     @apply mx-auto mt-1 max-w-sm text-sm text-muted;
   }
-  /* Empty-state art (components/EmptyState.tsx): soft-green field, ink lines, dim
+  /* Empty-state art (components/EmptyState.tsx): lavender field, ink lines, dim
      context lines, paper fills. Theme tokens, so light and dark both work.
      Its settle-in animation is unlayered, with the other motion (Button faces). */
   .empty-art {
@@ -946,7 +960,8 @@ body {
     margin: 0 auto 0.75rem;
     color: var(--fg);
   }
-  .empty-art .lime { fill: var(--cut); }
+  /* The art's field is the lavender pastel: lime belongs to the primary card's corner only, and on cream it would vanish (1.25:1). */
+  .empty-art .lime { fill: var(--sky); }
   .empty-art .ink,
   .empty-art .dim {
     fill: none;
@@ -1195,7 +1210,7 @@ body {
     color: var(--ink);
     border-color: transparent;
   }
-  /* Live now (on shift): the one forest-ink chip, cream type; by night a soft-green edge shows its shape. */
+  /* Live now (on shift): the one forest-ink chip, cream type; by night a light edge shows its shape. */
   .badge-live {
     background: var(--accent);
     color: var(--on-accent);
@@ -1376,19 +1391,23 @@ body {
   /* Phone: a floating bar above the bottom edge (and the home indicator),
      tucked away while scrolling down (components/AppNav, lib/scroll-hide).
      Desktop (lg): links in the top bar or the rail instead. */
-  /* Proportions after the owner's Lovable concept: a compact rounded slab
-     (not a full pill), 370px at most, 44px tiles with small labels. */
+  /* A compact rounded slab (not a full pill), 384px at most: five 44px tiles
+     with small labels, on the frame's eggplant (hero board). */
   .tabbar {
-    @apply fixed z-40 mx-auto max-w-[23.125rem] rounded-2xl border p-1.5 lg:hidden;
+    @apply fixed z-40 mx-auto max-w-[24rem] rounded-2xl border p-1 lg:hidden;
     inset-inline: 0.75rem;
     bottom: calc(0.75rem + env(safe-area-inset-bottom));
-    background: var(--surface);
-    border-color: var(--border);
-    box-shadow: 0 6px 24px -8px rgb(43 27 61 / 0.35), 0 1px 2px rgb(27 20 34 / 0.06);
+    /* The dock is the frame (hero board): eggplant in every theme but Sunlight
+       (black there), cream labels, the current tab a lavender tile with ink type. */
+    background: var(--shell-bg);
+    border-color: var(--shell-line);
+    color: var(--shell-muted);
+    box-shadow: var(--shadow-depth);
     transition: transform var(--dur-slow) var(--ease-out);
   }
   .tab {
-    @apply relative flex min-h-11 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-xl border border-transparent py-1.5 font-semibold whitespace-nowrap text-fg transition;
+    @apply relative flex min-h-11 min-w-11 flex-1 flex-col items-center justify-center gap-0.5 rounded-xl border border-transparent py-1.5 font-semibold whitespace-nowrap transition;
+    color: var(--shell-muted);
     /* Up to six condensed labels share the bar: the label follows the screen
        width, never the phone's text size (pixel bounds, not rem), so
        "Messages" and "Profile" stay inside the border at any Dynamic Type setting. */
@@ -1396,15 +1415,14 @@ body {
     font-size: clamp(10px, 2.6vw, 11px);
     letter-spacing: 0.01em;
   }
-  /* The tab you're on: an eggplant tile. */
+  /* The tab you're on: the frame's current tile (lavender, ink type), as on the org rail. */
   .tab[aria-current] {
     @apply font-bold;
-    /* An eggplant tile with rounded corners (not a circle, so six labels
-       still fit), cream icon and label. It glides to the next tab on
-       navigation (view-transition-name below). */
+    /* Rounded corners (not a circle, so five labels fit). It glides to the
+       next tab on navigation (view-transition-name below). */
     border-radius: 0.75rem;
-    background: var(--tab-active-bg);
-    color: var(--tab-active-fg);
+    background: var(--shell-active);
+    color: var(--on-shell-active);
     view-transition-name: tab-current;
   }
   .tab-icon {
@@ -1418,7 +1436,7 @@ body {
     z-index: 1;
   }
   .tab[aria-current] .tab-icon {
-    color: var(--tab-active-fg);
+    color: var(--on-shell-active);
   }
   /* Icons inside buttons: sized to the text, never the hit target. */
   .btn-icon {
@@ -1429,7 +1447,7 @@ body {
   }
   .tab .unread-badge {
     @apply absolute top-0.5 left-1/2 ml-1.5 min-w-[1.25rem] px-1 text-[0.7rem] leading-[1.25rem];
-    box-shadow: 0 0 0 2px var(--surface);
+    box-shadow: 0 0 0 2px var(--shell-bg);
   }
   /* Two or three places under one tab (Jobs: Find work / My schedule): a
      segmented control, the current one an eggplant tile like the dock's. */
@@ -2181,6 +2199,7 @@ summary.list-none::-webkit-details-marker {
      200% text keeps the header inside the screen (it measured 458px wide). */
   width: 40px;
   height: 40px;
+  min-height: 40px; /* .btn-sm's rem minimum would otherwise win at 200% text (72px tall) */
   padding: 0;
   border-radius: 9999px;
   border: 1px solid var(--border);
@@ -2441,7 +2460,7 @@ summary.list-none::-webkit-details-marker {
   }
   /* Field mode is used outdoors and one-handed: every control is at least 48px
      tall (compact ones 44px), so a gloved or hurried thumb still lands. */
-  .sun :is(.btn, .btn-primary, .btn-secondary, .btn-ghost, .filter-chip, .row-link, .segmented > a, .field) {
+  .sun :where(.btn, .btn-primary, .btn-secondary, .btn-ghost, .filter-chip, .row-link, .segmented > a, .field:not(textarea)) {
     min-height: 3rem;
   }
   .sun .btn-sm {

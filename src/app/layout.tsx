@@ -32,8 +32,8 @@ const barlowCondensed = Barlow_Condensed({
   weight: ["600", "700"],
 });
 
-// The display face (redesign E1): page titles, hero headlines and section
-// titles only. Data, labels, forms and card titles stay in Barlow.
+// The display face: the hero line only ("Field work that matters."). Page,
+// hero and section titles are the bold sans (hero board, 2026-10-28).
 const fraunces = Fraunces({
   variable: "--font-fraunces",
   subsets: ["latin"],

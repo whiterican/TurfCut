@@ -110,20 +110,21 @@ describe.each([
     expect(ratio(t.primary, t.bg)).toBeGreaterThan(ratio(t.secondary, t.bg));
   });
 
-  it("tab labels use the text colour the contrast check below assumes", () => {
-    expect(css).toMatch(/\.tab \{[^}]*?text-fg[^}]*\}/);
-    expect(css).not.toMatch(/\.tab \{[^}]*?text-muted[^}]*\}/);
+  it("tab labels use the frame's colours the contrast check below assumes", () => {
+    expect(css).toMatch(/\.tab \{[^}]*?color: var\(--shell-muted\);[^}]*\}/);
+    expect(css).toMatch(/\.tab\[aria-current\] \{[^}]*?background: var\(--shell-active\);\s*color: var\(--on-shell-active\);/);
   });
 
-  it("the tab bar is paper: labels AAA on it, and lime type AAA on the current tab's eggplant tile", () => {
-    // The frame is opaque paper (DESIGN.md: no glass); a translucent bar or header is caught here.
-    expect(css).toMatch(/\.tabbar \{[^}]*?background: var\(--surface\);/);
+  it("the dock is the frame: opaque eggplant (black in Sunlight), labels AAA on it, the current tile AAA and apart from the bar", () => {
+    // Opaque (DESIGN.md: no glass); a translucent bar or header is caught here.
+    expect(css).toMatch(/\.tabbar \{[^}]*?background: var\(--shell-bg\);/);
     expect(css).toMatch(/\.site-header \{[^}]*?background: var\(--bg\);/);
     expect(css).toMatch(/\.eyebrow \{[^}]*?color: var\(--kicker\);/);
-    expect(ratio(t.fg, t.surface)).toBeGreaterThanOrEqual(7);
-    expect(ratio(t["tab-active-fg"], t["tab-active-bg"])).toBeGreaterThanOrEqual(7);
-    // The tile is told apart from the bar by its deep eggplant fill and cream type.
-    expect(ratio(t["tab-active-bg"], t.surface)).toBeGreaterThanOrEqual(1.5);
+    expect(ratio(t["shell-muted"], t["shell-bg"])).toBeGreaterThanOrEqual(7);
+    expect(ratio(t["on-shell-active"], t["shell-active"])).toBeGreaterThanOrEqual(7);
+    expect(ratio(t["shell-active"], t["shell-bg"])).toBeGreaterThanOrEqual(3);
+    // The bar stands apart from the page behind it: by its fill, or (by night, a deeper eggplant) by its edge.
+    expect(Math.max(ratio(t["shell-bg"], t.bg), ratio(t["shell-line"], t.bg))).toBeGreaterThanOrEqual(1.8);
   });
 
   it("the kicker reads on every surface", () => {
@@ -317,12 +318,23 @@ describe("the Turfcut palette: cream, paper, eggplant, deep green, lime (hero bo
     expect(dark.focus).toBe("#82bc9b");
   });
   it("lime is the primary card's signature corner and nothing else", () => {
-    for (const th of [light, dark, sun]) expect(th.cut).toBe("#c6ec8c");
-    const lime = Object.entries(light).filter(([, v]) => v.toLowerCase() === "#c6ec8c").map(([k]) => k);
-    expect(lime).toEqual(["cut"]);
-    // Only the corner rules read it (never a fill behind text, never text).
-    const users = [...css.replace(/\/\*[\s\S]*?\*\//g, "").matchAll(/([^{}]+)\{[^}]*var\(--cut\)/g)].map((m) => m[1].trim());
-    expect(users.every((sel) => /::after|::before|\.empty-art|::selection/.test(sel)), users.join(" | ")).toBe(true);
+    const plain = css.replace(/\/\*[\s\S]*?\*\//g, "");
+    // The same lime in every theme, and no other token is lime.
+    for (const sel of [":root", ".dark", ".sun"]) {
+      const t = block(sel);
+      expect(t.cut).toBe("#c6ec8c");
+      expect(Object.entries(t).filter(([, v]) => v.toLowerCase() === "#c6ec8c").map(([k]) => k)).toEqual(["cut"]);
+    }
+    // The literal appears only on those three token lines.
+    expect(plain.match(/#c6ec8c/gi)?.length).toBe(3);
+    // Only the hero card's corner wedge reads the token, and only as its fill: never a fill behind text, never text.
+    const users = [...plain.matchAll(/([^{}]+)\{([^}]*var\(--cut\)[^}]*)\}/g)].map((m) => ({ sel: m[1].trim(), body: m[2] }));
+    expect(users.length).toBeGreaterThan(0);
+    for (const { sel, body } of users) {
+      expect(sel, sel).toMatch(/\.hero-card[^{]*::after$/);
+      expect(body.match(/var\(--cut\)/g)?.length, sel).toBe(1);
+      expect(body, sel).toMatch(/background: var\(--cut\);/);
+    }
   });
   it("light mode uses warm paper, eggplant identity and the deep-green accent", () => {
     expect(light.bg).toBe("#efeae1");
@@ -425,9 +437,9 @@ describe("forest ink is for what is live and the one primary action (G1)", () =>
     expect(css).toMatch(/\.toggle input:checked \{\s*background: var\(--switch-on\);/);
     for (const th of [light, dark, sun]) expect(ratio(th["on-primary"], th["switch-on"])).toBeGreaterThanOrEqual(3);
   });
-  it("by night selected text stays readable (soft green with ink)", () => {
-    expect(css).toMatch(/\.dark ::selection \{\s*background: var\(--cut\);\s*color: var\(--ink\);/);
-    expect(ratio(dark.ink, dark.cut)).toBeGreaterThanOrEqual(7);
+  it("by night selected text stays readable (lavender with ink; lime is never behind text)", () => {
+    expect(css.replace(/\/\*[\s\S]*?\*\//g, "")).toMatch(/\.dark ::selection \{\s*background: var\(--shell-active\);\s*color: var\(--on-shell-active\);/);
+    expect(ratio(dark["on-shell-active"], dark["shell-active"])).toBeGreaterThanOrEqual(7);
   });
   it("forest ink is never text on the night surfaces", () => {
     // 1.9:1 on #120D18: green type by night would be unreadable, so the dark text tokens aren't green.

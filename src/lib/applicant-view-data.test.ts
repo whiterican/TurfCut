@@ -20,7 +20,7 @@ vi.mock("@/lib/worker-access-data", () => ({ workerAccessFor: async () => ({ kin
 vi.mock("@/lib/availability-data", () => ({ loadAvailability: async () => null }));
 vi.mock("@/lib/credentials-data", () => ({ loadOrgCredentials: async () => "withheld" }));
 
-const { applicantForViewer } = await import("./applicant-view-data");
+const { applicantForInspector, applicantForViewer } = await import("./applicant-view-data");
 
 const ORG = "22222222-2222-2222-2222-222222222222";
 const JOB = "33333333-3333-3333-3333-333333333333";
@@ -65,13 +65,14 @@ describe("applicantForViewer: the access check lives in the loader", () => {
     expect(a.snapshot).toHaveProperty("fit");
   });
 
-  it("the inspector never reads political-fit answers and returns none, live or from the snapshot", async () => {
-    const a = (await applicantForViewer(viewer(), ref, { view: "inspector" }))!;
+  it("the inspector never reads political fit and returns none of it, not even whether answers exist", async () => {
+    const a = (await applicantForInspector(viewer(), ref))!;
     expect(loadLatestPreference).not.toHaveBeenCalled();
     expect(loadOrgProfile.mock.calls[0][3]).toEqual({ fit: false });
-    expect(a.profile).not.toHaveProperty("fit");
-    expect(a.snapshot).not.toHaveProperty("fit");
-    expect(JSON.stringify(a)).not.toContain("answers");
+    expect(Object.keys(a.profile!).sort()).toEqual(["availability", "credentials", "displayName", "experience", "scorecard", "today"]);
+    // consentVersion would say whether the worker answered the questionnaire.
+    expect(Object.keys(a.snapshot!).sort()).toEqual(["capturedAt", "kind", "scorecard"]);
+    expect(JSON.stringify(a)).not.toMatch(/answers|consentVersion|"fit"/);
   });
 });
 
@@ -85,14 +86,21 @@ const SRC = join(__dirname, "..");
 const source = walk(SRC).filter((f) => /\.(ts|tsx)$/.test(f) && !relative(SRC, f).startsWith("app/zz-preview"));
 
 describe("inspector and preview boundaries (redesign §4.3, §6.1)", () => {
-  it("no inspector file reads the database: it gets its data from a …ForViewer loader", () => {
-    const inspectors = source.filter((f) => /inspector/i.test(relative(SRC, f)) && !f.endsWith(".test.ts"));
-    for (const f of inspectors) expect({ f, db: /from\s+["']@\/lib\/db["']/.test(readFileSync(f, "utf8")) }).toEqual({ f, db: false });
+  it("no inspector file reads the database or political fit: it gets its data from applicantForInspector (and its kin)", () => {
+    // None exist yet (B2 adds them); from then on every one is held to this.
+    const inspectors = source.filter((f) => /inspector/i.test(relative(SRC, f)) && !/\.test\.tsx?$/.test(f));
+    const banned = /(?:from\s+|import\(\s*)["'](?:@\/lib\/(?:db|political-fit-data|org-profile-data)|[./]+(?:lib\/)?(?:db|political-fit-data|org-profile-data))["']|applicantForViewer|view:\s*["']page["']/;
+    for (const f of inspectors) expect({ f, banned: banned.test(readFileSync(f, "utf8")) }).toEqual({ f, banned: false });
   });
 
   it("the local preview harness is never committed and nothing imports it", () => {
-    const tracked = execSync("git ls-files -- src/app/zz-preview", { cwd: join(SRC, ".."), encoding: "utf8" }).trim();
-    expect(tracked).toBe("");
+    let tracked: string | null = null;
+    try {
+      tracked = execSync("git ls-files -- src/app/zz-preview", { cwd: join(SRC, ".."), encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
+    } catch {
+      // No git here (a tarball or build context): only the import check can run.
+    }
+    if (tracked !== null) expect(tracked).toBe("");
     // Other tests name the folder only to skip it; an import is what must never happen.
     const imports = /(?:from\s+|import\(\s*|require\(\s*)["'][^"']*zz-preview/;
     for (const f of source) expect({ f, imports: imports.test(readFileSync(f, "utf8")) }).toEqual({ f, imports: false });

@@ -15,10 +15,12 @@ import { effectivePreference, employerFitView } from "@/lib/political-fit";
 
 /**
  * Where an applicant is read for display (redesign §4.3): the full page, or
- * the inspector beside a list. The inspector never carries political-fit
- * answers: it doesn't read them, and the profile and the hiring snapshot
- * come back without them. The answers stay on the full page, where the
- * worker's sharing rules already govern them.
+ * the inspector beside a list. The inspector never carries political fit,
+ * not even whether answers exist: it doesn't read them, and the profile and
+ * the hiring snapshot come back built from an allow-list of non-political
+ * parts (the snapshot's consentVersion would say whether the worker
+ * answered, so it stays out too). The answers stay on the full page, where
+ * the worker's sharing rules already govern them.
  */
 export type ApplicantViewKind = "page" | "inspector";
 
@@ -30,13 +32,20 @@ const ENGAGEMENT_SELECT = {
 
 type Viewer = Pick<SessionProfile, "role" | "grants" | "orgId" | "userId" | "workerId" | "staff">;
 type Base = Awaited<ReturnType<typeof load>>;
-type NoFit<T> = T extends { fit: unknown } ? Omit<T, "fit"> : T;
+
+/** The non-political parts an inspector may show. Anything added to the views stays out until it's listed here. */
+const INSPECTOR_PROFILE = ["displayName", "scorecard", "availability", "credentials", "today", "experience"] as const;
+const INSPECTOR_SNAPSHOT = ["kind", "capturedAt", "scorecard"] as const;
 
 export type ApplicantPage = NonNullable<Base>;
 export type ApplicantInspector = Omit<ApplicantPage, "profile" | "snapshot"> & {
-  profile: NoFit<OrgProfileView> | null;
-  snapshot: NoFit<HiringSnapshot> | null;
+  profile: Pick<OrgProfileView, (typeof INSPECTOR_PROFILE)[number]> | null;
+  snapshot: Pick<HiringSnapshot, (typeof INSPECTOR_SNAPSHOT)[number]> | null;
 };
+
+function pick<T extends object, K extends keyof T>(v: T, keys: readonly K[]): Pick<T, K> {
+  return Object.fromEntries(keys.filter((k) => k in v).map((k) => [k, v[k]])) as Pick<T, K>;
+}
 
 /**
  * One applicant in the context of one job, for an organization member, or
@@ -50,14 +59,11 @@ export async function applicantForViewer(viewer: Viewer, ref: { jobId: string; e
   const r = await load(viewer, ref, opts.view, opts.now ?? new Date());
   if (!r || opts.view === "page") return r;
   const { profile, snapshot, ...rest } = r;
-  return { ...rest, profile: profile && withoutFit(profile), snapshot: snapshot && withoutFit(snapshot) };
+  return { ...rest, profile: profile && pick(profile, INSPECTOR_PROFILE), snapshot: snapshot && pick(snapshot, INSPECTOR_SNAPSHOT) };
 }
 
-function withoutFit<T extends { fit: unknown }>(v: T): Omit<T, "fit"> {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { fit, ...rest } = v;
-  return rest;
-}
+/** The inspector's own entry point: inspector code calls this, never the page view (a test holds every inspector file to it). */
+export const applicantForInspector = (viewer: Viewer, ref: { jobId: string; engagementId: string }, now?: Date) => applicantForViewer(viewer, ref, { view: "inspector", now });
 
 async function load(viewer: Viewer, ref: { jobId: string; engagementId: string }, view: ApplicantViewKind, now: Date) {
   const orgId = viewer.orgId;

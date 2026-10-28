@@ -74,7 +74,7 @@ export function JobFeedCard({ j }: { j: FeedJob }) {
         {aff ? (
           <span className={`badge-party badge-party-${aff.affiliation}`}>{type} · {aff.label}</span>
         ) : (
-          <span className="badge-neutral">{type}</span>
+          <span className="tag">{type}</span>
         )}
       </span>
       {/* Pay and the way in share the last line at every width. The whole card is the link, so the

@@ -4,10 +4,10 @@ import { loadReceipts } from "@/lib/receipts-data";
 import { LocalTime } from "@/components/LocalTime";
 import { money } from "@/lib/pay";
 import { Masthead } from "@/components/Masthead";
+import { StatusBadge } from "@/components/StatusBadge";
+import { RECEIPT_STATUS } from "@/components/ReceiptView";
 
 export const metadata = { title: "Receipts · Turfcut" };
-
-const LABEL = { sending: "Sending", sent: "Sent", failed: "Not sent", reversed: "Reversed" } as const;
 
 /** Every payout the worker was ever sent, newest first (M9.2). */
 export default async function ReceiptsPage() {
@@ -30,7 +30,7 @@ export default async function ReceiptsPage() {
                   <span className="block font-semibold text-fg">{r.number} · {money(r.amountCents)}</span>
                   <span className="text-muted-sm block">{r.orgName} · <LocalTime iso={(r.paidAt ?? r.createdAt).toISOString()} mode="fulldate" /> · {r.lines.length} {r.lines.length === 1 ? "line" : "lines"}</span>
                 </span>
-                <span className={r.status === "sent" ? "badge-accent" : r.status === "sending" ? "badge-butter" : "badge-coral"}>{LABEL[r.status]}</span>
+                <StatusBadge status={RECEIPT_STATUS[r.status]} />
               </Link>
             </li>
           ))}

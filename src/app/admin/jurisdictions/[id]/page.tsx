@@ -1,3 +1,4 @@
+import { StatusChip } from "@/components/StatusBadge";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireStaff } from "@/lib/staff-session";
@@ -88,7 +89,7 @@ export default async function AdminJurisdictionPage({ params }: { params: Promis
               <li key={job.id} className="space-y-1 px-4 py-3">
                 <p className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
                   <span className="text-sm font-semibold text-fg">{job.title}</span>
-                  {job.problems.length ? <span className="badge-coral">Frozen</span> : <span className="badge-solid">Usable</span>}
+                  {job.problems.length ? <StatusChip state="blocked" label="Frozen" /> : <StatusChip state="approved" label="Usable" />}
                 </p>
                 <p className="text-sm text-muted">{job.orgName} · {job.status.toLowerCase()} · {COMPENSATION_METHODS.find((c) => c.value === job.compensationMethod)?.label ?? job.compensationMethod}</p>
                 {job.problems.length > 0 && <p className="text-sm text-warning-msg">{job.problems[0]}</p>}

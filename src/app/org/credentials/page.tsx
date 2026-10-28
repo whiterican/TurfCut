@@ -59,7 +59,7 @@ export default async function OrgCredentialsPage({ searchParams }: { searchParam
                       <li key={c.id} className="space-y-2 py-3 first:pt-0 last:pb-0">
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="font-medium text-fg">{name}</span>
-                          <span className={c.verification === "SELF_REPORTED" ? "badge-dashed" : "badge-accent"}>
+                          <span className={`status ${c.verification === "SELF_REPORTED" ? "status-pending" : "status-approved"}`}>
                             {c.byUs ? "Verified by your organization" : VERIFICATION_LABELS[c.verification]}
                           </span>
                           {c.verificationMethod && <span className="text-muted-sm">({METHOD_LABELS[c.verificationMethod]}{c.verifiedAt && c.byUs ? `, ${dateText(c.verifiedAt)}` : ""})</span>}

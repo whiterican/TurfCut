@@ -2,17 +2,19 @@ import Link from "next/link";
 import { LocalTime } from "@/components/LocalTime";
 import { money } from "@/lib/pay";
 import type { Receipt } from "@/lib/receipts-data";
+import type { Status } from "@/lib/status";
+import { StatusBadge } from "@/components/StatusBadge";
 
-const STATUS: Record<Receipt["status"], { label: string; badge: string }> = {
-  sending: { label: "Sending", badge: "badge-butter" },
-  sent: { label: "Sent", badge: "badge-accent" },
-  failed: { label: "Not sent", badge: "badge-coral" },
-  reversed: { label: "Reversed", badge: "badge-coral" },
+export const RECEIPT_STATUS: Record<Receipt["status"], Status> = {
+  sending: { label: "Sending", state: "sending" },
+  sent: { label: "Sent", state: "paid" },
+  failed: { label: "Not sent", state: "blocked" },
+  reversed: { label: "Reversed", state: "held" },
 };
 
 /** A worker's receipt for one payout (M9.2): what was sent, where, and every line it paid. Printable. */
 export function ReceiptView({ r }: { r: Receipt }) {
-  const s = STATUS[r.status];
+  const s = RECEIPT_STATUS[r.status];
   return (
     <article className="card space-y-4 print:border-0 print:shadow-none">
       <header className="flex flex-wrap items-start justify-between gap-3">
@@ -21,7 +23,7 @@ export function ReceiptView({ r }: { r: Receipt }) {
           <p className="text-2xl font-bold text-fg">{money(r.amountCents)}</p>
           <p className="text-muted-sm">from {r.orgName}</p>
         </div>
-        <span className={s.badge}>{s.label}</span>
+        <StatusBadge status={s} />
       </header>
       <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
         <dt className="text-muted">Recorded</dt>

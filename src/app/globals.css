@@ -938,14 +938,21 @@ body {
   .badge-sky,
   .badge-solid,
   .badge-butter,
-  .badge-party {
+  .badge-party,
+  .tag,
+  .tag-solid,
+  .tag-accent,
+  .tag-butter {
     @apply inline-flex max-w-full shrink-0 items-center gap-1 rounded-md border px-2 py-0.5 text-start text-xs font-semibold;
     /* A badge keeps its size beside other text, and a label wider than its row
        ("Nonpartisan civic work (voter registration, GOTV)") wraps inside the
        badge instead of running past the card's edge. */
     overflow-wrap: break-word;
   }
-  .badge-neutral {
+  /* Tags (.tag-*) are plain labels, not statuses: roles, work types, counts.
+     A record's state is a StatusChip, never a tag (redesign §4.1.3). */
+  .badge-neutral,
+  .tag {
     @apply border-border bg-surface-2 text-muted;
   }
   .badge-dashed {
@@ -956,7 +963,9 @@ body {
      "worth noticing, not live" chip (a date, an open seat, a sent receipt);
      only .badge-live is forest ink. */
   .badge-coral { --badge-bg: var(--coral); }
-  .badge-accent { --badge-bg: var(--sky); }
+  .badge-accent,
+  .tag-accent { --badge-bg: var(--sky); }
+  .tag-butter { --badge-bg: var(--butter); }
   .badge-sky { --badge-bg: var(--sky); }
   .badge-butter { --badge-bg: var(--butter); }
   /* A campaign's declared affiliation (job cards; see --party-*). */
@@ -966,7 +975,7 @@ body {
   .badge-party-green { --badge-bg: var(--party-green); }
   .badge-party-other { --badge-bg: var(--party-other); }
   .badge-party-nonpartisan { --badge-bg: var(--party-nonpartisan); }
-  :is(.badge-coral, .badge-accent, .badge-sky, .badge-butter, .badge-party) {
+  :is(.badge-coral, .badge-accent, .badge-sky, .badge-butter, .badge-party, .tag-accent, .tag-butter) {
     background: var(--badge-bg);
     color: var(--ink);
     border-color: transparent;
@@ -1678,7 +1687,8 @@ body {
     border-color: var(--border-strong);
   }
   /* Solid: settled-status badges (an eggplant chip; see --solid). */
-  .badge-solid {
+  .badge-solid,
+  .tag-solid {
     background: var(--solid);
     color: var(--on-solid);
     border-color: transparent;

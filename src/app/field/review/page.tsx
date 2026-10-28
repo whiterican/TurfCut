@@ -1,3 +1,4 @@
+import { StatusChip, StatusGlyph } from "@/components/StatusBadge";
 import Link from "next/link";
 import { requireArea } from "@/lib/employer-session";
 import { loadReviewCandidates, REVIEW_CAP } from "@/lib/field-day-data";
@@ -34,9 +35,9 @@ export default async function ReviewQueuePage() {
                   <span className="block truncate text-xs text-muted">{r.jobTitle} · {r.state.signatures} signatures{r.state.packetsOut.length ? ` · ${r.state.packetsOut.length} packets not returned` : ""}</span>
                 </span>
                 {r.state.closeout ? (
-                  <span className="badge-coral shrink-0">Corrected since review</span>
+                  <StatusChip state="disputed" label="Corrected since review" className="shrink-0" />
                 ) : (
-                  <span className="badge-butter shrink-0"><span>Checked out <RelativeTime iso={r.state.checkedOutAt!.toISOString()} /></span></span>
+                  <span className="status status-pending shrink-0"><StatusGlyph state="pending" /><span>Checked out <RelativeTime iso={r.state.checkedOutAt!.toISOString()} /></span></span>
                 )}
               </Link>
             </li>

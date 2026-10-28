@@ -47,7 +47,7 @@ export default async function RolesPage({ searchParams }: { searchParams: Promis
                 <div className="space-y-1">
                   <p className="flex flex-wrap items-center gap-2 font-medium text-fg">
                     {r.name}
-                    {r.basedOn && <span className="badge-neutral">From {ROLE_LABELS[r.basedOn]}</span>}
+                    {r.basedOn && <span className="tag">From {ROLE_LABELS[r.basedOn]}</span>}
                     <span className="text-xs font-normal text-subtle">{r.members} {r.members === 1 ? "member" : "members"}{r.invites ? ` · ${r.invites} invited` : ""}</span>
                   </p>
                   {r.description && <p className="text-muted-sm">{r.description}</p>}

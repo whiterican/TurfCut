@@ -4,6 +4,7 @@ import { listStatements } from "@/lib/statements-data";
 import { money } from "@/lib/pay";
 import { requireArea } from "@/lib/employer-session";
 import { Masthead } from "@/components/Masthead";
+import { StatusChip } from "@/components/StatusBadge";
 
 export const metadata = { title: "Statements · Turfcut" };
 
@@ -49,13 +50,7 @@ export default async function StatementsPage() {
                   {money(st.paidCents)} sent
                 </span>
               </span>
-              <span
-                className={
-                  st.status === "closed" ? "badge-neutral" : "badge-butter"
-                }
-              >
-                {st.status === "closed" ? "Closed" : "In progress"}
-              </span>
+              <StatusChip state={st.status === "closed" ? "closed" : "pending"} label={st.status === "closed" ? "Closed" : "In progress"} />
             </Link>
           </li>
         ))}

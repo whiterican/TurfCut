@@ -1,3 +1,4 @@
+import { StatusChip } from "@/components/StatusBadge";
 import Link from "next/link";
 import { requireStaff } from "@/lib/staff-session";
 import { isPublic, LIST_MAX, listCampaignsForVerification, type AdminCampaignRow } from "@/lib/campaign-admin-data";
@@ -10,7 +11,7 @@ function Row({ c }: { c: AdminCampaignRow }) {
         <span className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
           <span className="flex flex-wrap items-center gap-2 font-semibold text-fg">
             {c.displayName}
-            {c.verifiedAt && !isPublic(c) && <span className="badge-butter">Not public now</span>}
+            {c.verifiedAt && !isPublic(c) && <StatusChip state="held" label="Not public now" />}
           </span>
           <span className="text-xs text-subtle">
             {c.verifiedAt ? <>Verified <LocalTime iso={c.verifiedAt.toISOString()} mode="fulldate" /></> : c.publishedAt ? <>Public since <LocalTime iso={c.publishedAt.toISOString()} mode="fulldate" /></> : null}

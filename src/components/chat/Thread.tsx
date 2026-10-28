@@ -162,7 +162,7 @@ export function MessageList({
               {firstOfRun && !m.mine && (group || m.senderIsManager) && (
                 <span className="mb-1 flex items-center gap-1.5 px-1 text-xs font-semibold text-muted">
                   {m.senderName}
-                  {m.senderIsManager && <span className="badge-neutral">Manager</span>}
+                  {m.senderIsManager && <span className="tag">Manager</span>}
                 </span>
               )}
               <div className={`bubble ${m.deleted ? "bubble-deleted" : m.mine ? "bubble-mine" : "bubble-theirs"}`}>

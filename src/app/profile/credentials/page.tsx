@@ -1,3 +1,4 @@
+import { StatusChip } from "@/components/StatusBadge";
 import Link from "next/link";
 import { requireWorker } from "@/lib/worker-session";
 import { loadCredentials } from "@/lib/credentials-data";
@@ -69,7 +70,7 @@ export default async function CredentialsPage() {
                   <li key={c.rootId} className="card space-y-2">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <p className="font-semibold text-fg">{name}</p>
-                      <span className={c.verification === "SELF_REPORTED" ? "badge-dashed" : "badge-accent"}>{VERIFICATION_LABELS[c.verification]}</span>
+                      <StatusChip state={c.verification === "SELF_REPORTED" ? "pending" : "approved"} label={VERIFICATION_LABELS[c.verification]} />
                     </div>
                     <p className="text-muted-sm">
                       {[maskIdentifier(c.identifier), c.issuedOn && `Issued ${dateText(c.issuedOn)}`, c.expiresOn && `Expires ${dateText(c.expiresOn)}`].filter(Boolean).join(" · ") || "No details added"}

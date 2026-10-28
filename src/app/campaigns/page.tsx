@@ -1,3 +1,4 @@
+import { StatusChip } from "@/components/StatusBadge";
 import Link from "next/link";
 import { requireArea } from "@/lib/employer-session";
 import { canUse } from "@/lib/access";
@@ -24,7 +25,7 @@ export default async function CampaignsPage() {
                   <span className="block truncate text-sm font-semibold text-fg">{c.displayName}</span>
                   <span className="block text-xs text-muted">@{c.handle}</span>
                 </span>
-                <span className={c.publishedAt ? "badge-solid" : "badge"}>{c.publishedAt ? "Public" : "Draft"}</span>
+                <StatusChip state={c.publishedAt ? "approved" : "draft"} label={c.publishedAt ? "Public" : "Draft"} />
               </Link>
             </li>
           ))}

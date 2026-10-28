@@ -6,7 +6,7 @@ import { noteOverdueDisputes } from "@/lib/dispute-thread-data";
 import { clockParts } from "@/lib/dispute-sla";
 import { stripeProvider } from "@/lib/payout-provider";
 import { money, payoutReadiness, PLATFORM_FEE_BPS, statusLabel } from "@/lib/pay";
-import { StatusBadge } from "@/components/StatusBadge";
+import { StatusBadge, StatusChip } from "@/components/StatusBadge";
 import { LocalTime } from "@/components/LocalTime";
 import { ActionButton } from "@/components/ActionButton";
 import { ApproveLines, HoldLine, RecordReversal, ResolveDispute } from "@/components/PayForms";
@@ -207,7 +207,7 @@ export default async function PayPage({ searchParams }: { searchParams: Promise<
                           : ""}
                   </p>
                 </div>
-                <span className={`shrink-0 ${d.clock.overdue ? "badge-coral" : "badge-butter"}`}>{d.clock.overdue ? "Overdue" : "Disputed"}</span>
+                <StatusChip state={d.clock.overdue ? "overdue" : "disputed"} label={d.clock.overdue ? "Overdue" : "Disputed"} className="shrink-0" />
               </div>
               <blockquote className="border-l-2 border-border pl-3 text-sm text-fg">{d.reason}</blockquote>
               <p className="text-xs text-muted">

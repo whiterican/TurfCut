@@ -1,3 +1,4 @@
+import { StatusChip } from "@/components/StatusBadge";
 import Link from "next/link";
 import { requireAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -42,7 +43,7 @@ function ThreadRow({ t }: { t: ThreadSummary }) {
             {unread ? (
               <span className="unread-badge"><span aria-hidden>{t.unread > 99 ? "99+" : t.unread}</span><span className="sr-only"> unread: {t.unread}</span></span>
             ) : t.frozen ? (
-              <span className="badge-neutral shrink-0">Read-only</span>
+              <StatusChip state="closed" label="Read-only" className="shrink-0" />
             ) : null}
           </span>
         </span>

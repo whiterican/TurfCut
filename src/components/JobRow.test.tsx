@@ -28,9 +28,10 @@ describe("JobRow (F02)", () => {
   });
 
   it("names the affiliation in words beside the type, and carries a status chip only when given one", () => {
-    const html = renderToStaticMarkup(<JobRow j={job} status={{ label: "Applied", badge: "badge-sky" }} />);
+    const html = renderToStaticMarkup(<JobRow j={job} status={{ label: "Applied", state: "pending" }} />);
     expect(html).toContain("Petition circulation · Nonpartisan");
-    expect(html).toContain('class="badge-sky">Applied<');
+    expect(html).toContain('data-state="pending"');
+    expect(html).toMatch(/class="status status-pending"[^>]*>.*Applied</);
     expect(renderToStaticMarkup(<JobRow j={{ ...job, startsAt: null, endsAt: null }} />)).toContain("Dates to be set");
     expect(renderToStaticMarkup(<JobRow j={{ ...job, org: { name: "New Org", approved: false } }} />)).not.toContain("Approved org");
     const canvass = renderToStaticMarkup(<JobRow j={{ ...job, type: "CANVASS", campaignDisclosure: { campaignType: "candidate", campaignName: "Jo Ortiz for Council", affiliation: "democratic", message: "Vote Jo" } }} />);

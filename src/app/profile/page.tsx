@@ -179,7 +179,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
           {mode ? (
             <>
               <div className="space-y-1">
-                <span className="badge-accent">{mode.label}</span>
+                <span className="tag-accent">{mode.label}</span>
                 <p className="text-muted-sm">{mode.description}</p>
               </div>
               <p className="text-hint">

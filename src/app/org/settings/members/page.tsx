@@ -1,3 +1,4 @@
+import { StatusChip } from "@/components/StatusBadge";
 import Link from "next/link";
 import { ActionButton } from "@/components/ActionButton";
 import { INVITE_ROLES, presetGrants, ROLE_HELP, ROLE_LABELS, type BuiltInRole, type Grants } from "@/lib/access";
@@ -80,8 +81,8 @@ export default async function MembersPage() {
                 <div className="min-w-0 space-y-1">
                   <p className="flex flex-wrap items-center gap-2 font-medium text-fg">
                     <span className="break-all">{i.email}</span>
-                    <span className="badge-neutral">{roleName(i, ROLE_LABELS)}</span>
-                    {i.expired && <span className="badge-butter">Expired</span>}
+                    <span className="tag">{roleName(i, ROLE_LABELS)}</span>
+                    {i.expired && <StatusChip state="closed" label="Expired" />}
                   </p>
                   <p className="text-muted-sm">Invited {day(i.createdAt)} · {i.expired ? "expired" : "expires"} {day(i.expiresAt)}</p>
                 </div>
@@ -109,8 +110,8 @@ export default async function MembersPage() {
                 <div className="space-y-1">
                   <p className="flex flex-wrap items-center gap-2 font-medium text-fg">
                     <span className="break-all">{m.name ?? m.email ?? "Member"}</span>
-                    {me && <span className="badge-solid">You</span>}
-                    <span className="badge-neutral">{roleName(m, ROLE_LABELS)}</span>
+                    {me && <span className="tag-solid">You</span>}
+                    <span className="tag">{roleName(m, ROLE_LABELS)}</span>
                   </p>
                   <p className="text-muted-sm">{[m.name ? m.email : null, `Since ${day(m.since)}`].filter(Boolean).join(" · ")}</p>
                 </div>

@@ -91,7 +91,7 @@ function CampaignRow({ campaign: c, viewer, follow, back }: { campaign: Director
           {bio && <p className="mt-1 text-sm text-fg">{bio}</p>}
           <p className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted">
             <span>{c.lastPostAt ? <>Posted <LocalTime iso={c.lastPostAt.toISOString()} mode="date" /></> : "No posts yet"}</span>
-            {c.hiring > 0 && <span className="badge-neutral">{c.hiring === 1 ? "1 job hiring" : `${c.hiring} jobs hiring`}</span>}
+            {c.hiring > 0 && <span className="tag">{c.hiring === 1 ? "1 job hiring" : `${c.hiring} jobs hiring`}</span>}
           </p>
         </div>
       </div>

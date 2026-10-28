@@ -374,7 +374,7 @@ describe("forest ink is for what is live and the one primary action (G1)", () =>
   // Status that has settled (approved, paid, active, you) is the eggplant tile, never green.
   it("settled status, the date chip and selected filters are not the accent", () => {
     for (const th of [light, dark, sun]) expect(th.solid).not.toBe(th.accent);
-    expect(css).toMatch(/\.badge-accent \{ --badge-bg: var\(--sky\); \}/);
+    expect(css).toMatch(/\.badge-accent,\s*\.tag-accent \{ --badge-bg: var\(--sky\); \}/);
   });
   it("only an allowed list of rules paints with the accent", () => {
     // Every rule whose declarations use the accent: the live chip and the live shift card (and

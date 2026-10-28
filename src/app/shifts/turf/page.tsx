@@ -49,7 +49,7 @@ export default async function MyTurfPage() {
                     {s.stagingLocation ? ` · check in at ${s.stagingLocation}` : ""}
                   </p>
                 </div>
-                <span className={turf ? "badge-solid" : marks.dayTurf ? "badge-butter" : "badge-neutral"}>
+                <span className={turf ? "tag-solid" : marks.dayTurf ? "tag-butter" : "tag"}>
                   {turf ? "Assigned turf" : marks.dayTurf ? "Your turf today" : "No turf yet"}
                 </span>
               </div>

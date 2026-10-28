@@ -1,3 +1,4 @@
+import { StatusChip } from "@/components/StatusBadge";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireArea } from "@/lib/employer-session";
@@ -54,7 +55,7 @@ export default async function InvitesPage({ params }: { params: Promise<{ jobId:
               <li key={i.id} className="card space-y-3">
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <Link href={`/hiring/${job.id}/people/${i.id}`} className="link font-semibold">{i.worker.displayName}</Link>
-                  <span className="badge-neutral">{stageOf(i, f, now)}</span>
+                  <StatusChip state="pending" label={stageOf(i, f, now)} />
                 </div>
                 <p className="text-muted-sm">
                   Sent {day(i.sentAt)}{i.sentBy ? ` by ${i.sentBy}` : ""}

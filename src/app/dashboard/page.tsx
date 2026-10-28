@@ -10,6 +10,7 @@ import { openJobsEndAfter, payShort, payText } from "@/lib/jobs";
 import { loadFeed } from "@/lib/jobs-data";
 import { JobRow } from "@/components/JobRow";
 import { LocalTime } from "@/components/LocalTime";
+import { RelativeDay } from "@/components/RelativeDay";
 import { TodayDate } from "@/components/TodayDate";
 import { ShiftDayList } from "@/components/ShiftDayList";
 import Link from "next/link";
@@ -51,9 +52,6 @@ const ROLE_LABELS: Record<string, string> = {
   FINANCE: "Finance",
   PUBLISHER: "Publisher",
 };
-
-const day = (d: Date | null) =>
-  d ? d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" }) : "—";
 
 function NavCard({ href, title, body }: { href: string; title: string; body: string }) {
   return (
@@ -170,8 +168,9 @@ async function WorkerHero({ workerId }: { workerId: string }) {
       <>
         {isLive && overdue && <OverdueShift shift={overdue} compact />}
         <Link transitionTypes={["nav-forward"]} href={`/shifts/${shift.id}`} className={`hero-card block space-y-4 ${isLive ? "hero-card-accent" : ""}`} data-priority={shiftPriority(shift)}>
+          {/* Relative first ("tomorrow"), the date after it; the server shows the date alone. */}
           <p className="eyebrow">
-            {isLive ? "Live shift" : "Next shift"} · <LocalTime iso={shift.startsAt.toISOString()} mode="date" />
+            {isLive ? "Live shift" : "Next shift"} · <RelativeDay iso={shift.startsAt.toISOString()} /><LocalTime iso={shift.startsAt.toISOString()} mode="date" />
           </p>
           <p className="hero-title">{shift.engagement.job.title}</p>
           {/* The card stays eggplant; the forest-ink chip is what says it's live. */}
@@ -207,7 +206,16 @@ async function WorkerHero({ workerId }: { workerId: string }) {
   }
   return (
     <Link transitionTypes={["nav-forward"]} href={`/jobs/${next.job.id}`} className="hero-card block space-y-4">
-      <p className="eyebrow">{next.job.startsAt && next.job.startsAt <= now ? `Your job · started ${day(next.job.startsAt)}` : `Your next job · starts ${day(next.job.startsAt)}`}</p>
+      {/* Relative status, never a bare date: "starts tomorrow", "started 2 days ago" (the date follows). */}
+      <p className="eyebrow">
+        {!next.job.startsAt ? (
+          "Your next job"
+        ) : next.job.startsAt <= now ? (
+          <>Your job · started <RelativeDay iso={next.job.startsAt.toISOString()} /><LocalTime iso={next.job.startsAt.toISOString()} mode="date" /></>
+        ) : (
+          <>Your next job · starts <RelativeDay iso={next.job.startsAt.toISOString()} /><LocalTime iso={next.job.startsAt.toISOString()} mode="date" /></>
+        )}
+      </p>
       <p className="hero-title">{next.job.title}</p>
       <p className="text-sm font-semibold">{payText(next.job.compensationMethod, next.job.payRateCents)}</p>
     </Link>

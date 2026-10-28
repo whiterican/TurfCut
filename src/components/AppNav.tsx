@@ -111,29 +111,6 @@ export function TopNav({ tabs }: { tabs: NavTab[] }) {
   );
 }
 
-/** Phone and tablet: a floating bottom tab bar that tucks away on scroll; a tinted icon marks the current tab. */
-export function TabBar({ tabs }: { tabs: NavTab[] }) {
-  const pathname = usePathname();
-  const current = activeTab(tabs, pathname);
-  const count = useUnreadCount();
-  const tucked = useTuckOnScroll();
-  if (tabs.length === 0) return null;
-  return (
-    <nav aria-label="Main" className="tabbar" data-tucked={tucked || undefined}>
-      <div className="mx-auto flex max-w-md">
-        {tabs.map((t) => (
-          <Link key={t.href} href={t.href} className="tab" data-wide={t.href.endsWith(MESSAGES_HREF) || undefined} aria-current={currentAttr(t.href, current, pathname)}>
-            <Icon of={iconFor(t)} className="tab-icon" />
-            {t.label}
-            {t.href === MESSAGES_HREF && <Badge count={count} />}
-            {t.href === MESSAGES_HREF && count > 0 && <span className="sr-only">, {count} unread</span>}
-          </Link>
-        ))}
-      </div>
-    </nav>
-  );
-}
-
 /**
  * Desktop (lg): the organization's full-height rail (redesign §4.2.1) — its
  * name and approval at the top, every area the role reaches, and who is
@@ -270,8 +247,8 @@ export function OrgTabBar({ tabs, more, extra }: { tabs: NavTab[]; more: NavTab[
             <Link key={t.href} href={t.href} className="tab" data-wide={t.href.endsWith(MESSAGES_HREF) || undefined} aria-current={currentAttr(t.href, current, pathname)}>
               <Icon of={iconFor(t)} className="tab-icon" />
               {t.label}
-              {t.href === MESSAGES_HREF && <Badge count={count} />}
-              {t.href === MESSAGES_HREF && count > 0 && <span className="sr-only">, {count} unread</span>}
+              {t.href.endsWith(MESSAGES_HREF) && <Badge count={count} />}
+              {t.href.endsWith(MESSAGES_HREF) && count > 0 && <span className="sr-only">, {count} unread</span>}
             </Link>
           ))}
           {more.length > 0 && (

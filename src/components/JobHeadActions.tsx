@@ -64,8 +64,11 @@ function ShareButton({ title }: { title: string }) {
     }
   }
   return (
-    <button type="button" className="job-head-btn" onClick={share} aria-label={done ? "Link copied" : "Share this job"}>
-      {done ? <Check aria-hidden className="size-5" /> : <Share aria-hidden className="size-5" />}
-    </button>
+    <>
+      <button type="button" className="job-head-btn" onClick={share} aria-label="Share this job">
+        {done ? <Check aria-hidden className="size-5" /> : <Share aria-hidden className="size-5" />}
+      </button>
+      <span className="sr-only" aria-live="polite">{done ? "Link copied" : ""}</span>
+    </>
   );
 }

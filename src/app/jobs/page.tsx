@@ -8,7 +8,7 @@ import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { canUse } from "@/lib/access";
 import { engagementStatus, JOB_STATUS_LABELS } from "@/lib/engagement-labels";
-import { JOB_TYPES, exclusionReasons, parseFeedFilters, readDisclosure } from "@/lib/jobs";
+import { FEED_QUERY_MAX, JOB_TYPES, exclusionReasons, parseFeedFilters, readDisclosure } from "@/lib/jobs";
 import { effectivePreference } from "@/lib/political-fit";
 import { loadLatestPreference } from "@/lib/political-fit-data";
 import { plural } from "@/lib/format";
@@ -20,7 +20,7 @@ import { Sheet } from "@/components/Sheet";
 import { EmptyArt } from "@/components/EmptyState";
 import { applyMarks } from "@/lib/job-marks";
 import { loadMarks } from "@/lib/job-marks-data";
-import { ChevronRight, Search, SlidersHorizontal } from "lucide-react";
+import { Check, ChevronRight, Search, SlidersHorizontal } from "lucide-react";
 
 const day = (d: Date | null) =>
   d ? d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" }) : "—";
@@ -84,7 +84,8 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
     return qs ? `/jobs?${qs}` : "/jobs";
   };
   // The chip row (#111, screen 2): All, then one chip per live category and the worker's own quick filters. One tap on, one tap off.
-  const allOn = !filters.type && !savedOnly && !showHidden && !(params.get("week") === "1") && !filters.noCredentials;
+  // "All" is on only when nothing narrows the list but the search itself.
+  const allOn = !filters.type && !filters.minRateCents && !filters.startsBefore && !filters.noCredentials && !savedOnly && !showHidden;
   const quick = [
     { label: "All", href: filters.q ? `/jobs?q=${encodeURIComponent(filters.q)}` : "/jobs", on: allOn },
     { label: "Petitions", href: toggle("type", "PETITION"), on: filters.type === "PETITION" },
@@ -107,13 +108,14 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
       <div className="jobs-search">
         {/* The search is its own form (the filter sheet holds another: forms never nest). */}
         <form className="flex min-w-0 flex-1" action="/jobs" role="search">
-          {filters.type && <input type="hidden" name="type" value={filters.type} />}
-          {filters.noCredentials && <input type="hidden" name="noCredentials" value="1" />}
-          {params.get("week") === "1" && <input type="hidden" name="week" value="1" />}
-          {savedOnly && <input type="hidden" name="saved" value="1" />}
+          {/* A search keeps every filter already set (the chips' and the sheet's). */}
+          {(["type", "noCredentials", "week", "saved", "hidden", "minRate", "startsBefore"] as const).map((k) => {
+            const v = params.get(k);
+            return v ? <input key={k} type="hidden" name={k} value={v} /> : null;
+          })}
           <label className="jobs-search-field">
             <Search aria-hidden className="size-5 shrink-0 text-subtle" />
-            <input type="search" name="q" defaultValue={filters.q ?? ""} placeholder="Search jobs, organizations…" aria-label="Search jobs and organizations" className="min-w-0 flex-1 bg-transparent text-base text-fg outline-none placeholder:text-subtle" maxLength={80} />
+            <input type="search" name="q" defaultValue={filters.q ?? ""} placeholder="Search jobs, organizations…" aria-label="Search jobs and organizations" className="min-w-0 flex-1 bg-transparent text-base text-fg outline-none placeholder:text-subtle" maxLength={FEED_QUERY_MAX} />
           </label>
         </form>
         <Sheet label="Filters" trigger={<><SlidersHorizontal aria-hidden className="size-5" /><span className="sr-only">Filters</span></>} triggerClassName="jobs-filter-btn">
@@ -148,8 +150,10 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
       {/* The chip row (one tap on, one tap off). */}
       <nav aria-label="Quick filters" className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:-mx-6 sm:px-6">
         {quick.map((q) => (
-          <Link key={q.label} href={q.href} scroll={false} className={`filter-chip ${q.on ? "filter-chip-on" : ""}`} aria-pressed={q.on}>
+          <Link key={q.label} href={q.href} scroll={false} className={`filter-chip ${q.on ? "filter-chip-on" : ""}`} aria-current={q.on ? "true" : undefined}>
+            {q.on && <Check aria-hidden className="size-4 shrink-0" />}
             {q.label}
+            <span className="sr-only">{q.on ? " (on — tap to turn off)" : " (off)"}</span>
           </Link>
         ))}
       </nav>
@@ -179,6 +183,7 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
               );
             })}
           </ul>
+          <Link href="/jobs/invitations" className="link text-sm">Invitations</Link>
         </section>
       )}
 

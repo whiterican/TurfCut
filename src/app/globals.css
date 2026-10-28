@@ -1452,8 +1452,10 @@ body {
   .tab:focus-visible {
     z-index: 1;
   }
+  /* Besides the colour and the bolder label, the current icon is drawn heavier (a cue that isn't colour). */
   .tab[aria-current] .tab-icon {
     color: var(--dock-active-fg);
+    stroke-width: 2.5;
   }
   /* Sunlight keeps its white current tile with black type (outdoor glare). */
   .sun .tab[aria-current] {
@@ -1606,7 +1608,7 @@ body {
   /* Figures wrap two to a row on a phone and at least 10rem wide above it; a straggler stretches across the rest of its row, so no slot is ever an empty border-coloured block. */
   /* The organizer overview (#111, screen 10): three white tiles, then the map beside its key and the needs counts. */
   .stat-tiles {
-    @apply grid gap-4 sm:grid-cols-3;
+    @apply grid gap-4 sm:grid-cols-[repeat(auto-fit,minmax(14rem,1fr))];
   }
   .stat-tile {
     @apply rounded-[var(--radius-card)] border border-border p-4;
@@ -1646,9 +1648,9 @@ body {
     background: var(--primary);
     color: var(--on-primary);
   }
-  .period-chip {
-    @apply inline-flex min-h-10 items-center gap-2 rounded-[var(--radius-sm)] border border-border px-3 text-sm font-medium text-fg;
-    background: var(--surface);
+  /* The overview's period: a label (the query is today-only), not a control. */
+  .period-label {
+    @apply self-center text-sm font-medium text-muted;
   }
   .summary-bar {
     @apply flex flex-wrap gap-px overflow-hidden rounded-[var(--radius-inner)] border border-border bg-border;
@@ -1923,6 +1925,11 @@ body {
     background: rgb(255 255 255 / 0.92);
     color: var(--base-text);
     box-shadow: 0 1px 3px rgb(15 23 42 / 0.2);
+  }
+  /* Over a photograph the ring needs its own white halo, whatever is behind it. */
+  .job-head-btn:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px var(--focus);
   }
   .job-head-sheet {
     @apply -mt-2;

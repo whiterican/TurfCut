@@ -13,7 +13,7 @@ import { StatusChip } from "@/components/StatusBadge";
 import { roleName } from "@/lib/org-roles";
 import { liveRows } from "@/lib/field-day-data";
 import { summarizeField } from "@/lib/field-live";
-import { FieldLiveProvider, LiveFigure, LiveRatio } from "@/components/staff/FieldLive";
+import { FieldLiveProvider, LiveFigure, LiveRatio, LiveShow } from "@/components/staff/FieldLive";
 import { CoverageMap } from "@/components/staff/CoverageMap";
 import { URGENCY } from "@/lib/desk";
 
@@ -31,17 +31,18 @@ const NEED_LABELS: Record<keyof typeof URGENCY, string> = {
 };
 
 /**
- * Today in the field (#111, screen 10): three source-backed tiles, scoped to
- * today, then the field activity map (assigned turf only, never a person's
- * position) beside what needs the organization. Figures tick while the page
- * is open (P1.7). Unknown is never shown as zero: a tile appears only when the
- * loader could count it.
+ * Today in the field (#111, screen 10): three source-backed tiles scoped to
+ * today (a fourth, doors, when any were knocked), then the field activity map
+ * (assigned turf only, never a person's position) beside what needs the
+ * organization. Every figure ticks while the page is open (P1.7); each is a
+ * real count of today's shifts, so a zero is a zero.
  */
-function FieldToday({ ops, now, needs }: { ops: NonNullable<Awaited<ReturnType<typeof loadDesk>>["today"]>; now: Date; needs: Array<{ rank: number }> }) {
+function FieldToday({ ops, now, needs }: { ops: NonNullable<Awaited<ReturnType<typeof loadDesk>>["today"]>; now: Date; needs: Array<{ rank: number; count?: number }> }) {
   const live = summarizeField(liveRows(ops.rows), now);
   const t = live.today;
   const quiet = ops.scheduled === 0 && ops.upcoming === 0;
-  const counts = (Object.keys(URGENCY) as Array<keyof typeof URGENCY>).map((k) => ({ k, n: needs.filter((x) => x.rank === URGENCY[k]).length })).filter((x) => x.n > 0);
+  // Each kind's real count: an aggregated row (12 pay lines, 4 applications) counts for what it stands for.
+  const counts = (Object.keys(URGENCY) as Array<keyof typeof URGENCY>).map((k) => ({ k, n: needs.filter((x) => x.rank === URGENCY[k]).reduce((sum, x) => sum + (x.count ?? 1), 0) })).filter((x) => x.n > 0);
   return (
     <FieldLiveProvider initial={live}>
       <section className="section" aria-labelledby="today-heading">
@@ -50,7 +51,7 @@ function FieldToday({ ops, now, needs }: { ops: NonNullable<Awaited<ReturnType<t
           <div className="stat-tile">
             <p className="stat-tile-figure"><LiveFigure of="due" fallback={t.due} /></p>
             <p className="stat-tile-label">Shifts under way</p>
-            <p className="stat-tile-note">{quiet ? "Nothing under way" : t.upcoming > 0 ? `${t.upcoming} starting in the next 24h` : "Today"}</p>
+            <p className="stat-tile-note">{quiet ? "Nothing under way" : <><LiveFigure of="upcoming" fallback={t.upcoming} /> starting in the next 24h</>}</p>
           </div>
           <div className="stat-tile">
             <p className="stat-tile-figure"><LiveRatio of="dueCheckedIn" over="due" fallback={[t.dueCheckedIn, t.due]} /></p>
@@ -62,6 +63,13 @@ function FieldToday({ ops, now, needs }: { ops: NonNullable<Awaited<ReturnType<t
             <p className="stat-tile-label">Signatures submitted</p>
             <p className="stat-tile-note">Today, as workers report them</p>
           </div>
+          <LiveShow of="doors" fallback={t.doors}>
+            <div className="stat-tile">
+              <p className="stat-tile-figure"><LiveFigure of="doors" fallback={t.doors} /></p>
+              <p className="stat-tile-label">Doors knocked</p>
+              <p className="stat-tile-note">Today, as workers report them</p>
+            </div>
+          </LiveShow>
         </div>
       </section>
       <section className="section" aria-labelledby="field-activity">
@@ -88,7 +96,7 @@ function FieldToday({ ops, now, needs }: { ops: NonNullable<Awaited<ReturnType<t
                       <span className="need-tile-count">{n}</span>
                       <span className="min-w-0">
                         <span className="block font-semibold text-fg">{NEED_LABELS[k]}</span>
-                        <span className="block text-xs text-subtle">In the list below</span>
+                        <span className="block text-xs text-muted">In the list below</span>
                       </span>
                     </a>
                   </li>
@@ -115,7 +123,7 @@ export default async function DeskPage() {
   const { parts } = desk;
 
   return (
-    <WorkspacePage head={<Masthead title="Overview" meta={`${org?.name ?? "Your organization"} · ${roleName(session, ROLE_LABELS)}`}><span className="period-chip">Today</span></Masthead>}>
+    <WorkspacePage head={<Masthead title="Overview" meta={`${org?.name ?? "Your organization"} · ${roleName(session, ROLE_LABELS)}`}><p className="period-label">Today</p></Masthead>}>
 
       {parts.today && desk.today && <FieldToday ops={desk.today} now={now} needs={desk.needs} />}
 

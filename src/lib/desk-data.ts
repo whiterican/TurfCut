@@ -25,6 +25,8 @@ export interface DeskItem {
   when?: { label: string; at: Date };
   /** Urgency, lower first (lib/desk URGENCY). */
   rank: number;
+  /** How many things an aggregated row stands for (12 pay lines, 4 applications); absent means one. */
+  count?: number;
 }
 
 export interface Desk {
@@ -105,7 +107,7 @@ export async function loadDesk(actor: { profileId: string; orgId: string; role: 
   }
   if (parts.hiring && apps && jobs) {
     for (const g of applicationsByJob(apps.map((a) => ({ jobId: a.jobId, title: a.job.title, appliedAt: a.createdAt })))) {
-      needs.push({ key: `apps-${g.jobId}`, title: `${plural(g.count, "application")} waiting`, sub: g.title, tag: "Applied", state: "pending", href: `/hiring/${g.jobId}/applicants`, action: "See applicants", when: { label: "Oldest", at: g.oldest }, rank: URGENCY.applications });
+      needs.push({ key: `apps-${g.jobId}`, title: `${plural(g.count, "application")} waiting`, sub: g.title, tag: "Applied", state: "pending", href: `/hiring/${g.jobId}/applicants`, action: "See applicants", when: { label: "Oldest", at: g.oldest }, rank: URGENCY.applications, count: g.count });
     }
     for (const j of shortOfHeadcount(jobs.map((j) => ({ id: j.id, title: j.title, headcount: j.headcount, hired: j._count.engagements, startsAt: j.startsAt })))) {
       needs.push({ key: `short-${j.id}`, title: `${j.short} of ${j.headcount} ${j.headcount === 1 ? "seat" : "seats"} open`, sub: j.title, tag: "Short", state: "pending", href: `/jobs/${j.id}`, action: "Open job", when: j.startsAt ? { label: seatsWhenLabel(j.startsAt, now), at: j.startsAt } : undefined, rank: URGENCY.short });
@@ -115,12 +117,12 @@ export async function loadDesk(actor: { profileId: string; orgId: string; role: 
     if (pay.awaiting.length) {
       const cents = pay.awaiting.reduce((n, l) => n + l.line.amountCents, 0);
       const oldest = pay.awaiting.reduce((d, l) => (l.line.createdAt < d ? l.line.createdAt : d), pay.awaiting[0].line.createdAt);
-      needs.push({ key: "pay-approve", title: `${plural(pay.awaiting.length, "pay line")} to approve`, sub: `${money(cents)} in total`, tag: "Approve", state: "pending", href: "/pay?tab=approve", action: "Approve pay", when: { label: "Oldest", at: oldest }, rank: URGENCY.payApprove });
+      needs.push({ key: "pay-approve", title: `${plural(pay.awaiting.length, "pay line")} to approve`, sub: `${money(cents)} in total`, tag: "Approve", state: "pending", href: "/pay?tab=approve", action: "Approve pay", when: { label: "Oldest", at: oldest }, rank: URGENCY.payApprove, count: pay.awaiting.length });
     }
-    if (disputes.overdue) needs.push({ key: "pay-disputes-overdue", title: `${plural(disputes.overdue, "dispute")} overdue`, sub: "A reply or a resolution is past its deadline", tag: "Overdue", state: "overdue", href: "/pay?tab=disputes", action: "Open disputes", rank: URGENCY.overdue });
-    if (disputes.dueToday) needs.push({ key: "pay-disputes-today", title: `${plural(disputes.dueToday, "dispute")} due today`, sub: "Reply or resolve before the day ends", tag: "Due", state: "disputed", href: "/pay?tab=disputes", action: "Open disputes", rank: URGENCY.dueToday });
+    if (disputes.overdue) needs.push({ key: "pay-disputes-overdue", title: `${plural(disputes.overdue, "dispute")} overdue`, sub: "A reply or a resolution is past its deadline", tag: "Overdue", state: "overdue", href: "/pay?tab=disputes", action: "Open disputes", rank: URGENCY.overdue, count: disputes.overdue });
+    if (disputes.dueToday) needs.push({ key: "pay-disputes-today", title: `${plural(disputes.dueToday, "dispute")} due today`, sub: "Reply or resolve before the day ends", tag: "Due", state: "disputed", href: "/pay?tab=disputes", action: "Open disputes", rank: URGENCY.dueToday, count: disputes.dueToday });
     const rest = disputes.open - disputes.overdue - disputes.dueToday;
-    if (rest) needs.push({ key: "pay-disputes", title: `${plural(rest, "open dispute")}`, sub: "Workers questioning their pay", tag: "Dispute", state: "disputed", href: "/pay?tab=disputes", action: "Open disputes", rank: URGENCY.dispute });
+    if (rest) needs.push({ key: "pay-disputes", title: `${plural(rest, "open dispute")}`, sub: "Workers questioning their pay", tag: "Dispute", state: "disputed", href: "/pay?tab=disputes", action: "Open disputes", rank: URGENCY.dispute, count: rest });
   }
 
   return {

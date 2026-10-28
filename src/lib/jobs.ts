@@ -843,7 +843,8 @@ export function parseFeedFilters(p: URLSearchParams, now = new Date()): FeedFilt
   // A date typed in "More filters" wins over the chip.
   if (p.get("week") === "1" && !f.startsBefore) f.startsBefore = new Date(now.getTime() + 7 * 86_400_000);
   // The search box: whitespace collapsed, cut to a sensible length; empty means no search.
-  const q = (p.get("q") ?? "").replace(/\s+/g, " ").trim().slice(0, FEED_QUERY_MAX);
+  // (The LIKE wildcards % and _ would match everything; nobody searches for them, so they go.)
+  const q = (p.get("q") ?? "").replace(/[%_]/g, "").replace(/\s+/g, " ").trim().slice(0, FEED_QUERY_MAX);
   if (q) f.q = q;
   return f;
 }

@@ -44,10 +44,9 @@ import { loadSharedAvailabilities } from "@/lib/availability-data";
 import { orgAvailabilityView, withoutPastDates } from "@/lib/availability";
 import { followState } from "@/lib/campaign-follow-data";
 import { CampaignCard } from "@/components/campaign/CampaignCard";
-import { BadgeCheck, Building2, ChevronLeft, CircleCheck, Info, MapPinned, Tag } from "lucide-react";
+import { BadgeCheck, Building2, CircleCheck, Info, MapPinned, Tag } from "lucide-react";
 import { JobHeadActions } from "@/components/JobHeadActions";
 import { loadMarks } from "@/lib/job-marks-data";
-import { readLaunch as readLaunchMode } from "@/lib/job-launch";
 
 /** A view-transition name and class as inline style (React knows the name; the class property isn't in its CSS types yet). */
 const shareStyle = (name: string) => ({ viewTransitionName: name, viewTransitionClass: "job-share" }) as React.CSSProperties;
@@ -129,9 +128,6 @@ export default async function JobPage({ params }: { params: Promise<{ jobId: str
             <CategoryStatusTag status={categoryStatusOf(job.type, job.campaignDisclosure)} />
           </>
         }
-        back={
-          <Link transitionTypes={["nav-back"]} href="/jobs" className="btn-ghost -ms-4"><ChevronLeft aria-hidden className="size-4 shrink-0" />Jobs</Link>
-        }
       >
         <span className="text-end">
           <span className="masthead-figure block pt-0 text-2xl" style={shareStyle(`pay-${job.id}`)}>{payShort(job.compensationMethod, job.payRateCents, job.type)}</span>
@@ -164,7 +160,7 @@ export default async function JobPage({ params }: { params: Promise<{ jobId: str
         </div>
         <div className="mt-3 flex flex-wrap gap-2">
           <span className="fact-chip"><Tag aria-hidden className="size-4" />{jobDiscoveryLabel(job.type, job.campaignDisclosure)}</span>
-          <span className="fact-chip"><MapPinned aria-hidden className="size-4" />{readLaunchMode(job.launch).mode === "SELF" ? "Self-launch" : "Staged"}</span>
+          <span className="fact-chip"><MapPinned aria-hidden className="size-4" />{readLaunch(job.launch).mode === "SELF" ? "Self-launch" : "Staged"}</span>
           <CategoryStatusTag status={categoryStatusOf(job.type, job.campaignDisclosure)} />
         </div>
       </header>

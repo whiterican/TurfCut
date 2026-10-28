@@ -22,6 +22,7 @@ import { JobFacts } from "@/components/JobFacts";
 import { SnapshotView } from "@/components/SnapshotView";
 import { ActionButton } from "@/components/ActionButton";
 import { Sheet } from "@/components/Sheet";
+import { RecordPage } from "@/components/layout/Page";
 import { Masthead } from "@/components/Masthead";
 
 import { acceptInvitation, apply, claim, closeJobAction, declineAsWorker, leaveChangedJob, publish, withdrawApplication } from "../actions";
@@ -96,48 +97,56 @@ export default async function JobPage({ params }: { params: Promise<{ jobId: str
   const modes = readHiringModes(job.hiringMethod);
   const status = JOB_STATUS_LABELS[job.status];
 
-  return (
-    <main className="page max-w-3xl">
-      {/* The record head (F03b): the title and pay are shared with the feed card that was tapped (P1.6), so they grow into place. */}
-      <Masthead
-        eyebrow={`${job.type === "PETITION" ? "Petition circulation" : "Door-to-door canvass"} · ${jurisdictionLabel(job.jurisdiction)}`}
-        title={job.title}
-        titleClassName="w-fit"
-        titleStyle={shareStyle(`job-${job.id}`)}
-        meta={job.org.name}
-        // The same words as the feed card's pay (gross, exact basis), so the shared element grows rather than swaps its text.
-        figure={<span className="block w-fit" style={shareStyle(`pay-${job.id}`)}>{payText(job.compensationMethod, job.payRateCents)}</span>}
-        chips={
-          <>
-            {isOwnOrg && <StatusBadge status={status} />}
-          </>
-        }
-        back={
-          <Link transitionTypes={["nav-back"]} href="/jobs" className="btn-ghost -ms-4"><ChevronLeft aria-hidden className="size-4 shrink-0" />Jobs</Link>
-        }
-      />
+  // The record head (F03b): the title and pay are shared with the feed card that was tapped (P1.6), so they grow into place.
+  const head = (
+    <Masthead
+      eyebrow={`${job.type === "PETITION" ? "Petition circulation" : "Door-to-door canvass"} · ${jurisdictionLabel(job.jurisdiction)}`}
+      title={job.title}
+      titleClassName="w-fit"
+      titleStyle={shareStyle(`job-${job.id}`)}
+      meta={job.org.name}
+      // The same words as the feed card's pay (gross, exact basis), so the shared element grows rather than swaps its text.
+      figure={<span className="block w-fit" style={shareStyle(`pay-${job.id}`)}>{payText(job.compensationMethod, job.payRateCents)}</span>}
+      chips={
+        <>
+          {isOwnOrg && <StatusBadge status={status} />}
+        </>
+      }
+      back={
+        <Link transitionTypes={["nav-back"]} href="/jobs" className="btn-ghost -ms-4"><ChevronLeft aria-hidden className="size-4 shrink-0" />Jobs</Link>
+      }
+    />
+  );
+  const fullCard = (
+    <section className="section">
+      <h2 className="section-title">Full job card</h2>
+      <JobCard job={{ ...job, orgName: job.org.name, jurisdictionRules: job.jurisdiction.rules }} />
+    </section>
+  );
 
+  // A RecordPage (redesign §5). An organizer's object is the staffing, with the job's facts beside it;
+  // a worker's is the job itself, with what they can do about it beside it (below it on a phone).
+  if (isOwnOrg) {
+    return (
+      <RecordPage head={head} aside={<JobFacts job={job} acceptedCount={acceptedCount} />}>
+        <OrgPanel job={job} canHire={canUse(session, "hiring")} canEdit={canUse(session, "jobsEdit")} canSchedule={canUse(session, "scheduling")} userId={session.userId} />
+        {job.description && <p className="lead">{job.description}</p>}
+        {fullCard}
+      </RecordPage>
+    );
+  }
+  return (
+    <RecordPage head={head} aside={<WorkerPanel job={job} engagement={engagement} modes={modes} workerId={session.workerId!} acceptedCount={acceptedCount} />}>
       {/* The facts a worker decides on, before anything else (D2): dates, place and how each day starts, spots,
           what counts as payable, credentials and the rules. The full job card below keeps every detail. */}
       <JobFacts job={job} acceptedCount={acceptedCount} />
-
       {job.description && <p className="lead">{job.description}</p>}
-
       {/* The campaign this job works for (S2): its page and a Follow control, while the campaign is public. */}
-      {isWorker && job.campaignProfile?.publishedAt && job.org.approved && (
+      {job.campaignProfile?.publishedAt && job.org.approved && (
         <CampaignCard campaign={job.campaignProfile} follow={await followState(session.workerId!, job.campaignProfile.id)} viewer="worker" back={`/jobs/${job.id}`} />
       )}
-
-      {isWorker && <WorkerPanel job={job} engagement={engagement} modes={modes} workerId={session.workerId!} acceptedCount={acceptedCount} />}
-      {isOwnOrg && (
-        <OrgPanel job={job} canHire={canUse(session, "hiring")} canEdit={canUse(session, "jobsEdit")} canSchedule={canUse(session, "scheduling")} userId={session.userId} />
-      )}
-
-      <section className="section">
-        <h2 className="section-title">Full job card</h2>
-        <JobCard job={{ ...job, orgName: job.org.name, jurisdictionRules: job.jurisdiction.rules }} />
-      </section>
-    </main>
+      {fullCard}
+    </RecordPage>
   );
 }
 
@@ -270,6 +279,19 @@ async function WorkerPanel({
 
   return (
     <>
+    {/* The action first (redesign §5: the aside leads with the apply panel), then why it fits. */}
+    <section className="card space-y-4">
+      {modes.includes("application") && (
+        <ActionButton action={apply} fields={{ jobId: job.id }} label="Apply with verified profile" pendingLabel="Applying…" variant="btn-primary w-full" />
+      )}
+      {modes.includes("instant_claim") && (
+        <ActionButton action={claim} fields={{ jobId: job.id }} label="Claim a spot" pendingLabel="Claiming…" variant={modes.includes("application") ? "btn-secondary w-full" : "btn-primary w-full"} />
+      )}
+      {!modes.includes("application") && !modes.includes("instant_claim") && (
+        <p className="text-muted-sm">This job hires by invitation only.</p>
+      )}
+      <WillSee sharing={sharing.choices} approved={job.org.approved} join={joinText(modes)} />
+    </section>
     <section className="section">
       <h2 className="section-title">Why it fits</h2>
       <ul className="divide-y divide-border">
@@ -288,18 +310,6 @@ async function WorkerPanel({
         ))}
       </ul>
       <p className="text-hint">From your verified record and this job&apos;s rules — no hidden score.</p>
-    </section>
-    <section className="card space-y-4">
-      {modes.includes("application") && (
-        <ActionButton action={apply} fields={{ jobId: job.id }} label="Apply with verified profile" pendingLabel="Applying…" variant="btn-primary w-full" />
-      )}
-      {modes.includes("instant_claim") && (
-        <ActionButton action={claim} fields={{ jobId: job.id }} label="Claim a spot" pendingLabel="Claiming…" variant={modes.includes("application") ? "btn-secondary w-full" : "btn-primary w-full"} />
-      )}
-      {!modes.includes("application") && !modes.includes("instant_claim") && (
-        <p className="text-muted-sm">This job hires by invitation only.</p>
-      )}
-      <WillSee sharing={sharing.choices} approved={job.org.approved} join={joinText(modes)} />
     </section>
     </>
   );

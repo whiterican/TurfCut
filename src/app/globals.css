@@ -267,7 +267,7 @@ html {
   --measure-reading: 42rem;
   --measure-content: 48rem;
   --workspace-max: 90rem;
-  /* The header's fixed height: px controls and padding (12 + 40 + 12 + a 1px border), so text size never changes it. */
+  /* The header's fixed height in px, its 1px border included (.site-header-bar). */
   --site-header-h: 65px;
   --inspector-w: 24rem;
   --dock-clearance: calc(6rem + env(safe-area-inset-bottom));
@@ -1886,6 +1886,12 @@ summary.list-none::-webkit-details-marker {
   background: var(--bg);
   border-color: transparent;
 }
+/* The header's height is pinned in px (--site-header-h less its 1px border), so a
+   larger text size never changes it: the full-height rail and the scroll
+   padding below rely on it. Its controls fit inside at every text size. */
+.site-header-bar {
+  height: calc(var(--site-header-h) - 1px);
+}
 /* Organizations on desktop: the header stays put too, so the full-height rail
    can sit exactly under it (--site-header-h). */
 @media (width >= 64rem) {
@@ -1900,6 +1906,17 @@ summary.list-none::-webkit-details-marker {
   .org-rail {
     top: var(--site-header-h);
     height: calc(100dvh - var(--site-header-h));
+  }
+  /* A chat thread pins its own bar: under the header here, not over it. */
+  body:has(.org-rail) .thread-top {
+    top: var(--site-header-h);
+  }
+}
+/* Wider than the workspace the shell centres, so the rail's left side meets the
+   page too: by night it needs its edge there as well (§2.0a). */
+@media (width >= 90rem) {
+  .org-rail {
+    border-inline-start: 1px solid var(--shell-edge);
   }
 }
 @media (max-width: 63.99rem) {

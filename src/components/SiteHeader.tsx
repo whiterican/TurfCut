@@ -34,7 +34,7 @@ export function SiteHeader({
     <>
       <a href={`#${contentId}`} className="skip-link">Skip to content</a>
       <header className="site-header border-b">
-        <div className={`mx-auto flex w-full ${isOrg ? "max-w-[var(--workspace-max)]" : "max-w-5xl"} items-center justify-between gap-3 px-4 py-3 sm:px-6`}>
+        <div className={`mx-auto flex w-full ${isOrg ? "max-w-[var(--workspace-max)]" : "max-w-5xl"} site-header-bar items-center justify-between gap-3 px-4 sm:px-6`}>
           <Link href={at(!signedIn ? "/" : isOrg ? "/desk" : "/dashboard")} className="flex shrink-0 items-center gap-2 text-[20px] font-bold tracking-[-0.04em] text-fg">
             {/* The founder's pin-check-nib mark, the same in every theme. The word is live text in the
                 theme's ink. Static import + unoptimized: served from /_next/static, saved offline by the service worker. */}

@@ -527,6 +527,9 @@ describe("the shell (redesign B1.4)", () => {
 
   it("runs the organization rail full height under a header of fixed height", () => {
     expect(css).toMatch(/--site-header-h: 65px;/);
+    // Pinned in px, so text size never moves the rail out from under it; a thread's own bar sits below it.
+    expect(css).toMatch(/\.site-header-bar \{\s*height: calc\(var\(--site-header-h\) - 1px\);/);
+    expect(css).toMatch(/body:has\(\.org-rail\) \.thread-top \{\s*top: var\(--site-header-h\);/);
     expect(css).toMatch(/\.org-rail \{\s*top: var\(--site-header-h\);\s*height: calc\(100dvh - var\(--site-header-h\)\);/);
     expect(css).toMatch(/\.org-shell \{\s*@apply mx-auto flex w-full max-w-\[var\(--workspace-max\)\] flex-1;/);
   });

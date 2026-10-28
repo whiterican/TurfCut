@@ -596,6 +596,26 @@ Nothing merges without the owner's word.
 | Fraunces adds a font file on every route | One variable file, `display: swap`. **B1** records a baseline and sets budgets on `/`, `/dashboard`, `/shifts/[id]` and `/desk`: LCP ≤2.5s, CLS ≤0.05, font bytes ≤120 KB on a throttled mid-range phone profile. Every later stage is checked against them |
 | Photo licences | Public placeholders from a free-licence library with credits, swapped for the owner's photos before launch |
 
+### 8.1 Performance baseline (B1, recorded 2026-10-28)
+
+Production build (`next build`/`next start`), 390×844 phone at 3×, 4× CPU slowdown, ~1.6 Mbps down and 150 ms round trip, median of three loads, signed in through the local preview with B1 fixtures.
+
+| Route | LCP | CLS | Font bytes (9 files, all preloaded) | JS |
+|---|---|---|---|---|
+| `/` | 1.54 s ✓ | 0 ✓ | 176 KB ✗ | 307 KB |
+| `/dashboard` | 1.32 s ✓ | 0.003 ✓ | 176 KB ✗ | 461 KB |
+| `/shifts/[id]` | 1.24 s ✓ | 0.02 ✓ | 176 KB ✗ | 369 KB |
+| `/desk` | 1.36 s ✓ | 0 ✓ | 176 KB ✗ | 312 KB |
+
+Font bytes are over the 120 KB budget on every route. The split: Fraunces variable with the optical-size axis 65 KB (the full weight range comes with it; only 600 is used), Barlow 400/500/600/700 4 × 15 KB, Barlow Condensed 600/700 2 × 15 KB, DM Mono 400/500 2 × 8.5 KB. Ways under the budget, none applied yet because each changes how type renders (owner choice 6):
+
+| Change | Saves | Effect on the look |
+|---|---|---|
+| Fraunces at 600 only, no optical-size axis | 48 KB | Display titles lose optical sizing (slightly heavier hairlines at large sizes) |
+| Fraunces 600 with optical sizing, self-hosted (`next/font/local`, one 34 KB file committed) | 31 KB | None |
+| DM Mono not preloaded | 17 KB on pages without figures | Figures may swap in a moment later |
+| Barlow 500 dropped (`font-medium` → 600 or 400) | 15 KB | Medium weight text changes |
+
 ## 9. Owner choices (defaults applied unless the owner says otherwise)
 
 1. The worker's first tab is labelled **Home** (dock), and the page title reads "Today".
@@ -603,3 +623,4 @@ Nothing merges without the owner's word.
 3. Public hero placeholders: free-licence stock, labelled, until the owner's photos arrive.
 4. **Light-mode primary card** (C1 round 2): eggplant with a *cream* action button (forest never sits on eggplant), against the brief's "one clear green action". An alternative is a cream card with an eggplant edge and the green action inside. Shown both ways at the Home pilot; the owner picks.
 5. Whether to add `@playwright/test` as a dev dependency, so the §6.3 checks also run in CI. Default: no; the checks run from the pre-installed Playwright each stage, with saved results.
+6. **Font budget** (§8.1): fonts are 176 KB against the 120 KB budget. Default proposal: self-host Fraunces 600 with optical sizing (no visible change, −31 KB) and drop Barlow 500 (−15 KB), with DM Mono no longer preloaded (−17 KB where no figures show): about 113–130 KB. Or raise the budget to 180 KB and keep today's type. Nothing changes until the owner picks.

@@ -548,6 +548,48 @@ body {
     flex: 1;
     flex-direction: column;
   }
+  /* The public landing's hero (green board): the picture under a dark scrim, the line and one green action at the
+     foot, and one real open job on a white card. Full height on a phone; two columns from 1024. */
+  .landing-hero {
+    @apply relative isolate flex min-h-[calc(100svh-var(--site-header-h))] flex-col overflow-hidden;
+    background: var(--shell-bg);
+    color: var(--shell-fg);
+  }
+  .landing-hero-art {
+    @apply absolute inset-0 -z-20 h-full w-full;
+  }
+  .landing-hero-scrim {
+    @apply absolute inset-0 -z-10;
+    /* Dark at the foot where the words sit, thinning toward the sky (a radial, so the motion test's "linear" rule stays exact). */
+    background: radial-gradient(140% 85% at 50% 100%, rgb(23 16 31 / 0.96) 28%, rgb(23 16 31 / 0.45) 70%, rgb(23 16 31 / 0.2) 100%);
+  }
+  .landing-hero-body {
+    @apply mx-auto flex w-full max-w-6xl flex-1 flex-col justify-end gap-8 px-5 pt-16 pb-10 sm:px-8 lg:grid lg:grid-cols-[minmax(0,1.2fr)_minmax(20rem,0.8fr)] lg:items-end lg:gap-16 lg:pb-16;
+  }
+  .landing-hero-line {
+    @apply t-display;
+    color: var(--shell-fg);
+    text-wrap: balance;
+  }
+  .landing-hero-proof {
+    @apply mt-4 max-w-md text-lg leading-snug;
+    color: var(--shell-fg);
+  }
+  .landing-hero-kicker {
+    @apply mb-2 text-[11px] font-semibold tracking-[0.16em] uppercase;
+    color: var(--shell-muted);
+  }
+  .landing-featured-card {
+    @apply flex gap-3 rounded-[var(--radius-card)] border border-border p-3 transition;
+    background: var(--surface);
+    box-shadow: var(--shadow-depth);
+  }
+  .landing-featured-card:hover {
+    border-color: var(--border-strong);
+  }
+  .landing-featured-art {
+    @apply block size-16 shrink-0 overflow-hidden rounded-[var(--radius-inner)];
+  }
   .hero-split {
     @apply flex flex-1 flex-col;
   }

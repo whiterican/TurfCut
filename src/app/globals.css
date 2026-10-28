@@ -1468,6 +1468,10 @@ body {
     @apply text-2xl font-bold tracking-[-0.02em] text-fg tabular-nums;
   }
 
+  /* A status in a table's state column keeps to one line: the column is sized for it. */
+  .ops-state .status {
+    white-space: nowrap;
+  }
   /* Organization shell (C1): left rail on desktop, role tabs + More sheet on phones. */
   .org-shell {
     @apply mx-auto flex w-full max-w-[var(--workspace-max)] flex-1;

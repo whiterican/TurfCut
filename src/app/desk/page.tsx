@@ -4,6 +4,7 @@ import { requireArea } from "@/lib/employer-session";
 import { db } from "@/lib/db";
 import { loadDesk } from "@/lib/desk-data";
 import { Masthead } from "@/components/staff/Masthead";
+import { WorkspacePage } from "@/components/layout/Page";
 import { DataTable } from "@/components/staff/DataTable";
 import { NeedsTable } from "@/components/staff/NeedsTable";
 import { SummaryBar } from "@/components/staff/SummaryBar";
@@ -58,8 +59,7 @@ export default async function DeskPage() {
   const { parts } = desk;
 
   return (
-    <main className="page lg:max-w-5xl">
-      <Masthead title={org?.name ?? "Your organization"} meta={roleName(session, ROLE_LABELS)} />
+    <WorkspacePage head={<Masthead title={org?.name ?? "Your organization"} meta={roleName(session, ROLE_LABELS)} />}>
 
       {parts.today && desk.today && <FieldToday ops={desk.today} now={now} />}
 
@@ -149,6 +149,6 @@ export default async function DeskPage() {
           </section>
         </>
       )}
-    </main>
+    </WorkspacePage>
   );
 }

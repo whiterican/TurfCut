@@ -1,0 +1,17 @@
+screen,reference_route,worker_or_org,light_mobile,dark_mobile,light_desktop,dark_desktop
+today-live,/dashboard,worker,today-live-390-light.png,today-live-390-dark.png,today-live-1440-light.png,today-live-1440-dark.png
+today-next,/dashboard,worker,today-next-390-light.png,today-next-390-dark.png,today-next-1440-light.png,today-next-1440-dark.png
+today-overdue,/dashboard,worker,today-overdue-390-light.png,today-overdue-390-dark.png,today-overdue-1440-light.png,today-overdue-1440-dark.png
+today-empty,/dashboard,worker,today-empty-390-light.png,today-empty-390-dark.png,today-empty-1440-light.png,today-empty-1440-dark.png
+work-feed,/jobs,worker,work-feed-390-light.png,work-feed-390-dark.png,work-feed-1440-light.png,work-feed-1440-dark.png
+job-apply,/jobs/[jobId],worker,job-apply-390-light.png,job-apply-390-dark.png,job-apply-1440-light.png,job-apply-1440-dark.png
+job-applied,/jobs/[jobId],worker,job-applied-390-light.png,job-applied-390-dark.png,job-applied-1440-light.png,job-applied-1440-dark.png
+job-hired,/jobs/[jobId],worker,job-hired-390-light.png,job-hired-390-dark.png,job-hired-1440-light.png,job-hired-1440-dark.png
+shifts,/shifts,worker,shifts-390-light.png,shifts-390-dark.png,shifts-1440-light.png,shifts-1440-dark.png
+shift-live,/shifts/[shiftId],worker,shift-live-390-light.png,shift-live-390-dark.png,shift-live-1440-light.png,shift-live-1440-dark.png
+messages,/messages,worker,messages-390-light.png,messages-390-dark.png,messages-1440-light.png,messages-1440-dark.png
+profile,/profile,worker,profile-390-light.png,profile-390-dark.png,profile-1440-light.png,profile-1440-dark.png
+org-desk,/desk,org,org-desk-390-light.png,org-desk-390-dark.png,org-desk-1440-light.png,org-desk-1440-dark.png
+org-field,/field,org,org-field-390-light.png,org-field-390-dark.png,org-field-1440-light.png,org-field-1440-dark.png
+org-hiring,/hiring,org,org-hiring-390-light.png,org-hiring-390-dark.png,org-hiring-1440-light.png,org-hiring-1440-dark.png
+org-more,OrgTabBar dialog,org,org-more-390-light.png,org-more-390-dark.png,org-more-1440-light.png,org-more-1440-dark.png

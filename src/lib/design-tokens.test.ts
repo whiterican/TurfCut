@@ -538,7 +538,7 @@ describe("the shell (redesign B1.4)", () => {
       // The current row is told apart from the panel (by night with a lavender edge as well).
       expect(ratio(th["tab-active-bg"], th.surface)).toBeGreaterThanOrEqual(th === dark ? 1.5 : 3);
     }
-    expect(css).toMatch(/\.dark :is\(\.more-sheet \.rail-link\[aria-current\], \.more-sheet \.rail-link\[aria-current\]/);
+    expect(css).toMatch(/\.dark :is\(\.more-sheet \.rail-link\[aria-current\], \.chip:has\(input:checked\)/);
   });
 
   it("has a skip link that appears on keyboard focus, landing on a wrapper without a ring", () => {

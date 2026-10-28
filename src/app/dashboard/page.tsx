@@ -37,6 +37,7 @@ import { landingFor } from "@/lib/nav";
 import { roleName } from "@/lib/org-roles";
 import type { Role } from "@/lib/auth";
 import { Masthead } from "@/components/Masthead";
+import { ListPage } from "@/components/layout/Page";
 import { ChevronRight } from "lucide-react";
 import { cache } from "react";
 import { laterShifts, pickHero } from "@/lib/home-hero";
@@ -440,35 +441,47 @@ export default async function DashboardPage() {
 
   const isWorker = session.role === "WORKER" && !!session.workerId;
 
+  // Home is a ListPage (redesign §5): the day's work in the main column, and beside it from 1024
+  // (below it on a phone) the pay summary, the worker's own choices and their campaigns.
+  const head = isWorker ? (
+    // Today is the day, not a greeting: the date under the title, no name or email (D1b).
+    <Masthead title="Today" meta={<TodayDate />} />
+  ) : (
+    <Masthead title="Your account" meta={[roleName(session, ROLE_LABELS), session.email].filter(Boolean).join(" · ")} />
+  );
+  if (!isWorker) {
+    return (
+      <ListPage head={head}>
+        {session.role !== "WORKER" ? (
+          <Detached />
+        ) : (
+          <div className="empty-state">
+            <p className="empty-state-title">Nothing here yet</p>
+            <p className="empty-state-body">This login isn&apos;t linked to a worker profile or an organization yet.</p>
+          </div>
+        )}
+      </ListPage>
+    );
+  }
+  const workerId = session.workerId!;
   return (
-    <main className="page">
-      {/* Today is the day, not a greeting: the date under the title, no name or email (D1b). */}
-      {isWorker ? (
-        <Masthead title="Today" meta={<TodayDate />} />
-      ) : (
-        <Masthead title="Your account" meta={[roleName(session, ROLE_LABELS), session.email].filter(Boolean).join(" · ")} />
-      )}
-
-      {isWorker && <WorkerBrief workerId={session.workerId!} userId={session.userId} />}
-      {isWorker && <WorkerHero workerId={session.workerId!} />}
-      {isWorker && <LaterShifts workerId={session.workerId!} />}
-      {isWorker && <OpenSeats workerId={session.workerId!} />}
-      {isWorker && <FitReconfirm workerId={session.workerId!} />}
-      {isWorker && <CredentialReminder workerId={session.workerId!} />}
-      {isWorker && <SharingNote workerId={session.workerId!} />}
-      {isWorker && <CampaignsOn workerId={session.workerId!} />}
-
-      {isWorker && <EarningsCard workerId={session.workerId!} />}
-      {isWorker && <OpenJobs workerId={session.workerId!} />}
-
-      {isWorker ? null : session.role !== "WORKER" ? (
-        <Detached />
-      ) : (
-        <div className="empty-state">
-          <p className="empty-state-title">Nothing here yet</p>
-          <p className="empty-state-body">This login isn&apos;t linked to a worker profile or an organization yet.</p>
-        </div>
-      )}
-    </main>
+    <ListPage
+      head={head}
+      aside={
+        <>
+          <EarningsCard workerId={workerId} />
+          <FitReconfirm workerId={workerId} />
+          <SharingNote workerId={workerId} />
+          <CampaignsOn workerId={workerId} />
+        </>
+      }
+    >
+      <WorkerBrief workerId={workerId} userId={session.userId} />
+      <WorkerHero workerId={workerId} />
+      <CredentialReminder workerId={workerId} />
+      <LaterShifts workerId={workerId} />
+      <OpenSeats workerId={workerId} />
+      <OpenJobs workerId={workerId} />
+    </ListPage>
   );
 }

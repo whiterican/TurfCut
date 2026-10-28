@@ -267,6 +267,8 @@ html {
   --measure-reading: 42rem;
   --measure-content: 48rem;
   --workspace-max: 90rem;
+  /* The worker's widest page (a list or record with its aside, gutters included): the header lines up with it. */
+  --worker-frame: calc(var(--measure-content) + 18rem + 2.5rem + 3rem);
   /* The header's fixed height in px, its 1px border included (.site-header-bar). */
   --site-header-h: 65px;
   --inspector-w: 24rem;

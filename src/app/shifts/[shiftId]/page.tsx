@@ -14,6 +14,7 @@ import { activeTime, earningsEstimate, readTurf, scheduleFlags, shiftProgress, s
 import { carriedInto, facts, heldOnJob, loadShift } from "@/lib/field-day-data";
 import { ShiftProgress } from "@/components/ShiftProgress";
 import { TurfMap } from "@/components/TurfMap";
+import { FieldPage, RecordPage } from "@/components/layout/Page";
 import { LocalTime } from "@/components/LocalTime";
 import { LiveShiftStats } from "@/components/LiveShiftStats";
 import { CountUp } from "@/components/Moments";
@@ -227,8 +228,11 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
   );
 
 
-  return (
-    <main className="page max-w-2xl">
+  // The worker's shift is a FieldPage: the task, and beside it from 1024 (below it on a phone) the
+  // brief, the turf and who handles problems. Staff see a RecordPage: status, custody and review as
+  // the object, the brief and contacts beside it (redesign §5).
+  const head = (
+    <>
       {/* The worker sees the job they're working as the title; staff see the worker, with the job under it (D2). */}
       <Masthead
         title={isWorker ? s.engagement.job.title : s.engagement.worker.displayName}
@@ -248,6 +252,55 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
         {/* Outdoors in glare: the Sunlight theme, one tap away on the field-day screen (P1.5). */}
         {isWorker && <SunlightToggle />}
       </Masthead>
+    </>
+  );
+  const turfSection = (
+    <>
+      {(turf || staging || marks.dayTurf || marks.pins.length > 0 || marksOpen) && (
+        <section className="section">
+          <h2 className="section-title">Turf</h2>
+          {turf ? (
+            <p className="text-muted-sm">Turf assigned by {s.engagement.job.org.name}.</p>
+          ) : marks.dayTurf ? (
+            <p className="text-muted-sm">{isWorker ? "Your" : "The worker's"} own turf for today (dashed).</p>
+          ) : (
+            <p className="text-muted-sm">No turf assigned by the campaign{marksOpen ? " — mark your own for today below." : "."}</p>
+          )}
+          {marksOpen ? (
+            <TurfWorkbench shiftId={s.id} turf={turf} dayTurf={marks.dayTurf} staging={staging} pins={marks.pins} canDrawDayTurf={!turf} />
+          ) : (
+            <>
+              <TurfMap turf={turf} dayTurf={marks.dayTurf} staging={staging} pins={toMapPins(marks.pins)} dayTurfLabel={isWorker ? "Your turf today" : "Worker's turf today"} />
+              {marks.pins.length > 0 && <PinLegend />}
+            </>
+          )}
+          {s.stagingLocation && <p className="text-muted-sm">Check in at {s.stagingLocation}.</p>}
+        </section>
+      )}
+    </>
+  );
+  const aside = (
+    <>
+      {brief && (isWorker || canField) && <TalkingPoints brief={brief} />}
+      {isWorker && turfSection}
+      {contacts && (
+        <section className="section">
+          <h2 className="section-title">Who handles problems</h2>
+          <dl className="list-card">
+            <Row label="Emergencies">{contacts.emergency}</Row>
+            <Row label="Pay disputes">{contacts.disputes}</Row>
+            <Row label="Lost materials">{contacts.lostMaterials}</Row>
+          </dl>
+        </section>
+      )}
+    </>
+  );
+  const Template = isWorker ? FieldPage : RecordPage;
+  // No empty column: the aside only when it holds something.
+  const hasTurf = !!(turf || staging || marks.dayTurf || marks.pins.length > 0 || marksOpen);
+  const hasAside = !!(brief && (isWorker || canField)) || !!contacts || (isWorker && hasTurf);
+  return (
+    <Template head={head} aside={hasAside ? aside : undefined}>
 
       {!started && workerActions}
       <div className={`hero-card space-y-4 ${isWorker && live ? "hero-card-accent" : ""}`} data-priority={isWorker ? shiftPriority(s, now) : undefined}>
@@ -406,29 +459,7 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
 
       <ShiftProgress steps={steps} />
 
-      {brief && (isWorker || canField) && <TalkingPoints brief={brief} />}
 
-      {(turf || staging || marks.dayTurf || marks.pins.length > 0 || marksOpen) && (
-        <section className="section">
-          <h2 className="section-title">Turf</h2>
-          {turf ? (
-            <p className="text-muted-sm">Turf assigned by {s.engagement.job.org.name}.</p>
-          ) : marks.dayTurf ? (
-            <p className="text-muted-sm">{isWorker ? "Your" : "The worker's"} own turf for today (dashed).</p>
-          ) : (
-            <p className="text-muted-sm">No turf assigned by the campaign{marksOpen ? " — mark your own for today below." : "."}</p>
-          )}
-          {marksOpen ? (
-            <TurfWorkbench shiftId={s.id} turf={turf} dayTurf={marks.dayTurf} staging={staging} pins={marks.pins} canDrawDayTurf={!turf} />
-          ) : (
-            <>
-              <TurfMap turf={turf} dayTurf={marks.dayTurf} staging={staging} pins={toMapPins(marks.pins)} dayTurfLabel={isWorker ? "Your turf today" : "Worker's turf today"} />
-              {marks.pins.length > 0 && <PinLegend />}
-            </>
-          )}
-          {s.stagingLocation && <p className="text-muted-sm">Check in at {s.stagingLocation}.</p>}
-        </section>
-      )}
 
       {isOrg && logEvents.length > 0 && (
         <section className="section">
@@ -497,17 +528,7 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
           <p className="text-hint">Your original entries are kept. If a correction is wrong, dispute this shift&apos;s pay from Earnings.</p>
         </section>
       )}
-
-      {contacts && (
-        <section className="section">
-          <h2 className="section-title">Who handles problems</h2>
-          <dl className="list-card">
-            <Row label="Emergencies">{contacts.emergency}</Row>
-            <Row label="Pay disputes">{contacts.disputes}</Row>
-            <Row label="Lost materials">{contacts.lostMaterials}</Row>
-          </dl>
-        </section>
-      )}
-    </main>
+      {!isWorker && turfSection}
+    </Template>
   );
 }

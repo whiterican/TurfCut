@@ -8,7 +8,8 @@ import { profileSectionCurrent, PROFILE_SECTIONS } from "@/lib/profile-nav";
 export function ProfileNav() {
   const pathname = usePathname();
   return (
-    <nav aria-label="Profile" className="list-card">
+    // On a phone the profile's own menu (#111, screen 9) lists these; the sub-nav is the desktop's left column.
+    <nav aria-label="Profile" className="list-card hidden lg:block">
       <ul>
         {PROFILE_SECTIONS.map((s) => (
           <li key={s.href}>

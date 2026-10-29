@@ -6,7 +6,7 @@ describe("navigation", () => {
   it("gives each role its own tabs", () => {
     // #111: Home · Jobs · Work · Map · Messages, and More (Profile, Feed, Earnings, Settings). Leads waits for its feature (#110).
     expect(navTabs("WORKER", false).map((t) => t.label)).toEqual(["Home", "Jobs", "Work", "Map", "Messages"]);
-    expect(workerMore("WORKER").map((t) => t.label)).toEqual(["Profile", "Feed", "Earnings", "Settings"]);
+    expect(workerMore("WORKER").map((t) => t.label)).toEqual(["Profile", "Campaign feed", "Earnings", "Payment history", "Credentials", "Availability", "Display settings"]);
     expect(workerMore("OWNER")).toEqual([]);
     // C1: no People directory; organizations reach workers through a job.
     expect(navTabs("OWNER", true).map((t) => t.label)).toEqual(["Desk", "Hiring", "Jobs", "Field", "Messages", "Pay", "Credentials", "Campaigns", "Members", "Settings"]);
@@ -52,13 +52,15 @@ describe("navigation", () => {
     expect(activeTab(tabs, "/profile/preferences")).toBeNull();
     expect(activeTab(all, "/profile/preferences")).toBe("/profile");
     expect(activeTab(all, "/feed")).toBe("/feed");
-    expect(activeTab(all, "/earnings/receipts")).toBe("/earnings");
+    expect(activeTab(all, "/earnings/receipts")).toBe("/earnings/receipts");
+    expect(activeTab(all, "/earnings/receipts/abc")).toBe("/earnings/receipts");
+    expect(activeTab(all, "/profile/credentials")).toBe("/profile/credentials");
     expect(activeTab(all, "/settings")).toBe("/settings");
   });
 
   it("gives the worker's desktop top bar the dock's tabs and More's destinations (Settings is the header's own button), and nobody else a top bar", () => {
     const top = topNavTabs("WORKER");
-    expect(top.map((t) => t.label)).toEqual(["Home", "Jobs", "Work", "Map", "Messages", "Profile", "Feed", "Earnings"]);
+    expect(top.map((t) => t.label)).toEqual(["Home", "Jobs", "Work", "Map", "Messages", "Profile", "Campaign feed", "Earnings"]);
     expect(activeTab(top, "/earnings")).toBe("/earnings");
     expect(activeTab(top, "/earnings/receipts")).toBe("/earnings");
     expect(activeTab(top, "/profile/preferences")).toBe("/profile");

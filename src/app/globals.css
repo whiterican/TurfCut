@@ -578,7 +578,8 @@ body {
     color: var(--shell-fg);
   }
   .landing-hero-kicker {
-    @apply mb-2 text-[11px] font-semibold tracking-[0.16em] uppercase;
+    /* "Available jobs": Small 12/16 semibold, sentence case, on the scrim. */
+    @apply mb-2 text-xs font-semibold;
     color: var(--shell-muted);
   }
   .landing-featured-card {
@@ -824,13 +825,65 @@ body {
   }
   /* A list grouped by day (My shifts): the day's name over its rows. */
   .day-heading {
-    @apply px-1 text-sm font-semibold text-fg;
+    @apply t-section text-fg;
   }
-  .shift-row {
-    @apply flex items-start gap-3 px-4 py-3 transition-colors hover:bg-surface-2;
+  /* A shift as the concept's card (#111, screen 4): white, md corners, a 3px accent in the status colour along the left edge. */
+  .shift-card {
+    @apply relative rounded-[var(--radius-card)] border border-border p-3.5 pl-4;
+    background: var(--surface);
+    border-left-width: 3px;
+    border-left-color: var(--border-strong);
+  }
+  .shift-card[data-state="live"],
+  .shift-card[data-state="approved"] {
+    border-left-color: var(--primary);
+  }
+  .shift-card[data-state="pending"] {
+    border-left-color: var(--base-warning);
+  }
+  .shift-card[data-state="overdue"],
+  .shift-card[data-state="blocked"] {
+    border-left-color: var(--danger);
+  }
+  .shift-card-actions {
+    @apply mt-3 flex flex-wrap gap-2;
+  }
+  /* Messages (#111, screen 8): white rows with dividers, no outer card. */
+  .thread-list {
+    @apply -mx-4 divide-y divide-border sm:mx-0;
+  }
+  .thread-row {
+    @apply flex items-center gap-3 px-4 py-3.5 transition hover:bg-surface-2 sm:px-2;
+  }
+  /* Profile (#111, screen 9): the identity block, then a menu of rows with a status at the right. */
+  .profile-head {
+    @apply flex flex-col items-center gap-2 pb-2 text-center;
+  }
+  .profile-menu {
+    @apply divide-y divide-border;
+  }
+  .profile-row {
+    @apply flex min-h-14 items-center gap-3 py-2 text-fg transition hover:bg-surface-2;
+  }
+  .profile-row-status {
+    @apply ms-auto shrink-0 text-end text-sm text-subtle;
+  }
+  /* Today's work surface (#111, screen 5): a white card carrying the status pill, the facts and the one Forest action. */
+  .work-card {
+    @apply rounded-[var(--radius-card)] border border-border p-4 sm:p-5;
+    background: var(--surface);
+  }
+  .work-facts {
+    @apply grid grid-cols-3 gap-3 border-y border-border py-3;
+  }
+  .work-fact-figure {
+    @apply block text-lg font-bold text-fg tabular-nums;
+  }
+  .work-fact-label {
+    @apply block text-xs text-subtle;
   }
   /* Rows inside a clipped list card draw their keyboard ring inside the row. */
-  :is(.shift-row, .job-row):focus-visible {
+  .job-row:focus-visible {
     outline-offset: -3px;
   }
 
@@ -1479,11 +1532,12 @@ body {
   /* Two or three places under one tab (Jobs: Find work / My schedule): a
      segmented control, the current one an eggplant tile like the dock's. */
   .segmented {
-    @apply flex gap-1 rounded-2xl border border-border p-1;
-    background: var(--surface);
+    /* The concept's segmented control (#111, screen 4): a Muted track, 44px segments, the current one Eggplant with white type. */
+    @apply flex gap-1 rounded-[var(--radius-sm)] p-1;
+    background: var(--surface-2);
   }
   .segmented > a {
-    @apply flex min-h-11 flex-1 items-center justify-center rounded-xl px-3 text-sm font-semibold text-muted transition hover:text-fg;
+    @apply flex min-h-11 flex-1 items-center justify-center rounded-[var(--radius-xs)] px-3 text-sm font-semibold text-muted transition hover:text-fg;
   }
   .segmented > a[aria-current] {
     background: var(--tab-active-bg);
@@ -2019,7 +2073,7 @@ body {
     @apply size-11 min-h-11 p-0;
   }
   .topnav-link {
-    @apply rounded-lg px-3 py-2 text-sm font-medium text-muted transition hover:bg-surface-2 hover:text-fg;
+    @apply rounded-lg px-3 py-2 text-sm font-medium whitespace-nowrap text-muted transition hover:bg-surface-2 hover:text-fg;
   }
   .topnav-link[aria-current] {
     @apply font-semibold;

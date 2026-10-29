@@ -56,7 +56,7 @@ export default async function Home() {
           </div>
           {featured && (
             <div className="landing-hero-featured">
-              <p className="landing-hero-kicker">Open now</p>
+              <p className="landing-hero-kicker">Available jobs</p>
               <Link href={`/jobs/${featured.id}`} className="landing-featured-card">
                 <span className="landing-featured-art"><JobPhoto type={featured.type} sizes="64px" /></span>
                 <span className="min-w-0 flex-1">

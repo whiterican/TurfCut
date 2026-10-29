@@ -4,7 +4,6 @@ import { pendingInvitesFor } from "@/lib/members-data";
 import { ActionButton } from "@/components/ActionButton";
 import { acceptOrgInvite } from "./actions";
 import { db } from "@/lib/db";
-import { shiftPriority } from "@/lib/priority";
 import { ACCEPTED_STATUSES } from "@/lib/engagements";
 import { openJobsEndAfter, payShort, payText } from "@/lib/jobs";
 import { loadFeed } from "@/lib/jobs-data";
@@ -40,7 +39,8 @@ import { roleName } from "@/lib/org-roles";
 import type { Role } from "@/lib/auth";
 import { Masthead } from "@/components/Masthead";
 import { ListPage } from "@/components/layout/Page";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Clock, MapPin } from "lucide-react";
+import { Elapsed } from "@/components/Elapsed";
 import { cache } from "react";
 import { laterShifts, pickHero } from "@/lib/home-hero";
 
@@ -133,31 +133,30 @@ async function LaterShifts({ workerId }: { workerId: string }) {
   );
 }
 
-/** A shift still checked in after its end: the words and the way to fix it. */
+/** A shift still checked in after its end: the words and the way to fix it (#111: never "on task" once the shift has ended). */
 function OverdueShift({ shift, compact }: { shift: { id: string; endsAt: Date; engagement: { job: { title: string } } }; compact?: boolean }) {
   const how = "Open the shift to check out, or ask your organizer to correct the end time. Pay counts verified time only.";
-  if (compact) {
-    return (
-      <Link transitionTypes={["nav-forward"]} href={`/shifts/${shift.id}`} className="card block space-y-2 transition hover:border-[var(--border-strong)]">
-        <StatusChip state="overdue" label="No check-out received" />
-        <p className="font-semibold text-fg">{shift.engagement.job.title}</p>
-        <p className="text-muted-sm">
-          Was due to end <LocalTime iso={shift.endsAt.toISOString()} />. {how}
-        </p>
-      </Link>
-    );
-  }
   return (
-    <Link transitionTypes={["nav-forward"]} href={`/shifts/${shift.id}`} className="hero-card block space-y-4">
-      <StatusChip state="overdue" label="No check-out received" />
-      <p className="hero-title">{shift.engagement.job.title}</p>
-      <p className="hero-muted text-sm">
+    <section className="work-card space-y-3" aria-label="Shift without a check-out">
+      <div className="flex items-start justify-between gap-3">
+        <p className="t-section text-fg">{shift.engagement.job.title}</p>
+        <StatusChip state="overdue" label="No check-out received" />
+      </div>
+      <p className="text-sm text-muted">
         Was due to end <LocalTime iso={shift.endsAt.toISOString()} />. {how}
       </p>
-    </Link>
+      <Link transitionTypes={["nav-forward"]} href={`/shifts/${shift.id}`} className={compact ? "btn-secondary w-full" : "btn-primary btn-lg w-full"}>Open shift</Link>
+    </section>
   );
 }
 
+/**
+ * The day's work (#111, screen 5), on a white surface with one Forest action:
+ * a live shift (its facts from the real check-in, "Open field day"), the next
+ * shift ("View shift details"), a shift without a check-out ("Open shift"), or
+ * nothing scheduled ("Find Jobs"). pickHero decides which; nothing here
+ * invents stops, addresses or counts.
+ */
 async function WorkerHero({ workerId }: { workerId: string }) {
   const now = new Date();
   const { live, overdue, scheduled, hero } = await homeShifts(workerId);
@@ -165,29 +164,38 @@ async function WorkerHero({ workerId }: { workerId: string }) {
   const shift = hero.kind === "live" ? live : hero.kind === "next" ? scheduled[0] : null;
   if (shift) {
     const isLive = hero.kind === "live";
+    const job = shift.engagement.job;
     return (
       <>
         {isLive && overdue && <OverdueShift shift={overdue} compact />}
-        <Link transitionTypes={["nav-forward"]} href={`/shifts/${shift.id}`} className={`hero-card block space-y-4 ${isLive ? "hero-card-accent" : ""}`} data-priority={shiftPriority(shift)}>
-          {/* Relative first ("tomorrow"), the date after it; the server shows the date alone. */}
-          <p className="eyebrow">
-            {isLive ? "Live shift" : "Next shift"} · <RelativeDay iso={shift.startsAt.toISOString()} pastPrefix="started" /><LocalTime iso={shift.startsAt.toISOString()} mode="date" />
-          </p>
-          <p className="hero-title">{shift.engagement.job.title}</p>
-          {/* The card stays eggplant; the forest-ink chip is what says it's live. */}
-          {isLive && <StatusChip state="live" label="On shift" />}
-          <p className="flex flex-wrap gap-x-8 gap-y-2">
-            <span>
-              <span className="block text-lg font-bold"><LocalTime iso={shift.startsAt.toISOString()} mode="time" /></span>
-              <span className="hero-muted text-sm">{isLive ? "Started" : "Check-in"}</span>
-            </span>
-            <span>
-              <span className="block text-lg font-bold">{payShort(shift.engagement.job.compensationMethod, shift.engagement.job.payRateCents, shift.engagement.job.type)}</span>
-              <span className="hero-muted text-sm">gross</span>
-            </span>
-          </p>
-          {shift.stagingLocation && <p className="hero-muted text-sm">Staging · {shift.stagingLocation}</p>}
-        </Link>
+        <section className="work-card space-y-4" aria-label={isLive ? "Active shift" : "Next shift"}>
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="t-headline text-fg">{isLive ? "Active shift" : "Next shift"}</h2>
+            {isLive ? (
+              <StatusChip state="live" label="On shift" />
+            ) : (
+              <p className="text-sm font-medium text-muted">
+                <RelativeDay iso={shift.startsAt.toISOString()} pastPrefix="started" /><LocalTime iso={shift.startsAt.toISOString()} mode="date" />
+              </p>
+            )}
+          </div>
+          <div className="space-y-1">
+            <p className="t-section text-fg">{job.title}</p>
+            <p className="flex items-center gap-2 text-sm text-muted"><Clock aria-hidden className="size-4 shrink-0" /><LocalTime iso={shift.startsAt.toISOString()} mode="time" /> – <LocalTime iso={shift.endsAt.toISOString()} mode="time" /></p>
+            {shift.stagingLocation && <p className="flex items-center gap-2 text-sm text-muted"><MapPin aria-hidden className="size-4 shrink-0" />{shift.stagingLocation}</p>}
+          </div>
+          <dl className="work-facts">
+            {isLive && shift.checkInAt ? (
+              <div><dt className="work-fact-label order-2">Elapsed since check-in</dt><dd className="work-fact-figure"><Elapsed sinceIso={shift.checkInAt.toISOString()} /></dd></div>
+            ) : (
+              <div><dt className="work-fact-label order-2">Starts</dt><dd className="work-fact-figure"><LocalTime iso={shift.startsAt.toISOString()} mode="time" /></dd></div>
+            )}
+            <div><dt className="work-fact-label order-2">{isLive ? "Checked in" : "Ends"}</dt><dd className="work-fact-figure"><LocalTime iso={(isLive && shift.checkInAt ? shift.checkInAt : shift.endsAt).toISOString()} mode="time" /></dd></div>
+            <div><dt className="work-fact-label order-2">Gross rate</dt><dd className="work-fact-figure">{payShort(job.compensationMethod, job.payRateCents, job.type)}</dd></div>
+          </dl>
+          <Link transitionTypes={["nav-forward"]} href={`/shifts/${shift.id}`} className="btn-primary btn-lg w-full">{isLive ? "Open field day" : "View shift details"}</Link>
+          <p className="text-xs text-subtle">{job.org.name}{isLive ? " · elapsed time is since your check-in, not verified pay time" : ""}</p>
+        </section>
       </>
     );
   }
@@ -198,17 +206,17 @@ async function WorkerHero({ workerId }: { workerId: string }) {
   });
   if (!next) {
     return (
-      <Link transitionTypes={["nav-forward"]} href="/jobs" className="hero-card hero-card-quiet block space-y-3">
-        <p className="eyebrow">Nothing scheduled</p>
-        <p className="hero-title">Find your next field job</p>
-        <p className="hero-muted text-sm">Open jobs show the gross rate, credentials and who to call before you apply.</p>
-      </Link>
+      <section className="work-card space-y-3" aria-label="Nothing scheduled">
+        <h2 className="t-headline text-fg">Nothing scheduled</h2>
+        <p className="text-sm text-muted">Open jobs show the gross rate, credentials and who to call before you apply.</p>
+        <Link transitionTypes={["nav-forward"]} href="/jobs" className="btn-primary btn-lg w-full">Find Jobs</Link>
+      </section>
     );
   }
   return (
-    <Link transitionTypes={["nav-forward"]} href={`/jobs/${next.job.id}`} className="hero-card block space-y-4">
+    <section className="work-card space-y-3" aria-label="Your next job">
       {/* Relative status, never a bare date: "starts tomorrow", "started 2 days ago" (the date follows). */}
-      <p className="eyebrow">
+      <p className="text-sm font-medium text-muted">
         {!next.job.startsAt ? (
           "Your next job"
         ) : next.job.startsAt <= now ? (
@@ -217,9 +225,10 @@ async function WorkerHero({ workerId }: { workerId: string }) {
           <>Your next job · starts <RelativeDay iso={next.job.startsAt.toISOString()} /><LocalTime iso={next.job.startsAt.toISOString()} mode="date" /></>
         )}
       </p>
-      <p className="hero-title">{next.job.title}</p>
-      <p className="text-sm font-semibold">{payText(next.job.compensationMethod, next.job.payRateCents)}</p>
-    </Link>
+      <h2 className="t-headline text-fg">{next.job.title}</h2>
+      <p className="text-sm text-muted">{payText(next.job.compensationMethod, next.job.payRateCents)} · shifts are scheduled by the organization and appear here.</p>
+      <Link transitionTypes={["nav-forward"]} href={`/jobs/${next.job.id}`} className="btn-secondary w-full">View job</Link>
+    </section>
   );
 }
 

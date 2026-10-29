@@ -22,6 +22,8 @@ export type TabIconId =
   | "admin"
   | "map"
   | "earnings"
+  | "receipts"
+  | "availability"
   | "more";
 
 export interface NavTab {
@@ -85,13 +87,18 @@ const WORKER_TABS: NavTab[] = [
   { href: MESSAGES_HREF, label: "Messages", icon: "messages" },
 ];
 
-/** What the worker's More sheet lists, in order. */
+/** What the worker's More sheet lists, in order: every destination the dock doesn't carry (concept screen 12's rows, where a real route exists). */
 export const WORKER_MORE: NavTab[] = [
   { href: "/profile", label: "Profile", icon: "profile" },
-  { href: "/feed", label: "Feed", icon: "feed" },
+  { href: "/feed", label: "Campaign feed", icon: "feed" },
   { href: "/earnings", label: "Earnings", icon: "earnings" },
-  { href: "/settings", label: "Settings", icon: "settings" },
+  { href: "/earnings/receipts", label: "Payment history", icon: "receipts" },
+  { href: "/profile/credentials", label: "Credentials", icon: "credentials" },
+  { href: "/profile/availability", label: "Availability", icon: "availability" },
+  { href: "/settings", label: "Display settings", icon: "settings" },
 ];
+/** The More destinations the desktop top bar also shows as links (the rest are reached from those pages or the header). */
+const TOP_MORE = new Set(["/profile", "/feed", "/earnings"]);
 
 const plain = ({ href, label, icon }: NavTab): NavTab => ({ href, label, icon });
 
@@ -109,7 +116,7 @@ export function navTabs(role: Role | null, hasOrg: boolean, grants: Grants | nul
 
 /** The desktop top bar's links: the worker's dock tabs, then More's (Settings is the header's own button); nobody else has a top bar. */
 export function topNavTabs(role: Role | null): NavTab[] {
-  return role === "WORKER" ? [...WORKER_TABS, ...WORKER_MORE.filter((t) => t.href !== "/settings")] : [];
+  return role === "WORKER" ? [...WORKER_TABS, ...WORKER_MORE.filter((t) => TOP_MORE.has(t.href))] : [];
 }
 
 /** The worker's More sheet (empty for everyone else). */

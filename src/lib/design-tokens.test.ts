@@ -512,8 +512,8 @@ describe("forest ink is for what is live and the one primary action (G1)", () =>
     expect(ratio(dark["on-solid"], dark.solid)).toBeGreaterThanOrEqual(7);
   });
   it("the current Jobs view stands out from the switch's track (≥ 1.5:1)", () => {
-    expect(css).toMatch(/\.segmented \{[^}]*?background: var\(--surface\);/);
-    for (const th of [light, dark]) expect(ratio(th["tab-active-bg"], th.surface)).toBeGreaterThanOrEqual(1.5);
+    expect(css).toMatch(/\.segmented \{[^}]*?background: var\(--surface-2\);/);
+    for (const th of [light, dark]) expect(ratio(th["tab-active-bg"], th["surface-2"])).toBeGreaterThanOrEqual(1.5);
   });
   it("the frame (shell) and the rail's current row, every mode (#111)", () => {
     for (const th of [light, dark, sun]) {

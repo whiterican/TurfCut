@@ -11,6 +11,7 @@ import { ChatNameForm } from "@/components/chat/ChatNameForm";
 import { canUse } from "@/lib/access";
 import { EmptyArt } from "@/components/EmptyState";
 import { Masthead } from "@/components/Masthead";
+import { ChevronRight, SquarePen } from "lucide-react";
 
 export const metadata = { title: "Messages · Turfcut" };
 
@@ -20,33 +21,29 @@ const ERRORS: Record<string, string> = {
   not_found: "That conversation isn't available.",
 };
 
+/** A conversation as the concept's row (#111, screen 8): avatar, title (bold while unread), the campaign line, one line of the last message, the time, a chevron. */
 function ThreadRow({ t }: { t: ThreadSummary }) {
   const unread = t.unread > 0;
   return (
     <li>
-      <Link transitionTypes={["nav-forward"]} scroll={false} href={`/messages/${t.id}`} className="flex items-center gap-3 px-4 py-3 transition hover:bg-surface-2">
+      <Link transitionTypes={["nav-forward"]} scroll={false} href={`/messages/${t.id}`} className="thread-row">
         <Avatar name={t.title} team={t.kind === "GROUP"} />
         <span className="min-w-0 flex-1">
-          <span className="flex items-baseline justify-between gap-3">
-            <span className={`truncate text-fg ${unread ? "font-bold" : "font-semibold"}`}>{t.title}</span>
-            {t.last && (
-              <span className="shrink-0 text-xs text-subtle">
-                <RelativeTime iso={t.last.at.toISOString()} />
-              </span>
-            )}
+          <span className={`block truncate text-base leading-6 text-fg ${unread ? "font-bold" : "font-semibold"}`}>{t.title}</span>
+          {t.subtitle && <span className="block truncate text-sm text-subtle">{t.subtitle}</span>}
+          <span className={`block truncate text-sm ${unread ? "font-semibold text-fg" : "text-muted"}`}>
+            {t.last ? `${t.last.mine ? "You: " : ""}${t.last.text}` : "No messages yet"}
           </span>
-          {t.subtitle && <span className="block truncate text-xs text-subtle">{t.subtitle}</span>}
-          <span className="mt-0.5 flex items-center justify-between gap-3">
-            <span className={`truncate text-sm ${unread ? "font-semibold text-fg" : "text-muted"}`}>
-              {t.last ? `${t.last.mine ? "You: " : ""}${t.last.text}` : "No messages yet"}
-            </span>
+          <span className="mt-0.5 flex items-center justify-end gap-2 text-xs text-subtle">
             {unread ? (
               <span className="unread-badge"><span aria-hidden>{t.unread > 99 ? "99+" : t.unread}</span><span className="sr-only"> unread: {t.unread}</span></span>
             ) : t.frozen ? (
               <StatusChip state="closed" label="Read-only" className="shrink-0" />
             ) : null}
+            {t.last && <RelativeTime iso={t.last.at.toISOString()} />}
           </span>
         </span>
+        <ChevronRight aria-hidden className="size-4 shrink-0 text-subtle" />
       </Link>
     </li>
   );
@@ -64,19 +61,17 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
   ]);
 
   return (
-    <main className="page max-w-2xl">
-      <Masthead
-        title="Messages"
-        meta={session.role === "WORKER" ? "Talk with the people who hired you, and your team. Messages open once you're hired." : "Talk with the workers you hired, and run team chats for your campaigns."}
-      >
+    <main className="page page-jobs max-w-2xl space-y-5">
+      {/* A concise head (#111): the title and, for staff who may start a team chat, a compose button; the explanation lives in the empty state. */}
+      <Masthead title="Messages">
         {staff && (
           <>
             {canUse(session, "moderation") && (
-              <Link transitionTypes={["nav-forward"]} href="/messages/reports" className="btn-secondary">
+              <Link transitionTypes={["nav-forward"]} href="/messages/reports" className="btn-secondary btn-sm">
                 Reports{reports.length > 0 && <span className="unread-badge">{reports.length}</span>}
               </Link>
             )}
-            <Link transitionTypes={["nav-forward"]} href="/messages/new" className="btn-primary">New team chat</Link>
+            <Link transitionTypes={["nav-forward"]} href="/messages/new" className="jobs-filter-btn" aria-label="New team chat" title="New team chat"><SquarePen aria-hidden className="size-5" /></Link>
           </>
         )}
       </Masthead>
@@ -116,7 +111,7 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
         startable.length === 0 && (
           <div className="empty-state">
             <EmptyArt kind="messages" />
-            <p className="empty-state-title">No conversations yet</p>
+            <p className="empty-state-title">No conversations yet.</p>
             <p className="empty-state-body">
               {session.role === "WORKER"
                 ? "Once you're hired for a job, you can message the person who hired you, and your team's chat shows up here."
@@ -132,7 +127,7 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
       ) : (
         <section className="space-y-3">
           {startable.length > 0 && <h2 className="section-title">Conversations</h2>}
-          <ul className="list-card">
+          <ul className="thread-list">
             {threads.map((t) => <ThreadRow key={t.id} t={t} />)}
           </ul>
         </section>

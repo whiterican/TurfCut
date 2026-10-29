@@ -24,6 +24,7 @@ export type TabIconId =
   | "earnings"
   | "receipts"
   | "availability"
+  | "notifications"
   | "more";
 
 export interface NavTab {
@@ -89,6 +90,7 @@ const WORKER_TABS: NavTab[] = [
 
 /** What the worker's More sheet lists, in order: every destination the dock doesn't carry (concept screen 12's rows, where a real route exists). */
 export const WORKER_MORE: NavTab[] = [
+  { href: "/notifications", label: "Notifications", icon: "notifications" },
   { href: "/profile", label: "Profile", icon: "profile" },
   { href: "/feed", label: "Campaign feed", icon: "feed" },
   { href: "/earnings", label: "Earnings", icon: "earnings" },
@@ -98,7 +100,7 @@ export const WORKER_MORE: NavTab[] = [
   { href: "/settings", label: "Display settings", icon: "settings" },
 ];
 /** The More destinations the desktop top bar also shows as links (the rest are reached from those pages or the header). */
-const TOP_MORE = new Set(["/profile", "/feed", "/earnings"]);
+const TOP_MORE = new Set(["/profile", "/feed", "/earnings"]); // Notifications is the header's bell on a desktop
 
 const plain = ({ href, label, icon }: NavTab): NavTab => ({ href, label, icon });
 

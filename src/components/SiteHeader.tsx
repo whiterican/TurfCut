@@ -21,6 +21,7 @@ export function SiteHeader({
   notices,
   base = "",
   contentId = "content",
+  workerPhone = false,
 }: {
   signedIn: boolean;
   isOrg: boolean;
@@ -30,12 +31,14 @@ export function SiteHeader({
   base?: string;
   /** Where the skip link lands: the page's content wrapper. */
   contentId?: string;
+  /** A worker on a phone (#111): the concept has no header there, so the bar shows from the desktop width up only. */
+  workerPhone?: boolean;
 }) {
   const at = (href: string) => `${base}${href}`;
   return (
     <>
       <a href={`#${contentId}`} className="skip-link">Skip to content</a>
-      <header className="site-header border-b">
+      <header className={`site-header border-b ${workerPhone ? "site-header-worker" : ""}`}>
         <div className={`mx-auto flex w-full ${isOrg ? "max-w-[var(--workspace-max)]" : "max-w-[var(--worker-frame)]"} site-header-bar items-center justify-between gap-[12px] px-[16px] sm:px-[24px]`}>
           <Link href={at(!signedIn ? "/" : isOrg ? "/desk" : "/dashboard")} className="flex shrink-0 items-center gap-[8px] text-[20px] font-bold tracking-[-0.04em] text-fg">
             {/* The founder's pin-check-nib mark, the same in every theme. The word is live text in the

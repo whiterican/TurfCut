@@ -1489,6 +1489,11 @@ body {
   .tab[data-wide] {
     flex-grow: 1.3;
   }
+  /* A small coral dot at the icon's corner: something waits under this tab. */
+  .tab-dot {
+    @apply absolute top-1.5 left-1/2 ml-2 size-2 rounded-full;
+    background: var(--coral);
+  }
   /* The destination you're on: the dock green for icon and label, a little bolder. */
   .tab[aria-current] {
     @apply font-semibold;
@@ -1969,6 +1974,15 @@ body {
   }
   .page-jobs {
     @apply pt-4 sm:pt-6;
+  }
+  /* A worker's phone has no site header (#111): the bar shows from the desktop width up, and pages start under the status bar. */
+  .site-header-worker {
+    @apply hidden lg:block;
+  }
+  @media (width < 64rem) {
+    body:has(.site-header-worker) :is(.page, .tpl) {
+      padding-top: calc(1.5rem + env(safe-area-inset-top));
+    }
   }
   /* Job details (#111, screen 3): the controls over the photograph, the white sheet under it. */
   .job-head-actions {

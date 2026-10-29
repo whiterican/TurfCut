@@ -6,6 +6,7 @@ import { signOut } from "@/app/settings/actions";
 import { SiteHeader } from "@/components/SiteHeader";
 import { InlineScript } from "@/components/InlineScript";
 import { UnreadProvider } from "@/components/chat/UnreadProvider";
+import { NoticesProvider } from "@/components/NoticesProvider";
 import { ViewerKindProvider } from "@/components/ViewerKind";
 import { PageTransition } from "@/components/PageTransition";
 import { Haptics } from "@/components/Haptics";
@@ -76,7 +77,8 @@ export default async function RootLayout({
       <body className="min-h-full flex flex-col">
         <ViewerKindProvider kind={!session ? "none" : session.role === "WORKER" ? "worker" : session.orgId ? "org" : "none"}>
         <UnreadProvider initial={unread} enabled={tabs.some((t) => t.href === MESSAGES_HREF)}>
-        <SiteHeader signedIn={!!session} isOrg={isOrg} tabs={topNavTabs(session?.role ?? null)} notices={notices} />
+        <NoticesProvider count={notices}>
+        <SiteHeader signedIn={!!session} isOrg={isOrg} tabs={topNavTabs(session?.role ?? null)} notices={notices} workerPhone={session?.role === "WORKER"} />
         {isOrg && session ? (
           <div className="org-shell">
             <OrgRail tabs={org.rail} orgName={orgInfo?.name ?? "Your organization"} approved={orgInfo ? orgInfo.approved : null} person={railPerson(session)} />
@@ -95,8 +97,9 @@ export default async function RootLayout({
           <OrgTabBar tabs={org.phone} more={org.more} />
         ) : (
           // The worker's dock: Home · Jobs · Work · Map · Messages · More (Profile, Feed, Earnings, Settings, Sign out).
-          <OrgTabBar tabs={tabs} more={workerMore(session?.role ?? null)} extra={session ? <SignOutButton action={signOut} userId={session.userId} /> : undefined} />
+          <OrgTabBar tabs={tabs} more={workerMore(session?.role ?? null)} notices={notices} extra={session ? <SignOutButton action={signOut} userId={session.userId} /> : undefined} />
         )}
+        </NoticesProvider>
         </UnreadProvider>
         </ViewerKindProvider>
       </body>

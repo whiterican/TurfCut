@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
-import { BadgeCheck, Briefcase, CalendarCheck, CalendarClock, ChevronRight, ClipboardList, Clock, House, LayoutDashboard, Map, MapPin, Megaphone, Menu, MessageCircle, Newspaper, ReceiptText, Settings, ShieldCheck, Sunrise, User, Users, Wallet, X, type LucideIcon } from "lucide-react";
+import { BadgeCheck, Bell, Briefcase, CalendarCheck, CalendarClock, ChevronRight, ClipboardList, Clock, House, LayoutDashboard, Map, MapPin, Megaphone, Menu, MessageCircle, Newspaper, ReceiptText, Settings, ShieldCheck, Sunrise, User, Users, Wallet, X, type LucideIcon } from "lucide-react";
 import { activeTab, MESSAGES_HREF, type NavTab, type TabIconId } from "@/lib/nav";
 import { clampScroll, MIN_DELTA, nextHidden, SHOW_NEAR_TOP } from "@/lib/scroll-hide";
 import { useUnreadCount } from "@/components/chat/UnreadProvider";
@@ -31,6 +31,7 @@ const ICONS: Record<TabIconId, LucideIcon> = {
   earnings: Wallet,
   receipts: ReceiptText,
   availability: CalendarCheck,
+  notifications: Bell,
   more: Menu,
 };
 const iconFor = (t: NavTab): LucideIcon => ICONS[t.icon];
@@ -159,7 +160,7 @@ export function OrgRail({ tabs, orgName, approved, person }: { tabs: NavTab[]; o
  * traps focus, makes the page behind it inert, closes on Escape and returns
  * focus to More. `extra` is drawn under the list (the worker's Sign out).
  */
-export function OrgTabBar({ tabs, more, extra }: { tabs: NavTab[]; more: NavTab[]; extra?: ReactNode }) {
+export function OrgTabBar({ tabs, more, extra, notices = 0 }: { tabs: NavTab[]; more: NavTab[]; extra?: ReactNode; /** Unread notifications, shown on the Notifications row (the worker's phone has no header bell). */ notices?: number }) {
   const pathname = usePathname();
   const current = activeTab([...tabs, ...more], pathname);
   const count = useUnreadCount();
@@ -234,6 +235,12 @@ export function OrgTabBar({ tabs, more, extra }: { tabs: NavTab[]; more: NavTab[
                   <Link href={t.href} className="rail-link more-row" onClick={close} aria-current={currentAttr(t.href, current, pathname)}>
                     <Icon of={iconFor(t)} className="size-5 shrink-0" />
                     <span className="flex-1">{t.label}</span>
+                    {t.icon === "notifications" && notices > 0 && (
+                      <>
+                        <span className="unread-badge" aria-hidden>{notices > 99 ? "99+" : notices}</span>
+                        <span className="sr-only">, {notices} unread</span>
+                      </>
+                    )}
                     <ChevronRight aria-hidden className="size-4 shrink-0 text-subtle" />
                   </Link>
                 </li>
@@ -266,6 +273,9 @@ export function OrgTabBar({ tabs, more, extra }: { tabs: NavTab[]; more: NavTab[
             >
               <Icon of={Menu} className="tab-icon" />
               More
+              {/* Unread notifications live under More on a worker's phone: a dot says there are some without opening the sheet. */}
+              {notices > 0 && <span className="tab-dot" aria-hidden />}
+              {notices > 0 && <span className="sr-only">, {notices} unread {notices === 1 ? "notification" : "notifications"}</span>}
             </button>
           )}
         </div>

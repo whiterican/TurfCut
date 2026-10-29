@@ -15,6 +15,7 @@ import { plural } from "@/lib/format";
 import { loadFeed } from "@/lib/jobs-data";
 import { jobHeaderUrls } from "@/lib/campaign-media-data";
 import { JobPhotoRow } from "@/components/JobPhotoRow";
+import { NotificationsBell } from "@/components/NotificationsBell";
 import { SwipeCard } from "@/components/SwipeCard";
 import { Sheet } from "@/components/Sheet";
 import { EmptyArt } from "@/components/EmptyState";
@@ -102,7 +103,7 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
 
   return (
     <main className="page page-jobs space-y-4 lg:max-w-5xl">
-      <Masthead title="Jobs" />
+      <Masthead title="Jobs"><NotificationsBell /></Masthead>
 
       {/* Search (a real query: title or organization) and the way to more filters, on one row. */}
       <div className="jobs-search">

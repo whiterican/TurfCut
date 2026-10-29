@@ -41,6 +41,7 @@ import { Masthead } from "@/components/Masthead";
 import { ListPage } from "@/components/layout/Page";
 import { ChevronRight, Clock, MapPin } from "lucide-react";
 import { Elapsed } from "@/components/Elapsed";
+import { NotificationsBell } from "@/components/NotificationsBell";
 import { cache } from "react";
 import { laterShifts, pickHero } from "@/lib/home-hero";
 
@@ -481,7 +482,7 @@ export default async function DashboardPage() {
   // (below it on a phone) the pay summary, the worker's own choices and their campaigns.
   const head = isWorker ? (
     // Today is the day, not a greeting: the date under the title, no name or email (D1b).
-    <Masthead title="Today" meta={<TodayDate />} />
+    <Masthead title="Today" meta={<TodayDate />}><NotificationsBell /></Masthead>
   ) : (
     <Masthead title="Your account" meta={[roleName(session, ROLE_LABELS), session.email].filter(Boolean).join(" · ")} />
   );

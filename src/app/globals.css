@@ -1669,17 +1669,22 @@ body {
   .stat-tiles {
     @apply grid gap-4 sm:grid-cols-[repeat(auto-fit,minmax(14rem,1fr))];
   }
-  .stat-tile {
+  /* One tile grammar for the Overview's tiles and every SummaryBar (figure, name, hint). */
+  .stat-tile,
+  .summary-item {
     @apply rounded-[var(--radius-card)] border border-border p-4;
     background: var(--surface);
   }
-  .stat-tile-figure {
+  .stat-tile-figure,
+  .summary-value {
     @apply t-figure text-fg;
   }
-  .stat-tile-label {
+  .stat-tile-label,
+  .summary-item > .eyebrow {
     @apply mt-1 text-base font-medium text-fg;
   }
-  .stat-tile-note {
+  .stat-tile-note,
+  .summary-item > .text-hint {
     @apply mt-0.5 text-sm text-subtle;
   }
   .overview-grid {
@@ -1711,20 +1716,49 @@ body {
   .period-label {
     @apply self-center text-sm font-medium text-muted;
   }
+  /* Figures over a staff page (#111, screen 10): the tile grammar above, two to a row on a phone. The figure is
+     drawn first and its name second; the markup (a <dl>: name, then figure) still reads "name, figure, hint",
+     and nothing in a tile takes focus, so the drawn order and the read order can differ. */
   .summary-bar {
-    @apply flex flex-wrap gap-px overflow-hidden rounded-[var(--radius-inner)] border border-border bg-border;
+    @apply grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-[repeat(auto-fit,minmax(11rem,1fr))];
   }
   .summary-item {
-    @apply min-w-0 space-y-1 bg-surface px-4 py-3;
-    flex: 1 1 calc(50% - 1px);
+    @apply flex min-w-0 flex-col;
   }
-  @media (width >= 40rem) {
-    .summary-item {
-      flex-basis: 10rem;
-    }
+  .summary-item > .eyebrow {
+    order: 2;
   }
-  .summary-value {
-    @apply text-2xl font-bold tracking-[-0.02em] text-fg tabular-nums;
+  .summary-item > .text-hint {
+    order: 3;
+  }
+  /* The Field map (#111, screen 11): the controls row over the map, the map itself, and the turf cards beside it. */
+  .map-controls {
+    @apply flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2;
+  }
+  .map-controls .field {
+    @apply w-auto min-w-0 flex-1 sm:max-w-[18rem];
+  }
+  .field-map {
+    @apply h-[400px] xl:h-[560px];
+  }
+  .turf-card {
+    @apply space-y-2 rounded-[var(--radius-card)] border border-border p-4;
+    background: var(--surface);
+  }
+  .turf-card-name {
+    @apply t-headline text-fg;
+  }
+  .turf-card-figure {
+    @apply shrink-0 text-base font-semibold text-fg tabular-nums;
+  }
+  .turf-bar {
+    @apply h-2 w-full overflow-hidden rounded-full;
+    background: var(--surface-2);
+  }
+  .turf-bar-fill {
+    @apply block h-full rounded-full;
+    background: var(--primary);
+    transition: width var(--dur-base) var(--ease-out);
   }
 
   /* The row open in the inspector. */
@@ -2734,7 +2768,7 @@ summary.list-none::-webkit-details-marker {
   .sun .site-header :is(.btn-ghost, .glass-orb-phone) {
     min-height: 40px;
   }
-  .sun :is(.card, .card-flat, .card-dashed, .stat, .list-card, .empty-state, .hero-card, .field, .option-card, .btn-secondary, .tabbar, .kv, .alert, .alert-warning, .alert-info, .quick-reply, .icon-btn, .summary-bar, .data-table-wrap, .composer-input, .sheet-panel, .swipe-card) {
+  .sun :is(.card, .card-flat, .card-dashed, .stat, .list-card, .empty-state, .hero-card, .field, .option-card, .btn-secondary, .tabbar, .kv, .alert, .alert-warning, .alert-info, .quick-reply, .icon-btn, .summary-item, .stat-tile, .data-table-wrap, .composer-input, .sheet-panel, .swipe-card) {
     border-width: 2px;
   }
   .sun :is(.alert, .alert-warning, .alert-info) {

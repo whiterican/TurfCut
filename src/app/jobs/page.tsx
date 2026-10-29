@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ACCEPTED_STATUSES, inviteLapsed } from "@/lib/engagements";
 import { loadPipelineFacts } from "@/lib/engagements-data";
 import { Masthead } from "@/components/Masthead";
+import { WorkspacePage } from "@/components/layout/Page";
 import { DataTable } from "@/components/staff/DataTable";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
@@ -254,10 +255,9 @@ async function OrgJobs({ orgId, canHire }: { orgId: string; canHire: boolean }) 
     orderBy: [{ createdAt: "desc" }],
   });
   return (
-    <main className="page max-w-4xl">
-      <Masthead title="Your jobs" meta="Your organization's jobs, newest first. Sort by any column.">
+    <WorkspacePage head={<Masthead title="Your jobs" meta="Your organization's jobs, newest first. Sort by any column.">
         {canHire && <Link href="/jobs/new" className="btn-primary">New job</Link>}
-      </Masthead>
+      </Masthead>}>
       {jobs.length === 0 ? (
         <div className="empty-state">
           <EmptyArt kind="jobs" />
@@ -284,6 +284,6 @@ async function OrgJobs({ orgId, canHire }: { orgId: string; canHire: boolean }) 
           }))}
         />
       )}
-    </main>
+    </WorkspacePage>
   );
 }

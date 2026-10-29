@@ -1,0 +1,1234 @@
+[
+  {
+    "screen": "field",
+    "route": "/field",
+    "state": "populated",
+    "role": "owner",
+    "sourceCommit": "c8ea916",
+    "implementationFile": "docs/design/hero-board/evidence/s4/field-populated-1440-light.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900,
+      "deviceScaleFactor": 2
+    },
+    "theme": "light",
+    "timezone": "America/Denver",
+    "clock": "frozen (redesign/clock.json)",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [
+      {
+        "label": "Desk",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Hiring",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Field",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Messages",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "More",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      }
+    ],
+    "bar": {
+      "w": 0,
+      "h": 0,
+      "left": 0,
+      "bottom": 900
+    },
+    "bg": "#faf9f4",
+    "shell": "#1c0f2e",
+    "imgs": [
+      {
+        "src": "_next/static/media/icon-96.2gs9oaakvm7dz.png",
+        "ok": true
+      },
+      {
+        "src": "_next/static/media/icon-96.2gs9oaakvm7dz.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3414/6217.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3414/6216.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3413/6217.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3415/6217.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3414/6218.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3413/6216.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3415/6216.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3413/6218.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3415/6218.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3412/6217.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3416/6217.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3412/6216.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3416/6216.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3412/6218.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3416/6218.png",
+        "ok": true
+      }
+    ],
+    "status": "captured"
+  },
+  {
+    "screen": "field",
+    "route": "/field",
+    "state": "populated",
+    "role": "owner",
+    "sourceCommit": "c8ea916",
+    "implementationFile": "docs/design/hero-board/evidence/s4/field-populated-1440-dark.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900,
+      "deviceScaleFactor": 2
+    },
+    "theme": "dark",
+    "timezone": "America/Denver",
+    "clock": "frozen (redesign/clock.json)",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [
+      {
+        "label": "Desk",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Hiring",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Field",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Messages",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "More",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      }
+    ],
+    "bar": {
+      "w": 0,
+      "h": 0,
+      "left": 0,
+      "bottom": 900
+    },
+    "bg": "#140a22",
+    "shell": "#1c0f2e",
+    "imgs": [
+      {
+        "src": "_next/static/media/icon-96.2gs9oaakvm7dz.png",
+        "ok": true
+      },
+      {
+        "src": "_next/static/media/icon-96.2gs9oaakvm7dz.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3414/6217.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3414/6216.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3413/6217.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3415/6217.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3414/6218.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3413/6216.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3415/6216.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3413/6218.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3415/6218.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3412/6217.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3416/6217.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3412/6216.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3416/6216.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3412/6218.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3416/6218.png",
+        "ok": true
+      }
+    ],
+    "status": "captured"
+  },
+  {
+    "screen": "field-job",
+    "route": "/field?job=00000000-0000-0000-0000-000000000061",
+    "state": "filtered",
+    "role": "owner",
+    "sourceCommit": "c8ea916",
+    "implementationFile": "docs/design/hero-board/evidence/s4/field-job-filtered-1440-light.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900,
+      "deviceScaleFactor": 2
+    },
+    "theme": "light",
+    "timezone": "America/Denver",
+    "clock": "frozen (redesign/clock.json)",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [
+      {
+        "label": "Desk",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Hiring",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Field",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Messages",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "More",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      }
+    ],
+    "bar": {
+      "w": 0,
+      "h": 0,
+      "left": 0,
+      "bottom": 900
+    },
+    "bg": "#faf9f4",
+    "shell": "#1c0f2e",
+    "imgs": [
+      {
+        "src": "_next/static/media/icon-96.2gs9oaakvm7dz.png",
+        "ok": true
+      },
+      {
+        "src": "_next/static/media/icon-96.2gs9oaakvm7dz.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3414/6217.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3414/6216.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3413/6217.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3415/6217.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3414/6218.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3413/6216.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3415/6216.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3413/6218.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3415/6218.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3412/6217.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3416/6217.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3412/6216.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3416/6216.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3412/6218.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3416/6218.png",
+        "ok": true
+      }
+    ],
+    "status": "captured"
+  },
+  {
+    "screen": "field-job",
+    "route": "/field?job=00000000-0000-0000-0000-000000000061",
+    "state": "filtered",
+    "role": "owner",
+    "sourceCommit": "c8ea916",
+    "implementationFile": "docs/design/hero-board/evidence/s4/field-job-filtered-1440-dark.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900,
+      "deviceScaleFactor": 2
+    },
+    "theme": "dark",
+    "timezone": "America/Denver",
+    "clock": "frozen (redesign/clock.json)",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [
+      {
+        "label": "Desk",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Hiring",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Field",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Messages",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "More",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      }
+    ],
+    "bar": {
+      "w": 0,
+      "h": 0,
+      "left": 0,
+      "bottom": 900
+    },
+    "bg": "#140a22",
+    "shell": "#1c0f2e",
+    "imgs": [
+      {
+        "src": "_next/static/media/icon-96.2gs9oaakvm7dz.png",
+        "ok": true
+      },
+      {
+        "src": "_next/static/media/icon-96.2gs9oaakvm7dz.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3414/6217.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3414/6216.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3413/6217.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3415/6217.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3414/6218.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3413/6216.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3415/6216.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3413/6218.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3415/6218.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3412/6217.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3416/6217.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3412/6216.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3416/6216.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3412/6218.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3416/6218.png",
+        "ok": true
+      }
+    ],
+    "status": "captured"
+  },
+  {
+    "screen": "hiring",
+    "route": "/hiring",
+    "state": "populated",
+    "role": "owner",
+    "sourceCommit": "c8ea916",
+    "implementationFile": "docs/design/hero-board/evidence/s4/hiring-populated-1440-light.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900,
+      "deviceScaleFactor": 2
+    },
+    "theme": "light",
+    "timezone": "America/Denver",
+    "clock": "frozen (redesign/clock.json)",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [
+      {
+        "label": "Desk",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Hiring",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Field",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Messages",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "More",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      }
+    ],
+    "bar": {
+      "w": 0,
+      "h": 0,
+      "left": 0,
+      "bottom": 900
+    },
+    "bg": "#faf9f4",
+    "shell": "#1c0f2e",
+    "imgs": [
+      {
+        "src": "_next/static/media/icon-96.2gs9oaakvm7dz.png",
+        "ok": true
+      },
+      {
+        "src": "_next/static/media/icon-96.2gs9oaakvm7dz.png",
+        "ok": true
+      }
+    ],
+    "status": "captured"
+  },
+  {
+    "screen": "hiring",
+    "route": "/hiring",
+    "state": "populated",
+    "role": "owner",
+    "sourceCommit": "c8ea916",
+    "implementationFile": "docs/design/hero-board/evidence/s4/hiring-populated-1440-dark.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900,
+      "deviceScaleFactor": 2
+    },
+    "theme": "dark",
+    "timezone": "America/Denver",
+    "clock": "frozen (redesign/clock.json)",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [
+      {
+        "label": "Desk",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Hiring",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Field",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Messages",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "More",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      }
+    ],
+    "bar": {
+      "w": 0,
+      "h": 0,
+      "left": 0,
+      "bottom": 900
+    },
+    "bg": "#140a22",
+    "shell": "#1c0f2e",
+    "imgs": [
+      {
+        "src": "_next/static/media/icon-96.2gs9oaakvm7dz.png",
+        "ok": true
+      },
+      {
+        "src": "_next/static/media/icon-96.2gs9oaakvm7dz.png",
+        "ok": true
+      }
+    ],
+    "status": "captured"
+  },
+  {
+    "screen": "field",
+    "route": "/field",
+    "state": "populated",
+    "role": "owner",
+    "sourceCommit": "c8ea916",
+    "implementationFile": "docs/design/hero-board/evidence/s4/field-populated-390-light.png",
+    "viewport": {
+      "width": 390,
+      "height": 844,
+      "deviceScaleFactor": 2
+    },
+    "theme": "light",
+    "timezone": "America/Denver",
+    "clock": "frozen (redesign/clock.json)",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [
+      {
+        "label": "Desk",
+        "w": 68,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Hiring",
+        "w": 68,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Field",
+        "w": 68,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Messages",
+        "w": 87,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "More",
+        "w": 68,
+        "h": 52,
+        "clipped": false
+      }
+    ],
+    "bar": {
+      "w": 366,
+      "h": 60,
+      "left": 12,
+      "bottom": 10
+    },
+    "bg": "#faf9f4",
+    "shell": "#1c0f2e",
+    "imgs": [
+      {
+        "src": "_next/static/media/icon-96.2gs9oaakvm7dz.png",
+        "ok": true
+      },
+      {
+        "src": "_next/static/media/icon-96.2gs9oaakvm7dz.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/13/1706/3108.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/13/1707/3108.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/13/1706/3109.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/13/1707/3109.png",
+        "ok": true
+      }
+    ],
+    "status": "captured"
+  },
+  {
+    "screen": "field",
+    "route": "/field",
+    "state": "populated",
+    "role": "owner",
+    "sourceCommit": "c8ea916",
+    "implementationFile": "docs/design/hero-board/evidence/s4/field-populated-390-dark.png",
+    "viewport": {
+      "width": 390,
+      "height": 844,
+      "deviceScaleFactor": 2
+    },
+    "theme": "dark",
+    "timezone": "America/Denver",
+    "clock": "frozen (redesign/clock.json)",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [
+      {
+        "label": "Desk",
+        "w": 68,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Hiring",
+        "w": 68,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Field",
+        "w": 68,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Messages",
+        "w": 87,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "More",
+        "w": 68,
+        "h": 52,
+        "clipped": false
+      }
+    ],
+    "bar": {
+      "w": 366,
+      "h": 60,
+      "left": 12,
+      "bottom": 10
+    },
+    "bg": "#140a22",
+    "shell": "#1c0f2e",
+    "imgs": [
+      {
+        "src": "_next/static/media/icon-96.2gs9oaakvm7dz.png",
+        "ok": true
+      },
+      {
+        "src": "_next/static/media/icon-96.2gs9oaakvm7dz.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/13/1706/3108.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/13/1707/3108.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/13/1706/3109.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/13/1707/3109.png",
+        "ok": true
+      }
+    ],
+    "status": "captured"
+  },
+  {
+    "screen": "field-day",
+    "route": "/field/2026-10-28",
+    "state": "day",
+    "role": "owner",
+    "sourceCommit": "c8ea916",
+    "implementationFile": "docs/design/hero-board/evidence/s4/field-day-day-1440-light.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900,
+      "deviceScaleFactor": 2
+    },
+    "theme": "light",
+    "timezone": "America/Denver",
+    "clock": "frozen (redesign/clock.json)",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [
+      {
+        "label": "Desk",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Hiring",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Field",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Messages",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "More",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      }
+    ],
+    "bar": {
+      "w": 0,
+      "h": 0,
+      "left": 0,
+      "bottom": 900
+    },
+    "bg": "#faf9f4",
+    "shell": "#1c0f2e",
+    "imgs": [
+      {
+        "src": "_next/static/media/icon-96.2gs9oaakvm7dz.png",
+        "ok": true
+      },
+      {
+        "src": "_next/static/media/icon-96.2gs9oaakvm7dz.png",
+        "ok": true
+      }
+    ],
+    "status": "captured"
+  },
+  {
+    "screen": "org-jobs",
+    "route": "/jobs",
+    "state": "populated",
+    "role": "owner",
+    "sourceCommit": "c8ea916",
+    "implementationFile": "docs/design/hero-board/evidence/s4/org-jobs-populated-1440-light.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900,
+      "deviceScaleFactor": 2
+    },
+    "theme": "light",
+    "timezone": "America/Denver",
+    "clock": "frozen (redesign/clock.json)",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [
+      {
+        "label": "Desk",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Hiring",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Field",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Messages",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "More",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      }
+    ],
+    "bar": {
+      "w": 0,
+      "h": 0,
+      "left": 0,
+      "bottom": 900
+    },
+    "bg": "#faf9f4",
+    "shell": "#1c0f2e",
+    "imgs": [
+      {
+        "src": "_next/static/media/icon-96.2gs9oaakvm7dz.png",
+        "ok": true
+      },
+      {
+        "src": "_next/static/media/icon-96.2gs9oaakvm7dz.png",
+        "ok": true
+      }
+    ],
+    "status": "captured"
+  },
+  {
+    "screen": "desk",
+    "route": "/desk",
+    "state": "populated",
+    "role": "owner",
+    "sourceCommit": "c8ea916",
+    "implementationFile": "docs/design/hero-board/evidence/s4/desk-populated-1440-light.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900,
+      "deviceScaleFactor": 2
+    },
+    "theme": "light",
+    "timezone": "America/Denver",
+    "clock": "frozen (redesign/clock.json)",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [
+      {
+        "label": "Desk",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Hiring",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Field",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Messages",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "More",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      }
+    ],
+    "bar": {
+      "w": 0,
+      "h": 0,
+      "left": 0,
+      "bottom": 900
+    },
+    "bg": "#faf9f4",
+    "shell": "#1c0f2e",
+    "imgs": [
+      {
+        "src": "_next/static/media/icon-96.2gs9oaakvm7dz.png",
+        "ok": true
+      },
+      {
+        "src": "_next/static/media/icon-96.2gs9oaakvm7dz.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3414/6217.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3414/6216.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3413/6217.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3415/6217.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3414/6218.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3413/6216.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3415/6216.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3413/6218.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3415/6218.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3412/6217.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3416/6217.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3412/6216.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3416/6216.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3412/6218.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3416/6218.png",
+        "ok": true
+      }
+    ],
+    "status": "captured"
+  },
+  {
+    "screen": "desk",
+    "route": "/desk",
+    "state": "populated",
+    "role": "owner",
+    "sourceCommit": "c8ea916",
+    "implementationFile": "docs/design/hero-board/evidence/s4/desk-populated-1440-dark.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900,
+      "deviceScaleFactor": 2
+    },
+    "theme": "dark",
+    "timezone": "America/Denver",
+    "clock": "frozen (redesign/clock.json)",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [
+      {
+        "label": "Desk",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Hiring",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Field",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Messages",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "More",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      }
+    ],
+    "bar": {
+      "w": 0,
+      "h": 0,
+      "left": 0,
+      "bottom": 900
+    },
+    "bg": "#140a22",
+    "shell": "#1c0f2e",
+    "imgs": [
+      {
+        "src": "_next/static/media/icon-96.2gs9oaakvm7dz.png",
+        "ok": true
+      },
+      {
+        "src": "_next/static/media/icon-96.2gs9oaakvm7dz.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3414/6217.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3414/6216.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3413/6217.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3415/6217.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3414/6218.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3413/6216.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3415/6216.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3413/6218.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3415/6218.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3412/6217.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3416/6217.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3412/6216.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3416/6216.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3412/6218.png",
+        "ok": true
+      },
+      {
+        "src": "https://tile.openstreetmap.org/14/3416/6218.png",
+        "ok": true
+      }
+    ],
+    "status": "captured"
+  }
+]

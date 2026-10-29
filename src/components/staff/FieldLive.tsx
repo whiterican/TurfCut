@@ -132,3 +132,22 @@ export function LiveGroupFigure({ group, of, fallback, unit }: { group: string; 
     </>
   );
 }
+
+/** One turf's live figure (#111, screen 11): the zone's shifts on the ground or in total, following the map's own summary. */
+export function LiveZoneFigure({ id, of, fallback }: { id: string; of: "onGround" | "total"; fallback: number }) {
+  const z = useFieldLive()?.zones.find((x) => x.id === id);
+  return <CountUp value={z ? z[of] : fallback} />;
+}
+
+/** A turf card's bar: the share of its shifts on the ground now, as wide as that share. A zone the summary no longer carries shows the server's figures again. */
+export function LiveZoneBar({ id, fallback }: { id: string; fallback: [number, number] }) {
+  const z = useFieldLive()?.zones.find((x) => x.id === id);
+  const [a, b] = z ? [z.onGround, z.total] : fallback;
+  const pct = b > 0 ? Math.round((100 * a) / b) : 0;
+  // A progress bar, not a picture: the figure beside it already says "a of b", so this carries only the share.
+  return (
+    <div className="turf-bar" role="progressbar" aria-label="Share on the ground" aria-valuemin={0} aria-valuemax={b} aria-valuenow={a}>
+      <span className="turf-bar-fill" style={{ width: `${pct}%` }} />
+    </div>
+  );
+}

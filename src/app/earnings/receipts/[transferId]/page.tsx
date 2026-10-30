@@ -5,6 +5,7 @@ import { loadReceipt } from "@/lib/receipts-data";
 import { ReceiptView } from "@/components/ReceiptView";
 import { PrintButton } from "@/components/PrintButton";
 import { Masthead } from "@/components/Masthead";
+import { RecordPage } from "@/components/layout/Page";
 
 export const metadata = { title: "Receipt · Turfcut" };
 
@@ -15,11 +16,10 @@ export default async function ReceiptPage({ params }: { params: Promise<{ transf
   const r = await loadReceipt(workerId, transferId);
   if (!r) notFound();
   return (
-    <main className="page max-w-2xl">
-      <Masthead className="no-print" eyebrow={<><Link href="/earnings/receipts" className="link">Receipts</Link></>} title={<>Receipt {r.number}</>} meta={<>Keep it: it stays here even if the payment is later reversed, and it&apos;s in your data export.</>}>
+    <RecordPage head={<Masthead className="no-print" eyebrow={<><Link href="/earnings/receipts" className="link">Receipts</Link></>} title={<>Receipt {r.number}</>} meta={<>Keep it: it stays here even if the payment is later reversed, and it&apos;s in your data export.</>}>
         <PrintButton />
-      </Masthead>
+      </Masthead>}>
       <ReceiptView r={r} />
-    </main>
+    </RecordPage>
   );
 }

@@ -15,6 +15,7 @@ import { DataTable } from "@/components/staff/DataTable";
 import { ActionButton } from "@/components/ActionButton";
 import { invite } from "@/app/jobs/actions";
 import { ChevronLeft } from "lucide-react";
+import { WorkspacePage } from "@/components/layout/Page";
 
 /** In 5-mile bands only — the exact distance never leaves the server — so a home ZIP can't be worked back out. */
 const distanceText = (m: MatchRow) =>
@@ -65,11 +66,10 @@ export default async function MatchesPage({
   const invitable = job.status === "PUBLISHED" && readHiringModes(job.hiringMethod).includes("invite");
 
   return (
-    <main className="page max-w-5xl">
-      <Masthead eyebrow="Matches" title={job.title} meta={r.ok ? `${all.length} ${all.length === 1 ? "worker" : "workers"} who chose to be found for this work` : ""}>
+    <WorkspacePage org head={<Masthead eyebrow="Matches" title={job.title} meta={r.ok ? `${all.length} ${all.length === 1 ? "worker" : "workers"} who chose to be found for this work` : ""}>
         <Link href="/hiring" className="btn-ghost btn-sm"><ChevronLeft aria-hidden className="size-4 shrink-0" />Pipeline</Link>
         <Link href={`/jobs/${job.id}`} className="btn-secondary btn-sm">Job page</Link>
-      </Masthead>
+      </Masthead>}>
       <HiringTabs jobId={job.id} current="matches" counts={counts} />
       <p className="text-muted-sm">
         Workers who turned on &ldquo;organizations can find me&rdquo; for {job.type === "PETITION" ? "petition" : "canvass"} work and live within the distance they&apos;d travel to this job&apos;s city. Each column is one fact with its evidence: only what the worker shares with any approved organization, even if they&apos;ve worked with you. There&apos;s no overall score. Workers whose own &ldquo;do not match&rdquo; answers rule this job out aren&apos;t listed, and nothing about those answers is shown.
@@ -146,6 +146,6 @@ export default async function MatchesPage({
           )}
         </>
       )}
-    </main>
+    </WorkspacePage>
   );
 }

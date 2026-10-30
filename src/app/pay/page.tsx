@@ -12,7 +12,7 @@ import { ActionButton } from "@/components/ActionButton";
 import { ApproveLines, HoldLine, RecordReversal, ResolveDispute } from "@/components/PayForms";
 import { approve, checkPayment, hold, payNow, recordReversal, release, resolve } from "./actions";
 import { Masthead } from "@/components/Masthead";
-import { WorkspacePage } from "@/components/layout/Page";
+import { ReadingPage, WorkspacePage } from "@/components/layout/Page";
 
 const day = (d: Date) => d.toISOString().slice(0, 10);
 
@@ -50,12 +50,12 @@ export default async function PayPage({ searchParams }: { searchParams: Promise<
   const s = await requireArea("pay");
   if (!s.orgId) {
     return (
-      <main className="page max-w-2xl">
+      <ReadingPage org>
         <div className="empty-state">
           <p className="empty-state-title">No organization yet</p>
           <p className="empty-state-body">Pay is managed by an organization&apos;s owner or finance team.</p>
         </div>
-      </main>
+      </ReadingPage>
     );
   }
   const actor = { profileId: s.userId, orgId: s.orgId, role: s.role, grants: s.grants };

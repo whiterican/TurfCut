@@ -13,6 +13,7 @@ import { HiringTabs } from "@/components/staff/HiringTabs";
 import { HiringActions } from "@/components/HiringActions";
 import { EngagementHistory } from "@/components/EngagementHistory";
 import { ChevronLeft } from "lucide-react";
+import { WorkspacePage } from "@/components/layout/Page";
 
 const day = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
 
@@ -33,11 +34,10 @@ export default async function InvitesPage({ params }: { params: Promise<{ jobId:
   const waiting = job.status === "CLOSED" ? 0 : invites.filter((i) => i.status === "INVITED" && !inviteLapsed(i.status, i.inviteExpiresAt, now)).length;
 
   return (
-    <main className="page max-w-3xl">
-      <Masthead eyebrow="Invites" title={job.title} meta={`${invites.length} sent · ${waiting} waiting for an answer`}>
+    <WorkspacePage org head={<Masthead eyebrow="Invites" title={job.title} meta={`${invites.length} sent · ${waiting} waiting for an answer`}>
         <Link href="/hiring" className="btn-ghost btn-sm"><ChevronLeft aria-hidden className="size-4 shrink-0" />Pipeline</Link>
         <Link href={`/jobs/${job.id}`} className="btn-secondary btn-sm">Job page</Link>
-      </Masthead>
+      </Masthead>}>
       <HiringTabs jobId={job.id} current="invites" counts={counts} />
       <p className="text-muted-sm">
         Invite a worker from their page once they&apos;ve applied to or worked one of your jobs. An invitation lasts {INVITE_DAYS} days, and you can send one worker at most {INVITES_PER_WEEK} a week. You&apos;re never told whether they opened it.
@@ -68,6 +68,6 @@ export default async function InvitesPage({ params }: { params: Promise<{ jobId:
           })}
         </ul>
       )}
-    </main>
+    </WorkspacePage>
   );
 }

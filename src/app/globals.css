@@ -1406,16 +1406,16 @@ body {
   .card-solid {
     background: var(--card-sheen), var(--surface);
   }
+  /* The older metric tile (scorecards, experience): the same white surface and figure as the tiles above. */
   .stat {
-    @apply rounded-[var(--radius-inner)] border border-border p-4;
-    background: var(--card-sheen), var(--card-bg);
-    box-shadow: var(--card-edge), var(--shadow-depth);
+    @apply rounded-[var(--radius-card)] border border-border p-4;
+    background: var(--surface);
   }
   .stat-label {
     @apply flex items-center gap-2 text-sm text-muted;
   }
   .stat-value {
-    @apply mt-1 text-2xl font-bold tracking-[-0.02em] text-fg tabular-nums;
+    @apply mt-1 t-figure-sm text-fg sm:t-figure;
   }
   .kv {
     @apply rounded-xl border border-border bg-surface-2 px-3 py-2;

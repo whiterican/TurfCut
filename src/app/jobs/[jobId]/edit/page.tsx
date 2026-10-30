@@ -8,6 +8,7 @@ import { JobForm } from "@/components/JobForm";
 import { materialText, RELEASE_HOURS } from "@/lib/job-changes";
 import { Masthead } from "@/components/Masthead";
 import { ChevronLeft } from "lucide-react";
+import { ReadingPage } from "@/components/layout/Page";
 
 export default async function EditJobPage({ params }: { params: Promise<{ jobId: string }> }) {
   const { jobId } = await params;
@@ -18,10 +19,9 @@ export default async function EditJobPage({ params }: { params: Promise<{ jobId:
   const jurisdictions = await jurisdictionOptions();
 
   return (
-    <main className="page max-w-3xl">
-      <Masthead eyebrow={job.status === "DRAFT" ? "Edit draft" : "Edit published job"} title={job.title}>
+    <ReadingPage org head={<Masthead eyebrow={job.status === "DRAFT" ? "Edit draft" : "Edit published job"} title={job.title}>
         <Link transitionTypes={["nav-back"]} href={`/jobs/${job.id}`} className="btn-ghost"><ChevronLeft aria-hidden className="size-4 shrink-0" />Job</Link>
-      </Masthead>
+      </Masthead>}>
       {job.status === "DRAFT" || job.status === "PUBLISHED" || job.status === "PAUSED" ? (
         <>
           {job.status !== "DRAFT" && (
@@ -39,6 +39,6 @@ export default async function EditJobPage({ params }: { params: Promise<{ jobId:
           <p className="empty-state-body">A closed job keeps the terms it closed with.</p>
         </div>
       )}
-    </main>
+    </ReadingPage>
   );
 }

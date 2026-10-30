@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ACCEPTED_STATUSES, inviteLapsed } from "@/lib/engagements";
 import { loadPipelineFacts } from "@/lib/engagements-data";
 import { Masthead } from "@/components/Masthead";
-import { WorkspacePage } from "@/components/layout/Page";
+import { ListPage, ReadingPage, WorkspacePage } from "@/components/layout/Page";
 import { DataTable } from "@/components/staff/DataTable";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
@@ -34,12 +34,12 @@ export default async function JobsPage({ searchParams }: { searchParams: Search 
   if (session.role === "WORKER" && session.workerId) return <WorkerFeed workerId={session.workerId} searchParams={searchParams} />;
   if (session.orgId && canUse(session, "jobs", "read")) return <OrgJobs orgId={session.orgId} canHire={canUse(session, "jobsEdit")} />;
   return (
-    <main className="page max-w-2xl">
+    <ReadingPage>
       <div className="empty-state">
         <p className="empty-state-title">No jobs for this account</p>
         <p className="empty-state-body">This login isn&apos;t linked to a worker profile or an organization.</p>
       </div>
-    </main>
+    </ReadingPage>
   );
 }
 
@@ -103,8 +103,7 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
   const inventory = jobs.length > 0 || anyFilter;
 
   return (
-    <main className="page page-jobs space-y-4 lg:max-w-5xl">
-      <Masthead title="Jobs"><NotificationsBell /></Masthead>
+    <ListPage gap={4} head={<Masthead title="Jobs"><NotificationsBell /></Masthead>}>
 
       {/* Search (a real query: title or organization) and the way to more filters, on one row. */}
       <div className="jobs-search">
@@ -244,7 +243,7 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
           </ul>
         </section>
       )}
-    </main>
+    </ListPage>
   );
 }
 

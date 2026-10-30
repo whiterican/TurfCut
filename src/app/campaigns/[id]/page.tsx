@@ -18,6 +18,7 @@ import { ActionButton } from "@/components/ActionButton";
 import { CampaignHeader } from "@/components/campaign/CampaignHeader";
 import { CampaignProfileForm } from "@/components/campaign/CampaignProfileForm";
 import { linkJob, pinPost, publishCampaign, removeCampaignImage, removePost, saveCampaign, savePost, uploadCampaignImage } from "../actions";
+import { RecordPage } from "@/components/layout/Page";
 
 /** One campaign: its profile (owners and publishers) and its posts (S1). */
 export default async function CampaignPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ cursor?: string }> }) {
@@ -77,7 +78,7 @@ export default async function CampaignPage({ params, searchParams }: { params: P
   );
 
   return (
-    <main className="page max-w-3xl">
+    <RecordPage org>
       <header className="page-header">
         <div className="space-y-1">
           <p className="eyebrow">Campaign</p>
@@ -232,6 +233,6 @@ export default async function CampaignPage({ params, searchParams }: { params: P
           </section>
         </>
       )}
-    </main>
+    </RecordPage>
   );
 }

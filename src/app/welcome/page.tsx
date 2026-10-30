@@ -7,6 +7,7 @@ import { acceptFromWelcome } from "./actions";
 import { WelcomeForm } from "./WelcomeForm";
 import { roleName } from "@/lib/org-roles";
 import type { Role } from "@/lib/auth";
+import { ReadingPage } from "@/components/layout/Page";
 
 /** A signed-in login with no Turfcut profile yet (see needsSetup). */
 export default async function WelcomePage() {
@@ -14,7 +15,7 @@ export default async function WelcomePage() {
   const user = await getAuthUser();
   const invites = user ? await pendingInvitesFor(user) : [];
   return (
-    <main className="page-narrow flex flex-1 flex-col justify-center gap-4">
+    <ReadingPage gap={4}>
       {invites.length > 0 && (
         <section className="card space-y-3">
           <h2 className="section-title">You&apos;ve been invited</h2>
@@ -29,6 +30,6 @@ export default async function WelcomePage() {
         </section>
       )}
       <WelcomeForm invited={invites.length > 0} />
-    </main>
+    </ReadingPage>
   );
 }

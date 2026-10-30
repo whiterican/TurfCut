@@ -6,6 +6,7 @@ import { money } from "@/lib/pay";
 import { Masthead } from "@/components/Masthead";
 import { StatusBadge } from "@/components/StatusBadge";
 import { RECEIPT_STATUS } from "@/components/ReceiptView";
+import { ListPage } from "@/components/layout/Page";
 
 export const metadata = { title: "Receipts · Turfcut" };
 
@@ -14,8 +15,7 @@ export default async function ReceiptsPage() {
   const { workerId } = await requireWorker();
   const receipts = await loadReceipts(workerId);
   return (
-    <main className="page max-w-2xl">
-      <Masthead eyebrow={<><Link href="/earnings" className="link">Earnings</Link></>} title="Receipts" meta="One for every payment an organization started to your Stripe account, with the shifts it paid." />
+    <ListPage head={<Masthead eyebrow={<><Link href="/earnings" className="link">Earnings</Link></>} title="Receipts" meta="One for every payment an organization started to your Stripe account, with the shifts it paid." />}>
       {receipts.length === 0 ? (
         <div className="empty-state">
           <p className="empty-state-title">No payments yet</p>
@@ -36,6 +36,6 @@ export default async function ReceiptsPage() {
           ))}
         </ul>
       )}
-    </main>
+    </ListPage>
   );
 }

@@ -12,6 +12,7 @@ import { canUse } from "@/lib/access";
 import { EmptyArt } from "@/components/EmptyState";
 import { Masthead } from "@/components/Masthead";
 import { ChevronRight, SquarePen } from "lucide-react";
+import { ListPage } from "@/components/layout/Page";
 
 export const metadata = { title: "Messages · Turfcut" };
 
@@ -61,7 +62,7 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
   ]);
 
   return (
-    <main className="page page-jobs max-w-2xl space-y-5">
+    <ListPage>
       {/* A concise head (#111): the title and, for staff who may start a team chat, a compose button; the explanation lives in the empty state. */}
       <Masthead title="Messages">
         {staff && (
@@ -132,6 +133,6 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
           </ul>
         </section>
       )}
-    </main>
+    </ListPage>
   );
 }

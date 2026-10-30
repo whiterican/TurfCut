@@ -11,6 +11,7 @@ import { VerifiedMark } from "@/components/campaign/VerifiedMark";
 import { LocalTime } from "@/components/LocalTime";
 import { EmptyState } from "@/components/EmptyState";
 import { Masthead } from "@/components/Masthead";
+import { ListPage } from "@/components/layout/Page";
 
 export const metadata: Metadata = { title: "Campaigns", description: "Every campaign on Turfcut, the most recently active first." };
 
@@ -36,8 +37,7 @@ export default async function CampaignDirectoryPage({ searchParams }: Props) {
     return s ? `/c?${s}` : "/c";
   };
   return (
-    <main className="page max-w-2xl space-y-6">
-      <Masthead title="Campaigns" meta="Every campaign on Turfcut, the most recently active first." />
+    <ListPage gap={6} head={<Masthead title="Campaigns" meta="Every campaign on Turfcut, the most recently active first." />}>
       <form action="/c" method="get" role="search" className="flex gap-2">
         <label className="sr-only" htmlFor="q">Search campaigns by name or handle</label>
         <input id="q" name="q" type="search" defaultValue={q} maxLength={QUERY_MAX} placeholder="Name or @handle" className="field flex-1" autoComplete="off" />
@@ -63,7 +63,7 @@ export default async function CampaignDirectoryPage({ searchParams }: Props) {
         </ul>
         {next && <Link href={qs(next)} className="btn-secondary">More campaigns</Link>}
       </section>
-    </main>
+    </ListPage>
   );
 }
 

@@ -4,7 +4,7 @@ import { listStatements } from "@/lib/statements-data";
 import { money } from "@/lib/pay";
 import { requireArea } from "@/lib/employer-session";
 import { Masthead } from "@/components/Masthead";
-import { WorkspacePage } from "@/components/layout/Page";
+import { ReadingPage, WorkspacePage } from "@/components/layout/Page";
 import { StatusChip } from "@/components/StatusBadge";
 
 export const metadata = { title: "Statements · Turfcut" };
@@ -14,14 +14,14 @@ export default async function StatementsPage() {
   const s = await requireArea("pay");
   if (!s.orgId) {
     return (
-      <main className="page max-w-2xl">
+      <ReadingPage org>
         <div className="empty-state">
           <p className="empty-state-title">No organization yet</p>
           <p className="empty-state-body">
             Statements belong to an organization&apos;s owner and finance team.
           </p>
         </div>
-      </main>
+      </ReadingPage>
     );
   }
   const statements = await listStatements({

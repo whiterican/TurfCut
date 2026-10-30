@@ -8,6 +8,7 @@ import { PinLegend, TurfWorkbench } from "@/components/TurfWorkbench";
 import { toMapPins } from "@/lib/turf-pins";
 import { Masthead } from "@/components/Masthead";
 import { ChevronLeft } from "lucide-react";
+import { WorkspacePage } from "@/components/layout/Page";
 
 /**
  * My turf: what each campaign assigned (or what the worker marked for the
@@ -19,10 +20,9 @@ export default async function MyTurfPage() {
   const shifts = await loadWorkerTurf(workerId, now);
 
   return (
-    <main className="page max-w-2xl">
-      <Masthead title="My turf" meta="Turf each campaign assigned you, or the area you marked for the day — plus your pins.">
+    <WorkspacePage head={<Masthead title="My turf" meta="Turf each campaign assigned you, or the area you marked for the day — plus your pins.">
         <Link transitionTypes={["nav-back"]} href="/shifts" className="btn-ghost"><ChevronLeft aria-hidden className="size-4 shrink-0" />My schedule</Link>
-      </Masthead>
+      </Masthead>}>
 
       {shifts.length === 0 ? (
         <div className="empty-state">
@@ -69,6 +69,6 @@ export default async function MyTurfPage() {
           );
         })
       )}
-    </main>
+    </WorkspacePage>
   );
 }

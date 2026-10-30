@@ -1,5 +1,5 @@
 import { PageSkeleton } from "@/components/PageSkeleton";
 
 export default function Loading() {
-  return <PageSkeleton shape="thread" width="2xl" label="Loading dispute" />;
+  return <PageSkeleton template="record" shape="thread" label="Loading dispute" />;
 }

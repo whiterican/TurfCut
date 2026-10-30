@@ -15,6 +15,7 @@ import { OpenShiftList } from "@/components/OpenShiftList";
 import { EmptyArt } from "@/components/EmptyState";
 import { Masthead } from "@/components/Masthead";
 import { ChevronRight, ShieldAlert, UserCheck } from "lucide-react";
+import { ListPage } from "@/components/layout/Page";
 
 /**
  * My schedule (#111, screen 4): every campaign in one calendar. Upcoming or
@@ -75,7 +76,7 @@ export default async function MyShiftsPage({ searchParams }: { searchParams: Pro
   }
 
   return (
-    <main className="page page-jobs max-w-2xl space-y-5">
+    <ListPage>
       {/* Saved on the phone for dead zones: today's and the next two days' shifts. */}
       <OfflineBrief userId={userId} paths={brief} />
       <Masthead title="My schedule" />
@@ -144,6 +145,6 @@ export default async function MyShiftsPage({ searchParams }: { searchParams: Pro
           </ul>
         </section>
       )}
-    </main>
+    </ListPage>
   );
 }

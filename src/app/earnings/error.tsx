@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { ReadingPage } from "@/components/layout/Page";
 
 /** Pay couldn't load. Nothing about your pay changed; try again. */
 export default function EarningsError({ retry }: { error: Error; retry: () => void }) {
   return (
-    <main className="page max-w-2xl">
+    <ReadingPage>
       <div className="empty-state" role="alert">
         <p className="empty-state-title">Your pay didn&apos;t load</p>
         <p className="empty-state-body">Check your connection and try again. Nothing about your pay has changed.</p>
@@ -14,6 +15,6 @@ export default function EarningsError({ retry }: { error: Error; retry: () => vo
           <Link href="/shifts" className="btn-secondary">My schedule</Link>
         </div>
       </div>
-    </main>
+    </ReadingPage>
   );
 }

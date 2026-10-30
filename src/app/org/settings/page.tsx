@@ -6,6 +6,7 @@ import { requireArea } from "@/lib/employer-session";
 import { COMPENSATION_METHODS, jurisdictionLabel, jurisdictionProblems } from "@/lib/jobs";
 import { recordClassificationReview, saveLegalContact, signContractorTerms } from "./actions";
 import { Masthead } from "@/components/Masthead";
+import { ReadingPage } from "@/components/layout/Page";
 
 const day = (d: Date) => d.toISOString().slice(0, 10);
 
@@ -36,11 +37,10 @@ export default async function OrgSettingsPage() {
   const now = new Date();
 
   return (
-    <main className="page max-w-3xl">
-      <Masthead title="Organization settings" meta={org.name}>
+    <ReadingPage org head={<Masthead title="Organization settings" meta={org.name}>
         {canUse(session, "orgMembers") && <Link href="/org/settings/members" className="btn-secondary btn-sm">Members</Link>}
         <Link href="/settings" className="btn-ghost btn-sm">Settings &amp; sign out</Link>
-      </Masthead>
+      </Masthead>}>
 
       <section className="section">
         <h2 className="section-title">Before any job can publish</h2>
@@ -138,6 +138,6 @@ export default async function OrgSettingsPage() {
           })}
         </ul>
       </section>
-    </main>
+    </ReadingPage>
   );
 }

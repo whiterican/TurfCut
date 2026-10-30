@@ -7,6 +7,7 @@ import { loadHiredCredentials } from "@/lib/verification-data";
 import { SIDE_LABELS } from "@/lib/proof-sides";
 import { verify } from "./actions";
 import { Masthead } from "@/components/Masthead";
+import { WorkspacePage } from "@/components/layout/Page";
 import { ChevronLeft } from "lucide-react";
 
 const dateText = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
@@ -23,10 +24,9 @@ export default async function OrgCredentialsPage({ searchParams }: { searchParam
   const today = expiryToday();
 
   return (
-    <main className="page max-w-3xl">
-      <Masthead title="Credentials">
+    <WorkspacePage head={<Masthead title="Credentials">
         <Link href="/dashboard" className="btn-ghost btn-sm"><ChevronLeft aria-hidden className="size-4 shrink-0" />Desk</Link>
-      </Masthead>
+      </Masthead>}>
       <p className="lead">
         Record that you checked a hired worker&apos;s credential, and how. Workers see which organization verified it. Other organizations see only that an
         organization did, and how.
@@ -114,6 +114,6 @@ export default async function OrgCredentialsPage({ searchParams }: { searchParam
         each time your organization opens it, and once you have, you can record that you checked it that way. A photo is something to check, not proof by
         itself.
       </p>
-    </main>
+    </WorkspacePage>
   );
 }

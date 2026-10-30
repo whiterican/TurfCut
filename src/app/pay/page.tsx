@@ -12,6 +12,7 @@ import { ActionButton } from "@/components/ActionButton";
 import { ApproveLines, HoldLine, RecordReversal, ResolveDispute } from "@/components/PayForms";
 import { approve, checkPayment, hold, payNow, recordReversal, release, resolve } from "./actions";
 import { Masthead } from "@/components/Masthead";
+import { WorkspacePage } from "@/components/layout/Page";
 
 const day = (d: Date) => d.toISOString().slice(0, 10);
 
@@ -89,8 +90,7 @@ export default async function PayPage({ searchParams }: { searchParams: Promise<
   };
 
   return (
-    <main className="page max-w-3xl">
-      <Masthead
+    <WorkspacePage head={<Masthead
         title="Pay"
         meta={
           <div className="space-y-1">
@@ -101,26 +101,26 @@ export default async function PayPage({ searchParams }: { searchParams: Promise<
             {!stripeOn && <p className="text-hint">Stripe isn&apos;t connected yet: you can approve pay, and it&apos;s sent once Stripe is set up.</p>}
           </div>
         }
-      />
+      />}>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <div className="stat">
-          <p className="stat-value">{money(sum(pay.awaiting))}</p>
-          <p className="stat-label">Awaiting approval</p>
+      <section className="stat-tiles" aria-label="Pay totals">
+        <div className="stat-tile">
+          <p className="stat-tile-figure">{money(sum(pay.awaiting))}</p>
+          <p className="stat-tile-label">Awaiting approval</p>
         </div>
-        <div className="stat">
-          <p className="stat-value">{money(readyTotal)}</p>
-          <p className="stat-label">Ready to pay</p>
+        <div className="stat-tile">
+          <p className="stat-tile-figure">{money(readyTotal)}</p>
+          <p className="stat-tile-label">Ready to pay</p>
         </div>
-        <div className="stat">
-          <p className="stat-value">{disputes.length}</p>
-          <p className="stat-label">Open disputes</p>
+        <div className="stat-tile">
+          <p className="stat-tile-figure">{disputes.length}</p>
+          <p className="stat-tile-label">Open disputes</p>
         </div>
-        <div className="stat">
-          <p className="stat-value">{money(sum(pay.paid.filter((l) => (l.state.paidAt ?? today) >= monthAgo)))}</p>
-          <p className="stat-label">Paid, last 30 days</p>
+        <div className="stat-tile">
+          <p className="stat-tile-figure">{money(sum(pay.paid.filter((l) => (l.state.paidAt ?? today) >= monthAgo)))}</p>
+          <p className="stat-tile-label">Paid, last 30 days</p>
         </div>
-      </div>
+      </section>
 
       <nav aria-label="Pay sections" className="flex flex-wrap gap-2">
         {TABS.map((t) => (
@@ -371,6 +371,6 @@ export default async function PayPage({ searchParams }: { searchParams: Promise<
           </ul>
         </section>
       )}
-    </main>
+    </WorkspacePage>
   );
 }

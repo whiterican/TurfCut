@@ -4,6 +4,7 @@ import { listStatements } from "@/lib/statements-data";
 import { money } from "@/lib/pay";
 import { requireArea } from "@/lib/employer-session";
 import { Masthead } from "@/components/Masthead";
+import { WorkspacePage } from "@/components/layout/Page";
 import { StatusChip } from "@/components/StatusBadge";
 
 export const metadata = { title: "Statements · Turfcut" };
@@ -29,12 +30,11 @@ export default async function StatementsPage() {
     role: s.role, grants: s.grants,
   });
   return (
-    <main className="page max-w-2xl">
-      <Masthead
+    <WorkspacePage head={<Masthead
         eyebrow={<Link href="/pay" className="link">Pay</Link>}
         title="Statements"
         meta="One for each calendar month (UTC): the pay recorded, the payments sent, corrections to earlier months, and how disputes were handled. A month's totals are fixed once it ends."
-      />
+      />}>
       {/* The running month is always listed, so there is always at least one. */}
       <ul className="list-card">
         {statements.map((st) => (
@@ -55,6 +55,6 @@ export default async function StatementsPage() {
           </li>
         ))}
       </ul>
-    </main>
+    </WorkspacePage>
   );
 }

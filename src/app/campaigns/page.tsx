@@ -6,6 +6,7 @@ import { listOrgCampaigns } from "@/lib/campaign-social-data";
 import { CampaignProfileForm } from "@/components/campaign/CampaignProfileForm";
 import { saveCampaign } from "./actions";
 import { Masthead } from "@/components/Masthead";
+import { ListPage } from "@/components/layout/Page";
 
 /** The organization's campaigns: their public profiles and posts (S1). */
 export default async function CampaignsPage() {
@@ -13,8 +14,7 @@ export default async function CampaignsPage() {
   const canEdit = canUse(session, "campaigns");
   const campaigns = await listOrgCampaigns(session.orgId);
   return (
-    <main className="page max-w-3xl">
-      <Masthead title="Your campaigns" meta="Each campaign has a public page: your bio, your posts, and your pinned talking points, which brief your workers before each shift." />
+    <ListPage org head={<Masthead title="Your campaigns" meta="Each campaign has a public page: your bio, your posts, and your pinned talking points, which brief your workers before each shift." />}>
 
       {campaigns.length > 0 ? (
         <ul className="list-card">
@@ -42,6 +42,6 @@ export default async function CampaignsPage() {
           </div>
         </section>
       )}
-    </main>
+    </ListPage>
   );
 }

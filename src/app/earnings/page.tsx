@@ -12,6 +12,7 @@ import { payoutSetup } from "@/lib/pay-data";
 import { stripeProvider } from "@/lib/payout-provider";
 import { EmptyArt } from "@/components/EmptyState";
 import { Masthead } from "@/components/Masthead";
+import { ReadingPage } from "@/components/layout/Page";
 import { PayoutSetupCta } from "@/components/PayoutSetupCta";
 
 const SETUP_NOTE: Record<string, string> = {
@@ -162,31 +163,33 @@ export default async function EarningsPage({ searchParams }: { searchParams: Pro
   const payouts = payoutReadiness(stripeProvider().configured(), w.payoutsEnabled);
   const onTheWay = payouts === "enabled" ? "On the way" : `A${approvedPhrase(payouts).slice(1)}`;
   return (
-    <main className="page max-w-2xl">
-      <Masthead title="Earnings" meta="Gross pay for shifts your supervisors approved. Turfcut never takes a cut of your pay — campaigns pay the platform fee." />
-
-      <div className={`hero-card space-y-4 ${campaigns.length === 0 ? "hero-card-quiet" : ""}`}>
-        <p className="eyebrow">All campaigns</p>
-        <p className="hero-title">{money(totals.paid)} paid</p>
-        <p className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
-          <span>
-            <span className="block font-bold">{money(totals.onTheWay)}</span>
-            <span className="hero-muted">{onTheWay}</span>
-            {/* The way to unblock it, right beside the blocked amount: a link down to the Payouts card and its button (one primary per screen). */}
-            {totals.onTheWay > 0 && <PayoutSetupCta readiness={payouts} stripeAccountId={w.stripeAccountId} href="#payouts" className="link mt-1 block w-fit text-sm" />}
-          </span>
-          <span>
-            <span className="block font-bold">{money(totals.awaiting)}</span>
-            <span className="hero-muted">Awaiting approval</span>
-          </span>
-          {totals.stopped !== 0 && (
-            <span>
-              <span className="block font-bold">{money(totals.stopped)}</span>
-              <span className="hero-muted">On hold or disputed</span>
-            </span>
-          )}
-        </p>
-      </div>
+    <ReadingPage gap={6} head={<Masthead title="Earnings" meta="Gross pay for shifts your supervisors approved. Turfcut never takes a cut of your pay — campaigns pay the platform fee." />}>
+      {/* The totals as white tiles (#111): each a real sum in its real pay state; the way to unblock approved pay sits beside it. */}
+      <section className="stat-tiles" aria-label="All campaigns">
+        <div className="stat-tile">
+          <p className="stat-tile-figure">{money(totals.paid)}</p>
+          <p className="stat-tile-label">Paid</p>
+          <p className="stat-tile-note">Sent to you</p>
+        </div>
+        <div className="stat-tile">
+          <p className="stat-tile-figure">{money(totals.onTheWay)}</p>
+          <p className="stat-tile-label">{onTheWay}</p>
+          {/* The way to unblock it, right beside the blocked amount: a link down to the Payouts card and its button (one primary per screen). */}
+          {totals.onTheWay > 0 ? <PayoutSetupCta readiness={payouts} stripeAccountId={w.stripeAccountId} href="#payouts" className="link mt-1 block w-fit text-sm" /> : <p className="stat-tile-note">Approved by a supervisor</p>}
+        </div>
+        <div className="stat-tile">
+          <p className="stat-tile-figure">{money(totals.awaiting)}</p>
+          <p className="stat-tile-label">Awaiting approval</p>
+          <p className="stat-tile-note">Checked out, not yet reviewed</p>
+        </div>
+        {totals.stopped !== 0 && (
+          <div className="stat-tile">
+            <p className="stat-tile-figure">{money(totals.stopped)}</p>
+            <p className="stat-tile-label">On hold or disputed</p>
+            <p className="stat-tile-note">Waits for the outcome</p>
+          </div>
+        )}
+      </section>
 
       <PayoutSetup w={w} note={note} />
 
@@ -222,6 +225,6 @@ export default async function EarningsPage({ searchParams }: { searchParams: Pro
         ))
       )}
       <p className="text-hint">Every amount is worked out from your verified hours or accepted work at the job&apos;s posted rate, and never changed afterwards — corrections show up as adjustments.</p>
-    </main>
+    </ReadingPage>
   );
 }

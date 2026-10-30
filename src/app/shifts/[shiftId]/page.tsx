@@ -1,4 +1,4 @@
-import { StatusBadge } from "@/components/StatusBadge";
+import { StatusBadge, StatusChip } from "@/components/StatusBadge";
 import Link from "next/link";
 import { radiusFor, readLaunch } from "@/lib/job-launch";
 import { appLabel, readTools, toolsText } from "@/lib/job-tools";
@@ -7,7 +7,6 @@ import { TalkingPoints } from "@/components/campaign/TalkingPoints";
 import { notFound } from "next/navigation";
 import { requireAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { shiftPriority } from "@/lib/priority";
 import { canUse } from "@/lib/access";
 import { readSupportContacts } from "@/lib/jobs";
 import { activeTime, earningsEstimate, readTurf, scheduleFlags, shiftProgress, shiftState, shiftStatusLabel, turfMarks, turfMarksClosed } from "@/lib/field-day";
@@ -311,13 +310,17 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
     <Template head={head} aside={hasAside ? aside : undefined} panelLabel={isWorker ? "Brief and turf" : "Brief and contacts"} org={!isWorker}>
 
       {!started && workerActions}
-      <div className={`hero-card space-y-4 ${isWorker && live ? "hero-card-accent" : ""}`} data-priority={isWorker ? shiftPriority(s, now) : undefined}>
-        <p className="eyebrow">
-          <LocalTime iso={s.startsAt.toISOString()} mode="date" />
-          {started && s.stagingLocation ? ` · ${s.stagingLocation}` : ""}
-        </p>
+      {/* The day's work on a white surface (#111, screen 5): the date and place, the figure that matters, time worked and the estimate, then the schedule. */}
+      <section className="work-card space-y-4" aria-label={isWorker ? "Your shift" : "The worker's shift"}>
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-sm font-medium text-muted">
+            <LocalTime iso={s.startsAt.toISOString()} mode="date" />
+            {started && s.stagingLocation ? ` · ${s.stagingLocation}` : ""}
+          </p>
+          {isWorker && live && <StatusChip state="live" label="On shift" />}
+        </div>
         {started ? (
-          <p className="hero-title">
+          <p className="t-headline text-fg">
             {petition ? (
               <><CountUp value={st.signatures} /> signature{st.signatures === 1 ? "" : "s"} submitted</>
             ) : (
@@ -326,7 +329,7 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
           </p>
         ) : (
           // Before the shift: when and where, not a zero.
-          <p className="hero-title">
+          <p className="t-headline text-fg">
             <LocalTime iso={s.startsAt.toISOString()} mode="time" /> – <LocalTime iso={s.endsAt.toISOString()} mode="time" />
           </p>
         )}
@@ -348,30 +351,30 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
             }
           />
         )}
-        <p className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
+        <p className="flex flex-wrap gap-x-6 gap-y-1 border-t border-border pt-3 text-sm">
           {started ? (
             <span>
-              <span className="block font-bold">
+              <span className="block font-bold text-fg">
                 <LocalTime iso={s.startsAt.toISOString()} mode="time" /> – <LocalTime iso={s.endsAt.toISOString()} mode="time" />
               </span>
-              <span className="hero-muted">Scheduled</span>
+              <span className="text-subtle">Scheduled</span>
             </span>
           ) : (
             s.stagingLocation && (
               <span>
-                <span className="block font-bold">{s.stagingLocation}</span>
-                <span className="hero-muted">Staging — check in here</span>
+                <span className="block font-bold text-fg">{s.stagingLocation}</span>
+                <span className="text-subtle">Staging — check in here</span>
               </span>
             )
           )}
           {petition && started && (
             <span>
-              <span className="block font-bold">{st.packetsOut.length ? st.packetsOut.join(", ") : "—"}</span>
-              <span className="hero-muted">Packets out{st.packetsHeld.length ? ` · ${st.packetsHeld.map(keptLabel).join(", ")} kept for next shift` : ""}</span>
+              <span className="block font-bold text-fg">{st.packetsOut.length ? st.packetsOut.join(", ") : "—"}</span>
+              <span className="text-subtle">Packets out{st.packetsHeld.length ? ` · ${st.packetsHeld.map(keptLabel).join(", ")} kept for next shift` : ""}</span>
             </span>
           )}
         </p>
-      </div>
+      </section>
 
       {!petition && toolsText(tools) && (
         <p className="text-muted-sm">

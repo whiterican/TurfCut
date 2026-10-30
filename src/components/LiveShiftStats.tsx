@@ -64,14 +64,14 @@ export function LiveShiftStats({
       <span className="flex items-center gap-3">
         <Ring fill={fill} seenKey={`shift:${shiftId}`} />
         <span>
-          <span className="block text-lg font-bold tabular-nums">{duration(ms)}</span>
-          <span className="hero-muted text-sm">Time worked</span>
+          <span className="block text-lg font-bold text-fg tabular-nums">{duration(ms)}</span>
+          <span className="text-sm text-subtle">Time worked</span>
         </span>
       </span>
       {pay && cents !== null && (
         <span>
-          <span className="block text-lg font-bold tabular-nums"><CountUp value={cents} format={dollars} /></span>
-          <span className="hero-muted text-sm">{pay.label}</span>
+          <span className="block text-lg font-bold text-fg tabular-nums"><CountUp value={cents} format={dollars} /></span>
+          <span className="text-sm text-subtle">{pay.label}</span>
         </span>
       )}
     </p>

@@ -1667,7 +1667,7 @@ body {
   /* Figures wrap two to a row on a phone and at least 10rem wide above it; a straggler stretches across the rest of its row, so no slot is ever an empty border-coloured block. */
   /* The organizer overview (#111, screen 10): three white tiles, then the map beside its key and the needs counts. */
   .stat-tiles {
-    @apply grid gap-4 sm:grid-cols-[repeat(auto-fit,minmax(14rem,1fr))];
+    @apply grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-[repeat(auto-fit,minmax(12rem,1fr))];
   }
   /* One tile grammar for the Overview's tiles and every SummaryBar (figure, name, hint). */
   .stat-tile,

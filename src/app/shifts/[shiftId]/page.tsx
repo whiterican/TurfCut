@@ -1,4 +1,4 @@
-import { StatusBadge, StatusChip } from "@/components/StatusBadge";
+import { StatusBadge } from "@/components/StatusBadge";
 import Link from "next/link";
 import { radiusFor, readLaunch } from "@/lib/job-launch";
 import { appLabel, readTools, toolsText } from "@/lib/job-tools";
@@ -312,13 +312,11 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
       {!started && workerActions}
       {/* The day's work on a white surface (#111, screen 5): the date and place, the figure that matters, time worked and the estimate, then the schedule. */}
       <section className="work-card space-y-4" aria-label={isWorker ? "Your shift" : "The worker's shift"}>
-        <div className="flex items-center justify-between gap-3">
-          <p className="text-sm font-medium text-muted">
-            <LocalTime iso={s.startsAt.toISOString()} mode="date" />
-            {started && s.stagingLocation ? ` · ${s.stagingLocation}` : ""}
-          </p>
-          {isWorker && live && <StatusChip state="live" label="On shift" />}
-        </div>
+        {/* The status (live, on break, no check-out received) is the Masthead's pill: not repeated here. */}
+        <p className="text-sm font-medium text-muted">
+          <LocalTime iso={s.startsAt.toISOString()} mode="date" />
+          {started && s.stagingLocation ? ` · ${s.stagingLocation}` : ""}
+        </p>
         {started ? (
           <p className="t-headline text-fg">
             {petition ? (

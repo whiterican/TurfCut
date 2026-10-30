@@ -1675,9 +1675,10 @@ body {
     @apply rounded-[var(--radius-card)] border border-border p-4;
     background: var(--surface);
   }
+  /* A five-figure total still fits a half-width phone tile: the smaller figure below 640px. */
   .stat-tile-figure,
   .summary-value {
-    @apply t-figure text-fg;
+    @apply t-figure-sm text-fg sm:t-figure;
   }
   .stat-tile-label,
   .summary-item > .eyebrow {
@@ -2768,7 +2769,7 @@ summary.list-none::-webkit-details-marker {
   .sun .site-header :is(.btn-ghost, .glass-orb-phone) {
     min-height: 40px;
   }
-  .sun :is(.card, .card-flat, .card-dashed, .stat, .list-card, .empty-state, .hero-card, .field, .option-card, .btn-secondary, .tabbar, .kv, .alert, .alert-warning, .alert-info, .quick-reply, .icon-btn, .summary-item, .stat-tile, .data-table-wrap, .composer-input, .sheet-panel, .swipe-card) {
+  .sun :is(.card, .card-flat, .card-dashed, .stat, .list-card, .empty-state, .hero-card, .field, .option-card, .btn-secondary, .tabbar, .kv, .alert, .alert-warning, .alert-info, .quick-reply, .icon-btn, .summary-item, .stat-tile, .work-card, .data-table-wrap, .composer-input, .sheet-panel, .swipe-card) {
     border-width: 2px;
   }
   .sun :is(.alert, .alert-warning, .alert-info) {

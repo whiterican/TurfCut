@@ -2,7 +2,7 @@ import Link from "next/link";
 import { requireWorker } from "@/lib/worker-session";
 import { loadWorkerEarnings, type EarningShift } from "@/lib/pay-data";
 import { PayBadge } from "@/components/Moments";
-import { approvedPhrase, money, payoutReadiness, statusLabel, type PayoutReadiness } from "@/lib/pay";
+import { approvedPhrase, money, payoutCta, payoutReadiness, statusLabel, type PayoutReadiness } from "@/lib/pay";
 import { StatusChip } from "@/components/StatusBadge";
 import { LocalTime } from "@/components/LocalTime";
 import { clockParts } from "@/lib/dispute-sla";
@@ -169,18 +169,18 @@ export default async function EarningsPage({ searchParams }: { searchParams: Pro
         <div className="stat-tile">
           <p className="stat-tile-figure">{money(totals.paid)}</p>
           <p className="stat-tile-label">Paid</p>
-          <p className="stat-tile-note">Sent to you</p>
+          <p className="stat-tile-note">Reached your account</p>
         </div>
         <div className="stat-tile">
           <p className="stat-tile-figure">{money(totals.onTheWay)}</p>
           <p className="stat-tile-label">{onTheWay}</p>
           {/* The way to unblock it, right beside the blocked amount: a link down to the Payouts card and its button (one primary per screen). */}
-          {totals.onTheWay > 0 ? <PayoutSetupCta readiness={payouts} stripeAccountId={w.stripeAccountId} href="#payouts" className="link mt-1 block w-fit text-sm" /> : <p className="stat-tile-note">Approved by a supervisor</p>}
+          {totals.onTheWay > 0 && payoutCta(payouts, !!w.stripeAccountId) ? <PayoutSetupCta readiness={payouts} stripeAccountId={w.stripeAccountId} href="#payouts" className="link mt-1 block w-fit text-sm" /> : <p className="stat-tile-note">Approved by a supervisor</p>}
         </div>
         <div className="stat-tile">
           <p className="stat-tile-figure">{money(totals.awaiting)}</p>
           <p className="stat-tile-label">Awaiting approval</p>
-          <p className="stat-tile-note">Checked out, not yet reviewed</p>
+          <p className="stat-tile-note">Waiting for a supervisor&apos;s review</p>
         </div>
         {totals.stopped !== 0 && (
           <div className="stat-tile">

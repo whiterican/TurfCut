@@ -1,277 +1,5 @@
 [
   {
-    "screen": "earnings",
-    "route": "/earnings",
-    "state": "populated",
-    "role": "worker",
-    "sourceCommit": "73a3495",
-    "implementationFile": "docs/design/hero-board/evidence/s5/earnings-populated-390-light.png",
-    "viewport": {
-      "width": 390,
-      "height": 844,
-      "deviceScaleFactor": 2
-    },
-    "theme": "light",
-    "timezone": "America/Denver",
-    "clock": "frozen at 2026-10-30T19:00:00Z",
-    "fontOk": true,
-    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
-    "overflow": 0,
-    "tabs": [
-      {
-        "label": "Home",
-        "w": 57,
-        "h": 52,
-        "clipped": false
-      },
-      {
-        "label": "Jobs",
-        "w": 57,
-        "h": 52,
-        "clipped": false
-      },
-      {
-        "label": "Work",
-        "w": 57,
-        "h": 52,
-        "clipped": false
-      },
-      {
-        "label": "Map",
-        "w": 57,
-        "h": 52,
-        "clipped": false
-      },
-      {
-        "label": "Messages",
-        "w": 73,
-        "h": 52,
-        "clipped": false
-      },
-      {
-        "label": "More, 1 unread notification",
-        "w": 57,
-        "h": 52,
-        "clipped": false
-      }
-    ],
-    "bar": {
-      "w": 366,
-      "h": 60,
-      "left": 12,
-      "bottom": 10
-    },
-    "bg": "#faf9f4",
-    "shell": "#1c0f2e",
-    "title": "Turfcut",
-    "h1": "Earnings",
-    "status": "captured"
-  },
-  {
-    "screen": "earnings",
-    "route": "/earnings",
-    "state": "populated",
-    "role": "worker",
-    "sourceCommit": "73a3495",
-    "implementationFile": "docs/design/hero-board/evidence/s5/earnings-populated-390-dark.png",
-    "viewport": {
-      "width": 390,
-      "height": 844,
-      "deviceScaleFactor": 2
-    },
-    "theme": "dark",
-    "timezone": "America/Denver",
-    "clock": "frozen at 2026-10-30T19:00:00Z",
-    "fontOk": true,
-    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
-    "overflow": 0,
-    "tabs": [
-      {
-        "label": "Home",
-        "w": 57,
-        "h": 52,
-        "clipped": false
-      },
-      {
-        "label": "Jobs",
-        "w": 57,
-        "h": 52,
-        "clipped": false
-      },
-      {
-        "label": "Work",
-        "w": 57,
-        "h": 52,
-        "clipped": false
-      },
-      {
-        "label": "Map",
-        "w": 57,
-        "h": 52,
-        "clipped": false
-      },
-      {
-        "label": "Messages",
-        "w": 73,
-        "h": 52,
-        "clipped": false
-      },
-      {
-        "label": "More, 1 unread notification",
-        "w": 57,
-        "h": 52,
-        "clipped": false
-      }
-    ],
-    "bar": {
-      "w": 366,
-      "h": 60,
-      "left": 12,
-      "bottom": 10
-    },
-    "bg": "#140a22",
-    "shell": "#1c0f2e",
-    "title": "Turfcut",
-    "h1": "Earnings",
-    "status": "captured"
-  },
-  {
-    "screen": "earnings",
-    "route": "/earnings",
-    "state": "populated",
-    "role": "worker",
-    "sourceCommit": "73a3495",
-    "implementationFile": "docs/design/hero-board/evidence/s5/earnings-populated-1440-light.png",
-    "viewport": {
-      "width": 1440,
-      "height": 900,
-      "deviceScaleFactor": 2
-    },
-    "theme": "light",
-    "timezone": "America/Denver",
-    "clock": "frozen at 2026-10-30T19:00:00Z",
-    "fontOk": true,
-    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
-    "overflow": 0,
-    "tabs": [
-      {
-        "label": "Home",
-        "w": 0,
-        "h": 0,
-        "clipped": false
-      },
-      {
-        "label": "Jobs",
-        "w": 0,
-        "h": 0,
-        "clipped": false
-      },
-      {
-        "label": "Work",
-        "w": 0,
-        "h": 0,
-        "clipped": false
-      },
-      {
-        "label": "Map",
-        "w": 0,
-        "h": 0,
-        "clipped": false
-      },
-      {
-        "label": "Messages",
-        "w": 0,
-        "h": 0,
-        "clipped": false
-      },
-      {
-        "label": "More, 1 unread notification",
-        "w": 0,
-        "h": 0,
-        "clipped": false
-      }
-    ],
-    "bar": {
-      "w": 0,
-      "h": 0,
-      "left": 0,
-      "bottom": 900
-    },
-    "bg": "#faf9f4",
-    "shell": "#1c0f2e",
-    "title": "Turfcut",
-    "h1": "Earnings",
-    "status": "captured"
-  },
-  {
-    "screen": "earnings",
-    "route": "/earnings",
-    "state": "populated",
-    "role": "worker",
-    "sourceCommit": "73a3495",
-    "implementationFile": "docs/design/hero-board/evidence/s5/earnings-populated-1440-dark.png",
-    "viewport": {
-      "width": 1440,
-      "height": 900,
-      "deviceScaleFactor": 2
-    },
-    "theme": "dark",
-    "timezone": "America/Denver",
-    "clock": "frozen at 2026-10-30T19:00:00Z",
-    "fontOk": true,
-    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
-    "overflow": 0,
-    "tabs": [
-      {
-        "label": "Home",
-        "w": 0,
-        "h": 0,
-        "clipped": false
-      },
-      {
-        "label": "Jobs",
-        "w": 0,
-        "h": 0,
-        "clipped": false
-      },
-      {
-        "label": "Work",
-        "w": 0,
-        "h": 0,
-        "clipped": false
-      },
-      {
-        "label": "Map",
-        "w": 0,
-        "h": 0,
-        "clipped": false
-      },
-      {
-        "label": "Messages",
-        "w": 0,
-        "h": 0,
-        "clipped": false
-      },
-      {
-        "label": "More, 1 unread notification",
-        "w": 0,
-        "h": 0,
-        "clipped": false
-      }
-    ],
-    "bar": {
-      "w": 0,
-      "h": 0,
-      "left": 0,
-      "bottom": 900
-    },
-    "bg": "#140a22",
-    "shell": "#1c0f2e",
-    "title": "Turfcut",
-    "h1": "Earnings",
-    "status": "captured"
-  },
-  {
     "screen": "desk",
     "route": "/desk",
     "state": "populated",
@@ -878,11 +606,283 @@
     "status": "captured"
   },
   {
+    "screen": "earnings",
+    "route": "/earnings",
+    "state": "populated",
+    "role": "worker",
+    "sourceCommit": "ddd3f2b",
+    "implementationFile": "docs/design/hero-board/evidence/s5/earnings-populated-390-light.png",
+    "viewport": {
+      "width": 390,
+      "height": 844,
+      "deviceScaleFactor": 2
+    },
+    "theme": "light",
+    "timezone": "America/Denver",
+    "clock": "frozen at 2026-10-30T19:00:00Z",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [
+      {
+        "label": "Home",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Jobs",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Work",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Map",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Messages",
+        "w": 73,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "More, 1 unread notification",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      }
+    ],
+    "bar": {
+      "w": 366,
+      "h": 60,
+      "left": 12,
+      "bottom": 10
+    },
+    "bg": "#faf9f4",
+    "shell": "#1c0f2e",
+    "title": "Turfcut",
+    "h1": "Earnings",
+    "status": "captured"
+  },
+  {
+    "screen": "earnings",
+    "route": "/earnings",
+    "state": "populated",
+    "role": "worker",
+    "sourceCommit": "ddd3f2b",
+    "implementationFile": "docs/design/hero-board/evidence/s5/earnings-populated-390-dark.png",
+    "viewport": {
+      "width": 390,
+      "height": 844,
+      "deviceScaleFactor": 2
+    },
+    "theme": "dark",
+    "timezone": "America/Denver",
+    "clock": "frozen at 2026-10-30T19:00:00Z",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [
+      {
+        "label": "Home",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Jobs",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Work",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Map",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Messages",
+        "w": 73,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "More, 1 unread notification",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      }
+    ],
+    "bar": {
+      "w": 366,
+      "h": 60,
+      "left": 12,
+      "bottom": 10
+    },
+    "bg": "#140a22",
+    "shell": "#1c0f2e",
+    "title": "Turfcut",
+    "h1": "Earnings",
+    "status": "captured"
+  },
+  {
+    "screen": "earnings",
+    "route": "/earnings",
+    "state": "populated",
+    "role": "worker",
+    "sourceCommit": "ddd3f2b",
+    "implementationFile": "docs/design/hero-board/evidence/s5/earnings-populated-1440-light.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900,
+      "deviceScaleFactor": 2
+    },
+    "theme": "light",
+    "timezone": "America/Denver",
+    "clock": "frozen at 2026-10-30T19:00:00Z",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [
+      {
+        "label": "Home",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Jobs",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Work",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Map",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Messages",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "More, 1 unread notification",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      }
+    ],
+    "bar": {
+      "w": 0,
+      "h": 0,
+      "left": 0,
+      "bottom": 900
+    },
+    "bg": "#faf9f4",
+    "shell": "#1c0f2e",
+    "title": "Turfcut",
+    "h1": "Earnings",
+    "status": "captured"
+  },
+  {
+    "screen": "earnings",
+    "route": "/earnings",
+    "state": "populated",
+    "role": "worker",
+    "sourceCommit": "ddd3f2b",
+    "implementationFile": "docs/design/hero-board/evidence/s5/earnings-populated-1440-dark.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900,
+      "deviceScaleFactor": 2
+    },
+    "theme": "dark",
+    "timezone": "America/Denver",
+    "clock": "frozen at 2026-10-30T19:00:00Z",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [
+      {
+        "label": "Home",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Jobs",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Work",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Map",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Messages",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "More, 1 unread notification",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      }
+    ],
+    "bar": {
+      "w": 0,
+      "h": 0,
+      "left": 0,
+      "bottom": 900
+    },
+    "bg": "#140a22",
+    "shell": "#1c0f2e",
+    "title": "Turfcut",
+    "h1": "Earnings",
+    "status": "captured"
+  },
+  {
     "screen": "shift",
     "route": "/shifts/00000000-0000-0000-0000-000000000201",
     "state": "completed",
     "role": "worker",
-    "sourceCommit": "73a3495",
+    "sourceCommit": "ddd3f2b",
     "implementationFile": "docs/design/hero-board/evidence/s5/shift-completed-390-light.png",
     "viewport": {
       "width": 390,
@@ -950,7 +950,7 @@
     "route": "/shifts/00000000-0000-0000-0000-000000000201",
     "state": "completed",
     "role": "worker",
-    "sourceCommit": "73a3495",
+    "sourceCommit": "ddd3f2b",
     "implementationFile": "docs/design/hero-board/evidence/s5/shift-completed-390-dark.png",
     "viewport": {
       "width": 390,
@@ -1018,7 +1018,7 @@
     "route": "/shifts/00000000-0000-0000-0000-000000000201",
     "state": "completed",
     "role": "worker",
-    "sourceCommit": "73a3495",
+    "sourceCommit": "ddd3f2b",
     "implementationFile": "docs/design/hero-board/evidence/s5/shift-completed-1440-light.png",
     "viewport": {
       "width": 1440,
@@ -1086,7 +1086,7 @@
     "route": "/shifts/00000000-0000-0000-0000-000000000201",
     "state": "completed",
     "role": "worker",
-    "sourceCommit": "73a3495",
+    "sourceCommit": "ddd3f2b",
     "implementationFile": "docs/design/hero-board/evidence/s5/shift-completed-1440-dark.png",
     "viewport": {
       "width": 1440,

@@ -3,9 +3,11 @@
 Same branch, contract and capture method as `../s1/README.md`: real routes,
 synthetic fixtures, Inter loaded, frozen clock, device scale factor 2,
 `<screen>-<state>-<css width>-<theme>.png`; `manifest.json` records the font
-check, overflow and dock measurements for each. Map tiles are grey in every
-capture: the capture container has no route to OpenStreetMap, so only the
-turf polygons draw. In the app the tiles load.
+check, overflow and dock measurements for each. The Field map and Overview captures at 1440 and the scrolled
+390 Field map were re-taken with OpenStreetMap tiles loading (the first
+capture container had no route to the tile server; the app itself always had
+one). They run on the rebuilt fixtures, so their turf and figures differ from
+the other captures here.
 
 ## What is in this slice
 

@@ -54,7 +54,8 @@ export function JobPhotoRow({ j, photoUrl = null }: { j: FeedJob; photoUrl?: str
           {dates}
           {place && ` · ${place}`}
         </span>
-        <span className="block truncate text-xs text-subtle">
+        {/* relative: the screen-reader label below is absolutely positioned, and must stay inside this clipped line at 320px. */}
+        <span className="relative block truncate text-xs text-subtle">
           {j.org.name}
           {j.org.approved && (
             <>

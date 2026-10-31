@@ -103,9 +103,10 @@ export function TopNav({ tabs }: { tabs: NavTab[] }) {
   return (
     <nav aria-label="Main" className="hidden items-center gap-1 lg:flex">
       {tabs.map((t) => (
-        <Link key={t.href} href={t.href} className="topnav-link inline-flex items-center gap-1.5" aria-current={currentAttr(t.href, current, pathname)}>
+        // Between 1024 and 1279 the eight destinations fit only as icons (#113 review): the label stays the link's name and its tooltip, and shows from 1280.
+        <Link key={t.href} href={t.href} title={t.label} className="topnav-link inline-flex items-center gap-1.5" aria-current={currentAttr(t.href, current, pathname)}>
           <Icon of={iconFor(t)} className="size-4" />
-          {t.label}
+          <span className="sr-only xl:not-sr-only">{t.label}</span>
           {t.href === MESSAGES_HREF && <Badge count={count} />}
           {t.href === MESSAGES_HREF && count > 0 && <span className="sr-only">, {count} unread</span>}
         </Link>

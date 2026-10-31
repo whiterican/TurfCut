@@ -177,11 +177,12 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
         </ul>
       )}
 
-      <section className="space-y-3" aria-labelledby="open-jobs-heading">
+      <section className="space-y-2" aria-labelledby="open-jobs-heading">
         {/* Invitations sit beside the heading they belong to, with the real count waiting (#113 review, P4). */}
         <div className="section-head">
           <h2 id="open-jobs-heading" className="t-section text-fg">Open jobs</h2>
-          <Link href="/jobs/invitations" className="row-link">
+          {/* -my-1.5: the 44px target stays, the heading row doesn't add height above the list. */}
+          <Link href="/jobs/invitations" className="row-link -my-1.5">
             Invitations
             {waitingInvites > 0 && <span className="unread-badge ms-1.5" aria-hidden>{waitingInvites}</span>}
             {waitingInvites > 0 && <span className="sr-only">, {waitingInvites} waiting for your answer</span>}
@@ -203,7 +204,7 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
             {anyFilter && !showHidden && <Link href="/jobs" className="btn-secondary">Clear filters</Link>}
           </div>
         ) : (
-          <ul className="grid grid-cols-1 gap-3 lg:grid-cols-2" /* one column (never wider than the page), two from a desktop width up */>
+          <ul className="job-grid grid grid-cols-1 gap-2 lg:grid-cols-2 lg:gap-3" /* one column (never wider than the page), two from a desktop width up */>
             {open.map((j) => (
               <li key={j.id}>
                 <SwipeCard jobId={j.id} saved={marks.saved.has(j.id)} hidden={showHidden} compact>

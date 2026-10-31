@@ -2157,6 +2157,33 @@ body {
   .swipe-card-compact {
     @apply flex items-start p-0;
   }
+  /* A job row in the list (#113 review): a plain border at the smaller radius, no repeated shadow. */
+  .swipe-card.swipe-card-compact {
+    @apply rounded-[var(--radius-sm)];
+    background: var(--surface);
+    box-shadow: none;
+  }
+  /* Two-up job list: a row's cards share its height so the gaps between rows stay even. */
+  .job-grid > li > .swipe {
+    @apply flex h-full flex-col;
+  }
+  .job-grid > li > .swipe > .swipe-card {
+    @apply flex-1;
+  }
+  /* Compact rows: the Save/Hide underlay matches the row's smaller radius; the row link fills a
+     stretched two-up card; a failure note wraps below the row instead of squeezing beside it. */
+  .swipe:has(> .swipe-card-compact) > .swipe-under {
+    border-radius: var(--radius-sm);
+  }
+  .swipe-card-compact {
+    @apply flex-wrap;
+  }
+  .swipe-card-compact > .job-photo-row {
+    align-self: stretch;
+  }
+  .swipe-card-compact > [role="alert"] {
+    flex-basis: 100%;
+  }
   .swipe-card-compact .job-photo-row {
     @apply min-w-0 flex-1 rounded-none border-0 shadow-none;
     background: transparent;
@@ -2310,16 +2337,22 @@ body {
   .hero-card .link {
     color: inherit;
   }
-  /* Quick filters on Find work: outlined, solid when on. One "on" for all of
-     them: on the feed, a coloured chip names a campaign's declared party in
-     words; the lavender date chip carries a calendar instead. */
-  /* relative: it holds its own screen-reader text (absolutely placed), so the
-     scrolling row clips that too and the page never scrolls sideways. */
+  /* Quick filters on Find work (#113 review): a quiet muted pill, eggplant when on. The pill is 36px
+     to keep the list the focus; an invisible band above and below keeps the 44px target.
+     relative: it holds its own screen-reader text (absolutely placed), so the scrolling row clips
+     that too and the page never scrolls sideways. */
   .filter-chip {
-    @apply relative inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-full border border-border bg-surface px-3.5 text-sm font-semibold text-fg transition;
+    @apply relative my-1 inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-full border border-transparent px-3.5 text-sm font-medium text-fg transition;
+    background: var(--surface-2);
   }
-  .filter-chip:hover {
-    border-color: var(--border-strong);
+  .filter-chip::before {
+    content: "";
+    position: absolute;
+    inset: -4px 0;
+  }
+  /* Hover shifts the quiet fill rather than drawing an outline from nothing; the "on" chip keeps its own. */
+  .filter-chip:not(.filter-chip-on):hover {
+    background: color-mix(in srgb, var(--fg) 6%, var(--surface-2));
   }
   /* Solid: settled-status badges (an eggplant chip; see --solid). */
   .badge-solid,

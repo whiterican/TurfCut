@@ -7,6 +7,8 @@ import {
   workerCanModify,
   type VerificationLevel,
 } from "@/lib/experience";
+import type { StatusState } from "@/lib/status";
+import { StatusChip } from "@/components/StatusBadge";
 
 export interface ExperienceRow {
   id: string;
@@ -36,12 +38,12 @@ const label = (xs: readonly { value: string; label: string }[], v: string | null
   v ? (xs.find((x) => x.value === v)?.label ?? v) : null;
 const join = (parts: Array<string | null | false | undefined>) => parts.filter(Boolean).join(" · ");
 
-/** Verification level → badge style. Self-reported is deliberately neutral. */
-const BADGE: Record<VerificationLevel, string> = {
-  PLATFORM: "badge-solid",
-  ORGANIZATION: "badge-sky",
-  IMPORTED: "badge-accent",
-  SELF_REPORTED: "badge-dashed",
+/** Verification level → status. Verified sources read as approved; imported and self-reported stay pending, never settled. */
+const VERIFIED: Record<VerificationLevel, StatusState> = {
+  PLATFORM: "approved",
+  ORGANIZATION: "approved",
+  IMPORTED: "pending",
+  SELF_REPORTED: "pending",
 };
 
 const fmtDate = (d: Date) => d.toISOString().slice(0, 10);
@@ -131,7 +133,7 @@ export function ExperienceList({
                 ) : null}
               </div>
               <div className="flex shrink-0 items-center gap-2">
-                <span className={BADGE[r.verificationLevel]}>{VERIFICATION_LABELS[r.verificationLevel]}</span>
+                <StatusChip state={VERIFIED[r.verificationLevel]} label={VERIFICATION_LABELS[r.verificationLevel]} />
                 {removeAction && workerCanModify(r.verificationLevel) && (
                   <form action={removeAction}>
                     <input type="hidden" name="id" value={r.id} />

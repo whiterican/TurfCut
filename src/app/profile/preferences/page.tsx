@@ -4,6 +4,7 @@ import { CONSENT_TEXT, loadLatestPreference } from "@/lib/political-fit-data";
 import { PreferencesFlow } from "@/components/PreferencesFlow";
 import { Masthead } from "@/components/Masthead";
 import { ChevronLeft } from "lucide-react";
+import { ReadingPage } from "@/components/layout/Page";
 
 const dateText = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
 
@@ -12,7 +13,7 @@ export default async function PreferencesPage() {
   const latest = await loadLatestPreference(workerId);
 
   return (
-    <main className="page max-w-2xl space-y-8">
+    <ReadingPage gap={8}>
       <div className="space-y-3">
         <Masthead title="Political-fit preferences">
           <Link transitionTypes={["nav-back"]} href="/profile" className="btn-ghost"><ChevronLeft aria-hidden className="size-4 shrink-0" />Profile</Link>
@@ -51,6 +52,6 @@ export default async function PreferencesPage() {
         } : null}
         consentText={CONSENT_TEXT}
       />
-    </main>
+    </ReadingPage>
   );
 }

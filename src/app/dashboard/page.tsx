@@ -1,14 +1,15 @@
+import { StatusChip } from "@/components/StatusBadge";
 import { getAuthUser, requireAuth } from "@/lib/auth";
 import { pendingInvitesFor } from "@/lib/members-data";
 import { ActionButton } from "@/components/ActionButton";
 import { acceptOrgInvite } from "./actions";
 import { db } from "@/lib/db";
-import { shiftPriority } from "@/lib/priority";
 import { ACCEPTED_STATUSES } from "@/lib/engagements";
 import { openJobsEndAfter, payShort, payText } from "@/lib/jobs";
 import { loadFeed } from "@/lib/jobs-data";
 import { JobRow } from "@/components/JobRow";
 import { LocalTime } from "@/components/LocalTime";
+import { RelativeDay } from "@/components/RelativeDay";
 import { TodayDate } from "@/components/TodayDate";
 import { ShiftDayList } from "@/components/ShiftDayList";
 import Link from "next/link";
@@ -16,7 +17,9 @@ import { redirect } from "next/navigation";
 import { workerPayTotals } from "@/lib/pay-data";
 import { OfflineBrief } from "@/components/OfflineBrief";
 import { briefPaths } from "@/lib/offline-brief-data";
-import { money } from "@/lib/pay";
+import { approvedPhrase, money, payoutCta, payoutReadiness } from "@/lib/pay";
+import { stripeProvider } from "@/lib/payout-provider";
+import { PayoutSetupCta } from "@/components/PayoutSetupCta";
 import { cookies } from "next/headers";
 import { loadSharing } from "@/lib/sharing-data";
 import { noteDismissedBy, RELATIONSHIP_PHRASE, SHARING_NOTE_COOKIE } from "@/lib/sharing";
@@ -35,7 +38,12 @@ import { landingFor } from "@/lib/nav";
 import { roleName } from "@/lib/org-roles";
 import type { Role } from "@/lib/auth";
 import { Masthead } from "@/components/Masthead";
-import { ChevronRight } from "lucide-react";
+import { ListPage } from "@/components/layout/Page";
+import { ChevronRight, Clock, MapPin } from "lucide-react";
+import { Elapsed } from "@/components/Elapsed";
+import { NotificationsBell } from "@/components/NotificationsBell";
+import { cache } from "react";
+import { laterShifts, pickHero } from "@/lib/home-hero";
 
 const ROLE_LABELS: Record<string, string> = {
   WORKER: "Field worker",
@@ -46,9 +54,6 @@ const ROLE_LABELS: Record<string, string> = {
   FINANCE: "Finance",
   PUBLISHER: "Publisher",
 };
-
-const day = (d: Date | null) =>
-  d ? d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" }) : "—";
 
 function NavCard({ href, title, body }: { href: string; title: string; body: string }) {
   return (
@@ -63,27 +68,47 @@ function NavCard({ href, title, body }: { href: string; title: string; body: str
 }
 
 /**
- * The next few real shifts after the one in the hero (Today, #78): the same
- * query as the hero, skipping it, up to three. Not started yet, so each is
- * "Scheduled"; cancelled shifts aren't listed. Grouped by the viewer's day.
+ * The worker's shifts as Home needs them, read once per request and shared by
+ * the hero and "Coming up" (lib/home-hero decides which shows where): the
+ * shift under way, the latest one still checked in after its end, and the
+ * next four scheduled ones.
  */
-async function LaterShifts({ workerId }: { workerId: string }) {
+const homeShifts = cache(async (workerId: string) => {
   const now = new Date();
-  // The hero shows the first upcoming shift (or the live one, which has a check-in and isn't in this list).
-  const [later, hero] = await Promise.all([
+  const mine = { engagement: { workerId } };
+  const job = { engagement: { select: { job: { select: { title: true, type: true, compensationMethod: true, payRateCents: true, org: { select: { name: true } } } } } } };
+  const [live, overdue, scheduled] = await Promise.all([
+    db().shift.findFirst({
+      where: { ...mine, status: { not: "CANCELLED" }, checkInAt: { not: null }, checkOutAt: null, endsAt: { gte: now } },
+      select: { id: true, startsAt: true, endsAt: true, stagingLocation: true, status: true, checkInAt: true, checkOutAt: true, ...job },
+      orderBy: [{ checkInAt: "desc" }, { id: "asc" }],
+    }),
+    // Still checked in after its end: the server has no check-out, so it is neither
+    // live nor "next" (C2: the words say what the server has; a check-out queued on
+    // the phone shows on the shift page).
+    db().shift.findFirst({
+      where: { ...mine, status: "ACTIVE", checkInAt: { not: null }, checkOutAt: null, endsAt: { lt: now } },
+      select: { id: true, endsAt: true, engagement: { select: { job: { select: { title: true } } } } },
+      orderBy: [{ endsAt: "desc" }, { id: "asc" }],
+    }),
     db().shift.findMany({
-      where: { engagement: { workerId }, status: { not: "CANCELLED" }, endsAt: { gte: now }, checkOutAt: null, checkInAt: null },
-      select: { id: true, startsAt: true, endsAt: true, stagingLocation: true, engagement: { select: { job: { select: { title: true, org: { select: { name: true } } } } } } },
+      where: { ...mine, status: { not: "CANCELLED" }, endsAt: { gte: now }, checkOutAt: null, checkInAt: null },
+      select: { id: true, startsAt: true, endsAt: true, stagingLocation: true, status: true, checkInAt: true, checkOutAt: true, ...job },
       orderBy: [{ startsAt: "asc" }, { id: "asc" }],
       take: 4,
     }),
-    db().shift.findFirst({
-      where: { engagement: { workerId }, status: { not: "CANCELLED" }, endsAt: { gte: now }, checkOutAt: null },
-      select: { id: true },
-      orderBy: [{ startsAt: "asc" }, { id: "asc" }],
-    }),
   ]);
-  const rest = later.filter((s) => s.id !== hero?.id).slice(0, 3);
+  return { live, overdue, scheduled, hero: pickHero(live, overdue, scheduled[0] ?? null) };
+});
+
+/**
+ * The next few real shifts after the one in the hero (Today, #78), up to
+ * three. Not started yet, so each is "Scheduled"; cancelled shifts aren't
+ * listed. Grouped by the viewer's day.
+ */
+async function LaterShifts({ workerId }: { workerId: string }) {
+  const { scheduled, hero } = await homeShifts(workerId);
+  const rest = laterShifts(scheduled, hero);
   if (rest.length === 0) return null;
   return (
     <section className="section">
@@ -102,63 +127,109 @@ async function LaterShifts({ workerId }: { workerId: string }) {
           title: s.engagement.job.title,
           org: s.engagement.job.org.name,
           staging: s.stagingLocation,
-          status: { label: "Scheduled", badge: "badge-sky" },
+          status: { label: "Scheduled", state: "pending" },
         }))}
       />
     </section>
   );
 }
 
+/** A shift still checked in after its end: the words and the way to fix it (#111: never "on task" once the shift has ended). */
+function OverdueShift({ shift, compact }: { shift: { id: string; endsAt: Date; engagement: { job: { title: string } } }; compact?: boolean }) {
+  const how = "Open the shift to check out, or ask your organizer to correct the end time. Pay counts verified time only.";
+  return (
+    <section className="work-card space-y-3" aria-label="Shift without a check-out">
+      <div className="flex items-start justify-between gap-3">
+        <p className="t-section text-fg">{shift.engagement.job.title}</p>
+        <StatusChip state="overdue" label="No check-out received" />
+      </div>
+      <p className="text-sm text-muted">
+        Was due to end <LocalTime iso={shift.endsAt.toISOString()} />. {how}
+      </p>
+      <Link transitionTypes={["nav-forward"]} href={`/shifts/${shift.id}`} className={compact ? "btn-secondary w-full" : "btn-primary btn-lg w-full"}>Open shift</Link>
+    </section>
+  );
+}
+
+/**
+ * The day's work (#111, screen 5), on a white surface with one Forest action:
+ * a live shift (its facts from the real check-in, "Open field day"), the next
+ * shift ("View shift details"), a shift without a check-out ("Open shift"), or
+ * nothing scheduled ("Find Jobs"). pickHero decides which; nothing here
+ * invents stops, addresses or counts.
+ */
 async function WorkerHero({ workerId }: { workerId: string }) {
-  const shift = await db().shift.findFirst({
-    where: { engagement: { workerId }, status: { not: "CANCELLED" }, endsAt: { gte: new Date() }, checkOutAt: null },
-    include: { engagement: { select: { job: { select: { title: true, type: true, compensationMethod: true, payRateCents: true } } } } },
-    orderBy: [{ startsAt: "asc" }, { id: "asc" }],
-  });
+  const now = new Date();
+  const { live, overdue, scheduled, hero } = await homeShifts(workerId);
+  if (hero.kind === "overdue" && overdue) return <OverdueShift shift={overdue} />;
+  const shift = hero.kind === "live" ? live : hero.kind === "next" ? scheduled[0] : null;
   if (shift) {
-    const live = shift.checkInAt !== null;
+    const isLive = hero.kind === "live";
+    const job = shift.engagement.job;
     return (
-      <Link transitionTypes={["nav-forward"]} href={`/shifts/${shift.id}`} className={`hero-card block space-y-4 ${live ? "hero-card-accent" : ""}`} data-priority={shiftPriority(shift)}>
-        <p className="eyebrow">
-          {live ? "Live shift" : "Next shift"} · <LocalTime iso={shift.startsAt.toISOString()} mode="date" />
-        </p>
-        <p className="hero-title">{shift.engagement.job.title}</p>
-        {/* The card stays eggplant; the forest-ink chip is what says it's live. */}
-        {live && <span className="badge-live">On shift</span>}
-        <p className="flex flex-wrap gap-x-8 gap-y-2">
-          <span>
-            <span className="block text-lg font-bold"><LocalTime iso={shift.startsAt.toISOString()} mode="time" /></span>
-            <span className="hero-muted text-sm">{live ? "Started" : "Check-in"}</span>
-          </span>
-          <span>
-            <span className="block text-lg font-bold">{payShort(shift.engagement.job.compensationMethod, shift.engagement.job.payRateCents, shift.engagement.job.type)}</span>
-            <span className="hero-muted text-sm">gross</span>
-          </span>
-        </p>
-        {shift.stagingLocation && <p className="hero-muted text-sm">Staging · {shift.stagingLocation}</p>}
-      </Link>
+      <>
+        {isLive && overdue && <OverdueShift shift={overdue} compact />}
+        <section className="work-card space-y-4" aria-label={isLive ? "Active shift" : "Next shift"}>
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="t-headline text-fg">{isLive ? "Active shift" : "Next shift"}</h2>
+            {isLive ? (
+              <StatusChip state="live" label="On shift" />
+            ) : (
+              <p className="text-sm font-medium text-muted">
+                <RelativeDay iso={shift.startsAt.toISOString()} pastPrefix="started" /><LocalTime iso={shift.startsAt.toISOString()} mode="date" />
+              </p>
+            )}
+          </div>
+          <div className="space-y-1">
+            <p className="t-section text-fg">{job.title}</p>
+            <p className="flex items-center gap-2 text-sm text-muted"><Clock aria-hidden className="size-4 shrink-0" /><LocalTime iso={shift.startsAt.toISOString()} mode="time" /> – <LocalTime iso={shift.endsAt.toISOString()} mode="time" /></p>
+            {shift.stagingLocation && <p className="flex items-center gap-2 text-sm text-muted"><MapPin aria-hidden className="size-4 shrink-0" />{shift.stagingLocation}</p>}
+          </div>
+          <dl className="work-facts">
+            {isLive && shift.checkInAt ? (
+              <div><dt className="work-fact-label order-2">Elapsed since check-in</dt><dd className="work-fact-figure"><Elapsed sinceIso={shift.checkInAt.toISOString()} /></dd></div>
+            ) : (
+              <div><dt className="work-fact-label order-2">Starts</dt><dd className="work-fact-figure"><LocalTime iso={shift.startsAt.toISOString()} mode="time" /></dd></div>
+            )}
+            <div><dt className="work-fact-label order-2">{isLive ? "Checked in" : "Ends"}</dt><dd className="work-fact-figure"><LocalTime iso={(isLive && shift.checkInAt ? shift.checkInAt : shift.endsAt).toISOString()} mode="time" /></dd></div>
+            <div><dt className="work-fact-label order-2">Gross rate</dt><dd className="work-fact-figure">{payShort(job.compensationMethod, job.payRateCents, job.type)}</dd></div>
+          </dl>
+          <Link transitionTypes={["nav-forward"]} href={`/shifts/${shift.id}`} className="btn-primary btn-lg w-full">{isLive ? "Open field day" : "View shift details"}</Link>
+          <p className="text-xs text-subtle">{job.org.name}{isLive ? " · elapsed time is since your check-in, not verified pay time" : ""}</p>
+        </section>
+      </>
     );
   }
   const next = await db().engagement.findFirst({
-    where: { workerId, status: { in: ACCEPTED_STATUSES }, job: { endsAt: { gt: openJobsEndAfter(new Date()) } } },
+    where: { workerId, status: { in: ACCEPTED_STATUSES }, job: { endsAt: { gt: openJobsEndAfter(now) } } },
     include: { job: { select: { id: true, title: true, startsAt: true, compensationMethod: true, payRateCents: true } } },
     orderBy: { job: { startsAt: "asc" } },
   });
   if (!next) {
     return (
-      <Link transitionTypes={["nav-forward"]} href="/jobs" className="hero-card hero-card-quiet block space-y-3">
-        <p className="eyebrow">Nothing scheduled</p>
-        <p className="hero-title">Find your next field job</p>
-        <p className="hero-muted text-sm">Open jobs show the gross rate, credentials and who to call before you apply.</p>
-      </Link>
+      <section className="work-card space-y-3" aria-label="Nothing scheduled">
+        <h2 className="t-headline text-fg">Nothing scheduled</h2>
+        <p className="text-sm text-muted">Open jobs show the gross rate, credentials and who to call before you apply.</p>
+        <Link transitionTypes={["nav-forward"]} href="/jobs" className="btn-primary btn-lg w-full">Find Jobs</Link>
+      </section>
     );
   }
   return (
-    <Link transitionTypes={["nav-forward"]} href={`/jobs/${next.job.id}`} className="hero-card block space-y-4">
-      <p className="eyebrow">Your next job · starts {day(next.job.startsAt)}</p>
-      <p className="hero-title">{next.job.title}</p>
-      <p className="text-sm font-semibold">{payText(next.job.compensationMethod, next.job.payRateCents)}</p>
-    </Link>
+    <section className="work-card space-y-3" aria-label="Your next job">
+      {/* Relative status, never a bare date: "starts tomorrow", "started 2 days ago" (the date follows). */}
+      <p className="text-sm font-medium text-muted">
+        {!next.job.startsAt ? (
+          "Your next job"
+        ) : next.job.startsAt <= now ? (
+          <>Your job · started <RelativeDay iso={next.job.startsAt.toISOString()} /><LocalTime iso={next.job.startsAt.toISOString()} mode="date" /></>
+        ) : (
+          <>Your next job · starts <RelativeDay iso={next.job.startsAt.toISOString()} /><LocalTime iso={next.job.startsAt.toISOString()} mode="date" /></>
+        )}
+      </p>
+      <h2 className="t-headline text-fg">{next.job.title}</h2>
+      <p className="text-sm text-muted">{payText(next.job.compensationMethod, next.job.payRateCents)} · shifts are scheduled by the organization and appear here.</p>
+      <Link transitionTypes={["nav-forward"]} href={`/jobs/${next.job.id}`} className="btn-secondary w-full">View job</Link>
+    </section>
   );
 }
 
@@ -170,9 +241,9 @@ async function OpenSeats({ workerId }: { workerId: string }) {
     <Link transitionTypes={["nav-forward"]} href="/shifts#open-shifts" className="card flex items-center justify-between gap-3 transition hover:border-[var(--border-strong)]">
       <span className="min-w-0">
         <span className="block font-bold text-fg">{n === 1 ? "1 open shift" : `${n} open shifts`} on your jobs</span>
-        <span className="text-muted-sm block">First come, first served. Take a seat under Shifts.</span>
+        <span className="text-muted-sm block">First come, first served. Take a seat under Jobs › My schedule.</span>
       </span>
-      <span className="badge-accent">Open</span>
+      <span className="tag-accent">Open</span>
     </Link>
   );
 }
@@ -274,15 +345,33 @@ async function WorkerBrief({ workerId, userId }: { workerId: string; userId: str
 
 /** The worker's pay at a glance (their own totals only). */
 async function EarningsCard({ workerId }: { workerId: string }) {
-  const [t, me] = await Promise.all([workerPayTotals(workerId), db().worker.findUnique({ where: { id: workerId }, select: { payoutsEnabled: true } })]);
+  const [t, me] = await Promise.all([workerPayTotals(workerId), db().worker.findUnique({ where: { id: workerId }, select: { payoutsEnabled: true, stripeAccountId: true } })]);
   // Approved money is "on the way" only once this worker can receive it (P0, same words as Earnings).
+  const readiness = payoutReadiness(stripeProvider().configured(), me?.payoutsEnabled);
   const parts = [
     `${money(t.paid)} paid`,
-    t.onTheWay ? `${money(t.onTheWay)} ${me?.payoutsEnabled ? "on the way" : "approved, payout setup needed"}` : null,
+    t.onTheWay ? `${money(t.onTheWay)} ${approvedPhrase(readiness)}` : null,
     t.awaiting ? `${money(t.awaiting)} awaiting approval` : null,
     t.stopped ? `${money(t.stopped)} on hold or disputed` : null,
   ].filter(Boolean);
   const any = t.paid || t.onTheWay || t.awaiting || t.stopped;
+  // Approved pay blocked on payout setup: the card says so and carries the way to fix it (P0: "Set up payout"
+  // wherever payout is blocked). A button can't sit inside the NavCard link, so the card opens up: title link, words, action.
+  if (t.onTheWay > 0 && payoutCta(readiness, !!me?.stripeAccountId)) {
+    return (
+      <section className="card space-y-3">
+        {/* Title and words stay one link (the same tap area as NavCard); only the action sits outside it. */}
+        <Link href="/earnings" className="group block">
+          <p className="flex items-center justify-between font-semibold text-fg">
+            Earnings
+            <ChevronRight aria-hidden className="size-4 shrink-0 text-subtle transition-transform group-hover:translate-x-0.5" />
+          </p>
+          <p className="text-muted-sm mt-1">{parts.join(" · ")}</p>
+        </Link>
+        <PayoutSetupCta readiness={readiness} stripeAccountId={me?.stripeAccountId} />
+      </section>
+    );
+  }
   return <NavCard href="/earnings" title="Earnings" body={any ? parts.join(" · ") : "Your pay shows up here once a supervisor approves a shift."} />;
 }
 
@@ -389,35 +478,49 @@ export default async function DashboardPage() {
 
   const isWorker = session.role === "WORKER" && !!session.workerId;
 
+  // Home is a ListPage (redesign §5): the day's work in the main column, and beside it from 1024
+  // (below it on a phone) the pay summary, the worker's own choices and their campaigns.
+  const head = isWorker ? (
+    // Today is the day, not a greeting: the date under the title, no name or email (D1b).
+    <Masthead title="Today" meta={<TodayDate />}><NotificationsBell /></Masthead>
+  ) : (
+    <Masthead title="Your account" meta={[roleName(session, ROLE_LABELS), session.email].filter(Boolean).join(" · ")} />
+  );
+  if (!isWorker) {
+    return (
+      <ListPage head={head}>
+        {session.role !== "WORKER" ? (
+          <Detached />
+        ) : (
+          <div className="empty-state">
+            <p className="empty-state-title">Nothing here yet</p>
+            <p className="empty-state-body">This login isn&apos;t linked to a worker profile or an organization yet.</p>
+          </div>
+        )}
+      </ListPage>
+    );
+  }
+  const workerId = session.workerId!;
   return (
-    <main className="page">
-      {/* Today is the day, not a greeting: the date under the title, no name or email (D1b). */}
-      {isWorker ? (
-        <Masthead title="Today" meta={<TodayDate />} />
-      ) : (
-        <Masthead title="Your account" meta={[roleName(session, ROLE_LABELS), session.email].filter(Boolean).join(" · ")} />
-      )}
-
-      {isWorker && <WorkerBrief workerId={session.workerId!} userId={session.userId} />}
-      {isWorker && <WorkerHero workerId={session.workerId!} />}
-      {isWorker && <LaterShifts workerId={session.workerId!} />}
-      {isWorker && <OpenSeats workerId={session.workerId!} />}
-      {isWorker && <FitReconfirm workerId={session.workerId!} />}
-      {isWorker && <CredentialReminder workerId={session.workerId!} />}
-      {isWorker && <SharingNote workerId={session.workerId!} />}
-      {isWorker && <CampaignsOn workerId={session.workerId!} />}
-
-      {isWorker && <EarningsCard workerId={session.workerId!} />}
-      {isWorker && <OpenJobs workerId={session.workerId!} />}
-
-      {isWorker ? null : session.role !== "WORKER" ? (
-        <Detached />
-      ) : (
-        <div className="empty-state">
-          <p className="empty-state-title">Nothing here yet</p>
-          <p className="empty-state-body">This login isn&apos;t linked to a worker profile or an organization yet.</p>
-        </div>
-      )}
-    </main>
+    <ListPage
+      head={head}
+      panelLabel="Your summary"
+      aside={
+        <>
+          <EarningsCard workerId={workerId} />
+          <SharingNote workerId={workerId} />
+          <CampaignsOn workerId={workerId} />
+        </>
+      }
+    >
+      <WorkerBrief workerId={workerId} userId={session.userId} />
+      <WorkerHero workerId={workerId} />
+      {/* Consent that lapsed is time-sensitive: it stays in the main column, not after the jobs on a phone. */}
+      <FitReconfirm workerId={workerId} />
+      <CredentialReminder workerId={workerId} />
+      <LaterShifts workerId={workerId} />
+      <OpenSeats workerId={workerId} />
+      <OpenJobs workerId={workerId} />
+    </ListPage>
   );
 }

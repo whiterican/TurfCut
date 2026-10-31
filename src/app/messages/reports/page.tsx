@@ -6,6 +6,7 @@ import { ReportActions } from "@/components/chat/ReportActions";
 import { LocalTime } from "@/components/LocalTime";
 import { canUse } from "@/lib/access";
 import { ChevronLeft } from "lucide-react";
+import { ReadingPage } from "@/components/layout/Page";
 
 export const metadata = { title: "Message reports · Turfcut" };
 
@@ -16,7 +17,7 @@ export default async function ReportsPage() {
   const reports = await listOpenReports({ userId: session.userId, role: session.role, grants: session.grants, orgId: session.orgId });
 
   return (
-    <main className="page max-w-2xl">
+    <ReadingPage>
       <header className="space-y-1">
         <Link transitionTypes={["nav-back"]} href="/messages" className="link inline-flex items-center gap-1 text-sm"><ChevronLeft aria-hidden className="size-4 shrink-0" />Messages</Link>
         <h1 className="page-title">Message reports</h1>
@@ -50,6 +51,6 @@ export default async function ReportsPage() {
           ))}
         </ul>
       )}
-    </main>
+    </ReadingPage>
   );
 }

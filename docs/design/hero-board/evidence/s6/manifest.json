@@ -1,0 +1,1242 @@
+[
+  {
+    "screen": "pay",
+    "route": "/pay",
+    "state": "populated",
+    "role": "owner",
+    "sourceCommit": "d7f140b",
+    "implementationFile": "docs/design/hero-board/evidence/s6/pay-populated-1440-light.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900,
+      "deviceScaleFactor": 2
+    },
+    "theme": "light",
+    "timezone": "America/Denver",
+    "clock": "frozen at 2026-10-30T19:00:00Z",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [
+      {
+        "label": "Desk",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Hiring",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Field",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Messages",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "More",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      }
+    ],
+    "bar": {
+      "w": 0,
+      "h": 0,
+      "left": 0,
+      "bottom": 900
+    },
+    "bg": "#faf9f4",
+    "shell": "#1c0f2e",
+    "title": "Turfcut",
+    "h1": "Pay",
+    "status": "captured"
+  },
+  {
+    "screen": "pay",
+    "route": "/pay",
+    "state": "populated",
+    "role": "owner",
+    "sourceCommit": "d7f140b",
+    "implementationFile": "docs/design/hero-board/evidence/s6/pay-populated-1440-dark.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900,
+      "deviceScaleFactor": 2
+    },
+    "theme": "dark",
+    "timezone": "America/Denver",
+    "clock": "frozen at 2026-10-30T19:00:00Z",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [
+      {
+        "label": "Desk",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Hiring",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Field",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Messages",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "More",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      }
+    ],
+    "bar": {
+      "w": 0,
+      "h": 0,
+      "left": 0,
+      "bottom": 900
+    },
+    "bg": "#140a22",
+    "shell": "#1c0f2e",
+    "title": "Turfcut",
+    "h1": "Pay",
+    "status": "captured"
+  },
+  {
+    "screen": "statements",
+    "route": "/pay/statements",
+    "state": "populated",
+    "role": "owner",
+    "sourceCommit": "d7f140b",
+    "implementationFile": "docs/design/hero-board/evidence/s6/statements-populated-1440-light.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900,
+      "deviceScaleFactor": 2
+    },
+    "theme": "light",
+    "timezone": "America/Denver",
+    "clock": "frozen at 2026-10-30T19:00:00Z",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [
+      {
+        "label": "Desk",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Hiring",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Field",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Messages",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "More",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      }
+    ],
+    "bar": {
+      "w": 0,
+      "h": 0,
+      "left": 0,
+      "bottom": 900
+    },
+    "bg": "#faf9f4",
+    "shell": "#1c0f2e",
+    "title": "Statements \u00b7 Turfcut",
+    "h1": "Statements",
+    "status": "captured"
+  },
+  {
+    "screen": "statements",
+    "route": "/pay/statements",
+    "state": "populated",
+    "role": "owner",
+    "sourceCommit": "d7f140b",
+    "implementationFile": "docs/design/hero-board/evidence/s6/statements-populated-1440-dark.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900,
+      "deviceScaleFactor": 2
+    },
+    "theme": "dark",
+    "timezone": "America/Denver",
+    "clock": "frozen at 2026-10-30T19:00:00Z",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [
+      {
+        "label": "Desk",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Hiring",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Field",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Messages",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "More",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      }
+    ],
+    "bar": {
+      "w": 0,
+      "h": 0,
+      "left": 0,
+      "bottom": 900
+    },
+    "bg": "#140a22",
+    "shell": "#1c0f2e",
+    "title": "Statements \u00b7 Turfcut",
+    "h1": "Statements",
+    "status": "captured"
+  },
+  {
+    "screen": "credentials",
+    "route": "/org/credentials",
+    "state": "populated",
+    "role": "owner",
+    "sourceCommit": "d7f140b",
+    "implementationFile": "docs/design/hero-board/evidence/s6/credentials-populated-1440-light.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900,
+      "deviceScaleFactor": 2
+    },
+    "theme": "light",
+    "timezone": "America/Denver",
+    "clock": "frozen at 2026-10-30T19:00:00Z",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [
+      {
+        "label": "Desk",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Hiring",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Field",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Messages",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "More",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      }
+    ],
+    "bar": {
+      "w": 0,
+      "h": 0,
+      "left": 0,
+      "bottom": 900
+    },
+    "bg": "#faf9f4",
+    "shell": "#1c0f2e",
+    "title": "Turfcut",
+    "h1": "Credentials",
+    "status": "captured"
+  },
+  {
+    "screen": "credentials",
+    "route": "/org/credentials",
+    "state": "populated",
+    "role": "owner",
+    "sourceCommit": "d7f140b",
+    "implementationFile": "docs/design/hero-board/evidence/s6/credentials-populated-1440-dark.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900,
+      "deviceScaleFactor": 2
+    },
+    "theme": "dark",
+    "timezone": "America/Denver",
+    "clock": "frozen at 2026-10-30T19:00:00Z",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [
+      {
+        "label": "Desk",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Hiring",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Field",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Messages",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "More",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      }
+    ],
+    "bar": {
+      "w": 0,
+      "h": 0,
+      "left": 0,
+      "bottom": 900
+    },
+    "bg": "#140a22",
+    "shell": "#1c0f2e",
+    "title": "Turfcut",
+    "h1": "Credentials",
+    "status": "captured"
+  },
+  {
+    "screen": "orgsettings",
+    "route": "/org/settings",
+    "state": "populated",
+    "role": "owner",
+    "sourceCommit": "d7f140b",
+    "implementationFile": "docs/design/hero-board/evidence/s6/orgsettings-populated-1440-light.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900,
+      "deviceScaleFactor": 2
+    },
+    "theme": "light",
+    "timezone": "America/Denver",
+    "clock": "frozen at 2026-10-30T19:00:00Z",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [
+      {
+        "label": "Desk",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Hiring",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Field",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Messages",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "More",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      }
+    ],
+    "bar": {
+      "w": 0,
+      "h": 0,
+      "left": 0,
+      "bottom": 900
+    },
+    "bg": "#faf9f4",
+    "shell": "#1c0f2e",
+    "title": "Turfcut",
+    "h1": "Organization settings",
+    "status": "captured"
+  },
+  {
+    "screen": "orgsettings",
+    "route": "/org/settings",
+    "state": "populated",
+    "role": "owner",
+    "sourceCommit": "d7f140b",
+    "implementationFile": "docs/design/hero-board/evidence/s6/orgsettings-populated-1440-dark.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900,
+      "deviceScaleFactor": 2
+    },
+    "theme": "dark",
+    "timezone": "America/Denver",
+    "clock": "frozen at 2026-10-30T19:00:00Z",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [
+      {
+        "label": "Desk",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Hiring",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Field",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Messages",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "More",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      }
+    ],
+    "bar": {
+      "w": 0,
+      "h": 0,
+      "left": 0,
+      "bottom": 900
+    },
+    "bg": "#140a22",
+    "shell": "#1c0f2e",
+    "title": "Turfcut",
+    "h1": "Organization settings",
+    "status": "captured"
+  },
+  {
+    "screen": "members",
+    "route": "/org/settings/members",
+    "state": "populated",
+    "role": "owner",
+    "sourceCommit": "d7f140b",
+    "implementationFile": "docs/design/hero-board/evidence/s6/members-populated-1440-light.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900,
+      "deviceScaleFactor": 2
+    },
+    "theme": "light",
+    "timezone": "America/Denver",
+    "clock": "frozen at 2026-10-30T19:00:00Z",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [
+      {
+        "label": "Desk",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Hiring",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Field",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Messages",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "More",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      }
+    ],
+    "bar": {
+      "w": 0,
+      "h": 0,
+      "left": 0,
+      "bottom": 900
+    },
+    "bg": "#faf9f4",
+    "shell": "#1c0f2e",
+    "title": "Turfcut",
+    "h1": "Members",
+    "status": "captured"
+  },
+  {
+    "screen": "members",
+    "route": "/org/settings/members",
+    "state": "populated",
+    "role": "owner",
+    "sourceCommit": "d7f140b",
+    "implementationFile": "docs/design/hero-board/evidence/s6/members-populated-1440-dark.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900,
+      "deviceScaleFactor": 2
+    },
+    "theme": "dark",
+    "timezone": "America/Denver",
+    "clock": "frozen at 2026-10-30T19:00:00Z",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [
+      {
+        "label": "Desk",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Hiring",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Field",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Messages",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "More",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      }
+    ],
+    "bar": {
+      "w": 0,
+      "h": 0,
+      "left": 0,
+      "bottom": 900
+    },
+    "bg": "#140a22",
+    "shell": "#1c0f2e",
+    "title": "Turfcut",
+    "h1": "Members",
+    "status": "captured"
+  },
+  {
+    "screen": "campaigns",
+    "route": "/campaigns",
+    "state": "populated",
+    "role": "owner",
+    "sourceCommit": "d7f140b",
+    "implementationFile": "docs/design/hero-board/evidence/s6/campaigns-populated-1440-light.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900,
+      "deviceScaleFactor": 2
+    },
+    "theme": "light",
+    "timezone": "America/Denver",
+    "clock": "frozen at 2026-10-30T19:00:00Z",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [
+      {
+        "label": "Desk",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Hiring",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Field",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Messages",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "More",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      }
+    ],
+    "bar": {
+      "w": 0,
+      "h": 0,
+      "left": 0,
+      "bottom": 900
+    },
+    "bg": "#faf9f4",
+    "shell": "#1c0f2e",
+    "title": "Turfcut",
+    "h1": "Your campaigns",
+    "status": "captured"
+  },
+  {
+    "screen": "campaigns",
+    "route": "/campaigns",
+    "state": "populated",
+    "role": "owner",
+    "sourceCommit": "d7f140b",
+    "implementationFile": "docs/design/hero-board/evidence/s6/campaigns-populated-1440-dark.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900,
+      "deviceScaleFactor": 2
+    },
+    "theme": "dark",
+    "timezone": "America/Denver",
+    "clock": "frozen at 2026-10-30T19:00:00Z",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [
+      {
+        "label": "Desk",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Hiring",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Field",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Messages",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "More",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      }
+    ],
+    "bar": {
+      "w": 0,
+      "h": 0,
+      "left": 0,
+      "bottom": 900
+    },
+    "bg": "#140a22",
+    "shell": "#1c0f2e",
+    "title": "Turfcut",
+    "h1": "Your campaigns",
+    "status": "captured"
+  },
+  {
+    "screen": "review",
+    "route": "/field/review",
+    "state": "populated",
+    "role": "owner",
+    "sourceCommit": "d7f140b",
+    "implementationFile": "docs/design/hero-board/evidence/s6/review-populated-1440-light.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900,
+      "deviceScaleFactor": 2
+    },
+    "theme": "light",
+    "timezone": "America/Denver",
+    "clock": "frozen at 2026-10-30T19:00:00Z",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [
+      {
+        "label": "Desk",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Hiring",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Field",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Messages",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "More",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      }
+    ],
+    "bar": {
+      "w": 0,
+      "h": 0,
+      "left": 0,
+      "bottom": 900
+    },
+    "bg": "#faf9f4",
+    "shell": "#1c0f2e",
+    "title": "Turfcut",
+    "h1": "Review queue",
+    "status": "captured"
+  },
+  {
+    "screen": "review",
+    "route": "/field/review",
+    "state": "populated",
+    "role": "owner",
+    "sourceCommit": "d7f140b",
+    "implementationFile": "docs/design/hero-board/evidence/s6/review-populated-1440-dark.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900,
+      "deviceScaleFactor": 2
+    },
+    "theme": "dark",
+    "timezone": "America/Denver",
+    "clock": "frozen at 2026-10-30T19:00:00Z",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [
+      {
+        "label": "Desk",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Hiring",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Field",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Messages",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "More",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      }
+    ],
+    "bar": {
+      "w": 0,
+      "h": 0,
+      "left": 0,
+      "bottom": 900
+    },
+    "bg": "#140a22",
+    "shell": "#1c0f2e",
+    "title": "Turfcut",
+    "h1": "Review queue",
+    "status": "captured"
+  },
+  {
+    "screen": "pay",
+    "route": "/pay",
+    "state": "populated",
+    "role": "owner",
+    "sourceCommit": "d7f140b",
+    "implementationFile": "docs/design/hero-board/evidence/s6/pay-populated-390-light.png",
+    "viewport": {
+      "width": 390,
+      "height": 844,
+      "deviceScaleFactor": 2
+    },
+    "theme": "light",
+    "timezone": "America/Denver",
+    "clock": "frozen at 2026-10-30T19:00:00Z",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [
+      {
+        "label": "Desk",
+        "w": 68,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Hiring",
+        "w": 68,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Field",
+        "w": 68,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Messages",
+        "w": 87,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "More",
+        "w": 68,
+        "h": 52,
+        "clipped": false
+      }
+    ],
+    "bar": {
+      "w": 366,
+      "h": 60,
+      "left": 12,
+      "bottom": 10
+    },
+    "bg": "#faf9f4",
+    "shell": "#1c0f2e",
+    "title": "Turfcut",
+    "h1": "Pay",
+    "status": "captured"
+  },
+  {
+    "screen": "statements",
+    "route": "/pay/statements",
+    "state": "populated",
+    "role": "owner",
+    "sourceCommit": "d7f140b",
+    "implementationFile": "docs/design/hero-board/evidence/s6/statements-populated-390-light.png",
+    "viewport": {
+      "width": 390,
+      "height": 844,
+      "deviceScaleFactor": 2
+    },
+    "theme": "light",
+    "timezone": "America/Denver",
+    "clock": "frozen at 2026-10-30T19:00:00Z",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [
+      {
+        "label": "Desk",
+        "w": 68,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Hiring",
+        "w": 68,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Field",
+        "w": 68,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Messages",
+        "w": 87,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "More",
+        "w": 68,
+        "h": 52,
+        "clipped": false
+      }
+    ],
+    "bar": {
+      "w": 366,
+      "h": 60,
+      "left": 12,
+      "bottom": 10
+    },
+    "bg": "#faf9f4",
+    "shell": "#1c0f2e",
+    "title": "Statements \u00b7 Turfcut",
+    "h1": "Statements",
+    "status": "captured"
+  },
+  {
+    "screen": "credentials",
+    "route": "/org/credentials",
+    "state": "populated",
+    "role": "owner",
+    "sourceCommit": "d7f140b",
+    "implementationFile": "docs/design/hero-board/evidence/s6/credentials-populated-390-light.png",
+    "viewport": {
+      "width": 390,
+      "height": 844,
+      "deviceScaleFactor": 2
+    },
+    "theme": "light",
+    "timezone": "America/Denver",
+    "clock": "frozen at 2026-10-30T19:00:00Z",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [
+      {
+        "label": "Desk",
+        "w": 68,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Hiring",
+        "w": 68,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Field",
+        "w": 68,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Messages",
+        "w": 87,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "More",
+        "w": 68,
+        "h": 52,
+        "clipped": false
+      }
+    ],
+    "bar": {
+      "w": 366,
+      "h": 60,
+      "left": 12,
+      "bottom": 10
+    },
+    "bg": "#faf9f4",
+    "shell": "#1c0f2e",
+    "title": "Turfcut",
+    "h1": "Credentials",
+    "status": "captured"
+  },
+  {
+    "screen": "members",
+    "route": "/org/settings/members",
+    "state": "populated",
+    "role": "owner",
+    "sourceCommit": "d7f140b",
+    "implementationFile": "docs/design/hero-board/evidence/s6/members-populated-390-light.png",
+    "viewport": {
+      "width": 390,
+      "height": 844,
+      "deviceScaleFactor": 2
+    },
+    "theme": "light",
+    "timezone": "America/Denver",
+    "clock": "frozen at 2026-10-30T19:00:00Z",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [
+      {
+        "label": "Desk",
+        "w": 68,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Hiring",
+        "w": 68,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Field",
+        "w": 68,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Messages",
+        "w": 87,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "More",
+        "w": 68,
+        "h": 52,
+        "clipped": false
+      }
+    ],
+    "bar": {
+      "w": 366,
+      "h": 60,
+      "left": 12,
+      "bottom": 10
+    },
+    "bg": "#faf9f4",
+    "shell": "#1c0f2e",
+    "title": "Turfcut",
+    "h1": "Members",
+    "status": "captured"
+  },
+  {
+    "screen": "campaigns",
+    "route": "/campaigns",
+    "state": "populated",
+    "role": "owner",
+    "sourceCommit": "d7f140b",
+    "implementationFile": "docs/design/hero-board/evidence/s6/campaigns-populated-390-light.png",
+    "viewport": {
+      "width": 390,
+      "height": 844,
+      "deviceScaleFactor": 2
+    },
+    "theme": "light",
+    "timezone": "America/Denver",
+    "clock": "frozen at 2026-10-30T19:00:00Z",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [
+      {
+        "label": "Desk",
+        "w": 68,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Hiring",
+        "w": 68,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Field",
+        "w": 68,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Messages",
+        "w": 87,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "More",
+        "w": 68,
+        "h": 52,
+        "clipped": false
+      }
+    ],
+    "bar": {
+      "w": 366,
+      "h": 60,
+      "left": 12,
+      "bottom": 10
+    },
+    "bg": "#faf9f4",
+    "shell": "#1c0f2e",
+    "title": "Turfcut",
+    "h1": "Your campaigns",
+    "status": "captured"
+  },
+  {
+    "screen": "review",
+    "route": "/field/review",
+    "state": "populated",
+    "role": "owner",
+    "sourceCommit": "d7f140b",
+    "implementationFile": "docs/design/hero-board/evidence/s6/review-populated-390-light.png",
+    "viewport": {
+      "width": 390,
+      "height": 844,
+      "deviceScaleFactor": 2
+    },
+    "theme": "light",
+    "timezone": "America/Denver",
+    "clock": "frozen at 2026-10-30T19:00:00Z",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [
+      {
+        "label": "Desk",
+        "w": 68,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Hiring",
+        "w": 68,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Field",
+        "w": 68,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Messages",
+        "w": 87,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "More",
+        "w": 68,
+        "h": 52,
+        "clipped": false
+      }
+    ],
+    "bar": {
+      "w": 366,
+      "h": 60,
+      "left": 12,
+      "bottom": 10
+    },
+    "bg": "#faf9f4",
+    "shell": "#1c0f2e",
+    "title": "Turfcut",
+    "h1": "Review queue",
+    "status": "captured"
+  }
+]

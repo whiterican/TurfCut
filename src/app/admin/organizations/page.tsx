@@ -1,3 +1,4 @@
+import { StatusChip } from "@/components/StatusBadge";
 import Link from "next/link";
 import { requireStaff } from "@/lib/staff-session";
 import { approvalStanding, listOrganizationsForAdmin, type AdminOrgRow } from "@/lib/admin-orgs-data";
@@ -8,7 +9,7 @@ function GateChips({ gate }: { gate: AdminOrgRow["gate"] }) {
   return (
     <span className="flex flex-wrap gap-1.5">
       {items.map(([label, done]) => (
-        <span key={label} className={done ? "badge-solid" : "badge-neutral"}>{label}{done ? "" : " · not yet"}</span>
+        <StatusChip key={label} state={done ? "approved" : "pending"} label={`${label}${done ? "" : " · not yet"}`} />
       ))}
     </span>
   );
@@ -21,7 +22,7 @@ function OrgRow({ o }: { o: AdminOrgRow }) {
         <span className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
           <span className="flex flex-wrap items-center gap-2 font-semibold text-fg">
             {o.name}
-            {approvalStanding(o) === "withdrawn" && <span className="badge-coral">Approval withdrawn</span>}
+            {approvalStanding(o) === "withdrawn" && <StatusChip state="blocked" label="Approval withdrawn" />}
           </span>
           <span className="text-xs text-subtle">
             {o.approved && o.approvedAt ? (

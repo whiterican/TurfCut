@@ -13,6 +13,7 @@ import { campaignPreview } from "@/lib/campaign-api";
 import { listResources, loadFacts } from "@/lib/campaign-kit-data";
 import { ResourceList } from "@/components/campaign/ResourceList";
 import { ChevronLeft } from "lucide-react";
+import { RecordPage } from "@/components/layout/Page";
 
 type Props = { params: Promise<{ handle: string }>; searchParams: Promise<{ cursor?: string }> };
 
@@ -42,8 +43,8 @@ export default async function PublicCampaignPage({ params, searchParams }: Props
     : [{ following: false, notify: false }, null];
   const likedBy = (id: string) => (liked ? liked.has(id) : undefined);
   return (
-    <main className="page max-w-2xl space-y-6">
-      <Link transitionTypes={["nav-back"]} href="/c" className="btn-ghost btn-sm"><ChevronLeft aria-hidden className="size-4 shrink-0" />All campaigns</Link>
+    <RecordPage gap={6}>
+      <Link transitionTypes={["nav-back"]} href="/c" className="btn-ghost btn-sm self-start"><ChevronLeft aria-hidden className="size-4 shrink-0" />All campaigns</Link>
       <CampaignHeader displayName={c.displayName} handle={c.handle} bio={c.bio} avatarUrl={mediaUrl(c.avatarKey)} headerUrl={mediaUrl(c.headerKey)} verified={!!c.verifiedAt}>
         <span className="flex flex-wrap items-center justify-end gap-2">
           <ShareButton path={`/c/${c.handle}`} title={`${c.displayName} (@${c.handle})`} />
@@ -68,6 +69,6 @@ export default async function PublicCampaignPage({ params, searchParams }: Props
         {feed.posts.map((p) => <PostCard key={p.id} post={p} handle={c.handle} displayName={c.displayName} verified={!!c.verifiedAt} signedIn={signedIn} liked={likedBy(p.id)} />)}
         {feed.next && <Link href={`/c/${c.handle}?cursor=${feed.next}`} className="btn-secondary">Older posts</Link>}
       </section>
-    </main>
+    </RecordPage>
   );
 }

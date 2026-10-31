@@ -5,6 +5,7 @@ import { canCreateGroup } from "@/lib/chat";
 import { teamChatJobs } from "@/lib/chat-data";
 import { NewTeamChatForm } from "@/components/chat/NewTeamChatForm";
 import { ChevronLeft } from "lucide-react";
+import { ReadingPage } from "@/components/layout/Page";
 
 export const metadata = { title: "New team chat · Turfcut" };
 
@@ -15,7 +16,7 @@ export default async function NewTeamChatPage() {
   const jobs = await teamChatJobs(me);
 
   return (
-    <main className="page max-w-2xl">
+    <ReadingPage>
       <header className="space-y-1">
         <Link transitionTypes={["nav-back"]} href="/messages" className="link inline-flex items-center gap-1 text-sm"><ChevronLeft aria-hidden className="size-4 shrink-0" />Messages</Link>
         <h1 className="page-title">New team chat</h1>
@@ -33,6 +34,6 @@ export default async function NewTeamChatPage() {
       ) : (
         <NewTeamChatForm jobs={jobs.map((j) => ({ id: j.id, title: j.title, hired: j._count.engagements, status: j.status }))} />
       )}
-    </main>
+    </ReadingPage>
   );
 }

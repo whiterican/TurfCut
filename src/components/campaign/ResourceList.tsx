@@ -22,7 +22,7 @@ export function ResourceList({ resources, showAudience = false, headingLevel = "
               <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-2 px-4 py-3 font-semibold text-fg">
                 <span>{r.title}</span>
                 <span className="flex items-center gap-2 text-xs font-normal text-muted">
-                  {showAudience && r.audience === "WORKERS" && <span className="badge-neutral">Workers only</span>}
+                  {showAudience && r.audience === "WORKERS" && <span className="tag">Workers only</span>}
                   <span className="group-open:hidden">Open</span>
                   <span className="hidden group-open:inline">Close</span>
                 </span>

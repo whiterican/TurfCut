@@ -1,15 +1,20 @@
+import { StatusBadge } from "@/components/StatusBadge";
 import Link from "next/link";
 import { readLaunch } from "@/lib/job-launch";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { canUse } from "@/lib/access";
-import { ACCEPTED_STATUSES, inviteLapsed, offerLapsed, stageOf, workerStage, type EngagementStatus, type HiringSnapshot } from "@/lib/engagements";
+import { ACCEPTED_STATUSES, inviteLapsed, offerLapsed, type EngagementStatus, type HiringSnapshot } from "@/lib/engagements";
 import { loadPipelineFacts } from "@/lib/engagements-data";
 import { EngagementHistory } from "@/components/EngagementHistory";
 import { HiringActions, timeLeft } from "@/components/HiringActions";
-import { ENGAGEMENT_LABELS, JOB_STATUS_LABELS, jobPageBadge } from "@/lib/engagement-labels";
-import { UUID_RE, exclusionReasons, fitReasons, jobCardAnswers, jobCredentials, jobFreezeReasons, jurisdictionLabel, payText, publishBlockers, readDisclosure, readHiringModes } from "@/lib/jobs";
+import { engagementStatus, JOB_STATUS_LABELS } from "@/lib/engagement-labels";
+import { UUID_RE, exclusionReasons, fitReasons, jobCardAnswers, jobCredentials, jobDiscoveryLabel, jobFreezeReasons, jurisdictionLabel, payShort, payText, publishBlockers, readDisclosure, readHiringModes } from "@/lib/jobs";
+import { categoryStatusOf } from "@/lib/job-categories";
+import { CategoryStatusTag } from "@/components/CategoryStatusTag";
+import { JobPhoto } from "@/components/JobPhoto";
+import { mediaUrl } from "@/lib/campaign-media";
 import { loadScorecard } from "@/lib/scorecard-data";
 import { loadSharing } from "@/lib/sharing-data";
 import { PART_DETAILS, RELATIONSHIP_PHRASE, SHARE_PARTS, visibleParts, type SharePart, type SharingChoices } from "@/lib/sharing";
@@ -21,6 +26,7 @@ import { JobFacts } from "@/components/JobFacts";
 import { SnapshotView } from "@/components/SnapshotView";
 import { ActionButton } from "@/components/ActionButton";
 import { Sheet } from "@/components/Sheet";
+import { RecordPage } from "@/components/layout/Page";
 import { Masthead } from "@/components/Masthead";
 
 import { acceptInvitation, apply, claim, closeJobAction, declineAsWorker, leaveChangedJob, publish, withdrawApplication } from "../actions";
@@ -38,7 +44,9 @@ import { loadSharedAvailabilities } from "@/lib/availability-data";
 import { orgAvailabilityView, withoutPastDates } from "@/lib/availability";
 import { followState } from "@/lib/campaign-follow-data";
 import { CampaignCard } from "@/components/campaign/CampaignCard";
-import { ChevronLeft, CircleCheck, Info } from "lucide-react";
+import { BadgeCheck, Building2, CircleCheck, Info, MapPinned, Tag } from "lucide-react";
+import { JobHeadActions } from "@/components/JobHeadActions";
+import { loadMarks } from "@/lib/job-marks-data";
 
 /** A view-transition name and class as inline style (React knows the name; the class property isn't in its CSS types yet). */
 const shareStyle = (name: string) => ({ viewTransitionName: name, viewTransitionClass: "job-share" }) as React.CSSProperties;
@@ -73,7 +81,7 @@ async function ChangeList({ jobId, viewer, changes: loaded }: { jobId: string; v
 }
 
 const loadJob = (id: string) =>
-  db().job.findUnique({ where: { id }, include: { org: true, jurisdiction: true, campaignProfile: { select: { id: true, handle: true, displayName: true, avatarKey: true, publishedAt: true, verifiedAt: true } } } });
+  db().job.findUnique({ where: { id }, include: { org: true, jurisdiction: true, campaignProfile: { select: { id: true, handle: true, displayName: true, avatarKey: true, headerKey: true, publishedAt: true, verifiedAt: true } } } });
 type JobWithRefs = NonNullable<Awaited<ReturnType<typeof loadJob>>>;
 
 export default async function JobPage({ params }: { params: Promise<{ jobId: string }> }) {
@@ -95,48 +103,102 @@ export default async function JobPage({ params }: { params: Promise<{ jobId: str
   const modes = readHiringModes(job.hiringMethod);
   const status = JOB_STATUS_LABELS[job.status];
 
-  return (
-    <main className="page max-w-3xl">
-      {/* The record head (F03b): the title and pay are shared with the feed card that was tapped (P1.6), so they grow into place. */}
+  // The record head (#111, screen 3): the photograph with back, save and share over it; then the title with the
+  // gross pay beside it, the organization with Turfcut's approval mark, the facts, the chips. The title and pay are
+  // shared with the feed row that was tapped (P1.6), so they grow into place.
+  const photo = job.campaignProfile?.publishedAt && job.org.approved ? mediaUrl(job.campaignProfile.headerKey) : null;
+  const saved = isWorker ? (await loadMarks(session.workerId!)).saved.has(job.id) : false;
+  const head = (
+    <>
+    <div className="job-photo-head">
+      <JobPhoto type={job.type} src={photo} sizes="(min-width: 64rem) 720px, 100vw" priority />
+      <JobHeadActions jobId={job.id} back="/jobs" saved={saved} canSave={isWorker} title={job.title} />
+    </div>
+    {isOwnOrg ? (
       <Masthead
-        eyebrow={`${job.type === "PETITION" ? "Petition circulation" : "Door-to-door canvass"} · ${jurisdictionLabel(job.jurisdiction)}`}
+        className="job-head"
+        eyebrow={`${jobDiscoveryLabel(job.type, job.campaignDisclosure)} · ${jurisdictionLabel(job.jurisdiction)}`}
         title={job.title}
         titleClassName="w-fit"
         titleStyle={shareStyle(`job-${job.id}`)}
         meta={job.org.name}
-        // The same words as the feed card's pay (gross, exact basis), so the shared element grows rather than swaps its text.
-        figure={<span className="block w-fit" style={shareStyle(`pay-${job.id}`)}>{payText(job.compensationMethod, job.payRateCents)}</span>}
         chips={
           <>
-            {isOwnOrg && <span className={jobPageBadge(status.badge)}>{status.label}</span>}
+            <StatusBadge status={status} />
+            <CategoryStatusTag status={categoryStatusOf(job.type, job.campaignDisclosure)} />
           </>
         }
-        back={
-          <Link transitionTypes={["nav-back"]} href="/jobs" className="btn-ghost -ms-4"><ChevronLeft aria-hidden className="size-4 shrink-0" />Jobs</Link>
-        }
-      />
+      >
+        <span className="text-end">
+          <span className="masthead-figure block pt-0 text-2xl" style={shareStyle(`pay-${job.id}`)}>{payShort(job.compensationMethod, job.payRateCents, job.type)}</span>
+          <span className="block text-xs text-muted">gross · {payText(job.compensationMethod, job.payRateCents).replace(/ \(gross\)$/, "")}</span>
+        </span>
+      </Masthead>
+    ) : (
+      <header className="job-head-sheet">
+        <div className="flex items-start justify-between gap-4">
+          <h1 className="t-headline min-w-0 text-fg" style={shareStyle(`job-${job.id}`)}>{job.title}</h1>
+          {/* The gross pay, in the feed row's words so the shared element grows rather than swaps its text. */}
+          <span className="shrink-0 text-end">
+            <span className="t-headline block whitespace-nowrap text-fg tabular-nums" style={shareStyle(`pay-${job.id}`)}>{payShort(job.compensationMethod, job.payRateCents, job.type)}</span>
+            <span className="block whitespace-nowrap text-xs text-subtle">gross</span>
+          </span>
+        </div>
+        <p className="mt-2 flex items-center gap-2 text-sm text-muted">
+          <span className="org-mark" aria-hidden><Building2 className="size-3.5" /></span>
+          <span className="min-w-0 truncate">{job.org.name}</span>
+          {/* Turfcut's approval of the organization (not the campaign's verification: a different fact, on the campaign card). */}
+          {job.org.approved && (
+            <>
+              <BadgeCheck aria-hidden className="size-5 shrink-0 text-[var(--success)]" />
+              <span className="sr-only">Approved by Turfcut</span>
+            </>
+          )}
+        </p>
+        <div className="mt-4">
+          <JobFacts job={job} acceptedCount={acceptedCount} compact />
+        </div>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <span className="fact-chip"><Tag aria-hidden className="size-4" />{jobDiscoveryLabel(job.type, job.campaignDisclosure)}</span>
+          <span className="fact-chip"><MapPinned aria-hidden className="size-4" />{readLaunch(job.launch).mode === "SELF" ? "Self-launch" : "Staged"}</span>
+          <CategoryStatusTag status={categoryStatusOf(job.type, job.campaignDisclosure)} />
+        </div>
+      </header>
+    )}
+    </>
+  );
+  const fullCard = (
+    <section className="section">
+      <h2 className="section-title">Full job card</h2>
+      <JobCard job={{ ...job, orgName: job.org.name, jurisdictionRules: job.jurisdiction.rules }} />
+    </section>
+  );
 
-      {/* The facts a worker decides on, before anything else (D2): dates, place and how each day starts, spots,
-          what counts as payable, credentials and the rules. The full job card below keeps every detail. */}
-      <JobFacts job={job} acceptedCount={acceptedCount} />
-
-      {job.description && <p className="lead">{job.description}</p>}
-
+  // A RecordPage (redesign §5). An organizer's object is the staffing, with the job's facts beside it;
+  // a worker's is the job itself, with what they can do about it beside it (below it on a phone).
+  if (isOwnOrg) {
+    return (
+      <RecordPage org head={head} aside={<JobFacts job={job} acceptedCount={acceptedCount} />} panelLabel="Job facts" tail={fullCard}>
+        <OrgPanel job={job} canHire={canUse(session, "hiring")} canEdit={canUse(session, "jobsEdit")} canSchedule={canUse(session, "scheduling")} userId={session.userId} />
+        {job.description && <p className="lead">{job.description}</p>}
+      </RecordPage>
+    );
+  }
+  return (
+    // The full card is the tail: after the Apply panel on a phone, under the job beside it from 1024.
+    <RecordPage head={head} aside={<WorkerPanel job={job} engagement={engagement} modes={modes} workerId={session.workerId!} acceptedCount={acceptedCount} />} panelLabel="Your place on this job" tail={fullCard}>
+      {/* The facts a worker decides on are in the head (D2); the description follows, then the full card below keeps every detail. */}
+      {job.description && (
+        <section className="section">
+          <h2 className="section-title">About this job</h2>
+          <p className="text-base leading-6 text-muted">{job.description}</p>
+        </section>
+      )}
       {/* The campaign this job works for (S2): its page and a Follow control, while the campaign is public. */}
-      {isWorker && job.campaignProfile?.publishedAt && job.org.approved && (
+      {job.campaignProfile?.publishedAt && job.org.approved && (
         <CampaignCard campaign={job.campaignProfile} follow={await followState(session.workerId!, job.campaignProfile.id)} viewer="worker" back={`/jobs/${job.id}`} />
       )}
-
-      {isWorker && <WorkerPanel job={job} engagement={engagement} modes={modes} workerId={session.workerId!} acceptedCount={acceptedCount} />}
-      {isOwnOrg && (
-        <OrgPanel job={job} canHire={canUse(session, "hiring")} canEdit={canUse(session, "jobsEdit")} canSchedule={canUse(session, "scheduling")} userId={session.userId} />
-      )}
-
-      <section className="section">
-        <h2 className="section-title">Full job card</h2>
-        <JobCard job={{ ...job, orgName: job.org.name, jurisdictionRules: job.jurisdiction.rules }} />
-      </section>
-    </main>
+    </RecordPage>
   );
 }
 
@@ -164,7 +226,6 @@ async function WorkerPanel({
   );
 
   if (engagement) {
-    const s = ENGAGEMENT_LABELS[engagement.status];
     // An invitation is the org's act: the worker's do-not-match answers
     // still keep them off the job (the org is never told why).
     if (engagement.status === "INVITED" && reasons.length) return excluded;
@@ -181,7 +242,7 @@ async function WorkerPanel({
     return (
       <section className="card space-y-3">
         <p className="flex items-center gap-2 font-medium text-fg">
-          Your status <span className={s.badge}>{workerStage(engagement.status, facts.events, offerExpired, inviteExpired)}</span>
+          Your status <StatusBadge status={engagementStatus(engagement, facts, new Date())} />
         </p>
         {engagement.status === "INVITED" && (
           <>
@@ -270,6 +331,23 @@ async function WorkerPanel({
 
   return (
     <>
+    {/* The action first (redesign §5: the aside leads with the apply panel), then why it fits.
+        On a phone the card stays above the dock while the page scrolls (green board's bottom action). */}
+    <section className="space-y-4" aria-label="Apply">
+      {/* The one Forest action, kept above the dock while the page scrolls (#111, screen 3). */}
+      <div className="job-cta-bar">
+        {modes.includes("application") && (
+          <ActionButton action={apply} fields={{ jobId: job.id }} label="Apply for This Job" pendingLabel="Applying…" variant="btn-primary btn-lg w-full" />
+        )}
+        {modes.includes("instant_claim") && (
+          <ActionButton action={claim} fields={{ jobId: job.id }} label="Claim a spot" pendingLabel="Claiming…" variant={modes.includes("application") ? "btn-secondary btn-lg w-full" : "btn-primary btn-lg w-full"} />
+        )}
+        {!modes.includes("application") && !modes.includes("instant_claim") && (
+          <p className="text-muted-sm">This job hires by invitation only.</p>
+        )}
+      </div>
+      <WillSee sharing={sharing.choices} approved={job.org.approved} join={joinText(modes)} />
+    </section>
     <section className="section">
       <h2 className="section-title">Why it fits</h2>
       <ul className="divide-y divide-border">
@@ -288,18 +366,6 @@ async function WorkerPanel({
         ))}
       </ul>
       <p className="text-hint">From your verified record and this job&apos;s rules — no hidden score.</p>
-    </section>
-    <section className="card space-y-4">
-      {modes.includes("application") && (
-        <ActionButton action={apply} fields={{ jobId: job.id }} label="Apply with verified profile" pendingLabel="Applying…" variant="btn-primary w-full" />
-      )}
-      {modes.includes("instant_claim") && (
-        <ActionButton action={claim} fields={{ jobId: job.id }} label="Claim a spot" pendingLabel="Claiming…" variant={modes.includes("application") ? "btn-secondary w-full" : "btn-primary w-full"} />
-      )}
-      {!modes.includes("application") && !modes.includes("instant_claim") && (
-        <p className="text-muted-sm">This job hires by invitation only.</p>
-      )}
-      <WillSee sharing={sharing.choices} approved={job.org.approved} join={joinText(modes)} />
     </section>
     </>
   );
@@ -390,7 +456,7 @@ function shiftRow(
   s: { id: string; startsAt: Date; endsAt: Date; status: "SCHEDULED" | "ACTIVE" | "COMPLETED" | "CANCELLED"; stagingLocation: string | null; events: Array<{ type: string; payload: unknown; actorId: string | null; createdAt: Date }>; validations: Array<{ workEventId: string | null; status: "PENDING" | "APPROVED" | "REJECTED" | "FLAGGED"; reason: string | null; createdAt: Date }>; engagement: { worker: { displayName: string }; job: { type: "PETITION" | "CANVASS" } } },
   showWorker: boolean
 ) {
-  const b = shiftStatusLabel(shiftState({ status: s.status, startsAt: s.startsAt, endsAt: s.endsAt, workType: s.engagement.job.type, events: s.events, validations: s.validations }));
+  const b = shiftStatusLabel(shiftState({ status: s.status, startsAt: s.startsAt, endsAt: s.endsAt, workType: s.engagement.job.type, events: s.events, validations: s.validations }), { endsAt: s.endsAt, now: new Date() });
   return (
     <li key={s.id}>
       <Link transitionTypes={["nav-forward"]} href={`/shifts/${s.id}`} className="flex min-h-14 items-center justify-between gap-3 px-4 py-3 text-sm transition hover:bg-surface-2">
@@ -401,7 +467,7 @@ function shiftRow(
             {s.stagingLocation ? ` · ${s.stagingLocation}` : ""}
           </span>
         </span>
-        <span className={jobPageBadge(b.badge)}>{b.label}</span>
+        <StatusBadge status={b} />
       </Link>
     </li>
   );
@@ -427,7 +493,7 @@ async function WorkerShifts({ engagementId, workerId, jobId }: { engagementId: s
     </div>
   ) : (
     <div className="space-y-2">
-      <p className="text-muted-sm">You&apos;re hired. The organization will schedule your shifts or post open ones to take — they&apos;ll appear here and under Shifts.</p>
+      <p className="text-muted-sm">You&apos;re hired. The organization will schedule your shifts or post open ones to take — they&apos;ll appear here and in My schedule.</p>
       {seats}
     </div>
   );
@@ -531,7 +597,6 @@ async function OrgPanel({ job, canHire, canEdit, canSchedule, userId }: { job: J
           ) : (
             <ul className="space-y-3">
               {engagements.map((e) => {
-                const s = ENGAGEMENT_LABELS[e.status];
                 const f = facts.get(e.id) ?? { events: [], inReview: false, offerExpiresAt: null };
                 return (
                   <li key={e.id} className="card space-y-3">
@@ -539,7 +604,7 @@ async function OrgPanel({ job, canHire, canEdit, canSchedule, userId }: { job: J
                       <p className="flex items-center gap-2 font-medium text-fg">
                         {/* The applicant page (C3.2) shows the live profile only while the worker has a relationship with you (C1). */}
                         <Link transitionTypes={["nav-forward"]} href={`/hiring/${job.id}/people/${e.id}`} className="link">{e.worker.displayName}</Link>
-                        <span className={s.badge}>{stageOf(e, f, now)}</span>
+                        <StatusBadge status={engagementStatus(e, f, now)} />
                       </p>
                     </div>
                     <HiringActions

@@ -1,33 +1,42 @@
-import type { EngagementStatus } from "@/lib/engagements";
+import { inviteLapsed, offerLapsed, stageOf, type EngagementEventType, type EngagementStatus } from "@/lib/engagements";
+import type { Status } from "@/lib/status";
 
 /**
- * These sit next to party chips on job screens, where a pastel fill means a
- * campaign's declared party: only Claimed/Active take a colour (solid, which
- * no party uses); waiting states are plain or dashed.
+ * Engagement and job statuses (redesign §4.1.3). The words are unchanged;
+ * the state picks glyph and colour, and none of them is live (a hire is not
+ * a shift under way). Each has its own glyph, so a status never reads as a
+ * campaign's party chip beside it.
  */
-export const ENGAGEMENT_LABELS: Record<EngagementStatus, { label: string; badge: string }> = {
-  APPLIED: { label: "Applied", badge: "badge-neutral" },
-  INVITED: { label: "Invited", badge: "badge-dashed" },
-  CLAIMED: { label: "Claimed", badge: "badge-solid" },
-  ACTIVE: { label: "Active", badge: "badge-solid" },
-  COMPLETED: { label: "Completed", badge: "badge-neutral" },
-  CANCELLED: { label: "Cancelled", badge: "badge-neutral" },
-  // C3: an offer waits on the worker; declined and withdrawn never began.
-  OFFERED: { label: "Offered", badge: "badge-dashed" },
-  DECLINED: { label: "Declined", badge: "badge-neutral" },
-  WITHDRAWN: { label: "Withdrawn", badge: "badge-neutral" },
+export const ENGAGEMENT_LABELS: Record<EngagementStatus, Status> = {
+  APPLIED: { label: "Applied", state: "pending" },
+  INVITED: { label: "Invited", state: "pending" },
+  CLAIMED: { label: "Claimed", state: "approved" },
+  ACTIVE: { label: "Active", state: "approved" },
+  COMPLETED: { label: "Completed", state: "closed" },
+  CANCELLED: { label: "Cancelled", state: "closed" },
+  // C3: an offer waits on the worker (pending, not settled); declined and withdrawn never began.
+  OFFERED: { label: "Offered", state: "pending" },
+  DECLINED: { label: "Declined", state: "closed" },
+  WITHDRAWN: { label: "Withdrawn", state: "closed" },
 };
 
-export const JOB_STATUS_LABELS: Record<string, { label: string; badge: string }> = {
-  DRAFT: { label: "Draft", badge: "badge-dashed" },
-  PUBLISHED: { label: "Published", badge: "badge-solid" },
-  PAUSED: { label: "Paused", badge: "badge-butter" },
-  CLOSED: { label: "Closed", badge: "badge-neutral" },
+export const JOB_STATUS_LABELS: Record<"DRAFT" | "PUBLISHED" | "PAUSED" | "CLOSED", Status> = {
+  DRAFT: { label: "Draft", state: "draft" },
+  PUBLISHED: { label: "Published", state: "approved" },
+  PAUSED: { label: "Paused", state: "held" },
+  CLOSED: { label: "Closed", state: "closed" },
 };
 
 /**
- * A status chip shown on a job page, beside the campaign's party chip: solid
- * and dashed stay; a pastel (sky, butter, coral, lime) becomes plain, so no
- * status reads as a party. The words carry the meaning.
+ * An engagement's status as a chip: the worker's-words stage (stageOf) and a
+ * state that matches it. A lapsed offer or invitation is over, so it reads
+ * closed, never as still waiting.
  */
-export const jobPageBadge = (badge: string) => (badge === "badge-solid" || badge === "badge-dashed" ? badge : "badge-neutral");
+export function engagementStatus(
+  e: { status: EngagementStatus; inviteExpiresAt: Date | null },
+  facts: { events: Array<{ type: EngagementEventType }>; offerExpiresAt: Date | null },
+  now: Date
+): Status {
+  const lapsed = offerLapsed(e.status, facts.offerExpiresAt, now) || inviteLapsed(e.status, e.inviteExpiresAt, now);
+  return { label: stageOf(e, facts, now), state: lapsed ? "closed" : ENGAGEMENT_LABELS[e.status].state };
+}

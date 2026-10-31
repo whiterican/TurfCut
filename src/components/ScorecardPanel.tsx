@@ -6,7 +6,7 @@ import { NotSharedChip } from "@/components/staff/NotSharedChip";
 import { CircleCheck } from "lucide-react";
 
 const WORK_TYPE_LABELS = { PETITION: "Petition circulation", CANVASS: "Door-to-door canvass" } as const;
-const WORK_TYPE_BADGE = { PETITION: "badge-butter", CANVASS: "badge-solid" } as const;
+const WORK_TYPE_BADGE = { PETITION: "tag-butter", CANVASS: "tag-solid" } as const;
 const PERIOD_LABELS: Record<Period, string> = { lifetime: "Lifetime", "12m": "Last 12 months", "90d": "Last 90 days" };
 
 const AVERAGES: Array<{ key: AverageKey; label: string; pct?: boolean }> = [
@@ -142,7 +142,7 @@ export function ScorecardPanel({ periods, history, ringScope }: { periods: Recor
   ];
   const strengths = [
     ...lifetime.segments.map((x) => ({ label: WORK_TYPE_LABELS[x.workType], tone: WORK_TYPE_BADGE[x.workType] })),
-    ...[...new Set(lifetime.segments.flatMap((x) => x.history?.statesWorked ?? []))].map((st) => ({ label: `Worked in ${st}`, tone: "badge-butter" })),
+    ...[...new Set(lifetime.segments.flatMap((x) => x.history?.statesWorked ?? []))].map((st) => ({ label: `Worked in ${st}`, tone: "tag-butter" })),
   ];
 
   return (

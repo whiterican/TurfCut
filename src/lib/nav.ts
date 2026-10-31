@@ -1,8 +1,9 @@
-import type { Role } from "@/lib/auth";
-import { accessFor, type Area, type Grants } from "@/lib/access";
+import type { Role, SessionProfile } from "@/lib/auth";
+import { accessFor, ROLE_LABELS, type Area, type Grants } from "@/lib/access";
 
 /** The glyph a tab shows (drawn in components/AppNav; a plain id here keeps React out of lib). */
 export type TabIconId =
+  | "home"
   | "today"
   | "feed"
   | "work"
@@ -19,12 +20,19 @@ export type TabIconId =
   | "settings"
   | "campaigns"
   | "admin"
+  | "map"
+  | "earnings"
+  | "receipts"
+  | "availability"
+  | "notifications"
   | "more";
 
 export interface NavTab {
   href: string;
   label: string;
   icon: TabIconId;
+  /** Other paths this tab owns (the worker's Jobs tab holds the schedule too). */
+  also?: string[];
 }
 
 export const MESSAGES_HREF = "/messages";
@@ -62,19 +70,42 @@ export const PHONE_PICKS: Record<Exclude<Role, "WORKER">, OrgNavId[]> = {
   CUSTOM: ["desk", "hiring", "jobs", "field"],
 };
 
+/**
+ * The worker's dock (founder's twelve-screen concept, #111): Home · Jobs ·
+ * Work · Map · Messages · More. The concept's seventh destination, Leads,
+ * has no route yet (#110 is the feature that would back it), so it is left
+ * out rather than shown dead: a recorded exception, not a design change.
+ * More holds everything else the worker reaches: Profile, Feed, Earnings,
+ * Settings (and Sign out, drawn by the shell). The desktop top bar shows the
+ * dock's tabs and More's destinations as plain links.
+ */
 const WORKER_TABS: NavTab[] = [
-  { href: "/dashboard", label: "Today", icon: "today" },
-  { href: "/feed", label: "Feed", icon: "feed" },
-  { href: "/jobs", label: "Work", icon: "work" },
-  { href: "/shifts", label: "Shifts", icon: "shifts" },
+  { href: "/dashboard", label: "Home", icon: "home" },
+  { href: "/jobs", label: "Jobs", icon: "jobs" },
+  { href: "/shifts", label: "Work", icon: "work" },
+  // The worker's own turf for the current shift; it must win over /shifts (longest match does).
+  { href: "/shifts/turf", label: "Map", icon: "map" },
   { href: MESSAGES_HREF, label: "Messages", icon: "messages" },
-  { href: "/profile", label: "Profile", icon: "profile" },
 ];
+
+/** What the worker's More sheet lists, in order: every destination the dock doesn't carry (concept screen 12's rows, where a real route exists). */
+export const WORKER_MORE: NavTab[] = [
+  { href: "/notifications", label: "Notifications", icon: "notifications" },
+  { href: "/profile", label: "Profile", icon: "profile" },
+  { href: "/feed", label: "Campaign feed", icon: "feed" },
+  { href: "/earnings", label: "Earnings", icon: "earnings" },
+  { href: "/earnings/receipts", label: "Payment history", icon: "receipts" },
+  { href: "/profile/credentials", label: "Credentials", icon: "credentials" },
+  { href: "/profile/availability", label: "Availability", icon: "availability" },
+  { href: "/settings", label: "Display settings", icon: "settings" },
+];
+/** The More destinations the desktop top bar also shows as links (the rest are reached from those pages or the header). */
+const TOP_MORE = new Set(["/profile", "/feed", "/earnings"]); // Notifications is the header's bell on a desktop
 
 const plain = ({ href, label, icon }: NavTab): NavTab => ({ href, label, icon });
 
 /**
- * Tabs per role (screen mockups: Today / Work / Shifts / Profile for workers).
+ * Tabs per role (workers: Home / Jobs / Work / Map / Messages, with More beside them).
  * Organization roles get every area the access map grants them, so a tab
  * never appears for a route that would refuse you. A removed member (no
  * organization) gets none.
@@ -83,6 +114,16 @@ export function navTabs(role: Role | null, hasOrg: boolean, grants: Grants | nul
   if (role === "WORKER") return WORKER_TABS;
   if (!role || !hasOrg) return [];
   return ORG_TABS.filter((t) => accessFor({ role, grants }, t.area) !== null).map(plain);
+}
+
+/** The desktop top bar's links: the worker's dock tabs, then More's (Settings is the header's own button); nobody else has a top bar. */
+export function topNavTabs(role: Role | null): NavTab[] {
+  return role === "WORKER" ? [...WORKER_TABS, ...WORKER_MORE.filter((t) => TOP_MORE.has(t.href))] : [];
+}
+
+/** The worker's More sheet (empty for everyone else). */
+export function workerMore(role: Role | null): NavTab[] {
+  return role === "WORKER" ? WORKER_MORE : [];
 }
 
 export interface OrgNav {
@@ -125,8 +166,15 @@ export function landingFor(role: Role, grants: Grants | null, staff = false): st
   return orgNav(role, true, staff, grants).rail[0]?.href ?? "/settings";
 }
 
-/** The tab a path belongs to: the longest matching prefix wins. */
+/** The tab a path belongs to: the longest matching prefix wins (so /shifts/turf is Map, /shifts/abc is Work). */
 export function activeTab(tabs: NavTab[], pathname: string): string | null {
-  const hits = tabs.filter((t) => pathname === t.href || pathname.startsWith(`${t.href}/`));
-  return hits.sort((a, b) => b.href.length - a.href.length)[0]?.href ?? null;
+  const under = (p: string) => pathname === p || pathname.startsWith(`${p}/`);
+  // Each tab's longest matching path, its own or one it also owns.
+  const hits = tabs.flatMap((t) => [t.href, ...(t.also ?? [])].filter(under).map((p) => ({ href: t.href, len: p.length })));
+  return hits.sort((a, b) => b.len - a.len)[0]?.href ?? null;
+}
+
+/** Who the rail says is signed in: their own name (else their email), and their role as the organization names it. */
+export function railPerson(s: Pick<SessionProfile, "displayName" | "email" | "role" | "roleName">): { name: string; role: string } {
+  return { name: s.displayName?.trim() || s.email || "Your account", role: s.roleName ?? ROLE_LABELS[s.role] };
 }

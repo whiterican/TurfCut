@@ -1,24 +1,28 @@
+import { StatusBadge } from "@/components/StatusBadge";
 import Link from "next/link";
-import { ACCEPTED_STATUSES, inviteLapsed, stageOf } from "@/lib/engagements";
+import { ACCEPTED_STATUSES, inviteLapsed } from "@/lib/engagements";
 import { loadPipelineFacts } from "@/lib/engagements-data";
 import { Masthead } from "@/components/Masthead";
+import { ReadingPage, WorkspacePage } from "@/components/layout/Page";
 import { DataTable } from "@/components/staff/DataTable";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { canUse } from "@/lib/access";
-import { ENGAGEMENT_LABELS, JOB_STATUS_LABELS } from "@/lib/engagement-labels";
-import { JOB_TYPES, exclusionReasons, parseFeedFilters, readDisclosure } from "@/lib/jobs";
+import { engagementStatus, JOB_STATUS_LABELS } from "@/lib/engagement-labels";
+import { FEED_QUERY_MAX, JOB_TYPES, exclusionReasons, parseFeedFilters, readDisclosure } from "@/lib/jobs";
 import { effectivePreference } from "@/lib/political-fit";
 import { loadLatestPreference } from "@/lib/political-fit-data";
 import { plural } from "@/lib/format";
 import { loadFeed } from "@/lib/jobs-data";
-import { JobFeedCard } from "@/components/JobFeedCard";
+import { jobHeaderUrls } from "@/lib/campaign-media-data";
+import { JobPhotoRow } from "@/components/JobPhotoRow";
+import { NotificationsBell } from "@/components/NotificationsBell";
 import { SwipeCard } from "@/components/SwipeCard";
 import { Sheet } from "@/components/Sheet";
 import { EmptyArt } from "@/components/EmptyState";
 import { applyMarks } from "@/lib/job-marks";
 import { loadMarks } from "@/lib/job-marks-data";
-import { Check, ChevronRight } from "lucide-react";
+import { Check, ChevronRight, Search, SlidersHorizontal } from "lucide-react";
 
 const day = (d: Date | null) =>
   d ? d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" }) : "—";
@@ -30,12 +34,12 @@ export default async function JobsPage({ searchParams }: { searchParams: Search 
   if (session.role === "WORKER" && session.workerId) return <WorkerFeed workerId={session.workerId} searchParams={searchParams} />;
   if (session.orgId && canUse(session, "jobs", "read")) return <OrgJobs orgId={session.orgId} canHire={canUse(session, "jobsEdit")} />;
   return (
-    <main className="page max-w-2xl">
+    <ReadingPage>
       <div className="empty-state">
         <p className="empty-state-title">No jobs for this account</p>
         <p className="empty-state-body">This login isn&apos;t linked to a worker profile or an organization.</p>
       </div>
-    </main>
+    </ReadingPage>
   );
 }
 
@@ -68,6 +72,8 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
   const showHidden = params.get("hidden") === "1";
   const savedOnly = params.get("saved") === "1";
   const { shown: open, hiddenCount } = applyMarks(jobs.filter((j) => !engagedIds.has(j.id)), marks, { showHidden, savedOnly });
+  // The rows' photographs: a published campaign header where there is one (never a ranking input: looked up after the feed is built).
+  const photos = await jobHeaderUrls(open.map((j) => j.id));
 
   // Quick-filter chips toggle one URL parameter each.
   const toggle = (key: string, value: string) => {
@@ -79,72 +85,44 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
     const qs = next.toString();
     return qs ? `/jobs?${qs}` : "/jobs";
   };
+  // The chip row (#111, screen 2): All, then one chip per live category and the worker's own quick filters. One tap on, one tap off.
+  // "All" is on only when nothing narrows the list but the search itself.
+  const allOn = !filters.type && !filters.minRateCents && !filters.startsBefore && !filters.noCredentials && !savedOnly && !showHidden;
   const quick = [
+    { label: "All", href: filters.q ? `/jobs?q=${encodeURIComponent(filters.q)}` : "/jobs", on: allOn },
+    { label: "Petitions", href: toggle("type", "PETITION"), on: filters.type === "PETITION" },
+    { label: "Canvassing", href: toggle("type", "CANVASS"), on: filters.type === "CANVASS" },
     { label: "This week", href: toggle("week", "1"), on: params.get("week") === "1" && !params.get("startsBefore") },
-    { label: "Petition", href: toggle("type", "PETITION"), on: filters.type === "PETITION" },
-    { label: "Canvass", href: toggle("type", "CANVASS"), on: filters.type === "CANVASS" },
     { label: "No credentials", href: toggle("noCredentials", "1"), on: !!filters.noCredentials },
     { label: "Saved", href: toggle("saved", "1"), on: savedOnly },
   ];
-  const anyFilter = !!(filters.type || filters.minRateCents || filters.startsBefore || filters.noCredentials || savedOnly || showHidden);
+  const anyFilter = !!(filters.type || filters.minRateCents || filters.startsBefore || filters.noCredentials || filters.q || savedOnly || showHidden);
   // The date field shows a typed date only, not the "This week" window.
   const typedStartsBefore = parseFeedFilters(new URLSearchParams(params.get("startsBefore") ? { startsBefore: params.get("startsBefore")! } : {})).startsBefore;
+  // Whether the feed has anything at all, so "no results" and "no inventory" read differently.
+  const inventory = jobs.length > 0 || anyFilter;
 
   return (
-    <main className="page lg:max-w-5xl">
-      <Masthead title="Work" meta="Open jobs, soonest first, with pay, place and dates up front." />
+    <main className="page page-jobs space-y-4 lg:max-w-5xl">
+      <Masthead title="Jobs"><NotificationsBell /></Masthead>
 
-      {waitingInvites > 0 && (
-        <Link href="/jobs/invitations" className="alert-info flex items-center justify-between gap-3">
-          <span className="font-medium">
-            {waitingInvites} {waitingInvites === 1 ? "invitation is" : "invitations are"} waiting for your answer
-          </span>
-          <ChevronRight aria-hidden className="size-4 shrink-0" />
-        </Link>
-      )}
-
-      {mine.length > 0 && (
-        <section className="section">
-          <div className="flex items-baseline justify-between gap-3">
-            <h2 className="section-title">Your jobs</h2>
-            <Link href="/jobs/invitations" className="link text-sm">Invitations</Link>
-          </div>
-          <ul className="list-card">
-            {mine.map((e) => {
-              const s = ENGAGEMENT_LABELS[e.status];
-              const f = facts.get(e.id);
-              const stage = stageOf(e, f ?? { events: [], offerExpiresAt: null }, now);
-              return (
-                <li key={e.id}>
-                  <Link transitionTypes={["nav-forward"]} href={`/jobs/${e.job.id}`} className="flex min-h-14 items-center justify-between gap-3 px-4 py-3 text-fg transition hover:bg-surface-2">
-                    <span className="font-medium">{e.job.title}</span>
-                    <span className={s.badge}>{stage}</span>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-      )}
-
-      <section className="section space-y-4">
-        {/* Quick filters (screen mockups): one tap on, one tap off. */}
-        <nav aria-label="Quick filters" className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
-          {quick.map((q) => (
-            <Link key={q.label} href={q.href} scroll={false} className={`filter-chip ${q.on ? "filter-chip-on" : ""}`}>
-              {q.on && <Check aria-hidden className="size-4 shrink-0" />}
-              {q.label}
-              <span className="sr-only">{q.on ? " (on — tap to turn off)" : " (off)"}</span>
-            </Link>
-          ))}
-        </nav>
-        <div className="flex items-baseline justify-between gap-3">
-          <h2 className="section-title">{showHidden ? plural(open.length, "hidden job", "hidden jobs") : savedOnly ? plural(open.length, "saved job", "saved jobs") : plural(open.length, "opportunity", "opportunities")}</h2>
-          {anyFilter && <Link href="/jobs" scroll={false} className="link text-sm">{showHidden ? "Back to the feed" : "Clear filters"}</Link>}
-        </div>
-
-        <Sheet label="More filters" trigger="More filters" triggerClassName="btn-secondary w-full sm:w-auto">
-          <form className="grid gap-3 sm:grid-cols-2">
+      {/* Search (a real query: title or organization) and the way to more filters, on one row. */}
+      <div className="jobs-search">
+        {/* The search is its own form (the filter sheet holds another: forms never nest). */}
+        <form className="flex min-w-0 flex-1" action="/jobs" role="search">
+          {/* A search keeps every filter already set (the chips' and the sheet's). */}
+          {(["type", "noCredentials", "week", "saved", "hidden", "minRate", "startsBefore"] as const).map((k) => {
+            const v = params.get(k);
+            return v ? <input key={k} type="hidden" name={k} value={v} /> : null;
+          })}
+          <label className="jobs-search-field">
+            <Search aria-hidden className="size-5 shrink-0 text-subtle" />
+            <input type="search" name="q" defaultValue={filters.q ?? ""} placeholder="Search jobs, organizations…" aria-label="Search jobs and organizations" className="min-w-0 flex-1 bg-transparent text-base text-fg outline-none placeholder:text-subtle" maxLength={FEED_QUERY_MAX} />
+          </label>
+        </form>
+        <Sheet label="Filters" trigger={<><SlidersHorizontal aria-hidden className="size-5" /><span className="sr-only">Filters</span></>} triggerClassName="jobs-filter-btn">
+          <form className="grid gap-3 sm:grid-cols-2" action="/jobs">
+            {filters.q && <input type="hidden" name="q" value={filters.q} />}
             <label className="space-y-1.5">
               <span className="label">Type</span>
               <select name="type" className="field" defaultValue={filters.type ?? ""}>
@@ -165,23 +143,73 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
                 <input type="checkbox" role="switch" switch="" name="noCredentials" value="1" defaultChecked={filters.noCredentials} />
                 No credentials required
               </label>
-              <button className="btn-secondary">Show jobs</button>
+              <button className="btn-primary">Show jobs</button>
             </div>
           </form>
         </Sheet>
+      </div>
+
+      {/* The chip row (one tap on, one tap off). */}
+      <nav aria-label="Quick filters" className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:-mx-6 sm:px-6">
+        {quick.map((q) => (
+          <Link key={q.label} href={q.href} scroll={false} className={`filter-chip ${q.on ? "filter-chip-on" : ""}`} aria-current={q.on ? "true" : undefined}>
+            {q.on && <Check aria-hidden className="size-4 shrink-0" />}
+            {q.label}
+            <span className="sr-only">{q.on ? " (on — tap to turn off)" : " (off)"}</span>
+          </Link>
+        ))}
+      </nav>
+
+      {mine.length > 0 && (
+        // The job you're on, one compact row each, before the open rows (#113 review, P4).
+        <ul className="list-card" aria-label="Your jobs">
+          {mine.map((e) => {
+            const st = engagementStatus(e, facts.get(e.id) ?? { events: [], offerExpiresAt: null }, now);
+            return (
+              <li key={e.id}>
+                <Link transitionTypes={["nav-forward"]} href={`/jobs/${e.job.id}`} className="flex min-h-11 items-center justify-between gap-3 px-4 py-2 text-fg transition hover:bg-surface-2">
+                  <span className="min-w-0 truncate text-sm font-medium"><span className="text-muted">Your job · </span>{e.job.title}</span>
+                  <StatusBadge status={st} />
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      <section className="space-y-2" aria-labelledby="open-jobs-heading">
+        {/* Invitations sit beside the heading they belong to, with the real count waiting (#113 review, P4). */}
+        <div className="section-head">
+          <h2 id="open-jobs-heading" className="t-section text-fg">Open jobs</h2>
+          {/* -my-1.5: the 44px target stays, the heading row doesn't add height above the list. */}
+          <Link href="/jobs/invitations" className="row-link -my-1.5">
+            Invitations
+            {waitingInvites > 0 && <span className="unread-badge ms-1.5" aria-hidden>{waitingInvites}</span>}
+            {waitingInvites > 0 && <span className="sr-only">, {waitingInvites} waiting for your answer</span>}
+            <ChevronRight aria-hidden className="size-4 shrink-0" />
+          </Link>
+        </div>
+        {anyFilter && (
+          <p className="flex items-baseline justify-between gap-3 text-sm text-muted">
+            <span>{showHidden ? plural(open.length, "hidden job", "hidden jobs") : savedOnly ? plural(open.length, "saved job", "saved jobs") : plural(open.length, "job", "jobs")}{filters.q ? ` for “${filters.q}”` : ""}</span>
+            <Link href="/jobs" scroll={false} className="link">{showHidden ? "Back to the feed" : "Clear filters"}</Link>
+          </p>
+        )}
 
         {open.length === 0 ? (
           <div className="empty-state">
             <EmptyArt kind="jobs" />
-            <p className="empty-state-title">{showHidden ? "Nothing hidden" : savedOnly ? "Nothing saved yet" : "No open jobs match"}</p>
-            <p className="empty-state-body">{showHidden ? "Jobs you hide from the feed show up here." : savedOnly ? "Swipe a job right, or tap Save, to keep it here." : "Try fewer filters, or check back soon."}</p>
+            <p className="empty-state-title">{showHidden ? "Nothing hidden" : savedOnly ? "Nothing saved yet" : inventory ? "No jobs match your filters." : "No jobs available right now."}</p>
+            <p className="empty-state-body">{showHidden ? "Jobs you hide from the feed show up here." : savedOnly ? "Swipe a job right, or tap Save, to keep it here." : inventory ? "Try fewer filters or other words." : "New jobs appear here as organizations publish them."}</p>
+            {anyFilter && !showHidden && <Link href="/jobs" className="btn-secondary">Clear filters</Link>}
           </div>
         ) : (
-          <ul className="grid gap-3 lg:grid-cols-2" /* two columns from a desktop width up */>
+          <ul className="job-grid grid grid-cols-1 gap-2 lg:grid-cols-2 lg:gap-3" /* one column (never wider than the page), two from a desktop width up */>
             {open.map((j) => (
               <li key={j.id}>
-                <SwipeCard jobId={j.id} saved={marks.saved.has(j.id)} hidden={showHidden}>
-                  <JobFeedCard j={j} />
+                <SwipeCard jobId={j.id} saved={marks.saved.has(j.id)} hidden={showHidden} compact>
+                  {/* The campaign's own published header, else the category's licensed photo (JobPhoto). */}
+                  <JobPhotoRow j={j} photoUrl={photos.get(j.id) ?? null} />
                 </SwipeCard>
               </li>
             ))}
@@ -194,8 +222,8 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
           {hiddenCount > 0 && !showHidden && (
             <> <Link href="/jobs?hidden=1" scroll={false} className="link">{plural(hiddenCount, "hidden job", "hidden jobs")}</Link>.</>
           )}
+          {" "}<Link href="/profile/preferences" className="link">Who you won&apos;t be matched with</Link>
         </p>
-        <Link href="/profile/preferences" className="btn-secondary w-full">Adjust who you won&apos;t be matched with</Link>
       </section>
 
       {hidden.length > 0 && (
@@ -226,10 +254,9 @@ async function OrgJobs({ orgId, canHire }: { orgId: string; canHire: boolean }) 
     orderBy: [{ createdAt: "desc" }],
   });
   return (
-    <main className="page max-w-4xl">
-      <Masthead title="Your jobs" meta="Your organization's jobs, newest first. Sort by any column.">
+    <WorkspacePage head={<Masthead title="Your jobs" meta="Your organization's jobs, newest first. Sort by any column.">
         {canHire && <Link href="/jobs/new" className="btn-primary">New job</Link>}
-      </Masthead>
+      </Masthead>}>
       {jobs.length === 0 ? (
         <div className="empty-state">
           <EmptyArt kind="jobs" />
@@ -256,6 +283,6 @@ async function OrgJobs({ orgId, canHire }: { orgId: string; canHire: boolean }) 
           }))}
         />
       )}
-    </main>
+    </WorkspacePage>
   );
 }

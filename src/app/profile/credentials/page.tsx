@@ -1,3 +1,4 @@
+import { StatusChip } from "@/components/StatusBadge";
 import Link from "next/link";
 import { requireWorker } from "@/lib/worker-session";
 import { loadCredentials } from "@/lib/credentials-data";
@@ -15,6 +16,7 @@ import { removeProofAction } from "./proof-actions";
 import { CredentialForm, RemoveCredential, WalletStatus, WalletStatusLine } from "@/components/CredentialForm";
 import { Masthead } from "@/components/Masthead";
 import { ChevronLeft } from "lucide-react";
+import { ReadingPage } from "@/components/layout/Page";
 
 const dateText = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
 
@@ -39,7 +41,7 @@ export default async function CredentialsPage() {
   const today = expiryToday();
 
   return (
-    <main className="page max-w-2xl space-y-8">
+    <ReadingPage gap={8}>
       <div className="space-y-3">
         <Masthead title="Credentials">
           <Link transitionTypes={["nav-back"]} href="/profile" className="btn-ghost"><ChevronLeft aria-hidden className="size-4 shrink-0" />Profile</Link>
@@ -69,7 +71,7 @@ export default async function CredentialsPage() {
                   <li key={c.rootId} className="card space-y-2">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <p className="font-semibold text-fg">{name}</p>
-                      <span className={c.verification === "SELF_REPORTED" ? "badge-dashed" : "badge-accent"}>{VERIFICATION_LABELS[c.verification]}</span>
+                      <StatusChip state={c.verification === "SELF_REPORTED" ? "pending" : "approved"} label={VERIFICATION_LABELS[c.verification]} />
                     </div>
                     <p className="text-muted-sm">
                       {[maskIdentifier(c.identifier), c.issuedOn && `Issued ${dateText(c.issuedOn)}`, c.expiresOn && `Expires ${dateText(c.expiresOn)}`].filter(Boolean).join(" · ") || "No details added"}
@@ -168,6 +170,6 @@ export default async function CredentialsPage() {
           </p>
         </section>
       </WalletStatus>
-    </main>
+    </ReadingPage>
   );
 }

@@ -1,3 +1,4 @@
+import { StatusBadge } from "@/components/StatusBadge";
 import Link from "next/link";
 import { radiusFor, readLaunch } from "@/lib/job-launch";
 import { appLabel, readTools, toolsText } from "@/lib/job-tools";
@@ -6,13 +7,13 @@ import { TalkingPoints } from "@/components/campaign/TalkingPoints";
 import { notFound } from "next/navigation";
 import { requireAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { shiftPriority } from "@/lib/priority";
 import { canUse } from "@/lib/access";
 import { readSupportContacts } from "@/lib/jobs";
 import { activeTime, earningsEstimate, readTurf, scheduleFlags, shiftProgress, shiftState, shiftStatusLabel, turfMarks, turfMarksClosed } from "@/lib/field-day";
 import { carriedInto, facts, heldOnJob, loadShift } from "@/lib/field-day-data";
 import { ShiftProgress } from "@/components/ShiftProgress";
 import { TurfMap } from "@/components/TurfMap";
+import { FieldPage, RecordPage } from "@/components/layout/Page";
 import { LocalTime } from "@/components/LocalTime";
 import { LiveShiftStats } from "@/components/LiveShiftStats";
 import { CountUp } from "@/components/Moments";
@@ -28,7 +29,8 @@ import { correctionStep, supervisorStep, workerStep } from "../actions";
 import { CorrectEntry, EnterEntry } from "@/components/CorrectionForms";
 import { CORRECTABLE, correctionsByEvent } from "@/lib/corrections";
 import { reviewFinal, shiftPay } from "@/lib/pay-data";
-import { computeShiftPay, money, statusLabel } from "@/lib/pay";
+import { computeShiftPay, money, payoutCta, payoutReadiness, statusLabel } from "@/lib/pay";
+import { stripeProvider } from "@/lib/payout-provider";
 import { verifiedWork } from "@/lib/scorecard";
 import { Masthead } from "@/components/Masthead";
 
@@ -101,7 +103,14 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
   const pay = await shiftPay(s.id);
   // Amounts go to the worker and to the field team approving them.
   const seesPay = isWorker || canField;
-  const payLabel = pay ? statusLabel(pay.state.status, pay.amountCents, { payouts: s.engagement.worker.payoutsEnabled }).label : null;
+  const readiness = payoutReadiness(stripeProvider().configured(), s.engagement.worker.payoutsEnabled);
+  const payLabel = pay ? statusLabel(pay.state.status, pay.amountCents, { payouts: readiness }).label : null;
+  // Approved pay blocked on the worker's own payout setup carries the way to fix it, for the worker only (P0):
+  // a link to the Payouts card on Earnings. The label needs to know whether a Stripe account was started.
+  const payCta =
+    isWorker && pay?.state.status === "APPROVED" && pay.amountCents > 0 && readiness === "setup"
+      ? payoutCta(readiness, !!(await db().worker.findUnique({ where: { id: s.engagement.workerId }, select: { stripeAccountId: true } }))?.stripeAccountId)
+      : null;
   const steps = shiftProgress(
     f,
     pay
@@ -109,6 +118,7 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
           done: pay.state.status === "PAID",
           at: pay.state.paidAt ?? undefined,
           detail: seesPay ? `${money(pay.amountCents)} · ${payLabel}` : payLabel!,
+          action: payCta ? { label: payCta.label, href: "/earnings#payouts" } : undefined,
         }
       : st.closeout?.status === "REJECTED"
         ? { done: false, detail: "No pay recorded — the shift wasn't approved" }
@@ -161,7 +171,7 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
   };
   const live = !!st.checkedInAt && !st.checkedOutAt;
   // The shift's state as a pill beside the title (the same words and colours as every shift list).
-  const state = shiftStatusLabel(st);
+  const state = shiftStatusLabel(st, { endsAt: s.endsAt, now: new Date() });
 
   const started = !!st.checkedInAt;
   const now = new Date();
@@ -225,8 +235,11 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
   );
 
 
-  return (
-    <main className="page max-w-2xl">
+  // The worker's shift is a FieldPage: the task, and beside it from 1024 (below it on a phone) the
+  // brief, the turf and who handles problems. Staff see a RecordPage: status, custody and review as
+  // the object, the brief and contacts beside it (redesign §5).
+  const head = (
+    <>
       {/* The worker sees the job they're working as the title; staff see the worker, with the job under it (D2). */}
       <Masthead
         title={isWorker ? s.engagement.job.title : s.engagement.worker.displayName}
@@ -241,20 +254,71 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
             </>
           )
         }
-        chips={<span className={state.badge}>{state.label}</span>}
+        chips={<StatusBadge status={state} />}
       >
         {/* Outdoors in glare: the Sunlight theme, one tap away on the field-day screen (P1.5). */}
         {isWorker && <SunlightToggle />}
       </Masthead>
+    </>
+  );
+  const hasTurf = !!(turf || staging || marks.dayTurf || marks.pins.length > 0 || marksOpen);
+  const turfSection = (
+    <>
+      {hasTurf && (
+        <section className="section">
+          <h2 className="section-title">Turf</h2>
+          {turf ? (
+            <p className="text-muted-sm">Turf assigned by {s.engagement.job.org.name}.</p>
+          ) : marks.dayTurf ? (
+            <p className="text-muted-sm">{isWorker ? "Your" : "The worker's"} own turf for today (dashed).</p>
+          ) : (
+            <p className="text-muted-sm">No turf assigned by the campaign{marksOpen ? " — mark your own for today below." : "."}</p>
+          )}
+          {marksOpen ? (
+            <TurfWorkbench shiftId={s.id} turf={turf} dayTurf={marks.dayTurf} staging={staging} pins={marks.pins} canDrawDayTurf={!turf} />
+          ) : (
+            <>
+              <TurfMap turf={turf} dayTurf={marks.dayTurf} staging={staging} pins={toMapPins(marks.pins)} dayTurfLabel={isWorker ? "Your turf today" : "Worker's turf today"} />
+              {marks.pins.length > 0 && <PinLegend />}
+            </>
+          )}
+          {s.stagingLocation && <p className="text-muted-sm">Check in at {s.stagingLocation}.</p>}
+        </section>
+      )}
+    </>
+  );
+  const aside = (
+    <>
+      {brief && (isWorker || canField) && <TalkingPoints brief={brief} />}
+      {isWorker && turfSection}
+      {contacts && (
+        <section className="section">
+          <h2 className="section-title">Who handles problems</h2>
+          <dl className="list-card">
+            <Row label="Emergencies">{contacts.emergency}</Row>
+            <Row label="Pay disputes">{contacts.disputes}</Row>
+            <Row label="Lost materials">{contacts.lostMaterials}</Row>
+          </dl>
+        </section>
+      )}
+    </>
+  );
+  const Template = isWorker ? FieldPage : RecordPage;
+  // No empty column: the aside only when it holds something.
+  const hasAside = !!(brief && (isWorker || canField)) || !!contacts || (isWorker && hasTurf);
+  return (
+    <Template head={head} aside={hasAside ? aside : undefined} panelLabel={isWorker ? "Brief and turf" : "Brief and contacts"} org={!isWorker}>
 
       {!started && workerActions}
-      <div className={`hero-card space-y-4 ${isWorker && live ? "hero-card-accent" : ""}`} data-priority={isWorker ? shiftPriority(s, now) : undefined}>
-        <p className="eyebrow">
+      {/* The day's work on a white surface (#111, screen 5): the date and place, the figure that matters, time worked and the estimate, then the schedule. */}
+      <section className="work-card space-y-4" aria-label={isWorker ? "Your shift" : "The worker's shift"}>
+        {/* The status (live, on break, no check-out received) is the Masthead's pill: not repeated here. */}
+        <p className="text-sm font-medium text-muted">
           <LocalTime iso={s.startsAt.toISOString()} mode="date" />
           {started && s.stagingLocation ? ` · ${s.stagingLocation}` : ""}
         </p>
         {started ? (
-          <p className="hero-title">
+          <p className="t-headline text-fg">
             {petition ? (
               <><CountUp value={st.signatures} /> signature{st.signatures === 1 ? "" : "s"} submitted</>
             ) : (
@@ -263,7 +327,7 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
           </p>
         ) : (
           // Before the shift: when and where, not a zero.
-          <p className="hero-title">
+          <p className="t-headline text-fg">
             <LocalTime iso={s.startsAt.toISOString()} mode="time" /> – <LocalTime iso={s.endsAt.toISOString()} mode="time" />
           </p>
         )}
@@ -285,30 +349,30 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
             }
           />
         )}
-        <p className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
+        <p className="flex flex-wrap gap-x-6 gap-y-1 border-t border-border pt-3 text-sm">
           {started ? (
             <span>
-              <span className="block font-bold">
+              <span className="block font-bold text-fg">
                 <LocalTime iso={s.startsAt.toISOString()} mode="time" /> – <LocalTime iso={s.endsAt.toISOString()} mode="time" />
               </span>
-              <span className="hero-muted">Scheduled</span>
+              <span className="text-subtle">Scheduled</span>
             </span>
           ) : (
             s.stagingLocation && (
               <span>
-                <span className="block font-bold">{s.stagingLocation}</span>
-                <span className="hero-muted">Staging — check in here</span>
+                <span className="block font-bold text-fg">{s.stagingLocation}</span>
+                <span className="text-subtle">Staging — check in here</span>
               </span>
             )
           )}
           {petition && started && (
             <span>
-              <span className="block font-bold">{st.packetsOut.length ? st.packetsOut.join(", ") : "—"}</span>
-              <span className="hero-muted">Packets out{st.packetsHeld.length ? ` · ${st.packetsHeld.map(keptLabel).join(", ")} kept for next shift` : ""}</span>
+              <span className="block font-bold text-fg">{st.packetsOut.length ? st.packetsOut.join(", ") : "—"}</span>
+              <span className="text-subtle">Packets out{st.packetsHeld.length ? ` · ${st.packetsHeld.map(keptLabel).join(", ")} kept for next shift` : ""}</span>
             </span>
           )}
         </p>
-      </div>
+      </section>
 
       {!petition && toolsText(tools) && (
         <p className="text-muted-sm">
@@ -404,29 +468,7 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
 
       <ShiftProgress steps={steps} />
 
-      {brief && (isWorker || canField) && <TalkingPoints brief={brief} />}
 
-      {(turf || staging || marks.dayTurf || marks.pins.length > 0 || marksOpen) && (
-        <section className="section">
-          <h2 className="section-title">Turf</h2>
-          {turf ? (
-            <p className="text-muted-sm">Turf assigned by {s.engagement.job.org.name}.</p>
-          ) : marks.dayTurf ? (
-            <p className="text-muted-sm">{isWorker ? "Your" : "The worker's"} own turf for today (dashed).</p>
-          ) : (
-            <p className="text-muted-sm">No turf assigned by the campaign{marksOpen ? " — mark your own for today below." : "."}</p>
-          )}
-          {marksOpen ? (
-            <TurfWorkbench shiftId={s.id} turf={turf} dayTurf={marks.dayTurf} staging={staging} pins={marks.pins} canDrawDayTurf={!turf} />
-          ) : (
-            <>
-              <TurfMap turf={turf} dayTurf={marks.dayTurf} staging={staging} pins={toMapPins(marks.pins)} dayTurfLabel={isWorker ? "Your turf today" : "Worker's turf today"} />
-              {marks.pins.length > 0 && <PinLegend />}
-            </>
-          )}
-          {s.stagingLocation && <p className="text-muted-sm">Check in at {s.stagingLocation}.</p>}
-        </section>
-      )}
 
       {isOrg && logEvents.length > 0 && (
         <section className="section">
@@ -495,17 +537,7 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
           <p className="text-hint">Your original entries are kept. If a correction is wrong, dispute this shift&apos;s pay from Earnings.</p>
         </section>
       )}
-
-      {contacts && (
-        <section className="section">
-          <h2 className="section-title">Who handles problems</h2>
-          <dl className="list-card">
-            <Row label="Emergencies">{contacts.emergency}</Row>
-            <Row label="Pay disputes">{contacts.disputes}</Row>
-            <Row label="Lost materials">{contacts.lostMaterials}</Row>
-          </dl>
-        </section>
-      )}
-    </main>
+      {!isWorker && turfSection}
+    </Template>
   );
 }

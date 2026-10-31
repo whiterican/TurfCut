@@ -6,6 +6,7 @@ import { PostCard } from "@/components/campaign/PostCard";
 import { FeedSeen } from "@/components/campaign/FeedSeen";
 import { EmptyArt } from "@/components/EmptyState";
 import { Masthead } from "@/components/Masthead";
+import { ListPage } from "@/components/layout/Page";
 
 export const metadata: Metadata = { title: "Feed" };
 
@@ -22,7 +23,7 @@ export default async function FeedPage({ searchParams }: Props) {
   const { cursor } = await searchParams;
   const feed = await loadHomeFeed(workerId, cursor);
   return (
-    <main className="page max-w-2xl space-y-6">
+    <ListPage gap={6}>
       {!cursor && <FeedSeen at={new Date().toISOString()} />}
       <Masthead title="From your campaigns" meta="Posts from campaigns you follow and campaigns you work for, newest first.">
         <Link href="/c" className="btn-ghost">All campaigns</Link>
@@ -44,7 +45,7 @@ export default async function FeedPage({ searchParams }: Props) {
           {feed.next && <Link href={`/feed?cursor=${feed.next}`} className="btn-secondary">Older posts</Link>}
         </section>
       )}
-    </main>
+    </ListPage>
   );
 }
 

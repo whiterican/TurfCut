@@ -1,0 +1,294 @@
+[
+  {
+    "screen": "jobs",
+    "route": "/jobs",
+    "state": "populated",
+    "role": "worker",
+    "source": {
+      "commit": "07771b77a7d99a537a9695bfcb841135793fbfca",
+      "clean": true,
+      "patchSha256": null
+    },
+    "implementationFile": "jobs-populated-390-light.png",
+    "viewport": {
+      "width": 390,
+      "height": 844,
+      "deviceScaleFactor": 2
+    },
+    "theme": "light",
+    "timezone": "America/Denver",
+    "clock": "frozen at 2026-10-30T19:00:00Z",
+    "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [
+      {
+        "label": "Home",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Jobs",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Work",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Map",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Messages",
+        "w": 73,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "More, 1 unread notification",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      }
+    ],
+    "bar": {
+      "w": 366,
+      "h": 60,
+      "left": 12,
+      "bottom": 10
+    },
+    "bg": "#faf9f4",
+    "shell": "#1c0f2e",
+    "title": "Turfcut",
+    "h1": "Jobs",
+    "status": "captured"
+  },
+  {
+    "screen": "jobs",
+    "route": "/jobs",
+    "state": "populated",
+    "role": "worker",
+    "source": {
+      "commit": "07771b77a7d99a537a9695bfcb841135793fbfca",
+      "clean": true,
+      "patchSha256": null
+    },
+    "implementationFile": "jobs-populated-390-dark.png",
+    "viewport": {
+      "width": 390,
+      "height": 844,
+      "deviceScaleFactor": 2
+    },
+    "theme": "dark",
+    "timezone": "America/Denver",
+    "clock": "frozen at 2026-10-30T19:00:00Z",
+    "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [
+      {
+        "label": "Home",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Jobs",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Work",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Map",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Messages",
+        "w": 73,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "More, 1 unread notification",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      }
+    ],
+    "bar": {
+      "w": 366,
+      "h": 60,
+      "left": 12,
+      "bottom": 10
+    },
+    "bg": "#140a22",
+    "shell": "#1c0f2e",
+    "title": "Turfcut",
+    "h1": "Jobs",
+    "status": "captured"
+  },
+  {
+    "screen": "jobs",
+    "route": "/jobs",
+    "state": "populated",
+    "role": "worker",
+    "source": {
+      "commit": "07771b77a7d99a537a9695bfcb841135793fbfca",
+      "clean": true,
+      "patchSha256": null
+    },
+    "implementationFile": "jobs-populated-1440-light.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900,
+      "deviceScaleFactor": 2
+    },
+    "theme": "light",
+    "timezone": "America/Denver",
+    "clock": "frozen at 2026-10-30T19:00:00Z",
+    "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [
+      {
+        "label": "Home",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Jobs",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Work",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Map",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Messages",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "More, 1 unread notification",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      }
+    ],
+    "bar": {
+      "w": 0,
+      "h": 0,
+      "left": 0,
+      "bottom": 900
+    },
+    "bg": "#faf9f4",
+    "shell": "#1c0f2e",
+    "title": "Turfcut",
+    "h1": "Jobs",
+    "status": "captured"
+  },
+  {
+    "screen": "jobs",
+    "route": "/jobs",
+    "state": "populated",
+    "role": "worker",
+    "source": {
+      "commit": "07771b77a7d99a537a9695bfcb841135793fbfca",
+      "clean": true,
+      "patchSha256": null
+    },
+    "implementationFile": "jobs-populated-1440-dark.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900,
+      "deviceScaleFactor": 2
+    },
+    "theme": "dark",
+    "timezone": "America/Denver",
+    "clock": "frozen at 2026-10-30T19:00:00Z",
+    "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [
+      {
+        "label": "Home",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Jobs",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Work",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Map",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Messages",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "More, 1 unread notification",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      }
+    ],
+    "bar": {
+      "w": 0,
+      "h": 0,
+      "left": 0,
+      "bottom": 900
+    },
+    "bg": "#140a22",
+    "shell": "#1c0f2e",
+    "title": "Turfcut",
+    "h1": "Jobs",
+    "status": "captured"
+  }
+]

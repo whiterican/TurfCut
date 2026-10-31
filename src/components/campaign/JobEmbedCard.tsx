@@ -28,7 +28,7 @@ export function JobEmbedCard({ post, signedIn, now = new Date() }: { post: Publi
       <p className="text-base font-bold tracking-[-0.01em] text-fg">{j.title}</p>
       <p className="flex flex-wrap gap-1.5">
         <DateRangeChip startsAt={j.startsAt} endsAt={j.endsAt} />
-        {aff ? <span className={`badge-party badge-party-${aff.affiliation} whitespace-normal`}>{type} · {aff.label}</span> : <span className="badge-neutral">{type}</span>}
+        {aff ? <span className={`badge-party badge-party-${aff.affiliation} whitespace-normal`}>{type} · {aff.label}</span> : <span className="tag">{type}</span>}
       </p>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <span className="text-sm font-bold text-fg tabular-nums">{payShort(j.compensationMethod, j.payRateCents, j.type)} <span className="font-normal text-muted">gross</span></span>

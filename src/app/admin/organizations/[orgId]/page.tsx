@@ -1,3 +1,4 @@
+import { StatusChip } from "@/components/StatusBadge";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { UUID_RE } from "@/lib/jobs";
@@ -13,7 +14,7 @@ function GateItem({ label, done, detail }: { label: string; done: boolean; detai
         <span className="block text-sm font-semibold text-fg">{label}</span>
         <span className="block text-xs text-muted">{detail}</span>
       </span>
-      <span className={done ? "badge-solid" : "badge-neutral"}>{done ? "Done" : "Not yet"}</span>
+      <StatusChip state={done ? "approved" : "pending"} label={done ? "Done" : "Not yet"} />
     </li>
   );
 }
@@ -34,9 +35,9 @@ export default async function AdminOrganizationPage({ params }: { params: Promis
       <header className="space-y-2">
         <h2 className="page-title">{org.name}</h2>
         <p className="flex flex-wrap items-center gap-2 text-sm text-muted">
-          {standing === "approved" && <span className="badge-solid">Approved</span>}
-          {standing === "awaiting" && <span className="badge-butter">Awaiting approval</span>}
-          {standing === "withdrawn" && <span className="badge-coral">Approval withdrawn</span>}
+          {standing === "approved" && <StatusChip state="approved" label="Approved" />}
+          {standing === "awaiting" && <StatusChip state="pending" label="Awaiting approval" />}
+          {standing === "withdrawn" && <StatusChip state="blocked" label="Approval withdrawn" />}
           <span>Signed up <LocalTime iso={org.createdAt.toISOString()} mode="fulldate" /></span>
           {org.approvedAt && <span>· {standing === "approved" ? "approved" : "last approved"} <LocalTime iso={org.approvedAt.toISOString()} mode="fulldate" /></span>}
         </p>

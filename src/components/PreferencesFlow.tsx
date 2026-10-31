@@ -452,7 +452,7 @@ function Review({
     <div className="space-y-4">
       <div className={box}>
         <p className="fieldset-title">Visibility</p>
-        <span className="badge-accent">{mode.label}</span>
+        <span className="tag-accent">{mode.label}</span>
         <p className="text-muted-sm mt-2">{mode.description}</p>
         {canShare && (
           <p className="text-hint mt-2">Approve each answer below that organizations may see. Nothing is shared unless you tick it.</p>

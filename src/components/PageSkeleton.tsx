@@ -1,3 +1,5 @@
+import { Frame, type TemplateName } from "@/components/layout/Page";
+
 /**
  * The placeholder a route shows the moment it's opened, while the server
  * builds the real page (P1.3). Navigation keeps the nav, so only this area
@@ -182,8 +184,20 @@ export function PageSkeleton({
   framed = true,
   filters = true,
   avatars = false,
+  template,
+  panel = false,
+  org = false,
+  panelStart = false,
 }: {
   shape?: SkeletonShape;
+  /** The page's template (redesign §4.2.2): the skeleton draws the same frame, so nothing moves when the page arrives. */
+  template?: TemplateName;
+  /** The template's side panel is there too (an aside, or an inspector on wide screens). */
+  panel?: boolean;
+  /** An organization page: its inspector shows from 1280, as the page's does. */
+  org?: boolean;
+  /** The panel leads (a section's sub-nav on the left), as the page's does. */
+  panelStart?: boolean;
   width?: SkeletonWidth;
   gap?: SkeletonGap;
   label?: string;
@@ -197,6 +211,19 @@ export function PageSkeleton({
   /** Lists: a face on each row (inboxes, members). */
   avatars?: boolean;
 }) {
+  if (template && framed) {
+    const side = (
+      <>
+        <Bar className="h-32 w-full rounded-[var(--radius-card)]" />
+        <Bar className="h-24 w-full rounded-[var(--radius-card)]" />
+      </>
+    );
+    return (
+      <Frame template={template} head={<Heading />} gap={gap} busy={label} panel={panel ? side : undefined} panelKind={template === "listDetail" || template === "workspace" ? "inspector" : "aside"} org={template === "workspace" || org} panelStart={panelStart}>
+        {SHAPES[shape]({ heading: false, filters, avatars })}
+      </Frame>
+    );
+  }
   const body = SHAPES[shape]({ heading: framed, filters, avatars });
   const rhythm = gap ? GAP[gap] : "";
   if (!framed) {

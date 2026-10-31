@@ -1,19 +1,11 @@
+import { StatusBadge } from "@/components/StatusBadge";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { db } from "@/lib/db";
 import { requireArea } from "@/lib/employer-session";
-import { readDisclosure, UUID_RE } from "@/lib/jobs";
 import { expiryToday } from "@/lib/credentials";
-import { stageOf, type HiringSnapshot } from "@/lib/engagements";
-import { loadPipelineFacts } from "@/lib/engagements-data";
-import { ENGAGEMENT_LABELS } from "@/lib/engagement-labels";
-import { applicantJob, fitCampaignAllowed, freeCell, heldCredentials, requiredKinds } from "@/lib/applicants";
-import { loadOrgProfile } from "@/lib/org-profile-data";
-import { workerAccessFor } from "@/lib/worker-access-data";
-import { loadLatestPreference } from "@/lib/political-fit-data";
-import { effectivePreference, employerFitView } from "@/lib/political-fit";
-import { loadAvailability } from "@/lib/availability-data";
-import { loadOrgCredentials } from "@/lib/credentials-data";
+import { engagementStatus } from "@/lib/engagement-labels";
+import { heldCredentials, requiredKinds } from "@/lib/applicants";
+import { applicantForViewer } from "@/lib/applicant-view-data";
 import { Masthead } from "@/components/staff/Masthead";
 import { HiringActions } from "@/components/HiringActions";
 import { EngagementHistory } from "@/components/EngagementHistory";
@@ -23,6 +15,7 @@ import { NotSharedChip } from "@/components/staff/NotSharedChip";
 import { startDirect } from "@/app/messages/actions";
 import { InviteComposer } from "@/components/InviteComposer";
 import { ChevronLeft } from "lucide-react";
+import { RecordPage } from "@/components/layout/Page";
 
 /**
  * One person in the context of one job (C3.2): where they stand, what they
@@ -36,49 +29,22 @@ import { ChevronLeft } from "lucide-react";
  */
 export default async function ApplicantPage({ params }: { params: Promise<{ jobId: string; engagementId: string }> }) {
   const { jobId, engagementId } = await params;
-  if (!UUID_RE.test(jobId) || !UUID_RE.test(engagementId)) notFound();
   const session = await requireArea("hiring");
-  const e = await db().engagement.findFirst({
-    where: { id: engagementId, jobId, job: { orgId: session.orgId } },
-    select: {
-      id: true, status: true, createdAt: true, applicationSnapshot: true, inviteExpiresAt: true,
-      worker: { select: { id: true, displayName: true, closedAt: true } },
-      job: { select: { id: true, title: true, status: true, type: true, startsAt: true, endsAt: true, requirements: true, campaignDisclosure: true, org: { select: { approved: true } }, jurisdiction: { select: { state: true, rules: true } } } },
-    },
-  });
-  if (!e) notFound();
   const now = new Date();
+  // The loader checks hiring access, the organization and the ids itself (redesign §4.3).
+  const a = await applicantForViewer(session, { jobId, engagementId }, { view: "page", now });
+  if (!a) notFound();
+  const { engagement: e, facts, access, open, appJob, profile: view, free, creds, snapshot, hired } = a;
   const job = e.job;
-  const facts = (await loadPipelineFacts([e.id])).get(e.id) ?? { events: [], inReview: false, offerExpiresAt: null };
-  const stage = stageOf(e, facts, now);
-  const access = e.worker.closedAt ? null : await workerAccessFor(session, e.worker.id, job.org.approved);
-  const open = access?.kind === "employer";
-
-  const appJob = applicantJob(job);
-  const [view, latest, avail, creds] = open
-    ? await Promise.all([loadOrgProfile(e.worker.id, session.orgId, now), loadLatestPreference(e.worker.id), loadAvailability(e.worker.id), loadOrgCredentials(e.worker.id, session.orgId)])
-    : [null, null, null, null];
-  // Issue overlap needs a campaign: on this page it's this job's.
-  const withFit = view && {
-    ...view,
-    fit: employerFitView(effectivePreference(latest, now), {
-      orgHasRelationship: open && job.org.approved,
-      campaign: fitCampaignAllowed(e.status) ? readDisclosure(job.campaignDisclosure) : null,
-    }),
-  };
-  const free = view && view.availability !== "withheld" && avail ? freeCell(avail.availability, appJob, expiryToday(now)) : null;
-  const hired = e.status === "ACTIVE" || e.status === "CLAIMED";
-  const s = ENGAGEMENT_LABELS[e.status];
 
   return (
-    <main className="page max-w-3xl">
-      <Masthead eyebrow={`Applicant · ${job.title}`} title={e.worker.displayName} meta={`Since ${e.createdAt.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" })}`}>
+    <RecordPage org head={<Masthead eyebrow={`Applicant · ${job.title}`} title={e.worker.displayName} meta={`Since ${e.createdAt.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" })}`}>
         <Link href={`/hiring/${job.id}/applicants`} className="btn-ghost btn-sm"><ChevronLeft aria-hidden className="size-4 shrink-0" />Applicants</Link>
         <Link href={`/jobs/${job.id}`} className="btn-secondary btn-sm">Job page</Link>
-      </Masthead>
+      </Masthead>}>
 
       <section className="card space-y-3">
-        <p className="flex items-center gap-2 font-medium text-fg">Stage <span className={s.badge}>{stage}</span></p>
+        <p className="flex items-center gap-2 font-medium text-fg">Stage <StatusBadge status={engagementStatus(e, facts, now)} /></p>
         <HiringActions jobId={job.id} jobStatus={job.status} engagementId={e.id} status={e.status} inReview={facts.inReview} offerExpiresAt={facts.offerExpiresAt} inviteExpiresAt={e.inviteExpiresAt} />
         {hired && (
           <form action={startDirect}>
@@ -113,7 +79,7 @@ export default async function ApplicantPage({ params }: { params: Promise<{ jobI
             </dl>
           </section>
           <InviteComposer workerId={e.worker.id} orgId={session.orgId} />
-          <OrgProfileSections view={withFit!} />
+          <OrgProfileSections view={view} />
         </>
       ) : (
         <section className="alert-info">
@@ -128,10 +94,10 @@ export default async function ApplicantPage({ params }: { params: Promise<{ jobI
       )}
 
       <section className="section">
-        <h2 className="section-title">{(e.applicationSnapshot as { kind?: unknown } | null)?.kind === "invitation" ? "When you invited them" : "When they applied"}</h2>
+        <h2 className="section-title">{snapshot?.kind === "invitation" ? "When you invited them" : "When they applied"}</h2>
         <p className="text-muted-sm">Exactly what you could see then. It never changes, even if they share less later.</p>
-        {e.applicationSnapshot ? <SnapshotView snapshot={e.applicationSnapshot as unknown as HiringSnapshot} /> : <p className="text-hint">No copy was kept for this engagement.</p>}
+        {snapshot ? <SnapshotView snapshot={snapshot} /> : <p className="text-hint">No copy was kept for this engagement.</p>}
       </section>
-    </main>
+    </RecordPage>
   );
 }

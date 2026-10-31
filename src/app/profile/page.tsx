@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { ReadingPage } from "@/components/layout/Page";
+import { ProfileNav } from "@/components/ProfileNav";
 import { db } from "@/lib/db";
 import { requireWorker } from "@/lib/worker-session";
 import { loadCampaignHistory, loadScorecardPeriods } from "@/lib/scorecard-data";
@@ -21,8 +23,11 @@ import { PART_DETAILS, RELATIONSHIP_PHRASE, SHARE_PARTS, type ShareAudience } fr
 import { UrlNotice } from "@/components/UrlNotice";
 import { geoTables, resolveArea } from "@/lib/geo";
 import { DEFAULT_TRAVEL_MILES } from "@/lib/matches-data";
-import { Masthead } from "@/components/Masthead";
-import { ChevronRight } from "lucide-react";
+import { Avatar } from "@/components/chat/Avatar";
+import { payoutCta, payoutReadiness } from "@/lib/pay";
+import { stripeProvider } from "@/lib/payout-provider";
+import { expiryReminder } from "@/lib/credentials";
+import { BadgeCheck, Briefcase, CalendarCheck, ChevronRight, ClipboardList, Eye, SlidersHorizontal, Wallet } from "lucide-react";
 
 const AUDIENCE_SHORT: Record<ShareAudience, string> = {
   RELATIONSHIP: `Organizations you ${RELATIONSHIP_PHRASE}`,
@@ -34,7 +39,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
   const { workerId } = await requireWorker();
   const setupDone = (await searchParams).setup === "done";
   const [worker, records, scorecard, fit, history, sharing, avail, creds] = await Promise.all([
-    db().worker.findUniqueOrThrow({ where: { id: workerId }, select: { displayName: true, phone: true } }),
+    db().worker.findUniqueOrThrow({ where: { id: workerId }, select: { displayName: true, phone: true, payoutsEnabled: true, stripeAccountId: true } }),
     db().experienceRecord.findMany({ where: { workerId }, orderBy: { startDate: "desc" } }),
     loadScorecardPeriods(workerId),
     loadLatestPreference(workerId),
@@ -48,12 +53,57 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
   // Matches (C3.4) need a home area Turfcut can place; say so rather than leave the worker unfindable.
   const homePlaced = !sharing.choices.findable || !!resolveArea(sharing.choices.homeArea, await geoTables());
 
+  // The menu's status words (#111, screen 9), each from the record it names; nothing is a generic check mark.
+  const expiryDay = expiryToday();
+  const expired = creds.filter((c) => expiryReminder(c.expiresOn, expiryDay) === "expired").length;
+  const soon = creds.filter((c) => ["30", "7"].includes(expiryReminder(c.expiresOn, expiryDay) ?? "")).length;
+  const credStatus = creds.length === 0 ? "None yet" : expired ? `${expired} expired` : soon ? `${soon} expiring soon` : `${creds.length} on file`;
+  const availStatus = isEmptyAvailability(avail.availability) ? "Not set" : "Set";
+  const readiness = payoutReadiness(stripeProvider().configured(), worker.payoutsEnabled);
+  const payoutStatus = readiness === "off" ? "Not available yet" : payoutCta(readiness, !!worker.stripeAccountId)?.label ?? "Ready";
+  const sharingStatus = sharing.version === null ? "Defaults" : sharing.current ? "Set" : "Needs confirming";
+  const menu = [
+    { href: "/profile/credentials", icon: BadgeCheck, label: "Credentials", status: credStatus, alert: expired > 0 },
+    { href: "/profile/availability", icon: CalendarCheck, label: "Availability", status: availStatus, alert: false },
+    { href: "/earnings#payouts", icon: Wallet, label: "Payout setup", status: payoutStatus, alert: false },
+    { href: "#record", icon: ClipboardList, label: "Work record", status: "", alert: false },
+    { href: "#experience", icon: Briefcase, label: "Experience", status: records.length ? `${records.length} ${records.length === 1 ? "campaign" : "campaigns"}` : "None yet", alert: false },
+    // The defaults are a choice not yet made, not an error; a confirmation that lapsed under new wording is.
+    { href: "/profile/sharing", icon: Eye, label: "Sharing & privacy", status: sharingStatus, alert: sharing.version !== null && !sharing.current },
+    { href: "/settings", icon: SlidersHorizontal, label: "Display settings", status: "", alert: false },
+  ];
+
+  // A ReadingPage with the profile's sections as a sub-nav: on the left from 1024, rows on a phone (redesign §5).
   return (
-    <main className="page">
-      <Masthead title={worker.displayName}>
-        <Link transitionTypes={["nav-forward"]} href="/earnings" className="btn-secondary btn-sm">Earnings</Link>
-        <Link href="/settings" className="btn-ghost btn-sm">Settings &amp; sign out</Link>
-      </Masthead>
+    <ReadingPage
+      panelStart
+      gap={6}
+      panelLabel="Profile sections"
+      aside={<ProfileNav />}
+      head={
+        <header className="profile-head">
+          <Avatar name={worker.displayName} size="lg" />
+          <h1 className="t-headline text-fg">{worker.displayName}</h1>
+          {/* The home area the worker saved for matching, when they set one; never guessed. */}
+          {sharing.choices.homeArea && <p className="text-sm text-subtle">{sharing.choices.homeArea}</p>}
+        </header>
+      }
+    >
+      {/* The concept's menu (#111, screen 9): each row names a real record and says where it stands. */}
+      <nav aria-label="Profile menu" className="-mt-2">
+        <ul className="profile-menu">
+          {menu.map((m) => (
+            <li key={m.href}>
+              <Link transitionTypes={m.href.startsWith("#") ? undefined : ["nav-forward"]} href={m.href} className="profile-row">
+                <m.icon aria-hidden className={`size-5 shrink-0 ${m.alert ? "text-[var(--danger)]" : "text-muted"}`} />
+                <span className="font-semibold">{m.label}</span>
+                {m.status && <span className={`profile-row-status ${m.alert ? "text-[var(--danger)]" : ""}`}>{m.status}</span>}
+                <ChevronRight aria-hidden className={`size-4 shrink-0 text-subtle ${m.status ? "" : "ms-auto"}`} />
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </nav>
 
       {/* Only when a confirmed choice is really on record: a hand-typed ?setup=done claims nothing. */}
       {setupDone && sharing.current && <UrlNotice param="setup" message="Saved. These are your choices now; change them any time under Who sees what." />}
@@ -73,12 +123,12 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
         </section>
       )}
 
-      <section className="section">
-        <h2 className="section-title">Scorecard</h2>
+      <section className="section" id="record">
+        <h2 className="section-title">Work record</h2>
         <ScorecardPanel periods={shareScorecardPeriods(scorecard, ALL_SHARED)} history={history} ringScope={workerId} />
       </section>
 
-      <section className="section">
+      <section className="section" id="experience">
         <h2 className="section-title">Experience</h2>
         <p className="text-hint">
           Seen by: {AUDIENCE_SHORT[sharing.choices.audiences.history]} (experience goes with hours and history). Organizations that see it
@@ -179,7 +229,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
           {mode ? (
             <>
               <div className="space-y-1">
-                <span className="badge-accent">{mode.label}</span>
+                <span className="tag-accent">{mode.label}</span>
                 <p className="text-muted-sm">{mode.description}</p>
               </div>
               <p className="text-hint">
@@ -206,6 +256,6 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
         <h2 className="section-title">Contact</h2>
         <PhoneForm phone={worker.phone} />
       </section>
-    </main>
+    </ReadingPage>
   );
 }

@@ -19,6 +19,10 @@ export const ADMIN_SECTIONS: AdminSection[] = [
 
 /** The section a path belongs to: the longest matching prefix wins. */
 export function activeAdminSection(pathname: string): string | null {
+  // From the console's own root, whatever the path is mounted under.
+  const at = pathname.search(/\/admin(\/|$)/);
+  if (at < 0) return null;
+  pathname = pathname.slice(at);
   const hits = ADMIN_SECTIONS.filter((s) => pathname === s.href || pathname.startsWith(`${s.href}/`));
   return hits.sort((a, b) => b.href.length - a.href.length)[0]?.href ?? null;
 }

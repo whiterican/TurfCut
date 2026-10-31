@@ -7,6 +7,7 @@ import { loadHiredCredentials } from "@/lib/verification-data";
 import { SIDE_LABELS } from "@/lib/proof-sides";
 import { verify } from "./actions";
 import { Masthead } from "@/components/Masthead";
+import { WorkspacePage } from "@/components/layout/Page";
 import { ChevronLeft } from "lucide-react";
 
 const dateText = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
@@ -23,10 +24,9 @@ export default async function OrgCredentialsPage({ searchParams }: { searchParam
   const today = expiryToday();
 
   return (
-    <main className="page max-w-3xl">
-      <Masthead title="Credentials">
+    <WorkspacePage head={<Masthead title="Credentials">
         <Link href="/dashboard" className="btn-ghost btn-sm"><ChevronLeft aria-hidden className="size-4 shrink-0" />Desk</Link>
-      </Masthead>
+      </Masthead>}>
       <p className="lead">
         Record that you checked a hired worker&apos;s credential, and how. Workers see which organization verified it. Other organizations see only that an
         organization did, and how.
@@ -59,7 +59,7 @@ export default async function OrgCredentialsPage({ searchParams }: { searchParam
                       <li key={c.id} className="space-y-2 py-3 first:pt-0 last:pb-0">
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="font-medium text-fg">{name}</span>
-                          <span className={c.verification === "SELF_REPORTED" ? "badge-dashed" : "badge-accent"}>
+                          <span className={`status ${c.verification === "SELF_REPORTED" ? "status-pending" : "status-approved"}`}>
                             {c.byUs ? "Verified by your organization" : VERIFICATION_LABELS[c.verification]}
                           </span>
                           {c.verificationMethod && <span className="text-muted-sm">({METHOD_LABELS[c.verificationMethod]}{c.verifiedAt && c.byUs ? `, ${dateText(c.verifiedAt)}` : ""})</span>}
@@ -114,6 +114,6 @@ export default async function OrgCredentialsPage({ searchParams }: { searchParam
         each time your organization opens it, and once you have, you can record that you checked it that way. A photo is something to check, not proof by
         itself.
       </p>
-    </main>
+    </WorkspacePage>
   );
 }

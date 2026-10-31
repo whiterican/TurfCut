@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { ProgressStep } from "@/lib/field-day";
 import { LocalTime } from "@/components/LocalTime";
 
@@ -30,6 +31,9 @@ export function ShiftProgress({ steps }: { steps: ProgressStep[] }) {
               )}
               {s.detail}
             </p>
+            {s.action && (
+              <Link href={s.action.href} className="link mt-1 inline-block text-xs">{s.action.label}</Link>
+            )}
           </li>
         ))}
       </ol>

@@ -228,12 +228,17 @@ Add the job-activity option **Polling Place Outreach** to the proposed Political
 | # | Category | What it covers | Work arrangement | Sectors | Live today |
 |---|---|---|---|---|---|
 | 1 | **Petition Circulation** | Ballot initiative, referendum and candidate nomination petitions; other lawful signature gathering | In the field | Political | **Yes** (`PETITION`) |
-| 2 | **Door-to-Door Canvassing** | Candidate campaigns, ballot-measure advocacy, voter outreach and registration, GOTV, issue advocacy, general campaign field work | In the field | Political (nonprofit issue advocacy later) | **Yes** (`CANVASS`, with candidate / ballot / civic disclosure) |
+| 2 | **Door-to-Door Canvassing** | Candidate campaigns, ballot-measure advocacy, voter outreach and registration, GOTV, issue advocacy, general campaign field work | In the field | Political (nonprofit issue advocacy later) | **Yes** (`CANVASS`, with ballot / civic disclosure). **Candidate campaign canvassing is in development** (founder, 2026-10-28): a candidate job can be posted, and the app tags it "In development" until its own tools launch |
 | 3 | **Phone Banking** | Political outreach, supporter recruitment, nonprofit calling campaigns, fundraising calls, permitted commercial outreach | **Remote / Work From Home** or **Office / On-Site** | Political, Nonprofit, Private | No |
 | 4 | **Phone Polling** | Political opinion research, public surveys, nonprofit research, customer or market research. **Distinct from phone banking** | **Remote / Work From Home** or **Office / On-Site** | Political, Nonprofit, Private | No |
 | 5 | **Door-to-Door Polling** | In-person survey interviewing, public-opinion studies, community research, program evaluation, market research | In the field | Political, Nonprofit, Private | No |
 | 6 | **Door-to-Door Fundraising** | Charitable fundraising, nonprofit donation campaigns, membership recruitment, cause-based fundraising | In the field | Nonprofit | No |
 | 7 | **Door-to-Door Sales** | Residential sales, customer acquisition, lead generation, appointment setting, other permitted commercial neighborhood outreach | In the field | Private | No |
+| 8 | **Phone Sales and Cold Calling** (added 2026-10-28) | Outbound sales calls, cold calling, phone appointment setting; Do-Not-Call and call-recording consent rules apply | **Remote / Work From Home** or **Office / On-Site** | Private | No |
+
+**Sales roles (founder decision, 2026-10-28):** appointment setter, closer and team manager are **roles inside one sales job** (one campaign, several role slots), not job categories. The lead model is designed for the handoff (a setter's appointment is a lead event; the lead is assigned to a closer), and the manager is an organization role with field and scheduling grants. Commission pay is its own later milestone: pay today is verified time or accepted units, never a reported sale.
+
+**In the app (`src/lib/job-categories.ts`, 2026-10-28):** every category carries a status the reader sees — built (no tag), **In development** (candidate campaign canvassing) or **Planned** (the six below) — on job cards, rows and the job's own page, and the job form lists the planned categories as disabled options. A planned category is never presented as launched.
 
 **Data model direction (unchanged from above, still needs its own approved migration):** separate `sector`, `workActivity` (the seven values), `workMode` (`REMOTE` / `ONSITE`, only for phone banking and phone polling) and campaign purpose/disclosure. Existing `PETITION` and `CANVASS` jobs map to activities 1 and 2 without rewriting history. Never encode a planned category as `CANVASS` to avoid a migration.
 

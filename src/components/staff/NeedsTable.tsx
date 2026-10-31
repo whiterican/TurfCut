@@ -1,3 +1,4 @@
+import { StatusChip } from "@/components/StatusBadge";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { LocalTime } from "@/components/LocalTime";
@@ -29,7 +30,7 @@ export function NeedsTable({ items }: { items: DeskItem[] }) {
           {items.map((n) => (
             <tr role="row" key={n.key}>
               <th role="rowheader" scope="row" className="ops-title">{n.title}</th>
-              <td role="cell" className="ops-state"><span className={n.badge}>{n.tag}</span></td>
+              <td role="cell" className="ops-state"><StatusChip state={n.state} label={n.tag} /></td>
               <td role="cell" className="ops-about">{n.sub}</td>
               <td role="cell" className="ops-when">
                 {n.when ? (

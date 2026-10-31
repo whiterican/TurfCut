@@ -1,5 +1,5 @@
 import { PageSkeleton } from "@/components/PageSkeleton";
 
 export default function Loading() {
-  return <PageSkeleton shape="list" width="2xl" label="Loading receipts" />;
+  return <PageSkeleton template="list" shape="list" label="Loading receipts" />;
 }

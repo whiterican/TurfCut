@@ -14,6 +14,7 @@ import {
   jobCredentials,
   publishBlockers,
   readHiringModes,
+  validateDraft,
   validateJob,
   type JobDisclosure,
   type JurisdictionFacts,
@@ -53,6 +54,12 @@ const ready = (): PublishFacts => ({
 describe("publish gate (jurisdiction hard stop, spec p.15)", () => {
   it("lets a complete job in an approved, current jurisdiction publish", () => {
     expect(publishBlockers(ready(), now)).toEqual([]);
+  });
+
+  it("blocks an end date before the start date (a part-way draft could hold one)", () => {
+    const f = ready();
+    f.job.startsAt = new Date("2026-11-10");
+    expect(publishBlockers(f, now)).toEqual(["The end date is before the start date."]);
   });
 
   it("blocks unknown, unapproved, superseded, not-yet-effective and expired jurisdictions — with reasons", () => {
@@ -212,6 +219,58 @@ describe("validateJob", () => {
     const r = validateJob({ ...form, type: "PHONEBANK", payRate: "-1", headcount: "0", endsAt: "2026-10-01", hiringModes: [], affiliation: "whig", issue_gun_rights: "maybe" });
     expect(!r.ok && Object.keys(r.errors).sort()).toEqual(["affiliation", "endsAt", "headcount", "hiringModes", "issues", "payRate", "type"]);
   });
+
+  describe("validateDraft (autosave, P0 3)", () => {
+    it("keeps a draft from the first step: title, type and place are enough", () => {
+      const r = validateDraft({ title: "Denver signature drive", type: "PETITION", jurisdictionId: form.jurisdictionId });
+      if (!r.ok) throw new Error("draft");
+      expect(r.draft).toMatchObject({ title: "Denver signature drive", type: "PETITION", jurisdictionId: form.jurisdictionId, description: null, launch: null, tools: null });
+      expect(r.draft.hiringModes).toBeUndefined();
+      expect(r.draft.startsAt).toBeUndefined();
+      expect(r.draft.payRateCents).toBeUndefined();
+      expect(r.draft.disclosure).toBeUndefined();
+      expect(r.draft.supportContacts).toBeUndefined();
+      expect(r.dropped).not.toContain("title");
+    });
+
+    it("needs the title, type and place first, and says which is missing", () => {
+      expect(validateDraft({ type: "PETITION", jurisdictionId: form.jurisdictionId })).toEqual({ ok: false, errors: { title: "Title is required." } });
+      expect(validateDraft({ title: "x", type: "PHONEBANK", jurisdictionId: "nope" })).toMatchObject({ ok: false, errors: { type: expect.any(String), jurisdictionId: expect.any(String) } });
+    });
+
+    it("drops a field with a problem and keeps the rest; an invalid rate is never saved", () => {
+      const r = validateDraft({ ...form, payRate: "-1", endsAt: "2026-10-01", training: "x".repeat(121), campaignName: "y".repeat(121) });
+      if (!r.ok) throw new Error("draft");
+      expect(r.draft.payRateCents).toBeUndefined();
+      expect(r.draft.compensationMethod).toBe("HOURLY");
+      expect(r.draft.headcount).toBe(10);
+      expect(r.draft.startsAt).toBeUndefined(); // the end is before the start: the pair waits
+      expect(r.draft.endsAt).toBeUndefined();
+      // One bad name inside a group drops that name only: the badge box and the message survive.
+      expect(r.draft.requirements).toEqual({ badge: true, registration: false, affidavit: false, training: null, script: null });
+      expect(r.draft.disclosure).toMatchObject({ campaignType: "ballot_measure", campaignName: null, message: "Put affordable housing on the ballot." });
+      expect(r.dropped.sort()).toEqual(["campaignName", "endsAt", "payRate", "training"]);
+    });
+
+    it("keeps the dates, and the city and state, as pairs, so a start moved past the stored end is never saved alone", () => {
+      const r = validateDraft({ ...form, startsAt: "2026-11-20" }); // after the end date
+      if (!r.ok) throw new Error("draft");
+      expect(r.draft.startsAt).toBeUndefined();
+      expect(r.draft.endsAt).toBeUndefined();
+      const g = validateDraft({ ...form, state: "Colorado" });
+      if (!g.ok) throw new Error("draft");
+      expect(g.draft.city).toBeUndefined();
+      expect(g.draft.state).toBeUndefined();
+    });
+
+    it("is the full job when the form is complete, so the final save and the autosave agree", () => {
+      const full = validateJob(form);
+      const draft = validateDraft(form);
+      if (!full.ok || !draft.ok) throw new Error("form");
+      expect(draft.draft).toEqual(full.value);
+      expect(draft.dropped).toEqual([]);
+    });
+  });
 });
 
 describe("job card answers the five questions (spec p.7)", () => {
@@ -306,6 +365,11 @@ describe("feed filters", () => {
       noCredentials: true,
     });
     expect(parseFeedFilters(new URLSearchParams("type=DROP TABLE&minRate=-3&startsBefore=soon"))).toEqual({});
+    // The search box: trimmed, whitespace collapsed, cut at 80 characters; blank means no search.
+    expect(parseFeedFilters(new URLSearchParams("q=  front   range "))).toEqual({ q: "front range" });
+    expect(parseFeedFilters(new URLSearchParams("q=%20%20"))).toEqual({});
+    expect(parseFeedFilters(new URLSearchParams("q=%25_front%25"))).toEqual({ q: "front" });
+    expect(parseFeedFilters(new URLSearchParams(`q=${"x".repeat(100)}`)).q).toHaveLength(80);
     // "This week" quick filter: the next 7 days from now.
     const now = new Date("2026-10-01T12:00:00Z");
     expect(parseFeedFilters(new URLSearchParams("week=1"), now)).toEqual({ startsBefore: new Date("2026-10-08T12:00:00Z") });

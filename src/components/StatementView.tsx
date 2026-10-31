@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { LocalTime } from "@/components/LocalTime";
 import { money, statusLabel } from "@/lib/pay";
+import type { Status } from "@/lib/status";
+import { StatusBadge, StatusChip } from "@/components/StatusBadge";
 import { DISPUTE_SLA } from "@/lib/dispute-sla";
 import type { StatementLine, StatementView as View } from "@/lib/statements-data";
 
@@ -11,7 +13,7 @@ function Amount({ cents, bold = false }: { cents: number; bold?: boolean }) {
 }
 
 function LineRow({ l }: { l: StatementLine }) {
-  const st = l.withdrawnAfterClose ? { label: "Withdrawn after this statement closed", badge: "badge-neutral" } : statusLabel(l.status, l.amountCents);
+  const st: Status = l.withdrawnAfterClose ? { label: "Withdrawn after this statement closed", state: "closed" } : statusLabel(l.status, l.amountCents);
   return (
     <li className="flex items-start justify-between gap-4 px-4 py-3">
       <div className="min-w-0 space-y-0.5">
@@ -29,7 +31,7 @@ function LineRow({ l }: { l: StatementLine }) {
           {l.corrects ? ` · corrects ${l.corrects}` : ""}
           {l.receipt ? ` · ${l.receipt}` : ""}
         </p>
-        <span className={st.badge}>{st.label}</span>
+        <StatusBadge status={st} />
       </div>
       <div className="shrink-0 text-right">
         <Amount cents={l.amountCents} />
@@ -59,7 +61,7 @@ export function StatementView({ s }: { s: View }) {
               )}
             </p>
           </div>
-          <span className={s.status === "closed" ? "badge-neutral" : "badge-butter"}>{s.status === "closed" ? "Closed" : "In progress"}</span>
+          <StatusChip state={s.status === "closed" ? "closed" : "pending"} label={s.status === "closed" ? "Closed" : "In progress"} />
         </header>
         <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-4">
           <div>
@@ -181,9 +183,10 @@ export function StatementView({ s }: { s: View }) {
                   {d.clock.daysToFirstResponse !== null ? ` · first reply in ${d.clock.daysToFirstResponse} business ${d.clock.daysToFirstResponse === 1 ? "day" : "days"}` : " · no reply yet"}
                   {d.resolvedAt ? ` · resolved in ${d.clock.daysToResolution} business ${d.clock.daysToResolution === 1 ? "day" : "days"} (${OUTCOME[d.outcome ?? ""] ?? d.outcome})` : " · still open"}
                 </p>
-                <span className={`${d.onTime === null ? (d.clock.overdue ? "badge-coral" : "badge-butter") : d.onTime ? "badge-accent" : "badge-coral"}`}>
-                  {d.onTime === null ? (d.clock.overdue ? "Overdue" : "Open") : d.onTime ? "On time" : "Late"}
-                </span>
+                <StatusChip
+                  state={d.onTime === null ? (d.clock.overdue ? "overdue" : "disputed") : d.onTime ? "approved" : "overdue"}
+                  label={d.onTime === null ? (d.clock.overdue ? "Overdue" : "Open") : d.onTime ? "On time" : "Late"}
+                />
               </li>
             ))}
           </ul>

@@ -2,6 +2,8 @@ import Link from "next/link";
 import { ActionButton } from "@/components/ActionButton";
 import { LocalTime } from "@/components/LocalTime";
 import { clockParts } from "@/lib/dispute-sla";
+import type { Status } from "@/lib/status";
+import { StatusBadge } from "@/components/StatusBadge";
 import type { ThreadView } from "@/lib/dispute-thread-data";
 import type { ActionState } from "@/app/jobs/actions";
 
@@ -15,7 +17,7 @@ const OUTCOME: Record<string, string> = { KEPT: "Pay kept as it was", ADJUSTED: 
 export function DisputeThread({ t, send, children }: { t: ThreadView; send: (p: ActionState, fd: FormData) => Promise<ActionState>; children?: React.ReactNode }) {
   const worker = t.viewer === "worker";
   const clock = clockParts(t.clock, t.viewer, t.job.orgName);
-  const badge = t.resolution ? { label: "Closed", badge: "badge-neutral" } : t.clock.overdue ? { label: "Overdue", badge: "badge-coral" } : { label: "Open", badge: "badge-butter" };
+  const badge: Status = t.resolution ? { label: "Closed", state: "closed" } : t.clock.overdue ? { label: "Overdue", state: "overdue" } : { label: "Open", state: "disputed" };
   return (
     <div className="space-y-6">
       <section className="card space-y-3">
@@ -29,7 +31,7 @@ export function DisputeThread({ t, send, children }: { t: ThreadView; send: (p: 
               {worker ? ` · ${t.job.orgName}` : ` · ${t.worker.name}`}
             </p>
           </div>
-          <span className={badge.badge}>{badge.label}</span>
+          <StatusBadge status={badge} />
         </div>
         <blockquote className="border-l-2 border-border pl-3 text-sm text-fg">{t.reason}</blockquote>
         <p className="text-xs text-muted">
@@ -59,7 +61,7 @@ export function DisputeThread({ t, send, children }: { t: ThreadView; send: (p: 
         <ol className="space-y-3">
           {t.messages.map((m) => (
             <li key={m.id} className={`max-w-[85%] space-y-1 ${m.mine ? "ml-auto" : ""}`}>
-              <div className={`rounded-2xl px-4 py-3 text-sm whitespace-pre-wrap ${m.mine ? "bg-[var(--hero)] text-[var(--hero-fg)]" : "bg-surface-2 text-fg"}`}>{m.body}</div>
+              <div className={`rounded-2xl px-4 py-3 text-sm whitespace-pre-wrap ${m.mine ? "bubble-mine" : "bg-surface-2 text-fg"}`}>{m.body}</div>
               <p className={`text-xs text-muted ${m.mine ? "text-right" : ""}`}>
                 {m.author} · <LocalTime iso={m.createdAt.toISOString()} />
               </p>

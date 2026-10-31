@@ -1,8 +1,11 @@
 "use client";
 
+import type { Status } from "@/lib/status";
+import { StatusBadge } from "@/components/StatusBadge";
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
+import { ClipboardList, Navigation } from "lucide-react";
 import { useSyncExternalStore } from "react";
+import { directionsHref } from "@/lib/directions";
 
 export interface DayShift {
   id: string;
@@ -11,7 +14,7 @@ export interface DayShift {
   title: string;
   org: string;
   staging: string | null;
-  status: { label: string; badge: string };
+  status: Status;
 }
 
 const noop = () => () => {};
@@ -23,12 +26,15 @@ const localDay = (offset: number) => {
 };
 
 /**
- * Shifts grouped under the day they start (D2, from the owner's schedule
- * mockup): a day heading ("Today", "Tomorrow", "Sat, Oct 25"), then one row
- * per shift with its times, place and organization, and its status as a pill.
- * Days keep the order they're given in, so pass the shifts sorted by start
- * (soonest first, or newest first for the past week). Days are the viewer's own: the server doesn't know the time zone, so it
- * groups by UTC and the browser regroups after hydration, as LocalTime does.
+ * Shifts grouped under the day they start (#111, screen 4): a day heading
+ * ("Today", "Tomorrow", "Sun, Oct 26"), then one white card per shift with a
+ * narrow accent in its status colour, the title, times, place and
+ * organization, the real status pill, and two actions: the shift itself and
+ * directions to its staging point (only when there is one). Days keep the
+ * order they're given in, so pass the shifts sorted by start (soonest first,
+ * or newest first for the past). Days are the viewer's own: the server
+ * doesn't know the time zone, so it groups by UTC and the browser regroups
+ * after hydration, as LocalTime does.
  */
 export function ShiftDayList({ shifts, headingLevel = 3 }: { shifts: DayShift[]; /** The day headings' level under the page's own headings. */ headingLevel?: 2 | 3 }) {
   const H = headingLevel === 2 ? "h2" : "h3";
@@ -57,27 +63,29 @@ export function ShiftDayList({ shifts, headingLevel = 3 }: { shifts: DayShift[];
   return (
     <div className="space-y-5">
       {groups.map((g) => (
-        <div key={`${g.key}-${g.items[0].id}`} className="space-y-2">
+        <section key={`${g.key}-${g.items[0].id}`} className="space-y-2.5" aria-label={g.label}>
           <H className="day-heading">{g.label}</H>
-          <ul className="list-card divide-y divide-border">
+          <ul className="space-y-2.5">
             {g.items.map((s) => (
-              <li key={s.id}>
-                <Link transitionTypes={["nav-forward"]} href={`/shifts/${s.id}`} className="shift-row group">
-                  <span className="min-w-0 flex-1">
-                    <span className="block font-semibold text-fg">{s.title}</span>
-                    <span className="block text-sm text-muted tabular-nums">
-                      {time(s.startsAt)} – {time(s.endsAt)}
-                      {s.staging ? ` · ${s.staging}` : ""}
-                    </span>
-                    <span className="block text-sm text-muted">{s.org}</span>
-                  </span>
-                  <span className={`${s.status.badge} self-start`}>{s.status.label}</span>
-                  <ChevronRight aria-hidden className="size-4 shrink-0 self-center text-subtle transition-transform group-hover:translate-x-0.5" />
-                </Link>
+              <li key={s.id} className="shift-card" data-state={s.status.state}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <Link transitionTypes={["nav-forward"]} href={`/shifts/${s.id}`} className="t-section block text-fg hover:underline">{s.title}</Link>
+                    <p className="text-sm text-subtle tabular-nums">{time(s.startsAt)} – {time(s.endsAt)}</p>
+                    <p className="truncate text-sm text-subtle">{s.staging ? `${s.staging} · ` : ""}{s.org}</p>
+                  </div>
+                  <StatusBadge status={s.status} className="shrink-0" />
+                </div>
+                <div className="shift-card-actions">
+                  <Link transitionTypes={["nav-forward"]} href={`/shifts/${s.id}`} className="btn-secondary btn-sm"><ClipboardList aria-hidden className="btn-icon" />View details<span className="sr-only"> for {s.title}</span></Link>
+                  {s.staging && (
+                    <a href={directionsHref(s.staging)} target="_blank" rel="noopener noreferrer" className="btn-secondary btn-sm"><Navigation aria-hidden className="btn-icon" />Get directions<span className="sr-only"> to {s.staging} (opens your maps app)</span></a>
+                  )}
+                </div>
               </li>
             ))}
           </ul>
-        </div>
+        </section>
       ))}
     </div>
   );

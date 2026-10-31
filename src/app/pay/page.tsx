@@ -5,12 +5,14 @@ import { loadOrgDisputes, loadOrgPay, partialReversals, pendingTransfers, review
 import { noteOverdueDisputes } from "@/lib/dispute-thread-data";
 import { clockParts } from "@/lib/dispute-sla";
 import { stripeProvider } from "@/lib/payout-provider";
-import { money, PLATFORM_FEE_BPS, statusLabel } from "@/lib/pay";
+import { money, payoutReadiness, PLATFORM_FEE_BPS, statusLabel } from "@/lib/pay";
+import { StatusBadge, StatusChip } from "@/components/StatusBadge";
 import { LocalTime } from "@/components/LocalTime";
 import { ActionButton } from "@/components/ActionButton";
 import { ApproveLines, HoldLine, RecordReversal, ResolveDispute } from "@/components/PayForms";
 import { approve, checkPayment, hold, payNow, recordReversal, release, resolve } from "./actions";
 import { Masthead } from "@/components/Masthead";
+import { ReadingPage, WorkspacePage } from "@/components/layout/Page";
 
 const day = (d: Date) => d.toISOString().slice(0, 10);
 
@@ -48,12 +50,12 @@ export default async function PayPage({ searchParams }: { searchParams: Promise<
   const s = await requireArea("pay");
   if (!s.orgId) {
     return (
-      <main className="page max-w-2xl">
+      <ReadingPage org>
         <div className="empty-state">
           <p className="empty-state-title">No organization yet</p>
           <p className="empty-state-body">Pay is managed by an organization&apos;s owner or finance team.</p>
         </div>
-      </main>
+      </ReadingPage>
     );
   }
   const actor = { profileId: s.userId, orgId: s.orgId, role: s.role, grants: s.grants };
@@ -88,8 +90,7 @@ export default async function PayPage({ searchParams }: { searchParams: Promise<
   };
 
   return (
-    <main className="page max-w-3xl">
-      <Masthead
+    <WorkspacePage head={<Masthead
         title="Pay"
         meta={
           <div className="space-y-1">
@@ -100,26 +101,26 @@ export default async function PayPage({ searchParams }: { searchParams: Promise<
             {!stripeOn && <p className="text-hint">Stripe isn&apos;t connected yet: you can approve pay, and it&apos;s sent once Stripe is set up.</p>}
           </div>
         }
-      />
+      />}>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <div className="stat">
-          <p className="stat-value">{money(sum(pay.awaiting))}</p>
-          <p className="stat-label">Awaiting approval</p>
+      <section className="stat-tiles" aria-label="Pay totals">
+        <div className="stat-tile">
+          <p className="stat-tile-figure">{money(sum(pay.awaiting))}</p>
+          <p className="stat-tile-label">Awaiting approval</p>
         </div>
-        <div className="stat">
-          <p className="stat-value">{money(readyTotal)}</p>
-          <p className="stat-label">Ready to pay</p>
+        <div className="stat-tile">
+          <p className="stat-tile-figure">{money(readyTotal)}</p>
+          <p className="stat-tile-label">Ready to pay</p>
         </div>
-        <div className="stat">
-          <p className="stat-value">{disputes.length}</p>
-          <p className="stat-label">Open disputes</p>
+        <div className="stat-tile">
+          <p className="stat-tile-figure">{disputes.length}</p>
+          <p className="stat-tile-label">Open disputes</p>
         </div>
-        <div className="stat">
-          <p className="stat-value">{money(sum(pay.paid.filter((l) => (l.state.paidAt ?? today) >= monthAgo)))}</p>
-          <p className="stat-label">Paid, last 30 days</p>
+        <div className="stat-tile">
+          <p className="stat-tile-figure">{money(sum(pay.paid.filter((l) => (l.state.paidAt ?? today) >= monthAgo)))}</p>
+          <p className="stat-tile-label">Paid, last 30 days</p>
         </div>
-      </div>
+      </section>
 
       <nav aria-label="Pay sections" className="flex flex-wrap gap-2">
         {TABS.map((t) => (
@@ -206,7 +207,7 @@ export default async function PayPage({ searchParams }: { searchParams: Promise<
                           : ""}
                   </p>
                 </div>
-                <span className={`shrink-0 ${d.clock.overdue ? "badge-coral" : "badge-butter"}`}>{d.clock.overdue ? "Overdue" : "Disputed"}</span>
+                <StatusChip state={d.clock.overdue ? "overdue" : "disputed"} label={d.clock.overdue ? "Overdue" : "Disputed"} className="shrink-0" />
               </div>
               <blockquote className="border-l-2 border-border pl-3 text-sm text-fg">{d.reason}</blockquote>
               <p className="text-xs text-muted">
@@ -332,7 +333,7 @@ export default async function PayPage({ searchParams }: { searchParams: Promise<
                 </span>
                 <span className="shrink-0 text-right">
                   <span className="block font-bold text-fg">{money(l.line.amountCents)}</span>
-                  <span className={statusLabel(l.state.status, l.line.amountCents, { payouts: l.line.worker.payoutsEnabled }).badge}>{statusLabel(l.state.status, l.line.amountCents, { payouts: l.line.worker.payoutsEnabled }).label}</span>
+                  <StatusBadge status={statusLabel(l.state.status, l.line.amountCents, { payouts: payoutReadiness(stripeOn, l.line.worker.payoutsEnabled) })} />
                 </span>
               </li>
             ))}
@@ -370,6 +371,6 @@ export default async function PayPage({ searchParams }: { searchParams: Promise<
           </ul>
         </section>
       )}
-    </main>
+    </WorkspacePage>
   );
 }

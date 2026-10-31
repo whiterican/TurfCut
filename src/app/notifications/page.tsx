@@ -8,6 +8,8 @@ import { LocalTime } from "@/components/LocalTime";
 import { markNotificationsRead } from "./actions";
 import { EmptyArt } from "@/components/EmptyState";
 import { Masthead } from "@/components/Masthead";
+import { ReadingPage } from "@/components/layout/Page";
+import { ChevronRight } from "lucide-react";
 
 export const metadata = { title: "Notifications · Turfcut" };
 
@@ -35,16 +37,20 @@ export default async function NotificationsPage() {
   const unread = items.filter((n) => !n.readAt).length;
 
   return (
-    <main className="page max-w-2xl">
-      <Masthead title="Notifications" meta={<>{viewer === "worker" ? "Hiring steps, your pay disputes and payouts, and new posts from campaigns you asked to hear from." : "Hiring steps, pay disputes and Turfcut's decisions that concern you."} Nobody is told whether you read them.</>}>
-        {unread > 0 && (
-          <form action={markNotificationsRead}>
-            {/* Only the ones shown here: anything newer stays unread until it's seen. */}
-            {items.filter((n) => !n.readAt).map((n) => <input key={n.id} type="hidden" name="id" value={n.id} />)}
-            <button className="btn-secondary btn-sm">Mark these as read</button>
-          </form>
-        )}
-      </Masthead>
+    <ReadingPage
+      gap={6}
+      head={
+        <Masthead title="Notifications" meta={<>{viewer === "worker" ? "Hiring steps, your pay disputes and payouts, and new posts from campaigns you asked to hear from." : "Hiring steps, pay disputes and Turfcut's decisions that concern you."} Nobody is told whether you read them.</>}>
+          {unread > 0 && (
+            <form action={markNotificationsRead}>
+              {/* Only the ones shown here: anything newer stays unread until it's seen. */}
+              {items.filter((n) => !n.readAt).map((n) => <input key={n.id} type="hidden" name="id" value={n.id} />)}
+              <button className="btn-secondary btn-sm">Mark these as read</button>
+            </form>
+          )}
+        </Masthead>
+      }
+    >
       {items.length === 0 ? (
         <div className="empty-state">
           <EmptyArt kind="notices" />
@@ -52,26 +58,28 @@ export default async function NotificationsPage() {
           <p className="empty-state-body">{viewer === "worker" ? "Offers, invitations, answers and posts from campaigns you get notices from appear here." : "Applications, claims and answers appear here."}</p>
         </div>
       ) : (
-        <ul className="list-card">
+        // Rows as Messages draws them (#111): white rows with dividers, bold while unread, the time under, a chevron.
+        <ul className="thread-list">
           {items.map((n) => {
             const t = n.t;
             return (
               <li key={n.id}>
-                <Link href={t.href} className="flex items-start gap-3 px-4 py-3 text-fg transition hover:bg-surface-2">
-                  <span aria-hidden className={`mt-2 size-2 shrink-0 rounded-full ${n.readAt ? "bg-transparent" : "bg-solid"}`} />
-                  <span className="min-w-0 space-y-0.5">
-                    <span className={`block ${n.readAt ? "" : "font-semibold"}`}>
+                <Link href={t.href} className="thread-row">
+                  <span aria-hidden className={`legend-dot ${n.readAt ? "opacity-0" : "legend-on"}`} />
+                  <span className="min-w-0 flex-1">
+                    <span className={`block text-base leading-6 text-fg ${n.readAt ? "" : "font-semibold"}`}>
                       {t.text}
                       {!n.readAt && <span className="sr-only"> (unread)</span>}
                     </span>
-                    <span className="text-muted-sm block"><LocalTime iso={n.createdAt.toISOString()} /></span>
+                    <span className="block text-sm text-subtle"><LocalTime iso={n.createdAt.toISOString()} /></span>
                   </span>
+                  <ChevronRight aria-hidden className="size-5 shrink-0 text-subtle" />
                 </Link>
               </li>
             );
           })}
         </ul>
       )}
-    </main>
+    </ReadingPage>
   );
 }

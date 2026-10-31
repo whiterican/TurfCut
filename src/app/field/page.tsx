@@ -56,7 +56,7 @@ export default async function FieldPage({ searchParams }: { searchParams: Search
         head={
           <Masthead title="Field map" meta="The last 12 hours and the next 24. Assigned turf only: nobody's position is on this map. Figures update on their own while this page is open.">
             <Link href={`/field/${isoDay(now)}`} className="btn-ghost btn-sm">By date (UTC)</Link>
-            <Link href="/field/review" className="btn-secondary btn-sm">Review queue{orgWaiting ? ` (${orgWaiting}${orgMore ? "+" : ""})` : ""}</Link>
+            <Link href="/field/review" className="btn-secondary btn-sm">Review queue{orgWaiting ? ` (${job ? "all jobs: " : ""}${orgWaiting}${orgMore ? "+" : ""})` : ""}</Link>
           </Masthead>
         }
       >

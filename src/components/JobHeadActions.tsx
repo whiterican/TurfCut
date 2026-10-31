@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useId, useRef, useState } from "react";
 import { ArrowLeft, Bookmark, BookmarkCheck, Check, Share } from "lucide-react";
 import { markJobAction } from "@/app/jobs/mark-actions";
 import type { ActionState } from "@/app/jobs/actions";
@@ -17,6 +17,9 @@ import { isShareCancelled, LINK_COPIED, saveFailureText, SHARE_FAILED } from "@/
 export function JobHeadActions({ jobId, back, saved, canSave, title }: { jobId: string; back: string; saved: boolean; canSave: boolean; title: string }) {
   // One column of notes under the controls (#113 review, P2): a failed save and a failed share never cover each other.
   const [saveError, setSaveError] = useState<string | null>(null);
+  // Bumped on every failure, so the same message after a failed retry is announced again.
+  const [attempt, setAttempt] = useState(0);
+  const errorId = useId();
   const [shareFailedUrl, setShareFailedUrl] = useState<string | null>(null);
   return (
     <div className="job-head-actions">
@@ -24,12 +27,12 @@ export function JobHeadActions({ jobId, back, saved, canSave, title }: { jobId: 
         <ArrowLeft aria-hidden className="size-5" />
       </Link>
       <span className="flex gap-2">
-        {canSave && <SaveButton jobId={jobId} saved={saved} error={saveError} onError={setSaveError} />}
+        {canSave && <SaveButton jobId={jobId} saved={saved} errorId={saveError ? errorId : undefined} onError={(m) => { setSaveError(m); if (m) setAttempt((n) => n + 1); }} />}
         <ShareButton title={title} onFailed={setShareFailedUrl} />
       </span>
       <div className="job-head-notes">
         <div role="alert" className={saveError ? "job-head-note" : "sr-only"}>
-          <span id="job-save-error">{saveError ?? ""}</span>
+          <span key={attempt} id={errorId}>{saveError ?? ""}</span>
           {saveError && <button type="button" className="job-head-dismiss" onClick={() => setSaveError(null)}>Dismiss</button>}
         </div>
         <div role="alert" className={shareFailedUrl ? "job-head-note" : "sr-only"}>
@@ -46,7 +49,7 @@ export function JobHeadActions({ jobId, back, saved, canSave, title }: { jobId: 
   );
 }
 
-function SaveButton({ jobId, saved, error, onError }: { jobId: string; saved: boolean; error: string | null; onError: (m: string | null) => void }) {
+function SaveButton({ jobId, saved, errorId, onError }: { jobId: string; saved: boolean; errorId?: string; onError: (m: string | null) => void }) {
   const [isSaved, setSaved] = useState(saved);
   // The action's result is kept (#113 review, P2): a refused or failed mark keeps the previous state, says so, and the button stays usable for a retry.
   const [, act, pending] = useActionState(async (prev: ActionState, fd: FormData): Promise<ActionState> => {
@@ -71,7 +74,7 @@ function SaveButton({ jobId, saved, error, onError }: { jobId: string; saved: bo
     <form action={act}>
       <input type="hidden" name="jobId" value={jobId} />
       <input type="hidden" name="mark" value={isSaved ? "unsave" : "save"} />
-      <button type="submit" className="job-head-btn" aria-pressed={isSaved} aria-label={isSaved ? "Saved (tap to unsave)" : "Save this job"} disabled={pending} aria-describedby={error ? "job-save-error" : undefined}>
+      <button type="submit" className="job-head-btn" aria-pressed={isSaved} aria-label={isSaved ? "Saved (tap to unsave)" : "Save this job"} disabled={pending} aria-describedby={errorId}>
         {isSaved ? <BookmarkCheck aria-hidden className="size-5" /> : <Bookmark aria-hidden className="size-5" />}
       </button>
     </form>
@@ -80,11 +83,14 @@ function SaveButton({ jobId, saved, error, onError }: { jobId: string; saved: bo
 
 function ShareButton({ title, onFailed }: { title: string; onFailed: (url: string | null) => void }) {
   const [copied, setCopied] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
   async function copy(url: string) {
     try {
       await navigator.clipboard.writeText(url);
       setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
+      if (timer.current) clearTimeout(timer.current);
+      timer.current = setTimeout(() => setCopied(false), 1500);
     } catch {
       // Clipboard denied or unavailable: the link itself, to copy by hand.
       onFailed(url);

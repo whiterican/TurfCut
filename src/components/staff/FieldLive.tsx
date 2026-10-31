@@ -133,20 +133,26 @@ export function LiveGroupFigure({ group, of, fallback, unit }: { group: string; 
   );
 }
 
-/** One turf's live figure (#111, screen 11): the zone's shifts on the ground or in total, following the map's own summary. */
-export function LiveZoneFigure({ id, of, fallback }: { id: string; of: "onGround" | "total"; fallback: number }) {
+/** One turf's live figure (#111, screen 11): the zone's shifts on the ground or in total, following the map's own summary; its unit word follows the live value. */
+export function LiveZoneFigure({ id, of, fallback, unit }: { id: string; of: "onGround" | "total"; fallback: number; unit?: [string, string] }) {
   const z = useFieldLive()?.zones.find((x) => x.id === id);
-  return <CountUp value={z ? z[of] : fallback} />;
+  const n = z ? z[of] : fallback;
+  return (
+    <>
+      <CountUp value={n} />
+      {unitFor(n, unit)}
+    </>
+  );
 }
 
-/** A turf card's bar: the share of its shifts on the ground now, as wide as that share. A zone the summary no longer carries shows the server's figures again. */
-export function LiveZoneBar({ id, fallback }: { id: string; fallback: [number, number] }) {
+/** A turf card's bar: the share of its shifts checked in now, as wide as that share. A zone the summary no longer carries shows the server's figures again. */
+export function LiveZoneBar({ id, name, fallback }: { id: string; name: string; fallback: [number, number] }) {
   const z = useFieldLive()?.zones.find((x) => x.id === id);
   const [a, b] = z ? [z.onGround, z.total] : fallback;
   const pct = b > 0 ? Math.round((100 * a) / b) : 0;
-  // A progress bar, not a picture: the figure beside it already says "a of b", so this carries only the share.
+  // Named per turf, and read as words, not a percentage (#113 review).
   return (
-    <div className="turf-bar" role="progressbar" aria-label="Shifts checked in now" aria-valuemin={0} aria-valuemax={b} aria-valuenow={a}>
+    <div className="turf-bar" role="progressbar" aria-label={`${name}: shifts checked in now`} aria-valuemin={0} aria-valuemax={b} aria-valuenow={a} aria-valuetext={`${a} of ${b} checked in now`}>
       <span className="turf-bar-fill" style={{ width: `${pct}%` }} />
     </div>
   );

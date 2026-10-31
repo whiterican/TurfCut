@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { turfCards, readJobFilter } from "@/lib/field-turf";
+import { turfCards, readJobFilter, knownJob } from "@/lib/field-turf";
 import { summarizeField } from "@/lib/field-live";
 import type { ShiftState } from "@/lib/field-day";
 import type { FieldRow } from "@/lib/field-view";
@@ -68,5 +68,17 @@ describe("readJobFilter", () => {
     expect(readJobFilter("all")).toBeNull();
     expect(readJobFilter(undefined)).toBeNull();
     expect(readJobFilter("1; drop table")).toBeNull();
+  });
+});
+
+describe("knownJob", () => {
+  const jobs = [{ id: "00000000-0000-0000-0000-000000000061" }, { id: "00000000-0000-0000-0000-000000000062" }];
+  it("narrows only to a job in the window", () => {
+    expect(knownJob("00000000-0000-0000-0000-000000000062", jobs)).toBe("00000000-0000-0000-0000-000000000062");
+  });
+  it("treats no filter, an unknown id or another organization's id as no filter", () => {
+    expect(knownJob(null, jobs)).toBeNull();
+    expect(knownJob("00000000-0000-0000-0000-000000000099", jobs)).toBeNull();
+    expect(knownJob("00000000-0000-0000-0000-000000000061", [])).toBeNull();
   });
 });

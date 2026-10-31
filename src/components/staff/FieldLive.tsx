@@ -146,7 +146,7 @@ export function LiveZoneBar({ id, fallback }: { id: string; fallback: [number, n
   const pct = b > 0 ? Math.round((100 * a) / b) : 0;
   // A progress bar, not a picture: the figure beside it already says "a of b", so this carries only the share.
   return (
-    <div className="turf-bar" role="progressbar" aria-label="Share on the ground" aria-valuemin={0} aria-valuemax={b} aria-valuenow={a}>
+    <div className="turf-bar" role="progressbar" aria-label="Shifts checked in now" aria-valuemin={0} aria-valuemax={b} aria-valuenow={a}>
       <span className="turf-bar-fill" style={{ width: `${pct}%` }} />
     </div>
   );

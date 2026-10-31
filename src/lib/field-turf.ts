@@ -63,3 +63,12 @@ export function readJobFilter(v: string | string[] | undefined): string | null {
   const s = Array.isArray(v) ? v[0] : v;
   return s && /^[0-9a-f-]{36}$/i.test(s) ? s : null;
 }
+
+/**
+ * The job the Field map is narrowed to: the asked id only when it is one of the window's jobs.
+ * Anything else (a stale link, another organization's id) is no filter, so the page, its
+ * control and the polled figures agree.
+ */
+export function knownJob(asked: string | null, jobs: Array<{ id: string }>): string | null {
+  return asked && jobs.some((j) => j.id === asked) ? asked : null;
+}

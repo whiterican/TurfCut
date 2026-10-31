@@ -1750,7 +1750,7 @@ body {
     @apply t-headline text-fg;
   }
   .turf-card-figure {
-    @apply shrink-0 text-base font-semibold text-fg tabular-nums;
+    @apply text-base font-semibold text-fg tabular-nums;
   }
   .turf-bar {
     @apply h-2 w-full overflow-hidden rounded-full;
@@ -2023,6 +2023,17 @@ body {
   .job-head-actions {
     @apply absolute inset-x-4 top-4 flex items-center justify-between;
   }
+  /* A failed save or share, said under the controls on a solid surface (never text straight on the photograph), one column so two never overlap. */
+  .job-head-notes {
+    @apply absolute end-0 top-full z-20 mt-2 flex w-72 max-w-full flex-col items-stretch gap-2;
+  }
+  .job-head-note {
+    @apply block rounded-[var(--radius-sm)] border border-border p-3 text-sm text-fg shadow-[var(--shadow-depth)];
+    background: var(--surface);
+  }
+  .job-head-dismiss {
+    @apply mt-1 inline-flex min-h-11 items-center text-sm font-semibold text-fg underline underline-offset-2;
+  }
   .job-head-btn {
     @apply inline-flex size-11 items-center justify-center rounded-full border-0 transition;
     background: rgb(255 255 255 / 0.92);
@@ -2081,9 +2092,13 @@ body {
     bottom: var(--dock-clearance);
   }
   /* A job page's picture: full width under the site header, the sheet below it. */
+  /* Not clipped: a save or share note hangs below its control (#113 review, P2); the photograph takes the corners itself. */
   .job-photo-head {
-    @apply relative -mx-4 -mt-4 mb-4 h-[200px] overflow-hidden sm:-mx-6 sm:-mt-6 sm:h-[260px] lg:mx-0 lg:mt-0 lg:rounded-[var(--radius-card)];
+    @apply relative -mx-4 -mt-4 mb-4 h-[200px] sm:-mx-6 sm:-mt-6 sm:h-[260px] lg:mx-0 lg:mt-0 lg:rounded-[var(--radius-card)];
     background: var(--surface-2);
+  }
+  .job-photo-head .job-photo {
+    border-radius: inherit;
   }
   /* The hover affordance the card had before the swipe wrapper took its frame. */
   .card-link.card:hover,

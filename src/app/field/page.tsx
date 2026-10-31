@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { requireArea } from "@/lib/employer-session";
 import { heldPackets, loadFieldWindow, loadReviewCandidates, REVIEW_CAP } from "@/lib/field-day-data";
 import { isoDay, reviewQueue } from "@/lib/field-view";
-import { readJobFilter, turfCards } from "@/lib/field-turf";
+import { knownJob, readJobFilter, turfCards } from "@/lib/field-turf";
 import { Masthead } from "@/components/staff/Masthead";
 import { WorkspacePage } from "@/components/layout/Page";
 import { SummaryBar } from "@/components/staff/SummaryBar";
@@ -26,24 +26,29 @@ export default async function FieldPage({ searchParams }: { searchParams: Search
   const session = await requireArea("field", "read");
   const now = new Date();
   const asked = readJobFilter((await searchParams).job);
-  const [all, candidates, kept] = await Promise.all([
-    loadFieldWindow(session.orgId, new Date(now.getTime() - 12 * H), new Date(now.getTime() + 24 * H)),
-    loadReviewCandidates(session.orgId, now),
-    // Packets workers kept for their next shift (C4.5), whenever that was: still out of the office.
-    heldPackets(db(), { orgId: session.orgId }),
-  ]);
+  const all = await loadFieldWindow(session.orgId, new Date(now.getTime() - 12 * H), new Date(now.getTime() + 24 * H));
   const jobs = [...new Map(all.map((r) => [r.jobId, r.jobTitle])).entries()].map(([id, title]) => ({ id, title })).sort((a, b) => a.title.localeCompare(b.title));
-  // The job filter narrows everything on the page, the polled figures included (the summary route takes the same `job`).
   // A job not in the window (a stale link, someone else's id) is no filter at all, so the page and its control agree.
-  const job = asked && jobs.some((j) => j.id === asked) ? asked : null;
+  const job = knownJob(asked, jobs);
+  // Every figure on the page has one scope (#113 review, P1): the job filter is applied inside each query, before its cap,
+  // never to a capped organization result. The Review queue link keeps the organization's count: it opens the whole queue.
+  const [orgCandidates, jobCandidates, kept] = await Promise.all([
+    loadReviewCandidates(session.orgId, now),
+    job ? loadReviewCandidates(session.orgId, now, 30, { jobId: job }) : null,
+    // Packets workers kept for their next shift (C4.5), whenever that was: still out of the office. Same window with or without a job.
+    heldPackets(db(), { orgId: session.orgId, ...(job ? { jobId: job, recent: true } : {}) }),
+  ]);
   const rows = job ? all.filter((r) => r.jobId === job) : all;
   // Under way: checked in and not out, or due now and not checked in (late). Counted by the live summary, which the page then polls (P1.7).
   const live = summarizeField(rows, now);
   const cards = turfCards(rows);
   const heldNow = kept.filter((h) => h.takenOn === null).length;
-  const waiting = reviewQueue(candidates).length;
-  // The loader stops at REVIEW_CAP rows; if it did, there may be more than it shows.
-  const more = candidates.length >= REVIEW_CAP;
+  // The loader stops at REVIEW_CAP rows; if it did, there may be more than it shows ("+").
+  const orgWaiting = reviewQueue(orgCandidates).length;
+  const orgMore = orgCandidates.length >= REVIEW_CAP;
+  const scoped = jobCandidates ?? orgCandidates;
+  const waiting = reviewQueue(scoped).length;
+  const more = scoped.length >= REVIEW_CAP;
   return (
     <FieldLiveProvider initial={live} endpoint={job ? `/api/field/summary?job=${encodeURIComponent(job)}` : undefined}>
       <WorkspacePage
@@ -51,7 +56,7 @@ export default async function FieldPage({ searchParams }: { searchParams: Search
         head={
           <Masthead title="Field map" meta="The last 12 hours and the next 24. Assigned turf only: nobody's position is on this map. Figures update on their own while this page is open.">
             <Link href={`/field/${isoDay(now)}`} className="btn-ghost btn-sm">By date (UTC)</Link>
-            <Link href="/field/review" className="btn-secondary btn-sm">Review queue{waiting ? ` (${waiting}${more ? "+" : ""})` : ""}</Link>
+            <Link href="/field/review" className="btn-secondary btn-sm">Review queue{orgWaiting ? ` (${orgWaiting}${orgMore ? "+" : ""})` : ""}</Link>
           </Masthead>
         }
       >
@@ -61,7 +66,7 @@ export default async function FieldPage({ searchParams }: { searchParams: Search
             { label: "Shifts under way", value: <LiveFigure of="underWay" fallback={live.today.underWay} />, hint: job ? "On this job: checked in, or due now" : "Checked in, or due now" },
             { label: "On the ground", value: <LiveRatio of="onGround" over="underWay" fallback={[live.today.onGround, live.today.underWay]} />, hint: "Checked in now, of the shifts under way" },
             { label: "Packets out", value: <LiveFigure of="packetsOut" fallback={live.today.packetsOut} />, hint: heldNow ? `${heldNow} more kept by workers` : "None kept by workers" },
-            { label: "Waiting for review", value: `${waiting}${more ? "+" : ""}`, hint: "Checked out, no closeout yet" },
+            { label: "Waiting for review", value: `${waiting}${more ? "+" : ""}`, hint: job ? "On this job: checked out, no closeout yet" : "Checked out, no closeout yet" },
           ]}
         />
         <section className="section" aria-labelledby="turf-heading">

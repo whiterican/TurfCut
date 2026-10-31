@@ -21,21 +21,21 @@ export function TurfCards({ cards, now }: { cards: TurfCard[]; now: Date }) {
     <ul className="space-y-3">
       {cards.map((c) => (
         <li key={c.id} className="turf-card">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <p className="turf-card-name">{c.name}</p>
-              <p className="truncate text-sm text-subtle">
-                {c.jobTitle}
-                {c.jobs > 1 && ` and ${c.jobs - 1} more ${c.jobs === 2 ? "job" : "jobs"}`}
-              </p>
-            </div>
-            <p className="turf-card-figure">
-              <LiveZoneFigure id={c.id} of="onGround" fallback={c.onGround} /> of <LiveZoneFigure id={c.id} of="total" fallback={c.total} />
+          <div className="min-w-0">
+            <p className="turf-card-name">{c.name}</p>
+            <p className="truncate text-sm text-subtle">
+              {c.jobTitle}
+              {c.jobs > 1 && ` and ${c.jobs - 1} more ${c.jobs === 2 ? "job" : "jobs"}`}
             </p>
           </div>
+          {/* The one quantity the data holds, always named (#113 review, P3): shifts checked in now, never stops or completion. */}
+          <p className="turf-card-figure">
+            <LiveZoneFigure id={c.id} of="onGround" fallback={c.onGround} /> of <LiveZoneFigure id={c.id} of="total" fallback={c.total} />{" "}
+            <span className="font-normal text-muted">{c.total === 1 ? "shift" : "shifts"} checked in now</span>
+          </p>
           <LiveZoneBar id={c.id} fallback={[c.onGround, c.total]} />
           <p className="text-xs text-subtle">
-            {c.startsAt > now ? "Starts" : c.endsAt < now ? "Ended" : "On the ground now"} · <LocalTime iso={c.startsAt.toISOString()} mode="short" /> – <LocalTime iso={c.endsAt.toISOString()} mode="time" />
+            {c.startsAt > now ? "Starts" : c.endsAt < now ? "Ended" : "Running"} <LocalTime iso={c.startsAt.toISOString()} mode="short" /> – <LocalTime iso={c.endsAt.toISOString()} mode="time" />
             {c.signatures > 0 && ` · ${c.signatures} signatures`}
             {c.doors > 0 && ` · ${c.doors} doors`}
           </p>

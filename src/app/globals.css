@@ -2167,8 +2167,9 @@ body {
   .swipe-icon {
     @apply size-11 min-h-11 p-0;
   }
+  /* relative: the Messages unread count sits on its own link, not on the window. Icon-only from 1024 to 1279: a 44px target. */
   .topnav-link {
-    @apply rounded-lg px-3 py-2 text-sm font-medium whitespace-nowrap text-muted transition hover:bg-surface-2 hover:text-fg;
+    @apply relative rounded-lg px-3 py-2 text-sm font-medium whitespace-nowrap text-muted transition hover:bg-surface-2 hover:text-fg lg:max-xl:min-h-11 lg:max-xl:min-w-11 lg:max-xl:justify-center lg:max-xl:px-0;
   }
   .topnav-link[aria-current] {
     @apply font-semibold;

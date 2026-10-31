@@ -1611,79 +1611,6 @@
       "clean": true,
       "patchSha256": null
     },
-    "implementationFile": "jobs-populated-1024-light.png",
-    "viewport": {
-      "width": 1024,
-      "height": 900,
-      "deviceScaleFactor": 2
-    },
-    "theme": "light",
-    "timezone": "America/Denver",
-    "clock": "frozen at 2026-10-30T19:00:00Z",
-    "fixtures": "synthetic (local preview database)",
-    "fontOk": true,
-    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
-    "overflow": 0,
-    "tabs": [
-      {
-        "label": "Home",
-        "w": 0,
-        "h": 0,
-        "clipped": false
-      },
-      {
-        "label": "Jobs",
-        "w": 0,
-        "h": 0,
-        "clipped": false
-      },
-      {
-        "label": "Work",
-        "w": 0,
-        "h": 0,
-        "clipped": false
-      },
-      {
-        "label": "Map",
-        "w": 0,
-        "h": 0,
-        "clipped": false
-      },
-      {
-        "label": "Messages",
-        "w": 0,
-        "h": 0,
-        "clipped": false
-      },
-      {
-        "label": "More, 1 unread notification",
-        "w": 0,
-        "h": 0,
-        "clipped": false
-      }
-    ],
-    "bar": {
-      "w": 0,
-      "h": 0,
-      "left": 0,
-      "bottom": 900
-    },
-    "bg": "#faf9f4",
-    "shell": "#1c0f2e",
-    "title": "Turfcut",
-    "h1": "Jobs",
-    "status": "captured"
-  },
-  {
-    "screen": "jobs",
-    "route": "/jobs",
-    "state": "populated",
-    "role": "worker",
-    "source": {
-      "commit": "c0f27dd7eb0b5d638aa9ad758c8a6b9bc8314622",
-      "clean": true,
-      "patchSha256": null
-    },
     "implementationFile": "jobs-populated-320-light.png",
     "viewport": {
       "width": 320,
@@ -1740,6 +1667,79 @@
       "h": 60,
       "left": 12,
       "bottom": 10
+    },
+    "bg": "#faf9f4",
+    "shell": "#1c0f2e",
+    "title": "Turfcut",
+    "h1": "Jobs",
+    "status": "captured"
+  },
+  {
+    "screen": "jobs",
+    "route": "/jobs",
+    "state": "populated",
+    "role": "worker",
+    "source": {
+      "commit": "32f50337a32df2dcff621c0c121f30c93f9fe249",
+      "clean": true,
+      "patchSha256": null
+    },
+    "implementationFile": "jobs-populated-1024-light.png",
+    "viewport": {
+      "width": 1024,
+      "height": 900,
+      "deviceScaleFactor": 2
+    },
+    "theme": "light",
+    "timezone": "America/Denver",
+    "clock": "frozen at 2026-10-30T19:00:00Z",
+    "fixtures": "synthetic (local preview database)",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [
+      {
+        "label": "Home",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Jobs",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Work",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Map",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Messages",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "More, 1 unread notification",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      }
+    ],
+    "bar": {
+      "w": 0,
+      "h": 0,
+      "left": 0,
+      "bottom": 900
     },
     "bg": "#faf9f4",
     "shell": "#1c0f2e",

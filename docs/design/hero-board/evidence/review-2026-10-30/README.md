@@ -16,7 +16,8 @@ notifications and turf on one shift), Inter loaded, clock frozen at
 **source**: the exact commit, whether the tree was clean, and the SHA-256 of
 any uncommitted patch. Every capture here was taken from a clean tree: the
 before set at 18d2e0b, the 390/1440 after set and the failure states at
-5a05280, the 1024/320 set at c0f27dd. The `before-after/` images put the clean-commit
+5a05280, the 1024/320 set at c0f27dd, and Jobs at 1024 again at 32f5033 (the top bar's
+44px icon-only links and its unread count on its own link). The `before-after/` images put the clean-commit
 "before" and the "after" side by side at the same size.
 
 ## What changed
@@ -29,7 +30,7 @@ before set at 18d2e0b, the 390/1440 after set and the failure states at
 | 4 Jobs | The job you're on is one compact row; Invitations sits beside the Open jobs heading with the real waiting count; the plain category line ("Petition circulation", "Door-to-door canvassing") is dropped, while every campaign disclosure and every In development / Planned status stays. | `jobs-*`, `before-after/jobs-*` |
 | 4 Field | One strip above the map: the scope, the live figures in words, the definitions, and the job filter; the map comes straight after. | `field-*`, `before-after/field-*` |
 | 4 Members (exemplar) | A bounded invite panel with role help in "About roles"; "Waiting to join" always present ("No invitations waiting."); aligned rows from 1024 (member, role, actions) with a fixed action column; stacked and labelled on a phone; every permission branch and the removal explanation unchanged. | `members-*`, `before-after/members-*` |
-| Overflow found while checking | The worker's top bar ran 96px past a 1024px window (icon-only links from 1024 to 1279 now, labels from 1280), and a job row's screen-reader label escaped its clipped line at 320px. Both pre-date this milestone; fixed in their own commit. | `*-1024-light.png`, `*-320-light.png` |
+| Overflow found while checking | The worker's top bar ran 96px past a 1024px window (icon-only 44px links from 1024 to 1279 now, labels from 1280; the Messages unread count now sits on its own link), and a job row's screen-reader label escaped its clipped line at 320px. Both pre-date this milestone; fixed in their own commit. | `*-1024-light.png`, `*-320-light.png` |
 | 5 Provenance | Manifests now record the exact commit, clean flag and patch hash, with file names relative to this folder; the s1 README's dead links point at PR #112's pinned commit. | this folder |
 
 ## Not shown here, honestly

@@ -76,7 +76,7 @@ export default async function MyShiftsPage({ searchParams }: { searchParams: Pro
   }
 
   return (
-    <ListPage>
+    <ListPage gap={4}>
       {/* Saved on the phone for dead zones: today's and the next two days' shifts. */}
       <OfflineBrief userId={userId} paths={brief} />
       <Masthead title="My schedule" />

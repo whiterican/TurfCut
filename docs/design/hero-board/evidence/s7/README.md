@@ -15,11 +15,11 @@ template the architecture doc assigns (`docs/product/REDESIGN_ARCHITECTURE.md`
 
 | Template | Routes | Evidence |
 |---|---|---|
-| Reading | Job new and edit, profile sub-pages (availability, credentials, political fit, preview, sharing, setup), messages new and reports, roles, welcome, the error and not-found pages, the no-organization fallbacks | `jobs-new-*`, `job-edit-*`, `availability-*`, `profile-credentials-*`, `preferences-*`, `preview-*`, `sharing-*`, `messages-new-*`, `reports-*`, `roles-*` |
+| Reading | Job new and edit, profile sub-pages (availability, credentials, political fit, preview, sharing, setup), messages new and reports, roles, the error and not-found pages, the no-organization fallbacks | `jobs-new-*`, `job-edit-*`, `availability-*`, `profile-credentials-*`, `preferences-*`, `preview-*`, `sharing-*`, `messages-new-*`, `reports-*`, `roles-*` |
 | List | Campaign feed, receipts, invitations, campaign directory, My schedule, Messages | `feed-*`, `receipts-*`, `invitations-*`, `directory-*`, `schedule-*`, `messages-*` |
 | Record | Campaign pages and posts, dispute and receipt pages, a hired person, a worker as the organization sees them, statements by period | `person-*`, `worker-*` |
 | Workspace | Invites and Matches tables, My turf | `invites-*`, `matches-*`, `turf-*` |
-| Hero | Sign-up, as sign-in already was (art beside the form from 1024, a band above it on a phone) | `signup-*` |
+| Hero | Sign-up, as sign-in already was (art beside the form from 1024, a band above it on a phone); Welcome on the form side only (signed in: no art) | `signup-*` |
 
 The older metric tile (`.stat`, on scorecards and experience) takes the same
 white surface and figure as every other tile.

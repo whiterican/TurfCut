@@ -66,7 +66,7 @@ export default async function MatchesPage({
   const invitable = job.status === "PUBLISHED" && readHiringModes(job.hiringMethod).includes("invite");
 
   return (
-    <WorkspacePage org head={<Masthead eyebrow="Matches" title={job.title} meta={r.ok ? `${all.length} ${all.length === 1 ? "worker" : "workers"} who chose to be found for this work` : ""}>
+    <WorkspacePage head={<Masthead eyebrow="Matches" title={job.title} meta={r.ok ? `${all.length} ${all.length === 1 ? "worker" : "workers"} who chose to be found for this work` : ""}>
         <Link href="/hiring" className="btn-ghost btn-sm"><ChevronLeft aria-hidden className="size-4 shrink-0" />Pipeline</Link>
         <Link href={`/jobs/${job.id}`} className="btn-secondary btn-sm">Job page</Link>
       </Masthead>}>

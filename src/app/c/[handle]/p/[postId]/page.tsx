@@ -27,7 +27,7 @@ export default async function PostPage({ params }: Props) {
   const facts = r.post.pinnedAt ? (await loadFacts([r.post.id])).get(r.post.id) ?? [] : [];
   return (
     <RecordPage gap={4}>
-      <Link href={`/c/${r.campaign.handle}`} className="btn-ghost btn-sm">{r.campaign.displayName}</Link>
+      <Link href={`/c/${r.campaign.handle}`} className="btn-ghost btn-sm self-start">{r.campaign.displayName}</Link>
       <PostCard post={r.post} handle={r.campaign.handle} displayName={r.campaign.displayName} verified={!!r.campaign.verifiedAt} signedIn={!!session} liked={liked} facts={facts} />
     </RecordPage>
   );

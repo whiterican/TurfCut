@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ACCEPTED_STATUSES, inviteLapsed } from "@/lib/engagements";
 import { loadPipelineFacts } from "@/lib/engagements-data";
 import { Masthead } from "@/components/Masthead";
-import { ListPage, ReadingPage, WorkspacePage } from "@/components/layout/Page";
+import { ReadingPage, WorkspacePage } from "@/components/layout/Page";
 import { DataTable } from "@/components/staff/DataTable";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
@@ -103,7 +103,8 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
   const inventory = jobs.length > 0 || anyFilter;
 
   return (
-    <ListPage gap={4} head={<Masthead title="Jobs"><NotificationsBell /></Masthead>}>
+    <main className="page page-jobs space-y-4 lg:max-w-5xl">
+      <Masthead title="Jobs"><NotificationsBell /></Masthead>
 
       {/* Search (a real query: title or organization) and the way to more filters, on one row. */}
       <div className="jobs-search">
@@ -243,7 +244,7 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
           </ul>
         </section>
       )}
-    </ListPage>
+    </main>
   );
 }
 

@@ -62,7 +62,7 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
   ]);
 
   return (
-    <ListPage>
+    <ListPage gap={4}>
       {/* A concise head (#111): the title and, for staff who may start a team chat, a compose button; the explanation lives in the empty state. */}
       <Masthead title="Messages">
         {staff && (

@@ -34,7 +34,7 @@ export default async function InvitesPage({ params }: { params: Promise<{ jobId:
   const waiting = job.status === "CLOSED" ? 0 : invites.filter((i) => i.status === "INVITED" && !inviteLapsed(i.status, i.inviteExpiresAt, now)).length;
 
   return (
-    <WorkspacePage org head={<Masthead eyebrow="Invites" title={job.title} meta={`${invites.length} sent · ${waiting} waiting for an answer`}>
+    <WorkspacePage head={<Masthead eyebrow="Invites" title={job.title} meta={`${invites.length} sent · ${waiting} waiting for an answer`}>
         <Link href="/hiring" className="btn-ghost btn-sm"><ChevronLeft aria-hidden className="size-4 shrink-0" />Pipeline</Link>
         <Link href={`/jobs/${job.id}`} className="btn-secondary btn-sm">Job page</Link>
       </Masthead>}>

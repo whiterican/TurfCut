@@ -6,7 +6,6 @@ import { isoDay, reviewQueue } from "@/lib/field-view";
 import { knownJob, readJobFilter, turfCards } from "@/lib/field-turf";
 import { Masthead } from "@/components/staff/Masthead";
 import { WorkspacePage } from "@/components/layout/Page";
-import { SummaryBar } from "@/components/staff/SummaryBar";
 import { FieldBoard } from "@/components/staff/FieldBoard";
 import { CoverageMap } from "@/components/staff/CoverageMap";
 import { TurfCards } from "@/components/staff/TurfCards";
@@ -52,38 +51,43 @@ export default async function FieldPage({ searchParams }: { searchParams: Search
   return (
     <FieldLiveProvider initial={live} endpoint={job ? `/api/field/summary?job=${encodeURIComponent(job)}` : undefined}>
       <WorkspacePage
-        gap={8}
+        gap={6}
         head={
-          <Masthead title="Field map" meta="The last 12 hours and the next 24. Assigned turf only: nobody's position is on this map. Figures update on their own while this page is open.">
+          <Masthead title="Field map" meta="The last 12 hours and the next 24 · assigned turf only, never anyone's position · figures update while this page is open">
             <Link href={`/field/${isoDay(now)}`} className="btn-ghost btn-sm">By date (UTC)</Link>
             <Link href="/field/review" className="btn-secondary btn-sm">Review queue{orgWaiting ? ` (${job ? "all jobs: " : ""}${orgWaiting}${orgMore ? "+" : ""})` : ""}</Link>
           </Masthead>
         }
       >
-        <SummaryBar
-          label="Field totals"
-          items={[
-            { label: "Shifts under way", value: <LiveFigure of="underWay" fallback={live.today.underWay} />, hint: job ? "On this job: checked in, or due now" : "Checked in, or due now" },
-            { label: "On the ground", value: <LiveRatio of="onGround" over="underWay" fallback={[live.today.onGround, live.today.underWay]} />, hint: "Checked in now, of the shifts under way" },
-            { label: "Packets out", value: <LiveFigure of="packetsOut" fallback={live.today.packetsOut} />, hint: heldNow ? `${heldNow} more kept by workers` : "None kept by workers" },
-            { label: "Waiting for review", value: `${waiting}${more ? "+" : ""}`, hint: job ? "On this job: checked out, no closeout yet" : "Checked out, no closeout yet" },
-          ]}
-        />
-        <section className="section" aria-labelledby="turf-heading">
-          <div className="section-head">
-            <h2 id="turf-heading" className="section-title">Turf</h2>
-            <form className="map-controls" method="get" action="/field">
-              <label htmlFor="field-job" className="sr-only">Job</label>
-              <select id="field-job" name="job" className="field" defaultValue={job ?? ""}>
-                <option value="">All jobs</option>
-                {jobs.map((j) => (
-                  <option key={j.id} value={j.id}>{j.title}</option>
-                ))}
-              </select>
-              <button type="submit" className="btn-secondary btn-sm">Show</button>
-              {job && <Link href="/field" className="btn-ghost btn-sm">Clear</Link>}
-            </form>
+        {/* One strip above the dominant map (#113 review, P4): the scope, the live figures in words, and the job filter. */}
+        <section className="field-strip" aria-labelledby="figures-heading">
+          <h2 id="figures-heading" className="sr-only">Field figures</h2>
+          <div className="min-w-0 space-y-1">
+            <p className="summary-band-scope">{job ? "This job" : "All jobs"}</p>
+            <dl className="summary-band">
+              <div><dt>Under way</dt><dd><LiveFigure of="underWay" fallback={live.today.underWay} /></dd></div>
+              <div><dt>On the ground</dt><dd><LiveRatio of="onGround" over="underWay" fallback={[live.today.onGround, live.today.underWay]} /></dd></div>
+              <div><dt>Packets out</dt><dd><LiveFigure of="packetsOut" fallback={live.today.packetsOut} /></dd></div>
+              {heldNow > 0 && <div><dt>Kept by workers</dt><dd>{heldNow}</dd></div>}
+              <div><dt>Waiting for review</dt><dd>{`${waiting}${more ? "+" : ""}`}</dd></div>
+            </dl>
+            {/* The definitions the tiles used to carry, kept beside the figures. */}
+            <p className="text-hint">Under way: checked in, or due now and not yet checked in. Waiting for review: checked out, no closeout yet.</p>
           </div>
+          <form className="map-controls" method="get" action="/field">
+            <label htmlFor="field-job" className="sr-only">Job</label>
+            <select id="field-job" name="job" className="field" defaultValue={job ?? ""}>
+              <option value="">All jobs</option>
+              {jobs.map((j) => (
+                <option key={j.id} value={j.id}>{j.title}</option>
+              ))}
+            </select>
+            <button type="submit" className="btn-secondary btn-sm">Show</button>
+            {job && <Link href="/field" className="btn-ghost btn-sm">Clear</Link>}
+          </form>
+        </section>
+        <section className="section" aria-labelledby="turf-heading">
+          <h2 id="turf-heading" className="sr-only">Turf</h2>
           <div className="overview-grid">
             {live.zones.length > 0 ? (
               <CoverageMap initial={live.zones} className="overview-map field-map" />

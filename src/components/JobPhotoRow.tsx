@@ -7,13 +7,16 @@ import { JobPhoto } from "@/components/JobPhoto";
 import { CategoryStatusTag } from "@/components/CategoryStatusTag";
 import { categoryStatusOf } from "@/lib/job-categories";
 import { jobDiscoveryLabel, payShort } from "@/lib/jobs";
+
+/** The labels that only repeat the kind of work, with no campaign disclosure in them. */
+const PLAIN_LABELS = new Set(["Petition circulation", "Door-to-door canvassing"]);
 import type { FeedJob } from "@/components/JobFeedCard";
 
 /**
  * An open job as the concept's row (#111, screen 2): a 76×92 photograph on
  * the left, then the title (H3), the exact gross pay (14px semibold), the
  * dates and time, the place, and the organization with Turfcut's approval
- * mark. Four rows fit above the dock on a phone. The whole row is the one
+ * mark. Three short-title rows and part of the next fit above the dock on a phone. The whole row is the one
  * link; Save and Hide stay SwipeCard's, beside it. Nothing the concept
  * invents is here: no distance (the app doesn't know where the worker is),
  * no "+ bonuses".
@@ -22,6 +25,8 @@ export function JobPhotoRow({ j, photoUrl = null }: { j: FeedJob; photoUrl?: str
   const geo = (j.geography ?? {}) as { city?: string; state?: string };
   const place = [geo.city, geo.state].filter(Boolean).join(", ");
   const dates = j.startsAt || j.endsAt ? `${day(j.startsAt)} – ${day(j.endsAt)}` : "Dates to be set";
+  const status = categoryStatusOf(j.type, j.campaignDisclosure);
+  const label = jobDiscoveryLabel(j.type, j.campaignDisclosure);
   return (
     <Link
       transitionTypes={["nav-forward"]}
@@ -59,10 +64,15 @@ export function JobPhotoRow({ j, photoUrl = null }: { j: FeedJob; photoUrl?: str
             </>
           )}
         </span>
-        <span className="mt-1 flex flex-wrap items-center gap-1">
-          <span className="text-xs font-medium text-subtle">{jobDiscoveryLabel(j.type, j.campaignDisclosure)}</span>
-          <CategoryStatusTag status={categoryStatusOf(j.type, j.campaignDisclosure)} />
-        </span>
+        {/* The category line only where it says more than the kind of work (#113 review, P4): a campaign's own disclosure
+            (party, issue, ballot initiative, nonpartisan, candidate) or a status ("In development", "Planned") always shows;
+            a plain "Petition circulation" / "Door-to-door canvassing" with nothing else to say does not. */}
+        {(status !== "built" || !PLAIN_LABELS.has(label)) && (
+          <span className="mt-1 flex flex-wrap items-center gap-1">
+            <span className="text-xs font-medium text-subtle">{label}</span>
+            <CategoryStatusTag status={status} />
+          </span>
+        )}
       </span>
     </Link>
   );

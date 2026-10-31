@@ -134,13 +134,13 @@ export function LiveGroupFigure({ group, of, fallback, unit }: { group: string; 
 }
 
 /** One turf's live figure (#111, screen 11): the zone's shifts on the ground or in total, following the map's own summary; its unit word follows the live value. */
-export function LiveZoneFigure({ id, of, fallback, unit }: { id: string; of: "onGround" | "total"; fallback: number; unit?: [string, string] }) {
+export function LiveZoneFigure({ id, of, fallback, unit, unitClassName }: { id: string; of: "onGround" | "total"; fallback: number; unit?: [string, string]; unitClassName?: string }) {
   const z = useFieldLive()?.zones.find((x) => x.id === id);
   const n = z ? z[of] : fallback;
   return (
     <>
       <CountUp value={n} />
-      {unitFor(n, unit)}
+      {unit && <span className={unitClassName}>{unitFor(n, unit)}</span>}
     </>
   );
 }

@@ -30,7 +30,7 @@ export function TurfCards({ cards, now }: { cards: TurfCard[]; now: Date }) {
           </div>
           {/* The one quantity the data holds, always named (#113 review, P3): shifts checked in now, never stops or completion. */}
           <p className="turf-card-figure">
-            <LiveZoneFigure id={c.id} of="onGround" fallback={c.onGround} /> of <LiveZoneFigure id={c.id} of="total" fallback={c.total} unit={["shift", "shifts"]} />
+            <LiveZoneFigure id={c.id} of="onGround" fallback={c.onGround} /> of <LiveZoneFigure id={c.id} of="total" fallback={c.total} unit={["shift", "shifts"]} unitClassName="font-normal text-muted" />
             <span className="font-normal text-muted"> checked in now</span>
           </p>
           <LiveZoneBar id={c.id} name={c.name} fallback={[c.onGround, c.total]} />

@@ -1,8 +1,10 @@
 # Slice 1 evidence — foundation, dock, and the three pilot screens
 
 Branch `redesign/mockup-fidelity` (from `redesign/hero-board`). The concept is
-`../../reference/founder-12-screen-concept-2026-10-28.jpg` (committed in PR
-#112); the contract is issue #111 and `../../CORRECTIVE_PLAN_2026-10-28.md`.
+the [founder's twelve-screen image](https://github.com/whiterican/TurfCut/blob/0de6152eab063028379809a8005ede1dbf7b3cbc/docs/design/hero-board/reference/founder-12-screen-concept-2026-10-28.jpg)
+(committed in PR #112, not on this branch); the contract is issue #111 and the
+[corrective plan](https://github.com/whiterican/TurfCut/blob/0de6152eab063028379809a8005ede1dbf7b3cbc/docs/design/hero-board/CORRECTIVE_PLAN_2026-10-28.md).
+Both links are pinned to that commit, so they never move.
 
 Every capture is the real Next.js route rendered from the local preview
 harness with **synthetic fixtures** (no production data), Inter loaded

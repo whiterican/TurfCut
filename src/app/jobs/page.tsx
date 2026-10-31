@@ -160,36 +160,34 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
         ))}
       </nav>
 
-      {waitingInvites > 0 && (
-        <Link href="/jobs/invitations" className="alert-info flex items-center justify-between gap-3">
-          <span className="font-medium">
-            {waitingInvites} {waitingInvites === 1 ? "invitation is" : "invitations are"} waiting for your answer
-          </span>
-          <ChevronRight aria-hidden className="size-4 shrink-0" />
-        </Link>
-      )}
-
       {mine.length > 0 && (
-        // One line per job the worker is on, before the open rows.
-        <section className="space-y-2" aria-label="Your jobs">
-          <ul className="list-card">
-            {mine.map((e) => {
-              const st = engagementStatus(e, facts.get(e.id) ?? { events: [], offerExpiresAt: null }, now);
-              return (
-                <li key={e.id}>
-                  <Link transitionTypes={["nav-forward"]} href={`/jobs/${e.job.id}`} className="flex min-h-12 items-center justify-between gap-3 px-4 py-2.5 text-fg transition hover:bg-surface-2">
-                    <span className="min-w-0 truncate text-sm font-medium"><span className="text-muted">Your job · </span>{e.job.title}</span>
-                    <StatusBadge status={st} />
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-          <Link href="/jobs/invitations" className="link text-sm">Invitations</Link>
-        </section>
+        // The job you're on, one compact row each, before the open rows (#113 review, P4).
+        <ul className="list-card" aria-label="Your jobs">
+          {mine.map((e) => {
+            const st = engagementStatus(e, facts.get(e.id) ?? { events: [], offerExpiresAt: null }, now);
+            return (
+              <li key={e.id}>
+                <Link transitionTypes={["nav-forward"]} href={`/jobs/${e.job.id}`} className="flex min-h-11 items-center justify-between gap-3 px-4 py-2 text-fg transition hover:bg-surface-2">
+                  <span className="min-w-0 truncate text-sm font-medium"><span className="text-muted">Your job · </span>{e.job.title}</span>
+                  <StatusBadge status={st} />
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
       )}
 
-      <section className="space-y-3" aria-label="Open jobs">
+      <section className="space-y-3" aria-labelledby="open-jobs-heading">
+        {/* Invitations sit beside the heading they belong to, with the real count waiting (#113 review, P4). */}
+        <div className="section-head">
+          <h2 id="open-jobs-heading" className="t-section text-fg">Open jobs</h2>
+          <Link href="/jobs/invitations" className="row-link">
+            Invitations
+            {waitingInvites > 0 && <span className="unread-badge ms-1.5" aria-hidden>{waitingInvites}</span>}
+            {waitingInvites > 0 && <span className="sr-only">, {waitingInvites} waiting for your answer</span>}
+            <ChevronRight aria-hidden className="size-4 shrink-0" />
+          </Link>
+        </div>
         {anyFilter && (
           <p className="flex items-baseline justify-between gap-3 text-sm text-muted">
             <span>{showHidden ? plural(open.length, "hidden job", "hidden jobs") : savedOnly ? plural(open.length, "saved job", "saved jobs") : plural(open.length, "job", "jobs")}{filters.q ? ` for “${filters.q}”` : ""}</span>

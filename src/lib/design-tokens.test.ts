@@ -478,13 +478,21 @@ describe("forest ink is for what is live and the one primary action (G1)", () =>
       (f) => /\.tsx?$/.test(f) && !/\.test\.tsx?$/.test(f) && !f.replaceAll("\\", "/").startsWith("app/zz-preview")
     );
     // Moments maps a badge class to its fill for the paid-badge morph; .badge-live's is the accent.
-    const ok = new Set(["components/Moments.tsx"]);
+    // The last-resort error page runs without the stylesheet, so it copies token values (checked below).
+    const ok = new Set(["components/Moments.tsx", "app/global-error.tsx"]);
     const hits = files.filter((f) => !ok.has(f.replaceAll("\\", "/"))).filter((f) =>
       /\b(bg|text|border|fill|stroke|ring|outline|decoration|from|via|to|shadow|caret|accent|divide)-accent\b|var\(--(color-)?accent\)|#d6f25a|#ccea96|#164b38|#157a46|#1c0f2e/i.test(readFileSync(join(root, f), "utf8"))
     );
     expect(hits).toEqual([]);
     // The offline page (public/sw.js) is plain HTML outside the stylesheet: no retired lime there either.
     expect(readFileSync(join(__dirname, "../../public/sw.js"), "utf8")).not.toMatch(/#ccea96|#d6f25a/i);
+  });
+
+  it("the last-resort error page only copies colours the tokens define", () => {
+    const page = readFileSync(join(__dirname, "../app/global-error.tsx"), "utf8");
+    const used = [...new Set(page.match(/#[0-9a-f]{6}\b/gi) ?? [])];
+    expect(used.length).toBeGreaterThan(0);
+    for (const hex of used) expect(css.toLowerCase()).toContain(hex.toLowerCase());
   });
 
   it("by night the checked radio dot reads on the card (≥ 3:1)", () => {

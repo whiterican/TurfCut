@@ -9,7 +9,8 @@ vi.mock("@/lib/db", () => ({ db: () => ({ profile: { findUnique } }) }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ auth: { getUser } }) }));
 vi.mock("@/lib/account", () => ({ ensureAccount: vi.fn(async () => false) }));
 
-const { getAuthUser, getSessionProfile } = await import("./auth");
+const { getAuthUser, getSessionProfile, requireRole } = await import("./auth");
+const { redirect } = await import("next/navigation");
 const { ServiceUnavailableError } = await import("./outage");
 
 describe("session profile", () => {
@@ -117,5 +118,23 @@ describe("the auth user", () => {
       throw new TypeError("network");
     });
     await expect(getAuthUser()).rejects.toBeInstanceOf(ServiceUnavailableError);
+  });
+});
+
+describe("requireRole's redirect (#113 review)", () => {
+  beforeEach(() => {
+    findUnique.mockReset();
+    getUser.mockReset();
+    vi.mocked(redirect).mockClear();
+  });
+
+  it("tells an organization member why they were sent home, not a worker", async () => {
+    getUser.mockResolvedValue({ data: { user: { id: "u6", email: "r@b.org" } } });
+    findUnique.mockResolvedValueOnce({ id: "u6", role: "RECRUITER", orgId: "org", closedAt: null, staffSince: null, worker: null });
+    await requireRole(["OWNER"]);
+    expect(redirect).toHaveBeenLastCalledWith("/dashboard?noaccess=1");
+    findUnique.mockResolvedValueOnce({ id: "u6", role: "WORKER", orgId: null, closedAt: null, staffSince: null, worker: { id: "w6" } });
+    await requireRole(["OWNER"]);
+    expect(redirect).toHaveBeenLastCalledWith("/dashboard");
   });
 });

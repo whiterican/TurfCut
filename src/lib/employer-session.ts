@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { requireAuth, requireRole, type Role, type SessionProfile } from "@/lib/auth";
 import { canUse, type AccessLevel, type Area } from "@/lib/access";
 import { db } from "@/lib/db";
+import { withNoAccess } from "@/lib/no-access";
 
 /**
  * Signed-in member who works with applicants (the hiring area: owners and
@@ -31,6 +32,8 @@ export async function requireOrgMember(roles: Role[]): Promise<SessionProfile & 
  */
 export async function requireArea(area: Area, level: AccessLevel = "full"): Promise<SessionProfile & { orgId: string }> {
   const session = await requireAuth();
-  if (!session.orgId || !canUse(session, area, level)) redirect("/dashboard");
+  if (!session.orgId) redirect("/dashboard");
+  // A member whose role doesn't reach this area: home, told why.
+  if (!canUse(session, area, level)) redirect(withNoAccess("/dashboard"));
   return { ...session, orgId: session.orgId };
 }

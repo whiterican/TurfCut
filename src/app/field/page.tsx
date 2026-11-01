@@ -21,6 +21,8 @@ type Search = Promise<Record<string, string | string[] | undefined>>;
  * job and staging point. Turf only: nobody's position is on this map, and
  * the concept's stop counts wait for a stop inventory (#110).
  */
+const FIGURE_DEFINITIONS = "Under way: checked in, or due now and not yet checked in. Waiting for review: checked out, no closeout yet.";
+
 export default async function FieldPage({ searchParams }: { searchParams: Search }) {
   const session = await requireArea("field", "read");
   const now = new Date();
@@ -71,8 +73,12 @@ export default async function FieldPage({ searchParams }: { searchParams: Search
               {heldNow > 0 && <div><dt>Kept by workers</dt><dd>{heldNow}</dd></div>}
               <div><dt>Waiting for review</dt><dd>{`${waiting}${more ? "+" : ""}`}</dd></div>
             </dl>
-            {/* The definitions the tiles used to carry, kept beside the figures. */}
-            <p className="text-hint">Under way: checked in, or due now and not yet checked in. Waiting for review: checked out, no closeout yet.</p>
+            {/* The definitions the tiles used to carry: beside the figures on a desktop, behind a disclosure on a phone so the map starts higher (#113 review). */}
+            <p className="text-hint hidden lg:block">{FIGURE_DEFINITIONS}</p>
+            <details className="lg:hidden">
+              <summary className="link inline-flex min-h-11 cursor-pointer list-none items-center text-sm font-semibold">What these mean</summary>
+              <p className="text-hint">{FIGURE_DEFINITIONS}</p>
+            </details>
           </div>
           <form className="map-controls" method="get" action="/field">
             <label htmlFor="field-job" className="sr-only">Job</label>

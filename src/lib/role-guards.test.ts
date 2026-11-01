@@ -67,6 +67,13 @@ describe("custom roles on a page, a server action and an API route (M10.6)", () 
     await expect(requireArea("desk")).rejects.toThrow("redirect:/dashboard");
   });
 
+  it("says why only when a role doesn't reach the page, not when the member was removed", async () => {
+    session.current = member({ grants: { desk: "full" } });
+    await expect(requireArea("pay")).rejects.toThrow(/^redirect:\/dashboard\?noaccess=1$/);
+    session.current = member({ orgId: null, grants: { desk: "full" } });
+    await expect(requireArea("desk")).rejects.toThrow(/^redirect:\/dashboard$/);
+  });
+
   it("built-in roles are unchanged: an owner reaches everything the map gives it, a supervisor doesn't reach pay", async () => {
     session.current = member({ role: "OWNER", grants: null, roleName: null });
     await expect(requireJobEditor()).resolves.toBeTruthy();

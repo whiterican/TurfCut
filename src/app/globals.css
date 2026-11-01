@@ -484,6 +484,18 @@ body {
   .page {
     @apply mx-auto w-full max-w-3xl space-y-10 px-4 pt-8 pb-32 sm:px-6 sm:pt-12 lg:pb-12;
   }
+  /* Why a guard sent someone here (NoAccessNotice): on the page's measure, above its heading. */
+  .no-access-notice:has(> p) {
+    @apply mx-auto w-full px-4 pt-6 sm:px-6 sm:pt-8;
+    max-width: calc(var(--measure-content) + 3rem);
+  }
+  /* Beside the rail the workspace runs from the left edge: so does the notice, at a reading width. */
+  .org-shell .no-access-notice:has(> p) {
+    @apply mx-0 max-w-none;
+  }
+  .org-shell .no-access-notice > p {
+    max-width: var(--measure-content);
+  }
   .page-narrow {
     @apply mx-auto w-full max-w-md px-4 py-10 sm:py-16;
   }

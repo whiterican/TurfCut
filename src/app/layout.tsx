@@ -1,3 +1,4 @@
+import { NoAccessNotice } from "@/components/NoAccessNotice";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { OrgRail, OrgTabBar } from "@/components/AppNav";
@@ -83,11 +84,13 @@ export default async function RootLayout({
           <div className="org-shell">
             <OrgRail tabs={org.rail} orgName={orgInfo?.name ?? "Your organization"} approved={orgInfo ? orgInfo.approved : null} person={railPerson(session)} />
             <div id="content" tabIndex={-1} className="skip-target min-w-0 flex-1">
+              <NoAccessNotice />
               <PageTransition>{children}</PageTransition>
             </div>
           </div>
         ) : (
           <div id="content" tabIndex={-1} className="skip-target flex flex-1 flex-col">
+            <NoAccessNotice />
             <PageTransition>{children}</PageTransition>
           </div>
         )}

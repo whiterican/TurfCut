@@ -1,0 +1,732 @@
+[
+  {
+    "screen": "receipt-sending",
+    "route": "/earnings/receipts/00000000-0000-0000-0000-00000000e161",
+    "state": "sending",
+    "role": "worker",
+    "source": {
+      "commit": "70d6b1a8e5fd0ebc09d238ea713b4a0ea0affbb3",
+      "clean": true,
+      "patchSha256": null
+    },
+    "implementationFile": "receipt-sending-sending-390-light.png",
+    "viewport": {
+      "width": 390,
+      "height": 844,
+      "deviceScaleFactor": 2
+    },
+    "theme": "light",
+    "timezone": "America/Denver",
+    "clock": "frozen at 2026-10-30T19:00:00Z",
+    "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [
+      {
+        "label": "Home",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Jobs",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Work",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Map",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Messages",
+        "w": 73,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "More, 1 unread notification",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      }
+    ],
+    "bar": {
+      "w": 366,
+      "h": 60,
+      "left": 12,
+      "bottom": 10
+    },
+    "bg": "#faf9f4",
+    "shell": "#1c0f2e",
+    "title": "Receipt · Turfcut",
+    "h1": "Receipt R-000011",
+    "status": "captured"
+  },
+  {
+    "screen": "receipt-sending",
+    "route": "/earnings/receipts/00000000-0000-0000-0000-00000000e161",
+    "state": "sending",
+    "role": "worker",
+    "source": {
+      "commit": "70d6b1a8e5fd0ebc09d238ea713b4a0ea0affbb3",
+      "clean": true,
+      "patchSha256": null
+    },
+    "implementationFile": "receipt-sending-sending-390-dark.png",
+    "viewport": {
+      "width": 390,
+      "height": 844,
+      "deviceScaleFactor": 2
+    },
+    "theme": "dark",
+    "timezone": "America/Denver",
+    "clock": "frozen at 2026-10-30T19:00:00Z",
+    "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [
+      {
+        "label": "Home",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Jobs",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Work",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Map",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Messages",
+        "w": 73,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "More, 1 unread notification",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      }
+    ],
+    "bar": {
+      "w": 366,
+      "h": 60,
+      "left": 12,
+      "bottom": 10
+    },
+    "bg": "#140a22",
+    "shell": "#1c0f2e",
+    "title": "Receipt · Turfcut",
+    "h1": "Receipt R-000011",
+    "status": "captured"
+  },
+  {
+    "screen": "receipt-sent",
+    "route": "/earnings/receipts/00000000-0000-0000-0000-00000000e162",
+    "state": "sent",
+    "role": "worker",
+    "source": {
+      "commit": "70d6b1a8e5fd0ebc09d238ea713b4a0ea0affbb3",
+      "clean": true,
+      "patchSha256": null
+    },
+    "implementationFile": "receipt-sent-sent-390-light.png",
+    "viewport": {
+      "width": 390,
+      "height": 844,
+      "deviceScaleFactor": 2
+    },
+    "theme": "light",
+    "timezone": "America/Denver",
+    "clock": "frozen at 2026-10-30T19:00:00Z",
+    "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [
+      {
+        "label": "Home",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Jobs",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Work",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Map",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Messages",
+        "w": 73,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "More, 1 unread notification",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      }
+    ],
+    "bar": {
+      "w": 366,
+      "h": 60,
+      "left": 12,
+      "bottom": 10
+    },
+    "bg": "#faf9f4",
+    "shell": "#1c0f2e",
+    "title": "Receipt · Turfcut",
+    "h1": "Receipt R-000012",
+    "status": "captured"
+  },
+  {
+    "screen": "receipt-sent",
+    "route": "/earnings/receipts/00000000-0000-0000-0000-00000000e162",
+    "state": "sent",
+    "role": "worker",
+    "source": {
+      "commit": "70d6b1a8e5fd0ebc09d238ea713b4a0ea0affbb3",
+      "clean": true,
+      "patchSha256": null
+    },
+    "implementationFile": "receipt-sent-sent-390-dark.png",
+    "viewport": {
+      "width": 390,
+      "height": 844,
+      "deviceScaleFactor": 2
+    },
+    "theme": "dark",
+    "timezone": "America/Denver",
+    "clock": "frozen at 2026-10-30T19:00:00Z",
+    "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [
+      {
+        "label": "Home",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Jobs",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Work",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Map",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Messages",
+        "w": 73,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "More, 1 unread notification",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      }
+    ],
+    "bar": {
+      "w": 366,
+      "h": 60,
+      "left": 12,
+      "bottom": 10
+    },
+    "bg": "#140a22",
+    "shell": "#1c0f2e",
+    "title": "Receipt · Turfcut",
+    "h1": "Receipt R-000012",
+    "status": "captured"
+  },
+  {
+    "screen": "receipt-failed",
+    "route": "/earnings/receipts/00000000-0000-0000-0000-00000000e163",
+    "state": "failed",
+    "role": "worker",
+    "source": {
+      "commit": "70d6b1a8e5fd0ebc09d238ea713b4a0ea0affbb3",
+      "clean": true,
+      "patchSha256": null
+    },
+    "implementationFile": "receipt-failed-failed-390-light.png",
+    "viewport": {
+      "width": 390,
+      "height": 844,
+      "deviceScaleFactor": 2
+    },
+    "theme": "light",
+    "timezone": "America/Denver",
+    "clock": "frozen at 2026-10-30T19:00:00Z",
+    "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [
+      {
+        "label": "Home",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Jobs",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Work",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Map",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Messages",
+        "w": 73,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "More, 1 unread notification",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      }
+    ],
+    "bar": {
+      "w": 366,
+      "h": 60,
+      "left": 12,
+      "bottom": 10
+    },
+    "bg": "#faf9f4",
+    "shell": "#1c0f2e",
+    "title": "Receipt · Turfcut",
+    "h1": "Receipt R-000013",
+    "status": "captured"
+  },
+  {
+    "screen": "receipt-failed",
+    "route": "/earnings/receipts/00000000-0000-0000-0000-00000000e163",
+    "state": "failed",
+    "role": "worker",
+    "source": {
+      "commit": "70d6b1a8e5fd0ebc09d238ea713b4a0ea0affbb3",
+      "clean": true,
+      "patchSha256": null
+    },
+    "implementationFile": "receipt-failed-failed-390-dark.png",
+    "viewport": {
+      "width": 390,
+      "height": 844,
+      "deviceScaleFactor": 2
+    },
+    "theme": "dark",
+    "timezone": "America/Denver",
+    "clock": "frozen at 2026-10-30T19:00:00Z",
+    "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [
+      {
+        "label": "Home",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Jobs",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Work",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Map",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Messages",
+        "w": 73,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "More, 1 unread notification",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      }
+    ],
+    "bar": {
+      "w": 366,
+      "h": 60,
+      "left": 12,
+      "bottom": 10
+    },
+    "bg": "#140a22",
+    "shell": "#1c0f2e",
+    "title": "Receipt · Turfcut",
+    "h1": "Receipt R-000013",
+    "status": "captured"
+  },
+  {
+    "screen": "receipt-reversed",
+    "route": "/earnings/receipts/00000000-0000-0000-0000-00000000e164",
+    "state": "reversed",
+    "role": "worker",
+    "source": {
+      "commit": "70d6b1a8e5fd0ebc09d238ea713b4a0ea0affbb3",
+      "clean": true,
+      "patchSha256": null
+    },
+    "implementationFile": "receipt-reversed-reversed-390-light.png",
+    "viewport": {
+      "width": 390,
+      "height": 844,
+      "deviceScaleFactor": 2
+    },
+    "theme": "light",
+    "timezone": "America/Denver",
+    "clock": "frozen at 2026-10-30T19:00:00Z",
+    "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [
+      {
+        "label": "Home",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Jobs",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Work",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Map",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Messages",
+        "w": 73,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "More, 1 unread notification",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      }
+    ],
+    "bar": {
+      "w": 366,
+      "h": 60,
+      "left": 12,
+      "bottom": 10
+    },
+    "bg": "#faf9f4",
+    "shell": "#1c0f2e",
+    "title": "Receipt · Turfcut",
+    "h1": "Receipt R-000014",
+    "status": "captured"
+  },
+  {
+    "screen": "receipt-reversed",
+    "route": "/earnings/receipts/00000000-0000-0000-0000-00000000e164",
+    "state": "reversed",
+    "role": "worker",
+    "source": {
+      "commit": "70d6b1a8e5fd0ebc09d238ea713b4a0ea0affbb3",
+      "clean": true,
+      "patchSha256": null
+    },
+    "implementationFile": "receipt-reversed-reversed-390-dark.png",
+    "viewport": {
+      "width": 390,
+      "height": 844,
+      "deviceScaleFactor": 2
+    },
+    "theme": "dark",
+    "timezone": "America/Denver",
+    "clock": "frozen at 2026-10-30T19:00:00Z",
+    "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [
+      {
+        "label": "Home",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Jobs",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Work",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Map",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Messages",
+        "w": 73,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "More, 1 unread notification",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      }
+    ],
+    "bar": {
+      "w": 366,
+      "h": 60,
+      "left": 12,
+      "bottom": 10
+    },
+    "bg": "#140a22",
+    "shell": "#1c0f2e",
+    "title": "Receipt · Turfcut",
+    "h1": "Receipt R-000014",
+    "status": "captured"
+  },
+  {
+    "screen": "receipts",
+    "route": "/earnings/receipts",
+    "state": "populated",
+    "role": "worker",
+    "source": {
+      "commit": "70d6b1a8e5fd0ebc09d238ea713b4a0ea0affbb3",
+      "clean": true,
+      "patchSha256": null
+    },
+    "implementationFile": "receipts-populated-390-light.png",
+    "viewport": {
+      "width": 390,
+      "height": 844,
+      "deviceScaleFactor": 2
+    },
+    "theme": "light",
+    "timezone": "America/Denver",
+    "clock": "frozen at 2026-10-30T19:00:00Z",
+    "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [
+      {
+        "label": "Home",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Jobs",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Work",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Map",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Messages",
+        "w": 73,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "More, 1 unread notification",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      }
+    ],
+    "bar": {
+      "w": 366,
+      "h": 60,
+      "left": 12,
+      "bottom": 10
+    },
+    "bg": "#faf9f4",
+    "shell": "#1c0f2e",
+    "title": "Receipts · Turfcut",
+    "h1": "Receipts",
+    "status": "captured"
+  },
+  {
+    "screen": "receipts",
+    "route": "/earnings/receipts",
+    "state": "populated",
+    "role": "worker",
+    "source": {
+      "commit": "70d6b1a8e5fd0ebc09d238ea713b4a0ea0affbb3",
+      "clean": true,
+      "patchSha256": null
+    },
+    "implementationFile": "receipts-populated-390-dark.png",
+    "viewport": {
+      "width": 390,
+      "height": 844,
+      "deviceScaleFactor": 2
+    },
+    "theme": "dark",
+    "timezone": "America/Denver",
+    "clock": "frozen at 2026-10-30T19:00:00Z",
+    "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [
+      {
+        "label": "Home",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Jobs",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Work",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Map",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Messages",
+        "w": 73,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "More, 1 unread notification",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      }
+    ],
+    "bar": {
+      "w": 366,
+      "h": 60,
+      "left": 12,
+      "bottom": 10
+    },
+    "bg": "#140a22",
+    "shell": "#1c0f2e",
+    "title": "Receipts · Turfcut",
+    "h1": "Receipts",
+    "status": "captured"
+  }
+]

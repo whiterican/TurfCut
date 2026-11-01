@@ -1,0 +1,66 @@
+route,source_file,direct_page_guards_and_loaders,direct_page_template,review_status
+/admin/audit,src/app/admin/audit/page.tsx,loadTimeline; requireStaff,custom or delegated; inspect source,inventoried; not certified across states
+/admin/campaigns/[campaignId],src/app/admin/campaigns/[campaignId]/page.tsx,loadCampaignForVerification; requireStaff,custom or delegated; inspect source,inventoried; not certified across states
+/admin/campaigns,src/app/admin/campaigns/page.tsx,requireStaff,custom or delegated; inspect source,inventoried; not certified across states
+/admin/jurisdictions/[id],src/app/admin/jurisdictions/[id]/page.tsx,loadJurisdictionForAdmin; requireStaff,custom or delegated; inspect source,inventoried; not certified across states
+/admin/jurisdictions/new,src/app/admin/jurisdictions/new/page.tsx,requireStaff,custom or delegated; inspect source,inventoried; not certified across states
+/admin/jurisdictions,src/app/admin/jurisdictions/page.tsx,requireStaff,custom or delegated; inspect source,inventoried; not certified across states
+/admin/organizations/[orgId],src/app/admin/organizations/[orgId]/page.tsx,loadOrganizationForAdmin; requireStaff,custom or delegated; inspect source,inventoried; not certified across states
+/admin/organizations,src/app/admin/organizations/page.tsx,requireStaff,custom or delegated; inspect source,inventoried; not certified across states
+/admin,src/app/admin/page.tsx,loadAdminOverview; requireStaff,custom or delegated; inspect source,inventoried; not certified across states
+/admin/people/[profileId],src/app/admin/people/[profileId]/page.tsx,loadPerson; requireStaff,custom or delegated; inspect source,inventoried; not certified across states
+/admin/people,src/app/admin/people/page.tsx,requireStaff,custom or delegated; inspect source,inventoried; not certified across states
+/c/[handle]/p/[postId],src/app/c/[handle]/p/[postId]/page.tsx,loadFacts; loadPublicPost,custom or delegated; inspect source,inventoried; not certified across states
+/c/[handle],src/app/c/[handle]/page.tsx,loadFacts; loadPinned; loadPosts; loadPublicCampaign,custom or delegated; inspect source,inventoried; not certified across states
+/c,src/app/c/page.tsx,,custom or delegated; inspect source,inventoried; not certified across states
+/campaigns/[id],src/app/campaigns/[id]/page.tsx,loadFacts; loadOrgCampaign; loadPinned; loadPosts; requireArea,custom or delegated; inspect source,inventoried; not certified across states
+/campaigns,src/app/campaigns/page.tsx,requireArea,ListPage,inventoried; not certified across states
+/dashboard,src/app/dashboard/page.tsx,loadCredentials; loadFeed; loadLatestPreference; loadSharing; requireAuth,ListPage,inventoried; not certified across states
+/desk,src/app/desk/page.tsx,loadDesk; requireArea,WorkspacePage,inventoried; not certified across states
+/earnings/disputes/[disputeId],src/app/earnings/disputes/[disputeId]/page.tsx,loadDisputeThread; requireWorker,custom or delegated; inspect source,inventoried; not certified across states
+/earnings,src/app/earnings/page.tsx,loadWorkerEarnings; requireWorker,ReadingPage,inventoried; not certified across states
+/earnings/receipts/[transferId],src/app/earnings/receipts/[transferId]/page.tsx,loadReceipt; requireWorker,custom or delegated; inspect source,inventoried; not certified across states
+/earnings/receipts,src/app/earnings/receipts/page.tsx,loadReceipts; requireWorker,custom or delegated; inspect source,inventoried; not certified across states
+/feed,src/app/feed/page.tsx,loadHomeFeed; requireWorker,custom or delegated; inspect source,inventoried; not certified across states
+/field/[date],src/app/field/[date]/page.tsx,loadFieldWindow; requireArea,WorkspacePage,inventoried; not certified across states
+/field,src/app/field/page.tsx,loadFieldWindow; loadReviewCandidates; requireArea,WorkspacePage,inventoried; not certified across states
+/field/review,src/app/field/review/page.tsx,loadReviewCandidates; requireArea,WorkspacePage,inventoried; not certified across states
+/hiring/[jobId]/applicants,src/app/hiring/[jobId]/applicants/page.tsx,loadApplicants; requireArea,ListDetailPage,inventoried; not certified across states
+/hiring/[jobId]/invites,src/app/hiring/[jobId]/invites/page.tsx,loadJobInvites; loadPipelineFacts; requireArea,custom or delegated; inspect source,inventoried; not certified across states
+/hiring/[jobId]/matches,src/app/hiring/[jobId]/matches/page.tsx,loadMatches; requireArea,custom or delegated; inspect source,inventoried; not certified across states
+/hiring/[jobId]/people/[engagementId],src/app/hiring/[jobId]/people/[engagementId]/page.tsx,requireArea,custom or delegated; inspect source,inventoried; not certified across states
+/hiring,src/app/hiring/page.tsx,requireArea,WorkspacePage,inventoried; not certified across states
+/jobs/[jobId]/edit,src/app/jobs/[jobId]/edit/page.tsx,requireJobEditor,custom or delegated; inspect source,inventoried; not certified across states
+/jobs/[jobId],src/app/jobs/[jobId]/page.tsx,loadJob; loadJobChanges; loadJobSlots; loadLatestPreference; loadMarks; loadPipelineFacts; loadScorecard; loadSharedAvailabilities; loadSharing; requireAuth,RecordPage,inventoried; not certified across states
+/jobs/invitations,src/app/jobs/invitations/page.tsx,loadInvitations; loadMutes; requireAuth,custom or delegated; inspect source,inventoried; not certified across states
+/jobs/new,src/app/jobs/new/page.tsx,requireJobEditor,custom or delegated; inspect source,inventoried; not certified across states
+/jobs,src/app/jobs/page.tsx,loadFeed; loadLatestPreference; loadMarks; loadPipelineFacts; requireAuth,WorkspacePage,inventoried; not certified across states
+/login,src/app/login/page.tsx,,HeroPage,inventoried; not certified across states
+/messages/[conversationId],src/app/messages/[conversationId]/page.tsx,requireAuth,custom or delegated; inspect source,inventoried; not certified across states
+/messages/new,src/app/messages/new/page.tsx,requireAuth,custom or delegated; inspect source,inventoried; not certified across states
+/messages,src/app/messages/page.tsx,requireAuth,custom or delegated; inspect source,inventoried; not certified across states
+/messages/reports,src/app/messages/reports/page.tsx,requireAuth,custom or delegated; inspect source,inventoried; not certified across states
+/notifications,src/app/notifications/page.tsx,loadNotifications; loadPostNotices; requireAuth,ReadingPage,inventoried; not certified across states
+/org/credentials,src/app/org/credentials/page.tsx,loadHiredCredentials; requireArea,WorkspacePage,inventoried; not certified across states
+/org/settings/members,src/app/org/settings/members/page.tsx,requireArea,WorkspacePage,inventoried; not certified across states
+/org/settings/members/roles,src/app/org/settings/members/roles/page.tsx,requireArea,custom or delegated; inspect source,inventoried; not certified across states
+/org/settings,src/app/org/settings/page.tsx,requireArea,ReadingPage,inventoried; not certified across states
+/,src/app/page.tsx,,HeroPage,inventoried; not certified across states
+/pay/disputes/[disputeId],src/app/pay/disputes/[disputeId]/page.tsx,loadDisputeThread; requireAuth,custom or delegated; inspect source,inventoried; not certified across states
+/pay,src/app/pay/page.tsx,loadOrgDisputes; loadOrgPay; requireArea,WorkspacePage,inventoried; not certified across states
+/pay/statements/[period],src/app/pay/statements/[period]/page.tsx,loadStatement; requireArea,custom or delegated; inspect source,inventoried; not certified across states
+/pay/statements,src/app/pay/statements/page.tsx,requireArea,WorkspacePage,inventoried; not certified across states
+/profile/availability,src/app/profile/availability/page.tsx,loadAvailability; loadSharing; requireWorker,custom or delegated; inspect source,inventoried; not certified across states
+/profile/credentials,src/app/profile/credentials/page.tsx,loadCredentials; loadSharing; loadVerifiers; loadWorkerProofs; requireWorker,custom or delegated; inspect source,inventoried; not certified across states
+/profile,src/app/profile/page.tsx,loadAvailability; loadCampaignHistory; loadCredentials; loadLatestPreference; loadScorecardPeriods; loadSharing; requireWorker,ReadingPage,inventoried; not certified across states
+/profile/preferences,src/app/profile/preferences/page.tsx,loadLatestPreference; requireWorker,custom or delegated; inspect source,inventoried; not certified across states
+/profile/preview,src/app/profile/preview/page.tsx,requireWorker,custom or delegated; inspect source,inventoried; not certified across states
+/profile/setup,src/app/profile/setup/page.tsx,loadAvailability; loadCredentials; loadSharing; requireWorker,custom or delegated; inspect source,inventoried; not certified across states
+/profile/sharing,src/app/profile/sharing/page.tsx,loadSharing; requireWorker,custom or delegated; inspect source,inventoried; not certified across states
+/settings,src/app/settings/page.tsx,,ReadingPage,inventoried; not certified across states
+/shifts/[shiftId],src/app/shifts/[shiftId]/page.tsx,loadShift; loadTalkingPoints; requireAuth,custom or delegated; inspect source,inventoried; not certified across states
+/shifts,src/app/shifts/page.tsx,loadAvailability; loadCredentials; loadSharing; loadWorkerShifts; loadWorkerSlots; requireWorker,custom or delegated; inspect source,inventoried; not certified across states
+/shifts/turf,src/app/shifts/turf/page.tsx,loadWorkerTurf; requireWorker,custom or delegated; inspect source,inventoried; not certified across states
+/signup,src/app/signup/page.tsx,,custom or delegated; inspect source,inventoried; not certified across states
+/welcome,src/app/welcome/page.tsx,,custom or delegated; inspect source,inventoried; not certified across states
+/workers/[workerId],src/app/workers/[workerId]/page.tsx,loadOrgProfile; requireEmployer,custom or delegated; inspect source,inventoried; not certified across states

@@ -1592,6 +1592,59 @@ body {
   .data-table th.text-right {
     @apply text-right whitespace-nowrap tabular-nums;
   }
+  /* A stacked table (DataTable `stack`) below the small width: the sort controls wrap
+     as a row of buttons, each row is a block led by its name, every figure named. */
+  @media (width < 40rem) {
+    /* Stacked rows read down the page, not in a box that scrolls inside it. */
+    .data-table-wrap:has(> .data-table-stack) {
+      @apply max-h-none overflow-visible;
+    }
+    .data-table-stack,
+    .data-table-stack :is(thead, tbody, tr, th, td) {
+      display: block;
+    }
+    .data-table-stack thead tr {
+      @apply flex flex-wrap gap-x-1 border-b border-border px-1 py-1;
+      background: var(--surface-2);
+    }
+    .data-table-stack thead th {
+      @apply static border-0 px-2 py-1;
+    }
+    /* The empty Select header leaves the row of sort buttons but stays in the
+       accessibility tree, so every cell keeps its column header. */
+    .data-table-stack thead th.data-table-select {
+      @apply sr-only;
+    }
+    /* A row's checkbox sits beside its name, not on a line of its own. */
+    .data-table-stack tbody td.data-table-select {
+      @apply float-left me-2 pt-0.5;
+    }
+    .data-table-stack tbody tr {
+      @apply flow-root border-b border-border px-3 py-3;
+    }
+    .data-table-stack tbody tr:last-child {
+      @apply border-b-0;
+    }
+    .data-table-stack tbody :is(th, td) {
+      @apply min-w-0 border-0 p-0;
+    }
+    .data-table-stack tbody th[scope="row"] {
+      @apply mb-1.5;
+    }
+    .data-table-stack tbody td[data-label] {
+      @apply flex items-baseline justify-between gap-3 py-0.5 text-right;
+    }
+    /* A long name and its figure may wrap on a narrow phone rather than overflow. */
+    .data-table-stack tbody td.num {
+      white-space: normal;
+    }
+    .data-table-stack tbody td[data-label]::before {
+      content: attr(data-label);
+      /* Shown, not read: the cell's column header already names it to assistive tech. */
+      content: attr(data-label) / "";
+      @apply text-left text-muted;
+    }
+  }
   /* A share drawn under a figure (lib/table `bar`): grows from the left when the table appears. */
   .cell-barred {
     @apply inline-flex flex-col items-end gap-1;

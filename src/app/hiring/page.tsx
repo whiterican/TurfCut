@@ -34,6 +34,7 @@ export default async function HiringPage() {
         </dl>
       </section>
       <DataTable
+        stack
         caption="Open jobs and their hiring pipeline"
         empty="No open jobs. Publish a job to start hiring."
         columns={[

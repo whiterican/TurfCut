@@ -10,7 +10,10 @@ import { nextSort, sortRows, splitWithheld, type SortDir, type TableColumn, type
  * a time. Rows come from the server as plain data (lib/table). Rows whose
  * sorted value the worker doesn't share sit in their own group under a
  * label, never ranked. With `select`, selectable rows get a checkbox that
- * belongs to the form `select.form` (bulk actions).
+ * belongs to the form `select.form` (bulk actions). With `stack`, below the
+ * small width each row becomes a block with every figure named (#114: never
+ * squeeze a desktop table into a phone); the roles keep it a table to
+ * assistive tech whatever its display.
  */
 export function DataTable({
   caption,
@@ -19,6 +22,7 @@ export function DataTable({
   empty = "Nothing here yet.",
   initialSort = null,
   select,
+  stack = false,
 }: {
   /** Read by screen readers; visually hidden. */
   caption: string;
@@ -28,6 +32,8 @@ export function DataTable({
   initialSort?: { key: string; dir: SortDir } | null;
   /** Checkboxes named `name` (value: the row id) in the form with id `form`, each labelled "Select <first cell>". */
   select?: { form: string; name: string };
+  /** Rows as named blocks below the small width instead of a scrolling grid. */
+  stack?: boolean;
 }) {
   const [sort, setSort] = useState<{ key: string | null; dir: SortDir }>(initialSort ?? { key: null, dir: "asc" });
   const shown = sortRows(rows, sort.key, sort.dir);
@@ -39,17 +45,17 @@ export function DataTable({
     // Focusable and named, so keyboard users can scroll it even with no links inside.
     <div className="data-table-wrap" tabIndex={0} role="region" aria-label={caption}>
       {/* Three columns or fewer can fit a phone if the row label gives a little. */}
-      <table className={columns.length <= 3 ? "data-table data-table-compact" : "data-table"}>
+      <table role="table" className={`${columns.length <= 3 ? "data-table data-table-compact" : "data-table"}${stack ? " data-table-stack" : ""}`}>
         <caption className="sr-only">{caption}</caption>
-        <thead>
-          <tr>
-            {select && <th scope="col"><span className="sr-only">Select</span></th>}
+        <thead role="rowgroup">
+          <tr role="row">
+            {select && <th role="columnheader" scope="col" className="data-table-select"><span className="sr-only">Select</span></th>}
             {columns.map((c) => {
               const active = sort.key === c.key;
               const ariaSort = active ? (sort.dir === "asc" ? "ascending" : "descending") : c.sortable ? "none" : undefined;
               const Arrow = !active ? ArrowUpDown : sort.dir === "asc" ? ArrowUp : ArrowDown;
               return (
-                <th key={c.key} scope="col" aria-sort={ariaSort} className={c.numeric ? "text-right" : undefined}>
+                <th key={c.key} role="columnheader" scope="col" aria-sort={ariaSort} className={c.numeric ? "text-right" : undefined}>
                   {c.sortable ? (
                     <button type="button" className={`data-table-sort ${c.numeric ? "flex-row-reverse" : ""}`} onClick={() => setSort((s) => nextSort(s, c.key))}>
                       {c.label}
@@ -63,23 +69,23 @@ export function DataTable({
             })}
           </tr>
         </thead>
-        <tbody>
+        <tbody role="rowgroup">
           {shown.length === 0 ? (
-            <tr>
-              <td colSpan={span} className="py-8 text-center text-muted">{empty}</td>
+            <tr role="row">
+              <td role="cell" colSpan={span} className="py-8 text-center text-muted">{empty}</td>
             </tr>
           ) : (
             shown.flatMap((r, ri) => [
               ...(ri === withheldFrom
                 ? [
-                    <tr key="__withheld">
-                      <th scope="rowgroup" colSpan={span} className="text-muted-sm py-2 font-normal">Not shared: {sortedLabel}. Not ranked on this column; in the order they arrived.</th>
+                    <tr key="__withheld" role="row" className="data-table-group">
+                      <th role="rowheader" scope="rowgroup" colSpan={span} className="text-muted-sm py-2 font-normal">Not shared: {sortedLabel}. Not ranked on this column; in the order they arrived.</th>
                     </tr>,
                   ]
                 : []),
-              <tr key={r.id}>
+              <tr key={r.id} role="row">
                 {select && (
-                  <td>
+                  <td role="cell" className="data-table-select">
                     {r.selectable && <input type="checkbox" form={select.form} name={select.name} value={r.id} aria-label={`Select ${r.cells[columns[0]?.key]?.text ?? "row"}`} className="size-4" />}
                   </td>
                 )}
@@ -93,9 +99,9 @@ export function DataTable({
                     </span>
                   );
                   return i === 0 ? (
-                    <th key={c.key} scope="row" className={c.numeric ? "num" : undefined}>{content}</th>
+                    <th key={c.key} role="rowheader" scope="row" className={c.numeric ? "num" : undefined}>{content}</th>
                   ) : (
-                    <td key={c.key} className={c.numeric ? "num" : undefined}>{content}</td>
+                    <td key={c.key} role="cell" data-label={c.label} className={c.numeric ? "num" : undefined}>{content}</td>
                   );
                 })}
               </tr>,

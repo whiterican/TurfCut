@@ -61,14 +61,15 @@ export default async function CredentialsPage() {
           {creds.length === 0 ? (
             <p className="text-muted-sm">None yet.</p>
           ) : (
-            <ul className="space-y-3">
+            /* One list, a row per credential (#114: credential rows, not a card each). */
+            <ul className="list-card">
               {creds.map((c) => {
                 const ex = expiryState(c.expiresOn, today);
                 const name = credentialName(c);
                 const by = verifiers.get(c.id);
                 return (
                   // Keyed by the first row of the edit chain, so a saved edit keeps its form and message.
-                  <li key={c.rootId} className="card space-y-2">
+                  <li key={c.rootId} className="space-y-2 px-4 py-4 sm:px-5">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <p className="font-semibold text-fg">{name}</p>
                       <StatusChip state={c.verification === "SELF_REPORTED" ? "pending" : "approved"} label={VERIFICATION_LABELS[c.verification]} />

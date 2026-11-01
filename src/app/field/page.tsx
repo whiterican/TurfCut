@@ -67,11 +67,11 @@ export default async function FieldPage({ searchParams }: { searchParams: Search
           <div className="min-w-0 space-y-1">
             <p className="summary-band-scope">{job ? "This job" : "All jobs"}</p>
             <dl className="summary-band">
-              <div><dt>Under way</dt><dd><LiveFigure of="underWay" fallback={live.today.underWay} /></dd></div>
-              <div><dt>On the ground</dt><dd><LiveRatio of="onGround" over="underWay" fallback={[live.today.onGround, live.today.underWay]} /></dd></div>
-              <div><dt>Packets out</dt><dd><LiveFigure of="packetsOut" fallback={live.today.packetsOut} /></dd></div>
-              {heldNow > 0 && <div><dt>Kept by workers</dt><dd>{heldNow}</dd></div>}
-              <div><dt>Waiting for review</dt><dd>{`${waiting}${more ? "+" : ""}`}</dd></div>
+              <div><dt>under way</dt><dd><LiveFigure of="underWay" fallback={live.today.underWay} /></dd></div>
+              <div><dt>on the ground</dt><dd><LiveRatio of="onGround" over="underWay" fallback={[live.today.onGround, live.today.underWay]} /></dd></div>
+              <div><dt>packets out</dt><dd><LiveFigure of="packetsOut" fallback={live.today.packetsOut} /></dd></div>
+              {heldNow > 0 && <div><dt>kept by workers</dt><dd>{heldNow}</dd></div>}
+              <div><dt>waiting for review</dt><dd>{`${waiting}${more ? "+" : ""}`}</dd></div>
             </dl>
             {/* The definitions the tiles used to carry: beside the figures on a desktop, behind a disclosure on a phone so the map starts higher (#113 review). */}
             <p className="text-hint hidden lg:block">{FIGURE_DEFINITIONS}</p>

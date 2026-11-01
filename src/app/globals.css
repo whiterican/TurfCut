@@ -1592,6 +1592,23 @@ body {
   .data-table th.text-right {
     @apply text-right whitespace-nowrap tabular-nums;
   }
+  /* A receipt's facts (#116 review): aligned label and value rows, the amount one step up. */
+  .receipt-facts {
+    @apply grid grid-cols-[auto_minmax(0,1fr)] gap-x-6 gap-y-2 text-sm;
+  }
+  .receipt-facts dt {
+    @apply text-muted;
+  }
+  .receipt-facts dd {
+    @apply text-right text-fg;
+  }
+  .receipt-facts .receipt-amount {
+    @apply text-lg font-semibold tabular-nums;
+  }
+  /* What a failed or reversed date means, on its own full-width line under it. */
+  .receipt-facts .receipt-note {
+    @apply col-span-2 -mt-1 text-left text-muted;
+  }
   /* A stacked table (DataTable `stack`) below the small width: the sort controls wrap
      as a row of buttons, each row is a block led by its name, every figure named. */
   @media (width < 40rem) {

@@ -182,7 +182,7 @@ async function WorkerHero({ workerId }: { workerId: string }) {
           </div>
           <div className="space-y-1">
             <p className="t-section text-fg">{job.title}</p>
-            <p className="flex items-center gap-2 text-sm text-muted"><Clock aria-hidden className="size-4 shrink-0" /><LocalTime iso={shift.startsAt.toISOString()} mode="time" /> – <LocalTime iso={shift.endsAt.toISOString()} mode="time" /></p>
+            <p className="flex items-center gap-2 text-sm text-muted"><Clock aria-hidden className="size-4 shrink-0" /><LocalTime iso={shift.startsAt.toISOString()} mode="time" /> – <LocalTime iso={shift.endsAt.toISOString()} mode="time" from={shift.startsAt.toISOString()} /></p>
             {shift.stagingLocation && <p className="flex items-center gap-2 text-sm text-muted"><MapPin aria-hidden className="size-4 shrink-0" />{shift.stagingLocation}</p>}
           </div>
           <dl className="work-facts">

@@ -28,7 +28,7 @@ export function OpenShifts({ slots, hired, now }: { slots: Slot[]; hired: Array<
               <div className="min-w-0 space-y-1">
                 <p className="eyebrow"><LocalTime iso={s.startsAt.toISOString()} mode="date" /></p>
                 <p className="font-bold text-fg">
-                  <LocalTime iso={s.startsAt.toISOString()} mode="time" /> – <LocalTime iso={s.endsAt.toISOString()} mode="time" />
+                  <LocalTime iso={s.startsAt.toISOString()} mode="time" /> – <LocalTime iso={s.endsAt.toISOString()} mode="time" from={s.startsAt.toISOString()} />
                   {s.stagingLocation ? ` · ${s.stagingLocation}` : ""}
                 </p>
                 <p className="text-muted-sm">{s.facts.taken} of {s.headcount} {s.headcount === 1 ? "seat" : "seats"} taken</p>

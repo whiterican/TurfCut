@@ -1,6 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import { sameDay } from "@/lib/same-day";
 
 const noop = () => () => {};
 
@@ -30,10 +31,4 @@ export function LocalTime({ iso, mode: asked = "datetime", from }: { iso: string
             : { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" };
   const text = d.toLocaleString("en-US", local ? opts : { ...opts, timeZone: "UTC" }) + (local ? "" : " UTC");
   return <time dateTime={iso}>{text}</time>;
-}
-
-/** Whether two instants fall on the same calendar day in a zone (the viewer's own when none is given). */
-export function sameDay(a: string, b: string, timeZone?: string): boolean {
-  const day = (iso: string) => new Date(iso).toLocaleDateString("en-US", { timeZone });
-  return day(a) === day(b);
 }

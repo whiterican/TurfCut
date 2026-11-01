@@ -34,7 +34,7 @@ export function FieldBoard({ rows, empty }: { rows: FieldRow[]; empty: string })
                     <span className="min-w-0">
                       <span className="block text-sm font-semibold text-fg">{r.worker}</span>
                       <span className="block text-xs text-muted">
-                        <LocalTime iso={r.startsAt.toISOString()} mode="time" /> – <LocalTime iso={r.endsAt.toISOString()} mode="time" />
+                        <LocalTime iso={r.startsAt.toISOString()} mode="time" /> – <LocalTime iso={r.endsAt.toISOString()} mode="time" from={r.startsAt.toISOString()} />
                         {r.state.packetsOut.length > 0 && ` · ${r.state.packetsOut.length} out`}
                         {r.state.packetsHeld.length > 0 && ` · ${r.state.packetsHeld.length} kept`}
                         {r.state.signatures > 0 && ` · ${r.state.signatures} sig.`}

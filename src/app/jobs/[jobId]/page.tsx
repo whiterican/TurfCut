@@ -463,7 +463,7 @@ function shiftRow(
         <span className="space-y-0.5">
           {showWorker && <span className="block font-semibold text-fg">{s.engagement.worker.displayName}</span>}
           <span className="block text-muted">
-            <LocalTime iso={s.startsAt.toISOString()} /> – <LocalTime iso={s.endsAt.toISOString()} mode="time" />
+            <LocalTime iso={s.startsAt.toISOString()} /> – <LocalTime iso={s.endsAt.toISOString()} mode="time" from={s.startsAt.toISOString()} />
             {s.stagingLocation ? ` · ${s.stagingLocation}` : ""}
           </span>
         </span>

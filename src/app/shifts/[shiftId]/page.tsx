@@ -328,7 +328,7 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
         ) : (
           // Before the shift: when and where, not a zero.
           <p className="t-headline text-fg">
-            <LocalTime iso={s.startsAt.toISOString()} mode="time" /> – <LocalTime iso={s.endsAt.toISOString()} mode="time" />
+            <LocalTime iso={s.startsAt.toISOString()} mode="time" /> – <LocalTime iso={s.endsAt.toISOString()} mode="time" from={s.startsAt.toISOString()} />
           </p>
         )}
         {started && (
@@ -353,7 +353,7 @@ export default async function ShiftPage({ params }: { params: Promise<{ shiftId:
           {started ? (
             <span>
               <span className="block font-bold text-fg">
-                <LocalTime iso={s.startsAt.toISOString()} mode="time" /> – <LocalTime iso={s.endsAt.toISOString()} mode="time" />
+                <LocalTime iso={s.startsAt.toISOString()} mode="time" /> – <LocalTime iso={s.endsAt.toISOString()} mode="time" from={s.startsAt.toISOString()} />
               </span>
               <span className="text-subtle">Scheduled</span>
             </span>

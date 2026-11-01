@@ -1592,21 +1592,25 @@ body {
   .data-table th.text-right {
     @apply text-right whitespace-nowrap tabular-nums;
   }
-  /* A receipt's facts (#116 review): aligned label and value rows, the amount one step up. */
-  .receipt-facts {
+  /* A record's facts (#116 review: receipt, dispute): aligned label and value rows. */
+  .receipt-facts,
+  .record-facts {
     @apply grid grid-cols-[auto_minmax(0,1fr)] gap-x-6 gap-y-2 text-sm;
   }
-  .receipt-facts dt {
+  .receipt-facts dt,
+  .record-facts dt {
     @apply text-muted;
   }
-  .receipt-facts dd {
+  .receipt-facts dd,
+  .record-facts dd {
     @apply text-right text-fg;
   }
   .receipt-facts .receipt-amount {
     @apply text-lg font-semibold tabular-nums;
   }
   /* What a failed or reversed date means, on its own full-width line under it. */
-  .receipt-facts .receipt-note {
+  .receipt-facts .receipt-note,
+  .record-facts .record-note {
     @apply col-span-2 -mt-1 text-left text-muted;
   }
   /* A stacked table (DataTable `stack`) below the small width: the sort controls wrap

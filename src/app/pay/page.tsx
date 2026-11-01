@@ -78,7 +78,7 @@ export default async function PayPage({ searchParams }: { searchParams: Promise<
     approve: pay.awaiting.length + pay.held.length,
     ready: pay.toPay.length,
     transit: pending.length,
-    paid: pay.paid.length,
+    paid: pay.paidAll.length,
     disputes: disputes.length,
   };
   const EMPTY: Record<Tab, string> = {
@@ -104,20 +104,20 @@ export default async function PayPage({ searchParams }: { searchParams: Promise<
       />}>
 
       {/* One compact band (#113 review, #114 Pay): each figure says what time it covers. */}
-      <section className="space-y-1" aria-labelledby="pay-totals-heading">
+      <section aria-labelledby="pay-totals-heading">
         <h2 id="pay-totals-heading" className="sr-only">Pay totals</h2>
         <dl className="summary-band">
           <div><dt>awaiting approval now</dt><dd>{money(sum(pay.awaiting))}</dd></div>
           <div><dt>ready to pay now</dt><dd>{money(readyTotal)}</dd></div>
           <div><dt>{disputes.length === 1 ? "dispute open now" : "disputes open now"}</dt><dd>{disputes.length}</dd></div>
-          <div><dt>paid in the last 30 days</dt><dd>{money(sum(pay.paid.filter((l) => (l.state.paidAt ?? today) >= monthAgo)))}</dd></div>
+          <div><dt>paid in the last 30 days</dt><dd>{money(sum(pay.paidAll.filter((l) => !!l.state.paidAt && l.state.paidAt >= monthAgo)))}</dd></div>
         </dl>
       </section>
 
       {/* The queues on the same quiet chips as the job feed's filters, each with its real count. */}
       <nav aria-label="Pay sections" className="-my-1 flex flex-wrap gap-x-2">
         {TABS.map((t) => (
-          <Link key={t.id} href={`/pay?tab=${t.id}`} className={`filter-chip ${t.id === tab ? "filter-chip-on" : ""}`} aria-current={t.id === tab ? "page" : undefined}>
+          <Link key={t.id} href={`/pay?tab=${t.id}`} className={t.id === tab ? "filter-chip filter-chip-on" : "filter-chip"} aria-current={t.id === tab ? "page" : undefined}>
             {t.label}
             <span className="tabular-nums opacity-75">{counts[t.id]}</span>
           </Link>
@@ -313,6 +313,7 @@ export default async function PayPage({ searchParams }: { searchParams: Promise<
       {tab === "paid" && pay.paid.length > 0 && (
         <section className="section">
           <h2 className="section-title">Recently paid</h2>
+          {pay.paidAll.length > pay.paid.length && <p className="text-muted-sm">The latest {pay.paid.length} of {pay.paidAll.length} paid lines. The ledger export below has every one.</p>}
           <ul className="list-card">
             {pay.paid.map((l) => (
               <li key={l.line.id} className="flex items-start justify-between gap-3 px-4 py-3">

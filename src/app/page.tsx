@@ -46,7 +46,7 @@ export default async function Home() {
             <h1 className="landing-hero-line">Field work that matters.</h1>
             <p className="landing-hero-proof">Get paid to support the causes and campaigns you believe in.</p>
             {/* The phone's one action spans the content, as the concept's Find Jobs does; from the small width up it sizes to its label (#113 review). */}
-            <Link href={session ? "/jobs" : "/signup"} className="btn-primary mt-6 flex w-full items-center justify-center gap-2 px-6 sm:inline-flex sm:w-auto">
+            <Link href={session ? "/jobs" : "/signup"} className="btn-primary mt-6 flex w-full gap-2 px-6 sm:inline-flex sm:w-auto">
               Find jobs <ArrowRight aria-hidden className="size-4" />
             </Link>
             {!session && (

@@ -103,28 +103,21 @@ export default async function PayPage({ searchParams }: { searchParams: Promise<
         }
       />}>
 
-      <section className="stat-tiles" aria-label="Pay totals">
-        <div className="stat-tile">
-          <p className="stat-tile-figure">{money(sum(pay.awaiting))}</p>
-          <p className="stat-tile-label">Awaiting approval</p>
-        </div>
-        <div className="stat-tile">
-          <p className="stat-tile-figure">{money(readyTotal)}</p>
-          <p className="stat-tile-label">Ready to pay</p>
-        </div>
-        <div className="stat-tile">
-          <p className="stat-tile-figure">{disputes.length}</p>
-          <p className="stat-tile-label">Open disputes</p>
-        </div>
-        <div className="stat-tile">
-          <p className="stat-tile-figure">{money(sum(pay.paid.filter((l) => (l.state.paidAt ?? today) >= monthAgo)))}</p>
-          <p className="stat-tile-label">Paid, last 30 days</p>
-        </div>
+      {/* One compact band (#113 review, #114 Pay): each figure says what time it covers. */}
+      <section className="space-y-1" aria-labelledby="pay-totals-heading">
+        <h2 id="pay-totals-heading" className="sr-only">Pay totals</h2>
+        <dl className="summary-band">
+          <div><dt>awaiting approval now</dt><dd>{money(sum(pay.awaiting))}</dd></div>
+          <div><dt>ready to pay now</dt><dd>{money(readyTotal)}</dd></div>
+          <div><dt>{disputes.length === 1 ? "dispute open now" : "disputes open now"}</dt><dd>{disputes.length}</dd></div>
+          <div><dt>paid in the last 30 days</dt><dd>{money(sum(pay.paid.filter((l) => (l.state.paidAt ?? today) >= monthAgo)))}</dd></div>
+        </dl>
       </section>
 
-      <nav aria-label="Pay sections" className="flex flex-wrap gap-2">
+      {/* The queues on the same quiet chips as the job feed's filters, each with its real count. */}
+      <nav aria-label="Pay sections" className="-my-1 flex flex-wrap gap-x-2">
         {TABS.map((t) => (
-          <Link key={t.id} href={`/pay?tab=${t.id}`} className="chip" aria-current={t.id === tab ? "page" : undefined}>
+          <Link key={t.id} href={`/pay?tab=${t.id}`} className={`filter-chip ${t.id === tab ? "filter-chip-on" : ""}`} aria-current={t.id === tab ? "page" : undefined}>
             {t.label}
             <span className="tabular-nums opacity-75">{counts[t.id]}</span>
           </Link>

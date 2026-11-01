@@ -39,9 +39,10 @@ export default async function OrgCredentialsPage({ searchParams }: { searchParam
       ) : workers.length === 0 ? (
         <p className="text-muted-sm">Nobody hired yet. Workers appear here once they claim a spot or accept an offer on one of your jobs.</p>
       ) : (
-        <ul className="space-y-4">
+        /* One list with a row per worker (#114: compact worker groups, no card around each). */
+        <ul className="list-card">
           {workers.map((w) => (
-            <li key={w.workerId} className="card space-y-3">
+            <li key={w.workerId} className="space-y-3 px-4 py-4 sm:px-5">
               <div className="space-y-0.5">
                 <p className="font-semibold text-fg">{w.name}</p>
                 <p className="text-muted-sm">Hired for {w.jobs.join(", ")}</p>

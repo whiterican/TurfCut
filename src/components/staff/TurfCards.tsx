@@ -35,7 +35,7 @@ export function TurfCards({ cards, now }: { cards: TurfCard[]; now: Date }) {
           </p>
           <LiveZoneBar id={c.id} name={c.name} fallback={[c.onGround, c.total]} />
           <p className="text-xs text-subtle">
-            {c.startsAt > now ? "Starts" : c.endsAt < now ? "Ended" : "Running"} <LocalTime iso={c.startsAt.toISOString()} mode="short" /> – <LocalTime iso={c.endsAt.toISOString()} mode="time" />
+            {c.startsAt > now ? "Starts" : c.endsAt < now ? "Ended" : "Running"} <LocalTime iso={c.startsAt.toISOString()} mode="short" /> – <LocalTime iso={c.endsAt.toISOString()} mode="time" from={c.startsAt.toISOString()} />
             {c.signatures > 0 && ` · ${c.signatures} signatures`}
             {c.doors > 0 && ` · ${c.doors} doors`}
           </p>

@@ -17,6 +17,7 @@ import {
   payableTotal,
   platformFee,
   readBasis,
+  recentlyPaid,
   reReviewProblem,
   selfApprovalProblem,
   resolutionProblem,
@@ -781,6 +782,7 @@ export async function loadOrgPay(actor: PayActor) {
   });
   const reviewerIds = [...new Set(live.flatMap((l) => [l.line.shift?.validations[0]?.reviewerId, l.line.validation?.reviewerId, l.line.createdById]).filter((x): x is string => !!x))];
   const names = new Map((await db().profile.findMany({ where: { id: { in: reviewerIds } }, select: { id: true, displayName: true } })).map((p) => [p.id, p.displayName ?? "Staff"]));
+  const paidAll = live.filter((l) => l.state.status === "PAID");
   return {
     awaiting: live.filter((l) => l.state.status === "AWAITING_APPROVAL"),
     held: live.filter((l) => l.state.status === "HELD"),
@@ -788,7 +790,9 @@ export async function loadOrgPay(actor: PayActor) {
     conflicts: live.filter((l) => l.state.conflict),
     processing: live.filter((l) => l.state.status === "PROCESSING"),
     toPay: toPay.sort((a, b) => a.name.localeCompare(b.name)),
-    paid: live.filter((l) => l.state.status === "PAID").reverse().slice(0, 50),
+    // The Paid list shows the 50 most recently paid, by payment date; totals and counts come from every paid line, so a busy month isn't undercounted.
+    paid: recentlyPaid(paidAll, 50),
+    paidAll,
     names,
   };
 }

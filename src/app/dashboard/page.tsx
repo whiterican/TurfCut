@@ -14,6 +14,7 @@ import { TodayDate } from "@/components/TodayDate";
 import { ShiftDayList } from "@/components/ShiftDayList";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { NO_ACCESS_PARAM, withNoAccess } from "@/lib/no-access";
 import { workerPayTotals } from "@/lib/pay-data";
 import { OfflineBrief } from "@/components/OfflineBrief";
 import { briefPaths } from "@/lib/offline-brief-data";
@@ -468,12 +469,14 @@ async function Detached() {
   );
 }
 
-export default async function DashboardPage() {
+export default async function DashboardPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const session = await requireAuth();
   // Organization roles live on the Desk (C1.3); workers and removed members stay here.
   if (session.role !== "WORKER" && session.orgId) {
     // A member whose role has no Desk (a role saved before every role got one) lands on the first page their role reaches, never back here.
-    redirect(landingFor(session.role, session.grants, session.staff));
+    // A guard's "no access" flag rides along, so the page they land on says why.
+    const landing = landingFor(session.role, session.grants, session.staff);
+    redirect((await searchParams)[NO_ACCESS_PARAM] === "1" ? withNoAccess(landing) : landing);
   }
 
   const isWorker = session.role === "WORKER" && !!session.workerId;

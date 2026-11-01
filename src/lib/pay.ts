@@ -470,3 +470,27 @@ export function parseMoney(s: string): number | null {
   const cents = Number(whole) * 100 + Number(frac.padEnd(2, "0"));
   return t.startsWith("-") ? -cents : cents;
 }
+
+/**
+ * The most recently paid lines first, by when they were paid (not when the
+ * line was created: an old line settled today belongs at the top). Ties fall
+ * back to the newer line, then its id, so the order is the same every time;
+ * a paid line with no payment date sorts last. Returns the first `limit`.
+ */
+export function recentlyPaid<T extends { state: { paidAt: Date | null }; line: { id: string; createdAt: Date } }>(lines: T[], limit: number): T[] {
+  return [...lines]
+    .sort((a, b) => {
+      const when = (d: Date | null) => {
+        const t = d?.getTime();
+        return t !== undefined && Number.isFinite(t) ? t : -Infinity;
+      };
+      const pa = when(a.state.paidAt);
+      const pb = when(b.state.paidAt);
+      if (pa !== pb) return pb - pa;
+      const ca = a.line.createdAt.getTime();
+      const cb = b.line.createdAt.getTime();
+      if (ca !== cb) return cb - ca;
+      return a.line.id < b.line.id ? -1 : a.line.id > b.line.id ? 1 : 0;
+    })
+    .slice(0, limit);
+}

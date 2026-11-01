@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { ensureAccount } from "@/lib/account";
 import { liveGrants, type Grants } from "@/lib/access";
 import { ServiceUnavailableError, isAuthOutage, isConfigError } from "@/lib/outage";
+import { withNoAccess } from "@/lib/no-access";
 
 export type Role =
   | "WORKER"
@@ -113,7 +114,8 @@ export const getSessionProfile = cache(async (): Promise<SessionProfile | null> 
 export async function requireRole(allowed: Role[]): Promise<SessionProfile> {
   const session = await getSessionProfile();
   if (!session) redirect((await needsSetup()) ? "/welcome" : "/login");
-  if (!allowed.includes(session.role)) redirect("/dashboard");
+  // An organization member whose role doesn't fit is told why where they land; a worker or removed member just goes home.
+  if (!allowed.includes(session.role)) redirect(session.orgId && session.role !== "WORKER" ? withNoAccess("/dashboard") : "/dashboard");
   return session;
 }
 

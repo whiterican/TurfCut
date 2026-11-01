@@ -4,44 +4,110 @@ import { requireArea } from "@/lib/employer-session";
 import { db } from "@/lib/db";
 import { loadDesk } from "@/lib/desk-data";
 import { Masthead } from "@/components/staff/Masthead";
+import { WorkspacePage } from "@/components/layout/Page";
 import { DataTable } from "@/components/staff/DataTable";
 import { NeedsTable } from "@/components/staff/NeedsTable";
 import { SummaryBar } from "@/components/staff/SummaryBar";
 import { LocalTime } from "@/components/LocalTime";
+import { StatusChip } from "@/components/StatusBadge";
 import { roleName } from "@/lib/org-roles";
 import { liveRows } from "@/lib/field-day-data";
 import { summarizeField } from "@/lib/field-live";
-import { FieldLiveProvider, LiveFigure, LiveRatio, LiveRing, LiveShow } from "@/components/staff/FieldLive";
+import { FieldLiveProvider, LiveFigure, LiveRatio, LiveShow } from "@/components/staff/FieldLive";
+import { CoverageMap } from "@/components/staff/CoverageMap";
+import { URGENCY } from "@/lib/desk";
 
-/** Today in the field: the strip owners and supervisors see first. Its figures tick while the page is open (P1.7). */
-function FieldToday({ ops, now }: { ops: NonNullable<Awaited<ReturnType<typeof loadDesk>>["today"]>; now: Date }) {
-  // Nothing under way and nothing starting soon: every figure is zero, so say so in words instead of a row of zeros.
-  if (ops.scheduled === 0 && ops.upcoming === 0) {
-    return (
-      <div className="hero-card hero-card-quiet space-y-3">
-        <p className="eyebrow">In the field today</p>
-        <p className="hero-title">Nothing under way</p>
-        <p className="hero-muted text-sm">Shifts starting in the next 24 hours show up here.</p>
-      </div>
-    );
-  }
+/** The "Needs you" kinds as the overview's side panel counts them, in urgency order. */
+const NEED_LABELS: Record<keyof typeof URGENCY, string> = {
+  late: "Late check-ins",
+  noCheckout: "No check-out received",
+  overdue: "Disputes overdue",
+  review: "Shifts to review",
+  dueToday: "Disputes due today",
+  payApprove: "Pay lines to approve",
+  applications: "Applications waiting",
+  dispute: "Open disputes",
+  short: "Jobs short of workers",
+};
+
+/**
+ * Today in the field (#111, screen 10): three source-backed tiles scoped to
+ * today (a fourth, doors, when any were knocked), then the field activity map
+ * (assigned turf only, never a person's position) beside what needs the
+ * organization. Every figure ticks while the page is open (P1.7); each is a
+ * real count of today's shifts, so a zero is a zero.
+ */
+function FieldToday({ ops, now, needs }: { ops: NonNullable<Awaited<ReturnType<typeof loadDesk>>["today"]>; now: Date; needs: Array<{ rank: number; count?: number }> }) {
   const live = summarizeField(liveRows(ops.rows), now);
   const t = live.today;
+  const quiet = ops.scheduled === 0 && ops.upcoming === 0;
+  // Each kind's real count: an aggregated row (12 pay lines, 4 applications) counts for what it stands for.
+  const counts = (Object.keys(URGENCY) as Array<keyof typeof URGENCY>).map((k) => ({ k, n: needs.filter((x) => x.rank === URGENCY[k]).reduce((sum, x) => sum + (x.count ?? 1), 0) })).filter((x) => x.n > 0);
   return (
     <FieldLiveProvider initial={live}>
-      <div className="hero-card space-y-4">
-        <p className="eyebrow">In the field today</p>
-        <div className="flex items-center gap-3">
-          <LiveRing of="dueCheckedIn" over="due" fallback={[t.dueCheckedIn, t.due]} className="shrink-0" />
-          <p className="hero-title"><LiveFigure of="due" fallback={t.due} unit={["shift", "shifts"]} /> under way</p>
+      <section className="section" aria-labelledby="today-heading">
+        <h2 id="today-heading" className="sr-only">Today</h2>
+        <div className="stat-tiles">
+          <div className="stat-tile">
+            <p className="stat-tile-figure"><LiveFigure of="due" fallback={t.due} /></p>
+            <p className="stat-tile-label">Shifts under way</p>
+            <p className="stat-tile-note">{quiet ? "Nothing under way" : <><LiveFigure of="upcoming" fallback={t.upcoming} /> starting in the next 24h</>}</p>
+          </div>
+          <div className="stat-tile">
+            <p className="stat-tile-figure"><LiveRatio of="dueCheckedIn" over="due" fallback={[t.dueCheckedIn, t.due]} /></p>
+            <p className="stat-tile-label">Checked in</p>
+            <p className="stat-tile-note">Of the shifts due now</p>
+          </div>
+          <div className="stat-tile">
+            <p className="stat-tile-figure"><LiveFigure of="signatures" fallback={t.signatures} /></p>
+            <p className="stat-tile-label">Signatures submitted</p>
+            <p className="stat-tile-note">Today, as workers report them</p>
+          </div>
+          <LiveShow of="doors" fallback={t.doors}>
+            <div className="stat-tile">
+              <p className="stat-tile-figure"><LiveFigure of="doors" fallback={t.doors} /></p>
+              <p className="stat-tile-label">Doors knocked</p>
+              <p className="stat-tile-note">Today, as workers report them</p>
+            </div>
+          </LiveShow>
         </div>
-        <p className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
-          <span><span className="block text-lg font-bold tabular-nums"><LiveRatio of="dueCheckedIn" over="due" fallback={[t.dueCheckedIn, t.due]} /></span><span className="hero-muted">Checked in</span></span>
-          <span><span className="block text-lg font-bold tabular-nums"><LiveFigure of="signatures" fallback={t.signatures} /></span><span className="hero-muted">Signatures submitted</span></span>
-          <LiveShow of="doors" fallback={t.doors}><span><span className="block text-lg font-bold tabular-nums"><LiveFigure of="doors" fallback={t.doors} /></span><span className="hero-muted">Doors</span></span></LiveShow>
-          <LiveShow of="upcoming" fallback={t.upcoming}><span><span className="block text-lg font-bold tabular-nums"><LiveFigure of="upcoming" fallback={t.upcoming} /></span><span className="hero-muted">Starting in the next 24h</span></span></LiveShow>
-        </p>
-      </div>
+      </section>
+      <section className="section" aria-labelledby="field-activity">
+        <h2 id="field-activity" className="section-title">Field activity</h2>
+        <div className="overview-grid">
+          {live.zones.length > 0 ? (
+            <CoverageMap initial={live.zones} className="overview-map" />
+          ) : (
+            <div className="overview-map empty-state">
+              <p className="empty-state-title">No assigned turf to show.</p>
+              <p className="empty-state-body">Turf drawn on a shift appears here as its workers check in. Nobody&apos;s position is ever on this map.</p>
+            </div>
+          )}
+          <aside className="space-y-4" aria-label="Field activity key and what needs you">
+            <ul className="space-y-1.5 text-sm text-muted" aria-label="Map key">
+              <li className="flex items-center gap-2"><span className="legend-dot legend-turf" aria-hidden /> Assigned turf</li>
+              <li className="flex items-center gap-2"><span className="legend-dot legend-on" aria-hidden /> Workers checked in (turf only, no positions)</li>
+            </ul>
+            {counts.length > 0 ? (
+              <ul className="space-y-2" aria-label="Needs you, by kind">
+                {counts.map(({ k, n }) => (
+                  <li key={k}>
+                    <a href="#needs-you" className="need-tile">
+                      <span className="need-tile-count">{n}</span>
+                      <span className="min-w-0">
+                        <span className="block font-semibold text-fg">{NEED_LABELS[k]}</span>
+                        <span className="block text-xs text-muted">In the list below</span>
+                      </span>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-muted-sm">Nothing needs you right now.</p>
+            )}
+          </aside>
+        </div>
+      </section>
     </FieldLiveProvider>
   );
 }
@@ -57,10 +123,17 @@ export default async function DeskPage() {
   const { parts } = desk;
 
   return (
-    <main className="page lg:max-w-5xl">
-      <Masthead title={org?.name ?? "Your organization"} meta={roleName(session, ROLE_LABELS)} />
+    <WorkspacePage head={<Masthead title="Overview" meta={`${org?.name ?? "Your organization"} · ${roleName(session, ROLE_LABELS)}`}><p className="period-label">Today</p></Masthead>}>
 
-      {parts.today && desk.today && <FieldToday ops={desk.today} now={now} />}
+      {parts.today && desk.today && <FieldToday ops={desk.today} now={now} needs={desk.needs} />}
+
+      {/* A count only: names stay with the roles that run the field (the loader never reads them here). */}
+      {!!desk.noCheckoutCount && (
+        <p className="flex flex-wrap items-center gap-2 text-sm text-fg">
+          <StatusChip state="overdue" label="No check-out received" />
+          {desk.noCheckoutCount === 1 ? "1 shift ended" : `${desk.noCheckoutCount} shifts ended`} without a check-out reaching Turfcut. Whoever runs your field days follows these up.
+        </p>
+      )}
 
       {!parts.readOnly && (
         <section className="section" aria-labelledby="needs-you">
@@ -73,7 +146,7 @@ export default async function DeskPage() {
           {desk.needs.length === 0 ? (
             <p className="text-muted-sm">
               Nothing right now.{" "}
-              {[parts.field && "Late check-ins and shifts to review", parts.hiring && "applications and open seats", parts.pay && "pay to approve and disputes"].filter(Boolean).join(", ")} show up here.
+              {[parts.field && "Late check-ins, missing check-outs and shifts to review", parts.hiring && "applications and open seats", parts.pay && "pay to approve and disputes"].filter(Boolean).join(", ")} show up here.
             </p>
           ) : (
             <NeedsTable items={desk.needs} />
@@ -140,6 +213,6 @@ export default async function DeskPage() {
           </section>
         </>
       )}
-    </main>
+    </WorkspacePage>
   );
 }

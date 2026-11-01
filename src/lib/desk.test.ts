@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { URGENCY, applicationsByJob, byUrgency, deskParts, seatsWhenLabel, shortOfHeadcount, weekAhead } from "./desk";
+import { URGENCY, applicationsByJob, byUrgency, deskParts, noCheckoutVisibility, seatsWhenLabel, shortOfHeadcount, weekAhead } from "./desk";
 
 const d = (iso: string) => new Date(iso);
 
@@ -58,7 +58,7 @@ describe("the Desk", () => {
 
 describe("Needs you order and times", () => {
   it("puts what is going wrong now first, gaps to fill last, and keeps each kind's own order", () => {
-    expect(Object.entries(URGENCY).sort((a, b) => a[1] - b[1]).map(([k]) => k)).toEqual(["late", "overdue", "review", "dueToday", "payApprove", "applications", "dispute", "short"]);
+    expect(Object.entries(URGENCY).sort((a, b) => a[1] - b[1]).map(([k]) => k)).toEqual(["late", "noCheckout", "overdue", "review", "dueToday", "payApprove", "applications", "dispute", "short"]);
     const rows = [
       { key: "short-a", rank: URGENCY.short },
       { key: "apps-a", rank: URGENCY.applications },
@@ -76,3 +76,21 @@ describe("Needs you order and times", () => {
     expect(seatsWhenLabel(d("2026-10-26T12:00:00Z"), now)).toBe("Started");
   });
 });
+
+describe("no check-out received on the Desk (P0 state truth)", () => {
+  it("names for full field access, a count for read field access and the read-only Desk, nothing for finance", () => {
+    expect(noCheckoutVisibility("OWNER")).toBe("names");
+    expect(noCheckoutVisibility("SUPERVISOR")).toBe("names");
+    // Recruiters read the field: a count, never names, on the Desk.
+    expect(noCheckoutVisibility("RECRUITER")).toBe("count");
+    expect(noCheckoutVisibility("COMPLIANCE")).toBe("count");
+    expect(noCheckoutVisibility("PUBLISHER")).toBe("count");
+    expect(noCheckoutVisibility("FINANCE")).toBeNull();
+    // A custom role follows its grants: read field access is a count whatever else it holds.
+    expect(noCheckoutVisibility({ role: "CUSTOM", grants: { desk: "full", field: "full" } })).toBe("names");
+    expect(noCheckoutVisibility({ role: "CUSTOM", grants: { desk: "full", field: "read" } })).toBe("count");
+    expect(noCheckoutVisibility({ role: "CUSTOM", grants: { desk: "full", field: "read", pay: "full" } })).toBe("count");
+    expect(noCheckoutVisibility({ role: "CUSTOM", grants: { desk: "full", pay: "full" } })).toBeNull();
+  });
+});
+

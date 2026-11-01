@@ -9,6 +9,7 @@ import { credentialName } from "@/lib/credentials";
 import { SETUP_STEPS, setupOrigin, setupStep } from "@/lib/setup-flow";
 import { PendingButton } from "@/components/PendingButton";
 import { confirmSharing, skipSetup } from "./actions";
+import { ReadingPage } from "@/components/layout/Page";
 
 const SHORT: Record<ShareAudience, string> = {
   RELATIONSHIP: `Organizations you ${RELATIONSHIP_PHRASE}`,
@@ -45,7 +46,7 @@ export default async function SetupPage({ searchParams }: { searchParams: Promis
   const step = (k: number) => `/profile/setup?step=${k}${from === "profile" ? "&from=profile" : ""}&tv=${encodeURIComponent(tv)}`;
 
   return (
-    <main className="page max-w-2xl space-y-6">
+    <ReadingPage gap={6}>
       <header className="space-y-2">
         <p className="eyebrow">Step {n} of {SETUP_STEPS.length}</p>
         <h1 className="page-title">{SETUP_STEPS[n - 1]}</h1>
@@ -137,6 +138,6 @@ export default async function SetupPage({ searchParams }: { searchParams: Promis
           ? `Skipping keeps the defaults: organizations you ${RELATIONSHIP_PHRASE} see your profile, and nobody can find you.`
           : "Skipping keeps your current choices."}
       </p>
-    </main>
+    </ReadingPage>
   );
 }

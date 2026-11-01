@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useId, useRef, useState } from "react";
-import { BadgeCheck, Briefcase, CalendarClock, ClipboardList, Clock, Ellipsis, LayoutDashboard, Map, Megaphone, MessageCircle, Newspaper, Settings, ShieldCheck, Sunrise, User, Users, Wallet, X, type LucideIcon } from "lucide-react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { BadgeCheck, Bell, Briefcase, CalendarCheck, CalendarClock, ChevronRight, ClipboardList, Clock, House, LayoutDashboard, Map, MapPin, Megaphone, Menu, MessageCircle, Newspaper, ReceiptText, Settings, ShieldCheck, Sunrise, User, Users, Wallet, X, type LucideIcon } from "lucide-react";
 import { activeTab, MESSAGES_HREF, type NavTab, type TabIconId } from "@/lib/nav";
 import { clampScroll, MIN_DELTA, nextHidden, SHOW_NEAR_TOP } from "@/lib/scroll-hide";
 import { useUnreadCount } from "@/components/chat/UnreadProvider";
@@ -11,6 +11,7 @@ import { useUnreadCount } from "@/components/chat/UnreadProvider";
 /** One glyph per tab id (lib/nav decides who gets which tabs). Exhaustive: a new id fails to compile until it has a glyph. */
 const ICONS: Record<TabIconId, LucideIcon> = {
   campaigns: Megaphone,
+  home: House,
   today: Sunrise, // not Sun: the theme toggle uses that
   feed: Newspaper,
   work: Briefcase,
@@ -26,7 +27,12 @@ const ICONS: Record<TabIconId, LucideIcon> = {
   credentials: BadgeCheck,
   settings: Settings,
   admin: ShieldCheck,
-  more: Ellipsis,
+  map: MapPin,
+  earnings: Wallet,
+  receipts: ReceiptText,
+  availability: CalendarCheck,
+  notifications: Bell,
+  more: Menu,
 };
 const iconFor = (t: NavTab): LucideIcon => ICONS[t.icon];
 
@@ -81,16 +87,26 @@ export function TabIcon({ tab }: { tab: NavTab }) {
   return <Icon of={iconFor(tab)} className="tab-icon" />;
 }
 
+/** The current tab is "page" only on its own page; under it (a job, /feed under Home, /shifts under Jobs) it is the current section. */
+function currentAttr(href: string, current: string | null | undefined, pathname: string | null): "page" | "true" | undefined {
+  if (href !== current) return undefined;
+  return pathname === href ? "page" : "true";
+}
+
 /** Desktop: links in the top bar. */
 export function TopNav({ tabs }: { tabs: NavTab[] }) {
-  const current = activeTab(tabs, usePathname());
+  const pathname = usePathname();
+  const current = activeTab(tabs, pathname);
   const count = useUnreadCount();
+  // No tabs, no landmark (an empty "Main" nav would compete with the page's own).
+  if (tabs.length === 0) return null;
   return (
     <nav aria-label="Main" className="hidden items-center gap-1 lg:flex">
       {tabs.map((t) => (
-        <Link key={t.href} href={t.href} className="topnav-link inline-flex items-center gap-1.5" aria-current={t.href === current ? "page" : undefined}>
+        // Between 1024 and 1279 the eight destinations fit only as icons (#113 review): the label stays the link's name and its tooltip, and shows from 1280.
+        <Link key={t.href} href={t.href} title={t.label} className="topnav-link inline-flex items-center gap-1.5" aria-current={currentAttr(t.href, current, pathname)}>
           <Icon of={iconFor(t)} className="size-4" />
-          {t.label}
+          <span className="sr-only xl:not-sr-only">{t.label}</span>
           {t.href === MESSAGES_HREF && <Badge count={count} />}
           {t.href === MESSAGES_HREF && count > 0 && <span className="sr-only">, {count} unread</span>}
         </Link>
@@ -99,31 +115,14 @@ export function TopNav({ tabs }: { tabs: NavTab[] }) {
   );
 }
 
-/** Phone and tablet: a floating bottom tab bar that tucks away on scroll; a tinted icon marks the current tab. */
-export function TabBar({ tabs }: { tabs: NavTab[] }) {
-  const current = activeTab(tabs, usePathname());
-  const count = useUnreadCount();
-  const tucked = useTuckOnScroll();
-  if (tabs.length === 0) return null;
-  return (
-    <nav aria-label="Main" className="tabbar" data-tucked={tucked || undefined}>
-      <div className="mx-auto flex max-w-md">
-        {tabs.map((t) => (
-          <Link key={t.href} href={t.href} className="tab" aria-current={t.href === current ? "page" : undefined}>
-            <Icon of={iconFor(t)} className="tab-icon" />
-            {t.label}
-            {t.href === MESSAGES_HREF && <Badge count={count} />}
-            {t.href === MESSAGES_HREF && count > 0 && <span className="sr-only">, {count} unread</span>}
-          </Link>
-        ))}
-      </div>
-    </nav>
-  );
-}
-
-/** Desktop (lg): the organization's left rail — its name and approval, then every area the role reaches. */
-export function OrgRail({ tabs, orgName, approved }: { tabs: NavTab[]; orgName: string; approved: boolean | null }) {
-  const current = activeTab(tabs, usePathname());
+/**
+ * Desktop (lg): the organization's full-height rail (redesign §4.2.1) — its
+ * name and approval at the top, every area the role reaches, and who is
+ * signed in at the bottom.
+ */
+export function OrgRail({ tabs, orgName, approved, person }: { tabs: NavTab[]; orgName: string; approved: boolean | null; person: { name: string; role: string } }) {
+  const pathname = usePathname();
+  const current = activeTab(tabs, pathname);
   const count = useUnreadCount();
   return (
     <aside className="org-rail" aria-label="Organization">
@@ -137,7 +136,7 @@ export function OrgRail({ tabs, orgName, approved }: { tabs: NavTab[]; orgName: 
         <ul className="space-y-0.5">
           {tabs.map((t) => (
             <li key={t.href}>
-              <Link href={t.href} className="rail-link" aria-current={t.href === current ? "page" : undefined}>
+              <Link href={t.href} className="rail-link" aria-current={currentAttr(t.href, current, pathname)}>
                 <Icon of={iconFor(t)} className="size-4 shrink-0" />
                 <span className="flex-1">{t.label}</span>
                 {t.href === MESSAGES_HREF && <Badge count={count} />}
@@ -147,16 +146,22 @@ export function OrgRail({ tabs, orgName, approved }: { tabs: NavTab[]; orgName: 
           ))}
         </ul>
       </nav>
+      <div className="org-rail-foot">
+        <p className="org-rail-status">Signed in as</p>
+        <p className="truncate font-semibold" title={person.name}>{person.name}</p>
+        <p className="truncate org-rail-status">{person.role}</p>
+      </div>
     </aside>
   );
 }
 
 /**
- * Phone and tablet, organization roles: the role's tabs, and More for the
- * rest. More is a native modal <dialog>: the browser traps focus, makes the
- * page behind it inert, closes on Escape and returns focus to More.
+ * Phone and tablet: the role's tabs, and More for the rest (workers and
+ * organization roles alike). More is a native modal <dialog>: the browser
+ * traps focus, makes the page behind it inert, closes on Escape and returns
+ * focus to More. `extra` is drawn under the list (the worker's Sign out).
  */
-export function OrgTabBar({ tabs, more }: { tabs: NavTab[]; more: NavTab[] }) {
+export function OrgTabBar({ tabs, more, extra, notices = 0 }: { tabs: NavTab[]; more: NavTab[]; extra?: ReactNode; /** Unread notifications, shown on the Notifications row (the worker's phone has no header bell). */ notices?: number }) {
   const pathname = usePathname();
   const current = activeTab([...tabs, ...more], pathname);
   const count = useUnreadCount();
@@ -224,28 +229,36 @@ export function OrgTabBar({ tabs, more }: { tabs: NavTab[]; more: NavTab[] }) {
                 <X aria-hidden className="btn-icon" />
               </button>
             </div>
-            <ul className="space-y-0.5">
+            <ul className="more-list">
               {more.map((t) => (
                 <li key={t.href}>
                   {/* Closes even when the link is the page you're on (no navigation happens). */}
-                  <Link href={t.href} className="rail-link" onClick={close} aria-current={t.href === current ? "page" : undefined}>
-                    <Icon of={iconFor(t)} className="size-4 shrink-0" />
-                    {t.label}
+                  <Link href={t.href} className="rail-link more-row" onClick={close} aria-current={currentAttr(t.href, current, pathname)}>
+                    <Icon of={iconFor(t)} className="size-5 shrink-0" />
+                    <span className="flex-1">{t.label}</span>
+                    {t.icon === "notifications" && notices > 0 && (
+                      <>
+                        <span className="unread-badge" aria-hidden>{notices > 99 ? "99+" : notices}</span>
+                        <span className="sr-only">, {notices} unread</span>
+                      </>
+                    )}
+                    <ChevronRight aria-hidden className="size-4 shrink-0 text-subtle" />
                   </Link>
                 </li>
               ))}
             </ul>
+            {extra && <div className="more-extra">{extra}</div>}
           </div>
         </dialog>
       )}
       <nav aria-label="Main" className="tabbar" data-tucked={tucked || undefined}>
         <div className="mx-auto flex max-w-md">
           {tabs.map((t) => (
-            <Link key={t.href} href={t.href} className="tab" aria-current={t.href === current ? "page" : undefined}>
+            <Link key={t.href} href={t.href} className="tab" data-wide={t.href.endsWith(MESSAGES_HREF) || undefined} aria-current={currentAttr(t.href, current, pathname)}>
               <Icon of={iconFor(t)} className="tab-icon" />
               {t.label}
-              {t.href === MESSAGES_HREF && <Badge count={count} />}
-              {t.href === MESSAGES_HREF && count > 0 && <span className="sr-only">, {count} unread</span>}
+              {t.href.endsWith(MESSAGES_HREF) && <Badge count={count} />}
+              {t.href.endsWith(MESSAGES_HREF) && count > 0 && <span className="sr-only">, {count} unread</span>}
             </Link>
           ))}
           {more.length > 0 && (
@@ -256,11 +269,14 @@ export function OrgTabBar({ tabs, more }: { tabs: NavTab[]; more: NavTab[] }) {
               aria-haspopup="dialog"
               aria-expanded={open}
               aria-controls={sheetId}
-              aria-current={inMore ? "page" : undefined}
+              aria-current={inMore ? "true" : undefined}
               onClick={() => setOpen(true)}
             >
-              <Icon of={Ellipsis} className="tab-icon" />
+              <Icon of={Menu} className="tab-icon" />
               More
+              {/* Unread notifications live under More on a worker's phone: a dot says there are some without opening the sheet. */}
+              {notices > 0 && <span className="tab-dot" aria-hidden />}
+              {notices > 0 && <span className="sr-only">, {notices} unread {notices === 1 ? "notification" : "notifications"}</span>}
             </button>
           )}
         </div>

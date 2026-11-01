@@ -7,8 +7,8 @@ import { EyeOff } from "lucide-react";
  */
 export function NotSharedChip({ what }: { what?: string }) {
   return (
-    <span className="badge-dashed" title={what ? `The worker hasn't shared their ${what} with you` : "The worker hasn't shared this with you"}>
-      <EyeOff aria-hidden className="size-3" />
+    <span className="status status-not-shared" title={what ? `The worker hasn't shared their ${what} with you` : "The worker hasn't shared this with you"}>
+      <EyeOff aria-hidden className="status-glyph" />
       Not shared
       {what && <span className="sr-only">: {what}</span>}
     </span>

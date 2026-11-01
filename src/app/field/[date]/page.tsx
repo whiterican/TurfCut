@@ -4,6 +4,7 @@ import { requireArea } from "@/lib/employer-session";
 import { loadFieldWindow } from "@/lib/field-day-data";
 import { dayWindow, shiftDay } from "@/lib/field-view";
 import { Masthead } from "@/components/staff/Masthead";
+import { WorkspacePage } from "@/components/layout/Page";
 import { FieldBoard } from "@/components/staff/FieldBoard";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -16,13 +17,12 @@ export default async function FieldDayPage({ params }: { params: Promise<{ date:
   const rows = await loadFieldWindow(session.orgId, win.from, win.to);
   const label = win.from.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" });
   return (
-    <main className="page max-w-4xl">
-      <Masthead title={label} meta={`${rows.length} ${rows.length === 1 ? "shift" : "shifts"} on this UTC day (midnight to midnight UTC). Times show in your time zone.`}>
+    <WorkspacePage head={<Masthead title={label} meta={`${rows.length} ${rows.length === 1 ? "shift" : "shifts"} on this UTC day (midnight to midnight UTC). Times show in your time zone.`}>
         <Link href={`/field/${shiftDay(date, -1)}`} className="btn-ghost btn-sm" aria-label="Previous day"><ChevronLeft aria-hidden className="size-4 shrink-0" /></Link>
         <Link href="/field" className="btn-secondary btn-sm">Now</Link>
         <Link href={`/field/${shiftDay(date, 1)}`} className="btn-ghost btn-sm" aria-label="Next day"><ChevronRight aria-hidden className="size-4 shrink-0" /></Link>
-      </Masthead>
+      </Masthead>}>
       <FieldBoard rows={rows} empty="No shifts this day." />
-    </main>
+    </WorkspacePage>
   );
 }

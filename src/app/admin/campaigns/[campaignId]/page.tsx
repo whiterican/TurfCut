@@ -1,3 +1,4 @@
+import { StatusChip } from "@/components/StatusBadge";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { UUID_RE } from "@/lib/jobs";
@@ -27,8 +28,8 @@ export default async function AdminCampaignPage({ params }: { params: Promise<{ 
         <p className="flex flex-wrap items-center gap-2 text-sm text-muted">
           <span>@{c.handle}</span>
           {c.verifiedAt && <VerifiedMark />}
-          {!c.publishedAt && <span className="badge-neutral">Draft</span>}
-          {c.publishedAt && !c.orgApproved && <span className="badge-coral">Organization not approved</span>}
+          {!c.publishedAt && <StatusChip state="draft" label="Draft" />}
+          {c.publishedAt && !c.orgApproved && <StatusChip state="blocked" label="Organization not approved" />}
           {pub && <Link href={`/c/${c.handle}`} className="link">Open the public page</Link>}
         </p>
       </header>

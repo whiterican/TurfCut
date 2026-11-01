@@ -272,9 +272,10 @@ export interface HeldPacket {
  * has since taken it out, if any. Read through the corrected ledger of the
  * holding shift; pickups are read raw (nothing rejects a pickup today).
  */
-export async function heldPackets(c: Tx | ReturnType<typeof db>, scope: { jobId?: string; orgId?: string; engagementId?: string }): Promise<HeldPacket[]> {
+export async function heldPackets(c: Tx | ReturnType<typeof db>, scope: { jobId?: string; orgId?: string; engagementId?: string; recent?: boolean }): Promise<HeldPacket[]> {
   // The organization-wide view (the ops page) looks back HELD_WINDOW_DAYS: a packet kept longer than that is a custody question for the job's own page, not a live count.
-  const recent = scope.orgId && !scope.jobId ? { startsAt: { gte: new Date(Date.now() - HELD_WINDOW_DAYS * 86_400_000) } } : {};
+  // `recent` keeps that window when the ops page narrows to one job, so a job's figure is never larger than the all-jobs one (#113 review, P1).
+  const recent = (scope.recent ?? (!!scope.orgId && !scope.jobId)) ? { startsAt: { gte: new Date(Date.now() - HELD_WINDOW_DAYS * 86_400_000) } } : {};
   const where = { ...recent, ...(scope.engagementId ? { engagementId: scope.engagementId } : {}), engagement: { job: { ...(scope.jobId ? { id: scope.jobId } : {}), ...(scope.orgId ? { orgId: scope.orgId } : {}) } }, events: { some: { type: "PACKET_HELD" as const } } };
   const holders = await c.shift.findMany({ where, include: SHIFT_INCLUDE, orderBy: { startsAt: "asc" } });
   if (!holders.length) return [];
@@ -685,10 +686,11 @@ export const REVIEW_CAP = 200;
  * with no closeout yet, or corrected since (lib/field-view needsReview
  * decides), the longest-waiting first, at most REVIEW_CAP.
  */
-export async function loadReviewCandidates(orgId: string, now = new Date(), days = 30) {
+export async function loadReviewCandidates(orgId: string, now = new Date(), days = 30, scope: { jobId?: string } = {}) {
   const shifts = await db().shift.findMany({
     where: {
-      engagement: { job: { orgId } },
+      // A job filter narrows the query itself, before the cap, inside the organization (#113 review, P1): never a filter on a capped result.
+      engagement: { job: { orgId, ...(scope.jobId ? { id: scope.jobId } : {}) } },
       status: { not: "CANCELLED" },
       checkOutAt: { gt: new Date(now.getTime() - days * 86_400_000) },
       OR: [{ validations: { none: { workEventId: null } } }, { events: { some: { type: "CORRECTION" } } }],

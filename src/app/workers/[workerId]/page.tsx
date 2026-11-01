@@ -7,6 +7,7 @@ import { OrgProfileSections } from "@/components/OrgProfileSections";
 import { InviteComposer } from "@/components/InviteComposer";
 import { Masthead } from "@/components/Masthead";
 import { ChevronLeft } from "lucide-react";
+import { ReadingPage, RecordPage } from "@/components/layout/Page";
 
 /** A worker as an organization sees them: only what the worker authorized. */
 export default async function EmployerWorkerPage({
@@ -19,12 +20,12 @@ export default async function EmployerWorkerPage({
   const access = await workerAccessFor(session, workerId, session.orgApproved);
   if (access.kind !== "employer") {
     return (
-      <main className="page max-w-2xl">
+      <ReadingPage org>
         <div className="empty-state">
           <p className="empty-state-title">This profile isn&apos;t available</p>
           <p className="empty-state-body">{access.kind === "denied" ? access.reason : "Not available."}</p>
         </div>
-      </main>
+      </ReadingPage>
     );
   }
 
@@ -33,7 +34,7 @@ export default async function EmployerWorkerPage({
   if (!view) notFound();
 
   return (
-    <main className="page">
+    <RecordPage org>
       {/* Only the display name — no phone or other contact details. (No name for an unapproved viewer, which can't reach here today.) */}
       <Masthead title={view.displayName ?? "Name not shared"}>
         <Link transitionTypes={["nav-back"]} href="/jobs" className="btn-ghost"><ChevronLeft aria-hidden className="size-4 shrink-0" />Jobs</Link>
@@ -42,6 +43,6 @@ export default async function EmployerWorkerPage({
       <InviteComposer workerId={workerId} orgId={access.orgId} />
 
       <OrgProfileSections view={view} />
-    </main>
+    </RecordPage>
   );
 }

@@ -7,6 +7,7 @@
  * plain words ("Fits your availability"). It is never a score, never shown to
  * staff here, and never decides who gets a seat.
  */
+import type { Status } from "@/lib/status";
 import { validateShift, type ShiftInput } from "@/lib/field-day";
 import type { Validated } from "@/lib/experience";
 import { DAYS, type Availability, type TimeRange } from "@/lib/availability";
@@ -56,18 +57,18 @@ export function slotState(s: SlotFacts, now: Date): SlotState {
   return seatsLeft(s) === 0 ? "full" : "open";
 }
 
-export function slotStateLabel(st: SlotState, left: number): { label: string; badge: string } {
+export function slotStateLabel(st: SlotState, left: number): Status {
   switch (st) {
     case "open":
-      return { label: `${left} ${left === 1 ? "seat" : "seats"} left`, badge: "badge-accent" };
+      return { label: `${left} ${left === 1 ? "seat" : "seats"} left`, state: "pending" };
     case "full":
-      return { label: "Full", badge: "badge-neutral" };
+      return { label: "Full", state: "closed" };
     case "closed":
-      return { label: "Closed", badge: "badge-neutral" };
+      return { label: "Closed", state: "closed" };
     case "started":
-      return { label: "Started", badge: "badge-neutral" };
+      return { label: "Started", state: "closed" };
     case "ended":
-      return { label: "Ended", badge: "badge-neutral" };
+      return { label: "Ended", state: "closed" };
   }
 }
 

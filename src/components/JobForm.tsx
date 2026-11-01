@@ -1,8 +1,9 @@
 "use client";
 
 import { startTransition, useActionState, useEffect, useRef, useState } from "react";
-import { saveJob, type JobFormState } from "@/app/jobs/actions";
+import { autosaveDraft, saveJob, type JobFormState } from "@/app/jobs/actions";
 import { AFFILIATIONS, affiliationLabel, COMPENSATION_METHODS, formToObject, HIRING_MODES, JOB_TYPES, validateJob } from "@/lib/jobs";
+import { PLANNED_CATEGORIES } from "@/lib/job-categories";
 import { BUILDER_STEPS, errorsForStep, firstStepWithErrors, REVIEW_STEP, stepOfField } from "@/lib/job-builder";
 import { LAUNCH_MODES, readLaunch, validateLaunch } from "@/lib/job-launch";
 import { CANVASS_APPS } from "@/lib/job-tools";
@@ -14,6 +15,25 @@ import { ChevronLeft } from "lucide-react";
 const initial: JobFormState = { message: "", errors: {} };
 const optional = <span className="font-normal text-subtle">(optional)</span>;
 const FIX = "Fix the highlighted fields.";
+
+/** Autosave (P0 3) runs on every step change and this long after the last edit; never on a keystroke. */
+const AUTOSAVE_IDLE_MS = 15_000;
+type SaveState = { kind: "idle" } | { kind: "saving" } | { kind: "saved"; at: Date; waiting: number } | { kind: "incomplete" | "error"; reason: string };
+function saveWords(s: SaveState): string {
+  switch (s.kind) {
+    case "idle":
+      return "Your draft saves as you go.";
+    case "saving":
+      return "Saving draft…";
+    case "saved":
+      // Fields with a problem were left out of the save (an invalid rate is never saved): say so, rather than "saved" alone.
+      return `Draft saved ${s.at.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}${s.waiting ? ` · ${s.waiting === 1 ? "1 field waits" : `${s.waiting} fields wait`} for a fix` : ""}`;
+    case "incomplete":
+      return `Not saved yet: ${s.reason}`;
+    case "error":
+      return `Couldn't save: ${s.reason}`;
+  }
+}
 
 export interface JurisdictionOption {
   id: string;
@@ -36,14 +56,32 @@ export interface JurisdictionOption {
  */
 export function JobForm({
   jobId,
+  autosave: autosaveOn = !jobId,
   defaults = {},
   jurisdictions,
 }: {
   jobId?: string;
+  /** Save progress as a draft as the organizer goes (P0 3): a new job, or an existing draft; never a live job. */
+  autosave?: boolean;
   defaults?: Record<string, unknown>;
   jurisdictions: JurisdictionOption[];
 }) {
   const [state, action, pending] = useActionState(saveJob, initial);
+  const pendingRef = useRef(pending);
+  useEffect(() => {
+    pendingRef.current = pending;
+  }, [pending]);
+  // The draft autosave created or is editing: the final save and every later autosave update it.
+  const [savedId, setSavedId] = useState(jobId);
+  const savedIdRef = useRef(jobId);
+  const [save, setSave] = useState<SaveState>({ kind: "idle" });
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const inFlight = useRef<Promise<void> | null>(null);
+  const dirty = useRef(false);
+  const lastSent = useRef("");
+  // The id the first save creates the draft under (one per form, made in the browser), so a save whose answer
+  // never arrived resumes the same draft next time instead of creating a second one.
+  const draftId = useRef<string | null>(null);
   const form = useRef<HTMLFormElement>(null);
   const heading = useRef<HTMLHeadingElement>(null);
   const [step, setStep] = useState(0);
@@ -94,6 +132,72 @@ export function JobForm({
   const loose = Object.entries(stepErrors).filter(([k]) => !BUILDER_STEPS[step].fields.includes(k) && !k.startsWith("issue_") && !k.startsWith("point_"));
 
   const read = () => formToObject(new FormData(form.current!));
+
+  /**
+   * Saves what the form holds as a draft (autosaveDraft keeps the fields
+   * without a problem). Skipped while the final save runs, or when nothing
+   * changed since the last save; a change during a save queues one more.
+   * The first save of a new job creates it, and the address becomes the
+   * draft's edit page so a reload resumes it.
+   */
+  const autosave = (): Promise<void> => {
+    if (!autosaveOn || !form.current || pendingRef.current) return Promise.resolve();
+    if (saveTimer.current) {
+      clearTimeout(saveTimer.current);
+      saveTimer.current = null;
+    }
+    const fd = new FormData(form.current);
+    // What the form holds, without the ids: the same content after the first save is still "unchanged".
+    const snapshot = [...fd.entries()].filter(([k]) => k !== "jobId").map(([k, v]) => `${k}=${typeof v === "string" ? v : ""}`).join("&");
+    if (snapshot === lastSent.current) return Promise.resolve();
+    if (savedIdRef.current) fd.set("jobId", savedIdRef.current);
+    else fd.set("draftId", (draftId.current ??= crypto.randomUUID()));
+    if (inFlight.current) {
+      dirty.current = true;
+      return inFlight.current;
+    }
+    inFlight.current = (async () => {
+      setSave({ kind: "saving" });
+      try {
+        const r = await autosaveDraft(fd);
+        if (r.ok) {
+          lastSent.current = snapshot;
+          if (!savedIdRef.current) {
+            savedIdRef.current = r.jobId;
+            setSavedId(r.jobId);
+            window.history.replaceState(window.history.state, "", `/jobs/${r.jobId}/edit`);
+          }
+          setSave({ kind: "saved", at: new Date(r.savedAt), waiting: r.waiting });
+        } else {
+          // Nothing to save yet, or nothing that can be saved this way (the job went live elsewhere): no retry until something changes.
+          if (r.kind !== "limited") lastSent.current = snapshot;
+          setSave({ kind: r.kind === "incomplete" ? "incomplete" : "error", reason: r.reason });
+        }
+      } catch {
+        setSave({ kind: "error", reason: "couldn't reach Turfcut; it'll try again after your next change." });
+      } finally {
+        inFlight.current = null;
+        if (dirty.current) {
+          dirty.current = false;
+          void autosave();
+        }
+      }
+    })();
+    return inFlight.current;
+  };
+  // An edit starts the quiet-time clock; a step change saves at once.
+  const touched = () => {
+    if (!autosaveOn) return;
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => void autosave(), AUTOSAVE_IDLE_MS);
+  };
+  useEffect(
+    () => () => {
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+    },
+    []
+  );
+
   const goTo = (n: number) => {
     if (!form.current) return;
     if (n > step) {
@@ -118,6 +222,7 @@ export function JobForm({
     if (n === REVIEW_STEP) setSummary(read());
     setStep(n);
     setVisited((v) => Math.max(v, n));
+    void autosave();
   };
   // Keyed apart from the save button and with the default stopped: React
   // re-renders the button before the browser runs the click's default
@@ -129,7 +234,15 @@ export function JobForm({
   const submit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
-    startTransition(() => action(fd));
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    // An autosave still in flight may be creating the draft: wait for it, so the final save updates that draft rather than making a second one.
+    const run = () => {
+      if (savedIdRef.current) fd.set("jobId", savedIdRef.current);
+      pendingRef.current = true; // so no autosave starts before React reports the transition as pending
+      startTransition(() => action(fd));
+    };
+    if (inFlight.current) void inFlight.current.then(run);
+    else run();
   };
 
   const current = BUILDER_STEPS[step];
@@ -141,6 +254,7 @@ export function JobForm({
       onSubmit={submit}
       noValidate
       className="space-y-6"
+      onChange={touched}
       onKeyDown={(e) => {
         // Enter in a text field goes to the next step, as it would submit a one-page form (not in the staging-point list, which has its own buttons).
         const t = e.target;
@@ -150,7 +264,7 @@ export function JobForm({
         }
       }}
     >
-      {jobId && <input type="hidden" name="jobId" value={jobId} />}
+      {savedId && <input type="hidden" name="jobId" value={savedId} />}
 
       <ol className="flex flex-wrap gap-2" aria-label="Steps">
         {BUILDER_STEPS.map((s, i) => (
@@ -167,6 +281,12 @@ export function JobForm({
           </li>
         ))}
       </ol>
+      {/* Always present once autosave is on, so a change of words is announced. */}
+      {autosaveOn && (
+        <p role="status" aria-live="polite" className="text-hint">
+          {saveWords(save)}
+        </p>
+      )}
 
       <div className="space-y-1">
         <h2 ref={heading} tabIndex={-1} className="section-title rounded-md focus-visible:ring-2 focus-visible:ring-[var(--ring)]">
@@ -191,6 +311,8 @@ export function JobForm({
           <span className="label">Type</span>
           <select name="type" className="field" defaultValue={d("type", "PETITION")} {...describe("type")}>
             {JOB_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+            {/* What's coming, visible but not postable: a planned category is never a job type. */}
+            {PLANNED_CATEGORIES.map((c) => <option key={c.id} value="" disabled>{c.label} (planned)</option>)}
           </select>
           {err("type")}
         </label>
@@ -370,6 +492,7 @@ export function JobForm({
             {CAMPAIGN_TYPES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
           </select>
           {err("campaignType")}
+          <span className="text-hint block">Candidate campaign canvassing is in development: a candidate job can be posted, and workers see it tagged so until its own tools launch.</span>
         </label>
         <label className="space-y-1.5">
           <span className="label">Affiliation</span>
@@ -426,7 +549,7 @@ export function JobForm({
             Next: {BUILDER_STEPS[step + 1].title}
           </button>
         ) : (
-          <button key="save" className="btn-primary" disabled={pending}>{pending ? "Saving…" : jobId ? "Save draft" : "Create draft"}</button>
+          <button key="save" className="btn-primary" disabled={pending}>{pending ? "Saving…" : savedId ? "Save draft" : "Create draft"}</button>
         )}
         {/* Always present, so a change of text is announced. */}
         <p role="status" aria-live="polite" className="text-danger-msg">{message}</p>

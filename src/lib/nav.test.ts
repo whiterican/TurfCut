@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { activeTab, landingFor, navTabs, ORG_TABS, orgNav } from "./nav";
+import { activeTab, landingFor, navTabs, ORG_TABS, orgNav, railPerson, topNavTabs, workerMore } from "./nav";
 import { accessTo, AREAS, canUse, levelsFor, ORG_ROLES, type AccessLevel, type Area, type Grants } from "./access";
 
 describe("navigation", () => {
   it("gives each role its own tabs", () => {
-    expect(navTabs("WORKER", false).map((t) => t.label)).toEqual(["Today", "Feed", "Work", "Shifts", "Messages", "Profile"]);
+    // #111: Home · Jobs · Work · Map · Messages, and More (Profile, Feed, Earnings, Settings). Leads waits for its feature (#110).
+    expect(navTabs("WORKER", false).map((t) => t.label)).toEqual(["Home", "Jobs", "Work", "Map", "Messages"]);
+    expect(workerMore("WORKER").map((t) => t.label)).toEqual(["Notifications", "Profile", "Campaign feed", "Earnings", "Payment history", "Credentials", "Availability", "Display settings"]);
+    expect(workerMore("OWNER")).toEqual([]);
     // C1: no People directory; organizations reach workers through a job.
     expect(navTabs("OWNER", true).map((t) => t.label)).toEqual(["Desk", "Hiring", "Jobs", "Field", "Messages", "Pay", "Credentials", "Campaigns", "Members", "Settings"]);
     // Recruiters read the field (no actions there).
@@ -28,17 +31,43 @@ describe("navigation", () => {
       const nav = orgNav(role, true);
       expect([...nav.rail, ...nav.phone, ...nav.more].some((t) => t.href === "/admin")).toBe(false);
     }
-    // A staff worker keeps the worker bar (six tabs, no More): the console is reached from Settings.
-    expect(navTabs("WORKER", false).map((t) => t.label)).toEqual(["Today", "Feed", "Work", "Shifts", "Messages", "Profile"]);
+    // A staff worker keeps the worker dock: the console is reached from Settings (in More).
+    expect(navTabs("WORKER", false).map((t) => t.label)).toEqual(["Home", "Jobs", "Work", "Map", "Messages"]);
     expect(orgNav("WORKER", false, true)).toEqual({ rail: [], phone: [], more: [] });
   });
 
-  it("highlights the tab a page belongs to", () => {
+  it("highlights the destination a page belongs to: the most specific match, so the turf map is Map and a shift is Work", () => {
     const tabs = navTabs("WORKER", false);
-    expect(activeTab(tabs, "/profile/preferences")).toBe("/profile");
+    const all = [...tabs, ...workerMore("WORKER")]; // what the dock's More button is current for
+    expect(activeTab(tabs, "/dashboard")).toBe("/dashboard");
     expect(activeTab(tabs, "/jobs/abc")).toBe("/jobs");
+    expect(activeTab(tabs, "/jobs/invitations")).toBe("/jobs");
     expect(activeTab(tabs, "/jobsearch")).toBeNull();
+    expect(activeTab(tabs, "/shifts")).toBe("/shifts");
+    expect(activeTab(tabs, "/shifts/abc")).toBe("/shifts");
+    expect(activeTab(tabs, "/shifts/turf")).toBe("/shifts/turf");
+    expect(activeTab(tabs, "/shiftsx")).toBeNull();
     expect(activeTab(tabs, "/login")).toBeNull();
+    // More's destinations: the dock tabs own none of them; More does.
+    expect(activeTab(tabs, "/profile/preferences")).toBeNull();
+    expect(activeTab(all, "/profile/preferences")).toBe("/profile");
+    expect(activeTab(all, "/feed")).toBe("/feed");
+    expect(activeTab(all, "/earnings/receipts")).toBe("/earnings/receipts");
+    expect(activeTab(all, "/earnings/receipts/abc")).toBe("/earnings/receipts");
+    expect(activeTab(all, "/profile/credentials")).toBe("/profile/credentials");
+    expect(activeTab(all, "/settings")).toBe("/settings");
+    expect(activeTab(all, "/notifications")).toBe("/notifications");
+  });
+
+  it("gives the worker's desktop top bar the dock's tabs and More's destinations (Settings is the header's own button), and nobody else a top bar", () => {
+    const top = topNavTabs("WORKER");
+    expect(top.map((t) => t.label)).toEqual(["Home", "Jobs", "Work", "Map", "Messages", "Profile", "Campaign feed", "Earnings"]);
+    expect(activeTab(top, "/earnings")).toBe("/earnings");
+    expect(activeTab(top, "/earnings/receipts")).toBe("/earnings");
+    expect(activeTab(top, "/profile/preferences")).toBe("/profile");
+    expect(activeTab(top, "/shifts")).toBe("/shifts");
+    expect(activeTab(top, "/shifts/turf")).toBe("/shifts/turf");
+    for (const role of [...ORG_ROLES, null] as const) expect(topNavTabs(role)).toEqual([]);
   });
 
   it("never shows an organization tab for a route the role can't reach", () => {
@@ -107,5 +136,11 @@ describe("navigation", () => {
     expect(landingFor("CUSTOM", {})).toBe("/settings");
     expect(landingFor("OWNER", null)).toBe("/desk");
     expect(landingFor("CUSTOM", {}, true)).toBe("/admin");
+  });
+
+  it("names who is signed in at the foot of the rail: their own name, else their email; the role as the organization calls it", () => {
+    expect(railPerson({ displayName: "Maya Chen", email: "m@x.org", role: "OWNER", roleName: null })).toEqual({ name: "Maya Chen", role: "Owner" });
+    expect(railPerson({ displayName: "  ", email: "m@x.org", role: "CUSTOM", roleName: "Door captain" })).toEqual({ name: "m@x.org", role: "Door captain" });
+    expect(railPerson({ email: undefined, role: "FINANCE", roleName: null })).toEqual({ name: "Your account", role: "Finance" });
   });
 });

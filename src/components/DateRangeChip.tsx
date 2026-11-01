@@ -10,7 +10,7 @@ export const day = (d: Date | null) => (d ? d.toLocaleDateString("en-US", { mont
  */
 export function DateRangeChip({ startsAt, endsAt }: { startsAt: Date | null; endsAt: Date | null }) {
   return (
-    <span className="badge-accent">
+    <span className="tag-accent">
       <CalendarDays aria-hidden className="size-3.5 shrink-0" />
       {startsAt || endsAt ? `${day(startsAt)} – ${day(endsAt)}` : "Dates to be set"}
     </span>

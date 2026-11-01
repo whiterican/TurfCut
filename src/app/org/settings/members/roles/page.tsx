@@ -8,6 +8,7 @@ import { listOrgRoles } from "@/lib/org-roles-data";
 import { db } from "@/lib/db";
 import { archiveRole } from "./actions";
 import { Masthead } from "@/components/Masthead";
+import { ReadingPage } from "@/components/layout/Page";
 
 export const metadata = { title: "Roles · Turfcut" };
 
@@ -26,10 +27,9 @@ export default async function RolesPage({ searchParams }: { searchParams: Promis
   const base = (BUILT_IN_ROLES as string[]).includes(preset ?? "") ? (preset as BuiltInRole) : null;
 
   return (
-    <main className="page max-w-3xl">
-      <Masthead title="Roles" meta={<>The built-in roles stay as they are. Build your own for the seats that don&apos;t fit them, then choose one when you invite someone or change a member&apos;s role.</>}>
+    <ReadingPage org head={<Masthead title="Roles" meta={<>The built-in roles stay as they are. Build your own for the seats that don&apos;t fit them, then choose one when you invite someone or change a member&apos;s role.</>}>
         <Link href="/org/settings/members" className="btn-ghost btn-sm">Back to members</Link>
-      </Masthead>
+      </Masthead>}>
 
       {!isOwner && <p className="card text-muted-sm">Only an owner builds roles. You can see them here, and assign the ones that reach no more than you do.</p>}
 
@@ -47,7 +47,7 @@ export default async function RolesPage({ searchParams }: { searchParams: Promis
                 <div className="space-y-1">
                   <p className="flex flex-wrap items-center gap-2 font-medium text-fg">
                     {r.name}
-                    {r.basedOn && <span className="badge-neutral">From {ROLE_LABELS[r.basedOn]}</span>}
+                    {r.basedOn && <span className="tag">From {ROLE_LABELS[r.basedOn]}</span>}
                     <span className="text-xs font-normal text-subtle">{r.members} {r.members === 1 ? "member" : "members"}{r.invites ? ` · ${r.invites} invited` : ""}</span>
                   </p>
                   {r.description && <p className="text-muted-sm">{r.description}</p>}
@@ -96,6 +96,6 @@ export default async function RolesPage({ searchParams }: { searchParams: Promis
           </ul>
         </section>
       )}
-    </main>
+    </ReadingPage>
   );
 }

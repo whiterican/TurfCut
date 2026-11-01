@@ -1,3 +1,4 @@
+import { StatusGlyph } from "@/components/StatusBadge";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireStaff } from "@/lib/staff-session";
@@ -37,9 +38,9 @@ export default async function AdminPersonPage({ params }: { params: Promise<{ pr
       <header className="space-y-2">
         <h2 className="page-title">{p.name ?? "No name yet"}</h2>
         <p className="flex flex-wrap items-center gap-2 text-sm text-muted">
-          <span className="badge-neutral">{ROLE_LABELS[p.role]}</span>
-          {p.staff && <span className="badge-sky">Turfcut staff</span>}
-          {p.closedAt && <span className="badge-coral">Closed <LocalTime iso={p.closedAt.toISOString()} mode="fulldate" /></span>}
+          <span className="tag">{ROLE_LABELS[p.role]}</span>
+          {p.staff && <span className="tag-accent">Turfcut staff</span>}
+          {p.closedAt && <span className="status status-closed"><StatusGlyph state="closed" />Closed <LocalTime iso={p.closedAt.toISOString()} mode="fulldate" /></span>}
           <span>since <LocalTime iso={p.createdAt.toISOString()} mode="fulldate" /></span>
         </p>
       </header>

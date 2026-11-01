@@ -19,7 +19,7 @@ export function HiringTabs({
     { key: "invites" as const, label: "Invites", n: counts.invites },
   ];
   return (
-    <nav aria-label="Hiring views" className="flex gap-2">
+    <nav aria-label="Hiring views" className="flex flex-wrap gap-2">
       {tabs.map((t) => (
         <Link
           key={t.key}

@@ -192,9 +192,10 @@ async function cacheFirstStatic(req) {
 /** Network first; the saved copy on failure, a server error or a slow answer. */
 async function fieldPage(e, url) {
   const path = url.pathname;
-  // Cloned before the page gets the response; saved even if the copy answers first.
-  const fetched = fetch(e.request).then((res) => ({ res, copy: res.clone() }));
-  e.waitUntil(fetched.then(({ copy }) => savePage(path, copy)).catch(() => {}));
+  // Cloned before the page gets the response; saved even if the copy answers first. A query variant
+  // (the schedule's Past view) is never saved over the plain page: the brief is the Upcoming list.
+  const fetched = fetch(e.request).then((res) => ({ res, copy: url.search ? null : res.clone() }));
+  e.waitUntil(fetched.then(({ copy }) => (copy ? savePage(path, copy) : undefined)).catch(() => {}));
   const network = fetched.then(({ res }) => res);
   network.catch(() => {}); // a failure after the saved copy was served is expected
   const slow = new Promise((resolve) => setTimeout(() => resolve("slow"), NETWORK_WAIT_MS));

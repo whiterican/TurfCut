@@ -25,6 +25,7 @@ export function SwipeCard({
   hidden,
   children,
   action = markJobAction,
+  compact = false,
 }: {
   jobId: string;
   saved: boolean;
@@ -32,6 +33,8 @@ export function SwipeCard({
   children: React.ReactNode;
   /** The server action that records the mark (the real one; a fixture may pass its own). */
   action?: typeof markJobAction;
+  /** The green board's row: the wrapper is the card, Save and Hide are icon buttons at its right edge (44px targets, named for a reader). */
+  compact?: boolean;
 }) {
   const [isSaved, setSaved] = useState(saved);
   const [gone, setGone] = useState(false);
@@ -198,7 +201,7 @@ export function SwipeCard({
       )}
       <div
         ref={card}
-        className="swipe-card"
+        className={compact ? "swipe-card swipe-card-compact" : "swipe-card"}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
@@ -208,19 +211,26 @@ export function SwipeCard({
         {children}
         <div className="swipe-actions">
           {hidden ? (
-            <button type="button" className="btn-ghost btn-sm" onClick={unhide} disabled={pending}>
+            <button type="button" className={compact ? "btn-ghost swipe-icon" : "btn-ghost btn-sm"} onClick={unhide} disabled={pending} aria-label={compact ? "Unhide" : undefined}>
               <Undo2 aria-hidden className="btn-icon" />
-              Unhide
+              {!compact && "Unhide"}
             </button>
           ) : (
             <>
-              <button type="button" className={isSaved ? "btn-secondary btn-sm" : "btn-ghost btn-sm"} onClick={isSaved ? unsave : save} disabled={pending && !isSaved}>
+              <button
+                type="button"
+                className={compact ? "btn-ghost swipe-icon" : isSaved ? "btn-secondary btn-sm" : "btn-ghost btn-sm"}
+                onClick={isSaved ? unsave : save}
+                disabled={pending && !isSaved}
+                aria-label={compact ? (isSaved ? "Saved (tap to unsave)" : "Save") : undefined}
+                aria-pressed={compact ? isSaved : undefined}
+              >
                 {isSaved ? <BookmarkCheck aria-hidden className="btn-icon" /> : <Bookmark aria-hidden className="btn-icon" />}
-                {isSaved ? "Saved" : "Save"}
+                {!compact && (isSaved ? "Saved" : "Save")}
               </button>
-              <button type="button" className="btn-ghost btn-sm" onClick={hide} disabled={pending}>
+              <button type="button" className={compact ? "btn-ghost swipe-icon" : "btn-ghost btn-sm"} onClick={hide} disabled={pending} aria-label={compact ? "Hide" : undefined}>
                 <EyeOff aria-hidden className="btn-icon" />
-                Hide
+                {!compact && "Hide"}
               </button>
             </>
           )}

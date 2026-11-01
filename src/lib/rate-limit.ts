@@ -47,6 +47,8 @@ export const LIMITS = {
   follow: { max: 60, windowMs: 60 * 60_000 },
   /** Likes and unlikes per worker per hour (S2). */
   like: { max: 120, windowMs: 60 * 60_000 },
+  /** Job-builder draft autosaves per organization per minute (P0 3: a step change or 15 s of quiet, never a keystroke). */
+  autosave: { max: 30, windowMs: 60_000 },
 } as const satisfies Record<string, Limit>;
 
 export type LimitName = keyof typeof LIMITS;

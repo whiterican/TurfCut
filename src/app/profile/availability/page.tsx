@@ -7,6 +7,7 @@ import { AvailabilityForm } from "@/components/AvailabilityForm";
 import { withoutPastDates } from "@/lib/availability";
 import { Masthead } from "@/components/Masthead";
 import { ChevronLeft } from "lucide-react";
+import { ReadingPage } from "@/components/layout/Page";
 
 export default async function AvailabilityPage() {
   const { workerId } = await requireWorker();
@@ -14,7 +15,7 @@ export default async function AvailabilityPage() {
   const audience = AUDIENCE_OPTIONS.find((o) => o.value === sharing.choices.audiences.availability)!;
 
   return (
-    <main className="page max-w-2xl space-y-8">
+    <ReadingPage gap={8}>
       <div className="space-y-3">
         <Masthead title="Availability">
           <Link transitionTypes={["nav-back"]} href="/profile" className="btn-ghost"><ChevronLeft aria-hidden className="size-4 shrink-0" />Profile</Link>
@@ -27,6 +28,6 @@ export default async function AvailabilityPage() {
       </div>
       {/* Past dates drop off here too, so the form's rows match what saving keeps. */}
       <AvailabilityForm availability={withoutPastDates(availability, new Date().toISOString().slice(0, 10))} />
-    </main>
+    </ReadingPage>
   );
 }

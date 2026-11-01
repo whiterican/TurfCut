@@ -9,6 +9,7 @@ import { acceptInvitation, declineAsWorker, mute, unmute } from "../actions";
 import { LocalTime } from "@/components/LocalTime";
 import { Masthead } from "@/components/Masthead";
 import { ChevronLeft } from "lucide-react";
+import { ListPage } from "@/components/layout/Page";
 
 export const metadata = { title: "Invitations · Turfcut" };
 
@@ -39,10 +40,9 @@ export default async function InvitationsPage() {
   const lapsed = invitations.filter((i) => i.lapsed);
 
   return (
-    <main className="page max-w-2xl">
-      <Masthead title="Invitations" meta={<>Organizations you&apos;ve worked or applied with can invite you to a job. Each invitation lasts {INVITE_DAYS} days. They can&apos;t see whether you&apos;ve opened it.</>}>
+    <ListPage head={<Masthead title="Invitations" meta={<>Organizations you&apos;ve worked or applied with can invite you to a job. Each invitation lasts {INVITE_DAYS} days. They can&apos;t see whether you&apos;ve opened it.</>}>
         <Link transitionTypes={["nav-back"]} href="/jobs" className="btn-ghost"><ChevronLeft aria-hidden className="size-4 shrink-0" />Jobs</Link>
-      </Masthead>
+      </Masthead>}>
 
       {open.length === 0 ? (
         <div className="empty-state">
@@ -130,6 +130,6 @@ export default async function InvitationsPage() {
           </ul>
         )}
       </section>
-    </main>
+    </ListPage>
   );
 }

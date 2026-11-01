@@ -1,5 +1,6 @@
 "use client";
 
+import { StatusBadge } from "@/components/StatusBadge";
 import { useSyncExternalStore } from "react";
 import { ActionButton } from "@/components/ActionButton";
 import { LocalTime } from "@/components/LocalTime";
@@ -49,13 +50,13 @@ export function OpenShiftList({ items, availability }: { items: OpenShiftItem[];
                 <p className="eyebrow"><LocalTime iso={s.startsAt.toISOString()} mode="date" /></p>
                 <p className="font-bold text-fg">{s.job.title}</p>
                 <p className="text-muted-sm">
-                  <LocalTime iso={s.startsAt.toISOString()} mode="time" /> – <LocalTime iso={s.endsAt.toISOString()} mode="time" />
+                  <LocalTime iso={s.startsAt.toISOString()} mode="time" /> – <LocalTime iso={s.endsAt.toISOString()} mode="time" from={s.startsAt.toISOString()} />
                   {s.stagingLocation ? ` · ${s.stagingLocation}` : ""} · {s.job.orgName}
                 </p>
                 {s.fit !== "unknown" && <p className="text-hint">{SLOT_FIT_LABELS[s.fit]}</p>}
                 {s.notes && <p className="text-sm text-fg">{s.notes}</p>}
               </div>
-              <span className={b.badge}>{b.label}</span>
+              <StatusBadge status={b} />
             </div>
             {s.state === "open" &&
               (s.blocked ? (

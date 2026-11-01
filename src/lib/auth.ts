@@ -33,6 +33,8 @@ export interface SessionProfile {
   grants: Grants | null;
   /** The custom role's name as the organization gave it; null for a built-in role. */
   roleName: string | null;
+  /** Organization staff's own name (Profile.displayName), shown to them in the rail; absent or null when unset. */
+  displayName?: string | null;
 }
 
 /**
@@ -100,6 +102,7 @@ export const getSessionProfile = cache(async (): Promise<SessionProfile | null> 
     staff: !!profile.staffSince,
     grants: profile.role === "CUSTOM" ? liveGrants(profile.orgRole, profile.orgId) : null,
     roleName: profile.role === "CUSTOM" ? (profile.orgRole?.name ?? null) : null,
+    displayName: profile.displayName,
   };
 });
 

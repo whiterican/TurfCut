@@ -77,7 +77,7 @@ export default async function AdminAuditPage({ searchParams }: { searchParams: P
                   <p className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
                     <span className="flex flex-wrap items-center gap-2">
                       <span className="font-mono text-sm text-fg">{r.action}</span>
-                      {r.source === "staff" && <span className="badge-sky">Turfcut staff</span>}
+                      {r.source === "staff" && <span className="tag-accent">Turfcut staff</span>}
                     </span>
                     <span className="text-xs text-subtle"><LocalTime iso={r.createdAt.toISOString()} mode="full" /></span>
                   </p>

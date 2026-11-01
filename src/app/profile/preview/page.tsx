@@ -6,6 +6,7 @@ import type { OrgOrPublic } from "@/lib/org-profile";
 import { OrgProfileSections } from "@/components/OrgProfileSections";
 import { Masthead } from "@/components/Masthead";
 import { ChevronLeft } from "lucide-react";
+import { ReadingPage } from "@/components/layout/Page";
 
 const TABS = [
   { key: "applied", label: "An organization you work with", viewer: { kind: "org", approved: true, relationship: true } },
@@ -34,7 +35,7 @@ export default async function PreviewPage({ searchParams }: { searchParams: Prom
   if (tab.viewer.kind === "org" && !view) notFound();
 
   return (
-    <main className="page space-y-8">
+    <ReadingPage gap={8}>
       <div className="space-y-3">
         <Masthead title="See what organizations see">
           <Link transitionTypes={["nav-back"]} href="/profile" className="btn-ghost"><ChevronLeft aria-hidden className="size-4 shrink-0" />Profile</Link>
@@ -65,6 +66,6 @@ export default async function PreviewPage({ searchParams }: { searchParams: Prom
           <OrgProfileSections view={view} />
         </section>
       )}
-    </main>
+    </ReadingPage>
   );
 }

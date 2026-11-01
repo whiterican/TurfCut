@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { openJobsEndAfter } from "@/lib/jobs";
 import { pipeline } from "@/lib/hiring";
 import { Masthead } from "@/components/staff/Masthead";
+import { WorkspacePage } from "@/components/layout/Page";
 import { SummaryBar } from "@/components/staff/SummaryBar";
 import { DataTable } from "@/components/staff/DataTable";
 import { matchCounts } from "@/lib/matches-data";
@@ -21,8 +22,7 @@ export default async function HiringPage() {
   const total = (k: "applied" | "offered" | "invited" | "engaged") => rows.reduce((n, r) => n + r[k], 0);
 
   return (
-    <main className="page max-w-4xl">
-      <Masthead title="Pipeline" meta="Open jobs and the people at each stage. Open a job's applicants to compare what each worker shares with you." />
+    <WorkspacePage head={<Masthead title="Pipeline" meta="Open jobs and the people at each stage. Open a job's applicants to compare what each worker shares with you." />}>
       <SummaryBar
         label="Hiring totals"
         items={[
@@ -63,6 +63,6 @@ export default async function HiringPage() {
           },
         }))}
       />
-    </main>
+    </WorkspacePage>
   );
 }

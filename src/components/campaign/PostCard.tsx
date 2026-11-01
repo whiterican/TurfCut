@@ -55,7 +55,7 @@ export function PostCard({
         </Link>
         {post.editedAt && <span>(edited)</span>}
         {post.pinnedAt && (
-          <span className="badge inline-flex items-center gap-1">
+          <span className="tag inline-flex items-center gap-1">
             <Pin aria-hidden className="h-3 w-3" />
             Talking point
           </span>

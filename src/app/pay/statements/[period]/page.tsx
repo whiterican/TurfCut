@@ -6,6 +6,7 @@ import { StatementView } from "@/components/StatementView";
 import { PrintButton } from "@/components/PrintButton";
 import { requireArea } from "@/lib/employer-session";
 import { Masthead } from "@/components/Masthead";
+import { RecordPage } from "@/components/layout/Page";
 
 export const metadata = { title: "Statement · Turfcut" };
 
@@ -17,12 +18,11 @@ export default async function StatementPage({ params }: { params: Promise<{ peri
   const st = await loadStatement({ profileId: s.userId, orgId: s.orgId, role: s.role, grants: s.grants }, period);
   if (!st) notFound();
   return (
-    <main className="page max-w-3xl">
-      <Masthead className="no-print" eyebrow={<Link href="/pay/statements" className="link">Statements</Link>} title={st.label} meta={`Statement ${st.number}. Every line links to the record behind it.`}>
+    <RecordPage org head={<Masthead className="no-print" eyebrow={<Link href="/pay/statements" className="link">Statements</Link>} title={st.label} meta={`Statement ${st.number}. Every line links to the record behind it.`}>
         <a href={`/pay/statements/${st.period}/csv`} className="btn-secondary btn-sm">Download CSV</a>
         <PrintButton />
-      </Masthead>
+      </Masthead>}>
       <StatementView s={st} />
-    </main>
+    </RecordPage>
   );
 }

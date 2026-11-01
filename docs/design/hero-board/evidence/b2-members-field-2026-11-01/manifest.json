@@ -1,0 +1,1470 @@
+[
+ {
+  "screen": "members",
+  "route": "/org/settings/members",
+  "state": "populated",
+  "role": "owner",
+  "source": {
+   "commit": "8eaa278c1bfb569b0b0e238184537bf2b912b6c1",
+   "clean": true,
+   "patchSha256": null
+  },
+  "implementationFile": "members-populated-1440-light.png",
+  "viewport": {
+   "width": 1440,
+   "height": 900,
+   "deviceScaleFactor": 2
+  },
+  "theme": "light",
+  "timezone": "America/Denver",
+  "clock": "frozen at 2026-10-30T19:00:00Z",
+  "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+  "fontOk": true,
+  "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+  "overflow": 0,
+  "tabs": [
+   {
+    "label": "Desk",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   },
+   {
+    "label": "Hiring",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   },
+   {
+    "label": "Field",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   },
+   {
+    "label": "Messages",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   },
+   {
+    "label": "More",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   }
+  ],
+  "bar": {
+   "w": 0,
+   "h": 0,
+   "left": 0,
+   "bottom": 900
+  },
+  "bg": "#faf9f4",
+  "shell": "#1c0f2e",
+  "title": "Turfcut",
+  "h1": "Members",
+  "status": "captured",
+  "set": "members"
+ },
+ {
+  "screen": "members",
+  "route": "/org/settings/members",
+  "state": "populated",
+  "role": "owner",
+  "source": {
+   "commit": "8eaa278c1bfb569b0b0e238184537bf2b912b6c1",
+   "clean": true,
+   "patchSha256": null
+  },
+  "implementationFile": "members-populated-1440-dark.png",
+  "viewport": {
+   "width": 1440,
+   "height": 900,
+   "deviceScaleFactor": 2
+  },
+  "theme": "dark",
+  "timezone": "America/Denver",
+  "clock": "frozen at 2026-10-30T19:00:00Z",
+  "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+  "fontOk": true,
+  "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+  "overflow": 0,
+  "tabs": [
+   {
+    "label": "Desk",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   },
+   {
+    "label": "Hiring",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   },
+   {
+    "label": "Field",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   },
+   {
+    "label": "Messages",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   },
+   {
+    "label": "More",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   }
+  ],
+  "bar": {
+   "w": 0,
+   "h": 0,
+   "left": 0,
+   "bottom": 900
+  },
+  "bg": "#140a22",
+  "shell": "#1c0f2e",
+  "title": "Turfcut",
+  "h1": "Members",
+  "status": "captured",
+  "set": "members"
+ },
+ {
+  "screen": "members-delegate",
+  "route": "/org/settings/members",
+  "state": "delegated",
+  "role": "delegate",
+  "source": {
+   "commit": "8eaa278c1bfb569b0b0e238184537bf2b912b6c1",
+   "clean": true,
+   "patchSha256": null
+  },
+  "implementationFile": "members-delegate-delegated-1440-light.png",
+  "viewport": {
+   "width": 1440,
+   "height": 900,
+   "deviceScaleFactor": 2
+  },
+  "theme": "light",
+  "timezone": "America/Denver",
+  "clock": "frozen at 2026-10-30T19:00:00Z",
+  "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+  "fontOk": true,
+  "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+  "overflow": 0,
+  "tabs": [
+   {
+    "label": "Jobs",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   },
+   {
+    "label": "Field",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   },
+   {
+    "label": "Messages",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   },
+   {
+    "label": "Members",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   }
+  ],
+  "bar": {
+   "w": 0,
+   "h": 0,
+   "left": 0,
+   "bottom": 900
+  },
+  "bg": "#faf9f4",
+  "shell": "#1c0f2e",
+  "title": "Turfcut",
+  "h1": "Members",
+  "status": "captured",
+  "set": "members"
+ },
+ {
+  "screen": "members-delegate",
+  "route": "/org/settings/members",
+  "state": "delegated",
+  "role": "delegate",
+  "source": {
+   "commit": "8eaa278c1bfb569b0b0e238184537bf2b912b6c1",
+   "clean": true,
+   "patchSha256": null
+  },
+  "implementationFile": "members-delegate-delegated-1440-dark.png",
+  "viewport": {
+   "width": 1440,
+   "height": 900,
+   "deviceScaleFactor": 2
+  },
+  "theme": "dark",
+  "timezone": "America/Denver",
+  "clock": "frozen at 2026-10-30T19:00:00Z",
+  "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+  "fontOk": true,
+  "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+  "overflow": 0,
+  "tabs": [
+   {
+    "label": "Jobs",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   },
+   {
+    "label": "Field",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   },
+   {
+    "label": "Messages",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   },
+   {
+    "label": "Members",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   }
+  ],
+  "bar": {
+   "w": 0,
+   "h": 0,
+   "left": 0,
+   "bottom": 900
+  },
+  "bg": "#140a22",
+  "shell": "#1c0f2e",
+  "title": "Turfcut",
+  "h1": "Members",
+  "status": "captured",
+  "set": "members"
+ },
+ {
+  "screen": "members",
+  "route": "/org/settings/members",
+  "state": "populated",
+  "role": "owner",
+  "source": {
+   "commit": "8eaa278c1bfb569b0b0e238184537bf2b912b6c1",
+   "clean": true,
+   "patchSha256": null
+  },
+  "implementationFile": "members-populated-1440-light.png",
+  "viewport": {
+   "width": 1440,
+   "height": 900,
+   "deviceScaleFactor": 2
+  },
+  "theme": "light",
+  "timezone": "America/Denver",
+  "clock": "frozen at 2026-10-30T19:00:00Z",
+  "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+  "fontOk": true,
+  "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+  "overflow": 0,
+  "tabs": [
+   {
+    "label": "Desk",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   },
+   {
+    "label": "Hiring",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   },
+   {
+    "label": "Field",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   },
+   {
+    "label": "Messages",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   },
+   {
+    "label": "More",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   }
+  ],
+  "bar": {
+   "w": 0,
+   "h": 0,
+   "left": 0,
+   "bottom": 900
+  },
+  "bg": "#faf9f4",
+  "shell": "#1c0f2e",
+  "title": "Turfcut",
+  "h1": "Members",
+  "status": "captured",
+  "set": "members (scrolled to list end)"
+ },
+ {
+  "screen": "members-delegate",
+  "route": "/org/settings/members",
+  "state": "delegated",
+  "role": "delegate",
+  "source": {
+   "commit": "8eaa278c1bfb569b0b0e238184537bf2b912b6c1",
+   "clean": true,
+   "patchSha256": null
+  },
+  "implementationFile": "members-delegate-delegated-1440-light.png",
+  "viewport": {
+   "width": 1440,
+   "height": 900,
+   "deviceScaleFactor": 2
+  },
+  "theme": "light",
+  "timezone": "America/Denver",
+  "clock": "frozen at 2026-10-30T19:00:00Z",
+  "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+  "fontOk": true,
+  "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+  "overflow": 0,
+  "tabs": [
+   {
+    "label": "Jobs",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   },
+   {
+    "label": "Field",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   },
+   {
+    "label": "Messages",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   },
+   {
+    "label": "Members",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   }
+  ],
+  "bar": {
+   "w": 0,
+   "h": 0,
+   "left": 0,
+   "bottom": 900
+  },
+  "bg": "#faf9f4",
+  "shell": "#1c0f2e",
+  "title": "Turfcut",
+  "h1": "Members",
+  "status": "captured",
+  "set": "members (scrolled to list end)"
+ },
+ {
+  "screen": "field-two",
+  "route": "/field",
+  "state": "two-jobs",
+  "role": "owner",
+  "source": {
+   "commit": "8eaa278c1bfb569b0b0e238184537bf2b912b6c1",
+   "clean": true,
+   "patchSha256": null
+  },
+  "implementationFile": "field-two-two-jobs-390-light.png",
+  "viewport": {
+   "width": 390,
+   "height": 844,
+   "deviceScaleFactor": 2
+  },
+  "theme": "light",
+  "timezone": "America/Denver",
+  "clock": "frozen at 2026-10-30T19:00:00Z",
+  "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+  "fontOk": true,
+  "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+  "overflow": 0,
+  "tabs": [
+   {
+    "label": "Desk",
+    "w": 68,
+    "h": 52,
+    "clipped": false
+   },
+   {
+    "label": "Hiring",
+    "w": 68,
+    "h": 52,
+    "clipped": false
+   },
+   {
+    "label": "Field",
+    "w": 68,
+    "h": 52,
+    "clipped": false
+   },
+   {
+    "label": "Messages",
+    "w": 87,
+    "h": 52,
+    "clipped": false
+   },
+   {
+    "label": "More",
+    "w": 68,
+    "h": 52,
+    "clipped": false
+   }
+  ],
+  "bar": {
+   "w": 366,
+   "h": 60,
+   "left": 12,
+   "bottom": 10
+  },
+  "bg": "#faf9f4",
+  "shell": "#1c0f2e",
+  "title": "Turfcut",
+  "h1": "Field map",
+  "status": "captured",
+  "set": "field"
+ },
+ {
+  "screen": "field-two",
+  "route": "/field",
+  "state": "two-jobs",
+  "role": "owner",
+  "source": {
+   "commit": "8eaa278c1bfb569b0b0e238184537bf2b912b6c1",
+   "clean": true,
+   "patchSha256": null
+  },
+  "implementationFile": "field-two-two-jobs-390-dark.png",
+  "viewport": {
+   "width": 390,
+   "height": 844,
+   "deviceScaleFactor": 2
+  },
+  "theme": "dark",
+  "timezone": "America/Denver",
+  "clock": "frozen at 2026-10-30T19:00:00Z",
+  "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+  "fontOk": true,
+  "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+  "overflow": 0,
+  "tabs": [
+   {
+    "label": "Desk",
+    "w": 68,
+    "h": 52,
+    "clipped": false
+   },
+   {
+    "label": "Hiring",
+    "w": 68,
+    "h": 52,
+    "clipped": false
+   },
+   {
+    "label": "Field",
+    "w": 68,
+    "h": 52,
+    "clipped": false
+   },
+   {
+    "label": "Messages",
+    "w": 87,
+    "h": 52,
+    "clipped": false
+   },
+   {
+    "label": "More",
+    "w": 68,
+    "h": 52,
+    "clipped": false
+   }
+  ],
+  "bar": {
+   "w": 366,
+   "h": 60,
+   "left": 12,
+   "bottom": 10
+  },
+  "bg": "#140a22",
+  "shell": "#1c0f2e",
+  "title": "Turfcut",
+  "h1": "Field map",
+  "status": "captured",
+  "set": "field"
+ },
+ {
+  "screen": "field-two",
+  "route": "/field",
+  "state": "two-jobs",
+  "role": "owner",
+  "source": {
+   "commit": "8eaa278c1bfb569b0b0e238184537bf2b912b6c1",
+   "clean": true,
+   "patchSha256": null
+  },
+  "implementationFile": "field-two-two-jobs-1440-light.png",
+  "viewport": {
+   "width": 1440,
+   "height": 900,
+   "deviceScaleFactor": 2
+  },
+  "theme": "light",
+  "timezone": "America/Denver",
+  "clock": "frozen at 2026-10-30T19:00:00Z",
+  "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+  "fontOk": true,
+  "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+  "overflow": 0,
+  "tabs": [
+   {
+    "label": "Desk",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   },
+   {
+    "label": "Hiring",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   },
+   {
+    "label": "Field",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   },
+   {
+    "label": "Messages",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   },
+   {
+    "label": "More",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   }
+  ],
+  "bar": {
+   "w": 0,
+   "h": 0,
+   "left": 0,
+   "bottom": 900
+  },
+  "bg": "#faf9f4",
+  "shell": "#1c0f2e",
+  "title": "Turfcut",
+  "h1": "Field map",
+  "status": "captured",
+  "set": "field"
+ },
+ {
+  "screen": "field-two",
+  "route": "/field",
+  "state": "two-jobs",
+  "role": "owner",
+  "source": {
+   "commit": "8eaa278c1bfb569b0b0e238184537bf2b912b6c1",
+   "clean": true,
+   "patchSha256": null
+  },
+  "implementationFile": "field-two-two-jobs-1440-dark.png",
+  "viewport": {
+   "width": 1440,
+   "height": 900,
+   "deviceScaleFactor": 2
+  },
+  "theme": "dark",
+  "timezone": "America/Denver",
+  "clock": "frozen at 2026-10-30T19:00:00Z",
+  "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+  "fontOk": true,
+  "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+  "overflow": 0,
+  "tabs": [
+   {
+    "label": "Desk",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   },
+   {
+    "label": "Hiring",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   },
+   {
+    "label": "Field",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   },
+   {
+    "label": "Messages",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   },
+   {
+    "label": "More",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   }
+  ],
+  "bar": {
+   "w": 0,
+   "h": 0,
+   "left": 0,
+   "bottom": 900
+  },
+  "bg": "#140a22",
+  "shell": "#1c0f2e",
+  "title": "Turfcut",
+  "h1": "Field map",
+  "status": "captured",
+  "set": "field"
+ },
+ {
+  "screen": "field-job",
+  "route": "/field?job=00000000-0000-0000-0000-000000000012",
+  "state": "one-job",
+  "role": "owner",
+  "source": {
+   "commit": "8eaa278c1bfb569b0b0e238184537bf2b912b6c1",
+   "clean": true,
+   "patchSha256": null
+  },
+  "implementationFile": "field-job-one-job-390-light.png",
+  "viewport": {
+   "width": 390,
+   "height": 844,
+   "deviceScaleFactor": 2
+  },
+  "theme": "light",
+  "timezone": "America/Denver",
+  "clock": "frozen at 2026-10-30T19:00:00Z",
+  "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+  "fontOk": true,
+  "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+  "overflow": 0,
+  "tabs": [
+   {
+    "label": "Desk",
+    "w": 68,
+    "h": 52,
+    "clipped": false
+   },
+   {
+    "label": "Hiring",
+    "w": 68,
+    "h": 52,
+    "clipped": false
+   },
+   {
+    "label": "Field",
+    "w": 68,
+    "h": 52,
+    "clipped": false
+   },
+   {
+    "label": "Messages",
+    "w": 87,
+    "h": 52,
+    "clipped": false
+   },
+   {
+    "label": "More",
+    "w": 68,
+    "h": 52,
+    "clipped": false
+   }
+  ],
+  "bar": {
+   "w": 366,
+   "h": 60,
+   "left": 12,
+   "bottom": 10
+  },
+  "bg": "#faf9f4",
+  "shell": "#1c0f2e",
+  "title": "Turfcut",
+  "h1": "Field map",
+  "status": "captured",
+  "set": "field"
+ },
+ {
+  "screen": "field-job",
+  "route": "/field?job=00000000-0000-0000-0000-000000000012",
+  "state": "one-job",
+  "role": "owner",
+  "source": {
+   "commit": "8eaa278c1bfb569b0b0e238184537bf2b912b6c1",
+   "clean": true,
+   "patchSha256": null
+  },
+  "implementationFile": "field-job-one-job-390-dark.png",
+  "viewport": {
+   "width": 390,
+   "height": 844,
+   "deviceScaleFactor": 2
+  },
+  "theme": "dark",
+  "timezone": "America/Denver",
+  "clock": "frozen at 2026-10-30T19:00:00Z",
+  "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+  "fontOk": true,
+  "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+  "overflow": 0,
+  "tabs": [
+   {
+    "label": "Desk",
+    "w": 68,
+    "h": 52,
+    "clipped": false
+   },
+   {
+    "label": "Hiring",
+    "w": 68,
+    "h": 52,
+    "clipped": false
+   },
+   {
+    "label": "Field",
+    "w": 68,
+    "h": 52,
+    "clipped": false
+   },
+   {
+    "label": "Messages",
+    "w": 87,
+    "h": 52,
+    "clipped": false
+   },
+   {
+    "label": "More",
+    "w": 68,
+    "h": 52,
+    "clipped": false
+   }
+  ],
+  "bar": {
+   "w": 366,
+   "h": 60,
+   "left": 12,
+   "bottom": 10
+  },
+  "bg": "#140a22",
+  "shell": "#1c0f2e",
+  "title": "Turfcut",
+  "h1": "Field map",
+  "status": "captured",
+  "set": "field"
+ },
+ {
+  "screen": "field-job",
+  "route": "/field?job=00000000-0000-0000-0000-000000000012",
+  "state": "one-job",
+  "role": "owner",
+  "source": {
+   "commit": "8eaa278c1bfb569b0b0e238184537bf2b912b6c1",
+   "clean": true,
+   "patchSha256": null
+  },
+  "implementationFile": "field-job-one-job-1440-light.png",
+  "viewport": {
+   "width": 1440,
+   "height": 900,
+   "deviceScaleFactor": 2
+  },
+  "theme": "light",
+  "timezone": "America/Denver",
+  "clock": "frozen at 2026-10-30T19:00:00Z",
+  "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+  "fontOk": true,
+  "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+  "overflow": 0,
+  "tabs": [
+   {
+    "label": "Desk",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   },
+   {
+    "label": "Hiring",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   },
+   {
+    "label": "Field",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   },
+   {
+    "label": "Messages",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   },
+   {
+    "label": "More",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   }
+  ],
+  "bar": {
+   "w": 0,
+   "h": 0,
+   "left": 0,
+   "bottom": 900
+  },
+  "bg": "#faf9f4",
+  "shell": "#1c0f2e",
+  "title": "Turfcut",
+  "h1": "Field map",
+  "status": "captured",
+  "set": "field"
+ },
+ {
+  "screen": "field-job",
+  "route": "/field?job=00000000-0000-0000-0000-000000000012",
+  "state": "one-job",
+  "role": "owner",
+  "source": {
+   "commit": "8eaa278c1bfb569b0b0e238184537bf2b912b6c1",
+   "clean": true,
+   "patchSha256": null
+  },
+  "implementationFile": "field-job-one-job-1440-dark.png",
+  "viewport": {
+   "width": 1440,
+   "height": 900,
+   "deviceScaleFactor": 2
+  },
+  "theme": "dark",
+  "timezone": "America/Denver",
+  "clock": "frozen at 2026-10-30T19:00:00Z",
+  "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+  "fontOk": true,
+  "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+  "overflow": 0,
+  "tabs": [
+   {
+    "label": "Desk",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   },
+   {
+    "label": "Hiring",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   },
+   {
+    "label": "Field",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   },
+   {
+    "label": "Messages",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   },
+   {
+    "label": "More",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   }
+  ],
+  "bar": {
+   "w": 0,
+   "h": 0,
+   "left": 0,
+   "bottom": 900
+  },
+  "bg": "#140a22",
+  "shell": "#1c0f2e",
+  "title": "Turfcut",
+  "h1": "Field map",
+  "status": "captured",
+  "set": "field"
+ },
+ {
+  "screen": "field-empty",
+  "route": "/field",
+  "state": "empty",
+  "role": "emptyOwner",
+  "source": {
+   "commit": "8eaa278c1bfb569b0b0e238184537bf2b912b6c1",
+   "clean": true,
+   "patchSha256": null
+  },
+  "implementationFile": "field-empty-empty-390-light.png",
+  "viewport": {
+   "width": 390,
+   "height": 844,
+   "deviceScaleFactor": 2
+  },
+  "theme": "light",
+  "timezone": "America/Denver",
+  "clock": "frozen at 2026-10-30T19:00:00Z",
+  "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+  "fontOk": true,
+  "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+  "overflow": 0,
+  "tabs": [
+   {
+    "label": "Desk",
+    "w": 68,
+    "h": 52,
+    "clipped": false
+   },
+   {
+    "label": "Hiring",
+    "w": 68,
+    "h": 52,
+    "clipped": false
+   },
+   {
+    "label": "Field",
+    "w": 68,
+    "h": 52,
+    "clipped": false
+   },
+   {
+    "label": "Messages",
+    "w": 87,
+    "h": 52,
+    "clipped": false
+   },
+   {
+    "label": "More",
+    "w": 68,
+    "h": 52,
+    "clipped": false
+   }
+  ],
+  "bar": {
+   "w": 366,
+   "h": 60,
+   "left": 12,
+   "bottom": 10
+  },
+  "bg": "#faf9f4",
+  "shell": "#1c0f2e",
+  "title": "Turfcut",
+  "h1": "Field map",
+  "status": "captured",
+  "set": "field"
+ },
+ {
+  "screen": "field-empty",
+  "route": "/field",
+  "state": "empty",
+  "role": "emptyOwner",
+  "source": {
+   "commit": "8eaa278c1bfb569b0b0e238184537bf2b912b6c1",
+   "clean": true,
+   "patchSha256": null
+  },
+  "implementationFile": "field-empty-empty-390-dark.png",
+  "viewport": {
+   "width": 390,
+   "height": 844,
+   "deviceScaleFactor": 2
+  },
+  "theme": "dark",
+  "timezone": "America/Denver",
+  "clock": "frozen at 2026-10-30T19:00:00Z",
+  "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+  "fontOk": true,
+  "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+  "overflow": 0,
+  "tabs": [
+   {
+    "label": "Desk",
+    "w": 68,
+    "h": 52,
+    "clipped": false
+   },
+   {
+    "label": "Hiring",
+    "w": 68,
+    "h": 52,
+    "clipped": false
+   },
+   {
+    "label": "Field",
+    "w": 68,
+    "h": 52,
+    "clipped": false
+   },
+   {
+    "label": "Messages",
+    "w": 87,
+    "h": 52,
+    "clipped": false
+   },
+   {
+    "label": "More",
+    "w": 68,
+    "h": 52,
+    "clipped": false
+   }
+  ],
+  "bar": {
+   "w": 366,
+   "h": 60,
+   "left": 12,
+   "bottom": 10
+  },
+  "bg": "#140a22",
+  "shell": "#1c0f2e",
+  "title": "Turfcut",
+  "h1": "Field map",
+  "status": "captured",
+  "set": "field"
+ },
+ {
+  "screen": "field-empty",
+  "route": "/field",
+  "state": "empty",
+  "role": "emptyOwner",
+  "source": {
+   "commit": "8eaa278c1bfb569b0b0e238184537bf2b912b6c1",
+   "clean": true,
+   "patchSha256": null
+  },
+  "implementationFile": "field-empty-empty-1440-light.png",
+  "viewport": {
+   "width": 1440,
+   "height": 900,
+   "deviceScaleFactor": 2
+  },
+  "theme": "light",
+  "timezone": "America/Denver",
+  "clock": "frozen at 2026-10-30T19:00:00Z",
+  "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+  "fontOk": true,
+  "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+  "overflow": 0,
+  "tabs": [
+   {
+    "label": "Desk",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   },
+   {
+    "label": "Hiring",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   },
+   {
+    "label": "Field",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   },
+   {
+    "label": "Messages",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   },
+   {
+    "label": "More",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   }
+  ],
+  "bar": {
+   "w": 0,
+   "h": 0,
+   "left": 0,
+   "bottom": 900
+  },
+  "bg": "#faf9f4",
+  "shell": "#1c0f2e",
+  "title": "Turfcut",
+  "h1": "Field map",
+  "status": "captured",
+  "set": "field"
+ },
+ {
+  "screen": "field-empty",
+  "route": "/field",
+  "state": "empty",
+  "role": "emptyOwner",
+  "source": {
+   "commit": "8eaa278c1bfb569b0b0e238184537bf2b912b6c1",
+   "clean": true,
+   "patchSha256": null
+  },
+  "implementationFile": "field-empty-empty-1440-dark.png",
+  "viewport": {
+   "width": 1440,
+   "height": 900,
+   "deviceScaleFactor": 2
+  },
+  "theme": "dark",
+  "timezone": "America/Denver",
+  "clock": "frozen at 2026-10-30T19:00:00Z",
+  "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+  "fontOk": true,
+  "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+  "overflow": 0,
+  "tabs": [
+   {
+    "label": "Desk",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   },
+   {
+    "label": "Hiring",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   },
+   {
+    "label": "Field",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   },
+   {
+    "label": "Messages",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   },
+   {
+    "label": "More",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   }
+  ],
+  "bar": {
+   "w": 0,
+   "h": 0,
+   "left": 0,
+   "bottom": 900
+  },
+  "bg": "#140a22",
+  "shell": "#1c0f2e",
+  "title": "Turfcut",
+  "h1": "Field map",
+  "status": "captured",
+  "set": "field"
+ },
+ {
+  "screen": "field-captain",
+  "route": "/field",
+  "state": "read-only",
+  "role": "captain",
+  "source": {
+   "commit": "8eaa278c1bfb569b0b0e238184537bf2b912b6c1",
+   "clean": true,
+   "patchSha256": null
+  },
+  "implementationFile": "field-captain-read-only-390-light.png",
+  "viewport": {
+   "width": 390,
+   "height": 844,
+   "deviceScaleFactor": 2
+  },
+  "theme": "light",
+  "timezone": "America/Denver",
+  "clock": "frozen at 2026-10-30T19:00:00Z",
+  "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+  "fontOk": true,
+  "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+  "overflow": 0,
+  "tabs": [
+   {
+    "label": "Field",
+    "w": 156,
+    "h": 52,
+    "clipped": false
+   },
+   {
+    "label": "Messages",
+    "w": 202,
+    "h": 52,
+    "clipped": false
+   }
+  ],
+  "bar": {
+   "w": 366,
+   "h": 60,
+   "left": 12,
+   "bottom": 10
+  },
+  "bg": "#faf9f4",
+  "shell": "#1c0f2e",
+  "title": "Turfcut",
+  "h1": "Field map",
+  "status": "captured",
+  "set": "field"
+ },
+ {
+  "screen": "field-captain",
+  "route": "/field",
+  "state": "read-only",
+  "role": "captain",
+  "source": {
+   "commit": "8eaa278c1bfb569b0b0e238184537bf2b912b6c1",
+   "clean": true,
+   "patchSha256": null
+  },
+  "implementationFile": "field-captain-read-only-390-dark.png",
+  "viewport": {
+   "width": 390,
+   "height": 844,
+   "deviceScaleFactor": 2
+  },
+  "theme": "dark",
+  "timezone": "America/Denver",
+  "clock": "frozen at 2026-10-30T19:00:00Z",
+  "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+  "fontOk": true,
+  "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+  "overflow": 0,
+  "tabs": [
+   {
+    "label": "Field",
+    "w": 156,
+    "h": 52,
+    "clipped": false
+   },
+   {
+    "label": "Messages",
+    "w": 202,
+    "h": 52,
+    "clipped": false
+   }
+  ],
+  "bar": {
+   "w": 366,
+   "h": 60,
+   "left": 12,
+   "bottom": 10
+  },
+  "bg": "#140a22",
+  "shell": "#1c0f2e",
+  "title": "Turfcut",
+  "h1": "Field map",
+  "status": "captured",
+  "set": "field"
+ },
+ {
+  "screen": "field-captain",
+  "route": "/field",
+  "state": "read-only",
+  "role": "captain",
+  "source": {
+   "commit": "8eaa278c1bfb569b0b0e238184537bf2b912b6c1",
+   "clean": true,
+   "patchSha256": null
+  },
+  "implementationFile": "field-captain-read-only-1440-light.png",
+  "viewport": {
+   "width": 1440,
+   "height": 900,
+   "deviceScaleFactor": 2
+  },
+  "theme": "light",
+  "timezone": "America/Denver",
+  "clock": "frozen at 2026-10-30T19:00:00Z",
+  "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+  "fontOk": true,
+  "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+  "overflow": 0,
+  "tabs": [
+   {
+    "label": "Field",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   },
+   {
+    "label": "Messages",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   }
+  ],
+  "bar": {
+   "w": 0,
+   "h": 0,
+   "left": 0,
+   "bottom": 900
+  },
+  "bg": "#faf9f4",
+  "shell": "#1c0f2e",
+  "title": "Turfcut",
+  "h1": "Field map",
+  "status": "captured",
+  "set": "field"
+ },
+ {
+  "screen": "field-captain",
+  "route": "/field",
+  "state": "read-only",
+  "role": "captain",
+  "source": {
+   "commit": "8eaa278c1bfb569b0b0e238184537bf2b912b6c1",
+   "clean": true,
+   "patchSha256": null
+  },
+  "implementationFile": "field-captain-read-only-1440-dark.png",
+  "viewport": {
+   "width": 1440,
+   "height": 900,
+   "deviceScaleFactor": 2
+  },
+  "theme": "dark",
+  "timezone": "America/Denver",
+  "clock": "frozen at 2026-10-30T19:00:00Z",
+  "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+  "fontOk": true,
+  "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+  "overflow": 0,
+  "tabs": [
+   {
+    "label": "Field",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   },
+   {
+    "label": "Messages",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   }
+  ],
+  "bar": {
+   "w": 0,
+   "h": 0,
+   "left": 0,
+   "bottom": 900
+  },
+  "bg": "#140a22",
+  "shell": "#1c0f2e",
+  "title": "Turfcut",
+  "h1": "Field map",
+  "status": "captured",
+  "set": "field"
+ },
+ {
+  "screen": "field-error",
+  "route": "/field",
+  "state": "error",
+  "role": "owner",
+  "source": {
+   "commit": "8eaa278c1bfb569b0b0e238184537bf2b912b6c1",
+   "clean": true,
+   "patchSha256": null
+  },
+  "implementationFile": "field-error-error-390-light.png",
+  "viewport": {
+   "width": 390,
+   "height": 844,
+   "deviceScaleFactor": 2
+  },
+  "theme": "light",
+  "timezone": "America/Denver",
+  "clock": "frozen at 2026-10-30T19:00:00Z",
+  "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+  "fontOk": false,
+  "bodyFont": "system-ui",
+  "overflow": 0,
+  "tabs": [],
+  "bg": "#faf9f4",
+  "shell": "#1c0f2e",
+  "title": "",
+  "h1": "Something went wrong",
+  "status": "captured",
+  "set": "field (database stopped)"
+ },
+ {
+  "screen": "field-error",
+  "route": "/field",
+  "state": "error",
+  "role": "owner",
+  "source": {
+   "commit": "8eaa278c1bfb569b0b0e238184537bf2b912b6c1",
+   "clean": true,
+   "patchSha256": null
+  },
+  "implementationFile": "field-error-error-1440-light.png",
+  "viewport": {
+   "width": 1440,
+   "height": 900,
+   "deviceScaleFactor": 2
+  },
+  "theme": "light",
+  "timezone": "America/Denver",
+  "clock": "frozen at 2026-10-30T19:00:00Z",
+  "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+  "fontOk": false,
+  "bodyFont": "system-ui",
+  "overflow": 0,
+  "tabs": [],
+  "bg": "#faf9f4",
+  "shell": "#1c0f2e",
+  "title": "",
+  "h1": "Something went wrong",
+  "status": "captured",
+  "set": "field (database stopped)"
+ }
+]

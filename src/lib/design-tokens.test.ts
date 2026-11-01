@@ -67,11 +67,12 @@ describe.each([
     for (const s of SURFACES) expect(ratio(t.fg, t[s])).toBeGreaterThanOrEqual(7);
   });
 
-  it("secondary text is AAA (≥ 7:1) and hint text well above AA (≥ 6:1) on every surface", () => {
-    for (const s of SURFACES) {
-      expect(ratio(t.muted, t[s])).toBeGreaterThanOrEqual(7);
-      expect(ratio(t.subtle, t[s])).toBeGreaterThanOrEqual(6);
-    }
+  it("secondary text is AA on every surface; Subtle (#64748B, locked) is AA on the page and white, and never sits on the Muted fill", () => {
+    // #111: the locked Subtle is 4.76:1 on white and 4.51:1 on Cream (AA), 3.84:1 on Muted, so --muted
+    // (one step darker, derived) is the role for type that may sit on a Muted fill (chips, segmented tracks).
+    for (const s of SURFACES) expect(ratio(t.muted, t[s])).toBeGreaterThanOrEqual(4.5);
+    for (const s of ["bg", "surface", "field"] as const) expect(ratio(t.subtle, t[s])).toBeGreaterThanOrEqual(4.5);
+    expect(css).not.toMatch(/\.status-closed \{[^}]*color: var\(--subtle\)/);
   });
 
   it("the keyboard focus outline is visible on every surface (≥ 3:1)", () => {
@@ -93,8 +94,8 @@ describe.each([
     for (const s of SURFACES) expect(ratio(t["switch-on"], t[s])).toBeGreaterThanOrEqual(3);
   });
 
-  it("primary buttons and selected chips are AAA", () => {
-    expect(ratio(t["on-primary"], t.primary)).toBeGreaterThanOrEqual(7);
+  it("primary buttons are AA (white on the locked Forest #157A46 is 5.38:1, kept as printed, #111)", () => {
+    expect(ratio(t["on-primary"], t.primary)).toBeGreaterThanOrEqual(4.5);
   });
 
   it("hero card text is AAA, its secondary text too", () => {
@@ -110,20 +111,25 @@ describe.each([
     expect(ratio(t.primary, t.bg)).toBeGreaterThan(ratio(t.secondary, t.bg));
   });
 
-  it("tab labels use the text colour the contrast check below assumes", () => {
-    expect(css).toMatch(/\.tab \{[^}]*?text-fg[^}]*\}/);
-    expect(css).not.toMatch(/\.tab \{[^}]*?text-muted[^}]*\}/);
+  it("dock labels use the frame's colours the contrast check below assumes: Cream when inactive, the dock green when current, no filled tile", () => {
+    expect(css).toMatch(/\.tab \{[^}]*?color: var\(--shell-muted\);[^}]*\}/);
+    expect(css).toMatch(/\n  \.tab\[aria-current\] \{[^}]*?color: var\(--dock-active-fg\);/);
+    expect(css).not.toMatch(/\n  \.tab\[aria-current\] \{[^}]*?background:/);
+    // Sunlight alone keeps a white tile with black type (outdoor glare).
+    expect(css).toMatch(/\.sun \.tab\[aria-current\] \{\s*background: var\(--shell-active\);\s*color: var\(--on-shell-active\);/);
   });
 
-  it("the tab bar is paper: labels AAA on it, and lime type AAA on the current tab's eggplant tile", () => {
-    // The frame is opaque paper (DESIGN.md: no glass); a translucent bar or header is caught here.
-    expect(css).toMatch(/\.tabbar \{[^}]*?background: var\(--surface\);/);
+  it("the dock is the frame: opaque Eggplant (black in Sunlight); inactive labels AAA on it, the current label AA (12px type), the rail's current row AAA", () => {
+    // Opaque (no glass); a translucent bar or header is caught here.
+    expect(css).toMatch(/\.tabbar \{[^}]*?background: var\(--shell-bg\);/);
     expect(css).toMatch(/\.site-header \{[^}]*?background: var\(--bg\);/);
     expect(css).toMatch(/\.eyebrow \{[^}]*?color: var\(--kicker\);/);
-    expect(ratio(t.fg, t.surface)).toBeGreaterThanOrEqual(7);
-    expect(ratio(t["tab-active-fg"], t["tab-active-bg"])).toBeGreaterThanOrEqual(7);
-    // The tile is told apart from the bar by its deep eggplant fill and cream type.
-    expect(ratio(t["tab-active-bg"], t.surface)).toBeGreaterThanOrEqual(1.5);
+    expect(ratio(t["shell-muted"], t["shell-bg"])).toBeGreaterThanOrEqual(7);
+    // Forest on Eggplant is 3.37:1, under AA for a 12px label: the dock green is a derived, lighter extension (pending review).
+    expect(ratio(t["dock-active-fg"], t["shell-bg"])).toBeGreaterThanOrEqual(4.5);
+    expect(ratio(t["on-shell-active"], t["shell-active"])).toBeGreaterThanOrEqual(7);
+    // The bar stands apart from the page behind it: by its fill, or (by night, a deeper page) by its edge.
+    expect(Math.max(ratio(t["shell-bg"], t.bg), ratio(t["shell-line"], t.bg))).toBeGreaterThanOrEqual(1.8);
   });
 
   it("the kicker reads on every surface", () => {
@@ -188,13 +194,33 @@ describe("dark theme accents", () => {
   });
 });
 
-describe("mockup surfaces", () => {
-  it("forest-ink fills (live chip, primary, send, swipe-to-save): cream type AAA, secondary text AAA", () => {
+describe("status chips (redesign §4.1.3)", () => {
+  it("every status label is AA on its own fill, every mode", () => {
     for (const th of [light, dark, sun]) {
-      expect(ratio(th["on-accent"], th.accent)).toBeGreaterThanOrEqual(7);
-      expect(ratio(mix(th["on-accent"], 0.88, th.accent), th.accent)).toBeGreaterThanOrEqual(7);
+      const night = th === dark;
+      expect(ratio(th["on-accent"], th.accent)).toBeGreaterThanOrEqual(4.5); // live
+      expect(ratio(th["on-solid"], th.solid)).toBeGreaterThanOrEqual(4.5); // paid
+      expect(ratio(th.fg, th.surface)).toBeGreaterThanOrEqual(4.5); // approved
+      expect(ratio(th.fg, mix(th.sky, night ? 0.16 : 0.45, th.surface))).toBeGreaterThanOrEqual(4.5); // sending
+      expect(ratio(th.muted, th.surface)).toBeGreaterThanOrEqual(4.5); // pending, not shared
+      expect(ratio(th.muted, th["surface-2"])).toBeGreaterThanOrEqual(4.5); // queued
+      expect(ratio(th.warning, mix(th.butter, night ? 0.12 : 0.3, th.surface))).toBeGreaterThanOrEqual(4.5); // memory-only, overdue, disputed
+      expect(ratio(th.danger, mix(th.coral, night ? 0.08 : 0.22, th.surface))).toBeGreaterThanOrEqual(4.5); // held, blocked
+      expect(ratio(th.muted, th["surface-2"])).toBeGreaterThanOrEqual(4.5); // closed (muted type on the Muted fill)
+      expect(ratio(th.subtle, th.surface)).toBeGreaterThanOrEqual(4.5); // draft
+      // The approved ring (no fill) is a non-text edge: 3:1 on the surface.
+      expect(ratio(th.success, th.surface)).toBeGreaterThanOrEqual(3);
     }
-    // The live shift card keeps the eggplant canvas (the chip says "live").
+  });
+});
+
+describe("mockup surfaces", () => {
+  it("Forest fills (live chip, primary, send, swipe-to-save): white type AA (5.38:1 on the locked Forest), secondary text AA", () => {
+    for (const th of [light, dark, sun]) {
+      expect(ratio(th["on-accent"], th.accent)).toBeGreaterThanOrEqual(4.5);
+      expect(ratio(mix(th["on-accent"], 0.88, th.accent), th.accent)).toBeGreaterThanOrEqual(4.5);
+    }
+    // The live shift card keeps the hero canvas (the chip says "live"): eggplant by day, cream by night.
     expect(css).toMatch(/\.hero-card-accent \{[^}]*?background: var\(--hero\);/);
     expect(css).toMatch(/\.badge-live \{[^}]*?color: var\(--on-accent\);/);
   });
@@ -202,6 +228,22 @@ describe("mockup surfaces", () => {
     for (const s of SURFACES) expect(ratio(dark["accent-edge"], dark[s])).toBeGreaterThanOrEqual(3);
     expect(css).toMatch(/\.dark \.btn-primary \{\s*box-shadow: inset 0 0 0 1px var\(--accent-edge\);/);
     expect(css).toMatch(/\.badge-live \{[^}]*?border-color: var\(--accent-edge\);/);
+  });
+  it("the primary action is the locked Forest with white type in light and dark; every type role is Inter (#111)", () => {
+    expect(light.primary).toBe("#157a46");
+    expect(dark.primary).toBe("#157a46");
+    expect(light["on-primary"]).toBe("#ffffff");
+    for (const u of ["t-display", "t-title", "t-headline", "t-section", "t-label", "t-figure"]) {
+      expect(css).toMatch(new RegExp(`@utility ${u} \\{[^}]*?font-family: var\\(--font-inter\\)`));
+    }
+    // No second face anywhere in the sheet (comments aside; "sans-serif" is the system fallback).
+    expect(css.replace(/\/\*[\s\S]*?\*\//g, "")).not.toMatch(/(?<![-\w])serif|Georgia|Fraunces|Barlow|DM Mono/i);
+    // The printed scale: H1 28/36 700, H2 20/28 600, H3 16/24 600, Caption 14/20, Small 12/16.
+    expect(css).toMatch(/@utility t-title \{[^}]*?font-size: 1\.75rem;\s*line-height: 2\.25rem;\s*font-weight: 700;/);
+    expect(css).toMatch(/@utility t-headline \{[^}]*?font-size: 1\.25rem;\s*line-height: 1\.75rem;\s*font-weight: 600;/);
+    expect(css).toMatch(/@utility t-section \{[^}]*?font-size: 1rem;\s*line-height: 1\.5rem;\s*font-weight: 600;/);
+    expect(css).toMatch(/--text-xs: 0\.75rem;/);
+    expect(css).toMatch(/--text-sm: 0\.875rem;/);
   });
   it("chat shift banner text is AAA, its second line AA", () => {
     const lightBanner = mix(light.sky, 0.45, light.surface);
@@ -248,7 +290,7 @@ describe("token plumbing", () => {
     // A var() of an undefined property makes its whole declaration invalid, silently: a removed token
     // must not leave a reference behind (it took the priority rings' shadow with it once).
     const defined = new Set([...css.matchAll(/--([\w-]+)\s*:/g)].map((m) => m[1]));
-    const fromFonts = new Set(["font-barlow", "font-barlow-condensed", "font-dm-mono"]);
+    const fromFonts = new Set(["font-inter"]);
     const dangling = [...new Set([...css.matchAll(/var\(--([\w-]+)\)/g)].map((m) => m[1]))].filter((n) => !defined.has(n) && !fromFonts.has(n));
     expect(dangling).toEqual([]);
   });
@@ -284,26 +326,45 @@ describe("party chips (job cards)", () => {
   });
 });
 
-describe("the Turfcut palette: deep eggplant, warm paper, forest ink (G1)", () => {
-  it("dark mode keeps the eggplant surfaces, raised eggplant tiles and forest-ink accent", () => {
-    expect(dark.bg).toBe("#120d18");
-    expect(dark.surface).toBe("#23182f");
-    expect(dark["surface-2"]).toBe("#30223f");
-    expect(dark.accent).toBe("#164b38");
-    expect(dark.solid).toBe("#4a3365"); // settled status by night: the raised eggplant tile
-    expect(dark["tab-active-bg"]).toBe("#4a3365");
-    expect(dark.focus).toBe("#82bc9b");
+describe("the ten locked colours (founder's twelve-screen concept, #111)", () => {
+  const LOCKED = { eggplant: "#1c0f2e", forest: "#157a46", cream: "#faf9f4", surface: "#ffffff", muted: "#e7e6ed", border: "#d7d2e0", text: "#0f172a", subtle: "#64748b", warning: "#f59e0b", error: "#ef4444" } as const;
+  it("are copied verbatim as base tokens", () => {
+    for (const [k, v] of Object.entries(LOCKED)) expect(light[`base-${k}`]).toBe(v);
   });
-  it("light mode uses warm paper, deep eggplant identity and the forest-ink accent (founder, 2026-10-27)", () => {
-    expect(light.bg).toBe("#efeae1");
-    expect(light.fg).toBe("#1b1422");
-    expect(light.accent).toBe("#164b38");
-    expect(light.solid).toBe("#3a2154"); // settled status: the eggplant tile
-    expect(light.hero).toBe("#281539");
-    expect(light["tab-active-bg"]).toBe("#281539");
-    expect(light.primary).toBe("#164b38");
-    expect(light["on-primary"]).toBe("#fbf7f0");
-    expect(light["tab-active-fg"]).toBe("#fbf7f0"); // cream on the eggplant tile, never green type
+  it("light mode takes its roles straight from them: Cream page, white cards, Muted fills, Border lines, Text and Subtle type, Forest actions, Eggplant frame", () => {
+    expect(light.bg).toBe(LOCKED.cream);
+    expect(light.surface).toBe(LOCKED.surface);
+    expect(light.field).toBe(LOCKED.surface);
+    expect(light["surface-2"]).toBe(LOCKED.muted);
+    expect(light.border).toBe(LOCKED.border);
+    expect(light.fg).toBe(LOCKED.text);
+    expect(light.ink).toBe(LOCKED.text);
+    expect(light.subtle).toBe(LOCKED.subtle);
+    expect(light.primary).toBe(LOCKED.forest);
+    expect(light.accent).toBe(LOCKED.forest);
+    expect(light.focus).toBe(LOCKED.forest);
+    expect(light["shell-bg"]).toBe(LOCKED.eggplant);
+    expect(light.solid).toBe(LOCKED.eggplant);
+    expect(light.hero).toBe(LOCKED.eggplant);
+    expect(light["tab-active-bg"]).toBe(LOCKED.eggplant);
+    expect(light["shell-muted"]).toBe(LOCKED.cream);
+  });
+  it("the old palette is gone: no #164b38 forest, no #2b1b3d eggplant, no beige page, no lime, no lavender tile", () => {
+    const plain = css.replace(/\/\*[\s\S]*?\*\//g, "");
+    // (Sunlight keeps its own cream paper #fbf7f0: that mode is an accessibility treatment, not the brand canvas.)
+    for (const hex of ["#164b38", "#2b1b3d", "#efeae1", "#c6ec8c", "#f5f3ee", "#17101f"]) expect(plain.toLowerCase().includes(hex), hex).toBe(false);
+    expect(css).not.toMatch(/--cut:/);
+  });
+  it("dark mode (a proposal: the concept shows light only) keeps the same Eggplant dock and Forest action over deeper eggplant surfaces", () => {
+    expect(dark["shell-bg"]).toBe(LOCKED.eggplant);
+    expect(dark.primary).toBe(LOCKED.forest);
+    expect(dark.accent).toBe(LOCKED.forest);
+    expect(dark.bg).toBe("#140a22");
+    expect(dark.surface).toBe("#231538");
+    expect(dark["surface-2"]).toBe("#2f2048");
+    // By night the feature card is a raised eggplant card with white type, not a cream card.
+    expect(lum(rgb(dark.hero))).toBeLessThan(lum(rgb(dark["hero-fg"])));
+    expect(dark["dock-active-fg"]).toBe(light["dock-active-fg"]);
   });
   it("progress fills (the success colour) show against surfaces in both themes (≥ 3:1)", () => {
     for (const th of [light, dark, sun]) for (const k of ["surface", "surface-2"] as const) expect(ratio(th.success, th[k])).toBeGreaterThanOrEqual(3);
@@ -315,6 +376,14 @@ describe("the Turfcut palette: deep eggplant, warm paper, forest ink (G1)", () =
   it("warning text differs from error text by brightness, not only hue", () => {
     expect(ratio(light.warning, light.danger)).toBeGreaterThanOrEqual(1.5);
     expect(ratio(sun.warning, sun.danger)).toBeGreaterThanOrEqual(1.5);
+  });
+  it("the Warning and Error bases are fills: their tints carry ink type AAA and their text roles are darker derivations", () => {
+    expect(ratio(light.ink, light["base-warning"])).toBeGreaterThanOrEqual(7);
+    expect(ratio(light.ink, light["base-error"])).toBeGreaterThanOrEqual(4.5);
+    for (const s of SURFACES) {
+      expect(ratio(light.danger, light[s])).toBeGreaterThanOrEqual(4.5);
+      expect(ratio(light.warning, light[s])).toBeGreaterThanOrEqual(4.5);
+    }
   });
   it("every token in the theme blocks was parsed (so the contrast checks see them all)", () => {
     for (const sel of [":root", ".dark", ".sun"]) {
@@ -354,7 +423,7 @@ describe("forest ink is for what is live and the one primary action (G1)", () =>
   // Status that has settled (approved, paid, active, you) is the eggplant tile, never green.
   it("settled status, the date chip and selected filters are not the accent", () => {
     for (const th of [light, dark, sun]) expect(th.solid).not.toBe(th.accent);
-    expect(css).toMatch(/\.badge-accent \{ --badge-bg: var\(--sky\); \}/);
+    expect(css).toMatch(/\.badge-accent,\s*\.tag-accent \{ --badge-bg: var\(--sky\); \}/);
   });
   it("only an allowed list of rules paints with the accent", () => {
     // Every rule whose declarations use the accent: the live chip and the live shift card (and
@@ -365,6 +434,7 @@ describe("forest ink is for what is live and the one primary action (G1)", () =>
       "@theme inline",
       "::selection",
       ".badge-live",
+      ".status-live",
       ".swipe-under-save",
       ".send-btn",
     ]);
@@ -379,28 +449,28 @@ describe("forest ink is for what is live and the one primary action (G1)", () =>
   it("lime is retired: no token or rule holds it", () => {
     expect(css.replace(/\/\*[\s\S]*?\*\//g, "")).not.toMatch(/#d6f25a/i);
   });
-  it("only the primary action and the accent tokens hold forest ink", () => {
-    const mayBeGreen = new Set(["accent", "primary", "accent-edge", "cut"]);
+  it("only the action roles hold Forest: the primary action, the live accent, focus, the chosen option and the switch", () => {
+    const mayBeGreen = new Set(["base-forest", "accent", "primary", "accent-edge", "focus", "selected", "switch-on"]);
     for (const sel of [":root", ".dark", ".sun"]) {
-      const green = Object.entries(block(sel)).filter(([, v]) => v.toLowerCase() === "#164b38").map(([k]) => k);
+      const green = Object.entries(block(sel)).filter(([, v]) => v.toLowerCase() === "#157a46").map(([k]) => k);
       expect(green.filter((k) => !mayBeGreen.has(k))).toEqual([]);
     }
   });
-  it("by night a chosen tile has a light edge as well as its fill (the fill alone is under 3:1)", () => {
-    expect(css).toMatch(/\.dark :is\(\.tab\[aria-current="page"\][^{]*\{\s*box-shadow: inset 0 0 0 1px var\(--muted\);/);
+  it("by night a chosen chip has a light edge as well as its fill (the fill alone is under 3:1; the dock's lavender tile needs none)", () => {
+    expect(css).toMatch(/\.dark :is\(\.more-sheet \.rail-link\[aria-current\][^{]*\{\s*box-shadow: inset 0 0 0 1px var\(--muted\);/);
     expect(ratio(dark.muted, dark.surface)).toBeGreaterThanOrEqual(3);
   });
   it("the custom switch is the switch colour, not the primary action's green", () => {
     expect(css).toMatch(/\.toggle input:checked \{\s*background: var\(--switch-on\);/);
     for (const th of [light, dark, sun]) expect(ratio(th["on-primary"], th["switch-on"])).toBeGreaterThanOrEqual(3);
   });
-  it("by night selected text stays readable (soft green with ink)", () => {
-    expect(css).toMatch(/\.dark ::selection \{\s*background: var\(--cut\);\s*color: var\(--ink\);/);
-    expect(ratio(dark.ink, dark.cut)).toBeGreaterThanOrEqual(7);
+  it("by night selected text stays readable (the dock green with ink type; Forest would hide it at 1.7:1)", () => {
+    expect(css.replace(/\/\*[\s\S]*?\*\//g, "")).toMatch(/\.dark ::selection \{\s*background: var\(--dock-active-fg\);\s*color: var\(--ink\);/);
+    expect(ratio(dark.ink, dark["dock-active-fg"])).toBeGreaterThanOrEqual(7);
   });
-  it("forest ink is never text on the night surfaces", () => {
-    // 1.9:1 on #120D18: green type by night would be unreadable, so the dark text tokens aren't green.
-    for (const k of ["fg", "muted", "subtle", "link", "kicker", "on-primary", "tab-active-fg"] as const) expect(dark[k]).not.toBe("#164b38");
+  it("Forest is never text on the night surfaces", () => {
+    // 2.9:1 on the night card: Forest type by night would be unreadable, so the dark text tokens aren't Forest.
+    for (const k of ["fg", "muted", "subtle", "link", "kicker", "on-primary", "tab-active-fg", "success"] as const) expect(dark[k]).not.toBe("#157a46");
   });
   it("no component paints with the accent or lime directly (classes, arbitrary values or the hex)", () => {
     const root = join(__dirname, "..");
@@ -410,7 +480,7 @@ describe("forest ink is for what is live and the one primary action (G1)", () =>
     // Moments maps a badge class to its fill for the paid-badge morph; .badge-live's is the accent.
     const ok = new Set(["components/Moments.tsx"]);
     const hits = files.filter((f) => !ok.has(f.replaceAll("\\", "/"))).filter((f) =>
-      /\b(bg|text|border|fill|stroke|ring|outline|decoration|from|via|to|shadow|caret|accent|divide)-accent\b|var\(--(color-)?accent\)|#d6f25a|#ccea96|#164b38/i.test(readFileSync(join(root, f), "utf8"))
+      /\b(bg|text|border|fill|stroke|ring|outline|decoration|from|via|to|shadow|caret|accent|divide)-accent\b|var\(--(color-)?accent\)|#d6f25a|#ccea96|#164b38|#157a46|#1c0f2e/i.test(readFileSync(join(root, f), "utf8"))
     );
     expect(hits).toEqual([]);
     // The offline page (public/sw.js) is plain HTML outside the stylesheet: no retired lime there either.
@@ -426,22 +496,98 @@ describe("forest ink is for what is live and the one primary action (G1)", () =>
   });
   it("the organization rail is a deep eggplant panel: cream and lavender type AAA, the current tile AAA (every theme)", () => {
     for (const th of [light, dark, sun]) {
-      expect(ratio(th["rail-fg"], th["rail-bg"])).toBeGreaterThanOrEqual(7);
-      expect(ratio(th["rail-muted"], th["rail-bg"])).toBeGreaterThanOrEqual(7);
-      expect(ratio(th["rail-active-fg"], th["rail-active-bg"])).toBeGreaterThanOrEqual(7);
+      expect(ratio(th["shell-fg"], th["shell-bg"])).toBeGreaterThanOrEqual(7);
+      expect(ratio(th["shell-muted"], th["shell-bg"])).toBeGreaterThanOrEqual(7);
+      expect(ratio(th["on-shell-active"], th["shell-active"])).toBeGreaterThanOrEqual(7);
     }
   });
+  it("by night the feature card is a raised eggplant card with white type (a proposal: the concept shows light only)", () => {
+    expect(ratio(dark["hero-fg"], dark.hero)).toBeGreaterThanOrEqual(7);
+    expect(dark.hero).not.toBe(dark.bg);
+    // Your own chat bubbles are a raised eggplant by night, with the ring in their own ink.
+    expect(css).toMatch(/\.bubble-mine \{[^}]*?background: var\(--bubble-mine\);/);
+    for (const th of [light, dark, sun]) expect(ratio(th["on-bubble-mine"], th["bubble-mine"])).toBeGreaterThanOrEqual(7);
+    expect(dark["bubble-mine"]).not.toBe(dark.hero);
+    expect(css).toMatch(/\.bubble-mine \* \{\s*--focus: currentColor;/);
+    expect(ratio(dark["on-solid"], dark.solid)).toBeGreaterThanOrEqual(7);
+  });
+  it("the current Jobs view stands out from the switch's track (≥ 1.5:1)", () => {
+    expect(css).toMatch(/\.segmented \{[^}]*?background: var\(--surface-2\);/);
+    for (const th of [light, dark]) expect(ratio(th["tab-active-bg"], th["surface-2"])).toBeGreaterThanOrEqual(1.5);
+  });
+  it("the frame (shell) and the rail's current row, every mode (#111)", () => {
+    for (const th of [light, dark, sun]) {
+      // The current row is a step up from the frame (a subtle one, as on the concept's rail; the bold white label carries it), and its label reads.
+      expect(ratio(th["shell-active"], th["shell-bg"])).toBeGreaterThanOrEqual(1.2);
+      expect(ratio(th["on-shell-active"], th["shell-active"])).toBeGreaterThanOrEqual(7);
+    }
+    expect(light["shell-bg"]).toBe("#1c0f2e"); // the Eggplant frame, the same by night
+    expect(dark["shell-bg"]).toBe("#1c0f2e");
+    expect(sun["shell-bg"]).toBe("#000000");
+    // By night a chosen chip has a light edge: visible against the chip and the card.
+    expect(ratio(dark.muted, dark["tab-active-bg"])).toBeGreaterThanOrEqual(3);
+    expect(ratio(dark.muted, dark.surface)).toBeGreaterThanOrEqual(3);
+    // The dock's current tab is told by its green, not a bar or a tile.
+    expect(css).not.toMatch(/\.tab\[aria-current\]::before \{/);
+    expect(css).toMatch(/\.dark \.status-sending \{\s*background: color-mix\(in srgb, var\(--sky\) 16%/);
+    expect(css).toMatch(/:is\(\.btn-primary, \.tab\[aria-current\][^{]*:focus-visible \{\s*outline-offset: 3px;/);
+  });
   it("the keyboard ring stays visible inside the eggplant rail and hero cards (every theme)", () => {
-    expect(css).toMatch(/\.org-rail \* \{\s*--focus: var\(--rail-fg\);/);
+    expect(css).toMatch(/\.org-rail \* \{\s*--focus: var\(--shell-fg\);/);
     expect(css).toMatch(/\.hero-card:not\(\.hero-card-quiet\) \* \{\s*--focus: var\(--hero-fg\);/);
     for (const th of [light, dark, sun]) {
-      expect(ratio(th["rail-fg"], th["rail-bg"])).toBeGreaterThanOrEqual(3);
+      expect(ratio(th["shell-fg"], th["shell-bg"])).toBeGreaterThanOrEqual(3);
       expect(ratio(th["hero-fg"], th.hero)).toBeGreaterThanOrEqual(3);
     }
   });
   it("the rail and the desktop top nav mark the current page with an eggplant tile, not a side stripe", () => {
-    expect(css).toMatch(/\.rail-link\[aria-current="page"\] \{[^}]*?background: var\(--rail-active-bg\);/);
-    expect(css).toMatch(/\.topnav-link\[aria-current="page"\] \{[^}]*?background: var\(--tab-active-bg\);/);
+    expect(css).toMatch(/\.org-rail \.rail-link\[aria-current\] \{[^}]*?background: var\(--shell-active\);/);
+    expect(css).toMatch(/\.topnav-link\[aria-current\] \{[^}]*?background: var\(--tab-active-bg\);/);
     expect(css).not.toMatch(/inset 3px 0 0/);
+  });
+});
+
+describe("the shell (redesign B1.4)", () => {
+  it("the dock steps aside only for fields that take typing (never a select, a read-only field or a button)", () => {
+    const rule = css.match(/body:has\(:is\(input:not\(([^)]*)\)[^{]*\.tabbar \{\s*display: none;/);
+    expect(rule).not.toBeNull();
+    for (const t of ["checkbox", "radio", "range", "button", "submit", "reset", "image", "color", "file"]) expect(rule![1]).toContain(`[type="${t}"]`);
+    expect(rule![1]).toContain("[readonly]");
+    expect(rule![0]).toContain("textarea:not([readonly])");
+    expect(rule![0]).not.toMatch(/,\s*select\b/);
+  });
+  it("the phone's More sheet is a page-coloured panel: its rows use the page's tokens, never the frame's (every theme)", () => {
+    expect(css).toMatch(/\.rail-link \{[^}]*?color: var\(--muted\);/);
+    expect(css).toMatch(/\.rail-link\[aria-current\] \{[^}]*?background: var\(--tab-active-bg\);\s*color: var\(--tab-active-fg\);/);
+    expect(css).toMatch(/\.org-rail \.rail-link \{\s*color: var\(--shell-muted\);/);
+    for (const th of [light, dark, sun]) {
+      expect(ratio(th.muted, th.surface)).toBeGreaterThanOrEqual(4.5);
+      expect(ratio(th["tab-active-fg"], th["tab-active-bg"])).toBeGreaterThanOrEqual(7);
+      // The current row is told apart from the panel (by night with a lavender edge as well).
+      expect(ratio(th["tab-active-bg"], th.surface)).toBeGreaterThanOrEqual(th === dark ? 1.5 : 3);
+    }
+    expect(css).toMatch(/\.dark :is\(\.more-sheet \.rail-link\[aria-current\], \.chip:has\(input:checked\)/);
+  });
+
+  it("has a skip link that appears on keyboard focus, landing on a wrapper without a ring", () => {
+    expect(css).toMatch(/\.skip-link \{[^}]*translate: 0 -200%;/);
+    expect(css).toMatch(/\.skip-link:focus-visible \{\s*translate: 0 0;/);
+    expect(css).toMatch(/\.skip-target:focus \{\s*outline: none;/);
+  });
+
+  it("runs the organization rail full height under a header of fixed height", () => {
+    expect(css).toMatch(/--site-header-h: 65px;/);
+    // Pinned in px, so text size never moves the rail out from under it; a thread's own bar sits below it.
+    expect(css).toMatch(/\.site-header-bar \{\s*height: calc\(var\(--site-header-h\) - 1px\);/);
+    expect(css).toMatch(/body:has\(\.org-rail\) \.thread-top \{\s*top: var\(--site-header-h\);/);
+    expect(css).toMatch(/\.org-rail \{\s*top: var\(--site-header-h\);\s*height: calc\(100dvh - var\(--site-header-h\)\);/);
+    expect(css).toMatch(/\.org-shell \{\s*@apply mx-auto flex w-full max-w-\[var\(--workspace-max\)\] flex-1;/);
+  });
+
+  it("gives the staff console its own band and never an organization's rail beside it", () => {
+    expect(css).toMatch(/\.staff-band \{[^}]*background: var\(--shell-bg\);[^}]*color: var\(--shell-fg\);/);
+    expect(css).toMatch(/\.staff-band \* \{\s*--focus: var\(--shell-fg\);/);
+    expect(css).toMatch(/body:has\(\.staff-band\) \.org-rail:not\(\.staff-rail\) \{\s*display: none;/);
+    expect(css).toMatch(/body:has\(\.staff-band\) \.site-header nav\[aria-label="Main"\] \{\s*display: none;/);
   });
 });

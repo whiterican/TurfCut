@@ -15,6 +15,7 @@ import type { JobStatus, JurisdictionProfile } from "@prisma/client";
 export function JobFacts({
   job,
   acceptedCount,
+  compact = false,
 }: {
   job: {
     type: JobType;
@@ -33,6 +34,8 @@ export function JobFacts({
     jurisdiction: JurisdictionProfile;
   };
   acceptedCount: number;
+  /** The concept's job page (#111, screen 3): one line per fact, no card, the detail lines left to the full card below. */
+  compact?: boolean;
 }) {
   const a = jobCardAnswers({ ...job, orgName: job.org.name, jurisdictionRules: job.jurisdiction.rules });
   const launch = readLaunch(job.launch);
@@ -40,6 +43,19 @@ export function JobFacts({
   const place = [geo.city, geo.state].filter(Boolean).join(", ");
   const rulesOk = jurisdictionProblems(job.jurisdiction).length === 0;
   const canClaim = readHiringModes(job.hiringMethod).includes("instant_claim");
+  if (compact) {
+    const spots = job.headcount ? `${acceptedCount} of ${job.headcount} spots filled` : `${acceptedCount} hired so far`;
+    return (
+      <ul role="list" className="fact-list-compact" aria-label="Key facts">
+        <CompactFact icon={CalendarDays}>{job.startsAt || job.endsAt ? `${day(job.startsAt)} – ${day(job.endsAt)}` : "Dates to be set"}</CompactFact>
+        <CompactFact icon={MapPin}>{place || "Place to be set"}{launch.mode === "SELF" ? " · self-launch" : " · staged"}</CompactFact>
+        <CompactFact icon={Users}>{spots}</CompactFact>
+        <CompactFact icon={Wallet}>{a.payable}</CompactFact>
+        <CompactFact icon={ShieldCheck}>{a.credentials.join(" · ")}</CompactFact>
+        <CompactFact icon={Scale}>{`Rules: ${jurisdictionLabel(job.jurisdiction)}`}{rulesOk ? "" : " (not current)"}</CompactFact>
+      </ul>
+    );
+  }
   return (
     <ul role="list" className="card fact-list" aria-label="Key facts">
       <Fact icon={CalendarDays} title={job.startsAt || job.endsAt ? `${day(job.startsAt)} – ${day(job.endsAt)}` : "Dates to be set"}>
@@ -73,6 +89,15 @@ export function JobFacts({
             : "This place's rules aren't current, so no new shifts or open seats can be added until they are."}
       </Fact>
     </ul>
+  );
+}
+
+function CompactFact({ icon: Icon, children }: { icon: ComponentType<{ className?: string; "aria-hidden"?: boolean }>; children: ReactNode }) {
+  return (
+    <li className="fact-compact">
+      <Icon aria-hidden className="size-5 shrink-0 text-muted" />
+      <span className="min-w-0 text-fg">{children}</span>
+    </li>
   );
 }
 

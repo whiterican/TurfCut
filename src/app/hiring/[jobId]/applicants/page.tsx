@@ -14,6 +14,10 @@ import { HiringTabs } from "@/components/staff/HiringTabs";
 import { hiringCounts } from "@/lib/invitations-data";
 import { EmptyState } from "@/components/EmptyState";
 import { ChevronLeft } from "lucide-react";
+import { ListDetailPage } from "@/components/layout/Page";
+import { applicantForInspector } from "@/lib/applicant-view-data";
+import { ApplicantInspector } from "@/components/inspector/ApplicantInspector";
+import { InspectorSelect } from "@/components/inspector/InspectorSelect";
 
 const BULK_FORM = "applicants-bulk";
 
@@ -57,8 +61,29 @@ export default async function ApplicantsPage({
   const offers = all.filter((a) => a.status === "OFFERED" && !offerLapsed(a.status, a.offerExpiresAt, now)).length;
   const offerable = job.status === "PUBLISHED" || job.status === "PAUSED";
 
+  // The inspector (redesign §4.3): the row in ?selected=, through the same checked loader as every
+  // view of an applicant, with no political fit. It shows from 1280 beside the rail; below that a
+  // row opens its own page.
+  const selectedId = typeof raw.selected === "string" ? raw.selected : null;
+  const selected = selectedId ? await applicantForInspector(session, { jobId: job.id, engagementId: selectedId }, now) : null;
+  const closeQs = new URLSearchParams(qs);
+  closeQs.delete("selected");
+  const closeHref = `/hiring/${job.id}/applicants${closeQs.size ? `?${closeQs}` : ""}`;
+  const inspector = selected ? (
+    <ApplicantInspector a={selected} closeHref={closeHref} now={now} />
+  ) : (
+    <div className="card space-y-2">
+      <p className="font-semibold text-fg">{selectedId ? "That applicant isn't on this job" : "Pick an applicant"}</p>
+      <p className="text-muted-sm">Their stage, what they share with you for this job and the next step show here. Political answers never do.</p>
+    </div>
+  );
+
   return (
-    <main className="page max-w-5xl">
+    <ListDetailPage
+      org
+      panelLabel={selected ? `Applicant: ${selected.engagement.worker.displayName}` : "Applicant"}
+      inspector={inspector}
+      head={
       <Masthead
         eyebrow="Applicants"
         title={job.title}
@@ -67,6 +92,9 @@ export default async function ApplicantsPage({
         <Link href="/hiring" className="btn-ghost btn-sm"><ChevronLeft aria-hidden className="size-4 shrink-0" />Pipeline</Link>
         <Link href={`/jobs/${job.id}`} className="btn-secondary btn-sm">Job page</Link>
       </Masthead>
+      }
+    >
+      <InspectorSelect rowHref={`/hiring/${job.id}/people`} />
       <HiringTabs jobId={job.id} current="applicants" counts={counts} />
 
       <details className="card p-0" open={filtering || undefined}>
@@ -130,6 +158,7 @@ export default async function ApplicantsPage({
           Workers who apply show up here, with what each one shares with your organization.
         </EmptyState>
       ) : (
+        <div data-inspector-source>
         <DataTable
           caption={`Applicants for ${job.title}`}
           empty="No applicants match these filters."
@@ -141,10 +170,11 @@ export default async function ApplicantsPage({
             cells: applicantCells(a, facts, cols, today, `/hiring/${job.id}/people/${a.engagementId}`),
           }))}
         />
+        </div>
       )}
       <p className="text-hint">
         Only what each worker shares with your organization, as of now. &ldquo;Not shared&rdquo; is never counted as zero or ranked. There is no overall score. Political answers never appear in this table.
       </p>
-    </main>
+    </ListDetailPage>
   );
 }

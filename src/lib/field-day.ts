@@ -15,6 +15,7 @@
  * - A worker can't hold two overlapping shifts, across every campaign.
  */
 import type { Validated } from "@/lib/experience";
+import type { Status } from "@/lib/status";
 import { appLabel, type CanvassApp } from "@/lib/job-tools";
 import { CORRECTABLE, effectiveEvents } from "@/lib/corrections";
 
@@ -173,14 +174,23 @@ export function shiftState(s: ShiftFacts): ShiftState {
   return st;
 }
 
-/** One-word status for lists, with its badge style. */
-export function shiftStatusLabel(st: ShiftState): { label: string; badge: string } {
-  if (st.cancelled) return { label: "Cancelled", badge: "badge-neutral" };
-  if (st.closeout?.status === "APPROVED") return { label: "Approved", badge: "badge-solid" };
-  if (st.closeout?.status === "REJECTED") return { label: "Not approved", badge: "badge-coral" };
-  if (st.checkedOutAt) return { label: "In review", badge: "badge-butter" };
-  if (st.checkedInAt) return { label: st.paused ? "On break" : "On shift", badge: st.paused ? "badge-butter" : "badge-live" };
-  return { label: "Scheduled", badge: "badge-sky" };
+/**
+ * A shift's status for lists and heads (redesign §4.1.3). With the schedule
+ * and the time, a check-in past the shift's end reads "No check-out
+ * received" (overdue), never "On shift": a check-out still queued on the
+ * worker's phone reads as checked in here, so the words say what the server
+ * has, not what the worker did. Only a shift genuinely under way is live.
+ */
+export function shiftStatusLabel(st: ShiftState, timing?: { endsAt: Date | null; now: Date }): Status {
+  const ended = !!timing?.endsAt && timing.now.getTime() > timing.endsAt.getTime();
+  if (st.cancelled) return { label: "Cancelled", state: "closed" };
+  if (st.closeout?.status === "APPROVED") return { label: "Approved", state: "approved" };
+  if (st.closeout?.status === "REJECTED") return { label: "Not approved", state: "blocked" };
+  if (st.checkedOutAt) return { label: "In review", state: "pending" };
+  if (st.checkedInAt && ended) return { label: "No check-out received", state: "overdue" };
+  if (st.checkedInAt) return { label: st.paused ? "On break" : "On shift", state: "live" };
+  if (ended) return { label: "Ended without a check-in", state: "closed" };
+  return { label: "Scheduled", state: "pending" };
 }
 
 // ---------------------------------------------------------------------------
@@ -267,10 +277,12 @@ export interface ProgressStep {
   detail: string;
   /** When the step happened, for the browser to show in local time. */
   at?: Date;
+  /** The one thing the viewer can do to move the step along (a link), when there is one. */
+  action?: { label: string; href: string };
 }
 
-/** `payout`: the pay step as the caller may show it (lib/pay-data shiftPay). */
-export function shiftProgress(s: ShiftFacts, payout?: { done: boolean; detail: string; at?: Date }): ProgressStep[] {
+/** `payout`: the pay step as the caller may show it (lib/pay-data shiftPay), with the way to unblock it when there is one. */
+export function shiftProgress(s: ShiftFacts, payout?: { done: boolean; detail: string; at?: Date; action?: ProgressStep["action"] }): ProgressStep[] {
   const st = shiftState(s);
   const petition = s.workType === "PETITION";
   const returned = st.checkedOutAt !== null && st.packetsOut.length === 0;
@@ -316,7 +328,7 @@ export function shiftProgress(s: ShiftFacts, payout?: { done: boolean; detail: s
             ? "Return or keep your packets, then check out"
             : "Check out",
     },
-    { key: "payout", label: "Payout", done: payout?.done ?? false, at: payout?.at, detail: payout?.detail ?? "Paid in the app after your supervisor approves the shift" },
+    { key: "payout", label: "Payout", done: payout?.done ?? false, at: payout?.at, detail: payout?.detail ?? "Paid in the app after your supervisor approves the shift", ...(payout?.action ? { action: payout.action } : {}) },
   ];
   let current = false;
   return raw.map(({ done, ...step }) => {

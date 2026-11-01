@@ -1,3 +1,4 @@
+import { StatusChip } from "@/components/StatusBadge";
 import { credentialName, METHOD_LABELS, VERIFICATION_LABELS, type OrgCredentialView } from "@/lib/credentials";
 import { NotSharedChip } from "@/components/staff/NotSharedChip";
 
@@ -15,7 +16,7 @@ export function CredentialList({ view, today }: { view: OrgCredentialView[] | "w
           <li key={i} className="flex flex-wrap items-center justify-between gap-2 py-2.5 text-sm">
             <span className="font-medium text-fg">{credentialName(c)}</span>
             <span className="flex flex-wrap items-center gap-2">
-              <span className={c.verification === "SELF_REPORTED" ? "badge-dashed" : "badge-accent"}>{VERIFICATION_LABELS[c.verification]}</span>
+              <StatusChip state={c.verification === "SELF_REPORTED" ? "pending" : "approved"} label={VERIFICATION_LABELS[c.verification]} />
               {c.verificationMethod && <span className="text-muted">({METHOD_LABELS[c.verificationMethod]})</span>}
               {c.expiresOn && <span className={expired ? "text-danger-msg" : "text-muted"}>{expired ? "Expired" : "Expires"} {dateText(c.expiresOn)}</span>}
             </span>

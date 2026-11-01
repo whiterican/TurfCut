@@ -20,6 +20,7 @@ const ALLOWED = [
   /^src\/app\/(c|campaigns|feed|api\/campaigns|api\/campaign|api\/feed)\//,
   /^src\/app\/shifts\/\[shiftId\]\/page\.tsx$/, // shows the brief's talking points (nothing it reads goes anywhere else)
   /^src\/app\/jobs\/\[jobId\]\/page\.tsx$/, // the campaign a job works for, with Follow (S2); the page ranks nothing
+  /^src\/app\/jobs\/page\.tsx$/, // the feed rows' photographs (#111): published campaign headers, looked up after the feed is built; the page ranks nothing
   /^src\/app\/dashboard\/page\.tsx$/, // Today's "Campaigns you're on" strip (S2.3); the page ranks nothing
   /^src\/app\/notifications\/page\.tsx$/, // words of a followed campaign's post notice (S2.4); the page ranks nothing
   /^src\/app\/layout\.tsx$/, // the bell's count of a worker's unread post notices (S2.4); ranks nothing

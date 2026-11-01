@@ -1,3 +1,4 @@
+import { StatusChip } from "@/components/StatusBadge";
 import Link from "next/link";
 import { requireStaff } from "@/lib/staff-session";
 import { ROLE_LABELS } from "@/lib/access";
@@ -42,8 +43,8 @@ export default async function AdminPeoplePage({ searchParams }: { searchParams: 
                     <span className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
                       <span className="flex flex-wrap items-center gap-2 font-semibold text-fg">
                         {h.name ?? "No name yet"}
-                        {h.staff && <span className="badge-sky">Turfcut staff</span>}
-                        {h.closedAt && <span className="badge-neutral">Closed</span>}
+                        {h.staff && <span className="tag-accent">Turfcut staff</span>}
+                        {h.closedAt && <StatusChip state="closed" label="Closed" />}
                       </span>
                       <span className="text-xs text-subtle">since <LocalTime iso={h.createdAt.toISOString()} mode="fulldate" /></span>
                     </span>

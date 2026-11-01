@@ -7,8 +7,12 @@ import { loadLatestPreference } from "@/lib/political-fit-data";
 import { loadScorecardPeriods } from "@/lib/scorecard-data";
 import { loadSharing, orgViewer } from "@/lib/sharing-data";
 
-/** What orgProfileView draws from, or null when there's no such worker. */
-async function loadProfileSource(workerId: string): Promise<ProfileSource<ExperienceRecord> | null> {
+/**
+ * What orgProfileView draws from, or null when there's no such worker.
+ * Without `fit` the worker's political-fit answers are never read (the
+ * inspector view, redesign §4.3).
+ */
+async function loadProfileSource(workerId: string, fit = true): Promise<ProfileSource<ExperienceRecord> | null> {
   const [worker, sharing, periods, avail, credentials, experience, preference] = await Promise.all([
     db().worker.findUnique({ where: { id: workerId }, select: { displayName: true } }),
     loadSharing(workerId),
@@ -16,7 +20,7 @@ async function loadProfileSource(workerId: string): Promise<ProfileSource<Experi
     loadAvailability(workerId),
     loadCredentials(workerId),
     db().experienceRecord.findMany({ where: { workerId }, orderBy: { startDate: "desc" } }),
-    loadLatestPreference(workerId),
+    fit ? loadLatestPreference(workerId) : null,
   ]);
   if (!worker) return null;
   return { displayName: worker.displayName, sharing: sharing.choices, periods, availability: avail.availability, credentials, experience, preference };
@@ -29,8 +33,8 @@ export type OrgProfileView = ReturnType<typeof orgProfileView<ExperienceRecord>>
  * null for a missing or closed account. Call it only after workerAccessFor
  * let this organization open the profile.
  */
-export async function loadOrgProfile(workerId: string, orgId: string, now = new Date()): Promise<OrgProfileView | null> {
-  const [src, viewer] = await Promise.all([loadProfileSource(workerId), orgViewer(workerId, orgId)]);
+export async function loadOrgProfile(workerId: string, orgId: string, now = new Date(), opts: { fit?: boolean } = {}): Promise<OrgProfileView | null> {
+  const [src, viewer] = await Promise.all([loadProfileSource(workerId, opts.fit ?? true), orgViewer(workerId, orgId)]);
   if (!src || viewer.kind !== "org") return null;
   return orgProfileView(src, viewer, now);
 }

@@ -1,21 +1,19 @@
 @import "tailwindcss";
 
 /*
- * Turfcut design system — deep eggplant, warm paper, forest ink (G1, 2026-10-27).
- *
- * Eggplant owns identity: page ink, links, the feature (hero) card, settled
- * status chips and the dock's active tile (cream label). Warm paper and cream
- * are the surfaces. Forest ink (#164B38) is the one restricted accent: the
- * primary action and what is live now, always with cream type; never text on a
- * dark surface. Soft green (#82BC9B) is the night focus ring, the edge around
- * green fills by night, and the hero's decorative corner cut. Pastel badges
- * (sky, coral, butter, party colours) carry the dark "ink" colour; solid badges
- * carry --on-solid. Lime (#D6F25A) is retired.
+ * Turfcut design system — the founder's twelve-screen concept (issue #111,
+ * 2026-10-28). Ten locked colours: Eggplant #1C0F2E (dock, rail, brand shell),
+ * Forest #157A46 (the one action colour; live, confirmed, selected), Cream
+ * #FAF9F4 (the page), Surface #FFFFFF (cards, rows, forms), Muted #E7E6ED
+ * (shaded fills), Border #D7D2E0, Text #0F172A, Subtle #64748B, Warning
+ * #F59E0B and Error #EF4444 (accents and fills). Inter throughout. Anything
+ * else (dark surfaces, map fills, status text) is a derived extension and says
+ * so beside its token.
  *
  * The theme is a `.dark` class on <html>, set before first paint by the
  * inline script in app/layout.tsx (saved choice, else the OS preference).
  * src/lib/design-tokens.test.ts reads the tokens below and checks WCAG
- * contrast for every text/background pairing, in both themes.
+ * contrast for every text/background pairing, in every theme.
  */
 @custom-variant dark (&:where(.dark, .dark *));
 
@@ -35,39 +33,54 @@
 }
 
 :root {
-  /* G1 (founder, 2026-10-27): deep eggplant owns identity; forest ink is the one
-     restricted accent (lime retired). Forest ink fills the primary action and what
-     is live now, always with cream type (--on-accent). It is never text on a dark
-     surface; by night green fills get a soft-green edge (--accent-edge). */
-  --accent: #164b38;
-  --on-accent: #fbf7f0;
-  --accent-edge: #164b38;
-  /* The hero's corner cut: soft green, decorative only (never behind text). */
-  --cut: #82bc9b;
-  /* Turf polygons and staging markers on the (always light) map tiles: mid eggplant,
-     never a park-like green. */
+  /* ---- The ten locked base colours (founder's twelve-screen concept, #111) ----
+     Copied verbatim; every role below names the base it takes. Anything that is
+     not one of these ten is a documented derived extension (dark surfaces, map
+     fills, status text that has to read as text), never a replacement. */
+  --base-eggplant: #1c0f2e;
+  --base-forest: #157a46;
+  --base-cream: #faf9f4;
+  --base-surface: #ffffff;
+  --base-muted: #e7e6ed;
+  --base-border: #d7d2e0;
+  --base-text: #0f172a;
+  --base-subtle: #64748b;
+  --base-warning: #f59e0b;
+  --base-error: #ef4444;
+
+  /* Forest: the one primary action, and what is live/confirmed/selected. White
+     type on it is 5.38:1 (AA; the locked pair is not AAA and is kept as printed). */
+  --accent: #157a46; /* = Forest */
+  --on-accent: #ffffff;
+  --accent-edge: #157a46;
+  /* Turf polygons and staging markers on the (always light) map tiles: derived
+     mid eggplant so turf never reads as a park. */
   --map-fill: #5a3b82;
-  /* The organization's desktop rail (G3): a deep eggplant panel, the brand's
-     own surface, with cream type and a raised-eggplant current tile. */
-  --rail-bg: #281539;
-  --rail-fg: #fbf7f0;
-  --rail-muted: #d8cce4;
-  --rail-line: #3f2b57;
-  --rail-active-bg: #4a3365;
-  --rail-active-fg: #fbf7f0;
+  /* The frame (shell): the floating dock, the organization rail, the hero scrim.
+     Eggplant in every theme but Sunlight (black there). Inactive dock labels and
+     icons are Cream; the current destination is the lighter dock green below. */
+  --shell-bg: #1c0f2e; /* = Eggplant */
+  --shell-fg: #ffffff;
+  --shell-muted: #faf9f4; /* = Cream */
+  --shell-line: #2f1f4a; /* derived: a hairline one step up from Eggplant */
+  --shell-edge: #1c0f2e;
+  /* The rail's current row: one step up from Eggplant, white type (derived). */
+  --shell-active: #2f1f4a;
+  --on-shell-active: #ffffff;
+  /* The dock's current icon and label: Forest on Eggplant is 3.37:1, under AA
+     for a 12px label, so the dock uses this lighter green (9.7:1), a derived
+     extension pending the founder's visual review. Buttons stay Forest. */
+  --dock-active-fg: #5ed39b;
   /* Solid (and on-solid): settled status ("Active", "Approved", "Paid",
-     "You"), a quick filter that's on and team avatars: an eggplant chip with
-     paper text, the dock's own tile colour. Forest ink is kept for what is live now
-     (.badge-live, the live shift card), the one primary action and the cut,
-     so it still means something. */
-  --solid: #3a2154;
-  --on-solid: #f6f1e6;
-  /* Informational states that aren't live (scheduled, waiting, a role, a
-     date) take a lavender tint; holds a clay tint; closed and short, stone. */
+     "You"), a quick filter that's on: an Eggplant chip with white text. */
+  --solid: #1c0f2e; /* = Eggplant */
+  --on-solid: #ffffff;
+  /* Tints behind ink type: scheduled/waiting (lavender), held/blocked (the
+     Error base, lightened), attention (the Warning base, lightened). */
   --sky: #d9cfe6;
-  --coral: #f1c6bd;
-  --butter: #ddd3c3;
-  --ink: #1b1422; /* text on any accent fill */
+  --coral: #fecaca; /* derived from Error */
+  --butter: #fde68a; /* derived from Warning */
+  --ink: #0f172a; /* = Text: type on any tint */
   /* Job cards: the type chip takes the campaign's own declared affiliation
      (pastel fill, ink text, same in both themes; the chip names it too). */
   --party-democratic: #a9c8f7;
@@ -77,103 +90,113 @@
   --party-other: #9fd6d2;
   --party-nonpartisan: #cfbaf2;
 
-  /* Light mode (the clipboard brand): warm paper, cream cards, eggplant ink
-     and links; forest ink for live status and the one primary action.
-     Muted and subtle are a step darker than the design's so every note on
-     every surface stays AAA (design-tokens.test.ts). */
-  --bg: #efeae1;
-  --surface: #fbf7f0;
-  --surface-2: #e9e3d8;
-  --field: #fffdf8;
-  --border: #e3dcd0;
-  --border-strong: #c9c0b2;
-  --fg: #1b1422;
-  --muted: #4a4254;
-  --subtle: #574f61;
-  --link: #3a2154;
-  --kicker: #3a2154;
-  --focus: #3a2154;
-  --selected: #3a2154; /* the chosen option's ring and card edge */
-  --danger: #a8402f;
-  --success: #3a2154;
-  --warning: #5a3a14;
-  --primary: #164b38;
-  --switch-on: #3a2154;
-  --on-primary: #fbf7f0;
-  --secondary: #fbf7f0;
-  --secondary-border: #7f7688;
-  --hero: #281539;
-  --hero-fg: #f6f1e6;
+  /* Light mode: the Cream page, white cards and rows, Muted fills, Border
+     dividers, Text and Subtle type. */
+  --bg: #faf9f4; /* = Cream */
+  --surface: #ffffff; /* = Surface */
+  --surface-2: #e7e6ed; /* = Muted: neutral shaded cards, chips, segmented tracks (a fill, never type) */
+  --field: #ffffff; /* = Surface */
+  --border: #d7d2e0; /* = Border */
+  --border-strong: #8d879e; /* derived: Border, darker, for an edge that must read (3:1 on white) */
+  --fg: #0f172a; /* = Text */
+  /* Secondary type that may sit on a Muted fill: one step darker than Subtle
+     (derived; Subtle itself is 3.84:1 on Muted, so it stays on white and Cream). */
+  --muted: #475569;
+  --subtle: #64748b; /* = Subtle: captions and hints on white and Cream */
+  --link: #1c0f2e; /* = Eggplant: 14:1 on every light surface (Forest is 4.3:1 on Muted) */
+  --kicker: #475569;
+  --focus: #157a46; /* = Forest */
+  --selected: #157a46; /* = Forest: the chosen option's ring and card edge */
+  /* Status as text has to read on Muted too: these are the Error and Warning
+     bases darkened (derived); the bases themselves are fills and icons. */
+  --danger: #c42020;
+  --success: #116b3d; /* derived: Forest darkened so done/verified reads as text on Muted (5.3:1) */
+  --warning: #78350f;
+  --primary: #157a46; /* = Forest */
+  --switch-on: #157a46; /* = Forest */
+  --on-primary: #ffffff;
+  --secondary: #ffffff; /* = Surface */
+  --secondary-border: #6f6a80; /* derived: a step past Subtle, 3:1 on white and Cream */
+  --bubble-mine: #1c0f2e; /* = Eggplant */
+  --on-bubble-mine: #ffffff;
+  /* The day's feature card (Today's next shift): Eggplant with white type. */
+  --hero: #1c0f2e; /* = Eggplant */
+  --hero-fg: #ffffff;
   --hero-muted: #d8cce4;
   --hero-border: transparent;
-  /* The current tab: a deep eggplant tile with cream icon and label. */
-  --tab-active-bg: #281539;
-  --tab-active-fg: #fbf7f0;
-  /* Cards sit on the paper with a hairline and almost no shadow. */
-  --shadow-depth: 0 1px 2px rgb(27 20 34 / 0.04), 0 6px 18px -16px rgb(27 20 34 / 0.25);
+  /* A chosen chip or row on a card or sheet: Eggplant with white type. */
+  --tab-active-bg: #1c0f2e; /* = Eggplant */
+  --tab-active-fg: #ffffff;
+  /* Cards sit on the Cream with a hairline and almost no shadow; the dock floats. */
+  --shadow-depth: 0 2px 8px rgb(28 15 46 / 0.06);
   --shadow: var(--shadow-depth);
-  --ring: #6a4c91;
-  --ring-2: #4a3070;
-  --ring-3: #2a173e;
+  /* Priority rings around the next-shift card: the Eggplant family, each ring darker. */
+  --ring: #7a6f8e;
+  --ring-2: #5a4a78;
+  --ring-3: #1c0f2e;
   color-scheme: light;
 }
 
 .dark {
-  /* Dark mode: near-black paper, eggplant cards and heroes; forest-ink fills
-     with cream type and a soft-green edge for live status and the primary action. */
-  --accent: #164b38;
-  --on-accent: #fbf7f0;
-  --accent-edge: #cbbdd8; /* forest ink is 1.7:1 on the night surfaces: a light lavender edge shows the shape */
-  --cut: #82bc9b;
-  --bg: #120d18;
-  --surface: #23182f;
-  --surface-2: #30223f;
-  --field: #1a1224;
-  --border: #3c2d4c;
-  --border-strong: #5a4a6e;
-  --fg: #f6f1e6;
-  --muted: #cbbdd8;
-  --subtle: #b2a3c0;
-  --solid: #4a3365; /* settled status by night: the raised eggplant tile */
-  --on-solid: #f6f1e6;
-  --ink: #1b1422;
-  --link: #f6f1e6;
-  --kicker: #cbbdd8;
-  --focus: #82bc9b; /* the keyboard outline only: soft green, 8.8:1 on the night page */
-  --selected: #5a3b82; /* the chosen option stays eggplant by night */
-  --danger: #eb9082;
-  --success: #d8cce4; /* done and verified by night: pale lavender, not green (green is live) */
-  --warning: #f0d08a;
-  --primary: #164b38;
-  --switch-on: #8f7da6; /* a setting is a selection, not live: a lavender track, 3.7:1 to the white thumb, 4:1 or more on every night surface */
-  --on-primary: #fbf7f0;
-  --secondary: #30223f;
-  --secondary-border: #8f7da6;
-  --hero: #4a3365;
-  --hero-fg: #f6f1e6;
-  --hero-muted: #f1eaf8;
+  /* Dark mode (proposed, not in the founder's concept): the same Eggplant dock
+     and rail, the page a step deeper than Eggplant so the frame still stands
+     apart, raised eggplant cards, white type. Forest stays the action colour.
+     Every value here is a derived extension until the dark renders are signed off. */
+  --shell-bg: #1c0f2e; /* = Eggplant, the same dock as by day */
+  --shell-edge: #4a3a66;
+  --shell-line: #4a3a66; /* the dock's edge against the deeper page (1.9:1), since both are eggplant */
+  --accent: #157a46; /* = Forest */
+  --on-accent: #ffffff;
+  --accent-edge: #cbbdd8; /* Forest alone is under 3:1 on the night surfaces: a light edge shows the shape */
+  --bg: #140a22;
+  --surface: #231538;
+  --surface-2: #2f2048;
+  --field: #1c0f2e;
+  --border: #3d2c57;
+  --border-strong: #6b5a88;
+  --fg: #f4f2f8;
+  --muted: #c9c2d6;
+  --subtle: #b3abc4;
+  --solid: #5a4a78; /* a chosen chip or settled status by night: two steps up from the card (1.9:1), white type */
+  --on-solid: #f4f2f8;
+  --ink: #0f172a;
+  --link: #5ed39b;
+  --kicker: #b3abc4;
+  --focus: #5ed39b;
+  --selected: #5ed39b;
+  --danger: #f87171;
+  --success: #5ed39b;
+  --warning: #fbbf24;
+  --primary: #157a46; /* = Forest */
+  --switch-on: #1f9a5b; /* Forest lifted so the track clears 3:1 on the night surfaces */
+  --on-primary: #ffffff;
+  --secondary: #231538;
+  --secondary-border: #8b80a3;
+  --bubble-mine: #5a4a78;
+  --on-bubble-mine: #f4f2f8;
+  --hero: #2f2048;
+  --hero-fg: #f4f2f8;
+  --hero-muted: #c9c2d6;
   --hero-border: transparent;
-  --tab-active-bg: #4a3365;
-  --tab-active-fg: #fbf7f0;
-  /* Rings: rims only, never fills or text. A page-coloured gap separates
-     them from the card (see the priority ring rules). */
+  --tab-active-bg: #5a4a78;
+  --tab-active-fg: #f4f2f8;
   --ring: #ece4f5;
   --ring-2: #cbb8e0;
   --ring-3: #a991c9;
-  --shadow-depth: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px -18px rgb(0 0 0 / 0.5);
+  --shadow-depth: 0 2px 8px rgb(8 3 16 / 0.5);
   --shadow: var(--shadow-depth);
   color-scheme: dark;
 }
 
 .sun {
-  /* Sunlight (P1.5): the outdoor theme. Built on light (it never carries
-     .dark): white paper, black text, near-black edges, black primary and tab
-     tile with white type, forest ink only for what is live. Every pairing clears a
-     higher bar than the other themes (design-tokens.test.ts). Nothing is
+  /* Sunlight (P1.5): the outdoor theme, kept for glare. Built on light (it never
+     carries .dark): cream paper, black text, near-black edges, black primary and
+     dock tile with white type, Forest only for what is live. Every pairing clears
+     a higher bar than the other themes (design-tokens.test.ts). Nothing is
      see-through and nothing casts a shadow. */
-  --bg: #ffffff;
-  --surface: #ffffff;
-  --surface-2: #eeeeee;
+  --bg: #fbf7f0;
+  --surface: #fffdf8;
+  --surface-2: #f4efe6;
   --field: #ffffff;
   --border: #4a4254;
   --border-strong: #000000;
@@ -194,9 +217,10 @@
   --on-primary: #ffffff;
   --on-accent: #ffffff;
   --accent-edge: #000000;
-  --cut: #164b38;
   --secondary: #ffffff;
   --secondary-border: #000000;
+  --bubble-mine: #000000;
+  --on-bubble-mine: #ffffff;
   --hero: #000000;
   --hero-fg: #ffffff;
   --hero-muted: #ebebeb;
@@ -204,7 +228,7 @@
   --tab-active-bg: #000000;
   --tab-active-fg: #ffffff;
   --sky: #d9cfe6;
-  --coral: #f1c6bd;
+  --coral: #fecaca;
   --butter: #e4dccd;
   --ring: #6a4c91;
   --ring-2: #4a3070;
@@ -212,12 +236,15 @@
   --shadow-depth: 0 0 0 0 transparent;
   --shadow: var(--shadow-depth);
   color-scheme: light;
-  --rail-bg: #ffffff;
-  --rail-fg: #000000;
-  --rail-muted: #1b1422;
-  --rail-line: #000000;
-  --rail-active-bg: #000000;
-  --rail-active-fg: #ffffff;
+  /* Sunlight: a black frame with white type, a white current tile with black type. */
+  --shell-bg: #000000;
+  --shell-fg: #ffffff;
+  --shell-muted: #ebebeb;
+  --shell-line: #ffffff;
+  --shell-edge: #000000;
+  --shell-active: #ffffff;
+  --on-shell-active: #000000;
+  --dock-active-fg: #ffffff;
 }
 
 /* Frame tokens: the surfaces that float (tab bar, header buttons, the More
@@ -239,12 +266,27 @@ html {
   --card-edge: 0 0 0 0 transparent;
   --card-sheen: none;
   --hero-bg: var(--hero);
-  /* Shape (G2): calm, precise corners. Cards 14px, panels inside them 12px,
-     buttons 10px. The floating dock, status pills, chat bubbles and sheets keep
-     their rounder shapes on purpose. */
-  --radius-card: 0.875rem;
-  --radius-inner: 0.75rem;
-  --radius-control: 0.625rem;
+  /* Shape: the printed scale, xs 6 · sm 10 · md 14 · lg 20 · xl 28. Cards and
+     rows md, controls and thumbnails sm, pills xs, the dock and sheets lg. */
+  --radius-xs: 6px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --radius-card: var(--radius-md);
+  --radius-inner: var(--radius-sm);
+  --radius-control: var(--radius-sm);
+  /* Layout roles (redesign §4.1): page measures, the workspace cap, the
+     inspector column and the space the floating dock needs below content. */
+  --measure-reading: 42rem;
+  --measure-content: 48rem;
+  --workspace-max: 90rem;
+  /* The worker's widest page (a list or record with its aside, gutters included): the header lines up with it. */
+  --worker-frame: calc(var(--measure-content) + 18rem + 2.5rem + 3rem);
+  /* The header's fixed height in px, its 1px border included (.site-header-bar). */
+  --site-header-h: 65px;
+  --inspector-w: 24rem;
+  --dock-clearance: calc(6rem + env(safe-area-inset-bottom));
 }
 /* ---- Motion (P1.1) ------------------------------------------------------ */
 /* Every duration and curve in the app comes from these (src/lib/motion.ts
@@ -286,14 +328,20 @@ html {
   --color-danger: var(--danger);
   --color-success: var(--success);
   --color-warning: var(--warning);
-  /* Legibility: small text is never below 13px, and secondary text is 15px. */
-  --text-xs: 0.8125rem;
-  --text-xs--line-height: 1.4;
-  --text-sm: 0.9375rem;
-  --text-sm--line-height: 1.5;
-  --font-sans: var(--font-barlow);
-  --font-mono: var(--font-dm-mono);
-  --font-condensed: var(--font-barlow-condensed);
+  /* The printed type scale: Small 12/16, Caption 14/20, Body 16/24. */
+  --text-xs: 0.75rem;
+  --text-xs--line-height: calc(4 / 3);
+  --text-sm: 0.875rem;
+  --text-sm--line-height: calc(10 / 7);
+  --text-base: 1rem;
+  --text-base--line-height: 1.5;
+  /* Inter for every role (#111). The old role names stay so no rule dangles:
+     "condensed" and "display" are Inter too, and figures are Inter with
+     tabular numerals. */
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-condensed: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   /* Tailwind's `transition` utility runs on the tokens too. */
   --default-transition-duration: var(--dur-fast);
   --default-transition-timing-function: var(--ease-standard);
@@ -310,7 +358,7 @@ html[data-text="xl"] {
 body {
   background: var(--bg);
   color: var(--fg);
-  font-family: var(--font-barlow), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   accent-color: var(--focus);
   /* A long word or link breaks inside its box instead of running past it. */
   overflow-wrap: break-word;
@@ -322,7 +370,8 @@ body {
 }
 /* By night forest ink would hide the selection (1.7:1): soft green with ink type. */
 .dark ::selection {
-  background: var(--cut);
+  /* Forest would hide the selection by night (1.7:1): the dock green with ink type. */
+  background: var(--dock-active-fg);
   color: var(--ink);
 }
 
@@ -335,6 +384,100 @@ body {
   }
 }
 
+/* ---- Type scale (redesign §4.1.2) --------------------------------------
+   One utility per role; components use these, never their own font family or
+   size. rem sizes follow the text-size setting; nothing falls below 13px.
+   Green board (founder, 2026-10-28): page, card and section titles are the
+   bold sans (Inter, #111). */
+@utility t-display {
+  /* The public hero line: Inter, bold, the one size above H1. */
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  font-size: 2rem;
+  line-height: 1.15;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+  @media (width >= 64rem) {
+    font-size: 3rem;
+  }
+}
+@utility t-title {
+  /* H1 28/36 bold */
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  font-size: 1.75rem;
+  line-height: 2.25rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+@utility t-headline {
+  /* H2 20/28 semibold */
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  font-size: 1.25rem;
+  line-height: 1.75rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+@utility t-section {
+  /* H3 16/24 semibold */
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  font-size: 1rem;
+  line-height: 1.5rem;
+  font-weight: 600;
+}
+@utility t-body {
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+@utility t-strong {
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  font-size: 1.0625rem;
+  line-height: 1.35;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+@utility t-small {
+  /* Caption 14/20 */
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+@utility t-hint {
+  /* Small 12/16 */
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 400;
+}
+@utility t-label {
+  /* A small label: Small 12/16, semibold, sentence case (no tracked capitals on the board). */
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 600;
+}
+@utility t-figure {
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  font-size: 1.5rem;
+  line-height: 1.1;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+@utility t-figure-sm {
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  font-size: 1rem;
+  line-height: 1.1;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+@utility t-figure-lg {
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  font-size: 2rem;
+  line-height: 1.1;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
 @layer components {
   /* ---- Layout ---------------------------------------------------------- */
   /* Bottom padding clears the phone tab bar (see .tabbar). */
@@ -344,16 +487,266 @@ body {
   .page-narrow {
     @apply mx-auto w-full max-w-md px-4 py-10 sm:py-16;
   }
+
+  /* ---- Page templates (redesign §4.2.2, components/layout/Page.tsx) ----
+     The template owns the gutters, the clearance above the dock, the heading
+     slot and the panel; a page never sets a width. One column below 1024
+     (an aside follows the main column; an inspector isn't drawn, the row opens
+     its own route). Widths come from the role tokens. */
+  .tpl {
+    --tpl-gutter: 1rem;
+    --tpl-panel: 18rem;
+    --tpl-measure: var(--measure-content);
+    @apply mx-auto w-full pt-8 sm:pt-12;
+    padding-inline: var(--tpl-gutter);
+    padding-bottom: calc(var(--dock-clearance) + 2rem);
+    max-width: calc(var(--tpl-measure) + 2 * var(--tpl-gutter));
+  }
+  .tpl-head {
+    margin-bottom: var(--tpl-gap, 2.5rem);
+  }
+  .tpl-body {
+    display: grid;
+    gap: var(--tpl-gap, 2.5rem);
+  }
+  .tpl-main,
+  .tpl-panel {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: var(--tpl-gap, 2.5rem);
+  }
+  .tpl-panel {
+    gap: 1.5rem;
+  }
+  .tpl-tail {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: var(--tpl-gap, 2.5rem);
+  }
+  .tpl[data-template="reading"] {
+    --tpl-measure: var(--measure-reading);
+  }
+  .tpl[data-template="workspace"],
+  .tpl[data-template="listDetail"] {
+    --tpl-measure: var(--workspace-max);
+  }
+  .tpl[data-template="field"] {
+    --tpl-measure: var(--measure-content);
+  }
+  /* An inspector below its breakpoint: not drawn; the row's own route stands in. */
+  .tpl[data-panel="inspector"] > .tpl-body > .tpl-panel {
+    display: none;
+  }
+  .tpl[data-template="hero"] {
+    padding: 0;
+    max-width: none;
+  }
+  /* Sign-in: a band of art above the form on a phone, 45/55 beside it from 1024 (redesign §5).
+     The form never sits over the art. */
+  .tpl[data-template="hero"] {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+  }
+  /* The public landing's hero (green board): the picture under a dark scrim, the line and one green action at the
+     foot, and one real open job on a white card. Full height on a phone; two columns from 1024. */
+  .landing-hero {
+    @apply relative isolate flex min-h-[calc(100svh-var(--site-header-h))] flex-col overflow-hidden;
+    background: var(--shell-bg);
+    color: var(--shell-fg);
+  }
+  .landing-hero-art {
+    @apply absolute inset-0 -z-20 h-full w-full;
+  }
+  .landing-hero-scrim {
+    @apply absolute inset-0 -z-10;
+    /* Dark at the foot where the words sit, thinning toward the sky (a radial, so the motion test's "linear" rule stays exact). */
+    background: radial-gradient(140% 85% at 50% 100%, rgb(23 16 31 / 0.96) 28%, rgb(23 16 31 / 0.45) 70%, rgb(23 16 31 / 0.2) 100%);
+  }
+  .landing-hero-body {
+    @apply mx-auto flex w-full max-w-6xl flex-1 flex-col justify-end gap-8 px-5 pt-16 pb-10 sm:px-8 lg:grid lg:grid-cols-[minmax(0,1.2fr)_minmax(20rem,0.8fr)] lg:items-end lg:gap-16 lg:pb-16;
+  }
+  .landing-hero-line {
+    @apply t-display;
+    color: var(--shell-fg);
+    text-wrap: balance;
+  }
+  .landing-hero-proof {
+    @apply mt-4 max-w-md text-lg leading-snug;
+    color: var(--shell-fg);
+  }
+  .landing-hero-kicker {
+    /* "Available jobs": Small 12/16 semibold, sentence case, on the scrim. */
+    @apply mb-2 text-xs font-semibold;
+    color: var(--shell-muted);
+  }
+  .landing-featured-card {
+    @apply flex gap-3 rounded-[var(--radius-card)] border border-border p-3 transition;
+    background: var(--surface);
+    box-shadow: var(--shadow-depth);
+  }
+  .landing-featured-card:hover {
+    border-color: var(--border-strong);
+  }
+  .landing-featured-art {
+    @apply relative block size-16 shrink-0 overflow-hidden rounded-[var(--radius-inner)];
+  }
+  .hero-split {
+    @apply flex flex-1 flex-col;
+  }
+  .hero-split-art {
+    @apply flex flex-row items-center justify-start gap-3 px-6 py-5 sm:px-10;
+    background: var(--shell-bg);
+    color: var(--shell-fg);
+  }
+  /* The public hero line: Inter bold, the one size above H1 (#111). */
+  .hero-split-line {
+    @apply t-headline;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-optical-sizing: auto;
+    color: var(--shell-fg);
+  }
+  .hero-split-form {
+    @apply flex flex-1 justify-center px-4 py-8 sm:py-16;
+  }
+  /* Signed in (a dock is showing): clear it. */
+  body:has(.tabbar) .hero-split-form {
+    padding-bottom: calc(var(--dock-clearance) + 2rem);
+  }
+  @media (width >= 64rem) {
+    .hero-split {
+      display: grid;
+      grid-template-columns: 45fr 55fr;
+    }
+    .hero-split-art {
+      @apply flex-col items-start justify-end p-12;
+    }
+    .hero-split-form {
+      @apply items-center;
+      padding-bottom: 4rem;
+    }
+  }
+  @media (width >= 40rem) {
+    .tpl {
+      --tpl-gutter: 1.5rem;
+    }
+  }
+  @media (width >= 64rem) {
+    .tpl {
+      padding-bottom: 3rem;
+    }
+    /* Asides sit beside the main column from 1024 (from 1280 beside the organization rail, below). */
+    .tpl[data-panel="aside"]:not([data-org]) {
+      max-width: calc(var(--tpl-measure) + var(--tpl-panel) + var(--tpl-gap, 2.5rem) + 2 * var(--tpl-gutter));
+    }
+    .tpl[data-panel="aside"]:not([data-org]) > .tpl-body {
+      grid-template-columns: minmax(0, var(--tpl-measure)) var(--tpl-panel);
+      align-items: start;
+    }
+    .tpl[data-panel="aside"]:not([data-org]) > .tpl-body > .tpl-main,
+    .tpl[data-panel="aside"]:not([data-org]) > .tpl-body > .tpl-tail {
+      grid-column: 1;
+    }
+    .tpl[data-panel="aside"]:not([data-org]) > .tpl-body > .tpl-panel {
+      grid-column: 2;
+    }
+    /* With a tail, the panel runs beside both the main column and the tail. */
+    .tpl[data-panel="aside"]:not([data-org]) > .tpl-body:has(> .tpl-tail) > .tpl-panel {
+      grid-row: 1 / span 2;
+    }
+    /* A leading panel (a section's sub-nav): the narrow left column. */
+    .tpl[data-start]:not([data-org]) {
+      --tpl-panel: 14rem;
+    }
+    .tpl[data-start]:not([data-org]) > .tpl-body {
+      grid-template-columns: var(--tpl-panel) minmax(0, var(--tpl-measure));
+    }
+    .tpl[data-start]:not([data-org]) > .tpl-body > .tpl-panel {
+      grid-column: 1;
+      position: sticky;
+      top: calc(var(--site-header-h) + 1rem);
+      max-height: calc(100dvh - var(--site-header-h) - 2rem);
+      overflow-y: auto;
+    }
+    .tpl[data-start]:not([data-org]) > .tpl-body > .tpl-main {
+      grid-column: 2;
+    }
+    /* A record's facts and actions stay in view while the object scrolls; never taller than the
+       window, so a focused control inside is always scrolled into view (WCAG 2.4.11). */
+    .tpl[data-template="record"]:not([data-org]) > .tpl-body > .tpl-panel {
+      position: sticky;
+      top: calc(var(--site-header-h) + 1rem);
+      max-height: calc(100dvh - var(--site-header-h) - 2rem);
+      overflow-y: auto;
+    }
+    /* The field page: the task and, beside it, the brief and map, at equal weight. */
+    .tpl[data-template="field"][data-panel="aside"] {
+      --tpl-panel: minmax(0, 1fr);
+      max-width: calc(2 * var(--measure-content) + var(--tpl-gap, 2.5rem) + 2 * var(--tpl-gutter));
+    }
+    .tpl[data-template="field"][data-panel="aside"] > .tpl-body {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+    /* Worker pages: the inspector from 1024. */
+    .tpl[data-panel="inspector"]:not([data-org]) > .tpl-body {
+      grid-template-columns: minmax(0, 1fr) var(--inspector-w);
+      align-items: start;
+    }
+    .tpl[data-panel="inspector"]:not([data-org]) > .tpl-body > .tpl-panel {
+      display: flex;
+    }
+  }
+  /* Organization and staff pages, beside the ~240px rail: the inspector from 1280,
+     so the table keeps about 720px (C1 round 2). */
+  @media (width >= 80rem) {
+    .tpl[data-panel="aside"][data-org] {
+      max-width: calc(var(--tpl-measure) + var(--tpl-panel) + var(--tpl-gap, 2.5rem) + 2 * var(--tpl-gutter));
+    }
+    .tpl[data-panel="aside"][data-org] > .tpl-body {
+      grid-template-columns: minmax(0, var(--tpl-measure)) var(--tpl-panel);
+      align-items: start;
+    }
+    .tpl[data-panel="aside"][data-org] > .tpl-body > .tpl-main,
+    .tpl[data-panel="aside"][data-org] > .tpl-body > .tpl-tail {
+      grid-column: 1;
+    }
+    .tpl[data-panel="aside"][data-org] > .tpl-body > .tpl-panel {
+      grid-column: 2;
+    }
+    /* With a tail, the panel runs beside both the main column and the tail. */
+    .tpl[data-panel="aside"][data-org] > .tpl-body:has(> .tpl-tail) > .tpl-panel {
+      grid-row: 1 / span 2;
+    }
+    .tpl[data-template="record"][data-org] > .tpl-body > .tpl-panel {
+      position: sticky;
+      top: calc(var(--site-header-h) + 1rem);
+      max-height: calc(100dvh - var(--site-header-h) - 2rem);
+      overflow-y: auto;
+    }
+    .tpl[data-panel="inspector"][data-org] > .tpl-body {
+      grid-template-columns: minmax(0, 1fr) var(--inspector-w);
+      align-items: start;
+    }
+    .tpl[data-panel="inspector"][data-org] > .tpl-body > .tpl-panel {
+      display: flex;
+      position: sticky;
+      top: calc(var(--site-header-h) + 1rem);
+      max-height: calc(100dvh - var(--site-header-h) - 2rem);
+      overflow-y: auto;
+    }
+  }
   .page-header {
     @apply flex flex-wrap items-end justify-between gap-3;
   }
   .page-title {
-    @apply text-3xl leading-[1.05] font-bold tracking-[-0.03em] text-fg sm:text-4xl;
-    text-wrap: balance;
+    @apply t-title text-fg;
   }
   /* the brand face: organization and job names, in page heads and on job cards. */
   .masthead {
-    /* Headlines are the brand face, semibold and tight: never a serif. */
+    /* Names on cards and page titles alike: Inter, semibold or bold by role. */
     @apply font-semibold tracking-[-0.02em] text-fg;
   }
   .page-title.masthead {
@@ -370,8 +763,7 @@ body {
   }
   /* Small condensed label above a title inside a card or hero ("LIVE SHIFT · OCT 24"). */
   .eyebrow {
-    @apply font-condensed font-semibold tracking-[0.18em] uppercase;
-    font-size: 0.8125rem;
+    @apply text-xs font-semibold;
     color: var(--kicker);
   }
   /* No decorative dash before a kicker: a kicker is only there when it
@@ -388,7 +780,7 @@ body {
     @apply space-y-4;
   }
   .section-title {
-    @apply text-lg font-bold tracking-[-0.01em] text-fg;
+    @apply t-section text-fg;
   }
   .lead {
     @apply max-w-prose text-base leading-relaxed text-muted;
@@ -433,13 +825,65 @@ body {
   }
   /* A list grouped by day (My shifts): the day's name over its rows. */
   .day-heading {
-    @apply px-1 text-sm font-semibold text-fg;
+    @apply t-section text-fg;
   }
-  .shift-row {
-    @apply flex items-start gap-3 px-4 py-3 transition-colors hover:bg-surface-2;
+  /* A shift as the concept's card (#111, screen 4): white, md corners, a 3px accent in the status colour along the left edge. */
+  .shift-card {
+    @apply relative rounded-[var(--radius-card)] border border-border p-3.5 pl-4;
+    background: var(--surface);
+    border-left-width: 3px;
+    border-left-color: var(--border-strong);
+  }
+  .shift-card[data-state="live"],
+  .shift-card[data-state="approved"] {
+    border-left-color: var(--primary);
+  }
+  .shift-card[data-state="pending"] {
+    border-left-color: var(--base-warning);
+  }
+  .shift-card[data-state="overdue"],
+  .shift-card[data-state="blocked"] {
+    border-left-color: var(--danger);
+  }
+  .shift-card-actions {
+    @apply mt-3 flex flex-wrap gap-2;
+  }
+  /* Messages (#111, screen 8): white rows with dividers, no outer card. */
+  .thread-list {
+    @apply -mx-4 divide-y divide-border sm:mx-0;
+  }
+  .thread-row {
+    @apply flex items-center gap-3 px-4 py-3.5 transition hover:bg-surface-2 sm:px-2;
+  }
+  /* Profile (#111, screen 9): the identity block, then a menu of rows with a status at the right. */
+  .profile-head {
+    @apply flex flex-col items-center gap-2 pb-2 text-center;
+  }
+  .profile-menu {
+    @apply divide-y divide-border;
+  }
+  .profile-row {
+    @apply flex min-h-14 items-center gap-3 py-2 text-fg transition hover:bg-surface-2;
+  }
+  .profile-row-status {
+    @apply ms-auto shrink-0 text-end text-sm text-subtle;
+  }
+  /* Today's work surface (#111, screen 5): a white card carrying the status pill, the facts and the one Forest action. */
+  .work-card {
+    @apply rounded-[var(--radius-card)] border border-border p-4 sm:p-5;
+    background: var(--surface);
+  }
+  .work-facts {
+    @apply grid grid-cols-3 gap-3 border-y border-border py-3;
+  }
+  .work-fact-figure {
+    @apply block text-lg font-bold text-fg tabular-nums;
+  }
+  .work-fact-label {
+    @apply block text-xs text-subtle;
   }
   /* Rows inside a clipped list card draw their keyboard ring inside the row. */
-  :is(.shift-row, .job-row):focus-visible {
+  .job-row:focus-visible {
     outline-offset: -3px;
   }
 
@@ -449,27 +893,17 @@ body {
     background: var(--card-sheen), var(--card-bg);
     box-shadow: var(--card-edge), var(--shadow-depth);
   }
-  /* The feature card (deep eggplant by day, raised eggplant by night) with a soft-green cut in the corner. */
+  /* The feature card (deep eggplant by day, cream with ink type by night) with the lime fold in the corner. */
   .hero-card {
     @apply relative overflow-hidden rounded-[var(--radius-card)] p-5 sm:p-6;
     background: var(--hero-bg);
-    /* The fill stops at the border, so the cut reaches the visible edge. */
     background-clip: padding-box;
     color: var(--hero-fg);
     border: 2px solid var(--hero-border);
     box-shadow: var(--shadow-depth);
   }
-  /* The cut: a soft-green wedge in the top corner, never over the headline. */
-  .hero-card::after {
-    content: "";
-    @apply pointer-events-none absolute top-0 right-0;
-    width: 4.25rem;
-    height: 2.75rem;
-    background: var(--cut);
-    clip-path: polygon(0 60%, 100% 0, 100% 100%);
-  }
 
-  /* A live shift (checked in, breaks included) keeps the eggplant canvas: the hero is
+  /* A live shift (checked in, breaks included) keeps the hero canvas (eggplant by day, cream by night): the hero is
      the brand's surface. "Live" is said by the forest-ink On shift chip and the words,
      not by repainting the card (G1 review: green stays restricted). */
   .hero-card-accent {
@@ -522,10 +956,6 @@ body {
   .hero-card:is([data-priority="1"], [data-priority="2"], [data-priority="3"]):focus-visible {
     outline-offset: 9px;
   }
-  .hero-card.hero-card-accent::after {
-    /* The live (forest-ink) card keeps the same soft-green cut. */
-    background: var(--cut);
-  }
   /* A hero with nothing to report steps down to a plain card: no eggplant, no cut, a hairline edge, muted type. Never combined with hero-card-accent or data-priority. */
   .hero-card.hero-card-quiet {
     background: var(--surface);
@@ -540,9 +970,6 @@ body {
   a.hero-card.hero-card-quiet:hover {
     border-color: var(--border-strong);
   }
-  .hero-card.hero-card-quiet::after {
-    display: none;
-  }
   .hero-card.hero-card-quiet .eyebrow,
   .hero-card.hero-card-quiet .hero-muted {
     color: var(--muted);
@@ -550,10 +977,6 @@ body {
   .hero-card.hero-card-accent .eyebrow,
   .hero-card.hero-card-accent .hero-muted {
     color: var(--hero-muted);
-  }
-  /* Data-dense hero cards skip the corner highlight so numbers stay clear. */
-  .hero-card-plain::after {
-    display: none;
   }
   .hero-card.hero-card-plain .eyebrow,
   .hero-card.hero-card-quiet .eyebrow {
@@ -567,7 +990,7 @@ body {
     max-width: calc(100% - 4rem); /* clear the corner cut */
   }
   .hero-title {
-    @apply max-w-[80%] text-2xl leading-tight font-bold tracking-[-0.02em] sm:text-3xl;
+    @apply t-headline max-w-[85%] break-words;
   }
   .hero-muted {
     color: var(--hero-muted);
@@ -595,7 +1018,7 @@ body {
   .empty-state-body {
     @apply mx-auto mt-1 max-w-sm text-sm text-muted;
   }
-  /* Empty-state art (components/EmptyState.tsx): soft-green field, ink lines, dim
+  /* Empty-state art (components/EmptyState.tsx): lavender field, ink lines, dim
      context lines, paper fills. Theme tokens, so light and dark both work.
      Its settle-in animation is unlayered, with the other motion (Button faces). */
   .empty-art {
@@ -605,7 +1028,8 @@ body {
     margin: 0 auto 0.75rem;
     color: var(--fg);
   }
-  .empty-art .lime { fill: var(--cut); }
+  /* The art's field is the lavender pastel: lime belongs to the primary card's corner only, and on cream it would vanish (1.25:1). */
+  .empty-art .lime { fill: var(--sky); }
   .empty-art .ink,
   .empty-art .dim {
     fill: none;
@@ -812,14 +1236,21 @@ body {
   .badge-sky,
   .badge-solid,
   .badge-butter,
-  .badge-party {
+  .badge-party,
+  .tag,
+  .tag-solid,
+  .tag-accent,
+  .tag-butter {
     @apply inline-flex max-w-full shrink-0 items-center gap-1 rounded-md border px-2 py-0.5 text-start text-xs font-semibold;
     /* A badge keeps its size beside other text, and a label wider than its row
        ("Nonpartisan civic work (voter registration, GOTV)") wraps inside the
        badge instead of running past the card's edge. */
     overflow-wrap: break-word;
   }
-  .badge-neutral {
+  /* Tags (.tag-*) are plain labels, not statuses: roles, work types, counts.
+     A record's state is a StatusChip, never a tag (redesign §4.1.3). */
+  .badge-neutral,
+  .tag {
     @apply border-border bg-surface-2 text-muted;
   }
   .badge-dashed {
@@ -830,7 +1261,9 @@ body {
      "worth noticing, not live" chip (a date, an open seat, a sent receipt);
      only .badge-live is forest ink. */
   .badge-coral { --badge-bg: var(--coral); }
-  .badge-accent { --badge-bg: var(--sky); }
+  .badge-accent,
+  .tag-accent { --badge-bg: var(--sky); }
+  .tag-butter { --badge-bg: var(--butter); }
   .badge-sky { --badge-bg: var(--sky); }
   .badge-butter { --badge-bg: var(--butter); }
   /* A campaign's declared affiliation (job cards; see --party-*). */
@@ -840,12 +1273,12 @@ body {
   .badge-party-green { --badge-bg: var(--party-green); }
   .badge-party-other { --badge-bg: var(--party-other); }
   .badge-party-nonpartisan { --badge-bg: var(--party-nonpartisan); }
-  :is(.badge-coral, .badge-accent, .badge-sky, .badge-butter, .badge-party) {
+  :is(.badge-coral, .badge-accent, .badge-sky, .badge-butter, .badge-party, .tag-accent, .tag-butter) {
     background: var(--badge-bg);
     color: var(--ink);
     border-color: transparent;
   }
-  /* Live now (on shift): the one forest-ink chip, cream type; by night a soft-green edge shows its shape. */
+  /* Live now (on shift): the one forest-ink chip, cream type; by night a light edge shows its shape. */
   .badge-live {
     background: var(--accent);
     color: var(--on-accent);
@@ -853,6 +1286,92 @@ body {
   }
   .dot {
     @apply inline-block size-2 shrink-0 rounded-full;
+  }
+
+  /* ---- Status (redesign §4.1.3) ---------------------------------------
+     One chip per worded state: a glyph shape and a colour family no other
+     state shares, so paid, approved and pending never look alike and colour
+     is never the only cue. Only .status-live is forest. Drawn by StatusBadge
+     from a domain state; pages never choose these classes by hand. */
+  .status {
+    @apply inline-flex max-w-full shrink-0 items-center gap-1 rounded-md border px-2 py-0.5 text-start text-xs font-semibold;
+    overflow-wrap: break-word;
+    border-color: transparent;
+  }
+  .status-glyph {
+    @apply size-3.5 shrink-0;
+  }
+  .status-dot {
+    @apply inline-block size-2 shrink-0 rounded-full;
+    background: currentColor;
+    box-shadow: 0 0 0 2px color-mix(in srgb, currentColor 35%, transparent);
+  }
+  .status-live {
+    background: var(--accent);
+    color: var(--on-accent);
+    border-color: var(--accent-edge);
+  }
+  .status-paid {
+    background: var(--solid);
+    color: var(--on-solid);
+  }
+  .status-approved,
+  .status-approved-blocked {
+    color: var(--fg);
+    border-color: var(--success);
+    border-width: 1.5px;
+  }
+  .status-sending {
+    background: color-mix(in srgb, var(--sky) 45%, var(--surface));
+    color: var(--fg);
+  }
+  .status-pending {
+    color: var(--muted);
+    border-style: dashed;
+    border-color: var(--border-strong);
+  }
+  .status-queued {
+    background: var(--surface-2);
+    color: var(--muted);
+    border-color: var(--border);
+  }
+  .status-memory-only,
+  .status-overdue,
+  .status-disputed {
+    background: color-mix(in srgb, var(--butter) 30%, var(--surface));
+    color: var(--warning);
+    border-color: color-mix(in srgb, var(--warning) 45%, transparent);
+  }
+  .status-held,
+  .status-blocked {
+    background: color-mix(in srgb, var(--coral) 22%, var(--surface));
+    color: var(--danger);
+    border-color: color-mix(in srgb, var(--danger) 45%, transparent);
+  }
+  /* By night the pastel tints stay faint, so the cream and coral type keeps AA. */
+  .dark .status-sending {
+    background: color-mix(in srgb, var(--sky) 16%, var(--surface));
+  }
+  .dark :is(.status-held, .status-blocked) {
+    background: color-mix(in srgb, var(--coral) 8%, var(--surface));
+  }
+  .dark :is(.status-memory-only, .status-overdue, .status-disputed) {
+    background: color-mix(in srgb, var(--butter) 12%, var(--surface));
+  }
+  .status-draft {
+    color: var(--subtle);
+    border-style: dotted;
+    border-color: var(--border-strong);
+  }
+  .status-not-shared {
+    @apply italic;
+    color: var(--muted);
+    border-color: var(--border);
+  }
+  .status-closed {
+    /* On the Muted fill the type is --muted, not Subtle (Subtle is 3.84:1 on Muted). */
+    background: var(--surface-2);
+    color: var(--muted);
   }
 
   /* ---- Feedback -------------------------------------------------------- */
@@ -887,16 +1406,16 @@ body {
   .card-solid {
     background: var(--card-sheen), var(--surface);
   }
+  /* The older metric tile (scorecards, experience): the same white surface and figure as the tiles above. */
   .stat {
-    @apply rounded-[var(--radius-inner)] border border-border p-4;
-    background: var(--card-sheen), var(--card-bg);
-    box-shadow: var(--card-edge), var(--shadow-depth);
+    @apply rounded-[var(--radius-card)] border border-border p-4;
+    background: var(--surface);
   }
   .stat-label {
     @apply flex items-center gap-2 text-sm text-muted;
   }
   .stat-value {
-    @apply mt-1 text-2xl font-bold tracking-[-0.02em] text-fg tabular-nums;
+    @apply mt-1 t-figure-sm text-fg sm:t-figure;
   }
   .kv {
     @apply rounded-xl border border-border bg-surface-2 px-3 py-2;
@@ -941,49 +1460,68 @@ body {
   /* Phone: a floating bar above the bottom edge (and the home indicator),
      tucked away while scrolling down (components/AppNav, lib/scroll-hide).
      Desktop (lg): links in the top bar or the rail instead. */
-  /* Proportions after the owner's Lovable concept: a compact rounded slab
-     (not a full pill), 370px at most, 44px tiles with small labels. */
+  /* A compact rounded slab (not a full pill), 384px at most: five 44px tiles
+     with small labels, on the frame's eggplant (hero board). */
   .tabbar {
-    @apply fixed z-40 mx-auto max-w-[23.125rem] rounded-2xl border p-1.5 lg:hidden;
-    inset-inline: 0.75rem;
-    bottom: calc(0.75rem + env(safe-area-inset-bottom));
-    background: var(--surface);
-    border-color: var(--border);
-    box-shadow: 0 6px 24px -8px rgb(40 21 57 / 0.35), 0 1px 2px rgb(27 20 34 / 0.06);
+    /* The floating dock (#111): one Eggplant slab on every worker and
+       organization screen, 20px corners, 12px side inset, 10px above the
+       safe area, 4px inside. Inactive icons and labels are Cream; the current
+       destination is the dock green (--dock-active-fg), no filled tile. */
+    @apply fixed z-40 mx-auto max-w-[23rem] rounded-[var(--radius-lg)] p-1 lg:hidden;
+    inset-inline: 12px;
+    bottom: calc(10px + env(safe-area-inset-bottom));
+    background: var(--shell-bg);
+    color: var(--shell-muted);
+    box-shadow: 0 6px 20px rgb(28 15 46 / 0.28);
     transition: transform var(--dur-slow) var(--ease-out);
   }
   .tab {
-    @apply relative flex min-h-11 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-xl border border-transparent py-1.5 font-semibold whitespace-nowrap text-fg transition;
-    /* Up to six condensed labels share the bar: the label follows the screen
-       width, never the phone's text size (pixel bounds, not rem), so
-       "Messages" and "Profile" stay inside the border at any Dynamic Type setting. */
-    font-family: var(--font-condensed);
-    font-size: clamp(10px, 2.6vw, 11px);
-    letter-spacing: 0.01em;
+    /* A 52px tile: a 20px icon over a complete 12/16 Inter label. Six share
+       the slab; Messages (the longest word, and the badge) gets a little more. */
+    @apply relative flex min-h-[52px] min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-[var(--radius-md)] px-0.5 py-1.5 font-medium whitespace-nowrap transition;
+    flex-basis: 0;
+    color: var(--shell-muted);
+    font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+    font-size: 12px;
+    line-height: 16px;
+    letter-spacing: -0.01em;
   }
-  /* The tab you're on: an eggplant tile. */
-  .tab[aria-current="page"] {
-    @apply font-bold;
-    /* An eggplant tile with rounded corners (not a circle, so six labels
-       still fit), cream icon and label. It glides to the next tab on
-       navigation (view-transition-name below). */
-    border-radius: 0.75rem;
-    background: var(--tab-active-bg);
-    color: var(--tab-active-fg);
+  .tab[data-wide] {
+    flex-grow: 1.3;
+  }
+  /* A small coral dot at the icon's corner: something waits under this tab. */
+  .tab-dot {
+    @apply absolute top-1.5 left-1/2 ml-2 size-2 rounded-full;
+    background: var(--coral);
+  }
+  /* The destination you're on: the dock green for icon and label, a little bolder. */
+  .tab[aria-current] {
+    @apply font-semibold;
+    color: var(--dock-active-fg);
     view-transition-name: tab-current;
   }
   .tab-icon {
-    @apply size-[1.125rem] rounded-lg transition;
+    @apply size-5 shrink-0 transition;
   }
   .tabbar > div {
-    gap: 0.125rem;
+    gap: 0;
   }
-  /* A focused tab sits above its neighbours, so the active tile never covers its ring. */
+  /* A focused tab sits above its neighbours, so its ring is never covered. */
   .tab:focus-visible {
     z-index: 1;
   }
-  .tab[aria-current="page"] .tab-icon {
-    color: var(--tab-active-fg);
+  /* Besides the colour and the bolder label, the current icon is drawn heavier (a cue that isn't colour). */
+  .tab[aria-current] .tab-icon {
+    color: var(--dock-active-fg);
+    stroke-width: 2.5;
+  }
+  /* Sunlight keeps its white current tile with black type (outdoor glare). */
+  .sun .tab[aria-current] {
+    background: var(--shell-active);
+    color: var(--on-shell-active);
+  }
+  .sun .tab[aria-current] .tab-icon {
+    color: var(--on-shell-active);
   }
   /* Icons inside buttons: sized to the text, never the hit target. */
   .btn-icon {
@@ -994,7 +1532,21 @@ body {
   }
   .tab .unread-badge {
     @apply absolute top-0.5 left-1/2 ml-1.5 min-w-[1.25rem] px-1 text-[0.7rem] leading-[1.25rem];
-    box-shadow: 0 0 0 2px var(--surface);
+    box-shadow: 0 0 0 2px var(--shell-bg);
+  }
+  /* Two or three places under one tab (Jobs: Find work / My schedule): a
+     segmented control, the current one an eggplant tile like the dock's. */
+  .segmented {
+    /* The concept's segmented control (#111, screen 4): a Muted track, 44px segments, the current one Eggplant with white type. */
+    @apply flex gap-1 rounded-[var(--radius-sm)] p-1;
+    background: var(--surface-2);
+  }
+  .segmented > a {
+    @apply flex min-h-11 flex-1 items-center justify-center rounded-[var(--radius-xs)] px-3 text-sm font-semibold text-muted transition hover:text-fg;
+  }
+  .segmented > a[aria-current] {
+    background: var(--tab-active-bg);
+    color: var(--tab-active-fg);
   }
   /* ---- Staff components (C1) ------------------------------------------ */
   .data-table-wrap {
@@ -1113,75 +1665,246 @@ body {
     @apply -mx-1 inline-flex items-center gap-1 rounded px-1 py-0.5 font-semibold hover:text-fg;
   }
   /* Figures wrap two to a row on a phone and at least 10rem wide above it; a straggler stretches across the rest of its row, so no slot is ever an empty border-coloured block. */
+  /* The organizer overview (#111, screen 10): three white tiles, then the map beside its key and the needs counts. */
+  .stat-tiles {
+    @apply grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-[repeat(auto-fit,minmax(12rem,1fr))];
+  }
+  /* One tile grammar for the Overview's tiles and every SummaryBar (figure, name, hint). */
+  .stat-tile,
+  .summary-item {
+    @apply rounded-[var(--radius-card)] border border-border p-4;
+    background: var(--surface);
+  }
+  /* A five-figure total still fits a half-width phone tile: the smaller figure below 640px. */
+  .stat-tile-figure,
+  .summary-value {
+    @apply t-figure-sm text-fg sm:t-figure;
+  }
+  .stat-tile-label,
+  .summary-item > .eyebrow {
+    @apply mt-1 text-base font-medium text-fg;
+  }
+  .stat-tile-note,
+  .summary-item > .text-hint {
+    @apply mt-0.5 text-sm text-subtle;
+  }
+  .overview-grid {
+    @apply grid gap-5 xl:grid-cols-[minmax(0,1fr)_300px];
+  }
+  .overview-map {
+    @apply h-[360px] min-h-[320px] rounded-[var(--radius-card)] border border-border xl:h-[440px];
+    background: var(--surface);
+  }
+  .legend-dot {
+    @apply inline-block size-2.5 rounded-full;
+  }
+  .legend-turf {
+    background: var(--map-fill);
+  }
+  .legend-on {
+    background: var(--primary);
+  }
+  .need-tile {
+    @apply flex items-center gap-3 rounded-[var(--radius-card)] border border-border p-2.5 transition hover:bg-surface-2;
+    background: var(--surface);
+  }
+  .need-tile-count {
+    @apply inline-flex size-11 shrink-0 items-center justify-center rounded-[var(--radius-sm)] text-lg font-bold tabular-nums;
+    background: var(--primary);
+    color: var(--on-primary);
+  }
+  /* The overview's period: a label (the query is today-only), not a control. */
+  .period-label {
+    @apply self-center text-sm font-medium text-muted;
+  }
+  /* Figures over a staff page (#111, screen 10): the tile grammar above, two to a row on a phone. The figure is
+     drawn first and its name second; the markup (a <dl>: name, then figure) still reads "name, figure, hint",
+     and nothing in a tile takes focus, so the drawn order and the read order can differ. */
   .summary-bar {
-    @apply flex flex-wrap gap-px overflow-hidden rounded-[var(--radius-inner)] border border-border bg-border;
+    @apply grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-[repeat(auto-fit,minmax(11rem,1fr))];
   }
   .summary-item {
-    @apply min-w-0 space-y-1 bg-surface px-4 py-3;
-    flex: 1 1 calc(50% - 1px);
+    @apply flex min-w-0 flex-col;
   }
-  @media (width >= 40rem) {
-    .summary-item {
-      flex-basis: 10rem;
-    }
+  .summary-item > .eyebrow {
+    order: 2;
   }
-  .summary-value {
-    @apply text-2xl font-bold tracking-[-0.02em] text-fg tabular-nums;
+  .summary-item > .text-hint {
+    order: 3;
+  }
+  /* A form that keeps a reading width inside a wide workspace (#113 review, P4). */
+  .form-panel {
+    @apply max-w-[42.5rem];
+  }
+  /* Members (#113 review, P4): one aligned row per member; columns from 1024, stacked on a phone. */
+  .member-row-head {
+    @apply hidden px-4 pb-1 text-xs font-semibold text-subtle lg:grid lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1.3fr)_12rem] lg:gap-6;
+  }
+  .member-row {
+    @apply grid gap-3 px-4 py-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1.3fr)_12rem] lg:items-start lg:gap-6;
+  }
+  /* The Field map's strip (#113 review, P4): a compact band of live figures beside the job filter, then the map. */
+  .field-strip {
+    @apply flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between;
+  }
+  .summary-band {
+    @apply flex flex-wrap items-baseline gap-x-5 gap-y-1 text-sm;
+  }
+  .summary-band > div {
+    @apply flex items-baseline gap-1.5;
+  }
+  .summary-band dt {
+    @apply text-muted;
+    order: 2;
+  }
+  .summary-band dd {
+    @apply text-base font-semibold text-fg tabular-nums;
+  }
+  .summary-band-scope {
+    @apply text-xs font-semibold text-subtle;
+  }
+  /* The Field map (#111, screen 11): the controls row over the map, the map itself, and the turf cards beside it. */
+  .map-controls {
+    @apply flex min-w-0 flex-wrap items-center gap-2 lg:justify-end;
+  }
+  .map-controls .field {
+    @apply w-auto min-w-0 flex-1 sm:max-w-[18rem];
+  }
+  .field-map {
+    @apply h-[400px] xl:h-[560px];
+  }
+  .turf-card {
+    @apply space-y-2 rounded-[var(--radius-card)] border border-border p-4;
+    background: var(--surface);
+  }
+  .turf-card-name {
+    @apply t-headline text-fg;
+  }
+  .turf-card-figure {
+    @apply text-base font-semibold text-fg tabular-nums;
+  }
+  .turf-bar {
+    @apply h-2 w-full overflow-hidden rounded-full;
+    background: var(--surface-2);
+  }
+  .turf-bar-fill {
+    @apply block h-full rounded-full;
+    background: var(--primary);
+    transition: width var(--dur-base) var(--ease-out);
   }
 
+  /* The row open in the inspector. */
+  [data-inspector-source] tr:has(a[aria-current]) {
+    background: color-mix(in srgb, var(--fg) 6%, transparent);
+  }
+  /* A status in a table's state column keeps to one line: the column is sized for it. */
+  .ops-state .status {
+    white-space: nowrap;
+  }
   /* Organization shell (C1): left rail on desktop, role tabs + More sheet on phones. */
   .org-shell {
-    @apply mx-auto flex w-full max-w-6xl flex-1;
+    @apply mx-auto flex w-full max-w-[var(--workspace-max)] flex-1;
   }
   /* The keyboard ring on things inside eggplant surfaces takes the surface's own type colour
      (eggplant on eggplant is 1.2:1). Only descendants: a hero card that is itself a link keeps
      the page's ring, which sits on the paper around it. */
   .org-rail * {
-    --focus: var(--rail-fg);
+    --focus: var(--shell-fg);
   }
   .hero-card:not(.hero-card-quiet) * {
     --focus: var(--hero-fg);
   }
+  /* Full height (redesign §4.2.1): the eggplant frame runs from under the header to the
+     bottom of the window and stays there while the page scrolls; the person sits at its foot. */
   .org-rail {
-    @apply sticky top-4 my-4 ms-4 hidden max-h-[calc(100dvh-2rem)] w-60 shrink-0 self-start overflow-y-auto rounded-[var(--radius-card)] px-3 pt-6 pb-4 lg:block;
-    background: var(--rail-bg);
-    color: var(--rail-fg);
+    /* The organization's desktop rail (#111): a 220px Eggplant column, pale type, the current row one step up. */
+    @apply sticky hidden w-[220px] shrink-0 flex-col self-start overflow-y-auto px-3 pt-6 pb-4 lg:flex;
+    background: var(--shell-bg);
+    color: var(--shell-fg);
+    border-inline-end: 1px solid var(--shell-edge);
   }
-  .sun .org-rail {
-    border: 2px solid var(--rail-line);
+  .org-rail > nav {
+    @apply flex-1;
+  }
+  /* The staff console's own identity: an eggplant band over the page, and no
+     organization's rail beside it (an organization's areas are not the console's). */
+  .staff-band {
+    @apply flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2.5 text-sm sm:px-6;
+    background: var(--shell-bg);
+    color: var(--shell-fg);
+    border-block-end: 1px solid var(--shell-edge);
+  }
+  .staff-band * {
+    --focus: var(--shell-fg);
+  }
+  .staff-band-note {
+    @apply min-w-0 flex-1;
+    color: var(--shell-muted);
+  }
+  .staff-band-link {
+    @apply font-semibold underline underline-offset-2;
+  }
+  body:has(.staff-band) .org-rail:not(.staff-rail) {
+    display: none;
+  }
+  /* The console's rail is its main navigation: a staff login's worker top bar steps aside there. */
+  body:has(.staff-band) .site-header nav[aria-label="Main"] {
+    display: none;
+  }
+  .admin-shell {
+    @apply flex;
+  }
+  .org-rail-foot {
+    @apply mt-4 space-y-0.5 border-t px-3 pt-4 text-sm;
+    border-color: var(--shell-line);
   }
   .org-rail-head {
     @apply mb-4 space-y-1 border-b px-3 pb-4;
-    border-color: var(--rail-line);
+    border-color: var(--shell-line);
   }
   .org-rail .masthead {
-    color: var(--rail-fg);
+    color: var(--shell-fg);
   }
   .org-rail-status {
     @apply inline-flex items-center gap-1 text-xs font-semibold;
-    color: var(--rail-muted);
+    color: var(--shell-muted);
   }
+  /* A row of navigation. On a card or sheet (the phone's More sheet) it takes the
+     page's own tokens; inside the eggplant frame it takes the frame's (below). */
   .rail-link {
     @apply flex min-h-10 items-center gap-2.5 rounded-[var(--radius-control)] px-3 py-2 text-sm font-medium transition;
-    color: var(--rail-muted);
+    color: var(--muted);
   }
   .rail-link:hover {
-    color: var(--rail-fg);
-    background: color-mix(in srgb, var(--rail-fg) 8%, transparent);
+    color: var(--fg);
+    background: color-mix(in srgb, var(--fg) 6%, transparent);
   }
-  /* The current area: a raised-eggplant tile inside the eggplant rail, no side stripe. */
-  .rail-link[aria-current="page"] {
-    @apply font-semibold;
-    background: var(--rail-active-bg);
-    color: var(--rail-active-fg);
+  .rail-link[aria-current] {
+    @apply font-bold;
+    background: var(--tab-active-bg);
+    color: var(--tab-active-fg);
   }
-  /* By night the eggplant tile is only 1.6:1 from the bar and its cream label is the
-     same as the others', so the current tab and every chosen chip get a light edge too. */
-  .dark :is(.tab[aria-current="page"], .chip:has(input:checked), .chip[aria-current="page"], .filter-chip-on, .step-current, .topnav-link[aria-current="page"]) {
+  .org-rail .rail-link {
+    color: var(--shell-muted);
+  }
+  .org-rail .rail-link:hover {
+    color: var(--shell-fg);
+    background: color-mix(in srgb, var(--shell-fg) 8%, transparent);
+  }
+  /* The current area: a row one step up from Eggplant, white type, semibold, no side stripe. */
+  .org-rail .rail-link[aria-current] {
+    background: var(--shell-active);
+    color: var(--on-shell-active);
+  }
+  /* By night an eggplant tile is only 1.6:1 from its surface and its label is the
+     same colour as the others', so every chosen chip gets a light edge too. */
+  .dark :is(.more-sheet .rail-link[aria-current], .chip:has(input:checked), .chip[aria-current="page"], .filter-chip-on, .step-current, .topnav-link[aria-current]) {
     box-shadow: inset 0 0 0 1px var(--muted);
   }
-  .rail-link[aria-current="page"] {
-    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--rail-fg) 45%, transparent);
+  /* Forest fills and current tiles keep their keyboard ring outside, in the gap,
+     so it is measured against the surface, never against the fill. */
+  :is(.btn-primary, .tab[aria-current], .topnav-link[aria-current], .rail-link[aria-current]):focus-visible {
+    outline-offset: 3px;
   }
   /* More sheet: a native modal dialog pinned to the bottom of the screen. */
   .more-sheet {
@@ -1189,8 +1912,19 @@ body {
     max-height: 100dvh;
     color: inherit;
   }
+  /* The More sheet's rows (#111, screen 12): icon, label, a chevron; a divider between rows. */
+  .more-list {
+    @apply divide-y divide-border;
+  }
+  .more-row {
+    @apply min-h-12 rounded-none px-1 text-base;
+    color: var(--fg);
+  }
+  .more-extra {
+    @apply mt-2 border-t border-border pt-3;
+  }
   .more-sheet-panel {
-    @apply relative rounded-t-3xl border border-b-0 p-4;
+    @apply relative rounded-t-[var(--radius-lg)] border border-b-0 p-4;
     padding-bottom: calc(1rem + env(safe-area-inset-bottom));
     background: var(--surface);
     border-color: var(--border);
@@ -1269,6 +2003,134 @@ body {
   .job-row {
     @apply flex min-h-14 items-center justify-between gap-3 px-4 py-3 text-fg transition hover:bg-surface-2;
   }
+  /* The green board's job row (components/JobPhotoRow.tsx): the category picture on the left,
+     the facts beside it, on a white card. Four fit above the dock at 390. */
+  .job-photo-row {
+    @apply flex gap-3 rounded-[var(--radius-card)] border border-border p-3 text-fg transition;
+    background: var(--surface);
+    box-shadow: var(--card-edge), var(--shadow-depth);
+  }
+  .job-photo-row:hover {
+    border-color: var(--border-strong);
+  }
+  /* The row's photograph: 76×92, sm corners, cropped to cover; the head's is 200px tall at phone width. */
+  .job-photo-row-art {
+    @apply relative block h-[92px] w-[76px] shrink-0 overflow-hidden rounded-[var(--radius-sm)];
+    background: var(--surface-2);
+  }
+  .job-photo {
+    object-fit: cover;
+  }
+  /* Jobs (#111, screen 2): the search row, a 44px field with a filter button beside it. */
+  .jobs-search {
+    @apply flex items-stretch gap-2;
+  }
+  .jobs-search-field {
+    @apply flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-[var(--radius-sm)] border px-3;
+    background: var(--field);
+    border-color: var(--border);
+  }
+  .jobs-search-field:focus-within {
+    border-color: var(--focus);
+  }
+  .jobs-filter-btn {
+    @apply inline-flex size-11 shrink-0 items-center justify-center rounded-[var(--radius-sm)] border text-fg transition;
+    background: var(--surface);
+    border-color: var(--border);
+  }
+  .page-jobs {
+    @apply pt-4 sm:pt-6;
+  }
+  /* A worker's phone has no site header (#111): the bar shows from the desktop width up, and pages start under the status bar. */
+  .site-header-worker {
+    @apply hidden lg:block;
+  }
+  @media (width < 64rem) {
+    body:has(.site-header-worker) :is(.page, .tpl) {
+      padding-top: calc(1.5rem + env(safe-area-inset-top));
+    }
+  }
+  /* Job details (#111, screen 3): the controls over the photograph, the white sheet under it. */
+  .job-head-actions {
+    @apply absolute inset-x-4 top-4 flex items-center justify-between;
+  }
+  /* A failed save or share, said under the controls on a solid surface (never text straight on the photograph), one column so two never overlap. */
+  .job-head-notes {
+    @apply absolute end-0 top-full z-20 mt-2 flex w-72 max-w-full flex-col items-stretch gap-2;
+  }
+  .job-head-note {
+    @apply block rounded-[var(--radius-sm)] border border-border p-3 text-sm text-fg shadow-[var(--shadow-depth)];
+    background: var(--surface);
+  }
+  .job-head-dismiss {
+    @apply mt-1 inline-flex min-h-11 items-center text-sm font-semibold text-fg underline underline-offset-2;
+  }
+  .job-head-btn {
+    @apply inline-flex size-11 items-center justify-center rounded-full border-0 transition;
+    background: rgb(255 255 255 / 0.92);
+    color: var(--base-text);
+    box-shadow: 0 1px 3px rgb(15 23 42 / 0.2);
+  }
+  /* Over a photograph the ring needs its own white halo, whatever is behind it. */
+  .job-head-btn:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px var(--focus);
+  }
+  .job-head-sheet {
+    @apply -mt-2;
+  }
+  .org-mark {
+    @apply inline-flex size-6 shrink-0 items-center justify-center rounded-full;
+    background: var(--surface-2);
+    color: var(--muted);
+  }
+  .fact-list-compact {
+    @apply space-y-2.5;
+  }
+  .fact-compact {
+    @apply flex items-start gap-2.5 text-base leading-6;
+  }
+  .fact-compact > svg {
+    @apply mt-0.5;
+  }
+  .fact-chip {
+    @apply inline-flex min-h-9 items-center gap-1.5 rounded-[var(--radius-sm)] px-3 text-sm font-medium text-fg;
+    background: var(--surface-2);
+  }
+  /* The one Forest action stays above the dock while the page scrolls; from 1024 it sits in the aside. */
+  .job-cta-bar {
+    @apply sticky z-10 -mx-4 px-4 py-2 sm:-mx-6 sm:px-6 lg:static lg:m-0 lg:p-0;
+    bottom: var(--dock-clearance);
+    background: var(--bg);
+  }
+  .btn-lg {
+    @apply min-h-12 text-base;
+  }
+  .job-art {
+    @apply block h-full w-full;
+  }
+  /* A job's head (green board): the title block and the gross pay share one line while there is room;
+     the pay wraps under the title only on the narrowest phones at large text. */
+  .job-head {
+    @apply items-start;
+  }
+  .job-head > div:nth-child(2) {
+    flex: 1 1 12rem;
+  }
+  /* The job's apply card: on a phone it stays above the dock while the facts scroll under it (green board). */
+  .job-apply-card {
+    @apply sticky z-10 lg:static;
+    bottom: var(--dock-clearance);
+  }
+  /* A job page's picture: full width under the site header, the sheet below it. */
+  /* Not clipped: a save or share note hangs below its control (#113 review, P2); the photograph takes the corners itself. */
+  .job-photo-head {
+    @apply relative -mx-4 -mt-4 mb-4 h-[200px] sm:-mx-6 sm:-mt-6 sm:h-[260px] lg:mx-0 lg:mt-0 lg:rounded-[var(--radius-card)];
+    background: var(--surface-2);
+  }
+  .job-photo-head .job-photo {
+    border-radius: inherit;
+  }
   /* The hover affordance the card had before the swipe wrapper took its frame. */
   .card-link.card:hover,
   .swipe-card:has(.card-link:hover) {
@@ -1290,10 +2152,53 @@ body {
   .swipe-actions {
     @apply mt-3 flex flex-wrap gap-2;
   }
-  .topnav-link {
-    @apply rounded-lg px-3 py-2 text-sm font-medium text-muted transition hover:bg-surface-2 hover:text-fg;
+  /* The green board's row: the wrapper is the white card, the row inside it loses its own frame,
+     and Save / Hide are a column of icon buttons at the right edge. */
+  .swipe-card-compact {
+    @apply flex items-start p-0;
   }
-  .topnav-link[aria-current="page"] {
+  /* A job row in the list (#113 review): a plain border at the smaller radius, no repeated shadow. */
+  .swipe-card.swipe-card-compact {
+    @apply rounded-[var(--radius-sm)];
+    background: var(--surface);
+    box-shadow: none;
+  }
+  /* Two-up job list: a row's cards share its height so the gaps between rows stay even. */
+  .job-grid > li > .swipe {
+    @apply flex h-full flex-col;
+  }
+  .job-grid > li > .swipe > .swipe-card {
+    @apply flex-1;
+  }
+  /* Compact rows: the Save/Hide underlay matches the row's smaller radius; the row link fills a
+     stretched two-up card; a failure note wraps below the row instead of squeezing beside it. */
+  .swipe:has(> .swipe-card-compact) > .swipe-under {
+    border-radius: var(--radius-sm);
+  }
+  .swipe-card-compact {
+    @apply flex-wrap;
+  }
+  .swipe-card-compact > .job-photo-row {
+    align-self: stretch;
+  }
+  .swipe-card-compact > [role="alert"] {
+    flex-basis: 100%;
+  }
+  .swipe-card-compact .job-photo-row {
+    @apply min-w-0 flex-1 rounded-none border-0 shadow-none;
+    background: transparent;
+  }
+  .swipe-card-compact .swipe-actions {
+    @apply mt-1 mr-1 flex-col gap-0;
+  }
+  .swipe-icon {
+    @apply size-11 min-h-11 p-0;
+  }
+  /* relative: the Messages unread count sits on its own link, not on the window. Icon-only from 1024 to 1279: a 44px target. */
+  .topnav-link {
+    @apply relative rounded-lg px-3 py-2 text-sm font-medium whitespace-nowrap text-muted transition hover:bg-surface-2 hover:text-fg lg:max-xl:min-h-11 lg:max-xl:min-w-11 lg:max-xl:justify-center lg:max-xl:px-0;
+  }
+  .topnav-link[aria-current] {
     @apply font-semibold;
     background: var(--tab-active-bg);
     color: var(--tab-active-fg);
@@ -1330,11 +2235,17 @@ body {
   .bubble-theirs {
     @apply rounded-bl-md bg-surface-2 text-fg;
   }
-  /* Your own messages: the eggplant feature colour with paper text. */
+  /* Your own messages: their own token (--bubble-mine), deep eggplant with
+     paper text by day and the raised eggplant tile by night, never the hero's
+     cream (that is for the one primary object). The keyboard ring takes the
+     bubble's ink. */
   .bubble-mine {
     @apply rounded-br-md;
-    background: var(--hero);
-    color: var(--hero-fg);
+    background: var(--bubble-mine);
+    color: var(--on-bubble-mine);
+  }
+  .bubble-mine * {
+    --focus: currentColor;
   }
   .bubble-mine .link {
     color: inherit;
@@ -1426,19 +2337,26 @@ body {
   .hero-card .link {
     color: inherit;
   }
-  /* Quick filters on Find work: outlined, solid when on. One "on" for all of
-     them: on the feed, a coloured chip names a campaign's declared party in
-     words; the lavender date chip carries a calendar instead. */
-  /* relative: it holds its own screen-reader text (absolutely placed), so the
-     scrolling row clips that too and the page never scrolls sideways. */
+  /* Quick filters on Find work (#113 review): a quiet muted pill, eggplant when on. The pill is 36px
+     to keep the list the focus; an invisible band above and below keeps the 44px target.
+     relative: it holds its own screen-reader text (absolutely placed), so the scrolling row clips
+     that too and the page never scrolls sideways. */
   .filter-chip {
-    @apply relative inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-full border border-border bg-surface px-3.5 text-sm font-semibold text-fg transition;
+    @apply relative my-1 inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-full border border-transparent px-3.5 text-sm font-medium text-fg transition;
+    background: var(--surface-2);
   }
-  .filter-chip:hover {
-    border-color: var(--border-strong);
+  .filter-chip::before {
+    content: "";
+    position: absolute;
+    inset: -4px 0;
+  }
+  /* Hover shifts the quiet fill rather than drawing an outline from nothing; the "on" chip keeps its own. */
+  .filter-chip:not(.filter-chip-on):hover {
+    background: color-mix(in srgb, var(--fg) 6%, var(--surface-2));
   }
   /* Solid: settled-status badges (an eggplant chip; see --solid). */
-  .badge-solid {
+  .badge-solid,
+  .tag-solid {
     background: var(--solid);
     color: var(--on-solid);
     border-color: transparent;
@@ -1538,6 +2456,13 @@ body {
   body:has(.composer-input:focus) .composer {
     bottom: 0;
   }
+  /* A field that takes typing on a touch phone opens the keyboard: the dock steps aside
+     (not for a select: its picker closes but focus stays, and the dock would stay gone)
+     so the field being typed in is never behind it (on a 320px phone the
+     keyboard leaves about 230px, too little for the header, a field and the dock). */
+  body:has(:is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="button"], [type="submit"], [type="reset"], [type="image"], [type="color"], [type="file"], [readonly]), textarea:not([readonly]), [contenteditable]:not([contenteditable="false"])):focus) .tabbar {
+    display: none;
+  }
 }
 
 /* Scrolling down tucks the tab bar below the screen; scrolling up brings it
@@ -1558,12 +2483,66 @@ summary.list-none::-webkit-details-marker {
 }
 
 /* ---- The frame ------------------------------------------------- */
+/* The skip link: off screen until a keyboard reaches it, then a plain tile
+   over the header's top-left corner. */
+.skip-link {
+  position: absolute;
+  inset-inline-start: 1rem;
+  top: 0.5rem;
+  z-index: 60;
+  padding: 0.5rem 0.875rem;
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--fg);
+  font-weight: 700;
+  translate: 0 -200%;
+}
+.skip-link:focus-visible {
+  translate: 0 0;
+}
+/* The skip link's landing spot is a wrapper, not a control: no ring on it. */
+.skip-target:focus {
+  outline: none;
+}
 /* The header is paper. On phones it stays at the top while the page
    scrolls under it (not in chat threads, which pin their own top bar). */
 .site-header {
   /* Paper, no line under it: content scrolls under a plain band of the page colour. */
   background: var(--bg);
   border-color: transparent;
+}
+/* The header's height is pinned in px (--site-header-h less its 1px border), so a
+   larger text size never changes it: the full-height rail and the scroll
+   padding below rely on it. Its controls fit inside at every text size. */
+.site-header-bar {
+  height: calc(var(--site-header-h) - 1px);
+}
+/* Organizations on desktop: the header stays put too, so the full-height rail
+   can sit exactly under it (--site-header-h). */
+@media (width >= 64rem) {
+  body:has(.org-rail) .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 45;
+  }
+  html:has(.org-rail) {
+    scroll-padding-top: calc(var(--site-header-h) + 1rem);
+  }
+  .org-rail {
+    top: var(--site-header-h);
+    height: calc(100dvh - var(--site-header-h));
+  }
+  /* A chat thread pins its own bar: under the header here, not over it. */
+  body:has(.org-rail) .thread-top {
+    top: var(--site-header-h);
+  }
+}
+/* Wider than the workspace the shell centres, so the rail's left side meets the
+   page too: by night it needs its edge there as well (§2.0a). */
+@media (width >= 90rem) {
+  .org-rail {
+    border-inline-start: 1px solid var(--shell-edge);
+  }
 }
 @media (max-width: 63.99rem) {
   body:not(:has(.thread-top)) .site-header {
@@ -1575,6 +2554,16 @@ summary.list-none::-webkit-details-marker {
   html:not(:has(.thread-top)) {
     scroll-padding-top: 5rem;
   }
+  /* ...nor under the floating dock: a field the keyboard or Tab moves to is
+     scrolled clear of it (it measured 97% hidden on the shift page's packet
+     form, and fully hidden on Availability at 320px). */
+  html:has(.tabbar):not(:has(.thread-top)) {
+    scroll-padding-bottom: var(--dock-clearance);
+  }
+  /* Short centred pages (welcome, invites) end above the dock too. */
+  body:has(.tabbar) .page-narrow {
+    padding-bottom: calc(var(--dock-clearance) + 1rem);
+  }
 }
 .wordmark-cut {
   color: var(--kicker);
@@ -1585,8 +2574,11 @@ summary.list-none::-webkit-details-marker {
 .site-header .glass-orb-phone {
   display: grid;
   place-items: center;
-  width: 2.5rem;
-  height: 2.5rem;
+  /* Pixel bounds: icons don't grow with the text-size setting, so a phone at
+     200% text keeps the header inside the screen (it measured 458px wide). */
+  width: 40px;
+  height: 40px;
+  min-height: 40px; /* .btn-sm's rem minimum would otherwise win at 200% text (72px tall) */
   padding: 0;
   border-radius: 9999px;
   border: 1px solid var(--border);
@@ -1618,15 +2610,16 @@ summary.list-none::-webkit-details-marker {
 }
 @media (forced-colors: active) {
   .tabbar, .icon-btn, .site-header, .composer, .thread-top, .more-sheet-panel, .data-table thead th, .turf-map.leaflet-container .leaflet-bar, .turf-map.leaflet-container .leaflet-control-attribution { border-color: CanvasText; }
-  .tab[aria-current="page"] { border-color: Highlight; }
+  .tab[aria-current] { border-color: Highlight; }
   .option-card input[type="radio"] { appearance: auto; }
 }
 
 /* ---- Print (receipts and statements, M9) --------------------------------- */
 @media print {
+  .tpl-head:has(> .no-print) { display: none; }
   .site-header, .tabbar, .no-print, nextjs-portal { display: none !important; }
   html, body { background: white; color: black; }
-  .page { padding: 0; max-width: none; }
+  .page, .tpl { padding: 0; max-width: none; }
   .card, .list-card, .empty-state, .stat { background: white; border-color: #999; box-shadow: none; break-inside: avoid; }
   .empty-art { display: none; } /* theme colours don't survive white paper; the words carry the meaning */
   a { color: inherit; text-decoration: none; }
@@ -1845,7 +2838,19 @@ summary.list-none::-webkit-details-marker {
   .sun body {
     font-weight: 500;
   }
-  .sun :is(.card, .card-flat, .card-dashed, .stat, .list-card, .empty-state, .hero-card, .field, .option-card, .btn-secondary, .tabbar, .kv, .alert, .alert-warning, .alert-info, .quick-reply, .icon-btn, .summary-bar, .data-table-wrap, .composer-input, .sheet-panel, .swipe-card) {
+  /* Field mode is used outdoors and one-handed: every control is at least 48px
+     tall (compact ones 44px), so a gloved or hurried thumb still lands. */
+  .sun :where(.btn, .btn-primary, .btn-secondary, .btn-ghost, .filter-chip, .row-link, .segmented > a, .field:not(textarea)) {
+    min-height: 3rem;
+  }
+  .sun .btn-sm {
+    min-height: 2.75rem;
+  }
+  /* The header's round buttons keep their 40px pin (the theme toggle carries .btn-sm). */
+  .sun .site-header :is(.btn-ghost, .glass-orb-phone) {
+    min-height: 40px;
+  }
+  .sun :is(.card, .card-flat, .card-dashed, .stat, .list-card, .empty-state, .hero-card, .field, .option-card, .btn-secondary, .tabbar, .kv, .alert, .alert-warning, .alert-info, .quick-reply, .icon-btn, .summary-item, .stat-tile, .work-card, .data-table-wrap, .composer-input, .sheet-panel, .swipe-card) {
     border-width: 2px;
   }
   .sun :is(.alert, .alert-warning, .alert-info) {

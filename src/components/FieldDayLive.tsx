@@ -312,7 +312,7 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
     <section className="card space-y-4" aria-label="Field day controls">
       {status && (
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <ConnectionPill state={status.state} text={status.text} />
+          <ConnectionPill state={status.state} text={status.text} waiting={waiting.length} />
           {waiting.length > 0 && online && !syncing && (
             <button type="button" className="btn-ghost btn-sm" onClick={() => void sync()}>
               <RefreshCw aria-hidden className="btn-icon" />

@@ -72,7 +72,10 @@ export function shortHash(s: string): string {
 
 export const groupKey = (r: { jobId: string; staging: string | null }) => `${r.jobId}\u0000${r.staging ?? ""}`;
 
-const onGround = (r: LiveRow) => r.state.checkedInAt !== null && r.state.checkedOutAt === null;
+/** A zone's id: a hash of its polygon, the same wherever a turf is keyed (the map's zones, the Field map's cards). */
+export const zoneId = (turf: TurfPolygon) => shortHash(JSON.stringify(turf.coordinates));
+
+export const onGround = (r: LiveRow) => r.state.checkedInAt !== null && r.state.checkedOutAt === null;
 
 /** Everything the live views show, from the rows the field page already loads. */
 export function summarizeField(rows: LiveRow[], now: Date): FieldSummary {
@@ -95,7 +98,7 @@ export function summarizeField(rows: LiveRow[], now: Date): FieldSummary {
   const zones = new Map<string, ZoneSummary>();
   for (const r of live) {
     if (!r.turf) continue;
-    const id = shortHash(JSON.stringify(r.turf.coordinates));
+    const id = zoneId(r.turf);
     let z = zones.get(id);
     if (!z) zones.set(id, (z = { id, turf: r.turf, total: 0, onGround: 0 }));
     z.total++;

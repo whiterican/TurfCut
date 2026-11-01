@@ -5,6 +5,7 @@ import { loadDisputeThread } from "@/lib/dispute-thread-data";
 import { DisputeThread } from "@/components/DisputeThread";
 import { disputeMessage } from "../../actions";
 import { Masthead } from "@/components/Masthead";
+import { RecordPage } from "@/components/layout/Page";
 
 export const metadata = { title: "Pay dispute · Turfcut" };
 
@@ -15,9 +16,8 @@ export default async function WorkerDisputePage({ params }: { params: Promise<{ 
   const t = await loadDisputeThread({ profileId: userId, role: "WORKER", orgId: null, workerId }, disputeId);
   if (!t) notFound();
   return (
-    <main className="page max-w-2xl">
-      <Masthead eyebrow={<><Link href="/earnings" className="link">Earnings</Link></>} title="Your dispute" meta={<>{t.job.orgName} has three business days to reply and ten to resolve it. Pay that hasn&apos;t gone out yet waits for the outcome; a missed deadline is shown here and to them.</>} />
+    <RecordPage head={<Masthead eyebrow={<><Link href="/earnings" className="link">Earnings</Link></>} title="Your dispute" meta={<>{t.job.orgName} has three business days to reply and ten to resolve it. Pay that hasn&apos;t gone out yet waits for the outcome; a missed deadline is shown here and to them.</>} />}>
       <DisputeThread t={t} send={disputeMessage} />
-    </main>
+    </RecordPage>
   );
 }

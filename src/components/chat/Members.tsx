@@ -1,5 +1,6 @@
 "use client";
 
+import { StatusChip } from "@/components/StatusBadge";
 import { useState, useTransition } from "react";
 import { useSubmit } from "@/components/chat/useSubmit";
 import { addMembers, block, removeMember, unblock } from "@/app/messages/actions";
@@ -94,7 +95,7 @@ export function Members({
           {m.isMe && " (you)"}
         </span>
       </span>
-      <span className={m.role === "MANAGER" && !m.removed ? "badge-sky" : "badge-neutral"}>{m.removed ? "Removed" : m.role === "MANAGER" ? "Manager" : "Worker"}</span>
+      {m.removed ? <StatusChip state="closed" label="Removed" /> : <span className={m.role === "MANAGER" ? "tag-accent" : "tag"}>{m.role === "MANAGER" ? "Manager" : "Worker"}</span>}
       {!m.isMe && !m.removed && canBlock && m.role === "MANAGER" && <BlockButton conversationId={conversationId} member={m} />}
       {!m.isMe && !m.removed && canManage && <RemoveButton conversationId={conversationId} member={m} />}
     </li>

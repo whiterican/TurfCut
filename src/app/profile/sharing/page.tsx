@@ -5,6 +5,7 @@ import { RELATIONSHIP_PHRASE } from "@/lib/sharing";
 import { SharingForm } from "@/components/SharingForm";
 import { Masthead } from "@/components/Masthead";
 import { ChevronLeft } from "lucide-react";
+import { ReadingPage } from "@/components/layout/Page";
 
 const dateText = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
 
@@ -13,7 +14,7 @@ export default async function SharingPage() {
   const sharing = await loadSharing(workerId);
 
   return (
-    <main className="page max-w-2xl space-y-8">
+    <ReadingPage gap={8}>
       <div className="space-y-3">
         <Masthead title="Who sees what">
           <Link transitionTypes={["nav-back"]} href="/profile" className="btn-ghost"><ChevronLeft aria-hidden className="size-4 shrink-0" />Profile</Link>
@@ -30,6 +31,6 @@ export default async function SharingPage() {
         <p className="text-hint">Your political-fit answers have their own settings, under Political fit on your profile.</p>
       </div>
       <SharingForm choices={sharing.choices} />
-    </main>
+    </ReadingPage>
   );
 }

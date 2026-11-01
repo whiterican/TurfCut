@@ -1,3 +1,4 @@
+import { StatusBadge } from "@/components/StatusBadge";
 import { ActionButton } from "@/components/ActionButton";
 import { LocalTime } from "@/components/LocalTime";
 import { assignSlotAction, closeSlotAction, slotSeatsAction } from "@/app/shifts/actions";
@@ -27,13 +28,13 @@ export function OpenShifts({ slots, hired, now }: { slots: Slot[]; hired: Array<
               <div className="min-w-0 space-y-1">
                 <p className="eyebrow"><LocalTime iso={s.startsAt.toISOString()} mode="date" /></p>
                 <p className="font-bold text-fg">
-                  <LocalTime iso={s.startsAt.toISOString()} mode="time" /> – <LocalTime iso={s.endsAt.toISOString()} mode="time" />
+                  <LocalTime iso={s.startsAt.toISOString()} mode="time" /> – <LocalTime iso={s.endsAt.toISOString()} mode="time" from={s.startsAt.toISOString()} />
                   {s.stagingLocation ? ` · ${s.stagingLocation}` : ""}
                 </p>
                 <p className="text-muted-sm">{s.facts.taken} of {s.headcount} {s.headcount === 1 ? "seat" : "seats"} taken</p>
                 {s.notes && <p className="text-sm text-fg">{s.notes}</p>}
               </div>
-              <span className={b.badge}>{b.label}</span>
+              <StatusBadge status={b} />
             </div>
             {s.shifts.length > 0 && (
               <p className="text-sm text-fg">

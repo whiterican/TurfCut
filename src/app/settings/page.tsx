@@ -8,6 +8,7 @@ import { getSessionProfile, type SessionProfile } from "@/lib/auth";
 import { closureFacts } from "@/lib/account-data";
 import { closureProblems } from "@/lib/account-closure";
 import { Masthead } from "@/components/Masthead";
+import { ReadingPage } from "@/components/layout/Page";
 
 export const metadata = { title: "Display settings · Turfcut" };
 
@@ -35,8 +36,7 @@ export default async function SettingsPage() {
     }
   }
   return (
-    <main className="page max-w-2xl">
-      <Masthead title="Text size, theme and feel" meta="Make Turfcut easier to read and use on your phone." />
+    <ReadingPage gap={6} head={<Masthead title="Display settings" meta="Text size, theme and feel. Saved on this device." />}>
       <DisplaySettings />
       {session && (
         <section className="section">
@@ -60,6 +60,6 @@ export default async function SettingsPage() {
           </div>
         </section>
       )}
-    </main>
+    </ReadingPage>
   );
 }

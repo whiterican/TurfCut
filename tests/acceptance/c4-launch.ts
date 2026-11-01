@@ -1,9 +1,9 @@
 /* C4 acceptance checks: job launch and tools on real Postgres — launch mode, staging points and check-in radius; editing live jobs and the 24-hour release (tests/acceptance/run.sh). */
 import { db } from "@/lib/db";
-import { createJob, loadJobChanges, publishJob, updateDraftJob, updatePublishedJob } from "@/lib/jobs-data";
+import { createJob, loadJobChanges, publishJob, saveDraftProgress, updateDraftJob, updatePublishedJob } from "@/lib/jobs-data";
 import { openRelease, releaseFromJob } from "@/lib/job-changes-data";
 import { cancellationOf } from "@/lib/scorecard";
-import { validateJob } from "@/lib/jobs";
+import { validateDraft, validateJob } from "@/lib/jobs";
 import { radiusFor, readLaunch } from "@/lib/job-launch";
 import { facts, heldOnJob, loadShift, scheduleShift, supervisorShiftAction, syncWorkerActions, workerShiftAction } from "@/lib/field-day-data";
 import { shiftState } from "@/lib/field-day";
@@ -165,6 +165,26 @@ const check = (l: string, c: unknown, d?: unknown) => { if (c) console.log(`PASS
   const draftSaved = await updateDraftJob(legacyDraft.id, ORG, OWNER, input({ launchMode: "STAGED", title: "Legacy draft, renamed" }));
   const legacyDraftRow = await p.job.findUniqueOrThrow({ where: { id: legacyDraft.id }, select: { launch: true, title: true } });
   check("a pre-C4 draft keeps its unset launch through a builder save and still publishes", draftSaved && legacyDraftRow.launch === null && legacyDraftRow.title === "Legacy draft, renamed" && (await publishJob(legacyDraft.id, ORG, OWNER)).ok, legacyDraftRow);
+
+  // --- P0 3: the builder saves progress as a draft from the first step ---
+  // The builder's real first-step payload: every field is submitted (hidden steps included), most of them blank.
+  const step1 = validateDraft({
+    title: "Autosaved drive", type: "PETITION", jurisdictionId: seeded.jurisdictionId, description: "", startsAt: "", endsAt: "", city: "", state: "CO", launchMode: "STAGED",
+    point_0_name: "", point_0_address: "", point_0_lat: "", point_0_lng: "", point_0_radius: "", compensationMethod: "HOURLY", payRate: "-1", headcount: "", hiringModes: ["application"],
+    cancellationNoticeHours: "24", training: "", script: "", canvassApp: "", toolList: "", toolNotes: "", contactEmergency: "", contactDisputes: "", contactLostMaterials: "",
+    campaignType: "ballot_measure", affiliation: "nonpartisan", campaignName: "", measureIds: "", message: "",
+  });
+  const started = step1.ok ? await saveDraftProgress(ORG, OWNER, null, step1.draft) : null;
+  const startedRow = started ? await p.job.findUniqueOrThrow({ where: { id: started.id } }) : null;
+  check("the first step alone creates a draft: no rate, no dates, nothing invented; the bad rate was left out", started?.created === true && startedRow?.status === "DRAFT" && startedRow.payRateCents === null && startedRow.startsAt === null && startedRow.campaignDisclosure === null, startedRow);
+  // A later step picks self-launch (the first step's default, staged with no point yet, would block publishing).
+  const step3 = validateDraft({ ...base, title: "Autosaved drive", payRate: "24", launchMode: "SELF" });
+  const grown = started && step3.ok ? await saveDraftProgress(ORG, OWNER, started.id, step3.draft) : null;
+  const resaved = started && step3.ok ? await saveDraftProgress(ORG, OWNER, started.id, step3.draft) : null;
+  const autosaves = started ? await p.auditEvent.count({ where: { entityId: started.id, action: "job.draft_autosaved" } }) : 0;
+  check("later steps update the same draft, recording what changed once; an unchanged save writes nothing", grown?.created === false && grown.changed.includes("pay") && resaved?.changed.length === 0 && autosaves === 1 && (started ? await publishJob(started.id, ORG, OWNER) : { ok: false }).ok, { grown, resaved, autosaves });
+  const liveTouched = started && step3.ok ? await saveDraftProgress(ORG, OWNER, started.id, { ...step3.draft, title: "Changed behind the record" }) : undefined;
+  check("once published, autosave never touches the job", liveTouched === null && (await p.job.findUniqueOrThrow({ where: { id: started!.id }, select: { title: true } })).title === "Autosaved drive", liveTouched);
 
   // --- C4.4: the canvassing app's totals ---
   const canvass = await createJob(ORG, OWNER, input({ type: "CANVASS", launchMode: "SELF", canvassApp: "MINIVAN", toolList: "Turf 12", toolNotes: "Sam hands out the tablets at 8:45" }));

@@ -7,7 +7,7 @@ import { BadgeCheck } from "lucide-react";
  */
 export function VerifiedMark({ compact = false }: { compact?: boolean }) {
   return (
-    <span className="badge-sky inline-flex items-center gap-1" title="Turfcut confirmed this is the organization's official campaign account.">
+    <span className="tag-accent inline-flex items-center gap-1" title="Turfcut confirmed this is the organization's official campaign account.">
       <BadgeCheck aria-hidden className="h-3.5 w-3.5" />
       {compact ? <span className="sr-only">Verified by Turfcut</span> : null}
       <span aria-hidden={compact ? true : undefined}>Verified</span>

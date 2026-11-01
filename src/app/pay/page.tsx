@@ -313,7 +313,7 @@ export default async function PayPage({ searchParams }: { searchParams: Promise<
       {tab === "paid" && pay.paid.length > 0 && (
         <section className="section">
           <h2 className="section-title">Recently paid</h2>
-          {pay.paidAll.length > pay.paid.length && <p className="text-muted-sm">The latest {pay.paid.length} of {pay.paidAll.length} paid lines. The ledger export below has every one.</p>}
+          {pay.paidAll.length > pay.paid.length && <p className="text-muted-sm">Showing the {pay.paid.length} most recently paid lines. Choose a date range below to export more.</p>}
           <ul className="list-card">
             {pay.paid.map((l) => (
               <li key={l.line.id} className="flex items-start justify-between gap-3 px-4 py-3">

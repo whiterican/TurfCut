@@ -14,6 +14,7 @@ import {
   parseMoney,
   payableTotal,
   platformFee,
+  recentlyPaid,
   reReviewProblem,
   resolutionProblem,
   wageFlag,
@@ -365,5 +366,30 @@ describe("hours over the schedule", () => {
     expect(hoursFlag({ method: "HOURLY", activeMs: 8 * H + 4 * 60_000 }, 8 * H)).toBeNull();
     expect(hoursFlag({ method: "HOURLY", activeMs: 13.5 * H }, 8 * H)).toBe("13h 30m verified; the shift was scheduled for 8h.");
     expect(hoursFlag({ method: "SHIFT_RATE", activeMs: 13.5 * H }, 8 * H)).toBeNull();
+  });
+});
+
+describe("recentlyPaid (#115 review)", () => {
+  const day = (n: number) => new Date(Date.UTC(2026, 9, n, 12));
+  const line = (id: string, created: Date, paidAt: Date | null) => ({ line: { id, createdAt: created }, state: { paidAt } });
+
+  it("puts an old line settled today above 50 newer lines settled earlier", () => {
+    // Created in order: the old line first, then 50 newer ones, all paid before the old one was.
+    const newer = Array.from({ length: 50 }, (_, i) => line(`n${String(i).padStart(2, "0")}`, day(10 + (i % 10)), day(20)));
+    const old = line("old", day(1), day(31));
+    const shown = recentlyPaid([old, ...newer], 50);
+    expect(shown).toHaveLength(50);
+    expect(shown[0].line.id).toBe("old");
+    // Sorting by creation (the old behaviour) would have dropped it.
+    expect([old, ...newer].reverse().slice(0, 50).some((l) => l.line.id === "old")).toBe(false);
+  });
+
+  it("breaks ties by the newer line, then the id, and puts a missing payment date last", () => {
+    const a = line("a", day(5), day(20));
+    const b = line("b", day(6), day(20));
+    const c = line("c", day(6), day(20));
+    const undated = line("z", day(30), null);
+    expect(recentlyPaid([undated, a, c, b], 10).map((l) => l.line.id)).toEqual(["b", "c", "a", "z"]);
+    expect(recentlyPaid([b, undated, a, c], 10).map((l) => l.line.id)).toEqual(["b", "c", "a", "z"]);
   });
 });

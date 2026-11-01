@@ -1619,6 +1619,10 @@ body {
     .data-table-stack tbody td.data-table-select {
       @apply float-left me-2 pt-0.5;
     }
+    /* A row with nothing to select keeps its name in line with the rest. */
+    .data-table-stack tbody td.data-table-select:empty {
+      @apply float-none m-0 p-0;
+    }
     .data-table-stack tbody tr {
       @apply flow-root border-b border-border px-3 py-3;
     }

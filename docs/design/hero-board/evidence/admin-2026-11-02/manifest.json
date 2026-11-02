@@ -1,0 +1,367 @@
+[
+  {
+    "screen": "admin",
+    "route": "/admin",
+    "state": "populated",
+    "role": "staffer",
+    "source": {
+      "commit": "2007a639594cca326d461d7d60b3dc7a913ab0fc",
+      "clean": true,
+      "patchSha256": null
+    },
+    "implementationFile": "admin-populated-390-light.png",
+    "viewport": {
+      "width": 390,
+      "height": 844,
+      "deviceScaleFactor": 2
+    },
+    "theme": "light",
+    "timezone": "America/Denver",
+    "clock": "frozen at 2026-10-30T19:00:00Z",
+    "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [
+      {
+        "label": "Home",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Jobs",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Work",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Map",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Messages",
+        "w": 73,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "More",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      }
+    ],
+    "bar": {
+      "w": 366,
+      "h": 60,
+      "left": 12,
+      "bottom": 10
+    },
+    "bg": "#faf9f4",
+    "shell": "#1c0f2e",
+    "title": "Admin \u00b7 Turfcut",
+    "h1": "Admin",
+    "status": "captured"
+  },
+  {
+    "screen": "admin",
+    "route": "/admin",
+    "state": "populated",
+    "role": "staffer",
+    "source": {
+      "commit": "2007a639594cca326d461d7d60b3dc7a913ab0fc",
+      "clean": true,
+      "patchSha256": null
+    },
+    "implementationFile": "admin-populated-390-dark.png",
+    "viewport": {
+      "width": 390,
+      "height": 844,
+      "deviceScaleFactor": 2
+    },
+    "theme": "dark",
+    "timezone": "America/Denver",
+    "clock": "frozen at 2026-10-30T19:00:00Z",
+    "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [
+      {
+        "label": "Home",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Jobs",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Work",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Map",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Messages",
+        "w": 73,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "More",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      }
+    ],
+    "bar": {
+      "w": 366,
+      "h": 60,
+      "left": 12,
+      "bottom": 10
+    },
+    "bg": "#140a22",
+    "shell": "#1c0f2e",
+    "title": "Admin \u00b7 Turfcut",
+    "h1": "Admin",
+    "status": "captured"
+  },
+  {
+    "screen": "admin",
+    "route": "/admin",
+    "state": "populated",
+    "role": "staffer",
+    "source": {
+      "commit": "2007a639594cca326d461d7d60b3dc7a913ab0fc",
+      "clean": true,
+      "patchSha256": null
+    },
+    "implementationFile": "admin-populated-1440-light.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900,
+      "deviceScaleFactor": 2
+    },
+    "theme": "light",
+    "timezone": "America/Denver",
+    "clock": "frozen at 2026-10-30T19:00:00Z",
+    "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [
+      {
+        "label": "Home",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Jobs",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Work",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Map",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Messages",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "More",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      }
+    ],
+    "bar": {
+      "w": 0,
+      "h": 0,
+      "left": 0,
+      "bottom": 900
+    },
+    "bg": "#faf9f4",
+    "shell": "#1c0f2e",
+    "title": "Admin \u00b7 Turfcut",
+    "h1": "Admin",
+    "status": "captured"
+  },
+  {
+    "screen": "admin",
+    "route": "/admin",
+    "state": "populated",
+    "role": "staffer",
+    "source": {
+      "commit": "2007a639594cca326d461d7d60b3dc7a913ab0fc",
+      "clean": true,
+      "patchSha256": null
+    },
+    "implementationFile": "admin-populated-1440-dark.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900,
+      "deviceScaleFactor": 2
+    },
+    "theme": "dark",
+    "timezone": "America/Denver",
+    "clock": "frozen at 2026-10-30T19:00:00Z",
+    "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [
+      {
+        "label": "Home",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Jobs",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Work",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Map",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Messages",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "More",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      }
+    ],
+    "bar": {
+      "w": 0,
+      "h": 0,
+      "left": 0,
+      "bottom": 900
+    },
+    "bg": "#140a22",
+    "shell": "#1c0f2e",
+    "title": "Admin \u00b7 Turfcut",
+    "h1": "Admin",
+    "status": "captured"
+  },
+  {
+    "screen": "admin",
+    "route": "/admin",
+    "state": "empty-queues",
+    "role": "staffer",
+    "source": {
+      "commit": "2007a639594cca326d461d7d60b3dc7a913ab0fc",
+      "clean": true,
+      "patchSha256": null
+    },
+    "implementationFile": "admin-empty-queues-1440-light.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900,
+      "deviceScaleFactor": 2
+    },
+    "theme": "light",
+    "timezone": "America/Denver",
+    "clock": "frozen at 2026-10-30T19:00:00Z",
+    "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [
+      {
+        "label": "Home",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Jobs",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Work",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Map",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Messages",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "More",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      }
+    ],
+    "bar": {
+      "w": 0,
+      "h": 0,
+      "left": 0,
+      "bottom": 900
+    },
+    "bg": "#faf9f4",
+    "shell": "#1c0f2e",
+    "title": "Admin \u00b7 Turfcut",
+    "h1": "Admin",
+    "status": "captured"
+  }
+]

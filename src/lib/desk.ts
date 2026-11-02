@@ -105,7 +105,7 @@ export function applicationsByJob(apps: Array<{ jobId: string; title: string; ap
  * deadline today or blocks pay, then what is waiting on a person, then gaps
  * to fill. Within a kind, rows keep their own order (oldest or soonest first).
  */
-export const URGENCY = { late: 0, noCheckout: 1, overdue: 2, review: 3, dueToday: 4, payApprove: 5, applications: 6, dispute: 7, short: 8, setup: 9 } as const;
+export const URGENCY = { paused: -1, late: 0, noCheckout: 1, overdue: 2, review: 3, dueToday: 4, payApprove: 5, applications: 6, dispute: 7, short: 8, setup: 9 } as const;
 
 /**
  * Shifts still checked in after their end ("No check-out received", redesign
@@ -151,7 +151,7 @@ export interface SetupStep {
  * from the same records the publish gate checks (org settings). Each step goes
  * only to a role that can act on it or read where it is explained, so a new
  * organization's Desk never says "nothing needs you" while nothing can
- * publish. `jobs`: how many jobs the organization has in any status.
+ * publish. A withdrawn approval is not a setup step: urgencyOf ranks it first. `jobs`: how many jobs the organization has in any status.
  */
 export function setupSteps(org: OrgGate, jobs: number, member: Role | AccessSubject): SetupStep[] {
   const steps: SetupStep[] = [];
@@ -164,7 +164,12 @@ export function setupSteps(org: OrgGate, jobs: number, member: Role | AccessSubj
     );
   }
   if (!org.contractorTermsSignedAt && can(member, "orgSettings")) steps.push({ key: "setup-terms", title: "Sign the contractor terms", sub: "Needed before any job can publish", tag: "To do", state: "pending", href: "/org/settings", action: "Open settings" });
-  if (!org.classificationReviewedAt && can(member, "compliance")) steps.push({ key: "setup-review", title: "Record the worker-classification review", sub: "Needed before any job can publish", tag: "To do", state: "pending", href: "/org/settings", action: "Open settings" });
+  if (!org.classificationReviewedAt && can(member, "compliance") && settings) steps.push({ key: "setup-review", title: "Record the worker-classification review", sub: "Needed before any job can publish", tag: "To do", state: "pending", href: "/org/settings", action: "Open settings" });
   if (jobs === 0 && can(member, "jobsEdit")) steps.push({ key: "setup-first-job", title: "Post your first job", sub: "Your draft saves as you go and publishes once every check passes", tag: "To do", state: "pending", href: "/jobs/new", action: "Start a job" });
   return steps;
+}
+
+/** Where a setup step sorts: a withdrawn approval pauses live work, so it comes first; the rest wait behind live work. */
+export function setupRank(step: SetupStep): number {
+  return step.key === "setup-approval" && step.state === "blocked" ? URGENCY.paused : URGENCY.setup;
 }

@@ -20,8 +20,8 @@ export function ThemeToggle({ iconOnlyWide = false }: { iconOnlyWide?: boolean }
     <button type="button" onClick={() => setTheme(document.documentElement.classList.contains("dark") ? "light" : "dark")} className="btn-ghost btn-sm glass-orb-phone gap-1.5" title="Switch light / dark mode">
       <Moon aria-hidden className="btn-icon dark:hidden" />
       <Sun aria-hidden className="btn-icon hidden dark:block" />
-      <span className={`sr-only whitespace-nowrap sm:not-sr-only dark:hidden${wide}`}>Dark mode</span>
-      <span className={`sr-only hidden whitespace-nowrap sm:not-sr-only dark:inline${wide}`}>Light mode</span>
+      <span className={`sr-only whitespace-nowrap! sm:not-sr-only dark:hidden${wide}`}>Dark mode</span>
+      <span className={`sr-only hidden whitespace-nowrap! sm:not-sr-only dark:inline${wide}`}>Light mode</span>
     </button>
   );
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { URGENCY, applicationsByJob, byUrgency, deskParts, noCheckoutVisibility, seatsWhenLabel, setupSteps, shortOfHeadcount, weekAhead } from "./desk";
+import { URGENCY, applicationsByJob, byUrgency, deskParts, noCheckoutVisibility, seatsWhenLabel, setupRank, setupSteps, shortOfHeadcount, weekAhead } from "./desk";
 
 const d = (iso: string) => new Date(iso);
 
@@ -58,7 +58,7 @@ describe("the Desk", () => {
 
 describe("Needs you order and times", () => {
   it("puts what is going wrong now first, gaps to fill last, and keeps each kind's own order", () => {
-    expect(Object.entries(URGENCY).sort((a, b) => a[1] - b[1]).map(([k]) => k)).toEqual(["late", "noCheckout", "overdue", "review", "dueToday", "payApprove", "applications", "dispute", "short", "setup"]);
+    expect(Object.entries(URGENCY).sort((a, b) => a[1] - b[1]).map(([k]) => k)).toEqual(["paused", "late", "noCheckout", "overdue", "review", "dueToday", "payApprove", "applications", "dispute", "short", "setup"]);
     const rows = [
       { key: "short-a", rank: URGENCY.short },
       { key: "apps-a", rank: URGENCY.applications },
@@ -126,7 +126,16 @@ describe("setupSteps: what's left before the first published job", () => {
     expect(s).toEqual([expect.objectContaining({ key: "setup-approval", title: "Turfcut withdrew the approval", state: "blocked" })]);
   });
 
-  it("ranks after every kind of live work", () => {
+  it("setup ranks after every kind of live work; a withdrawn approval before all of it", () => {
     expect(Math.max(...Object.entries(URGENCY).filter(([k]) => k !== "setup").map(([, v]) => v))).toBeLessThan(URGENCY.setup);
+    const [withdrawn] = setupSteps({ ...done, approved: false }, 3, "OWNER");
+    expect(setupRank(withdrawn)).toBeLessThan(URGENCY.late);
+    expect(setupSteps(fresh, 0, "OWNER").map(setupRank)).toEqual([URGENCY.setup, URGENCY.setup, URGENCY.setup, URGENCY.setup]);
+  });
+
+  it("the review step needs the settings page too: a custom role with compliance alone isn't sent where it can't go", () => {
+    const complianceOnly = { role: "CUSTOM" as const, grants: { compliance: "full" as const } };
+    expect(keys(fresh, 0, complianceOnly)).not.toContain("setup-review");
+    expect(keys(fresh, 0, { role: "CUSTOM" as const, grants: { compliance: "full" as const, orgSettings: "read" as const } })).toContain("setup-review");
   });
 });

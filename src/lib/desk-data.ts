@@ -8,7 +8,7 @@ import { loadOrgPay } from "@/lib/pay-data";
 import { disputeCounts, noteOverdueDisputes } from "@/lib/dispute-thread-data";
 import { openJobsEndAfter } from "@/lib/jobs";
 import { money } from "@/lib/pay";
-import { URGENCY, applicationsByJob, byUrgency, deskParts, noCheckoutVisibility, seatsWhenLabel, setupSteps, shortOfHeadcount, weekAhead, type DeskParts, type WeekRow } from "@/lib/desk";
+import { URGENCY, applicationsByJob, byUrgency, deskParts, noCheckoutVisibility, seatsWhenLabel, setupRank, setupSteps, shortOfHeadcount, weekAhead, type DeskParts, type WeekRow } from "@/lib/desk";
 
 /** One row in "Needs you": what, what it's about, since when, and the next step with where to take it. */
 export interface DeskItem {
@@ -127,8 +127,8 @@ export async function loadDesk(actor: { profileId: string; orgId: string; role: 
     if (rest) needs.push({ key: "pay-disputes", title: `${plural(rest, "open dispute")}`, sub: "Workers questioning their pay", tag: "Dispute", state: "disputed", href: "/pay?tab=disputes", action: "Open disputes", rank: URGENCY.dispute, count: rest });
   }
 
-  // Until the organization can publish, what's left is on the Desk too (rank last: live work comes first).
-  if (gate) for (const st of setupSteps(gate, jobTotal, actor)) needs.push({ ...st, rank: URGENCY.setup });
+  // Until the organization can publish, what's left is on the Desk too: after live work, except a withdrawn approval, which pauses it.
+  if (gate) for (const st of setupSteps(gate, jobTotal, actor)) needs.push({ ...st, rank: setupRank(st) });
 
   return {
     parts,

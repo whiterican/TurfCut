@@ -29,6 +29,7 @@ const NEED_LABELS: Record<keyof typeof URGENCY, string> = {
   dispute: "Open disputes",
   short: "Jobs short of workers",
   setup: "Before your first job",
+  paused: "Publishing paused",
 };
 
 /**
@@ -136,7 +137,8 @@ export default async function DeskPage() {
         </p>
       )}
 
-      {!parts.readOnly && (
+      {/* Read-only roles see it only when something is theirs to act on (a compliance member's classification review). */}
+      {(!parts.readOnly || desk.needs.length > 0) && (
         <section className="section" aria-labelledby="needs-you">
           <div className="section-head">
             <h2 id="needs-you" className="section-title">Needs you</h2>

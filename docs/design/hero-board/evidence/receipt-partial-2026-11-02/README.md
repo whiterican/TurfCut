@@ -16,6 +16,7 @@ The fixture is synthetic and exists only in the local preview database. Receipt 
 
 - **Badge:** "Sent · partly reversed". It keeps the paid look, because the money arrived. A later full reversal still reads "Reversed".
 - **Amount sent** stays the headline ($87.50). Below it: **Came back** $25.00 with the time Stripe reported it, and **You kept** $62.50.
+- **Stripe sent:** an extra row appears only in the rare case where Stripe's transfer amount differs from Turfcut's record. "Came back" and "You kept" are then out of Stripe's figure, so the rows still add up. Not shown here: the fixture has no such mismatch.
 - **Note:** the same amount shows on Earnings as a deducted adjustment once the organization records it. It is not a second deduction. Any re-payment arrives on a later receipt.
 - **Lines:** what the whole payment was for, totalled as "Total sent (before the reversal)".
 - **Receipt list:** shows the same badge.
@@ -28,7 +29,7 @@ The fixture is synthetic and exists only in the local preview database. Receipt 
   - Zero, the whole amount, more than the whole amount, and junk values are ignored.
   - Partial is judged against Stripe's amount when it differs from Turfcut's, with Turfcut's amount as the fallback.
 - **Acceptance m9:** two partial reports, then the full reversal, checked on the receipt and in the list.
-- **Acceptance m5:** the receipt reads the same after finance records the reversal and pays it again.
+- **Acceptance m5:** the receipt reads the same after finance records the reversal with a re-payment line (approved, not yet sent), and neither new line is listed on it.
 
 ## Known gap, not changed here
 

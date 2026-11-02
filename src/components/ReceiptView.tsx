@@ -65,6 +65,13 @@ export function ReceiptView({ r }: { r: Receipt }) {
         )}
         {r.partReversal && (
           <>
+            {r.partReversal.sentCents !== r.amountCents && (
+              <>
+                {/* Rare: Stripe's transfer differs from Turfcut's record; what came back and what was kept are out of Stripe's figure. */}
+                <dt>Stripe sent</dt>
+                <dd className="tabular-nums">{money(r.partReversal.sentCents)}</dd>
+              </>
+            )}
             <dt>Came back</dt>
             <dd className="tabular-nums">{money(r.partReversal.reversedCents)} · <LocalTime iso={r.partReversal.at.toISOString()} mode="full" /></dd>
             <dt>You kept</dt>

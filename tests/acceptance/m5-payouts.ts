@@ -475,7 +475,7 @@ async function slice5(ctx: { e2: string }) {
   check("recording twice is refused", !(await pay.recordPartialReversal(fin, trId, false)).ok);
   check("nothing outstanding is listed", !(await pay.partialReversals(fin)).partial.some((r) => r.transferId === trId));
   const receiptAfter = await loadReceipt(W2, trId);
-  check("the worker's receipt reads the same after it's recorded: partly reversed, $5.00 back, the settled deduction not listed on it", receiptAfter?.status === "partly-reversed" && receiptAfter.partReversal?.reversedCents === 500 && receiptAfter.partReversal.sentCents - receiptAfter.partReversal.reversedCents === tr.amountCents - 500 && !receiptAfter.lines.some((l) => l.id === back.id || l.id === again.id), receiptAfter);
+  check("the worker's receipt reads the same after finance records it (with a re-payment line, approved): partly reversed, $5.00 back, neither new line listed on it", receiptAfter?.status === "partly-reversed" && receiptAfter.partReversal?.reversedCents === 500 && receiptAfter.partReversal.sentCents - receiptAfter.partReversal.reversedCents === tr.amountCents - 500 && !receiptAfter.lines.some((l) => l.id === back.id || l.id === again.id), receiptAfter);
   await pay.handleProviderEvent({ id: "evt_p5b", type: "transfer.reversed", transfer: { id: stripeId, group: trId, amountCents: tr.amountCents, reversedCents: 800 } });
   check("a further reversal lists only the new $3.00", (await pay.partialReversals(fin)).partial.find((r) => r.transferId === trId)?.outstandingCents === 300);
 

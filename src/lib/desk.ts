@@ -164,8 +164,8 @@ export function setupSteps(org: OrgGate, jobs: number, member: Role | AccessSubj
     : can(member, "jobs", "read")
       ? { href: "/jobs", action: "Your jobs" }
       : null;
-  const blocked = (key: SetupStep["key"], title: string, sub: string): SetupStep | null =>
-    publishes && why ? { key, title, sub, tag: "Blocked", state: "blocked", ...why } : null;
+  const blocked = (key: SetupStep["key"], title: string, sub: string, tag = "Blocked"): SetupStep | null =>
+    publishes && why ? { key, title, sub, tag, state: "blocked", ...why } : null;
   const push = (st: SetupStep | null) => st && steps.push(st);
   if (!org.approved) {
     // Settings readers see it there; someone who publishes without settings access is still told (a pause most of all).
@@ -175,7 +175,7 @@ export function setupSteps(org: OrgGate, jobs: number, member: Role | AccessSubj
           ? { key: "setup-approval", title: "Turfcut withdrew the approval", sub: "Publishing and hiring are paused until it is restored", tag: "Paused", state: "blocked", href: "/org/settings", action: "See why" }
           : { key: "setup-approval", title: "Waiting for Turfcut approval", sub: "Turfcut reviews every organization by hand during the pilot", tag: "Waiting", state: "pending", href: "/org/settings", action: "See what's left" }
         : org.approvedAt
-          ? blocked("setup-approval", "Turfcut withdrew the approval", "Publishing and hiring are paused until it is restored")
+          ? blocked("setup-approval", "Turfcut withdrew the approval", "Publishing and hiring are paused until it is restored", "Paused")
           : blocked("setup-approval", "Jobs can't publish yet: waiting for Turfcut approval", "Turfcut reviews every organization by hand during the pilot"),
     );
   }

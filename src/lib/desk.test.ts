@@ -127,7 +127,7 @@ describe("setupSteps: what's left before the first published job", () => {
     expect(noSettings[0]).toMatchObject({ title: "Jobs can't publish yet: waiting for Turfcut approval", state: "blocked" });
     // A withdrawn approval still comes first for them: a pause.
     const paused = setupSteps({ ...done, approved: false }, 3, { role: "CUSTOM", grants: { jobsEdit: "full", jobs: "full" } });
-    expect(paused).toEqual([expect.objectContaining({ key: "setup-approval", title: "Turfcut withdrew the approval", href: "/jobs" })]);
+    expect(paused).toEqual([expect.objectContaining({ key: "setup-approval", title: "Turfcut withdrew the approval", tag: "Paused", href: "/jobs" })]);
     expect(setupRank(paused[0])).toBe(URGENCY.paused);
     // …and one that can read neither gets no row it couldn't follow.
     expect(setupSteps(fresh, 3, { role: "CUSTOM", grants: { jobsEdit: "full" } })).toEqual([]);

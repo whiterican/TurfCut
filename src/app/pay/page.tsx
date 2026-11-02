@@ -224,8 +224,8 @@ export default async function PayPage({ searchParams }: { searchParams: Promise<
             <div role="note" className="alert-warning space-y-1 text-sm">
               <p className="font-semibold">Every payment needs two people.</p>
               <p>
-                Whoever approved a shift&apos;s work, or entered or corrected its counts, can&apos;t also approve its pay. Nobody else in
-                your organization can approve pay yet, so these lines wait until someone can.
+                Whoever approved a shift&apos;s work, entered or corrected its counts, or made an adjustment can&apos;t also approve that
+                pay. Nobody else in your organization can approve pay yet, so the lines marked as yours wait until someone can.
               </p>
               {canUse(s, "orgMembers") ? (
                 <p>

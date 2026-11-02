@@ -7,7 +7,11 @@ import { DEFAULT_RADIUS_M, MAX_POINTS, MAX_RADIUS_M, MIN_RADIUS_M, type StagingP
 
 type Draft = { id: string; name: string; address: string; lat: string; lng: string; radius: string };
 
-/** Past this from the job's city centre a pin is worth a second look (a large city is about 15 miles across). */
+/**
+ * Past this from the city's Census centre a pin is worth a second look. Some
+ * consolidated cities (Jacksonville, Houston, Anchorage) run wider than this,
+ * so a pin inside them can be warned about too: a warning, never a block.
+ */
 const FAR_MILES = 30;
 
 const blank = (): Draft => ({ id: crypto.randomUUID(), name: "", address: "", lat: "", lng: "", radius: String(DEFAULT_RADIUS_M) });
@@ -45,6 +49,7 @@ export function StagingPointsEditor({
     const miles = milesBetween({ lat: Number(p.lat), lon: Number(p.lng) }, { lat: area.lat, lon: area.lng });
     return miles > FAR_MILES ? Math.round(miles) : null;
   };
+  const far = points.map(farFromCity);
   const pins: MapPin[] = points.flatMap((p, i) => (p.lat && p.lng ? [{ id: `p${i}`, lat: Number(p.lat), lng: Number(p.lng), color: i === placing ? "#2b1b3d" : "#6b7280", label: p.name || `Point ${i + 1}` }] : []));
 
   return (
@@ -99,9 +104,9 @@ export function StagingPointsEditor({
               {p.lat && p.lng ? `On the map at ${Number(p.lat).toFixed(4)}, ${Number(p.lng).toFixed(4)}.` : i === placing ? "Tap the map to place it." : "Not placed yet."}
             </p>
             {err(`point_${i}_lat`)}
-            {farFromCity(p) !== null && (
+            {far[i] !== null && (
               <p className="alert-warning text-sm">
-                This pin is about {farFromCity(p)} miles from {area!.label}. Check it&apos;s where workers meet: their phones compare their position with it at check-in.
+                This pin is about {far[i]} miles from {area!.label}. Check it&apos;s where workers meet: their phones compare their position with it at check-in.
               </p>
             )}
           </li>

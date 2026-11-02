@@ -512,7 +512,9 @@ export function reviewerOf(l: OrgLine): string | null {
  * How many other current members of the organization can approve pay (the
  * pay area at full access: owners, finance, or a custom role granted it). The
  * two-person rule (selfApprovalProblem) needs one; when there is none, the
- * Pay page says so instead of leaving every line stuck.
+ * Pay page says so instead of leaving every line stuck. (Not access-data's
+ * areaMembers: a custom role must also belong to this organization, which
+ * liveGrants checks.)
  */
 export async function otherPayApprovers(orgId: string, actorId: string): Promise<number> {
   const members = await db().profile.findMany({

@@ -1,14 +1,21 @@
 import { describe, expect, it, vi } from "vitest";
 
-const requireEmployer = vi.fn<(area: string) => Promise<{ orgId: string }>>(async () => ({ orgId: "org" }));
-vi.mock("@/lib/employer-session", () => ({ requireEmployer: (area: string) => requireEmployer(area) }));
+type Session = { role: string; orgId: string | null; grants?: null } | null;
+let session: Session = { role: "OWNER", orgId: "org" };
+vi.mock("@/lib/auth", () => ({ getSessionProfile: async () => session }));
 
 const { placeOfCity } = await import("./place-actions");
 
 describe("placeOfCity: the staging map's starting point", () => {
-  it("only for someone who can edit jobs", async () => {
-    await placeOfCity("Denver", "CO");
-    expect(requireEmployer).toHaveBeenCalledWith("jobsEdit");
+  it("only for someone who can edit jobs, and softly: nothing (never a redirect) for anyone else", async () => {
+    expect(await placeOfCity("Denver", "CO")).not.toBeNull();
+    session = { role: "SUPERVISOR", orgId: "org" };
+    expect(await placeOfCity("Denver", "CO")).toBeNull();
+    session = null;
+    expect(await placeOfCity("Denver", "CO")).toBeNull();
+    session = { role: "RECRUITER", orgId: "org" };
+    expect(await placeOfCity("Denver", "CO")).not.toBeNull();
+    session = { role: "OWNER", orgId: "org" };
   });
 
   it("places a city in its state from the bundled Census tables", async () => {
@@ -25,7 +32,7 @@ describe("placeOfCity: the staging map's starting point", () => {
     expect(await placeOfCity("Denver", "Colorado")).toBeNull();
     expect(await placeOfCity("", "CO")).toBeNull();
     expect(await placeOfCity("x".repeat(81), "CO")).toBeNull();
-    // A ZIP typed as a city is placed by the ZIP; a ZIP in another state isn't this job's city.
-    expect(await placeOfCity("10001", "CO")).toBeNull();
+    // The city field takes a city: a ZIP there isn't looked up.
+    expect(await placeOfCity("80202", "CO")).toBeNull();
   });
 });

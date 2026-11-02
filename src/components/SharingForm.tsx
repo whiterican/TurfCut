@@ -10,6 +10,7 @@ import {
   SHARE_PARTS,
   SHARING_COPY,
   SHARING_TEXT_VERSION,
+  normalizeArea,
   unplacedAreaWarning,
   type ShareAudience,
   type SharePart,
@@ -18,10 +19,7 @@ import {
 } from "@/lib/sharing";
 
 const initial: SharingFormState = { ok: false, message: "", errors: {} };
-const WORK_TYPES: Array<{ value: WorkType; label: string }> = [
-  { value: "PETITION", label: "Petition" },
-  { value: "CANVASS", label: "Canvass" },
-];
+const WORK_TYPES: Array<{ value: WorkType; label: string }> = (["PETITION", "CANVASS"] as const).map((value) => ({ value, label: SHARING_COPY.workTypeLabels[value] }));
 
 /**
  * Profile → Who sees what. Every part of the profile gets one of three
@@ -43,6 +41,8 @@ export function SharingForm({ choices, unplacedArea = null }: { choices: Sharing
   const errId = (k: string) => (e[k] ? `err-${k}` : undefined);
   const err = (k: string) => e[k] && <p id={`err-${k}`} className="text-danger-msg">{e[k]}</p>;
   const failed = Object.keys(e);
+  // Compared as saved (trimmed, spaces made one), so a trailing space from the keyboard doesn't hide it.
+  const showUnplaced = findable && !!unplacedArea && normalizeArea(homeArea) === unplacedArea;
   const onSubmit = (ev: React.FormEvent<HTMLFormElement>) => {
     ev.preventDefault();
     if (inFlight.current) return;
@@ -119,12 +119,12 @@ export function SharingForm({ choices, unplacedArea = null }: { choices: Sharing
         </label>
         <p id="findable-help" className="text-muted-sm">{SHARING_COPY.findableHelp}</p>
         {/* The saved place can't be placed: shown while the field still holds it (an edit is checked when saved). */}
-        {findable && unplacedArea && homeArea === unplacedArea && <p className="alert-warning text-sm">{unplacedAreaWarning(unplacedArea)}</p>}
+        {showUnplaced && <p id="unplaced-area" className="alert-warning text-sm">{unplacedAreaWarning(unplacedArea!)}</p>}
         {/* Disabled while off: nothing hidden is submitted or checked. */}
         <fieldset disabled={!findable} className={findable ? "space-y-4" : "hidden"}>
           <legend className="sr-only">Where and what</legend>
           <fieldset className="space-y-1.5" aria-describedby={errId("workTypes")}>
-            <legend className="label">Work I want to be found for</legend>
+            <legend className="label">{SHARING_COPY.workTypesLabel}</legend>
             <div className="flex flex-wrap gap-2">
               {WORK_TYPES.map((t) => (
                 <label key={t.value} className="chip">
@@ -143,7 +143,7 @@ export function SharingForm({ choices, unplacedArea = null }: { choices: Sharing
             {err("workTypes")}
           </fieldset>
           <label className="block space-y-1.5">
-            <span className="label">City or ZIP you&apos;d travel from</span>
+            <span className="label">{SHARING_COPY.homeAreaLabel}</span>
             <input
               name="homeArea"
               className="field max-w-80"
@@ -153,12 +153,12 @@ export function SharingForm({ choices, unplacedArea = null }: { choices: Sharing
               onChange={(ev) => setHomeArea(ev.target.value)}
               placeholder="Denver, CO or 80202"
               aria-invalid={e.homeArea ? true : undefined}
-              aria-describedby={errId("homeArea")}
+              aria-describedby={[errId("homeArea"), showUnplaced ? "unplaced-area" : undefined].filter(Boolean).join(" ") || undefined}
             />
             {err("homeArea")}
           </label>
           <label className="block space-y-1.5">
-            <span className="label">How far you&apos;d travel (miles, up to {MAX_TRAVEL_MILES})</span>
+            <span className="label">{SHARING_COPY.travelMilesLabel(MAX_TRAVEL_MILES)}</span>
             <input
               name="travelMiles"
               inputMode="numeric"

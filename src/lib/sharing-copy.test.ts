@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { AUDIENCE_OPTIONS, PART_DETAILS, RELATIONSHIP_PHRASE, SHARE_PARTS, SHARING_COPY, SHARING_TEXT_VERSION } from "./sharing";
+import { AUDIENCE_OPTIONS, MAX_TRAVEL_MILES, PART_DETAILS, RELATIONSHIP_PHRASE, SHARE_PARTS, SHARING_COPY, SHARING_TEXT_VERSION } from "./sharing";
 
 /**
  * The words a worker agrees to on Who sees what, pinned to the version they
@@ -43,6 +43,12 @@ describe(`Who sees what wording (version ${SHARING_TEXT_VERSION})`, () => {
       "“Any organization Turfcut has approved” matters when you let organizations find you (below): an approved organization you haven't applied to then sees those parts when you come up as a match for one of its jobs. Otherwise an organization sees your profile only after you apply, claim a spot or accept its invitation."
     );
     expect(SHARING_COPY.findableLabel).toBe("Let organizations find me");
+    expect(SHARING_COPY.workTypesLabel).toBe("Work I want to be found for");
+    expect(SHARING_COPY.workTypeLabels).toEqual({ PETITION: "Petition", CANVASS: "Canvass" });
+    expect(SHARING_COPY.homeAreaLabel).toBe("City or ZIP you'd travel from");
+    // The limit is part of the terms: a new limit is a new wording.
+    expect(MAX_TRAVEL_MILES).toBe(500);
+    expect(SHARING_COPY.travelMilesLabel(MAX_TRAVEL_MILES)).toBe("How far you'd travel (miles, up to 500)");
     expect(SHARING_COPY.findableHelp).toBe(
       "Off by default. When it's on, organizations Turfcut has approved can find you for the work you pick, on published jobs within the distance you set of the place you type, and invite you. They see your name, the distance rounded to 5 miles, the distance you'd travel, and the parts above you share with any approved organization. They never see the place you type. Turfcut never uses your phone's location. Turning it off clears the place and distance."
     );

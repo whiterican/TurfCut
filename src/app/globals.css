@@ -1261,7 +1261,8 @@ body {
   }
   /* Centred: a label that wraps keeps its radio beside its middle. */
   .choice-row {
-    @apply flex min-h-12 cursor-pointer items-center gap-3 py-3 text-fg;
+    /* -mx-2/px-2: room for the inset focus ring, so it never sits on the radio or the text. */
+    @apply -mx-2 flex min-h-12 cursor-pointer items-center gap-3 px-2 py-3 text-fg;
   }
   .choice-row:has(input:checked) {
     @apply font-semibold;

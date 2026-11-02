@@ -23,7 +23,7 @@ export default async function SharingPage() {
         <Masthead title="Who sees what">
           <Link transitionTypes={["nav-back"]} href="/profile" className="btn-ghost"><ChevronLeft aria-hidden className="size-4 shrink-0" />Profile</Link>
         </Masthead>
-        {/* The words come from SHARING_COPY, pinned to SHARING_TEXT_VERSION (sharing.test.ts). */}
+        {/* The words come from SHARING_COPY, pinned to SHARING_TEXT_VERSION (sharing-copy.test.ts). */}
         <p className="lead">{SHARING_COPY.lead}</p>
         <p className="text-hint">{sharing.savedAt ? SHARING_COPY.lastChanged(dateText(sharing.savedAt)) : SHARING_COPY.notChanged}</p>
         <p className="text-hint">{SHARING_COPY.politicalFitHint}</p>

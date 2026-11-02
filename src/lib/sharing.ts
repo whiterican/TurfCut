@@ -76,9 +76,17 @@ export const SHARING_COPY = {
   approvedHint:
     "\u201cAny organization Turfcut has approved\u201d matters when you let organizations find you (below): an approved organization you haven't applied to then sees those parts when you come up as a match for one of its jobs. Otherwise an organization sees your profile only after you apply, claim a spot or accept its invitation.",
   findableLabel: "Let organizations find me",
+  workTypesLabel: "Work I want to be found for",
+  workTypeLabels: { PETITION: "Petition", CANVASS: "Canvass" },
+  homeAreaLabel: "City or ZIP you'd travel from",
+  /** With MAX_TRAVEL_MILES, which the test pins too: the limit is part of what the worker agrees to. */
+  travelMilesLabel: (max: number) => `How far you'd travel (miles, up to ${max})`,
   findableHelp:
     "Off by default. When it's on, organizations Turfcut has approved can find you for the work you pick, on published jobs within the distance you set of the place you type, and invite you. They see your name, the distance rounded to 5 miles, the distance you'd travel, and the parts above you share with any approved organization. They never see the place you type. Turfcut never uses your phone's location. Turning it off clears the place and distance.",
 } as const;
+
+/** A typed home area as it is saved: trimmed, inner runs of space made one. */
+export const normalizeArea = (text: string) => text.trim().replace(/\s+/g, " ");
 
 /** Findable, but the saved home area can't be placed (Matches can't use it): a status, not consent wording. */
 export const unplacedAreaWarning = (area: string) =>
@@ -175,7 +183,7 @@ export function validateSharing(raw: unknown): Validated<SharingChoices> {
   const workTypes = Array.isArray(rawTypes) && rawTypes.every((t) => (WORK_TYPES as unknown[]).includes(t)) ? [...new Set(rawTypes as WorkType[])].sort() : null;
   if (!workTypes) errors.workTypes = "Pick petition, canvass or both.";
 
-  const area = typeof r.homeArea === "string" ? r.homeArea.trim().replace(/\s+/g, " ") : r.homeArea ?? null;
+  const area = typeof r.homeArea === "string" ? normalizeArea(r.homeArea) : r.homeArea ?? null;
   let homeArea: string | null = null;
   if (area === null || area === "") homeArea = null;
   else if (typeof area === "string" && area.length <= HOME_AREA_MAX && !hasHiddenChars(area, true)) homeArea = area;

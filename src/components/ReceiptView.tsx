@@ -9,6 +9,8 @@ export const RECEIPT_STATUS: Record<Receipt["status"], Status> = {
   sending: { label: "Sending", state: "sending" },
   sent: { label: "Sent", state: "paid" },
   failed: { label: "Not sent", state: "blocked" },
+  // Part of it came back (Stripe reversed some): the words carry the difference from a full reversal.
+  "partly-reversed": { label: "Partly reversed", state: "closed" },
   // Final: the payment came back. Not a pause (held is "On hold" on the pay screens).
   reversed: { label: "Reversed", state: "closed" },
 };
@@ -22,6 +24,8 @@ export function receiptIntro(r: Pick<Receipt, "status" | "orgName">): string {
       return `${r.orgName} paid you`;
     case "failed":
       return `The payment from ${r.orgName} didn't go through`;
+    case "partly-reversed":
+      return `Part of the payment from ${r.orgName} came back`;
     case "reversed":
       return `The payment from ${r.orgName} came back`;
   }
@@ -32,6 +36,8 @@ const AMOUNT_LABEL: Record<Receipt["status"], string> = {
   sending: "Amount being sent",
   sent: "Amount sent",
   failed: "Amount not sent",
+  // The original amount stays the headline; what came back and what was kept follow it as their own rows.
+  "partly-reversed": "Amount sent",
   reversed: "Amount reversed",
 };
 
@@ -55,6 +61,15 @@ export function ReceiptView({ r }: { r: Receipt }) {
           <>
             <dt>Sent</dt>
             <dd><LocalTime iso={r.paidAt.toISOString()} mode="full" /></dd>
+          </>
+        )}
+        {r.partReversal && (
+          <>
+            <dt>Came back</dt>
+            <dd className="tabular-nums">{money(r.partReversal.reversedCents)} · <LocalTime iso={r.partReversal.at.toISOString()} mode="full" /></dd>
+            <dt>You kept</dt>
+            <dd className="font-semibold tabular-nums">{money(r.amountCents - r.partReversal.reversedCents)}</dd>
+            <dd className="receipt-note">Stripe returned part of this payment to {r.orgName}; it shows on their Pay tab too. The lines below are what the whole payment was for.</dd>
           </>
         )}
         {r.reversedAt && (
@@ -106,7 +121,7 @@ export function ReceiptView({ r }: { r: Receipt }) {
             </li>
           ))}
           <li className="flex items-start justify-between gap-4 px-4 py-3">
-            <span className="font-semibold text-fg">{r.status === "sent" ? "Total sent" : r.status === "reversed" ? "Total reversed" : "Total"}</span>
+            <span className="font-semibold text-fg">{r.status === "sent" || r.status === "partly-reversed" ? "Total sent" : r.status === "reversed" ? "Total reversed" : "Total"}</span>
             <span className="font-bold text-fg tabular-nums">{money(r.amountCents)}</span>
           </li>
         </ul>

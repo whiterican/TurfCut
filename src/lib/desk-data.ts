@@ -8,7 +8,7 @@ import { loadOrgPay } from "@/lib/pay-data";
 import { disputeCounts, noteOverdueDisputes } from "@/lib/dispute-thread-data";
 import { openJobsEndAfter } from "@/lib/jobs";
 import { money } from "@/lib/pay";
-import { URGENCY, applicationsByJob, byUrgency, deskParts, noCheckoutVisibility, seatsWhenLabel, shortOfHeadcount, weekAhead, type DeskParts, type WeekRow } from "@/lib/desk";
+import { URGENCY, applicationsByJob, byUrgency, deskParts, noCheckoutVisibility, seatsWhenLabel, setupSteps, shortOfHeadcount, weekAhead, type DeskParts, type WeekRow } from "@/lib/desk";
 
 /** One row in "Needs you": what, what it's about, since when, and the next step with where to take it. */
 export interface DeskItem {
@@ -56,7 +56,7 @@ export async function loadDesk(actor: { profileId: string; orgId: string; role: 
   const noCheckout = noCheckoutVisibility(actor);
   const stillIn = { status: "ACTIVE" as const, checkInAt: { not: null }, checkOutAt: null, endsAt: { lt: now }, engagement: { job: { orgId } } };
 
-  const [ops, jobs, apps, upcoming, pay, disputes, stillInRows, stillInCount] = await Promise.all([
+  const [ops, jobs, apps, upcoming, pay, disputes, stillInRows, stillInCount, gate, jobTotal] = await Promise.all([
     needsOps ? loadOps(orgId, now) : null,
     needsJobs
       ? db().job.findMany({
@@ -87,6 +87,8 @@ export async function loadDesk(actor: { profileId: string; orgId: string; role: 
         })
       : null,
     noCheckout === "count" ? db().shift.count({ where: stillIn }) : null,
+    db().organization.findUnique({ where: { id: orgId }, select: { approved: true, approvedAt: true, contractorTermsSignedAt: true, classificationReviewedAt: true } }),
+    db().job.count({ where: { orgId } }),
   ]);
 
   // A closed job still has its hires' shifts (C3.5): the week ahead shows those jobs too.
@@ -124,6 +126,9 @@ export async function loadDesk(actor: { profileId: string; orgId: string; role: 
     const rest = disputes.open - disputes.overdue - disputes.dueToday;
     if (rest) needs.push({ key: "pay-disputes", title: `${plural(rest, "open dispute")}`, sub: "Workers questioning their pay", tag: "Dispute", state: "disputed", href: "/pay?tab=disputes", action: "Open disputes", rank: URGENCY.dispute, count: rest });
   }
+
+  // Until the organization can publish, what's left is on the Desk too (rank last: live work comes first).
+  if (gate) for (const st of setupSteps(gate, jobTotal, actor)) needs.push({ ...st, rank: URGENCY.setup });
 
   return {
     parts,

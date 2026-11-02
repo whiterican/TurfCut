@@ -105,7 +105,7 @@ export function applicationsByJob(apps: Array<{ jobId: string; title: string; ap
  * deadline today or blocks pay, then what is waiting on a person, then gaps
  * to fill. Within a kind, rows keep their own order (oldest or soonest first).
  */
-export const URGENCY = { late: 0, noCheckout: 1, overdue: 2, review: 3, dueToday: 4, payApprove: 5, applications: 6, dispute: 7, short: 8 } as const;
+export const URGENCY = { late: 0, noCheckout: 1, overdue: 2, review: 3, dueToday: 4, payApprove: 5, applications: 6, dispute: 7, short: 8, setup: 9 } as const;
 
 /**
  * Shifts still checked in after their end ("No check-out received", redesign
@@ -127,3 +127,44 @@ export function byUrgency<T extends { rank: number }>(rows: T[]): T[] {
 
 /** An open-seats row's time: the job's start, said as past or future. */
 export const seatsWhenLabel = (startsAt: Date, now: Date) => (startsAt > now ? "Starts" : "Started");
+
+/** The organization's publish-gate records, as the Desk reads them. */
+export interface OrgGate {
+  approved: boolean;
+  approvedAt: Date | null;
+  contractorTermsSignedAt: Date | null;
+  classificationReviewedAt: Date | null;
+}
+
+export interface SetupStep {
+  key: "setup-approval" | "setup-terms" | "setup-review" | "setup-first-job";
+  title: string;
+  sub: string;
+  tag: string;
+  state: "pending" | "blocked";
+  href: string;
+  action: string;
+}
+
+/**
+ * What still stands between the organization and its first published job,
+ * from the same records the publish gate checks (org settings). Each step goes
+ * only to a role that can act on it or read where it is explained, so a new
+ * organization's Desk never says "nothing needs you" while nothing can
+ * publish. `jobs`: how many jobs the organization has in any status.
+ */
+export function setupSteps(org: OrgGate, jobs: number, member: Role | AccessSubject): SetupStep[] {
+  const steps: SetupStep[] = [];
+  const settings = can(member, "orgSettings", "read");
+  if (!org.approved && settings) {
+    steps.push(
+      org.approvedAt
+        ? { key: "setup-approval", title: "Turfcut withdrew the approval", sub: "Publishing and hiring are paused until it is restored", tag: "Paused", state: "blocked", href: "/org/settings", action: "See why" }
+        : { key: "setup-approval", title: "Waiting for Turfcut approval", sub: "Turfcut reviews every organization by hand during the pilot", tag: "Waiting", state: "pending", href: "/org/settings", action: "See what's left" },
+    );
+  }
+  if (!org.contractorTermsSignedAt && can(member, "orgSettings")) steps.push({ key: "setup-terms", title: "Sign the contractor terms", sub: "Needed before any job can publish", tag: "To do", state: "pending", href: "/org/settings", action: "Open settings" });
+  if (!org.classificationReviewedAt && can(member, "compliance")) steps.push({ key: "setup-review", title: "Record the worker-classification review", sub: "Needed before any job can publish", tag: "To do", state: "pending", href: "/org/settings", action: "Open settings" });
+  if (jobs === 0 && can(member, "jobsEdit")) steps.push({ key: "setup-first-job", title: "Post your first job", sub: "Your draft saves as you go and publishes once every check passes", tag: "To do", state: "pending", href: "/jobs/new", action: "Start a job" });
+  return steps;
+}

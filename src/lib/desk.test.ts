@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { URGENCY, applicationsByJob, byUrgency, deskParts, noCheckoutVisibility, seatsWhenLabel, shortOfHeadcount, weekAhead } from "./desk";
+import { URGENCY, applicationsByJob, byUrgency, deskParts, noCheckoutVisibility, seatsWhenLabel, setupSteps, shortOfHeadcount, weekAhead } from "./desk";
 
 const d = (iso: string) => new Date(iso);
 
@@ -58,7 +58,7 @@ describe("the Desk", () => {
 
 describe("Needs you order and times", () => {
   it("puts what is going wrong now first, gaps to fill last, and keeps each kind's own order", () => {
-    expect(Object.entries(URGENCY).sort((a, b) => a[1] - b[1]).map(([k]) => k)).toEqual(["late", "noCheckout", "overdue", "review", "dueToday", "payApprove", "applications", "dispute", "short"]);
+    expect(Object.entries(URGENCY).sort((a, b) => a[1] - b[1]).map(([k]) => k)).toEqual(["late", "noCheckout", "overdue", "review", "dueToday", "payApprove", "applications", "dispute", "short", "setup"]);
     const rows = [
       { key: "short-a", rank: URGENCY.short },
       { key: "apps-a", rank: URGENCY.applications },
@@ -94,3 +94,39 @@ describe("no check-out received on the Desk (P0 state truth)", () => {
   });
 });
 
+
+describe("setupSteps: what's left before the first published job", () => {
+  const fresh = { approved: false, approvedAt: null, contractorTermsSignedAt: null, classificationReviewedAt: null };
+  const done = { approved: true, approvedAt: new Date("2026-10-01"), contractorTermsSignedAt: new Date("2026-10-01"), classificationReviewedAt: new Date("2026-10-01") };
+  const keys = (...a: Parameters<typeof setupSteps>) => setupSteps(...a).map((s) => s.key);
+
+  it("an owner of a new organization: approval, terms, review and a first job, in that order", () => {
+    expect(keys(fresh, 0, "OWNER")).toEqual(["setup-approval", "setup-terms", "setup-review", "setup-first-job"]);
+    expect(setupSteps(fresh, 0, "OWNER")[3]).toMatchObject({ href: "/jobs/new", action: "Start a job" });
+  });
+
+  it("each step only for a role that can act on it or read its page", () => {
+    // Compliance records the review; it can't sign terms or create jobs.
+    expect(keys(fresh, 0, "COMPLIANCE")).toEqual(expect.arrayContaining(["setup-review"]));
+    expect(keys(fresh, 0, "COMPLIANCE")).not.toContain("setup-terms");
+    // Finance acts on none of them.
+    expect(keys(fresh, 0, "FINANCE").filter((k) => k !== "setup-approval")).toEqual([]);
+    // A recruiter can start the first job; a publisher (publishes, doesn't create) can't.
+    expect(keys(fresh, 0, "RECRUITER")).toContain("setup-first-job");
+    expect(keys(fresh, 0, "PUBLISHER")).not.toContain("setup-first-job");
+  });
+
+  it("nothing once the gate is complete and a job exists (a draft counts)", () => {
+    expect(keys(done, 1, "OWNER")).toEqual([]);
+    expect(keys(done, 0, "OWNER")).toEqual(["setup-first-job"]);
+  });
+
+  it("a withdrawn approval reads as paused, not as waiting", () => {
+    const s = setupSteps({ ...done, approved: false }, 3, "OWNER");
+    expect(s).toEqual([expect.objectContaining({ key: "setup-approval", title: "Turfcut withdrew the approval", state: "blocked" })]);
+  });
+
+  it("ranks after every kind of live work", () => {
+    expect(Math.max(...Object.entries(URGENCY).filter(([k]) => k !== "setup").map(([, v]) => v))).toBeLessThan(URGENCY.setup);
+  });
+});

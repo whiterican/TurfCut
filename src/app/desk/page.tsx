@@ -28,6 +28,7 @@ const NEED_LABELS: Record<keyof typeof URGENCY, string> = {
   applications: "Applications waiting",
   dispute: "Open disputes",
   short: "Jobs short of workers",
+  setup: "Before your first job",
 };
 
 /**

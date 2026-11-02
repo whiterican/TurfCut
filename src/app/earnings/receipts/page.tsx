@@ -27,7 +27,7 @@ export default async function ReceiptsPage() {
             <li key={r.id}>
               <Link href={`/earnings/receipts/${r.id}`} className="flex items-center justify-between gap-3 px-4 py-3 transition hover:bg-surface-2">
                 <span className="min-w-0 space-y-0.5">
-                  <span className="block font-semibold text-fg">{r.number} · {money(r.amountCents)}</span>
+                  <span className="block font-semibold text-fg">{r.number} · {money(r.stripeSentCents ?? r.amountCents)}</span>
                   <span className="text-muted-sm block">{r.orgName} · <LocalTime iso={(r.paidAt ?? r.createdAt).toISOString()} mode="fulldate" /> · {r.lines.length} {r.lines.length === 1 ? "line" : "lines"}</span>
                 </span>
                 <StatusBadge status={RECEIPT_STATUS[r.status]} />

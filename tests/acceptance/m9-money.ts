@@ -180,6 +180,15 @@ const check = (l: string, c: unknown, d?: unknown) => { if (c) console.log(`PASS
   await pay.handleProviderEvent(part("evt_part_2", 800), new Date("2026-11-03T11:00:00Z"));
   const rp2 = (await loadReceipts(W1)).find((r) => r.id === t1!.id);
   check("a further report is Stripe's new total, in the list too; the worker isn't told twice", rp2?.status === "partly-reversed" && rp2.partReversal?.reversedCents === 800 && (await notices("PAYOUT_REVERSED", W1)) === 0, rp2);
+  // A late, smaller report (an older running total delivered out of order) doesn't lower it.
+  await pay.handleProviderEvent(part("evt_part_late", 600), new Date("2026-11-03T11:30:00Z"));
+  const csvRows = (t: string) => {
+    const [head, ...rest] = t.replace(/^\uFEFF/, "").trim().split("\r\n").map((l) => l.slice(1, -1).split('","'));
+    return rest.map((c) => Object.fromEntries(head.map((k, i) => [k, c[i]])));
+  };
+  const transfersOf = async (w: string) => csvRows((await exportAccount({ userId: w, workerId: w })).find((f) => f.name === "transfers.csv")?.text ?? "");
+  const partRow = (await transfersOf(W1)).find((r) => r.id === t1!.id);
+  check("the export agrees with the receipt mid-reversal: partly reversed, Stripe's total of 800 back (a late report of 600 doesn't lower it), the rest kept", partRow?.status === "partly-reversed" && partRow.reversedCents === "800" && partRow.keptCents === String(t1!.amountCents - 800) && partRow.amountCents === String(t1!.amountCents) && !!partRow.sentAt && !!partRow.reversedAt && partRow.receipt === "R-000001", partRow);
   // A full reversal: the worker is told, the receipt says so and stays.
   const full = { id: "evt_rev_1", type: "transfer.reversed", transfer: { id: "tr_1", group: t1!.id, amountCents: t1!.amountCents, reversedCents: t1!.amountCents } };
   const applied = await pay.handleProviderEvent(full, new Date("2026-11-04T10:00:00Z"));
@@ -193,6 +202,10 @@ const check = (l: string, c: unknown, d?: unknown) => { if (c) console.log(`PASS
   const files = await exportAccount({ userId: W1, workerId: W1 });
   const transfersCsv = files.find((f) => f.name === "transfers.csv")?.text ?? "";
   check("the data export carries the receipt number", /receipt/.test(transfersCsv.split("\n")[0]) && /R-000001/.test(transfersCsv), transfersCsv.split("\n").slice(0, 2));
+  const fullRow = (await transfersOf(W1)).find((r) => r.id === t1!.id);
+  check("after the full reversal the export says so: reversed, all of it back, nothing kept; the original columns unchanged", fullRow?.status === "reversed" && fullRow.reversedCents === String(t1!.amountCents) && fullRow.keptCents === "0" && !!fullRow.reversedAt && fullRow.amountCents === String(t1!.amountCents) && fullRow.destination !== undefined && fullRow.organization === "Front Range Circulators", fullRow);
+  const w2Rows = await transfersOf(W2);
+  check("another worker's export has only their own payment, sent and kept in full", w2Rows.length === 1 && w2Rows[0].id === t2!.id && w2Rows[0].status === "sent" && w2Rows[0].keptCents === String(t2!.amountCents) && w2Rows[0].reversedCents === "0", w2Rows);
 
   // ============ Slice 3: monthly statements ============
   // Lines were recorded this month (real time); the payments went out on Nov 2 and one came back on Nov 4.
@@ -254,6 +267,25 @@ const check = (l: string, c: unknown, d?: unknown) => { if (c) console.log(`PASS
   let frozen = false;
   try { await p.statement.update({ where: { id: stRow!.id }, data: { grossCents: 1 } }); } catch { frozen = true; }
   check("a closed statement can't be changed", frozen);
+
+  // ============ #117: Stripe confirmed a different amount than Turfcut recorded ============
+  // R-000002 (worker 2): Stripe reports sending $2.50 less; then a partial, then a full reversal of what it actually sent.
+  const stripeAmt = t2!.amountCents - 250;
+  const tr2 = { id: "tr_2", group: t2!.id, amountCents: stripeAmt };
+  await pay.handleProviderEvent({ id: "evt_mm_created", type: "transfer.created", transfer: { ...tr2, reversedCents: 0 } }, new Date("2026-12-02T10:00:00Z"));
+  const mmSent = await loadReceipt(W2, t2!.id);
+  const mmRow1 = (await transfersOf(W2)).find((r) => r.id === t2!.id);
+  check("sent, Stripe's amount differing: the receipt leads with Stripe's figure and names the record; the export keeps the record as amountCents and Stripe's as kept", mmSent?.status === "sent" && mmSent.stripeSentCents === stripeAmt && mmSent.amountCents === t2!.amountCents && mmRow1?.amountCents === String(t2!.amountCents) && mmRow1.keptCents === String(stripeAmt) && mmRow1.stripeSentCents === String(stripeAmt), { mmSent: mmSent?.stripeSentCents, mmRow1 });
+  await pay.handleProviderEvent({ id: "evt_mm_part", type: "transfer.reversed", transfer: { ...tr2, reversedCents: 100 } }, new Date("2026-12-02T11:00:00Z"));
+  const mmPart = await loadReceipt(W2, t2!.id);
+  check("the receipt mid-reversal reads the same figure: Stripe's amount sent, 100 back, the rest kept", mmPart?.status === "partly-reversed" && mmPart.stripeSentCents === stripeAmt && mmPart.partReversal?.sentCents === stripeAmt && mmPart.partReversal.reversedCents === 100, { s: mmPart?.stripeSentCents, p: mmPart?.partReversal });
+  const mmRow2 = (await transfersOf(W2)).find((r) => r.id === t2!.id);
+  check("then partly reversed: 100 back, the rest of Stripe's figure kept", mmRow2?.status === "partly-reversed" && mmRow2.reversedCents === "100" && mmRow2.keptCents === String(stripeAmt - 100) && mmRow2.stripeSentCents === String(stripeAmt), mmRow2);
+  await pay.handleProviderEvent({ id: "evt_mm_full", type: "transfer.reversed", transfer: { ...tr2, reversedCents: stripeAmt } }, new Date("2026-12-02T12:00:00Z"));
+  const mmFull = await loadReceipt(W2, t2!.id);
+  const mmRow3 = (await transfersOf(W2)).find((r) => r.id === t2!.id);
+  check("then reversed in full: what came back is Stripe's figure, never the record, on the receipt and in the export", mmFull?.status === "reversed" && mmFull.stripeSentCents === stripeAmt && mmRow3?.status === "reversed" && mmRow3.reversedCents === String(stripeAmt) && mmRow3.keptCents === "0" && mmRow3.amountCents === String(t2!.amountCents), { mmFull: mmFull?.stripeSentCents, mmRow3 });
+  check("no row is ever without a state", (await transfersOf(W1)).concat(await transfersOf(W2)).every((r) => r.status && r.status !== "unknown"));
 
   await p.$disconnect();
   process.exit(fails ? 1 : 0);

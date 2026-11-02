@@ -156,13 +156,6 @@ export interface SetupStep {
 export function setupSteps(org: OrgGate, jobs: number, member: Role | AccessSubject): SetupStep[] {
   const steps: SetupStep[] = [];
   const settings = can(member, "orgSettings", "read");
-  if (!org.approved && settings) {
-    steps.push(
-      org.approvedAt
-        ? { key: "setup-approval", title: "Turfcut withdrew the approval", sub: "Publishing and hiring are paused until it is restored", tag: "Paused", state: "blocked", href: "/org/settings", action: "See why" }
-        : { key: "setup-approval", title: "Waiting for Turfcut approval", sub: "Turfcut reviews every organization by hand during the pilot", tag: "Waiting", state: "pending", href: "/org/settings", action: "See what's left" },
-    );
-  }
   // Someone who publishes jobs but can't clear a step is told why nothing publishes, with a link only to a page
   // they can read: the settings page that lists the gate, else their jobs (each job page lists its blockers).
   const publishes = can(member, "jobsEdit");
@@ -174,6 +167,18 @@ export function setupSteps(org: OrgGate, jobs: number, member: Role | AccessSubj
   const blocked = (key: SetupStep["key"], title: string, sub: string): SetupStep | null =>
     publishes && why ? { key, title, sub, tag: "Blocked", state: "blocked", ...why } : null;
   const push = (st: SetupStep | null) => st && steps.push(st);
+  if (!org.approved) {
+    // Settings readers see it there; someone who publishes without settings access is still told (a pause most of all).
+    push(
+      settings
+        ? org.approvedAt
+          ? { key: "setup-approval", title: "Turfcut withdrew the approval", sub: "Publishing and hiring are paused until it is restored", tag: "Paused", state: "blocked", href: "/org/settings", action: "See why" }
+          : { key: "setup-approval", title: "Waiting for Turfcut approval", sub: "Turfcut reviews every organization by hand during the pilot", tag: "Waiting", state: "pending", href: "/org/settings", action: "See what's left" }
+        : org.approvedAt
+          ? blocked("setup-approval", "Turfcut withdrew the approval", "Publishing and hiring are paused until it is restored")
+          : blocked("setup-approval", "Jobs can't publish yet: waiting for Turfcut approval", "Turfcut reviews every organization by hand during the pilot"),
+    );
+  }
   if (!org.contractorTermsSignedAt) {
     push(
       can(member, "orgSettings")

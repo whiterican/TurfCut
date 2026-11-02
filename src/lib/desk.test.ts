@@ -123,9 +123,17 @@ describe("setupSteps: what's left before the first published job", () => {
     expect(r[1].title).toBe("Jobs can't publish yet: contractor terms not signed");
     // A custom role that publishes but can't read settings is sent to its jobs, which list each job's blockers.
     const noSettings = setupSteps(fresh, 3, { role: "CUSTOM", grants: { jobsEdit: "full", jobs: "full" } });
-    expect(noSettings.map((x) => [x.key, x.href])).toEqual([["setup-terms", "/jobs"], ["setup-review", "/jobs"]]);
+    expect(noSettings.map((x) => [x.key, x.href])).toEqual([["setup-approval", "/jobs"], ["setup-terms", "/jobs"], ["setup-review", "/jobs"]]);
+    expect(noSettings[0]).toMatchObject({ title: "Jobs can't publish yet: waiting for Turfcut approval", state: "blocked" });
+    // A withdrawn approval still comes first for them: a pause.
+    const paused = setupSteps({ ...done, approved: false }, 3, { role: "CUSTOM", grants: { jobsEdit: "full", jobs: "full" } });
+    expect(paused).toEqual([expect.objectContaining({ key: "setup-approval", title: "Turfcut withdrew the approval", href: "/jobs" })]);
+    expect(setupRank(paused[0])).toBe(URGENCY.paused);
     // …and one that can read neither gets no row it couldn't follow.
     expect(setupSteps(fresh, 3, { role: "CUSTOM", grants: { jobsEdit: "full" } })).toEqual([]);
+    // Owners and compliance still get their own "To do" rows, not Blocked ones.
+    expect(setupSteps(fresh, 3, "OWNER").filter((x) => x.key !== "setup-approval").every((x) => x.state === "pending")).toBe(true);
+    expect(setupSteps(fresh, 3, "COMPLIANCE").find((x) => x.key === "setup-review")).toMatchObject({ state: "pending", tag: "To do" });
     // Roles that don't publish aren't told about the gate at all.
     expect(setupSteps(fresh, 3, "FINANCE").map((x) => x.key)).toEqual(["setup-approval"]);
   });

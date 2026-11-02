@@ -70,6 +70,33 @@ export async function listJurisdictionsForAdmin(now = new Date()): Promise<Admin
   return [...places.values()];
 }
 
+/** A place in words, as the staff pages name it: "Denver, CO" or "CO, statewide". */
+export function placeName(p: { state: string; locality: string | null }): string {
+  return p.locality ? `${p.locality}, ${p.state}` : `${p.state}, statewide`;
+}
+
+/** For the console front page (#116): a usable profile whose approval lapses within this many days is listed before it starts blocking jobs. */
+export const EXPIRY_WINDOW_DAYS = 30;
+
+/**
+ * The rule profiles in force that need staff now: ones the publish gate
+ * already refuses (the same `problems` the jurisdiction page shows), then
+ * usable ones whose approval runs out within the window, soonest first.
+ * Only current versions; a proposed version waits on its own page.
+ */
+export type AttentionRow<V> = { v: V; blocked: true } | { v: V; blocked: false; expiresAt: Date };
+export function jurisdictionsNeedingAttention<V extends Pick<AdminJurisdictionRow, "standing" | "problems" | "approvalExpiresAt">>(versions: V[], now: Date): AttentionRow<V>[] {
+  const horizon = now.getTime() + EXPIRY_WINDOW_DAYS * 86_400_000;
+  const current = versions.filter((v) => v.standing === "current");
+  const blocked: AttentionRow<V>[] = current.filter((v) => v.problems.length > 0).map((v) => ({ v, blocked: true }));
+  const lapsing: Array<{ v: V; blocked: false; expiresAt: Date }> = [];
+  for (const v of current) {
+    if (v.problems.length === 0 && v.approvalExpiresAt && v.approvalExpiresAt.getTime() <= horizon) lapsing.push({ v, blocked: false, expiresAt: v.approvalExpiresAt });
+  }
+  lapsing.sort((a, b) => a.expiresAt.getTime() - b.expiresAt.getTime());
+  return [...blocked, ...lapsing];
+}
+
 export interface AdminJurisdictionJob {
   id: string;
   title: string;

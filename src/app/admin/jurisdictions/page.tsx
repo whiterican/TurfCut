@@ -1,12 +1,8 @@
 import Link from "next/link";
 import { requireStaff } from "@/lib/staff-session";
-import { listJurisdictionsForAdmin } from "@/lib/admin-jurisdictions-data";
+import { listJurisdictionsForAdmin, placeName } from "@/lib/admin-jurisdictions-data";
 import { LocalTime } from "@/components/LocalTime";
 import { StandingChip } from "@/components/admin/StandingChip";
-
-function placeName(p: { state: string; locality: string | null }) {
-  return p.locality ? `${p.locality}, ${p.state}` : `${p.state}, statewide`;
-}
 
 /** Jurisdiction rule profiles (M10.3): every place, every version, and what the gate makes of each. */
 export default async function AdminJurisdictionsPage() {

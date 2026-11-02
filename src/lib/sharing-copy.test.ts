@@ -1,0 +1,50 @@
+import { describe, expect, it } from "vitest";
+import { AUDIENCE_OPTIONS, PART_DETAILS, RELATIONSHIP_PHRASE, SHARE_PARTS, SHARING_COPY, SHARING_TEXT_VERSION } from "./sharing";
+
+/**
+ * The words a worker agrees to on Who sees what, pinned to the version they
+ * were agreed under. A failure here means the wording changed: that is a
+ * consent change, not a copy edit. Bump SHARING_TEXT_VERSION (every worker is
+ * asked again) and update these strings in the same change, or put the old
+ * words back. Layout work never needs to touch this file.
+ */
+describe(`Who sees what wording (version ${SHARING_TEXT_VERSION})`, () => {
+  it("is the wording version these strings were written for", () => {
+    expect(SHARING_TEXT_VERSION).toBe("c3-2026-10-09");
+  });
+
+  it("names the relationship and the three audiences the same way", () => {
+    expect(RELATIONSHIP_PHRASE).toBe("apply to, claim a spot with or accept an invite from");
+    expect(AUDIENCE_OPTIONS).toEqual([
+      { value: "RELATIONSHIP", label: "Organizations I apply to, claim a spot with or accept an invite from" },
+      { value: "ANY_APPROVED_ORG", label: "Any organization Turfcut has approved" },
+      { value: "NOBODY", label: "Nobody" },
+    ]);
+  });
+
+  it("describes each part of the profile the same way, in the same order", () => {
+    expect(SHARE_PARTS).toEqual(["output", "quality", "reliability", "history", "availability", "credentials"]);
+    expect(PART_DETAILS).toEqual({
+      output: { label: "Output rates", covers: "Doors per hour, doors per shift, signatures per hour" },
+      quality: { label: "Quality", covers: "Signature acceptance rate, contact rate" },
+      reliability: { label: "Reliability", covers: "Show rate" },
+      history: { label: "Hours and history", covers: "Verified shifts, active hours, campaigns, states and dates worked, totals, and the experience you list" },
+      availability: { label: "Availability", covers: "Your usual week, date exceptions and note" },
+      credentials: { label: "Credentials", covers: "Name, verification level and expiry of each credential" },
+    });
+  });
+
+  it("keeps the page's own explanations word for word", () => {
+    expect(SHARING_COPY.lead).toBe('Choose who sees each part of your profile. Anything you don\'t share shows as "not shared" to organizations, never as a zero, and is never used to rank you.');
+    expect(SHARING_COPY.lastChanged("Nov 2, 2026")).toBe("You last changed these on Nov 2, 2026. Earlier choices are kept on record, never overwritten.");
+    expect(SHARING_COPY.notChanged).toBe("You haven't changed anything yet: organizations you apply to, claim a spot with or accept an invite from see your profile, nobody else does, and nobody can find you.");
+    expect(SHARING_COPY.politicalFitHint).toBe("Your political-fit answers have their own settings, under Political fit on your profile.");
+    expect(SHARING_COPY.approvedHint).toBe(
+      "“Any organization Turfcut has approved” matters when you let organizations find you (below): an approved organization you haven't applied to then sees those parts when you come up as a match for one of its jobs. Otherwise an organization sees your profile only after you apply, claim a spot or accept its invitation."
+    );
+    expect(SHARING_COPY.findableLabel).toBe("Let organizations find me");
+    expect(SHARING_COPY.findableHelp).toBe(
+      "Off by default. When it's on, organizations Turfcut has approved can find you for the work you pick, on published jobs within the distance you set of the place you type, and invite you. They see your name, the distance rounded to 5 miles, the distance you'd travel, and the parts above you share with any approved organization. They never see the place you type. Turfcut never uses your phone's location. Turning it off clears the place and distance."
+    );
+  });
+});

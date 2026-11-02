@@ -63,6 +63,28 @@ export interface SharingChoices {
 }
 
 /**
+ * The Who sees what page's own words, kept here so a test can pin them to
+ * SHARING_TEXT_VERSION (with RELATIONSHIP_PHRASE, AUDIENCE_OPTIONS and
+ * PART_DETAILS above): changing any of them is a wording change, so it bumps
+ * the version and every worker is asked again. Layout changes never touch them.
+ */
+export const SHARING_COPY = {
+  lead: 'Choose who sees each part of your profile. Anything you don\'t share shows as "not shared" to organizations, never as a zero, and is never used to rank you.',
+  lastChanged: (date: string) => `You last changed these on ${date}. Earlier choices are kept on record, never overwritten.`,
+  notChanged: `You haven't changed anything yet: organizations you ${RELATIONSHIP_PHRASE} see your profile, nobody else does, and nobody can find you.`,
+  politicalFitHint: "Your political-fit answers have their own settings, under Political fit on your profile.",
+  approvedHint:
+    "\u201cAny organization Turfcut has approved\u201d matters when you let organizations find you (below): an approved organization you haven't applied to then sees those parts when you come up as a match for one of its jobs. Otherwise an organization sees your profile only after you apply, claim a spot or accept its invitation.",
+  findableLabel: "Let organizations find me",
+  findableHelp:
+    "Off by default. When it's on, organizations Turfcut has approved can find you for the work you pick, on published jobs within the distance you set of the place you type, and invite you. They see your name, the distance rounded to 5 miles, the distance you'd travel, and the parts above you share with any approved organization. They never see the place you type. Turfcut never uses your phone's location. Turning it off clears the place and distance.",
+} as const;
+
+/** Findable, but the saved home area can't be placed (Matches can't use it): a status, not consent wording. */
+export const unplacedAreaWarning = (area: string) =>
+  `Turfcut can't place \u201c${area}\u201d, so organizations can't find you yet. Type a ZIP code, or a city with its state (\u201cAurora, CO\u201d).`;
+
+/**
  * Bump when the sharing wording on the worker's screens (Who sees what, and
  * the setup) changes: every worker is asked again, on Today and on Profile.
  */

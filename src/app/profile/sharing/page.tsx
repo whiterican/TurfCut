@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { requireWorker } from "@/lib/worker-session";
 import { loadSharing } from "@/lib/sharing-data";
-import { RELATIONSHIP_PHRASE } from "@/lib/sharing";
+import { SHARING_COPY } from "@/lib/sharing";
+import { geoTables, resolveArea } from "@/lib/geo";
 import { SharingForm } from "@/components/SharingForm";
 import { Masthead } from "@/components/Masthead";
 import { ChevronLeft } from "lucide-react";
@@ -12,6 +13,9 @@ const dateText = (d: Date) => d.toLocaleDateString("en-US", { month: "short", da
 export default async function SharingPage() {
   const { workerId } = await requireWorker();
   const sharing = await loadSharing(workerId);
+  // From the saved choices, as the profile reads them: findable, but a home area Matches can't place.
+  const { findable, homeArea } = sharing.choices;
+  const unplaced = findable && homeArea && !resolveArea(homeArea, await geoTables()) ? homeArea : null;
 
   return (
     <ReadingPage gap={8}>
@@ -19,18 +23,12 @@ export default async function SharingPage() {
         <Masthead title="Who sees what">
           <Link transitionTypes={["nav-back"]} href="/profile" className="btn-ghost"><ChevronLeft aria-hidden className="size-4 shrink-0" />Profile</Link>
         </Masthead>
-        <p className="lead">
-          Choose who sees each part of your profile. Anything you don&apos;t share shows as
-          &quot;not shared&quot; to organizations, never as a zero, and is never used to rank you.
-        </p>
-        <p className="text-hint">
-          {sharing.savedAt
-            ? `You last changed these on ${dateText(sharing.savedAt)}. Earlier choices are kept on record, never overwritten.`
-            : `You haven't changed anything yet: organizations you ${RELATIONSHIP_PHRASE} see your profile, nobody else does, and nobody can find you.`}
-        </p>
-        <p className="text-hint">Your political-fit answers have their own settings, under Political fit on your profile.</p>
+        {/* The words come from SHARING_COPY, pinned to SHARING_TEXT_VERSION (sharing.test.ts). */}
+        <p className="lead">{SHARING_COPY.lead}</p>
+        <p className="text-hint">{sharing.savedAt ? SHARING_COPY.lastChanged(dateText(sharing.savedAt)) : SHARING_COPY.notChanged}</p>
+        <p className="text-hint">{SHARING_COPY.politicalFitHint}</p>
       </div>
-      <SharingForm choices={sharing.choices} />
+      <SharingForm choices={sharing.choices} unplacedArea={unplaced} />
     </ReadingPage>
   );
 }

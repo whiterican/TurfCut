@@ -8,7 +8,9 @@ import {
   MAX_TRAVEL_MILES,
   PART_DETAILS,
   SHARE_PARTS,
+  SHARING_COPY,
   SHARING_TEXT_VERSION,
+  unplacedAreaWarning,
   type ShareAudience,
   type SharePart,
   type SharingChoices,
@@ -28,7 +30,7 @@ const WORK_TYPES: Array<{ value: WorkType; label: string }> = [
  * React never resets it: what's on screen is always what the worker chose
  * and what the next save sends.
  */
-export function SharingForm({ choices }: { choices: SharingChoices }) {
+export function SharingForm({ choices, unplacedArea = null }: { choices: SharingChoices; /** The saved home area, when findable and Turfcut can't place it. */ unplacedArea?: string | null }) {
   const [state, setState] = useState<SharingFormState>(initial);
   const [pending, start] = useTransition();
   const inFlight = useRef(false);
@@ -75,14 +77,15 @@ export function SharingForm({ choices }: { choices: SharingChoices }) {
         </p>
       )}
       {SHARE_PARTS.map((part) => (
-        <fieldset key={part} className={`card space-y-3 ${e[part] ? "border-[var(--danger)]" : ""}`} aria-describedby={errId(part)}>
+        // One card per part, its audiences as rows (#114: not a card per option). Words unchanged.
+        <fieldset key={part} className={`card space-y-1 ${e[part] ? "border-[var(--danger)]" : ""}`} aria-describedby={errId(part)}>
           <legend className="float-left w-full space-y-0.5">
             <span className="block font-semibold text-fg">{PART_DETAILS[part].label}</span>
             <span className="text-muted-sm block font-normal">{PART_DETAILS[part].covers}</span>
           </legend>
-          <div className="clear-both space-y-2 pt-1">
+          <div className="clear-both divide-y divide-border pt-1">
             {AUDIENCE_OPTIONS.map((o) => (
-              <label key={o.value} className="option-card items-center py-3 text-sm text-fg">
+              <label key={o.value} className="choice-row text-sm">
                 <input
                   type="radio"
                   name={`audience.${part}`}
@@ -97,11 +100,7 @@ export function SharingForm({ choices }: { choices: SharingChoices }) {
           {err(part)}
         </fieldset>
       ))}
-      <p className="text-hint">
-        &ldquo;Any organization Turfcut has approved&rdquo; matters when you let organizations find you (below): an approved
-        organization you haven&apos;t applied to then sees those parts when you come up as a match for one of its jobs.
-        Otherwise an organization sees your profile only after you apply, claim a spot or accept its invitation.
-      </p>
+      <p className="text-hint">{SHARING_COPY.approvedHint}</p>
 
       <fieldset className="card space-y-4">
         <legend className="sr-only">Findability</legend>
@@ -116,14 +115,11 @@ export function SharingForm({ choices }: { choices: SharingChoices }) {
             onChange={(ev) => setFindable(ev.target.checked)}
             aria-describedby="findable-help"
           />
-          Let organizations find me
+          {SHARING_COPY.findableLabel}
         </label>
-        <p id="findable-help" className="text-muted-sm">
-          Off by default. When it&apos;s on, organizations Turfcut has approved can find you for the work you pick, on
-          published jobs within the distance you set of the place you type, and invite you. They see your name, the distance
-          rounded to 5 miles, the distance you&apos;d travel, and the parts above you share with any approved organization.
-          They never see the place you type. Turfcut never uses your phone&apos;s location. Turning it off clears the place and distance.
-        </p>
+        <p id="findable-help" className="text-muted-sm">{SHARING_COPY.findableHelp}</p>
+        {/* The saved place can't be placed: shown while the field still holds it (an edit is checked when saved). */}
+        {findable && unplacedArea && homeArea === unplacedArea && <p className="alert-warning text-sm">{unplacedAreaWarning(unplacedArea)}</p>}
         {/* Disabled while off: nothing hidden is submitted or checked. */}
         <fieldset disabled={!findable} className={findable ? "space-y-4" : "hidden"}>
           <legend className="sr-only">Where and what</legend>

@@ -58,7 +58,8 @@ Availability, credentials, political-fit preferences, preview and setup already 
 - **Layout only.** Every label, explanation, hint and option keeps its exact words. The mockup shortens two long paragraphs and marks where.
 - The wording is versioned by hand: `SHARING_TEXT_VERSION` in `src/lib/sharing.ts`, which `loadSharing`, `saveSharing`, the form and matches compare against. No test pins the strings today, and most of them live in JSX: the page's lead and hints, SharingForm's explanations, and `/profile/setup`, which the same version covers.
 - So the slice first moves those strings, **unchanged**, into one module beside `PART_DETAILS`, and the pages render them from there. A test then pins them with `SHARING_TEXT_VERSION`, which makes "layout only" provable: any rewording fails the test and needs a deliberate version bump.
-- Each part becomes one card, with its options as plain radio rows separated by hairlines instead of three bordered cards.
+- Built: the Who sees what page's strings moved to `SHARING_COPY` and are pinned in `src/lib/sharing-copy.test.ts`. The rendered text was compared word for word before and after the move, and the only difference is the new home-area warning. `/profile/setup` keeps its inline strings, because this family doesn't change its layout. Moving and pinning them is a follow-up.
+- Each part becomes one card, with its options as plain radio rows separated by hairlines instead of three bordered cards. Rows keep 48px tap targets, so the page gets only slightly shorter: the change is the grammar (#114), not the length.
 - The home-area warning appears here too, next to "Let organizations find me", when findable and the area can't be placed.
 - The same radio-row style applies to the single-choice option cards in Settings and Political preferences. The job builder and signup's two-way account-type switch keep their cards.
 

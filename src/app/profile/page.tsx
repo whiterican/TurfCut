@@ -17,7 +17,7 @@ import { loadAvailability } from "@/lib/availability-data";
 import { isEmptyAvailability } from "@/lib/availability";
 import { loadCredentials } from "@/lib/credentials-data";
 import { expiryToday } from "@/lib/credentials";
-import { RELATIONSHIP_PHRASE, type ShareAudience } from "@/lib/sharing";
+import { RELATIONSHIP_PHRASE, unplacedAreaWarning, type ShareAudience } from "@/lib/sharing";
 import { UrlNotice } from "@/components/UrlNotice";
 import { geoTables, resolveArea } from "@/lib/geo";
 import { Avatar } from "@/components/chat/Avatar";
@@ -108,7 +108,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
       {/* Findable, but the home area Turfcut can't place (from the saved choices): nobody can find them, so say so here. */}
       {sharing.choices.findable && !homePlaced && (
         <p className="alert-warning text-sm">
-          Turfcut can&apos;t place &ldquo;{sharing.choices.homeArea}&rdquo;, so organizations can&apos;t find you yet. Type a ZIP code, or a city with its state (&ldquo;Aurora, CO&rdquo;).{" "}
+          {unplacedAreaWarning(sharing.choices.homeArea ?? "")}{" "}
           <Link href="/profile/sharing" className="link font-semibold">Fix it</Link>
         </p>
       )}

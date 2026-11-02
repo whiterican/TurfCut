@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { AUDIENCE_OPTIONS, MAX_TRAVEL_MILES, PART_DETAILS, RELATIONSHIP_PHRASE, SHARE_PARTS, SHARING_COPY, SHARING_TEXT_VERSION } from "./sharing";
+import { AUDIENCE_OPTIONS, MAX_TRAVEL_MILES, PART_DETAILS, RELATIONSHIP_PHRASE, SETUP_COPY, SHARE_PARTS, SHARING_COPY, SHARING_TEXT_VERSION } from "./sharing";
+import { SETUP_STEPS } from "./setup-flow";
 
 /**
  * The words a worker agrees to on Who sees what, pinned to the version they
@@ -52,5 +53,26 @@ describe(`Who sees what wording (version ${SHARING_TEXT_VERSION})`, () => {
     expect(SHARING_COPY.findableHelp).toBe(
       "Off by default. When it's on, organizations Turfcut has approved can find you for the work you pick, on published jobs within the distance you set of the place you type, and invite you. They see your name, the distance rounded to 5 miles, the distance you'd travel, and the parts above you share with any approved organization. They never see the place you type. Turfcut never uses your phone's location. Turning it off clears the place and distance."
     );
+  });
+
+  it("keeps the first-run setup's words too (Done records the choices under the same version)", () => {
+    expect(SETUP_STEPS).toEqual(["Who sees your scorecard", "Availability", "Credentials", "Being found"]);
+    expect(SETUP_COPY.audienceShort).toEqual({
+      RELATIONSHIP: "Organizations you apply to, claim a spot with or accept an invite from",
+      ANY_APPROVED_ORG: "Any organization Turfcut has approved",
+      NOBODY: "Nobody",
+    });
+    expect(SETUP_COPY.workWords).toEqual({ PETITION: "petition", CANVASS: "canvass" });
+    expect(SETUP_COPY.scorecardIntro).toBe('Each part of your scorecard has its own audience. Anything not shared shows as "not shared", never a zero.');
+    expect(SETUP_COPY.availabilityIntro(PART_DETAILS.availability.covers)).toBe("When you're usually free, for schedulers. Never scored. It covers: your usual week, date exceptions and note.");
+    expect(SETUP_COPY.credentialsIntro(PART_DETAILS.credentials.covers)).toBe("Registrations, notary status and training. Organizations see the name, verification level and expiry of each credential, never the number.");
+    expect(SETUP_COPY.seenBy("Nobody")).toBe("Seen by: Nobody.");
+    expect(SETUP_COPY.findableIntro).toBe(
+      "Whether approved organizations can find you for work near you, and for which kind. They'd see your name, a rounded distance, how far you'd travel and what you share with any approved organization, never the place itself. Off unless you turn it on; it uses only a city or ZIP you type, never your phone's location."
+    );
+    expect(SETUP_COPY.findableOn("petition and canvass", 25, "Aurora, CO")).toBe("On: petition and canvass work, within 25 miles of Aurora, CO.");
+    expect(SETUP_COPY.findableOff).toBe("Off.");
+    expect(SETUP_COPY.skipKeepsDefaults).toBe("Skipping keeps the defaults: organizations you apply to, claim a spot with or accept an invite from see your profile, and nobody can find you.");
+    expect(SETUP_COPY.skipKeepsCurrent).toBe("Skipping keeps your current choices.");
   });
 });

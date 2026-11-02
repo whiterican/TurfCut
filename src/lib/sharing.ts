@@ -85,6 +85,31 @@ export const SHARING_COPY = {
     "Off by default. When it's on, organizations Turfcut has approved can find you for the work you pick, on published jobs within the distance you set of the place you type, and invite you. They see your name, the distance rounded to 5 miles, the distance you'd travel, and the parts above you share with any approved organization. They never see the place you type. Turfcut never uses your phone's location. Turning it off clears the place and distance.",
 } as const;
 
+/**
+ * The first-run setup's words (/profile/setup, C2.6). Done there records the
+ * choices under SHARING_TEXT_VERSION too, so these are pinned with it in
+ * sharing-copy.test.ts, like SHARING_COPY. The step titles are SETUP_STEPS
+ * (lib/setup-flow), pinned there.
+ */
+export const SETUP_COPY = {
+  audienceShort: {
+    RELATIONSHIP: `Organizations you ${RELATIONSHIP_PHRASE}`,
+    ANY_APPROVED_ORG: "Any organization Turfcut has approved",
+    NOBODY: "Nobody",
+  } satisfies Record<ShareAudience, string>,
+  workWords: { PETITION: "petition", CANVASS: "canvass" } satisfies Record<WorkType, string>,
+  scorecardIntro: 'Each part of your scorecard has its own audience. Anything not shared shows as "not shared", never a zero.',
+  availabilityIntro: (covers: string) => `When you're usually free, for schedulers. Never scored. It covers: ${covers.toLowerCase()}.`,
+  credentialsIntro: (covers: string) => `Registrations, notary status and training. Organizations see the ${covers.toLowerCase()}, never the number.`,
+  seenBy: (audience: string) => `Seen by: ${audience}.`,
+  findableIntro:
+    "Whether approved organizations can find you for work near you, and for which kind. They'd see your name, a rounded distance, how far you'd travel and what you share with any approved organization, never the place itself. Off unless you turn it on; it uses only a city or ZIP you type, never your phone's location.",
+  findableOn: (work: string, miles: number | null, area: string | null) => `On: ${work} work, within ${miles} miles of ${area}.`,
+  findableOff: "Off.",
+  skipKeepsDefaults: `Skipping keeps the defaults: organizations you ${RELATIONSHIP_PHRASE} see your profile, and nobody can find you.`,
+  skipKeepsCurrent: "Skipping keeps your current choices.",
+} as const;
+
 /** A typed home area as it is saved: trimmed, inner runs of space made one. */
 export const normalizeArea = (text: string) => text.trim().replace(/\s+/g, " ");
 

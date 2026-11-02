@@ -1,0 +1,721 @@
+[
+  {
+    "screen": "campaign-public",
+    "route": "/c/mile_high_fixture",
+    "state": "signed-out",
+    "role": "out",
+    "source": {
+      "commit": "efeecc5cc32a35f7a56487e62ea6253631fed985",
+      "clean": true,
+      "patchSha256": null
+    },
+    "implementationFile": "campaign-public-signed-out-390-light.png",
+    "viewport": {
+      "width": 390,
+      "height": 844,
+      "deviceScaleFactor": 2
+    },
+    "theme": "light",
+    "timezone": "America/Denver",
+    "clock": "frozen at 2026-10-30T19:00:00Z",
+    "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [],
+    "bg": "#faf9f4",
+    "shell": "#1c0f2e",
+    "title": "Mile High Civic Works (preview fixture) (@mile_high_fixture)",
+    "h1": "Mile High Civic Works (preview fixture)",
+    "status": "captured"
+  },
+  {
+    "screen": "campaign-public",
+    "route": "/c/mile_high_fixture",
+    "state": "signed-out",
+    "role": "out",
+    "source": {
+      "commit": "efeecc5cc32a35f7a56487e62ea6253631fed985",
+      "clean": true,
+      "patchSha256": null
+    },
+    "implementationFile": "campaign-public-signed-out-1440-light.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900,
+      "deviceScaleFactor": 2
+    },
+    "theme": "light",
+    "timezone": "America/Denver",
+    "clock": "frozen at 2026-10-30T19:00:00Z",
+    "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [],
+    "bg": "#faf9f4",
+    "shell": "#1c0f2e",
+    "title": "Mile High Civic Works (preview fixture) (@mile_high_fixture)",
+    "h1": "Mile High Civic Works (preview fixture)",
+    "status": "captured"
+  },
+  {
+    "screen": "campaign-worker",
+    "route": "/c/mile_high_fixture",
+    "state": "following",
+    "role": "worker",
+    "source": {
+      "commit": "efeecc5cc32a35f7a56487e62ea6253631fed985",
+      "clean": true,
+      "patchSha256": null
+    },
+    "implementationFile": "campaign-worker-following-390-light.png",
+    "viewport": {
+      "width": 390,
+      "height": 844,
+      "deviceScaleFactor": 2
+    },
+    "theme": "light",
+    "timezone": "America/Denver",
+    "clock": "frozen at 2026-10-30T19:00:00Z",
+    "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [
+      {
+        "label": "Home",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Jobs",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Work",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Map",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Messages",
+        "w": 73,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "More, 1 unread notification",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      }
+    ],
+    "bar": {
+      "w": 366,
+      "h": 60,
+      "left": 12,
+      "bottom": 10
+    },
+    "bg": "#faf9f4",
+    "shell": "#1c0f2e",
+    "title": "Mile High Civic Works (preview fixture) (@mile_high_fixture)",
+    "h1": "Mile High Civic Works (preview fixture)",
+    "status": "captured"
+  },
+  {
+    "screen": "campaign-worker",
+    "route": "/c/mile_high_fixture",
+    "state": "following",
+    "role": "worker",
+    "source": {
+      "commit": "efeecc5cc32a35f7a56487e62ea6253631fed985",
+      "clean": true,
+      "patchSha256": null
+    },
+    "implementationFile": "campaign-worker-following-1440-light.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900,
+      "deviceScaleFactor": 2
+    },
+    "theme": "light",
+    "timezone": "America/Denver",
+    "clock": "frozen at 2026-10-30T19:00:00Z",
+    "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [
+      {
+        "label": "Home",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Jobs",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Work",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Map",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "Messages",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      },
+      {
+        "label": "More, 1 unread notification",
+        "w": 0,
+        "h": 0,
+        "clipped": false
+      }
+    ],
+    "bar": {
+      "w": 0,
+      "h": 0,
+      "left": 0,
+      "bottom": 900
+    },
+    "bg": "#faf9f4",
+    "shell": "#1c0f2e",
+    "title": "Mile High Civic Works (preview fixture) (@mile_high_fixture)",
+    "h1": "Mile High Civic Works (preview fixture)",
+    "status": "captured"
+  },
+  {
+    "screen": "campaign-org",
+    "route": "/c/mile_high_fixture",
+    "state": "organization-login",
+    "role": "owner",
+    "source": {
+      "commit": "efeecc5cc32a35f7a56487e62ea6253631fed985",
+      "clean": true,
+      "patchSha256": null
+    },
+    "implementationFile": "campaign-org-organization-login-390-light.png",
+    "viewport": {
+      "width": 390,
+      "height": 844,
+      "deviceScaleFactor": 2
+    },
+    "theme": "light",
+    "timezone": "America/Denver",
+    "clock": "frozen at 2026-10-30T19:00:00Z",
+    "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [
+      {
+        "label": "Desk",
+        "w": 68,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Hiring",
+        "w": 68,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Field",
+        "w": 68,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Messages",
+        "w": 87,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "More",
+        "w": 68,
+        "h": 52,
+        "clipped": false
+      }
+    ],
+    "bar": {
+      "w": 366,
+      "h": 60,
+      "left": 12,
+      "bottom": 10
+    },
+    "bg": "#faf9f4",
+    "shell": "#1c0f2e",
+    "title": "Mile High Civic Works (preview fixture) (@mile_high_fixture)",
+    "h1": "Mile High Civic Works (preview fixture)",
+    "status": "captured"
+  },
+  {
+    "screen": "campaign-plain",
+    "route": "/c/plain_fixture",
+    "state": "no-photo-empty",
+    "role": "out",
+    "source": {
+      "commit": "efeecc5cc32a35f7a56487e62ea6253631fed985",
+      "clean": true,
+      "patchSha256": null
+    },
+    "implementationFile": "campaign-plain-no-photo-empty-390-light.png",
+    "viewport": {
+      "width": 390,
+      "height": 844,
+      "deviceScaleFactor": 2
+    },
+    "theme": "light",
+    "timezone": "America/Denver",
+    "clock": "frozen at 2026-10-30T19:00:00Z",
+    "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [],
+    "bg": "#faf9f4",
+    "shell": "#1c0f2e",
+    "title": "Plain Campaign (preview fixture) (@plain_fixture)",
+    "h1": "Plain Campaign (preview fixture)",
+    "status": "captured"
+  },
+  {
+    "screen": "campaign-plain",
+    "route": "/c/plain_fixture",
+    "state": "no-photo-empty",
+    "role": "out",
+    "source": {
+      "commit": "efeecc5cc32a35f7a56487e62ea6253631fed985",
+      "clean": true,
+      "patchSha256": null
+    },
+    "implementationFile": "campaign-plain-no-photo-empty-1440-light.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900,
+      "deviceScaleFactor": 2
+    },
+    "theme": "light",
+    "timezone": "America/Denver",
+    "clock": "frozen at 2026-10-30T19:00:00Z",
+    "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [],
+    "bg": "#faf9f4",
+    "shell": "#1c0f2e",
+    "title": "Plain Campaign (preview fixture) (@plain_fixture)",
+    "h1": "Plain Campaign (preview fixture)",
+    "status": "captured"
+  },
+  {
+    "screen": "campaign-paged",
+    "route": "/c/front_range_fixture",
+    "state": "page-one",
+    "role": "out",
+    "source": {
+      "commit": "efeecc5cc32a35f7a56487e62ea6253631fed985",
+      "clean": true,
+      "patchSha256": null
+    },
+    "implementationFile": "campaign-paged-page-one-390-light.png",
+    "viewport": {
+      "width": 390,
+      "height": 844,
+      "deviceScaleFactor": 2
+    },
+    "theme": "light",
+    "timezone": "America/Denver",
+    "clock": "frozen at 2026-10-30T19:00:00Z",
+    "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [],
+    "bg": "#faf9f4",
+    "shell": "#1c0f2e",
+    "title": "Front Range Field Partners (preview fixture) (@front_range_fixture)",
+    "h1": "Front Range Field Partners (preview fixture)",
+    "status": "captured"
+  },
+  {
+    "screen": "campaign-paged2",
+    "route": "/c/front_range_fixture?cursor=MjAyNi0xMC0wMVQwMzowMDowMC4wMDBafDAwMDAwMDAwLTAwMDAtMDAwMC0wMDAwLTAwMDAwMDBkMDAwMw",
+    "state": "older-posts",
+    "role": "out",
+    "source": {
+      "commit": "efeecc5cc32a35f7a56487e62ea6253631fed985",
+      "clean": true,
+      "patchSha256": null
+    },
+    "implementationFile": "campaign-paged2-older-posts-390-light.png",
+    "viewport": {
+      "width": 390,
+      "height": 844,
+      "deviceScaleFactor": 2
+    },
+    "theme": "light",
+    "timezone": "America/Denver",
+    "clock": "frozen at 2026-10-30T19:00:00Z",
+    "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [],
+    "bg": "#faf9f4",
+    "shell": "#1c0f2e",
+    "title": "Front Range Field Partners (preview fixture) (@front_range_fixture)",
+    "h1": "Front Range Field Partners (preview fixture)",
+    "status": "captured"
+  },
+  {
+    "screen": "campaign-post",
+    "route": "/c/mile_high_fixture/p/00000000-0000-0000-0000-00000000cb02",
+    "state": "post-with-job",
+    "role": "out",
+    "source": {
+      "commit": "efeecc5cc32a35f7a56487e62ea6253631fed985",
+      "clean": true,
+      "patchSha256": null
+    },
+    "implementationFile": "campaign-post-post-with-job-390-light.png",
+    "viewport": {
+      "width": 390,
+      "height": 844,
+      "deviceScaleFactor": 2
+    },
+    "theme": "light",
+    "timezone": "America/Denver",
+    "clock": "frozen at 2026-10-30T19:00:00Z",
+    "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [],
+    "bg": "#faf9f4",
+    "shell": "#1c0f2e",
+    "title": "Mile High Civic Works (preview fixture) (@mile_high_fixture) on Turfcut",
+    "h1": "Post by Mile High Civic Works (preview fixture)",
+    "status": "captured"
+  },
+  {
+    "screen": "campaign-post",
+    "route": "/c/mile_high_fixture/p/00000000-0000-0000-0000-00000000cb02",
+    "state": "post-with-job",
+    "role": "out",
+    "source": {
+      "commit": "efeecc5cc32a35f7a56487e62ea6253631fed985",
+      "clean": true,
+      "patchSha256": null
+    },
+    "implementationFile": "campaign-post-post-with-job-1440-light.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900,
+      "deviceScaleFactor": 2
+    },
+    "theme": "light",
+    "timezone": "America/Denver",
+    "clock": "frozen at 2026-10-30T19:00:00Z",
+    "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [],
+    "bg": "#faf9f4",
+    "shell": "#1c0f2e",
+    "title": "Mile High Civic Works (preview fixture) (@mile_high_fixture) on Turfcut",
+    "h1": "Post by Mile High Civic Works (preview fixture)",
+    "status": "captured"
+  },
+  {
+    "screen": "feed",
+    "route": "/feed",
+    "state": "populated",
+    "role": "worker",
+    "source": {
+      "commit": "efeecc5cc32a35f7a56487e62ea6253631fed985",
+      "clean": true,
+      "patchSha256": null
+    },
+    "implementationFile": "feed-populated-390-light.png",
+    "viewport": {
+      "width": 390,
+      "height": 844,
+      "deviceScaleFactor": 2
+    },
+    "theme": "light",
+    "timezone": "America/Denver",
+    "clock": "frozen at 2026-10-30T19:00:00Z",
+    "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [
+      {
+        "label": "Home",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Jobs",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Work",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Map",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Messages",
+        "w": 73,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "More, 1 unread notification",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      }
+    ],
+    "bar": {
+      "w": 366,
+      "h": 60,
+      "left": 12,
+      "bottom": 10
+    },
+    "bg": "#faf9f4",
+    "shell": "#1c0f2e",
+    "title": "Feed",
+    "h1": "From your campaigns",
+    "status": "captured"
+  },
+  {
+    "screen": "campaign-public",
+    "route": "/c/mile_high_fixture",
+    "state": "signed-out",
+    "role": "out",
+    "source": {
+      "commit": "efeecc5cc32a35f7a56487e62ea6253631fed985",
+      "clean": true,
+      "patchSha256": null
+    },
+    "implementationFile": "campaign-public-signed-out-390-dark.png",
+    "viewport": {
+      "width": 390,
+      "height": 844,
+      "deviceScaleFactor": 2
+    },
+    "theme": "dark",
+    "timezone": "America/Denver",
+    "clock": "frozen at 2026-10-30T19:00:00Z",
+    "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [],
+    "bg": "#140a22",
+    "shell": "#1c0f2e",
+    "title": "Mile High Civic Works (preview fixture) (@mile_high_fixture)",
+    "h1": "Mile High Civic Works (preview fixture)",
+    "status": "captured"
+  },
+  {
+    "screen": "campaign-public",
+    "route": "/c/mile_high_fixture",
+    "state": "signed-out",
+    "role": "out",
+    "source": {
+      "commit": "efeecc5cc32a35f7a56487e62ea6253631fed985",
+      "clean": true,
+      "patchSha256": null
+    },
+    "implementationFile": "campaign-public-signed-out-1440-dark.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900,
+      "deviceScaleFactor": 2
+    },
+    "theme": "dark",
+    "timezone": "America/Denver",
+    "clock": "frozen at 2026-10-30T19:00:00Z",
+    "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [],
+    "bg": "#140a22",
+    "shell": "#1c0f2e",
+    "title": "Mile High Civic Works (preview fixture) (@mile_high_fixture)",
+    "h1": "Mile High Civic Works (preview fixture)",
+    "status": "captured"
+  },
+  {
+    "screen": "campaign-worker",
+    "route": "/c/mile_high_fixture",
+    "state": "following",
+    "role": "worker",
+    "source": {
+      "commit": "efeecc5cc32a35f7a56487e62ea6253631fed985",
+      "clean": true,
+      "patchSha256": null
+    },
+    "implementationFile": "campaign-worker-following-390-dark.png",
+    "viewport": {
+      "width": 390,
+      "height": 844,
+      "deviceScaleFactor": 2
+    },
+    "theme": "dark",
+    "timezone": "America/Denver",
+    "clock": "frozen at 2026-10-30T19:00:00Z",
+    "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [
+      {
+        "label": "Home",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Jobs",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Work",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Map",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "Messages",
+        "w": 73,
+        "h": 52,
+        "clipped": false
+      },
+      {
+        "label": "More, 1 unread notification",
+        "w": 57,
+        "h": 52,
+        "clipped": false
+      }
+    ],
+    "bar": {
+      "w": 366,
+      "h": 60,
+      "left": 12,
+      "bottom": 10
+    },
+    "bg": "#140a22",
+    "shell": "#1c0f2e",
+    "title": "Mile High Civic Works (preview fixture) (@mile_high_fixture)",
+    "h1": "Mile High Civic Works (preview fixture)",
+    "status": "captured"
+  },
+  {
+    "screen": "campaign-post",
+    "route": "/c/mile_high_fixture/p/00000000-0000-0000-0000-00000000cb02",
+    "state": "post-with-job",
+    "role": "out",
+    "source": {
+      "commit": "efeecc5cc32a35f7a56487e62ea6253631fed985",
+      "clean": true,
+      "patchSha256": null
+    },
+    "implementationFile": "campaign-post-post-with-job-390-dark.png",
+    "viewport": {
+      "width": 390,
+      "height": 844,
+      "deviceScaleFactor": 2
+    },
+    "theme": "dark",
+    "timezone": "America/Denver",
+    "clock": "frozen at 2026-10-30T19:00:00Z",
+    "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [],
+    "bg": "#140a22",
+    "shell": "#1c0f2e",
+    "title": "Mile High Civic Works (preview fixture) (@mile_high_fixture) on Turfcut",
+    "h1": "Post by Mile High Civic Works (preview fixture)",
+    "status": "captured"
+  },
+  {
+    "screen": "campaign-post",
+    "route": "/c/mile_high_fixture/p/00000000-0000-0000-0000-00000000cb02",
+    "state": "post-with-job",
+    "role": "out",
+    "source": {
+      "commit": "efeecc5cc32a35f7a56487e62ea6253631fed985",
+      "clean": true,
+      "patchSha256": null
+    },
+    "implementationFile": "campaign-post-post-with-job-1440-dark.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900,
+      "deviceScaleFactor": 2
+    },
+    "theme": "dark",
+    "timezone": "America/Denver",
+    "clock": "frozen at 2026-10-30T19:00:00Z",
+    "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [],
+    "bg": "#140a22",
+    "shell": "#1c0f2e",
+    "title": "Mile High Civic Works (preview fixture) (@mile_high_fixture) on Turfcut",
+    "h1": "Post by Mile High Civic Works (preview fixture)",
+    "status": "captured"
+  }
+]

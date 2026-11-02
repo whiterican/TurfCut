@@ -102,11 +102,11 @@ export function DisplaySettings() {
     <div className="space-y-8">
       <fieldset className="space-y-3">
         <legend className="section-title">Text size</legend>
-        <div className="grid gap-2 sm:grid-cols-3">
+        <div className="choice-list">
           {TEXT_SIZES.map((t, i) => (
-            <label key={t.value} className="option-card items-center">
+            <label key={t.value} className="choice-row">
               <input type="radio" name="textSize" checked={size === t.value} onChange={() => applySize(t.value)} />
-              <span className="font-semibold text-fg" style={{ fontSize: `${1 + i * 0.125}rem` }}>
+              <span className="text-fg" style={{ fontSize: `${1 + i * 0.125}rem` }}>
                 {t.label}
               </span>
             </label>
@@ -117,11 +117,11 @@ export function DisplaySettings() {
 
       <fieldset className="space-y-3">
         <legend className="section-title">Theme</legend>
-        <div className="grid gap-2 sm:grid-cols-2">
+        <div className="choice-list">
           {THEME_CHOICES.map(({ value: v, label }) => (
-            <label key={v} className="option-card items-center">
+            <label key={v} className="choice-row">
               <input type="radio" name="theme" checked={theme === v} onChange={() => applyTheme(v)} />
-              <span className="font-semibold text-fg">{label}</span>
+              <span>{label}</span>
             </label>
           ))}
         </div>
@@ -130,11 +130,11 @@ export function DisplaySettings() {
 
       <fieldset className="space-y-3">
         <legend className="section-title">Motion</legend>
-        <div className="grid gap-2 sm:grid-cols-2">
+        <div className="choice-list">
           {([["system", phoneReduces ? "Match my phone (less motion)" : "Match my phone"], ["reduce", "Less motion"]] as const).map(([v, label]) => (
-            <label key={v} className="option-card items-center">
+            <label key={v} className="choice-row">
               <input type="radio" name="motion" checked={motion === v} onChange={() => applyMotion(v)} />
-              <span className="font-semibold text-fg">{label}</span>
+              <span>{label}</span>
             </label>
           ))}
         </div>

@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { DisplaySettings } from "@/components/DisplaySettings";
 import { createClient } from "@/lib/supabase/server";
 import { signOut } from "@/app/settings/actions";
@@ -10,19 +11,25 @@ import { closureProblems } from "@/lib/account-closure";
 import { Masthead } from "@/components/Masthead";
 import { ReadingPage } from "@/components/layout/Page";
 
-export const metadata = { title: "Display settings · Turfcut" };
+/** Signed in, the page holds the account too ("Settings"); signed out, only the display options. Once per request (metadata and page share it). */
+const signedInUser = cache(async () => {
+  try {
+    const { data } = await (await createClient()).auth.getUser();
+    return data.user ? { id: data.user.id, email: data.user.email } : null;
+  } catch {
+    return null; // Supabase not configured
+  }
+});
 
-/** Display settings for everyone (signed in or not): text size and theme. */
+export async function generateMetadata() {
+  return { title: `${(await signedInUser()) ? "Settings" : "Display settings"} · Turfcut` };
+}
+
+/** Settings for everyone: display options on this device; signed in, the account too (and, for workers, their data and closing the account). */
 export default async function SettingsPage() {
   // Any signed-in Supabase user can sign out — even one whose account setup
   // didn't finish (no profile row yet).
-  let session: { id: string; email: string | undefined } | null = null;
-  try {
-    const { data } = await (await createClient()).auth.getUser();
-    session = data.user ? { id: data.user.id, email: data.user.email } : null;
-  } catch {
-    session = null; // Supabase not configured
-  }
+  const session = await signedInUser();
   // Workers get their data and the way out (M7). Organization accounts
   // belong to their organization and aren't closed from here.
   let worker: { problems: string[] } | null = null;
@@ -36,7 +43,7 @@ export default async function SettingsPage() {
     }
   }
   return (
-    <ReadingPage gap={6} head={<Masthead title="Display settings" meta="Text size, theme and feel. Saved on this device." />}>
+    <ReadingPage gap={6} head={<Masthead title={session ? "Settings" : "Display settings"} meta="Text size, theme and feel are saved on this device." />}>
       <DisplaySettings />
       {session && (
         <section className="section">
@@ -49,7 +56,6 @@ export default async function SettingsPage() {
           </div>
         </section>
       )}
-      {session && worker && <AccountData userId={session.id} problems={worker.problems} />}
       {/* Turfcut staff (M10): the console lives behind its own gate; this is the one link to it that every role sees. */}
       {me?.staff && (
         <section className="section">
@@ -60,6 +66,8 @@ export default async function SettingsPage() {
           </div>
         </section>
       )}
+      {/* Last: Your data, then the danger zone (workers only). */}
+      {session && worker && <AccountData userId={session.id} problems={worker.problems} />}
     </ReadingPage>
   );
 }

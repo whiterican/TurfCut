@@ -3,7 +3,7 @@ import { requireWorker } from "@/lib/worker-session";
 import { loadSharing } from "@/lib/sharing-data";
 import { loadAvailability } from "@/lib/availability-data";
 import { loadCredentials } from "@/lib/credentials-data";
-import { PART_DETAILS, RELATIONSHIP_PHRASE, SHARE_GROUPS, SHARING_TEXT_VERSION, type ShareAudience, type WorkType } from "@/lib/sharing";
+import { PART_DETAILS, SETUP_COPY, SHARE_GROUPS, SHARING_TEXT_VERSION } from "@/lib/sharing";
 import { availabilitySummary, isEmptyAvailability } from "@/lib/availability";
 import { credentialName } from "@/lib/credentials";
 import { SETUP_STEPS, setupOrigin, setupStep } from "@/lib/setup-flow";
@@ -11,12 +11,9 @@ import { PendingButton } from "@/components/PendingButton";
 import { confirmSharing, skipSetup } from "./actions";
 import { ReadingPage } from "@/components/layout/Page";
 
-const SHORT: Record<ShareAudience, string> = {
-  RELATIONSHIP: `Organizations you ${RELATIONSHIP_PHRASE}`,
-  ANY_APPROVED_ORG: "Any organization Turfcut has approved",
-  NOBODY: "Nobody",
-};
-const WORK: Record<WorkType, string> = { PETITION: "petition", CANVASS: "canvass" };
+// The words come from SETUP_COPY, pinned to SHARING_TEXT_VERSION (sharing-copy.test.ts): Done records the choices under them.
+const SHORT = SETUP_COPY.audienceShort;
+const WORK = SETUP_COPY.workWords;
 const ERRORS: Record<string, string> = {
   stale: "Your choices changed since this page opened (perhaps in another window). Check them, then press Done again.",
   reworded: "How Turfcut explains who sees what changed while you were going through these steps. Here they are again as they read now.",
@@ -62,7 +59,7 @@ export default async function SetupPage({ searchParams }: { searchParams: Promis
       <section className="card space-y-3">
         {n === 1 && (
           <>
-            <p className="text-muted-sm">Each part of your scorecard has its own audience. Anything not shared shows as &quot;not shared&quot;, never a zero.</p>
+            <p className="text-muted-sm">{SETUP_COPY.scorecardIntro}</p>
             <ul className="space-y-3">
               {SHARE_GROUPS.map((g) => (
                 <li key={g} className="space-y-0.5 text-sm">
@@ -79,29 +76,25 @@ export default async function SetupPage({ searchParams }: { searchParams: Promis
         )}
         {n === 2 && (
           <>
-            <p className="text-muted-sm">When you&apos;re usually free, for schedulers. Never scored. It covers: {PART_DETAILS.availability.covers.toLowerCase()}.</p>
-            <p className="text-muted-sm">Seen by: {SHORT[c.audiences.availability]}.</p>
+            <p className="text-muted-sm">{SETUP_COPY.availabilityIntro(PART_DETAILS.availability.covers)}</p>
+            <p className="text-muted-sm">{SETUP_COPY.seenBy(SHORT[c.audiences.availability])}</p>
             <p className="text-sm text-fg">{isEmptyAvailability(avail.availability) ? "Not set yet." : availabilitySummary(avail.availability, today).usual ?? "Only specific dates set."}</p>
             <Link href="/profile/availability" className="link text-sm">{isEmptyAvailability(avail.availability) ? "Set your availability" : "Change availability"}</Link>
           </>
         )}
         {n === 3 && (
           <>
-            <p className="text-muted-sm">Registrations, notary status and training. Organizations see the {PART_DETAILS.credentials.covers.toLowerCase()}, never the number.</p>
-            <p className="text-muted-sm">Seen by: {SHORT[c.audiences.credentials]}.</p>
+            <p className="text-muted-sm">{SETUP_COPY.credentialsIntro(PART_DETAILS.credentials.covers)}</p>
+            <p className="text-muted-sm">{SETUP_COPY.seenBy(SHORT[c.audiences.credentials])}</p>
             <p className="text-sm text-fg">{creds.length ? creds.map(credentialName).join(", ") : "None added yet."}</p>
             <Link href="/profile/credentials" className="link text-sm">{creds.length ? "Manage credentials" : "Add a credential"}</Link>
           </>
         )}
         {n === 4 && (
           <>
-            <p className="text-muted-sm">
-              Whether approved organizations can find you for work near you, and for which kind. They&apos;d see your name, a rounded
-              distance, how far you&apos;d travel and what you share with any approved organization, never the place itself. Off unless you turn it on; it uses only a
-              city or ZIP you type, never your phone&apos;s location.
-            </p>
+            <p className="text-muted-sm">{SETUP_COPY.findableIntro}</p>
             <p className="text-sm text-fg">
-              {c.findable ? `On: ${c.workTypes.map((t) => WORK[t]).join(" and ")} work, within ${c.travelMiles} miles of ${c.homeArea}.` : "Off."}
+              {c.findable ? SETUP_COPY.findableOn(c.workTypes.map((t) => WORK[t]).join(" and "), c.travelMiles, c.homeArea) : SETUP_COPY.findableOff}
             </p>
             <Link href="/profile/sharing" className="link text-sm">Change</Link>
           </>
@@ -124,7 +117,7 @@ export default async function SetupPage({ searchParams }: { searchParams: Promis
             {/* …and the wording the steps showed it under (from step 1). */}
             <input type="hidden" name="textVersion" value={tv} />
             <input type="hidden" name="from" value={from} />
-            <PendingButton pendingLabel="Saving…">Done, keep these choices</PendingButton>
+            <PendingButton pendingLabel="Saving…">{SETUP_COPY.confirmLabel}</PendingButton>
           </form>
         )}
         {n > 1 && <Link href={step(n - 1)} className="btn-ghost">Back</Link>}
@@ -134,9 +127,7 @@ export default async function SetupPage({ searchParams }: { searchParams: Promis
         </form>
       </div>
       <p className="text-hint">
-        {sharing.version === null
-          ? `Skipping keeps the defaults: organizations you ${RELATIONSHIP_PHRASE} see your profile, and nobody can find you.`
-          : "Skipping keeps your current choices."}
+        {sharing.version === null ? SETUP_COPY.skipKeepsDefaults : SETUP_COPY.skipKeepsCurrent}
       </p>
     </ReadingPage>
   );

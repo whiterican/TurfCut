@@ -97,7 +97,7 @@ export const WORKER_MORE: NavTab[] = [
   { href: "/earnings/receipts", label: "Payment history", icon: "receipts" },
   { href: "/profile/credentials", label: "Credentials", icon: "credentials" },
   { href: "/profile/availability", label: "Availability", icon: "availability" },
-  { href: "/settings", label: "Display settings", icon: "settings" },
+  { href: "/settings", label: "Settings", icon: "settings" },
 ];
 /** The More destinations the desktop top bar also shows as links (the rest are reached from those pages or the header). */
 const TOP_MORE = new Set(["/profile", "/feed", "/earnings"]); // Notifications is the header's bell on a desktop

@@ -8,7 +8,10 @@ import {
   MAX_TRAVEL_MILES,
   PART_DETAILS,
   SHARE_PARTS,
+  SHARING_COPY,
   SHARING_TEXT_VERSION,
+  normalizeArea,
+  unplacedAreaWarning,
   type ShareAudience,
   type SharePart,
   type SharingChoices,
@@ -16,10 +19,8 @@ import {
 } from "@/lib/sharing";
 
 const initial: SharingFormState = { ok: false, message: "", errors: {} };
-const WORK_TYPES: Array<{ value: WorkType; label: string }> = [
-  { value: "PETITION", label: "Petition" },
-  { value: "CANVASS", label: "Canvass" },
-];
+// Every work type has a label (SHARING_COPY.workTypeLabels satisfies Record<WorkType, string>).
+const WORK_TYPES: Array<{ value: WorkType; label: string }> = (Object.keys(SHARING_COPY.workTypeLabels) as WorkType[]).map((value) => ({ value, label: SHARING_COPY.workTypeLabels[value] }));
 
 /**
  * Profile → Who sees what. Every part of the profile gets one of three
@@ -28,7 +29,7 @@ const WORK_TYPES: Array<{ value: WorkType; label: string }> = [
  * React never resets it: what's on screen is always what the worker chose
  * and what the next save sends.
  */
-export function SharingForm({ choices }: { choices: SharingChoices }) {
+export function SharingForm({ choices, unplacedArea = null }: { choices: SharingChoices; /** The saved home area, when findable and Turfcut can't place it. */ unplacedArea?: string | null }) {
   const [state, setState] = useState<SharingFormState>(initial);
   const [pending, start] = useTransition();
   const inFlight = useRef(false);
@@ -41,6 +42,8 @@ export function SharingForm({ choices }: { choices: SharingChoices }) {
   const errId = (k: string) => (e[k] ? `err-${k}` : undefined);
   const err = (k: string) => e[k] && <p id={`err-${k}`} className="text-danger-msg">{e[k]}</p>;
   const failed = Object.keys(e);
+  // Compared as saved (trimmed, spaces made one), so a trailing space from the keyboard doesn't hide it.
+  const showUnplaced = findable && !!unplacedArea && normalizeArea(homeArea) === unplacedArea;
   const onSubmit = (ev: React.FormEvent<HTMLFormElement>) => {
     ev.preventDefault();
     if (inFlight.current) return;
@@ -75,14 +78,15 @@ export function SharingForm({ choices }: { choices: SharingChoices }) {
         </p>
       )}
       {SHARE_PARTS.map((part) => (
-        <fieldset key={part} className={`card space-y-3 ${e[part] ? "border-[var(--danger)]" : ""}`} aria-describedby={errId(part)}>
+        // One card per part, its audiences as rows (#114: not a card per option). Words unchanged.
+        <fieldset key={part} className={`card space-y-1 ${e[part] ? "border-[var(--danger)]" : ""}`} aria-describedby={errId(part)}>
           <legend className="float-left w-full space-y-0.5">
             <span className="block font-semibold text-fg">{PART_DETAILS[part].label}</span>
             <span className="text-muted-sm block font-normal">{PART_DETAILS[part].covers}</span>
           </legend>
-          <div className="clear-both space-y-2 pt-1">
+          <div className="choice-rows clear-both pt-1">
             {AUDIENCE_OPTIONS.map((o) => (
-              <label key={o.value} className="option-card items-center py-3 text-sm text-fg">
+              <label key={o.value} className="choice-row text-sm">
                 <input
                   type="radio"
                   name={`audience.${part}`}
@@ -97,11 +101,7 @@ export function SharingForm({ choices }: { choices: SharingChoices }) {
           {err(part)}
         </fieldset>
       ))}
-      <p className="text-hint">
-        &ldquo;Any organization Turfcut has approved&rdquo; matters when you let organizations find you (below): an approved
-        organization you haven&apos;t applied to then sees those parts when you come up as a match for one of its jobs.
-        Otherwise an organization sees your profile only after you apply, claim a spot or accept its invitation.
-      </p>
+      <p className="text-hint">{SHARING_COPY.approvedHint}</p>
 
       <fieldset className="card space-y-4">
         <legend className="sr-only">Findability</legend>
@@ -116,19 +116,16 @@ export function SharingForm({ choices }: { choices: SharingChoices }) {
             onChange={(ev) => setFindable(ev.target.checked)}
             aria-describedby="findable-help"
           />
-          Let organizations find me
+          {SHARING_COPY.findableLabel}
         </label>
-        <p id="findable-help" className="text-muted-sm">
-          Off by default. When it&apos;s on, organizations Turfcut has approved can find you for the work you pick, on
-          published jobs within the distance you set of the place you type, and invite you. They see your name, the distance
-          rounded to 5 miles, the distance you&apos;d travel, and the parts above you share with any approved organization.
-          They never see the place you type. Turfcut never uses your phone&apos;s location. Turning it off clears the place and distance.
-        </p>
+        <p id="findable-help" className="text-muted-sm">{SHARING_COPY.findableHelp}</p>
+        {/* The saved place can't be placed: shown while the field still holds it (an edit is checked when saved). */}
+        {showUnplaced && <p id="unplaced-area" className="alert-warning text-sm">{unplacedAreaWarning(unplacedArea!)}</p>}
         {/* Disabled while off: nothing hidden is submitted or checked. */}
         <fieldset disabled={!findable} className={findable ? "space-y-4" : "hidden"}>
           <legend className="sr-only">Where and what</legend>
           <fieldset className="space-y-1.5" aria-describedby={errId("workTypes")}>
-            <legend className="label">Work I want to be found for</legend>
+            <legend className="label">{SHARING_COPY.workTypesLabel}</legend>
             <div className="flex flex-wrap gap-2">
               {WORK_TYPES.map((t) => (
                 <label key={t.value} className="chip">
@@ -147,7 +144,7 @@ export function SharingForm({ choices }: { choices: SharingChoices }) {
             {err("workTypes")}
           </fieldset>
           <label className="block space-y-1.5">
-            <span className="label">City or ZIP you&apos;d travel from</span>
+            <span className="label">{SHARING_COPY.homeAreaLabel}</span>
             <input
               name="homeArea"
               className="field max-w-80"
@@ -157,12 +154,12 @@ export function SharingForm({ choices }: { choices: SharingChoices }) {
               onChange={(ev) => setHomeArea(ev.target.value)}
               placeholder="Denver, CO or 80202"
               aria-invalid={e.homeArea ? true : undefined}
-              aria-describedby={errId("homeArea")}
+              aria-describedby={[errId("homeArea"), showUnplaced ? "unplaced-area" : undefined].filter(Boolean).join(" ") || undefined}
             />
             {err("homeArea")}
           </label>
           <label className="block space-y-1.5">
-            <span className="label">How far you&apos;d travel (miles, up to {MAX_TRAVEL_MILES})</span>
+            <span className="label">{SHARING_COPY.travelMilesLabel(MAX_TRAVEL_MILES)}</span>
             <input
               name="travelMiles"
               inputMode="numeric"

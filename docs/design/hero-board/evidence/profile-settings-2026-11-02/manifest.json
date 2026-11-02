@@ -1,0 +1,240 @@
+[
+  {
+    "screen": "profile-findable-unplaced-reconfirm",
+    "route": "/profile",
+    "role": "jordan",
+    "width": 390,
+    "theme": "light",
+    "file": "profile-findable-unplaced-reconfirm-390-light.png",
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "e372bc32b5967760e875d7d6fdbab0d337e3ec54",
+      "clean": true
+    }
+  },
+  {
+    "screen": "profile-findable-unplaced-reconfirm",
+    "route": "/profile",
+    "role": "jordan",
+    "width": 390,
+    "theme": "dark",
+    "file": "profile-findable-unplaced-reconfirm-390-dark.png",
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "e372bc32b5967760e875d7d6fdbab0d337e3ec54",
+      "clean": true
+    }
+  },
+  {
+    "screen": "profile-findable-unplaced-reconfirm",
+    "route": "/profile",
+    "role": "jordan",
+    "width": 1440,
+    "theme": "light",
+    "file": "profile-findable-unplaced-reconfirm-1440-light.png",
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "e372bc32b5967760e875d7d6fdbab0d337e3ec54",
+      "clean": true
+    }
+  },
+  {
+    "screen": "profile-add-campaign-open",
+    "route": "/profile",
+    "role": "jordan",
+    "width": 390,
+    "theme": "light",
+    "file": "profile-add-campaign-open-390-light.png",
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "e372bc32b5967760e875d7d6fdbab0d337e3ec54",
+      "clean": true
+    }
+  },
+  {
+    "screen": "profile-defaults-first-visit",
+    "route": "/profile",
+    "role": "alex",
+    "width": 390,
+    "theme": "light",
+    "file": "profile-defaults-first-visit-390-light.png",
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "e372bc32b5967760e875d7d6fdbab0d337e3ec54",
+      "clean": true
+    }
+  },
+  {
+    "screen": "settings-worker-close-blocked",
+    "route": "/settings",
+    "role": "jordan",
+    "width": 390,
+    "theme": "light",
+    "file": "settings-worker-close-blocked-390-light.png",
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "e372bc32b5967760e875d7d6fdbab0d337e3ec54",
+      "clean": true
+    }
+  },
+  {
+    "screen": "settings-worker-close-blocked",
+    "route": "/settings",
+    "role": "jordan",
+    "width": 390,
+    "theme": "dark",
+    "file": "settings-worker-close-blocked-390-dark.png",
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "e372bc32b5967760e875d7d6fdbab0d337e3ec54",
+      "clean": true
+    }
+  },
+  {
+    "screen": "settings-worker-close-blocked",
+    "route": "/settings",
+    "role": "jordan",
+    "width": 1440,
+    "theme": "light",
+    "file": "settings-worker-close-blocked-1440-light.png",
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "e372bc32b5967760e875d7d6fdbab0d337e3ec54",
+      "clean": true
+    }
+  },
+  {
+    "screen": "settings-worker-sunlight",
+    "route": "/settings",
+    "role": "jordan",
+    "width": 390,
+    "theme": "sun",
+    "file": "settings-worker-sunlight-390-sun.png",
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "e372bc32b5967760e875d7d6fdbab0d337e3ec54",
+      "clean": true
+    }
+  },
+  {
+    "screen": "settings-signed-out",
+    "route": "/settings",
+    "role": "signed-out",
+    "width": 390,
+    "theme": "light",
+    "file": "settings-signed-out-390-light.png",
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "e372bc32b5967760e875d7d6fdbab0d337e3ec54",
+      "clean": true
+    }
+  },
+  {
+    "screen": "settings-organization-owner",
+    "route": "/settings",
+    "role": "owner",
+    "width": 390,
+    "theme": "light",
+    "file": "settings-organization-owner-390-light.png",
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "e372bc32b5967760e875d7d6fdbab0d337e3ec54",
+      "clean": true
+    }
+  },
+  {
+    "screen": "settings-staff",
+    "route": "/settings",
+    "role": "staff",
+    "width": 1440,
+    "theme": "light",
+    "file": "settings-staff-1440-light.png",
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "e372bc32b5967760e875d7d6fdbab0d337e3ec54",
+      "clean": true
+    }
+  },
+  {
+    "screen": "sharing-findable-unplaced",
+    "route": "/profile/sharing",
+    "role": "jordan",
+    "width": 390,
+    "theme": "light",
+    "file": "sharing-findable-unplaced-390-light.png",
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "e372bc32b5967760e875d7d6fdbab0d337e3ec54",
+      "clean": true
+    }
+  },
+  {
+    "screen": "sharing-findable-unplaced",
+    "route": "/profile/sharing",
+    "role": "jordan",
+    "width": 390,
+    "theme": "dark",
+    "file": "sharing-findable-unplaced-390-dark.png",
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "e372bc32b5967760e875d7d6fdbab0d337e3ec54",
+      "clean": true
+    }
+  },
+  {
+    "screen": "sharing-findable-unplaced",
+    "route": "/profile/sharing",
+    "role": "jordan",
+    "width": 1440,
+    "theme": "light",
+    "file": "sharing-findable-unplaced-1440-light.png",
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "e372bc32b5967760e875d7d6fdbab0d337e3ec54",
+      "clean": true
+    }
+  },
+  {
+    "screen": "sharing-defaults-never-saved",
+    "route": "/profile/sharing",
+    "role": "alex",
+    "width": 390,
+    "theme": "light",
+    "file": "sharing-defaults-never-saved-390-light.png",
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "e372bc32b5967760e875d7d6fdbab0d337e3ec54",
+      "clean": true
+    }
+  },
+  {
+    "screen": "political-fit-needs-reconfirming",
+    "route": "/profile/preferences",
+    "role": "jordan",
+    "width": 390,
+    "theme": "light",
+    "file": "political-fit-needs-reconfirming-390-light.png",
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "e372bc32b5967760e875d7d6fdbab0d337e3ec54",
+      "clean": true
+    }
+  }
+]

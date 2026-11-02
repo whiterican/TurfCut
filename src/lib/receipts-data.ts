@@ -41,8 +41,12 @@ export interface Receipt {
   failedAt: Date | null;
   /** Stripe's transfer reference once confirmed. */
   providerRef: string | null;
-  /** A partial reversal: how much Stripe has confirmed came back so far, and when it last said so (null unless partly reversed). */
-  partReversal: { reversedCents: number; at: Date } | null;
+  /**
+   * A partial reversal: how much Stripe has confirmed it took back so far, out
+   * of the amount Stripe says it sent, and when it last said so (null unless
+   * partly reversed). Kept = sentCents − reversedCents.
+   */
+  partReversal: PartReversal | null;
   status: ReceiptStatus;
   lines: ReceiptLine[];
 }
@@ -57,21 +61,27 @@ const rows = (workerId: string, transferId: string | null, take: number) =>
   db().payoutTransfer.findMany({ where: { workerId, ...(transferId ? { id: transferId } : {}) }, include: INCLUDE, orderBy: { createdAt: "desc" }, take });
 
 type PartialAudit = { entityId: string; metadata: unknown; createdAt: Date };
+export type PartReversal = { reversedCents: number; sentCents: number; at: Date };
 
 /**
  * The confirmed partial reversal per transfer from Stripe's reports. Stripe
- * reports the total reversed so far, so the largest is the latest; a report
- * of nothing, or of the whole amount or more, isn't a partial reversal.
+ * reports the total reversed so far, so the largest is the latest. Partial
+ * is judged against the amount Stripe says it sent (the report's own
+ * amountCents, as the webhook judged it), falling back to Turfcut's record;
+ * a report of nothing, or of the whole amount or more, isn't partial.
  */
-export function partialReversals(audits: PartialAudit[], amounts: Map<string, number>): Map<string, { reversedCents: number; at: Date }> {
-  const out = new Map<string, { reversedCents: number; at: Date }>();
+export function partialReversals(audits: PartialAudit[], amounts: Map<string, number>): Map<string, PartReversal> {
+  const int = (v: unknown) => (typeof v === "number" && Number.isInteger(v) ? v : null);
+  const out = new Map<string, PartReversal>();
   for (const a of audits) {
-    const m = (a.metadata ?? {}) as { reversedCents?: unknown };
-    const cents = typeof m.reversedCents === "number" && Number.isInteger(m.reversedCents) ? m.reversedCents : 0;
-    const amount = amounts.get(a.entityId);
-    if (amount === undefined || cents <= 0 || cents >= amount) continue;
+    const m = (a.metadata ?? {}) as { reversedCents?: unknown; amountCents?: unknown };
+    const recorded = amounts.get(a.entityId);
+    if (recorded === undefined) continue;
+    const cents = int(m.reversedCents) ?? 0;
+    const sent = int(m.amountCents) ?? recorded;
+    if (cents <= 0 || cents >= sent) continue;
     const prev = out.get(a.entityId);
-    if (!prev || cents > prev.reversedCents) out.set(a.entityId, { reversedCents: cents, at: a.createdAt });
+    if (!prev || cents > prev.reversedCents) out.set(a.entityId, { reversedCents: cents, sentCents: sent, at: a.createdAt });
   }
   return out;
 }
@@ -86,7 +96,7 @@ async function views(ts: Row[]): Promise<Receipt[]> {
   return ts.map((t) => view(t, parts.get(t.id) ?? null));
 }
 
-function view(t: Row, part: { reversedCents: number; at: Date } | null): Receipt {
+function view(t: Row, part: PartReversal | null): Receipt {
   const first = (type: string) => t.events.find((e) => e.type === type) ?? null;
   const paid = first("PAID");
   const reversed = first("REVERSED");

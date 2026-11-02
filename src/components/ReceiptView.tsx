@@ -9,8 +9,8 @@ export const RECEIPT_STATUS: Record<Receipt["status"], Status> = {
   sending: { label: "Sending", state: "sending" },
   sent: { label: "Sent", state: "paid" },
   failed: { label: "Not sent", state: "blocked" },
-  // Part of it came back (Stripe reversed some): the words carry the difference from a full reversal.
-  "partly-reversed": { label: "Partly reversed", state: "closed" },
+  // The money arrived and Stripe later took part of it back: still a paid payment, the label says what changed.
+  "partly-reversed": { label: "Sent · partly reversed", state: "paid" },
   // Final: the payment came back. Not a pause (held is "On hold" on the pay screens).
   reversed: { label: "Reversed", state: "closed" },
 };
@@ -68,8 +68,8 @@ export function ReceiptView({ r }: { r: Receipt }) {
             <dt>Came back</dt>
             <dd className="tabular-nums">{money(r.partReversal.reversedCents)} · <LocalTime iso={r.partReversal.at.toISOString()} mode="full" /></dd>
             <dt>You kept</dt>
-            <dd className="font-semibold tabular-nums">{money(r.amountCents - r.partReversal.reversedCents)}</dd>
-            <dd className="receipt-note">Stripe returned part of this payment to {r.orgName}; it shows on their Pay tab too. The lines below are what the whole payment was for.</dd>
+            <dd className="font-semibold tabular-nums">{money(r.partReversal.sentCents - r.partReversal.reversedCents)}</dd>
+            <dd className="receipt-note">Stripe took back {money(r.partReversal.reversedCents)} of this payment. Once {r.orgName} records it, the same amount shows on Earnings as a deducted adjustment (not a second deduction), and anything they pay again arrives on a later receipt. The lines below are what the whole payment was for.</dd>
           </>
         )}
         {r.reversedAt && (
@@ -121,7 +121,7 @@ export function ReceiptView({ r }: { r: Receipt }) {
             </li>
           ))}
           <li className="flex items-start justify-between gap-4 px-4 py-3">
-            <span className="font-semibold text-fg">{r.status === "sent" || r.status === "partly-reversed" ? "Total sent" : r.status === "reversed" ? "Total reversed" : "Total"}</span>
+            <span className="font-semibold text-fg">{r.status === "sent" ? "Total sent" : r.status === "partly-reversed" ? "Total sent (before the reversal)" : r.status === "reversed" ? "Total reversed" : "Total"}</span>
             <span className="font-bold text-fg tabular-nums">{money(r.amountCents)}</span>
           </li>
         </ul>

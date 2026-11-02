@@ -390,6 +390,17 @@ async function slice4() {
   const l9 = await p.payout.findFirstOrThrow({ where: { shiftId: s9 } });
   const self = await pay.lineAction(own, [l9.id], "approve", null, now());
   check("an owner who approved the work can't approve its pay", !self.ok && /someone else/.test(self.ok ? "" : self.reason), self);
+  // Who else could approve it (the Pay page's two-person note, pay-data otherPayApprovers).
+  check("someone else here can approve pay: the finance member, not the supervisor", (await pay.otherPayApprovers(ORG, OWNER)) === 1);
+  check("in a one-owner organization nobody else can", (await pay.otherPayApprovers(ORG2, OTHER)) === 0);
+  const BOOKS = "00000000-0000-0000-0000-0000000000ee";
+  const books = await p.orgRole.create({ data: { orgId: ORG2, name: "books", createdById: OTHER, grants: { create: [{ area: "pay", level: "FULL" }] } } });
+  await p.profile.create({ data: { id: BOOKS, role: "CUSTOM", orgId: ORG2, orgRoleId: books.id, displayName: "Bo Oks" } });
+  check("a custom role granted pay counts", (await pay.otherPayApprovers(ORG2, OTHER)) === 1);
+  await p.orgRole.update({ where: { id: books.id }, data: { archivedAt: now() } });
+  check("…not once its role is archived", (await pay.otherPayApprovers(ORG2, OTHER)) === 0);
+  await p.profile.delete({ where: { id: BOOKS } });
+  await p.orgRole.delete({ where: { id: books.id } });
   // Re-approving with the same pay keeps the supervisor's line: the owner's
   // later review still blocks them.
   const s10 = await workedShift(ENG_W1_A, 10);

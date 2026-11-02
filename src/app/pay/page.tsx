@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { canUse } from "@/lib/access";
 import { requireArea } from "@/lib/employer-session";
-import { loadOrgDisputes, loadOrgPay, partialReversals, pendingTransfers, reviewerOf, selfApproval, type OrgLine } from "@/lib/pay-data";
+import { loadOrgDisputes, loadOrgPay, otherPayApprovers, partialReversals, pendingTransfers, reviewerOf, selfApproval, type OrgLine } from "@/lib/pay-data";
 import { noteOverdueDisputes } from "@/lib/dispute-thread-data";
 import { clockParts } from "@/lib/dispute-sla";
 import { stripeProvider } from "@/lib/payout-provider";
@@ -69,6 +69,9 @@ export default async function PayPage({ searchParams }: { searchParams: Promise<
     pendingTransfers(actor),
     partialReversals(actor),
   ]);
+  // Two people for every payment: when this person can't approve a line and nobody else can approve pay, say how to fix it.
+  const selfBlocked = tab === "approve" && pay.awaiting.some((l) => selfApproval(l, s.userId));
+  const nobodyElse = selfBlocked && (await otherPayApprovers(s.orgId, s.userId)) === 0;
   const stripeOn = stripeProvider().configured();
   const sum = (ls: OrgLine[]) => ls.reduce((n, l) => n + l.line.amountCents, 0);
   const readyTotal = pay.toPay.reduce((n, w) => n + Math.max(0, w.amountCents), 0);
@@ -217,6 +220,22 @@ export default async function PayPage({ searchParams }: { searchParams: Promise<
         <section className="section">
           <h2 className="section-title">Approve pay</h2>
           <p className="text-muted-sm">Each line was calculated from verified work when a supervisor approved the shift.</p>
+          {nobodyElse && (
+            <div role="note" className="alert-warning space-y-1 text-sm">
+              <p className="font-semibold">Every payment needs two people.</p>
+              <p>
+                Whoever approved a shift&apos;s work, or entered or corrected its counts, can&apos;t also approve its pay. Nobody else in
+                your organization can approve pay yet, so these lines wait until someone can.
+              </p>
+              {canUse(s, "orgMembers") ? (
+                <p>
+                  <Link href="/org/settings/members" className="link font-semibold">Invite a finance member</Link> (or another owner) to approve them.
+                </p>
+              ) : (
+                <p>Ask an owner to add a finance member to approve them.</p>
+              )}
+            </div>
+          )}
           <ApproveLines
             action={approve}
             rows={pay.awaiting.map((l) => ({

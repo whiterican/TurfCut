@@ -1,7 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { UUID_RE } from "@/lib/jobs";
-import { canUse, type Grants } from "@/lib/access";
+import { canUse, liveGrants, rolesFor, type Grants } from "@/lib/access";
 import type { Role } from "@/lib/auth";
 import { ProviderError, type PayoutProvider, type ProviderEvent } from "@/lib/payout-provider";
 import { verifiedWork } from "@/lib/scorecard";
@@ -506,6 +506,21 @@ export function reviewerOf(l: OrgLine): string | null {
   if (l.line.kind !== "SHIFT") return null;
   const replaced = l.line.events.some((e) => e.type === "VOIDED");
   return replaced ? (l.line.validation?.reviewerId ?? null) : (l.line.shift?.validations[0]?.reviewerId ?? l.line.validation?.reviewerId ?? null);
+}
+
+/**
+ * How many other current members of the organization can approve pay (the
+ * pay area at full access: owners, finance, or a custom role granted it). The
+ * two-person rule (selfApprovalProblem) needs one; when there is none, the
+ * Pay page says so instead of leaving every line stuck.
+ */
+export async function otherPayApprovers(orgId: string, actorId: string): Promise<number> {
+  const members = await db().profile.findMany({
+    // Built-in roles from the access map; custom roles by their live grants (below).
+    where: { orgId, closedAt: null, id: { not: actorId }, role: { in: [...rolesFor("pay"), "CUSTOM"] } },
+    select: { role: true, orgId: true, orgRole: { select: { orgId: true, archivedAt: true, grants: { select: { area: true, level: true } } } } },
+  });
+  return members.filter((m) => (m.role === "CUSTOM" ? canUse({ role: "CUSTOM", grants: liveGrants(m.orgRole, m.orgId) }, "pay") : true)).length;
 }
 
 /** The two-person rule for one loaded line (lib/pay selfApprovalProblem). */

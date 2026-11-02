@@ -10,6 +10,7 @@ import { CANVASS_APPS } from "@/lib/job-tools";
 import { CAMPAIGN_TYPES, ISSUES } from "@/lib/political-fit";
 import { US_STATES } from "@/lib/experience";
 import { StagingPointsEditor } from "@/components/StagingPointsEditor";
+import { placeOfCity } from "@/app/jobs/place-actions";
 import { ChevronLeft } from "lucide-react";
 
 const initial: JobFormState = { message: "", errors: {} };
@@ -125,6 +126,21 @@ export function JobForm({
   const launchRead = validateLaunch(defaults);
   const launch = launchRead.ok ? launchRead.value : readLaunch(null);
   const [launchMode, setLaunchMode] = useState(launch.mode);
+  // The job's city as typed, placed on the map (bundled Census places): the staging map starts there and
+  // warns about a pin far from it. A lookup that fails or can't place it leaves the map as it was.
+  const [where, setWhere] = useState({ city: String(d("city") ?? ""), state: String(d("state") ?? "") });
+  const [area, setArea] = useState<{ lat: number; lng: number; label: string } | null>(null);
+  useEffect(() => {
+    let live = true;
+    const t = setTimeout(() => {
+      if (!where.city.trim() || !where.state) return setArea(null);
+      placeOfCity(where.city, where.state).then((p) => live && setArea(p), () => live && setArea(null));
+    }, 400);
+    return () => {
+      live = false;
+      clearTimeout(t);
+    };
+  }, [where.city, where.state]);
   const stepErrors = errorsForStep(errors, step);
   const err = (k: string) => (stepErrors[k] ? <p id={`err-${k}`} className="field-error">{stepErrors[k]}</p> : null);
   const describe = (k: string) => (stepErrors[k] ? { "aria-invalid": true as const, "aria-describedby": `err-${k}` } : {});
@@ -347,12 +363,12 @@ export function JobForm({
         </label>
         <label className="space-y-1.5">
           <span className="label">City</span>
-          <input name="city" className="field" required maxLength={80} defaultValue={d("city")} {...describe("city")} />
+          <input name="city" className="field" required maxLength={80} defaultValue={d("city")} onChange={(e) => setWhere((w) => ({ ...w, city: e.target.value }))} {...describe("city")} />
           {err("city")}
         </label>
         <label className="space-y-1.5">
           <span className="label">State</span>
-          <select name="state" className="field" defaultValue={d("state")} required {...describe("state")}>
+          <select name="state" className="field" defaultValue={d("state")} onChange={(e) => setWhere((w) => ({ ...w, state: e.target.value }))} required {...describe("state")}>
             <option value="" disabled>—</option>
             {US_STATES.map((s) => <option key={s} value={s}>{s}</option>)}
           </select>
@@ -372,7 +388,7 @@ export function JobForm({
           ))}
           {err("launchMode")}
         </fieldset>
-        <StagingPointsEditor initial={launch.points} errors={stepErrors} describe={describe} disabled={launchMode !== "STAGED"} />
+        <StagingPointsEditor initial={launch.points} errors={stepErrors} describe={describe} disabled={launchMode !== "STAGED"} area={area} />
       </fieldset>
 
       <fieldset hidden={show(2)} className="grid gap-3 sm:grid-cols-3">

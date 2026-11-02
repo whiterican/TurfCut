@@ -2,9 +2,13 @@
 
 import { useState } from "react";
 import { TurfMap, type MapPin } from "@/components/TurfMap";
+import { milesBetween } from "@/lib/geo-distance";
 import { DEFAULT_RADIUS_M, MAX_POINTS, MAX_RADIUS_M, MIN_RADIUS_M, type StagingPoint } from "@/lib/job-launch";
 
 type Draft = { id: string; name: string; address: string; lat: string; lng: string; radius: string };
+
+/** Past this from the job's city centre a pin is worth a second look (a large city is about 15 miles across). */
+const FAR_MILES = 30;
 
 const blank = (): Draft => ({ id: crypto.randomUUID(), name: "", address: "", lat: "", lng: "", radius: String(DEFAULT_RADIUS_M) });
 const fromPoint = (p: StagingPoint): Draft => ({ id: p.id, name: p.name, address: p.address ?? "", lat: p.lat.toFixed(6), lng: p.lng.toFixed(6), radius: String(p.radiusM) });
@@ -20,6 +24,7 @@ export function StagingPointsEditor({
   errors,
   describe,
   disabled = false,
+  area = null,
 }: {
   initial: StagingPoint[];
   errors: Record<string, string>;
@@ -27,11 +32,19 @@ export function StagingPointsEditor({
   describe: (key: string) => { "aria-invalid"?: true; "aria-describedby"?: string };
   /** Self-launch is picked: the points stay typed in, hidden, and aren't sent. */
   disabled?: boolean;
+  /** The job's city on the map, when Turfcut can place it: the map starts there; a pin far from it gets a warning. */
+  area?: { lat: number; lng: number; label: string } | null;
 }) {
   const [points, setPoints] = useState<Draft[]>(initial.length ? initial.map(fromPoint) : [blank()]);
   const [placing, setPlacing] = useState(0);
   const set = (i: number, patch: Partial<Draft>) => setPoints((ps) => ps.map((p, j) => (j === i ? { ...p, ...patch } : p)));
   const err = (k: string) => (errors[k] ? <p id={`err-${k}`} className="field-error">{errors[k]}</p> : null);
+  // Far from the job's city: a mis-tap on a zoomed-out map, most likely. A warning, never a block (a job can stage outside its city).
+  const farFromCity = (p: Draft) => {
+    if (!area || !p.lat || !p.lng) return null;
+    const miles = milesBetween({ lat: Number(p.lat), lon: Number(p.lng) }, { lat: area.lat, lon: area.lng });
+    return miles > FAR_MILES ? Math.round(miles) : null;
+  };
   const pins: MapPin[] = points.flatMap((p, i) => (p.lat && p.lng ? [{ id: `p${i}`, lat: Number(p.lat), lng: Number(p.lng), color: i === placing ? "#2b1b3d" : "#6b7280", label: p.name || `Point ${i + 1}` }] : []));
 
   return (
@@ -86,6 +99,11 @@ export function StagingPointsEditor({
               {p.lat && p.lng ? `On the map at ${Number(p.lat).toFixed(4)}, ${Number(p.lng).toFixed(4)}.` : i === placing ? "Tap the map to place it." : "Not placed yet."}
             </p>
             {err(`point_${i}_lat`)}
+            {farFromCity(p) !== null && (
+              <p className="alert-warning text-sm">
+                This pin is about {farFromCity(p)} miles from {area!.label}. Check it&apos;s where workers meet: their phones compare their position with it at check-in.
+              </p>
+            )}
           </li>
         ))}
       </ol>
@@ -103,7 +121,7 @@ export function StagingPointsEditor({
       )}
       <div className="space-y-1.5">
         <span className="label">Map: tap to place staging point {placing + 1}</span>
-        <TurfMap className="h-72" pins={pins} onPick={(pt) => set(placing, { lat: pt.lat.toFixed(6), lng: pt.lng.toFixed(6) })} />
+        <TurfMap className="h-72" pins={pins} center={area} onPick={(pt) => set(placing, { lat: pt.lat.toFixed(6), lng: pt.lng.toFixed(6) })} />
         <p className="text-hint">
           Check-in counts as &ldquo;at staging&rdquo; within the radius ({MIN_RADIUS_M}–{MAX_RADIUS_M} m; {DEFAULT_RADIUS_M} m is usual). The worker&apos;s phone compares its position once and keeps only yes or no.
         </p>

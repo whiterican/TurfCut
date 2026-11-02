@@ -52,6 +52,7 @@ export function TurfMap({
   onStagingChange,
   dayTurfLabel = "Your turf today",
   className = "h-72",
+  center = null,
 }: {
   turf?: TurfPolygon | null;
   staging?: Point | null;
@@ -68,6 +69,8 @@ export function TurfMap({
   /** Tooltip for the day turf ("Your turf today" / "Worker's turf today"). */
   dayTurfLabel?: string;
   className?: string;
+  /** Where to look when there is nothing on the map yet (a job's city), instead of the whole country. */
+  center?: { lat: number; lng: number } | null;
 }) {
   const el = useRef<HTMLDivElement>(null);
   const map = useRef<LeafletMap | null>(null);
@@ -100,6 +103,19 @@ export function TurfMap({
   useEffect(() => {
     changeRef.current?.(stage);
   }, [stage]);
+  // Nothing drawn or pinned yet: only then does `center` move the view (it never pulls the view off the work).
+  const empty = pins.length === 0 && points.length === 0 && !stage && !turf && !dayTurf;
+  const emptyRef = useRef(empty);
+  const centerRef = useRef(center);
+  useEffect(() => {
+    emptyRef.current = empty;
+    centerRef.current = center;
+  });
+  const centerLat = center?.lat ?? null;
+  const centerLng = center?.lng ?? null;
+  useEffect(() => {
+    if (centerLat !== null && centerLng !== null && map.current && emptyRef.current) map.current.setView([centerLat, centerLng], 12);
+  }, [centerLat, centerLng]);
   const [ready, setReady] = useState(false);
   // The map's code or tiles can't load (no signal on a page saved offline).
   const [failed, setFailed] = useState(false);
@@ -127,6 +143,7 @@ export function TurfMap({
       const bounds = [...fromTurf(turf), ...fromTurf(dayTurf), ...(staging ? [staging] : []), ...pins].map((p) => [p.lat, p.lng] as [number, number]);
       if (bounds.length > 1) m.fitBounds(bounds, { padding: [24, 24], maxZoom: 17 });
       else if (bounds.length === 1) m.setView(bounds[0], 16);
+      else if (centerRef.current) m.setView([centerRef.current.lat, centerRef.current.lng], 12);
       else m.setView(US_CENTER, 4);
       // A double-tap still delivers two clicks: ignore the second one (and any
       // tap within 300 ms / 15 px of the last), so it never adds a duplicate
@@ -155,6 +172,7 @@ export function TurfMap({
         if (!sized) {
           sized = true;
           if (bounds.length > 1) m.fitBounds(bounds, { padding: [24, 24], maxZoom: 17 });
+          else if (emptyRef.current && centerRef.current) m.setView([centerRef.current.lat, centerRef.current.lng], 12);
         }
       });
       observer.observe(el.current);

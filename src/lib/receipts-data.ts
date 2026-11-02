@@ -73,8 +73,8 @@ export type PartReversal = { reversedCents: number; sentCents: number; at: Date 
 /**
  * The confirmed partial reversal per transfer from Stripe's reports. Stripe
  * reports the total reversed so far, so the largest is the latest. Partial
- * is judged against the amount Stripe says it sent (the report's own
- * amountCents, as the webhook judged it), falling back to Turfcut's record;
+ * is judged against the transfer's one Stripe figure (`confirmed`, from
+ * stripeAmounts), else the report's own amountCents, else Turfcut's record;
  * a report of nothing, or of the whole amount or more, isn't partial.
  */
 export function partialReversals(audits: PartialAudit[], amounts: Map<string, number>, confirmed: Map<string, number> = new Map()): Map<string, PartReversal> {

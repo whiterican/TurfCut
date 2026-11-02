@@ -55,7 +55,7 @@ describe("transferExportState (transfers.csv agrees with the receipt, #117)", ()
 
   it("partly reversed where Stripe's amount differs from the record: the row names Stripe's figure, so it adds up as the receipt does", async () => {
     const { transferExportState } = await import("@/lib/receipts-data");
-    const row = transferExportState({ ...base, status: "partly-reversed", paidAt: sentAt, partReversal: { reversedCents: 2500, sentCents: 8500, at: at(3) } });
+    const row = transferExportState({ ...base, status: "partly-reversed", paidAt: sentAt, partReversal: { reversedCents: 2500, sentCents: 8500, at: at(3) }, stripeSentCents: 8500 });
     expect(row).toMatchObject({ stripeSentCents: 8500, reversedCents: 2500, keptCents: 6000 });
   });
 
@@ -99,5 +99,22 @@ describe("stripeAmounts (what Stripe confirmed it sent, where it differs from th
   it("gives nothing when Stripe agrees with the record, or the report carries no usable amount", async () => {
     const { stripeAmounts } = await import("@/lib/receipts-data");
     expect(stripeAmounts([mismatch(8750, 1), partial(8750, 2), mismatch("8500", 3), partial(null, 4)], amounts).size).toBe(0);
+  });
+});
+
+describe("one Stripe figure per transfer: sent, came back and kept add up (#118 review)", () => {
+  it("a partial report's own amount yields to the transfer's ranked Stripe figure", async () => {
+    const { partialReversals, stripeAmounts, transferExportState } = await import("@/lib/receipts-data");
+    const amounts = new Map([[T, 8750]]);
+    const audits = [
+      { action: "payout.amount_mismatch", entityId: T, metadata: { expected: 8750, stripe: 8500 }, createdAt: at(1) },
+      { action: "payout.partially_reversed", entityId: T, metadata: { reversedCents: 500, amountCents: 8600 }, createdAt: at(2) },
+    ];
+    const stripe = stripeAmounts(audits, amounts);
+    const part = partialReversals(audits.filter((a) => a.action === "payout.partially_reversed"), amounts, stripe).get(T)!;
+    expect(part).toMatchObject({ sentCents: 8500, reversedCents: 500 });
+    const row = transferExportState({ status: "partly-reversed", amountCents: 8750, paidAt: at(1), failedAt: null, reversedAt: null, partReversal: part, stripeSentCents: stripe.get(T) ?? null });
+    // The receipt's headline (Stripe's figure) − what came back = what was kept, and the file names the same figure.
+    expect(row).toMatchObject({ stripeSentCents: 8500, reversedCents: 500, keptCents: 8000 });
   });
 });

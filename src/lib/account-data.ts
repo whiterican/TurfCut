@@ -175,7 +175,7 @@ export async function exportAccount(
       "reviews.csv         every supervisor review decision",
       "pay-lines.csv       every pay line recorded for you, with its current status",
       "pay-events.csv      the history of each pay line",
-      "transfers.csv       payments sent to your Stripe account, each with its state as its receipt reads it: sending, sent, failed (not sent), partly-reversed or reversed. reversedCents and keptCents are filled once Stripe confirmed the payment or a reversal; nothing is filled while it's sending or after it failed. amountCents is Turfcut's record; keptCents and reversedCents are out of the amount Stripe confirmed it sent, which stripeSentCents gives when it differs from the record. A failure Stripe later overtook by sending the money reads sent; the earlier failure stays in pay-events.csv.",
+      "transfers.csv       payments sent to your Stripe account, each with its state as its receipt reads it: sending, sent, failed (not sent), partly-reversed or reversed. reversedCents and keptCents are filled once Stripe confirmed the payment or a reversal; nothing is filled while it's sending or after it failed. amountCents is Turfcut's record; keptCents and reversedCents are out of the amount sent: Turfcut's record, unless Stripe reported a different amount, which stripeSentCents then gives. A failure Stripe later overtook by sending the money reads sent; the earlier failure stays in pay-events.csv.",
       "disputes.csv        pay disputes you opened and how they were answered",
       "messages.csv        messages you sent, with any edits or deletions",
       "sharing.json        every version of who sees what, and whether you can be found",

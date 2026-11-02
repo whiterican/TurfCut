@@ -277,6 +277,8 @@ const check = (l: string, c: unknown, d?: unknown) => { if (c) console.log(`PASS
   const mmRow1 = (await transfersOf(W2)).find((r) => r.id === t2!.id);
   check("sent, Stripe's amount differing: the receipt leads with Stripe's figure and names the record; the export keeps the record as amountCents and Stripe's as kept", mmSent?.status === "sent" && mmSent.stripeSentCents === stripeAmt && mmSent.amountCents === t2!.amountCents && mmRow1?.amountCents === String(t2!.amountCents) && mmRow1.keptCents === String(stripeAmt) && mmRow1.stripeSentCents === String(stripeAmt), { mmSent: mmSent?.stripeSentCents, mmRow1 });
   await pay.handleProviderEvent({ id: "evt_mm_part", type: "transfer.reversed", transfer: { ...tr2, reversedCents: 100 } }, new Date("2026-12-02T11:00:00Z"));
+  const mmPart = await loadReceipt(W2, t2!.id);
+  check("the receipt mid-reversal reads the same figure: Stripe's amount sent, 100 back, the rest kept", mmPart?.status === "partly-reversed" && mmPart.stripeSentCents === stripeAmt && mmPart.partReversal?.sentCents === stripeAmt && mmPart.partReversal.reversedCents === 100, { s: mmPart?.stripeSentCents, p: mmPart?.partReversal });
   const mmRow2 = (await transfersOf(W2)).find((r) => r.id === t2!.id);
   check("then partly reversed: 100 back, the rest of Stripe's figure kept", mmRow2?.status === "partly-reversed" && mmRow2.reversedCents === "100" && mmRow2.keptCents === String(stripeAmt - 100) && mmRow2.stripeSentCents === String(stripeAmt), mmRow2);
   await pay.handleProviderEvent({ id: "evt_mm_full", type: "transfer.reversed", transfer: { ...tr2, reversedCents: stripeAmt } }, new Date("2026-12-02T12:00:00Z"));

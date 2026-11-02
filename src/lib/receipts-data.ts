@@ -77,7 +77,7 @@ export type PartReversal = { reversedCents: number; sentCents: number; at: Date 
  * amountCents, as the webhook judged it), falling back to Turfcut's record;
  * a report of nothing, or of the whole amount or more, isn't partial.
  */
-export function partialReversals(audits: PartialAudit[], amounts: Map<string, number>): Map<string, PartReversal> {
+export function partialReversals(audits: PartialAudit[], amounts: Map<string, number>, confirmed: Map<string, number> = new Map()): Map<string, PartReversal> {
   const int = (v: unknown) => (typeof v === "number" && Number.isInteger(v) ? v : null);
   const out = new Map<string, PartReversal>();
   for (const a of audits) {
@@ -85,7 +85,8 @@ export function partialReversals(audits: PartialAudit[], amounts: Map<string, nu
     const recorded = amounts.get(a.entityId);
     if (recorded === undefined) continue;
     const cents = int(m.reversedCents) ?? 0;
-    const sent = int(m.amountCents) ?? recorded;
+    // One Stripe figure per transfer (stripeAmounts, passed in as `confirmed`) wins, so "sent", "came back" and "kept" always add up.
+    const sent = confirmed.get(a.entityId) ?? int(m.amountCents) ?? recorded;
     if (cents <= 0 || cents >= sent) continue;
     const prev = out.get(a.entityId);
     if (!prev || cents > prev.reversedCents) out.set(a.entityId, { reversedCents: cents, sentCents: sent, at: a.createdAt });
@@ -128,8 +129,8 @@ const stripeAudits = (ids: string[]): Promise<StripeAudit[]> =>
 async function views(ts: Row[]): Promise<Receipt[]> {
   const audits = await stripeAudits(ts.map((t) => t.id));
   const amounts = new Map(ts.map((t) => [t.id, t.amountCents]));
-  const parts = partialReversals(audits.filter((a) => a.action === "payout.partially_reversed"), amounts);
   const stripe = stripeAmounts(audits, amounts);
+  const parts = partialReversals(audits.filter((a) => a.action === "payout.partially_reversed"), amounts, stripe);
   return ts.map((t) => view(t, parts.get(t.id) ?? null, stripe.get(t.id) ?? null));
 }
 
@@ -183,9 +184,9 @@ function view(t: Row, part: PartReversal | null, stripeSent: number | null): Rec
  * the receipt's own reading, so the file and the receipt never disagree.
  * Money columns are filled only once Stripe confirmed something: a payment
  * still sending, or one that failed, has no "kept" or "reversed" figure.
- * Settlement figures are out of what Stripe confirmed it sent; amountCents
- * stays Turfcut's record, and stripeSentCents names Stripe's figure when the
- * two differ.
+ * Settlement figures are out of what Stripe reported sending: Turfcut's
+ * record until Stripe reports a different amount, then Stripe's, which
+ * stripeSentCents names; amountCents stays Turfcut's record.
  */
 export const TRANSFER_EXPORT_COLUMNS = ["status", "sentAt", "failedAt", "reversedAt", "reversedCents", "keptCents", "stripeSentCents"] as const;
 export function transferExportState(r: Pick<Receipt, "status" | "amountCents" | "paidAt" | "failedAt" | "reversedAt" | "partReversal" | "stripeSentCents">): Record<(typeof TRANSFER_EXPORT_COLUMNS)[number], string | number | Date> {
@@ -197,7 +198,7 @@ export function transferExportState(r: Pick<Receipt, "status" | "amountCents" | 
       return { ...base, reversedCents: 0, keptCents: sent, stripeSentCents: named };
     case "partly-reversed": {
       const p = r.partReversal!;
-      return { ...base, reversedAt: p.at, reversedCents: p.reversedCents, keptCents: p.sentCents - p.reversedCents, stripeSentCents: p.sentCents !== r.amountCents ? p.sentCents : named };
+      return { ...base, reversedAt: p.at, reversedCents: p.reversedCents, keptCents: p.sentCents - p.reversedCents, stripeSentCents: named };
     }
     case "reversed":
       return { ...base, reversedAt: r.reversedAt ?? "", reversedCents: sent, keptCents: 0, stripeSentCents: named };
@@ -212,7 +213,7 @@ export function transferExportState(r: Pick<Receipt, "status" | "amountCents" | 
  * from the same transfer, so no row can lack a state.
  */
 export async function loadExportTransfers(workerId: string): Promise<Array<{ id: string; receiptNo: number; orgName: string; amountCents: number; destination: string; createdAt: Date; receipt: Receipt }>> {
-  const ts = (await rows(workerId, null)).reverse();
+  const ts = (await rows(workerId, null)).sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime() || a.id.localeCompare(b.id));
   const rs = await views(ts);
   return ts.map((t, i) => ({ id: t.id, receiptNo: t.receiptNo, orgName: t.org.name, amountCents: t.amountCents, destination: t.destination, createdAt: t.createdAt, receipt: rs[i] }));
 }

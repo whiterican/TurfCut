@@ -57,7 +57,7 @@ const INCLUDE = {
 } as const;
 
 type Row = Awaited<ReturnType<typeof rows>>[number];
-const rows = (workerId: string, transferId: string | null, take: number) =>
+const rows = (workerId: string, transferId: string | null, take?: number) =>
   db().payoutTransfer.findMany({ where: { workerId, ...(transferId ? { id: transferId } : {}) }, include: INCLUDE, orderBy: { createdAt: "desc" }, take });
 
 type PartialAudit = { entityId: string; metadata: unknown; createdAt: Date };
@@ -137,6 +137,34 @@ function view(t: Row, part: PartReversal | null): Receipt {
     status,
     lines,
   };
+}
+
+/**
+ * One transfer as the worker's data export states it (transfers.csv, #117):
+ * the receipt's own reading, so the file and the receipt never disagree.
+ * Money columns are filled only once Stripe confirmed something: a payment
+ * still sending, or one that failed, has no "kept" or "reversed" figure.
+ */
+export const TRANSFER_EXPORT_COLUMNS = ["status", "sentAt", "failedAt", "reversedAt", "reversedCents", "keptCents"] as const;
+export function transferExportState(r: Pick<Receipt, "status" | "amountCents" | "paidAt" | "failedAt" | "reversedAt" | "partReversal">): Record<(typeof TRANSFER_EXPORT_COLUMNS)[number], string | number | Date> {
+  const base = { status: r.status, sentAt: r.paidAt ?? "", failedAt: r.status === "failed" ? r.failedAt ?? "" : "", reversedAt: "" as string | Date, reversedCents: "" as string | number, keptCents: "" as string | number };
+  switch (r.status) {
+    case "sent":
+      return { ...base, reversedCents: 0, keptCents: r.amountCents };
+    case "partly-reversed": {
+      const p = r.partReversal!;
+      return { ...base, reversedAt: p.at, reversedCents: p.reversedCents, keptCents: p.sentCents - p.reversedCents };
+    }
+    case "reversed":
+      return { ...base, reversedAt: r.reversedAt ?? "", reversedCents: r.amountCents, keptCents: 0 };
+    default:
+      return base; // sending, failed: nothing settled
+  }
+}
+
+/** Every receipt of the worker, oldest first, for the data export. */
+export async function loadAllReceipts(workerId: string): Promise<Receipt[]> {
+  return (await views(await rows(workerId, null))).reverse();
 }
 
 /** The worker's receipts, newest first. */

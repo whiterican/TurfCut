@@ -5,6 +5,7 @@ import { loadVerifiers } from "@/lib/verification-data";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { receiptNumber } from "@/lib/money-views";
+import { loadAllReceipts, TRANSFER_EXPORT_COLUMNS, transferExportState } from "@/lib/receipts-data";
 import { getSupabaseServiceRoleKey, getSupabaseUrl } from "@/lib/env";
 import { CLOSED_NAME, closureProblems, type ClosureFacts } from "@/lib/account-closure";
 import { lineState } from "@/lib/pay";
@@ -174,7 +175,7 @@ export async function exportAccount(
       "reviews.csv         every supervisor review decision",
       "pay-lines.csv       every pay line recorded for you, with its current status",
       "pay-events.csv      the history of each pay line",
-      "transfers.csv       payments sent to your Stripe account",
+      "transfers.csv       payments sent to your Stripe account, each with its state (sending, sent, failed, partly-reversed, reversed); reversedCents and keptCents are filled once Stripe confirmed the payment",
       "disputes.csv        pay disputes you opened and how they were answered",
       "messages.csv        messages you sent, with any edits or deletions",
       "sharing.json        every version of who sees what, and whether you can be found",
@@ -238,7 +239,18 @@ export async function exportAccount(
     ),
   });
   files.push({ name: "pay-events.csv", text: csvTable(lines.flatMap((l) => l.events.map((e) => ({ id: e.id, payoutId: l.id, type: e.type, reason: e.reason, transferId: e.transferId, providerRef: e.providerRef, at: e.createdAt }))), ["id", "payoutId", "type", "reason", "transferId", "providerRef", "at"]) });
-  files.push({ name: "transfers.csv", text: csvTable(transfers.map((t) => ({ id: t.id, receipt: receiptNumber(t.receiptNo), organization: t.org.name, amountCents: t.amountCents, destination: t.destination, createdAt: t.createdAt })), ["id", "receipt", "organization", "amountCents", "destination", "createdAt"]) });
+  // Each transfer's state is the receipt's own reading (#117): sent, partly or fully reversed, still sending, or not sent.
+  const receiptById = new Map((await loadAllReceipts(w)).map((r) => [r.id, r]));
+  files.push({
+    name: "transfers.csv",
+    text: csvTable(
+      transfers.map((t) => {
+        const r = receiptById.get(t.id);
+        return { id: t.id, receipt: receiptNumber(t.receiptNo), organization: t.org.name, amountCents: t.amountCents, destination: t.destination, createdAt: t.createdAt, ...(r ? transferExportState(r) : {}) };
+      }),
+      ["id", "receipt", "organization", "amountCents", "destination", "createdAt", ...TRANSFER_EXPORT_COLUMNS]
+    ),
+  });
   files.push({
     name: "disputes.csv",
     text: csvTable(

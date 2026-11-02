@@ -13,9 +13,9 @@ export const HANDLE_RE = /^[a-z0-9_]{3,30}$/;
 export const NAME_MAX = 80;
 export const BIO_MAX = 4000;
 export const POST_MAX = 500;
-/** Pinned posts are the campaign's talking points; this many brief a shift. */
 /**
- * Talking points per campaign, enforced under the campaign's lock when pinning.
+ * Pinned posts are the campaign's talking points; this many brief a shift.
+ * Enforced under the campaign's lock when pinning.
  * The public profile shows exactly these and leaves them out of its post list
  * (loadPosts excludePinned): lowering this cap would hide posts already pinned
  * past it from both, so unpin those first.

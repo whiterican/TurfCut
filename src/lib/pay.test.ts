@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  twoPersonRemedy,
   computeShiftPay,
   hoursFlag,
   selfApprovalProblem,
@@ -391,5 +392,14 @@ describe("recentlyPaid (#115 review)", () => {
     const undated = line("z", day(30), null);
     expect(recentlyPaid([undated, a, c, b], 10).map((l) => l.line.id)).toEqual(["b", "c", "a", "z"]);
     expect(recentlyPaid([b, undated, a, c], 10).map((l) => l.line.id)).toEqual(["b", "c", "a", "z"]);
+  });
+});
+
+describe("twoPersonRemedy: who the Pay page's two-person note offers an invitation to", () => {
+  it("an owner, who can invite a finance member or another owner", () => {
+    expect(twoPersonRemedy("OWNER")).toBe("invite");
+  });
+  it("anyone else is told to ask an owner, even a custom member with pay and Members access (a delegate can't invite an owner)", () => {
+    for (const role of ["FINANCE", "CUSTOM", "RECRUITER", "SUPERVISOR"]) expect(twoPersonRemedy(role)).toBe("ask-owner");
   });
 });

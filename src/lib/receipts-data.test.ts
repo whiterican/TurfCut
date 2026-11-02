@@ -39,22 +39,33 @@ describe("transferExportState (transfers.csv agrees with the receipt, #117)", ()
 
   it("sending and failed carry no money figures: nothing settled", async () => {
     const { transferExportState } = await import("@/lib/receipts-data");
-    expect(transferExportState({ ...base, status: "sending" })).toEqual({ status: "sending", sentAt: "", failedAt: "", reversedAt: "", reversedCents: "", keptCents: "" });
-    expect(transferExportState({ ...base, status: "failed", failedAt: at(2) })).toEqual({ status: "failed", sentAt: "", failedAt: at(2), reversedAt: "", reversedCents: "", keptCents: "" });
+    expect(transferExportState({ ...base, status: "sending" })).toEqual({ status: "sending", sentAt: "", failedAt: "", reversedAt: "", reversedCents: "", keptCents: "", stripeSentCents: "" });
+    expect(transferExportState({ ...base, status: "failed", failedAt: at(2) })).toEqual({ status: "failed", sentAt: "", failedAt: at(2), reversedAt: "", reversedCents: "", keptCents: "", stripeSentCents: "" });
   });
 
   it("sent keeps the whole amount; a failure later overtaken by Stripe's confirmation isn't reported as failed", async () => {
     const { transferExportState } = await import("@/lib/receipts-data");
-    expect(transferExportState({ ...base, status: "sent", paidAt: sentAt, failedAt: at(0) })).toEqual({ status: "sent", sentAt, failedAt: "", reversedAt: "", reversedCents: 0, keptCents: 8750 });
+    expect(transferExportState({ ...base, status: "sent", paidAt: sentAt, failedAt: at(0) })).toEqual({ status: "sent", sentAt, failedAt: "", reversedAt: "", reversedCents: 0, keptCents: 8750, stripeSentCents: "" });
   });
 
   it("partly reversed: what came back and what was kept, out of Stripe's figure", async () => {
     const { transferExportState } = await import("@/lib/receipts-data");
-    expect(transferExportState({ ...base, status: "partly-reversed", paidAt: sentAt, partReversal: { reversedCents: 2500, sentCents: 8750, at: at(3) } })).toEqual({ status: "partly-reversed", sentAt, failedAt: "", reversedAt: at(3), reversedCents: 2500, keptCents: 6250 });
+    expect(transferExportState({ ...base, status: "partly-reversed", paidAt: sentAt, partReversal: { reversedCents: 2500, sentCents: 8750, at: at(3) } })).toEqual({ status: "partly-reversed", sentAt, failedAt: "", reversedAt: at(3), reversedCents: 2500, keptCents: 6250, stripeSentCents: "" });
+  });
+
+  it("partly reversed where Stripe's amount differs from the record: the row names Stripe's figure, so it adds up as the receipt does", async () => {
+    const { transferExportState } = await import("@/lib/receipts-data");
+    const row = transferExportState({ ...base, status: "partly-reversed", paidAt: sentAt, partReversal: { reversedCents: 2500, sentCents: 8500, at: at(3) } });
+    expect(row).toMatchObject({ stripeSentCents: 8500, reversedCents: 2500, keptCents: 6000 });
+  });
+
+  it("a partial reversal Stripe reported before confirming the payment still carries Stripe's figures, with no sent time", async () => {
+    const { transferExportState } = await import("@/lib/receipts-data");
+    expect(transferExportState({ ...base, status: "partly-reversed", partReversal: { reversedCents: 500, sentCents: 8750, at: at(3) } })).toMatchObject({ sentAt: "", reversedCents: 500, keptCents: 8250 });
   });
 
   it("reversed in full: all of it came back, nothing kept", async () => {
     const { transferExportState } = await import("@/lib/receipts-data");
-    expect(transferExportState({ ...base, status: "reversed", paidAt: sentAt, reversedAt: at(4) })).toEqual({ status: "reversed", sentAt, failedAt: "", reversedAt: at(4), reversedCents: 8750, keptCents: 0 });
+    expect(transferExportState({ ...base, status: "reversed", paidAt: sentAt, reversedAt: at(4) })).toEqual({ status: "reversed", sentAt, failedAt: "", reversedAt: at(4), reversedCents: 8750, keptCents: 0, stripeSentCents: "" });
   });
 });

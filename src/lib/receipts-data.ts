@@ -145,15 +145,16 @@ function view(t: Row, part: PartReversal | null): Receipt {
  * Money columns are filled only once Stripe confirmed something: a payment
  * still sending, or one that failed, has no "kept" or "reversed" figure.
  */
-export const TRANSFER_EXPORT_COLUMNS = ["status", "sentAt", "failedAt", "reversedAt", "reversedCents", "keptCents"] as const;
+export const TRANSFER_EXPORT_COLUMNS = ["status", "sentAt", "failedAt", "reversedAt", "reversedCents", "keptCents", "stripeSentCents"] as const;
 export function transferExportState(r: Pick<Receipt, "status" | "amountCents" | "paidAt" | "failedAt" | "reversedAt" | "partReversal">): Record<(typeof TRANSFER_EXPORT_COLUMNS)[number], string | number | Date> {
-  const base = { status: r.status, sentAt: r.paidAt ?? "", failedAt: r.status === "failed" ? r.failedAt ?? "" : "", reversedAt: "" as string | Date, reversedCents: "" as string | number, keptCents: "" as string | number };
+  const base = { status: r.status, sentAt: r.paidAt ?? "", failedAt: r.status === "failed" ? r.failedAt ?? "" : "", reversedAt: "" as string | Date, reversedCents: "" as string | number, keptCents: "" as string | number, stripeSentCents: "" as string | number };
   switch (r.status) {
     case "sent":
       return { ...base, reversedCents: 0, keptCents: r.amountCents };
     case "partly-reversed": {
       const p = r.partReversal!;
-      return { ...base, reversedAt: p.at, reversedCents: p.reversedCents, keptCents: p.sentCents - p.reversedCents };
+      // Rare: Stripe's transfer differs from Turfcut's record. The receipt then shows "Stripe sent"; so does the file, so the row adds up.
+      return { ...base, reversedAt: p.at, reversedCents: p.reversedCents, keptCents: p.sentCents - p.reversedCents, stripeSentCents: p.sentCents !== r.amountCents ? p.sentCents : "" };
     }
     case "reversed":
       return { ...base, reversedAt: r.reversedAt ?? "", reversedCents: r.amountCents, keptCents: 0 };
@@ -162,9 +163,9 @@ export function transferExportState(r: Pick<Receipt, "status" | "amountCents" | 
   }
 }
 
-/** Every receipt of the worker, oldest first, for the data export. */
+/** Every receipt of the worker (no cap), for the data export. */
 export async function loadAllReceipts(workerId: string): Promise<Receipt[]> {
-  return (await views(await rows(workerId, null))).reverse();
+  return views(await rows(workerId, null));
 }
 
 /** The worker's receipts, newest first. */

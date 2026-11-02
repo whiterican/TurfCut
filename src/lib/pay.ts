@@ -394,6 +394,16 @@ export function reReviewProblem(lines: LineState[]): string | null {
 }
 
 /**
+ * When nobody else can approve pay, who can fix that from the Pay page: only
+ * an owner may invite another owner or a finance member without limits (the
+ * Members page lets a delegate invite only within their own reach), so the
+ * invitation is offered to owners and everyone else is told to ask one.
+ */
+export function twoPersonRemedy(role: string): "invite" | "ask-owner" {
+  return role === "OWNER" ? "invite" : "ask-owner";
+}
+
+/**
  * Two people for every payment (owner decision, M5). Shift pay: not the
  * person who made the shift's latest review. An adjustment: not the person
  * who made it (they set the amount, someone else approves — two people);

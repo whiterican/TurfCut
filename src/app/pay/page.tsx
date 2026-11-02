@@ -5,7 +5,7 @@ import { loadOrgDisputes, loadOrgPay, otherPayApprovers, partialReversals, pendi
 import { noteOverdueDisputes } from "@/lib/dispute-thread-data";
 import { clockParts } from "@/lib/dispute-sla";
 import { stripeProvider } from "@/lib/payout-provider";
-import { money, payoutReadiness, PLATFORM_FEE_BPS, statusLabel } from "@/lib/pay";
+import { money, payoutReadiness, PLATFORM_FEE_BPS, statusLabel, twoPersonRemedy } from "@/lib/pay";
 import { StatusBadge, StatusChip } from "@/components/StatusBadge";
 import { LocalTime } from "@/components/LocalTime";
 import { ActionButton } from "@/components/ActionButton";
@@ -227,7 +227,7 @@ export default async function PayPage({ searchParams }: { searchParams: Promise<
                 Whoever approved a shift&apos;s work, entered or corrected its counts, or made an adjustment can&apos;t also approve that
                 pay. Nobody else in your organization can approve pay yet, so the lines marked as yours wait until someone can.
               </p>
-              {canUse(s, "orgMembers") ? (
+              {twoPersonRemedy(s.role) === "invite" ? (
                 <p>
                   <Link href="/org/settings/members" className="link font-semibold">Invite a finance member</Link> (or another owner) to approve them.
                 </p>

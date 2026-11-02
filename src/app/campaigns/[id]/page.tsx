@@ -94,7 +94,7 @@ export default async function CampaignPage({ params, searchParams }: { params: P
       </header>
 
       <section className="section" aria-label="Preview">
-        <CampaignHeader displayName={c.displayName} handle={c.handle} bio={c.bio} avatarUrl={mediaUrl(c.avatarKey)} headerUrl={mediaUrl(c.headerKey)} verified={!!c.verifiedAt} />
+        <CampaignHeader displayName={c.displayName} handle={c.handle} bio={c.bio} avatarUrl={mediaUrl(c.avatarKey)} headerUrl={mediaUrl(c.headerKey)} verified={!!c.verifiedAt} framed />
         <p className="text-muted-sm">
           {c.verifiedAt
             ? "Turfcut has verified this as your official campaign account. Changing the name or handle takes the mark off until Turfcut looks again."

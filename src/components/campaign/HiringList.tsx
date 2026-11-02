@@ -6,6 +6,14 @@ import type { HiringJob } from "@/lib/campaign-social-data";
 /** How many jobs show before the rest fold away. */
 const SHOWN = 3;
 
+/** "Sep 17 – Dec 16", or "From Sep 17" / "Until Dec 16" when one end is open. */
+function dates(job: HiringJob): string {
+  if (job.startsAt && job.endsAt) return `${day(job.startsAt)} – ${day(job.endsAt)}`;
+  if (job.startsAt) return `From ${day(job.startsAt)}`;
+  if (job.endsAt) return `Until ${day(job.endsAt)}`;
+  return "Dates to be set";
+}
+
 function JobRow({ job, signedIn }: { job: HiringJob; signedIn: boolean }) {
   const geo = (job.geography ?? {}) as { city?: string; state?: string };
   const place = [geo.city, geo.state].filter(Boolean).join(", ");
@@ -15,10 +23,14 @@ function JobRow({ job, signedIn }: { job: HiringJob; signedIn: boolean }) {
       <p className="font-semibold text-fg">{job.title}</p>
       <p className="text-sm text-muted">
         {place && <>{place} · </>}
-        {job.startsAt || job.endsAt ? `${day(job.startsAt)} – ${day(job.endsAt)}` : "Dates to be set"}
+        {dates(job)}
       </p>
       <p className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-        <span className="text-sm font-semibold text-fg tabular-nums">{payShort(job.compensationMethod, job.payRateCents, job.type)} <span className="font-normal text-muted">gross</span></span>
+        {job.payRateCents ? (
+          <span className="text-sm font-semibold text-fg tabular-nums">{payShort(job.compensationMethod, job.payRateCents, job.type)} <span className="font-normal text-muted">gross</span></span>
+        ) : (
+          <span className="text-sm text-muted">Rate not set</span>
+        )}
         {/* The job's own page runs the application (sign-in, eligibility); this is only the way there. */}
         <Link href={signedIn ? href : `/login?next=${encodeURIComponent(href)}`} className="link text-sm font-medium" aria-label={`View job: ${job.title}`}>View job</Link>
       </p>
@@ -46,7 +58,7 @@ export function HiringList({ jobs, more, signedIn }: { jobs: HiringJob[]; more: 
           <ul className="list-card mt-2">{rest.map((j) => <JobRow key={j.id} job={j} signedIn={signedIn} />)}</ul>
         </details>
       )}
-      {more && <p className="text-hint">This campaign has more open jobs than fit here; find them under Jobs.</p>}
+      {more && <p className="text-hint">Showing the {jobs.length} most recently published.</p>}
     </div>
   );
 }

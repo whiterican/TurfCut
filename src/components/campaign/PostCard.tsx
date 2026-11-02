@@ -85,7 +85,7 @@ export function PostCard({
           </span>
         )}
       </header>
-      <LinkedText text={post.body} className={size === "lg" ? "max-w-[62ch] text-lg leading-7 text-fg" : "max-w-[62ch] text-[15px] leading-relaxed text-fg"} />
+      <LinkedText text={post.body} className={`${size === "lg" ? "text-lg leading-7" : "text-[15px] leading-relaxed"} text-fg ${variant === "card" ? "" : "max-w-[62ch]"}`} />
       {facts && facts.length > 0 && <FactList facts={facts} />}
       <JobEmbedCard post={post} signedIn={signedIn} />
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">

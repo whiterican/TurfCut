@@ -94,7 +94,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
         <ul className="profile-menu">
           {menu.map((m) => (
             <li key={m.href}>
-              <Link transitionTypes={m.href.startsWith("#") ? undefined : ["nav-forward"]} href={m.href} className="profile-row">
+              <Link transitionTypes={["nav-forward"]} href={m.href} className="profile-row">
                 <m.icon aria-hidden className={`size-5 shrink-0 ${m.alert ? "text-[var(--danger)]" : "text-muted"}`} />
                 <span className="font-semibold">{m.label}</span>
                 {m.status && <span className={`profile-row-status ${m.alert ? "text-[var(--danger)]" : ""}`}>{m.status}</span>}
@@ -151,9 +151,9 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
         {/* The form waits behind its button, even with no records (#114: each section stays focused). */}
         <details className="group">
           <summary className="btn-secondary btn-sm w-fit cursor-pointer list-none">
+            {/* One name in both states: the expanded state already says whether the form is open. */}
             <Plus aria-hidden className="btn-icon transition group-open:rotate-45" />
-            <span className="group-open:hidden">Add a campaign</span>
-            <span className="hidden group-open:inline">Close the form</span>
+            Add a campaign
           </summary>
           <div className="card mt-3">
             <ExperienceForm />

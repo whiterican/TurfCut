@@ -496,7 +496,8 @@ describe("forest ink is for what is live and the one primary action (G1)", () =>
   });
 
   it("by night the checked radio dot reads on the card (≥ 3:1)", () => {
-    expect(css).toMatch(/\.dark \.option-card input\[type="radio"\]:checked \{\s*background: var\(--fg\);/);
+    // Both single-choice styles: option cards and choice lists (one rule for both).
+    expect(css).toMatch(/\.dark \.option-card input\[type="radio"\]:checked,\s*\.dark \.choice-row input\[type="radio"\]:checked \{\s*background: var\(--fg\);/);
     expect(ratio(dark.fg, dark.surface)).toBeGreaterThanOrEqual(3);
   });
   it("success (done, verified) is not the live accent in any theme", () => {

@@ -108,15 +108,16 @@ export function PreferencesFlow({ initial, consentText }: { initial: FitPreferen
 
       <h2 className="section-title text-xl">{STEP_TITLES[key]}</h2>
 
+      {/* One list, not a card per option (#114); the words are unchanged. */}
       {key === "visibility" && (
-        <fieldset className="space-y-2">
+        <fieldset className="choice-list">
           <legend className="sr-only">Visibility</legend>
           {VISIBILITY_OPTIONS.map((o) => (
-            <label key={o.value} className="option-card">
+            <label key={o.value} className="choice-row">
               <input type="radio" name="visibility" checked={draft.visibilityMode === o.value} onChange={() => set({ visibilityMode: o.value })} />
               <span>
                 <span className="font-medium text-fg">{o.label}</span>
-                <span className="mt-0.5 block text-sm text-muted">{o.description}</span>
+                <span className="mt-0.5 block text-sm font-normal text-muted">{o.description}</span>
               </span>
             </label>
           ))}
@@ -199,9 +200,9 @@ function PartyStep({ value, onChange }: { value: PartyAnswer | null; onChange: (
       <p className="text-muted-sm">
         How you relate to political parties, in your own terms. This is not your voter registration, and Turfcut never looks that up.
       </p>
-      <fieldset className="grid gap-2 sm:grid-cols-2">
+      <fieldset className="choice-list">
         {RELATIONSHIPS.map((r) => (
-          <label key={r.value} className="option-card items-center py-3 text-sm text-fg">
+          <label key={r.value} className="choice-row text-sm">
             <input
               type="radio"
               name="relationship"
@@ -567,12 +568,14 @@ function Review({
         <input type="hidden" name="expiry" value={JSON.stringify(expiry)} />
         <fieldset className="card space-y-2">
           <legend className="fieldset-title px-1">When should this consent expire?</legend>
+          <div className="choice-rows">
           {EXPIRY_OPTIONS.map((o) => (
-            <label key={o.value} className="option-card items-center py-3 text-sm text-fg">
+            <label key={o.value} className="choice-row text-sm">
               <input type="radio" name="expiryOption" value={o.value} checked={expiryOption === o.value} onChange={() => setExpiryOption(o.value)} />
               {o.label}
             </label>
           ))}
+          </div>
           {expiryOption === "date" && (
             <input type="date" className={input} value={expiryDate} onChange={(e) => setExpiryDate(e.target.value)} required />
           )}

@@ -176,7 +176,7 @@ export async function exportAccount(
       "reviews.csv         every supervisor review decision",
       "pay-lines.csv       every pay line recorded for you, with its current status",
       "pay-events.csv      the history of each pay line",
-      "transfers.csv       payments sent to your Stripe account, each with its state as its receipt reads it: sending, sent, failed (not sent), partly-reversed or reversed. reversedCents and keptCents are filled once Stripe confirmed the payment or a reversal; nothing is filled while it's sending or after it failed. amountCents is Turfcut's record; keptCents is out of the amount Stripe sent, which stripeSentCents gives when the two differ. A failure Stripe later overtook by sending the money reads sent; the earlier failure stays in pay-events.csv.",
+      "transfers.csv       payments sent to your Stripe account, each with its state as its receipt reads it: sending, sent, failed (not sent), partly-reversed or reversed. reversedCents and keptCents are filled once Stripe confirmed the payment or a reversal; nothing is filled while it's sending or after it failed. amountCents is Turfcut's record; for a partly reversed payment, keptCents is out of the amount Stripe sent, which stripeSentCents gives when the two differ. A failure Stripe later overtook by sending the money reads sent; the earlier failure stays in pay-events.csv.",
       "disputes.csv        pay disputes you opened and how they were answered",
       "messages.csv        messages you sent, with any edits or deletions",
       "sharing.json        every version of who sees what, and whether you can be found",
@@ -247,7 +247,7 @@ export async function exportAccount(
     text: csvTable(
       transfers.map((t) => {
         const r = receiptById.get(t.id);
-        // Never a silent blank: a transfer the receipts read didn't return (it can't today: both are the worker's, and transfers are append-only) says so.
+        // Never a silent blank: a transfer the receipts read didn't return (rare: one started while the export ran, since both reads run side by side) says so.
         return { id: t.id, receipt: receiptNumber(t.receiptNo), organization: t.org.name, amountCents: t.amountCents, destination: t.destination, createdAt: t.createdAt, ...(r ? transferExportState(r) : { status: "unknown" }) };
       }),
       ["id", "receipt", "organization", "amountCents", "destination", "createdAt", ...TRANSFER_EXPORT_COLUMNS]

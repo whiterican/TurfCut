@@ -14,20 +14,17 @@ import { removeExperience } from "./actions";
 import { PhoneForm } from "@/components/PhoneForm";
 import { loadSharing } from "@/lib/sharing-data";
 import { loadAvailability } from "@/lib/availability-data";
-import { availabilitySummary, isEmptyAvailability } from "@/lib/availability";
-import { AvailabilityStatement } from "@/components/AvailabilityStatement";
+import { isEmptyAvailability } from "@/lib/availability";
 import { loadCredentials } from "@/lib/credentials-data";
-import { CredentialList } from "@/components/CredentialList";
-import { expiryToday, orgCredentialView } from "@/lib/credentials";
-import { PART_DETAILS, RELATIONSHIP_PHRASE, SHARE_PARTS, type ShareAudience } from "@/lib/sharing";
+import { expiryToday } from "@/lib/credentials";
+import { RELATIONSHIP_PHRASE, type ShareAudience } from "@/lib/sharing";
 import { UrlNotice } from "@/components/UrlNotice";
 import { geoTables, resolveArea } from "@/lib/geo";
-import { DEFAULT_TRAVEL_MILES } from "@/lib/matches-data";
 import { Avatar } from "@/components/chat/Avatar";
 import { payoutCta, payoutReadiness } from "@/lib/pay";
 import { stripeProvider } from "@/lib/payout-provider";
 import { expiryReminder } from "@/lib/credentials";
-import { BadgeCheck, Briefcase, CalendarCheck, ChevronRight, ClipboardList, Eye, SlidersHorizontal, Wallet } from "lucide-react";
+import { BadgeCheck, CalendarCheck, ChevronRight, Eye, Plus, Scale, ScanEye, SlidersHorizontal, Wallet } from "lucide-react";
 
 const AUDIENCE_SHORT: Record<ShareAudience, string> = {
   RELATIONSHIP: `Organizations you ${RELATIONSHIP_PHRASE}`,
@@ -48,7 +45,6 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
     loadAvailability(workerId),
     loadCredentials(workerId),
   ]);
-  const today = new Date().toISOString().slice(0, 10);
   const mode = fit && VISIBILITY_OPTIONS.find((o) => o.value === fit.visibilityMode);
   // Matches (C3.4) need a home area Turfcut can place; say so rather than leave the worker unfindable.
   const homePlaced = !sharing.choices.findable || !!resolveArea(sharing.choices.homeArea, await geoTables());
@@ -62,15 +58,19 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
   const readiness = payoutReadiness(stripeProvider().configured(), worker.payoutsEnabled);
   const payoutStatus = readiness === "off" ? "Not available yet" : payoutCta(readiness, !!worker.stripeAccountId)?.label ?? "Ready";
   const sharingStatus = sharing.version === null ? "Defaults" : sharing.current ? "Set" : "Needs confirming";
+  // Political fit: a lapsed or reworded consent is never shown as a mode (until reconfirmed nothing is used or shown).
+  const fitStatus = !fit || !mode ? "Not set yet" : fit.status.state !== "current" ? "Needs reconfirming" : mode.label;
+  // Rows name the sections as the desktop sub-nav does (lib/profile-nav), except Political fit: the sharing page's
+  // versioned hint sends workers "under Political fit on your profile", so the row keeps that name.
   const menu = [
     { href: "/profile/credentials", icon: BadgeCheck, label: "Credentials", status: credStatus, alert: expired > 0 },
     { href: "/profile/availability", icon: CalendarCheck, label: "Availability", status: availStatus, alert: false },
     { href: "/earnings#payouts", icon: Wallet, label: "Payout setup", status: payoutStatus, alert: false },
-    { href: "#record", icon: ClipboardList, label: "Work record", status: "", alert: false },
-    { href: "#experience", icon: Briefcase, label: "Experience", status: records.length ? `${records.length} ${records.length === 1 ? "campaign" : "campaigns"}` : "None yet", alert: false },
     // The defaults are a choice not yet made, not an error; a confirmation that lapsed under new wording is.
-    { href: "/profile/sharing", icon: Eye, label: "Sharing & privacy", status: sharingStatus, alert: sharing.version !== null && !sharing.current },
-    { href: "/settings", icon: SlidersHorizontal, label: "Display settings", status: "", alert: false },
+    { href: "/profile/sharing", icon: Eye, label: "Who sees what", status: sharingStatus, alert: sharing.version !== null && !sharing.current },
+    { href: "/profile/preferences", icon: Scale, label: "Political fit", status: fitStatus, alert: !!fit && !!mode && fit.status.state !== "current" },
+    { href: "/profile/preview", icon: ScanEye, label: "What organizations see", status: "", alert: false },
+    { href: "/settings", icon: SlidersHorizontal, label: "Settings & sign out", status: "", alert: false },
   ];
 
   // A ReadingPage with the profile's sections as a sub-nav: on the left from 1024, rows on a phone (redesign §5).
@@ -104,6 +104,14 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
           ))}
         </ul>
       </nav>
+
+      {/* Findable, but the home area Turfcut can't place (from the saved choices): nobody can find them, so say so here. */}
+      {sharing.choices.findable && !homePlaced && (
+        <p className="alert-warning text-sm">
+          Turfcut can&apos;t place &ldquo;{sharing.choices.homeArea}&rdquo;, so organizations can&apos;t find you yet. Type a ZIP code, or a city with its state (&ldquo;Aurora, CO&rdquo;).{" "}
+          <Link href="/profile/sharing" className="link font-semibold">Fix it</Link>
+        </p>
+      )}
 
       {/* Only when a confirmed choice is really on record: a hand-typed ?setup=done claims nothing. */}
       {setupDone && sharing.current && <UrlNotice param="setup" message="Saved. These are your choices now; change them any time under Who sees what." />}
@@ -140,118 +148,19 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
           removeAction={removeExperience}
           showReference
         />
-        <details className="card group" open={records.length === 0}>
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-2 font-medium text-fg">
-            <span className="flex items-center gap-2">
-              <span aria-hidden className="dot bg-success" />
-              Add a campaign
-            </span>
-            <span aria-hidden className="text-subtle transition group-open:rotate-45">+</span>
+        {/* The form waits behind its button, even with no records (#114: each section stays focused). */}
+        <details className="group">
+          <summary className="btn-secondary btn-sm w-fit cursor-pointer list-none">
+            <Plus aria-hidden className="btn-icon transition group-open:rotate-45" />
+            <span className="group-open:hidden">Add a campaign</span>
+            <span className="hidden group-open:inline">Close the form</span>
           </summary>
-          <div className="mt-5 border-t border-border pt-5">
+          <div className="card mt-3">
             <ExperienceForm />
           </div>
         </details>
       </section>
 
-      <section className="section">
-        <div className="section-head">
-          <h2 className="section-title">Availability</h2>
-          <Link transitionTypes={["nav-forward"]} href="/profile/availability" className="row-link">
-            {avail.version === null ? "Set" : "Change"}<span className="sr-only"> availability</span>
-            <ChevronRight aria-hidden className="size-4 shrink-0" />
-          </Link>
-        </div>
-        <div className="card">
-          <AvailabilityStatement view={isEmptyAvailability(avail.availability) ? null : availabilitySummary(avail.availability, today)} />
-        </div>
-      </section>
-
-      <section className="section">
-        <div className="section-head">
-          <h2 className="section-title">Credentials</h2>
-          <Link transitionTypes={["nav-forward"]} href="/profile/credentials" className="row-link">
-            {creds.length ? "Manage" : "Add"}<span className="sr-only"> credentials</span>
-            <ChevronRight aria-hidden className="size-4 shrink-0" />
-          </Link>
-        </div>
-        <div className="card">
-          <CredentialList view={orgCredentialView(creds, true)} today={expiryToday()} />
-        </div>
-      </section>
-
-      <section className="section">
-        <div className="section-head">
-          <h2 className="section-title">Who sees what</h2>
-          <Link transitionTypes={["nav-forward"]} href="/profile/sharing" className="row-link">
-            Change<span className="sr-only"> who sees what</span>
-            <ChevronRight aria-hidden className="size-4 shrink-0" />
-          </Link>
-        </div>
-        <div className="card space-y-3">
-          <ul className="space-y-1.5">
-            {SHARE_PARTS.map((part) => (
-              <li key={part} className="flex flex-wrap justify-between gap-x-4 text-sm">
-                <span className="text-fg">{PART_DETAILS[part].label}</span>
-                <span className="text-muted">{AUDIENCE_SHORT[sharing.choices.audiences[part]]}</span>
-              </li>
-            ))}
-            <li className="flex flex-wrap justify-between gap-x-4 text-sm">
-              <span className="text-fg">Organizations can find you</span>
-              <span className="text-muted">
-                {!sharing.choices.findable
-                  ? "No"
-                  : !sharing.current
-                    ? "Not until you confirm your choices"
-                    : `Yes, within ${sharing.choices.travelMiles ?? DEFAULT_TRAVEL_MILES} miles of ${sharing.choices.homeArea}`}
-              </span>
-            </li>
-          </ul>
-          {sharing.choices.findable && !homePlaced && (
-            <p className="alert-warning text-sm">
-              Turfcut can&apos;t place &ldquo;{sharing.choices.homeArea}&rdquo;, so organizations can&apos;t find you yet. Type a ZIP code, or a city with its state (&ldquo;Aurora, CO&rdquo;).
-            </p>
-          )}
-          {sharing.version === null && <p className="text-hint">These are the defaults. Nothing changes until you choose.</p>}
-          <Link transitionTypes={["nav-forward"]} href="/profile/preview" className="link text-sm">See what organizations see</Link>
-        </div>
-      </section>
-
-      <section className="section">
-        <div className="section-head">
-          <h2 className="section-title">Political fit</h2>
-          <Link href="/profile/preferences" className="row-link">
-            {mode ? "Review" : "Set"}<span className="sr-only"> political-fit preferences</span>
-            <ChevronRight aria-hidden className="size-4 shrink-0" />
-          </Link>
-        </div>
-        <div className="card space-y-3">
-          {mode ? (
-            <>
-              <div className="space-y-1">
-                <span className="tag-accent">{mode.label}</span>
-                <p className="text-muted-sm">{mode.description}</p>
-              </div>
-              <p className="text-hint">
-                Consent version {fit.consentVersion}, given {fit.consentedAt.toISOString().slice(0, 10)}
-                {fit.status.state === "current" &&
-                  (fit.status.expiresAt ? `, expires ${fit.status.expiresAt.toISOString().slice(0, 10)}` : ", no expiry")}
-                .
-              </p>
-              {fit.status.state !== "current" && (
-                <p role="status" className="alert-warning">
-                  Needs reconfirming — until then nothing is used for matching or shown to organizations.
-                </p>
-              )}
-            </>
-          ) : (
-            <div className="space-y-1">
-              <p className="font-medium text-fg">Not set yet</p>
-              <p className="text-muted-sm">Until you choose, nothing is used for matching or shown to anyone.</p>
-            </div>
-          )}
-        </div>
-      </section>
       <section className="section">
         <h2 className="section-title">Contact</h2>
         <PhoneForm phone={worker.phone} />

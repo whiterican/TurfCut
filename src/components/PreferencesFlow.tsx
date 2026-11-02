@@ -46,6 +46,8 @@ const STEP_TITLES: Record<(typeof FLOW_STEPS)[number], string> = {
 };
 
 const box = "card";
+/** The current step's visible heading: a step's choice group takes its name from it (no new wording). */
+const STEP_HEADING_ID = "preferences-step-title";
 const select = "field sm:w-auto sm:min-w-44";
 const input = "field";
 const chip = "chip";
@@ -106,7 +108,7 @@ export function PreferencesFlow({ initial, consentText }: { initial: FitPreferen
         {!draft.visibilityMode && <p className="text-hint">Choose who can see your answers first — the other steps open after that.</p>}
       </nav>
 
-      <h2 className="section-title text-xl">{STEP_TITLES[key]}</h2>
+      <h2 id={STEP_HEADING_ID} className="section-title text-xl">{STEP_TITLES[key]}</h2>
 
       {/* One list, not a card per option (#114); the words are unchanged. */}
       {key === "visibility" && (
@@ -200,7 +202,8 @@ function PartyStep({ value, onChange }: { value: PartyAnswer | null; onChange: (
       <p className="text-muted-sm">
         How you relate to political parties, in your own terms. This is not your voter registration, and Turfcut never looks that up.
       </p>
-      <fieldset className="choice-list">
+      {/* Named by the visible step heading ("Party relationship"), so the radio group isn't announced nameless. */}
+      <fieldset className="choice-list" aria-labelledby={STEP_HEADING_ID}>
         {RELATIONSHIPS.map((r) => (
           <label key={r.value} className="choice-row text-sm">
             <input

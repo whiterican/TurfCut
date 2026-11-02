@@ -179,7 +179,7 @@ export default async function JobPage({ params }: { params: Promise<{ jobId: str
   if (isOwnOrg) {
     return (
       <RecordPage org head={head} aside={<JobFacts job={job} acceptedCount={acceptedCount} />} panelLabel="Job facts" tail={fullCard}>
-        <OrgPanel job={job} canHire={canUse(session, "hiring")} canEdit={canUse(session, "jobsEdit")} canSchedule={canUse(session, "scheduling")} userId={session.userId} />
+        <OrgPanel job={job} canHire={canUse(session, "hiring")} canEdit={canUse(session, "jobsEdit")} canSchedule={canUse(session, "scheduling")} canReadSettings={canUse(session, "orgSettings", "read")} userId={session.userId} />
         {job.description && <p className="lead">{job.description}</p>}
       </RecordPage>
     );
@@ -499,7 +499,7 @@ async function WorkerShifts({ engagementId, workerId, jobId }: { engagementId: s
   );
 }
 
-async function OrgPanel({ job, canHire, canEdit, canSchedule, userId }: { job: JobWithRefs; canHire: boolean; canEdit: boolean; canSchedule: boolean; userId: string }) {
+async function OrgPanel({ job, canHire, canEdit, canSchedule, canReadSettings, userId }: { job: JobWithRefs; canHire: boolean; canEdit: boolean; canSchedule: boolean; canReadSettings: boolean; userId: string }) {
   const blockers = job.status === "DRAFT" || job.status === "PAUSED"
     ? publishBlockers({ job, jurisdiction: job.jurisdiction, org: job.org })
     : [];
@@ -553,7 +553,8 @@ async function OrgPanel({ job, canHire, canEdit, canSchedule, userId }: { job: J
             <div className="alert-warning space-y-2">
               <p className="font-medium">This job can&apos;t publish yet</p>
               <ul className="list-disc space-y-0.5 pl-5">{blockers.map((b) => <li key={b}>{b}</li>)}</ul>
-              <Link href="/org/settings" className="link">Organization settings</Link>
+              {/* Only a page this member can open (the Desk sends roles without settings access here). */}
+              {canReadSettings && <Link href="/org/settings" className="link">Organization settings</Link>}
             </div>
           ) : (
             <p className="text-muted-sm">Every check passes. Publishing re-runs them at that moment.</p>

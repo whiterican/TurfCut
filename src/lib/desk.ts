@@ -105,7 +105,7 @@ export function applicationsByJob(apps: Array<{ jobId: string; title: string; ap
  * deadline today or blocks pay, then what is waiting on a person, then gaps
  * to fill. Within a kind, rows keep their own order (oldest or soonest first).
  */
-export const URGENCY = { late: 0, noCheckout: 1, overdue: 2, review: 3, dueToday: 4, payApprove: 5, applications: 6, dispute: 7, short: 8 } as const;
+export const URGENCY = { paused: -1, late: 0, noCheckout: 1, overdue: 2, review: 3, dueToday: 4, payApprove: 5, applications: 6, dispute: 7, short: 8, setup: 9 } as const;
 
 /**
  * Shifts still checked in after their end ("No check-out received", redesign
@@ -127,3 +127,77 @@ export function byUrgency<T extends { rank: number }>(rows: T[]): T[] {
 
 /** An open-seats row's time: the job's start, said as past or future. */
 export const seatsWhenLabel = (startsAt: Date, now: Date) => (startsAt > now ? "Starts" : "Started");
+
+/** The organization's publish-gate records, as the Desk reads them. */
+export interface OrgGate {
+  approved: boolean;
+  approvedAt: Date | null;
+  contractorTermsSignedAt: Date | null;
+  classificationReviewedAt: Date | null;
+}
+
+export interface SetupStep {
+  key: "setup-approval" | "setup-terms" | "setup-review" | "setup-first-job";
+  title: string;
+  sub: string;
+  tag: string;
+  state: "pending" | "blocked";
+  href: string;
+  action: string;
+}
+
+/**
+ * What still stands between the organization and its first published job,
+ * from the same records the publish gate checks (org settings). Each step goes
+ * only to a role that can act on it or read where it is explained, so a new
+ * organization's Desk never says "nothing needs you" while nothing can
+ * publish. A withdrawn approval is one of these steps too; setupRank ranks it first. `jobs`: how many jobs the organization has in any status.
+ */
+export function setupSteps(org: OrgGate, jobs: number, member: Role | AccessSubject): SetupStep[] {
+  const steps: SetupStep[] = [];
+  const settings = can(member, "orgSettings", "read");
+  // Someone who publishes jobs but can't clear a step is told why nothing publishes, with a link only to a page
+  // they can read: the settings page that lists the gate, else their jobs (each job page lists its blockers).
+  const publishes = can(member, "jobsEdit");
+  const why = settings
+    ? { href: "/org/settings", action: "See what's left" }
+    : can(member, "jobs", "read")
+      ? { href: "/jobs", action: "Your jobs" }
+      : null;
+  const blocked = (key: SetupStep["key"], title: string, sub: string, tag = "Blocked"): SetupStep | null =>
+    publishes && why ? { key, title, sub, tag, state: "blocked", ...why } : null;
+  const push = (st: SetupStep | null) => st && steps.push(st);
+  if (!org.approved) {
+    // Settings readers see it there; someone who publishes without settings access is still told (a pause most of all).
+    push(
+      settings
+        ? org.approvedAt
+          ? { key: "setup-approval", title: "Turfcut withdrew the approval", sub: "Publishing and hiring are paused until it is restored", tag: "Paused", state: "blocked", href: "/org/settings", action: "See why" }
+          : { key: "setup-approval", title: "Waiting for Turfcut approval", sub: "Turfcut reviews every organization by hand during the pilot", tag: "Waiting", state: "pending", href: "/org/settings", action: "See what's left" }
+        : org.approvedAt
+          ? blocked("setup-approval", "Turfcut withdrew the approval", "Publishing and hiring are paused until it is restored", "Paused")
+          : blocked("setup-approval", "Jobs can't publish yet: waiting for Turfcut approval", "Turfcut reviews every organization by hand during the pilot"),
+    );
+  }
+  if (!org.contractorTermsSignedAt) {
+    push(
+      can(member, "orgSettings")
+        ? { key: "setup-terms", title: "Sign the contractor terms", sub: "Needed before any job can publish", tag: "To do", state: "pending", href: "/org/settings", action: "Open settings" }
+        : blocked("setup-terms", "Jobs can't publish yet: contractor terms not signed", "An owner signs them in organization settings"),
+    );
+  }
+  if (!org.classificationReviewedAt) {
+    push(
+      can(member, "compliance") && settings
+        ? { key: "setup-review", title: "Record the worker-classification review", sub: "Needed before any job can publish", tag: "To do", state: "pending", href: "/org/settings", action: "Open settings" }
+        : blocked("setup-review", "Jobs can't publish yet: classification review not recorded", "An owner or compliance lead records it in organization settings"),
+    );
+  }
+  if (jobs === 0 && publishes) steps.push({ key: "setup-first-job", title: "Post your first job", sub: "Start a draft. You can publish it after the checks pass.", tag: "To do", state: "pending", href: "/jobs/new", action: "Start a job" });
+  return steps;
+}
+
+/** Where a setup step sorts: a withdrawn approval pauses live work, so it comes first; the rest wait behind live work. */
+export function setupRank(step: SetupStep): number {
+  return step.key === "setup-approval" && step.state === "blocked" ? URGENCY.paused : URGENCY.setup;
+}

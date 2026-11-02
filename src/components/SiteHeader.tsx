@@ -58,7 +58,7 @@ export function SiteHeader({
             <Link href={at("/settings")} className="btn-ghost btn-sm" title="Settings: text size, theme, sign out" aria-label="Settings">
               <SlidersHorizontal aria-hidden className="btn-icon" />
             </Link>
-            <ThemeToggle />
+            <ThemeToggle iconOnlyWide={!isOrg && tabs.length > 0} />
           </div>
         </div>
       </header>

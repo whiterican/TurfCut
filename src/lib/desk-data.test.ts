@@ -2,7 +2,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 type ShiftArgs = { where: Record<string, unknown>; select?: Record<string, unknown> };
 const client = {
-  job: { findMany: vi.fn(async () => []) },
+  job: { findMany: vi.fn(async () => []), count: vi.fn(async () => 1) },
+  // An organization past its publish gate unless a test says otherwise.
+  organization: { findUnique: vi.fn(async (): Promise<unknown> => ({ approved: true, approvedAt: new Date("2026-10-01T00:00:00Z"), contractorTermsSignedAt: new Date("2026-10-01T00:00:00Z"), classificationReviewedAt: new Date("2026-10-01T00:00:00Z") })) },
   engagement: { findMany: vi.fn(async () => []) },
   shift: { findMany: vi.fn<(a: ShiftArgs) => Promise<unknown[]>>(async () => []), count: vi.fn<(a: ShiftArgs) => Promise<number>>(async () => 0) },
 };
@@ -53,5 +55,21 @@ describe("the Desk's no-check-out query (redesign §5)", () => {
     expect(stillInCall()).toBeUndefined();
     expect(client.shift.count).not.toHaveBeenCalled();
     expect(desk.needs.some((n) => n.key.startsWith("nocheckout"))).toBe(false);
+  });
+});
+
+describe("a new organization's Desk (functional pass)", () => {
+  it("lists what's left before it can publish, after any live work, scoped to the organization", async () => {
+    client.organization.findUnique.mockResolvedValueOnce({ approved: false, approvedAt: null, contractorTermsSignedAt: null, classificationReviewedAt: null });
+    client.job.count.mockResolvedValueOnce(0);
+    const desk = await loadDesk(actor("OWNER"), now);
+    expect(client.organization.findUnique.mock.lastCall).toMatchObject([{ where: { id: ORG } }]);
+    expect(client.job.count.mock.lastCall).toMatchObject([{ where: { orgId: ORG } }]);
+    expect(desk.needs.map((n) => n.key)).toEqual(["setup-approval", "setup-terms", "setup-review", "setup-first-job"]);
+  });
+
+  it("an organization past its gate with a job sees no setup rows", async () => {
+    const desk = await loadDesk(actor("OWNER"), now);
+    expect(desk.needs.some((n) => n.key.startsWith("setup-"))).toBe(false);
   });
 });

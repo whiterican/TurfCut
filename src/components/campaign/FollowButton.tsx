@@ -20,7 +20,7 @@ export function FollowButton({ campaignId, state, viewer, back }: { campaignId: 
   if (viewer === "other") return null;
   if (viewer === "guest") {
     return (
-      <Link href={`/login?next=${encodeURIComponent(back)}`} className="btn-secondary btn-sm inline-flex items-center gap-1.5">
+      <Link href={`/login?next=${encodeURIComponent(back)}`} className="btn-primary btn-sm inline-flex items-center gap-1.5">
         <Plus aria-hidden className="h-4 w-4" />
         Follow
       </Link>

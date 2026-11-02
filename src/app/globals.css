@@ -531,6 +531,10 @@ body {
   .tpl-panel {
     gap: 1.5rem;
   }
+  /* A page whose content is all panel and tail (a campaign's profile) leaves main empty: no stray gap. */
+  .tpl-main:empty {
+    display: none;
+  }
   .tpl-tail {
     display: flex;
     min-width: 0;
@@ -1855,6 +1859,12 @@ body {
   /* The Field map's strip (#113 review, P4): a compact band of live figures beside the job filter, then the map. */
   .field-strip {
     @apply flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between;
+  }
+  /* A campaign's pinned talking point (#116): a quiet block with an eggplant edge (the link colour), not a card. */
+  .talking-point {
+    @apply rounded-[var(--radius-inner)] border border-border px-4 py-3 sm:px-5;
+    border-left: 4px solid var(--link); /* Eggplant in light; its dark-mode counterpart stays visible */
+    background: var(--card-bg);
   }
   .summary-band {
     @apply flex flex-wrap items-baseline gap-x-5 gap-y-1 text-sm;

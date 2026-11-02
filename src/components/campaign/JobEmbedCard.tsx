@@ -6,8 +6,9 @@ import type { PublicPost } from "@/lib/campaign-social-data";
 
 /**
  * A job embedded in a campaign post (S1): the job as it is now, read on the
- * server. Apply opens the job's own page, where the usual application flow
- * (sign-in, eligibility, the worker's own do-not-match notice) takes over.
+ * server. "View job" opens the job's own page, where the usual application
+ * flow (sign-in, eligibility, the worker's own do-not-match notice) takes
+ * over; the post itself applies to nothing.
  * A job that has closed reads "No longer hiring", with no Apply.
  */
 export function JobEmbedCard({ post, signedIn, now = new Date() }: { post: PublicPost; signedIn: boolean; now?: Date }) {
@@ -33,7 +34,7 @@ export function JobEmbedCard({ post, signedIn, now = new Date() }: { post: Publi
       <div className="flex flex-wrap items-center justify-between gap-3">
         <span className="text-sm font-bold text-fg tabular-nums">{payShort(j.compensationMethod, j.payRateCents, j.type)} <span className="font-normal text-muted">gross</span></span>
         {state === "open" ? (
-          <Link href={applyHref} className="btn-primary btn-sm">Apply</Link>
+          <Link href={applyHref} className="btn-secondary btn-sm" aria-label={`View job: ${j.title}`}>View job</Link>
         ) : (
           <span className="text-sm text-muted">{state === "paused" ? "Not taking applications right now" : "No longer hiring"}</span>
         )}

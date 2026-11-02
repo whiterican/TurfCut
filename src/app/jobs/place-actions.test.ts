@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-const requireEmployer = vi.fn(async (_area: string) => ({ orgId: "org" }));
+const requireEmployer = vi.fn<(area: string) => Promise<{ orgId: string }>>(async () => ({ orgId: "org" }));
 vi.mock("@/lib/employer-session", () => ({ requireEmployer: (area: string) => requireEmployer(area) }));
 
 const { placeOfCity } = await import("./place-actions");

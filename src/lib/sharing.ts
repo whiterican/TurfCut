@@ -88,8 +88,8 @@ export const SHARING_COPY = {
 /**
  * The first-run setup's words (/profile/setup, C2.6). Done there records the
  * choices under SHARING_TEXT_VERSION too, so these are pinned with it in
- * sharing-copy.test.ts, like SHARING_COPY. The step titles are SETUP_STEPS
- * (lib/setup-flow), pinned there.
+ * sharing-copy.test.ts, like SHARING_COPY, with the step titles (SETUP_STEPS,
+ * lib/setup-flow) and the button that confirms them.
  */
 export const SETUP_COPY = {
   audienceShort: {
@@ -108,6 +108,8 @@ export const SETUP_COPY = {
   findableOff: "Off.",
   skipKeepsDefaults: `Skipping keeps the defaults: organizations you ${RELATIONSHIP_PHRASE} see your profile, and nobody can find you.`,
   skipKeepsCurrent: "Skipping keeps your current choices.",
+  /** The act of agreeing: its words are part of what the worker confirms. */
+  confirmLabel: "Done, keep these choices",
 } as const;
 
 /** A typed home area as it is saved: trimmed, inner runs of space made one. */

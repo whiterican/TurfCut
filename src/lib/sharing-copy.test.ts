@@ -74,5 +74,6 @@ describe(`Who sees what wording (version ${SHARING_TEXT_VERSION})`, () => {
     expect(SETUP_COPY.findableOff).toBe("Off.");
     expect(SETUP_COPY.skipKeepsDefaults).toBe("Skipping keeps the defaults: organizations you apply to, claim a spot with or accept an invite from see your profile, and nobody can find you.");
     expect(SETUP_COPY.skipKeepsCurrent).toBe("Skipping keeps your current choices.");
+    expect(SETUP_COPY.confirmLabel).toBe("Done, keep these choices");
   });
 });

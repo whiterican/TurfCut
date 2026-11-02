@@ -117,7 +117,7 @@ export default async function SetupPage({ searchParams }: { searchParams: Promis
             {/* …and the wording the steps showed it under (from step 1). */}
             <input type="hidden" name="textVersion" value={tv} />
             <input type="hidden" name="from" value={from} />
-            <PendingButton pendingLabel="Saving…">Done, keep these choices</PendingButton>
+            <PendingButton pendingLabel="Saving…">{SETUP_COPY.confirmLabel}</PendingButton>
           </form>
         )}
         {n > 1 && <Link href={step(n - 1)} className="btn-ghost">Back</Link>}

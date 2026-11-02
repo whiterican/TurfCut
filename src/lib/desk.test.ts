@@ -116,6 +116,24 @@ describe("setupSteps: what's left before the first published job", () => {
     expect(keys(fresh, 0, "PUBLISHER")).not.toContain("setup-first-job");
   });
 
+  it("a recruiter, who publishes but can't clear the gate, is told why, with a link only to a page they can read", () => {
+    const r = setupSteps(fresh, 3, "RECRUITER");
+    expect(r.map((x) => x.key)).toEqual(["setup-approval", "setup-terms", "setup-review"]);
+    for (const x of r.slice(1)) expect(x).toMatchObject({ state: "blocked", tag: "Blocked", href: "/org/settings" });
+    expect(r[1].title).toBe("Jobs can't publish yet: contractor terms not signed");
+    // A custom role that publishes but can't read settings is sent to its jobs, which list each job's blockers.
+    const noSettings = setupSteps(fresh, 3, { role: "CUSTOM", grants: { jobsEdit: "full", jobs: "full" } });
+    expect(noSettings.map((x) => [x.key, x.href])).toEqual([["setup-terms", "/jobs"], ["setup-review", "/jobs"]]);
+    // …and one that can read neither gets no row it couldn't follow.
+    expect(setupSteps(fresh, 3, { role: "CUSTOM", grants: { jobsEdit: "full" } })).toEqual([]);
+    // Roles that don't publish aren't told about the gate at all.
+    expect(setupSteps(fresh, 3, "FINANCE").map((x) => x.key)).toEqual(["setup-approval"]);
+  });
+
+  it("the first-job row says publishing is a separate step", () => {
+    expect(setupSteps(done, 0, "OWNER")[0].sub).toBe("Start a draft. You can publish it after the checks pass.");
+  });
+
   it("nothing once the gate is complete and a job exists (a draft counts)", () => {
     expect(keys(done, 1, "OWNER")).toEqual([]);
     expect(keys(done, 0, "OWNER")).toEqual(["setup-first-job"]);

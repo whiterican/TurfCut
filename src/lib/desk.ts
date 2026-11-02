@@ -163,9 +163,32 @@ export function setupSteps(org: OrgGate, jobs: number, member: Role | AccessSubj
         : { key: "setup-approval", title: "Waiting for Turfcut approval", sub: "Turfcut reviews every organization by hand during the pilot", tag: "Waiting", state: "pending", href: "/org/settings", action: "See what's left" },
     );
   }
-  if (!org.contractorTermsSignedAt && can(member, "orgSettings")) steps.push({ key: "setup-terms", title: "Sign the contractor terms", sub: "Needed before any job can publish", tag: "To do", state: "pending", href: "/org/settings", action: "Open settings" });
-  if (!org.classificationReviewedAt && can(member, "compliance") && settings) steps.push({ key: "setup-review", title: "Record the worker-classification review", sub: "Needed before any job can publish", tag: "To do", state: "pending", href: "/org/settings", action: "Open settings" });
-  if (jobs === 0 && can(member, "jobsEdit")) steps.push({ key: "setup-first-job", title: "Post your first job", sub: "Your draft saves as you go and publishes once every check passes", tag: "To do", state: "pending", href: "/jobs/new", action: "Start a job" });
+  // Someone who publishes jobs but can't clear a step is told why nothing publishes, with a link only to a page
+  // they can read: the settings page that lists the gate, else their jobs (each job page lists its blockers).
+  const publishes = can(member, "jobsEdit");
+  const why = settings
+    ? { href: "/org/settings", action: "See what's left" }
+    : can(member, "jobs", "read")
+      ? { href: "/jobs", action: "Your jobs" }
+      : null;
+  const blocked = (key: SetupStep["key"], title: string, sub: string): SetupStep | null =>
+    publishes && why ? { key, title, sub, tag: "Blocked", state: "blocked", ...why } : null;
+  const push = (st: SetupStep | null) => st && steps.push(st);
+  if (!org.contractorTermsSignedAt) {
+    push(
+      can(member, "orgSettings")
+        ? { key: "setup-terms", title: "Sign the contractor terms", sub: "Needed before any job can publish", tag: "To do", state: "pending", href: "/org/settings", action: "Open settings" }
+        : blocked("setup-terms", "Jobs can't publish yet: contractor terms not signed", "An owner signs them in organization settings"),
+    );
+  }
+  if (!org.classificationReviewedAt) {
+    push(
+      can(member, "compliance") && settings
+        ? { key: "setup-review", title: "Record the worker-classification review", sub: "Needed before any job can publish", tag: "To do", state: "pending", href: "/org/settings", action: "Open settings" }
+        : blocked("setup-review", "Jobs can't publish yet: classification review not recorded", "An owner or compliance lead records it in organization settings"),
+    );
+  }
+  if (jobs === 0 && publishes) steps.push({ key: "setup-first-job", title: "Post your first job", sub: "Start a draft. You can publish it after the checks pass.", tag: "To do", state: "pending", href: "/jobs/new", action: "Start a job" });
   return steps;
 }
 

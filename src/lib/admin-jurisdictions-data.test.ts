@@ -196,7 +196,9 @@ describe("jurisdictionsNeedingAttention (console front page)", () => {
       v("proposed", "proposed", ["not approved"], null),
       v("old", "superseded", ["superseded"], days(1)),
     ];
-    expect(jurisdictionsNeedingAttention(rows, now).map((r) => [r.v.id, r.blocked])).toEqual([["blocked", true], ["soon", false], ["later", false]]);
+    const out = jurisdictionsNeedingAttention(rows, now);
+    expect(out.map((r) => [r.v.id, r.blocked])).toEqual([["blocked", true], ["soon", false], ["later", false]]);
+    expect(out[1]).toMatchObject({ blocked: false, expiresAt: days(3) });
   });
 
   it("is empty when every profile in force is usable and none lapses soon", async () => {

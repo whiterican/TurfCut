@@ -78,13 +78,15 @@ export function placeName(p: { state: string; locality: string | null }): string
 /** For the console front page (#116): a usable profile whose approval lapses within this many days is listed before it starts blocking jobs. */
 export const EXPIRY_WINDOW_DAYS = 30;
 
+/** One row of the front page's attention list: refused by the publish gate now, or usable until `expiresAt`. */
+export type AttentionRow<V> = { v: V; blocked: true } | { v: V; blocked: false; expiresAt: Date };
+
 /**
  * The rule profiles in force that need staff now: ones the publish gate
  * already refuses (the same `problems` the jurisdiction page shows), then
  * usable ones whose approval runs out within the window, soonest first.
  * Only current versions; a proposed version waits on its own page.
  */
-export type AttentionRow<V> = { v: V; blocked: true } | { v: V; blocked: false; expiresAt: Date };
 export function jurisdictionsNeedingAttention<V extends Pick<AdminJurisdictionRow, "standing" | "problems" | "approvalExpiresAt">>(versions: V[], now: Date): AttentionRow<V>[] {
   const horizon = now.getTime() + EXPIRY_WINDOW_DAYS * 86_400_000;
   const current = versions.filter((v) => v.standing === "current");

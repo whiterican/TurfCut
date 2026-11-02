@@ -2233,8 +2233,13 @@ body {
   .job-head {
     @apply items-start;
   }
-  .job-head > div:nth-child(2) {
+  /* The title block grows and gives way; the pay keeps its own width. (Not nth-child: a back link adds a child before it.) */
+  .job-head > div:has(> h1) {
     flex: 1 1 12rem;
+  }
+  /* When the pay does wrap, it stays at the right edge, where its right-aligned lines belong. */
+  .job-head > div:last-child {
+    margin-inline-start: auto;
   }
   /* The job's apply card: on a phone it stays above the dock while the facts scroll under it (green board). */
   .job-apply-card {

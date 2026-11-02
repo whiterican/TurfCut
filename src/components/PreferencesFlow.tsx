@@ -116,7 +116,7 @@ export function PreferencesFlow({ initial, consentText }: { initial: FitPreferen
             <label key={o.value} className="choice-row">
               <input type="radio" name="visibility" checked={draft.visibilityMode === o.value} onChange={() => set({ visibilityMode: o.value })} />
               <span>
-                <span className="font-medium text-fg">{o.label}</span>
+                <span className="text-fg">{o.label}</span>
                 <span className="mt-0.5 block text-sm font-normal text-muted">{o.description}</span>
               </span>
             </label>

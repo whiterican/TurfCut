@@ -19,7 +19,8 @@ import {
 } from "@/lib/sharing";
 
 const initial: SharingFormState = { ok: false, message: "", errors: {} };
-const WORK_TYPES: Array<{ value: WorkType; label: string }> = (["PETITION", "CANVASS"] as const).map((value) => ({ value, label: SHARING_COPY.workTypeLabels[value] }));
+// Every work type has a label (SHARING_COPY.workTypeLabels satisfies Record<WorkType, string>).
+const WORK_TYPES: Array<{ value: WorkType; label: string }> = (Object.keys(SHARING_COPY.workTypeLabels) as WorkType[]).map((value) => ({ value, label: SHARING_COPY.workTypeLabels[value] }));
 
 /**
  * Profile → Who sees what. Every part of the profile gets one of three

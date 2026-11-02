@@ -77,7 +77,7 @@ export const SHARING_COPY = {
     "\u201cAny organization Turfcut has approved\u201d matters when you let organizations find you (below): an approved organization you haven't applied to then sees those parts when you come up as a match for one of its jobs. Otherwise an organization sees your profile only after you apply, claim a spot or accept its invitation.",
   findableLabel: "Let organizations find me",
   workTypesLabel: "Work I want to be found for",
-  workTypeLabels: { PETITION: "Petition", CANVASS: "Canvass" },
+  workTypeLabels: { PETITION: "Petition", CANVASS: "Canvass" } satisfies Record<WorkType, string>,
   homeAreaLabel: "City or ZIP you'd travel from",
   /** With MAX_TRAVEL_MILES, which the test pins too: the limit is part of what the worker agrees to. */
   travelMilesLabel: (max: number) => `How far you'd travel (miles, up to ${max})`,

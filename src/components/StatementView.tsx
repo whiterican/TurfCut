@@ -17,7 +17,7 @@ function Amount({ cents, bold = false }: { cents: number; bold?: boolean }) {
  * the line's current state, read from the live ledger and labelled so; amounts right-aligned, a
  * subtotal under them. On a phone each line stacks into named rows (the DataTable `stack` CSS).
  */
-function LinesTable({ lines, caption, total }: { lines: StatementLine[]; caption: string; total?: { label: string; grossCents: number; feeCents: number } }) {
+function LinesTable({ lines, caption, total, markUncounted = false }: { lines: StatementLine[]; caption: string; total?: { label: string; grossCents: number; feeCents: number }; markUncounted?: boolean }) {
   return (
     <div className="data-table-wrap" role="region" aria-label={caption} tabIndex={0}>
       <table role="table" className="data-table data-table-stack statement-lines">
@@ -36,8 +36,9 @@ function LinesTable({ lines, caption, total }: { lines: StatementLine[]; caption
         <tbody role="rowgroup">
           {lines.map((l) => {
             const st: Status = l.withdrawnAfterClose ? { label: "Withdrawn after this statement closed", state: "closed" } : statusLabel(l.status, l.amountCents);
-            // Withdrawn while the month was open: listed for the record, not counted in the totals, and marked so the column adds up.
-            const uncounted = l.status === "VOIDED" && !l.withdrawnAfterClose;
+            // In the month's own lines, withdrawn while the month was open: listed for the record, not counted, and marked so the column
+            // adds up. Not in Corrections, where an earlier month's withdrawal is a credit that is counted (in the Corrections figure).
+            const uncounted = markUncounted && l.status === "VOIDED" && !l.withdrawnAfterClose;
             const amount = (cents: number) => (uncounted ? <>({money(cents)})<span className="sr-only">, not counted</span></> : money(cents));
             return (
               <tr key={l.id} role="row">
@@ -148,7 +149,7 @@ export function StatementView({ s }: { s: View }) {
         {s.lines.length === 0 ? (
           <p className="text-muted-sm">No pay was recorded this month.</p>
         ) : (
-          <LinesTable lines={s.lines} caption={`Pay recorded in ${s.label}`} total={{ label: "Recorded", grossCents: t.grossCents, feeCents: t.feeCents }} />
+          <LinesTable lines={s.lines} caption={`Pay recorded in ${s.label}`} total={{ label: "Recorded", grossCents: t.grossCents, feeCents: t.feeCents }} markUncounted />
         )}
         <p className="text-hint">Current state is each line&apos;s state today; the amounts and the Recorded total are the month&apos;s own. An amount in brackets was withdrawn while the month was open and isn&apos;t counted. Every amount was fixed when it was approved and never changed after; a correction is always a new line. Gross pay: workers receive it in full, and the platform fee is invoiced to you on top.</p>
       </section>

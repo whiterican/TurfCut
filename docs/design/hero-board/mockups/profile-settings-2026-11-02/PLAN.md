@@ -23,14 +23,15 @@ Availability, credentials, political-fit preferences, preview and setup already 
 - **Menu rows (phone):** labels follow `PROFILE_SECTIONS`, the desktop sub-nav, so both name things the same way.
   - "Sharing & privacy" becomes **Who sees what**.
   - "Display settings" becomes **Settings & sign out**.
-  - New: **Political preferences** and **What organizations see**.
+  - New: **Political fit** and **What organizations see**.
+  - "Political fit", not the side nav's "Political preferences": the Who sees what page's hint says the answers are "under Political fit on your profile". That hint is versioned consent wording (`SHARING_TEXT_VERSION`), and changing it would ask every worker to reconfirm. The side nav's different label is already the case today.
   - The "Work record" and "Experience" rows go: those sections follow straight after, so the rows only scrolled down.
-- **Political preferences status**, from `loadLatestPreference`:
+- **Political fit status**, from `loadLatestPreference`:
   - **"Needs reconfirming"** in the danger colour whenever the consent status isn't `current` (expired or reworded). Until then nothing is used or shown, so the row must never name a mode.
   - Otherwise the current mode's label ("Private", "Organizations I work with", "Recruiters I approve").
   - **"Not set yet"** when no answer exists. That's today's wording.
 - **Desktop:** the left sub-nav stays. The same rows and status words appear as one compact list under the name.
-- **Home-area warning:** "Turfcut can't place … so organizations can't find you yet" today lives only in the profile's Who sees what section. It moves directly under the menu (shown only when findable and the area can't be placed), and onto the Sharing page (see 3). It is never dropped.
+- **Home-area warning:** "Turfcut can't place … so organizations can't find you yet" today lives only in the profile's Who sees what section. It moves directly under the menu (shown only when findable and the area can't be placed), and onto the Sharing page (see 3). It is never dropped. Both read the **saved** choices (as `homePlaced` does today), never the form being edited.
 - **Work record:** ScorecardPanel unchanged. "The math behind every number" stays open (question 1). ScorecardPanel is shared with the organization's view of a worker, so any fold would be a profile-only prop.
 - **Experience:** ExperienceList unchanged.
   - The existing ExperienceForm sits behind a "+ Add a campaign" button, closed by default even with no records.
@@ -38,6 +39,7 @@ Availability, credentials, political-fit preferences, preview and setup already 
 - **Contact:** PhoneForm unchanged and stays on Profile (question 2).
 - **Removed from this page:** the duplicate Availability, Credentials, Who sees what and Political fit sections. Each has its own page, linked with its status.
   - The section's "Not until you confirm your choices" line is covered by the existing reminder card ("Check who sees what"), which stays.
+  - The Political fit section's explanation of a lapsed consent ("until then nothing is used for matching or shown to organizations") is then only on `/profile/preferences`. On Profile the row's "Needs reconfirming" leads there.
 
 ## 2. Settings — `settings-390.png`
 
@@ -54,7 +56,8 @@ Availability, credentials, political-fit preferences, preview and setup already 
 ## 3. Who sees what — `sharing-390.png`
 
 - **Layout only.** Every label, explanation, hint and option keeps its exact words. The mockup shortens two long paragraphs and marks where.
-- The wording is versioned by hand: `SHARING_TEXT_VERSION` in `src/lib/sharing.ts`, which `loadSharing`, `saveSharing`, the form and matches compare against. No test pins the strings today. So this slice **adds a test that pins the labels and explanations**, which makes "layout only" provable: any rewording fails the test and needs a deliberate version bump.
+- The wording is versioned by hand: `SHARING_TEXT_VERSION` in `src/lib/sharing.ts`, which `loadSharing`, `saveSharing`, the form and matches compare against. No test pins the strings today, and most of them live in JSX: the page's lead and hints, SharingForm's explanations, and `/profile/setup`, which the same version covers.
+- So the slice first moves those strings, **unchanged**, into one module beside `PART_DETAILS`, and the pages render them from there. A test then pins them with `SHARING_TEXT_VERSION`, which makes "layout only" provable: any rewording fails the test and needs a deliberate version bump.
 - Each part becomes one card, with its options as plain radio rows separated by hairlines instead of three bordered cards.
 - The home-area warning appears here too, next to "Let organizations find me", when findable and the area can't be placed.
 - The same radio-row style applies to the single-choice option cards in Settings and Political preferences. The job builder and signup's two-way account-type switch keep their cards.
@@ -70,7 +73,7 @@ Availability, credentials, political-fit preferences, preview and setup already 
   - expired credential (row in danger)
   - no home area
   - payouts not available
-- **Settings:** signed out, signed in without a profile, worker, organization member, staff, close blocked, close allowed (confirmation step), closure facts unavailable.
+- **Settings:** signed out, signed in without a profile, worker, organization member, staff, close blocked, close allowed (confirmation step), closure facts unavailable, failed sign-out.
 - **Sharing:** defaults never saved, saved, needs confirming, findable with an unplaceable home area, failed save.
 
 Each at 390 and 1440, in light and dark.

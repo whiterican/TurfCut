@@ -83,7 +83,7 @@ export function SharingForm({ choices, unplacedArea = null }: { choices: Sharing
             <span className="block font-semibold text-fg">{PART_DETAILS[part].label}</span>
             <span className="text-muted-sm block font-normal">{PART_DETAILS[part].covers}</span>
           </legend>
-          <div className="clear-both divide-y divide-border pt-1">
+          <div className="choice-rows clear-both pt-1">
             {AUDIENCE_OPTIONS.map((o) => (
               <label key={o.value} className="choice-row text-sm">
                 <input

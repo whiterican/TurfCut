@@ -60,8 +60,8 @@ export function AccountData({ userId, problems }: { userId: string; problems: st
       </div>
     </section>
     {/* The danger zone (#114): last on the page, apart from everything else, under its own heading. */}
-    <section className="section danger-zone" aria-labelledby="close-account">
-      <h2 id="close-account" className="section-title">Close my account</h2>
+    <section className="section danger-zone">
+      <h2 className="section-title">Close my account</h2>
       <div className="card space-y-3">
         <p className="text-muted-sm">
           Your login is removed and your name and phone are replaced with &ldquo;Former worker&rdquo;. Your work history, pay records and consent history stay as they were recorded — Turfcut never rewrites its ledger. Download your data first. Any shifts you haven&apos;t started are cancelled; that never counts as a no-show.

@@ -104,7 +104,7 @@ export function DisplaySettings() {
         <legend className="section-title">Text size</legend>
         <div className="choice-list">
           {TEXT_SIZES.map((t, i) => (
-            <label key={t.value} className="choice-row items-center">
+            <label key={t.value} className="choice-row">
               <input type="radio" name="textSize" checked={size === t.value} onChange={() => applySize(t.value)} />
               <span className="text-fg" style={{ fontSize: `${1 + i * 0.125}rem` }}>
                 {t.label}
@@ -119,7 +119,7 @@ export function DisplaySettings() {
         <legend className="section-title">Theme</legend>
         <div className="choice-list">
           {THEME_CHOICES.map(({ value: v, label }) => (
-            <label key={v} className="choice-row items-center">
+            <label key={v} className="choice-row">
               <input type="radio" name="theme" checked={theme === v} onChange={() => applyTheme(v)} />
               <span>{label}</span>
             </label>
@@ -132,7 +132,7 @@ export function DisplaySettings() {
         <legend className="section-title">Motion</legend>
         <div className="choice-list">
           {([["system", phoneReduces ? "Match my phone (less motion)" : "Match my phone"], ["reduce", "Less motion"]] as const).map(([v, label]) => (
-            <label key={v} className="choice-row items-center">
+            <label key={v} className="choice-row">
               <input type="radio" name="motion" checked={motion === v} onChange={() => applyMotion(v)} />
               <span>{label}</span>
             </label>

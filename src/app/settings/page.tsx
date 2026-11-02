@@ -25,7 +25,7 @@ export async function generateMetadata() {
   return { title: `${(await signedInUser()) ? "Settings" : "Display settings"} · Turfcut` };
 }
 
-/** Display settings for everyone (signed in or not): text size and theme. */
+/** Settings for everyone: display options on this device; signed in, the account too (and, for workers, their data and closing the account). */
 export default async function SettingsPage() {
   // Any signed-in Supabase user can sign out — even one whose account setup
   // didn't finish (no profile row yet).

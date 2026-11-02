@@ -1256,18 +1256,23 @@ body {
   .choice-list {
     @apply divide-y divide-border rounded-[var(--radius-card)] border border-border bg-surface px-4;
   }
-  .choice-row {
-    @apply flex min-h-12 cursor-pointer items-start gap-3 py-3 text-fg;
+  .choice-rows {
+    @apply divide-y divide-border;
   }
-  .choice-row input[type="radio"] {
-    margin-top: 0.125rem;
+  /* Centred: a label that wraps keeps its radio beside its middle. */
+  .choice-row {
+    @apply flex min-h-12 cursor-pointer items-center gap-3 py-3 text-fg;
   }
   .choice-row:has(input:checked) {
     @apply font-semibold;
   }
+  /* One focus ring, on the row (inside it, so it never runs over the list's edge or the next row's line). */
+  .choice-row input:focus-visible {
+    outline: none;
+  }
   .choice-row:has(input:focus-visible) {
     outline: 2px solid var(--focus);
-    outline-offset: 2px;
+    outline-offset: -2px;
     border-radius: var(--radius-inner);
   }
 
@@ -2998,11 +3003,15 @@ summary.list-none::-webkit-details-marker {
   .sun .btn-sm {
     min-height: 2.75rem;
   }
+  /* Choice rows' hairlines too: in Sunlight no line is thinner than 2px. */
+  .sun :is(.choice-list, .choice-rows) > :not(:last-child) {
+    border-bottom-width: 2px;
+  }
   /* The header's round buttons keep their 40px pin (the theme toggle carries .btn-sm). */
   .sun .site-header :is(.btn-ghost, .glass-orb-phone) {
     min-height: 40px;
   }
-  .sun :is(.card, .card-flat, .card-dashed, .stat, .list-card, .empty-state, .hero-card, .field, .option-card, .btn-secondary, .tabbar, .kv, .alert, .alert-warning, .alert-info, .quick-reply, .icon-btn, .summary-item, .stat-tile, .work-card, .data-table-wrap, .composer-input, .sheet-panel, .swipe-card) {
+  .sun :is(.card, .card-flat, .card-dashed, .stat, .list-card, .empty-state, .hero-card, .field, .option-card, .choice-list, .btn-secondary, .tabbar, .kv, .alert, .alert-warning, .alert-info, .quick-reply, .icon-btn, .summary-item, .stat-tile, .work-card, .data-table-wrap, .composer-input, .sheet-panel, .swipe-card) {
     border-width: 2px;
   }
   .sun :is(.alert, .alert-warning, .alert-info) {

@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 type Session = { role: string; orgId: string | null; grants?: null } | null;
 let session: Session = { role: "OWNER", orgId: "org" };
@@ -7,6 +7,11 @@ vi.mock("@/lib/auth", () => ({ getSessionProfile: async () => session }));
 const { placeOfCity } = await import("./place-actions");
 
 describe("placeOfCity: the staging map's starting point", () => {
+  // Each test starts as an owner, so one failing assertion can't leave the next test signed in as someone else.
+  beforeEach(() => {
+    session = { role: "OWNER", orgId: "org" };
+  });
+
   it("only for someone who can edit jobs, and softly: nothing (never a redirect) for anyone else", async () => {
     expect(await placeOfCity("Denver", "CO")).not.toBeNull();
     session = { role: "SUPERVISOR", orgId: "org" };
@@ -15,7 +20,8 @@ describe("placeOfCity: the staging map's starting point", () => {
     expect(await placeOfCity("Denver", "CO")).toBeNull();
     session = { role: "RECRUITER", orgId: "org" };
     expect(await placeOfCity("Denver", "CO")).not.toBeNull();
-    session = { role: "OWNER", orgId: "org" };
+    session = { role: "OWNER", orgId: null };
+    expect(await placeOfCity("Denver", "CO")).toBeNull();
   });
 
   it("places a city in its state from the bundled Census tables", async () => {

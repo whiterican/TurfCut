@@ -160,6 +160,7 @@ export default async function ApplicantsPage({
       ) : (
         <div data-inspector-source>
         <DataTable
+          stack
           caption={`Applicants for ${job.title}`}
           empty="No applicants match these filters."
           columns={tableColumns(cols)}

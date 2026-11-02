@@ -109,6 +109,31 @@ const refused = (p: Promise<unknown>) => p.then(() => "allowed", (e: unknown) =>
   const ordered = await p.campaignPost.findMany({ where: { profileId: id, deletedAt: null }, orderBy: [{ createdAt: "desc" }, { id: "desc" }], select: { id: true } });
   check("paging returns every live post exactly once, newest first (time is the only order)", seen.length === live && new Set(seen).size === live && JSON.stringify(seen) === JSON.stringify(ordered.map((x) => x.id)), { seen: seen.length, live });
 
+  // --- The public profile shows each talking point once: excluded in the query, so on every page ---
+  const pinnedIds = new Set((await loadPinned(id)).map((x) => x.id));
+  // Date the talking points before the tied batch, so they sort past page one.
+  await p.campaignPost.updateMany({ where: { id: { in: [...pinnedIds] } }, data: { createdAt: new Date("2026-08-01T12:00:00.000Z") } });
+  const byTime = await p.campaignPost.findMany({ where: { profileId: id, deletedAt: null }, orderBy: [{ createdAt: "desc" }, { id: "desc" }], select: { id: true } });
+  const unpinned: string[] = [];
+  cursor = null;
+  pages = 0;
+  do {
+    const page: Awaited<ReturnType<typeof loadPosts>> = await loadPosts(id, cursor, { excludePinned: true });
+    unpinned.push(...page.posts.map((x) => x.id));
+    cursor = page.next;
+    pages++;
+  } while (cursor && pages < 10);
+  const expected = byTime.map((x) => x.id).filter((x) => !pinnedIds.has(x));
+  const pinnedPastPageOne = byTime.slice(PAGE_SIZE).some((x) => pinnedIds.has(x.id));
+  check("with talking points excluded, every page skips them, including ones older than page one", pinnedIds.size > 0 && pinnedPastPageOne && JSON.stringify(unpinned) === JSON.stringify(expected), { pinned: pinnedIds.size, pinnedPastPageOne, got: unpinned.length, expected: expected.length });
+  const solo = await createCampaign(A, { handle: "pins_only", displayName: "Pins Only", bio: "" });
+  if (!solo.ok) throw new Error(solo.reason);
+  const soloPost = await createPost(A, solo.id, { body: "Our one talking point.", jobId: null });
+  if (!soloPost.ok) throw new Error(soloPost.reason);
+  await setPostPinned(A, soloPost.id, true);
+  const soloPage = await loadPosts(solo.id, null, { excludePinned: true });
+  check("a campaign whose only post is pinned has no other posts to list", soloPage.posts.length === 0 && soloPage.next === null && (await loadPinned(solo.id)).length === 1 && (await loadPosts(solo.id)).posts.length === 1);
+
   // --- Embeds read the job as it is now ---
   const open = (await loadPosts(id)).posts.find((x) => x.id === hid) ?? (await loadPublicPost("yes_on_7", hid))?.post;
   await p.job.update({ where: { id: JOB }, data: { status: "CLOSED" } });
@@ -154,7 +179,7 @@ const refused = (p: Promise<unknown>) => p.then(() => "allowed", (e: unknown) =>
 
   // --- Social activity is invisible to matching and the feed ---
   check("a worker's job feed is exactly what it was before any campaign activity", (await feedView()) === feedBefore);
-  check("every campaign write is on the audit record", (await p.auditEvent.count({ where: { action: "campaign.created" } })) === 3 && (await p.auditEvent.count({ where: { action: "campaign.post_pinned" } })) === MAX_PINNED && (await p.auditEvent.count({ where: { action: "job.campaign_set" } })) === 1);
+  check("every campaign write is on the audit record", (await p.auditEvent.count({ where: { action: "campaign.created" } })) === 4 && (await p.auditEvent.count({ where: { action: "campaign.post_pinned" } })) === MAX_PINNED + 1 && /* + "pins_only" and its one pin */ (await p.auditEvent.count({ where: { action: "job.campaign_set" } })) === 1);
 
   await p.$disconnect();
   process.exit(fails ? 1 : 0);

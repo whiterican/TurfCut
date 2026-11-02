@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireWorker } from "@/lib/worker-session";
 import { loadReceipt } from "@/lib/receipts-data";
-import { ReceiptView } from "@/components/ReceiptView";
+import { ReceiptView, receiptIntro } from "@/components/ReceiptView";
 import { PrintButton } from "@/components/PrintButton";
 import { Masthead } from "@/components/Masthead";
 import { RecordPage } from "@/components/layout/Page";
@@ -16,7 +16,7 @@ export default async function ReceiptPage({ params }: { params: Promise<{ transf
   const r = await loadReceipt(workerId, transferId);
   if (!r) notFound();
   return (
-    <RecordPage head={<Masthead className="no-print" eyebrow={<><Link href="/earnings/receipts" className="link">Receipts</Link></>} title={<>Receipt {r.number}</>} meta={<>Keep it: it stays here even if the payment is later reversed, and it&apos;s in your data export.</>}>
+    <RecordPage head={<Masthead eyebrow={<><Link href="/earnings/receipts" className="link no-print">Receipts</Link></>} title={<>Receipt {r.number}</>} meta={receiptIntro(r)}>
         <PrintButton />
       </Masthead>}>
       <ReceiptView r={r} />

@@ -4,7 +4,6 @@ import { openJobsEndAfter } from "@/lib/jobs";
 import { pipeline } from "@/lib/hiring";
 import { Masthead } from "@/components/staff/Masthead";
 import { WorkspacePage } from "@/components/layout/Page";
-import { SummaryBar } from "@/components/staff/SummaryBar";
 import { DataTable } from "@/components/staff/DataTable";
 import { matchCounts } from "@/lib/matches-data";
 
@@ -23,17 +22,19 @@ export default async function HiringPage() {
 
   return (
     <WorkspacePage head={<Masthead title="Pipeline" meta="Open jobs and the people at each stage. Open a job's applicants to compare what each worker shares with you." />}>
-      <SummaryBar
-        label="Hiring totals"
-        items={[
-          { label: "Open jobs", value: rows.length },
-          { label: "Applications waiting", value: total("applied") },
-          { label: "Offers out", value: total("offered") },
-          { label: "Invited", value: total("invited") },
-          { label: "Working", value: total("engaged") },
-        ]}
-      />
+      {/* One compact band (#114 Hiring), as Pay has: the totals across open jobs, each a real count. */}
+      <section aria-labelledby="hiring-totals-heading">
+        <h2 id="hiring-totals-heading" className="sr-only">Hiring totals</h2>
+        <dl className="summary-band">
+          <div><dt>{rows.length === 1 ? "open job" : "open jobs"}</dt><dd>{rows.length}</dd></div>
+          <div><dt>{total("applied") === 1 ? "application waiting" : "applications waiting"}</dt><dd>{total("applied")}</dd></div>
+          <div><dt>{total("offered") === 1 ? "offer out" : "offers out"}</dt><dd>{total("offered")}</dd></div>
+          <div><dt>invited</dt><dd>{total("invited")}</dd></div>
+          <div><dt>working</dt><dd>{total("engaged")}</dd></div>
+        </dl>
+      </section>
       <DataTable
+        stack
         caption="Open jobs and their hiring pipeline"
         empty="No open jobs. Publish a job to start hiring."
         columns={[

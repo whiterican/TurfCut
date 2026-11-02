@@ -1,0 +1,866 @@
+[
+ {
+  "screen": "dispute-open",
+  "route": "/earnings/disputes/00000000-0000-0000-0000-0000000d0001",
+  "state": "before-first-reply",
+  "role": "worker",
+  "source": {
+   "commit": "3585af1f2b3865d8ff4fb3bf4bea9de4028f51d7",
+   "clean": true,
+   "patchSha256": null
+  },
+  "implementationFile": "dispute-open-before-first-reply-390-light.png",
+  "viewport": {
+   "width": 390,
+   "height": 844,
+   "deviceScaleFactor": 2
+  },
+  "theme": "light",
+  "timezone": "America/Denver",
+  "clock": "frozen at 2026-10-30T19:00:00Z",
+  "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+  "fontOk": true,
+  "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+  "overflow": 0,
+  "tabs": [
+   {
+    "label": "Home",
+    "w": 57,
+    "h": 52,
+    "clipped": false
+   },
+   {
+    "label": "Jobs",
+    "w": 57,
+    "h": 52,
+    "clipped": false
+   },
+   {
+    "label": "Work",
+    "w": 57,
+    "h": 52,
+    "clipped": false
+   },
+   {
+    "label": "Map",
+    "w": 57,
+    "h": 52,
+    "clipped": false
+   },
+   {
+    "label": "Messages",
+    "w": 73,
+    "h": 52,
+    "clipped": false
+   },
+   {
+    "label": "More, 1 unread notification",
+    "w": 57,
+    "h": 52,
+    "clipped": false
+   }
+  ],
+  "bar": {
+   "w": 366,
+   "h": 60,
+   "left": 12,
+   "bottom": 10
+  },
+  "bg": "#faf9f4",
+  "shell": "#1c0f2e",
+  "title": "Pay dispute \u00b7 Turfcut",
+  "h1": "Your dispute",
+  "status": "captured",
+  "set": "worker, 390"
+ },
+ {
+  "screen": "dispute-open",
+  "route": "/earnings/disputes/00000000-0000-0000-0000-0000000d0001",
+  "state": "before-first-reply",
+  "role": "worker",
+  "source": {
+   "commit": "3585af1f2b3865d8ff4fb3bf4bea9de4028f51d7",
+   "clean": true,
+   "patchSha256": null
+  },
+  "implementationFile": "dispute-open-before-first-reply-390-dark.png",
+  "viewport": {
+   "width": 390,
+   "height": 844,
+   "deviceScaleFactor": 2
+  },
+  "theme": "dark",
+  "timezone": "America/Denver",
+  "clock": "frozen at 2026-10-30T19:00:00Z",
+  "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+  "fontOk": true,
+  "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+  "overflow": 0,
+  "tabs": [
+   {
+    "label": "Home",
+    "w": 57,
+    "h": 52,
+    "clipped": false
+   },
+   {
+    "label": "Jobs",
+    "w": 57,
+    "h": 52,
+    "clipped": false
+   },
+   {
+    "label": "Work",
+    "w": 57,
+    "h": 52,
+    "clipped": false
+   },
+   {
+    "label": "Map",
+    "w": 57,
+    "h": 52,
+    "clipped": false
+   },
+   {
+    "label": "Messages",
+    "w": 73,
+    "h": 52,
+    "clipped": false
+   },
+   {
+    "label": "More, 1 unread notification",
+    "w": 57,
+    "h": 52,
+    "clipped": false
+   }
+  ],
+  "bar": {
+   "w": 366,
+   "h": 60,
+   "left": 12,
+   "bottom": 10
+  },
+  "bg": "#140a22",
+  "shell": "#1c0f2e",
+  "title": "Pay dispute \u00b7 Turfcut",
+  "h1": "Your dispute",
+  "status": "captured",
+  "set": "worker, 390"
+ },
+ {
+  "screen": "dispute-replied",
+  "route": "/earnings/disputes/00000000-0000-0000-0000-0000000d0002",
+  "state": "after-first-reply",
+  "role": "worker",
+  "source": {
+   "commit": "3585af1f2b3865d8ff4fb3bf4bea9de4028f51d7",
+   "clean": true,
+   "patchSha256": null
+  },
+  "implementationFile": "dispute-replied-after-first-reply-390-light.png",
+  "viewport": {
+   "width": 390,
+   "height": 844,
+   "deviceScaleFactor": 2
+  },
+  "theme": "light",
+  "timezone": "America/Denver",
+  "clock": "frozen at 2026-10-30T19:00:00Z",
+  "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+  "fontOk": true,
+  "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+  "overflow": 0,
+  "tabs": [
+   {
+    "label": "Home",
+    "w": 57,
+    "h": 52,
+    "clipped": false
+   },
+   {
+    "label": "Jobs",
+    "w": 57,
+    "h": 52,
+    "clipped": false
+   },
+   {
+    "label": "Work",
+    "w": 57,
+    "h": 52,
+    "clipped": false
+   },
+   {
+    "label": "Map",
+    "w": 57,
+    "h": 52,
+    "clipped": false
+   },
+   {
+    "label": "Messages",
+    "w": 73,
+    "h": 52,
+    "clipped": false
+   },
+   {
+    "label": "More, 1 unread notification",
+    "w": 57,
+    "h": 52,
+    "clipped": false
+   }
+  ],
+  "bar": {
+   "w": 366,
+   "h": 60,
+   "left": 12,
+   "bottom": 10
+  },
+  "bg": "#faf9f4",
+  "shell": "#1c0f2e",
+  "title": "Pay dispute \u00b7 Turfcut",
+  "h1": "Your dispute",
+  "status": "captured",
+  "set": "worker, 390"
+ },
+ {
+  "screen": "dispute-replied",
+  "route": "/earnings/disputes/00000000-0000-0000-0000-0000000d0002",
+  "state": "after-first-reply",
+  "role": "worker",
+  "source": {
+   "commit": "3585af1f2b3865d8ff4fb3bf4bea9de4028f51d7",
+   "clean": true,
+   "patchSha256": null
+  },
+  "implementationFile": "dispute-replied-after-first-reply-390-dark.png",
+  "viewport": {
+   "width": 390,
+   "height": 844,
+   "deviceScaleFactor": 2
+  },
+  "theme": "dark",
+  "timezone": "America/Denver",
+  "clock": "frozen at 2026-10-30T19:00:00Z",
+  "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+  "fontOk": true,
+  "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+  "overflow": 0,
+  "tabs": [
+   {
+    "label": "Home",
+    "w": 57,
+    "h": 52,
+    "clipped": false
+   },
+   {
+    "label": "Jobs",
+    "w": 57,
+    "h": 52,
+    "clipped": false
+   },
+   {
+    "label": "Work",
+    "w": 57,
+    "h": 52,
+    "clipped": false
+   },
+   {
+    "label": "Map",
+    "w": 57,
+    "h": 52,
+    "clipped": false
+   },
+   {
+    "label": "Messages",
+    "w": 73,
+    "h": 52,
+    "clipped": false
+   },
+   {
+    "label": "More, 1 unread notification",
+    "w": 57,
+    "h": 52,
+    "clipped": false
+   }
+  ],
+  "bar": {
+   "w": 366,
+   "h": 60,
+   "left": 12,
+   "bottom": 10
+  },
+  "bg": "#140a22",
+  "shell": "#1c0f2e",
+  "title": "Pay dispute \u00b7 Turfcut",
+  "h1": "Your dispute",
+  "status": "captured",
+  "set": "worker, 390"
+ },
+ {
+  "screen": "dispute-overdue",
+  "route": "/earnings/disputes/00000000-0000-0000-0000-0000000d0003",
+  "state": "overdue",
+  "role": "worker",
+  "source": {
+   "commit": "3585af1f2b3865d8ff4fb3bf4bea9de4028f51d7",
+   "clean": true,
+   "patchSha256": null
+  },
+  "implementationFile": "dispute-overdue-overdue-390-light.png",
+  "viewport": {
+   "width": 390,
+   "height": 844,
+   "deviceScaleFactor": 2
+  },
+  "theme": "light",
+  "timezone": "America/Denver",
+  "clock": "frozen at 2026-10-30T19:00:00Z",
+  "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+  "fontOk": true,
+  "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+  "overflow": 0,
+  "tabs": [
+   {
+    "label": "Home",
+    "w": 57,
+    "h": 52,
+    "clipped": false
+   },
+   {
+    "label": "Jobs",
+    "w": 57,
+    "h": 52,
+    "clipped": false
+   },
+   {
+    "label": "Work",
+    "w": 57,
+    "h": 52,
+    "clipped": false
+   },
+   {
+    "label": "Map",
+    "w": 57,
+    "h": 52,
+    "clipped": false
+   },
+   {
+    "label": "Messages",
+    "w": 73,
+    "h": 52,
+    "clipped": false
+   },
+   {
+    "label": "More, 1 unread notification",
+    "w": 57,
+    "h": 52,
+    "clipped": false
+   }
+  ],
+  "bar": {
+   "w": 366,
+   "h": 60,
+   "left": 12,
+   "bottom": 10
+  },
+  "bg": "#faf9f4",
+  "shell": "#1c0f2e",
+  "title": "Pay dispute \u00b7 Turfcut",
+  "h1": "Your dispute",
+  "status": "captured",
+  "set": "worker, 390"
+ },
+ {
+  "screen": "dispute-overdue",
+  "route": "/earnings/disputes/00000000-0000-0000-0000-0000000d0003",
+  "state": "overdue",
+  "role": "worker",
+  "source": {
+   "commit": "3585af1f2b3865d8ff4fb3bf4bea9de4028f51d7",
+   "clean": true,
+   "patchSha256": null
+  },
+  "implementationFile": "dispute-overdue-overdue-390-dark.png",
+  "viewport": {
+   "width": 390,
+   "height": 844,
+   "deviceScaleFactor": 2
+  },
+  "theme": "dark",
+  "timezone": "America/Denver",
+  "clock": "frozen at 2026-10-30T19:00:00Z",
+  "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+  "fontOk": true,
+  "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+  "overflow": 0,
+  "tabs": [
+   {
+    "label": "Home",
+    "w": 57,
+    "h": 52,
+    "clipped": false
+   },
+   {
+    "label": "Jobs",
+    "w": 57,
+    "h": 52,
+    "clipped": false
+   },
+   {
+    "label": "Work",
+    "w": 57,
+    "h": 52,
+    "clipped": false
+   },
+   {
+    "label": "Map",
+    "w": 57,
+    "h": 52,
+    "clipped": false
+   },
+   {
+    "label": "Messages",
+    "w": 73,
+    "h": 52,
+    "clipped": false
+   },
+   {
+    "label": "More, 1 unread notification",
+    "w": 57,
+    "h": 52,
+    "clipped": false
+   }
+  ],
+  "bar": {
+   "w": 366,
+   "h": 60,
+   "left": 12,
+   "bottom": 10
+  },
+  "bg": "#140a22",
+  "shell": "#1c0f2e",
+  "title": "Pay dispute \u00b7 Turfcut",
+  "h1": "Your dispute",
+  "status": "captured",
+  "set": "worker, 390"
+ },
+ {
+  "screen": "dispute-resolved",
+  "route": "/earnings/disputes/00000000-0000-0000-0000-0000000d0004",
+  "state": "resolved",
+  "role": "worker",
+  "source": {
+   "commit": "3585af1f2b3865d8ff4fb3bf4bea9de4028f51d7",
+   "clean": true,
+   "patchSha256": null
+  },
+  "implementationFile": "dispute-resolved-resolved-390-light.png",
+  "viewport": {
+   "width": 390,
+   "height": 844,
+   "deviceScaleFactor": 2
+  },
+  "theme": "light",
+  "timezone": "America/Denver",
+  "clock": "frozen at 2026-10-30T19:00:00Z",
+  "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+  "fontOk": true,
+  "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+  "overflow": 0,
+  "tabs": [
+   {
+    "label": "Home",
+    "w": 57,
+    "h": 52,
+    "clipped": false
+   },
+   {
+    "label": "Jobs",
+    "w": 57,
+    "h": 52,
+    "clipped": false
+   },
+   {
+    "label": "Work",
+    "w": 57,
+    "h": 52,
+    "clipped": false
+   },
+   {
+    "label": "Map",
+    "w": 57,
+    "h": 52,
+    "clipped": false
+   },
+   {
+    "label": "Messages",
+    "w": 73,
+    "h": 52,
+    "clipped": false
+   },
+   {
+    "label": "More, 1 unread notification",
+    "w": 57,
+    "h": 52,
+    "clipped": false
+   }
+  ],
+  "bar": {
+   "w": 366,
+   "h": 60,
+   "left": 12,
+   "bottom": 10
+  },
+  "bg": "#faf9f4",
+  "shell": "#1c0f2e",
+  "title": "Pay dispute \u00b7 Turfcut",
+  "h1": "Your dispute",
+  "status": "captured",
+  "set": "worker, 390"
+ },
+ {
+  "screen": "dispute-resolved",
+  "route": "/earnings/disputes/00000000-0000-0000-0000-0000000d0004",
+  "state": "resolved",
+  "role": "worker",
+  "source": {
+   "commit": "3585af1f2b3865d8ff4fb3bf4bea9de4028f51d7",
+   "clean": true,
+   "patchSha256": null
+  },
+  "implementationFile": "dispute-resolved-resolved-390-dark.png",
+  "viewport": {
+   "width": 390,
+   "height": 844,
+   "deviceScaleFactor": 2
+  },
+  "theme": "dark",
+  "timezone": "America/Denver",
+  "clock": "frozen at 2026-10-30T19:00:00Z",
+  "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+  "fontOk": true,
+  "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+  "overflow": 0,
+  "tabs": [
+   {
+    "label": "Home",
+    "w": 57,
+    "h": 52,
+    "clipped": false
+   },
+   {
+    "label": "Jobs",
+    "w": 57,
+    "h": 52,
+    "clipped": false
+   },
+   {
+    "label": "Work",
+    "w": 57,
+    "h": 52,
+    "clipped": false
+   },
+   {
+    "label": "Map",
+    "w": 57,
+    "h": 52,
+    "clipped": false
+   },
+   {
+    "label": "Messages",
+    "w": 73,
+    "h": 52,
+    "clipped": false
+   },
+   {
+    "label": "More, 1 unread notification",
+    "w": 57,
+    "h": 52,
+    "clipped": false
+   }
+  ],
+  "bar": {
+   "w": 366,
+   "h": 60,
+   "left": 12,
+   "bottom": 10
+  },
+  "bg": "#140a22",
+  "shell": "#1c0f2e",
+  "title": "Pay dispute \u00b7 Turfcut",
+  "h1": "Your dispute",
+  "status": "captured",
+  "set": "worker, 390"
+ },
+ {
+  "screen": "orgdispute-open",
+  "route": "/pay/disputes/00000000-0000-0000-0000-0000000d0001",
+  "state": "before-first-reply",
+  "role": "owner",
+  "source": {
+   "commit": "3585af1f2b3865d8ff4fb3bf4bea9de4028f51d7",
+   "clean": true,
+   "patchSha256": null
+  },
+  "implementationFile": "orgdispute-open-before-first-reply-1440-light.png",
+  "viewport": {
+   "width": 1440,
+   "height": 900,
+   "deviceScaleFactor": 2
+  },
+  "theme": "light",
+  "timezone": "America/Denver",
+  "clock": "frozen at 2026-10-30T19:00:00Z",
+  "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+  "fontOk": true,
+  "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+  "overflow": 0,
+  "tabs": [
+   {
+    "label": "Desk",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   },
+   {
+    "label": "Hiring",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   },
+   {
+    "label": "Field",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   },
+   {
+    "label": "Messages",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   },
+   {
+    "label": "More",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   }
+  ],
+  "bar": {
+   "w": 0,
+   "h": 0,
+   "left": 0,
+   "bottom": 900
+  },
+  "bg": "#faf9f4",
+  "shell": "#1c0f2e",
+  "title": "Pay dispute \u00b7 Turfcut",
+  "h1": "Alex Rivera's dispute",
+  "status": "captured",
+  "set": "organization, 1440"
+ },
+ {
+  "screen": "orgdispute-replied",
+  "route": "/pay/disputes/00000000-0000-0000-0000-0000000d0002",
+  "state": "after-first-reply",
+  "role": "owner",
+  "source": {
+   "commit": "3585af1f2b3865d8ff4fb3bf4bea9de4028f51d7",
+   "clean": true,
+   "patchSha256": null
+  },
+  "implementationFile": "orgdispute-replied-after-first-reply-1440-light.png",
+  "viewport": {
+   "width": 1440,
+   "height": 900,
+   "deviceScaleFactor": 2
+  },
+  "theme": "light",
+  "timezone": "America/Denver",
+  "clock": "frozen at 2026-10-30T19:00:00Z",
+  "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+  "fontOk": true,
+  "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+  "overflow": 0,
+  "tabs": [
+   {
+    "label": "Desk",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   },
+   {
+    "label": "Hiring",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   },
+   {
+    "label": "Field",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   },
+   {
+    "label": "Messages",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   },
+   {
+    "label": "More",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   }
+  ],
+  "bar": {
+   "w": 0,
+   "h": 0,
+   "left": 0,
+   "bottom": 900
+  },
+  "bg": "#faf9f4",
+  "shell": "#1c0f2e",
+  "title": "Pay dispute \u00b7 Turfcut",
+  "h1": "Alex Rivera's dispute",
+  "status": "captured",
+  "set": "organization, 1440"
+ },
+ {
+  "screen": "orgdispute-overdue",
+  "route": "/pay/disputes/00000000-0000-0000-0000-0000000d0003",
+  "state": "overdue",
+  "role": "owner",
+  "source": {
+   "commit": "3585af1f2b3865d8ff4fb3bf4bea9de4028f51d7",
+   "clean": true,
+   "patchSha256": null
+  },
+  "implementationFile": "orgdispute-overdue-overdue-1440-light.png",
+  "viewport": {
+   "width": 1440,
+   "height": 900,
+   "deviceScaleFactor": 2
+  },
+  "theme": "light",
+  "timezone": "America/Denver",
+  "clock": "frozen at 2026-10-30T19:00:00Z",
+  "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+  "fontOk": true,
+  "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+  "overflow": 0,
+  "tabs": [
+   {
+    "label": "Desk",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   },
+   {
+    "label": "Hiring",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   },
+   {
+    "label": "Field",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   },
+   {
+    "label": "Messages",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   },
+   {
+    "label": "More",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   }
+  ],
+  "bar": {
+   "w": 0,
+   "h": 0,
+   "left": 0,
+   "bottom": 900
+  },
+  "bg": "#faf9f4",
+  "shell": "#1c0f2e",
+  "title": "Pay dispute \u00b7 Turfcut",
+  "h1": "Alex Rivera's dispute",
+  "status": "captured",
+  "set": "organization, 1440"
+ },
+ {
+  "screen": "orgdispute-resolved",
+  "route": "/pay/disputes/00000000-0000-0000-0000-0000000d0004",
+  "state": "resolved",
+  "role": "owner",
+  "source": {
+   "commit": "3585af1f2b3865d8ff4fb3bf4bea9de4028f51d7",
+   "clean": true,
+   "patchSha256": null
+  },
+  "implementationFile": "orgdispute-resolved-resolved-1440-light.png",
+  "viewport": {
+   "width": 1440,
+   "height": 900,
+   "deviceScaleFactor": 2
+  },
+  "theme": "light",
+  "timezone": "America/Denver",
+  "clock": "frozen at 2026-10-30T19:00:00Z",
+  "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+  "fontOk": true,
+  "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+  "overflow": 0,
+  "tabs": [
+   {
+    "label": "Desk",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   },
+   {
+    "label": "Hiring",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   },
+   {
+    "label": "Field",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   },
+   {
+    "label": "Messages",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   },
+   {
+    "label": "More",
+    "w": 0,
+    "h": 0,
+    "clipped": false
+   }
+  ],
+  "bar": {
+   "w": 0,
+   "h": 0,
+   "left": 0,
+   "bottom": 900
+  },
+  "bg": "#faf9f4",
+  "shell": "#1c0f2e",
+  "title": "Pay dispute \u00b7 Turfcut",
+  "h1": "Alex Rivera's dispute",
+  "status": "captured",
+  "set": "organization, 1440"
+ }
+]

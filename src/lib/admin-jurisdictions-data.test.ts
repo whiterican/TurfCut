@@ -179,3 +179,30 @@ describe("jurisdiction rule profiles (M10.3)", () => {
     await expect(retireJurisdictionProposal(staff, V1, "Oops", now)).resolves.toMatchObject({ ok: false, message: expect.stringMatching(/Only a proposed/) });
   });
 });
+
+describe("jurisdictionsNeedingAttention (console front page)", () => {
+  const now = new Date("2026-10-30T19:00:00Z");
+  const days = (n: number) => new Date(now.getTime() + n * 86_400_000);
+  const v = (id: string, standing: "current" | "proposed" | "superseded" | "retired", problems: string[], approvalExpiresAt: Date | null) => ({ id, standing, problems, approvalExpiresAt });
+
+  it("lists blocked profiles in force first, then usable ones lapsing within the window, soonest first", async () => {
+    const { jurisdictionsNeedingAttention, EXPIRY_WINDOW_DAYS } = await import("@/lib/admin-jurisdictions-data");
+    const rows = [
+      v("later", "current", [], days(EXPIRY_WINDOW_DAYS)),
+      v("fine", "current", [], days(EXPIRY_WINDOW_DAYS + 1)),
+      v("blocked", "current", ["approval expired"], days(-2)),
+      v("soon", "current", [], days(3)),
+      v("open-ended", "current", [], null),
+      v("proposed", "proposed", ["not approved"], null),
+      v("old", "superseded", ["superseded"], days(1)),
+    ];
+    const out = jurisdictionsNeedingAttention(rows, now);
+    expect(out.map((r) => [r.v.id, r.blocked])).toEqual([["blocked", true], ["soon", false], ["later", false]]);
+    expect(out[1]).toMatchObject({ blocked: false, expiresAt: days(3) });
+  });
+
+  it("is empty when every profile in force is usable and none lapses soon", async () => {
+    const { jurisdictionsNeedingAttention } = await import("@/lib/admin-jurisdictions-data");
+    expect(jurisdictionsNeedingAttention([v("a", "current", [], null), v("b", "current", [], days(90))], now)).toEqual([]);
+  });
+});

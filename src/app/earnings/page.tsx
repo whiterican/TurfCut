@@ -2,7 +2,7 @@ import Link from "next/link";
 import { requireWorker } from "@/lib/worker-session";
 import { loadWorkerEarnings, type EarningShift } from "@/lib/pay-data";
 import { PayBadge } from "@/components/Moments";
-import { approvedPhrase, money, payoutCta, payoutReadiness, statusLabel, type PayoutReadiness } from "@/lib/pay";
+import { approvedPhrase, money, payoutReadiness, statusLabel, type PayoutReadiness } from "@/lib/pay";
 import { StatusChip } from "@/components/StatusBadge";
 import { LocalTime } from "@/components/LocalTime";
 import { clockParts } from "@/lib/dispute-sla";
@@ -161,34 +161,17 @@ export default async function EarningsPage({ searchParams }: { searchParams: Pro
   // One read of the payout state (refreshed from Stripe when just back or stale), so the hero, the rows and the setup card agree (P0).
   const [{ campaigns, totals }, w] = await Promise.all([loadWorkerEarnings(workerId), payoutSetup(workerId, stripeProvider(), note === "done")]);
   const payouts = payoutReadiness(stripeProvider().configured(), w.payoutsEnabled);
-  const onTheWay = payouts === "enabled" ? "On the way" : `A${approvedPhrase(payouts).slice(1)}`;
   return (
     <ReadingPage gap={6} head={<Masthead title="Earnings" meta="Gross pay for shifts your supervisors approved. Turfcut never takes a cut of your pay — campaigns pay the platform fee." />}>
-      {/* The totals as white tiles (#111): each a real sum in its real pay state; the way to unblock approved pay sits beside it. */}
-      <section className="stat-tiles" aria-label="All campaigns">
-        <div className="stat-tile">
-          <p className="stat-tile-figure">{money(totals.paid)}</p>
-          <p className="stat-tile-label">Paid</p>
-          <p className="stat-tile-note">Reached your account</p>
-        </div>
-        <div className="stat-tile">
-          <p className="stat-tile-figure">{money(totals.onTheWay)}</p>
-          <p className="stat-tile-label">{onTheWay}</p>
-          {/* The way to unblock it, right beside the blocked amount: a link down to the Payouts card and its button (one primary per screen). */}
-          {totals.onTheWay > 0 && payoutCta(payouts, !!w.stripeAccountId) ? <PayoutSetupCta readiness={payouts} stripeAccountId={w.stripeAccountId} href="#payouts" className="link mt-1 block w-fit text-sm" /> : <p className="stat-tile-note">Approved by a supervisor</p>}
-        </div>
-        <div className="stat-tile">
-          <p className="stat-tile-figure">{money(totals.awaiting)}</p>
-          <p className="stat-tile-label">Awaiting approval</p>
-          <p className="stat-tile-note">Waiting for a supervisor&apos;s review</p>
-        </div>
-        {totals.stopped !== 0 && (
-          <div className="stat-tile">
-            <p className="stat-tile-figure">{money(totals.stopped)}</p>
-            <p className="stat-tile-label">On hold or disputed</p>
-            <p className="stat-tile-note">Waits for the outcome</p>
-          </div>
-        )}
+      {/* One compact band (#114 Earnings): each figure a real sum in its own pay state, never merged; the Payouts card right under it is the way to unblock approved pay. */}
+      <section aria-labelledby="earnings-totals-heading">
+        <h2 id="earnings-totals-heading" className="sr-only">All campaigns</h2>
+        <dl className="summary-band">
+          <div><dt>paid to your account</dt><dd>{money(totals.paid)}</dd></div>
+          <div><dt>{approvedPhrase(payouts)}</dt><dd>{money(totals.onTheWay)}</dd></div>
+          <div><dt>awaiting a supervisor&apos;s approval</dt><dd>{money(totals.awaiting)}</dd></div>
+          {totals.stopped !== 0 && <div><dt>on hold or disputed</dt><dd>{money(totals.stopped)}</dd></div>}
+        </dl>
       </section>
 
       <PayoutSetup w={w} note={note} />

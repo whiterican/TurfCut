@@ -101,6 +101,7 @@ export default async function MatchesPage({
             </form>
           )}
           <DataTable
+            stack
             caption={`Matches for ${job.title}`}
             empty="Nobody matches yet. Workers appear here when they choose to be found for this kind of work nearby."
             initialSort={{ key: "distance", dir: "asc" }}

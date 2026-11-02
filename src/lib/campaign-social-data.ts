@@ -336,13 +336,20 @@ export async function setPostPinned(actor: Actor, postId: string, pin: boolean, 
   });
 }
 
-/** Live posts of a campaign, newest first (time is the only order), a page at a time. */
-export async function loadPosts(campaignId: string, cursor?: string | null): Promise<{ posts: PublicPost[]; next: string | null }> {
+/**
+ * Live posts of a campaign, newest first (time is the only order), a page at
+ * a time. `excludePinned` leaves out the talking points (the public profile
+ * shows those once, above): it is part of the query, so every page,
+ * including Older posts, skips them. Pinning is capped at MAX_PINNED, so the
+ * posts it skips are exactly the ones loadPinned returns.
+ */
+export async function loadPosts(campaignId: string, cursor?: string | null, opts: { excludePinned?: boolean } = {}): Promise<{ posts: PublicPost[]; next: string | null }> {
   const after = decodeCursor(cursor);
   const rows = await db().campaignPost.findMany({
     where: {
       profileId: campaignId,
       deletedAt: null,
+      ...(opts.excludePinned ? { pinnedAt: null } : {}),
       ...(after ? { OR: [{ createdAt: { lt: after.createdAt } }, { createdAt: after.createdAt, id: { lt: after.id } }] } : {}),
     },
     orderBy: [{ createdAt: "desc" }, { id: "desc" }],
@@ -402,6 +409,31 @@ export async function setJobCampaign(actor: Actor, jobId: string, campaignId: st
     await tx.auditEvent.create({ data: { actorId: actor.profileId, action: "job.campaign_set", entityType: "Job", entityId: jobId, metadata: { from: job.campaignProfileId, to: campaignId } } });
     return { ok: true as const };
   });
+}
+
+/** How many of a campaign's open jobs its public page lists. */
+export const HIRING_MAX = 20;
+const HIRING_SELECT = {
+  id: true, title: true, type: true, startsAt: true, endsAt: true, compensationMethod: true, payRateCents: true, geography: true,
+} satisfies Prisma.JobSelect;
+export type HiringJob = Prisma.JobGetPayload<{ select: typeof HIRING_SELECT }>;
+
+/**
+ * A public campaign's jobs that are hiring now, for its profile: the same
+ * rule as the directory's "hiring" count and the job feed (published, and
+ * not ended a day ago or more), scoped to this campaign and its own
+ * organization. An organization can run several campaigns; each lists only
+ * the jobs linked to it. Newest published first, bounded; `more` says the
+ * list was cut.
+ */
+export async function listHiringJobs(campaign: { id: string; orgId: string }, now = new Date()): Promise<{ jobs: HiringJob[]; more: boolean }> {
+  const rows = await db().job.findMany({
+    where: { campaignProfileId: campaign.id, orgId: campaign.orgId, status: "PUBLISHED", OR: [{ endsAt: null }, { endsAt: { gt: openJobsEndAfter(now) } }] },
+    orderBy: [{ publishedAt: { sort: "desc", nulls: "last" } }, { id: "desc" }],
+    take: HIRING_MAX + 1,
+    select: HIRING_SELECT,
+  });
+  return { jobs: rows.slice(0, HIRING_MAX), more: rows.length > HIRING_MAX };
 }
 
 // ---------------------------------------------------------------------------

@@ -1,6 +1,6 @@
 /* S3 acceptance checks: the campaign directory and link previews, against a fresh database (tests/acceptance/run.sh). */
 import { db } from "@/lib/db";
-import { createCampaign, createPost, deletePost, listPublicCampaigns, setCampaignPublished, setJobCampaign } from "@/lib/campaign-social-data";
+import { createCampaign, createPost, deletePost, listHiringJobs, listPublicCampaigns, setCampaignPublished, setJobCampaign } from "@/lib/campaign-social-data";
 import { followStates, setFollow } from "@/lib/campaign-follow-data";
 import { campaignPreview, directoryJson } from "@/lib/campaign-api";
 import { DIRECTORY_PAGE_SIZE } from "@/lib/campaign-social";
@@ -58,6 +58,29 @@ const check = (l: string, c: unknown, d?: unknown) => { if (c) console.log(`PASS
   page = await listPublicCampaigns();
   check("…and how many of its jobs are hiring", page.campaigns[0].hiring === 1 && page.campaigns[1].hiring === 0);
   check("a published job that has ended isn't hiring (the job feed's rule)", (await listPublicCampaigns({ now: new Date(Date.UTC(2027, 0, 1)) })).campaigns[0].hiring === 0);
+
+  // --- A campaign's own "Hiring now" list: the directory's rule, scoped to that campaign ---
+  // Copies of the seed job, straight into the table, differing only in what's under test.
+  const copy = (newId: string, over: Record<string, unknown>) =>
+    p.$executeRaw`INSERT INTO "public"."Job" SELECT (jsonb_populate_record(j, ${JSON.stringify({ id: newId, ...over })}::jsonb)).* FROM "public"."Job" j WHERE j."id" = ${JOB}::uuid`;
+  const J = (n: number) => `00000000-0000-0000-0000-0000000009${String(n).padStart(2, "0")}`;
+  await copy(J(1), { endsAt: null, campaignProfileId: yes7 }); // open-ended: hiring
+  await copy(J(2), { status: "PAUSED", campaignProfileId: yes7 });
+  await copy(J(3), { status: "CLOSED", campaignProfileId: yes7 });
+  await copy(J(4), { endsAt: "2026-01-01T00:00:00", campaignProfileId: yes7 }); // ended
+  await copy(J(5), { campaignProfileId: quiet }); // the same organization's other campaign
+  const yesC = { id: yes7, orgId: ORG };
+  const hiringNow = (await listHiringJobs(yesC)).jobs.map((j) => j.id).sort();
+  check("a campaign lists its published, unended jobs: open-ended included; paused, closed and ended left out", JSON.stringify(hiringNow) === JSON.stringify([JOB, J(1)].sort()), hiringNow);
+  check("…and only its own: another campaign of the same organization lists its job alone", JSON.stringify((await listHiringJobs({ id: quiet, orgId: ORG })).jobs.map((j) => j.id)) === JSON.stringify([J(5)]));
+  const dirNow = (await listPublicCampaigns()).campaigns.find((c) => c.id === yes7);
+  check("the list and the directory's count agree", dirNow?.hiring === hiringNow.length, { dir: dirNow?.hiring, list: hiringNow.length });
+  const later = new Date(Date.UTC(2027, 0, 1));
+  check("once the dated job has ended, only the open-ended one is hiring", JSON.stringify((await listHiringJobs(yesC, later)).jobs.map((j) => j.id)) === JSON.stringify([J(1)]));
+  check("a job of the campaign's organization linked elsewhere, or the wrong organization, never shows", (await listHiringJobs({ id: yes7, orgId: ORG2 })).jobs.length === 0);
+  const sample = (await listHiringJobs(yesC)).jobs.find((j) => j.id === JOB);
+  check("each row carries the job's real pay basis and rate", !!sample && sample.compensationMethod === (await p.job.findUniqueOrThrow({ where: { id: JOB } })).compensationMethod && "payRateCents" in sample, sample);
+  await p.job.deleteMany({ where: { id: { in: [1, 2, 3, 4, 5].map(J) } } });
   // A post while a draft, then publishing: the campaign is dated from whichever is later.
   const late = await mk(A, "late_bloomer", "Late Bloomer");
   const draftPost = await createPost(A, late, { body: "Posted while a draft", jobId: null });

@@ -172,11 +172,19 @@ const check = (l: string, c: unknown, d?: unknown) => { if (c) console.log(`PASS
   let dup = false;
   try { await p.payoutTransfer.create({ data: { workerId: W2, orgId: ORG, amountCents: 1, feeCents: 0, receiptNo: 2, destination: "x", createdById: OWNER } }); } catch (e) { dup = (e as { code?: string }).code === "P2002"; }
   check("two receipts can't share a number in one organization (the database refuses)", dup);
+  // A partial reversal first: Stripe reports the total reversed so far; the receipt keeps the amount sent and shows what came back.
+  const part = (id: string, cents: number) => ({ id, type: "transfer.reversed", transfer: { id: "tr_1", group: t1!.id, amountCents: t1!.amountCents, reversedCents: cents } });
+  await pay.handleProviderEvent(part("evt_part_1", 500), new Date("2026-11-03T10:00:00Z"));
+  const rp1 = await loadReceipt(W1, t1!.id);
+  check("a partial reversal: the receipt reads partly reversed, keeps the original amount sent and shows what came back", rp1?.status === "partly-reversed" && rp1.amountCents === t1!.amountCents && rp1.partReversal?.reversedCents === 500 && !!rp1.paidAt && rp1.reversedAt === null && rp1.lines.length === 3, rp1);
+  await pay.handleProviderEvent(part("evt_part_2", 800), new Date("2026-11-03T11:00:00Z"));
+  const rp2 = (await loadReceipts(W1)).find((r) => r.id === t1!.id);
+  check("a further report is Stripe's new total, in the list too; the worker isn't told twice", rp2?.status === "partly-reversed" && rp2.partReversal?.reversedCents === 800 && (await notices("PAYOUT_REVERSED", W1)) === 0, rp2);
   // A full reversal: the worker is told, the receipt says so and stays.
   const full = { id: "evt_rev_1", type: "transfer.reversed", transfer: { id: "tr_1", group: t1!.id, amountCents: t1!.amountCents, reversedCents: t1!.amountCents } };
   const applied = await pay.handleProviderEvent(full, new Date("2026-11-04T10:00:00Z"));
   const r1b = await loadReceipt(W1, t1!.id);
-  check("a reversal tells the worker once and the receipt records it, keeping its number and lines", applied === "applied" && (await notices("PAYOUT_REVERSED", W1)) === 1 && r1b?.status === "reversed" && !!r1b.reversedAt && r1b.number === "R-000001" && r1b.lines.length === 3, r1b);
+  check("a reversal tells the worker once and the receipt records it, keeping its number and lines", applied === "applied" && (await notices("PAYOUT_REVERSED", W1)) === 1 && r1b?.status === "reversed" && !!r1b.reversedAt && r1b.partReversal === null && r1b.number === "R-000001" && r1b.lines.length === 3, r1b);
   check("the same reversal again changes nothing", (await pay.handleProviderEvent(full, new Date())) === "duplicate" && (await notices("PAYOUT_REVERSED", W1)) === 1);
   const list = await loadReceipts(W1);
   check("the worker's list has the one receipt, newest first", list.length === 1 && list[0].id === t1!.id);

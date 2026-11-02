@@ -12,32 +12,62 @@ function Amount({ cents, bold = false }: { cents: number; bold?: boolean }) {
   return <span className={`shrink-0 tabular-nums ${bold ? "font-bold" : ""} text-fg`}>{money(cents)}</span>;
 }
 
-function LineRow({ l }: { l: StatementLine }) {
-  const st: Status = l.withdrawnAfterClose ? { label: "Withdrawn after this statement closed", state: "closed" } : statusLabel(l.status, l.amountCents);
+/**
+ * A statement's lines as a ledger table (#116 review): date, worker, job, basis, pay, fee and
+ * the line's current state, read from the live ledger and labelled so; amounts right-aligned, a
+ * subtotal under them. On a phone each line stacks into named rows (the DataTable `stack` CSS).
+ */
+function LinesTable({ lines, caption, total }: { lines: StatementLine[]; caption: string; total?: { label: string; grossCents: number; feeCents: number } }) {
   return (
-    <li className="flex items-start justify-between gap-4 px-4 py-3">
-      <div className="min-w-0 space-y-0.5">
-        <p className="font-medium text-fg">
-          {l.worker}
-          {l.shiftStartsAt && (
-            <>
-              {" · "}
-              {l.shiftId ? <Link href={`/shifts/${l.shiftId}`} className="link"><LocalTime iso={l.shiftStartsAt.toISOString()} mode="fulldate" /></Link> : <LocalTime iso={l.shiftStartsAt.toISOString()} mode="fulldate" />}
-            </>
+    <div className="data-table-wrap" role="region" aria-label={caption} tabIndex={0}>
+      <table role="table" className="data-table data-table-stack statement-lines">
+        <caption className="sr-only">{caption}</caption>
+        <thead role="rowgroup">
+          <tr role="row">
+            <th role="columnheader" scope="col">Worker</th>
+            <th role="columnheader" scope="col">Date</th>
+            <th role="columnheader" scope="col">Job</th>
+            <th role="columnheader" scope="col">Basis</th>
+            <th role="columnheader" scope="col" className="text-right">Pay</th>
+            <th role="columnheader" scope="col" className="text-right">Fee</th>
+            <th role="columnheader" scope="col">Current state</th>
+          </tr>
+        </thead>
+        <tbody role="rowgroup">
+          {lines.map((l) => {
+            const st: Status = l.withdrawnAfterClose ? { label: "Withdrawn after this statement closed", state: "closed" } : statusLabel(l.status, l.amountCents);
+            // Withdrawn while the month was open: listed for the record, not counted in the totals, and marked so the column adds up.
+            const uncounted = l.status === "VOIDED" && !l.withdrawnAfterClose;
+            const amount = (cents: number) => (uncounted ? <>({money(cents)})<span className="sr-only">, not counted</span></> : money(cents));
+            return (
+              <tr key={l.id} role="row">
+                <th role="rowheader" scope="row">{l.worker}</th>
+                <td role="cell" data-label="Date">
+                  {l.shiftStartsAt ? (l.shiftId ? <Link href={`/shifts/${l.shiftId}`} className="link"><LocalTime iso={l.shiftStartsAt.toISOString()} mode="fulldate" /></Link> : <LocalTime iso={l.shiftStartsAt.toISOString()} mode="fulldate" />) : "—"}
+                </td>
+                <td role="cell" data-label="Job">{l.jobTitle ?? "Other pay"}</td>
+                <td role="cell" data-label="Basis" className="text-muted">
+                  {l.formula}
+                  {l.corrects ? ` · corrects ${l.corrects}` : ""}
+                  {l.receipt ? ` · ${l.receipt}` : ""}
+                </td>
+                <td role="cell" data-label="Pay" className="num">{amount(l.amountCents)}</td>
+                <td role="cell" data-label="Fee" className="num">{amount(l.feeCents)}</td>
+                <td role="cell" data-label="Current state"><StatusBadge status={st} /></td>
+              </tr>
+            );
+          })}
+          {total && (
+            <tr role="row" className="statement-subtotal">
+              <th role="rowheader" scope="row" colSpan={4} aria-colspan={4}>{total.label}</th>
+              <td role="cell" data-label="Pay" className="num">{money(total.grossCents)}</td>
+              <td role="cell" data-label="Fee" className="num">{money(total.feeCents)}</td>
+              <td role="cell" />
+            </tr>
           )}
-        </p>
-        <p className="text-xs text-muted">
-          {l.jobTitle ?? "Other pay"} · {l.formula}
-          {l.corrects ? ` · corrects ${l.corrects}` : ""}
-          {l.receipt ? ` · ${l.receipt}` : ""}
-        </p>
-        <StatusBadge status={st} />
-      </div>
-      <div className="shrink-0 text-right">
-        <Amount cents={l.amountCents} />
-        {l.feeCents !== 0 && <span className="block text-xs text-muted tabular-nums">+ {money(l.feeCents)} fee</span>}
-      </div>
-    </li>
+        </tbody>
+      </table>
+    </div>
   );
 }
 
@@ -50,9 +80,9 @@ export function StatementView({ s }: { s: View }) {
     <article className="space-y-6">
       <section className="card space-y-4 print:border-0 print:shadow-none">
         <header className="flex flex-wrap items-start justify-between gap-3">
+          {/* The page heading names the month and number; the card says where its totals stand. */}
           <div className="space-y-0.5">
-            <p className="eyebrow">Statement {s.number}</p>
-            <h2 className="text-2xl font-bold text-fg">{s.label}</h2>
+            <h2 className="sr-only">Totals for {s.label}</h2>
             <p className="text-muted-sm">
               {s.status === "closed" && s.closedAt ? (
                 <>Closed <LocalTime iso={s.closedAt.toISOString()} mode="full" />{s.closedBy ? ` · first opened by ${s.closedBy}` : ""}. Its totals never change.</>
@@ -118,15 +148,9 @@ export function StatementView({ s }: { s: View }) {
         {s.lines.length === 0 ? (
           <p className="text-muted-sm">No pay was recorded this month.</p>
         ) : (
-          <ul className="list-card text-sm">
-            {s.lines.map((l) => <LineRow key={l.id} l={l} />)}
-            <li className="flex items-center justify-between gap-4 bg-surface-2 px-4 py-3">
-              <span className="font-semibold text-fg">Recorded</span>
-              <Amount cents={t.grossCents} bold />
-            </li>
-          </ul>
+          <LinesTable lines={s.lines} caption={`Pay recorded in ${s.label}`} total={{ label: "Recorded", grossCents: t.grossCents, feeCents: t.feeCents }} />
         )}
-        <p className="text-hint">Every amount was fixed when it was approved and never changed after; a correction is always a new line. Gross pay: workers receive it in full, and the platform fee is invoiced to you on top.</p>
+        <p className="text-hint">Current state is each line&apos;s state today; the amounts and the Recorded total are the month&apos;s own. An amount in brackets was withdrawn while the month was open and isn&apos;t counted. Every amount was fixed when it was approved and never changed after; a correction is always a new line. Gross pay: workers receive it in full, and the platform fee is invoiced to you on top.</p>
       </section>
 
       <section className="section">
@@ -160,9 +184,7 @@ export function StatementView({ s }: { s: View }) {
       {s.corrections.length > 0 && (
         <section className="section">
           <h2 className="section-title">Corrections to earlier statements</h2>
-          <ul className="list-card text-sm">
-            {s.corrections.map((l) => <LineRow key={`c-${l.id}`} l={l} />)}
-          </ul>
+          <LinesTable lines={s.corrections} caption={`Corrections recorded in ${s.label} to earlier statements`} />
           <p className="text-hint">A closed statement never changes. An adjustment or a withdrawal that lands after it closed is recorded here, in the month it happened, naming the statement it corrects. An adjustment is also a line of this month&apos;s Pay recorded; a withdrawn line is a credit against what that earlier statement showed, counted nowhere else.</p>
         </section>
       )}

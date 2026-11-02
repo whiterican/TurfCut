@@ -18,8 +18,8 @@ export default async function StatementPage({ params }: { params: Promise<{ peri
   const st = await loadStatement({ profileId: s.userId, orgId: s.orgId, role: s.role, grants: s.grants }, period);
   if (!st) notFound();
   return (
-    <RecordPage org head={<Masthead className="no-print" eyebrow={<Link href="/pay/statements" className="link">Statements</Link>} title={st.label} meta={`Statement ${st.number}. Every line links to the record behind it.`}>
-        <a href={`/pay/statements/${st.period}/csv`} className="btn-secondary btn-sm">Download CSV</a>
+    <RecordPage org head={<Masthead eyebrow={<Link href="/pay/statements" className="link no-print">Statements</Link>} title={st.label} meta={`Statement ${st.number}. Every line links to the record behind it.`}>
+        <a href={`/pay/statements/${st.period}/csv`} className="btn-secondary btn-sm no-print">Download CSV</a>
         <PrintButton />
       </Masthead>}>
       <StatementView s={st} />

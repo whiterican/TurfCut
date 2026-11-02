@@ -1592,6 +1592,25 @@ body {
   .data-table th.text-right {
     @apply text-right whitespace-nowrap tabular-nums;
   }
+  /* A statement's ledger (#116 review): the subtotal row stands apart; the Worker column fits an ordinary name. */
+  .statement-lines .statement-subtotal > * {
+    @apply font-semibold;
+    background: var(--surface-2);
+  }
+  .statement-lines tbody th[scope="row"] {
+    @apply min-w-0 whitespace-nowrap;
+  }
+  .statement-lines td[data-label="Date"] {
+    @apply whitespace-nowrap;
+  }
+  @media (width < 40rem) {
+    .statement-lines tbody th[scope="row"] {
+      @apply whitespace-normal;
+    }
+    .statement-lines .statement-subtotal td:empty {
+      display: none;
+    }
+  }
   /* A record's facts (#116 review: receipt, dispute): aligned label and value rows. */
   .receipt-facts,
   .record-facts {
@@ -2713,6 +2732,10 @@ summary.list-none::-webkit-details-marker {
   .card, .list-card, .empty-state, .stat { background: white; border-color: #999; box-shadow: none; break-inside: avoid; }
   .empty-art { display: none; } /* theme colours don't survive white paper; the words carry the meaning */
   a { color: inherit; text-decoration: none; }
+  /* A table prints whole: no scroll box, no sticky header, rows not split across pages. */
+  .data-table-wrap { max-height: none; overflow: visible; box-shadow: none; }
+  .data-table thead th { position: static; }
+  .data-table tr { break-inside: avoid; }
 }
 
 /* ---- Page transitions (components/PageTransition.tsx) ------------------ */

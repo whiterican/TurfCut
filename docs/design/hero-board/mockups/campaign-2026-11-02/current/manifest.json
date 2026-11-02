@@ -1,0 +1,122 @@
+[
+  {
+    "screen": "campaign-public",
+    "route": "/c/mile_high_fixture",
+    "state": "signed-out",
+    "role": "out",
+    "source": {
+      "commit": "09bf839a3a7ef5aeb9c491a13a3d4997d2705c06",
+      "clean": true,
+      "patchSha256": null
+    },
+    "implementationFile": "campaign-public-signed-out-390-light.png",
+    "viewport": {
+      "width": 390,
+      "height": 844,
+      "deviceScaleFactor": 2
+    },
+    "theme": "light",
+    "timezone": "America/Denver",
+    "clock": "frozen at 2026-10-30T19:00:00Z",
+    "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [],
+    "bg": "#faf9f4",
+    "shell": "#1c0f2e",
+    "title": "Mile High Civic Works (preview fixture) (@mile_high_fixture)",
+    "h1": "Mile High Civic Works (preview fixture)",
+    "status": "captured"
+  },
+  {
+    "screen": "campaign-public",
+    "route": "/c/mile_high_fixture",
+    "state": "signed-out",
+    "role": "out",
+    "source": {
+      "commit": "09bf839a3a7ef5aeb9c491a13a3d4997d2705c06",
+      "clean": true,
+      "patchSha256": null
+    },
+    "implementationFile": "campaign-public-signed-out-1440-light.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900,
+      "deviceScaleFactor": 2
+    },
+    "theme": "light",
+    "timezone": "America/Denver",
+    "clock": "frozen at 2026-10-30T19:00:00Z",
+    "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [],
+    "bg": "#faf9f4",
+    "shell": "#1c0f2e",
+    "title": "Mile High Civic Works (preview fixture) (@mile_high_fixture)",
+    "h1": "Mile High Civic Works (preview fixture)",
+    "status": "captured"
+  },
+  {
+    "screen": "campaign-post",
+    "route": "/c/mile_high_fixture/p/00000000-0000-0000-0000-00000000cb02",
+    "state": "post-with-job",
+    "role": "out",
+    "source": {
+      "commit": "09bf839a3a7ef5aeb9c491a13a3d4997d2705c06",
+      "clean": true,
+      "patchSha256": null
+    },
+    "implementationFile": "campaign-post-post-with-job-390-light.png",
+    "viewport": {
+      "width": 390,
+      "height": 844,
+      "deviceScaleFactor": 2
+    },
+    "theme": "light",
+    "timezone": "America/Denver",
+    "clock": "frozen at 2026-10-30T19:00:00Z",
+    "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [],
+    "bg": "#faf9f4",
+    "shell": "#1c0f2e",
+    "title": "Mile High Civic Works (preview fixture) (@mile_high_fixture) on Turfcut",
+    "h1": null,
+    "status": "captured"
+  },
+  {
+    "screen": "campaign-post",
+    "route": "/c/mile_high_fixture/p/00000000-0000-0000-0000-00000000cb02",
+    "state": "post-with-job",
+    "role": "out",
+    "source": {
+      "commit": "09bf839a3a7ef5aeb9c491a13a3d4997d2705c06",
+      "clean": true,
+      "patchSha256": null
+    },
+    "implementationFile": "campaign-post-post-with-job-1440-light.png",
+    "viewport": {
+      "width": 1440,
+      "height": 900,
+      "deviceScaleFactor": 2
+    },
+    "theme": "light",
+    "timezone": "America/Denver",
+    "clock": "frozen at 2026-10-30T19:00:00Z",
+    "fixtures": "synthetic (local preview database; fixture campaign headers are stand-ins served from public/photos)",
+    "fontOk": true,
+    "bodyFont": "Inter, \"Inter Fallback\", ui-sans-serif, system-ui, sans-seri",
+    "overflow": 0,
+    "tabs": [],
+    "bg": "#faf9f4",
+    "shell": "#1c0f2e",
+    "title": "Mile High Civic Works (preview fixture) (@mile_high_fixture) on Turfcut",
+    "h1": null,
+    "status": "captured"
+  }
+]

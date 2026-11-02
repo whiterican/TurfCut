@@ -46,10 +46,10 @@ export default async function PublicCampaignPage({ params, searchParams }: Props
     <RecordPage gap={6}>
       <Link transitionTypes={["nav-back"]} href="/c" className="btn-ghost btn-sm self-start"><ChevronLeft aria-hidden className="size-4 shrink-0" />All campaigns</Link>
       <CampaignHeader displayName={c.displayName} handle={c.handle} bio={c.bio} avatarUrl={mediaUrl(c.avatarKey)} headerUrl={mediaUrl(c.headerKey)} verified={!!c.verifiedAt}>
-        <span className="flex flex-wrap items-center justify-end gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <ShareButton path={`/c/${c.handle}`} title={`${c.displayName} (@${c.handle})`} />
           <FollowButton campaignId={c.id} state={follow} viewer={viewer} back={`/c/${c.handle}`} />
-        </span>
+        </div>
       </CampaignHeader>
       {pinned.length > 0 && (
         <section className="section" aria-labelledby="talking-points">

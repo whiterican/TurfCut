@@ -33,8 +33,9 @@ export function CampaignHeader({
         )}
       </div>
       <div className="space-y-3 px-4 pb-4 sm:px-6">
-        <div className="-mt-10 flex items-end justify-between gap-3">
-          <div className="grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-full border-4 border-[var(--surface)] bg-surface-2 text-xl font-semibold text-fg">
+        {/* Only the avatar overlaps the photo: actions that wrap on a phone would otherwise climb onto it. */}
+        <div className="relative -mt-10 w-fit">
+          <div className="grid h-20 w-20 place-items-center overflow-hidden rounded-full border-4 border-[var(--surface)] bg-surface-2 text-xl font-semibold text-fg">
             {avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element -- a public storage URL; no optimizer route for it
               <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
@@ -42,7 +43,6 @@ export function CampaignHeader({
               <span aria-hidden>{initials}</span>
             )}
           </div>
-          {children}
         </div>
         <div>
           <h1 className="page-title">{displayName}</h1>
@@ -52,6 +52,7 @@ export function CampaignHeader({
           </p>
         </div>
         {bio && <LinkedText text={bio} className="text-sm text-fg" />}
+        {children}
       </div>
     </header>
   );

@@ -18,3 +18,10 @@ export function AdminSectionNav({ sections }: { sections: AdminSection[] }) {
     </nav>
   );
 }
+
+/** The console's page heading: the section the page belongs to, so each section names itself (one h1 per page). */
+export function AdminHeading({ sections }: { sections: AdminSection[] }) {
+  const current = activeAdminSection(usePathname());
+  const label = sections.find((s) => s.href === current)?.label;
+  return <h1 className="page-title">{label && current !== "/admin" ? label : "Admin"}</h1>;
+}

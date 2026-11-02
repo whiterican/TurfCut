@@ -12,7 +12,7 @@ export function WelcomeForm({ invited }: { invited: boolean }) {
   return (
     <form action={action} className="card space-y-5 sm:p-8">
       <div className="space-y-2 text-center">
-        <h1 className="page-title">Finish setting up</h1>
+        {invited ? <h2 className="page-title">Finish setting up</h2> : <h1 className="page-title">Finish setting up</h1>}
         <p className="text-muted-sm">
           {invited
             ? "Or set up your own account instead."

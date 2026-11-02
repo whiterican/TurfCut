@@ -20,7 +20,8 @@ export default async function WelcomePage() {
         <div className="w-full max-w-md space-y-4">
       {invites.length > 0 && (
         <section className="card space-y-3">
-          <h2 className="section-title">You&apos;ve been invited</h2>
+          {/* The page's heading when there is an invite: it comes first, and the setup form below is the alternative. */}
+          <h1 className="section-title">You&apos;ve been invited</h1>
           <ul className="space-y-3">
             {invites.map((i) => (
               <li key={i.id} className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">

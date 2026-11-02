@@ -4,7 +4,7 @@ import { ShieldCheck } from "lucide-react";
 import { getSessionProfile } from "@/lib/auth";
 import { requireStaff } from "@/lib/staff-session";
 import { ADMIN_SECTIONS } from "@/lib/admin-nav";
-import { AdminSectionNav } from "@/components/admin/AdminSectionNav";
+import { AdminHeading, AdminSectionNav } from "@/components/admin/AdminSectionNav";
 import { StaffRail } from "@/components/admin/StaffRail";
 
 /**
@@ -39,7 +39,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         <StaffRail sections={ADMIN_SECTIONS} />
         <main className="page min-w-0 flex-1">
           <header className="page-header">
-            <h1 className="page-title">Admin</h1>
+            <AdminHeading sections={ADMIN_SECTIONS} />
           </header>
           <div className="lg:hidden">
             <AdminSectionNav sections={ADMIN_SECTIONS} />

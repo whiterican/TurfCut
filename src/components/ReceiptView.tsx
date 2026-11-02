@@ -54,7 +54,15 @@ export function ReceiptView({ r }: { r: Receipt }) {
       <StatusBadge status={s} />
       <dl className="receipt-facts">
         <dt>{AMOUNT_LABEL[r.status]}</dt>
-        <dd className="receipt-amount">{money(r.amountCents)}</dd>
+        {/* Once Stripe confirmed it, the amount is Stripe's figure; where that differs from Turfcut's record, the record follows as its own row. */}
+        <dd className="receipt-amount">{money(r.stripeSentCents ?? r.amountCents)}</dd>
+        {r.stripeSentCents !== null && (
+          <>
+            <dt>Turfcut recorded</dt>
+            <dd className="tabular-nums">{money(r.amountCents)}</dd>
+            <dd className="receipt-note">Stripe confirmed a different amount from the one Turfcut recorded for this payment; the figures here are Stripe&apos;s, and the lines below add up to Turfcut&apos;s record.</dd>
+          </>
+        )}
         <dt>Recorded</dt>
         <dd><LocalTime iso={r.createdAt.toISOString()} mode="full" /></dd>
         {r.paidAt && (
@@ -65,13 +73,6 @@ export function ReceiptView({ r }: { r: Receipt }) {
         )}
         {r.partReversal && (
           <>
-            {r.partReversal.sentCents !== r.amountCents && (
-              <>
-                {/* Rare: Stripe's transfer differs from Turfcut's record; what came back and what was kept are out of Stripe's figure. */}
-                <dt>Stripe sent</dt>
-                <dd className="tabular-nums">{money(r.partReversal.sentCents)}</dd>
-              </>
-            )}
             <dt>Came back</dt>
             <dd className="tabular-nums">{money(r.partReversal.reversedCents)} · <LocalTime iso={r.partReversal.at.toISOString()} mode="full" /></dd>
             <dt>You kept</dt>
@@ -128,7 +129,7 @@ export function ReceiptView({ r }: { r: Receipt }) {
             </li>
           ))}
           <li className="flex items-start justify-between gap-4 px-4 py-3">
-            <span className="font-semibold text-fg">{r.status === "sent" ? "Total sent" : r.status === "partly-reversed" ? "Total sent (before the reversal)" : r.status === "reversed" ? "Total reversed" : "Total"}</span>
+            <span className="font-semibold text-fg">{r.stripeSentCents !== null ? "Total recorded" : r.status === "sent" ? "Total sent" : r.status === "partly-reversed" ? "Total sent (before the reversal)" : r.status === "reversed" ? "Total reversed" : "Total"}</span>
             <span className="font-bold text-fg tabular-nums">{money(r.amountCents)}</span>
           </li>
         </ul>

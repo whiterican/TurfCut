@@ -35,7 +35,7 @@ describe("partialReversals (a receipt's part that came back)", () => {
 
 describe("transferExportState (transfers.csv agrees with the receipt, #117)", () => {
   const sentAt = at(1);
-  const base = { amountCents: 8750, paidAt: null as Date | null, failedAt: null as Date | null, reversedAt: null as Date | null, partReversal: null as { reversedCents: number; sentCents: number; at: Date } | null };
+  const base = { amountCents: 8750, paidAt: null as Date | null, failedAt: null as Date | null, reversedAt: null as Date | null, partReversal: null as { reversedCents: number; sentCents: number; at: Date } | null, stripeSentCents: null as number | null };
 
   it("sending and failed carry no money figures: nothing settled", async () => {
     const { transferExportState } = await import("@/lib/receipts-data");
@@ -64,8 +64,40 @@ describe("transferExportState (transfers.csv agrees with the receipt, #117)", ()
     expect(transferExportState({ ...base, status: "partly-reversed", partReversal: { reversedCents: 500, sentCents: 8750, at: at(3) } })).toMatchObject({ sentAt: "", reversedCents: 500, keptCents: 8250 });
   });
 
+  it("sent, where Stripe confirmed a different amount: kept is Stripe's figure, named; the record stays amountCents", async () => {
+    const { transferExportState } = await import("@/lib/receipts-data");
+    expect(transferExportState({ ...base, status: "sent", paidAt: sentAt, stripeSentCents: 8500 })).toMatchObject({ keptCents: 8500, reversedCents: 0, stripeSentCents: 8500 });
+  });
+
+  it("reversed in full, where Stripe confirmed a different amount: what came back is Stripe's figure, never the record", async () => {
+    const { transferExportState } = await import("@/lib/receipts-data");
+    expect(transferExportState({ ...base, status: "reversed", paidAt: sentAt, reversedAt: at(4), stripeSentCents: 8500 })).toMatchObject({ reversedCents: 8500, keptCents: 0, stripeSentCents: 8500 });
+  });
+
   it("reversed in full: all of it came back, nothing kept", async () => {
     const { transferExportState } = await import("@/lib/receipts-data");
     expect(transferExportState({ ...base, status: "reversed", paidAt: sentAt, reversedAt: at(4) })).toEqual({ status: "reversed", sentAt, failedAt: "", reversedAt: at(4), reversedCents: 8750, keptCents: 0, stripeSentCents: "" });
+  });
+});
+
+describe("stripeAmounts (what Stripe confirmed it sent, where it differs from the record)", () => {
+  const amounts = new Map([[T, 8750]]);
+  const mismatch = (stripe: unknown, h: number) => ({ action: "payout.amount_mismatch", entityId: T, metadata: { expected: 8750, stripe }, createdAt: at(h) });
+  const partial = (amountCents: unknown, h: number) => ({ action: "payout.partially_reversed", entityId: T, metadata: { reversedCents: 500, amountCents }, createdAt: at(h) });
+
+  it("takes the transfer.created mismatch report, the latest if several", async () => {
+    const { stripeAmounts } = await import("@/lib/receipts-data");
+    expect(stripeAmounts([mismatch(8400, 1), mismatch(8500, 2)], amounts).get(T)).toBe(8500);
+  });
+
+  it("falls back to a partial-reversal report's amount, so a partial then full reversal keeps Stripe's figure", async () => {
+    const { stripeAmounts } = await import("@/lib/receipts-data");
+    expect(stripeAmounts([partial(8500, 1)], amounts).get(T)).toBe(8500);
+    expect(stripeAmounts([partial(8600, 3), mismatch(8500, 1)], amounts).get(T)).toBe(8500); // the explicit report wins
+  });
+
+  it("gives nothing when Stripe agrees with the record, or the report carries no usable amount", async () => {
+    const { stripeAmounts } = await import("@/lib/receipts-data");
+    expect(stripeAmounts([mismatch(8750, 1), partial(8750, 2), mismatch("8500", 3), partial(null, 4)], amounts).size).toBe(0);
   });
 });

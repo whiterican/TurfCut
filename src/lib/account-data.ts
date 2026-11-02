@@ -5,7 +5,7 @@ import { loadVerifiers } from "@/lib/verification-data";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { receiptNumber } from "@/lib/money-views";
-import { loadAllReceipts, TRANSFER_EXPORT_COLUMNS, transferExportState } from "@/lib/receipts-data";
+import { loadExportTransfers, TRANSFER_EXPORT_COLUMNS, transferExportState } from "@/lib/receipts-data";
 import { getSupabaseServiceRoleKey, getSupabaseUrl } from "@/lib/env";
 import { CLOSED_NAME, closureProblems, type ClosureFacts } from "@/lib/account-closure";
 import { lineState } from "@/lib/pay";
@@ -132,7 +132,7 @@ export async function exportAccount(
   const p = db();
   const proofs = await exportProofs(actor.workerId, opts.proofStore ?? null, now);
   const w = actor.workerId;
-  const [worker, experience, preferences, metrics, engagements, history, mutes, notices, shifts, lines, transfers, receipts, disputes, messages, sharing, availability, credentials] = await Promise.all([
+  const [worker, experience, preferences, metrics, engagements, history, mutes, notices, shifts, lines, transfers, disputes, messages, sharing, availability, credentials] = await Promise.all([
     p.worker.findUniqueOrThrow({ where: { id: w }, select: { id: true, displayName: true, phone: true, createdAt: true, closedAt: true, payoutsEnabled: true, stripeAccountId: true } }),
     p.experienceRecord.findMany({ where: { workerId: w }, omit: { verifiedById: true }, orderBy: { startDate: "desc" } }),
     p.politicalPreference.findMany({ where: { workerId: w }, orderBy: { consentVersion: "asc" } }),
@@ -147,8 +147,7 @@ export async function exportAccount(
       orderBy: { startsAt: "asc" },
     }),
     p.payout.findMany({ where: { workerId: w }, include: { events: { orderBy: { createdAt: "asc" } }, org: { select: { name: true } } }, orderBy: { createdAt: "asc" } }),
-    p.payoutTransfer.findMany({ where: { workerId: w }, include: { org: { select: { name: true } } }, orderBy: { createdAt: "asc" } }),
-    loadAllReceipts(w), // each transfer's state, as its receipt reads it (#117)
+    loadExportTransfers(w), // each transfer with its state, as its receipt reads it, from one read (#117)
     p.payDispute.findMany({ where: { workerId: w }, include: { resolution: true, org: { select: { name: true } } }, orderBy: { createdAt: "asc" } }),
     p.message.findMany({ where: { senderId: actor.userId }, include: { revisions: { orderBy: { createdAt: "asc" } }, conversation: { select: { id: true, kind: true, engagement: { select: { job: { select: { title: true } } } } } } }, orderBy: { createdAt: "asc" } }),
     p.workerSharing.findMany({ where: { workerId: w }, orderBy: { version: "asc" } }),
@@ -176,7 +175,7 @@ export async function exportAccount(
       "reviews.csv         every supervisor review decision",
       "pay-lines.csv       every pay line recorded for you, with its current status",
       "pay-events.csv      the history of each pay line",
-      "transfers.csv       payments sent to your Stripe account, each with its state as its receipt reads it: sending, sent, failed (not sent), partly-reversed or reversed. reversedCents and keptCents are filled once Stripe confirmed the payment or a reversal; nothing is filled while it's sending or after it failed. amountCents is Turfcut's record; for a partly reversed payment, keptCents is out of the amount Stripe sent, which stripeSentCents gives when the two differ. A failure Stripe later overtook by sending the money reads sent; the earlier failure stays in pay-events.csv.",
+      "transfers.csv       payments sent to your Stripe account, each with its state as its receipt reads it: sending, sent, failed (not sent), partly-reversed or reversed. reversedCents and keptCents are filled once Stripe confirmed the payment or a reversal; nothing is filled while it's sending or after it failed. amountCents is Turfcut's record; keptCents and reversedCents are out of the amount Stripe confirmed it sent, which stripeSentCents gives when it differs from the record. A failure Stripe later overtook by sending the money reads sent; the earlier failure stays in pay-events.csv.",
       "disputes.csv        pay disputes you opened and how they were answered",
       "messages.csv        messages you sent, with any edits or deletions",
       "sharing.json        every version of who sees what, and whether you can be found",
@@ -240,16 +239,11 @@ export async function exportAccount(
     ),
   });
   files.push({ name: "pay-events.csv", text: csvTable(lines.flatMap((l) => l.events.map((e) => ({ id: e.id, payoutId: l.id, type: e.type, reason: e.reason, transferId: e.transferId, providerRef: e.providerRef, at: e.createdAt }))), ["id", "payoutId", "type", "reason", "transferId", "providerRef", "at"]) });
-  // Each transfer's state is the receipt's own reading (#117): sent, partly or fully reversed, still sending, or not sent.
-  const receiptById = new Map(receipts.map((r) => [r.id, r]));
+  // Each transfer's state is the receipt's own reading (#117), from the same read as its row.
   files.push({
     name: "transfers.csv",
     text: csvTable(
-      transfers.map((t) => {
-        const r = receiptById.get(t.id);
-        // Never a silent blank: a transfer the receipts read didn't return (rare: one started while the export ran, since both reads run side by side) says so.
-        return { id: t.id, receipt: receiptNumber(t.receiptNo), organization: t.org.name, amountCents: t.amountCents, destination: t.destination, createdAt: t.createdAt, ...(r ? transferExportState(r) : { status: "unknown" }) };
-      }),
+      transfers.map((t) => ({ id: t.id, receipt: receiptNumber(t.receiptNo), organization: t.orgName, amountCents: t.amountCents, destination: t.destination, createdAt: t.createdAt, ...transferExportState(t.receipt) })),
       ["id", "receipt", "organization", "amountCents", "destination", "createdAt", ...TRANSFER_EXPORT_COLUMNS]
     ),
   });

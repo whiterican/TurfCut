@@ -137,7 +137,7 @@ export default async function DeskPage() {
         </p>
       )}
 
-      {/* Read-only roles see it only when something is theirs to act on (a compliance member's classification review). */}
+      {/* Read-only roles see it only when it has rows: a setup step they can act on (a compliance member's classification review), or the organization's approval state. */}
       {(!parts.readOnly || desk.needs.length > 0) && (
         <section className="section" aria-labelledby="needs-you">
           <div className="section-head">

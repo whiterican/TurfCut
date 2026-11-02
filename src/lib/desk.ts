@@ -151,7 +151,7 @@ export interface SetupStep {
  * from the same records the publish gate checks (org settings). Each step goes
  * only to a role that can act on it or read where it is explained, so a new
  * organization's Desk never says "nothing needs you" while nothing can
- * publish. A withdrawn approval is not a setup step: urgencyOf ranks it first. `jobs`: how many jobs the organization has in any status.
+ * publish. A withdrawn approval is one of these steps too; setupRank ranks it first. `jobs`: how many jobs the organization has in any status.
  */
 export function setupSteps(org: OrgGate, jobs: number, member: Role | AccessSubject): SetupStep[] {
   const steps: SetupStep[] = [];

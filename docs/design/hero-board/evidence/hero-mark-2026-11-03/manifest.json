@@ -1,0 +1,62 @@
+[
+  {
+    "file": "login-guest-390-light.png",
+    "route": "/login",
+    "role": "signed-out",
+    "width": 390,
+    "theme": "light",
+    "visibleMarks": 1,
+    "workerHeaderHiddenOnPhone": false,
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "9b9fadc8954aa5ac07059da6ab167318333cb576",
+      "clean": true
+    }
+  },
+  {
+    "file": "signup-guest-390-light.png",
+    "route": "/signup",
+    "role": "signed-out",
+    "width": 390,
+    "theme": "light",
+    "visibleMarks": 1,
+    "workerHeaderHiddenOnPhone": false,
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "9b9fadc8954aa5ac07059da6ab167318333cb576",
+      "clean": true
+    }
+  },
+  {
+    "file": "login-worker-390-light.png",
+    "route": "/login",
+    "role": "worker (signed in)",
+    "width": 390,
+    "theme": "light",
+    "visibleMarks": 1,
+    "workerHeaderHiddenOnPhone": true,
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "9b9fadc8954aa5ac07059da6ab167318333cb576",
+      "clean": true
+    }
+  },
+  {
+    "file": "login-guest-1440-light.png",
+    "route": "/login",
+    "role": "signed-out",
+    "width": 1440,
+    "theme": "light",
+    "visibleMarks": 2,
+    "workerHeaderHiddenOnPhone": false,
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "9b9fadc8954aa5ac07059da6ab167318333cb576",
+      "clean": true
+    }
+  }
+]

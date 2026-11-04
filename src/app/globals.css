@@ -625,6 +625,15 @@ body {
     font-optical-sizing: auto;
     color: var(--shell-fg);
   }
+  /* On a phone the header above already carries the mark, so the band is the
+     line alone; a worker's phone has no header, so there the band keeps it.
+     From lg the band is the left panel and the mark is its picture. */
+  .hero-split-mark {
+    display: none;
+  }
+  body:has(.site-header-worker) .hero-split-mark {
+    display: block;
+  }
   .hero-split-form {
     @apply flex flex-1 justify-center px-4 py-8 sm:py-16;
   }
@@ -639,6 +648,9 @@ body {
     }
     .hero-split-art {
       @apply flex-col items-start justify-end p-12;
+    }
+    .hero-split-mark {
+      display: block;
     }
     .hero-split-form {
       @apply items-center;

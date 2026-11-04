@@ -1840,6 +1840,10 @@ body {
   .summary-value {
     @apply t-figure-sm text-fg sm:t-figure;
   }
+  /* The Desk's "12 / 48" tile is one unit too. */
+  .stat-tile-figure {
+    @apply whitespace-nowrap;
+  }
   .stat-tile-label,
   .summary-item > .eyebrow {
     @apply mt-1 text-base font-medium text-fg;
@@ -1923,10 +1927,9 @@ body {
     @apply text-muted;
     order: 2;
   }
+  /* A figure is one unit: "0 / 0" never breaks at its slash on a phone. */
   .summary-band dd {
-    @apply text-base font-semibold text-fg tabular-nums;
-    /* A figure is one unit: "0 / 0" must never break at the slash (phone, #124 follow-up). */
-    white-space: nowrap;
+    @apply text-base font-semibold whitespace-nowrap text-fg tabular-nums;
   }
   .summary-band-scope {
     @apply text-xs font-semibold text-subtle;

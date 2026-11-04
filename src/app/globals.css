@@ -1925,6 +1925,8 @@ body {
   }
   .summary-band dd {
     @apply text-base font-semibold text-fg tabular-nums;
+    /* A figure is one unit: "0 / 0" must never break at the slash (phone, #124 follow-up). */
+    white-space: nowrap;
   }
   .summary-band-scope {
     @apply text-xs font-semibold text-subtle;

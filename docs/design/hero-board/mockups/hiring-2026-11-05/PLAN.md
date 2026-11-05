@@ -40,7 +40,7 @@ The six steps, the fields, the validator and the autosave are unchanged (`src/li
 - **Review:** every row the Review draws today, grouped under the six step titles, each with "Change"; the footnote word for word. The live job's review reads its harvested values (both hiring modes: "Workers apply, We invite workers").
 - **Live job:** the "This job is live…" notice above the track; the save line reads "Changes save when you finish." and the final button "Save changes" (both new, question 2). A closed job keeps today's refusal. No access: today's page with the notice.
 
-Hit areas, measured in the rendered frames: `.btn-sm` is 40px tall (`min-h-9` is a floor; padding and line height make 40), `.filter-chip` 36px, `.step` 26px (`py-1 text-xs`, no minimum height). The mockups inherit all three. Every one is below the #114 44px line today, in the app, not only here; it is question 10.
+Hit areas, measured in the rendered frames: `.btn-sm` action buttons are 36px tall (`min-h-9`; the header's round icon buttons are 40px by their own rule, `globals.css` "40px pin"), `.filter-chip` 36px, `.step` 26px (`py-1 text-xs`, no minimum height). The mockups inherit all three. Every one is below the #114 44px line today, in the app, not only here; it is question 10.
 
 ## 2. Publishing on the job page (`publishing-*`)
 
@@ -90,4 +90,4 @@ Every frame in `COVERAGE.md`, at the same widths and themes, plus the live inter
 7. **Two bullets for one never-approved profile.** `jurisdictionProblems` reports "hasn't been approved" and "superseded" for a profile that was never current. The mockups show one bullet per cause; the fix is a separately reviewed behavioural change, never a hidden blocker (Astra).
 8. **Order of build.** Builder (with the publishing groups), then the candidate and worker pages, then the Applicants revisions: one reviewed slice each, with evidence, after approval.
 9. **New copy in the mockups, none of it promised:** "What they share with you now" and its hint; the scorecard row's summary line; "2 things to fix on this step"; "n of 4 fields shared"; the optional desktop side note; "0 selected"; the counsel sentence (4); the live-job words (2).
-10. **Small hit areas are the app's today:** measured, `.btn-sm` 40px, `.filter-chip` 36px, `.step` 26px, against #114's 44px line. The step track is this family's centrepiece and its buttons are the smallest. Raise them in the app (a minimum height each), or keep them and record the exception? (Astra: reconcile 44 vs 40.)
+10. **Small hit areas are the app's today:** measured, `.btn-sm` 36px, `.filter-chip` 36px, `.step` 26px, against #114's 44px line (the 40px Astra cited is the header's round icon buttons, which have their own rule). The step track is this family's centrepiece and its buttons are the smallest. Raise them in the app (a minimum height each), or keep them and record the exception? (Astra: reconcile 44 vs 40; it is 44 vs 36 for the actions and 44 vs 26 for the steps.)

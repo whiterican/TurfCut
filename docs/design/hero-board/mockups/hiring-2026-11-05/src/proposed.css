@@ -77,7 +77,7 @@
 .step-track { padding-block: 10px calc(10px + 0.25rem); }
 @media (min-width: 64rem) { .step-track { row-gap: 1.25rem; padding-block: 0 0.25rem; } }
 .tpl-head .btn-sm, .tpl-main .btn-sm { position: relative; }
-.tpl-head .btn-sm::before, .tpl-main .btn-sm::before { content: ""; position: absolute; inset: -5px 0; } /* from the padding box: 1px border + 4px = 44px on a bordered button, 46px on a ghost */
+.tpl-head .btn-sm::before, .tpl-main .btn-sm::before { content: ""; position: absolute; inset: -5px 0; } /* from the padding box: about 44.5px on a bordered button, 46.5px on a ghost, hit-tested */
 
 /* 8. Step 5's issue-position rows on a phone: today the select is capped at
    max-w-36 beside its label and clips "Not disclosed" at 390 and 320

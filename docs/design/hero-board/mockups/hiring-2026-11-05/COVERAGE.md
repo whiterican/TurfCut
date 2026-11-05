@@ -1,6 +1,6 @@
 # Coverage index
 
-Every proposed frame, at every width and theme, from `mockups-manifest.json` (the app's stylesheet, fonts and harvested parts at master `8b1a80f`; the generator is `src/gen/` as committed with this file, `source.docs` in the manifest being the commit it was last built on top of; DPR 2, full content height, viewport 390×844 or 1440×900; "clipped" names elements whose content is wider than their hidden-overflow box, visually-hidden elements excluded: the only one is the Leaflet map container, whose tile layer is wider than its box by design (the row also reports the tiles, pin, zoom buttons and attribution in it); "font" is whether Inter was loaded before the capture). The annotated copy of a frame is `annotated/<frame>-390-light.png`.
+Every proposed frame, at every width and theme, from `mockups-manifest.json` (the app's stylesheet, fonts and harvested parts at master `8b1a80f`; the generator is `src/gen/` as committed with this file, `source.docs` in the manifest being the commit it was last built on top of; DPR 2, full content height, viewport 390×844 or 1440×900 (step 5 also 320×844); "clipped" names elements whose content is wider than their hidden-overflow box, visually-hidden elements excluded: the only one is the Leaflet map container, whose tile layer is wider than its box by design (the row also reports the tiles, pin, zoom buttons and attribution in it); "font" is whether Inter was loaded before the capture). The annotated copy of a frame is `annotated/<frame>-390-light.png`.
 
 
 ## Builder

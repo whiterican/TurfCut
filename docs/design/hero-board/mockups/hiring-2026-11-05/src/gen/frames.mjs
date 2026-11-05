@@ -25,12 +25,13 @@ const reading = (head, body) => `<main class="tpl" data-template="reading" data-
 const record = (head, body, side = "") => `<main class="tpl" data-template="record" data-org="true" style="--tpl-gap:2.5rem">${head}<div class="tpl-body"><div class="tpl-main">${body}</div>${side ? `<aside class="tpl-side">${side}</aside>` : ""}</div></main>`;
 const workspace = (head, body) => `<main class="tpl" data-template="workspace" data-org="true" style="--tpl-gap:2.5rem">${head}<div class="tpl-body"><div class="tpl-main">${body}</div></div></main>`;
 
-const builderPage = (title, context, lead, form, width, aside = "") => reading(
+// The form alone, in the reading template's column (680px from 64rem). The optional side note (question 9) is not drawn: the
+// column leaves no room beside it, and new copy is never drawn as a promise.
+const builderPage = (title, context, lead, form, width) => reading(
   masthead({ context, title, actions: `<a class="btn-ghost" href="/jobs">Jobs</a>` }),
-  `${lead ? `<p class="lead">${lead}</p>` : ""}<div class="builder-cols"><form class="builder-main space-y-6" novalidate>${form}</form>${width >= 1024 && aside ? `<aside class="builder-aside">${aside}</aside>` : ""}</div>`
+  `${lead ? `<p class="lead">${lead}</p>` : ""}<form class="builder-main space-y-6" novalidate>${form}</form>`
 );
 const LEAD = "Six short steps. Your draft saves as you go, from the first step, and is published from the job page once every check passes.";
-const sideNote = (text) => `<div class="card space-y-2"><p class="font-semibold text-fg">What this step feeds</p><p class="text-muted-sm">${text}</p><p class="text-hint">New copy, question 9. Optional: without it the column stands alone.</p></div>`;
 
 /* ---------- builder ---------- */
 
@@ -38,21 +39,25 @@ async function builderStep1Errors({ pick }, width) {
   const fs = await pick("builder-new-errors", "form fieldset:nth-of-type(1)", { unhide: true });
   return builderPage("New job", null, LEAD,
     `${track(0, 0)}${saveLine("Your draft saves as you go.")}${stepHead(0)}${summary([["title", "Title is required."], ["jurisdictionId", "Pick a jurisdiction."]])}${fs}${nextRow(0, { width, msg: "Fix the highlighted fields." })}`,
-    width, sideNote("Workers see the title, type and description on the job card. The rule profile decides which checks the job must pass before it publishes."));
+    width);
 }
 async function builderStep1Saved({ pick }, width) {
   // The first save of a new job: the Aurora draft's own step 1 values (parts/builder-draft-step2), the only saved draft in the fixtures.
   const fs = await pick("builder-draft-step2", "form fieldset:nth-of-type(1)", { unhide: true });
-  return builderPage("New job", null, LEAD, `${track(0, 0)}${saveLine("Draft saved 3:14 PM")}${stepHead(0)}${fs}${nextRow(0, { width })}`, width, sideNote("Workers see the title, type and description on the job card. The rule profile decides which checks the job must pass before it publishes."));
+  return builderPage("New job", null, LEAD, `${track(0, 0)}${saveLine("Draft saved 3:14 PM")}${stepHead(0)}${fs}${nextRow(0, { width })}`, width);
 }
 async function builderStep2({ pick }, width) {
   const fs = await pick("builder-draft-step2", "form fieldset:nth-of-type(2)", { unhide: true });
-  return builderPage("Aurora door knock, November", "Edit draft", "", `${track(1, 5)}${saveLine("Draft saved 3:14 PM · 3 fields wait for a fix")}${stepHead(1)}${fs}${nextRow(1, { width })}`, width, sideNote("The dates bound every shift. The city places the staging map and measures matches. How each day starts decides what check-in records."));
+  return builderPage("Aurora door knock, November", "Edit draft", "", `${track(1, 5)}${saveLine("Draft saved 3:14 PM · 3 fields wait for a fix")}${stepHead(1)}${fs}${nextRow(1, { width })}`, width);
 }
 async function builderStep4({ pick }, width) {
   const fs = await pick("builder-draft-step4", "form fieldset:nth-of-type(4)", { unhide: true });
   const withErrors = fs.replace(/(<input class="field" required="" maxlength="200" name="contact(Emergency|Disputes|LostMaterials)"[^>]*)>/g, (m, a, k) => `${a} aria-invalid="true" aria-describedby="err-contact${k}"><p id="err-contact${k}" class="field-error">${{ Emergency: "Emergency contact is required.", Disputes: "Disputes contact is required.", LostMaterials: "Lost-materials contact is required." }[k]}</p>`);
-  return builderPage("Aurora door knock, November", "Edit draft", "", `${track(3, 5)}${saveLine("Draft saved 3:14 PM · 3 fields wait for a fix")}${stepHead(3)}${summary([["contactEmergency", "Emergency contact is required."], ["contactDisputes", "Disputes contact is required."], ["contactLostMaterials", "Lost-materials contact is required."]])}${withErrors}${nextRow(3, { width, msg: "Fix the highlighted fields." })}`, width, sideNote("Requirements go on the job card. The contacts go on every hired worker's shift brief."));
+  return builderPage("Aurora door knock, November", "Edit draft", "", `${track(3, 5)}${saveLine("Draft saved 3:14 PM · 3 fields wait for a fix")}${stepHead(3)}${summary([["contactEmergency", "Emergency contact is required."], ["contactDisputes", "Disputes contact is required."], ["contactLostMaterials", "Lost-materials contact is required."]])}${withErrors}${nextRow(3, { width, msg: "Fix the highlighted fields." })}`, width);
+}
+async function builderStep5({ pick }, width) {
+  const fs = await pick("builder-draft-step5", "form fieldset:nth-of-type(5)", { unhide: true });
+  return builderPage("Aurora door knock, November", "Edit draft", "", `${track(4, 5)}${saveLine("Draft saved 3:14 PM · 3 fields wait for a fix")}${stepHead(4)}${fs}${nextRow(4, { width })}`, width);
 }
 async function builderSaving({ pick }, width) {
   const fs = await pick("builder-draft-step2", "form fieldset:nth-of-type(3)", { unhide: true });
@@ -143,14 +148,16 @@ async function scorecardPanel({ pick }, variant = "shared") {
   return sec.replace(/^<section class="section"><h2 class="section-title">Scorecard<\/h2>/, "").replace(/<\/section>$/, "");
 }
 
-/** The shared-profile card. `share` names which parts are shared; `fit` is the four fit values or null when every field is withheld. */
+/** The shared-profile card. `share` names which parts are shared; `fit` is the four fit values (or null). The scorecard summary is composed from the harvested panel's visible tiles only. */
 async function shareCard(ctx, { scorecard, availability, credentials, experience, fit, open = "scorecard" }) {
   const rows = [];
   rows.push(scorecard === "empty" ? row("Scorecard", "No verified shifts yet", await scorecardPanel(ctx, "empty")) : scorecard ? row("Scorecard", "2 verified shifts · 100% show rate · 80 doors attempted", open === "scorecard" ? await scorecardPanel(ctx) : "") : row("Scorecard", CHIP("scorecard")));
   rows.push(availability ? row("Availability", "No availability set yet.") : row("Availability", CHIP("availability")));
   rows.push(credentials ? row("Credentials", "No credentials added.") : row("Credentials", CHIP("credentials")));
   rows.push(experience ? row("Experience", "No experience yet") : row("Experience", CHIP("experience")));
-  rows.push(fit ? row("Political fit", `${fit.filter((v) => v !== "Not shared").length} of 4 fields shared`, fitDetail(fit)) : row("Political fit", "Not shared", FIT_BASIS));
+    // Field detail only when at least one field is shared (political-fit.ts:602); null and all-withheld are the same neutral row.
+  const anyFit = Array.isArray(fit) && fit.some((v) => v !== "Not shared");
+  rows.push(anyFit ? row("Political fit", `${fit.filter((v) => v !== "Not shared").length} of 4 fields shared`, fitDetail(fit)) : row("Political fit", "Not shared", FIT_BASIS));
   return `<section class="section"><h2 class="section-title">What they share with you now</h2><dl class="card share-rows">${rows.join("")}</dl><p class="text-hint">Only what the worker shares with your organization, as of now. "Not shared" says nothing about them.</p></section>`;
 }
 const history = (events) => `<ol class="space-y-1.5 border-l border-border pl-4 text-sm" aria-label="History">${events.map(([t, d, sub]) => `<li class="space-y-0.5"><p class="text-fg">${t} <span class="text-muted">· ${d}</span></p>${sub ? `<p class="text-muted-sm">${sub}</p>` : ""}</li>`).join("")}</ol>`;
@@ -218,25 +225,28 @@ async function applicants({ pick }, width, { selected = false, empty = false, fi
     : `<form id="applicants-bulk" class="flex items-center gap-2 text-sm text-muted"><span>0 selected</span></form>`;
   m = m.replace(/<form id="applicants-bulk"[\s\S]*?<\/form>/, bulk);
   if (selected) m = m.replace('aria-label="Select Riley Chen" class="size-4"', 'aria-label="Select Riley Chen" class="size-4" checked');
-  if (empty) m = m.replace(/<div data-inspector-source="true">[\s\S]*?<\/div>\s*<p class="text-hint">/, `<div class="empty-state"><p class="empty-state-title">Nobody has applied yet</p><p class="empty-state-body">Workers who apply show up here, with what each one shares with your organization.</p></div><p class="text-hint">`).replace(/<form id="applicants-bulk"[\s\S]*?<\/form>/, "");
+  if (empty) m = m.replace("6 applicants · 2 to decide · 2 offers out · 5 spots", "0 applicants · 0 to decide · 0 offers out · 5 spots").replace(/(applicants">Applicants<span class="tabular-nums"> (?:<!-- -->)?)6/, "$10").replace(/<div data-inspector-source="true">[\s\S]*?<\/div>\s*<p class="text-hint">/, `<div class="empty-state"><p class="empty-state-title">Nobody has applied yet</p><p class="empty-state-body">Workers who apply show up here, with what each one shares with your organization.</p></div><p class="text-hint">`).replace(/<form id="applicants-bulk"[\s\S]*?<\/form>/, "");
   return m;
 }
 
 /* ---------- the frame list ---------- */
 
 const NOTES = {
-  builder: ["One step track, all six steps, scrolling sideways on a phone with the current step kept in view; the steps keep today's buttons, aria-current and aria-disabled.", "A focusable problem summary under the step heading; each line focuses its field; the inline errors stay.", "Next is full width on a phone; Back under it; the save line keeps today's words (saveWords).", "On a desktop the form is a 680px column; the side note is optional new copy (question 9).", "The steps keep today's styles: .step-current, .step-done for reached steps, plain for the rest."],
+  builder: ["One step track, all six steps, scrolling sideways on a phone with the current step kept in view; the steps keep today's buttons, aria-current and aria-disabled.", "A focusable problem summary under the step heading; each line focuses its field; the inline errors stay.", "Next is full width on a phone; Back under it; the save line keeps today's words (saveWords).", "On a desktop the form is the reading template's 680px column; the optional side note (question 9) is not drawn.", "The steps keep today's styles: .step-current, .step-done for reached steps, plain for the rest."],
+  map: ["The staging map is the harvested Leaflet markup with Leaflet's own stylesheet and OpenStreetMap tiles for the column's width; the pin, the radius, the zoom buttons and the attribution are the app's."],
   publishing: ["Blockers grouped by who fixes them, words unchanged. The settings link only for a member who can open it; a restricted editor sees reasons and no actions.", "The step label on each 'In this job' reason needs a reason-to-step mapping (question 3).", "Publish stays disabled while any group has a reason; Edit draft is the destination for the first group."],
   candidate: ["The stage chip beside 'Since', its actions under the title: the next action beside the person.", "'For this job' first, then the history, then one card with one row per shared part.", "A withheld part is the app's own Not shared chip and nothing else; an empty part says its empty words; partial sharing keeps every shared field and switches to the app's shared-basis sentence (political-fit.ts:602).", "The snapshot folds under its date (question 5)."],
   worker: ["The same shared-profile card as the candidate page, the invite composer after it (InviteComposer's own words), the refusals unchanged."],
-  applicants: ["The bulk form is one line, '0 selected', until a row is ticked.", "'Not shared' in the table, the chip's words (question 6). Tabs stay filter-chip links with aria-current; the inspector stays from 1280."],
+  applicants: ["Nav: the dock and rail come from the app on the same route (Hiring current here; Jobs or More on the builder; nothing on a worker page, as the app does).", "The bulk form is one line, '0 selected', until a row is ticked.", "'Not shared' in the table, the chip's words (question 6). Tabs stay filter-chip links with aria-current; the inspector stays from 1280."],
 };
-const F = (name, screen, state, widths, body, notes, parts) => ({ name, screen, state, widths, body, notes, parts });
+const AREA = { Builder: "jobs", "Job page": "jobs", Candidate: "hiring", "Worker page": "workers", Applicants: "hiring" };
+const F = (name, screen, state, widths, body, notes, parts) => ({ name, screen, state, widths, body, notes, parts, area: AREA[screen] });
 export const FRAMES = [
   F("builder-new-errors", "Builder", "new job, step 1, two problems", [390, 1440], builderStep1Errors, NOTES.builder, ["builder-new-errors"]),
   F("builder-new-saved", "Builder", "new job, step 1, draft saved", [390, 1440], builderStep1Saved, NOTES.builder, ["builder-draft-step2"]),
-  F("builder-draft-step2", "Builder", "saved draft, step 2 (dates, city, launch, staging map)", [390, 1440], builderStep2, NOTES.builder, ["builder-draft-step2"]),
+  { ...F("builder-draft-step2", "Builder", "saved draft, step 2 (dates, city, launch, staging map)", [390, 1440], builderStep2, [...NOTES.builder, ...NOTES.map], ["builder-draft-step2"]), scrollTo: ".turf-map" },
   F("builder-draft-step4-errors", "Builder", "saved draft, step 4, contacts missing", [390, 1440], builderStep4, NOTES.builder, ["builder-draft-step4"]),
+  F("builder-draft-step5", "Builder", "saved draft, step 5 (campaign disclosure)", [390, 1440], builderStep5, NOTES.builder, ["builder-draft-step5"]),
   F("builder-saving", "Builder", "saved draft, step 3, saving", [390, 1440], builderSaving, NOTES.builder, ["builder-draft-step2"]),
   F("builder-failed-save", "Builder", "saved draft, step 3, couldn't save", [390, 1440], builderFailedSave, NOTES.builder, ["builder-draft-step2"]),
   F("builder-review", "Builder", "saved draft, step 6 review", [390, 1440], builderReview, NOTES.builder, []),
@@ -251,8 +261,8 @@ export const FRAMES = [
   F("publishing-frozen", "Job page", "published job frozen under newer rules", [390, 1440], publishingFrozen, NOTES.publishing, ["job-draft-blocked"]),
   F("candidate-withheld", "Candidate", "applied, nothing shared", [390, 1440], candidates.withheld, NOTES.candidate, ["scorecard-shared"]),
   F("candidate-mixed", "Candidate", "in review, partial sharing (synthetic: Riley's empty scorecard, invented fit answers)", [390, 1440], candidates.mixed, NOTES.candidate, ["scorecard-shared"]),
-  F("candidate-offer", "Candidate", "offer out", [390, 1440], candidates.offer, NOTES.candidate, ["scorecard-shared"]),
-  F("candidate-offer-expired", "Candidate", "offer expired", [390, 1440], candidates.offerExpired, NOTES.candidate, ["scorecard-shared"]),
+  F("candidate-offer", "Candidate", "offer out (composite: Jordan's shared scorecard under Morgan's name; Morgan's own sharing isn't fixtured)", [390, 1440], candidates.offer, NOTES.candidate, ["scorecard-shared"]),
+  F("candidate-offer-expired", "Candidate", "offer expired (composite: Jordan's shared scorecard under Alex's name; dated by fixture, not captured)", [390, 1440], candidates.offerExpired, NOTES.candidate, ["scorecard-shared"]),
   F("candidate-invited", "Candidate", "invited, unanswered (profile not open)", [390, 1440], candidates.invited, NOTES.candidate, []),
   F("candidate-invite-expired", "Candidate", "invitation expired", [390, 1440], candidates.inviteExpired, NOTES.candidate, []),
   F("candidate-hired", "Candidate", "hired (Message)", [390, 1440], candidates.hired, NOTES.candidate, ["scorecard-shared"]),
@@ -264,7 +274,7 @@ export const FRAMES = [
   F("worker-denied", "Worker page", "organization awaiting approval", [390, 1440], workers.denied, [], []),
   F("applicants", "Applicants", "six applicants, none selected", [390, 1440], (c, w) => applicants(c, w, {}), NOTES.applicants, ["applicants"]),
   F("applicants-selected", "Applicants", "one selected, bulk form open", [390, 1440], (c, w) => applicants(c, w, { selected: true }), NOTES.applicants, ["applicants"]),
-  F("applicants-empty", "Applicants", "nobody applied", [390, 1440], (c, w) => applicants(c, w, { empty: true }), NOTES.applicants, ["applicants"]),
+  F("applicants-empty", "Applicants", "nobody applied (every count from the empty state: 0 applicants, Applicants 0)", [390, 1440], (c, w) => applicants(c, w, { empty: true }), NOTES.applicants, ["applicants"]),
   F("applicants-filtered-empty", "Applicants", "filters match nobody", [390, 1440], (c, w) => applicants(c, w, { filtered: true }), NOTES.applicants, ["applicants-empty-filter"]),
   F("applicants-inspector", "Applicants", "inspector open (1440)", [1440], (c, w) => applicants(c, w, { inspector: true }), NOTES.applicants, ["applicants-desktop"]),
-].map((f) => ({ ...f, body: async (ctx, w) => ctx.orgShell(await f.body(ctx, w)) }));
+].map((f) => ({ ...f, body: async (ctx, w) => ctx.orgShell(await f.body(ctx, w), f.area) }));

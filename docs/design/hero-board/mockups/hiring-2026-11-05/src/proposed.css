@@ -41,14 +41,18 @@
 .problem-summary ul { margin: 0.25rem 0 0; padding-left: 1.25rem; }
 .problem-summary li + li { margin-top: 0.125rem; }
 
-/* 3. The builder on a desktop: the form in a 680px column, an optional note beside it. */
-.builder-cols, .builder-main, .builder-main fieldset, .builder-main fieldset > *, .builder-main [data-list] > * { min-width: 0; }
+/* 3. The builder on a desktop: the form stays in the reading template's
+   column (680px from 64rem, the app's own rule); nothing sits beside it. */
+.builder-main, .builder-main fieldset, .builder-main fieldset > *, .builder-main [data-list] > * { min-width: 0; }
 .builder-main .turf-map { max-width: 100%; }
-@media (min-width: 64rem) {
-  .builder-cols { display: flex; gap: 2.5rem; align-items: flex-start; }
-  .builder-main { width: 42.5rem; flex: none; }
-  .builder-aside { width: 20rem; position: sticky; top: 1rem; }
-}
+
+/* 7. Hit targets (question 10): the steps and this family's small actions reach
+   44px the way the app's filter chips already do, an absolutely placed ::before
+   that extends the target without changing the type or the visible box. */
+.step-track .step { position: relative; }
+.step-track .step::before { content: ""; position: absolute; inset: -9px 0; }
+.tpl-head .btn-sm, .tpl-main .btn-sm { position: relative; }
+.tpl-head .btn-sm::before, .tpl-main .btn-sm::before { content: ""; position: absolute; inset: -4px 0; }
 
 /* 4. The shared-profile card: one row per part. A row's value is the part's
    summary, "Not shared" (the app's chip) or its empty words. */

@@ -638,5 +638,192 @@
       "commit": "8b1a80f166a04942a74b34cbe4367c5519f91835",
       "clean": true
     }
+  },
+  {
+    "screen": "hiring-overview",
+    "route": "/hiring",
+    "role": "owner",
+    "width": 390,
+    "theme": "dark",
+    "file": "hiring-overview-390-now-dark.png",
+    "h1": "Pipeline",
+    "finalPath": "/hiring",
+    "pageHeight": 844,
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "8b1a80f166a04942a74b34cbe4367c5519f91835",
+      "clean": true
+    }
+  },
+  {
+    "screen": "hiring-overview",
+    "route": "/hiring",
+    "role": "owner",
+    "width": 1440,
+    "theme": "dark",
+    "file": "hiring-overview-1440-now-dark.png",
+    "h1": "Pipeline",
+    "finalPath": "/hiring",
+    "pageHeight": 900,
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "8b1a80f166a04942a74b34cbe4367c5519f91835",
+      "clean": true
+    }
+  },
+  {
+    "screen": "applicants-filters",
+    "route": "/hiring/86d8312d-003d-4ffd-8b70-1a06f0d9b28f/applicants?stage=open&free=1",
+    "role": "owner",
+    "width": 390,
+    "theme": "dark",
+    "file": "applicants-filters-390-now-dark.png",
+    "h1": "Pass test canvass 390",
+    "finalPath": "/hiring/86d8312d-003d-4ffd-8b70-1a06f0d9b28f/applicants?stage=open&free=1",
+    "pageHeight": 2249,
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "8b1a80f166a04942a74b34cbe4367c5519f91835",
+      "clean": true
+    }
+  },
+  {
+    "screen": "matches",
+    "route": "/hiring/86d8312d-003d-4ffd-8b70-1a06f0d9b28f/matches",
+    "role": "owner",
+    "width": 390,
+    "theme": "dark",
+    "file": "matches-390-now-dark.png",
+    "h1": "Pass test canvass 390",
+    "finalPath": "/hiring/86d8312d-003d-4ffd-8b70-1a06f0d9b28f/matches",
+    "pageHeight": 1522,
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "8b1a80f166a04942a74b34cbe4367c5519f91835",
+      "clean": true
+    }
+  },
+  {
+    "screen": "matches",
+    "route": "/hiring/86d8312d-003d-4ffd-8b70-1a06f0d9b28f/matches",
+    "role": "owner",
+    "width": 1440,
+    "theme": "dark",
+    "file": "matches-1440-now-dark.png",
+    "h1": "Pass test canvass 390",
+    "finalPath": "/hiring/86d8312d-003d-4ffd-8b70-1a06f0d9b28f/matches",
+    "pageHeight": 1090,
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "8b1a80f166a04942a74b34cbe4367c5519f91835",
+      "clean": true
+    }
+  },
+  {
+    "screen": "invites",
+    "route": "/hiring/86d8312d-003d-4ffd-8b70-1a06f0d9b28f/invites",
+    "role": "owner",
+    "width": 390,
+    "theme": "dark",
+    "file": "invites-390-now-dark.png",
+    "h1": "Pass test canvass 390",
+    "finalPath": "/hiring/86d8312d-003d-4ffd-8b70-1a06f0d9b28f/invites",
+    "pageHeight": 1115,
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "8b1a80f166a04942a74b34cbe4367c5519f91835",
+      "clean": true
+    }
+  },
+  {
+    "screen": "invites",
+    "route": "/hiring/86d8312d-003d-4ffd-8b70-1a06f0d9b28f/invites",
+    "role": "owner",
+    "width": 1440,
+    "theme": "dark",
+    "file": "invites-1440-now-dark.png",
+    "h1": "Pass test canvass 390",
+    "finalPath": "/hiring/86d8312d-003d-4ffd-8b70-1a06f0d9b28f/invites",
+    "pageHeight": 900,
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "8b1a80f166a04942a74b34cbe4367c5519f91835",
+      "clean": true
+    }
+  },
+  {
+    "screen": "worker-denied-finance",
+    "route": "/workers/00000000-0000-0000-0000-000000000102",
+    "role": "finance",
+    "width": 390,
+    "theme": "dark",
+    "file": "worker-denied-finance-390-now-dark.png",
+    "h1": "Overview",
+    "finalPath": "/desk",
+    "pageHeight": 844,
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "8b1a80f166a04942a74b34cbe4367c5519f91835",
+      "clean": true
+    }
+  },
+  {
+    "screen": "worker-invitations",
+    "route": "/jobs/invitations",
+    "role": "sam",
+    "width": 390,
+    "theme": "dark",
+    "file": "worker-invitations-390-now-dark.png",
+    "h1": "Invitations",
+    "finalPath": "/jobs/invitations",
+    "pageHeight": 888,
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "8b1a80f166a04942a74b34cbe4367c5519f91835",
+      "clean": true
+    }
+  },
+  {
+    "screen": "worker-invitations",
+    "route": "/jobs/invitations",
+    "role": "sam",
+    "width": 1440,
+    "theme": "dark",
+    "file": "worker-invitations-1440-now-dark.png",
+    "h1": "Invitations",
+    "finalPath": "/jobs/invitations",
+    "pageHeight": 900,
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "8b1a80f166a04942a74b34cbe4367c5519f91835",
+      "clean": true
+    }
+  },
+  {
+    "screen": "worker-invitations-empty",
+    "route": "/jobs/invitations",
+    "role": "riley",
+    "width": 390,
+    "theme": "dark",
+    "file": "worker-invitations-empty-390-now-dark.png",
+    "h1": "Invitations",
+    "finalPath": "/jobs/invitations",
+    "pageHeight": 844,
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "8b1a80f166a04942a74b34cbe4367c5519f91835",
+      "clean": true
+    }
   }
 ]

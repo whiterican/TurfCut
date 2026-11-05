@@ -48,3 +48,7 @@ Not captured, and why:
 | `worker-shared-*`, `worker-withheld-390` | A worker as the organization sees them: Jordan (shared), Casey (withheld). |
 | `worker-denied-finance-390`, `worker-denied-unapproved-390` | The finance member (sent home); the unapproved organization ("Your organization is awaiting approval."). |
 | `worker-invitations-*`, `worker-invitations-empty-390` | Sam's invitation with the note and deadline; Riley's empty page. |
+
+## Dark captures
+
+The screens kept as they are were captured again in dark (`*-now-dark.png`, the app's own theme switch, `theme: "dark"` in `manifest.json`) at the same commit, by `curdark.mjs`, so the kept screens have a dark reference too.

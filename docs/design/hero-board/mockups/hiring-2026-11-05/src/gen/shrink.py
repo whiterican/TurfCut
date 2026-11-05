@@ -7,7 +7,7 @@ from PIL import Image
 
 root = pathlib.Path(__file__).resolve().parents[2]
 total_before = total_after = 0
-for png in list(root.glob("*.png")) + list((root / "annotated").glob("*.png")):
+for png in list(root.glob("*.png")) + list((root / "annotated").glob("*.png")) + list((root / "viewport").glob("*.png")):
     before = png.stat().st_size
     im = Image.open(png).convert("RGBA")
     q = im.convert("P", palette=Image.ADAPTIVE, colors=256)

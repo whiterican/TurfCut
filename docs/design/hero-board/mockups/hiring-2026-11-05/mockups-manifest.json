@@ -12,10 +12,21 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": "viewport/builder-new-errors-390.png",
+    "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-new-errors"
@@ -35,10 +46,21 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-new-errors"
@@ -58,10 +80,21 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": "viewport/builder-new-errors-1440.png",
+    "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-new-errors"
@@ -81,10 +114,21 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-new-errors"
@@ -104,10 +148,21 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": "viewport/builder-new-saved-390.png",
+    "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-draft-step2"
@@ -127,10 +182,21 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-draft-step2"
@@ -145,15 +211,26 @@
     "theme": "light",
     "dpr": 2,
     "file": "builder-new-saved-1440-light.png",
-    "contentHeight": 924,
+    "contentHeight": 920,
     "horizontalOverflow": 0,
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": "viewport/builder-new-saved-1440.png",
+    "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-draft-step2"
@@ -168,15 +245,26 @@
     "theme": "dark",
     "dpr": 2,
     "file": "builder-new-saved-1440-dark.png",
-    "contentHeight": 924,
+    "contentHeight": 920,
     "horizontalOverflow": 0,
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-draft-step2"
@@ -198,10 +286,30 @@
       "div.turf-map.w-full"
     ],
     "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44
+      },
+      "btnSm": {
+        "visible": 36,
+        "hit": 44
+      },
+      "filterChip": null
+    },
+    "map": {
+      "loaded": 4,
+      "total": 4,
+      "controls": true,
+      "attribution": true,
+      "pin": true
+    },
+    "viewportFile": "viewport/builder-draft-step2-390.png",
+    "scrolledFile": "viewport/builder-draft-step2-390-scrolled.png",
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-draft-step2"
@@ -223,10 +331,30 @@
       "div.turf-map.w-full"
     ],
     "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44
+      },
+      "btnSm": {
+        "visible": 36,
+        "hit": 44
+      },
+      "filterChip": null
+    },
+    "map": {
+      "loaded": 4,
+      "total": 4,
+      "controls": true,
+      "attribution": true,
+      "pin": true
+    },
+    "viewportFile": null,
+    "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-draft-step2"
@@ -248,10 +376,30 @@
       "div.turf-map.w-full"
     ],
     "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44
+      },
+      "btnSm": {
+        "visible": 36,
+        "hit": 44
+      },
+      "filterChip": null
+    },
+    "map": {
+      "loaded": 8,
+      "total": 8,
+      "controls": true,
+      "attribution": true,
+      "pin": true
+    },
+    "viewportFile": "viewport/builder-draft-step2-1440.png",
+    "scrolledFile": "viewport/builder-draft-step2-1440-scrolled.png",
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-draft-step2"
@@ -273,10 +421,30 @@
       "div.turf-map.w-full"
     ],
     "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44
+      },
+      "btnSm": {
+        "visible": 36,
+        "hit": 44
+      },
+      "filterChip": null
+    },
+    "map": {
+      "loaded": 8,
+      "total": 8,
+      "controls": true,
+      "attribution": true,
+      "pin": true
+    },
+    "viewportFile": null,
+    "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-draft-step2"
@@ -296,10 +464,21 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": "viewport/builder-draft-step4-errors-390.png",
+    "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-draft-step4"
@@ -319,10 +498,21 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-draft-step4"
@@ -342,10 +532,21 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": "viewport/builder-draft-step4-errors-1440.png",
+    "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-draft-step4"
@@ -365,13 +566,160 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-draft-step4"
+      ]
+    }
+  },
+  {
+    "frame": "builder-draft-step5",
+    "screen": "Builder",
+    "state": "saved draft, step 5 (campaign disclosure)",
+    "width": 390,
+    "theme": "light",
+    "dpr": 2,
+    "file": "builder-draft-step5-390-light.png",
+    "contentHeight": 2097,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": "viewport/builder-draft-step5-390.png",
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "60ef828",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "builder-draft-step5"
+      ]
+    }
+  },
+  {
+    "frame": "builder-draft-step5",
+    "screen": "Builder",
+    "state": "saved draft, step 5 (campaign disclosure)",
+    "width": 390,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "builder-draft-step5-390-dark.png",
+    "contentHeight": 2097,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "60ef828",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "builder-draft-step5"
+      ]
+    }
+  },
+  {
+    "frame": "builder-draft-step5",
+    "screen": "Builder",
+    "state": "saved draft, step 5 (campaign disclosure)",
+    "width": 1440,
+    "theme": "light",
+    "dpr": 2,
+    "file": "builder-draft-step5-1440-light.png",
+    "contentHeight": 1716,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": "viewport/builder-draft-step5-1440.png",
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "60ef828",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "builder-draft-step5"
+      ]
+    }
+  },
+  {
+    "frame": "builder-draft-step5",
+    "screen": "Builder",
+    "state": "saved draft, step 5 (campaign disclosure)",
+    "width": 1440,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "builder-draft-step5-1440-dark.png",
+    "contentHeight": 1716,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "60ef828",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "builder-draft-step5"
       ]
     }
   },
@@ -388,10 +736,21 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": "viewport/builder-saving-390.png",
+    "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-draft-step2"
@@ -411,10 +770,21 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-draft-step2"
@@ -434,10 +804,21 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": "viewport/builder-saving-1440.png",
+    "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-draft-step2"
@@ -457,10 +838,21 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-draft-step2"
@@ -480,10 +872,21 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": "viewport/builder-failed-save-390.png",
+    "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-draft-step2"
@@ -503,10 +906,21 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-draft-step2"
@@ -526,10 +940,21 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": "viewport/builder-failed-save-1440.png",
+    "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-draft-step2"
@@ -549,10 +974,21 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-draft-step2"
@@ -572,10 +1008,21 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": "viewport/builder-review-390.png",
+    "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -593,10 +1040,21 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -614,10 +1072,21 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": "viewport/builder-review-1440.png",
+    "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -635,10 +1104,21 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -656,10 +1136,21 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": "viewport/builder-live-step1-390.png",
+    "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-live"
@@ -679,10 +1170,21 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-live"
@@ -702,10 +1204,21 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": "viewport/builder-live-step1-1440.png",
+    "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-live"
@@ -725,10 +1238,21 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-live"
@@ -748,10 +1272,21 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": "viewport/builder-live-review-390.png",
+    "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -769,10 +1304,21 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -790,10 +1336,21 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": "viewport/builder-live-review-1440.png",
+    "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -811,10 +1368,21 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -832,10 +1400,18 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": "viewport/builder-closed-390.png",
+    "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -853,10 +1429,18 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -874,10 +1458,18 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": "viewport/builder-closed-1440.png",
+    "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -895,10 +1487,18 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -916,10 +1516,18 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": "viewport/builder-no-access-390.png",
+    "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "no-access"
@@ -939,10 +1547,18 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "no-access"
@@ -962,10 +1578,18 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": "viewport/builder-no-access-1440.png",
+    "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "no-access"
@@ -985,10 +1609,18 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "no-access"
@@ -1008,10 +1640,18 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": "viewport/publishing-blocked-390.png",
+    "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "job-draft-blocked"
@@ -1031,10 +1671,18 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "job-draft-blocked"
@@ -1054,10 +1702,18 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": "viewport/publishing-blocked-1440.png",
+    "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "job-draft-blocked"
@@ -1077,10 +1733,18 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "job-draft-blocked"
@@ -1100,10 +1764,18 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": "viewport/publishing-restricted-390.png",
+    "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "job-draft-blocked"
@@ -1123,10 +1795,18 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "job-draft-blocked"
@@ -1146,10 +1826,18 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": "viewport/publishing-restricted-1440.png",
+    "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "job-draft-blocked"
@@ -1169,10 +1857,18 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "job-draft-blocked"
@@ -1192,10 +1888,18 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": "viewport/publishing-counsel-390.png",
+    "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "job-draft-blocked"
@@ -1215,10 +1919,18 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "job-draft-blocked"
@@ -1238,10 +1950,18 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": "viewport/publishing-counsel-1440.png",
+    "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "job-draft-blocked"
@@ -1261,10 +1981,18 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "job-draft-blocked"
@@ -1284,10 +2012,18 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": "viewport/publishing-clear-390.png",
+    "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "job-draft-blocked"
@@ -1307,10 +2043,18 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "job-draft-blocked"
@@ -1330,10 +2074,18 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": "viewport/publishing-clear-1440.png",
+    "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "job-draft-blocked"
@@ -1353,10 +2105,18 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "job-draft-blocked"
@@ -1376,10 +2136,18 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": "viewport/publishing-frozen-390.png",
+    "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "job-draft-blocked"
@@ -1399,10 +2167,18 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "job-draft-blocked"
@@ -1422,10 +2198,18 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": "viewport/publishing-frozen-1440.png",
+    "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "job-draft-blocked"
@@ -1445,10 +2229,18 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "job-draft-blocked"
@@ -1468,10 +2260,21 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44
+      },
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": "viewport/candidate-withheld-390.png",
+    "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -1491,10 +2294,21 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44
+      },
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -1514,10 +2328,21 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44
+      },
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": "viewport/candidate-withheld-1440.png",
+    "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -1537,10 +2362,21 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44
+      },
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -1560,10 +2396,21 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44
+      },
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": "viewport/candidate-mixed-390.png",
+    "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -1583,10 +2430,21 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44
+      },
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -1606,10 +2464,21 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44
+      },
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": "viewport/candidate-mixed-1440.png",
+    "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -1629,10 +2498,21 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44
+      },
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -1642,20 +2522,31 @@
   {
     "frame": "candidate-offer",
     "screen": "Candidate",
-    "state": "offer out",
+    "state": "offer out (composite: Jordan's shared scorecard under Morgan's name; Morgan's own sharing isn't fixtured)",
     "width": 390,
     "theme": "light",
     "dpr": 2,
     "file": "candidate-offer-390-light.png",
-    "contentHeight": 3954,
+    "contentHeight": 3677,
     "horizontalOverflow": 0,
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44
+      },
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": "viewport/candidate-offer-390.png",
+    "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -1665,20 +2556,31 @@
   {
     "frame": "candidate-offer",
     "screen": "Candidate",
-    "state": "offer out",
+    "state": "offer out (composite: Jordan's shared scorecard under Morgan's name; Morgan's own sharing isn't fixtured)",
     "width": 390,
     "theme": "dark",
     "dpr": 2,
     "file": "candidate-offer-390-dark.png",
-    "contentHeight": 3954,
+    "contentHeight": 3677,
     "horizontalOverflow": 0,
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44
+      },
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -1688,20 +2590,31 @@
   {
     "frame": "candidate-offer",
     "screen": "Candidate",
-    "state": "offer out",
+    "state": "offer out (composite: Jordan's shared scorecard under Morgan's name; Morgan's own sharing isn't fixtured)",
     "width": 1440,
     "theme": "light",
     "dpr": 2,
     "file": "candidate-offer-1440-light.png",
-    "contentHeight": 3100,
+    "contentHeight": 2919,
     "horizontalOverflow": 0,
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44
+      },
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": "viewport/candidate-offer-1440.png",
+    "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -1711,20 +2624,31 @@
   {
     "frame": "candidate-offer",
     "screen": "Candidate",
-    "state": "offer out",
+    "state": "offer out (composite: Jordan's shared scorecard under Morgan's name; Morgan's own sharing isn't fixtured)",
     "width": 1440,
     "theme": "dark",
     "dpr": 2,
     "file": "candidate-offer-1440-dark.png",
-    "contentHeight": 3100,
+    "contentHeight": 2919,
     "horizontalOverflow": 0,
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44
+      },
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -1734,20 +2658,31 @@
   {
     "frame": "candidate-offer-expired",
     "screen": "Candidate",
-    "state": "offer expired",
+    "state": "offer expired (composite: Jordan's shared scorecard under Alex's name; dated by fixture, not captured)",
     "width": 390,
     "theme": "light",
     "dpr": 2,
     "file": "candidate-offer-expired-390-light.png",
-    "contentHeight": 3934,
+    "contentHeight": 3657,
     "horizontalOverflow": 0,
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44
+      },
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": "viewport/candidate-offer-expired-390.png",
+    "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -1757,20 +2692,31 @@
   {
     "frame": "candidate-offer-expired",
     "screen": "Candidate",
-    "state": "offer expired",
+    "state": "offer expired (composite: Jordan's shared scorecard under Alex's name; dated by fixture, not captured)",
     "width": 390,
     "theme": "dark",
     "dpr": 2,
     "file": "candidate-offer-expired-390-dark.png",
-    "contentHeight": 3934,
+    "contentHeight": 3657,
     "horizontalOverflow": 0,
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44
+      },
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -1780,20 +2726,31 @@
   {
     "frame": "candidate-offer-expired",
     "screen": "Candidate",
-    "state": "offer expired",
+    "state": "offer expired (composite: Jordan's shared scorecard under Alex's name; dated by fixture, not captured)",
     "width": 1440,
     "theme": "light",
     "dpr": 2,
     "file": "candidate-offer-expired-1440-light.png",
-    "contentHeight": 3100,
+    "contentHeight": 2919,
     "horizontalOverflow": 0,
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44
+      },
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": "viewport/candidate-offer-expired-1440.png",
+    "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -1803,20 +2760,31 @@
   {
     "frame": "candidate-offer-expired",
     "screen": "Candidate",
-    "state": "offer expired",
+    "state": "offer expired (composite: Jordan's shared scorecard under Alex's name; dated by fixture, not captured)",
     "width": 1440,
     "theme": "dark",
     "dpr": 2,
     "file": "candidate-offer-expired-1440-dark.png",
-    "contentHeight": 3100,
+    "contentHeight": 2919,
     "horizontalOverflow": 0,
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44
+      },
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -1836,10 +2804,21 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44
+      },
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": "viewport/candidate-invited-390.png",
+    "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -1857,10 +2836,21 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44
+      },
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -1878,10 +2868,21 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44
+      },
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": "viewport/candidate-invited-1440.png",
+    "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -1899,10 +2900,21 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44
+      },
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -1920,10 +2932,21 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44
+      },
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": "viewport/candidate-invite-expired-390.png",
+    "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -1941,10 +2964,21 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44
+      },
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -1962,10 +2996,21 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44
+      },
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": "viewport/candidate-invite-expired-1440.png",
+    "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -1983,10 +3028,21 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44
+      },
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -1999,15 +3055,26 @@
     "theme": "light",
     "dpr": 2,
     "file": "candidate-hired-390-light.png",
-    "contentHeight": 3932,
+    "contentHeight": 3655,
     "horizontalOverflow": 0,
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44
+      },
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": "viewport/candidate-hired-390.png",
+    "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -2022,15 +3089,26 @@
     "theme": "dark",
     "dpr": 2,
     "file": "candidate-hired-390-dark.png",
-    "contentHeight": 3932,
+    "contentHeight": 3655,
     "horizontalOverflow": 0,
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44
+      },
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -2045,15 +3123,26 @@
     "theme": "light",
     "dpr": 2,
     "file": "candidate-hired-1440-light.png",
-    "contentHeight": 3098,
+    "contentHeight": 2917,
     "horizontalOverflow": 0,
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44
+      },
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": "viewport/candidate-hired-1440.png",
+    "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -2068,15 +3157,26 @@
     "theme": "dark",
     "dpr": 2,
     "file": "candidate-hired-1440-dark.png",
-    "contentHeight": 3098,
+    "contentHeight": 2917,
     "horizontalOverflow": 0,
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44
+      },
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -2096,10 +3196,21 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44
+      },
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": "viewport/candidate-not-selected-390.png",
+    "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -2117,10 +3228,21 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44
+      },
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -2138,10 +3260,21 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44
+      },
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": "viewport/candidate-not-selected-1440.png",
+    "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -2159,10 +3292,21 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44
+      },
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -2180,10 +3324,21 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44
+      },
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": "viewport/candidate-action-failed-390.png",
+    "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -2203,10 +3358,21 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44
+      },
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -2226,10 +3392,21 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44
+      },
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": "viewport/candidate-action-failed-1440.png",
+    "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -2249,10 +3426,21 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44
+      },
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -2267,15 +3455,23 @@
     "theme": "light",
     "dpr": 2,
     "file": "worker-shared-390-light.png",
-    "contentHeight": 3368,
+    "contentHeight": 3091,
     "horizontalOverflow": 0,
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": "viewport/worker-shared-390.png",
+    "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -2290,15 +3486,23 @@
     "theme": "dark",
     "dpr": 2,
     "file": "worker-shared-390-dark.png",
-    "contentHeight": 3368,
+    "contentHeight": 3091,
     "horizontalOverflow": 0,
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -2313,15 +3517,23 @@
     "theme": "light",
     "dpr": 2,
     "file": "worker-shared-1440-light.png",
-    "contentHeight": 2598,
+    "contentHeight": 2417,
     "horizontalOverflow": 0,
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": "viewport/worker-shared-1440.png",
+    "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -2336,15 +3548,23 @@
     "theme": "dark",
     "dpr": 2,
     "file": "worker-shared-1440-dark.png",
-    "contentHeight": 2598,
+    "contentHeight": 2417,
     "horizontalOverflow": 0,
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -2364,10 +3584,18 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": "viewport/worker-withheld-390.png",
+    "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -2385,10 +3613,18 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -2406,10 +3642,18 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": "viewport/worker-withheld-1440.png",
+    "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -2427,10 +3671,18 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -2448,10 +3700,18 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": "viewport/worker-name-not-shared-390.png",
+    "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -2471,10 +3731,18 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -2494,10 +3762,18 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": "viewport/worker-name-not-shared-1440.png",
+    "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -2517,10 +3793,18 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -2540,10 +3824,18 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": "viewport/worker-denied-390.png",
+    "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -2561,10 +3853,18 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -2582,10 +3882,18 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": "viewport/worker-denied-1440.png",
+    "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -2603,10 +3911,18 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -2624,10 +3940,24 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44
+      },
+      "filterChip": {
+        "visible": 36,
+        "hit": 44
+      }
+    },
+    "map": null,
+    "viewportFile": "viewport/applicants-390.png",
+    "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "applicants"
@@ -2647,10 +3977,24 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44
+      },
+      "filterChip": {
+        "visible": 36,
+        "hit": 44
+      }
+    },
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "applicants"
@@ -2670,10 +4014,24 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44
+      },
+      "filterChip": {
+        "visible": 36,
+        "hit": 44
+      }
+    },
+    "map": null,
+    "viewportFile": "viewport/applicants-1440.png",
+    "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "applicants"
@@ -2693,10 +4051,24 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44
+      },
+      "filterChip": {
+        "visible": 36,
+        "hit": 44
+      }
+    },
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "applicants"
@@ -2716,10 +4088,24 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44
+      },
+      "filterChip": {
+        "visible": 36,
+        "hit": 44
+      }
+    },
+    "map": null,
+    "viewportFile": "viewport/applicants-selected-390.png",
+    "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "applicants"
@@ -2739,10 +4125,24 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44
+      },
+      "filterChip": {
+        "visible": 36,
+        "hit": 44
+      }
+    },
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "applicants"
@@ -2762,10 +4162,24 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44
+      },
+      "filterChip": {
+        "visible": 36,
+        "hit": 44
+      }
+    },
+    "map": null,
+    "viewportFile": "viewport/applicants-selected-1440.png",
+    "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "applicants"
@@ -2785,102 +4199,24 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44
+      },
+      "filterChip": {
+        "visible": 36,
+        "hit": 44
+      }
+    },
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
-      "stylesheet": "src/app/app.css",
-      "parts": [
-        "applicants"
-      ]
-    }
-  },
-  {
-    "frame": "applicants-empty",
-    "screen": "Applicants",
-    "state": "nobody applied",
-    "width": 390,
-    "theme": "light",
-    "dpr": 2,
-    "file": "applicants-empty-390-light.png",
-    "contentHeight": 844,
-    "horizontalOverflow": 0,
-    "clippedElements": 0,
-    "clipped": [],
-    "fontReady": true,
-    "viewportHeight": 844,
-    "source": {
-      "app": "8b1a80f",
-      "docs": "096fc77",
-      "stylesheet": "src/app/app.css",
-      "parts": [
-        "applicants"
-      ]
-    }
-  },
-  {
-    "frame": "applicants-empty",
-    "screen": "Applicants",
-    "state": "nobody applied",
-    "width": 390,
-    "theme": "dark",
-    "dpr": 2,
-    "file": "applicants-empty-390-dark.png",
-    "contentHeight": 844,
-    "horizontalOverflow": 0,
-    "clippedElements": 0,
-    "clipped": [],
-    "fontReady": true,
-    "viewportHeight": 844,
-    "source": {
-      "app": "8b1a80f",
-      "docs": "096fc77",
-      "stylesheet": "src/app/app.css",
-      "parts": [
-        "applicants"
-      ]
-    }
-  },
-  {
-    "frame": "applicants-empty",
-    "screen": "Applicants",
-    "state": "nobody applied",
-    "width": 1440,
-    "theme": "light",
-    "dpr": 2,
-    "file": "applicants-empty-1440-light.png",
-    "contentHeight": 920,
-    "horizontalOverflow": 0,
-    "clippedElements": 0,
-    "clipped": [],
-    "fontReady": true,
-    "viewportHeight": 900,
-    "source": {
-      "app": "8b1a80f",
-      "docs": "096fc77",
-      "stylesheet": "src/app/app.css",
-      "parts": [
-        "applicants"
-      ]
-    }
-  },
-  {
-    "frame": "applicants-empty",
-    "screen": "Applicants",
-    "state": "nobody applied",
-    "width": 1440,
-    "theme": "dark",
-    "dpr": 2,
-    "file": "applicants-empty-1440-dark.png",
-    "contentHeight": 920,
-    "horizontalOverflow": 0,
-    "clippedElements": 0,
-    "clipped": [],
-    "fontReady": true,
-    "viewportHeight": 900,
-    "source": {
-      "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "applicants"
@@ -2900,10 +4236,24 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44
+      },
+      "filterChip": {
+        "visible": 36,
+        "hit": 44
+      }
+    },
+    "map": null,
+    "viewportFile": "viewport/applicants-filtered-empty-390.png",
+    "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "applicants-empty-filter"
@@ -2923,10 +4273,24 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44
+      },
+      "filterChip": {
+        "visible": 36,
+        "hit": 44
+      }
+    },
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "applicants-empty-filter"
@@ -2946,10 +4310,24 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44
+      },
+      "filterChip": {
+        "visible": 36,
+        "hit": 44
+      }
+    },
+    "map": null,
+    "viewportFile": "viewport/applicants-filtered-empty-1440.png",
+    "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "applicants-empty-filter"
@@ -2969,10 +4347,24 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44
+      },
+      "filterChip": {
+        "visible": 36,
+        "hit": 44
+      }
+    },
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "applicants-empty-filter"
@@ -2992,10 +4384,24 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44
+      },
+      "filterChip": {
+        "visible": 36,
+        "hit": 44
+      }
+    },
+    "map": null,
+    "viewportFile": "viewport/applicants-inspector-1440.png",
+    "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "applicants-desktop"
@@ -3015,13 +4421,175 @@
     "clippedElements": 0,
     "clipped": [],
     "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44
+      },
+      "filterChip": {
+        "visible": 36,
+        "hit": 44
+      }
+    },
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "096fc77",
+      "docs": "60ef828",
       "stylesheet": "src/app/app.css",
       "parts": [
         "applicants-desktop"
+      ]
+    }
+  },
+  {
+    "frame": "applicants-empty",
+    "screen": "Applicants",
+    "state": "nobody applied (every count from the empty state: 0 applicants, Applicants 0)",
+    "width": 390,
+    "theme": "light",
+    "dpr": 2,
+    "file": "applicants-empty-390-light.png",
+    "contentHeight": 844,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44
+      },
+      "filterChip": {
+        "visible": 36,
+        "hit": 44
+      }
+    },
+    "map": null,
+    "viewportFile": "viewport/applicants-empty-390.png",
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "60ef828",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "applicants"
+      ]
+    }
+  },
+  {
+    "frame": "applicants-empty",
+    "screen": "Applicants",
+    "state": "nobody applied (every count from the empty state: 0 applicants, Applicants 0)",
+    "width": 390,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "applicants-empty-390-dark.png",
+    "contentHeight": 844,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44
+      },
+      "filterChip": {
+        "visible": 36,
+        "hit": 44
+      }
+    },
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "60ef828",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "applicants"
+      ]
+    }
+  },
+  {
+    "frame": "applicants-empty",
+    "screen": "Applicants",
+    "state": "nobody applied (every count from the empty state: 0 applicants, Applicants 0)",
+    "width": 1440,
+    "theme": "light",
+    "dpr": 2,
+    "file": "applicants-empty-1440-light.png",
+    "contentHeight": 920,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44
+      },
+      "filterChip": {
+        "visible": 36,
+        "hit": 44
+      }
+    },
+    "map": null,
+    "viewportFile": "viewport/applicants-empty-1440.png",
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "60ef828",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "applicants"
+      ]
+    }
+  },
+  {
+    "frame": "applicants-empty",
+    "screen": "Applicants",
+    "state": "nobody applied (every count from the empty state: 0 applicants, Applicants 0)",
+    "width": 1440,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "applicants-empty-1440-dark.png",
+    "contentHeight": 920,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44
+      },
+      "filterChip": {
+        "visible": 36,
+        "hit": 44
+      }
+    },
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "60ef828",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "applicants"
       ]
     }
   }

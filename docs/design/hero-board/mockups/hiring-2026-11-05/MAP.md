@@ -122,5 +122,5 @@ Every field, action, state and line of copy the mockups draw, with the source th
 
 1. **Candidate page, "For this job" when the job has no dates or no required credentials:** the section is empty today (both rows are conditional). The mockup shows the section only when it has a row. Keep that, or show "Nothing to compare for this job"?
 2. **The live-job edit's final button** reads "Save draft" (`JobForm.tsx:568` keys off `savedId`, not the job's status), and nothing on the steps says autosave is off. The mockup shows "Save changes" and "Changes save when you finish" for a published job. Both are one-line code changes, not data changes; flagged so they aren't taken as today's behaviour.
-4. **New copy drawn in the mockups** is listed in PLAN.md, question 9. None of it exists in the code.
 3. **Invites page:** "Sent … by <name>" shows the sender only when recorded (`sentBy`). Older invitations have none; the mockup shows both forms.
+4. **New copy drawn in the mockups** is listed in PLAN.md, question 9. None of it exists in the code.

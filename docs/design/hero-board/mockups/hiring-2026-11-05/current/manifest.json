@@ -825,5 +825,39 @@
       "commit": "8b1a80f166a04942a74b34cbe4367c5519f91835",
       "clean": true
     }
+  },
+  {
+    "screen": "builder-edit-published-step5",
+    "route": "/jobs/86d8312d-003d-4ffd-8b70-1a06f0d9b28f/edit",
+    "role": "owner",
+    "width": 390,
+    "file": "builder-edit-published-step5-390-now.png",
+    "h1": "Pass test canvass 390",
+    "finalPath": "/jobs/86d8312d-003d-4ffd-8b70-1a06f0d9b28f/edit",
+    "pageHeight": 2242,
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "note": "Step 5 opened by its step button; the issue-position selects clip their value at this width",
+    "source": {
+      "commit": "8b1a80f166a04942a74b34cbe4367c5519f91835",
+      "clean": true
+    }
+  },
+  {
+    "screen": "builder-edit-published-step5",
+    "route": "/jobs/86d8312d-003d-4ffd-8b70-1a06f0d9b28f/edit",
+    "role": "owner",
+    "width": 320,
+    "file": "builder-edit-published-step5-320-now.png",
+    "h1": "Pass test canvass 390",
+    "finalPath": "/jobs/86d8312d-003d-4ffd-8b70-1a06f0d9b28f/edit",
+    "pageHeight": 2428,
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "note": "Step 5 opened by its step button; the issue-position selects clip their value at this width",
+    "source": {
+      "commit": "8b1a80f166a04942a74b34cbe4367c5519f91835",
+      "clean": true
+    }
   }
 ]

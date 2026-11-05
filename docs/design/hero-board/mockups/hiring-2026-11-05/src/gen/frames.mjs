@@ -233,6 +233,7 @@ async function applicants({ pick }, width, { selected = false, empty = false, fi
 
 const NOTES = {
   builder: ["One step track, all six steps, scrolling sideways on a phone with the current step kept in view; the steps keep today's buttons, aria-current and aria-disabled.", "A focusable problem summary under the step heading; each line focuses its field; the inline errors stay.", "Next is full width on a phone; Back under it; the save line keeps today's words (saveWords).", "On a desktop the form is the reading template's column (672px); the optional side note (question 9) is not drawn.", "The steps keep today's styles: .step-current, .step-done for reached steps, plain for the rest."],
+  step5: ["The issue-position rows stack on a phone so the select has room for every value (today it clips at max-w-36, question 11)."],
   map: ["The staging map is the harvested Leaflet markup with Leaflet's own stylesheet and OpenStreetMap tiles for the column's width; the pin, the zoom buttons and the attribution are the app's (the app draws no check-in radius)."],
   publishing: ["Blockers grouped by who fixes them, words unchanged. The settings link only for a member who can open it; a restricted editor sees reasons and no actions.", "The step label on each 'In this job' reason needs a reason-to-step mapping (question 3).", "Publish stays disabled while any group has a reason; Edit draft is the destination for the first group."],
   candidate: ["The stage chip beside 'Since', its actions under the title: the next action beside the person.", "'For this job' first, then the history, then one card with one row per shared part.", "A withheld part is the app's own Not shared chip and nothing else; an empty part says its empty words; partial sharing keeps every shared field and switches to the app's shared-basis sentence (political-fit.ts:602).", "The snapshot folds under its date (question 5)."],
@@ -246,7 +247,7 @@ export const FRAMES = [
   F("builder-new-saved", "Builder", "new job, step 1, draft saved", [390, 1440], builderStep1Saved, NOTES.builder, ["builder-draft-step2"]),
   { ...F("builder-draft-step2", "Builder", "saved draft, step 2 (dates, city, launch, staging map)", [390, 1440], builderStep2, [...NOTES.builder, ...NOTES.map], ["builder-draft-step2"]), scrollTo: ".turf-map" },
   F("builder-draft-step4-errors", "Builder", "saved draft, step 4, contacts missing", [390, 1440], builderStep4, NOTES.builder, ["builder-draft-step4"]),
-  F("builder-draft-step5", "Builder", "saved draft, step 5 (campaign disclosure)", [390, 1440], builderStep5, NOTES.builder, ["builder-draft-step5"]),
+  F("builder-draft-step5", "Builder", "saved draft, step 5 (campaign disclosure)", [320, 390, 1440], builderStep5, [...NOTES.builder, ...NOTES.step5], ["builder-draft-step5"]),
   F("builder-saving", "Builder", "saved draft, step 3, saving", [390, 1440], builderSaving, NOTES.builder, ["builder-draft-step2"]),
   F("builder-failed-save", "Builder", "saved draft, step 3, couldn't save", [390, 1440], builderFailedSave, NOTES.builder, ["builder-draft-step2"]),
   F("builder-review", "Builder", "saved draft, step 6 review", [390, 1440], builderReview, NOTES.builder, []),

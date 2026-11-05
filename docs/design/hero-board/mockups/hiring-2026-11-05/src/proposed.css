@@ -77,7 +77,16 @@
 .step-track { padding-block: 10px calc(10px + 0.25rem); }
 @media (min-width: 64rem) { .step-track { row-gap: 1.25rem; padding-block: 0 0.25rem; } }
 .tpl-head .btn-sm, .tpl-main .btn-sm { position: relative; }
-.tpl-head .btn-sm::before, .tpl-main .btn-sm::before { content: ""; position: absolute; inset: -4px 0; }
+.tpl-head .btn-sm::before, .tpl-main .btn-sm::before { content: ""; position: absolute; inset: -5px 0; } /* from the padding box: 1px border + 4px = 44px on a bordered button, 46px on a ghost */
+
+/* 8. Step 5's issue-position rows on a phone: today the select is capped at
+   max-w-36 beside its label and clips "Not disclosed" at 390 and 320
+   (current/builder-edit-published-step5-*-now.png). Below 40rem the row
+   stacks and the select takes the row's width; the words are unchanged. */
+@media (max-width: 39.99rem) {
+  .builder-main .list-card > label:has(> select[name^="issue_"]) { flex-direction: column; align-items: stretch; gap: 0.375rem; }
+  .builder-main .list-card > label > select[name^="issue_"] { max-width: none; }
+}
 
 /* Mockup chrome only (never shipped): the label and, on the annotated copy, the notes. */
 .mockup-tag { display: block; text-align: center; background: #fff3cd; border-bottom: 1px solid #e0b84a; color: #5c4400; font: 600 11px/18px Inter, sans-serif; height: 20px; }

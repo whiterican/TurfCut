@@ -52,3 +52,7 @@ Not captured, and why:
 ## Dark captures
 
 The screens kept as they are were captured again in dark (`*-now-dark.png`, the app's own theme switch, `theme: "dark"` in `manifest.json`) at the same commit, by `curdark.mjs`, so the kept screens have a dark reference too.
+
+## Step 5 at 390 and 320
+
+`builder-edit-published-step5-390-now.png` and `-320-now.png`: the published job's builder opened at step 5 (the draft can't jump there, since its contacts are missing), captured to show the issue-position selects clipping "Not disclosed" beside their labels at phone widths.

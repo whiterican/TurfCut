@@ -15,18 +15,20 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 45
+        "hit": 44.5
       },
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": true,
     "map": null,
     "viewportFile": "viewport/builder-new-errors-390.png",
     "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-new-errors"
@@ -49,18 +51,20 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 45
+        "hit": 44.5
       },
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": true,
     "map": null,
     "viewportFile": null,
     "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-new-errors"
@@ -83,18 +87,20 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 45
+        "hit": 44.5
       },
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": true,
     "map": null,
     "viewportFile": "viewport/builder-new-errors-1440.png",
     "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-new-errors"
@@ -117,18 +123,20 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 45
+        "hit": 44.5
       },
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": true,
     "map": null,
     "viewportFile": null,
     "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-new-errors"
@@ -151,18 +159,20 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 45
+        "hit": 44.5
       },
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": true,
     "map": null,
     "viewportFile": "viewport/builder-new-saved-390.png",
     "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-draft-step2"
@@ -185,18 +195,20 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 45
+        "hit": 44.5
       },
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": true,
     "map": null,
     "viewportFile": null,
     "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-draft-step2"
@@ -219,18 +231,20 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 45
+        "hit": 44.5
       },
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": true,
     "map": null,
     "viewportFile": "viewport/builder-new-saved-1440.png",
     "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-draft-step2"
@@ -253,18 +267,20 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 45
+        "hit": 44.5
       },
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": true,
     "map": null,
     "viewportFile": null,
     "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-draft-step2"
@@ -289,14 +305,16 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 45
+        "hit": 44.5
       },
       "btnSm": {
         "visible": 36,
-        "hit": 43
+        "hit": 44.5
       },
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": true,
     "map": {
       "loaded": 4,
       "total": 4,
@@ -309,7 +327,7 @@
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-draft-step2"
@@ -334,14 +352,16 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 45
+        "hit": 44.5
       },
       "btnSm": {
         "visible": 36,
-        "hit": 43
+        "hit": 44.5
       },
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": true,
     "map": {
       "loaded": 4,
       "total": 4,
@@ -354,7 +374,7 @@
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-draft-step2"
@@ -379,14 +399,16 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 45
+        "hit": 44.5
       },
       "btnSm": {
         "visible": 36,
-        "hit": 43
+        "hit": 44.5
       },
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": true,
     "map": {
       "loaded": 8,
       "total": 8,
@@ -399,7 +421,7 @@
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-draft-step2"
@@ -424,14 +446,16 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 45
+        "hit": 44.5
       },
       "btnSm": {
         "visible": 36,
-        "hit": 43
+        "hit": 44.5
       },
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": true,
     "map": {
       "loaded": 8,
       "total": 8,
@@ -444,7 +468,7 @@
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-draft-step2"
@@ -467,18 +491,20 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 45
+        "hit": 44.5
       },
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": true,
     "map": null,
     "viewportFile": "viewport/builder-draft-step4-errors-390.png",
     "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-draft-step4"
@@ -501,18 +527,20 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 45
+        "hit": 44.5
       },
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": true,
     "map": null,
     "viewportFile": null,
     "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-draft-step4"
@@ -535,18 +563,22 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 45
+        "hit": 44.5
       },
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [
+      "canvassApp (230px in 170px)"
+    ],
+    "currentStepInView": true,
     "map": null,
     "viewportFile": "viewport/builder-draft-step4-errors-1440.png",
     "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-draft-step4"
@@ -569,21 +601,101 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 45
+        "hit": 44.5
       },
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [
+      "canvassApp (230px in 170px)"
+    ],
+    "currentStepInView": true,
     "map": null,
     "viewportFile": null,
     "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-draft-step4"
+      ]
+    }
+  },
+  {
+    "frame": "builder-draft-step5",
+    "screen": "Builder",
+    "state": "saved draft, step 5 (campaign disclosure)",
+    "width": 320,
+    "theme": "light",
+    "dpr": 2,
+    "file": "builder-draft-step5-320-light.png",
+    "contentHeight": 2469,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44.5
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [
+      "campaignType (373px in 242px)"
+    ],
+    "currentStepInView": true,
+    "map": null,
+    "viewportFile": "viewport/builder-draft-step5-320.png",
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "builder-draft-step5"
+      ]
+    }
+  },
+  {
+    "frame": "builder-draft-step5",
+    "screen": "Builder",
+    "state": "saved draft, step 5 (campaign disclosure)",
+    "width": 320,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "builder-draft-step5-320-dark.png",
+    "contentHeight": 2469,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44.5
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [
+      "campaignType (373px in 242px)"
+    ],
+    "currentStepInView": true,
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "builder-draft-step5"
       ]
     }
   },
@@ -595,7 +707,7 @@
     "theme": "light",
     "dpr": 2,
     "file": "builder-draft-step5-390-light.png",
-    "contentHeight": 2117,
+    "contentHeight": 2429,
     "horizontalOverflow": 0,
     "clippedElements": 0,
     "clipped": [],
@@ -603,18 +715,22 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 45
+        "hit": 44.5
       },
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [
+      "campaignType (373px in 312px)"
+    ],
+    "currentStepInView": true,
     "map": null,
     "viewportFile": "viewport/builder-draft-step5-390.png",
     "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-draft-step5"
@@ -629,7 +745,7 @@
     "theme": "dark",
     "dpr": 2,
     "file": "builder-draft-step5-390-dark.png",
-    "contentHeight": 2117,
+    "contentHeight": 2429,
     "horizontalOverflow": 0,
     "clippedElements": 0,
     "clipped": [],
@@ -637,18 +753,22 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 45
+        "hit": 44.5
       },
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [
+      "campaignType (373px in 312px)"
+    ],
+    "currentStepInView": true,
     "map": null,
     "viewportFile": null,
     "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-draft-step5"
@@ -671,18 +791,22 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 45
+        "hit": 44.5
       },
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [
+      "campaignType (326px in 284px)"
+    ],
+    "currentStepInView": true,
     "map": null,
     "viewportFile": "viewport/builder-draft-step5-1440.png",
     "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-draft-step5"
@@ -705,18 +829,22 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 45
+        "hit": 44.5
       },
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [
+      "campaignType (326px in 284px)"
+    ],
+    "currentStepInView": true,
     "map": null,
     "viewportFile": null,
     "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-draft-step5"
@@ -739,18 +867,20 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 45
+        "hit": 44.5
       },
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": true,
     "map": null,
     "viewportFile": "viewport/builder-saving-390.png",
     "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-draft-step2"
@@ -773,18 +903,20 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 45
+        "hit": 44.5
       },
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": true,
     "map": null,
     "viewportFile": null,
     "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-draft-step2"
@@ -807,18 +939,20 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 45
+        "hit": 44.5
       },
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": true,
     "map": null,
     "viewportFile": "viewport/builder-saving-1440.png",
     "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-draft-step2"
@@ -841,18 +975,20 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 45
+        "hit": 44.5
       },
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": true,
     "map": null,
     "viewportFile": null,
     "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-draft-step2"
@@ -875,18 +1011,20 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 45
+        "hit": 44.5
       },
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": true,
     "map": null,
     "viewportFile": "viewport/builder-failed-save-390.png",
     "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-draft-step2"
@@ -909,18 +1047,20 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 45
+        "hit": 44.5
       },
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": true,
     "map": null,
     "viewportFile": null,
     "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-draft-step2"
@@ -943,18 +1083,20 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 45
+        "hit": 44.5
       },
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": true,
     "map": null,
     "viewportFile": "viewport/builder-failed-save-1440.png",
     "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-draft-step2"
@@ -977,18 +1119,20 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 45
+        "hit": 44.5
       },
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": true,
     "map": null,
     "viewportFile": null,
     "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-draft-step2"
@@ -1011,18 +1155,20 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 45
+        "hit": 44.5
       },
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": true,
     "map": null,
     "viewportFile": "viewport/builder-review-390.png",
     "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -1043,18 +1189,20 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 45
+        "hit": 44.5
       },
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": true,
     "map": null,
     "viewportFile": null,
     "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -1075,18 +1223,20 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 45
+        "hit": 44.5
       },
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": true,
     "map": null,
     "viewportFile": "viewport/builder-review-1440.png",
     "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -1107,18 +1257,20 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 45
+        "hit": 44.5
       },
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": true,
     "map": null,
     "viewportFile": null,
     "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -1139,18 +1291,20 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 45
+        "hit": 44.5
       },
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": true,
     "map": null,
     "viewportFile": "viewport/builder-live-step1-390.png",
     "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-live"
@@ -1173,18 +1327,20 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 45
+        "hit": 44.5
       },
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": true,
     "map": null,
     "viewportFile": null,
     "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-live"
@@ -1207,18 +1363,20 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 45
+        "hit": 44.5
       },
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": true,
     "map": null,
     "viewportFile": "viewport/builder-live-step1-1440.png",
     "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-live"
@@ -1241,18 +1399,20 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 45
+        "hit": 44.5
       },
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": true,
     "map": null,
     "viewportFile": null,
     "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-live"
@@ -1275,18 +1435,20 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 45
+        "hit": 44.5
       },
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": true,
     "map": null,
     "viewportFile": "viewport/builder-live-review-390.png",
     "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -1307,18 +1469,20 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 45
+        "hit": 44.5
       },
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": true,
     "map": null,
     "viewportFile": null,
     "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -1339,18 +1503,20 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 45
+        "hit": 44.5
       },
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": true,
     "map": null,
     "viewportFile": "viewport/builder-live-review-1440.png",
     "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -1371,18 +1537,20 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 45
+        "hit": 44.5
       },
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": true,
     "map": null,
     "viewportFile": null,
     "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -1405,13 +1573,15 @@
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": "viewport/builder-closed-390.png",
     "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -1434,13 +1604,15 @@
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": null,
     "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -1463,13 +1635,15 @@
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": "viewport/builder-closed-1440.png",
     "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -1492,13 +1666,15 @@
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": null,
     "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -1521,13 +1697,15 @@
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": "viewport/builder-no-access-390.png",
     "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "no-access"
@@ -1552,13 +1730,15 @@
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": null,
     "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "no-access"
@@ -1583,13 +1763,15 @@
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": "viewport/builder-no-access-1440.png",
     "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "no-access"
@@ -1614,13 +1796,15 @@
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": null,
     "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "no-access"
@@ -1645,13 +1829,15 @@
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": "viewport/publishing-blocked-390.png",
     "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "job-draft-blocked"
@@ -1676,13 +1862,15 @@
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": null,
     "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "job-draft-blocked"
@@ -1707,13 +1895,15 @@
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": "viewport/publishing-blocked-1440.png",
     "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "job-draft-blocked"
@@ -1738,13 +1928,15 @@
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": null,
     "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "job-draft-blocked"
@@ -1769,13 +1961,15 @@
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": "viewport/publishing-restricted-390.png",
     "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "job-draft-blocked"
@@ -1800,13 +1994,15 @@
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": null,
     "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "job-draft-blocked"
@@ -1831,13 +2027,15 @@
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": "viewport/publishing-restricted-1440.png",
     "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "job-draft-blocked"
@@ -1862,13 +2060,15 @@
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": null,
     "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "job-draft-blocked"
@@ -1893,13 +2093,15 @@
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": "viewport/publishing-counsel-390.png",
     "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "job-draft-blocked"
@@ -1924,13 +2126,15 @@
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": null,
     "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "job-draft-blocked"
@@ -1955,13 +2159,15 @@
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": "viewport/publishing-counsel-1440.png",
     "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "job-draft-blocked"
@@ -1986,13 +2192,15 @@
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": null,
     "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "job-draft-blocked"
@@ -2017,13 +2225,15 @@
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": "viewport/publishing-clear-390.png",
     "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "job-draft-blocked"
@@ -2048,13 +2258,15 @@
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": null,
     "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "job-draft-blocked"
@@ -2079,13 +2291,15 @@
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": "viewport/publishing-clear-1440.png",
     "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "job-draft-blocked"
@@ -2110,13 +2324,15 @@
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": null,
     "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "job-draft-blocked"
@@ -2141,13 +2357,15 @@
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": "viewport/publishing-frozen-390.png",
     "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "job-draft-blocked"
@@ -2172,13 +2390,15 @@
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": null,
     "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "job-draft-blocked"
@@ -2203,13 +2423,15 @@
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": "viewport/publishing-frozen-1440.png",
     "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "job-draft-blocked"
@@ -2234,13 +2456,15 @@
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": null,
     "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "job-draft-blocked"
@@ -2264,17 +2488,19 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 43
+        "hit": 44.5
       },
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": "viewport/candidate-withheld-390.png",
     "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -2298,17 +2524,19 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 43
+        "hit": 44.5
       },
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": null,
     "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -2332,17 +2560,19 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 43
+        "hit": 44.5
       },
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": "viewport/candidate-withheld-1440.png",
     "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -2366,17 +2596,19 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 43
+        "hit": 44.5
       },
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": null,
     "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -2400,17 +2632,19 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 43
+        "hit": 44.5
       },
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": "viewport/candidate-mixed-390.png",
     "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -2434,17 +2668,19 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 43
+        "hit": 44.5
       },
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": null,
     "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -2468,17 +2704,19 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 43
+        "hit": 44.5
       },
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": "viewport/candidate-mixed-1440.png",
     "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -2502,17 +2740,19 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 43
+        "hit": 44.5
       },
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": null,
     "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -2536,17 +2776,19 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 45
+        "hit": 46.5
       },
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": "viewport/candidate-offer-390.png",
     "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -2570,17 +2812,19 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 45
+        "hit": 46.5
       },
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": null,
     "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -2604,17 +2848,19 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 45
+        "hit": 46.5
       },
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": "viewport/candidate-offer-1440.png",
     "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -2638,17 +2884,19 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 45
+        "hit": 46.5
       },
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": null,
     "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -2672,17 +2920,19 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 43
+        "hit": 44.5
       },
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": "viewport/candidate-offer-expired-390.png",
     "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -2706,17 +2956,19 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 43
+        "hit": 44.5
       },
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": null,
     "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -2740,17 +2992,19 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 43
+        "hit": 44.5
       },
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": "viewport/candidate-offer-expired-1440.png",
     "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -2774,17 +3028,19 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 43
+        "hit": 44.5
       },
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": null,
     "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -2808,17 +3064,19 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 45
+        "hit": 46.5
       },
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": "viewport/candidate-invited-390.png",
     "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -2840,17 +3098,19 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 45
+        "hit": 46.5
       },
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": null,
     "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -2872,17 +3132,19 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 45
+        "hit": 46.5
       },
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": "viewport/candidate-invited-1440.png",
     "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -2904,17 +3166,19 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 45
+        "hit": 46.5
       },
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": null,
     "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -2936,17 +3200,19 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 45
+        "hit": 46.5
       },
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": "viewport/candidate-invite-expired-390.png",
     "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -2968,17 +3234,19 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 45
+        "hit": 46.5
       },
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": null,
     "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -3000,17 +3268,19 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 45
+        "hit": 46.5
       },
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": "viewport/candidate-invite-expired-1440.png",
     "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -3032,17 +3302,19 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 45
+        "hit": 46.5
       },
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": null,
     "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -3064,17 +3336,19 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 43
+        "hit": 44.5
       },
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": "viewport/candidate-hired-390.png",
     "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -3098,17 +3372,19 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 43
+        "hit": 44.5
       },
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": null,
     "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -3132,17 +3408,19 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 43
+        "hit": 44.5
       },
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": "viewport/candidate-hired-1440.png",
     "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -3166,17 +3444,19 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 43
+        "hit": 44.5
       },
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": null,
     "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -3200,17 +3480,19 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 45
+        "hit": 46.5
       },
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": "viewport/candidate-not-selected-390.png",
     "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -3232,17 +3514,19 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 45
+        "hit": 46.5
       },
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": null,
     "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -3264,17 +3548,19 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 45
+        "hit": 46.5
       },
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": "viewport/candidate-not-selected-1440.png",
     "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -3296,17 +3582,19 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 45
+        "hit": 46.5
       },
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": null,
     "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -3328,17 +3616,19 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 43
+        "hit": 44.5
       },
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": "viewport/candidate-action-failed-390.png",
     "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -3362,17 +3652,19 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 43
+        "hit": 44.5
       },
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": null,
     "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -3396,17 +3688,19 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 43
+        "hit": 44.5
       },
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": "viewport/candidate-action-failed-1440.png",
     "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -3430,17 +3724,19 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 43
+        "hit": 44.5
       },
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": null,
     "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -3465,13 +3761,15 @@
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": "viewport/worker-shared-390.png",
     "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -3496,13 +3794,15 @@
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": null,
     "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -3527,13 +3827,15 @@
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": "viewport/worker-shared-1440.png",
     "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -3558,13 +3860,15 @@
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": null,
     "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -3589,13 +3893,15 @@
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": "viewport/worker-withheld-390.png",
     "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -3618,13 +3924,15 @@
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": null,
     "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -3647,13 +3955,15 @@
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": "viewport/worker-withheld-1440.png",
     "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -3676,13 +3986,15 @@
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": null,
     "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -3705,13 +4017,15 @@
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": "viewport/worker-name-not-shared-390.png",
     "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -3736,13 +4050,15 @@
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": null,
     "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -3767,13 +4083,15 @@
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": "viewport/worker-name-not-shared-1440.png",
     "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -3798,13 +4116,15 @@
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": null,
     "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -3829,13 +4149,15 @@
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": "viewport/worker-denied-390.png",
     "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -3858,13 +4180,15 @@
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": null,
     "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -3887,13 +4211,15 @@
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": "viewport/worker-denied-1440.png",
     "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -3916,13 +4242,15 @@
       "btnSm": null,
       "filterChip": null
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": null,
     "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -3944,20 +4272,22 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 45
+        "hit": 46.5
       },
       "filterChip": {
         "visible": 36,
-        "hit": 43
+        "hit": 42.5
       }
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": "viewport/applicants-390.png",
     "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "applicants"
@@ -3981,20 +4311,22 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 45
+        "hit": 46.5
       },
       "filterChip": {
         "visible": 36,
-        "hit": 43
+        "hit": 42.5
       }
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": null,
     "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "applicants"
@@ -4018,20 +4350,22 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 45
+        "hit": 46.5
       },
       "filterChip": {
         "visible": 36,
-        "hit": 43
+        "hit": 42.5
       }
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": "viewport/applicants-1440.png",
     "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "applicants"
@@ -4055,20 +4389,22 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 45
+        "hit": 46.5
       },
       "filterChip": {
         "visible": 36,
-        "hit": 43
+        "hit": 42.5
       }
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": null,
     "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "applicants"
@@ -4092,20 +4428,22 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 45
+        "hit": 46.5
       },
       "filterChip": {
         "visible": 36,
-        "hit": 43
+        "hit": 42.5
       }
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": "viewport/applicants-selected-390.png",
     "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "applicants"
@@ -4129,20 +4467,22 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 45
+        "hit": 46.5
       },
       "filterChip": {
         "visible": 36,
-        "hit": 43
+        "hit": 42.5
       }
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": null,
     "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "applicants"
@@ -4166,20 +4506,22 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 45
+        "hit": 46.5
       },
       "filterChip": {
         "visible": 36,
-        "hit": 43
+        "hit": 42.5
       }
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": "viewport/applicants-selected-1440.png",
     "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "applicants"
@@ -4203,20 +4545,22 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 45
+        "hit": 46.5
       },
       "filterChip": {
         "visible": 36,
-        "hit": 43
+        "hit": 42.5
       }
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": null,
     "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "applicants"
@@ -4240,20 +4584,22 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 45
+        "hit": 46.5
       },
       "filterChip": {
         "visible": 36,
-        "hit": 43
+        "hit": 42.5
       }
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": "viewport/applicants-empty-390.png",
     "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "applicants-empty"
@@ -4277,20 +4623,22 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 45
+        "hit": 46.5
       },
       "filterChip": {
         "visible": 36,
-        "hit": 43
+        "hit": 42.5
       }
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": null,
     "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "applicants-empty"
@@ -4314,20 +4662,22 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 45
+        "hit": 46.5
       },
       "filterChip": {
         "visible": 36,
-        "hit": 43
+        "hit": 42.5
       }
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": "viewport/applicants-empty-1440.png",
     "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "applicants-empty"
@@ -4351,20 +4701,22 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 45
+        "hit": 46.5
       },
       "filterChip": {
         "visible": 36,
-        "hit": 43
+        "hit": 42.5
       }
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": null,
     "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "applicants-empty"
@@ -4388,20 +4740,24 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 45
+        "hit": 46.5
       },
       "filterChip": {
         "visible": 36,
-        "hit": 43
+        "hit": 42.5
       }
     },
+    "selectClipped": [
+      "stage (289px in 278px)"
+    ],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": "viewport/applicants-filtered-empty-390.png",
     "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "applicants-empty-filter"
@@ -4425,20 +4781,24 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 45
+        "hit": 46.5
       },
       "filterChip": {
         "visible": 36,
-        "hit": 43
+        "hit": 42.5
       }
     },
+    "selectClipped": [
+      "stage (289px in 278px)"
+    ],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": null,
     "scrolledFile": null,
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "applicants-empty-filter"
@@ -4462,20 +4822,22 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 45
+        "hit": 46.5
       },
       "filterChip": {
         "visible": 36,
-        "hit": 43
+        "hit": 42.5
       }
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": "viewport/applicants-filtered-empty-1440.png",
     "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "applicants-empty-filter"
@@ -4499,20 +4861,22 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 45
+        "hit": 46.5
       },
       "filterChip": {
         "visible": 36,
-        "hit": 43
+        "hit": 42.5
       }
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": null,
     "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "applicants-empty-filter"
@@ -4536,20 +4900,22 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 45
+        "hit": 46.5
       },
       "filterChip": {
         "visible": 36,
-        "hit": 43
+        "hit": 42.5
       }
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": "viewport/applicants-inspector-1440.png",
     "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "applicants-desktop"
@@ -4573,20 +4939,22 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 45
+        "hit": 46.5
       },
       "filterChip": {
         "visible": 36,
-        "hit": 43
+        "hit": 42.5
       }
     },
+    "selectClipped": [],
+    "currentStepInView": null,
     "map": null,
     "viewportFile": null,
     "scrolledFile": null,
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "9298693",
+      "docs": "cf20f29",
       "stylesheet": "src/app/app.css",
       "parts": [
         "applicants-desktop"

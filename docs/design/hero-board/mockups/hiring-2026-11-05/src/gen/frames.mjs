@@ -25,7 +25,7 @@ const reading = (head, body) => `<main class="tpl" data-template="reading" data-
 const record = (head, body, side = "") => `<main class="tpl" data-template="record" data-org="true" style="--tpl-gap:2.5rem">${head}<div class="tpl-body"><div class="tpl-main">${body}</div>${side ? `<aside class="tpl-side">${side}</aside>` : ""}</div></main>`;
 const workspace = (head, body) => `<main class="tpl" data-template="workspace" data-org="true" style="--tpl-gap:2.5rem">${head}<div class="tpl-body"><div class="tpl-main">${body}</div></div></main>`;
 
-// The form alone, in the reading template's column (680px from 64rem). The optional side note (question 9) is not drawn: the
+// The form alone, in the reading template's column (--measure-reading, 42rem = 672px, from 64rem). The optional side note (question 9) is not drawn: the
 // column leaves no room beside it, and new copy is never drawn as a promise.
 const builderPage = (title, context, lead, form, width) => reading(
   masthead({ context, title, actions: `<a class="btn-ghost" href="/jobs">Jobs</a>` }),
@@ -217,7 +217,8 @@ const workers = {
 /* ---------- applicants ---------- */
 
 async function applicants({ pick }, width, { selected = false, empty = false, filtered = false, inspector = false }) {
-  const main = await pick(filtered ? "applicants-empty-filter" : inspector ? "applicants-desktop" : "applicants", "main");
+  // "empty" is the app's own empty page, harvested from the Aurora draft's applicants route (no applicants, every count 0, EmptyArt included).
+  const main = await pick(empty ? "applicants-empty" : filtered ? "applicants-empty-filter" : inspector ? "applicants-desktop" : "applicants", "main");
   let m = main.replace(/<table[\s\S]*?<\/table>/, (t) => t.replace(/not shared/g, "Not shared"));
   // The bulk form becomes one line until a row is ticked.
   const bulk = selected
@@ -225,7 +226,6 @@ async function applicants({ pick }, width, { selected = false, empty = false, fi
     : `<form id="applicants-bulk" class="flex items-center gap-2 text-sm text-muted"><span>0 selected</span></form>`;
   m = m.replace(/<form id="applicants-bulk"[\s\S]*?<\/form>/, bulk);
   if (selected) m = m.replace('aria-label="Select Riley Chen" class="size-4"', 'aria-label="Select Riley Chen" class="size-4" checked');
-  if (empty) m = m.replace("6 applicants · 2 to decide · 2 offers out · 5 spots", "0 applicants · 0 to decide · 0 offers out · 5 spots").replace(/(applicants">Applicants<span class="tabular-nums"> (?:<!-- -->)?)6/, "$10").replace(/<div data-inspector-source="true">[\s\S]*?<\/div>\s*<p class="text-hint">/, `<div class="empty-state"><p class="empty-state-title">Nobody has applied yet</p><p class="empty-state-body">Workers who apply show up here, with what each one shares with your organization.</p></div><p class="text-hint">`).replace(/<form id="applicants-bulk"[\s\S]*?<\/form>/, "");
   return m;
 }
 
@@ -233,7 +233,7 @@ async function applicants({ pick }, width, { selected = false, empty = false, fi
 
 const NOTES = {
   builder: ["One step track, all six steps, scrolling sideways on a phone with the current step kept in view; the steps keep today's buttons, aria-current and aria-disabled.", "A focusable problem summary under the step heading; each line focuses its field; the inline errors stay.", "Next is full width on a phone; Back under it; the save line keeps today's words (saveWords).", "On a desktop the form is the reading template's 680px column; the optional side note (question 9) is not drawn.", "The steps keep today's styles: .step-current, .step-done for reached steps, plain for the rest."],
-  map: ["The staging map is the harvested Leaflet markup with Leaflet's own stylesheet and OpenStreetMap tiles for the column's width; the pin, the radius, the zoom buttons and the attribution are the app's."],
+  map: ["The staging map is the harvested Leaflet markup with Leaflet's own stylesheet and OpenStreetMap tiles for the column's width; the pin, the zoom buttons and the attribution are the app's (the app draws no check-in radius)."],
   publishing: ["Blockers grouped by who fixes them, words unchanged. The settings link only for a member who can open it; a restricted editor sees reasons and no actions.", "The step label on each 'In this job' reason needs a reason-to-step mapping (question 3).", "Publish stays disabled while any group has a reason; Edit draft is the destination for the first group."],
   candidate: ["The stage chip beside 'Since', its actions under the title: the next action beside the person.", "'For this job' first, then the history, then one card with one row per shared part.", "A withheld part is the app's own Not shared chip and nothing else; an empty part says its empty words; partial sharing keeps every shared field and switches to the app's shared-basis sentence (political-fit.ts:602).", "The snapshot folds under its date (question 5)."],
   worker: ["The same shared-profile card as the candidate page, the invite composer after it (InviteComposer's own words), the refusals unchanged."],
@@ -274,7 +274,7 @@ export const FRAMES = [
   F("worker-denied", "Worker page", "organization awaiting approval", [390, 1440], workers.denied, [], []),
   F("applicants", "Applicants", "six applicants, none selected", [390, 1440], (c, w) => applicants(c, w, {}), NOTES.applicants, ["applicants"]),
   F("applicants-selected", "Applicants", "one selected, bulk form open", [390, 1440], (c, w) => applicants(c, w, { selected: true }), NOTES.applicants, ["applicants"]),
-  F("applicants-empty", "Applicants", "nobody applied (every count from the empty state: 0 applicants, Applicants 0)", [390, 1440], (c, w) => applicants(c, w, { empty: true }), NOTES.applicants, ["applicants"]),
+  F("applicants-empty", "Applicants", "nobody applied (the Aurora draft's applicants page as the app renders it: 0 applicants, Applicants 0, Invites 0, the app's empty art)", [390, 1440], (c, w) => applicants(c, w, { empty: true }), NOTES.applicants, ["applicants-empty"]),
   F("applicants-filtered-empty", "Applicants", "filters match nobody", [390, 1440], (c, w) => applicants(c, w, { filtered: true }), NOTES.applicants, ["applicants-empty-filter"]),
   F("applicants-inspector", "Applicants", "inspector open (1440)", [1440], (c, w) => applicants(c, w, { inspector: true }), NOTES.applicants, ["applicants-desktop"]),
 ].map((f) => ({ ...f, body: async (ctx, w) => ctx.orgShell(await f.body(ctx, w), f.area) }));

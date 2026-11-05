@@ -7,7 +7,7 @@
     "theme": "light",
     "dpr": 2,
     "file": "builder-new-errors-390-light.png",
-    "contentHeight": 1254,
+    "contentHeight": 1272,
     "horizontalOverflow": 0,
     "clippedElements": 0,
     "clipped": [],
@@ -15,7 +15,7 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 44
+        "hit": 43
       },
       "btnSm": null,
       "filterChip": null
@@ -26,7 +26,7 @@
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-new-errors"
@@ -41,7 +41,7 @@
     "theme": "dark",
     "dpr": 2,
     "file": "builder-new-errors-390-dark.png",
-    "contentHeight": 1254,
+    "contentHeight": 1272,
     "horizontalOverflow": 0,
     "clippedElements": 0,
     "clipped": [],
@@ -49,7 +49,7 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 44
+        "hit": 43
       },
       "btnSm": null,
       "filterChip": null
@@ -60,7 +60,7 @@
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-new-errors"
@@ -75,7 +75,7 @@
     "theme": "light",
     "dpr": 2,
     "file": "builder-new-errors-1440-light.png",
-    "contentHeight": 1085,
+    "contentHeight": 1113,
     "horizontalOverflow": 0,
     "clippedElements": 0,
     "clipped": [],
@@ -83,7 +83,7 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 44
+        "hit": 43
       },
       "btnSm": null,
       "filterChip": null
@@ -94,7 +94,7 @@
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-new-errors"
@@ -109,7 +109,7 @@
     "theme": "dark",
     "dpr": 2,
     "file": "builder-new-errors-1440-dark.png",
-    "contentHeight": 1085,
+    "contentHeight": 1113,
     "horizontalOverflow": 0,
     "clippedElements": 0,
     "clipped": [],
@@ -117,7 +117,7 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 44
+        "hit": 43
       },
       "btnSm": null,
       "filterChip": null
@@ -128,7 +128,7 @@
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-new-errors"
@@ -143,7 +143,7 @@
     "theme": "light",
     "dpr": 2,
     "file": "builder-new-saved-390-light.png",
-    "contentHeight": 1066,
+    "contentHeight": 1084,
     "horizontalOverflow": 0,
     "clippedElements": 0,
     "clipped": [],
@@ -151,7 +151,7 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 44
+        "hit": 43
       },
       "btnSm": null,
       "filterChip": null
@@ -162,7 +162,7 @@
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-draft-step2"
@@ -177,7 +177,7 @@
     "theme": "dark",
     "dpr": 2,
     "file": "builder-new-saved-390-dark.png",
-    "contentHeight": 1066,
+    "contentHeight": 1084,
     "horizontalOverflow": 0,
     "clippedElements": 0,
     "clipped": [],
@@ -185,7 +185,7 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 44
+        "hit": 43
       },
       "btnSm": null,
       "filterChip": null
@@ -196,7 +196,7 @@
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-draft-step2"
@@ -211,7 +211,7 @@
     "theme": "light",
     "dpr": 2,
     "file": "builder-new-saved-1440-light.png",
-    "contentHeight": 920,
+    "contentHeight": 945,
     "horizontalOverflow": 0,
     "clippedElements": 0,
     "clipped": [],
@@ -219,7 +219,7 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 44
+        "hit": 43
       },
       "btnSm": null,
       "filterChip": null
@@ -230,7 +230,7 @@
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-draft-step2"
@@ -245,7 +245,7 @@
     "theme": "dark",
     "dpr": 2,
     "file": "builder-new-saved-1440-dark.png",
-    "contentHeight": 920,
+    "contentHeight": 945,
     "horizontalOverflow": 0,
     "clippedElements": 0,
     "clipped": [],
@@ -253,7 +253,7 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 44
+        "hit": 43
       },
       "btnSm": null,
       "filterChip": null
@@ -264,7 +264,7 @@
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-draft-step2"
@@ -279,7 +279,7 @@
     "theme": "light",
     "dpr": 2,
     "file": "builder-draft-step2-390-light.png",
-    "contentHeight": 2145,
+    "contentHeight": 2163,
     "horizontalOverflow": 0,
     "clippedElements": 1,
     "clipped": [
@@ -289,11 +289,11 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 44
+        "hit": 43
       },
       "btnSm": {
         "visible": 36,
-        "hit": 44
+        "hit": 43
       },
       "filterChip": null
     },
@@ -309,7 +309,7 @@
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-draft-step2"
@@ -324,7 +324,7 @@
     "theme": "dark",
     "dpr": 2,
     "file": "builder-draft-step2-390-dark.png",
-    "contentHeight": 2145,
+    "contentHeight": 2163,
     "horizontalOverflow": 0,
     "clippedElements": 1,
     "clipped": [
@@ -334,11 +334,11 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 44
+        "hit": 43
       },
       "btnSm": {
         "visible": 36,
-        "hit": 44
+        "hit": 43
       },
       "filterChip": null
     },
@@ -354,7 +354,7 @@
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-draft-step2"
@@ -369,7 +369,7 @@
     "theme": "light",
     "dpr": 2,
     "file": "builder-draft-step2-1440-light.png",
-    "contentHeight": 1541,
+    "contentHeight": 1569,
     "horizontalOverflow": 0,
     "clippedElements": 1,
     "clipped": [
@@ -379,11 +379,11 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 44
+        "hit": 43
       },
       "btnSm": {
         "visible": 36,
-        "hit": 44
+        "hit": 43
       },
       "filterChip": null
     },
@@ -399,7 +399,7 @@
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-draft-step2"
@@ -414,7 +414,7 @@
     "theme": "dark",
     "dpr": 2,
     "file": "builder-draft-step2-1440-dark.png",
-    "contentHeight": 1541,
+    "contentHeight": 1569,
     "horizontalOverflow": 0,
     "clippedElements": 1,
     "clipped": [
@@ -424,11 +424,11 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 44
+        "hit": 43
       },
       "btnSm": {
         "visible": 36,
-        "hit": 44
+        "hit": 43
       },
       "filterChip": null
     },
@@ -444,7 +444,7 @@
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-draft-step2"
@@ -459,7 +459,7 @@
     "theme": "light",
     "dpr": 2,
     "file": "builder-draft-step4-errors-390-light.png",
-    "contentHeight": 2006,
+    "contentHeight": 2024,
     "horizontalOverflow": 0,
     "clippedElements": 0,
     "clipped": [],
@@ -467,7 +467,7 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 44
+        "hit": 43
       },
       "btnSm": null,
       "filterChip": null
@@ -478,7 +478,7 @@
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-draft-step4"
@@ -493,7 +493,7 @@
     "theme": "dark",
     "dpr": 2,
     "file": "builder-draft-step4-errors-390-dark.png",
-    "contentHeight": 2006,
+    "contentHeight": 2024,
     "horizontalOverflow": 0,
     "clippedElements": 0,
     "clipped": [],
@@ -501,7 +501,7 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 44
+        "hit": 43
       },
       "btnSm": null,
       "filterChip": null
@@ -512,7 +512,7 @@
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-draft-step4"
@@ -527,7 +527,7 @@
     "theme": "light",
     "dpr": 2,
     "file": "builder-draft-step4-errors-1440-light.png",
-    "contentHeight": 1423,
+    "contentHeight": 1451,
     "horizontalOverflow": 0,
     "clippedElements": 0,
     "clipped": [],
@@ -535,7 +535,7 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 44
+        "hit": 43
       },
       "btnSm": null,
       "filterChip": null
@@ -546,7 +546,7 @@
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-draft-step4"
@@ -561,7 +561,7 @@
     "theme": "dark",
     "dpr": 2,
     "file": "builder-draft-step4-errors-1440-dark.png",
-    "contentHeight": 1423,
+    "contentHeight": 1451,
     "horizontalOverflow": 0,
     "clippedElements": 0,
     "clipped": [],
@@ -569,7 +569,7 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 44
+        "hit": 43
       },
       "btnSm": null,
       "filterChip": null
@@ -580,7 +580,7 @@
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-draft-step4"
@@ -595,7 +595,7 @@
     "theme": "light",
     "dpr": 2,
     "file": "builder-draft-step5-390-light.png",
-    "contentHeight": 2097,
+    "contentHeight": 2115,
     "horizontalOverflow": 0,
     "clippedElements": 0,
     "clipped": [],
@@ -603,7 +603,7 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 44
+        "hit": 43
       },
       "btnSm": null,
       "filterChip": null
@@ -614,7 +614,7 @@
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-draft-step5"
@@ -629,7 +629,7 @@
     "theme": "dark",
     "dpr": 2,
     "file": "builder-draft-step5-390-dark.png",
-    "contentHeight": 2097,
+    "contentHeight": 2115,
     "horizontalOverflow": 0,
     "clippedElements": 0,
     "clipped": [],
@@ -637,7 +637,7 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 44
+        "hit": 43
       },
       "btnSm": null,
       "filterChip": null
@@ -648,7 +648,7 @@
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-draft-step5"
@@ -663,7 +663,7 @@
     "theme": "light",
     "dpr": 2,
     "file": "builder-draft-step5-1440-light.png",
-    "contentHeight": 1716,
+    "contentHeight": 1744,
     "horizontalOverflow": 0,
     "clippedElements": 0,
     "clipped": [],
@@ -671,7 +671,7 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 44
+        "hit": 43
       },
       "btnSm": null,
       "filterChip": null
@@ -682,7 +682,7 @@
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-draft-step5"
@@ -697,7 +697,7 @@
     "theme": "dark",
     "dpr": 2,
     "file": "builder-draft-step5-1440-dark.png",
-    "contentHeight": 1716,
+    "contentHeight": 1744,
     "horizontalOverflow": 0,
     "clippedElements": 0,
     "clipped": [],
@@ -705,7 +705,7 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 44
+        "hit": 43
       },
       "btnSm": null,
       "filterChip": null
@@ -716,7 +716,7 @@
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-draft-step5"
@@ -731,7 +731,7 @@
     "theme": "light",
     "dpr": 2,
     "file": "builder-saving-390-light.png",
-    "contentHeight": 1221,
+    "contentHeight": 1239,
     "horizontalOverflow": 0,
     "clippedElements": 0,
     "clipped": [],
@@ -739,7 +739,7 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 44
+        "hit": 43
       },
       "btnSm": null,
       "filterChip": null
@@ -750,7 +750,7 @@
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-draft-step2"
@@ -765,7 +765,7 @@
     "theme": "dark",
     "dpr": 2,
     "file": "builder-saving-390-dark.png",
-    "contentHeight": 1221,
+    "contentHeight": 1239,
     "horizontalOverflow": 0,
     "clippedElements": 0,
     "clipped": [],
@@ -773,7 +773,7 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 44
+        "hit": 43
       },
       "btnSm": null,
       "filterChip": null
@@ -784,7 +784,7 @@
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-draft-step2"
@@ -807,7 +807,7 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 44
+        "hit": 43
       },
       "btnSm": null,
       "filterChip": null
@@ -818,7 +818,7 @@
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-draft-step2"
@@ -841,7 +841,7 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 44
+        "hit": 43
       },
       "btnSm": null,
       "filterChip": null
@@ -852,7 +852,7 @@
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-draft-step2"
@@ -867,7 +867,7 @@
     "theme": "light",
     "dpr": 2,
     "file": "builder-failed-save-390-light.png",
-    "contentHeight": 1240,
+    "contentHeight": 1258,
     "horizontalOverflow": 0,
     "clippedElements": 0,
     "clipped": [],
@@ -875,7 +875,7 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 44
+        "hit": 43
       },
       "btnSm": null,
       "filterChip": null
@@ -886,7 +886,7 @@
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-draft-step2"
@@ -901,7 +901,7 @@
     "theme": "dark",
     "dpr": 2,
     "file": "builder-failed-save-390-dark.png",
-    "contentHeight": 1240,
+    "contentHeight": 1258,
     "horizontalOverflow": 0,
     "clippedElements": 0,
     "clipped": [],
@@ -909,7 +909,7 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 44
+        "hit": 43
       },
       "btnSm": null,
       "filterChip": null
@@ -920,7 +920,7 @@
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-draft-step2"
@@ -943,7 +943,7 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 44
+        "hit": 43
       },
       "btnSm": null,
       "filterChip": null
@@ -954,7 +954,7 @@
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-draft-step2"
@@ -977,7 +977,7 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 44
+        "hit": 43
       },
       "btnSm": null,
       "filterChip": null
@@ -988,7 +988,7 @@
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-draft-step2"
@@ -1003,7 +1003,7 @@
     "theme": "light",
     "dpr": 2,
     "file": "builder-review-390-light.png",
-    "contentHeight": 1953,
+    "contentHeight": 1971,
     "horizontalOverflow": 0,
     "clippedElements": 0,
     "clipped": [],
@@ -1011,7 +1011,7 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 44
+        "hit": 43
       },
       "btnSm": null,
       "filterChip": null
@@ -1022,7 +1022,7 @@
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -1035,7 +1035,7 @@
     "theme": "dark",
     "dpr": 2,
     "file": "builder-review-390-dark.png",
-    "contentHeight": 1953,
+    "contentHeight": 1971,
     "horizontalOverflow": 0,
     "clippedElements": 0,
     "clipped": [],
@@ -1043,7 +1043,7 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 44
+        "hit": 43
       },
       "btnSm": null,
       "filterChip": null
@@ -1054,7 +1054,7 @@
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -1067,7 +1067,7 @@
     "theme": "light",
     "dpr": 2,
     "file": "builder-review-1440-light.png",
-    "contentHeight": 1596,
+    "contentHeight": 1624,
     "horizontalOverflow": 0,
     "clippedElements": 0,
     "clipped": [],
@@ -1075,7 +1075,7 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 44
+        "hit": 43
       },
       "btnSm": null,
       "filterChip": null
@@ -1086,7 +1086,7 @@
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -1099,7 +1099,7 @@
     "theme": "dark",
     "dpr": 2,
     "file": "builder-review-1440-dark.png",
-    "contentHeight": 1596,
+    "contentHeight": 1624,
     "horizontalOverflow": 0,
     "clippedElements": 0,
     "clipped": [],
@@ -1107,7 +1107,7 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 44
+        "hit": 43
       },
       "btnSm": null,
       "filterChip": null
@@ -1118,7 +1118,7 @@
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -1131,7 +1131,7 @@
     "theme": "light",
     "dpr": 2,
     "file": "builder-live-step1-390-light.png",
-    "contentHeight": 1240,
+    "contentHeight": 1258,
     "horizontalOverflow": 0,
     "clippedElements": 0,
     "clipped": [],
@@ -1139,7 +1139,7 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 44
+        "hit": 43
       },
       "btnSm": null,
       "filterChip": null
@@ -1150,7 +1150,7 @@
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-live"
@@ -1165,7 +1165,7 @@
     "theme": "dark",
     "dpr": 2,
     "file": "builder-live-step1-390-dark.png",
-    "contentHeight": 1240,
+    "contentHeight": 1258,
     "horizontalOverflow": 0,
     "clippedElements": 0,
     "clipped": [],
@@ -1173,7 +1173,7 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 44
+        "hit": 43
       },
       "btnSm": null,
       "filterChip": null
@@ -1184,7 +1184,7 @@
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-live"
@@ -1199,7 +1199,7 @@
     "theme": "light",
     "dpr": 2,
     "file": "builder-live-step1-1440-light.png",
-    "contentHeight": 981,
+    "contentHeight": 1009,
     "horizontalOverflow": 0,
     "clippedElements": 0,
     "clipped": [],
@@ -1207,7 +1207,7 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 44
+        "hit": 43
       },
       "btnSm": null,
       "filterChip": null
@@ -1218,7 +1218,7 @@
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-live"
@@ -1233,7 +1233,7 @@
     "theme": "dark",
     "dpr": 2,
     "file": "builder-live-step1-1440-dark.png",
-    "contentHeight": 981,
+    "contentHeight": 1009,
     "horizontalOverflow": 0,
     "clippedElements": 0,
     "clipped": [],
@@ -1241,7 +1241,7 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 44
+        "hit": 43
       },
       "btnSm": null,
       "filterChip": null
@@ -1252,7 +1252,7 @@
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "builder-live"
@@ -1267,7 +1267,7 @@
     "theme": "light",
     "dpr": 2,
     "file": "builder-live-review-390-light.png",
-    "contentHeight": 2135,
+    "contentHeight": 2153,
     "horizontalOverflow": 0,
     "clippedElements": 0,
     "clipped": [],
@@ -1275,7 +1275,7 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 44
+        "hit": 43
       },
       "btnSm": null,
       "filterChip": null
@@ -1286,7 +1286,7 @@
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -1299,7 +1299,7 @@
     "theme": "dark",
     "dpr": 2,
     "file": "builder-live-review-390-dark.png",
-    "contentHeight": 2135,
+    "contentHeight": 2153,
     "horizontalOverflow": 0,
     "clippedElements": 0,
     "clipped": [],
@@ -1307,7 +1307,7 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 44
+        "hit": 43
       },
       "btnSm": null,
       "filterChip": null
@@ -1318,7 +1318,7 @@
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -1331,7 +1331,7 @@
     "theme": "light",
     "dpr": 2,
     "file": "builder-live-review-1440-light.png",
-    "contentHeight": 1754,
+    "contentHeight": 1782,
     "horizontalOverflow": 0,
     "clippedElements": 0,
     "clipped": [],
@@ -1339,7 +1339,7 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 44
+        "hit": 43
       },
       "btnSm": null,
       "filterChip": null
@@ -1350,7 +1350,7 @@
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -1363,7 +1363,7 @@
     "theme": "dark",
     "dpr": 2,
     "file": "builder-live-review-1440-dark.png",
-    "contentHeight": 1754,
+    "contentHeight": 1782,
     "horizontalOverflow": 0,
     "clippedElements": 0,
     "clipped": [],
@@ -1371,7 +1371,7 @@
     "hitTargets": {
       "step": {
         "visible": 26,
-        "hit": 44
+        "hit": 43
       },
       "btnSm": null,
       "filterChip": null
@@ -1382,7 +1382,7 @@
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -1411,7 +1411,7 @@
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -1440,7 +1440,7 @@
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -1469,7 +1469,7 @@
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -1498,7 +1498,7 @@
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -1527,7 +1527,7 @@
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "no-access"
@@ -1558,7 +1558,7 @@
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "no-access"
@@ -1589,7 +1589,7 @@
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "no-access"
@@ -1620,7 +1620,7 @@
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "no-access"
@@ -1651,7 +1651,7 @@
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "job-draft-blocked"
@@ -1682,7 +1682,7 @@
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "job-draft-blocked"
@@ -1713,7 +1713,7 @@
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "job-draft-blocked"
@@ -1744,7 +1744,7 @@
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "job-draft-blocked"
@@ -1775,7 +1775,7 @@
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "job-draft-blocked"
@@ -1806,7 +1806,7 @@
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "job-draft-blocked"
@@ -1837,7 +1837,7 @@
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "job-draft-blocked"
@@ -1868,7 +1868,7 @@
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "job-draft-blocked"
@@ -1899,7 +1899,7 @@
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "job-draft-blocked"
@@ -1930,7 +1930,7 @@
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "job-draft-blocked"
@@ -1961,7 +1961,7 @@
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "job-draft-blocked"
@@ -1992,7 +1992,7 @@
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "job-draft-blocked"
@@ -2023,7 +2023,7 @@
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "job-draft-blocked"
@@ -2054,7 +2054,7 @@
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "job-draft-blocked"
@@ -2085,7 +2085,7 @@
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "job-draft-blocked"
@@ -2116,7 +2116,7 @@
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "job-draft-blocked"
@@ -2147,7 +2147,7 @@
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "job-draft-blocked"
@@ -2178,7 +2178,7 @@
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "job-draft-blocked"
@@ -2209,7 +2209,7 @@
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "job-draft-blocked"
@@ -2240,7 +2240,7 @@
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "job-draft-blocked"
@@ -2264,7 +2264,7 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 44
+        "hit": 43
       },
       "filterChip": null
     },
@@ -2274,7 +2274,7 @@
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -2298,7 +2298,7 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 44
+        "hit": 43
       },
       "filterChip": null
     },
@@ -2308,7 +2308,7 @@
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -2332,7 +2332,7 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 44
+        "hit": 43
       },
       "filterChip": null
     },
@@ -2342,7 +2342,7 @@
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -2366,7 +2366,7 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 44
+        "hit": 43
       },
       "filterChip": null
     },
@@ -2376,7 +2376,7 @@
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -2400,7 +2400,7 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 44
+        "hit": 43
       },
       "filterChip": null
     },
@@ -2410,7 +2410,7 @@
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -2434,7 +2434,7 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 44
+        "hit": 43
       },
       "filterChip": null
     },
@@ -2444,7 +2444,7 @@
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -2468,7 +2468,7 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 44
+        "hit": 43
       },
       "filterChip": null
     },
@@ -2478,7 +2478,7 @@
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -2502,7 +2502,7 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 44
+        "hit": 43
       },
       "filterChip": null
     },
@@ -2512,7 +2512,7 @@
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -2536,7 +2536,7 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 44
+        "hit": 45
       },
       "filterChip": null
     },
@@ -2546,7 +2546,7 @@
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -2570,7 +2570,7 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 44
+        "hit": 45
       },
       "filterChip": null
     },
@@ -2580,7 +2580,7 @@
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -2604,7 +2604,7 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 44
+        "hit": 45
       },
       "filterChip": null
     },
@@ -2614,7 +2614,7 @@
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -2638,7 +2638,7 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 44
+        "hit": 45
       },
       "filterChip": null
     },
@@ -2648,7 +2648,7 @@
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -2672,7 +2672,7 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 44
+        "hit": 43
       },
       "filterChip": null
     },
@@ -2682,7 +2682,7 @@
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -2706,7 +2706,7 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 44
+        "hit": 43
       },
       "filterChip": null
     },
@@ -2716,7 +2716,7 @@
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -2740,7 +2740,7 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 44
+        "hit": 43
       },
       "filterChip": null
     },
@@ -2750,7 +2750,7 @@
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -2774,7 +2774,7 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 44
+        "hit": 43
       },
       "filterChip": null
     },
@@ -2784,7 +2784,7 @@
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -2808,7 +2808,7 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 44
+        "hit": 45
       },
       "filterChip": null
     },
@@ -2818,7 +2818,7 @@
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -2840,7 +2840,7 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 44
+        "hit": 45
       },
       "filterChip": null
     },
@@ -2850,7 +2850,7 @@
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -2872,7 +2872,7 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 44
+        "hit": 45
       },
       "filterChip": null
     },
@@ -2882,7 +2882,7 @@
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -2904,7 +2904,7 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 44
+        "hit": 45
       },
       "filterChip": null
     },
@@ -2914,7 +2914,7 @@
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -2936,7 +2936,7 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 44
+        "hit": 45
       },
       "filterChip": null
     },
@@ -2946,7 +2946,7 @@
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -2968,7 +2968,7 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 44
+        "hit": 45
       },
       "filterChip": null
     },
@@ -2978,7 +2978,7 @@
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -3000,7 +3000,7 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 44
+        "hit": 45
       },
       "filterChip": null
     },
@@ -3010,7 +3010,7 @@
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -3032,7 +3032,7 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 44
+        "hit": 45
       },
       "filterChip": null
     },
@@ -3042,7 +3042,7 @@
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -3064,7 +3064,7 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 44
+        "hit": 43
       },
       "filterChip": null
     },
@@ -3074,7 +3074,7 @@
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -3098,7 +3098,7 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 44
+        "hit": 43
       },
       "filterChip": null
     },
@@ -3108,7 +3108,7 @@
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -3132,7 +3132,7 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 44
+        "hit": 43
       },
       "filterChip": null
     },
@@ -3142,7 +3142,7 @@
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -3166,7 +3166,7 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 44
+        "hit": 43
       },
       "filterChip": null
     },
@@ -3176,7 +3176,7 @@
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -3200,7 +3200,7 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 44
+        "hit": 45
       },
       "filterChip": null
     },
@@ -3210,7 +3210,7 @@
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -3232,7 +3232,7 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 44
+        "hit": 45
       },
       "filterChip": null
     },
@@ -3242,7 +3242,7 @@
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -3264,7 +3264,7 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 44
+        "hit": 45
       },
       "filterChip": null
     },
@@ -3274,7 +3274,7 @@
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -3296,7 +3296,7 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 44
+        "hit": 45
       },
       "filterChip": null
     },
@@ -3306,7 +3306,7 @@
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -3328,7 +3328,7 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 44
+        "hit": 43
       },
       "filterChip": null
     },
@@ -3338,7 +3338,7 @@
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -3362,7 +3362,7 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 44
+        "hit": 43
       },
       "filterChip": null
     },
@@ -3372,7 +3372,7 @@
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -3396,7 +3396,7 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 44
+        "hit": 43
       },
       "filterChip": null
     },
@@ -3406,7 +3406,7 @@
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -3430,7 +3430,7 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 44
+        "hit": 43
       },
       "filterChip": null
     },
@@ -3440,7 +3440,7 @@
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -3471,7 +3471,7 @@
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -3502,7 +3502,7 @@
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -3533,7 +3533,7 @@
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -3564,7 +3564,7 @@
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -3595,7 +3595,7 @@
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -3624,7 +3624,7 @@
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -3653,7 +3653,7 @@
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -3682,7 +3682,7 @@
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -3711,7 +3711,7 @@
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -3742,7 +3742,7 @@
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -3773,7 +3773,7 @@
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -3804,7 +3804,7 @@
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "scorecard-shared"
@@ -3835,7 +3835,7 @@
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -3864,7 +3864,7 @@
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -3893,7 +3893,7 @@
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -3922,7 +3922,7 @@
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": []
     }
@@ -3944,11 +3944,11 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 44
+        "hit": 45
       },
       "filterChip": {
         "visible": 36,
-        "hit": 44
+        "hit": 43
       }
     },
     "map": null,
@@ -3957,7 +3957,7 @@
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "applicants"
@@ -3981,11 +3981,11 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 44
+        "hit": 45
       },
       "filterChip": {
         "visible": 36,
-        "hit": 44
+        "hit": 43
       }
     },
     "map": null,
@@ -3994,7 +3994,7 @@
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "applicants"
@@ -4018,11 +4018,11 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 44
+        "hit": 45
       },
       "filterChip": {
         "visible": 36,
-        "hit": 44
+        "hit": 43
       }
     },
     "map": null,
@@ -4031,7 +4031,7 @@
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "applicants"
@@ -4055,11 +4055,11 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 44
+        "hit": 45
       },
       "filterChip": {
         "visible": 36,
-        "hit": 44
+        "hit": 43
       }
     },
     "map": null,
@@ -4068,7 +4068,7 @@
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "applicants"
@@ -4092,11 +4092,11 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 44
+        "hit": 45
       },
       "filterChip": {
         "visible": 36,
-        "hit": 44
+        "hit": 43
       }
     },
     "map": null,
@@ -4105,7 +4105,7 @@
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "applicants"
@@ -4129,11 +4129,11 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 44
+        "hit": 45
       },
       "filterChip": {
         "visible": 36,
-        "hit": 44
+        "hit": 43
       }
     },
     "map": null,
@@ -4142,7 +4142,7 @@
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "applicants"
@@ -4166,11 +4166,11 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 44
+        "hit": 45
       },
       "filterChip": {
         "visible": 36,
-        "hit": 44
+        "hit": 43
       }
     },
     "map": null,
@@ -4179,7 +4179,7 @@
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "applicants"
@@ -4203,11 +4203,11 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 44
+        "hit": 45
       },
       "filterChip": {
         "visible": 36,
-        "hit": 44
+        "hit": 43
       }
     },
     "map": null,
@@ -4216,10 +4216,158 @@
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "applicants"
+      ]
+    }
+  },
+  {
+    "frame": "applicants-empty",
+    "screen": "Applicants",
+    "state": "nobody applied (the Aurora draft's applicants page as the app renders it: 0 applicants, Applicants 0, Invites 0, the app's empty art)",
+    "width": 390,
+    "theme": "light",
+    "dpr": 2,
+    "file": "applicants-empty-390-light.png",
+    "contentHeight": 963,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 45
+      },
+      "filterChip": {
+        "visible": 36,
+        "hit": 43
+      }
+    },
+    "map": null,
+    "viewportFile": "viewport/applicants-empty-390.png",
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "c7dcc14",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "applicants-empty"
+      ]
+    }
+  },
+  {
+    "frame": "applicants-empty",
+    "screen": "Applicants",
+    "state": "nobody applied (the Aurora draft's applicants page as the app renders it: 0 applicants, Applicants 0, Invites 0, the app's empty art)",
+    "width": 390,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "applicants-empty-390-dark.png",
+    "contentHeight": 963,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 45
+      },
+      "filterChip": {
+        "visible": 36,
+        "hit": 43
+      }
+    },
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "c7dcc14",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "applicants-empty"
+      ]
+    }
+  },
+  {
+    "frame": "applicants-empty",
+    "screen": "Applicants",
+    "state": "nobody applied (the Aurora draft's applicants page as the app renders it: 0 applicants, Applicants 0, Invites 0, the app's empty art)",
+    "width": 1440,
+    "theme": "light",
+    "dpr": 2,
+    "file": "applicants-empty-1440-light.png",
+    "contentHeight": 920,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 45
+      },
+      "filterChip": {
+        "visible": 36,
+        "hit": 43
+      }
+    },
+    "map": null,
+    "viewportFile": "viewport/applicants-empty-1440.png",
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "c7dcc14",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "applicants-empty"
+      ]
+    }
+  },
+  {
+    "frame": "applicants-empty",
+    "screen": "Applicants",
+    "state": "nobody applied (the Aurora draft's applicants page as the app renders it: 0 applicants, Applicants 0, Invites 0, the app's empty art)",
+    "width": 1440,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "applicants-empty-1440-dark.png",
+    "contentHeight": 920,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 45
+      },
+      "filterChip": {
+        "visible": 36,
+        "hit": 43
+      }
+    },
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "c7dcc14",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "applicants-empty"
       ]
     }
   },
@@ -4240,11 +4388,11 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 44
+        "hit": 45
       },
       "filterChip": {
         "visible": 36,
-        "hit": 44
+        "hit": 43
       }
     },
     "map": null,
@@ -4253,7 +4401,7 @@
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "applicants-empty-filter"
@@ -4277,11 +4425,11 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 44
+        "hit": 45
       },
       "filterChip": {
         "visible": 36,
-        "hit": 44
+        "hit": 43
       }
     },
     "map": null,
@@ -4290,7 +4438,7 @@
     "viewportHeight": 844,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "applicants-empty-filter"
@@ -4314,11 +4462,11 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 44
+        "hit": 45
       },
       "filterChip": {
         "visible": 36,
-        "hit": 44
+        "hit": 43
       }
     },
     "map": null,
@@ -4327,7 +4475,7 @@
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "applicants-empty-filter"
@@ -4351,11 +4499,11 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 44
+        "hit": 45
       },
       "filterChip": {
         "visible": 36,
-        "hit": 44
+        "hit": 43
       }
     },
     "map": null,
@@ -4364,7 +4512,7 @@
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "applicants-empty-filter"
@@ -4388,11 +4536,11 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 44
+        "hit": 45
       },
       "filterChip": {
         "visible": 36,
-        "hit": 44
+        "hit": 43
       }
     },
     "map": null,
@@ -4401,7 +4549,7 @@
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "applicants-desktop"
@@ -4425,11 +4573,11 @@
       "step": null,
       "btnSm": {
         "visible": 36,
-        "hit": 44
+        "hit": 45
       },
       "filterChip": {
         "visible": 36,
-        "hit": 44
+        "hit": 43
       }
     },
     "map": null,
@@ -4438,158 +4586,10 @@
     "viewportHeight": 900,
     "source": {
       "app": "8b1a80f",
-      "docs": "60ef828",
+      "docs": "c7dcc14",
       "stylesheet": "src/app/app.css",
       "parts": [
         "applicants-desktop"
-      ]
-    }
-  },
-  {
-    "frame": "applicants-empty",
-    "screen": "Applicants",
-    "state": "nobody applied (every count from the empty state: 0 applicants, Applicants 0)",
-    "width": 390,
-    "theme": "light",
-    "dpr": 2,
-    "file": "applicants-empty-390-light.png",
-    "contentHeight": 844,
-    "horizontalOverflow": 0,
-    "clippedElements": 0,
-    "clipped": [],
-    "fontReady": true,
-    "hitTargets": {
-      "step": null,
-      "btnSm": {
-        "visible": 36,
-        "hit": 44
-      },
-      "filterChip": {
-        "visible": 36,
-        "hit": 44
-      }
-    },
-    "map": null,
-    "viewportFile": "viewport/applicants-empty-390.png",
-    "scrolledFile": null,
-    "viewportHeight": 844,
-    "source": {
-      "app": "8b1a80f",
-      "docs": "60ef828",
-      "stylesheet": "src/app/app.css",
-      "parts": [
-        "applicants"
-      ]
-    }
-  },
-  {
-    "frame": "applicants-empty",
-    "screen": "Applicants",
-    "state": "nobody applied (every count from the empty state: 0 applicants, Applicants 0)",
-    "width": 390,
-    "theme": "dark",
-    "dpr": 2,
-    "file": "applicants-empty-390-dark.png",
-    "contentHeight": 844,
-    "horizontalOverflow": 0,
-    "clippedElements": 0,
-    "clipped": [],
-    "fontReady": true,
-    "hitTargets": {
-      "step": null,
-      "btnSm": {
-        "visible": 36,
-        "hit": 44
-      },
-      "filterChip": {
-        "visible": 36,
-        "hit": 44
-      }
-    },
-    "map": null,
-    "viewportFile": null,
-    "scrolledFile": null,
-    "viewportHeight": 844,
-    "source": {
-      "app": "8b1a80f",
-      "docs": "60ef828",
-      "stylesheet": "src/app/app.css",
-      "parts": [
-        "applicants"
-      ]
-    }
-  },
-  {
-    "frame": "applicants-empty",
-    "screen": "Applicants",
-    "state": "nobody applied (every count from the empty state: 0 applicants, Applicants 0)",
-    "width": 1440,
-    "theme": "light",
-    "dpr": 2,
-    "file": "applicants-empty-1440-light.png",
-    "contentHeight": 920,
-    "horizontalOverflow": 0,
-    "clippedElements": 0,
-    "clipped": [],
-    "fontReady": true,
-    "hitTargets": {
-      "step": null,
-      "btnSm": {
-        "visible": 36,
-        "hit": 44
-      },
-      "filterChip": {
-        "visible": 36,
-        "hit": 44
-      }
-    },
-    "map": null,
-    "viewportFile": "viewport/applicants-empty-1440.png",
-    "scrolledFile": null,
-    "viewportHeight": 900,
-    "source": {
-      "app": "8b1a80f",
-      "docs": "60ef828",
-      "stylesheet": "src/app/app.css",
-      "parts": [
-        "applicants"
-      ]
-    }
-  },
-  {
-    "frame": "applicants-empty",
-    "screen": "Applicants",
-    "state": "nobody applied (every count from the empty state: 0 applicants, Applicants 0)",
-    "width": 1440,
-    "theme": "dark",
-    "dpr": 2,
-    "file": "applicants-empty-1440-dark.png",
-    "contentHeight": 920,
-    "horizontalOverflow": 0,
-    "clippedElements": 0,
-    "clipped": [],
-    "fontReady": true,
-    "hitTargets": {
-      "step": null,
-      "btnSm": {
-        "visible": 36,
-        "hit": 44
-      },
-      "filterChip": {
-        "visible": 36,
-        "hit": 44
-      }
-    },
-    "map": null,
-    "viewportFile": null,
-    "scrolledFile": null,
-    "viewportHeight": 900,
-    "source": {
-      "app": "8b1a80f",
-      "docs": "60ef828",
-      "stylesheet": "src/app/app.css",
-      "parts": [
-        "applicants"
       ]
     }
   }

@@ -19,7 +19,6 @@
   scrollbar-width: none;
   margin-inline: calc(-1 * var(--tpl-gutter, 1rem));
   padding-inline: var(--tpl-gutter, 1rem);
-  padding-bottom: 0.25rem;
 }
 .step-track::-webkit-scrollbar { display: none; }
 .step-track li { flex: none; scroll-snap-align: center; }
@@ -42,17 +41,10 @@
 .problem-summary li + li { margin-top: 0.125rem; }
 
 /* 3. The builder on a desktop: the form stays in the reading template's
-   column (680px from 64rem, the app's own rule); nothing sits beside it. */
+   column (--measure-reading, 42rem = 672px, the app's own rule); nothing
+   sits beside it. */
 .builder-main, .builder-main fieldset, .builder-main fieldset > *, .builder-main [data-list] > * { min-width: 0; }
 .builder-main .turf-map { max-width: 100%; }
-
-/* 7. Hit targets (question 10): the steps and this family's small actions reach
-   44px the way the app's filter chips already do, an absolutely placed ::before
-   that extends the target without changing the type or the visible box. */
-.step-track .step { position: relative; }
-.step-track .step::before { content: ""; position: absolute; inset: -9px 0; }
-.tpl-head .btn-sm, .tpl-main .btn-sm { position: relative; }
-.tpl-head .btn-sm::before, .tpl-main .btn-sm::before { content: ""; position: absolute; inset: -4px 0; }
 
 /* 4. The shared-profile card: one row per part. A row's value is the part's
    summary, "Not shared" (the app's chip) or its empty words. */
@@ -72,6 +64,19 @@
 
 /* 6. The candidate head: the stage chip beside the "since" line; its actions under the title. */
 .candidate-stage { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+
+/* 7. Hit targets (question 10): the steps and this family's small actions reach
+   44px the way the app's filter chips already do, an absolutely placed ::before
+   that extends the target without changing the type or the visible box. */
+.step-track .step { position: relative; }
+.step-track .step::before { content: ""; position: absolute; inset: -9px 0; }
+/* The track is a scroll container, so it keeps the 9px above and below inside
+   itself (else the extension would be clipped), and the wrapped desktop rows
+   sit 18px apart so the extended boxes never overlap. */
+.step-track { padding-block: 9px calc(9px + 0.25rem); }
+@media (min-width: 64rem) { .step-track { row-gap: 1.125rem; } }
+.tpl-head .btn-sm, .tpl-main .btn-sm { position: relative; }
+.tpl-head .btn-sm::before, .tpl-main .btn-sm::before { content: ""; position: absolute; inset: -4px 0; }
 
 /* Mockup chrome only (never shipped): the label and, on the annotated copy, the notes. */
 .mockup-tag { display: block; text-align: center; background: #fff3cd; border-bottom: 1px solid #e0b84a; color: #5c4400; font: 600 11px/18px Inter, sans-serif; height: 20px; }

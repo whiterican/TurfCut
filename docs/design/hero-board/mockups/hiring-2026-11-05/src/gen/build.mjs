@@ -64,7 +64,7 @@ const page = (body, { width }) => `<!doctype html>
 <body class="min-h-full flex flex-col" data-mockup-width="${width}">${body}
 <script>document.querySelectorAll('.step-track [aria-current="step"]').forEach((s) => s.scrollIntoView({ inline: "center", block: "nearest" }));
 // The staging map: the harvested Leaflet panes are re-centred for this column's width and the tile layer is filled from
-// src/media (zoom 16 around tile 14000/24688, the harvested centre). The pin, radius, controls and attribution are the app's.
+// src/media (zoom 16 around tile 14000/24688, the harvested centre). The pin, zoom buttons and attribution are the app's (no radius is drawn today).
 document.querySelectorAll(".turf-map").forEach((map) => {
   const w = map.clientWidth, h = map.clientHeight, cx = Math.round(w / 2), cy = Math.round(h / 2);
   const pane = map.querySelector(".leaflet-map-pane"); if (pane) pane.style.transform = "translate3d(" + cx + "px, " + cy + "px, 0)";
@@ -120,7 +120,8 @@ for (const frame of frames) {
       await p.waitForTimeout(120);
       const info = await p.evaluate((vw) => {
         // Hit targets: the visible box plus an absolutely placed ::before that extends it (the app's filter-chip technique).
-        const hit = (sel) => { const e = [...document.querySelectorAll(sel)].find((x) => x.offsetHeight && x.textContent.trim()); if (!e) return null; const r = e.getBoundingClientRect(); const b = getComputedStyle(e, "::before"); const ext = b.content !== "none" && b.position === "absolute" ? -(parseFloat(b.top) || 0) - (parseFloat(b.bottom) || 0) : 0; return { visible: Math.round(r.height), hit: Math.round(r.height + ext) }; };
+        // Hit-tested, not computed: probe above and below the visible box with elementFromPoint until the pointer no longer lands on the control.
+        const hit = (sel) => { const e = [...document.querySelectorAll(sel)].find((x) => x.offsetHeight && x.textContent.trim()); if (!e) return null; e.scrollIntoView({ block: "center" }); const r = e.getBoundingClientRect(); const x = r.left + r.width / 2; const on = (y) => { const t = document.elementFromPoint(x, y); return !!t && (t === e || e.contains(t)); }; let top = r.top, bottom = r.bottom; while (top > 0 && on(top - 0.25)) top -= 0.25; while (bottom < innerHeight && on(bottom + 0.25)) bottom += 0.25; scrollTo(0, 0); return { visible: Math.round(r.height), hit: Math.round(bottom - top) }; };
         const hitTargets = { step: hit(".step-track .step"), btnSm: hit(".tpl-head .btn-sm, main .btn-sm"), filterChip: hit(".filter-chip") };
         const map = document.querySelector(".turf-map");
         const mapTiles = map ? { loaded: [...map.querySelectorAll(".leaflet-tile")].filter((i) => i.complete && i.naturalWidth > 0).length, total: map.querySelectorAll(".leaflet-tile").length, controls: !!map.querySelector(".leaflet-control-zoom"), attribution: !!map.querySelector(".leaflet-control-attribution"), pin: !!map.querySelector(".leaflet-overlay-pane path") } : null;

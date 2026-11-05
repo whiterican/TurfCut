@@ -1,0 +1,210 @@
+[
+  {
+    "screen": "builder-new",
+    "route": "/jobs/new",
+    "role": "owner",
+    "width": 390,
+    "file": "builder-new-390-now.png",
+    "h1": "New job",
+    "finalPath": "/jobs/new",
+    "pageHeight": 1100,
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "2aed8c3ed2968a36e23cf672b7737cd59681be73",
+      "clean": true
+    }
+  },
+  {
+    "screen": "builder-new",
+    "route": "/jobs/new",
+    "role": "owner",
+    "width": 1440,
+    "file": "builder-new-1440-now.png",
+    "h1": "New job",
+    "finalPath": "/jobs/new",
+    "pageHeight": 900,
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "2aed8c3ed2968a36e23cf672b7737cd59681be73",
+      "clean": true
+    }
+  },
+  {
+    "screen": "builder-new-validation",
+    "route": "/jobs/new",
+    "role": "owner",
+    "width": 390,
+    "file": "builder-new-validation-390-now.png",
+    "h1": "New job",
+    "finalPath": "/jobs/new",
+    "pageHeight": 1184,
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "2aed8c3ed2968a36e23cf672b7737cd59681be73",
+      "clean": true
+    }
+  },
+  {
+    "screen": "builder-new-validation",
+    "route": "/jobs/new",
+    "role": "owner",
+    "width": 1440,
+    "file": "builder-new-validation-1440-now.png",
+    "h1": "New job",
+    "finalPath": "/jobs/new",
+    "pageHeight": 945,
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "2aed8c3ed2968a36e23cf672b7737cd59681be73",
+      "clean": true
+    }
+  },
+  {
+    "screen": "builder-edit-draft",
+    "route": "/jobs/c01a4f88-a2a3-4940-9979-a7b05dda2eae/edit",
+    "role": "owner",
+    "width": 390,
+    "file": "builder-edit-draft-390-now.png",
+    "h1": "Aurora door knock, November",
+    "finalPath": "/jobs/c01a4f88-a2a3-4940-9979-a7b05dda2eae/edit",
+    "pageHeight": 1092,
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "2aed8c3ed2968a36e23cf672b7737cd59681be73",
+      "clean": true
+    }
+  },
+  {
+    "screen": "builder-edit-draft",
+    "route": "/jobs/c01a4f88-a2a3-4940-9979-a7b05dda2eae/edit",
+    "role": "owner",
+    "width": 1440,
+    "file": "builder-edit-draft-1440-now.png",
+    "h1": "Aurora door knock, November",
+    "finalPath": "/jobs/c01a4f88-a2a3-4940-9979-a7b05dda2eae/edit",
+    "pageHeight": 900,
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "2aed8c3ed2968a36e23cf672b7737cd59681be73",
+      "clean": true
+    }
+  },
+  {
+    "screen": "builder-edit-draft-review",
+    "route": "/jobs/c01a4f88-a2a3-4940-9979-a7b05dda2eae/edit",
+    "role": "owner",
+    "width": 390,
+    "file": "builder-edit-draft-review-390-now.png",
+    "h1": "Aurora door knock, November",
+    "finalPath": "/jobs/c01a4f88-a2a3-4940-9979-a7b05dda2eae/edit",
+    "pageHeight": 1890,
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "2aed8c3ed2968a36e23cf672b7737cd59681be73",
+      "clean": true
+    }
+  },
+  {
+    "screen": "builder-edit-published",
+    "route": "/jobs/86d8312d-003d-4ffd-8b70-1a06f0d9b28f/edit",
+    "role": "owner",
+    "width": 390,
+    "file": "builder-edit-published-390-now.png",
+    "h1": "Pass test canvass 390",
+    "finalPath": "/jobs/86d8312d-003d-4ffd-8b70-1a06f0d9b28f/edit",
+    "pageHeight": 1246,
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "2aed8c3ed2968a36e23cf672b7737cd59681be73",
+      "clean": true
+    }
+  },
+  {
+    "screen": "builder-edit-published",
+    "route": "/jobs/86d8312d-003d-4ffd-8b70-1a06f0d9b28f/edit",
+    "role": "owner",
+    "width": 1440,
+    "file": "builder-edit-published-1440-now.png",
+    "h1": "Pass test canvass 390",
+    "finalPath": "/jobs/86d8312d-003d-4ffd-8b70-1a06f0d9b28f/edit",
+    "pageHeight": 929,
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "2aed8c3ed2968a36e23cf672b7737cd59681be73",
+      "clean": true
+    }
+  },
+  {
+    "screen": "builder-no-access",
+    "route": "/jobs/new",
+    "role": "finance",
+    "width": 390,
+    "file": "builder-no-access-390-now.png",
+    "h1": "Overview",
+    "finalPath": "/desk",
+    "pageHeight": 844,
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "2aed8c3ed2968a36e23cf672b7737cd59681be73",
+      "clean": true
+    }
+  },
+  {
+    "screen": "job-draft-blocked",
+    "route": "/jobs/c01a4f88-a2a3-4940-9979-a7b05dda2eae",
+    "role": "owner",
+    "width": 390,
+    "file": "job-draft-blocked-390-now.png",
+    "h1": "Aurora door knock, November",
+    "finalPath": "/jobs/c01a4f88-a2a3-4940-9979-a7b05dda2eae",
+    "pageHeight": 2361,
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "2aed8c3ed2968a36e23cf672b7737cd59681be73",
+      "clean": true
+    }
+  },
+  {
+    "screen": "job-draft-blocked",
+    "route": "/jobs/c01a4f88-a2a3-4940-9979-a7b05dda2eae",
+    "role": "owner",
+    "width": 1440,
+    "file": "job-draft-blocked-1440-now.png",
+    "h1": "Aurora door knock, November",
+    "finalPath": "/jobs/c01a4f88-a2a3-4940-9979-a7b05dda2eae",
+    "pageHeight": 1420,
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "2aed8c3ed2968a36e23cf672b7737cd59681be73",
+      "clean": true
+    }
+  },
+  {
+    "screen": "job-draft-unapproved-org",
+    "route": "/jobs/66c30b7d-eccc-4d62-892d-1101cf020d66",
+    "role": "owner2",
+    "width": 390,
+    "file": "job-draft-unapproved-org-390-now.png",
+    "h1": "Second Pass canvass",
+    "finalPath": "/jobs/66c30b7d-eccc-4d62-892d-1101cf020d66",
+    "pageHeight": 2385,
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "2aed8c3ed2968a36e23cf672b7737cd59681be73",
+      "clean": true
+    }
+  }
+]

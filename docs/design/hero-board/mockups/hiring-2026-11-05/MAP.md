@@ -26,7 +26,7 @@ Every field, action, state and line of copy the mockups draw, with the source th
 | What | Source |
 | --- | --- |
 | Section "Publishing" on a draft or paused job | `src/app/jobs/[jobId]/page.tsx:551` |
-| "This job can't publish yet" + one bullet per blocker | `page.tsx:554`; reasons from `src/lib/jobs.ts:529` (`publishBlockers`): awaiting approval · sign the contractor terms · classification review · jurisdiction problems (`jurisdictionProblems`) · compensation not allowed there · state mismatch · pay rate · headcount · dates · disclosure · support contacts · hiring mode · launch |
+| "This job can't publish yet" + one bullet per blocker | `page.tsx:554`; reasons from `src/lib/jobs.ts:529` (`publishBlockers`): awaiting approval · sign the contractor terms · classification review · jurisdiction problems (`jurisdictionProblems`) · compensation not allowed there · state mismatch · pay rate · headcount · dates · disclosure · support contacts · hiring mode · launch ("Add at least one staging point, or switch the job to self-launch.", `src/lib/job-launch.ts:141`). The list is flat: no reason carries its step. |
 | "Organization settings" link only for a member who can open it (`canReadSettings`) | `page.tsx:557` |
 | "Every check passes. Publishing re-runs them at that moment." | `page.tsx:560` |
 | Publish (disabled while blocked) · Edit draft (`canEdit`) | `page.tsx:564` |
@@ -62,7 +62,7 @@ Every field, action, state and line of copy the mockups draw, with the source th
 | Intro: workers who turned on "organizations can find me" for this work, within the distance they'd travel; one fact per column; no overall score; "do not match" answers keep a worker off with nothing shown | `matches/page.tsx` |
 | Refusals: not approved · not open (publish the job) · no city · city unplaced · not found, each with title and body | `matches/page.tsx:24` (`REFUSED`) |
 | Filters: Free on at least one of the job's days · Holds every required credential · Show · Clear (n of m shown) | `matches/page.tsx` |
-| Columns: Worker · Distance ("within 5 mi · travels up to 25 mi") · Free on job dates · Required credentials · the job type's rate · Show rate · Verified shifts | `matches/page.tsx`, `src/lib/matches-data.ts` (`distanceBand`, 5-mile bands only) |
+| Columns: Worker · Distance ("under 5 mi · travels up to 25 mi", "about 10 mi · …") · Free on job dates · Required credentials · the job type's rate · Show rate · Verified shifts | `matches/page.tsx`, `src/lib/matches-data.ts` (`distanceBand`, 5-mile bands only) |
 | Empty: "Nobody matches yet. Workers appear here when they choose to be found for this kind of work nearby." | `matches/page.tsx:106` |
 | "Invite a match": worker select · note (optional, `NOTE_MAX`) · "Send invitation"; or "This job isn't published or doesn't hire by invitation."; footnote on `INVITE_DAYS` and `INVITES_PER_WEEK` | `matches/page.tsx`, `src/lib/engagements.ts:37-45` |
 
@@ -82,7 +82,7 @@ Every field, action, state and line of copy the mockups draw, with the source th
 | Eyebrow "Applicant · <job>"; title = worker; meta "Since Nov 5, 2026"; Applicants (back) · Job page | `people/[engagementId]/page.tsx` |
 | Stage chip; actions; Message (hired only); history | same; `src/components/HiringActions.tsx`, `src/components/EngagementHistory.tsx` |
 | "For this job": Free on the job's dates (value, "Not set", or Not shared chip); Required credentials (held/missing lines, or Not shared chip) | `people/[engagementId]/page.tsx`, `src/components/staff/NotSharedChip.tsx` |
-| Invite composer (relationship exists) | `src/components/InviteComposer.tsx` |
+| Invite composer (relationship exists): job select · note · "Send invitation" · "{n} of 3 invitations left this week for this worker. It lasts 7 days; you aren't told whether they open it."; or "No published job of yours is open to invitations for this worker."; or the weekly-limit notice | `src/components/InviteComposer.tsx:25-49` |
 | Scorecard · Availability · Credentials · Experience (or Not shared) · Political fit (each field "Not shared" when withheld, plain text, no colour) | `src/components/OrgProfileSections.tsx`, `src/components/FitSignals.tsx` |
 | Profile not open: closed account · invited and unanswered · "Profiles open once Turfcut approves your organization." · no open relationship | `people/[engagementId]/page.tsx:85-93` |
 | "When they applied" / "When you invited them": the snapshot, "Exactly what you could see then. It never changes, even if they share less later."; or "No copy was kept for this engagement." | same |
@@ -105,7 +105,7 @@ Every field, action, state and line of copy the mockups draw, with the source th
 | What | Source |
 | --- | --- |
 | Guard `requireEmployer`; access via `workerAccessFor` | `workers/[workerId]/page.tsx`, `src/lib/access.ts:164-193` |
-| Refusals: "This profile isn't available" + "Workers can only view their own profile." · "No organization on this account." · "Worker hiring profiles are available to owners and recruiters." · "Your organization is awaiting approval." | `workers/[workerId]/page.tsx:25`, `src/lib/access.ts:184-193` |
+| Refusals: "This profile isn't available" + "Workers can only view their own profile." · "No organization on this account." · "Worker hiring profiles are available to owners and recruiters." · "Your organization is awaiting approval." | `workers/[workerId]/page.tsx:25`, `src/lib/access.ts:182-193` |
 | Title = display name or "Name not shared"; back to Jobs; invite composer; the same five sections as the candidate page | `workers/[workerId]/page.tsx`, `OrgProfileSections.tsx` |
 
 ## 8. The worker's invitations — `/jobs/invitations`
@@ -121,5 +121,6 @@ Every field, action, state and line of copy the mockups draw, with the source th
 ## Questions (would need new data or a decision; not drawn)
 
 1. **Candidate page, "For this job" when the job has no dates or no required credentials:** the section is empty today (both rows are conditional). The mockup shows the section only when it has a row. Keep that, or show "Nothing to compare for this job"?
-2. **The live-job edit's final button** reads "Save draft" (`JobForm.tsx:568` keys off `savedId`, not the job's status). The mockup shows "Save changes" for a published job. That is a one-word code change, not a data change; flagged so it isn't taken as today's behaviour.
+2. **The live-job edit's final button** reads "Save draft" (`JobForm.tsx:568` keys off `savedId`, not the job's status), and nothing on the steps says autosave is off. The mockup shows "Save changes" and "Changes save when you finish" for a published job. Both are one-line code changes, not data changes; flagged so they aren't taken as today's behaviour.
+4. **New copy drawn in the mockups** is listed in PLAN.md, question 9. None of it exists in the code.
 3. **Invites page:** "Sent … by <name>" shows the sender only when recorded (`sentBy`). Older invitations have none; the mockup shows both forms.

@@ -1,6 +1,6 @@
 # Core hiring flow: plan and mockups for review (2026-11-05)
 
-The family Caden asked for in #123, built to Astra's five constraints there. Today's pages are in `current/` (43 captures from a local test database at master `2aed8c3`, listed in `current/manifest.json`; none has horizontal overflow or console errors). The mockups are rendered from the HTML in `src/` on the design tokens' values (`base.css`, the same file as the profile and settings family, with the dark values from `DARK_MODE.md`). Every frame is labelled "MOCKUP · synthetic data". `MAP.md` gives the source line for every field, action, state and line of copy the mockups draw.
+The family Caden asked for in #123, built to Astra's five constraints there. Today's pages are in `current/` (40 captures from a local test database at master `8b1a80f`, every one listed in `current/manifest.json` with its route, role, width, height, overflow and console errors; none has horizontal overflow or console errors). The mockups are rendered from the HTML in `src/` on the design tokens' values (`base.css` extends the profile and settings family's file; the dark values are `DARK_MODE.md`'s; status chips follow `src/lib/status.ts`: pending is muted with a dashed circle, approved is eggplant with a filled circle, closed is a dash). Every frame is labelled "MOCKUP · synthetic data". `MAP.md` gives the source line for every field, action, state and line of copy the mockups draw.
 
 **What this family changes:** page structure and grouping. Not the builder's six steps or where publishing happens, not a word of policy copy, not the data model, not a dependency. Where a mockup would need a change the code doesn't support today, it is listed under Questions, never drawn as a promise.
 
@@ -33,11 +33,11 @@ The six steps, the fields, the validator and the autosave are unchanged (`src/li
 
 ## 2. Publishing on the job page — `job-publishing-390.png`
 
-Publishing stays on the job page (`/jobs/[jobId]`), in the "Publishing" section a draft or paused job shows its organization. What changes is the grouping of `publishBlockers`' reasons by who can fix them, each group with its own destination, shown only to a member who can open it:
+Publishing stays on the job page (`/jobs/[jobId]`), in the "Publishing" section that a draft or paused job shows to its organization. What changes is the grouping of `publishBlockers`' reasons by who can fix them, each group with its own destination, shown only to a member who can open it:
 
 | Group | Reasons (words unchanged) | Destination |
 | --- | --- | --- |
-| In this job | Set the gross pay rate · Set the headcount · Set the start and end dates · The end date is before the start date · The job's end date has passed · Disclose the campaign's type, affiliation and message · Name who handles emergencies, disputes and lost materials · Pick at least one way to hire · the launch problem · the state mismatch · the compensation method the rules don't allow | "Edit draft" (`canEdit`), which opens the builder. The mockup labels each reason with its step ("Step 3 · Pay and hiring"); see Questions 3 for landing on that step. |
+| In this job | Set the gross pay rate · Set the headcount · Set the start and end dates · The end date is before the start date · The job's end date has passed · Disclose the campaign's type, affiliation and message · Name who handles emergencies, disputes and lost materials · Pick at least one way to hire · Add at least one staging point, or switch the job to self-launch · the state mismatch · the compensation method the rules don't allow | The "Edit draft" button under the section (`canEdit`), as today; the group carries no link of its own. The mockup labels each reason with its step ("Step 3 · Pay and hiring"): both the label and landing on that step need code the plan doesn't have (Questions 3). |
 | In organization settings | Your organization is awaiting Turfcut approval · Sign the contractor terms in organization settings · Complete the worker-classification review in organization settings | "Organization settings" (`canReadSettings` only; otherwise the reason is listed with no link, as today) |
 | With counsel | the jurisdiction's problems (not approved, expired, superseded, not yet effective) | No link: nothing in the organization fixes it. The sentence says who does: "Turfcut staff approve rule profiles." (new words, Questions 4) |
 
@@ -87,9 +87,16 @@ Its own page, its own words (organization, job, dates, pay, the note, "Answer by
 
 1. **"For this job" with nothing to compare.** Both rows are conditional today, so a job without dates and without required credentials shows an empty section. The mockup hides the section then. Keep that, or show "Nothing to compare for this job"?
 2. **Live-job wording.** The final button reads "Save draft" on a published job (`JobForm.tsx:568` keys off whether the job is saved, not its status), and nothing says autosave is off. The mockup shows "Save changes" and "Changes save when you finish". Both are new words; a one-line code change each.
-3. **Landing on a step from a blocker.** The builder opens on step 1 (or on the first step with a server error). Linking "Set the headcount" to step 3 needs the builder to read a `?step=` parameter: a small code change, no data change. Without it, the labels still say which step.
+3. **Step labels on blockers, and landing on the step.** `publishBlockers` returns a flat list of sentences with no step attached, and the builder opens on step 1 (or on the first step with a server error). The "Step 3 · Pay and hiring" labels need a reason-to-step mapping, and landing there needs the builder to read a `?step=` parameter: two small code changes, no data change. Without them, the group still reads as one list under the Edit draft button.
 4. **The counsel sentence.** "Turfcut staff approve rule profiles." is new copy for the jurisdiction group. Alternative: no sentence, just the reasons with no link.
 5. **Folding the snapshot.** "When they applied" is consented history ("Exactly what you could see then"). Folding it by default makes the page a third shorter but hides it behind a tap. The date stays visible in the summary either way.
 6. **"not shared" → "Not shared"** in the applicants table: a capital letter, so the table matches the chip. Trivial, but it is copy.
 7. **Two bullets for one never-approved profile.** `jurisdictionProblems` reports both "hasn't been approved" and "has been superseded" for a profile that was never current (Boulder in `current/job-draft-blocked-*`). The mockup shows one bullet per cause. The fix is in the check, not the design; flagged so the mockup isn't read as today's behaviour.
-8. **Order of build.** Builder (including the publishing groups), then the candidate and worker pages, then the two Applicants revisions: one reviewed slice each, with evidence, after approval.
+9. **New copy in the mockups, none of it promised.** Each of these is new wording, drawn to show the structure; approve, reword or drop each one:
+   - the candidate and worker pages' section heading "What they share with you now" and the hint under it, "Only what the worker shares with your organization, as of now. 'Not shared' says nothing about them.";
+   - the scorecard row's one-line summary ("2 verified shifts · 100% show rate · 80 doors attempted" / "No verified shifts yet"), composed from the panel's own tiles and empty words;
+   - the builder's error summary heading, "2 things to fix on this step";
+   - the desktop builder's side note, "What this step feeds" and its sentence, which is optional;
+   - the Applicants line "0 selected";
+   - "Turfcut staff approve rule profiles." (question 4) and the live job's "Changes save when you finish" / "Save changes" (question 2).
+10. **Order of build.** Builder (including the publishing groups), then the candidate and worker pages, then the two Applicants revisions: one reviewed slice each, with evidence, after approval.

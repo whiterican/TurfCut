@@ -11,7 +11,7 @@
     "horizontalOverflow": 0,
     "consoleErrors": 0,
     "source": {
-      "commit": "2aed8c3ed2968a36e23cf672b7737cd59681be73",
+      "commit": "8b1a80f166a04942a74b34cbe4367c5519f91835",
       "clean": true
     }
   },
@@ -27,7 +27,7 @@
     "horizontalOverflow": 0,
     "consoleErrors": 0,
     "source": {
-      "commit": "2aed8c3ed2968a36e23cf672b7737cd59681be73",
+      "commit": "8b1a80f166a04942a74b34cbe4367c5519f91835",
       "clean": true
     }
   },
@@ -43,7 +43,7 @@
     "horizontalOverflow": 0,
     "consoleErrors": 0,
     "source": {
-      "commit": "2aed8c3ed2968a36e23cf672b7737cd59681be73",
+      "commit": "8b1a80f166a04942a74b34cbe4367c5519f91835",
       "clean": true
     }
   },
@@ -59,7 +59,7 @@
     "horizontalOverflow": 0,
     "consoleErrors": 0,
     "source": {
-      "commit": "2aed8c3ed2968a36e23cf672b7737cd59681be73",
+      "commit": "8b1a80f166a04942a74b34cbe4367c5519f91835",
       "clean": true
     }
   },
@@ -75,7 +75,7 @@
     "horizontalOverflow": 0,
     "consoleErrors": 0,
     "source": {
-      "commit": "2aed8c3ed2968a36e23cf672b7737cd59681be73",
+      "commit": "8b1a80f166a04942a74b34cbe4367c5519f91835",
       "clean": true
     }
   },
@@ -91,7 +91,7 @@
     "horizontalOverflow": 0,
     "consoleErrors": 0,
     "source": {
-      "commit": "2aed8c3ed2968a36e23cf672b7737cd59681be73",
+      "commit": "8b1a80f166a04942a74b34cbe4367c5519f91835",
       "clean": true
     }
   },
@@ -107,7 +107,7 @@
     "horizontalOverflow": 0,
     "consoleErrors": 0,
     "source": {
-      "commit": "2aed8c3ed2968a36e23cf672b7737cd59681be73",
+      "commit": "8b1a80f166a04942a74b34cbe4367c5519f91835",
       "clean": true
     }
   },
@@ -123,7 +123,7 @@
     "horizontalOverflow": 0,
     "consoleErrors": 0,
     "source": {
-      "commit": "2aed8c3ed2968a36e23cf672b7737cd59681be73",
+      "commit": "8b1a80f166a04942a74b34cbe4367c5519f91835",
       "clean": true
     }
   },
@@ -139,7 +139,7 @@
     "horizontalOverflow": 0,
     "consoleErrors": 0,
     "source": {
-      "commit": "2aed8c3ed2968a36e23cf672b7737cd59681be73",
+      "commit": "8b1a80f166a04942a74b34cbe4367c5519f91835",
       "clean": true
     }
   },
@@ -155,7 +155,7 @@
     "horizontalOverflow": 0,
     "consoleErrors": 0,
     "source": {
-      "commit": "2aed8c3ed2968a36e23cf672b7737cd59681be73",
+      "commit": "8b1a80f166a04942a74b34cbe4367c5519f91835",
       "clean": true
     }
   },
@@ -171,7 +171,7 @@
     "horizontalOverflow": 0,
     "consoleErrors": 0,
     "source": {
-      "commit": "2aed8c3ed2968a36e23cf672b7737cd59681be73",
+      "commit": "8b1a80f166a04942a74b34cbe4367c5519f91835",
       "clean": true
     }
   },
@@ -187,7 +187,7 @@
     "horizontalOverflow": 0,
     "consoleErrors": 0,
     "source": {
-      "commit": "2aed8c3ed2968a36e23cf672b7737cd59681be73",
+      "commit": "8b1a80f166a04942a74b34cbe4367c5519f91835",
       "clean": true
     }
   },
@@ -203,7 +203,439 @@
     "horizontalOverflow": 0,
     "consoleErrors": 0,
     "source": {
-      "commit": "2aed8c3ed2968a36e23cf672b7737cd59681be73",
+      "commit": "8b1a80f166a04942a74b34cbe4367c5519f91835",
+      "clean": true
+    }
+  },
+  {
+    "screen": "hiring-overview",
+    "route": "/hiring",
+    "role": "owner",
+    "width": 390,
+    "file": "hiring-overview-390-now.png",
+    "h1": "Pipeline",
+    "finalPath": "/hiring",
+    "pageHeight": 844,
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "8b1a80f166a04942a74b34cbe4367c5519f91835",
+      "clean": true
+    }
+  },
+  {
+    "screen": "hiring-overview",
+    "route": "/hiring",
+    "role": "owner",
+    "width": 1440,
+    "file": "hiring-overview-1440-now.png",
+    "h1": "Pipeline",
+    "finalPath": "/hiring",
+    "pageHeight": 900,
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "8b1a80f166a04942a74b34cbe4367c5519f91835",
+      "clean": true
+    }
+  },
+  {
+    "screen": "applicants",
+    "route": "/hiring/86d8312d-003d-4ffd-8b70-1a06f0d9b28f/applicants",
+    "role": "owner",
+    "width": 390,
+    "file": "applicants-390-now.png",
+    "h1": "Pass test canvass 390",
+    "finalPath": "/hiring/86d8312d-003d-4ffd-8b70-1a06f0d9b28f/applicants",
+    "pageHeight": 2011,
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "8b1a80f166a04942a74b34cbe4367c5519f91835",
+      "clean": true
+    }
+  },
+  {
+    "screen": "applicants",
+    "route": "/hiring/86d8312d-003d-4ffd-8b70-1a06f0d9b28f/applicants",
+    "role": "owner",
+    "width": 1440,
+    "file": "applicants-1440-now.png",
+    "h1": "Pass test canvass 390",
+    "finalPath": "/hiring/86d8312d-003d-4ffd-8b70-1a06f0d9b28f/applicants",
+    "pageHeight": 1018,
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "8b1a80f166a04942a74b34cbe4367c5519f91835",
+      "clean": true
+    }
+  },
+  {
+    "screen": "applicants-inspector",
+    "route": "/hiring/86d8312d-003d-4ffd-8b70-1a06f0d9b28f/applicants?selected=abe11f02-c289-4271-bcb0-2fdffe0d5125",
+    "role": "owner",
+    "width": 1440,
+    "file": "applicants-inspector-1440-now.png",
+    "h1": "Pass test canvass 390",
+    "finalPath": "/hiring/86d8312d-003d-4ffd-8b70-1a06f0d9b28f/applicants",
+    "pageHeight": 1018,
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "8b1a80f166a04942a74b34cbe4367c5519f91835",
+      "clean": true
+    }
+  },
+  {
+    "screen": "applicants-filters",
+    "route": "/hiring/86d8312d-003d-4ffd-8b70-1a06f0d9b28f/applicants?stage=open&free=1",
+    "role": "owner",
+    "width": 390,
+    "file": "applicants-filters-390-now.png",
+    "h1": "Pass test canvass 390",
+    "finalPath": "/hiring/86d8312d-003d-4ffd-8b70-1a06f0d9b28f/applicants",
+    "pageHeight": 2249,
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "8b1a80f166a04942a74b34cbe4367c5519f91835",
+      "clean": true
+    }
+  },
+  {
+    "screen": "matches",
+    "route": "/hiring/86d8312d-003d-4ffd-8b70-1a06f0d9b28f/matches",
+    "role": "owner",
+    "width": 390,
+    "file": "matches-390-now.png",
+    "h1": "Pass test canvass 390",
+    "finalPath": "/hiring/86d8312d-003d-4ffd-8b70-1a06f0d9b28f/matches",
+    "pageHeight": 1522,
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "8b1a80f166a04942a74b34cbe4367c5519f91835",
+      "clean": true
+    }
+  },
+  {
+    "screen": "matches",
+    "route": "/hiring/86d8312d-003d-4ffd-8b70-1a06f0d9b28f/matches",
+    "role": "owner",
+    "width": 1440,
+    "file": "matches-1440-now.png",
+    "h1": "Pass test canvass 390",
+    "finalPath": "/hiring/86d8312d-003d-4ffd-8b70-1a06f0d9b28f/matches",
+    "pageHeight": 1090,
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "8b1a80f166a04942a74b34cbe4367c5519f91835",
+      "clean": true
+    }
+  },
+  {
+    "screen": "invites",
+    "route": "/hiring/86d8312d-003d-4ffd-8b70-1a06f0d9b28f/invites",
+    "role": "owner",
+    "width": 390,
+    "file": "invites-390-now.png",
+    "h1": "Pass test canvass 390",
+    "finalPath": "/hiring/86d8312d-003d-4ffd-8b70-1a06f0d9b28f/invites",
+    "pageHeight": 1115,
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "8b1a80f166a04942a74b34cbe4367c5519f91835",
+      "clean": true
+    }
+  },
+  {
+    "screen": "invites",
+    "route": "/hiring/86d8312d-003d-4ffd-8b70-1a06f0d9b28f/invites",
+    "role": "owner",
+    "width": 1440,
+    "file": "invites-1440-now.png",
+    "h1": "Pass test canvass 390",
+    "finalPath": "/hiring/86d8312d-003d-4ffd-8b70-1a06f0d9b28f/invites",
+    "pageHeight": 900,
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "8b1a80f166a04942a74b34cbe4367c5519f91835",
+      "clean": true
+    }
+  },
+  {
+    "screen": "candidate-applied-withheld",
+    "route": "/hiring/86d8312d-003d-4ffd-8b70-1a06f0d9b28f/people/abe11f02-c289-4271-bcb0-2fdffe0d5125",
+    "role": "owner",
+    "width": 390,
+    "file": "candidate-applied-withheld-390-now.png",
+    "h1": "Casey Nguyen",
+    "finalPath": "/hiring/86d8312d-003d-4ffd-8b70-1a06f0d9b28f/people/abe11f02-c289-4271-bcb0-2fdffe0d5125",
+    "pageHeight": 2943,
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "8b1a80f166a04942a74b34cbe4367c5519f91835",
+      "clean": true
+    }
+  },
+  {
+    "screen": "candidate-applied-withheld",
+    "route": "/hiring/86d8312d-003d-4ffd-8b70-1a06f0d9b28f/people/abe11f02-c289-4271-bcb0-2fdffe0d5125",
+    "role": "owner",
+    "width": 1440,
+    "file": "candidate-applied-withheld-1440-now.png",
+    "h1": "Casey Nguyen",
+    "finalPath": "/hiring/86d8312d-003d-4ffd-8b70-1a06f0d9b28f/people/abe11f02-c289-4271-bcb0-2fdffe0d5125",
+    "pageHeight": 2417,
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "8b1a80f166a04942a74b34cbe4367c5519f91835",
+      "clean": true
+    }
+  },
+  {
+    "screen": "candidate-in-review",
+    "route": "/hiring/86d8312d-003d-4ffd-8b70-1a06f0d9b28f/people/33c01c55-c6f4-4cfd-b54b-af529bdb2920",
+    "role": "owner",
+    "width": 390,
+    "file": "candidate-in-review-390-now.png",
+    "h1": "Riley Chen",
+    "finalPath": "/hiring/86d8312d-003d-4ffd-8b70-1a06f0d9b28f/people/33c01c55-c6f4-4cfd-b54b-af529bdb2920",
+    "pageHeight": 3632,
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "8b1a80f166a04942a74b34cbe4367c5519f91835",
+      "clean": true
+    }
+  },
+  {
+    "screen": "candidate-offer",
+    "route": "/hiring/86d8312d-003d-4ffd-8b70-1a06f0d9b28f/people/0c6da2f4-3759-4925-a5b1-48220c1664c1",
+    "role": "owner",
+    "width": 390,
+    "file": "candidate-offer-390-now.png",
+    "h1": "Morgan Diaz",
+    "finalPath": "/hiring/86d8312d-003d-4ffd-8b70-1a06f0d9b28f/people/0c6da2f4-3759-4925-a5b1-48220c1664c1",
+    "pageHeight": 3680,
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "8b1a80f166a04942a74b34cbe4367c5519f91835",
+      "clean": true
+    }
+  },
+  {
+    "screen": "candidate-offer-second",
+    "route": "/hiring/86d8312d-003d-4ffd-8b70-1a06f0d9b28f/people/8c495f20-a813-476e-81a7-7581016411e0",
+    "role": "owner",
+    "width": 390,
+    "file": "candidate-offer-second-390-now.png",
+    "h1": "Alex Rivera",
+    "finalPath": "/hiring/86d8312d-003d-4ffd-8b70-1a06f0d9b28f/people/8c495f20-a813-476e-81a7-7581016411e0",
+    "pageHeight": 4936,
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "8b1a80f166a04942a74b34cbe4367c5519f91835",
+      "clean": true
+    }
+  },
+  {
+    "screen": "candidate-not-selected",
+    "route": "/hiring/86d8312d-003d-4ffd-8b70-1a06f0d9b28f/people/139d77c4-fc7b-4d63-bd84-641b2e2d5e76",
+    "role": "owner",
+    "width": 390,
+    "file": "candidate-not-selected-390-now.png",
+    "h1": "Taylor Brooks",
+    "finalPath": "/hiring/86d8312d-003d-4ffd-8b70-1a06f0d9b28f/people/139d77c4-fc7b-4d63-bd84-641b2e2d5e76",
+    "pageHeight": 1339,
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "8b1a80f166a04942a74b34cbe4367c5519f91835",
+      "clean": true
+    }
+  },
+  {
+    "screen": "candidate-invited-unanswered",
+    "route": "/hiring/86d8312d-003d-4ffd-8b70-1a06f0d9b28f/people/c7342deb-7a48-443e-9687-11fdd2ed419d",
+    "role": "owner",
+    "width": 390,
+    "file": "candidate-invited-unanswered-390-now.png",
+    "h1": "Sam Torres",
+    "finalPath": "/hiring/86d8312d-003d-4ffd-8b70-1a06f0d9b28f/people/c7342deb-7a48-443e-9687-11fdd2ed419d",
+    "pageHeight": 1455,
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "8b1a80f166a04942a74b34cbe4367c5519f91835",
+      "clean": true
+    }
+  },
+  {
+    "screen": "candidate-invitation-expired",
+    "route": "/hiring/86d8312d-003d-4ffd-8b70-1a06f0d9b28f/people/05eedc8a-21b5-41d4-8307-c3bafb39abbf",
+    "role": "owner",
+    "width": 390,
+    "file": "candidate-invitation-expired-390-now.png",
+    "h1": "Devon Park",
+    "finalPath": "/hiring/86d8312d-003d-4ffd-8b70-1a06f0d9b28f/people/05eedc8a-21b5-41d4-8307-c3bafb39abbf",
+    "pageHeight": 1393,
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "8b1a80f166a04942a74b34cbe4367c5519f91835",
+      "clean": true
+    }
+  },
+  {
+    "screen": "candidate-hired",
+    "route": "/hiring/86d8312d-003d-4ffd-8b70-1a06f0d9b28f/people/bd206433-3218-4931-80df-787097cd1f5f",
+    "role": "owner",
+    "width": 390,
+    "file": "candidate-hired-390-now.png",
+    "h1": "Jordan Blake",
+    "finalPath": "/hiring/86d8312d-003d-4ffd-8b70-1a06f0d9b28f/people/bd206433-3218-4931-80df-787097cd1f5f",
+    "pageHeight": 4753,
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "8b1a80f166a04942a74b34cbe4367c5519f91835",
+      "clean": true
+    }
+  },
+  {
+    "screen": "worker-shared",
+    "route": "/workers/00000000-0000-0000-0000-000000000102",
+    "role": "owner",
+    "width": 390,
+    "file": "worker-shared-390-now.png",
+    "h1": "Jordan Blake",
+    "finalPath": "/workers/00000000-0000-0000-0000-000000000102",
+    "pageHeight": 3615,
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "8b1a80f166a04942a74b34cbe4367c5519f91835",
+      "clean": true
+    }
+  },
+  {
+    "screen": "worker-shared",
+    "route": "/workers/00000000-0000-0000-0000-000000000102",
+    "role": "owner",
+    "width": 1440,
+    "file": "worker-shared-1440-now.png",
+    "h1": "Jordan Blake",
+    "finalPath": "/workers/00000000-0000-0000-0000-000000000102",
+    "pageHeight": 2900,
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "8b1a80f166a04942a74b34cbe4367c5519f91835",
+      "clean": true
+    }
+  },
+  {
+    "screen": "worker-withheld",
+    "route": "/workers/b6705f3a-32ca-4a83-8013-62e1ce7bd56d",
+    "role": "owner",
+    "width": 390,
+    "file": "worker-withheld-390-now.png",
+    "h1": "Casey Nguyen",
+    "finalPath": "/workers/b6705f3a-32ca-4a83-8013-62e1ce7bd56d",
+    "pageHeight": 1810,
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "8b1a80f166a04942a74b34cbe4367c5519f91835",
+      "clean": true
+    }
+  },
+  {
+    "screen": "worker-denied-finance",
+    "route": "/workers/00000000-0000-0000-0000-000000000102",
+    "role": "finance",
+    "width": 390,
+    "file": "worker-denied-finance-390-now.png",
+    "h1": "Overview",
+    "finalPath": "/desk",
+    "pageHeight": 844,
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "8b1a80f166a04942a74b34cbe4367c5519f91835",
+      "clean": true
+    }
+  },
+  {
+    "screen": "worker-denied-unapproved",
+    "route": "/workers/00000000-0000-0000-0000-000000000102",
+    "role": "owner2",
+    "width": 390,
+    "file": "worker-denied-unapproved-390-now.png",
+    "h1": "",
+    "finalPath": "/workers/00000000-0000-0000-0000-000000000102",
+    "pageHeight": 844,
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "8b1a80f166a04942a74b34cbe4367c5519f91835",
+      "clean": true
+    }
+  },
+  {
+    "screen": "worker-invitations",
+    "route": "/jobs/invitations",
+    "role": "sam",
+    "width": 390,
+    "file": "worker-invitations-390-now.png",
+    "h1": "Invitations",
+    "finalPath": "/jobs/invitations",
+    "pageHeight": 888,
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "8b1a80f166a04942a74b34cbe4367c5519f91835",
+      "clean": true
+    }
+  },
+  {
+    "screen": "worker-invitations",
+    "route": "/jobs/invitations",
+    "role": "sam",
+    "width": 1440,
+    "file": "worker-invitations-1440-now.png",
+    "h1": "Invitations",
+    "finalPath": "/jobs/invitations",
+    "pageHeight": 900,
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "8b1a80f166a04942a74b34cbe4367c5519f91835",
+      "clean": true
+    }
+  },
+  {
+    "screen": "worker-invitations-empty",
+    "route": "/jobs/invitations",
+    "role": "riley",
+    "width": 390,
+    "file": "worker-invitations-empty-390-now.png",
+    "h1": "Invitations",
+    "finalPath": "/jobs/invitations",
+    "pageHeight": 844,
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "8b1a80f166a04942a74b34cbe4367c5519f91835",
       "clean": true
     }
   }

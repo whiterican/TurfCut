@@ -1,6 +1,6 @@
-# Today's pages: the core hiring flow (master `2aed8c3`, 2026-11-05)
+# Today's pages: the core hiring flow (master `8b1a80f`, 2026-11-05)
 
-Captured from a local dev server on a clean tree against a local test database, full page at DPR 2, light theme, America/Denver. `manifest.json` lists each capture with its route, role, width, page height, horizontal overflow (0 for all) and console errors (0 for all).
+Captured from a local dev server on a clean tree against a local test database, full page at DPR 2, light theme, America/Denver. `manifest.json` lists all 40 captures, each with its route, role, width, page height, horizontal overflow (0 for all) and console errors (0 for all).
 
 ## Fixtures
 

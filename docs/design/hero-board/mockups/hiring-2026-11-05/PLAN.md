@@ -58,7 +58,7 @@ Frames: blocked in all three groups with the link; the same for a viewer with ne
 
 1. **Head:** eyebrow, name, "Since …" with the stage chip beside it (`StatusBadge`, unchanged), the stage's actions under the title (words and rules from `HiringActions.tsx`), Applicants and Job page.
 2. **For this job:** the two rows, each a value, "Not set", or the Not shared chip. Hidden when the job gives nothing to compare (question 1).
-3. **History:** the engagement's events as today; a side column from 1024.
+3. **History:** the engagement's events as today, in the reading order at every width.
 4. **What they share with you now** (§4): one card, one row per part. A part the worker shares shows its summary (the scorecard's summary is composed from its own visible tiles only; a withheld tile never counts as zero) and opens to the unchanged panel (`ScorecardPanel` is rendered in full, expanded, in `candidate-offer`, `candidate-hired` and `worker-shared`). A part that is withheld is one row with the app's Not shared chip and nothing else. A part that is empty says its empty words ("No credentials added."). Political fit: when every field is withheld, one row "Not shared" with the basis sentence; when any field is shared, the row says "2 of 4 fields shared" and opens to all four fields and the basis, as `FitSignals` draws them (`candidate-mixed`).
 5. **Invite to a job:** `InviteComposer`'s own form and words, or its "no published job" line, after the profile.
 6. **When they applied / When you invited them:** the snapshot under a disclosure whose summary carries the date (question 5); its words unchanged inside.

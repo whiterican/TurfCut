@@ -66,8 +66,9 @@
 .candidate-stage { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
 
 /* 7. Hit targets (question 10): the steps and this family's small actions reach
-   44px the way the app's filter chips already do, an absolutely placed ::before
-   that extends the target without changing the type or the visible box. */
+   44px using the technique the app's filter chips already use (theirs reach
+   about 43), an absolutely placed ::before that extends the target without
+   changing the type or the visible box. */
 .step-track .step { position: relative; }
 .step-track .step::before { content: ""; position: absolute; inset: -10px 0; } /* from the padding box: 1px border + 9px = 44px */
 /* On a phone the track is a scroll container, so it keeps the 10px above and

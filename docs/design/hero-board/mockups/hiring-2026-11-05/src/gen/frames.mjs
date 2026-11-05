@@ -10,16 +10,16 @@ const JOB = "86d8312d-003d-4ffd-8b70-1a06f0d9b28f";
 
 /* ---------- shared pieces ---------- */
 
-/** The step track: current step, the steps already reached, the rest aria-disabled (today's buttons, one row). */
+/** The step track: today's buttons in one row: the current step (.step-current), the steps already reached (.step-done, as JobForm.tsx:290), the rest plain and aria-disabled. */
 function track(current, reached) {
-  return `<ol class="step-track" aria-label="Steps">${STEPS.map((t, i) => `<li><button type="button" class="step ${i === current ? "step-current" : ""}" ${i === current ? 'aria-current="step"' : ""} ${i > reached ? 'aria-disabled="true"' : ""}><span aria-hidden="true">${i + 1}.</span> ${t}</button></li>`).join("")}</ol>`;
+  return `<ol class="step-track" aria-label="Steps">${STEPS.map((t, i) => `<li><button type="button" class="step ${i === current ? "step-current" : i <= reached ? "step-done" : ""}" ${i === current ? 'aria-current="step"' : ""} ${i > reached ? 'aria-disabled="true"' : ""}><span aria-hidden="true">${i + 1}.</span> ${t}</button></li>`).join("")}</ol>`;
 }
 const stepHead = (i) => `<div class="space-y-1"><h2 tabindex="-1" class="section-title rounded-md focus-visible:ring-2 focus-visible:ring-[var(--ring)]">Step ${i + 1} of 6: ${STEPS[i]}</h2><p class="text-muted-sm">${BLURBS[i]}</p></div>`;
 const saveLine = (text) => `<p role="status" aria-live="polite" class="text-hint">${text}</p>`;
 const summary = (items) => `<div class="problem-summary" tabindex="-1" role="group" aria-labelledby="problems"><p id="problems">${items.length} ${items.length === 1 ? "thing" : "things"} to fix on this step</p><ul class="text-sm">${items.map(([id, t]) => `<li><a class="link" href="#${id}">${t}</a></li>`).join("")}</ul></div>`;
 const nextRow = (i, { width, msg = "" }) => i < 5
-  ? `<div class="flex flex-wrap items-center gap-3"><button type="button" class="btn-primary${width < 600 ? " w-full" : ""}">Next: ${STEPS[i + 1]}</button>${i > 0 ? '<button type="button" class="btn-ghost">Back</button>' : ""}<p role="status" aria-live="polite" class="text-danger-msg">${msg}</p></div>`
-  : `<div class="flex flex-wrap items-center gap-3"><button class="btn-primary${width < 600 ? " w-full" : ""}">${msg}</button><button type="button" class="btn-ghost">Back</button></div>`;
+  ? `<div class="flex flex-wrap items-center gap-3"><button type="button" class="btn-primary${width < 600 ? " w-full" : ""}">Next: ${STEPS[i + 1]}</button>${i > 0 ? '<button type="button" class="btn-ghost"><svg aria-hidden="true" class="size-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>Back</button>' : ""}<p role="status" aria-live="polite" class="text-danger-msg">${msg}</p></div>`
+  : `<div class="flex flex-wrap items-center gap-3"><button class="btn-primary${width < 600 ? " w-full" : ""}">${msg}</button><button type="button" class="btn-ghost"><svg aria-hidden="true" class="size-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>Back</button></div>`;
 const masthead = ({ context, title, meta, actions = "", below = "" }) => `<div class="tpl-head"><header class="page-header"><div class="min-w-0 space-y-1.5">${context ? `<p class="masthead-context">${context}</p>` : ""}<h1 class="page-title masthead break-words">${title}</h1>${meta ? `<div class="text-muted-sm max-w-prose">${meta}</div>` : ""}${below}</div>${actions ? `<div class="flex flex-wrap gap-2">${actions}</div>` : ""}</header></div>`;
 const reading = (head, body) => `<main class="tpl" data-template="reading" data-org="true" style="--tpl-gap:2.5rem">${head}<div class="tpl-body"><div class="tpl-main">${body}</div></div></main>`;
 const record = (head, body, side = "") => `<main class="tpl" data-template="record" data-org="true" style="--tpl-gap:2.5rem">${head}<div class="tpl-body"><div class="tpl-main">${body}</div>${side ? `<aside class="tpl-side">${side}</aside>` : ""}</div></main>`;
@@ -41,7 +41,8 @@ async function builderStep1Errors({ pick }, width) {
     width, sideNote("Workers see the title, type and description on the job card. The rule profile decides which checks the job must pass before it publishes."));
 }
 async function builderStep1Saved({ pick }, width) {
-  const fs = await pick("builder-live", "form fieldset:nth-of-type(1)", { unhide: true });
+  // The first save of a new job: the Aurora draft's own step 1 values (parts/builder-draft-step2), the only saved draft in the fixtures.
+  const fs = await pick("builder-draft-step2", "form fieldset:nth-of-type(1)", { unhide: true });
   return builderPage("New job", null, LEAD, `${track(0, 0)}${saveLine("Draft saved 3:14 PM")}${stepHead(0)}${fs}${nextRow(0, { width })}`, width, sideNote("Workers see the title, type and description on the job card. The rule profile decides which checks the job must pass before it publishes."));
 }
 async function builderStep2({ pick }, width) {
@@ -87,7 +88,7 @@ async function builderLive({ pick }, width) {
   return builderPage("Pass test canvass 390", "Edit published job", "", `${LIVE_NOTICE}${track(0, 5)}${saveLine("Changes save when you finish.")}${stepHead(0)}${fs}${nextRow(0, { width })}`, width);
 }
 async function builderLiveReview(_, width) {
-  const rows = review().replace("Aurora door knock, November", "Pass test canvass 390").replace("Boulder, CO (rules v1)", "Denver, CO (rules v1)").replace("Staged, no staging point yet (needed to publish)", "Staged: Capitol Hill (250 m)").replace("Contacts</dt><dd class=\"min-w-0 flex-1 whitespace-pre-line text-fg sm:text-right\">Emergencies: — · Disputes: — · Lost materials: —", "Contacts</dt><dd class=\"min-w-0 flex-1 whitespace-pre-line text-fg sm:text-right\">Emergencies: Dana Field 303-555-0100 · Disputes: pay@passtest.org · Lost materials: Sam Ortiz").replace("Saved as a draft. You publish it from the job page once every check passes, including the jurisdiction's rules.", "Saved as a draft. You publish it from the job page once every check passes, including the jurisdiction's rules.");
+  const rows = review().replace("Aurora door knock, November", "Pass test canvass 390").replace("Boulder, CO (rules v1)", "Denver, CO (rules v1)").replace("Staged, no staging point yet (needed to publish)", "Staged: Capitol Hill (250 m)").replace(">Workers apply<", ">Workers apply, We invite workers<").replace("Contacts</dt><dd class=\"min-w-0 flex-1 whitespace-pre-line text-fg sm:text-right\">Emergencies: — · Disputes: — · Lost materials: —", "Contacts</dt><dd class=\"min-w-0 flex-1 whitespace-pre-line text-fg sm:text-right\">Emergencies: Dana Field 303-555-0100 · Disputes: pay@passtest.org · Lost materials: Sam Ortiz").replace("Saved as a draft. You publish it from the job page once every check passes, including the jurisdiction's rules.", "Saved as a draft. You publish it from the job page once every check passes, including the jurisdiction's rules.");
   return builderPage("Pass test canvass 390", "Edit published job", "", `${LIVE_NOTICE}${track(5, 5)}${saveLine("Changes save when you finish.")}${stepHead(5)}${rows}${nextRow(5, { width, msg: "Save changes" })}`, width);
 }
 async function builderClosed(_, width) {
@@ -132,8 +133,10 @@ async function publishingFrozen(ctx) {
 const CHIP = (what) => `<span class="status status-not-shared" title="The worker hasn't shared their ${what} with you"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-eye-off status-glyph" aria-hidden="true"><path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"/><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"/><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"/><path d="m2 2 20 20"/></svg>Not shared<span class="sr-only">: ${what}</span></span>`;
 const row = (k, v, extra = "") => `<div class="share-row${extra ? " open" : ""}"><dt>${k}</dt><dd>${v}</dd>${extra ? `<div class="share-detail">${extra}</div>` : ""}</div>`;
 const FIT_FIELDS = ["Identity labels", "Party relationship", "Issue overlap with this campaign", "Campaign interests"];
+// political-fit.ts:542-546, :602: NOT_SHARED_BASIS when every field is withheld, SHARED_BASIS as soon as one is shared.
 const FIT_BASIS = `<p class="text-hint">Political-fit answers are shared only when a worker chooses to. "Not shared" is the default and says nothing about fit.</p>`;
-const fitDetail = (values) => `<dl class="list-card">${FIT_FIELDS.map((f, i) => `<div class="flex flex-col gap-1 px-4 py-3 text-sm sm:flex-row sm:justify-between sm:gap-4"><dt class="text-muted">${f}</dt><dd class="text-fg sm:text-right">${values[i]}</dd></div>`).join("")}</dl>${FIT_BASIS}`;
+const SHARED_BASIS = `<p class="text-hint">Worker-authorized signals: shown because this worker chose to share these answers with organizations they apply to, claim a spot with or accept an invitation from, and they have with yours. Issue positions appear only where they agree with a position your campaign disclosed; the worker's full questionnaire is never shared.</p>`;
+const fitDetail = (values) => `<dl class="list-card">${FIT_FIELDS.map((f, i) => `<div class="flex flex-col gap-1 px-4 py-3 text-sm sm:flex-row sm:justify-between sm:gap-4"><dt class="text-muted">${f}</dt><dd class="text-fg sm:text-right">${values[i]}</dd></div>`).join("")}</dl>${values.some((v) => v !== "Not shared") ? SHARED_BASIS : FIT_BASIS}`;
 async function scorecardPanel({ pick }, variant = "shared") {
   // "shared": Jordan's panel (two verified shifts); "empty": Riley's (no verified shifts yet). Both harvested from the app.
   const sec = await pick(variant === "empty" ? "candidate-in-review" : "scorecard-shared", "section.section", { heading: "Scorecard" });
@@ -151,7 +154,7 @@ async function shareCard(ctx, { scorecard, availability, credentials, experience
   return `<section class="section"><h2 class="section-title">What they share with you now</h2><dl class="card share-rows">${rows.join("")}</dl><p class="text-hint">Only what the worker shares with your organization, as of now. "Not shared" says nothing about them.</p></section>`;
 }
 const history = (events) => `<ol class="space-y-1.5 border-l border-border pl-4 text-sm" aria-label="History">${events.map(([t, d, sub]) => `<li class="space-y-0.5"><p class="text-fg">${t} <span class="text-muted">· ${d}</span></p>${sub ? `<p class="text-muted-sm">${sub}</p>` : ""}</li>`).join("")}</ol>`;
-const status = (label, state) => `<span class="status status-${state}" data-state="${state}"><svg class="status-glyph" aria-hidden="true" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"${state === "pending" ? ' stroke-dasharray="4 3"' : state === "approved" ? ' fill="currentColor"' : ""}/>${state === "closed" ? '<path d="M8 12h8"/>' : ""}</svg>${label}</span>`;
+const status = (label, state) => `<span class="status status-${state}" data-state="${state}"><svg class="status-glyph" aria-hidden="true" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">${state === "closed" ? '<path d="M5 12h14"/>' : `<circle cx="12" cy="12" r="10"${state === "pending" ? ' stroke-dasharray="4 3"' : ""}/>`}</svg>${label}</span>`;
 const ACTIONS = {
   applied: `<div class="flex flex-wrap items-start gap-2"><button class="btn-secondary btn-sm">Send offer</button><button class="btn-secondary btn-sm">Mark in review</button><details class="group"><summary class="btn-ghost btn-sm cursor-pointer list-none">Not selected</summary></details></div>`,
   inReview: `<div class="flex flex-wrap items-start gap-2"><button class="btn-secondary btn-sm">Send offer</button><details class="group"><summary class="btn-ghost btn-sm cursor-pointer list-none">Not selected</summary></details></div>`,
@@ -165,7 +168,8 @@ const ACTIONS = {
 const forThisJob = (free, creds) => `<section class="section"><h2 class="section-title">For this job</h2><dl class="list-card"><div class="flex flex-col gap-1 px-4 py-3 text-sm sm:flex-row sm:justify-between sm:gap-4"><dt class="text-muted">Free on the job's dates</dt><dd class="text-fg sm:text-right">${free}</dd></div>${creds ? `<div class="flex flex-col gap-1 px-4 py-3 text-sm sm:flex-row sm:justify-between sm:gap-4"><dt class="text-muted">Required credentials</dt><dd class="text-fg sm:text-right">${creds}</dd></div>` : ""}</dl></section>`;
 const composerNone = `<section class="section"><h2 class="section-title">Invite to a job</h2><p class="text-muted-sm">No published job of yours is open to invitations for this worker.</p></section>`;
 const composer = `<section class="section"><h2 class="section-title">Invite to a job</h2><div class="card space-y-2"><form class="space-y-3"><div class="w-full space-y-3"><label class="block space-y-1.5"><span class="label">Job</span><select name="jobId" class="field" required><option>Pass test canvass 390</option></select></label><label class="block space-y-1.5"><span class="label">Note to the worker (optional)</span><textarea name="note" class="field min-h-20"></textarea><span class="text-hint block">They read this with the invitation. Keep it about the job.</span></label></div><button class="btn-primary">Send invitation</button></form><p class="text-hint">3 of 3 invitations left this week for this worker. It lasts 7 days; you aren't told whether they open it.</p></div></section>`;
-const snapshotFold = (when, date) => `<details class="card"><summary class="cursor-pointer px-4 py-3 text-sm font-semibold text-fg">${when} · ${date}</summary><div class="space-y-3 border-t border-border p-4"><p class="text-muted-sm">Exactly what you could see then. It never changes, even if they share less later.</p><p class="text-hint">As of ${date} · only what the worker shared then</p><dl class="list-card"><div class="flex flex-col gap-1 px-4 py-3 text-sm sm:flex-row sm:justify-between sm:gap-4"><dt class="text-muted">Show rate</dt><dd class="text-fg sm:text-right">No data yet</dd></div><div class="flex flex-col gap-1 px-4 py-3 text-sm sm:flex-row sm:justify-between sm:gap-4"><dt class="text-muted">Verified work</dt><dd class="text-fg sm:text-right">No verified shifts yet</dd></div></dl>${fitDetail(["Not shared", "Not shared", "Not shared", "Not shared"])}</div></details>`;
+const REL = { "Nov 5, 2026": "today", "Nov 2, 2026": "3 days ago" }; // RelativeTime, as of the capture day
+const snapshotFold = (when, date) => `<details class="card"><summary class="cursor-pointer px-4 py-3 text-sm font-semibold text-fg">${when} · ${date}</summary><div class="space-y-3 border-t border-border p-4"><p class="text-muted-sm">Exactly what you could see then. It never changes, even if they share less later.</p><p class="text-hint">As of ${date} (${REL[date]}) · only what the worker shared then</p><dl class="list-card"><div class="flex flex-col gap-1 px-4 py-3 text-sm sm:flex-row sm:justify-between sm:gap-4"><dt class="text-muted">Show rate</dt><dd class="text-fg sm:text-right">No data yet</dd></div><div class="flex flex-col gap-1 px-4 py-3 text-sm sm:flex-row sm:justify-between sm:gap-4"><dt class="text-muted">Verified work</dt><dd class="text-fg sm:text-right">No verified shifts yet</dd></div></dl>${fitDetail(["Not shared", "Not shared", "Not shared", "Not shared"])}</div></details>`;
 
 async function candidate(ctx, width, { name, since, stage, state, actions, events, share, free = "Not set", notOpen = null, snapshot = "When they applied", context = "Applicant · Pass test canvass 390" }) {
   const head = masthead({ context, title: name, meta: `<span class="candidate-stage">Since ${since} ${status(stage, state)}</span>`, actions: `<a class="btn-ghost btn-sm" href="/hiring/${JOB}/applicants">Applicants</a><a class="btn-secondary btn-sm" href="/jobs/${JOB}">Job page</a>`, below: `<div class="pt-2">${actions}</div>` });
@@ -177,7 +181,7 @@ async function candidate(ctx, width, { name, since, stage, state, actions, event
 }
 const WITHHELD = { scorecard: false, availability: false, credentials: false, experience: false, fit: null };
 const SHARED = { scorecard: true, availability: true, credentials: true, experience: true, fit: ["Not shared", "Not shared", "Not shared", "Not shared"] };
-// Partial sharing (synthetic: no fixture holds it): the scorecard and credentials shared, both empty; availability and experience withheld; two fit fields shared.
+// Partial sharing is SYNTHETIC: no fixture holds it. The scorecard is Riley's real empty one (parts/candidate-in-review); the two fit answers are invented to show the shared shape. Declared in the frame state, PLAN §3 and COVERAGE.
 const MIXED = { scorecard: "empty", availability: false, credentials: true, experience: false, fit: ["Union member", "Not shared", "Not shared", "Housing, transit"] };
 const C = (over) => (ctx, w) => candidate(ctx, w, over);
 const candidates = {
@@ -198,7 +202,7 @@ async function worker(ctx, width, { name, share, composer: c }) {
 }
 const workers = {
   shared: (ctx, w) => worker(ctx, w, { name: "Jordan Blake", share: SHARED, composer: false }),
-  withheld: (ctx, w) => worker(ctx, w, { name: "Casey Nguyen", share: WITHHELD, composer: true }),
+  withheld: (ctx, w) => worker(ctx, w, { name: "Casey Nguyen", share: WITHHELD, composer: false }),
   nameNotShared: (ctx, w) => worker(ctx, w, { name: "Name not shared", share: MIXED, composer: true }),
   denied: () => reading("", `<div class="empty-state"><p class="empty-state-title">This profile isn't available</p><p class="empty-state-body">Your organization is awaiting approval.</p></div>`),
 };
@@ -207,7 +211,7 @@ const workers = {
 
 async function applicants({ pick }, width, { selected = false, empty = false, filtered = false, inspector = false }) {
   const main = await pick(filtered ? "applicants-empty-filter" : inspector ? "applicants-desktop" : "applicants", "main");
-  let m = main.replace(/not shared/g, "Not shared");
+  let m = main.replace(/<table[\s\S]*?<\/table>/, (t) => t.replace(/not shared/g, "Not shared"));
   // The bulk form becomes one line until a row is ticked.
   const bulk = selected
     ? `<form id="applicants-bulk" class="card space-y-3"><p class="text-sm text-muted">1 selected</p><div class="flex flex-wrap items-end gap-3"><label class="space-y-1.5"><span class="label">For the selected applicants</span><select name="bulk" class="field"><option value="review" selected="">Mark in review</option><option value="offer">Send an offer</option><option value="decline">Not selected</option></select></label><button class="btn-secondary">Update selected</button></div></form>`
@@ -221,16 +225,16 @@ async function applicants({ pick }, width, { selected = false, empty = false, fi
 /* ---------- the frame list ---------- */
 
 const NOTES = {
-  builder: ["One step track, all six steps, scrolling sideways on a phone with the current step kept in view; the steps keep today's buttons, aria-current and aria-disabled.", "A focusable problem summary under the step heading; each line focuses its field; the inline errors stay.", "Next is full width on a phone; Back under it; the save line keeps today's words (saveWords).", "On a desktop the form is a 680px column; the side note is optional new copy (question 9)."],
+  builder: ["One step track, all six steps, scrolling sideways on a phone with the current step kept in view; the steps keep today's buttons, aria-current and aria-disabled.", "A focusable problem summary under the step heading; each line focuses its field; the inline errors stay.", "Next is full width on a phone; Back under it; the save line keeps today's words (saveWords).", "On a desktop the form is a 680px column; the side note is optional new copy (question 9).", "The steps keep today's styles: .step-current, .step-done for reached steps, plain for the rest."],
   publishing: ["Blockers grouped by who fixes them, words unchanged. The settings link only for a member who can open it; a restricted editor sees reasons and no actions.", "The step label on each 'In this job' reason needs a reason-to-step mapping (question 3).", "Publish stays disabled while any group has a reason; Edit draft is the destination for the first group."],
-  candidate: ["The stage chip beside 'Since', its actions under the title: the next action beside the person.", "'For this job' first, then the history, then one card with one row per shared part.", "A withheld part is the app's own Not shared chip and nothing else; an empty part says its empty words; partial sharing keeps every shared field and the basis text.", "The snapshot folds under its date (question 5)."],
+  candidate: ["The stage chip beside 'Since', its actions under the title: the next action beside the person.", "'For this job' first, then the history, then one card with one row per shared part.", "A withheld part is the app's own Not shared chip and nothing else; an empty part says its empty words; partial sharing keeps every shared field and switches to the app's shared-basis sentence (political-fit.ts:602).", "The snapshot folds under its date (question 5)."],
   worker: ["The same shared-profile card as the candidate page, the invite composer after it (InviteComposer's own words), the refusals unchanged."],
   applicants: ["The bulk form is one line, '0 selected', until a row is ticked.", "'Not shared' in the table, the chip's words (question 6). Tabs stay filter-chip links with aria-current; the inspector stays from 1280."],
 };
 const F = (name, screen, state, widths, body, notes, parts) => ({ name, screen, state, widths, body, notes, parts });
 export const FRAMES = [
   F("builder-new-errors", "Builder", "new job, step 1, two problems", [390, 1440], builderStep1Errors, NOTES.builder, ["builder-new-errors"]),
-  F("builder-new-saved", "Builder", "new job, step 1, draft saved", [390, 1440], builderStep1Saved, NOTES.builder, ["builder-live"]),
+  F("builder-new-saved", "Builder", "new job, step 1, draft saved", [390, 1440], builderStep1Saved, NOTES.builder, ["builder-draft-step2"]),
   F("builder-draft-step2", "Builder", "saved draft, step 2 (dates, city, launch, staging map)", [390, 1440], builderStep2, NOTES.builder, ["builder-draft-step2"]),
   F("builder-draft-step4-errors", "Builder", "saved draft, step 4, contacts missing", [390, 1440], builderStep4, NOTES.builder, ["builder-draft-step4"]),
   F("builder-saving", "Builder", "saved draft, step 3, saving", [390, 1440], builderSaving, NOTES.builder, ["builder-draft-step2"]),
@@ -240,13 +244,13 @@ export const FRAMES = [
   F("builder-live-review", "Builder", "published job, review, Save changes", [390, 1440], builderLiveReview, NOTES.builder, []),
   F("builder-closed", "Builder", "closed job refusal", [390, 1440], builderClosed, [], []),
   F("builder-no-access", "Builder", "member without jobsEdit", [390, 1440], builderNoAccess, [], ["no-access"]),
-  F("publishing-blocked", "Job page", "draft, blocked in job, settings and counsel", [390, 1440], publishingBlocked, NOTES.publishing, ["job-draft-blocked"]),
-  F("publishing-restricted", "Job page", "draft, blocked, viewer without settings or edit access", [390, 1440], publishingRestricted, NOTES.publishing, ["job-draft-blocked"]),
+  F("publishing-blocked", "Job page", "draft, blocked in job, settings and counsel (composite: the Aurora draft's head with every group's reasons; no fixture is blocked in all three)", [390, 1440], publishingBlocked, NOTES.publishing, ["job-draft-blocked"]),
+  F("publishing-restricted", "Job page", "draft, blocked, viewer without settings or edit access (same composite)", [390, 1440], publishingRestricted, NOTES.publishing, ["job-draft-blocked"]),
   F("publishing-counsel", "Job page", "draft, blocked by the jurisdiction only", [390, 1440], publishingCounsel, NOTES.publishing, ["job-draft-blocked"]),
   F("publishing-clear", "Job page", "draft, every check passes", [390, 1440], publishingClear, NOTES.publishing, ["job-draft-blocked"]),
   F("publishing-frozen", "Job page", "published job frozen under newer rules", [390, 1440], publishingFrozen, NOTES.publishing, ["job-draft-blocked"]),
   F("candidate-withheld", "Candidate", "applied, nothing shared", [390, 1440], candidates.withheld, NOTES.candidate, ["scorecard-shared"]),
-  F("candidate-mixed", "Candidate", "in review, partial sharing", [390, 1440], candidates.mixed, NOTES.candidate, ["scorecard-shared"]),
+  F("candidate-mixed", "Candidate", "in review, partial sharing (synthetic: Riley's empty scorecard, invented fit answers)", [390, 1440], candidates.mixed, NOTES.candidate, ["scorecard-shared"]),
   F("candidate-offer", "Candidate", "offer out", [390, 1440], candidates.offer, NOTES.candidate, ["scorecard-shared"]),
   F("candidate-offer-expired", "Candidate", "offer expired", [390, 1440], candidates.offerExpired, NOTES.candidate, ["scorecard-shared"]),
   F("candidate-invited", "Candidate", "invited, unanswered (profile not open)", [390, 1440], candidates.invited, NOTES.candidate, []),
@@ -255,8 +259,8 @@ export const FRAMES = [
   F("candidate-not-selected", "Candidate", "not selected (profile no longer open)", [390, 1440], candidates.notSelected, NOTES.candidate, []),
   F("candidate-action-failed", "Candidate", "an action failed", [390, 1440], candidates.failed, NOTES.candidate, ["scorecard-shared"]),
   F("worker-shared", "Worker page", "shares with this organization", [390, 1440], workers.shared, NOTES.worker, ["scorecard-shared"]),
-  F("worker-withheld", "Worker page", "shares nothing; invitation possible", [390, 1440], workers.withheld, NOTES.worker, []),
-  F("worker-name-not-shared", "Worker page", "name not shared, partial sharing", [390, 1440], workers.nameNotShared, NOTES.worker, ["scorecard-shared"]),
+  F("worker-withheld", "Worker page", "shares nothing; no job open to invitations (they applied to the only published job)", [390, 1440], workers.withheld, NOTES.worker, []),
+  F("worker-name-not-shared", "Worker page", "name not shared, partial sharing (synthetic fit answers)", [390, 1440], workers.nameNotShared, NOTES.worker, ["scorecard-shared"]),
   F("worker-denied", "Worker page", "organization awaiting approval", [390, 1440], workers.denied, [], []),
   F("applicants", "Applicants", "six applicants, none selected", [390, 1440], (c, w) => applicants(c, w, {}), NOTES.applicants, ["applicants"]),
   F("applicants-selected", "Applicants", "one selected, bulk form open", [390, 1440], (c, w) => applicants(c, w, { selected: true }), NOTES.applicants, ["applicants"]),

@@ -28,7 +28,9 @@ const pw = require(pwPath);
 
 const args = process.argv.slice(2);
 const argOf = (k) => { const i = args.indexOf(k); return i === -1 ? null : args[i + 1]; };
-const sha = argOf("--sha") ?? execSync("git rev-parse HEAD", { cwd: OUT }).toString().trim();
+const docsSha = argOf("--sha") ?? execSync("git rev-parse --short HEAD", { cwd: OUT }).toString().trim();
+// The stylesheet, fonts and harvested parts come from the app build whose pages current/ captured.
+const appSha = JSON.parse(readFileSync(`${OUT}/current/manifest.json`, "utf8"))[0].source.commit.slice(0, 7);
 const only = argOf("--only");
 
 mkdirSync(`${SRC}/frames`, { recursive: true });
@@ -101,14 +103,15 @@ for (const frame of frames) {
         const clipped = [...document.querySelectorAll("body *")].filter((e) => {
           const cs = getComputedStyle(e);
           return (cs.overflowX === "hidden" || cs.overflow === "hidden") && e.scrollWidth > e.clientWidth + 1 && !e.closest(".step-track") && !e.classList.contains("sr-only");
-        }).length;
+        }).filter((e) => e.clientWidth > 1) // a visually-hidden element (the stacked table's 1px <thead>) isn't clipped content
+          .map((e) => e.tagName.toLowerCase() + [...e.classList].slice(0, 2).map((c) => "." + c).join(""));
         // Against the configured viewport, not innerWidth: a mobile viewport widens to its content, which would hide the overflow.
-        return { height: document.documentElement.scrollHeight, horizontalOverflow: Math.max(0, document.documentElement.scrollWidth - vw), clippedElements: clipped, fontReady: document.fonts.check("16px Inter") && document.fonts.check("700 16px Inter") };
+        return { height: document.documentElement.scrollHeight, horizontalOverflow: Math.max(0, document.documentElement.scrollWidth - vw), clippedElements: clipped.length, clipped, fontReady: document.fonts.check("16px Inter") && document.fonts.check("700 16px Inter") };
       }, width);
       const out = `${OUT}/${frame.name}-${width}-${theme}.png`;
       await p.screenshot({ path: out, fullPage: true });
-      manifest.push({ frame: frame.name, screen: frame.screen, state: frame.state, width, theme, dpr: 2, file: path.basename(out), contentHeight: info.height, horizontalOverflow: info.horizontalOverflow, clippedElements: info.clippedElements, fontReady: info.fontReady, source: { commit: sha, stylesheet: "src/app/app.css", parts: frame.parts ?? [] } });
-      console.log(path.basename(out), info.height, "over", info.horizontalOverflow, "clipped", info.clippedElements, "font", info.fontReady);
+      manifest.push({ frame: frame.name, screen: frame.screen, state: frame.state, width, theme, dpr: 2, file: path.basename(out), contentHeight: info.height, horizontalOverflow: info.horizontalOverflow, clippedElements: info.clippedElements, clipped: info.clipped, fontReady: info.fontReady, viewportHeight: width < 600 ? 844 : 900, source: { app: appSha, docs: docsSha, stylesheet: "src/app/app.css", parts: frame.parts ?? [] } });
+      console.log(path.basename(out), info.height, "over", info.horizontalOverflow, "clipped", info.clipped.join(",") || 0, "font", info.fontReady);
       if (width === 390 && theme === "light" && notes.length) {
         await p.goto(`file://${annFile}`);
         await p.evaluate(() => document.fonts.ready);

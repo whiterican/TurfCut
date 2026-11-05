@@ -1,6 +1,6 @@
 # Coverage index
 
-Every proposed frame, at every width and theme, from `mockups-manifest.json` (source commit `ce9167e5f56f0951e45cfedc27f75335b81d27fe`, DPR 2, full content height; "clipped" counts elements whose content is wider than their hidden-overflow box, screen-reader-only text excluded; "font" is whether Inter was loaded before the capture). The annotated copy of a frame is `annotated/<frame>-390-light.png`.
+Every proposed frame, at every width and theme, from `mockups-manifest.json` (the app's stylesheet, fonts and harvested parts at master `8b1a80f`; the generator is `src/gen/` as committed with this file, `source.docs` in the manifest being the commit it was last built on top of; DPR 2, full content height, viewport 390×844 or 1440×900; "clipped" names elements whose content is wider than their hidden-overflow box, visually-hidden elements excluded: the only one is the Leaflet map container, whose tile layer is wider than its box by design; "font" is whether Inter was loaded before the capture). The annotated copy of a frame is `annotated/<frame>-390-light.png`.
 
 
 ## Builder
@@ -11,6 +11,8 @@ Every proposed frame, at every width and theme, from `mockups-manifest.json` (so
 | `builder-new-errors` | new job, step 1, two problems | 1440 | [light](builder-new-errors-1440-light.png) | [dark](builder-new-errors-1440-dark.png) | 1085 / 1085 | 0 / 0 | 0 / 0 | yes |
 | `builder-new-saved` | new job, step 1, draft saved | 390 | [light](builder-new-saved-390-light.png) | [dark](builder-new-saved-390-dark.png) | 1066 / 1066 | 0 / 0 | 0 / 0 | yes |
 | `builder-new-saved` | new job, step 1, draft saved | 1440 | [light](builder-new-saved-1440-light.png) | [dark](builder-new-saved-1440-dark.png) | 924 / 924 | 0 / 0 | 0 / 0 | yes |
+| `builder-draft-step2` | saved draft, step 2 (dates, city, launch, staging map) | 390 | [light](builder-draft-step2-390-light.png) | [dark](builder-draft-step2-390-dark.png) | 2145 / 2145 | 0 / 0 | div.turf-map.w-full / div.turf-map.w-full | yes |
+| `builder-draft-step2` | saved draft, step 2 (dates, city, launch, staging map) | 1440 | [light](builder-draft-step2-1440-light.png) | [dark](builder-draft-step2-1440-dark.png) | 1541 / 1541 | 0 / 0 | div.turf-map.w-full / div.turf-map.w-full | yes |
 | `builder-draft-step4-errors` | saved draft, step 4, contacts missing | 390 | [light](builder-draft-step4-errors-390-light.png) | [dark](builder-draft-step4-errors-390-dark.png) | 2006 / 2006 | 0 / 0 | 0 / 0 | yes |
 | `builder-draft-step4-errors` | saved draft, step 4, contacts missing | 1440 | [light](builder-draft-step4-errors-1440-light.png) | [dark](builder-draft-step4-errors-1440-dark.png) | 1423 / 1423 | 0 / 0 | 0 / 0 | yes |
 | `builder-saving` | saved draft, step 3, saving | 390 | [light](builder-saving-390-light.png) | [dark](builder-saving-390-dark.png) | 1221 / 1221 | 0 / 0 | 0 / 0 | yes |
@@ -21,21 +23,21 @@ Every proposed frame, at every width and theme, from `mockups-manifest.json` (so
 | `builder-review` | saved draft, step 6 review | 1440 | [light](builder-review-1440-light.png) | [dark](builder-review-1440-dark.png) | 1596 / 1596 | 0 / 0 | 0 / 0 | yes |
 | `builder-live-step1` | published job, step 1 | 390 | [light](builder-live-step1-390-light.png) | [dark](builder-live-step1-390-dark.png) | 1240 / 1240 | 0 / 0 | 0 / 0 | yes |
 | `builder-live-step1` | published job, step 1 | 1440 | [light](builder-live-step1-1440-light.png) | [dark](builder-live-step1-1440-dark.png) | 981 / 981 | 0 / 0 | 0 / 0 | yes |
-| `builder-live-review` | published job, review, Save changes | 390 | [light](builder-live-review-390-light.png) | [dark](builder-live-review-390-dark.png) | 2115 / 2115 | 0 / 0 | 0 / 0 | yes |
+| `builder-live-review` | published job, review, Save changes | 390 | [light](builder-live-review-390-light.png) | [dark](builder-live-review-390-dark.png) | 2135 / 2135 | 0 / 0 | 0 / 0 | yes |
 | `builder-live-review` | published job, review, Save changes | 1440 | [light](builder-live-review-1440-light.png) | [dark](builder-live-review-1440-dark.png) | 1754 / 1754 | 0 / 0 | 0 / 0 | yes |
 | `builder-closed` | closed job refusal | 390 | [light](builder-closed-390-light.png) | [dark](builder-closed-390-dark.png) | 844 / 844 | 0 / 0 | 0 / 0 | yes |
 | `builder-closed` | closed job refusal | 1440 | [light](builder-closed-1440-light.png) | [dark](builder-closed-1440-dark.png) | 920 / 920 | 0 / 0 | 0 / 0 | yes |
-| `builder-no-access` | member without jobsEdit | 390 | [light](builder-no-access-390-light.png) | [dark](builder-no-access-390-dark.png) | 844 / 844 | 0 / 0 | 1 / 1 | yes |
+| `builder-no-access` | member without jobsEdit | 390 | [light](builder-no-access-390-light.png) | [dark](builder-no-access-390-dark.png) | 844 / 844 | 0 / 0 | 0 / 0 | yes |
 | `builder-no-access` | member without jobsEdit | 1440 | [light](builder-no-access-1440-light.png) | [dark](builder-no-access-1440-dark.png) | 920 / 920 | 0 / 0 | 0 / 0 | yes |
 
 ## Job page
 
 | Frame | State | Width | Light | Dark | Height | Overflow | Clipped | Font |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `publishing-blocked` | draft, blocked in job, settings and counsel | 390 | [light](publishing-blocked-390-light.png) | [dark](publishing-blocked-390-dark.png) | 1349 / 1349 | 0 / 0 | 0 / 0 | yes |
-| `publishing-blocked` | draft, blocked in job, settings and counsel | 1440 | [light](publishing-blocked-1440-light.png) | [dark](publishing-blocked-1440-dark.png) | 1105 / 1105 | 0 / 0 | 0 / 0 | yes |
-| `publishing-restricted` | draft, blocked, viewer without settings or edit access | 390 | [light](publishing-restricted-390-light.png) | [dark](publishing-restricted-390-dark.png) | 1269 / 1269 | 0 / 0 | 0 / 0 | yes |
-| `publishing-restricted` | draft, blocked, viewer without settings or edit access | 1440 | [light](publishing-restricted-1440-light.png) | [dark](publishing-restricted-1440-dark.png) | 1025 / 1025 | 0 / 0 | 0 / 0 | yes |
+| `publishing-blocked` | draft, blocked in job, settings and counsel (composite: the Aurora draft's head with every group's reasons; no fixture is blocked in all three) | 390 | [light](publishing-blocked-390-light.png) | [dark](publishing-blocked-390-dark.png) | 1349 / 1349 | 0 / 0 | 0 / 0 | yes |
+| `publishing-blocked` | draft, blocked in job, settings and counsel (composite: the Aurora draft's head with every group's reasons; no fixture is blocked in all three) | 1440 | [light](publishing-blocked-1440-light.png) | [dark](publishing-blocked-1440-dark.png) | 1105 / 1105 | 0 / 0 | 0 / 0 | yes |
+| `publishing-restricted` | draft, blocked, viewer without settings or edit access (same composite) | 390 | [light](publishing-restricted-390-light.png) | [dark](publishing-restricted-390-dark.png) | 1269 / 1269 | 0 / 0 | 0 / 0 | yes |
+| `publishing-restricted` | draft, blocked, viewer without settings or edit access (same composite) | 1440 | [light](publishing-restricted-1440-light.png) | [dark](publishing-restricted-1440-dark.png) | 1025 / 1025 | 0 / 0 | 0 / 0 | yes |
 | `publishing-counsel` | draft, blocked by the jurisdiction only | 390 | [light](publishing-counsel-390-light.png) | [dark](publishing-counsel-390-dark.png) | 1031 / 1031 | 0 / 0 | 0 / 0 | yes |
 | `publishing-counsel` | draft, blocked by the jurisdiction only | 1440 | [light](publishing-counsel-1440-light.png) | [dark](publishing-counsel-1440-dark.png) | 920 / 920 | 0 / 0 | 0 / 0 | yes |
 | `publishing-clear` | draft, every check passes | 390 | [light](publishing-clear-390-light.png) | [dark](publishing-clear-390-dark.png) | 925 / 925 | 0 / 0 | 0 / 0 | yes |
@@ -49,8 +51,8 @@ Every proposed frame, at every width and theme, from `mockups-manifest.json` (so
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `candidate-withheld` | applied, nothing shared | 390 | [light](candidate-withheld-390-light.png) | [dark](candidate-withheld-390-dark.png) | 1404 / 1404 | 0 / 0 | 0 / 0 | yes |
 | `candidate-withheld` | applied, nothing shared | 1440 | [light](candidate-withheld-1440-light.png) | [dark](candidate-withheld-1440-dark.png) | 1197 / 1197 | 0 / 0 | 0 / 0 | yes |
-| `candidate-mixed` | in review, partial sharing | 390 | [light](candidate-mixed-390-light.png) | [dark](candidate-mixed-390-dark.png) | 2747 / 2747 | 0 / 0 | 0 / 0 | yes |
-| `candidate-mixed` | in review, partial sharing | 1440 | [light](candidate-mixed-1440-light.png) | [dark](candidate-mixed-1440-dark.png) | 2378 / 2378 | 0 / 0 | 0 / 0 | yes |
+| `candidate-mixed` | in review, partial sharing (synthetic: Riley's empty scorecard, invented fit answers) | 390 | [light](candidate-mixed-390-light.png) | [dark](candidate-mixed-390-dark.png) | 2825 / 2825 | 0 / 0 | 0 / 0 | yes |
+| `candidate-mixed` | in review, partial sharing (synthetic: Riley's empty scorecard, invented fit answers) | 1440 | [light](candidate-mixed-1440-light.png) | [dark](candidate-mixed-1440-dark.png) | 2417 / 2417 | 0 / 0 | 0 / 0 | yes |
 | `candidate-offer` | offer out | 390 | [light](candidate-offer-390-light.png) | [dark](candidate-offer-390-dark.png) | 3954 / 3954 | 0 / 0 | 0 / 0 | yes |
 | `candidate-offer` | offer out | 1440 | [light](candidate-offer-1440-light.png) | [dark](candidate-offer-1440-dark.png) | 3100 / 3100 | 0 / 0 | 0 / 0 | yes |
 | `candidate-offer-expired` | offer expired | 390 | [light](candidate-offer-expired-390-light.png) | [dark](candidate-offer-expired-390-dark.png) | 3934 / 3934 | 0 / 0 | 0 / 0 | yes |
@@ -72,10 +74,10 @@ Every proposed frame, at every width and theme, from `mockups-manifest.json` (so
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `worker-shared` | shares with this organization | 390 | [light](worker-shared-390-light.png) | [dark](worker-shared-390-dark.png) | 3368 / 3368 | 0 / 0 | 0 / 0 | yes |
 | `worker-shared` | shares with this organization | 1440 | [light](worker-shared-1440-light.png) | [dark](worker-shared-1440-dark.png) | 2598 / 2598 | 0 / 0 | 0 / 0 | yes |
-| `worker-withheld` | shares nothing; invitation possible | 390 | [light](worker-withheld-390-light.png) | [dark](worker-withheld-390-dark.png) | 1199 / 1199 | 0 / 0 | 0 / 0 | yes |
-| `worker-withheld` | shares nothing; invitation possible | 1440 | [light](worker-withheld-1440-light.png) | [dark](worker-withheld-1440-dark.png) | 1065 / 1065 | 0 / 0 | 0 / 0 | yes |
-| `worker-name-not-shared` | name not shared, partial sharing | 390 | [light](worker-name-not-shared-390-light.png) | [dark](worker-name-not-shared-390-dark.png) | 2517 / 2517 | 0 / 0 | 0 / 0 | yes |
-| `worker-name-not-shared` | name not shared, partial sharing | 1440 | [light](worker-name-not-shared-1440-light.png) | [dark](worker-name-not-shared-1440-dark.png) | 2220 / 2220 | 0 / 0 | 0 / 0 | yes |
+| `worker-withheld` | shares nothing; no job open to invitations (they applied to the only published job) | 390 | [light](worker-withheld-390-light.png) | [dark](worker-withheld-390-dark.png) | 889 / 889 | 0 / 0 | 0 / 0 | yes |
+| `worker-withheld` | shares nothing; no job open to invitations (they applied to the only published job) | 1440 | [light](worker-withheld-1440-light.png) | [dark](worker-withheld-1440-dark.png) | 920 / 920 | 0 / 0 | 0 / 0 | yes |
+| `worker-name-not-shared` | name not shared, partial sharing (synthetic fit answers) | 390 | [light](worker-name-not-shared-390-light.png) | [dark](worker-name-not-shared-390-dark.png) | 2595 / 2595 | 0 / 0 | 0 / 0 | yes |
+| `worker-name-not-shared` | name not shared, partial sharing (synthetic fit answers) | 1440 | [light](worker-name-not-shared-1440-light.png) | [dark](worker-name-not-shared-1440-dark.png) | 2259 / 2259 | 0 / 0 | 0 / 0 | yes |
 | `worker-denied` | organization awaiting approval | 390 | [light](worker-denied-390-light.png) | [dark](worker-denied-390-dark.png) | 844 / 844 | 0 / 0 | 0 / 0 | yes |
 | `worker-denied` | organization awaiting approval | 1440 | [light](worker-denied-1440-light.png) | [dark](worker-denied-1440-dark.png) | 920 / 920 | 0 / 0 | 0 / 0 | yes |
 
@@ -93,20 +95,12 @@ Every proposed frame, at every width and theme, from `mockups-manifest.json` (so
 | `applicants-filtered-empty` | filters match nobody | 1440 | [light](applicants-filtered-empty-1440-light.png) | [dark](applicants-filtered-empty-1440-dark.png) | 1085 / 1085 | 0 / 0 | 0 / 0 | yes |
 | `applicants-inspector` | inspector open (1440) | 1440 | [light](applicants-inspector-1440-light.png) | [dark](applicants-inspector-1440-dark.png) | 946 / 946 | 0 / 0 | 0 / 0 | yes |
 
-## Builder
-
-| Frame | State | Width | Light | Dark | Height | Overflow | Clipped | Font |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `builder-draft-step2` | saved draft, step 2 (dates, city, launch, staging map) | 390 | [light](builder-draft-step2-390-light.png) | [dark](builder-draft-step2-390-dark.png) | 2145 / 2145 | 0 / 0 | 1 / 1 | yes |
-| `builder-draft-step2` | saved draft, step 2 (dates, city, launch, staging map) | 1440 | [light](builder-draft-step2-1440-light.png) | [dark](builder-draft-step2-1440-dark.png) | 1541 / 1541 | 0 / 0 | 1 / 1 | yes |
-
 ## Kept as they are (today's capture is the proposal)
 
 These screens change only through the shared pieces above. Their reference is the `current/` capture at master `8b1a80f166a04942a74b34cbe4367c5519f91835`, light theme, DPR 2.
 
 | Screen | State | Width | Capture |
 | --- | --- | --- | --- |
-| builder-no-access | finance | 390 | [builder-no-access-390-now.png](current/builder-no-access-390-now.png) |
 | hiring-overview | owner | 390 | [hiring-overview-390-now.png](current/hiring-overview-390-now.png) |
 | hiring-overview | owner | 1440 | [hiring-overview-1440-now.png](current/hiring-overview-1440-now.png) |
 | applicants-filters | owner | 390 | [applicants-filters-390-now.png](current/applicants-filters-390-now.png) |

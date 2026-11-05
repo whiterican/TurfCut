@@ -1,6 +1,6 @@
 # Field and action map: the core hiring flow
 
-Every field, action, state and line of copy the mockups draw, with the source that produces it at master `2aed8c3`. The mockups add no field, action or state that isn't here. Anything that would need new data is listed at the end as a question, not drawn.
+Every field, action, state and line of copy the mockups draw, with the source that produces it at master `8b1a80f`. The mockups add no field, action or state that isn't here. Anything that would need new data is listed at the end as a question, not drawn.
 
 ## 1. Job builder — `/jobs/new`, `/jobs/[jobId]/edit`
 
@@ -13,7 +13,7 @@ Every field, action, state and line of copy the mockups draw, with the source th
 | Step list: current, done, not yet reachable (`aria-current="step"`, `aria-disabled`) | `JobForm.tsx` step `<ol>` (`.step`, `.step-current`, `.step-done`) |
 | Inline error after its field, `aria-invalid` + `aria-describedby`; problems no field shows listed under the step heading | `JobForm.tsx` (`err`, `describe`, `loose`) |
 | Next checks the current step with the server's validator; jumping ahead checks every step on the way and stops at the first that fails; the first field with a problem takes focus | `JobForm.tsx` (`goTo`, `focusFirstProblem`) |
-| Buttons: Back (from step 2) · "Next: <step title>" · on Review "Create draft" / "Save draft" / "Saving…". `.btn-sm` is `min-h-9` (36px); `.step` and `.filter-chip` are about 36px tall | `JobForm.tsx:556-568`, `src/app/globals.css` (`.btn-sm`, `.step`, `.filter-chip`) |
+| Buttons: Back (from step 2) · "Next: <step title>" · on Review "Create draft" / "Save draft" / "Saving…". `.btn-sm` renders 40px tall (`min-h-9` is its floor); `.filter-chip` 36px; `.step` 26px (`py-1 text-xs`, no minimum); measured in the frames | `JobForm.tsx:556-568`, `src/app/globals.css` (`.btn-sm`, `.step`, `.filter-chip`) |
 | Review rows, each with "Change" back to its step; footnote "Saved as a draft. You publish it from the job page once every check passes, including the jurisdiction's rules." | `JobForm.tsx` (`Review`), `:629` |
 | Jurisdiction option suffixed " — can't publish" when the profile has problems | `JobForm.tsx` (jurisdiction `<select>`), `src/lib/jurisdiction-options.ts` |
 | Editing a saved draft: every step open from the start; autosave on | `src/app/jobs/[jobId]/edit/page.tsx` (`autosave={job.status === "DRAFT"}`) |

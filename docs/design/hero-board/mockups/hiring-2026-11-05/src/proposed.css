@@ -4,7 +4,8 @@
 
 /* 1. The builder's step track: one row, scrolls sideways on a phone, the
    current step kept in view (the page scrolls it into view on load; the
-   build does the same on each step change). Keyboard: the steps stay the
+   build does the same on each step change). The steps keep today's three
+   styles (.step-current, .step-done, plain); nothing is dimmed. Keyboard: the steps stay the
    buttons they are today (Tab reaches each reachable step, Enter/Space
    opens it); a step not yet reachable keeps aria-disabled and is skipped
    by the jump. Focus stays visible: the ring is the app's. */
@@ -23,7 +24,6 @@
 .step-track::-webkit-scrollbar { display: none; }
 .step-track li { flex: none; scroll-snap-align: center; }
 .step-track .step { white-space: nowrap; }
-.step-track .step[aria-disabled="true"] { opacity: 0.6; }
 @media (min-width: 64rem) {
   .step-track { flex-wrap: wrap; overflow: visible; margin-inline: 0; padding-inline: 0; }
 }
@@ -32,7 +32,7 @@
    problem, each a link that focuses its field. The inline errors stay. */
 .problem-summary {
   border: 1px solid var(--danger);
-  border-radius: 0.75rem;
+  border-radius: var(--radius-md);
   padding: 0.625rem 0.75rem;
   background: var(--surface);
 }

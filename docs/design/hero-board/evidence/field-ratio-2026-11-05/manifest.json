@@ -1,0 +1,558 @@
+[
+  {
+    "screen": "field",
+    "route": "/field",
+    "role": "owner",
+    "width": 390,
+    "textSize": "default",
+    "file": "field-390.png",
+    "figures": [
+      {
+        "text": "0 0",
+        "lines": 1,
+        "clipped": false
+      },
+      {
+        "text": "0 0 / 0 0",
+        "lines": 1,
+        "clipped": false
+      },
+      {
+        "text": "0 0",
+        "lines": 1,
+        "clipped": false
+      },
+      {
+        "text": "0",
+        "lines": 1,
+        "clipped": false
+      }
+    ],
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "8e6c3b11cb709ffbe446bd8f9ddd3c8a23d80503",
+      "clean": true
+    }
+  },
+  {
+    "screen": "field",
+    "route": "/field",
+    "role": "owner",
+    "width": 390,
+    "textSize": "larger",
+    "file": "field-390-large-text.png",
+    "figures": [
+      {
+        "text": "0 0",
+        "lines": 1,
+        "clipped": false
+      },
+      {
+        "text": "0 0 / 0 0",
+        "lines": 1,
+        "clipped": false
+      },
+      {
+        "text": "0 0",
+        "lines": 1,
+        "clipped": false
+      },
+      {
+        "text": "0",
+        "lines": 1,
+        "clipped": false
+      }
+    ],
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "8e6c3b11cb709ffbe446bd8f9ddd3c8a23d80503",
+      "clean": true
+    }
+  },
+  {
+    "screen": "field",
+    "route": "/field",
+    "role": "owner",
+    "width": 320,
+    "textSize": "default",
+    "file": "field-320.png",
+    "figures": [
+      {
+        "text": "0 0",
+        "lines": 1,
+        "clipped": false
+      },
+      {
+        "text": "0 0 / 0 0",
+        "lines": 1,
+        "clipped": false
+      },
+      {
+        "text": "0 0",
+        "lines": 1,
+        "clipped": false
+      },
+      {
+        "text": "0",
+        "lines": 1,
+        "clipped": false
+      }
+    ],
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "8e6c3b11cb709ffbe446bd8f9ddd3c8a23d80503",
+      "clean": true
+    }
+  },
+  {
+    "screen": "field",
+    "route": "/field",
+    "role": "owner",
+    "width": 320,
+    "textSize": "larger",
+    "file": "field-320-large-text.png",
+    "figures": [
+      {
+        "text": "0 0",
+        "lines": 1,
+        "clipped": false
+      },
+      {
+        "text": "0 0 / 0 0",
+        "lines": 1,
+        "clipped": false
+      },
+      {
+        "text": "0 0",
+        "lines": 1,
+        "clipped": false
+      },
+      {
+        "text": "0",
+        "lines": 1,
+        "clipped": false
+      }
+    ],
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "8e6c3b11cb709ffbe446bd8f9ddd3c8a23d80503",
+      "clean": true
+    }
+  },
+  {
+    "screen": "desk",
+    "route": "/desk",
+    "role": "owner",
+    "width": 390,
+    "textSize": "default",
+    "file": "desk-390.png",
+    "figures": [
+      {
+        "text": "0 0",
+        "lines": 1,
+        "clipped": false
+      },
+      {
+        "text": "0 0 / 0 0",
+        "lines": 1,
+        "clipped": false
+      },
+      {
+        "text": "0 0",
+        "lines": 1,
+        "clipped": false
+      }
+    ],
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "8e6c3b11cb709ffbe446bd8f9ddd3c8a23d80503",
+      "clean": true
+    }
+  },
+  {
+    "screen": "desk",
+    "route": "/desk",
+    "role": "owner",
+    "width": 390,
+    "textSize": "larger",
+    "file": "desk-390-large-text.png",
+    "figures": [
+      {
+        "text": "0 0",
+        "lines": 1,
+        "clipped": false
+      },
+      {
+        "text": "0 0 / 0 0",
+        "lines": 1,
+        "clipped": false
+      },
+      {
+        "text": "0 0",
+        "lines": 1,
+        "clipped": false
+      }
+    ],
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "8e6c3b11cb709ffbe446bd8f9ddd3c8a23d80503",
+      "clean": true
+    }
+  },
+  {
+    "screen": "desk",
+    "route": "/desk",
+    "role": "owner",
+    "width": 320,
+    "textSize": "default",
+    "file": "desk-320.png",
+    "figures": [
+      {
+        "text": "0 0",
+        "lines": 1,
+        "clipped": false
+      },
+      {
+        "text": "0 0 / 0 0",
+        "lines": 1,
+        "clipped": false
+      },
+      {
+        "text": "0 0",
+        "lines": 1,
+        "clipped": false
+      }
+    ],
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "8e6c3b11cb709ffbe446bd8f9ddd3c8a23d80503",
+      "clean": true
+    }
+  },
+  {
+    "screen": "desk",
+    "route": "/desk",
+    "role": "owner",
+    "width": 320,
+    "textSize": "larger",
+    "file": "desk-320-large-text.png",
+    "figures": [
+      {
+        "text": "0 0",
+        "lines": 1,
+        "clipped": false
+      },
+      {
+        "text": "0 0 / 0 0",
+        "lines": 1,
+        "clipped": false
+      },
+      {
+        "text": "0 0",
+        "lines": 1,
+        "clipped": false
+      }
+    ],
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "8e6c3b11cb709ffbe446bd8f9ddd3c8a23d80503",
+      "clean": true
+    }
+  },
+  {
+    "screen": "hiring",
+    "route": "/hiring",
+    "role": "owner",
+    "width": 320,
+    "textSize": "default",
+    "file": "hiring-320.png",
+    "figures": [
+      {
+        "text": "1",
+        "lines": 1,
+        "clipped": false
+      },
+      {
+        "text": "2",
+        "lines": 1,
+        "clipped": false
+      },
+      {
+        "text": "2",
+        "lines": 1,
+        "clipped": false
+      },
+      {
+        "text": "1",
+        "lines": 1,
+        "clipped": false
+      },
+      {
+        "text": "1",
+        "lines": 1,
+        "clipped": false
+      }
+    ],
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "8e6c3b11cb709ffbe446bd8f9ddd3c8a23d80503",
+      "clean": true
+    }
+  },
+  {
+    "screen": "hiring",
+    "route": "/hiring",
+    "role": "owner",
+    "width": 320,
+    "textSize": "larger",
+    "file": "hiring-320-large-text.png",
+    "figures": [
+      {
+        "text": "1",
+        "lines": 1,
+        "clipped": false
+      },
+      {
+        "text": "2",
+        "lines": 1,
+        "clipped": false
+      },
+      {
+        "text": "2",
+        "lines": 1,
+        "clipped": false
+      },
+      {
+        "text": "1",
+        "lines": 1,
+        "clipped": false
+      },
+      {
+        "text": "1",
+        "lines": 1,
+        "clipped": false
+      }
+    ],
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "8e6c3b11cb709ffbe446bd8f9ddd3c8a23d80503",
+      "clean": true
+    }
+  },
+  {
+    "screen": "pay",
+    "route": "/pay",
+    "role": "owner",
+    "width": 320,
+    "textSize": "default",
+    "file": "pay-320.png",
+    "figures": [
+      {
+        "text": "$0.10",
+        "lines": 1,
+        "clipped": false
+      },
+      {
+        "text": "$0.14",
+        "lines": 1,
+        "clipped": false
+      },
+      {
+        "text": "0",
+        "lines": 1,
+        "clipped": false
+      },
+      {
+        "text": "$0.00",
+        "lines": 1,
+        "clipped": false
+      }
+    ],
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "8e6c3b11cb709ffbe446bd8f9ddd3c8a23d80503",
+      "clean": true
+    }
+  },
+  {
+    "screen": "pay",
+    "route": "/pay",
+    "role": "owner",
+    "width": 320,
+    "textSize": "larger",
+    "file": "pay-320-large-text.png",
+    "figures": [
+      {
+        "text": "$0.10",
+        "lines": 1,
+        "clipped": false
+      },
+      {
+        "text": "$0.14",
+        "lines": 1,
+        "clipped": false
+      },
+      {
+        "text": "0",
+        "lines": 1,
+        "clipped": false
+      },
+      {
+        "text": "$0.00",
+        "lines": 1,
+        "clipped": false
+      }
+    ],
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "8e6c3b11cb709ffbe446bd8f9ddd3c8a23d80503",
+      "clean": true
+    }
+  },
+  {
+    "screen": "earnings",
+    "route": "/earnings",
+    "role": "jordan",
+    "width": 320,
+    "textSize": "default",
+    "file": "earnings-320.png",
+    "figures": [
+      {
+        "text": "$0.00",
+        "lines": 1,
+        "clipped": false
+      },
+      {
+        "text": "$0.14",
+        "lines": 1,
+        "clipped": false
+      },
+      {
+        "text": "$0.10",
+        "lines": 1,
+        "clipped": false
+      }
+    ],
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "8e6c3b11cb709ffbe446bd8f9ddd3c8a23d80503",
+      "clean": true
+    }
+  },
+  {
+    "screen": "earnings",
+    "route": "/earnings",
+    "role": "jordan",
+    "width": 320,
+    "textSize": "larger",
+    "file": "earnings-320-large-text.png",
+    "figures": [
+      {
+        "text": "$0.00",
+        "lines": 1,
+        "clipped": false
+      },
+      {
+        "text": "$0.14",
+        "lines": 1,
+        "clipped": false
+      },
+      {
+        "text": "$0.10",
+        "lines": 1,
+        "clipped": false
+      }
+    ],
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "8e6c3b11cb709ffbe446bd8f9ddd3c8a23d80503",
+      "clean": true
+    }
+  },
+  {
+    "screen": "admin",
+    "route": "/admin",
+    "role": "staff",
+    "width": 320,
+    "textSize": "default",
+    "file": "admin-320.png",
+    "figures": [
+      {
+        "text": "1",
+        "lines": 1,
+        "clipped": false
+      },
+      {
+        "text": "0",
+        "lines": 1,
+        "clipped": false
+      },
+      {
+        "text": "0",
+        "lines": 1,
+        "clipped": false
+      },
+      {
+        "text": "2",
+        "lines": 1,
+        "clipped": false
+      }
+    ],
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "8e6c3b11cb709ffbe446bd8f9ddd3c8a23d80503",
+      "clean": true
+    }
+  },
+  {
+    "screen": "admin",
+    "route": "/admin",
+    "role": "staff",
+    "width": 320,
+    "textSize": "larger",
+    "file": "admin-320-large-text.png",
+    "figures": [
+      {
+        "text": "1",
+        "lines": 1,
+        "clipped": false
+      },
+      {
+        "text": "0",
+        "lines": 1,
+        "clipped": false
+      },
+      {
+        "text": "0",
+        "lines": 1,
+        "clipped": false
+      },
+      {
+        "text": "2",
+        "lines": 1,
+        "clipped": false
+      }
+    ],
+    "horizontalOverflow": 0,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "8e6c3b11cb709ffbe446bd8f9ddd3c8a23d80503",
+      "clean": true
+    }
+  }
+]

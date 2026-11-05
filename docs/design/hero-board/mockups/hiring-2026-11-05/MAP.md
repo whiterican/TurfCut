@@ -13,7 +13,7 @@ Every field, action, state and line of copy the mockups draw, with the source th
 | Step list: current, done, not yet reachable (`aria-current="step"`, `aria-disabled`) | `JobForm.tsx` step `<ol>` (`.step`, `.step-current`, `.step-done`) |
 | Inline error after its field, `aria-invalid` + `aria-describedby`; problems no field shows listed under the step heading | `JobForm.tsx` (`err`, `describe`, `loose`) |
 | Next checks the current step with the server's validator; jumping ahead checks every step on the way and stops at the first that fails; the first field with a problem takes focus | `JobForm.tsx` (`goTo`, `focusFirstProblem`) |
-| Buttons: Back · "Next: <step title>" · on Review "Create draft" / "Save draft" / "Saving…" | `JobForm.tsx:568` |
+| Buttons: Back (from step 2) · "Next: <step title>" · on Review "Create draft" / "Save draft" / "Saving…". `.btn-sm` is `min-h-9` (36px); `.step` and `.filter-chip` are about 36px tall | `JobForm.tsx:556-568`, `src/app/globals.css` (`.btn-sm`, `.step`, `.filter-chip`) |
 | Review rows, each with "Change" back to its step; footnote "Saved as a draft. You publish it from the job page once every check passes, including the jurisdiction's rules." | `JobForm.tsx` (`Review`), `:629` |
 | Jurisdiction option suffixed " — can't publish" when the profile has problems | `JobForm.tsx` (jurisdiction `<select>`), `src/lib/jurisdiction-options.ts` |
 | Editing a saved draft: every step open from the start; autosave on | `src/app/jobs/[jobId]/edit/page.tsx` (`autosave={job.status === "DRAFT"}`) |
@@ -47,10 +47,10 @@ Every field, action, state and line of copy the mockups draw, with the source th
 | What | Source |
 | --- | --- |
 | Eyebrow "Applicants"; title = job; meta "4 applicants · 2 to decide · 1 offer out · 5 spots" | `applicants/page.tsx` (Masthead) |
-| Tabs Applicants · Matches · Invites, each with its count | `src/components/staff/HiringTabs.tsx` |
+| Tabs Applicants · Matches · Invites, each with its count: `filter-chip` links, the current one `filter-chip-on` (`--tab-active-bg` / `--tab-active-fg`, eggplant on white by day, `#5a4a78` by night) with `aria-current="page"` | `src/components/staff/HiringTabs.tsx`, `src/app/globals.css` (`.filter-chip-on`, `--tab-active-*`) |
 | "Columns and filters" disclosure: column checkboxes; Stage (Every stage / Waiting on someone); Applied on or after; Free on at least one of the job's days; Holds every required credential; "Show" / "Reset"; hint "A filter narrows what workers shared. Anyone who doesn't share what it looks at stays on the list, marked 'not shared'." | `applicants/page.tsx` |
 | Columns: Applicant · Applied · Stage · Free on job dates · Required credentials · Signatures / active hr · Validity rate · Doors / active hr · Contact rate · Doors / shift · Show rate · Verified shifts (by job type) | `src/lib/applicants.ts:37` (`COLUMN_DEFS`) |
-| Row select + bulk actions on APPLIED/OFFERED rows while the job is published or paused | `applicants/page.tsx` (`BulkApplicantActions`) |
+| Row select + bulk actions on APPLIED/OFFERED rows while the job is published or paused: "For the selected applicants" · Mark in review / Send an offer / Not selected · "Update selected" | `applicants/page.tsx` (`BulkApplicantActions`) |
 | Inspector beside the table from 1280 (stage, since, actions, free on dates, required credentials, "Open the full page"; never political fit) | `src/components/inspector/ApplicantInspector.tsx` |
 | Empty: "Nobody has applied yet" / "Workers who apply show up here, with what each one shares with your organization."; filtered empty "No applicants match these filters." | `applicants/page.tsx:157`, `:165` |
 | Footnote: "Only what each worker shares with your organization, as of now. 'Not shared' is never counted as zero or ranked. There is no overall score. Political answers never appear in this table." | `applicants/page.tsx` |

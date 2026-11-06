@@ -52,3 +52,13 @@ export function firstStepWithErrors(errors: Record<string, string>): number | nu
 export function errorsForStep(errors: Record<string, string>, step: number): Record<string, string> {
   return Object.fromEntries(Object.entries(errors).filter(([k]) => stepOfField(k) === step));
 }
+
+/**
+ * The builder's final button: "Save changes" on a live job (it saves only
+ * when you finish), "Save draft" once a draft exists, "Create draft" before.
+ */
+export function saveLabel({ pending, autosave, jobId, savedId }: { pending: boolean; autosave: boolean; jobId?: string; savedId?: string | null }): string {
+  if (pending) return "Saving…";
+  if (!autosave && jobId) return "Save changes";
+  return savedId ? "Save draft" : "Create draft";
+}

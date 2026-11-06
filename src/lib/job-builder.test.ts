@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { BUILDER_STEPS, errorsForStep, fieldStep, firstStepWithErrors, REVIEW_STEP, stepOfField } from "./job-builder";
+import { BUILDER_STEPS, errorsForStep, fieldStep, firstStepWithErrors, REVIEW_STEP, saveLabel, stepOfField } from "./job-builder";
 import { validateJob } from "./jobs";
 
 describe("job builder steps", () => {
@@ -47,5 +47,15 @@ describe("job builder steps", () => {
     expect(firstStepWithErrors({ message: "x", payRate: "y" })).toBe(2);
     expect(firstStepWithErrors({})).toBeNull();
     expect(errorsForStep({ message: "x", payRate: "y", title: "z" }, 2)).toEqual({ payRate: "y" });
+  });
+});
+
+describe("the builder's final button", () => {
+  it("creates a new draft, saves a draft, and saves changes to a live job", () => {
+    expect(saveLabel({ pending: false, autosave: true })).toBe("Create draft");
+    expect(saveLabel({ pending: false, autosave: true, savedId: "d1" })).toBe("Save draft");
+    expect(saveLabel({ pending: false, autosave: true, jobId: "d1", savedId: "d1" })).toBe("Save draft");
+    expect(saveLabel({ pending: false, autosave: false, jobId: "j1", savedId: "j1" })).toBe("Save changes");
+    expect(saveLabel({ pending: true, autosave: false, jobId: "j1", savedId: "j1" })).toBe("Saving…");
   });
 });

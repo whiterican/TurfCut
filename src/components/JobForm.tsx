@@ -1,10 +1,10 @@
 "use client";
 
-import { startTransition, useActionState, useEffect, useRef, useState } from "react";
+import { startTransition, useActionState, useEffect, useId, useRef, useState } from "react";
 import { autosaveDraft, saveJob, type JobFormState } from "@/app/jobs/actions";
 import { AFFILIATIONS, affiliationLabel, COMPENSATION_METHODS, formToObject, HIRING_MODES, JOB_TYPES, validateJob } from "@/lib/jobs";
 import { PLANNED_CATEGORIES } from "@/lib/job-categories";
-import { BUILDER_STEPS, errorsForStep, firstStepWithErrors, REVIEW_STEP, stepOfField } from "@/lib/job-builder";
+import { BUILDER_STEPS, errorsForStep, firstStepWithErrors, REVIEW_STEP, saveLabel, stepOfField } from "@/lib/job-builder";
 import { LAUNCH_MODES, readLaunch, validateLaunch } from "@/lib/job-launch";
 import { CANVASS_APPS } from "@/lib/job-tools";
 import { CAMPAIGN_TYPES, ISSUES } from "@/lib/political-fit";
@@ -87,6 +87,7 @@ export function JobForm({
   const heading = useRef<HTMLHeadingElement>(null);
   const track = useRef<HTMLOListElement>(null);
   const problems = useRef<HTMLDivElement>(null);
+  const problemsId = useId();
   const [step, setStep] = useState(0);
   // Editing a saved draft: every step is open from the start.
   const [visited, setVisited] = useState(jobId ? REVIEW_STEP : 0);
@@ -128,7 +129,8 @@ export function JobForm({
     const t = track.current;
     const cur = t?.querySelector<HTMLElement>('[aria-current="step"]');
     if (!t || !cur || t.scrollWidth <= t.clientWidth) return;
-    t.scrollLeft = cur.offsetLeft - t.offsetLeft - (t.clientWidth - cur.offsetWidth) / 2;
+    const a = t.getBoundingClientRect(), b = cur.getBoundingClientRect();
+    t.scrollLeft += b.left - a.left - (a.width - b.width) / 2;
   }, [step]);
 
   const d = (k: string, fallback = "") => (typeof defaults[k] === "string" ? (defaults[k] as string) : fallback);
@@ -153,16 +155,25 @@ export function JobForm({
     };
   }, [where.city, where.state]);
   const stepErrors = errorsForStep(errors, step);
-  const err = (k: string) => (stepErrors[k] ? <p id={`err-${k}`} className="field-error">{stepErrors[k]}</p> : null);
+  const err = (k: string) => (stepErrors[k] ? <p id={`err-${k}`} tabIndex={-1} className="field-error">{stepErrors[k]}</p> : null);
   const describe = (k: string) => (stepErrors[k] ? { "aria-invalid": true as const, "aria-describedby": `err-${k}` } : {});
   // A problem on this step that no field shows (an unexpected key): listed in the summary without a link.
   const isLoose = (k: string) => !BUILDER_STEPS[step].fields.includes(k) && !k.startsWith("issue_") && !k.startsWith("point_");
   const stepProblems = Object.entries(stepErrors);
-  // A summary line focuses its field: the control described by its error, else the one named after it.
+  // A summary line focuses its field: the first control that can take focus among the one its error describes (or
+  // inside it, for a group), then the ones named after it (a checked radio first); else the error text itself.
   const focusField = (k: string) => {
     const f = form.current;
     if (!f) return;
-    (f.querySelector<HTMLElement>(`fieldset:not([hidden]) [aria-describedby="err-${k}"]`) ?? f.querySelector<HTMLElement>(`fieldset:not([hidden]) [name="${k}"]`))?.focus();
+    const esc = CSS.escape(k);
+    const scope = "fieldset:not([hidden])";
+    const canFocus = (el: Element | null | undefined): el is HTMLElement =>
+      el instanceof HTMLElement && el.tabIndex >= 0 && !(el as HTMLInputElement).disabled && (el as HTMLInputElement).type !== "hidden" && el.offsetParent !== null;
+    const described = f.querySelector(`${scope} [aria-describedby~="err-${esc}"]`);
+    const target =
+      [described, ...(described?.querySelectorAll("input, select, textarea, button") ?? []), ...f.querySelectorAll(`${scope} [name="${esc}"]:checked`), ...f.querySelectorAll(`${scope} [name="${esc}"]`)].find(canFocus) ??
+      f.querySelector<HTMLElement>(`${scope} #err-${esc}`);
+    target?.focus();
   };
 
   const read = () => formToObject(new FormData(form.current!));
@@ -331,8 +342,8 @@ export function JobForm({
         <p className="text-muted-sm">{current.blurb}</p>
       </div>
       {stepProblems.length > 0 && (
-        <div ref={problems} tabIndex={-1} role="group" aria-labelledby="step-problems" className="problem-summary">
-          <p id="step-problems">
+        <div ref={problems} tabIndex={-1} role="group" aria-labelledby={problemsId} className="problem-summary">
+          <p id={problemsId}>
             {stepProblems.length} {stepProblems.length === 1 ? "thing" : "things"} to fix on this step
           </p>
           <ul className="text-sm">
@@ -602,7 +613,7 @@ export function JobForm({
           </button>
         ) : (
           <button key="save" className="btn-primary w-full sm:w-auto" disabled={pending}>
-            {pending ? "Saving…" : !autosaveOn && jobId ? "Save changes" : savedId ? "Save draft" : "Create draft"}
+            {saveLabel({ pending, autosave: autosaveOn, jobId, savedId })}
           </button>
         )}
         {step > 0 && (
@@ -660,7 +671,8 @@ function Review({ raw, jurisdictions, goTo }: { raw: Record<string, unknown>; ju
       {BUILDER_STEPS.slice(0, REVIEW_STEP).map((st, i) => (
         <div key={st.id} className="space-y-2">
           <h3 className="label">
-            {i + 1} · {st.title}
+            <span aria-hidden>{i + 1} · </span>
+            {st.title}
           </h3>
           <dl className="list-card">
             {rows

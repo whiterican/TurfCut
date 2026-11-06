@@ -5,23 +5,29 @@
     "width": 320,
     "theme": "light",
     "file": "new-step1-errors-320-light.png",
-    "viewport": "new-step1-errors-320-light-viewport.png",
+    "viewport": "new-step1-errors-320-viewport.png",
+    "scrolled": null,
     "over": 0,
-    "height": 1298,
-    "currentStepInView": true,
-    "stepHit": {
-      "visible": 26,
-      "hit": 44.5
+    "currentStepInViewOnLoad": true,
+    "trackScrolls": true,
+    "trackScrollbar": {
+      "css": "none",
+      "visiblePx": 0
     },
     "focused": "problem-summary",
     "summary": "2 things to fix on this step",
-    "issueSelectsFit": null,
+    "blurb": "What the job is and where its rules come from.",
+    "footnote": null,
     "saveLine": "Your draft saves as you go.",
-    "finalButton": "Next: When and where",
-    "dark": false,
+    "primary": "Next: When and where",
+    "issueSelectsFit": null,
+    "currentStepTarget": {
+      "visible": 26,
+      "hit": 44.5
+    },
     "consoleErrors": 0,
     "source": {
-      "commit": "a648465"
+      "commit": "3a26ba3"
     }
   },
   {
@@ -31,22 +37,28 @@
     "theme": "dark",
     "file": "new-step1-errors-320-dark.png",
     "viewport": null,
+    "scrolled": null,
     "over": 0,
-    "height": 1298,
-    "currentStepInView": true,
-    "stepHit": {
-      "visible": 26,
-      "hit": 44.5
+    "currentStepInViewOnLoad": true,
+    "trackScrolls": true,
+    "trackScrollbar": {
+      "css": "none",
+      "visiblePx": 0
     },
     "focused": "problem-summary",
     "summary": "2 things to fix on this step",
-    "issueSelectsFit": null,
+    "blurb": "What the job is and where its rules come from.",
+    "footnote": null,
     "saveLine": "Your draft saves as you go.",
-    "finalButton": "Next: When and where",
-    "dark": true,
+    "primary": "Next: When and where",
+    "issueSelectsFit": null,
+    "currentStepTarget": {
+      "visible": 26,
+      "hit": 44.5
+    },
     "consoleErrors": 0,
     "source": {
-      "commit": "a648465"
+      "commit": "3a26ba3"
     }
   },
   {
@@ -55,23 +67,29 @@
     "width": 390,
     "theme": "light",
     "file": "new-step1-errors-390-light.png",
-    "viewport": "new-step1-errors-390-light-viewport.png",
+    "viewport": "new-step1-errors-390-viewport.png",
+    "scrolled": null,
     "over": 0,
-    "height": 1252,
-    "currentStepInView": true,
-    "stepHit": {
-      "visible": 26,
-      "hit": 44.5
+    "currentStepInViewOnLoad": true,
+    "trackScrolls": true,
+    "trackScrollbar": {
+      "css": "none",
+      "visiblePx": 0
     },
     "focused": "problem-summary",
     "summary": "2 things to fix on this step",
-    "issueSelectsFit": null,
+    "blurb": "What the job is and where its rules come from.",
+    "footnote": null,
     "saveLine": "Your draft saves as you go.",
-    "finalButton": "Next: When and where",
-    "dark": false,
+    "primary": "Next: When and where",
+    "issueSelectsFit": null,
+    "currentStepTarget": {
+      "visible": 26,
+      "hit": 44.5
+    },
     "consoleErrors": 0,
     "source": {
-      "commit": "a648465"
+      "commit": "3a26ba3"
     }
   },
   {
@@ -81,22 +99,28 @@
     "theme": "dark",
     "file": "new-step1-errors-390-dark.png",
     "viewport": null,
+    "scrolled": null,
     "over": 0,
-    "height": 1252,
-    "currentStepInView": true,
-    "stepHit": {
-      "visible": 26,
-      "hit": 44.5
+    "currentStepInViewOnLoad": true,
+    "trackScrolls": true,
+    "trackScrollbar": {
+      "css": "none",
+      "visiblePx": 0
     },
     "focused": "problem-summary",
     "summary": "2 things to fix on this step",
-    "issueSelectsFit": null,
+    "blurb": "What the job is and where its rules come from.",
+    "footnote": null,
     "saveLine": "Your draft saves as you go.",
-    "finalButton": "Next: When and where",
-    "dark": true,
+    "primary": "Next: When and where",
+    "issueSelectsFit": null,
+    "currentStepTarget": {
+      "visible": 26,
+      "hit": 44.5
+    },
     "consoleErrors": 0,
     "source": {
-      "commit": "a648465"
+      "commit": "3a26ba3"
     }
   },
   {
@@ -105,23 +129,29 @@
     "width": 1440,
     "theme": "light",
     "file": "new-step1-errors-1440-light.png",
-    "viewport": "new-step1-errors-1440-light-viewport.png",
-    "over": 0,
-    "height": 1075,
-    "currentStepInView": true,
-    "stepHit": {
-      "visible": 26,
-      "hit": 44.5
+    "viewport": "new-step1-errors-1440-viewport.png",
+    "scrolled": null,
+    "over": -15,
+    "currentStepInViewOnLoad": true,
+    "trackScrolls": false,
+    "trackScrollbar": {
+      "css": "thin",
+      "visiblePx": 0
     },
     "focused": "problem-summary",
     "summary": "2 things to fix on this step",
-    "issueSelectsFit": null,
+    "blurb": "What the job is and where its rules come from.",
+    "footnote": null,
     "saveLine": "Your draft saves as you go.",
-    "finalButton": "Next: When and where",
-    "dark": false,
+    "primary": "Next: When and where",
+    "issueSelectsFit": null,
+    "currentStepTarget": {
+      "visible": 26,
+      "hit": 44.5
+    },
     "consoleErrors": 0,
     "source": {
-      "commit": "a648465"
+      "commit": "3a26ba3"
     }
   },
   {
@@ -131,22 +161,28 @@
     "theme": "dark",
     "file": "new-step1-errors-1440-dark.png",
     "viewport": null,
-    "over": 0,
-    "height": 1075,
-    "currentStepInView": true,
-    "stepHit": {
-      "visible": 26,
-      "hit": 44.5
+    "scrolled": null,
+    "over": -15,
+    "currentStepInViewOnLoad": true,
+    "trackScrolls": false,
+    "trackScrollbar": {
+      "css": "thin",
+      "visiblePx": 0
     },
     "focused": "problem-summary",
     "summary": "2 things to fix on this step",
-    "issueSelectsFit": null,
+    "blurb": "What the job is and where its rules come from.",
+    "footnote": null,
     "saveLine": "Your draft saves as you go.",
-    "finalButton": "Next: When and where",
-    "dark": true,
+    "primary": "Next: When and where",
+    "issueSelectsFit": null,
+    "currentStepTarget": {
+      "visible": 26,
+      "hit": 44.5
+    },
     "consoleErrors": 0,
     "source": {
-      "commit": "a648465"
+      "commit": "3a26ba3"
     }
   },
   {
@@ -155,23 +191,29 @@
     "width": 390,
     "theme": "light",
     "file": "draft-step2-390-light.png",
-    "viewport": "draft-step2-390-light-viewport.png",
+    "viewport": "draft-step2-390-viewport.png",
+    "scrolled": null,
     "over": 0,
-    "height": 2145,
-    "currentStepInView": true,
-    "stepHit": {
+    "currentStepInViewOnLoad": true,
+    "trackScrolls": true,
+    "trackScrollbar": {
+      "css": "none",
+      "visiblePx": 0
+    },
+    "focused": "section-title rounded-md focus",
+    "summary": null,
+    "blurb": "The dates, the city, and how each day starts.",
+    "footnote": null,
+    "saveLine": "Draft saved 11:38 AM · 6 fields wait for a fix",
+    "primary": "Next: Pay and hiring",
+    "issueSelectsFit": null,
+    "currentStepTarget": {
       "visible": 26,
       "hit": 44.5
     },
-    "focused": "section-title rounded-md focus-visible:r",
-    "summary": null,
-    "issueSelectsFit": null,
-    "saveLine": "Draft saved 11:20 AM · 6 fields wait for a fix",
-    "finalButton": "Next: Pay and hiring",
-    "dark": false,
     "consoleErrors": 0,
     "source": {
-      "commit": "a648465"
+      "commit": "3a26ba3"
     }
   },
   {
@@ -181,22 +223,28 @@
     "theme": "dark",
     "file": "draft-step2-390-dark.png",
     "viewport": null,
+    "scrolled": null,
     "over": 0,
-    "height": 2145,
-    "currentStepInView": true,
-    "stepHit": {
+    "currentStepInViewOnLoad": true,
+    "trackScrolls": true,
+    "trackScrollbar": {
+      "css": "none",
+      "visiblePx": 0
+    },
+    "focused": "section-title rounded-md focus",
+    "summary": null,
+    "blurb": "The dates, the city, and how each day starts.",
+    "footnote": null,
+    "saveLine": "Draft saved 11:38 AM · 6 fields wait for a fix",
+    "primary": "Next: Pay and hiring",
+    "issueSelectsFit": null,
+    "currentStepTarget": {
       "visible": 26,
       "hit": 44.5
     },
-    "focused": "section-title rounded-md focus-visible:r",
-    "summary": null,
-    "issueSelectsFit": null,
-    "saveLine": "Draft saved 11:20 AM · 6 fields wait for a fix",
-    "finalButton": "Next: Pay and hiring",
-    "dark": true,
     "consoleErrors": 0,
     "source": {
-      "commit": "a648465"
+      "commit": "3a26ba3"
     }
   },
   {
@@ -205,23 +253,29 @@
     "width": 1440,
     "theme": "light",
     "file": "draft-step2-1440-light.png",
-    "viewport": "draft-step2-1440-light-viewport.png",
-    "over": 0,
-    "height": 1533,
-    "currentStepInView": true,
-    "stepHit": {
+    "viewport": "draft-step2-1440-viewport.png",
+    "scrolled": null,
+    "over": -15,
+    "currentStepInViewOnLoad": true,
+    "trackScrolls": false,
+    "trackScrollbar": {
+      "css": "thin",
+      "visiblePx": 0
+    },
+    "focused": "section-title rounded-md focus",
+    "summary": null,
+    "blurb": "The dates, the city, and how each day starts.",
+    "footnote": null,
+    "saveLine": "Draft saved 11:38 AM · 6 fields wait for a fix",
+    "primary": "Next: Pay and hiring",
+    "issueSelectsFit": null,
+    "currentStepTarget": {
       "visible": 26,
       "hit": 44.5
     },
-    "focused": "section-title rounded-md focus-visible:r",
-    "summary": null,
-    "issueSelectsFit": null,
-    "saveLine": "Draft saved 11:20 AM · 6 fields wait for a fix",
-    "finalButton": "Next: Pay and hiring",
-    "dark": false,
     "consoleErrors": 0,
     "source": {
-      "commit": "a648465"
+      "commit": "3a26ba3"
     }
   },
   {
@@ -231,22 +285,28 @@
     "theme": "dark",
     "file": "draft-step2-1440-dark.png",
     "viewport": null,
-    "over": 0,
-    "height": 1533,
-    "currentStepInView": true,
-    "stepHit": {
+    "scrolled": null,
+    "over": -15,
+    "currentStepInViewOnLoad": true,
+    "trackScrolls": false,
+    "trackScrollbar": {
+      "css": "thin",
+      "visiblePx": 0
+    },
+    "focused": "section-title rounded-md focus",
+    "summary": null,
+    "blurb": "The dates, the city, and how each day starts.",
+    "footnote": null,
+    "saveLine": "Draft saved 11:38 AM · 6 fields wait for a fix",
+    "primary": "Next: Pay and hiring",
+    "issueSelectsFit": null,
+    "currentStepTarget": {
       "visible": 26,
       "hit": 44.5
     },
-    "focused": "section-title rounded-md focus-visible:r",
-    "summary": null,
-    "issueSelectsFit": null,
-    "saveLine": "Draft saved 11:20 AM · 6 fields wait for a fix",
-    "finalButton": "Next: Pay and hiring",
-    "dark": true,
     "consoleErrors": 0,
     "source": {
-      "commit": "a648465"
+      "commit": "3a26ba3"
     }
   },
   {
@@ -255,23 +315,29 @@
     "width": 390,
     "theme": "light",
     "file": "draft-step4-errors-390-light.png",
-    "viewport": "draft-step4-errors-390-light-viewport.png",
+    "viewport": "draft-step4-errors-390-viewport.png",
+    "scrolled": null,
     "over": 0,
-    "height": 2002,
-    "currentStepInView": true,
-    "stepHit": {
-      "visible": 26,
-      "hit": 44.5
+    "currentStepInViewOnLoad": true,
+    "trackScrolls": true,
+    "trackScrollbar": {
+      "css": "none",
+      "visiblePx": 0
     },
     "focused": "problem-summary",
     "summary": "3 things to fix on this step",
+    "blurb": "What workers must hold, the app the work runs in, and who they call when something goes wrong.",
+    "footnote": null,
+    "saveLine": "Draft saved 11:38 AM · 6 fields wait for a fix",
+    "primary": "Next: Campaign disclosure",
     "issueSelectsFit": null,
-    "saveLine": "Draft saved 11:20 AM · 6 fields wait for a fix",
-    "finalButton": "Next: Campaign disclosure",
-    "dark": false,
+    "currentStepTarget": {
+      "visible": 26,
+      "hit": 44.5
+    },
     "consoleErrors": 0,
     "source": {
-      "commit": "a648465"
+      "commit": "3a26ba3"
     }
   },
   {
@@ -281,22 +347,28 @@
     "theme": "dark",
     "file": "draft-step4-errors-390-dark.png",
     "viewport": null,
+    "scrolled": null,
     "over": 0,
-    "height": 2002,
-    "currentStepInView": true,
-    "stepHit": {
-      "visible": 26,
-      "hit": 44.5
+    "currentStepInViewOnLoad": true,
+    "trackScrolls": true,
+    "trackScrollbar": {
+      "css": "none",
+      "visiblePx": 0
     },
     "focused": "problem-summary",
     "summary": "3 things to fix on this step",
+    "blurb": "What workers must hold, the app the work runs in, and who they call when something goes wrong.",
+    "footnote": null,
+    "saveLine": "Draft saved 11:38 AM · 6 fields wait for a fix",
+    "primary": "Next: Campaign disclosure",
     "issueSelectsFit": null,
-    "saveLine": "Draft saved 11:20 AM · 6 fields wait for a fix",
-    "finalButton": "Next: Campaign disclosure",
-    "dark": true,
+    "currentStepTarget": {
+      "visible": 26,
+      "hit": 44.5
+    },
     "consoleErrors": 0,
     "source": {
-      "commit": "a648465"
+      "commit": "3a26ba3"
     }
   },
   {
@@ -305,23 +377,29 @@
     "width": 1440,
     "theme": "light",
     "file": "draft-step4-errors-1440-light.png",
-    "viewport": "draft-step4-errors-1440-light-viewport.png",
-    "over": 0,
-    "height": 1411,
-    "currentStepInView": true,
-    "stepHit": {
-      "visible": 26,
-      "hit": 44.5
+    "viewport": "draft-step4-errors-1440-viewport.png",
+    "scrolled": null,
+    "over": -15,
+    "currentStepInViewOnLoad": true,
+    "trackScrolls": false,
+    "trackScrollbar": {
+      "css": "thin",
+      "visiblePx": 0
     },
     "focused": "problem-summary",
     "summary": "3 things to fix on this step",
+    "blurb": "What workers must hold, the app the work runs in, and who they call when something goes wrong.",
+    "footnote": null,
+    "saveLine": "Draft saved 11:38 AM · 6 fields wait for a fix",
+    "primary": "Next: Campaign disclosure",
     "issueSelectsFit": null,
-    "saveLine": "Draft saved 11:20 AM · 6 fields wait for a fix",
-    "finalButton": "Next: Campaign disclosure",
-    "dark": false,
+    "currentStepTarget": {
+      "visible": 26,
+      "hit": 44.5
+    },
     "consoleErrors": 0,
     "source": {
-      "commit": "a648465"
+      "commit": "3a26ba3"
     }
   },
   {
@@ -331,172 +409,28 @@
     "theme": "dark",
     "file": "draft-step4-errors-1440-dark.png",
     "viewport": null,
-    "over": 0,
-    "height": 1411,
-    "currentStepInView": true,
-    "stepHit": {
-      "visible": 26,
-      "hit": 44.5
+    "scrolled": null,
+    "over": -15,
+    "currentStepInViewOnLoad": true,
+    "trackScrolls": false,
+    "trackScrollbar": {
+      "css": "thin",
+      "visiblePx": 0
     },
     "focused": "problem-summary",
     "summary": "3 things to fix on this step",
+    "blurb": "What workers must hold, the app the work runs in, and who they call when something goes wrong.",
+    "footnote": null,
+    "saveLine": "Draft saved 11:39 AM · 6 fields wait for a fix",
+    "primary": "Next: Campaign disclosure",
     "issueSelectsFit": null,
-    "saveLine": "Draft saved 11:20 AM · 6 fields wait for a fix",
-    "finalButton": "Next: Campaign disclosure",
-    "dark": true,
-    "consoleErrors": 0,
-    "source": {
-      "commit": "a648465"
-    }
-  },
-  {
-    "name": "live-step5",
-    "route": "/jobs/86d8312d-003d-4ffd-8b70-1a06f0d9b28f/edit",
-    "width": 320,
-    "theme": "light",
-    "file": "live-step5-320-light.png",
-    "viewport": "live-step5-320-light-viewport.png",
-    "over": 0,
-    "height": 2743,
-    "currentStepInView": true,
-    "stepHit": {
+    "currentStepTarget": {
       "visible": 26,
       "hit": 44.5
     },
-    "focused": "section-title rounded-md focus-visible:r",
-    "summary": null,
-    "issueSelectsFit": true,
-    "saveLine": "Changes save when you finish.",
-    "finalButton": "Next: Review",
-    "dark": false,
     "consoleErrors": 0,
     "source": {
-      "commit": "a648465"
-    }
-  },
-  {
-    "name": "live-step5",
-    "route": "/jobs/86d8312d-003d-4ffd-8b70-1a06f0d9b28f/edit",
-    "width": 320,
-    "theme": "dark",
-    "file": "live-step5-320-dark.png",
-    "viewport": null,
-    "over": 0,
-    "height": 2743,
-    "currentStepInView": true,
-    "stepHit": {
-      "visible": 26,
-      "hit": 44.5
-    },
-    "focused": "section-title rounded-md focus-visible:r",
-    "summary": null,
-    "issueSelectsFit": true,
-    "saveLine": "Changes save when you finish.",
-    "finalButton": "Next: Review",
-    "dark": true,
-    "consoleErrors": 0,
-    "source": {
-      "commit": "a648465"
-    }
-  },
-  {
-    "name": "live-step5",
-    "route": "/jobs/86d8312d-003d-4ffd-8b70-1a06f0d9b28f/edit",
-    "width": 390,
-    "theme": "light",
-    "file": "live-step5-390-light.png",
-    "viewport": "live-step5-390-light-viewport.png",
-    "over": 0,
-    "height": 2607,
-    "currentStepInView": true,
-    "stepHit": {
-      "visible": 26,
-      "hit": 44.5
-    },
-    "focused": "section-title rounded-md focus-visible:r",
-    "summary": null,
-    "issueSelectsFit": true,
-    "saveLine": "Changes save when you finish.",
-    "finalButton": "Next: Review",
-    "dark": false,
-    "consoleErrors": 0,
-    "source": {
-      "commit": "a648465"
-    }
-  },
-  {
-    "name": "live-step5",
-    "route": "/jobs/86d8312d-003d-4ffd-8b70-1a06f0d9b28f/edit",
-    "width": 390,
-    "theme": "dark",
-    "file": "live-step5-390-dark.png",
-    "viewport": null,
-    "over": 0,
-    "height": 2607,
-    "currentStepInView": true,
-    "stepHit": {
-      "visible": 26,
-      "hit": 44.5
-    },
-    "focused": "section-title rounded-md focus-visible:r",
-    "summary": null,
-    "issueSelectsFit": true,
-    "saveLine": "Changes save when you finish.",
-    "finalButton": "Next: Review",
-    "dark": true,
-    "consoleErrors": 0,
-    "source": {
-      "commit": "a648465"
-    }
-  },
-  {
-    "name": "live-step5",
-    "route": "/jobs/86d8312d-003d-4ffd-8b70-1a06f0d9b28f/edit",
-    "width": 1440,
-    "theme": "light",
-    "file": "live-step5-1440-light.png",
-    "viewport": "live-step5-1440-light-viewport.png",
-    "over": 0,
-    "height": 1862,
-    "currentStepInView": true,
-    "stepHit": {
-      "visible": 26,
-      "hit": 44.5
-    },
-    "focused": "section-title rounded-md focus-visible:r",
-    "summary": null,
-    "issueSelectsFit": true,
-    "saveLine": "Changes save when you finish.",
-    "finalButton": "Next: Review",
-    "dark": false,
-    "consoleErrors": 0,
-    "source": {
-      "commit": "a648465"
-    }
-  },
-  {
-    "name": "live-step5",
-    "route": "/jobs/86d8312d-003d-4ffd-8b70-1a06f0d9b28f/edit",
-    "width": 1440,
-    "theme": "dark",
-    "file": "live-step5-1440-dark.png",
-    "viewport": null,
-    "over": 0,
-    "height": 1862,
-    "currentStepInView": true,
-    "stepHit": {
-      "visible": 26,
-      "hit": 44.5
-    },
-    "focused": "section-title rounded-md focus-visible:r",
-    "summary": null,
-    "issueSelectsFit": true,
-    "saveLine": "Changes save when you finish.",
-    "finalButton": "Next: Review",
-    "dark": true,
-    "consoleErrors": 0,
-    "source": {
-      "commit": "a648465"
+      "commit": "3a26ba3"
     }
   },
   {
@@ -505,23 +439,29 @@
     "width": 390,
     "theme": "light",
     "file": "draft-jump-to-review-stops-at-step4-390-light.png",
-    "viewport": "draft-jump-to-review-stops-at-step4-390-light-viewport.png",
+    "viewport": "draft-jump-to-review-stops-at-step4-390-viewport.png",
+    "scrolled": null,
     "over": 0,
-    "height": 2002,
-    "currentStepInView": true,
-    "stepHit": {
-      "visible": 26,
-      "hit": 44.5
+    "currentStepInViewOnLoad": true,
+    "trackScrolls": true,
+    "trackScrollbar": {
+      "css": "none",
+      "visiblePx": 0
     },
     "focused": "problem-summary",
     "summary": "3 things to fix on this step",
-    "issueSelectsFit": null,
+    "blurb": "What workers must hold, the app the work runs in, and who they call when something goes wrong.",
+    "footnote": null,
     "saveLine": "Your draft saves as you go.",
-    "finalButton": "Next: Campaign disclosure",
-    "dark": false,
+    "primary": "Next: Campaign disclosure",
+    "issueSelectsFit": null,
+    "currentStepTarget": {
+      "visible": 26,
+      "hit": 44.5
+    },
     "consoleErrors": 0,
     "source": {
-      "commit": "a648465"
+      "commit": "3a26ba3"
     }
   },
   {
@@ -531,72 +471,28 @@
     "theme": "dark",
     "file": "draft-jump-to-review-stops-at-step4-390-dark.png",
     "viewport": null,
+    "scrolled": null,
     "over": 0,
-    "height": 2002,
-    "currentStepInView": true,
-    "stepHit": {
-      "visible": 26,
-      "hit": 44.5
+    "currentStepInViewOnLoad": true,
+    "trackScrolls": true,
+    "trackScrollbar": {
+      "css": "none",
+      "visiblePx": 0
     },
     "focused": "problem-summary",
     "summary": "3 things to fix on this step",
-    "issueSelectsFit": null,
+    "blurb": "What workers must hold, the app the work runs in, and who they call when something goes wrong.",
+    "footnote": null,
     "saveLine": "Your draft saves as you go.",
-    "finalButton": "Next: Campaign disclosure",
-    "dark": true,
-    "consoleErrors": 0,
-    "source": {
-      "commit": "a648465"
-    }
-  },
-  {
-    "name": "draft-jump-to-review-stops-at-step4",
-    "route": "/jobs/c01a4f88-a2a3-4940-9979-a7b05dda2eae/edit",
-    "width": 1440,
-    "theme": "light",
-    "file": "draft-jump-to-review-stops-at-step4-1440-light.png",
-    "viewport": "draft-jump-to-review-stops-at-step4-1440-light-viewport.png",
-    "over": 0,
-    "height": 1411,
-    "currentStepInView": true,
-    "stepHit": {
+    "primary": "Next: Campaign disclosure",
+    "issueSelectsFit": null,
+    "currentStepTarget": {
       "visible": 26,
       "hit": 44.5
     },
-    "focused": "problem-summary",
-    "summary": "3 things to fix on this step",
-    "issueSelectsFit": null,
-    "saveLine": "Your draft saves as you go.",
-    "finalButton": "Next: Campaign disclosure",
-    "dark": false,
     "consoleErrors": 0,
     "source": {
-      "commit": "a648465"
-    }
-  },
-  {
-    "name": "draft-jump-to-review-stops-at-step4",
-    "route": "/jobs/c01a4f88-a2a3-4940-9979-a7b05dda2eae/edit",
-    "width": 1440,
-    "theme": "dark",
-    "file": "draft-jump-to-review-stops-at-step4-1440-dark.png",
-    "viewport": null,
-    "over": 0,
-    "height": 1411,
-    "currentStepInView": true,
-    "stepHit": {
-      "visible": 26,
-      "hit": 44.5
-    },
-    "focused": "problem-summary",
-    "summary": "3 things to fix on this step",
-    "issueSelectsFit": null,
-    "saveLine": "Your draft saves as you go.",
-    "finalButton": "Next: Campaign disclosure",
-    "dark": true,
-    "consoleErrors": 0,
-    "source": {
-      "commit": "a648465"
+      "commit": "3a26ba3"
     }
   },
   {
@@ -605,23 +501,29 @@
     "width": 390,
     "theme": "light",
     "file": "live-step1-390-light.png",
-    "viewport": "live-step1-390-light-viewport.png",
+    "viewport": "live-step1-390-viewport.png",
+    "scrolled": null,
     "over": 0,
-    "height": 1256,
-    "currentStepInView": true,
-    "stepHit": {
-      "visible": 26,
-      "hit": 44.5
+    "currentStepInViewOnLoad": true,
+    "trackScrolls": true,
+    "trackScrollbar": {
+      "css": "none",
+      "visiblePx": 0
     },
     "focused": "min-h-full flex flex-col",
     "summary": null,
-    "issueSelectsFit": null,
+    "blurb": "What the job is and where its rules come from.",
+    "footnote": null,
     "saveLine": "Changes save when you finish.",
-    "finalButton": "Next: When and where",
-    "dark": false,
+    "primary": "Next: When and where",
+    "issueSelectsFit": null,
+    "currentStepTarget": {
+      "visible": 26,
+      "hit": 44.5
+    },
     "consoleErrors": 0,
     "source": {
-      "commit": "a648465"
+      "commit": "3a26ba3"
     }
   },
   {
@@ -631,22 +533,28 @@
     "theme": "dark",
     "file": "live-step1-390-dark.png",
     "viewport": null,
+    "scrolled": null,
     "over": 0,
-    "height": 1256,
-    "currentStepInView": true,
-    "stepHit": {
-      "visible": 26,
-      "hit": 44.5
+    "currentStepInViewOnLoad": true,
+    "trackScrolls": true,
+    "trackScrollbar": {
+      "css": "none",
+      "visiblePx": 0
     },
     "focused": "min-h-full flex flex-col",
     "summary": null,
-    "issueSelectsFit": null,
+    "blurb": "What the job is and where its rules come from.",
+    "footnote": null,
     "saveLine": "Changes save when you finish.",
-    "finalButton": "Next: When and where",
-    "dark": true,
+    "primary": "Next: When and where",
+    "issueSelectsFit": null,
+    "currentStepTarget": {
+      "visible": 26,
+      "hit": 44.5
+    },
     "consoleErrors": 0,
     "source": {
-      "commit": "a648465"
+      "commit": "3a26ba3"
     }
   },
   {
@@ -655,23 +563,29 @@
     "width": 1440,
     "theme": "light",
     "file": "live-step1-1440-light.png",
-    "viewport": "live-step1-1440-light-viewport.png",
-    "over": 0,
-    "height": 989,
-    "currentStepInView": true,
-    "stepHit": {
-      "visible": 26,
-      "hit": 44.5
+    "viewport": "live-step1-1440-viewport.png",
+    "scrolled": null,
+    "over": -15,
+    "currentStepInViewOnLoad": true,
+    "trackScrolls": false,
+    "trackScrollbar": {
+      "css": "thin",
+      "visiblePx": 0
     },
     "focused": "min-h-full flex flex-col",
     "summary": null,
-    "issueSelectsFit": null,
+    "blurb": "What the job is and where its rules come from.",
+    "footnote": null,
     "saveLine": "Changes save when you finish.",
-    "finalButton": "Next: When and where",
-    "dark": false,
+    "primary": "Next: When and where",
+    "issueSelectsFit": null,
+    "currentStepTarget": {
+      "visible": 26,
+      "hit": 44.5
+    },
     "consoleErrors": 0,
     "source": {
-      "commit": "a648465"
+      "commit": "3a26ba3"
     }
   },
   {
@@ -681,22 +595,276 @@
     "theme": "dark",
     "file": "live-step1-1440-dark.png",
     "viewport": null,
-    "over": 0,
-    "height": 989,
-    "currentStepInView": true,
-    "stepHit": {
-      "visible": 26,
-      "hit": 44.5
+    "scrolled": null,
+    "over": -15,
+    "currentStepInViewOnLoad": true,
+    "trackScrolls": false,
+    "trackScrollbar": {
+      "css": "thin",
+      "visiblePx": 0
     },
     "focused": "min-h-full flex flex-col",
     "summary": null,
-    "issueSelectsFit": null,
+    "blurb": "What the job is and where its rules come from.",
+    "footnote": null,
     "saveLine": "Changes save when you finish.",
-    "finalButton": "Next: When and where",
-    "dark": true,
+    "primary": "Next: When and where",
+    "issueSelectsFit": null,
+    "currentStepTarget": {
+      "visible": 26,
+      "hit": 44.5
+    },
     "consoleErrors": 0,
     "source": {
-      "commit": "a648465"
+      "commit": "3a26ba3"
+    }
+  },
+  {
+    "name": "live-step5",
+    "route": "/jobs/86d8312d-003d-4ffd-8b70-1a06f0d9b28f/edit",
+    "width": 320,
+    "theme": "light",
+    "file": "live-step5-320-light.png",
+    "viewport": "live-step5-320-viewport.png",
+    "scrolled": null,
+    "over": 0,
+    "currentStepInViewOnLoad": true,
+    "trackScrolls": true,
+    "trackScrollbar": {
+      "css": "none",
+      "visiblePx": 0
+    },
+    "focused": "section-title rounded-md focus",
+    "summary": null,
+    "blurb": "What workers see about the campaign before they apply.",
+    "footnote": null,
+    "saveLine": "Changes save when you finish.",
+    "primary": "Next: Review",
+    "issueSelectsFit": true,
+    "currentStepTarget": {
+      "visible": 26,
+      "hit": 44.5
+    },
+    "consoleErrors": 0,
+    "source": {
+      "commit": "3a26ba3"
+    }
+  },
+  {
+    "name": "live-step5",
+    "route": "/jobs/86d8312d-003d-4ffd-8b70-1a06f0d9b28f/edit",
+    "width": 320,
+    "theme": "dark",
+    "file": "live-step5-320-dark.png",
+    "viewport": null,
+    "scrolled": null,
+    "over": 0,
+    "currentStepInViewOnLoad": true,
+    "trackScrolls": true,
+    "trackScrollbar": {
+      "css": "none",
+      "visiblePx": 0
+    },
+    "focused": "section-title rounded-md focus",
+    "summary": null,
+    "blurb": "What workers see about the campaign before they apply.",
+    "footnote": null,
+    "saveLine": "Changes save when you finish.",
+    "primary": "Next: Review",
+    "issueSelectsFit": true,
+    "currentStepTarget": {
+      "visible": 26,
+      "hit": 44.5
+    },
+    "consoleErrors": 0,
+    "source": {
+      "commit": "3a26ba3"
+    }
+  },
+  {
+    "name": "live-step5",
+    "route": "/jobs/86d8312d-003d-4ffd-8b70-1a06f0d9b28f/edit",
+    "width": 390,
+    "theme": "light",
+    "file": "live-step5-390-light.png",
+    "viewport": "live-step5-390-viewport.png",
+    "scrolled": null,
+    "over": 0,
+    "currentStepInViewOnLoad": true,
+    "trackScrolls": true,
+    "trackScrollbar": {
+      "css": "none",
+      "visiblePx": 0
+    },
+    "focused": "section-title rounded-md focus",
+    "summary": null,
+    "blurb": "What workers see about the campaign before they apply.",
+    "footnote": null,
+    "saveLine": "Changes save when you finish.",
+    "primary": "Next: Review",
+    "issueSelectsFit": true,
+    "currentStepTarget": {
+      "visible": 26,
+      "hit": 44.5
+    },
+    "consoleErrors": 0,
+    "source": {
+      "commit": "3a26ba3"
+    }
+  },
+  {
+    "name": "live-step5",
+    "route": "/jobs/86d8312d-003d-4ffd-8b70-1a06f0d9b28f/edit",
+    "width": 390,
+    "theme": "dark",
+    "file": "live-step5-390-dark.png",
+    "viewport": null,
+    "scrolled": null,
+    "over": 0,
+    "currentStepInViewOnLoad": true,
+    "trackScrolls": true,
+    "trackScrollbar": {
+      "css": "none",
+      "visiblePx": 0
+    },
+    "focused": "section-title rounded-md focus",
+    "summary": null,
+    "blurb": "What workers see about the campaign before they apply.",
+    "footnote": null,
+    "saveLine": "Changes save when you finish.",
+    "primary": "Next: Review",
+    "issueSelectsFit": true,
+    "currentStepTarget": {
+      "visible": 26,
+      "hit": 44.5
+    },
+    "consoleErrors": 0,
+    "source": {
+      "commit": "3a26ba3"
+    }
+  },
+  {
+    "name": "live-step5",
+    "route": "/jobs/86d8312d-003d-4ffd-8b70-1a06f0d9b28f/edit",
+    "width": 1440,
+    "theme": "light",
+    "file": "live-step5-1440-light.png",
+    "viewport": "live-step5-1440-viewport.png",
+    "scrolled": null,
+    "over": -15,
+    "currentStepInViewOnLoad": true,
+    "trackScrolls": false,
+    "trackScrollbar": {
+      "css": "thin",
+      "visiblePx": 0
+    },
+    "focused": "section-title rounded-md focus",
+    "summary": null,
+    "blurb": "What workers see about the campaign before they apply.",
+    "footnote": null,
+    "saveLine": "Changes save when you finish.",
+    "primary": "Next: Review",
+    "issueSelectsFit": true,
+    "currentStepTarget": {
+      "visible": 26,
+      "hit": 44.5
+    },
+    "consoleErrors": 0,
+    "source": {
+      "commit": "3a26ba3"
+    }
+  },
+  {
+    "name": "live-step5",
+    "route": "/jobs/86d8312d-003d-4ffd-8b70-1a06f0d9b28f/edit",
+    "width": 1440,
+    "theme": "dark",
+    "file": "live-step5-1440-dark.png",
+    "viewport": null,
+    "scrolled": null,
+    "over": -15,
+    "currentStepInViewOnLoad": true,
+    "trackScrolls": false,
+    "trackScrollbar": {
+      "css": "thin",
+      "visiblePx": 0
+    },
+    "focused": "section-title rounded-md focus",
+    "summary": null,
+    "blurb": "What workers see about the campaign before they apply.",
+    "footnote": null,
+    "saveLine": "Changes save when you finish.",
+    "primary": "Next: Review",
+    "issueSelectsFit": true,
+    "currentStepTarget": {
+      "visible": 26,
+      "hit": 44.5
+    },
+    "consoleErrors": 0,
+    "source": {
+      "commit": "3a26ba3"
+    }
+  },
+  {
+    "name": "live-review",
+    "route": "/jobs/86d8312d-003d-4ffd-8b70-1a06f0d9b28f/edit",
+    "width": 320,
+    "theme": "light",
+    "file": "live-review-320-light.png",
+    "viewport": "live-review-320-viewport.png",
+    "scrolled": "live-review-320-scrolled-to-save.png",
+    "over": 0,
+    "currentStepInViewOnLoad": true,
+    "trackScrolls": true,
+    "trackScrollbar": {
+      "css": "none",
+      "visiblePx": 0
+    },
+    "focused": "section-title rounded-md focus",
+    "summary": null,
+    "blurb": "Check everything, then save your changes.",
+    "footnote": null,
+    "saveLine": "Changes save when you finish.",
+    "primary": "Save changes",
+    "issueSelectsFit": null,
+    "currentStepTarget": {
+      "visible": 26,
+      "hit": 44.5
+    },
+    "consoleErrors": 0,
+    "source": {
+      "commit": "3a26ba3"
+    }
+  },
+  {
+    "name": "live-review",
+    "route": "/jobs/86d8312d-003d-4ffd-8b70-1a06f0d9b28f/edit",
+    "width": 320,
+    "theme": "dark",
+    "file": "live-review-320-dark.png",
+    "viewport": null,
+    "scrolled": null,
+    "over": 0,
+    "currentStepInViewOnLoad": true,
+    "trackScrolls": true,
+    "trackScrollbar": {
+      "css": "none",
+      "visiblePx": 0
+    },
+    "focused": "section-title rounded-md focus",
+    "summary": null,
+    "blurb": "Check everything, then save your changes.",
+    "footnote": null,
+    "saveLine": "Changes save when you finish.",
+    "primary": "Save changes",
+    "issueSelectsFit": null,
+    "currentStepTarget": {
+      "visible": 26,
+      "hit": 44.5
+    },
+    "consoleErrors": 0,
+    "source": {
+      "commit": "3a26ba3"
     }
   },
   {
@@ -705,23 +873,29 @@
     "width": 390,
     "theme": "light",
     "file": "live-review-390-light.png",
-    "viewport": "live-review-390-light-viewport.png",
+    "viewport": "live-review-390-viewport.png",
+    "scrolled": "live-review-390-scrolled-to-save.png",
     "over": 0,
-    "height": 2215,
-    "currentStepInView": true,
-    "stepHit": {
+    "currentStepInViewOnLoad": true,
+    "trackScrolls": true,
+    "trackScrollbar": {
+      "css": "none",
+      "visiblePx": 0
+    },
+    "focused": "section-title rounded-md focus",
+    "summary": null,
+    "blurb": "Check everything, then save your changes.",
+    "footnote": null,
+    "saveLine": "Changes save when you finish.",
+    "primary": "Save changes",
+    "issueSelectsFit": null,
+    "currentStepTarget": {
       "visible": 26,
       "hit": 44.5
     },
-    "focused": "section-title rounded-md focus-visible:r",
-    "summary": null,
-    "issueSelectsFit": null,
-    "saveLine": "Changes save when you finish.",
-    "finalButton": "Save changes",
-    "dark": false,
     "consoleErrors": 0,
     "source": {
-      "commit": "a648465"
+      "commit": "3a26ba3"
     }
   },
   {
@@ -731,22 +905,28 @@
     "theme": "dark",
     "file": "live-review-390-dark.png",
     "viewport": null,
+    "scrolled": null,
     "over": 0,
-    "height": 2215,
-    "currentStepInView": true,
-    "stepHit": {
+    "currentStepInViewOnLoad": true,
+    "trackScrolls": true,
+    "trackScrollbar": {
+      "css": "none",
+      "visiblePx": 0
+    },
+    "focused": "section-title rounded-md focus",
+    "summary": null,
+    "blurb": "Check everything, then save your changes.",
+    "footnote": null,
+    "saveLine": "Changes save when you finish.",
+    "primary": "Save changes",
+    "issueSelectsFit": null,
+    "currentStepTarget": {
       "visible": 26,
       "hit": 44.5
     },
-    "focused": "section-title rounded-md focus-visible:r",
-    "summary": null,
-    "issueSelectsFit": null,
-    "saveLine": "Changes save when you finish.",
-    "finalButton": "Save changes",
-    "dark": true,
     "consoleErrors": 0,
     "source": {
-      "commit": "a648465"
+      "commit": "3a26ba3"
     }
   },
   {
@@ -755,23 +935,29 @@
     "width": 1440,
     "theme": "light",
     "file": "live-review-1440-light.png",
-    "viewport": "live-review-1440-light-viewport.png",
-    "over": 0,
-    "height": 1726,
-    "currentStepInView": true,
-    "stepHit": {
+    "viewport": "live-review-1440-viewport.png",
+    "scrolled": null,
+    "over": -15,
+    "currentStepInViewOnLoad": true,
+    "trackScrolls": false,
+    "trackScrollbar": {
+      "css": "thin",
+      "visiblePx": 0
+    },
+    "focused": "section-title rounded-md focus",
+    "summary": null,
+    "blurb": "Check everything, then save your changes.",
+    "footnote": null,
+    "saveLine": "Changes save when you finish.",
+    "primary": "Save changes",
+    "issueSelectsFit": null,
+    "currentStepTarget": {
       "visible": 26,
       "hit": 44.5
     },
-    "focused": "section-title rounded-md focus-visible:r",
-    "summary": null,
-    "issueSelectsFit": null,
-    "saveLine": "Changes save when you finish.",
-    "finalButton": "Save changes",
-    "dark": false,
     "consoleErrors": 0,
     "source": {
-      "commit": "a648465"
+      "commit": "3a26ba3"
     }
   },
   {
@@ -781,22 +967,130 @@
     "theme": "dark",
     "file": "live-review-1440-dark.png",
     "viewport": null,
-    "over": 0,
-    "height": 1726,
-    "currentStepInView": true,
-    "stepHit": {
+    "scrolled": null,
+    "over": -15,
+    "currentStepInViewOnLoad": true,
+    "trackScrolls": false,
+    "trackScrollbar": {
+      "css": "thin",
+      "visiblePx": 0
+    },
+    "focused": "section-title rounded-md focus",
+    "summary": null,
+    "blurb": "Check everything, then save your changes.",
+    "footnote": null,
+    "saveLine": "Changes save when you finish.",
+    "primary": "Save changes",
+    "issueSelectsFit": null,
+    "currentStepTarget": {
       "visible": 26,
       "hit": 44.5
     },
-    "focused": "section-title rounded-md focus-visible:r",
-    "summary": null,
-    "issueSelectsFit": null,
-    "saveLine": "Changes save when you finish.",
-    "finalButton": "Save changes",
-    "dark": true,
     "consoleErrors": 0,
     "source": {
-      "commit": "a648465"
+      "commit": "3a26ba3"
+    }
+  },
+  {
+    "name": "live-review-track-800",
+    "route": "/jobs/86d8312d-003d-4ffd-8b70-1a06f0d9b28f/edit",
+    "width": 800,
+    "theme": "light",
+    "file": "live-review-track-800-800-light.png",
+    "viewport": "live-review-track-800-800-viewport.png",
+    "scrolled": null,
+    "over": -15,
+    "currentStepInViewOnLoad": true,
+    "trackScrolls": true,
+    "trackScrollbar": {
+      "css": "thin",
+      "visiblePx": 10
+    },
+    "focused": "section-title rounded-md focus",
+    "summary": null,
+    "blurb": "Check everything, then save your changes.",
+    "footnote": null,
+    "saveLine": "Changes save when you finish.",
+    "primary": "Save changes",
+    "issueSelectsFit": null,
+    "currentStepTarget": {
+      "visible": 26,
+      "hit": 44.5
+    },
+    "consoleErrors": 0,
+    "source": {
+      "commit": "3a26ba3"
+    }
+  },
+  {
+    "name": "focus-ring-first-step",
+    "width": 390,
+    "theme": "light",
+    "file": "focus-ring-first-step-390.png",
+    "focusVisible": true,
+    "outline": "solid 2px offset 2px",
+    "ringInsideTrack": true,
+    "step": "1. The work",
+    "source": {
+      "commit": "3a26ba3"
+    }
+  },
+  {
+    "name": "focus-ring-last-step",
+    "width": 390,
+    "theme": "light",
+    "file": "focus-ring-last-step-390.png",
+    "focusVisible": true,
+    "outline": "solid 2px offset 2px",
+    "ringInsideTrack": true,
+    "step": "6. Review",
+    "source": {
+      "commit": "3a26ba3"
+    }
+  },
+  {
+    "name": "summary-links",
+    "width": 390,
+    "theme": "light",
+    "file": "summary-staging-links-390.png",
+    "hiring": {
+      "focusedAfterNext": "problem-summary",
+      "links": [
+        {
+          "text": "Pick at least one way to hire.",
+          "focused": "hiringModes"
+        }
+      ]
+    },
+    "contacts": {
+      "focusedAfterNext": "problem-summary",
+      "links": [
+        {
+          "text": "Emergency contact is required.",
+          "focused": "contactEmergency"
+        },
+        {
+          "text": "Disputes contact is required.",
+          "focused": "contactDisputes"
+        },
+        {
+          "text": "Lost-materials contact is required.",
+          "focused": "contactLostMaterials"
+        }
+      ]
+    },
+    "staging": {
+      "focusedAfterNext": "problem-summary",
+      "links": [
+        {
+          "text": "Pick the point on the map.",
+          "focused": "#err-point_1_lat"
+        }
+      ]
+    },
+    "note": "The live job's edits here were never saved: a live job does not autosave, and no Save changes was pressed.",
+    "source": {
+      "commit": "3a26ba3"
     }
   }
 ]

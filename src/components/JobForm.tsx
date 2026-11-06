@@ -50,8 +50,9 @@ export interface JurisdictionOption {
  * the form afresh each time it opens, each line pointing back to its step.
  * The form is submitted inside our own transition, so React doesn't reset
  * it when the server answers with a problem; that answer sends the builder
- * back to the step it belongs to. Saves a draft only — publishing is a
- * separate step that runs the jurisdiction hard stop. Campaign positions
+ * back to the step it belongs to. Saves a draft (or, on a published or
+ * paused job, its changes) — publishing is a separate step that runs the
+ * jurisdiction hard stop. Campaign positions
  * use the same issue list workers answer with, so overlap is a direct
  * comparison.
  */

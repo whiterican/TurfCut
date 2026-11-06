@@ -10,7 +10,7 @@ The job builder (`src/components/JobForm.tsx`, `src/app/globals.css`) after slic
 4. Draw the dock at the page's end and take the full-height capture, so the dock covers nothing.
 5. Last, probe the current step's touch target with `elementFromPoint` in quarter-pixel steps, saving and restoring the track's scroll.
 
-Chromium runs with its scrollbars shown (not the headless default of hiding them), so the scrollbar check is real. At 1440 that makes `over` read −15, the page's own vertical scrollbar, not overflow.
+Chromium runs with its scrollbars shown (not the headless default of hiding them), so the scrollbar check is real. At 1440 that makes `over` read −15, the page's own vertical scrollbar, not overflow; the track's `scrollbar-width` reads `thin` there with 0px shown because the track wraps and doesn't scroll.
 
 ## Captures (`manifest.json` has every number)
 
@@ -19,7 +19,7 @@ Chromium runs with its scrollbars shown (not the headless default of hiding them
 | `new-step1-errors-{320,390,1440}` | New job, Next with nothing filled: "2 things to fix on this step", focus on the summary, the inline errors kept | `builder-new-errors` |
 | `draft-step2-{390,1440}` | Saved draft, step 2 with the staging map; save line with fields waiting for a fix | `builder-draft-step2` |
 | `draft-step4-errors-{390,1440}` | Saved draft, Next on step 4 with the contacts missing: "3 things to fix on this step" | `builder-draft-step4-errors` |
-| `draft-jump-to-review-stops-at-step4-390` | Pressing Review on that draft stops at step 4, the first step that fails, as today | (behaviour kept) |
+| `draft-jump-to-review-stops-at-step4-390` | The Review step pressed in the track on that draft stops at step 4, the first step that fails, as today (the capture script's action; the manifest records the result) | (behaviour kept) |
 | `live-step1-{390,1440}` | Published job, step 1: the live notice, "Changes save when you finish." | `builder-live-step1` |
 | `live-step5-{320,390,1440}` | Published job, step 5: the issue rows stacked on a phone, "Not disclosed" whole | `builder-draft-step5` |
 | `live-review-{320,390,1440}` (+ `-scrolled-to-save` at 320 and 390) | Published job, step 6: "Check everything, then save your changes.", no draft footnote, "Save changes" | `builder-live-review` |
@@ -29,8 +29,8 @@ Chromium runs with its scrollbars shown (not the headless default of hiding them
 
 ## Results at 3a26ba3
 
-- No horizontal overflow and no console errors in any capture.
-- The current step inside the track on load in every capture.
+- No horizontal overflow and no console errors in any of the page captures (the rows above with a width and theme; the focus-ring and summary-link checks record their own results instead).
+- The current step inside the track on load in every page capture.
 - The current step's target 44.5px against a visible 26px.
 - Focus on the summary after every failed Next.
 - Every issue select fits "Not disclosed".

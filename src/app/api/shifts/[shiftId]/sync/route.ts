@@ -1,3 +1,4 @@
+import { failureResponse } from "@/lib/api-errors";
 import { allow, retryAfter } from "@/lib/rate-limit";
 import { apiWorker, badId } from "@/lib/api-session";
 import { syncWorkerActions } from "@/lib/field-day-data";
@@ -30,7 +31,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ shiftId
   }
   if (new Set(actions.map((a) => a.clientId)).size !== actions.length) return Response.json({ error: "Each action needs its own id." }, { status: 400 });
   const r = await syncWorkerActions({ workerId: auth.session.workerId, profileId: auth.session.userId }, shiftId, { deviceNow: b.deviceNow, actions });
-  if (!r.ok) return Response.json({ error: r.reason }, { status: /not found/i.test(r.reason) ? 404 : 400 });
+  if (!r.ok) return failureResponse(r, 400);
   // serverNow lets the phone line its clock up with the server's for its own checks.
   return Response.json({ results: r.results, serverNow: Date.now() }, { headers: { "Cache-Control": "no-store" } });
 }

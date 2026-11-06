@@ -1,3 +1,4 @@
+import { failureStatus, type Failure } from "@/lib/api-errors";
 import { getSessionProfile, type SessionProfile } from "@/lib/auth";
 import { canUse, type AccessLevel, type Area } from "@/lib/access";
 import { db } from "@/lib/db";
@@ -24,11 +25,11 @@ export async function apiEmployer(area: Area = "hiring"): Promise<{ session: Ses
 }
 
 /** Engagement result → HTTP. Rule refusals are 409 (conflict with current state). */
-export function engagementResponse(r: { ok: true; engagementId: string; status: string } | { ok: false; reason: string }, created = true) {
+export function engagementResponse(r: { ok: true; engagementId: string; status: string } | Failure, created = true) {
   if (r.ok) return Response.json({ engagementId: r.engagementId, status: r.status }, { status: created ? 201 : 200 });
   // "…belongs to another organization" comes from opening an engagement on a job that isn't the caller's.
-  const status = /not found/i.test(r.reason)
-    ? 404
+  const status = r.code || /not found/i.test(r.reason)
+    ? failureStatus(r)
     : /another organization/i.test(r.reason)
       ? 403
       : /invitations this week/i.test(r.reason)
@@ -53,7 +54,7 @@ export async function apiArea(area: Area, level: AccessLevel = "full"): Promise<
 }
 
 /** Shift action result → HTTP. Rule refusals are 409. */
-export function resultResponse(r: { ok: true } | { ok: false; reason: string }) {
+export function resultResponse(r: { ok: true } | Failure) {
   if (r.ok) return Response.json({ ok: true });
-  return Response.json({ error: r.reason }, { status: /not found/i.test(r.reason) ? 404 : 409 });
+  return Response.json({ error: r.reason, ...(r.code ? { code: r.code } : {}) }, { status: failureStatus(r) });
 }

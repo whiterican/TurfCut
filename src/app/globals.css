@@ -1538,7 +1538,7 @@ body {
     padding-inline: var(--tpl-gutter, 1rem);
   }
   /* A phone scrolls it by touch; from 40rem a mouse needs the scrollbar, so it shows (thin). */
-  @media (max-width: 39.99rem) {
+  @media (width < 40rem) {
     .step-track {
       scrollbar-width: none;
     }
@@ -1546,7 +1546,7 @@ body {
       display: none;
     }
   }
-  @media (min-width: 40rem) {
+  @media (width >= 40rem) {
     .step-track {
       scrollbar-width: thin;
     }

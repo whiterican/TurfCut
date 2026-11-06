@@ -158,7 +158,8 @@ export function JobForm({
   const err = (k: string) => (stepErrors[k] ? <p id={`err-${k}`} tabIndex={-1} className="field-error">{stepErrors[k]}</p> : null);
   const describe = (k: string) => (stepErrors[k] ? { "aria-invalid": true as const, "aria-describedby": `err-${k}` } : {});
   // A problem on this step that no field shows (an unexpected key): listed in the summary without a link.
-  const isLoose = (k: string) => !BUILDER_STEPS[step].fields.includes(k) && !k.startsWith("issue_") && !k.startsWith("point_");
+  // A staging point's id has no control to go back to: listed as text.
+  const isLoose = (k: string) => (!BUILDER_STEPS[step].fields.includes(k) && !k.startsWith("issue_") && !k.startsWith("point_")) || /^point_\d+_id$/.test(k);
   const stepProblems = Object.entries(stepErrors);
   // A summary line focuses its field: the first control that can take focus among the one its error describes (or
   // inside it, for a group), then the ones named after it (a checked radio first); else the error text itself.
@@ -171,7 +172,7 @@ export function JobForm({
       el instanceof HTMLElement && el.tabIndex >= 0 && !(el as HTMLInputElement).disabled && (el as HTMLInputElement).type !== "hidden" && el.offsetParent !== null;
     const described = f.querySelector(`${scope} [aria-describedby~="err-${esc}"]`);
     const target =
-      [described, ...(described?.querySelectorAll("input, select, textarea, button") ?? []), ...f.querySelectorAll(`${scope} [name="${esc}"]:checked`), ...f.querySelectorAll(`${scope} [name="${esc}"]`)].find(canFocus) ??
+      [...f.querySelectorAll(`${scope} [name="${esc}"]:checked`), described, ...(described?.querySelectorAll("input, select, textarea, button") ?? []), ...f.querySelectorAll(`${scope} [name="${esc}"]`)].find(canFocus) ??
       f.querySelector<HTMLElement>(`${scope} #err-${esc}`);
     target?.focus();
   };

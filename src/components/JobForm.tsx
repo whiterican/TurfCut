@@ -85,6 +85,8 @@ export function JobForm({
   const draftId = useRef<string | null>(null);
   const form = useRef<HTMLFormElement>(null);
   const heading = useRef<HTMLHeadingElement>(null);
+  const track = useRef<HTMLOListElement>(null);
+  const problems = useRef<HTMLDivElement>(null);
   const [step, setStep] = useState(0);
   // Editing a saved draft: every step is open from the start.
   const [visited, setVisited] = useState(jobId ? REVIEW_STEP : 0);
@@ -115,10 +117,19 @@ export function JobForm({
     if (shown.current !== step) heading.current?.focus();
     shown.current = step;
   }, [step]);
-  // After a failed jump (or the server's answer), the first field with a problem takes focus.
+  // After a failed jump (or the server's answer), the step's problem summary takes focus (else the first field with a problem).
   useEffect(() => {
-    if (focusTick) focusFirstProblem(form.current);
+    if (!focusTick) return;
+    if (problems.current) problems.current.focus();
+    else focusFirstProblem(form.current);
   }, [focusTick]);
+  // On a phone the step track is one row that scrolls sideways: keep the current step in view, scrolling the track only.
+  useEffect(() => {
+    const t = track.current;
+    const cur = t?.querySelector<HTMLElement>('[aria-current="step"]');
+    if (!t || !cur || t.scrollWidth <= t.clientWidth) return;
+    t.scrollLeft = cur.offsetLeft - t.offsetLeft - (t.clientWidth - cur.offsetWidth) / 2;
+  }, [step]);
 
   const d = (k: string, fallback = "") => (typeof defaults[k] === "string" ? (defaults[k] as string) : fallback);
   const modes = Array.isArray(defaults.hiringModes) ? (defaults.hiringModes as string[]) : ["application"];
@@ -144,8 +155,15 @@ export function JobForm({
   const stepErrors = errorsForStep(errors, step);
   const err = (k: string) => (stepErrors[k] ? <p id={`err-${k}`} className="field-error">{stepErrors[k]}</p> : null);
   const describe = (k: string) => (stepErrors[k] ? { "aria-invalid": true as const, "aria-describedby": `err-${k}` } : {});
-  // A problem on this step that no field shows (an unexpected key): listed under the heading.
-  const loose = Object.entries(stepErrors).filter(([k]) => !BUILDER_STEPS[step].fields.includes(k) && !k.startsWith("issue_") && !k.startsWith("point_"));
+  // A problem on this step that no field shows (an unexpected key): listed in the summary without a link.
+  const isLoose = (k: string) => !BUILDER_STEPS[step].fields.includes(k) && !k.startsWith("issue_") && !k.startsWith("point_");
+  const stepProblems = Object.entries(stepErrors);
+  // A summary line focuses its field: the control described by its error, else the one named after it.
+  const focusField = (k: string) => {
+    const f = form.current;
+    if (!f) return;
+    (f.querySelector<HTMLElement>(`fieldset:not([hidden]) [aria-describedby="err-${k}"]`) ?? f.querySelector<HTMLElement>(`fieldset:not([hidden]) [name="${k}"]`))?.focus();
+  };
 
   const read = () => formToObject(new FormData(form.current!));
 
@@ -282,7 +300,7 @@ export function JobForm({
     >
       {savedId && <input type="hidden" name="jobId" value={savedId} />}
 
-      <ol className="flex flex-wrap gap-2" aria-label="Steps">
+      <ol ref={track} className="step-track" aria-label="Steps">
         {BUILDER_STEPS.map((s, i) => (
           <li key={s.id}>
             <button
@@ -297,11 +315,13 @@ export function JobForm({
           </li>
         ))}
       </ol>
-      {/* Always present once autosave is on, so a change of words is announced. */}
-      {autosaveOn && (
+      {/* Always present once autosave is on, so a change of words is announced. A live job saves only when you finish. */}
+      {autosaveOn ? (
         <p role="status" aria-live="polite" className="text-hint">
           {saveWords(save)}
         </p>
+      ) : (
+        jobId && <p className="text-hint">Changes save when you finish.</p>
       )}
 
       <div className="space-y-1">
@@ -309,12 +329,34 @@ export function JobForm({
           Step {step + 1} of {BUILDER_STEPS.length}: {current.title}
         </h2>
         <p className="text-muted-sm">{current.blurb}</p>
-        {loose.length > 0 && (
-          <ul className="field-error list-disc pl-5">
-            {loose.map(([k, v]) => <li key={k}>{v}</li>)}
-          </ul>
-        )}
       </div>
+      {stepProblems.length > 0 && (
+        <div ref={problems} tabIndex={-1} role="group" aria-labelledby="step-problems" className="problem-summary">
+          <p id="step-problems">
+            {stepProblems.length} {stepProblems.length === 1 ? "thing" : "things"} to fix on this step
+          </p>
+          <ul className="text-sm">
+            {stepProblems.map(([k, v]) => (
+              <li key={k}>
+                {isLoose(k) ? (
+                  v
+                ) : (
+                  <a
+                    className="link"
+                    href={`#err-${k}`}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      focusField(k);
+                    }}
+                  >
+                    {v}
+                  </a>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <fieldset hidden={show(0)} className="grid gap-3 sm:grid-cols-2">
         <legend className="sr-only">The work</legend>
@@ -537,9 +579,9 @@ export function JobForm({
           <span className="label">Public issue positions {optional}</span>
           <div className="list-card">
             {ISSUES.map((i) => (
-              <label key={i.key} className="flex items-center justify-between gap-3 px-4 py-2 text-sm">
+              <label key={i.key} className="flex flex-col gap-1.5 px-4 py-2 text-sm sm:flex-row sm:items-center sm:justify-between sm:gap-3">
                 <span className="text-fg">{i.label}</span>
-                <select name={`issue_${i.key}`} className="field max-w-36" defaultValue={d(`issue_${i.key}`)}>
+                <select name={`issue_${i.key}`} className="field sm:max-w-36" defaultValue={d(`issue_${i.key}`)}>
                   <option value="">Not disclosed</option>
                   <option value="support">Support</option>
                   <option value="oppose">Oppose</option>
@@ -554,18 +596,20 @@ export function JobForm({
       {step === REVIEW_STEP && <Review raw={summary} jurisdictions={jurisdictions} goTo={goTo} />}
 
       <div className="flex flex-wrap items-center gap-3">
+        {step < REVIEW_STEP ? (
+          <button key="next" type="button" className="btn-primary w-full sm:w-auto" onClick={next}>
+            Next: {BUILDER_STEPS[step + 1].title}
+          </button>
+        ) : (
+          <button key="save" className="btn-primary w-full sm:w-auto" disabled={pending}>
+            {pending ? "Saving…" : !autosaveOn && jobId ? "Save changes" : savedId ? "Save draft" : "Create draft"}
+          </button>
+        )}
         {step > 0 && (
           <button type="button" className="btn-ghost" onClick={() => goTo(step - 1)}>
             <ChevronLeft aria-hidden className="size-4 shrink-0" />
             Back
           </button>
-        )}
-        {step < REVIEW_STEP ? (
-          <button key="next" type="button" className="btn-primary" onClick={next}>
-            Next: {BUILDER_STEPS[step + 1].title}
-          </button>
-        ) : (
-          <button key="save" className="btn-primary" disabled={pending}>{pending ? "Saving…" : savedId ? "Save draft" : "Create draft"}</button>
         )}
         {/* Always present, so a change of text is announced. */}
         <p role="status" aria-live="polite" className="text-danger-msg">{message}</p>
@@ -613,19 +657,28 @@ function Review({ raw, jurisdictions, goTo }: { raw: Record<string, unknown>; ju
   ];
   return (
     <section className="space-y-3" aria-label="Review">
-      <dl className="list-card">
-        {rows.map((r) => (
-          <div key={r.label} className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1 px-4 py-2.5 text-sm">
-            <dt className="text-muted">{r.label}</dt>
-            <dd className="min-w-0 flex-1 whitespace-pre-line text-fg sm:text-right">{r.value}</dd>
-            <dd>
-              <button type="button" className="link text-sm" onClick={() => goTo(r.step)}>
-                Change<span className="sr-only"> {r.label}</span>
-              </button>
-            </dd>
-          </div>
-        ))}
-      </dl>
+      {BUILDER_STEPS.slice(0, REVIEW_STEP).map((st, i) => (
+        <div key={st.id} className="space-y-2">
+          <h3 className="label">
+            {i + 1} · {st.title}
+          </h3>
+          <dl className="list-card">
+            {rows
+              .filter((r) => r.step === i)
+              .map((r) => (
+                <div key={r.label} className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1 px-4 py-2.5 text-sm">
+                  <dt className="text-muted">{r.label}</dt>
+                  <dd className="min-w-0 flex-1 whitespace-pre-line text-fg sm:text-right">{r.value}</dd>
+                  <dd>
+                    <button type="button" className="link text-sm" onClick={() => goTo(r.step)}>
+                      Change<span className="sr-only"> {r.label}</span>
+                    </button>
+                  </dd>
+                </div>
+              ))}
+          </dl>
+        </div>
+      ))}
       <p className="text-hint">Saved as a draft. You publish it from the job page once every check passes, including the jurisdiction&apos;s rules.</p>
     </section>
   );

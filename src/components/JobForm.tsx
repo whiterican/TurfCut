@@ -4,7 +4,7 @@ import { startTransition, useActionState, useEffect, useId, useRef, useState } f
 import { autosaveDraft, saveJob, type JobFormState } from "@/app/jobs/actions";
 import { AFFILIATIONS, affiliationLabel, COMPENSATION_METHODS, formToObject, HIRING_MODES, JOB_TYPES, validateJob } from "@/lib/jobs";
 import { PLANNED_CATEGORIES } from "@/lib/job-categories";
-import { BUILDER_STEPS, errorsForStep, firstStepWithErrors, REVIEW_STEP, saveLabel, stepOfField } from "@/lib/job-builder";
+import { BUILDER_STEPS, errorsForStep, firstStepWithErrors, isLiveEdit, REVIEW_STEP, saveLabel, stepBlurb, stepOfField } from "@/lib/job-builder";
 import { LAUNCH_MODES, readLaunch, validateLaunch } from "@/lib/job-launch";
 import { CANVASS_APPS } from "@/lib/job-tools";
 import { CAMPAIGN_TYPES, ISSUES } from "@/lib/political-fit";
@@ -292,6 +292,7 @@ export function JobForm({
   };
 
   const current = BUILDER_STEPS[step];
+  const live = isLiveEdit({ autosave: autosaveOn, jobId });
   const show = (i: number) => (i === step ? undefined : true); // `hidden` attribute
 
   return (
@@ -333,14 +334,14 @@ export function JobForm({
           {saveWords(save)}
         </p>
       ) : (
-        jobId && <p className="text-hint">Changes save when you finish.</p>
+        live && <p className="text-hint">Changes save when you finish.</p>
       )}
 
       <div className="space-y-1">
         <h2 ref={heading} tabIndex={-1} className="section-title rounded-md focus-visible:ring-2 focus-visible:ring-[var(--ring)]">
           Step {step + 1} of {BUILDER_STEPS.length}: {current.title}
         </h2>
-        <p className="text-muted-sm">{current.blurb}</p>
+        <p className="text-muted-sm">{stepBlurb(step, live)}</p>
       </div>
       {stepProblems.length > 0 && (
         <div ref={problems} tabIndex={-1} role="group" aria-labelledby={problemsId} className="problem-summary">
@@ -605,7 +606,7 @@ export function JobForm({
         </div>
       </fieldset>
 
-      {step === REVIEW_STEP && <Review raw={summary} jurisdictions={jurisdictions} goTo={goTo} />}
+      {step === REVIEW_STEP && <Review raw={summary} jurisdictions={jurisdictions} goTo={goTo} live={live} />}
 
       <div className="flex flex-wrap items-center gap-3">
         {step < REVIEW_STEP ? (
@@ -637,7 +638,7 @@ function focusFirstProblem(form: HTMLFormElement | null) {
 }
 
 /** What was entered, step by step, each with a way back to change it. */
-function Review({ raw, jurisdictions, goTo }: { raw: Record<string, unknown>; jurisdictions: JurisdictionOption[]; goTo: (n: number) => void }) {
+function Review({ raw, jurisdictions, goTo, live }: { raw: Record<string, unknown>; jurisdictions: JurisdictionOption[]; goTo: (n: number) => void; live: boolean }) {
   const s = (k: string) => (typeof raw[k] === "string" ? (raw[k] as string) : "");
   const list = (k: string) => (Array.isArray(raw[k]) ? (raw[k] as string[]) : s(k) ? [s(k)] : []);
   const labelOf = (xs: readonly { value: string; label: string }[], v: string) => xs.find((x) => x.value === v)?.label ?? v;
@@ -692,7 +693,8 @@ function Review({ raw, jurisdictions, goTo }: { raw: Record<string, unknown>; ju
           </dl>
         </div>
       ))}
-      <p className="text-hint">Saved as a draft. You publish it from the job page once every check passes, including the jurisdiction&apos;s rules.</p>
+      {/* A live job is already published: the draft/publish footnote is for drafts only (the live notice above the form stands). */}
+      {!live && <p className="text-hint">Saved as a draft. You publish it from the job page once every check passes, including the jurisdiction&apos;s rules.</p>}
     </section>
   );
 }

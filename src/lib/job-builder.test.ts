@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { BUILDER_STEPS, errorsForStep, fieldStep, firstStepWithErrors, REVIEW_STEP, saveLabel, stepOfField } from "./job-builder";
+import { BUILDER_STEPS, errorsForStep, fieldStep, firstStepWithErrors, isLiveEdit, REVIEW_STEP, saveLabel, stepBlurb, stepOfField } from "./job-builder";
 import { validateJob } from "./jobs";
 
 describe("job builder steps", () => {
@@ -57,5 +57,18 @@ describe("the builder's final button", () => {
     expect(saveLabel({ pending: false, autosave: true, jobId: "d1", savedId: "d1" })).toBe("Save draft");
     expect(saveLabel({ pending: false, autosave: false, jobId: "j1", savedId: "j1" })).toBe("Save changes");
     expect(saveLabel({ pending: true, autosave: false, jobId: "j1", savedId: "j1" })).toBe("Saving…");
+  });
+});
+
+describe("a live edit's words", () => {
+  it("is a live edit only for an existing job without autosave (published or paused)", () => {
+    expect(isLiveEdit({ autosave: true })).toBe(false);
+    expect(isLiveEdit({ autosave: true, jobId: "d1" })).toBe(false);
+    expect(isLiveEdit({ autosave: false, jobId: "j1" })).toBe(true);
+  });
+  it("asks a live edit to save changes on the review, and leaves every draft line as it was", () => {
+    expect(stepBlurb(REVIEW_STEP, true)).toBe("Check everything, then save your changes.");
+    expect(stepBlurb(REVIEW_STEP, false)).toBe("Check everything, then save the draft.");
+    for (let i = 0; i < REVIEW_STEP; i++) expect(stepBlurb(i, true)).toBe(BUILDER_STEPS[i].blurb);
   });
 });

@@ -1518,6 +1518,87 @@ body {
     border-color: transparent;
     @apply font-semibold;
   }
+  /* The builder's step track (hiring design, #126): one row that scrolls
+     sideways on a phone, the current step kept in view by JobForm; it wraps
+     from 64rem. Each step's target reaches 44px through an absolutely placed
+     ::before (inset from the padding box: 1px border + 10px each way), the
+     filter chips' technique, without changing the type or the visible box;
+     the track keeps that room inside its scroll box, and wrapped rows sit
+     20px apart so the targets never overlap. */
+  .step-track {
+    display: flex;
+    min-width: 0;
+    max-width: 100%;
+    gap: 0.5rem;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    padding-block: 10px calc(10px + 0.25rem);
+    /* Room for the focus ring of the first and last step inside the scroll box. */
+    margin-inline: calc(-1 * var(--tpl-gutter, 1rem));
+    padding-inline: var(--tpl-gutter, 1rem);
+  }
+  /* A phone scrolls it by touch; from 40rem a mouse needs the scrollbar, so it shows (thin). */
+  @media (width < 40rem) {
+    .step-track {
+      scrollbar-width: none;
+    }
+    .step-track::-webkit-scrollbar {
+      display: none;
+    }
+  }
+  @media (width >= 40rem) {
+    .step-track {
+      scrollbar-width: thin;
+    }
+  }
+  .step-track > li {
+    flex: none;
+    scroll-snap-align: center;
+  }
+  .step-track .step {
+    position: relative;
+    white-space: nowrap;
+  }
+  .step-track .step::before {
+    content: "";
+    position: absolute;
+    inset: -10px 0;
+  }
+  @media (min-width: 64rem) {
+    .step-track {
+      flex-wrap: wrap;
+      overflow: visible;
+      row-gap: 1.25rem;
+      padding-block: 0 0.25rem;
+      margin-inline: 0;
+      padding-inline: 0;
+    }
+  }
+
+  /* A step's problems, listed under its heading: focusable, each line a link to its field. The inline errors stay. */
+  .problem-summary {
+    border: 1px solid var(--danger);
+    border-radius: var(--radius-md);
+    padding: 0.625rem 0.75rem;
+    background: var(--surface);
+  }
+  .problem-summary:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  .problem-summary > p {
+    margin: 0;
+    font-weight: 600;
+    color: var(--danger);
+  }
+  .problem-summary ul {
+    margin: 0.25rem 0 0;
+    padding-left: 1.25rem;
+    list-style: disc;
+  }
+  .problem-summary li + li {
+    margin-top: 0.125rem;
+  }
 
   /* ---- App navigation ------------------------------------------------- */
   /* Phone: a floating bar above the bottom edge (and the home indicator),

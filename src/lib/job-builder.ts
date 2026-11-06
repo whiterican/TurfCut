@@ -52,3 +52,23 @@ export function firstStepWithErrors(errors: Record<string, string>): number | nu
 export function errorsForStep(errors: Record<string, string>, step: number): Record<string, string> {
   return Object.fromEntries(Object.entries(errors).filter(([k]) => stepOfField(k) === step));
 }
+
+/**
+ * The builder's final button: "Save changes" on a live job (it saves only
+ * when you finish), "Save draft" once a draft exists, "Create draft" before.
+ */
+export function saveLabel({ pending, autosave, jobId, savedId }: { pending: boolean; autosave: boolean; jobId?: string; savedId?: string | null }): string {
+  if (pending) return "Saving…";
+  if (isLiveEdit({ autosave, jobId })) return "Save changes";
+  return savedId ? "Save draft" : "Create draft";
+}
+
+/** Editing a published or paused job: no autosave, an existing job. A new job or a draft autosaves. */
+export function isLiveEdit({ autosave, jobId }: { autosave: boolean; jobId?: string }): boolean {
+  return !autosave && !!jobId;
+}
+
+/** The step's line under its heading: on a live edit the review saves changes, never a draft. */
+export function stepBlurb(step: number, live: boolean): string {
+  return live && step === REVIEW_STEP ? "Check everything, then save your changes." : BUILDER_STEPS[step].blurb;
+}

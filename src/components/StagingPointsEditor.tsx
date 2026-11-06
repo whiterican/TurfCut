@@ -42,7 +42,7 @@ export function StagingPointsEditor({
   const [points, setPoints] = useState<Draft[]>(initial.length ? initial.map(fromPoint) : [blank()]);
   const [placing, setPlacing] = useState(0);
   const set = (i: number, patch: Partial<Draft>) => setPoints((ps) => ps.map((p, j) => (j === i ? { ...p, ...patch } : p)));
-  const err = (k: string) => (errors[k] ? <p id={`err-${k}`} className="field-error">{errors[k]}</p> : null);
+  const err = (k: string) => (errors[k] ? <p id={`err-${k}`} tabIndex={-1} className="field-error">{errors[k]}</p> : null);
   // Far from the job's city: a mis-tap on a zoomed-out map, most likely. A warning, never a block (a job can stage outside its city).
   const farFromCity = (p: Draft) => {
     if (!area || !p.lat || !p.lng) return null;

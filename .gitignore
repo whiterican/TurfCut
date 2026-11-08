@@ -40,3 +40,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# agent tooling and local-only previews
+/.codex/
+/.claude/*.local.json
+/src/app/zz-preview/

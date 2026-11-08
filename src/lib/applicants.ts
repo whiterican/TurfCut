@@ -214,7 +214,7 @@ export interface ApplicantFacts {
   credentials: OrgCredentialView[] | "withheld";
 }
 
-const NOT_SHARED: TableCell = { text: "not shared", sort: null, withheld: true };
+const NOT_SHARED: TableCell = { text: "Not shared", sort: null, withheld: true };
 const day = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
 const pct = (v: number) => `${Math.round(v * 100)}%`;
 

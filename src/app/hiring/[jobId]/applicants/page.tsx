@@ -1,3 +1,5 @@
+import styles from "@/components/Applicants.module.css";
+import { ReadableSelect } from "@/components/ReadableSelect";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireArea } from "@/lib/employer-session";
@@ -79,6 +81,7 @@ export default async function ApplicantsPage({
   );
 
   return (
+    <div className={styles.page}>
     <ListDetailPage
       org
       panelLabel={selected ? `Applicant: ${selected.engagement.worker.displayName}` : "Applicant"}
@@ -115,10 +118,10 @@ export default async function ApplicantsPage({
             <legend className="label mb-2">Filters</legend>
             <label className="space-y-1.5">
               <span className="label">Stage</span>
-              <select name="stage" className="field" defaultValue={filters.stage}>
+              <ReadableSelect name="stage" className="field" defaultValue={filters.stage}>
                 <option value="all">Every stage</option>
                 <option value="open">Waiting on someone (applied, offered)</option>
-              </select>
+              </ReadableSelect>
             </label>
             <label className="space-y-1.5">
               <span className="label">Applied on or after</span>
@@ -177,5 +180,6 @@ export default async function ApplicantsPage({
         Only what each worker shares with your organization, as of now. &ldquo;Not shared&rdquo; is never counted as zero or ranked. There is no overall score. Political answers never appear in this table.
       </p>
     </ListDetailPage>
+    </div>
   );
 }

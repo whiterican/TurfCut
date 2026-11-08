@@ -1,0 +1,4 @@
+/* Scoped to this route family: keep small controls' visible size, extend their pointer target. */
+.page :global(.btn-sm) { position: relative; }
+.page :global(.btn-sm)::before { content: ""; position: absolute; inset: -5px 0; }
+.page :global(.flex.flex-wrap) { row-gap: 0.75rem; }

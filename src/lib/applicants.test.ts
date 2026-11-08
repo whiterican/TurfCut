@@ -72,7 +72,7 @@ describe("applicant rows", () => {
   const today = "2026-10-09";
   it("withheld values read 'not shared', carry no sort value and are flagged withheld", () => {
     const cells = applicantCells(facts({ scorecard: none, availability: "withheld", credentials: "withheld" }), petition, ["free", "credentials", "signaturesPerActiveHour", "showRate", "shifts"], today, "/x");
-    for (const k of ["free", "credentials", "signaturesPerActiveHour", "showRate", "shifts"]) expect(cells[k]).toEqual({ text: "not shared", sort: null, withheld: true });
+    for (const k of ["free", "credentials", "signaturesPerActiveHour", "showRate", "shifts"]) expect(cells[k]).toEqual({ text: "Not shared", sort: null, withheld: true });
   });
   it("shared but empty reads 'No data yet', never zero or 'not shared'", () => {
     const cells = applicantCells(facts(), petition, ["signaturesPerActiveHour", "showRate", "shifts"], today, "/x");
@@ -118,7 +118,7 @@ describe("C3.2 review fixes", () => {
   const someShared = shareScorecard(computeScorecard([]), { output: true, quality: true, reliability: true, history: false, availability: true, credentials: true });
   it("without hours and history, a metric with no work reads 'not shared', never 'No data yet' (that would reveal history)", () => {
     const cells = applicantCells(facts({ scorecard: someShared }), petition, ["signaturesPerActiveHour", "acceptanceRate", "showRate", "shifts"], today, "/x");
-    for (const k of ["signaturesPerActiveHour", "acceptanceRate", "showRate", "shifts"]) expect(cells[k]).toMatchObject({ text: "not shared", withheld: true });
+    for (const k of ["signaturesPerActiveHour", "acceptanceRate", "showRate", "shifts"]) expect(cells[k]).toMatchObject({ text: "Not shared", withheld: true });
   });
   it("the jurisdiction's rules add required credentials, circulator ones on petition jobs only", () => {
     const base = { startsAt: null, endsAt: null, requirements: {}, jurisdiction: { state: "CO", rules: { workerRegistrationRequired: true, affidavitRequired: true } } };

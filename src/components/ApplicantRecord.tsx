@@ -22,6 +22,7 @@ export function ApplicantRecord({ applicant, now, invitation }: { applicant: App
   const a = applicant;
   const { engagement: e, facts, access, open, appJob, profile: view, free, creds, snapshot, hired } = a;
   const job = e.job;
+  const history = facts.events.length ? <section className="section"><h2 className="section-title">History</h2><EngagementHistory events={facts.events} /></section> : null;
 
   const hasComparison = !!(job.startsAt && job.endsAt) || requiredKinds(appJob).length > 0;
   const capturedAt = snapshot?.capturedAt ? new Date(snapshot.capturedAt) : null;
@@ -69,13 +70,13 @@ export function ApplicantRecord({ applicant, now, invitation }: { applicant: App
               )}
             </dl>
           </section>}
-          <section className="section"><h2 className="section-title">History</h2><EngagementHistory events={facts.events} /></section>
+          {history}
           <OrgProfileSections view={view} />
           {invitation}
         </>
       ) : (
         <>
-        <section className="section"><h2 className="section-title">History</h2><EngagementHistory events={facts.events} /></section>
+        {history}
         <section className="alert-info">
           {e.worker.closedAt
             ? "This worker closed their account. The history and the copy below stay."

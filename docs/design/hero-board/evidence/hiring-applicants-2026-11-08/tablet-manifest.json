@@ -1,13 +1,14 @@
 {
-  "commit": "fd0746a8c32ceede062764c3722c7778f37d38f3",
+  "commit": "a8b647c3e6baff4b8ef44f06f174cd7fae80b36f",
   "scope": "Read-only Applicants viewport sweep: same selected native controls remain mounted while resizing. Chromium DPR1, not native iPad/Safari/touch coverage or an app-wide tablet signoff. No server mutation submitted.",
   "results": [
     {
-      "width": 768,
-      "height": 1805,
-      "theme": "light",
+      "height": 1801,
       "overflow": 0,
       "interLoaded": true,
+      "viewportWidth": 768,
+      "viewportHeight": 1024,
+      "theme": "light",
       "stageMeasurement": {
         "text": "Waiting on someone (applied, offered)",
         "width": 253.12109375,
@@ -23,16 +24,15 @@
         "helperOverflow": 0
       },
       "selected": 1,
-      "errors": [],
-      "viewportWidth": 768,
-      "viewportHeight": 1024
+      "errors": []
     },
     {
-      "width": 1024,
-      "height": 1725,
-      "theme": "light",
+      "height": 1721,
       "overflow": 0,
       "interLoaded": true,
+      "viewportWidth": 1024,
+      "viewportHeight": 768,
+      "theme": "light",
       "stageMeasurement": {
         "text": "Waiting on someone (applied, offered)",
         "width": 253.12109375,
@@ -48,16 +48,15 @@
         "helperOverflow": 0
       },
       "selected": 1,
-      "errors": [],
-      "viewportWidth": 1024,
-      "viewportHeight": 768
+      "errors": []
     },
     {
-      "width": 768,
-      "height": 1805,
-      "theme": "dark",
+      "height": 1801,
       "overflow": 0,
       "interLoaded": true,
+      "viewportWidth": 768,
+      "viewportHeight": 1024,
+      "theme": "dark",
       "stageMeasurement": {
         "text": "Waiting on someone (applied, offered)",
         "width": 253.12109375,
@@ -73,16 +72,15 @@
         "helperOverflow": 0
       },
       "selected": 1,
-      "errors": [],
-      "viewportWidth": 768,
-      "viewportHeight": 1024
+      "errors": []
     },
     {
-      "width": 1024,
-      "height": 1725,
-      "theme": "dark",
+      "height": 1721,
       "overflow": 0,
       "interLoaded": true,
+      "viewportWidth": 1024,
+      "viewportHeight": 768,
+      "theme": "dark",
       "stageMeasurement": {
         "text": "Waiting on someone (applied, offered)",
         "width": 253.12109375,
@@ -98,9 +96,7 @@
         "helperOverflow": 0
       },
       "selected": 1,
-      "errors": [],
-      "viewportWidth": 1024,
-      "viewportHeight": 768
+      "errors": []
     }
   ],
   "failures": []

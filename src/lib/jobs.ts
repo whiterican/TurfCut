@@ -439,17 +439,26 @@ export function jurisdictionLabel(j: Pick<JurisdictionFacts, "state" | "locality
   return `${j.locality ? `${j.locality}, ` : ""}${j.state} (rules v${j.version})`;
 }
 
+/**
+ * Every reason a rule profile fails the gate, with who clears it: the
+ * organization (pick a profile, or file under the current version) or
+ * counsel (Turfcut staff approve rule profiles).
+ */
+export function jurisdictionProblemList(j: JurisdictionFacts | null, now: Date = new Date()): { text: string; fixer: "job" | "counsel" }[] {
+  if (!j) return [{ text: "The jurisdiction rule profile is unknown. Pick an approved jurisdiction.", fixer: "job" }];
+  const label = jurisdictionLabel(j);
+  const out: { text: string; fixer: "job" | "counsel" }[] = [];
+  if (!j.approved) out.push({ text: `${label} hasn't been approved by counsel.`, fixer: "counsel" });
+  if (!j.isCurrent) out.push({ text: `${label} has been superseded by a newer version; the organization has to file the job under the current rules.`, fixer: "job" });
+  if (j.effectiveFrom && j.effectiveFrom > now) out.push({ text: `${label} isn't effective until ${j.effectiveFrom.toISOString().slice(0, 10)}.`, fixer: "counsel" });
+  if (j.approvalExpiresAt && j.approvalExpiresAt <= now) out.push({ text: `Counsel approval for ${label} expired on ${j.approvalExpiresAt.toISOString().slice(0, 10)}.`, fixer: "counsel" });
+  if (!Array.isArray(obj(j.rules).compensationAllowed)) out.push({ text: `${label} has no compensation rules on file.`, fixer: "counsel" });
+  return out;
+}
+
 /** Why a jurisdiction rule profile can't be used right now (empty = usable). */
 export function jurisdictionProblems(j: JurisdictionFacts | null, now: Date = new Date()): string[] {
-  if (!j) return ["The jurisdiction rule profile is unknown. Pick an approved jurisdiction."];
-  const label = jurisdictionLabel(j);
-  const out: string[] = [];
-  if (!j.approved) out.push(`${label} hasn't been approved by counsel.`);
-  if (!j.isCurrent) out.push(`${label} has been superseded by a newer version; the organization has to file the job under the current rules.`);
-  if (j.effectiveFrom && j.effectiveFrom > now) out.push(`${label} isn't effective until ${j.effectiveFrom.toISOString().slice(0, 10)}.`);
-  if (j.approvalExpiresAt && j.approvalExpiresAt <= now) out.push(`Counsel approval for ${label} expired on ${j.approvalExpiresAt.toISOString().slice(0, 10)}.`);
-  if (!Array.isArray(obj(j.rules).compensationAllowed)) out.push(`${label} has no compensation rules on file.`);
-  return out;
+  return jurisdictionProblemList(j, now).map((p) => p.text);
 }
 
 /**
@@ -546,12 +555,14 @@ export function publishBlockerList(f: PublishFacts, now: Date = new Date()): Pub
   if (!f.org.approved) out.push({ text: "Your organization is awaiting Turfcut approval.", fixer: "settings" });
   if (!f.org.contractorTermsSignedAt) out.push({ text: "Sign the contractor terms in organization settings.", fixer: "settings" });
   if (!f.org.classificationReviewedAt) out.push({ text: "Complete the worker-classification review in organization settings.", fixer: "settings" });
-  for (const text of jurisdictionProblems(f.jurisdiction, now)) out.push({ text, fixer: "counsel" });
+  // Picking a profile, or refiling under the current version, is the job's own step 1; approving one is counsel's.
+  for (const p of jurisdictionProblemList(f.jurisdiction, now)) out.push(p.fixer === "job" ? { text: p.text, fixer: "job", field: "jurisdictionId" } : { text: p.text, fixer: "counsel" });
   if (f.jurisdiction) {
     const c = compensationProblem(f.job.compensationMethod, f.jurisdiction.rules);
     if (c) job(c, "compensationMethod");
     const s = jurisdictionStateProblem(str(obj(f.job.geography).state), f.jurisdiction.state);
-    if (s) job(s, "state");
+    // No state is set in step 2; a state that doesn't match is fixed by picking its profile in step 1.
+    if (s) job(s, str(obj(f.job.geography).state) ? "jurisdictionId" : "state");
   }
   if (!f.job.payRateCents || f.job.payRateCents <= 0) job("Set the gross pay rate.", "payRate");
   if (!f.job.headcount || f.job.headcount < 1) job("Set the headcount.", "headcount");

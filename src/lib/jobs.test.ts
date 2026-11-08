@@ -493,12 +493,42 @@ describe("publish blockers grouped by who fixes them (#126, PLAN §2)", () => {
     for (const b of jobReasons) expect(b.field, b.text).toBeTruthy();
   });
 
-  it("leaves an unknown rule profile with counsel and a non-draft status with the job, unlabelled", () => {
+  it("gives the job what it fixes in step 1: an unknown or superseded profile, a profile for another state", () => {
     const f = ready();
     f.jurisdiction = null;
+    const unknown = publishBlockerList(f, now).find((b) => /unknown/.test(b.text));
+    expect(unknown).toMatchObject({ fixer: "job", field: "jurisdictionId" });
+
+    const g = ready();
+    g.jurisdiction = { ...denver, isCurrent: false };
+    g.job.geography = { city: "Austin", state: "TX" };
+    const list = publishBlockerList(g, now);
+    expect(list.find((b) => /superseded/.test(b.text))).toMatchObject({ fixer: "job", field: "jurisdictionId" });
+    expect(list.find((b) => /Pick a TX profile/.test(b.text))).toMatchObject({ fixer: "job", field: "jurisdictionId" });
+
+    const h = ready();
+    h.job.geography = { city: "Denver" };
+    expect(publishBlockerList(h, now).find((b) => /Set the job's state/.test(b.text))).toMatchObject({ fixer: "job", field: "state" });
+  });
+
+  it("leaves approval, effective-date, expiry and missing-rules problems with counsel", () => {
+    const f = ready();
+    f.jurisdiction = { ...denver, approved: false, effectiveFrom: new Date("2026-12-01"), approvalExpiresAt: new Date("2026-09-30"), rules: {} };
+    const counsel = publishBlockerList(f, now).filter((b) => b.fixer === "counsel");
+    expect(counsel.map((b) => b.text)).toEqual([
+      expect.stringMatching(/hasn't been approved/),
+      expect.stringMatching(/isn't effective until/),
+      expect.stringMatching(/expired on/),
+      expect.stringMatching(/no compensation rules/),
+    ]);
+    for (const b of counsel) expect(b.field).toBeUndefined();
+  });
+
+  it("leaves a non-draft status with the job, unlabelled", () => {
+    const f = ready();
     f.job.status = "CLOSED";
-    const list = publishBlockerList(f, now);
-    expect(list.find((b) => /unknown/.test(b.text))?.fixer).toBe("counsel");
-    expect(list.find((b) => /Only draft or paused/.test(b.text))).toEqual({ text: "Only draft or paused jobs can be published.", fixer: "job", field: undefined });
+    const b = publishBlockerList(f, now).find((x) => /Only draft or paused/.test(x.text));
+    expect(b?.fixer).toBe("job");
+    expect(b?.field).toBeUndefined();
   });
 });

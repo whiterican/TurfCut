@@ -1,0 +1,27 @@
+.rows { padding: 0; }
+.part + .part { border-top: 1px solid var(--border); }
+.row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 3rem;
+  padding: 0.875rem 1rem;
+  list-style: none;
+}
+summary.row { cursor: pointer; }
+summary.row::-webkit-details-marker { display: none; }
+summary.row:focus-visible { outline: 2px solid var(--ring); outline-offset: -2px; border-radius: var(--radius-control); }
+.name { flex: none; width: 7.5rem; color: var(--muted); font-size: 0.875rem; }
+.value { flex: 1; min-width: 0; font-size: 0.875rem; overflow-wrap: anywhere; }
+.arrow { flex: none; width: 1rem; height: 1rem; color: var(--muted); }
+details[open] > .row .arrow { transform: rotate(180deg); }
+.detail { min-width: 0; padding: 0 1rem 1rem; }
+.stage { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.actions { flex-basis: 100%; padding-top: 0.25rem; }
+.snapshot > summary { min-height: 2.75rem; cursor: pointer; }
+/* Scope the approved hit-area extension to this family's small actions. */
+.page :global(.btn-sm) { position: relative; }
+.page :global(.btn-sm)::before { content: ""; position: absolute; inset: -5px 0; }
+.actions :global(.flex.flex-wrap) { row-gap: 0.75rem; }
+@media (min-width: 64rem) { .name { width: 13rem; } }
+@media (max-width: 22rem) { .name { width: 6rem; } }

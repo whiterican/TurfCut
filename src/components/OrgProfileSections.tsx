@@ -13,7 +13,7 @@ import { ChevronDown } from "lucide-react";
 import styles from "./HiringPeople.module.css";
 
 function Part({ name, summary, children }: { name: string; summary: ReactNode; children?: ReactNode }) {
-  const row = <><span className={styles.name}>{name}</span><div className={styles.value}>{summary}</div></>;
+  const row = <><span className={styles.name}>{name}</span><span className={styles.value}>{summary}</span></>;
   return children ? (
     <details className={styles.part}>
       <summary className={styles.row}>{row}<ChevronDown aria-hidden className={styles.arrow} /></summary>
@@ -49,7 +49,7 @@ export function OrgProfileSections({ view }: { view: OrgProfileView }) {
           {view.experience !== "withheld" && view.experience.length > 0 && <ExperienceList records={view.experience} />}
         </Part>
         <Part name="Political fit" summary={sharedFit ? `${sharedFit} of ${FIT_FIELDS.length} fields shared`
-          : <><NotSharedChip what="political fit" /><p className="text-hint mt-1">{view.fit.basis}</p></>}>
+          : <><NotSharedChip what="political fit" /><span className="text-hint mt-1 block">{view.fit.basis}</span></>}>
           {sharedFit > 0 && <FitSignals view={view.fit} />}
         </Part>
       </div>

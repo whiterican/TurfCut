@@ -1,0 +1,26 @@
+[
+  {
+    "name": "candidate-withheld",
+    "route": "/hiring/ccccf2db-62ea-41a1-af2d-159abc67eed4/people/d3d18075-44dd-4dd9-80b7-d27a6c6f6624",
+    "workerId": "00000000-0000-0000-0000-000000000103",
+    "note": "Local Sam fixture: all sharing audiences set to NOBODY through saveSharing; no production data."
+  },
+  {
+    "name": "candidate-partial",
+    "route": "/hiring/ef9cf3ac-9fd1-4b50-89fe-2c079569849e/people/d0c1aaa3-d1cd-4a3e-a81c-df4b47a6340f",
+    "workerId": "00000000-0000-0000-0000-000000000104",
+    "note": "Synthetic Riley fixture: identity and party relationship shared through versioned savePreferences; other fit fields withheld."
+  },
+  {
+    "name": "worker-shared",
+    "route": "/workers/00000000-0000-0000-0000-000000000101",
+    "workerId": "00000000-0000-0000-0000-000000000101",
+    "note": "Base seed shared profile."
+  },
+  {
+    "name": "worker-withheld",
+    "route": "/workers/00000000-0000-0000-0000-000000000103",
+    "workerId": "00000000-0000-0000-0000-000000000103",
+    "note": "Local all-withheld sharing fixture."
+  }
+]

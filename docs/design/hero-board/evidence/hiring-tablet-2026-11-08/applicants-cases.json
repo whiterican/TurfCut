@@ -1,0 +1,20 @@
+{
+  "jobId": "ccccf2db-62ea-41a1-af2d-159abc67eed4",
+  "workers": [
+    {
+      "id": "babdacbc-a9b1-4054-9768-f0a4b46ffee1",
+      "displayName": "Selection fixture A babdacbc (local)",
+      "engagementId": "80185f53-ac15-408d-acd9-c78a616f374b"
+    },
+    {
+      "id": "1ec50c5c-5108-4a57-97aa-80bca93a6bc5",
+      "displayName": "Selection fixture B 1ec50c5c (local)",
+      "engagementId": "d2abbf3a-4503-4298-8c16-ba1c619e7f8a"
+    }
+  ],
+  "emptyJob": {
+    "id": "684888f8-abcb-400a-b41c-3b40a1de3b8a",
+    "title": "Other org can't close"
+  },
+  "fixture": "Two new fictional local workers apply through applyToJob. No political preferences supplied. A browser test marks one application in review after checking failure preservation."
+}

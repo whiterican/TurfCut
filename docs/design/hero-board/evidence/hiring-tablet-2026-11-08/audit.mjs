@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import {readFileSync,writeFileSync} from 'node:fs';
 import {execFileSync} from 'node:child_process';
 import {base,launch,ownerContext,longest} from './browser-fixture.mjs';
-const fixture=JSON.parse(readFileSync(process.env.CASES_PATH||'/tmp/turfcut-applicants-cases.json','utf8'));
-const people=JSON.parse(readFileSync(process.env.PEOPLE_PATH||'/tmp/turfcut-people-cases.json','utf8'));
+const fixture=JSON.parse(readFileSync(process.env.CASES_PATH||new URL('applicants-cases.json',import.meta.url),'utf8'));
+const people=JSON.parse(readFileSync(process.env.PEOPLE_PATH||new URL('people-cases.json',import.meta.url),'utf8'));
 const job=fixture.jobId;
 const routes=[
  {name:'pipeline',route:'/hiring'},

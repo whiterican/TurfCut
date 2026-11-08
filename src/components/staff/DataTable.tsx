@@ -43,7 +43,22 @@ export function DataTable({
   const span = columns.length + (select ? 1 : 0);
   return (
     // Focusable and named, so keyboard users can scroll it even with no links inside.
-    <div className="data-table-wrap" tabIndex={0} role="region" aria-label={caption}>
+    <div
+      className="data-table-wrap" tabIndex={0} role="region" aria-label={caption}
+      onFocusCapture={(event) => {
+        const target = event.target;
+        if (!(target instanceof HTMLButtonElement) || !target.classList.contains("data-table-sort")) return;
+        const wrap = event.currentTarget;
+        if (wrap.scrollWidth <= wrap.clientWidth) return;
+        // Sticky header buttons can receive native focus without the horizontal scrollport following.
+        // Reveal only this table's horizontal axis; leave page and table vertical positions alone.
+        const button = target.getBoundingClientRect();
+        const left = wrap.getBoundingClientRect().left + wrap.clientLeft + 4;
+        const right = left + wrap.clientWidth - 8;
+        if (button.left < left) wrap.scrollLeft -= left - button.left;
+        else if (button.right > right) wrap.scrollLeft += button.right - right;
+      }}
+    >
       {/* Three columns or fewer can fit a phone if the row label gives a little. */}
       <table role="table" className={`${columns.length <= 3 ? "data-table data-table-compact" : "data-table"}${stack ? " data-table-stack" : ""}`}>
         <caption className="sr-only">{caption}</caption>

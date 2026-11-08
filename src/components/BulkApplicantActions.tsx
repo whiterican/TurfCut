@@ -40,7 +40,7 @@ export function BulkApplicantActions({ formId, jobId }: { formId: string; jobId:
       <p className="text-muted-sm" role="status">{selectedCount} selected</p>
       <fieldset hidden={!selectedCount} disabled={!selectedCount || pending} className="min-w-0 space-y-3" aria-label="Actions for selected applicants">
       <div className="flex flex-wrap items-end gap-3">
-        <label className="space-y-1.5">
+        <label className="min-w-0 max-w-full flex-1 basis-48 space-y-1.5">
           <span className="label">For the selected applicants</span>
           <select name="bulk" className="field" value={step} onChange={(e) => setStep(e.target.value)}>
             <option value="review">Mark in review</option>
@@ -49,7 +49,7 @@ export function BulkApplicantActions({ formId, jobId }: { formId: string; jobId:
           </select>
         </label>
         {step === "decline" && (
-          <label className="space-y-1.5">
+          <label className="min-w-0 max-w-full flex-1 basis-48 space-y-1.5">
             <span className="label">Reason they see</span>
             <ReadableSelect name="reasonCode" className="field" required defaultValue="">
               <option value="" disabled>Pick one</option>

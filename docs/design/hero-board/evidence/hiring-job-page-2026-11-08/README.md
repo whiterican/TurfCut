@@ -1,6 +1,6 @@
 # Hiring slice 2: publishing groups on the job page
 
-Captured at `d8335c4` (`redesign/hiring-job-page`), the commit with every code change. These are the running app's own job pages on the local test database: real fixtures, real roles, nothing synthetic. Each state is shown at 390 and 1440, light and dark, as a full page plus a light viewport scrolled to Publishing. Full-height captures draw the fixed dock at the page's end. `manifest.json` records, before any screenshot, each group's title, reasons, link and note, the Publish button's state, whether Edit draft shows, horizontal overflow and console errors.
+Captured at `46bb022` (`redesign/hiring-job-page`). Its app code is the same as `d8335c4`, the last code change; the commit after it changes a test only. These are the running app's own job pages on the local test database: real fixtures, real roles, nothing synthetic. Each state is shown at 390 and 1440, light and dark, as a full page plus a light viewport scrolled to Publishing. Full-height captures draw the fixed dock at the page's end. `manifest.json` records, before any screenshot, each group's title, reasons, link and note, the Publish button's state, whether Edit draft shows, the all-clear line (null while anything blocks), horizontal overflow and console errors.
 
 | State | Who | Job | Matches frame (#126) |
 | :--- | :--- | :--- | :--- |

@@ -30,14 +30,14 @@
         "note": "Turfcut staff approve rule profiles."
       }
     ],
-    "clear": " Step 1 · The work",
+    "clear": null,
     "publish": {
       "disabled": true
     },
     "editDraft": true,
     "consoleErrors": 0,
     "source": {
-      "commit": "d8335c4"
+      "commit": "46bb022"
     }
   },
   {
@@ -71,14 +71,14 @@
         "note": "Turfcut staff approve rule profiles."
       }
     ],
-    "clear": " Step 1 · The work",
+    "clear": null,
     "publish": {
       "disabled": true
     },
     "editDraft": true,
     "consoleErrors": 0,
     "source": {
-      "commit": "d8335c4"
+      "commit": "46bb022"
     }
   },
   {
@@ -112,14 +112,14 @@
         "note": "Turfcut staff approve rule profiles."
       }
     ],
-    "clear": " Step 1 · The work",
+    "clear": null,
     "publish": {
       "disabled": true
     },
     "editDraft": true,
     "consoleErrors": 0,
     "source": {
-      "commit": "d8335c4"
+      "commit": "46bb022"
     }
   },
   {
@@ -153,14 +153,14 @@
         "note": "Turfcut staff approve rule profiles."
       }
     ],
-    "clear": " Step 1 · The work",
+    "clear": null,
     "publish": {
       "disabled": true
     },
     "editDraft": true,
     "consoleErrors": 0,
     "source": {
-      "commit": "d8335c4"
+      "commit": "46bb022"
     }
   },
   {
@@ -194,12 +194,12 @@
         "note": "Turfcut staff approve rule profiles."
       }
     ],
-    "clear": " Step 1 · The work",
+    "clear": null,
     "publish": null,
     "editDraft": false,
     "consoleErrors": 0,
     "source": {
-      "commit": "d8335c4"
+      "commit": "46bb022"
     }
   },
   {
@@ -233,12 +233,12 @@
         "note": "Turfcut staff approve rule profiles."
       }
     ],
-    "clear": " Step 1 · The work",
+    "clear": null,
     "publish": null,
     "editDraft": false,
     "consoleErrors": 0,
     "source": {
-      "commit": "d8335c4"
+      "commit": "46bb022"
     }
   },
   {
@@ -272,12 +272,12 @@
         "note": "Turfcut staff approve rule profiles."
       }
     ],
-    "clear": " Step 1 · The work",
+    "clear": null,
     "publish": null,
     "editDraft": false,
     "consoleErrors": 0,
     "source": {
-      "commit": "d8335c4"
+      "commit": "46bb022"
     }
   },
   {
@@ -311,12 +311,12 @@
         "note": "Turfcut staff approve rule profiles."
       }
     ],
-    "clear": " Step 1 · The work",
+    "clear": null,
     "publish": null,
     "editDraft": false,
     "consoleErrors": 0,
     "source": {
-      "commit": "d8335c4"
+      "commit": "46bb022"
     }
   },
   {
@@ -356,14 +356,14 @@
         "note": null
       }
     ],
-    "clear": " Step 2 · When and where",
+    "clear": null,
     "publish": {
       "disabled": true
     },
     "editDraft": true,
     "consoleErrors": 0,
     "source": {
-      "commit": "d8335c4"
+      "commit": "46bb022"
     }
   },
   {
@@ -403,14 +403,14 @@
         "note": null
       }
     ],
-    "clear": " Step 2 · When and where",
+    "clear": null,
     "publish": {
       "disabled": true
     },
     "editDraft": true,
     "consoleErrors": 0,
     "source": {
-      "commit": "d8335c4"
+      "commit": "46bb022"
     }
   },
   {
@@ -450,14 +450,14 @@
         "note": null
       }
     ],
-    "clear": " Step 2 · When and where",
+    "clear": null,
     "publish": {
       "disabled": true
     },
     "editDraft": true,
     "consoleErrors": 0,
     "source": {
-      "commit": "d8335c4"
+      "commit": "46bb022"
     }
   },
   {
@@ -497,14 +497,14 @@
         "note": null
       }
     ],
-    "clear": " Step 2 · When and where",
+    "clear": null,
     "publish": {
       "disabled": true
     },
     "editDraft": true,
     "consoleErrors": 0,
     "source": {
-      "commit": "d8335c4"
+      "commit": "46bb022"
     }
   }
 ]

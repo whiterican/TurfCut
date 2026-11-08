@@ -29,7 +29,8 @@ const record = () => {
     over: document.documentElement.scrollWidth - innerWidth,
     headline: sec.querySelector(".alert-warning > p")?.textContent ?? null,
     groups,
-    clear: sec.querySelector(".text-muted-sm")?.textContent ?? null,
+    // The all-clear line is the section's own paragraph, not a step label inside the warning.
+    clear: [...sec.children].find((x) => x.matches("p.text-muted-sm"))?.textContent ?? null,
     publish: pub ? { disabled: pub.disabled } : null,
     editDraft: !![...sec.querySelectorAll("a")].find((a) => a.textContent === "Edit draft"),
   };

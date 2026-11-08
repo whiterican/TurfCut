@@ -1,5 +1,5 @@
 {
-  "commit": "596f0854ca73cc9f07b66ff8aa981ee298c61f96",
+  "commit": "41f78c74543b0c8a44bbe604855a8855c9dce1ca",
   "fixture": "Real guarded routes and local PostgreSQL c3 fixtures; synthetic loopback auth returns only the selected local user. This exercises app session/profile/grant code, not production Supabase authentication. Sam all-withheld and Riley partial fit are explicit synthetic sharing choices. No production access.",
   "cases": [
     {
@@ -114,7 +114,7 @@
       "width": 390,
       "theme": "light",
       "state": "",
-      "height": 1189,
+      "height": 1147,
       "overflow": 0,
       "interLoaded": true,
       "title": "Riley Park",
@@ -136,7 +136,7 @@
           "open": false
         },
         {
-          "summary": "Scorecard0 verified shifts · 0 doors attempted · 0 verified hours",
+          "summary": "ScorecardNo verified shifts yet",
           "open": false
         },
         {
@@ -155,7 +155,7 @@
       "width": 390,
       "theme": "light",
       "state": "fit-open",
-      "height": 1631,
+      "height": 1589,
       "overflow": 0,
       "interLoaded": true,
       "title": "Riley Park",
@@ -177,7 +177,7 @@
           "open": false
         },
         {
-          "summary": "Scorecard0 verified shifts · 0 doors attempted · 0 verified hours",
+          "summary": "ScorecardNo verified shifts yet",
           "open": false
         },
         {
@@ -196,7 +196,7 @@
       "width": 390,
       "theme": "light",
       "state": "",
-      "height": 844,
+      "height": 1759,
       "overflow": 0,
       "interLoaded": true,
       "title": "Alex Rivera",
@@ -214,7 +214,7 @@
       ],
       "disclosures": [
         {
-          "summary": "Scorecard1 verified shift · 100% show rate · 20 accepted signatures · 3.5 verified hours",
+          "summary": "ScorecardPetition circulation: 1 verified shift · 20 accepted signatures · 3.5 verified hours · 100% show rate",
           "open": false
         },
         {
@@ -229,7 +229,7 @@
       "width": 390,
       "theme": "light",
       "state": "scorecard-open",
-      "height": 3933,
+      "height": 3954,
       "overflow": 0,
       "interLoaded": true,
       "title": "Alex Rivera",
@@ -247,7 +247,7 @@
       ],
       "disclosures": [
         {
-          "summary": "Scorecard1 verified shift · 100% show rate · 20 accepted signatures · 3.5 verified hours",
+          "summary": "ScorecardPetition circulation: 1 verified shift · 20 accepted signatures · 3.5 verified hours · 100% show rate",
           "open": true
         },
         {
@@ -262,7 +262,7 @@
       "width": 390,
       "theme": "light",
       "state": "",
-      "height": 1217,
+      "height": 1175,
       "overflow": 0,
       "interLoaded": true,
       "title": "Riley Park",
@@ -284,7 +284,7 @@
           "open": false
         },
         {
-          "summary": "Scorecard0 verified shifts · 0 doors attempted · 0 verified hours",
+          "summary": "ScorecardNo verified shifts yet",
           "open": false
         },
         {
@@ -303,7 +303,7 @@
       "width": 390,
       "theme": "light",
       "state": "",
-      "height": 1237,
+      "height": 1195,
       "overflow": 0,
       "interLoaded": true,
       "title": "Riley Park",
@@ -325,7 +325,7 @@
           "open": false
         },
         {
-          "summary": "Scorecard0 verified shifts · 0 doors attempted · 0 verified hours",
+          "summary": "ScorecardNo verified shifts yet",
           "open": false
         },
         {
@@ -344,7 +344,7 @@
       "width": 390,
       "theme": "light",
       "state": "",
-      "height": 1430,
+      "height": 1388,
       "overflow": 0,
       "interLoaded": true,
       "title": "Riley Park",
@@ -366,7 +366,7 @@
           "open": false
         },
         {
-          "summary": "Scorecard0 verified shifts · 0 doors attempted · 0 verified hours",
+          "summary": "ScorecardNo verified shifts yet",
           "open": false
         },
         {
@@ -385,7 +385,7 @@
       "width": 390,
       "theme": "light",
       "state": "",
-      "height": 1211,
+      "height": 1169,
       "overflow": 0,
       "interLoaded": true,
       "title": "Riley Park",
@@ -407,7 +407,7 @@
           "open": false
         },
         {
-          "summary": "Scorecard0 verified shifts · 0 doors attempted · 0 verified hours",
+          "summary": "ScorecardNo verified shifts yet",
           "open": false
         },
         {
@@ -513,14 +513,14 @@
       "width": 390,
       "theme": "light",
       "state": "",
-      "height": 1233,
+      "height": 1254,
       "overflow": 0,
       "interLoaded": true,
       "title": "Alex Rivera",
       "activeNav": [],
       "disclosures": [
         {
-          "summary": "Scorecard1 verified shift · 100% show rate · 20 accepted signatures · 3.5 verified hours",
+          "summary": "ScorecardPetition circulation: 1 verified shift · 20 accepted signatures · 3.5 verified hours · 100% show rate",
           "open": false
         }
       ],
@@ -531,14 +531,14 @@
       "width": 390,
       "theme": "light",
       "state": "scorecard-open",
-      "height": 3428,
+      "height": 3449,
       "overflow": 0,
       "interLoaded": true,
       "title": "Alex Rivera",
       "activeNav": [],
       "disclosures": [
         {
-          "summary": "Scorecard1 verified shift · 100% show rate · 20 accepted signatures · 3.5 verified hours",
+          "summary": "ScorecardPetition circulation: 1 verified shift · 20 accepted signatures · 3.5 verified hours · 100% show rate",
           "open": true
         }
       ],
@@ -569,7 +569,7 @@
       "activeNav": [],
       "disclosures": [
         {
-          "summary": "Scorecard0 verified shifts · 0 doors attempted · 0 verified hours",
+          "summary": "ScorecardNo verified shifts yet",
           "open": false
         },
         {
@@ -584,14 +584,14 @@
       "width": 390,
       "theme": "light",
       "state": "fit-open",
-      "height": 1259,
+      "height": 1217,
       "overflow": 0,
       "interLoaded": true,
       "title": "Riley Park",
       "activeNav": [],
       "disclosures": [
         {
-          "summary": "Scorecard0 verified shifts · 0 doors attempted · 0 verified hours",
+          "summary": "ScorecardNo verified shifts yet",
           "open": false
         },
         {
@@ -639,7 +639,7 @@
       "width": 390,
       "theme": "dark",
       "state": "",
-      "height": 1189,
+      "height": 1147,
       "overflow": 0,
       "interLoaded": true,
       "title": "Riley Park",
@@ -661,7 +661,7 @@
           "open": false
         },
         {
-          "summary": "Scorecard0 verified shifts · 0 doors attempted · 0 verified hours",
+          "summary": "ScorecardNo verified shifts yet",
           "open": false
         },
         {
@@ -680,7 +680,7 @@
       "width": 390,
       "theme": "dark",
       "state": "fit-open",
-      "height": 1631,
+      "height": 1589,
       "overflow": 0,
       "interLoaded": true,
       "title": "Riley Park",
@@ -702,7 +702,7 @@
           "open": false
         },
         {
-          "summary": "Scorecard0 verified shifts · 0 doors attempted · 0 verified hours",
+          "summary": "ScorecardNo verified shifts yet",
           "open": false
         },
         {
@@ -739,7 +739,7 @@
       ],
       "disclosures": [
         {
-          "summary": "Scorecard1 verified shift · 100% show rate · 20 accepted signatures · 3.5 verified hours",
+          "summary": "ScorecardPetition circulation: 1 verified shift · 20 accepted signatures · 3.5 verified hours · 100% show rate",
           "open": false
         },
         {
@@ -754,7 +754,7 @@
       "width": 390,
       "theme": "dark",
       "state": "scorecard-open",
-      "height": 3933,
+      "height": 3954,
       "overflow": 0,
       "interLoaded": true,
       "title": "Alex Rivera",
@@ -772,7 +772,7 @@
       ],
       "disclosures": [
         {
-          "summary": "Scorecard1 verified shift · 100% show rate · 20 accepted signatures · 3.5 verified hours",
+          "summary": "ScorecardPetition circulation: 1 verified shift · 20 accepted signatures · 3.5 verified hours · 100% show rate",
           "open": true
         },
         {
@@ -787,7 +787,7 @@
       "width": 390,
       "theme": "dark",
       "state": "",
-      "height": 1217,
+      "height": 1175,
       "overflow": 0,
       "interLoaded": true,
       "title": "Riley Park",
@@ -809,7 +809,7 @@
           "open": false
         },
         {
-          "summary": "Scorecard0 verified shifts · 0 doors attempted · 0 verified hours",
+          "summary": "ScorecardNo verified shifts yet",
           "open": false
         },
         {
@@ -828,7 +828,7 @@
       "width": 390,
       "theme": "dark",
       "state": "",
-      "height": 1237,
+      "height": 1195,
       "overflow": 0,
       "interLoaded": true,
       "title": "Riley Park",
@@ -850,7 +850,7 @@
           "open": false
         },
         {
-          "summary": "Scorecard0 verified shifts · 0 doors attempted · 0 verified hours",
+          "summary": "ScorecardNo verified shifts yet",
           "open": false
         },
         {
@@ -869,7 +869,7 @@
       "width": 390,
       "theme": "dark",
       "state": "",
-      "height": 1430,
+      "height": 1388,
       "overflow": 0,
       "interLoaded": true,
       "title": "Riley Park",
@@ -891,7 +891,7 @@
           "open": false
         },
         {
-          "summary": "Scorecard0 verified shifts · 0 doors attempted · 0 verified hours",
+          "summary": "ScorecardNo verified shifts yet",
           "open": false
         },
         {
@@ -910,7 +910,7 @@
       "width": 390,
       "theme": "dark",
       "state": "",
-      "height": 1211,
+      "height": 1169,
       "overflow": 0,
       "interLoaded": true,
       "title": "Riley Park",
@@ -932,7 +932,7 @@
           "open": false
         },
         {
-          "summary": "Scorecard0 verified shifts · 0 doors attempted · 0 verified hours",
+          "summary": "ScorecardNo verified shifts yet",
           "open": false
         },
         {
@@ -1038,14 +1038,14 @@
       "width": 390,
       "theme": "dark",
       "state": "",
-      "height": 1233,
+      "height": 1254,
       "overflow": 0,
       "interLoaded": true,
       "title": "Alex Rivera",
       "activeNav": [],
       "disclosures": [
         {
-          "summary": "Scorecard1 verified shift · 100% show rate · 20 accepted signatures · 3.5 verified hours",
+          "summary": "ScorecardPetition circulation: 1 verified shift · 20 accepted signatures · 3.5 verified hours · 100% show rate",
           "open": false
         }
       ],
@@ -1056,14 +1056,14 @@
       "width": 390,
       "theme": "dark",
       "state": "scorecard-open",
-      "height": 3428,
+      "height": 3449,
       "overflow": 0,
       "interLoaded": true,
       "title": "Alex Rivera",
       "activeNav": [],
       "disclosures": [
         {
-          "summary": "Scorecard1 verified shift · 100% show rate · 20 accepted signatures · 3.5 verified hours",
+          "summary": "ScorecardPetition circulation: 1 verified shift · 20 accepted signatures · 3.5 verified hours · 100% show rate",
           "open": true
         }
       ],
@@ -1094,7 +1094,7 @@
       "activeNav": [],
       "disclosures": [
         {
-          "summary": "Scorecard0 verified shifts · 0 doors attempted · 0 verified hours",
+          "summary": "ScorecardNo verified shifts yet",
           "open": false
         },
         {
@@ -1109,14 +1109,14 @@
       "width": 390,
       "theme": "dark",
       "state": "fit-open",
-      "height": 1259,
+      "height": 1217,
       "overflow": 0,
       "interLoaded": true,
       "title": "Riley Park",
       "activeNav": [],
       "disclosures": [
         {
-          "summary": "Scorecard0 verified shifts · 0 doors attempted · 0 verified hours",
+          "summary": "ScorecardNo verified shifts yet",
           "open": false
         },
         {
@@ -1186,7 +1186,7 @@
           "open": false
         },
         {
-          "summary": "Scorecard0 verified shifts · 0 doors attempted · 0 verified hours",
+          "summary": "ScorecardNo verified shifts yet",
           "open": false
         },
         {
@@ -1227,7 +1227,7 @@
           "open": false
         },
         {
-          "summary": "Scorecard0 verified shifts · 0 doors attempted · 0 verified hours",
+          "summary": "ScorecardNo verified shifts yet",
           "open": false
         },
         {
@@ -1246,7 +1246,7 @@
       "width": 1440,
       "theme": "light",
       "state": "",
-      "height": 1466,
+      "height": 900,
       "overflow": 0,
       "interLoaded": true,
       "title": "Alex Rivera",
@@ -1264,7 +1264,7 @@
       ],
       "disclosures": [
         {
-          "summary": "Scorecard1 verified shift · 100% show rate · 20 accepted signatures · 3.5 verified hours",
+          "summary": "ScorecardPetition circulation: 1 verified shift · 20 accepted signatures · 3.5 verified hours · 100% show rate",
           "open": false
         },
         {
@@ -1297,7 +1297,7 @@
       ],
       "disclosures": [
         {
-          "summary": "Scorecard1 verified shift · 100% show rate · 20 accepted signatures · 3.5 verified hours",
+          "summary": "ScorecardPetition circulation: 1 verified shift · 20 accepted signatures · 3.5 verified hours · 100% show rate",
           "open": true
         },
         {
@@ -1334,7 +1334,7 @@
           "open": false
         },
         {
-          "summary": "Scorecard0 verified shifts · 0 doors attempted · 0 verified hours",
+          "summary": "ScorecardNo verified shifts yet",
           "open": false
         },
         {
@@ -1353,7 +1353,7 @@
       "width": 1440,
       "theme": "light",
       "state": "",
-      "height": 900,
+      "height": 1024,
       "overflow": 0,
       "interLoaded": true,
       "title": "Riley Park",
@@ -1375,7 +1375,7 @@
           "open": false
         },
         {
-          "summary": "Scorecard0 verified shifts · 0 doors attempted · 0 verified hours",
+          "summary": "ScorecardNo verified shifts yet",
           "open": false
         },
         {
@@ -1394,7 +1394,7 @@
       "width": 1440,
       "theme": "light",
       "state": "",
-      "height": 900,
+      "height": 1189,
       "overflow": 0,
       "interLoaded": true,
       "title": "Riley Park",
@@ -1416,7 +1416,7 @@
           "open": false
         },
         {
-          "summary": "Scorecard0 verified shifts · 0 doors attempted · 0 verified hours",
+          "summary": "ScorecardNo verified shifts yet",
           "open": false
         },
         {
@@ -1457,7 +1457,7 @@
           "open": false
         },
         {
-          "summary": "Scorecard0 verified shifts · 0 doors attempted · 0 verified hours",
+          "summary": "ScorecardNo verified shifts yet",
           "open": false
         },
         {
@@ -1570,7 +1570,7 @@
       "activeNav": [],
       "disclosures": [
         {
-          "summary": "Scorecard1 verified shift · 100% show rate · 20 accepted signatures · 3.5 verified hours",
+          "summary": "ScorecardPetition circulation: 1 verified shift · 20 accepted signatures · 3.5 verified hours · 100% show rate",
           "open": false
         }
       ],
@@ -1588,7 +1588,7 @@
       "activeNav": [],
       "disclosures": [
         {
-          "summary": "Scorecard1 verified shift · 100% show rate · 20 accepted signatures · 3.5 verified hours",
+          "summary": "ScorecardPetition circulation: 1 verified shift · 20 accepted signatures · 3.5 verified hours · 100% show rate",
           "open": true
         }
       ],
@@ -1619,7 +1619,7 @@
       "activeNav": [],
       "disclosures": [
         {
-          "summary": "Scorecard0 verified shifts · 0 doors attempted · 0 verified hours",
+          "summary": "ScorecardNo verified shifts yet",
           "open": false
         },
         {
@@ -1641,7 +1641,7 @@
       "activeNav": [],
       "disclosures": [
         {
-          "summary": "Scorecard0 verified shifts · 0 doors attempted · 0 verified hours",
+          "summary": "ScorecardNo verified shifts yet",
           "open": false
         },
         {
@@ -1711,7 +1711,7 @@
           "open": false
         },
         {
-          "summary": "Scorecard0 verified shifts · 0 doors attempted · 0 verified hours",
+          "summary": "ScorecardNo verified shifts yet",
           "open": false
         },
         {
@@ -1752,7 +1752,7 @@
           "open": false
         },
         {
-          "summary": "Scorecard0 verified shifts · 0 doors attempted · 0 verified hours",
+          "summary": "ScorecardNo verified shifts yet",
           "open": false
         },
         {
@@ -1771,7 +1771,7 @@
       "width": 1440,
       "theme": "dark",
       "state": "",
-      "height": 1466,
+      "height": 900,
       "overflow": 0,
       "interLoaded": true,
       "title": "Alex Rivera",
@@ -1789,7 +1789,7 @@
       ],
       "disclosures": [
         {
-          "summary": "Scorecard1 verified shift · 100% show rate · 20 accepted signatures · 3.5 verified hours",
+          "summary": "ScorecardPetition circulation: 1 verified shift · 20 accepted signatures · 3.5 verified hours · 100% show rate",
           "open": false
         },
         {
@@ -1822,7 +1822,7 @@
       ],
       "disclosures": [
         {
-          "summary": "Scorecard1 verified shift · 100% show rate · 20 accepted signatures · 3.5 verified hours",
+          "summary": "ScorecardPetition circulation: 1 verified shift · 20 accepted signatures · 3.5 verified hours · 100% show rate",
           "open": true
         },
         {
@@ -1859,7 +1859,7 @@
           "open": false
         },
         {
-          "summary": "Scorecard0 verified shifts · 0 doors attempted · 0 verified hours",
+          "summary": "ScorecardNo verified shifts yet",
           "open": false
         },
         {
@@ -1900,7 +1900,7 @@
           "open": false
         },
         {
-          "summary": "Scorecard0 verified shifts · 0 doors attempted · 0 verified hours",
+          "summary": "ScorecardNo verified shifts yet",
           "open": false
         },
         {
@@ -1941,7 +1941,7 @@
           "open": false
         },
         {
-          "summary": "Scorecard0 verified shifts · 0 doors attempted · 0 verified hours",
+          "summary": "ScorecardNo verified shifts yet",
           "open": false
         },
         {
@@ -1982,7 +1982,7 @@
           "open": false
         },
         {
-          "summary": "Scorecard0 verified shifts · 0 doors attempted · 0 verified hours",
+          "summary": "ScorecardNo verified shifts yet",
           "open": false
         },
         {
@@ -2001,7 +2001,7 @@
       "width": 1440,
       "theme": "dark",
       "state": "",
-      "height": 1234,
+      "height": 900,
       "overflow": 0,
       "interLoaded": true,
       "title": "Sam Torres",
@@ -2095,7 +2095,7 @@
       "activeNav": [],
       "disclosures": [
         {
-          "summary": "Scorecard1 verified shift · 100% show rate · 20 accepted signatures · 3.5 verified hours",
+          "summary": "ScorecardPetition circulation: 1 verified shift · 20 accepted signatures · 3.5 verified hours · 100% show rate",
           "open": false
         }
       ],
@@ -2113,7 +2113,7 @@
       "activeNav": [],
       "disclosures": [
         {
-          "summary": "Scorecard1 verified shift · 100% show rate · 20 accepted signatures · 3.5 verified hours",
+          "summary": "ScorecardPetition circulation: 1 verified shift · 20 accepted signatures · 3.5 verified hours · 100% show rate",
           "open": true
         }
       ],
@@ -2144,7 +2144,7 @@
       "activeNav": [],
       "disclosures": [
         {
-          "summary": "Scorecard0 verified shifts · 0 doors attempted · 0 verified hours",
+          "summary": "ScorecardNo verified shifts yet",
           "open": false
         },
         {
@@ -2166,7 +2166,7 @@
       "activeNav": [],
       "disclosures": [
         {
-          "summary": "Scorecard0 verified shifts · 0 doors attempted · 0 verified hours",
+          "summary": "ScorecardNo verified shifts yet",
           "open": false
         },
         {

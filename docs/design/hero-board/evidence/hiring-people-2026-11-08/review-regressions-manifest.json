@@ -1,0 +1,79 @@
+{
+  "commit": "41f78c74543b0c8a44bbe604855a8855c9dce1ca",
+  "fixture": "mixed-work uses an ignored local route rendering the real OrgProfileSections with two synthetic computed shifts and date-only availability; worker-preview is the real guarded route with local worker104 and synthetic loopback auth. No production data or authentication coverage claimed.",
+  "captures": [
+    {
+      "name": "mixed-work",
+      "width": 390,
+      "theme": "light",
+      "height": 1014,
+      "overflow": 0,
+      "interLoaded": true,
+      "errors": []
+    },
+    {
+      "name": "worker-preview",
+      "width": 390,
+      "theme": "light",
+      "height": 1020,
+      "overflow": 0,
+      "interLoaded": true,
+      "errors": []
+    },
+    {
+      "name": "mixed-work",
+      "width": 390,
+      "theme": "dark",
+      "height": 1014,
+      "overflow": 0,
+      "interLoaded": true,
+      "errors": []
+    },
+    {
+      "name": "worker-preview",
+      "width": 390,
+      "theme": "dark",
+      "height": 1020,
+      "overflow": 0,
+      "interLoaded": true,
+      "errors": []
+    },
+    {
+      "name": "mixed-work",
+      "width": 1440,
+      "theme": "light",
+      "height": 900,
+      "overflow": 0,
+      "interLoaded": true,
+      "errors": []
+    },
+    {
+      "name": "worker-preview",
+      "width": 1440,
+      "theme": "light",
+      "height": 900,
+      "overflow": 0,
+      "interLoaded": true,
+      "errors": []
+    },
+    {
+      "name": "mixed-work",
+      "width": 1440,
+      "theme": "dark",
+      "height": 900,
+      "overflow": 0,
+      "interLoaded": true,
+      "errors": []
+    },
+    {
+      "name": "worker-preview",
+      "width": 1440,
+      "theme": "dark",
+      "height": 900,
+      "overflow": 0,
+      "interLoaded": true,
+      "errors": []
+    }
+  ],
+  "failures": []
+}

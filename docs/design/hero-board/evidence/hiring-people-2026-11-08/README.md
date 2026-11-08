@@ -2,9 +2,9 @@
 
 Board claim: [#128](https://github.com/whiterican/TurfCut/issues/128#issuecomment-6723749797). Implements PLAN.md sections 3–4 in #126. The manifests name the captured implementation commit.
 
-The candidate head keeps the existing stage and actions beside the name, followed by available job comparisons, history, the current shared profile, invitation composer and retained snapshot. An empty comparison or history section is omitted. The snapshot uses a native disclosure with its captured date visible when the stored snapshot has a valid date. No snapshot content is changed.
+The candidate head keeps the existing stage and actions beside the name, followed by available job comparisons, history, the current shared profile, invitation composer and retained snapshot. An empty comparison or history section is omitted. The snapshot keeps an h2 inside its native disclosure, with its captured date visible when the stored snapshot has a valid date. No snapshot content is changed.
 
-The shared profile has five compact rows. A wholly withheld part has one neutral chip. Authorized content expands with native details/summary controls to the existing component. Partial political fit retains every field and its existing shared-basis sentence. Shared-but-empty credentials, experience and availability retain their distinct empty words. Scorecard summaries use only authorized headline values, never hidden counts or an overall score. The worker's organization-view preview uses the same component.
+The shared profile has five compact rows. A wholly withheld part has one neutral chip. Authorized content expands with native details/summary controls to the existing component. Partial political fit retains every field and its existing shared-basis sentence. Shared-but-empty credentials, experience and availability retain their distinct empty words. Scorecard summaries use authorized values by work type, never hidden counts or an overall score. Shared history with no verified shifts says "No verified shifts yet"; mixed petition/canvass work keeps both types visible without adding their shifts or hours together. A shared show rate remains visible. The worker preview uses "What you share with this organization", and date-only availability retains the existing "Coming up:" label. The worker's organization-view preview uses the same component.
 
 ## What the evidence covers
 
@@ -50,3 +50,23 @@ The scripts default to `/usr/bin/chromium` and `/tmp/turfcut-people-cases.json`.
 ## Verification
 
 At implementation `596f085`, typecheck and lint passed, and the full unit suite passed **1,030 tests in 121 files**, including nine new profile/privacy/record tests. One earlier full run during concurrent browser captures hit the unchanged five-second limits in job-marks isolation and the large-image cap test; the complete rerun without captures passed (those tests took about 1.4s and 0.6s). No timeouts were raised or tests skipped.
+
+
+## Rule-9 review follow-up
+
+Claude reviewed `194d702` and found no blocking issue. Follow-up implementation `41f78c7` addresses shared-empty history wording, distinct mixed-work summaries, snapshot heading navigation, preview wording and date-only availability labels. Typecheck/lint and all **1,034 tests in 122 files** passed, including 13 profile/record/summary tests. The family-local 44px hit-area rule is retained: PLAN §7 covers this family's small actions, including forms/composer, and the earlier independent review found no overlap. No global rule was introduced.
+
+`review-regressions-manifest.json` adds four mixed-work/date-only fixture captures and four captures of the real guarded worker-preview route, at 390/1440 in both themes. The mixed-work route is explicitly synthetic: it computes two work-type scorecards from the seed event recipe and renders the real shared-profile component without a database write. It does not claim a reachable application profile or authorization coverage. To reproduce that local-only fixture before starting the app:
+
+```sh
+mkdir -p src/app/zz-preview/hiring-mixed
+cp docs/design/hero-board/evidence/hiring-people-2026-11-08/mixed-profile.fixture.txt src/app/zz-preview/hiring-mixed/page.tsx
+```
+
+The copied route is ignored and must never be committed. With the same local auth fixture and app running, run:
+
+```sh
+PLAYWRIGHT_PATH=/absolute/path/to/playwright node docs/design/hero-board/evidence/hiring-people-2026-11-08/review-regressions.mjs
+```
+
+The core matrix additionally asserts that the retained snapshot title is an h2 inside its native summary. The manifests identify the final captured source commit; the earlier verification results above remain historical, not the current test count.

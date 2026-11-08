@@ -61,6 +61,7 @@ try{
    }
    if(fixture.name==='candidate-not-selected'){
     const snapshot=page.locator('summary').filter({hasText:/When they applied|When you invited them/});
+    assert.equal(await snapshot.getByRole('heading',{level:2}).count(),1);
     await snapshot.focus();await page.keyboard.press('Enter');
     assert.ok(await snapshot.evaluate(s=>s.parentElement.open));
     await capture(page,fixture.name,width,theme,'snapshot-open',errors);

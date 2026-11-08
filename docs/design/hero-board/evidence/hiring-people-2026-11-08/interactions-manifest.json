@@ -1,5 +1,5 @@
 {
-  "commit": "596f0854ca73cc9f07b66ff8aa981ee298c61f96",
+  "commit": "41f78c74543b0c8a44bbe604855a8855c9dce1ca",
   "fixture": "Same isolated local database and synthetic auth as capture.mjs; pointer targets measured at quarter-pixel intervals with elementFromPoint.",
   "results": [
     {

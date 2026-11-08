@@ -113,7 +113,7 @@ function Segment({ seg, ringScope }: { seg: SharedSegment; ringScope?: string })
  * Totals and rates together (spec p.10), segmented by work type so unlike
  * work is never compared. Deliberately no overall score (CLAUDE.md #5).
  * Draws the shared view (C2.3): the worker's own Profile passes everything;
- * an organization sees "not shared" wherever the worker withheld a group.
+ * an organization sees "Not shared" wherever the worker withheld a group.
  */
 /**
  * `ringScope` (the worker's own id, on their own profile only) lets rate rings

@@ -2,7 +2,7 @@
 
 import { useCallback, useSyncExternalStore } from "react";
 
-/** Count successful external controls belonging to a form, including after row replacement or native reset. */
+/** Count successful external controls belonging to a form, including after row replacement, native reset or browser restoration. */
 export function useFormSelectionCount(formId: string, name: string) {
   const getSnapshot = useCallback(() => {
     const form = document.getElementById(formId);
@@ -20,6 +20,7 @@ export function useFormSelectionCount(formId: string, name: string) {
       clearTimeout(resetTimer);
       resetTimer = setTimeout(notify, 0); // Native reset runs after the event's listeners.
     };
+    window.addEventListener("pageshow", notify); // Restored .checked properties need not emit change or mutate attributes.
     document.addEventListener("change", changed);
     document.addEventListener("reset", reset);
     const observer = new MutationObserver(notify);
@@ -28,6 +29,7 @@ export function useFormSelectionCount(formId: string, name: string) {
     return () => {
       clearTimeout(resetTimer);
       observer.disconnect();
+      window.removeEventListener("pageshow", notify);
       document.removeEventListener("change", changed);
       document.removeEventListener("reset", reset);
     };

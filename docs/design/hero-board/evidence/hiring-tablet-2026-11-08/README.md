@@ -1,6 +1,6 @@
-# Hiring tablet baseline audit
+# Hiring tablet audit and table keyboard focus fix
 
-[Board claim](https://github.com/whiterican/TurfCut/issues/128#issuecomment-6727756182). This is a read-only audit of master `ea9f5d8bf9b7f8b86b35af94d7289651eebbc1c5`, excluding unmerged #130, #131, #132 and #133. It makes no application, schema, dependency or policy-copy changes. It does not approve an app-wide tablet layout.
+[Board claim](https://github.com/whiterican/TurfCut/issues/128#issuecomment-6727756182). This is a read-only audit of master `ea9f5d8bf9b7f8b86b35af94d7289651eebbc1c5`, excluding unmerged #130, #131, #132 and #133. The initial audit is preserved below. A subsequent keyboard regression found a clipped focused sort control; implementation `3399f5c` adjusts only the containing DataTable’s horizontal scroll when a sort button receives focus. No schema, dependency, data/action, permission or policy-copy changes. This does not approve an app-wide tablet layout.
 
 `manifest.json` records the actual routes, local fixtures, viewport sizes, selected native values, overflow, loaded font and browser errors. Ten routes cover Pipeline, the initial New job step, the owned job page, Applicants, Matches, Invitations, shared/withheld candidate views and shared/withheld employer views of workers. Each page is resized from 768×1024 portrait to 1024×768 landscape without reloading, in light and dark themes. There are 40 route/viewport/theme captures, each with viewport and full-height images. The initial builder is inspected without editing fields or starting autosave; other builder steps are outside this audit.
 
@@ -12,7 +12,7 @@ Viewport screenshots retain the actual fixed header/dock. Full-height screenshot
 
 ## Results and disposition
 
-Typecheck and evidence-harness ESLint passed. No application source changed, so the unit suite was not repeated for this evidence-only branch. Browser tests are the validation for this audit.
+The initial evidence-only audit passed typecheck and harness ESLint without repeating the unit suite. After the focus fix, typecheck, full lint and all **1,021 tests in 119 files** passed. Browser regressions below verify the changed behavior.
 
 The 40-case matrix completed with Inter loaded, no horizontal page overflow and no recorded console/page errors. The organization inspector stayed hidden at both tablet widths. Disclosures, filters and route content remain usable in the recorded states; this does not establish coverage for every role, data volume or workflow.
 
@@ -28,6 +28,20 @@ The Applicants longest reason measures 328.06px against a conservative 325px ava
 | Candidate / worker views | Shared and withheld local cases | Unmerged #132 compaction is separate; no consent changes |
 
 Native iPad/Safari/touch, virtual keyboard, split-screen/safe-area behavior, additional role/refusal states, builder steps beyond the initial one, and app-wide routes remain outside this limited audit. Claude's independent review at `d168a66` found no blockers; the reproduction follow-ups below are pending recheck. Astra's visual review is still requested before closing the claim. Caden retains merge/deploy and product-copy decisions.
+
+## Keyboard regression and fix
+
+`keyboard-before-manifest.json` records four native-keyboard cases at 768×1024 / 1024×768, light/dark, on `da10bce` (unchanged master app). The dock is present at 768 and the organization rail at 1024; exactly one Main navigation is visible. Enter opens the dock’s More dialog; Escape closes it and returns focus. Space opens the native filter disclosure. Home/ArrowDown/Enter changes the native stage and bulk/reason selects; Enter on Show submits the real GET filter. No mutation action is submitted.
+
+The initial harness attempted the controlled bulk select immediately after the GET navigation and failed. It now waits for the navigation’s network activity to settle before exercising that control; the complete native-keyboard run then passed. This is harness readiness handling, not a claimed application fix.
+
+Fifty Tab steps per case exposed one real control problem at 1024, in both themes: the “Signatures / active hr” sort button received focus with its center outside the table viewport. The two `keyboard-before-1024-*.png` screenshots record that clipped focus. Wrapped inline links initially produced false center-box flags; the final harness checks actual text fragments, excluding the named table container from control-visibility assertions.
+
+The fix in `src/components/staff/DataTable.tsx` handles focus on sort buttons only when the table overflows horizontally. It reveals the button with four pixels of clearance inside the scrollport. It does not scroll the page or table vertically, change focus order, replace native controls, alter sorting or touch row selection/data.
+
+`keyboard-manifest.json` pins `3399f5c`: the same four cases assert that every sampled main control has at least one visible, uncovered fragment. A direct focus with `preventScroll` after scrolling right verifies that the leftmost sort is revealed while table scrollTop and page scrollY remain unchanged. Four viewport screenshots record the completed state. `table-smoke-manifest.json` adds six real Pipeline cases at 320, 390 and 1440 in both themes, asserting every sort control fits its scrollport, no page overflow/errors, and Inter loaded. Six viewport images record those checks.
+
+These are Chromium desktop-keyboard tests at resized viewport dimensions, not native iPad/external-keyboard, Safari or exhaustive accessibility certification. The original 40-case baseline stays pinned to master; the newer keyboard/smoke manifests pin the focus-fix implementation. Both are intentionally retained rather than conflated.
 
 ## Local fixtures and reproduction
 
@@ -46,6 +60,8 @@ Run the audit using an external Playwright installation and `/usr/bin/chromium`:
 
 ```sh
 PLAYWRIGHT_PATH=/absolute/path/to/playwright node docs/design/hero-board/evidence/hiring-tablet-2026-11-08/audit.mjs
+PLAYWRIGHT_PATH=/absolute/path/to/playwright node docs/design/hero-board/evidence/hiring-tablet-2026-11-08/keyboard.mjs
+PLAYWRIGHT_PATH=/absolute/path/to/playwright node docs/design/hero-board/evidence/hiring-tablet-2026-11-08/table-smoke.mjs
 npx eslint docs/design/hero-board/evidence/hiring-tablet-2026-11-08/*.mjs
 ```
 

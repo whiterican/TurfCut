@@ -1,0 +1,355 @@
+{
+  "commit": "3399f5c2f9d8c146044539f329a366a77a1bf70e",
+  "scope": "Actual Pipeline route; native sort buttons remain inside their table scrollport at320/390/1440 in both themes. No mutations submitted.",
+  "results": [
+    {
+      "width": 320,
+      "theme": "light",
+      "overflow": 0,
+      "interLoaded": true,
+      "measurements": [
+        {
+          "label": "Job",
+          "left": 25,
+          "right": 76.359375,
+          "wrapLeft": 16,
+          "wrapRight": 304
+        },
+        {
+          "label": "Applied",
+          "left": 88.359375,
+          "right": 167.34375,
+          "wrapLeft": 16,
+          "wrapRight": 304
+        },
+        {
+          "label": "Offered",
+          "left": 179.34375,
+          "right": 257.703125,
+          "wrapLeft": 16,
+          "wrapRight": 304
+        },
+        {
+          "label": "Invited",
+          "left": 25,
+          "right": 98.765625,
+          "wrapLeft": 16,
+          "wrapRight": 304
+        },
+        {
+          "label": "Matches",
+          "left": 110.765625,
+          "right": 195.28125,
+          "wrapLeft": 16,
+          "wrapRight": 304
+        },
+        {
+          "label": "Working",
+          "left": 207.28125,
+          "right": 290.40625,
+          "wrapLeft": 16,
+          "wrapRight": 304
+        },
+        {
+          "label": "Filled",
+          "left": 25,
+          "right": 89.265625,
+          "wrapLeft": 16,
+          "wrapRight": 304
+        }
+      ],
+      "errors": []
+    },
+    {
+      "width": 320,
+      "theme": "dark",
+      "overflow": 0,
+      "interLoaded": true,
+      "measurements": [
+        {
+          "label": "Job",
+          "left": 25,
+          "right": 76.359375,
+          "wrapLeft": 16,
+          "wrapRight": 304
+        },
+        {
+          "label": "Applied",
+          "left": 88.359375,
+          "right": 167.34375,
+          "wrapLeft": 16,
+          "wrapRight": 304
+        },
+        {
+          "label": "Offered",
+          "left": 179.34375,
+          "right": 257.703125,
+          "wrapLeft": 16,
+          "wrapRight": 304
+        },
+        {
+          "label": "Invited",
+          "left": 25,
+          "right": 98.765625,
+          "wrapLeft": 16,
+          "wrapRight": 304
+        },
+        {
+          "label": "Matches",
+          "left": 110.765625,
+          "right": 195.28125,
+          "wrapLeft": 16,
+          "wrapRight": 304
+        },
+        {
+          "label": "Working",
+          "left": 207.28125,
+          "right": 290.40625,
+          "wrapLeft": 16,
+          "wrapRight": 304
+        },
+        {
+          "label": "Filled",
+          "left": 25,
+          "right": 89.265625,
+          "wrapLeft": 16,
+          "wrapRight": 304
+        }
+      ],
+      "errors": []
+    },
+    {
+      "width": 390,
+      "theme": "light",
+      "overflow": 0,
+      "interLoaded": true,
+      "measurements": [
+        {
+          "label": "Job",
+          "left": 25,
+          "right": 76.359375,
+          "wrapLeft": 16,
+          "wrapRight": 374
+        },
+        {
+          "label": "Applied",
+          "left": 88.359375,
+          "right": 167.34375,
+          "wrapLeft": 16,
+          "wrapRight": 374
+        },
+        {
+          "label": "Offered",
+          "left": 179.34375,
+          "right": 257.703125,
+          "wrapLeft": 16,
+          "wrapRight": 374
+        },
+        {
+          "label": "Invited",
+          "left": 269.703125,
+          "right": 343.46875,
+          "wrapLeft": 16,
+          "wrapRight": 374
+        },
+        {
+          "label": "Matches",
+          "left": 25,
+          "right": 109.515625,
+          "wrapLeft": 16,
+          "wrapRight": 374
+        },
+        {
+          "label": "Working",
+          "left": 121.515625,
+          "right": 204.640625,
+          "wrapLeft": 16,
+          "wrapRight": 374
+        },
+        {
+          "label": "Filled",
+          "left": 216.640625,
+          "right": 280.90625,
+          "wrapLeft": 16,
+          "wrapRight": 374
+        }
+      ],
+      "errors": []
+    },
+    {
+      "width": 390,
+      "theme": "dark",
+      "overflow": 0,
+      "interLoaded": true,
+      "measurements": [
+        {
+          "label": "Job",
+          "left": 25,
+          "right": 76.359375,
+          "wrapLeft": 16,
+          "wrapRight": 374
+        },
+        {
+          "label": "Applied",
+          "left": 88.359375,
+          "right": 167.34375,
+          "wrapLeft": 16,
+          "wrapRight": 374
+        },
+        {
+          "label": "Offered",
+          "left": 179.34375,
+          "right": 257.703125,
+          "wrapLeft": 16,
+          "wrapRight": 374
+        },
+        {
+          "label": "Invited",
+          "left": 269.703125,
+          "right": 343.46875,
+          "wrapLeft": 16,
+          "wrapRight": 374
+        },
+        {
+          "label": "Matches",
+          "left": 25,
+          "right": 109.515625,
+          "wrapLeft": 16,
+          "wrapRight": 374
+        },
+        {
+          "label": "Working",
+          "left": 121.515625,
+          "right": 204.640625,
+          "wrapLeft": 16,
+          "wrapRight": 374
+        },
+        {
+          "label": "Filled",
+          "left": 216.640625,
+          "right": 280.90625,
+          "wrapLeft": 16,
+          "wrapRight": 374
+        }
+      ],
+      "errors": []
+    },
+    {
+      "width": 1440,
+      "theme": "light",
+      "overflow": 0,
+      "interLoaded": true,
+      "measurements": [
+        {
+          "label": "Job",
+          "left": 253,
+          "right": 304.359375,
+          "wrapLeft": 244,
+          "wrapRight": 1416
+        },
+        {
+          "label": "Applied",
+          "left": 688.640625,
+          "right": 767.625,
+          "wrapLeft": 244,
+          "wrapRight": 1416
+        },
+        {
+          "label": "Offered",
+          "left": 819.265625,
+          "right": 897.625,
+          "wrapLeft": 244,
+          "wrapRight": 1416
+        },
+        {
+          "label": "Invited",
+          "left": 947.53125,
+          "right": 1021.296875,
+          "wrapLeft": 244,
+          "wrapRight": 1416
+        },
+        {
+          "label": "Matches",
+          "left": 1075.265625,
+          "right": 1159.78125,
+          "wrapLeft": 244,
+          "wrapRight": 1416
+        },
+        {
+          "label": "Working",
+          "left": 1213.234375,
+          "right": 1296.359375,
+          "wrapLeft": 244,
+          "wrapRight": 1416
+        },
+        {
+          "label": "Filled",
+          "left": 1342.734375,
+          "right": 1407,
+          "wrapLeft": 244,
+          "wrapRight": 1416
+        }
+      ],
+      "errors": []
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "overflow": 0,
+      "interLoaded": true,
+      "measurements": [
+        {
+          "label": "Job",
+          "left": 253,
+          "right": 304.359375,
+          "wrapLeft": 244,
+          "wrapRight": 1416
+        },
+        {
+          "label": "Applied",
+          "left": 688.640625,
+          "right": 767.625,
+          "wrapLeft": 244,
+          "wrapRight": 1416
+        },
+        {
+          "label": "Offered",
+          "left": 819.265625,
+          "right": 897.625,
+          "wrapLeft": 244,
+          "wrapRight": 1416
+        },
+        {
+          "label": "Invited",
+          "left": 947.53125,
+          "right": 1021.296875,
+          "wrapLeft": 244,
+          "wrapRight": 1416
+        },
+        {
+          "label": "Matches",
+          "left": 1075.265625,
+          "right": 1159.78125,
+          "wrapLeft": 244,
+          "wrapRight": 1416
+        },
+        {
+          "label": "Working",
+          "left": 1213.234375,
+          "right": 1296.359375,
+          "wrapLeft": 244,
+          "wrapRight": 1416
+        },
+        {
+          "label": "Filled",
+          "left": 1342.734375,
+          "right": 1407,
+          "wrapLeft": 244,
+          "wrapRight": 1416
+        }
+      ],
+      "errors": []
+    }
+  ],
+  "failures": []
+}

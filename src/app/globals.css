@@ -2020,7 +2020,8 @@ body {
     @apply flex min-w-0 flex-wrap items-center gap-2 lg:justify-end;
   }
   .map-controls .field {
-    @apply w-auto min-w-0 flex-1 sm:max-w-[18rem];
+    /* From lg the strip is a row and the figures take the room; keep "All jobs" whole beside them (tablet pass). */
+    @apply w-auto min-w-0 flex-1 sm:max-w-[18rem] lg:min-w-48;
   }
   .field-map {
     @apply h-[400px] xl:h-[560px];

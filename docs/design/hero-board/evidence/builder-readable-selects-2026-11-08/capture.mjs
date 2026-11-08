@@ -9,6 +9,7 @@ const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PAT
 const out = new URL("./", import.meta.url);
 const captures = [];
 const failures = [];
+const regressions = [];
 try {
   for (const width of [320, 390, 1440]) for (const theme of ["light", "dark"]) {
     const page = await browser.newPage({ viewport: { width, height: width === 1440 ? 900 : 844 }, deviceScaleFactor: 1 });
@@ -77,12 +78,58 @@ try {
     assert.deepEqual(errors, []);
     await page.close();
   }
+  // Simulate an engine that does not serialize the computed font shorthand.
+  // Keep every longhand intact; this is a targeted simulation, not Firefox coverage.
+  const page = await browser.newPage({ viewport: { width: 320, height: 844 } });
+  await page.addInitScript(() => {
+    const original = window.getComputedStyle.bind(window);
+    window.getComputedStyle = (element, pseudo) => {
+      const style = original(element, pseudo);
+      if (!(element instanceof HTMLSelectElement)) return style;
+      return new Proxy(style, { get(target, key) {
+        if (key === "font") return "";
+        const value = Reflect.get(target, key, target);
+        return typeof value === "function" ? value.bind(target) : value;
+      } });
+    };
+  });
+  await page.goto(process.env.PREVIEW_URL || "http://localhost:3018/zz-preview/readable-selects");
+  await page.evaluate(() => document.fonts.ready);
+  await page.waitForFunction(() => Object.keys(document.querySelector(".step")).some(k => k.startsWith("__reactProps")));
+  await page.locator(".step").nth(4).click();
+  const select = page.locator('select[name="campaignType"]');
+  await select.waitFor({ state: "visible" });
+  await page.waitForFunction(() => {
+    const s = document.querySelector('select[name="campaignType"]');
+    return s.nextElementSibling?.getAttribute("aria-hidden") === "true";
+  });
+  assert.equal(await select.evaluate(s => getComputedStyle(s).font), "");
+  const expected = "Nonpartisan civic work (voter registration, GOTV)";
+  assert.equal(await select.evaluate(s => s.nextElementSibling.textContent), expected);
+  regressions.push("empty computed font shorthand: full selected-value caption shown at 320px");
+  await select.selectOption("candidate");
+  await page.waitForFunction(() => document.querySelector('select[name="campaignType"]').nextElementSibling?.getAttribute("aria-hidden") !== "true");
+  // Add a reset button only to the local fixture, then activate it through a real click.
+  await select.evaluate(s => {
+    const button = document.createElement("button");
+    button.type = "reset";
+    button.textContent = "Reset local fixture";
+    s.form.append(button);
+  });
+  await page.getByRole("button", { name: "Reset local fixture" }).click();
+  await page.waitForFunction(() => {
+    const s = document.querySelector('select[name="campaignType"]');
+    return s.value === "nonpartisan_civic" && s.nextElementSibling?.getAttribute("aria-hidden") === "true";
+  });
+  assert.equal(await select.evaluate(s => s.nextElementSibling.textContent), expected);
+  regressions.push("trusted reset-button click: selected value and caption restored after native reset");
+  await page.close();
 } catch (e) { failures.push(String(e)); throw e; }
 finally {
   await writeFile(new URL("manifest.json", out), JSON.stringify({
     commit: execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim(),
     fixture: "Local ignored zz-preview route renders the real JobForm, ReadingPage and Masthead. Synthetic job and jurisdiction IDs, valid local defaults documented in README.md, campaignType=nonpartisan_civic, canvassApp empty, autosave=false. No database or production access. Root shell is signed out, not the authenticated organization shell.",
-    captures, failures,
+    captures, regressions, failures,
   }, null, 2) + "\n");
   await browser.close();
 }

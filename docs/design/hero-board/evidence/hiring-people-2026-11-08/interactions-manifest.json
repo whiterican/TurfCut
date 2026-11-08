@@ -1,0 +1,205 @@
+{
+  "commit": "596f0854ca73cc9f07b66ff8aa981ee298c61f96",
+  "fixture": "Same isolated local database and synthetic auth as capture.mjs; pointer targets measured at quarter-pixel intervals with elementFromPoint.",
+  "results": [
+    {
+      "width": 320,
+      "theme": "light",
+      "targets": [
+        {
+          "label": "Applicants",
+          "visibleHeight": 36,
+          "hitHeight": 46.75
+        },
+        {
+          "label": "Job page",
+          "visibleHeight": 36,
+          "hitHeight": 44.75
+        },
+        {
+          "label": "Send offerSending…Done",
+          "visibleHeight": 36,
+          "hitHeight": 44.75
+        },
+        {
+          "label": "Not selected",
+          "visibleHeight": 36,
+          "hitHeight": 46.75
+        }
+      ],
+      "overflow": 0,
+      "deniedWorker": {
+        "status": 200,
+        "check": "closed-account route renders no live profile or worker name; not-found may be streamed with HTTP200"
+      },
+      "unrelatedOrg": "explicit profile refusal and no shared data under a different local organization owner",
+      "errors": []
+    },
+    {
+      "width": 320,
+      "theme": "dark",
+      "targets": [
+        {
+          "label": "Applicants",
+          "visibleHeight": 36,
+          "hitHeight": 46.75
+        },
+        {
+          "label": "Job page",
+          "visibleHeight": 36,
+          "hitHeight": 44.75
+        },
+        {
+          "label": "Send offerSending…Done",
+          "visibleHeight": 36,
+          "hitHeight": 44.75
+        },
+        {
+          "label": "Not selected",
+          "visibleHeight": 36,
+          "hitHeight": 46.75
+        }
+      ],
+      "overflow": 0,
+      "deniedWorker": {
+        "status": 200,
+        "check": "closed-account route renders no live profile or worker name; not-found may be streamed with HTTP200"
+      },
+      "unrelatedOrg": "explicit profile refusal and no shared data under a different local organization owner",
+      "errors": []
+    },
+    {
+      "width": 390,
+      "theme": "light",
+      "targets": [
+        {
+          "label": "Applicants",
+          "visibleHeight": 36,
+          "hitHeight": 46.75
+        },
+        {
+          "label": "Job page",
+          "visibleHeight": 36,
+          "hitHeight": 44.75
+        },
+        {
+          "label": "Send offerSending…Done",
+          "visibleHeight": 36,
+          "hitHeight": 44.75
+        },
+        {
+          "label": "Not selected",
+          "visibleHeight": 36,
+          "hitHeight": 46.75
+        }
+      ],
+      "overflow": 0,
+      "deniedWorker": {
+        "status": 200,
+        "check": "closed-account route renders no live profile or worker name; not-found may be streamed with HTTP200"
+      },
+      "unrelatedOrg": "explicit profile refusal and no shared data under a different local organization owner",
+      "errors": []
+    },
+    {
+      "width": 390,
+      "theme": "dark",
+      "targets": [
+        {
+          "label": "Applicants",
+          "visibleHeight": 36,
+          "hitHeight": 46.75
+        },
+        {
+          "label": "Job page",
+          "visibleHeight": 36,
+          "hitHeight": 44.75
+        },
+        {
+          "label": "Send offerSending…Done",
+          "visibleHeight": 36,
+          "hitHeight": 44.75
+        },
+        {
+          "label": "Not selected",
+          "visibleHeight": 36,
+          "hitHeight": 46.75
+        }
+      ],
+      "overflow": 0,
+      "deniedWorker": {
+        "status": 200,
+        "check": "closed-account route renders no live profile or worker name; not-found may be streamed with HTTP200"
+      },
+      "unrelatedOrg": "explicit profile refusal and no shared data under a different local organization owner",
+      "errors": []
+    },
+    {
+      "width": 1440,
+      "theme": "light",
+      "targets": [
+        {
+          "label": "Applicants",
+          "visibleHeight": 36,
+          "hitHeight": 46.75
+        },
+        {
+          "label": "Job page",
+          "visibleHeight": 36,
+          "hitHeight": 44.75
+        },
+        {
+          "label": "Send offerSending…Done",
+          "visibleHeight": 36,
+          "hitHeight": 44.75
+        },
+        {
+          "label": "Not selected",
+          "visibleHeight": 36,
+          "hitHeight": 46.75
+        }
+      ],
+      "overflow": 0,
+      "deniedWorker": {
+        "status": 200,
+        "check": "closed-account route renders no live profile or worker name; not-found may be streamed with HTTP200"
+      },
+      "unrelatedOrg": "explicit profile refusal and no shared data under a different local organization owner",
+      "errors": []
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "targets": [
+        {
+          "label": "Applicants",
+          "visibleHeight": 36,
+          "hitHeight": 46.75
+        },
+        {
+          "label": "Job page",
+          "visibleHeight": 36,
+          "hitHeight": 44.75
+        },
+        {
+          "label": "Send offerSending…Done",
+          "visibleHeight": 36,
+          "hitHeight": 44.75
+        },
+        {
+          "label": "Not selected",
+          "visibleHeight": 36,
+          "hitHeight": 46.75
+        }
+      ],
+      "overflow": 0,
+      "deniedWorker": {
+        "status": 200,
+        "check": "closed-account route renders no live profile or worker name; not-found may be streamed with HTTP200"
+      },
+      "unrelatedOrg": "explicit profile refusal and no shared data under a different local organization owner",
+      "errors": []
+    }
+  ],
+  "failures": []
+}

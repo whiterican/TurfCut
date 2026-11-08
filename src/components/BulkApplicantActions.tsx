@@ -38,7 +38,7 @@ export function BulkApplicantActions({ formId, jobId }: { formId: string; jobId:
     >
       <input type="hidden" name="jobId" value={jobId} />
       <p className="text-muted-sm" role="status">{selectedCount} selected</p>
-      <fieldset hidden={!selectedCount} disabled={!selectedCount || pending} className="min-w-0 space-y-3" aria-label="Actions for selected applicants">
+      <fieldset hidden={!selectedCount} disabled={!selectedCount} className="min-w-0 space-y-3" aria-label="Actions for selected applicants">
       <div className="flex flex-wrap items-end gap-3">
         <label className="min-w-0 max-w-full flex-1 basis-48 space-y-1.5">
           <span className="label">For the selected applicants</span>

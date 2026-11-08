@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type SelectHTMLAttributes } from "react";
 
-/** Keep the native picker; repeat a clipped selection as wrapping text below it. */
+/** For uncontrolled selects: keep the native picker and repeat a clipped selection below it. */
 export function ReadableSelect(props: SelectHTMLAttributes<HTMLSelectElement>) {
   const select = useRef<HTMLSelectElement>(null);
   const [clippedLabel, setClippedLabel] = useState("");
@@ -15,7 +15,7 @@ export function ReadableSelect(props: SelectHTMLAttributes<HTMLSelectElement>) {
     const measure = () => {
       if (!active || !context || !control.clientWidth) return;
       const style = getComputedStyle(control);
-      context.font = style.font;
+      context.font = style.font || `${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
       const text = control.selectedOptions[0]?.text ?? "";
       const spacing = parseFloat(style.letterSpacing) || 0;
       const width = context.measureText(text).width + Math.max(0, text.length - 1) * spacing;
@@ -27,7 +27,9 @@ export function ReadableSelect(props: SelectHTMLAttributes<HTMLSelectElement>) {
     const observer = new ResizeObserver(measure);
     observer.observe(control); // Also measures when its builder step becomes visible.
     control.addEventListener("change", measure);
-    const afterReset = () => queueMicrotask(measure);
+    // A user-triggered reset's default action can run after a microtask checkpoint.
+    // Use the next task so both reset buttons and form.reset() read the reset value.
+    const afterReset = () => setTimeout(measure, 0);
     const form = control.form;
     form?.addEventListener("reset", afterReset);
     document.fonts.addEventListener("loadingdone", measure);

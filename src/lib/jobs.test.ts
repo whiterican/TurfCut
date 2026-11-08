@@ -460,8 +460,37 @@ describe("publish blockers grouped by who fixes them (#126, PLAN §2)", () => {
     return f;
   };
 
-  it("says the same words, in the same order, as publishBlockers", () => {
-    for (const f of [ready(), blocked()]) expect(publishBlockerList(f, now).map((b) => b.text)).toEqual(publishBlockers(f, now));
+  it("keeps publishBlockers' words and order, written out", () => {
+    expect(publishBlockers(blocked(), now)).toEqual([
+      "Your organization is awaiting Turfcut approval.",
+      "Sign the contractor terms in organization settings.",
+      "Complete the worker-classification review in organization settings.",
+      "Denver, CO (rules v1) hasn't been approved by counsel.",
+      "Set the gross pay rate.",
+      "Set the headcount.",
+      "Set the start and end dates.",
+      "Disclose the campaign's type, affiliation and message.",
+      "Name who handles emergencies, disputes and lost materials.",
+      "Pick at least one way to hire.",
+    ]);
+    const f = ready();
+    f.jurisdiction = { ...denver, isCurrent: false, effectiveFrom: new Date("2026-12-01"), approvalExpiresAt: new Date("2026-09-30") };
+    f.job.geography = { city: "Austin", state: "TX" };
+    f.job.endsAt = new Date("2026-09-20");
+    f.job.startsAt = new Date("2026-09-10");
+    f.job.launch = { mode: "STAGED", points: [] };
+    expect(publishBlockers(f, now)).toEqual([
+      "Denver, CO (rules v1) has been superseded by a newer version; the organization has to file the job under the current rules.",
+      "Denver, CO (rules v1) isn't effective until 2026-12-01.",
+      "Counsel approval for Denver, CO (rules v1) expired on 2026-09-30.",
+      "The job is in TX but the rule profile is for CO. Pick a TX profile.",
+      "The job's end date has passed.",
+      "Add at least one staging point, or switch the job to self-launch.",
+    ]);
+    const g = ready();
+    g.jurisdiction = null;
+    expect(publishBlockers(g, now)).toEqual(["The jurisdiction rule profile is unknown. Pick an approved jurisdiction."]);
+    for (const x of [ready(), blocked(), f, g]) expect(publishBlockerList(x, now).map((b) => b.text)).toEqual(publishBlockers(x, now));
   });
 
   it("puts organization reasons with settings, rule-profile reasons with counsel, the rest with the job", () => {

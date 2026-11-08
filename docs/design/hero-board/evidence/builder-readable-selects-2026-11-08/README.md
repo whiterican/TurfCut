@@ -14,7 +14,7 @@ Install the locked app dependencies, generate Prisma Client, and create `src/app
 
 Chromium defaults to `/usr/bin/chromium`; override with `CHROMIUM_PATH`. Override the local URL with `PREVIEW_URL`. This adds no app dependency.
 
-The script records viewport and full-page images at 320×844, 390×844 and 1440×900 in light and dark. It measures the actual longest option with loaded Inter, checks wrapping/page overflow, native keyboard changes, FormData, short-value caption removal and native form reset. It also simulates an empty computed font shorthand at 320px and clicks a real reset button added only to the local fixture. The font simulation verifies the fallback path in Chromium; it does not claim Firefox coverage. The manifest names the implementation commit and discloses the fixture.
+The script records viewport and full-page images at 320×844, 390×844 and 1440×900 in light and dark. It measures the actual longest option with loaded Inter, checks wrapping/page overflow, native keyboard changes, FormData, short-value caption removal and native form reset. It also simulates an empty computed font shorthand at 390px, asserting that the incorrect default canvas font fits while the real font requires the caption and clicks a real reset button added only to the local fixture. The font simulation verifies the fallback path in Chromium; it does not claim Firefox coverage. The manifest names the implementation commit and discloses the fixture.
 
 ## Local-only fixture
 

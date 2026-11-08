@@ -1,5 +1,5 @@
 {
-  "commit": "1e508a6800d3664ce17325a02cd4ca597211a926",
+  "commit": "db0cae8352d33a9db3941aae87b84e14aaeb9ce9",
   "fixture": "Local ignored zz-preview route renders the real JobForm, ReadingPage and Masthead. Synthetic job and jurisdiction IDs, valid local defaults documented in README.md, campaignType=nonpartisan_civic, canvassApp empty, autosave=false. No database or production access. Root shell is signed out, not the authenticated organization shell.",
   "captures": [
     {
@@ -292,7 +292,12 @@
     }
   ],
   "regressions": [
-    "empty computed font shorthand: full selected-value caption shown at 320px",
+    {
+      "check": "empty computed font shorthand at 390px: default font fits, real font clips, full-value caption shown",
+      "defaultWidth": 217.841796875,
+      "realWidth": 372.9453125,
+      "available": 308
+    },
     "trusted reset-button click: selected value and caption restored after native reset"
   ],
   "failures": []

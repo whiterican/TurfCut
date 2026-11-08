@@ -80,7 +80,7 @@ try {
   }
   // Simulate an engine that does not serialize the computed font shorthand.
   // Keep every longhand intact; this is a targeted simulation, not Firefox coverage.
-  const page = await browser.newPage({ viewport: { width: 320, height: 844 } });
+  const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
   await page.addInitScript(() => {
     const original = window.getComputedStyle.bind(window);
     window.getComputedStyle = (element, pseudo) => {
@@ -105,8 +105,19 @@ try {
   });
   assert.equal(await select.evaluate(s => getComputedStyle(s).font), "");
   const expected = "Nonpartisan civic work (voter registration, GOTV)";
+  const fontProbe = await select.evaluate(s => {
+    const style = getComputedStyle(s);
+    const context = document.createElement("canvas").getContext("2d");
+    const text = s.selectedOptions[0].text;
+    const defaultWidth = context.measureText(text).width;
+    context.font = `${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+    return { defaultWidth, realWidth: context.measureText(text).width,
+      available: s.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight) - 24 };
+  });
+  assert.ok(fontProbe.defaultWidth <= fontProbe.available, "bad default canvas font must fit, so the old code would omit the caption");
+  assert.ok(fontProbe.realWidth > fontProbe.available, "the real font must need the caption");
   assert.equal(await select.evaluate(s => s.nextElementSibling.textContent), expected);
-  regressions.push("empty computed font shorthand: full selected-value caption shown at 320px");
+  regressions.push({ check: "empty computed font shorthand at 390px: default font fits, real font clips, full-value caption shown", ...fontProbe });
   await select.selectOption("candidate");
   await page.waitForFunction(() => document.querySelector('select[name="campaignType"]').nextElementSibling?.getAttribute("aria-hidden") !== "true");
   // Add a reset button only to the local fixture, then activate it through a real click.

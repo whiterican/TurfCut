@@ -1,0 +1,243 @@
+{
+  "commit": "919a7dd9084c0b4d5f07da31d25440b9fdafa6ce",
+  "note": "Only scoped small actions and the bulk submit button are measured. Native checkboxes and inherited filter chips are unchanged, not claimed as44px.",
+  "results": [
+    {
+      "width": 320,
+      "theme": "light",
+      "targets": [
+        {
+          "text": "Pipeline",
+          "visibleHeight": 36,
+          "hitHeight": 46.75
+        },
+        {
+          "text": "Job page",
+          "visibleHeight": 36,
+          "hitHeight": 44.75
+        },
+        {
+          "text": "Show",
+          "visibleHeight": 36,
+          "hitHeight": 44.75
+        },
+        {
+          "text": "Reset",
+          "visibleHeight": 36,
+          "hitHeight": 46.75
+        },
+        {
+          "text": "Update selected",
+          "visibleHeight": 44,
+          "hitHeight": 44.5
+        }
+      ]
+    },
+    {
+      "width": 320,
+      "theme": "dark",
+      "targets": [
+        {
+          "text": "Pipeline",
+          "visibleHeight": 36,
+          "hitHeight": 46.75
+        },
+        {
+          "text": "Job page",
+          "visibleHeight": 36,
+          "hitHeight": 44.75
+        },
+        {
+          "text": "Show",
+          "visibleHeight": 36,
+          "hitHeight": 44.75
+        },
+        {
+          "text": "Reset",
+          "visibleHeight": 36,
+          "hitHeight": 46.75
+        },
+        {
+          "text": "Update selected",
+          "visibleHeight": 44,
+          "hitHeight": 44.5
+        }
+      ]
+    },
+    {
+      "width": 390,
+      "theme": "light",
+      "targets": [
+        {
+          "text": "Pipeline",
+          "visibleHeight": 36,
+          "hitHeight": 46.75
+        },
+        {
+          "text": "Job page",
+          "visibleHeight": 36,
+          "hitHeight": 44.75
+        },
+        {
+          "text": "Show",
+          "visibleHeight": 36,
+          "hitHeight": 44.75
+        },
+        {
+          "text": "Reset",
+          "visibleHeight": 36,
+          "hitHeight": 46.75
+        },
+        {
+          "text": "Update selected",
+          "visibleHeight": 44,
+          "hitHeight": 44.5
+        }
+      ]
+    },
+    {
+      "width": 390,
+      "theme": "dark",
+      "targets": [
+        {
+          "text": "Pipeline",
+          "visibleHeight": 36,
+          "hitHeight": 46.75
+        },
+        {
+          "text": "Job page",
+          "visibleHeight": 36,
+          "hitHeight": 44.75
+        },
+        {
+          "text": "Show",
+          "visibleHeight": 36,
+          "hitHeight": 44.75
+        },
+        {
+          "text": "Reset",
+          "visibleHeight": 36,
+          "hitHeight": 46.75
+        },
+        {
+          "text": "Update selected",
+          "visibleHeight": 44,
+          "hitHeight": 44.5
+        }
+      ]
+    },
+    {
+      "width": 1440,
+      "theme": "light",
+      "targets": [
+        {
+          "text": "Pipeline",
+          "visibleHeight": 36,
+          "hitHeight": 46.75
+        },
+        {
+          "text": "Job page",
+          "visibleHeight": 36,
+          "hitHeight": 44.75
+        },
+        {
+          "text": "Show",
+          "visibleHeight": 36,
+          "hitHeight": 44.75
+        },
+        {
+          "text": "Reset",
+          "visibleHeight": 36,
+          "hitHeight": 46.75
+        },
+        {
+          "text": "Update selected",
+          "visibleHeight": 44,
+          "hitHeight": 44.5
+        },
+        {
+          "text": "Close",
+          "visibleHeight": 36,
+          "hitHeight": 46.75
+        },
+        {
+          "text": "Send offerSending…Done",
+          "visibleHeight": 36,
+          "hitHeight": 44.75
+        },
+        {
+          "text": "Not selected",
+          "visibleHeight": 36,
+          "hitHeight": 46.75
+        },
+        {
+          "text": "Confirm not selected",
+          "visibleHeight": 36,
+          "hitHeight": 44.75
+        },
+        {
+          "text": "Open the full page",
+          "visibleHeight": 36,
+          "hitHeight": 44.75
+        }
+      ]
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "targets": [
+        {
+          "text": "Pipeline",
+          "visibleHeight": 36,
+          "hitHeight": 46.75
+        },
+        {
+          "text": "Job page",
+          "visibleHeight": 36,
+          "hitHeight": 44.75
+        },
+        {
+          "text": "Show",
+          "visibleHeight": 36,
+          "hitHeight": 44.75
+        },
+        {
+          "text": "Reset",
+          "visibleHeight": 36,
+          "hitHeight": 46.75
+        },
+        {
+          "text": "Update selected",
+          "visibleHeight": 44,
+          "hitHeight": 44.5
+        },
+        {
+          "text": "Close",
+          "visibleHeight": 36,
+          "hitHeight": 46.75
+        },
+        {
+          "text": "Send offerSending…Done",
+          "visibleHeight": 36,
+          "hitHeight": 44.75
+        },
+        {
+          "text": "Not selected",
+          "visibleHeight": 36,
+          "hitHeight": 46.75
+        },
+        {
+          "text": "Confirm not selected",
+          "visibleHeight": 36,
+          "hitHeight": 44.75
+        },
+        {
+          "text": "Open the full page",
+          "visibleHeight": 36,
+          "hitHeight": 44.75
+        }
+      ]
+    }
+  ],
+  "failures": []
+}

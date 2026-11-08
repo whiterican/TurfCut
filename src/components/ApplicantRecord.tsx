@@ -90,7 +90,7 @@ export function ApplicantRecord({ applicant, now, invitation }: { applicant: App
       )}
 
       <details className={`section ${styles.snapshot}`}>
-        <summary className="section-title">{snapshot?.kind === "invitation" ? "When you invited them" : "When they applied"}{snapshotDay && ` · ${snapshotDay}`}</summary>
+        <summary><h2 className="section-title inline">{snapshot?.kind === "invitation" ? "When you invited them" : "When they applied"}{snapshotDay && ` · ${snapshotDay}`}</h2></summary>
         <div className="space-y-3 pt-3">
           <p className="text-muted-sm">Exactly what you could see then. It never changes, even if they share less later.</p>
           {snapshot ? <SnapshotView snapshot={snapshot} /> : <p className="text-hint">No copy was kept for this engagement.</p>}

@@ -45,10 +45,18 @@ describe("compact consent-filtered profile", () => {
     expect(html).toContain("No credentials added.");
     expect(html).toContain("No experience yet");
     expect(html).toContain("No availability set yet.");
-    expect(html).toContain("0 verified shifts");
+    expect(html).not.toContain("0 verified shifts");
     // Only fit is withheld; the empty scorecard remains available to expand.
     expect(html.match(/status-not-shared/g)?.length).toBeGreaterThanOrEqual(1);
     expect(html).toContain("No verified shifts yet");
+  });
+  it("labels date-only availability and uses viewer-appropriate preview wording", () => {
+    const v = view(true);
+    v.availability = { usual: null, dates: ["Nov 10: free 9am–3pm"], note: null };
+    const html = renderToStaticMarkup(<OrgProfileSections view={v} heading="What you share with this organization" />);
+    expect(html).toContain("What you share with this organization");
+    expect(html).not.toContain("What they share with you now");
+    expect(html).toContain("Coming up: Nov 10: free 9am–3pm.");
   });
   it("does not turn absent hidden history into zero totals or a no-work claim", () => {
     const scorecard = view().scorecard.lifetime;

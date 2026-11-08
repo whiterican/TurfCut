@@ -23,20 +23,20 @@ function Part({ name, summary, children }: { name: string; summary: ReactNode; c
 }
 
 /** One consent-filtered view for organization pages and the worker's own preview. */
-export function OrgProfileSections({ view }: { view: OrgProfileView }) {
+export function OrgProfileSections({ view, heading = "What they share with you now" }: { view: OrgProfileView; heading?: string }) {
   const scorecard = profileScorecardSummary(view.scorecard.lifetime);
   const availability = view.availability;
   const hasAvailability = availability !== "withheld" && !!availability && !!(availability.usual || availability.dates.length || availability.note);
   const sharedFit = FIT_FIELDS.filter(f => view.fit.fields[f.key].shared).length;
   return (
     <section className="section">
-      <h2 className="section-title">What they share with you now</h2>
+      <h2 className="section-title">{heading}</h2>
       <div className={`card ${styles.rows}`}>
         <Part name="Scorecard" summary={scorecard ?? <NotSharedChip what="scorecard" />}>
           {scorecard !== null && <ScorecardPanel periods={view.scorecard} />}
         </Part>
         <Part name="Availability" summary={availability === "withheld" ? <NotSharedChip what="availability" />
-          : hasAvailability ? availability?.usual || availability?.dates[0] || availability?.note
+          : hasAvailability ? availability?.usual || (availability?.dates.length ? `Coming up: ${availability.dates[0]}.` : availability?.note ? `Note: “${availability.note}”` : null)
             : "No availability set yet."}>
           {hasAvailability && <AvailabilityStatement view={availability} />}
         </Part>

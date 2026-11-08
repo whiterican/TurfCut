@@ -55,7 +55,7 @@ describe("candidate record structure", () => {
     const a = fixture();
     a.snapshot = { kind: "application", capturedAt: "2026-11-01T12:00:00Z" } as ApplicantPage["snapshot"];
     const html = render(a);
-    expect(html).toContain("When they applied · Nov 1, 2026</summary>");
+    expect(html).toContain("When they applied · Nov 1, 2026</h2></summary>");
     expect(html).not.toContain('<details open');
     expect(html).toContain("Exactly what you could see then. It never changes, even if they share less later.");
   });

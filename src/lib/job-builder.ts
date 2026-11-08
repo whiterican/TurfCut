@@ -42,6 +42,12 @@ export function fieldStep(key: string): number | null {
   return i === -1 ? null : i;
 }
 
+/** "Step 5 · Campaign disclosure" for the step that claims a field, or null when none does. */
+export function stepLabel(field: string): string | null {
+  const i = fieldStep(field);
+  return i === null ? null : `Step ${i + 1} · ${BUILDER_STEPS[i].title}`;
+}
+
 /** The first step that has one of these errors, or null when none do. */
 export function firstStepWithErrors(errors: Record<string, string>): number | null {
   const steps = Object.keys(errors).map(stepOfField);

@@ -12,6 +12,7 @@ import {
   exclusionReasons,
   jobCardAnswers,
   jobCredentials,
+  publishBlockerList,
   publishBlockers,
   readHiringModes,
   validateDraft,
@@ -447,5 +448,57 @@ describe("job discovery category labels", () => {
   it("does not infer a category from incomplete or absent disclosure", () => {
     expect(jobDiscoveryLabel("CANVASS", null)).toBe("Door-to-door canvassing");
     expect(jobDiscoveryLabel("CANVASS", { campaignType: "candidate" })).toBe("Door-to-door canvassing");
+  });
+});
+
+describe("publish blockers grouped by who fixes them (#126, PLAN §2)", () => {
+  const blocked = (): PublishFacts => {
+    const f = ready();
+    f.org = { approved: false, contractorTermsSignedAt: null, classificationReviewedAt: null };
+    f.jurisdiction = { ...denver, approved: false };
+    f.job = { ...f.job, payRateCents: null, headcount: 0, startsAt: null, campaignDisclosure: null, supportContacts: null, hiringMethod: {} };
+    return f;
+  };
+
+  it("says the same words, in the same order, as publishBlockers", () => {
+    for (const f of [ready(), blocked()]) expect(publishBlockerList(f, now).map((b) => b.text)).toEqual(publishBlockers(f, now));
+  });
+
+  it("puts organization reasons with settings, rule-profile reasons with counsel, the rest with the job", () => {
+    const by = (fixer: string) => publishBlockerList(blocked(), now).filter((b) => b.fixer === fixer).map((b) => b.text);
+    expect(by("settings")).toEqual([
+      "Your organization is awaiting Turfcut approval.",
+      "Sign the contractor terms in organization settings.",
+      "Complete the worker-classification review in organization settings.",
+    ]);
+    expect(by("counsel")).toEqual([expect.stringMatching(/hasn't been approved by counsel/)]);
+    expect(by("job")).toEqual([
+      "Set the gross pay rate.",
+      "Set the headcount.",
+      "Set the start and end dates.",
+      "Disclose the campaign's type, affiliation and message.",
+      "Name who handles emergencies, disputes and lost materials.",
+      "Pick at least one way to hire.",
+    ]);
+  });
+
+  it("names the builder field for every job reason it can", () => {
+    const f = blocked();
+    f.job.startsAt = new Date("2026-11-10"); // end before start
+    f.job.geography = { city: "Austin", state: "TX" };
+    f.job.compensationMethod = "PER_UNIT";
+    f.job.launch = { mode: "STAGED", points: [] };
+    const jobReasons = publishBlockerList(f, now).filter((b) => b.fixer === "job");
+    expect(jobReasons.length).toBeGreaterThan(6);
+    for (const b of jobReasons) expect(b.field, b.text).toBeTruthy();
+  });
+
+  it("leaves an unknown rule profile with counsel and a non-draft status with the job, unlabelled", () => {
+    const f = ready();
+    f.jurisdiction = null;
+    f.job.status = "CLOSED";
+    const list = publishBlockerList(f, now);
+    expect(list.find((b) => /unknown/.test(b.text))?.fixer).toBe("counsel");
+    expect(list.find((b) => /Only draft or paused/.test(b.text))).toEqual({ text: "Only draft or paused jobs can be published.", fixer: "job", field: undefined });
   });
 });

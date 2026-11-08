@@ -2017,7 +2017,7 @@ body {
   }
   /* The Field map (#111, screen 11): the controls row over the map, the map itself, and the turf cards beside it. */
   .map-controls {
-    @apply flex min-w-0 flex-wrap items-center gap-2 lg:justify-end;
+    @apply flex min-w-0 flex-wrap items-center gap-2 lg:shrink-0 lg:justify-end;
   }
   .map-controls .field {
     /* From lg the strip is a row and the figures take the room; keep "All jobs" whole beside them (tablet pass). */

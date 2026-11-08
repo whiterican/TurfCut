@@ -1,0 +1,510 @@
+[
+  {
+    "name": "job-and-counsel-owner",
+    "user": "owner",
+    "job": "c01a4f88-a2a3-4940-9979-a7b05dda2eae",
+    "note": "Aurora draft: Boulder profile never approved; owner (edit + settings)",
+    "width": 390,
+    "theme": "light",
+    "file": "job-and-counsel-owner-390-light.png",
+    "viewport": "job-and-counsel-owner-390-viewport.png",
+    "over": 0,
+    "headline": "This job can't publish yet",
+    "groups": [
+      {
+        "title": "In this job",
+        "reasons": [
+          "Boulder, CO (rules v1) has been superseded by a newer version; the organization has to file the job under the current rules. Step 1 · The work",
+          "Disclose the campaign's type, affiliation and message. Step 5 · Campaign disclosure",
+          "Name who handles emergencies, disputes and lost materials. Step 4 · Requirements and contacts"
+        ],
+        "link": null,
+        "note": null
+      },
+      {
+        "title": "With counsel",
+        "reasons": [
+          "Boulder, CO (rules v1) hasn't been approved by counsel."
+        ],
+        "link": null,
+        "note": "Turfcut staff approve rule profiles."
+      }
+    ],
+    "clear": " Step 1 · The work",
+    "publish": {
+      "disabled": true
+    },
+    "editDraft": true,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "d8335c4"
+    }
+  },
+  {
+    "name": "job-and-counsel-owner",
+    "user": "owner",
+    "job": "c01a4f88-a2a3-4940-9979-a7b05dda2eae",
+    "note": "Aurora draft: Boulder profile never approved; owner (edit + settings)",
+    "width": 390,
+    "theme": "dark",
+    "file": "job-and-counsel-owner-390-dark.png",
+    "viewport": null,
+    "over": 0,
+    "headline": "This job can't publish yet",
+    "groups": [
+      {
+        "title": "In this job",
+        "reasons": [
+          "Boulder, CO (rules v1) has been superseded by a newer version; the organization has to file the job under the current rules. Step 1 · The work",
+          "Disclose the campaign's type, affiliation and message. Step 5 · Campaign disclosure",
+          "Name who handles emergencies, disputes and lost materials. Step 4 · Requirements and contacts"
+        ],
+        "link": null,
+        "note": null
+      },
+      {
+        "title": "With counsel",
+        "reasons": [
+          "Boulder, CO (rules v1) hasn't been approved by counsel."
+        ],
+        "link": null,
+        "note": "Turfcut staff approve rule profiles."
+      }
+    ],
+    "clear": " Step 1 · The work",
+    "publish": {
+      "disabled": true
+    },
+    "editDraft": true,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "d8335c4"
+    }
+  },
+  {
+    "name": "job-and-counsel-owner",
+    "user": "owner",
+    "job": "c01a4f88-a2a3-4940-9979-a7b05dda2eae",
+    "note": "Aurora draft: Boulder profile never approved; owner (edit + settings)",
+    "width": 1440,
+    "theme": "light",
+    "file": "job-and-counsel-owner-1440-light.png",
+    "viewport": "job-and-counsel-owner-1440-viewport.png",
+    "over": -15,
+    "headline": "This job can't publish yet",
+    "groups": [
+      {
+        "title": "In this job",
+        "reasons": [
+          "Boulder, CO (rules v1) has been superseded by a newer version; the organization has to file the job under the current rules. Step 1 · The work",
+          "Disclose the campaign's type, affiliation and message. Step 5 · Campaign disclosure",
+          "Name who handles emergencies, disputes and lost materials. Step 4 · Requirements and contacts"
+        ],
+        "link": null,
+        "note": null
+      },
+      {
+        "title": "With counsel",
+        "reasons": [
+          "Boulder, CO (rules v1) hasn't been approved by counsel."
+        ],
+        "link": null,
+        "note": "Turfcut staff approve rule profiles."
+      }
+    ],
+    "clear": " Step 1 · The work",
+    "publish": {
+      "disabled": true
+    },
+    "editDraft": true,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "d8335c4"
+    }
+  },
+  {
+    "name": "job-and-counsel-owner",
+    "user": "owner",
+    "job": "c01a4f88-a2a3-4940-9979-a7b05dda2eae",
+    "note": "Aurora draft: Boulder profile never approved; owner (edit + settings)",
+    "width": 1440,
+    "theme": "dark",
+    "file": "job-and-counsel-owner-1440-dark.png",
+    "viewport": null,
+    "over": -15,
+    "headline": "This job can't publish yet",
+    "groups": [
+      {
+        "title": "In this job",
+        "reasons": [
+          "Boulder, CO (rules v1) has been superseded by a newer version; the organization has to file the job under the current rules. Step 1 · The work",
+          "Disclose the campaign's type, affiliation and message. Step 5 · Campaign disclosure",
+          "Name who handles emergencies, disputes and lost materials. Step 4 · Requirements and contacts"
+        ],
+        "link": null,
+        "note": null
+      },
+      {
+        "title": "With counsel",
+        "reasons": [
+          "Boulder, CO (rules v1) hasn't been approved by counsel."
+        ],
+        "link": null,
+        "note": "Turfcut staff approve rule profiles."
+      }
+    ],
+    "clear": " Step 1 · The work",
+    "publish": {
+      "disabled": true
+    },
+    "editDraft": true,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "d8335c4"
+    }
+  },
+  {
+    "name": "job-and-counsel-finance",
+    "user": "finance",
+    "job": "c01a4f88-a2a3-4940-9979-a7b05dda2eae",
+    "note": "Same draft, Finance role (settings read, no job edit): no buttons",
+    "width": 390,
+    "theme": "light",
+    "file": "job-and-counsel-finance-390-light.png",
+    "viewport": "job-and-counsel-finance-390-viewport.png",
+    "over": 0,
+    "headline": "This job can't publish yet",
+    "groups": [
+      {
+        "title": "In this job",
+        "reasons": [
+          "Boulder, CO (rules v1) has been superseded by a newer version; the organization has to file the job under the current rules. Step 1 · The work",
+          "Disclose the campaign's type, affiliation and message. Step 5 · Campaign disclosure",
+          "Name who handles emergencies, disputes and lost materials. Step 4 · Requirements and contacts"
+        ],
+        "link": null,
+        "note": null
+      },
+      {
+        "title": "With counsel",
+        "reasons": [
+          "Boulder, CO (rules v1) hasn't been approved by counsel."
+        ],
+        "link": null,
+        "note": "Turfcut staff approve rule profiles."
+      }
+    ],
+    "clear": " Step 1 · The work",
+    "publish": null,
+    "editDraft": false,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "d8335c4"
+    }
+  },
+  {
+    "name": "job-and-counsel-finance",
+    "user": "finance",
+    "job": "c01a4f88-a2a3-4940-9979-a7b05dda2eae",
+    "note": "Same draft, Finance role (settings read, no job edit): no buttons",
+    "width": 390,
+    "theme": "dark",
+    "file": "job-and-counsel-finance-390-dark.png",
+    "viewport": null,
+    "over": 0,
+    "headline": "This job can't publish yet",
+    "groups": [
+      {
+        "title": "In this job",
+        "reasons": [
+          "Boulder, CO (rules v1) has been superseded by a newer version; the organization has to file the job under the current rules. Step 1 · The work",
+          "Disclose the campaign's type, affiliation and message. Step 5 · Campaign disclosure",
+          "Name who handles emergencies, disputes and lost materials. Step 4 · Requirements and contacts"
+        ],
+        "link": null,
+        "note": null
+      },
+      {
+        "title": "With counsel",
+        "reasons": [
+          "Boulder, CO (rules v1) hasn't been approved by counsel."
+        ],
+        "link": null,
+        "note": "Turfcut staff approve rule profiles."
+      }
+    ],
+    "clear": " Step 1 · The work",
+    "publish": null,
+    "editDraft": false,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "d8335c4"
+    }
+  },
+  {
+    "name": "job-and-counsel-finance",
+    "user": "finance",
+    "job": "c01a4f88-a2a3-4940-9979-a7b05dda2eae",
+    "note": "Same draft, Finance role (settings read, no job edit): no buttons",
+    "width": 1440,
+    "theme": "light",
+    "file": "job-and-counsel-finance-1440-light.png",
+    "viewport": "job-and-counsel-finance-1440-viewport.png",
+    "over": -15,
+    "headline": "This job can't publish yet",
+    "groups": [
+      {
+        "title": "In this job",
+        "reasons": [
+          "Boulder, CO (rules v1) has been superseded by a newer version; the organization has to file the job under the current rules. Step 1 · The work",
+          "Disclose the campaign's type, affiliation and message. Step 5 · Campaign disclosure",
+          "Name who handles emergencies, disputes and lost materials. Step 4 · Requirements and contacts"
+        ],
+        "link": null,
+        "note": null
+      },
+      {
+        "title": "With counsel",
+        "reasons": [
+          "Boulder, CO (rules v1) hasn't been approved by counsel."
+        ],
+        "link": null,
+        "note": "Turfcut staff approve rule profiles."
+      }
+    ],
+    "clear": " Step 1 · The work",
+    "publish": null,
+    "editDraft": false,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "d8335c4"
+    }
+  },
+  {
+    "name": "job-and-counsel-finance",
+    "user": "finance",
+    "job": "c01a4f88-a2a3-4940-9979-a7b05dda2eae",
+    "note": "Same draft, Finance role (settings read, no job edit): no buttons",
+    "width": 1440,
+    "theme": "dark",
+    "file": "job-and-counsel-finance-1440-dark.png",
+    "viewport": null,
+    "over": -15,
+    "headline": "This job can't publish yet",
+    "groups": [
+      {
+        "title": "In this job",
+        "reasons": [
+          "Boulder, CO (rules v1) has been superseded by a newer version; the organization has to file the job under the current rules. Step 1 · The work",
+          "Disclose the campaign's type, affiliation and message. Step 5 · Campaign disclosure",
+          "Name who handles emergencies, disputes and lost materials. Step 4 · Requirements and contacts"
+        ],
+        "link": null,
+        "note": null
+      },
+      {
+        "title": "With counsel",
+        "reasons": [
+          "Boulder, CO (rules v1) hasn't been approved by counsel."
+        ],
+        "link": null,
+        "note": "Turfcut staff approve rule profiles."
+      }
+    ],
+    "clear": " Step 1 · The work",
+    "publish": null,
+    "editDraft": false,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "d8335c4"
+    }
+  },
+  {
+    "name": "settings-owner2",
+    "user": "owner2",
+    "job": "66c30b7d-eccc-4d62-892d-1101cf020d66",
+    "note": "Second Pass Org: not approved, terms unsigned, classification not reviewed",
+    "width": 390,
+    "theme": "light",
+    "file": "settings-owner2-390-light.png",
+    "viewport": "settings-owner2-390-viewport.png",
+    "over": 0,
+    "headline": "This job can't publish yet",
+    "groups": [
+      {
+        "title": "In this job",
+        "reasons": [
+          "Set the job's state. Step 2 · When and where",
+          "Set the gross pay rate. Step 3 · Pay and hiring",
+          "Set the headcount. Step 3 · Pay and hiring",
+          "Set the start and end dates. Step 2 · When and where",
+          "Disclose the campaign's type, affiliation and message. Step 5 · Campaign disclosure",
+          "Name who handles emergencies, disputes and lost materials. Step 4 · Requirements and contacts",
+          "Add at least one staging point, or switch the job to self-launch. Step 2 · When and where"
+        ],
+        "link": null,
+        "note": null
+      },
+      {
+        "title": "In organization settings",
+        "reasons": [
+          "Your organization is awaiting Turfcut approval.",
+          "Sign the contractor terms in organization settings.",
+          "Complete the worker-classification review in organization settings."
+        ],
+        "link": "Organization settings",
+        "note": null
+      }
+    ],
+    "clear": " Step 2 · When and where",
+    "publish": {
+      "disabled": true
+    },
+    "editDraft": true,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "d8335c4"
+    }
+  },
+  {
+    "name": "settings-owner2",
+    "user": "owner2",
+    "job": "66c30b7d-eccc-4d62-892d-1101cf020d66",
+    "note": "Second Pass Org: not approved, terms unsigned, classification not reviewed",
+    "width": 390,
+    "theme": "dark",
+    "file": "settings-owner2-390-dark.png",
+    "viewport": null,
+    "over": 0,
+    "headline": "This job can't publish yet",
+    "groups": [
+      {
+        "title": "In this job",
+        "reasons": [
+          "Set the job's state. Step 2 · When and where",
+          "Set the gross pay rate. Step 3 · Pay and hiring",
+          "Set the headcount. Step 3 · Pay and hiring",
+          "Set the start and end dates. Step 2 · When and where",
+          "Disclose the campaign's type, affiliation and message. Step 5 · Campaign disclosure",
+          "Name who handles emergencies, disputes and lost materials. Step 4 · Requirements and contacts",
+          "Add at least one staging point, or switch the job to self-launch. Step 2 · When and where"
+        ],
+        "link": null,
+        "note": null
+      },
+      {
+        "title": "In organization settings",
+        "reasons": [
+          "Your organization is awaiting Turfcut approval.",
+          "Sign the contractor terms in organization settings.",
+          "Complete the worker-classification review in organization settings."
+        ],
+        "link": "Organization settings",
+        "note": null
+      }
+    ],
+    "clear": " Step 2 · When and where",
+    "publish": {
+      "disabled": true
+    },
+    "editDraft": true,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "d8335c4"
+    }
+  },
+  {
+    "name": "settings-owner2",
+    "user": "owner2",
+    "job": "66c30b7d-eccc-4d62-892d-1101cf020d66",
+    "note": "Second Pass Org: not approved, terms unsigned, classification not reviewed",
+    "width": 1440,
+    "theme": "light",
+    "file": "settings-owner2-1440-light.png",
+    "viewport": "settings-owner2-1440-viewport.png",
+    "over": -15,
+    "headline": "This job can't publish yet",
+    "groups": [
+      {
+        "title": "In this job",
+        "reasons": [
+          "Set the job's state. Step 2 · When and where",
+          "Set the gross pay rate. Step 3 · Pay and hiring",
+          "Set the headcount. Step 3 · Pay and hiring",
+          "Set the start and end dates. Step 2 · When and where",
+          "Disclose the campaign's type, affiliation and message. Step 5 · Campaign disclosure",
+          "Name who handles emergencies, disputes and lost materials. Step 4 · Requirements and contacts",
+          "Add at least one staging point, or switch the job to self-launch. Step 2 · When and where"
+        ],
+        "link": null,
+        "note": null
+      },
+      {
+        "title": "In organization settings",
+        "reasons": [
+          "Your organization is awaiting Turfcut approval.",
+          "Sign the contractor terms in organization settings.",
+          "Complete the worker-classification review in organization settings."
+        ],
+        "link": "Organization settings",
+        "note": null
+      }
+    ],
+    "clear": " Step 2 · When and where",
+    "publish": {
+      "disabled": true
+    },
+    "editDraft": true,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "d8335c4"
+    }
+  },
+  {
+    "name": "settings-owner2",
+    "user": "owner2",
+    "job": "66c30b7d-eccc-4d62-892d-1101cf020d66",
+    "note": "Second Pass Org: not approved, terms unsigned, classification not reviewed",
+    "width": 1440,
+    "theme": "dark",
+    "file": "settings-owner2-1440-dark.png",
+    "viewport": null,
+    "over": -15,
+    "headline": "This job can't publish yet",
+    "groups": [
+      {
+        "title": "In this job",
+        "reasons": [
+          "Set the job's state. Step 2 · When and where",
+          "Set the gross pay rate. Step 3 · Pay and hiring",
+          "Set the headcount. Step 3 · Pay and hiring",
+          "Set the start and end dates. Step 2 · When and where",
+          "Disclose the campaign's type, affiliation and message. Step 5 · Campaign disclosure",
+          "Name who handles emergencies, disputes and lost materials. Step 4 · Requirements and contacts",
+          "Add at least one staging point, or switch the job to self-launch. Step 2 · When and where"
+        ],
+        "link": null,
+        "note": null
+      },
+      {
+        "title": "In organization settings",
+        "reasons": [
+          "Your organization is awaiting Turfcut approval.",
+          "Sign the contractor terms in organization settings.",
+          "Complete the worker-classification review in organization settings."
+        ],
+        "link": "Organization settings",
+        "note": null
+      }
+    ],
+    "clear": " Step 2 · When and where",
+    "publish": {
+      "disabled": true
+    },
+    "editDraft": true,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "d8335c4"
+    }
+  }
+]

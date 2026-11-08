@@ -1,6 +1,6 @@
 # Applicants revisions: running-app evidence
 
-Board claim: [#128](https://github.com/whiterican/TurfCut/issues/128#issuecomment-6726499521). PLAN.md §5 in #126. Implementation and all manifests: `919a7dd9084c0b4d5f07da31d25440b9fdafa6ce`.
+Board claim: [#128](https://github.com/whiterican/TurfCut/issues/128#issuecomment-6726499521). PLAN.md §5 in #126. Implementation and the three primary manifests: `919a7dd9084c0b4d5f07da31d25440b9fdafa6ce`.
 
 The bulk form shows a live selection count and keeps its controls mounted but hidden/disabled with no selections. Checking a table row opens the controls; temporary deselection keeps the chosen action, reason and note. The selection store reads successful controls belonging to that form and follows external-checkbox changes, row replacement/sorting and native reset. A successful action keeps the existing behavior of clearing selection; a refused action preserves selection and inputs. While pending, only the submit button disables, preserving the original input editability.
 
@@ -14,6 +14,8 @@ The table's withheld cells now say "Not shared" with unchanged null sort values 
 - `interactions-manifest.json`: two external selections survive table sorting; native reset clears them; temporary deselection preserves action/reason/note; a real server refusal for an unknown engagement preserves those inputs; a real successful local review action clears selection and collapses controls. The refusal request is delayed 500ms in the browser harness to verify that the submit button disables while inputs stay editable. This is artificial transport latency, not an application performance measurement.
 - `manifest.json`: 46 states across 320×844, 390×844 and 1440×900, light/dark. Each has viewport and full-height images: no selection, one/two selected, longest bulk reason, longest stage filter selected with the keyboard and applied through the actual GET form, filtered empty, genuinely empty, and desktop inspector with its longest reason selected. The filtered-empty masthead retains the real total counts; the genuinely empty job has zero applicants. Political-fit content does not appear in the inspector.
 - `targets-manifest.json`: six width/theme cases hit-test scoped small actions and the bulk submit button at quarter-pixel intervals. All measured targets are at least **44.5px**. Existing native checkboxes and inherited filter-chip targets are unchanged and are not claimed as44px.
+
+`tablet-manifest.json` adds four read-only Applicants cases at 768×1024 and 1024×768, light/dark, captured at `fd0746a` (same implementation). The same selected row, action, longest reason and note survive resizing without reloading. The inspector is absent below its desktop breakpoint. Eight screenshots record the results. Viewport dimensions are explicit; `height` records full document height. This is Chromium at DPR1, not native iPad/Safari/touch coverage or app-wide tablet signoff. No server mutation was submitted.
 
 All captured states loaded Inter and had no horizontal page overflow or browser console/page errors. Selected-option measurements record the complete option text, text width, available space and caption; no wording is shortened. Full-height screenshots place the dock at the page's end and keep the header in flow at the top to avoid capture-only occlusion. Viewport images retain their actual fixed behavior. Screenshot caret hiding is disabled so capture tooling does not mutate input styles before hydration.
 
@@ -45,6 +47,7 @@ Run the real action regressions first, then the read-only captures:
 PLAYWRIGHT_PATH=/absolute/path/to/playwright node docs/design/hero-board/evidence/hiring-applicants-2026-11-08/interactions.mjs
 PLAYWRIGHT_PATH=/absolute/path/to/playwright node docs/design/hero-board/evidence/hiring-applicants-2026-11-08/capture.mjs
 PLAYWRIGHT_PATH=/absolute/path/to/playwright node docs/design/hero-board/evidence/hiring-applicants-2026-11-08/targets.mjs
+PLAYWRIGHT_PATH=/absolute/path/to/playwright node docs/design/hero-board/evidence/hiring-applicants-2026-11-08/tablet.mjs
 ```
 
 The fixture defaults to `/tmp/turfcut-applicants-cases.json`; set CASES_PATH consistently to override it. Chromium defaults to `/usr/bin/chromium`. To repeat the mutation test, prepare fresh workers first; the first worker's review event is retained. Stop local fixture processes afterwards. Never deploy or configure production services with this synthetic auth fixture.

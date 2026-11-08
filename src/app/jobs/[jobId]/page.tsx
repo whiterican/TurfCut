@@ -429,7 +429,7 @@ function WillSee({
       <p className="font-medium text-fg">This organization will see</p>
       <p className="text-muted">
         Your name{seen.length ? `, your ${listText(seen)}` : ""}, and only the political-fit answers you chose to share.
-        {hidden.length > 0 && ` Not your ${listText(hidden)}: it sees "not shared" there.`}{" "}
+        {hidden.length > 0 && ` Not your ${listText(hidden)}: it sees "Not shared" there.`}{" "}
         {invited
           ? kept && "It also kept a copy of what you shared when it invited you; accepting doesn't change that copy."
           : join && `If you ${join}, it keeps a copy of what you share at that moment.`}

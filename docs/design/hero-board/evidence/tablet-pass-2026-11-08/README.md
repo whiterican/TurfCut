@@ -15,12 +15,12 @@ The app-wide tablet pass Caden asked for. The hiring routes were audited separat
 
 This is Chromium with touch enabled, at DPR 1. It is not a real iPad, Safari, the on-screen keyboard or split-screen.
 
-- **`baseline/`:** 46 routes × 2 sizes × 2 themes = 184 measured states on master `ea9f5d8`, with a light screenshot at each size (92) and `manifest.json`. `w-header-1024.png` and `w-header-1280.png` show the worker header at both widths.
-- **`after/`:** the Field map and its review queue recaptured at `d00546c`, the commit with the fix.
+- **`baseline/`:** 46 routes × 2 sizes × 2 themes = 184 measured states on master `ea9f5d8`, with a light screenshot at each size (92) and `manifest.json`. That's 45 rendered routes; the worker's shift page returns 404 (see below). `w-header-1024.png`, `-1200`, `-1280` and `-1440` show the worker header across the band.
+- **`after/`:** the Field map and its review queue rerun through the same audit at `d00546c`, the commit with the fix. `field-measurements.json` records the filter's widths at 390, 1024 and 1440, at the default and largest text size, with the strip cropped as screenshots.
 
 ## Results
 
-**No route overflows sideways at either size, in either theme.** Nothing sits past the right edge. The organization rail appears at 1024 and the dock at 768, as designed. The only console errors are on the worker's shift page, which returns 404 because the fixture shift isn't Jordan's; that's a fixture limit, not a layout fault.
+**No route overflows sideways at either size, in either theme.** Nothing sits past the right edge. The organization rail appears at 1024 and the dock at 768, as designed, with two exceptions that aren't faults. On staff People at 768 the search box has `autoFocus`, and a focused input hides the dock by design. On the worker's profile at 1024 the audit reported a rail, a false positive: its check matched the profile page's own `aside nav`. The only console errors are on the worker's shift page, which returns 404 because the fixture shift isn't Jordan's; that's a fixture limit, not a layout fault.
 
 ### Fixed in this PR
 
@@ -28,26 +28,36 @@ This is Chromium with touch enabled, at DPR 1. It is not a real iPad, Safari, th
 - the select has a 12rem floor from `lg`;
 - the controls form no longer shrinks from `lg`, so Show stays beside the select and the figures wrap instead.
 
-| Width | Before | After |
-| :--- | :--- | :--- |
-| 1024 | Select 84px, "All jobs" clipped | Select 192px, whole; Show beside it |
-| 390 | Not affected (rules apply from `lg`) | Select 292px, unchanged, no overflow |
-| 1440 | Unchanged | Select 192px, Show beside it, no overflow |
+Measured (`after/field-measurements.json`; "before" is from the baseline manifest's `"All jobs" 48>34`, a 34px text box for 48px of text):
+
+| Width | Text size | Before | After |
+| :--- | :--- | :--- | :--- |
+| 1024 | default | "All jobs" clipped (34px text box) | Select 192px, text fits, Show on the same line |
+| 1024 | largest | not measured | Select 240px, text fits, Show on the same line |
+| 390 | default | not affected (rules apply from `lg`) | Select 292px, unchanged, no overflow |
+| 1440 | default | unchanged | Select 192px, Show on the same line, no overflow |
+
+**A long job title.** The select sizes to its longest option up to the existing 18rem cap. With a 66-character title (simulated by rewriting the option's text in the page; no local job has one) it reaches 288px at default size and 360px at the largest, and the figures beside it narrow to 390px and 287px at 1024. Nothing overflows; at the largest size the figures wrap into a taller block. A native select still truncates a title longer than the cap, as it does today. The selected-job state with its Clear button isn't covered: the Field list only offers jobs with shifts in its window, and no local job has any.
 
 ### For Astra and Caden: the worker header at 1024–1279
 
 Between 1024 and 1279 the worker's eight top-bar destinations show as icons only (`AppNav.tsx`, `TopNav`). That was a deliberate #113 review call: the names stay as the links' accessible names and as tooltips, and the labels appear from 1280. It's the right trade-off on a laptop, but iPad landscape (1024, 1180, 1194) falls inside that band, and on a touchscreen:
 
 - **Tooltips never show,** so the eight icons are unnamed to a sighted user.
-- **Two of them look alike.** "Jobs" and "Work" are both briefcases (`w-header-1024.png`).
-- **Turfcut staff get the same header** on admin pages.
+- **Two of them look alike.** "Jobs" and "Work" are both briefcases (`w-header-1024.png`, `w-header-1200.png`).
+
+This affects workers only: organization roles and Turfcut staff get the labelled rail from 1024 (`topNavTabs()` returns nothing for other roles).
 
 Two options, both without changing the desktop decision for a mouse:
 
-1. **Touch tablets keep the labelled bottom dock up to 1279.** Under `(hover: none) and (pointer: coarse)` the worker header nav hides and the dock (which has labels) stays, as it does at 768. Mouse and trackpad users still get the #113 icon bar.
-2. **Labels under the icons from 1024 to 1279.** Small stacked labels (about 11px), on every pointer type. Eight items fit in roughly 670px, but this changes the desktop look the #113 review settled.
+1. **Touch tablets keep the labelled bottom dock up to 1279.** Under `(hover: none) and (pointer: coarse)` the worker header nav hides and the dock (which has labels) stays, as it does at 768. Mouse-only desktops keep the #113 icon bar. Costs:
+   - a media query overriding the dock's `lg:hidden` and hiding `TopNav`;
+   - bottom padding for the dock from `lg`.
 
-I'd take option 1, since it's the narrower change and keeps #113 intact for mice. It's a design call, so this PR doesn't build either one.
+   An iPad with a trackpad or keyboard still matches `pointer: coarse`, so it gets the dock too.
+2. **Labels under the icons from 1024 to 1279.** Small stacked labels (about 11px), on every pointer type. By estimate (not measured) the eight items fit in about 670px, but this changes the desktop look the #113 review settled.
+
+I lean to option 1, because it leaves the mouse experience #113 approved untouched, though it isn't the smaller code change. It's a design call, so this PR doesn't build either one.
 
 ## Not covered
 

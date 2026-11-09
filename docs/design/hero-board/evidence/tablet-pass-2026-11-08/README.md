@@ -34,10 +34,10 @@ Measured (`after/field-measurements.json`; "before" is from the baseline manifes
 | :--- | :--- | :--- | :--- |
 | 1024 | default | "All jobs" clipped (34px text box) | Select 192px, text fits, Show on the same line |
 | 1024 | largest | not measured | Select 240px, text fits, Show on the same line |
-| 390 | default | not affected (rules apply from `lg`) | Select 292px, unchanged, no overflow |
-| 1440 | default | unchanged | Select 192px, Show on the same line, no overflow |
+| 390 | default | not measured (the new rules apply from `lg` only) | Select 292px, no overflow |
+| 1440 | default | not measured | Select 192px, Show on the same line, no overflow |
 
-**A long job title.** The select sizes to its longest option up to the existing 18rem cap. With a 66-character title (simulated by rewriting the option's text in the page; no local job has one) it reaches 288px at default size and 360px at the largest, and the figures beside it narrow to 390px and 287px at 1024. Nothing overflows; at the largest size the figures wrap into a taller block. A native select still truncates a title longer than the cap, as it does today. The selected-job state with its Clear button isn't covered: the Field list only offers jobs with shifts in its window, and no local job has any.
+**A long job title.** The select sizes to its longest option up to the existing 18rem cap. With a 66-character title (simulated by rewriting the "All jobs" option's text in the page, so no job is selected; no local job has a title that long) it reaches 288px at default size and 360px at the largest, and the figures beside it narrow to 390px and 287px at 1024. Nothing overflows; at the largest size the figures wrap into a taller block. A native select still truncates a title longer than the cap, as it does today. The selected-job state with its Clear button isn't covered: the Field list only offers jobs with shifts in its window, and no local job has any.
 
 ### For Astra and Caden: the worker header at 1024–1279
 
@@ -66,4 +66,7 @@ I lean to option 1, because it leaves the mouse experience #113 approved untouch
 - **The worker's own shift page:** 404 for this worker.
 - **Real devices:** native iPad, Safari, the on-screen keyboard, split-screen and safe-area insets.
 
-Rerun: start the local stack, then `node audit.mjs <outDir> <commit> [slug filter]`. It uses the session's Playwright and storage states.
+Rerun: start the local stack, then:
+
+- `node audit.mjs <outDir> <commit> [slug filter]` for the route matrix. It uses the session's Playwright and per-role storage states.
+- `STORAGE=<owner storage state> BASE=<local app URL> node fieldm.mjs <outDir> <commit>` for the Field filter measurements.

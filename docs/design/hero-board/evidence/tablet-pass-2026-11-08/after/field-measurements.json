@@ -35,10 +35,10 @@
       }
     ],
     "figuresWidth": 358,
-    "selectedText": "Pass test canvass 390 \u00b7 north and east precincts, weekend mornings",
+    "selectedText": "Pass test canvass 390 · north and east precincts, weekend mornings",
     "textFits": false,
     "over": 0,
-    "file": "field-md-390-job-selected-long-title.png",
+    "file": "field-md-390-long-title-simulated.png",
     "source": {
       "commit": "d00546c"
     }
@@ -79,10 +79,10 @@
       }
     ],
     "figuresWidth": 390,
-    "selectedText": "Pass test canvass 390 \u00b7 north and east precincts, weekend mornings",
+    "selectedText": "Pass test canvass 390 · north and east precincts, weekend mornings",
     "textFits": false,
     "over": 0,
-    "file": "field-md-1024-job-selected-long-title.png",
+    "file": "field-md-1024-long-title-simulated.png",
     "source": {
       "commit": "d00546c"
     }
@@ -123,10 +123,10 @@
       }
     ],
     "figuresWidth": 621,
-    "selectedText": "Pass test canvass 390 \u00b7 north and east precincts, weekend mornings",
+    "selectedText": "Pass test canvass 390 · north and east precincts, weekend mornings",
     "textFits": false,
     "over": 0,
-    "file": "field-md-1440-job-selected-long-title.png",
+    "file": "field-md-1440-long-title-simulated.png",
     "source": {
       "commit": "d00546c"
     }
@@ -167,10 +167,10 @@
       }
     ],
     "figuresWidth": 350,
-    "selectedText": "Pass test canvass 390 \u00b7 north and east precincts, weekend mornings",
+    "selectedText": "Pass test canvass 390 · north and east precincts, weekend mornings",
     "textFits": false,
     "over": 0,
-    "file": "field-xl-390-job-selected-long-title.png",
+    "file": "field-xl-390-long-title-simulated.png",
     "source": {
       "commit": "d00546c"
     }
@@ -211,10 +211,10 @@
       }
     ],
     "figuresWidth": 287,
-    "selectedText": "Pass test canvass 390 \u00b7 north and east precincts, weekend mornings",
+    "selectedText": "Pass test canvass 390 · north and east precincts, weekend mornings",
     "textFits": false,
     "over": 0,
-    "file": "field-xl-1024-job-selected-long-title.png",
+    "file": "field-xl-1024-long-title-simulated.png",
     "source": {
       "commit": "d00546c"
     }
@@ -255,10 +255,10 @@
       }
     ],
     "figuresWidth": 703,
-    "selectedText": "Pass test canvass 390 \u00b7 north and east precincts, weekend mornings",
+    "selectedText": "Pass test canvass 390 · north and east precincts, weekend mornings",
     "textFits": false,
     "over": 0,
-    "file": "field-xl-1440-job-selected-long-title.png",
+    "file": "field-xl-1440-long-title-simulated.png",
     "source": {
       "commit": "d00546c"
     }

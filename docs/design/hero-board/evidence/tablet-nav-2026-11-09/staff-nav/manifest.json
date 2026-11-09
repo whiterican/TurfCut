@@ -1,0 +1,322 @@
+[
+  {
+    "device": "touch-768",
+    "viewport": "768x1024",
+    "touch": true,
+    "path": "/admin",
+    "httpStatus": 200,
+    "url": "/admin",
+    "role": "admin page",
+    "workerTopBar": false,
+    "workerDock": false,
+    "staffRail": false,
+    "sectionChips": true,
+    "leaveAdmin": true,
+    "over": -15,
+    "consoleErrors": [],
+    "file": "touch-768-admin.png",
+    "source": {
+      "commit": "503e34c"
+    }
+  },
+  {
+    "device": "touch-768",
+    "viewport": "768x1024",
+    "touch": true,
+    "path": "/admin/audit",
+    "httpStatus": 200,
+    "url": "/admin/audit",
+    "role": "admin page",
+    "workerTopBar": false,
+    "workerDock": false,
+    "staffRail": false,
+    "sectionChips": true,
+    "leaveAdmin": true,
+    "over": -15,
+    "consoleErrors": [],
+    "file": "touch-768-admin-audit.png",
+    "source": {
+      "commit": "503e34c"
+    }
+  },
+  {
+    "device": "touch-768",
+    "viewport": "768x1024",
+    "touch": true,
+    "path": "/admin/people",
+    "httpStatus": 200,
+    "url": "/admin/people",
+    "role": "admin page",
+    "workerTopBar": false,
+    "workerDock": false,
+    "staffRail": false,
+    "sectionChips": true,
+    "leaveAdmin": true,
+    "over": 0,
+    "consoleErrors": [],
+    "file": "touch-768-admin-people.png",
+    "source": {
+      "commit": "503e34c"
+    }
+  },
+  {
+    "device": "touch-768",
+    "viewport": "768x1024",
+    "touch": true,
+    "path": "/dashboard",
+    "httpStatus": 200,
+    "url": "/dashboard",
+    "role": "worker page",
+    "workerTopBar": false,
+    "workerDock": true,
+    "staffRail": false,
+    "sectionChips": true,
+    "leaveAdmin": false,
+    "over": 0,
+    "consoleErrors": [],
+    "file": "touch-768-dashboard.png",
+    "source": {
+      "commit": "503e34c"
+    }
+  },
+  {
+    "device": "touch-1024",
+    "viewport": "1024x768",
+    "touch": true,
+    "path": "/admin",
+    "httpStatus": 200,
+    "url": "/admin",
+    "role": "admin page",
+    "workerTopBar": false,
+    "workerDock": false,
+    "staffRail": true,
+    "sectionChips": false,
+    "leaveAdmin": true,
+    "over": -15,
+    "consoleErrors": [],
+    "file": "touch-1024-admin.png",
+    "source": {
+      "commit": "503e34c"
+    }
+  },
+  {
+    "device": "touch-1024",
+    "viewport": "1024x768",
+    "touch": true,
+    "path": "/admin/audit",
+    "httpStatus": 200,
+    "url": "/admin/audit",
+    "role": "admin page",
+    "workerTopBar": false,
+    "workerDock": false,
+    "staffRail": true,
+    "sectionChips": false,
+    "leaveAdmin": true,
+    "over": -15,
+    "consoleErrors": [],
+    "file": "touch-1024-admin-audit.png",
+    "source": {
+      "commit": "503e34c"
+    }
+  },
+  {
+    "device": "touch-1024",
+    "viewport": "1024x768",
+    "touch": true,
+    "path": "/admin/people",
+    "httpStatus": 200,
+    "url": "/admin/people",
+    "role": "admin page",
+    "workerTopBar": false,
+    "workerDock": false,
+    "staffRail": true,
+    "sectionChips": false,
+    "leaveAdmin": true,
+    "over": -15,
+    "consoleErrors": [],
+    "file": "touch-1024-admin-people.png",
+    "source": {
+      "commit": "503e34c"
+    }
+  },
+  {
+    "device": "touch-1024",
+    "viewport": "1024x768",
+    "touch": true,
+    "path": "/dashboard",
+    "httpStatus": 200,
+    "url": "/dashboard",
+    "role": "worker page",
+    "workerTopBar": false,
+    "workerDock": true,
+    "staffRail": false,
+    "sectionChips": false,
+    "leaveAdmin": false,
+    "over": -15,
+    "consoleErrors": [],
+    "file": "touch-1024-dashboard.png",
+    "source": {
+      "commit": "503e34c"
+    }
+  },
+  {
+    "device": "mouse-1024",
+    "viewport": "1024x768",
+    "touch": false,
+    "path": "/admin",
+    "httpStatus": 200,
+    "url": "/admin",
+    "role": "admin page",
+    "workerTopBar": false,
+    "workerDock": false,
+    "staffRail": true,
+    "sectionChips": false,
+    "leaveAdmin": true,
+    "over": -15,
+    "consoleErrors": [],
+    "file": "mouse-1024-admin.png",
+    "source": {
+      "commit": "503e34c"
+    }
+  },
+  {
+    "device": "mouse-1024",
+    "viewport": "1024x768",
+    "touch": false,
+    "path": "/admin/audit",
+    "httpStatus": 200,
+    "url": "/admin/audit",
+    "role": "admin page",
+    "workerTopBar": false,
+    "workerDock": false,
+    "staffRail": true,
+    "sectionChips": false,
+    "leaveAdmin": true,
+    "over": -15,
+    "consoleErrors": [],
+    "file": "mouse-1024-admin-audit.png",
+    "source": {
+      "commit": "503e34c"
+    }
+  },
+  {
+    "device": "mouse-1024",
+    "viewport": "1024x768",
+    "touch": false,
+    "path": "/admin/people",
+    "httpStatus": 200,
+    "url": "/admin/people",
+    "role": "admin page",
+    "workerTopBar": false,
+    "workerDock": false,
+    "staffRail": true,
+    "sectionChips": false,
+    "leaveAdmin": true,
+    "over": -15,
+    "consoleErrors": [],
+    "file": "mouse-1024-admin-people.png",
+    "source": {
+      "commit": "503e34c"
+    }
+  },
+  {
+    "device": "mouse-1024",
+    "viewport": "1024x768",
+    "touch": false,
+    "path": "/dashboard",
+    "httpStatus": 200,
+    "url": "/dashboard",
+    "role": "worker page",
+    "workerTopBar": true,
+    "workerDock": false,
+    "staffRail": false,
+    "sectionChips": false,
+    "leaveAdmin": false,
+    "over": 0,
+    "consoleErrors": [],
+    "file": "mouse-1024-dashboard.png",
+    "source": {
+      "commit": "503e34c"
+    }
+  },
+  {
+    "device": "mouse-1440",
+    "viewport": "1440x900",
+    "touch": false,
+    "path": "/admin",
+    "httpStatus": 200,
+    "url": "/admin",
+    "role": "admin page",
+    "workerTopBar": false,
+    "workerDock": false,
+    "staffRail": true,
+    "sectionChips": false,
+    "leaveAdmin": true,
+    "over": -15,
+    "consoleErrors": [],
+    "file": "mouse-1440-admin.png",
+    "source": {
+      "commit": "503e34c"
+    }
+  },
+  {
+    "device": "mouse-1440",
+    "viewport": "1440x900",
+    "touch": false,
+    "path": "/admin/audit",
+    "httpStatus": 200,
+    "url": "/admin/audit",
+    "role": "admin page",
+    "workerTopBar": false,
+    "workerDock": false,
+    "staffRail": true,
+    "sectionChips": false,
+    "leaveAdmin": true,
+    "over": -15,
+    "consoleErrors": [],
+    "file": "mouse-1440-admin-audit.png",
+    "source": {
+      "commit": "503e34c"
+    }
+  },
+  {
+    "device": "mouse-1440",
+    "viewport": "1440x900",
+    "touch": false,
+    "path": "/admin/people",
+    "httpStatus": 200,
+    "url": "/admin/people",
+    "role": "admin page",
+    "workerTopBar": false,
+    "workerDock": false,
+    "staffRail": true,
+    "sectionChips": false,
+    "leaveAdmin": true,
+    "over": -15,
+    "consoleErrors": [],
+    "file": "mouse-1440-admin-people.png",
+    "source": {
+      "commit": "503e34c"
+    }
+  },
+  {
+    "device": "mouse-1440",
+    "viewport": "1440x900",
+    "touch": false,
+    "path": "/dashboard",
+    "httpStatus": 200,
+    "url": "/dashboard",
+    "role": "worker page",
+    "workerTopBar": true,
+    "workerDock": false,
+    "staffRail": false,
+    "sectionChips": false,
+    "leaveAdmin": false,
+    "over": 0,
+    "consoleErrors": [],
+    "file": "mouse-1440-dashboard.png",
+    "source": {
+      "commit": "503e34c"
+    }
+  }
+]

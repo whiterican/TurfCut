@@ -4,7 +4,8 @@
 import pw from "/opt/node-tools/node_modules/playwright/index.js";
 import { writeFileSync } from "node:fs";
 const [out, commit] = process.argv.slice(2);
-const STORAGE = process.env.STORAGE ?? "/tmp/claude-0/-home-user-TurfCut/af2c4bc2-e73f-5766-b49f-f47c873c5da0/scratchpad/fp/owner.json";
+const STORAGE = process.env.STORAGE;
+if (!STORAGE) throw new Error("Set STORAGE to an organization owner's storage state");
 const BASE = process.env.BASE ?? "http://localhost:3475";
 const LONG = "Pass test canvass 390 · north and east precincts, weekend mornings"; // simulated in the page, not in the database
 const b = await pw.chromium.launch();

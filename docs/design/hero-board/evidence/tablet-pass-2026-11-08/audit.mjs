@@ -7,7 +7,8 @@ mkdirSync(out, { recursive: true });
 // Inputs: FP (a folder of Playwright storage states named <role>.json: jordan = a worker, owner = an organization owner,
 // staff = Turfcut staff), BASE (the local app). Fixture IDs below are the local test database's.
 const BASE = process.env.BASE ?? "http://localhost:3475";
-const FP = process.env.FP ?? "/tmp/claude-0/-home-user-TurfCut/af2c4bc2-e73f-5766-b49f-f47c873c5da0/scratchpad/fp/";
+const FP = process.env.FP;
+if (!FP) throw new Error("Set FP to a folder of storage states ending in /");
 const JOB = "86d8312d-003d-4ffd-8b70-1a06f0d9b28f";
 const SHIFT = "00000000-0000-0000-0000-000000000201";
 const CONV = "09978025-13db-4bd4-bd1d-aa088a4ebbc1";

@@ -87,6 +87,9 @@ export function TabIcon({ tab }: { tab: NavTab }) {
   return <Icon of={iconFor(tab)} className="tab-icon" />;
 }
 
+/** Where the worker's dock stays past 1024: a touch tablet up to 1279. globals.css uses the same query (design-tokens.test.ts checks they match). */
+export const TOUCH_TABLET_QUERY = "(min-width: 64rem) and (max-width: 79.99rem) and (hover: none) and (pointer: coarse)";
+
 /** The current tab is "page" only on its own page; under it (a job, /feed under Home, /shifts under Jobs) it is the current section. */
 function currentAttr(href: string, current: string | null | undefined, pathname: string | null): "page" | "true" | undefined {
   if (href !== current) return undefined;
@@ -197,7 +200,7 @@ export function OrgTabBar({ tabs, more, extra, notices = 0, touchDock = false }:
     if (!open) return;
     const wide = window.matchMedia("(min-width: 64rem)");
     // Where the worker's dock stays past 1024 (the same query as globals.css).
-    const touchTablet = window.matchMedia("(min-width: 64rem) and (max-width: 79.99rem) and (hover: none) and (pointer: coarse)");
+    const touchTablet = window.matchMedia(TOUCH_TABLET_QUERY);
     const onChange = () => wide.matches && !(touchDock && touchTablet.matches) && setOpen(false);
     onChange();
     wide.addEventListener("change", onChange);
@@ -221,8 +224,9 @@ export function OrgTabBar({ tabs, more, extra, notices = 0, touchDock = false }:
           // Escape, or close() from anywhere: sync state and hand focus back to More.
           onClose={() => {
             setOpen(false);
-            // Not when widening hid the bar: focus can't go to a hidden button.
+            // Not when widening hid the bar: focus can't go to a hidden button, so it goes to the page.
             if (button.current?.offsetParent) button.current.focus();
+            else document.getElementById("content")?.focus();
           }}
           // A press on the dimmed area outside the panel lands on the dialog itself.
           onClick={(e) => {

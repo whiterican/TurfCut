@@ -598,8 +598,23 @@ describe("the shell (redesign B1.4)", () => {
     const touch = css.match(/@media \(min-width: 64rem\) and \(max-width: 79\.99rem\) and \(hover: none\) and \(pointer: coarse\) \{([\s\S]*?)\n  \}\n/)?.[1] ?? "";
     expect(touch).toMatch(/\.tabbar\[data-touch-dock\] \{\s*display: block;/);
     expect(touch).toMatch(/body:has\(\.tabbar\[data-touch-dock\]\) \.topnav \{\s*display: none;/);
-    expect(touch).toMatch(/body:has\(\.tabbar\[data-touch-dock\]\) :is\(\.page, \.tpl\) \{\s*padding-bottom: calc\(var\(--dock-clearance\) \+ 2rem\);/);
+    expect(touch).toMatch(/body:has\(\.tabbar\[data-touch-dock\]\):not\(:has\(\.staff-band\)\) :is\(\.page, \.tpl:not\(\[data-template="hero"\]\)\) \{\s*padding-bottom: calc\(var\(--dock-clearance\) \+ 2rem\);/);
+    expect(touch).toMatch(/html:has\(\.tabbar\[data-touch-dock\]\)[^{]*\{\s*scroll-padding-bottom: var\(--dock-clearance\);/);
     expect(touch).toMatch(/body:has\(\.tabbar\[data-touch-dock\]\) \.composer \{\s*bottom: calc\(6rem/);
+    // Typing hides the dock (the keyboard rule reaches 1279): the top bar stands in, never on admin pages.
+    expect(touch).toMatch(/body:has\(\.tabbar\[data-touch-dock\]\):not\(:has\(\.staff-band\)\):has\([^{]*:focus\) \.topnav \{\s*display: flex;/);
+    expect(css).toMatch(/@media \(max-width: 79\.99rem\) and \(pointer: coarse\) \{\s*body:has\(\.composer-input:focus\) \.tabbar/);
+    // The More sheet closes on the same query the dock shows on (AppNav), and nothing hides it by width.
+    const appNav = readFileSync(join(__dirname, "../components/AppNav.tsx"), "utf8");
+    const query = appNav.match(/TOUCH_TABLET_QUERY = "([^"]+)"/)?.[1];
+    expect(query).toBeTruthy();
+    expect(css).toContain(`@media ${query} {`);
+    expect(css).not.toMatch(/\.more-sheet \{[^}]*lg:hidden/);
+    // The top bar's display lives in the component layer (.topnav): a display utility on it would win
+    // over the staff rule and the touch rule again.
+    const topNav = appNav.match(/<nav aria-label="Main" className="([^"]+)">/)?.[1] ?? "";
+    expect(topNav).toContain("topnav");
+    expect(topNav).not.toMatch(/(^|\s)(hidden|flex|lg:flex|block|lg:hidden)(\s|$)/);
   });
 
   it("gives the staff console its own band and never an organization's rail beside it", () => {

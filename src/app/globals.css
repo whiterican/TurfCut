@@ -1644,14 +1644,30 @@ body {
     body:has(.tabbar[data-touch-dock]) .topnav {
       display: none;
     }
-    /* The dock is back, so is the room above it. */
-    body:has(.tabbar[data-touch-dock]) :is(.page, .tpl) {
+    /* While a field takes typing the dock steps aside (the keyboard rule below): the top bar
+       stands in, so a hardware keyboard never leaves the worker without navigation. */
+    body:has(.tabbar[data-touch-dock]):not(:has(.staff-band)):has(:is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="button"], [type="submit"], [type="reset"], [type="image"], [type="color"], [type="file"], [readonly]), textarea:not([readonly]), [contenteditable]:not([contenteditable="false"])):focus) .topnav {
+      display: flex;
+    }
+    /* The dock is back, so is the room above it (not on admin pages, where it's hidden, nor on
+       a hero, whose sections end at the edge; the sign-in split's form clears it itself). */
+    body:has(.tabbar[data-touch-dock]):not(:has(.staff-band)) :is(.page, .tpl:not([data-template="hero"])) {
       padding-bottom: calc(var(--dock-clearance) + 2rem);
+    }
+    body:has(.tabbar[data-touch-dock]):not(:has(.staff-band)) .tpl[data-template="hero"]:not(:has(.hero-split-form)) {
+      padding-bottom: var(--dock-clearance);
+    }
+    body:has(.tabbar[data-touch-dock]) .page-narrow {
+      padding-bottom: calc(var(--dock-clearance) + 1rem);
+    }
+    html:has(.tabbar[data-touch-dock]):not(:has(.thread-top, .staff-band)) {
+      scroll-padding-bottom: var(--dock-clearance);
     }
     body:has(.tabbar[data-touch-dock]) .composer {
       bottom: calc(6rem + env(safe-area-inset-bottom));
     }
   }
+
   .tab {
     /* A 52px tile: a 20px icon over a complete 12/16 Inter label. Six share
        the slab; Messages (the longest word, and the badge) gets a little more. */
@@ -1767,15 +1783,6 @@ body {
   }
   .statement-lines td[data-label="Date"] {
     @apply whitespace-nowrap;
-  }
-  /* A job title wrapped one word to a line beside the shorter columns (tablet pass, #135). Between
-     the stacked phone rows and 1024 the table already scrolls sideways inside its box, so the Job
-     column keeps room for a readable title there. From 1024 the table fits its box; a wider Job
-     column would make it scroll, so it keeps today's widths. */
-  @media (40rem <= width < 64rem) {
-    .statement-lines td[data-label="Job"] {
-      min-width: 10rem;
-    }
   }
   @media (width < 40rem) {
     .statement-lines tbody th[scope="row"] {

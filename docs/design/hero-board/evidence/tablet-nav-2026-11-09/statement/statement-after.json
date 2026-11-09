@@ -1,98 +1,183 @@
-[
-  {
-    "viewport": "390x844",
-    "media": "screen",
-    "stacked": true,
-    "overflow": 0,
-    "tableWidth": 356,
-    "currentStateCutOff": false,
-    "jobLines": 1,
-    "tableHeight": 973,
-    "pageOver": 0,
-    "consoleErrors": [],
-    "file": "statement-after-screen-390.png",
-    "source": {
-      "commit": "2b5ce49"
+{
+  "rows": [
+    {
+      "viewport": "390x844",
+      "media": "screen",
+      "stacked": true,
+      "overflow": 0,
+      "tableWidth": 356,
+      "currentStateCutOff": false,
+      "jobLines": 1,
+      "tableHeight": 973,
+      "pageOver": 0,
+      "consoleErrors": [],
+      "file": "statement-after-screen-390.png",
+      "source": {
+        "commit": "461f225"
+      }
+    },
+    {
+      "viewport": "640x900",
+      "media": "screen",
+      "stacked": false,
+      "overflow": 67,
+      "tableWidth": 642,
+      "currentStateCutOff": true,
+      "jobLines": 3,
+      "tableHeight": 490,
+      "pageOver": -15,
+      "consoleErrors": [],
+      "file": "statement-after-screen-640.png",
+      "source": {
+        "commit": "461f225"
+      }
+    },
+    {
+      "viewport": "768x1024",
+      "media": "screen",
+      "stacked": false,
+      "overflow": 0,
+      "tableWidth": 703,
+      "currentStateCutOff": false,
+      "jobLines": 3,
+      "tableHeight": 470,
+      "pageOver": -15,
+      "consoleErrors": [],
+      "file": "statement-after-screen-768.png",
+      "source": {
+        "commit": "461f225"
+      }
+    },
+    {
+      "viewport": "1024x768",
+      "media": "screen",
+      "stacked": false,
+      "overflow": 0,
+      "tableWidth": 739,
+      "currentStateCutOff": false,
+      "jobLines": 2,
+      "tableHeight": 414,
+      "pageOver": -15,
+      "consoleErrors": [],
+      "file": "statement-after-screen-1024.png",
+      "source": {
+        "commit": "461f225"
+      }
+    },
+    {
+      "viewport": "1440x900",
+      "media": "screen",
+      "stacked": false,
+      "overflow": 0,
+      "tableWidth": 766,
+      "currentStateCutOff": false,
+      "jobLines": 2,
+      "tableHeight": 394,
+      "pageOver": -15,
+      "consoleErrors": [],
+      "file": "statement-after-screen-1440.png",
+      "source": {
+        "commit": "461f225"
+      }
+    },
+    {
+      "viewport": "720x960",
+      "media": "print",
+      "stacked": false,
+      "overflow": 0,
+      "tableWidth": 703,
+      "currentStateCutOff": false,
+      "jobLines": 3,
+      "tableHeight": 470,
+      "pageOver": -15,
+      "consoleErrors": [],
+      "file": "statement-after-print-720.png",
+      "source": {
+        "commit": "461f225"
+      }
     }
-  },
-  {
-    "viewport": "640x900",
-    "media": "screen",
-    "stacked": false,
-    "overflow": 83,
-    "tableWidth": 658,
-    "currentStateCutOff": true,
-    "jobLines": 3,
-    "tableHeight": 490,
-    "pageOver": -15,
-    "consoleErrors": [],
-    "file": "statement-after-screen-640.png",
-    "source": {
-      "commit": "2b5ce49"
+  ],
+  "sweep": [
+    {
+      "width": 640,
+      "overflow": 67,
+      "currentStateCutOff": true,
+      "jobLines": 3
+    },
+    {
+      "width": 648,
+      "overflow": 59,
+      "currentStateCutOff": true,
+      "jobLines": 3
+    },
+    {
+      "width": 656,
+      "overflow": 51,
+      "currentStateCutOff": true,
+      "jobLines": 3
+    },
+    {
+      "width": 664,
+      "overflow": 43,
+      "currentStateCutOff": true,
+      "jobLines": 3
+    },
+    {
+      "width": 672,
+      "overflow": 35,
+      "currentStateCutOff": true,
+      "jobLines": 3
+    },
+    {
+      "width": 680,
+      "overflow": 27,
+      "currentStateCutOff": true,
+      "jobLines": 3
+    },
+    {
+      "width": 688,
+      "overflow": 19,
+      "currentStateCutOff": true,
+      "jobLines": 3
+    },
+    {
+      "width": 696,
+      "overflow": 11,
+      "currentStateCutOff": true,
+      "jobLines": 3
+    },
+    {
+      "width": 704,
+      "overflow": 3,
+      "currentStateCutOff": true,
+      "jobLines": 3
+    },
+    {
+      "width": 712,
+      "overflow": 0,
+      "currentStateCutOff": false,
+      "jobLines": 3
+    },
+    {
+      "width": 720,
+      "overflow": 0,
+      "currentStateCutOff": false,
+      "jobLines": 3
+    },
+    {
+      "width": 728,
+      "overflow": 0,
+      "currentStateCutOff": false,
+      "jobLines": 3
+    },
+    {
+      "width": 736,
+      "overflow": 0,
+      "currentStateCutOff": false,
+      "jobLines": 3
     }
-  },
-  {
-    "viewport": "768x1024",
-    "media": "screen",
-    "stacked": false,
-    "overflow": 0,
-    "tableWidth": 703,
-    "currentStateCutOff": false,
-    "jobLines": 2,
-    "tableHeight": 425,
-    "pageOver": -15,
-    "consoleErrors": [],
-    "file": "statement-after-screen-768.png",
-    "source": {
-      "commit": "2b5ce49"
-    }
-  },
-  {
-    "viewport": "1024x768",
-    "media": "screen",
-    "stacked": false,
-    "overflow": 0,
-    "tableWidth": 739,
-    "currentStateCutOff": false,
-    "jobLines": 2,
-    "tableHeight": 414,
-    "pageOver": -15,
-    "consoleErrors": [],
-    "file": "statement-after-screen-1024.png",
-    "source": {
-      "commit": "2b5ce49"
-    }
-  },
-  {
-    "viewport": "1440x900",
-    "media": "screen",
-    "stacked": false,
-    "overflow": 0,
-    "tableWidth": 766,
-    "currentStateCutOff": false,
-    "jobLines": 2,
-    "tableHeight": 394,
-    "pageOver": -15,
-    "consoleErrors": [],
-    "file": "statement-after-screen-1440.png",
-    "source": {
-      "commit": "2b5ce49"
-    }
-  },
-  {
-    "viewport": "720x960",
-    "media": "print",
-    "stacked": false,
-    "overflow": 3,
-    "tableWidth": 658,
-    "currentStateCutOff": true,
-    "jobLines": 3,
-    "tableHeight": 490,
-    "pageOver": -15,
-    "consoleErrors": [],
-    "file": "statement-after-print-720.png",
-    "source": {
-      "commit": "2b5ce49"
-    }
+  ],
+  "source": {
+    "commit": "461f225"
   }
-]
+}

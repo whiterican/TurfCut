@@ -22,7 +22,7 @@ for (const [w, h, mode] of [[390, 844, "screen"], [640, 900, "screen"], [768, 10
   const p = await c.newPage(); const errs = [];
   p.on("console", (m) => { if (m.type() === "error" && !m.text().includes("/realtime/v1/")) errs.push(m.text().slice(0, 160)); });
   await p.goto(`${BASE}/pay/statements/${PERIOD}`, { waitUntil: "networkidle", timeout: 240000 }); await p.waitForTimeout(1000);
-  if (mode === "print") await p.emulateMedia({ media: "print" });
+  if (mode === "print") { await p.emulateMedia({ media: "print" }); await p.waitForTimeout(500); } // measured after the print rules apply
   const m = await p.evaluate(measure);
   const file = `statement-after-${mode}-${w}.png`;
   const el = p.locator("table.statement-lines").locator("xpath=ancestor::*[contains(@class,'data-table-wrap')]");
@@ -31,5 +31,14 @@ for (const [w, h, mode] of [[390, 844, "screen"], [640, 900, "screen"], [768, 10
   console.log(mode, w, JSON.stringify(m), errs.length);
   await c.close();
 }
+// Where Current state stops needing the table's sideways scroll: a sweep between the phone's stacked rows and 768.
+const sweep = [];
+for (let w = 640; w <= 736; w += 8) {
+  const c = await b.newContext({ storageState: STORAGE, viewport: { width: w, height: 900 }, deviceScaleFactor: 1, timezoneId: "America/Denver" });
+  const p = await c.newPage(); await p.goto(`${BASE}/pay/statements/${PERIOD}`, { waitUntil: "networkidle", timeout: 240000 }); await p.waitForTimeout(800);
+  const m = await p.evaluate(measure); sweep.push({ width: w, overflow: m.overflow, currentStateCutOff: m.currentStateCutOff, jobLines: m.jobLines });
+  await c.close();
+}
+console.log("sweep", sweep.map((r) => `${r.width}:${r.overflow}${r.currentStateCutOff ? "cut" : ""}`).join(" "));
 await b.close();
-writeFileSync(`${out}/statement-after.json`, JSON.stringify(rows, null, 2) + "\n");
+writeFileSync(`${out}/statement-after.json`, JSON.stringify({ rows, sweep, source: { commit } }, null, 2) + "\n");

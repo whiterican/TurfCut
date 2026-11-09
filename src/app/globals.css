@@ -1786,7 +1786,7 @@ body {
   }
   /* The job, a muted line under the date (tablet pass, #136): it wraps, the date doesn't. */
   .statement-job {
-    @apply mt-0.5 block min-w-32 text-[0.8125rem] whitespace-normal text-muted;
+    @apply mt-0.5 block min-w-28 text-[0.8125rem] whitespace-normal text-muted;
   }
   @media (width < 40rem) {
     .statement-lines tbody th[scope="row"] {

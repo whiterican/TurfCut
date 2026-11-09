@@ -27,7 +27,7 @@ function LinesTable({ lines, caption, total, markUncounted = false }: { lines: S
         <thead role="rowgroup">
           <tr role="row">
             <th role="columnheader" scope="col">Worker</th>
-            <th role="columnheader" scope="col">Date<span aria-hidden> · </span><span className="sr-only"> and </span>Job</th>
+            <th role="columnheader" scope="col"><span aria-hidden>Date · Job</span><span className="sr-only">Date and job</span></th>
             <th role="columnheader" scope="col">Basis</th>
             <th role="columnheader" scope="col" className="text-right">Pay</th>
             <th role="columnheader" scope="col" className="text-right">Fee</th>

@@ -13,9 +13,11 @@ function Amount({ cents, bold = false }: { cents: number; bold?: boolean }) {
 }
 
 /**
- * A statement's lines as a ledger table (#116 review): date, worker, job, basis, pay, fee and
- * the line's current state, read from the live ledger and labelled so; amounts right-aligned, a
- * subtotal under them. On a phone each line stacks into named rows (the DataTable `stack` CSS).
+ * A statement's lines as a ledger table (#116 review): worker, date with the job under it, basis,
+ * pay, fee and the line's current state, read from the live ledger and labelled so; amounts
+ * right-aligned, a subtotal under them. The job sits under the date (tablet pass, #136): as its own
+ * column it wrapped one word to a line at 768, and no width for it kept Current state in view.
+ * On a phone each line stacks into named rows (the DataTable `stack` CSS).
  */
 function LinesTable({ lines, caption, total, markUncounted = false }: { lines: StatementLine[]; caption: string; total?: { label: string; grossCents: number; feeCents: number }; markUncounted?: boolean }) {
   return (
@@ -25,8 +27,7 @@ function LinesTable({ lines, caption, total, markUncounted = false }: { lines: S
         <thead role="rowgroup">
           <tr role="row">
             <th role="columnheader" scope="col">Worker</th>
-            <th role="columnheader" scope="col">Date</th>
-            <th role="columnheader" scope="col">Job</th>
+            <th role="columnheader" scope="col">Date<span aria-hidden> · </span><span className="sr-only"> and </span>Job</th>
             <th role="columnheader" scope="col">Basis</th>
             <th role="columnheader" scope="col" className="text-right">Pay</th>
             <th role="columnheader" scope="col" className="text-right">Fee</th>
@@ -43,10 +44,13 @@ function LinesTable({ lines, caption, total, markUncounted = false }: { lines: S
             return (
               <tr key={l.id} role="row">
                 <th role="rowheader" scope="row">{l.worker}</th>
-                <td role="cell" data-label="Date">
-                  {l.shiftStartsAt ? (l.shiftId ? <Link href={`/shifts/${l.shiftId}`} className="link"><LocalTime iso={l.shiftStartsAt.toISOString()} mode="fulldate" /></Link> : <LocalTime iso={l.shiftStartsAt.toISOString()} mode="fulldate" />) : "—"}
+                <td role="cell" data-label="Date · Job">
+                  {/* One block, so a phone's stacked row (a flex row) keeps the job under the date. */}
+                  <span className="block">
+                    {l.shiftStartsAt ? (l.shiftId ? <Link href={`/shifts/${l.shiftId}`} className="link"><LocalTime iso={l.shiftStartsAt.toISOString()} mode="fulldate" /></Link> : <LocalTime iso={l.shiftStartsAt.toISOString()} mode="fulldate" />) : "—"}
+                    <span className="statement-job">{l.jobTitle ?? "Other pay"}</span>
+                  </span>
                 </td>
-                <td role="cell" data-label="Job">{l.jobTitle ?? "Other pay"}</td>
                 <td role="cell" data-label="Basis" className="text-muted">
                   {l.formula}
                   {l.corrects ? ` · corrects ${l.corrects}` : ""}
@@ -60,7 +64,7 @@ function LinesTable({ lines, caption, total, markUncounted = false }: { lines: S
           })}
           {total && (
             <tr role="row" className="statement-subtotal">
-              <th role="rowheader" scope="row" colSpan={4} aria-colspan={4}>{total.label}</th>
+              <th role="rowheader" scope="row" colSpan={3} aria-colspan={3}>{total.label}</th>
               <td role="cell" data-label="Pay" className="num">{money(total.grossCents)}</td>
               <td role="cell" data-label="Fee" className="num">{money(total.feeCents)}</td>
               <td role="cell" />

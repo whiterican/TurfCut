@@ -2204,7 +2204,9 @@ body {
   }
   /* More sheet: a native modal dialog pinned to the bottom of the screen. */
   .more-sheet {
-    @apply m-0 mx-auto mt-auto w-full max-w-md border-0 bg-transparent p-0 lg:hidden;
+    /* No width rule hides it: it opens only from the dock's More, and closes when the dock goes (AppNav),
+       so on a touch tablet's dock (up to 1279) it shows like on a phone. */
+    @apply m-0 mx-auto mt-auto w-full max-w-md border-0 bg-transparent p-0;
     max-height: 100dvh;
     color: inherit;
   }

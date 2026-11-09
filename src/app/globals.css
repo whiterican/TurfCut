@@ -2132,8 +2132,10 @@ body {
   body:has(.staff-band) .org-rail:not(.staff-rail) {
     display: none;
   }
-  /* The console's rail is its main navigation: a staff login's worker top bar steps aside there. */
-  body:has(.staff-band) .site-header nav[aria-label="Main"] {
+  /* The console's rail (from 1024) and its section chips (on a phone) are its navigation: a staff
+     login's worker top bar and dock step aside there, at every width (tablet pass, #135). The band's
+     "Leave admin" goes back to them. */
+  body:has(.staff-band) :is(.site-header nav[aria-label="Main"], .tabbar) {
     display: none;
   }
   .admin-shell {

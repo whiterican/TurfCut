@@ -105,10 +105,10 @@ These are mockups. The page is rearranged in the browser on the local test datab
 **Work's icon** (`for-astra/work-icon-options.png`): the worker's dock at 390 with each candidate swapped into Work.
 - Today Jobs and Work are both a briefcase.
 - The candidates are CalendarClock, CalendarDays, Footprints, Route, ClipboardCheck, ListChecks, Backpack, Timer and Clock, all from lucide, which the app already uses.
-- Two clash with icons already in the app:
-  - CalendarClock is the organization's "shifts" icon;
-  - ClipboardCheck is close to Hiring's ClipboardList.
-- My lean is **CalendarDays** ("your schedule"), or **Footprints** if Work should read as field work rather than a calendar.
+- Near-clashes with icons already in the worker's navigation:
+  - Availability, under More, is CalendarCheck, so CalendarClock and CalendarDays would put a second calendar there;
+  - ClipboardCheck is close to Hiring's ClipboardList, though Hiring is in the organization's rail, not the worker's.
+- My lean is **Footprints**: it reads as field work and clashes with nothing. If Work should read as your schedule, **CalendarDays** is the clearer calendar, next to Availability's under More.
 
 **The statement period's table** (`for-astra/stmt-*-768.png` and `-1024.png`), measured on the October 2026 statement:
 

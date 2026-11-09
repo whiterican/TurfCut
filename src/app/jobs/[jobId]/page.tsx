@@ -10,7 +10,7 @@ import { loadPipelineFacts } from "@/lib/engagements-data";
 import { EngagementHistory } from "@/components/EngagementHistory";
 import { HiringActions, timeLeft } from "@/components/HiringActions";
 import { engagementStatus, JOB_STATUS_LABELS } from "@/lib/engagement-labels";
-import { UUID_RE, exclusionReasons, fitReasons, jobCardAnswers, jobCredentials, jobDiscoveryLabel, jobFreezeReasons, jurisdictionLabel, payShort, payText, publishBlockers, readDisclosure, readHiringModes } from "@/lib/jobs";
+import { UUID_RE, exclusionReasons, fitReasons, jobCardAnswers, jobCredentials, jobDiscoveryLabel, jobFreezeReasons, jurisdictionLabel, payShort, payText, publishBlockerList, readDisclosure, readHiringModes } from "@/lib/jobs";
 import { categoryStatusOf } from "@/lib/job-categories";
 import { CategoryStatusTag } from "@/components/CategoryStatusTag";
 import { JobPhoto } from "@/components/JobPhoto";
@@ -28,6 +28,7 @@ import { ActionButton } from "@/components/ActionButton";
 import { Sheet } from "@/components/Sheet";
 import { RecordPage } from "@/components/layout/Page";
 import { Masthead } from "@/components/Masthead";
+import { PublishBlockers } from "@/components/PublishBlockers";
 
 import { acceptInvitation, apply, claim, closeJobAction, declineAsWorker, leaveChangedJob, publish, withdrawApplication } from "../actions";
 import { openRelease } from "@/lib/job-changes-data";
@@ -428,7 +429,7 @@ function WillSee({
       <p className="font-medium text-fg">This organization will see</p>
       <p className="text-muted">
         Your name{seen.length ? `, your ${listText(seen)}` : ""}, and only the political-fit answers you chose to share.
-        {hidden.length > 0 && ` Not your ${listText(hidden)}: it sees "not shared" there.`}{" "}
+        {hidden.length > 0 && ` Not your ${listText(hidden)}: it sees "Not shared" there.`}{" "}
         {invited
           ? kept && "It also kept a copy of what you shared when it invited you; accepting doesn't change that copy."
           : join && `If you ${join}, it keeps a copy of what you share at that moment.`}
@@ -501,7 +502,7 @@ async function WorkerShifts({ engagementId, workerId, jobId }: { engagementId: s
 
 async function OrgPanel({ job, canHire, canEdit, canSchedule, canReadSettings, userId }: { job: JobWithRefs; canHire: boolean; canEdit: boolean; canSchedule: boolean; canReadSettings: boolean; userId: string }) {
   const blockers = job.status === "DRAFT" || job.status === "PAUSED"
-    ? publishBlockers({ job, jurisdiction: job.jurisdiction, org: job.org })
+    ? publishBlockerList({ job, jurisdiction: job.jurisdiction, org: job.org })
     : [];
   const engagements = canHire
     ? await db().engagement.findMany({
@@ -550,12 +551,7 @@ async function OrgPanel({ job, canHire, canEdit, canSchedule, canReadSettings, u
         <section className="section">
           <h2 className="section-title">Publishing</h2>
           {blockers.length > 0 ? (
-            <div className="alert-warning space-y-2">
-              <p className="font-medium">This job can&apos;t publish yet</p>
-              <ul className="list-disc space-y-0.5 pl-5">{blockers.map((b) => <li key={b}>{b}</li>)}</ul>
-              {/* Only a page this member can open (the Desk sends roles without settings access here). */}
-              {canReadSettings && <Link href="/org/settings" className="link">Organization settings</Link>}
-            </div>
+            <PublishBlockers blockers={blockers} canReadSettings={canReadSettings} />
           ) : (
             <p className="text-muted-sm">Every check passes. Publishing re-runs them at that moment.</p>
           )}

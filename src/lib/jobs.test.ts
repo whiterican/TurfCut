@@ -12,6 +12,7 @@ import {
   exclusionReasons,
   jobCardAnswers,
   jobCredentials,
+  publishBlockerList,
   publishBlockers,
   readHiringModes,
   validateDraft,
@@ -447,5 +448,116 @@ describe("job discovery category labels", () => {
   it("does not infer a category from incomplete or absent disclosure", () => {
     expect(jobDiscoveryLabel("CANVASS", null)).toBe("Door-to-door canvassing");
     expect(jobDiscoveryLabel("CANVASS", { campaignType: "candidate" })).toBe("Door-to-door canvassing");
+  });
+});
+
+describe("publish blockers grouped by who fixes them (#126, PLAN §2)", () => {
+  const blocked = (): PublishFacts => {
+    const f = ready();
+    f.org = { approved: false, contractorTermsSignedAt: null, classificationReviewedAt: null };
+    f.jurisdiction = { ...denver, approved: false };
+    f.job = { ...f.job, payRateCents: null, headcount: 0, startsAt: null, campaignDisclosure: null, supportContacts: null, hiringMethod: {} };
+    return f;
+  };
+
+  it("keeps publishBlockers' words and order, written out", () => {
+    expect(publishBlockers(blocked(), now)).toEqual([
+      "Your organization is awaiting Turfcut approval.",
+      "Sign the contractor terms in organization settings.",
+      "Complete the worker-classification review in organization settings.",
+      "Denver, CO (rules v1) hasn't been approved by counsel.",
+      "Set the gross pay rate.",
+      "Set the headcount.",
+      "Set the start and end dates.",
+      "Disclose the campaign's type, affiliation and message.",
+      "Name who handles emergencies, disputes and lost materials.",
+      "Pick at least one way to hire.",
+    ]);
+    const f = ready();
+    f.jurisdiction = { ...denver, isCurrent: false, effectiveFrom: new Date("2026-12-01"), approvalExpiresAt: new Date("2026-09-30") };
+    f.job.geography = { city: "Austin", state: "TX" };
+    f.job.endsAt = new Date("2026-09-20");
+    f.job.startsAt = new Date("2026-09-10");
+    f.job.launch = { mode: "STAGED", points: [] };
+    expect(publishBlockers(f, now)).toEqual([
+      "Denver, CO (rules v1) has been superseded by a newer version; the organization has to file the job under the current rules.",
+      "Denver, CO (rules v1) isn't effective until 2026-12-01.",
+      "Counsel approval for Denver, CO (rules v1) expired on 2026-09-30.",
+      "The job is in TX but the rule profile is for CO. Pick a TX profile.",
+      "The job's end date has passed.",
+      "Add at least one staging point, or switch the job to self-launch.",
+    ]);
+    const g = ready();
+    g.jurisdiction = null;
+    expect(publishBlockers(g, now)).toEqual(["The jurisdiction rule profile is unknown. Pick an approved jurisdiction."]);
+    for (const x of [ready(), blocked(), f, g]) expect(publishBlockerList(x, now).map((b) => b.text)).toEqual(publishBlockers(x, now));
+  });
+
+  it("puts organization reasons with settings, rule-profile reasons with counsel, the rest with the job", () => {
+    const by = (fixer: string) => publishBlockerList(blocked(), now).filter((b) => b.fixer === fixer).map((b) => b.text);
+    expect(by("settings")).toEqual([
+      "Your organization is awaiting Turfcut approval.",
+      "Sign the contractor terms in organization settings.",
+      "Complete the worker-classification review in organization settings.",
+    ]);
+    expect(by("counsel")).toEqual([expect.stringMatching(/hasn't been approved by counsel/)]);
+    expect(by("job")).toEqual([
+      "Set the gross pay rate.",
+      "Set the headcount.",
+      "Set the start and end dates.",
+      "Disclose the campaign's type, affiliation and message.",
+      "Name who handles emergencies, disputes and lost materials.",
+      "Pick at least one way to hire.",
+    ]);
+  });
+
+  it("names the builder field for every job reason it can", () => {
+    const f = blocked();
+    f.job.startsAt = new Date("2026-11-10"); // end before start
+    f.job.geography = { city: "Austin", state: "TX" };
+    f.job.compensationMethod = "PER_UNIT";
+    f.job.launch = { mode: "STAGED", points: [] };
+    const jobReasons = publishBlockerList(f, now).filter((b) => b.fixer === "job");
+    expect(jobReasons.length).toBeGreaterThan(6);
+    for (const b of jobReasons) expect(b.field, b.text).toBeTruthy();
+  });
+
+  it("gives the job what it fixes in step 1: an unknown or superseded profile, a profile for another state", () => {
+    const f = ready();
+    f.jurisdiction = null;
+    const unknown = publishBlockerList(f, now).find((b) => /unknown/.test(b.text));
+    expect(unknown).toMatchObject({ fixer: "job", field: "jurisdictionId" });
+
+    const g = ready();
+    g.jurisdiction = { ...denver, isCurrent: false };
+    g.job.geography = { city: "Austin", state: "TX" };
+    const list = publishBlockerList(g, now);
+    expect(list.find((b) => /superseded/.test(b.text))).toMatchObject({ fixer: "job", field: "jurisdictionId" });
+    expect(list.find((b) => /Pick a TX profile/.test(b.text))).toMatchObject({ fixer: "job", field: "jurisdictionId" });
+
+    const h = ready();
+    h.job.geography = { city: "Denver" };
+    expect(publishBlockerList(h, now).find((b) => /Set the job's state/.test(b.text))).toMatchObject({ fixer: "job", field: "state" });
+  });
+
+  it("leaves approval, effective-date, expiry and missing-rules problems with counsel", () => {
+    const f = ready();
+    f.jurisdiction = { ...denver, approved: false, effectiveFrom: new Date("2026-12-01"), approvalExpiresAt: new Date("2026-09-30"), rules: {} };
+    const counsel = publishBlockerList(f, now).filter((b) => b.fixer === "counsel");
+    expect(counsel.map((b) => b.text)).toEqual([
+      expect.stringMatching(/hasn't been approved/),
+      expect.stringMatching(/isn't effective until/),
+      expect.stringMatching(/expired on/),
+      expect.stringMatching(/no compensation rules/),
+    ]);
+    for (const b of counsel) expect(b.field).toBeUndefined();
+  });
+
+  it("leaves a non-draft status with the job, unlabelled", () => {
+    const f = ready();
+    f.job.status = "CLOSED";
+    const b = publishBlockerList(f, now).find((x) => /Only draft or paused/.test(x.text));
+    expect(b?.fixer).toBe("job");
+    expect(b?.field).toBeUndefined();
   });
 });

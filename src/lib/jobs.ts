@@ -439,17 +439,26 @@ export function jurisdictionLabel(j: Pick<JurisdictionFacts, "state" | "locality
   return `${j.locality ? `${j.locality}, ` : ""}${j.state} (rules v${j.version})`;
 }
 
+/**
+ * Every reason a rule profile fails the gate, with who clears it: the
+ * organization (pick a profile, or file under the current version) or
+ * counsel (Turfcut staff approve rule profiles).
+ */
+export function jurisdictionProblemList(j: JurisdictionFacts | null, now: Date = new Date()): { text: string; fixer: "job" | "counsel" }[] {
+  if (!j) return [{ text: "The jurisdiction rule profile is unknown. Pick an approved jurisdiction.", fixer: "job" }];
+  const label = jurisdictionLabel(j);
+  const out: { text: string; fixer: "job" | "counsel" }[] = [];
+  if (!j.approved) out.push({ text: `${label} hasn't been approved by counsel.`, fixer: "counsel" });
+  if (!j.isCurrent) out.push({ text: `${label} has been superseded by a newer version; the organization has to file the job under the current rules.`, fixer: "job" });
+  if (j.effectiveFrom && j.effectiveFrom > now) out.push({ text: `${label} isn't effective until ${j.effectiveFrom.toISOString().slice(0, 10)}.`, fixer: "counsel" });
+  if (j.approvalExpiresAt && j.approvalExpiresAt <= now) out.push({ text: `Counsel approval for ${label} expired on ${j.approvalExpiresAt.toISOString().slice(0, 10)}.`, fixer: "counsel" });
+  if (!Array.isArray(obj(j.rules).compensationAllowed)) out.push({ text: `${label} has no compensation rules on file.`, fixer: "counsel" });
+  return out;
+}
+
 /** Why a jurisdiction rule profile can't be used right now (empty = usable). */
 export function jurisdictionProblems(j: JurisdictionFacts | null, now: Date = new Date()): string[] {
-  if (!j) return ["The jurisdiction rule profile is unknown. Pick an approved jurisdiction."];
-  const label = jurisdictionLabel(j);
-  const out: string[] = [];
-  if (!j.approved) out.push(`${label} hasn't been approved by counsel.`);
-  if (!j.isCurrent) out.push(`${label} has been superseded by a newer version; the organization has to file the job under the current rules.`);
-  if (j.effectiveFrom && j.effectiveFrom > now) out.push(`${label} isn't effective until ${j.effectiveFrom.toISOString().slice(0, 10)}.`);
-  if (j.approvalExpiresAt && j.approvalExpiresAt <= now) out.push(`Counsel approval for ${label} expired on ${j.approvalExpiresAt.toISOString().slice(0, 10)}.`);
-  if (!Array.isArray(obj(j.rules).compensationAllowed)) out.push(`${label} has no compensation rules on file.`);
-  return out;
+  return jurisdictionProblemList(j, now).map((p) => p.text);
 }
 
 /**
@@ -525,32 +534,53 @@ export const jobEndPassed = (endsAt: Date, now: Date) => now.getTime() >= endsAt
 /** Jobs whose stored end date is at or after this are still open. */
 export const openJobsEndAfter = (now: Date) => new Date(now.getTime() - END_DAY_MS);
 
-/** Every reason this job can't publish right now (empty = it can). */
-export function publishBlockers(f: PublishFacts, now: Date = new Date()): string[] {
-  const out: string[] = [];
-  if (f.job.status !== "DRAFT" && f.job.status !== "PAUSED") out.push("Only draft or paused jobs can be published.");
-  if (!f.org.approved) out.push("Your organization is awaiting Turfcut approval.");
-  if (!f.org.contractorTermsSignedAt) out.push("Sign the contractor terms in organization settings.");
-  if (!f.org.classificationReviewedAt) out.push("Complete the worker-classification review in organization settings.");
-  out.push(...jurisdictionProblems(f.jurisdiction, now));
+/**
+ * Who can clear a publish blocker: the job's own builder, organization
+ * settings, or counsel (Turfcut staff approve rule profiles).
+ */
+export type PublishFixer = "job" | "settings" | "counsel";
+
+export interface PublishBlocker {
+  text: string;
+  fixer: PublishFixer;
+  /** The builder field that fixes it (fixer "job" only), for a step label. */
+  field?: string;
+}
+
+/** Every reason this job can't publish right now, with who can fix each (empty = it can). */
+export function publishBlockerList(f: PublishFacts, now: Date = new Date()): PublishBlocker[] {
+  const out: PublishBlocker[] = [];
+  const job = (text: string, field?: string) => out.push({ text, fixer: "job", field });
+  if (f.job.status !== "DRAFT" && f.job.status !== "PAUSED") job("Only draft or paused jobs can be published.");
+  if (!f.org.approved) out.push({ text: "Your organization is awaiting Turfcut approval.", fixer: "settings" });
+  if (!f.org.contractorTermsSignedAt) out.push({ text: "Sign the contractor terms in organization settings.", fixer: "settings" });
+  if (!f.org.classificationReviewedAt) out.push({ text: "Complete the worker-classification review in organization settings.", fixer: "settings" });
+  // Picking a profile, or refiling under the current version, is the job's own step 1; approving one is counsel's.
+  for (const p of jurisdictionProblemList(f.jurisdiction, now)) out.push(p.fixer === "job" ? { text: p.text, fixer: "job", field: "jurisdictionId" } : { text: p.text, fixer: "counsel" });
   if (f.jurisdiction) {
     const c = compensationProblem(f.job.compensationMethod, f.jurisdiction.rules);
-    if (c) out.push(c);
+    if (c) job(c, "compensationMethod");
     const s = jurisdictionStateProblem(str(obj(f.job.geography).state), f.jurisdiction.state);
-    if (s) out.push(s);
+    // No state is set in step 2; a state that doesn't match is fixed by picking its profile in step 1.
+    if (s) job(s, str(obj(f.job.geography).state) ? "jurisdictionId" : "state");
   }
-  if (!f.job.payRateCents || f.job.payRateCents <= 0) out.push("Set the gross pay rate.");
-  if (!f.job.headcount || f.job.headcount < 1) out.push("Set the headcount.");
-  if (!f.job.startsAt || !f.job.endsAt) out.push("Set the start and end dates.");
-  else if (f.job.endsAt < f.job.startsAt) out.push("The end date is before the start date.");
-  else if (jobEndPassed(f.job.endsAt, now)) out.push("The job's end date has passed.");
-  if (!readDisclosure(f.job.campaignDisclosure)) out.push("Disclose the campaign's type, affiliation and message.");
-  if (!readSupportContacts(f.job.supportContacts)) out.push("Name who handles emergencies, disputes and lost materials.");
-  if (readHiringModes(f.job.hiringMethod).length === 0) out.push("Pick at least one way to hire.");
+  if (!f.job.payRateCents || f.job.payRateCents <= 0) job("Set the gross pay rate.", "payRate");
+  if (!f.job.headcount || f.job.headcount < 1) job("Set the headcount.", "headcount");
+  if (!f.job.startsAt || !f.job.endsAt) job("Set the start and end dates.", "startsAt");
+  else if (f.job.endsAt < f.job.startsAt) job("The end date is before the start date.", "endsAt");
+  else if (jobEndPassed(f.job.endsAt, now)) job("The job's end date has passed.", "endsAt");
+  if (!readDisclosure(f.job.campaignDisclosure)) job("Disclose the campaign's type, affiliation and message.", "campaignType");
+  if (!readSupportContacts(f.job.supportContacts)) job("Name who handles emergencies, disputes and lost materials.", "contactEmergency");
+  if (readHiringModes(f.job.hiringMethod).length === 0) job("Pick at least one way to hire.", "hiringModes");
   // A job that says how its days start has to say it fully; one from before C4 (no launch) stays as it was: staging set per shift.
   const launchProblem = f.job.launch == null ? null : launchBlocker(readLaunch(f.job.launch));
-  if (launchProblem) out.push(launchProblem);
+  if (launchProblem) job(launchProblem, "launchMode");
   return out;
+}
+
+/** Every reason this job can't publish right now (empty = it can). */
+export function publishBlockers(f: PublishFacts, now: Date = new Date()): string[] {
+  return publishBlockerList(f, now).map((b) => b.text);
 }
 
 // ---------------------------------------------------------------------------

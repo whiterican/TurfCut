@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { BUILDER_STEPS, errorsForStep, fieldStep, firstStepWithErrors, isLiveEdit, REVIEW_STEP, saveLabel, stepBlurb, stepOfField } from "./job-builder";
+import { BUILDER_STEPS, errorsForStep, fieldStep, firstStepWithErrors, isLiveEdit, REVIEW_STEP, saveLabel, stepBlurb, stepLabel, stepOfField } from "./job-builder";
 import { validateJob } from "./jobs";
 
 describe("job builder steps", () => {
@@ -70,5 +70,17 @@ describe("a live edit's words", () => {
     expect(stepBlurb(REVIEW_STEP, true)).toBe("Check everything, then save your changes.");
     expect(stepBlurb(REVIEW_STEP, false)).toBe("Check everything, then save the draft.");
     for (let i = 0; i < REVIEW_STEP; i++) expect(stepBlurb(i, true)).toBe(BUILDER_STEPS[i].blurb);
+  });
+});
+
+describe("stepLabel", () => {
+  it("names the step that claims a field, with its number", () => {
+    expect(stepLabel("campaignType")).toBe("Step 5 · Campaign disclosure");
+    expect(stepLabel("contactEmergency")).toBe("Step 4 · Requirements and contacts");
+    expect(stepLabel("launchMode")).toBe("Step 2 · When and where");
+    expect(stepLabel("payRate")).toBe("Step 3 · Pay and hiring");
+  });
+  it("gives no label for a field no step claims", () => {
+    expect(stepLabel("nope")).toBeNull();
   });
 });

@@ -12,7 +12,7 @@
     "last": "p \"Gross pay. Turfcut never takes a cut of \"",
     "file": "clearance-w-receipt.png",
     "source": {
-      "commit": "b43edc5"
+      "commit": "f638afe"
     }
   },
   {
@@ -28,7 +28,7 @@
     "last": "p \"$125.00 · On hold\"",
     "file": "clearance-w-shift.png",
     "source": {
-      "commit": "b43edc5"
+      "commit": "f638afe"
     }
   },
   {
@@ -44,7 +44,7 @@
     "last": "p \"Checked the check-out event: it was corr\"",
     "file": "clearance-w-dispute.png",
     "source": {
-      "commit": "b43edc5"
+      "commit": "f638afe"
     }
   },
   {
@@ -60,7 +60,7 @@
     "last": "p \"Checked the check-out event: it was corr\"",
     "file": "clearance-o-dispute.png",
     "source": {
-      "commit": "b43edc5"
+      "commit": "f638afe"
     }
   },
   {
@@ -76,7 +76,7 @@
     "last": "p \"On time means a first reply within 3 bus\"",
     "file": "clearance-o-statement.png",
     "source": {
-      "commit": "b43edc5"
+      "commit": "f638afe"
     }
   }
 ]

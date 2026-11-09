@@ -6,25 +6,29 @@ The app-wide tablet pass Caden asked for. The hiring routes were audited separat
 
 `audit.mjs` loads each route as its real role on the local test database: a worker (Jordan), an organization owner, Turfcut staff, or signed out. It starts at 768×1024 portrait, then resizes to 1024×768 landscape without reloading, like a rotation. It runs once in light and once in dark. At each size it records, before any screenshot:
 
-- horizontal overflow (`over`; −15 at 1024 is the page's own scrollbar);
+- horizontal overflow (`over`; −15 means a vertical scrollbar is taking room, at either size);
 - any element past the right edge that no ancestor scrolls or clips;
 - whether the bottom dock or the organization rail shows;
 - the main column's width;
 - every visible native select whose chosen option is wider than its text box (24px allowance for the arrow, as in #130);
 - console and page errors.
 
+A separate `CLEARANCE=1` mode scrolls each page to its end at 768×1024 and records how far the last *visible* content sits above the dock's top edge. Visible means a leaf element, shown, and not cut off by a scrolling or clipping ancestor.
+
 This is Chromium with touch enabled, at DPR 1. It is not a real iPad, Safari, the on-screen keyboard or split-screen.
 
-- **`baseline/`:** 46 routes × 2 sizes × 2 themes = 184 measured states on master `ea9f5d8`, with a light screenshot at each size (92) and `manifest.json`. That's 45 rendered routes; the worker's shift page returns 404 (see below). `w-header-1024.png`, `-1200`, `-1280` and `-1440` show the worker header across the band.
+- **`baseline/`:** 46 routes × 2 sizes × 2 themes = 184 measured states on master `ea9f5d8`, with a light screenshot at each size (92) and `manifest.json`. That's 44 rendered routes. The worker's shift page returns 404, and the Message reports row was audited as staff by mistake: it redirected to the worker Messages page, so those four rows don't show Message reports (see `extra/`). `w-header-1024.png`, `-1200`, `-1280` and `-1440` show the worker header across the band.
+- **`extra/`:** Message reports audited correctly as the organization owner, at `fa7c346` (no app change to that route since master): 4 states, no overflow, no errors, dock at 768 and rail at 1024.
+- **`clearance/`:** the dock clearance of every route at 768, at `fa7c346`, with a screenshot of each page scrolled to its end, and `clearance.json`.
 - **`after/`:** the Field map and its review queue rerun through the same audit at `d00546c`, the commit with the fix. `field-measurements.json` records the filter's widths at 390, 1024 and 1440, at the default and largest text size, with the strip cropped as screenshots.
 
 ## Results
 
-**No route overflows sideways at either size, in either theme.** Nothing sits past the right edge. The organization rail appears at 1024 and the dock at 768, as designed, with two exceptions that aren't faults. On staff People at 768 the search box has `autoFocus`, and a focused input hides the dock by design. On the worker's profile at 1024 the audit reported a rail, a false positive: its check matched the profile page's own `aside nav`. The only console errors are on the worker's shift page, which returns 404 because the fixture shift isn't Jordan's; that's a fixture limit, not a layout fault.
+**No route overflows sideways at either size, in either theme.** Nothing sits past the right edge. **Nothing sits behind the dock:** on all 41 pages that show it, the last visible content ends at least 58px above it (`clearance/clearance.json`). The dock also hides while you scroll down. The organization rail appears at 1024 and the dock at 768, as designed, with two exceptions that aren't faults. On staff People at 768 the search box has `autoFocus`, and a focused input hides the dock by design. On the worker's profile at 1024 the audit reported a rail, a false positive: its check matched the profile page's own `aside nav`. The only console errors are on the worker's shift page, which returns 404 because the fixture shift isn't Jordan's; that's a fixture limit, not a layout fault.
 
 ### Fixed in this PR
 
-**The Field map's job filter** (`src/app/globals.css`, `.map-controls`). From `lg` the field strip is a row and the live figures take the room, so at 1024 the select shrank to about 84px and showed "All jo…". Two changes fix it:
+**The Field map's job filter** (`src/app/globals.css`, `.map-controls`). From `lg` the field strip is a row and the live figures take the room, so at 1024 the select's text box was 34px for 48px of text (about 84px for the whole control, derived, not recorded) and showed "All jo…". Two changes fix it:
 - the select has a 12rem floor from `lg`;
 - the controls form no longer shrinks from `lg`, so Show stays beside the select and the figures wrap instead.
 
@@ -37,7 +41,7 @@ Measured (`after/field-measurements.json`; "before" is from the baseline manifes
 | 390 | default | not measured (the new rules apply from `lg` only) | Select 292px, no overflow |
 | 1440 | default | not measured | Select 192px, Show on the same line, no overflow |
 
-**A long job title.** The select sizes to its longest option up to the existing 18rem cap. With a 66-character title (simulated by rewriting the "All jobs" option's text in the page, so no job is selected; no local job has a title that long) it reaches 288px at default size and 360px at the largest, and the figures beside it narrow to 390px and 287px at 1024. Nothing overflows; at the largest size the figures wrap into a taller block. A native select still truncates a title longer than the cap, as it does today. The selected-job state with its Clear button isn't covered: the Field list only offers jobs with shifts in its window, and no local job has any.
+**A long job title.** The select sizes to its longest option up to the existing 18rem cap. With a 66-character title (simulated by rewriting the "All jobs" option's text in the page, so no job is selected; no local job has a title that long) it reaches 288px at default size and 360px at the largest, and the figures beside it narrow to 390px and 287px at 1024. Nothing overflows the page, but the 66-character title itself is truncated inside the select at every width, as a native select does today past its cap. At the largest size the figures wrap into a taller block. The selected-job state with its Clear button isn't covered: the Field list only offers jobs with shifts in its window, and no local job has any.
 
 ### For Astra and Caden: the worker header at 1024–1279
 
@@ -46,27 +50,39 @@ Between 1024 and 1279 the worker's eight top-bar destinations show as icons only
 - **Tooltips never show,** so the eight icons are unnamed to a sighted user.
 - **Two of them look alike.** "Jobs" and "Work" are both briefcases (`w-header-1024.png`, `w-header-1200.png`).
 
-This affects workers only: organization roles and Turfcut staff get the labelled rail from 1024 (`topNavTabs()` returns nothing for other roles).
+This affects every account whose role is WORKER (`topNavTabs()` in `src/lib/nav.ts`), **including Turfcut staff whose role is WORKER**. Staff is a separate flag. Organization roles get the labelled rail instead.
 
 Two options, both without changing the desktop decision for a mouse:
 
 1. **Touch tablets keep the labelled bottom dock up to 1279.** Under `(hover: none) and (pointer: coarse)` the worker header nav hides and the dock (which has labels) stays, as it does at 768. Mouse-only desktops keep the #113 icon bar. Costs:
    - a media query overriding the dock's `lg:hidden` and hiding `TopNav`;
-   - bottom padding for the dock from `lg`.
+   - bottom padding for the dock from `lg`;
+   - **the dock holds five destinations plus More**, so Profile, Campaign feed and Earnings move behind More on a touch tablet. The top bar shows all eight.
 
    An iPad with a trackpad or keyboard still matches `pointer: coarse`, so it gets the dock too.
 2. **Labels under the icons from 1024 to 1279.** Small stacked labels (about 11px), on every pointer type. By estimate (not measured) the eight items fit in about 670px, but this changes the desktop look the #113 review settled.
 
-I lean to option 1, because it leaves the mouse experience #113 approved untouched, though it isn't the smaller code change. It's a design call, so this PR doesn't build either one.
+I lean to option 1, because it leaves the mouse experience #113 approved untouched, though it isn't the smaller code change and it moves three destinations behind More. It's a design call, so this PR doesn't build either one.
+
+**Smaller, whichever option is chosen:** give Work its own icon (`AppNav.tsx`, `work: Briefcase`). That alone ends the two identical briefcases. The choice of icon is Astra's.
+
+### For Astra and Caden: staff see two navigations on admin pages
+
+A Turfcut staff account with the WORKER role gets the worker's navigation on admin pages as well as the admin rail:
+- at 1024 the worker's icon bar sits above the admin rail (`baseline/a-home-landscape.png`);
+- at 768 the worker's dock shows under admin pages (`baseline/a-audit-portrait.png`).
+
+Whether admin pages should hide the worker navigation for staff is a design question. It isn't tablet-specific, and this PR doesn't change it.
 
 ## Not covered
 
 - **Hiring routes:** in #134.
 - **Detail pages with no local fixture:** a campaign's public page and post, a receipt, a pay or worker dispute, a statement period.
 - **The worker's own shift page:** 404 for this worker.
+- **Content inside closed disclosures and clipped rows**, for example a timeline payload cut at the card edge on staff Audit. The audit skips clipped content by design.
 - **Real devices:** native iPad, Safari, the on-screen keyboard, split-screen and safe-area insets.
 
 Rerun: start the local stack, then:
 
-- `node audit.mjs <outDir> <commit> [slug filter]` for the route matrix. It uses the session's Playwright and per-role storage states.
+- `FP=<folder of storage states> BASE=<local app URL> node audit.mjs <outDir> <commit> [slug filter]` for the route matrix (`CLEARANCE=1` for the dock clearance). `FP` holds Playwright storage states named `jordan.json` (a worker), `owner.json` (an organization owner) and `staff.json` (Turfcut staff), signed in to the local app. The script loads Playwright from `/opt/node-tools`; change the import for another install. Fixture IDs are the local test database's.
 - `STORAGE=<owner storage state> BASE=<local app URL> node fieldm.mjs <outDir> <commit>` for the Field filter measurements.

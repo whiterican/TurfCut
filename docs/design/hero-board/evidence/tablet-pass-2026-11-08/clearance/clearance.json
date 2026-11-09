@@ -12,7 +12,7 @@
     "last": "a \"Create an account\"",
     "file": "clearance-login.png",
     "source": {
-      "commit": "fa7c346"
+      "commit": "85f9fc1"
     }
   },
   {
@@ -28,7 +28,7 @@
     "last": "a \"Log in\"",
     "file": "clearance-signup.png",
     "source": {
-      "commit": "fa7c346"
+      "commit": "85f9fc1"
     }
   },
   {
@@ -44,7 +44,7 @@
     "last": "p \"Campaigns that hire on Turfcut show thei\"",
     "file": "clearance-campaigns-public.png",
     "source": {
-      "commit": "fa7c346"
+      "commit": "85f9fc1"
     }
   },
   {
@@ -60,7 +60,7 @@
     "last": "a \"Set up payouts\"",
     "file": "clearance-w-home.png",
     "source": {
-      "commit": "fa7c346"
+      "commit": "85f9fc1"
     }
   },
   {
@@ -76,7 +76,7 @@
     "last": "a \"Who you won't be matched with\"",
     "file": "clearance-w-jobs.png",
     "source": {
-      "commit": "fa7c346"
+      "commit": "85f9fc1"
     }
   },
   {
@@ -92,7 +92,7 @@
     "last": "p \"Register voters in Capitol Hill. Nonpart\"",
     "file": "clearance-w-job.png",
     "source": {
-      "commit": "fa7c346"
+      "commit": "85f9fc1"
     }
   },
   {
@@ -108,7 +108,7 @@
     "last": "p \"None.\"",
     "file": "clearance-w-invitations.png",
     "source": {
-      "commit": "fa7c346"
+      "commit": "85f9fc1"
     }
   },
   {
@@ -124,7 +124,7 @@
     "last": "a \"Find Jobs\"",
     "file": "clearance-w-shifts.png",
     "source": {
-      "commit": "fa7c346"
+      "commit": "85f9fc1"
     }
   },
   {
@@ -140,7 +140,7 @@
     "last": "h1 \"404\"",
     "file": "clearance-w-shift.png",
     "source": {
-      "commit": "fa7c346"
+      "commit": "85f9fc1"
     }
   },
   {
@@ -156,7 +156,7 @@
     "last": "p \"When a campaign schedules you, its turf \"",
     "file": "clearance-w-turf.png",
     "source": {
-      "commit": "fa7c346"
+      "commit": "85f9fc1"
     }
   },
   {
@@ -172,7 +172,7 @@
     "last": "p \"Every amount is worked out from your ver\"",
     "file": "clearance-w-earnings.png",
     "source": {
-      "commit": "fa7c346"
+      "commit": "85f9fc1"
     }
   },
   {
@@ -188,7 +188,7 @@
     "last": "p \"When an organization sends you pay, the \"",
     "file": "clearance-w-receipts.png",
     "source": {
-      "commit": "fa7c346"
+      "commit": "85f9fc1"
     }
   },
   {
@@ -204,7 +204,7 @@
     "last": "time \"Sun, Nov 1, 7:20 PM\"",
     "file": "clearance-w-notifications.png",
     "source": {
-      "commit": "fa7c346"
+      "commit": "85f9fc1"
     }
   },
   {
@@ -220,7 +220,7 @@
     "last": "time \"7 days ago\"",
     "file": "clearance-w-messages.png",
     "source": {
-      "commit": "fa7c346"
+      "commit": "85f9fc1"
     }
   },
   {
@@ -236,7 +236,7 @@
     "last": "button \"Message your current contact\"",
     "file": "clearance-w-conversation.png",
     "source": {
-      "commit": "fa7c346"
+      "commit": "85f9fc1"
     }
   },
   {
@@ -252,7 +252,7 @@
     "last": "a \"Find campaigns\"",
     "file": "clearance-w-feed.png",
     "source": {
-      "commit": "fa7c346"
+      "commit": "85f9fc1"
     }
   },
   {
@@ -268,7 +268,7 @@
     "last": "li \"You have unpaid pay (2 lines). Closing n\"",
     "file": "clearance-w-settings.png",
     "source": {
-      "commit": "fa7c346"
+      "commit": "85f9fc1"
     }
   },
   {
@@ -284,7 +284,7 @@
     "last": "p \"For shift reminders and day-of changes o\"",
     "file": "clearance-w-profile.png",
     "source": {
-      "commit": "fa7c346"
+      "commit": "85f9fc1"
     }
   },
   {
@@ -300,7 +300,7 @@
     "last": "button \"Save\"",
     "file": "clearance-w-availability.png",
     "source": {
-      "commit": "fa7c346"
+      "commit": "85f9fc1"
     }
   },
   {
@@ -316,7 +316,7 @@
     "last": "p \"Keep your documents yourself. If you cir\"",
     "file": "clearance-w-credentials.png",
     "source": {
-      "commit": "fa7c346"
+      "commit": "85f9fc1"
     }
   },
   {
@@ -332,7 +332,7 @@
     "last": "button \"Next\"",
     "file": "clearance-w-preferences.png",
     "source": {
-      "commit": "fa7c346"
+      "commit": "85f9fc1"
     }
   },
   {
@@ -348,7 +348,7 @@
     "last": "button \"Save\"",
     "file": "clearance-w-sharing.png",
     "source": {
-      "commit": "fa7c346"
+      "commit": "85f9fc1"
     }
   },
   {
@@ -364,7 +364,7 @@
     "last": "p \"Political-fit answers are shared only wh\"",
     "file": "clearance-w-preview.png",
     "source": {
-      "commit": "fa7c346"
+      "commit": "85f9fc1"
     }
   },
   {
@@ -380,7 +380,7 @@
     "last": "td \"5\"",
     "file": "clearance-o-desk.png",
     "source": {
-      "commit": "fa7c346"
+      "commit": "85f9fc1"
     }
   },
   {
@@ -396,7 +396,7 @@
     "last": "td \"Draft\"",
     "file": "clearance-o-jobs.png",
     "source": {
-      "commit": "fa7c346"
+      "commit": "85f9fc1"
     }
   },
   {
@@ -412,7 +412,7 @@
     "last": "p \"No shifts in the last 12 hours or the ne\"",
     "file": "clearance-o-field.png",
     "source": {
-      "commit": "fa7c346"
+      "commit": "85f9fc1"
     }
   },
   {
@@ -428,7 +428,7 @@
     "last": "p \"Shifts show up here once the worker chec\"",
     "file": "clearance-o-field-review.png",
     "source": {
-      "commit": "fa7c346"
+      "commit": "85f9fc1"
     }
   },
   {
@@ -444,7 +444,7 @@
     "last": "summary \"Hold a line instead\"",
     "file": "clearance-o-pay.png",
     "source": {
-      "commit": "fa7c346"
+      "commit": "85f9fc1"
     }
   },
   {
@@ -460,7 +460,7 @@
     "last": "span \"S-2026-11 · $0.24 recorded · $0.00 sent\"",
     "file": "clearance-o-statements.png",
     "source": {
-      "commit": "fa7c346"
+      "commit": "85f9fc1"
     }
   },
   {
@@ -476,7 +476,7 @@
     "last": "p \"Turfcut itself never shows you a credent\"",
     "file": "clearance-o-credentials.png",
     "source": {
-      "commit": "fa7c346"
+      "commit": "85f9fc1"
     }
   },
   {
@@ -492,7 +492,7 @@
     "last": "button \"Create campaign\"",
     "file": "clearance-o-campaigns.png",
     "source": {
-      "commit": "fa7c346"
+      "commit": "85f9fc1"
     }
   },
   {
@@ -508,7 +508,7 @@
     "last": "p \"Pay methods: Hourly, Per shift\"",
     "file": "clearance-o-settings.png",
     "source": {
-      "commit": "fa7c346"
+      "commit": "85f9fc1"
     }
   },
   {
@@ -524,7 +524,7 @@
     "last": "p \"Every invite, role change and removal is\"",
     "file": "clearance-o-members.png",
     "source": {
-      "commit": "fa7c346"
+      "commit": "85f9fc1"
     }
   },
   {
@@ -540,7 +540,7 @@
     "last": "a \"Owner\"",
     "file": "clearance-o-roles.png",
     "source": {
-      "commit": "fa7c346"
+      "commit": "85f9fc1"
     }
   },
   {
@@ -556,7 +556,7 @@
     "last": "time \"7 days ago\"",
     "file": "clearance-o-messages.png",
     "source": {
-      "commit": "fa7c346"
+      "commit": "85f9fc1"
     }
   },
   {
@@ -572,7 +572,7 @@
     "last": "time \"Sun, Nov 1, 7:18 PM\"",
     "file": "clearance-o-notifications.png",
     "source": {
-      "commit": "fa7c346"
+      "commit": "85f9fc1"
     }
   },
   {
@@ -588,7 +588,7 @@
     "last": "time \"Nov 1, 2026\"",
     "file": "clearance-a-home.png",
     "source": {
-      "commit": "fa7c346"
+      "commit": "85f9fc1"
     }
   },
   {
@@ -604,7 +604,7 @@
     "last": "a \"Older\"",
     "file": "clearance-a-audit.png",
     "source": {
-      "commit": "fa7c346"
+      "commit": "85f9fc1"
     }
   },
   {
@@ -620,7 +620,7 @@
     "last": "span \"0 members · no owner yet · 0 draft, 1 pu\"",
     "file": "clearance-a-orgs.png",
     "source": {
-      "commit": "fa7c346"
+      "commit": "85f9fc1"
     }
   },
   {
@@ -636,7 +636,7 @@
     "last": "p \"None yet.\"",
     "file": "clearance-a-org.png",
     "source": {
-      "commit": "fa7c346"
+      "commit": "85f9fc1"
     }
   },
   {
@@ -652,7 +652,7 @@
     "last": "span \"Shows who they are and where they belong\"",
     "file": "clearance-a-people.png",
     "source": {
-      "commit": "fa7c346"
+      "commit": "85f9fc1"
     }
   },
   {
@@ -668,7 +668,7 @@
     "last": "p \"None.\"",
     "file": "clearance-a-person.png",
     "source": {
-      "commit": "fa7c346"
+      "commit": "85f9fc1"
     }
   },
   {
@@ -684,7 +684,7 @@
     "last": "time \"Nov 1, 2026\"",
     "file": "clearance-a-jurisdictions.png",
     "source": {
-      "commit": "fa7c346"
+      "commit": "85f9fc1"
     }
   },
   {
@@ -700,7 +700,7 @@
     "last": "p \"None recorded. Profiles that predate the\"",
     "file": "clearance-a-jurisdiction.png",
     "source": {
-      "commit": "fa7c346"
+      "commit": "85f9fc1"
     }
   },
   {
@@ -716,7 +716,7 @@
     "last": "p \"No profile is verified yet.\"",
     "file": "clearance-a-campaigns.png",
     "source": {
-      "commit": "fa7c346"
+      "commit": "85f9fc1"
     }
   },
   {
@@ -732,7 +732,7 @@
     "last": "p \"When someone reports a message, it shows\"",
     "file": "clearance-o-reports.png",
     "source": {
-      "commit": "fa7c346"
+      "commit": "85f9fc1"
     }
   }
 ]

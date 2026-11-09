@@ -90,7 +90,8 @@ const b = await pw.chromium.launch({ ignoreDefaultArgs: ["--hide-scrollbars"] })
 if (process.env.CLEARANCE) {
   const rows = [];
   for (const [role, path, slug] of routes) {
-    const c = await b.newContext({ ...(role ? { storageState: FP + role + ".json" } : {}), viewport: { width: 768, height: 1024 }, deviceScaleFactor: 1, hasTouch: true, timezoneId: "America/Denver" });
+    // Reduced motion keeps the dock on screen after the scroll (it tucks away on scroll otherwise), so each screenshot shows it.
+    const c = await b.newContext({ ...(role ? { storageState: FP + role + ".json" } : {}), viewport: { width: 768, height: 1024 }, deviceScaleFactor: 1, hasTouch: true, reducedMotion: "reduce", timezoneId: "America/Denver" });
     const p = await c.newPage();
     let httpStatus = null;
     try { const r = await p.goto(BASE + path, { waitUntil: "networkidle", timeout: 240000 }); httpStatus = r?.status() ?? null; } catch {}

@@ -52,8 +52,8 @@ function LinesTable({ lines, caption, total, markUncounted = false }: { lines: S
                   </span>
                 </td>
                 <td role="cell" data-label="Basis" className="text-muted">
-                  {/* A rate stays with its "×", and a reference never breaks at its hyphens. */}
-                  {l.formula.replace(/ × /g, "\u00a0×\u00a0")}
+                  {/* A reference never breaks at its hyphens. */}
+                  {l.formula}
                   {l.corrects && <> · <span className="whitespace-nowrap">corrects {l.corrects}</span></>}
                   {l.receipt && <> · <span className="whitespace-nowrap">{l.receipt}</span></>}
                 </td>

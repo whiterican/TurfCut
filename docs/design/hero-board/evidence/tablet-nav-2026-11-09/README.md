@@ -102,7 +102,7 @@ So no minimum width fixes 768 without hiding a column, and at 640 and 700 the co
 Astra was out of usage, so Caden asked Claude to decide (Nov 9). Below are the options as they were set out, as mockups (`for-astra/*.mjs`, rearranged in the browser), then what was built. Astra can still change either.
 
 **Work's icon** (`for-astra/work-icon-options.png`): the worker's dock at 390 with each candidate swapped into Work.
-- Today Jobs and Work are both a briefcase.
+- Before this change Jobs and Work were both a briefcase.
 - The candidates are CalendarClock, CalendarDays, Footprints, Route, ClipboardCheck, ListChecks, Backpack, Timer and Clock, all from lucide, which the app already uses.
 - Near-clashes with icons already in the worker's navigation:
   - Availability, under More, is CalendarCheck, so CalendarClock and CalendarDays would put a second calendar there;
@@ -113,11 +113,11 @@ Astra was out of usage, so Caden asked Claude to decide (Nov 9). Below are the o
 
 | Layout | At 768 | At 1024 |
 | :--- | :--- | :--- |
-| Today | Job wraps to 6 lines; the table is 637px tall and overflows by 2px | 5 lines; 557px |
+| Before | Job wraps to 6 lines; the table is 637px tall and overflows by 2px | 5 lines; 557px |
 | Job name under the date (the Job column goes) | Every column visible, Current state included; no overflow; the title takes 2 lines; 425px tall | No overflow; 414px |
 | Stacked rows, as on a phone, up to 1024 | Fits, but 1,313px tall, and the column header strip reads oddly | Same |
 
-My lean is the **job name under the date**. It keeps the table a table, every column stays visible, and it's the smallest change: the Date cell gains a muted second line, and the header reads "Date · Job".
+The heights in this table come from a console run of `for-astra/statement-layouts.mjs`, which saves only screenshots. My lean is the **job name under the date**. It keeps the table a table, every column stays visible, and it's the smallest change: the Date cell gains a muted second line, and the header reads "Date · Job".
 
 ### Built
 
@@ -151,6 +151,7 @@ The job line keeps a 7rem minimum. An 8rem minimum gave two-line titles at 768 b
   - a 79-character title takes 5 lines at 768 and 4 at 1024;
   - "Other pay" shows "—" with "Other pay" under it;
   - the job line reads well in dark mode.
+  - with no correction in the data, the unbreakable correction references weren't measured for width; they are short (a period, a receipt number).
 - **Follow-up:** lines are listed in the order they were recorded, not grouped by job. Grouping, or a link from each "By campaign" total to its lines, would make reconciling easier.
 
 ## Checks

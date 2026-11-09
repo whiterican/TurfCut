@@ -1768,6 +1768,15 @@ body {
   .statement-lines td[data-label="Date"] {
     @apply whitespace-nowrap;
   }
+  /* A job title wrapped one word to a line beside the shorter columns (tablet pass, #135). Between
+     the stacked phone rows and 1024 the table already scrolls sideways inside its box, so the Job
+     column keeps room for a readable title there. From 1024 the table fits its box; a wider Job
+     column would make it scroll, so it keeps today's widths. */
+  @media (40rem <= width < 64rem) {
+    .statement-lines td[data-label="Job"] {
+      min-width: 10rem;
+    }
+  }
   @media (width < 40rem) {
     .statement-lines tbody th[scope="row"] {
       @apply whitespace-normal;

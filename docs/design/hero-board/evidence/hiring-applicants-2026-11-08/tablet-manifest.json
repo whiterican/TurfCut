@@ -1,0 +1,103 @@
+{
+  "commit": "a8b647c3e6baff4b8ef44f06f174cd7fae80b36f",
+  "scope": "Read-only Applicants viewport sweep: same selected native controls remain mounted while resizing. Chromium DPR1, not native iPad/Safari/touch coverage or an app-wide tablet signoff. No server mutation submitted.",
+  "results": [
+    {
+      "height": 1801,
+      "overflow": 0,
+      "interLoaded": true,
+      "viewportWidth": 768,
+      "viewportHeight": 1024,
+      "theme": "light",
+      "stageMeasurement": {
+        "text": "Waiting on someone (applied, offered)",
+        "width": 253.12109375,
+        "available": 287,
+        "helper": null,
+        "helperOverflow": 0
+      },
+      "reasonMeasurement": {
+        "text": "The job needs a credential that isn't on the profile",
+        "width": 328.0634765625,
+        "available": 205,
+        "helper": "The job needs a credential that isn't on the profile",
+        "helperOverflow": 0
+      },
+      "selected": 1,
+      "errors": []
+    },
+    {
+      "height": 1721,
+      "overflow": 0,
+      "interLoaded": true,
+      "viewportWidth": 1024,
+      "viewportHeight": 768,
+      "theme": "light",
+      "stageMeasurement": {
+        "text": "Waiting on someone (applied, offered)",
+        "width": 253.12109375,
+        "available": 305,
+        "helper": null,
+        "helperOverflow": 0
+      },
+      "reasonMeasurement": {
+        "text": "The job needs a credential that isn't on the profile",
+        "width": 328.0634765625,
+        "available": 223,
+        "helper": "The job needs a credential that isn't on the profile",
+        "helperOverflow": 0
+      },
+      "selected": 1,
+      "errors": []
+    },
+    {
+      "height": 1801,
+      "overflow": 0,
+      "interLoaded": true,
+      "viewportWidth": 768,
+      "viewportHeight": 1024,
+      "theme": "dark",
+      "stageMeasurement": {
+        "text": "Waiting on someone (applied, offered)",
+        "width": 253.12109375,
+        "available": 287,
+        "helper": null,
+        "helperOverflow": 0
+      },
+      "reasonMeasurement": {
+        "text": "The job needs a credential that isn't on the profile",
+        "width": 328.0634765625,
+        "available": 205,
+        "helper": "The job needs a credential that isn't on the profile",
+        "helperOverflow": 0
+      },
+      "selected": 1,
+      "errors": []
+    },
+    {
+      "height": 1721,
+      "overflow": 0,
+      "interLoaded": true,
+      "viewportWidth": 1024,
+      "viewportHeight": 768,
+      "theme": "dark",
+      "stageMeasurement": {
+        "text": "Waiting on someone (applied, offered)",
+        "width": 253.12109375,
+        "available": 305,
+        "helper": null,
+        "helperOverflow": 0
+      },
+      "reasonMeasurement": {
+        "text": "The job needs a credential that isn't on the profile",
+        "width": 328.0634765625,
+        "available": 223,
+        "helper": "The job needs a credential that isn't on the profile",
+        "helperOverflow": 0
+      },
+      "selected": 1,
+      "errors": []
+    }
+  ],
+  "failures": []
+}

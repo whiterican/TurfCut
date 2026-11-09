@@ -1,5 +1,6 @@
 "use client";
 
+import { ReadableSelect } from "@/components/ReadableSelect";
 import { useActionState } from "react";
 import { notSelected, type ActionState } from "@/app/jobs/actions";
 import { NOT_SELECTED_REASONS, NOTE_MAX } from "@/lib/engagements";
@@ -14,17 +15,17 @@ export function NotSelectedForm({ jobId, engagementId, label = "Not selected" }:
   const [state, action, pending] = useActionState(notSelected, initial);
   const id = `ns-${engagementId}`;
   return (
-    <details className="group">
+    <details className="group min-w-0 max-w-full open:w-full">
       <summary className="btn-ghost btn-sm cursor-pointer list-none">{label}</summary>
       <form action={action} className="mt-3 space-y-3 rounded-xl border border-border p-3">
         <input type="hidden" name="jobId" value={jobId} />
         <input type="hidden" name="engagementId" value={engagementId} />
         <label className="block space-y-1.5">
           <span className="label">Reason the worker sees</span>
-          <select name="reasonCode" className="field" required defaultValue="">
+          <ReadableSelect name="reasonCode" className="field" required defaultValue="">
             <option value="" disabled>Pick one</option>
             {NOT_SELECTED_REASONS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
-          </select>
+          </ReadableSelect>
         </label>
         <label className="block space-y-1.5">
           <span className="label">Note to the worker (optional)</span>

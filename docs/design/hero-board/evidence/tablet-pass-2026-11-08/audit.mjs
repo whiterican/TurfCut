@@ -34,6 +34,11 @@ const routes = (process.env.ROUTES ? JSON.parse(readFileSync(process.env.ROUTES,
   ["staff", `/admin/jurisdictions/${JUR}`, "a-jurisdiction"], ["staff", "/admin/campaigns", "a-campaigns"], ["owner", "/messages/reports", "o-reports"],
 ])
   .filter(([, , s]) => !only || s.includes(only));
+if (!Array.isArray(routes) || routes.some((r) => !Array.isArray(r) || (r[0] !== null && typeof r[0] !== "string") || typeof r[1] !== "string" || typeof r[2] !== "string"))
+  throw new Error("ROUTES: expected [[role | null, path, slug], ...]");
+// Client components (LocalTime and the like) re-render after hydration; give them a moment before measuring.
+const settle = (p) => p.waitForFunction(() => document.readyState === "complete", null, { timeout: 60000 }).then(() => p.waitForTimeout(1000)).catch(() => {});
+
 
 const facts = () => {
   const vw = innerWidth;
@@ -98,6 +103,7 @@ if (process.env.CLEARANCE) {
     const p = await c.newPage();
     let httpStatus = null;
     try { const r = await p.goto(BASE + path, { waitUntil: "networkidle", timeout: 240000 }); httpStatus = r?.status() ?? null; } catch {}
+    await settle(p);
     await p.waitForTimeout(400);
     let m = null;
     for (let i = 0; i < 4 && !m; i++) { try { m = await p.evaluate(clearance); } catch { await p.waitForTimeout(500); } }
@@ -123,6 +129,7 @@ for (const [role, path, slug] of routes) for (const theme of ["light", "dark"]) 
   let httpStatus = null;
   try { const r = await p.goto(BASE + path, { waitUntil: "networkidle", timeout: 240000 }); httpStatus = r?.status() ?? null; }
   catch (e) { errs.push("goto: " + String(e).slice(0, 120)); }
+  await settle(p);
   for (const [w, h, tag] of [[768, 1024, "portrait"], [1024, 768, "landscape"]]) {
     await p.setViewportSize({ width: w, height: h }); // resized, not reloaded, like a rotation
     await p.waitForTimeout(400);

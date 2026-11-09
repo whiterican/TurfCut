@@ -1,0 +1,198 @@
+[
+  {
+    "name": "settings-custom-role",
+    "user": "finance",
+    "job": "c01a4f88-a2a3-4940-9979-a7b05dda2eae",
+    "note": "Finance user given a custom role with jobs read and jobsEdit, no orgSettings; organization terms unsigned for this run",
+    "width": 390,
+    "theme": "light",
+    "file": "settings-custom-role-390-light.png",
+    "viewport": "settings-custom-role-390-viewport.png",
+    "over": 0,
+    "headline": "This job can't publish yet",
+    "groups": [
+      {
+        "title": "In this job",
+        "reasons": [
+          "Boulder, CO (rules v1) has been superseded by a newer version; the organization has to file the job under the current rules. Step 1 · The work",
+          "Disclose the campaign's type, affiliation and message. Step 5 · Campaign disclosure",
+          "Name who handles emergencies, disputes and lost materials. Step 4 · Requirements and contacts"
+        ],
+        "link": null,
+        "note": null
+      },
+      {
+        "title": "In organization settings",
+        "reasons": [
+          "Sign the contractor terms in organization settings."
+        ],
+        "link": null,
+        "note": null
+      },
+      {
+        "title": "With counsel",
+        "reasons": [
+          "Boulder, CO (rules v1) hasn't been approved by counsel."
+        ],
+        "link": null,
+        "note": "Turfcut staff approve rule profiles."
+      }
+    ],
+    "clear": null,
+    "publish": {
+      "disabled": true
+    },
+    "editDraft": true,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "ec80553"
+    }
+  },
+  {
+    "name": "settings-custom-role",
+    "user": "finance",
+    "job": "c01a4f88-a2a3-4940-9979-a7b05dda2eae",
+    "note": "Finance user given a custom role with jobs read and jobsEdit, no orgSettings; organization terms unsigned for this run",
+    "width": 390,
+    "theme": "dark",
+    "file": "settings-custom-role-390-dark.png",
+    "viewport": null,
+    "over": 0,
+    "headline": "This job can't publish yet",
+    "groups": [
+      {
+        "title": "In this job",
+        "reasons": [
+          "Boulder, CO (rules v1) has been superseded by a newer version; the organization has to file the job under the current rules. Step 1 · The work",
+          "Disclose the campaign's type, affiliation and message. Step 5 · Campaign disclosure",
+          "Name who handles emergencies, disputes and lost materials. Step 4 · Requirements and contacts"
+        ],
+        "link": null,
+        "note": null
+      },
+      {
+        "title": "In organization settings",
+        "reasons": [
+          "Sign the contractor terms in organization settings."
+        ],
+        "link": null,
+        "note": null
+      },
+      {
+        "title": "With counsel",
+        "reasons": [
+          "Boulder, CO (rules v1) hasn't been approved by counsel."
+        ],
+        "link": null,
+        "note": "Turfcut staff approve rule profiles."
+      }
+    ],
+    "clear": null,
+    "publish": {
+      "disabled": true
+    },
+    "editDraft": true,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "ec80553"
+    }
+  },
+  {
+    "name": "settings-custom-role",
+    "user": "finance",
+    "job": "c01a4f88-a2a3-4940-9979-a7b05dda2eae",
+    "note": "Finance user given a custom role with jobs read and jobsEdit, no orgSettings; organization terms unsigned for this run",
+    "width": 1440,
+    "theme": "light",
+    "file": "settings-custom-role-1440-light.png",
+    "viewport": "settings-custom-role-1440-viewport.png",
+    "over": -15,
+    "headline": "This job can't publish yet",
+    "groups": [
+      {
+        "title": "In this job",
+        "reasons": [
+          "Boulder, CO (rules v1) has been superseded by a newer version; the organization has to file the job under the current rules. Step 1 · The work",
+          "Disclose the campaign's type, affiliation and message. Step 5 · Campaign disclosure",
+          "Name who handles emergencies, disputes and lost materials. Step 4 · Requirements and contacts"
+        ],
+        "link": null,
+        "note": null
+      },
+      {
+        "title": "In organization settings",
+        "reasons": [
+          "Sign the contractor terms in organization settings."
+        ],
+        "link": null,
+        "note": null
+      },
+      {
+        "title": "With counsel",
+        "reasons": [
+          "Boulder, CO (rules v1) hasn't been approved by counsel."
+        ],
+        "link": null,
+        "note": "Turfcut staff approve rule profiles."
+      }
+    ],
+    "clear": null,
+    "publish": {
+      "disabled": true
+    },
+    "editDraft": true,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "ec80553"
+    }
+  },
+  {
+    "name": "settings-custom-role",
+    "user": "finance",
+    "job": "c01a4f88-a2a3-4940-9979-a7b05dda2eae",
+    "note": "Finance user given a custom role with jobs read and jobsEdit, no orgSettings; organization terms unsigned for this run",
+    "width": 1440,
+    "theme": "dark",
+    "file": "settings-custom-role-1440-dark.png",
+    "viewport": null,
+    "over": -15,
+    "headline": "This job can't publish yet",
+    "groups": [
+      {
+        "title": "In this job",
+        "reasons": [
+          "Boulder, CO (rules v1) has been superseded by a newer version; the organization has to file the job under the current rules. Step 1 · The work",
+          "Disclose the campaign's type, affiliation and message. Step 5 · Campaign disclosure",
+          "Name who handles emergencies, disputes and lost materials. Step 4 · Requirements and contacts"
+        ],
+        "link": null,
+        "note": null
+      },
+      {
+        "title": "In organization settings",
+        "reasons": [
+          "Sign the contractor terms in organization settings."
+        ],
+        "link": null,
+        "note": null
+      },
+      {
+        "title": "With counsel",
+        "reasons": [
+          "Boulder, CO (rules v1) hasn't been approved by counsel."
+        ],
+        "link": null,
+        "note": "Turfcut staff approve rule profiles."
+      }
+    ],
+    "clear": null,
+    "publish": {
+      "disabled": true
+    },
+    "editDraft": true,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "ec80553"
+    }
+  }
+]

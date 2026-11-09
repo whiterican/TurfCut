@@ -8,6 +8,9 @@ const BASE = "http://localhost:3475";
 const FP = "/tmp/claude-0/-home-user-TurfCut/af2c4bc2-e73f-5766-b49f-f47c873c5da0/scratchpad/fp/";
 const PASS_DRAFTS = ["c01a4f88-a2a3-4940-9979-a7b05dda2eae", "1f68924f-9b39-4085-8e89-d63357365d65", "5e37208d-afe5-46d9-9eb0-ad3218f92f41", "5ff09edd-458c-4501-8c4e-404a90df81a8", "533c0a6f-b30a-4381-b8df-2370b82d4da3", "8afad136-1ea4-442b-932e-0fd48d41e63a", "a5da27fd-e9cd-4105-a4e9-9f91bfe96a8e", "e2a4c842-f564-4fbb-bd42-b9b5b41a73b2"];
 const SECOND_DRAFT = "66c30b7d-eccc-4d62-892d-1101cf020d66";
+const PAUSED = "5ff09edd-458c-4501-8c4e-404a90df81a8"; // local fixture: a paused job missing its contacts
+const ONLY = process.env.ONLY ? process.env.ONLY.split(",") : null; // run a subset of states
+const MANIFEST = process.env.MANIFEST ?? "manifest.json";
 
 const b = await pw.chromium.launch({ ignoreDefaultArgs: ["--hide-scrollbars"] });
 const ctx = async (user, w, theme) => {
@@ -55,7 +58,9 @@ const states = [
   ["job-and-counsel-finance", "finance", PASS_DRAFTS[0], "Same draft, Finance role (settings read, no job edit): no buttons"],
   ["settings-owner2", "owner2", SECOND_DRAFT, "Second Pass Org: not approved, terms unsigned, classification not reviewed"],
   ...(clearId ? [["clear-owner", "owner", clearId, "A Pass Test draft that passes every check"]] : []),
-];
+  ["paused-owner", "owner", PAUSED, "A paused job with one job blocker (contacts)"],
+  ["settings-custom-role", "finance", PASS_DRAFTS[0], "Finance user given a custom role with jobs read and jobsEdit, no orgSettings; organization terms unsigned for this run"],
+].filter(([n]) => !ONLY || ONLY.includes(n));
 const manifest = [];
 for (const [name, user, id, note] of states) for (const w of [390, 1440]) for (const theme of ["light", "dark"]) {
   const c = await ctx(user, w, theme); const p = await c.newPage();
@@ -81,4 +86,4 @@ for (const [name, user, id, note] of states) for (const w of [390, 1440]) for (c
   await c.close();
 }
 await b.close();
-writeFileSync(`${out}/manifest.json`, JSON.stringify(manifest, null, 2) + "\n");
+writeFileSync(`${out}/${MANIFEST}`, JSON.stringify(manifest, null, 2) + "\n");

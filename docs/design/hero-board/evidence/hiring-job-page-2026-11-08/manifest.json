@@ -37,7 +37,7 @@
     "editDraft": true,
     "consoleErrors": 0,
     "source": {
-      "commit": "46bb022"
+      "commit": "ec80553"
     }
   },
   {
@@ -78,7 +78,7 @@
     "editDraft": true,
     "consoleErrors": 0,
     "source": {
-      "commit": "46bb022"
+      "commit": "ec80553"
     }
   },
   {
@@ -119,7 +119,7 @@
     "editDraft": true,
     "consoleErrors": 0,
     "source": {
-      "commit": "46bb022"
+      "commit": "ec80553"
     }
   },
   {
@@ -160,7 +160,7 @@
     "editDraft": true,
     "consoleErrors": 0,
     "source": {
-      "commit": "46bb022"
+      "commit": "ec80553"
     }
   },
   {
@@ -199,7 +199,7 @@
     "editDraft": false,
     "consoleErrors": 0,
     "source": {
-      "commit": "46bb022"
+      "commit": "ec80553"
     }
   },
   {
@@ -238,7 +238,7 @@
     "editDraft": false,
     "consoleErrors": 0,
     "source": {
-      "commit": "46bb022"
+      "commit": "ec80553"
     }
   },
   {
@@ -277,7 +277,7 @@
     "editDraft": false,
     "consoleErrors": 0,
     "source": {
-      "commit": "46bb022"
+      "commit": "ec80553"
     }
   },
   {
@@ -316,7 +316,7 @@
     "editDraft": false,
     "consoleErrors": 0,
     "source": {
-      "commit": "46bb022"
+      "commit": "ec80553"
     }
   },
   {
@@ -363,7 +363,7 @@
     "editDraft": true,
     "consoleErrors": 0,
     "source": {
-      "commit": "46bb022"
+      "commit": "ec80553"
     }
   },
   {
@@ -410,7 +410,7 @@
     "editDraft": true,
     "consoleErrors": 0,
     "source": {
-      "commit": "46bb022"
+      "commit": "ec80553"
     }
   },
   {
@@ -457,7 +457,7 @@
     "editDraft": true,
     "consoleErrors": 0,
     "source": {
-      "commit": "46bb022"
+      "commit": "ec80553"
     }
   },
   {
@@ -504,7 +504,219 @@
     "editDraft": true,
     "consoleErrors": 0,
     "source": {
-      "commit": "46bb022"
+      "commit": "ec80553"
+    }
+  },
+  {
+    "name": "clear-owner",
+    "user": "owner",
+    "job": "5e37208d-afe5-46d9-9eb0-ad3218f92f41",
+    "note": "A Pass Test draft that passes every check",
+    "width": 390,
+    "theme": "light",
+    "file": "clear-owner-390-light.png",
+    "viewport": "clear-owner-390-viewport.png",
+    "over": 0,
+    "headline": null,
+    "groups": [],
+    "clear": "Every check passes. Publishing re-runs them at that moment.",
+    "publish": {
+      "disabled": false
+    },
+    "editDraft": true,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "ec80553"
+    }
+  },
+  {
+    "name": "clear-owner",
+    "user": "owner",
+    "job": "5e37208d-afe5-46d9-9eb0-ad3218f92f41",
+    "note": "A Pass Test draft that passes every check",
+    "width": 390,
+    "theme": "dark",
+    "file": "clear-owner-390-dark.png",
+    "viewport": null,
+    "over": 0,
+    "headline": null,
+    "groups": [],
+    "clear": "Every check passes. Publishing re-runs them at that moment.",
+    "publish": {
+      "disabled": false
+    },
+    "editDraft": true,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "ec80553"
+    }
+  },
+  {
+    "name": "clear-owner",
+    "user": "owner",
+    "job": "5e37208d-afe5-46d9-9eb0-ad3218f92f41",
+    "note": "A Pass Test draft that passes every check",
+    "width": 1440,
+    "theme": "light",
+    "file": "clear-owner-1440-light.png",
+    "viewport": "clear-owner-1440-viewport.png",
+    "over": -15,
+    "headline": null,
+    "groups": [],
+    "clear": "Every check passes. Publishing re-runs them at that moment.",
+    "publish": {
+      "disabled": false
+    },
+    "editDraft": true,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "ec80553"
+    }
+  },
+  {
+    "name": "clear-owner",
+    "user": "owner",
+    "job": "5e37208d-afe5-46d9-9eb0-ad3218f92f41",
+    "note": "A Pass Test draft that passes every check",
+    "width": 1440,
+    "theme": "dark",
+    "file": "clear-owner-1440-dark.png",
+    "viewport": null,
+    "over": -15,
+    "headline": null,
+    "groups": [],
+    "clear": "Every check passes. Publishing re-runs them at that moment.",
+    "publish": {
+      "disabled": false
+    },
+    "editDraft": true,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "ec80553"
+    }
+  },
+  {
+    "name": "paused-owner",
+    "user": "owner",
+    "job": "5ff09edd-458c-4501-8c4e-404a90df81a8",
+    "note": "A paused job with one job blocker (contacts)",
+    "width": 390,
+    "theme": "light",
+    "file": "paused-owner-390-light.png",
+    "viewport": "paused-owner-390-viewport.png",
+    "over": 0,
+    "headline": "This job can't publish yet",
+    "groups": [
+      {
+        "title": "In this job",
+        "reasons": [
+          "Name who handles emergencies, disputes and lost materials. Step 4 · Requirements and contacts"
+        ],
+        "link": null,
+        "note": null
+      }
+    ],
+    "clear": null,
+    "publish": {
+      "disabled": true
+    },
+    "editDraft": false,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "ec80553"
+    }
+  },
+  {
+    "name": "paused-owner",
+    "user": "owner",
+    "job": "5ff09edd-458c-4501-8c4e-404a90df81a8",
+    "note": "A paused job with one job blocker (contacts)",
+    "width": 390,
+    "theme": "dark",
+    "file": "paused-owner-390-dark.png",
+    "viewport": null,
+    "over": 0,
+    "headline": "This job can't publish yet",
+    "groups": [
+      {
+        "title": "In this job",
+        "reasons": [
+          "Name who handles emergencies, disputes and lost materials. Step 4 · Requirements and contacts"
+        ],
+        "link": null,
+        "note": null
+      }
+    ],
+    "clear": null,
+    "publish": {
+      "disabled": true
+    },
+    "editDraft": false,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "ec80553"
+    }
+  },
+  {
+    "name": "paused-owner",
+    "user": "owner",
+    "job": "5ff09edd-458c-4501-8c4e-404a90df81a8",
+    "note": "A paused job with one job blocker (contacts)",
+    "width": 1440,
+    "theme": "light",
+    "file": "paused-owner-1440-light.png",
+    "viewport": "paused-owner-1440-viewport.png",
+    "over": -15,
+    "headline": "This job can't publish yet",
+    "groups": [
+      {
+        "title": "In this job",
+        "reasons": [
+          "Name who handles emergencies, disputes and lost materials. Step 4 · Requirements and contacts"
+        ],
+        "link": null,
+        "note": null
+      }
+    ],
+    "clear": null,
+    "publish": {
+      "disabled": true
+    },
+    "editDraft": false,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "ec80553"
+    }
+  },
+  {
+    "name": "paused-owner",
+    "user": "owner",
+    "job": "5ff09edd-458c-4501-8c4e-404a90df81a8",
+    "note": "A paused job with one job blocker (contacts)",
+    "width": 1440,
+    "theme": "dark",
+    "file": "paused-owner-1440-dark.png",
+    "viewport": null,
+    "over": -15,
+    "headline": "This job can't publish yet",
+    "groups": [
+      {
+        "title": "In this job",
+        "reasons": [
+          "Name who handles emergencies, disputes and lost materials. Step 4 · Requirements and contacts"
+        ],
+        "link": null,
+        "note": null
+      }
+    ],
+    "clear": null,
+    "publish": {
+      "disabled": true
+    },
+    "editDraft": false,
+    "consoleErrors": 0,
+    "source": {
+      "commit": "ec80553"
     }
   }
 ]

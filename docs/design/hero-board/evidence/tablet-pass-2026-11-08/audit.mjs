@@ -16,7 +16,7 @@ const JUR = "00000000-0000-0000-0000-000000000021";
 const ORG = "00000000-0000-0000-0000-000000000001";
 const PROFILE = "00000000-0000-0000-0000-000000000101";
 // ROUTES=<json file> replaces the list below with [[role, path, slug], ...] (the detail-page run uses this).
-const routes = (process.env.ROUTES ? JSON.parse(readFileSync(process.env.ROUTES, "utf8")) : [
+const allRoutes = process.env.ROUTES ? JSON.parse(readFileSync(process.env.ROUTES, "utf8")) : [
   // [role (storage state, null = signed out), path, slug]
   [null, "/login", "login"], [null, "/signup", "signup"], [null, "/c", "campaigns-public"],
   ["jordan", "/dashboard", "w-home"], ["jordan", "/jobs", "w-jobs"], ["jordan", `/jobs/${JOB}`, "w-job"], ["jordan", "/jobs/invitations", "w-invitations"],
@@ -32,10 +32,10 @@ const routes = (process.env.ROUTES ? JSON.parse(readFileSync(process.env.ROUTES,
   ["staff", "/admin", "a-home"], ["staff", "/admin/audit", "a-audit"], ["staff", "/admin/organizations", "a-orgs"], ["staff", `/admin/organizations/${ORG}`, "a-org"],
   ["staff", "/admin/people", "a-people"], ["staff", `/admin/people/${PROFILE}`, "a-person"], ["staff", "/admin/jurisdictions", "a-jurisdictions"],
   ["staff", `/admin/jurisdictions/${JUR}`, "a-jurisdiction"], ["staff", "/admin/campaigns", "a-campaigns"], ["owner", "/messages/reports", "o-reports"],
-])
-  .filter(([, , s]) => !only || s.includes(only));
-if (!Array.isArray(routes) || routes.some((r) => !Array.isArray(r) || (r[0] !== null && typeof r[0] !== "string") || typeof r[1] !== "string" || typeof r[2] !== "string"))
+];
+if (!Array.isArray(allRoutes) || allRoutes.some((r) => !Array.isArray(r) || (r[0] !== null && typeof r[0] !== "string") || typeof r[1] !== "string" || typeof r[2] !== "string"))
   throw new Error("ROUTES: expected [[role | null, path, slug], ...]");
+const routes = allRoutes.filter(([, , s]) => !only || s.includes(only));
 // Client components (LocalTime and the like) re-render after hydration; give them a moment before measuring.
 const settle = (p) => p.waitForFunction(() => document.readyState === "complete", null, { timeout: 60000 }).then(() => p.waitForTimeout(1000)).catch(() => {});
 

@@ -1,5 +1,5 @@
 // Touch tablets keep the worker's labelled dock up to 1279 (tablet pass #135, option 1).
-// node touchdock.mjs <outDir> <commit>   env: FP (folder of storage states: jordan.json = a worker, owner.json = an organization owner), BASE.
+// node touchdock.mjs <outDir> <commit>   env: FP (folder of storage states: jordan.json = a worker, owner.json = an organization owner, staff.json = Turfcut staff with the WORKER role), BASE.
 // Records the app's own state before each screenshot.
 import pw from "/opt/node-tools/node_modules/playwright/index.js";
 import { writeFileSync, mkdirSync } from "node:fs";
@@ -9,7 +9,7 @@ const BASE = process.env.BASE ?? "http://localhost:3475";
 mkdirSync(out, { recursive: true });
 const CONV = "09978025-13db-4bd4-bd1d-aa088a4ebbc1";
 const JOB = "86d8312d-003d-4ffd-8b70-1a06f0d9b28f";
-const WORKER = ["/dashboard", "/jobs", `/jobs/${JOB}`, "/jobs/invitations", "/shifts", "/shifts/turf", "/earnings", "/earnings/receipts", "/notifications", "/messages", `/messages/${CONV}`, "/feed", "/settings", "/profile", "/profile/availability", "/profile/credentials", "/profile/preferences", "/profile/sharing", "/profile/preview"];
+const WORKER = ["/", "/dashboard", "/jobs", `/jobs/${JOB}`, "/jobs/invitations", "/shifts", "/shifts/turf", "/earnings", "/earnings/receipts", "/notifications", "/messages", `/messages/${CONV}`, "/feed", "/settings", "/profile", "/profile/availability", "/profile/credentials", "/profile/preferences", "/profile/sharing", "/profile/preview"];
 // [name, viewport, touch]
 const DEVICES = [["touch-1024", [1024, 768], true], ["touch-1180", [1180, 820], true], ["touch-1194", [1194, 834], true], ["mouse-1024", [1024, 768], false], ["touch-1280", [1280, 800], true]];
 
@@ -49,7 +49,7 @@ const ctx = (role, [w, h], touch, extra = {}) => b.newContext({ storageState: FP
 const rows = [];
 for (const [dev, vp, touch] of DEVICES) for (const path of WORKER) {
   // The two tablet widths get every route; the others the home page and a conversation (the composer sits on the dock).
-  if (!["touch-1024", "touch-1194"].includes(dev) && !["/dashboard", `/messages/${CONV}`].includes(path)) continue;
+  if (!["touch-1024", "touch-1194"].includes(dev) && !["/", "/dashboard", `/messages/${CONV}`].includes(path)) continue;
   const c = await ctx("jordan", vp, touch); const p = await c.newPage();
   const errs = []; p.on("pageerror", (e) => errs.push(String(e).slice(0, 160)));
   p.on("console", (m) => { if (m.type() === "error" && !m.text().includes("/realtime/v1/")) errs.push(m.text().slice(0, 160)); });
@@ -90,6 +90,20 @@ for (const [name, touch] of [["touch", true], ["mouse", false]]) {
   console.log("sheet direct", JSON.stringify(sheet.at(-1)));
   await c.close();
 }
+// Typing on a touch tablet: the dock steps aside for the keyboard and the top bar stands in (worker);
+// on an admin page neither worker bar comes back (staff, FP must hold staff.json).
+const typing = [];
+for (const [role, path, field] of [["jordan", "/profile/availability", "input:not([type=checkbox]):not([type=radio]):not([type=hidden]), textarea"], ["staff", "/admin/people", "input[type=search], input:not([type=checkbox]):not([type=radio]):not([type=hidden])"]]) {
+  const c = await ctx(role, [1024, 768], true); const p = await c.newPage();
+  await p.goto(BASE + path, { waitUntil: "networkidle", timeout: 240000 }); await settle(p);
+  await p.evaluate(() => document.activeElement?.blur?.());
+  const before = await p.evaluate(state);
+  await p.locator(field).first().focus(); await p.waitForTimeout(300);
+  const during = await p.evaluate(state);
+  typing.push({ role, path, viewport: "1024x768", touch: true, before: { dock: before.dock, topnav: before.topnav }, whileTyping: { dock: during.dock, topnav: during.topnav }, expected: role === "staff" ? "neither worker bar on an admin page" : "dock steps aside, top bar stands in", source: { commit } });
+  console.log("typing", role, JSON.stringify(typing.at(-1)));
+  await c.close();
+}
 // An organization owner on a touch tablet keeps the rail: the change is the worker's dock only.
 {
   const c = await ctx("owner", [1024, 768], true); const p = await c.newPage();
@@ -98,4 +112,4 @@ for (const [name, touch] of [["touch", true], ["mouse", false]]) {
   await p.screenshot({ path: `${out}/touch-1024-owner-desk.png` }); console.log("owner", JSON.stringify(s)); await c.close();
 }
 await b.close();
-writeFileSync(`${out}/manifest.json`, JSON.stringify({ rows, sheet }, null, 2) + "\n");
+writeFileSync(`${out}/manifest.json`, JSON.stringify({ rows, sheet, typing }, null, 2) + "\n");

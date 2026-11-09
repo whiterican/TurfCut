@@ -1,0 +1,442 @@
+[
+  {
+    "viewport": "640x900",
+    "minWidth": "none (today)",
+    "jobLines": 6,
+    "jobWidth": 87,
+    "overflow": 145,
+    "currentStateCutOff": true,
+    "source": {
+      "commit": "cddfdd6"
+    }
+  },
+  {
+    "viewport": "640x900",
+    "minWidth": "7rem",
+    "jobLines": 5,
+    "jobWidth": 112,
+    "overflow": 154,
+    "currentStateCutOff": true,
+    "source": {
+      "commit": "cddfdd6"
+    }
+  },
+  {
+    "viewport": "640x900",
+    "minWidth": "8rem",
+    "jobLines": 3,
+    "jobWidth": 128,
+    "overflow": 170,
+    "currentStateCutOff": true,
+    "source": {
+      "commit": "cddfdd6"
+    }
+  },
+  {
+    "viewport": "640x900",
+    "minWidth": "9rem",
+    "jobLines": 3,
+    "jobWidth": 144,
+    "overflow": 186,
+    "currentStateCutOff": true,
+    "source": {
+      "commit": "cddfdd6"
+    }
+  },
+  {
+    "viewport": "640x900",
+    "minWidth": "10rem",
+    "jobLines": 3,
+    "jobWidth": 160,
+    "overflow": 202,
+    "currentStateCutOff": true,
+    "source": {
+      "commit": "cddfdd6"
+    }
+  },
+  {
+    "viewport": "700x900",
+    "minWidth": "none (today)",
+    "jobLines": 6,
+    "jobWidth": 87,
+    "overflow": 85,
+    "currentStateCutOff": true,
+    "source": {
+      "commit": "cddfdd6"
+    }
+  },
+  {
+    "viewport": "700x900",
+    "minWidth": "7rem",
+    "jobLines": 5,
+    "jobWidth": 112,
+    "overflow": 94,
+    "currentStateCutOff": true,
+    "source": {
+      "commit": "cddfdd6"
+    }
+  },
+  {
+    "viewport": "700x900",
+    "minWidth": "8rem",
+    "jobLines": 3,
+    "jobWidth": 128,
+    "overflow": 110,
+    "currentStateCutOff": true,
+    "source": {
+      "commit": "cddfdd6"
+    }
+  },
+  {
+    "viewport": "700x900",
+    "minWidth": "9rem",
+    "jobLines": 3,
+    "jobWidth": 144,
+    "overflow": 126,
+    "currentStateCutOff": true,
+    "source": {
+      "commit": "cddfdd6"
+    }
+  },
+  {
+    "viewport": "700x900",
+    "minWidth": "10rem",
+    "jobLines": 3,
+    "jobWidth": 160,
+    "overflow": 142,
+    "currentStateCutOff": true,
+    "source": {
+      "commit": "cddfdd6"
+    }
+  },
+  {
+    "viewport": "768x900",
+    "minWidth": "none (today)",
+    "jobLines": 6,
+    "jobWidth": 87,
+    "overflow": 17,
+    "currentStateCutOff": false,
+    "source": {
+      "commit": "cddfdd6"
+    }
+  },
+  {
+    "viewport": "768x900",
+    "minWidth": "7rem",
+    "jobLines": 5,
+    "jobWidth": 112,
+    "overflow": 26,
+    "currentStateCutOff": true,
+    "source": {
+      "commit": "cddfdd6"
+    }
+  },
+  {
+    "viewport": "768x900",
+    "minWidth": "8rem",
+    "jobLines": 3,
+    "jobWidth": 128,
+    "overflow": 42,
+    "currentStateCutOff": true,
+    "source": {
+      "commit": "cddfdd6"
+    }
+  },
+  {
+    "viewport": "768x900",
+    "minWidth": "9rem",
+    "jobLines": 3,
+    "jobWidth": 144,
+    "overflow": 58,
+    "currentStateCutOff": true,
+    "source": {
+      "commit": "cddfdd6"
+    }
+  },
+  {
+    "viewport": "768x900",
+    "minWidth": "10rem",
+    "jobLines": 3,
+    "jobWidth": 160,
+    "overflow": 74,
+    "currentStateCutOff": true,
+    "source": {
+      "commit": "cddfdd6"
+    }
+  },
+  {
+    "viewport": "820x900",
+    "minWidth": "none (today)",
+    "jobLines": 5,
+    "jobWidth": 105,
+    "overflow": 0,
+    "currentStateCutOff": false,
+    "source": {
+      "commit": "cddfdd6"
+    }
+  },
+  {
+    "viewport": "820x900",
+    "minWidth": "7rem",
+    "jobLines": 4,
+    "jobWidth": 120,
+    "overflow": 0,
+    "currentStateCutOff": false,
+    "source": {
+      "commit": "cddfdd6"
+    }
+  },
+  {
+    "viewport": "820x900",
+    "minWidth": "8rem",
+    "jobLines": 3,
+    "jobWidth": 131,
+    "overflow": 0,
+    "currentStateCutOff": false,
+    "source": {
+      "commit": "cddfdd6"
+    }
+  },
+  {
+    "viewport": "820x900",
+    "minWidth": "9rem",
+    "jobLines": 3,
+    "jobWidth": 144,
+    "overflow": 6,
+    "currentStateCutOff": true,
+    "source": {
+      "commit": "cddfdd6"
+    }
+  },
+  {
+    "viewport": "820x900",
+    "minWidth": "10rem",
+    "jobLines": 3,
+    "jobWidth": 160,
+    "overflow": 22,
+    "currentStateCutOff": true,
+    "source": {
+      "commit": "cddfdd6"
+    }
+  },
+  {
+    "viewport": "900x900",
+    "minWidth": "none (today)",
+    "jobLines": 5,
+    "jobWidth": 109,
+    "overflow": 0,
+    "currentStateCutOff": false,
+    "source": {
+      "commit": "cddfdd6"
+    }
+  },
+  {
+    "viewport": "900x900",
+    "minWidth": "7rem",
+    "jobLines": 4,
+    "jobWidth": 124,
+    "overflow": 0,
+    "currentStateCutOff": false,
+    "source": {
+      "commit": "cddfdd6"
+    }
+  },
+  {
+    "viewport": "900x900",
+    "minWidth": "8rem",
+    "jobLines": 3,
+    "jobWidth": 134,
+    "overflow": 0,
+    "currentStateCutOff": false,
+    "source": {
+      "commit": "cddfdd6"
+    }
+  },
+  {
+    "viewport": "900x900",
+    "minWidth": "9rem",
+    "jobLines": 3,
+    "jobWidth": 145,
+    "overflow": 0,
+    "currentStateCutOff": false,
+    "source": {
+      "commit": "cddfdd6"
+    }
+  },
+  {
+    "viewport": "900x900",
+    "minWidth": "10rem",
+    "jobLines": 3,
+    "jobWidth": 160,
+    "overflow": 11,
+    "currentStateCutOff": true,
+    "source": {
+      "commit": "cddfdd6"
+    }
+  },
+  {
+    "viewport": "1024x900",
+    "minWidth": "none (today)",
+    "jobLines": 5,
+    "jobWidth": 99,
+    "overflow": 0,
+    "currentStateCutOff": false,
+    "source": {
+      "commit": "cddfdd6"
+    }
+  },
+  {
+    "viewport": "1024x900",
+    "minWidth": "7rem",
+    "jobLines": 4,
+    "jobWidth": 115,
+    "overflow": 0,
+    "currentStateCutOff": false,
+    "source": {
+      "commit": "cddfdd6"
+    }
+  },
+  {
+    "viewport": "1024x900",
+    "minWidth": "8rem",
+    "jobLines": 3,
+    "jobWidth": 128,
+    "overflow": 6,
+    "currentStateCutOff": true,
+    "source": {
+      "commit": "cddfdd6"
+    }
+  },
+  {
+    "viewport": "1024x900",
+    "minWidth": "9rem",
+    "jobLines": 3,
+    "jobWidth": 144,
+    "overflow": 22,
+    "currentStateCutOff": true,
+    "source": {
+      "commit": "cddfdd6"
+    }
+  },
+  {
+    "viewport": "1024x900",
+    "minWidth": "10rem",
+    "jobLines": 3,
+    "jobWidth": 160,
+    "overflow": 38,
+    "currentStateCutOff": true,
+    "source": {
+      "commit": "cddfdd6"
+    }
+  },
+  {
+    "viewport": "1280x900",
+    "minWidth": "none (today)",
+    "jobLines": 5,
+    "jobWidth": 109,
+    "overflow": 0,
+    "currentStateCutOff": false,
+    "source": {
+      "commit": "cddfdd6"
+    }
+  },
+  {
+    "viewport": "1280x900",
+    "minWidth": "7rem",
+    "jobLines": 4,
+    "jobWidth": 124,
+    "overflow": 0,
+    "currentStateCutOff": false,
+    "source": {
+      "commit": "cddfdd6"
+    }
+  },
+  {
+    "viewport": "1280x900",
+    "minWidth": "8rem",
+    "jobLines": 3,
+    "jobWidth": 134,
+    "overflow": 0,
+    "currentStateCutOff": false,
+    "source": {
+      "commit": "cddfdd6"
+    }
+  },
+  {
+    "viewport": "1280x900",
+    "minWidth": "9rem",
+    "jobLines": 3,
+    "jobWidth": 145,
+    "overflow": 0,
+    "currentStateCutOff": false,
+    "source": {
+      "commit": "cddfdd6"
+    }
+  },
+  {
+    "viewport": "1280x900",
+    "minWidth": "10rem",
+    "jobLines": 3,
+    "jobWidth": 160,
+    "overflow": 11,
+    "currentStateCutOff": true,
+    "source": {
+      "commit": "cddfdd6"
+    }
+  },
+  {
+    "viewport": "1440x900",
+    "minWidth": "none (today)",
+    "jobLines": 5,
+    "jobWidth": 109,
+    "overflow": 0,
+    "currentStateCutOff": false,
+    "source": {
+      "commit": "cddfdd6"
+    }
+  },
+  {
+    "viewport": "1440x900",
+    "minWidth": "7rem",
+    "jobLines": 4,
+    "jobWidth": 124,
+    "overflow": 0,
+    "currentStateCutOff": false,
+    "source": {
+      "commit": "cddfdd6"
+    }
+  },
+  {
+    "viewport": "1440x900",
+    "minWidth": "8rem",
+    "jobLines": 3,
+    "jobWidth": 134,
+    "overflow": 0,
+    "currentStateCutOff": false,
+    "source": {
+      "commit": "cddfdd6"
+    }
+  },
+  {
+    "viewport": "1440x900",
+    "minWidth": "9rem",
+    "jobLines": 3,
+    "jobWidth": 145,
+    "overflow": 0,
+    "currentStateCutOff": false,
+    "source": {
+      "commit": "cddfdd6"
+    }
+  },
+  {
+    "viewport": "1440x900",
+    "minWidth": "10rem",
+    "jobLines": 3,
+    "jobWidth": 160,
+    "overflow": 11,
+    "currentStateCutOff": true,
+    "source": {
+      "commit": "cddfdd6"
+    }
+  }
+]

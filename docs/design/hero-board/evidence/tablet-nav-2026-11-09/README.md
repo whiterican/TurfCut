@@ -21,7 +21,7 @@ The cost, as #135 said: on a touch tablet, Profile, Campaign feed and Earnings s
 - The dock and the top bar now show and hide by width in the component layer (`.tabbar`, `.topnav`). Before, the top bar used `hidden lg:flex` utilities.
 - One media query, `TOUCH_TABLET_QUERY`, does five things up to 1279. It keeps `.tabbar[data-touch-dock]` on a touch tablet and hides the top bar. It shows the top bar again while a field takes typing. It gives pages, templates, the narrow page and Tab scrolling their room above the dock. It sticks the chat composer above the dock.
 - The room above the dock skips admin pages, where the dock is hidden. It also skips heroes; a hero without the sign-in form gets the dock's height instead.
-- The keyboard rule that hides the dock while a field takes typing now reaches 1279. In that band the top bar stands in while you type, so a hardware keyboard doesn't strand the worker. The worker's header doesn't stick from 1024, though, so on a long form you scroll up to reach the top bar. Admin pages are excluded.
+- The keyboard rule that hides the dock while a field takes typing now reaches 1279. In that band the top bar stands in while you type, so a hardware keyboard doesn't strand the worker. The header sticks while you type, so the bar is on screen even far down a long form (`touch-dock/typing-header.json`, by `typing-header.mjs`: on Profile, scrolled 2,751px down, the bar sits 10px from the top; on a mouse nothing changes). Admin pages and chat threads are excluded.
 
 `src/components/AppNav.tsx`:
 - `TopNav` uses `.topnav`.
@@ -157,6 +157,7 @@ The job line keeps a 7rem minimum. An 8rem minimum gave two-line titles at 768 b
 ## Checks
 
 - `tsc` and `eslint` are clean, and vitest passes 1,022 tests.
+- Merged onto master as of Nov 9 (with #131 and #133), `tsc` is clean and all 1,030 tests pass.
 - `design-tokens.test.ts` pins:
   - the staff rule, and the touch-tablet rules with their staff and hero exclusions;
   - the typing rule and the 1279 keyboard rule, with the same list of fields;

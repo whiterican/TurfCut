@@ -101,7 +101,8 @@ export function TopNav({ tabs }: { tabs: NavTab[] }) {
   // No tabs, no landmark (an empty "Main" nav would compete with the page's own).
   if (tabs.length === 0) return null;
   return (
-    <nav aria-label="Main" className="hidden items-center gap-1 lg:flex">
+    // Shown from 1024 (.topnav); on a touch tablet up to 1279 the labelled dock replaces it (globals.css).
+    <nav aria-label="Main" className="topnav items-center gap-1">
       {tabs.map((t) => (
         // Between 1024 and 1279 the eight destinations fit only as icons (#113 review): the label stays the link's name and its tooltip, and shows from 1280.
         <Link key={t.href} href={t.href} title={t.label} className="topnav-link inline-flex items-center gap-1.5" aria-current={currentAttr(t.href, current, pathname)}>
@@ -161,7 +162,7 @@ export function OrgRail({ tabs, orgName, approved, person }: { tabs: NavTab[]; o
  * traps focus, makes the page behind it inert, closes on Escape and returns
  * focus to More. `extra` is drawn under the list (the worker's Sign out).
  */
-export function OrgTabBar({ tabs, more, extra, notices = 0 }: { tabs: NavTab[]; more: NavTab[]; extra?: ReactNode; /** Unread notifications, shown on the Notifications row (the worker's phone has no header bell). */ notices?: number }) {
+export function OrgTabBar({ tabs, more, extra, notices = 0, touchDock = false }: { tabs: NavTab[]; more: NavTab[]; extra?: ReactNode; /** Unread notifications, shown on the Notifications row (the worker's phone has no header bell). */ notices?: number; /** The worker's dock: kept on a touch tablet up to 1279, where the top bar is icons only (globals.css). */ touchDock?: boolean }) {
   const pathname = usePathname();
   const current = activeTab([...tabs, ...more], pathname);
   const count = useUnreadCount();
@@ -190,16 +191,22 @@ export function OrgTabBar({ tabs, more, extra, notices = 0 }: { tabs: NavTab[]; 
     }
     if (!open && d.open) d.close();
   }, [open]);
-  // The sheet is phone-only: widening past the phone layout closes it, or
+  // The sheet goes with the dock: widening past it closes the sheet, or
   // the page would stay inert behind a hidden modal.
   useEffect(() => {
     if (!open) return;
     const wide = window.matchMedia("(min-width: 64rem)");
-    const onChange = () => wide.matches && setOpen(false);
+    // Where the worker's dock stays past 1024 (the same query as globals.css).
+    const touchTablet = window.matchMedia("(min-width: 64rem) and (max-width: 79.99rem) and (hover: none) and (pointer: coarse)");
+    const onChange = () => wide.matches && !(touchDock && touchTablet.matches) && setOpen(false);
     onChange();
     wide.addEventListener("change", onChange);
-    return () => wide.removeEventListener("change", onChange);
-  }, [open]);
+    touchTablet.addEventListener("change", onChange);
+    return () => {
+      wide.removeEventListener("change", onChange);
+      touchTablet.removeEventListener("change", onChange);
+    };
+  }, [open, touchDock]);
 
   if (tabs.length === 0) return null;
   const close = () => setOpen(false);
@@ -251,7 +258,7 @@ export function OrgTabBar({ tabs, more, extra, notices = 0 }: { tabs: NavTab[]; 
           </div>
         </dialog>
       )}
-      <nav aria-label="Main" className="tabbar" data-tucked={tucked || undefined}>
+      <nav aria-label="Main" className="tabbar" data-tucked={tucked || undefined} data-touch-dock={touchDock || undefined}>
         <div className="mx-auto flex max-w-md">
           {tabs.map((t) => (
             <Link key={t.href} href={t.href} className="tab" data-wide={t.href.endsWith(MESSAGES_HREF) || undefined} aria-current={currentAttr(t.href, current, pathname)}>

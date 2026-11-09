@@ -1611,13 +1611,46 @@ body {
        organization screen, 20px corners, 12px side inset, 10px above the
        safe area, 4px inside. Inactive icons and labels are Cream; the current
        destination is the dock green (--dock-active-fg), no filled tile. */
-    @apply fixed z-40 mx-auto max-w-[23rem] rounded-[var(--radius-lg)] p-1 lg:hidden;
+    @apply fixed z-40 mx-auto max-w-[23rem] rounded-[var(--radius-lg)] p-1;
     inset-inline: 12px;
     bottom: calc(10px + env(safe-area-inset-bottom));
     background: var(--shell-bg);
     color: var(--shell-muted);
     box-shadow: 0 6px 20px rgb(28 15 46 / 0.28);
     transition: transform var(--dur-slow) var(--ease-out);
+  }
+  /* From 1024 the top bar or the rail takes over, and the dock goes. A worker on a
+     touch tablet (no hover, a coarse pointer) keeps it up to 1279 instead: there the
+     top bar is icons only, its names are tooltips a finger never sees, and the dock's
+     labels are the only names on screen (tablet pass, #135). Mouse desktops keep the
+     #113 top bar. */
+  @media (min-width: 64rem) {
+    .tabbar {
+      display: none;
+    }
+  }
+  .topnav {
+    display: none;
+  }
+  @media (min-width: 64rem) {
+    .topnav {
+      display: flex;
+    }
+  }
+  @media (min-width: 64rem) and (max-width: 79.99rem) and (hover: none) and (pointer: coarse) {
+    .tabbar[data-touch-dock] {
+      display: block;
+    }
+    body:has(.tabbar[data-touch-dock]) .topnav {
+      display: none;
+    }
+    /* The dock is back, so is the room above it. */
+    body:has(.tabbar[data-touch-dock]) .page {
+      padding-bottom: calc(var(--dock-clearance) + 2rem);
+    }
+    body:has(.tabbar[data-touch-dock]) .composer {
+      bottom: calc(6rem + env(safe-area-inset-bottom));
+    }
   }
   .tab {
     /* A 52px tile: a 20px icon over a complete 12/16 Inter label. Six share
@@ -2706,7 +2739,8 @@ body {
 
 /* While typing a message, the keyboard covers the tab bar: hide it and let
    the composer sit on the keyboard. */
-@media (max-width: 63.99rem) and (pointer: coarse) {
+/* Up to 1279: a touch tablet's worker dock (above) steps aside for the keyboard too. */
+@media (max-width: 79.99rem) and (pointer: coarse) {
   body:has(.composer-input:focus) .tabbar {
     display: none;
   }

@@ -1,0 +1,110 @@
+[
+  {
+    "view": "dock-390",
+    "icons": [
+      {
+        "label": "Home",
+        "icon": "lucide-house"
+      },
+      {
+        "label": "Jobs",
+        "icon": "lucide-briefcase"
+      },
+      {
+        "label": "Work",
+        "icon": "lucide-footprints"
+      },
+      {
+        "label": "Map",
+        "icon": "lucide-map-pin"
+      },
+      {
+        "label": "Messages",
+        "icon": "lucide-message-circle"
+      }
+    ],
+    "source": {
+      "commit": "2b5ce49"
+    }
+  },
+  {
+    "view": "topbar-mouse-1024",
+    "icons": [
+      {
+        "label": "Home",
+        "icon": "lucide-house"
+      },
+      {
+        "label": "Jobs",
+        "icon": "lucide-briefcase"
+      },
+      {
+        "label": "Work",
+        "icon": "lucide-footprints"
+      },
+      {
+        "label": "Map",
+        "icon": "lucide-map-pin"
+      },
+      {
+        "label": "Messages",
+        "icon": "lucide-message-circle"
+      },
+      {
+        "label": "Profile",
+        "icon": "lucide-user"
+      },
+      {
+        "label": "Campaign feed",
+        "icon": "lucide-newspaper"
+      },
+      {
+        "label": "Earnings",
+        "icon": "lucide-wallet"
+      }
+    ],
+    "source": {
+      "commit": "2b5ce49"
+    }
+  },
+  {
+    "view": "topbar-mouse-1440",
+    "icons": [
+      {
+        "label": "Home",
+        "icon": "lucide-house"
+      },
+      {
+        "label": "Jobs",
+        "icon": "lucide-briefcase"
+      },
+      {
+        "label": "Work",
+        "icon": "lucide-footprints"
+      },
+      {
+        "label": "Map",
+        "icon": "lucide-map-pin"
+      },
+      {
+        "label": "Messages",
+        "icon": "lucide-message-circle"
+      },
+      {
+        "label": "Profile",
+        "icon": "lucide-user"
+      },
+      {
+        "label": "Campaign feed",
+        "icon": "lucide-newspaper"
+      },
+      {
+        "label": "Earnings",
+        "icon": "lucide-wallet"
+      }
+    ],
+    "source": {
+      "commit": "2b5ce49"
+    }
+  }
+]

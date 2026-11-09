@@ -60,7 +60,6 @@ The More sheet used to be hidden from 1024 by a width rule. On a touch tablet, M
 
 ### Not changed
 
-- **Work's icon** is still a briefcase, like Jobs. The dock's labels name both, so it matters less on a tablet now, but the icon choice is Astra's.
 - **The theme toggle stays icon-only from 1024**, on touch tablets too, even though the top bar's links have stepped aside. Optional.
 
 ## 2. Admin pages show only the console's navigation for staff
@@ -80,7 +79,7 @@ The console's rail (from 1024) and its section chips (on a phone) are its naviga
 - No overflow and no console errors.
 - The `sectionChips` field is a loose selector: it also reads true on the worker's `/dashboard` at 768, so that row's value means nothing.
 
-## 3. The statement period's Job column: back to design
+## 3. The statement period's Job column
 
 At 768 a job title wraps one word to a line: six lines for "Denver Ballot Initiative - Signature Drive". I first gave the Job column `min-width: 10rem` between 640 and 1023. Both reviews caught that it hid the Current state column (the "On hold" and "Withdrawn" badges) behind the table's sideways scroll at 640 to 768. It also applied when printing, where it could cut a printed statement. It is reverted (`cddfdd6`).
 
@@ -96,44 +95,4 @@ At 768 a job title wraps one word to a line: six lines for "Denver Ballot Initia
 | 1024 (beside the organization rail) | 5 lines | 4 | 3, cut | 3, cut | 3, cut |
 | 1280, 1440 | 5 lines | 4 | 3 | 3 | 3, cut |
 
-So no minimum width fixes 768 without hiding a column, and at 640 and 700 the column is already cut today. **For Astra:** it needs a layout change, for example the job name under the date, fewer columns on the record page, or the stacked rows used on phones up to a wider width. `statement/statement-before-*.png` and `statement-before.json` (`statementm.mjs`) show today's table.
-
-## For Astra: options for the two open choices
-
-These are mockups. The page is rearranged in the browser on the local test database (`for-astra/*.mjs`), and the app is unchanged. Nothing here is built until you choose.
-
-**Work's icon** (`for-astra/work-icon-options.png`): the worker's dock at 390 with each candidate swapped into Work.
-- Today Jobs and Work are both a briefcase.
-- The candidates are CalendarClock, CalendarDays, Footprints, Route, ClipboardCheck, ListChecks, Backpack, Timer and Clock, all from lucide, which the app already uses.
-- Near-clashes with icons already in the worker's navigation:
-  - Availability, under More, is CalendarCheck, so CalendarClock and CalendarDays would put a second calendar there;
-  - ClipboardCheck is close to Hiring's ClipboardList, though Hiring is in the organization's rail, not the worker's.
-- My lean is **Footprints**: it reads as field work and clashes with nothing. If Work should read as your schedule, **CalendarDays** is the clearer calendar, next to Availability's under More.
-
-**The statement period's table** (`for-astra/stmt-*-768.png` and `-1024.png`), measured on the October 2026 statement:
-
-| Layout | At 768 | At 1024 |
-| :--- | :--- | :--- |
-| Today | Job wraps to 6 lines; the table is 637px tall and overflows by 2px | 5 lines; 557px |
-| Job name under the date (the Job column goes) | Every column visible, Current state included; no overflow; the title takes 2 lines; 425px tall | No overflow; 414px |
-| Stacked rows, as on a phone, up to 1024 | Fits, but 1,313px tall, and the column header strip reads oddly | Same |
-
-My lean is the **job name under the date**. It keeps the table a table, every column stays visible, and it's the smallest change: the Date cell gains a muted second line, and the header reads "Date · Job".
-
-## Checks
-
-- `tsc` and `eslint` are clean, and vitest passes 1,022 tests.
-- `design-tokens.test.ts` pins:
-  - the staff rule, and the touch-tablet rules with their staff and hero exclusions;
-  - the typing rule and the 1279 keyboard rule, with the same list of fields;
-  - the shared media query;
-  - the More sheet having no width rule and no `display: none`;
-  - the top bar having no display utility.
-- Two reviewers, the rule-9 reviewer and an independent one standing in for Codex until the 12th, found nothing blocking in changes 1 and 2. Change 3 was reverted, and their other findings are fixed above.
-
-## Rerun
-
-Start the local stack, then:
-- `FP=<storage states> BASE=<app> node touchdock.mjs <outDir> <commit>`, with `jordan.json` (a worker), `owner.json` (an organization owner) and `staff.json` (Turfcut staff with the WORKER role);
-- `FP=<storage states> node staffnav.mjs <outDir> <commit>`, with `staff.json`;
-- `STORAGE=<an owner's storage state> PERIOD=2026-10 node statement-sweep.mjs <outDir> <commit>` (and `statementm.mjs <outDir> <commit> <label>`), against a database with a closed statement (`turfcut_acc_m9` here).
+So no minimum width fixes 768 without hiding a column, and at 640 and 700 the column is already cut today. It needed a layout change instead: the job now sits under the date (section 4). `statement/statement-before-*.png` and `statement-before.json` (`statementm.mjs`) show today's table.

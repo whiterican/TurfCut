@@ -1649,6 +1649,16 @@ body {
     body:has(.tabbar[data-touch-dock]):not(:has(.staff-band)):has(:is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="button"], [type="submit"], [type="reset"], [type="image"], [type="color"], [type="file"], [readonly]), textarea:not([readonly]), [contenteditable]:not([contenteditable="false"])):focus) .topnav {
       display: flex;
     }
+    /* ...and the header sticks while it does, or on a long form the top bar would be off screen
+       (not in a chat thread, which pins its own bar). The field scrolls clear of it. */
+    body:has(.tabbar[data-touch-dock]):not(:has(.staff-band, .thread-top)):has(:is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="button"], [type="submit"], [type="reset"], [type="image"], [type="color"], [type="file"], [readonly]), textarea:not([readonly]), [contenteditable]:not([contenteditable="false"])):focus) .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 45;
+    }
+    html:has(.tabbar[data-touch-dock]):not(:has(.staff-band, .thread-top)):has(:is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="button"], [type="submit"], [type="reset"], [type="image"], [type="color"], [type="file"], [readonly]), textarea:not([readonly]), [contenteditable]:not([contenteditable="false"])):focus) {
+      scroll-padding-top: calc(var(--site-header-h) + 1rem);
+    }
     /* The dock is back, so is the room above it (not on admin pages, where it's hidden, nor on
        a hero, whose sections end at the edge; the sign-in split's form clears it itself). */
     body:has(.tabbar[data-touch-dock]):not(:has(.staff-band)) :is(.page, .tpl:not([data-template="hero"])) {

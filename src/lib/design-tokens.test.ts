@@ -604,6 +604,8 @@ describe("the shell (redesign B1.4)", () => {
     // Typing hides the dock (the keyboard rule reaches 1279): the top bar stands in, never on admin pages.
     expect(touch).toMatch(/body:has\(\.tabbar\[data-touch-dock\]\):not\(:has\(\.staff-band\)\):has\([^{]*:focus\) \.topnav \{\s*display: flex;/);
     expect(css).toMatch(/@media \(max-width: 79\.99rem\) and \(pointer: coarse\) \{\s*body:has\(\.composer-input:focus\) \.tabbar/);
+    // ...and the header sticks while typing, so the stand-in top bar is on screen on a long form.
+    expect(touch).toMatch(/:not\(:has\(\.staff-band, \.thread-top\)\):has\([^{]*:focus\) \.site-header \{\s*position: sticky;/);
     // The More sheet closes on the same query the dock shows on (AppNav), and nothing hides it by width.
     const appNav = readFileSync(join(__dirname, "../components/AppNav.tsx"), "utf8");
     const query = appNav.match(/TOUCH_TABLET_QUERY = "([^"]+)"/)?.[1];

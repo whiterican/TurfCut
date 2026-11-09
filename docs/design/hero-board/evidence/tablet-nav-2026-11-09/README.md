@@ -98,6 +98,28 @@ At 768 a job title wraps one word to a line: six lines for "Denver Ballot Initia
 
 So no minimum width fixes 768 without hiding a column, and at 640 and 700 the column is already cut today. **For Astra:** it needs a layout change, for example the job name under the date, fewer columns on the record page, or the stacked rows used on phones up to a wider width. `statement/statement-before-*.png` and `statement-before.json` (`statementm.mjs`) show today's table.
 
+## For Astra: options for the two open choices
+
+These are mockups. The page is rearranged in the browser on the local test database (`for-astra/*.mjs`), and the app is unchanged. Nothing here is built until you choose.
+
+**Work's icon** (`for-astra/work-icon-options.png`): the worker's dock at 390 with each candidate swapped into Work.
+- Today Jobs and Work are both a briefcase.
+- The candidates are CalendarClock, CalendarDays, Footprints, Route, ClipboardCheck, ListChecks, Backpack, Timer and Clock, all from lucide, which the app already uses.
+- Two clash with icons already in the app:
+  - CalendarClock is the organization's "shifts" icon;
+  - ClipboardCheck is close to Hiring's ClipboardList.
+- My lean is **CalendarDays** ("your schedule"), or **Footprints** if Work should read as field work rather than a calendar.
+
+**The statement period's table** (`for-astra/stmt-*-768.png` and `-1024.png`), measured on the October 2026 statement:
+
+| Layout | At 768 | At 1024 |
+| :--- | :--- | :--- |
+| Today | Job wraps to 6 lines; the table is 637px tall and overflows by 2px | 5 lines; 557px |
+| Job name under the date (the Job column goes) | Every column visible, Current state included; no overflow; the title takes 2 lines; 425px tall | No overflow; 414px |
+| Stacked rows, as on a phone, up to 1024 | Fits, but 1,313px tall, and the column header strip reads oddly | Same |
+
+My lean is the **job name under the date**. It keeps the table a table, every column stays visible, and it's the smallest change: the Date cell gains a muted second line, and the header reads "Date · Job".
+
 ## Checks
 
 - `tsc` and `eslint` are clean, and vitest passes 1,022 tests.

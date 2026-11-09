@@ -1,0 +1,66 @@
+[
+  {
+    "slug": "campaign-public",
+    "role": null,
+    "path": "/c/mile_high_fixture",
+    "url": "/c/mile_high_fixture",
+    "httpStatus": 200,
+    "dock": false,
+    "dockTop": 1024,
+    "contentBottom": 848,
+    "clearance": 176,
+    "last": "path \"\"",
+    "file": "clearance-campaign-public.png",
+    "source": {
+      "commit": "b43edc5"
+    }
+  },
+  {
+    "slug": "campaign-post",
+    "role": null,
+    "path": "/c/mile_high_fixture/p/00000000-0000-0000-0000-00000000cb01",
+    "url": "/c/mile_high_fixture/p/00000000-0000-0000-0000-00000000cb01",
+    "httpStatus": 200,
+    "dock": false,
+    "dockTop": 1024,
+    "contentBottom": 371,
+    "clearance": 653,
+    "last": "a \"More from Mile High Civic Works (preview\"",
+    "file": "clearance-campaign-post.png",
+    "source": {
+      "commit": "b43edc5"
+    }
+  },
+  {
+    "slug": "o-campaign",
+    "role": "p1owner",
+    "path": "/campaigns/00000000-0000-0000-0000-00000000c001",
+    "url": "/campaigns/00000000-0000-0000-0000-00000000c001",
+    "httpStatus": 200,
+    "dock": true,
+    "dockTop": 954,
+    "contentBottom": 896,
+    "clearance": 59,
+    "last": "p \"Uploaded images can be fetched by their \"",
+    "file": "clearance-o-campaign.png",
+    "source": {
+      "commit": "b43edc5"
+    }
+  },
+  {
+    "slug": "a-campaign",
+    "role": "p1staff",
+    "path": "/admin/campaigns/00000000-0000-0000-0000-00000000c001",
+    "url": "/admin/campaigns/00000000-0000-0000-0000-00000000c001",
+    "httpStatus": 200,
+    "dock": true,
+    "dockTop": 954,
+    "contentBottom": 896,
+    "clearance": 59,
+    "last": "p \"None yet.\"",
+    "file": "clearance-a-campaign.png",
+    "source": {
+      "commit": "b43edc5"
+    }
+  }
+]

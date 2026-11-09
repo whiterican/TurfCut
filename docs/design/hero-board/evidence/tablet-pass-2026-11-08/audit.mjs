@@ -1,7 +1,7 @@
 // App-wide tablet audit (non-hiring routes): node audit.mjs <outDir> <commit> [routeFilter]
 // For each role and route: load at 768x1024, record facts, screenshot; then 1024x768. Light and dark.
 import pw from "/opt/node-tools/node_modules/playwright/index.js";
-import { writeFileSync, mkdirSync } from "node:fs";
+import { writeFileSync, mkdirSync, readFileSync } from "node:fs";
 const [out, commit, only] = process.argv.slice(2);
 mkdirSync(out, { recursive: true });
 // Inputs: FP (a folder of Playwright storage states named <role>.json: jordan = a worker, owner = an organization owner,
@@ -14,7 +14,8 @@ const CONV = "09978025-13db-4bd4-bd1d-aa088a4ebbc1";
 const JUR = "00000000-0000-0000-0000-000000000021";
 const ORG = "00000000-0000-0000-0000-000000000001";
 const PROFILE = "00000000-0000-0000-0000-000000000101";
-const routes = [
+// ROUTES=<json file> replaces the list below with [[role, path, slug], ...] (the detail-page run uses this).
+const routes = (process.env.ROUTES ? JSON.parse(readFileSync(process.env.ROUTES, "utf8")) : [
   // [role (storage state, null = signed out), path, slug]
   [null, "/login", "login"], [null, "/signup", "signup"], [null, "/c", "campaigns-public"],
   ["jordan", "/dashboard", "w-home"], ["jordan", "/jobs", "w-jobs"], ["jordan", `/jobs/${JOB}`, "w-job"], ["jordan", "/jobs/invitations", "w-invitations"],
@@ -30,7 +31,8 @@ const routes = [
   ["staff", "/admin", "a-home"], ["staff", "/admin/audit", "a-audit"], ["staff", "/admin/organizations", "a-orgs"], ["staff", `/admin/organizations/${ORG}`, "a-org"],
   ["staff", "/admin/people", "a-people"], ["staff", `/admin/people/${PROFILE}`, "a-person"], ["staff", "/admin/jurisdictions", "a-jurisdictions"],
   ["staff", `/admin/jurisdictions/${JUR}`, "a-jurisdiction"], ["staff", "/admin/campaigns", "a-campaigns"], ["owner", "/messages/reports", "o-reports"],
-].filter(([, , s]) => !only || s.includes(only));
+])
+  .filter(([, , s]) => !only || s.includes(only));
 
 const facts = () => {
   const vw = innerWidth;

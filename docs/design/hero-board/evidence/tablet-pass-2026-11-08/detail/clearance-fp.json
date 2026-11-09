@@ -1,0 +1,18 @@
+[
+  {
+    "slug": "o-field-day",
+    "role": "owner",
+    "path": "/field/2026-11-02",
+    "url": "/field/2026-11-02",
+    "httpStatus": 200,
+    "dock": true,
+    "dockTop": 954,
+    "contentBottom": 388,
+    "clearance": 566,
+    "last": "time \"8:19 PM\"",
+    "file": "clearance-o-field-day.png",
+    "source": {
+      "commit": "b43edc5"
+    }
+  }
+]

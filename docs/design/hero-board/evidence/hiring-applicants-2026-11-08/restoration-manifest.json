@@ -1,0 +1,59 @@
+{
+  "commit": "a8b647c3e6baff4b8ef44f06f174cd7fae80b36f",
+  "scope": "Deterministic Chromium property-only checkbox restoration plus synthetic persisted pageshow; actual route navigation/back also exercised. Not a claim of native BFCache restoration across browsers. No server mutation submitted.",
+  "results": [
+    {
+      "width": 390,
+      "theme": "light",
+      "height": 2315,
+      "overflow": 0,
+      "interLoaded": true,
+      "errors": [],
+      "checks": [
+        "property-only restoration syncs on pageshow",
+        "restored unchecked state collapses controls",
+        "route return subscribes again"
+      ]
+    },
+    {
+      "width": 390,
+      "theme": "dark",
+      "height": 2315,
+      "overflow": 0,
+      "interLoaded": true,
+      "errors": [],
+      "checks": [
+        "property-only restoration syncs on pageshow",
+        "restored unchecked state collapses controls",
+        "route return subscribes again"
+      ]
+    },
+    {
+      "width": 1440,
+      "theme": "light",
+      "height": 1227,
+      "overflow": 0,
+      "interLoaded": true,
+      "errors": [],
+      "checks": [
+        "property-only restoration syncs on pageshow",
+        "restored unchecked state collapses controls",
+        "route return subscribes again"
+      ]
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "height": 1227,
+      "overflow": 0,
+      "interLoaded": true,
+      "errors": [],
+      "checks": [
+        "property-only restoration syncs on pageshow",
+        "restored unchecked state collapses controls",
+        "route return subscribes again"
+      ]
+    }
+  ],
+  "failures": []
+}

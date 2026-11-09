@@ -1,0 +1,42 @@
+import assert from 'node:assert/strict';
+import {readFileSync,writeFileSync} from 'node:fs';
+import {execFileSync} from 'node:child_process';
+import {base,launch,ownerContext,count,longest,readable,capture} from './browser-fixture.mjs';
+const fixture=JSON.parse(readFileSync(process.env.CASES_PATH||'/tmp/turfcut-applicants-cases.json','utf8'));
+const browser=await launch();const results=[];const failures=[];
+try{
+ const context=await ownerContext(browser);const page=await context.newPage();const errors=[];
+ page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text())});
+ await page.goto(`${base}/hiring/${fixture.jobId}/applicants`,{timeout:120000});
+ const form=page.locator('#applicants-bulk');await count(page,0);assert.ok(await form.locator('fieldset').isHidden());
+ const a=page.getByRole('checkbox',{name:`Select ${fixture.workers[0].displayName}`,exact:true});
+ const b=page.getByRole('checkbox',{name:`Select ${fixture.workers[1].displayName}`,exact:true});
+ await a.check();await count(page,1);assert.ok(await form.locator('fieldset').isVisible());
+ await b.check();await count(page,2);
+ await page.locator('.data-table thead button').first().click();await count(page,2);assert.ok(await a.isChecked());assert.ok(await b.isChecked());
+ results.push('two external row selections survive client table sorting');
+ await form.evaluate(f=>f.reset());await count(page,0);assert.equal(await a.isChecked(),false);assert.equal(await b.isChecked(),false);assert.ok(await form.locator('fieldset').isHidden());
+ results.push('native form reset clears external controls and collapses the bulk UI');
+ await a.check();await count(page,1);await form.locator('select[name=bulk]').selectOption('decline');
+ const reason=form.locator('select[name=reasonCode]');const option=await longest(reason);await reason.selectOption(option.value);
+ const reasonMeasurement=await readable(reason);await form.locator('textarea[name=note]').fill('Local failure preservation fixture');
+ await a.uncheck();await count(page,0);await a.check();await count(page,1);
+ assert.equal(await form.locator('select[name=bulk]').inputValue(),'decline');assert.equal(await reason.inputValue(),option.value);assert.equal(await form.locator('textarea[name=note]').inputValue(),'Local failure preservation fixture');
+ results.push('temporary deselection preserves the chosen action, reason and note');
+ const original=await a.getAttribute('value');await a.evaluate(e=>{e.value='99999999-9999-4999-8999-999999999999'});
+ await page.route(`${base}/hiring/${fixture.jobId}/applicants`,async route=>{if(route.request().method()==='POST')await new Promise(resolve=>setTimeout(resolve,500));await route.continue()});
+ await form.getByRole('button',{name:'Update selected'}).click();
+ await page.waitForFunction(()=>document.querySelector('#applicants-bulk button')?.disabled);
+ assert.ok(await form.locator('textarea[name=note]').isEnabled());assert.ok(await reason.isEnabled());
+ await form.locator('.text-danger-msg').waitFor();
+ await page.unroute(`${base}/hiring/${fixture.jobId}/applicants`);await count(page,1);
+ assert.ok(await a.isChecked());assert.equal(await form.locator('select[name=bulk]').inputValue(),'decline');assert.equal(await reason.inputValue(),option.value);assert.equal(await form.locator('textarea[name=note]').inputValue(),'Local failure preservation fixture');
+ const refusal=await form.locator('.text-danger-msg').innerText();await capture(page,'bulk-refusal-preserved-390-light');
+ results.push({check:'real server refusal for a nonexistent engagement preserves selection and input',refusal,reasonMeasurement});
+ await a.evaluate((e,v)=>{e.value=v},original);await form.locator('select[name=bulk]').selectOption('review');
+ await form.getByRole('button',{name:'Update selected'}).click();await form.locator('.text-success-msg').waitFor();await count(page,0);assert.equal(await a.isChecked(),false);assert.ok(await form.locator('fieldset').isHidden());
+ const success=await form.locator('.text-success-msg').innerText();assert.match(success,/1 applicant marked in review/);await capture(page,'bulk-success-cleared-390-light');
+ results.push({check:'real successful local review action clears selection and collapses controls',success});
+ assert.deepEqual(errors,[]);await context.close();
+}catch(e){failures.push(String(e));throw e;}
+finally{writeFileSync(new URL('interactions-manifest.json',import.meta.url),JSON.stringify({commit:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),fixture,results,failures},null,2)+'\n');await browser.close();}

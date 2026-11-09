@@ -1,0 +1,556 @@
+{
+  "commit": "a8b647c3e6baff4b8ef44f06f174cd7fae80b36f",
+  "fixture": {
+    "jobId": "ccccf2db-62ea-41a1-af2d-159abc67eed4",
+    "workers": [
+      {
+        "id": "babdacbc-a9b1-4054-9768-f0a4b46ffee1",
+        "displayName": "Selection fixture A babdacbc (local)",
+        "engagementId": "80185f53-ac15-408d-acd9-c78a616f374b"
+      },
+      {
+        "id": "1ec50c5c-5108-4a57-97aa-80bca93a6bc5",
+        "displayName": "Selection fixture B 1ec50c5c (local)",
+        "engagementId": "d2abbf3a-4503-4298-8c16-ba1c619e7f8a"
+      }
+    ],
+    "emptyJob": {
+      "id": "684888f8-abcb-400a-b41c-3b40a1de3b8a",
+      "title": "Other org can't close"
+    },
+    "fixture": "Two new fictional local workers apply through applyToJob. No political preferences supplied. A browser test marks one application in review after checking failure preservation."
+  },
+  "captures": [
+    {
+      "state": "none-selected",
+      "width": 320,
+      "theme": "light",
+      "height": 2372,
+      "overflow": 0,
+      "interLoaded": true,
+      "meta": "6 applicants · 5 to decide · 0 offers out · 1 spots",
+      "errors": []
+    },
+    {
+      "state": "one-selected",
+      "width": 320,
+      "theme": "light",
+      "height": 2536,
+      "overflow": 0,
+      "interLoaded": true,
+      "errors": []
+    },
+    {
+      "state": "two-selected",
+      "width": 320,
+      "theme": "light",
+      "height": 2536,
+      "overflow": 0,
+      "interLoaded": true,
+      "errors": []
+    },
+    {
+      "state": "bulk-long-reason",
+      "width": 320,
+      "theme": "light",
+      "height": 2832,
+      "overflow": 0,
+      "interLoaded": true,
+      "selection": {
+        "text": "The job needs a credential that isn't on the profile",
+        "width": 374.9296875,
+        "available": 204,
+        "helper": "The job needs a credential that isn't on the profile",
+        "helperOverflow": 0
+      },
+      "errors": []
+    },
+    {
+      "state": "long-stage-filter",
+      "width": 320,
+      "theme": "light",
+      "height": 2850,
+      "overflow": 0,
+      "interLoaded": true,
+      "selection": {
+        "text": "Waiting on someone (applied, offered)",
+        "width": 289.28125,
+        "available": 204,
+        "helper": "Waiting on someone (applied, offered)",
+        "helperOverflow": 0
+      },
+      "errors": []
+    },
+    {
+      "state": "filtered-empty",
+      "width": 320,
+      "theme": "light",
+      "height": 1711,
+      "overflow": 0,
+      "interLoaded": true,
+      "meta": "6 applicants · 5 to decide · 0 offers out · 1 spots",
+      "errors": []
+    },
+    {
+      "state": "empty",
+      "width": 320,
+      "theme": "light",
+      "height": 999,
+      "overflow": 0,
+      "interLoaded": true,
+      "meta": "0 applicants · 0 to decide · 0 offers out · 2 spots",
+      "errors": []
+    },
+    {
+      "state": "none-selected",
+      "width": 320,
+      "theme": "dark",
+      "height": 2372,
+      "overflow": 0,
+      "interLoaded": true,
+      "meta": "6 applicants · 5 to decide · 0 offers out · 1 spots",
+      "errors": []
+    },
+    {
+      "state": "one-selected",
+      "width": 320,
+      "theme": "dark",
+      "height": 2536,
+      "overflow": 0,
+      "interLoaded": true,
+      "errors": []
+    },
+    {
+      "state": "two-selected",
+      "width": 320,
+      "theme": "dark",
+      "height": 2536,
+      "overflow": 0,
+      "interLoaded": true,
+      "errors": []
+    },
+    {
+      "state": "bulk-long-reason",
+      "width": 320,
+      "theme": "dark",
+      "height": 2832,
+      "overflow": 0,
+      "interLoaded": true,
+      "selection": {
+        "text": "The job needs a credential that isn't on the profile",
+        "width": 374.9296875,
+        "available": 204,
+        "helper": "The job needs a credential that isn't on the profile",
+        "helperOverflow": 0
+      },
+      "errors": []
+    },
+    {
+      "state": "long-stage-filter",
+      "width": 320,
+      "theme": "dark",
+      "height": 2850,
+      "overflow": 0,
+      "interLoaded": true,
+      "selection": {
+        "text": "Waiting on someone (applied, offered)",
+        "width": 289.28125,
+        "available": 204,
+        "helper": "Waiting on someone (applied, offered)",
+        "helperOverflow": 0
+      },
+      "errors": []
+    },
+    {
+      "state": "filtered-empty",
+      "width": 320,
+      "theme": "dark",
+      "height": 1711,
+      "overflow": 0,
+      "interLoaded": true,
+      "meta": "6 applicants · 5 to decide · 0 offers out · 1 spots",
+      "errors": []
+    },
+    {
+      "state": "empty",
+      "width": 320,
+      "theme": "dark",
+      "height": 999,
+      "overflow": 0,
+      "interLoaded": true,
+      "meta": "0 applicants · 0 to decide · 0 offers out · 2 spots",
+      "errors": []
+    },
+    {
+      "state": "none-selected",
+      "width": 390,
+      "theme": "light",
+      "height": 2151,
+      "overflow": 0,
+      "interLoaded": true,
+      "meta": "6 applicants · 5 to decide · 0 offers out · 1 spots",
+      "errors": []
+    },
+    {
+      "state": "one-selected",
+      "width": 390,
+      "theme": "light",
+      "height": 2315,
+      "overflow": 0,
+      "interLoaded": true,
+      "errors": []
+    },
+    {
+      "state": "two-selected",
+      "width": 390,
+      "theme": "light",
+      "height": 2315,
+      "overflow": 0,
+      "interLoaded": true,
+      "errors": []
+    },
+    {
+      "state": "bulk-long-reason",
+      "width": 390,
+      "theme": "light",
+      "height": 2572,
+      "overflow": 0,
+      "interLoaded": true,
+      "selection": {
+        "text": "The job needs a credential that isn't on the profile",
+        "width": 374.9296875,
+        "available": 274,
+        "helper": "The job needs a credential that isn't on the profile",
+        "helperOverflow": 0
+      },
+      "errors": []
+    },
+    {
+      "state": "long-stage-filter",
+      "width": 390,
+      "theme": "light",
+      "height": 2545,
+      "overflow": 0,
+      "interLoaded": true,
+      "selection": {
+        "text": "Waiting on someone (applied, offered)",
+        "width": 289.28125,
+        "available": 274,
+        "helper": "Waiting on someone (applied, offered)",
+        "helperOverflow": 0
+      },
+      "errors": []
+    },
+    {
+      "state": "filtered-empty",
+      "width": 390,
+      "theme": "light",
+      "height": 1534,
+      "overflow": 0,
+      "interLoaded": true,
+      "meta": "6 applicants · 5 to decide · 0 offers out · 1 spots",
+      "errors": []
+    },
+    {
+      "state": "empty",
+      "width": 390,
+      "theme": "light",
+      "height": 907,
+      "overflow": 0,
+      "interLoaded": true,
+      "meta": "0 applicants · 0 to decide · 0 offers out · 2 spots",
+      "errors": []
+    },
+    {
+      "state": "none-selected",
+      "width": 390,
+      "theme": "dark",
+      "height": 2151,
+      "overflow": 0,
+      "interLoaded": true,
+      "meta": "6 applicants · 5 to decide · 0 offers out · 1 spots",
+      "errors": []
+    },
+    {
+      "state": "one-selected",
+      "width": 390,
+      "theme": "dark",
+      "height": 2315,
+      "overflow": 0,
+      "interLoaded": true,
+      "errors": []
+    },
+    {
+      "state": "two-selected",
+      "width": 390,
+      "theme": "dark",
+      "height": 2315,
+      "overflow": 0,
+      "interLoaded": true,
+      "errors": []
+    },
+    {
+      "state": "bulk-long-reason",
+      "width": 390,
+      "theme": "dark",
+      "height": 2572,
+      "overflow": 0,
+      "interLoaded": true,
+      "selection": {
+        "text": "The job needs a credential that isn't on the profile",
+        "width": 374.9296875,
+        "available": 274,
+        "helper": "The job needs a credential that isn't on the profile",
+        "helperOverflow": 0
+      },
+      "errors": []
+    },
+    {
+      "state": "long-stage-filter",
+      "width": 390,
+      "theme": "dark",
+      "height": 2545,
+      "overflow": 0,
+      "interLoaded": true,
+      "selection": {
+        "text": "Waiting on someone (applied, offered)",
+        "width": 289.28125,
+        "available": 274,
+        "helper": "Waiting on someone (applied, offered)",
+        "helperOverflow": 0
+      },
+      "errors": []
+    },
+    {
+      "state": "filtered-empty",
+      "width": 390,
+      "theme": "dark",
+      "height": 1534,
+      "overflow": 0,
+      "interLoaded": true,
+      "meta": "6 applicants · 5 to decide · 0 offers out · 1 spots",
+      "errors": []
+    },
+    {
+      "state": "empty",
+      "width": 390,
+      "theme": "dark",
+      "height": 907,
+      "overflow": 0,
+      "interLoaded": true,
+      "meta": "0 applicants · 0 to decide · 0 offers out · 2 spots",
+      "errors": []
+    },
+    {
+      "state": "none-selected",
+      "width": 1440,
+      "theme": "light",
+      "height": 1111,
+      "overflow": 0,
+      "interLoaded": true,
+      "meta": "6 applicants · 5 to decide · 0 offers out · 1 spots",
+      "errors": []
+    },
+    {
+      "state": "one-selected",
+      "width": 1440,
+      "theme": "light",
+      "height": 1227,
+      "overflow": 0,
+      "interLoaded": true,
+      "errors": []
+    },
+    {
+      "state": "two-selected",
+      "width": 1440,
+      "theme": "light",
+      "height": 1227,
+      "overflow": 0,
+      "interLoaded": true,
+      "errors": []
+    },
+    {
+      "state": "bulk-long-reason",
+      "width": 1440,
+      "theme": "light",
+      "height": 1400,
+      "overflow": 0,
+      "interLoaded": true,
+      "selection": {
+        "text": "The job needs a credential that isn't on the profile",
+        "width": 328.0634765625,
+        "available": 219,
+        "helper": "The job needs a credential that isn't on the profile",
+        "helperOverflow": 0
+      },
+      "errors": []
+    },
+    {
+      "state": "long-stage-filter",
+      "width": 1440,
+      "theme": "light",
+      "height": 1433,
+      "overflow": 0,
+      "interLoaded": true,
+      "selection": {
+        "text": "Waiting on someone (applied, offered)",
+        "width": 253.12109375,
+        "available": 301,
+        "helper": null,
+        "helperOverflow": 0
+      },
+      "errors": []
+    },
+    {
+      "state": "filtered-empty",
+      "width": 1440,
+      "theme": "light",
+      "height": 1065,
+      "overflow": 0,
+      "interLoaded": true,
+      "meta": "6 applicants · 5 to decide · 0 offers out · 1 spots",
+      "errors": []
+    },
+    {
+      "state": "empty",
+      "width": 1440,
+      "theme": "light",
+      "height": 900,
+      "overflow": 0,
+      "interLoaded": true,
+      "meta": "0 applicants · 0 to decide · 0 offers out · 2 spots",
+      "errors": []
+    },
+    {
+      "state": "inspector",
+      "width": 1440,
+      "theme": "light",
+      "height": 1111,
+      "overflow": 0,
+      "interLoaded": true,
+      "errors": []
+    },
+    {
+      "state": "inspector-long-reason",
+      "width": 1440,
+      "theme": "light",
+      "height": 1111,
+      "overflow": 0,
+      "interLoaded": true,
+      "selection": {
+        "text": "The job needs a credential that isn't on the profile",
+        "width": 328.0634765625,
+        "available": 266,
+        "helper": "The job needs a credential that isn't on the profile",
+        "helperOverflow": 0
+      },
+      "errors": []
+    },
+    {
+      "state": "none-selected",
+      "width": 1440,
+      "theme": "dark",
+      "height": 1111,
+      "overflow": 0,
+      "interLoaded": true,
+      "meta": "6 applicants · 5 to decide · 0 offers out · 1 spots",
+      "errors": []
+    },
+    {
+      "state": "one-selected",
+      "width": 1440,
+      "theme": "dark",
+      "height": 1227,
+      "overflow": 0,
+      "interLoaded": true,
+      "errors": []
+    },
+    {
+      "state": "two-selected",
+      "width": 1440,
+      "theme": "dark",
+      "height": 1227,
+      "overflow": 0,
+      "interLoaded": true,
+      "errors": []
+    },
+    {
+      "state": "bulk-long-reason",
+      "width": 1440,
+      "theme": "dark",
+      "height": 1400,
+      "overflow": 0,
+      "interLoaded": true,
+      "selection": {
+        "text": "The job needs a credential that isn't on the profile",
+        "width": 328.0634765625,
+        "available": 219,
+        "helper": "The job needs a credential that isn't on the profile",
+        "helperOverflow": 0
+      },
+      "errors": []
+    },
+    {
+      "state": "long-stage-filter",
+      "width": 1440,
+      "theme": "dark",
+      "height": 1433,
+      "overflow": 0,
+      "interLoaded": true,
+      "selection": {
+        "text": "Waiting on someone (applied, offered)",
+        "width": 253.12109375,
+        "available": 301,
+        "helper": null,
+        "helperOverflow": 0
+      },
+      "errors": []
+    },
+    {
+      "state": "filtered-empty",
+      "width": 1440,
+      "theme": "dark",
+      "height": 1065,
+      "overflow": 0,
+      "interLoaded": true,
+      "meta": "6 applicants · 5 to decide · 0 offers out · 1 spots",
+      "errors": []
+    },
+    {
+      "state": "empty",
+      "width": 1440,
+      "theme": "dark",
+      "height": 900,
+      "overflow": 0,
+      "interLoaded": true,
+      "meta": "0 applicants · 0 to decide · 0 offers out · 2 spots",
+      "errors": []
+    },
+    {
+      "state": "inspector",
+      "width": 1440,
+      "theme": "dark",
+      "height": 1111,
+      "overflow": 0,
+      "interLoaded": true,
+      "errors": []
+    },
+    {
+      "state": "inspector-long-reason",
+      "width": 1440,
+      "theme": "dark",
+      "height": 1111,
+      "overflow": 0,
+      "interLoaded": true,
+      "selection": {
+        "text": "The job needs a credential that isn't on the profile",
+        "width": 328.0634765625,
+        "available": 266,
+        "helper": "The job needs a credential that isn't on the profile",
+        "helperOverflow": 0
+      },
+      "errors": []
+    }
+  ],
+  "failures": []
+}

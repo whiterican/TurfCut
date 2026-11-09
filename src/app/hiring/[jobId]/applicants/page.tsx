@@ -1,3 +1,5 @@
+import styles from "@/components/Applicants.module.css";
+import { ReadableSelect } from "@/components/ReadableSelect";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireArea } from "@/lib/employer-session";
@@ -24,7 +26,7 @@ const BULK_FORM = "applicants-bulk";
 /**
  * One job's applicants (C3.2): the people who applied or claimed, in a
  * table whose columns the recruiter picks. Only what each worker shares
- * with this organization now; "not shared" is never ranked or filtered
+ * with this organization now; "Not shared" is never ranked or filtered
  * out. Political answers are never a column, filter or sort (Q3) — they
  * show on the applicant's own page, where the worker shared them.
  */
@@ -79,103 +81,105 @@ export default async function ApplicantsPage({
   );
 
   return (
-    <ListDetailPage
-      org
-      panelLabel={selected ? `Applicant: ${selected.engagement.worker.displayName}` : "Applicant"}
-      inspector={inspector}
-      head={
-      <Masthead
-        eyebrow="Applicants"
-        title={job.title}
-        meta={`${all.length} ${all.length === 1 ? "applicant" : "applicants"} · ${toDecide} to decide · ${offers} ${offers === 1 ? "offer" : "offers"} out${job.headcount !== null ? ` · ${job.headcount} spots` : ""}`}
+    <div className={styles.page}>
+      <ListDetailPage
+        org
+        panelLabel={selected ? `Applicant: ${selected.engagement.worker.displayName}` : "Applicant"}
+        inspector={inspector}
+        head={
+        <Masthead
+          eyebrow="Applicants"
+          title={job.title}
+          meta={`${all.length} ${all.length === 1 ? "applicant" : "applicants"} · ${toDecide} to decide · ${offers} ${offers === 1 ? "offer" : "offers"} out${job.headcount !== null ? ` · ${job.headcount} spots` : ""}`}
+        >
+          <Link href="/hiring" className="btn-ghost btn-sm"><ChevronLeft aria-hidden className="size-4 shrink-0" />Pipeline</Link>
+          <Link href={`/jobs/${job.id}`} className="btn-secondary btn-sm">Job page</Link>
+        </Masthead>
+        }
       >
-        <Link href="/hiring" className="btn-ghost btn-sm"><ChevronLeft aria-hidden className="size-4 shrink-0" />Pipeline</Link>
-        <Link href={`/jobs/${job.id}`} className="btn-secondary btn-sm">Job page</Link>
-      </Masthead>
-      }
-    >
-      <InspectorSelect rowHref={`/hiring/${job.id}/people`} />
-      <HiringTabs jobId={job.id} current="applicants" counts={counts} />
+        <InspectorSelect rowHref={`/hiring/${job.id}/people`} />
+        <HiringTabs jobId={job.id} current="applicants" counts={counts} />
 
-      <details className="card p-0" open={filtering || undefined}>
-        <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-fg">Columns and filters</summary>
-        <form className="space-y-4 border-t border-border p-4">
-          <fieldset className="space-y-2">
-            <legend className="label">Columns</legend>
-            <div className="flex flex-wrap gap-x-4 gap-y-2">
-              {availableColumns(facts).map((c) => (
-                <label key={c} className="flex items-center gap-2 text-sm">
-                  <input type="checkbox" name="col" value={c} defaultChecked={cols.includes(c)} className="size-4" />
-                  {columnLabel(c)}
+        <details className="card p-0" open={filtering || undefined}>
+          <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-fg">Columns and filters</summary>
+          <form className="space-y-4 border-t border-border p-4">
+            <fieldset className="space-y-2">
+              <legend className="label">Columns</legend>
+              <div className="flex flex-wrap gap-x-4 gap-y-2">
+                {availableColumns(facts).map((c) => (
+                  <label key={c} className="flex items-center gap-2 text-sm">
+                    <input type="checkbox" name="col" value={c} defaultChecked={cols.includes(c)} className="size-4" />
+                    {columnLabel(c)}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+            <fieldset className="grid gap-3 sm:grid-cols-2 sm:items-end">
+              <legend className="label mb-2">Filters</legend>
+              <label className="space-y-1.5">
+                <span className="label">Stage</span>
+                <ReadableSelect name="stage" className="field" defaultValue={filters.stage}>
+                  <option value="all">Every stage</option>
+                  <option value="open">Waiting on someone (applied, offered)</option>
+                </ReadableSelect>
+              </label>
+              <label className="space-y-1.5">
+                <span className="label">Applied on or after</span>
+                <input type="date" name="since" className="field" defaultValue={filters.since ?? ""} />
+              </label>
+              {job.startsAt && job.endsAt && (
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" name="free" value="1" defaultChecked={filters.free} className="size-4" />
+                  Free on at least one of the job&apos;s days
                 </label>
-              ))}
+              )}
+              {availableColumns(facts).includes("credentials") && (
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" name="creds" value="1" defaultChecked={filters.credentials} className="size-4" />
+                  Holds every required credential
+                </label>
+              )}
+            </fieldset>
+            <p className="text-hint">A filter narrows what workers shared. Anyone who doesn&apos;t share what it looks at stays on the list, marked &ldquo;not shared&rdquo;.</p>
+            <div className="flex flex-wrap gap-2">
+              <button className="btn-secondary btn-sm">Show</button>
+              <Link href={`/hiring/${job.id}/applicants`} className="btn-ghost btn-sm">Reset</Link>
             </div>
-          </fieldset>
-          <fieldset className="grid gap-3 sm:grid-cols-2 sm:items-end">
-            <legend className="label mb-2">Filters</legend>
-            <label className="space-y-1.5">
-              <span className="label">Stage</span>
-              <select name="stage" className="field" defaultValue={filters.stage}>
-                <option value="all">Every stage</option>
-                <option value="open">Waiting on someone (applied, offered)</option>
-              </select>
-            </label>
-            <label className="space-y-1.5">
-              <span className="label">Applied on or after</span>
-              <input type="date" name="since" className="field" defaultValue={filters.since ?? ""} />
-            </label>
-            {job.startsAt && job.endsAt && (
-              <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" name="free" value="1" defaultChecked={filters.free} className="size-4" />
-                Free on at least one of the job&apos;s days
-              </label>
-            )}
-            {availableColumns(facts).includes("credentials") && (
-              <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" name="creds" value="1" defaultChecked={filters.credentials} className="size-4" />
-                Holds every required credential
-              </label>
-            )}
-          </fieldset>
-          <p className="text-hint">A filter narrows what workers shared. Anyone who doesn&apos;t share what it looks at stays on the list, marked &ldquo;not shared&rdquo;.</p>
-          <div className="flex flex-wrap gap-2">
-            <button className="btn-secondary btn-sm">Show</button>
-            <Link href={`/hiring/${job.id}/applicants`} className="btn-ghost btn-sm">Reset</Link>
+          </form>
+        </details>
+
+        {filtering && (
+          <p className="text-muted-sm" role="status">
+            Showing {shown.length} of {all.length}. <Link href={`/hiring/${job.id}/applicants${cols.length ? `?${cols.map((c) => `col=${c}`).join("&")}` : ""}`} className="link">Clear filters</Link>
+          </p>
+        )}
+
+        {offerable && shown.some((a) => a.status === "APPLIED" || a.status === "OFFERED") && <BulkApplicantActions formId={BULK_FORM} jobId={job.id} />}
+
+        {all.length === 0 ? (
+          <EmptyState art="applicants" title="Nobody has applied yet">
+            Workers who apply show up here, with what each one shares with your organization.
+          </EmptyState>
+        ) : (
+          <div data-inspector-source>
+          <DataTable
+            stack
+            caption={`Applicants for ${job.title}`}
+            empty="No applicants match these filters."
+            columns={tableColumns(cols)}
+            select={offerable ? { form: BULK_FORM, name: "engagementId" } : undefined}
+            rows={shown.map((a) => ({
+              id: a.engagementId,
+              selectable: a.status === "APPLIED" || a.status === "OFFERED",
+              cells: applicantCells(a, facts, cols, today, `/hiring/${job.id}/people/${a.engagementId}`),
+            }))}
+          />
           </div>
-        </form>
-      </details>
-
-      {filtering && (
-        <p className="text-muted-sm" role="status">
-          Showing {shown.length} of {all.length}. <Link href={`/hiring/${job.id}/applicants${cols.length ? `?${cols.map((c) => `col=${c}`).join("&")}` : ""}`} className="link">Clear filters</Link>
+        )}
+        <p className="text-hint">
+          Only what each worker shares with your organization, as of now. &ldquo;Not shared&rdquo; is never counted as zero or ranked. There is no overall score. Political answers never appear in this table.
         </p>
-      )}
-
-      {offerable && shown.some((a) => a.status === "APPLIED" || a.status === "OFFERED") && <BulkApplicantActions formId={BULK_FORM} jobId={job.id} />}
-
-      {all.length === 0 ? (
-        <EmptyState art="applicants" title="Nobody has applied yet">
-          Workers who apply show up here, with what each one shares with your organization.
-        </EmptyState>
-      ) : (
-        <div data-inspector-source>
-        <DataTable
-          stack
-          caption={`Applicants for ${job.title}`}
-          empty="No applicants match these filters."
-          columns={tableColumns(cols)}
-          select={offerable ? { form: BULK_FORM, name: "engagementId" } : undefined}
-          rows={shown.map((a) => ({
-            id: a.engagementId,
-            selectable: a.status === "APPLIED" || a.status === "OFFERED",
-            cells: applicantCells(a, facts, cols, today, `/hiring/${job.id}/people/${a.engagementId}`),
-          }))}
-        />
-        </div>
-      )}
-      <p className="text-hint">
-        Only what each worker shares with your organization, as of now. &ldquo;Not shared&rdquo; is never counted as zero or ranked. There is no overall score. Political answers never appear in this table.
-      </p>
-    </ListDetailPage>
+      </ListDetailPage>
+    </div>
   );
 }

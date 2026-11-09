@@ -44,7 +44,7 @@ function LinesTable({ lines, caption, total, markUncounted = false }: { lines: S
             return (
               <tr key={l.id} role="row">
                 <th role="rowheader" scope="row">{l.worker}</th>
-                <td role="cell" data-label="Date · Job">
+                <td role="cell" data-label="Date · Job" className="statement-date-job">
                   {/* One block, so a phone's stacked row (a flex row) keeps the job under the date. */}
                   <span className="block">
                     {l.shiftStartsAt ? (l.shiftId ? <Link href={`/shifts/${l.shiftId}`} className="link"><LocalTime iso={l.shiftStartsAt.toISOString()} mode="fulldate" /></Link> : <LocalTime iso={l.shiftStartsAt.toISOString()} mode="fulldate" />) : "—"}
@@ -52,9 +52,10 @@ function LinesTable({ lines, caption, total, markUncounted = false }: { lines: S
                   </span>
                 </td>
                 <td role="cell" data-label="Basis" className="text-muted">
-                  {l.formula}
-                  {l.corrects ? ` · corrects ${l.corrects}` : ""}
-                  {l.receipt ? ` · ${l.receipt}` : ""}
+                  {/* A rate stays with its "×", and a reference never breaks at its hyphens. */}
+                  {l.formula.replace(/ × /g, "\u00a0×\u00a0")}
+                  {l.corrects && <> · <span className="whitespace-nowrap">corrects {l.corrects}</span></>}
+                  {l.receipt && <> · <span className="whitespace-nowrap">{l.receipt}</span></>}
                 </td>
                 <td role="cell" data-label="Pay" className="num">{amount(l.amountCents)}</td>
                 <td role="cell" data-label="Fee" className="num">{amount(l.feeCents)}</td>

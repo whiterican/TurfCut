@@ -1645,7 +1645,7 @@ body {
       display: none;
     }
     /* The dock is back, so is the room above it. */
-    body:has(.tabbar[data-touch-dock]) .page {
+    body:has(.tabbar[data-touch-dock]) :is(.page, .tpl) {
       padding-bottom: calc(var(--dock-clearance) + 2rem);
     }
     body:has(.tabbar[data-touch-dock]) .composer {

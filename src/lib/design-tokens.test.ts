@@ -610,6 +610,15 @@ describe("the shell (redesign B1.4)", () => {
     expect(query).toBeTruthy();
     expect(css).toContain(`@media ${query} {`);
     expect(css).not.toMatch(/\.more-sheet \{[^}]*lg:hidden/);
+    expect(css).not.toMatch(/\.more-sheet[^{,]*\{[^}]*display:\s*none/);
+    expect(appNav).toMatch(/className="more-sheet"/);
+    // The typing rule lists exactly the fields the keyboard rule hides the dock for, and that rule
+    // stays inside the 1279 block: otherwise a tablet could show both bars, or neither.
+    const fields = (rule: string) => rule.match(/:has\((:is\(input[\s\S]*?\)):focus\)/)?.[1];
+    const keyboard = css.match(/@media \(max-width: 79\.99rem\) and \(pointer: coarse\) \{[\s\S]*?\n\}/)?.[0] ?? "";
+    expect(fields(keyboard)).toBeTruthy();
+    expect(fields(touch)).toBe(fields(keyboard));
+    expect(keyboard).toMatch(/:focus\) \.tabbar \{\s*display: none;/);
     // The top bar's display lives in the component layer (.topnav): a display utility on it would win
     // over the staff rule and the touch rule again.
     const topNav = appNav.match(/<nav aria-label="Main" className="([^"]+)">/)?.[1] ?? "";

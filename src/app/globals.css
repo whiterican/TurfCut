@@ -1657,7 +1657,7 @@ body {
     body:has(.tabbar[data-touch-dock]):not(:has(.staff-band)) .tpl[data-template="hero"]:not(:has(.hero-split-form)) {
       padding-bottom: var(--dock-clearance);
     }
-    body:has(.tabbar[data-touch-dock]) .page-narrow {
+    body:has(.tabbar[data-touch-dock]):not(:has(.staff-band)) .page-narrow {
       padding-bottom: calc(var(--dock-clearance) + 1rem);
     }
     html:has(.tabbar[data-touch-dock]):not(:has(.thread-top, .staff-band)) {

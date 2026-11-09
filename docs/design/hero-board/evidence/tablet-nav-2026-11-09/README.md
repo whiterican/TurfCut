@@ -19,9 +19,9 @@ The cost, as #135 said: on a touch tablet, Profile, Campaign feed and Earnings s
 
 `src/app/globals.css`:
 - The dock and the top bar now show and hide by width in the component layer (`.tabbar`, `.topnav`). Before, the top bar used `hidden lg:flex` utilities.
-- One media query, `TOUCH_TABLET_QUERY`, does five things up to 1279. It keeps `.tabbar[data-touch-dock]` on a touch tablet and hides the top bar. It gives pages, templates, the narrow page and Tab scrolling their room above the dock. It sticks the chat composer above the dock.
+- One media query, `TOUCH_TABLET_QUERY`, does five things up to 1279. It keeps `.tabbar[data-touch-dock]` on a touch tablet and hides the top bar. It shows the top bar again while a field takes typing. It gives pages, templates, the narrow page and Tab scrolling their room above the dock. It sticks the chat composer above the dock.
 - The room above the dock skips admin pages, where the dock is hidden. It also skips heroes; a hero without the sign-in form gets the dock's height instead.
-- The keyboard rule that hides the dock while a field takes typing now reaches 1279. In that band the top bar stands in while you type, so a hardware keyboard never leaves the worker without navigation. Admin pages are excluded.
+- The keyboard rule that hides the dock while a field takes typing now reaches 1279. In that band the top bar stands in while you type, so a hardware keyboard doesn't strand the worker. The worker's header doesn't stick from 1024, though, so on a long form you scroll up to reach the top bar. Admin pages are excluded.
 
 `src/components/AppNav.tsx`:
 - `TopNav` uses `.topnav`.
@@ -103,9 +103,9 @@ So no minimum width fixes 768 without hiding a column, and at 640 and 700 the co
 - `tsc` and `eslint` are clean, and vitest passes 1,022 tests.
 - `design-tokens.test.ts` pins:
   - the staff rule, and the touch-tablet rules with their staff and hero exclusions;
-  - the typing rule and the 1279 keyboard rule;
+  - the typing rule and the 1279 keyboard rule, with the same list of fields;
   - the shared media query;
-  - the More sheet having no width rule;
+  - the More sheet having no width rule and no `display: none`;
   - the top bar having no display utility.
 - Two reviewers, the rule-9 reviewer and an independent one standing in for Codex until the 12th, found nothing blocking in changes 1 and 2. Change 3 was reverted, and their other findings are fixed above.
 

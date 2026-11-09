@@ -593,10 +593,20 @@ describe("the shell (redesign B1.4)", () => {
     expect(css).toMatch(/\.org-shell \{\s*@apply mx-auto flex w-full max-w-\[var\(--workspace-max\)\] flex-1;/);
   });
 
+  it("keeps the worker's labelled dock on a touch tablet up to 1279, in place of the icon-only top bar (#135)", () => {
+    expect(css).toMatch(/@media \(min-width: 64rem\) \{\s*\.tabbar \{\s*display: none;/);
+    const touch = css.match(/@media \(min-width: 64rem\) and \(max-width: 79\.99rem\) and \(hover: none\) and \(pointer: coarse\) \{([\s\S]*?)\n  \}\n/)?.[1] ?? "";
+    expect(touch).toMatch(/\.tabbar\[data-touch-dock\] \{\s*display: block;/);
+    expect(touch).toMatch(/body:has\(\.tabbar\[data-touch-dock\]\) \.topnav \{\s*display: none;/);
+    expect(touch).toMatch(/body:has\(\.tabbar\[data-touch-dock\]\) :is\(\.page, \.tpl\) \{\s*padding-bottom: calc\(var\(--dock-clearance\) \+ 2rem\);/);
+    expect(touch).toMatch(/body:has\(\.tabbar\[data-touch-dock\]\) \.composer \{\s*bottom: calc\(6rem/);
+  });
+
   it("gives the staff console its own band and never an organization's rail beside it", () => {
     expect(css).toMatch(/\.staff-band \{[^}]*background: var\(--shell-bg\);[^}]*color: var\(--shell-fg\);/);
     expect(css).toMatch(/\.staff-band \* \{\s*--focus: var\(--shell-fg\);/);
     expect(css).toMatch(/body:has\(\.staff-band\) \.org-rail:not\(\.staff-rail\) \{\s*display: none;/);
-    expect(css).toMatch(/body:has\(\.staff-band\) \.site-header nav\[aria-label="Main"\] \{\s*display: none;/);
+    // A staff login's worker top bar and dock step aside on admin pages, at every width (#135).
+    expect(css).toMatch(/body:has\(\.staff-band\) :is\(\.site-header nav\[aria-label="Main"\], \.tabbar\) \{\s*display: none;/);
   });
 });

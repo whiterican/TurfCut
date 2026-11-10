@@ -51,3 +51,20 @@ Not touched, on purpose:
 - **The scorecard's evidence lines** on Profile. Every figure there states what it was counted from; that is the rule that rankings explain themselves.
 - **Who sees what** (420 words) and **Political fit** (227 words). Their sentences are what a worker agrees to. The app keeps a history of those choices and asks workers to reconfirm when the wording changes, so shortening them is a consent decision for Caden, not an edit.
 - **A job's own page.** Caden asked that job descriptions keep their detail.
+
+## Organization side (batch 3)
+
+The organization screens were measured first (owner, 390px, local fixture). They were already short: 76 to 205 words a page, against 300 or more on the worker pages before this pass. So this batch is small on purpose.
+
+| Change | Detail |
+| :--- | :--- |
+| Organization Guide | `/guide` now shows the organization's guide to every organization role: Publishing jobs, Field, Pay, Checking credentials, Your team. |
+| Source of each point | Every sentence restates what its own screen already says. Nothing new is claimed. |
+| Credentials | The long note under the list is now two sentences with a link to the guide (118 → 83 words on the page). The number, registry, "not proof" and "the worker sees each time you open it" facts stay on the page. |
+| Reaching the guide | Settings has a Help section with a link, for every role. |
+
+Left alone on purpose: the Pay lead (who approves, the 15% fee), the Members invitation rules, and the jurisdiction warnings on organization Settings. They are short and each states a money, access or compliance fact at the point of use.
+
+Review fixes from batch 2: the account-closure warning reads "Shifts you haven't started are cancelled and open applications withdrawn; that never counts as a no-show." (the code does withdraw them), and the worker Guide says what Download my data contains.
+
+Screens: `org-guide-390.png`, `org-credentials-390.png`.

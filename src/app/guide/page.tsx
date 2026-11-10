@@ -1,17 +1,17 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { requireRole } from "@/lib/auth";
+import { requireAuth } from "@/lib/auth";
 import { Masthead } from "@/components/Masthead";
 import { ReadingPage } from "@/components/layout/Page";
-import { GUIDE_SECTIONS } from "@/lib/guide";
+import { guideFor } from "@/lib/guide";
 
 export const metadata: Metadata = { title: "Guide" };
 
-/** The worker's guide: screens keep the figure, the action and one short line, and link here for the rest (lib/guide). */
+/** The guide for the signed-in person's side of Turfcut (worker or organization): screens keep the figure, the action and one short line, and link here for the rest (lib/guide). */
 
 export default async function GuidePage() {
-  // No worker data is read: any worker login may open it, linked to a profile or not.
-  await requireRole(["WORKER"]);
+  // Nothing about the person or their organization is read: only which of the two guides to show.
+  const GUIDE_SECTIONS = guideFor((await requireAuth()).role);
   return (
     <ReadingPage gap={6} head={<Masthead title="Guide" meta="How Turfcut works, in one place." />}>
       <nav aria-label="Guide sections">

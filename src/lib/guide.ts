@@ -58,3 +58,65 @@ export const GUIDE_SECTIONS: GuideSection[] = [
     link: { href: "/profile/sharing", label: "Open Who sees what" },
   },
 ];
+
+/**
+ * The organization's guide. Each point restates what its screen already says
+ * (Field, Pay, Credentials, Members, organization Settings), so the screens
+ * can stay short.
+ */
+export const ORG_GUIDE_SECTIONS: GuideSection[] = [
+  {
+    id: "publishing",
+    title: "Publishing jobs",
+    points: [
+      "A job publishes only under an approved, current, unexpired jurisdiction rule profile. Anything else blocks publishing and says why.",
+      "When a rule profile is superseded, the job has to be filed under the current rules.",
+    ],
+    link: { href: "/jobs", label: "Open Jobs" },
+  },
+  {
+    id: "field",
+    title: "Field",
+    points: [
+      "Turf drawn on a shift appears on the map and fills as its workers check in.",
+      "Nobody's position is ever on the map.",
+    ],
+    link: { href: "/field", label: "Open Field" },
+  },
+  {
+    id: "pay",
+    title: "Pay",
+    points: [
+      "Supervisors approve the work; someone else approves the pay. Whoever approved a shift's work cannot approve its pay.",
+      "Each pay line is calculated from verified work when a supervisor approves the shift.",
+      "Workers receive the full gross amount. The 15% platform fee is invoiced to your organization.",
+    ],
+    link: { href: "/pay", label: "Open Pay" },
+  },
+  {
+    id: "credentials",
+    title: "Checking credentials",
+    points: [
+      "Record that you checked a hired worker's credential, and how. The worker sees which organization verified it; other organizations see only that one did, and how.",
+      "Turfcut never shows you a credential's number. Look the worker up by name in the state's registry, or ask to see the original.",
+      "A worker may share a photo of a Colorado training certificate with organizations that hire them. It shows whatever is printed on it.",
+      "The worker sees each time your organization opens that photo. Once you have, you can record that you checked it that way.",
+      "A photo is something to check, not proof by itself.",
+    ],
+    link: { href: "/org/credentials", label: "Open Credentials" },
+  },
+  {
+    id: "team",
+    title: "Your team",
+    points: [
+      "Someone new joins by opening the link in the invitation email. Anyone who already has a Turfcut login sees the invite after signing in and chooses whether to accept.",
+      "Invites last 7 days.",
+      "Every invite, role change and removal is recorded in the audit log.",
+    ],
+    link: { href: "/org/settings/members", label: "Open Members" },
+  },
+];
+
+/** The guide for a role: the worker's, or the organization's for everyone else. */
+export const guideFor = (role: string): GuideSection[] => (role === "WORKER" ? GUIDE_SECTIONS : ORG_GUIDE_SECTIONS);
+

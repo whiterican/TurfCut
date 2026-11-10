@@ -159,21 +159,39 @@ export function OrgRail({ tabs, orgName, approved, person }: { tabs: NavTab[]; o
   );
 }
 
+/** The event the menu button sends and the dock's drawer listens for (they sit in different parts of the page). */
+const OPEN_MENU = "tc:open-menu";
+
 /**
- * Phone and tablet: the role's tabs, and More for the rest (workers and
- * organization roles alike). More is a native modal <dialog>: the browser
- * traps focus, makes the page behind it inert, closes on Escape and returns
- * focus to More. `extra` is drawn under the list (the worker's Sign out).
+ * Opens the menu drawer (the rest of the role's places). It sits at the top left: in a strip above a worker's
+ * phone pages, and in the site header where the header shows beside the dock. `name` draws the person's
+ * initial and first name; without it the button is the menu glyph alone.
  */
-export function OrgTabBar({ tabs, more, extra, notices = 0, touchDock = false }: { tabs: NavTab[]; more: NavTab[]; extra?: ReactNode; /** Unread notifications, shown on the Notifications row (the worker's phone has no header bell). */ notices?: number; /** The worker's dock: kept on a touch tablet up to 1279, where the top bar is icons only (globals.css). */ touchDock?: boolean }) {
+export function MenuButton({ name, notices = 0 }: { name?: string; notices?: number }) {
+  const first = name?.trim().split(/\s+/)[0];
+  return (
+    <button type="button" className="menu-button" data-named={first ? "" : undefined} aria-haspopup="dialog" aria-label={notices > 0 ? `Menu, ${notices} unread ${notices === 1 ? "notification" : "notifications"}` : "Menu"} onClick={() => window.dispatchEvent(new Event(OPEN_MENU))}>
+      {first ? <span className="menu-avatar" aria-hidden>{first[0]?.toUpperCase()}</span> : <Icon of={Menu} className="size-5" />}
+      {first && <span className="menu-name" aria-hidden>{first}</span>}
+      {notices > 0 && <span className="menu-dot" aria-hidden />}
+    </button>
+  );
+}
+
+/**
+ * Phone and tablet: the role's tabs in a pill, and a drawer from the left for the rest (workers and
+ * organization roles alike), opened by MenuButton. The drawer is a native modal
+ * <dialog>: the browser traps focus, makes the page behind it inert, closes on
+ * Escape and returns focus to the menu button. `extra` is drawn under the list
+ * (the worker's Sign out); `person` heads the drawer.
+ */
+export function OrgTabBar({ tabs, more, extra, notices = 0, touchDock = false, person }: { tabs: NavTab[]; more: NavTab[]; extra?: ReactNode; /** Heads the drawer: who is signed in. */ person?: { name: string; role: string }; /** Unread notifications, shown on the Notifications row (the worker's phone has no header bell). */ notices?: number; /** The worker's dock: kept on a touch tablet up to 1279, where the top bar is icons only (globals.css). */ touchDock?: boolean }) {
   const pathname = usePathname();
   const current = activeTab([...tabs, ...more], pathname);
   const count = useUnreadCount();
   const [open, setOpen] = useState(false);
   const sheetId = useId();
   const sheet = useRef<HTMLDialogElement>(null);
-  const button = useRef<HTMLButtonElement>(null);
-  const inMore = more.some((t) => t.href === current);
   const tucked = useTuckOnScroll();
 
   // Close on navigation (reset during render when the path changes).
@@ -182,6 +200,12 @@ export function OrgTabBar({ tabs, more, extra, notices = 0, touchDock = false }:
     setOpenedAt(pathname);
     if (open) setOpen(false);
   }
+  // The menu button lives outside this component (the phone strip, the site header).
+  useEffect(() => {
+    const onOpen = () => setOpen(true);
+    window.addEventListener(OPEN_MENU, onOpen);
+    return () => window.removeEventListener(OPEN_MENU, onOpen);
+  }, []);
   // Nothing left to show (e.g. the role changed): the sheet can't stay open.
   if (open && more.length === 0) setOpen(false);
   // Keep the dialog in step with state; focus the first item on opening.
@@ -219,14 +243,14 @@ export function OrgTabBar({ tabs, more, extra, notices = 0, touchDock = false }:
         <dialog
           ref={sheet}
           id={sheetId}
-          aria-label="More"
+          aria-label="Menu"
           className="more-sheet"
-          // Escape, or close() from anywhere: sync state and hand focus back to More.
+          // Escape, or close() from anywhere: sync state and hand focus back to the menu button.
           onClose={() => {
             setOpen(false);
-            // Not when widening hid the bar: focus can't go to a hidden button, so it goes to the page.
-            if (button.current?.offsetParent) button.current.focus();
-            else document.getElementById("content")?.focus();
+            // The visible menu button; when widening hid them all, focus goes to the page.
+            const trigger = [...document.querySelectorAll<HTMLElement>(".menu-button")].find((b) => b.offsetParent);
+            (trigger ?? document.getElementById("content"))?.focus();
           }}
           // A press on the dimmed area outside the panel lands on the dialog itself.
           onClick={(e) => {
@@ -235,7 +259,14 @@ export function OrgTabBar({ tabs, more, extra, notices = 0, touchDock = false }:
         >
           <div className="more-sheet-panel">
             <div className="mb-2 flex items-center justify-between">
-              <p className="eyebrow">More</p>
+              {person ? (
+                <p className="min-w-0">
+                  <span className="block truncate text-lg font-semibold text-fg">{person.name}</span>
+                  <span className="block truncate text-sm text-muted">{person.role}</span>
+                </p>
+              ) : (
+                <p className="eyebrow">Menu</p>
+              )}
               <button type="button" className="btn-ghost btn-sm" onClick={close} aria-label="Close">
                 <X aria-hidden className="btn-icon" />
               </button>
@@ -263,33 +294,15 @@ export function OrgTabBar({ tabs, more, extra, notices = 0, touchDock = false }:
         </dialog>
       )}
       <nav aria-label="Main" className="tabbar" data-tucked={tucked || undefined} data-touch-dock={touchDock || undefined}>
-        <div className="mx-auto flex max-w-md">
+        <div className="flex">
           {tabs.map((t) => (
             <Link key={t.href} href={t.href} className="tab" data-wide={t.href.endsWith(MESSAGES_HREF) || undefined} aria-current={currentAttr(t.href, current, pathname)}>
               <Icon of={iconFor(t)} className="tab-icon" />
-              {t.label}
+              <span className="tab-label">{t.label}</span>
               {t.href.endsWith(MESSAGES_HREF) && <Badge count={count} />}
               {t.href.endsWith(MESSAGES_HREF) && count > 0 && <span className="sr-only">, {count} unread</span>}
             </Link>
           ))}
-          {more.length > 0 && (
-            <button
-              ref={button}
-              type="button"
-              className="tab"
-              aria-haspopup="dialog"
-              aria-expanded={open}
-              aria-controls={sheetId}
-              aria-current={inMore ? "true" : undefined}
-              onClick={() => setOpen(true)}
-            >
-              <Icon of={Menu} className="tab-icon" />
-              More
-              {/* Unread notifications live under More on a worker's phone: a dot says there are some without opening the sheet. */}
-              {notices > 0 && <span className="tab-dot" aria-hidden />}
-              {notices > 0 && <span className="sr-only">, {notices} unread {notices === 1 ? "notification" : "notifications"}</span>}
-            </button>
-          )}
         </div>
       </nav>
     </>

@@ -1611,7 +1611,9 @@ body {
        organization screen, 20px corners, 12px side inset, 10px above the
        safe area, 4px inside. Inactive icons and labels are Cream; the current
        destination is the dock green (--dock-active-fg), no filled tile. */
-    @apply fixed z-40 mx-auto max-w-[23rem] rounded-[var(--radius-lg)] p-1;
+    /* A pill (Caden, Nov 10): icons only, the current one in a lighter capsule. The names stay for
+       screen readers; the rest of the role's places are in the menu drawer, not a tab. */
+    @apply fixed z-40 mx-auto max-w-[20rem] rounded-full p-1.5;
     inset-inline: 12px;
     bottom: calc(10px + env(safe-area-inset-bottom));
     background: var(--shell-bg);
@@ -1682,7 +1684,7 @@ body {
   .tab {
     /* A 52px tile: a 20px icon over a complete 12/16 Inter label. Six share
        the slab; Messages (the longest word, and the badge) gets a little more. */
-    @apply relative flex min-h-[52px] min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-[var(--radius-md)] px-0.5 py-1.5 font-medium whitespace-nowrap transition;
+    @apply relative flex min-h-[48px] min-w-0 flex-1 flex-col items-center justify-center rounded-full px-0.5 py-1.5 font-medium whitespace-nowrap transition;
     flex-basis: 0;
     color: var(--shell-muted);
     font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
@@ -1702,10 +1704,15 @@ body {
   .tab[aria-current] {
     @apply font-semibold;
     color: var(--dock-active-fg);
+    background: color-mix(in srgb, var(--shell-muted) 16%, transparent);
     view-transition-name: tab-current;
   }
   .tab-icon {
-    @apply size-5 shrink-0 transition;
+    @apply size-6 shrink-0 transition;
+  }
+  /* The tab's name: read, not drawn. */
+  .tab-label {
+    @apply sr-only;
   }
   .tabbar > div {
     gap: 0;
@@ -2240,9 +2247,19 @@ body {
   .more-sheet {
     /* No width rule hides it: it opens only from the dock's More, and closes when the dock goes (AppNav),
        so on a touch tablet's dock (up to 1279) it shows like on a phone. */
-    @apply m-0 mx-auto mt-auto w-full max-w-md border-0 bg-transparent p-0;
+    @apply m-0 border-0 bg-transparent p-0;
+    /* A drawer from the left edge (Caden, Nov 10), opened by the menu button. */
+    inset: 0 auto 0 0;
+    width: min(20rem, 86vw);
+    max-width: none;
+    height: 100dvh;
     max-height: 100dvh;
     color: inherit;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .more-sheet[open] {
+      animation: tc-drawer-in var(--dur-slow) var(--ease-out) both;
+    }
   }
   /* The More sheet's rows (#111, screen 12): icon, label, a chevron; a divider between rows. */
   .more-list {
@@ -2256,22 +2273,50 @@ body {
     @apply mt-2 border-t border-border pt-3;
   }
   .more-sheet-panel {
-    @apply relative rounded-t-[var(--radius-lg)] border border-b-0 p-4;
+    @apply relative h-full overflow-y-auto rounded-e-[var(--radius-lg)] border border-s-0 p-4;
+    padding-top: calc(1rem + env(safe-area-inset-top));
     padding-bottom: calc(1rem + env(safe-area-inset-bottom));
     background: var(--surface);
     border-color: var(--border);
     box-shadow: var(--shadow);
   }
-  /* The sheet's handle: a quiet rule along the top edge (green is kept for live state). */
-  .more-sheet-panel::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 10%;
-    right: 10%;
-    height: 4px;
-    border-radius: 0 0 4px 4px;
-    background: var(--border-strong);
+  /* The menu button (components/AppNav MenuButton): with a name, a pill led by the person's initial; without, the glyph alone. */
+  .menu-button {
+    @apply relative inline-flex size-11 shrink-0 items-center justify-center rounded-full text-fg transition;
+  }
+  .menu-button[data-named] {
+    @apply h-11 w-auto max-w-[60vw] justify-start gap-2 border py-1 ps-1 pe-4 font-semibold;
+    background: var(--surface);
+    border-color: var(--border);
+    box-shadow: var(--shadow);
+  }
+  .menu-avatar {
+    @apply flex size-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold;
+    background: var(--surface-2);
+  }
+  .menu-name {
+    @apply truncate;
+  }
+  .menu-dot {
+    @apply absolute top-0.5 right-0.5 size-2.5 rounded-full;
+    background: var(--coral);
+    box-shadow: 0 0 0 2px var(--bg);
+  }
+  /* In the site header the button shows only where the dock does. */
+  @media (min-width: 64rem) {
+    .site-header .menu-button {
+      display: none;
+    }
+  }
+  @media (min-width: 64rem) and (max-width: 79.99rem) and (pointer: coarse) {
+    body:has(.tabbar[data-touch-dock]):not(:has(.staff-band)) .site-header .menu-button {
+      display: inline-flex;
+    }
+  }
+  /* A worker's phone has no site header: the menu button's own strip above the page. */
+  .phone-top {
+    @apply flex items-center px-4 sm:px-6 lg:hidden;
+    padding-top: calc(0.75rem + env(safe-area-inset-top));
   }
   /* Dims the page (never a pale wash, which reads as disabled). */
   .more-sheet::backdrop {
@@ -2380,6 +2425,10 @@ body {
   @media (width < 64rem) {
     body:has(.site-header-worker) :is(.page, .tpl) {
       padding-top: calc(1.5rem + env(safe-area-inset-top));
+    }
+    /* Under the menu strip, which has taken the safe area. */
+    body:has(.phone-top) :is(.page, .tpl) {
+      padding-top: 1rem;
     }
   }
   /* Job details (#111, screen 3): the controls over the photograph, the white sheet under it. */
@@ -3406,4 +3455,9 @@ summary.list-none::-webkit-details-marker {
 }
 :root[data-motion="reduce"] :is(.btn, .btn-primary, .btn-secondary, .btn-ghost, .quick-reply, .chip, .tab):active:not(:disabled) {
   transform: none;
+}
+@keyframes tc-drawer-in {
+  from {
+    transform: translateX(-100%);
+  }
 }

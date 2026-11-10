@@ -266,16 +266,17 @@ html {
   --card-edge: 0 0 0 0 transparent;
   --card-sheen: none;
   --hero-bg: var(--hero);
-  /* Shape: the printed scale, xs 6 · sm 10 · md 14 · lg 20 · xl 28. Cards and
-     rows md, controls and thumbnails sm, pills xs, the dock and sheets lg. */
-  --radius-xs: 6px;
-  --radius-sm: 10px;
-  --radius-md: 14px;
-  --radius-lg: 20px;
-  --radius-xl: 28px;
+  /* Shape, rounder throughout (Caden's reference, Nov 10): xs 10 · sm 14 · md 24 · lg 28 · xl 32.
+     Cards and rows md, fields and thumbnails sm, small pills xs, the drawer lg. Buttons are full pills. */
+  --radius-xs: 10px;
+  --radius-sm: 14px;
+  --radius-md: 24px;
+  --radius-lg: 28px;
+  --radius-xl: 32px;
   --radius-card: var(--radius-md);
   --radius-inner: var(--radius-sm);
   --radius-control: var(--radius-sm);
+  --radius-button: 9999px;
   /* Layout roles (redesign §4.1): page measures, the workspace cap, the
      inspector column and the space the floating dock needs below content. */
   --measure-reading: 42rem;
@@ -1081,7 +1082,7 @@ body {
   .btn-primary,
   .btn-secondary,
   .btn-ghost {
-    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-[var(--radius-control)] px-4 py-2 text-sm font-semibold transition;
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-[var(--radius-button)] px-4 py-2 text-sm font-semibold transition;
     @apply disabled:cursor-not-allowed disabled:opacity-50;
   }
   .btn-primary {

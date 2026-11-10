@@ -96,8 +96,8 @@ export function CoverageMap({ initial, className = "h-72" }: { initial: ZoneSumm
   const total = zones.reduce((n, z) => n + z.total, 0);
   const label = `Coverage map: ${zones.length} ${zones.length === 1 ? "turf" : "turfs"}, ${onGround} of ${total} shifts on the ground`;
   if (failed) {
-    return <p className={`turf-map coverage-map flex w-full items-center justify-center rounded-2xl border border-border p-4 text-center text-muted-sm ${className}`}>The map needs signal. {label.replace("Coverage map: ", "")}.</p>;
+    return <p className={`turf-map coverage-map flex w-full items-center justify-center rounded-[var(--radius-card)] border border-border p-4 text-center text-muted-sm ${className}`}>The map needs signal. {label.replace("Coverage map: ", "")}.</p>;
   }
   // A region, not an image: the map's zoom buttons and attribution link inside it must stay reachable.
-  return <div ref={el} className={`turf-map coverage-map w-full overflow-hidden rounded-2xl border border-border ${className}`} role="region" aria-label={label} />;
+  return <div ref={el} className={`turf-map coverage-map w-full overflow-hidden rounded-[var(--radius-card)] border border-border ${className}`} role="region" aria-label={label} />;
 }

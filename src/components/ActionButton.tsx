@@ -51,7 +51,7 @@ export function ActionButton({
           {icon}
           {label}
         </summary>
-        <form action={formAction} className="mt-2 space-y-2 rounded-xl border border-border p-3">
+        <form action={formAction} className="mt-2 space-y-2 rounded-[var(--radius-inner)] border border-border p-3">
           {Object.entries(fields).map(([k, v]) => <input key={k} type="hidden" name={k} value={v} />)}
           {children}
           <p className="text-sm text-fg">{confirm.text}</p>

@@ -10,7 +10,7 @@ import type { Fact } from "@/lib/campaign-kit-data";
 export function FactList({ facts, open = false }: { facts: Fact[]; open?: boolean }) {
   if (facts.length === 0) return null;
   return (
-    <details className="group rounded-xl border border-border px-3 py-2" open={open}>
+    <details className="group rounded-[var(--radius-inner)] border border-border px-3 py-2" open={open}>
       <summary className="cursor-pointer list-none text-sm font-semibold text-fg">
         <span className="group-open:hidden">Supporting facts ({facts.length})</span>
         <span className="hidden group-open:inline">Supporting facts</span>

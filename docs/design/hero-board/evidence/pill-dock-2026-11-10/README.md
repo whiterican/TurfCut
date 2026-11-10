@@ -13,6 +13,8 @@ All evidence is the running app on the local test database, in Chromium with tou
    - The strip is left off a job's page (the photograph runs to the top) and a chat thread (it pins its own bar).
 3. **Type is one step heavier.** The reference is Inter, which the app already uses; what differs is weight. Body text is 500, and each named weight draws a step above its default (medium 600, semibold 700, bold 800). Inter loads 500 to 800.
 
+4. **Corners are rounder throughout** (Caden's second reference, Nov 10). The shape scale moved from 6 · 10 · 14 · 20 · 28 to 10 · 14 · 24 · 28 · 32: cards are 24px, fields and thumbnails 14px, and buttons are full pills. Corners that were set by hand in components now use the same tokens. `rounder-1.png` and `rounder-2.png` show eight screens; `sweep.txt` was rerun after this change and no page overflows.
+
 ## Decided for Astra
 
 - **Only the current tab is named.** The reference has no labels at all; Caden asked that each screen say what its icon means. A tab you haven't opened still shows its icon alone.

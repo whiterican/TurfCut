@@ -96,7 +96,7 @@ export default async function CredentialsPage() {
                         <section className="space-y-2 border-t border-border pt-3" aria-label={`Photos of ${name}`}>
                           <p className="text-sm font-medium text-fg">Certificate photo</p>
                           {photos.map((p) => (
-                            <div key={p.id} className="space-y-1.5 rounded-xl border border-border p-3">
+                            <div key={p.id} className="space-y-1.5 rounded-[var(--radius-inner)] border border-border p-3">
                               <p className="text-sm text-fg">
                                 {SIDE_LABELS[p.side]} · added {dateText(p.createdAt)} · {p.shared ? "organizations that hire you can see it" : "only you can see it"}
                               </p>

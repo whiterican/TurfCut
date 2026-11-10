@@ -57,7 +57,7 @@ export function StagingPointsEditor({
       {err("points")}
       <ol className="space-y-3">
         {points.map((p, i) => (
-          <li key={i} className={`space-y-2 rounded-xl border p-3 ${i === placing ? "border-[var(--border-strong)]" : "border-border"}`}>
+          <li key={i} className={`space-y-2 rounded-[var(--radius-inner)] border p-3 ${i === placing ? "border-[var(--border-strong)]" : "border-border"}`}>
             <input type="hidden" name={`point_${i}_id`} value={p.id} disabled={disabled} />
             <input type="hidden" name={`point_${i}_lat`} value={p.lat} disabled={disabled} />
             <input type="hidden" name={`point_${i}_lng`} value={p.lng} disabled={disabled} />

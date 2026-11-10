@@ -11,7 +11,7 @@ import brandMark from "../../../public/brand/icons/icon-192.png";
 export function HeroArt() {
   return (
     <div className="hero-split-art" aria-hidden>
-      <Image src={brandMark} alt="" width={96} height={96} unoptimized className="hero-split-mark size-10 rounded-xl lg:size-24 lg:rounded-2xl" />
+      <Image src={brandMark} alt="" width={96} height={96} unoptimized className="hero-split-mark size-10 rounded-[var(--radius-inner)] lg:size-24 lg:rounded-[var(--radius-card)]" />
       <p className="hero-split-line">Field work that matters.</p>
     </div>
   );

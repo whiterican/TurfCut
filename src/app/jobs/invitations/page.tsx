@@ -62,7 +62,7 @@ export default async function InvitationsPage() {
                     {i.job.type === "PETITION" ? "Petition" : "Canvass"} · {day(i.job.startsAt)} – {day(i.job.endsAt)} · {payText(i.job.compensationMethod, i.job.payRateCents)}
                   </p>
                 </div>
-                {i.inviteNote && <p className="whitespace-pre-line rounded-xl bg-surface-2 p-3 text-sm text-fg">&ldquo;{i.inviteNote}&rdquo;</p>}
+                {i.inviteNote && <p className="whitespace-pre-line rounded-[var(--radius-inner)] bg-surface-2 p-3 text-sm text-fg">&ldquo;{i.inviteNote}&rdquo;</p>}
                 {i.inviteExpiresAt && <p className="text-muted-sm">Answer by <LocalTime iso={i.inviteExpiresAt.toISOString()} /> ({left(i.inviteExpiresAt, now)}).</p>}
                 <div className="flex flex-wrap items-start gap-2">
                   <ActionButton action={acceptInvitation} fields={fields} label="Accept" pendingLabel="Accepting…" variant="btn-secondary" />

@@ -53,6 +53,7 @@ export const GUIDE_SECTIONS: GuideSection[] = [
       "You choose who sees each part of your scorecard, your availability and your credentials.",
       "You choose whether organizations can find you.",
       "Your political-fit answers are used only as you authorize. Turfcut never guesses your politics.",
+      "Download my data, in Settings, gives you your profile, experience, consent history, shifts, pay, disputes and the messages you sent.",
     ],
     link: { href: "/profile/sharing", label: "Open Who sees what" },
   },

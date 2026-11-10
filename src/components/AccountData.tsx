@@ -64,7 +64,7 @@ export function AccountData({ userId, problems }: { userId: string; problems: st
       <h2 className="section-title">Close my account</h2>
       <div className="card space-y-3">
         <p className="text-muted-sm">
-          Your login is removed and your name and phone become &ldquo;Former worker&rdquo;. Work, pay and consent records stay as recorded. Download your data first. Shifts you haven&apos;t started are cancelled, never as a no-show.
+          Your login is removed and your name and phone become &ldquo;Former worker&rdquo;. Work, pay and consent records stay as recorded. Download your data first. Shifts you haven&apos;t started are cancelled and open applications withdrawn; that never counts as a no-show.
         </p>
         {blockers.length > 0 ? (
           <div className="space-y-1">

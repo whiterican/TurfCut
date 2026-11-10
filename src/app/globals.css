@@ -1620,10 +1620,11 @@ body {
     transition: transform var(--dur-slow) var(--ease-out);
   }
   /* From 1024 the top bar or the rail takes over, and the dock goes. A worker on a
-     touch tablet (no hover, a coarse pointer) keeps it up to 1279 instead: there the
+     touch tablet (a coarse primary pointer) keeps it up to 1279 instead: there the
      top bar is icons only, its names are tooltips a finger never sees, and the dock's
-     labels are the only names on screen (tablet pass, #135). Mouse desktops keep the
-     #113 top bar. */
+     labels are the only names on screen (tablet pass, #135). The query doesn't ask
+     for "no hover": Chromium on some Samsung tablets reports hover on a touchscreen.
+     Mouse desktops keep the #113 top bar. */
   @media (min-width: 64rem) {
     .tabbar {
       display: none;
@@ -1637,7 +1638,7 @@ body {
       display: flex;
     }
   }
-  @media (min-width: 64rem) and (max-width: 79.99rem) and (hover: none) and (pointer: coarse) {
+  @media (min-width: 64rem) and (max-width: 79.99rem) and (pointer: coarse) {
     .tabbar[data-touch-dock] {
       display: block;
     }
@@ -1798,6 +1799,16 @@ body {
      not muted: owners reconcile a statement by job. */
   .statement-job {
     @apply mt-0.5 block min-w-28 text-[0.8125rem] whitespace-normal text-fg;
+  }
+  /* Between the phone's stacked rows and 736, tighter cells and a worker's name free to
+     wrap keep Current state in view without the table's sideways scroll. */
+  @media (40rem <= width < 46rem) {
+    .statement-lines :is(th, td) {
+      @apply px-1.5;
+    }
+    .statement-lines tbody th[scope="row"] {
+      @apply whitespace-normal;
+    }
   }
   @media (width < 40rem) {
     .statement-lines tbody th[scope="row"] {

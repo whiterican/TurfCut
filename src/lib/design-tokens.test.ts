@@ -595,7 +595,7 @@ describe("the shell (redesign B1.4)", () => {
 
   it("keeps the worker's labelled dock on a touch tablet up to 1279, in place of the icon-only top bar (#135)", () => {
     expect(css).toMatch(/@media \(min-width: 64rem\) \{\s*\.tabbar \{\s*display: none;/);
-    const touch = css.match(/@media \(min-width: 64rem\) and \(max-width: 79\.99rem\) and \(hover: none\) and \(pointer: coarse\) \{([\s\S]*?)\n  \}\n/)?.[1] ?? "";
+    const touch = css.match(/@media \(min-width: 64rem\) and \(max-width: 79\.99rem\) and \(pointer: coarse\) \{([\s\S]*?)\n  \}\n/)?.[1] ?? "";
     expect(touch).toMatch(/\.tabbar\[data-touch-dock\] \{\s*display: block;/);
     expect(touch).toMatch(/body:has\(\.tabbar\[data-touch-dock\]\) \.topnav \{\s*display: none;/);
     expect(touch).toMatch(/body:has\(\.tabbar\[data-touch-dock\]\):not\(:has\(\.staff-band\)\) :is\(\.page, \.tpl:not\(\[data-template="hero"\]\)\) \{\s*padding-bottom: calc\(var\(--dock-clearance\) \+ 2rem\);/);

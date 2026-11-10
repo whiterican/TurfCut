@@ -2293,17 +2293,23 @@ body {
   }
   /* The More sheet's rows (#111, screen 12): icon, label, a chevron; a divider between rows. */
   .more-list {
-    @apply divide-y divide-border;
+    @apply space-y-1;
   }
   .more-row {
-    @apply min-h-12 rounded-none px-1 text-base;
+    @apply min-h-12 rounded-[var(--radius-control)] px-3 text-base;
     color: var(--fg);
+  }
+  /* The row you're on: the dock's tinted capsule, not a dark block (Sunlight keeps its solid tile). */
+  html:not(.sun) .more-sheet .rail-link[aria-current] {
+    background: var(--dock-capsule);
+    color: var(--fg);
+    box-shadow: none;
   }
   .more-extra {
     @apply mt-2 border-t border-border pt-3;
   }
   .more-sheet-panel {
-    @apply relative h-full overflow-y-auto rounded-e-[var(--radius-lg)] border border-s-0 p-4;
+    @apply relative h-full overflow-y-auto rounded-ee-[var(--radius-lg)] border border-s-0 border-t-0 p-4 outline-none;
     padding-top: calc(1rem + env(safe-area-inset-top));
     padding-bottom: calc(1rem + env(safe-area-inset-bottom));
     padding-inline-start: calc(1rem + env(safe-area-inset-left));
@@ -2361,6 +2367,19 @@ body {
   }
   .dark .more-sheet::backdrop {
     background: rgb(8 4 14 / 0.6);
+  }
+  /* An installed app on a phone draws the status bar's strip in the root's colour, above the page.
+     While the drawer is open the root takes the drawer's own colour (its pane over the dimmed
+     page), and the drawer's top edge is square, so the drawer reads as running to the top of the
+     screen instead of stopping under a strip of page colour. */
+  html:has(.more-sheet[open]) {
+    background: color-mix(in srgb, var(--surface) 79%, color-mix(in srgb, rgb(24 20 30) 45%, var(--bg)));
+  }
+  html.dark:has(.more-sheet[open]) {
+    background: color-mix(in srgb, var(--surface) 78%, color-mix(in srgb, rgb(8 4 14) 60%, var(--bg)));
+  }
+  html.sun:has(.more-sheet[open]) {
+    background: var(--surface);
   }
   /* Bottom sheet (components/Sheet.tsx, P1.6): a native modal dialog that
      springs up from the bottom edge; centred on wide screens. */

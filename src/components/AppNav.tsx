@@ -208,13 +208,14 @@ export function OrgTabBar({ tabs, more, extra, notices = 0, person }: { tabs: Na
   }, []);
   // Nothing left to show (e.g. the role changed): the sheet can't stay open.
   if (open && more.length === 0) setOpen(false);
-  // Keep the dialog in step with state; focus the first item on opening.
+  // Keep the dialog in step with state; focus the panel on opening.
   useEffect(() => {
     const d = sheet.current;
     if (!d) return;
     if (open && !d.open) {
       d.showModal();
-      d.querySelector<HTMLElement>("a")?.focus();
+      // Focus the panel, not its first row: the first row would show a focus ring nobody asked for on touch. Tab goes to the rows.
+      d.querySelector<HTMLElement>(".more-sheet-panel")?.focus();
     }
     if (!open && d.open) d.close();
   }, [open]);
@@ -250,7 +251,7 @@ export function OrgTabBar({ tabs, more, extra, notices = 0, person }: { tabs: Na
             if (e.target === e.currentTarget) close();
           }}
         >
-          <div className="more-sheet-panel">
+          <div className="more-sheet-panel" tabIndex={-1}>
             <div className="mb-2 flex items-center justify-between">
               {person ? (
                 <p className="min-w-0">

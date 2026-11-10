@@ -56,3 +56,13 @@ The screenshots and `sweep.txt` here were retaken after these fixes.
 
 - The organization's sidebar is still the solid eggplant frame. It becomes glass with the sidebar work that follows (a worker sidebar, and both sidebars on tablets).
 - Not checked: a real device, Safari, Sunlight by eye, print, the admin console.
+
+## The drawer fits the screen (Caden's phone, Nov 10)
+
+On Caden's iPhone, with the app installed to the home screen, the drawer stopped under a strip of page colour where the status bar sits, and its current row was a dark square block with a stray focus outline on the first row.
+
+- An installed app draws the status bar's strip in the root's colour, above the page, where the page cannot paint. While the drawer is open the root now takes the drawer's own colour, and the drawer's top edge is square, so it reads as running to the top of the screen.
+- The current row is the dock's tinted capsule with rounded ends; rows have no dividers.
+- Opening the drawer focuses its panel, not its first row, so no outline appears on touch. Tab still goes to the rows.
+
+`drawer-flush.png` is Chromium, which has no status-bar strip: it shows the rows and the square top edge. Whether iOS repaints the strip when the root's colour changes while the app is open is not verified here; it needs a look on the phone.

@@ -18,6 +18,15 @@ All evidence is the running app on the local test database in Chromium. It is no
 - The dock test now checks the worst case behind the pane: black under the day's glass, white under the night's. The icons stay at 4.5:1 or better on the pane and on the current capsule. That check set the night pane at 74% (70% measured 4.40:1).
 - `sweep.txt`: the 31-page sweep, no sideways overflow.
 
+## More reflective, more transparent (later on Nov 10)
+
+Caden asked for more of both.
+- **Thinner panes.** Icon-only panes (the dock, icon buttons, map controls) are 45% of the card colour by day and 58% by night, from 62% and 74%. They hold icons, so the test asks 3:1 over the worst thing behind them, the bar for graphics; 55% by night measured 2.91:1, so it is 58%. The drawer and sheets are 72% and 74%, from 80% and 82%. Bars with small grey text (the header, the sidebar, a thread's bar, the composer) are 80%, from 88%: muted text stays above 4.5:1 there. Cards are 80% and 82%.
+- **The named menu button** moved to the drawer's denser pane, because it carries text.
+- **More reflection.** The sheen is a diagonal glint (bright at the top-left corner, a fainter return at the bottom-right) in place of a top-down fade; the rim is brighter all the way round; the blur behind is richer (more saturation, a little contrast).
+
+`more-light.png` and `more-dark.png`: Home, a job's page and the open drawer.
+
 ## Review
 
 A separate Claude reviewer measured the glass in light, dark, Sunlight, reduced transparency, more contrast and forced colours, and found nothing broken. Its findings, fixed:

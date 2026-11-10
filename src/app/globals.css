@@ -187,13 +187,13 @@
   --shadow: var(--shadow-depth);
   color-scheme: dark;
   /* Liquid Glass by night: a dimmer pane, a fainter lit edge. */
-  --glass-bg: color-mix(in srgb, var(--surface) 74%, transparent);
-  --glass-bg-strong: color-mix(in srgb, var(--surface) 82%, transparent);
-  --glass-bg-bar: color-mix(in srgb, var(--surface) 88%, transparent);
-  --glass-border: rgb(255 255 255 / 0.14);
-  --glass-highlight: inset 0 1px 0 rgb(255 255 255 / 0.2), inset 0 -1px 0 rgb(255 255 255 / 0.04), 0 12px 32px -14px rgb(0 0 0 / 0.7);
-  --glass-sheen: linear-gradient(180deg, rgb(255 255 255 / 0.1), rgb(255 255 255 / 0) 46%);
-  --card-bg: color-mix(in srgb, var(--surface) 88%, transparent);
+  --glass-bg: color-mix(in srgb, var(--surface) 58%, transparent);
+  --glass-bg-strong: color-mix(in srgb, var(--surface) 74%, transparent);
+  --glass-bg-bar: color-mix(in srgb, var(--surface) 80%, transparent);
+  --glass-border: rgb(255 255 255 / 0.2);
+  --glass-highlight: inset 0 1px 0 rgb(255 255 255 / 0.34), inset 0 -1px 0 rgb(255 255 255 / 0.08), inset 0 0 0 1px rgb(255 255 255 / 0.06), 0 14px 36px -14px rgb(0 0 0 / 0.75);
+  --glass-sheen: linear-gradient(135deg, rgb(255 255 255 / 0.2) 0%, rgb(255 255 255 / 0.04) 30%, rgb(255 255 255 / 0) 55%, rgb(255 255 255 / 0.09) 100%);
+  --card-bg: color-mix(in srgb, var(--surface) 82%, transparent);
   --card-edge: inset 0 1px 0 rgb(255 255 255 / 0.1);
   --card-sheen: linear-gradient(180deg, rgb(255 255 255 / 0.05), rgb(255 255 255 / 0) 38%);
   --page-wash: radial-gradient(130% 34rem at 50% -8rem, color-mix(in srgb, var(--ring) 17%, transparent), transparent 72%);
@@ -281,21 +281,24 @@
 html {
   /* The root paints the page colour (what overscroll shows). */
   background: var(--bg);
+  /* More reflective and more see-through (Caden, later on Nov 10): thinner panes, a diagonal
+     glint with a bright rim, a richer blur. Icon-only panes go as thin as their icons allow
+     (3:1 over the worst thing behind them); panes with text stay denser (AA for muted text). */
   /* Liquid Glass (Caden, Nov 10). Controls that float over content (the dock, the header, the
      menu button and drawer, sheets, map controls, icon buttons, the composer, sticky table
      headers) are translucent: the page shows through, blurred and a little richer, under a
      bright top edge. Cards are the content layer: nearly solid, with the same lit edge and a
      soft drop. Sunlight and "reduce transparency" make all of it solid again (below). */
-  --glass-bg: color-mix(in srgb, var(--surface) 62%, transparent);
-  --glass-bg-strong: color-mix(in srgb, var(--surface) 80%, transparent);
+  --glass-bg: color-mix(in srgb, var(--surface) 45%, transparent);
+  --glass-bg-strong: color-mix(in srgb, var(--surface) 72%, transparent);
   /* Bars that carry small secondary text (the header, a thread's bar, the composer, map credits): denser, so it reads over anything. */
-  --glass-bg-bar: color-mix(in srgb, var(--surface) 88%, transparent);
+  --glass-bg-bar: color-mix(in srgb, var(--surface) 80%, transparent);
   --header-bg: var(--glass-bg-bar);
-  --glass-border: color-mix(in srgb, #ffffff 60%, var(--border));
-  --glass-highlight: inset 0 1px 0 rgb(255 255 255 / 0.75), inset 0 -1px 0 rgb(255 255 255 / 0.18), 0 10px 30px -14px rgb(28 15 46 / 0.3);
-  --glass-filter: blur(22px) saturate(180%);
-  --glass-sheen: linear-gradient(180deg, rgb(255 255 255 / 0.4), rgb(255 255 255 / 0) 46%);
-  --card-bg: color-mix(in srgb, var(--surface) 86%, transparent);
+  --glass-border: color-mix(in srgb, #ffffff 78%, var(--border));
+  --glass-highlight: inset 0 1.5px 0 rgb(255 255 255 / 0.95), inset 0 -1px 0 rgb(255 255 255 / 0.4), inset 0 0 0 1px rgb(255 255 255 / 0.28), 0 12px 34px -14px rgb(28 15 46 / 0.36);
+  --glass-filter: blur(24px) saturate(200%) contrast(1.05);
+  --glass-sheen: linear-gradient(135deg, rgb(255 255 255 / 0.7) 0%, rgb(255 255 255 / 0.12) 30%, rgb(255 255 255 / 0) 55%, rgb(255 255 255 / 0.26) 100%);
+  --card-bg: color-mix(in srgb, var(--surface) 80%, transparent);
   --card-edge: inset 0 1px 0 rgb(255 255 255 / 0.85);
   --card-sheen: linear-gradient(180deg, rgb(255 255 255 / 0.5), rgb(255 255 255 / 0) 38%);
   /* The dock is glass too: ink icons, the current one in a tinted capsule. */
@@ -2316,7 +2319,7 @@ body {
   }
   .menu-button[data-named] {
     @apply h-11 w-auto max-w-[60vw] justify-start gap-2 border py-1 ps-1 pe-4 font-semibold;
-    background: var(--glass-sheen), var(--glass-bg);
+    background: var(--glass-sheen), var(--glass-bg-strong);
     border-color: var(--glass-border);
     -webkit-backdrop-filter: var(--glass-filter);
     backdrop-filter: var(--glass-filter);

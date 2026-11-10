@@ -1801,8 +1801,8 @@ body {
     @apply mt-0.5 block min-w-28 text-[0.8125rem] whitespace-normal text-fg;
   }
   /* Between the phone's stacked rows and 736, tighter cells and a worker's name free to
-     wrap keep Current state in view without the table's sideways scroll. */
-  @media (40rem <= width < 46rem) {
+     wrap keep Current state in view without the table's sideways scroll. Screen only: print keeps its own measure. */
+  @media screen and (40rem <= width < 46rem) {
     .statement-lines :is(th, td) {
       @apply px-1.5;
     }

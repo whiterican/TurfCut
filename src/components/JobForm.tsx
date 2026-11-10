@@ -12,6 +12,7 @@ import { US_STATES } from "@/lib/experience";
 import { StagingPointsEditor } from "@/components/StagingPointsEditor";
 import { placeOfCity } from "@/app/jobs/place-actions";
 import { ChevronLeft } from "lucide-react";
+import { ReadableSelect } from "@/components/ReadableSelect";
 
 const initial: JobFormState = { message: "", errors: {} };
 const optional = <span className="font-normal text-subtle">(optional)</span>;
@@ -514,10 +515,10 @@ export function JobForm({
         <p className="label sm:col-span-3">Canvassing app {optional}</p>
         <label className="space-y-1.5">
           <span className="label">App</span>
-          <select name="canvassApp" className="field" defaultValue={d("canvassApp")} {...describe("canvassApp")}>
+          <ReadableSelect name="canvassApp" className="field" defaultValue={d("canvassApp")} {...describe("canvassApp")}>
             <option value="">None: counts are logged in Turfcut</option>
             {CANVASS_APPS.map((a) => <option key={a.value} value={a.value}>{a.label}</option>)}
-          </select>
+          </ReadableSelect>
           {err("canvassApp")}
         </label>
         <label className="space-y-1.5">
@@ -559,10 +560,10 @@ export function JobForm({
         </p>
         <label className="space-y-1.5">
           <span className="label">Campaign type</span>
-          <select name="campaignType" className="field" defaultValue={d("campaignType")} required {...describe("campaignType")}>
+          <ReadableSelect name="campaignType" className="field" defaultValue={d("campaignType")} required {...describe("campaignType")}>
             <option value="" disabled>Choose…</option>
             {CAMPAIGN_TYPES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
-          </select>
+          </ReadableSelect>
           {err("campaignType")}
           <span className="text-hint block">Candidate campaign canvassing is in development: a candidate job can be posted, and workers see it tagged so until its own tools launch.</span>
         </label>

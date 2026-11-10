@@ -1748,6 +1748,11 @@ body {
     @apply absolute top-0.5 left-1/2 ml-1.5 min-w-[1.25rem] px-1 text-[0.7rem] leading-[1.25rem];
     box-shadow: 0 0 0 2px var(--shell-bg);
   }
+  /* On the tab you're on, the count gives way to the name: the list under it shows what's unread,
+     and the link still says the count to a screen reader. */
+  .tab[aria-current] .unread-badge {
+    display: none;
+  }
   /* Two or three places under one tab (Jobs: Find work / My schedule): a
      segmented control, the current one an eggplant tile like the dock's. */
   .segmented {
@@ -2442,6 +2447,10 @@ body {
     body:has(.phone-top):not(:has(.thread-top, .job-head-actions)) :is(.page, .tpl) {
       padding-top: 1rem;
     }
+    /* The admin console hides the strip: its band takes the safe area instead. */
+    body:has(.phone-top) .staff-band {
+      padding-top: calc(0.625rem + env(safe-area-inset-top));
+    }
     /* Not over a job's photograph or a chat thread's own bar: those pages keep their top edge. */
     body:has(.thread-top, .job-head-actions) .phone-top {
       display: none;
@@ -3013,7 +3022,7 @@ summary.list-none::-webkit-details-marker {
 }
 @media (forced-colors: active) {
   .tabbar, .icon-btn, .site-header, .composer, .thread-top, .more-sheet-panel, .data-table thead th, .turf-map.leaflet-container .leaflet-bar, .turf-map.leaflet-container .leaflet-control-attribution { border-color: CanvasText; }
-  .tab[aria-current] { outline: 2px solid Highlight; outline-offset: -2px; }
+  .tab[aria-current]:not(:focus-visible) { outline: 2px solid Highlight; outline-offset: -2px; }
   .option-card input[type="radio"], .choice-row input[type="radio"] { appearance: auto; }
 }
 

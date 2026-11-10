@@ -42,7 +42,9 @@ A separate Claude reviewer went through the branch and found nothing blocking. I
 - in forced-colours mode the current tab had no cue (now an outline);
 - stale comments and unused styles from the labelled dock.
 
-Known and kept: on a job's page and in a chat thread there is no menu button, so the drawer's places (Notifications among them) are one tab switch away.
+A second reviewer re-checked those fixes and the named current tab. Its findings, fixed: the unread badge sat over the current tab's name (the badge now hides on the tab you're on); the forced-colours outline hid the focus ring on the current tab; the admin console on a phone lost its top safe area.
+
+Known and kept: a "99+" badge on Messages pokes about 4px past the pill's edge on a 320px phone when Messages isn't the current tab. Also known and kept: on a job's page and in a chat thread there is no menu button, so the drawer's places (Notifications among them) are one tab switch away.
 
 ## Still imperfect
 

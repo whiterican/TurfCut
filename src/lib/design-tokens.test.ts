@@ -174,7 +174,7 @@ describe("sunlight theme (P1.5): a higher bar for outdoor glare", () => {
     expect(body).not.toMatch(/rgb\([^)]*\/|rgba\(|transparent\s*\)/); // no translucent colours
   });
   it("heavier strokes: 2px edges, heavier icons, bolder body text, solid disabled buttons", () => {
-    expect(css).toMatch(/\.sun body \{\s*font-weight: 500;/);
+    expect(css).toMatch(/\.sun body \{\s*font-weight: 600;/);
     expect(css).toMatch(/\.sun :is\(\.card,[^)]*\) \{\s*border-width: 2px;/);
     expect(css).toMatch(/\.sun svg\.lucide \{\s*stroke-width: 2\.5;/);
     expect(css).toMatch(/\.sun :is\(\.btn,[^)]*\):disabled:not\(\[aria-busy="true"\]\) \{\s*opacity: 1;[^}]*outline: 2px dashed/);
@@ -243,9 +243,13 @@ describe("mockup surfaces", () => {
     // No second face anywhere in the sheet (comments aside; "sans-serif" is the system fallback).
     expect(css.replace(/\/\*[\s\S]*?\*\//g, "")).not.toMatch(/(?<![-\w])serif|Georgia|Fraunces|Barlow|DM Mono/i);
     // The printed scale: H1 28/36 700, H2 20/28 600, H3 16/24 600, Caption 14/20, Small 12/16.
-    expect(css).toMatch(/@utility t-title \{[^}]*?font-size: 1\.75rem;\s*line-height: 2\.25rem;\s*font-weight: 700;/);
-    expect(css).toMatch(/@utility t-headline \{[^}]*?font-size: 1\.25rem;\s*line-height: 1\.75rem;\s*font-weight: 600;/);
-    expect(css).toMatch(/@utility t-section \{[^}]*?font-size: 1rem;\s*line-height: 1\.5rem;\s*font-weight: 600;/);
+    // One step heavier throughout (Nov 10): body 500, and each named weight a step above its default.
+    expect(css).toMatch(/--font-weight-normal: 500;\s*--font-weight-medium: 600;\s*--font-weight-semibold: 700;\s*--font-weight-bold: 800;/);
+    expect(css).toMatch(/\nbody \{[^}]*?font-weight: 500;/);
+    expect(readFileSync(join(__dirname, "../app/layout.tsx"), "utf8")).toMatch(/weight: \["500", "600", "700", "800"\]/);
+    expect(css).toMatch(/@utility t-title \{[^}]*?font-size: 1\.75rem;\s*line-height: 2\.25rem;\s*font-weight: 800;/);
+    expect(css).toMatch(/@utility t-headline \{[^}]*?font-size: 1\.25rem;\s*line-height: 1\.75rem;\s*font-weight: 700;/);
+    expect(css).toMatch(/@utility t-section \{[^}]*?font-size: 1rem;\s*line-height: 1\.5rem;\s*font-weight: 700;/);
     expect(css).toMatch(/--text-xs: 0\.75rem;/);
     expect(css).toMatch(/--text-sm: 0\.875rem;/);
   });

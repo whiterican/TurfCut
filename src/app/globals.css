@@ -342,6 +342,12 @@ html {
   --font-mono: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-condensed: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  /* One step heavier throughout (Caden, Nov 10): body text is 500, and each named weight sits a
+     step above its Tailwind default, so `font-medium` draws 600, `font-semibold` 700, `font-bold` 800. */
+  --font-weight-normal: 500;
+  --font-weight-medium: 600;
+  --font-weight-semibold: 700;
+  --font-weight-bold: 800;
   /* Tailwind's `transition` utility runs on the tokens too. */
   --default-transition-duration: var(--dur-fast);
   --default-transition-timing-function: var(--ease-standard);
@@ -359,6 +365,7 @@ body {
   background: var(--bg);
   color: var(--fg);
   font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 500;
   accent-color: var(--focus);
   /* A long word or link breaks inside its box instead of running past it. */
   overflow-wrap: break-word;
@@ -394,7 +401,7 @@ body {
   font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   font-size: 2rem;
   line-height: 1.15;
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: -0.02em;
   text-wrap: balance;
   @media (width >= 64rem) {
@@ -406,7 +413,7 @@ body {
   font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   font-size: 1.75rem;
   line-height: 2.25rem;
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: -0.01em;
   text-wrap: balance;
 }
@@ -415,7 +422,7 @@ body {
   font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   font-size: 1.25rem;
   line-height: 1.75rem;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: -0.01em;
   text-wrap: balance;
 }
@@ -424,7 +431,7 @@ body {
   font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   font-size: 1rem;
   line-height: 1.5rem;
-  font-weight: 600;
+  font-weight: 700;
 }
 @utility t-body {
   font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
@@ -435,7 +442,7 @@ body {
   font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   font-size: 1.0625rem;
   line-height: 1.35;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: -0.01em;
 }
 @utility t-small {
@@ -447,34 +454,34 @@ body {
   /* Small 12/16 */
   font-size: 0.75rem;
   line-height: 1rem;
-  font-weight: 400;
+  font-weight: 500;
 }
 @utility t-label {
   /* A small label: Small 12/16, semibold, sentence case (no tracked capitals on the board). */
   font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   font-size: 0.75rem;
   line-height: 1rem;
-  font-weight: 600;
+  font-weight: 700;
 }
 @utility t-figure {
   font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   font-size: 1.5rem;
   line-height: 1.1;
-  font-weight: 700;
+  font-weight: 800;
   font-variant-numeric: tabular-nums;
 }
 @utility t-figure-sm {
   font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   font-size: 1rem;
   line-height: 1.1;
-  font-weight: 700;
+  font-weight: 800;
   font-variant-numeric: tabular-nums;
 }
 @utility t-figure-lg {
   font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   font-size: 2rem;
   line-height: 1.1;
-  font-weight: 700;
+  font-weight: 800;
   font-variant-numeric: tabular-nums;
 }
 
@@ -621,7 +628,7 @@ body {
   .hero-split-line {
     @apply t-headline;
     font-family: var(--font-display);
-    font-weight: 600;
+    font-weight: 700;
     font-optical-sizing: auto;
     color: var(--shell-fg);
   }
@@ -1588,7 +1595,7 @@ body {
   }
   .problem-summary > p {
     margin: 0;
-    font-weight: 600;
+    font-weight: 700;
     color: var(--danger);
   }
   .problem-summary ul {
@@ -2427,8 +2434,12 @@ body {
       padding-top: calc(1.5rem + env(safe-area-inset-top));
     }
     /* Under the menu strip, which has taken the safe area. */
-    body:has(.phone-top) :is(.page, .tpl) {
+    body:has(.phone-top):not(:has(.thread-top, .job-head-actions)) :is(.page, .tpl) {
       padding-top: 1rem;
+    }
+    /* Not over a job's photograph or a chat thread's own bar: those pages keep their top edge. */
+    body:has(.thread-top, .job-head-actions) .phone-top {
+      display: none;
     }
   }
   /* Job details (#111, screen 3): the controls over the photograph, the white sheet under it. */
@@ -2881,7 +2892,7 @@ summary.list-none::-webkit-details-marker {
   border-radius: var(--radius-control);
   background: var(--surface);
   color: var(--fg);
-  font-weight: 700;
+  font-weight: 800;
   translate: 0 -200%;
 }
 .skip-link:focus-visible {
@@ -3227,7 +3238,7 @@ summary.list-none::-webkit-details-marker {
    printing keeps its own plain look. */
 @media screen {
   .sun body {
-    font-weight: 500;
+    font-weight: 600;
   }
   /* Field mode is used outdoors and one-handed: every control is at least 48px
      tall (compact ones 44px), so a gloved or hurried thumb still lands. */

@@ -1,0 +1,1520 @@
+{
+  "commit": "ea9f5d8bf9b7f8b86b35af94d7289651eebbc1c5",
+  "base": "master ea9f5d8; excludes unmerged130/131/132/133",
+  "scope": "Read-only local hiring audit, Chromium DPR1 mouse/keyboard, not native iPad/Safari/touch or app-wide signoff. No mutation action submitted; Applicants filter uses GET. Viewports are resized on the same page without reload.",
+  "fixture": {
+    "jobId": "ccccf2db-62ea-41a1-af2d-159abc67eed4",
+    "workers": [
+      {
+        "id": "babdacbc-a9b1-4054-9768-f0a4b46ffee1",
+        "displayName": "Selection fixture A babdacbc (local)",
+        "engagementId": "80185f53-ac15-408d-acd9-c78a616f374b"
+      },
+      {
+        "id": "1ec50c5c-5108-4a57-97aa-80bca93a6bc5",
+        "displayName": "Selection fixture B 1ec50c5c (local)",
+        "engagementId": "d2abbf3a-4503-4298-8c16-ba1c619e7f8a"
+      }
+    ],
+    "emptyJob": {
+      "id": "684888f8-abcb-400a-b41c-3b40a1de3b8a",
+      "title": "Other org can't close"
+    },
+    "fixture": "Two new fictional local workers apply through applyToJob. No political preferences supplied. A browser test marks one application in review after checking failure preservation."
+  },
+  "routes": [
+    {
+      "name": "pipeline",
+      "route": "/hiring"
+    },
+    {
+      "name": "new-job",
+      "route": "/jobs/new"
+    },
+    {
+      "name": "job-page",
+      "route": "/jobs/ccccf2db-62ea-41a1-af2d-159abc67eed4"
+    },
+    {
+      "name": "applicants",
+      "route": "/hiring/ccccf2db-62ea-41a1-af2d-159abc67eed4/applicants?selected=80185f53-ac15-408d-acd9-c78a616f374b"
+    },
+    {
+      "name": "matches",
+      "route": "/hiring/ccccf2db-62ea-41a1-af2d-159abc67eed4/matches"
+    },
+    {
+      "name": "invitations",
+      "route": "/hiring/ccccf2db-62ea-41a1-af2d-159abc67eed4/invites"
+    },
+    {
+      "name": "candidate-withheld",
+      "route": "/hiring/ccccf2db-62ea-41a1-af2d-159abc67eed4/people/d3d18075-44dd-4dd9-80b7-d27a6c6f6624",
+      "workerId": "00000000-0000-0000-0000-000000000103",
+      "note": "Local Sam fixture: all sharing audiences set to NOBODY through saveSharing; no production data."
+    },
+    {
+      "name": "candidate-partial",
+      "route": "/hiring/ef9cf3ac-9fd1-4b50-89fe-2c079569849e/people/d0c1aaa3-d1cd-4a3e-a81c-df4b47a6340f",
+      "workerId": "00000000-0000-0000-0000-000000000104",
+      "note": "Synthetic Riley fixture: identity and party relationship shared through versioned savePreferences; other fit fields withheld."
+    },
+    {
+      "name": "worker-shared",
+      "route": "/workers/00000000-0000-0000-0000-000000000101",
+      "workerId": "00000000-0000-0000-0000-000000000101",
+      "note": "Base seed shared profile."
+    },
+    {
+      "name": "worker-withheld",
+      "route": "/workers/00000000-0000-0000-0000-000000000103",
+      "workerId": "00000000-0000-0000-0000-000000000103",
+      "note": "Local all-withheld sharing fixture."
+    }
+  ],
+  "captures": [
+    {
+      "name": "pipeline",
+      "route": "/hiring",
+      "width": 768,
+      "height": 1024,
+      "theme": "light",
+      "documentHeight": 1144,
+      "overflow": 0,
+      "interLoaded": true,
+      "selects": [],
+      "smallTargets": [],
+      "inspectorVisible": false,
+      "template": "workspace",
+      "title": "Pipeline",
+      "errors": [],
+      "resizedWithoutReload": true
+    },
+    {
+      "name": "pipeline",
+      "route": "/hiring",
+      "width": 1024,
+      "height": 768,
+      "theme": "light",
+      "documentHeight": 885,
+      "overflow": 0,
+      "interLoaded": true,
+      "selects": [],
+      "smallTargets": [],
+      "inspectorVisible": false,
+      "template": "workspace",
+      "title": "Pipeline",
+      "errors": [],
+      "resizedWithoutReload": true
+    },
+    {
+      "name": "new-job",
+      "route": "/jobs/new",
+      "width": 768,
+      "height": 1024,
+      "theme": "light",
+      "documentHeight": 1024,
+      "overflow": 0,
+      "interLoaded": true,
+      "selects": [
+        {
+          "name": "type",
+          "text": "Petition circulation",
+          "textWidth": 122.1650390625,
+          "available": 280,
+          "caption": null,
+          "clippedWithoutCaption": false
+        },
+        {
+          "name": "jurisdictionId",
+          "text": "Choose…",
+          "textWidth": 62.9453125,
+          "available": 280,
+          "caption": null,
+          "clippedWithoutCaption": false
+        }
+      ],
+      "smallTargets": [],
+      "inspectorVisible": false,
+      "template": "reading",
+      "title": "New job",
+      "errors": [],
+      "resizedWithoutReload": true
+    },
+    {
+      "name": "new-job",
+      "route": "/jobs/new",
+      "width": 1024,
+      "height": 768,
+      "theme": "light",
+      "documentHeight": 909,
+      "overflow": 0,
+      "interLoaded": true,
+      "selects": [
+        {
+          "name": "type",
+          "text": "Petition circulation",
+          "textWidth": 122.1650390625,
+          "available": 280,
+          "caption": null,
+          "clippedWithoutCaption": false
+        },
+        {
+          "name": "jurisdictionId",
+          "text": "Choose…",
+          "textWidth": 62.9453125,
+          "available": 280,
+          "caption": null,
+          "clippedWithoutCaption": false
+        }
+      ],
+      "smallTargets": [],
+      "inspectorVisible": false,
+      "template": "reading",
+      "title": "New job",
+      "errors": [],
+      "resizedWithoutReload": true
+    },
+    {
+      "name": "job-page",
+      "route": "/jobs/ccccf2db-62ea-41a1-af2d-159abc67eed4",
+      "width": 768,
+      "height": 1024,
+      "theme": "light",
+      "documentHeight": 6140,
+      "overflow": 0,
+      "interLoaded": true,
+      "selects": [],
+      "smallTargets": [
+        {
+          "text": "Send offerSending…Done",
+          "height": 36
+        },
+        {
+          "text": "Not selected",
+          "height": 36
+        },
+        {
+          "text": "Withdraw invitation",
+          "height": 36
+        },
+        {
+          "text": "Send offerSending…Done",
+          "height": 36
+        },
+        {
+          "text": "Not selected",
+          "height": 36
+        },
+        {
+          "text": "Send offerSending…Done",
+          "height": 36
+        },
+        {
+          "text": "Mark in reviewSaving…Done",
+          "height": 36
+        },
+        {
+          "text": "Not selected",
+          "height": 36
+        },
+        {
+          "text": "Send offerSending…Done",
+          "height": 36
+        },
+        {
+          "text": "Not selected",
+          "height": 36
+        },
+        {
+          "text": "Send offerSending…Done",
+          "height": 36
+        },
+        {
+          "text": "Mark in reviewSaving…Done",
+          "height": 36
+        },
+        {
+          "text": "Not selected",
+          "height": 36
+        }
+      ],
+      "inspectorVisible": false,
+      "template": "record",
+      "title": "Applicants job",
+      "errors": [],
+      "resizedWithoutReload": true
+    },
+    {
+      "name": "job-page",
+      "route": "/jobs/ccccf2db-62ea-41a1-af2d-159abc67eed4",
+      "width": 1024,
+      "height": 768,
+      "theme": "light",
+      "documentHeight": 6084,
+      "overflow": 0,
+      "interLoaded": true,
+      "selects": [],
+      "smallTargets": [
+        {
+          "text": "Send offerSending…Done",
+          "height": 36
+        },
+        {
+          "text": "Not selected",
+          "height": 36
+        },
+        {
+          "text": "Withdraw invitation",
+          "height": 36
+        },
+        {
+          "text": "Send offerSending…Done",
+          "height": 36
+        },
+        {
+          "text": "Not selected",
+          "height": 36
+        },
+        {
+          "text": "Send offerSending…Done",
+          "height": 36
+        },
+        {
+          "text": "Mark in reviewSaving…Done",
+          "height": 36
+        },
+        {
+          "text": "Not selected",
+          "height": 36
+        },
+        {
+          "text": "Send offerSending…Done",
+          "height": 36
+        },
+        {
+          "text": "Not selected",
+          "height": 36
+        },
+        {
+          "text": "Send offerSending…Done",
+          "height": 36
+        },
+        {
+          "text": "Mark in reviewSaving…Done",
+          "height": 36
+        },
+        {
+          "text": "Not selected",
+          "height": 36
+        }
+      ],
+      "inspectorVisible": false,
+      "template": "record",
+      "title": "Applicants job",
+      "errors": [],
+      "resizedWithoutReload": true
+    },
+    {
+      "name": "applicants",
+      "route": "/hiring/ccccf2db-62ea-41a1-af2d-159abc67eed4/applicants?col=applied&col=stage&col=free&col=credentials&col=signaturesPerActiveHour&col=showRate&stage=open&since=",
+      "width": 768,
+      "height": 1024,
+      "theme": "light",
+      "documentHeight": 1780,
+      "overflow": 0,
+      "interLoaded": true,
+      "selects": [
+        {
+          "name": "stage",
+          "text": "Waiting on someone (applied, offered)",
+          "textWidth": 253.12109375,
+          "available": 287,
+          "caption": null,
+          "clippedWithoutCaption": false
+        },
+        {
+          "name": "bulk",
+          "text": "Not selected",
+          "textWidth": 83.740234375,
+          "available": 132,
+          "caption": null,
+          "clippedWithoutCaption": false
+        },
+        {
+          "name": "reasonCode",
+          "text": "The job needs a credential that isn't on the profile",
+          "textWidth": 328.0634765625,
+          "available": 325,
+          "caption": null,
+          "clippedWithoutCaption": true
+        }
+      ],
+      "smallTargets": [
+        {
+          "text": "Pipeline",
+          "height": 36
+        },
+        {
+          "text": "Job page",
+          "height": 36
+        },
+        {
+          "text": "Show",
+          "height": 36
+        },
+        {
+          "text": "Reset",
+          "height": 36
+        }
+      ],
+      "inspectorVisible": false,
+      "template": "listDetail",
+      "title": "Applicants job",
+      "errors": [],
+      "resizedWithoutReload": true
+    },
+    {
+      "name": "applicants",
+      "route": "/hiring/ccccf2db-62ea-41a1-af2d-159abc67eed4/applicants?col=applied&col=stage&col=free&col=credentials&col=signaturesPerActiveHour&col=showRate&stage=open&since=",
+      "width": 1024,
+      "height": 768,
+      "theme": "light",
+      "documentHeight": 1700,
+      "overflow": 0,
+      "interLoaded": true,
+      "selects": [
+        {
+          "name": "stage",
+          "text": "Waiting on someone (applied, offered)",
+          "textWidth": 253.12109375,
+          "available": 305,
+          "caption": null,
+          "clippedWithoutCaption": false
+        },
+        {
+          "name": "bulk",
+          "text": "Not selected",
+          "textWidth": 83.740234375,
+          "available": 132,
+          "caption": null,
+          "clippedWithoutCaption": false
+        },
+        {
+          "name": "reasonCode",
+          "text": "The job needs a credential that isn't on the profile",
+          "textWidth": 328.0634765625,
+          "available": 325,
+          "caption": null,
+          "clippedWithoutCaption": true
+        }
+      ],
+      "smallTargets": [
+        {
+          "text": "Pipeline",
+          "height": 36
+        },
+        {
+          "text": "Job page",
+          "height": 36
+        },
+        {
+          "text": "Show",
+          "height": 36
+        },
+        {
+          "text": "Reset",
+          "height": 36
+        }
+      ],
+      "inspectorVisible": false,
+      "template": "listDetail",
+      "title": "Applicants job",
+      "errors": [],
+      "resizedWithoutReload": true
+    },
+    {
+      "name": "matches",
+      "route": "/hiring/ccccf2db-62ea-41a1-af2d-159abc67eed4/matches",
+      "width": 768,
+      "height": 1024,
+      "theme": "light",
+      "documentHeight": 1024,
+      "overflow": 0,
+      "interLoaded": true,
+      "selects": [],
+      "smallTargets": [
+        {
+          "text": "Pipeline",
+          "height": 36
+        },
+        {
+          "text": "Job page",
+          "height": 36
+        }
+      ],
+      "inspectorVisible": false,
+      "template": "workspace",
+      "title": "Applicants job",
+      "errors": [],
+      "resizedWithoutReload": true
+    },
+    {
+      "name": "matches",
+      "route": "/hiring/ccccf2db-62ea-41a1-af2d-159abc67eed4/matches",
+      "width": 1024,
+      "height": 768,
+      "theme": "light",
+      "documentHeight": 768,
+      "overflow": 0,
+      "interLoaded": true,
+      "selects": [],
+      "smallTargets": [
+        {
+          "text": "Pipeline",
+          "height": 36
+        },
+        {
+          "text": "Job page",
+          "height": 36
+        }
+      ],
+      "inspectorVisible": false,
+      "template": "workspace",
+      "title": "Applicants job",
+      "errors": [],
+      "resizedWithoutReload": true
+    },
+    {
+      "name": "invitations",
+      "route": "/hiring/ccccf2db-62ea-41a1-af2d-159abc67eed4/invites",
+      "width": 768,
+      "height": 1024,
+      "theme": "light",
+      "documentHeight": 1024,
+      "overflow": 0,
+      "interLoaded": true,
+      "selects": [],
+      "smallTargets": [
+        {
+          "text": "Pipeline",
+          "height": 36
+        },
+        {
+          "text": "Job page",
+          "height": 36
+        },
+        {
+          "text": "Withdraw invitation",
+          "height": 36
+        }
+      ],
+      "inspectorVisible": false,
+      "template": "workspace",
+      "title": "Applicants job",
+      "errors": [],
+      "resizedWithoutReload": true
+    },
+    {
+      "name": "invitations",
+      "route": "/hiring/ccccf2db-62ea-41a1-af2d-159abc67eed4/invites",
+      "width": 1024,
+      "height": 768,
+      "theme": "light",
+      "documentHeight": 768,
+      "overflow": 0,
+      "interLoaded": true,
+      "selects": [],
+      "smallTargets": [
+        {
+          "text": "Pipeline",
+          "height": 36
+        },
+        {
+          "text": "Job page",
+          "height": 36
+        },
+        {
+          "text": "Withdraw invitation",
+          "height": 36
+        }
+      ],
+      "inspectorVisible": false,
+      "template": "workspace",
+      "title": "Applicants job",
+      "errors": [],
+      "resizedWithoutReload": true
+    },
+    {
+      "name": "candidate-withheld",
+      "route": "/hiring/ccccf2db-62ea-41a1-af2d-159abc67eed4/people/d3d18075-44dd-4dd9-80b7-d27a6c6f6624",
+      "width": 768,
+      "height": 1024,
+      "theme": "light",
+      "documentHeight": 2591,
+      "overflow": 0,
+      "interLoaded": true,
+      "selects": [],
+      "smallTargets": [
+        {
+          "text": "Applicants",
+          "height": 36
+        },
+        {
+          "text": "Job page",
+          "height": 36
+        },
+        {
+          "text": "Send offerSending…Done",
+          "height": 36
+        },
+        {
+          "text": "Not selected",
+          "height": 36
+        }
+      ],
+      "inspectorVisible": false,
+      "template": "record",
+      "title": "Sam Torres",
+      "errors": [],
+      "resizedWithoutReload": true
+    },
+    {
+      "name": "candidate-withheld",
+      "route": "/hiring/ccccf2db-62ea-41a1-af2d-159abc67eed4/people/d3d18075-44dd-4dd9-80b7-d27a6c6f6624",
+      "width": 1024,
+      "height": 768,
+      "theme": "light",
+      "documentHeight": 2511,
+      "overflow": 0,
+      "interLoaded": true,
+      "selects": [],
+      "smallTargets": [
+        {
+          "text": "Applicants",
+          "height": 36
+        },
+        {
+          "text": "Job page",
+          "height": 36
+        },
+        {
+          "text": "Send offerSending…Done",
+          "height": 36
+        },
+        {
+          "text": "Not selected",
+          "height": 36
+        }
+      ],
+      "inspectorVisible": false,
+      "template": "record",
+      "title": "Sam Torres",
+      "errors": [],
+      "resizedWithoutReload": true
+    },
+    {
+      "name": "candidate-partial",
+      "route": "/hiring/ef9cf3ac-9fd1-4b50-89fe-2c079569849e/people/d0c1aaa3-d1cd-4a3e-a81c-df4b47a6340f",
+      "width": 768,
+      "height": 1024,
+      "theme": "light",
+      "documentHeight": 3123,
+      "overflow": 0,
+      "interLoaded": true,
+      "selects": [],
+      "smallTargets": [
+        {
+          "text": "Applicants",
+          "height": 36
+        },
+        {
+          "text": "Job page",
+          "height": 36
+        },
+        {
+          "text": "Send offerSending…Done",
+          "height": 36
+        },
+        {
+          "text": "Not selected",
+          "height": 36
+        }
+      ],
+      "inspectorVisible": false,
+      "template": "record",
+      "title": "Riley Park",
+      "errors": [],
+      "resizedWithoutReload": true
+    },
+    {
+      "name": "candidate-partial",
+      "route": "/hiring/ef9cf3ac-9fd1-4b50-89fe-2c079569849e/people/d0c1aaa3-d1cd-4a3e-a81c-df4b47a6340f",
+      "width": 1024,
+      "height": 768,
+      "theme": "light",
+      "documentHeight": 3043,
+      "overflow": 0,
+      "interLoaded": true,
+      "selects": [],
+      "smallTargets": [
+        {
+          "text": "Applicants",
+          "height": 36
+        },
+        {
+          "text": "Job page",
+          "height": 36
+        },
+        {
+          "text": "Send offerSending…Done",
+          "height": 36
+        },
+        {
+          "text": "Not selected",
+          "height": 36
+        }
+      ],
+      "inspectorVisible": false,
+      "template": "record",
+      "title": "Riley Park",
+      "errors": [],
+      "resizedWithoutReload": true
+    },
+    {
+      "name": "worker-shared",
+      "route": "/workers/00000000-0000-0000-0000-000000000101",
+      "width": 768,
+      "height": 1024,
+      "theme": "light",
+      "documentHeight": 3311,
+      "overflow": 0,
+      "interLoaded": true,
+      "selects": [
+        {
+          "name": "jobId",
+          "text": "Applicants job",
+          "textWidth": 93.98046875,
+          "available": 628,
+          "caption": null,
+          "clippedWithoutCaption": false
+        }
+      ],
+      "smallTargets": [],
+      "inspectorVisible": false,
+      "template": "record",
+      "title": "Alex Rivera",
+      "errors": [],
+      "resizedWithoutReload": true
+    },
+    {
+      "name": "worker-shared",
+      "route": "/workers/00000000-0000-0000-0000-000000000101",
+      "width": 1024,
+      "height": 768,
+      "theme": "light",
+      "documentHeight": 3231,
+      "overflow": 0,
+      "interLoaded": true,
+      "selects": [
+        {
+          "name": "jobId",
+          "text": "Applicants job",
+          "textWidth": 93.98046875,
+          "available": 664,
+          "caption": null,
+          "clippedWithoutCaption": false
+        }
+      ],
+      "smallTargets": [],
+      "inspectorVisible": false,
+      "template": "record",
+      "title": "Alex Rivera",
+      "errors": [],
+      "resizedWithoutReload": true
+    },
+    {
+      "name": "worker-withheld",
+      "route": "/workers/00000000-0000-0000-0000-000000000103",
+      "width": 768,
+      "height": 1024,
+      "theme": "light",
+      "documentHeight": 1695,
+      "overflow": 0,
+      "interLoaded": true,
+      "selects": [],
+      "smallTargets": [],
+      "inspectorVisible": false,
+      "template": "record",
+      "title": "Sam Torres",
+      "errors": [],
+      "resizedWithoutReload": true
+    },
+    {
+      "name": "worker-withheld",
+      "route": "/workers/00000000-0000-0000-0000-000000000103",
+      "width": 1024,
+      "height": 768,
+      "theme": "light",
+      "documentHeight": 1615,
+      "overflow": 0,
+      "interLoaded": true,
+      "selects": [],
+      "smallTargets": [],
+      "inspectorVisible": false,
+      "template": "record",
+      "title": "Sam Torres",
+      "errors": [],
+      "resizedWithoutReload": true
+    },
+    {
+      "name": "pipeline",
+      "route": "/hiring",
+      "width": 768,
+      "height": 1024,
+      "theme": "dark",
+      "documentHeight": 1144,
+      "overflow": 0,
+      "interLoaded": true,
+      "selects": [],
+      "smallTargets": [],
+      "inspectorVisible": false,
+      "template": "workspace",
+      "title": "Pipeline",
+      "errors": [],
+      "resizedWithoutReload": true
+    },
+    {
+      "name": "pipeline",
+      "route": "/hiring",
+      "width": 1024,
+      "height": 768,
+      "theme": "dark",
+      "documentHeight": 885,
+      "overflow": 0,
+      "interLoaded": true,
+      "selects": [],
+      "smallTargets": [],
+      "inspectorVisible": false,
+      "template": "workspace",
+      "title": "Pipeline",
+      "errors": [],
+      "resizedWithoutReload": true
+    },
+    {
+      "name": "new-job",
+      "route": "/jobs/new",
+      "width": 768,
+      "height": 1024,
+      "theme": "dark",
+      "documentHeight": 1024,
+      "overflow": 0,
+      "interLoaded": true,
+      "selects": [
+        {
+          "name": "type",
+          "text": "Petition circulation",
+          "textWidth": 122.1650390625,
+          "available": 280,
+          "caption": null,
+          "clippedWithoutCaption": false
+        },
+        {
+          "name": "jurisdictionId",
+          "text": "Choose…",
+          "textWidth": 62.9453125,
+          "available": 280,
+          "caption": null,
+          "clippedWithoutCaption": false
+        }
+      ],
+      "smallTargets": [],
+      "inspectorVisible": false,
+      "template": "reading",
+      "title": "New job",
+      "errors": [],
+      "resizedWithoutReload": true
+    },
+    {
+      "name": "new-job",
+      "route": "/jobs/new",
+      "width": 1024,
+      "height": 768,
+      "theme": "dark",
+      "documentHeight": 909,
+      "overflow": 0,
+      "interLoaded": true,
+      "selects": [
+        {
+          "name": "type",
+          "text": "Petition circulation",
+          "textWidth": 122.1650390625,
+          "available": 280,
+          "caption": null,
+          "clippedWithoutCaption": false
+        },
+        {
+          "name": "jurisdictionId",
+          "text": "Choose…",
+          "textWidth": 62.9453125,
+          "available": 280,
+          "caption": null,
+          "clippedWithoutCaption": false
+        }
+      ],
+      "smallTargets": [],
+      "inspectorVisible": false,
+      "template": "reading",
+      "title": "New job",
+      "errors": [],
+      "resizedWithoutReload": true
+    },
+    {
+      "name": "job-page",
+      "route": "/jobs/ccccf2db-62ea-41a1-af2d-159abc67eed4",
+      "width": 768,
+      "height": 1024,
+      "theme": "dark",
+      "documentHeight": 6140,
+      "overflow": 0,
+      "interLoaded": true,
+      "selects": [],
+      "smallTargets": [
+        {
+          "text": "Send offerSending…Done",
+          "height": 36
+        },
+        {
+          "text": "Not selected",
+          "height": 36
+        },
+        {
+          "text": "Withdraw invitation",
+          "height": 36
+        },
+        {
+          "text": "Send offerSending…Done",
+          "height": 36
+        },
+        {
+          "text": "Not selected",
+          "height": 36
+        },
+        {
+          "text": "Send offerSending…Done",
+          "height": 36
+        },
+        {
+          "text": "Mark in reviewSaving…Done",
+          "height": 36
+        },
+        {
+          "text": "Not selected",
+          "height": 36
+        },
+        {
+          "text": "Send offerSending…Done",
+          "height": 36
+        },
+        {
+          "text": "Not selected",
+          "height": 36
+        },
+        {
+          "text": "Send offerSending…Done",
+          "height": 36
+        },
+        {
+          "text": "Mark in reviewSaving…Done",
+          "height": 36
+        },
+        {
+          "text": "Not selected",
+          "height": 36
+        }
+      ],
+      "inspectorVisible": false,
+      "template": "record",
+      "title": "Applicants job",
+      "errors": [],
+      "resizedWithoutReload": true
+    },
+    {
+      "name": "job-page",
+      "route": "/jobs/ccccf2db-62ea-41a1-af2d-159abc67eed4",
+      "width": 1024,
+      "height": 768,
+      "theme": "dark",
+      "documentHeight": 6084,
+      "overflow": 0,
+      "interLoaded": true,
+      "selects": [],
+      "smallTargets": [
+        {
+          "text": "Send offerSending…Done",
+          "height": 36
+        },
+        {
+          "text": "Not selected",
+          "height": 36
+        },
+        {
+          "text": "Withdraw invitation",
+          "height": 36
+        },
+        {
+          "text": "Send offerSending…Done",
+          "height": 36
+        },
+        {
+          "text": "Not selected",
+          "height": 36
+        },
+        {
+          "text": "Send offerSending…Done",
+          "height": 36
+        },
+        {
+          "text": "Mark in reviewSaving…Done",
+          "height": 36
+        },
+        {
+          "text": "Not selected",
+          "height": 36
+        },
+        {
+          "text": "Send offerSending…Done",
+          "height": 36
+        },
+        {
+          "text": "Not selected",
+          "height": 36
+        },
+        {
+          "text": "Send offerSending…Done",
+          "height": 36
+        },
+        {
+          "text": "Mark in reviewSaving…Done",
+          "height": 36
+        },
+        {
+          "text": "Not selected",
+          "height": 36
+        }
+      ],
+      "inspectorVisible": false,
+      "template": "record",
+      "title": "Applicants job",
+      "errors": [],
+      "resizedWithoutReload": true
+    },
+    {
+      "name": "applicants",
+      "route": "/hiring/ccccf2db-62ea-41a1-af2d-159abc67eed4/applicants?col=applied&col=stage&col=free&col=credentials&col=signaturesPerActiveHour&col=showRate&stage=open&since=",
+      "width": 768,
+      "height": 1024,
+      "theme": "dark",
+      "documentHeight": 1780,
+      "overflow": 0,
+      "interLoaded": true,
+      "selects": [
+        {
+          "name": "stage",
+          "text": "Waiting on someone (applied, offered)",
+          "textWidth": 253.12109375,
+          "available": 287,
+          "caption": null,
+          "clippedWithoutCaption": false
+        },
+        {
+          "name": "bulk",
+          "text": "Not selected",
+          "textWidth": 83.740234375,
+          "available": 132,
+          "caption": null,
+          "clippedWithoutCaption": false
+        },
+        {
+          "name": "reasonCode",
+          "text": "The job needs a credential that isn't on the profile",
+          "textWidth": 328.0634765625,
+          "available": 325,
+          "caption": null,
+          "clippedWithoutCaption": true
+        }
+      ],
+      "smallTargets": [
+        {
+          "text": "Pipeline",
+          "height": 36
+        },
+        {
+          "text": "Job page",
+          "height": 36
+        },
+        {
+          "text": "Show",
+          "height": 36
+        },
+        {
+          "text": "Reset",
+          "height": 36
+        }
+      ],
+      "inspectorVisible": false,
+      "template": "listDetail",
+      "title": "Applicants job",
+      "errors": [],
+      "resizedWithoutReload": true
+    },
+    {
+      "name": "applicants",
+      "route": "/hiring/ccccf2db-62ea-41a1-af2d-159abc67eed4/applicants?col=applied&col=stage&col=free&col=credentials&col=signaturesPerActiveHour&col=showRate&stage=open&since=",
+      "width": 1024,
+      "height": 768,
+      "theme": "dark",
+      "documentHeight": 1700,
+      "overflow": 0,
+      "interLoaded": true,
+      "selects": [
+        {
+          "name": "stage",
+          "text": "Waiting on someone (applied, offered)",
+          "textWidth": 253.12109375,
+          "available": 305,
+          "caption": null,
+          "clippedWithoutCaption": false
+        },
+        {
+          "name": "bulk",
+          "text": "Not selected",
+          "textWidth": 83.740234375,
+          "available": 132,
+          "caption": null,
+          "clippedWithoutCaption": false
+        },
+        {
+          "name": "reasonCode",
+          "text": "The job needs a credential that isn't on the profile",
+          "textWidth": 328.0634765625,
+          "available": 325,
+          "caption": null,
+          "clippedWithoutCaption": true
+        }
+      ],
+      "smallTargets": [
+        {
+          "text": "Pipeline",
+          "height": 36
+        },
+        {
+          "text": "Job page",
+          "height": 36
+        },
+        {
+          "text": "Show",
+          "height": 36
+        },
+        {
+          "text": "Reset",
+          "height": 36
+        }
+      ],
+      "inspectorVisible": false,
+      "template": "listDetail",
+      "title": "Applicants job",
+      "errors": [],
+      "resizedWithoutReload": true
+    },
+    {
+      "name": "matches",
+      "route": "/hiring/ccccf2db-62ea-41a1-af2d-159abc67eed4/matches",
+      "width": 768,
+      "height": 1024,
+      "theme": "dark",
+      "documentHeight": 1024,
+      "overflow": 0,
+      "interLoaded": true,
+      "selects": [],
+      "smallTargets": [
+        {
+          "text": "Pipeline",
+          "height": 36
+        },
+        {
+          "text": "Job page",
+          "height": 36
+        }
+      ],
+      "inspectorVisible": false,
+      "template": "workspace",
+      "title": "Applicants job",
+      "errors": [],
+      "resizedWithoutReload": true
+    },
+    {
+      "name": "matches",
+      "route": "/hiring/ccccf2db-62ea-41a1-af2d-159abc67eed4/matches",
+      "width": 1024,
+      "height": 768,
+      "theme": "dark",
+      "documentHeight": 768,
+      "overflow": 0,
+      "interLoaded": true,
+      "selects": [],
+      "smallTargets": [
+        {
+          "text": "Pipeline",
+          "height": 36
+        },
+        {
+          "text": "Job page",
+          "height": 36
+        }
+      ],
+      "inspectorVisible": false,
+      "template": "workspace",
+      "title": "Applicants job",
+      "errors": [],
+      "resizedWithoutReload": true
+    },
+    {
+      "name": "invitations",
+      "route": "/hiring/ccccf2db-62ea-41a1-af2d-159abc67eed4/invites",
+      "width": 768,
+      "height": 1024,
+      "theme": "dark",
+      "documentHeight": 1024,
+      "overflow": 0,
+      "interLoaded": true,
+      "selects": [],
+      "smallTargets": [
+        {
+          "text": "Pipeline",
+          "height": 36
+        },
+        {
+          "text": "Job page",
+          "height": 36
+        },
+        {
+          "text": "Withdraw invitation",
+          "height": 36
+        }
+      ],
+      "inspectorVisible": false,
+      "template": "workspace",
+      "title": "Applicants job",
+      "errors": [],
+      "resizedWithoutReload": true
+    },
+    {
+      "name": "invitations",
+      "route": "/hiring/ccccf2db-62ea-41a1-af2d-159abc67eed4/invites",
+      "width": 1024,
+      "height": 768,
+      "theme": "dark",
+      "documentHeight": 768,
+      "overflow": 0,
+      "interLoaded": true,
+      "selects": [],
+      "smallTargets": [
+        {
+          "text": "Pipeline",
+          "height": 36
+        },
+        {
+          "text": "Job page",
+          "height": 36
+        },
+        {
+          "text": "Withdraw invitation",
+          "height": 36
+        }
+      ],
+      "inspectorVisible": false,
+      "template": "workspace",
+      "title": "Applicants job",
+      "errors": [],
+      "resizedWithoutReload": true
+    },
+    {
+      "name": "candidate-withheld",
+      "route": "/hiring/ccccf2db-62ea-41a1-af2d-159abc67eed4/people/d3d18075-44dd-4dd9-80b7-d27a6c6f6624",
+      "width": 768,
+      "height": 1024,
+      "theme": "dark",
+      "documentHeight": 2591,
+      "overflow": 0,
+      "interLoaded": true,
+      "selects": [],
+      "smallTargets": [
+        {
+          "text": "Applicants",
+          "height": 36
+        },
+        {
+          "text": "Job page",
+          "height": 36
+        },
+        {
+          "text": "Send offerSending…Done",
+          "height": 36
+        },
+        {
+          "text": "Not selected",
+          "height": 36
+        }
+      ],
+      "inspectorVisible": false,
+      "template": "record",
+      "title": "Sam Torres",
+      "errors": [],
+      "resizedWithoutReload": true
+    },
+    {
+      "name": "candidate-withheld",
+      "route": "/hiring/ccccf2db-62ea-41a1-af2d-159abc67eed4/people/d3d18075-44dd-4dd9-80b7-d27a6c6f6624",
+      "width": 1024,
+      "height": 768,
+      "theme": "dark",
+      "documentHeight": 2511,
+      "overflow": 0,
+      "interLoaded": true,
+      "selects": [],
+      "smallTargets": [
+        {
+          "text": "Applicants",
+          "height": 36
+        },
+        {
+          "text": "Job page",
+          "height": 36
+        },
+        {
+          "text": "Send offerSending…Done",
+          "height": 36
+        },
+        {
+          "text": "Not selected",
+          "height": 36
+        }
+      ],
+      "inspectorVisible": false,
+      "template": "record",
+      "title": "Sam Torres",
+      "errors": [],
+      "resizedWithoutReload": true
+    },
+    {
+      "name": "candidate-partial",
+      "route": "/hiring/ef9cf3ac-9fd1-4b50-89fe-2c079569849e/people/d0c1aaa3-d1cd-4a3e-a81c-df4b47a6340f",
+      "width": 768,
+      "height": 1024,
+      "theme": "dark",
+      "documentHeight": 3123,
+      "overflow": 0,
+      "interLoaded": true,
+      "selects": [],
+      "smallTargets": [
+        {
+          "text": "Applicants",
+          "height": 36
+        },
+        {
+          "text": "Job page",
+          "height": 36
+        },
+        {
+          "text": "Send offerSending…Done",
+          "height": 36
+        },
+        {
+          "text": "Not selected",
+          "height": 36
+        }
+      ],
+      "inspectorVisible": false,
+      "template": "record",
+      "title": "Riley Park",
+      "errors": [],
+      "resizedWithoutReload": true
+    },
+    {
+      "name": "candidate-partial",
+      "route": "/hiring/ef9cf3ac-9fd1-4b50-89fe-2c079569849e/people/d0c1aaa3-d1cd-4a3e-a81c-df4b47a6340f",
+      "width": 1024,
+      "height": 768,
+      "theme": "dark",
+      "documentHeight": 3043,
+      "overflow": 0,
+      "interLoaded": true,
+      "selects": [],
+      "smallTargets": [
+        {
+          "text": "Applicants",
+          "height": 36
+        },
+        {
+          "text": "Job page",
+          "height": 36
+        },
+        {
+          "text": "Send offerSending…Done",
+          "height": 36
+        },
+        {
+          "text": "Not selected",
+          "height": 36
+        }
+      ],
+      "inspectorVisible": false,
+      "template": "record",
+      "title": "Riley Park",
+      "errors": [],
+      "resizedWithoutReload": true
+    },
+    {
+      "name": "worker-shared",
+      "route": "/workers/00000000-0000-0000-0000-000000000101",
+      "width": 768,
+      "height": 1024,
+      "theme": "dark",
+      "documentHeight": 3311,
+      "overflow": 0,
+      "interLoaded": true,
+      "selects": [
+        {
+          "name": "jobId",
+          "text": "Applicants job",
+          "textWidth": 93.98046875,
+          "available": 628,
+          "caption": null,
+          "clippedWithoutCaption": false
+        }
+      ],
+      "smallTargets": [],
+      "inspectorVisible": false,
+      "template": "record",
+      "title": "Alex Rivera",
+      "errors": [],
+      "resizedWithoutReload": true
+    },
+    {
+      "name": "worker-shared",
+      "route": "/workers/00000000-0000-0000-0000-000000000101",
+      "width": 1024,
+      "height": 768,
+      "theme": "dark",
+      "documentHeight": 3231,
+      "overflow": 0,
+      "interLoaded": true,
+      "selects": [
+        {
+          "name": "jobId",
+          "text": "Applicants job",
+          "textWidth": 93.98046875,
+          "available": 664,
+          "caption": null,
+          "clippedWithoutCaption": false
+        }
+      ],
+      "smallTargets": [],
+      "inspectorVisible": false,
+      "template": "record",
+      "title": "Alex Rivera",
+      "errors": [],
+      "resizedWithoutReload": true
+    },
+    {
+      "name": "worker-withheld",
+      "route": "/workers/00000000-0000-0000-0000-000000000103",
+      "width": 768,
+      "height": 1024,
+      "theme": "dark",
+      "documentHeight": 1695,
+      "overflow": 0,
+      "interLoaded": true,
+      "selects": [],
+      "smallTargets": [],
+      "inspectorVisible": false,
+      "template": "record",
+      "title": "Sam Torres",
+      "errors": [],
+      "resizedWithoutReload": true
+    },
+    {
+      "name": "worker-withheld",
+      "route": "/workers/00000000-0000-0000-0000-000000000103",
+      "width": 1024,
+      "height": 768,
+      "theme": "dark",
+      "documentHeight": 1615,
+      "overflow": 0,
+      "interLoaded": true,
+      "selects": [],
+      "smallTargets": [],
+      "inspectorVisible": false,
+      "template": "record",
+      "title": "Sam Torres",
+      "errors": [],
+      "resizedWithoutReload": true
+    }
+  ],
+  "findings": [
+    {
+      "routeName": "applicants",
+      "width": 768,
+      "height": 1024,
+      "theme": "light",
+      "kind": "selected-native-label-width-risk",
+      "name": "reasonCode",
+      "text": "The job needs a credential that isn't on the profile",
+      "textWidth": 328.0634765625,
+      "available": 325,
+      "caption": null,
+      "clippedWithoutCaption": true
+    },
+    {
+      "routeName": "applicants",
+      "width": 1024,
+      "height": 768,
+      "theme": "light",
+      "kind": "selected-native-label-width-risk",
+      "name": "reasonCode",
+      "text": "The job needs a credential that isn't on the profile",
+      "textWidth": 328.0634765625,
+      "available": 325,
+      "caption": null,
+      "clippedWithoutCaption": true
+    },
+    {
+      "routeName": "applicants",
+      "width": 768,
+      "height": 1024,
+      "theme": "dark",
+      "kind": "selected-native-label-width-risk",
+      "name": "reasonCode",
+      "text": "The job needs a credential that isn't on the profile",
+      "textWidth": 328.0634765625,
+      "available": 325,
+      "caption": null,
+      "clippedWithoutCaption": true
+    },
+    {
+      "routeName": "applicants",
+      "width": 1024,
+      "height": 768,
+      "theme": "dark",
+      "kind": "selected-native-label-width-risk",
+      "name": "reasonCode",
+      "text": "The job needs a credential that isn't on the profile",
+      "textWidth": 328.0634765625,
+      "available": 325,
+      "caption": null,
+      "clippedWithoutCaption": true
+    }
+  ],
+  "failures": []
+}

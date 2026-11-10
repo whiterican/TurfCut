@@ -1803,7 +1803,7 @@ body {
   /* Between the phone's stacked rows and 736, tighter cells and a worker's name free to
      wrap keep Current state in view without the table's sideways scroll. Screen only: print keeps its own measure. */
   @media screen and (40rem <= width < 46rem) {
-    .statement-lines :is(th, td) {
+    .statement-lines :is(thead, tbody) :is(th, td) {
       @apply px-1.5;
     }
     .statement-lines tbody th[scope="row"] {

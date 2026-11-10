@@ -593,6 +593,15 @@ describe("the shell (redesign B1.4)", () => {
     expect(css).toMatch(/\.org-shell \{\s*@apply mx-auto flex w-full max-w-\[var\(--workspace-max\)\] flex-1;/);
   });
 
+  it("tightens the statement's cells on screen between the stacked rows and 736, headers included", () => {
+    const band = css.match(/@media screen and \(40rem <= width < 46rem\) \{([\s\S]*?)\n  \}\n/)?.[1] ?? "";
+    // Two-part selector: it has to outrank `.data-table thead th` and `.data-table tbody th`, or headings sit 6px off their figures.
+    expect(band).toMatch(/\.statement-lines :is\(thead, tbody\) :is\(th, td\) \{\s*@apply px-1\.5;/);
+    expect(band).toMatch(/\.statement-lines tbody th\[scope="row"\] \{\s*@apply whitespace-normal;/);
+    // The band starts where the stacked rows end.
+    expect(css).toMatch(/@media \(width < 40rem\) \{\s*\/\*[^*]*\*\/\s*\.data-table-wrap:has\(> \.data-table-stack\)/);
+  });
+
   it("keeps the worker's labelled dock on a touch tablet up to 1279, in place of the icon-only top bar (#135)", () => {
     expect(css).toMatch(/@media \(min-width: 64rem\) \{\s*\.tabbar \{\s*display: none;/);
     const touch = css.match(/@media \(min-width: 64rem\) and \(max-width: 79\.99rem\) and \(pointer: coarse\) \{([\s\S]*?)\n  \}\n/)?.[1] ?? "";

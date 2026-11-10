@@ -111,10 +111,27 @@ describe.each([
     expect(ratio(t.primary, t.bg)).toBeGreaterThan(ratio(t.secondary, t.bg));
   });
 
-  it("dock labels use the frame's colours the contrast check below assumes: Cream when inactive, the dock green when current, no filled tile", () => {
+  it("the shape scale is the rounder one, buttons are pills, and nothing uses Tailwind's named radius utilities (they read the same tokens)", () => {
+    expect(css).toMatch(/--radius-xs: 10px;\s*--radius-sm: 14px;\s*--radius-md: 24px;\s*--radius-lg: 28px;\s*--radius-xl: 32px;/);
+    expect(css).toMatch(/--radius-button: 9999px;/);
+    expect(css).toMatch(/\.btn-ghost \{\s*@apply [^;]*rounded-\[var\(--radius-button\)\]/);
+    const walk = (dir: string): string[] => readdirSync(dir, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? (e.name === "zz-preview" ? [] : walk(join(dir, e.name))) : /\.(tsx|css)$/.test(e.name) ? [join(dir, e.name)] : []));
+    const named = walk(join(__dirname, "..")).filter((f) => /(?<![\w-])rounded(-[a-z]{1,2})?-(xs|sm|md|lg|xl|2xl|3xl)(?![\w-])/.test(readFileSync(f, "utf8")));
+    expect(named).toEqual([]);
+  });
+
+  it("dock icons use the frame's colours the contrast check below assumes: Cream when inactive, the dock green when current, on a faint capsule", () => {
     expect(css).toMatch(/\.tab \{[^}]*?color: var\(--shell-muted\);[^}]*\}/);
     expect(css).toMatch(/\n  \.tab\[aria-current\] \{[^}]*?color: var\(--dock-active-fg\);/);
-    expect(css).not.toMatch(/\n  \.tab\[aria-current\] \{[^}]*?background:/);
+    // The pill dock's current capsule (Nov 10): this exact wash and no other fill, and the green still reads on it.
+    expect(css).toMatch(/\n  \.tab\[aria-current\] \{[^}]*?background: color-mix\(in srgb, var\(--shell-muted\) 16%, transparent\);/);
+    expect(ratio(t["dock-active-fg"], mix(t["shell-muted"], 0.16, t["shell-bg"]))).toBeGreaterThanOrEqual(4.5);
+    // Print drops the menu strip with the dock, and the admin console shows no menu.
+    expect(css).toMatch(/\.site-header, \.tabbar, \.phone-top, \.no-print, nextjs-portal \{ display: none !important; \}/);
+    expect(css).toMatch(/body:has\(\.staff-band\) :is\(\.phone-top, \.site-header \.menu-button\) \{\s*display: none;/);
+    // No words in the dock: each tab's name is in the markup for screen readers, never drawn.
+    expect(css).toMatch(/\.tab-label \{\s*@apply sr-only;/);
+    expect(css).not.toMatch(/\.tab-label \{[^}]*not-sr-only/);
     // Sunlight alone keeps a white tile with black type (outdoor glare).
     expect(css).toMatch(/\.sun \.tab\[aria-current\] \{\s*background: var\(--shell-active\);\s*color: var\(--on-shell-active\);/);
   });
@@ -170,7 +187,7 @@ describe("sunlight theme (P1.5): a higher bar for outdoor glare", () => {
     expect(body).not.toMatch(/rgb\([^)]*\/|rgba\(|transparent\s*\)/); // no translucent colours
   });
   it("heavier strokes: 2px edges, heavier icons, bolder body text, solid disabled buttons", () => {
-    expect(css).toMatch(/\.sun body \{\s*font-weight: 500;/);
+    expect(css).toMatch(/\.sun body \{\s*font-weight: 600;/);
     expect(css).toMatch(/\.sun :is\(\.card,[^)]*\) \{\s*border-width: 2px;/);
     expect(css).toMatch(/\.sun svg\.lucide \{\s*stroke-width: 2\.5;/);
     expect(css).toMatch(/\.sun :is\(\.btn,[^)]*\):disabled:not\(\[aria-busy="true"\]\) \{\s*opacity: 1;[^}]*outline: 2px dashed/);
@@ -238,10 +255,14 @@ describe("mockup surfaces", () => {
     }
     // No second face anywhere in the sheet (comments aside; "sans-serif" is the system fallback).
     expect(css.replace(/\/\*[\s\S]*?\*\//g, "")).not.toMatch(/(?<![-\w])serif|Georgia|Fraunces|Barlow|DM Mono/i);
-    // The printed scale: H1 28/36 700, H2 20/28 600, H3 16/24 600, Caption 14/20, Small 12/16.
-    expect(css).toMatch(/@utility t-title \{[^}]*?font-size: 1\.75rem;\s*line-height: 2\.25rem;\s*font-weight: 700;/);
-    expect(css).toMatch(/@utility t-headline \{[^}]*?font-size: 1\.25rem;\s*line-height: 1\.75rem;\s*font-weight: 600;/);
-    expect(css).toMatch(/@utility t-section \{[^}]*?font-size: 1rem;\s*line-height: 1\.5rem;\s*font-weight: 600;/);
+    // The printed scale, one weight step heavier (Nov 10): H1 28/36 800, H2 20/28 700, H3 16/24 700, Caption 14/20, Small 12/16.
+    // One step heavier throughout (Nov 10): body 500, and each named weight a step above its default.
+    expect(css).toMatch(/--font-weight-normal: 500;\s*--font-weight-medium: 600;\s*--font-weight-semibold: 700;\s*--font-weight-bold: 800;/);
+    expect(css).toMatch(/\nbody \{[^}]*?font-weight: 500;/);
+    expect(readFileSync(join(__dirname, "../app/layout.tsx"), "utf8")).toMatch(/weight: \["500", "600", "700", "800"\]/);
+    expect(css).toMatch(/@utility t-title \{[^}]*?font-size: 1\.75rem;\s*line-height: 2\.25rem;\s*font-weight: 800;/);
+    expect(css).toMatch(/@utility t-headline \{[^}]*?font-size: 1\.25rem;\s*line-height: 1\.75rem;\s*font-weight: 700;/);
+    expect(css).toMatch(/@utility t-section \{[^}]*?font-size: 1rem;\s*line-height: 1\.5rem;\s*font-weight: 700;/);
     expect(css).toMatch(/--text-xs: 0\.75rem;/);
     expect(css).toMatch(/--text-sm: 0\.875rem;/);
   });

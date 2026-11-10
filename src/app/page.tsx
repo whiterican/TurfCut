@@ -90,7 +90,7 @@ export default async function Home() {
             <div className="divide-y divide-border">
               {steps.map(({ number, title, description, icon: Icon }) => (
                 <div key={number} className="flex gap-4 px-6 py-5">
-                  <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-surface-2 text-fg"><Icon className="size-5" aria-hidden /></div>
+                  <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-surface-2 text-fg"><Icon className="size-5" aria-hidden /></div>
                   <div>
                     <span className="text-[11px] font-semibold tracking-[0.12em] text-subtle">{number} / FIELD OPERATIONS</span>
                     <h3 className="mt-1 text-lg font-bold tracking-tight text-fg">{title}</h3>

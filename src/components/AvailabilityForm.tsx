@@ -134,7 +134,7 @@ export function AvailabilityForm({ availability }: { availability: Availability 
             const n = `Date ${i + 1}`;
             const id = errId(`exceptions.${i}`);
             return (
-              <li key={i} className="space-y-2 rounded-xl border border-border p-3">
+              <li key={i} className="space-y-2 rounded-[var(--radius-inner)] border border-border p-3">
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-[auto_auto_1fr] sm:items-center">
                   <input type="date" aria-label={n} aria-describedby={id} aria-invalid={id ? true : undefined} className="field w-full sm:w-44" value={x.date} onChange={(ev) => setRow(i, { ...x, date: ev.target.value })} />
                   <select aria-label={`${n}: that day`} className="field w-full sm:w-auto" value={x.kind} onChange={(ev) => setRow(i, { ...x, kind: ev.target.value as ExceptionKind })}>

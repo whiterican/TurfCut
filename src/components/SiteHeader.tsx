@@ -22,6 +22,7 @@ export function SiteHeader({
   base = "",
   contentId = "content",
   workerPhone = false,
+  menu,
 }: {
   signedIn: boolean;
   isOrg: boolean;
@@ -33,6 +34,8 @@ export function SiteHeader({
   contentId?: string;
   /** A worker on a phone (#111): the concept has no header there, so the bar shows from the desktop width up only. */
   workerPhone?: boolean;
+  /** The menu button, where the header shows beside the dock (an organization's phone, a worker's touch tablet). */
+  menu?: React.ReactNode;
 }) {
   const at = (href: string) => `${base}${href}`;
   return (
@@ -40,13 +43,16 @@ export function SiteHeader({
       <a href={`#${contentId}`} className="skip-link">Skip to content</a>
       <header className={`site-header border-b ${workerPhone ? "site-header-worker" : ""}`}>
         <div className={`mx-auto flex w-full ${isOrg ? "max-w-[var(--workspace-max)]" : "max-w-[var(--worker-frame)]"} site-header-bar items-center justify-between gap-[12px] px-[16px] sm:px-[24px]`}>
+          <div className="flex min-w-0 items-center gap-[8px]">
+          {menu}
           <Link href={at(!signedIn ? "/" : isOrg ? "/desk" : "/dashboard")} className="flex shrink-0 items-center gap-[8px] text-[20px] font-bold tracking-[-0.04em] text-fg">
             {/* The founder's pin-check-nib mark, the same in every theme. The word is live text in the
                 theme's ink. Static import + unoptimized: served from /_next/static, saved offline by the service worker. */}
-            <Image src={brandMark} alt="" width={28} height={28} unoptimized className="size-[28px] rounded-lg" />
+            <Image src={brandMark} alt="" width={28} height={28} unoptimized className="size-[28px] rounded-full" />
             {/* The wordmark: lowercase, with "cut" in the kicker colour. */}
             <span>turf<span className="wordmark-cut">cut</span></span>
           </Link>
+          </div>
           <div className="flex items-center gap-[8px]">
             {!isOrg && <TopNav tabs={tabs.map((t) => ({ ...t, href: at(t.href), also: t.also?.map(at) }))} />}
             {signedIn && (

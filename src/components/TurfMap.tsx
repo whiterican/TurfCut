@@ -220,11 +220,11 @@ export function TurfMap({
   return (
     <div className="space-y-2">
       {failed ? (
-        <p className={`turf-map flex w-full items-center justify-center rounded-2xl border border-border p-4 text-center text-muted-sm ${className}`}>
+        <p className={`turf-map flex w-full items-center justify-center rounded-[var(--radius-card)] border border-border p-4 text-center text-muted-sm ${className}`}>
           The map needs signal. The staging point and turf details are on this page.
         </p>
       ) : (
-        <div ref={el} className={`turf-map w-full overflow-hidden rounded-2xl border border-border ${className}`} role="region" aria-label={editable ? "Map: tap to draw the turf" : "Map of the assigned turf"} />
+        <div ref={el} className={`turf-map w-full overflow-hidden rounded-[var(--radius-card)] border border-border ${className}`} role="region" aria-label={editable ? "Map: tap to draw the turf" : "Map of the assigned turf"} />
       )}
       {editable && (
         <>

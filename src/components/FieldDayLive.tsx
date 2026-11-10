@@ -271,7 +271,7 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
     <form
       key={`${st.appCounts?.doors ?? ""}-${st.appCounts?.contacts ?? ""}`}
       onSubmit={submit((fd) => ({ kind: "app_counts", app, doors: num(fd, "doors"), contacts: num(fd, "contacts") }))}
-      className="space-y-2 rounded-xl border border-border p-3"
+      className="space-y-2 rounded-[var(--radius-inner)] border border-border p-3"
       aria-labelledby="app-totals-heading"
       aria-describedby="app-totals-hint"
     >
@@ -334,7 +334,7 @@ export function FieldDayLive({ shift, beforeCheckIn }: { shift: LiveShift; befor
       {mounted && refused.length > 0 && (
         <ul className="space-y-2">
           {refused.map((p) => (
-            <li key={p.clientId} className="flex items-start justify-between gap-3 rounded-xl border border-border px-3 py-2 text-sm">
+            <li key={p.clientId} className="flex items-start justify-between gap-3 rounded-[var(--radius-inner)] border border-border px-3 py-2 text-sm">
               <span>
                 <span className="font-semibold text-fg">{describe(p.action)}</span>{" "}
                 <span className="text-muted">({when(p.at + offset)}) wasn&apos;t recorded: {p.rejected}</span>

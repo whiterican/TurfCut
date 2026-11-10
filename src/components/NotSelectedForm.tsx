@@ -17,7 +17,7 @@ export function NotSelectedForm({ jobId, engagementId, label = "Not selected" }:
   return (
     <details className="group min-w-0 max-w-full open:w-full">
       <summary className="btn-ghost btn-sm cursor-pointer list-none">{label}</summary>
-      <form action={action} className="mt-3 space-y-3 rounded-xl border border-border p-3">
+      <form action={action} className="mt-3 space-y-3 rounded-[var(--radius-inner)] border border-border p-3">
         <input type="hidden" name="jobId" value={jobId} />
         <input type="hidden" name="engagementId" value={engagementId} />
         <label className="block space-y-1.5">

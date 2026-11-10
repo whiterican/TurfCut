@@ -57,7 +57,7 @@ const SHAPES: Record<SkeletonShape, (o: ShapeOptions) => React.ReactNode> = {
       {o.heading && <Heading />}
       <Bar className="h-40 w-full rounded-[var(--radius-card)]" />
       <div className="grid grid-cols-3 gap-3">
-        {Array.from({ length: 3 }, (_, i) => <Bar key={i} className="h-16 rounded-2xl" />)}
+        {Array.from({ length: 3 }, (_, i) => <Bar key={i} className="h-16 rounded-[var(--radius-card)]" />)}
       </div>
       <Rows n={3} />
     </>
@@ -90,7 +90,7 @@ const SHAPES: Record<SkeletonShape, (o: ShapeOptions) => React.ReactNode> = {
     <>
       {o.heading && <Heading />}
       <Bar className="h-4 w-64" />
-      <div className="overflow-hidden rounded-2xl border border-border">
+      <div className="overflow-hidden rounded-[var(--radius-inner)] border border-border">
         <Bar className="h-10 w-full rounded-none" />
         {Array.from({ length: 6 }, (_, i) => (
           <div key={i} className="flex gap-4 border-t border-border px-4 py-3">
@@ -131,10 +131,10 @@ const SHAPES: Record<SkeletonShape, (o: ShapeOptions) => React.ReactNode> = {
         {Array.from({ length: 4 }, (_, i) => (
           <div key={i} className="space-y-2">
             <Bar className="h-4 w-28" />
-            <Bar className="h-11 w-full rounded-xl" />
+            <Bar className="h-11 w-full rounded-[var(--radius-inner)]" />
           </div>
         ))}
-        <Bar className="h-11 w-32 rounded-xl" />
+        <Bar className="h-11 w-32 rounded-[var(--radius-button)]" />
       </div>
     </>
   ),
@@ -155,7 +155,7 @@ const SHAPES: Record<SkeletonShape, (o: ShapeOptions) => React.ReactNode> = {
           </div>
         ))}
       </div>
-      <Bar className="h-40 w-full rounded-2xl" />
+      <Bar className="h-40 w-full rounded-[var(--radius-card)]" />
     </>
   ),
   // Inboxes, notices, statements, admin queues: a list of rows (with a face per row for people).

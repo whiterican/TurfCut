@@ -1,7 +1,7 @@
 import { NoAccessNotice } from "@/components/NoAccessNotice";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import { OrgRail, OrgTabBar } from "@/components/AppNav";
+import { MenuButton, OrgRail, OrgTabBar } from "@/components/AppNav";
 import { SignOutButton } from "@/components/SignOutButton";
 import { signOut } from "@/app/settings/actions";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -27,7 +27,7 @@ import "./globals.css";
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["500", "600", "700", "800"],
 });
 
 export function generateMetadata(): Metadata {
@@ -79,7 +79,7 @@ export default async function RootLayout({
         <ViewerKindProvider kind={!session ? "none" : session.role === "WORKER" ? "worker" : session.orgId ? "org" : "none"}>
         <UnreadProvider initial={unread} enabled={tabs.some((t) => t.href === MESSAGES_HREF)}>
         <NoticesProvider count={notices}>
-        <SiteHeader signedIn={!!session} isOrg={isOrg} tabs={topNavTabs(session?.role ?? null)} notices={notices} workerPhone={session?.role === "WORKER"} />
+        <SiteHeader signedIn={!!session} isOrg={isOrg} tabs={topNavTabs(session?.role ?? null)} notices={notices} workerPhone={session?.role === "WORKER"} menu={session && (isOrg ? org.phone.length > 0 && org.more.length > 0 : tabs.length > 0 && workerMore(session.role).length > 0) ? <MenuButton notices={isOrg ? 0 : notices} /> : undefined} />
         {isOrg && session ? (
           <div className="org-shell">
             <OrgRail tabs={org.rail} orgName={orgInfo?.name ?? "Your organization"} approved={orgInfo ? orgInfo.approved : null} person={railPerson(session)} />
@@ -90,6 +90,12 @@ export default async function RootLayout({
           </div>
         ) : (
           <div id="content" tabIndex={-1} className="skip-target flex flex-1 flex-col">
+            {/* A worker's phone has no site header: the menu button gets a strip of its own above the page. */}
+            {session && tabs.length > 0 && workerMore(session.role).length > 0 && (
+              <div className="phone-top">
+                <MenuButton name={railPerson(session).name} notices={notices} />
+              </div>
+            )}
             <NoAccessNotice />
             <PageTransition>{children}</PageTransition>
           </div>
@@ -97,10 +103,10 @@ export default async function RootLayout({
         <Haptics />
         <PullToRefresh />
         {isOrg ? (
-          <OrgTabBar tabs={org.phone} more={org.more} />
+          <OrgTabBar tabs={org.phone} more={org.more} person={session ? railPerson(session) : undefined} />
         ) : (
-          // The worker's dock: Home · Jobs · Work · Map · Messages · More (Profile, Feed, Earnings, Settings, Sign out).
-          <OrgTabBar tabs={tabs} more={workerMore(session?.role ?? null)} notices={notices} extra={session ? <SignOutButton action={signOut} userId={session.userId} /> : undefined} touchDock />
+          // The worker's dock: Home · Jobs · Work · Map · Messages; the menu drawer holds the rest (Profile, Feed, Earnings, Settings, Sign out).
+          <OrgTabBar tabs={tabs} more={workerMore(session?.role ?? null)} notices={notices} extra={session ? <SignOutButton action={signOut} userId={session.userId} /> : undefined} person={session ? railPerson(session) : undefined} touchDock />
         )}
         </NoticesProvider>
         </UnreadProvider>

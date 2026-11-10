@@ -137,7 +137,7 @@ async function LaterShifts({ workerId }: { workerId: string }) {
 
 /** A shift still checked in after its end: the words and the way to fix it (#111: never "on task" once the shift has ended). */
 function OverdueShift({ shift, compact }: { shift: { id: string; endsAt: Date; engagement: { job: { title: string } } }; compact?: boolean }) {
-  const how = "Open the shift to check out, or ask your organizer to correct the end time. Pay counts verified time only.";
+  const how = "Check out, or ask your organizer to fix the end time. Pay counts verified time only.";
   return (
     <section className="work-card space-y-3" aria-label="Shift without a check-out">
       <div className="flex items-start justify-between gap-3">
@@ -196,7 +196,7 @@ async function WorkerHero({ workerId }: { workerId: string }) {
             <div><dt className="work-fact-label order-2">Gross rate</dt><dd className="work-fact-figure">{payShort(job.compensationMethod, job.payRateCents, job.type)}</dd></div>
           </dl>
           <Link transitionTypes={["nav-forward"]} href={`/shifts/${shift.id}`} className="btn-primary btn-lg w-full">{isLive ? "Open field day" : "View shift details"}</Link>
-          <p className="text-xs text-subtle">{job.org.name}{isLive ? " · elapsed time is since your check-in, not verified pay time" : ""}</p>
+          <p className="text-xs text-subtle">{job.org.name}{isLive ? " · timer runs from check-in, not pay time" : ""}</p>
         </section>
       </>
     );
@@ -210,8 +210,7 @@ async function WorkerHero({ workerId }: { workerId: string }) {
     return (
       <section className="work-card space-y-3" aria-label="Nothing scheduled">
         <h2 className="t-headline text-fg">Nothing scheduled</h2>
-        <p className="text-sm text-muted">Open jobs show the gross rate, credentials and who to call before you apply.</p>
-        <Link transitionTypes={["nav-forward"]} href="/jobs" className="btn-primary btn-lg w-full">Find Jobs</Link>
+                <Link transitionTypes={["nav-forward"]} href="/jobs" className="btn-primary btn-lg w-full">Find Jobs</Link>
       </section>
     );
   }
@@ -228,7 +227,7 @@ async function WorkerHero({ workerId }: { workerId: string }) {
         )}
       </p>
       <h2 className="t-headline text-fg">{next.job.title}</h2>
-      <p className="text-sm text-muted">{payText(next.job.compensationMethod, next.job.payRateCents)} · shifts are scheduled by the organization and appear here.</p>
+      <p className="text-sm text-muted">{payText(next.job.compensationMethod, next.job.payRateCents)} · your shifts appear here.</p>
       <Link transitionTypes={["nav-forward"]} href={`/jobs/${next.job.id}`} className="btn-secondary w-full">View job</Link>
     </section>
   );
@@ -263,8 +262,8 @@ async function SharingNote({ workerId }: { workerId: string }) {
     <DismissibleNote action={dismissSharingNote} title={never ? "You choose who sees what" : "Check who sees what"}>
       <p className="text-muted-sm">
         {never
-          ? `Choose who sees each part of your scorecard, your availability and your credentials, and whether organizations can find you. Until you do, organizations you ${RELATIONSHIP_PHRASE} see your profile, and nobody can find you.`
-          : "We've changed how Turfcut explains who sees what since you chose. Your choices stay as they are; take a look and confirm them. If you let organizations find you, they can't until you confirm."}
+          ? `Choose who sees your profile and whether organizations can find you. Until you do, organizations you ${RELATIONSHIP_PHRASE} see it, and nobody can find you.`
+          : "We've updated how we explain who sees what. Your choices are unchanged; please confirm them. If you let organizations find you, they can't until you do."}
       </p>
       <Link transitionTypes={["nav-forward"]} href="/profile/setup" className="btn-secondary btn-sm">{never ? "Set it up (4 short steps)" : "Check your choices"}</Link>
     </DismissibleNote>
@@ -373,12 +372,12 @@ async function EarningsCard({ workerId }: { workerId: string }) {
       </section>
     );
   }
-  return <NavCard href="/earnings" title="Earnings" body={any ? parts.join(" · ") : "Your pay shows up here once a supervisor approves a shift."} />;
+  return <NavCard href="/earnings" title="Earnings" body={any ? parts.join(" · ") : "Pay appears here once a shift is approved."} />;
 }
 
 /** What's on hold until the worker reconfirms, by their own choice (Private never shows or uses anything). */
 const PAUSED: Record<VisibilityMode, string> = {
-  PRIVATE: "Your answers stay private either way; reconfirm to keep them on record.",
+  PRIVATE: "Your answers stay private. Reconfirm to keep them on record.",
   MATCHING_ONLY: "Until you reconfirm, they aren't used to keep you out of work you've ruled out.",
   APPLIED_TO: "Until you reconfirm, they aren't shown to organizations or used to keep you out of work you've ruled out.",
   APPROVED_RECRUITERS: "Until you reconfirm, they aren't used to keep you out of work you've ruled out.",
@@ -402,7 +401,7 @@ async function FitReconfirm({ workerId }: { workerId: string }) {
           ? "They reached the expiry you chose."
           : fit.visibilityMode === "APPLIED_TO"
             ? "We've changed how we describe who sees them: claiming a spot counts, as applying does."
-            : "We've updated how Turfcut describes these choices."}{" "}
+            : "We've updated these descriptions."}{" "}
         {PAUSED[fit.visibilityMode]}
       </p>
       <Link href="/profile/preferences" className="btn-secondary btn-sm">Review and reconfirm</Link>
@@ -513,6 +512,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           <EarningsCard workerId={workerId} />
           <SharingNote workerId={workerId} />
           <CampaignsOn workerId={workerId} />
+          <NavCard href="/guide" title="Guide" body="How jobs, shifts, pay and privacy work." />
         </>
       }
     >

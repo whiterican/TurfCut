@@ -32,15 +32,15 @@ async function PayoutSetup({ w, note }: { w: PayoutState; note: string | null })
       <div className="flex items-start justify-between gap-3">
         <div className="space-y-1">
           <p className="font-semibold text-fg">Payouts</p>
-          <p className="text-muted-sm"><Link href="/earnings/receipts" className="link">Receipts</Link> · one for every payment sent to you.</p>
+          <p className="text-muted-sm"><Link href="/earnings/receipts" className="link">Receipts</Link></p>
           <p className="text-muted-sm">
             {!provider.configured()
-              ? "In-app payouts aren't switched on yet. Approved pay is kept and sent once they are."
+              ? "Payouts aren't switched on yet. Approved pay is kept until they are."
               : w.payoutsEnabled
-                ? "Approved pay goes to your bank account through Stripe."
+                ? "Approved pay goes to your bank through Stripe."
                 : w.stripeAccountId
                   ? "Finish setting up with Stripe so you can be paid."
-                  : "Set up payouts once and approved pay goes straight to your bank. Stripe collects your bank and tax details — Turfcut never sees them."}
+                  : "Stripe pays your bank directly. Turfcut never sees your bank or tax details."}
           </p>
         </div>
         {w.payoutsEnabled && <StatusChip state="approved" label="Ready" className="shrink-0" />}
@@ -162,7 +162,7 @@ export default async function EarningsPage({ searchParams }: { searchParams: Pro
   const [{ campaigns, totals }, w] = await Promise.all([loadWorkerEarnings(workerId), payoutSetup(workerId, stripeProvider(), note === "done")]);
   const payouts = payoutReadiness(stripeProvider().configured(), w.payoutsEnabled);
   return (
-    <ReadingPage gap={6} head={<Masthead title="Earnings" meta="Gross pay for shifts your supervisors approved. Turfcut never takes a cut of your pay — campaigns pay the platform fee." />}>
+    <ReadingPage gap={6} head={<Masthead title="Earnings" meta="Approved gross pay. Turfcut takes no cut." />}>
       {/* One compact band (#114 Earnings): each figure a real sum in its own pay state, never merged; the Payouts card right under it is the way to unblock approved pay. */}
       <section aria-labelledby="earnings-totals-heading">
         <h2 id="earnings-totals-heading" className="sr-only">All campaigns</h2>
@@ -180,7 +180,7 @@ export default async function EarningsPage({ searchParams }: { searchParams: Pro
         <div className="empty-state">
           <EmptyArt kind="earnings" />
           <p className="empty-state-title">No pay yet</p>
-          <p className="empty-state-body">Pay shows up here as soon as a supervisor approves one of your shifts, with how it was worked out.</p>
+          <p className="empty-state-body">Pay appears here once a supervisor approves a shift.</p>
           <Link href="/shifts" className="btn-primary mt-4">My schedule</Link>
         </div>
       ) : (
@@ -207,7 +207,7 @@ export default async function EarningsPage({ searchParams }: { searchParams: Pro
           </section>
         ))
       )}
-      <p className="text-hint">Every amount is worked out from your verified hours or accepted work at the job&apos;s posted rate, and never changed afterwards — corrections show up as adjustments.</p>
+      <p className="text-hint">Amounts never change after approval. <Link href="/guide#pay" className="link">How pay works</Link></p>
     </ReadingPage>
   );
 }

@@ -4,6 +4,7 @@ import { accessFor, ROLE_LABELS, type Area, type Grants } from "@/lib/access";
 /** The glyph a tab shows (drawn in components/AppNav; a plain id here keeps React out of lib). */
 export type TabIconId =
   | "home"
+  | "guide"
   | "today"
   | "feed"
   | "work"
@@ -97,6 +98,7 @@ export const WORKER_MORE: NavTab[] = [
   { href: "/earnings/receipts", label: "Payment history", icon: "receipts" },
   { href: "/profile/credentials", label: "Credentials", icon: "credentials" },
   { href: "/profile/availability", label: "Availability", icon: "availability" },
+  { href: "/guide", label: "Guide", icon: "guide" },
   { href: "/settings", label: "Settings", icon: "settings" },
 ];
 /** The More destinations the desktop top bar also shows as links (the rest are reached from those pages or the header). */

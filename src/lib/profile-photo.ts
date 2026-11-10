@@ -24,7 +24,16 @@ export interface PhotoStore {
   get(key: string): Promise<Uint8Array | null>;
   /** Removing a file that is already gone is fine; any other failure throws. */
   remove(key: string): Promise<void>;
+  /**
+   * Remove every file under a person's id except `keep`. With `olderThanMs`,
+   * only files at least that old go: a file another upload has just stored,
+   * and not yet put on record, is left alone.
+   */
+  sweep(profileId: string, opts?: { keep?: string | null; olderThanMs?: number }): Promise<void>;
 }
+
+/** How long a stored file may sit off the record before an upload's sweep removes it (an upload in flight takes seconds). */
+export const SWEEP_GRACE_MS = 10 * 60_000;
 
 export function supabasePhotoStore(): PhotoStore {
   const bucket = () =>
@@ -37,8 +46,9 @@ export function supabasePhotoStore(): PhotoStore {
     async get(key) {
       const { data, error } = await bucket().download(key);
       if (error || !data) {
-        if (/not.?found|404/i.test(error?.message ?? "")) return null;
-        throw new Error(`[turfcut] profile photo download failed: ${error?.message ?? "no data"}`);
+        const e = error as { status?: number; statusCode?: string; message?: string } | null;
+        if (e?.status === 404 || e?.statusCode === "404" || /not.?found/i.test(e?.message ?? "")) return null;
+        throw new Error(`[turfcut] profile photo download failed: ${e?.message ?? "no data"}`);
       }
       return new Uint8Array(await data.arrayBuffer());
     },
@@ -46,20 +56,36 @@ export function supabasePhotoStore(): PhotoStore {
       const { error } = await bucket().remove([key]);
       if (error) throw new Error(`[turfcut] profile photo removal failed: ${error.message}`);
     },
+    async sweep(profileId, opts = {}) {
+      const { data, error } = await bucket().list(profileId, { limit: 1000 });
+      if (error) throw new Error(`[turfcut] profile photo listing failed: ${error.message}`);
+      const before = opts.olderThanMs ? Date.now() - opts.olderThanMs : Infinity;
+      const stale = (data ?? [])
+        .filter((f) => `${profileId}/${f.name}` !== opts.keep && (before === Infinity || (f.created_at ? Date.parse(f.created_at) <= before : false)))
+        .map((f) => `${profileId}/${f.name}`);
+      if (!stale.length) return;
+      const r = await bucket().remove(stale);
+      if (r.error) throw new Error(`[turfcut] profile photo removal failed: ${r.error.message}`);
+    },
   };
 }
 
-/** What the photo feature needs from the database: one person's current key, and setting it. */
+/** What the photo feature needs from the database: one person's current key, and changing it. */
 export interface PhotoRecords {
   keyOf(profileId: string): Promise<string | null>;
-  setKey(profileId: string, key: string | null): Promise<void>;
+  /** Point the record from `from` to `to`, only if it still holds `from`. False when it changed meanwhile. */
+  swapKey(profileId: string, from: string | null, to: string | null): Promise<boolean>;
 }
+
+const left = (what: string) => (e: unknown) => console.error(`[turfcut] ${what}`, e);
 
 /**
  * Replace a person's photo with `bytes`, judged from the bytes themselves (a
  * PNG or JPEG up to 2 MB, camera data stripped: checkImage). The new file is
- * stored first and the record pointed at it; only then is the old file
- * removed, so a failure never leaves the record pointing at nothing.
+ * stored first, then the record is pointed at it, only if nothing else
+ * changed it meanwhile (two uploads at once: one wins, the other's file is
+ * removed). Only then do the old file and any strays go, so a failure never
+ * leaves the record pointing at nothing.
  */
 export async function setProfilePhoto(profileId: string, bytes: Uint8Array, db: PhotoRecords, store: PhotoStore): Promise<{ ok: true; key: string } | { ok: false; reason: string }> {
   const img = checkImage(bytes);
@@ -67,26 +93,41 @@ export async function setProfilePhoto(profileId: string, bytes: Uint8Array, db: 
   const old = await db.keyOf(profileId);
   const key = `${profileId}/${randomUUID()}.${img.ext}`;
   await store.put(key, img.bytes, img.type);
+  let swapped = false;
   try {
-    await db.setKey(profileId, key);
-  } catch (e) {
-    await store.remove(key).catch(() => {});
-    throw e;
+    swapped = await db.swapKey(profileId, old, key);
+  } finally {
+    if (!swapped) await store.remove(key).catch(left("a profile photo that was not saved was left behind"));
   }
-  // The new photo is saved either way; an old file that would not go is logged, not shown as a failure.
-  if (old && ownsKey(profileId, old)) await store.remove(old).catch((err) => console.error("[turfcut] an old profile photo was left behind", old, err));
+  if (!swapped) return { ok: false, reason: "Your photo changed while this one was saving. Try again." };
+  // The new photo is saved either way; a file that would not go is logged, and the next sweep takes it.
+  if (old && ownsKey(profileId, old)) await store.remove(old).catch(left("an old profile photo was left behind"));
+  await store.sweep(profileId, { keep: key, olderThanMs: SWEEP_GRACE_MS }).catch(left("sweeping old profile photos failed"));
   return { ok: true, key };
 }
 
 /**
- * Remove a person's photo: the file first, then the record, so a file that
- * could not be removed is still on record and can be tried again.
+ * Remove a person's photo at their request: the record is cleared first (so
+ * an upload finishing at the same moment is never left pointing at nothing),
+ * then the file and any old strays go.
  */
 export async function clearProfilePhoto(profileId: string, db: PhotoRecords, store: PhotoStore): Promise<void> {
   const old = await db.keyOf(profileId);
   if (!old) return;
+  if (!(await db.swapKey(profileId, old, null))) return; // replaced meanwhile: that newer photo stays
   if (ownsKey(profileId, old)) await store.remove(old);
-  await db.setKey(profileId, null);
+  await store.sweep(profileId, { olderThanMs: SWEEP_GRACE_MS }).catch(left("sweeping old profile photos failed"));
+}
+
+/**
+ * Remove everything stored for a person, on record or not (closing an
+ * account). The files go first and the record after, so a failure leaves the
+ * record for the daily retry.
+ */
+export async function purgeProfilePhotos(profileId: string, db: PhotoRecords, store: PhotoStore): Promise<void> {
+  await store.sweep(profileId);
+  const old = await db.keyOf(profileId);
+  if (old) await db.swapKey(profileId, old, null);
 }
 
 /**

@@ -17,7 +17,8 @@ Only the person it belongs to, for now. A photo shows race, age and gender, so i
 - `GET /api/profile-photo` takes no id: it can only serve the signed-in person's own photo. Signed out, it answers 401.
 - The response is `private, no-cache` with an ETag, so a shared phone asks the server every time and never shows the last person's photo.
 - Nothing ranks, matches or infers anything from a photo.
-- Closing an account removes the photo; the daily purge job retries a removal that failed.
+- Closing an account removes every file stored for the person; the daily purge job retries a removal that failed.
+- The worker's data export includes the photo.
 
 ## Data model (approved by Caden)
 
@@ -45,6 +46,23 @@ Chromium against the local stack with a stand-in for storage:
 | Console and network errors | None |
 
 Not checked: real Supabase Storage (the local stack fakes it) and a real iPhone camera roll.
+
+## Review (rule 9)
+
+A separate Claude reviewer found no way to read or overwrite another person's photo. Its findings, all fixed in the second commit:
+
+| Finding | Fix |
+| :--- | :--- |
+| A failed upload request crashed to the global error screen | Caught; said on the status line |
+| Two uploads at once, or an upload racing Remove, could leave a file nothing would delete | The record changes only if nobody else changed it; strays are swept; closing sweeps the whole folder |
+| The daily retry was skipped when credential-photo settings were missing | It runs first, on its own |
+| The data export left the photo out | Included as `profile-photo.jpg` or `.png` |
+| A photo that will not load left an empty circle | The initial stands in |
+| A storage outage was an uncaught error in the route | 503 |
+
+Kept as is, on purpose: the response stays `private, no-cache` (the browser keeps a copy but must ask the server before showing it, and the server checks who is asking). `no-store` would refetch the photo on every page load. Say if you want the stricter setting.
+
+Known limit: if closing an account fails to remove the files while the record is already empty, nothing retries it. That needs a storage failure and an earlier race at the same time.
 
 ## Screens
 

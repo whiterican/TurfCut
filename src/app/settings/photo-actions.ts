@@ -16,10 +16,11 @@ export interface PhotoState {
 export async function uploadProfilePhoto(_prev: PhotoState | null, fd: FormData): Promise<PhotoState> {
   const session = await getSessionProfile();
   if (!session) return { ok: false, message: "Sign in to add a photo." };
-  if ((await check("profile-photo", session.userId)) !== "ok") return { ok: false, message: "Too many tries. Wait a little and try again." };
+  const limit = await check("profile-photo", session.userId);
+  if (limit !== "ok") return { ok: false, message: limit === "limited" ? "Too many photo changes today. Try again tomorrow." : "The photo couldn't be saved. Try again in a moment." };
   const file = fd.get("photo");
   if (!(file instanceof File) || file.size === 0) return { ok: false, message: "Choose a photo." };
-  // Refused before it is read into memory; checkImage judges the bytes themselves.
+  // Refused by its stated size first; checkImage then judges the bytes themselves.
   if (file.size > MEDIA_MAX_BYTES) return { ok: false, message: "Photos are up to 2 MB." };
   try {
     const r = await setProfilePhoto(session.userId, new Uint8Array(await file.arrayBuffer()), photoRecords(), supabasePhotoStore());
@@ -36,6 +37,7 @@ export async function uploadProfilePhoto(_prev: PhotoState | null, fd: FormData)
 export async function removeProfilePhoto(): Promise<PhotoState> {
   const session = await getSessionProfile();
   if (!session) return { ok: false, message: "Sign in first." };
+  if ((await check("profile-photo", session.userId)) === "limited") return { ok: false, message: "Too many photo changes today. Try again tomorrow." };
   try {
     await clearProfilePhoto(session.userId, photoRecords(), supabasePhotoStore());
   } catch (e) {

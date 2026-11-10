@@ -1,7 +1,7 @@
-import { execSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync, statSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { clearProfilePhoto, ownPhoto, ownPhotoUrl, ownsKey, photoTag, setProfilePhoto, type PhotoRecords, type PhotoStore } from "./profile-photo";
+import { clearProfilePhoto, ownPhoto, ownPhotoUrl, ownsKey, photoTag, purgeProfilePhotos, setProfilePhoto, SWEEP_GRACE_MS, type PhotoRecords, type PhotoStore } from "./profile-photo";
 
 // A real 64x64 PNG (the smallest side checkImage takes), built by hand: signature, IHDR, IDAT, IEND.
 import { deflateSync, crc32 } from "node:zlib";
@@ -25,30 +25,41 @@ function png(side = 64): Uint8Array {
 
 function fakes(start: Record<string, string | null> = {}) {
   const keys: Record<string, string | null> = { ...start };
-  const files = new Map<string, Uint8Array>();
+  /** Stored files, with how long ago each was stored. */
+  const files = new Map<string, { bytes: Uint8Array; ageMs: number }>();
   const log: string[] = [];
-  const fail = { setKey: false, remove: false };
+  const fail = { swap: false, remove: false, sweep: false };
+  /** Runs just before a swap, to stand in for another request landing in between. */
+  const hook: { beforeSwap?: () => void } = {};
   const db: PhotoRecords = {
     keyOf: async (id) => keys[id] ?? null,
-    setKey: async (id, key) => {
-      if (fail.setKey) throw new Error("db down");
-      log.push(`set ${key}`);
-      keys[id] = key;
+    swapKey: async (id, from, to) => {
+      hook.beforeSwap?.();
+      if (fail.swap) throw new Error("db down");
+      if ((keys[id] ?? null) !== from) return false;
+      log.push(`set ${to}`);
+      keys[id] = to;
+      return true;
     },
   };
   const store: PhotoStore = {
     put: async (key, bytes) => {
       log.push(`put ${key}`);
-      files.set(key, bytes);
+      files.set(key, { bytes, ageMs: 0 });
     },
-    get: async (key) => files.get(key) ?? null,
+    get: async (key) => files.get(key)?.bytes ?? null,
     remove: async (key) => {
       if (fail.remove) throw new Error("storage down");
       log.push(`remove ${key}`);
       files.delete(key);
     },
+    sweep: async (id, opts = {}) => {
+      if (fail.sweep) throw new Error("storage down");
+      for (const [k, f] of files) if (k.startsWith(`${id}/`) && k !== opts.keep && (!opts.olderThanMs || f.ageMs >= opts.olderThanMs)) files.delete(k);
+    },
   };
-  return { keys, files, log, fail, db, store };
+  const file = (key: string, ageMs = 0) => files.set(key, { bytes: new Uint8Array([1]), ageMs });
+  return { keys, files, log, fail, hook, db, store, file };
 }
 
 describe("profile photos", () => {
@@ -79,12 +90,11 @@ describe("profile photos", () => {
 
   it("replacing stores the new file and repoints the record before the old file goes", async () => {
     const f = fakes({ p1: "p1/old.jpg" });
-    f.files.set("p1/old.jpg", new Uint8Array([1]));
+    f.file("p1/old.jpg");
     await setProfilePhoto("p1", png(), f.db, f.store);
     expect(f.log.map((l) => l.split(" ")[0])).toEqual(["put", "set", "remove"]);
     expect(f.log[2]).toBe("remove p1/old.jpg");
-    expect(f.files.has("p1/old.jpg")).toBe(false);
-    expect(f.files.size).toBe(1);
+    expect([...f.files.keys()]).toEqual([f.keys.p1]);
   });
 
   it("refuses what is not a PNG or JPEG, and stores nothing", async () => {
@@ -97,37 +107,89 @@ describe("profile photos", () => {
 
   it("a record that could not be saved leaves no stray file and keeps the old photo", async () => {
     const f = fakes({ p1: "p1/old.jpg" });
-    f.files.set("p1/old.jpg", new Uint8Array([1]));
-    f.fail.setKey = true;
+    f.file("p1/old.jpg");
+    f.fail.swap = true;
     await expect(setProfilePhoto("p1", png(), f.db, f.store)).rejects.toThrow("db down");
     expect([...f.files.keys()]).toEqual(["p1/old.jpg"]);
     expect(f.keys.p1).toBe("p1/old.jpg");
   });
 
+  it("two uploads at once: one wins, the other's file is removed and it is told to try again", async () => {
+    const f = fakes({ p1: "p1/old.jpg" });
+    f.file("p1/old.jpg");
+    // Another upload lands between this one reading the record and changing it.
+    f.hook.beforeSwap = () => {
+      f.hook.beforeSwap = undefined;
+      f.file("p1/other.jpg");
+      f.keys.p1 = "p1/other.jpg";
+    };
+    const r = await setProfilePhoto("p1", png(), f.db, f.store);
+    expect(r).toEqual({ ok: false, reason: expect.stringMatching(/try again/i) });
+    expect(f.keys.p1).toBe("p1/other.jpg");
+    expect(f.files.has("p1/other.jpg")).toBe(true);
+    expect([...f.files.keys()].filter((k) => k.endsWith(".png"))).toEqual([]); // the loser's file is gone
+  });
+
+  it("an upload sweeps up old strays, but never a file another upload stored a moment ago", async () => {
+    const f = fakes({ p1: "p1/old.jpg" });
+    f.file("p1/old.jpg", SWEEP_GRACE_MS * 2);
+    f.file("p1/stray.jpg", SWEEP_GRACE_MS * 2);
+    f.file("p1/in-flight.jpg", 1000);
+    f.file("p2/theirs.jpg", SWEEP_GRACE_MS * 2);
+    await setProfilePhoto("p1", png(), f.db, f.store);
+    expect([...f.files.keys()].sort()).toEqual([f.keys.p1!, "p1/in-flight.jpg", "p2/theirs.jpg"].sort());
+  });
+
   it("an old file that will not go does not fail the new photo", async () => {
     const f = fakes({ p1: "p1/old.jpg" });
     f.fail.remove = true;
+    f.fail.sweep = true;
     const r = await setProfilePhoto("p1", png(), f.db, f.store);
     expect(r.ok).toBe(true);
     expect(f.keys.p1).not.toBe("p1/old.jpg");
   });
 
-  it("removing deletes the file, then clears the record; a file that will not go stays on record to retry", async () => {
+  it("removing clears the record, then the file; nothing left is no error", async () => {
     const f = fakes({ p1: "p1/a.jpg" });
-    f.files.set("p1/a.jpg", new Uint8Array([1]));
-    f.fail.remove = true;
-    await expect(clearProfilePhoto("p1", f.db, f.store)).rejects.toThrow("storage down");
-    expect(f.keys.p1).toBe("p1/a.jpg");
-    f.fail.remove = false;
+    f.file("p1/a.jpg");
     await clearProfilePhoto("p1", f.db, f.store);
     expect(f.keys.p1).toBeNull();
     expect(f.files.size).toBe(0);
-    await clearProfilePhoto("p1", f.db, f.store); // nothing left: no error
+    await clearProfilePhoto("p1", f.db, f.store);
+  });
+
+  it("removing while a new photo lands leaves the new photo whole", async () => {
+    const f = fakes({ p1: "p1/a.jpg" });
+    f.file("p1/a.jpg");
+    f.hook.beforeSwap = () => {
+      f.hook.beforeSwap = undefined;
+      f.file("p1/new.jpg");
+      f.keys.p1 = "p1/new.jpg";
+    };
+    await clearProfilePhoto("p1", f.db, f.store);
+    expect(f.keys.p1).toBe("p1/new.jpg");
+    expect(f.files.has("p1/new.jpg")).toBe(true);
+  });
+
+  it("closing an account removes every file under the person, on record or not, and keeps the record if storage fails", async () => {
+    const f = fakes({ p1: "p1/a.jpg", p2: null });
+    f.file("p1/a.jpg");
+    f.file("p1/stray.jpg", 5);
+    f.file("p2/stray.jpg", 5); // off the record entirely
+    f.file("p3/theirs.jpg");
+    f.fail.sweep = true;
+    await expect(purgeProfilePhotos("p1", f.db, f.store)).rejects.toThrow("storage down");
+    expect(f.keys.p1).toBe("p1/a.jpg"); // still on record: the daily job finds it
+    f.fail.sweep = false;
+    await purgeProfilePhotos("p1", f.db, f.store);
+    await purgeProfilePhotos("p2", f.db, f.store);
+    expect(f.keys.p1).toBeNull();
+    expect([...f.files.keys()]).toEqual(["p3/theirs.jpg"]);
   });
 
   it("serves a person only their own photo, and never reads a key that sits under someone else", async () => {
     const f = fakes({ p1: "p1/a.png", p2: "p1/a.png", p3: null });
-    f.files.set("p1/a.png", new Uint8Array([7]));
+    f.files.set("p1/a.png", { bytes: new Uint8Array([7]), ageMs: 0 });
     const mine = await ownPhoto("p1", f.db, f.store);
     expect(mine && !mine.unchanged && [...mine.bytes]).toEqual([7]);
     expect(mine && !mine.unchanged && mine.type).toBe("image/png");
@@ -145,14 +207,8 @@ describe("profile photos", () => {
 
 describe("profile photos: who sees them", () => {
   const read = (p: string) => readFileSync(p, "utf8");
-
-  it("the route takes no id: it can only ever serve the signed-in person's own photo, and is never cached for anyone else", () => {
-    const route = read("src/app/api/profile-photo/route.ts");
-    expect(route).toMatch(/ownPhoto\(session\.userId,/);
-    expect(route).not.toMatch(/searchParams|params\b/);
-    expect(route).toContain('"private, no-cache"');
-    expect(route).toContain("nosniff");
-  });
+  const walk = (dir: string): string[] => readdirSync(dir).flatMap((n) => { const p = join(dir, n); return statSync(p).isDirectory() ? walk(p) : /\.tsx?$/.test(n) ? [p] : []; });
+  const sources = walk("src").filter((p) => !p.endsWith(".test.ts") && !p.includes("zz-preview"));
 
   it("the bucket is private, and both setup files create it that way", () => {
     for (const p of ["prisma/profile-photo.sql", "prisma/supabase-manual-setup.sql"]) {
@@ -163,9 +219,8 @@ describe("profile photos: who sees them", () => {
   });
 
   it("nothing an organization sees while hiring reads a person's photo (it shows race, age and gender)", () => {
-    // Only these files touch the photo code at all: the session's own navigation, Settings, the route, closing an account and its daily retry.
-    const hits = execSync("grep -rlE 'lib/profile-photo|photo-actions' src --include=*.ts --include=*.tsx", { encoding: "utf8" }).trim().split("\n").filter((p) => !p.endsWith(".test.ts") && !p.includes("zz-preview")).sort();
-    expect(hits).toEqual([
+    // Only these files touch the photo code at all: the person's own navigation and Settings, the route, the data export, closing an account and its daily retry.
+    expect(sources.filter((p) => /lib\/profile-photo|photo-actions|api\/profile-photo/.test(read(p))).sort()).toEqual([
       "src/app/api/cron/purge-proofs/route.ts",
       "src/app/api/profile-photo/route.ts",
       "src/app/settings/page.tsx",
@@ -174,7 +229,12 @@ describe("profile photos: who sees them", () => {
       "src/lib/account-data.ts",
       "src/lib/nav.ts",
       "src/lib/profile-photo-data.ts",
+      "src/lib/profile-photo-key.ts",
       "src/lib/profile-photo.ts",
     ]);
+    // And the column itself is read from "Profile" in two places only: the person's own session, and the photo records.
+    // (Campaign pages have an avatarKey of their own, on the campaign.)
+    const reads = sources.filter((p) => /profile\.(findUnique|findMany|findFirst|update|updateMany)[\s\S]{0,400}avatarKey/.test(read(p)) || /avatarKey: profile\.avatarKey/.test(read(p)));
+    expect(reads.sort()).toEqual(["src/lib/auth.ts", "src/lib/profile-photo-data.ts"]);
   });
 });

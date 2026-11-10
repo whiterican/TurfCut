@@ -6,6 +6,8 @@ import { removeProfilePhoto, uploadProfilePhoto, type PhotoState } from "@/app/s
 
 /** The side of the square the browser sends: plenty for a face in a menu, and a few dozen KB. */
 const EDGE = 512;
+/** The server's limit (lib/image-clean MEDIA_MAX_BYTES). */
+const MAX_BYTES = 2 * 1024 * 1024;
 
 /**
  * The photo as a centred, upright EDGE-pixel square JPEG, made in the browser
@@ -19,7 +21,10 @@ async function square(file: File): Promise<File | null> {
     const canvas = document.createElement("canvas");
     canvas.width = canvas.height = Math.min(EDGE, side);
     const ctx = canvas.getContext("2d");
-    if (!ctx) return null;
+    if (!ctx) {
+      bitmap.close();
+      return null;
+    }
     ctx.fillStyle = "#fff";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(bitmap, (bitmap.width - side) / 2, (bitmap.height - side) / 2, side, side, 0, 0, canvas.width, canvas.height);
@@ -36,6 +41,18 @@ export function PhotoSettings({ photo, initial }: { /** The address of the curre
   const input = useRef<HTMLInputElement>(null);
   const [state, setState] = useState<PhotoState | null>(null);
   const [busy, start] = useTransition();
+  // The address of a photo that would not load: the initial stands in for it.
+  const [failed, setFailed] = useState<string | null>(null);
+
+  // A call that throws (no connection, a refused request) is said on the status line, never left to the error screen.
+  const run = (work: () => Promise<PhotoState>) =>
+    start(async () => {
+      try {
+        setState(await work());
+      } catch {
+        setState({ ok: false, message: "That didn't go through. Check your connection and try again." });
+      }
+    });
 
   const choose = (file: File | undefined) => {
     if (input.current) input.current.value = "";
@@ -44,11 +61,13 @@ export function PhotoSettings({ photo, initial }: { /** The address of the curre
       setState({ ok: false, message: "Choose a JPEG or PNG photo." });
       return;
     }
-    start(async () => {
+    run(async () => {
       const ready = (await square(file)) ?? file;
+      // Checked here too: a body over the server's limit would fail without a reason.
+      if (ready.size > MAX_BYTES) return { ok: false, message: "Photos are up to 2 MB." };
       const fd = new FormData();
       fd.set("photo", ready, ready.name);
-      setState(await uploadProfilePhoto(null, fd));
+      return uploadProfilePhoto(null, fd);
     });
   };
 
@@ -56,9 +75,9 @@ export function PhotoSettings({ photo, initial }: { /** The address of the curre
     <section className="section">
       <h2 className="section-title">Photo</h2>
       <div className="card flex flex-wrap items-center gap-4">
-        <span className="photo-lg" aria-hidden={!photo}>
+        <span className="photo-lg" aria-hidden={!photo || failed === photo}>
           {/* eslint-disable-next-line @next/next/no-img-element -- served by a signed-in route, not an optimizable public image */}
-          {photo ? <img src={photo} alt="Your profile photo" /> : initial}
+          {photo && failed !== photo ? <img src={photo} alt="Your profile photo" onError={() => setFailed(photo)} /> : initial}
         </span>
         <div className="min-w-0 flex-1 space-y-2">
           <div className="flex flex-wrap gap-2">
@@ -68,7 +87,7 @@ export function PhotoSettings({ photo, initial }: { /** The address of the curre
               {busy ? "Saving…" : photo ? "Change photo" : "Add photo"}
             </button>
             {photo && (
-              <button type="button" className="btn-ghost btn-sm" disabled={busy} onClick={() => start(async () => setState(await removeProfilePhoto()))}>
+              <button type="button" className="btn-ghost btn-sm" disabled={busy} onClick={() => run(removeProfilePhoto)}>
                 <Trash2 aria-hidden className="btn-icon" />
                 Remove
               </button>

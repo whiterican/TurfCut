@@ -21,17 +21,18 @@ export async function GET(req: Request) {
     return Response.json({ error: "Not configured." }, { status: 503 });
   }
   if (!sameSecret(req.headers.get("authorization") ?? "", `Bearer ${secret}`)) return Response.json({ error: "Not found." }, { status: 404 });
-  const unset = missingProofSettings();
-  if (unset.length) {
-    console.error(`[turfcut] proof purge skipped: not configured (${unset.join(", ")})`);
-    return Response.json({ error: "Not configured." }, { status: 503 });
-  }
-  const r = await purgeProofs();
   // Profile photos of closed accounts whose removal failed at closing (lib/profile-photo-data).
+  // First and on its own: it needs none of the credential-photo settings, and a failure there must not skip it.
   const photosRemoved = await purgeClosedPhotos().catch((e) => {
     console.error("[turfcut] closed-account photo purge failed", e);
     return 0;
   });
+  const unset = missingProofSettings();
+  if (unset.length) {
+    console.error(`[turfcut] proof purge skipped: not configured (${unset.join(", ")})`);
+    return Response.json({ error: "Not configured.", photosRemoved }, { status: 503 });
+  }
+  const r = await purgeProofs();
   console.log(`[turfcut] proof purge: ${r.deleted} deleted, ${r.filesRemoved} deleted files checked, ${photosRemoved} closed-account photos removed`);
   return Response.json({ ...r, photosRemoved });
 }

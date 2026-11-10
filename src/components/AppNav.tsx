@@ -167,12 +167,14 @@ export function OrgRail({ tabs, orgName, approved = null, person, foot }: { tabs
 /** Who is signed in, as the navigation shows them. `photo` is the address of their own profile photo, if they added one. */
 export type NavPerson = { name: string; role: string; photo?: string | null };
 
-/** The signed-in person's own photo in a circle (decorative: their name is beside it). */
-function PersonPhoto({ photo }: { photo: string }) {
+/** The signed-in person's own photo in a circle (decorative: their name is beside it). `initial` stands in if it will not load (offline, say). */
+function PersonPhoto({ photo, initial }: { photo: string; initial?: string }) {
+  const [failed, setFailed] = useState<string | null>(null);
+  if (failed === photo) return initial ? <span className="menu-avatar" aria-hidden>{initial}</span> : null;
   return (
     <span className="menu-avatar" aria-hidden>
       {/* eslint-disable-next-line @next/next/no-img-element -- served by a signed-in route, not an optimizable public image */}
-      <img src={photo} alt="" />
+      <img src={photo} alt="" onError={() => setFailed(photo)} />
     </span>
   );
 }
@@ -190,7 +192,7 @@ export function MenuButton({ name, notices = 0, photo }: { name?: string; notice
   const first = name?.trim().split(/\s+/)[0]?.split("@")[0];
   return (
     <button type="button" className="menu-button" data-named={first ? "" : undefined} aria-haspopup="dialog" aria-label={`Menu${first ? `, ${first}` : ""}${notices > 0 ? `, ${notices} unread ${notices === 1 ? "notification" : "notifications"}` : ""}`} onClick={() => window.dispatchEvent(new Event(OPEN_MENU))}>
-      {first && photo ? <PersonPhoto photo={photo} /> : first ? <span className="menu-avatar" aria-hidden>{first[0]?.toUpperCase()}</span> : <Icon of={Menu} className="size-5" />}
+      {first && photo ? <PersonPhoto photo={photo} initial={first[0]?.toUpperCase()} /> : first ? <span className="menu-avatar" aria-hidden>{first[0]?.toUpperCase()}</span> : <Icon of={Menu} className="size-5" />}
       {first && <span className="menu-name" aria-hidden>{first}</span>}
       {notices > 0 && <span className="menu-dot" aria-hidden />}
     </button>

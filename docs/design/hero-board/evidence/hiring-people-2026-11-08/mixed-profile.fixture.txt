@@ -1,0 +1,25 @@
+import { OrgProfileSections } from "@/components/OrgProfileSections";
+import { ReadingPage } from "@/components/layout/Page";
+import { Masthead } from "@/components/Masthead";
+import { computeScorecard, type ScorecardShift } from "@/lib/scorecard";
+import { shareScorecard, ALL_SHARED } from "@/lib/shared-scorecard";
+import { employerFitView } from "@/lib/political-fit";
+import { SEED_SHIFT_EVENTS } from "../../../../prisma/seed-fixture";
+
+const start = new Date("2026-11-01T09:00:00Z");
+const now = new Date("2026-11-03");
+function shift(id: string, workType: "PETITION" | "CANVASS"): ScorecardShift {
+  return { id, engagementId: id, engagementStatus: "ACTIVE", workType, state: "CO", status: "COMPLETED",
+    startsAt: start, endsAt: new Date(start.getTime() + 8 * 3600000), scheduledAt: new Date("2026-10-30"),
+    events: SEED_SHIFT_EVENTS.map(e => ({ ...e, id: `${id}-${e.id}`, createdAt: new Date(start.getTime() + e.offsetMs) })),
+    validations: [{ workEventId: null, status: "APPROVED", createdAt: new Date("2026-11-02") }] };
+}
+export default function MixedFixture() {
+  const scorecard = shareScorecard(computeScorecard([shift("petition-fixture", "PETITION"), shift("canvass-fixture", "CANVASS")], { now }), ALL_SHARED);
+  return <ReadingPage org head={<Masthead title="Synthetic mixed-work fixture" />}>
+    <p className="text-hint">Local fixture · two synthetic shifts computed from the seed event recipe · not a real worker</p>
+    <OrgProfileSections view={{ displayName: "Synthetic fixture", today: "2026-11-03",
+      scorecard: { lifetime: scorecard, "12m": scorecard, "90d": scorecard }, availability: { usual: null, dates: ["Nov 10: free 9am–3pm"], note: null },
+      credentials: [], experience: [], fit: employerFitView(null, { orgHasRelationship: true }) }} />
+  </ReadingPage>;
+}

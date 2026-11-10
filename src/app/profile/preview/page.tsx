@@ -63,7 +63,7 @@ export default async function PreviewPage({ searchParams }: { searchParams: Prom
             <p className="eyebrow">Worker profile</p>
             <p className="page-title">{view.displayName}</p>
           </div>
-          <OrgProfileSections view={view} />
+          <OrgProfileSections view={view} heading="What you share with this organization" />
         </section>
       )}
     </ReadingPage>

@@ -1,0 +1,2255 @@
+{
+  "commit": "41f78c74543b0c8a44bbe604855a8855c9dce1ca",
+  "fixture": "Real guarded routes and local PostgreSQL c3 fixtures; synthetic loopback auth returns only the selected local user. This exercises app session/profile/grant code, not production Supabase authentication. Sam all-withheld and Riley partial fit are explicit synthetic sharing choices. No production access.",
+  "cases": [
+    {
+      "name": "candidate-withheld",
+      "route": "/hiring/ccccf2db-62ea-41a1-af2d-159abc67eed4/people/d3d18075-44dd-4dd9-80b7-d27a6c6f6624",
+      "workerId": "00000000-0000-0000-0000-000000000103",
+      "note": "Local Sam fixture: all sharing audiences set to NOBODY through saveSharing; no production data."
+    },
+    {
+      "name": "candidate-partial",
+      "route": "/hiring/ef9cf3ac-9fd1-4b50-89fe-2c079569849e/people/d0c1aaa3-d1cd-4a3e-a81c-df4b47a6340f",
+      "workerId": "00000000-0000-0000-0000-000000000104",
+      "note": "Synthetic Riley fixture: identity and party relationship shared through versioned savePreferences; other fit fields withheld."
+    },
+    {
+      "name": "candidate-hired",
+      "route": "/hiring/00000000-0000-0000-0000-000000000011/people/00000000-0000-0000-0000-000000000031",
+      "workerId": "00000000-0000-0000-0000-000000000101",
+      "note": "Base seed verified-work history, unmodified."
+    },
+    {
+      "name": "candidate-offer-expired",
+      "route": "/hiring/e9db2ef1-f1c4-49dd-9975-3cf44a58a787/people/8d35e617-c8be-4f29-8b1b-16c77eded7c2",
+      "workerId": "00000000-0000-0000-0000-000000000104",
+      "note": "Actual expired-offer fixture from c3 acceptance."
+    },
+    {
+      "name": "candidate-offer",
+      "route": "/hiring/696fc8f5-7506-4650-93cd-fc6f639d39eb/people/33ec4e49-b9e0-4f26-ace0-87d0eaf0b1a4",
+      "workerId": "00000000-0000-0000-0000-000000000104",
+      "note": "Actual open-offer fixture from c3 acceptance."
+    },
+    {
+      "name": "candidate-invited",
+      "route": "/hiring/ccccf2db-62ea-41a1-af2d-159abc67eed4/people/2c3988a1-5c5d-4447-bec1-e13d72bc6eae",
+      "workerId": "00000000-0000-0000-0000-000000000104",
+      "note": "Actual invitation fixture; profile availability follows current relationship/sharing loader."
+    },
+    {
+      "name": "candidate-invite-expired",
+      "route": "/hiring/5e683252-7a42-4cf6-ba29-d171573d205f/people/8ac46d21-2630-4345-8e87-14b00476aa35",
+      "workerId": "00000000-0000-0000-0000-000000000104",
+      "note": "Actual expired-invitation fixture from c3 acceptance."
+    },
+    {
+      "name": "candidate-not-selected",
+      "route": "/hiring/00000000-0000-0000-0000-000000000011/people/19b458af-1bc1-4b8f-b6b1-e2a413db59f1",
+      "workerId": "00000000-0000-0000-0000-000000000103",
+      "note": "Actual declined engagement; other relationships may keep the live profile open."
+    },
+    {
+      "name": "candidate-closed-account",
+      "route": "/hiring/5107729b-71c1-42cd-b518-0fbda32817c6/people/2bb24a88-092d-453d-8c88-93586a80b53b",
+      "workerId": "00000000-0000-0000-0000-000000000105",
+      "note": "Actual closed-account fixture; shows retained history and snapshot only."
+    },
+    {
+      "name": "worker-shared",
+      "route": "/workers/00000000-0000-0000-0000-000000000101",
+      "workerId": "00000000-0000-0000-0000-000000000101",
+      "note": "Base seed shared profile."
+    },
+    {
+      "name": "worker-withheld",
+      "route": "/workers/00000000-0000-0000-0000-000000000103",
+      "workerId": "00000000-0000-0000-0000-000000000103",
+      "note": "Local all-withheld sharing fixture."
+    },
+    {
+      "name": "worker-partial",
+      "route": "/workers/00000000-0000-0000-0000-000000000104",
+      "workerId": "00000000-0000-0000-0000-000000000104",
+      "note": "Synthetic partial-sharing preference fixture."
+    }
+  ],
+  "captures": [
+    {
+      "name": "candidate-withheld",
+      "width": 390,
+      "theme": "light",
+      "state": "",
+      "height": 1464,
+      "overflow": 0,
+      "interLoaded": true,
+      "title": "Sam Torres",
+      "activeNav": [
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        },
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        }
+      ],
+      "disclosures": [
+        {
+          "summary": "Not selected",
+          "open": false
+        },
+        {
+          "summary": "When they applied · Nov 8, 2026",
+          "open": false
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "candidate-partial",
+      "width": 390,
+      "theme": "light",
+      "state": "",
+      "height": 1147,
+      "overflow": 0,
+      "interLoaded": true,
+      "title": "Riley Park",
+      "activeNav": [
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        },
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        }
+      ],
+      "disclosures": [
+        {
+          "summary": "Not selected",
+          "open": false
+        },
+        {
+          "summary": "ScorecardNo verified shifts yet",
+          "open": false
+        },
+        {
+          "summary": "Political fit2 of 4 fields shared",
+          "open": false
+        },
+        {
+          "summary": "When they applied · Nov 8, 2026",
+          "open": false
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "candidate-partial",
+      "width": 390,
+      "theme": "light",
+      "state": "fit-open",
+      "height": 1589,
+      "overflow": 0,
+      "interLoaded": true,
+      "title": "Riley Park",
+      "activeNav": [
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        },
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        }
+      ],
+      "disclosures": [
+        {
+          "summary": "Not selected",
+          "open": false
+        },
+        {
+          "summary": "ScorecardNo verified shifts yet",
+          "open": false
+        },
+        {
+          "summary": "Political fit2 of 4 fields shared",
+          "open": true
+        },
+        {
+          "summary": "When they applied · Nov 8, 2026",
+          "open": false
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "candidate-hired",
+      "width": 390,
+      "theme": "light",
+      "state": "",
+      "height": 1759,
+      "overflow": 0,
+      "interLoaded": true,
+      "title": "Alex Rivera",
+      "activeNav": [
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        },
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        }
+      ],
+      "disclosures": [
+        {
+          "summary": "ScorecardPetition circulation: 1 verified shift · 20 accepted signatures · 3.5 verified hours · 100% show rate",
+          "open": false
+        },
+        {
+          "summary": "When they applied",
+          "open": false
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "candidate-hired",
+      "width": 390,
+      "theme": "light",
+      "state": "scorecard-open",
+      "height": 3954,
+      "overflow": 0,
+      "interLoaded": true,
+      "title": "Alex Rivera",
+      "activeNav": [
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        },
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        }
+      ],
+      "disclosures": [
+        {
+          "summary": "ScorecardPetition circulation: 1 verified shift · 20 accepted signatures · 3.5 verified hours · 100% show rate",
+          "open": true
+        },
+        {
+          "summary": "When they applied",
+          "open": false
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "candidate-offer-expired",
+      "width": 390,
+      "theme": "light",
+      "state": "",
+      "height": 1175,
+      "overflow": 0,
+      "interLoaded": true,
+      "title": "Riley Park",
+      "activeNav": [
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        },
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        }
+      ],
+      "disclosures": [
+        {
+          "summary": "Close as not selected",
+          "open": false
+        },
+        {
+          "summary": "ScorecardNo verified shifts yet",
+          "open": false
+        },
+        {
+          "summary": "Political fit2 of 4 fields shared",
+          "open": false
+        },
+        {
+          "summary": "When they applied · Nov 6, 2026",
+          "open": false
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "candidate-offer",
+      "width": 390,
+      "theme": "light",
+      "state": "",
+      "height": 1195,
+      "overflow": 0,
+      "interLoaded": true,
+      "title": "Riley Park",
+      "activeNav": [
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        },
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        }
+      ],
+      "disclosures": [
+        {
+          "summary": "Withdraw the offer",
+          "open": false
+        },
+        {
+          "summary": "ScorecardNo verified shifts yet",
+          "open": false
+        },
+        {
+          "summary": "Political fit2 of 4 fields shared",
+          "open": false
+        },
+        {
+          "summary": "When they applied · Nov 8, 2026",
+          "open": false
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "candidate-invited",
+      "width": 390,
+      "theme": "light",
+      "state": "",
+      "height": 1388,
+      "overflow": 0,
+      "interLoaded": true,
+      "title": "Riley Park",
+      "activeNav": [
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        },
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        }
+      ],
+      "disclosures": [
+        {
+          "summary": "Withdraw invitation",
+          "open": false
+        },
+        {
+          "summary": "ScorecardNo verified shifts yet",
+          "open": false
+        },
+        {
+          "summary": "Political fit2 of 4 fields shared",
+          "open": false
+        },
+        {
+          "summary": "When you invited them · Nov 8, 2026",
+          "open": false
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "candidate-invite-expired",
+      "width": 390,
+      "theme": "light",
+      "state": "",
+      "height": 1169,
+      "overflow": 0,
+      "interLoaded": true,
+      "title": "Riley Park",
+      "activeNav": [
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        },
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        }
+      ],
+      "disclosures": [
+        {
+          "summary": "Withdraw invitation",
+          "open": false
+        },
+        {
+          "summary": "ScorecardNo verified shifts yet",
+          "open": false
+        },
+        {
+          "summary": "Political fit2 of 4 fields shared",
+          "open": false
+        },
+        {
+          "summary": "When you invited them · Oct 29, 2026",
+          "open": false
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "candidate-not-selected",
+      "width": 390,
+      "theme": "light",
+      "state": "",
+      "height": 1472,
+      "overflow": 0,
+      "interLoaded": true,
+      "title": "Sam Torres",
+      "activeNav": [
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        },
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        }
+      ],
+      "disclosures": [
+        {
+          "summary": "When they applied · Nov 8, 2026",
+          "open": false
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "candidate-not-selected",
+      "width": 390,
+      "theme": "light",
+      "state": "snapshot-open",
+      "height": 2066,
+      "overflow": 0,
+      "interLoaded": true,
+      "title": "Sam Torres",
+      "activeNav": [
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        },
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        }
+      ],
+      "disclosures": [
+        {
+          "summary": "When they applied · Nov 8, 2026",
+          "open": true
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "candidate-closed-account",
+      "width": 390,
+      "theme": "light",
+      "state": "",
+      "height": 844,
+      "overflow": 0,
+      "interLoaded": true,
+      "title": "Former worker",
+      "activeNav": [
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        },
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        }
+      ],
+      "disclosures": [
+        {
+          "summary": "When they applied · Nov 8, 2026",
+          "open": false
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "worker-shared",
+      "width": 390,
+      "theme": "light",
+      "state": "",
+      "height": 1254,
+      "overflow": 0,
+      "interLoaded": true,
+      "title": "Alex Rivera",
+      "activeNav": [],
+      "disclosures": [
+        {
+          "summary": "ScorecardPetition circulation: 1 verified shift · 20 accepted signatures · 3.5 verified hours · 100% show rate",
+          "open": false
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "worker-shared",
+      "width": 390,
+      "theme": "light",
+      "state": "scorecard-open",
+      "height": 3449,
+      "overflow": 0,
+      "interLoaded": true,
+      "title": "Alex Rivera",
+      "activeNav": [],
+      "disclosures": [
+        {
+          "summary": "ScorecardPetition circulation: 1 verified shift · 20 accepted signatures · 3.5 verified hours · 100% show rate",
+          "open": true
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "worker-withheld",
+      "width": 390,
+      "theme": "light",
+      "state": "",
+      "height": 867,
+      "overflow": 0,
+      "interLoaded": true,
+      "title": "Sam Torres",
+      "activeNav": [],
+      "disclosures": [],
+      "errors": []
+    },
+    {
+      "name": "worker-partial",
+      "width": 390,
+      "theme": "light",
+      "state": "",
+      "height": 844,
+      "overflow": 0,
+      "interLoaded": true,
+      "title": "Riley Park",
+      "activeNav": [],
+      "disclosures": [
+        {
+          "summary": "ScorecardNo verified shifts yet",
+          "open": false
+        },
+        {
+          "summary": "Political fit2 of 4 fields shared",
+          "open": false
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "worker-partial",
+      "width": 390,
+      "theme": "light",
+      "state": "fit-open",
+      "height": 1217,
+      "overflow": 0,
+      "interLoaded": true,
+      "title": "Riley Park",
+      "activeNav": [],
+      "disclosures": [
+        {
+          "summary": "ScorecardNo verified shifts yet",
+          "open": false
+        },
+        {
+          "summary": "Political fit2 of 4 fields shared",
+          "open": true
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "candidate-withheld",
+      "width": 390,
+      "theme": "dark",
+      "state": "",
+      "height": 1464,
+      "overflow": 0,
+      "interLoaded": true,
+      "title": "Sam Torres",
+      "activeNav": [
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        },
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        }
+      ],
+      "disclosures": [
+        {
+          "summary": "Not selected",
+          "open": false
+        },
+        {
+          "summary": "When they applied · Nov 8, 2026",
+          "open": false
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "candidate-partial",
+      "width": 390,
+      "theme": "dark",
+      "state": "",
+      "height": 1147,
+      "overflow": 0,
+      "interLoaded": true,
+      "title": "Riley Park",
+      "activeNav": [
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        },
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        }
+      ],
+      "disclosures": [
+        {
+          "summary": "Not selected",
+          "open": false
+        },
+        {
+          "summary": "ScorecardNo verified shifts yet",
+          "open": false
+        },
+        {
+          "summary": "Political fit2 of 4 fields shared",
+          "open": false
+        },
+        {
+          "summary": "When they applied · Nov 8, 2026",
+          "open": false
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "candidate-partial",
+      "width": 390,
+      "theme": "dark",
+      "state": "fit-open",
+      "height": 1589,
+      "overflow": 0,
+      "interLoaded": true,
+      "title": "Riley Park",
+      "activeNav": [
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        },
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        }
+      ],
+      "disclosures": [
+        {
+          "summary": "Not selected",
+          "open": false
+        },
+        {
+          "summary": "ScorecardNo verified shifts yet",
+          "open": false
+        },
+        {
+          "summary": "Political fit2 of 4 fields shared",
+          "open": true
+        },
+        {
+          "summary": "When they applied · Nov 8, 2026",
+          "open": false
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "candidate-hired",
+      "width": 390,
+      "theme": "dark",
+      "state": "",
+      "height": 844,
+      "overflow": 0,
+      "interLoaded": true,
+      "title": "Alex Rivera",
+      "activeNav": [
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        },
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        }
+      ],
+      "disclosures": [
+        {
+          "summary": "ScorecardPetition circulation: 1 verified shift · 20 accepted signatures · 3.5 verified hours · 100% show rate",
+          "open": false
+        },
+        {
+          "summary": "When they applied",
+          "open": false
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "candidate-hired",
+      "width": 390,
+      "theme": "dark",
+      "state": "scorecard-open",
+      "height": 3954,
+      "overflow": 0,
+      "interLoaded": true,
+      "title": "Alex Rivera",
+      "activeNav": [
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        },
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        }
+      ],
+      "disclosures": [
+        {
+          "summary": "ScorecardPetition circulation: 1 verified shift · 20 accepted signatures · 3.5 verified hours · 100% show rate",
+          "open": true
+        },
+        {
+          "summary": "When they applied",
+          "open": false
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "candidate-offer-expired",
+      "width": 390,
+      "theme": "dark",
+      "state": "",
+      "height": 1175,
+      "overflow": 0,
+      "interLoaded": true,
+      "title": "Riley Park",
+      "activeNav": [
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        },
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        }
+      ],
+      "disclosures": [
+        {
+          "summary": "Close as not selected",
+          "open": false
+        },
+        {
+          "summary": "ScorecardNo verified shifts yet",
+          "open": false
+        },
+        {
+          "summary": "Political fit2 of 4 fields shared",
+          "open": false
+        },
+        {
+          "summary": "When they applied · Nov 6, 2026",
+          "open": false
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "candidate-offer",
+      "width": 390,
+      "theme": "dark",
+      "state": "",
+      "height": 1195,
+      "overflow": 0,
+      "interLoaded": true,
+      "title": "Riley Park",
+      "activeNav": [
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        },
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        }
+      ],
+      "disclosures": [
+        {
+          "summary": "Withdraw the offer",
+          "open": false
+        },
+        {
+          "summary": "ScorecardNo verified shifts yet",
+          "open": false
+        },
+        {
+          "summary": "Political fit2 of 4 fields shared",
+          "open": false
+        },
+        {
+          "summary": "When they applied · Nov 8, 2026",
+          "open": false
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "candidate-invited",
+      "width": 390,
+      "theme": "dark",
+      "state": "",
+      "height": 1388,
+      "overflow": 0,
+      "interLoaded": true,
+      "title": "Riley Park",
+      "activeNav": [
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        },
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        }
+      ],
+      "disclosures": [
+        {
+          "summary": "Withdraw invitation",
+          "open": false
+        },
+        {
+          "summary": "ScorecardNo verified shifts yet",
+          "open": false
+        },
+        {
+          "summary": "Political fit2 of 4 fields shared",
+          "open": false
+        },
+        {
+          "summary": "When you invited them · Nov 8, 2026",
+          "open": false
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "candidate-invite-expired",
+      "width": 390,
+      "theme": "dark",
+      "state": "",
+      "height": 1169,
+      "overflow": 0,
+      "interLoaded": true,
+      "title": "Riley Park",
+      "activeNav": [
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        },
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        }
+      ],
+      "disclosures": [
+        {
+          "summary": "Withdraw invitation",
+          "open": false
+        },
+        {
+          "summary": "ScorecardNo verified shifts yet",
+          "open": false
+        },
+        {
+          "summary": "Political fit2 of 4 fields shared",
+          "open": false
+        },
+        {
+          "summary": "When you invited them · Oct 29, 2026",
+          "open": false
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "candidate-not-selected",
+      "width": 390,
+      "theme": "dark",
+      "state": "",
+      "height": 1472,
+      "overflow": 0,
+      "interLoaded": true,
+      "title": "Sam Torres",
+      "activeNav": [
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        },
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        }
+      ],
+      "disclosures": [
+        {
+          "summary": "When they applied · Nov 8, 2026",
+          "open": false
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "candidate-not-selected",
+      "width": 390,
+      "theme": "dark",
+      "state": "snapshot-open",
+      "height": 2066,
+      "overflow": 0,
+      "interLoaded": true,
+      "title": "Sam Torres",
+      "activeNav": [
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        },
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        }
+      ],
+      "disclosures": [
+        {
+          "summary": "When they applied · Nov 8, 2026",
+          "open": true
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "candidate-closed-account",
+      "width": 390,
+      "theme": "dark",
+      "state": "",
+      "height": 844,
+      "overflow": 0,
+      "interLoaded": true,
+      "title": "Former worker",
+      "activeNav": [
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        },
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        }
+      ],
+      "disclosures": [
+        {
+          "summary": "When they applied · Nov 8, 2026",
+          "open": false
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "worker-shared",
+      "width": 390,
+      "theme": "dark",
+      "state": "",
+      "height": 1254,
+      "overflow": 0,
+      "interLoaded": true,
+      "title": "Alex Rivera",
+      "activeNav": [],
+      "disclosures": [
+        {
+          "summary": "ScorecardPetition circulation: 1 verified shift · 20 accepted signatures · 3.5 verified hours · 100% show rate",
+          "open": false
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "worker-shared",
+      "width": 390,
+      "theme": "dark",
+      "state": "scorecard-open",
+      "height": 3449,
+      "overflow": 0,
+      "interLoaded": true,
+      "title": "Alex Rivera",
+      "activeNav": [],
+      "disclosures": [
+        {
+          "summary": "ScorecardPetition circulation: 1 verified shift · 20 accepted signatures · 3.5 verified hours · 100% show rate",
+          "open": true
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "worker-withheld",
+      "width": 390,
+      "theme": "dark",
+      "state": "",
+      "height": 867,
+      "overflow": 0,
+      "interLoaded": true,
+      "title": "Sam Torres",
+      "activeNav": [],
+      "disclosures": [],
+      "errors": []
+    },
+    {
+      "name": "worker-partial",
+      "width": 390,
+      "theme": "dark",
+      "state": "",
+      "height": 844,
+      "overflow": 0,
+      "interLoaded": true,
+      "title": "Riley Park",
+      "activeNav": [],
+      "disclosures": [
+        {
+          "summary": "ScorecardNo verified shifts yet",
+          "open": false
+        },
+        {
+          "summary": "Political fit2 of 4 fields shared",
+          "open": false
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "worker-partial",
+      "width": 390,
+      "theme": "dark",
+      "state": "fit-open",
+      "height": 1217,
+      "overflow": 0,
+      "interLoaded": true,
+      "title": "Riley Park",
+      "activeNav": [],
+      "disclosures": [
+        {
+          "summary": "ScorecardNo verified shifts yet",
+          "open": false
+        },
+        {
+          "summary": "Political fit2 of 4 fields shared",
+          "open": true
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "candidate-withheld",
+      "width": 1440,
+      "theme": "light",
+      "state": "",
+      "height": 1226,
+      "overflow": 0,
+      "interLoaded": true,
+      "title": "Sam Torres",
+      "activeNav": [
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        },
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        }
+      ],
+      "disclosures": [
+        {
+          "summary": "Not selected",
+          "open": false
+        },
+        {
+          "summary": "When they applied · Nov 8, 2026",
+          "open": false
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "candidate-partial",
+      "width": 1440,
+      "theme": "light",
+      "state": "",
+      "height": 996,
+      "overflow": 0,
+      "interLoaded": true,
+      "title": "Riley Park",
+      "activeNav": [
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        },
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        }
+      ],
+      "disclosures": [
+        {
+          "summary": "Not selected",
+          "open": false
+        },
+        {
+          "summary": "ScorecardNo verified shifts yet",
+          "open": false
+        },
+        {
+          "summary": "Political fit2 of 4 fields shared",
+          "open": false
+        },
+        {
+          "summary": "When they applied · Nov 8, 2026",
+          "open": false
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "candidate-partial",
+      "width": 1440,
+      "theme": "light",
+      "state": "fit-open",
+      "height": 1263,
+      "overflow": 0,
+      "interLoaded": true,
+      "title": "Riley Park",
+      "activeNav": [
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        },
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        }
+      ],
+      "disclosures": [
+        {
+          "summary": "Not selected",
+          "open": false
+        },
+        {
+          "summary": "ScorecardNo verified shifts yet",
+          "open": false
+        },
+        {
+          "summary": "Political fit2 of 4 fields shared",
+          "open": true
+        },
+        {
+          "summary": "When they applied · Nov 8, 2026",
+          "open": false
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "candidate-hired",
+      "width": 1440,
+      "theme": "light",
+      "state": "",
+      "height": 900,
+      "overflow": 0,
+      "interLoaded": true,
+      "title": "Alex Rivera",
+      "activeNav": [
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        },
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        }
+      ],
+      "disclosures": [
+        {
+          "summary": "ScorecardPetition circulation: 1 verified shift · 20 accepted signatures · 3.5 verified hours · 100% show rate",
+          "open": false
+        },
+        {
+          "summary": "When they applied",
+          "open": false
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "candidate-hired",
+      "width": 1440,
+      "theme": "light",
+      "state": "scorecard-open",
+      "height": 3144,
+      "overflow": 0,
+      "interLoaded": true,
+      "title": "Alex Rivera",
+      "activeNav": [
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        },
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        }
+      ],
+      "disclosures": [
+        {
+          "summary": "ScorecardPetition circulation: 1 verified shift · 20 accepted signatures · 3.5 verified hours · 100% show rate",
+          "open": true
+        },
+        {
+          "summary": "When they applied",
+          "open": false
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "candidate-offer-expired",
+      "width": 1440,
+      "theme": "light",
+      "state": "",
+      "height": 1024,
+      "overflow": 0,
+      "interLoaded": true,
+      "title": "Riley Park",
+      "activeNav": [
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        },
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        }
+      ],
+      "disclosures": [
+        {
+          "summary": "Close as not selected",
+          "open": false
+        },
+        {
+          "summary": "ScorecardNo verified shifts yet",
+          "open": false
+        },
+        {
+          "summary": "Political fit2 of 4 fields shared",
+          "open": false
+        },
+        {
+          "summary": "When they applied · Nov 6, 2026",
+          "open": false
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "candidate-offer",
+      "width": 1440,
+      "theme": "light",
+      "state": "",
+      "height": 1024,
+      "overflow": 0,
+      "interLoaded": true,
+      "title": "Riley Park",
+      "activeNav": [
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        },
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        }
+      ],
+      "disclosures": [
+        {
+          "summary": "Withdraw the offer",
+          "open": false
+        },
+        {
+          "summary": "ScorecardNo verified shifts yet",
+          "open": false
+        },
+        {
+          "summary": "Political fit2 of 4 fields shared",
+          "open": false
+        },
+        {
+          "summary": "When they applied · Nov 8, 2026",
+          "open": false
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "candidate-invited",
+      "width": 1440,
+      "theme": "light",
+      "state": "",
+      "height": 1189,
+      "overflow": 0,
+      "interLoaded": true,
+      "title": "Riley Park",
+      "activeNav": [
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        },
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        }
+      ],
+      "disclosures": [
+        {
+          "summary": "Withdraw invitation",
+          "open": false
+        },
+        {
+          "summary": "ScorecardNo verified shifts yet",
+          "open": false
+        },
+        {
+          "summary": "Political fit2 of 4 fields shared",
+          "open": false
+        },
+        {
+          "summary": "When you invited them · Nov 8, 2026",
+          "open": false
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "candidate-invite-expired",
+      "width": 1440,
+      "theme": "light",
+      "state": "",
+      "height": 998,
+      "overflow": 0,
+      "interLoaded": true,
+      "title": "Riley Park",
+      "activeNav": [
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        },
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        }
+      ],
+      "disclosures": [
+        {
+          "summary": "Withdraw invitation",
+          "open": false
+        },
+        {
+          "summary": "ScorecardNo verified shifts yet",
+          "open": false
+        },
+        {
+          "summary": "Political fit2 of 4 fields shared",
+          "open": false
+        },
+        {
+          "summary": "When you invited them · Oct 29, 2026",
+          "open": false
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "candidate-not-selected",
+      "width": 1440,
+      "theme": "light",
+      "state": "",
+      "height": 1234,
+      "overflow": 0,
+      "interLoaded": true,
+      "title": "Sam Torres",
+      "activeNav": [
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        },
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        }
+      ],
+      "disclosures": [
+        {
+          "summary": "When they applied · Nov 8, 2026",
+          "open": false
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "candidate-not-selected",
+      "width": 1440,
+      "theme": "light",
+      "state": "snapshot-open",
+      "height": 1625,
+      "overflow": 0,
+      "interLoaded": true,
+      "title": "Sam Torres",
+      "activeNav": [
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        },
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        }
+      ],
+      "disclosures": [
+        {
+          "summary": "When they applied · Nov 8, 2026",
+          "open": true
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "candidate-closed-account",
+      "width": 1440,
+      "theme": "light",
+      "state": "",
+      "height": 900,
+      "overflow": 0,
+      "interLoaded": true,
+      "title": "Former worker",
+      "activeNav": [
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        },
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        }
+      ],
+      "disclosures": [
+        {
+          "summary": "When they applied · Nov 8, 2026",
+          "open": false
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "worker-shared",
+      "width": 1440,
+      "theme": "light",
+      "state": "",
+      "height": 1057,
+      "overflow": 0,
+      "interLoaded": true,
+      "title": "Alex Rivera",
+      "activeNav": [],
+      "disclosures": [
+        {
+          "summary": "ScorecardPetition circulation: 1 verified shift · 20 accepted signatures · 3.5 verified hours · 100% show rate",
+          "open": false
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "worker-shared",
+      "width": 1440,
+      "theme": "light",
+      "state": "scorecard-open",
+      "height": 2735,
+      "overflow": 0,
+      "interLoaded": true,
+      "title": "Alex Rivera",
+      "activeNav": [],
+      "disclosures": [
+        {
+          "summary": "ScorecardPetition circulation: 1 verified shift · 20 accepted signatures · 3.5 verified hours · 100% show rate",
+          "open": true
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "worker-withheld",
+      "width": 1440,
+      "theme": "light",
+      "state": "",
+      "height": 900,
+      "overflow": 0,
+      "interLoaded": true,
+      "title": "Sam Torres",
+      "activeNav": [],
+      "disclosures": [],
+      "errors": []
+    },
+    {
+      "name": "worker-partial",
+      "width": 1440,
+      "theme": "light",
+      "state": "",
+      "height": 900,
+      "overflow": 0,
+      "interLoaded": true,
+      "title": "Riley Park",
+      "activeNav": [],
+      "disclosures": [
+        {
+          "summary": "ScorecardNo verified shifts yet",
+          "open": false
+        },
+        {
+          "summary": "Political fit2 of 4 fields shared",
+          "open": false
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "worker-partial",
+      "width": 1440,
+      "theme": "light",
+      "state": "fit-open",
+      "height": 939,
+      "overflow": 0,
+      "interLoaded": true,
+      "title": "Riley Park",
+      "activeNav": [],
+      "disclosures": [
+        {
+          "summary": "ScorecardNo verified shifts yet",
+          "open": false
+        },
+        {
+          "summary": "Political fit2 of 4 fields shared",
+          "open": true
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "candidate-withheld",
+      "width": 1440,
+      "theme": "dark",
+      "state": "",
+      "height": 1226,
+      "overflow": 0,
+      "interLoaded": true,
+      "title": "Sam Torres",
+      "activeNav": [
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        },
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        }
+      ],
+      "disclosures": [
+        {
+          "summary": "Not selected",
+          "open": false
+        },
+        {
+          "summary": "When they applied · Nov 8, 2026",
+          "open": false
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "candidate-partial",
+      "width": 1440,
+      "theme": "dark",
+      "state": "",
+      "height": 996,
+      "overflow": 0,
+      "interLoaded": true,
+      "title": "Riley Park",
+      "activeNav": [
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        },
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        }
+      ],
+      "disclosures": [
+        {
+          "summary": "Not selected",
+          "open": false
+        },
+        {
+          "summary": "ScorecardNo verified shifts yet",
+          "open": false
+        },
+        {
+          "summary": "Political fit2 of 4 fields shared",
+          "open": false
+        },
+        {
+          "summary": "When they applied · Nov 8, 2026",
+          "open": false
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "candidate-partial",
+      "width": 1440,
+      "theme": "dark",
+      "state": "fit-open",
+      "height": 1263,
+      "overflow": 0,
+      "interLoaded": true,
+      "title": "Riley Park",
+      "activeNav": [
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        },
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        }
+      ],
+      "disclosures": [
+        {
+          "summary": "Not selected",
+          "open": false
+        },
+        {
+          "summary": "ScorecardNo verified shifts yet",
+          "open": false
+        },
+        {
+          "summary": "Political fit2 of 4 fields shared",
+          "open": true
+        },
+        {
+          "summary": "When they applied · Nov 8, 2026",
+          "open": false
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "candidate-hired",
+      "width": 1440,
+      "theme": "dark",
+      "state": "",
+      "height": 900,
+      "overflow": 0,
+      "interLoaded": true,
+      "title": "Alex Rivera",
+      "activeNav": [
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        },
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        }
+      ],
+      "disclosures": [
+        {
+          "summary": "ScorecardPetition circulation: 1 verified shift · 20 accepted signatures · 3.5 verified hours · 100% show rate",
+          "open": false
+        },
+        {
+          "summary": "When they applied",
+          "open": false
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "candidate-hired",
+      "width": 1440,
+      "theme": "dark",
+      "state": "scorecard-open",
+      "height": 3144,
+      "overflow": 0,
+      "interLoaded": true,
+      "title": "Alex Rivera",
+      "activeNav": [
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        },
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        }
+      ],
+      "disclosures": [
+        {
+          "summary": "ScorecardPetition circulation: 1 verified shift · 20 accepted signatures · 3.5 verified hours · 100% show rate",
+          "open": true
+        },
+        {
+          "summary": "When they applied",
+          "open": false
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "candidate-offer-expired",
+      "width": 1440,
+      "theme": "dark",
+      "state": "",
+      "height": 1024,
+      "overflow": 0,
+      "interLoaded": true,
+      "title": "Riley Park",
+      "activeNav": [
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        },
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        }
+      ],
+      "disclosures": [
+        {
+          "summary": "Close as not selected",
+          "open": false
+        },
+        {
+          "summary": "ScorecardNo verified shifts yet",
+          "open": false
+        },
+        {
+          "summary": "Political fit2 of 4 fields shared",
+          "open": false
+        },
+        {
+          "summary": "When they applied · Nov 6, 2026",
+          "open": false
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "candidate-offer",
+      "width": 1440,
+      "theme": "dark",
+      "state": "",
+      "height": 1024,
+      "overflow": 0,
+      "interLoaded": true,
+      "title": "Riley Park",
+      "activeNav": [
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        },
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        }
+      ],
+      "disclosures": [
+        {
+          "summary": "Withdraw the offer",
+          "open": false
+        },
+        {
+          "summary": "ScorecardNo verified shifts yet",
+          "open": false
+        },
+        {
+          "summary": "Political fit2 of 4 fields shared",
+          "open": false
+        },
+        {
+          "summary": "When they applied · Nov 8, 2026",
+          "open": false
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "candidate-invited",
+      "width": 1440,
+      "theme": "dark",
+      "state": "",
+      "height": 1189,
+      "overflow": 0,
+      "interLoaded": true,
+      "title": "Riley Park",
+      "activeNav": [
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        },
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        }
+      ],
+      "disclosures": [
+        {
+          "summary": "Withdraw invitation",
+          "open": false
+        },
+        {
+          "summary": "ScorecardNo verified shifts yet",
+          "open": false
+        },
+        {
+          "summary": "Political fit2 of 4 fields shared",
+          "open": false
+        },
+        {
+          "summary": "When you invited them · Nov 8, 2026",
+          "open": false
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "candidate-invite-expired",
+      "width": 1440,
+      "theme": "dark",
+      "state": "",
+      "height": 998,
+      "overflow": 0,
+      "interLoaded": true,
+      "title": "Riley Park",
+      "activeNav": [
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        },
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        }
+      ],
+      "disclosures": [
+        {
+          "summary": "Withdraw invitation",
+          "open": false
+        },
+        {
+          "summary": "ScorecardNo verified shifts yet",
+          "open": false
+        },
+        {
+          "summary": "Political fit2 of 4 fields shared",
+          "open": false
+        },
+        {
+          "summary": "When you invited them · Oct 29, 2026",
+          "open": false
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "candidate-not-selected",
+      "width": 1440,
+      "theme": "dark",
+      "state": "",
+      "height": 900,
+      "overflow": 0,
+      "interLoaded": true,
+      "title": "Sam Torres",
+      "activeNav": [
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        },
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        }
+      ],
+      "disclosures": [
+        {
+          "summary": "When they applied · Nov 8, 2026",
+          "open": false
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "candidate-not-selected",
+      "width": 1440,
+      "theme": "dark",
+      "state": "snapshot-open",
+      "height": 1625,
+      "overflow": 0,
+      "interLoaded": true,
+      "title": "Sam Torres",
+      "activeNav": [
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        },
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        }
+      ],
+      "disclosures": [
+        {
+          "summary": "When they applied · Nov 8, 2026",
+          "open": true
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "candidate-closed-account",
+      "width": 1440,
+      "theme": "dark",
+      "state": "",
+      "height": 900,
+      "overflow": 0,
+      "interLoaded": true,
+      "title": "Former worker",
+      "activeNav": [
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        },
+        {
+          "text": "Hiring",
+          "href": "/hiring",
+          "current": "true"
+        }
+      ],
+      "disclosures": [
+        {
+          "summary": "When they applied · Nov 8, 2026",
+          "open": false
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "worker-shared",
+      "width": 1440,
+      "theme": "dark",
+      "state": "",
+      "height": 1057,
+      "overflow": 0,
+      "interLoaded": true,
+      "title": "Alex Rivera",
+      "activeNav": [],
+      "disclosures": [
+        {
+          "summary": "ScorecardPetition circulation: 1 verified shift · 20 accepted signatures · 3.5 verified hours · 100% show rate",
+          "open": false
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "worker-shared",
+      "width": 1440,
+      "theme": "dark",
+      "state": "scorecard-open",
+      "height": 2735,
+      "overflow": 0,
+      "interLoaded": true,
+      "title": "Alex Rivera",
+      "activeNav": [],
+      "disclosures": [
+        {
+          "summary": "ScorecardPetition circulation: 1 verified shift · 20 accepted signatures · 3.5 verified hours · 100% show rate",
+          "open": true
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "worker-withheld",
+      "width": 1440,
+      "theme": "dark",
+      "state": "",
+      "height": 900,
+      "overflow": 0,
+      "interLoaded": true,
+      "title": "Sam Torres",
+      "activeNav": [],
+      "disclosures": [],
+      "errors": []
+    },
+    {
+      "name": "worker-partial",
+      "width": 1440,
+      "theme": "dark",
+      "state": "",
+      "height": 900,
+      "overflow": 0,
+      "interLoaded": true,
+      "title": "Riley Park",
+      "activeNav": [],
+      "disclosures": [
+        {
+          "summary": "ScorecardNo verified shifts yet",
+          "open": false
+        },
+        {
+          "summary": "Political fit2 of 4 fields shared",
+          "open": false
+        }
+      ],
+      "errors": []
+    },
+    {
+      "name": "worker-partial",
+      "width": 1440,
+      "theme": "dark",
+      "state": "fit-open",
+      "height": 939,
+      "overflow": 0,
+      "interLoaded": true,
+      "title": "Riley Park",
+      "activeNav": [],
+      "disclosures": [
+        {
+          "summary": "ScorecardNo verified shifts yet",
+          "open": false
+        },
+        {
+          "summary": "Political fit2 of 4 fields shared",
+          "open": true
+        }
+      ],
+      "errors": []
+    }
+  ],
+  "interactions": [
+    {
+      "name": "candidate-partial",
+      "width": 390,
+      "theme": "light",
+      "check": "native keyboard opens partial-fit disclosure, all fields retained"
+    },
+    {
+      "name": "candidate-not-selected",
+      "width": 390,
+      "theme": "light",
+      "check": "native keyboard opens retained snapshot"
+    },
+    {
+      "name": "worker-partial",
+      "width": 390,
+      "theme": "light",
+      "check": "native keyboard opens partial-fit disclosure, all fields retained"
+    },
+    {
+      "name": "candidate-partial",
+      "width": 390,
+      "theme": "dark",
+      "check": "native keyboard opens partial-fit disclosure, all fields retained"
+    },
+    {
+      "name": "candidate-not-selected",
+      "width": 390,
+      "theme": "dark",
+      "check": "native keyboard opens retained snapshot"
+    },
+    {
+      "name": "worker-partial",
+      "width": 390,
+      "theme": "dark",
+      "check": "native keyboard opens partial-fit disclosure, all fields retained"
+    },
+    {
+      "name": "candidate-partial",
+      "width": 1440,
+      "theme": "light",
+      "check": "native keyboard opens partial-fit disclosure, all fields retained"
+    },
+    {
+      "name": "candidate-not-selected",
+      "width": 1440,
+      "theme": "light",
+      "check": "native keyboard opens retained snapshot"
+    },
+    {
+      "name": "worker-partial",
+      "width": 1440,
+      "theme": "light",
+      "check": "native keyboard opens partial-fit disclosure, all fields retained"
+    },
+    {
+      "name": "candidate-partial",
+      "width": 1440,
+      "theme": "dark",
+      "check": "native keyboard opens partial-fit disclosure, all fields retained"
+    },
+    {
+      "name": "candidate-not-selected",
+      "width": 1440,
+      "theme": "dark",
+      "check": "native keyboard opens retained snapshot"
+    },
+    {
+      "name": "worker-partial",
+      "width": 1440,
+      "theme": "dark",
+      "check": "native keyboard opens partial-fit disclosure, all fields retained"
+    }
+  ],
+  "failures": []
+}

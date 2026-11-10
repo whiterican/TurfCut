@@ -8,6 +8,7 @@ import { InviteComposer } from "@/components/InviteComposer";
 import { Masthead } from "@/components/Masthead";
 import { ChevronLeft } from "lucide-react";
 import { ReadingPage, RecordPage } from "@/components/layout/Page";
+import styles from "@/components/HiringPeople.module.css";
 
 /** A worker as an organization sees them: only what the worker authorized. */
 export default async function EmployerWorkerPage({
@@ -34,15 +35,13 @@ export default async function EmployerWorkerPage({
   if (!view) notFound();
 
   return (
-    <RecordPage org>
-      {/* Only the display name — no phone or other contact details. (No name for an unapproved viewer, which can't reach here today.) */}
-      <Masthead title={view.displayName ?? "Name not shared"}>
+    <div className={styles.page}>
+    <RecordPage org head={<Masthead title={view.displayName ?? "Name not shared"}>
         <Link transitionTypes={["nav-back"]} href="/jobs" className="btn-ghost"><ChevronLeft aria-hidden className="size-4 shrink-0" />Jobs</Link>
-      </Masthead>
-
-      <InviteComposer workerId={workerId} orgId={access.orgId} />
-
+      </Masthead>}>
       <OrgProfileSections view={view} />
+      <InviteComposer workerId={workerId} orgId={access.orgId} />
     </RecordPage>
+    </div>
   );
 }

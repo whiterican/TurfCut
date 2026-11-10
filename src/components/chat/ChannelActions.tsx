@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { unstable_rethrow } from "next/navigation";
 import { archiveChannel, leaveChannel } from "@/app/messages/actions";
 import type { ActionState } from "@/app/jobs/actions";
 
@@ -14,8 +15,8 @@ export function ChannelActions({ conversationId, name, canLeave, canArchive }: {
       try {
         setState(await work());
       } catch (e) {
-        // A redirect after leaving arrives as a thrown signal: let it through.
-        if (e && typeof e === "object" && "digest" in e) throw e;
+        // A redirect after leaving arrives as a thrown signal: let it (and only it) through.
+        unstable_rethrow(e);
         setState({ ok: false, message: "That didn't go through. Try again." });
       }
     });

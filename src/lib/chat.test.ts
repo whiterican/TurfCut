@@ -242,8 +242,13 @@ describe("channels", () => {
     expect(chatAccess(channel({ ...w, hiredOnLinkedJob: false }))).toMatchObject({ read: true, post: false, closed: "You're no longer on a job for this channel. History is read-only." });
   });
 
-  it("someone who left keeps read-only history up to then", () => {
-    expect(chatAccess(channel({ participant: { role: "MEMBER", removedAt: t(5) } }))).toMatchObject({ read: true, readUntil: t(5), post: false });
+  it("someone who left keeps read-only history up to then, while still on the organization's staff", () => {
+    const left = { role: "MEMBER" as const, removedAt: t(5) };
+    expect(chatAccess(channel({ participant: left }))).toMatchObject({ read: true, readUntil: t(5), post: false });
+    // No longer on that staff (another organization, none, or now a worker): nothing, not even the history.
+    expect(chatAccess(channel({ participant: left, me: { ...finance, orgId: "other-org" } }))).toMatchObject({ read: false, post: false });
+    expect(chatAccess(channel({ participant: left, me: { ...finance, orgId: null } }))).toMatchObject({ read: false, post: false });
+    expect(chatAccess(channel({ participant: left, me: { profileId: "fin", role: "WORKER", orgId: null } }))).toMatchObject({ read: false, post: false });
   });
 
   it("channels are created and managed by those who run teams, in their own organization only", () => {

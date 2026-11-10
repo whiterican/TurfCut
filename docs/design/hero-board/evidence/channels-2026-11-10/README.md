@@ -8,7 +8,7 @@ This is the first slice of the private-sector milestone. It adds channels on top
 
 | Rule | Detail |
 | :--- | :--- |
-| General channel | Every organization has one, `#general`. It is made the first time anyone on staff opens Messages, and each staff member is put in it the first time they do. Nobody leaves it and it is never archived. |
+| General channel | Every organization has one, `#general`. It is made the first time anyone on staff opens Messages, with everyone then on staff in it; later joiners are added the next time they open Messages. Nobody leaves it, it is never archived, and its name is reserved. |
 | Staff channels | Anyone on staff can browse, join and leave them, whatever their role. Workers never see them. |
 | Staff and hired workers | Tied to jobs. A manager adds workers hired on those jobs; workers never join by themselves, and post only while hired, the same as team chats. |
 | Who creates and manages | Whoever runs team chats today: owners, recruiters, supervisors, and custom roles with Messages. |
@@ -27,7 +27,8 @@ Everything else is inherited from the message system unchanged: immutable messag
 - `Conversation` gains `topic`, `staffOnly`, `isGeneral`, `archivedAt`, `archivedById`.
 - Checks: only channels carry those columns; one general channel per organization; no two live channels with the same name.
 - A trigger refuses a worker in a staff-only channel, a `MEMBER` row outside a channel, and a member from another organization, whatever path writes the row.
-- Leaving the organization ends channel membership (the existing staff trigger, extended).
+- Leaving the organization, becoming a worker, or closing the account ends channel membership (its own trigger).
+- A channel with a worker in it cannot be made staff-only.
 - Realtime visibility treats a channel like a team chat.
 
 No existing row is rewritten. Message tables keep their column-limited grants.
@@ -57,6 +58,23 @@ Chromium against the local stack, as an owner, a Finance member and a worker:
 Database guards, run by hand in a rolled-back transaction: all six refusals fire, and leaving the organization took one member's live channel rows from 4 to 0.
 
 Not checked: live refresh between two browsers (the local stack has no Realtime), and a channel that includes workers end to end in the browser (its rules are unit-tested and it shares the team-chat path).
+
+## Review (rule 9)
+
+A separate Claude reviewer ran the SQL on a throwaway database. It found the app-level isolation sound (between organizations, and between workers and staff-only channels) and these defects, all fixed in the second commit:
+
+| Finding | Fix |
+| :--- | :--- |
+| The migration failed when run in one transaction or sent as one statement | The index no longer names the new enum value; proven both ways |
+| Leaving the organization did not reliably end channel membership (re-running an older migration undid it; closing an account never triggered it) | Its own function and trigger, watching organization, role and closure |
+| A former staff member could still read a staff channel's history | They read nothing once off that organization's staff; history is kept only for someone who left a channel while still on staff |
+| "Everyone on staff is in #general" was only true for people who had opened Messages | Everyone on staff is added when it is made; someone who comes back is put in again |
+| A hand-made `#general` could block the real one | The name is reserved |
+| A server error in Leave or Archive went to the error screen | Only the redirect is let through |
+| A channel with workers could be flipped to staff-only in the database | A trigger refuses it |
+| Joining counted the whole history as unread | Joining starts read |
+
+**Acceptance test.** `tests/acceptance/p2-channels.ts` (run in CI with the others): 53 checks against a fresh database, after re-running M10's roles file and this migration. It covers the general channel under concurrent opens, creating, browsing, joining across organizations, workers, the seven database guards, leaving, archiving, leaving the organization by each path, and a hire ending.
 
 ## Screens
 

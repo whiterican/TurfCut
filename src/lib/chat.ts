@@ -78,6 +78,9 @@ export function chatAccess(f: ChatFacts): Access {
   if (!p) return NONE;
   const readFrom = f.kind === "DIRECT" && p.role === "MANAGER" ? (p.addedAt ?? null) : null;
   if (p.removedAt) {
+    // History is kept for someone who left a channel while still on its organization's staff. A login that
+    // has since left the organization, or become a worker, reads none of it: workers never see staff channels.
+    if (p.role === "MEMBER" && (f.kind !== "CHANNEL" || f.me.role === "WORKER" || f.me.orgId !== f.orgId)) return { ...NONE, closed: "You're no longer in this organization." };
     // Staff leave a channel themselves and may join again; everyone else was taken out.
     const closed = f.kind === "CHANNEL" && p.role === "MEMBER" ? "You're no longer in this channel. History up to then is read-only; join again from Channels." : "You were removed from this conversation. History is read-only.";
     return { read: true, readUntil: p.removedAt, readFrom, post: false, closed };

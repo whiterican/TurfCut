@@ -12,9 +12,10 @@
 --
 -- Idempotent: safe to run again. Also folded into supabase-manual-setup.sql.
 -- The two ADD VALUE statements must be committed before anything uses the
--- new values, so they come first, outside the transaction. (Checks and
--- functions below compare through ::text; the one index predicate names the
--- committed value, because an index predicate must be immutable.)
+-- new values. Nothing below names them as enum values, so the whole file
+-- can also be sent as one statement or run in a single transaction: checks
+-- and functions compare through ::text, and the one index predicate (which
+-- must be immutable) names the two older kinds instead.
 
 ALTER TYPE "public"."ConversationKind" ADD VALUE IF NOT EXISTS 'CHANNEL';
 ALTER TYPE "public"."ParticipantRole" ADD VALUE IF NOT EXISTS 'MEMBER';
@@ -45,7 +46,7 @@ ALTER TABLE "public"."Conversation" ADD CONSTRAINT "Conversation_channel_shape" 
 
 -- One general channel per organization, and no two live channels with the same name (whatever the letter case).
 CREATE UNIQUE INDEX IF NOT EXISTS "Conversation_general_per_org" ON "public"."Conversation"("orgId") WHERE "isGeneral";
-CREATE UNIQUE INDEX IF NOT EXISTS "Conversation_channel_name" ON "public"."Conversation"("orgId", lower("name")) WHERE "kind" = 'CHANNEL'::"public"."ConversationKind" AND "archivedAt" IS NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS "Conversation_channel_name" ON "public"."Conversation"("orgId", lower("name")) WHERE "kind" NOT IN ('DIRECT', 'GROUP') AND "archivedAt" IS NULL;
 
 -- Who may be a participant of what, whatever path writes the row:
 --   MEMBER only in a channel, and only a member of that organization;
@@ -60,7 +61,7 @@ BEGIN
       RAISE EXCEPTION 'MEMBER participants belong to channels only' USING ERRCODE = 'check_violation';
     END IF;
     IF NEW."removedAt" IS NULL AND NOT EXISTS (
-         SELECT 1 FROM "public"."Profile" p WHERE p."id" = NEW."profileId" AND p."orgId" = c."orgId" AND p."role"::text <> 'WORKER' AND p."closedAt" IS NULL) THEN
+         SELECT 1 FROM "public"."Profile" p WHERE p."id" = NEW."profileId" AND p."orgId" = c."orgId" AND p."role"::text <> 'WORKER' AND p."closedAt" IS NULL FOR SHARE) THEN
       RAISE EXCEPTION 'a channel member must belong to the channel''s organization' USING ERRCODE = 'check_violation';
     END IF;
   ELSIF c.kind = 'CHANNEL' THEN
@@ -78,20 +79,13 @@ DROP TRIGGER IF EXISTS "ConversationParticipant_channel_check" ON "public"."Conv
 CREATE TRIGGER "ConversationParticipant_channel_check" BEFORE INSERT OR UPDATE OF "role", "removedAt", "conversationId", "profileId" ON "public"."ConversationParticipant"
   FOR EACH ROW EXECUTE FUNCTION "turfcut_private"."check_channel_participant"();
 
--- Leaving the organization ends channel membership too. (A role change does
--- not: every staff role may be in a channel. Team-chat and direct-thread
--- managers still leave when they stop running teams, as M10.6 set.)
-CREATE OR REPLACE FUNCTION "turfcut_private"."end_staff_chat_access"() RETURNS trigger LANGUAGE plpgsql SET search_path = '' AS $$
+-- Leaving the organization, becoming a worker, or closing the account ends
+-- channel membership. (A role change among staff roles does not: every staff
+-- role may be in a channel.) This is its own function and trigger, beside
+-- M10's end_staff_chat_access, so re-running an earlier migration cannot
+-- undo it, and it fires on closedAt, which the M10 trigger does not watch.
+CREATE OR REPLACE FUNCTION "turfcut_private"."end_member_chat_access"() RETURNS trigger LANGUAGE plpgsql SET search_path = '' AS $$
 BEGIN
-  UPDATE "public"."ConversationParticipant" p
-     SET "removedAt" = (clock_timestamp() AT TIME ZONE 'UTC')::timestamp(3)
-    FROM "public"."Conversation" c
-   WHERE c."id" = p."conversationId" AND p."profileId" = NEW."id" AND p."role"::text = 'MANAGER' AND p."removedAt" IS NULL
-     AND (NEW."orgId" IS DISTINCT FROM c."orgId"
-          OR NOT (NEW."role"::text IN ('OWNER', 'RECRUITER', 'SUPERVISOR')
-                  OR (NEW."role"::text = 'CUSTOM' AND EXISTS (
-                        SELECT 1 FROM "public"."OrgRole" r JOIN "public"."OrgRoleGrant" g ON g."roleId" = r."id"
-                         WHERE r."id" = NEW."orgRoleId" AND r."orgId" = NEW."orgId" AND r."archivedAt" IS NULL AND g."area" = 'messages' AND g."level"::text = 'FULL'))));
   UPDATE "public"."ConversationParticipant" p
      SET "removedAt" = (clock_timestamp() AT TIME ZONE 'UTC')::timestamp(3)
     FROM "public"."Conversation" c
@@ -99,7 +93,26 @@ BEGIN
      AND (NEW."orgId" IS DISTINCT FROM c."orgId" OR NEW."role"::text = 'WORKER' OR NEW."closedAt" IS NOT NULL);
   RETURN NULL;
 END $$;
-REVOKE ALL ON FUNCTION "turfcut_private"."end_staff_chat_access"() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION "turfcut_private"."end_member_chat_access"() FROM PUBLIC, anon, authenticated;
+DROP TRIGGER IF EXISTS "Profile_end_member_chat_access" ON "public"."Profile";
+CREATE TRIGGER "Profile_end_member_chat_access" AFTER UPDATE OF "orgId", "role", "closedAt" ON "public"."Profile"
+  FOR EACH ROW WHEN (OLD."orgId" IS DISTINCT FROM NEW."orgId" OR OLD."role" IS DISTINCT FROM NEW."role" OR OLD."closedAt" IS DISTINCT FROM NEW."closedAt")
+  EXECUTE FUNCTION "turfcut_private"."end_member_chat_access"();
+
+-- A channel with a worker in it cannot be turned staff-only (no screen does
+-- this today; the rule holds whatever path writes the row).
+CREATE OR REPLACE FUNCTION "turfcut_private"."check_channel_staff_only"() RETURNS trigger LANGUAGE plpgsql SET search_path = '' AS $$
+BEGIN
+  IF NEW."staffOnly" AND EXISTS (
+       SELECT 1 FROM "public"."ConversationParticipant" p WHERE p."conversationId" = NEW."id" AND p."role"::text = 'WORKER' AND p."removedAt" IS NULL) THEN
+    RAISE EXCEPTION 'a staff-only channel has no workers' USING ERRCODE = 'check_violation';
+  END IF;
+  RETURN NEW;
+END $$;
+REVOKE ALL ON FUNCTION "turfcut_private"."check_channel_staff_only"() FROM PUBLIC, anon, authenticated;
+DROP TRIGGER IF EXISTS "Conversation_staff_only_check" ON "public"."Conversation";
+CREATE TRIGGER "Conversation_staff_only_check" BEFORE UPDATE OF "staffOnly" ON "public"."Conversation"
+  FOR EACH ROW EXECUTE FUNCTION "turfcut_private"."check_channel_staff_only"();
 
 -- Realtime: a channel reads like a team chat (full history for its members);
 -- only a direct thread limits a contact to what came after they joined.

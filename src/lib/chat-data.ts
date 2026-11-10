@@ -280,7 +280,9 @@ export async function listThreads(me: ChatUser): Promise<{ threads: ThreadSummar
   });
   const unread = await unreadByConversation(me.userId);
   const latest = await latestVisible(me.userId);
-  const threads = rows.map((row): ThreadSummary => {
+  // A staff row in a channel of an organization I'm no longer on the staff of lists nothing (lib/chat.ts).
+  const mineStill = rows.filter((row) => !(row.role === "MEMBER" && (me.role === "WORKER" || row.conversation.orgId !== me.orgId)));
+  const threads = mineStill.map((row): ThreadSummary => {
     const c = row.conversation;
     const last = latest.get(c.id);
     const direct = c.kind === "DIRECT";
@@ -961,37 +963,42 @@ const channelFacts = (conv: { orgId: string; archivedAt: Date | null; isGeneral:
 const isUniqueViolation = (e: unknown) => e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002";
 
 /**
- * Every staff member is in their organization's general channel: it is made
- * the first time anyone on staff opens Messages, and each person is put in
- * it the first time they do. Someone who has a row there already (current or
- * ended) is left as they are. Workers have no general channel.
+ * Every staff member is in their organization's general channel. It is made
+ * the first time anyone on staff opens Messages, with everyone then on staff
+ * in it; a later joiner is added the next time they, or anyone not yet in
+ * it, opens Messages. Someone who left the organization and came back is put
+ * in again. Workers have no general channel.
  */
 export async function ensureGeneral(me: ChatUser): Promise<void> {
   if (me.role === "WORKER" || !me.orgId) return;
   const orgId = me.orgId;
-  const existing = await db().conversation.findFirst({ where: { orgId, isGeneral: true }, select: { id: true, participants: { where: { profileId: me.userId }, select: { id: true } } } });
+  const existing = await db().conversation.findFirst({ where: { orgId, isGeneral: true }, select: { id: true, participants: { where: { profileId: me.userId, removedAt: null }, select: { id: true } } } });
   if (existing?.participants.length) return;
-  try {
-    await db().$transaction(async (tx) => {
-      await lock(tx, `general:${orgId}`);
-      // Still a member of this organization, read inside the lock.
-      if ((await tx.profile.count({ where: { id: me.userId, orgId, role: { not: "WORKER" }, closedAt: null } })) === 0) return;
-      let general = await tx.conversation.findFirst({ where: { orgId, isGeneral: true }, select: { id: true } });
-      if (!general) {
-        general = await tx.conversation.create({
-          data: { kind: "CHANNEL", orgId, name: GENERAL_CHANNEL, topic: "Everyone on staff. Announcements and day-to-day talk.", staffOnly: true, isGeneral: true, createdById: me.userId },
-          select: { id: true },
-        });
-        await audit(tx, me.userId, "channel.created", "Conversation", general.id, { name: GENERAL_CHANNEL, general: true });
-      }
-      if ((await tx.conversationParticipant.count({ where: { conversationId: general.id, profileId: me.userId } })) === 0) {
-        await tx.conversationParticipant.create({ data: { conversationId: general.id, profileId: me.userId, role: "MEMBER", addedById: me.userId, addedAt: await dbNow(tx) } });
-      }
-    });
-  } catch (e) {
-    // A channel someone already named "general" by hand, or a second request doing the same thing: Messages still opens.
-    if (!isUniqueViolation(e)) throw e;
-  }
+  await db().$transaction(async (tx) => {
+    await lock(tx, `general:${orgId}`);
+    // Still on this organization's staff, read inside the lock.
+    if ((await tx.profile.count({ where: { id: me.userId, orgId, role: { not: "WORKER" }, closedAt: null } })) === 0) return;
+    let general = await tx.conversation.findFirst({ where: { orgId, isGeneral: true }, select: { id: true } });
+    const now = await dbNow(tx);
+    if (!general) {
+      // The name is kept for this channel (createChannel refuses it), so nothing live can hold it.
+      general = await tx.conversation.create({
+        data: { kind: "CHANNEL", orgId, name: GENERAL_CHANNEL, topic: "Everyone on staff. Announcements and day-to-day talk.", staffOnly: true, isGeneral: true, createdById: me.userId },
+        select: { id: true },
+      });
+      await audit(tx, me.userId, "channel.created", "Conversation", general.id, { name: GENERAL_CHANNEL, general: true });
+    }
+    // Everyone on staff who has no row yet, not only me: a colleague who hasn't opened Messages is in the channel too.
+    // They start with it read, so a first visit doesn't count the whole history as unread.
+    await tx.$executeRaw`
+      INSERT INTO "ConversationParticipant" ("id", "conversationId", "profileId", "role", "addedById", "addedAt", "lastReadAt")
+      SELECT gen_random_uuid(), ${general.id}::uuid, p."id", 'MEMBER'::"ParticipantRole", ${me.userId}::uuid, ${now}, ${now}
+        FROM "Profile" p
+       WHERE p."orgId" = ${orgId}::uuid AND p."role"::text <> 'WORKER' AND p."closedAt" IS NULL
+      ON CONFLICT ("conversationId", "profileId") DO NOTHING`;
+    // I had a row that ended (I left the organization and came back): I'm in it again, from now.
+    await tx.conversationParticipant.updateMany({ where: { conversationId: general.id, profileId: me.userId, removedAt: { not: null } }, data: { role: "MEMBER", removedAt: null, removedById: null, addedAt: now, addedById: me.userId, lastReadAt: now } });
+  });
 }
 
 export interface ChannelSummary {
@@ -1023,6 +1030,9 @@ export async function createChannel(me: ChatUser, input: { name: unknown; topic:
   if (!name.ok) return name;
   const topic = validateChannelTopic(input.topic);
   if (!topic.ok) return topic;
+  // The general channel's name is its own: it is made for everyone on staff, never by hand.
+  if (name.name === GENERAL_CHANNEL) return fail(`#${GENERAL_CHANNEL} already exists, for everyone on staff. Pick another name.`);
+  await ensureGeneral(me);
   const staffOnly = input.staffOnly === true;
   const jobIds = staffOnly ? [] : uniqueIds(input.jobIds, 20);
   if (!jobIds || (!staffOnly && jobIds.length === 0)) return fail("Pick at least one job, so its hired workers can be added. Or make the channel staff only.");
@@ -1064,8 +1074,9 @@ export async function joinChannel(me: ChatUser, conversationId: string): Promise
     const may = canJoinChannel(me, channelFacts(conv, mine));
     if (!may.ok) return mine && !mine.removedAt ? { ok: true as const } : may;
     const now = await dbNow(tx);
-    if (mine) await tx.conversationParticipant.update({ where: { id: mine.id }, data: { role: "MEMBER", removedAt: null, removedById: null, addedAt: now, addedById: me.userId, lastReadAt: null } });
-    else await tx.conversationParticipant.create({ data: { conversationId, profileId: me.userId, role: "MEMBER", addedById: me.userId, addedAt: now } });
+    // Joining starts read: the history is there to scroll, not a count of unread messages.
+    if (mine) await tx.conversationParticipant.update({ where: { id: mine.id }, data: { role: "MEMBER", removedAt: null, removedById: null, addedAt: now, addedById: me.userId, lastReadAt: now } });
+    else await tx.conversationParticipant.create({ data: { conversationId, profileId: me.userId, role: "MEMBER", addedById: me.userId, addedAt: now, lastReadAt: now } });
     await audit(tx, me.userId, "channel.joined", "Conversation", conversationId, {});
     return { ok: true as const };
   });

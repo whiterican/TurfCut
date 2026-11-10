@@ -62,7 +62,7 @@ describe.each([
   ["dark", dark],
   ["light", light],
   ["sunlight", sun],
-] as const)("%s theme contrast", (_name, t) => {
+] as const)("%s theme contrast", (name, t) => {
   it("body text is AAA (≥ 7:1) on every surface", () => {
     for (const s of SURFACES) expect(ratio(t.fg, t[s])).toBeGreaterThanOrEqual(7);
   });
@@ -120,33 +120,37 @@ describe.each([
     expect(named).toEqual([]);
   });
 
-  it("dock icons use the frame's colours the contrast check below assumes: Cream when inactive, the dock green when current, on a faint capsule", () => {
-    expect(css).toMatch(/\.tab \{[^}]*?color: var\(--shell-muted\);[^}]*\}/);
-    expect(css).toMatch(/\n  \.tab\[aria-current\] \{[^}]*?color: var\(--dock-active-fg\);/);
-    // The pill dock's current capsule (Nov 10): this exact wash and no other fill, and the green still reads on it.
-    expect(css).toMatch(/\n  \.tab\[aria-current\] \{[^}]*?background: color-mix\(in srgb, var\(--shell-muted\) 16%, transparent\);/);
-    expect(ratio(t["dock-active-fg"], mix(t["shell-muted"], 0.16, t["shell-bg"]))).toBeGreaterThanOrEqual(4.5);
+  it("the dock is Liquid Glass: ink icons on a translucent pane, the current one in a tinted capsule; Sunlight keeps its solid black frame", () => {
+    expect(css).toMatch(/\.tabbar \{[^}]*?background: var\(--glass-sheen\), var\(--dock-bg\);[^}]*?backdrop-filter: var\(--glass-filter\);/);
+    expect(css).toMatch(/\.tab \{[^}]*?color: var\(--dock-fg\);[^}]*\}/);
+    expect(css).toMatch(/\n  \.tab\[aria-current\] \{[^}]*?color: var\(--dock-current-fg\);\s*background: var\(--dock-capsule\);/);
+    expect(css).toMatch(/--dock-bg: var\(--glass-bg\);\s*--dock-fg: var\(--fg\);\s*--dock-current-fg: var\(--fg\);\s*--dock-capsule: color-mix\(in srgb, var\(--fg\) 12%, transparent\);/);
+    // The pane's share of the card colour, by day and by night; the rest is whatever scrolls behind it.
+    expect(css).toMatch(/\nhtml \{[^}]*?--glass-bg: color-mix\(in srgb, var\(--surface\) 62%, transparent\);/);
+    expect(themeBody(css, ".dark")).toMatch(/--glass-bg: color-mix\(in srgb, var\(--surface\) 74%, transparent\);/);
+    if (name === "sunlight") {
+      // Solid: the black frame, white icons, a white current tile with black type.
+      expect(themeBody(css, ".sun")).toMatch(/--glass-bg: var\(--surface\);[\s\S]*--glass-filter: none;[\s\S]*--dock-bg: var\(--shell-bg\);\s*--dock-fg: var\(--shell-muted\);/);
+      expect(css).toMatch(/\.sun \.tab\[aria-current\] \{\s*background: var\(--shell-active\);\s*color: var\(--on-shell-active\);/);
+      expect(ratio(t["shell-muted"], t["shell-bg"])).toBeGreaterThanOrEqual(7);
+      expect(ratio(t["on-shell-active"], t["shell-active"])).toBeGreaterThanOrEqual(7);
+    } else {
+      // Worst case behind the pane: black under the day's glass, white under the night's. The icons still read (AA), on the pane and on the capsule.
+      const pane = name === "dark" ? mix(t.surface, 0.74, "#ffffff") : mix(t.surface, 0.62, "#000000");
+      const hex = (c: RGB) => "#" + c.map((v) => Math.round(v).toString(16).padStart(2, "0")).join("");
+      expect(ratio(t.fg, pane)).toBeGreaterThanOrEqual(4.5);
+      expect(ratio(t.fg, mix(t.fg, 0.12, hex(pane)))).toBeGreaterThanOrEqual(4.5);
+    }
+    // Anyone who asks for less transparency or more contrast gets solid surfaces.
+    expect(css).toMatch(/@media \(prefers-reduced-transparency: reduce\), \(prefers-contrast: more\), \(forced-colors: active\) \{\s*html,\s*\.dark \{\s*--glass-bg: var\(--surface\);/);
+    expect(css).toMatch(/\.site-header \{[^}]*?background: var\(--glass-bg\);/);
+    expect(css).toMatch(/\.eyebrow \{[^}]*?color: var\(--kicker\);/);
     // Print drops the menu strip with the dock, and the admin console shows no menu.
     expect(css).toMatch(/\.site-header, \.tabbar, \.phone-top, \.no-print, nextjs-portal \{ display: none !important; \}/);
     expect(css).toMatch(/body:has\(\.staff-band\) :is\(\.phone-top, \.site-header \.menu-button\) \{\s*display: none;/);
     // No words in the dock: each tab's name is in the markup for screen readers, never drawn.
     expect(css).toMatch(/\.tab-label \{\s*@apply sr-only;/);
     expect(css).not.toMatch(/\.tab-label \{[^}]*not-sr-only/);
-    // Sunlight alone keeps a white tile with black type (outdoor glare).
-    expect(css).toMatch(/\.sun \.tab\[aria-current\] \{\s*background: var\(--shell-active\);\s*color: var\(--on-shell-active\);/);
-  });
-
-  it("the dock is the frame: opaque Eggplant (black in Sunlight); inactive labels AAA on it, the current label AA (12px type), the rail's current row AAA", () => {
-    // Opaque (no glass); a translucent bar or header is caught here.
-    expect(css).toMatch(/\.tabbar \{[^}]*?background: var\(--shell-bg\);/);
-    expect(css).toMatch(/\.site-header \{[^}]*?background: var\(--bg\);/);
-    expect(css).toMatch(/\.eyebrow \{[^}]*?color: var\(--kicker\);/);
-    expect(ratio(t["shell-muted"], t["shell-bg"])).toBeGreaterThanOrEqual(7);
-    // Forest on Eggplant is 3.37:1, under AA for a 12px label: the dock green is a derived, lighter extension (pending review).
-    expect(ratio(t["dock-active-fg"], t["shell-bg"])).toBeGreaterThanOrEqual(4.5);
-    expect(ratio(t["on-shell-active"], t["shell-active"])).toBeGreaterThanOrEqual(7);
-    // The bar stands apart from the page behind it: by its fill, or (by night, a deeper page) by its edge.
-    expect(Math.max(ratio(t["shell-bg"], t.bg), ratio(t["shell-line"], t.bg))).toBeGreaterThanOrEqual(1.8);
   });
 
   it("the kicker reads on every surface", () => {
@@ -413,7 +417,7 @@ describe("the ten locked colours (founder's twelve-screen concept, #111)", () =>
       for (const [, name, value] of body.matchAll(/--([\w-]+):\s*([^;]+);/g)) {
         if (/^#[0-9a-fA-F]{6}$/.test(value.trim())) expect(parsed[name]).toBe(value.trim());
         else if (name === "hero-border") expect(value.trim()).toBe("transparent");
-        else expect(["shadow", "shadow-depth"]).toContain(name); // the only non-colour tokens
+        else expect(name).toMatch(/^(shadow|shadow-depth|glass-[\w-]+|card-[\w-]+|dock-[\w-]+|page-wash)$/); // the only non-colour tokens: shadows and the glass recipe
       }
     }
   });

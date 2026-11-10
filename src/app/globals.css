@@ -2400,10 +2400,11 @@ body {
   .sheet-panel {
     @apply relative flex max-h-[85dvh] flex-col rounded-t-[var(--radius-lg)] border border-b-0;
     padding-bottom: env(safe-area-inset-bottom);
-    background: var(--glass-sheen), var(--glass-bg-strong);
+    /* Solid, not glass (Caden's iPhone, Nov 10): this panel slides up as it opens, and Safari clips a
+       blurred backdrop to where the panel was when the slide began, so the sheet showed as a cut-off
+       band in the middle of the screen. It keeps the lit edge. */
+    background: var(--surface);
     border-color: var(--glass-border);
-    -webkit-backdrop-filter: var(--glass-filter);
-    backdrop-filter: var(--glass-filter);
     box-shadow: var(--glass-highlight);
   }
   .sheet-grip {

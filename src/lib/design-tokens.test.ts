@@ -672,6 +672,13 @@ describe("the shell (redesign B1.4)", () => {
     expect(css).toMatch(/@media \(width < 40rem\) \{\s*\/\*[^*]*\*\/\s*\.data-table-wrap:has\(> \.data-table-stack\)/);
   });
 
+  it("a panel that slides as it opens is never blurred glass (Safari clips the blur to where the slide began)", () => {
+    const panel = css.match(/\n  \.sheet-panel \{([^}]*)\}/)?.[1] ?? "";
+    expect(panel).toMatch(/background: var\(--surface\);/);
+    expect(panel).not.toMatch(/backdrop-filter/);
+    expect(css).toMatch(/\.sheet\[open\] \.sheet-panel \{\s*animation: tc-sheet-in/);
+  });
+
   it("time and date fields take the width they are given (an iPhone draws them at a width of its own otherwise)", () => {
     expect(css).toMatch(/input\.field:is\(\[type="time"\], \[type="date"\], \[type="datetime-local"\], \[type="month"\]\) \{\s*-webkit-appearance: none;\s*appearance: none;\s*display: block;\s*min-width: 0;\s*max-width: 100%;/);
   });

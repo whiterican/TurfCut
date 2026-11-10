@@ -153,7 +153,7 @@ export function OrgRail({ tabs, orgName, approved = null, person, foot }: { tabs
       <div className="org-rail-foot">
         <p className="org-rail-status">Signed in as</p>
         <div className="flex items-center gap-2.5">
-          {person.photo && <PersonPhoto photo={person.photo} />}
+          {person.photo && <PersonPhoto photo={person.photo} initial={person.name[0]?.toUpperCase()} />}
           <div className="min-w-0">
             <p className="truncate font-semibold" title={person.name}>{person.name}</p>
             <p className="truncate org-rail-status">{person.role}</p>
@@ -171,11 +171,16 @@ export type NavPerson = { name: string; role: string; photo?: string | null };
 /** The signed-in person's own photo in a circle (decorative: their name is beside it). `initial` stands in if it will not load (offline, say). */
 function PersonPhoto({ photo, initial }: { photo: string; initial?: string }) {
   const [failed, setFailed] = useState<string | null>(null);
+  const img = useRef<HTMLImageElement>(null);
+  // A photo that failed before the page came alive sent its error too early to be heard: look once.
+  useEffect(() => {
+    if (img.current?.complete && img.current.naturalWidth === 0) setFailed(photo);
+  }, [photo]);
   if (failed === photo) return initial ? <span className="menu-avatar" aria-hidden>{initial}</span> : null;
   return (
     <span className="menu-avatar" aria-hidden>
       {/* eslint-disable-next-line @next/next/no-img-element -- served by a signed-in route, not an optimizable public image */}
-      <img src={photo} alt="" onError={() => setFailed(photo)} />
+      <img ref={img} src={photo} alt="" onError={() => setFailed(photo)} />
     </span>
   );
 }
@@ -330,7 +335,7 @@ export function OrgTabBar({ tabs, more, extra, notices = 0, person }: { tabs: Na
             <div className="mb-2 flex items-center justify-between">
               {person ? (
                 <div className="flex min-w-0 items-center gap-3">
-                  {person.photo && <PersonPhoto photo={person.photo} />}
+                  {person.photo && <PersonPhoto photo={person.photo} initial={person.name[0]?.toUpperCase()} />}
                   <p className="min-w-0">
                     <span className="block truncate text-lg font-semibold text-fg">{person.name}</span>
                     <span className="block truncate text-sm text-muted">{person.role}</span>

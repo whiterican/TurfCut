@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { Camera, Trash2 } from "lucide-react";
 import { removeProfilePhoto, uploadProfilePhoto, type PhotoState } from "@/app/settings/photo-actions";
 
@@ -43,6 +43,11 @@ export function PhotoSettings({ photo, initial }: { /** The address of the curre
   const [busy, start] = useTransition();
   // The address of a photo that would not load: the initial stands in for it.
   const [failed, setFailed] = useState<string | null>(null);
+  const img = useRef<HTMLImageElement>(null);
+  // A photo that failed before the page came alive sent its error too early to be heard: look once.
+  useEffect(() => {
+    if (photo && img.current?.complete && img.current.naturalWidth === 0) setFailed(photo);
+  }, [photo]);
 
   // A call that throws (no connection, a refused request) is said on the status line, never left to the error screen.
   const run = (work: () => Promise<PhotoState>) =>
@@ -77,7 +82,7 @@ export function PhotoSettings({ photo, initial }: { /** The address of the curre
       <div className="card flex flex-wrap items-center gap-4">
         <span className="photo-lg" aria-hidden={!photo || failed === photo}>
           {/* eslint-disable-next-line @next/next/no-img-element -- served by a signed-in route, not an optimizable public image */}
-          {photo && failed !== photo ? <img src={photo} alt="Your profile photo" onError={() => setFailed(photo)} /> : initial}
+          {photo && failed !== photo ? <img ref={img} src={photo} alt="Your profile photo" onError={() => setFailed(photo)} /> : initial}
         </span>
         <div className="min-w-0 flex-1 space-y-2">
           <div className="flex flex-wrap gap-2">

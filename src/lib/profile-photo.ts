@@ -113,7 +113,11 @@ export async function setProfilePhoto(profileId: string, bytes: Uint8Array, db: 
  */
 export async function clearProfilePhoto(profileId: string, db: PhotoRecords, store: PhotoStore): Promise<void> {
   const old = await db.keyOf(profileId);
-  if (!old) return;
+  if (!old) {
+    // Nothing on record. A file an earlier try could not remove may still be there: this throws if it still will not go.
+    await store.sweep(profileId, { olderThanMs: SWEEP_GRACE_MS });
+    return;
+  }
   if (!(await db.swapKey(profileId, old, null))) return; // replaced meanwhile: that newer photo stays
   if (ownsKey(profileId, old)) await store.remove(old);
   await store.sweep(profileId, { olderThanMs: SWEEP_GRACE_MS }).catch(left("sweeping old profile photos failed"));
@@ -128,6 +132,8 @@ export async function purgeProfilePhotos(profileId: string, db: PhotoRecords, st
   await store.sweep(profileId);
   const old = await db.keyOf(profileId);
   if (old) await db.swapKey(profileId, old, null);
+  // Once more: an upload still in flight as the account closed may have stored a file after the first pass.
+  await store.sweep(profileId);
 }
 
 /**

@@ -158,6 +158,18 @@ describe("profile photos", () => {
     await clearProfilePhoto("p1", f.db, f.store);
   });
 
+  it("a remove whose file would not go is not called done on the next try while the file is still there", async () => {
+    const f = fakes({ p1: "p1/a.jpg" });
+    f.file("p1/a.jpg", SWEEP_GRACE_MS * 2);
+    f.fail.remove = true;
+    f.fail.sweep = true;
+    await expect(clearProfilePhoto("p1", f.db, f.store)).rejects.toThrow("storage down");
+    await expect(clearProfilePhoto("p1", f.db, f.store)).rejects.toThrow("storage down");
+    f.fail.sweep = false;
+    await clearProfilePhoto("p1", f.db, f.store);
+    expect(f.files.size).toBe(0);
+  });
+
   it("removing while a new photo lands leaves the new photo whole", async () => {
     const f = fakes({ p1: "p1/a.jpg" });
     f.file("p1/a.jpg");
@@ -234,7 +246,10 @@ describe("profile photos: who sees them", () => {
     ]);
     // And the column itself is read from "Profile" in two places only: the person's own session, and the photo records.
     // (Campaign pages have an avatarKey of their own, on the campaign.)
-    const reads = sources.filter((p) => /profile\.(findUnique|findMany|findFirst|update|updateMany)[\s\S]{0,400}avatarKey/.test(read(p)) || /avatarKey: profile\.avatarKey/.test(read(p)));
+    const reads = sources.filter((p) => /profile\.(findUnique|findMany|findFirst|upsert|update|updateMany)[\s\S]{0,400}avatarKey/.test(read(p)) || /avatarKey: profile\.avatarKey/.test(read(p)));
     expect(reads.sort()).toEqual(["src/lib/auth.ts", "src/lib/profile-photo-data.ts"]);
+    // Nor through a relation (profile: { select: { avatarKey … } }), and the bucket is named in one file only.
+    expect(sources.filter((p) => /\bprofile:\s*\{[\s\S]{0,200}avatarKey/.test(read(p)))).toEqual([]);
+    expect(sources.filter((p) => read(p).includes("profile-photos"))).toEqual(["src/lib/profile-photo.ts"]);
   });
 });

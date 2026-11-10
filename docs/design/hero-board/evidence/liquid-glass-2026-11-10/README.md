@@ -88,7 +88,7 @@ What the reference does: the dock is almost clear. The page stays visible throug
 
 Only the dock changed. Bars, the drawer, sheets and cards carry text, so they keep their denser glass.
 
-**Contrast.** A pane this clear cannot guarantee contrast by itself. Each dock icon is now outlined in the page's own colour (a three-layer drop shadow), so there is always that colour next to every stroke whatever scrolls underneath. Ink on that halo is over 7:1 in both themes. Sunlight mode and the reduced-transparency setting keep their solid dock.
+**Contrast.** A pane this clear cannot guarantee contrast by itself. Each dock icon is now outlined in the page's own colour (a three-layer drop shadow), so that colour sits next to every stroke whatever scrolls underneath. The outline is soft, so this is weaker than a solid pane: by estimate the icon holds 3:1 against it in the worst case (black behind by day, white by night), in a ring about a pixel wide. The test pins that estimate; it is not a measurement. The current tab also keeps a hairline around its capsule. Sunlight mode and the reduced-transparency setting keep their solid dock.
 
 Not checked on a real iPhone. Chromium only.
 

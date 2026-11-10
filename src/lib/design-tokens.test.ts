@@ -129,7 +129,9 @@ describe.each([
     expect(css).toMatch(/\nhtml \{[^}]*?--dock-bg: color-mix\(in srgb, var\(--surface\) 12%, transparent\);\s*--dock-filter: blur\(3\.5px\) saturate\(170%\);/);
     expect(themeBody(css, ".dark")).toMatch(/--dock-bg: color-mix\(in srgb, var\(--surface\) 16%, transparent\);\s*--dock-filter: blur\(3\.5px\) saturate\(130%\);/);
     // So little pane cannot carry contrast by itself: every dock icon is outlined in the page's own colour instead.
-    expect(css).toMatch(/\n  \.tab-icon \{[^}]*?filter: drop-shadow\(0 0 1px var\(--dock-halo\)\) drop-shadow\(0 0 1px var\(--dock-halo\)\) drop-shadow\(0 0 3px var\(--dock-halo\)\);/);
+    expect(css).toMatch(/\n  \.tab-icon \{[^}]*?filter: (drop-shadow\(0 0 0\.5px var\(--dock-halo\)\) ){3}drop-shadow\(0 0 1px var\(--dock-halo\)\) drop-shadow\(0 0 3px var\(--dock-halo\)\);/);
+    // The current tab keeps a hairline, so its capsule holds its shape when the page behind matches the tint.
+    expect(css).toMatch(/\n  \.tab\[aria-current\] \{[^}]*?box-shadow: inset 0 0 0 1px var\(--dock-border\);/);
     expect(css).toMatch(/\nhtml \{[^}]*?--dock-halo: var\(--surface\);/);
     expect(themeBody(css, ".dark")).toMatch(/--dock-halo: var\(--bg\);/);
     // The pane's share of the card colour, by day and by night; the rest is whatever scrolls behind it.
@@ -149,8 +151,10 @@ describe.each([
       expect(ratio(t.fg, pane)).toBeGreaterThanOrEqual(3);
       // The selection is tinted purple by day and green by night; the icon on it keeps the ink.
       expect(ratio(t.fg, mix(t.select, 0.26, hex(pane)))).toBeGreaterThanOrEqual(3);
-      // The dock's pane is nearly clear, so its icons are judged against their own halo (the surface by day, the page by night), which is what sits next to every stroke whatever passes underneath.
-      expect(ratio(t.fg, name === "dark" ? t.bg : t.surface)).toBeGreaterThanOrEqual(7);
+      // The dock's pane is nearly clear, so its icons are judged against their own halo, which is what sits next to every stroke.
+      // The halo is soft, not a solid fill: it is taken at half strength over the worst case behind the dock's own pane (black by day, white by night). An estimate of the blur, not a measurement.
+      const dockPane = name === "dark" ? mix(t.surface, 0.16, "#ffffff") : mix(t.surface, 0.12, "#000000");
+      expect(ratio(t.fg, mix(name === "dark" ? t.bg : t.surface, 0.5, hex(dockPane)))).toBeGreaterThanOrEqual(3);
       // The named menu button and the drawer carry text: body ink holds AA on the stronger pane over the same worst case.
       expect(css).toMatch(/\.menu-button\[data-named\] \{[^}]*?background: var\(--glass-sheen\), var\(--glass-bg-strong\);/);
       expect(css).toMatch(/\nhtml \{[^}]*?--glass-bg-strong: color-mix\(in srgb, var\(--surface\) 79%, transparent\);/);

@@ -1759,13 +1759,15 @@ body {
     @apply font-semibold;
     color: var(--dock-current-fg);
     background: var(--dock-capsule);
+    /* On a clear pane the tint alone can match what passes underneath: a hairline keeps the capsule's shape. */
+    box-shadow: inset 0 0 0 1px var(--dock-border);
     view-transition-name: tab-current;
   }
   .tab-icon {
     @apply size-6 shrink-0 transition;
     /* The dock's pane is nearly clear, so each icon is outlined in the surface colour: it reads over a
        photo, a dark card or text passing underneath. */
-    filter: drop-shadow(0 0 1px var(--dock-halo)) drop-shadow(0 0 1px var(--dock-halo)) drop-shadow(0 0 3px var(--dock-halo));
+    filter: drop-shadow(0 0 0.5px var(--dock-halo)) drop-shadow(0 0 0.5px var(--dock-halo)) drop-shadow(0 0 0.5px var(--dock-halo)) drop-shadow(0 0 1px var(--dock-halo)) drop-shadow(0 0 3px var(--dock-halo));
   }
   /* No words in the dock (Caden, Nov 10): a tab's name is read, never drawn. */
   .tab-label {

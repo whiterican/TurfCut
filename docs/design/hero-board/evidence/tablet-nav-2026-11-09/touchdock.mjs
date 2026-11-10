@@ -17,7 +17,7 @@ const state = () => {
   const vis = (e) => !!e && getComputedStyle(e).display !== "none" && e.getBoundingClientRect().width > 0;
   const dock = document.querySelector("nav.tabbar");
   return {
-    url: location.pathname, coarse: matchMedia("(hover: none) and (pointer: coarse)").matches,
+    url: location.pathname, coarse: matchMedia("(pointer: coarse)").matches, hover: matchMedia("(hover: hover)").matches,
     dock: vis(dock), dockTabs: vis(dock) ? [...dock.querySelectorAll(".tab")].map((t) => t.textContent.replace(/\d+|unread.*$/g, "").trim()) : [],
     topnav: vis(document.querySelector("nav.topnav")), rail: vis(document.querySelector(".org-rail")),
     over: document.documentElement.scrollWidth - innerWidth,

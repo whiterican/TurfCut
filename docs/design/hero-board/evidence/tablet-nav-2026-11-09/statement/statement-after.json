@@ -13,7 +13,7 @@
       "consoleErrors": [],
       "file": "statement-after-screen-390.png",
       "source": {
-        "commit": "1d60de9"
+        "commit": "bc5ebcb"
       }
     },
     {
@@ -29,7 +29,7 @@
       "consoleErrors": [],
       "file": "statement-after-screen-640.png",
       "source": {
-        "commit": "1d60de9"
+        "commit": "bc5ebcb"
       }
     },
     {
@@ -45,7 +45,7 @@
       "consoleErrors": [],
       "file": "statement-after-screen-768.png",
       "source": {
-        "commit": "1d60de9"
+        "commit": "bc5ebcb"
       }
     },
     {
@@ -61,7 +61,7 @@
       "consoleErrors": [],
       "file": "statement-after-screen-1024.png",
       "source": {
-        "commit": "1d60de9"
+        "commit": "bc5ebcb"
       }
     },
     {
@@ -77,7 +77,7 @@
       "consoleErrors": [],
       "file": "statement-after-screen-1440.png",
       "source": {
-        "commit": "1d60de9"
+        "commit": "bc5ebcb"
       }
     },
     {
@@ -93,7 +93,7 @@
       "consoleErrors": [],
       "file": "statement-after-print-720.png",
       "source": {
-        "commit": "1d60de9"
+        "commit": "bc5ebcb"
       }
     }
   ],
@@ -150,19 +150,19 @@
       "width": 704,
       "overflow": 0,
       "currentStateCutOff": false,
-      "jobLines": 3
+      "jobLines": 2
     },
     {
       "width": 712,
       "overflow": 0,
       "currentStateCutOff": false,
-      "jobLines": 3
+      "jobLines": 2
     },
     {
       "width": 720,
       "overflow": 0,
       "currentStateCutOff": false,
-      "jobLines": 3
+      "jobLines": 2
     },
     {
       "width": 728,
@@ -178,6 +178,6 @@
     }
   ],
   "source": {
-    "commit": "1d60de9"
+    "commit": "bc5ebcb"
   }
 }

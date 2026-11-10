@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { ReadingPage } from "@/components/layout/Page";
-import { ProfileNav } from "@/components/ProfileNav";
 import { db } from "@/lib/db";
 import { requireWorker } from "@/lib/worker-session";
 import { loadCampaignHistory, loadScorecardPeriods } from "@/lib/scorecard-data";
@@ -73,13 +72,10 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
     { href: "/settings", icon: SlidersHorizontal, label: "Settings & sign out", status: "", alert: false },
   ];
 
-  // A ReadingPage with the profile's sections as a sub-nav: on the left from 1024, rows on a phone (redesign §5).
+  // A ReadingPage with the profile's sections as rows; from 768 the sidebar lists them too, so there is no sub-nav beside it.
   return (
     <ReadingPage
-      panelStart
       gap={6}
-      panelLabel="Profile sections"
-      aside={<ProfileNav />}
       head={
         <header className="profile-head">
           <Avatar name={worker.displayName} size="lg" />

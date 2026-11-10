@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { GUIDE_SECTIONS, guideFor, ORG_GUIDE_SECTIONS } from "./guide";
 import { activeTab, navTabs, workerMore } from "./nav";
+import { ORG_ROLES } from "./access";
 
 const app = (p: string) => join(__dirname, "../app", p);
 const text = GUIDE_SECTIONS.flatMap((s) => s.points).join("\n");
@@ -42,7 +43,7 @@ describe("the organization's guide", () => {
   const org = ORG_GUIDE_SECTIONS.flatMap((s) => s.points).join("\n");
 
   it("is what every organization role gets, and each section points at a real page", () => {
-    for (const role of ["OWNER", "RECRUITER", "SUPERVISOR", "FINANCE", "PUBLISHER", "CUSTOM"]) expect(guideFor(role)).toBe(ORG_GUIDE_SECTIONS);
+    for (const role of ORG_ROLES) expect(guideFor(role)).toBe(ORG_GUIDE_SECTIONS);
     expect(guideFor("WORKER")).toBe(GUIDE_SECTIONS);
     expect(ORG_GUIDE_SECTIONS.map((s) => s.id)).toEqual(["publishing", "field", "pay", "credentials", "team"]);
     for (const s of ORG_GUIDE_SECTIONS) expect(existsSync(app(`${s.link!.href.slice(1)}/page.tsx`))).toBe(true);
@@ -63,7 +64,8 @@ describe("the organization's guide", () => {
 
   it("the credentials screen keeps its short line and links here; Settings links to the guide for every role", () => {
     const page = readFileSync(app("org/credentials/page.tsx"), "utf8");
-    expect(page).toContain("never shows you a credential&apos;s number");
+    expect(page).toContain("Turfcut itself never shows you a credential&apos;s number");
+    expect(page).toContain("Open it first to record that you checked it that way.");
     expect(page).toContain("not proof by itself");
     expect(page).toContain("the worker sees each time you open it");
     expect(page).toContain('href="/guide#credentials"');

@@ -88,7 +88,7 @@ export const ORG_GUIDE_SECTIONS: GuideSection[] = [
     title: "Pay",
     points: [
       "Supervisors approve the work; someone else approves the pay. Whoever approved a shift's work cannot approve its pay.",
-      "Each pay line is calculated from verified work when a supervisor approves the shift.",
+      "Each shift's pay line is calculated from verified work when a supervisor approves the shift.",
       "Workers receive the full gross amount. The 15% platform fee is invoiced to your organization.",
     ],
     link: { href: "/pay", label: "Open Pay" },

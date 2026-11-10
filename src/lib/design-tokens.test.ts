@@ -124,10 +124,10 @@ describe.each([
     expect(css).toMatch(/\.tabbar \{[^}]*?background: var\(--glass-sheen\), var\(--dock-bg\);[^}]*?backdrop-filter: var\(--glass-filter\);/);
     expect(css).toMatch(/\.tab \{[^}]*?color: var\(--dock-fg\);[^}]*\}/);
     expect(css).toMatch(/\n  \.tab\[aria-current\] \{[^}]*?color: var\(--dock-current-fg\);\s*background: var\(--dock-capsule\);/);
-    expect(css).toMatch(/--dock-bg: var\(--glass-bg\);\s*--dock-fg: var\(--fg\);\s*--dock-current-fg: var\(--fg\);\s*--dock-capsule: color-mix\(in srgb, var\(--fg\) 12%, transparent\);/);
+    expect(css).toMatch(/--dock-bg: var\(--glass-bg\);\s*--dock-fg: var\(--fg\);\s*--dock-current-fg: var\(--fg\);\s*--dock-capsule: color-mix\(in srgb, var\(--select\) 26%, transparent\);/);
     // The pane's share of the card colour, by day and by night; the rest is whatever scrolls behind it.
-    expect(css).toMatch(/\nhtml \{[^}]*?--glass-bg: color-mix\(in srgb, var\(--surface\) 62%, transparent\);/);
-    expect(themeBody(css, ".dark")).toMatch(/--glass-bg: color-mix\(in srgb, var\(--surface\) 74%, transparent\);/);
+    expect(css).toMatch(/\nhtml \{[^}]*?--glass-bg: color-mix\(in srgb, var\(--surface\) 45%, transparent\);/);
+    expect(themeBody(css, ".dark")).toMatch(/--glass-bg: color-mix\(in srgb, var\(--surface\) 62%, transparent\);/);
     if (name === "sunlight") {
       // Solid: the black frame, white icons, a white current tile with black type.
       expect(themeBody(css, ".sun")).toMatch(/--glass-bg: var\(--surface\);[\s\S]*--glass-filter: none;[\s\S]*--dock-bg: var\(--shell-bg\);\s*--dock-fg: var\(--shell-muted\);/);
@@ -135,18 +135,35 @@ describe.each([
       expect(ratio(t["shell-muted"], t["shell-bg"])).toBeGreaterThanOrEqual(7);
       expect(ratio(t["on-shell-active"], t["shell-active"])).toBeGreaterThanOrEqual(7);
     } else {
-      // Worst case behind the pane: black under the day's glass, white under the night's. The icons still read (AA), on the pane and on the capsule.
-      const pane = name === "dark" ? mix(t.surface, 0.74, "#ffffff") : mix(t.surface, 0.62, "#000000");
+      // Worst case behind the pane: black under the day's glass, white under the night's. The icons still read, on the pane and on the capsule.
+      const pane = name === "dark" ? mix(t.surface, 0.62, "#ffffff") : mix(t.surface, 0.45, "#000000");
       const hex = (c: RGB) => "#" + c.map((v) => Math.round(v).toString(16).padStart(2, "0")).join("");
-      expect(ratio(t.fg, pane)).toBeGreaterThanOrEqual(4.5);
-      expect(ratio(t.fg, mix(t.fg, 0.12, hex(pane)))).toBeGreaterThanOrEqual(4.5);
+      // These panes hold icons only (the dock, icon buttons): 3:1, the bar for graphics (WCAG 1.4.11). Panes with text are denser, below.
+      expect(ratio(t.fg, pane)).toBeGreaterThanOrEqual(3);
+      // The selection is tinted purple by day and green by night; the icon on it keeps the ink.
+      expect(ratio(t.fg, mix(t.select, 0.26, hex(pane)))).toBeGreaterThanOrEqual(3);
+      // The named menu button and the drawer carry text: body ink holds AA on the stronger pane over the same worst case.
+      expect(css).toMatch(/\.menu-button\[data-named\] \{[^}]*?background: var\(--glass-sheen\), var\(--glass-bg-strong\);/);
+      expect(css).toMatch(/\nhtml \{[^}]*?--glass-bg-strong: color-mix\(in srgb, var\(--surface\) 79%, transparent\);/);
+      expect(themeBody(css, ".dark")).toMatch(/--glass-bg-strong: color-mix\(in srgb, var\(--surface\) 78%, transparent\);/);
+      const strong = name === "dark" ? mix(t.surface, 0.78, "#ffffff") : mix(t.surface, 0.79, "#000000");
+      expect(ratio(t.fg, strong)).toBeGreaterThanOrEqual(4.5);
+      expect(ratio(t.muted, strong)).toBeGreaterThanOrEqual(4.5);
+      // The selected row's label, on its tint over that pane (the drawer) and over the bar's pane on the page (the sidebar).
+      expect(ratio(t.fg, mix(t.select, 0.26, hex(strong)))).toBeGreaterThanOrEqual(4.5);
+      expect(ratio(t.fg, mix(t.select, 0.26, hex(mix(t.surface, 0.8, t.bg))))).toBeGreaterThanOrEqual(7);
+      // By night the glint is white over light type, so it is kept faint: at its brightest (8%) the dock's icons still hold 3:1 over white.
+      expect(themeBody(css, ".dark")).toMatch(/--glass-sheen: linear-gradient\(135deg, rgb\(255 255 255 \/ 0\.08\) 0%/);
+      if (name === "dark") expect(ratio(t.fg, mix("#ffffff", 0.08, hex(pane)))).toBeGreaterThanOrEqual(3);
+      // On the drawer and sheets the faintest grey steps up to muted, as in the bars.
+      expect(css).toMatch(/:is\(\.thread-top, \.composer, \.more-sheet-panel, \.sheet-panel\) \{\s*--subtle: var\(--muted\);/);
     }
     // Anyone who asks for less transparency or more contrast gets solid surfaces.
     expect(css).toMatch(/@media \(prefers-reduced-transparency: reduce\), \(prefers-contrast: more\), \(forced-colors: active\) \{\s*html,\s*\.dark \{\s*--glass-bg: var\(--surface\);/);
     expect(css).toMatch(/\.site-header \{[^}]*?background: var\(--header-bg\);/);
     // Bars with small secondary text are denser panes: muted text holds AA over the worst thing behind them.
-    expect(css).toMatch(/--glass-bg-bar: color-mix\(in srgb, var\(--surface\) 88%, transparent\);\s*--header-bg: var\(--glass-bg-bar\);/);
-    if (name !== "sunlight") expect(ratio(t.muted, mix(t.surface, 0.88, name === "dark" ? "#ffffff" : "#000000"))).toBeGreaterThanOrEqual(4.5);
+    expect(css).toMatch(/--glass-bg-bar: color-mix\(in srgb, var\(--surface\) 80%, transparent\);\s*--header-bg: var\(--glass-bg-bar\);/);
+    if (name !== "sunlight") expect(ratio(t.muted, mix(t.surface, 0.8, name === "dark" ? "#ffffff" : "#000000"))).toBeGreaterThanOrEqual(4.5);
     // Sunlight and the solid fallback name every pane, and the header goes back to the page colour.
     for (const body of [themeBody(css, ".sun"), css.slice(css.indexOf("@media (prefers-reduced-transparency: reduce)"), css.indexOf("\n}\n", css.indexOf("@media (prefers-reduced-transparency: reduce)")))]) {
       for (const k of ["glass-bg", "glass-bg-strong", "glass-bg-bar", "glass-filter", "glass-sheen", "card-bg", "card-sheen", "page-wash"]) expect(body).toMatch(new RegExp(`--${k}: (var\\(--surface\\)|none);`));
@@ -154,8 +171,7 @@ describe.each([
     }
     // The other text-bearing bars use the denser pane too, by night as well, and their faintest grey steps up to muted.
     for (const sel of ["\\.composer", "\\.thread-top"]) expect(css).toMatch(new RegExp(`\\n  ${sel} \\{[^}]*?background: var\\(--glass-bg-bar\\);`));
-    expect(themeBody(css, ".dark")).toMatch(/--glass-bg-bar: color-mix\(in srgb, var\(--surface\) 88%, transparent\);/);
-    expect(css).toMatch(/:is\(\.thread-top, \.composer\) \{\s*--subtle: var\(--muted\);/);
+    expect(themeBody(css, ".dark")).toMatch(/--glass-bg-bar: color-mix\(in srgb, var\(--surface\) 80%, transparent\);/);
     expect(css).toMatch(/\.swipe-card \{[^}]*?background: var\(--card-sheen\), var\(--surface\);/);
     // A field keeps the page's hairline, not the glass edge.
     expect(css).toMatch(/\.field \{[^}]*?border-color: var\(--border\);/);
@@ -434,7 +450,7 @@ describe("the ten locked colours (founder's twelve-screen concept, #111)", () =>
       for (const [, name, value] of body.matchAll(/--([\w-]+):\s*([^;]+);/g)) {
         if (/^#[0-9a-fA-F]{6}$/.test(value.trim())) expect(parsed[name]).toBe(value.trim());
         else if (name === "hero-border") expect(value.trim()).toBe("transparent");
-        else expect(name).toMatch(/^(shadow|shadow-depth|glass-(bg|bg-strong|bg-bar|border|highlight|filter|sheen)|card-(bg|edge|sheen)|dock-(bg|fg|border|ring)|header-bg|page-wash)$/); // the only non-colour tokens: shadows and the glass recipe
+        else expect(name).toMatch(/^(shadow|shadow-depth|glass-(bg|bg-strong|bg-bar|border|highlight|filter|sheen)|card-(bg|edge|sheen)|dock-(bg|fg|border|ring)|drawer-root|header-bg|page-wash)$/); // the only non-colour tokens: shadows and the glass recipe
       }
     }
   });
@@ -499,7 +515,7 @@ describe("forest ink is for what is live and the one primary action (G1)", () =>
     }
   });
   it("by night a chosen chip has a light edge as well as its fill (the fill alone is under 3:1; the dock's lavender tile needs none)", () => {
-    expect(css).toMatch(/\.dark :is\(\.more-sheet \.rail-link\[aria-current\][^{]*\{\s*box-shadow: inset 0 0 0 1px var\(--muted\);/);
+    expect(css).toMatch(/\.dark :is\(\.chip:has\(input:checked\)[^{]*\{\s*box-shadow: inset 0 0 0 1px var\(--muted\);/);
     expect(ratio(dark.muted, dark.surface)).toBeGreaterThanOrEqual(3);
   });
   it("the custom switch is the switch colour, not the primary action's green", () => {
@@ -617,7 +633,19 @@ describe("the shell (redesign B1.4)", () => {
       // The current row is told apart from the panel (by night with a lavender edge as well).
       expect(ratio(th["tab-active-bg"], th.surface)).toBeGreaterThanOrEqual(th === dark ? 1.5 : 3);
     }
-    expect(css).toMatch(/\.dark :is\(\.more-sheet \.rail-link\[aria-current\], \.chip:has\(input:checked\)/);
+    // In the drawer the current row is the dock's capsule outside Sunlight (bold as well, so not colour alone); Sunlight keeps the solid tile above.
+    expect(css).toMatch(/html:not\(\.sun\) \.more-sheet \.rail-link\[aria-current\] \{\s*background: var\(--dock-capsule\);\s*color: var\(--fg\);\s*box-shadow: none;/);
+    expect(css).toMatch(/\.rail-link\[aria-current\] \{\s*@apply font-bold;/);
+    // While the drawer is open the root takes its colour (the status bar's strip in an installed app). The rule must sit outside
+    // every layer, on screen only: the root's own background is unlayered and would beat a layered rule; print keeps white.
+    const rootRule = css.indexOf("html:has(.more-sheet[open]) {");
+    expect(rootRule).toBeGreaterThan(-1);
+    const before = css.slice(0, rootRule).replace(/\/\*[\s\S]*?\*\//g, "");
+    const depthOf = (src: string) => src.split("{").length - src.split("}").length;
+    expect(depthOf(before)).toBe(1); // inside @media screen only
+    expect(before.slice(before.lastIndexOf("@media"))).toMatch(/^@media screen \{\s*$/);
+    expect(css).toMatch(/html:has\(\.more-sheet\[open\]\) \{\s*background: var\(--drawer-root\);/);
+    for (const body of [themeBody(css, ".sun"), css.slice(css.indexOf("@media (prefers-reduced-transparency: reduce)"))]) expect(body).toMatch(/--drawer-root: var\(--surface\);/);
   });
 
   it("has a skip link that appears on keyboard focus, landing on a wrapper without a ring", () => {

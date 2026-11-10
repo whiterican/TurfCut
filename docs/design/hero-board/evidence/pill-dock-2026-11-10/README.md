@@ -6,7 +6,7 @@ All evidence is the running app on the local test database, in Chromium with tou
 
 ## What changed
 
-1. **The dock is a pill of icons.** The current tab sits in a faint capsule and keeps the dock green. Tab names are in the markup for screen readers, not drawn. The More tab is gone.
+1. **The dock is a pill of icons, and the tab you're on shows its name.** The current tab's capsule widens to hold the name beside the icon, so each switch says where you've landed (Caden's follow-up, Nov 10). The other tabs keep their names for screen readers. The More tab is gone. `dock-current-tab-named.png` shows it on Home, Work, Map and Messages at 390, Messages at 320 (the tightest case: the narrowest tab is 44px wide), and an organization's Hiring.
 2. **More's places open in a drawer from the left.** It is the same native dialog as before, restyled. A menu button opens it:
    - a worker's phone has no site header, so the button gets a strip above the page: the person's initial and first name;
    - where the site header shows beside the dock (an organization's phone, a worker's touch tablet at 1024 to 1279), the button is the menu glyph at the header's left.
@@ -15,7 +15,7 @@ All evidence is the running app on the local test database, in Chromium with tou
 
 ## Decided for Astra
 
-- **Icon-only tabs.** The reference has no labels. This gives up the visible names the tablet pass kept (#136): Work (footprints) and Map (pin) have no drawn name.
+- **Only the current tab is named.** The reference has no labels at all; Caden asked that each screen say what its icon means. A tab you haven't opened still shows its icon alone.
 - **Heavier weights everywhere**, not only on the worker's phone, so the app stays one typeface at one scale.
 - **No menu strip on job details or chat threads.** The drawer is reached from any other page.
 

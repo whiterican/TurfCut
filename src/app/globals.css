@@ -1618,9 +1618,9 @@ body {
        organization screen, 20px corners, 12px side inset, 10px above the
        safe area, 4px inside. Inactive icons and labels are Cream; the current
        destination is the dock green (--dock-active-fg), no filled tile. */
-    /* A pill (Caden, Nov 10): icons only, the current one in a lighter capsule. The names stay for
-       screen readers; the rest of the role's places are in the menu drawer, not a tab. */
-    @apply fixed z-40 mx-auto max-w-[20rem] rounded-full p-1.5;
+    /* A pill (Caden, Nov 10): icons, the current one in a lighter capsule with its name. The other
+       names stay for screen readers; the rest of the role's places are in the menu drawer, not a tab. */
+    @apply fixed z-40 mx-auto max-w-[22rem] rounded-full p-1.5;
     inset-inline: 12px;
     bottom: calc(10px + env(safe-area-inset-bottom));
     background: var(--shell-bg);
@@ -1717,9 +1717,17 @@ body {
   .tab-icon {
     @apply size-6 shrink-0 transition;
   }
-  /* The tab's name: read, not drawn. */
+  /* A tab's name is drawn only on the one you're on (Caden, Nov 10): the capsule widens to
+     hold it, so every switch says where you've landed. The others keep theirs for screen readers. */
   .tab-label {
     @apply sr-only;
+  }
+  .tab[aria-current] {
+    @apply flex-row gap-1.5 px-2.5;
+    flex: 0 0 auto;
+  }
+  .tab[aria-current] .tab-label {
+    @apply not-sr-only;
   }
   .tabbar > div {
     gap: 0;

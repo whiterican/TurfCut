@@ -117,8 +117,9 @@ describe.each([
     // The pill dock's current capsule (Nov 10): this exact wash and no other fill, and the green still reads on it.
     expect(css).toMatch(/\n  \.tab\[aria-current\] \{[^}]*?background: color-mix\(in srgb, var\(--shell-muted\) 16%, transparent\);/);
     expect(ratio(t["dock-active-fg"], mix(t["shell-muted"], 0.16, t["shell-bg"]))).toBeGreaterThanOrEqual(4.5);
-    // Icons only: each tab's name is in the markup for screen readers.
+    // Each tab's name is in the markup for screen readers, and drawn on the current tab.
     expect(css).toMatch(/\.tab-label \{\s*@apply sr-only;/);
+    expect(css).toMatch(/\.tab\[aria-current\] \.tab-label \{\s*@apply not-sr-only;/);
     // Sunlight alone keeps a white tile with black type (outdoor glare).
     expect(css).toMatch(/\.sun \.tab\[aria-current\] \{\s*background: var\(--shell-active\);\s*color: var\(--on-shell-active\);/);
   });

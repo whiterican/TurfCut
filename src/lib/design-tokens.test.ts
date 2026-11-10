@@ -117,6 +117,9 @@ describe.each([
     // The pill dock's current capsule (Nov 10): this exact wash and no other fill, and the green still reads on it.
     expect(css).toMatch(/\n  \.tab\[aria-current\] \{[^}]*?background: color-mix\(in srgb, var\(--shell-muted\) 16%, transparent\);/);
     expect(ratio(t["dock-active-fg"], mix(t["shell-muted"], 0.16, t["shell-bg"]))).toBeGreaterThanOrEqual(4.5);
+    // Print drops the menu strip with the dock, and the admin console shows no menu.
+    expect(css).toMatch(/\.site-header, \.tabbar, \.phone-top, \.no-print, nextjs-portal \{ display: none !important; \}/);
+    expect(css).toMatch(/body:has\(\.staff-band\) :is\(\.phone-top, \.site-header \.menu-button\) \{\s*display: none;/);
     // Each tab's name is in the markup for screen readers, and drawn on the current tab.
     expect(css).toMatch(/\.tab-label \{\s*@apply sr-only;/);
     expect(css).toMatch(/\.tab\[aria-current\] \.tab-label \{\s*@apply not-sr-only;/);
@@ -243,7 +246,7 @@ describe("mockup surfaces", () => {
     }
     // No second face anywhere in the sheet (comments aside; "sans-serif" is the system fallback).
     expect(css.replace(/\/\*[\s\S]*?\*\//g, "")).not.toMatch(/(?<![-\w])serif|Georgia|Fraunces|Barlow|DM Mono/i);
-    // The printed scale: H1 28/36 700, H2 20/28 600, H3 16/24 600, Caption 14/20, Small 12/16.
+    // The printed scale, one weight step heavier (Nov 10): H1 28/36 800, H2 20/28 700, H3 16/24 700, Caption 14/20, Small 12/16.
     // One step heavier throughout (Nov 10): body 500, and each named weight a step above its default.
     expect(css).toMatch(/--font-weight-normal: 500;\s*--font-weight-medium: 600;\s*--font-weight-semibold: 700;\s*--font-weight-bold: 800;/);
     expect(css).toMatch(/\nbody \{[^}]*?font-weight: 500;/);

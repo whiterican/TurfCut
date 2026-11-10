@@ -79,7 +79,7 @@ export default async function RootLayout({
         <ViewerKindProvider kind={!session ? "none" : session.role === "WORKER" ? "worker" : session.orgId ? "org" : "none"}>
         <UnreadProvider initial={unread} enabled={tabs.some((t) => t.href === MESSAGES_HREF)}>
         <NoticesProvider count={notices}>
-        <SiteHeader signedIn={!!session} isOrg={isOrg} tabs={topNavTabs(session?.role ?? null)} notices={notices} workerPhone={session?.role === "WORKER"} menu={session && (isOrg ? org.more.length > 0 : workerMore(session.role).length > 0) ? <MenuButton notices={isOrg ? 0 : notices} /> : undefined} />
+        <SiteHeader signedIn={!!session} isOrg={isOrg} tabs={topNavTabs(session?.role ?? null)} notices={notices} workerPhone={session?.role === "WORKER"} menu={session && (isOrg ? org.phone.length > 0 && org.more.length > 0 : tabs.length > 0 && workerMore(session.role).length > 0) ? <MenuButton notices={isOrg ? 0 : notices} /> : undefined} />
         {isOrg && session ? (
           <div className="org-shell">
             <OrgRail tabs={org.rail} orgName={orgInfo?.name ?? "Your organization"} approved={orgInfo ? orgInfo.approved : null} person={railPerson(session)} />
@@ -91,7 +91,7 @@ export default async function RootLayout({
         ) : (
           <div id="content" tabIndex={-1} className="skip-target flex flex-1 flex-col">
             {/* A worker's phone has no site header: the menu button gets a strip of its own above the page. */}
-            {session && workerMore(session.role).length > 0 && (
+            {session && tabs.length > 0 && workerMore(session.role).length > 0 && (
               <div className="phone-top">
                 <MenuButton name={railPerson(session).name} notices={notices} />
               </div>

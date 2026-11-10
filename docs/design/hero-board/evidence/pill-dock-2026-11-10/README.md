@@ -29,7 +29,20 @@ All evidence is the running app on the local test database, in Chromium with tou
 - `desktop-1440.png`: desktop, the top bar as before, heavier type.
 - `sweep.txt`: 31 page loads (worker at 390, 1100 touch and 1440; organization owner at 390 and 1440). Each line records the page's sideways overflow, and whether the dock, the strip, the header's menu button, the top bar and the rail show. No page overflows.
 
-The test worker has no display name, so the button and drawer show the account's email.
+The test worker has no display name. The screenshots were taken before the review fix, so they show the whole email; the button now shows the part before the @.
+
+## Review
+
+A separate Claude reviewer went through the branch and found nothing blocking. Its findings, fixed:
+- the menu strip printed on receipts and statements (now hidden in print, and tested);
+- the Messages tab was wider than the others (a leftover from the labelled dock);
+- on a phone, the admin console showed the menu (the console stands alone, as on wider screens);
+- the menu button's spoken name left out the name it shows; an account with no name showed its whole email (now the part before the @);
+- a role with no phone tabs could get a menu button with nothing behind it;
+- in forced-colours mode the current tab had no cue (now an outline);
+- stale comments and unused styles from the labelled dock.
+
+Known and kept: on a job's page and in a chat thread there is no menu button, so the drawer's places (Notifications among them) are one tab switch away.
 
 ## Still imperfect
 

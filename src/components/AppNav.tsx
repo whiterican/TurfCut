@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { BadgeCheck, Bell, Briefcase, CalendarCheck, CalendarClock, ChevronRight, ClipboardList, Clock, Footprints, House, LayoutDashboard, Map, MapPin, Megaphone, Menu, MessageCircle, Newspaper, ReceiptText, Settings, ShieldCheck, Sunrise, User, Users, Wallet, X, type LucideIcon } from "lucide-react";
 import { activeTab, MESSAGES_HREF, type NavTab, type TabIconId } from "@/lib/nav";
 import { clampScroll, MIN_DELTA, nextHidden, SHOW_NEAR_TOP } from "@/lib/scroll-hide";
@@ -168,9 +168,10 @@ const OPEN_MENU = "tc:open-menu";
  * initial and first name; without it the button is the menu glyph alone.
  */
 export function MenuButton({ name, notices = 0 }: { name?: string; notices?: number }) {
-  const first = name?.trim().split(/\s+/)[0];
+  // The first name; an account with no name set shows the part of its email before the @, never the whole address.
+  const first = name?.trim().split(/\s+/)[0]?.split("@")[0];
   return (
-    <button type="button" className="menu-button" data-named={first ? "" : undefined} aria-haspopup="dialog" aria-label={notices > 0 ? `Menu, ${notices} unread ${notices === 1 ? "notification" : "notifications"}` : "Menu"} onClick={() => window.dispatchEvent(new Event(OPEN_MENU))}>
+    <button type="button" className="menu-button" data-named={first ? "" : undefined} aria-haspopup="dialog" aria-label={`Menu${first ? `, ${first}` : ""}${notices > 0 ? `, ${notices} unread ${notices === 1 ? "notification" : "notifications"}` : ""}`} onClick={() => window.dispatchEvent(new Event(OPEN_MENU))}>
       {first ? <span className="menu-avatar" aria-hidden>{first[0]?.toUpperCase()}</span> : <Icon of={Menu} className="size-5" />}
       {first && <span className="menu-name" aria-hidden>{first}</span>}
       {notices > 0 && <span className="menu-dot" aria-hidden />}
@@ -190,7 +191,6 @@ export function OrgTabBar({ tabs, more, extra, notices = 0, touchDock = false, p
   const current = activeTab([...tabs, ...more], pathname);
   const count = useUnreadCount();
   const [open, setOpen] = useState(false);
-  const sheetId = useId();
   const sheet = useRef<HTMLDialogElement>(null);
   const tucked = useTuckOnScroll();
 
@@ -242,7 +242,6 @@ export function OrgTabBar({ tabs, more, extra, notices = 0, touchDock = false, p
       {more.length > 0 && (
         <dialog
           ref={sheet}
-          id={sheetId}
           aria-label="Menu"
           className="more-sheet"
           // Escape, or close() from anywhere: sync state and hand focus back to the menu button.
@@ -296,7 +295,7 @@ export function OrgTabBar({ tabs, more, extra, notices = 0, touchDock = false, p
       <nav aria-label="Main" className="tabbar" data-tucked={tucked || undefined} data-touch-dock={touchDock || undefined}>
         <div className="flex">
           {tabs.map((t) => (
-            <Link key={t.href} href={t.href} className="tab" data-wide={t.href.endsWith(MESSAGES_HREF) || undefined} aria-current={currentAttr(t.href, current, pathname)}>
+            <Link key={t.href} href={t.href} className="tab" aria-current={currentAttr(t.href, current, pathname)}>
               <Icon of={iconFor(t)} className="tab-icon" />
               <span className="tab-label">{t.label}</span>
               {t.href.endsWith(MESSAGES_HREF) && <Badge count={count} />}

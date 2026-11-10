@@ -1611,13 +1611,10 @@ body {
   /* Phone: a floating bar above the bottom edge (and the home indicator),
      tucked away while scrolling down (components/AppNav, lib/scroll-hide).
      Desktop (lg): links in the top bar or the rail instead. */
-  /* A compact rounded slab (not a full pill), 384px at most: five 44px tiles
-     with small labels, on the frame's eggplant (hero board). */
   .tabbar {
-    /* The floating dock (#111): one Eggplant slab on every worker and
-       organization screen, 20px corners, 12px side inset, 10px above the
-       safe area, 4px inside. Inactive icons and labels are Cream; the current
-       destination is the dock green (--dock-active-fg), no filled tile. */
+    /* The floating dock (#111): the frame's Eggplant on every worker and
+       organization screen, 12px side inset, 10px above the safe area. Inactive
+       icons are Cream; the current destination is the dock green (--dock-active-fg). */
     /* A pill (Caden, Nov 10): icons, the current one in a lighter capsule with its name. The other
        names stay for screen readers; the rest of the role's places are in the menu drawer, not a tab. */
     @apply fixed z-40 mx-auto max-w-[22rem] rounded-full p-1.5;
@@ -1689,8 +1686,7 @@ body {
   }
 
   .tab {
-    /* A 52px tile: a 20px icon over a complete 12/16 Inter label. Six share
-       the slab; Messages (the longest word, and the badge) gets a little more. */
+    /* A 48px tile holding a 24px icon; the current one adds its name in 12/16 Inter. */
     @apply relative flex min-h-[48px] min-w-0 flex-1 flex-col items-center justify-center rounded-full px-0.5 py-1.5 font-medium whitespace-nowrap transition;
     flex-basis: 0;
     color: var(--shell-muted);
@@ -1698,14 +1694,6 @@ body {
     font-size: 12px;
     line-height: 16px;
     letter-spacing: -0.01em;
-  }
-  .tab[data-wide] {
-    flex-grow: 1.3;
-  }
-  /* A small coral dot at the icon's corner: something waits under this tab. */
-  .tab-dot {
-    @apply absolute top-1.5 left-1/2 ml-2 size-2 rounded-full;
-    background: var(--coral);
   }
   /* The destination you're on: the dock green for icon and label, a little bolder. */
   .tab[aria-current] {
@@ -2258,13 +2246,14 @@ body {
   :is(.btn-primary, .tab[aria-current], .topnav-link[aria-current], .rail-link[aria-current]):focus-visible {
     outline-offset: 3px;
   }
-  /* More sheet: a native modal dialog pinned to the bottom of the screen. */
+  /* The menu drawer: a native modal dialog along the left edge. */
   .more-sheet {
-    /* No width rule hides it: it opens only from the dock's More, and closes when the dock goes (AppNav),
+    /* No width rule hides it: it opens only from the menu button, and closes when the dock goes (AppNav),
        so on a touch tablet's dock (up to 1279) it shows like on a phone. */
     @apply m-0 border-0 bg-transparent p-0;
     /* A drawer from the left edge (Caden, Nov 10), opened by the menu button. */
-    inset: 0 auto 0 0;
+    inset-block: 0;
+    inset-inline: 0 auto;
     width: min(20rem, 86vw);
     max-width: none;
     height: 100dvh;
@@ -2291,6 +2280,7 @@ body {
     @apply relative h-full overflow-y-auto rounded-e-[var(--radius-lg)] border border-s-0 p-4;
     padding-top: calc(1rem + env(safe-area-inset-top));
     padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+    padding-inline-start: calc(1rem + env(safe-area-inset-left));
     background: var(--surface);
     border-color: var(--border);
     box-shadow: var(--shadow);
@@ -2316,6 +2306,13 @@ body {
     @apply absolute top-0.5 right-0.5 size-2.5 rounded-full;
     background: var(--coral);
     box-shadow: 0 0 0 2px var(--bg);
+  }
+  .menu-button[data-named] .menu-dot {
+    box-shadow: 0 0 0 2px var(--surface);
+  }
+  /* The admin console stands alone (tablet pass, #136): no worker or organization menu on its pages. */
+  body:has(.staff-band) :is(.phone-top, .site-header .menu-button) {
+    display: none;
   }
   /* In the site header the button shows only where the dock does. */
   @media (min-width: 64rem) {
@@ -2875,7 +2872,7 @@ body {
    back. It stays put when motion is reduced, while it holds keyboard focus
    (Tab must never land on something off screen), and in chat threads,
    where the composer sits right above it. :focus-visible, not
-   :focus-within: a tapped tab (or More, refocused after its sheet closes)
+   :focus-within: a tapped tab (or the menu button, refocused after its drawer closes)
    keeps focus, and that must not pin the bar. */
 @media (prefers-reduced-motion: no-preference) {
   html:not([data-motion="reduce"]) body:not(:has(.composer)) .tabbar[data-tucked]:not(:has(:focus-visible)) {
@@ -3016,14 +3013,14 @@ summary.list-none::-webkit-details-marker {
 }
 @media (forced-colors: active) {
   .tabbar, .icon-btn, .site-header, .composer, .thread-top, .more-sheet-panel, .data-table thead th, .turf-map.leaflet-container .leaflet-bar, .turf-map.leaflet-container .leaflet-control-attribution { border-color: CanvasText; }
-  .tab[aria-current] { border-color: Highlight; }
+  .tab[aria-current] { outline: 2px solid Highlight; outline-offset: -2px; }
   .option-card input[type="radio"], .choice-row input[type="radio"] { appearance: auto; }
 }
 
 /* ---- Print (receipts and statements, M9) --------------------------------- */
 @media print {
   .tpl-head:has(> .no-print) { display: none; }
-  .site-header, .tabbar, .no-print, nextjs-portal { display: none !important; }
+  .site-header, .tabbar, .phone-top, .no-print, nextjs-portal { display: none !important; }
   html, body { background: white; color: black; }
   .page, .tpl { padding: 0; max-width: none; }
   .card, .list-card, .empty-state, .stat { background: white; border-color: #999; box-shadow: none; break-inside: avoid; }

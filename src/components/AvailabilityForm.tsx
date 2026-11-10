@@ -35,9 +35,9 @@ function Ranges({ label, ranges, onChange, errorId }: { label: string; ranges: T
     <div className="space-y-2">
       {ranges.map((r, i) => (
         <div key={i} className="space-y-1">
-          <div className="grid max-w-md grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2">
+          <div className="grid max-w-md grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3">
             <input type="time" aria-label={`${label}: from`} aria-describedby={errorId} aria-invalid={errorId ? true : undefined} className="field w-full min-w-0" value={toInput(r.from)} onChange={(e) => onChange(ranges.map((x, j) => (j === i ? { ...x, from: e.target.value } : x)))} />
-            <span aria-hidden className="text-muted">to</span>
+            <span aria-hidden className="text-sm text-muted">to</span>
             <input type="time" aria-label={`${label}: to`} aria-describedby={errorId} aria-invalid={errorId ? true : undefined} className="field w-full min-w-0" value={toInput(r.to)} onChange={(e) => onChange(ranges.map((x, j) => (j === i ? { ...x, to: fromInput(e.target.value) } : x)))} />
           </div>
           {ranges.length > 1 && (

@@ -672,6 +672,24 @@ describe("the shell (redesign B1.4)", () => {
     expect(css).toMatch(/@media \(width < 40rem\) \{\s*\/\*[^*]*\*\/\s*\.data-table-wrap:has\(> \.data-table-stack\)/);
   });
 
+  it("the sheet's dialog never scrolls itself (the focus given on opening would scroll it while the panel is still below the edge)", () => {
+    const sheet = css.match(/\n  \.sheet \{([^}]*)\}/)?.[1] ?? "";
+    expect(sheet).toMatch(/overflow: visible;/);
+    expect(css).toMatch(/\.sheet-body \{[^}]*overflow-x: hidden;/);
+    expect(readFileSync(join(__dirname, "../components/Sheet.tsx"), "utf8")).toMatch(/showModal\(\);[\s\S]{0,200}scrollTop = 0/);
+  });
+
+  it("the bottom sheet's panel is solid, not blurred glass (a precaution: Safari has clipped a blur on an element that slides)", () => {
+    const panel = css.match(/\n  \.sheet-panel \{([^}]*)\}/)?.[1] ?? "";
+    expect(panel).toMatch(/background: var\(--surface\);/);
+    expect(panel).not.toMatch(/backdrop-filter/);
+    expect(css).toMatch(/\.sheet\[open\] \.sheet-panel \{\s*animation: tc-sheet-in/);
+  });
+
+  it("time and date fields take the width they are given (an iPhone draws them at a width of its own otherwise)", () => {
+    expect(css).toMatch(/input\.field:is\(\[type="time"\], \[type="date"\], \[type="datetime-local"\], \[type="month"\]\) \{\s*-webkit-appearance: none;\s*appearance: none;\s*display: block;\s*min-width: 0;\s*max-width: 100%;/);
+  });
+
   it("the stylesheet's braces balance (the regex checks here would not notice a stray one; the build would)", () => {
     const bare = css.replace(/\/\*[\s\S]*?\*\//g, "").replace(/"[^"\n]*"|'[^'\n]*'/g, "");
     expect(bare.split("{").length).toBe(bare.split("}").length);

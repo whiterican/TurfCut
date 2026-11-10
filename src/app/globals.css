@@ -1206,6 +1206,23 @@ body {
     border-color: var(--border);
     box-shadow: var(--card-edge);
   }
+  /* Time and date fields on an iPhone (Caden's phone, Nov 10): Safari draws them as its own control with
+     a width of its own, so in a row they ignored their column, the second ran off the card and "to" sat
+     on top of the first. Without the native appearance they take the width they are given like any other
+     field; the value sits at the start, at the field's own height. */
+  input.field:is([type="time"], [type="date"], [type="datetime-local"], [type="month"]) {
+    -webkit-appearance: none;
+    appearance: none;
+    display: block;
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+  }
+  input.field:is([type="time"], [type="date"], [type="datetime-local"], [type="month"])::-webkit-date-and-time-value {
+    min-width: 0;
+    min-height: 1.5em;
+    text-align: start;
+  }
   .field::placeholder {
     color: var(--subtle);
   }
@@ -2390,15 +2407,20 @@ body {
   .sheet {
     @apply w-full max-w-md border-0 bg-transparent p-0;
     max-height: 100dvh;
+    /* The dialog never scrolls itself: the body inside does. Left at a dialog's own overflow: auto,
+       the focus showModal() gives scrolls it while the panel is still below the edge, and the slide
+       then runs without a relayout, so the sheet stays cut to a band (seen on an iPhone). */
+    overflow: visible;
     color: inherit;
   }
   .sheet-panel {
     @apply relative flex max-h-[85dvh] flex-col rounded-t-[var(--radius-lg)] border border-b-0;
     padding-bottom: env(safe-area-inset-bottom);
-    background: var(--glass-sheen), var(--glass-bg-strong);
+    /* Solid, not glass (Caden's iPhone, Nov 10): this panel slides up as it opens, and Safari clips a
+       blurred backdrop to where the panel was when the slide began, so the sheet showed as a cut-off
+       band in the middle of the screen. It keeps the lit edge. */
+    background: var(--surface);
     border-color: var(--glass-border);
-    -webkit-backdrop-filter: var(--glass-filter);
-    backdrop-filter: var(--glass-filter);
     box-shadow: var(--glass-highlight);
   }
   .sheet-grip {
@@ -2411,6 +2433,9 @@ body {
   }
   .sheet-body {
     @apply min-h-0 overflow-y-auto px-4 pb-4;
+    /* Up and down only: a field wider than the sheet must not let it pan sideways. */
+    overflow-x: hidden;
+    overscroll-behavior: contain;
   }
   .sheet::backdrop {
     background: rgb(24 20 30 / 0.45);

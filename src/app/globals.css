@@ -131,6 +131,7 @@
   --shadow-depth: 0 2px 8px rgb(28 15 46 / 0.06);
   --shadow: var(--shadow-depth);
   /* Priority rings around the next-shift card: the Eggplant family, each ring darker. */
+  --select: #6a4c91; /* the selected tab or row's tint: purple by day (Caden, Nov 10) */
   --ring: #7a6f8e;
   --ring-2: #5a4a78;
   --ring-3: #1c0f2e;
@@ -180,6 +181,7 @@
   --hero-border: transparent;
   --tab-active-bg: #5a4a78;
   --tab-active-fg: #f4f2f8;
+  --select: #5ed39b; /* green by night */
   --ring: #ece4f5;
   --ring-2: #cbb8e0;
   --ring-3: #a991c9;
@@ -187,13 +189,14 @@
   --shadow: var(--shadow-depth);
   color-scheme: dark;
   /* Liquid Glass by night: a dimmer pane, a fainter lit edge. */
-  --glass-bg: color-mix(in srgb, var(--surface) 74%, transparent);
-  --glass-bg-strong: color-mix(in srgb, var(--surface) 82%, transparent);
-  --glass-bg-bar: color-mix(in srgb, var(--surface) 88%, transparent);
-  --glass-border: rgb(255 255 255 / 0.14);
-  --glass-highlight: inset 0 1px 0 rgb(255 255 255 / 0.2), inset 0 -1px 0 rgb(255 255 255 / 0.04), 0 12px 32px -14px rgb(0 0 0 / 0.7);
-  --glass-sheen: linear-gradient(180deg, rgb(255 255 255 / 0.1), rgb(255 255 255 / 0) 46%);
-  --card-bg: color-mix(in srgb, var(--surface) 88%, transparent);
+  --glass-bg: color-mix(in srgb, var(--surface) 62%, transparent);
+  --glass-bg-strong: color-mix(in srgb, var(--surface) 78%, transparent);
+  --drawer-root: color-mix(in srgb, var(--surface) 78%, color-mix(in srgb, rgb(8 4 14) 60%, var(--bg)));
+  --glass-bg-bar: color-mix(in srgb, var(--surface) 80%, transparent);
+  --glass-border: rgb(255 255 255 / 0.2);
+  --glass-highlight: inset 0 1px 0 rgb(255 255 255 / 0.34), inset 0 -1px 0 rgb(255 255 255 / 0.08), inset 0 0 0 1px rgb(255 255 255 / 0.06), 0 14px 36px -14px rgb(0 0 0 / 0.75);
+  --glass-sheen: linear-gradient(135deg, rgb(255 255 255 / 0.08) 0%, rgb(255 255 255 / 0.02) 30%, rgb(255 255 255 / 0) 55%, rgb(255 255 255 / 0.05) 100%);
+  --card-bg: color-mix(in srgb, var(--surface) 82%, transparent);
   --card-edge: inset 0 1px 0 rgb(255 255 255 / 0.1);
   --card-sheen: linear-gradient(180deg, rgb(255 255 255 / 0.05), rgb(255 255 255 / 0) 38%);
   --page-wash: radial-gradient(130% 34rem at 50% -8rem, color-mix(in srgb, var(--ring) 17%, transparent), transparent 72%);
@@ -259,6 +262,7 @@
   /* Sunlight is for glare: nothing translucent, the dock its black frame again. */
   --glass-bg: var(--surface);
   --glass-bg-strong: var(--surface);
+  --drawer-root: var(--surface);
   --glass-bg-bar: var(--surface);
   --header-bg: var(--bg);
   --dock-border: var(--shell-edge);
@@ -281,30 +285,35 @@
 html {
   /* The root paints the page colour (what overscroll shows). */
   background: var(--bg);
+  /* More reflective and more see-through (Caden, later on Nov 10): thinner panes, a diagonal
+     glint with a bright rim, a richer blur. Icon-only panes go as thin as their icons allow
+     (3:1 over the worst thing behind them); panes with text stay denser (AA for muted text). */
   /* Liquid Glass (Caden, Nov 10). Controls that float over content (the dock, the header, the
      menu button and drawer, sheets, map controls, icon buttons, the composer, sticky table
      headers) are translucent: the page shows through, blurred and a little richer, under a
      bright top edge. Cards are the content layer: nearly solid, with the same lit edge and a
      soft drop. Sunlight and "reduce transparency" make all of it solid again (below). */
-  --glass-bg: color-mix(in srgb, var(--surface) 62%, transparent);
-  --glass-bg-strong: color-mix(in srgb, var(--surface) 80%, transparent);
+  --glass-bg: color-mix(in srgb, var(--surface) 45%, transparent);
+  --glass-bg-strong: color-mix(in srgb, var(--surface) 79%, transparent);
   /* Bars that carry small secondary text (the header, a thread's bar, the composer, map credits): denser, so it reads over anything. */
-  --glass-bg-bar: color-mix(in srgb, var(--surface) 88%, transparent);
+  --glass-bg-bar: color-mix(in srgb, var(--surface) 80%, transparent);
   --header-bg: var(--glass-bg-bar);
-  --glass-border: color-mix(in srgb, #ffffff 60%, var(--border));
-  --glass-highlight: inset 0 1px 0 rgb(255 255 255 / 0.75), inset 0 -1px 0 rgb(255 255 255 / 0.18), 0 10px 30px -14px rgb(28 15 46 / 0.3);
-  --glass-filter: blur(22px) saturate(180%);
-  --glass-sheen: linear-gradient(180deg, rgb(255 255 255 / 0.4), rgb(255 255 255 / 0) 46%);
-  --card-bg: color-mix(in srgb, var(--surface) 86%, transparent);
+  --glass-border: color-mix(in srgb, #ffffff 78%, var(--border));
+  --glass-highlight: inset 0 1.5px 0 rgb(255 255 255 / 0.95), inset 0 -1px 0 rgb(255 255 255 / 0.4), inset 0 0 0 1px rgb(255 255 255 / 0.28), 0 12px 34px -14px rgb(28 15 46 / 0.36);
+  --glass-filter: blur(24px) saturate(200%) contrast(1.05);
+  --glass-sheen: linear-gradient(135deg, rgb(255 255 255 / 0.7) 0%, rgb(255 255 255 / 0.12) 30%, rgb(255 255 255 / 0) 55%, rgb(255 255 255 / 0.26) 100%);
+  --card-bg: color-mix(in srgb, var(--surface) 80%, transparent);
   --card-edge: inset 0 1px 0 rgb(255 255 255 / 0.85);
   --card-sheen: linear-gradient(180deg, rgb(255 255 255 / 0.5), rgb(255 255 255 / 0) 38%);
   /* The dock is glass too: ink icons, the current one in a tinted capsule. */
   --dock-bg: var(--glass-bg);
   --dock-fg: var(--fg);
   --dock-current-fg: var(--fg);
-  --dock-capsule: color-mix(in srgb, var(--fg) 12%, transparent);
+  --dock-capsule: color-mix(in srgb, var(--select) 26%, transparent);
   --dock-border: color-mix(in srgb, var(--fg) 14%, transparent);
   --dock-ring: var(--surface);
+  /* The root's colour while the menu drawer is open: the drawer's pane over the dimmed page (see the rule at the end of the file). */
+  --drawer-root: color-mix(in srgb, var(--surface) 79%, color-mix(in srgb, rgb(24 20 30) 45%, var(--bg)));
   /* A wash of the brand's sky at the top of every page, for the glass to pick up. */
   --page-wash: radial-gradient(130% 34rem at 50% -8rem, color-mix(in srgb, var(--sky) 40%, transparent), transparent 72%);
   --hero-bg: var(--hero);
@@ -2261,7 +2270,7 @@ body {
   }
   /* By night an eggplant tile is only 1.6:1 from its surface and its label is the
      same colour as the others', so every chosen chip gets a light edge too. */
-  .dark :is(.more-sheet .rail-link[aria-current], .chip:has(input:checked), .chip[aria-current="page"], .filter-chip-on, .step-current, .topnav-link[aria-current]) {
+  .dark :is(.chip:has(input:checked), .chip[aria-current="page"], .filter-chip-on, .step-current, .topnav-link[aria-current]) {
     box-shadow: inset 0 0 0 1px var(--muted);
   }
   /* Forest fills and current tiles keep their keyboard ring outside, in the gap,
@@ -2288,27 +2297,34 @@ body {
       animation: tc-drawer-in var(--dur-slow) var(--ease-out) both;
     }
   }
-  /* The More sheet's rows (#111, screen 12): icon, label, a chevron; a divider between rows. */
+  /* The menu drawer's rows: icon, label, a chevron; rounded, no dividers. */
   .more-list {
-    @apply divide-y divide-border;
+    @apply space-y-1;
   }
   .more-row {
-    @apply min-h-12 rounded-none px-1 text-base;
+    @apply min-h-12 rounded-[var(--radius-control)] px-3 text-base;
     color: var(--fg);
+  }
+  /* The row you're on: the dock's tinted capsule, not a dark block (Sunlight keeps its solid tile). */
+  html:not(.sun) .more-sheet .rail-link[aria-current] {
+    background: var(--dock-capsule);
+    color: var(--fg);
+    box-shadow: none;
   }
   .more-extra {
     @apply mt-2 border-t border-border pt-3;
   }
   .more-sheet-panel {
-    @apply relative h-full overflow-y-auto rounded-e-[var(--radius-lg)] border border-s-0 p-4;
+    @apply relative h-full overflow-y-auto rounded-ee-[var(--radius-lg)] border border-s-0 border-t-0 p-4 outline-none;
     padding-top: calc(1rem + env(safe-area-inset-top));
     padding-bottom: calc(1rem + env(safe-area-inset-bottom));
     padding-inline-start: calc(1rem + env(safe-area-inset-left));
-    background: var(--glass-sheen), var(--glass-bg-strong);
+    /* No sheen and no lit top edge here: the pane meets the status bar's strip, which is one flat colour. */
+    background: var(--glass-bg-strong);
     border-color: var(--glass-border);
     -webkit-backdrop-filter: var(--glass-filter);
     backdrop-filter: var(--glass-filter);
-    box-shadow: var(--glass-highlight);
+    box-shadow: 0 12px 34px -14px rgb(28 15 46 / 0.36);
   }
   /* The menu button (components/AppNav MenuButton): with a name, a pill led by the person's initial; without, the glyph alone. */
   .menu-button {
@@ -2316,7 +2332,7 @@ body {
   }
   .menu-button[data-named] {
     @apply h-11 w-auto max-w-[60vw] justify-start gap-2 border py-1 ps-1 pe-4 font-semibold;
-    background: var(--glass-sheen), var(--glass-bg);
+    background: var(--glass-sheen), var(--glass-bg-strong);
     border-color: var(--glass-border);
     -webkit-backdrop-filter: var(--glass-filter);
     backdrop-filter: var(--glass-filter);
@@ -3517,6 +3533,7 @@ summary.list-none::-webkit-details-marker {
   .dark {
     --glass-bg: var(--surface);
     --glass-bg-strong: var(--surface);
+    --drawer-root: var(--surface);
     --glass-bg-bar: var(--surface);
     --header-bg: var(--bg);
     --glass-border: var(--border);
@@ -3540,6 +3557,15 @@ body:has(.thread-top) {
   --page-wash: none;
 }
 /* The faintest grey is under AA on a pane once something dark scrolls behind it: in the glass bars it takes the muted grey. */
-:is(.thread-top, .composer) {
+:is(.thread-top, .composer, .more-sheet-panel, .sheet-panel) {
   --subtle: var(--muted);
+}
+/* An installed app on a phone draws the status bar's strip in the root's colour, above the page,
+   where the page cannot paint. While the menu drawer is open the root takes the drawer's colour,
+   and the drawer's top edge is square, so the drawer reads as running to the top of the screen.
+   Unlayered on purpose: the root's own background is unlayered, and a layered rule would lose to it. */
+@media screen {
+  html:has(.more-sheet[open]) {
+    background: var(--drawer-root);
+  }
 }

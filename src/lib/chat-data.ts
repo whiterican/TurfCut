@@ -168,6 +168,11 @@ async function unreadByConversation(profileId: string): Promise<Map<string, numb
        AND (p."removedAt" IS NULL OR m."createdAt" <= p."removedAt")
        AND (p."role" = 'WORKER' OR m."createdAt" >= p."addedAt"
             OR NOT EXISTS (SELECT 1 FROM "Conversation" cv WHERE cv."id" = p."conversationId" AND cv."kind" = 'DIRECT'))
+       -- A staff row in a channel counts only while I'm on that organization's staff: afterwards the
+       -- channel is hidden from me (lib/chat.ts), so its messages must not hold a badge I could never clear.
+       AND (p."role"::text <> 'MEMBER' OR EXISTS (
+              SELECT 1 FROM "Profile" pr JOIN "Conversation" cv ON cv."id" = p."conversationId"
+               WHERE pr."id" = p."profileId" AND pr."orgId" = cv."orgId" AND pr."role"::text <> 'WORKER'))
        -- A deletion carries no content, so it counts whoever made it (even
        -- someone I've blocked, like an owner removing a reported message).
        AND NOT EXISTS (SELECT 1 FROM "MessageRevision" r
@@ -974,6 +979,16 @@ export async function ensureGeneral(me: ChatUser): Promise<void> {
   const orgId = me.orgId;
   const existing = await db().conversation.findFirst({ where: { orgId, isGeneral: true }, select: { id: true, participants: { where: { profileId: me.userId, removedAt: null }, select: { id: true } } } });
   if (existing?.participants.length) return;
+  try {
+    await ensureGeneralLocked(me, orgId);
+  } catch (e) {
+    // A live channel that already holds the name and can't be adopted (it has workers in it): Messages still opens, without a general channel, until that one is renamed or archived.
+    if (!isUniqueViolation(e)) throw e;
+    console.error("[turfcut] the general channel could not be made: a channel named general already exists", orgId);
+  }
+}
+
+async function ensureGeneralLocked(me: ChatUser, orgId: string): Promise<void> {
   await db().$transaction(async (tx) => {
     await lock(tx, `general:${orgId}`);
     // Still on this organization's staff, read inside the lock.
@@ -981,7 +996,15 @@ export async function ensureGeneral(me: ChatUser): Promise<void> {
     let general = await tx.conversation.findFirst({ where: { orgId, isGeneral: true }, select: { id: true } });
     const now = await dbNow(tx);
     if (!general) {
-      // The name is kept for this channel (createChannel refuses it), so nothing live can hold it.
+      // The name is kept for this channel (createChannel refuses it). A staff-only channel made by hand
+      // under that name before this rule existed becomes the general channel, rather than blocking it.
+      const named = await tx.conversation.findFirst({ where: { orgId, kind: "CHANNEL", archivedAt: null, staffOnly: true, name: { equals: GENERAL_CHANNEL, mode: "insensitive" } }, select: { id: true } });
+      if (named) {
+        general = await tx.conversation.update({ where: { id: named.id }, data: { isGeneral: true }, select: { id: true } });
+        await audit(tx, me.userId, "channel.made_general", "Conversation", general.id, { name: GENERAL_CHANNEL });
+      }
+    }
+    if (!general) {
       general = await tx.conversation.create({
         data: { kind: "CHANNEL", orgId, name: GENERAL_CHANNEL, topic: "Everyone on staff. Announcements and day-to-day talk.", staffOnly: true, isGeneral: true, createdById: me.userId },
         select: { id: true },
@@ -989,11 +1012,12 @@ export async function ensureGeneral(me: ChatUser): Promise<void> {
       await audit(tx, me.userId, "channel.created", "Conversation", general.id, { name: GENERAL_CHANNEL, general: true });
     }
     // Everyone on staff who has no row yet, not only me: a colleague who hasn't opened Messages is in the channel too.
-    // They start with it read, so a first visit doesn't count the whole history as unread.
+    // They start with it read, so a first visit doesn't count the whole history as unread. The time is
+    // taken in SQL, as dbNow() takes it: a bound JS date would be shifted by the session's time zone.
     await tx.$executeRaw`
       INSERT INTO "ConversationParticipant" ("id", "conversationId", "profileId", "role", "addedById", "addedAt", "lastReadAt")
-      SELECT gen_random_uuid(), ${general.id}::uuid, p."id", 'MEMBER'::"ParticipantRole", ${me.userId}::uuid, ${now}, ${now}
-        FROM "Profile" p
+      SELECT gen_random_uuid(), ${general.id}::uuid, p."id", 'MEMBER'::"ParticipantRole", ${me.userId}::uuid, t."now", t."now"
+        FROM "Profile" p, (SELECT (clock_timestamp() AT TIME ZONE 'UTC')::timestamp(3) AS "now") t
        WHERE p."orgId" = ${orgId}::uuid AND p."role"::text <> 'WORKER' AND p."closedAt" IS NULL
       ON CONFLICT ("conversationId", "profileId") DO NOTHING`;
     // I had a row that ended (I left the organization and came back): I'm in it again, from now.

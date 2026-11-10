@@ -74,7 +74,17 @@ A separate Claude reviewer ran the SQL on a throwaway database. It found the app
 | A channel with workers could be flipped to staff-only in the database | A trigger refuses it |
 | Joining counted the whole history as unread | Joining starts read |
 
-**Acceptance test.** `tests/acceptance/p2-channels.ts` (run in CI with the others): 53 checks against a fresh database, after re-running M10's roles file and this migration. It covers the general channel under concurrent opens, creating, browsing, joining across organizations, workers, the seven database guards, leaving, archiving, leaving the organization by each path, and a hire ending.
+**Re-check.** The fixes were checked again by a separate reviewer, who ran the acceptance script and the SQL by hand. Three more defects, fixed in the third commit:
+
+| Finding | Fix |
+| :--- | :--- |
+| A channel someone had already named "general" made Messages fail | A staff-only one becomes the general channel; any other case is logged and Messages still opens |
+| A former staff member kept an unread badge they could never clear | Unread counts skip channels of an organization the person has left |
+| New `#general` members were time-stamped by the session's time zone, not UTC | The time is taken in SQL |
+
+**Known limit.** Someone who joins the organization later is put in `#general` the first time they open Messages, with what came before marked read. They get no badge for it before that first visit.
+
+**Acceptance test.** `tests/acceptance/p2-channels.ts` (run in CI with the others): 57 checks against a fresh database, with M10's roles file run again after this migration. It covers the general channel under concurrent opens, creating, browsing, joining across organizations, workers, the seven database guards, leaving, archiving, leaving the organization by each path, unread counts for former staff, a session in another time zone, an older channel named "general", and a hire ending.
 
 ## Screens
 

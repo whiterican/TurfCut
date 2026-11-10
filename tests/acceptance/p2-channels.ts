@@ -108,11 +108,15 @@ const noStore = { put: async () => {}, remove: async () => {}, signedUrl: async 
   await joinChannel(fin, team);
   const mine = () => p.conversationParticipant.count({ where: { profileId: FIN, role: "MEMBER", removedAt: null } });
   check("Finance is in several channels", (await mine()) >= 2, await mine());
+  // Something Finance has not read yet, in a channel they are about to lose.
+  await sendMessage(owner, team, "After you joined", null, noStore);
+  check("an unread message counts while they are on staff", (await unreadTotal(fin)) >= 1, await unreadTotal(fin));
   await p.profile.update({ where: { id: FIN }, data: { orgId: null } });
   check("leaving the organization ends every channel membership", (await mine()) === 0, await mine());
   const gone: ChatUser = { userId: FIN, role: "FINANCE", orgId: null };
   check("and they read none of it afterwards, not even the history", (await openThread(gone, team)) === null && (await openThread(gone, general.id)) === null);
   check("nor see it listed", (await listThreads(gone)).threads.length === 0, (await listThreads(gone)).threads.map((t) => t.title));
+  check("nor carry an unread badge for it", (await unreadTotal(gone)) === 0, await unreadTotal(gone));
   await p.profile.update({ where: { id: FIN }, data: { orgId: ORG } });
   await ensureGeneral(fin);
   check("coming back puts them in the general channel again", (await live(general.id, FIN)) === 1);
@@ -120,6 +124,27 @@ const noStore = { put: async () => {}, remove: async () => {}, signedUrl: async 
   check("a closed staff account leaves its channels", (await p.conversationParticipant.count({ where: { profileId: COMP, removedAt: null } })) === 0);
   await p.profile.update({ where: { id: FIN }, data: { role: "PUBLISHER" } });
   check("a change from one staff role to another keeps channel membership", (await live(general.id, FIN)) === 1);
+
+  // --- Times are the database's UTC wall clock, whatever the session's time zone ---
+  await p.$executeRawUnsafe(`ALTER DATABASE "${(await p.$queryRaw<{ d: string }[]>`SELECT current_database() AS d`)[0].d}" SET timezone TO 'America/Denver'`);
+  await p.$disconnect();
+  const late = "00000000-0000-0000-0000-0000000000ad";
+  await p.profile.create({ data: { id: late, role: "RECRUITER", orgId: ORG } });
+  await ensureGeneral({ userId: late, role: "RECRUITER", orgId: ORG });
+  const [clock] = await p.$queryRaw<{ now: Date; tz: string }[]>`SELECT (clock_timestamp() AT TIME ZONE 'UTC')::timestamp(3) AS "now", current_setting('TimeZone') AS "tz"`;
+  const row = await p.conversationParticipant.findFirstOrThrow({ where: { conversationId: general.id, profileId: late } });
+  check("a member added to the general channel is stamped in UTC under a session in another time zone", clock.tz === "America/Denver" && Math.abs(row.addedAt.getTime() - clock.now.getTime()) < 60_000 && Math.abs((row.lastReadAt?.getTime() ?? 0) - clock.now.getTime()) < 60_000, { tz: clock.tz, addedAt: row.addedAt, now: clock.now });
+
+  // --- A channel named "general" made by hand before the name was kept ---
+  const ORG3 = "00000000-0000-0000-0000-000000000003";
+  const OWNER3 = "00000000-0000-0000-0000-0000000000dd";
+  await p.organization.create({ data: { id: ORG3, name: "Third Org", approved: true } });
+  await p.profile.create({ data: { id: OWNER3, role: "OWNER", orgId: ORG3 } });
+  const owner3: ChatUser = { userId: OWNER3, role: "OWNER", orgId: ORG3 };
+  const legacy = await p.conversation.create({ data: { kind: "CHANNEL", orgId: ORG3, name: "General", staffOnly: true, createdById: OWNER3 } });
+  await ensureGeneral(owner3);
+  const adopted = await p.conversation.findMany({ where: { orgId: ORG3, isGeneral: true } });
+  check("a staff-only channel already named general becomes the general channel, instead of breaking Messages", adopted.length === 1 && adopted[0].id === legacy.id && (await listThreads(owner3)).threads.some((t) => t.id === legacy.id), adopted);
 
   // --- The hire ending ---
   await p.engagement.update({ where: { id: hire.id }, data: { status: "COMPLETED" } });

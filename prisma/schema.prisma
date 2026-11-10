@@ -66,6 +66,11 @@ model Profile {
   // Org staff's name as shown in chat ("Maya Chen · Manager"). Workers use
   // Worker.displayName. Never shown to anyone outside a shared conversation.
   displayName     String?
+  /// The person's own profile photo, if they added one: its path in the private
+  /// "profile-photos" bucket (<profileId>/<random>.<ext>), written by the server
+  /// only. Shown only to the person themself; nothing ranks, matches or infers
+  /// anything from it. Removed when the account closes.
+  avatarKey       String?
   // Account closure (M7): set when the person closed their account. The
   // auth user is deleted; this row and everything it anchors stay (rule 3).
   closedAt        DateTime?

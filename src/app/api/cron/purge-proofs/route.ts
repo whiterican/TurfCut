@@ -1,6 +1,7 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import { missingProofSettings } from "@/lib/env";
 import { purgeProofs } from "@/lib/proof-data";
+import { purgeClosedPhotos } from "@/lib/profile-photo-data";
 
 /**
  * GET /api/cron/purge-proofs — the daily purge of credential photos
@@ -26,6 +27,11 @@ export async function GET(req: Request) {
     return Response.json({ error: "Not configured." }, { status: 503 });
   }
   const r = await purgeProofs();
-  console.log(`[turfcut] proof purge: ${r.deleted} deleted, ${r.filesRemoved} deleted files checked`);
-  return Response.json(r);
+  // Profile photos of closed accounts whose removal failed at closing (lib/profile-photo-data).
+  const photosRemoved = await purgeClosedPhotos().catch((e) => {
+    console.error("[turfcut] closed-account photo purge failed", e);
+    return 0;
+  });
+  console.log(`[turfcut] proof purge: ${r.deleted} deleted, ${r.filesRemoved} deleted files checked, ${photosRemoved} closed-account photos removed`);
+  return Response.json({ ...r, photosRemoved });
 }

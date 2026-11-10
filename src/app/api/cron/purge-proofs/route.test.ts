@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const m = vi.hoisted(() => ({ purgeProofs: vi.fn() }));
+const m = vi.hoisted(() => ({ purgeProofs: vi.fn(), purgeClosedPhotos: vi.fn() }));
 vi.mock("@/lib/proof-data", () => ({ purgeProofs: m.purgeProofs }));
+vi.mock("@/lib/profile-photo-data", () => ({ purgeClosedPhotos: m.purgeClosedPhotos }));
 
 import { GET } from "./route";
 
@@ -14,6 +15,7 @@ describe("GET /api/cron/purge-proofs", () => {
     vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "service");
     vi.stubEnv("CREDENTIAL_PROOF_KEY", Buffer.alloc(32, 7).toString("base64"));
     m.purgeProofs.mockReset().mockResolvedValue({ deleted: 2, orphans: 1, filesRemoved: 3 });
+    m.purgeClosedPhotos.mockReset().mockResolvedValue(1);
     vi.spyOn(console, "error").mockImplementation(() => {});
     vi.spyOn(console, "log").mockImplementation(() => {});
   });
@@ -30,7 +32,7 @@ describe("GET /api/cron/purge-proofs", () => {
     expect(m.purgeProofs).not.toHaveBeenCalled();
     const ok = await GET(req("Bearer s3cret-value"));
     expect(ok.status).toBe(200);
-    expect(await ok.json()).toEqual({ deleted: 2, orphans: 1, filesRemoved: 3 });
+    expect(await ok.json()).toEqual({ deleted: 2, orphans: 1, filesRemoved: 3, photosRemoved: 1 });
   });
 
   it("refuses to run on a server without the secret or the photo settings", async () => {

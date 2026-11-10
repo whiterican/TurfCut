@@ -10,6 +10,9 @@ import { closureFacts } from "@/lib/account-data";
 import { closureProblems } from "@/lib/account-closure";
 import { Masthead } from "@/components/Masthead";
 import { ReadingPage } from "@/components/layout/Page";
+import { PhotoSettings } from "@/components/PhotoSettings";
+import { ownPhotoUrl } from "@/lib/profile-photo-key";
+import { railPerson } from "@/lib/nav";
 
 /** Signed in, the page holds the account too ("Settings"); signed out, only the display options. Once per request (metadata and page share it). */
 const signedInUser = cache(async () => {
@@ -45,6 +48,8 @@ export default async function SettingsPage() {
   return (
     <ReadingPage gap={6} head={<Masthead title={session ? "Settings" : "Display settings"} meta="Text size, theme and feel are saved on this device." />}>
       <DisplaySettings />
+      {/* Anyone with an account may add a photo of themself (lib/profile-photo): shown only to them. */}
+      {me && <PhotoSettings photo={ownPhotoUrl(me.avatarKey)} initial={railPerson(me).name[0]?.toUpperCase() ?? "?"} />}
       {session && (
         <section className="section">
           <h2 className="section-title">Account</h2>

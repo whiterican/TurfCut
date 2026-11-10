@@ -1,0 +1,83 @@
+"use client";
+
+import { useRef, useState, useTransition } from "react";
+import { Camera, Trash2 } from "lucide-react";
+import { removeProfilePhoto, uploadProfilePhoto, type PhotoState } from "@/app/settings/photo-actions";
+
+/** The side of the square the browser sends: plenty for a face in a menu, and a few dozen KB. */
+const EDGE = 512;
+
+/**
+ * The photo as a centred, upright EDGE-pixel square JPEG, made in the browser
+ * (a phone photo is several MB and may be stored sideways). Null when the
+ * browser can't; the original is sent then, and the server judges it.
+ */
+async function square(file: File): Promise<File | null> {
+  try {
+    const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
+    const side = Math.min(bitmap.width, bitmap.height);
+    const canvas = document.createElement("canvas");
+    canvas.width = canvas.height = Math.min(EDGE, side);
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(bitmap, (bitmap.width - side) / 2, (bitmap.height - side) / 2, side, side, 0, 0, canvas.width, canvas.height);
+    bitmap.close();
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.88));
+    return blob ? new File([blob], "photo.jpg", { type: "image/jpeg" }) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Settings → Photo: add, change or remove your own profile photo. */
+export function PhotoSettings({ photo, initial }: { /** The address of the current photo, if there is one. */ photo: string | null; /** Shown in the circle when there is no photo. */ initial: string }) {
+  const input = useRef<HTMLInputElement>(null);
+  const [state, setState] = useState<PhotoState | null>(null);
+  const [busy, start] = useTransition();
+
+  const choose = (file: File | undefined) => {
+    if (input.current) input.current.value = "";
+    if (!file) return;
+    if (!["image/jpeg", "image/png"].includes(file.type)) {
+      setState({ ok: false, message: "Choose a JPEG or PNG photo." });
+      return;
+    }
+    start(async () => {
+      const ready = (await square(file)) ?? file;
+      const fd = new FormData();
+      fd.set("photo", ready, ready.name);
+      setState(await uploadProfilePhoto(null, fd));
+    });
+  };
+
+  return (
+    <section className="section">
+      <h2 className="section-title">Photo</h2>
+      <div className="card flex flex-wrap items-center gap-4">
+        <span className="photo-lg" aria-hidden={!photo}>
+          {/* eslint-disable-next-line @next/next/no-img-element -- served by a signed-in route, not an optimizable public image */}
+          {photo ? <img src={photo} alt="Your profile photo" /> : initial}
+        </span>
+        <div className="min-w-0 flex-1 space-y-2">
+          <div className="flex flex-wrap gap-2">
+            <input ref={input} type="file" accept="image/jpeg,image/png" className="sr-only" tabIndex={-1} aria-hidden onChange={(e) => choose(e.target.files?.[0])} />
+            <button type="button" className="btn-secondary btn-sm" disabled={busy} onClick={() => input.current?.click()}>
+              <Camera aria-hidden className="btn-icon" />
+              {busy ? "Saving…" : photo ? "Change photo" : "Add photo"}
+            </button>
+            {photo && (
+              <button type="button" className="btn-ghost btn-sm" disabled={busy} onClick={() => start(async () => setState(await removeProfilePhoto()))}>
+                <Trash2 aria-hidden className="btn-icon" />
+                Remove
+              </button>
+            )}
+          </div>
+          <p className="text-hint">Only you see it for now.</p>
+          <p role="status" className={state && !state.ok ? "text-danger-msg" : "text-sm text-muted"}>{state?.message ?? ""}</p>
+        </div>
+      </div>
+    </section>
+  );
+}

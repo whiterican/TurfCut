@@ -139,8 +139,10 @@ describe("navigation", () => {
   });
 
   it("names who is signed in at the foot of the rail: their own name, else their email; the role as the organization calls it", () => {
-    expect(railPerson({ displayName: "Maya Chen", email: "m@x.org", role: "OWNER", roleName: null })).toEqual({ name: "Maya Chen", role: "Owner" });
-    expect(railPerson({ displayName: "  ", email: "m@x.org", role: "CUSTOM", roleName: "Door captain" })).toEqual({ name: "m@x.org", role: "Door captain" });
-    expect(railPerson({ email: undefined, role: "FINANCE", roleName: null })).toEqual({ name: "Your account", role: "Finance" });
+    expect(railPerson({ displayName: "Maya Chen", email: "m@x.org", role: "OWNER", roleName: null })).toEqual({ name: "Maya Chen", role: "Owner", photo: null });
+    expect(railPerson({ displayName: "  ", email: "m@x.org", role: "CUSTOM", roleName: "Door captain" })).toEqual({ name: "m@x.org", role: "Door captain", photo: null });
+    expect(railPerson({ email: undefined, role: "FINANCE", roleName: null })).toEqual({ name: "Your account", role: "Finance", photo: null });
+    // Their own photo, if they added one: an address with no id in it, new for each upload.
+    expect(railPerson({ displayName: "Maya Chen", email: "m@x.org", role: "OWNER", roleName: null, avatarKey: "p1/abc-123.jpg" }).photo).toBe("/api/profile-photo?v=abc-123");
   });
 });

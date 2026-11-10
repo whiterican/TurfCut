@@ -1,5 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { exportProofs, purgeWorkerProofs } from "@/lib/proof-data";
+import { clearProfilePhoto, supabasePhotoStore } from "@/lib/profile-photo";
+import { photoRecords } from "@/lib/profile-photo-data";
 import type { ProofStore } from "@/lib/proof-storage";
 import { loadVerifiers } from "@/lib/verification-data";
 import { Prisma } from "@prisma/client";
@@ -114,6 +116,8 @@ export async function closeAccount(actor: { userId: string; workerId: string }, 
   }
   // Credential photos are deleted on closing (C3.6b); the daily purge retries a failure.
   await purgeWorkerProofs(actor.workerId);
+  // So is the profile photo; the same daily job retries a failure.
+  await clearProfilePhoto(actor.userId, photoRecords(), supabasePhotoStore()).catch((e) => console.error("[turfcut] account closed but its profile photo could not be removed", actor.userId, e));
   return result;
 }
 

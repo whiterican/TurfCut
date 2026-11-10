@@ -95,7 +95,7 @@ export default async function RootLayout({
             <div id="content" tabIndex={-1} className="skip-target flex min-w-0 flex-1 flex-col">
               {/* A worker's phone has no site header: the menu button gets a strip of its own above the page. */}
               <div className="phone-top">
-                <MenuButton name={railPerson(session).name} notices={notices} />
+                <MenuButton name={railPerson(session).name} photo={railPerson(session).photo} notices={notices} />
               </div>
               <NoAccessNotice />
               <PageTransition>{children}</PageTransition>

@@ -1,0 +1,738 @@
+[
+  {
+    "slug": "login",
+    "role": null,
+    "path": "/login",
+    "url": "/login",
+    "httpStatus": 200,
+    "dock": false,
+    "dockTop": 1024,
+    "contentBottom": 648,
+    "clearance": 376,
+    "last": "a \"Create an account\"",
+    "file": "clearance-login.png",
+    "source": {
+      "commit": "85f9fc1"
+    }
+  },
+  {
+    "slug": "signup",
+    "role": null,
+    "path": "/signup",
+    "url": "/signup",
+    "httpStatus": 200,
+    "dock": false,
+    "dockTop": 1024,
+    "contentBottom": 884,
+    "clearance": 140,
+    "last": "a \"Log in\"",
+    "file": "clearance-signup.png",
+    "source": {
+      "commit": "85f9fc1"
+    }
+  },
+  {
+    "slug": "campaigns-public",
+    "role": null,
+    "path": "/c",
+    "url": "/c",
+    "httpStatus": 200,
+    "dock": false,
+    "dockTop": 1024,
+    "contentBottom": 460,
+    "clearance": 564,
+    "last": "p \"Campaigns that hire on Turfcut show thei\"",
+    "file": "clearance-campaigns-public.png",
+    "source": {
+      "commit": "85f9fc1"
+    }
+  },
+  {
+    "slug": "w-home",
+    "role": "jordan",
+    "path": "/dashboard",
+    "url": "/dashboard",
+    "httpStatus": 200,
+    "dock": true,
+    "dockTop": 954,
+    "contentBottom": 829,
+    "clearance": 125,
+    "last": "a \"Set up payouts\"",
+    "file": "clearance-w-home.png",
+    "source": {
+      "commit": "85f9fc1"
+    }
+  },
+  {
+    "slug": "w-jobs",
+    "role": "jordan",
+    "path": "/jobs",
+    "url": "/jobs",
+    "httpStatus": 200,
+    "dock": true,
+    "dockTop": 954,
+    "contentBottom": 473,
+    "clearance": 482,
+    "last": "a \"Who you won't be matched with\"",
+    "file": "clearance-w-jobs.png",
+    "source": {
+      "commit": "85f9fc1"
+    }
+  },
+  {
+    "slug": "w-job",
+    "role": "jordan",
+    "path": "/jobs/86d8312d-003d-4ffd-8b70-1a06f0d9b28f",
+    "url": "/jobs/86d8312d-003d-4ffd-8b70-1a06f0d9b28f",
+    "httpStatus": 200,
+    "dock": true,
+    "dockTop": 954,
+    "contentBottom": 875,
+    "clearance": 79,
+    "last": "p \"Register voters in Capitol Hill. Nonpart\"",
+    "file": "clearance-w-job.png",
+    "source": {
+      "commit": "85f9fc1"
+    }
+  },
+  {
+    "slug": "w-invitations",
+    "role": "jordan",
+    "path": "/jobs/invitations",
+    "url": "/jobs/invitations",
+    "httpStatus": 200,
+    "dock": true,
+    "dockTop": 954,
+    "contentBottom": 400,
+    "clearance": 554,
+    "last": "p \"None.\"",
+    "file": "clearance-w-invitations.png",
+    "source": {
+      "commit": "85f9fc1"
+    }
+  },
+  {
+    "slug": "w-shifts",
+    "role": "jordan",
+    "path": "/shifts",
+    "url": "/shifts",
+    "httpStatus": 200,
+    "dock": true,
+    "dockTop": 954,
+    "contentBottom": 397,
+    "clearance": 557,
+    "last": "a \"Find Jobs\"",
+    "file": "clearance-w-shifts.png",
+    "source": {
+      "commit": "85f9fc1"
+    }
+  },
+  {
+    "slug": "w-shift",
+    "role": "jordan",
+    "path": "/shifts/00000000-0000-0000-0000-000000000201",
+    "url": "/shifts/00000000-0000-0000-0000-000000000201",
+    "httpStatus": 404,
+    "dock": true,
+    "dockTop": 954,
+    "contentBottom": 537,
+    "clearance": 418,
+    "last": "h1 \"404\"",
+    "file": "clearance-w-shift.png",
+    "source": {
+      "commit": "85f9fc1"
+    }
+  },
+  {
+    "slug": "w-turf",
+    "role": "jordan",
+    "path": "/shifts/turf",
+    "url": "/shifts/turf",
+    "httpStatus": 200,
+    "dock": true,
+    "dockTop": 954,
+    "contentBottom": 275,
+    "clearance": 679,
+    "last": "p \"When a campaign schedules you, its turf \"",
+    "file": "clearance-w-turf.png",
+    "source": {
+      "commit": "85f9fc1"
+    }
+  },
+  {
+    "slug": "w-earnings",
+    "role": "jordan",
+    "path": "/earnings",
+    "url": "/earnings",
+    "httpStatus": 200,
+    "dock": true,
+    "dockTop": 954,
+    "contentBottom": 762,
+    "clearance": 192,
+    "last": "p \"Every amount is worked out from your ver\"",
+    "file": "clearance-w-earnings.png",
+    "source": {
+      "commit": "85f9fc1"
+    }
+  },
+  {
+    "slug": "w-receipts",
+    "role": "jordan",
+    "path": "/earnings/receipts",
+    "url": "/earnings/receipts",
+    "httpStatus": 200,
+    "dock": true,
+    "dockTop": 954,
+    "contentBottom": 265,
+    "clearance": 689,
+    "last": "p \"When an organization sends you pay, the \"",
+    "file": "clearance-w-receipts.png",
+    "source": {
+      "commit": "85f9fc1"
+    }
+  },
+  {
+    "slug": "w-notifications",
+    "role": "jordan",
+    "path": "/notifications",
+    "url": "/notifications",
+    "httpStatus": 200,
+    "dock": true,
+    "dockTop": 954,
+    "contentBottom": 355,
+    "clearance": 599,
+    "last": "time \"Sun, Nov 1, 7:20 PM\"",
+    "file": "clearance-w-notifications.png",
+    "source": {
+      "commit": "85f9fc1"
+    }
+  },
+  {
+    "slug": "w-messages",
+    "role": "jordan",
+    "path": "/messages",
+    "url": "/messages",
+    "httpStatus": 200,
+    "dock": true,
+    "dockTop": 954,
+    "contentBottom": 172,
+    "clearance": 782,
+    "last": "time \"7 days ago\"",
+    "file": "clearance-w-messages.png",
+    "source": {
+      "commit": "85f9fc1"
+    }
+  },
+  {
+    "slug": "w-conversation",
+    "role": "jordan",
+    "path": "/messages/09978025-13db-4bd4-bd1d-aa088a4ebbc1",
+    "url": "/messages/09978025-13db-4bd4-bd1d-aa088a4ebbc1",
+    "httpStatus": 200,
+    "dock": true,
+    "dockTop": 954,
+    "contentBottom": 296,
+    "clearance": 658,
+    "last": "button \"Message your current contact\"",
+    "file": "clearance-w-conversation.png",
+    "source": {
+      "commit": "85f9fc1"
+    }
+  },
+  {
+    "slug": "w-feed",
+    "role": "jordan",
+    "path": "/feed",
+    "url": "/feed",
+    "httpStatus": 200,
+    "dock": true,
+    "dockTop": 954,
+    "contentBottom": 367,
+    "clearance": 587,
+    "last": "a \"Find campaigns\"",
+    "file": "clearance-w-feed.png",
+    "source": {
+      "commit": "85f9fc1"
+    }
+  },
+  {
+    "slug": "w-settings",
+    "role": "jordan",
+    "path": "/settings",
+    "url": "/settings",
+    "httpStatus": 200,
+    "dock": true,
+    "dockTop": 954,
+    "contentBottom": 875,
+    "clearance": 79,
+    "last": "li \"You have unpaid pay (2 lines). Closing n\"",
+    "file": "clearance-w-settings.png",
+    "source": {
+      "commit": "85f9fc1"
+    }
+  },
+  {
+    "slug": "w-profile",
+    "role": "jordan",
+    "path": "/profile",
+    "url": "/profile",
+    "httpStatus": 200,
+    "dock": true,
+    "dockTop": 954,
+    "contentBottom": 875,
+    "clearance": 79,
+    "last": "p \"For shift reminders and day-of changes o\"",
+    "file": "clearance-w-profile.png",
+    "source": {
+      "commit": "85f9fc1"
+    }
+  },
+  {
+    "slug": "w-availability",
+    "role": "jordan",
+    "path": "/profile/availability",
+    "url": "/profile/availability",
+    "httpStatus": 200,
+    "dock": true,
+    "dockTop": 954,
+    "contentBottom": 896,
+    "clearance": 59,
+    "last": "button \"Save\"",
+    "file": "clearance-w-availability.png",
+    "source": {
+      "commit": "85f9fc1"
+    }
+  },
+  {
+    "slug": "w-credentials",
+    "role": "jordan",
+    "path": "/profile/credentials",
+    "url": "/profile/credentials",
+    "httpStatus": 200,
+    "dock": true,
+    "dockTop": 954,
+    "contentBottom": 856,
+    "clearance": 99,
+    "last": "p \"Keep your documents yourself. If you cir\"",
+    "file": "clearance-w-credentials.png",
+    "source": {
+      "commit": "85f9fc1"
+    }
+  },
+  {
+    "slug": "w-preferences",
+    "role": "jordan",
+    "path": "/profile/preferences",
+    "url": "/profile/preferences",
+    "httpStatus": 200,
+    "dock": true,
+    "dockTop": 954,
+    "contentBottom": 896,
+    "clearance": 59,
+    "last": "button \"Next\"",
+    "file": "clearance-w-preferences.png",
+    "source": {
+      "commit": "85f9fc1"
+    }
+  },
+  {
+    "slug": "w-sharing",
+    "role": "jordan",
+    "path": "/profile/sharing",
+    "url": "/profile/sharing",
+    "httpStatus": 200,
+    "dock": true,
+    "dockTop": 954,
+    "contentBottom": 896,
+    "clearance": 59,
+    "last": "button \"Save\"",
+    "file": "clearance-w-sharing.png",
+    "source": {
+      "commit": "85f9fc1"
+    }
+  },
+  {
+    "slug": "w-preview",
+    "role": "jordan",
+    "path": "/profile/preview",
+    "url": "/profile/preview",
+    "httpStatus": 200,
+    "dock": true,
+    "dockTop": 954,
+    "contentBottom": 896,
+    "clearance": 58,
+    "last": "p \"Political-fit answers are shared only wh\"",
+    "file": "clearance-w-preview.png",
+    "source": {
+      "commit": "85f9fc1"
+    }
+  },
+  {
+    "slug": "o-desk",
+    "role": "owner",
+    "path": "/desk",
+    "url": "/desk",
+    "httpStatus": 200,
+    "dock": true,
+    "dockTop": 954,
+    "contentBottom": 895,
+    "clearance": 59,
+    "last": "td \"5\"",
+    "file": "clearance-o-desk.png",
+    "source": {
+      "commit": "85f9fc1"
+    }
+  },
+  {
+    "slug": "o-jobs",
+    "role": "owner",
+    "path": "/jobs",
+    "url": "/jobs",
+    "httpStatus": 200,
+    "dock": true,
+    "dockTop": 954,
+    "contentBottom": 622,
+    "clearance": 332,
+    "last": "td \"Draft\"",
+    "file": "clearance-o-jobs.png",
+    "source": {
+      "commit": "85f9fc1"
+    }
+  },
+  {
+    "slug": "o-field",
+    "role": "owner",
+    "path": "/field",
+    "url": "/field",
+    "httpStatus": 200,
+    "dock": true,
+    "dockTop": 954,
+    "contentBottom": 896,
+    "clearance": 58,
+    "last": "p \"No shifts in the last 12 hours or the ne\"",
+    "file": "clearance-o-field.png",
+    "source": {
+      "commit": "85f9fc1"
+    }
+  },
+  {
+    "slug": "o-field-review",
+    "role": "owner",
+    "path": "/field/review",
+    "url": "/field/review",
+    "httpStatus": 200,
+    "dock": true,
+    "dockTop": 954,
+    "contentBottom": 308,
+    "clearance": 646,
+    "last": "p \"Shifts show up here once the worker chec\"",
+    "file": "clearance-o-field-review.png",
+    "source": {
+      "commit": "85f9fc1"
+    }
+  },
+  {
+    "slug": "o-pay",
+    "role": "owner",
+    "path": "/pay",
+    "url": "/pay",
+    "httpStatus": 200,
+    "dock": true,
+    "dockTop": 954,
+    "contentBottom": 698,
+    "clearance": 256,
+    "last": "summary \"Hold a line instead\"",
+    "file": "clearance-o-pay.png",
+    "source": {
+      "commit": "85f9fc1"
+    }
+  },
+  {
+    "slug": "o-statements",
+    "role": "owner",
+    "path": "/pay/statements",
+    "url": "/pay/statements",
+    "httpStatus": 200,
+    "dock": true,
+    "dockTop": 954,
+    "contentBottom": 340,
+    "clearance": 614,
+    "last": "span \"S-2026-11 · $0.24 recorded · $0.00 sent\"",
+    "file": "clearance-o-statements.png",
+    "source": {
+      "commit": "85f9fc1"
+    }
+  },
+  {
+    "slug": "o-credentials",
+    "role": "owner",
+    "path": "/org/credentials",
+    "url": "/org/credentials",
+    "httpStatus": 200,
+    "dock": true,
+    "dockTop": 954,
+    "contentBottom": 511,
+    "clearance": 443,
+    "last": "p \"Turfcut itself never shows you a credent\"",
+    "file": "clearance-o-credentials.png",
+    "source": {
+      "commit": "85f9fc1"
+    }
+  },
+  {
+    "slug": "o-campaigns",
+    "role": "owner",
+    "path": "/campaigns",
+    "url": "/campaigns",
+    "httpStatus": 200,
+    "dock": true,
+    "dockTop": 954,
+    "contentBottom": 840,
+    "clearance": 115,
+    "last": "button \"Create campaign\"",
+    "file": "clearance-o-campaigns.png",
+    "source": {
+      "commit": "85f9fc1"
+    }
+  },
+  {
+    "slug": "o-settings",
+    "role": "owner",
+    "path": "/org/settings",
+    "url": "/org/settings",
+    "httpStatus": 200,
+    "dock": true,
+    "dockTop": 954,
+    "contentBottom": 879,
+    "clearance": 76,
+    "last": "p \"Pay methods: Hourly, Per shift\"",
+    "file": "clearance-o-settings.png",
+    "source": {
+      "commit": "85f9fc1"
+    }
+  },
+  {
+    "slug": "o-members",
+    "role": "owner",
+    "path": "/org/settings/members",
+    "url": "/org/settings/members",
+    "httpStatus": 200,
+    "dock": true,
+    "dockTop": 954,
+    "contentBottom": 896,
+    "clearance": 59,
+    "last": "p \"Every invite, role change and removal is\"",
+    "file": "clearance-o-members.png",
+    "source": {
+      "commit": "85f9fc1"
+    }
+  },
+  {
+    "slug": "o-roles",
+    "role": "owner",
+    "path": "/org/settings/members/roles",
+    "url": "/org/settings/members/roles",
+    "httpStatus": 200,
+    "dock": true,
+    "dockTop": 954,
+    "contentBottom": 609,
+    "clearance": 345,
+    "last": "a \"Owner\"",
+    "file": "clearance-o-roles.png",
+    "source": {
+      "commit": "85f9fc1"
+    }
+  },
+  {
+    "slug": "o-messages",
+    "role": "owner",
+    "path": "/messages",
+    "url": "/messages",
+    "httpStatus": 200,
+    "dock": true,
+    "dockTop": 954,
+    "contentBottom": 272,
+    "clearance": 682,
+    "last": "time \"7 days ago\"",
+    "file": "clearance-o-messages.png",
+    "source": {
+      "commit": "85f9fc1"
+    }
+  },
+  {
+    "slug": "o-notifications",
+    "role": "owner",
+    "path": "/notifications",
+    "url": "/notifications",
+    "httpStatus": 200,
+    "dock": true,
+    "dockTop": 954,
+    "contentBottom": 858,
+    "clearance": 96,
+    "last": "time \"Sun, Nov 1, 7:18 PM\"",
+    "file": "clearance-o-notifications.png",
+    "source": {
+      "commit": "85f9fc1"
+    }
+  },
+  {
+    "slug": "a-home",
+    "role": "staff",
+    "path": "/admin",
+    "url": "/admin",
+    "httpStatus": 200,
+    "dock": true,
+    "dockTop": 954,
+    "contentBottom": 893,
+    "clearance": 61,
+    "last": "time \"Nov 1, 2026\"",
+    "file": "clearance-a-home.png",
+    "source": {
+      "commit": "85f9fc1"
+    }
+  },
+  {
+    "slug": "a-audit",
+    "role": "staff",
+    "path": "/admin/audit",
+    "url": "/admin/audit",
+    "httpStatus": 200,
+    "dock": true,
+    "dockTop": 954,
+    "contentBottom": 896,
+    "clearance": 58,
+    "last": "a \"Older\"",
+    "file": "clearance-a-audit.png",
+    "source": {
+      "commit": "85f9fc1"
+    }
+  },
+  {
+    "slug": "a-orgs",
+    "role": "staff",
+    "path": "/admin/organizations",
+    "url": "/admin/organizations",
+    "httpStatus": 200,
+    "dock": true,
+    "dockTop": 954,
+    "contentBottom": 677,
+    "clearance": 277,
+    "last": "span \"0 members · no owner yet · 0 draft, 1 pu\"",
+    "file": "clearance-a-orgs.png",
+    "source": {
+      "commit": "85f9fc1"
+    }
+  },
+  {
+    "slug": "a-org",
+    "role": "staff",
+    "path": "/admin/organizations/00000000-0000-0000-0000-000000000001",
+    "url": "/admin/organizations/00000000-0000-0000-0000-000000000001",
+    "httpStatus": 200,
+    "dock": true,
+    "dockTop": 954,
+    "contentBottom": 896,
+    "clearance": 59,
+    "last": "p \"None yet.\"",
+    "file": "clearance-a-org.png",
+    "source": {
+      "commit": "85f9fc1"
+    }
+  },
+  {
+    "slug": "a-people",
+    "role": "staff",
+    "path": "/admin/people",
+    "url": "/admin/people",
+    "httpStatus": 200,
+    "dock": false,
+    "dockTop": 1024,
+    "contentBottom": 363,
+    "clearance": 661,
+    "last": "span \"Shows who they are and where they belong\"",
+    "file": "clearance-a-people.png",
+    "source": {
+      "commit": "85f9fc1"
+    }
+  },
+  {
+    "slug": "a-person",
+    "role": "staff",
+    "path": "/admin/people/00000000-0000-0000-0000-000000000101",
+    "url": "/admin/people/00000000-0000-0000-0000-000000000101",
+    "httpStatus": 200,
+    "dock": true,
+    "dockTop": 954,
+    "contentBottom": 896,
+    "clearance": 58,
+    "last": "p \"None.\"",
+    "file": "clearance-a-person.png",
+    "source": {
+      "commit": "85f9fc1"
+    }
+  },
+  {
+    "slug": "a-jurisdictions",
+    "role": "staff",
+    "path": "/admin/jurisdictions",
+    "url": "/admin/jurisdictions",
+    "httpStatus": 200,
+    "dock": true,
+    "dockTop": 954,
+    "contentBottom": 594,
+    "clearance": 360,
+    "last": "time \"Nov 1, 2026\"",
+    "file": "clearance-a-jurisdictions.png",
+    "source": {
+      "commit": "85f9fc1"
+    }
+  },
+  {
+    "slug": "a-jurisdiction",
+    "role": "staff",
+    "path": "/admin/jurisdictions/00000000-0000-0000-0000-000000000021",
+    "url": "/admin/jurisdictions/00000000-0000-0000-0000-000000000021",
+    "httpStatus": 200,
+    "dock": true,
+    "dockTop": 954,
+    "contentBottom": 896,
+    "clearance": 58,
+    "last": "p \"None recorded. Profiles that predate the\"",
+    "file": "clearance-a-jurisdiction.png",
+    "source": {
+      "commit": "85f9fc1"
+    }
+  },
+  {
+    "slug": "a-campaigns",
+    "role": "staff",
+    "path": "/admin/campaigns",
+    "url": "/admin/campaigns",
+    "httpStatus": 200,
+    "dock": true,
+    "dockTop": 954,
+    "contentBottom": 535,
+    "clearance": 419,
+    "last": "p \"No profile is verified yet.\"",
+    "file": "clearance-a-campaigns.png",
+    "source": {
+      "commit": "85f9fc1"
+    }
+  },
+  {
+    "slug": "o-reports",
+    "role": "owner",
+    "path": "/messages/reports",
+    "url": "/messages/reports",
+    "httpStatus": 200,
+    "dock": true,
+    "dockTop": 954,
+    "contentBottom": 330,
+    "clearance": 624,
+    "last": "p \"When someone reports a message, it shows\"",
+    "file": "clearance-o-reports.png",
+    "source": {
+      "commit": "85f9fc1"
+    }
+  }
+]

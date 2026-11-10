@@ -1,0 +1,82 @@
+[
+  {
+    "slug": "w-receipt",
+    "role": "alex",
+    "path": "/earnings/receipts/fa3251c6-7721-49b6-8c79-32273e9be43d",
+    "url": "/earnings/receipts/fa3251c6-7721-49b6-8c79-32273e9be43d",
+    "httpStatus": 200,
+    "dock": true,
+    "dockTop": 954,
+    "contentBottom": 807,
+    "clearance": 147,
+    "last": "p \"Gross pay. Turfcut never takes a cut of \"",
+    "file": "clearance-w-receipt.png",
+    "source": {
+      "commit": "f638afe"
+    }
+  },
+  {
+    "slug": "w-shift",
+    "role": "alex",
+    "path": "/shifts/d5923eff-df46-42a8-b500-65c354ccd5fb",
+    "url": "/shifts/d5923eff-df46-42a8-b500-65c354ccd5fb",
+    "httpStatus": 200,
+    "dock": true,
+    "dockTop": 954,
+    "contentBottom": 742,
+    "clearance": 212,
+    "last": "p \"$125.00 · On hold\"",
+    "file": "clearance-w-shift.png",
+    "source": {
+      "commit": "f638afe"
+    }
+  },
+  {
+    "slug": "w-dispute",
+    "role": "alex",
+    "path": "/earnings/disputes/eee36f86-33c5-4ecf-9832-2d086c24283f",
+    "url": "/earnings/disputes/eee36f86-33c5-4ecf-9832-2d086c24283f",
+    "httpStatus": 200,
+    "dock": true,
+    "dockTop": 954,
+    "contentBottom": 660,
+    "clearance": 294,
+    "last": "p \"Checked the check-out event: it was corr\"",
+    "file": "clearance-w-dispute.png",
+    "source": {
+      "commit": "f638afe"
+    }
+  },
+  {
+    "slug": "o-dispute",
+    "role": "m9owner",
+    "path": "/pay/disputes/eee36f86-33c5-4ecf-9832-2d086c24283f",
+    "url": "/pay/disputes/eee36f86-33c5-4ecf-9832-2d086c24283f",
+    "httpStatus": 200,
+    "dock": true,
+    "dockTop": 954,
+    "contentBottom": 729,
+    "clearance": 225,
+    "last": "p \"Checked the check-out event: it was corr\"",
+    "file": "clearance-o-dispute.png",
+    "source": {
+      "commit": "f638afe"
+    }
+  },
+  {
+    "slug": "o-statement",
+    "role": "m9owner",
+    "path": "/pay/statements/2026-10",
+    "url": "/pay/statements/2026-10",
+    "httpStatus": 200,
+    "dock": true,
+    "dockTop": 954,
+    "contentBottom": 896,
+    "clearance": 58,
+    "last": "p \"On time means a first reply within 3 bus\"",
+    "file": "clearance-o-statement.png",
+    "source": {
+      "commit": "f638afe"
+    }
+  }
+]

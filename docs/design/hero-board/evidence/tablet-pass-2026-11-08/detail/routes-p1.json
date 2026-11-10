@@ -1,0 +1,4 @@
+[[null, "/c/mile_high_fixture", "campaign-public"],
+ [null, "/c/mile_high_fixture/p/00000000-0000-0000-0000-00000000cb01", "campaign-post"],
+ ["p1owner", "/campaigns/00000000-0000-0000-0000-00000000c001", "o-campaign"],
+ ["p1staff", "/admin/campaigns/00000000-0000-0000-0000-00000000c001", "a-campaign"]]

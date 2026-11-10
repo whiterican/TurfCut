@@ -1,0 +1,266 @@
+[
+  {
+    "textSize": "md",
+    "width": 390,
+    "scenario": "all-jobs",
+    "simulatedTitle": false,
+    "selectWidth": 292,
+    "selectTop": 403,
+    "controls": [
+      {
+        "text": "Show",
+        "top": 407
+      }
+    ],
+    "figuresWidth": 358,
+    "selectedText": "All jobs",
+    "textFits": true,
+    "over": 0,
+    "file": "field-md-390-all-jobs.png",
+    "source": {
+      "commit": "d00546c"
+    }
+  },
+  {
+    "textSize": "md",
+    "width": 390,
+    "scenario": "long-title-simulated",
+    "simulatedTitle": true,
+    "selectWidth": 292,
+    "selectTop": 403,
+    "controls": [
+      {
+        "text": "Show",
+        "top": 407
+      }
+    ],
+    "figuresWidth": 358,
+    "selectedText": "Pass test canvass 390 · north and east precincts, weekend mornings",
+    "textFits": false,
+    "over": 0,
+    "file": "field-md-390-long-title-simulated.png",
+    "source": {
+      "commit": "d00546c"
+    }
+  },
+  {
+    "textSize": "md",
+    "width": 1024,
+    "scenario": "all-jobs",
+    "simulatedTitle": false,
+    "selectWidth": 192,
+    "selectTop": 305,
+    "controls": [
+      {
+        "text": "Show",
+        "top": 309
+      }
+    ],
+    "figuresWidth": 486,
+    "selectedText": "All jobs",
+    "textFits": true,
+    "over": 0,
+    "file": "field-md-1024-all-jobs.png",
+    "source": {
+      "commit": "d00546c"
+    }
+  },
+  {
+    "textSize": "md",
+    "width": 1024,
+    "scenario": "long-title-simulated",
+    "simulatedTitle": true,
+    "selectWidth": 288,
+    "selectTop": 305,
+    "controls": [
+      {
+        "text": "Show",
+        "top": 309
+      }
+    ],
+    "figuresWidth": 390,
+    "selectedText": "Pass test canvass 390 · north and east precincts, weekend mornings",
+    "textFits": false,
+    "over": 0,
+    "file": "field-md-1024-long-title-simulated.png",
+    "source": {
+      "commit": "d00546c"
+    }
+  },
+  {
+    "textSize": "md",
+    "width": 1440,
+    "scenario": "all-jobs",
+    "simulatedTitle": false,
+    "selectWidth": 192,
+    "selectTop": 233,
+    "controls": [
+      {
+        "text": "Show",
+        "top": 237
+      }
+    ],
+    "figuresWidth": 621,
+    "selectedText": "All jobs",
+    "textFits": true,
+    "over": 0,
+    "file": "field-md-1440-all-jobs.png",
+    "source": {
+      "commit": "d00546c"
+    }
+  },
+  {
+    "textSize": "md",
+    "width": 1440,
+    "scenario": "long-title-simulated",
+    "simulatedTitle": true,
+    "selectWidth": 288,
+    "selectTop": 233,
+    "controls": [
+      {
+        "text": "Show",
+        "top": 237
+      }
+    ],
+    "figuresWidth": 621,
+    "selectedText": "Pass test canvass 390 · north and east precincts, weekend mornings",
+    "textFits": false,
+    "over": 0,
+    "file": "field-md-1440-long-title-simulated.png",
+    "source": {
+      "commit": "d00546c"
+    }
+  },
+  {
+    "textSize": "xl",
+    "width": 390,
+    "scenario": "all-jobs",
+    "simulatedTitle": false,
+    "selectWidth": 268,
+    "selectTop": 512,
+    "controls": [
+      {
+        "text": "Show",
+        "top": 517
+      }
+    ],
+    "figuresWidth": 350,
+    "selectedText": "All jobs",
+    "textFits": true,
+    "over": 0,
+    "file": "field-xl-390-all-jobs.png",
+    "source": {
+      "commit": "d00546c"
+    }
+  },
+  {
+    "textSize": "xl",
+    "width": 390,
+    "scenario": "long-title-simulated",
+    "simulatedTitle": true,
+    "selectWidth": 268,
+    "selectTop": 512,
+    "controls": [
+      {
+        "text": "Show",
+        "top": 517
+      }
+    ],
+    "figuresWidth": 350,
+    "selectedText": "Pass test canvass 390 · north and east precincts, weekend mornings",
+    "textFits": false,
+    "over": 0,
+    "file": "field-xl-390-long-title-simulated.png",
+    "source": {
+      "commit": "d00546c"
+    }
+  },
+  {
+    "textSize": "xl",
+    "width": 1024,
+    "scenario": "all-jobs",
+    "simulatedTitle": false,
+    "selectWidth": 240,
+    "selectTop": 364,
+    "controls": [
+      {
+        "text": "Show",
+        "top": 369
+      }
+    ],
+    "figuresWidth": 407,
+    "selectedText": "All jobs",
+    "textFits": true,
+    "over": 0,
+    "file": "field-xl-1024-all-jobs.png",
+    "source": {
+      "commit": "d00546c"
+    }
+  },
+  {
+    "textSize": "xl",
+    "width": 1024,
+    "scenario": "long-title-simulated",
+    "simulatedTitle": true,
+    "selectWidth": 360,
+    "selectTop": 412,
+    "controls": [
+      {
+        "text": "Show",
+        "top": 417
+      }
+    ],
+    "figuresWidth": 287,
+    "selectedText": "Pass test canvass 390 · north and east precincts, weekend mornings",
+    "textFits": false,
+    "over": 0,
+    "file": "field-xl-1024-long-title-simulated.png",
+    "source": {
+      "commit": "d00546c"
+    }
+  },
+  {
+    "textSize": "xl",
+    "width": 1440,
+    "scenario": "all-jobs",
+    "simulatedTitle": false,
+    "selectWidth": 240,
+    "selectTop": 275,
+    "controls": [
+      {
+        "text": "Show",
+        "top": 280
+      }
+    ],
+    "figuresWidth": 777,
+    "selectedText": "All jobs",
+    "textFits": true,
+    "over": 0,
+    "file": "field-xl-1440-all-jobs.png",
+    "source": {
+      "commit": "d00546c"
+    }
+  },
+  {
+    "textSize": "xl",
+    "width": 1440,
+    "scenario": "long-title-simulated",
+    "simulatedTitle": true,
+    "selectWidth": 360,
+    "selectTop": 287,
+    "controls": [
+      {
+        "text": "Show",
+        "top": 292
+      }
+    ],
+    "figuresWidth": 703,
+    "selectedText": "Pass test canvass 390 · north and east precincts, weekend mornings",
+    "textFits": false,
+    "over": 0,
+    "file": "field-xl-1440-long-title-simulated.png",
+    "source": {
+      "commit": "d00546c"
+    }
+  }
+]

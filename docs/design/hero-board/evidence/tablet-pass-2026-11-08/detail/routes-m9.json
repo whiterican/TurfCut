@@ -1,0 +1,5 @@
+[["alex", "/earnings/receipts/fa3251c6-7721-49b6-8c79-32273e9be43d", "w-receipt"],
+ ["alex", "/shifts/d5923eff-df46-42a8-b500-65c354ccd5fb", "w-shift"],
+ ["alex", "/earnings/disputes/eee36f86-33c5-4ecf-9832-2d086c24283f", "w-dispute"],
+ ["m9owner", "/pay/disputes/eee36f86-33c5-4ecf-9832-2d086c24283f", "o-dispute"],
+ ["m9owner", "/pay/statements/2026-10", "o-statement"]]

@@ -37,7 +37,12 @@ export function Sheet({
   useEffect(() => {
     const d = dialog.current;
     if (!d) return;
-    if (open && !d.open) d.showModal();
+    if (open && !d.open) {
+      d.showModal();
+      // The focus showModal() gives can scroll the dialog while the panel is still below the edge (Safari): put it back.
+      d.scrollTop = 0;
+      d.scrollLeft = 0;
+    }
     if (!open) {
       if (d.open) d.close();
       // The slide-away (filled forwards) and any drag offset would outrank the next entrance: clear them once closed.

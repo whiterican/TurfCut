@@ -672,7 +672,14 @@ describe("the shell (redesign B1.4)", () => {
     expect(css).toMatch(/@media \(width < 40rem\) \{\s*\/\*[^*]*\*\/\s*\.data-table-wrap:has\(> \.data-table-stack\)/);
   });
 
-  it("a panel that slides as it opens is never blurred glass (Safari clips the blur to where the slide began)", () => {
+  it("the sheet's dialog never scrolls itself (the focus given on opening would scroll it while the panel is still below the edge)", () => {
+    const sheet = css.match(/\n  \.sheet \{([^}]*)\}/)?.[1] ?? "";
+    expect(sheet).toMatch(/overflow: visible;/);
+    expect(css).toMatch(/\.sheet-body \{[^}]*overflow-x: hidden;/);
+    expect(readFileSync(join(__dirname, "../components/Sheet.tsx"), "utf8")).toMatch(/showModal\(\);[\s\S]{0,200}scrollTop = 0/);
+  });
+
+  it("the bottom sheet's panel is solid, not blurred glass (a precaution: Safari has clipped a blur on an element that slides)", () => {
     const panel = css.match(/\n  \.sheet-panel \{([^}]*)\}/)?.[1] ?? "";
     expect(panel).toMatch(/background: var\(--surface\);/);
     expect(panel).not.toMatch(/backdrop-filter/);

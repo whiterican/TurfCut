@@ -1216,8 +1216,10 @@ body {
     display: block;
     min-width: 0;
     max-width: 100%;
+    overflow: hidden;
   }
   input.field:is([type="time"], [type="date"], [type="datetime-local"], [type="month"])::-webkit-date-and-time-value {
+    min-width: 0;
     min-height: 1.5em;
     text-align: start;
   }
@@ -2395,6 +2397,10 @@ body {
   .sheet {
     @apply w-full max-w-md border-0 bg-transparent p-0;
     max-height: 100dvh;
+    /* The dialog never scrolls itself: the body inside does. Left at a dialog's own overflow: auto,
+       the focus showModal() gives scrolls it while the panel is still below the edge, and the slide
+       then runs without a relayout, so the sheet stays cut to a band (seen on an iPhone). */
+    overflow: visible;
     color: inherit;
   }
   .sheet-panel {
@@ -2417,6 +2423,9 @@ body {
   }
   .sheet-body {
     @apply min-h-0 overflow-y-auto px-4 pb-4;
+    /* Up and down only: a field wider than the sheet must not let it pan sideways. */
+    overflow-x: hidden;
+    overscroll-behavior: contain;
   }
   .sheet::backdrop {
     background: rgb(24 20 30 / 0.45);

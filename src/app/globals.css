@@ -2356,8 +2356,18 @@ body {
     box-shadow: var(--glass-highlight);
   }
   .menu-avatar {
-    @apply flex size-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold;
+    @apply flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-full text-sm font-semibold;
     background: var(--surface-2);
+  }
+  /* A person's own profile photo fills its circle (lib/profile-photo). */
+  :is(.menu-avatar, .photo-lg) > img {
+    @apply size-full object-cover;
+  }
+  /* The photo on Settings, where it is added and changed. */
+  .photo-lg {
+    @apply flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-full text-2xl font-semibold;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
   }
   .menu-name {
     @apply truncate;

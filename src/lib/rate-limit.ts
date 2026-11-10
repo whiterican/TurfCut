@@ -35,6 +35,8 @@ export const LIMITS = {
   disputeMessage: { max: 30, windowMs: 60 * 60_000 },
   /** Credential photo uploads per worker per day (each is re-encoded and stored). */
   "proof-upload": { max: 12, windowMs: 24 * 60 * 60_000 },
+  /** Profile photo changes per person per day (each is cleaned and stored). */
+  "profile-photo": { max: 20, windowMs: 24 * 60 * 60_000 },
   /** An organization member's looks at credential photos per hour (each look is recorded for the worker). */
   "proof-view": { max: 120, windowMs: 60 * 60_000 },
   /** Campaign posts per organization per hour (S1: a script can't flood a feed). */

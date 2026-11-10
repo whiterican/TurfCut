@@ -1,5 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { exportProofs, purgeWorkerProofs } from "@/lib/proof-data";
+import { ownPhoto, purgeProfilePhotos, supabasePhotoStore, type PhotoStore } from "@/lib/profile-photo";
+import { photoRecords } from "@/lib/profile-photo-data";
 import type { ProofStore } from "@/lib/proof-storage";
 import { loadVerifiers } from "@/lib/verification-data";
 import { Prisma } from "@prisma/client";
@@ -114,6 +116,8 @@ export async function closeAccount(actor: { userId: string; workerId: string }, 
   }
   // Credential photos are deleted on closing (C3.6b); the daily purge retries a failure.
   await purgeWorkerProofs(actor.workerId);
+  // So is the profile photo; the same daily job retries a failure.
+  await purgeProfilePhotos(actor.userId, photoRecords(), supabasePhotoStore()).catch((e) => console.error("[turfcut] account closed but its profile photo could not be removed", actor.userId, e));
   return result;
 }
 
@@ -127,7 +131,7 @@ const json = (v: unknown) => JSON.stringify(v, null, 2) + "\n";
 export async function exportAccount(
   actor: { userId: string; workerId: string; email?: string },
   now = new Date(),
-  opts: { proofStore?: ProofStore } = {}
+  opts: { proofStore?: ProofStore; photoStore?: PhotoStore } = {}
 ): Promise<Array<{ name: string; text: string; bytes?: Uint8Array }>> {
   const p = db();
   const proofs = await exportProofs(actor.workerId, opts.proofStore ?? null, now);
@@ -163,6 +167,7 @@ export async function exportAccount(
       `Exported ${now.toISOString()}`,
       "",
       "profile.json        your account: name, phone, email, Stripe status",
+      "profile-photo.jpg   the photo of yourself you added, if any (or .png); only you see it",
       "experience.csv      the campaigns on your profile, with their verification level",
       "preferences.json    every version of your political-fit answers and consent (newest last)",
       "metrics.json        every version of your computed scorecard aggregates",
@@ -202,6 +207,12 @@ export async function exportAccount(
   const verifiers = await loadVerifiers(w);
   files.push({ name: "credential-photos.csv", text: csvTable(proofs.rows, ["id", "credentialId", "side", "shared", "sha256", "sizeBytes", "width", "height", "createdAt", "deletedAt", "deletionReason"]) });
   files.push({ name: "credential-photo-looks.csv", text: csvTable(proofs.looks, ["photoId", "organization", "at", "downloaded"]) });
+  // The profile photo, if there is one (lib/profile-photo). A storage failure leaves it out rather than failing the export.
+  const photo = await ownPhoto(actor.userId, photoRecords(), opts.photoStore ?? supabasePhotoStore()).catch((e) => {
+    console.error("[turfcut] the profile photo could not be added to a data export", actor.userId, e);
+    return null;
+  });
+  if (photo && !photo.unchanged) files.push({ name: `profile-photo.${photo.type === "image/png" ? "png" : "jpg"}`, text: "", bytes: photo.bytes });
   // Binary entries: the photo bytes, with no text.
   files.push(...proofs.files.map((f) => ({ ...f, text: "" })));
   files.push({ name: "credentials.csv", text: csvTable(credentials.map((c) => ({ ...c, verifiedByOrg: verifiers.get(c.id)?.org ?? "" }))) });

@@ -122,7 +122,7 @@ export function TopNav({ tabs }: { tabs: NavTab[] }) {
  * name and approval at the top, every area the role reaches, and who is
  * signed in at the bottom.
  */
-export function OrgRail({ tabs, orgName, approved = null, person, foot }: { tabs: NavTab[]; /** The organization's name; a worker's sidebar has no head. */ orgName?: string; approved?: boolean | null; person: { name: string; role: string }; /** Drawn under the person (the worker's Sign out). */ foot?: ReactNode }) {
+export function OrgRail({ tabs, orgName, approved = null, person, foot }: { tabs: NavTab[]; /** The organization's name; a worker's sidebar has no head. */ orgName?: string; approved?: boolean | null; person: NavPerson; /** Drawn under the person (the worker's Sign out). */ foot?: ReactNode }) {
   const pathname = usePathname();
   const current = activeTab(tabs, pathname);
   const count = useUnreadCount();
@@ -152,11 +152,36 @@ export function OrgRail({ tabs, orgName, approved = null, person, foot }: { tabs
       </nav>
       <div className="org-rail-foot">
         <p className="org-rail-status">Signed in as</p>
-        <p className="truncate font-semibold" title={person.name}>{person.name}</p>
-        <p className="truncate org-rail-status">{person.role}</p>
+        <div className="flex items-center gap-2.5">
+          {person.photo && <PersonPhoto photo={person.photo} initial={person.name[0]?.toUpperCase()} />}
+          <div className="min-w-0">
+            <p className="truncate font-semibold" title={person.name}>{person.name}</p>
+            <p className="truncate org-rail-status">{person.role}</p>
+          </div>
+        </div>
         {foot && <div className="pt-3">{foot}</div>}
       </div>
     </aside>
+  );
+}
+
+/** Who is signed in, as the navigation shows them. `photo` is the address of their own profile photo, if they added one. */
+export type NavPerson = { name: string; role: string; photo?: string | null };
+
+/** The signed-in person's own photo in a circle (decorative: their name is beside it). `initial` stands in if it will not load (offline, say). */
+function PersonPhoto({ photo, initial }: { photo: string; initial?: string }) {
+  const [failed, setFailed] = useState<string | null>(null);
+  const img = useRef<HTMLImageElement>(null);
+  // A photo that failed before the page came alive sent its error too early to be heard: look once.
+  useEffect(() => {
+    if (img.current?.complete && img.current.naturalWidth === 0) setFailed(photo);
+  }, [photo]);
+  if (failed === photo) return initial ? <span className="menu-avatar" aria-hidden>{initial}</span> : null;
+  return (
+    <span className="menu-avatar" aria-hidden>
+      {/* eslint-disable-next-line @next/next/no-img-element -- served by a signed-in route, not an optimizable public image */}
+      <img ref={img} src={photo} alt="" onError={() => setFailed(photo)} />
+    </span>
   );
 }
 
@@ -168,12 +193,12 @@ const OPEN_MENU = "tc:open-menu";
  * phone pages, and in the site header where the header shows beside the dock. `name` draws the person's
  * initial and first name; without it the button is the menu glyph alone.
  */
-export function MenuButton({ name, notices = 0 }: { name?: string; notices?: number }) {
+export function MenuButton({ name, notices = 0, photo }: { name?: string; notices?: number; /** The person's own photo; their initial stands in without one. */ photo?: string | null }) {
   // The first name; an account with no name set shows the part of its email before the @, never the whole address.
   const first = name?.trim().split(/\s+/)[0]?.split("@")[0];
   return (
     <button type="button" className="menu-button" data-named={first ? "" : undefined} aria-haspopup="dialog" aria-label={`Menu${first ? `, ${first}` : ""}${notices > 0 ? `, ${notices} unread ${notices === 1 ? "notification" : "notifications"}` : ""}`} onClick={() => window.dispatchEvent(new Event(OPEN_MENU))}>
-      {first ? <span className="menu-avatar" aria-hidden>{first[0]?.toUpperCase()}</span> : <Icon of={Menu} className="size-5" />}
+      {first && photo ? <PersonPhoto photo={photo} initial={first[0]?.toUpperCase()} /> : first ? <span className="menu-avatar" aria-hidden>{first[0]?.toUpperCase()}</span> : <Icon of={Menu} className="size-5" />}
       {first && <span className="menu-name" aria-hidden>{first}</span>}
       {notices > 0 && <span className="menu-dot" aria-hidden />}
     </button>
@@ -187,7 +212,7 @@ export function MenuButton({ name, notices = 0 }: { name?: string; notices?: num
  * Escape and returns focus to the menu button. `extra` is drawn under the list
  * (the worker's Sign out); `person` heads the drawer.
  */
-export function OrgTabBar({ tabs, more, extra, notices = 0, person }: { tabs: NavTab[]; more: NavTab[]; extra?: ReactNode; /** Heads the drawer: who is signed in. */ person?: { name: string; role: string }; /** Unread notifications, shown on the Notifications row (the worker's phone has no header bell). */ notices?: number; }) {
+export function OrgTabBar({ tabs, more, extra, notices = 0, person }: { tabs: NavTab[]; more: NavTab[]; extra?: ReactNode; /** Heads the drawer: who is signed in. */ person?: NavPerson; /** Unread notifications, shown on the Notifications row (the worker's phone has no header bell). */ notices?: number; }) {
   const pathname = usePathname();
   const current = activeTab([...tabs, ...more], pathname);
   const count = useUnreadCount();
@@ -309,10 +334,13 @@ export function OrgTabBar({ tabs, more, extra, notices = 0, person }: { tabs: Na
           <div className="more-sheet-panel" tabIndex={-1}>
             <div className="mb-2 flex items-center justify-between">
               {person ? (
-                <p className="min-w-0">
-                  <span className="block truncate text-lg font-semibold text-fg">{person.name}</span>
-                  <span className="block truncate text-sm text-muted">{person.role}</span>
-                </p>
+                <div className="flex min-w-0 items-center gap-3">
+                  {person.photo && <PersonPhoto photo={person.photo} initial={person.name[0]?.toUpperCase()} />}
+                  <p className="min-w-0">
+                    <span className="block truncate text-lg font-semibold text-fg">{person.name}</span>
+                    <span className="block truncate text-sm text-muted">{person.role}</span>
+                  </p>
+                </div>
               ) : (
                 <p className="eyebrow">Menu</p>
               )}

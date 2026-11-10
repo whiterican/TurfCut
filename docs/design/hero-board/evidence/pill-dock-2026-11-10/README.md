@@ -46,6 +46,8 @@ A separate Claude reviewer went through the branch and found nothing blocking. I
 
 A second reviewer re-checked those fixes and the named current tab. Its findings, fixed: the forced-colours outline hid the focus ring on the current tab; the admin console on a phone lost its top safe area.
 
+A third review covered the rounder corners. Its main finding: Tailwind's own corner utilities (`rounded-md`, `-lg`, `-xl`) read the same token names, so they had grown too and a few shapes came out wrong. Fixed: every such utility is replaced by a role token or a literal, and a test now forbids them; the chat bubble's tail corner, tags that wrap, the profile's figure tiles, the send button, bottom sheets, the loading placeholders, and a list or map nested in a card all take the right size; the brand mark and the landing page's icon tiles are circles again. `rounder-1.png` and `rounder-2.png` were taken before these fixes; `sweep.txt` was rerun after them.
+
 Known and kept: a "99+" badge on Messages pokes about 4px past the pill's edge on a 320px phone when Messages isn't the current tab. Also known and kept: on a job's page and in a chat thread there is no menu button, so the drawer's places (Notifications among them) are one tab switch away.
 
 ## Still imperfect

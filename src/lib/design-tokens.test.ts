@@ -111,6 +111,15 @@ describe.each([
     expect(ratio(t.primary, t.bg)).toBeGreaterThan(ratio(t.secondary, t.bg));
   });
 
+  it("the shape scale is the rounder one, buttons are pills, and nothing uses Tailwind's named radius utilities (they read the same tokens)", () => {
+    expect(css).toMatch(/--radius-xs: 10px;\s*--radius-sm: 14px;\s*--radius-md: 24px;\s*--radius-lg: 28px;\s*--radius-xl: 32px;/);
+    expect(css).toMatch(/--radius-button: 9999px;/);
+    expect(css).toMatch(/\.btn-ghost \{\s*@apply [^;]*rounded-\[var\(--radius-button\)\]/);
+    const walk = (dir: string): string[] => readdirSync(dir, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? (e.name === "zz-preview" ? [] : walk(join(dir, e.name))) : /\.(tsx|css)$/.test(e.name) ? [join(dir, e.name)] : []));
+    const named = walk(join(__dirname, "..")).filter((f) => /(?<![\w-])rounded(-[a-z]{1,2})?-(xs|sm|md|lg|xl|2xl|3xl)(?![\w-])/.test(readFileSync(f, "utf8")));
+    expect(named).toEqual([]);
+  });
+
   it("dock icons use the frame's colours the contrast check below assumes: Cream when inactive, the dock green when current, on a faint capsule", () => {
     expect(css).toMatch(/\.tab \{[^}]*?color: var\(--shell-muted\);[^}]*\}/);
     expect(css).toMatch(/\n  \.tab\[aria-current\] \{[^}]*?color: var\(--dock-active-fg\);/);

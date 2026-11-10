@@ -340,7 +340,7 @@ export function JobForm({
       )}
 
       <div className="space-y-1">
-        <h2 ref={heading} tabIndex={-1} className="section-title rounded-md focus-visible:ring-2 focus-visible:ring-[var(--ring)]">
+        <h2 ref={heading} tabIndex={-1} className="section-title rounded-[var(--radius-xs)] focus-visible:ring-2 focus-visible:ring-[var(--ring)]">
           Step {step + 1} of {BUILDER_STEPS.length}: {current.title}
         </h2>
         <p className="text-muted-sm">{stepBlurb(step, live)}</p>

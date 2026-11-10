@@ -90,7 +90,7 @@ const SHAPES: Record<SkeletonShape, (o: ShapeOptions) => React.ReactNode> = {
     <>
       {o.heading && <Heading />}
       <Bar className="h-4 w-64" />
-      <div className="overflow-hidden rounded-[var(--radius-card)] border border-border">
+      <div className="overflow-hidden rounded-[var(--radius-inner)] border border-border">
         <Bar className="h-10 w-full rounded-none" />
         {Array.from({ length: 6 }, (_, i) => (
           <div key={i} className="flex gap-4 border-t border-border px-4 py-3">
@@ -134,7 +134,7 @@ const SHAPES: Record<SkeletonShape, (o: ShapeOptions) => React.ReactNode> = {
             <Bar className="h-11 w-full rounded-[var(--radius-inner)]" />
           </div>
         ))}
-        <Bar className="h-11 w-32 rounded-[var(--radius-inner)]" />
+        <Bar className="h-11 w-32 rounded-[var(--radius-button)]" />
       </div>
     </>
   ),

@@ -131,6 +131,7 @@
   --shadow-depth: 0 2px 8px rgb(28 15 46 / 0.06);
   --shadow: var(--shadow-depth);
   /* Priority rings around the next-shift card: the Eggplant family, each ring darker. */
+  --select: #6a4c91; /* the selected tab or row's tint: purple by day (Caden, Nov 10) */
   --ring: #7a6f8e;
   --ring-2: #5a4a78;
   --ring-3: #1c0f2e;
@@ -180,6 +181,7 @@
   --hero-border: transparent;
   --tab-active-bg: #5a4a78;
   --tab-active-fg: #f4f2f8;
+  --select: #5ed39b; /* green by night */
   --ring: #ece4f5;
   --ring-2: #cbb8e0;
   --ring-3: #a991c9;
@@ -307,7 +309,7 @@ html {
   --dock-bg: var(--glass-bg);
   --dock-fg: var(--fg);
   --dock-current-fg: var(--fg);
-  --dock-capsule: color-mix(in srgb, var(--fg) 12%, transparent);
+  --dock-capsule: color-mix(in srgb, var(--select) 26%, transparent);
   --dock-border: color-mix(in srgb, var(--fg) 14%, transparent);
   --dock-ring: var(--surface);
   /* The root's colour while the menu drawer is open: the drawer's pane over the dimmed page (see the rule at the end of the file). */

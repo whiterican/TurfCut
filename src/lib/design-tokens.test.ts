@@ -124,7 +124,7 @@ describe.each([
     expect(css).toMatch(/\.tabbar \{[^}]*?background: var\(--glass-sheen\), var\(--dock-bg\);[^}]*?backdrop-filter: var\(--glass-filter\);/);
     expect(css).toMatch(/\.tab \{[^}]*?color: var\(--dock-fg\);[^}]*\}/);
     expect(css).toMatch(/\n  \.tab\[aria-current\] \{[^}]*?color: var\(--dock-current-fg\);\s*background: var\(--dock-capsule\);/);
-    expect(css).toMatch(/--dock-bg: var\(--glass-bg\);\s*--dock-fg: var\(--fg\);\s*--dock-current-fg: var\(--fg\);\s*--dock-capsule: color-mix\(in srgb, var\(--fg\) 12%, transparent\);/);
+    expect(css).toMatch(/--dock-bg: var\(--glass-bg\);\s*--dock-fg: var\(--fg\);\s*--dock-current-fg: var\(--fg\);\s*--dock-capsule: color-mix\(in srgb, var\(--select\) 26%, transparent\);/);
     // The pane's share of the card colour, by day and by night; the rest is whatever scrolls behind it.
     expect(css).toMatch(/\nhtml \{[^}]*?--glass-bg: color-mix\(in srgb, var\(--surface\) 45%, transparent\);/);
     expect(themeBody(css, ".dark")).toMatch(/--glass-bg: color-mix\(in srgb, var\(--surface\) 62%, transparent\);/);
@@ -140,7 +140,8 @@ describe.each([
       const hex = (c: RGB) => "#" + c.map((v) => Math.round(v).toString(16).padStart(2, "0")).join("");
       // These panes hold icons only (the dock, icon buttons): 3:1, the bar for graphics (WCAG 1.4.11). Panes with text are denser, below.
       expect(ratio(t.fg, pane)).toBeGreaterThanOrEqual(3);
-      expect(ratio(t.fg, mix(t.fg, 0.12, hex(pane)))).toBeGreaterThanOrEqual(3);
+      // The selection is tinted purple by day and green by night; the icon on it keeps the ink.
+      expect(ratio(t.fg, mix(t.select, 0.26, hex(pane)))).toBeGreaterThanOrEqual(3);
       // The named menu button and the drawer carry text: body ink holds AA on the stronger pane over the same worst case.
       expect(css).toMatch(/\.menu-button\[data-named\] \{[^}]*?background: var\(--glass-sheen\), var\(--glass-bg-strong\);/);
       expect(css).toMatch(/\nhtml \{[^}]*?--glass-bg-strong: color-mix\(in srgb, var\(--surface\) 79%, transparent\);/);
@@ -148,6 +149,9 @@ describe.each([
       const strong = name === "dark" ? mix(t.surface, 0.78, "#ffffff") : mix(t.surface, 0.79, "#000000");
       expect(ratio(t.fg, strong)).toBeGreaterThanOrEqual(4.5);
       expect(ratio(t.muted, strong)).toBeGreaterThanOrEqual(4.5);
+      // The selected row's label, on its tint over that pane (the drawer) and over the bar's pane on the page (the sidebar).
+      expect(ratio(t.fg, mix(t.select, 0.26, hex(strong)))).toBeGreaterThanOrEqual(4.5);
+      expect(ratio(t.fg, mix(t.select, 0.26, hex(mix(t.surface, 0.8, t.bg))))).toBeGreaterThanOrEqual(7);
       // By night the glint is white over light type, so it is kept faint: at its brightest (8%) the dock's icons still hold 3:1 over white.
       expect(themeBody(css, ".dark")).toMatch(/--glass-sheen: linear-gradient\(135deg, rgb\(255 255 255 \/ 0\.08\) 0%/);
       if (name === "dark") expect(ratio(t.fg, mix("#ffffff", 0.08, hex(pane)))).toBeGreaterThanOrEqual(3);

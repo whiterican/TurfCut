@@ -1,0 +1,1486 @@
+{
+  "rows": [
+    {
+      "device": "touch-1024",
+      "viewport": "1024x768",
+      "touch": true,
+      "path": "/",
+      "httpStatus": 200,
+      "url": "/",
+      "coarse": true,
+      "dock": true,
+      "dockTabs": [
+        "Home",
+        "Jobs",
+        "Work",
+        "Map",
+        "Messages",
+        "More,"
+      ],
+      "topnav": false,
+      "rail": false,
+      "over": -15,
+      "clearance": 106,
+      "composer": null,
+      "consoleErrors": [],
+      "file": "touch-1024-.png",
+      "source": {
+        "commit": "cddfdd6"
+      }
+    },
+    {
+      "device": "touch-1024",
+      "viewport": "1024x768",
+      "touch": true,
+      "path": "/dashboard",
+      "httpStatus": 200,
+      "url": "/dashboard",
+      "coarse": true,
+      "dock": true,
+      "dockTabs": [
+        "Home",
+        "Jobs",
+        "Work",
+        "Map",
+        "Messages",
+        "More,"
+      ],
+      "topnav": false,
+      "rail": false,
+      "over": -15,
+      "clearance": 71,
+      "composer": null,
+      "consoleErrors": [],
+      "file": "touch-1024-dashboard.png",
+      "source": {
+        "commit": "cddfdd6"
+      }
+    },
+    {
+      "device": "touch-1024",
+      "viewport": "1024x768",
+      "touch": true,
+      "path": "/jobs",
+      "httpStatus": 200,
+      "url": "/jobs",
+      "coarse": true,
+      "dock": true,
+      "dockTabs": [
+        "Home",
+        "Jobs",
+        "Work",
+        "Map",
+        "Messages",
+        "More,"
+      ],
+      "topnav": false,
+      "rail": false,
+      "over": 0,
+      "clearance": 188,
+      "composer": null,
+      "consoleErrors": [],
+      "file": "touch-1024-jobs.png",
+      "source": {
+        "commit": "cddfdd6"
+      }
+    },
+    {
+      "device": "touch-1024",
+      "viewport": "1024x768",
+      "touch": true,
+      "path": "/jobs/86d8312d-003d-4ffd-8b70-1a06f0d9b28f",
+      "httpStatus": 200,
+      "url": "/jobs/86d8312d-003d-4ffd-8b70-1a06f0d9b28f",
+      "coarse": true,
+      "dock": true,
+      "dockTabs": [
+        "Home",
+        "Jobs",
+        "Work",
+        "Map",
+        "Messages",
+        "More,"
+      ],
+      "topnav": false,
+      "rail": false,
+      "over": -15,
+      "clearance": 79,
+      "composer": null,
+      "consoleErrors": [],
+      "file": "touch-1024-jobs-id.png",
+      "source": {
+        "commit": "cddfdd6"
+      }
+    },
+    {
+      "device": "touch-1024",
+      "viewport": "1024x768",
+      "touch": true,
+      "path": "/jobs/invitations",
+      "httpStatus": 200,
+      "url": "/jobs/invitations",
+      "coarse": true,
+      "dock": true,
+      "dockTabs": [
+        "Home",
+        "Jobs",
+        "Work",
+        "Map",
+        "Messages",
+        "More,"
+      ],
+      "topnav": false,
+      "rail": false,
+      "over": 0,
+      "clearance": 209,
+      "composer": null,
+      "consoleErrors": [],
+      "file": "touch-1024-jobs-invitations.png",
+      "source": {
+        "commit": "cddfdd6"
+      }
+    },
+    {
+      "device": "touch-1024",
+      "viewport": "1024x768",
+      "touch": true,
+      "path": "/shifts",
+      "httpStatus": 200,
+      "url": "/shifts",
+      "coarse": true,
+      "dock": true,
+      "dockTabs": [
+        "Home",
+        "Jobs",
+        "Work",
+        "Map",
+        "Messages",
+        "More,"
+      ],
+      "topnav": false,
+      "rail": false,
+      "over": 0,
+      "clearance": 212,
+      "composer": null,
+      "consoleErrors": [],
+      "file": "touch-1024-shifts.png",
+      "source": {
+        "commit": "cddfdd6"
+      }
+    },
+    {
+      "device": "touch-1024",
+      "viewport": "1024x768",
+      "touch": true,
+      "path": "/shifts/turf",
+      "httpStatus": 200,
+      "url": "/shifts/turf",
+      "coarse": true,
+      "dock": true,
+      "dockTabs": [
+        "Home",
+        "Jobs",
+        "Work",
+        "Map",
+        "Messages",
+        "More,"
+      ],
+      "topnav": false,
+      "rail": false,
+      "over": 0,
+      "clearance": 390,
+      "composer": null,
+      "consoleErrors": [],
+      "file": "touch-1024-shifts-turf.png",
+      "source": {
+        "commit": "cddfdd6"
+      }
+    },
+    {
+      "device": "touch-1024",
+      "viewport": "1024x768",
+      "touch": true,
+      "path": "/earnings",
+      "httpStatus": 200,
+      "url": "/earnings",
+      "coarse": true,
+      "dock": true,
+      "dockTabs": [
+        "Home",
+        "Jobs",
+        "Work",
+        "Map",
+        "Messages",
+        "More,"
+      ],
+      "topnav": false,
+      "rail": false,
+      "over": -15,
+      "clearance": 58,
+      "composer": null,
+      "consoleErrors": [],
+      "file": "touch-1024-earnings.png",
+      "source": {
+        "commit": "cddfdd6"
+      }
+    },
+    {
+      "device": "touch-1024",
+      "viewport": "1024x768",
+      "touch": true,
+      "path": "/earnings/receipts",
+      "httpStatus": 200,
+      "url": "/earnings/receipts",
+      "coarse": true,
+      "dock": true,
+      "dockTabs": [
+        "Home",
+        "Jobs",
+        "Work",
+        "Map",
+        "Messages",
+        "More,"
+      ],
+      "topnav": false,
+      "rail": false,
+      "over": 0,
+      "clearance": 344,
+      "composer": null,
+      "consoleErrors": [],
+      "file": "touch-1024-earnings-receipts.png",
+      "source": {
+        "commit": "cddfdd6"
+      }
+    },
+    {
+      "device": "touch-1024",
+      "viewport": "1024x768",
+      "touch": true,
+      "path": "/notifications",
+      "httpStatus": 200,
+      "url": "/notifications",
+      "coarse": true,
+      "dock": true,
+      "dockTabs": [
+        "Home",
+        "Jobs",
+        "Work",
+        "Map",
+        "Messages",
+        "More,"
+      ],
+      "topnav": false,
+      "rail": false,
+      "over": 0,
+      "clearance": 254,
+      "composer": null,
+      "consoleErrors": [],
+      "file": "touch-1024-notifications.png",
+      "source": {
+        "commit": "cddfdd6"
+      }
+    },
+    {
+      "device": "touch-1024",
+      "viewport": "1024x768",
+      "touch": true,
+      "path": "/messages",
+      "httpStatus": 200,
+      "url": "/messages",
+      "coarse": true,
+      "dock": true,
+      "dockTabs": [
+        "Home",
+        "Jobs",
+        "Work",
+        "Map",
+        "Messages",
+        "More,"
+      ],
+      "topnav": false,
+      "rail": false,
+      "over": 0,
+      "clearance": 437,
+      "composer": null,
+      "consoleErrors": [],
+      "file": "touch-1024-messages.png",
+      "source": {
+        "commit": "cddfdd6"
+      }
+    },
+    {
+      "device": "touch-1024",
+      "viewport": "1024x768",
+      "touch": true,
+      "path": "/messages/09978025-13db-4bd4-bd1d-aa088a4ebbc1",
+      "httpStatus": 200,
+      "url": "/messages/09978025-13db-4bd4-bd1d-aa088a4ebbc1",
+      "coarse": true,
+      "dock": true,
+      "dockTabs": [
+        "Home",
+        "Jobs",
+        "Work",
+        "Map",
+        "Messages",
+        "More,"
+      ],
+      "topnav": false,
+      "rail": false,
+      "over": 0,
+      "clearance": 255,
+      "composer": {
+        "composerBottom": 457,
+        "dockTop": 698,
+        "clear": true,
+        "stickyBottom": 96,
+        "stickyEdge": 672,
+        "stickyClearOfDock": true
+      },
+      "consoleErrors": [],
+      "file": "touch-1024-messages-id.png",
+      "source": {
+        "commit": "cddfdd6"
+      }
+    },
+    {
+      "device": "touch-1024",
+      "viewport": "1024x768",
+      "touch": true,
+      "path": "/feed",
+      "httpStatus": 200,
+      "url": "/feed",
+      "coarse": true,
+      "dock": true,
+      "dockTabs": [
+        "Home",
+        "Jobs",
+        "Work",
+        "Map",
+        "Messages",
+        "More,"
+      ],
+      "topnav": false,
+      "rail": false,
+      "over": 0,
+      "clearance": 242,
+      "composer": null,
+      "consoleErrors": [],
+      "file": "touch-1024-feed.png",
+      "source": {
+        "commit": "cddfdd6"
+      }
+    },
+    {
+      "device": "touch-1024",
+      "viewport": "1024x768",
+      "touch": true,
+      "path": "/settings",
+      "httpStatus": 200,
+      "url": "/settings",
+      "coarse": true,
+      "dock": true,
+      "dockTabs": [
+        "Home",
+        "Jobs",
+        "Work",
+        "Map",
+        "Messages",
+        "More,"
+      ],
+      "topnav": false,
+      "rail": false,
+      "over": -15,
+      "clearance": 79,
+      "composer": null,
+      "consoleErrors": [],
+      "file": "touch-1024-settings.png",
+      "source": {
+        "commit": "cddfdd6"
+      }
+    },
+    {
+      "device": "touch-1024",
+      "viewport": "1024x768",
+      "touch": true,
+      "path": "/profile",
+      "httpStatus": 200,
+      "url": "/profile",
+      "coarse": true,
+      "dock": true,
+      "dockTabs": [
+        "Home",
+        "Jobs",
+        "Work",
+        "Map",
+        "Messages",
+        "More,"
+      ],
+      "topnav": false,
+      "rail": false,
+      "over": -15,
+      "clearance": 79,
+      "composer": null,
+      "consoleErrors": [],
+      "file": "touch-1024-profile.png",
+      "source": {
+        "commit": "cddfdd6"
+      }
+    },
+    {
+      "device": "touch-1024",
+      "viewport": "1024x768",
+      "touch": true,
+      "path": "/profile/availability",
+      "httpStatus": 200,
+      "url": "/profile/availability",
+      "coarse": true,
+      "dock": true,
+      "dockTabs": [
+        "Home",
+        "Jobs",
+        "Work",
+        "Map",
+        "Messages",
+        "More,"
+      ],
+      "topnav": false,
+      "rail": false,
+      "over": -15,
+      "clearance": 59,
+      "composer": null,
+      "consoleErrors": [],
+      "file": "touch-1024-profile-availability.png",
+      "source": {
+        "commit": "cddfdd6"
+      }
+    },
+    {
+      "device": "touch-1024",
+      "viewport": "1024x768",
+      "touch": true,
+      "path": "/profile/credentials",
+      "httpStatus": 200,
+      "url": "/profile/credentials",
+      "coarse": true,
+      "dock": true,
+      "dockTabs": [
+        "Home",
+        "Jobs",
+        "Work",
+        "Map",
+        "Messages",
+        "More,"
+      ],
+      "topnav": false,
+      "rail": false,
+      "over": -15,
+      "clearance": 59,
+      "composer": null,
+      "consoleErrors": [],
+      "file": "touch-1024-profile-credentials.png",
+      "source": {
+        "commit": "cddfdd6"
+      }
+    },
+    {
+      "device": "touch-1024",
+      "viewport": "1024x768",
+      "touch": true,
+      "path": "/profile/preferences",
+      "httpStatus": 200,
+      "url": "/profile/preferences",
+      "coarse": true,
+      "dock": true,
+      "dockTabs": [
+        "Home",
+        "Jobs",
+        "Work",
+        "Map",
+        "Messages",
+        "More,"
+      ],
+      "topnav": false,
+      "rail": false,
+      "over": -15,
+      "clearance": 59,
+      "composer": null,
+      "consoleErrors": [],
+      "file": "touch-1024-profile-preferences.png",
+      "source": {
+        "commit": "cddfdd6"
+      }
+    },
+    {
+      "device": "touch-1024",
+      "viewport": "1024x768",
+      "touch": true,
+      "path": "/profile/sharing",
+      "httpStatus": 200,
+      "url": "/profile/sharing",
+      "coarse": true,
+      "dock": true,
+      "dockTabs": [
+        "Home",
+        "Jobs",
+        "Work",
+        "Map",
+        "Messages",
+        "More,"
+      ],
+      "topnav": false,
+      "rail": false,
+      "over": -15,
+      "clearance": 59,
+      "composer": null,
+      "consoleErrors": [],
+      "file": "touch-1024-profile-sharing.png",
+      "source": {
+        "commit": "cddfdd6"
+      }
+    },
+    {
+      "device": "touch-1024",
+      "viewport": "1024x768",
+      "touch": true,
+      "path": "/profile/preview",
+      "httpStatus": 200,
+      "url": "/profile/preview",
+      "coarse": true,
+      "dock": true,
+      "dockTabs": [
+        "Home",
+        "Jobs",
+        "Work",
+        "Map",
+        "Messages",
+        "More,"
+      ],
+      "topnav": false,
+      "rail": false,
+      "over": -15,
+      "clearance": 58,
+      "composer": null,
+      "consoleErrors": [],
+      "file": "touch-1024-profile-preview.png",
+      "source": {
+        "commit": "cddfdd6"
+      }
+    },
+    {
+      "device": "touch-1180",
+      "viewport": "1180x820",
+      "touch": true,
+      "path": "/",
+      "httpStatus": 200,
+      "url": "/",
+      "coarse": true,
+      "dock": true,
+      "dockTabs": [
+        "Home",
+        "Jobs",
+        "Work",
+        "Map",
+        "Messages",
+        "More,"
+      ],
+      "topnav": false,
+      "rail": false,
+      "over": -15,
+      "clearance": 106,
+      "composer": null,
+      "consoleErrors": [],
+      "file": "touch-1180-.png",
+      "source": {
+        "commit": "cddfdd6"
+      }
+    },
+    {
+      "device": "touch-1180",
+      "viewport": "1180x820",
+      "touch": true,
+      "path": "/dashboard",
+      "httpStatus": 200,
+      "url": "/dashboard",
+      "coarse": true,
+      "dock": true,
+      "dockTabs": [
+        "Home",
+        "Jobs",
+        "Work",
+        "Map",
+        "Messages",
+        "More,"
+      ],
+      "topnav": false,
+      "rail": false,
+      "over": -15,
+      "clearance": 71,
+      "composer": null,
+      "consoleErrors": [],
+      "file": "touch-1180-dashboard.png",
+      "source": {
+        "commit": "cddfdd6"
+      }
+    },
+    {
+      "device": "touch-1180",
+      "viewport": "1180x820",
+      "touch": true,
+      "path": "/messages/09978025-13db-4bd4-bd1d-aa088a4ebbc1",
+      "httpStatus": 200,
+      "url": "/messages/09978025-13db-4bd4-bd1d-aa088a4ebbc1",
+      "coarse": true,
+      "dock": true,
+      "dockTabs": [
+        "Home",
+        "Jobs",
+        "Work",
+        "Map",
+        "Messages",
+        "More,"
+      ],
+      "topnav": false,
+      "rail": false,
+      "over": 0,
+      "clearance": 307,
+      "composer": {
+        "composerBottom": 457,
+        "dockTop": 750,
+        "clear": true,
+        "stickyBottom": 96,
+        "stickyEdge": 724,
+        "stickyClearOfDock": true
+      },
+      "consoleErrors": [],
+      "file": "touch-1180-messages-id.png",
+      "source": {
+        "commit": "cddfdd6"
+      }
+    },
+    {
+      "device": "touch-1194",
+      "viewport": "1194x834",
+      "touch": true,
+      "path": "/",
+      "httpStatus": 200,
+      "url": "/",
+      "coarse": true,
+      "dock": true,
+      "dockTabs": [
+        "Home",
+        "Jobs",
+        "Work",
+        "Map",
+        "Messages",
+        "More,"
+      ],
+      "topnav": false,
+      "rail": false,
+      "over": -15,
+      "clearance": 106,
+      "composer": null,
+      "consoleErrors": [],
+      "file": "touch-1194-.png",
+      "source": {
+        "commit": "cddfdd6"
+      }
+    },
+    {
+      "device": "touch-1194",
+      "viewport": "1194x834",
+      "touch": true,
+      "path": "/dashboard",
+      "httpStatus": 200,
+      "url": "/dashboard",
+      "coarse": true,
+      "dock": true,
+      "dockTabs": [
+        "Home",
+        "Jobs",
+        "Work",
+        "Map",
+        "Messages",
+        "More,"
+      ],
+      "topnav": false,
+      "rail": false,
+      "over": -15,
+      "clearance": 71,
+      "composer": null,
+      "consoleErrors": [],
+      "file": "touch-1194-dashboard.png",
+      "source": {
+        "commit": "cddfdd6"
+      }
+    },
+    {
+      "device": "touch-1194",
+      "viewport": "1194x834",
+      "touch": true,
+      "path": "/jobs",
+      "httpStatus": 200,
+      "url": "/jobs",
+      "coarse": true,
+      "dock": true,
+      "dockTabs": [
+        "Home",
+        "Jobs",
+        "Work",
+        "Map",
+        "Messages",
+        "More,"
+      ],
+      "topnav": false,
+      "rail": false,
+      "over": 0,
+      "clearance": 254,
+      "composer": null,
+      "consoleErrors": [],
+      "file": "touch-1194-jobs.png",
+      "source": {
+        "commit": "cddfdd6"
+      }
+    },
+    {
+      "device": "touch-1194",
+      "viewport": "1194x834",
+      "touch": true,
+      "path": "/jobs/86d8312d-003d-4ffd-8b70-1a06f0d9b28f",
+      "httpStatus": 200,
+      "url": "/jobs/86d8312d-003d-4ffd-8b70-1a06f0d9b28f",
+      "coarse": true,
+      "dock": true,
+      "dockTabs": [
+        "Home",
+        "Jobs",
+        "Work",
+        "Map",
+        "Messages",
+        "More,"
+      ],
+      "topnav": false,
+      "rail": false,
+      "over": -15,
+      "clearance": 79,
+      "composer": null,
+      "consoleErrors": [],
+      "file": "touch-1194-jobs-id.png",
+      "source": {
+        "commit": "cddfdd6"
+      }
+    },
+    {
+      "device": "touch-1194",
+      "viewport": "1194x834",
+      "touch": true,
+      "path": "/jobs/invitations",
+      "httpStatus": 200,
+      "url": "/jobs/invitations",
+      "coarse": true,
+      "dock": true,
+      "dockTabs": [
+        "Home",
+        "Jobs",
+        "Work",
+        "Map",
+        "Messages",
+        "More,"
+      ],
+      "topnav": false,
+      "rail": false,
+      "over": 0,
+      "clearance": 275,
+      "composer": null,
+      "consoleErrors": [],
+      "file": "touch-1194-jobs-invitations.png",
+      "source": {
+        "commit": "cddfdd6"
+      }
+    },
+    {
+      "device": "touch-1194",
+      "viewport": "1194x834",
+      "touch": true,
+      "path": "/shifts",
+      "httpStatus": 200,
+      "url": "/shifts",
+      "coarse": true,
+      "dock": true,
+      "dockTabs": [
+        "Home",
+        "Jobs",
+        "Work",
+        "Map",
+        "Messages",
+        "More,"
+      ],
+      "topnav": false,
+      "rail": false,
+      "over": 0,
+      "clearance": 278,
+      "composer": null,
+      "consoleErrors": [],
+      "file": "touch-1194-shifts.png",
+      "source": {
+        "commit": "cddfdd6"
+      }
+    },
+    {
+      "device": "touch-1194",
+      "viewport": "1194x834",
+      "touch": true,
+      "path": "/shifts/turf",
+      "httpStatus": 200,
+      "url": "/shifts/turf",
+      "coarse": true,
+      "dock": true,
+      "dockTabs": [
+        "Home",
+        "Jobs",
+        "Work",
+        "Map",
+        "Messages",
+        "More,"
+      ],
+      "topnav": false,
+      "rail": false,
+      "over": 0,
+      "clearance": 456,
+      "composer": null,
+      "consoleErrors": [],
+      "file": "touch-1194-shifts-turf.png",
+      "source": {
+        "commit": "cddfdd6"
+      }
+    },
+    {
+      "device": "touch-1194",
+      "viewport": "1194x834",
+      "touch": true,
+      "path": "/earnings",
+      "httpStatus": 200,
+      "url": "/earnings",
+      "coarse": true,
+      "dock": true,
+      "dockTabs": [
+        "Home",
+        "Jobs",
+        "Work",
+        "Map",
+        "Messages",
+        "More,"
+      ],
+      "topnav": false,
+      "rail": false,
+      "over": -15,
+      "clearance": 58,
+      "composer": null,
+      "consoleErrors": [],
+      "file": "touch-1194-earnings.png",
+      "source": {
+        "commit": "cddfdd6"
+      }
+    },
+    {
+      "device": "touch-1194",
+      "viewport": "1194x834",
+      "touch": true,
+      "path": "/earnings/receipts",
+      "httpStatus": 200,
+      "url": "/earnings/receipts",
+      "coarse": true,
+      "dock": true,
+      "dockTabs": [
+        "Home",
+        "Jobs",
+        "Work",
+        "Map",
+        "Messages",
+        "More,"
+      ],
+      "topnav": false,
+      "rail": false,
+      "over": 0,
+      "clearance": 410,
+      "composer": null,
+      "consoleErrors": [],
+      "file": "touch-1194-earnings-receipts.png",
+      "source": {
+        "commit": "cddfdd6"
+      }
+    },
+    {
+      "device": "touch-1194",
+      "viewport": "1194x834",
+      "touch": true,
+      "path": "/notifications",
+      "httpStatus": 200,
+      "url": "/notifications",
+      "coarse": true,
+      "dock": true,
+      "dockTabs": [
+        "Home",
+        "Jobs",
+        "Work",
+        "Map",
+        "Messages",
+        "More,"
+      ],
+      "topnav": false,
+      "rail": false,
+      "over": 0,
+      "clearance": 320,
+      "composer": null,
+      "consoleErrors": [],
+      "file": "touch-1194-notifications.png",
+      "source": {
+        "commit": "cddfdd6"
+      }
+    },
+    {
+      "device": "touch-1194",
+      "viewport": "1194x834",
+      "touch": true,
+      "path": "/messages",
+      "httpStatus": 200,
+      "url": "/messages",
+      "coarse": true,
+      "dock": true,
+      "dockTabs": [
+        "Home",
+        "Jobs",
+        "Work",
+        "Map",
+        "Messages",
+        "More,"
+      ],
+      "topnav": false,
+      "rail": false,
+      "over": 0,
+      "clearance": 503,
+      "composer": null,
+      "consoleErrors": [],
+      "file": "touch-1194-messages.png",
+      "source": {
+        "commit": "cddfdd6"
+      }
+    },
+    {
+      "device": "touch-1194",
+      "viewport": "1194x834",
+      "touch": true,
+      "path": "/messages/09978025-13db-4bd4-bd1d-aa088a4ebbc1",
+      "httpStatus": 200,
+      "url": "/messages/09978025-13db-4bd4-bd1d-aa088a4ebbc1",
+      "coarse": true,
+      "dock": true,
+      "dockTabs": [
+        "Home",
+        "Jobs",
+        "Work",
+        "Map",
+        "Messages",
+        "More,"
+      ],
+      "topnav": false,
+      "rail": false,
+      "over": 0,
+      "clearance": 321,
+      "composer": {
+        "composerBottom": 457,
+        "dockTop": 764,
+        "clear": true,
+        "stickyBottom": 96,
+        "stickyEdge": 738,
+        "stickyClearOfDock": true
+      },
+      "consoleErrors": [],
+      "file": "touch-1194-messages-id.png",
+      "source": {
+        "commit": "cddfdd6"
+      }
+    },
+    {
+      "device": "touch-1194",
+      "viewport": "1194x834",
+      "touch": true,
+      "path": "/feed",
+      "httpStatus": 200,
+      "url": "/feed",
+      "coarse": true,
+      "dock": true,
+      "dockTabs": [
+        "Home",
+        "Jobs",
+        "Work",
+        "Map",
+        "Messages",
+        "More,"
+      ],
+      "topnav": false,
+      "rail": false,
+      "over": 0,
+      "clearance": 308,
+      "composer": null,
+      "consoleErrors": [],
+      "file": "touch-1194-feed.png",
+      "source": {
+        "commit": "cddfdd6"
+      }
+    },
+    {
+      "device": "touch-1194",
+      "viewport": "1194x834",
+      "touch": true,
+      "path": "/settings",
+      "httpStatus": 200,
+      "url": "/settings",
+      "coarse": true,
+      "dock": true,
+      "dockTabs": [
+        "Home",
+        "Jobs",
+        "Work",
+        "Map",
+        "Messages",
+        "More,"
+      ],
+      "topnav": false,
+      "rail": false,
+      "over": -15,
+      "clearance": 79,
+      "composer": null,
+      "consoleErrors": [],
+      "file": "touch-1194-settings.png",
+      "source": {
+        "commit": "cddfdd6"
+      }
+    },
+    {
+      "device": "touch-1194",
+      "viewport": "1194x834",
+      "touch": true,
+      "path": "/profile",
+      "httpStatus": 200,
+      "url": "/profile",
+      "coarse": true,
+      "dock": true,
+      "dockTabs": [
+        "Home",
+        "Jobs",
+        "Work",
+        "Map",
+        "Messages",
+        "More,"
+      ],
+      "topnav": false,
+      "rail": false,
+      "over": -15,
+      "clearance": 79,
+      "composer": null,
+      "consoleErrors": [],
+      "file": "touch-1194-profile.png",
+      "source": {
+        "commit": "cddfdd6"
+      }
+    },
+    {
+      "device": "touch-1194",
+      "viewport": "1194x834",
+      "touch": true,
+      "path": "/profile/availability",
+      "httpStatus": 200,
+      "url": "/profile/availability",
+      "coarse": true,
+      "dock": true,
+      "dockTabs": [
+        "Home",
+        "Jobs",
+        "Work",
+        "Map",
+        "Messages",
+        "More,"
+      ],
+      "topnav": false,
+      "rail": false,
+      "over": -15,
+      "clearance": 59,
+      "composer": null,
+      "consoleErrors": [],
+      "file": "touch-1194-profile-availability.png",
+      "source": {
+        "commit": "cddfdd6"
+      }
+    },
+    {
+      "device": "touch-1194",
+      "viewport": "1194x834",
+      "touch": true,
+      "path": "/profile/credentials",
+      "httpStatus": 200,
+      "url": "/profile/credentials",
+      "coarse": true,
+      "dock": true,
+      "dockTabs": [
+        "Home",
+        "Jobs",
+        "Work",
+        "Map",
+        "Messages",
+        "More,"
+      ],
+      "topnav": false,
+      "rail": false,
+      "over": -15,
+      "clearance": 59,
+      "composer": null,
+      "consoleErrors": [],
+      "file": "touch-1194-profile-credentials.png",
+      "source": {
+        "commit": "cddfdd6"
+      }
+    },
+    {
+      "device": "touch-1194",
+      "viewport": "1194x834",
+      "touch": true,
+      "path": "/profile/preferences",
+      "httpStatus": 200,
+      "url": "/profile/preferences",
+      "coarse": true,
+      "dock": true,
+      "dockTabs": [
+        "Home",
+        "Jobs",
+        "Work",
+        "Map",
+        "Messages",
+        "More,"
+      ],
+      "topnav": false,
+      "rail": false,
+      "over": -15,
+      "clearance": 59,
+      "composer": null,
+      "consoleErrors": [],
+      "file": "touch-1194-profile-preferences.png",
+      "source": {
+        "commit": "cddfdd6"
+      }
+    },
+    {
+      "device": "touch-1194",
+      "viewport": "1194x834",
+      "touch": true,
+      "path": "/profile/sharing",
+      "httpStatus": 200,
+      "url": "/profile/sharing",
+      "coarse": true,
+      "dock": true,
+      "dockTabs": [
+        "Home",
+        "Jobs",
+        "Work",
+        "Map",
+        "Messages",
+        "More,"
+      ],
+      "topnav": false,
+      "rail": false,
+      "over": -15,
+      "clearance": 59,
+      "composer": null,
+      "consoleErrors": [],
+      "file": "touch-1194-profile-sharing.png",
+      "source": {
+        "commit": "cddfdd6"
+      }
+    },
+    {
+      "device": "touch-1194",
+      "viewport": "1194x834",
+      "touch": true,
+      "path": "/profile/preview",
+      "httpStatus": 200,
+      "url": "/profile/preview",
+      "coarse": true,
+      "dock": true,
+      "dockTabs": [
+        "Home",
+        "Jobs",
+        "Work",
+        "Map",
+        "Messages",
+        "More,"
+      ],
+      "topnav": false,
+      "rail": false,
+      "over": -15,
+      "clearance": 58,
+      "composer": null,
+      "consoleErrors": [],
+      "file": "touch-1194-profile-preview.png",
+      "source": {
+        "commit": "cddfdd6"
+      }
+    },
+    {
+      "device": "mouse-1024",
+      "viewport": "1024x768",
+      "touch": false,
+      "path": "/",
+      "httpStatus": 200,
+      "url": "/",
+      "coarse": false,
+      "dock": false,
+      "dockTabs": [],
+      "topnav": true,
+      "rail": false,
+      "over": -15,
+      "clearance": 80,
+      "composer": null,
+      "consoleErrors": [],
+      "file": "mouse-1024-.png",
+      "source": {
+        "commit": "cddfdd6"
+      }
+    },
+    {
+      "device": "mouse-1024",
+      "viewport": "1024x768",
+      "touch": false,
+      "path": "/dashboard",
+      "httpStatus": 200,
+      "url": "/dashboard",
+      "coarse": false,
+      "dock": false,
+      "dockTabs": [],
+      "topnav": true,
+      "rail": false,
+      "over": -15,
+      "clearance": 61,
+      "composer": null,
+      "consoleErrors": [],
+      "file": "mouse-1024-dashboard.png",
+      "source": {
+        "commit": "cddfdd6"
+      }
+    },
+    {
+      "device": "mouse-1024",
+      "viewport": "1024x768",
+      "touch": false,
+      "path": "/messages/09978025-13db-4bd4-bd1d-aa088a4ebbc1",
+      "httpStatus": 200,
+      "url": "/messages/09978025-13db-4bd4-bd1d-aa088a4ebbc1",
+      "coarse": false,
+      "dock": false,
+      "dockTabs": [],
+      "topnav": true,
+      "rail": false,
+      "over": 0,
+      "clearance": 325,
+      "composer": {
+        "composerBottom": 457,
+        "dockTop": null,
+        "clear": true,
+        "stickyBottom": 0,
+        "stickyEdge": 768,
+        "stickyClearOfDock": true
+      },
+      "consoleErrors": [],
+      "file": "mouse-1024-messages-id.png",
+      "source": {
+        "commit": "cddfdd6"
+      }
+    },
+    {
+      "device": "touch-1280",
+      "viewport": "1280x800",
+      "touch": true,
+      "path": "/",
+      "httpStatus": 200,
+      "url": "/",
+      "coarse": true,
+      "dock": false,
+      "dockTabs": [],
+      "topnav": true,
+      "rail": false,
+      "over": -15,
+      "clearance": 80,
+      "composer": null,
+      "consoleErrors": [],
+      "file": "touch-1280-.png",
+      "source": {
+        "commit": "cddfdd6"
+      }
+    },
+    {
+      "device": "touch-1280",
+      "viewport": "1280x800",
+      "touch": true,
+      "path": "/dashboard",
+      "httpStatus": 200,
+      "url": "/dashboard",
+      "coarse": true,
+      "dock": false,
+      "dockTabs": [],
+      "topnav": true,
+      "rail": false,
+      "over": -15,
+      "clearance": 61,
+      "composer": null,
+      "consoleErrors": [],
+      "file": "touch-1280-dashboard.png",
+      "source": {
+        "commit": "cddfdd6"
+      }
+    },
+    {
+      "device": "touch-1280",
+      "viewport": "1280x800",
+      "touch": true,
+      "path": "/messages/09978025-13db-4bd4-bd1d-aa088a4ebbc1",
+      "httpStatus": 200,
+      "url": "/messages/09978025-13db-4bd4-bd1d-aa088a4ebbc1",
+      "coarse": true,
+      "dock": false,
+      "dockTabs": [],
+      "topnav": true,
+      "rail": false,
+      "over": 0,
+      "clearance": 357,
+      "composer": {
+        "composerBottom": 457,
+        "dockTop": null,
+        "clear": true,
+        "stickyBottom": 0,
+        "stickyEdge": 800,
+        "stickyClearOfDock": true
+      },
+      "consoleErrors": [],
+      "file": "touch-1280-messages-id.png",
+      "source": {
+        "commit": "cddfdd6"
+      }
+    },
+    {
+      "device": "touch-1024",
+      "viewport": "1024x768",
+      "touch": true,
+      "path": "/desk",
+      "role": "owner",
+      "url": "/desk",
+      "coarse": true,
+      "dock": false,
+      "dockTabs": [],
+      "topnav": false,
+      "rail": true,
+      "over": -15,
+      "file": "touch-1024-owner-desk.png",
+      "source": {
+        "commit": "cddfdd6"
+      }
+    }
+  ],
+  "sheet": [
+    {
+      "pointer": "touch",
+      "rotatedTo": "1024x768",
+      "openAt768": true,
+      "rows": [
+        "Notifications2, 2 unread",
+        "Profile",
+        "Campaign feed",
+        "Earnings",
+        "Payment history",
+        "Credentials",
+        "Availability",
+        "Settings"
+      ],
+      "openAfterRotation": true,
+      "visibleAfterRotation": true,
+      "sheetTop": 235,
+      "expected": "stays open and visible (the dock stays)",
+      "source": {
+        "commit": "cddfdd6"
+      }
+    },
+    {
+      "pointer": "mouse",
+      "rotatedTo": "1024x768",
+      "openAt768": true,
+      "rows": [
+        "Notifications2, 2 unread",
+        "Profile",
+        "Campaign feed",
+        "Earnings",
+        "Payment history",
+        "Credentials",
+        "Availability",
+        "Settings"
+      ],
+      "openAfterRotation": false,
+      "visibleAfterRotation": false,
+      "sheetTop": 0,
+      "expected": "closes (the dock goes)",
+      "source": {
+        "commit": "cddfdd6"
+      }
+    },
+    {
+      "pointer": "touch",
+      "openedAt": "1024x768",
+      "open": true,
+      "visible": true,
+      "sheetTop": 235,
+      "choseEarnings": {
+        "url": "/earnings",
+        "open": false
+      },
+      "expected": "visible; Earnings navigates and the sheet closes",
+      "source": {
+        "commit": "cddfdd6"
+      }
+    }
+  ],
+  "typing": [
+    {
+      "role": "jordan",
+      "path": "/profile/availability",
+      "viewport": "1024x768",
+      "touch": true,
+      "before": {
+        "dock": true,
+        "topnav": false
+      },
+      "whileTyping": {
+        "dock": false,
+        "topnav": true
+      },
+      "expected": "dock steps aside, top bar stands in",
+      "source": {
+        "commit": "cddfdd6"
+      }
+    },
+    {
+      "role": "staff",
+      "path": "/admin/people",
+      "viewport": "1024x768",
+      "touch": true,
+      "before": {
+        "dock": false,
+        "topnav": false
+      },
+      "whileTyping": {
+        "dock": false,
+        "topnav": false
+      },
+      "expected": "neither worker bar on an admin page",
+      "source": {
+        "commit": "cddfdd6"
+      }
+    }
+  ]
+}

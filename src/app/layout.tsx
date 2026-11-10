@@ -100,7 +100,7 @@ export default async function RootLayout({
           <OrgTabBar tabs={org.phone} more={org.more} />
         ) : (
           // The worker's dock: Home · Jobs · Work · Map · Messages · More (Profile, Feed, Earnings, Settings, Sign out).
-          <OrgTabBar tabs={tabs} more={workerMore(session?.role ?? null)} notices={notices} extra={session ? <SignOutButton action={signOut} userId={session.userId} /> : undefined} />
+          <OrgTabBar tabs={tabs} more={workerMore(session?.role ?? null)} notices={notices} extra={session ? <SignOutButton action={signOut} userId={session.userId} /> : undefined} touchDock />
         )}
         </NoticesProvider>
         </UnreadProvider>

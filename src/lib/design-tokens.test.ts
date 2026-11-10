@@ -593,10 +593,55 @@ describe("the shell (redesign B1.4)", () => {
     expect(css).toMatch(/\.org-shell \{\s*@apply mx-auto flex w-full max-w-\[var\(--workspace-max\)\] flex-1;/);
   });
 
+  it("tightens the statement's cells on screen between the stacked rows and 736, headers included", () => {
+    const band = css.match(/@media screen and \(40rem <= width < 46rem\) \{([\s\S]*?)\n  \}\n/)?.[1] ?? "";
+    // Two-part selector: it has to outrank `.data-table thead th` and `.data-table tbody th`, or headings sit 6px off their figures.
+    expect(band).toMatch(/\.statement-lines :is\(thead, tbody\) :is\(th, td\) \{\s*@apply px-1\.5;/);
+    expect(band).toMatch(/\.statement-lines tbody th\[scope="row"\] \{\s*@apply whitespace-normal;/);
+    // The band starts where the stacked rows end.
+    expect(css).toMatch(/@media \(width < 40rem\) \{\s*\/\*[^*]*\*\/\s*\.data-table-wrap:has\(> \.data-table-stack\)/);
+  });
+
+  it("keeps the worker's labelled dock on a touch tablet up to 1279, in place of the icon-only top bar (#135)", () => {
+    expect(css).toMatch(/@media \(min-width: 64rem\) \{\s*\.tabbar \{\s*display: none;/);
+    const touch = css.match(/@media \(min-width: 64rem\) and \(max-width: 79\.99rem\) and \(pointer: coarse\) \{([\s\S]*?)\n  \}\n/)?.[1] ?? "";
+    expect(touch).toMatch(/\.tabbar\[data-touch-dock\] \{\s*display: block;/);
+    expect(touch).toMatch(/body:has\(\.tabbar\[data-touch-dock\]\) \.topnav \{\s*display: none;/);
+    expect(touch).toMatch(/body:has\(\.tabbar\[data-touch-dock\]\):not\(:has\(\.staff-band\)\) :is\(\.page, \.tpl:not\(\[data-template="hero"\]\)\) \{\s*padding-bottom: calc\(var\(--dock-clearance\) \+ 2rem\);/);
+    expect(touch).toMatch(/html:has\(\.tabbar\[data-touch-dock\]\)[^{]*\{\s*scroll-padding-bottom: var\(--dock-clearance\);/);
+    expect(touch).toMatch(/body:has\(\.tabbar\[data-touch-dock\]\) \.composer \{\s*bottom: calc\(6rem/);
+    // Typing hides the dock (the keyboard rule reaches 1279): the top bar stands in, never on admin pages.
+    expect(touch).toMatch(/body:has\(\.tabbar\[data-touch-dock\]\):not\(:has\(\.staff-band\)\):has\([^{]*:focus\) \.topnav \{\s*display: flex;/);
+    expect(css).toMatch(/@media \(max-width: 79\.99rem\) and \(pointer: coarse\) \{\s*body:has\(\.composer-input:focus\) \.tabbar/);
+    // ...and the header sticks while typing, so the stand-in top bar is on screen on a long form.
+    expect(touch).toMatch(/:not\(:has\(\.staff-band, \.thread-top\)\):has\([^{]*:focus\) \.site-header \{\s*position: sticky;/);
+    // The More sheet closes on the same query the dock shows on (AppNav), and nothing hides it by width.
+    const appNav = readFileSync(join(__dirname, "../components/AppNav.tsx"), "utf8");
+    const query = appNav.match(/TOUCH_TABLET_QUERY = "([^"]+)"/)?.[1];
+    expect(query).toBeTruthy();
+    expect(css).toContain(`@media ${query} {`);
+    expect(css).not.toMatch(/\.more-sheet \{[^}]*lg:hidden/);
+    expect(css).not.toMatch(/\.more-sheet[^{,]*\{[^}]*display:\s*none/);
+    expect(appNav).toMatch(/className="more-sheet"/);
+    // The typing rule lists exactly the fields the keyboard rule hides the dock for, and that rule
+    // stays inside the 1279 block: otherwise a tablet could show both bars, or neither.
+    const fields = (rule: string) => rule.match(/:has\((:is\(input[\s\S]*?\)):focus\)/)?.[1];
+    const keyboard = css.match(/@media \(max-width: 79\.99rem\) and \(pointer: coarse\) \{[\s\S]*?\n\}/)?.[0] ?? "";
+    expect(fields(keyboard)).toBeTruthy();
+    expect(fields(touch)).toBe(fields(keyboard));
+    expect(keyboard).toMatch(/:focus\) \.tabbar \{\s*display: none;/);
+    // The top bar's display lives in the component layer (.topnav): a display utility on it would win
+    // over the staff rule and the touch rule again.
+    const topNav = appNav.match(/<nav aria-label="Main" className="([^"]+)">/)?.[1] ?? "";
+    expect(topNav).toContain("topnav");
+    expect(topNav).not.toMatch(/(^|\s)(hidden|flex|lg:flex|block|lg:hidden)(\s|$)/);
+  });
+
   it("gives the staff console its own band and never an organization's rail beside it", () => {
     expect(css).toMatch(/\.staff-band \{[^}]*background: var\(--shell-bg\);[^}]*color: var\(--shell-fg\);/);
     expect(css).toMatch(/\.staff-band \* \{\s*--focus: var\(--shell-fg\);/);
     expect(css).toMatch(/body:has\(\.staff-band\) \.org-rail:not\(\.staff-rail\) \{\s*display: none;/);
-    expect(css).toMatch(/body:has\(\.staff-band\) \.site-header nav\[aria-label="Main"\] \{\s*display: none;/);
+    // A staff login's worker top bar and dock step aside on admin pages, at every width (#135).
+    expect(css).toMatch(/body:has\(\.staff-band\) :is\(\.site-header nav\[aria-label="Main"\], \.tabbar\) \{\s*display: none;/);
   });
 });

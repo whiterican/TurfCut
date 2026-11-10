@@ -1,0 +1,142 @@
+[
+  {
+    "label": "before",
+    "viewport": "640x900",
+    "stacked": false,
+    "tableScrollWidth": 705,
+    "wrapWidth": 560,
+    "scrollsSideways": true,
+    "jobs": [
+      {
+        "text": "Denver Ballot Initiative - Signature Drive",
+        "width": 87,
+        "lines": 6
+      },
+      {
+        "text": "Denver Ballot Initiative - Signature Drive",
+        "width": 87,
+        "lines": 6
+      },
+      {
+        "text": "Denver Ballot Initiative - Signature Drive",
+        "width": 87,
+        "lines": 6
+      },
+      {
+        "text": "Denver Ballot Initiative - Signature Drive",
+        "width": 87,
+        "lines": 6
+      }
+    ],
+    "pageOver": -15,
+    "file": "statement-before-640.png",
+    "source": {
+      "commit": "9d210b9"
+    }
+  },
+  {
+    "label": "before",
+    "viewport": "768x1024",
+    "stacked": false,
+    "tableScrollWidth": 705,
+    "wrapWidth": 703,
+    "scrollsSideways": true,
+    "jobs": [
+      {
+        "text": "Denver Ballot Initiative - Signature Drive",
+        "width": 87,
+        "lines": 6
+      },
+      {
+        "text": "Denver Ballot Initiative - Signature Drive",
+        "width": 87,
+        "lines": 6
+      },
+      {
+        "text": "Denver Ballot Initiative - Signature Drive",
+        "width": 87,
+        "lines": 6
+      },
+      {
+        "text": "Denver Ballot Initiative - Signature Drive",
+        "width": 87,
+        "lines": 6
+      }
+    ],
+    "pageOver": -15,
+    "file": "statement-before-768.png",
+    "source": {
+      "commit": "9d210b9"
+    }
+  },
+  {
+    "label": "before",
+    "viewport": "1024x768",
+    "stacked": false,
+    "tableScrollWidth": 724,
+    "wrapWidth": 724,
+    "scrollsSideways": false,
+    "jobs": [
+      {
+        "text": "Denver Ballot Initiative - Signature Drive",
+        "width": 94,
+        "lines": 5
+      },
+      {
+        "text": "Denver Ballot Initiative - Signature Drive",
+        "width": 94,
+        "lines": 5
+      },
+      {
+        "text": "Denver Ballot Initiative - Signature Drive",
+        "width": 94,
+        "lines": 5
+      },
+      {
+        "text": "Denver Ballot Initiative - Signature Drive",
+        "width": 94,
+        "lines": 5
+      }
+    ],
+    "pageOver": -15,
+    "file": "statement-before-1024.png",
+    "source": {
+      "commit": "9d210b9"
+    }
+  },
+  {
+    "label": "before",
+    "viewport": "1440x900",
+    "stacked": false,
+    "tableScrollWidth": 766,
+    "wrapWidth": 766,
+    "scrollsSideways": false,
+    "jobs": [
+      {
+        "text": "Denver Ballot Initiative - Signature Drive",
+        "width": 109,
+        "lines": 5
+      },
+      {
+        "text": "Denver Ballot Initiative - Signature Drive",
+        "width": 109,
+        "lines": 5
+      },
+      {
+        "text": "Denver Ballot Initiative - Signature Drive",
+        "width": 109,
+        "lines": 5
+      },
+      {
+        "text": "Denver Ballot Initiative - Signature Drive",
+        "width": 109,
+        "lines": 5
+      }
+    ],
+    "pageOver": -15,
+    "file": "statement-before-1440.png",
+    "source": {
+      "commit": "9d210b9"
+    }
+  }
+]

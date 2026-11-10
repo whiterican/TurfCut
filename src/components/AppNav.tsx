@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
-import { BadgeCheck, Bell, Briefcase, CalendarCheck, CalendarClock, ChevronRight, ClipboardList, Clock, House, LayoutDashboard, Map, MapPin, Megaphone, Menu, MessageCircle, Newspaper, ReceiptText, Settings, ShieldCheck, Sunrise, User, Users, Wallet, X, type LucideIcon } from "lucide-react";
+import { BadgeCheck, Bell, Briefcase, CalendarCheck, CalendarClock, ChevronRight, ClipboardList, Clock, Footprints, House, LayoutDashboard, Map, MapPin, Megaphone, Menu, MessageCircle, Newspaper, ReceiptText, Settings, ShieldCheck, Sunrise, User, Users, Wallet, X, type LucideIcon } from "lucide-react";
 import { activeTab, MESSAGES_HREF, type NavTab, type TabIconId } from "@/lib/nav";
 import { clampScroll, MIN_DELTA, nextHidden, SHOW_NEAR_TOP } from "@/lib/scroll-hide";
 import { useUnreadCount } from "@/components/chat/UnreadProvider";
@@ -14,7 +14,7 @@ const ICONS: Record<TabIconId, LucideIcon> = {
   home: House,
   today: Sunrise, // not Sun: the theme toggle uses that
   feed: Newspaper,
-  work: Briefcase,
+  work: Footprints, // not Briefcase: that's Jobs, and the two sat side by side (tablet pass, #136)
   shifts: CalendarClock,
   messages: MessageCircle,
   profile: User,
@@ -87,6 +87,9 @@ export function TabIcon({ tab }: { tab: NavTab }) {
   return <Icon of={iconFor(tab)} className="tab-icon" />;
 }
 
+/** Where the worker's dock stays past 1024: a touch tablet (coarse primary pointer; hover is not asked, Samsung reports it on touchscreens) up to 1279. globals.css uses the same query (design-tokens.test.ts checks they match). */
+export const TOUCH_TABLET_QUERY = "(min-width: 64rem) and (max-width: 79.99rem) and (pointer: coarse)";
+
 /** The current tab is "page" only on its own page; under it (a job, /feed under Home, /shifts under Jobs) it is the current section. */
 function currentAttr(href: string, current: string | null | undefined, pathname: string | null): "page" | "true" | undefined {
   if (href !== current) return undefined;
@@ -101,7 +104,8 @@ export function TopNav({ tabs }: { tabs: NavTab[] }) {
   // No tabs, no landmark (an empty "Main" nav would compete with the page's own).
   if (tabs.length === 0) return null;
   return (
-    <nav aria-label="Main" className="hidden items-center gap-1 lg:flex">
+    // Shown from 1024 (.topnav); on a touch tablet up to 1279 the labelled dock replaces it (globals.css).
+    <nav aria-label="Main" className="topnav items-center gap-1">
       {tabs.map((t) => (
         // Between 1024 and 1279 the eight destinations fit only as icons (#113 review): the label stays the link's name and its tooltip, and shows from 1280.
         <Link key={t.href} href={t.href} title={t.label} className="topnav-link inline-flex items-center gap-1.5" aria-current={currentAttr(t.href, current, pathname)}>
@@ -161,7 +165,7 @@ export function OrgRail({ tabs, orgName, approved, person }: { tabs: NavTab[]; o
  * traps focus, makes the page behind it inert, closes on Escape and returns
  * focus to More. `extra` is drawn under the list (the worker's Sign out).
  */
-export function OrgTabBar({ tabs, more, extra, notices = 0 }: { tabs: NavTab[]; more: NavTab[]; extra?: ReactNode; /** Unread notifications, shown on the Notifications row (the worker's phone has no header bell). */ notices?: number }) {
+export function OrgTabBar({ tabs, more, extra, notices = 0, touchDock = false }: { tabs: NavTab[]; more: NavTab[]; extra?: ReactNode; /** Unread notifications, shown on the Notifications row (the worker's phone has no header bell). */ notices?: number; /** The worker's dock: kept on a touch tablet up to 1279, where the top bar is icons only (globals.css). */ touchDock?: boolean }) {
   const pathname = usePathname();
   const current = activeTab([...tabs, ...more], pathname);
   const count = useUnreadCount();
@@ -190,16 +194,22 @@ export function OrgTabBar({ tabs, more, extra, notices = 0 }: { tabs: NavTab[]; 
     }
     if (!open && d.open) d.close();
   }, [open]);
-  // The sheet is phone-only: widening past the phone layout closes it, or
+  // The sheet goes with the dock: widening past it closes the sheet, or
   // the page would stay inert behind a hidden modal.
   useEffect(() => {
     if (!open) return;
     const wide = window.matchMedia("(min-width: 64rem)");
-    const onChange = () => wide.matches && setOpen(false);
+    // Where the worker's dock stays past 1024 (the same query as globals.css).
+    const touchTablet = window.matchMedia(TOUCH_TABLET_QUERY);
+    const onChange = () => wide.matches && !(touchDock && touchTablet.matches) && setOpen(false);
     onChange();
     wide.addEventListener("change", onChange);
-    return () => wide.removeEventListener("change", onChange);
-  }, [open]);
+    touchTablet.addEventListener("change", onChange);
+    return () => {
+      wide.removeEventListener("change", onChange);
+      touchTablet.removeEventListener("change", onChange);
+    };
+  }, [open, touchDock]);
 
   if (tabs.length === 0) return null;
   const close = () => setOpen(false);
@@ -214,8 +224,9 @@ export function OrgTabBar({ tabs, more, extra, notices = 0 }: { tabs: NavTab[]; 
           // Escape, or close() from anywhere: sync state and hand focus back to More.
           onClose={() => {
             setOpen(false);
-            // Not when widening hid the bar: focus can't go to a hidden button.
+            // Not when widening hid the bar: focus can't go to a hidden button, so it goes to the page.
             if (button.current?.offsetParent) button.current.focus();
+            else document.getElementById("content")?.focus();
           }}
           // A press on the dimmed area outside the panel lands on the dialog itself.
           onClick={(e) => {
@@ -251,7 +262,7 @@ export function OrgTabBar({ tabs, more, extra, notices = 0 }: { tabs: NavTab[]; 
           </div>
         </dialog>
       )}
-      <nav aria-label="Main" className="tabbar" data-tucked={tucked || undefined}>
+      <nav aria-label="Main" className="tabbar" data-tucked={tucked || undefined} data-touch-dock={touchDock || undefined}>
         <div className="mx-auto flex max-w-md">
           {tabs.map((t) => (
             <Link key={t.href} href={t.href} className="tab" data-wide={t.href.endsWith(MESSAGES_HREF) || undefined} aria-current={currentAttr(t.href, current, pathname)}>

@@ -1,0 +1,66 @@
+[
+  {
+    "pointer": "touch",
+    "viewport": "1024x768",
+    "path": "/profile/availability",
+    "fields": 1,
+    "scrollY": 695,
+    "topnavShown": true,
+    "topnavTop": 10,
+    "topnavOnScreen": true,
+    "dockShown": false,
+    "fieldTop": 455,
+    "headerPos": "sticky",
+    "source": {
+      "commit": "a584263"
+    }
+  },
+  {
+    "pointer": "touch",
+    "viewport": "1024x768",
+    "path": "/profile",
+    "fields": 12,
+    "scrollY": 2751,
+    "topnavShown": true,
+    "topnavTop": 10,
+    "topnavOnScreen": true,
+    "dockShown": false,
+    "fieldTop": 543,
+    "headerPos": "sticky",
+    "source": {
+      "commit": "a584263"
+    }
+  },
+  {
+    "pointer": "mouse",
+    "viewport": "1024x768",
+    "path": "/profile/availability",
+    "fields": 1,
+    "scrollY": 615,
+    "topnavShown": true,
+    "topnavTop": -605,
+    "topnavOnScreen": false,
+    "dockShown": false,
+    "fieldTop": 535,
+    "headerPos": "static",
+    "source": {
+      "commit": "a584263"
+    }
+  },
+  {
+    "pointer": "mouse",
+    "viewport": "1024x768",
+    "path": "/profile",
+    "fields": 12,
+    "scrollY": 2671,
+    "topnavShown": true,
+    "topnavTop": -2661,
+    "topnavOnScreen": false,
+    "dockShown": false,
+    "fieldTop": 623,
+    "headerPos": "static",
+    "source": {
+      "commit": "a584263"
+    }
+  }
+]

@@ -1611,7 +1611,7 @@ body {
        organization screen, 20px corners, 12px side inset, 10px above the
        safe area, 4px inside. Inactive icons and labels are Cream; the current
        destination is the dock green (--dock-active-fg), no filled tile. */
-    @apply fixed z-40 mx-auto max-w-[23rem] rounded-[var(--radius-lg)] p-1 lg:hidden;
+    @apply fixed z-40 mx-auto max-w-[23rem] rounded-[var(--radius-lg)] p-1;
     inset-inline: 12px;
     bottom: calc(10px + env(safe-area-inset-bottom));
     background: var(--shell-bg);
@@ -1619,6 +1619,66 @@ body {
     box-shadow: 0 6px 20px rgb(28 15 46 / 0.28);
     transition: transform var(--dur-slow) var(--ease-out);
   }
+  /* From 1024 the top bar or the rail takes over, and the dock goes. A worker on a
+     touch tablet (a coarse primary pointer) keeps it up to 1279 instead: there the
+     top bar is icons only, its names are tooltips a finger never sees, and the dock's
+     labels are the only names on screen (tablet pass, #135). The query doesn't ask
+     for "no hover": Chromium on some Samsung tablets reports hover on a touchscreen.
+     Mouse desktops keep the #113 top bar. */
+  @media (min-width: 64rem) {
+    .tabbar {
+      display: none;
+    }
+  }
+  .topnav {
+    display: none;
+  }
+  @media (min-width: 64rem) {
+    .topnav {
+      display: flex;
+    }
+  }
+  @media (min-width: 64rem) and (max-width: 79.99rem) and (pointer: coarse) {
+    .tabbar[data-touch-dock] {
+      display: block;
+    }
+    body:has(.tabbar[data-touch-dock]) .topnav {
+      display: none;
+    }
+    /* While a field takes typing the dock steps aside (the keyboard rule below): the top bar
+       stands in, so a hardware keyboard never leaves the worker without navigation. */
+    body:has(.tabbar[data-touch-dock]):not(:has(.staff-band)):has(:is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="button"], [type="submit"], [type="reset"], [type="image"], [type="color"], [type="file"], [readonly]), textarea:not([readonly]), [contenteditable]:not([contenteditable="false"])):focus) .topnav {
+      display: flex;
+    }
+    /* ...and the header sticks while it does, or on a long form the top bar would be off screen
+       (not in a chat thread, which pins its own bar). The field scrolls clear of it. */
+    body:has(.tabbar[data-touch-dock]):not(:has(.staff-band, .thread-top)):has(:is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="button"], [type="submit"], [type="reset"], [type="image"], [type="color"], [type="file"], [readonly]), textarea:not([readonly]), [contenteditable]:not([contenteditable="false"])):focus) .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 45;
+    }
+    html:has(.tabbar[data-touch-dock]):not(:has(.staff-band, .thread-top)):has(:is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="button"], [type="submit"], [type="reset"], [type="image"], [type="color"], [type="file"], [readonly]), textarea:not([readonly]), [contenteditable]:not([contenteditable="false"])):focus) {
+      scroll-padding-top: calc(var(--site-header-h) + 1rem);
+    }
+    /* The dock is back, so is the room above it (not on admin pages, where it's hidden, nor on
+       a hero, whose sections end at the edge; the sign-in split's form clears it itself). */
+    body:has(.tabbar[data-touch-dock]):not(:has(.staff-band)) :is(.page, .tpl:not([data-template="hero"])) {
+      padding-bottom: calc(var(--dock-clearance) + 2rem);
+    }
+    body:has(.tabbar[data-touch-dock]):not(:has(.staff-band)) .tpl[data-template="hero"]:not(:has(.hero-split-form)) {
+      padding-bottom: var(--dock-clearance);
+    }
+    body:has(.tabbar[data-touch-dock]):not(:has(.staff-band)) .page-narrow {
+      padding-bottom: calc(var(--dock-clearance) + 1rem);
+    }
+    html:has(.tabbar[data-touch-dock]):not(:has(.thread-top, .staff-band)) {
+      scroll-padding-bottom: var(--dock-clearance);
+    }
+    body:has(.tabbar[data-touch-dock]) .composer {
+      bottom: calc(6rem + env(safe-area-inset-bottom));
+    }
+  }
+
   .tab {
     /* A 52px tile: a 20px icon over a complete 12/16 Inter label. Six share
        the slab; Messages (the longest word, and the badge) gets a little more. */
@@ -1732,8 +1792,23 @@ body {
   .statement-lines tbody th[scope="row"] {
     @apply min-w-0 whitespace-nowrap;
   }
-  .statement-lines td[data-label="Date"] {
+  .statement-date-job {
     @apply whitespace-nowrap;
+  }
+  /* The job, a line under the date (tablet pass, #136): it wraps, the date doesn't. In the ink colour,
+     not muted: owners reconcile a statement by job. */
+  .statement-job {
+    @apply mt-0.5 block min-w-28 text-[0.8125rem] whitespace-normal text-fg;
+  }
+  /* Between the phone's stacked rows and 736, tighter cells and a worker's name free to
+     wrap keep Current state in view without the table's sideways scroll. Screen only: print keeps its own measure. */
+  @media screen and (40rem <= width < 46rem) {
+    .statement-lines :is(thead, tbody) :is(th, td) {
+      @apply px-1.5;
+    }
+    .statement-lines tbody th[scope="row"] {
+      @apply whitespace-normal;
+    }
   }
   @media (width < 40rem) {
     .statement-lines tbody th[scope="row"] {
@@ -2100,8 +2175,10 @@ body {
   body:has(.staff-band) .org-rail:not(.staff-rail) {
     display: none;
   }
-  /* The console's rail is its main navigation: a staff login's worker top bar steps aside there. */
-  body:has(.staff-band) .site-header nav[aria-label="Main"] {
+  /* The console's rail (from 1024) and its section chips (on a phone) are its navigation: a staff
+     login's worker top bar and dock step aside there, at every width (tablet pass, #135). The band's
+     "Leave admin" goes back to them. */
+  body:has(.staff-band) :is(.site-header nav[aria-label="Main"], .tabbar) {
     display: none;
   }
   .admin-shell {
@@ -2161,7 +2238,9 @@ body {
   }
   /* More sheet: a native modal dialog pinned to the bottom of the screen. */
   .more-sheet {
-    @apply m-0 mx-auto mt-auto w-full max-w-md border-0 bg-transparent p-0 lg:hidden;
+    /* No width rule hides it: it opens only from the dock's More, and closes when the dock goes (AppNav),
+       so on a touch tablet's dock (up to 1279) it shows like on a phone. */
+    @apply m-0 mx-auto mt-auto w-full max-w-md border-0 bg-transparent p-0;
     max-height: 100dvh;
     color: inherit;
   }
@@ -2707,7 +2786,8 @@ body {
 
 /* While typing a message, the keyboard covers the tab bar: hide it and let
    the composer sit on the keyboard. */
-@media (max-width: 63.99rem) and (pointer: coarse) {
+/* Up to 1279: a touch tablet's worker dock (above) steps aside for the keyboard too. */
+@media (max-width: 79.99rem) and (pointer: coarse) {
   body:has(.composer-input:focus) .tabbar {
     display: none;
   }

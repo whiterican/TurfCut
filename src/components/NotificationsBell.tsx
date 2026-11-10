@@ -14,7 +14,7 @@ import { useNoticesCount } from "@/components/NoticesProvider";
 export function NotificationsBell() {
   const n = useNoticesCount();
   return (
-    <Link href="/notifications" className="jobs-filter-btn relative lg:hidden" aria-label={n ? `Notifications, ${n} unread` : "Notifications"}>
+    <Link href="/notifications" className="jobs-filter-btn relative md:hidden" aria-label={n ? `Notifications, ${n} unread` : "Notifications"}>
       <Bell aria-hidden className="size-5" />
       {n > 0 && <span className="unread-badge absolute -top-1 -right-1" aria-hidden>{n > 99 ? "99+" : n}</span>}
     </Link>

@@ -32,7 +32,7 @@ export function SiteHeader({
   base?: string;
   /** Where the skip link lands: the page's content wrapper. */
   contentId?: string;
-  /** A worker on a phone (#111): the concept has no header there, so the bar shows from the desktop width up only. */
+  /** A signed-in worker: no header on a phone (#111), and from 768 the bar spans the sidebar's shell like an organization's. */
   workerPhone?: boolean;
   /** The menu button, where the header shows beside the dock (an organization's phone, a worker's touch tablet). */
   menu?: React.ReactNode;
@@ -42,7 +42,7 @@ export function SiteHeader({
     <>
       <a href={`#${contentId}`} className="skip-link">Skip to content</a>
       <header className={`site-header border-b ${workerPhone ? "site-header-worker" : ""}`}>
-        <div className={`mx-auto flex w-full ${isOrg ? "max-w-[var(--workspace-max)]" : "max-w-[var(--worker-frame)]"} site-header-bar items-center justify-between gap-[12px] px-[16px] sm:px-[24px]`}>
+        <div className={`mx-auto flex w-full ${isOrg || workerPhone ? "max-w-[var(--workspace-max)]" : "max-w-[var(--worker-frame)]"} site-header-bar items-center justify-between gap-[12px] px-[16px] sm:px-[24px]`}>
           <div className="flex min-w-0 items-center gap-[8px]">
           {menu}
           <Link href={at(!signedIn ? "/" : isOrg ? "/desk" : "/dashboard")} className="flex shrink-0 items-center gap-[8px] text-[20px] font-bold tracking-[-0.04em] text-fg">

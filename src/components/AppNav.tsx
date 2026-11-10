@@ -87,8 +87,6 @@ export function TabIcon({ tab }: { tab: NavTab }) {
   return <Icon of={iconFor(tab)} className="tab-icon" />;
 }
 
-/** Where the worker's dock stays past 1024: a touch tablet (coarse primary pointer; hover is not asked, Samsung reports it on touchscreens) up to 1279. globals.css uses the same query (design-tokens.test.ts checks they match). */
-export const TOUCH_TABLET_QUERY = "(min-width: 64rem) and (max-width: 79.99rem) and (pointer: coarse)";
 
 /** The current tab is "page" only on its own page; under it (a job, /feed under Home, /shifts under Jobs) it is the current section. */
 function currentAttr(href: string, current: string | null | undefined, pathname: string | null): "page" | "true" | undefined {
@@ -104,7 +102,6 @@ export function TopNav({ tabs }: { tabs: NavTab[] }) {
   // No tabs, no landmark (an empty "Main" nav would compete with the page's own).
   if (tabs.length === 0) return null;
   return (
-    // Shown from 1024 (.topnav); on a touch tablet up to 1279 the labelled dock replaces it (globals.css).
     <nav aria-label="Main" className="topnav items-center gap-1">
       {tabs.map((t) => (
         // Between 1024 and 1279 the eight destinations fit only as icons (#113 review): the label stays the link's name and its tooltip, and shows from 1280.
@@ -124,18 +121,20 @@ export function TopNav({ tabs }: { tabs: NavTab[] }) {
  * name and approval at the top, every area the role reaches, and who is
  * signed in at the bottom.
  */
-export function OrgRail({ tabs, orgName, approved, person }: { tabs: NavTab[]; orgName: string; approved: boolean | null; person: { name: string; role: string } }) {
+export function OrgRail({ tabs, orgName, approved = null, person, foot }: { tabs: NavTab[]; /** The organization's name; a worker's sidebar has no head. */ orgName?: string; approved?: boolean | null; person: { name: string; role: string }; /** Drawn under the person (the worker's Sign out). */ foot?: ReactNode }) {
   const pathname = usePathname();
   const current = activeTab(tabs, pathname);
   const count = useUnreadCount();
   return (
-    <aside className="org-rail" aria-label="Organization">
-      <div className="org-rail-head">
-        <p className="masthead truncate text-lg" title={orgName}>{orgName}</p>
-        {/* null = couldn't load it: say nothing rather than something false. */}
-        {approved === true && <p className="org-rail-status"><BadgeCheck aria-hidden className="size-3.5" /> Approved</p>}
-        {approved === false && <p className="org-rail-status"><Clock aria-hidden className="size-3.5" /> Awaiting Turfcut approval</p>}
-      </div>
+    <aside className="org-rail" aria-label={orgName ? "Organization" : "Sidebar"}>
+      {orgName && (
+        <div className="org-rail-head">
+          <p className="masthead truncate text-lg" title={orgName}>{orgName}</p>
+          {/* null = couldn't load it: say nothing rather than something false. */}
+          {approved === true && <p className="org-rail-status"><BadgeCheck aria-hidden className="size-3.5" /> Approved</p>}
+          {approved === false && <p className="org-rail-status"><Clock aria-hidden className="size-3.5" /> Awaiting Turfcut approval</p>}
+        </div>
+      )}
       <nav aria-label="Main">
         <ul className="space-y-0.5">
           {tabs.map((t) => (
@@ -154,6 +153,7 @@ export function OrgRail({ tabs, orgName, approved, person }: { tabs: NavTab[]; o
         <p className="org-rail-status">Signed in as</p>
         <p className="truncate font-semibold" title={person.name}>{person.name}</p>
         <p className="truncate org-rail-status">{person.role}</p>
+        {foot && <div className="pt-3">{foot}</div>}
       </div>
     </aside>
   );
@@ -186,7 +186,7 @@ export function MenuButton({ name, notices = 0 }: { name?: string; notices?: num
  * Escape and returns focus to the menu button. `extra` is drawn under the list
  * (the worker's Sign out); `person` heads the drawer.
  */
-export function OrgTabBar({ tabs, more, extra, notices = 0, touchDock = false, person }: { tabs: NavTab[]; more: NavTab[]; extra?: ReactNode; /** Heads the drawer: who is signed in. */ person?: { name: string; role: string }; /** Unread notifications, shown on the Notifications row (the worker's phone has no header bell). */ notices?: number; /** The worker's dock: kept on a touch tablet up to 1279, where the top bar is icons only (globals.css). */ touchDock?: boolean }) {
+export function OrgTabBar({ tabs, more, extra, notices = 0, person }: { tabs: NavTab[]; more: NavTab[]; extra?: ReactNode; /** Heads the drawer: who is signed in. */ person?: { name: string; role: string }; /** Unread notifications, shown on the Notifications row (the worker's phone has no header bell). */ notices?: number; }) {
   const pathname = usePathname();
   const current = activeTab([...tabs, ...more], pathname);
   const count = useUnreadCount();
@@ -222,18 +222,12 @@ export function OrgTabBar({ tabs, more, extra, notices = 0, touchDock = false, p
   // the page would stay inert behind a hidden modal.
   useEffect(() => {
     if (!open) return;
-    const wide = window.matchMedia("(min-width: 64rem)");
-    // Where the worker's dock stays past 1024 (the same query as globals.css).
-    const touchTablet = window.matchMedia(TOUCH_TABLET_QUERY);
-    const onChange = () => wide.matches && !(touchDock && touchTablet.matches) && setOpen(false);
+    const wide = window.matchMedia("(min-width: 48rem)");
+    const onChange = () => wide.matches && setOpen(false);
     onChange();
     wide.addEventListener("change", onChange);
-    touchTablet.addEventListener("change", onChange);
-    return () => {
-      wide.removeEventListener("change", onChange);
-      touchTablet.removeEventListener("change", onChange);
-    };
-  }, [open, touchDock]);
+    return () => wide.removeEventListener("change", onChange);
+  }, [open]);
 
   if (tabs.length === 0) return null;
   const close = () => setOpen(false);
@@ -292,7 +286,7 @@ export function OrgTabBar({ tabs, more, extra, notices = 0, touchDock = false, p
           </div>
         </dialog>
       )}
-      <nav aria-label="Main" className="tabbar" data-tucked={tucked || undefined} data-touch-dock={touchDock || undefined}>
+      <nav aria-label="Main" className="tabbar" data-tucked={tucked || undefined}>
         <div className="flex">
           {tabs.map((t) => (
             <Link key={t.href} href={t.href} className="tab" aria-current={currentAttr(t.href, current, pathname)}>

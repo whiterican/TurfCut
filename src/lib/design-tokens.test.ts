@@ -148,10 +148,15 @@ describe.each([
     expect(css).toMatch(/--glass-bg-bar: color-mix\(in srgb, var\(--surface\) 88%, transparent\);\s*--header-bg: var\(--glass-bg-bar\);/);
     if (name !== "sunlight") expect(ratio(t.muted, mix(t.surface, 0.88, name === "dark" ? "#ffffff" : "#000000"))).toBeGreaterThanOrEqual(4.5);
     // Sunlight and the solid fallback name every pane, and the header goes back to the page colour.
-    for (const body of [themeBody(css, ".sun"), css.slice(css.indexOf("@media (prefers-reduced-transparency: reduce)"))]) {
+    for (const body of [themeBody(css, ".sun"), css.slice(css.indexOf("@media (prefers-reduced-transparency: reduce)"), css.indexOf("\n}\n", css.indexOf("@media (prefers-reduced-transparency: reduce)")))]) {
       for (const k of ["glass-bg", "glass-bg-strong", "glass-bg-bar", "glass-filter", "glass-sheen", "card-bg", "card-sheen", "page-wash"]) expect(body).toMatch(new RegExp(`--${k}: (var\\(--surface\\)|none);`));
       expect(body).toMatch(/--header-bg: var\(--bg\);/);
     }
+    // The other text-bearing bars use the denser pane too, by night as well, and their faintest grey steps up to muted.
+    for (const sel of ["\\.composer", "\\.thread-top"]) expect(css).toMatch(new RegExp(`\\n  ${sel} \\{[^}]*?background: var\\(--glass-bg-bar\\);`));
+    expect(themeBody(css, ".dark")).toMatch(/--glass-bg-bar: color-mix\(in srgb, var\(--surface\) 88%, transparent\);/);
+    expect(css).toMatch(/:is\(\.thread-top, \.composer\) \{\s*--subtle: var\(--muted\);/);
+    expect(css).toMatch(/\.swipe-card \{[^}]*?background: var\(--card-sheen\), var\(--surface\);/);
     // A field keeps the page's hairline, not the glass edge.
     expect(css).toMatch(/\.field \{[^}]*?border-color: var\(--border\);/);
     // The dock's edge is drawn in ink, so it stands apart from the page without leaning on its shadow.
@@ -639,39 +644,33 @@ describe("the shell (redesign B1.4)", () => {
     expect(css).toMatch(/@media \(width < 40rem\) \{\s*\/\*[^*]*\*\/\s*\.data-table-wrap:has\(> \.data-table-stack\)/);
   });
 
-  it("keeps the worker's labelled dock on a touch tablet up to 1279, in place of the icon-only top bar (#135)", () => {
-    expect(css).toMatch(/@media \(min-width: 64rem\) \{\s*\.tabbar \{\s*display: none;/);
-    const touch = css.match(/@media \(min-width: 64rem\) and \(max-width: 79\.99rem\) and \(pointer: coarse\) \{([\s\S]*?)\n  \}\n/)?.[1] ?? "";
-    expect(touch).toMatch(/\.tabbar\[data-touch-dock\] \{\s*display: block;/);
-    expect(touch).toMatch(/body:has\(\.tabbar\[data-touch-dock\]\) \.topnav \{\s*display: none;/);
-    expect(touch).toMatch(/body:has\(\.tabbar\[data-touch-dock\]\):not\(:has\(\.staff-band\)\) :is\(\.page, \.tpl:not\(\[data-template="hero"\]\)\) \{\s*padding-bottom: calc\(var\(--dock-clearance\) \+ 2rem\);/);
-    expect(touch).toMatch(/html:has\(\.tabbar\[data-touch-dock\]\)[^{]*\{\s*scroll-padding-bottom: var\(--dock-clearance\);/);
-    expect(touch).toMatch(/body:has\(\.tabbar\[data-touch-dock\]\) \.composer \{\s*bottom: calc\(6rem/);
-    // Typing hides the dock (the keyboard rule reaches 1279): the top bar stands in, never on admin pages.
-    expect(touch).toMatch(/body:has\(\.tabbar\[data-touch-dock\]\):not\(:has\(\.staff-band\)\):has\([^{]*:focus\) \.topnav \{\s*display: flex;/);
-    expect(css).toMatch(/@media \(max-width: 79\.99rem\) and \(pointer: coarse\) \{\s*body:has\(\.composer-input:focus\) \.tabbar/);
-    // ...and the header sticks while typing, so the stand-in top bar is on screen on a long form.
-    expect(touch).toMatch(/:not\(:has\(\.staff-band, \.thread-top\)\):has\([^{]*:focus\) \.site-header \{\s*position: sticky;/);
-    // The More sheet closes on the same query the dock shows on (AppNav), and nothing hides it by width.
+  it("the stylesheet's braces balance (the regex checks here would not notice a stray one; the build would)", () => {
+    const bare = css.replace(/\/\*[\s\S]*?\*\//g, "").replace(/"[^"\n]*"|'[^'\n]*'/g, "");
+    expect(bare.split("{").length).toBe(bare.split("}").length);
+  });
+
+  it("tablets use the desktop layout: from 768 the sidebar shows and the dock, the menu strip and the header's menu button go (Nov 10)", () => {
+    expect(css).toMatch(/@media \(min-width: 48rem\) \{\s*\.tabbar \{\s*display: none;/);
+    expect(css).toMatch(/\.org-rail \{[^}]*?@apply [^;]*\bhidden\b[^;]*\bmd:flex;/);
+    expect(css).toMatch(/@media \(min-width: 48rem\) \{\s*\.site-header \.menu-button \{\s*display: none;/);
+    expect(css).toMatch(/\.phone-top \{\s*@apply [^;]*md:hidden;/);
+    expect(css).toMatch(/\.site-header-worker \{\s*@apply hidden md:block;/);
+    expect(css).toMatch(/@media \(width >= 48rem\) \{\s*body:has\(\.org-rail\) \.site-header \{\s*position: sticky;/);
+    // Nothing is left of the touch-tablet dock (#136): one rule for every tablet.
+    expect(css).not.toMatch(/data-touch-dock/);
     const appNav = readFileSync(join(__dirname, "../components/AppNav.tsx"), "utf8");
-    const query = appNav.match(/TOUCH_TABLET_QUERY = "([^"]+)"/)?.[1];
-    expect(query).toBeTruthy();
-    expect(css).toContain(`@media ${query} {`);
-    expect(css).not.toMatch(/\.more-sheet \{[^}]*lg:hidden/);
+    expect(appNav).not.toMatch(/TOUCH_TABLET_QUERY|touchDock/);
+    // The drawer closes on the same width the dock goes at, and nothing hides it by width.
+    expect(appNav).toMatch(/matchMedia\("\(min-width: 48rem\)"\)/);
     expect(css).not.toMatch(/\.more-sheet[^{,]*\{[^}]*display:\s*none/);
     expect(appNav).toMatch(/className="more-sheet"/);
-    // The typing rule lists exactly the fields the keyboard rule hides the dock for, and that rule
-    // stays inside the 1279 block: otherwise a tablet could show both bars, or neither.
-    const fields = (rule: string) => rule.match(/:has\((:is\(input[\s\S]*?\)):focus\)/)?.[1];
-    const keyboard = css.match(/@media \(max-width: 79\.99rem\) and \(pointer: coarse\) \{[\s\S]*?\n\}/)?.[0] ?? "";
-    expect(fields(keyboard)).toBeTruthy();
-    expect(fields(touch)).toBe(fields(keyboard));
-    expect(keyboard).toMatch(/:focus\) \.tabbar \{\s*display: none;/);
-    // The top bar's display lives in the component layer (.topnav): a display utility on it would win
-    // over the staff rule and the touch rule again.
-    const topNav = appNav.match(/<nav aria-label="Main" className="([^"]+)">/)?.[1] ?? "";
-    expect(topNav).toContain("topnav");
-    expect(topNav).not.toMatch(/(^|\s)(hidden|flex|lg:flex|block|lg:hidden)(\s|$)/);
+    // A worker gets the sidebar too: the layout draws the same shell with the dock's tabs and the drawer's places.
+    const layout = readFileSync(join(__dirname, "../app/layout.tsx"), "utf8");
+    expect(layout).toMatch(/<OrgRail tabs=\{\[\.\.\.tabs, \.\.\.workerMore\(session\.role\)\]\}/);
+    // While a field takes typing on a touch device the dock still steps aside (phones only now).
+    expect(css).toMatch(/@media \(max-width: 79\.99rem\) and \(pointer: coarse\) \{\s*body:has\(\.composer-input:focus\) \.tabbar/);
+    // The sidebar is glass outside Sunlight: ink type on the pane.
+    expect(css).toMatch(/html:not\(\.sun\) \.org-rail \{[^}]*?--shell-fg: var\(--fg\);[^}]*?background: var\(--glass-sheen\), var\(--glass-bg-bar\);/);
   });
 
   it("gives the staff console its own band and never an organization's rail beside it", () => {

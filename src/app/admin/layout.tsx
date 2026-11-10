@@ -41,7 +41,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <header className="page-header">
             <AdminHeading sections={ADMIN_SECTIONS} />
           </header>
-          <div className="lg:hidden">
+          <div className="md:hidden">
             <AdminSectionNav sections={ADMIN_SECTIONS} />
           </div>
           {children}

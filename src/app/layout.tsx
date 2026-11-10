@@ -15,7 +15,7 @@ import { PullToRefresh } from "@/components/PullToRefresh";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
 import { getSessionProfile } from "@/lib/auth";
 import { getSiteUrl } from "@/lib/env";
-import { MESSAGES_HREF, navTabs, orgNav, railPerson, topNavTabs, workerMore } from "@/lib/nav";
+import { MESSAGES_HREF, navTabs, orgNav, railPerson, workerMore } from "@/lib/nav";
 import { db } from "@/lib/db";
 import { unreadTotal } from "@/lib/chat-data";
 import { unreadNotifications, UNREAD_CAP } from "@/lib/notifications-data";
@@ -79,7 +79,7 @@ export default async function RootLayout({
         <ViewerKindProvider kind={!session ? "none" : session.role === "WORKER" ? "worker" : session.orgId ? "org" : "none"}>
         <UnreadProvider initial={unread} enabled={tabs.some((t) => t.href === MESSAGES_HREF)}>
         <NoticesProvider count={notices}>
-        <SiteHeader signedIn={!!session} isOrg={isOrg} tabs={topNavTabs(session?.role ?? null)} notices={notices} workerPhone={session?.role === "WORKER"} menu={session && (isOrg ? org.phone.length > 0 && org.more.length > 0 : tabs.length > 0 && workerMore(session.role).length > 0) ? <MenuButton notices={isOrg ? 0 : notices} /> : undefined} />
+        <SiteHeader signedIn={!!session} isOrg={isOrg} tabs={[]} notices={notices} workerPhone={session?.role === "WORKER"} menu={session && (isOrg ? org.phone.length > 0 && org.more.length > 0 : tabs.length > 0 && workerMore(session.role).length > 0) ? <MenuButton notices={isOrg ? 0 : notices} /> : undefined} />
         {isOrg && session ? (
           <div className="org-shell">
             <OrgRail tabs={org.rail} orgName={orgInfo?.name ?? "Your organization"} approved={orgInfo ? orgInfo.approved : null} person={railPerson(session)} />
@@ -88,14 +88,21 @@ export default async function RootLayout({
               <PageTransition>{children}</PageTransition>
             </div>
           </div>
-        ) : (
-          <div id="content" tabIndex={-1} className="skip-target flex flex-1 flex-col">
-            {/* A worker's phone has no site header: the menu button gets a strip of its own above the page. */}
-            {session && tabs.length > 0 && workerMore(session.role).length > 0 && (
+        ) : session && tabs.length > 0 ? (
+          // A worker: the same shell as an organization. From 768 up every destination is in the sidebar; a phone keeps the dock and the menu strip.
+          <div className="org-shell">
+            <OrgRail tabs={[...tabs, ...workerMore(session.role)]} person={railPerson(session)} foot={<SignOutButton action={signOut} userId={session.userId} />} />
+            <div id="content" tabIndex={-1} className="skip-target flex min-w-0 flex-1 flex-col">
+              {/* A worker's phone has no site header: the menu button gets a strip of its own above the page. */}
               <div className="phone-top">
                 <MenuButton name={railPerson(session).name} notices={notices} />
               </div>
-            )}
+              <NoAccessNotice />
+              <PageTransition>{children}</PageTransition>
+            </div>
+          </div>
+        ) : (
+          <div id="content" tabIndex={-1} className="skip-target flex flex-1 flex-col">
             <NoAccessNotice />
             <PageTransition>{children}</PageTransition>
           </div>
@@ -106,7 +113,7 @@ export default async function RootLayout({
           <OrgTabBar tabs={org.phone} more={org.more} person={session ? railPerson(session) : undefined} />
         ) : (
           // The worker's dock: Home · Jobs · Work · Map · Messages; the menu drawer holds the rest (Profile, Feed, Earnings, Settings, Sign out).
-          <OrgTabBar tabs={tabs} more={workerMore(session?.role ?? null)} notices={notices} extra={session ? <SignOutButton action={signOut} userId={session.userId} /> : undefined} person={session ? railPerson(session) : undefined} touchDock />
+          <OrgTabBar tabs={tabs} more={workerMore(session?.role ?? null)} notices={notices} extra={session ? <SignOutButton action={signOut} userId={session.userId} /> : undefined} person={session ? railPerson(session) : undefined} />
         )}
         </NoticesProvider>
         </UnreadProvider>

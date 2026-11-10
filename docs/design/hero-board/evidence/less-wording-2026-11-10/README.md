@@ -42,3 +42,12 @@ The Guide's text now lives in `src/lib/guide.ts` with a test that pins its pay a
 ## Next, once Caden approves this batch
 
 The rest of the worker pages (shift page, profile, settings, sharing), then the organization pages with an organization Guide.
+
+## Second batch: Settings, Profile, Credentials, Availability
+
+Hints shortened where the extra words said nothing a person needs before acting: the Sunlight and motion notes, the data download, closing an account (every consequence is still stated), availability's time note, and the self-reported notes on credentials and experience.
+
+Not touched, on purpose:
+- **The scorecard's evidence lines** on Profile. Every figure there states what it was counted from; that is the rule that rankings explain themselves.
+- **Who sees what** (420 words) and **Political fit** (227 words). Their sentences are what a worker agrees to. The app keeps a history of those choices and asks workers to reconfirm when the wording changes, so shortening them is a consent decision for Caden, not an edit.
+- **A job's own page.** Caden asked that job descriptions keep their detail.

@@ -90,7 +90,7 @@ export function ExperienceList({
           <p className="empty-state-title">No experience yet</p>
           <p className="empty-state-body">
             {removeAction
-              ? "Add the campaigns you've worked on. They show as self-reported until Turfcut or an organization verifies them."
+              ? "Add campaigns you've worked on. Self-reported until Turfcut or an organization verifies them."
               : "This worker hasn't added any campaigns yet."}
           </p>
         </div>

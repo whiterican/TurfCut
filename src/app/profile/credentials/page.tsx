@@ -46,7 +46,7 @@ export default async function CredentialsPage() {
         <Masthead title="Credentials">
           <Link transitionTypes={["nav-back"]} href="/profile" className="btn-ghost"><ChevronLeft aria-hidden className="size-4 shrink-0" />Profile</Link>
         </Masthead>
-        <p className="lead">Registrations, notary status and training you hold. Everything you add here is self-reported until an organization verifies it.</p>
+        <p className="lead">Registrations, notary status and training. Self-reported until an organization verifies them.</p>
         <p className="text-hint">
           Who sees them (name, verification and expiry, never the number): {audience.label}.{" "}
           <Link href="/profile/sharing" className="link">Change</Link>

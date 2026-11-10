@@ -125,7 +125,7 @@ export function DisplaySettings() {
             </label>
           ))}
         </div>
-        <p className="text-hint">Sunlight is for working outdoors: black on white, heavier lines and bolder text. Pair it with Large text if the screen is hard to read. The field-day screen has a Sunlight switch too. Saved on this device.</p>
+        <p className="text-hint">Sunlight is for working outdoors: black on white, bolder text. Saved on this device.</p>
       </fieldset>
 
       <fieldset className="space-y-3">
@@ -138,7 +138,7 @@ export function DisplaySettings() {
             </label>
           ))}
         </div>
-        <p className="text-hint">Less motion: pages swap instead of sliding and nothing presses or glides. Saved on this device.</p>
+        <p className="text-hint">Less motion: pages swap instead of sliding. Saved on this device.</p>
       </fieldset>
 
       <fieldset className="space-y-3">

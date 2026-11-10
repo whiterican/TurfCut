@@ -55,7 +55,7 @@ export function AccountData({ userId, problems }: { userId: string; problems: st
     <section className="section">
       <h2 className="section-title">Your data</h2>
       <div className="card space-y-3">
-        <p className="text-muted-sm">Everything Turfcut holds about you — profile, experience, consent history, shifts, pay, disputes and the messages you sent — as a ZIP of JSON and CSV files.</p>
+        <p className="text-muted-sm">Everything Turfcut holds about you, as a ZIP of JSON and CSV files.</p>
         <a href="/api/account/export" className="btn-secondary btn-sm" download><Download aria-hidden className="btn-icon" />Download my data</a>
       </div>
     </section>
@@ -64,7 +64,7 @@ export function AccountData({ userId, problems }: { userId: string; problems: st
       <h2 className="section-title">Close my account</h2>
       <div className="card space-y-3">
         <p className="text-muted-sm">
-          Your login is removed and your name and phone are replaced with &ldquo;Former worker&rdquo;. Your work history, pay records and consent history stay as they were recorded — Turfcut never rewrites its ledger. Download your data first. Any shifts you haven&apos;t started are cancelled; that never counts as a no-show.
+          Your login is removed and your name and phone become &ldquo;Former worker&rdquo;. Work, pay and consent records stay as recorded. Download your data first. Shifts you haven&apos;t started are cancelled, never as a no-show.
         </p>
         {blockers.length > 0 ? (
           <div className="space-y-1">

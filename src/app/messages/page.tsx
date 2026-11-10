@@ -11,7 +11,8 @@ import { ChatNameForm } from "@/components/chat/ChatNameForm";
 import { canUse } from "@/lib/access";
 import { EmptyArt } from "@/components/EmptyState";
 import { Masthead } from "@/components/Masthead";
-import { ChevronRight, SquarePen } from "lucide-react";
+import { ChevronRight, Hash, Lock, SquarePen } from "lucide-react";
+import { GENERAL_CHANNEL } from "@/lib/chat";
 import { ListPage } from "@/components/layout/Page";
 
 export const metadata = { title: "Messages · Turfcut" };
@@ -28,9 +29,13 @@ function ThreadRow({ t }: { t: ThreadSummary }) {
   return (
     <li>
       <Link transitionTypes={["nav-forward"]} scroll={false} href={`/messages/${t.id}`} className="thread-row">
-        <Avatar name={t.title} team={t.kind === "GROUP"} />
+        {t.kind === "CHANNEL" ? (
+          <span aria-hidden className="avatar avatar-team">{t.staffOnly ? <Lock className="size-4" /> : <Hash className="size-4" />}</span>
+        ) : (
+          <Avatar name={t.title} team={t.kind === "GROUP"} />
+        )}
         <span className="min-w-0 flex-1">
-          <span className={`block truncate text-base leading-6 text-fg ${unread ? "font-bold" : "font-semibold"}`}>{t.title}</span>
+          <span className={`block truncate text-base leading-6 text-fg ${unread ? "font-bold" : "font-semibold"}`}>{t.kind === "CHANNEL" ? `#${t.title}` : t.title}</span>
           {t.subtitle && <span className="block truncate text-sm text-subtle">{t.subtitle}</span>}
           <span className={`block truncate text-sm ${unread ? "font-semibold text-fg" : "text-muted"}`}>
             {t.last ? `${t.last.mine ? "You: " : ""}${t.last.text}` : "No messages yet"}
@@ -55,16 +60,23 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
   const me = { userId: session.userId, role: session.role, grants: session.grants, orgId: session.orgId };
   const error = ERRORS[(await searchParams).error ?? ""];
   const staff = canCreateGroup(me).ok;
+  // Everyone on an organization's staff has channels, whatever their role; team chats and direct threads stay with those who run teams.
+  const onStaff = me.role !== "WORKER" && !!me.orgId;
   const [{ threads, startable }, reports, profile] = await Promise.all([
     listThreads(me),
     canUse(session, "moderation") ? listOpenReports(me) : Promise.resolve([]),
     staff ? db().profile.findUnique({ where: { id: me.userId }, select: { displayName: true } }) : Promise.resolve(null),
   ]);
 
+  // Channels keep their own block, by name (the general one first); everything else stays newest first.
+  const channels = threads.filter((t) => t.kind === "CHANNEL").sort((a, b) => Number(b.title === GENERAL_CHANNEL) - Number(a.title === GENERAL_CHANNEL) || a.title.localeCompare(b.title));
+  const others = threads.filter((t) => t.kind !== "CHANNEL");
+
   return (
     <ListPage gap={4}>
       {/* A concise head (#111): the title and, for staff who may start a team chat, a compose button; the explanation lives in the empty state. */}
       <Masthead title="Messages">
+        {onStaff && <Link transitionTypes={["nav-forward"]} href="/messages/channels" className="btn-secondary btn-sm"><Hash aria-hidden className="btn-icon" />Channels</Link>}
         {staff && (
           <>
             {canUse(session, "moderation") && (
@@ -126,12 +138,24 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
           </div>
         )
       ) : (
-        <section className="space-y-3">
-          {startable.length > 0 && <h2 className="section-title">Conversations</h2>}
-          <ul className="thread-list">
-            {threads.map((t) => <ThreadRow key={t.id} t={t} />)}
-          </ul>
-        </section>
+        <>
+          {channels.length > 0 && (
+            <section className="space-y-3">
+              <h2 className="section-title">Channels</h2>
+              <ul className="thread-list">
+                {channels.map((t) => <ThreadRow key={t.id} t={t} />)}
+              </ul>
+            </section>
+          )}
+          {others.length > 0 && (
+            <section className="space-y-3">
+              {(startable.length > 0 || channels.length > 0) && <h2 className="section-title">Conversations</h2>}
+              <ul className="thread-list">
+                {others.map((t) => <ThreadRow key={t.id} t={t} />)}
+              </ul>
+            </section>
+          )}
+        </>
       )}
     </ListPage>
   );

@@ -6,8 +6,13 @@ import { areaMembers } from "@/lib/access-data";
 import { UUID_RE } from "@/lib/jobs";
 import {
   EDIT_WINDOW_MS,
+  GENERAL_CHANNEL,
   canBlock,
   canCreateGroup,
+  canJoinChannel,
+  canLeaveChannel,
+  canManageChannels,
+  isChannelStaff,
   canDelete,
   canEdit,
   canManageMembers,
@@ -15,10 +20,14 @@ import {
   canSend,
   chatAccess,
   cleanBody,
+  validateChannelName,
+  validateChannelTopic,
   validateGroupName,
   viewMessages,
   type Access,
+  type ChannelFacts,
   type ChatFacts,
+  type ParticipantRole,
   type RawRevision,
   type ViewMessage,
 } from "@/lib/chat";
@@ -94,6 +103,7 @@ async function loadContext(c: Client, me: ChatUser, conversationId: string) {
     orgId: conv.orgId,
     me: { profileId: me.userId, role: me.role, grants: me.grants, orgId: me.orgId },
     participant: mine ? { role: mine.role, removedAt: mine.removedAt, addedAt: mine.addedAt } : null,
+    archived: conv.archivedAt !== null,
   };
   if (conv.kind === "DIRECT" && conv.engagement) {
     facts.engagementStatus = conv.engagement.status;
@@ -102,7 +112,7 @@ async function loadContext(c: Client, me: ChatUser, conversationId: string) {
       facts.blockedByOther = (await c.profileBlock.count({ where: { blockerId: conv.engagement.worker.profileId, blockedId: me.userId, liftedAt: null } })) > 0;
     }
   }
-  if (conv.kind === "GROUP" && mine?.role === "WORKER" && !mine.removedAt) {
+  if (conv.kind !== "DIRECT" && mine?.role === "WORKER" && !mine.removedAt) {
     facts.hiredOnLinkedJob =
       (await c.engagement.count({ where: { worker: { profileId: me.userId }, jobId: { in: conv.jobs.map((j) => j.jobId) }, status: { in: [...HIRED] } } })) > 0;
   }
@@ -179,7 +189,9 @@ export async function unreadTotal(me: ChatUser): Promise<number> {
 
 export interface ThreadSummary {
   id: string;
-  kind: "DIRECT" | "GROUP";
+  kind: "DIRECT" | "GROUP" | "CHANNEL";
+  /** CHANNEL: staff only (no workers). */
+  staffOnly: boolean;
   title: string;
   subtitle: string;
   /** Read-only for me (removed, or the hire ended). */
@@ -253,6 +265,7 @@ async function latestVisible(profileId: string): Promise<Map<string, ViewMessage
 }
 
 export async function listThreads(me: ChatUser): Promise<{ threads: ThreadSummary[]; startable: StartableDirect[] }> {
+  await ensureGeneral(me);
   const rows = await db().conversationParticipant.findMany({
     where: { profileId: me.userId },
     include: {
@@ -275,9 +288,10 @@ export async function listThreads(me: ChatUser): Promise<{ threads: ThreadSummar
     return {
       id: c.id,
       kind: c.kind,
+      staffOnly: c.staffOnly,
       title: direct ? personName(other?.profile) : (c.name ?? "Team chat"),
-      subtitle: direct ? (c.engagement?.job.title ?? "") : c.jobs.map((j) => j.job.title).join(" · "),
-      frozen: row.removedAt !== null || (direct && !isHired(c.engagement?.status ?? "")),
+      subtitle: direct ? (c.engagement?.job.title ?? "") : c.kind === "CHANNEL" ? (c.topic ?? "") : c.jobs.map((j) => j.job.title).join(" · "),
+      frozen: row.removedAt !== null || c.archivedAt !== null || (direct && !isHired(c.engagement?.status ?? "")),
       unread: unread.get(c.id) ?? 0,
       last: last ? { text: preview(last), mine: last.senderId === me.userId, at: last.createdAt } : null,
       activeAt: last?.createdAt ?? c.createdAt,
@@ -328,7 +342,7 @@ export interface ThreadMessage {
 export interface ThreadMember {
   profileId: string;
   name: string;
-  role: "WORKER" | "MANAGER";
+  role: ParticipantRole;
   removed: boolean;
   isMe: boolean;
   /** I (a worker) have this manager blocked. */
@@ -336,9 +350,11 @@ export interface ThreadMember {
 }
 export interface ThreadView {
   id: string;
-  kind: "DIRECT" | "GROUP";
+  kind: "DIRECT" | "GROUP" | "CHANNEL";
   title: string;
   subtitle: string;
+  /** CHANNEL: what kind of channel this is, and what I may do with it. */
+  channel: { staffOnly: boolean; isGeneral: boolean; archived: boolean; topic: string | null; canLeave: boolean; canArchive: boolean } | null;
   access: Access;
   /** GROUP: the team's jobs (for finding people to add). */
   jobIds: string[];
@@ -389,6 +405,17 @@ export async function openThread(me: ChatUser, conversationId: string): Promise<
     kind: conv.kind,
     title: direct ? personName(other?.profile) : (conv.name ?? "Team chat"),
     subtitle: direct ? (conv.engagement?.job.title ?? "") : conv.jobs.map((j) => j.job.title).join(" · "),
+    channel:
+      conv.kind === "CHANNEL"
+        ? {
+            staffOnly: conv.staffOnly,
+            isGeneral: conv.isGeneral,
+            archived: conv.archivedAt !== null,
+            topic: conv.topic,
+            canLeave: mine.role === "MEMBER" && canLeaveChannel(channelFacts(conv, mine)).ok,
+            canArchive: !conv.isGeneral && conv.archivedAt === null && canManageChannels(me, conv.orgId).ok,
+          }
+        : null,
     access,
     jobIds: conv.jobs.map((j) => j.jobId),
     nextShift: shift ? { id: shift.id, startsAt: shift.startsAt, endsAt: shift.endsAt, stagingLocation: shift.stagingLocation, active: shift.status === "ACTIVE" } : null,
@@ -414,7 +441,7 @@ export async function openThread(me: ChatUser, conversationId: string): Promise<
       return {
         ...m,
         senderName: personName(sender?.profile),
-        senderIsManager: sender?.role === "MANAGER",
+        senderIsManager: !!sender && sender.role !== "WORKER",
         mine: mineMsg,
         canEdit: mineMsg && !m.deleted && !!m.body && access.post && now.getTime() - m.createdAt.getTime() <= EDIT_WINDOW_MS,
         canDelete: mineMsg && !m.deleted && access.post,
@@ -713,7 +740,7 @@ export async function listOpenReports(me: ChatUser): Promise<OpenReport[]> {
       id: r.id,
       messageId: r.messageId,
       conversationId: r.conversationId,
-      conversationTitle: conv.kind === "GROUP" ? (conv.name ?? "Team chat") : `Direct messages · ${conv.engagement?.job.title ?? ""}`,
+      conversationTitle: conv.kind === "CHANNEL" ? `#${conv.name ?? "channel"}` : conv.kind === "GROUP" ? (conv.name ?? "Team chat") : `Direct messages · ${conv.engagement?.job.title ?? ""}`,
       senderName: personName(r.message.sender),
       reporterName: personName(reporters.get(r.reporterId)),
       reason: r.reason,
@@ -746,7 +773,7 @@ export async function blockProfile(me: ChatUser, targetId: string): Promise<{ ok
   if (!UUID_RE.test(targetId) || targetId === me.userId) return fail("You don't share a conversation with that person.");
   const shared = { profileId: targetId, conversation: { participants: { some: { profileId: me.userId } } } } satisfies Prisma.ConversationParticipantWhereInput;
   const target =
-    (await db().conversationParticipant.findFirst({ where: { ...shared, role: "MANAGER" }, select: { role: true } })) ??
+    (await db().conversationParticipant.findFirst({ where: { ...shared, role: { in: ["MANAGER", "MEMBER"] } }, select: { role: true } })) ??
     (await db().conversationParticipant.findFirst({ where: shared, select: { role: true } }));
   const ok = canBlock({ role: me.role }, target);
   if (!ok.ok) return ok;
@@ -778,7 +805,7 @@ export async function unblockProfile(me: ChatUser, targetId: string): Promise<{ 
 export interface Candidate {
   profileId: string;
   name: string;
-  role: "WORKER" | "MANAGER";
+  role: ParticipantRole;
   /** Workers: the team jobs they're hired on. Staff: their org role. */
   detail: string;
 }
@@ -794,12 +821,17 @@ export async function teamChatJobs(me: ChatUser) {
   });
 }
 
-/** Who can be added to a team on these jobs: org staff, and workers hired on them. */
-export async function teamCandidates(me: ChatUser, jobIds: string[], c: Client = db()): Promise<Candidate[]> {
+/**
+ * Who can be added to a team on these jobs: org staff, and workers hired on
+ * them. For a channel: every staff member of the organization (as MEMBER),
+ * and, unless it is staff-only, workers hired on its jobs.
+ */
+export async function teamCandidates(me: ChatUser, jobIds: string[], c: Client = db(), channel: { staffOnly: boolean } | null = null): Promise<Candidate[]> {
   if (!canCreateGroup(me).ok || !me.orgId || !jobIds.every((id) => UUID_RE.test(id))) return [];
+  const staffRole: ParticipantRole = channel ? "MEMBER" : "MANAGER";
   const [staff, hires] = await Promise.all([
-    c.profile.findMany({ where: { orgId: me.orgId, ...areaMembers("messages") }, select: PERSON.select, orderBy: { createdAt: "asc" } }),
-    c.engagement.findMany({
+    c.profile.findMany({ where: channel ? { orgId: me.orgId, role: { not: "WORKER" }, closedAt: null } : { orgId: me.orgId, ...areaMembers("messages") }, select: PERSON.select, orderBy: { createdAt: "asc" } }),
+    channel?.staffOnly || jobIds.length === 0 ? [] : c.engagement.findMany({
       where: { jobId: { in: jobIds }, job: { orgId: me.orgId }, status: { in: [...HIRED] } },
       select: { job: { select: { title: true } }, worker: { select: { profileId: true, displayName: true } } },
     }),
@@ -811,7 +843,7 @@ export async function teamCandidates(me: ChatUser, jobIds: string[], c: Client =
     else workers.set(h.worker.profileId, { profileId: h.worker.profileId, name: h.worker.displayName, role: "WORKER", detail: h.job.title });
   }
   return [
-    ...staff.map((p): Candidate => ({ profileId: p.id, name: personName(p), role: "MANAGER", detail: p.role === "CUSTOM" ? (p.orgRole?.name ?? "Team member") : (ROLE_LABEL[p.role] ?? p.role) })),
+    ...staff.map((p): Candidate => ({ profileId: p.id, name: personName(p), role: staffRole, detail: p.role === "CUSTOM" ? (p.orgRole?.name ?? "Team member") : (ROLE_LABEL[p.role] ?? p.role) })),
     ...[...workers.values()].sort((a, b) => a.name.localeCompare(b.name)),
   ];
 }
@@ -821,12 +853,12 @@ const uniqueIds = (raw: unknown, max: number): string[] | null => {
   return [...new Set(raw as string[])];
 };
 
-async function resolveMembers(c: Client, me: ChatUser, jobIds: string[], profileIds: string[]): Promise<Map<string, "WORKER" | "MANAGER"> | Fail> {
-  const eligible = new Map((await teamCandidates(me, jobIds, c)).map((x) => [x.profileId, x.role]));
-  const out = new Map<string, "WORKER" | "MANAGER">();
+async function resolveMembers(c: Client, me: ChatUser, jobIds: string[], profileIds: string[], channel: { staffOnly: boolean } | null = null): Promise<Map<string, ParticipantRole> | Fail> {
+  const eligible = new Map((await teamCandidates(me, jobIds, c, channel)).map((x) => [x.profileId, x.role]));
+  const out = new Map<string, ParticipantRole>();
   for (const id of profileIds) {
     const role = eligible.get(id);
-    if (!role) return fail("Add this organization's staff, or workers hired on the team's jobs.");
+    if (!role) return fail(channel?.staffOnly ? "Add this organization's staff. This channel is staff only." : channel ? "Add this organization's staff, or workers hired on the channel's jobs." : "Add this organization's staff, or workers hired on the team's jobs.");
     out.set(id, role);
   }
   return out;
@@ -847,7 +879,7 @@ export async function createGroup(me: ChatUser, input: { name: unknown; jobIds: 
     if ((await tx.job.count({ where: { id: { in: jobIds }, orgId } })) !== jobIds.length) return fail("Pick jobs from your organization.");
     const members = await resolveMembers(tx, me, jobIds, memberIds.filter((id) => id !== me.userId));
     if ("ok" in members) return members;
-    members.set(me.userId, "MANAGER");
+    members.set(me.userId, "MANAGER" as ParticipantRole);
     const conv = await tx.conversation.create({
       data: {
         kind: "GROUP",
@@ -873,7 +905,8 @@ export async function addMembers(me: ChatUser, conversationId: string, rawIds: u
     if (!ctx) return NOT_FOUND;
     const may = canManageMembers(ctx.facts);
     if (!may.ok) return ctx.access.read ? may : NOT_FOUND;
-    const members = await resolveMembers(tx, me, ctx.conv.jobs.map((j) => j.jobId), ids);
+    if (ctx.conv.archivedAt) return fail("This channel is archived.");
+    const members = await resolveMembers(tx, me, ctx.conv.jobs.map((j) => j.jobId), ids, ctx.conv.kind === "CHANNEL" ? { staffOnly: ctx.conv.staffOnly } : null);
     if ("ok" in members) return members;
     const now = await dbNow(tx);
     let added = 0;
@@ -906,9 +939,169 @@ export async function removeMember(me: ChatUser, conversationId: string, profile
     const may = canManageMembers(ctx.facts);
     if (!may.ok) return ctx.access.read ? may : NOT_FOUND;
     const target = ctx.conv.participants.find((p) => p.profileId === profileId && !p.removedAt);
-    if (!target) return fail("That person isn't in this team chat.");
+    if (!target) return fail(ctx.conv.kind === "CHANNEL" ? "That person isn't in this channel." : "That person isn't in this team chat.");
+    if (ctx.conv.isGeneral) return fail("Everyone on staff stays in the general channel.");
     await tx.conversationParticipant.update({ where: { id: target.id }, data: { removedAt: await dbNow(tx), removedById: me.userId } });
     await audit(tx, me.userId, "conversation.member_removed", "Conversation", conversationId, { profileId });
+    return { ok: true as const };
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Channels (lib/chat.ts "Channels"; prisma/p2-channels.sql)
+// ---------------------------------------------------------------------------
+
+const channelFacts = (conv: { orgId: string; archivedAt: Date | null; isGeneral: boolean }, mine: { role: ParticipantRole; removedAt: Date | null } | null): ChannelFacts => ({
+  orgId: conv.orgId,
+  archived: conv.archivedAt !== null,
+  isGeneral: conv.isGeneral,
+  participant: mine ? { role: mine.role, removedAt: mine.removedAt } : null,
+});
+
+const isUniqueViolation = (e: unknown) => e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002";
+
+/**
+ * Every staff member is in their organization's general channel: it is made
+ * the first time anyone on staff opens Messages, and each person is put in
+ * it the first time they do. Someone who has a row there already (current or
+ * ended) is left as they are. Workers have no general channel.
+ */
+export async function ensureGeneral(me: ChatUser): Promise<void> {
+  if (me.role === "WORKER" || !me.orgId) return;
+  const orgId = me.orgId;
+  const existing = await db().conversation.findFirst({ where: { orgId, isGeneral: true }, select: { id: true, participants: { where: { profileId: me.userId }, select: { id: true } } } });
+  if (existing?.participants.length) return;
+  try {
+    await db().$transaction(async (tx) => {
+      await lock(tx, `general:${orgId}`);
+      // Still a member of this organization, read inside the lock.
+      if ((await tx.profile.count({ where: { id: me.userId, orgId, role: { not: "WORKER" }, closedAt: null } })) === 0) return;
+      let general = await tx.conversation.findFirst({ where: { orgId, isGeneral: true }, select: { id: true } });
+      if (!general) {
+        general = await tx.conversation.create({
+          data: { kind: "CHANNEL", orgId, name: GENERAL_CHANNEL, topic: "Everyone on staff. Announcements and day-to-day talk.", staffOnly: true, isGeneral: true, createdById: me.userId },
+          select: { id: true },
+        });
+        await audit(tx, me.userId, "channel.created", "Conversation", general.id, { name: GENERAL_CHANNEL, general: true });
+      }
+      if ((await tx.conversationParticipant.count({ where: { conversationId: general.id, profileId: me.userId } })) === 0) {
+        await tx.conversationParticipant.create({ data: { conversationId: general.id, profileId: me.userId, role: "MEMBER", addedById: me.userId, addedAt: await dbNow(tx) } });
+      }
+    });
+  } catch (e) {
+    // A channel someone already named "general" by hand, or a second request doing the same thing: Messages still opens.
+    if (!isUniqueViolation(e)) throw e;
+  }
+}
+
+export interface ChannelSummary {
+  id: string;
+  name: string;
+  topic: string | null;
+  staffOnly: boolean;
+  isGeneral: boolean;
+  members: number;
+  /** I'm in it now. */
+  joined: boolean;
+}
+
+/** The organization's live channels, for staff to open or join. Workers get none: they see only channels they were added to, in their thread list. */
+export async function browseChannels(me: ChatUser): Promise<ChannelSummary[]> {
+  if (me.role === "WORKER" || !me.orgId) return [];
+  const rows = await db().conversation.findMany({
+    where: { orgId: me.orgId, kind: "CHANNEL", archivedAt: null },
+    select: { id: true, name: true, topic: true, staffOnly: true, isGeneral: true, participants: { where: { removedAt: null }, select: { profileId: true } } },
+    orderBy: [{ isGeneral: "desc" }, { name: "asc" }],
+  });
+  return rows.map((c) => ({ id: c.id, name: c.name ?? "channel", topic: c.topic, staffOnly: c.staffOnly, isGeneral: c.isGeneral, members: c.participants.length, joined: c.participants.some((p) => p.profileId === me.userId) }));
+}
+
+export async function createChannel(me: ChatUser, input: { name: unknown; topic: unknown; staffOnly: unknown; jobIds: unknown }): Promise<{ ok: true; conversationId: string } | Fail> {
+  const may = canManageChannels(me);
+  if (!may.ok || !me.orgId) return may.ok ? fail("No organization on this account.") : may;
+  const name = validateChannelName(input.name);
+  if (!name.ok) return name;
+  const topic = validateChannelTopic(input.topic);
+  if (!topic.ok) return topic;
+  const staffOnly = input.staffOnly === true;
+  const jobIds = staffOnly ? [] : uniqueIds(input.jobIds, 20);
+  if (!jobIds || (!staffOnly && jobIds.length === 0)) return fail("Pick at least one job, so its hired workers can be added. Or make the channel staff only.");
+  const orgId = me.orgId;
+  try {
+    return await db().$transaction(async (tx) => {
+      if ((await tx.job.count({ where: { id: { in: jobIds }, orgId } })) !== jobIds.length) return fail("Pick jobs from your organization.");
+      const conv = await tx.conversation.create({
+        data: {
+          kind: "CHANNEL",
+          orgId,
+          name: name.name,
+          topic: topic.topic,
+          staffOnly,
+          createdById: me.userId,
+          jobs: { create: jobIds.map((jobId) => ({ jobId })) },
+          participants: { create: [{ profileId: me.userId, role: "MEMBER", addedById: me.userId }] },
+        },
+      });
+      await audit(tx, me.userId, "channel.created", "Conversation", conv.id, { name: name.name, staffOnly, jobIds });
+      return { ok: true as const, conversationId: conv.id };
+    });
+  } catch (e) {
+    if (isUniqueViolation(e)) return fail(`There is already a channel named #${name.name}.`);
+    throw e;
+  }
+}
+
+/** Staff put themselves in a channel of their organization. Rejoining gives the full history, like any new member. */
+export async function joinChannel(me: ChatUser, conversationId: string): Promise<{ ok: true } | Fail> {
+  if (!UUID_RE.test(conversationId)) return NOT_FOUND;
+  return db().$transaction(async (tx) => {
+    await lock(tx, `conv:${conversationId}`);
+    const conv = await tx.conversation.findUnique({ where: { id: conversationId }, include: { participants: { where: { profileId: me.userId } } } });
+    if (!conv || conv.kind !== "CHANNEL" || !isChannelStaff(me, conv.orgId)) return NOT_FOUND;
+    // Still on this organization's staff, read inside the lock.
+    if ((await tx.profile.count({ where: { id: me.userId, orgId: conv.orgId, role: { not: "WORKER" }, closedAt: null } })) === 0) return NOT_FOUND;
+    const mine = conv.participants[0] ?? null;
+    const may = canJoinChannel(me, channelFacts(conv, mine));
+    if (!may.ok) return mine && !mine.removedAt ? { ok: true as const } : may;
+    const now = await dbNow(tx);
+    if (mine) await tx.conversationParticipant.update({ where: { id: mine.id }, data: { role: "MEMBER", removedAt: null, removedById: null, addedAt: now, addedById: me.userId, lastReadAt: null } });
+    else await tx.conversationParticipant.create({ data: { conversationId, profileId: me.userId, role: "MEMBER", addedById: me.userId, addedAt: now } });
+    await audit(tx, me.userId, "channel.joined", "Conversation", conversationId, {});
+    return { ok: true as const };
+  });
+}
+
+/** Leaving keeps read-only history up to now. Nobody leaves the general channel. */
+export async function leaveChannel(me: ChatUser, conversationId: string): Promise<{ ok: true } | Fail> {
+  if (!UUID_RE.test(conversationId)) return NOT_FOUND;
+  return db().$transaction(async (tx) => {
+    await lock(tx, `conv:${conversationId}`);
+    const conv = await tx.conversation.findUnique({ where: { id: conversationId }, include: { participants: { where: { profileId: me.userId } } } });
+    const mine = conv?.participants[0] ?? null;
+    if (!conv || conv.kind !== "CHANNEL" || !mine) return NOT_FOUND;
+    // A worker is taken out by a manager or by their hire ending, the same as in a team chat.
+    if (mine.role !== "MEMBER") return fail("Ask a manager to take you out of this channel.");
+    const may = canLeaveChannel(channelFacts(conv, mine));
+    if (!may.ok) return may;
+    await tx.conversationParticipant.update({ where: { id: mine.id }, data: { removedAt: await dbNow(tx), removedById: me.userId } });
+    await audit(tx, me.userId, "channel.left", "Conversation", conversationId, {});
+    return { ok: true as const };
+  });
+}
+
+/** Archiving makes a channel read-only for everyone and takes it out of the list to join. The general channel is never archived. */
+export async function archiveChannel(me: ChatUser, conversationId: string): Promise<{ ok: true } | Fail> {
+  if (!UUID_RE.test(conversationId)) return NOT_FOUND;
+  return db().$transaction(async (tx) => {
+    await lock(tx, `conv:${conversationId}`);
+    const conv = await tx.conversation.findUnique({ where: { id: conversationId }, select: { kind: true, orgId: true, isGeneral: true, archivedAt: true, name: true } });
+    if (!conv || conv.kind !== "CHANNEL" || !isChannelStaff(me, conv.orgId)) return NOT_FOUND;
+    const may = canManageChannels(me, conv.orgId);
+    if (!may.ok) return may;
+    if (conv.isGeneral) return fail("The general channel can't be archived.");
+    if (conv.archivedAt) return { ok: true as const };
+    await tx.conversation.update({ where: { id: conversationId }, data: { archivedAt: await dbNow(tx), archivedById: me.userId } });
+    await audit(tx, me.userId, "channel.archived", "Conversation", conversationId, { name: conv.name });
     return { ok: true as const };
   });
 }

@@ -938,11 +938,13 @@ model AdminAction {
 enum ConversationKind {
   DIRECT // worker ↔ the person who hired them, one per engagement
   GROUP // team chat created by an organizer
+  CHANNEL // a named, browsable channel in the organization's workspace (prisma/p2-channels.sql)
 }
 
 enum ParticipantRole {
   WORKER
   MANAGER
+  MEMBER // organization staff in a CHANNEL: there because they belong to the organization, whatever their role
 }
 
 enum RevisionKind {
@@ -957,7 +959,16 @@ model Conversation {
   org           Organization     @relation(fields: [orgId], references: [id], onDelete: Restrict)
   engagementId  String?          @unique @db.Uuid // DIRECT: exactly one thread per (worker, job)
   engagement    Engagement?      @relation(fields: [engagementId], references: [id], onDelete: Restrict)
-  name          String? // GROUP: "Denver housing initiative — Team A"
+  name          String? // GROUP: "Denver housing initiative — Team A"; CHANNEL: "general"
+  /// CHANNEL only: one line on what the channel is for.
+  topic         String?
+  /// CHANNEL only: organization staff only. A channel that is not staff-only is tied to jobs, and workers hired on them can be added.
+  staffOnly     Boolean          @default(false)
+  /// CHANNEL only: the organization's one channel every staff member is in from the start.
+  isGeneral     Boolean          @default(false)
+  /// CHANNEL only: archived channels are read-only and leave the list of channels to join.
+  archivedAt    DateTime?
+  archivedById  String?          @db.Uuid
   createdById   String           @db.Uuid // Profile
   lastMessageAt DateTime? // thread-list ordering; only moves forward
   createdAt     DateTime         @default(now())

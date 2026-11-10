@@ -1616,9 +1616,9 @@ body {
     /* The floating dock (#111): the frame's Eggplant on every worker and
        organization screen, 12px side inset, 10px above the safe area. Inactive
        icons are Cream; the current destination is the dock green (--dock-active-fg). */
-    /* A pill (Caden, Nov 10): icons, the current one in a lighter capsule with its name. The other
-       names stay for screen readers; the rest of the role's places are in the menu drawer, not a tab. */
-    @apply fixed z-40 mx-auto max-w-[22rem] rounded-full p-1.5;
+    /* A pill (Caden, Nov 10): icons only, the current one in a lighter capsule. The names stay for
+       screen readers; the rest of the role's places are in the menu drawer, not a tab. */
+    @apply fixed z-40 mx-auto max-w-[20rem] rounded-full p-1.5;
     inset-inline: 12px;
     bottom: calc(10px + env(safe-area-inset-bottom));
     background: var(--shell-bg);
@@ -1687,7 +1687,7 @@ body {
   }
 
   .tab {
-    /* A 48px tile holding a 24px icon; the current one adds its name in 12/16 Inter. */
+    /* A 48px tile holding a 24px icon. */
     @apply relative flex min-h-[48px] min-w-0 flex-1 flex-col items-center justify-center rounded-full px-0.5 py-1.5 font-medium whitespace-nowrap transition;
     flex-basis: 0;
     color: var(--shell-muted);
@@ -1706,17 +1706,9 @@ body {
   .tab-icon {
     @apply size-6 shrink-0 transition;
   }
-  /* A tab's name is drawn only on the one you're on (Caden, Nov 10): the capsule widens to
-     hold it, so every switch says where you've landed. The others keep theirs for screen readers. */
+  /* No words in the dock (Caden, Nov 10): a tab's name is read, never drawn. */
   .tab-label {
     @apply sr-only;
-  }
-  .tab[aria-current] {
-    @apply flex-row gap-1.5 px-2.5;
-    flex: 0 0 auto;
-  }
-  .tab[aria-current] .tab-label {
-    @apply not-sr-only;
   }
   .tabbar > div {
     gap: 0;
@@ -1748,11 +1740,6 @@ body {
   .tab .unread-badge {
     @apply absolute top-0.5 left-1/2 ml-1.5 min-w-[1.25rem] px-1 text-[0.7rem] leading-[1.25rem];
     box-shadow: 0 0 0 2px var(--shell-bg);
-  }
-  /* On the tab you're on, the count gives way to the name: the list under it shows what's unread,
-     and the link still says the count to a screen reader. */
-  .tab[aria-current] .unread-badge {
-    display: none;
   }
   /* Two or three places under one tab (Jobs: Find work / My schedule): a
      segmented control, the current one an eggplant tile like the dock's. */

@@ -120,9 +120,9 @@ describe.each([
     // Print drops the menu strip with the dock, and the admin console shows no menu.
     expect(css).toMatch(/\.site-header, \.tabbar, \.phone-top, \.no-print, nextjs-portal \{ display: none !important; \}/);
     expect(css).toMatch(/body:has\(\.staff-band\) :is\(\.phone-top, \.site-header \.menu-button\) \{\s*display: none;/);
-    // Each tab's name is in the markup for screen readers, and drawn on the current tab.
+    // No words in the dock: each tab's name is in the markup for screen readers, never drawn.
     expect(css).toMatch(/\.tab-label \{\s*@apply sr-only;/);
-    expect(css).toMatch(/\.tab\[aria-current\] \.tab-label \{\s*@apply not-sr-only;/);
+    expect(css).not.toMatch(/\.tab-label \{[^}]*not-sr-only/);
     // Sunlight alone keeps a white tile with black type (outdoor glare).
     expect(css).toMatch(/\.sun \.tab\[aria-current\] \{\s*background: var\(--shell-active\);\s*color: var\(--on-shell-active\);/);
   });

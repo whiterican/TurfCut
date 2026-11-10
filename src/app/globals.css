@@ -1206,6 +1206,21 @@ body {
     border-color: var(--border);
     box-shadow: var(--card-edge);
   }
+  /* Time and date fields on an iPhone (Caden's phone, Nov 10): Safari draws them as its own control with
+     a width of its own, so in a row they ignored their column, the second ran off the card and "to" sat
+     on top of the first. Without the native appearance they take the width they are given like any other
+     field; the value sits at the start, at the field's own height. */
+  input.field:is([type="time"], [type="date"], [type="datetime-local"], [type="month"]) {
+    -webkit-appearance: none;
+    appearance: none;
+    display: block;
+    min-width: 0;
+    max-width: 100%;
+  }
+  input.field:is([type="time"], [type="date"], [type="datetime-local"], [type="month"])::-webkit-date-and-time-value {
+    min-height: 1.5em;
+    text-align: start;
+  }
   .field::placeholder {
     color: var(--subtle);
   }

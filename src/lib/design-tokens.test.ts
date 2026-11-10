@@ -672,6 +672,10 @@ describe("the shell (redesign B1.4)", () => {
     expect(css).toMatch(/@media \(width < 40rem\) \{\s*\/\*[^*]*\*\/\s*\.data-table-wrap:has\(> \.data-table-stack\)/);
   });
 
+  it("time and date fields take the width they are given (an iPhone draws them at a width of its own otherwise)", () => {
+    expect(css).toMatch(/input\.field:is\(\[type="time"\], \[type="date"\], \[type="datetime-local"\], \[type="month"\]\) \{\s*-webkit-appearance: none;\s*appearance: none;\s*display: block;\s*min-width: 0;\s*max-width: 100%;/);
+  });
+
   it("the stylesheet's braces balance (the regex checks here would not notice a stray one; the build would)", () => {
     const bare = css.replace(/\/\*[\s\S]*?\*\//g, "").replace(/"[^"\n]*"|'[^'\n]*'/g, "");
     expect(bare.split("{").length).toBe(bare.split("}").length);

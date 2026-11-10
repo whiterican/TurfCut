@@ -72,3 +72,24 @@ A separate Claude reviewer found that the first version of the root-colour rule 
 ## Selection colour (Caden, Nov 10)
 
 The selected tab in the dock and the selected row in the drawer and sidebar are tinted purple by day and green by night (`--select`, at 26% over the pane). The icon and label on it keep the ink, and the tests check them on the tint over the worst case behind each pane. `selection.png`: the drawer and the dock, light and dark.
+
+## Clearer dock (Nov 10, evening)
+
+Caden sent a screen recording of another app's dock and asked for "this level of transparency and effect".
+
+What the reference does: the dock is almost clear. The page stays visible through it, slightly smeared, and the rim is bright. Ours was a frosted pane (45% tint by day, 62% by night, 24px blur).
+
+| | Before | Now |
+| :--- | :--- | :--- |
+| Tint, day | 45% | 12% |
+| Tint, night | 62% | 16% |
+| Blur | 24px | 3.5px |
+| Rim | lit edge | lit edge plus a soft inner glow |
+
+Only the dock changed. Bars, the drawer, sheets and cards carry text, so they keep their denser glass.
+
+**Contrast.** A pane this clear cannot guarantee contrast by itself. Each dock icon is now outlined in the page's own colour (a three-layer drop shadow), so there is always that colour next to every stroke whatever scrolls underneath. Ink on that halo is over 7:1 in both themes. Sunlight mode and the reduced-transparency setting keep their solid dock.
+
+Not checked on a real iPhone. Chromium only.
+
+Screens: `dock-clear-reference.png` (a frame from the recording), `dock-clear-light.png`, `dock-clear-dark.png`.

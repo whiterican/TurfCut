@@ -196,7 +196,7 @@ async function WorkerHero({ workerId }: { workerId: string }) {
             <div><dt className="work-fact-label order-2">Gross rate</dt><dd className="work-fact-figure">{payShort(job.compensationMethod, job.payRateCents, job.type)}</dd></div>
           </dl>
           <Link transitionTypes={["nav-forward"]} href={`/shifts/${shift.id}`} className="btn-primary btn-lg w-full">{isLive ? "Open field day" : "View shift details"}</Link>
-          <p className="text-xs text-subtle">{job.org.name}{isLive ? " · timer runs from check-in, not pay time" : ""}</p>
+          <p className="text-xs text-subtle">{job.org.name}{isLive ? " · time since check-in, not verified pay time" : ""}</p>
         </section>
       </>
     );
@@ -210,7 +210,7 @@ async function WorkerHero({ workerId }: { workerId: string }) {
     return (
       <section className="work-card space-y-3" aria-label="Nothing scheduled">
         <h2 className="t-headline text-fg">Nothing scheduled</h2>
-                <Link transitionTypes={["nav-forward"]} href="/jobs" className="btn-primary btn-lg w-full">Find Jobs</Link>
+        <Link transitionTypes={["nav-forward"]} href="/jobs" className="btn-primary btn-lg w-full">Find Jobs</Link>
       </section>
     );
   }
@@ -227,7 +227,7 @@ async function WorkerHero({ workerId }: { workerId: string }) {
         )}
       </p>
       <h2 className="t-headline text-fg">{next.job.title}</h2>
-      <p className="text-sm text-muted">{payText(next.job.compensationMethod, next.job.payRateCents)} · your shifts appear here.</p>
+      <p className="text-sm text-muted">{payText(next.job.compensationMethod, next.job.payRateCents)} · the organization schedules your shifts; they&apos;ll appear here.</p>
       <Link transitionTypes={["nav-forward"]} href={`/jobs/${next.job.id}`} className="btn-secondary w-full">View job</Link>
     </section>
   );
@@ -263,7 +263,7 @@ async function SharingNote({ workerId }: { workerId: string }) {
       <p className="text-muted-sm">
         {never
           ? `Choose who sees your profile and whether organizations can find you. Until you do, organizations you ${RELATIONSHIP_PHRASE} see it, and nobody can find you.`
-          : "We've updated how we explain who sees what. Your choices are unchanged; please confirm them. If you let organizations find you, they can't until you do."}
+          : "We've updated how we explain who sees what. Your choices are unchanged; please confirm them. If you let organizations find you, they can't until you confirm."}
       </p>
       <Link transitionTypes={["nav-forward"]} href="/profile/setup" className="btn-secondary btn-sm">{never ? "Set it up (4 short steps)" : "Check your choices"}</Link>
     </DismissibleNote>
@@ -401,7 +401,7 @@ async function FitReconfirm({ workerId }: { workerId: string }) {
           ? "They reached the expiry you chose."
           : fit.visibilityMode === "APPLIED_TO"
             ? "We've changed how we describe who sees them: claiming a spot counts, as applying does."
-            : "We've updated these descriptions."}{" "}
+            : "We've updated how we describe these choices."}{" "}
         {PAUSED[fit.visibilityMode]}
       </p>
       <Link href="/profile/preferences" className="btn-secondary btn-sm">Review and reconfirm</Link>

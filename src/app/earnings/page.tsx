@@ -35,12 +35,12 @@ async function PayoutSetup({ w, note }: { w: PayoutState; note: string | null })
           <p className="text-muted-sm"><Link href="/earnings/receipts" className="link">Receipts</Link></p>
           <p className="text-muted-sm">
             {!provider.configured()
-              ? "Payouts aren't switched on yet. Approved pay is kept until they are."
+              ? "Payouts aren't switched on yet. Approved pay is kept and sent once they are."
               : w.payoutsEnabled
                 ? "Approved pay goes to your bank through Stripe."
                 : w.stripeAccountId
                   ? "Finish setting up with Stripe so you can be paid."
-                  : "Stripe pays your bank directly. Turfcut never sees your bank or tax details."}
+                  : "Set up payouts to be paid. Stripe collects your bank and tax details; Turfcut never sees them."}
           </p>
         </div>
         {w.payoutsEnabled && <StatusChip state="approved" label="Ready" className="shrink-0" />}
@@ -162,7 +162,7 @@ export default async function EarningsPage({ searchParams }: { searchParams: Pro
   const [{ campaigns, totals }, w] = await Promise.all([loadWorkerEarnings(workerId), payoutSetup(workerId, stripeProvider(), note === "done")]);
   const payouts = payoutReadiness(stripeProvider().configured(), w.payoutsEnabled);
   return (
-    <ReadingPage gap={6} head={<Masthead title="Earnings" meta="Approved gross pay. Turfcut takes no cut." />}>
+    <ReadingPage gap={6} head={<Masthead title="Earnings" meta="Gross pay for shifts your supervisors approved. Turfcut takes no cut." />}>
       {/* One compact band (#114 Earnings): each figure a real sum in its own pay state, never merged; the Payouts card right under it is the way to unblock approved pay. */}
       <section aria-labelledby="earnings-totals-heading">
         <h2 id="earnings-totals-heading" className="sr-only">All campaigns</h2>
@@ -207,7 +207,7 @@ export default async function EarningsPage({ searchParams }: { searchParams: Pro
           </section>
         ))
       )}
-      <p className="text-hint">Amounts never change after approval. <Link href="/guide#pay" className="link">How pay works</Link></p>
+      <p className="text-hint">Once pay is approved for payment, the amount never changes. <Link href="/guide#pay" className="link">How pay works</Link></p>
     </ReadingPage>
   );
 }

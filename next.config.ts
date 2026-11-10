@@ -39,6 +39,11 @@ const nextConfig: NextConfig = {
           { key: "Cache-Control", value: "private, no-store" },
         ],
       },
+      // A person's own profile photo: shown as a picture and nothing else.
+      {
+        source: "/api/profile-photo",
+        headers: [{ key: "Content-Security-Policy", value: "default-src 'none'; img-src 'self'; frame-ancestors 'none'; sandbox" }],
+      },
       // The offline brief's service worker must never be served stale. Listed
       // after the rule above so its own policy wins (the last match does).
       // As the Next.js PWA guide sets them for a service worker.

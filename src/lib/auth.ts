@@ -36,6 +36,8 @@ export interface SessionProfile {
   roleName: string | null;
   /** Organization staff's own name (Profile.displayName), shown to them in the rail; absent or null when unset. */
   displayName?: string | null;
+  /** The person's own profile photo, if they added one ; shown only to them. */
+  avatarKey?: string | null;
 }
 
 /**
@@ -104,6 +106,7 @@ export const getSessionProfile = cache(async (): Promise<SessionProfile | null> 
     grants: profile.role === "CUSTOM" ? liveGrants(profile.orgRole, profile.orgId) : null,
     roleName: profile.role === "CUSTOM" ? (profile.orgRole?.name ?? null) : null,
     displayName: profile.displayName,
+    avatarKey: profile.avatarKey,
   };
 });
 

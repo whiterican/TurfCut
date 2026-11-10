@@ -1,4 +1,5 @@
 import type { Role, SessionProfile } from "@/lib/auth";
+import { ownPhotoUrl } from "@/lib/profile-photo-key";
 import { accessFor, ROLE_LABELS, type Area, type Grants } from "@/lib/access";
 
 /** The glyph a tab shows (drawn in components/AppNav; a plain id here keeps React out of lib). */
@@ -177,6 +178,6 @@ export function activeTab(tabs: NavTab[], pathname: string): string | null {
 }
 
 /** Who the rail says is signed in: their own name (else their email), and their role as the organization names it. */
-export function railPerson(s: Pick<SessionProfile, "displayName" | "email" | "role" | "roleName">): { name: string; role: string } {
-  return { name: s.displayName?.trim() || s.email || "Your account", role: s.roleName ?? ROLE_LABELS[s.role] };
+export function railPerson(s: Pick<SessionProfile, "displayName" | "email" | "role" | "roleName" | "avatarKey">): { name: string; role: string; photo: string | null } {
+  return { name: s.displayName?.trim() || s.email || "Your account", role: s.roleName ?? ROLE_LABELS[s.role], photo: ownPhotoUrl(s.avatarKey) };
 }

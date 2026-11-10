@@ -1,0 +1,22 @@
+import pw from "/opt/node-tools/node_modules/playwright/index.js";
+const S = process.env.S; if (!S) throw new Error("Set S to the folder that holds fp/jordan.json (a worker)"); const b = await pw.chromium.launch();
+const c = await b.newContext({ storageState: `${S}/fp/jordan.json`, viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+const p = await c.newPage(); const cdp = await c.newCDPSession(p);
+const swipe = async (x1, y1, x2, y2) => { const pts = (x, y) => [{ x, y, id: 1 }];
+  await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: pts(x1, y1) });
+  for (let i = 1; i <= 6; i++) await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: pts(x1 + ((x2 - x1) * i) / 6, y1 + ((y2 - y1) * i) / 6) });
+  await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] }); await p.waitForTimeout(500); };
+const open = () => p.evaluate(() => !!document.querySelector("dialog.more-sheet")?.open);
+const go = async (r) => { await p.goto("http://localhost:3475" + r, { waitUntil: "networkidle", timeout: 240000 }); await p.waitForTimeout(600); };
+await go("/jobs");
+await swipe(200, 500, 330, 505); console.log("middle swipe opens:", await open());
+await swipe(8, 600, 30, 760); console.log("edge scroll opens:", await open());
+await swipe(8, 700, 140, 705); console.log("left edge swipe opens:", await open());
+await swipe(250, 400, 120, 405); console.log("swipe left on drawer -> open:", await open());
+await swipe(384, 700, 250, 695); console.log("right edge swipe opens:", await open());
+await p.keyboard.press("Escape"); await p.waitForTimeout(300);
+const chips = await p.evaluate(() => { const e = [...document.querySelectorAll("*")].find((n) => n.scrollWidth > n.clientWidth + 1 && /(auto|scroll)/.test(getComputedStyle(n).overflowX) && n.getBoundingClientRect().height < 80 && n.getBoundingClientRect().height > 20); const r = e?.getBoundingClientRect(); return r && { y: r.top + r.height / 2 }; });
+if (chips) { await swipe(384, chips.y, 250, chips.y); console.log("swipe from the right edge on the filter chips row opens:", await open()); await p.keyboard.press("Escape"); await p.waitForTimeout(300); }
+const card = await p.evaluate(() => { const r = document.querySelector(".swipe-card")?.getBoundingClientRect(); return r && { x: r.left + 6, y: r.top + r.height / 2 }; });
+if (card) { await swipe(card.x, card.y, card.x + 140, card.y); console.log("swipe starting on a job card (x=" + Math.round(card.x) + ") opens:", await open(), "url", p.url().replace(/.*3475/, "")); }
+await b.close();

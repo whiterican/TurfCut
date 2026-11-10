@@ -189,13 +189,14 @@
   /* Liquid Glass by night: a dimmer pane, a fainter lit edge. */
   --glass-bg: color-mix(in srgb, var(--surface) 74%, transparent);
   --glass-bg-strong: color-mix(in srgb, var(--surface) 82%, transparent);
+  --glass-bg-bar: color-mix(in srgb, var(--surface) 88%, transparent);
   --glass-border: rgb(255 255 255 / 0.14);
   --glass-highlight: inset 0 1px 0 rgb(255 255 255 / 0.2), inset 0 -1px 0 rgb(255 255 255 / 0.04), 0 12px 32px -14px rgb(0 0 0 / 0.7);
   --glass-sheen: linear-gradient(180deg, rgb(255 255 255 / 0.1), rgb(255 255 255 / 0) 46%);
   --card-bg: color-mix(in srgb, var(--surface) 88%, transparent);
   --card-edge: inset 0 1px 0 rgb(255 255 255 / 0.1);
   --card-sheen: linear-gradient(180deg, rgb(255 255 255 / 0.05), rgb(255 255 255 / 0) 38%);
-  --page-wash: radial-gradient(130% 34rem at 50% -8rem, color-mix(in srgb, var(--ring) 38%, transparent), transparent 72%);
+  --page-wash: radial-gradient(130% 34rem at 50% -8rem, color-mix(in srgb, var(--ring) 17%, transparent), transparent 72%);
 }
 
 .sun {
@@ -258,6 +259,10 @@
   /* Sunlight is for glare: nothing translucent, the dock its black frame again. */
   --glass-bg: var(--surface);
   --glass-bg-strong: var(--surface);
+  --glass-bg-bar: var(--surface);
+  --header-bg: var(--bg);
+  --dock-border: var(--shell-edge);
+  --dock-ring: var(--shell-bg);
   --glass-border: var(--border);
   --glass-highlight: 0 0 0 0 transparent;
   --glass-filter: none;
@@ -283,6 +288,9 @@ html {
      soft drop. Sunlight and "reduce transparency" make all of it solid again (below). */
   --glass-bg: color-mix(in srgb, var(--surface) 62%, transparent);
   --glass-bg-strong: color-mix(in srgb, var(--surface) 80%, transparent);
+  /* Bars that carry small secondary text (the header, a thread's bar, the composer, map credits): denser, so it reads over anything. */
+  --glass-bg-bar: color-mix(in srgb, var(--surface) 88%, transparent);
+  --header-bg: var(--glass-bg-bar);
   --glass-border: color-mix(in srgb, #ffffff 60%, var(--border));
   --glass-highlight: inset 0 1px 0 rgb(255 255 255 / 0.75), inset 0 -1px 0 rgb(255 255 255 / 0.18), 0 10px 30px -14px rgb(28 15 46 / 0.3);
   --glass-filter: blur(22px) saturate(180%);
@@ -295,8 +303,10 @@ html {
   --dock-fg: var(--fg);
   --dock-current-fg: var(--fg);
   --dock-capsule: color-mix(in srgb, var(--fg) 12%, transparent);
+  --dock-border: color-mix(in srgb, var(--fg) 14%, transparent);
+  --dock-ring: var(--surface);
   /* A wash of the brand's sky at the top of every page, for the glass to pick up. */
-  --page-wash: radial-gradient(130% 34rem at 50% -8rem, color-mix(in srgb, var(--sky) 75%, transparent), transparent 72%);
+  --page-wash: radial-gradient(130% 34rem at 50% -8rem, color-mix(in srgb, var(--sky) 40%, transparent), transparent 72%);
   --hero-bg: var(--hero);
   /* Shape, rounder throughout (Caden's reference, Nov 10): xs 10 · sm 14 · md 24 · lg 28 · xl 32.
      Cards md, fields, thumbnails and job rows sm, tags and small tiles xs, the drawer and sheets lg.
@@ -1174,8 +1184,8 @@ body {
   .field {
     @apply block w-full min-h-11 rounded-[var(--radius-control)] border px-3 py-2 text-base text-fg sm:text-sm;
     background: var(--field);
-    /* The same hairline as the tab bar. */
-    border-color: var(--glass-border);
+    /* The page's own hairline (not the glass edge, which is near white by day). */
+    border-color: var(--border);
     box-shadow: var(--card-edge);
   }
   .field::placeholder {
@@ -1660,7 +1670,7 @@ body {
     inset-inline: 12px;
     bottom: calc(10px + env(safe-area-inset-bottom));
     background: var(--glass-sheen), var(--dock-bg);
-    border: 1px solid var(--glass-border);
+    border: 1px solid var(--dock-border);
     -webkit-backdrop-filter: var(--glass-filter);
     backdrop-filter: var(--glass-filter);
     color: var(--dock-fg);
@@ -1780,7 +1790,7 @@ body {
   }
   .tab .unread-badge {
     @apply absolute top-0.5 left-1/2 ml-1.5 min-w-[1.25rem] px-1 text-[0.7rem] leading-[1.25rem];
-    box-shadow: 0 0 0 2px var(--surface);
+    box-shadow: 0 0 0 2px var(--dock-ring);
   }
   /* Two or three places under one tab (Jobs: Find work / My schedule): a
      segmented control, the current one an eggplant tile like the dock's. */
@@ -2421,7 +2431,7 @@ body {
   }
   .swipe-card {
     @apply relative rounded-[var(--radius-card)] border border-border p-4 transition-colors sm:p-5;
-    background: var(--card-sheen), var(--card-bg);
+    background: var(--card-sheen), var(--surface);
     box-shadow: var(--card-edge), var(--shadow-depth);
     touch-action: pan-y;
   }
@@ -2725,7 +2735,7 @@ body {
   .composer {
     @apply sticky z-30 -mx-4 space-y-2 border-t px-4 pt-3 pb-3 sm:-mx-6 sm:px-6 lg:bottom-0;
     bottom: calc(6rem + env(safe-area-inset-bottom));
-    background: var(--glass-bg);
+    background: var(--glass-bg-bar);
     border-color: var(--glass-border);
     -webkit-backdrop-filter: var(--glass-filter);
     backdrop-filter: var(--glass-filter);
@@ -2759,7 +2769,7 @@ body {
   /* z-50: its ··· menu must open above the composer and the tab bar. */
   .thread-top {
     @apply sticky top-0 z-50 -mx-4 -mt-4 space-y-3 border-b px-4 pt-3 pb-3 sm:-mx-6 sm:px-6;
-    background: var(--glass-bg);
+    background: var(--glass-bg-bar);
     border-color: var(--glass-border);
     -webkit-backdrop-filter: var(--glass-filter);
     backdrop-filter: var(--glass-filter);
@@ -2847,7 +2857,7 @@ body {
   padding: 2px 8px;
   border-radius: 9999px;
   color: var(--muted);
-  background: var(--glass-bg);
+  background: var(--glass-bg-bar);
   border: 1px solid var(--glass-border);
   -webkit-backdrop-filter: var(--glass-filter);
   backdrop-filter: var(--glass-filter);
@@ -2955,7 +2965,7 @@ summary.list-none::-webkit-details-marker {
    scrolls under it (not in chat threads, which pin their own top bar). */
 .site-header {
   /* Glass: content scrolls under it, blurred. No line under it. */
-  background: var(--glass-bg);
+  background: var(--header-bg);
   -webkit-backdrop-filter: var(--glass-filter);
   backdrop-filter: var(--glass-filter);
   border-color: transparent;
@@ -3531,11 +3541,25 @@ summary.list-none::-webkit-details-marker {
   .dark {
     --glass-bg: var(--surface);
     --glass-bg-strong: var(--surface);
+    --glass-bg-bar: var(--surface);
+    --header-bg: var(--bg);
     --glass-border: var(--border);
+    --glass-highlight: var(--shadow-depth);
+    --card-edge: 0 0 0 0 transparent;
+    --dock-border: var(--border);
     --glass-filter: none;
     --glass-sheen: none;
     --card-bg: var(--surface);
     --card-sheen: none;
     --page-wash: none;
   }
+}
+/* Buttons inside a glass bar sit on its pane already: no second blur. A thread pins its bar under
+   the status bar, so the wash would show as a strip above it. */
+:is(.thread-top, .composer) .icon-btn {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+body:has(.thread-top) {
+  --page-wash: none;
 }

@@ -143,7 +143,19 @@ describe.each([
     }
     // Anyone who asks for less transparency or more contrast gets solid surfaces.
     expect(css).toMatch(/@media \(prefers-reduced-transparency: reduce\), \(prefers-contrast: more\), \(forced-colors: active\) \{\s*html,\s*\.dark \{\s*--glass-bg: var\(--surface\);/);
-    expect(css).toMatch(/\.site-header \{[^}]*?background: var\(--glass-bg\);/);
+    expect(css).toMatch(/\.site-header \{[^}]*?background: var\(--header-bg\);/);
+    // Bars with small secondary text are denser panes: muted text holds AA over the worst thing behind them.
+    expect(css).toMatch(/--glass-bg-bar: color-mix\(in srgb, var\(--surface\) 88%, transparent\);\s*--header-bg: var\(--glass-bg-bar\);/);
+    if (name !== "sunlight") expect(ratio(t.muted, mix(t.surface, 0.88, name === "dark" ? "#ffffff" : "#000000"))).toBeGreaterThanOrEqual(4.5);
+    // Sunlight and the solid fallback name every pane, and the header goes back to the page colour.
+    for (const body of [themeBody(css, ".sun"), css.slice(css.indexOf("@media (prefers-reduced-transparency: reduce)"))]) {
+      for (const k of ["glass-bg", "glass-bg-strong", "glass-bg-bar", "glass-filter", "glass-sheen", "card-bg", "card-sheen", "page-wash"]) expect(body).toMatch(new RegExp(`--${k}: (var\\(--surface\\)|none);`));
+      expect(body).toMatch(/--header-bg: var\(--bg\);/);
+    }
+    // A field keeps the page's hairline, not the glass edge.
+    expect(css).toMatch(/\.field \{[^}]*?border-color: var\(--border\);/);
+    // The dock's edge is drawn in ink, so it stands apart from the page without leaning on its shadow.
+    expect(css).toMatch(/\.tabbar \{[^}]*?border: 1px solid var\(--dock-border\);/);
     expect(css).toMatch(/\.eyebrow \{[^}]*?color: var\(--kicker\);/);
     // Print drops the menu strip with the dock, and the admin console shows no menu.
     expect(css).toMatch(/\.site-header, \.tabbar, \.phone-top, \.no-print, nextjs-portal \{ display: none !important; \}/);
@@ -417,7 +429,7 @@ describe("the ten locked colours (founder's twelve-screen concept, #111)", () =>
       for (const [, name, value] of body.matchAll(/--([\w-]+):\s*([^;]+);/g)) {
         if (/^#[0-9a-fA-F]{6}$/.test(value.trim())) expect(parsed[name]).toBe(value.trim());
         else if (name === "hero-border") expect(value.trim()).toBe("transparent");
-        else expect(name).toMatch(/^(shadow|shadow-depth|glass-[\w-]+|card-[\w-]+|dock-[\w-]+|page-wash)$/); // the only non-colour tokens: shadows and the glass recipe
+        else expect(name).toMatch(/^(shadow|shadow-depth|glass-(bg|bg-strong|bg-bar|border|highlight|filter|sheen)|card-(bg|edge|sheen)|dock-(bg|fg|border|ring)|header-bg|page-wash)$/); // the only non-colour tokens: shadows and the glass recipe
       }
     }
   });

@@ -45,7 +45,7 @@ describe("motion tokens (P1.1)", () => {
   it("is the only place a duration or curve is written: every animation and transition in the stylesheet reads a token", () => {
     const outside = noComments.replace(block(":where(html) {"), "").replace(block("@media (prefers-reduced-motion: reduce) {"), "").replace(/:root\[data-motion="reduce"\][^{]*\{[^}]*\}/g, "");
     expect(outside.match(/\b\d+(\.\d+)?m?s\b/gi) ?? []).toEqual([]);
-    expect(outside.match(/cubic-bezier\(|steps\(|(?<![-\w])linear(\(|\b)|(?<![-\w])ease(-in-out|-in|-out)?\b|\bstep-(start|end)\b/g) ?? []).toEqual([]);
+    expect(outside.match(/cubic-bezier\(|steps\(|(?<![-\w])linear(?!-gradient)(\(|\b)|(?<![-\w])ease(-in-out|-in|-out)?\b|\bstep-(start|end)\b/g) ?? []).toEqual([]);
     // Tailwind's own duration, delay and animation classes carry raw numbers too.
     expect(outside.match(/@apply[^;]*\b(duration|delay|animate|ease)-/g) ?? []).toEqual([]);
   });

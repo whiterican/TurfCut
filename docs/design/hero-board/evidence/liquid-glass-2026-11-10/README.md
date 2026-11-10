@@ -21,11 +21,18 @@ All evidence is the running app on the local test database in Chromium. It is no
 ## More reflective, more transparent (later on Nov 10)
 
 Caden asked for more of both.
-- **Thinner panes.** Icon-only panes (the dock, icon buttons, map controls) are 45% of the card colour by day and 58% by night, from 62% and 74%. They hold icons, so the test asks 3:1 over the worst thing behind them, the bar for graphics; 55% by night measured 2.91:1, so it is 58%. The drawer and sheets are 72% and 74%, from 80% and 82%. Bars with small grey text (the header, the sidebar, a thread's bar, the composer) are 80%, from 88%: muted text stays above 4.5:1 there. Cards are 80% and 82%.
+- **Thinner panes.** Icon-only panes (the dock, icon buttons, map controls) are 45% of the card colour by day and 62% by night, from 62% and 74%. They hold icons, so the test asks 3:1 over the worst thing behind them, the bar for graphics. The drawer and sheets are 79% and 78%, from 80% and 82%. Bars with small grey text (the header, the sidebar, a thread's bar, the composer) are 80%, from 88%: muted text stays above 4.5:1 there. Cards are 80% and 82%.
 - **The named menu button** moved to the drawer's denser pane, because it carries text.
 - **More reflection.** The sheen is a diagonal glint (bright at the top-left corner, a fainter return at the bottom-right) in place of a top-down fade; the rim is brighter all the way round; the blur behind is richer (more saturation, a little contrast).
 
 `more-light.png` and `more-dark.png`: Home, a job's page and the open drawer.
+
+A separate Claude reviewer then computed the contrast for everything that sits on each pane, with the glint included. Two things did not hold and are corrected, so the final values are less thin than the first cut in three places:
+- by night the white glint over a white backdrop took the dock's icons under 3:1 (2.69:1 at the corner). The night glint is now faint (8% at its brightest) and the night dock pane is 62%;
+- the drawer and sheets carry small grey text, which fell to 3.80:1 by day and 4.23:1 by night. They are 79% and 78% (they were 80% and 82% before this change), and their faintest grey steps up to muted;
+- the tests now pin those values, check muted text on the drawer's pane, and include the night glint.
+
+The two screenshots were taken before these corrections: by night the dock is slightly denser and the glint fainter than shown.
 
 ## Review
 

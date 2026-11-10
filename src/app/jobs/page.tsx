@@ -217,8 +217,8 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
         )}
         <p className="text-hint">
           {showHidden
-            ? "Unhide brings a job back to your feed. Hiding and saving are private to you: neither is ever used to rank jobs or people."
-            : "Swipe right to save a job, left to hide it, or use the buttons. Both are private to you: neither is ever used to rank jobs or people."}
+            ? "Unhide brings a job back. Hiding and saving are private and never used for ranking."
+            : "Swipe right to save, left to hide, or use the buttons. Both are private and never used for ranking."}
           {hiddenCount > 0 && !showHidden && (
             <> <Link href="/jobs?hidden=1" scroll={false} className="link">{plural(hiddenCount, "hidden job", "hidden jobs")}</Link>.</>
           )}

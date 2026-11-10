@@ -106,7 +106,7 @@ export function AvailabilityForm({ availability }: { availability: Availability 
       <fieldset className="card space-y-1" aria-describedby={errId("weekly")}>
         <legend className="float-left w-full font-semibold text-fg">Your usual week</legend>
         <p className="text-muted-sm clear-both pb-1">
-          In your own local time. Working past midnight? Add the late part to the next day too.
+          Your local time. Past midnight? Add the late part to the next day.
         </p>
         <ul className="divide-y divide-border">
           {DAYS.map((d) => {

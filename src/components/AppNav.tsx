@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { BadgeCheck, Bell, Briefcase, CalendarCheck, CalendarClock, ChevronRight, ClipboardList, Clock, Footprints, House, LayoutDashboard, Map, MapPin, Megaphone, Menu, MessageCircle, Newspaper, ReceiptText, Settings, ShieldCheck, Sunrise, User, Users, Wallet, X, type LucideIcon } from "lucide-react";
+import { BadgeCheck, Bell, BookOpen, Briefcase, CalendarCheck, CalendarClock, ChevronRight, ClipboardList, Clock, Footprints, House, LayoutDashboard, Map, MapPin, Megaphone, Menu, MessageCircle, Newspaper, ReceiptText, Settings, ShieldCheck, Sunrise, User, Users, Wallet, X, type LucideIcon } from "lucide-react";
 import { activeTab, MESSAGES_HREF, type NavTab, type TabIconId } from "@/lib/nav";
 import { clampScroll, MIN_DELTA, nextHidden, SHOW_NEAR_TOP } from "@/lib/scroll-hide";
 import { closesDrawer, opensDrawer, SWIPE_OWNERS, tracksTouch, type Point } from "@/lib/edge-swipe";
@@ -13,6 +13,7 @@ import { useUnreadCount } from "@/components/chat/UnreadProvider";
 const ICONS: Record<TabIconId, LucideIcon> = {
   campaigns: Megaphone,
   home: House,
+  guide: BookOpen,
   today: Sunrise, // not Sun: the theme toggle uses that
   feed: Newspaper,
   work: Footprints, // not Briefcase: that's Jobs, and the two sat side by side (tablet pass, #136)

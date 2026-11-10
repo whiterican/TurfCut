@@ -6,7 +6,7 @@ describe("navigation", () => {
   it("gives each role its own tabs", () => {
     // #111: Home · Jobs · Work · Map · Messages, and More (Profile, Feed, Earnings, Settings). Leads waits for its feature (#110).
     expect(navTabs("WORKER", false).map((t) => t.label)).toEqual(["Home", "Jobs", "Work", "Map", "Messages"]);
-    expect(workerMore("WORKER").map((t) => t.label)).toEqual(["Notifications", "Profile", "Campaign feed", "Earnings", "Payment history", "Credentials", "Availability", "Settings"]);
+    expect(workerMore("WORKER").map((t) => t.label)).toEqual(["Notifications", "Profile", "Campaign feed", "Earnings", "Payment history", "Credentials", "Availability", "Guide", "Settings"]);
     expect(workerMore("OWNER")).toEqual([]);
     // C1: no People directory; organizations reach workers through a job.
     expect(navTabs("OWNER", true).map((t) => t.label)).toEqual(["Desk", "Hiring", "Jobs", "Field", "Messages", "Pay", "Credentials", "Campaigns", "Members", "Settings"]);

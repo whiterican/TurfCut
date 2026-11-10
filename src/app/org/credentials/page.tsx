@@ -110,10 +110,9 @@ export default async function OrgCredentialsPage({ searchParams }: { searchParam
         </ul>
       )}
       <p className="text-hint">
-        Turfcut itself never shows you a credential&apos;s number. Look the worker up by name in the state&apos;s registry, or ask to see the original. A
-        worker may share a photo of a Colorado training certificate with organizations that hire them; it shows whatever is printed on it. The worker sees
-        each time your organization opens it, and once you have, you can record that you checked it that way. A photo is something to check, not proof by
-        itself.
+        Turfcut itself never shows you a credential&apos;s number: look the worker up in the state&apos;s registry, or ask for the original. A shared certificate
+        photo is something to check, not proof by itself; the worker sees each time you open it. Open it first to record that you checked it that way.{" "}
+        <Link href="/guide#credentials" className="link">More in the guide</Link>
       </p>
     </WorkspacePage>
   );

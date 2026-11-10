@@ -61,6 +61,16 @@ export default async function SettingsPage() {
           </div>
         </section>
       )}
+      {/* The guide for this person's side of Turfcut: the one link to it that every role has. */}
+      {me && (
+        <section className="section">
+          <h2 className="section-title">Help</h2>
+          <div className="card flex flex-wrap items-center justify-between gap-3">
+            <p className="text-muted-sm">How Turfcut works, in one place.</p>
+            <Link href="/guide" className="btn-secondary btn-sm">Open the guide</Link>
+          </div>
+        </section>
+      )}
       {/* Turfcut staff (M10): the console lives behind its own gate; this is the one link to it that every role sees. */}
       {me?.staff && (
         <section className="section">

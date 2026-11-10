@@ -189,6 +189,7 @@
   /* Liquid Glass by night: a dimmer pane, a fainter lit edge. */
   --glass-bg: color-mix(in srgb, var(--surface) 62%, transparent);
   --glass-bg-strong: color-mix(in srgb, var(--surface) 78%, transparent);
+  --drawer-root: color-mix(in srgb, var(--surface) 78%, color-mix(in srgb, rgb(8 4 14) 60%, var(--bg)));
   --glass-bg-bar: color-mix(in srgb, var(--surface) 80%, transparent);
   --glass-border: rgb(255 255 255 / 0.2);
   --glass-highlight: inset 0 1px 0 rgb(255 255 255 / 0.34), inset 0 -1px 0 rgb(255 255 255 / 0.08), inset 0 0 0 1px rgb(255 255 255 / 0.06), 0 14px 36px -14px rgb(0 0 0 / 0.75);
@@ -259,6 +260,7 @@
   /* Sunlight is for glare: nothing translucent, the dock its black frame again. */
   --glass-bg: var(--surface);
   --glass-bg-strong: var(--surface);
+  --drawer-root: var(--surface);
   --glass-bg-bar: var(--surface);
   --header-bg: var(--bg);
   --dock-border: var(--shell-edge);
@@ -308,6 +310,8 @@ html {
   --dock-capsule: color-mix(in srgb, var(--fg) 12%, transparent);
   --dock-border: color-mix(in srgb, var(--fg) 14%, transparent);
   --dock-ring: var(--surface);
+  /* The root's colour while the menu drawer is open: the drawer's pane over the dimmed page (see the rule at the end of the file). */
+  --drawer-root: color-mix(in srgb, var(--surface) 79%, color-mix(in srgb, rgb(24 20 30) 45%, var(--bg)));
   /* A wash of the brand's sky at the top of every page, for the glass to pick up. */
   --page-wash: radial-gradient(130% 34rem at 50% -8rem, color-mix(in srgb, var(--sky) 40%, transparent), transparent 72%);
   --hero-bg: var(--hero);
@@ -2264,7 +2268,7 @@ body {
   }
   /* By night an eggplant tile is only 1.6:1 from its surface and its label is the
      same colour as the others', so every chosen chip gets a light edge too. */
-  .dark :is(.more-sheet .rail-link[aria-current], .chip:has(input:checked), .chip[aria-current="page"], .filter-chip-on, .step-current, .topnav-link[aria-current]) {
+  .dark :is(.chip:has(input:checked), .chip[aria-current="page"], .filter-chip-on, .step-current, .topnav-link[aria-current]) {
     box-shadow: inset 0 0 0 1px var(--muted);
   }
   /* Forest fills and current tiles keep their keyboard ring outside, in the gap,
@@ -2291,7 +2295,7 @@ body {
       animation: tc-drawer-in var(--dur-slow) var(--ease-out) both;
     }
   }
-  /* The More sheet's rows (#111, screen 12): icon, label, a chevron; a divider between rows. */
+  /* The menu drawer's rows: icon, label, a chevron; rounded, no dividers. */
   .more-list {
     @apply space-y-1;
   }
@@ -2313,11 +2317,12 @@ body {
     padding-top: calc(1rem + env(safe-area-inset-top));
     padding-bottom: calc(1rem + env(safe-area-inset-bottom));
     padding-inline-start: calc(1rem + env(safe-area-inset-left));
-    background: var(--glass-sheen), var(--glass-bg-strong);
+    /* No sheen and no lit top edge here: the pane meets the status bar's strip, which is one flat colour. */
+    background: var(--glass-bg-strong);
     border-color: var(--glass-border);
     -webkit-backdrop-filter: var(--glass-filter);
     backdrop-filter: var(--glass-filter);
-    box-shadow: var(--glass-highlight);
+    box-shadow: 0 12px 34px -14px rgb(28 15 46 / 0.36);
   }
   /* The menu button (components/AppNav MenuButton): with a name, a pill led by the person's initial; without, the glyph alone. */
   .menu-button {
@@ -2367,19 +2372,6 @@ body {
   }
   .dark .more-sheet::backdrop {
     background: rgb(8 4 14 / 0.6);
-  }
-  /* An installed app on a phone draws the status bar's strip in the root's colour, above the page.
-     While the drawer is open the root takes the drawer's own colour (its pane over the dimmed
-     page), and the drawer's top edge is square, so the drawer reads as running to the top of the
-     screen instead of stopping under a strip of page colour. */
-  html:has(.more-sheet[open]) {
-    background: color-mix(in srgb, var(--surface) 79%, color-mix(in srgb, rgb(24 20 30) 45%, var(--bg)));
-  }
-  html.dark:has(.more-sheet[open]) {
-    background: color-mix(in srgb, var(--surface) 78%, color-mix(in srgb, rgb(8 4 14) 60%, var(--bg)));
-  }
-  html.sun:has(.more-sheet[open]) {
-    background: var(--surface);
   }
   /* Bottom sheet (components/Sheet.tsx, P1.6): a native modal dialog that
      springs up from the bottom edge; centred on wide screens. */
@@ -3539,6 +3531,7 @@ summary.list-none::-webkit-details-marker {
   .dark {
     --glass-bg: var(--surface);
     --glass-bg-strong: var(--surface);
+    --drawer-root: var(--surface);
     --glass-bg-bar: var(--surface);
     --header-bg: var(--bg);
     --glass-border: var(--border);
@@ -3564,4 +3557,13 @@ body:has(.thread-top) {
 /* The faintest grey is under AA on a pane once something dark scrolls behind it: in the glass bars it takes the muted grey. */
 :is(.thread-top, .composer, .more-sheet-panel, .sheet-panel) {
   --subtle: var(--muted);
+}
+/* An installed app on a phone draws the status bar's strip in the root's colour, above the page,
+   where the page cannot paint. While the menu drawer is open the root takes the drawer's colour,
+   and the drawer's top edge is square, so the drawer reads as running to the top of the screen.
+   Unlayered on purpose: the root's own background is unlayered, and a layered rule would lose to it. */
+@media screen {
+  html:has(.more-sheet[open]) {
+    background: var(--drawer-root);
+  }
 }

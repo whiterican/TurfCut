@@ -66,3 +66,5 @@ On Caden's iPhone, with the app installed to the home screen, the drawer stopped
 - Opening the drawer focuses its panel, not its first row, so no outline appears on touch. Tab still goes to the rows.
 
 `drawer-flush.png` is Chromium, which has no status-bar strip: it shows the rows and the square top edge. Whether iOS repaints the strip when the root's colour changes while the app is open is not verified here; it needs a look on the phone.
+
+A separate Claude reviewer found that the first version of the root-colour rule could never apply: it sat inside a cascade layer, and the root's own background is outside every layer, so it won. The rule is now outside the layers, on screen only (print keeps white), driven by one token that Sunlight and the solid fallback set to the plain card colour. The drawer's pane also lost its glint and lit top edge, which would have drawn a seam against the flat strip. A test pins where the rule sits. Known compromise: the strip is the full width of the screen and the drawer is not, so the strip's right end sits above the dimmed page.

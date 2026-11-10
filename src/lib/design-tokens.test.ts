@@ -446,7 +446,7 @@ describe("the ten locked colours (founder's twelve-screen concept, #111)", () =>
       for (const [, name, value] of body.matchAll(/--([\w-]+):\s*([^;]+);/g)) {
         if (/^#[0-9a-fA-F]{6}$/.test(value.trim())) expect(parsed[name]).toBe(value.trim());
         else if (name === "hero-border") expect(value.trim()).toBe("transparent");
-        else expect(name).toMatch(/^(shadow|shadow-depth|glass-(bg|bg-strong|bg-bar|border|highlight|filter|sheen)|card-(bg|edge|sheen)|dock-(bg|fg|border|ring)|header-bg|page-wash)$/); // the only non-colour tokens: shadows and the glass recipe
+        else expect(name).toMatch(/^(shadow|shadow-depth|glass-(bg|bg-strong|bg-bar|border|highlight|filter|sheen)|card-(bg|edge|sheen)|dock-(bg|fg|border|ring)|drawer-root|header-bg|page-wash)$/); // the only non-colour tokens: shadows and the glass recipe
       }
     }
   });
@@ -511,7 +511,7 @@ describe("forest ink is for what is live and the one primary action (G1)", () =>
     }
   });
   it("by night a chosen chip has a light edge as well as its fill (the fill alone is under 3:1; the dock's lavender tile needs none)", () => {
-    expect(css).toMatch(/\.dark :is\(\.more-sheet \.rail-link\[aria-current\][^{]*\{\s*box-shadow: inset 0 0 0 1px var\(--muted\);/);
+    expect(css).toMatch(/\.dark :is\(\.chip:has\(input:checked\)[^{]*\{\s*box-shadow: inset 0 0 0 1px var\(--muted\);/);
     expect(ratio(dark.muted, dark.surface)).toBeGreaterThanOrEqual(3);
   });
   it("the custom switch is the switch colour, not the primary action's green", () => {
@@ -629,7 +629,19 @@ describe("the shell (redesign B1.4)", () => {
       // The current row is told apart from the panel (by night with a lavender edge as well).
       expect(ratio(th["tab-active-bg"], th.surface)).toBeGreaterThanOrEqual(th === dark ? 1.5 : 3);
     }
-    expect(css).toMatch(/\.dark :is\(\.more-sheet \.rail-link\[aria-current\], \.chip:has\(input:checked\)/);
+    // In the drawer the current row is the dock's capsule outside Sunlight (bold as well, so not colour alone); Sunlight keeps the solid tile above.
+    expect(css).toMatch(/html:not\(\.sun\) \.more-sheet \.rail-link\[aria-current\] \{\s*background: var\(--dock-capsule\);\s*color: var\(--fg\);\s*box-shadow: none;/);
+    expect(css).toMatch(/\.rail-link\[aria-current\] \{\s*@apply font-bold;/);
+    // While the drawer is open the root takes its colour (the status bar's strip in an installed app). The rule must sit outside
+    // every layer, on screen only: the root's own background is unlayered and would beat a layered rule; print keeps white.
+    const rootRule = css.indexOf("html:has(.more-sheet[open]) {");
+    expect(rootRule).toBeGreaterThan(-1);
+    const before = css.slice(0, rootRule).replace(/\/\*[\s\S]*?\*\//g, "");
+    const depthOf = (src: string) => src.split("{").length - src.split("}").length;
+    expect(depthOf(before)).toBe(1); // inside @media screen only
+    expect(before.slice(before.lastIndexOf("@media"))).toMatch(/^@media screen \{\s*$/);
+    expect(css).toMatch(/html:has\(\.more-sheet\[open\]\) \{\s*background: var\(--drawer-root\);/);
+    for (const body of [themeBody(css, ".sun"), css.slice(css.indexOf("@media (prefers-reduced-transparency: reduce)"))]) expect(body).toMatch(/--drawer-root: var\(--surface\);/);
   });
 
   it("has a skip link that appears on keyboard focus, landing on a wrapper without a ring", () => {

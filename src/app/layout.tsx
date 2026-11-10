@@ -79,7 +79,7 @@ export default async function RootLayout({
         <ViewerKindProvider kind={!session ? "none" : session.role === "WORKER" ? "worker" : session.orgId ? "org" : "none"}>
         <UnreadProvider initial={unread} enabled={tabs.some((t) => t.href === MESSAGES_HREF)}>
         <NoticesProvider count={notices}>
-        <SiteHeader signedIn={!!session} isOrg={isOrg} tabs={[]} notices={notices} workerPhone={session?.role === "WORKER"} menu={session && (isOrg ? org.phone.length > 0 && org.more.length > 0 : tabs.length > 0 && workerMore(session.role).length > 0) ? <MenuButton notices={isOrg ? 0 : notices} /> : undefined} />
+        <SiteHeader signedIn={!!session} isOrg={isOrg} tabs={[]} notices={notices} workerPhone={session?.role === "WORKER"} menu={session && isOrg && org.phone.length > 0 && org.more.length > 0 ? <MenuButton /> : undefined} />
         {isOrg && session ? (
           <div className="org-shell">
             <OrgRail tabs={org.rail} orgName={orgInfo?.name ?? "Your organization"} approved={orgInfo ? orgInfo.approved : null} person={railPerson(session)} />
@@ -90,7 +90,7 @@ export default async function RootLayout({
           </div>
         ) : session && tabs.length > 0 ? (
           // A worker: the same shell as an organization. From 768 up every destination is in the sidebar; a phone keeps the dock and the menu strip.
-          <div className="org-shell">
+          <div className="org-shell" data-worker="">
             <OrgRail tabs={[...tabs, ...workerMore(session.role)]} person={railPerson(session)} foot={<SignOutButton action={signOut} userId={session.userId} />} />
             <div id="content" tabIndex={-1} className="skip-target flex min-w-0 flex-1 flex-col">
               {/* A worker's phone has no site header: the menu button gets a strip of its own above the page. */}

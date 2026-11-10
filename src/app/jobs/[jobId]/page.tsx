@@ -112,7 +112,7 @@ export default async function JobPage({ params }: { params: Promise<{ jobId: str
   const head = (
     <>
     <div className="job-photo-head">
-      <JobPhoto type={job.type} src={photo} sizes="(min-width: 64rem) 720px, 100vw" priority />
+      <JobPhoto type={job.type} src={photo} sizes="(min-width: 48rem) 720px, 100vw" priority />
       <JobHeadActions jobId={job.id} back="/jobs" saved={saved} canSave={isWorker} title={job.title} />
     </div>
     {isOwnOrg ? (

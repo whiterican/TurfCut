@@ -18,6 +18,18 @@ Evidence is the running app on the local test database in Chromium with touch em
 - `sweep.txt`: 162 page loads. A worker on 15 pages and an organization owner on 12, each at 390, 768, 820, 1024, 1280 and 1440. No page overflows sideways. The dock shows only at 390 and the sidebar at every other width.
 - One table needs its own sideways scroll on a tablet: the Hiring pipeline at 768 (241px) and 820 (189px). The page itself does not scroll.
 
+## Review
+
+A separate Claude reviewer looked at worker, owner and staff pages at 768×1024, 1024×768, 1024×600 and 1440×900, light and dark, and found nothing blocking. Its findings, fixed:
+- on a short window the worker's Sign out was cut off (the list now scrolls and the foot stays in view; measured at 1024×768 and 1024×600);
+- a worker's two-column pages still split at 1024, leaving a 428px main column beside the sidebar (they now wait for 1280, as an organization's do; the main column at 1024 is 756px);
+- the profile's own sub-menu repeated the sidebar (it is no longer drawn);
+- space for the dock was still left under pages from 768 to 1023; a job's photo sat 24px under the header there; the keyboard rule, the composer and the sign-in form still referred to the old tablet dock.
+
+Left as they are, for Caden: the admin console's sidebar is glass while its band stays solid eggplant; Notifications and Settings appear in both the header and the sidebar; the sidebar's Notifications row shows no count (the header's bell does).
+
+The screenshots and `sweep.txt` were retaken after these fixes.
+
 ## Evidence
 
 - `tablet-768.png`: a worker's Home and an organization's Hiring at 768.
@@ -26,7 +38,7 @@ Evidence is the running app on the local test database in Chromium with touch em
 ## Not done
 
 - Not checked: a real tablet, Safari, dark and Sunlight by eye, the admin console.
-- `topNavTabs` in `src/lib/nav.ts` and the `TopNav` component are no longer used by the layout; they can go in a clean-up.
+- Dead code to remove in a clean-up: `TopNav`, `topNavTabs`, the `.topnav` styles, `ProfileNav` and the theme toggle's `iconOnlyWide`. The local preview harness still imports some of it.
 
 ## Rerun
 

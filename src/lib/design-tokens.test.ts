@@ -668,7 +668,7 @@ describe("the shell (redesign B1.4)", () => {
     const layout = readFileSync(join(__dirname, "../app/layout.tsx"), "utf8");
     expect(layout).toMatch(/<OrgRail tabs=\{\[\.\.\.tabs, \.\.\.workerMore\(session\.role\)\]\}/);
     // While a field takes typing on a touch device the dock still steps aside (phones only now).
-    expect(css).toMatch(/@media \(max-width: 79\.99rem\) and \(pointer: coarse\) \{\s*body:has\(\.composer-input:focus\) \.tabbar/);
+    expect(css).toMatch(/@media \(max-width: 47\.99rem\) and \(pointer: coarse\) \{\s*body:has\(\.composer-input:focus\) \.tabbar/);
     // The sidebar is glass outside Sunlight: ink type on the pane.
     expect(css).toMatch(/html:not\(\.sun\) \.org-rail \{[^}]*?--shell-fg: var\(--fg\);[^}]*?background: var\(--glass-sheen\), var\(--glass-bg-bar\);/);
   });

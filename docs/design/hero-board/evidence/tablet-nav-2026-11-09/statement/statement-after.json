@@ -13,23 +13,23 @@
       "consoleErrors": [],
       "file": "statement-after-screen-390.png",
       "source": {
-        "commit": "461f225"
+        "commit": "1d60de9"
       }
     },
     {
       "viewport": "640x900",
       "media": "screen",
       "stacked": false,
-      "overflow": 67,
-      "tableWidth": 642,
-      "currentStateCutOff": true,
+      "overflow": 0,
+      "tableWidth": 575,
+      "currentStateCutOff": false,
       "jobLines": 3,
       "tableHeight": 490,
       "pageOver": -15,
       "consoleErrors": [],
       "file": "statement-after-screen-640.png",
       "source": {
-        "commit": "461f225"
+        "commit": "1d60de9"
       }
     },
     {
@@ -45,7 +45,7 @@
       "consoleErrors": [],
       "file": "statement-after-screen-768.png",
       "source": {
-        "commit": "461f225"
+        "commit": "1d60de9"
       }
     },
     {
@@ -61,7 +61,7 @@
       "consoleErrors": [],
       "file": "statement-after-screen-1024.png",
       "source": {
-        "commit": "461f225"
+        "commit": "1d60de9"
       }
     },
     {
@@ -77,7 +77,7 @@
       "consoleErrors": [],
       "file": "statement-after-screen-1440.png",
       "source": {
-        "commit": "461f225"
+        "commit": "1d60de9"
       }
     },
     {
@@ -93,63 +93,63 @@
       "consoleErrors": [],
       "file": "statement-after-print-720.png",
       "source": {
-        "commit": "461f225"
+        "commit": "1d60de9"
       }
     }
   ],
   "sweep": [
     {
       "width": 640,
-      "overflow": 67,
-      "currentStateCutOff": true,
+      "overflow": 0,
+      "currentStateCutOff": false,
       "jobLines": 3
     },
     {
       "width": 648,
-      "overflow": 59,
-      "currentStateCutOff": true,
+      "overflow": 0,
+      "currentStateCutOff": false,
       "jobLines": 3
     },
     {
       "width": 656,
-      "overflow": 51,
-      "currentStateCutOff": true,
+      "overflow": 0,
+      "currentStateCutOff": false,
       "jobLines": 3
     },
     {
       "width": 664,
-      "overflow": 43,
-      "currentStateCutOff": true,
+      "overflow": 0,
+      "currentStateCutOff": false,
       "jobLines": 3
     },
     {
       "width": 672,
-      "overflow": 35,
-      "currentStateCutOff": true,
+      "overflow": 0,
+      "currentStateCutOff": false,
       "jobLines": 3
     },
     {
       "width": 680,
-      "overflow": 27,
-      "currentStateCutOff": true,
+      "overflow": 0,
+      "currentStateCutOff": false,
       "jobLines": 3
     },
     {
       "width": 688,
-      "overflow": 19,
-      "currentStateCutOff": true,
+      "overflow": 0,
+      "currentStateCutOff": false,
       "jobLines": 3
     },
     {
       "width": 696,
-      "overflow": 11,
-      "currentStateCutOff": true,
+      "overflow": 0,
+      "currentStateCutOff": false,
       "jobLines": 3
     },
     {
       "width": 704,
-      "overflow": 3,
-      "currentStateCutOff": true,
+      "overflow": 0,
+      "currentStateCutOff": false,
       "jobLines": 3
     },
     {
@@ -168,7 +168,7 @@
       "width": 728,
       "overflow": 0,
       "currentStateCutOff": false,
-      "jobLines": 3
+      "jobLines": 2
     },
     {
       "width": 736,
@@ -178,6 +178,6 @@
     }
   ],
   "source": {
-    "commit": "461f225"
+    "commit": "1d60de9"
   }
 }

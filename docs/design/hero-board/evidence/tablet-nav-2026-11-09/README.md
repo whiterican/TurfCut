@@ -8,7 +8,7 @@ All evidence is the running app on the local test databases, in Chromium with to
 
 Between 1024 and 1279 the worker's top bar shows icons only. Their names are tooltips, which a finger never sees, and Jobs and Work were both briefcases (Work is now Footprints, section 4).
 
-Under `(hover: none) and (pointer: coarse)` the worker now keeps the labelled dock in that band. The top bar's links step aside; the header keeps its bell, settings and theme. Elsewhere nothing changes:
+Under `(pointer: coarse)` the worker now keeps the labelled dock in that band. The top bar's links step aside; the header keeps its bell, settings and theme. Elsewhere nothing changes:
 - mouse desktops keep the #113 top bar;
 - from 1280, every pointer gets the labelled top bar;
 - organization roles keep their rail.
@@ -57,6 +57,7 @@ The More sheet used to be hidden from 1024 by a width rule. On a touch tablet, M
 - **An iPad with a trackpad.** Not tested. Safari may keep reporting `none`/`coarse` (dock) or switch to `hover`/`fine` (top bar, whose tooltips the trackpad can show). Either way there is navigation.
 - **Split View, Slide Over and Stage Manager.** A window narrower than 1024 already had the phone dock; other widths follow the same rules.
 - **`hover: none` with `pointer: fine`.** The query fails, so the top bar shows.
+- **Touch tablets that report hover (Nov 10).** The query first also asked for `hover: none`. Chromium on some Samsung tablets reports `hover: hover` on a touchscreen ([MDN's note on `hover`](https://developer.mozilla.org/docs/Web/CSS/@media/hover), [a write-up](https://www.ctrl.blog/entry/css-media-hover-samsung.html)), which would have left them on the icon-only top bar. The query now asks only for a coarse primary pointer. Not measured: Chromium here would not emulate a coarse pointer that hovers, so this rests on the rule's logic. Re-checked at `1d60de9`: with touch the dock shows and the top bar's links go; with a mouse the top bar stays.
 
 ### Not changed
 
@@ -132,12 +133,12 @@ The heights in this table come from a console run of `for-astra/statement-layout
 - A correction's reference and a receipt number never break at their hyphens.
 - The total row spans three columns. The CSV is unchanged, with its own `project` column.
 
-Measured with `statement-after.mjs` at `461f225` (`statement/statement-after.json`). Print is measured after the print rules apply.
+Measured with `statement-after.mjs` at `1d60de9` (`statement/statement-after.json`). Print is measured after the print rules apply.
 
 | Width | Table | Current state | Job title |
 | :--- | :--- | :--- | :--- |
 | 390 (stacked rows) | Fits | Visible | 1 line |
-| 640 | Overflows by 67px (145 before) | Behind the sideways scroll | 3 lines |
+| 640 | Fits (145px over before) | Visible | 3 lines |
 | 768 | Fits (2px over before) | Visible | 3 lines (6 before); 470px tall (637 before) |
 | 1024 | Fits | Visible | 2 lines (5 before) |
 | 1440 | Fits | Visible | 2 lines (5 before) |
@@ -146,7 +147,7 @@ Measured with `statement-after.mjs` at `461f225` (`statement/statement-after.jso
 The job line keeps a 7rem minimum. An 8rem minimum gave two-line titles at 768 but pushed Current state 3px past the box in print. With no minimum, titles took three lines even at 1024 and 1440.
 
 **Still imperfect:**
-- **640 to 704px.** The sweep in `statement-after.json` shows Current state needs the table's sideways scroll there; from 712 the table fits. That band is narrower than any tablet in portrait. Stacking this table's rows up to about 46rem would end it.
+- **640 to 735px (fixed Nov 10).** Current state needed the table's sideways scroll from 640 to 704. On screen in that band the cells are now tighter (6px a side, 12px elsewhere) and a worker's name may wrap, as it does on a phone. The sweep in `statement-after.json` shows no overflow at any width from 640 to 736. Print is unchanged.
 - **Untested cases.** The test database has one job, no "Other pay" lines, no corrections, and only light mode here. The cross-reviewer simulated them in the browser:
   - a 79-character title takes 5 lines at 768 and 4 at 1024;
   - "Other pay" shows "—" with "Other pay" under it;

@@ -6,6 +6,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { BadgeCheck, Bell, Briefcase, CalendarCheck, CalendarClock, ChevronRight, ClipboardList, Clock, Footprints, House, LayoutDashboard, Map, MapPin, Megaphone, Menu, MessageCircle, Newspaper, ReceiptText, Settings, ShieldCheck, Sunrise, User, Users, Wallet, X, type LucideIcon } from "lucide-react";
 import { activeTab, MESSAGES_HREF, type NavTab, type TabIconId } from "@/lib/nav";
 import { clampScroll, MIN_DELTA, nextHidden, SHOW_NEAR_TOP } from "@/lib/scroll-hide";
+import { closesDrawer, edgeOf, opensDrawer, SWIPE_OWNERS, type Point } from "@/lib/edge-swipe";
 import { useUnreadCount } from "@/components/chat/UnreadProvider";
 
 /** One glyph per tab id (lib/nav decides who gets which tabs). Exhaustive: a new id fails to compile until it has a glyph. */
@@ -206,6 +207,44 @@ export function OrgTabBar({ tabs, more, extra, notices = 0, person }: { tabs: Na
     window.addEventListener(OPEN_MENU, onOpen);
     return () => window.removeEventListener(OPEN_MENU, onOpen);
   }, []);
+  // A swipe in from either edge of the screen opens the drawer, and a swipe left on it closes it
+  // (lib/edge-swipe). Phones only: from 768 the sidebar is always there. A touch that begins on
+  // something with its own sideways drag (a job card, a map, a field) is left alone.
+  const hasMore = more.length > 0;
+  useEffect(() => {
+    if (!hasMore) return;
+    const phone = window.matchMedia("(max-width: 47.99rem)");
+    let start: Point | null = null;
+    let onDrawer = false;
+    const at = (e: TouchEvent): Point => ({ x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY });
+    const onStart = (e: TouchEvent) => {
+      start = null;
+      if (!phone.matches || e.touches.length !== 1) return;
+      const target = e.target instanceof Element ? e.target : null;
+      onDrawer = !!target?.closest(".more-sheet");
+      // Another dialog is open (a sheet, a confirmation): its gestures are its own.
+      if (!onDrawer && document.querySelector("dialog[open]")) return;
+      if (!onDrawer && (target?.closest(SWIPE_OWNERS) || !edgeOf(at(e), window.innerWidth))) return;
+      start = at(e);
+    };
+    const onEnd = (e: TouchEvent) => {
+      if (!start) return;
+      const end = at(e);
+      if (onDrawer ? closesDrawer(start, end) : opensDrawer(start, end, window.innerWidth)) setOpen(!onDrawer);
+      start = null;
+    };
+    const onCancel = () => {
+      start = null;
+    };
+    window.addEventListener("touchstart", onStart, { passive: true });
+    window.addEventListener("touchend", onEnd, { passive: true });
+    window.addEventListener("touchcancel", onCancel, { passive: true });
+    return () => {
+      window.removeEventListener("touchstart", onStart);
+      window.removeEventListener("touchend", onEnd);
+      window.removeEventListener("touchcancel", onCancel);
+    };
+  }, [hasMore]);
   // Nothing left to show (e.g. the role changed): the sheet can't stay open.
   if (open && more.length === 0) setOpen(false);
   // Keep the dialog in step with state; focus the panel on opening.

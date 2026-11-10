@@ -15,6 +15,8 @@ await swipe(8, 700, 140, 705); console.log("left edge swipe opens:", await open(
 await swipe(250, 400, 120, 405); console.log("swipe left on drawer -> open:", await open());
 await swipe(384, 700, 250, 695); console.log("right edge swipe opens:", await open());
 await p.keyboard.press("Escape"); await p.waitForTimeout(300);
+const chips = await p.evaluate(() => { const e = [...document.querySelectorAll("*")].find((n) => n.scrollWidth > n.clientWidth + 1 && /(auto|scroll)/.test(getComputedStyle(n).overflowX) && n.getBoundingClientRect().height < 80 && n.getBoundingClientRect().height > 20); const r = e?.getBoundingClientRect(); return r && { y: r.top + r.height / 2 }; });
+if (chips) { await swipe(384, chips.y, 250, chips.y); console.log("swipe from the right edge on the filter chips row opens:", await open()); await p.keyboard.press("Escape"); await p.waitForTimeout(300); }
 const card = await p.evaluate(() => { const r = document.querySelector(".swipe-card")?.getBoundingClientRect(); return r && { x: r.left + 6, y: r.top + r.height / 2 }; });
 if (card) { await swipe(card.x, card.y, card.x + 140, card.y); console.log("swipe starting on a job card (x=" + Math.round(card.x) + ") opens:", await open(), "url", p.url().replace(/.*3475/, "")); }
 await b.close();

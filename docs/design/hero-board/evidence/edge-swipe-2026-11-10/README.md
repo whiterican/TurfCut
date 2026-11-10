@@ -22,11 +22,19 @@ The rules are in `src/lib/edge-swipe.ts`, with unit tests.
 | Swipe in from the left edge | opens |
 | Swipe left on the open drawer | closes |
 | Swipe in from the right edge | opens |
+| Swipe from the right edge across the filter chips row | stays closed (the row scrolls) |
 | Swipe right beginning on a job card near the edge | stays closed (the card takes it) |
+
+## Review
+
+A separate Claude reviewer found nothing blocking and two behaviours to fix, both fixed:
+- the swipe opened the drawer on the admin console, where the menu is hidden on purpose. It now works only where a menu button is on screen, so it always stands in for a control the person can see;
+- a swipe from the edge across something that scrolls sideways (the Jobs filter chips, a wide table) both scrolled it and opened the drawer. Such touches are now left to the scroller.
+Also: maps are left alone before the map has loaded, and a pinch-zoomed page pans instead. The guard order is a pure function with its own tests.
 
 ## Not checked
 
-A real iPhone. An installed app on iOS has its own swipe from the left edge to go back a page; which of the two wins there, or whether both fire, needs a look on the phone. The right edge has no such system gesture.
+A real iPhone. An installed app on iOS has its own swipe from the left edge to go back a page; which of the two wins there, or whether both fire, needs a look on the phone. In Safari the right edge goes forward a page. On Android phones that use gesture navigation, the system owns both edges and the page may never see the touch, so the swipe will mostly not work there. The menu button is the dependable way in on every phone; the swipe is a shortcut where the system allows it.
 
 ## Rerun
 

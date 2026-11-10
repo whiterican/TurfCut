@@ -6,7 +6,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { BadgeCheck, Bell, Briefcase, CalendarCheck, CalendarClock, ChevronRight, ClipboardList, Clock, Footprints, House, LayoutDashboard, Map, MapPin, Megaphone, Menu, MessageCircle, Newspaper, ReceiptText, Settings, ShieldCheck, Sunrise, User, Users, Wallet, X, type LucideIcon } from "lucide-react";
 import { activeTab, MESSAGES_HREF, type NavTab, type TabIconId } from "@/lib/nav";
 import { clampScroll, MIN_DELTA, nextHidden, SHOW_NEAR_TOP } from "@/lib/scroll-hide";
-import { closesDrawer, edgeOf, opensDrawer, SWIPE_OWNERS, type Point } from "@/lib/edge-swipe";
+import { closesDrawer, opensDrawer, SWIPE_OWNERS, tracksTouch, type Point } from "@/lib/edge-swipe";
 import { useUnreadCount } from "@/components/chat/UnreadProvider";
 
 /** One glyph per tab id (lib/nav decides who gets which tabs). Exhaustive: a new id fails to compile until it has a glyph. */
@@ -217,15 +217,31 @@ export function OrgTabBar({ tabs, more, extra, notices = 0, person }: { tabs: Na
     let start: Point | null = null;
     let onDrawer = false;
     const at = (e: TouchEvent): Point => ({ x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY });
+    // Inside something that scrolls sideways (a chip row, a wide table): the drag is that thing's scroll.
+    const inSidewaysScroller = (el: Element | null) => {
+      for (let n = el; n && n !== document.documentElement; n = n.parentElement) {
+        if (n.scrollWidth > n.clientWidth + 1 && /(auto|scroll)/.test(getComputedStyle(n).overflowX)) return true;
+      }
+      return false;
+    };
     const onStart = (e: TouchEvent) => {
       start = null;
-      if (!phone.matches || e.touches.length !== 1) return;
       const target = e.target instanceof Element ? e.target : null;
       onDrawer = !!target?.closest(".more-sheet");
-      // Another dialog is open (a sheet, a confirmation): its gestures are its own.
-      if (!onDrawer && document.querySelector("dialog[open]")) return;
-      if (!onDrawer && (target?.closest(SWIPE_OWNERS) || !edgeOf(at(e), window.innerWidth))) return;
-      start = at(e);
+      const tracked = tracksTouch({
+        phone: phone.matches,
+        touches: e.touches.length,
+        onDrawer,
+        otherDialogOpen: !onDrawer && !!document.querySelector("dialog[open]"),
+        onOwner: !!target?.closest(SWIPE_OWNERS),
+        inScroller: inSidewaysScroller(target),
+        // Not on the admin console or in print, where the dock and menu button are hidden.
+        menuVisible: [...document.querySelectorAll(".menu-button")].some((b) => b.getClientRects().length > 0),
+        zoomed: (window.visualViewport?.scale ?? 1) > 1.01,
+        start: at(e),
+        width: window.innerWidth,
+      });
+      if (tracked) start = at(e);
     };
     const onEnd = (e: TouchEvent) => {
       if (!start) return;

@@ -39,4 +39,34 @@ export function closesDrawer(start: Point, end: Point): boolean {
 }
 
 /** Things that own a sideways drag themselves: a swipe that begins on one never opens the drawer. */
-export const SWIPE_OWNERS = ".swipe-card, .leaflet-container, input, textarea, select, [contenteditable], [data-no-edge-swipe]";
+export const SWIPE_OWNERS = ".swipe-card, .turf-map, .leaflet-container, input, textarea, select, [contenteditable], [data-no-edge-swipe]";
+
+/** What the handler knows when a finger lands. */
+export interface TouchStart {
+  /** Under 768 wide, where the dock and drawer are. */
+  phone: boolean;
+  /** Fingers on the screen. */
+  touches: number;
+  /** The touch began on the open drawer (or its dimmed backdrop). */
+  onDrawer: boolean;
+  /** Some other dialog is open: its gestures are its own. */
+  otherDialogOpen: boolean;
+  /** The touch began on something in SWIPE_OWNERS. */
+  onOwner: boolean;
+  /** The touch began inside something that scrolls sideways (a chip row, a wide table). */
+  inScroller: boolean;
+  /** A menu button is on screen: the swipe only ever stands in for a control the person can see. */
+  menuVisible: boolean;
+  /** The page is pinch-zoomed: a sideways drag pans it. */
+  zoomed: boolean;
+  start: Point;
+  width: number;
+}
+
+/** Whether to follow this touch at all: to close the drawer if it began on it, to open it otherwise. */
+export function tracksTouch(t: TouchStart): boolean {
+  if (!t.phone || t.touches !== 1 || t.zoomed) return false;
+  if (t.onDrawer) return true;
+  if (!t.menuVisible || t.otherDialogOpen || t.onOwner || t.inScroller) return false;
+  return edgeOf(t.start, t.width) !== null;
+}

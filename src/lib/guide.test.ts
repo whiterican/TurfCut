@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { GUIDE_SECTIONS, guideFor, ORG_GUIDE_SECTIONS } from "./guide";
+import { PETITION_NOTICE } from "./chat";
 import { activeTab, navTabs, workerMore } from "./nav";
 import { ORG_ROLES } from "./access";
 
@@ -9,8 +10,8 @@ const app = (p: string) => join(__dirname, "../app", p);
 const text = GUIDE_SECTIONS.flatMap((s) => s.points).join("\n");
 
 describe("the worker's guide", () => {
-  it("has the four sections the screens link to, each pointing at a real page", () => {
-    expect(GUIDE_SECTIONS.map((s) => s.id)).toEqual(["jobs", "shifts", "pay", "privacy"]);
+  it("has the sections the screens link to, each pointing at a real page", () => {
+    expect(GUIDE_SECTIONS.map((s) => s.id)).toEqual(["jobs", "shifts", "messages", "pay", "privacy"]);
     for (const s of GUIDE_SECTIONS) expect(existsSync(app(`${s.link!.href.slice(1)}/page.tsx`))).toBe(true);
   });
 
@@ -22,6 +23,15 @@ describe("the worker's guide", () => {
     expect(text).toContain("Turfcut never guesses your politics.");
     // Hourly only: shift-rate and per-unit jobs are not paid by the clock.
     expect(text).toContain("On hourly jobs, pay counts verified time only.");
+  });
+
+  it("carries the petition-sheet rule for both sides, since the message box only shows it when a file is about to be sent", () => {
+    // Caden, Nov 11: the rule sat in bold under every message box. It is here, beside a file being attached, and in the refusal of a photo.
+    for (const sections of [GUIDE_SECTIONS, ORG_GUIDE_SECTIONS]) expect(sections.find((s) => s.id === "messages")!.points).toContain(PETITION_NOTICE);
+    const thread = readFileSync(join(__dirname, "../components/chat/Thread.tsx"), "utf8");
+    expect(thread).toMatch(/\{file && \(\s*<p className="text-xs leading-snug text-muted" role="note">\s*\{PETITION_NOTICE\}/);
+    expect(thread.match(/PETITION_NOTICE/g)).toHaveLength(3); // the import, the photo refusal, the note beside an attached file
+    expect(thread).toContain("Photos can't be shared in Turfcut chats. ${PETITION_NOTICE}");
   });
 
   it("is reachable: a card on Home, a link from Earnings, a row in the menu and sidebar", () => {
@@ -45,7 +55,7 @@ describe("the organization's guide", () => {
   it("is what every organization role gets, and each section points at a real page", () => {
     for (const role of ORG_ROLES) expect(guideFor(role)).toBe(ORG_GUIDE_SECTIONS);
     expect(guideFor("WORKER")).toBe(GUIDE_SECTIONS);
-    expect(ORG_GUIDE_SECTIONS.map((s) => s.id)).toEqual(["publishing", "field", "pay", "credentials", "team"]);
+    expect(ORG_GUIDE_SECTIONS.map((s) => s.id)).toEqual(["publishing", "field", "messages", "pay", "credentials", "team"]);
     for (const s of ORG_GUIDE_SECTIONS) expect(existsSync(app(`${s.link!.href.slice(1)}/page.tsx`))).toBe(true);
   });
 

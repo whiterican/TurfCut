@@ -33,6 +33,15 @@ export const GUIDE_SECTIONS: GuideSection[] = [
     link: { href: "/shifts", label: "Open Work" },
   },
   {
+    id: "messages",
+    title: "Messages",
+    points: [
+      "Chats carry text and text-only documents: PDF, Word, Excel or plain text, up to 4 MB. Photos can't be sent.",
+      "Do not photograph or share signed petition sheets. Custody is tracked as packet IDs and counts only.",
+    ],
+    link: { href: "/messages", label: "Open Messages" },
+  },
+  {
     id: "pay",
     title: "Getting paid",
     points: [
@@ -82,6 +91,15 @@ export const ORG_GUIDE_SECTIONS: GuideSection[] = [
       "Nobody's position is ever on the map.",
     ],
     link: { href: "/field", label: "Open Field" },
+  },
+  {
+    id: "messages",
+    title: "Messages",
+    points: [
+      "Chats carry text and text-only documents: PDF, Word, Excel or plain text, up to 4 MB. Photos can't be sent.",
+      "Do not photograph or share signed petition sheets. Custody is tracked as packet IDs and counts only.",
+    ],
+    link: { href: "/messages", label: "Open Messages" },
   },
   {
     id: "pay",

@@ -88,7 +88,9 @@ What the reference does: the dock is almost clear. The page stays visible throug
 
 Only the dock changed. Bars, the drawer, sheets and cards carry text, so they keep their denser glass.
 
-**Contrast.** A pane this clear cannot guarantee contrast by itself. Each dock icon is now outlined in the page's own colour (a three-layer drop shadow), so that colour sits next to every stroke whatever scrolls underneath. The outline is soft, so this is weaker than a solid pane: by estimate the icon holds 3:1 against it in the worst case (black behind by day, white by night), in a ring about a pixel wide. The test pins that estimate; it is not a measurement. The current tab also keeps a hairline around its capsule. Sunlight mode and the reduced-transparency setting keep their solid dock.
+**Contrast.** A pane this clear cannot guarantee contrast by itself. Each dock icon is now outlined in the page's own colour (a three-layer drop shadow), so that colour sits next to every stroke whatever scrolls underneath. The outline is soft, so this is weaker than a solid pane: by estimate the icon holds 3:1 against it in the worst case (black behind by day, white by night), in a ring about a pixel wide. The test pins that estimate; it is not a measurement. 
+
+**Selection (Nov 11).** Caden: the selection colour looked washed out in both modes. On the old frosted pane the current tab was a 26% tint; on a clear pane that nearly vanished. The current tab is now a solid capsule in the selection colour (purple by day, green by night, 92% opaque), with a white icon by day and an ink one by night. Both hold 4.5:1 or better on the capsule whatever shows through. The drawer and sidebar keep their tint: they sit on dense panes. Sunlight mode and the reduced-transparency setting keep their solid dock.
 
 Not checked on a real iPhone. Chromium only.
 

@@ -138,6 +138,8 @@ A separate Claude reviewer ran the acceptance script and its own scenarios on a 
 
 **Known limit.** A conversation has one read mark, not one per thread. The badge can therefore stay until the main conversation is opened. A read mark per thread would be a data-model change; say if you want it.
 
-Acceptance: 88 checks.
+**Re-check.** A second pass found one case still open: a reply under a message older than the 200 on the page showed nowhere. Fixed in the third commit (the main conversation now judges "can I reach this thread?" against the page itself), with a test that builds a 206-message channel. It also asked for a check that pins the removed-member rule; added.
+
+Acceptance: 93 checks.
 
 Screens: `8-thread.png`, `9-replies-and-reactions.png`.

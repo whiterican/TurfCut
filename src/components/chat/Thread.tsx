@@ -83,14 +83,14 @@ function Reactions({ m, children }: { m: ClientMessage; /** Sits at the end of t
         </button>
       ))}
       {m.canReact && (
-        <button ref={add} type="button" className="reaction reaction-add" hidden={open} onClick={() => setOpen(true)} aria-label="Add a reaction" aria-haspopup="true">
+        <button ref={add} type="button" className="reaction reaction-add" hidden={open} disabled={pending} onClick={() => setOpen(true)} aria-label="Add a reaction" aria-haspopup="true">
           <span aria-hidden>+</span>
         </button>
       )}
       {m.canReact && open && (
         <span className="reaction-picker" role="group" aria-label="Reactions" onKeyDown={(e) => { if (e.key === "Escape") { e.stopPropagation(); close(); } }}>
           {REACTIONS.map((emoji, i) => (
-            <button key={emoji} type="button" className="reaction-pick" autoFocus={i === 0} disabled={pending} onClick={() => toggle(emoji)} aria-label={REACTION_NAMES[emoji]}>
+            <button key={emoji} type="button" className="reaction-pick" autoFocus={i === 0} onClick={() => toggle(emoji)} aria-label={REACTION_NAMES[emoji]}>
               <span aria-hidden>{emoji}</span>
             </button>
           ))}

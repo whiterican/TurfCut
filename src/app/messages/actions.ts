@@ -74,7 +74,7 @@ export async function react(messageId: string, emoji: string): Promise<ActionSta
   const r = await chat.toggleReaction(await me(), str(messageId), str(emoji));
   if (!r.ok) return { ok: false, message: r.reason };
   refreshThread(r.conversationId);
-  if (r.threadId) revalidatePath(`/messages/${r.conversationId}/thread/${r.threadId}`);
+  revalidatePath(`/messages/${r.conversationId}/thread/${r.threadId}`);
   return { ok: true, message: "" };
 }
 

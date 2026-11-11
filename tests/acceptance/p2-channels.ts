@@ -149,12 +149,36 @@ const noStore = { put: async () => {}, remove: async () => {}, signedUrl: async 
   const afterUnblock = await openReplies(hired, team, asked.messageId);
   check("after unblocking, what they sent and marked during the block stays hidden", !afterUnblock?.replies.some((m) => m.body === "After the block") && !afterUnblock?.parent.reactions.some((r) => r.emoji === "\u{1F389}"), afterUnblock?.parent.reactions);
   // A removed member sees marks as they stood when they were removed.
+  await toggleReaction(fin2(), asked.messageId, "\u{1F440}"); // a mark that stands when the worker is removed
   await removeMember(owner, team, hired.userId);
-  await toggleReaction(fin2(), asked.messageId, up);
+  await toggleReaction(fin2(), asked.messageId, up); // added after
+  await toggleReaction(fin2(), asked.messageId, "\u{1F440}"); // taken back after
   const removedView = await openReplies(hired, team, asked.messageId);
-  check("a removed member sees the marks as they stood at removal, not later changes", removedView?.parent.reactions.find((r) => r.emoji === up)?.count === 1, removedView?.parent.reactions);
+  check("a removed member sees the marks as they stood at removal: none added later", removedView?.parent.reactions.find((r) => r.emoji === up)?.count === 1, removedView?.parent.reactions);
+  check("and one taken back later still shows for them", removedView?.parent.reactions.find((r) => r.emoji === "\u{1F440}")?.count === 1, removedView?.parent.reactions);
+  check("while a current member sees it gone", !(await openReplies(owner, team, asked.messageId))?.parent.reactions.some((r) => r.emoji === "\u{1F440}"));
   check("and can neither reply nor react", !(await sendMessage(hired, team, "still here?", null, noStore, asked.messageId)).ok && !(await toggleReaction(hired, asked.messageId, "\u2705")).ok);
   await addMembers(owner, team, [hired.userId]);
+
+  // --- A reply under a message older than the page ---
+  const longMade = await createChannel(owner, { name: "long-channel", topic: "", staffOnly: true, jobIds: [] });
+  if (!longMade.ok) throw new Error(longMade.reason);
+  const long = longMade.conversationId;
+  await joinChannel(fin, long);
+  const old = await sendMessage(owner, long, "An old question", null, noStore);
+  if (!old.ok) throw new Error(old.reason);
+  const base = (await p.message.findUniqueOrThrow({ where: { id: old.messageId } })).createdAt.getTime();
+  await p.message.createMany({ data: Array.from({ length: 205 }, (_, i) => ({ conversationId: long, senderId: OWNER, body: `filler ${i}`, createdAt: new Date(base + 1000 + i) })) });
+  await p.conversation.update({ where: { id: long }, data: { lastMessageAt: new Date(base + 1300) } });
+  await openThread(fin, long);
+  // Finance has unread messages in other channels; this one is measured against that.
+  const elsewhere = await unreadTotal(fin);
+  await sendMessage(owner, long, "A late answer to the old question", null, noStore, old.messageId);
+  check("the late reply is unread", (await unreadTotal(fin)) === elsewhere + 1, [elsewhere, await unreadTotal(fin)]);
+  const longView = await openThread(fin, long);
+  check("a reply under a message older than the page is shown in the main conversation", longView?.hasOlder === true && !longView.messages.some((m) => m.id === old.messageId) && longView.messages.at(-1)?.body === "A late answer to the old question", longView?.messages.slice(-2).map((m) => m.body));
+  check("and read once shown", (await unreadTotal(fin)) === elsewhere, [elsewhere, await unreadTotal(fin)]);
+  await leaveChannel(fin, long);
 
   // --- The database's own guards ---
   const part = (conversationId: string, profileId: string, role: "WORKER" | "MANAGER" | "MEMBER") => p.conversationParticipant.create({ data: { conversationId, profileId, role, addedById: OWNER } });

@@ -131,9 +131,9 @@ async function loadView(
   window: { readUntil: Date | null; readFrom: Date | null },
   /**
    * `thread`: null for the main conversation only (no replies), a message id for that message's replies; left out for everything.
-   * `repliesOnly`: every reply, whatever its thread. `since`: nothing older than this.
+   * `repliesOnly`: replies, whatever their thread, except those under the messages named. `since`: nothing older than this.
    */
-  opts: { take?: number; ids?: string[]; thread?: string | null; repliesOnly?: boolean; since?: Date } = {}
+  opts: { take?: number; ids?: string[]; thread?: string | null; repliesOnly?: { notUnder: string[] }; since?: Date } = {}
 ) {
   const { readUntil, readFrom } = window;
   const rows = await c.message.findMany({
@@ -141,7 +141,7 @@ async function loadView(
       conversationId,
       ...(readUntil || readFrom || opts.since ? { createdAt: { ...(readUntil ? { lte: readUntil } : {}), ...(readFrom || opts.since ? { gte: [readFrom, opts.since].reduce<Date | undefined>((a, b) => (b && (!a || b > a) ? b : a), undefined) } : {}) } } : {}),
       ...(opts.ids ? { id: { in: opts.ids } } : {}),
-      ...(opts.thread !== undefined ? { parentId: opts.thread } : opts.repliesOnly ? { parentId: { not: null } } : {}),
+      ...(opts.thread !== undefined ? { parentId: opts.thread } : opts.repliesOnly ? { parentId: { not: null, notIn: opts.repliesOnly.notUnder } } : {}),
     },
     orderBy: { createdAt: "desc" },
     take: opts.take,
@@ -411,13 +411,11 @@ export async function openThread(me: ChatUser, conversationId: string): Promise<
   const { conv, mine, access } = ctx;
   const top = await loadView(db(), conv.id, me.userId, access, { take: THREAD_LIMIT, thread: null });
   const truncated = top.truncated;
-  // A reply I can see under a message I can't (sent before I took over a direct thread, or by someone I had
-  // blocked, or older than what is loaded) has no thread I could open: it reads here as an ordinary message,
-  // so nothing I'm entitled to is left with nowhere to show.
-  const loose = await loadView(db(), conv.id, me.userId, access, { repliesOnly: true, since: truncated ? top.view[0]?.createdAt : undefined });
-  const looseParents = [...new Set(loose.view.map((r) => r.parentId).filter((id): id is string => !!id))];
-  const shownParents = new Set(looseParents.length ? (await loadView(db(), conv.id, me.userId, access, { ids: looseParents, thread: null })).view.map((m) => m.id) : []);
-  const view = [...top.view, ...loose.view.filter((r) => r.parentId && !shownParents.has(r.parentId))].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+  // A reply I can see whose first message is not on this page (sent before I took over a direct thread, or by
+  // someone I had blocked, or older than what is loaded) has no thread link here to reach it by: it reads as an
+  // ordinary message, so nothing I'm entitled to is left with nowhere to show. Judged against the page itself.
+  const loose = await loadView(db(), conv.id, me.userId, access, { repliesOnly: { notUnder: top.view.map((m) => m.id) }, since: truncated ? top.view[0]?.createdAt : undefined });
+  const view = [...top.view, ...loose.view].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
   const extras = await messageExtras(db(), conv.id, me.userId, access, view, mine.lastReadAt);
   const myBlocks = new Set(
     (await db().profileBlock.findMany({ where: { blockerId: me.userId, liftedAt: null }, select: { blockedId: true } })).map((b) => b.blockedId)
@@ -615,7 +613,7 @@ export async function openReplies(me: ChatUser, conversationId: string, parentId
 }
 
 /** Give a message a mark, or take the same mark back. */
-export async function toggleReaction(me: ChatUser, messageId: string, emoji: unknown): Promise<{ ok: true; on: boolean; conversationId: string; threadId: string | null } | Fail> {
+export async function toggleReaction(me: ChatUser, messageId: string, emoji: unknown): Promise<{ ok: true; on: boolean; conversationId: string; threadId: string } | Fail> {
   return db().$transaction(async (tx) => {
     const m = await lockedMessage(tx, me, messageId);
     if (!m || !m.ctx.access.read || !m.ctx.mine) return fail("That message isn't available.");

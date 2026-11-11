@@ -77,7 +77,7 @@ function Reactions({ m, children }: { m: ClientMessage; /** Sits at the end of t
   };
   if (shown.length === 0 && !m.canReact && !children) return null;
   return (
-    <div className={`mt-1 flex flex-wrap items-center gap-1 ${m.mine ? "justify-end" : ""}`}>
+    <div className={`flex flex-wrap items-center gap-1 ${m.mine ? "flex-row-reverse" : ""}`}>
       {shown.map((r) => (
         <button key={r.emoji} type="button" className="reaction" aria-pressed={r.mine} disabled={!m.canReact || pending} onClick={() => toggle(r.emoji)} aria-label={`${REACTION_NAMES[r.emoji]}, ${r.count}${r.mine ? ", including yours" : ""}`}>
           <span aria-hidden>{r.emoji}</span>
@@ -136,7 +136,7 @@ function MessageActions({ m, conversationId }: { m: ClientMessage; conversationI
         <button
           ref={toggle}
           type="button"
-          className="-mt-1 rounded px-1.5 text-sm font-bold leading-none text-subtle hover:text-fg"
+          className="msg-more"
           onClick={() => { setMsg(null); setMode("menu"); }}
           aria-label="Message options"
           aria-haspopup="true"
@@ -264,24 +264,24 @@ export function MessageList({
                   </a>
                 )}
               </div>
-              <div className={`mt-0.5 flex items-start gap-1 px-1 ${m.mine ? "flex-row-reverse" : ""}`}>
+              {/* One row under the message: the time, the marks, the way into its thread, then the message's options. A deleted message keeps its thread, not its marks. */}
+              <div className={`msg-meta ${m.mine ? "flex-row-reverse" : ""}`}>
                 {(lastOfRun || m.edited) && (
                   <span className="text-[0.75rem] text-subtle">
                     <LocalTime iso={m.createdAt} mode="time" />
                     {m.edited && " · edited"}
                   </span>
                 )}
+                <Reactions m={m.deleted ? { ...m, reactions: [], canReact: false } : m}>
+                  {!threadId && (m.replies > 0 || m.canReply) && (
+                    <Link transitionTypes={["nav-forward"]} href={`/messages/${conversationId}/thread/${m.id}`} className={`thread-link ${m.replies > 0 ? "thread-link-has" : ""}`}>
+                      {m.replies > 0 ? `${m.replies} ${m.replies === 1 ? "reply" : "replies"}` : "Reply"}
+                      {m.newReplies > 0 && <span className="unread-badge ml-2 no-underline">{m.newReplies} new</span>}
+                    </Link>
+                  )}
+                </Reactions>
                 <MessageActions m={m} conversationId={conversationId} />
               </div>
-              {/* One row under the message: the marks, then the way into its thread. A deleted message keeps its thread, not its marks. */}
-              <Reactions m={m.deleted ? { ...m, reactions: [], canReact: false } : m}>
-                {!threadId && (m.replies > 0 || m.canReply) && (
-                  <Link transitionTypes={["nav-forward"]} href={`/messages/${conversationId}/thread/${m.id}`} className={`thread-link ${m.replies > 0 ? "thread-link-has" : ""}`}>
-                    {m.replies > 0 ? `${m.replies} ${m.replies === 1 ? "reply" : "replies"}` : "Reply"}
-                    {m.newReplies > 0 && <span className="unread-badge ml-2 no-underline">{m.newReplies} new</span>}
-                  </Link>
-                )}
-              </Reactions>
             </div>
           </li>
         );

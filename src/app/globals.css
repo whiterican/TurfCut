@@ -2741,9 +2741,22 @@ body {
   .bubble-mention {
     box-shadow: 0 0 0 2px var(--select);
   }
+  /* Everything under a message sits on one line: time, marks, the thread link, options. It wraps only when it must. */
+  .msg-meta {
+    @apply mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 px-1;
+  }
+  /* The message's options: three dots, level with the rest of the row, with a comfortable target. */
+  .msg-more {
+    @apply inline-flex h-7 min-w-7 items-center justify-center rounded-full px-1 text-sm leading-none font-bold transition;
+    color: var(--subtle);
+  }
+  .msg-more:hover {
+    color: var(--fg);
+    background: var(--surface-2);
+  }
   /* Reactions under a message: a small pill per mark with its count; yours is ringed. */
   .reaction {
-    @apply inline-flex min-h-8 items-center gap-1 rounded-full border px-2 text-sm leading-none transition;
+    @apply inline-flex h-7 items-center gap-1 rounded-full border px-2 text-sm leading-none transition;
     border-color: var(--border);
     background: var(--surface);
     color: var(--fg);
@@ -2753,9 +2766,16 @@ body {
     background: color-mix(in srgb, var(--select) 16%, var(--surface));
     font-weight: var(--font-weight-semibold);
   }
+  /* Adding a mark is the quietest thing in the row: no outline until you reach for it. */
   .reaction-add {
-    @apply justify-center px-2.5 font-semibold;
-    color: var(--muted);
+    @apply w-7 justify-center px-0 font-semibold;
+    border-color: transparent;
+    background: transparent;
+    color: var(--subtle);
+  }
+  .reaction-add:hover {
+    color: var(--fg);
+    background: var(--surface-2);
   }
   .reaction-picker {
     @apply inline-flex items-center gap-0.5 rounded-full border p-0.5;
@@ -2772,7 +2792,7 @@ body {
   }
   /* The way into a message's thread: quiet until it has replies. */
   .thread-link {
-    @apply inline-flex min-h-8 items-center px-1.5 text-sm font-semibold;
+    @apply inline-flex h-7 items-center px-1 text-sm font-semibold;
     color: var(--muted);
   }
   .thread-link-has {
@@ -2854,6 +2874,13 @@ body {
     border-color: var(--glass-border);
     -webkit-backdrop-filter: var(--glass-filter);
     backdrop-filter: var(--glass-filter);
+  }
+  /* A conversation's bar sits flush under the site header: the page's own top padding would leave an empty band above it. */
+  .page:has(> .thread-top) {
+    padding-top: 0;
+  }
+  .page > .thread-top {
+    margin-top: 0;
   }
   /* Next-shift banner atop a job conversation: a lavender note, not live. */
   .shift-banner {

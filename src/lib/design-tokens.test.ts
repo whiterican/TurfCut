@@ -678,6 +678,24 @@ describe("the shell (redesign B1.4)", () => {
     expect(css).toMatch(/@media \(forced-colors: active\) \{\s*\.more-sheet::backdrop \{\s*background: rgb\(0 0 0 \/ 0\.5\);/);
   });
 
+  it("a chat thread on a phone has no dock: the composer sits at the bottom of the screen with nothing under it", () => {
+    // Caden, Nov 11: the dock floated over an empty band under the message box. Unlayered and phone-only: from 768 there is no dock anyway.
+    const at = css.indexOf("body:has(.thread-top) .tabbar {");
+    expect(at).toBeGreaterThan(-1);
+    const before = css.slice(0, at).replace(/\/\*[\s\S]*?\*\//g, "");
+    expect(before.split("{").length - before.split("}").length).toBe(1);
+    expect(before.slice(before.lastIndexOf("@media"))).toMatch(/^@media \(max-width: 47\.99rem\) \{\s*$/);
+    expect(css).toMatch(/body:has\(\.thread-top\) \.tabbar \{\s*display: none;/);
+    expect(css).toMatch(/body:has\(\.thread-top\) \.composer \{\s*bottom: 0;\s*padding-bottom: calc\(0\.75rem \+ env\(safe-area-inset-bottom\)\);/);
+    // The page ends at the composer and fills the screen, so a short conversation keeps it at the bottom.
+    expect(css).toMatch(/body:has\(\.thread-top\) \.page \{\s*display: flex;\s*flex: 1 0 auto;\s*flex-direction: column;\s*padding-bottom: 0;/);
+    expect(css).toMatch(/body:has\(\.thread-top\) \.composer \{\s*margin-top: auto;/);
+    // ...in the organization's shell too, whose page wrapper is not a column by itself.
+    expect(css).toMatch(/body:has\(\.thread-top\) #content \{\s*display: flex;\s*flex-direction: column;/);
+    // A read-only thread has no composer: its last message keeps clear of the screen's edge.
+    expect(css).toMatch(/body:has\(\.thread-top\):not\(:has\(\.composer\)\) \.page \{\s*padding-bottom: calc\(2rem \+ env\(safe-area-inset-bottom\)\);/);
+  });
+
   it("has a skip link that appears on keyboard focus, landing on a wrapper without a ring", () => {
     expect(css).toMatch(/\.skip-link \{[^}]*translate: 0 -200%;/);
     expect(css).toMatch(/\.skip-link:focus-visible \{\s*translate: 0 0;/);

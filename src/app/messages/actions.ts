@@ -44,8 +44,13 @@ export async function send(_prev: ActionState, fd: FormData): Promise<ActionStat
   if (upload instanceof File && upload.size > 0) {
     file = { name: upload.name, bytes: new Uint8Array(await upload.arrayBuffer()) };
   }
-  const r = await chat.sendMessage(user, conversationId, quick || fd.get("body"), file);
-  if (r.ok) refreshThread(conversationId);
+  // A reply in a thread carries the message it answers.
+  const parentId = str(fd.get("parentId")) || null;
+  const r = await chat.sendMessage(user, conversationId, quick || fd.get("body"), file, undefined, parentId);
+  if (r.ok) {
+    refreshThread(conversationId);
+    if (parentId) revalidatePath(`/messages/${conversationId}/thread/${parentId}`);
+  }
   return done(r, "Sent.");
 }
 
@@ -62,6 +67,16 @@ export async function remove(conversationId: string, messageId: string): Promise
     revalidatePath("/messages/reports");
   }
   return done(r, "Message deleted.");
+}
+
+/** Give a message a mark, or take it back. `threadId` is the thread page showing it, if any. */
+export async function react(conversationId: string, messageId: string, emoji: string, threadId: string | null = null): Promise<ActionState> {
+  const r = await chat.toggleReaction(await me(), str(messageId), str(emoji));
+  if (r.ok) {
+    refreshThread(str(conversationId));
+    if (threadId) revalidatePath(`/messages/${str(conversationId)}/thread/${str(threadId)}`);
+  }
+  return r.ok ? { ok: true, message: "" } : { ok: false, message: r.reason };
 }
 
 export async function report(messageId: string, reason: string): Promise<ActionState> {

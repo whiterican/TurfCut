@@ -108,7 +108,7 @@ export default async function ThreadPage({ params }: { params: Promise<{ convers
         group={group}
         hasOlder={t.hasOlder}
         canPost={t.access.post}
-        messages={t.messages.map((m) => ({ ...m, createdAt: m.createdAt.toISOString() }))}
+        messages={t.messages.map((m) => ({ ...m, createdAt: m.createdAt.toISOString(), lastReplyAt: m.lastReplyAt?.toISOString() ?? null }))}
       />
 
       {t.access.post ? (

@@ -2737,6 +2737,55 @@ body {
   .bubble-deleted {
     @apply border border-dashed border-border bg-transparent text-subtle italic;
   }
+  /* Reactions under a message: a small pill per mark with its count; yours is ringed. */
+  .reaction {
+    @apply inline-flex min-h-8 items-center gap-1 rounded-full border px-2 text-sm leading-none transition;
+    border-color: var(--border);
+    background: var(--surface);
+    color: var(--fg);
+  }
+  .reaction[aria-pressed="true"] {
+    border-color: var(--select);
+    background: color-mix(in srgb, var(--select) 16%, var(--surface));
+    font-weight: var(--font-weight-semibold);
+  }
+  .reaction-add {
+    @apply justify-center px-2.5 font-semibold;
+    color: var(--muted);
+  }
+  .reaction-picker {
+    @apply inline-flex items-center gap-0.5 rounded-full border p-0.5;
+    border-color: var(--border);
+    background: var(--surface);
+    box-shadow: var(--shadow);
+  }
+  /* A full 44px target for each mark in the open picker. */
+  .reaction-pick {
+    @apply inline-flex size-11 items-center justify-center rounded-full text-xl leading-none transition;
+  }
+  .reaction-pick:hover {
+    background: var(--surface-2);
+  }
+  /* The way into a message's thread: quiet until it has replies. */
+  .thread-link {
+    @apply inline-flex min-h-8 items-center px-1.5 text-sm font-semibold;
+    color: var(--muted);
+  }
+  .thread-link-has {
+    color: var(--link);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .thread-divider {
+    @apply flex items-center gap-3 text-xs font-semibold tracking-wide uppercase;
+    color: var(--subtle);
+  }
+  .thread-divider::before,
+  .thread-divider::after {
+    content: "";
+    @apply h-px flex-1;
+    background: var(--border);
+  }
   .avatar-sky {
     background: var(--sky);
     color: var(--ink);

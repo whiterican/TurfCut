@@ -162,12 +162,45 @@ async function savedCopy(path) {
   return hit;
 }
 
+/*
+ * The page shown when a screen was not saved and there is no signal. It has none of the app's
+ * tabs, so it must never be a dead end (Caden, Nov 11: "the app won't let me switch between
+ * screens"): it goes back to the screen you were on, offers the saved field pages as full-width
+ * buttons, and reopens the page you asked for by itself as soon as the network answers.
+ */
 function offlinePage() {
+  const btn = "display:block;box-sizing:border-box;width:100%;min-height:48px;margin:0 0 12px;padding:13px 16px;border-radius:999px;font:600 16px system-ui;text-align:center;text-decoration:none;cursor:pointer";
   return new Response(
     `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Offline · Turfcut</title>
 <body style="font:16px system-ui;background:#1c142c;color:#f8f8f4;padding:32px 16px;max-width:32rem;margin:auto">
-<svg viewBox="0 0 96 96" width="88" height="88" aria-hidden="true" style="display:block;margin:8px 0 16px" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="#b9b0c4" opacity=".55" d="M30 30a26 26 0 0 1 36 0M22 22a38 38 0 0 1 52 0M20 84h56"/><circle fill="#82bc9b" cx="48" cy="52" r="17"/><path stroke="#f8f8f4" d="M48 80c-10-11-18-19-18-28a18 18 0 0 1 36 0c0 9-8 17-18 28zM41 49l14 8M55 49l-14 8"/></svg><h1 style="font-size:24px">No signal</h1><p>This page wasn't saved on your phone. Your shift pages are saved when you open Today or My shifts with signal.</p>
-<p><a style="color:#82bc9b" href="" onclick="location.reload();return false">Try again</a> · <a style="color:#82bc9b" href="/shifts">My shifts</a> · <a style="color:#82bc9b" href="/dashboard">Today</a></p></body>`,
+<svg viewBox="0 0 96 96" width="88" height="88" aria-hidden="true" style="display:block;margin:8px 0 16px" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="#b9b0c4" opacity=".55" d="M30 30a26 26 0 0 1 36 0M22 22a38 38 0 0 1 52 0M20 84h56"/><circle fill="#82bc9b" cx="48" cy="52" r="17"/><path stroke="#f8f8f4" d="M48 80c-10-11-18-19-18-28a18 18 0 0 1 36 0c0 9-8 17-18 28zM41 49l14 8M55 49l-14 8"/></svg><h1 style="font-size:24px">No signal</h1><p>This screen needs a connection. It opens by itself when your signal is back. Today, My schedule and your shift pages work without one, once you have opened them with signal.</p>
+<p id="state" role="status" style="color:#b9b0c4;min-height:1.5em">Waiting for signal…</p>
+<button type="button" id="back" style="${btn};border:0;background:#157a46;color:#fff">Go back</button>
+<a href="/dashboard" style="${btn};border:1px solid #6b5f7d;color:#f8f8f4">Today</a>
+<a href="/shifts" style="${btn};border:1px solid #6b5f7d;color:#f8f8f4">My schedule</a>
+<button type="button" id="again" style="${btn};border:1px solid #6b5f7d;background:none;color:#f8f8f4">Try again</button>
+<script>
+(function () {
+  var state = document.getElementById("state"), busy = false;
+  // A HEAD request skips the service worker, so it only succeeds when the network really answers.
+  function retry(told) {
+    if (busy) return;
+    busy = true;
+    if (told) state.textContent = "Checking…";
+    fetch(location.href, { method: "HEAD", cache: "no-store", credentials: "same-origin" })
+      .then(function () { location.reload(); })
+      .catch(function () { busy = false; state.textContent = told ? "Still no signal." : "Waiting for signal…"; });
+  }
+  document.getElementById("again").onclick = function () { retry(true); };
+  document.getElementById("back").onclick = function () { if (history.length > 1) history.back(); else location.href = "/dashboard"; };
+  // Going back can change the address without loading the screen it names: load it.
+  addEventListener("popstate", function () { location.reload(); });
+  addEventListener("online", function () { retry(false); });
+  addEventListener("pageshow", function () { retry(false); });
+  document.addEventListener("visibilitychange", function () { if (!document.hidden) retry(false); });
+  setInterval(function () { retry(false); }, 5000);
+})();
+</script></body>`,
     {
       status: 503,
       headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store", "Content-Security-Policy": "frame-ancestors 'none'", "X-Content-Type-Options": "nosniff" },

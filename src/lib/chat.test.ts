@@ -19,7 +19,10 @@ import {
   canReply,
   canReport,
   canSend,
+  canStartStaffDm,
   chatAccess,
+  dmKey,
+  findMentions,
   checkAttachment,
   unreadCount,
   viewMessages,
@@ -354,6 +357,105 @@ describe("threads and reactions", () => {
     const sql = readFileSync(join(process.cwd(), "prisma/p2-threads.sql"), "utf8");
     const listed = sql.match(/CHECK \("emoji" IN \(([^)]*)\)\)/)?.[1].split(",").map((s) => s.trim().replace(/^'|'$/g, ""));
     expect(listed).toEqual([...REACTIONS]);
+  });
+});
+
+describe("staff conversations (one to one)", () => {
+  const fin = { profileId: "fin", role: "FINANCE" as const, orgId: ORG };
+  const dm = (over: Partial<ChatFacts> = {}): ChatFacts => ({ kind: "STAFF_DM", orgId: ORG, me: fin, participant: { role: "MEMBER", removedAt: null }, ...over });
+  const person = (over: Partial<{ profileId: string; role: "OWNER" | "WORKER" | "COMPLIANCE"; orgId: string | null; closed: boolean }> = {}) => ({ profileId: "comp", role: "COMPLIANCE" as const, orgId: ORG, closed: false, ...over });
+
+  it("any two staff members of one organization may talk, whatever their roles", () => {
+    expect(canStartStaffDm(fin, person()).ok).toBe(true);
+    expect(canStartStaffDm(fin, person({ role: "OWNER" })).ok).toBe(true);
+    expect(chatAccess(dm())).toMatchObject({ read: true, post: true });
+  });
+
+  it("never with a worker, someone in another organization, a closed account, or yourself", () => {
+    expect(canStartStaffDm(fin, person({ role: "WORKER" })).ok).toBe(false);
+    expect(canStartStaffDm(fin, person({ orgId: "other-org" })).ok).toBe(false);
+    expect(canStartStaffDm(fin, person({ orgId: null })).ok).toBe(false);
+    expect(canStartStaffDm(fin, person({ closed: true })).ok).toBe(false);
+    expect(canStartStaffDm(fin, person({ profileId: "fin" })).ok).toBe(false);
+    expect(canStartStaffDm(fin, null).ok).toBe(false);
+    expect(canStartStaffDm(worker, person()).ok).toBe(false);
+    expect(canStartStaffDm({ ...fin, orgId: null }, person()).ok).toBe(false);
+  });
+
+  it("a pair has one key, whoever starts", () => {
+    expect(dmKey("b", "a")).toBe("a:b");
+    expect(dmKey("a", "b")).toBe(dmKey("b", "a"));
+  });
+
+  it("nobody else reads it: not a manager, not a worker, not someone outside it", () => {
+    expect(chatAccess(dm({ participant: null }))).toMatchObject({ read: false, post: false });
+    expect(chatAccess(dm({ me: boss, participant: { role: "MANAGER", removedAt: null } }))).toMatchObject({ read: false, post: false });
+    expect(chatAccess(dm({ me: worker, participant: { role: "WORKER", removedAt: null } }))).toMatchObject({ read: false, post: false });
+    expect(canManageMembers(dm({ me: { profileId: "o", role: "OWNER", orgId: ORG }, participant: null })).ok).toBe(false);
+  });
+
+  it("when the other person leaves the organization it turns read-only; the one who left reads nothing", () => {
+    expect(chatAccess(dm({ counterpartRemoved: true }))).toMatchObject({ read: true, post: false, closed: "This person is no longer in your organization. History is read-only." });
+    expect(chatAccess(dm({ me: { ...fin, orgId: null }, participant: { role: "MEMBER", removedAt: t(3) } }))).toMatchObject({ read: false, post: false });
+    expect(chatAccess(dm({ me: { profileId: "fin", role: "WORKER", orgId: null } }))).toMatchObject({ read: false, post: false });
+  });
+});
+
+describe("mentions", () => {
+  const people = [
+    { profileId: "sam", name: "Sam" },
+    { profileId: "samo", name: "Sam Ortiz" },
+    { profileId: "maya", name: "Maya Chen" },
+    { profileId: "maya2", name: "maya chen" },
+    { profileId: "o", name: "Owner" },
+  ];
+
+  it("names a person by @Name, whatever the letter case", () => {
+    expect(findMentions("thanks @maya chen!", people).sort()).toEqual(["maya", "maya2"]);
+    expect(findMentions("@OWNER can you approve?", people)).toEqual(["o"]);
+  });
+
+  it("the longer name wins: @Sam Ortiz is not also Sam", () => {
+    expect(findMentions("@Sam Ortiz has Elm Street", people)).toEqual(["samo"]);
+    expect(findMentions("@Sam and @Sam Ortiz", people).sort()).toEqual(["sam", "samo"]);
+  });
+
+  it("a name inside a longer word, or an email address, names nobody", () => {
+    expect(findMentions("@Samantha is new", people)).toEqual([]);
+    expect(findMentions("mail me at x@sam.org", people)).toEqual([]);
+    expect(findMentions("@Sam, are you there?", people)).toEqual(["sam"]);
+    expect(findMentions("(@Sam)", people)).toEqual(["sam"]);
+  });
+
+  it("only people passed in can be named, and a plain name without @ names nobody", () => {
+    expect(findMentions("Sam Ortiz was here, @Nobody", people)).toEqual([]);
+    expect(findMentions("@Sam", [])).toEqual([]);
+    expect(findMentions("@", people)).toEqual([]);
+  });
+
+  it("each person once, however often they are named", () => {
+    expect(findMentions("@Sam @Sam @sam", people)).toEqual(["sam"]);
+  });
+});
+
+describe("the participant guard in SQL", () => {
+  it("is defined word for word the same in both migrations, so re-running either never undoes the other", () => {
+    const fn = (file: string) => readFileSync(join(process.cwd(), "prisma", file), "utf8").match(/CREATE OR REPLACE FUNCTION "turfcut_private"\."check_channel_participant"\(\)[\s\S]*?\nEND \$\$;/g) ?? [];
+    const a = fn("p2-channels.sql");
+    const b = fn("p2-dm-mentions.sql");
+    const setup = fn("supabase-manual-setup.sql");
+    expect(a.length).toBe(1);
+    expect(b).toEqual(a);
+    expect(setup).toEqual([a[0], a[0]]);
+    expect(a[0]).toContain("STAFF_DM");
+  });
+
+  it("and so is the check on what each kind of conversation looks like", () => {
+    const chk = (file: string) => (readFileSync(join(process.cwd(), "prisma", file), "utf8").match(/ADD CONSTRAINT "Conversation_kind_shape" CHECK \([\s\S]*?\)\);/g) ?? []).filter((c) => c.includes("::text"));
+    const a = chk("p2-channels.sql");
+    expect(a.length).toBe(1);
+    expect(chk("p2-dm-mentions.sql")).toEqual(a);
+    expect(a[0]).toContain("STAFF_DM");
   });
 });
 

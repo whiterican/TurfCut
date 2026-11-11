@@ -143,3 +143,48 @@ A separate Claude reviewer ran the acceptance script and its own scenarios on a 
 Acceptance: 93 checks.
 
 Screens: `8-thread.png`, `9-replies-and-reactions.png`.
+
+# Slice 3: staff direct messages and @mentions (Nov 11 2026)
+
+## Staff direct messages
+
+| Rule | Detail |
+| :--- | :--- |
+| Who | Any two staff members of one organization, whatever their roles. Reached from Messages → Channels and people. |
+| One per pair | Whoever opens it, the two get the same conversation. |
+| Private | Only the two people read it. Owners and managers cannot open it, add anyone, or join. |
+| Workers | Never. A worker is still messaged through their hire, as before. |
+| Leaving | When one person leaves the organization, they read nothing of it and the other keeps read-only history. Coming back reopens the same conversation. |
+| Between staff | No "Manager" tag and no field quick replies, here or in staff-only channels. |
+
+## Mentions
+
+| Rule | Detail |
+| :--- | :--- |
+| Typing | "@" offers the other people in the conversation; picking one writes their name. |
+| Who is named | People in the conversation at that moment whose name follows an "@". The longer name wins ("@Sam Ortiz" is not also Sam). An email address names nobody. |
+| What the person sees | "@ mentions you" on the conversation in their list until read, and a tag and ring on the message. |
+| Blocks | Someone who has blocked the sender is not named: they never see the message. |
+| Fixed | A mention is written with the message and never changed. Editing a message does not add or remove one. |
+
+Not in this slice: a notification or email for a mention. It shows inside Messages only. Notifications have their own subject rules in the database, so that is a separate change.
+
+## Data model (approved with channels)
+
+`prisma/p2-dm-mentions.sql`, folded into `prisma/supabase-manual-setup.sql`:
+
+- `ConversationKind` gains `STAFF_DM`; `Conversation.dmKey` (unique) holds the pair.
+- `MessageMention`, append-only, server-only.
+- The participant guard and the kind check are stated word for word the same in this file and in `p2-channels.sql` (a unit test compares them). Running either file again can therefore never undo the other. The acceptance run proves it by re-running the channels file last.
+
+## Final review notes on slices 1 and 2
+
+A last pass on the two commits that had not been re-checked found no blocking defect. Its four low-severity notes are fixed in this slice's commit: keyboard focus after picking a reaction; a bound on the replies loaded beside a long page; no failing write when a non-staff-only channel holds the name "general"; and a lock so adopting and archiving an old "general" cannot cross. The Messages list also no longer loads a channel's whole staff to list it.
+
+## Checked
+
+- 1,115 unit tests pass (17 new: staff conversations, mention matching, the two SQL comparisons).
+- Acceptance: 115 checks (22 new) on a fresh database.
+- Chromium at 390px as a Finance member and an owner: open a conversation from People, "@" offers the colleague, the owner's list shows "@ mentions you" and the message is ringed; a worker opening the conversation gets "Conversation not found". No console or server errors.
+
+Screens: `10-people.png`, `11-mention-offer.png`, `12-list-mention.png`, `13-mentioned.png`.

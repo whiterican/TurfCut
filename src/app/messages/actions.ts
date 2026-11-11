@@ -183,3 +183,12 @@ export async function archiveChannel(conversationId: string): Promise<ActionStat
   return done(r, "Archived. The channel is now read-only.");
 }
 
+/** Opens (creating if needed) my conversation with a colleague. */
+export async function startStaffDm(fd: FormData): Promise<void> {
+  const r = await chat.startStaffDm(await me(), str(fd.get("profileId")));
+  // A fixed code, never free text in the URL.
+  if (!r.ok) redirect("/messages/channels?error=person");
+  revalidatePath("/messages", "layout");
+  redirect(`/messages/${r.conversationId}`);
+}
+

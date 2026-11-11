@@ -2737,6 +2737,10 @@ body {
   .bubble-deleted {
     @apply border border-dashed border-border bg-transparent text-subtle italic;
   }
+  /* A message that names you: a ring in the selection colour (the tag above it says so in words). */
+  .bubble-mention {
+    box-shadow: 0 0 0 2px var(--select);
+  }
   /* Reactions under a message: a small pill per mark with its count; yours is ringed. */
   .reaction {
     @apply inline-flex min-h-8 items-center gap-1 rounded-full border px-2 text-sm leading-none transition;

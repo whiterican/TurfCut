@@ -31,6 +31,8 @@ export interface ClientMessage {
   reactions: { emoji: Reaction; count: number; mine: boolean }[];
   canReact: boolean;
   canReply: boolean;
+  /** This message names me with "@". */
+  mentionsMe: boolean;
 }
 
 /**
@@ -83,7 +85,7 @@ function Reactions({ m, children }: { m: ClientMessage; /** Sits at the end of t
         </button>
       ))}
       {m.canReact && (
-        <button ref={add} type="button" className="reaction reaction-add" hidden={open} disabled={pending} onClick={() => setOpen(true)} aria-label="Add a reaction" aria-haspopup="true">
+        <button ref={add} type="button" className="reaction reaction-add" hidden={open} aria-disabled={pending} onClick={() => !pending && setOpen(true)} aria-label="Add a reaction" aria-haspopup="true">
           <span aria-hidden>+</span>
         </button>
       )}
@@ -251,7 +253,8 @@ export function MessageList({
                   {m.senderIsManager && <span className="tag">Manager</span>}
                 </span>
               )}
-              <div className={`bubble ${m.deleted ? "bubble-deleted" : m.mine ? "bubble-mine" : "bubble-theirs"}`}>
+              {m.mentionsMe && <span className="tag-accent mb-1">Mentions you</span>}
+              <div className={`bubble ${m.deleted ? "bubble-deleted" : m.mine ? "bubble-mine" : "bubble-theirs"} ${m.mentionsMe ? "bubble-mention" : ""}`}>
                 {m.deleted ? "Message deleted" : m.body}
                 {m.attachment && !m.deleted && (
                   <a href={`/messages/attachment/${m.id}`} className="link mt-1 flex items-center gap-2 text-sm" download>
@@ -290,18 +293,38 @@ export function MessageList({
 const WORKER_REPLIES = ["On my way", "Running about 10 min late", "At staging", "Packet returned", "Can't make it — calling you"];
 const MANAGER_REPLIES = ["Thanks!", "Where are you?", "See you at staging", "Great work today"];
 
-export function Composer({ conversationId, manager, placeholder, parentId = null }: { conversationId: string; manager: boolean; placeholder: string; /** Replying in a thread: the message being answered. */ parentId?: string | null }) {
+/** The "@partial" being typed at the caret, if any: after the start or a space, with no line break in it. */
+const AT_END = /(^|\s)@([^@\n]{0,40})$/;
+
+export function Composer({ conversationId, manager, placeholder, parentId = null, people = [], quick = true }: { conversationId: string; manager: boolean; placeholder: string; /** Replying in a thread: the message being answered. */ parentId?: string | null; /** Names "@" offers: the other people in the conversation. */ people?: string[]; /** The one-tap field replies ("On my way"): for conversations with workers, not staff talking to staff. */ quick?: boolean }) {
   const form = useRef<HTMLFormElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
   const [body, setBody] = useState("");
   const typing = body.trim().length > 0;
+  // Where the caret is, so "@" is completed where it is being typed.
+  const [caret, setCaret] = useState(0);
+  const partial = people.length ? AT_END.exec(body.slice(0, caret)) : null;
+  const offered = partial ? people.filter((n) => n.toLocaleLowerCase().startsWith(partial[2].toLocaleLowerCase())).slice(0, 6) : [];
+  const complete = (name: string) => {
+    if (!partial) return;
+    const start = caret - partial[2].length - 1;
+    const next = `${body.slice(0, start)}@${name} ${body.slice(caret)}`;
+    setBody(next);
+    const at = start + name.length + 2;
+    setCaret(at);
+    requestAnimationFrame(() => {
+      input.current?.focus();
+      input.current?.setSelectionRange(at, at);
+    });
+  };
   // A failed send keeps the text and the file (no auto-reset); success clears both.
   const { state, pending, onSubmit } = useSubmit(send, (r, f) => {
     if (!r.ok) return;
     f.reset();
     setBody("");
+    setCaret(0);
     setFile(null);
     if (input.current) input.current.style.height = "";
   });
@@ -333,7 +356,7 @@ export function Composer({ conversationId, manager, placeholder, parentId = null
       <input type="hidden" name="conversationId" value={conversationId} />
       {parentId && <input type="hidden" name="parentId" value={parentId} />}
       {/* One tap for the common field updates; hidden once you start typing so a draft is never replaced. */}
-      {!typing && !file && !parentId && (
+      {quick && !typing && !file && !parentId && (
         <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1" role="group" aria-label="Quick replies">
           {(manager ? MANAGER_REPLIES : WORKER_REPLIES).map((q) => (
             <button key={q} name="quick" value={q} className="quick-reply" disabled={pending}>{q}</button>
@@ -349,6 +372,13 @@ export function Composer({ conversationId, manager, placeholder, parentId = null
             Remove
           </button>
         </p>
+      )}
+      {offered.length > 0 && (
+        <div id="mention-list" className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1" role="group" aria-label="People to mention">
+          {offered.map((name) => (
+            <button key={name} type="button" className="quick-reply" onClick={() => complete(name)}>@{name}</button>
+          ))}
+        </div>
       )}
       <div className="flex items-end gap-2">
         <label className="icon-btn cursor-pointer" title="Attach a document: PDF, Word, Excel or text, up to 4 MB">
@@ -368,8 +398,11 @@ export function Composer({ conversationId, manager, placeholder, parentId = null
           value={body}
           onChange={(e) => {
             setBody(e.target.value);
+            setCaret(e.target.selectionStart ?? e.target.value.length);
             grow(e.target);
           }}
+          onSelect={(e) => setCaret(e.currentTarget.selectionStart ?? 0)}
+          aria-describedby={offered.length ? "mention-list" : undefined}
           onKeyDown={(e) => {
             if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && !pending && (typing || file)) form.current?.requestSubmit();
           }}

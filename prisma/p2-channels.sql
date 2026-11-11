@@ -30,11 +30,15 @@ ALTER TABLE "public"."Conversation" ADD COLUMN IF NOT EXISTS "archivedById" UUID
 
 -- Shape: a channel has a name and no engagement; only channels carry the
 -- channel columns; the general channel is staff-only and is never archived.
+-- (The kind check below already names STAFF_DM, the kind p2-dm-mentions.sql
+-- adds: both files state it the same way, so running this one again never
+-- narrows it. It compares through ::text, so it is valid before that kind exists.)
 ALTER TABLE "public"."Conversation" DROP CONSTRAINT IF EXISTS "Conversation_kind_shape";
 ALTER TABLE "public"."Conversation" ADD CONSTRAINT "Conversation_kind_shape" CHECK (
      ("kind"::text = 'DIRECT' AND "engagementId" IS NOT NULL)
   OR ("kind"::text = 'GROUP' AND "engagementId" IS NULL AND "name" IS NOT NULL)
-  OR ("kind"::text = 'CHANNEL' AND "engagementId" IS NULL AND "name" IS NOT NULL));
+  OR ("kind"::text = 'CHANNEL' AND "engagementId" IS NULL AND "name" IS NOT NULL)
+  OR ("kind"::text = 'STAFF_DM' AND "engagementId" IS NULL AND "name" IS NULL));
 ALTER TABLE "public"."Conversation" DROP CONSTRAINT IF EXISTS "Conversation_channel_shape";
 ALTER TABLE "public"."Conversation" ADD CONSTRAINT "Conversation_channel_shape" CHECK (
      ("kind"::text = 'CHANNEL'
@@ -49,21 +53,30 @@ CREATE UNIQUE INDEX IF NOT EXISTS "Conversation_general_per_org" ON "public"."Co
 CREATE UNIQUE INDEX IF NOT EXISTS "Conversation_channel_name" ON "public"."Conversation"("orgId", lower("name")) WHERE "kind" NOT IN ('DIRECT', 'GROUP') AND "archivedAt" IS NULL;
 
 -- Who may be a participant of what, whatever path writes the row:
---   MEMBER only in a channel, and only a member of that organization;
---   WORKER never in a staff-only channel.
+--   MEMBER only in a channel or a staff conversation, and only a member of
+--   that organization; WORKER never in a staff-only channel; a staff
+--   conversation (p2-dm-mentions.sql) holds only its two people.
+-- This file and p2-dm-mentions.sql define the same function, word for word
+-- (a test compares them), so running either again never undoes the other.
+-- It reads the pair key through jsonb, so it is valid before that column exists.
 CREATE OR REPLACE FUNCTION "turfcut_private"."check_channel_participant"() RETURNS trigger LANGUAGE plpgsql SET search_path = '' AS $$
 DECLARE
   c RECORD;
 BEGIN
-  SELECT cv."kind"::text AS kind, cv."orgId", cv."staffOnly" INTO STRICT c FROM "public"."Conversation" cv WHERE cv."id" = NEW."conversationId";
+  SELECT cv."kind"::text AS kind, cv."orgId", cv."staffOnly", to_jsonb(cv) ->> 'dmKey' AS "dmKey" INTO STRICT c FROM "public"."Conversation" cv WHERE cv."id" = NEW."conversationId";
   IF NEW."role"::text = 'MEMBER' THEN
-    IF c.kind <> 'CHANNEL' THEN
-      RAISE EXCEPTION 'MEMBER participants belong to channels only' USING ERRCODE = 'check_violation';
+    IF c.kind NOT IN ('CHANNEL', 'STAFF_DM') THEN
+      RAISE EXCEPTION 'MEMBER participants belong to channels and staff conversations only' USING ERRCODE = 'check_violation';
+    END IF;
+    IF c.kind = 'STAFF_DM' AND position(NEW."profileId"::text IN c."dmKey") = 0 THEN
+      RAISE EXCEPTION 'a staff conversation holds only its two people' USING ERRCODE = 'check_violation';
     END IF;
     IF NEW."removedAt" IS NULL AND NOT EXISTS (
          SELECT 1 FROM "public"."Profile" p WHERE p."id" = NEW."profileId" AND p."orgId" = c."orgId" AND p."role"::text <> 'WORKER' AND p."closedAt" IS NULL FOR SHARE) THEN
       RAISE EXCEPTION 'a channel member must belong to the channel''s organization' USING ERRCODE = 'check_violation';
     END IF;
+  ELSIF c.kind = 'STAFF_DM' THEN
+    RAISE EXCEPTION 'a staff conversation has staff only' USING ERRCODE = 'check_violation';
   ELSIF c.kind = 'CHANNEL' THEN
     IF NEW."role"::text = 'MANAGER' THEN
       RAISE EXCEPTION 'staff join channels as MEMBER' USING ERRCODE = 'check_violation';

@@ -41,6 +41,7 @@ function ThreadRow({ t }: { t: ThreadSummary }) {
             {t.last ? `${t.last.mine ? "You: " : ""}${t.last.text}` : "No messages yet"}
           </span>
           <span className="mt-0.5 flex items-center justify-end gap-2 text-xs text-subtle">
+            {t.mentions > 0 && <span className="tag-accent shrink-0">@ {t.mentions === 1 ? "mentions you" : `${t.mentions} mentions`}</span>}
             {unread ? (
               <span className="unread-badge"><span aria-hidden>{t.unread > 99 ? "99+" : t.unread}</span><span className="sr-only"> unread: {t.unread}</span></span>
             ) : t.frozen ? (
@@ -76,7 +77,7 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
     <ListPage gap={4}>
       {/* A concise head (#111): the title and, for staff who may start a team chat, a compose button; the explanation lives in the empty state. */}
       <Masthead title="Messages">
-        {onStaff && <Link transitionTypes={["nav-forward"]} href="/messages/channels" className="btn-secondary btn-sm"><Hash aria-hidden className="btn-icon" />Channels</Link>}
+        {onStaff && <Link transitionTypes={["nav-forward"]} href="/messages/channels" className="btn-secondary btn-sm"><Hash aria-hidden className="btn-icon" />Channels and people</Link>}
         {staff && (
           <>
             {canUse(session, "moderation") && (

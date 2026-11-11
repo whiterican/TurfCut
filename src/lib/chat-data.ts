@@ -21,6 +21,9 @@ import {
   canReply,
   canReport,
   canSend,
+  canStartStaffDm,
+  dmKey,
+  findMentions,
   chatAccess,
   cleanBody,
   validateChannelName,
@@ -116,6 +119,7 @@ async function loadContext(c: Client, me: ChatUser, conversationId: string) {
       facts.blockedByOther = (await c.profileBlock.count({ where: { blockerId: conv.engagement.worker.profileId, blockedId: me.userId, liftedAt: null } })) > 0;
     }
   }
+  if (conv.kind === "STAFF_DM") facts.counterpartRemoved = !conv.participants.some((p) => p.profileId !== me.userId && p.removedAt === null);
   if (conv.kind !== "DIRECT" && mine?.role === "WORKER" && !mine.removedAt) {
     facts.hiredOnLinkedJob =
       (await c.engagement.count({ where: { worker: { profileId: me.userId }, jobId: { in: conv.jobs.map((j) => j.jobId) }, status: { in: [...HIRED] } } })) > 0;
@@ -201,6 +205,28 @@ async function unreadByConversation(profileId: string): Promise<Map<string, numb
   return new Map(rows.map((r) => [r.conversationId, r.unread]));
 }
 
+/**
+ * Unread messages that name me, per conversation: sent after my last read,
+ * inside my window, and not deleted. (A mention is never recorded for
+ * someone who had the sender blocked, so blocks need no check here.)
+ */
+async function unreadMentions(profileId: string): Promise<Map<string, number>> {
+  const rows = await db().$queryRaw<{ conversationId: string; n: number }[]>`
+    SELECT mm."conversationId"::text AS "conversationId", COUNT(*)::int AS "n"
+      FROM "MessageMention" mm
+      JOIN "Message" m ON m."id" = mm."messageId"
+      JOIN "ConversationParticipant" p ON p."conversationId" = mm."conversationId" AND p."profileId" = mm."profileId"
+     WHERE mm."profileId" = ${profileId}::uuid
+       AND (p."lastReadAt" IS NULL OR m."createdAt" > p."lastReadAt")
+       AND (p."removedAt" IS NULL OR m."createdAt" <= p."removedAt")
+       AND NOT EXISTS (SELECT 1 FROM "MessageRevision" r WHERE r."messageId" = m."id" AND r."kind" = 'DELETE')
+     GROUP BY mm."conversationId"`;
+  return new Map(rows.map((r) => [r.conversationId, r.n]));
+}
+
+/** A staff member's role, as a line under their name. */
+const staffLabel = (p: Person | null | undefined) => (!p ? "" : p.role === "CUSTOM" ? (p.orgRole?.name ?? "Team member") : (ROLE_LABEL[p.role] ?? ""));
+
 /** For the nav badge. */
 export async function unreadTotal(me: ChatUser): Promise<number> {
   let total = 0;
@@ -210,9 +236,11 @@ export async function unreadTotal(me: ChatUser): Promise<number> {
 
 export interface ThreadSummary {
   id: string;
-  kind: "DIRECT" | "GROUP" | "CHANNEL";
+  kind: "DIRECT" | "GROUP" | "CHANNEL" | "STAFF_DM";
   /** CHANNEL: staff only (no workers). */
   staffOnly: boolean;
+  /** Unread messages that name me with "@". */
+  mentions: number;
   title: string;
   subtitle: string;
   /** Read-only for me (removed, or the hire ended). */
@@ -294,27 +322,31 @@ export async function listThreads(me: ChatUser): Promise<{ threads: ThreadSummar
         include: {
           engagement: { select: { status: true, job: { select: { title: true } } } },
           jobs: { select: { job: { select: { title: true } } } },
-          participants: { where: { profileId: { not: me.userId } }, include: { profile: PERSON } },
+          // The other people matter only where the conversation is named after one of them. A channel's whole staff is not loaded to list it.
+          participants: { where: { profileId: { not: me.userId }, conversation: { kind: { in: ["DIRECT", "STAFF_DM"] } } }, include: { profile: PERSON } },
         },
       },
     },
   });
   const unread = await unreadByConversation(me.userId);
   const latest = await latestVisible(me.userId);
+  const mentions = await unreadMentions(me.userId);
   // A staff row in a channel of an organization I'm no longer on the staff of lists nothing (lib/chat.ts).
   const mineStill = rows.filter((row) => !(row.role === "MEMBER" && (me.role === "WORKER" || row.conversation.orgId !== me.orgId)));
   const threads = mineStill.map((row): ThreadSummary => {
     const c = row.conversation;
     const last = latest.get(c.id);
     const direct = c.kind === "DIRECT";
-    const other = direct ? (c.participants.find((p) => !p.removedAt) ?? c.participants[0]) : undefined;
+    const staffDm = c.kind === "STAFF_DM";
+    const other = direct || staffDm ? (c.participants.find((p) => !p.removedAt) ?? c.participants[0]) : undefined;
     return {
       id: c.id,
       kind: c.kind,
       staffOnly: c.staffOnly,
-      title: direct ? personName(other?.profile) : (c.name ?? "Team chat"),
-      subtitle: direct ? (c.engagement?.job.title ?? "") : c.kind === "CHANNEL" ? (c.topic ?? "") : c.jobs.map((j) => j.job.title).join(" · "),
-      frozen: row.removedAt !== null || c.archivedAt !== null || (direct && !isHired(c.engagement?.status ?? "")),
+      mentions: mentions.get(c.id) ?? 0,
+      title: direct || staffDm ? personName(other?.profile) : (c.name ?? "Team chat"),
+      subtitle: direct ? (c.engagement?.job.title ?? "") : staffDm ? staffLabel(other?.profile) : c.kind === "CHANNEL" ? (c.topic ?? "") : c.jobs.map((j) => j.job.title).join(" · "),
+      frozen: row.removedAt !== null || c.archivedAt !== null || (direct && !isHired(c.engagement?.status ?? "")) || (staffDm && !c.participants.some((p) => !p.removedAt)),
       unread: unread.get(c.id) ?? 0,
       last: last ? { text: preview(last), mine: last.senderId === me.userId, at: last.createdAt } : null,
       activeAt: last?.createdAt ?? c.createdAt,
@@ -372,6 +404,8 @@ export interface ThreadMessage {
   reactions: { emoji: Reaction; count: number; mine: boolean }[];
   canReact: boolean;
   canReply: boolean;
+  /** This message names me with "@". */
+  mentionsMe: boolean;
 }
 export interface ThreadMember {
   profileId: string;
@@ -384,7 +418,7 @@ export interface ThreadMember {
 }
 export interface ThreadView {
   id: string;
-  kind: "DIRECT" | "GROUP" | "CHANNEL";
+  kind: "DIRECT" | "GROUP" | "CHANNEL" | "STAFF_DM";
   title: string;
   subtitle: string;
   /** CHANNEL: what kind of channel this is, and what I may do with it. */
@@ -399,6 +433,8 @@ export interface ThreadView {
   canManage: boolean;
   canBlock: boolean;
   members: ThreadMember[];
+  /** Names that "@" offers while typing: the other people in the conversation now. */
+  mentionable: string[];
   messages: ThreadMessage[];
   /** More than THREAD_LIMIT messages: only the latest are shown. */
   hasOlder: boolean;
@@ -414,7 +450,8 @@ export async function openThread(me: ChatUser, conversationId: string): Promise<
   // A reply I can see whose first message is not on this page (sent before I took over a direct thread, or by
   // someone I had blocked, or older than what is loaded) has no thread link here to reach it by: it reads as an
   // ordinary message, so nothing I'm entitled to is left with nowhere to show. Judged against the page itself.
-  const loose = await loadView(db(), conv.id, me.userId, access, { repliesOnly: { notUnder: top.view.map((m) => m.id) }, since: truncated ? top.view[0]?.createdAt : undefined });
+  // Bounded like the page itself: nothing older than the oldest row loaded (hidden ones included), and no more than a page of them.
+  const loose = await loadView(db(), conv.id, me.userId, access, { repliesOnly: { notUnder: top.view.map((m) => m.id) }, since: truncated ? top.rows.at(-1)?.createdAt : undefined, take: THREAD_LIMIT });
   const view = [...top.view, ...loose.view].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
   const extras = await messageExtras(db(), conv.id, me.userId, access, view, mine.lastReadAt);
   const myBlocks = new Set(
@@ -440,14 +477,15 @@ export async function openThread(me: ChatUser, conversationId: string): Promise<
           select: { id: true, startsAt: true, endsAt: true, stagingLocation: true, status: true },
         })
       : null;
-  const direct = conv.kind === "DIRECT";
+  const staffDm = conv.kind === "STAFF_DM";
+  const direct = conv.kind === "DIRECT" || staffDm;
   const others = conv.participants.filter((p) => p.profileId !== me.userId);
   const other = direct ? (others.find((p) => !p.removedAt) ?? others.at(-1)) : undefined;
   return {
     id: conv.id,
     kind: conv.kind,
     title: direct ? personName(other?.profile) : (conv.name ?? "Team chat"),
-    subtitle: direct ? (conv.engagement?.job.title ?? "") : conv.jobs.map((j) => j.job.title).join(" · "),
+    subtitle: staffDm ? staffLabel(other?.profile) : direct ? (conv.engagement?.job.title ?? "") : conv.jobs.map((j) => j.job.title).join(" · "),
     channel:
       conv.kind === "CHANNEL"
         ? {
@@ -478,6 +516,7 @@ export async function openThread(me: ChatUser, conversationId: string): Promise<
         isMe: p.profileId === me.userId,
         blockedByMe: myBlocks.has(p.profileId),
       })),
+    mentionable: [...new Set(conv.participants.filter((p) => p.profileId !== me.userId && !p.removedAt).map((p) => personName(p.profile)))].sort((a, b) => a.localeCompare(b)),
     messages: view.map((m) => threadMessage(m, me.userId, byId, access, now, extras)),
     hasOlder: truncated,
   };
@@ -490,6 +529,8 @@ export async function openThread(me: ChatUser, conversationId: string): Promise<
 interface Extras {
   replies: Map<string, { count: number; last: Date; fresh: number }>;
   reactions: Map<string, { emoji: Reaction; count: number; mine: boolean }[]>;
+  /** The messages on screen that name the viewer. */
+  mentionsMe: Set<string>;
   newestReply: Date | undefined;
 }
 
@@ -501,8 +542,9 @@ interface Extras {
  */
 async function messageExtras(c: Client, conversationId: string, viewerId: string, window: { readUntil: Date | null; readFrom: Date | null }, view: ViewMessage[], lastReadAt: Date | null = null): Promise<Extras> {
   const ids = view.map((m) => m.id);
-  const out: Extras = { replies: new Map(), reactions: new Map(), newestReply: undefined };
+  const out: Extras = { replies: new Map(), reactions: new Map(), mentionsMe: new Set(), newestReply: undefined };
   if (ids.length === 0) return out;
+  for (const m of await c.messageMention.findMany({ where: { messageId: { in: ids }, profileId: viewerId }, select: { messageId: true } })) out.mentionsMe.add(m.messageId);
   const { readUntil, readFrom } = window;
   const [replyRows, reactionRows, blocks] = await Promise.all([
     c.message.findMany({
@@ -552,12 +594,14 @@ function threadMessage(m: ViewMessage, myId: string, byId: Map<string, { role: P
     reactions: extras.reactions.get(m.id) ?? [],
     canReact: canReact(access, m, REACTIONS[0]).ok,
     canReply: canReply(access, m).ok,
+    // A deleted message says nothing, so it names nobody any more.
+    mentionsMe: !m.deleted && !mineMsg && extras.mentionsMe.has(m.id),
   };
 }
 
 export interface RepliesView {
   conversationId: string;
-  kind: "DIRECT" | "GROUP" | "CHANNEL";
+  kind: "DIRECT" | "GROUP" | "CHANNEL" | "STAFF_DM";
   /** The conversation's name, for the way back. */
   title: string;
   access: Access;
@@ -565,6 +609,7 @@ export interface RepliesView {
   staff: boolean;
   parent: ThreadMessage;
   replies: ThreadMessage[];
+  mentionable: string[];
   hasOlder: boolean;
 }
 
@@ -597,14 +642,15 @@ export async function openReplies(me: ChatUser, conversationId: string, parentId
     if (skipped === 0) await db().conversationParticipant.update({ where: { id: mine.id }, data: { lastReadAt: newest } });
   }
   const byId = new Map(conv.participants.map((p) => [p.profileId, p]));
-  const direct = conv.kind === "DIRECT";
-  const other = direct ? conv.participants.find((p) => p.profileId !== me.userId && !p.removedAt) : undefined;
+  const direct = conv.kind === "DIRECT" || conv.kind === "STAFF_DM";
+  const other = direct ? (conv.participants.find((p) => p.profileId !== me.userId && !p.removedAt) ?? conv.participants.find((p) => p.profileId !== me.userId)) : undefined;
   return {
     conversationId: conv.id,
     kind: conv.kind,
     title: direct ? personName(other?.profile) : conv.kind === "CHANNEL" ? `#${conv.name ?? "channel"}` : (conv.name ?? "Team chat"),
     access,
     staff: mine.role !== "WORKER",
+    mentionable: [...new Set(conv.participants.filter((p) => p.profileId !== me.userId && !p.removedAt).map((p) => personName(p.profile)))].sort((a, b) => a.localeCompare(b)),
     parent: threadMessage(parent, me.userId, byId, access, now, extras),
     // Replies don't nest: a reply shows no thread of its own.
     replies: view.map((m) => ({ ...threadMessage(m, me.userId, byId, access, now, extras), canReply: false })),
@@ -803,10 +849,14 @@ export async function sendMessage(
       if (!ctx.conv.lastMessageAt || ctx.conv.lastMessageAt < at) await tx.conversation.update({ where: { id: conversationId }, data: { lastMessageAt: at } });
       // Sending in the main conversation means I'm looking at it. A reply is sent from a thread's page, which shows only that thread: it marks nothing read.
       if (!parentId) await tx.conversationParticipant.update({ where: { id: ctx.mine.id }, data: { lastReadAt: at } });
-      const others = ctx.conv.participants.filter((p) => p.profileId !== me.userId && !p.removedAt).map((p) => p.profileId);
+      const present = ctx.conv.participants.filter((p) => p.profileId !== me.userId && !p.removedAt);
+      const others = present.map((p) => p.profileId);
       const blockers = new Set(
         (await tx.profileBlock.findMany({ where: { blockerId: { in: others }, blockedId: me.userId, liftedAt: null }, select: { blockerId: true } })).map((b) => b.blockerId)
       );
+      // Who the message names: people in the conversation now, by the name the others see. Never someone who has blocked the sender (they don't see the message).
+      const named = findMentions(body, present.map((p) => ({ profileId: p.profileId, name: personName(p.profile) }))).filter((id) => !blockers.has(id));
+      if (named.length) await tx.messageMention.createMany({ data: named.map((profileId) => ({ messageId: msg.id, conversationId, profileId, createdAt: at })) });
       return { ok: true as const, messageId: msg.id, orgId: ctx.conv.orgId, recipientIds: others.filter((id) => !blockers.has(id)), at };
     });
   } catch (e) {
@@ -935,7 +985,7 @@ export async function listOpenReports(me: ChatUser): Promise<OpenReport[]> {
       id: r.id,
       messageId: r.messageId,
       conversationId: r.conversationId,
-      conversationTitle: conv.kind === "CHANNEL" ? `#${conv.name ?? "channel"}` : conv.kind === "GROUP" ? (conv.name ?? "Team chat") : `Direct messages · ${conv.engagement?.job.title ?? ""}`,
+      conversationTitle: conv.kind === "CHANNEL" ? `#${conv.name ?? "channel"}` : conv.kind === "GROUP" ? (conv.name ?? "Team chat") : conv.kind === "STAFF_DM" ? "Staff conversation" : `Direct messages · ${conv.engagement?.job.title ?? ""}`,
       senderName: personName(r.message.sender),
       reporterName: personName(reporters.get(r.reporterId)),
       reason: r.reason,
@@ -1143,6 +1193,69 @@ export async function removeMember(me: ChatUser, conversationId: string, profile
 }
 
 // ---------------------------------------------------------------------------
+// Staff conversations: one to one, between two staff members (prisma/p2-dm-mentions.sql)
+// ---------------------------------------------------------------------------
+
+export interface Colleague {
+  profileId: string;
+  name: string;
+  role: string;
+  /** Our conversation, if we have one. */
+  conversationId: string | null;
+}
+
+/** Everyone else on my organization's staff, for starting a conversation. Workers get nobody. */
+export async function colleagues(me: ChatUser): Promise<Colleague[]> {
+  if (me.role === "WORKER" || !me.orgId) return [];
+  const [people, mine] = await Promise.all([
+    db().profile.findMany({ where: { orgId: me.orgId, role: { not: "WORKER" }, closedAt: null, id: { not: me.userId } }, select: PERSON.select, orderBy: { createdAt: "asc" } }),
+    db().conversation.findMany({ where: { orgId: me.orgId, kind: "STAFF_DM", participants: { some: { profileId: me.userId } } }, select: { id: true, dmKey: true } }),
+  ]);
+  const byKey = new Map(mine.map((c) => [c.dmKey, c.id]));
+  return people
+    .map((p) => ({ profileId: p.id, name: personName(p), role: staffLabel(p), conversationId: byKey.get(dmKey(me.userId, p.id)) ?? null }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/** Opens my conversation with a colleague, making it the first time. One per pair, whoever starts it. */
+export async function startStaffDm(me: ChatUser, targetId: string): Promise<{ ok: true; conversationId: string } | Fail> {
+  if (!UUID_RE.test(targetId) || !me.orgId) return fail("That person isn't on your organization's staff.");
+  const orgId = me.orgId;
+  const key = dmKey(me.userId, targetId);
+  return db().$transaction(async (tx) => {
+    await lock(tx, `dm:${key}`);
+    // Both of us, as we are now, read inside the lock.
+    const [self, target] = await Promise.all([
+      tx.profile.findUnique({ where: { id: me.userId }, select: { id: true, role: true, orgId: true, closedAt: true } }),
+      tx.profile.findUnique({ where: { id: targetId }, select: { id: true, role: true, orgId: true, closedAt: true } }),
+    ]);
+    if (!self || self.closedAt || self.orgId !== orgId) return fail("Staff message each other here.");
+    const may = canStartStaffDm({ profileId: self.id, role: self.role, orgId: self.orgId }, target ? { profileId: target.id, role: target.role, orgId: target.orgId, closed: target.closedAt !== null } : null);
+    if (!may.ok) return may;
+    const now = await dbNow(tx);
+    const existing = await tx.conversation.findUnique({ where: { dmKey: key }, select: { id: true, orgId: true, participants: { select: { id: true, removedAt: true } } } });
+    if (existing) {
+      // The same two people in another organization's conversation: theirs there stays closed, and no second one can exist for the pair.
+      if (existing.orgId !== orgId) return fail("That conversation belongs to another organization.");
+      // Someone who left the organization and came back is in it again, from now (they keep the history they had).
+      for (const p of existing.participants) if (p.removedAt) await tx.conversationParticipant.update({ where: { id: p.id }, data: { removedAt: null, removedById: null } });
+      return { ok: true as const, conversationId: existing.id };
+    }
+    const conv = await tx.conversation.create({
+      data: {
+        kind: "STAFF_DM",
+        orgId,
+        dmKey: key,
+        createdById: me.userId,
+        participants: { create: [me.userId, targetId].map((profileId) => ({ profileId, role: "MEMBER" as const, addedById: me.userId, addedAt: now, lastReadAt: now })) },
+      },
+    });
+    await audit(tx, me.userId, "conversation.created", "Conversation", conv.id, { kind: "STAFF_DM" });
+    return { ok: true as const, conversationId: conv.id };
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Channels (lib/chat.ts "Channels"; prisma/p2-channels.sql)
 // ---------------------------------------------------------------------------
 
@@ -1186,10 +1299,21 @@ async function ensureGeneralLocked(me: ChatUser, orgId: string): Promise<void> {
     if (!general) {
       // The name is kept for this channel (createChannel refuses it). A staff-only channel made by hand
       // under that name before this rule existed becomes the general channel, rather than blocking it.
-      const named = await tx.conversation.findFirst({ where: { orgId, kind: "CHANNEL", archivedAt: null, staffOnly: true, name: { equals: GENERAL_CHANNEL, mode: "insensitive" } }, select: { id: true } });
+      const named = await tx.conversation.findFirst({ where: { orgId, kind: "CHANNEL", archivedAt: null, name: { equals: GENERAL_CHANNEL, mode: "insensitive" } }, select: { id: true, staffOnly: true } });
+      if (named && !named.staffOnly) {
+        // It has (or may have) workers in it, so it can't be the staff's general channel, and it holds the name.
+        // Nothing to make until it is renamed or archived: say so once per load, without a failing write.
+        console.error("[turfcut] no general channel: a channel named general that is not staff-only holds the name", orgId);
+        return;
+      }
       if (named) {
-        general = await tx.conversation.update({ where: { id: named.id }, data: { isGeneral: true }, select: { id: true } });
-        await audit(tx, me.userId, "channel.made_general", "Conversation", general.id, { name: GENERAL_CHANNEL });
+        // Archiving takes the conversation's own lock: take it too, and look again, so the two can't cross.
+        await lock(tx, `conv:${named.id}`);
+        const still = await tx.conversation.findFirst({ where: { id: named.id, archivedAt: null, staffOnly: true }, select: { id: true } });
+        if (still) {
+          general = await tx.conversation.update({ where: { id: still.id }, data: { isGeneral: true }, select: { id: true } });
+          await audit(tx, me.userId, "channel.made_general", "Conversation", general.id, { name: GENERAL_CHANNEL });
+        }
       }
     }
     if (!general) {

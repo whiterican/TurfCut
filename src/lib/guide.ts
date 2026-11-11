@@ -1,7 +1,7 @@
 /**
  * The worker's guide (Caden, Nov 10): the explanations that used to sit on every screen, in one
  * place. Every statement describes existing behaviour; nothing here is a new promise. Change a
- * sentence only with the code that makes it true (guide.test.ts pins the ones about pay and privacy).
+ * sentence only with the code that makes it true (guide.test.ts pins the ones about pay, privacy and messages).
  */
 export interface GuideSection {
   id: string;
@@ -31,6 +31,15 @@ export const GUIDE_SECTIONS: GuideSection[] = [
       "If a shift has ended and you're still checked in, open the shift to check out, or ask your organizer to correct the end time.",
     ],
     link: { href: "/shifts", label: "Open Work" },
+  },
+  {
+    id: "messages",
+    title: "Messages",
+    points: [
+      "Chats carry text and text-only documents: PDF, Word, Excel or plain text, up to 4 MB. Photos can't be sent.",
+      "Do not photograph or share signed petition sheets. Custody is tracked as packet IDs and counts only.",
+    ],
+    link: { href: "/messages", label: "Open Messages" },
   },
   {
     id: "pay",
@@ -82,6 +91,15 @@ export const ORG_GUIDE_SECTIONS: GuideSection[] = [
       "Nobody's position is ever on the map.",
     ],
     link: { href: "/field", label: "Open Field" },
+  },
+  {
+    id: "messages",
+    title: "Messages",
+    points: [
+      "Chats carry text and text-only documents: PDF, Word, Excel or plain text, up to 4 MB. Photos can't be sent.",
+      "Do not photograph or share signed petition sheets. Custody is tracked as packet IDs and counts only.",
+    ],
+    link: { href: "/messages", label: "Open Messages" },
   },
   {
     id: "pay",

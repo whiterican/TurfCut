@@ -1,7 +1,7 @@
 /**
  * The worker's guide (Caden, Nov 10): the explanations that used to sit on every screen, in one
  * place. Every statement describes existing behaviour; nothing here is a new promise. Change a
- * sentence only with the code that makes it true (guide.test.ts pins the ones about pay and privacy).
+ * sentence only with the code that makes it true (guide.test.ts pins the ones about pay, privacy and messages).
  */
 export interface GuideSection {
   id: string;

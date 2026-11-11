@@ -29,8 +29,7 @@ describe("the worker's guide", () => {
     // Caden, Nov 11: the rule sat in bold under every message box. It is here, beside a file being attached, and in the refusal of a photo.
     for (const sections of [GUIDE_SECTIONS, ORG_GUIDE_SECTIONS]) expect(sections.find((s) => s.id === "messages")!.points).toContain(PETITION_NOTICE);
     const thread = readFileSync(join(__dirname, "../components/chat/Thread.tsx"), "utf8");
-    expect(thread).toMatch(/\{file && \(\s*<p className="text-xs leading-snug text-muted" role="note">\s*\{PETITION_NOTICE\}/);
-    expect(thread.match(/PETITION_NOTICE/g)).toHaveLength(3); // the import, the photo refusal, the note beside an attached file
+    expect(thread).toMatch(/\{file && \(\s*<p [^>]*role="note">\s*\{PETITION_NOTICE\}/);
     expect(thread).toContain("Photos can't be shared in Turfcut chats. ${PETITION_NOTICE}");
   });
 

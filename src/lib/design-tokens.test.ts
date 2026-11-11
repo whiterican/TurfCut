@@ -121,10 +121,20 @@ describe.each([
   });
 
   it("the dock is Liquid Glass: ink icons on a translucent pane, the current one in a tinted capsule; Sunlight keeps its solid black frame", () => {
-    expect(css).toMatch(/\.tabbar \{[^}]*?background: var\(--glass-sheen\), var\(--dock-bg\);[^}]*?backdrop-filter: var\(--glass-filter\);/);
+    expect(css).toMatch(/\.tabbar \{[^}]*?background: var\(--dock-sheen\), var\(--dock-bg\);[^}]*?backdrop-filter: var\(--dock-filter\);[^}]*?box-shadow: var\(--dock-highlight\);/);
     expect(css).toMatch(/\.tab \{[^}]*?color: var\(--dock-fg\);[^}]*\}/);
-    expect(css).toMatch(/\n  \.tab\[aria-current\] \{[^}]*?color: var\(--dock-current-fg\);\s*background: var\(--dock-capsule\);/);
-    expect(css).toMatch(/--dock-bg: var\(--glass-bg\);\s*--dock-fg: var\(--fg\);\s*--dock-current-fg: var\(--fg\);\s*--dock-capsule: color-mix\(in srgb, var\(--select\) 26%, transparent\);/);
+    expect(css).toMatch(/\n  \.tab\[aria-current\] \{[^}]*?color: var\(--dock-current-fg\);\s*background: var\(--dock-current-bg\);/);
+    // The tab you're on is solid, not a tint (Caden, Nov 11: the tint read as washed out): the selection colour nearly opaque, white on it by day and ink by night.
+    expect(css).toMatch(/--dock-current-bg: color-mix\(in srgb, var\(--select\) 92%, transparent\);\s*--dock-current-fg: #ffffff;\s*--dock-capsule: color-mix\(in srgb, var\(--select\) 26%, transparent\);/);
+    expect(themeBody(css, ".dark")).toMatch(/--dock-current-fg: var\(--ink\);/);
+    expect(css).toMatch(/\.tab\[aria-current\] \.tab-icon \{[^}]*?filter: none;/);
+    // The dock is the clearest glass in the app (Caden's reference, Nov 10): a faint tint and a light blur, so the page shows through.
+    expect(css).toMatch(/\nhtml \{[^}]*?--dock-bg: color-mix\(in srgb, var\(--surface\) 12%, transparent\);\s*--dock-filter: blur\(3\.5px\) saturate\(170%\);/);
+    expect(themeBody(css, ".dark")).toMatch(/--dock-bg: color-mix\(in srgb, var\(--surface\) 16%, transparent\);\s*--dock-filter: blur\(3\.5px\) saturate\(130%\);/);
+    // So little pane cannot carry contrast by itself: every dock icon is outlined in the page's own colour instead.
+    expect(css).toMatch(/\n  \.tab-icon \{[^}]*?filter: (drop-shadow\(0 0 0\.5px var\(--dock-halo\)\) ){3}drop-shadow\(0 0 1px var\(--dock-halo\)\) drop-shadow\(0 0 3px var\(--dock-halo\)\);/);
+    expect(css).toMatch(/\nhtml \{[^}]*?--dock-halo: var\(--surface\);/);
+    expect(themeBody(css, ".dark")).toMatch(/--dock-halo: var\(--bg\);/);
     // The pane's share of the card colour, by day and by night; the rest is whatever scrolls behind it.
     expect(css).toMatch(/\nhtml \{[^}]*?--glass-bg: color-mix\(in srgb, var\(--surface\) 45%, transparent\);/);
     expect(themeBody(css, ".dark")).toMatch(/--glass-bg: color-mix\(in srgb, var\(--surface\) 62%, transparent\);/);
@@ -138,10 +148,18 @@ describe.each([
       // Worst case behind the pane: black under the day's glass, white under the night's. The icons still read, on the pane and on the capsule.
       const pane = name === "dark" ? mix(t.surface, 0.62, "#ffffff") : mix(t.surface, 0.45, "#000000");
       const hex = (c: RGB) => "#" + c.map((v) => Math.round(v).toString(16).padStart(2, "0")).join("");
-      // These panes hold icons only (the dock, icon buttons): 3:1, the bar for graphics (WCAG 1.4.11). Panes with text are denser, below.
+      // These panes hold icons only (icon buttons): 3:1, the bar for graphics (WCAG 1.4.11). Panes with text are denser, below.
       expect(ratio(t.fg, pane)).toBeGreaterThanOrEqual(3);
       // The selection is tinted purple by day and green by night; the icon on it keeps the ink.
       expect(ratio(t.fg, mix(t.select, 0.26, hex(pane)))).toBeGreaterThanOrEqual(3);
+      // The current tab's icon on its solid capsule, over the worst case showing through the capsule's last 8%: 4.5:1 or better.
+      const capsuleOver = (behind: string) => mix(t.select, 0.92, behind);
+      const currentFg = name === "dark" ? t.ink : "#ffffff";
+      for (const behind of ["#000000", "#ffffff"]) expect(ratio(currentFg, capsuleOver(behind))).toBeGreaterThanOrEqual(4.5);
+      // The dock's pane is nearly clear, so its icons are judged against their own halo, which is what sits next to every stroke.
+      // The halo is soft, not a solid fill: it is taken at half strength over the worst case behind the dock's own pane (black by day, white by night). An estimate of the blur, not a measurement.
+      const dockPane = name === "dark" ? mix(t.surface, 0.16, "#ffffff") : mix(t.surface, 0.12, "#000000");
+      expect(ratio(t.fg, mix(name === "dark" ? t.bg : t.surface, 0.5, hex(dockPane)))).toBeGreaterThanOrEqual(3);
       // The named menu button and the drawer carry text: body ink holds AA on the stronger pane over the same worst case.
       expect(css).toMatch(/\.menu-button\[data-named\] \{[^}]*?background: var\(--glass-sheen\), var\(--glass-bg-strong\);/);
       expect(css).toMatch(/\nhtml \{[^}]*?--glass-bg-strong: color-mix\(in srgb, var\(--surface\) 79%, transparent\);/);
@@ -152,7 +170,7 @@ describe.each([
       // The selected row's label, on its tint over that pane (the drawer) and over the bar's pane on the page (the sidebar).
       expect(ratio(t.fg, mix(t.select, 0.26, hex(strong)))).toBeGreaterThanOrEqual(4.5);
       expect(ratio(t.fg, mix(t.select, 0.26, hex(mix(t.surface, 0.8, t.bg))))).toBeGreaterThanOrEqual(7);
-      // By night the glint is white over light type, so it is kept faint: at its brightest (8%) the dock's icons still hold 3:1 over white.
+      // By night the glint is white over light type, so it is kept faint: at its brightest (8%) icons on the glass still hold 3:1 over white.
       expect(themeBody(css, ".dark")).toMatch(/--glass-sheen: linear-gradient\(135deg, rgb\(255 255 255 \/ 0\.08\) 0%/);
       if (name === "dark") expect(ratio(t.fg, mix("#ffffff", 0.08, hex(pane)))).toBeGreaterThanOrEqual(3);
       // On the drawer and sheets the faintest grey steps up to muted, as in the bars.
@@ -450,7 +468,7 @@ describe("the ten locked colours (founder's twelve-screen concept, #111)", () =>
       for (const [, name, value] of body.matchAll(/--([\w-]+):\s*([^;]+);/g)) {
         if (/^#[0-9a-fA-F]{6}$/.test(value.trim())) expect(parsed[name]).toBe(value.trim());
         else if (name === "hero-border") expect(value.trim()).toBe("transparent");
-        else expect(name).toMatch(/^(shadow|shadow-depth|glass-(bg|bg-strong|bg-bar|border|highlight|filter|sheen)|card-(bg|edge|sheen)|dock-(bg|fg|border|ring)|drawer-root|header-bg|page-wash)$/); // the only non-colour tokens: shadows and the glass recipe
+        else expect(name).toMatch(/^(shadow|shadow-depth|glass-(bg|bg-strong|bg-bar|border|highlight|filter|sheen)|card-(bg|edge|sheen)|dock-(bg|fg|border|ring|filter|sheen|highlight|halo|current-bg|current-fg)|drawer-root|header-bg|page-wash)$/); // the only non-colour tokens: shadows and the glass recipe
       }
     }
   });

@@ -11,14 +11,30 @@
 --
 -- Only the two live activities can be stored. The check at the end is the
 -- hard stop: a planned activity, another sector or another work mode is
--- refused by the database until the slice that builds it loosens this check
--- in its own reviewed migration. So a sales job can never be stored as
--- canvassing, and nothing planned can be passed off as live.
+-- refused by the database until the slice that builds it loosens the check.
+-- So a sales job can never be stored as canvassing, and nothing planned can
+-- be passed off as live.
+--
+-- ONE DEFINITION. The check "Job_activity_live" and the function
+-- job_activity_from_type are defined here and nowhere else. A slice that
+-- makes another activity live edits THIS file (and its copy in
+-- supabase-manual-setup.sql) in the same commit; it never redefines them in
+-- a file of its own. This file is re-runnable, so a second definition
+-- elsewhere would be silently undone the next time this one ran. A test
+-- (job-taxonomy.test.ts) refuses a second definition anywhere in prisma/.
+--
+-- The sector and place of existing jobs are assigned here, not stated by
+-- anyone: every job so far is political field work, because that is all the
+-- platform has offered. From the first other sector on, the organization
+-- states it when posting.
 --
 -- Idempotent: safe to run again, in one transaction or as one statement.
 -- Also folded into supabase-manual-setup.sql.
 
 BEGIN;
+
+-- Everything below holds a lock on "Job" until COMMIT. Wait a few seconds for it at most, rather than queue every read of jobs behind a long transaction.
+SET LOCAL lock_timeout = '5s';
 
 DO $$ BEGIN
   CREATE TYPE "public"."Sector" AS ENUM ('POLITICAL', 'NONPROFIT', 'PRIVATE');

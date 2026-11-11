@@ -6,12 +6,13 @@ const ORG = "00000000-0000-0000-0000-000000000001";
 const JOB = "00000000-0000-0000-0000-000000000011";
 let fails = 0;
 const check = (l: string, c: unknown, d?: unknown) => { if (c) console.log(`PASS ${l}`); else { fails++; console.log(`FAIL ${l}`, d ?? ""); } };
-const refused = async (work: () => Promise<unknown>) => work().then(() => false, () => true);
+/** Refused by the hard stop itself: any other failure is not what these checks are about, and fails them. */
+const refused = async (work: () => Promise<unknown>) => work().then(() => false, (e) => /Job_activity_live/.test(String(e instanceof Error ? e.message : e)));
 
 (async () => {
   const p = db();
   const seeded = await p.job.findUniqueOrThrow({ where: { id: JOB } });
-  check("an existing job is labelled from how it is counted, political and in the field", seeded.sector === "POLITICAL" && seeded.workMode === "FIELD" && seeded.activity === (seeded.type === "PETITION" ? "PETITION_CIRCULATION" : "DOOR_CANVASSING"), [seeded.type, seeded.sector, seeded.activity, seeded.workMode]);
+  check("a seeded job (written without the new fields) is labelled from how it is counted, political and in the field", seeded.sector === "POLITICAL" && seeded.workMode === "FIELD" && seeded.activity === (seeded.type === "PETITION" ? "PETITION_CIRCULATION" : "DOOR_CANVASSING"), [seeded.type, seeded.sector, seeded.activity, seeded.workMode]);
   const base = { orgId: ORG, jurisdictionId: seeded.jurisdictionId, title: "Taxonomy check" };
   const made = await p.job.create({ data: { ...base, type: "CANVASS" } });
   check("a job written without an activity gets the one its type means", made.activity === "DOOR_CANVASSING" && made.sector === "POLITICAL" && made.workMode === "FIELD");

@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { ACTIVITIES, SECTORS, activityForType, activityOf, checkTaxonomy, type Sector, type WorkActivity, type WorkMode } from "./job-taxonomy";
@@ -23,12 +23,30 @@ describe("sector, activity and place of work", () => {
     ]);
   });
 
-  it("the database's hard stop says exactly what the table says is live", () => {
-    const check = sql.match(/ADD CONSTRAINT "Job_activity_live" CHECK \(([\s\S]*?)\)\);/)![1];
-    const pairs = [...check.matchAll(/"activity"::text = '([A-Z_]+)' AND "type"::text = '([A-Z]+)'/g)].map((m) => [m[1], m[2]]);
-    expect(pairs).toEqual(ACTIVITIES.filter((a) => a.live).map((a) => [a.id, a.live!.type]));
-    expect(check).toContain(`"sector"::text = 'POLITICAL'`);
-    expect(check).toContain(`"workMode"::text = 'FIELD'`);
+  const norm = (s: string) => s.replace(/\s+/g, " ").trim();
+  const CHECK = /ADD CONSTRAINT "Job_activity_live" CHECK \(([\s\S]*?)\)\);/g;
+
+  it("the database's hard stop is, word for word, what the table says is live", () => {
+    const check = [...sql.matchAll(CHECK)].map((m) => m[1]);
+    expect(check).toHaveLength(1);
+    // Built from the table: any change to the check, or to what is live, has to change both.
+    const expected = `"sector"::text = 'POLITICAL' AND "workMode"::text = 'FIELD' AND ( ${ACTIVITIES.filter((a) => a.live).map((a) => `("activity"::text = '${a.id}' AND "type"::text = '${a.live!.type}')`).join(" OR ")}`;
+    expect(norm(check[0])).toBe(norm(expected));
+    // Named twice in the statements: dropped if present, then added. Nothing drops it afterwards.
+    expect(sql.replace(/--[^\n]*/g, "").match(/CONSTRAINT (IF EXISTS )?"Job_activity_live"/g)).toHaveLength(2);
+  });
+
+  it("the check and the trigger function have one definition: this file and its copy in the setup file, nowhere else", () => {
+    const files = readdirSync(join(process.cwd(), "prisma")).filter((f) => f.endsWith(".sql"));
+    const withCheck = files.filter((f) => readFileSync(join(process.cwd(), "prisma", f), "utf8").includes('ADD CONSTRAINT "Job_activity_live"'));
+    const withFn = files.filter((f) => readFileSync(join(process.cwd(), "prisma", f), "utf8").includes('FUNCTION "turfcut_private"."job_activity_from_type"() RETURNS'));
+    expect(withCheck.sort()).toEqual(["p3-sectors.sql", "supabase-manual-setup.sql"]);
+    expect(withFn.sort()).toEqual(["p3-sectors.sql", "supabase-manual-setup.sql"]);
+  });
+
+  it("the setup file carries the migration word for word", () => {
+    const setup = readFileSync(join(process.cwd(), "prisma/supabase-manual-setup.sql"), "utf8");
+    expect(setup).toContain(sql.slice(sql.indexOf("BEGIN;")));
   });
 
   it("every combination is refused except the live ones, with a sentence", () => {

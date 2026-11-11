@@ -437,7 +437,9 @@ model Job {
   /// way the work is counted (signatures or doors); `activity` says what the
   /// work is. The database keeps the two in step and fills `activity` from
   /// `type` when a row arrives without one, so it is never null there
-  /// (optional here only so older write paths need not name it).
+  /// (optional here only so older write paths need not name it). Because of
+  /// that difference, `prisma db push` would drop the column's NOT NULL:
+  /// never run it against a real database. Schema changes are the SQL files.
   sector                  Sector              @default(POLITICAL)
   activity                WorkActivity?
   workMode                WorkMode            @default(FIELD)

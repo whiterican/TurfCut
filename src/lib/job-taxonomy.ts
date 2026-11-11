@@ -12,8 +12,9 @@ import type { JobType } from "@/lib/jobs";
  * `type` (PETITION / CANVASS) stays as how the work is counted.
  *
  * Only what `live` marks can be stored: the database refuses the rest
- * (prisma/p3-sectors.sql, the "Job_activity_live" check), and a test keeps
- * that check and this table saying the same thing. An activity turns live in
+ * (prisma/p3-sectors.sql, the "Job_activity_live" check). A unit test holds
+ * that check's text to this table, and an acceptance script tries every
+ * combination against a real database and compares with checkTaxonomy. An activity turns live in
  * the slice that builds it end to end (posting, hiring, scheduling, field
  * work, verification, pay, jurisdiction rules), never before.
  */
@@ -52,8 +53,8 @@ export const ACTIVITIES: readonly Activity[] = [
 export const WORK_MODE_LABELS: Record<WorkMode, string> = { FIELD: "In the field", REMOTE: "Remote", ONSITE: "On site" };
 
 const BY_ID = new Map(ACTIVITIES.map((a) => [a.id, a]));
-export const activityInfo = (id: WorkActivity): Activity => BY_ID.get(id)!;
-export const sectorLabel = (id: Sector) => SECTORS.find((s) => s.id === id)!.label;
+export const activityInfo = (id: WorkActivity): Activity | undefined => BY_ID.get(id);
+export const sectorLabel = (id: Sector): string => SECTORS.find((s) => s.id === id)?.label ?? id;
 
 /** The activity a counting type means, for a job written without one (the database does the same). */
 export const activityForType = (type: JobType): WorkActivity => (type === "PETITION" ? "PETITION_CIRCULATION" : "DOOR_CANVASSING");
@@ -65,8 +66,10 @@ export type TaxonomyCheck = { ok: true } | { ok: false; reason: string };
 
 /**
  * Whether a job may be stored as this sector, activity and place with this
- * counting type. The same rule as the database's check; said here first so
- * a person gets a sentence instead of a database error.
+ * counting type: the same rule as the database's check, with a sentence for
+ * each refusal. Nothing on screen offers a choice yet (the app writes the
+ * two live combinations itself), so today this is what the tests hold the
+ * database to; the job form will call it when a second sector is offered.
  */
 export function checkTaxonomy(j: { sector: Sector; activity: WorkActivity; workMode: WorkMode; type: JobType }): TaxonomyCheck {
   const a = BY_ID.get(j.activity);

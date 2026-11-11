@@ -690,6 +690,8 @@ describe("the shell (redesign B1.4)", () => {
     // The page ends at the composer and fills the screen, so a short conversation keeps it at the bottom.
     expect(css).toMatch(/body:has\(\.thread-top\) \.page \{\s*display: flex;\s*flex: 1 0 auto;\s*flex-direction: column;\s*padding-bottom: 0;/);
     expect(css).toMatch(/body:has\(\.thread-top\) \.composer \{\s*margin-top: auto;/);
+    // ...in the organization's shell too, whose page wrapper is not a column by itself.
+    expect(css).toMatch(/body:has\(\.thread-top\) #content \{\s*display: flex;\s*flex-direction: column;/);
     // A read-only thread has no composer: its last message keeps clear of the screen's edge.
     expect(css).toMatch(/body:has\(\.thread-top\):not\(:has\(\.composer\)\) \.page \{\s*padding-bottom: calc\(2rem \+ env\(safe-area-inset-bottom\)\);/);
   });

@@ -19,15 +19,20 @@ The Messages list and every other screen keep the dock. From 768 nothing changes
 
 ## Getting around from a thread
 
-- The back arrow returns to Messages, where the dock is.
-- The menu still opens with a swipe from the left edge.
+- The back arrow returns to Messages, where the dock is. It is in every state of a thread, read-only included.
+- An organization's header keeps its menu button on a thread, so the menu and its swipe from the left edge still work there.
+- A worker's menu strip is hidden on a thread (it was before this change), so for a worker the back arrow is the only way out.
 
-Caden also floated a swipe to bring the dock back while in a thread. It is not built: the swipe from the left edge already opens the menu, an installed iPhone app uses the same edge to go back, and a dock over the composer would cover the message box. This is Claude's call while the designer is away; it is easy to add if he still wants it.
+Caden also floated a swipe to bring the dock back while in a thread. It is not built: an installed iPhone app uses the left edge to go back, for an organization the same swipe opens the menu, and a dock over the composer would cover the message box. This is Claude's call while the designer is away; it is easy to add if he still wants it.
 
 ## Checked
 
-Chromium at 390 wide: the composer's bottom edge is the screen's bottom edge, as worker and as organizer, light and dark, and on a screen far taller than the conversation. The dock shows again on the Messages list. `worker-light.png`, `organization-dark.png`.
+Chromium at 390 wide: the composer's bottom edge is the screen's bottom edge, as worker and as organizer, light and dark, and for both on a screen far taller than the conversation. The dock shows again on the Messages list. `worker-light.png`, `organization-dark.png`.
 
 ## Not checked
 
 A real iPhone: the home-indicator spacing and how the composer rides the keyboard there.
+
+## Known
+
+Opening a thread from the list shows the loading skeleton first, which still has the dock; the dock goes when the thread arrives. Not changed here.

@@ -666,8 +666,7 @@ describe("the shell (redesign B1.4)", () => {
     for (const body of [themeBody(css, ".sun"), css.slice(css.indexOf("@media (prefers-reduced-transparency: reduce)"))]) expect(body).toMatch(/--drawer-root: var\(--surface\);/);
     // The body takes it too, and the backdrop is clear: an iPhone colours the strip from the page or from whatever is fixed
     // across the top, and a dim backdrop made it a dark band (Caden's phone, Nov 11). The drawer's own shadow dims the page.
-    expect(css).toMatch(/body:has\(\.more-sheet\[open\]\) \{\s*background-color: var\(--drawer-root\);/);
-    expect(css).toMatch(/body:has\(\.more-sheet\[open\]\) \{\s*--page-wash: none;/);
+    expect(css).toMatch(/body:has\(\.more-sheet\[open\]\) \{\s*--page-wash: none;\s*background-color: var\(--drawer-root\);/);
     expect(css).toMatch(/\.more-sheet::backdrop \{\s*background: transparent;/);
     // No theme gives the backdrop a colour again (only the forced-colours veil does), and the colour is the pane over the page.
     expect(css.match(/\.more-sheet::backdrop/g)).toHaveLength(2);

@@ -69,14 +69,13 @@ export async function remove(conversationId: string, messageId: string): Promise
   return done(r, "Message deleted.");
 }
 
-/** Give a message a mark, or take it back. `threadId` is the thread page showing it, if any. */
-export async function react(conversationId: string, messageId: string, emoji: string, threadId: string | null = null): Promise<ActionState> {
+/** Give a message a mark, or take it back. The pages to refresh come from the message itself, never from the caller. */
+export async function react(messageId: string, emoji: string): Promise<ActionState> {
   const r = await chat.toggleReaction(await me(), str(messageId), str(emoji));
-  if (r.ok) {
-    refreshThread(str(conversationId));
-    if (threadId) revalidatePath(`/messages/${str(conversationId)}/thread/${str(threadId)}`);
-  }
-  return r.ok ? { ok: true, message: "" } : { ok: false, message: r.reason };
+  if (!r.ok) return { ok: false, message: r.reason };
+  refreshThread(r.conversationId);
+  if (r.threadId) revalidatePath(`/messages/${r.conversationId}/thread/${r.threadId}`);
+  return { ok: true, message: "" };
 }
 
 export async function report(messageId: string, reason: string): Promise<ActionState> {

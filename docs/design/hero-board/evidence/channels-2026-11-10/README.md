@@ -122,4 +122,22 @@ Built on slice 1. They work in every conversation: channels, team chats and dire
 - Chromium at 390px, owner and Finance: react, see the shared count, take it back, reply, see "2 replies"; a worker opening the staff thread gets "Conversation not found". No console or server errors.
 - Not checked: live refresh of reactions between two browsers. A reaction shows for others on their next refresh or message, because reactions are not on the Realtime feed.
 
+## Review of slice 2 (rule 9)
+
+A separate Claude reviewer ran the acceptance script and its own scenarios on a throwaway database. It found no leak of message text, sound SQL and locking, and these defects, all fixed in the second commit:
+
+| Finding | Fix |
+| :--- | :--- |
+| A reply under a message the viewer cannot see (sent before they took over a direct thread, or by someone they had blocked) showed nowhere, with a badge that never cleared | Such a reply reads as an ordinary message in the main conversation |
+| Opening or replying in a thread could mark an unseen message in the main conversation as read | A thread moves the read mark only when that skips nothing; replying from a thread marks nothing read |
+| New replies were counted but not announced before being marked read | The thread link says how many are new |
+| A removed member saw a mark disappear when it was taken back after their removal | Marks are shown as they stood at removal |
+| A mark made during a block showed after unblocking | It stays hidden, as that person's messages do |
+| The reaction action trusted page paths sent by the browser | The pages to refresh come from the message itself |
+| The reaction picker dropped keyboard focus and ignored Escape | Focus returns to "+"; Escape closes |
+
+**Known limit.** A conversation has one read mark, not one per thread. The badge can therefore stay until the main conversation is opened. A read mark per thread would be a data-model change; say if you want it.
+
+Acceptance: 88 checks.
+
 Screens: `8-thread.png`, `9-replies-and-reactions.png`.

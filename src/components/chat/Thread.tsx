@@ -26,6 +26,8 @@ export interface ClientMessage {
   /** Replies in this message's thread, and when the newest was sent. */
   replies: number;
   lastReplyAt: string | null;
+  /** Replies from others not yet read when the page loaded. */
+  newReplies: number;
   reactions: { emoji: Reaction; count: number; mine: boolean }[];
   canReact: boolean;
   canReply: boolean;
@@ -36,12 +38,19 @@ export interface ClientMessage {
  * takes back yours), and a "+" that opens the rest. The count shown changes
  * at once and is put right by the server's answer.
  */
-function Reactions({ m, conversationId, threadId, children }: { m: ClientMessage; conversationId: string; threadId: string | null; /** Sits at the end of the row (the way into the thread). */ children?: React.ReactNode }) {
+function Reactions({ m, children }: { m: ClientMessage; /** Sits at the end of the row (the way into the thread). */ children?: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const [pending, start] = useTransition();
   const [error, setError] = useState("");
   // Mine, as tapped but not yet confirmed: emoji -> on/off.
   const [draft, setDraft] = useState<Partial<Record<Reaction, boolean>>>({});
+  const add = useRef<HTMLButtonElement>(null);
+  // Closing the picker returns focus to the "+" it came from.
+  const close = () => {
+    if (!open) return;
+    setOpen(false);
+    requestAnimationFrame(() => add.current?.focus());
+  };
   const shown = REACTIONS.map((emoji) => {
     const base = m.reactions.find((r) => r.emoji === emoji);
     const mine = draft[emoji] ?? base?.mine ?? false;
@@ -51,10 +60,10 @@ function Reactions({ m, conversationId, threadId, children }: { m: ClientMessage
   const toggle = (emoji: Reaction) => {
     const now = !(draft[emoji] ?? m.reactions.find((r) => r.emoji === emoji)?.mine ?? false);
     setDraft((d) => ({ ...d, [emoji]: now }));
-    setOpen(false);
+    close();
     setError("");
     start(async () => {
-      const r = await react(conversationId, m.id, emoji, threadId).catch(() => ({ ok: false, message: "That didn't go through." }));
+      const r = await react(m.id, emoji).catch(() => ({ ok: false, message: "That didn't go through." }));
       if (!r.ok) setError(r.message);
       // The server's count is on the page now (or the tap failed): drop the guess either way.
       setDraft((d) => {
@@ -73,19 +82,19 @@ function Reactions({ m, conversationId, threadId, children }: { m: ClientMessage
           <span aria-hidden className="tabular-nums">{r.count}</span>
         </button>
       ))}
-      {m.canReact && !open && (
-        <button type="button" className="reaction reaction-add" onClick={() => setOpen(true)} aria-label="Add a reaction" aria-expanded={false}>
+      {m.canReact && (
+        <button ref={add} type="button" className="reaction reaction-add" hidden={open} onClick={() => setOpen(true)} aria-label="Add a reaction" aria-haspopup="true">
           <span aria-hidden>+</span>
         </button>
       )}
       {m.canReact && open && (
-        <span className="reaction-picker" role="group" aria-label="Reactions">
+        <span className="reaction-picker" role="group" aria-label="Reactions" onKeyDown={(e) => { if (e.key === "Escape") { e.stopPropagation(); close(); } }}>
           {REACTIONS.map((emoji, i) => (
-            <button key={emoji} type="button" className="reaction-pick" autoFocus={i === 0} onClick={() => toggle(emoji)} aria-label={REACTION_NAMES[emoji]}>
+            <button key={emoji} type="button" className="reaction-pick" autoFocus={i === 0} disabled={pending} onClick={() => toggle(emoji)} aria-label={REACTION_NAMES[emoji]}>
               <span aria-hidden>{emoji}</span>
             </button>
           ))}
-          <button type="button" className="reaction-pick text-sm text-muted" onClick={() => setOpen(false)} aria-label="Close reactions">✕</button>
+          <button type="button" className="reaction-pick text-sm text-muted" onClick={close} aria-label="Close reactions">✕</button>
         </span>
       )}
       {children}
@@ -262,10 +271,11 @@ export function MessageList({
                 <MessageActions m={m} conversationId={conversationId} />
               </div>
               {/* One row under the message: the marks, then the way into its thread. A deleted message keeps its thread, not its marks. */}
-              <Reactions m={m.deleted ? { ...m, reactions: [], canReact: false } : m} conversationId={conversationId} threadId={threadId}>
+              <Reactions m={m.deleted ? { ...m, reactions: [], canReact: false } : m}>
                 {!threadId && (m.replies > 0 || m.canReply) && (
                   <Link transitionTypes={["nav-forward"]} href={`/messages/${conversationId}/thread/${m.id}`} className={`thread-link ${m.replies > 0 ? "thread-link-has" : ""}`}>
                     {m.replies > 0 ? `${m.replies} ${m.replies === 1 ? "reply" : "replies"}` : "Reply"}
+                    {m.newReplies > 0 && <span className="unread-badge ml-2 no-underline">{m.newReplies} new</span>}
                   </Link>
                 )}
               </Reactions>

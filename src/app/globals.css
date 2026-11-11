@@ -2436,7 +2436,7 @@ body {
   .more-sheet::backdrop {
     background: transparent;
   }
-  /* Forced colours drop shadows: the backdrop dims there. */
+  /* Forced colours drop shadows: the backdrop veils the page there. */
   @media (forced-colors: active) {
     .more-sheet::backdrop {
       background: rgb(0 0 0 / 0.5);
@@ -3649,7 +3649,9 @@ body:has(.thread-top) {
   html:has(.more-sheet[open]) {
     background: var(--drawer-root);
   }
+  /* No wash either: it would show through the top of the pane and not in the strip. */
   body:has(.more-sheet[open]) {
+    --page-wash: none;
     background-color: var(--drawer-root);
   }
 }

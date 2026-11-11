@@ -105,7 +105,7 @@ The band was the colour of the drawer's dim backdrop. An installed app on a curr
 - The backdrop is now clear. It still takes the press that closes the drawer.
 - The page is dimmed by the drawer's own shadow, which follows the drawer's rounded corner.
 - While the drawer is open the root and the body both take the drawer's colour, so whichever the phone reads, the strip matches the drawer.
-- The drawer's pane now sits over the page, not over the dim, so it is a little brighter by day.
+- The drawer's pane now sits over the page, not over the dim, so it is brighter in both themes. The page's top wash is off while the drawer is open, so the pane's top matches the strip.
 - With forced colours, where shadows are dropped, the backdrop dims as before.
 
-`drawer-top-light.png` and `drawer-top-dark.png` are Chromium at 390 wide, which has no strip: they show the dim, the corner and the pane. The strip itself can only be checked on the phone, with the app installed to the home screen. The strip is one colour across the whole width, so above the dimmed part of the page it will be the drawer's colour too.
+`drawer-top-light.png` and `drawer-top-dark.png` are Chromium at 390 wide, which has no strip: they show the dim, the corner and the pane. The slide-in carries a very large shadow, so its smoothness also wants a look on the phone. The strip itself can only be checked on the phone, with the app installed to the home screen. The strip is one colour across the whole width, so above the dimmed part of the page it will be the drawer's colour too.

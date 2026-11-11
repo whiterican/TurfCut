@@ -667,7 +667,13 @@ describe("the shell (redesign B1.4)", () => {
     // The body takes it too, and the backdrop is clear: an iPhone colours the strip from the page or from whatever is fixed
     // across the top, and a dim backdrop made it a dark band (Caden's phone, Nov 11). The drawer's own shadow dims the page.
     expect(css).toMatch(/body:has\(\.more-sheet\[open\]\) \{\s*background-color: var\(--drawer-root\);/);
+    expect(css).toMatch(/body:has\(\.more-sheet\[open\]\) \{\s*--page-wash: none;/);
     expect(css).toMatch(/\.more-sheet::backdrop \{\s*background: transparent;/);
+    // No theme gives the backdrop a colour again (only the forced-colours veil does), and the colour is the pane over the page.
+    expect(css.match(/\.more-sheet::backdrop/g)).toHaveLength(2);
+    expect(css).toMatch(/--glass-bg-strong: color-mix\(in srgb, var\(--surface\) 79%, transparent\);/);
+    expect(css).toMatch(/--drawer-root: color-mix\(in srgb, var\(--surface\) 79%, var\(--bg\)\);/);
+    expect(css).toMatch(/--glass-bg-strong: color-mix\(in srgb, var\(--surface\) 78%, transparent\);\s*--drawer-root: color-mix\(in srgb, var\(--surface\) 78%, var\(--bg\)\);/);
     expect(css).toMatch(/\.more-sheet \{[^}]*border-end-end-radius: var\(--radius-lg\);\s*box-shadow: 0 0 0 100vmax rgb\(24 20 30 \/ 0\.45\);/);
     expect(css).toMatch(/\.dark \.more-sheet \{\s*box-shadow: 0 0 0 100vmax rgb\(8 4 14 \/ 0\.6\);/);
     expect(css).toMatch(/@media \(forced-colors: active\) \{\s*\.more-sheet::backdrop \{\s*background: rgb\(0 0 0 \/ 0\.5\);/);

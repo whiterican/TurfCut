@@ -2798,8 +2798,9 @@ body {
     outline: 2px solid var(--focus);
     outline-offset: 2px;
   }
-  /* The composer stays above the floating tab bar while you scroll the
-     thread (bar: 4.75rem tall, 0.75rem off the bottom, plus a gap). */
+  /* The composer stays at the bottom while you scroll the thread. On a phone the thread has no dock
+     and it sits on the screen's edge (see the unlayered rule near the end of the file); the value
+     here is only the fallback under it. */
   .composer {
     @apply sticky z-30 -mx-4 space-y-2 border-t px-4 pt-3 pb-3 sm:-mx-6 sm:px-6;
     bottom: calc(6rem + env(safe-area-inset-bottom));
@@ -3068,6 +3069,39 @@ summary.list-none::-webkit-details-marker {
 @media (width >= 90rem) {
   .org-rail {
     border-inline-start: 1px solid var(--shell-edge);
+  }
+}
+/* A chat thread on a phone has no dock (Caden, Nov 11): the dock floated over an empty band under
+   the message box. The composer sits at the bottom of the screen; the back arrow returns to
+   Messages, where the dock is. (An organization's header keeps its menu button here; a worker's
+   menu strip is hidden on a thread, so for a worker the back arrow is the way out.)
+   Unlayered, so it wins over the layered .page, .composer and .tabbar rules. */
+@media (max-width: 47.99rem) {
+  body:has(.thread-top) .tabbar {
+    display: none;
+  }
+  body:has(.thread-top) .composer {
+    bottom: 0;
+    padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
+  }
+  /* The page ends at the composer; a thread with none (read-only) keeps a little room. A short
+     conversation still fills the screen, so the composer is at the bottom, not under the last message. */
+  /* The organization's shell holds the page in a plain block; the worker's is already a column. */
+  body:has(.thread-top) #content {
+    display: flex;
+    flex-direction: column;
+  }
+  body:has(.thread-top) .page {
+    display: flex;
+    flex: 1 0 auto;
+    flex-direction: column;
+    padding-bottom: 0;
+  }
+  body:has(.thread-top) .composer {
+    margin-top: auto;
+  }
+  body:has(.thread-top):not(:has(.composer)) .page {
+    padding-bottom: calc(2rem + env(safe-area-inset-bottom));
   }
 }
 @media (max-width: 47.99rem) {

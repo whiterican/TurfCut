@@ -382,6 +382,37 @@ enum JobType {
   CANVASS
 }
 
+/// Who the work is for (prisma/p3-sectors.sql). One platform, three sectors;
+/// only POLITICAL is live. A job's sector is stated by the organization,
+/// never inferred.
+enum Sector {
+  POLITICAL
+  NONPROFIT
+  PRIVATE
+}
+
+/// What the work is. The founder's list (docs/product/EXPANSION_UX_ROADMAP.md).
+/// Two are live; the database refuses the rest until each is built end to
+/// end, so a planned activity can never be stored as a live one, and a
+/// sales job is never stored as canvassing.
+enum WorkActivity {
+  PETITION_CIRCULATION
+  DOOR_CANVASSING
+  PHONE_BANKING
+  PHONE_POLLING
+  DOOR_POLLING
+  DOOR_FUNDRAISING
+  DOOR_SALES
+  PHONE_SALES
+}
+
+/// Where the work happens: in the field, or (phone work) from home or at an office.
+enum WorkMode {
+  FIELD
+  REMOTE
+  ONSITE
+}
+
 enum JobStatus {
   DRAFT
   PUBLISHED
@@ -402,6 +433,14 @@ model Job {
   jurisdictionId          String              @db.Uuid
   jurisdiction            JurisdictionProfile @relation(fields: [jurisdictionId], references: [id])
   type                    JobType
+  /// Sector, activity and place of work (p3-sectors.sql). `type` stays as the
+  /// way the work is counted (signatures or doors); `activity` says what the
+  /// work is. The database keeps the two in step and fills `activity` from
+  /// `type` when a row arrives without one, so it is never null there
+  /// (optional here only so older write paths need not name it).
+  sector                  Sector              @default(POLITICAL)
+  activity                WorkActivity?
+  workMode                WorkMode            @default(FIELD)
   title                   String
   description             String?
   status                  JobStatus           @default(DRAFT)
@@ -443,6 +482,7 @@ model Job {
   @@index([orgId, status])
   @@index([jurisdictionId])
   @@index([campaignProfileId])
+  @@index([sector, activity])
 }
 
 enum EngagementStatus {

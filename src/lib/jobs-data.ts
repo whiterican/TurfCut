@@ -1,4 +1,5 @@
 import { Prisma } from "@prisma/client";
+import { activityForType } from "@/lib/job-taxonomy";
 import { changeLabels, jobDiff, materialLabels, type JobChanges } from "@/lib/job-changes";
 import { notifyJobChanged } from "@/lib/notifications-data";
 import { db } from "@/lib/db";
@@ -18,9 +19,14 @@ import { loadLatestPreference } from "@/lib/political-fit-data";
 
 const json = (v: unknown) => v as Prisma.InputJsonValue;
 
+/** Sector, activity and place of work for a job of this counting type: the two live activities, both political and in the field. */
+const taxonomyFor = (type: JobInput["type"]) => ({ sector: "POLITICAL" as const, activity: activityForType(type), workMode: "FIELD" as const });
+
 function jobData(input: JobInput) {
   return {
     type: input.type,
+    // What the work is, kept in step with how it is counted (lib/job-taxonomy; the database checks the pair). Political field work is all that is live.
+    ...taxonomyFor(input.type),
     title: input.title,
     description: input.description,
     jurisdictionId: input.jurisdictionId,
@@ -51,6 +57,7 @@ function draftData(d: DraftInput) {
   const geo = d.city !== undefined || d.state !== undefined ? { ...(d.city ? { city: d.city } : {}), ...(d.state ? { state: d.state } : {}) } : null;
   return {
     type: d.type,
+    ...taxonomyFor(d.type),
     title: d.title,
     jurisdictionId: d.jurisdictionId,
     ...(d.description !== undefined ? { description: d.description } : {}),

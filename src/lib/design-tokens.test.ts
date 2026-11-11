@@ -664,6 +664,13 @@ describe("the shell (redesign B1.4)", () => {
     expect(before.slice(before.lastIndexOf("@media"))).toMatch(/^@media screen \{\s*$/);
     expect(css).toMatch(/html:has\(\.more-sheet\[open\]\) \{\s*background: var\(--drawer-root\);/);
     for (const body of [themeBody(css, ".sun"), css.slice(css.indexOf("@media (prefers-reduced-transparency: reduce)"))]) expect(body).toMatch(/--drawer-root: var\(--surface\);/);
+    // The body takes it too, and the backdrop is clear: an iPhone colours the strip from the page or from whatever is fixed
+    // across the top, and a dim backdrop made it a dark band (Caden's phone, Nov 11). The drawer's own shadow dims the page.
+    expect(css).toMatch(/body:has\(\.more-sheet\[open\]\) \{\s*background-color: var\(--drawer-root\);/);
+    expect(css).toMatch(/\.more-sheet::backdrop \{\s*background: transparent;/);
+    expect(css).toMatch(/\.more-sheet \{[^}]*border-end-end-radius: var\(--radius-lg\);\s*box-shadow: 0 0 0 100vmax rgb\(24 20 30 \/ 0\.45\);/);
+    expect(css).toMatch(/\.dark \.more-sheet \{\s*box-shadow: 0 0 0 100vmax rgb\(8 4 14 \/ 0\.6\);/);
+    expect(css).toMatch(/@media \(forced-colors: active\) \{\s*\.more-sheet::backdrop \{\s*background: rgb\(0 0 0 \/ 0\.5\);/);
   });
 
   it("has a skip link that appears on keyboard focus, landing on a wrapper without a ring", () => {

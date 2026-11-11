@@ -197,7 +197,7 @@
   --dock-current-fg: var(--ink);
   --glass-bg: color-mix(in srgb, var(--surface) 62%, transparent);
   --glass-bg-strong: color-mix(in srgb, var(--surface) 78%, transparent);
-  --drawer-root: color-mix(in srgb, var(--surface) 78%, color-mix(in srgb, rgb(8 4 14) 60%, var(--bg)));
+  --drawer-root: color-mix(in srgb, var(--surface) 78%, var(--bg));
   --glass-bg-bar: color-mix(in srgb, var(--surface) 80%, transparent);
   --glass-border: rgb(255 255 255 / 0.2);
   --glass-highlight: inset 0 1px 0 rgb(255 255 255 / 0.34), inset 0 -1px 0 rgb(255 255 255 / 0.08), inset 0 0 0 1px rgb(255 255 255 / 0.06), 0 14px 36px -14px rgb(0 0 0 / 0.75);
@@ -332,8 +332,8 @@ html {
   --dock-capsule: color-mix(in srgb, var(--select) 26%, transparent);
   --dock-border: color-mix(in srgb, var(--fg) 14%, transparent);
   --dock-ring: var(--surface);
-  /* The root's colour while the menu drawer is open: the drawer's pane over the dimmed page (see the rule at the end of the file). */
-  --drawer-root: color-mix(in srgb, var(--surface) 79%, color-mix(in srgb, rgb(24 20 30) 45%, var(--bg)));
+  /* The page's colour while the menu drawer is open: the drawer's pane over the page (see the rule at the end of the file). */
+  --drawer-root: color-mix(in srgb, var(--surface) 79%, var(--bg));
   /* A wash of the brand's sky at the top of every page, for the glass to pick up. */
   --page-wash: radial-gradient(130% 34rem at 50% -8rem, color-mix(in srgb, var(--sky) 40%, transparent), transparent 72%);
   --hero-bg: var(--hero);
@@ -2335,6 +2335,13 @@ body {
     height: 100dvh;
     max-height: 100dvh;
     color: inherit;
+    /* The dim behind the drawer is this shadow, not the backdrop (see the backdrop's note below). It follows
+       the panel's rounded corner, so the notch there is dimmed too. */
+    border-end-end-radius: var(--radius-lg);
+    box-shadow: 0 0 0 100vmax rgb(24 20 30 / 0.45);
+  }
+  .dark .more-sheet {
+    box-shadow: 0 0 0 100vmax rgb(8 4 14 / 0.6);
   }
   @media (prefers-reduced-motion: no-preference) {
     .more-sheet[open] {
@@ -2422,12 +2429,18 @@ body {
     @apply flex items-center px-4 sm:px-6 md:hidden;
     padding-top: calc(0.75rem + env(safe-area-inset-top));
   }
-  /* Dims the page (never a pale wash, which reads as disabled). */
+  /* The backdrop is clear, and still takes the press that closes the drawer. An installed app on an iPhone
+     colours the status bar's strip from whatever is fixed across the top of the screen: a dim backdrop made
+     that strip a dark band above the drawer (Caden's phone, Nov 11). The page is dimmed by the drawer's own
+     shadow (never a pale wash, which reads as disabled). */
   .more-sheet::backdrop {
-    background: rgb(24 20 30 / 0.45);
+    background: transparent;
   }
-  .dark .more-sheet::backdrop {
-    background: rgb(8 4 14 / 0.6);
+  /* Forced colours drop shadows: the backdrop dims there. */
+  @media (forced-colors: active) {
+    .more-sheet::backdrop {
+      background: rgb(0 0 0 / 0.5);
+    }
   }
   /* Bottom sheet (components/Sheet.tsx, P1.6): a native modal dialog that
      springs up from the bottom edge; centred on wide screens. */
@@ -3627,12 +3640,16 @@ body:has(.thread-top) {
 :is(.thread-top, .composer, .more-sheet-panel, .sheet-panel) {
   --subtle: var(--muted);
 }
-/* An installed app on a phone draws the status bar's strip in the root's colour, above the page,
-   where the page cannot paint. While the menu drawer is open the root takes the drawer's colour,
-   and the drawer's top edge is square, so the drawer reads as running to the top of the screen.
-   Unlayered on purpose: the root's own background is unlayered, and a layered rule would lose to it. */
+/* An installed app on a phone draws the status bar's strip itself, above the page, where the page
+   cannot paint. It takes the colour from the page: the root's or the body's, or something fixed across
+   the top. While the menu drawer is open both take the drawer's colour (and its backdrop is clear), and
+   the drawer's top edge is square, so the drawer reads as running to the top of the screen.
+   Unlayered on purpose: the root's and the body's own backgrounds are unlayered, and a layered rule would lose to them. */
 @media screen {
   html:has(.more-sheet[open]) {
     background: var(--drawer-root);
+  }
+  body:has(.more-sheet[open]) {
+    background-color: var(--drawer-root);
   }
 }

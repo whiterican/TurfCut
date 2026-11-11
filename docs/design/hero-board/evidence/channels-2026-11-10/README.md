@@ -202,7 +202,7 @@ Not done: arrow-key selection in the name list. A keyboard user reaches the name
 ## Checked
 
 - 1,115 unit tests pass (17 new: staff conversations, mention matching, the two SQL comparisons).
-- Acceptance: 126 checks (33 new) on a fresh database, including queries made as the signed-in browser role.
+- Acceptance: 128 checks (35 new) on a fresh database, including queries made as the signed-in browser role.
 - Chromium at 390px as a Finance member and an owner: open a conversation from People, "@" offers the colleague, the owner's list shows "@ mentions you" and the message is ringed; a worker opening the conversation gets "Conversation not found". No console or server errors.
 
 Screens: `10-people.png`, `11-mention-offer.png`, `12-list-mention.png`, `13-mentioned.png`.

@@ -1,6 +1,6 @@
 /* Channels acceptance checks (prisma/p2-channels.sql, lib/chat-data.ts), against a fresh database (tests/acceptance/run.sh). */
 import { db } from "@/lib/db";
-import { addMembers, archiveChannel, blockProfile, colleagues, startStaffDm, unblockProfile, browseChannels, createChannel, ensureGeneral, joinChannel, leaveChannel, listThreads, openReplies, openThread, removeMember, sendMessage, toggleReaction, unreadTotal, type ChatUser } from "@/lib/chat-data";
+import { addMembers, archiveChannel, blockProfile, colleagues, deleteMessage, startStaffDm, unblockProfile, browseChannels, createChannel, ensureGeneral, joinChannel, leaveChannel, listThreads, openReplies, openThread, removeMember, sendMessage, toggleReaction, unreadTotal, type ChatUser } from "@/lib/chat-data";
 
 const ORG = "00000000-0000-0000-0000-000000000001";
 const ORG2 = "00000000-0000-0000-0000-000000000002";
@@ -212,6 +212,10 @@ const noStore = { put: async () => {}, remove: async () => {}, signedUrl: async 
   const withThread = await openThread(fin, team);
   check("and is announced on that thread's link in the main conversation", withThread?.messages.find((m) => m.id === mention.messageId)?.replyMentionsMe === true, withThread?.messages.map((m) => [m.body, m.replyMentionsMe]));
   check("the reply itself is marked in the thread", (await openReplies(fin, team, mention.messageId))?.replies.at(-1)?.mentionsMe === true);
+  // A second reply that names Finance, then deleted before Finance looks: it names nobody any more, on the list or on the link.
+  const fleeting = await sendMessage(owner, team, "@Fin Ops never mind", null, noStore, mention.messageId);
+  check("deleting a reply takes its mention with it", fleeting.ok && (await deleteMessage(owner, fleeting.messageId)).ok && (await listThreads(fin)).threads.find((t) => t.id === team)?.mentions === 0 && (await openThread(fin, team))?.messages.find((m) => m.id === mention.messageId)?.replyMentionsMe === false);
+  check("an id in upper case reaches the same conversation", JSON.stringify(await startStaffDm(fin, COMP.toUpperCase())) === JSON.stringify(await startStaffDm(fin, COMP)));
   await p.profile.update({ where: { id: FIN }, data: { displayName: "Fin Ops" } });
   // A role standing in for a missing name is not a name: "@Owner" names nobody.
   await p.profile.update({ where: { id: OWNER }, data: { displayName: null } });

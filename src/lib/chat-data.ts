@@ -587,8 +587,10 @@ async function messageExtras(c: Client, conversationId: string, viewerId: string
   // An unread reply that names me is announced on its thread's link: opening this page may mark it read, so it must be said here.
   const freshReplies = replyRows.filter((r) => r.parentId && r.senderId !== viewerId && (!lastReadAt || r.createdAt > lastReadAt) && !blockedAt(r.senderId, r.createdAt));
   if (freshReplies.length) {
+    // A deleted reply says nothing, so it names nobody any more (the list's count leaves it out too).
+    const gone = new Set((await c.messageRevision.findMany({ where: { messageId: { in: freshReplies.map((r) => r.id) }, kind: "DELETE" }, select: { messageId: true } })).map((r) => r.messageId));
     const named = new Set((await c.messageMention.findMany({ where: { profileId: viewerId, messageId: { in: freshReplies.map((r) => r.id) } }, select: { messageId: true } })).map((m) => m.messageId));
-    for (const r of freshReplies) if (r.parentId && named.has(r.id)) out.replyMentionsMe.add(r.parentId);
+    for (const r of freshReplies) if (r.parentId && named.has(r.id) && !gone.has(r.id)) out.replyMentionsMe.add(r.parentId);
   }
   for (const id of ids) {
     // Hidden while the person is blocked, and a mark made during a block stays hidden afterwards, as their messages do.
@@ -1244,7 +1246,9 @@ export async function colleagues(me: ChatUser): Promise<Colleague[]> {
 }
 
 /** Opens my conversation with a colleague, making it the first time. One per pair, whoever starts it. */
-export async function startStaffDm(me: ChatUser, targetId: string): Promise<{ ok: true; conversationId: string } | Fail> {
+export async function startStaffDm(me: ChatUser, rawTargetId: string): Promise<{ ok: true; conversationId: string } | Fail> {
+  // Ids are compared as stored (lower case): the pair key is built from them.
+  const targetId = typeof rawTargetId === "string" ? rawTargetId.toLowerCase() : "";
   if (!UUID_RE.test(targetId) || !me.orgId) return fail("That person isn't on your organization's staff.");
   const orgId = me.orgId;
   const key = dmKey(me.userId, targetId);
@@ -1252,7 +1256,7 @@ export async function startStaffDm(me: ChatUser, targetId: string): Promise<{ ok
     return await startStaffDmLocked(me, orgId, targetId, key);
   } catch (e) {
     // The database's own guard on who may be in a staff conversation, tripped by a change mid-request (someone left the organization just then).
-    if (e instanceof Error && /23514|check_violation|must belong to the channel/.test(e.message)) return fail("That person isn't on your organization's staff.");
+    if (e instanceof Error && /must belong to the channel's organization/.test(e.message)) return fail("That person isn't on your organization's staff.");
     throw e;
   }
 }

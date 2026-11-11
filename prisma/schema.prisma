@@ -972,8 +972,8 @@ model Conversation {
   /// CHANNEL only: archived channels are read-only and leave the list of channels to join.
   archivedAt    DateTime?
   archivedById  String?          @db.Uuid
-  /// STAFF_DM only: the two people, as "<lower id>:<higher id>". Unique, so a pair has one conversation.
-  dmKey         String?          @unique
+  /// STAFF_DM only: the two people, as "<lower id>:<higher id>". Unique within an organization, so a pair has one conversation there.
+  dmKey         String?
   createdById   String           @db.Uuid // Profile
   lastMessageAt DateTime? // thread-list ordering; only moves forward
   createdAt     DateTime         @default(now())
@@ -982,6 +982,7 @@ model Conversation {
   jobs         ConversationJob[]
   messages     Message[]
 
+  @@unique([orgId, dmKey])
   @@index([orgId, kind])
 }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState, useTransition } from "react";
 import { useSubmit } from "@/components/chat/useSubmit";
 import Link from "next/link";
 import { edit, react, remove, report, send } from "@/app/messages/actions";
@@ -33,6 +33,8 @@ export interface ClientMessage {
   canReply: boolean;
   /** This message names me with "@". */
   mentionsMe: boolean;
+  /** An unread reply in its thread names me. */
+  replyMentionsMe: boolean;
 }
 
 /**
@@ -277,6 +279,7 @@ export function MessageList({
                     <Link transitionTypes={["nav-forward"]} href={`/messages/${conversationId}/thread/${m.id}`} className={`thread-link ${m.replies > 0 ? "thread-link-has" : ""}`}>
                       {m.replies > 0 ? `${m.replies} ${m.replies === 1 ? "reply" : "replies"}` : "Reply"}
                       {m.newReplies > 0 && <span className="unread-badge ml-2 no-underline">{m.newReplies} new</span>}
+                      {m.replyMentionsMe && <span className="tag-accent ml-2 no-underline">Mentions you</span>}
                     </Link>
                   )}
                 </Reactions>
@@ -314,11 +317,11 @@ export function Composer({ conversationId, manager, placeholder, parentId = null
     setBody(next);
     const at = start + name.length + 2;
     setCaret(at);
-    requestAnimationFrame(() => {
-      input.current?.focus();
-      input.current?.setSelectionRange(at, at);
-    });
+    // Focus now, inside the tap, so a phone keeps its keyboard up; the caret is placed once the new text is in.
+    input.current?.focus();
+    requestAnimationFrame(() => input.current?.setSelectionRange(at, at));
   };
+  const mentionListId = useId();
   // A failed send keeps the text and the file (no auto-reset); success clears both.
   const { state, pending, onSubmit } = useSubmit(send, (r, f) => {
     if (!r.ok) return;
@@ -374,12 +377,14 @@ export function Composer({ conversationId, manager, placeholder, parentId = null
         </p>
       )}
       {offered.length > 0 && (
-        <div id="mention-list" className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1" role="group" aria-label="People to mention">
+        <div id={mentionListId} className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1" role="group" aria-label="People to mention">
+          {/* Pressing must not take focus from the message box (a phone would drop its keyboard). */}
           {offered.map((name) => (
-            <button key={name} type="button" className="quick-reply" onClick={() => complete(name)}>@{name}</button>
+            <button key={name} type="button" className="quick-reply" onMouseDown={(e) => e.preventDefault()} onClick={() => complete(name)}>@{name}</button>
           ))}
         </div>
       )}
+      <span className="sr-only" role="status">{partial ? (offered.length === 0 ? "Nobody matches." : `${offered.length} ${offered.length === 1 ? "person matches" : "people match"}. They are listed before the message box.`) : ""}</span>
       <div className="flex items-end gap-2">
         <label className="icon-btn cursor-pointer" title="Attach a document: PDF, Word, Excel or text, up to 4 MB">
           <input ref={fileInput} type="file" name="file" className="sr-only" accept=".pdf,.docx,.xlsx,.txt,.csv" onChange={(e) => pick(e.target.files?.[0])} />
@@ -402,7 +407,7 @@ export function Composer({ conversationId, manager, placeholder, parentId = null
             grow(e.target);
           }}
           onSelect={(e) => setCaret(e.currentTarget.selectionStart ?? 0)}
-          aria-describedby={offered.length ? "mention-list" : undefined}
+          aria-controls={offered.length ? mentionListId : undefined}
           onKeyDown={(e) => {
             if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && !pending && (typing || file)) form.current?.requestSubmit();
           }}

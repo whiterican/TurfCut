@@ -2412,7 +2412,12 @@ RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = '' AS $$
              JOIN "public"."Conversation" c ON c."id" = p."conversationId"
             WHERE p."conversationId" = p_conversation AND p."profileId" = auth.uid()
               AND (p."removedAt" IS NULL OR p_at <= p."removedAt")
-              AND (c."kind"::text <> 'DIRECT' OR p."role"::text = 'WORKER' OR p_at >= p."addedAt"))
+              AND (c."kind"::text <> 'DIRECT' OR p."role"::text = 'WORKER' OR p_at >= p."addedAt")
+              -- A staff row (channels, staff conversations) reads only while the person is on that organization's
+              -- staff: afterwards not even the history, the same rule the app applies (lib/chat.ts).
+              AND (p."role"::text <> 'MEMBER' OR EXISTS (
+                     SELECT 1 FROM "public"."Profile" pr
+                      WHERE pr."id" = p."profileId" AND pr."orgId" = c."orgId" AND pr."role"::text <> 'WORKER' AND pr."closedAt" IS NULL)))
      AND NOT EXISTS (
            SELECT 1 FROM "public"."ProfileBlock" b
             WHERE b."blockerId" = auth.uid() AND b."blockedId" = p_author
@@ -2498,7 +2503,7 @@ COMMIT;
 -- messaging, slice 3).
 --
 --   * A new conversation kind, STAFF_DM: a private conversation between two
---     staff members of one organization. One per pair (dmKey is unique).
+--     staff members of one organization. One per pair there (orgId + dmKey is unique).
 --     Its two people are MEMBER participants; nobody is added or removed by
 --     hand. Leaving the organization ends it for that person (the MEMBER
 --     trigger from p2-channels.sql), and the other keeps read-only history.
@@ -2514,7 +2519,9 @@ ALTER TYPE "public"."ConversationKind" ADD VALUE IF NOT EXISTS 'STAFF_DM';
 BEGIN;
 
 ALTER TABLE "public"."Conversation" ADD COLUMN IF NOT EXISTS "dmKey" TEXT;
-CREATE UNIQUE INDEX IF NOT EXISTS "Conversation_dmKey_key" ON "public"."Conversation"("dmKey");
+-- One conversation per pair within an organization. (Two people who both move to another organization start a new one there; the old one stays closed to them.)
+DROP INDEX IF EXISTS "public"."Conversation_dmKey_key";
+CREATE UNIQUE INDEX IF NOT EXISTS "Conversation_orgId_dmKey_key" ON "public"."Conversation"("orgId", "dmKey");
 
 ALTER TABLE "public"."Conversation" DROP CONSTRAINT IF EXISTS "Conversation_kind_shape";
 ALTER TABLE "public"."Conversation" ADD CONSTRAINT "Conversation_kind_shape" CHECK (

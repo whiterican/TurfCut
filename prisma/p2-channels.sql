@@ -136,7 +136,12 @@ RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = '' AS $$
              JOIN "public"."Conversation" c ON c."id" = p."conversationId"
             WHERE p."conversationId" = p_conversation AND p."profileId" = auth.uid()
               AND (p."removedAt" IS NULL OR p_at <= p."removedAt")
-              AND (c."kind"::text <> 'DIRECT' OR p."role"::text = 'WORKER' OR p_at >= p."addedAt"))
+              AND (c."kind"::text <> 'DIRECT' OR p."role"::text = 'WORKER' OR p_at >= p."addedAt")
+              -- A staff row (channels, staff conversations) reads only while the person is on that organization's
+              -- staff: afterwards not even the history, the same rule the app applies (lib/chat.ts).
+              AND (p."role"::text <> 'MEMBER' OR EXISTS (
+                     SELECT 1 FROM "public"."Profile" pr
+                      WHERE pr."id" = p."profileId" AND pr."orgId" = c."orgId" AND pr."role"::text <> 'WORKER' AND pr."closedAt" IS NULL)))
      AND NOT EXISTS (
            SELECT 1 FROM "public"."ProfileBlock" b
             WHERE b."blockerId" = auth.uid() AND b."blockedId" = p_author

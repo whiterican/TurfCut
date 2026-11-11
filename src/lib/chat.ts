@@ -331,6 +331,9 @@ export function canStartStaffDm(me: { profileId: string; role: Role; orgId: stri
   return yes;
 }
 
+/** A name as mentions compare it: trimmed, inner spaces single. The completer writes names this way, so what it inserts always matches. */
+export const mentionName = (n: string) => n.trim().replace(/\s+/g, " ");
+
 const isWordChar = (ch: string | undefined) => !!ch && /[\p{L}\p{N}_]/u.test(ch);
 
 /**
@@ -339,15 +342,17 @@ const isWordChar = (ch: string | undefined) => !!ch && /[\p{L}\p{N}_]/u.test(ch)
  * names are matched first, so "@Sam Ortiz" names Sam Ortiz and not also a
  * colleague called Sam. Two people with the same name are both named. Only
  * the people passed in can be named: the caller passes who is in the
- * conversation.
+ * conversation, under their own names (never a role standing in for a
+ * missing name: "@Owner" must not name every owner).
  */
 export function findMentions(body: string, people: { profileId: string; name: string }[]): string[] {
-  const text = body.toLocaleLowerCase();
+  // Runs of spaces in the message count as one, as they do in names.
+  const text = body.replace(/[ \t]+/g, " ").toLocaleLowerCase();
   const taken: [number, number][] = [];
   const found = new Set<string>();
   const byName = new Map<string, string[]>();
   for (const p of people) {
-    const name = p.name.trim().replace(/\s+/g, " ").toLocaleLowerCase();
+    const name = mentionName(p.name).toLocaleLowerCase();
     if (name) byName.set(name, [...(byName.get(name) ?? []), p.profileId]);
   }
   for (const name of [...byName.keys()].sort((a, b) => b.length - a.length)) {

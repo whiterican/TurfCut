@@ -24,6 +24,7 @@ import {
   canStartStaffDm,
   dmKey,
   findMentions,
+  mentionName,
   chatAccess,
   cleanBody,
   validateChannelName,
@@ -219,10 +220,22 @@ async function unreadMentions(profileId: string): Promise<Map<string, number>> {
      WHERE mm."profileId" = ${profileId}::uuid
        AND (p."lastReadAt" IS NULL OR m."createdAt" > p."lastReadAt")
        AND (p."removedAt" IS NULL OR m."createdAt" <= p."removedAt")
+       -- A contact who took over a direct thread reads it from when they joined (the same clause as unreadByConversation).
+       AND (p."role" = 'WORKER' OR m."createdAt" >= p."addedAt"
+            OR NOT EXISTS (SELECT 1 FROM "Conversation" cv WHERE cv."id" = p."conversationId" AND cv."kind" = 'DIRECT'))
        AND NOT EXISTS (SELECT 1 FROM "MessageRevision" r WHERE r."messageId" = m."id" AND r."kind" = 'DELETE')
      GROUP BY mm."conversationId"`;
   return new Map(rows.map((r) => [r.conversationId, r.n]));
 }
+
+/** A person's own name, if they have one: a worker's profile name, a staff member's chat name. Never the role that stands in for a missing one. */
+const realName = (p: Person | null | undefined): string | null => {
+  const n = mentionName(p?.worker?.displayName ?? p?.displayName ?? "");
+  return n || null;
+};
+/** The names "@" offers and matches: the other people in the conversation now who have a name. Nobody for a viewer who can't post. */
+const mentionables = (participants: { profileId: string; removedAt: Date | null; profile: Person }[], myId: string, access: Access) =>
+  access.post ? participants.filter((p) => p.profileId !== myId && !p.removedAt).flatMap((p) => { const name = realName(p.profile); return name ? [{ profileId: p.profileId, name }] : []; }) : [];
 
 /** A staff member's role, as a line under their name. */
 const staffLabel = (p: Person | null | undefined) => (!p ? "" : p.role === "CUSTOM" ? (p.orgRole?.name ?? "Team member") : (ROLE_LABEL[p.role] ?? ""));
@@ -406,6 +419,8 @@ export interface ThreadMessage {
   canReply: boolean;
   /** This message names me with "@". */
   mentionsMe: boolean;
+  /** A reply in its thread that I have not read names me. */
+  replyMentionsMe: boolean;
 }
 export interface ThreadMember {
   profileId: string;
@@ -516,7 +531,7 @@ export async function openThread(me: ChatUser, conversationId: string): Promise<
         isMe: p.profileId === me.userId,
         blockedByMe: myBlocks.has(p.profileId),
       })),
-    mentionable: [...new Set(conv.participants.filter((p) => p.profileId !== me.userId && !p.removedAt).map((p) => personName(p.profile)))].sort((a, b) => a.localeCompare(b)),
+    mentionable: [...new Set(mentionables(conv.participants, me.userId, access).map((x) => x.name))].sort((a, b) => a.localeCompare(b)),
     messages: view.map((m) => threadMessage(m, me.userId, byId, access, now, extras)),
     hasOlder: truncated,
   };
@@ -531,6 +546,8 @@ interface Extras {
   reactions: Map<string, { emoji: Reaction; count: number; mine: boolean }[]>;
   /** The messages on screen that name the viewer. */
   mentionsMe: Set<string>;
+  /** The messages on screen with an unread reply that names the viewer. */
+  replyMentionsMe: Set<string>;
   newestReply: Date | undefined;
 }
 
@@ -542,7 +559,7 @@ interface Extras {
  */
 async function messageExtras(c: Client, conversationId: string, viewerId: string, window: { readUntil: Date | null; readFrom: Date | null }, view: ViewMessage[], lastReadAt: Date | null = null): Promise<Extras> {
   const ids = view.map((m) => m.id);
-  const out: Extras = { replies: new Map(), reactions: new Map(), mentionsMe: new Set(), newestReply: undefined };
+  const out: Extras = { replies: new Map(), reactions: new Map(), mentionsMe: new Set(), replyMentionsMe: new Set(), newestReply: undefined };
   if (ids.length === 0) return out;
   for (const m of await c.messageMention.findMany({ where: { messageId: { in: ids }, profileId: viewerId }, select: { messageId: true } })) out.mentionsMe.add(m.messageId);
   const { readUntil, readFrom } = window;
@@ -566,6 +583,12 @@ async function messageExtras(c: Client, conversationId: string, viewerId: string
     const fresh = r.senderId !== viewerId && (!lastReadAt || r.createdAt > lastReadAt) ? 1 : 0;
     out.replies.set(r.parentId, { count: (cur?.count ?? 0) + 1, last: cur && cur.last > r.createdAt ? cur.last : r.createdAt, fresh: (cur?.fresh ?? 0) + fresh });
     if (!out.newestReply || r.createdAt > out.newestReply) out.newestReply = r.createdAt;
+  }
+  // An unread reply that names me is announced on its thread's link: opening this page may mark it read, so it must be said here.
+  const freshReplies = replyRows.filter((r) => r.parentId && r.senderId !== viewerId && (!lastReadAt || r.createdAt > lastReadAt) && !blockedAt(r.senderId, r.createdAt));
+  if (freshReplies.length) {
+    const named = new Set((await c.messageMention.findMany({ where: { profileId: viewerId, messageId: { in: freshReplies.map((r) => r.id) } }, select: { messageId: true } })).map((m) => m.messageId));
+    for (const r of freshReplies) if (r.parentId && named.has(r.id)) out.replyMentionsMe.add(r.parentId);
   }
   for (const id of ids) {
     // Hidden while the person is blocked, and a mark made during a block stays hidden afterwards, as their messages do.
@@ -596,6 +619,7 @@ function threadMessage(m: ViewMessage, myId: string, byId: Map<string, { role: P
     canReply: canReply(access, m).ok,
     // A deleted message says nothing, so it names nobody any more.
     mentionsMe: !m.deleted && !mineMsg && extras.mentionsMe.has(m.id),
+    replyMentionsMe: extras.replyMentionsMe.has(m.id),
   };
 }
 
@@ -650,7 +674,7 @@ export async function openReplies(me: ChatUser, conversationId: string, parentId
     title: direct ? personName(other?.profile) : conv.kind === "CHANNEL" ? `#${conv.name ?? "channel"}` : (conv.name ?? "Team chat"),
     access,
     staff: mine.role !== "WORKER",
-    mentionable: [...new Set(conv.participants.filter((p) => p.profileId !== me.userId && !p.removedAt).map((p) => personName(p.profile)))].sort((a, b) => a.localeCompare(b)),
+    mentionable: [...new Set(mentionables(conv.participants, me.userId, access).map((x) => x.name))].sort((a, b) => a.localeCompare(b)),
     parent: threadMessage(parent, me.userId, byId, access, now, extras),
     // Replies don't nest: a reply shows no thread of its own.
     replies: view.map((m) => ({ ...threadMessage(m, me.userId, byId, access, now, extras), canReply: false })),
@@ -854,8 +878,8 @@ export async function sendMessage(
       const blockers = new Set(
         (await tx.profileBlock.findMany({ where: { blockerId: { in: others }, blockedId: me.userId, liftedAt: null }, select: { blockerId: true } })).map((b) => b.blockerId)
       );
-      // Who the message names: people in the conversation now, by the name the others see. Never someone who has blocked the sender (they don't see the message).
-      const named = findMentions(body, present.map((p) => ({ profileId: p.profileId, name: personName(p.profile) }))).filter((id) => !blockers.has(id));
+      // Who the message names: people in the conversation now, by their own name. Never someone who has blocked the sender (they don't see the message).
+      const named = findMentions(body, mentionables(ctx.conv.participants, me.userId, ctx.access)).filter((id) => !blockers.has(id));
       if (named.length) await tx.messageMention.createMany({ data: named.map((profileId) => ({ messageId: msg.id, conversationId, profileId, createdAt: at })) });
       return { ok: true as const, messageId: msg.id, orgId: ctx.conv.orgId, recipientIds: others.filter((id) => !blockers.has(id)), at };
     });
@@ -1209,9 +1233,11 @@ export async function colleagues(me: ChatUser): Promise<Colleague[]> {
   if (me.role === "WORKER" || !me.orgId) return [];
   const [people, mine] = await Promise.all([
     db().profile.findMany({ where: { orgId: me.orgId, role: { not: "WORKER" }, closedAt: null, id: { not: me.userId } }, select: PERSON.select, orderBy: { createdAt: "asc" } }),
-    db().conversation.findMany({ where: { orgId: me.orgId, kind: "STAFF_DM", participants: { some: { profileId: me.userId } } }, select: { id: true, dmKey: true } }),
+    db().conversation.findMany({ where: { orgId: me.orgId, kind: "STAFF_DM", participants: { some: { profileId: me.userId } } }, select: { id: true, dmKey: true, participants: { select: { removedAt: true } } } }),
   ]);
-  const byKey = new Map(mine.map((c) => [c.dmKey, c.id]));
+  // "Open" only for a conversation both of us are in now. One that ended when someone left the organization is
+  // offered as "Message" again: starting it puts whoever has come back in again.
+  const byKey = new Map(mine.filter((c) => c.participants.every((p) => !p.removedAt)).map((c) => [c.dmKey, c.id]));
   return people
     .map((p) => ({ profileId: p.id, name: personName(p), role: staffLabel(p), conversationId: byKey.get(dmKey(me.userId, p.id)) ?? null }))
     .sort((a, b) => a.name.localeCompare(b.name));
@@ -1222,8 +1248,18 @@ export async function startStaffDm(me: ChatUser, targetId: string): Promise<{ ok
   if (!UUID_RE.test(targetId) || !me.orgId) return fail("That person isn't on your organization's staff.");
   const orgId = me.orgId;
   const key = dmKey(me.userId, targetId);
+  try {
+    return await startStaffDmLocked(me, orgId, targetId, key);
+  } catch (e) {
+    // The database's own guard on who may be in a staff conversation, tripped by a change mid-request (someone left the organization just then).
+    if (e instanceof Error && /23514|check_violation|must belong to the channel/.test(e.message)) return fail("That person isn't on your organization's staff.");
+    throw e;
+  }
+}
+
+async function startStaffDmLocked(me: ChatUser, orgId: string, targetId: string, key: string): Promise<{ ok: true; conversationId: string } | Fail> {
   return db().$transaction(async (tx) => {
-    await lock(tx, `dm:${key}`);
+    await lock(tx, `dm:${orgId}:${key}`);
     // Both of us, as we are now, read inside the lock.
     const [self, target] = await Promise.all([
       tx.profile.findUnique({ where: { id: me.userId }, select: { id: true, role: true, orgId: true, closedAt: true } }),
@@ -1233,10 +1269,8 @@ export async function startStaffDm(me: ChatUser, targetId: string): Promise<{ ok
     const may = canStartStaffDm({ profileId: self.id, role: self.role, orgId: self.orgId }, target ? { profileId: target.id, role: target.role, orgId: target.orgId, closed: target.closedAt !== null } : null);
     if (!may.ok) return may;
     const now = await dbNow(tx);
-    const existing = await tx.conversation.findUnique({ where: { dmKey: key }, select: { id: true, orgId: true, participants: { select: { id: true, removedAt: true } } } });
+    const existing = await tx.conversation.findUnique({ where: { orgId_dmKey: { orgId, dmKey: key } }, select: { id: true, participants: { select: { id: true, removedAt: true } } } });
     if (existing) {
-      // The same two people in another organization's conversation: theirs there stays closed, and no second one can exist for the pair.
-      if (existing.orgId !== orgId) return fail("That conversation belongs to another organization.");
       // Someone who left the organization and came back is in it again, from now (they keep the history they had).
       for (const p of existing.participants) if (p.removedAt) await tx.conversationParticipant.update({ where: { id: p.id }, data: { removedAt: null, removedById: null } });
       return { ok: true as const, conversationId: existing.id };

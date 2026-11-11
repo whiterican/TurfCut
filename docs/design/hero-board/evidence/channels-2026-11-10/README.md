@@ -181,10 +181,28 @@ Not in this slice: a notification or email for a mention. It shows inside Messag
 
 A last pass on the two commits that had not been re-checked found no blocking defect. Its four low-severity notes are fixed in this slice's commit: keyboard focus after picking a reaction; a bound on the replies loaded beside a long page; no failing write when a non-staff-only channel holds the name "general"; and a lock so adopting and archiving an old "general" cannot cross. The Messages list also no longer loads a channel's whole staff to list it.
 
+## Review of slice 3 (rule 9)
+
+A separate Claude reviewer ran the acceptance script and a probe script on a throwaway database. Inside the app, nobody outside a staff conversation could read it on any path it tried, and the migration was sound. It found these defects, all fixed in the third commit:
+
+| Finding | Fix |
+| :--- | :--- |
+| Someone who came back to the organization could not reopen a staff conversation from the screen (it showed "Open" on a closed conversation) | An ended conversation is offered as "Message" again, which reopens it |
+| Someone who left could still read rows of a staff conversation or channel through the live-update feed's database policy | The policy now requires a staff row's person to be on that organization's staff, as the app does |
+| Two people who both moved to another organization could never message each other again | The pair key is unique per organization |
+| A mention in a thread reply was cleared without being shown | The thread's link says "Mentions you" |
+| A name stored with stray spaces was offered but never matched | One normaliser for names, used by both |
+| A role standing in for a missing name ("Owner") worked as a mention | Only people with a name of their own are offered or matched |
+| Smaller: unread mentions for a contact who took over a direct thread; names offered to a viewer who cannot post; the phone keyboard closing when a name is picked; a rare race surfacing as an error | Each fixed |
+
+One thing to know: if one person in a staff conversation **reports** the other's message, the organization's owner sees that message's text in Reports, as for any reported message. That is the reporter's choice and the only way a third person sees any of it.
+
+Not done: arrow-key selection in the name list. A keyboard user reaches the names with Shift+Tab.
+
 ## Checked
 
 - 1,115 unit tests pass (17 new: staff conversations, mention matching, the two SQL comparisons).
-- Acceptance: 115 checks (22 new) on a fresh database.
+- Acceptance: 126 checks (33 new) on a fresh database, including queries made as the signed-in browser role.
 - Chromium at 390px as a Finance member and an owner: open a conversation from People, "@" offers the colleague, the owner's list shows "@ mentions you" and the message is ringed; a worker opening the conversation gets "Conversation not found". No console or server errors.
 
 Screens: `10-people.png`, `11-mention-offer.png`, `12-list-mention.png`, `13-mentioned.png`.

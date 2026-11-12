@@ -238,7 +238,9 @@ describe.each([
     expect(band).toMatch(/z-index: 44;/);
     expect(band).toMatch(/mask-image: linear-gradient\(to bottom, #000 0%, #000 58%, transparent 100%\);/);
     expect(band).toMatch(/view-transition-name: phone-band;/);
-    expect(css).toMatch(/::view-transition-group\(site-header\),\s*::view-transition-group\(tabbar\),\s*::view-transition-group\(phone-band\),/);
+    expect(css).toMatch(/::view-transition-group\(site-header\),\s*::view-transition-group\(tabbar\),\s*::view-transition-group\(phone-band\),\s*::view-transition-group\(phone-pill\),/);
+    expect(css).toMatch(/\.phone-top \{[^}]*?view-transition-name: phone-pill;/);
+    expect(css).toMatch(/::view-transition-group\(phone-pill\) \{\s*z-index: 101;/);
     // Shown everywhere but Sunlight and the solid fallback: hidden exactly twice.
     expect(css.match(/\.phone-top::before \{\s*display: none;/g)).toHaveLength(2);
     expect(css).toMatch(/\.phone-top \.menu-button \{\s*z-index: 45;/);
@@ -266,7 +268,7 @@ describe.each([
     expect(sunBar).toMatch(/height: var\(--site-header-h\);\s*background: var\(--bg\);\s*-webkit-backdrop-filter: none;\s*backdrop-filter: none;\s*-webkit-mask-image: none;\s*mask-image: none;/);
     const solid = css.slice(css.indexOf("@media (prefers-reduced-transparency: reduce)"));
     expect(rules(solid).at(-1)).toMatch(/height: var\(--site-header-h\);\s*background: var\(--bg\);\s*-webkit-backdrop-filter: none;\s*backdrop-filter: none;/);
-    expect(css).toMatch(/::view-transition-group\(phone-band\),\s*::view-transition-group\(bar-fade\) \{\s*animation: none;\s*z-index: 100;/);
+    expect(css).toMatch(/::view-transition-group\(phone-band\),\s*::view-transition-group\(phone-pill\),\s*::view-transition-group\(bar-fade\) \{\s*animation: none;\s*z-index: 100;/);
     // Day's top colour lives on :root, which outranks html: the solid fallback must reset it there or the day page stays purple.
     const solidBlock = css.slice(css.indexOf("@media (prefers-reduced-transparency: reduce)"));
     expect(solidBlock.replace(/\/\*[\s\S]*?\*\//g, "")).toMatch(/--header-root: var\(--bg\);\s*\}\s*:root \{\s*--page-top: var\(--bg\);\s*\}/);

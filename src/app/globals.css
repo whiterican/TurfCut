@@ -2571,6 +2571,8 @@ body {
     top: 0;
     z-index: 45;
     pointer-events: none;
+    /* Part of the frame now it stays put: a page change slides under the pill, not over it. */
+    view-transition-name: phone-pill;
   }
   .phone-top > * {
     pointer-events: auto;
@@ -3488,6 +3490,17 @@ body:has(.staff-band)::after {
     border-color: var(--border-strong);
   }
 }
+/* With no bar, the buttons step aside on the way down the page and come back on the way up (Caden, Nov 12;
+   components/ScrollDirection.tsx marks the root). The logo and the menu stay. They are faded, never removed:
+   the keyboard still reaches them, and they show at once when one of them has the focus. */
+.site-header-actions {
+  transition: opacity var(--dur-base) var(--ease-standard), translate var(--dur-base) var(--ease-standard);
+}
+html[data-scroll="down"] .site-header-actions:not(:focus-within) {
+  opacity: 0;
+  translate: 0 -0.5rem;
+  pointer-events: none;
+}
 /* The theme switch shows its label from sm up; below that it's a bubble too. */
 @media (min-width: 40rem) {
   .site-header .glass-orb-phone {
@@ -3546,19 +3559,26 @@ body:has(.staff-band)::after {
 ::view-transition-group(site-header),
 ::view-transition-group(tabbar),
 ::view-transition-group(phone-band),
+::view-transition-group(phone-pill),
 ::view-transition-group(bar-fade) {
   animation: none;
   z-index: 100;
 }
+/* The pill sits on the band, as it does on the page. */
+::view-transition-group(phone-pill) {
+  z-index: 101;
+}
 ::view-transition-old(site-header),
 ::view-transition-old(tabbar),
 ::view-transition-old(phone-band),
+::view-transition-old(phone-pill),
 ::view-transition-old(bar-fade) {
   display: none;
 }
 ::view-transition-new(site-header),
 ::view-transition-new(tabbar),
 ::view-transition-new(phone-band),
+::view-transition-new(phone-pill),
 ::view-transition-new(bar-fade) {
   animation: none;
 }

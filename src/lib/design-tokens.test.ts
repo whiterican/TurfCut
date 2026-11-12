@@ -176,36 +176,61 @@ describe.each([
       // On the drawer and sheets the faintest grey steps up to muted, as in the bars.
       expect(css).toMatch(/:is\(\.thread-top, \.composer, \.more-sheet-panel, \.sheet-panel\) \{\s*--subtle: var\(--muted\);/);
     }
-    // Cards are glass too (Caden, Nov 12). Unlike the controls they never float over content: behind a card is only the page
-    // and its colour. So the worst case is the page's strongest tint, and text on the pane holds AA over that.
+    // Cards are heavy glass (Caden, Nov 12). Unlike the controls they never float over content: behind a card is only the
+    // page's purple gradient. Its strongest colour is its top (--page-top), and it is fixed to the screen, so any card
+    // and any bare line of text can pass over that colour. Everything is held to it.
     if (name !== "sunlight") {
       const dark = name === "dark";
-      expect(dark ? themeBody(css, ".dark") : css).toMatch(dark ? /--card-bg: color-mix\(in srgb, var\(--surface\) 58%, transparent\);\s*--card-filter: blur\(20px\) saturate\(160%\);/ : /--card-bg: color-mix\(in srgb, var\(--surface\) 78%, transparent\);\s*--card-filter: blur\(20px\) saturate\(190%\);/);
+      expect(dark ? themeBody(css, ".dark") : css).toMatch(dark ? /--card-bg: color-mix\(in srgb, var\(--surface\) 40%, transparent\);\s*--card-filter: none;/ : /--card-bg: color-mix\(in srgb, var\(--surface\) 38%, transparent\);\s*--card-filter: none;/);
+      // No blur on a card: behind it is only a smooth gradient, where a blur shows nothing and costs a layer per card.
       const h = (c: RGB) => "#" + c.map((v) => Math.round(v).toString(16).padStart(2, "0")).join("");
-      // By day the page is one gradient, strongest at its top (sky 60%); the stops are pinned here so the sheet cannot drift
-      // from what is checked. By night: every wash at once, the pale ring (17%), the deeper one (20%) and the green (10%).
-      if (!dark) expect(css).toMatch(/--page-wash: linear-gradient\(\s*180deg,\s*color-mix\(in srgb, var\(--sky\) 60%, transparent\) 0%,\s*color-mix\(in srgb, var\(--sky\) 34%, transparent\) 46%,\s*color-mix\(in srgb, var\(--select\) 7%, transparent\) 100%\s*\);/);
-      const page = dark ? mix(t.select, 0.1, h(mix(t["ring-3"], 0.2, h(mix(t.ring, 0.17, t.bg))))) : mix(t.sky, 0.6, t.bg);
-      const card = mix(t.surface, dark ? 0.58 : 0.78, h(page));
-      expect(ratio(t.fg, card)).toBeGreaterThanOrEqual(7);
-      expect(ratio(t.muted, card)).toBeGreaterThanOrEqual(4.5);
-      // The faintest grey steps a little darker on the pane by day (Subtle itself is locked, and falls just under AA there).
-      expect(t["subtle-on-glass"]).toBe(dark ? t.subtle : "#4f5d72");
-      expect(ratio(t["subtle-on-glass"], card)).toBeGreaterThanOrEqual(4.5);
-      // Bare hints sit on the page itself, so the page reads the stepped grey too, over its strongest tint.
-      // By day that is the top of the gradient. By night the washes are checked one at a time, at their centres. They do
-      // overlap on a one-screen page, but only on their fades: scanning the real gradients at phone, tablet and
-      // desktop sizes, the worst point is 6.2. All three stacked at full strength (which the geometry never gives) is 3.5.
-      const bare = dark ? [mix(t.ring, 0.17, t.bg), mix(t["ring-3"], 0.2, t.bg), mix(t.select, 0.1, t.bg)] : [page];
-      for (const wash of bare) expect(ratio(t["subtle-on-glass"], wash)).toBeGreaterThanOrEqual(4.5);
+      // The gradient: opaque, from --page-top easing toward the page colour, one recipe for day and night. Pinned, so the
+      // sheet cannot drift from what is checked: no stop is stronger than the first.
+      expect(css).toMatch(/--page-wash: linear-gradient\(\s*180deg,\s*var\(--page-top\) 0%,\s*color-mix\(in srgb, var\(--page-top\) 58%, var\(--bg\)\) 30%,\s*color-mix\(in srgb, var\(--page-top\) 22%, var\(--bg\)\) 64%,\s*color-mix\(in srgb, var\(--page-top\) 8%, var\(--bg\)\) 100%\s*\);/);
+      expect(themeBody(css, ".dark")).not.toMatch(/--page-wash:/);
+      expect(t["page-top"]).toBe(dark ? "#3c1f66" : "#d6c9ea");
+      const page = rgb(t["page-top"]);
+      const card = mix(t.surface, dark ? 0.4 : 0.38, h(page));
+      // On the pane and on the bare page at its strongest: body text AAA, and every other text colour AA. Form errors,
+      // "done" marks and warnings sit on both, so the status colours are held to both.
+      for (const ground of [card, page]) {
+        expect(ratio(t.fg, ground)).toBeGreaterThanOrEqual(7);
+        for (const k of ["muted", "subtle-on-glass", "kicker", "link", "danger", "success", "warning"] as const) expect(ratio(t[k], ground)).toBeGreaterThanOrEqual(4.5);
+      }
+      // The faintest grey steps darker by day (Subtle itself is locked, and is under AA on the purple).
+      expect(t["subtle-on-glass"]).toBe(dark ? t.subtle : "#4a576b");
       expect(css).toMatch(/\nbody \{[^}]*?--subtle: var\(--subtle-on-glass\);/);
+      // The glint across a card is white. By day that only adds contrast. By night it takes contrast from light type, so
+      // the pane is checked again under the glint at its brightest (its first stop), where a card's first line can sit.
+      if (dark) {
+        const glint = themeBody(css, ".dark").match(/--card-sheen: linear-gradient\(135deg, rgb\(255 255 255 \/ ([\d.]+)\) 0%, rgb\(255 255 255 \/ ([\d.]+)\) 30%, rgb\(255 255 255 \/ 0\) 56%, rgb\(255 255 255 \/ ([\d.]+)\) 100%\);/);
+        expect(glint).not.toBeNull();
+        const brightest = Math.max(...glint!.slice(1).map(Number));
+        expect(brightest).toBe(0.1);
+        const lit = mix("#ffffff", brightest, h(card));
+        for (const k of ["fg", "muted", "subtle-on-glass", "kicker", "link", "danger", "success", "warning"] as const) expect(ratio(t[k], lit)).toBeGreaterThanOrEqual(4.5);
+      }
       // The menu that hangs over a thread is opaque: two classes, so the glass rule cannot thin it.
       expect(css).toMatch(/\.card\.card-solid \{\s*background: var\(--card-sheen\), var\(--surface\);\s*-webkit-backdrop-filter: none;\s*backdrop-filter: none;/);
       expect(css).toMatch(/\{\s*background: var\(--card-sheen\), var\(--card-bg\);\s*-webkit-backdrop-filter: var\(--card-filter\);\s*backdrop-filter: var\(--card-filter\);\s*--subtle: var\(--subtle-on-glass\);/);
-      // Links and status colours on the pane, and by day on the bare page at its strongest tint (form errors sit there).
-      for (const k of ["link", "danger", "success", "warning"] as const) if (t[k]) expect(ratio(t[k], card)).toBeGreaterThanOrEqual(4.5);
-      if (!dark) for (const k of ["link", "danger", "success", "warning", "muted"] as const) if (t[k]) expect(ratio(t[k], page)).toBeGreaterThanOrEqual(4.5);
     }
+    // The gradient is painted by one layer fixed to the screen, under everything: the body has no background of its own
+    // (it would cover the layer), the root carries the top colour (overscroll, and an installed app's status bar strip),
+    // and the layer's own colour is the top colour too. Where there is no gradient, the top colour is the page colour.
+    expect(css).toMatch(/\nhtml \{[^}]*?\n  background: var\(--page-top\);/);
+    expect(css).toMatch(/\nbody::before \{\s*content: "";\s*position: fixed;\s*inset: 0;\s*min-height: 100lvh;\s*z-index: -1;\s*pointer-events: none;\s*background: var\(--page-wash\) no-repeat, var\(--page-top\);\s*\}/);
+    expect(css.slice(css.indexOf("\nbody {"), css.indexOf("}", css.indexOf("\nbody {")))).not.toMatch(/background/);
+    expect(css).toMatch(/\nbody:has\(\.thread-top\) \{\s*--page-wash: none;\s*--page-top: var\(--bg\);\s*\}/);
+    // A page with a header across the top takes the header's pane for the strip; a chat the plain page colour. Both as
+    // weak as the root's own rule (:where), and before the drawer's rule, which must win while the drawer is open.
+    expect(css).toMatch(/--header-root: color-mix\(in srgb, var\(--surface\) 80%, var\(--page-top\)\);/);
+    const bare = css.replace(/\/\*[\s\S]*?\*\//g, "");
+    expect(bare).toMatch(/@media screen \{\s*html:where\(:has\(\.site-header:not\(\.site-header-worker\)\)\) \{\s*background: var\(--header-root\);\s*\}\s*\}\s*@media screen and \(min-width: 48rem\) \{\s*html:where\(:has\(\.site-header\)\) \{\s*background: var\(--header-root\);\s*\}\s*\}\s*@media screen \{\s*html:where\(:has\(\.thread-top\)\) \{\s*background: var\(--bg\);\s*\}\s*\}/);
+    expect(css.indexOf("html:where(:has(.thread-top))")).toBeLessThan(css.indexOf("html:has(.more-sheet[open]) {"));
+    expect(css.indexOf("\nhtml {")).toBeLessThan(css.indexOf("html:where(:has(.site-header:not(.site-header-worker)))"));
+    expect(css).toMatch(/body:has\(\.more-sheet\[open\]\) \{\s*--page-wash: none;\s*background-color: var\(--drawer-root\);[^}]*?--page-top: var\(--drawer-root\);/);
+    // Paper has no layer.
+    expect(css).toMatch(/@media print \{[\s\S]*?body::before \{ display: none; \}/);
     // Anyone who asks for less transparency or more contrast gets solid surfaces.
     expect(css).toMatch(/@media \(prefers-reduced-transparency: reduce\), \(prefers-contrast: more\), \(forced-colors: active\) \{\s*html,\s*\.dark \{\s*--glass-bg: var\(--surface\);/);
     expect(css).toMatch(/\.site-header \{[^}]*?background: var\(--header-bg\);/);
@@ -216,6 +241,8 @@ describe.each([
     for (const body of [themeBody(css, ".sun"), css.slice(css.indexOf("@media (prefers-reduced-transparency: reduce)"), css.indexOf("\n}\n", css.indexOf("@media (prefers-reduced-transparency: reduce)")))]) {
       for (const k of ["glass-bg", "glass-bg-strong", "glass-bg-bar", "glass-filter", "glass-sheen", "card-bg", "card-sheen", "card-filter", "page-wash"]) expect(body).toMatch(new RegExp(`--${k}: (var\\(--surface\\)|none);`));
       expect(body).toMatch(/--header-bg: var\(--bg\);/);
+      // ...and with no gradient, the top of the page and the header's strip are the page colour.
+      expect(body).toMatch(/--page-top: var\(--bg\);\s*--header-root: var\(--bg\);/);
     }
     // The other text-bearing bars use the denser pane too, by night as well, and their faintest grey steps up to muted.
     for (const sel of ["\\.composer", "\\.thread-top"]) expect(css).toMatch(new RegExp(`\\n  ${sel} \\{[^}]*?background: var\\(--glass-bg-bar\\);`));
@@ -509,7 +536,7 @@ describe("the ten locked colours (founder's twelve-screen concept, #111)", () =>
       for (const [, name, value] of body.matchAll(/--([\w-]+):\s*([^;]+);/g)) {
         if (/^#[0-9a-fA-F]{6}$/.test(value.trim())) expect(parsed[name]).toBe(value.trim());
         else if (name === "hero-border") expect(value.trim()).toBe("transparent");
-        else expect(name).toMatch(/^(shadow|shadow-depth|shadow-pressed|glass-(bg|bg-strong|bg-bar|border|highlight|filter|sheen)|card-(bg|edge|sheen|filter|glow)|dock-(bg|fg|border|ring|filter|sheen|highlight|halo|current-bg|current-fg)|drawer-root|header-bg|page-wash)$/); // the only non-colour tokens: shadows and the glass recipe
+        else expect(name).toMatch(/^(shadow|shadow-depth|shadow-pressed|glass-(bg|bg-strong|bg-bar|border|highlight|filter|sheen)|card-(bg|edge|sheen|filter|glow)|dock-(bg|fg|border|ring|filter|sheen|highlight|halo|current-bg|current-fg)|drawer-root|header-bg|header-root|page-top|page-wash)$/); // the only non-colour tokens: shadows and the glass recipe
       }
     }
   });
@@ -747,8 +774,8 @@ describe("the shell (redesign B1.4)", () => {
     expect(css).toMatch(/\.option-card:has\(input:checked\) \{\s*box-shadow: 0 0 0 1px var\(--selected\), var\(--card-edge\), var\(--shadow-depth\);/);
     expect(css).toMatch(new RegExp(`:is\\(${inside}\\) \\.option-card:has\\(input:checked\\) \\{\\s*box-shadow: 0 0 0 1px var\\(--selected\\);`));
     // One token for all of them, and they float: a faint contact shadow, then a long soft one thrown below the box. Sunlight has none (pinned above).
-    expect(css).toMatch(/\n  --shadow-depth: 0 1px 2px rgb\(28 15 46 \/ 0\.05\), 0 4px 10px -4px rgb\(28 15 46 \/ 0\.09\), 0 14px 26px -14px rgb\(28 15 46 \/ 0\.22\);/);
-    expect(themeBody(css, ".dark")).toMatch(/--shadow-depth: 0 1px 2px rgb\(0 0 0 \/ 0\.5\), 0 6px 12px -4px rgb\(0 0 0 \/ 0\.5\), 0 16px 30px -14px rgb\(0 0 0 \/ 0\.75\);/);
+    expect(css).toMatch(/\n  --shadow-depth: 0 1px 2px rgb\(28 15 46 \/ 0\.05\), 0 6px 12px -4px rgb\(28 15 46 \/ 0\.1\), 0 22px 40px -16px rgb\(28 15 46 \/ 0\.3\);/);
+    expect(themeBody(css, ".dark")).toMatch(/--shadow-depth: 0 1px 2px rgb\(0 0 0 \/ 0\.5\), 0 8px 16px -4px rgb\(0 0 0 \/ 0\.55\), 0 26px 48px -16px rgb\(0 0 0 \/ 0\.9\);/);
     // Paper has no shadows.
     expect(css).toMatch(/@media print \{[\s\S]*:is\(\.work-card, \.shift-card, \.turf-card, \.need-tile, \.stat-tile, \.summary-item, \.choice-list, \.option-card, \.overview-map\) \{ box-shadow: none; \}/);
     // Notes in the flow are not surfaces: they stay flat.

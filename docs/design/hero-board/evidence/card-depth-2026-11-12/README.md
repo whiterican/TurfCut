@@ -72,3 +72,22 @@ Honest limits: by night the glass is plain to see. By day it is quiet: a white p
 - **Faint grey text** on the page and on cards steps a little darker (`--subtle-on-glass` #4F5D72, was #55647A) so it holds AA at the gradient's strongest point. Earlier lines in this file that give 64% or #55647A describe the first version.
 - **A box longer than 900px on either side stays still when pressed** (review): turning it about its centre would slide a far row out from under the finger. That covers a long list on a phone and a very wide card on a desktop.
 - **Not checked on an iPhone**: the page root is still cream, so pulling down past the top of a page may show a cream band above the lavender.
+
+## Where it ended (Caden, Nov 12, last word of the day)
+
+"Keep the cards' floating height as they were in the before mock-up, add in the purple gradient but make it a stronger, less transparent purple towards the top, make the floating cards heavily Liquid Glass so the purple passes behind them. Do the same with all modes except Sunlight."
+
+This replaces the section above ("Coming together"): the lower shadow and the whiter pane were one step on the way and are gone.
+
+- **Height**: the shadow is the first one again (a contact shadow and a long soft one thrown well below the box), by day and by night.
+- **The page is one purple gradient, fixed to the screen.** Opaque and strongest at the top (`--page-top`: #D6C9EA by day, a deep violet #3C1F66 by night), easing to the page colour at the foot. It is painted by one layer fixed under the page (`body::before`), so the purple is always at the top of the screen and the cards pass over it as the page scrolls. The body has no background of its own. Sunlight, a chat thread, reduced transparency, more contrast and forced colours have no gradient: a plain page, as before.
+- **Cards are heavy glass**: a pane of 38% of the card colour by day and 40% by night (it was 64% and 58% in the first glass version), so the purple shows through. The glint and the bright rim are as they were by day; by night the glint is a little dimmer (10%, was 13%) because white over a dark pane takes contrast from light type.
+- **No blur on a card.** Behind a card there is only ever the gradient, and a blur of a smooth gradient is the same gradient. Measured in a browser, a card with and without its backdrop filter was the same colour by day; by night the filter's extra saturation was visible, so the night's top colour was chosen a little more vivid instead. Dropping the filter removes one composited layer per card (a page of pay lines was a page of blurs) and leaves a pressed, turning card with no blurred backdrop for Safari to clip. The token (`--card-filter`) stays, set to `none`.
+- **Text holds AA on the purple itself and on the glass**, by day and by night, checked in `design-tokens.test.ts` at the gradient's strongest colour: body text AAA; muted, the faintest grey, kicker, links, error, success and warning text AA. By night also under the glint at its brightest. To get there:
+  - by day the faintest grey on the page and on glass is #4A576B (nearly Muted);
+  - by day the three status text colours are a step darker: error #A81C1C (was #C42020), success #0F5F37 (was #116B3D), warning #62290C (was #78350F). Warning is still darker than error by brightness, not only hue;
+  - by night error text is a little lighter: #FA8686 (was #F87171).
+- **The status bar strip.** The root's colour is the top colour, and so is the fixed layer's own colour, so an installed app's strip matches the top of a worker's page. On a page with a header across the top the root takes the header's pane over that colour instead; on a chat thread the plain page colour; with the drawer open the drawer's colour (as before). **None of this has been seen on an iPhone.**
+- **Still solid**: boxes inside a card, the menu over a chat, hero cards, the job rows in the Jobs list (they swipe over a coloured underlay, and a list of twenty is rows, not floating cards), fields and buttons.
+
+Pictures: `glass-purple-light.png`, `glass-purple-dark.png` (Today at 390 wide).

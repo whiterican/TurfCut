@@ -225,18 +225,18 @@ describe.each([
     // weak as the root's own rule (:where), and before the drawer's rule, which must win while the drawer is open.
     expect(css).toMatch(/--header-root: var\(--page-top\);/);
     const bare = css.replace(/\/\*[\s\S]*?\*\//g, "");
-    expect(bare).toMatch(/@media screen \{\s*html:where\(:has\(\.site-header:not\(\.site-header-worker\)\)\) \{\s*background: var\(--header-root\);\s*\}\s*\}\s*@media screen and \(min-width: 48rem\) \{\s*html:where\(:has\(\.site-header\)\) \{\s*background: var\(--header-root\);\s*\}\s*\}\s*@media screen and \(min-width: 48rem\) \{\s*html:where\(:has\(\.site-header\):not\(:has\(\.org-rail\)\)\) \{\s*background: color-mix\(in srgb, var\(--surface\) 80%, var\(--page-top\)\);\s*\}\s*\}\s*@media screen \{\s*html:where\(:has\(\.thread-top\)\) \{\s*background: var\(--bg\);\s*\}\s*\}/);
+    expect(bare).toMatch(/@media screen \{\s*html:where\(:has\(\.site-header:not\(\.site-header-worker\)\)\) \{\s*background: var\(--header-root\);\s*\}\s*\}\s*@media screen and \(min-width: 48rem\) \{\s*html:where\(:has\(\.site-header\)\) \{\s*background: var\(--header-root\);\s*\}\s*\}\s*@media screen \{\s*html:where\(:has\(\.thread-top\)\) \{\s*background: var\(--bg\);\s*\}\s*\}/);
     expect(css.indexOf("html:where(:has(.thread-top))")).toBeLessThan(css.indexOf("html:has(.more-sheet[open]) {"));
     expect(css.indexOf("\nhtml {")).toBeLessThan(css.indexOf("html:where(:has(.site-header:not(.site-header-worker)))"));
     expect(css).toMatch(/body:has\(\.more-sheet\[open\]\) \{\s*--page-wash: none;\s*background-color: var\(--drawer-root\);[^}]*?--page-top: var\(--drawer-root\);/);
     // Under the status bar the page blurs away into the strip's own colour, and the pill sits above that band.
     const band = css.match(/\.phone-top::before \{([^}]*)\}/)?.[1] ?? "";
-    expect(band).toMatch(/position: fixed;\s*inset: 0 0 auto;\s*height: calc\(3\.5rem \+ env\(safe-area-inset-top\)\);/);
+    expect(band).toMatch(/position: fixed;\s*inset: 0 0 auto;\s*height: calc\(5\.75rem \+ env\(safe-area-inset-top\)\);/);
     expect(band).toMatch(/background: linear-gradient\(to bottom, var\(--page-top\) 0%/);
-    expect(band).toMatch(/backdrop-filter: blur\(12px\);/);
+    expect(band).toMatch(/backdrop-filter: blur\(20px\);/);
     expect(band).toMatch(/pointer-events: none;/);
     expect(band).toMatch(/z-index: 44;/);
-    expect(band).toMatch(/mask-image: linear-gradient\(to bottom, #000 0%, #000 50%, transparent 100%\);/);
+    expect(band).toMatch(/mask-image: linear-gradient\(to bottom, #000 0%, #000 68%, transparent 100%\);/);
     expect(band).toMatch(/view-transition-name: phone-band;/);
     expect(css).toMatch(/::view-transition-group\(site-header\),\s*::view-transition-group\(tabbar\),\s*::view-transition-group\(phone-band\),/);
     // Shown everywhere but Sunlight and the solid fallback: hidden exactly twice.
@@ -264,11 +264,14 @@ describe.each([
     const solid = css.slice(css.indexOf("@media (prefers-reduced-transparency: reduce)"));
     expect(rules(solid).at(-1)).toMatch(/height: var\(--site-header-h\);\s*background: var\(--bg\);\s*-webkit-backdrop-filter: none;\s*backdrop-filter: none;/);
     expect(css).toMatch(/::view-transition-group\(phone-band\),\s*::view-transition-group\(bar-fade\) \{\s*animation: none;\s*z-index: 100;/);
+    // Day's top colour lives on :root, which outranks html: the solid fallback must reset it there or the day page stays purple.
+    const solidBlock = css.slice(css.indexOf("@media (prefers-reduced-transparency: reduce)"));
+    expect(solidBlock.replace(/\/\*[\s\S]*?\*\//g, "")).toMatch(/--header-root: var\(--bg\);\s*\}\s*:root \{\s*--page-top: var\(--bg\);\s*\}/);
     // Paper has no layer.
     const print = css.slice(css.indexOf("@media print {"));
     expect(print.slice(0, print.indexOf("\n}\n"))).toMatch(/body::after \{ display: none !important; \}/);
     // The staff band sits flush under the bar at every width: the cut is outside every media block and marked important, so it wins over both fades.
-    expect(css).toMatch(/\nbody:has\(\.staff-band\)::after \{\s*height: var\(--site-header-h\) !important;\s*-webkit-mask-image: none !important;\s*mask-image: none !important;/);
+    expect(css).toMatch(/\nbody:has\(\.staff-band\)::after \{\s*height: var\(--site-header-h\) !important;\s*background: var\(--page-top\) !important;\s*-webkit-backdrop-filter: none !important;\s*backdrop-filter: none !important;\s*-webkit-mask-image: none !important;\s*mask-image: none !important;/);
     expect(css).toMatch(/@media print \{[\s\S]*?body::before \{ display: none; \}/);
     // Anyone who asks for less transparency or more contrast gets solid surfaces.
     expect(css).toMatch(/@media \(prefers-reduced-transparency: reduce\), \(prefers-contrast: more\), \(forced-colors: active\) \{\s*html,\s*\.dark \{\s*--glass-bg: var\(--surface\);/);
@@ -769,7 +772,20 @@ describe("the shell (redesign B1.4)", () => {
     expect(css.match(/\.more-sheet::backdrop/g)).toHaveLength(2);
     expect(css).toMatch(/--glass-bg-strong: color-mix\(in srgb, var\(--surface\) 79%, transparent\);/);
     // Clear glass over the purple: the strip is half the page's top colour, and the pane is that colour part see-through, so over the strip-coloured page it is exactly the strip.
-    expect(css.match(/--drawer-root: color-mix\(in srgb, var\(--surface\) 50%, var\(--page-top\)\);\s*--drawer-bg: color-mix\(in srgb, var\(--drawer-root\) 60%, transparent\);/g)).toHaveLength(2);
+    expect(css.match(/--drawer-root: color-mix\(in srgb, var\(--surface\) 50%, var\(--page-top\)\);\s*--drawer-bg: color-mix\(in srgb, var\(--drawer-root\) (60|68)%, transparent\);/g)).toHaveLength(2);
+    // The pane is clearer than the other panes, so its words are all ink, and ink holds AA over the worst case behind (black by day, white by night).
+    expect(css).toMatch(/\n\.more-sheet-panel \{\s*--muted: var\(--fg\);\s*--subtle: var\(--fg\);\s*--kicker: var\(--fg\);/);
+    for (const [body, th, worst] of [[css.slice(css.indexOf("\nhtml {")), light, "#000000"], [themeBody(css, ".dark"), dark, "#ffffff"]] as const) {
+      const alpha = Number(body.match(/--drawer-bg: color-mix\(in srgb, var\(--drawer-root\) (\d+)%, transparent\);/)?.[1]) / 100;
+      const top = body.match(/--page-top: (#[0-9a-f]{6});/)?.[1] ?? css.match(/--page-top: (#[0-9a-f]{6});/)![1];
+      const strip = "#" + mix(th.surface, 0.5, top).map((v) => Math.round(v).toString(16).padStart(2, "0")).join("");
+      expect(alpha).toBeLessThanOrEqual(0.7); // clearer than the 78% panes
+      expect(ratio(th.fg, mix(strip, alpha, worst))).toBeGreaterThanOrEqual(4.5);
+      expect(ratio(th.fg, mix(strip, 1, worst))).toBeGreaterThanOrEqual(7);
+    }
+    // Blur only on the pane (saturating what shows through would move its top off the strip's colour); none in Sunlight or the solid fallback.
+    expect(css).toMatch(/\.more-sheet-panel \{[^}]*?-webkit-backdrop-filter: blur\(24px\);\s*backdrop-filter: blur\(24px\);/);
+    expect(css).toMatch(/\.sun \.more-sheet-panel \{\s*-webkit-backdrop-filter: none;\s*backdrop-filter: none;/);
     expect(css.match(/--drawer-root: var\(--surface\);\s*--drawer-bg: var\(--surface\);/g)).toHaveLength(2);
     expect(css).toMatch(/\.more-sheet-panel \{[^}]*?background: var\(--drawer-bg\);/);
     expect(css).toMatch(/\.more-sheet \{[^}]*border-end-end-radius: var\(--radius-lg\);\s*box-shadow: 0 0 0 100vmax rgb\(24 20 30 \/ 0\.45\);/);

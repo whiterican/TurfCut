@@ -211,7 +211,7 @@
   /* The drawer is clear glass over the purple (Caden, Nov 12): its colour is half the page's top colour, and the
      pane is that same colour part see-through, so over the strip-coloured page it comes out exactly the strip. */
   --drawer-root: color-mix(in srgb, var(--surface) 50%, var(--page-top));
-  --drawer-bg: color-mix(in srgb, var(--drawer-root) 60%, transparent);
+  --drawer-bg: color-mix(in srgb, var(--drawer-root) 68%, transparent);
   --glass-bg-bar: color-mix(in srgb, var(--surface) 80%, transparent);
   --glass-border: rgb(255 255 255 / 0.2);
   --glass-highlight: inset 0 1px 0 rgb(255 255 255 / 0.34), inset 0 -1px 0 rgb(255 255 255 / 0.08), inset 0 0 0 1px rgb(255 255 255 / 0.06), 0 14px 36px -14px rgb(0 0 0 / 0.75);
@@ -2509,8 +2509,9 @@ body {
     /* No sheen and no lit top edge here: the pane meets the status bar's strip, which is one flat colour. */
     background: var(--drawer-bg);
     border-color: var(--glass-border);
-    -webkit-backdrop-filter: var(--glass-filter);
-    backdrop-filter: var(--glass-filter);
+    /* Blur only: the usual glass recipe also saturates what shows through, and the pane's top would no longer be the strip's colour. */
+    -webkit-backdrop-filter: blur(24px);
+    backdrop-filter: blur(24px);
     box-shadow: 0 12px 34px -14px rgb(28 15 46 / 0.36);
   }
   /* The menu button (components/AppNav MenuButton): with a name, a pill led by the person's initial; without, the glyph alone. */
@@ -2568,21 +2569,23 @@ body {
   /* The top edge of a worker's phone page (Caden, Nov 12): what scrolls up no longer stops dead at the status
      bar. A band fixed across the top blurs what passes under it and fades it into the colour at the top of the
      page, which is the status bar strip's colour too, so the page seems to run on under the bar. Strongest at
-     the edge, gone by the foot of the menu button's row (the band is exactly that tall), so nothing at rest is
-     touched. The button sits above it, and a pull-to-refresh ring comes out from under it. An organization's
+     the edge and gone a little under the menu button's row; at rest the page behind it is the same colour, so
+     nothing shows. The button sits above it, and a pull-to-refresh ring comes out from under it. An organization's
      phone needs none: its header is a pane of glass across the top already. */
+  /* Down to just under the menu button's row (Caden's line, Nov 12), fully blurred for most of that and
+     fading out over the last part: a card's edge is gone before it reaches the button, not a line behind it. */
   .phone-top::before {
     content: "";
     position: fixed;
     inset: 0 0 auto;
-    height: calc(3.5rem + env(safe-area-inset-top));
+    height: calc(5.75rem + env(safe-area-inset-top));
     z-index: 44;
     pointer-events: none;
-    background: linear-gradient(to bottom, var(--page-top) 0%, color-mix(in srgb, var(--page-top) 72%, transparent) 38%, transparent 100%);
-    -webkit-backdrop-filter: blur(12px);
-    backdrop-filter: blur(12px);
-    -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 50%, transparent 100%);
-    mask-image: linear-gradient(to bottom, #000 0%, #000 50%, transparent 100%);
+    background: linear-gradient(to bottom, var(--page-top) 0%, color-mix(in srgb, var(--page-top) 82%, transparent) 40%, color-mix(in srgb, var(--page-top) 45%, transparent) 72%, transparent 100%);
+    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(20px);
+    -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 68%, transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 0%, #000 68%, transparent 100%);
     /* Part of the frame, like the tab bar: a page change slides under it, not over it. */
     view-transition-name: phone-band;
   }
@@ -3357,6 +3360,9 @@ summary.list-none::-webkit-details-marker {
    band's words. Marked important, so it wins over the phone's fade and the rail's alike. */
 body:has(.staff-band)::after {
   height: var(--site-header-h) !important;
+  background: var(--page-top) !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
   -webkit-mask-image: none !important;
   mask-image: none !important;
 }
@@ -4001,6 +4007,11 @@ body:has(.staff-band)::after {
     --page-top: var(--bg);
     --header-root: var(--bg);
   }
+  /* Day's top colour is declared on :root, which outranks the html rule above whatever the order: without
+     this the day page stayed flat purple here, with less contrast than the plain page. */
+  :root {
+    --page-top: var(--bg);
+  }
   /* No blurred band at the top of a phone page either: it fades text, which is the opposite of more contrast. */
   body:has(.org-rail)::after,
   body:has(.site-header:not(.site-header-worker)):not(:has(.thread-top))::after {
@@ -4010,6 +4021,15 @@ body:has(.staff-band)::after {
     backdrop-filter: none;
     -webkit-mask-image: none;
     mask-image: none;
+  }
+  .more-sheet-panel {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  /* The pane and a card are the same solid colour here: the row you are on takes the dock's tint instead. */
+  html:not(.sun) .more-sheet .rail-link:is([aria-current], :active) {
+    background: var(--dock-capsule);
+    box-shadow: none;
   }
   .phone-top::before {
     display: none;
@@ -4029,6 +4049,17 @@ body:has(.thread-top) {
 :is(.thread-top, .composer, .more-sheet-panel, .sheet-panel) {
   --subtle: var(--muted);
 }
+/* The drawer is clearer than the other panes (Caden, Nov 12), so every word on it takes the ink: grey fails AA
+   there once something dark (by day) or light (by night) scrolls behind. Tested in design-tokens.test.ts. */
+.more-sheet-panel {
+  --muted: var(--fg);
+  --subtle: var(--fg);
+  --kicker: var(--fg);
+}
+.sun .more-sheet-panel {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
 /* An installed app on a phone draws the status bar's strip itself, above the page, where the page
    cannot paint. It takes the colour from the page: the root's or the body's, or something fixed across
    the top. While the menu drawer is open both take the drawer's colour (and its backdrop is clear), and
@@ -4045,12 +4076,6 @@ body:has(.thread-top) {
 @media screen and (min-width: 48rem) {
   html:where(:has(.site-header)) {
     background: var(--header-root);
-  }
-}
-/* A wide page with a bar and no rail (signed out): the bar keeps its own pane there, so the strip does too. */
-@media screen and (min-width: 48rem) {
-  html:where(:has(.site-header):not(:has(.org-rail))) {
-    background: color-mix(in srgb, var(--surface) 80%, var(--page-top));
   }
 }
 @media screen {

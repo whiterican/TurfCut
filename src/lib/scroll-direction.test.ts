@@ -39,9 +39,8 @@ describe("scroll direction for the top row", () => {
     // while the keyboard is on one of its controls. Faded and moved, never removed.
     expect(css).toMatch(/html\[data-scroll="down"\]:not\(:has\(\.thread-top\)\) \.site-header:not\(:has\(:focus-visible\)\) \{\s*opacity: 0;\s*translate: 0 -0\.375rem;\s*pointer-events: none;/);
     expect(css).toMatch(/html\[data-scroll="down"\]:not\(:has\(\.thread-top\)\) \.phone-top > :not\(:focus-visible\) \{\s*opacity: 0;\s*translate: 0 -0\.375rem;\s*pointer-events: none;/);
-    // The glass the row sat on shrinks to a short feather; the plain bars (Sunlight, staff, the solid fallback) go with the row.
-    expect(css).toMatch(/html\[data-scroll="down"\]:not\(:has\(\.thread-top\)\) body::after \{\s*height: 2\.25rem !important;/);
-    expect(css).toMatch(/html\[data-scroll="down"\]:not\(:has\(\.thread-top\)\) \.phone-top::before \{\s*height: calc\(2\.25rem \+ env\(safe-area-inset-top\)\) !important;/);
+    // The glass stays while the row is away (it is never resized by the scroll); the plain bars (Sunlight, staff, the solid fallback) go with the row.
+    expect(css).not.toMatch(/data-scroll[^{]*\{[^}]*height:/);
     expect(css).toMatch(/html\.sun\[data-scroll="down"\]:not\(:has\(\.thread-top\)\) body::after,\s*html\[data-scroll="down"\]:not\(:has\(\.thread-top\)\) body:has\(\.staff-band\)::after \{\s*opacity: 0 !important;/);
     expect(css.slice(css.indexOf("@media (prefers-reduced-transparency: reduce)"))).toMatch(/html\[data-scroll="down"\]:not\(:has\(\.thread-top\)\) body::after \{\s*opacity: 0 !important;/);
     expect(css).not.toMatch(/data-scroll[^{]*\{[^}]*(visibility: hidden|display: none)/);

@@ -2594,10 +2594,10 @@ body {
     z-index: 44;
     pointer-events: none;
     background: linear-gradient(to bottom, color-mix(in srgb, var(--page-top) 62%, transparent) 0%, color-mix(in srgb, var(--page-top) 34%, transparent) 60%, transparent 100%);
-    -webkit-backdrop-filter: blur(7px);
-    backdrop-filter: blur(7px);
-    -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 34%, transparent 100%);
-    mask-image: linear-gradient(to bottom, #000 0%, #000 34%, transparent 100%);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 22%, transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 0%, #000 22%, transparent 100%);
     /* Part of the frame, like the tab bar: a page change slides under it, not over it. */
     view-transition-name: phone-band;
   }
@@ -3340,10 +3340,10 @@ summary.list-none::-webkit-details-marker {
     z-index: 44;
     pointer-events: none;
     background: linear-gradient(to bottom, color-mix(in srgb, var(--page-top) 62%, transparent) 0%, color-mix(in srgb, var(--page-top) 34%, transparent) 60%, transparent 100%);
-    -webkit-backdrop-filter: blur(7px);
-    backdrop-filter: blur(7px);
-    -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 34%, transparent 100%);
-    mask-image: linear-gradient(to bottom, #000 0%, #000 34%, transparent 100%);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 22%, transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 0%, #000 22%, transparent 100%);
     view-transition-name: bar-fade;
   }
   /* A chat pins its own bar right under this one: no fade over it, and no gradient to fade into. */
@@ -3434,10 +3434,10 @@ body:has(.staff-band)::after {
     z-index: 44;
     pointer-events: none;
     background: linear-gradient(to bottom, color-mix(in srgb, var(--page-top) 62%, transparent) 0%, color-mix(in srgb, var(--page-top) 34%, transparent) 60%, transparent 100%);
-    -webkit-backdrop-filter: blur(7px);
-    backdrop-filter: blur(7px);
-    -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 34%, transparent 100%);
-    mask-image: linear-gradient(to bottom, #000 0%, #000 34%, transparent 100%);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 22%, transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 0%, #000 22%, transparent 100%);
     view-transition-name: bar-fade;
   }
   /* Sunlight has no blur and no see-through: a plain bar. */
@@ -3498,25 +3498,17 @@ body:has(.staff-band)::after {
 /* It fades where it stands, with only a breath of movement (Caden's second recording, Nov 12): not a slide. */
 .site-header,
 .phone-top > * {
-  transition: opacity var(--dur-page) var(--ease-standard), translate var(--dur-page) var(--ease-standard);
+  transition: opacity var(--dur-base) var(--ease-standard), translate var(--dur-base) var(--ease-standard);
 }
 html[data-scroll="down"]:not(:has(.thread-top)) .site-header:not(:has(:focus-visible)) {
   opacity: 0;
   translate: 0 -0.375rem;
   pointer-events: none;
 }
-/* With the row away, the glass it sat on shrinks to a short feather at the very top of the screen: enough to
-   soften what reaches the status bar, without a pane of blur over nothing. Important, because each band's own
-   rule is longer than this one. */
-body::after,
-.phone-top::before {
-  transition: height var(--dur-page) var(--ease-standard), opacity var(--dur-page) var(--ease-standard);
-}
-html[data-scroll="down"]:not(:has(.thread-top)) body::after {
-  height: 2.25rem !important;
-}
-html[data-scroll="down"]:not(:has(.thread-top)) .phone-top::before {
-  height: calc(2.25rem + env(safe-area-inset-top)) !important;
+/* With the row away the glass stays as it is, as in Caden's reference (Nov 12): what reaches the top of the
+   screen still blurs away into the page's colour, and the row fades back onto the same pane. */
+body::after {
+  transition: opacity var(--dur-base) var(--ease-standard);
 }
 /* Sunlight's bar is a plain strip behind the row, and so is the one over the staff band: with the row away
    they go too, or a blank strip would stay across the page. */

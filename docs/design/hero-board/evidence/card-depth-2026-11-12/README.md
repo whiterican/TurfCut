@@ -9,7 +9,7 @@ Cards, lists, job rows and tables carried a lit top edge and a soft shadow. Stat
 ## What changed
 
 - **Those boxes now carry the same edge and shadow** as the cards, from the same two tokens.
-- **The shadow itself is a little stronger**, for everything that reads the shared token: cards, lists, job rows, tables, the hero cards and their rings, the featured card on the public page, a job page's note, and the round header buttons. It was one faint shadow (6%) that barely showed on the cream page; it is now a close contact shadow with a wider soft one under it. In dark mode it is deeper too, though a shadow on a dark page shows little: there the lit top edge does the work.
+- **The boxes float.** Caden's follow-up the same day: "make it appear as if they're floating". The shared shadow is now a faint contact shadow with a long soft one thrown well below the box and pulled in at the sides, so it reads as height. It applies to everything that reads the token: cards, lists, job rows, tables, the hero cards and their rings, the featured card on the public page, a job page's note, and the round header buttons. It was one faint shadow (6%) that barely showed on the cream page. In dark mode it is deeper too, though a shadow on a dark page shows less: there the lit top edge does part of the work.
 - **A box inside another box stays flat.** A shadow inside a card reads as dirt, not depth. A chosen option keeps its ring.
 - **Notes stay flat:** alerts, shaded notes (`.card-flat`), dashed boxes and key-value chips are part of the text flow, not surfaces.
 - **Sunlight** has no shadows, as before.

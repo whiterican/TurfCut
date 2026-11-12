@@ -128,9 +128,10 @@
   --tab-active-bg: #1c0f2e; /* = Eggplant */
   --tab-active-fg: #ffffff;
   /* Cards sit on the Cream with a hairline and almost no shadow; the dock floats. */
-  /* A close contact shadow and a wider soft one under it (Caden, Nov 12: the single 6% shadow gave the cards no
-     weight). Every card, tile and row reads this one token, so they all sit at the same height. */
-  --shadow-depth: 0 1px 2px rgb(28 15 46 / 0.07), 0 8px 20px -8px rgb(28 15 46 / 0.16);
+  /* The boxes float (Caden, Nov 12): a faint contact shadow, then a long soft one thrown well below the box,
+     pulled in at the sides so it reads as height, not as a dark outline. Every card, tile and row reads
+     this one token, so they all float at the same height. */
+  --shadow-depth: 0 1px 2px rgb(28 15 46 / 0.05), 0 6px 12px -4px rgb(28 15 46 / 0.1), 0 22px 40px -16px rgb(28 15 46 / 0.3);
   --shadow: var(--shadow-depth);
   /* Priority rings around the next-shift card: the Eggplant family, each ring darker. */
   --select: #6a4c91; /* the selected tab or row's tint: purple by day (Caden, Nov 10) */
@@ -187,7 +188,7 @@
   --ring: #ece4f5;
   --ring-2: #cbb8e0;
   --ring-3: #a991c9;
-  --shadow-depth: 0 1px 2px rgb(8 3 16 / 0.5), 0 10px 24px -8px rgb(8 3 16 / 0.7);
+  --shadow-depth: 0 1px 2px rgb(0 0 0 / 0.5), 0 8px 16px -4px rgb(0 0 0 / 0.55), 0 26px 48px -16px rgb(0 0 0 / 0.9);
   --shadow: var(--shadow-depth);
   color-scheme: dark;
   /* Liquid Glass by night: a dimmer pane, a fainter lit edge. */

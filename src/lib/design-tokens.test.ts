@@ -705,9 +705,9 @@ describe("the shell (redesign B1.4)", () => {
     // A chosen option keeps its ring on top of the weight, and alone inside a card.
     expect(css).toMatch(/\.option-card:has\(input:checked\) \{\s*box-shadow: 0 0 0 1px var\(--selected\), var\(--card-edge\), var\(--shadow-depth\);/);
     expect(css).toMatch(new RegExp(`:is\\(${inside}\\) \\.option-card:has\\(input:checked\\) \\{\\s*box-shadow: 0 0 0 1px var\\(--selected\\);`));
-    // One token for all of them: a close contact shadow and a wider soft one. Sunlight has none (pinned above).
-    expect(css).toMatch(/\n  --shadow-depth: 0 1px 2px rgb\(28 15 46 \/ 0\.07\), 0 8px 20px -8px rgb\(28 15 46 \/ 0\.16\);/);
-    expect(themeBody(css, ".dark")).toMatch(/--shadow-depth: 0 1px 2px rgb\(8 3 16 \/ 0\.5\), 0 10px 24px -8px rgb\(8 3 16 \/ 0\.7\);/);
+    // One token for all of them, and they float: a faint contact shadow, then a long soft one thrown below the box. Sunlight has none (pinned above).
+    expect(css).toMatch(/\n  --shadow-depth: 0 1px 2px rgb\(28 15 46 \/ 0\.05\), 0 6px 12px -4px rgb\(28 15 46 \/ 0\.1\), 0 22px 40px -16px rgb\(28 15 46 \/ 0\.3\);/);
+    expect(themeBody(css, ".dark")).toMatch(/--shadow-depth: 0 1px 2px rgb\(0 0 0 \/ 0\.5\), 0 8px 16px -4px rgb\(0 0 0 \/ 0\.55\), 0 26px 48px -16px rgb\(0 0 0 \/ 0\.9\);/);
     // Paper has no shadows.
     expect(css).toMatch(/@media print \{[\s\S]*:is\(\.work-card, \.shift-card, \.turf-card, \.need-tile, \.stat-tile, \.summary-item, \.choice-list, \.option-card, \.overview-map\) \{ box-shadow: none; \}/);
     // Notes in the flow are not surfaces: they stay flat.

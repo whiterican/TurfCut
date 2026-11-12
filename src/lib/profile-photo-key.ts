@@ -11,5 +11,9 @@ export const photoType = (key: string): "image/png" | "image/jpeg" => (key.endsW
 /** The part of a key that names one upload: a changed photo has a new one. */
 export const photoTag = (key: string) => key.slice(key.lastIndexOf("/") + 1, key.lastIndexOf("."));
 
+/** The address of someone's photo for a person who shares a chat with them (the route decides; the address proves nothing). */
+export const chatPhotoUrl = (profileId: string, key: string | null | undefined): string | null =>
+  key && ownsKey(profileId, key) ? `/api/profile-photo/${profileId}?v=${encodeURIComponent(photoTag(key))}` : null;
+
 /** The address of the signed-in person's own photo; the tag makes a changed photo a new address. */
 export const ownPhotoUrl = (key: string | null | undefined): string | null => (key ? `/api/profile-photo?v=${encodeURIComponent(photoTag(key))}` : null);

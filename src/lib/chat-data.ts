@@ -4,6 +4,7 @@ import type { Role } from "@/lib/auth";
 import { canUse, type Grants } from "@/lib/access";
 import { areaMembers } from "@/lib/access-data";
 import { UUID_RE } from "@/lib/jobs";
+import { chatPhotoUrl } from "@/lib/profile-photo-key";
 import {
   EDIT_WINDOW_MS,
   GENERAL_CHANNEL,
@@ -80,7 +81,7 @@ async function dbNow(c: Client): Promise<Date> {
   return row.now;
 }
 
-const PERSON = { select: { id: true, role: true, displayName: true, worker: { select: { displayName: true } }, orgRole: { select: { name: true } } } } as const;
+const PERSON = { select: { id: true, role: true, displayName: true, avatarKey: true, worker: { select: { displayName: true } }, orgRole: { select: { name: true } } } } as const;
 type Person = { role: string; displayName: string | null; worker: { displayName: string } | null; orgRole?: { name: string } | null };
 const ROLE_LABEL: Record<string, string> = { OWNER: "Owner", RECRUITER: "Recruiter", SUPERVISOR: "Supervisor", COMPLIANCE: "Compliance", FINANCE: "Finance", PUBLISHER: "Publisher" };
 /** Worker → their profile name; staff → their chat name, else their role. */
@@ -258,6 +259,8 @@ export interface ThreadSummary {
   subtitle: string;
   /** Read-only for me (removed, or the hire ended). */
   frozen: boolean;
+  /** The other person's photo, in a conversation between two people who are both still in it. */
+  photo: string | null;
   unread: number;
   last: { text: string; mine: boolean; at: Date } | null;
   /** For ordering: last message, else when the thread was created. */
@@ -360,6 +363,7 @@ export async function listThreads(me: ChatUser): Promise<{ threads: ThreadSummar
       title: direct || staffDm ? personName(other?.profile) : (c.name ?? "Team chat"),
       subtitle: direct ? (c.engagement?.job.title ?? "") : staffDm ? staffLabel(other?.profile) : c.kind === "CHANNEL" ? (c.topic ?? "") : c.jobs.map((j) => j.job.title).join(" · "),
       frozen: row.removedAt !== null || c.archivedAt !== null || (direct && !isHired(c.engagement?.status ?? "")) || (staffDm && !c.participants.some((p) => !p.removedAt)),
+      photo: other && !other.removedAt && row.removedAt === null ? chatPhotoUrl(other.profileId, other.profile.avatarKey) : null,
       unread: unread.get(c.id) ?? 0,
       last: last ? { text: preview(last), mine: last.senderId === me.userId, at: last.createdAt } : null,
       activeAt: last?.createdAt ?? c.createdAt,
@@ -397,6 +401,8 @@ export interface ThreadMessage {
   id: string;
   senderId: string;
   senderName: string;
+  /** The sender's photo, while they are still in the conversation. */
+  senderPhoto: string | null;
   senderIsManager: boolean;
   mine: boolean;
   body: string | null;
@@ -428,6 +434,7 @@ export interface ThreadMember {
   role: ParticipantRole;
   removed: boolean;
   isMe: boolean;
+  photo: string | null;
   /** I (a worker) have this manager blocked. */
   blockedByMe: boolean;
 }
@@ -529,6 +536,7 @@ export async function openThread(me: ChatUser, conversationId: string): Promise<
         role: p.role,
         removed: p.removedAt !== null && (!mine.removedAt || p.removedAt <= mine.removedAt),
         isMe: p.profileId === me.userId,
+        photo: p.removedAt === null && !mine.removedAt ? chatPhotoUrl(p.profileId, p.profile.avatarKey) : null,
         blockedByMe: myBlocks.has(p.profileId),
       })),
     mentionable: [...new Set(mentionables(conv.participants, me.userId, access).map((x) => x.name))].sort((a, b) => a.localeCompare(b)),
@@ -602,13 +610,14 @@ async function messageExtras(c: Client, conversationId: string, viewerId: string
   return out;
 }
 
-function threadMessage(m: ViewMessage, myId: string, byId: Map<string, { role: ParticipantRole; profile: Parameters<typeof personName>[0] }>, access: Access, now: Date, extras: Extras): ThreadMessage {
+function threadMessage(m: ViewMessage, myId: string, byId: Map<string, { role: ParticipantRole; removedAt: Date | null; profile: (NonNullable<Parameters<typeof personName>[0]> & { avatarKey?: string | null }) | null | undefined }>, access: Access, now: Date, extras: Extras): ThreadMessage {
   const sender = byId.get(m.senderId);
   const mineMsg = m.senderId === myId;
   const thread = extras.replies.get(m.id);
   return {
     ...m,
     senderName: personName(sender?.profile),
+    senderPhoto: sender && sender.removedAt === null && !m.deleted ? chatPhotoUrl(m.senderId, sender.profile?.avatarKey) : null,
     senderIsManager: !!sender && sender.role !== "WORKER",
     mine: mineMsg,
     canEdit: mineMsg && !m.deleted && !!m.body && access.post && now.getTime() - m.createdAt.getTime() <= EDIT_WINDOW_MS,

@@ -167,7 +167,7 @@ export async function exportAccount(
       `Exported ${now.toISOString()}`,
       "",
       "profile.json        your account: name, phone, email, Stripe status",
-      "profile-photo.jpg   the photo of yourself you added, if any (or .png); only you see it",
+      "profile-photo.jpg   the photo of yourself you added, if any (or .png); you and the people you share a chat with see it",
       "experience.csv      the campaigns on your profile, with their verification level",
       "preferences.json    every version of your political-fit answers and consent (newest last)",
       "metrics.json        every version of your computed scorecard aggregates",

@@ -48,7 +48,7 @@ export default async function SettingsPage() {
   return (
     <ReadingPage gap={6} head={<Masthead title={session ? "Settings" : "Display settings"} meta="Text size, theme and feel are saved on this device." />}>
       <DisplaySettings />
-      {/* Anyone with an account may add a photo of themself (lib/profile-photo): shown only to them. */}
+      {/* Anyone with an account may add a photo of themself (lib/profile-photo): shown to them and to people they share a chat with. */}
       {me && <PhotoSettings photo={ownPhotoUrl(me.avatarKey)} initial={railPerson(me).name[0]?.toUpperCase() ?? "?"} />}
       {session && (
         <section className="section">

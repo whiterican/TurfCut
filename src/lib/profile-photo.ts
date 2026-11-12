@@ -4,15 +4,16 @@ import { getSupabaseServiceRoleKey, getSupabaseUrl } from "@/lib/env";
 import { checkImage } from "@/lib/image-clean";
 import { ownsKey, photoTag, photoType } from "@/lib/profile-photo-key";
 
-export { ownPhotoUrl, ownsKey, photoTag, photoType } from "@/lib/profile-photo-key";
+export { chatPhotoUrl, ownPhotoUrl, ownsKey, photoTag, photoType } from "@/lib/profile-photo-key";
 
 /**
  * Profile photos (Caden, Nov 10 2026): anyone signed in may add a photo of
  * themself. They live in a PRIVATE Supabase Storage bucket; only the server
  * touches it (service role) and streams a photo through a signed-in route.
- * For now a photo is shown only to the person it belongs to: who else may see
- * a worker's photo is a decision still open (a photo shows race, age and
- * gender, so it stays out of anything an organization sees while hiring).
+ * A photo is shown to the person it belongs to, and (Caden, Nov 12 2026) to
+ * the people they share a chat with. Chats open only once a hire is confirmed
+ * or between an organization's own staff, so a photo still stays out of
+ * anything an organization sees while hiring: it shows race, age and gender.
  * Nothing ranks, matches or infers anything from a photo.
  * Setup: prisma/profile-photo.sql adds the column and creates the bucket.
  */
@@ -148,4 +149,20 @@ export async function ownPhoto(profileId: string, db: PhotoRecords, store: Photo
   if (have === tag) return { tag, unchanged: true };
   const bytes = await store.get(key);
   return bytes ? { tag, unchanged: false, bytes, type: photoType(key) } : null;
+}
+
+/** Who else may be shown a person's photo. */
+export interface PhotoViewers {
+  /** Both are in one conversation now (neither removed), and neither has the other blocked. */
+  sharesChat(viewerId: string, profileId: string): Promise<boolean>;
+}
+
+/**
+ * A person's photo for someone else: only for a viewer who shares a chat with
+ * them. Null otherwise, exactly as when there is no photo, so the answer never
+ * says whether a person exists or has one.
+ */
+export async function chatPhoto(viewerId: string, profileId: string, db: PhotoRecords, viewers: PhotoViewers, store: PhotoStore, have?: string | null): ReturnType<typeof ownPhoto> {
+  if (viewerId !== profileId && !(await viewers.sharesChat(viewerId, profileId))) return null;
+  return ownPhoto(profileId, db, store, have);
 }

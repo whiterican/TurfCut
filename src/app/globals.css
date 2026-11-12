@@ -128,7 +128,9 @@
   --tab-active-bg: #1c0f2e; /* = Eggplant */
   --tab-active-fg: #ffffff;
   /* Cards sit on the Cream with a hairline and almost no shadow; the dock floats. */
-  --shadow-depth: 0 2px 8px rgb(28 15 46 / 0.06);
+  /* A close contact shadow and a wider soft one under it (Caden, Nov 12: the single 6% shadow gave the cards no
+     weight). Every card, tile and row reads this one token, so they all sit at the same height. */
+  --shadow-depth: 0 1px 2px rgb(28 15 46 / 0.07), 0 8px 20px -8px rgb(28 15 46 / 0.16);
   --shadow: var(--shadow-depth);
   /* Priority rings around the next-shift card: the Eggplant family, each ring darker. */
   --select: #6a4c91; /* the selected tab or row's tint: purple by day (Caden, Nov 10) */
@@ -185,7 +187,7 @@
   --ring: #ece4f5;
   --ring-2: #cbb8e0;
   --ring-3: #a991c9;
-  --shadow-depth: 0 2px 8px rgb(8 3 16 / 0.5);
+  --shadow-depth: 0 1px 2px rgb(8 3 16 / 0.5), 0 10px 24px -8px rgb(8 3 16 / 0.7);
   --shadow: var(--shadow-depth);
   color-scheme: dark;
   /* Liquid Glass by night: a dimmer pane, a fainter lit edge. */
@@ -1129,7 +1131,8 @@ body {
     background: var(--card-sheen), var(--card-bg);
     box-shadow: var(--card-edge), var(--shadow-depth);
   }
-  /* An empty state sits in a card, quietly: a hairline, no shadow, room for one button. Never the centrepiece. */
+  /* An empty state is quiet: a hairline and room for one button, never the centrepiece. Inside a card it has no
+     shadow; standing on the page it takes the card's weight (see "Every box that stands on the page"). */
   .empty-state {
     @apply rounded-[var(--radius-inner)] border border-border px-5 py-6 text-center;
     background: var(--surface);
@@ -2123,6 +2126,24 @@ body {
   }
   .summary-item > .text-hint {
     order: 3;
+  }
+  /* Every box that stands on the page has the card's weight (Caden, Nov 12): the lit top edge and the soft
+     drop that .card, .list-card, the job rows and tables already carry. Tiles, work cards, choice lists,
+     option cards and an empty state now carry them too.
+     A box inside another box stays flat: a shadow within a card reads as dirt, not depth. So does
+     anything that is a note in the flow, not a surface (.card-flat, .card-dashed, .kv, alerts). */
+  :is(.work-card, .stat, .stat-tile, .summary-item, .choice-list, .option-card, .empty-state) {
+    box-shadow: var(--card-edge), var(--shadow-depth);
+  }
+  :is(.card, .card-flat, .list-card, .work-card, .hero-card, .sheet-panel, .more-sheet-panel) :is(.work-card, .stat, .stat-tile, .summary-item, .choice-list, .option-card, .empty-state) {
+    box-shadow: none;
+  }
+  /* A chosen option keeps its ring, with the weight under it (or alone, inside a card). */
+  .option-card:has(input:checked) {
+    box-shadow: 0 0 0 1px var(--selected), var(--card-edge), var(--shadow-depth);
+  }
+  :is(.card, .card-flat, .list-card, .work-card, .hero-card, .sheet-panel, .more-sheet-panel) .option-card:has(input:checked) {
+    box-shadow: 0 0 0 1px var(--selected);
   }
   /* A form that keeps a reading width inside a wide workspace (#113 review, P4). */
   .form-panel {

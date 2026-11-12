@@ -696,6 +696,22 @@ describe("the shell (redesign B1.4)", () => {
     expect(css).toMatch(/body:has\(\.thread-top\):not\(:has\(\.composer\)\) \.page \{\s*padding-bottom: calc\(2rem \+ env\(safe-area-inset-bottom\)\);/);
   });
 
+  it("every box that stands on the page has the card's weight; a box inside another stays flat", () => {
+    // Caden, Nov 12: tiles, work cards, choice lists, option cards and empty states were flat beside the cards.
+    const boxes = "\\.work-card, \\.stat, \\.stat-tile, \\.summary-item, \\.choice-list, \\.option-card, \\.empty-state";
+    const inside = "\\.card, \\.card-flat, \\.list-card, \\.work-card, \\.hero-card, \\.sheet-panel, \\.more-sheet-panel";
+    expect(css).toMatch(new RegExp(`\\n  :is\\(${boxes}\\) \\{\\s*box-shadow: var\\(--card-edge\\), var\\(--shadow-depth\\);`));
+    expect(css).toMatch(new RegExp(`\\n  :is\\(${inside}\\) :is\\(${boxes}\\) \\{\\s*box-shadow: none;`));
+    // A chosen option keeps its ring on top of the weight, and alone inside a card.
+    expect(css).toMatch(/\.option-card:has\(input:checked\) \{\s*box-shadow: 0 0 0 1px var\(--selected\), var\(--card-edge\), var\(--shadow-depth\);/);
+    expect(css).toMatch(new RegExp(`:is\\(${inside}\\) \\.option-card:has\\(input:checked\\) \\{\\s*box-shadow: 0 0 0 1px var\\(--selected\\);`));
+    // One token for all of them: a close contact shadow and a wider soft one. Sunlight has none (pinned above).
+    expect(css).toMatch(/\n  --shadow-depth: 0 1px 2px rgb\(28 15 46 \/ 0\.07\), 0 8px 20px -8px rgb\(28 15 46 \/ 0\.16\);/);
+    expect(themeBody(css, ".dark")).toMatch(/--shadow-depth: 0 1px 2px rgb\(8 3 16 \/ 0\.5\), 0 10px 24px -8px rgb\(8 3 16 \/ 0\.7\);/);
+    // Notes in the flow are not surfaces: they stay flat.
+    for (const flat of [".card-flat", ".card-dashed", ".kv"]) expect(new RegExp(`\\n  \\${flat} \\{[^}]*box-shadow`).test(css)).toBe(false);
+  });
+
   it("has a skip link that appears on keyboard focus, landing on a wrapper without a ring", () => {
     expect(css).toMatch(/\.skip-link \{[^}]*translate: 0 -200%;/);
     expect(css).toMatch(/\.skip-link:focus-visible \{\s*translate: 0 0;/);

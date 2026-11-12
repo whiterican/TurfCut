@@ -2197,16 +2197,19 @@ body {
      go. Only transform moves, so nothing around it shifts. Not when motion is reduced. */
   @media (prefers-reduced-motion: no-preference) {
     html:not([data-motion="reduce"]) [data-tilt] {
-      transition-property: transform, border-color, background-color, color, box-shadow;
-      /* Slow both ways: the card sinks under the finger and floats back, it never snaps (Caden, Nov 12). */
-      transition-duration: var(--dur-slow);
-      transition-timing-function: var(--ease-out);
+      /* Slow both ways: the card sinks under the finger and floats back, it never snaps (Caden, Nov 12).
+         Important, because a card that also carries Tailwind's `transition` utility would take that
+         utility's 120ms: utilities sit in a later layer than this one. */
+      transition-property: transform, border-color, background-color, color, box-shadow !important;
+      transition-duration: var(--dur-slow) !important;
+      transition-timing-function: var(--ease-out) !important;
+      /* Safari clips a blurred backdrop on a turning panel (as on the sheets). The page behind is a smooth
+         wash, so the pane alone carries the press, down and back: the blur returns once the card is level. */
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
     }
     html:not([data-motion="reduce"]) [data-tilt="on"] {
       transform: perspective(900px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) scale(0.994);
-      /* Safari clips a blurred backdrop on a turning panel (as on the sheets). The page behind is a smooth wash, so the pane alone carries the press. */
-      -webkit-backdrop-filter: none;
-      backdrop-filter: none;
     }
     /* Pressed glass: light pools on the side under the finger (--tilt-lx / --tilt-ly run -1 to 1 across the
        card) and the shadow pulls in, as the pane is pushed toward the page. Not the hero cards or a chosen

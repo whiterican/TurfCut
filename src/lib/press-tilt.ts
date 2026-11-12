@@ -17,7 +17,7 @@ export const TILT_TARGETS =
  * rocking under a swipe, a map being panned or a picker opening is wrong. The swiped job cards hold
  * a job row, so the row is stopped here, by its wrapper.
  */
-export const NO_TILT = ".swipe-card, .turf-map, .leaflet-container, select, input[type='range'], [data-no-tilt]";
+export const NO_TILT = ".swipe-card, .turf-map, .leaflet-container, .card-solid, select, input[type='range'], [data-no-tilt]";
 
 /** A small tile dips this far at its edge; a big card far less, so it never swings. */
 export const TILT_MAX_DEG = 3;

@@ -17,6 +17,8 @@ export function PressTilt() {
     let card: HTMLElement | null = null;
     let box: Box | null = null;
     let pointer = -1;
+    // One pending "mark off" per card, so a second quick tap never has the first tap's timer cut its float-back short.
+    const settling = new WeakMap<HTMLElement, ReturnType<typeof setTimeout>>();
     // The outermost floating box under the finger: a tile inside a card dips with its card.
     const boxAt = (target: EventTarget | null): HTMLElement | null => {
       let found: HTMLElement | null = null;
@@ -40,9 +42,13 @@ export function PressTilt() {
       // "off" while the card eases back, then the mark goes, so a card that was pressed once is like any other again.
       was.setAttribute("data-tilt", "off");
       for (const v of ["--tilt-x", "--tilt-y", "--tilt-lx", "--tilt-ly"]) was.style.removeProperty(v);
-      setTimeout(() => {
-        if (was.getAttribute("data-tilt") === "off") was.removeAttribute("data-tilt");
-      }, DURATION.slow + 60);
+      clearTimeout(settling.get(was));
+      settling.set(
+        was,
+        setTimeout(() => {
+          if (was.getAttribute("data-tilt") === "off") was.removeAttribute("data-tilt");
+        }, DURATION.slow + 60),
+      );
     };
     const onDown = (e: PointerEvent) => {
       if (!e.isPrimary || (e.pointerType === "mouse" && e.button !== 0) || motionReduced()) return;

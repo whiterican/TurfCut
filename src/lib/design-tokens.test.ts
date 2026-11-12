@@ -191,8 +191,9 @@ describe.each([
       expect(t["subtle-on-glass"]).toBe(dark ? t.subtle : "#55647a");
       expect(ratio(t["subtle-on-glass"], card)).toBeGreaterThanOrEqual(4.5);
       // Bare hints sit on the page itself, so the page reads the stepped grey too, over its strongest wash.
-      // By day that is every wash at once. By night the washes are checked one at a time, at their centres: they sit
-      // a screen apart, and all three stacked (which never happens) would be 3.5.
+      // By day that is every wash at once. By night the washes are checked one at a time, at their centres. They do
+      // overlap on a one-screen page, but only on their fades: scanning the real gradients at phone, tablet and
+      // desktop sizes, the worst point is 6.2. All three stacked at full strength (which the geometry never gives) is 3.5.
       const bare = dark ? [mix(t.ring, 0.17, t.bg), mix(t["ring-3"], 0.2, t.bg), mix(t.select, 0.1, t.bg)] : [page];
       for (const wash of bare) expect(ratio(t["subtle-on-glass"], wash)).toBeGreaterThanOrEqual(4.5);
       expect(css).toMatch(/\nbody \{[^}]*?--subtle: var\(--subtle-on-glass\);/);

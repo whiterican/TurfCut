@@ -231,34 +231,34 @@ describe.each([
     expect(css).toMatch(/body:has\(\.more-sheet\[open\]\) \{\s*--page-wash: none;\s*background-color: var\(--drawer-root\);[^}]*?--page-top: var\(--drawer-root\);/);
     // Under the status bar the page blurs away into the strip's own colour, and the pill sits above that band.
     const band = css.match(/\.phone-top::before \{([^}]*)\}/)?.[1] ?? "";
-    expect(band).toMatch(/position: fixed;\s*inset: 0 0 auto;\s*height: calc\(2\.25rem \+ env\(safe-area-inset-top\)\);/);
+    expect(band).toMatch(/position: fixed;\s*inset: 0 0 auto;\s*height: calc\(4\.5rem \+ env\(safe-area-inset-top\)\);/);
     expect(band).toMatch(/background: linear-gradient\(to bottom, color-mix\(in srgb, var\(--page-top\) 62%, transparent\) 0%,[^;]*transparent 100%\);/);
     expect(band).toMatch(/backdrop-filter: blur\(7px\);/);
     expect(band).toMatch(/pointer-events: none;/);
     expect(band).toMatch(/z-index: 44;/);
     expect(band).toMatch(/mask-image: linear-gradient\(to bottom, #000 0%, #000 58%, transparent 100%\);/);
     expect(band).toMatch(/view-transition-name: phone-band;/);
-    expect(css).toMatch(/::view-transition-group\(site-header\),\s*::view-transition-group\(tabbar\),\s*::view-transition-group\(phone-band\),/);
+    expect(css).toMatch(/::view-transition-group\(site-header\),\s*::view-transition-group\(tabbar\),\s*::view-transition-group\(phone-band\),\s*::view-transition-group\(phone-pill\),/);
+    expect(css).toMatch(/\.phone-top > \* \{[^}]*?view-transition-name: phone-pill;/);
+    expect(css).not.toMatch(/\.phone-top \{[^}]*?view-transition-name/);
+    expect(css).toMatch(/::view-transition-group\(phone-pill\) \{\s*z-index: 101;/);
     // Shown everywhere but Sunlight and the solid fallback: hidden exactly twice.
     expect(css.match(/\.phone-top::before \{\s*display: none;/g)).toHaveLength(2);
     expect(css).toMatch(/\.phone-top \.menu-button \{\s*z-index: 45;/);
-    // The row scrolls away with the page; it sits above the band and only its button takes presses.
-    expect(css).toMatch(/\.phone-top \{[^}]*?position: relative;\s*z-index: 45;\s*pointer-events: none;/);
-    expect(css).not.toMatch(/\.phone-top \{[^}]*?position: sticky/);
+    // The row stays at the top like an organization's bar, and only its button takes presses.
+    expect(css).toMatch(/\.phone-top \{[^}]*?position: sticky;\s*top: 0;\s*z-index: 45;\s*pointer-events: none;/);
     expect(css).toMatch(/\.phone-top > \* \{\s*pointer-events: auto;/);
-    // On a phone an organization's bar is not pinned either.
-    expect(css).toMatch(/@media \(max-width: 47\.99rem\) \{\s*body:not\(:has\(\.thread-top\)\) \.site-header \{\s*(\/\*[\s\S]*?\*\/\s*)?position: relative;\s*z-index: 45;\s*\}/);
     // Sunlight and the solid fallback have no blur and no band.
     expect(css).toMatch(/\.sun \.phone-top::before \{\s*display: none;/);
     expect(css.slice(css.indexOf("@media (prefers-reduced-transparency: reduce)"))).toMatch(/\.phone-top::before \{\s*display: none;/);
     // A phone's top bar has no edge: the page's top colour fading to clear past the bar, blurring what scrolls under it.
     const phoneBar = css.slice(css.indexOf("@media (max-width: 47.99rem) {\n  body:not(:has(.thread-top)) .site-header {"));
-    expect(phoneBar).toMatch(/^[\s\S]{0,800}?\n  \.site-header \{\s*background: none;\s*-webkit-backdrop-filter: none;\s*backdrop-filter: none;\s*\}/);
+    expect(phoneBar).toMatch(/^[\s\S]{0,400}?\n  \.site-header \{\s*background: none;\s*-webkit-backdrop-filter: none;\s*backdrop-filter: none;\s*\}/);
     // The fade is a layer of the page (the bar is held apart for page changes, so a layer inside it could not blur the page).
     const SEL = "body:has(.site-header:not(.site-header-worker)):not(:has(.thread-top))::after";
     const rules = (text: string) => text.split(SEL + " {").slice(1).map((part) => part.slice(0, part.indexOf("}")));
     const [fade, sunBar] = rules(phoneBar);
-    expect(fade).toMatch(/^\s*content: "";\s*position: fixed;\s*inset: 0 0 auto;\s*height: 2\.25rem;\s*z-index: 44;\s*pointer-events: none;/);
+    expect(fade).toMatch(/^\s*content: "";\s*position: fixed;\s*inset: 0 0 auto;\s*height: calc\(var\(--site-header-h\) \+ 0\.875rem\);\s*z-index: 44;\s*pointer-events: none;/);
     expect(fade).toMatch(/background: linear-gradient\(to bottom, color-mix\(in srgb, var\(--page-top\) 62%, transparent\) 0%,[^;]*transparent 100%\);/);
     expect(fade).toMatch(/backdrop-filter: blur\(7px\);/);
     expect(fade).toMatch(/mask-image: linear-gradient\(to bottom, #000 0%, #000 58%, transparent 100%\);/);
@@ -269,7 +269,7 @@ describe.each([
     expect(sunBar).toMatch(/height: var\(--site-header-h\);\s*background: var\(--bg\);\s*-webkit-backdrop-filter: none;\s*backdrop-filter: none;\s*-webkit-mask-image: none;\s*mask-image: none;/);
     const solid = css.slice(css.indexOf("@media (prefers-reduced-transparency: reduce)"));
     expect(rules(solid).at(-1)).toMatch(/height: var\(--site-header-h\);\s*background: var\(--bg\);\s*-webkit-backdrop-filter: none;\s*backdrop-filter: none;/);
-    expect(css).toMatch(/::view-transition-group\(phone-band\),\s*::view-transition-group\(bar-fade\) \{\s*animation: none;\s*z-index: 100;/);
+    expect(css).toMatch(/::view-transition-group\(phone-band\),\s*::view-transition-group\(phone-pill\),\s*::view-transition-group\(bar-fade\) \{\s*animation: none;\s*z-index: 100;/);
     // Day's top colour lives on :root, which outranks html: the solid fallback must reset it there or the day page stays purple.
     const solidBlock = css.slice(css.indexOf("@media (prefers-reduced-transparency: reduce)"));
     expect(solidBlock.replace(/\/\*[\s\S]*?\*\//g, "")).toMatch(/--header-root: var\(--bg\);\s*\}\s*:root \{\s*--page-top: var\(--bg\);\s*\}/);

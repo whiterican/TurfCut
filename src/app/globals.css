@@ -2565,14 +2565,18 @@ body {
   .phone-top {
     @apply flex items-center px-4 sm:px-6 md:hidden;
     padding-top: calc(0.75rem + env(safe-area-inset-top));
-    /* The row scrolls away with the page (Caden, Nov 12: it is at the top only). It sits above the glass band,
-       and only the button takes presses: the rest of the row lets them through. */
-    position: relative;
+    /* The row stays at the top while the page scrolls under it (Caden's reference, Nov 12), like the bar on
+       an organization's pages. Only the button takes presses: the rest of the row lets them through. */
+    position: sticky;
+    top: 0;
     z-index: 45;
     pointer-events: none;
   }
   .phone-top > * {
     pointer-events: auto;
+    /* Part of the frame now it stays put: a page change slides under the pill, not over it. The name is on
+       the pill, not the row: a named row is a layer of its own, and its band could not blur the page behind. */
+    view-transition-name: phone-pill;
   }
   /* The top edge of a worker's phone page (Caden, Nov 12): what scrolls up no longer stops dead at the status
      bar. A band fixed across the top blurs what passes under it and fades it into the colour at the top of the
@@ -2581,13 +2585,12 @@ body {
      nothing shows. The button sits above it, and a pull-to-refresh ring comes out from under it. An organization's
      phone needs none: its header is a pane of glass across the top already. */
   /* Clear glass, not a fog (Caden's screen recording, Nov 12): a light tint and a small blur, so what scrolls
-     up is still seen but cannot be read. Short and feathered: nothing is pinned under it, so it only softens
-     the very top of the screen where the page meets the status bar. */
+     up is still seen but cannot be read, down to just under the button's row and feathered out from there. */
   .phone-top::before {
     content: "";
     position: fixed;
     inset: 0 0 auto;
-    height: calc(2.25rem + env(safe-area-inset-top));
+    height: calc(4.5rem + env(safe-area-inset-top));
     z-index: 44;
     pointer-events: none;
     background: linear-gradient(to bottom, color-mix(in srgb, var(--page-top) 62%, transparent) 0%, color-mix(in srgb, var(--page-top) 34%, transparent) 60%, transparent 100%);
@@ -3410,9 +3413,8 @@ body:has(.staff-band)::after {
 }
 @media (max-width: 47.99rem) {
   body:not(:has(.thread-top)) .site-header {
-    /* Not pinned (Caden, Nov 12): the logo and the buttons sit at the top of the page and scroll away with it.
-       Still above the glass band at the top of the screen, so at rest nothing of theirs is tinted. */
-    position: relative;
+    position: sticky;
+    top: 0;
     z-index: 45;
   }
   /* On a phone there is no bar (Caden, Nov 12): the logo and the buttons stay where they were and the
@@ -3428,7 +3430,7 @@ body:has(.staff-band)::after {
     content: "";
     position: fixed;
     inset: 0 0 auto;
-    height: 2.25rem;
+    height: calc(var(--site-header-h) + 0.875rem);
     z-index: 44;
     pointer-events: none;
     background: linear-gradient(to bottom, color-mix(in srgb, var(--page-top) 62%, transparent) 0%, color-mix(in srgb, var(--page-top) 34%, transparent) 60%, transparent 100%);
@@ -3489,6 +3491,44 @@ body:has(.staff-band)::after {
     border-color: var(--border-strong);
   }
 }
+/* With no bar, the whole top row steps aside on the way down the page and comes back on the way up
+   (Caden, Nov 12; components/ScrollDirection.tsx marks the root). Faded and slid away, never removed: the
+   keyboard still reaches it, and it shows at once while one of its controls has the keyboard's focus.
+   Not in a chat, which scrolls itself down to the newest message. */
+.site-header,
+.phone-top > * {
+  transition: opacity var(--dur-base) var(--ease-standard), translate var(--dur-base) var(--ease-standard);
+}
+html[data-scroll="down"]:not(:has(.thread-top)) .site-header:not(:has(:focus-visible)) {
+  opacity: 0;
+  translate: 0 -100%;
+  pointer-events: none;
+}
+/* With the row away, the glass it sat on shrinks to a short feather at the very top of the screen: enough to
+   soften what reaches the status bar, without a pane of blur over nothing. Important, because each band's own
+   rule is longer than this one. */
+body::after,
+.phone-top::before {
+  transition: height var(--dur-base) var(--ease-standard), opacity var(--dur-base) var(--ease-standard);
+}
+html[data-scroll="down"]:not(:has(.thread-top)) body::after {
+  height: 2.25rem !important;
+}
+html[data-scroll="down"]:not(:has(.thread-top)) .phone-top::before {
+  height: calc(2.25rem + env(safe-area-inset-top)) !important;
+}
+/* Sunlight's bar is a plain strip behind the row, and so is the one over the staff band: with the row away
+   they go too, or a blank strip would stay across the page. */
+html.sun[data-scroll="down"]:not(:has(.thread-top)) body::after,
+html[data-scroll="down"]:not(:has(.thread-top)) body:has(.staff-band)::after {
+  opacity: 0 !important;
+}
+/* A worker's phone: the pill goes, the glass band it sits on stays (the band is the row's own layer). */
+html[data-scroll="down"]:not(:has(.thread-top)) .phone-top > :not(:focus-visible) {
+  opacity: 0;
+  translate: 0 -150%;
+  pointer-events: none;
+}
 /* The theme switch shows its label from sm up; below that it's a bubble too. */
 @media (min-width: 40rem) {
   .site-header .glass-orb-phone {
@@ -3547,19 +3587,26 @@ body:has(.staff-band)::after {
 ::view-transition-group(site-header),
 ::view-transition-group(tabbar),
 ::view-transition-group(phone-band),
+::view-transition-group(phone-pill),
 ::view-transition-group(bar-fade) {
   animation: none;
   z-index: 100;
 }
+/* The pill sits on the band, as it does on the page. */
+::view-transition-group(phone-pill) {
+  z-index: 101;
+}
 ::view-transition-old(site-header),
 ::view-transition-old(tabbar),
 ::view-transition-old(phone-band),
+::view-transition-old(phone-pill),
 ::view-transition-old(bar-fade) {
   display: none;
 }
 ::view-transition-new(site-header),
 ::view-transition-new(tabbar),
 ::view-transition-new(phone-band),
+::view-transition-new(phone-pill),
 ::view-transition-new(bar-fade) {
   animation: none;
 }
@@ -4041,6 +4088,10 @@ body:has(.staff-band)::after {
   html:not(.sun) .more-sheet .rail-link:is([aria-current], :active) {
     background: var(--dock-capsule);
     box-shadow: none;
+  }
+  /* The plain bar behind the row goes with the row. */
+  html[data-scroll="down"]:not(:has(.thread-top)) body::after {
+    opacity: 0 !important;
   }
   .phone-top::before {
     display: none;

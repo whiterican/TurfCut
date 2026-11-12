@@ -13,6 +13,7 @@ import { PageTransition } from "@/components/PageTransition";
 import { Haptics } from "@/components/Haptics";
 import { PressTilt } from "@/components/PressTilt";
 import { PullToRefresh } from "@/components/PullToRefresh";
+import { ScrollDirection } from "@/components/ScrollDirection";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
 import { getSessionProfile } from "@/lib/auth";
 import { getSiteUrl } from "@/lib/env";
@@ -111,6 +112,7 @@ export default async function RootLayout({
         <Haptics />
         <PressTilt />
         <PullToRefresh />
+        <ScrollDirection />
         {isOrg ? (
           <OrgTabBar tabs={org.phone} more={org.more} person={session ? railPerson(session) : undefined} />
         ) : (

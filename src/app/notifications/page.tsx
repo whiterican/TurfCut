@@ -59,7 +59,7 @@ export default async function NotificationsPage() {
         </div>
       ) : (
         // Rows as Messages draws them (#111): white rows with dividers, bold while unread, the time under, a chevron.
-        <ul className="thread-list">
+        <ul className="list-card thread-list">
           {items.map((n) => {
             const t = n.t;
             return (

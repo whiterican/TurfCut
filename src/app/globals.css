@@ -2565,6 +2565,15 @@ body {
   .phone-top {
     @apply flex items-center px-4 sm:px-6 md:hidden;
     padding-top: calc(0.75rem + env(safe-area-inset-top));
+    /* The row stays at the top while the page scrolls under it (Caden's reference, Nov 12), like the bar on
+       an organization's pages. Only the button takes presses: the rest of the row lets them through. */
+    position: sticky;
+    top: 0;
+    z-index: 45;
+    pointer-events: none;
+  }
+  .phone-top > * {
+    pointer-events: auto;
   }
   /* The top edge of a worker's phone page (Caden, Nov 12): what scrolls up no longer stops dead at the status
      bar. A band fixed across the top blurs what passes under it and fades it into the colour at the top of the
@@ -2572,20 +2581,20 @@ body {
      the edge and gone a little under the menu button's row; at rest the page behind it is the same colour, so
      nothing shows. The button sits above it, and a pull-to-refresh ring comes out from under it. An organization's
      phone needs none: its header is a pane of glass across the top already. */
-  /* Down to just under the menu button's row (Caden's line, Nov 12), fully blurred for most of that and
-     fading out over the last part: a card's edge is gone before it reaches the button, not a line behind it. */
+  /* Clear glass, not a fog (Caden's screen recording, Nov 12): a light tint and a small blur, so what scrolls
+     up is still seen but cannot be read, down to just under the button's row and feathered out from there. */
   .phone-top::before {
     content: "";
     position: fixed;
     inset: 0 0 auto;
-    height: calc(5.75rem + env(safe-area-inset-top));
+    height: calc(4.5rem + env(safe-area-inset-top));
     z-index: 44;
     pointer-events: none;
-    background: linear-gradient(to bottom, var(--page-top) 0%, color-mix(in srgb, var(--page-top) 82%, transparent) 40%, color-mix(in srgb, var(--page-top) 45%, transparent) 72%, transparent 100%);
-    -webkit-backdrop-filter: blur(20px);
-    backdrop-filter: blur(20px);
-    -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 68%, transparent 100%);
-    mask-image: linear-gradient(to bottom, #000 0%, #000 68%, transparent 100%);
+    background: linear-gradient(to bottom, color-mix(in srgb, var(--page-top) 62%, transparent) 0%, color-mix(in srgb, var(--page-top) 34%, transparent) 60%, transparent 100%);
+    -webkit-backdrop-filter: blur(7px);
+    backdrop-filter: blur(7px);
+    -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 58%, transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 0%, #000 58%, transparent 100%);
     /* Part of the frame, like the tab bar: a page change slides under it, not over it. */
     view-transition-name: phone-band;
   }
@@ -3324,14 +3333,14 @@ summary.list-none::-webkit-details-marker {
     content: "";
     position: fixed;
     inset: 0 0 auto;
-    height: calc(var(--site-header-h) + 1.25rem);
+    height: calc(var(--site-header-h) + 0.875rem);
     z-index: 44;
     pointer-events: none;
-    background: linear-gradient(to bottom, var(--page-top) 0%, color-mix(in srgb, var(--page-top) 90%, transparent) 45%, color-mix(in srgb, var(--page-top) 62%, transparent) 72%, transparent 100%);
-    -webkit-backdrop-filter: blur(18px);
-    backdrop-filter: blur(18px);
-    -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 62%, transparent 100%);
-    mask-image: linear-gradient(to bottom, #000 0%, #000 62%, transparent 100%);
+    background: linear-gradient(to bottom, color-mix(in srgb, var(--page-top) 62%, transparent) 0%, color-mix(in srgb, var(--page-top) 34%, transparent) 60%, transparent 100%);
+    -webkit-backdrop-filter: blur(7px);
+    backdrop-filter: blur(7px);
+    -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 58%, transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 0%, #000 58%, transparent 100%);
     view-transition-name: bar-fade;
   }
   /* A chat pins its own bar right under this one: no fade over it, and no gradient to fade into. */
@@ -3405,8 +3414,8 @@ body:has(.staff-band)::after {
     top: 0;
     z-index: 45;
   }
-  /* On a phone the bar has no edge: it is the page's own top colour, fading to clear, and what
-     scrolls beneath blurs away into it. The fade runs past the bar so nothing meets a line. */
+  /* On a phone there is no bar (Caden, Nov 12): the logo and the buttons stay where they were and the
+     page's gradient runs to the top. Only a short band at the very top blurs what scrolls up into it. */
   .site-header {
     background: none;
     -webkit-backdrop-filter: none;
@@ -3418,14 +3427,14 @@ body:has(.staff-band)::after {
     content: "";
     position: fixed;
     inset: 0 0 auto;
-    height: calc(var(--site-header-h) + 1.25rem);
+    height: calc(var(--site-header-h) + 0.875rem);
     z-index: 44;
     pointer-events: none;
-    background: linear-gradient(to bottom, var(--page-top) 0%, color-mix(in srgb, var(--page-top) 90%, transparent) 45%, color-mix(in srgb, var(--page-top) 62%, transparent) 72%, transparent 100%);
-    -webkit-backdrop-filter: blur(18px);
-    backdrop-filter: blur(18px);
-    -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 62%, transparent 100%);
-    mask-image: linear-gradient(to bottom, #000 0%, #000 62%, transparent 100%);
+    background: linear-gradient(to bottom, color-mix(in srgb, var(--page-top) 62%, transparent) 0%, color-mix(in srgb, var(--page-top) 34%, transparent) 60%, transparent 100%);
+    -webkit-backdrop-filter: blur(7px);
+    backdrop-filter: blur(7px);
+    -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 58%, transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 0%, #000 58%, transparent 100%);
     view-transition-name: bar-fade;
   }
   /* Sunlight has no blur and no see-through: a plain bar. */
@@ -3487,9 +3496,10 @@ body:has(.staff-band)::after {
     height: auto;
     padding: 0.375rem 0.75rem;
     border-radius: var(--radius-button);
-    border: 0;
-    background: transparent;
-    box-shadow: none;
+    /* With no bar behind it the labelled switch floats like the round buttons beside it (Caden, Nov 12). */
+    border: 1px solid var(--border);
+    background: var(--surface);
+    box-shadow: var(--shadow-depth);
   }
   .site-header .glass-orb-phone:hover {
     background: var(--surface-2);

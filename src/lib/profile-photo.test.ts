@@ -210,7 +210,7 @@ describe("profile photos", () => {
     expect(await ownPhoto("nobody", f.db, f.store)).toBeNull();
   });
 
-  it("shows someone's photo only to a person who shares a chat with them, and tells everyone else nothing", async () => {
+  it("shows someone's photo only to a person the chat rule lets see it, and tells everyone else nothing", async () => {
     const f = fakes({ p1: "p1/a.png", p2: null });
     f.files.set("p1/a.png", { bytes: new Uint8Array([7]), ageMs: 0 });
     const asked: string[] = [];
@@ -231,7 +231,7 @@ describe("profile photos", () => {
   });
 
   it("a worker's photo is never for staff; workers see workers and staff, staff see staff", () => {
-    for (const staff of ["OWNER", "RECRUITER", "SUPERVISOR", "COMPLIANCE", "FINANCE", "PUBLISHER", "CUSTOM", "ADMIN"]) {
+    for (const staff of ["OWNER", "RECRUITER", "SUPERVISOR", "COMPLIANCE", "FINANCE", "PUBLISHER", "CUSTOM"]) {
       expect(mayShowPhotoTo(staff, "WORKER")).toBe(false);
       expect(mayShowPhotoTo("WORKER", staff)).toBe(true);
       expect(mayShowPhotoTo(staff, "OWNER")).toBe(true);

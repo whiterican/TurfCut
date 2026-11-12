@@ -18,7 +18,7 @@ export const photoTag = (key: string) => key.slice(key.lastIndexOf("/") + 1, key
  */
 export const mayShowPhotoTo = (viewerRole: string, ownerRole: string) => ownerRole !== "WORKER" || viewerRole === "WORKER";
 
-/** The address of someone's photo for a person who shares a chat with them (the route decides; the address proves nothing). */
+/** The address of someone's photo for a person allowed to see it in a chat (the route decides; the address proves nothing). */
 export const chatPhotoUrl = (profileId: string, key: string | null | undefined): string | null =>
   key && ownsKey(profileId, key) ? `/api/profile-photo/${profileId}?v=${encodeURIComponent(photoTag(key))}` : null;
 

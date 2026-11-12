@@ -7,7 +7,8 @@ const none = (status: number, error: string) => Response.json({ error }, { statu
 
 /**
  * GET /api/profile-photo/<profileId> — the photo of someone the signed-in
- * person shares a chat with (or their own). Anyone else, a person with no
+ * person shares a live chat with (or their own), and never a worker's photo
+ * for an organization's staff (lib/profile-photo). Anyone else, a person with no
  * photo and an id that names nobody all get the same 404. Streamed from the
  * private bucket; never a public or signed link.
  */

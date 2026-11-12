@@ -11,7 +11,7 @@ export const photoRecords = (): PhotoRecords => ({
   },
 });
 
-/** Who shares a chat with whom, for showing a photo (lib/profile-photo: chatPhoto). */
+/** Who may be shown whose photo in a chat (lib/profile-photo: chatPhoto, mayShowPhotoTo). */
 export const photoViewers = (): PhotoViewers => ({
   async sharesChat(viewerId, profileId) {
     const people = await db().profile.findMany({ where: { id: { in: [viewerId, profileId] }, closedAt: null }, select: { id: true, role: true, orgId: true } });
@@ -19,6 +19,9 @@ export const photoViewers = (): PhotoViewers => ({
     const owner = people.find((p) => p.id === profileId);
     // Staff are never shown a worker's photo, whatever chat they share.
     if (!viewer || !owner || !mayShowPhotoTo(viewer.role, owner.role)) return false;
+    // Staff with no organization share nobody's chat.
+    const staffOrg = viewer.role === "WORKER" ? null : viewer.orgId;
+    if (viewer.role !== "WORKER" && !staffOrg) return false;
     const [together, blocked] = await Promise.all([
       db().conversation.findFirst({
         where: {
@@ -26,7 +29,7 @@ export const photoViewers = (): PhotoViewers => ({
           // A direct thread stays on record after its job ends, read-only: it stops counting then.
           OR: [{ kind: { not: "DIRECT" } }, { engagement: { status: { in: ["ACTIVE", "CLAIMED"] } } }],
           // Staff only within the organization they are on the staff of now.
-          ...(viewer.role === "WORKER" ? {} : { orgId: viewer.orgId ?? "00000000-0000-0000-0000-000000000000" }),
+          ...(staffOrg ? { orgId: staffOrg } : {}),
           AND: [{ participants: { some: { profileId: viewerId, removedAt: null } } }, { participants: { some: { profileId, removedAt: null } } }],
         },
         select: { id: true },

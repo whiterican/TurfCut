@@ -30,8 +30,24 @@ describe("the typeface is served from the repository", () => {
     expect(fonts.match(/weight: "500 800"/g)).toHaveLength(7);
   });
 
+  it("each file is paired with its own script's range, and Latin is declared last", () => {
+    const calls = [...fonts.matchAll(/export const (\w+) = localFont\(\{\s*src: "\.\/fonts\/inter-([a-z-]+)\.woff2",[\s\S]*?unicode-range", value: "(U\+[0-9A-F]{4})/g)].map((m) => [m[1], m[2], m[3]]);
+    expect(calls).toEqual([
+      ["interCyrillicExt", "cyrillic-ext", "U+0460"],
+      ["interCyrillic", "cyrillic", "U+0301"],
+      ["interGreekExt", "greek-ext", "U+1F00"],
+      ["interGreek", "greek", "U+0370"],
+      ["interVietnamese", "vietnamese", "U+0102"],
+      ["interLatinExt", "latin-ext", "U+0100"],
+      // The loader names the family after this constant; --font-inter resolves through it.
+      ["inter", "latin", "U+0000"],
+    ]);
+    for (const p of paths) expect(readFileSync(join(__dirname, p)).subarray(0, 4).toString("latin1"), p).toBe("wOF2");
+  });
+
   it("only Latin is preloaded and carries the CSS variable", () => {
     expect(fonts.match(/variable: "--font-inter"/g)).toHaveLength(1);
+    expect(fonts).toMatch(/export const inter = localFont\(\{\s*src: "\.\/fonts\/inter-latin\.woff2",\s*weight: "500 800",\s*display: "swap",\s*variable: "--font-inter",\s*declarations/);
     expect(fonts.match(/preload: false/g)).toHaveLength(6);
   });
 });

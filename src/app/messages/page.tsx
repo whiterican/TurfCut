@@ -143,7 +143,7 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
           {channels.length > 0 && (
             <section className="space-y-3">
               <h2 className="section-title">Channels</h2>
-              <ul className="thread-list">
+              <ul className="list-card thread-list">
                 {channels.map((t) => <ThreadRow key={t.id} t={t} />)}
               </ul>
             </section>
@@ -151,7 +151,7 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
           {others.length > 0 && (
             <section className="space-y-3">
               {(startable.length > 0 || channels.length > 0) && <h2 className="section-title">Conversations</h2>}
-              <ul className="thread-list">
+              <ul className="list-card thread-list">
                 {others.map((t) => <ThreadRow key={t.id} t={t} />)}
               </ul>
             </section>

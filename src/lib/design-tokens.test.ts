@@ -225,7 +225,7 @@ describe.each([
     // weak as the root's own rule (:where), and before the drawer's rule, which must win while the drawer is open.
     expect(css).toMatch(/--header-root: var\(--page-top\);/);
     const bare = css.replace(/\/\*[\s\S]*?\*\//g, "");
-    expect(bare).toMatch(/@media screen \{\s*html:where\(:has\(\.site-header:not\(\.site-header-worker\)\)\) \{\s*background: var\(--header-root\);\s*\}\s*\}\s*@media screen and \(min-width: 48rem\) \{\s*html:where\(:has\(\.site-header\)\) \{\s*background: var\(--header-root\);\s*\}\s*\}\s*@media screen \{\s*html:where\(:has\(\.thread-top\)\) \{\s*background: var\(--bg\);\s*\}\s*\}/);
+    expect(bare).toMatch(/@media screen \{\s*html:where\(:has\(\.site-header:not\(\.site-header-worker\)\)\) \{\s*background: var\(--header-root\);\s*\}\s*\}\s*@media screen and \(min-width: 48rem\) \{\s*html:where\(:has\(\.site-header\)\) \{\s*background: var\(--header-root\);\s*\}\s*\}\s*@media screen and \(min-width: 48rem\) \{\s*html:where\(:has\(\.site-header\):not\(:has\(\.org-rail\)\)\) \{\s*background: color-mix\(in srgb, var\(--surface\) 80%, var\(--page-top\)\);\s*\}\s*\}\s*@media screen \{\s*html:where\(:has\(\.thread-top\)\) \{\s*background: var\(--bg\);\s*\}\s*\}/);
     expect(css.indexOf("html:where(:has(.thread-top))")).toBeLessThan(css.indexOf("html:has(.more-sheet[open]) {"));
     expect(css.indexOf("\nhtml {")).toBeLessThan(css.indexOf("html:where(:has(.site-header:not(.site-header-worker)))"));
     expect(css).toMatch(/body:has\(\.more-sheet\[open\]\) \{\s*--page-wash: none;\s*background-color: var\(--drawer-root\);[^}]*?--page-top: var\(--drawer-root\);/);
@@ -265,8 +265,10 @@ describe.each([
     expect(rules(solid).at(-1)).toMatch(/height: var\(--site-header-h\);\s*background: var\(--bg\);\s*-webkit-backdrop-filter: none;\s*backdrop-filter: none;/);
     expect(css).toMatch(/::view-transition-group\(phone-band\),\s*::view-transition-group\(bar-fade\) \{\s*animation: none;\s*z-index: 100;/);
     // Paper has no layer.
-    expect(css).toMatch(/@media print \{[\s\S]*?body::after \{ display: none !important; \}/);
-    expect(css).toMatch(/body:has\(\.staff-band\)::after \{\s*height: var\(--site-header-h\) !important;/);
+    const print = css.slice(css.indexOf("@media print {"));
+    expect(print.slice(0, print.indexOf("\n}\n"))).toMatch(/body::after \{ display: none !important; \}/);
+    // The staff band sits flush under the bar at every width: the cut is outside every media block and marked important, so it wins over both fades.
+    expect(css).toMatch(/\nbody:has\(\.staff-band\)::after \{\s*height: var\(--site-header-h\) !important;\s*-webkit-mask-image: none !important;\s*mask-image: none !important;/);
     expect(css).toMatch(/@media print \{[\s\S]*?body::before \{ display: none; \}/);
     // Anyone who asks for less transparency or more contrast gets solid surfaces.
     expect(css).toMatch(/@media \(prefers-reduced-transparency: reduce\), \(prefers-contrast: more\), \(forced-colors: active\) \{\s*html,\s*\.dark \{\s*--glass-bg: var\(--surface\);/);

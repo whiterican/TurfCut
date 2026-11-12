@@ -3353,6 +3353,13 @@ summary.list-none::-webkit-details-marker {
     border-inline-start: 1px solid var(--shell-edge);
   }
 }
+/* The staff band sits flush under the bar at every width: the fade stops at the bar's edge, not over the
+   band's words. Marked important, so it wins over the phone's fade and the rail's alike. */
+body:has(.staff-band)::after {
+  height: var(--site-header-h) !important;
+  -webkit-mask-image: none !important;
+  mask-image: none !important;
+}
 /* A chat thread on a phone has no dock (Caden, Nov 11): the dock floated over an empty band under
    the message box. The composer sits at the bottom of the screen; the back arrow returns to
    Messages, where the dock is. (An organization's header keeps its menu button here; a worker's
@@ -3414,12 +3421,6 @@ summary.list-none::-webkit-details-marker {
     -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 62%, transparent 100%);
     mask-image: linear-gradient(to bottom, #000 0%, #000 62%, transparent 100%);
     view-transition-name: bar-fade;
-  }
-  /* The staff band sits flush under the bar: the fade stops at the bar's edge, not over the band's words. */
-  body:has(.staff-band)::after {
-    height: var(--site-header-h) !important;
-    -webkit-mask-image: none !important;
-    mask-image: none !important;
   }
   /* Sunlight has no blur and no see-through: a plain bar. */
   .sun body:has(.site-header:not(.site-header-worker)):not(:has(.thread-top))::after {
@@ -4044,6 +4045,12 @@ body:has(.thread-top) {
 @media screen and (min-width: 48rem) {
   html:where(:has(.site-header)) {
     background: var(--header-root);
+  }
+}
+/* A wide page with a bar and no rail (signed out): the bar keeps its own pane there, so the strip does too. */
+@media screen and (min-width: 48rem) {
+  html:where(:has(.site-header):not(:has(.org-rail))) {
+    background: color-mix(in srgb, var(--surface) 80%, var(--page-top));
   }
 }
 @media screen {

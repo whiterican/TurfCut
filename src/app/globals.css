@@ -2586,7 +2586,9 @@ body {
      nothing shows. The button sits above it, and a pull-to-refresh ring comes out from under it. An organization's
      phone needs none: its header is a pane of glass across the top already. */
   /* Clear glass, not a fog (Caden's screen recording, Nov 12): a light tint and a small blur, so what scrolls
-     up is still seen but cannot be read, down to just under the button's row and feathered out from there. */
+     up is still seen but cannot be read, down to just under the button's row and feathered out from there.
+     The very top is the page colour itself (Caden's iPhone, Nov 12): the phone's status strip above the page is
+     that colour, and anything showing through at the edge drew a line under it. */
   .phone-top::before {
     content: "";
     position: fixed;
@@ -2594,7 +2596,7 @@ body {
     height: calc(5.25rem + env(safe-area-inset-top));
     z-index: 44;
     pointer-events: none;
-    background: linear-gradient(to bottom, color-mix(in srgb, var(--page-top) 62%, transparent) 0%, color-mix(in srgb, var(--page-top) 34%, transparent) 60%, transparent 100%);
+    background: linear-gradient(to bottom, var(--page-top) 0%, color-mix(in srgb, var(--page-top) 80%, transparent) 30%, color-mix(in srgb, var(--page-top) 34%, transparent) 65%, transparent 100%);
     -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
     -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 22%, transparent 100%);
@@ -3340,7 +3342,7 @@ summary.list-none::-webkit-details-marker {
     height: calc(var(--site-header-h) + 1.5rem);
     z-index: 44;
     pointer-events: none;
-    background: linear-gradient(to bottom, color-mix(in srgb, var(--page-top) 62%, transparent) 0%, color-mix(in srgb, var(--page-top) 34%, transparent) 60%, transparent 100%);
+    background: linear-gradient(to bottom, var(--page-top) 0%, color-mix(in srgb, var(--page-top) 80%, transparent) 30%, color-mix(in srgb, var(--page-top) 34%, transparent) 65%, transparent 100%);
     -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
     -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 22%, transparent 100%);
@@ -3434,7 +3436,7 @@ body:has(.staff-band)::after {
     height: calc(var(--site-header-h) + 1.5rem);
     z-index: 44;
     pointer-events: none;
-    background: linear-gradient(to bottom, color-mix(in srgb, var(--page-top) 62%, transparent) 0%, color-mix(in srgb, var(--page-top) 34%, transparent) 60%, transparent 100%);
+    background: linear-gradient(to bottom, var(--page-top) 0%, color-mix(in srgb, var(--page-top) 80%, transparent) 30%, color-mix(in srgb, var(--page-top) 34%, transparent) 65%, transparent 100%);
     -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
     -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 22%, transparent 100%);

@@ -363,7 +363,7 @@ html {
      Bare hints on the page read --subtle-on-glass (set on body), which holds AA at the gradient's strongest. */
   --page-wash: linear-gradient(
     180deg,
-    color-mix(in srgb, var(--sky) 62%, transparent) 0%,
+    color-mix(in srgb, var(--sky) 60%, transparent) 0%,
     color-mix(in srgb, var(--sky) 34%, transparent) 46%,
     color-mix(in srgb, var(--select) 7%, transparent) 100%
   );

@@ -177,21 +177,23 @@ describe.each([
       expect(css).toMatch(/:is\(\.thread-top, \.composer, \.more-sheet-panel, \.sheet-panel\) \{\s*--subtle: var\(--muted\);/);
     }
     // Cards are glass too (Caden, Nov 12). Unlike the controls they never float over content: behind a card is only the page
-    // and its washes. So the worst case is the strongest wash over the page colour, and text on the pane holds AA over that.
+    // and its colour. So the worst case is the page's strongest tint, and text on the pane holds AA over that.
     if (name !== "sunlight") {
       const dark = name === "dark";
       expect(dark ? themeBody(css, ".dark") : css).toMatch(dark ? /--card-bg: color-mix\(in srgb, var\(--surface\) 58%, transparent\);\s*--card-filter: blur\(20px\) saturate\(160%\);/ : /--card-bg: color-mix\(in srgb, var\(--surface\) 78%, transparent\);\s*--card-filter: blur\(20px\) saturate\(190%\);/);
       const h = (c: RGB) => "#" + c.map((v) => Math.round(v).toString(16).padStart(2, "0")).join("");
-      // Every wash at once, though they sit apart on the page: by day the sky (40%) with the purple (6%), by night the pale ring (17%), the deeper one (20%) and the green (10%).
-      const page = dark ? mix(t.select, 0.1, h(mix(t["ring-3"], 0.2, h(mix(t.ring, 0.17, t.bg))))) : mix(t.sky, 0.62, t.bg);
+      // By day the page is one gradient, strongest at its top (sky 60%); the stops are pinned here so the sheet cannot drift
+      // from what is checked. By night: every wash at once, the pale ring (17%), the deeper one (20%) and the green (10%).
+      if (!dark) expect(css).toMatch(/--page-wash: linear-gradient\(\s*180deg,\s*color-mix\(in srgb, var\(--sky\) 60%, transparent\) 0%,\s*color-mix\(in srgb, var\(--sky\) 34%, transparent\) 46%,\s*color-mix\(in srgb, var\(--select\) 7%, transparent\) 100%\s*\);/);
+      const page = dark ? mix(t.select, 0.1, h(mix(t["ring-3"], 0.2, h(mix(t.ring, 0.17, t.bg))))) : mix(t.sky, 0.6, t.bg);
       const card = mix(t.surface, dark ? 0.58 : 0.78, h(page));
       expect(ratio(t.fg, card)).toBeGreaterThanOrEqual(7);
       expect(ratio(t.muted, card)).toBeGreaterThanOrEqual(4.5);
       // The faintest grey steps a little darker on the pane by day (Subtle itself is locked, and falls just under AA there).
       expect(t["subtle-on-glass"]).toBe(dark ? t.subtle : "#4f5d72");
       expect(ratio(t["subtle-on-glass"], card)).toBeGreaterThanOrEqual(4.5);
-      // Bare hints sit on the page itself, so the page reads the stepped grey too, over its strongest wash.
-      // By day that is every wash at once. By night the washes are checked one at a time, at their centres. They do
+      // Bare hints sit on the page itself, so the page reads the stepped grey too, over its strongest tint.
+      // By day that is the top of the gradient. By night the washes are checked one at a time, at their centres. They do
       // overlap on a one-screen page, but only on their fades: scanning the real gradients at phone, tablet and
       // desktop sizes, the worst point is 6.2. All three stacked at full strength (which the geometry never gives) is 3.5.
       const bare = dark ? [mix(t.ring, 0.17, t.bg), mix(t["ring-3"], 0.2, t.bg), mix(t.select, 0.1, t.bg)] : [page];
@@ -200,8 +202,9 @@ describe.each([
       // The menu that hangs over a thread is opaque: two classes, so the glass rule cannot thin it.
       expect(css).toMatch(/\.card\.card-solid \{\s*background: var\(--card-sheen\), var\(--surface\);\s*-webkit-backdrop-filter: none;\s*backdrop-filter: none;/);
       expect(css).toMatch(/\{\s*background: var\(--card-sheen\), var\(--card-bg\);\s*-webkit-backdrop-filter: var\(--card-filter\);\s*backdrop-filter: var\(--card-filter\);\s*--subtle: var\(--subtle-on-glass\);/);
-      // Links and status colours on the pane.
+      // Links and status colours on the pane, and by day on the bare page at its strongest tint (form errors sit there).
       for (const k of ["link", "danger", "success", "warning"] as const) if (t[k]) expect(ratio(t[k], card)).toBeGreaterThanOrEqual(4.5);
+      if (!dark) for (const k of ["link", "danger", "success", "warning", "muted"] as const) if (t[k]) expect(ratio(t[k], page)).toBeGreaterThanOrEqual(4.5);
     }
     // Anyone who asks for less transparency or more contrast gets solid surfaces.
     expect(css).toMatch(/@media \(prefers-reduced-transparency: reduce\), \(prefers-contrast: more\), \(forced-colors: active\) \{\s*html,\s*\.dark \{\s*--glass-bg: var\(--surface\);/);

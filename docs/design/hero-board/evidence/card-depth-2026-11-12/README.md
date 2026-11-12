@@ -70,3 +70,5 @@ Honest limits: by night the glass is plain to see. By day it is quiet: a white p
 - **The cards stay white and sit lower.** The long shadow under a card is about a third shorter and lighter, so cards rest just off the page. By day the pane is 78% of the card colour (it was 64%), so the page's colour does not tint it.
 - **One slight purple gradient for the page**, lavender at the top easing to a breath of purple at the foot, in place of four separate washes. By day only; the night page keeps its washes.
 - **Faint grey text** on the page and on cards steps a little darker (`--subtle-on-glass` #4F5D72, was #55647A) so it holds AA at the gradient's strongest point. Earlier lines in this file that give 64% or #55647A describe the first version.
+- **A box longer than 900px on either side stays still when pressed** (review): turning it about its centre would slide a far row out from under the finger. That covers a long list on a phone and a very wide card on a desktop.
+- **Not checked on an iPhone**: the page root is still cream, so pulling down past the top of a page may show a cream band above the lavender.

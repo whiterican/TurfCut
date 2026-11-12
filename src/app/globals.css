@@ -219,11 +219,7 @@
   --glass-sheen: linear-gradient(135deg, rgb(255 255 255 / 0.08) 0%, rgb(255 255 255 / 0.02) 30%, rgb(255 255 255 / 0) 55%, rgb(255 255 255 / 0.05) 100%);
   /* By night a card is a thicker pane with a quieter shine than by day (Caden, Nov 12: less reflection, then a
      bit more): over half the card colour, a soft lit top edge and a faint glint. */
-  /* The pane is a step lighter than the card colour (#3a2858, the surface lifted), because the night page
-     passes through the card colour itself a third of the way down the screen: a pane of the plain surface
-     vanished into it there and was told apart by its edge alone. This one is at least 1.1:1 from the page
-     at every height. Solid boxes keep the surface. */
-  --card-bg: color-mix(in srgb, #3a2858 58%, transparent);
+  --card-bg: color-mix(in srgb, var(--surface) 58%, transparent);
   --card-filter: none;
   --card-edge: inset 0 1px 0 rgb(255 255 255 / 0.2), inset 0 -1px 0 rgb(255 255 255 / 0.05), inset 0 0 0 1px rgb(255 255 255 / 0.08);
   --card-sheen: linear-gradient(135deg, rgb(255 255 255 / 0.06) 0%, rgb(255 255 255 / 0.02) 30%, rgb(255 255 255 / 0) 56%, rgb(255 255 255 / 0.03) 100%);

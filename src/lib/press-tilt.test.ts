@@ -63,7 +63,7 @@ describe("the dip in the stylesheet and the page", () => {
   });
 
   it("pressed glass: light pools under the finger and the shadow pulls in; rings drawn with the same property are left alone", () => {
-    expect(css).toMatch(/\[data-tilt="on"\]:not\(\.hero-card, \.option-card\) \{\s*box-shadow:\s*inset calc\(var\(--tilt-lx, 0\) \* -18px\) calc\(var\(--tilt-ly, 0\) \* -18px\) 28px -14px var\(--card-glow\),\s*var\(--card-edge\),\s*var\(--shadow-pressed\);/);
+    expect(css).toMatch(/\[data-tilt="on"\]:not\(\.hero-card, \.option-card\) \{\s*box-shadow:\s*inset calc\(var\(--tilt-lx, 0\) \* -10px\) calc\(var\(--tilt-ly, 0\) \* -10px\) 28px -14px var\(--card-glow\),\s*var\(--card-edge\),\s*var\(--shadow-pressed\);/);
     for (const v of ["--tilt-lx", "--tilt-ly"]) expect(part).toContain(`"${v}"`);
   });
 

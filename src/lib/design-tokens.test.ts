@@ -229,6 +229,16 @@ describe.each([
     expect(css.indexOf("html:where(:has(.thread-top))")).toBeLessThan(css.indexOf("html:has(.more-sheet[open]) {"));
     expect(css.indexOf("\nhtml {")).toBeLessThan(css.indexOf("html:where(:has(.site-header:not(.site-header-worker)))"));
     expect(css).toMatch(/body:has\(\.more-sheet\[open\]\) \{\s*--page-wash: none;\s*background-color: var\(--drawer-root\);[^}]*?--page-top: var\(--drawer-root\);/);
+    // Under the status bar the page blurs away into the strip's own colour, and the pill sits above that band.
+    const band = css.match(/\.phone-top::before \{([^}]*)\}/)?.[1] ?? "";
+    expect(band).toMatch(/position: fixed;\s*inset: 0 0 auto;\s*height: calc\(3\.5rem \+ env\(safe-area-inset-top\)\);/);
+    expect(band).toMatch(/background: linear-gradient\(to bottom, var\(--page-top\) 0%/);
+    expect(band).toMatch(/backdrop-filter: blur\(12px\);/);
+    expect(band).toMatch(/pointer-events: none;/);
+    expect(css).toMatch(/\.phone-top \.menu-button \{\s*z-index: 45;/);
+    // Sunlight and the solid fallback have no blur and no band.
+    expect(css).toMatch(/\.sun \.phone-top::before \{\s*display: none;/);
+    expect(css.slice(css.indexOf("@media (prefers-reduced-transparency: reduce)"))).toMatch(/\.phone-top::before \{\s*display: none;/);
     // Paper has no layer.
     expect(css).toMatch(/@media print \{[\s\S]*?body::before \{ display: none; \}/);
     // Anyone who asks for less transparency or more contrast gets solid surfaces.

@@ -2552,6 +2552,32 @@ body {
     @apply flex items-center px-4 sm:px-6 md:hidden;
     padding-top: calc(0.75rem + env(safe-area-inset-top));
   }
+  /* The top edge of a worker's phone page (Caden, Nov 12): what scrolls up no longer stops dead at the status
+     bar. A band fixed across the top blurs what passes under it and fades it into the colour at the top of the
+     page, which is the status bar strip's colour too, so the page seems to run on under the bar. Strongest at
+     the edge, gone by the foot of the menu button's row (the band is exactly that tall), so nothing at rest is
+     touched. The button sits above it, and a pull-to-refresh ring comes out from under it. An organization's
+     phone needs none: its header is a pane of glass across the top already. */
+  .phone-top::before {
+    content: "";
+    position: fixed;
+    inset: 0 0 auto;
+    height: calc(3.5rem + env(safe-area-inset-top));
+    z-index: 44;
+    pointer-events: none;
+    background: linear-gradient(to bottom, var(--page-top) 0%, color-mix(in srgb, var(--page-top) 72%, transparent) 38%, transparent 100%);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+    -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 50%, transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 0%, #000 50%, transparent 100%);
+  }
+  .phone-top .menu-button {
+    z-index: 45;
+  }
+  /* Sunlight is plain: no band. (Reduced transparency and more contrast drop it too, in the solid fallback.) */
+  .sun .phone-top::before {
+    display: none;
+  }
   /* The backdrop is clear, and still takes the press that closes the drawer. An installed app on an iPhone
      colours the status bar's strip from whatever is fixed across the top of the screen: a dim backdrop made
      that strip a dark band above the drawer (Caden's phone, Nov 11). The page is dimmed by the drawer's own
@@ -3880,6 +3906,10 @@ summary.list-none::-webkit-details-marker {
     --page-wash: none;
     --page-top: var(--bg);
     --header-root: var(--bg);
+  }
+  /* No blurred band at the top of a phone page either: it fades text, which is the opposite of more contrast. */
+  .phone-top::before {
+    display: none;
   }
 }
 /* Buttons inside a glass bar sit on its pane already: no second blur. A thread pins its bar under

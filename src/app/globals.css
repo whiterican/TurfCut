@@ -698,7 +698,7 @@ body {
     background: var(--shell-bg);
     color: var(--shell-fg);
   }
-  /* The public hero line: Rubik bold, the one size above H1 (#111). */
+  /* The public hero line: Rubik bold, the one size above H1. */
   .hero-split-line {
     @apply t-headline;
     font-family: var(--font-display);
@@ -3000,6 +3000,11 @@ body {
 /* Leaflet's own stylesheet loads after this one and matches with two classes
    (.leaflet-touch .leaflet-bar), so these name the container twice to win on
    specificity rather than order. */
+/* Leaflet names its own faces (Helvetica; a monospace for + and −). Map labels are words in the app too. */
+.turf-map.leaflet-container,
+.turf-map.leaflet-container .leaflet-bar a {
+  font-family: var(--font-rubik), ui-sans-serif, system-ui, sans-serif;
+}
 .turf-map.leaflet-container .leaflet-control-attribution {
   font-size: 10px;
   margin: 0 6px 6px 0;
@@ -3208,6 +3213,7 @@ summary.list-none::-webkit-details-marker {
 /* The wordmark keeps the logo's own face; every other word is Rubik. */
 .wordmark {
   font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 800; /* the one weight Inter is loaded at */
 }
 .wordmark-cut {
   color: var(--kicker);

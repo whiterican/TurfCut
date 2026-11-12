@@ -310,7 +310,15 @@ describe("mockup surfaces", () => {
     }
     // Inter is named once in the sheet: the wordmark.
     expect(css.match(/var\(--font-inter\)/g)).toHaveLength(1);
-    expect(css).toMatch(/\.wordmark \{\s*font-family: var\(--font-inter\)/);
+    expect(css).toMatch(/\.wordmark \{\s*font-family: var\(--font-inter\)[^}]*?font-weight: 800;/);
+    // The sheet's two font variables come from the layout, and the header's word carries the class.
+    const layout = readFileSync(join(__dirname, "../app/layout.tsx"), "utf8");
+    expect(layout).toMatch(/Rubik\(\{\s*variable: "--font-rubik",\s*subsets: \["latin"\],\s*weight: \["500", "600", "700", "800"\]/);
+    expect(layout).toMatch(/Inter\(\{\s*variable: "--font-inter",\s*subsets: \["latin"\],\s*weight: \["800"\]/);
+    expect(layout).toMatch(/\$\{rubik\.variable\} \$\{inter\.variable\}/);
+    expect(readFileSync(join(__dirname, "../components/SiteHeader.tsx"), "utf8")).toMatch(/<span className="wordmark">turf<span className="wordmark-cut">cut<\/span><\/span>/);
+    // Map labels and the zoom buttons too: Leaflet's sheet names its own faces.
+    expect(css).toMatch(/\.turf-map\.leaflet-container,\s*\.turf-map\.leaflet-container \.leaflet-bar a \{\s*font-family: var\(--font-rubik\)/);
     // No second face anywhere in the sheet (comments aside; "sans-serif" is the system fallback).
     expect(css.replace(/\/\*[\s\S]*?\*\//g, "")).not.toMatch(/(?<![-\w])serif|Georgia|Fraunces|Barlow|DM Mono/i);
     // The printed scale, one weight step heavier (Nov 10): H1 28/36 800, H2 20/28 700, H3 16/24 700, Caption 14/20, Small 12/16.

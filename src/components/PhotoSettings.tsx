@@ -98,7 +98,7 @@ export function PhotoSettings({ photo, initial }: { /** The address of the curre
               </button>
             )}
           </div>
-          <p className="text-hint">Only you see it for now.</p>
+          <p className="text-hint">You see it. In chats, the people you work with see it, except that organization staff are never shown the photo of a worker.</p>
           <p role="status" className={state && !state.ok ? "text-danger-msg" : "text-sm text-muted"}>{state?.message ?? ""}</p>
         </div>
       </div>

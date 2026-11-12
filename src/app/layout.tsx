@@ -1,6 +1,6 @@
 import { NoAccessNotice } from "@/components/NoAccessNotice";
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Rubik } from "next/font/google";
 import { MenuButton, OrgRail, OrgTabBar } from "@/components/AppNav";
 import { SignOutButton } from "@/components/SignOutButton";
 import { signOut } from "@/app/settings/actions";
@@ -22,12 +22,19 @@ import { unreadNotifications, UNREAD_CAP } from "@/lib/notifications-data";
 import { unreadPostNotices } from "@/lib/campaign-follow-data";
 import "./globals.css";
 
-// The one face (#111): Inter for every role, the four weights the type scale
-// uses. Figures take tabular numerals from the CSS, not a second font.
+// The one face: Rubik for every role (Caden, Nov 12), the four weights the
+// type scale uses. Figures take tabular numerals from the CSS, not a second font.
+const rubik = Rubik({
+  variable: "--font-rubik",
+  subsets: ["latin"],
+  weight: ["500", "600", "700", "800"],
+});
+// The wordmark alone keeps the face the logo was drawn with: one weight, and
+// only the letters of "turfcut" are ever set in it.
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
-  weight: ["500", "600", "700", "800"],
+  weight: ["800"],
 });
 
 export function generateMetadata(): Metadata {
@@ -69,7 +76,7 @@ export default async function RootLayout({
       lang="en"
       // Server renders dark (the primary theme); the inline script corrects
       // it before first paint, so React must accept the DOM's class.
-      className={`dark ${inter.variable} h-full antialiased`}
+      className={`dark ${rubik.variable} ${inter.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <head>

@@ -301,13 +301,16 @@ describe("mockup surfaces", () => {
     expect(css).toMatch(/\.dark \.btn-primary \{\s*box-shadow: inset 0 0 0 1px var\(--accent-edge\);/);
     expect(css).toMatch(/\.badge-live \{[^}]*?border-color: var\(--accent-edge\);/);
   });
-  it("the primary action is the locked Forest with white type in light and dark; every type role is Inter (#111)", () => {
+  it("the primary action is the locked Forest with white type in light and dark; every type role is Rubik, and only the wordmark keeps Inter", () => {
     expect(light.primary).toBe("#157a46");
     expect(dark.primary).toBe("#157a46");
     expect(light["on-primary"]).toBe("#ffffff");
     for (const u of ["t-display", "t-title", "t-headline", "t-section", "t-label", "t-figure"]) {
-      expect(css).toMatch(new RegExp(`@utility ${u} \\{[^}]*?font-family: var\\(--font-inter\\)`));
+      expect(css).toMatch(new RegExp(`@utility ${u} \\{[^}]*?font-family: var\\(--font-rubik\\)`));
     }
+    // Inter is named once in the sheet: the wordmark.
+    expect(css.match(/var\(--font-inter\)/g)).toHaveLength(1);
+    expect(css).toMatch(/\.wordmark \{\s*font-family: var\(--font-inter\)/);
     // No second face anywhere in the sheet (comments aside; "sans-serif" is the system fallback).
     expect(css.replace(/\/\*[\s\S]*?\*\//g, "")).not.toMatch(/(?<![-\w])serif|Georgia|Fraunces|Barlow|DM Mono/i);
     // The printed scale, one weight step heavier (Nov 10): H1 28/36 800, H2 20/28 700, H3 16/24 700, Caption 14/20, Small 12/16.
@@ -366,7 +369,7 @@ describe("token plumbing", () => {
     // A var() of an undefined property makes its whole declaration invalid, silently: a removed token
     // must not leave a reference behind (it took the priority rings' shadow with it once).
     const defined = new Set([...css.matchAll(/--([\w-]+)\s*:/g)].map((m) => m[1]));
-    const fromFonts = new Set(["font-inter"]);
+    const fromFonts = new Set(["font-inter", "font-rubik"]);
     const dangling = [...new Set([...css.matchAll(/var\(--([\w-]+)\)/g)].map((m) => m[1]))].filter((n) => !defined.has(n) && !fromFonts.has(n));
     expect(dangling).toEqual([]);
   });

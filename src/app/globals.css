@@ -6,7 +6,7 @@
  * Forest #157A46 (the one action colour; live, confirmed, selected), Cream
  * #FAF9F4 (the page), Surface #FFFFFF (cards, rows, forms), Muted #E7E6ED
  * (shaded fills), Border #D7D2E0, Text #0F172A, Subtle #64748B, Warning
- * #F59E0B and Error #EF4444 (accents and fills). Inter throughout. Anything
+ * #F59E0B and Error #EF4444 (accents and fills). Rubik throughout (the wordmark aside). Anything
  * else (dark surfaces, map fills, status text) is a derived extension and says
  * so beside its token.
  *
@@ -409,13 +409,13 @@ html {
   --text-sm--line-height: calc(10 / 7);
   --text-base: 1rem;
   --text-base--line-height: 1.5;
-  /* Inter for every role (#111). The old role names stay so no rule dangles:
-     "condensed" and "display" are Inter too, and figures are Inter with
+  /* Rubik for every role (Nov 12; Inter before, #111). The old role names stay so no rule dangles:
+     "condensed" and "display" are Rubik too, and figures are Rubik with
      tabular numerals. */
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-condensed: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-rubik), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-rubik), ui-sans-serif, system-ui, sans-serif;
+  --font-condensed: var(--font-rubik), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-rubik), ui-sans-serif, system-ui, sans-serif;
   /* One step heavier throughout (Caden, Nov 10): body text is 500, and each named weight sits a
      step above its Tailwind default, so `font-medium` draws 600, `font-semibold` 700, `font-bold` 800. */
   --font-weight-normal: 500;
@@ -438,7 +438,7 @@ html[data-text="xl"] {
 body {
   background: var(--page-wash) no-repeat, var(--bg);
   color: var(--fg);
-  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-rubik), ui-sans-serif, system-ui, sans-serif;
   font-weight: 500;
   accent-color: var(--focus);
   /* A long word or link breaks inside its box instead of running past it. */
@@ -469,10 +469,10 @@ body {
    One utility per role; components use these, never their own font family or
    size. rem sizes follow the text-size setting; nothing falls below 13px.
    Green board (founder, 2026-10-28): page, card and section titles are the
-   bold sans (Inter, #111). */
+   bold sans (Rubik). */
 @utility t-display {
-  /* The public hero line: Inter, bold, the one size above H1. */
-  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  /* The public hero line: Rubik, bold, the one size above H1. */
+  font-family: var(--font-rubik), ui-sans-serif, system-ui, sans-serif;
   font-size: 2rem;
   line-height: 1.15;
   font-weight: 800;
@@ -484,7 +484,7 @@ body {
 }
 @utility t-title {
   /* H1 28/36 bold */
-  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-rubik), ui-sans-serif, system-ui, sans-serif;
   font-size: 1.75rem;
   line-height: 2.25rem;
   font-weight: 800;
@@ -493,7 +493,7 @@ body {
 }
 @utility t-headline {
   /* H2 20/28 semibold */
-  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-rubik), ui-sans-serif, system-ui, sans-serif;
   font-size: 1.25rem;
   line-height: 1.75rem;
   font-weight: 700;
@@ -502,18 +502,18 @@ body {
 }
 @utility t-section {
   /* H3 16/24 semibold */
-  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-rubik), ui-sans-serif, system-ui, sans-serif;
   font-size: 1rem;
   line-height: 1.5rem;
   font-weight: 700;
 }
 @utility t-body {
-  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-rubik), ui-sans-serif, system-ui, sans-serif;
   font-size: 1rem;
   line-height: 1.5;
 }
 @utility t-strong {
-  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-rubik), ui-sans-serif, system-ui, sans-serif;
   font-size: 1.0625rem;
   line-height: 1.35;
   font-weight: 700;
@@ -532,27 +532,27 @@ body {
 }
 @utility t-label {
   /* A small label: Small 12/16, semibold, sentence case (no tracked capitals on the board). */
-  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-rubik), ui-sans-serif, system-ui, sans-serif;
   font-size: 0.75rem;
   line-height: 1rem;
   font-weight: 700;
 }
 @utility t-figure {
-  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-rubik), ui-sans-serif, system-ui, sans-serif;
   font-size: 1.5rem;
   line-height: 1.1;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
 }
 @utility t-figure-sm {
-  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-rubik), ui-sans-serif, system-ui, sans-serif;
   font-size: 1rem;
   line-height: 1.1;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
 }
 @utility t-figure-lg {
-  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-rubik), ui-sans-serif, system-ui, sans-serif;
   font-size: 2rem;
   line-height: 1.1;
   font-weight: 800;
@@ -698,7 +698,7 @@ body {
     background: var(--shell-bg);
     color: var(--shell-fg);
   }
-  /* The public hero line: Inter bold, the one size above H1 (#111). */
+  /* The public hero line: Rubik bold, the one size above H1 (#111). */
   .hero-split-line {
     @apply t-headline;
     font-family: var(--font-display);
@@ -864,7 +864,7 @@ body {
   }
   /* the brand face: organization and job names, in page heads and on job cards. */
   .masthead {
-    /* Names on cards and page titles alike: Inter, semibold or bold by role. */
+    /* Names on cards and page titles alike: Rubik, semibold or bold by role. */
     @apply font-semibold tracking-[-0.02em] text-fg;
   }
   .page-title.masthead {
@@ -1753,7 +1753,7 @@ body {
     @apply relative flex min-h-[48px] min-w-0 flex-1 flex-col items-center justify-center rounded-full px-0.5 py-1.5 font-medium whitespace-nowrap transition;
     flex-basis: 0;
     color: var(--dock-fg);
-    font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+    font-family: var(--font-rubik), ui-sans-serif, system-ui, sans-serif;
     font-size: 12px;
     line-height: 16px;
     letter-spacing: -0.01em;
@@ -3204,6 +3204,10 @@ summary.list-none::-webkit-details-marker {
   body:has(.tabbar) .page-narrow {
     padding-bottom: calc(var(--dock-clearance) + 1rem);
   }
+}
+/* The wordmark keeps the logo's own face; every other word is Rubik. */
+.wordmark {
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 }
 .wordmark-cut {
   color: var(--kicker);

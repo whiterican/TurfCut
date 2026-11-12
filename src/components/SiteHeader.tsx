@@ -50,7 +50,7 @@ export function SiteHeader({
                 theme's ink. Static import + unoptimized: served from /_next/static, saved offline by the service worker. */}
             <Image src={brandMark} alt="" width={28} height={28} unoptimized className="size-[28px] rounded-full" />
             {/* The wordmark: lowercase, with "cut" in the kicker colour. */}
-            <span>turf<span className="wordmark-cut">cut</span></span>
+            <span className="wordmark">turf<span className="wordmark-cut">cut</span></span>
           </Link>
           </div>
           <div className="flex items-center gap-[8px]">

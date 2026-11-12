@@ -2565,14 +2565,11 @@ body {
   .phone-top {
     @apply flex items-center px-4 sm:px-6 md:hidden;
     padding-top: calc(0.75rem + env(safe-area-inset-top));
-    /* The row stays at the top while the page scrolls under it (Caden's reference, Nov 12), like the bar on
-       an organization's pages. Only the button takes presses: the rest of the row lets them through. */
-    position: sticky;
-    top: 0;
+    /* The row scrolls away with the page (Caden, Nov 12: it is at the top only). It sits above the glass band,
+       and only the button takes presses: the rest of the row lets them through. */
+    position: relative;
     z-index: 45;
     pointer-events: none;
-    /* Part of the frame now it stays put: a page change slides under the pill, not over it. */
-    view-transition-name: phone-pill;
   }
   .phone-top > * {
     pointer-events: auto;
@@ -2584,12 +2581,13 @@ body {
      nothing shows. The button sits above it, and a pull-to-refresh ring comes out from under it. An organization's
      phone needs none: its header is a pane of glass across the top already. */
   /* Clear glass, not a fog (Caden's screen recording, Nov 12): a light tint and a small blur, so what scrolls
-     up is still seen but cannot be read, down to just under the button's row and feathered out from there. */
+     up is still seen but cannot be read. Short and feathered: nothing is pinned under it, so it only softens
+     the very top of the screen where the page meets the status bar. */
   .phone-top::before {
     content: "";
     position: fixed;
     inset: 0 0 auto;
-    height: calc(4.5rem + env(safe-area-inset-top));
+    height: calc(2.25rem + env(safe-area-inset-top));
     z-index: 44;
     pointer-events: none;
     background: linear-gradient(to bottom, color-mix(in srgb, var(--page-top) 62%, transparent) 0%, color-mix(in srgb, var(--page-top) 34%, transparent) 60%, transparent 100%);
@@ -3412,8 +3410,9 @@ body:has(.staff-band)::after {
 }
 @media (max-width: 47.99rem) {
   body:not(:has(.thread-top)) .site-header {
-    position: sticky;
-    top: 0;
+    /* Not pinned (Caden, Nov 12): the logo and the buttons sit at the top of the page and scroll away with it.
+       Still above the glass band at the top of the screen, so at rest nothing of theirs is tinted. */
+    position: relative;
     z-index: 45;
   }
   /* On a phone there is no bar (Caden, Nov 12): the logo and the buttons stay where they were and the
@@ -3429,7 +3428,7 @@ body:has(.staff-band)::after {
     content: "";
     position: fixed;
     inset: 0 0 auto;
-    height: calc(var(--site-header-h) + 0.875rem);
+    height: 2.25rem;
     z-index: 44;
     pointer-events: none;
     background: linear-gradient(to bottom, color-mix(in srgb, var(--page-top) 62%, transparent) 0%, color-mix(in srgb, var(--page-top) 34%, transparent) 60%, transparent 100%);
@@ -3490,17 +3489,6 @@ body:has(.staff-band)::after {
     border-color: var(--border-strong);
   }
 }
-/* With no bar, the buttons step aside on the way down the page and come back on the way up (Caden, Nov 12;
-   components/ScrollDirection.tsx marks the root). The logo and the menu stay. They are faded, never removed:
-   the keyboard still reaches them, and they show at once when one of them has the focus. */
-.site-header-actions {
-  transition: opacity var(--dur-base) var(--ease-standard), translate var(--dur-base) var(--ease-standard);
-}
-html[data-scroll="down"] .site-header-actions:not(:focus-within) {
-  opacity: 0;
-  translate: 0 -0.5rem;
-  pointer-events: none;
-}
 /* The theme switch shows its label from sm up; below that it's a bubble too. */
 @media (min-width: 40rem) {
   .site-header .glass-orb-phone {
@@ -3559,26 +3547,19 @@ html[data-scroll="down"] .site-header-actions:not(:focus-within) {
 ::view-transition-group(site-header),
 ::view-transition-group(tabbar),
 ::view-transition-group(phone-band),
-::view-transition-group(phone-pill),
 ::view-transition-group(bar-fade) {
   animation: none;
   z-index: 100;
 }
-/* The pill sits on the band, as it does on the page. */
-::view-transition-group(phone-pill) {
-  z-index: 101;
-}
 ::view-transition-old(site-header),
 ::view-transition-old(tabbar),
 ::view-transition-old(phone-band),
-::view-transition-old(phone-pill),
 ::view-transition-old(bar-fade) {
   display: none;
 }
 ::view-transition-new(site-header),
 ::view-transition-new(tabbar),
 ::view-transition-new(phone-band),
-::view-transition-new(phone-pill),
 ::view-transition-new(bar-fade) {
   animation: none;
 }

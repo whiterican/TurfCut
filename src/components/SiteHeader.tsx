@@ -53,7 +53,7 @@ export function SiteHeader({
             <span>turf<span className="wordmark-cut">cut</span></span>
           </Link>
           </div>
-          <div className="site-header-actions flex items-center gap-[8px]">
+          <div className="flex items-center gap-[8px]">
             {!isOrg && <TopNav tabs={tabs.map((t) => ({ ...t, href: at(t.href), also: t.also?.map(at) }))} />}
             {signedIn && (
               <Link href={at("/notifications")} className="btn-ghost btn-sm relative" aria-label={notices ? `Notifications, ${notices} unread` : "Notifications"}>

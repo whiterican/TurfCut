@@ -28,21 +28,28 @@ export function StatusStripColor() {
     // One pixel, to turn whatever the browser computed (it may be a color(srgb …) from a color-mix) into plain rgb().
     const pixel = document.createElement("canvas").getContext("2d", { willReadFrequently: true });
     let seen = "";
+    let plain = "";
     const read = () => {
       frame = 0;
       const computed = getComputedStyle(root).backgroundColor;
-      if (!computed || computed === seen) return;
-      seen = computed;
-      let colour = computed;
-      if (pixel) {
-        pixel.clearRect(0, 0, 1, 1);
-        pixel.fillStyle = computed;
-        pixel.fillRect(0, 0, 1, 1);
-        const [r, g, b, a] = pixel.getImageData(0, 0, 1, 1).data;
-        if (a < 255) return; // a see-through root says nothing about the strip
-        colour = `rgb(${r}, ${g}, ${b})`;
+      if (!computed) return;
+      if (computed !== seen) {
+        seen = computed;
+        plain = computed;
+        if (pixel) {
+          // An unreadable colour leaves fillStyle as it was: start from a marker, and keep the browser's own string then.
+          pixel.fillStyle = "#010203";
+          pixel.fillStyle = computed;
+          const taken = pixel.fillStyle !== "#010203" || /^rgb\(1, 2, 3\)$/.test(computed);
+          if (taken) {
+            pixel.clearRect(0, 0, 1, 1);
+            pixel.fillRect(0, 0, 1, 1);
+            const [r, g, b, a] = pixel.getImageData(0, 0, 1, 1).data;
+            plain = a < 255 ? "" : `rgb(${r}, ${g}, ${b})`; // a see-through root says nothing about the strip
+          }
+        }
       }
-      if (tag.content !== colour) tag.content = colour;
+      if (plain && tag.content !== plain) tag.content = plain;
     };
     const soon = () => {
       if (!frame) frame = requestAnimationFrame(read);

@@ -13,6 +13,7 @@ export interface ClientMember {
   role: "WORKER" | "MANAGER" | "MEMBER";
   removed: boolean;
   isMe: boolean;
+  photo: string | null;
   blockedByMe: boolean;
 }
 export interface ClientCandidate {
@@ -91,7 +92,7 @@ export function Members({
   const addable = candidates.filter((c) => !active.some((m) => m.profileId === c.profileId));
   const row = (m: ClientMember) => (
     <li key={m.profileId} className="flex items-center gap-3 px-4 py-2.5">
-      <Avatar name={m.name} size="sm" />
+      <Avatar name={m.name} photo={m.photo} size="sm" />
       <span className="min-w-0 flex-1">
         <span className={`block truncate text-sm font-semibold ${m.removed ? "text-subtle" : "text-fg"}`}>
           {m.name}

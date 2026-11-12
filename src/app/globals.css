@@ -2867,6 +2867,13 @@ body {
     color: var(--fg);
     border: 1px solid var(--border);
   }
+  /* A person's photo fills the circle (lib/profile-photo); the initials come back if it will not load. */
+  .avatar-photo {
+    @apply overflow-hidden;
+  }
+  .avatar-photo > img {
+    @apply size-full object-cover;
+  }
   .avatar-team {
     background: var(--hero);
     color: var(--hero-fg);

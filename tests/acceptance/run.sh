@@ -24,8 +24,9 @@ declare -A FILE=([m5]=m5-payouts.ts [m6]=m6-offline.ts [m7]=m7-corrections-closu
 # Extra SQL run after the setup for a check (sec: re-running the lockdown,
 # as it is designed to be, must leave message grants column-limited).
 # m10, p1: the migrations themselves must be safe to run on a database that already has everything (they run on the live project that way).
-# p2: the same for channels, with M10's roles file run again after it, last (it redefines the staff chat trigger: channel membership must not depend on it).
-declare -A AFTER=([sec]=prisma/m4-0-rls-lockdown.sql [m10]="prisma/m10-admin.sql prisma/m10-verification.sql prisma/m10-roles.sql" [p1]=prisma/p1-discovery.sql [p2]="prisma/p2-channels.sql prisma/p2-threads.sql prisma/m10-roles.sql")
+# p2: the same for channels, with M10's roles file run again after them (it redefines the staff chat trigger: channel membership must not depend on it).
+# p2-channels.sql runs once more at the very end on purpose: it redefines the participant guard that p2-dm-mentions.sql extends, so the checks prove which one must be last.
+declare -A AFTER=([sec]=prisma/m4-0-rls-lockdown.sql [m10]="prisma/m10-admin.sql prisma/m10-verification.sql prisma/m10-roles.sql" [p1]=prisma/p1-discovery.sql [p2]="prisma/p2-channels.sql prisma/p2-threads.sql prisma/p2-dm-mentions.sql prisma/m10-roles.sql prisma/p2-channels.sql")
 for c in "${checks[@]}"; do [[ -v FILE[$c] ]] || { echo "unknown check: $c (m5, m6, m7, c1, c2, c3, c4, rl, sec, s1, s2, s3, s4, m8, m9, m10, p1, p2)"; exit 2; }; done
 fail=0
 for c in "${checks[@]}"; do

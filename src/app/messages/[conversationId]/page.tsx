@@ -22,8 +22,11 @@ export default async function ThreadPage({ params }: { params: Promise<{ convers
   const t = await openThread(me, conversationId);
   if (!t) notFound();
 
-  const group = t.kind !== "DIRECT";
+  const group = t.kind === "GROUP" || t.kind === "CHANNEL";
+  const staffDm = t.kind === "STAFF_DM";
   const channel = t.channel;
+  // Staff talking to staff: no "Manager" tag on each other (it tells workers who is staff), and no field quick replies.
+  const staffOnly = staffDm || !!channel?.staffOnly;
   const mine = t.members.find((m) => m.isMe);
   const iManage = !!mine && mine.role !== "WORKER";
   const title = channel ? `#${t.title}` : t.title;
@@ -45,7 +48,7 @@ export default async function ThreadPage({ params }: { params: Promise<{ convers
         <div className="min-w-0 text-center">
           <h1 className="truncate text-base font-bold text-fg">{title}</h1>
           <p className="truncate font-mono text-[0.6875rem] tracking-[0.14em] text-subtle uppercase">
-            {channel ? `${channel.staffOnly ? "Staff channel" : "Channel"} · ${count} ${count === 1 ? "member" : "members"}` : group ? `Team chat · ${count} members` : t.subtitle || (counterpart && counterpart.role !== "WORKER" ? "Manager" : "Worker")}
+            {channel ? `${channel.staffOnly ? "Staff channel" : "Channel"} · ${count} ${count === 1 ? "member" : "members"}` : group ? `Team chat · ${count} members` : staffDm ? t.subtitle || "Staff" : t.subtitle || (counterpart && counterpart.role !== "WORKER" ? "Manager" : "Worker")}
           </p>
         </div>
         {group ? (
@@ -108,11 +111,11 @@ export default async function ThreadPage({ params }: { params: Promise<{ convers
         group={group}
         hasOlder={t.hasOlder}
         canPost={t.access.post}
-        messages={t.messages.map((m) => ({ ...m, createdAt: m.createdAt.toISOString(), lastReplyAt: m.lastReplyAt?.toISOString() ?? null }))}
+        messages={t.messages.map((m) => ({ ...m, createdAt: m.createdAt.toISOString(), lastReplyAt: m.lastReplyAt?.toISOString() ?? null, senderIsManager: staffOnly ? false : m.senderIsManager }))}
       />
 
       {t.access.post ? (
-        <Composer conversationId={t.id} manager={iManage} placeholder={channel ? `Message ${title}…` : group ? "Message the team…" : firstName ? `Message ${firstName}…` : "Write a message…"} />
+        <Composer conversationId={t.id} manager={iManage} people={t.mentionable} quick={!staffOnly} placeholder={channel ? `Message ${title}…` : group ? "Message the team…" : firstName ? `Message ${firstName}…` : "Write a message…"} />
       ) : (
         <div className="card-flat space-y-3" role="status">
           <p className="text-sm font-semibold text-fg">{t.access.closed}</p>

@@ -1,6 +1,6 @@
 /* Channels acceptance checks (prisma/p2-channels.sql, lib/chat-data.ts), against a fresh database (tests/acceptance/run.sh). */
 import { db } from "@/lib/db";
-import { addMembers, archiveChannel, blockProfile, unblockProfile, browseChannels, createChannel, ensureGeneral, joinChannel, leaveChannel, listThreads, openReplies, openThread, removeMember, sendMessage, toggleReaction, unreadTotal, type ChatUser } from "@/lib/chat-data";
+import { addMembers, archiveChannel, blockProfile, colleagues, deleteMessage, startStaffDm, unblockProfile, browseChannels, createChannel, ensureGeneral, joinChannel, leaveChannel, listThreads, openReplies, openThread, removeMember, sendMessage, toggleReaction, unreadTotal, type ChatUser } from "@/lib/chat-data";
 
 const ORG = "00000000-0000-0000-0000-000000000001";
 const ORG2 = "00000000-0000-0000-0000-000000000002";
@@ -160,6 +160,74 @@ const noStore = { put: async () => {}, remove: async () => {}, signedUrl: async 
   check("and can neither reply nor react", !(await sendMessage(hired, team, "still here?", null, noStore, asked.messageId)).ok && !(await toggleReaction(hired, asked.messageId, "\u2705")).ok);
   await addMembers(owner, team, [hired.userId]);
 
+  const part = (conversationId: string, profileId: string, role: "WORKER" | "MANAGER" | "MEMBER") => p.conversationParticipant.create({ data: { conversationId, profileId, role, addedById: OWNER } });
+  // --- Staff conversations, one to one (prisma/p2-dm-mentions.sql) ---
+  const comp: ChatUser = { userId: COMP, role: "COMPLIANCE", orgId: ORG };
+  check("staff see their colleagues, never workers or other organizations", JSON.stringify((await colleagues(fin)).map((c) => c.profileId).sort()) === JSON.stringify([OWNER, COMP].sort()), (await colleagues(fin)).map((c) => c.name));
+  check("a worker has no colleagues to message here", (await colleagues(hired)).length === 0);
+  const dm1 = await startStaffDm(fin, COMP);
+  const dm2 = await startStaffDm(comp, FIN);
+  check("two staff members, neither with the Messages area, start a conversation", dm1.ok);
+  check("a pair has one conversation, whoever opens it", dm1.ok && dm2.ok && dm1.conversationId === dm2.conversationId && (await p.conversation.count({ where: { kind: "STAFF_DM", orgId: ORG } })) === 1);
+  const dm = dm1.ok ? dm1.conversationId : "";
+  check("both post in it", (await sendMessage(fin, dm, "Can you check the Denver certificates?", null, noStore)).ok && (await sendMessage(comp, dm, "On it", null, noStore)).ok);
+  const dmView = await openThread(fin, dm);
+  check("it is named after the other person, with their role", dmView?.kind === "STAFF_DM" && dmView.subtitle === "Compliance" && dmView.messages.length === 2, [dmView?.title, dmView?.subtitle]);
+  check("nobody else reads it: not the owner, not a worker", (await openThread(owner, dm)) === null && (await openThread(hired, dm)) === null);
+  check("nor posts in it, nor adds anyone to it", !(await sendMessage(owner, dm, "hello", null, noStore)).ok && !(await addMembers(owner, dm, [OWNER])).ok && !(await joinChannel(owner, dm)).ok);
+  check("no conversation with a worker, another organization's staff, or yourself", !(await startStaffDm(fin, hired.userId)).ok && !(await startStaffDm(fin, OWNER2)).ok && !(await startStaffDm(fin, FIN)).ok && !(await startStaffDm(hired, OWNER)).ok);
+  check("database: a staff conversation holds only its two people", await refused(() => part(dm, OWNER, "MEMBER")));
+  check("database: and no workers or managers", (await refused(() => part(dm, hired.userId, "WORKER"))) && (await refused(() => part(dm, OWNER, "MANAGER"))));
+  check("database: a pair key belongs to staff conversations only, lower id first", (await refused(() => p.conversation.create({ data: { kind: "CHANNEL", orgId: ORG, name: "keyed", staffOnly: true, dmKey: `${FIN}:${COMP}`, createdById: OWNER } }))) && (await refused(() => p.conversation.create({ data: { kind: "STAFF_DM", orgId: ORG, dmKey: `${OWNER2}:${OWNER}`, createdById: OWNER } }))));
+
+  // The same two people in another organization start a new conversation there; the old one is not reused or blocking.
+  await p.profile.updateMany({ where: { id: { in: [FIN, COMP] } }, data: { orgId: ORG2 } });
+  const moved = await startStaffDm({ userId: FIN, role: "FINANCE", orgId: ORG2 }, COMP);
+  check("a pair who both move to another organization get a new conversation there", moved.ok && moved.conversationId !== dm && (await openThread({ userId: FIN, role: "FINANCE", orgId: ORG2 }, moved.conversationId))?.messages.length === 0);
+  check("and the old one is closed to them", (await openThread({ userId: FIN, role: "FINANCE", orgId: ORG2 }, dm)) === null);
+  await p.profile.updateMany({ where: { id: { in: [FIN, COMP] } }, data: { orgId: ORG } });
+  // Moving out ended their memberships in the first organization; back on its staff, they rejoin what the later checks use.
+  await ensureGeneral(fin);
+  await joinChannel(fin, team);
+  await joinChannel(fin, staff);
+  check("back in the first organization, the first conversation reopens", (await startStaffDm(fin, COMP)).ok && (await openThread(fin, dm))?.messages.length === 2);
+
+  // --- Mentions ---
+  await p.profile.update({ where: { id: COMP }, data: { displayName: "Casey Lee" } });
+  const mention = await sendMessage(owner, team, "@Fin Ops and @casey lee: sheets are due Friday. cc @Nobody", null, noStore);
+  if (!mention.ok) throw new Error(mention.reason);
+  const namedRows = await p.messageMention.findMany({ where: { messageId: mention.messageId } });
+  check("a message names the people in the conversation it @-mentions, and nobody outside it", JSON.stringify(namedRows.map((r) => r.profileId)) === JSON.stringify([FIN]) && namedRows[0].conversationId === team, namedRows.map((r) => r.profileId));
+  const finList = (await listThreads(fin)).threads.find((t) => t.id === team);
+  check("the person named sees it on the conversation in their list", finList?.mentions === 1, finList?.mentions);
+  const finMain = await openThread(fin, team);
+  check("and on the message itself", finMain?.messages.find((m) => m.id === mention.messageId)?.mentionsMe === true && (await openThread(owner, team))?.messages.find((m) => m.id === mention.messageId)?.mentionsMe === false);
+  check("once read, it no longer counts", (await listThreads(fin)).threads.find((t) => t.id === team)?.mentions === 0);
+  check("the composer offers the other people in the conversation", JSON.stringify(finMain?.mentionable) === JSON.stringify([...(finMain?.members ?? [])].filter((m) => !m.isMe && !m.removed).map((m) => m.name).sort((a, b) => a.localeCompare(b))), finMain?.mentionable);
+  // A mention inside a thread is announced on the thread's link before the main conversation marks it read.
+  await p.profile.update({ where: { id: FIN }, data: { displayName: "Fin  Ops " } }); // irregular spaces in a stored name
+  const threadMention = await sendMessage(owner, team, "@Fin Ops can you confirm?", null, noStore, mention.messageId);
+  check("a name stored with stray spaces is still matched", threadMention.ok && (await p.messageMention.count({ where: { messageId: threadMention.messageId, profileId: FIN } })) === 1);
+  check("a mention in a reply counts on the list", (await listThreads(fin)).threads.find((t) => t.id === team)?.mentions === 1);
+  const withThread = await openThread(fin, team);
+  check("and is announced on that thread's link in the main conversation", withThread?.messages.find((m) => m.id === mention.messageId)?.replyMentionsMe === true, withThread?.messages.map((m) => [m.body, m.replyMentionsMe]));
+  check("the reply itself is marked in the thread", (await openReplies(fin, team, mention.messageId))?.replies.at(-1)?.mentionsMe === true);
+  // A second reply that names Finance, then deleted before Finance looks: it names nobody any more, on the list or on the link.
+  const fleeting = await sendMessage(owner, team, "@Fin Ops never mind", null, noStore, mention.messageId);
+  check("deleting a reply takes its mention with it", fleeting.ok && (await deleteMessage(owner, fleeting.messageId)).ok && (await listThreads(fin)).threads.find((t) => t.id === team)?.mentions === 0 && (await openThread(fin, team))?.messages.find((m) => m.id === mention.messageId)?.replyMentionsMe === false);
+  check("an id in upper case reaches the same conversation", JSON.stringify(await startStaffDm(fin, COMP.toUpperCase())) === JSON.stringify(await startStaffDm(fin, COMP)));
+  await p.profile.update({ where: { id: FIN }, data: { displayName: "Fin Ops" } });
+  // A role standing in for a missing name is not a name: "@Owner" names nobody.
+  await p.profile.update({ where: { id: OWNER }, data: { displayName: null } });
+  const roleMention = await sendMessage(fin, team, "ask the @owner", null, noStore);
+  check("a role is not a name: it names nobody and is not offered", roleMention.ok && (await p.messageMention.count({ where: { messageId: roleMention.messageId } })) === 0 && !(await openThread(fin, team))?.mentionable.includes("Owner"));
+  await p.profile.update({ where: { id: OWNER }, data: { displayName: "Maya Chen" } });
+  await blockProfile(hired, OWNER);
+  const blockedMention = await sendMessage(owner, team, `@${hire.worker.displayName} are you there?`, null, noStore);
+  check("someone who has blocked the sender is not named (they never see the message)", blockedMention.ok && (await p.messageMention.count({ where: { messageId: blockedMention.messageId } })) === 0);
+  await unblockProfile(hired, OWNER);
+  check("database: a mention is never changed or removed", (await refused(() => p.messageMention.update({ where: { id: namedRows[0].id }, data: { profileId: OWNER } }))) && (await refused(() => p.messageMention.delete({ where: { id: namedRows[0].id } }))));
+
   // --- A reply under a message older than the page ---
   const longMade = await createChannel(owner, { name: "long-channel", topic: "", staffOnly: true, jobIds: [] });
   if (!longMade.ok) throw new Error(longMade.reason);
@@ -181,7 +249,6 @@ const noStore = { put: async () => {}, remove: async () => {}, signedUrl: async 
   await leaveChannel(fin, long);
 
   // --- The database's own guards ---
-  const part = (conversationId: string, profileId: string, role: "WORKER" | "MANAGER" | "MEMBER") => p.conversationParticipant.create({ data: { conversationId, profileId, role, addedById: OWNER } });
   check("database: no worker in a staff-only channel", await refused(() => part(staff, stranger.profileId, "WORKER")));
   check("database: staff are MEMBER in a channel, never MANAGER", await refused(() => part(staff, COMP, "MANAGER")));
   check("database: a MEMBER belongs to the channel's organization", await refused(() => part(staff, OWNER2, "MEMBER")));
@@ -214,9 +281,25 @@ const noStore = { put: async () => {}, remove: async () => {}, signedUrl: async 
   check("and they read none of it afterwards, not even the history", (await openThread(gone, team)) === null && (await openThread(gone, general.id)) === null);
   check("nor see it listed", (await listThreads(gone)).threads.length === 0, (await listThreads(gone)).threads.map((t) => t.title));
   check("nor carry an unread badge for it", (await unreadTotal(gone)) === 0, await unreadTotal(gone));
+  check("their staff conversation is closed to them too", (await openThread(gone, dm)) === null);
+  // The live-update feed reads rows as the signed-in browser role, through the database's own policy.
+  const asBrowser = async (who: string, conversationId: string) =>
+    p.$transaction(async (tx) => {
+      await tx.$executeRawUnsafe(`SELECT set_config('request.jwt.claim.sub', '${who}', true)`);
+      await tx.$executeRawUnsafe(`SET LOCAL ROLE authenticated`);
+      const [r] = await tx.$queryRawUnsafe<{ n: number }[]>(`SELECT count("id")::int AS n FROM "Message" WHERE "conversationId" = '${conversationId}'`);
+      return r.n;
+    });
+  check("database: someone who left sees no row of the staff conversation or a channel through the live feed", (await asBrowser(FIN, dm)) === 0 && (await asBrowser(FIN, team)) === 0, [await asBrowser(FIN, dm), await asBrowser(FIN, team)]);
+  check("database: the colleague who stayed still sees theirs, and an outsider none", (await asBrowser(COMP, dm)) === 2 && (await asBrowser(OWNER, dm)) === 0, [await asBrowser(COMP, dm), await asBrowser(OWNER, dm)]);
+  const left = await openThread(comp, dm);
+  check("and read-only for the colleague who stayed, who keeps the history", left?.access.post === false && left.messages.length === 2 && left.access.closed === "This person is no longer in your organization. History is read-only.", left?.access);
   await p.profile.update({ where: { id: FIN }, data: { orgId: ORG } });
   await ensureGeneral(fin);
   check("coming back puts them in the general channel again", (await live(general.id, FIN)) === 1);
+  check("the colleague is offered as someone to message again, not a dead conversation to open", (await colleagues(fin)).find((c) => c.profileId === COMP)?.conversationId === null && (await colleagues(comp)).find((c) => c.profileId === FIN)?.conversationId === null);
+  const again = await startStaffDm(fin, COMP);
+  check("and messaging them reopens the same staff conversation", again.ok && again.conversationId === dm && (await openThread(fin, dm))?.access.post === true && (await openThread(comp, dm))?.access.post === true && (await colleagues(fin)).find((c) => c.profileId === COMP)?.conversationId === dm);
   await p.profile.update({ where: { id: COMP }, data: { closedAt: new Date() } });
   check("a closed staff account leaves its channels", (await p.conversationParticipant.count({ where: { profileId: COMP, removedAt: null } })) === 0);
   await p.profile.update({ where: { id: FIN }, data: { role: "PUBLISHER" } });

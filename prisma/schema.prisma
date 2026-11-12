@@ -86,6 +86,7 @@ model Profile {
   chatParticipations    ConversationParticipant[]
   sentMessages          Message[]
   messageReactions MessageReaction[]
+  messageMentions  MessageMention[]
   blocksMade            ProfileBlock[]            @relation("Blocker")
   blocksReceived        ProfileBlock[]            @relation("Blocked")
   campaignPosts         CampaignPost[]            @relation("CampaignPostAuthor")
@@ -940,6 +941,7 @@ enum ConversationKind {
   DIRECT // worker ↔ the person who hired them, one per engagement
   GROUP // team chat created by an organizer
   CHANNEL // a named, browsable channel in the organization's workspace (prisma/p2-channels.sql)
+  STAFF_DM // a private conversation between two staff members of one organization (prisma/p2-dm-mentions.sql)
 }
 
 enum ParticipantRole {
@@ -970,6 +972,8 @@ model Conversation {
   /// CHANNEL only: archived channels are read-only and leave the list of channels to join.
   archivedAt    DateTime?
   archivedById  String?          @db.Uuid
+  /// STAFF_DM only: the two people, as "<lower id>:<higher id>". Unique within an organization, so a pair has one conversation there.
+  dmKey         String?
   createdById   String           @db.Uuid // Profile
   lastMessageAt DateTime? // thread-list ordering; only moves forward
   createdAt     DateTime         @default(now())
@@ -978,6 +982,7 @@ model Conversation {
   jobs         ConversationJob[]
   messages     Message[]
 
+  @@unique([orgId, dmKey])
   @@index([orgId, kind])
 }
 
@@ -1030,10 +1035,27 @@ model Message {
   revisions MessageRevision[]
   reports   MessageReport[]
   reactions MessageReaction[]
+  mentions  MessageMention[]
 
   @@index([conversationId, createdAt])
   @@index([senderId])
   @@index([parentId, createdAt])
+}
+
+/// Someone named in a message with "@". Written with the message, by the
+/// server, for people in the conversation at that moment; never changed
+/// (an edit does not add or remove a mention). Server-only.
+model MessageMention {
+  id             String   @id @default(uuid()) @db.Uuid
+  messageId      String   @db.Uuid
+  message        Message  @relation(fields: [messageId], references: [id], onDelete: Restrict)
+  conversationId String   @db.Uuid // copied from the message by a trigger
+  profileId      String   @db.Uuid
+  profile        Profile  @relation(fields: [profileId], references: [id], onDelete: Restrict)
+  createdAt      DateTime @default(now())
+
+  @@unique([messageId, profileId])
+  @@index([profileId, conversationId])
 }
 
 /// A reaction to a message: one of a fixed set of marks (lib/chat.ts REACTIONS).

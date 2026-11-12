@@ -17,7 +17,7 @@ export default async function RepliesPage({ params }: { params: Promise<{ conver
   const { conversationId, messageId } = await params;
   const t = await openReplies(me, conversationId, messageId);
   if (!t) notFound();
-  const group = t.kind !== "DIRECT";
+  const group = t.kind === "GROUP" || t.kind === "CHANNEL";
   return (
     <main className="page max-w-2xl space-y-4">
       <LiveRefresh conversationId={t.conversationId} />
@@ -40,7 +40,7 @@ export default async function RepliesPage({ params }: { params: Promise<{ conver
       <MessageList conversationId={t.conversationId} group={group} hasOlder={t.hasOlder} canPost={t.access.post} threadId={messageId} messages={t.replies.map(client)} emptyText={t.access.post ? "Be the first to reply." : "Nobody replied."} />
 
       {t.access.post ? (
-        <Composer conversationId={t.conversationId} manager={t.staff} placeholder="Reply in thread…" parentId={messageId} />
+        <Composer conversationId={t.conversationId} manager={t.staff} placeholder="Reply in thread…" parentId={messageId} people={t.mentionable} />
       ) : (
         <div className="card-flat" role="status">
           <p className="text-sm font-semibold text-fg">{t.access.closed}</p>

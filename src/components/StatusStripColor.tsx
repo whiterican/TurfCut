@@ -25,10 +25,24 @@ export function StatusStripColor() {
     const tag = meta;
     let frame = 0;
     let timer = 0;
+    // One pixel, to turn whatever the browser computed (it may be a color(srgb …) from a color-mix) into plain rgb().
+    const pixel = document.createElement("canvas").getContext("2d", { willReadFrequently: true });
+    let seen = "";
     const read = () => {
       frame = 0;
-      const colour = getComputedStyle(root).backgroundColor;
-      if (colour && tag.content !== colour) tag.content = colour;
+      const computed = getComputedStyle(root).backgroundColor;
+      if (!computed || computed === seen) return;
+      seen = computed;
+      let colour = computed;
+      if (pixel) {
+        pixel.clearRect(0, 0, 1, 1);
+        pixel.fillStyle = computed;
+        pixel.fillRect(0, 0, 1, 1);
+        const [r, g, b, a] = pixel.getImageData(0, 0, 1, 1).data;
+        if (a < 255) return; // a see-through root says nothing about the strip
+        colour = `rgb(${r}, ${g}, ${b})`;
+      }
+      if (tag.content !== colour) tag.content = colour;
     };
     const soon = () => {
       if (!frame) frame = requestAnimationFrame(read);
@@ -39,19 +53,26 @@ export function StatusStripColor() {
       window.clearTimeout(timer);
       timer = window.setTimeout(soon, 400);
     };
+    const key = (e: KeyboardEvent) => {
+      if (e.key === "Escape" || e.key === "Enter" || e.key === " ") after();
+    };
     read();
     const watcher = new MutationObserver(soon);
     watcher.observe(root, { attributes: true, attributeFilter: ["class"] });
+    // A header or a chat's bar that arrives after the page (streamed in) changes the root's colour with no event.
+    const arrivals = new MutationObserver(soon);
+    arrivals.observe(document.body, { childList: true, subtree: true });
     const phone = window.matchMedia("(prefers-color-scheme: light)");
     phone.addEventListener("change", after);
     window.addEventListener("click", after, { passive: true });
-    window.addEventListener("keyup", after, { passive: true });
+    window.addEventListener("keyup", key, { passive: true });
     window.addEventListener("pageshow", after);
     return () => {
       watcher.disconnect();
+      arrivals.disconnect();
       phone.removeEventListener("change", after);
       window.removeEventListener("click", after);
-      window.removeEventListener("keyup", after);
+      window.removeEventListener("keyup", key);
       window.removeEventListener("pageshow", after);
       window.clearTimeout(timer);
       if (frame) cancelAnimationFrame(frame);

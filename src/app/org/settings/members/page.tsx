@@ -60,6 +60,7 @@ export default async function MembersPage() {
       {/* A bounded invite panel (#113 review, P4): the form keeps a reading width; role help sits behind "About roles". */}
       <section className="section form-panel" aria-labelledby="invite-heading">
         <h2 id="invite-heading" className="section-title">Invite someone</h2>
+        <div className="card space-y-3">
         <ActionButton action={invite} fields={{}} label="Send invite" pendingLabel="Sending…">
           <label className="min-w-56 flex-1 space-y-1.5">
             <span className="label">Email</span>
@@ -74,6 +75,7 @@ export default async function MembersPage() {
             {INVITE_ROLES.map((r) => <li key={r}><strong>{ROLE_LABELS[r]}:</strong> {ROLE_HELP[r]}</li>)}
           </ul>
         </details>
+        </div>
       </section>
 
       <section className="section" aria-labelledby="waiting-heading">

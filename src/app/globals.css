@@ -103,6 +103,7 @@
      (derived; Subtle itself is 3.84:1 on Muted, so it stays on white and Cream). */
   --muted: #475569;
   --subtle: #64748b; /* = Subtle: captions and hints on white and Cream */
+  --subtle-on-glass: #4f5d72; /* derived: Subtle stepped about 70% toward Muted, for the same captions on a glass card (AA over the tinted page) */
   --link: #1c0f2e; /* = Eggplant: 14:1 on every light surface (Forest is 4.3:1 on Muted) */
   --kicker: #475569;
   --focus: #157a46; /* = Forest */
@@ -128,7 +129,10 @@
   --tab-active-bg: #1c0f2e; /* = Eggplant */
   --tab-active-fg: #ffffff;
   /* Cards sit on the Cream with a hairline and almost no shadow; the dock floats. */
-  --shadow-depth: 0 2px 8px rgb(28 15 46 / 0.06);
+  /* The boxes float (Caden, Nov 12): a faint contact shadow, then a long soft one thrown well below the box,
+     pulled in at the sides so it reads as height, not as a dark outline. Every card, tile and row reads
+     this one token, so they all float at the same height. */
+  --shadow-depth: 0 1px 2px rgb(28 15 46 / 0.05), 0 4px 10px -4px rgb(28 15 46 / 0.09), 0 14px 26px -14px rgb(28 15 46 / 0.22);
   --shadow: var(--shadow-depth);
   /* Priority rings around the next-shift card: the Eggplant family, each ring darker. */
   --select: #6a4c91; /* the selected tab or row's tint: purple by day (Caden, Nov 10) */
@@ -158,6 +162,7 @@
   --fg: #f4f2f8;
   --muted: #c9c2d6;
   --subtle: #b3abc4;
+  --subtle-on-glass: #b3abc4;
   --solid: #5a4a78; /* a chosen chip or settled status by night: two steps up from the card (1.9:1), white type */
   --on-solid: #f4f2f8;
   --ink: #0f172a;
@@ -185,7 +190,7 @@
   --ring: #ece4f5;
   --ring-2: #cbb8e0;
   --ring-3: #a991c9;
-  --shadow-depth: 0 2px 8px rgb(8 3 16 / 0.5);
+  --shadow-depth: 0 1px 2px rgb(0 0 0 / 0.5), 0 6px 12px -4px rgb(0 0 0 / 0.5), 0 16px 30px -14px rgb(0 0 0 / 0.75);
   --shadow: var(--shadow-depth);
   color-scheme: dark;
   /* Liquid Glass by night: a dimmer pane, a fainter lit edge. */
@@ -202,10 +207,17 @@
   --glass-border: rgb(255 255 255 / 0.2);
   --glass-highlight: inset 0 1px 0 rgb(255 255 255 / 0.34), inset 0 -1px 0 rgb(255 255 255 / 0.08), inset 0 0 0 1px rgb(255 255 255 / 0.06), 0 14px 36px -14px rgb(0 0 0 / 0.75);
   --glass-sheen: linear-gradient(135deg, rgb(255 255 255 / 0.08) 0%, rgb(255 255 255 / 0.02) 30%, rgb(255 255 255 / 0) 55%, rgb(255 255 255 / 0.05) 100%);
-  --card-bg: color-mix(in srgb, var(--surface) 82%, transparent);
-  --card-edge: inset 0 1px 0 rgb(255 255 255 / 0.1);
-  --card-sheen: linear-gradient(180deg, rgb(255 255 255 / 0.05), rgb(255 255 255 / 0) 38%);
-  --page-wash: radial-gradient(130% 34rem at 50% -8rem, color-mix(in srgb, var(--ring) 17%, transparent), transparent 72%);
+  --card-bg: color-mix(in srgb, var(--surface) 58%, transparent);
+  --card-filter: blur(20px) saturate(160%);
+  --card-edge: inset 0 1px 0 rgb(255 255 255 / 0.3), inset 0 -1px 0 rgb(255 255 255 / 0.07), inset 0 0 0 1px rgb(255 255 255 / 0.08);
+  --card-sheen: linear-gradient(135deg, rgb(255 255 255 / 0.13) 0%, rgb(255 255 255 / 0.03) 30%, rgb(255 255 255 / 0) 56%, rgb(255 255 255 / 0.07) 100%);
+  --card-glow: rgb(255 255 255 / 0.09);
+  --shadow-pressed: 0 1px 2px rgb(0 0 0 / 0.5), 0 8px 16px -10px rgb(0 0 0 / 0.7);
+  --page-wash:
+    radial-gradient(130% 34rem at 50% -8rem, color-mix(in srgb, var(--ring) 17%, transparent), transparent 72%),
+    radial-gradient(46rem 34rem at 108% 34%, color-mix(in srgb, var(--select) 10%, transparent), transparent 70%),
+    radial-gradient(44rem 34rem at -8% 66%, color-mix(in srgb, var(--ring-3) 20%, transparent), transparent 70%),
+    radial-gradient(48rem 30rem at 78% 102%, color-mix(in srgb, var(--ring) 14%, transparent), transparent 70%);
 }
 
 .sun {
@@ -223,6 +235,7 @@
   --fg: #000000;
   --muted: #1b1422;
   --subtle: #2b2433;
+  --subtle-on-glass: #2b2433;
   --link: #2a173e;
   --kicker: #2a173e;
   --focus: #2a173e;
@@ -278,8 +291,11 @@
   --glass-filter: none;
   --glass-sheen: none;
   --card-bg: var(--surface);
+  --card-filter: none;
   --card-edge: 0 0 0 0 transparent;
   --card-sheen: none;
+  --card-glow: transparent;
+  --shadow-pressed: 0 0 0 0 transparent;
   --dock-bg: var(--shell-bg);
   --dock-fg: var(--shell-muted);
   --dock-filter: none;
@@ -312,9 +328,17 @@ html {
   --glass-highlight: inset 0 1.5px 0 rgb(255 255 255 / 0.95), inset 0 -1px 0 rgb(255 255 255 / 0.4), inset 0 0 0 1px rgb(255 255 255 / 0.28), 0 12px 34px -14px rgb(28 15 46 / 0.36);
   --glass-filter: blur(24px) saturate(200%) contrast(1.05);
   --glass-sheen: linear-gradient(135deg, rgb(255 255 255 / 0.7) 0%, rgb(255 255 255 / 0.12) 30%, rgb(255 255 255 / 0) 55%, rgb(255 255 255 / 0.26) 100%);
-  --card-bg: color-mix(in srgb, var(--surface) 80%, transparent);
-  --card-edge: inset 0 1px 0 rgb(255 255 255 / 0.85);
-  --card-sheen: linear-gradient(180deg, rgb(255 255 255 / 0.5), rgb(255 255 255 / 0) 38%);
+  /* Cards are glass too (Caden, Nov 12): a thinner pane of the card colour over the page, blurred and a
+     little richer, with the diagonal glint and bright rim the controls have. The page behind is only ever
+     the cream and its washes, so the pane can be thin and its text still reads (design-tokens.test.ts
+     works it out); the faintest grey steps a little darker on it. */
+  --card-bg: color-mix(in srgb, var(--surface) 78%, transparent);
+  --card-filter: blur(20px) saturate(190%);
+  --card-edge: inset 0 1.5px 0 rgb(255 255 255 / 0.95), inset 0 -1px 0 rgb(255 255 255 / 0.45), inset 0 0 0 1px rgb(255 255 255 / 0.32);
+  --card-sheen: linear-gradient(135deg, rgb(255 255 255 / 0.62) 0%, rgb(255 255 255 / 0.12) 30%, rgb(255 255 255 / 0) 56%, rgb(255 255 255 / 0.22) 100%);
+  /* Pressed: light pools under the finger and the shadow pulls in, as the pane meets the page. */
+  --card-glow: rgb(255 255 255 / 0.38);
+  --shadow-pressed: 0 1px 2px rgb(28 15 46 / 0.07), 0 8px 16px -10px rgb(28 15 46 / 0.2);
   /* The dock is the clearest glass in the app (Caden's reference, Nov 10): a faint tint and a light
      blur, so the page shows through and bends at the rim. With so little pane behind them, the
      icons carry their own halo in the surface colour: that is what keeps them readable over
@@ -334,8 +358,15 @@ html {
   --dock-ring: var(--surface);
   /* The page's colour while the menu drawer is open: the drawer's pane over the page (see the rule at the end of the file). */
   --drawer-root: color-mix(in srgb, var(--surface) 79%, var(--bg));
-  /* A wash of the brand's sky at the top of every page, for the glass to pick up. */
-  --page-wash: radial-gradient(130% 34rem at 50% -8rem, color-mix(in srgb, var(--sky) 40%, transparent), transparent 72%);
+  /* One slight purple gradient down the page (Caden, Nov 12): the brand's lavender at the top easing to a breath of
+     purple at the foot, so the white cards sit on one coloured ground rather than each on its own. The same scheme.
+     Bare hints on the page read --subtle-on-glass (set on body), which holds AA at the gradient's strongest. */
+  --page-wash: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--sky) 62%, transparent) 0%,
+    color-mix(in srgb, var(--sky) 34%, transparent) 46%,
+    color-mix(in srgb, var(--select) 7%, transparent) 100%
+  );
   --hero-bg: var(--hero);
   /* Shape, rounder throughout (Caden's reference, Nov 10): xs 10 · sm 14 · md 24 · lg 28 · xl 32.
      Cards md, fields, thumbnails and job rows sm, tags and small tiles xs, the drawer and sheets lg.
@@ -438,6 +469,8 @@ html[data-text="xl"] {
 body {
   background: var(--page-wash) no-repeat, var(--bg);
   color: var(--fg);
+  /* The faintest grey reads from its stepped value everywhere: the page's washes sit behind bare hints too. */
+  --subtle: var(--subtle-on-glass);
   font-family: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
   font-weight: 500;
   accent-color: var(--focus);
@@ -966,12 +999,12 @@ body {
   .shift-card-actions {
     @apply mt-3 flex flex-wrap gap-2;
   }
-  /* Messages (#111, screen 8): white rows with dividers, no outer card. */
+  /* Messages (#111, screen 8): rows with dividers, in one floating card like every other list (Caden, Nov 12). */
   .thread-list {
-    @apply -mx-4 divide-y divide-border sm:mx-0;
+    @apply divide-y divide-border;
   }
   .thread-row {
-    @apply flex items-center gap-3 px-4 py-3.5 transition hover:bg-surface-2 sm:px-2;
+    @apply flex items-center gap-3 px-4 py-3.5 transition hover:bg-surface-2;
   }
   /* Profile (#111, screen 9): the identity block, then a menu of rows with a status at the right. */
   .profile-head {
@@ -981,7 +1014,7 @@ body {
     @apply divide-y divide-border;
   }
   .profile-row {
-    @apply flex min-h-14 items-center gap-3 py-2 text-fg transition hover:bg-surface-2;
+    @apply flex min-h-14 items-center gap-3 px-4 py-2 text-fg transition hover:bg-surface-2;
   }
   .profile-row-status {
     @apply ms-auto shrink-0 text-end text-sm text-subtle;
@@ -1001,7 +1034,7 @@ body {
     @apply block text-xs text-subtle;
   }
   /* Rows inside a clipped list card draw their keyboard ring inside the row. */
-  .job-row:focus-visible {
+  :is(.job-row, .thread-row, .profile-row):focus-visible {
     outline-offset: -3px;
   }
 
@@ -1129,7 +1162,8 @@ body {
     background: var(--card-sheen), var(--card-bg);
     box-shadow: var(--card-edge), var(--shadow-depth);
   }
-  /* An empty state sits in a card, quietly: a hairline, no shadow, room for one button. Never the centrepiece. */
+  /* An empty state is quiet: a hairline and room for one button, never the centrepiece. Inside a card it has no
+     shadow; standing on the page it takes the card's weight (see "Every box that stands on the page"). */
   .empty-state {
     @apply rounded-[var(--radius-inner)] border border-border px-5 py-6 text-center;
     background: var(--surface);
@@ -1341,7 +1375,6 @@ body {
   }
   .option-card:has(input:checked) {
     border-color: var(--selected);
-    box-shadow: 0 0 0 1px var(--selected);
   }
   /* Radios: an eggplant ring with an eggplant dot (paper by night). Sized here (appearance: none
      leaves a radio with no size of its own). */
@@ -1576,10 +1609,6 @@ body {
   }
 
   /* ---- Data ------------------------------------------------------------ */
-  /* A card that floats over other content (the thread menu): opaque, so nothing shows through it. */
-  .card-solid {
-    background: var(--card-sheen), var(--surface);
-  }
   /* The older metric tile (scorecards, experience): the same white surface and figure as the tiles above. */
   .stat {
     @apply rounded-[var(--radius-card)] border border-border p-4;
@@ -2124,6 +2153,75 @@ body {
   .summary-item > .text-hint {
     order: 3;
   }
+  /* Every box that stands on the page has the card's weight (Caden, Nov 12): the lit top edge and the soft
+     drop that .card, .list-card, the job rows and tables already carry. Tiles, work cards, choice lists,
+     option cards and an empty state now carry them too.
+     A box inside another box stays flat: a shadow within a card reads as dirt, not depth. So does
+     anything that is a note in the flow, not a surface (.card-flat, .card-dashed, .kv, alerts). */
+  :is(.work-card, .shift-card, .turf-card, .need-tile, .stat, .stat-tile, .summary-item, .choice-list, .option-card, .empty-state, .overview-map) {
+    box-shadow: var(--card-edge), var(--shadow-depth);
+  }
+  /* ...and every one of them is a pane of glass (Caden, Nov 12), like the cards, lists and tables. A box
+     inside another keeps its own solid fill: one blur per stack, and a clear chip on a frosted card.
+     The rows you swipe and the job rows stay solid, so a list of twenty does not mean twenty blurs. */
+  :is(.card, .list-card, .data-table-wrap, .work-card, .shift-card, .turf-card, .need-tile, .stat, .stat-tile, .summary-item, .choice-list, .option-card, .empty-state) {
+    background: var(--card-sheen), var(--card-bg);
+    -webkit-backdrop-filter: var(--card-filter);
+    backdrop-filter: var(--card-filter);
+    --subtle: var(--subtle-on-glass);
+  }
+  :is(.card, .card-flat, .list-card, .work-card, .hero-card, .sheet-panel, .more-sheet-panel) :is(.card, .list-card, .data-table-wrap, .work-card, .shift-card, .turf-card, .need-tile, .stat, .stat-tile, .summary-item, .choice-list, .option-card, .empty-state) {
+    background: var(--surface);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  :is(.card, .card-flat, .list-card, .work-card, .hero-card, .sheet-panel, .more-sheet-panel) :is(.work-card, .shift-card, .turf-card, .need-tile, .stat, .stat-tile, .summary-item, .choice-list, .option-card, .empty-state, .overview-map) {
+    box-shadow: none;
+  }
+  /* A card that floats over other content (the thread menu): opaque and unblurred, so nothing shows
+     through it. Two classes, so it beats the glass rule above whatever the order. */
+  .card.card-solid {
+    background: var(--card-sheen), var(--surface);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    --subtle: var(--muted);
+  }
+  /* A chosen option keeps its ring, with the weight under it (or alone, inside a card). */
+  .option-card:has(input:checked) {
+    box-shadow: 0 0 0 1px var(--selected), var(--card-edge), var(--shadow-depth);
+  }
+  :is(.card, .card-flat, .list-card, .work-card, .hero-card, .sheet-panel, .more-sheet-panel) .option-card:has(input:checked) {
+    box-shadow: 0 0 0 1px var(--selected);
+  }
+  /* Weighted (Caden, Nov 12): a floating box dips toward the finger while it is pressed (lib/press-tilt
+     sets the angles; components/PressTilt marks the box). It sinks a little too, and eases level when let
+     go. Only transform moves, so nothing around it shifts. Not when motion is reduced. */
+  @media (prefers-reduced-motion: no-preference) {
+    html:not([data-motion="reduce"]) [data-tilt] {
+      /* Slow both ways: the card sinks under the finger and floats back, it never snaps (Caden, Nov 12).
+         Important, because a card that also carries Tailwind's `transition` utility would take that
+         utility's 120ms: utilities sit in a later layer than this one. */
+      transition-property: transform, border-color, background-color, color, box-shadow !important;
+      transition-duration: var(--dur-slow) !important;
+      transition-timing-function: var(--ease-out) !important;
+      /* Safari clips a blurred backdrop on a turning panel (as on the sheets). The page behind is a smooth
+         wash, so the pane alone carries the press, down and back: the blur returns once the card is level. */
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+    }
+    html:not([data-motion="reduce"]) [data-tilt="on"] {
+      transform: perspective(900px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) scale(0.994);
+    }
+    /* Pressed glass: light pools on the side under the finger (--tilt-lx / --tilt-ly run -1 to 1 across the
+       card) and the shadow pulls in, as the pane is pushed toward the page. Not the hero cards or a chosen
+       option, whose rings are drawn with the same property. */
+    html:not([data-motion="reduce"]) [data-tilt="on"]:not(.hero-card, .option-card) {
+      box-shadow:
+        inset calc(var(--tilt-lx, 0) * -10px) calc(var(--tilt-ly, 0) * -10px) 28px -14px var(--card-glow),
+        var(--card-edge),
+        var(--shadow-pressed);
+    }
+  }
   /* A form that keeps a reading width inside a wide workspace (#113 review, P4). */
   .form-panel {
     @apply max-w-[42.5rem];
@@ -2143,7 +2241,7 @@ body {
   .talking-point {
     @apply rounded-[var(--radius-inner)] border border-border px-4 py-3 sm:px-5;
     border-left: 4px solid var(--link); /* Eggplant in light; its dark-mode counterpart stays visible */
-    background: var(--card-bg);
+    background: var(--surface);
   }
   .summary-band {
     @apply flex flex-wrap items-baseline gap-x-5 gap-y-1 text-sm;
@@ -3266,11 +3364,17 @@ summary.list-none::-webkit-details-marker {
 
 /* ---- Print (receipts and statements, M9) --------------------------------- */
 @media print {
+  /* Paper has no glass: every pane prints solid. */
+  :root {
+    --card-filter: none;
+    --card-bg: var(--surface);
+  }
   .tpl-head:has(> .no-print) { display: none; }
   .site-header, .tabbar, .phone-top, .no-print, nextjs-portal { display: none !important; }
   html, body { background: white; color: black; }
   .page, .tpl { padding: 0; max-width: none; }
   .card, .list-card, .empty-state, .stat { background: white; border-color: #999; box-shadow: none; break-inside: avoid; }
+  :is(.work-card, .shift-card, .turf-card, .need-tile, .stat-tile, .summary-item, .choice-list, .option-card, .overview-map) { box-shadow: none; }
   .empty-art { display: none; } /* theme colours don't survive white paper; the words carry the meaning */
   a { color: inherit; text-decoration: none; }
   /* A table prints whole: no scroll box, no sticky header, rows not split across pages. */
@@ -3747,6 +3851,8 @@ summary.list-none::-webkit-details-marker {
     --glass-filter: none;
     --glass-sheen: none;
     --card-bg: var(--surface);
+    --card-filter: none;
+    --card-glow: transparent;
     --card-sheen: none;
     --page-wash: none;
   }

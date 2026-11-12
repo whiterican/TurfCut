@@ -93,7 +93,7 @@ export default async function OrgSettingsPage() {
       <section className="section">
         <h2 className="section-title">Legal-review contact</h2>
         {isOwner ? (
-          <form action={saveLegalContact} className="flex flex-col gap-3 sm:flex-row sm:items-end">
+          <form action={saveLegalContact} className="card flex flex-col gap-3 sm:flex-row sm:items-end">
             <label className="flex-1 space-y-1.5">
               <span className="label">Who reviews legal questions for your organization</span>
               <input name="legalContact" className="field" maxLength={200} defaultValue={org.legalContact ?? ""} placeholder="Name, email or phone" />

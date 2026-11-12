@@ -176,6 +176,33 @@ describe.each([
       // On the drawer and sheets the faintest grey steps up to muted, as in the bars.
       expect(css).toMatch(/:is\(\.thread-top, \.composer, \.more-sheet-panel, \.sheet-panel\) \{\s*--subtle: var\(--muted\);/);
     }
+    // Cards are glass too (Caden, Nov 12). Unlike the controls they never float over content: behind a card is only the page
+    // and its washes. So the worst case is the strongest wash over the page colour, and text on the pane holds AA over that.
+    if (name !== "sunlight") {
+      const dark = name === "dark";
+      expect(dark ? themeBody(css, ".dark") : css).toMatch(dark ? /--card-bg: color-mix\(in srgb, var\(--surface\) 58%, transparent\);\s*--card-filter: blur\(20px\) saturate\(160%\);/ : /--card-bg: color-mix\(in srgb, var\(--surface\) 78%, transparent\);\s*--card-filter: blur\(20px\) saturate\(190%\);/);
+      const h = (c: RGB) => "#" + c.map((v) => Math.round(v).toString(16).padStart(2, "0")).join("");
+      // Every wash at once, though they sit apart on the page: by day the sky (40%) with the purple (6%), by night the pale ring (17%), the deeper one (20%) and the green (10%).
+      const page = dark ? mix(t.select, 0.1, h(mix(t["ring-3"], 0.2, h(mix(t.ring, 0.17, t.bg))))) : mix(t.sky, 0.62, t.bg);
+      const card = mix(t.surface, dark ? 0.58 : 0.78, h(page));
+      expect(ratio(t.fg, card)).toBeGreaterThanOrEqual(7);
+      expect(ratio(t.muted, card)).toBeGreaterThanOrEqual(4.5);
+      // The faintest grey steps a little darker on the pane by day (Subtle itself is locked, and falls just under AA there).
+      expect(t["subtle-on-glass"]).toBe(dark ? t.subtle : "#4f5d72");
+      expect(ratio(t["subtle-on-glass"], card)).toBeGreaterThanOrEqual(4.5);
+      // Bare hints sit on the page itself, so the page reads the stepped grey too, over its strongest wash.
+      // By day that is every wash at once. By night the washes are checked one at a time, at their centres. They do
+      // overlap on a one-screen page, but only on their fades: scanning the real gradients at phone, tablet and
+      // desktop sizes, the worst point is 6.2. All three stacked at full strength (which the geometry never gives) is 3.5.
+      const bare = dark ? [mix(t.ring, 0.17, t.bg), mix(t["ring-3"], 0.2, t.bg), mix(t.select, 0.1, t.bg)] : [page];
+      for (const wash of bare) expect(ratio(t["subtle-on-glass"], wash)).toBeGreaterThanOrEqual(4.5);
+      expect(css).toMatch(/\nbody \{[^}]*?--subtle: var\(--subtle-on-glass\);/);
+      // The menu that hangs over a thread is opaque: two classes, so the glass rule cannot thin it.
+      expect(css).toMatch(/\.card\.card-solid \{\s*background: var\(--card-sheen\), var\(--surface\);\s*-webkit-backdrop-filter: none;\s*backdrop-filter: none;/);
+      expect(css).toMatch(/\{\s*background: var\(--card-sheen\), var\(--card-bg\);\s*-webkit-backdrop-filter: var\(--card-filter\);\s*backdrop-filter: var\(--card-filter\);\s*--subtle: var\(--subtle-on-glass\);/);
+      // Links and status colours on the pane.
+      for (const k of ["link", "danger", "success", "warning"] as const) if (t[k]) expect(ratio(t[k], card)).toBeGreaterThanOrEqual(4.5);
+    }
     // Anyone who asks for less transparency or more contrast gets solid surfaces.
     expect(css).toMatch(/@media \(prefers-reduced-transparency: reduce\), \(prefers-contrast: more\), \(forced-colors: active\) \{\s*html,\s*\.dark \{\s*--glass-bg: var\(--surface\);/);
     expect(css).toMatch(/\.site-header \{[^}]*?background: var\(--header-bg\);/);
@@ -184,7 +211,7 @@ describe.each([
     if (name !== "sunlight") expect(ratio(t.muted, mix(t.surface, 0.8, name === "dark" ? "#ffffff" : "#000000"))).toBeGreaterThanOrEqual(4.5);
     // Sunlight and the solid fallback name every pane, and the header goes back to the page colour.
     for (const body of [themeBody(css, ".sun"), css.slice(css.indexOf("@media (prefers-reduced-transparency: reduce)"), css.indexOf("\n}\n", css.indexOf("@media (prefers-reduced-transparency: reduce)")))]) {
-      for (const k of ["glass-bg", "glass-bg-strong", "glass-bg-bar", "glass-filter", "glass-sheen", "card-bg", "card-sheen", "page-wash"]) expect(body).toMatch(new RegExp(`--${k}: (var\\(--surface\\)|none);`));
+      for (const k of ["glass-bg", "glass-bg-strong", "glass-bg-bar", "glass-filter", "glass-sheen", "card-bg", "card-sheen", "card-filter", "page-wash"]) expect(body).toMatch(new RegExp(`--${k}: (var\\(--surface\\)|none);`));
       expect(body).toMatch(/--header-bg: var\(--bg\);/);
     }
     // The other text-bearing bars use the denser pane too, by night as well, and their faintest grey steps up to muted.
@@ -479,7 +506,7 @@ describe("the ten locked colours (founder's twelve-screen concept, #111)", () =>
       for (const [, name, value] of body.matchAll(/--([\w-]+):\s*([^;]+);/g)) {
         if (/^#[0-9a-fA-F]{6}$/.test(value.trim())) expect(parsed[name]).toBe(value.trim());
         else if (name === "hero-border") expect(value.trim()).toBe("transparent");
-        else expect(name).toMatch(/^(shadow|shadow-depth|glass-(bg|bg-strong|bg-bar|border|highlight|filter|sheen)|card-(bg|edge|sheen)|dock-(bg|fg|border|ring|filter|sheen|highlight|halo|current-bg|current-fg)|drawer-root|header-bg|page-wash)$/); // the only non-colour tokens: shadows and the glass recipe
+        else expect(name).toMatch(/^(shadow|shadow-depth|shadow-pressed|glass-(bg|bg-strong|bg-bar|border|highlight|filter|sheen)|card-(bg|edge|sheen|filter|glow)|dock-(bg|fg|border|ring|filter|sheen|highlight|halo|current-bg|current-fg)|drawer-root|header-bg|page-wash)$/); // the only non-colour tokens: shadows and the glass recipe
       }
     }
   });
@@ -705,6 +732,24 @@ describe("the shell (redesign B1.4)", () => {
     expect(css).toMatch(/body:has\(\.thread-top\) #content \{\s*display: flex;\s*flex-direction: column;/);
     // A read-only thread has no composer: its last message keeps clear of the screen's edge.
     expect(css).toMatch(/body:has\(\.thread-top\):not\(:has\(\.composer\)\) \.page \{\s*padding-bottom: calc\(2rem \+ env\(safe-area-inset-bottom\)\);/);
+  });
+
+  it("every box that stands on the page has the card's weight; a box inside another stays flat", () => {
+    // Caden, Nov 12: tiles, work cards, choice lists, option cards and empty states were flat beside the cards.
+    const boxes = "\\.work-card, \\.shift-card, \\.turf-card, \\.need-tile, \\.stat, \\.stat-tile, \\.summary-item, \\.choice-list, \\.option-card, \\.empty-state, \\.overview-map";
+    const inside = "\\.card, \\.card-flat, \\.list-card, \\.work-card, \\.hero-card, \\.sheet-panel, \\.more-sheet-panel";
+    expect(css).toMatch(new RegExp(`\\n  :is\\(${boxes}\\) \\{\\s*box-shadow: var\\(--card-edge\\), var\\(--shadow-depth\\);`));
+    expect(css).toMatch(new RegExp(`\\n  :is\\(${inside}\\) :is\\(${boxes}\\) \\{\\s*box-shadow: none;`));
+    // A chosen option keeps its ring on top of the weight, and alone inside a card.
+    expect(css).toMatch(/\.option-card:has\(input:checked\) \{\s*box-shadow: 0 0 0 1px var\(--selected\), var\(--card-edge\), var\(--shadow-depth\);/);
+    expect(css).toMatch(new RegExp(`:is\\(${inside}\\) \\.option-card:has\\(input:checked\\) \\{\\s*box-shadow: 0 0 0 1px var\\(--selected\\);`));
+    // One token for all of them, and they float: a faint contact shadow, then a long soft one thrown below the box. Sunlight has none (pinned above).
+    expect(css).toMatch(/\n  --shadow-depth: 0 1px 2px rgb\(28 15 46 \/ 0\.05\), 0 4px 10px -4px rgb\(28 15 46 \/ 0\.09\), 0 14px 26px -14px rgb\(28 15 46 \/ 0\.22\);/);
+    expect(themeBody(css, ".dark")).toMatch(/--shadow-depth: 0 1px 2px rgb\(0 0 0 \/ 0\.5\), 0 6px 12px -4px rgb\(0 0 0 \/ 0\.5\), 0 16px 30px -14px rgb\(0 0 0 \/ 0\.75\);/);
+    // Paper has no shadows.
+    expect(css).toMatch(/@media print \{[\s\S]*:is\(\.work-card, \.shift-card, \.turf-card, \.need-tile, \.stat-tile, \.summary-item, \.choice-list, \.option-card, \.overview-map\) \{ box-shadow: none; \}/);
+    // Notes in the flow are not surfaces: they stay flat.
+    for (const flat of [".card-flat", ".card-dashed", ".kv"]) expect(new RegExp(`\\n  \\${flat} \\{[^}]*box-shadow`).test(css)).toBe(false);
   });
 
   it("has a skip link that appears on keyboard focus, landing on a wrapper without a ring", () => {

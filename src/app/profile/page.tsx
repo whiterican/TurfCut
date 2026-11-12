@@ -87,7 +87,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
     >
       {/* The concept's menu (#111, screen 9): each row names a real record and says where it stands. */}
       <nav aria-label="Profile menu" className="-mt-2">
-        <ul className="profile-menu">
+        <ul className="list-card profile-menu">
           {menu.map((m) => (
             <li key={m.href}>
               <Link transitionTypes={["nav-forward"]} href={m.href} className="profile-row">

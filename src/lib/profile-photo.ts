@@ -4,16 +4,17 @@ import { getSupabaseServiceRoleKey, getSupabaseUrl } from "@/lib/env";
 import { checkImage } from "@/lib/image-clean";
 import { ownsKey, photoTag, photoType } from "@/lib/profile-photo-key";
 
-export { chatPhotoUrl, ownPhotoUrl, ownsKey, photoTag, photoType } from "@/lib/profile-photo-key";
+export { chatPhotoUrl, mayShowPhotoTo, ownPhotoUrl, ownsKey, photoTag, photoType } from "@/lib/profile-photo-key";
 
 /**
  * Profile photos (Caden, Nov 10 2026): anyone signed in may add a photo of
  * themself. They live in a PRIVATE Supabase Storage bucket; only the server
  * touches it (service role) and streams a photo through a signed-in route.
- * A photo is shown to the person it belongs to, and (Caden, Nov 12 2026) to
- * the people they share a chat with. Chats open only once a hire is confirmed
- * or between an organization's own staff, so a photo still stays out of
- * anything an organization sees while hiring: it shows race, age and gender.
+ * A photo is shown to the person it belongs to, and (Caden, Nov 12 2026) in
+ * chats: to the other workers a worker shares a live chat with, and a staff
+ * member's photo to the workers and staff they share one with. A worker's
+ * photo is never shown to an organization's staff, hired or not: the same
+ * people decide the next hire, and a photo shows race, age and gender.
  * Nothing ranks, matches or infers anything from a photo.
  * Setup: prisma/profile-photo.sql adds the column and creates the bucket.
  */
@@ -153,13 +154,17 @@ export async function ownPhoto(profileId: string, db: PhotoRecords, store: Photo
 
 /** Who else may be shown a person's photo. */
 export interface PhotoViewers {
-  /** Both are in one conversation now (neither removed), and neither has the other blocked. */
+  /**
+   * The viewer may be shown this person's photo: both are in one live conversation (neither removed, not archived,
+   * a direct thread only while its hire stands), neither has the other blocked, and the person is not a worker
+   * being looked at by staff.
+   */
   sharesChat(viewerId: string, profileId: string): Promise<boolean>;
 }
 
 /**
- * A person's photo for someone else: only for a viewer who shares a chat with
- * them. Null otherwise, exactly as when there is no photo, so the answer never
+ * A person's photo for someone else: only for a viewer the rule above lets
+ * see it. Null otherwise, exactly as when there is no photo, so the answer never
  * says whether a person exists or has one.
  */
 export async function chatPhoto(viewerId: string, profileId: string, db: PhotoRecords, viewers: PhotoViewers, store: PhotoStore, have?: string | null): ReturnType<typeof ownPhoto> {

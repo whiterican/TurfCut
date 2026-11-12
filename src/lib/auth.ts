@@ -36,7 +36,7 @@ export interface SessionProfile {
   roleName: string | null;
   /** Organization staff's own name (Profile.displayName), shown to them in the rail; absent or null when unset. */
   displayName?: string | null;
-  /** The person's own profile photo, if they added one; shown to them and to people they share a chat with. */
+  /** The person's own profile photo, if they added one; shown to them and in their chats (never a worker's to staff). */
   avatarKey?: string | null;
 }
 

@@ -1,7 +1,7 @@
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { chatPhoto, chatPhotoUrl, clearProfilePhoto, ownPhoto, ownPhotoUrl, ownsKey, photoTag, purgeProfilePhotos, setProfilePhoto, SWEEP_GRACE_MS, type PhotoRecords, type PhotoStore } from "./profile-photo";
+import { chatPhoto, chatPhotoUrl, clearProfilePhoto, mayShowPhotoTo, ownPhoto, ownPhotoUrl, ownsKey, photoTag, purgeProfilePhotos, setProfilePhoto, SWEEP_GRACE_MS, type PhotoRecords, type PhotoStore } from "./profile-photo";
 
 // A real 64x64 PNG (the smallest side checkImage takes), built by hand: signature, IHDR, IDAT, IEND.
 import { deflateSync, crc32 } from "node:zlib";
@@ -230,6 +230,15 @@ describe("profile photos", () => {
     expect(await chatPhoto("stranger", "p1", blind, viewers, f.store)).toBeNull();
   });
 
+  it("a worker's photo is never for staff; workers see workers and staff, staff see staff", () => {
+    for (const staff of ["OWNER", "RECRUITER", "SUPERVISOR", "COMPLIANCE", "FINANCE", "PUBLISHER", "CUSTOM", "ADMIN"]) {
+      expect(mayShowPhotoTo(staff, "WORKER")).toBe(false);
+      expect(mayShowPhotoTo("WORKER", staff)).toBe(true);
+      expect(mayShowPhotoTo(staff, "OWNER")).toBe(true);
+    }
+    expect(mayShowPhotoTo("WORKER", "WORKER")).toBe(true);
+  });
+
   it("a chat photo's address names the person and the upload, and only for a key that is theirs", () => {
     expect(chatPhotoUrl("p1", "p1/9f2c.png")).toBe("/api/profile-photo/p1?v=9f2c");
     expect(chatPhotoUrl("p1", null)).toBeNull();
@@ -258,7 +267,7 @@ describe("profile photos: who sees them", () => {
 
   it("nothing an organization sees while hiring reads a person's photo (it shows race, age and gender)", () => {
     // Only these files touch the photo code at all: the person's own navigation, profile and Settings, the two routes, the data
-    // export, closing an account and its daily retry, and chat (Caden, Nov 12): chats open only after a hire or between staff.
+    // export, closing an account and its daily retry, and chat (Caden, Nov 12), where staff are never shown a worker's photo.
     expect(sources.filter((p) => /lib\/profile-photo|photo-actions|api\/profile-photo/.test(read(p))).sort()).toEqual([
       "src/app/api/cron/purge-proofs/route.ts",
       "src/app/api/profile-photo/[profileId]/route.ts",
@@ -278,15 +287,24 @@ describe("profile photos: who sees them", () => {
     // (Campaign pages have an avatarKey of their own, on the campaign.)
     const reads = sources.filter((p) => /profile\.(findUnique|findMany|findFirst|upsert|update|updateMany)[\s\S]{0,400}avatarKey/.test(read(p)) || /avatarKey: profile\.avatarKey/.test(read(p)));
     expect(reads.sort()).toEqual(["src/lib/auth.ts", "src/lib/profile-photo-data.ts"]);
-    // Chat reads it with each person it loads, and lets it out only as a photo address the route then decides on:
-    // once for the conversation list, once per member, once per message.
+    // Chat reads it with each person it loads, and lets it out in one place only: shownPhoto, which refuses a worker's
+    // photo to staff and anyone no longer in the conversation. The route then decides again on every request.
     const chat = read("src/lib/chat-data.ts");
-    expect(chat.match(/avatarKey/g)).toHaveLength(5);
-    expect(chat.match(/chatPhotoUrl\([^)]*avatarKey\)/g)).toHaveLength(3);
+    expect(chat.match(/chatPhotoUrl\(/g)).toHaveLength(1);
+    // It is selected once (with each chat person) and named in two other places only: the type shownPhoto takes, and shownPhoto itself.
+    expect(chat.match(/avatarKey: true/g)).toHaveLength(1);
+    expect(chat.match(/avatarKey/g)).toHaveLength(3);
+    expect(chat).toMatch(/p\.removedAt === null && mayShowPhotoTo\(me\.role, p\.profile\.role\) \? chatPhotoUrl\(p\.profileId, p\.profile\.avatarKey\) : null/);
+    // A conversation that is read-only for me shows nobody's photo: removed, archived, or a direct thread whose hire has ended.
+    expect(chat).toMatch(/const live = !mine\.removedAt && !conv\.archivedAt && \(conv\.kind !== "DIRECT" \|\| isHired\(conv\.engagement\?\.status \?\? ""\)\);/);
+    expect(chat).toMatch(/photo: other && !frozen \? shownPhoto\(me, other\) : null/);
     expect(sources.filter((p) => read(p).includes("chatPhotoUrl(")).sort()).toEqual(["src/lib/chat-data.ts"]);
-    // The route for someone else's photo asks who shares a chat before anything is read.
+    // The route for someone else's photo asks the same questions of the database before anything is read.
     expect(read("src/app/api/profile-photo/[profileId]/route.ts")).toMatch(/chatPhoto\(session\.userId, profileId, photoRecords\(\), photoViewers\(\)/);
-    expect(read("src/lib/profile-photo-data.ts")).toMatch(/participants: \{ some: \{ profileId: viewerId, removedAt: null \} \}[\s\S]{0,120}participants: \{ some: \{ profileId, removedAt: null \} \}/);
+    const rule = read("src/lib/profile-photo-data.ts");
+    expect(rule).toMatch(/if \(!viewer \|\| !owner \|\| !mayShowPhotoTo\(viewer\.role, owner\.role\)\) return false;/);
+    expect(rule).toMatch(/OR: \[\{ kind: \{ not: "DIRECT" \} \}, \{ engagement: \{ status: \{ in: \["ACTIVE", "CLAIMED"\] \} \} \}\]/);
+    expect(rule).toMatch(/participants: \{ some: \{ profileId: viewerId, removedAt: null \} \}[\s\S]{0,120}participants: \{ some: \{ profileId, removedAt: null \} \}/);
     // Nor through a relation (profile: { select: { avatarKey … } }), and the bucket is named in one file only.
     expect(sources.filter((p) => /\bprofile:\s*\{[\s\S]{0,200}avatarKey/.test(read(p)))).toEqual([]);
     expect(sources.filter((p) => read(p).includes("profile-photos"))).toEqual(["src/lib/profile-photo.ts"]);

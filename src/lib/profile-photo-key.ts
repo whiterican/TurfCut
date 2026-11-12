@@ -11,6 +11,13 @@ export const photoType = (key: string): "image/png" | "image/jpeg" => (key.endsW
 /** The part of a key that names one upload: a changed photo has a new one. */
 export const photoTag = (key: string) => key.slice(key.lastIndexOf("/") + 1, key.lastIndexOf("."));
 
+/**
+ * Whose photo a person may be shown in a chat, by role alone: a worker's photo is never shown to an
+ * organization's staff (they decide who is hired, and a photo shows race, age and gender). Workers see their
+ * teammates and their managers; staff see one another.
+ */
+export const mayShowPhotoTo = (viewerRole: string, ownerRole: string) => ownerRole !== "WORKER" || viewerRole === "WORKER";
+
 /** The address of someone's photo for a person who shares a chat with them (the route decides; the address proves nothing). */
 export const chatPhotoUrl = (profileId: string, key: string | null | undefined): string | null =>
   key && ownsKey(profileId, key) ? `/api/profile-photo/${profileId}?v=${encodeURIComponent(photoTag(key))}` : null;

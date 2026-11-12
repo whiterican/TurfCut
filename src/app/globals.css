@@ -2145,6 +2145,20 @@ body {
   :is(.card, .card-flat, .list-card, .work-card, .hero-card, .sheet-panel, .more-sheet-panel) .option-card:has(input:checked) {
     box-shadow: 0 0 0 1px var(--selected);
   }
+  /* Weighted (Caden, Nov 12): a floating box dips toward the finger while it is pressed (lib/press-tilt
+     sets the angles; components/PressTilt marks the box). It sinks a little too, and eases level when let
+     go. Only transform moves, so nothing around it shifts. Not when motion is reduced. */
+  @media (prefers-reduced-motion: no-preference) {
+    html:not([data-motion="reduce"]) [data-tilt] {
+      transition-property: transform, border-color, background-color, color, box-shadow;
+      transition-duration: var(--dur-base);
+      transition-timing-function: var(--ease-out);
+    }
+    html:not([data-motion="reduce"]) [data-tilt="on"] {
+      transform: perspective(900px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) scale(0.985);
+      transition-duration: var(--dur-fast);
+    }
+  }
   /* A form that keeps a reading width inside a wide workspace (#113 review, P4). */
   .form-panel {
     @apply max-w-[42.5rem];

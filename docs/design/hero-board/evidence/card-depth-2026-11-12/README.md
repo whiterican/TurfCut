@@ -26,3 +26,18 @@ Chromium at 390 wide, light and dark: the Desk, a worker's schedule, profile, pr
 ## Not checked
 
 A real phone, and every screen: the rule is by class, so any screen using these boxes picks it up, but only the screens above were looked at. The hero cards, the public page's featured card and the header buttons take the stronger shadow too and were not looked at one by one. Printed pages have no shadows.
+
+## Weighted: a pressed card dips toward the finger (same day)
+
+Caden: "wherever someone presses or taps it weighs that side of the card down", and for cards that hold information, such as the sign-in card, too.
+
+- While a floating box is pressed it turns toward the finger: pressing the right side sends the right edge down, pressing the top sends the top down, a corner dips on both. It also sinks very slightly. Letting go, scrolling or leaving sets it level again.
+- A small tile dips up to 6 degrees; a big card much less (a phone-wide card about 2.5, a long list 1.2), so nothing swings.
+- A tile inside a card dips with its card, as one piece.
+- It applies to the boxes that float: cards, hero cards, lists, work, shift and turf cards, the Desk's tiles, summary tiles, job rows, option cards and empty states. Not the job cards you swipe (they move under the finger already), not tables (they scroll), not choice lists.
+- The press still does whatever it did: links open, fields take focus, buttons press. Nothing moves around the card, because only the card itself turns.
+- Off when motion is reduced, by the phone's setting or the app's.
+
+`pressed-tile-right-light.png`: the first tile held at its right edge. `pressed-sign-in-top-dark.png`: the sign-in card held near its top.
+
+Checked in Chromium with a held mouse press (tile and sign-in card, light and dark), the angles set and cleared, reduced motion leaving the card still, and a tap on a card link still opening it. Not checked: a real finger on a real phone, where the feel of it is the whole point; and typing in a field while its card is tilted, which lasts only as long as the press.

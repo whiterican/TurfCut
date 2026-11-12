@@ -233,7 +233,7 @@ export function OrgTabBar({ tabs, more, extra, notices = 0, person }: { tabs: Na
     window.addEventListener(OPEN_MENU, onOpen);
     return () => window.removeEventListener(OPEN_MENU, onOpen);
   }, []);
-  // A swipe in from either edge of the screen opens the drawer, and a swipe left on it closes it
+  // A swipe in from the left edge of the screen opens the drawer, and a swipe left on it closes it
   // (lib/edge-swipe). Phones only: from 768 the sidebar is always there. A touch that begins on
   // something with its own sideways drag (a job card, a map, a field) is left alone.
   const hasMore = more.length > 0;

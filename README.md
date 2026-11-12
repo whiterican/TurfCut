@@ -1794,8 +1794,10 @@ once in the Supabase SQL editor (two nullable columns on `WorkEvent`).
   deletes ("Message deleted") are new rows; the original is never changed.
 - **Attachments**: documents only (PDF, Word, Excel, text; up to 4 MB). Photos
   are refused everywhere, and documents are scanned for pictures (scanned
-  PDFs, embedded images, images encoded as text). The composer always shows
-  "Do not photograph or share signed petition sheets."
+  PDFs, embedded images, images encoded as text). The composer shows
+  "Do not photograph or share signed petition sheets." while a file is
+  attached, a refused photo is answered with the same words, and the rule is
+  in the guide for workers and organizations.
 - **Live updates**: Supabase Realtime, filtered by row-level security, with a
   15-second refresh as a fallback. Unread counts per thread and on the
   Messages tab. No push or email yet — `onMessageSent` in

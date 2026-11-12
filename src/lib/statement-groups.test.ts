@@ -59,4 +59,14 @@ describe("the statement page uses the groups", () => {
   it("links each By campaign row to its lines when they are grouped", () => {
     expect(view).toMatch(/href=\{`#\$\{jobAnchor\(c\.jobId\)\}`\}/);
   });
+  it("gives each group the anchor the link points at, and the statement's own figures as its subtotal", () => {
+    expect(view).toMatch(/\{groups\.map\(\(g\) => \(\s*<div key=\{g\.anchor\} id=\{g\.anchor\}/);
+    expect(view).toMatch(/<LinesTable lines=\{g\.lines\}[^>]*total=\{\{ label: "Subtotal", grossCents: g\.grossCents, feeCents: g\.feeCents \}\}/);
+    expect(view).toMatch(/grouped \? \(\s*<>\s*\{groups\.map/);
+  });
+  it("counts a job's lines by the same rule as the month's totals", () => {
+    const data = readFileSync(join(__dirname, "statements-data.ts"), "utf8");
+    expect(data).toMatch(/const countedAt = closedAt \?\? now;\s*lines\.forEach\(\(l, i\) => \{\s*const v = voidedAt\(f\.recorded\[i\]\);\s*if \(v && v <= countedAt\) return;/);
+    expect(data).toMatch(/const live = f\.recorded\.filter\(\(l\) => \{\s*const v = voidedAt\(l\);\s*return !v \|\| v > at;/);
+  });
 });

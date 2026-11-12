@@ -147,7 +147,7 @@ export function StatementView({ s }: { s: View }) {
                   <span className="block font-medium text-fg">{c.jobId ? <Link href={`/jobs/${c.jobId}`} className="link">{c.title}</Link> : c.title}</span>
                   <span className="block text-xs text-muted">
                     {c.lineCount} {c.lineCount === 1 ? "line" : "lines"} · {money(c.feeCents)} fee
-                    {grouped && <> · <a href={`#${jobAnchor(c.jobId)}`} className="link print:hidden">See {c.lineCount === 1 ? "the line" : "the lines"}<span className="sr-only"> for {c.title}</span></a></>}
+                    {grouped && <span className="print:hidden"> · <a href={`#${jobAnchor(c.jobId)}`} className="link">See its lines<span className="sr-only">: {c.title}</span></a></span>}
                   </span>
                 </span>
                 <Amount cents={c.grossCents} />
@@ -164,20 +164,20 @@ export function StatementView({ s }: { s: View }) {
         ) : grouped ? (
           <>
             {groups.map((g) => (
-              <div key={g.anchor} id={g.anchor} className="scroll-mt-24 space-y-2">
-                <h3 className="text-sm font-semibold text-fg">{g.jobId ? <Link href={`/jobs/${g.jobId}`} className="link">{g.title}</Link> : g.title}</h3>
+              <div key={g.anchor} id={g.anchor} className="space-y-2">
+                <h3 className="break-after-avoid text-sm font-semibold text-fg">{g.jobId ? <Link href={`/jobs/${g.jobId}`} className="link">{g.title}</Link> : g.title}</h3>
                 <LinesTable lines={g.lines} caption={`Pay recorded in ${s.label}: ${g.title}`} total={{ label: "Subtotal", grossCents: g.grossCents, feeCents: g.feeCents }} markUncounted />
               </div>
             ))}
-            <ul className="list-card text-sm">
-              <li className="flex items-center justify-between gap-4 bg-surface-2 px-4 py-3">
+            <div className="list-card text-sm">
+              <p className="flex items-center justify-between gap-4 bg-surface-2 px-4 py-3">
                 <span className="min-w-0">
                   <span className="block font-semibold text-fg">Recorded, all jobs</span>
                   <span className="block text-xs text-muted">{money(t.feeCents)} platform fee on top</span>
                 </span>
                 <Amount cents={t.grossCents} bold />
-              </li>
-            </ul>
+              </p>
+            </div>
           </>
         ) : (
           <LinesTable lines={s.lines} caption={`Pay recorded in ${s.label}`} total={{ label: "Recorded", grossCents: t.grossCents, feeCents: t.feeCents }} markUncounted />

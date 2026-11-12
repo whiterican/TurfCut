@@ -266,12 +266,16 @@ export async function loadStatement(actor: PayActor, raw: unknown, now = new Dat
   const lines = f.recorded.map((l) => lineView(l, f, period, closedAt));
   const corrections = [...lines.filter((l) => l.corrects), ...f.withdrawn.map((l) => lineView(l, f, period, closedAt))];
   const byJob = new Map<string, StatementView["campaigns"][number]>();
-  for (const l of lines) {
-    if (l.status === "VOIDED" && !l.withdrawnAfterClose) continue;
+  // Counted by the same rule as the month's totals (totalsAt): a line is out once it was withdrawn by the time the
+  // totals were taken (the close, or now for an open month). The per-job figures then add up to Pay recorded.
+  const countedAt = closedAt ?? now;
+  lines.forEach((l, i) => {
+    const v = voidedAt(f.recorded[i]);
+    if (v && v <= countedAt) return;
     const key = l.jobId ?? "";
     const c0 = byJob.get(key) ?? { jobId: l.jobId, title: l.jobTitle ?? "Other pay", grossCents: 0, feeCents: 0, lineCount: 0 };
     byJob.set(key, { ...c0, grossCents: c0.grossCents + l.amountCents, feeCents: c0.feeCents + l.feeCents, lineCount: c0.lineCount + 1 });
-  }
+  });
   return {
     period,
     number: statementNumber(period),

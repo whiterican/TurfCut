@@ -181,16 +181,16 @@ describe.each([
     // and any bare line of text can pass over that colour. Everything is held to it.
     if (name !== "sunlight") {
       const dark = name === "dark";
-      expect(dark ? themeBody(css, ".dark") : css).toMatch(dark ? /--card-bg: color-mix\(in srgb, var\(--surface\) 40%, transparent\);\s*--card-filter: none;/ : /--card-bg: color-mix\(in srgb, var\(--surface\) 38%, transparent\);\s*--card-filter: none;/);
+      expect(dark ? themeBody(css, ".dark") : css).toMatch(dark ? /--card-bg: color-mix\(in srgb, var\(--surface\) 72%, transparent\);\s*--card-filter: none;/ : /--card-bg: color-mix\(in srgb, var\(--surface\) 38%, transparent\);\s*--card-filter: none;/);
       // No blur on a card: behind it is only a smooth gradient, where a blur shows nothing and costs a layer per card.
       const h = (c: RGB) => "#" + c.map((v) => Math.round(v).toString(16).padStart(2, "0")).join("");
       // The gradient: opaque, from --page-top easing toward the page colour, one recipe for day and night. Pinned, so the
       // sheet cannot drift from what is checked: no stop is stronger than the first.
       expect(css).toMatch(/--page-wash: linear-gradient\(\s*180deg,\s*var\(--page-top\) 0%,\s*color-mix\(in srgb, var\(--page-top\) 58%, var\(--bg\)\) 30%,\s*color-mix\(in srgb, var\(--page-top\) 22%, var\(--bg\)\) 64%,\s*color-mix\(in srgb, var\(--page-top\) 8%, var\(--bg\)\) 100%\s*\);/);
       expect(themeBody(css, ".dark")).not.toMatch(/--page-wash:/);
-      expect(t["page-top"]).toBe(dark ? "#3c1f66" : "#d6c9ea");
+      expect(t["page-top"]).toBe(dark ? "#20132f" : "#d6c9ea");
       const page = rgb(t["page-top"]);
-      const card = mix(t.surface, dark ? 0.4 : 0.38, h(page));
+      const card = mix(t.surface, dark ? 0.72 : 0.38, h(page));
       // On the pane and on the bare page at its strongest: body text AAA, and every other text colour AA. Form errors,
       // "done" marks and warnings sit on both, so the status colours are held to both.
       for (const ground of [card, page]) {
@@ -206,7 +206,7 @@ describe.each([
         const glint = themeBody(css, ".dark").match(/--card-sheen: linear-gradient\(135deg, rgb\(255 255 255 \/ ([\d.]+)\) 0%, rgb\(255 255 255 \/ ([\d.]+)\) 30%, rgb\(255 255 255 \/ 0\) 56%, rgb\(255 255 255 \/ ([\d.]+)\) 100%\);/);
         expect(glint).not.toBeNull();
         const brightest = Math.max(...glint!.slice(1).map(Number));
-        expect(brightest).toBe(0.1);
+        expect(brightest).toBeLessThanOrEqual(0.03); // nearly matt by night
         const lit = mix("#ffffff", brightest, h(card));
         for (const k of ["fg", "muted", "subtle-on-glass", "kicker", "link", "danger", "success", "warning"] as const) expect(ratio(t[k], lit)).toBeGreaterThanOrEqual(4.5);
       }

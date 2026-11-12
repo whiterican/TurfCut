@@ -416,10 +416,13 @@ export function Composer({ conversationId, manager, placeholder, parentId = null
           <ArrowUp />
         </button>
       </div>
-      {/* Persistent custody reminder (spec): always visible in the composer. */}
-      <p className="text-[0.75rem] leading-snug text-muted" role="note">
-        <strong className="font-semibold text-fg">{PETITION_NOTICE.split(". ")[0]}.</strong> {PETITION_NOTICE.split(". ").slice(1).join(". ")}
-      </p>
+      {/* The custody reminder shows when a file is about to be sent, the moment it matters (Caden, Nov 11: it sat under every
+          message box in bold). It is also in the guide, and a photo is refused with the same words. */}
+      {file && (
+        <p className="text-xs leading-snug text-muted" role="note">
+          {PETITION_NOTICE}
+        </p>
+      )}
       {fileError && <p role="alert" className="text-danger-msg">{fileError}</p>}
       {state.message && !state.ok && <p role="alert" className="text-danger-msg">{state.message}</p>}
     </form>

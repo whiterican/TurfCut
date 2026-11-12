@@ -189,9 +189,15 @@
   --shadow: var(--shadow-depth);
   color-scheme: dark;
   /* Liquid Glass by night: a dimmer pane, a fainter lit edge. */
+  --dock-bg: color-mix(in srgb, var(--surface) 16%, transparent);
+  --dock-filter: blur(3.5px) saturate(130%);
+  --dock-sheen: linear-gradient(135deg, rgb(255 255 255 / 0.1) 0%, rgb(255 255 255 / 0.02) 30%, rgb(255 255 255 / 0) 58%, rgb(255 255 255 / 0.05) 100%);
+  --dock-highlight: inset 0 1px 0 rgb(255 255 255 / 0.4), inset 0 -1px 0 rgb(255 255 255 / 0.1), inset 0 0 0 1px rgb(255 255 255 / 0.1), inset 0 0 16px rgb(255 255 255 / 0.07), 0 14px 36px -14px rgb(0 0 0 / 0.8);
+  --dock-halo: var(--bg);
+  --dock-current-fg: var(--ink);
   --glass-bg: color-mix(in srgb, var(--surface) 62%, transparent);
   --glass-bg-strong: color-mix(in srgb, var(--surface) 78%, transparent);
-  --drawer-root: color-mix(in srgb, var(--surface) 78%, color-mix(in srgb, rgb(8 4 14) 60%, var(--bg)));
+  --drawer-root: color-mix(in srgb, var(--surface) 78%, var(--bg));
   --glass-bg-bar: color-mix(in srgb, var(--surface) 80%, transparent);
   --glass-border: rgb(255 255 255 / 0.2);
   --glass-highlight: inset 0 1px 0 rgb(255 255 255 / 0.34), inset 0 -1px 0 rgb(255 255 255 / 0.08), inset 0 0 0 1px rgb(255 255 255 / 0.06), 0 14px 36px -14px rgb(0 0 0 / 0.75);
@@ -276,6 +282,10 @@
   --card-sheen: none;
   --dock-bg: var(--shell-bg);
   --dock-fg: var(--shell-muted);
+  --dock-filter: none;
+  --dock-sheen: none;
+  --dock-highlight: 0 0 0 0 transparent;
+  --dock-halo: transparent;
   --page-wash: none;
 }
 
@@ -305,15 +315,25 @@ html {
   --card-bg: color-mix(in srgb, var(--surface) 80%, transparent);
   --card-edge: inset 0 1px 0 rgb(255 255 255 / 0.85);
   --card-sheen: linear-gradient(180deg, rgb(255 255 255 / 0.5), rgb(255 255 255 / 0) 38%);
-  /* The dock is glass too: ink icons, the current one in a tinted capsule. */
-  --dock-bg: var(--glass-bg);
+  /* The dock is the clearest glass in the app (Caden's reference, Nov 10): a faint tint and a light
+     blur, so the page shows through and bends at the rim. With so little pane behind them, the
+     icons carry their own halo in the surface colour: that is what keeps them readable over
+     anything. The current one sits in a tinted capsule. */
+  --dock-bg: color-mix(in srgb, var(--surface) 12%, transparent);
+  --dock-filter: blur(3.5px) saturate(170%);
+  --dock-sheen: linear-gradient(135deg, rgb(255 255 255 / 0.22) 0%, rgb(255 255 255 / 0.03) 30%, rgb(255 255 255 / 0) 58%, rgb(255 255 255 / 0.1) 100%);
+  --dock-highlight: inset 0 1.5px 0 rgb(255 255 255 / 0.95), inset 0 -1px 0 rgb(255 255 255 / 0.5), inset 0 0 0 1px rgb(255 255 255 / 0.36), inset 0 0 12px rgb(255 255 255 / 0.22), 0 10px 30px -12px rgb(28 15 46 / 0.42);
+  --dock-halo: var(--surface);
   --dock-fg: var(--fg);
-  --dock-current-fg: var(--fg);
+  /* The tab you're on is the one solid thing on the clear dock (Caden, Nov 11: a tint read as washed out):
+     the selection colour nearly opaque, with the icon in the colour that reads on it. */
+  --dock-current-bg: color-mix(in srgb, var(--select) 92%, transparent);
+  --dock-current-fg: #ffffff;
   --dock-capsule: color-mix(in srgb, var(--select) 26%, transparent);
   --dock-border: color-mix(in srgb, var(--fg) 14%, transparent);
   --dock-ring: var(--surface);
-  /* The root's colour while the menu drawer is open: the drawer's pane over the dimmed page (see the rule at the end of the file). */
-  --drawer-root: color-mix(in srgb, var(--surface) 79%, color-mix(in srgb, rgb(24 20 30) 45%, var(--bg)));
+  /* The page's colour while the menu drawer is open: the drawer's pane over the page (see the rule at the end of the file). */
+  --drawer-root: color-mix(in srgb, var(--surface) 79%, var(--bg));
   /* A wash of the brand's sky at the top of every page, for the glass to pick up. */
   --page-wash: radial-gradient(130% 34rem at 50% -8rem, color-mix(in srgb, var(--sky) 40%, transparent), transparent 72%);
   --hero-bg: var(--hero);
@@ -1704,12 +1724,12 @@ body {
     @apply fixed z-40 mx-auto max-w-[20rem] rounded-full p-1.5;
     inset-inline: 12px;
     bottom: calc(10px + env(safe-area-inset-bottom));
-    background: var(--glass-sheen), var(--dock-bg);
+    background: var(--dock-sheen), var(--dock-bg);
     border: 1px solid var(--dock-border);
-    -webkit-backdrop-filter: var(--glass-filter);
-    backdrop-filter: var(--glass-filter);
+    -webkit-backdrop-filter: var(--dock-filter);
+    backdrop-filter: var(--dock-filter);
     color: var(--dock-fg);
-    box-shadow: var(--glass-highlight);
+    box-shadow: var(--dock-highlight);
     transition: transform var(--dur-slow) var(--ease-out);
   }
   /* From 768 the sidebar takes over, and the dock goes (Caden, Nov 10: tablets use the desktop
@@ -1742,11 +1762,16 @@ body {
   .tab[aria-current] {
     @apply font-semibold;
     color: var(--dock-current-fg);
-    background: var(--dock-capsule);
+    background: var(--dock-current-bg);
+    /* A lit top edge, so the solid capsule still reads as glass. */
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.28), 0 1px 3px rgb(0 0 0 / 0.18);
     view-transition-name: tab-current;
   }
   .tab-icon {
     @apply size-6 shrink-0 transition;
+    /* The dock's pane is nearly clear, so each icon is outlined in the surface colour: it reads over a
+       photo, a dark card or text passing underneath. */
+    filter: drop-shadow(0 0 0.5px var(--dock-halo)) drop-shadow(0 0 0.5px var(--dock-halo)) drop-shadow(0 0 0.5px var(--dock-halo)) drop-shadow(0 0 1px var(--dock-halo)) drop-shadow(0 0 3px var(--dock-halo));
   }
   /* No words in the dock (Caden, Nov 10): a tab's name is read, never drawn. */
   .tab-label {
@@ -1763,6 +1788,8 @@ body {
   .tab[aria-current] .tab-icon {
     color: var(--dock-current-fg);
     stroke-width: 2.5;
+    /* It sits on its own solid capsule: no halo needed, and one would smudge it. */
+    filter: none;
   }
   /* Sunlight keeps its white current tile with black type (outdoor glare). */
   .sun .tab[aria-current] {
@@ -2308,6 +2335,13 @@ body {
     height: 100dvh;
     max-height: 100dvh;
     color: inherit;
+    /* The dim behind the drawer is this shadow, not the backdrop (see the backdrop's note below). It follows
+       the panel's rounded corner, so the notch there is dimmed too. */
+    border-end-end-radius: var(--radius-lg);
+    box-shadow: 0 0 0 100vmax rgb(24 20 30 / 0.45);
+  }
+  .dark .more-sheet {
+    box-shadow: 0 0 0 100vmax rgb(8 4 14 / 0.6);
   }
   @media (prefers-reduced-motion: no-preference) {
     .more-sheet[open] {
@@ -2395,12 +2429,18 @@ body {
     @apply flex items-center px-4 sm:px-6 md:hidden;
     padding-top: calc(0.75rem + env(safe-area-inset-top));
   }
-  /* Dims the page (never a pale wash, which reads as disabled). */
+  /* The backdrop is clear, and still takes the press that closes the drawer. An installed app on an iPhone
+     colours the status bar's strip from whatever is fixed across the top of the screen: a dim backdrop made
+     that strip a dark band above the drawer (Caden's phone, Nov 11). The page is dimmed by the drawer's own
+     shadow (never a pale wash, which reads as disabled). */
   .more-sheet::backdrop {
-    background: rgb(24 20 30 / 0.45);
+    background: transparent;
   }
-  .dark .more-sheet::backdrop {
-    background: rgb(8 4 14 / 0.6);
+  /* Forced colours drop shadows: the backdrop veils the page there. */
+  @media (forced-colors: active) {
+    .more-sheet::backdrop {
+      background: rgb(0 0 0 / 0.5);
+    }
   }
   /* Bottom sheet (components/Sheet.tsx, P1.6): a native modal dialog that
      springs up from the bottom edge; centred on wide screens. */
@@ -2831,8 +2871,9 @@ body {
     outline: 2px solid var(--focus);
     outline-offset: 2px;
   }
-  /* The composer stays above the floating tab bar while you scroll the
-     thread (bar: 4.75rem tall, 0.75rem off the bottom, plus a gap). */
+  /* The composer stays at the bottom while you scroll the thread. On a phone the thread has no dock
+     and it sits on the screen's edge (see the unlayered rule near the end of the file); the value
+     here is only the fallback under it. */
   .composer {
     @apply sticky z-30 -mx-4 space-y-2 border-t px-4 pt-3 pb-3 sm:-mx-6 sm:px-6;
     bottom: calc(6rem + env(safe-area-inset-bottom));
@@ -3108,6 +3149,39 @@ summary.list-none::-webkit-details-marker {
 @media (width >= 90rem) {
   .org-rail {
     border-inline-start: 1px solid var(--shell-edge);
+  }
+}
+/* A chat thread on a phone has no dock (Caden, Nov 11): the dock floated over an empty band under
+   the message box. The composer sits at the bottom of the screen; the back arrow returns to
+   Messages, where the dock is. (An organization's header keeps its menu button here; a worker's
+   menu strip is hidden on a thread, so for a worker the back arrow is the way out.)
+   Unlayered, so it wins over the layered .page, .composer and .tabbar rules. */
+@media (max-width: 47.99rem) {
+  body:has(.thread-top) .tabbar {
+    display: none;
+  }
+  body:has(.thread-top) .composer {
+    bottom: 0;
+    padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
+  }
+  /* The page ends at the composer; a thread with none (read-only) keeps a little room. A short
+     conversation still fills the screen, so the composer is at the bottom, not under the last message. */
+  /* The organization's shell holds the page in a plain block; the worker's is already a column. */
+  body:has(.thread-top) #content {
+    display: flex;
+    flex-direction: column;
+  }
+  body:has(.thread-top) .page {
+    display: flex;
+    flex: 1 0 auto;
+    flex-direction: column;
+    padding-bottom: 0;
+  }
+  body:has(.thread-top) .composer {
+    margin-top: auto;
+  }
+  body:has(.thread-top):not(:has(.composer)) .page {
+    padding-bottom: calc(2rem + env(safe-area-inset-bottom));
   }
 }
 @media (max-width: 47.99rem) {
@@ -3655,6 +3729,11 @@ summary.list-none::-webkit-details-marker {
     --glass-highlight: var(--shadow-depth);
     --card-edge: 0 0 0 0 transparent;
     --dock-border: var(--border);
+    --dock-bg: var(--surface);
+    --dock-filter: none;
+    --dock-sheen: none;
+    --dock-highlight: var(--shadow-depth);
+    --dock-halo: transparent;
     --glass-filter: none;
     --glass-sheen: none;
     --card-bg: var(--surface);
@@ -3675,12 +3754,18 @@ body:has(.thread-top) {
 :is(.thread-top, .composer, .more-sheet-panel, .sheet-panel) {
   --subtle: var(--muted);
 }
-/* An installed app on a phone draws the status bar's strip in the root's colour, above the page,
-   where the page cannot paint. While the menu drawer is open the root takes the drawer's colour,
-   and the drawer's top edge is square, so the drawer reads as running to the top of the screen.
-   Unlayered on purpose: the root's own background is unlayered, and a layered rule would lose to it. */
+/* An installed app on a phone draws the status bar's strip itself, above the page, where the page
+   cannot paint. It takes the colour from the page: the root's or the body's, or something fixed across
+   the top. While the menu drawer is open both take the drawer's colour (and its backdrop is clear), and
+   the drawer's top edge is square, so the drawer reads as running to the top of the screen.
+   Unlayered on purpose: the root's and the body's own backgrounds are unlayered, and a layered rule would lose to them. */
 @media screen {
   html:has(.more-sheet[open]) {
     background: var(--drawer-root);
+  }
+  /* No wash either: it would show through the top of the pane and not in the strip. */
+  body:has(.more-sheet[open]) {
+    --page-wash: none;
+    background-color: var(--drawer-root);
   }
 }

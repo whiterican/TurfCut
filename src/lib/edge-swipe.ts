@@ -1,10 +1,11 @@
 /**
- * Opening the menu drawer with a swipe (Caden, Nov 10): a horizontal swipe in from either edge of
- * the screen opens it, and a swipe to the left on the open drawer closes it. Pure rules;
+ * Opening the menu drawer with a swipe (Caden, Nov 10): a horizontal swipe in from the left edge of
+ * the screen, where the drawer comes from, opens it, and a swipe to the left on the open drawer closes
+ * it. One direction each way (Caden, Nov 11: a swipe from the right edge opened it too, which he did not want). Pure rules;
  * components/AppNav drives them. Only on phones, where the dock and drawer are.
  */
 
-/** A swipe has to begin this close to the left or right edge of the screen. */
+/** A swipe has to begin this close to the left edge of the screen. */
 export const EDGE_ZONE_PX = 32;
 /** ...and travel at least this far toward the middle. */
 export const EDGE_SWIPE_MIN_PX = 72;
@@ -23,13 +24,11 @@ export function edgeOf(start: Point, width: number): "left" | "right" | null {
   return null;
 }
 
-/** True when a touch that began at an edge has travelled far enough inward, and mostly sideways, to open the drawer. */
+/** True when a touch that began at the left edge has travelled far enough to the right, and mostly sideways, to open the drawer. */
 export function opensDrawer(start: Point, end: Point, width: number): boolean {
-  const edge = edgeOf(start, width);
-  if (!edge) return false;
+  if (edgeOf(start, width) !== "left") return false;
   const dx = end.x - start.x;
-  const inward = edge === "left" ? dx : -dx;
-  return inward >= EDGE_SWIPE_MIN_PX && Math.abs(dx) >= SWIPE_SLOPE * Math.abs(end.y - start.y);
+  return dx >= EDGE_SWIPE_MIN_PX && Math.abs(dx) >= SWIPE_SLOPE * Math.abs(end.y - start.y);
 }
 
 /** True when a swipe on the open drawer goes far enough to the left, and mostly sideways, to close it. */
@@ -68,5 +67,5 @@ export function tracksTouch(t: TouchStart): boolean {
   if (!t.phone || t.touches !== 1 || t.zoomed) return false;
   if (t.onDrawer) return true;
   if (!t.menuVisible || t.otherDialogOpen || t.onOwner || t.inScroller) return false;
-  return edgeOf(t.start, t.width) !== null;
+  return edgeOf(t.start, t.width) === "left";
 }

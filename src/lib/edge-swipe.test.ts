@@ -12,9 +12,10 @@ describe("opening the menu drawer with a swipe", () => {
     expect(edgeOf({ x: 200, y: 300 }, W)).toBeNull();
   });
 
-  it("opens on a swipe inward from either edge", () => {
+  it("opens on a swipe to the right from the left edge, and never from the right edge", () => {
     expect(opensDrawer({ x: 10, y: 300 }, { x: 10 + EDGE_SWIPE_MIN_PX, y: 305 }, W)).toBe(true);
-    expect(opensDrawer({ x: W - 10, y: 300 }, { x: W - 10 - EDGE_SWIPE_MIN_PX, y: 295 }, W)).toBe(true);
+    expect(opensDrawer({ x: W - 10, y: 300 }, { x: W - 10 - EDGE_SWIPE_MIN_PX, y: 295 }, W)).toBe(false);
+    expect(opensDrawer({ x: W - 10, y: 300 }, { x: 40, y: 300 }, W)).toBe(false);
   });
 
   it("does not open on a short swipe, a swipe outward, a swipe from the middle, or a scroll", () => {
@@ -44,7 +45,7 @@ describe("opening the menu drawer with a swipe", () => {
   const base: TouchStart = { phone: true, touches: 1, onDrawer: false, otherDialogOpen: false, onOwner: false, inScroller: false, menuVisible: true, zoomed: false, start: { x: 5, y: 300 }, width: W };
   it("follows a touch only where the swipe stands in for a visible menu button, and never over another gesture", () => {
     expect(tracksTouch(base)).toBe(true);
-    expect(tracksTouch({ ...base, start: { x: W - 5, y: 300 } })).toBe(true);
+    expect(tracksTouch({ ...base, start: { x: W - 5, y: 300 } })).toBe(false); // the right edge opens nothing
     expect(tracksTouch({ ...base, start: { x: 200, y: 300 } })).toBe(false);
     expect(tracksTouch({ ...base, phone: false })).toBe(false);
     expect(tracksTouch({ ...base, touches: 2 })).toBe(false);

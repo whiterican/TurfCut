@@ -197,6 +197,11 @@ describe.each([
         const ground = mix(t["page-top"], stop, t.bg);
         expect(ratio(mix("#3a2858", 0.45, h(ground)), ground)).toBeGreaterThanOrEqual(1.08);
       }
+      // At the very top the pane and the page are nearly one colour: there the card is carried by its lit edge and its shadow.
+      if (dark) {
+        expect(themeBody(css, ".dark")).toMatch(/--card-edge: inset 0 1px 0 rgb\(255 255 255 \/ 0\.25\), inset 0 -1px 0 rgb\(255 255 255 \/ 0\.06\), inset 0 0 0 1px rgb\(255 255 255 \/ 0\.08\);/);
+        expect(themeBody(css, ".dark")).toMatch(/--shadow-depth: 0 1px 2px rgb\(0 0 0 \/ 0\.5\), 0 8px 16px -4px rgb\(0 0 0 \/ 0\.55\), 0 26px 48px -16px rgb\(0 0 0 \/ 0\.9\);/);
+      }
       // On the pane and on the bare page at its strongest: body text AAA, and every other text colour AA. Form errors,
       // "done" marks and warnings sit on both, so the status colours are held to both.
       for (const ground of [card, page]) {

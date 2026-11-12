@@ -79,6 +79,8 @@ Honest limits: by night the glass is plain to see. By day it is quiet: a white p
 
 This replaces the section above ("Coming together"): the lower shadow and the whiter pane were one step on the way and are gone.
 
+**Then Caden settled on the first night version again, a little quieter and lifted** ("go with 'original dark' with slightly less shiny cards but the higher card height"). The night values now: the top colour is #3C1F66 again; a card is 45% of a lifted card colour (#3A2858, so a card stays apart from the page where the page passes through the card colour itself); its glint is 6.5% at its brightest (the first version had 10%; every status colour on a card holds AA under it, the red at 4.57:1); the lit top edge is 0.25 and the pressed glow 0.09. At the very top of the page the pane and the violet are nearly one colour (1.01:1) and the lit edge and shadow carry the card; from about a third of the way down the pane is apart by colour (1.09:1 and up). The paragraph below records the step before this one.
+
 **Later the same day, dark mode was toned down** (Caden: "a more subtle use of gradients … less reflection on the floating cards", then "go with the in between"). The night values below are superseded: the top colour is #2D1A4B (not #3C1F66), a card is 58% of the card colour (not 40%), its glint is 6% at its brightest (not 10%), the lit top edge is 0.2 (was 0.3) and the pressed glow 0.08. Day values are unchanged. About a third of the way down the screen the night page is almost exactly the card colour, so a card there is told from the page by its edge and shadow alone.
 
 - **Height**: the shadow is the first one again (a contact shadow and a long soft one thrown well below the box), by day and by night.

@@ -221,7 +221,7 @@
      night version's (Caden, Nov 12). The pane is a step lighter than the card colour (#3a2858, the surface
      lifted): the page passes through the card colour itself part-way down, and a pane of the plain surface
      vanished into it there. At the very top of the page the two are close and the lit edge tells them apart.
-     The glint is capped where the faintest status colour on a card still holds AA under it. */
+     The glint is kept where the weakest status colour on a card (the red) holds AA under it with room (4.57:1). */
   --card-bg: color-mix(in srgb, #3a2858 45%, transparent);
   --card-filter: none;
   --card-edge: inset 0 1px 0 rgb(255 255 255 / 0.25), inset 0 -1px 0 rgb(255 255 255 / 0.06), inset 0 0 0 1px rgb(255 255 255 / 0.08);

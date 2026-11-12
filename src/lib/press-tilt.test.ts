@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { TILT_MAX_DEG, TILT_MIN_DEG, TILT_TARGETS, tiltFor } from "./press-tilt";
+import { NO_TILT, TILT_MAX_DEG, TILT_MIN_DEG, TILT_TARGETS, tiltFor } from "./press-tilt";
 
 const tile = { left: 100, top: 200, width: 150, height: 120 };
 
@@ -38,6 +38,8 @@ describe("a pressed card dips toward the finger", () => {
     const targets = TILT_TARGETS.split(", ");
     for (const t of [".card", ".hero-card", ".stat-tile", ".work-card", ".shift-card", ".empty-state"]) expect(targets).toContain(t);
     for (const t of [".swipe-card", ".data-table-wrap", ".choice-list", ".card-flat", ".kv"]) expect(targets).not.toContain(t);
+    // A swiped job card holds a job row, which is a target: the press is stopped by the wrapper, with maps and pickers.
+    for (const t of [".swipe-card", ".turf-map", ".leaflet-container", "select", "input[type='range']"]) expect(NO_TILT.split(", ")).toContain(t);
   });
 });
 
@@ -57,7 +59,12 @@ describe("the dip in the stylesheet and the page", () => {
   it("does nothing when motion is reduced, never stops the tap, and is mounted once for the app", () => {
     expect(part).toMatch(/motionReduced\(\)\) return;/);
     expect(part).not.toMatch(/preventDefault|stopPropagation/);
-    for (const event of ["pointerdown", "pointermove", "pointerup", "pointercancel"]) expect(part).toContain(`document.addEventListener("${event}"`);
+    for (const event of ["pointerdown", "pointermove", "pointerup", "pointercancel", "contextmenu", "dragstart"]) expect(part).toContain(`document.addEventListener("${event}"`);
+    // The box is measured once, level; a press that starts on a map, a swiped card or a picker is left alone; a released mouse ends it.
+    expect(part.match(/getBoundingClientRect\(\)/g)).toHaveLength(1);
+    expect(part).toMatch(/closest\(NO_TILT\)\) return;/);
+    expect(part).toMatch(/e\.buttons === 0\) return level\(\);/);
+    expect(part).toMatch(/removeAttribute\("data-tilt"\)/);
     expect(readFileSync(join(__dirname, "../app/layout.tsx"), "utf8")).toContain("<PressTilt />");
   });
 });

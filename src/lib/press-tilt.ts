@@ -12,6 +12,13 @@
 export const TILT_TARGETS =
   ".card, .hero-card, .list-card, .work-card, .shift-card, .turf-card, .need-tile, .stat, .stat-tile, .summary-item, .job-photo-row, .option-card, .empty-state";
 
+/**
+ * A press that begins on one of these never dips its card: they take a drag themselves, and a card
+ * rocking under a swipe, a map being panned or a picker opening is wrong. The swiped job cards hold
+ * a job row, so the row is stopped here, by its wrapper.
+ */
+export const NO_TILT = ".swipe-card, .turf-map, .leaflet-container, select, input[type='range'], [data-no-tilt]";
+
 /** A small tile dips this far at its edge; a big card far less, so it never swings. */
 export const TILT_MAX_DEG = 6;
 export const TILT_MIN_DEG = 1.2;

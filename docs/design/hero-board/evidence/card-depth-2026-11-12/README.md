@@ -31,10 +31,10 @@ A real phone, and every screen: the rule is by class, so any screen using these 
 
 Caden: "wherever someone presses or taps it weighs that side of the card down", and for cards that hold information, such as the sign-in card, too.
 
-- While a floating box is pressed it turns toward the finger: pressing the right side sends the right edge down, pressing the top sends the top down, a corner dips on both. It also sinks very slightly. Letting go, scrolling or leaving sets it level again.
+- While a floating box is pressed it turns toward the finger: pressing the right side sends the right edge down, pressing the top sends the top down, a corner dips on both. It also sinks very slightly. Letting go sets it level again, and so does a touch that turns into a scroll, a menu or picker opening, or a drag starting. A finger that slides off the card counts as its edge until it lifts.
 - A small tile dips up to 6 degrees; a big card much less (a phone-wide card about 2.5, a long list 1.2), so nothing swings.
 - A tile inside a card dips with its card, as one piece.
-- It applies to the boxes that float: cards, hero cards, lists, work, shift and turf cards, the Desk's tiles, summary tiles, job rows, option cards and empty states. Not the job cards you swipe (they move under the finger already), not tables (they scroll), not choice lists.
+- It applies to the boxes that float: cards, hero cards, lists, work, shift and turf cards, the Desk's tiles, summary tiles, job rows, option cards and empty states. Not the job cards you swipe (they move under the finger already), not tables (they scroll), not choice lists. A press that starts on a map, a dropdown or a slider inside a card leaves the card still.
 - The press still does whatever it did: links open, fields take focus, buttons press. Nothing moves around the card, because only the card itself turns.
 - Off when motion is reduced, by the phone's setting or the app's.
 

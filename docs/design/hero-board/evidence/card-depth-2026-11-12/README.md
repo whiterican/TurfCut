@@ -64,3 +64,9 @@ Honest limits: by night the glass is plain to see. By day it is quiet: a white p
 - **Print**: every pane prints solid.
 - **Known, not changed**: pages with many cards (Pay, the schedule) carry one blur per card; if a phone scrolls roughly there, dropping the blur from `--card-filter` costs almost nothing visually.
 - **Quieter light on a press** (Caden, second try: "less dramatic"): the pool of light under the finger is under half as bright and reaches 10px where it reached 18px, and the shadow pulls in less, so a press reads as a slight settling.
+
+## Coming together (Caden, Nov 12, after a blended mock-up he liked less than the cards as they were)
+
+- **The cards stay white and sit lower.** The long shadow under a card is about a third shorter and lighter, so cards rest just off the page. By day the pane is 78% of the card colour (it was 64%), so the page's colour does not tint it.
+- **One slight purple gradient for the page**, lavender at the top easing to a breath of purple at the foot, in place of four separate washes. By day only; the night page keeps its washes.
+- **Faint grey text** on the page and on cards steps a little darker (`--subtle-on-glass` #4F5D72, was #55647A) so it holds AA at the gradient's strongest point. Earlier lines in this file that give 64% or #55647A describe the first version.

@@ -103,7 +103,7 @@
      (derived; Subtle itself is 3.84:1 on Muted, so it stays on white and Cream). */
   --muted: #475569;
   --subtle: #64748b; /* = Subtle: captions and hints on white and Cream */
-  --subtle-on-glass: #55647a; /* derived: Subtle stepped 55% toward Muted, for the same captions on a glass card (AA over the tinted page) */
+  --subtle-on-glass: #4f5d72; /* derived: Subtle stepped about 70% toward Muted, for the same captions on a glass card (AA over the tinted page) */
   --link: #1c0f2e; /* = Eggplant: 14:1 on every light surface (Forest is 4.3:1 on Muted) */
   --kicker: #475569;
   --focus: #157a46; /* = Forest */
@@ -132,7 +132,7 @@
   /* The boxes float (Caden, Nov 12): a faint contact shadow, then a long soft one thrown well below the box,
      pulled in at the sides so it reads as height, not as a dark outline. Every card, tile and row reads
      this one token, so they all float at the same height. */
-  --shadow-depth: 0 1px 2px rgb(28 15 46 / 0.05), 0 6px 12px -4px rgb(28 15 46 / 0.1), 0 22px 40px -16px rgb(28 15 46 / 0.3);
+  --shadow-depth: 0 1px 2px rgb(28 15 46 / 0.05), 0 4px 10px -4px rgb(28 15 46 / 0.09), 0 14px 26px -14px rgb(28 15 46 / 0.22);
   --shadow: var(--shadow-depth);
   /* Priority rings around the next-shift card: the Eggplant family, each ring darker. */
   --select: #6a4c91; /* the selected tab or row's tint: purple by day (Caden, Nov 10) */
@@ -190,7 +190,7 @@
   --ring: #ece4f5;
   --ring-2: #cbb8e0;
   --ring-3: #a991c9;
-  --shadow-depth: 0 1px 2px rgb(0 0 0 / 0.5), 0 8px 16px -4px rgb(0 0 0 / 0.55), 0 26px 48px -16px rgb(0 0 0 / 0.9);
+  --shadow-depth: 0 1px 2px rgb(0 0 0 / 0.5), 0 6px 12px -4px rgb(0 0 0 / 0.5), 0 16px 30px -14px rgb(0 0 0 / 0.75);
   --shadow: var(--shadow-depth);
   color-scheme: dark;
   /* Liquid Glass by night: a dimmer pane, a fainter lit edge. */
@@ -212,7 +212,7 @@
   --card-edge: inset 0 1px 0 rgb(255 255 255 / 0.3), inset 0 -1px 0 rgb(255 255 255 / 0.07), inset 0 0 0 1px rgb(255 255 255 / 0.08);
   --card-sheen: linear-gradient(135deg, rgb(255 255 255 / 0.13) 0%, rgb(255 255 255 / 0.03) 30%, rgb(255 255 255 / 0) 56%, rgb(255 255 255 / 0.07) 100%);
   --card-glow: rgb(255 255 255 / 0.09);
-  --shadow-pressed: 0 1px 2px rgb(0 0 0 / 0.5), 0 14px 26px -10px rgb(0 0 0 / 0.8);
+  --shadow-pressed: 0 1px 2px rgb(0 0 0 / 0.5), 0 8px 16px -10px rgb(0 0 0 / 0.7);
   --page-wash:
     radial-gradient(130% 34rem at 50% -8rem, color-mix(in srgb, var(--ring) 17%, transparent), transparent 72%),
     radial-gradient(46rem 34rem at 108% 34%, color-mix(in srgb, var(--select) 10%, transparent), transparent 70%),
@@ -332,13 +332,13 @@ html {
      little richer, with the diagonal glint and bright rim the controls have. The page behind is only ever
      the cream and its washes, so the pane can be thin and its text still reads (design-tokens.test.ts
      works it out); the faintest grey steps a little darker on it. */
-  --card-bg: color-mix(in srgb, var(--surface) 64%, transparent);
+  --card-bg: color-mix(in srgb, var(--surface) 78%, transparent);
   --card-filter: blur(20px) saturate(190%);
   --card-edge: inset 0 1.5px 0 rgb(255 255 255 / 0.95), inset 0 -1px 0 rgb(255 255 255 / 0.45), inset 0 0 0 1px rgb(255 255 255 / 0.32);
   --card-sheen: linear-gradient(135deg, rgb(255 255 255 / 0.62) 0%, rgb(255 255 255 / 0.12) 30%, rgb(255 255 255 / 0) 56%, rgb(255 255 255 / 0.22) 100%);
   /* Pressed: light pools under the finger and the shadow pulls in, as the pane meets the page. */
   --card-glow: rgb(255 255 255 / 0.38);
-  --shadow-pressed: 0 1px 2px rgb(28 15 46 / 0.07), 0 14px 26px -10px rgb(28 15 46 / 0.26);
+  --shadow-pressed: 0 1px 2px rgb(28 15 46 / 0.07), 0 8px 16px -10px rgb(28 15 46 / 0.2);
   /* The dock is the clearest glass in the app (Caden's reference, Nov 10): a faint tint and a light
      blur, so the page shows through and bends at the rim. With so little pane behind them, the
      icons carry their own halo in the surface colour: that is what keeps them readable over
@@ -358,14 +358,15 @@ html {
   --dock-ring: var(--surface);
   /* The page's colour while the menu drawer is open: the drawer's pane over the page (see the rule at the end of the file). */
   --drawer-root: color-mix(in srgb, var(--surface) 79%, var(--bg));
-  /* Washes of the brand's sky and purple down the page, for the glass to pick up: without colour behind
-     it, a pane of glass on cream is just a white card. The same scheme, a little more of it, and no
-     stronger than the wash the top of the page already had. Bare hints on the page read --subtle-on-glass (set on body). */
-  --page-wash:
-    radial-gradient(130% 34rem at 50% -8rem, color-mix(in srgb, var(--sky) 40%, transparent), transparent 72%),
-    radial-gradient(46rem 34rem at 108% 34%, color-mix(in srgb, var(--select) 6%, transparent), transparent 70%),
-    radial-gradient(44rem 34rem at -8% 66%, color-mix(in srgb, var(--sky) 38%, transparent), transparent 70%),
-    radial-gradient(48rem 30rem at 78% 102%, color-mix(in srgb, var(--select) 5%, transparent), transparent 70%);
+  /* One slight purple gradient down the page (Caden, Nov 12): the brand's lavender at the top easing to a breath of
+     purple at the foot, so the white cards sit on one coloured ground rather than each on its own. The same scheme.
+     Bare hints on the page read --subtle-on-glass (set on body), which holds AA at the gradient's strongest. */
+  --page-wash: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--sky) 62%, transparent) 0%,
+    color-mix(in srgb, var(--sky) 34%, transparent) 46%,
+    color-mix(in srgb, var(--select) 7%, transparent) 100%
+  );
   --hero-bg: var(--hero);
   /* Shape, rounder throughout (Caden's reference, Nov 10): xs 10 · sm 14 · md 24 · lg 28 · xl 32.
      Cards md, fields, thumbnails and job rows sm, tags and small tiles xs, the drawer and sheets lg.

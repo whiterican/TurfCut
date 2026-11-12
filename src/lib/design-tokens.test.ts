@@ -180,15 +180,15 @@ describe.each([
     // and its washes. So the worst case is the strongest wash over the page colour, and text on the pane holds AA over that.
     if (name !== "sunlight") {
       const dark = name === "dark";
-      expect(dark ? themeBody(css, ".dark") : css).toMatch(dark ? /--card-bg: color-mix\(in srgb, var\(--surface\) 58%, transparent\);\s*--card-filter: blur\(20px\) saturate\(160%\);/ : /--card-bg: color-mix\(in srgb, var\(--surface\) 64%, transparent\);\s*--card-filter: blur\(20px\) saturate\(190%\);/);
+      expect(dark ? themeBody(css, ".dark") : css).toMatch(dark ? /--card-bg: color-mix\(in srgb, var\(--surface\) 58%, transparent\);\s*--card-filter: blur\(20px\) saturate\(160%\);/ : /--card-bg: color-mix\(in srgb, var\(--surface\) 78%, transparent\);\s*--card-filter: blur\(20px\) saturate\(190%\);/);
       const h = (c: RGB) => "#" + c.map((v) => Math.round(v).toString(16).padStart(2, "0")).join("");
       // Every wash at once, though they sit apart on the page: by day the sky (40%) with the purple (6%), by night the pale ring (17%), the deeper one (20%) and the green (10%).
-      const page = dark ? mix(t.select, 0.1, h(mix(t["ring-3"], 0.2, h(mix(t.ring, 0.17, t.bg))))) : mix(t.select, 0.06, h(mix(t.sky, 0.4, t.bg)));
-      const card = mix(t.surface, dark ? 0.58 : 0.64, h(page));
+      const page = dark ? mix(t.select, 0.1, h(mix(t["ring-3"], 0.2, h(mix(t.ring, 0.17, t.bg))))) : mix(t.sky, 0.62, t.bg);
+      const card = mix(t.surface, dark ? 0.58 : 0.78, h(page));
       expect(ratio(t.fg, card)).toBeGreaterThanOrEqual(7);
       expect(ratio(t.muted, card)).toBeGreaterThanOrEqual(4.5);
       // The faintest grey steps a little darker on the pane by day (Subtle itself is locked, and falls just under AA there).
-      expect(t["subtle-on-glass"]).toBe(dark ? t.subtle : "#55647a");
+      expect(t["subtle-on-glass"]).toBe(dark ? t.subtle : "#4f5d72");
       expect(ratio(t["subtle-on-glass"], card)).toBeGreaterThanOrEqual(4.5);
       // Bare hints sit on the page itself, so the page reads the stepped grey too, over its strongest wash.
       // By day that is every wash at once. By night the washes are checked one at a time, at their centres. They do
@@ -733,8 +733,8 @@ describe("the shell (redesign B1.4)", () => {
     expect(css).toMatch(/\.option-card:has\(input:checked\) \{\s*box-shadow: 0 0 0 1px var\(--selected\), var\(--card-edge\), var\(--shadow-depth\);/);
     expect(css).toMatch(new RegExp(`:is\\(${inside}\\) \\.option-card:has\\(input:checked\\) \\{\\s*box-shadow: 0 0 0 1px var\\(--selected\\);`));
     // One token for all of them, and they float: a faint contact shadow, then a long soft one thrown below the box. Sunlight has none (pinned above).
-    expect(css).toMatch(/\n  --shadow-depth: 0 1px 2px rgb\(28 15 46 \/ 0\.05\), 0 6px 12px -4px rgb\(28 15 46 \/ 0\.1\), 0 22px 40px -16px rgb\(28 15 46 \/ 0\.3\);/);
-    expect(themeBody(css, ".dark")).toMatch(/--shadow-depth: 0 1px 2px rgb\(0 0 0 \/ 0\.5\), 0 8px 16px -4px rgb\(0 0 0 \/ 0\.55\), 0 26px 48px -16px rgb\(0 0 0 \/ 0\.9\);/);
+    expect(css).toMatch(/\n  --shadow-depth: 0 1px 2px rgb\(28 15 46 \/ 0\.05\), 0 4px 10px -4px rgb\(28 15 46 \/ 0\.09\), 0 14px 26px -14px rgb\(28 15 46 \/ 0\.22\);/);
+    expect(themeBody(css, ".dark")).toMatch(/--shadow-depth: 0 1px 2px rgb\(0 0 0 \/ 0\.5\), 0 6px 12px -4px rgb\(0 0 0 \/ 0\.5\), 0 16px 30px -14px rgb\(0 0 0 \/ 0\.75\);/);
     // Paper has no shadows.
     expect(css).toMatch(/@media print \{[\s\S]*:is\(\.work-card, \.shift-card, \.turf-card, \.need-tile, \.stat-tile, \.summary-item, \.choice-list, \.option-card, \.overview-map\) \{ box-shadow: none; \}/);
     // Notes in the flow are not surfaces: they stay flat.

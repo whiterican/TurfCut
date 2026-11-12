@@ -208,7 +208,10 @@
   --dock-current-fg: var(--ink);
   --glass-bg: color-mix(in srgb, var(--surface) 62%, transparent);
   --glass-bg-strong: color-mix(in srgb, var(--surface) 78%, transparent);
-  --drawer-root: color-mix(in srgb, var(--surface) 78%, var(--bg));
+  /* The drawer is clear glass over the purple (Caden, Nov 12): its colour is half the page's top colour, and the
+     pane is that same colour part see-through, so over the strip-coloured page it comes out exactly the strip. */
+  --drawer-root: color-mix(in srgb, var(--surface) 50%, var(--page-top));
+  --drawer-bg: color-mix(in srgb, var(--drawer-root) 60%, transparent);
   --glass-bg-bar: color-mix(in srgb, var(--surface) 80%, transparent);
   --glass-border: rgb(255 255 255 / 0.2);
   --glass-highlight: inset 0 1px 0 rgb(255 255 255 / 0.34), inset 0 -1px 0 rgb(255 255 255 / 0.08), inset 0 0 0 1px rgb(255 255 255 / 0.06), 0 14px 36px -14px rgb(0 0 0 / 0.75);
@@ -285,6 +288,7 @@
   --glass-bg: var(--surface);
   --glass-bg-strong: var(--surface);
   --drawer-root: var(--surface);
+  --drawer-bg: var(--surface);
   --glass-bg-bar: var(--surface);
   --header-bg: var(--bg);
   --dock-border: var(--shell-edge);
@@ -367,7 +371,10 @@ html {
   --dock-border: color-mix(in srgb, var(--fg) 14%, transparent);
   --dock-ring: var(--surface);
   /* The page's colour while the menu drawer is open: the drawer's pane over the page (see the rule at the end of the file). */
-  --drawer-root: color-mix(in srgb, var(--surface) 79%, var(--bg));
+  /* The drawer is clear glass over the purple (Caden, Nov 12): its colour is half the page's top colour, and the
+     pane is that same colour part see-through, so over the strip-coloured page it comes out exactly the strip. */
+  --drawer-root: color-mix(in srgb, var(--surface) 50%, var(--page-top));
+  --drawer-bg: color-mix(in srgb, var(--drawer-root) 60%, transparent);
   /* The page is one purple gradient (Caden, Nov 12): strong and opaque at the top of the screen, easing to
      the page colour at the foot. It is fixed to the screen (body::before, below), so the purple is always at
      the top and the glass cards pass over it as the page scrolls. The same recipe by night, from the night's
@@ -2481,10 +2488,15 @@ body {
     color: var(--fg);
   }
   /* The row you're on: the dock's tinted capsule, not a dark block (Sunlight keeps its solid tile). */
-  html:not(.sun) .more-sheet .rail-link[aria-current] {
-    background: var(--dock-capsule);
+  /* The row you're on, and the row under your finger: a floating card like the rest of the app
+     (Caden, Nov 12), bold as well so it is not told by depth alone. Sunlight keeps its solid tile. */
+  html:not(.sun) .more-sheet .rail-link:is([aria-current], :active) {
+    background: var(--card-sheen), var(--card-bg);
     color: var(--fg);
-    box-shadow: none;
+    box-shadow: var(--card-edge), var(--shadow-depth);
+  }
+  html:not(.sun) .more-sheet .rail-link:active {
+    box-shadow: var(--card-edge), var(--shadow-pressed);
   }
   .more-extra {
     @apply mt-2 border-t border-border pt-3;
@@ -2495,7 +2507,7 @@ body {
     padding-bottom: calc(1rem + env(safe-area-inset-bottom));
     padding-inline-start: calc(1rem + env(safe-area-inset-left));
     /* No sheen and no lit top edge here: the pane meets the status bar's strip, which is one flat colour. */
-    background: var(--glass-bg-strong);
+    background: var(--drawer-bg);
     border-color: var(--glass-border);
     -webkit-backdrop-filter: var(--glass-filter);
     backdrop-filter: var(--glass-filter);
@@ -3966,6 +3978,7 @@ summary.list-none::-webkit-details-marker {
     --glass-bg: var(--surface);
     --glass-bg-strong: var(--surface);
     --drawer-root: var(--surface);
+  --drawer-bg: var(--surface);
     --glass-bg-bar: var(--surface);
     --header-bg: var(--bg);
     --glass-border: var(--border);

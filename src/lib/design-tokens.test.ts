@@ -562,7 +562,7 @@ describe("the ten locked colours (founder's twelve-screen concept, #111)", () =>
       for (const [, name, value] of body.matchAll(/--([\w-]+):\s*([^;]+);/g)) {
         if (/^#[0-9a-fA-F]{6}$/.test(value.trim())) expect(parsed[name]).toBe(value.trim());
         else if (name === "hero-border") expect(value.trim()).toBe("transparent");
-        else expect(name).toMatch(/^(shadow|shadow-depth|shadow-pressed|glass-(bg|bg-strong|bg-bar|border|highlight|filter|sheen)|card-(bg|edge|sheen|filter|glow)|dock-(bg|fg|border|ring|filter|sheen|highlight|halo|current-bg|current-fg)|drawer-root|header-bg|header-root|page-top|page-wash)$/); // the only non-colour tokens: shadows and the glass recipe
+        else expect(name).toMatch(/^(shadow|shadow-depth|shadow-pressed|glass-(bg|bg-strong|bg-bar|border|highlight|filter|sheen)|card-(bg|edge|sheen|filter|glow)|dock-(bg|fg|border|ring|filter|sheen|highlight|halo|current-bg|current-fg)|drawer-root|drawer-bg|header-bg|header-root|page-top|page-wash)$/); // the only non-colour tokens: shadows and the glass recipe
       }
     }
   });
@@ -746,7 +746,8 @@ describe("the shell (redesign B1.4)", () => {
       expect(ratio(th["tab-active-bg"], th.surface)).toBeGreaterThanOrEqual(th === dark ? 1.5 : 3);
     }
     // In the drawer the current row is the dock's capsule outside Sunlight (bold as well, so not colour alone); Sunlight keeps the solid tile above.
-    expect(css).toMatch(/html:not\(\.sun\) \.more-sheet \.rail-link\[aria-current\] \{\s*background: var\(--dock-capsule\);\s*color: var\(--fg\);\s*box-shadow: none;/);
+    expect(css).toMatch(/html:not\(\.sun\) \.more-sheet \.rail-link:is\(\[aria-current\], :active\) \{\s*background: var\(--card-sheen\), var\(--card-bg\);\s*color: var\(--fg\);\s*box-shadow: var\(--card-edge\), var\(--shadow-depth\);/);
+    expect(css).toMatch(/html:not\(\.sun\) \.more-sheet \.rail-link:active \{\s*box-shadow: var\(--card-edge\), var\(--shadow-pressed\);/);
     expect(css).toMatch(/\.rail-link\[aria-current\] \{\s*@apply font-bold;/);
     // While the drawer is open the root takes its colour (the status bar's strip in an installed app). The rule must sit outside
     // every layer, on screen only: the root's own background is unlayered and would beat a layered rule; print keeps white.
@@ -765,8 +766,10 @@ describe("the shell (redesign B1.4)", () => {
     // No theme gives the backdrop a colour again (only the forced-colours veil does), and the colour is the pane over the page.
     expect(css.match(/\.more-sheet::backdrop/g)).toHaveLength(2);
     expect(css).toMatch(/--glass-bg-strong: color-mix\(in srgb, var\(--surface\) 79%, transparent\);/);
-    expect(css).toMatch(/--drawer-root: color-mix\(in srgb, var\(--surface\) 79%, var\(--bg\)\);/);
-    expect(css).toMatch(/--glass-bg-strong: color-mix\(in srgb, var\(--surface\) 78%, transparent\);\s*--drawer-root: color-mix\(in srgb, var\(--surface\) 78%, var\(--bg\)\);/);
+    // Clear glass over the purple: the strip is half the page's top colour, and the pane is that colour part see-through, so over the strip-coloured page it is exactly the strip.
+    expect(css.match(/--drawer-root: color-mix\(in srgb, var\(--surface\) 50%, var\(--page-top\)\);\s*--drawer-bg: color-mix\(in srgb, var\(--drawer-root\) 60%, transparent\);/g)).toHaveLength(2);
+    expect(css.match(/--drawer-root: var\(--surface\);\s*--drawer-bg: var\(--surface\);/g)).toHaveLength(2);
+    expect(css).toMatch(/\.more-sheet-panel \{[^}]*?background: var\(--drawer-bg\);/);
     expect(css).toMatch(/\.more-sheet \{[^}]*border-end-end-radius: var\(--radius-lg\);\s*box-shadow: 0 0 0 100vmax rgb\(24 20 30 \/ 0\.45\);/);
     expect(css).toMatch(/\.dark \.more-sheet \{\s*box-shadow: 0 0 0 100vmax rgb\(8 4 14 \/ 0\.6\);/);
     expect(css).toMatch(/@media \(forced-colors: active\) \{\s*\.more-sheet::backdrop \{\s*background: rgb\(0 0 0 \/ 0\.5\);/);

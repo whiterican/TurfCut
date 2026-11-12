@@ -37,8 +37,8 @@ describe("scroll direction for the top row", () => {
     const css = read("app/globals.css");
     // The whole row goes on the way down, except in a chat (which scrolls itself to the newest message) and
     // while the keyboard is on one of its controls. Faded and moved, never removed.
-    expect(css).toMatch(/html\[data-scroll="down"\]:not\(:has\(\.thread-top\)\) \.site-header:not\(:has\(:focus-visible\)\) \{\s*opacity: 0;\s*translate: 0 -100%;\s*pointer-events: none;/);
-    expect(css).toMatch(/html\[data-scroll="down"\]:not\(:has\(\.thread-top\)\) \.phone-top > :not\(:focus-visible\) \{\s*opacity: 0;\s*translate: 0 -150%;\s*pointer-events: none;/);
+    expect(css).toMatch(/html\[data-scroll="down"\]:not\(:has\(\.thread-top\)\) \.site-header:not\(:has\(:focus-visible\)\) \{\s*opacity: 0;\s*translate: 0 -0\.375rem;\s*pointer-events: none;/);
+    expect(css).toMatch(/html\[data-scroll="down"\]:not\(:has\(\.thread-top\)\) \.phone-top > :not\(:focus-visible\) \{\s*opacity: 0;\s*translate: 0 -0\.375rem;\s*pointer-events: none;/);
     // The glass the row sat on shrinks to a short feather; the plain bars (Sunlight, staff, the solid fallback) go with the row.
     expect(css).toMatch(/html\[data-scroll="down"\]:not\(:has\(\.thread-top\)\) body::after \{\s*height: 2\.25rem !important;/);
     expect(css).toMatch(/html\[data-scroll="down"\]:not\(:has\(\.thread-top\)\) \.phone-top::before \{\s*height: calc\(2\.25rem \+ env\(safe-area-inset-top\)\) !important;/);

@@ -231,12 +231,12 @@ describe.each([
     expect(css).toMatch(/body:has\(\.more-sheet\[open\]\) \{\s*--page-wash: none;\s*background-color: var\(--drawer-root\);[^}]*?--page-top: var\(--drawer-root\);/);
     // Under the status bar the page blurs away into the strip's own colour, and the pill sits above that band.
     const band = css.match(/\.phone-top::before \{([^}]*)\}/)?.[1] ?? "";
-    expect(band).toMatch(/position: fixed;\s*inset: 0 0 auto;\s*height: calc\(4\.5rem \+ env\(safe-area-inset-top\)\);/);
+    expect(band).toMatch(/position: fixed;\s*inset: 0 0 auto;\s*height: calc\(5\.25rem \+ env\(safe-area-inset-top\)\);/);
     expect(band).toMatch(/background: linear-gradient\(to bottom, color-mix\(in srgb, var\(--page-top\) 62%, transparent\) 0%,[^;]*transparent 100%\);/);
     expect(band).toMatch(/backdrop-filter: blur\(7px\);/);
     expect(band).toMatch(/pointer-events: none;/);
     expect(band).toMatch(/z-index: 44;/);
-    expect(band).toMatch(/mask-image: linear-gradient\(to bottom, #000 0%, #000 58%, transparent 100%\);/);
+    expect(band).toMatch(/mask-image: linear-gradient\(to bottom, #000 0%, #000 34%, transparent 100%\);/);
     expect(band).toMatch(/view-transition-name: phone-band;/);
     expect(css).toMatch(/::view-transition-group\(site-header\),\s*::view-transition-group\(tabbar\),\s*::view-transition-group\(phone-band\),\s*::view-transition-group\(phone-pill\),/);
     expect(css).toMatch(/\.phone-top > \* \{[^}]*?view-transition-name: phone-pill;/);
@@ -258,10 +258,10 @@ describe.each([
     const SEL = "body:has(.site-header:not(.site-header-worker)):not(:has(.thread-top))::after";
     const rules = (text: string) => text.split(SEL + " {").slice(1).map((part) => part.slice(0, part.indexOf("}")));
     const [fade, sunBar] = rules(phoneBar);
-    expect(fade).toMatch(/^\s*content: "";\s*position: fixed;\s*inset: 0 0 auto;\s*height: calc\(var\(--site-header-h\) \+ 0\.875rem\);\s*z-index: 44;\s*pointer-events: none;/);
+    expect(fade).toMatch(/^\s*content: "";\s*position: fixed;\s*inset: 0 0 auto;\s*height: calc\(var\(--site-header-h\) \+ 1\.5rem\);\s*z-index: 44;\s*pointer-events: none;/);
     expect(fade).toMatch(/background: linear-gradient\(to bottom, color-mix\(in srgb, var\(--page-top\) 62%, transparent\) 0%,[^;]*transparent 100%\);/);
     expect(fade).toMatch(/backdrop-filter: blur\(7px\);/);
-    expect(fade).toMatch(/mask-image: linear-gradient\(to bottom, #000 0%, #000 58%, transparent 100%\);/);
+    expect(fade).toMatch(/mask-image: linear-gradient\(to bottom, #000 0%, #000 34%, transparent 100%\);/);
     expect(fade).toMatch(/view-transition-name: bar-fade;/);
     expect(css).not.toMatch(/\.site-header::before/);
     // Sunlight and the solid fallback: a plain bar, by the same selector so they win.
@@ -908,7 +908,7 @@ describe("the shell (redesign B1.4)", () => {
     const wide = css.slice(css.indexOf("@media (width >= 48rem) {\n  body:has(.org-rail) .site-header {"));
     expect(wide).toMatch(/\n  body:has\(\.org-rail\) \.site-header \{\s*background: none;\s*-webkit-backdrop-filter: none;\s*backdrop-filter: none;\s*\}/);
     const wideFade = wide.match(/\n  body:has\(\.org-rail\)::after \{([^}]*)\}/)?.[1] ?? "";
-    expect(wideFade).toMatch(/^\s*content: "";\s*position: fixed;\s*inset: 0 0 auto;\s*height: calc\(var\(--site-header-h\) \+ 0\.875rem\);\s*z-index: 44;\s*pointer-events: none;/);
+    expect(wideFade).toMatch(/^\s*content: "";\s*position: fixed;\s*inset: 0 0 auto;\s*height: calc\(var\(--site-header-h\) \+ 1\.5rem\);\s*z-index: 44;\s*pointer-events: none;/);
     expect(wideFade).toMatch(/background: linear-gradient\(to bottom, color-mix\(in srgb, var\(--page-top\) 62%, transparent\) 0%,[^;]*transparent 100%\);/);
     expect(wideFade).toMatch(/backdrop-filter: blur\(7px\);[\s\S]*view-transition-name: bar-fade;/);
     expect(wide).toMatch(/body:has\(\.org-rail\):has\(\.thread-top\)::after,\s*\.sun body:has\(\.org-rail\)::after \{\s*height: var\(--site-header-h\);\s*background: var\(--bg\);\s*-webkit-backdrop-filter: none;\s*backdrop-filter: none;\s*-webkit-mask-image: none;\s*mask-image: none;/);

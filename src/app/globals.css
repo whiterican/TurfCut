@@ -2590,14 +2590,14 @@ body {
     content: "";
     position: fixed;
     inset: 0 0 auto;
-    height: calc(4.5rem + env(safe-area-inset-top));
+    height: calc(5.25rem + env(safe-area-inset-top));
     z-index: 44;
     pointer-events: none;
     background: linear-gradient(to bottom, color-mix(in srgb, var(--page-top) 62%, transparent) 0%, color-mix(in srgb, var(--page-top) 34%, transparent) 60%, transparent 100%);
     -webkit-backdrop-filter: blur(7px);
     backdrop-filter: blur(7px);
-    -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 58%, transparent 100%);
-    mask-image: linear-gradient(to bottom, #000 0%, #000 58%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 34%, transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 0%, #000 34%, transparent 100%);
     /* Part of the frame, like the tab bar: a page change slides under it, not over it. */
     view-transition-name: phone-band;
   }
@@ -3336,14 +3336,14 @@ summary.list-none::-webkit-details-marker {
     content: "";
     position: fixed;
     inset: 0 0 auto;
-    height: calc(var(--site-header-h) + 0.875rem);
+    height: calc(var(--site-header-h) + 1.5rem);
     z-index: 44;
     pointer-events: none;
     background: linear-gradient(to bottom, color-mix(in srgb, var(--page-top) 62%, transparent) 0%, color-mix(in srgb, var(--page-top) 34%, transparent) 60%, transparent 100%);
     -webkit-backdrop-filter: blur(7px);
     backdrop-filter: blur(7px);
-    -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 58%, transparent 100%);
-    mask-image: linear-gradient(to bottom, #000 0%, #000 58%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 34%, transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 0%, #000 34%, transparent 100%);
     view-transition-name: bar-fade;
   }
   /* A chat pins its own bar right under this one: no fade over it, and no gradient to fade into. */
@@ -3430,14 +3430,14 @@ body:has(.staff-band)::after {
     content: "";
     position: fixed;
     inset: 0 0 auto;
-    height: calc(var(--site-header-h) + 0.875rem);
+    height: calc(var(--site-header-h) + 1.5rem);
     z-index: 44;
     pointer-events: none;
     background: linear-gradient(to bottom, color-mix(in srgb, var(--page-top) 62%, transparent) 0%, color-mix(in srgb, var(--page-top) 34%, transparent) 60%, transparent 100%);
     -webkit-backdrop-filter: blur(7px);
     backdrop-filter: blur(7px);
-    -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 58%, transparent 100%);
-    mask-image: linear-gradient(to bottom, #000 0%, #000 58%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 34%, transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 0%, #000 34%, transparent 100%);
     view-transition-name: bar-fade;
   }
   /* Sunlight has no blur and no see-through: a plain bar. */
@@ -3495,13 +3495,14 @@ body:has(.staff-band)::after {
    (Caden, Nov 12; components/ScrollDirection.tsx marks the root). Faded and slid away, never removed: the
    keyboard still reaches it, and it shows at once while one of its controls has the keyboard's focus.
    Not in a chat, which scrolls itself down to the newest message. */
+/* It fades where it stands, with only a breath of movement (Caden's second recording, Nov 12): not a slide. */
 .site-header,
 .phone-top > * {
-  transition: opacity var(--dur-base) var(--ease-standard), translate var(--dur-base) var(--ease-standard);
+  transition: opacity var(--dur-page) var(--ease-standard), translate var(--dur-page) var(--ease-standard);
 }
 html[data-scroll="down"]:not(:has(.thread-top)) .site-header:not(:has(:focus-visible)) {
   opacity: 0;
-  translate: 0 -100%;
+  translate: 0 -0.375rem;
   pointer-events: none;
 }
 /* With the row away, the glass it sat on shrinks to a short feather at the very top of the screen: enough to
@@ -3509,7 +3510,7 @@ html[data-scroll="down"]:not(:has(.thread-top)) .site-header:not(:has(:focus-vis
    rule is longer than this one. */
 body::after,
 .phone-top::before {
-  transition: height var(--dur-base) var(--ease-standard), opacity var(--dur-base) var(--ease-standard);
+  transition: height var(--dur-page) var(--ease-standard), opacity var(--dur-page) var(--ease-standard);
 }
 html[data-scroll="down"]:not(:has(.thread-top)) body::after {
   height: 2.25rem !important;
@@ -3526,7 +3527,7 @@ html[data-scroll="down"]:not(:has(.thread-top)) body:has(.staff-band)::after {
 /* A worker's phone: the pill goes, the glass band it sits on stays (the band is the row's own layer). */
 html[data-scroll="down"]:not(:has(.thread-top)) .phone-top > :not(:focus-visible) {
   opacity: 0;
-  translate: 0 -150%;
+  translate: 0 -0.375rem;
   pointer-events: none;
 }
 /* The theme switch shows its label from sm up; below that it's a bubble too. */

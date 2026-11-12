@@ -1,6 +1,6 @@
 import { NoAccessNotice } from "@/components/NoAccessNotice";
 import type { Metadata } from "next";
-import { Inter, Rubik } from "next/font/google";
+import { Figtree, Inter } from "next/font/google";
 import { MenuButton, OrgRail, OrgTabBar } from "@/components/AppNav";
 import { SignOutButton } from "@/components/SignOutButton";
 import { signOut } from "@/app/settings/actions";
@@ -22,10 +22,10 @@ import { unreadNotifications, UNREAD_CAP } from "@/lib/notifications-data";
 import { unreadPostNotices } from "@/lib/campaign-follow-data";
 import "./globals.css";
 
-// The one face: Rubik for every role (Caden, Nov 12), the four weights the
+// The one face: Figtree for every role (Caden, Nov 12), the four weights the
 // type scale uses. Figures take tabular numerals from the CSS, not a second font.
-const rubik = Rubik({
-  variable: "--font-rubik",
+const figtree = Figtree({
+  variable: "--font-figtree",
   subsets: ["latin"],
   weight: ["500", "600", "700", "800"],
 });
@@ -76,7 +76,7 @@ export default async function RootLayout({
       lang="en"
       // Server renders dark (the primary theme); the inline script corrects
       // it before first paint, so React must accept the DOM's class.
-      className={`dark ${rubik.variable} ${inter.variable} h-full antialiased`}
+      className={`dark ${figtree.variable} ${inter.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <head>

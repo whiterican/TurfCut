@@ -1,13 +1,28 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   canBlock,
   canCreateGroup,
+  canJoinChannel,
+  canLeaveChannel,
+  canManageChannels,
+  isChannelStaff,
+  REACTIONS,
+  REACTION_NAMES,
+  validateChannelName,
+  validateChannelTopic,
   canDelete,
   canEdit,
   canManageMembers,
+  canReact,
+  canReply,
   canReport,
   canSend,
+  canStartStaffDm,
   chatAccess,
+  dmKey,
+  findMentions,
   checkAttachment,
   unreadCount,
   viewMessages,
@@ -127,7 +142,7 @@ describe("what a viewer sees", () => {
 
 describe("writes", () => {
   const open = chatAccess(direct());
-  const mine = { id: "m", senderId: "w", createdAt: t(0), body: "hello", edited: false, deleted: false, attachment: null };
+  const mine = { id: "m", senderId: "w", createdAt: t(0), body: "hello", edited: false, deleted: false, attachment: null, parentId: null };
 
   it("edits own messages within 5 minutes only", () => {
     expect(canEdit(open, mine, "w", "hello!", t(4))).toEqual({ ok: true });
@@ -198,3 +213,249 @@ describe("attachments", () => {
     expect(doc("a/b.txt", new TextEncoder().encode("hi")).ok).toBe(false);
   });
 });
+
+describe("channels", () => {
+  const finance = { profileId: "fin", role: "FINANCE" as const, orgId: ORG };
+  const channel = (over: Partial<ChatFacts> = {}): ChatFacts => ({ kind: "CHANNEL", orgId: ORG, me: finance, participant: { role: "MEMBER", removedAt: null }, ...over });
+
+  it("any staff role posts in a channel it is in: no Messages area needed", () => {
+    for (const role of ["OWNER", "RECRUITER", "SUPERVISOR", "COMPLIANCE", "FINANCE", "PUBLISHER"] as const) {
+      expect(chatAccess(channel({ me: { profileId: "x", role, orgId: ORG } }))).toMatchObject({ read: true, post: true, closed: null });
+    }
+    // A custom role with no grants at all is still on staff.
+    expect(chatAccess(channel({ me: { profileId: "x", role: "CUSTOM", grants: {}, orgId: ORG } }))).toMatchObject({ read: true, post: true });
+  });
+
+  it("someone not in the channel reads nothing, staff or not", () => {
+    expect(chatAccess(channel({ participant: null }))).toMatchObject({ read: false, post: false });
+  });
+
+  it("a member who left the organization, or whose login became a worker, reads nothing more", () => {
+    expect(chatAccess(channel({ me: { ...finance, orgId: "other-org" } }))).toMatchObject({ read: false, post: false });
+    expect(chatAccess(channel({ me: { ...finance, orgId: null } }))).toMatchObject({ read: false, post: false });
+    expect(chatAccess(channel({ me: { profileId: "fin", role: "WORKER", orgId: ORG } }))).toMatchObject({ read: false, post: false });
+  });
+
+  it("a staff MEMBER row means nothing outside a channel", () => {
+    expect(chatAccess({ kind: "GROUP", orgId: ORG, me: finance, participant: { role: "MEMBER", removedAt: null } })).toMatchObject({ read: false, post: false });
+  });
+
+  it("an archived channel is read-only for everyone in it", () => {
+    expect(chatAccess(channel({ archived: true }))).toMatchObject({ read: true, post: false, closed: "This channel is archived. History is read-only." });
+    expect(chatAccess(channel({ archived: true, me: worker, participant: { role: "WORKER", removedAt: null }, hiredOnLinkedJob: true }))).toMatchObject({ read: true, post: false });
+  });
+
+  it("a worker posts in a channel only while hired on one of its jobs", () => {
+    const w = { me: worker, participant: { role: "WORKER" as const, removedAt: null } };
+    expect(chatAccess(channel({ ...w, hiredOnLinkedJob: true }))).toMatchObject({ read: true, post: true });
+    expect(chatAccess(channel({ ...w, hiredOnLinkedJob: false }))).toMatchObject({ read: true, post: false, closed: "You're no longer on a job for this channel. History is read-only." });
+  });
+
+  it("someone who left keeps read-only history up to then, while still on the organization's staff", () => {
+    const left = { role: "MEMBER" as const, removedAt: t(5) };
+    expect(chatAccess(channel({ participant: left }))).toMatchObject({ read: true, readUntil: t(5), post: false });
+    // No longer on that staff (another organization, none, or now a worker): nothing, not even the history.
+    expect(chatAccess(channel({ participant: left, me: { ...finance, orgId: "other-org" } }))).toMatchObject({ read: false, post: false });
+    expect(chatAccess(channel({ participant: left, me: { ...finance, orgId: null } }))).toMatchObject({ read: false, post: false });
+    expect(chatAccess(channel({ participant: left, me: { profileId: "fin", role: "WORKER", orgId: null } }))).toMatchObject({ read: false, post: false });
+  });
+
+  it("channels are created and managed by those who run teams, in their own organization only", () => {
+    expect(canManageChannels(boss).ok).toBe(true);
+    expect(canManageChannels({ role: "OWNER", orgId: ORG }).ok).toBe(true);
+    expect(canManageChannels(finance).ok).toBe(false);
+    expect(canManageChannels(worker).ok).toBe(false);
+    expect(canManageChannels(boss, "other-org").ok).toBe(false);
+    expect(canManageChannels({ role: "CUSTOM", grants: { messages: "full" }, orgId: ORG }).ok).toBe(true);
+    // Members of a channel are managed the same way, in the channel or not.
+    expect(canManageMembers(channel({ me: boss, participant: null })).ok).toBe(true);
+    expect(canManageMembers(channel()).ok).toBe(false);
+    expect(canManageMembers(channel({ me: { ...boss, orgId: "other-org" }, participant: null })).ok).toBe(false);
+  });
+
+  it("staff join their own organization's live channels; workers and outsiders never join by themselves", () => {
+    const c = { orgId: ORG, archived: false, isGeneral: false, participant: null };
+    expect(isChannelStaff(finance, ORG)).toBe(true);
+    expect(canJoinChannel(finance, c).ok).toBe(true);
+    expect(canJoinChannel(worker, c).ok).toBe(false);
+    expect(canJoinChannel({ role: "WORKER", orgId: ORG }, c).ok).toBe(false);
+    expect(canJoinChannel({ role: "OWNER", orgId: "other-org" }, c).ok).toBe(false);
+    expect(canJoinChannel(finance, { ...c, archived: true }).ok).toBe(false);
+    expect(canJoinChannel(finance, { ...c, participant: { role: "MEMBER", removedAt: null } }).ok).toBe(false);
+    // Someone who left may come back.
+    expect(canJoinChannel(finance, { ...c, participant: { role: "MEMBER", removedAt: t(1) } }).ok).toBe(true);
+  });
+
+  it("anyone leaves a channel except the general one", () => {
+    const mine = { role: "MEMBER" as const, removedAt: null };
+    expect(canLeaveChannel({ orgId: ORG, archived: false, isGeneral: false, participant: mine }).ok).toBe(true);
+    expect(canLeaveChannel({ orgId: ORG, archived: false, isGeneral: true, participant: mine })).toEqual({ ok: false, reason: "Everyone on staff stays in the general channel." });
+    expect(canLeaveChannel({ orgId: ORG, archived: false, isGeneral: false, participant: null }).ok).toBe(false);
+  });
+
+  it("a worker may block staff they share a channel with, never a fellow worker", () => {
+    expect(canBlock({ role: "WORKER" }, { role: "MEMBER" }).ok).toBe(true);
+    expect(canBlock({ role: "WORKER" }, { role: "MANAGER" }).ok).toBe(true);
+    expect(canBlock({ role: "WORKER" }, { role: "WORKER" }).ok).toBe(false);
+  });
+
+  it("stores a channel name lower case with hyphens, in any language, and refuses an empty or over-long one", () => {
+    expect(validateChannelName("  #Denver Sales! ")).toEqual({ ok: true, name: "denver-sales" });
+    expect(validateChannelName("door_to_door / team 2")).toEqual({ ok: true, name: "door-to-door-team-2" });
+    expect(validateChannelName("Équipe Montréal")).toEqual({ ok: true, name: "équipe-montréal" });
+    expect(validateChannelName("###").ok).toBe(false);
+    expect(validateChannelName(42).ok).toBe(false);
+    expect(validateChannelName("a".repeat(41)).ok).toBe(false);
+    expect(validateChannelName("a".repeat(40)).ok).toBe(true);
+    // Nothing that could be markup or a path survives.
+    expect(validateChannelName("<script>../x")).toEqual({ ok: true, name: "script-x" });
+  });
+
+  it("a topic is optional, one line, and at most 250 characters", () => {
+    expect(validateChannelTopic("  Daily   numbers\nand questions ")).toEqual({ ok: true, topic: "Daily numbers and questions" });
+    expect(validateChannelTopic("")).toEqual({ ok: true, topic: null });
+    expect(validateChannelTopic(undefined)).toEqual({ ok: true, topic: null });
+    expect(validateChannelTopic("x".repeat(251)).ok).toBe(false);
+  });
+});
+
+describe("threads and reactions", () => {
+  const open = chatAccess(group());
+  const frozen = chatAccess(group({ hiredOnLinkedJob: false }));
+  const top = { id: "m", senderId: "boss", createdAt: t(0), body: "Who has Elm Street?", edited: false, deleted: false, attachment: null, parentId: null };
+  const reply = { ...top, id: "r", parentId: "m" };
+
+  it("anyone who may post replies under a message they can see", () => {
+    expect(canReply(open, top).ok).toBe(true);
+    expect(canReply(open, null)).toEqual({ ok: false, reason: "That message isn't available." });
+  });
+
+  it("threads are one level deep: a reply is not replied to", () => {
+    expect(canReply(open, reply)).toEqual({ ok: false, reason: "Reply in the thread, not to a reply." });
+  });
+
+  it("a deleted message can still be answered (its thread outlives it), but not reacted to", () => {
+    const gone = { ...top, body: null, deleted: true };
+    expect(canReply(open, gone).ok).toBe(true);
+    expect(canReact(open, gone, REACTIONS[0]).ok).toBe(false);
+  });
+
+  it("someone who can no longer post neither replies nor reacts, and is told why", () => {
+    expect(canReply(frozen, top)).toEqual({ ok: false, reason: "You're no longer on a job for this team. History is read-only." });
+    expect(canReact(frozen, top, REACTIONS[0]).ok).toBe(false);
+    expect(canReact(chatAccess(direct({ participant: null })), top, REACTIONS[0]).ok).toBe(false);
+  });
+
+  it("a reaction is one of the fixed marks, nothing else", () => {
+    for (const r of REACTIONS) expect(canReact(open, top, r).ok).toBe(true);
+    for (const bad of ["", "x", "\u{1F4A9}", "\u{1F44D}\u{1F44D}", "<b>", null, 1]) expect(canReact(open, top, bad).ok).toBe(false);
+    expect(REACTIONS.length).toBe(6);
+    expect(Object.keys(REACTION_NAMES).sort()).toEqual([...REACTIONS].sort());
+  });
+
+  it("the database checks the same marks", () => {
+    const sql = readFileSync(join(process.cwd(), "prisma/p2-threads.sql"), "utf8");
+    const listed = sql.match(/CHECK \("emoji" IN \(([^)]*)\)\)/)?.[1].split(",").map((s) => s.trim().replace(/^'|'$/g, ""));
+    expect(listed).toEqual([...REACTIONS]);
+  });
+});
+
+describe("staff conversations (one to one)", () => {
+  const fin = { profileId: "fin", role: "FINANCE" as const, orgId: ORG };
+  const dm = (over: Partial<ChatFacts> = {}): ChatFacts => ({ kind: "STAFF_DM", orgId: ORG, me: fin, participant: { role: "MEMBER", removedAt: null }, ...over });
+  const person = (over: Partial<{ profileId: string; role: "OWNER" | "WORKER" | "COMPLIANCE"; orgId: string | null; closed: boolean }> = {}) => ({ profileId: "comp", role: "COMPLIANCE" as const, orgId: ORG, closed: false, ...over });
+
+  it("any two staff members of one organization may talk, whatever their roles", () => {
+    expect(canStartStaffDm(fin, person()).ok).toBe(true);
+    expect(canStartStaffDm(fin, person({ role: "OWNER" })).ok).toBe(true);
+    expect(chatAccess(dm())).toMatchObject({ read: true, post: true });
+  });
+
+  it("never with a worker, someone in another organization, a closed account, or yourself", () => {
+    expect(canStartStaffDm(fin, person({ role: "WORKER" })).ok).toBe(false);
+    expect(canStartStaffDm(fin, person({ orgId: "other-org" })).ok).toBe(false);
+    expect(canStartStaffDm(fin, person({ orgId: null })).ok).toBe(false);
+    expect(canStartStaffDm(fin, person({ closed: true })).ok).toBe(false);
+    expect(canStartStaffDm(fin, person({ profileId: "fin" })).ok).toBe(false);
+    expect(canStartStaffDm(fin, null).ok).toBe(false);
+    expect(canStartStaffDm(worker, person()).ok).toBe(false);
+    expect(canStartStaffDm({ ...fin, orgId: null }, person()).ok).toBe(false);
+  });
+
+  it("a pair has one key, whoever starts", () => {
+    expect(dmKey("b", "a")).toBe("a:b");
+    expect(dmKey("a", "b")).toBe(dmKey("b", "a"));
+  });
+
+  it("nobody else reads it: not a manager, not a worker, not someone outside it", () => {
+    expect(chatAccess(dm({ participant: null }))).toMatchObject({ read: false, post: false });
+    expect(chatAccess(dm({ me: boss, participant: { role: "MANAGER", removedAt: null } }))).toMatchObject({ read: false, post: false });
+    expect(chatAccess(dm({ me: worker, participant: { role: "WORKER", removedAt: null } }))).toMatchObject({ read: false, post: false });
+    expect(canManageMembers(dm({ me: { profileId: "o", role: "OWNER", orgId: ORG }, participant: null })).ok).toBe(false);
+  });
+
+  it("when the other person leaves the organization it turns read-only; the one who left reads nothing", () => {
+    expect(chatAccess(dm({ counterpartRemoved: true }))).toMatchObject({ read: true, post: false, closed: "This person is no longer in your organization. History is read-only." });
+    expect(chatAccess(dm({ me: { ...fin, orgId: null }, participant: { role: "MEMBER", removedAt: t(3) } }))).toMatchObject({ read: false, post: false });
+    expect(chatAccess(dm({ me: { profileId: "fin", role: "WORKER", orgId: null } }))).toMatchObject({ read: false, post: false });
+  });
+});
+
+describe("mentions", () => {
+  const people = [
+    { profileId: "sam", name: "Sam" },
+    { profileId: "samo", name: "Sam Ortiz" },
+    { profileId: "maya", name: "Maya Chen" },
+    { profileId: "maya2", name: "maya chen" },
+    { profileId: "o", name: "Owner" },
+  ];
+
+  it("names a person by @Name, whatever the letter case", () => {
+    expect(findMentions("thanks @maya chen!", people).sort()).toEqual(["maya", "maya2"]);
+    expect(findMentions("@OWNER can you approve?", people)).toEqual(["o"]);
+  });
+
+  it("the longer name wins: @Sam Ortiz is not also Sam", () => {
+    expect(findMentions("@Sam Ortiz has Elm Street", people)).toEqual(["samo"]);
+    expect(findMentions("@Sam and @Sam Ortiz", people).sort()).toEqual(["sam", "samo"]);
+  });
+
+  it("a name inside a longer word, or an email address, names nobody", () => {
+    expect(findMentions("@Samantha is new", people)).toEqual([]);
+    expect(findMentions("mail me at x@sam.org", people)).toEqual([]);
+    expect(findMentions("@Sam, are you there?", people)).toEqual(["sam"]);
+    expect(findMentions("(@Sam)", people)).toEqual(["sam"]);
+  });
+
+  it("only people passed in can be named, and a plain name without @ names nobody", () => {
+    expect(findMentions("Sam Ortiz was here, @Nobody", people)).toEqual([]);
+    expect(findMentions("@Sam", [])).toEqual([]);
+    expect(findMentions("@", people)).toEqual([]);
+  });
+
+  it("each person once, however often they are named", () => {
+    expect(findMentions("@Sam @Sam @sam", people)).toEqual(["sam"]);
+  });
+});
+
+describe("the participant guard in SQL", () => {
+  it("is defined word for word the same in both migrations, so re-running either never undoes the other", () => {
+    const fn = (file: string) => readFileSync(join(process.cwd(), "prisma", file), "utf8").match(/CREATE OR REPLACE FUNCTION "turfcut_private"\."check_channel_participant"\(\)[\s\S]*?\nEND \$\$;/g) ?? [];
+    const a = fn("p2-channels.sql");
+    const b = fn("p2-dm-mentions.sql");
+    const setup = fn("supabase-manual-setup.sql");
+    expect(a.length).toBe(1);
+    expect(b).toEqual(a);
+    expect(setup).toEqual([a[0], a[0]]);
+    expect(a[0]).toContain("STAFF_DM");
+  });
+
+  it("and so is the check on what each kind of conversation looks like", () => {
+    const chk = (file: string) => (readFileSync(join(process.cwd(), "prisma", file), "utf8").match(/ADD CONSTRAINT "Conversation_kind_shape" CHECK \([\s\S]*?\)\);/g) ?? []).filter((c) => c.includes("::text"));
+    const a = chk("p2-channels.sql");
+    expect(a.length).toBe(1);
+    expect(chk("p2-dm-mentions.sql")).toEqual(a);
+    expect(a[0]).toContain("STAFF_DM");
+  });
+});
+

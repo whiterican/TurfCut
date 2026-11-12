@@ -9,6 +9,8 @@ import { LiveRefresh } from "@/components/chat/LiveRefresh";
 import { DayTime } from "@/components/DayTime";
 import { ThreadMenu } from "@/components/chat/ThreadMenu";
 import { ArrowLeft } from "@/components/chat/icons";
+import { ChannelActions } from "@/components/chat/ChannelActions";
+import { db } from "@/lib/db";
 
 export const metadata = { title: "Conversation · Turfcut" };
 
@@ -20,12 +22,18 @@ export default async function ThreadPage({ params }: { params: Promise<{ convers
   const t = await openThread(me, conversationId);
   if (!t) notFound();
 
-  const group = t.kind === "GROUP";
+  const group = t.kind === "GROUP" || t.kind === "CHANNEL";
+  const staffDm = t.kind === "STAFF_DM";
+  const channel = t.channel;
+  // Staff talking to staff: no "Manager" tag on each other (it tells workers who is staff), and no field quick replies.
+  const staffOnly = staffDm || !!channel?.staffOnly;
   const mine = t.members.find((m) => m.isMe);
-  const iManage = mine?.role === "MANAGER";
+  const iManage = !!mine && mine.role !== "WORKER";
+  const title = channel ? `#${t.title}` : t.title;
+  const count = t.members.filter((m) => !m.removed).length;
   const counterpart = !group ? (t.members.find((m) => !m.isMe && !m.removed) ?? t.members.find((m) => !m.isMe)) : undefined;
-  const candidates = t.canManage ? await teamCandidates(me, t.jobIds) : [];
-  const canBlockCounterpart = !group && t.canBlock && !!counterpart && !counterpart.removed && counterpart.role === "MANAGER";
+  const candidates = t.canManage && !channel?.archived ? await teamCandidates(me, t.jobIds, db(), channel ? { staffOnly: channel.staffOnly } : null) : [];
+  const canBlockCounterpart = !group && t.canBlock && !!counterpart && !counterpart.removed && counterpart.role !== "WORKER";
   const firstName = (counterpart?.name ?? "").split(" ")[0];
 
   return (
@@ -38,21 +46,39 @@ export default async function ThreadPage({ params }: { params: Promise<{ convers
           <ArrowLeft />
         </Link>
         <div className="min-w-0 text-center">
-          <h1 className="truncate text-base font-bold text-fg">{t.title}</h1>
+          <h1 className="truncate text-base font-bold text-fg">{title}</h1>
           <p className="truncate font-mono text-[0.6875rem] tracking-[0.14em] text-subtle uppercase">
-            {group ? `Team chat · ${t.members.filter((m) => !m.removed).length} members` : t.subtitle || (counterpart?.role === "MANAGER" ? "Manager" : "Worker")}
+            {channel ? `${channel.staffOnly ? "Staff channel" : "Channel"} · ${count} ${count === 1 ? "member" : "members"}` : group ? `Team chat · ${count} members` : staffDm ? t.subtitle || "Staff" : t.subtitle || (counterpart && counterpart.role !== "WORKER" ? "Manager" : "Worker")}
           </p>
         </div>
         {group ? (
           <ThreadMenu label="Members and options">
-            <Members conversationId={t.id} members={t.members} canManage={t.canManage} canBlock={t.canBlock} candidates={candidates} bare />
+            {channel && (
+              <div className="space-y-1 border-b border-border px-4 py-3">
+                <p className="text-sm font-semibold text-fg">{title}</p>
+                <p className="text-sm text-muted">{channel.topic ?? "No topic set."}</p>
+                <p className="text-xs text-subtle">
+                  {channel.isGeneral ? "Everyone on staff is in this channel." : channel.staffOnly ? "Staff only. Anyone on staff can join." : `Staff, and workers hired on: ${t.subtitle}`}
+                </p>
+              </div>
+            )}
+            <Members
+              conversationId={t.id}
+              members={t.members}
+              canManage={t.canManage && !channel?.archived && !channel?.isGeneral}
+              canBlock={t.canBlock}
+              candidates={candidates}
+              bare
+              emptyHint={channel ? (channel.staffOnly ? "Everyone on staff is already here." : "Everyone eligible is already here. Workers must be hired on one of this channel's jobs.") : undefined}
+            />
+            {channel && <ChannelActions conversationId={t.id} name={t.title} canLeave={channel.canLeave} canArchive={channel.canArchive} />}
           </ThreadMenu>
         ) : canBlockCounterpart || t.nextShift ? (
           <ThreadMenu label="Conversation options">
             <div className="space-y-1 p-2">
               <p className="px-2 pt-1 text-xs text-subtle">
                 {counterpart?.name}
-                {counterpart?.role === "MANAGER" ? " · Manager" : " · Worker"}
+                {counterpart && counterpart.role !== "WORKER" ? " · Manager" : " · Worker"}
               </p>
               {t.nextShift && (
                 <Link transitionTypes={["nav-forward"]} href={`/shifts/${t.nextShift.id}`} className="btn-ghost w-full justify-start">
@@ -85,11 +111,11 @@ export default async function ThreadPage({ params }: { params: Promise<{ convers
         group={group}
         hasOlder={t.hasOlder}
         canPost={t.access.post}
-        messages={t.messages.map((m) => ({ ...m, createdAt: m.createdAt.toISOString() }))}
+        messages={t.messages.map((m) => ({ ...m, createdAt: m.createdAt.toISOString(), lastReplyAt: m.lastReplyAt?.toISOString() ?? null, senderIsManager: staffOnly ? false : m.senderIsManager }))}
       />
 
       {t.access.post ? (
-        <Composer conversationId={t.id} manager={iManage} placeholder={group ? "Message the team…" : firstName ? `Message ${firstName}…` : "Write a message…"} />
+        <Composer conversationId={t.id} manager={iManage} people={t.mentionable} quick={!staffOnly} placeholder={channel ? `Message ${title}…` : group ? "Message the team…" : firstName ? `Message ${firstName}…` : "Write a message…"} />
       ) : (
         <div className="card-flat space-y-3" role="status">
           <p className="text-sm font-semibold text-fg">{t.access.closed}</p>

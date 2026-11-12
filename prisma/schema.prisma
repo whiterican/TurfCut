@@ -85,6 +85,8 @@ model Profile {
   notifications         Notification[]
   chatParticipations    ConversationParticipant[]
   sentMessages          Message[]
+  messageReactions MessageReaction[]
+  messageMentions  MessageMention[]
   blocksMade            ProfileBlock[]            @relation("Blocker")
   blocksReceived        ProfileBlock[]            @relation("Blocked")
   campaignPosts         CampaignPost[]            @relation("CampaignPostAuthor")
@@ -980,11 +982,14 @@ model AdminAction {
 enum ConversationKind {
   DIRECT // worker ↔ the person who hired them, one per engagement
   GROUP // team chat created by an organizer
+  CHANNEL // a named, browsable channel in the organization's workspace (prisma/p2-channels.sql)
+  STAFF_DM // a private conversation between two staff members of one organization (prisma/p2-dm-mentions.sql)
 }
 
 enum ParticipantRole {
   WORKER
   MANAGER
+  MEMBER // organization staff in a CHANNEL: there because they belong to the organization, whatever their role
 }
 
 enum RevisionKind {
@@ -999,7 +1004,18 @@ model Conversation {
   org           Organization     @relation(fields: [orgId], references: [id], onDelete: Restrict)
   engagementId  String?          @unique @db.Uuid // DIRECT: exactly one thread per (worker, job)
   engagement    Engagement?      @relation(fields: [engagementId], references: [id], onDelete: Restrict)
-  name          String? // GROUP: "Denver housing initiative — Team A"
+  name          String? // GROUP: "Denver housing initiative — Team A"; CHANNEL: "general"
+  /// CHANNEL only: one line on what the channel is for.
+  topic         String?
+  /// CHANNEL only: organization staff only. A channel that is not staff-only is tied to jobs, and workers hired on them can be added.
+  staffOnly     Boolean          @default(false)
+  /// CHANNEL only: the organization's one channel every staff member is in from the start.
+  isGeneral     Boolean          @default(false)
+  /// CHANNEL only: archived channels are read-only and leave the list of channels to join.
+  archivedAt    DateTime?
+  archivedById  String?          @db.Uuid
+  /// STAFF_DM only: the two people, as "<lower id>:<higher id>". Unique within an organization, so a pair has one conversation there.
+  dmKey         String?
   createdById   String           @db.Uuid // Profile
   lastMessageAt DateTime? // thread-list ordering; only moves forward
   createdAt     DateTime         @default(now())
@@ -1008,6 +1024,7 @@ model Conversation {
   jobs         ConversationJob[]
   messages     Message[]
 
+  @@unique([orgId, dmKey])
   @@index([orgId, kind])
 }
 
@@ -1051,13 +1068,55 @@ model Message {
   attachmentName String?
   attachmentType String? // MIME type checked from the file's bytes
   attachmentSize Int?
+  /// A reply in a thread: the message it answers, in the same conversation. One level only (a reply has no replies). Set when sent, never changed.
+  parentId       String?      @db.Uuid
+  parent         Message?     @relation("Replies", fields: [parentId], references: [id], onDelete: Restrict)
+  replies        Message[]    @relation("Replies")
   createdAt      DateTime     @default(now())
 
   revisions MessageRevision[]
   reports   MessageReport[]
+  reactions MessageReaction[]
+  mentions  MessageMention[]
 
   @@index([conversationId, createdAt])
   @@index([senderId])
+  @@index([parentId, createdAt])
+}
+
+/// Someone named in a message with "@". Written with the message, by the
+/// server, for people in the conversation at that moment; never changed
+/// (an edit does not add or remove a mention). Server-only.
+model MessageMention {
+  id             String   @id @default(uuid()) @db.Uuid
+  messageId      String   @db.Uuid
+  message        Message  @relation(fields: [messageId], references: [id], onDelete: Restrict)
+  conversationId String   @db.Uuid // copied from the message by a trigger
+  profileId      String   @db.Uuid
+  profile        Profile  @relation(fields: [profileId], references: [id], onDelete: Restrict)
+  createdAt      DateTime @default(now())
+
+  @@unique([messageId, profileId])
+  @@index([profileId, conversationId])
+}
+
+/// A reaction to a message: one of a fixed set of marks (lib/chat.ts REACTIONS).
+/// Taking one back sets removedAt; the row stays. One live reaction per
+/// person per mark per message (partial unique index in p2-threads.sql).
+/// Server-only: no grant to the API roles.
+model MessageReaction {
+  id             String    @id @default(uuid()) @db.Uuid
+  messageId      String    @db.Uuid
+  message        Message   @relation(fields: [messageId], references: [id], onDelete: Restrict)
+  conversationId String    @db.Uuid // copied from the message by a trigger
+  profileId      String    @db.Uuid
+  profile        Profile   @relation(fields: [profileId], references: [id], onDelete: Restrict)
+  emoji          String
+  createdAt      DateTime  @default(now())
+  removedAt      DateTime?
+
+  @@index([messageId])
+  @@index([profileId])
 }
 
 /// Append-only edits and soft deletes (tombstones). Latest EDIT wins; any DELETE hides the text.

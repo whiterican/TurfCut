@@ -44,8 +44,13 @@ export async function send(_prev: ActionState, fd: FormData): Promise<ActionStat
   if (upload instanceof File && upload.size > 0) {
     file = { name: upload.name, bytes: new Uint8Array(await upload.arrayBuffer()) };
   }
-  const r = await chat.sendMessage(user, conversationId, quick || fd.get("body"), file);
-  if (r.ok) refreshThread(conversationId);
+  // A reply in a thread carries the message it answers.
+  const parentId = str(fd.get("parentId")) || null;
+  const r = await chat.sendMessage(user, conversationId, quick || fd.get("body"), file, undefined, parentId);
+  if (r.ok) {
+    refreshThread(conversationId);
+    if (parentId) revalidatePath(`/messages/${conversationId}/thread/${parentId}`);
+  }
   return done(r, "Sent.");
 }
 
@@ -62,6 +67,15 @@ export async function remove(conversationId: string, messageId: string): Promise
     revalidatePath("/messages/reports");
   }
   return done(r, "Message deleted.");
+}
+
+/** Give a message a mark, or take it back. The pages to refresh come from the message itself, never from the caller. */
+export async function react(messageId: string, emoji: string): Promise<ActionState> {
+  const r = await chat.toggleReaction(await me(), str(messageId), str(emoji));
+  if (!r.ok) return { ok: false, message: r.reason };
+  refreshThread(r.conversationId);
+  revalidatePath(`/messages/${r.conversationId}/thread/${r.threadId}`);
+  return { ok: true, message: "" };
 }
 
 export async function report(messageId: string, reason: string): Promise<ActionState> {
@@ -129,3 +143,52 @@ export async function setChatName(_prev: ActionState, fd: FormData): Promise<Act
   if (r.ok) revalidatePath("/messages", "layout");
   return done(r, "Saved.");
 }
+
+// ---------------------------------------------------------------------------
+// Channels
+// ---------------------------------------------------------------------------
+
+export async function createChannel(_prev: ActionState, fd: FormData): Promise<ActionState> {
+  const r = await chat.createChannel(await me(), {
+    name: fd.get("name"),
+    topic: fd.get("topic"),
+    staffOnly: fd.get("audience") !== "team",
+    jobIds: fd.getAll("jobIds").map(String),
+  });
+  if (!r.ok) return { ok: false, message: r.reason };
+  revalidatePath("/messages", "layout");
+  redirect(`/messages/${r.conversationId}`);
+}
+
+/** Join from the list of channels, then open it. */
+export async function joinChannel(fd: FormData): Promise<void> {
+  const conversationId = str(fd.get("conversationId"));
+  const r = await chat.joinChannel(await me(), conversationId);
+  // A fixed code, never free text in the URL.
+  if (!r.ok) redirect("/messages/channels?error=join");
+  revalidatePath("/messages", "layout");
+  redirect(`/messages/${conversationId}`);
+}
+
+export async function leaveChannel(conversationId: string): Promise<ActionState> {
+  const r = await chat.leaveChannel(await me(), str(conversationId));
+  if (!r.ok) return { ok: false, message: r.reason };
+  revalidatePath("/messages", "layout");
+  redirect("/messages");
+}
+
+export async function archiveChannel(conversationId: string): Promise<ActionState> {
+  const r = await chat.archiveChannel(await me(), str(conversationId));
+  if (r.ok) revalidatePath("/messages", "layout");
+  return done(r, "Archived. The channel is now read-only.");
+}
+
+/** Opens (creating if needed) my conversation with a colleague. */
+export async function startStaffDm(fd: FormData): Promise<void> {
+  const r = await chat.startStaffDm(await me(), str(fd.get("profileId")));
+  // A fixed code, never free text in the URL.
+  if (!r.ok) redirect("/messages/channels?error=person");
+  revalidatePath("/messages", "layout");
+  redirect(`/messages/${r.conversationId}`);
+}
+

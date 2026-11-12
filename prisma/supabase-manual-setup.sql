@@ -2273,6 +2273,329 @@ DO $$ BEGIN
   END IF;
 END $$;
 
+-- ---- Channels (prisma/p2-channels.sql) ----
+-- Channels (Caden, Nov 10 2026): Slack-like named channels in an
+-- organization's workspace, built on the M4 conversation tables.
+--
+--   * A new conversation kind, CHANNEL, with a topic, a staff-only flag, an
+--     archive time and one "general" channel per organization.
+--   * A new participant role, MEMBER: organization staff in a channel. They
+--     are there because they belong to the organization, whatever their role
+--     (the Messages area still decides who runs team chats and channels).
+--   * Workers are in a channel only when a manager adds them, and only for
+--     channels tied to jobs they are hired on. Staff-only channels never
+--     have workers (checked by a trigger, not only by the app).
+--
+-- Idempotent: safe to run again. Also folded into supabase-manual-setup.sql.
+-- The two ADD VALUE statements must be committed before anything uses the
+-- new values. Nothing below names them as enum values, so the whole file
+-- can also be sent as one statement or run in a single transaction: checks
+-- and functions compare through ::text, and the one index predicate (which
+-- must be immutable) names the two older kinds instead.
+
+ALTER TYPE "public"."ConversationKind" ADD VALUE IF NOT EXISTS 'CHANNEL';
+ALTER TYPE "public"."ParticipantRole" ADD VALUE IF NOT EXISTS 'MEMBER';
+
+BEGIN;
+
+ALTER TABLE "public"."Conversation" ADD COLUMN IF NOT EXISTS "topic" TEXT;
+ALTER TABLE "public"."Conversation" ADD COLUMN IF NOT EXISTS "staffOnly" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "public"."Conversation" ADD COLUMN IF NOT EXISTS "isGeneral" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "public"."Conversation" ADD COLUMN IF NOT EXISTS "archivedAt" TIMESTAMP(3);
+ALTER TABLE "public"."Conversation" ADD COLUMN IF NOT EXISTS "archivedById" UUID;
+
+-- Shape: a channel has a name and no engagement; only channels carry the
+-- channel columns; the general channel is staff-only and is never archived.
+-- (The kind check below already names STAFF_DM, the kind p2-dm-mentions.sql
+-- adds: both files state it the same way, so running this one again never
+-- narrows it. It compares through ::text, so it is valid before that kind exists.)
+ALTER TABLE "public"."Conversation" DROP CONSTRAINT IF EXISTS "Conversation_kind_shape";
+ALTER TABLE "public"."Conversation" ADD CONSTRAINT "Conversation_kind_shape" CHECK (
+     ("kind"::text = 'DIRECT' AND "engagementId" IS NOT NULL)
+  OR ("kind"::text = 'GROUP' AND "engagementId" IS NULL AND "name" IS NOT NULL)
+  OR ("kind"::text = 'CHANNEL' AND "engagementId" IS NULL AND "name" IS NOT NULL)
+  OR ("kind"::text = 'STAFF_DM' AND "engagementId" IS NULL AND "name" IS NULL));
+ALTER TABLE "public"."Conversation" DROP CONSTRAINT IF EXISTS "Conversation_channel_shape";
+ALTER TABLE "public"."Conversation" ADD CONSTRAINT "Conversation_channel_shape" CHECK (
+     ("kind"::text = 'CHANNEL'
+        AND char_length("name") BETWEEN 1 AND 80
+        AND ("topic" IS NULL OR char_length("topic") <= 250)
+        AND (NOT "isGeneral" OR ("staffOnly" AND "archivedAt" IS NULL))
+        AND (("archivedAt" IS NULL) = ("archivedById" IS NULL)))
+  OR ("kind"::text <> 'CHANNEL' AND "topic" IS NULL AND NOT "staffOnly" AND NOT "isGeneral" AND "archivedAt" IS NULL AND "archivedById" IS NULL));
+
+-- One general channel per organization, and no two live channels with the same name (whatever the letter case).
+CREATE UNIQUE INDEX IF NOT EXISTS "Conversation_general_per_org" ON "public"."Conversation"("orgId") WHERE "isGeneral";
+CREATE UNIQUE INDEX IF NOT EXISTS "Conversation_channel_name" ON "public"."Conversation"("orgId", lower("name")) WHERE "kind" NOT IN ('DIRECT', 'GROUP') AND "archivedAt" IS NULL;
+
+-- Who may be a participant of what, whatever path writes the row:
+--   MEMBER only in a channel or a staff conversation, and only a member of
+--   that organization; WORKER never in a staff-only channel; a staff
+--   conversation (p2-dm-mentions.sql) holds only its two people.
+-- This file and p2-dm-mentions.sql define the same function, word for word
+-- (a test compares them), so running either again never undoes the other.
+-- It reads the pair key through jsonb, so it is valid before that column exists.
+CREATE OR REPLACE FUNCTION "turfcut_private"."check_channel_participant"() RETURNS trigger LANGUAGE plpgsql SET search_path = '' AS $$
+DECLARE
+  c RECORD;
+BEGIN
+  SELECT cv."kind"::text AS kind, cv."orgId", cv."staffOnly", to_jsonb(cv) ->> 'dmKey' AS "dmKey" INTO STRICT c FROM "public"."Conversation" cv WHERE cv."id" = NEW."conversationId";
+  IF NEW."role"::text = 'MEMBER' THEN
+    IF c.kind NOT IN ('CHANNEL', 'STAFF_DM') THEN
+      RAISE EXCEPTION 'MEMBER participants belong to channels and staff conversations only' USING ERRCODE = 'check_violation';
+    END IF;
+    IF c.kind = 'STAFF_DM' AND position(NEW."profileId"::text IN c."dmKey") = 0 THEN
+      RAISE EXCEPTION 'a staff conversation holds only its two people' USING ERRCODE = 'check_violation';
+    END IF;
+    IF NEW."removedAt" IS NULL AND NOT EXISTS (
+         SELECT 1 FROM "public"."Profile" p WHERE p."id" = NEW."profileId" AND p."orgId" = c."orgId" AND p."role"::text <> 'WORKER' AND p."closedAt" IS NULL FOR SHARE) THEN
+      RAISE EXCEPTION 'a channel member must belong to the channel''s organization' USING ERRCODE = 'check_violation';
+    END IF;
+  ELSIF c.kind = 'STAFF_DM' THEN
+    RAISE EXCEPTION 'a staff conversation has staff only' USING ERRCODE = 'check_violation';
+  ELSIF c.kind = 'CHANNEL' THEN
+    IF NEW."role"::text = 'MANAGER' THEN
+      RAISE EXCEPTION 'staff join channels as MEMBER' USING ERRCODE = 'check_violation';
+    END IF;
+    IF c."staffOnly" AND NEW."removedAt" IS NULL THEN
+      RAISE EXCEPTION 'a staff-only channel has no workers' USING ERRCODE = 'check_violation';
+    END IF;
+  END IF;
+  RETURN NEW;
+END $$;
+REVOKE ALL ON FUNCTION "turfcut_private"."check_channel_participant"() FROM PUBLIC, anon, authenticated;
+DROP TRIGGER IF EXISTS "ConversationParticipant_channel_check" ON "public"."ConversationParticipant";
+CREATE TRIGGER "ConversationParticipant_channel_check" BEFORE INSERT OR UPDATE OF "role", "removedAt", "conversationId", "profileId" ON "public"."ConversationParticipant"
+  FOR EACH ROW EXECUTE FUNCTION "turfcut_private"."check_channel_participant"();
+
+-- Leaving the organization, becoming a worker, or closing the account ends
+-- channel membership. (A role change among staff roles does not: every staff
+-- role may be in a channel.) This is its own function and trigger, beside
+-- M10's end_staff_chat_access, so re-running an earlier migration cannot
+-- undo it, and it fires on closedAt, which the M10 trigger does not watch.
+CREATE OR REPLACE FUNCTION "turfcut_private"."end_member_chat_access"() RETURNS trigger LANGUAGE plpgsql SET search_path = '' AS $$
+BEGIN
+  UPDATE "public"."ConversationParticipant" p
+     SET "removedAt" = (clock_timestamp() AT TIME ZONE 'UTC')::timestamp(3)
+    FROM "public"."Conversation" c
+   WHERE c."id" = p."conversationId" AND p."profileId" = NEW."id" AND p."role"::text = 'MEMBER' AND p."removedAt" IS NULL
+     AND (NEW."orgId" IS DISTINCT FROM c."orgId" OR NEW."role"::text = 'WORKER' OR NEW."closedAt" IS NOT NULL);
+  RETURN NULL;
+END $$;
+REVOKE ALL ON FUNCTION "turfcut_private"."end_member_chat_access"() FROM PUBLIC, anon, authenticated;
+DROP TRIGGER IF EXISTS "Profile_end_member_chat_access" ON "public"."Profile";
+CREATE TRIGGER "Profile_end_member_chat_access" AFTER UPDATE OF "orgId", "role", "closedAt" ON "public"."Profile"
+  FOR EACH ROW WHEN (OLD."orgId" IS DISTINCT FROM NEW."orgId" OR OLD."role" IS DISTINCT FROM NEW."role" OR OLD."closedAt" IS DISTINCT FROM NEW."closedAt")
+  EXECUTE FUNCTION "turfcut_private"."end_member_chat_access"();
+
+-- A channel with a worker in it cannot be turned staff-only (no screen does
+-- this today; the rule holds whatever path writes the row).
+CREATE OR REPLACE FUNCTION "turfcut_private"."check_channel_staff_only"() RETURNS trigger LANGUAGE plpgsql SET search_path = '' AS $$
+BEGIN
+  IF NEW."staffOnly" AND EXISTS (
+       SELECT 1 FROM "public"."ConversationParticipant" p WHERE p."conversationId" = NEW."id" AND p."role"::text = 'WORKER' AND p."removedAt" IS NULL) THEN
+    RAISE EXCEPTION 'a staff-only channel has no workers' USING ERRCODE = 'check_violation';
+  END IF;
+  RETURN NEW;
+END $$;
+REVOKE ALL ON FUNCTION "turfcut_private"."check_channel_staff_only"() FROM PUBLIC, anon, authenticated;
+DROP TRIGGER IF EXISTS "Conversation_staff_only_check" ON "public"."Conversation";
+CREATE TRIGGER "Conversation_staff_only_check" BEFORE UPDATE OF "staffOnly" ON "public"."Conversation"
+  FOR EACH ROW EXECUTE FUNCTION "turfcut_private"."check_channel_staff_only"();
+
+-- Realtime: a channel reads like a team chat (full history for its members);
+-- only a direct thread limits a contact to what came after they joined.
+CREATE OR REPLACE FUNCTION "turfcut_private"."can_see"(p_conversation uuid, p_author uuid, p_at timestamp)
+RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = '' AS $$
+  SELECT EXISTS (
+           SELECT 1 FROM "public"."ConversationParticipant" p
+             JOIN "public"."Conversation" c ON c."id" = p."conversationId"
+            WHERE p."conversationId" = p_conversation AND p."profileId" = auth.uid()
+              AND (p."removedAt" IS NULL OR p_at <= p."removedAt")
+              AND (c."kind"::text <> 'DIRECT' OR p."role"::text = 'WORKER' OR p_at >= p."addedAt")
+              -- A staff row (channels, staff conversations) reads only while the person is on that organization's
+              -- staff: afterwards not even the history, the same rule the app applies (lib/chat.ts).
+              AND (p."role"::text <> 'MEMBER' OR EXISTS (
+                     SELECT 1 FROM "public"."Profile" pr
+                      WHERE pr."id" = p."profileId" AND pr."orgId" = c."orgId" AND pr."role"::text <> 'WORKER' AND pr."closedAt" IS NULL)))
+     AND NOT EXISTS (
+           SELECT 1 FROM "public"."ProfileBlock" b
+            WHERE b."blockerId" = auth.uid() AND b."blockedId" = p_author
+              AND b."createdAt" <= p_at AND (b."liftedAt" IS NULL OR p_at < b."liftedAt"));
+$$;
+REVOKE ALL ON FUNCTION "turfcut_private"."can_see"(uuid, uuid, timestamp) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION "turfcut_private"."can_see"(uuid, uuid, timestamp) TO authenticated;
+
+COMMIT;
+
+-- ---- Threads and reactions (prisma/p2-threads.sql) ----
+-- Threads and reactions (Caden, Nov 10 2026: Slack-like channels, slice 2).
+--
+--   * Message.parentId: a reply in a thread. One level only, and always in
+--     its parent's conversation (a trigger checks both, whatever path writes
+--     the row). Set when the message is sent; messages stay immutable.
+--   * MessageReaction: one of a fixed set of marks on a message. Taking one
+--     back sets removedAt. Server-only: nothing is granted to the API roles.
+--
+-- Idempotent: safe to run again, in one transaction or as one statement.
+-- Also folded into supabase-manual-setup.sql.
+
+BEGIN;
+
+ALTER TABLE "public"."Message" ADD COLUMN IF NOT EXISTS "parentId" UUID;
+DO $$ BEGIN
+  ALTER TABLE "public"."Message" ADD CONSTRAINT "Message_parentId_fkey" FOREIGN KEY ("parentId") REFERENCES "public"."Message"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+CREATE INDEX IF NOT EXISTS "Message_parentId_createdAt_idx" ON "public"."Message"("parentId", "createdAt");
+
+CREATE OR REPLACE FUNCTION "turfcut_private"."check_reply_parent"() RETURNS trigger LANGUAGE plpgsql SET search_path = '' AS $$
+DECLARE
+  parent RECORD;
+BEGIN
+  SELECT m."conversationId", m."parentId" INTO STRICT parent FROM "public"."Message" m WHERE m."id" = NEW."parentId";
+  IF parent."conversationId" <> NEW."conversationId" THEN
+    RAISE EXCEPTION 'a reply belongs to its parent''s conversation' USING ERRCODE = 'check_violation';
+  END IF;
+  IF parent."parentId" IS NOT NULL THEN
+    RAISE EXCEPTION 'a reply has no replies of its own' USING ERRCODE = 'check_violation';
+  END IF;
+  RETURN NEW;
+END $$;
+REVOKE ALL ON FUNCTION "turfcut_private"."check_reply_parent"() FROM PUBLIC, anon, authenticated;
+DROP TRIGGER IF EXISTS "Message_reply_parent" ON "public"."Message";
+CREATE TRIGGER "Message_reply_parent" BEFORE INSERT ON "public"."Message"
+  FOR EACH ROW WHEN (NEW."parentId" IS NOT NULL) EXECUTE FUNCTION "turfcut_private"."check_reply_parent"();
+
+CREATE TABLE IF NOT EXISTS "public"."MessageReaction" (
+    "id" UUID NOT NULL,
+    "messageId" UUID NOT NULL,
+    "conversationId" UUID NOT NULL,
+    "profileId" UUID NOT NULL,
+    "emoji" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "removedAt" TIMESTAMP(3),
+
+    CONSTRAINT "MessageReaction_pkey" PRIMARY KEY ("id"),
+    CONSTRAINT "MessageReaction_messageId_fkey" FOREIGN KEY ("messageId") REFERENCES "public"."Message"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT "MessageReaction_profileId_fkey" FOREIGN KEY ("profileId") REFERENCES "public"."Profile"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
+    -- The same set as REACTIONS in src/lib/chat.ts.
+    CONSTRAINT "MessageReaction_emoji" CHECK ("emoji" IN ('👍', '❤️', '😂', '🎉', '👀', '✅'))
+);
+CREATE INDEX IF NOT EXISTS "MessageReaction_messageId_idx" ON "public"."MessageReaction"("messageId");
+CREATE INDEX IF NOT EXISTS "MessageReaction_profileId_idx" ON "public"."MessageReaction"("profileId");
+-- One live reaction per person per mark per message; taken-back rows stay as history.
+CREATE UNIQUE INDEX IF NOT EXISTS "MessageReaction_live" ON "public"."MessageReaction"("messageId", "profileId", "emoji") WHERE "removedAt" IS NULL;
+
+-- conversationId always matches the message (the M4 scope function).
+DROP TRIGGER IF EXISTS "MessageReaction_scope" ON "public"."MessageReaction";
+CREATE TRIGGER "MessageReaction_scope" BEFORE INSERT ON "public"."MessageReaction"
+  FOR EACH ROW EXECUTE FUNCTION "turfcut_private"."copy_message_scope"();
+
+-- Server-only.
+ALTER TABLE "public"."MessageReaction" ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON "public"."MessageReaction" FROM anon, authenticated;
+
+COMMIT;
+
+-- ---- Staff direct messages and mentions (prisma/p2-dm-mentions.sql) ----
+-- Staff direct messages and mentions (Caden, Nov 10 2026: Slack-like
+-- messaging, slice 3).
+--
+--   * A new conversation kind, STAFF_DM: a private conversation between two
+--     staff members of one organization. One per pair there (orgId + dmKey is unique).
+--     Its two people are MEMBER participants; nobody is added or removed by
+--     hand. Leaving the organization ends it for that person (the MEMBER
+--     trigger from p2-channels.sql), and the other keeps read-only history.
+--   * MessageMention: who a message named with "@". Written with the
+--     message and never changed. Server-only.
+--
+-- Idempotent: safe to run again, in one transaction or as one statement
+-- (nothing below names the new enum value except through ::text).
+-- Also folded into supabase-manual-setup.sql.
+
+ALTER TYPE "public"."ConversationKind" ADD VALUE IF NOT EXISTS 'STAFF_DM';
+
+BEGIN;
+
+ALTER TABLE "public"."Conversation" ADD COLUMN IF NOT EXISTS "dmKey" TEXT;
+-- One conversation per pair within an organization. (Two people who both move to another organization start a new one there; the old one stays closed to them.)
+DROP INDEX IF EXISTS "public"."Conversation_dmKey_key";
+CREATE UNIQUE INDEX IF NOT EXISTS "Conversation_orgId_dmKey_key" ON "public"."Conversation"("orgId", "dmKey");
+
+ALTER TABLE "public"."Conversation" DROP CONSTRAINT IF EXISTS "Conversation_kind_shape";
+ALTER TABLE "public"."Conversation" ADD CONSTRAINT "Conversation_kind_shape" CHECK (
+     ("kind"::text = 'DIRECT' AND "engagementId" IS NOT NULL)
+  OR ("kind"::text = 'GROUP' AND "engagementId" IS NULL AND "name" IS NOT NULL)
+  OR ("kind"::text = 'CHANNEL' AND "engagementId" IS NULL AND "name" IS NOT NULL)
+  OR ("kind"::text = 'STAFF_DM' AND "engagementId" IS NULL AND "name" IS NULL));
+-- The pair key is on staff conversations and nothing else: two different uuids, the lower first.
+ALTER TABLE "public"."Conversation" DROP CONSTRAINT IF EXISTS "Conversation_dm_shape";
+ALTER TABLE "public"."Conversation" ADD CONSTRAINT "Conversation_dm_shape" CHECK (
+     ("kind"::text <> 'STAFF_DM' AND "dmKey" IS NULL)
+  OR ("kind"::text = 'STAFF_DM' AND "dmKey" ~ '^[0-9a-f-]{36}:[0-9a-f-]{36}$' AND split_part("dmKey", ':', 1) < split_part("dmKey", ':', 2)));
+
+-- Who may be a participant of what: the same function as in p2-channels.sql,
+-- word for word (a test compares them). A staff conversation holds exactly
+-- its two people, as MEMBER.
+CREATE OR REPLACE FUNCTION "turfcut_private"."check_channel_participant"() RETURNS trigger LANGUAGE plpgsql SET search_path = '' AS $$
+DECLARE
+  c RECORD;
+BEGIN
+  SELECT cv."kind"::text AS kind, cv."orgId", cv."staffOnly", to_jsonb(cv) ->> 'dmKey' AS "dmKey" INTO STRICT c FROM "public"."Conversation" cv WHERE cv."id" = NEW."conversationId";
+  IF NEW."role"::text = 'MEMBER' THEN
+    IF c.kind NOT IN ('CHANNEL', 'STAFF_DM') THEN
+      RAISE EXCEPTION 'MEMBER participants belong to channels and staff conversations only' USING ERRCODE = 'check_violation';
+    END IF;
+    IF c.kind = 'STAFF_DM' AND position(NEW."profileId"::text IN c."dmKey") = 0 THEN
+      RAISE EXCEPTION 'a staff conversation holds only its two people' USING ERRCODE = 'check_violation';
+    END IF;
+    IF NEW."removedAt" IS NULL AND NOT EXISTS (
+         SELECT 1 FROM "public"."Profile" p WHERE p."id" = NEW."profileId" AND p."orgId" = c."orgId" AND p."role"::text <> 'WORKER' AND p."closedAt" IS NULL FOR SHARE) THEN
+      RAISE EXCEPTION 'a channel member must belong to the channel''s organization' USING ERRCODE = 'check_violation';
+    END IF;
+  ELSIF c.kind = 'STAFF_DM' THEN
+    RAISE EXCEPTION 'a staff conversation has staff only' USING ERRCODE = 'check_violation';
+  ELSIF c.kind = 'CHANNEL' THEN
+    IF NEW."role"::text = 'MANAGER' THEN
+      RAISE EXCEPTION 'staff join channels as MEMBER' USING ERRCODE = 'check_violation';
+    END IF;
+    IF c."staffOnly" AND NEW."removedAt" IS NULL THEN
+      RAISE EXCEPTION 'a staff-only channel has no workers' USING ERRCODE = 'check_violation';
+    END IF;
+  END IF;
+  RETURN NEW;
+END $$;
+REVOKE ALL ON FUNCTION "turfcut_private"."check_channel_participant"() FROM PUBLIC, anon, authenticated;
+
+CREATE TABLE IF NOT EXISTS "public"."MessageMention" (
+    "id" UUID NOT NULL,
+    "messageId" UUID NOT NULL,
+    "conversationId" UUID NOT NULL,
+    "profileId" UUID NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "MessageMention_pkey" PRIMARY KEY ("id"),
+    CONSTRAINT "MessageMention_messageId_fkey" FOREIGN KEY ("messageId") REFERENCES "public"."Message"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT "MessageMention_profileId_fkey" FOREIGN KEY ("profileId") REFERENCES "public"."Profile"("id") ON DELETE RESTRICT ON UPDATE CASCADE
+);
+CREATE UNIQUE INDEX IF NOT EXISTS "MessageMention_messageId_profileId_key" ON "public"."MessageMention"("messageId", "profileId");
+CREATE INDEX IF NOT EXISTS "MessageMention_profileId_conversationId_idx" ON "public"."MessageMention"("profileId", "conversationId");
+
+-- conversationId always matches the message; a mention is never changed or removed.
+DROP TRIGGER IF EXISTS "MessageMention_scope" ON "public"."MessageMention";
+CREATE TRIGGER "MessageMention_scope" BEFORE INSERT ON "public"."MessageMention"
+  FOR EACH ROW EXECUTE FUNCTION "turfcut_private"."copy_message_scope"();
+DROP TRIGGER IF EXISTS "MessageMention_append_only" ON "public"."MessageMention";
+CREATE TRIGGER "MessageMention_append_only" BEFORE UPDATE OR DELETE ON "public"."MessageMention"
+  FOR EACH ROW EXECUTE FUNCTION "turfcut_private"."append_only"();
+
+-- Server-only.
+ALTER TABLE "public"."MessageMention" ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON "public"."MessageMention" FROM anon, authenticated;
+
+COMMIT;
+
 -- ---- Sector, activity and place of work on jobs (prisma/p3-sectors.sql) ----
 -- Sector, activity and place of work on jobs (Caden, Nov 10 2026: the
 -- private-sector work starts here; data-model change approved).

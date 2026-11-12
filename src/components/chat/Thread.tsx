@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState, useTransition } from "react";
 import { useSubmit } from "@/components/chat/useSubmit";
-import { edit, remove, report, send } from "@/app/messages/actions";
+import Link from "next/link";
+import { edit, react, remove, report, send } from "@/app/messages/actions";
 import type { ActionState } from "@/app/jobs/actions";
-import { MAX_ATTACHMENT_BYTES, MAX_BODY, PETITION_NOTICE } from "@/lib/chat";
+import { MAX_ATTACHMENT_BYTES, MAX_BODY, PETITION_NOTICE, REACTIONS, REACTION_NAMES, type Reaction } from "@/lib/chat";
 import { LocalTime } from "@/components/LocalTime";
 import { Avatar } from "@/components/chat/Avatar";
 import { ArrowUp, Paperclip } from "@/components/chat/icons";
@@ -22,6 +23,88 @@ export interface ClientMessage {
   attachment: { name: string; type: string; size: number } | null;
   canEdit: boolean;
   canDelete: boolean;
+  /** Replies in this message's thread, and when the newest was sent. */
+  replies: number;
+  lastReplyAt: string | null;
+  /** Replies from others not yet read when the page loaded. */
+  newReplies: number;
+  reactions: { emoji: Reaction; count: number; mine: boolean }[];
+  canReact: boolean;
+  canReply: boolean;
+  /** This message names me with "@". */
+  mentionsMe: boolean;
+  /** An unread reply in its thread names me. */
+  replyMentionsMe: boolean;
+}
+
+/**
+ * The marks under a message: each one given so far (a button that adds or
+ * takes back yours), and a "+" that opens the rest. The count shown changes
+ * at once and is put right by the server's answer.
+ */
+function Reactions({ m, children }: { m: ClientMessage; /** Sits at the end of the row (the way into the thread). */ children?: React.ReactNode }) {
+  const [open, setOpen] = useState(false);
+  const [pending, start] = useTransition();
+  const [error, setError] = useState("");
+  // Mine, as tapped but not yet confirmed: emoji -> on/off.
+  const [draft, setDraft] = useState<Partial<Record<Reaction, boolean>>>({});
+  const add = useRef<HTMLButtonElement>(null);
+  // Closing the picker returns focus to the "+" it came from.
+  const close = () => {
+    if (!open) return;
+    setOpen(false);
+    requestAnimationFrame(() => add.current?.focus());
+  };
+  const shown = REACTIONS.map((emoji) => {
+    const base = m.reactions.find((r) => r.emoji === emoji);
+    const mine = draft[emoji] ?? base?.mine ?? false;
+    const count = (base?.count ?? 0) + (mine === (base?.mine ?? false) ? 0 : mine ? 1 : -1);
+    return { emoji, mine, count };
+  }).filter((r) => r.count > 0);
+  const toggle = (emoji: Reaction) => {
+    const now = !(draft[emoji] ?? m.reactions.find((r) => r.emoji === emoji)?.mine ?? false);
+    setDraft((d) => ({ ...d, [emoji]: now }));
+    close();
+    setError("");
+    start(async () => {
+      const r = await react(m.id, emoji).catch(() => ({ ok: false, message: "That didn't go through." }));
+      if (!r.ok) setError(r.message);
+      // The server's count is on the page now (or the tap failed): drop the guess either way.
+      setDraft((d) => {
+        const next = { ...d };
+        delete next[emoji];
+        return next;
+      });
+    });
+  };
+  if (shown.length === 0 && !m.canReact && !children) return null;
+  return (
+    <div className={`flex flex-wrap items-center gap-1 ${m.mine ? "flex-row-reverse" : ""}`}>
+      {shown.map((r) => (
+        <button key={r.emoji} type="button" className="reaction" aria-pressed={r.mine} disabled={!m.canReact || pending} onClick={() => toggle(r.emoji)} aria-label={`${REACTION_NAMES[r.emoji]}, ${r.count}${r.mine ? ", including yours" : ""}`}>
+          <span aria-hidden>{r.emoji}</span>
+          <span aria-hidden className="tabular-nums">{r.count}</span>
+        </button>
+      ))}
+      {m.canReact && (
+        <button ref={add} type="button" className="reaction reaction-add" hidden={open} aria-disabled={pending} onClick={() => !pending && setOpen(true)} aria-label="Add a reaction" aria-haspopup="true">
+          <span aria-hidden>+</span>
+        </button>
+      )}
+      {m.canReact && open && (
+        <span className="reaction-picker" role="group" aria-label="Reactions" onKeyDown={(e) => { if (e.key === "Escape") { e.stopPropagation(); close(); } }}>
+          {REACTIONS.map((emoji, i) => (
+            <button key={emoji} type="button" className="reaction-pick" autoFocus={i === 0} onClick={() => toggle(emoji)} aria-label={REACTION_NAMES[emoji]}>
+              <span aria-hidden>{emoji}</span>
+            </button>
+          ))}
+          <button type="button" className="reaction-pick text-sm text-muted" onClick={close} aria-label="Close reactions">✕</button>
+        </span>
+      )}
+      {children}
+      {error && <span role="alert" className="text-xs text-danger-msg">{error}</span>}
+    </div>
+  );
 }
 
 const IMAGE_FILE = /\.(jpe?g|png|gif|webp|heic|heif|avif|bmp|tiff?|svg)$/i;
@@ -55,7 +138,7 @@ function MessageActions({ m, conversationId }: { m: ClientMessage; conversationI
         <button
           ref={toggle}
           type="button"
-          className="-mt-1 rounded px-1.5 text-sm font-bold leading-none text-subtle hover:text-fg"
+          className="msg-more"
           onClick={() => { setMsg(null); setMode("menu"); }}
           aria-label="Message options"
           aria-haspopup="true"
@@ -108,12 +191,18 @@ export function MessageList({
   group,
   hasOlder,
   canPost,
+  threadId = null,
+  emptyText,
 }: {
   messages: ClientMessage[];
   conversationId: string;
   group: boolean;
   hasOlder: boolean;
   canPost: boolean;
+  /** On a thread's own page: the message being answered. Replies there show no thread link. */
+  threadId?: string | null;
+  /** What to say when there is nothing yet (a thread words it its own way). */
+  emptyText?: string;
 }) {
   const last = messages.at(-1);
   const first = useRef(true);
@@ -138,6 +227,7 @@ export function MessageList({
   }, [last?.id, last?.mine]);
 
   if (messages.length === 0) {
+    if (emptyText) return <p className="text-muted-sm px-1">{emptyText}</p>;
     return (
       <div className="empty-state">
         <p className="empty-state-title">No messages yet</p>
@@ -146,7 +236,7 @@ export function MessageList({
     );
   }
   return (
-    <ol className="space-y-3" aria-label="Messages">
+    <ol className="space-y-3" aria-label={threadId ? "Replies" : "Messages"}>
       {hasOlder && <li className="text-hint text-center">Showing the latest 200 messages.</li>}
       {messages.map((m, i) => {
         // Runs of messages from one sender: name (and Manager badge) on the
@@ -165,7 +255,8 @@ export function MessageList({
                   {m.senderIsManager && <span className="tag">Manager</span>}
                 </span>
               )}
-              <div className={`bubble ${m.deleted ? "bubble-deleted" : m.mine ? "bubble-mine" : "bubble-theirs"}`}>
+              {m.mentionsMe && <span className="tag-accent mb-1">Mentions you</span>}
+              <div className={`bubble ${m.deleted ? "bubble-deleted" : m.mine ? "bubble-mine" : "bubble-theirs"} ${m.mentionsMe ? "bubble-mention" : ""}`}>
                 {m.deleted ? "Message deleted" : m.body}
                 {m.attachment && !m.deleted && (
                   <a href={`/messages/attachment/${m.id}`} className="link mt-1 flex items-center gap-2 text-sm" download>
@@ -175,13 +266,23 @@ export function MessageList({
                   </a>
                 )}
               </div>
-              <div className={`mt-0.5 flex items-start gap-1 px-1 ${m.mine ? "flex-row-reverse" : ""}`}>
+              {/* One row under the message: the time, the marks, the way into its thread, then the message's options. A deleted message keeps its thread, not its marks. */}
+              <div className={`msg-meta ${m.mine ? "flex-row-reverse" : ""}`}>
                 {(lastOfRun || m.edited) && (
                   <span className="text-[0.75rem] text-subtle">
                     <LocalTime iso={m.createdAt} mode="time" />
                     {m.edited && " · edited"}
                   </span>
                 )}
+                <Reactions m={m.deleted ? { ...m, reactions: [], canReact: false } : m}>
+                  {!threadId && (m.replies > 0 || m.canReply) && (
+                    <Link transitionTypes={["nav-forward"]} href={`/messages/${conversationId}/thread/${m.id}`} className={`thread-link ${m.replies > 0 ? "thread-link-has" : ""}`}>
+                      {m.replies > 0 ? `${m.replies} ${m.replies === 1 ? "reply" : "replies"}` : "Reply"}
+                      {m.newReplies > 0 && <span className="unread-badge ml-2 no-underline">{m.newReplies} new</span>}
+                      {m.replyMentionsMe && <span className="tag-accent ml-2 no-underline">Mentions you</span>}
+                    </Link>
+                  )}
+                </Reactions>
                 <MessageActions m={m} conversationId={conversationId} />
               </div>
             </div>
@@ -195,18 +296,38 @@ export function MessageList({
 const WORKER_REPLIES = ["On my way", "Running about 10 min late", "At staging", "Packet returned", "Can't make it — calling you"];
 const MANAGER_REPLIES = ["Thanks!", "Where are you?", "See you at staging", "Great work today"];
 
-export function Composer({ conversationId, manager, placeholder }: { conversationId: string; manager: boolean; placeholder: string }) {
+/** The "@partial" being typed at the caret, if any: after the start or a space, with no line break in it. */
+const AT_END = /(^|\s)@([^@\n]{0,40})$/;
+
+export function Composer({ conversationId, manager, placeholder, parentId = null, people = [], quick = true }: { conversationId: string; manager: boolean; placeholder: string; /** Replying in a thread: the message being answered. */ parentId?: string | null; /** Names "@" offers: the other people in the conversation. */ people?: string[]; /** The one-tap field replies ("On my way"): for conversations with workers, not staff talking to staff. */ quick?: boolean }) {
   const form = useRef<HTMLFormElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
   const [body, setBody] = useState("");
   const typing = body.trim().length > 0;
+  // Where the caret is, so "@" is completed where it is being typed.
+  const [caret, setCaret] = useState(0);
+  const partial = people.length ? AT_END.exec(body.slice(0, caret)) : null;
+  const offered = partial ? people.filter((n) => n.toLocaleLowerCase().startsWith(partial[2].toLocaleLowerCase())).slice(0, 6) : [];
+  const complete = (name: string) => {
+    if (!partial) return;
+    const start = caret - partial[2].length - 1;
+    const next = `${body.slice(0, start)}@${name} ${body.slice(caret)}`;
+    setBody(next);
+    const at = start + name.length + 2;
+    setCaret(at);
+    // Focus now, inside the tap, so a phone keeps its keyboard up; the caret is placed once the new text is in.
+    input.current?.focus();
+    requestAnimationFrame(() => input.current?.setSelectionRange(at, at));
+  };
+  const mentionListId = useId();
   // A failed send keeps the text and the file (no auto-reset); success clears both.
   const { state, pending, onSubmit } = useSubmit(send, (r, f) => {
     if (!r.ok) return;
     f.reset();
     setBody("");
+    setCaret(0);
     setFile(null);
     if (input.current) input.current.style.height = "";
   });
@@ -236,8 +357,9 @@ export function Composer({ conversationId, manager, placeholder }: { conversatio
   return (
     <form ref={form} onSubmit={onSubmit} className="composer" aria-label="Send a message">
       <input type="hidden" name="conversationId" value={conversationId} />
+      {parentId && <input type="hidden" name="parentId" value={parentId} />}
       {/* One tap for the common field updates; hidden once you start typing so a draft is never replaced. */}
-      {!typing && !file && (
+      {quick && !typing && !file && !parentId && (
         <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1" role="group" aria-label="Quick replies">
           {(manager ? MANAGER_REPLIES : WORKER_REPLIES).map((q) => (
             <button key={q} name="quick" value={q} className="quick-reply" disabled={pending}>{q}</button>
@@ -254,6 +376,15 @@ export function Composer({ conversationId, manager, placeholder }: { conversatio
           </button>
         </p>
       )}
+      {offered.length > 0 && (
+        <div id={mentionListId} className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1" role="group" aria-label="People to mention">
+          {/* Pressing must not take focus from the message box (a phone would drop its keyboard). */}
+          {offered.map((name) => (
+            <button key={name} type="button" className="quick-reply" onMouseDown={(e) => e.preventDefault()} onClick={() => complete(name)}>@{name}</button>
+          ))}
+        </div>
+      )}
+      <span className="sr-only" role="status">{partial ? (offered.length === 0 ? "Nobody matches." : `${offered.length} ${offered.length === 1 ? "person matches" : "people match"}. They are listed before the message box.`) : ""}</span>
       <div className="flex items-end gap-2">
         <label className="icon-btn cursor-pointer" title="Attach a document: PDF, Word, Excel or text, up to 4 MB">
           <input ref={fileInput} type="file" name="file" className="sr-only" accept=".pdf,.docx,.xlsx,.txt,.csv" onChange={(e) => pick(e.target.files?.[0])} />
@@ -272,8 +403,11 @@ export function Composer({ conversationId, manager, placeholder }: { conversatio
           value={body}
           onChange={(e) => {
             setBody(e.target.value);
+            setCaret(e.target.selectionStart ?? e.target.value.length);
             grow(e.target);
           }}
+          onSelect={(e) => setCaret(e.currentTarget.selectionStart ?? 0)}
+          aria-controls={offered.length ? mentionListId : undefined}
           onKeyDown={(e) => {
             if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && !pending && (typing || file)) form.current?.requestSubmit();
           }}

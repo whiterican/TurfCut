@@ -6,7 +6,7 @@
  * Forest #157A46 (the one action colour; live, confirmed, selected), Cream
  * #FAF9F4 (the page), Surface #FFFFFF (cards, rows, forms), Muted #E7E6ED
  * (shaded fills), Border #D7D2E0, Text #0F172A, Subtle #64748B, Warning
- * #F59E0B and Error #EF4444 (accents and fills). Figtree throughout (the wordmark aside). Anything
+ * #F59E0B and Error #EF4444 (accents and fills). Plus Jakarta Sans throughout (the wordmark aside). Anything
  * else (dark surfaces, map fills, status text) is a derived extension and says
  * so beside its token.
  *
@@ -461,13 +461,13 @@ html {
   --text-sm--line-height: calc(10 / 7);
   --text-base: 1rem;
   --text-base--line-height: 1.5;
-  /* Figtree for every role (Nov 12; Inter before, #111). The old role names stay so no rule dangles:
-     "condensed" and "display" are Figtree too, and figures are Figtree with
+  /* Plus Jakarta Sans for every role (Nov 12; Inter before, #111). The old role names stay so no rule dangles:
+     "condensed" and "display" are Plus Jakarta Sans too, and figures are Plus Jakarta Sans with
      tabular numerals. */
-  --font-sans: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
-  --font-condensed: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --font-condensed: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
   /* One step heavier throughout (Caden, Nov 10): body text is 500, and each named weight sits a
      step above its Tailwind default, so `font-medium` draws 600, `font-semibold` 700, `font-bold` 800. */
   --font-weight-normal: 500;
@@ -507,8 +507,11 @@ body {
   color: var(--fg);
   /* The faintest grey reads from its stepped value everywhere: the page's purple sits behind bare hints too. */
   --subtle: var(--subtle-on-glass);
-  font-family: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
   font-weight: 500;
+  /* Plus Jakarta Sans has a narrow space: with the scale's tight tracking, words ran together ("Openjobs").
+     A little air between words, inherited by every role. */
+  word-spacing: 0.08em;
   accent-color: var(--focus);
   /* A long word or link breaks inside its box instead of running past it. */
   overflow-wrap: break-word;
@@ -538,10 +541,10 @@ body {
    One utility per role; components use these, never their own font family or
    size. rem sizes follow the text-size setting; nothing falls below 13px.
    Green board (founder, 2026-10-28): page, card and section titles are the
-   bold sans (Figtree). */
+   bold sans (Plus Jakarta Sans). */
 @utility t-display {
-  /* The public hero line: Figtree, bold, the one size above H1. */
-  font-family: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
+  /* The public hero line: Plus Jakarta Sans, bold, the one size above H1. */
+  font-family: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
   font-size: 2rem;
   line-height: 1.15;
   font-weight: 800;
@@ -553,7 +556,7 @@ body {
 }
 @utility t-title {
   /* H1 28/36 bold */
-  font-family: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
   font-size: 1.75rem;
   line-height: 2.25rem;
   font-weight: 800;
@@ -562,7 +565,7 @@ body {
 }
 @utility t-headline {
   /* H2 20/28 semibold */
-  font-family: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
   font-size: 1.25rem;
   line-height: 1.75rem;
   font-weight: 700;
@@ -571,18 +574,18 @@ body {
 }
 @utility t-section {
   /* H3 16/24 semibold */
-  font-family: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
   font-size: 1rem;
   line-height: 1.5rem;
   font-weight: 700;
 }
 @utility t-body {
-  font-family: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
   font-size: 1rem;
   line-height: 1.5;
 }
 @utility t-strong {
-  font-family: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
   font-size: 1.0625rem;
   line-height: 1.35;
   font-weight: 700;
@@ -601,27 +604,27 @@ body {
 }
 @utility t-label {
   /* A small label: Small 12/16, semibold, sentence case (no tracked capitals on the board). */
-  font-family: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
   font-size: 0.75rem;
   line-height: 1rem;
   font-weight: 700;
 }
 @utility t-figure {
-  font-family: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
   font-size: 1.5rem;
   line-height: 1.1;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
 }
 @utility t-figure-sm {
-  font-family: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
   font-size: 1rem;
   line-height: 1.1;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
 }
 @utility t-figure-lg {
-  font-family: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
   font-size: 2rem;
   line-height: 1.1;
   font-weight: 800;
@@ -767,7 +770,7 @@ body {
     background: var(--shell-bg);
     color: var(--shell-fg);
   }
-  /* The public hero line: Figtree bold, the one size above H1. */
+  /* The public hero line: Plus Jakarta Sans bold, the one size above H1. */
   .hero-split-line {
     @apply t-headline;
     font-family: var(--font-display);
@@ -933,7 +936,7 @@ body {
   }
   /* the brand face: organization and job names, in page heads and on job cards. */
   .masthead {
-    /* Names on cards and page titles alike: Figtree, semibold or bold by role. */
+    /* Names on cards and page titles alike: Plus Jakarta Sans, semibold or bold by role. */
     @apply font-semibold tracking-[-0.02em] text-fg;
   }
   .page-title.masthead {
@@ -1818,7 +1821,7 @@ body {
     @apply relative flex min-h-[48px] min-w-0 flex-1 flex-col items-center justify-center rounded-full px-0.5 py-1.5 font-medium whitespace-nowrap transition;
     flex-basis: 0;
     color: var(--dock-fg);
-    font-family: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
+    font-family: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
     font-size: 12px;
     line-height: 16px;
     letter-spacing: -0.01em;
@@ -3189,7 +3192,7 @@ body {
 /* Leaflet names its own faces (Helvetica; a monospace for + and −). Map labels are words in the app too. */
 .turf-map.leaflet-container,
 .turf-map.leaflet-container .leaflet-bar a {
-  font-family: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
 }
 .turf-map.leaflet-container .leaflet-control-attribution {
   font-size: 10px;
@@ -3469,7 +3472,7 @@ body:has(.staff-band)::after {
     padding-bottom: calc(var(--dock-clearance) + 1rem);
   }
 }
-/* The wordmark keeps the logo's own face; every other word is Figtree. */
+/* The wordmark keeps the logo's own face; every other word is Plus Jakarta Sans. */
 .wordmark {
   font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   font-weight: 800; /* the one weight Inter is loaded at */

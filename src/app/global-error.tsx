@@ -12,7 +12,7 @@ import { useEffect } from "react";
 const css = `
 :root { color-scheme: light dark; }
 body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 32px 16px; box-sizing: border-box;
-  background: #faf9f4; color: #0f172a; font: 16px/1.5 Figtree, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+  background: #faf9f4; color: #0f172a; font: 16px/1.5 "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
 .ge-card { max-width: 32rem; width: 100%; box-sizing: border-box; background: #ffffff; border: 1px solid #d7d2e0; border-radius: 14px; padding: 24px; }
 .ge-card h1 { margin: 0 0 8px; font-size: 20px; line-height: 28px; font-weight: 600; }
 .ge-card p { margin: 0 0 20px; color: #475569; }

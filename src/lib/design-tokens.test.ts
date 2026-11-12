@@ -406,24 +406,26 @@ describe("mockup surfaces", () => {
     expect(css).toMatch(/\.dark \.btn-primary \{\s*box-shadow: inset 0 0 0 1px var\(--accent-edge\);/);
     expect(css).toMatch(/\.badge-live \{[^}]*?border-color: var\(--accent-edge\);/);
   });
-  it("the primary action is the locked Forest with white type in light and dark; every type role is Figtree, and only the wordmark keeps Inter", () => {
+  it("the primary action is the locked Forest with white type in light and dark; every type role is Plus Jakarta Sans, and only the wordmark keeps Inter", () => {
     expect(light.primary).toBe("#157a46");
     expect(dark.primary).toBe("#157a46");
     expect(light["on-primary"]).toBe("#ffffff");
     for (const u of ["t-display", "t-title", "t-headline", "t-section", "t-label", "t-figure"]) {
-      expect(css).toMatch(new RegExp(`@utility ${u} \\{[^}]*?font-family: var\\(--font-figtree\\)`));
+      expect(css).toMatch(new RegExp(`@utility ${u} \\{[^}]*?font-family: var\\(--font-jakarta\\)`));
     }
     // Inter is named once in the sheet: the wordmark.
     expect(css.match(/var\(--font-inter\)/g)).toHaveLength(1);
     expect(css).toMatch(/\.wordmark \{\s*font-family: var\(--font-inter\)[^}]*?font-weight: 800;/);
     // The sheet's two font variables come from the layout, and the header's word carries the class.
     const layout = readFileSync(join(__dirname, "../app/layout.tsx"), "utf8");
-    expect(layout).toMatch(/Figtree\(\{\s*variable: "--font-figtree",\s*subsets: \["latin"\],\s*weight: \["500", "600", "700", "800"\]/);
+    expect(layout).toMatch(/Plus_Jakarta_Sans\(\{\s*variable: "--font-jakarta",\s*subsets: \["latin"\],\s*weight: \["500", "600", "700", "800"\]/);
     expect(layout).toMatch(/Inter\(\{\s*variable: "--font-inter",\s*subsets: \["latin"\],\s*weight: \["800"\]/);
-    expect(layout).toMatch(/\$\{figtree\.variable\} \$\{inter\.variable\}/);
+    expect(layout).toMatch(/\$\{jakarta\.variable\} \$\{inter\.variable\}/);
+    // The face's space is narrow: the body adds a little between words, for every role.
+    expect(css).toMatch(/\nbody \{[^}]*?font-family: var\(--font-jakarta\)[^}]*?word-spacing: 0\.08em;/);
     expect(readFileSync(join(__dirname, "../components/SiteHeader.tsx"), "utf8")).toMatch(/<span className="wordmark">turf<span className="wordmark-cut">cut<\/span><\/span>/);
     // Map labels and the zoom buttons too: Leaflet's sheet names its own faces.
-    expect(css).toMatch(/\.turf-map\.leaflet-container,\s*\.turf-map\.leaflet-container \.leaflet-bar a \{\s*font-family: var\(--font-figtree\)/);
+    expect(css).toMatch(/\.turf-map\.leaflet-container,\s*\.turf-map\.leaflet-container \.leaflet-bar a \{\s*font-family: var\(--font-jakarta\)/);
     // No second face anywhere in the sheet (comments aside; "sans-serif" is the system fallback).
     expect(css.replace(/\/\*[\s\S]*?\*\//g, "")).not.toMatch(/(?<![-\w])serif|Georgia|Fraunces|Barlow|DM Mono/i);
     // The printed scale, one weight step heavier (Nov 10): H1 28/36 800, H2 20/28 700, H3 16/24 700, Caption 14/20, Small 12/16.
@@ -482,7 +484,7 @@ describe("token plumbing", () => {
     // A var() of an undefined property makes its whole declaration invalid, silently: a removed token
     // must not leave a reference behind (it took the priority rings' shadow with it once).
     const defined = new Set([...css.matchAll(/--([\w-]+)\s*:/g)].map((m) => m[1]));
-    const fromFonts = new Set(["font-inter", "font-figtree"]);
+    const fromFonts = new Set(["font-inter", "font-jakarta"]);
     const dangling = [...new Set([...css.matchAll(/var\(--([\w-]+)\)/g)].map((m) => m[1]))].filter((n) => !defined.has(n) && !fromFonts.has(n));
     expect(dangling).toEqual([]);
   });

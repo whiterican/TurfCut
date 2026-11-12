@@ -108,6 +108,14 @@ const TOP_MORE = new Set(["/profile", "/feed", "/earnings"]); // Notifications i
 const plain = ({ href, label, icon }: NavTab): NavTab => ({ href, label, icon });
 
 /**
+ * Whether a role's navigation shows a tab: the areas its access grants, and
+ * Messages for everyone on staff, because every staff role has the
+ * organization's channels (lib/chat.ts). Team chats and direct threads
+ * inside Messages still follow the messages area.
+ */
+const reaches = (who: { role: Role; grants: Grants | null }, t: OrgItem) => t.id === "messages" || accessFor(who, t.area) !== null;
+
+/**
  * Tabs per role (workers: Home / Jobs / Work / Map / Messages, with More beside them).
  * Organization roles get every area the access map grants them, so a tab
  * never appears for a route that would refuse you. A removed member (no
@@ -116,7 +124,7 @@ const plain = ({ href, label, icon }: NavTab): NavTab => ({ href, label, icon })
 export function navTabs(role: Role | null, hasOrg: boolean, grants: Grants | null = null): NavTab[] {
   if (role === "WORKER") return WORKER_TABS;
   if (!role || !hasOrg) return [];
-  return ORG_TABS.filter((t) => accessFor({ role, grants }, t.area) !== null).map(plain);
+  return ORG_TABS.filter((t) => reaches({ role, grants }, t)).map(plain);
 }
 
 /** The desktop top bar's links: the worker's dock tabs, then More's (Settings is the header's own button); nobody else has a top bar. */
@@ -149,7 +157,7 @@ const ADMIN_TAB: NavTab = { href: "/admin", label: "Admin", icon: "admin" };
  */
 export function orgNav(role: Role | null, hasOrg: boolean, staff = false, grants: Grants | null = null): OrgNav {
   if (!role || role === "WORKER" || !hasOrg) return { rail: [], phone: [], more: [] };
-  const reach = ORG_TABS.filter((t) => accessFor({ role, grants }, t.area) !== null);
+  const reach = ORG_TABS.filter((t) => reaches({ role, grants }, t));
   const picks = PHONE_PICKS[role];
   const phone = picks.map((id) => reach.find((t) => t.id === id)).filter((t): t is OrgItem => !!t);
   for (const t of reach) if (phone.length < picks.length && !phone.includes(t)) phone.push(t);
@@ -166,7 +174,9 @@ export function orgNav(role: Role | null, hasOrg: boolean, staff = false, grants
  */
 export function landingFor(role: Role, grants: Grants | null, staff = false): string {
   if (accessFor({ role, grants }, "desk") === "full") return "/desk";
-  return orgNav(role, true, staff, grants).rail[0]?.href ?? "/settings";
+  // The first area the role was granted. Messages shows for everyone on staff (channels), so alone it is not a place to land.
+  const granted = ORG_TABS.find((t) => accessFor({ role, grants }, t.area) !== null);
+  return granted?.href ?? (staff ? ADMIN_TAB.href : "/settings");
 }
 
 /** The tab a path belongs to: the longest matching prefix wins (so /shifts/turf is Map, /shifts/abc is Work). */

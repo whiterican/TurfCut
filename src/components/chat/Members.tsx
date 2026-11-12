@@ -10,7 +10,7 @@ import { Avatar } from "@/components/chat/Avatar";
 export interface ClientMember {
   profileId: string;
   name: string;
-  role: "WORKER" | "MANAGER";
+  role: "WORKER" | "MANAGER" | "MEMBER";
   removed: boolean;
   isMe: boolean;
   blockedByMe: boolean;
@@ -18,7 +18,7 @@ export interface ClientMember {
 export interface ClientCandidate {
   profileId: string;
   name: string;
-  role: "WORKER" | "MANAGER";
+  role: "WORKER" | "MANAGER" | "MEMBER";
   detail: string;
 }
 
@@ -70,6 +70,7 @@ export function Members({
   canBlock,
   candidates,
   bare = false,
+  emptyHint,
 }: {
   conversationId: string;
   members: ClientMember[];
@@ -78,6 +79,8 @@ export function Members({
   candidates: ClientCandidate[];
   /** Inside the thread's ··· menu: no collapsible wrapper of its own. */
   bare?: boolean;
+  /** Said when nobody is left to add (a channel words it its own way). */
+  emptyHint?: string;
 }) {
   // Controlled selection: React resets the form after every action, and a
   // failed add shouldn't lose the picks.
@@ -95,8 +98,8 @@ export function Members({
           {m.isMe && " (you)"}
         </span>
       </span>
-      {m.removed ? <StatusChip state="closed" label="Removed" /> : <span className={m.role === "MANAGER" ? "tag-accent" : "tag"}>{m.role === "MANAGER" ? "Manager" : "Worker"}</span>}
-      {!m.isMe && !m.removed && canBlock && m.role === "MANAGER" && <BlockButton conversationId={conversationId} member={m} />}
+      {m.removed ? <StatusChip state="closed" label="Removed" /> : <span className={m.role === "WORKER" ? "tag" : "tag-accent"}>{m.role === "MANAGER" ? "Manager" : m.role === "MEMBER" ? "Staff" : "Worker"}</span>}
+      {!m.isMe && !m.removed && canBlock && m.role !== "WORKER" && <BlockButton conversationId={conversationId} member={m} />}
       {!m.isMe && !m.removed && canManage && <RemoveButton conversationId={conversationId} member={m} />}
     </li>
   );
@@ -121,7 +124,7 @@ export function Members({
           <input type="hidden" name="conversationId" value={conversationId} />
           <p className="label">Add people</p>
           {addable.length === 0 ? (
-            <p className="text-hint">Everyone eligible is already here. Workers must be hired on one of this team&apos;s jobs.</p>
+            <p className="text-hint">{emptyHint ?? "Everyone eligible is already here. Workers must be hired on one of this team's jobs."}</p>
           ) : (
             <div className="flex flex-wrap gap-2">
               {addable.map((c) => (
@@ -135,7 +138,7 @@ export function Members({
                     onChange={(e) => setPicked((prev) => { const n = new Set(prev); if (e.target.checked) n.add(c.profileId); else n.delete(c.profileId); return n; })}
                   />
                   {c.name}
-                  <span className="text-xs text-subtle">{c.role === "MANAGER" ? c.detail : "Worker"}</span>
+                  <span className="text-xs text-subtle">{c.role === "WORKER" ? "Worker" : c.detail}</span>
                 </label>
               ))}
             </div>

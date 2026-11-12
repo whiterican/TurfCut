@@ -129,3 +129,43 @@ export async function setChatName(_prev: ActionState, fd: FormData): Promise<Act
   if (r.ok) revalidatePath("/messages", "layout");
   return done(r, "Saved.");
 }
+
+// ---------------------------------------------------------------------------
+// Channels
+// ---------------------------------------------------------------------------
+
+export async function createChannel(_prev: ActionState, fd: FormData): Promise<ActionState> {
+  const r = await chat.createChannel(await me(), {
+    name: fd.get("name"),
+    topic: fd.get("topic"),
+    staffOnly: fd.get("audience") !== "team",
+    jobIds: fd.getAll("jobIds").map(String),
+  });
+  if (!r.ok) return { ok: false, message: r.reason };
+  revalidatePath("/messages", "layout");
+  redirect(`/messages/${r.conversationId}`);
+}
+
+/** Join from the list of channels, then open it. */
+export async function joinChannel(fd: FormData): Promise<void> {
+  const conversationId = str(fd.get("conversationId"));
+  const r = await chat.joinChannel(await me(), conversationId);
+  // A fixed code, never free text in the URL.
+  if (!r.ok) redirect("/messages/channels?error=join");
+  revalidatePath("/messages", "layout");
+  redirect(`/messages/${conversationId}`);
+}
+
+export async function leaveChannel(conversationId: string): Promise<ActionState> {
+  const r = await chat.leaveChannel(await me(), str(conversationId));
+  if (!r.ok) return { ok: false, message: r.reason };
+  revalidatePath("/messages", "layout");
+  redirect("/messages");
+}
+
+export async function archiveChannel(conversationId: string): Promise<ActionState> {
+  const r = await chat.archiveChannel(await me(), str(conversationId));
+  if (r.ok) revalidatePath("/messages", "layout");
+  return done(r, "Archived. The channel is now read-only.");
+}
+

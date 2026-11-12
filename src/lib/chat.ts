@@ -15,6 +15,13 @@
  *   from the worker (and stay hidden after unblocking).
  * - Messages are immutable; edits (within 5 minutes) and deletes are
  *   appended revisions. A deleted message shows as a tombstone.
+ * - Channels (Nov 2026): named, browsable channels in the organization's
+ *   workspace. Every staff member is in "general"; staff join and leave the
+ *   others themselves, whatever their role. A channel that is not staff-only
+ *   is tied to jobs, and its managers can add workers hired on them (workers
+ *   never join by themselves and never see a staff-only channel). Those who
+ *   run team chats (the Messages area) create, archive and manage channels.
+ *   An archived channel is read-only.
  * - Nothing here reads, infers or labels political fit or chat content.
  */
 import type { Role } from "@/lib/auth";
@@ -27,17 +34,21 @@ export const EDIT_WINDOW_MS = 5 * 60_000;
 export const MAX_ATTACHMENT_BYTES = 4 * 1024 * 1024;
 export const PETITION_NOTICE = "Do not photograph or share signed petition sheets. Custody is tracked as packet IDs and counts only.";
 
-export type Kind = "DIRECT" | "GROUP";
+export type Kind = "DIRECT" | "GROUP" | "CHANNEL";
+/** WORKER: a hired worker. MANAGER: staff running a direct thread or team chat. MEMBER: staff in a channel. */
+export type ParticipantRole = "WORKER" | "MANAGER" | "MEMBER";
 
 export interface ChatFacts {
   kind: Kind;
   orgId: string;
   me: { profileId: string; role: Role; grants?: Grants | null; orgId: string | null };
   /** My participant row, if any. */
-  participant: { role: "WORKER" | "MANAGER"; removedAt: Date | null; addedAt?: Date } | null;
+  participant: { role: ParticipantRole; removedAt: Date | null; addedAt?: Date } | null;
+  /** CHANNEL: archived (read-only for everyone). */
+  archived?: boolean;
   /** DIRECT: the engagement's status. */
   engagementStatus?: string;
-  /** GROUP, worker: hired (ACTIVE/CLAIMED) on at least one of the chat's jobs. */
+  /** GROUP or CHANNEL, worker: hired (ACTIVE/CLAIMED) on at least one of the chat's jobs. */
   hiredOnLinkedJob?: boolean;
   /** DIRECT: the other person has an active block against me. */
   blockedByOther?: boolean;
@@ -66,7 +77,14 @@ export function chatAccess(f: ChatFacts): Access {
   const p = f.participant;
   if (!p) return NONE;
   const readFrom = f.kind === "DIRECT" && p.role === "MANAGER" ? (p.addedAt ?? null) : null;
-  if (p.removedAt) return { read: true, readUntil: p.removedAt, readFrom, post: false, closed: "You were removed from this conversation. History is read-only." };
+  if (p.removedAt) {
+    // History is kept for someone who left a channel while still on its organization's staff. A login that
+    // has since left the organization, or become a worker, reads none of it: workers never see staff channels.
+    if (p.role === "MEMBER" && (f.kind !== "CHANNEL" || f.me.role === "WORKER" || f.me.orgId !== f.orgId)) return { ...NONE, closed: "You're no longer in this organization." };
+    // Staff leave a channel themselves and may join again; everyone else was taken out.
+    const closed = f.kind === "CHANNEL" && p.role === "MEMBER" ? "You're no longer in this channel. History up to then is read-only; join again from Channels." : "You were removed from this conversation. History is read-only.";
+    return { read: true, readUntil: p.removedAt, readFrom, post: false, closed };
+  }
   const open = (): Access => ({ read: true, readUntil: null, readFrom, post: true, closed: null });
   const frozen = (closed: string): Access => ({ read: true, readUntil: null, readFrom, post: false, closed });
 
@@ -74,13 +92,18 @@ export function chatAccess(f: ChatFacts): Access {
     // Someone who no longer runs this organization's teams (left, or their role lost Messages) reads nothing more: the participant row is ended when that happens, and this holds if a path missed it.
     if (f.me.orgId !== f.orgId || !canUse(f.me, "messages")) return { read: false, readUntil: null, readFrom, post: false, closed: "You no longer manage this conversation." };
   }
+  if (p.role === "MEMBER") {
+    // A channel member is staff of the channel's organization, whatever their role. (Leaving the organization ends the participant row; this holds if a path missed it.)
+    if (f.kind !== "CHANNEL" || f.me.role === "WORKER" || f.me.orgId !== f.orgId) return { read: false, readUntil: null, readFrom, post: false, closed: "You're no longer in this organization." };
+  }
+  if (f.kind === "CHANNEL" && f.archived) return frozen("This channel is archived. History is read-only.");
   if (f.kind === "DIRECT") {
     if (!HIRED.has(f.engagementStatus ?? "")) return frozen("This job has ended. The conversation is read-only.");
     if (f.counterpartRemoved) return frozen("The other person has left this conversation. History is read-only.");
     if (f.blockedByOther) return frozen("You can't send messages in this conversation.");
     return open();
   }
-  if (p.role === "WORKER" && !f.hiredOnLinkedJob) return frozen("You're no longer on a job for this team. History is read-only.");
+  if (p.role === "WORKER" && !f.hiredOnLinkedJob) return frozen(f.kind === "CHANNEL" ? "You're no longer on a job for this channel. History is read-only." : "You're no longer on a job for this team. History is read-only.");
   return open();
 }
 
@@ -218,17 +241,19 @@ export function canReport(access: Access, msg: ViewMessage, me: string, reason: 
 }
 
 /** A worker may block a manager they share a conversation with — never a fellow worker. */
-export function canBlock(me: { role: Role }, target: { role: "WORKER" | "MANAGER" } | null): Check {
+export function canBlock(me: { role: Role }, target: { role: ParticipantRole } | null): Check {
   if (me.role !== "WORKER") return no("Only workers can block.");
   if (!target) return no("You don't share a conversation with that person.");
-  if (target.role !== "MANAGER") return no("You can block employers and managers.");
+  if (target.role === "WORKER") return no("You can block employers and managers.");
   return yes;
 }
 
 /** Group members are managed by the chat's active managers and the org owner. */
 export function canManageMembers(f: ChatFacts): Check {
-  if (f.kind !== "GROUP") return no("Direct conversations have fixed members.");
+  if (f.kind === "DIRECT") return no("Direct conversations have fixed members.");
   if (canUse(f.me, "moderation") && f.me.orgId === f.orgId) return yes;
+  // A channel is managed by whoever runs teams in its organization, in the channel or not.
+  if (f.kind === "CHANNEL") return f.me.orgId === f.orgId && canUse(f.me, "messages") ? yes : no("Owners, recruiters and supervisors manage channels.");
   const a = chatAccess(f);
   if (f.participant?.role === "MANAGER" && a.post) return yes;
   return no("Only this team's managers can add or remove members.");
@@ -244,6 +269,71 @@ export function validateGroupName(raw: unknown): { ok: true; name: string } | { 
   if (!name) return { ok: false, reason: "Name the team chat." };
   if (name.length > 80) return { ok: false, reason: "Keep the name under 80 characters." };
   return { ok: true, name };
+}
+
+// ---------------------------------------------------------------------------
+// Channels
+// ---------------------------------------------------------------------------
+
+export const CHANNEL_NAME_MAX = 40;
+export const CHANNEL_TOPIC_MAX = 250;
+export const GENERAL_CHANNEL = "general";
+
+/**
+ * A channel's name as it is stored: lower case, words joined by hyphens,
+ * letters and digits of any language. "#Denver Sales!" becomes "denver-sales".
+ */
+export function validateChannelName(raw: unknown): { ok: true; name: string } | { ok: false; reason: string } {
+  const name = (typeof raw === "string" ? raw : "")
+    .normalize("NFKC")
+    .trim()
+    .replace(/^#+/, "")
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, "-")
+    .replace(/^-+|-+$/g, "");
+  if (!name) return { ok: false, reason: "Name the channel." };
+  if (name.length > CHANNEL_NAME_MAX) return { ok: false, reason: `Keep the name under ${CHANNEL_NAME_MAX} characters.` };
+  return { ok: true, name };
+}
+
+export function validateChannelTopic(raw: unknown): { ok: true; topic: string | null } | { ok: false; reason: string } {
+  const topic = typeof raw === "string" ? raw.trim().replace(/\s+/g, " ") : "";
+  if (topic.length > CHANNEL_TOPIC_MAX) return { ok: false, reason: `Keep the topic under ${CHANNEL_TOPIC_MAX} characters.` };
+  return { ok: true, topic: topic || null };
+}
+
+/** Channels are created, archived and managed by whoever runs team chats (the Messages area). */
+export function canManageChannels(me: { role: Role; grants?: Grants | null; orgId: string | null }, orgId: string | null = me.orgId): Check {
+  if (!me.orgId || me.orgId !== orgId || !canUse(me, "messages")) return no("Owners, recruiters and supervisors create and manage channels.");
+  return yes;
+}
+
+export interface ChannelFacts {
+  orgId: string;
+  archived: boolean;
+  isGeneral: boolean;
+  /** My participant row there, if any. */
+  participant: { role: ParticipantRole; removedAt: Date | null } | null;
+}
+
+/** Staff of the organization see its channels (to open or join); a worker sees only channels they were added to. */
+export function isChannelStaff(me: { role: Role; orgId: string | null }, orgId: string): boolean {
+  return me.role !== "WORKER" && !!me.orgId && me.orgId === orgId;
+}
+
+/** Staff join any live channel of their organization themselves. Workers are added by a manager, never by joining. */
+export function canJoinChannel(me: { role: Role; orgId: string | null }, c: ChannelFacts): Check {
+  if (!isChannelStaff(me, c.orgId)) return no("That channel isn't available.");
+  if (c.archived) return no("This channel is archived.");
+  if (c.participant && !c.participant.removedAt) return no("You're already in this channel.");
+  return yes;
+}
+
+/** Anyone may leave a channel except the general one, which holds everyone on staff. */
+export function canLeaveChannel(c: ChannelFacts): Check {
+  if (!c.participant || c.participant.removedAt) return no("You're not in this channel.");
+  if (c.isGeneral) return no("Everyone on staff stays in the general channel.");
+  return yes;
 }
 
 // ---------------------------------------------------------------------------

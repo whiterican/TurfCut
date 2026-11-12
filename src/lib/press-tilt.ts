@@ -33,6 +33,13 @@ export interface Box {
 }
 
 /**
+ * A box longer than this on either side stays still when pressed. Turning or shrinking it about its centre moves
+ * its far rows: a list of fifty notices would slide the pressed row out from under the finger, and the tap would miss.
+ */
+export const TILT_LONGEST = 900;
+export const canTilt = (box: Box) => box.width > 0 && box.height > 0 && Math.max(box.width, box.height) <= TILT_LONGEST;
+
+/**
  * How far to turn a box pressed at (x, y), in degrees about each axis, for CSS rotateX / rotateY.
  * The pressed side goes down, away from the viewer: pressing the right edge turns the box about
  * its vertical axis by +max (rotateY), pressing the bottom edge turns it about its horizontal

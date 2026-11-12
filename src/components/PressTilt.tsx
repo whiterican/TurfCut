@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { DURATION, motionReduced } from "@/lib/motion";
-import { NO_TILT, TILT_TARGETS, tiltFor, type Box } from "@/lib/press-tilt";
+import { canTilt, NO_TILT, TILT_TARGETS, tiltFor, type Box } from "@/lib/press-tilt";
 
 /**
  * One listener for the whole app: while a floating card is pressed, it dips toward the finger
@@ -55,11 +55,15 @@ export function PressTilt() {
       if (card) level();
       // Things that take a drag or open a picker keep their card still.
       if (e.target instanceof Element && e.target.closest(NO_TILT)) return;
-      card = boxAt(e.target);
-      if (!card) return;
-      pointer = e.pointerId;
+      const found = boxAt(e.target);
+      if (!found) return;
       // Measured once, level, before it turns: a turned box reports a different rectangle.
-      box = card.getBoundingClientRect();
+      const rect = found.getBoundingClientRect();
+      // A very long list stays still (lib/press-tilt: canTilt).
+      if (!canTilt(rect)) return;
+      card = found;
+      box = rect;
+      pointer = e.pointerId;
       lean(e);
       card.setAttribute("data-tilt", "on");
     };

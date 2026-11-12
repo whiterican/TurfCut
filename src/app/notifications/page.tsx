@@ -58,7 +58,7 @@ export default async function NotificationsPage() {
           <p className="empty-state-body">{viewer === "worker" ? "Offers, invitations, answers and posts from campaigns you get notices from appear here." : "Applications, claims and answers appear here."}</p>
         </div>
       ) : (
-        // Rows as Messages draws them (#111): white rows with dividers, bold while unread, the time under, a chevron.
+        // Rows as Messages draws them (#111): rows with dividers in one card, bold while unread, the time under, a chevron.
         <ul className="list-card thread-list">
           {items.map((n) => {
             const t = n.t;

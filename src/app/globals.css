@@ -1033,7 +1033,7 @@ body {
     @apply block text-xs text-subtle;
   }
   /* Rows inside a clipped list card draw their keyboard ring inside the row. */
-  .job-row:focus-visible {
+  :is(.job-row, .thread-row, .profile-row):focus-visible {
     outline-offset: -3px;
   }
 

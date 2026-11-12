@@ -63,4 +63,4 @@ Honest limits: by night the glass is plain to see. By day it is quiet: a white p
 - **While pressed, a card drops its blur.** Safari is known to clip a blurred backdrop on a turning panel. The page behind is a smooth wash, so the blur adds almost nothing during the press. Not checked on an iPhone.
 - **Print**: every pane prints solid.
 - **Known, not changed**: pages with many cards (Pay, the schedule) carry one blur per card; if a phone scrolls roughly there, dropping the blur from `--card-filter` costs almost nothing visually.
-- **Quieter light on a press** (Caden, second try: "less dramatic"): the pool of light under the finger is well under half as bright and reaches 10px where it reached 18px, and the shadow pulls in less, so a press reads as a slight settling.
+- **Quieter light on a press** (Caden, second try: "less dramatic"): the pool of light under the finger is under half as bright and reaches 10px where it reached 18px, and the shadow pulls in less, so a press reads as a slight settling.

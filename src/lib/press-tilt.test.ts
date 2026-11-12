@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { NO_TILT, TILT_MAX_DEG, TILT_MIN_DEG, TILT_TARGETS, tiltFor } from "./press-tilt";
+import { canTilt, NO_TILT, TILT_LONGEST, TILT_MAX_DEG, TILT_MIN_DEG, TILT_TARGETS, tiltFor } from "./press-tilt";
 
 const tile = { left: 100, top: 200, width: 150, height: 120 };
 
@@ -25,6 +25,14 @@ describe("a pressed card dips toward the finger", () => {
     expect(tiltFor(tile, 250, 200)).toMatchObject({ lx: 1, ly: -1 });
     expect(tiltFor(tile, 175, 260)).toMatchObject({ lx: 0, ly: 0 });
     expect(tiltFor(tile, 137.5, 290)).toMatchObject({ lx: -0.5, ly: 0.5 });
+  });
+
+  it("a very long box does not tilt at all, so the row under the finger never slides away", () => {
+    expect(canTilt({ left: 0, top: 0, width: 358, height: 600 })).toBe(true);
+    expect(canTilt({ left: 0, top: 0, width: 358, height: TILT_LONGEST })).toBe(true);
+    expect(canTilt({ left: 0, top: 0, width: 358, height: TILT_LONGEST + 1 })).toBe(false);
+    expect(canTilt({ left: 0, top: 0, width: 1200, height: 300 })).toBe(false);
+    expect(canTilt({ left: 0, top: 0, width: 0, height: 300 })).toBe(false);
   });
 
   it("turns a big card less than a small tile, and never less than a visible amount", () => {

@@ -2,9 +2,10 @@
 
 import { useEffect, useLayoutEffect, useRef, useState, useTransition } from "react";
 import { useSubmit } from "@/components/chat/useSubmit";
-import { edit, remove, report, send } from "@/app/messages/actions";
+import Link from "next/link";
+import { edit, react, remove, report, send } from "@/app/messages/actions";
 import type { ActionState } from "@/app/jobs/actions";
-import { MAX_ATTACHMENT_BYTES, MAX_BODY, PETITION_NOTICE } from "@/lib/chat";
+import { MAX_ATTACHMENT_BYTES, MAX_BODY, PETITION_NOTICE, REACTIONS, REACTION_NAMES, type Reaction } from "@/lib/chat";
 import { LocalTime } from "@/components/LocalTime";
 import { Avatar } from "@/components/chat/Avatar";
 import { ArrowUp, Paperclip } from "@/components/chat/icons";
@@ -22,6 +23,84 @@ export interface ClientMessage {
   attachment: { name: string; type: string; size: number } | null;
   canEdit: boolean;
   canDelete: boolean;
+  /** Replies in this message's thread, and when the newest was sent. */
+  replies: number;
+  lastReplyAt: string | null;
+  /** Replies from others not yet read when the page loaded. */
+  newReplies: number;
+  reactions: { emoji: Reaction; count: number; mine: boolean }[];
+  canReact: boolean;
+  canReply: boolean;
+}
+
+/**
+ * The marks under a message: each one given so far (a button that adds or
+ * takes back yours), and a "+" that opens the rest. The count shown changes
+ * at once and is put right by the server's answer.
+ */
+function Reactions({ m, children }: { m: ClientMessage; /** Sits at the end of the row (the way into the thread). */ children?: React.ReactNode }) {
+  const [open, setOpen] = useState(false);
+  const [pending, start] = useTransition();
+  const [error, setError] = useState("");
+  // Mine, as tapped but not yet confirmed: emoji -> on/off.
+  const [draft, setDraft] = useState<Partial<Record<Reaction, boolean>>>({});
+  const add = useRef<HTMLButtonElement>(null);
+  // Closing the picker returns focus to the "+" it came from.
+  const close = () => {
+    if (!open) return;
+    setOpen(false);
+    requestAnimationFrame(() => add.current?.focus());
+  };
+  const shown = REACTIONS.map((emoji) => {
+    const base = m.reactions.find((r) => r.emoji === emoji);
+    const mine = draft[emoji] ?? base?.mine ?? false;
+    const count = (base?.count ?? 0) + (mine === (base?.mine ?? false) ? 0 : mine ? 1 : -1);
+    return { emoji, mine, count };
+  }).filter((r) => r.count > 0);
+  const toggle = (emoji: Reaction) => {
+    const now = !(draft[emoji] ?? m.reactions.find((r) => r.emoji === emoji)?.mine ?? false);
+    setDraft((d) => ({ ...d, [emoji]: now }));
+    close();
+    setError("");
+    start(async () => {
+      const r = await react(m.id, emoji).catch(() => ({ ok: false, message: "That didn't go through." }));
+      if (!r.ok) setError(r.message);
+      // The server's count is on the page now (or the tap failed): drop the guess either way.
+      setDraft((d) => {
+        const next = { ...d };
+        delete next[emoji];
+        return next;
+      });
+    });
+  };
+  if (shown.length === 0 && !m.canReact && !children) return null;
+  return (
+    <div className={`mt-1 flex flex-wrap items-center gap-1 ${m.mine ? "justify-end" : ""}`}>
+      {shown.map((r) => (
+        <button key={r.emoji} type="button" className="reaction" aria-pressed={r.mine} disabled={!m.canReact || pending} onClick={() => toggle(r.emoji)} aria-label={`${REACTION_NAMES[r.emoji]}, ${r.count}${r.mine ? ", including yours" : ""}`}>
+          <span aria-hidden>{r.emoji}</span>
+          <span aria-hidden className="tabular-nums">{r.count}</span>
+        </button>
+      ))}
+      {m.canReact && (
+        <button ref={add} type="button" className="reaction reaction-add" hidden={open} disabled={pending} onClick={() => setOpen(true)} aria-label="Add a reaction" aria-haspopup="true">
+          <span aria-hidden>+</span>
+        </button>
+      )}
+      {m.canReact && open && (
+        <span className="reaction-picker" role="group" aria-label="Reactions" onKeyDown={(e) => { if (e.key === "Escape") { e.stopPropagation(); close(); } }}>
+          {REACTIONS.map((emoji, i) => (
+            <button key={emoji} type="button" className="reaction-pick" autoFocus={i === 0} onClick={() => toggle(emoji)} aria-label={REACTION_NAMES[emoji]}>
+              <span aria-hidden>{emoji}</span>
+            </button>
+          ))}
+          <button type="button" className="reaction-pick text-sm text-muted" onClick={close} aria-label="Close reactions">✕</button>
+        </span>
+      )}
+      {children}
+      {error && <span role="alert" className="text-xs text-danger-msg">{error}</span>}
+    </div>
+  );
 }
 
 const IMAGE_FILE = /\.(jpe?g|png|gif|webp|heic|heif|avif|bmp|tiff?|svg)$/i;
@@ -108,12 +187,18 @@ export function MessageList({
   group,
   hasOlder,
   canPost,
+  threadId = null,
+  emptyText,
 }: {
   messages: ClientMessage[];
   conversationId: string;
   group: boolean;
   hasOlder: boolean;
   canPost: boolean;
+  /** On a thread's own page: the message being answered. Replies there show no thread link. */
+  threadId?: string | null;
+  /** What to say when there is nothing yet (a thread words it its own way). */
+  emptyText?: string;
 }) {
   const last = messages.at(-1);
   const first = useRef(true);
@@ -138,6 +223,7 @@ export function MessageList({
   }, [last?.id, last?.mine]);
 
   if (messages.length === 0) {
+    if (emptyText) return <p className="text-muted-sm px-1">{emptyText}</p>;
     return (
       <div className="empty-state">
         <p className="empty-state-title">No messages yet</p>
@@ -146,7 +232,7 @@ export function MessageList({
     );
   }
   return (
-    <ol className="space-y-3" aria-label="Messages">
+    <ol className="space-y-3" aria-label={threadId ? "Replies" : "Messages"}>
       {hasOlder && <li className="text-hint text-center">Showing the latest 200 messages.</li>}
       {messages.map((m, i) => {
         // Runs of messages from one sender: name (and Manager badge) on the
@@ -184,6 +270,15 @@ export function MessageList({
                 )}
                 <MessageActions m={m} conversationId={conversationId} />
               </div>
+              {/* One row under the message: the marks, then the way into its thread. A deleted message keeps its thread, not its marks. */}
+              <Reactions m={m.deleted ? { ...m, reactions: [], canReact: false } : m}>
+                {!threadId && (m.replies > 0 || m.canReply) && (
+                  <Link transitionTypes={["nav-forward"]} href={`/messages/${conversationId}/thread/${m.id}`} className={`thread-link ${m.replies > 0 ? "thread-link-has" : ""}`}>
+                    {m.replies > 0 ? `${m.replies} ${m.replies === 1 ? "reply" : "replies"}` : "Reply"}
+                    {m.newReplies > 0 && <span className="unread-badge ml-2 no-underline">{m.newReplies} new</span>}
+                  </Link>
+                )}
+              </Reactions>
             </div>
           </li>
         );
@@ -195,7 +290,7 @@ export function MessageList({
 const WORKER_REPLIES = ["On my way", "Running about 10 min late", "At staging", "Packet returned", "Can't make it — calling you"];
 const MANAGER_REPLIES = ["Thanks!", "Where are you?", "See you at staging", "Great work today"];
 
-export function Composer({ conversationId, manager, placeholder }: { conversationId: string; manager: boolean; placeholder: string }) {
+export function Composer({ conversationId, manager, placeholder, parentId = null }: { conversationId: string; manager: boolean; placeholder: string; /** Replying in a thread: the message being answered. */ parentId?: string | null }) {
   const form = useRef<HTMLFormElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
@@ -236,8 +331,9 @@ export function Composer({ conversationId, manager, placeholder }: { conversatio
   return (
     <form ref={form} onSubmit={onSubmit} className="composer" aria-label="Send a message">
       <input type="hidden" name="conversationId" value={conversationId} />
+      {parentId && <input type="hidden" name="parentId" value={parentId} />}
       {/* One tap for the common field updates; hidden once you start typing so a draft is never replaced. */}
-      {!typing && !file && (
+      {!typing && !file && !parentId && (
         <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1" role="group" aria-label="Quick replies">
           {(manager ? MANAGER_REPLIES : WORKER_REPLIES).map((q) => (
             <button key={q} name="quick" value={q} className="quick-reply" disabled={pending}>{q}</button>

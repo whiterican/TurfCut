@@ -13,9 +13,12 @@ import {
   canLeaveChannel,
   canManageChannels,
   isChannelStaff,
+  REACTIONS,
   canDelete,
   canEdit,
   canManageMembers,
+  canReact,
+  canReply,
   canReport,
   canSend,
   chatAccess,
@@ -28,6 +31,7 @@ import {
   type ChannelFacts,
   type ChatFacts,
   type ParticipantRole,
+  type Reaction,
   type RawRevision,
   type ViewMessage,
 } from "@/lib/chat";
@@ -120,13 +124,24 @@ async function loadContext(c: Client, me: ChatUser, conversationId: string) {
 }
 
 /** Messages as this viewer sees them: removal cutoff, blocks and revisions applied. */
-async function loadView(c: Client, conversationId: string, viewerId: string, window: { readUntil: Date | null; readFrom: Date | null }, opts: { take?: number; ids?: string[] } = {}) {
+async function loadView(
+  c: Client,
+  conversationId: string,
+  viewerId: string,
+  window: { readUntil: Date | null; readFrom: Date | null },
+  /**
+   * `thread`: null for the main conversation only (no replies), a message id for that message's replies; left out for everything.
+   * `repliesOnly`: replies, whatever their thread, except those under the messages named. `since`: nothing older than this.
+   */
+  opts: { take?: number; ids?: string[]; thread?: string | null; repliesOnly?: { notUnder: string[] }; since?: Date } = {}
+) {
   const { readUntil, readFrom } = window;
   const rows = await c.message.findMany({
     where: {
       conversationId,
-      ...(readUntil || readFrom ? { createdAt: { ...(readUntil ? { lte: readUntil } : {}), ...(readFrom ? { gte: readFrom } : {}) } } : {}),
+      ...(readUntil || readFrom || opts.since ? { createdAt: { ...(readUntil ? { lte: readUntil } : {}), ...(readFrom || opts.since ? { gte: [readFrom, opts.since].reduce<Date | undefined>((a, b) => (b && (!a || b > a) ? b : a), undefined) } : {}) } } : {}),
       ...(opts.ids ? { id: { in: opts.ids } } : {}),
+      ...(opts.thread !== undefined ? { parentId: opts.thread } : opts.repliesOnly ? { parentId: { not: null, notIn: opts.repliesOnly.notUnder } } : {}),
     },
     orderBy: { createdAt: "desc" },
     take: opts.take,
@@ -142,6 +157,7 @@ async function loadView(c: Client, conversationId: string, viewerId: string, win
       body: m.body,
       createdAt: m.createdAt,
       attachment: m.attachmentPath ? { name: m.attachmentName ?? "file", type: m.attachmentType ?? "", size: m.attachmentSize ?? 0 } : null,
+      parentId: m.parentId,
     })),
     revisions.map((r): RawRevision => ({ messageId: r.messageId, actorId: r.actorId, kind: r.kind, body: r.body, createdAt: r.createdAt })),
     viewerId,
@@ -345,6 +361,17 @@ export interface ThreadMessage {
   attachment: { name: string; type: string; size: number } | null;
   canEdit: boolean;
   canDelete: boolean;
+  /** A reply: the message it answers. */
+  parentId: string | null;
+  /** Replies in this message's thread that I can see, and when the newest was sent. */
+  replies: number;
+  lastReplyAt: Date | null;
+  /** Of those, how many from other people I had not read when this page was loaded. */
+  newReplies: number;
+  /** Each mark given to this message, with how many gave it and whether I did. */
+  reactions: { emoji: Reaction; count: number; mine: boolean }[];
+  canReact: boolean;
+  canReply: boolean;
 }
 export interface ThreadMember {
   profileId: string;
@@ -382,7 +409,14 @@ export async function openThread(me: ChatUser, conversationId: string): Promise<
   const ctx = await loadContext(db(), me, conversationId);
   if (!ctx || !ctx.access.read || !ctx.mine) return null;
   const { conv, mine, access } = ctx;
-  const { view, truncated } = await loadView(db(), conv.id, me.userId, access, { take: THREAD_LIMIT });
+  const top = await loadView(db(), conv.id, me.userId, access, { take: THREAD_LIMIT, thread: null });
+  const truncated = top.truncated;
+  // A reply I can see whose first message is not on this page (sent before I took over a direct thread, or by
+  // someone I had blocked, or older than what is loaded) has no thread link here to reach it by: it reads as an
+  // ordinary message, so nothing I'm entitled to is left with nowhere to show. Judged against the page itself.
+  const loose = await loadView(db(), conv.id, me.userId, access, { repliesOnly: { notUnder: top.view.map((m) => m.id) }, since: truncated ? top.view[0]?.createdAt : undefined });
+  const view = [...top.view, ...loose.view].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+  const extras = await messageExtras(db(), conv.id, me.userId, access, view, mine.lastReadAt);
   const myBlocks = new Set(
     (await db().profileBlock.findMany({ where: { blockerId: me.userId, liftedAt: null }, select: { blockedId: true } })).map((b) => b.blockedId)
   );
@@ -390,7 +424,9 @@ export async function openThread(me: ChatUser, conversationId: string): Promise<
   // Read up to the newest message actually loaded, never "now": a message
   // committing during this request stays unread. (Sends are serialized per
   // conversation, so nothing older than what we loaded can still appear.)
-  const newest = view.at(-1)?.createdAt;
+  // A reply counted under a message here was announced too (its thread link says how many are new), so the newest of those is read as well:
+  // this page is the one place that can always clear the badge.
+  const newest = [view.at(-1)?.createdAt, extras.newestReply].reduce<Date | undefined>((a, b) => (b && (!a || b > a) ? b : a), undefined);
   if (newest && (!mine.lastReadAt || newest > mine.lastReadAt)) {
     await db().conversationParticipant.update({ where: { id: mine.id }, data: { lastReadAt: newest } });
   }
@@ -442,20 +478,160 @@ export async function openThread(me: ChatUser, conversationId: string): Promise<
         isMe: p.profileId === me.userId,
         blockedByMe: myBlocks.has(p.profileId),
       })),
-    messages: view.map((m) => {
-      const sender = byId.get(m.senderId);
-      const mineMsg = m.senderId === me.userId;
-      return {
-        ...m,
-        senderName: personName(sender?.profile),
-        senderIsManager: !!sender && sender.role !== "WORKER",
-        mine: mineMsg,
-        canEdit: mineMsg && !m.deleted && !!m.body && access.post && now.getTime() - m.createdAt.getTime() <= EDIT_WINDOW_MS,
-        canDelete: mineMsg && !m.deleted && access.post,
-      };
-    }),
+    messages: view.map((m) => threadMessage(m, me.userId, byId, access, now, extras)),
     hasOlder: truncated,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Threads (replies) and reactions
+// ---------------------------------------------------------------------------
+
+interface Extras {
+  replies: Map<string, { count: number; last: Date; fresh: number }>;
+  reactions: Map<string, { emoji: Reaction; count: number; mine: boolean }[]>;
+  newestReply: Date | undefined;
+}
+
+/**
+ * What hangs off the messages on screen: how many replies each has (as this
+ * viewer sees them: their window and their blocks apply), and the reactions
+ * each was given. A reaction from someone the viewer has blocked is not
+ * counted.
+ */
+async function messageExtras(c: Client, conversationId: string, viewerId: string, window: { readUntil: Date | null; readFrom: Date | null }, view: ViewMessage[], lastReadAt: Date | null = null): Promise<Extras> {
+  const ids = view.map((m) => m.id);
+  const out: Extras = { replies: new Map(), reactions: new Map(), newestReply: undefined };
+  if (ids.length === 0) return out;
+  const { readUntil, readFrom } = window;
+  const [replyRows, reactionRows, blocks] = await Promise.all([
+    c.message.findMany({
+      where: { conversationId, parentId: { in: ids }, ...(readUntil || readFrom ? { createdAt: { ...(readUntil ? { lte: readUntil } : {}), ...(readFrom ? { gte: readFrom } : {}) } } : {}) },
+      select: { id: true, parentId: true, senderId: true, createdAt: true },
+    }),
+    // As of the viewer's window: a removed member sees the marks as they stood when they were removed (one taken back afterwards still shows for them).
+    c.messageReaction.findMany({
+      where: { messageId: { in: ids }, ...(readUntil ? { createdAt: { lte: readUntil }, OR: [{ removedAt: null }, { removedAt: { gt: readUntil } }] } : { removedAt: null }) },
+      select: { messageId: true, profileId: true, emoji: true, createdAt: true },
+    }),
+    c.profileBlock.findMany({ where: { blockerId: viewerId } }),
+  ]);
+  const blockedAt = (who: string, at: Date) => blocks.some((b) => b.blockedId === who && b.createdAt <= at && (b.liftedAt === null || at < b.liftedAt));
+  const blockedNow = new Set(blocks.filter((b) => b.liftedAt === null).map((b) => b.blockedId));
+  for (const r of replyRows) {
+    if (!r.parentId || blockedAt(r.senderId, r.createdAt)) continue;
+    const cur = out.replies.get(r.parentId);
+    const fresh = r.senderId !== viewerId && (!lastReadAt || r.createdAt > lastReadAt) ? 1 : 0;
+    out.replies.set(r.parentId, { count: (cur?.count ?? 0) + 1, last: cur && cur.last > r.createdAt ? cur.last : r.createdAt, fresh: (cur?.fresh ?? 0) + fresh });
+    if (!out.newestReply || r.createdAt > out.newestReply) out.newestReply = r.createdAt;
+  }
+  for (const id of ids) {
+    // Hidden while the person is blocked, and a mark made during a block stays hidden afterwards, as their messages do.
+    const rows = reactionRows.filter((r) => r.messageId === id && !blockedNow.has(r.profileId) && !blockedAt(r.profileId, r.createdAt));
+    // In the fixed order of REACTIONS, so a row of marks never reshuffles as counts change.
+    const marks = REACTIONS.map((emoji) => ({ emoji, count: rows.filter((r) => r.emoji === emoji).length, mine: rows.some((r) => r.emoji === emoji && r.profileId === viewerId) })).filter((x) => x.count > 0);
+    if (marks.length) out.reactions.set(id, marks);
+  }
+  return out;
+}
+
+function threadMessage(m: ViewMessage, myId: string, byId: Map<string, { role: ParticipantRole; profile: Parameters<typeof personName>[0] }>, access: Access, now: Date, extras: Extras): ThreadMessage {
+  const sender = byId.get(m.senderId);
+  const mineMsg = m.senderId === myId;
+  const thread = extras.replies.get(m.id);
+  return {
+    ...m,
+    senderName: personName(sender?.profile),
+    senderIsManager: !!sender && sender.role !== "WORKER",
+    mine: mineMsg,
+    canEdit: mineMsg && !m.deleted && !!m.body && access.post && now.getTime() - m.createdAt.getTime() <= EDIT_WINDOW_MS,
+    canDelete: mineMsg && !m.deleted && access.post,
+    replies: thread?.count ?? 0,
+    lastReplyAt: thread?.last ?? null,
+    newReplies: thread?.fresh ?? 0,
+    reactions: extras.reactions.get(m.id) ?? [],
+    canReact: canReact(access, m, REACTIONS[0]).ok,
+    canReply: canReply(access, m).ok,
+  };
+}
+
+export interface RepliesView {
+  conversationId: string;
+  kind: "DIRECT" | "GROUP" | "CHANNEL";
+  /** The conversation's name, for the way back. */
+  title: string;
+  access: Access;
+  /** I'm staff in this conversation (decides the composer's quick replies). */
+  staff: boolean;
+  parent: ThreadMessage;
+  replies: ThreadMessage[];
+  hasOlder: boolean;
+}
+
+/** One message and its replies, for someone in the conversation (and marks them read), or null. */
+export async function openReplies(me: ChatUser, conversationId: string, parentId: string): Promise<RepliesView | null> {
+  if (!UUID_RE.test(parentId)) return null;
+  const ctx = await loadContext(db(), me, conversationId);
+  if (!ctx || !ctx.access.read || !ctx.mine) return null;
+  const { conv, mine, access } = ctx;
+  const head = await loadView(db(), conv.id, me.userId, access, { ids: [parentId], thread: null });
+  const parent = head.view[0];
+  if (!parent) return null;
+  const { view, truncated } = await loadView(db(), conv.id, me.userId, access, { take: THREAD_LIMIT, thread: parentId });
+  const extras = await messageExtras(db(), conv.id, me.userId, access, [parent, ...view]);
+  const now = await dbNow(db());
+  // One read mark covers the whole conversation, so a thread moves it only when that skips nothing: no message
+  // from someone else, outside this thread, between the mark and this thread's newest reply. Otherwise the badge
+  // stays until the main conversation is opened, which is the safe way round.
+  const newest = view.at(-1)?.createdAt;
+  if (newest && (!mine.lastReadAt || newest > mine.lastReadAt)) {
+    const skipped = await db().message.count({
+      where: {
+        conversationId: conv.id,
+        senderId: { not: me.userId },
+        createdAt: { ...(mine.lastReadAt ? { gt: mine.lastReadAt } : {}), lte: newest },
+        // Everything except this thread: its own first message is on this page too.
+        OR: [{ parentId: null, id: { not: parentId } }, { parentId: { not: parentId } }],
+      },
+    });
+    if (skipped === 0) await db().conversationParticipant.update({ where: { id: mine.id }, data: { lastReadAt: newest } });
+  }
+  const byId = new Map(conv.participants.map((p) => [p.profileId, p]));
+  const direct = conv.kind === "DIRECT";
+  const other = direct ? conv.participants.find((p) => p.profileId !== me.userId && !p.removedAt) : undefined;
+  return {
+    conversationId: conv.id,
+    kind: conv.kind,
+    title: direct ? personName(other?.profile) : conv.kind === "CHANNEL" ? `#${conv.name ?? "channel"}` : (conv.name ?? "Team chat"),
+    access,
+    staff: mine.role !== "WORKER",
+    parent: threadMessage(parent, me.userId, byId, access, now, extras),
+    // Replies don't nest: a reply shows no thread of its own.
+    replies: view.map((m) => ({ ...threadMessage(m, me.userId, byId, access, now, extras), canReply: false })),
+    hasOlder: truncated,
+  };
+}
+
+/** Give a message a mark, or take the same mark back. */
+export async function toggleReaction(me: ChatUser, messageId: string, emoji: unknown): Promise<{ ok: true; on: boolean; conversationId: string; threadId: string } | Fail> {
+  return db().$transaction(async (tx) => {
+    const m = await lockedMessage(tx, me, messageId);
+    if (!m || !m.ctx.access.read || !m.ctx.mine) return fail("That message isn't available.");
+    const may = canReact(m.ctx.access, m.msg, emoji);
+    if (!may.ok) return may;
+    const mark = emoji as Reaction;
+    // Where the message is shown, from the message itself (never from the caller).
+    const where = { conversationId: m.ctx.conv.id, threadId: m.msg?.parentId ?? messageId };
+    const live = await tx.messageReaction.findFirst({ where: { messageId, profileId: me.userId, emoji: mark, removedAt: null }, select: { id: true } });
+    const now = await dbNow(tx);
+    if (live) {
+      await tx.messageReaction.update({ where: { id: live.id }, data: { removedAt: now } });
+      return { ok: true as const, on: false, ...where };
+    }
+    // conversationId is set from the message by a trigger; the value here only satisfies the column.
+    await tx.messageReaction.create({ data: { messageId, conversationId: m.ctx.conv.id, profileId: me.userId, emoji: mark, createdAt: now } });
+    return { ok: true as const, on: true, ...where };
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -573,9 +749,13 @@ export async function sendMessage(
   conversationId: string,
   rawBody: unknown,
   file: UploadedFile | null = null,
-  store: AttachmentStore = supabaseStore()
+  store: AttachmentStore = supabaseStore(),
+  /** A reply: the message it answers, in this conversation. */
+  rawParentId: string | null = null
 ): Promise<{ ok: true; messageId: string } | Fail> {
   const body = cleanBody(rawBody);
+  const parentId = rawParentId || null;
+  if (parentId && !UUID_RE.test(parentId)) return fail("That message isn't available.");
   // Cheap check before touching storage.
   const pre = await loadContext(db(), me, conversationId);
   if (!pre || !pre.access.read) return NOT_FOUND;
@@ -598,6 +778,12 @@ export async function sendMessage(
       if (!ctx || !ctx.access.read || !ctx.mine) return NOT_FOUND;
       const ok = canSend(ctx.access, body, attachment !== null);
       if (!ok.ok) return ok;
+      if (parentId) {
+        // The message being answered, as I see it: in this conversation, inside my window, not from someone I'd blocked.
+        const head = await loadView(tx, conversationId, me.userId, ctx.access, { ids: [parentId] });
+        const may = canReply(ctx.access, head.view[0] ?? null);
+        if (!may.ok) return may;
+      }
       // Strictly after the previous message, so "read up to X" is exact.
       let at = await dbNow(tx);
       if (ctx.conv.lastMessageAt && at <= ctx.conv.lastMessageAt) at = new Date(ctx.conv.lastMessageAt.getTime() + 1);
@@ -610,11 +796,13 @@ export async function sendMessage(
           attachmentName: attachment?.name,
           attachmentType: attachment?.type,
           attachmentSize: attachment?.size,
+          parentId,
           createdAt: at,
         },
       });
       if (!ctx.conv.lastMessageAt || ctx.conv.lastMessageAt < at) await tx.conversation.update({ where: { id: conversationId }, data: { lastMessageAt: at } });
-      await tx.conversationParticipant.update({ where: { id: ctx.mine.id }, data: { lastReadAt: at } });
+      // Sending in the main conversation means I'm looking at it. A reply is sent from a thread's page, which shows only that thread: it marks nothing read.
+      if (!parentId) await tx.conversationParticipant.update({ where: { id: ctx.mine.id }, data: { lastReadAt: at } });
       const others = ctx.conv.participants.filter((p) => p.profileId !== me.userId && !p.removedAt).map((p) => p.profileId);
       const blockers = new Set(
         (await tx.profileBlock.findMany({ where: { blockerId: { in: others }, blockedId: me.userId, liftedAt: null }, select: { blockerId: true } })).map((b) => b.blockerId)

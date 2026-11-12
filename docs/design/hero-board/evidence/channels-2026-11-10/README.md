@@ -89,3 +89,57 @@ A separate Claude reviewer ran the SQL on a throwaway database. It found the app
 ## Screens
 
 `1-owner-messages.png`, `2-owner-channels.png`, `3-new-channel.png`, `4-channel-thread.png`, `6-finance-menu.png`, `7-desktop-messages.png`.
+
+# Slice 2: threads and reactions (Nov 11 2026)
+
+Built on slice 1. They work in every conversation: channels, team chats and direct threads.
+
+| Rule | Detail |
+| :--- | :--- |
+| Replying | Anyone who may post can reply under a message they can see. Replies open on their own page and stay out of the main conversation, which shows the count. |
+| Depth | One level: a reply is not replied to. |
+| Deleted messages | Keep their thread; lose their reactions. |
+| Reactions | Six fixed marks (thumbs up, heart, laughing, celebration, looking, done). Tapping yours again takes it back. |
+| Blocks | A worker who has blocked someone sees neither that person's new replies (in the thread or the count) nor their reactions. |
+| Read-only | Someone who can no longer post neither replies nor reacts. |
+
+## Data model (approved with channels)
+
+`prisma/p2-threads.sql`, folded into `prisma/supabase-manual-setup.sql`:
+
+- `Message.parentId`, set when a reply is sent. Messages stay immutable. A trigger refuses a reply in another conversation and a reply to a reply.
+- `MessageReaction`: taking a mark back sets `removedAt`; the row stays. The database checks the same six marks as the code (a unit test compares the two lists) and allows one live mark per person per message. Server-only: nothing is granted to the API roles.
+
+## Design calls (made by Claude)
+
+- A fixed set of marks, not a full emoji picker: quick to tap on a phone, and nothing to moderate.
+- Marks and the way into the thread share one row under the message.
+- Each mark in the open picker is a 44px target.
+
+## Checked
+
+- Acceptance script: 77 checks (20 new) on a fresh database, including the database guards, cross-conversation and cross-organization refusals, and blocks.
+- Chromium at 390px, owner and Finance: react, see the shared count, take it back, reply, see "2 replies"; a worker opening the staff thread gets "Conversation not found". No console or server errors.
+- Not checked: live refresh of reactions between two browsers. A reaction shows for others on their next refresh or message, because reactions are not on the Realtime feed.
+
+## Review of slice 2 (rule 9)
+
+A separate Claude reviewer ran the acceptance script and its own scenarios on a throwaway database. It found no leak of message text, sound SQL and locking, and these defects, all fixed in the second commit:
+
+| Finding | Fix |
+| :--- | :--- |
+| A reply under a message the viewer cannot see (sent before they took over a direct thread, or by someone they had blocked) showed nowhere, with a badge that never cleared | Such a reply reads as an ordinary message in the main conversation |
+| Opening or replying in a thread could mark an unseen message in the main conversation as read | A thread moves the read mark only when that skips nothing; replying from a thread marks nothing read |
+| New replies were counted but not announced before being marked read | The thread link says how many are new |
+| A removed member saw a mark disappear when it was taken back after their removal | Marks are shown as they stood at removal |
+| A mark made during a block showed after unblocking | It stays hidden, as that person's messages do |
+| The reaction action trusted page paths sent by the browser | The pages to refresh come from the message itself |
+| The reaction picker dropped keyboard focus and ignored Escape | Focus returns to "+"; Escape closes |
+
+**Known limit.** A conversation has one read mark, not one per thread. The badge can therefore stay until the main conversation is opened. A read mark per thread would be a data-model change; say if you want it.
+
+**Re-check.** A second pass found one case still open: a reply under a message older than the 200 on the page showed nowhere. Fixed in the third commit (the main conversation now judges "can I reach this thread?" against the page itself), with a test that builds a 206-message channel. It also asked for a check that pins the removed-member rule; added.
+
+Acceptance: 93 checks.
+
+Screens: `8-thread.png`, `9-replies-and-reactions.png`.

@@ -44,8 +44,13 @@ export async function send(_prev: ActionState, fd: FormData): Promise<ActionStat
   if (upload instanceof File && upload.size > 0) {
     file = { name: upload.name, bytes: new Uint8Array(await upload.arrayBuffer()) };
   }
-  const r = await chat.sendMessage(user, conversationId, quick || fd.get("body"), file);
-  if (r.ok) refreshThread(conversationId);
+  // A reply in a thread carries the message it answers.
+  const parentId = str(fd.get("parentId")) || null;
+  const r = await chat.sendMessage(user, conversationId, quick || fd.get("body"), file, undefined, parentId);
+  if (r.ok) {
+    refreshThread(conversationId);
+    if (parentId) revalidatePath(`/messages/${conversationId}/thread/${parentId}`);
+  }
   return done(r, "Sent.");
 }
 
@@ -62,6 +67,15 @@ export async function remove(conversationId: string, messageId: string): Promise
     revalidatePath("/messages/reports");
   }
   return done(r, "Message deleted.");
+}
+
+/** Give a message a mark, or take it back. The pages to refresh come from the message itself, never from the caller. */
+export async function react(messageId: string, emoji: string): Promise<ActionState> {
+  const r = await chat.toggleReaction(await me(), str(messageId), str(emoji));
+  if (!r.ok) return { ok: false, message: r.reason };
+  refreshThread(r.conversationId);
+  revalidatePath(`/messages/${r.conversationId}/thread/${r.threadId}`);
+  return { ok: true, message: "" };
 }
 
 export async function report(messageId: string, reason: string): Promise<ActionState> {

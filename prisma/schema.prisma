@@ -85,6 +85,7 @@ model Profile {
   notifications         Notification[]
   chatParticipations    ConversationParticipant[]
   sentMessages          Message[]
+  messageReactions MessageReaction[]
   blocksMade            ProfileBlock[]            @relation("Blocker")
   blocksReceived        ProfileBlock[]            @relation("Blocked")
   campaignPosts         CampaignPost[]            @relation("CampaignPostAuthor")
@@ -1020,13 +1021,38 @@ model Message {
   attachmentName String?
   attachmentType String? // MIME type checked from the file's bytes
   attachmentSize Int?
+  /// A reply in a thread: the message it answers, in the same conversation. One level only (a reply has no replies). Set when sent, never changed.
+  parentId       String?      @db.Uuid
+  parent         Message?     @relation("Replies", fields: [parentId], references: [id], onDelete: Restrict)
+  replies        Message[]    @relation("Replies")
   createdAt      DateTime     @default(now())
 
   revisions MessageRevision[]
   reports   MessageReport[]
+  reactions MessageReaction[]
 
   @@index([conversationId, createdAt])
   @@index([senderId])
+  @@index([parentId, createdAt])
+}
+
+/// A reaction to a message: one of a fixed set of marks (lib/chat.ts REACTIONS).
+/// Taking one back sets removedAt; the row stays. One live reaction per
+/// person per mark per message (partial unique index in p2-threads.sql).
+/// Server-only: no grant to the API roles.
+model MessageReaction {
+  id             String    @id @default(uuid()) @db.Uuid
+  messageId      String    @db.Uuid
+  message        Message   @relation(fields: [messageId], references: [id], onDelete: Restrict)
+  conversationId String    @db.Uuid // copied from the message by a trigger
+  profileId      String    @db.Uuid
+  profile        Profile   @relation(fields: [profileId], references: [id], onDelete: Restrict)
+  emoji          String
+  createdAt      DateTime  @default(now())
+  removedAt      DateTime?
+
+  @@index([messageId])
+  @@index([profileId])
 }
 
 /// Append-only edits and soft deletes (tombstones). Latest EDIT wins; any DELETE hides the text.

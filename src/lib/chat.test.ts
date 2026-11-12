@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   canBlock,
@@ -6,11 +8,15 @@ import {
   canLeaveChannel,
   canManageChannels,
   isChannelStaff,
+  REACTIONS,
+  REACTION_NAMES,
   validateChannelName,
   validateChannelTopic,
   canDelete,
   canEdit,
   canManageMembers,
+  canReact,
+  canReply,
   canReport,
   canSend,
   chatAccess,
@@ -133,7 +139,7 @@ describe("what a viewer sees", () => {
 
 describe("writes", () => {
   const open = chatAccess(direct());
-  const mine = { id: "m", senderId: "w", createdAt: t(0), body: "hello", edited: false, deleted: false, attachment: null };
+  const mine = { id: "m", senderId: "w", createdAt: t(0), body: "hello", edited: false, deleted: false, attachment: null, parentId: null };
 
   it("edits own messages within 5 minutes only", () => {
     expect(canEdit(open, mine, "w", "hello!", t(4))).toEqual({ ok: true });
@@ -307,6 +313,47 @@ describe("channels", () => {
     expect(validateChannelTopic("")).toEqual({ ok: true, topic: null });
     expect(validateChannelTopic(undefined)).toEqual({ ok: true, topic: null });
     expect(validateChannelTopic("x".repeat(251)).ok).toBe(false);
+  });
+});
+
+describe("threads and reactions", () => {
+  const open = chatAccess(group());
+  const frozen = chatAccess(group({ hiredOnLinkedJob: false }));
+  const top = { id: "m", senderId: "boss", createdAt: t(0), body: "Who has Elm Street?", edited: false, deleted: false, attachment: null, parentId: null };
+  const reply = { ...top, id: "r", parentId: "m" };
+
+  it("anyone who may post replies under a message they can see", () => {
+    expect(canReply(open, top).ok).toBe(true);
+    expect(canReply(open, null)).toEqual({ ok: false, reason: "That message isn't available." });
+  });
+
+  it("threads are one level deep: a reply is not replied to", () => {
+    expect(canReply(open, reply)).toEqual({ ok: false, reason: "Reply in the thread, not to a reply." });
+  });
+
+  it("a deleted message can still be answered (its thread outlives it), but not reacted to", () => {
+    const gone = { ...top, body: null, deleted: true };
+    expect(canReply(open, gone).ok).toBe(true);
+    expect(canReact(open, gone, REACTIONS[0]).ok).toBe(false);
+  });
+
+  it("someone who can no longer post neither replies nor reacts, and is told why", () => {
+    expect(canReply(frozen, top)).toEqual({ ok: false, reason: "You're no longer on a job for this team. History is read-only." });
+    expect(canReact(frozen, top, REACTIONS[0]).ok).toBe(false);
+    expect(canReact(chatAccess(direct({ participant: null })), top, REACTIONS[0]).ok).toBe(false);
+  });
+
+  it("a reaction is one of the fixed marks, nothing else", () => {
+    for (const r of REACTIONS) expect(canReact(open, top, r).ok).toBe(true);
+    for (const bad of ["", "x", "\u{1F4A9}", "\u{1F44D}\u{1F44D}", "<b>", null, 1]) expect(canReact(open, top, bad).ok).toBe(false);
+    expect(REACTIONS.length).toBe(6);
+    expect(Object.keys(REACTION_NAMES).sort()).toEqual([...REACTIONS].sort());
+  });
+
+  it("the database checks the same marks", () => {
+    const sql = readFileSync(join(process.cwd(), "prisma/p2-threads.sql"), "utf8");
+    const listed = sql.match(/CHECK \("emoji" IN \(([^)]*)\)\)/)?.[1].split(",").map((s) => s.trim().replace(/^'|'$/g, ""));
+    expect(listed).toEqual([...REACTIONS]);
   });
 });
 

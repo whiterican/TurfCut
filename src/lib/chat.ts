@@ -117,6 +117,8 @@ export interface RawMessage {
   body: string;
   createdAt: Date;
   attachment: { name: string; type: string; size: number } | null;
+  /** A reply: the message it answers. */
+  parentId?: string | null;
 }
 export interface RawRevision {
   messageId: string;
@@ -140,6 +142,8 @@ export interface ViewMessage {
   edited: boolean;
   deleted: boolean;
   attachment: RawMessage["attachment"];
+  /** A reply: the message it answers (null for a message in the main conversation). */
+  parentId: string | null;
 }
 
 export function viewMessages(
@@ -178,6 +182,7 @@ export function viewMessages(
         edited: !deleted && !!lastEdit,
         deleted,
         attachment: deleted ? null : m.attachment,
+        parentId: m.parentId ?? null,
       };
     });
 }
@@ -269,6 +274,38 @@ export function validateGroupName(raw: unknown): { ok: true; name: string } | { 
   if (!name) return { ok: false, reason: "Name the team chat." };
   if (name.length > 80) return { ok: false, reason: "Keep the name under 80 characters." };
   return { ok: true, name };
+}
+
+// ---------------------------------------------------------------------------
+// Threads and reactions
+// ---------------------------------------------------------------------------
+
+/** The marks a message can be given. The same set is checked by the database (prisma/p2-threads.sql). */
+export const REACTIONS = ["\u{1F44D}", "\u2764\uFE0F", "\u{1F602}", "\u{1F389}", "\u{1F440}", "\u2705"] as const;
+export type Reaction = (typeof REACTIONS)[number];
+/** What a screen reader says for each mark. */
+export const REACTION_NAMES: Record<Reaction, string> = { "\u{1F44D}": "thumbs up", "\u2764\uFE0F": "heart", "\u{1F602}": "laughing", "\u{1F389}": "celebration", "\u{1F440}": "looking", "\u2705": "done" };
+export const isReaction = (v: unknown): v is Reaction => typeof v === "string" && (REACTIONS as readonly string[]).includes(v);
+
+/**
+ * Replying in a thread: anyone who may post, under a message they can see
+ * that is not itself a reply (threads are one level deep). A deleted
+ * message can still be answered: its thread outlives it.
+ */
+export function canReply(access: Access, parent: ViewMessage | null): Check {
+  if (!access.post) return no(access.closed ?? "You can't post here.");
+  if (!parent) return no("That message isn't available.");
+  if (parent.parentId) return no("Reply in the thread, not to a reply.");
+  return yes;
+}
+
+/** Reacting: anyone who may post, on a message they can see that isn't deleted, with one of the fixed marks. */
+export function canReact(access: Access, msg: ViewMessage | null, emoji: unknown): Check {
+  if (!access.post) return no(access.closed ?? "You can't react here.");
+  if (!msg) return no("That message isn't available.");
+  if (msg.deleted) return no("That message was deleted.");
+  if (!isReaction(emoji)) return no("Pick one of the reactions offered.");
+  return yes;
 }
 
 // ---------------------------------------------------------------------------

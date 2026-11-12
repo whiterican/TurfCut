@@ -1,6 +1,6 @@
 /* Channels acceptance checks (prisma/p2-channels.sql, lib/chat-data.ts), against a fresh database (tests/acceptance/run.sh). */
 import { db } from "@/lib/db";
-import { addMembers, archiveChannel, browseChannels, createChannel, ensureGeneral, joinChannel, leaveChannel, listThreads, openThread, removeMember, sendMessage, unreadTotal, type ChatUser } from "@/lib/chat-data";
+import { addMembers, archiveChannel, blockProfile, unblockProfile, browseChannels, createChannel, ensureGeneral, joinChannel, leaveChannel, listThreads, openReplies, openThread, removeMember, sendMessage, toggleReaction, unreadTotal, type ChatUser } from "@/lib/chat-data";
 
 const ORG = "00000000-0000-0000-0000-000000000001";
 const ORG2 = "00000000-0000-0000-0000-000000000002";
@@ -32,6 +32,8 @@ const noStore = { put: async () => {}, remove: async () => {}, signedUrl: async 
   const hire = await p.engagement.findFirstOrThrow({ where: { jobId: JOB, status: { in: ["ACTIVE", "CLAIMED"] } }, include: { worker: true } });
   const hired: ChatUser = { userId: hire.worker.profileId, role: "WORKER", orgId: null };
   const stranger = await p.worker.findFirstOrThrow({ where: { engagements: { none: {} } } });
+  // Finance, once in the team channel (joined below), as a second staff voice.
+  const fin2 = () => fin;
   const live = (conversationId: string, profileId: string) => p.conversationParticipant.count({ where: { conversationId, profileId, removedAt: null } });
 
   // --- The general channel ---
@@ -82,6 +84,101 @@ const noStore = { put: async () => {}, remove: async () => {}, signedUrl: async 
   check("and posts while hired", (await sendMessage(hired, team, "On my way", null, noStore)).ok);
   check("the worker sees that channel and no staff-only one", JSON.stringify((await listThreads(hired)).threads.filter((t) => t.kind === "CHANNEL").map((t) => t.title)) === JSON.stringify(["team-a"]));
   check("a worker does not leave by themself (a manager, or the hire ending, takes them out)", !(await leaveChannel(hired, team)).ok);
+
+  // --- Threads and reactions (prisma/p2-threads.sql) ---
+  const asked = await sendMessage(owner, team, "Who has Elm Street?", null, noStore);
+  if (!asked.ok) throw new Error(asked.reason);
+  const r1 = await sendMessage(hired, team, "I do", null, noStore, asked.messageId);
+  const r2 = await sendMessage(owner, team, "Thanks", null, noStore, asked.messageId);
+  check("people in the conversation reply under a message", r1.ok && r2.ok);
+  let main = await openThread(owner, team);
+  const head = main?.messages.find((m) => m.id === asked.messageId);
+  check("replies stay out of the main conversation, which shows their count", !!main && main.messages.every((m) => m.parentId === null) && head?.replies === 2, main?.messages.map((m) => [m.body, m.replies]));
+  const thread = await openReplies(hired, team, asked.messageId);
+  check("the thread shows the message and its replies in order", thread?.parent.id === asked.messageId && JSON.stringify(thread.replies.map((m) => m.body)) === JSON.stringify(["I do", "Thanks"]));
+  check("a reply can be reacted to", r1.ok && (await toggleReaction(owner, r1.messageId, "\u2705")).ok && (await openReplies(owner, team, asked.messageId))?.replies[0].reactions[0]?.emoji === "\u2705");
+  check("a reply is not replied to", r1.ok && !(await sendMessage(owner, team, "nested", null, noStore, r1.messageId)).ok);
+  check("a reply cannot name a message from another conversation", !(await sendMessage(owner, staff, "wrong place", null, noStore, asked.messageId)).ok);
+  check("someone outside the conversation cannot open its thread", (await openReplies(owner2, team, asked.messageId)) === null && (await openReplies(fin, team, asked.messageId)) === null);
+  check("nor reply into it", !(await sendMessage(fin, team, "hello", null, noStore, asked.messageId)).ok);
+  check("database: a reply belongs to its parent's conversation", await refused(() => p.message.create({ data: { conversationId: staff, senderId: OWNER, body: "x", parentId: asked.messageId } })));
+  check("database: a reply has no replies", r1.ok && (await refused(() => p.message.create({ data: { conversationId: team, senderId: OWNER, body: "x", parentId: r1.messageId } }))));
+  check("opening the thread reads its replies when nothing else is waiting", (await unreadTotal(hired)) === 0, await unreadTotal(hired));
+
+  // One read mark covers a conversation: a thread never moves it past something not yet shown.
+  const t2 = await sendMessage(owner, team, "Top-level, not seen yet", null, noStore);
+  await sendMessage(owner, team, "A new reply", null, noStore, asked.messageId);
+  check("two unread: a new message in the main conversation and a new reply", (await unreadTotal(hired)) === 2, await unreadTotal(hired));
+  await openReplies(hired, team, asked.messageId);
+  check("opening only the thread leaves the badge: the main conversation's message was never shown", (await unreadTotal(hired)) === 2, await unreadTotal(hired));
+  await sendMessage(hired, team, "Replying from the thread", null, noStore, asked.messageId);
+  check("replying from a thread marks nothing read either", (await unreadTotal(hired)) === 2, await unreadTotal(hired));
+  const seenMain = await openThread(hired, team);
+  check("the main conversation says how many replies are new", seenMain?.messages.find((m) => m.id === asked.messageId)?.newReplies === 1, seenMain?.messages.map((m) => [m.body, m.replies, m.newReplies]));
+  check("and opening it clears the badge", t2.ok && (await unreadTotal(hired)) === 0 && (await openThread(hired, team))?.messages.find((m) => m.id === asked.messageId)?.newReplies === 0, await unreadTotal(hired));
+
+  const up = "\u{1F44D}";
+  check("a person in the conversation reacts", (await toggleReaction(hired, asked.messageId, up)).ok && (await toggleReaction(owner, asked.messageId, up)).ok);
+  main = await openThread(owner, team);
+  check("the count is shared, and each sees whether theirs is in it", JSON.stringify(main?.messages.find((m) => m.id === asked.messageId)?.reactions) === JSON.stringify([{ emoji: up, count: 2, mine: true }]), main?.messages.find((m) => m.id === asked.messageId)?.reactions);
+  const off = await toggleReaction(owner, asked.messageId, up);
+  check("the same mark again takes it back, and the row stays as history", off.ok && off.on === false && (await p.messageReaction.count({ where: { messageId: asked.messageId } })) === 2 && (await p.messageReaction.count({ where: { messageId: asked.messageId, removedAt: null } })) === 1);
+  check("only the fixed marks are accepted", !(await toggleReaction(owner, asked.messageId, "\u{1F4A9}")).ok && !(await toggleReaction(owner, asked.messageId, "")).ok);
+  check("someone outside the conversation cannot react", !(await toggleReaction(owner2, asked.messageId, up)).ok && !(await toggleReaction(fin, asked.messageId, up)).ok);
+  check("database: only the fixed marks", await refused(() => p.messageReaction.create({ data: { messageId: asked.messageId, conversationId: team, profileId: OWNER, emoji: "x" } })));
+  check("database: one live mark per person per message", await refused(() => p.messageReaction.create({ data: { messageId: asked.messageId, conversationId: team, profileId: hired.userId, emoji: up } })));
+  const scoped = await p.messageReaction.create({ data: { messageId: asked.messageId, conversationId: staff, profileId: OWNER, emoji: "\u2705" } });
+  check("database: a reaction's conversation always matches its message", scoped.conversationId === team);
+  await joinChannel(fin, team);
+  // A worker who blocks a staff member sees neither their new replies nor their reactions.
+  await blockProfile(hired, OWNER);
+  await sendMessage(owner, team, "After the block", null, noStore, asked.messageId);
+  const blockedView = await openReplies(hired, team, asked.messageId);
+  const blockedMain = await openThread(hired, team);
+  const mineOnly = (v: typeof blockedView) => v?.replies.filter((m) => m.senderId !== hired.userId).map((m) => m.body);
+  check("a blocked person's new replies are hidden, in the thread and in the count", !mineOnly(blockedView)?.includes("After the block") && blockedMain?.messages.find((m) => m.id === asked.messageId)?.replies === blockedView?.replies.length, mineOnly(blockedView));
+  check("and their reactions are not counted", JSON.stringify(blockedView?.parent.reactions) === JSON.stringify([{ emoji: up, count: 1, mine: true }]), blockedView?.parent.reactions);
+  // A mark and a message the blocked person makes during the block, then the block is lifted.
+  await toggleReaction(owner, asked.messageId, "\u{1F389}");
+  const hiddenTop = await sendMessage(owner, team, "Sent while blocked", null, noStore);
+  const under = hiddenTop.ok ? await sendMessage(fin2(), team, "Someone else answers it", null, noStore, hiddenTop.messageId) : hiddenTop;
+  const stuck = await openThread(hired, team);
+  check("a reply under a message I can't see is shown in the main conversation, not lost", under.ok && stuck?.messages.some((m) => m.body === "Someone else answers it") && !stuck.messages.some((m) => m.body === "Sent while blocked"), stuck?.messages.map((m) => m.body));
+  check("and it is read once shown", (await unreadTotal(hired)) === 0, await unreadTotal(hired));
+  await unblockProfile(hired, OWNER);
+  const afterUnblock = await openReplies(hired, team, asked.messageId);
+  check("after unblocking, what they sent and marked during the block stays hidden", !afterUnblock?.replies.some((m) => m.body === "After the block") && !afterUnblock?.parent.reactions.some((r) => r.emoji === "\u{1F389}"), afterUnblock?.parent.reactions);
+  // A removed member sees marks as they stood when they were removed.
+  await toggleReaction(fin2(), asked.messageId, "\u{1F440}"); // a mark that stands when the worker is removed
+  await removeMember(owner, team, hired.userId);
+  await toggleReaction(fin2(), asked.messageId, up); // added after
+  await toggleReaction(fin2(), asked.messageId, "\u{1F440}"); // taken back after
+  const removedView = await openReplies(hired, team, asked.messageId);
+  check("a removed member sees the marks as they stood at removal: none added later", removedView?.parent.reactions.find((r) => r.emoji === up)?.count === 1, removedView?.parent.reactions);
+  check("and one taken back later still shows for them", removedView?.parent.reactions.find((r) => r.emoji === "\u{1F440}")?.count === 1, removedView?.parent.reactions);
+  check("while a current member sees it gone", !(await openReplies(owner, team, asked.messageId))?.parent.reactions.some((r) => r.emoji === "\u{1F440}"));
+  check("and can neither reply nor react", !(await sendMessage(hired, team, "still here?", null, noStore, asked.messageId)).ok && !(await toggleReaction(hired, asked.messageId, "\u2705")).ok);
+  await addMembers(owner, team, [hired.userId]);
+
+  // --- A reply under a message older than the page ---
+  const longMade = await createChannel(owner, { name: "long-channel", topic: "", staffOnly: true, jobIds: [] });
+  if (!longMade.ok) throw new Error(longMade.reason);
+  const long = longMade.conversationId;
+  await joinChannel(fin, long);
+  const old = await sendMessage(owner, long, "An old question", null, noStore);
+  if (!old.ok) throw new Error(old.reason);
+  const base = (await p.message.findUniqueOrThrow({ where: { id: old.messageId } })).createdAt.getTime();
+  await p.message.createMany({ data: Array.from({ length: 205 }, (_, i) => ({ conversationId: long, senderId: OWNER, body: `filler ${i}`, createdAt: new Date(base + 1000 + i) })) });
+  await p.conversation.update({ where: { id: long }, data: { lastMessageAt: new Date(base + 1300) } });
+  await openThread(fin, long);
+  // Finance has unread messages in other channels; this one is measured against that.
+  const elsewhere = await unreadTotal(fin);
+  await sendMessage(owner, long, "A late answer to the old question", null, noStore, old.messageId);
+  check("the late reply is unread", (await unreadTotal(fin)) === elsewhere + 1, [elsewhere, await unreadTotal(fin)]);
+  const longView = await openThread(fin, long);
+  check("a reply under a message older than the page is shown in the main conversation", longView?.hasOlder === true && !longView.messages.some((m) => m.id === old.messageId) && longView.messages.at(-1)?.body === "A late answer to the old question", longView?.messages.slice(-2).map((m) => m.body));
+  check("and read once shown", (await unreadTotal(fin)) === elsewhere, [elsewhere, await unreadTotal(fin)]);
+  await leaveChannel(fin, long);
 
   // --- The database's own guards ---
   const part = (conversationId: string, profileId: string, role: "WORKER" | "MANAGER" | "MEMBER") => p.conversationParticipant.create({ data: { conversationId, profileId, role, addedById: OWNER } });

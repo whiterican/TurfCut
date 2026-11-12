@@ -7,18 +7,24 @@ const tile = { left: 100, top: 200, width: 150, height: 120 };
 
 describe("a pressed card dips toward the finger", () => {
   it("does not turn when pressed in the middle", () => {
-    expect(tiltFor(tile, 175, 260)).toEqual({ rx: 0, ry: 0 });
+    expect(tiltFor(tile, 175, 260)).toMatchObject({ rx: 0, ry: 0 });
   });
 
   it("weighs down the side that is pressed", () => {
     // rotateY(+) sends the right edge away from the viewer; rotateX(+) sends the top edge away.
-    expect(tiltFor(tile, 250, 260)).toEqual({ rx: 0, ry: TILT_MAX_DEG });
-    expect(tiltFor(tile, 100, 260)).toEqual({ rx: 0, ry: -TILT_MAX_DEG });
-    expect(tiltFor(tile, 175, 200)).toEqual({ rx: TILT_MAX_DEG, ry: 0 });
-    expect(tiltFor(tile, 175, 320)).toEqual({ rx: -TILT_MAX_DEG, ry: 0 });
+    expect(tiltFor(tile, 250, 260)).toMatchObject({ rx: 0, ry: TILT_MAX_DEG });
+    expect(tiltFor(tile, 100, 260)).toMatchObject({ rx: 0, ry: -TILT_MAX_DEG });
+    expect(tiltFor(tile, 175, 200)).toMatchObject({ rx: TILT_MAX_DEG, ry: 0 });
+    expect(tiltFor(tile, 175, 320)).toMatchObject({ rx: -TILT_MAX_DEG, ry: 0 });
     // A corner dips on both axes; halfway to an edge dips half as far.
-    expect(tiltFor(tile, 250, 320)).toEqual({ rx: -TILT_MAX_DEG, ry: TILT_MAX_DEG });
-    expect(tiltFor(tile, 212.5, 260)).toEqual({ rx: 0, ry: TILT_MAX_DEG / 2 });
+    expect(tiltFor(tile, 250, 320)).toMatchObject({ rx: -TILT_MAX_DEG, ry: TILT_MAX_DEG });
+    expect(tiltFor(tile, 212.5, 260)).toMatchObject({ rx: 0, ry: TILT_MAX_DEG / 2 });
+  });
+
+  it("says where across the card the press is, for the light that pools there", () => {
+    expect(tiltFor(tile, 250, 200)).toMatchObject({ lx: 1, ly: -1 });
+    expect(tiltFor(tile, 175, 260)).toMatchObject({ lx: 0, ly: 0 });
+    expect(tiltFor(tile, 137.5, 290)).toMatchObject({ lx: -0.5, ly: 0.5 });
   });
 
   it("turns a big card less than a small tile, and never less than a visible amount", () => {
@@ -30,8 +36,8 @@ describe("a pressed card dips toward the finger", () => {
   });
 
   it("treats a finger that slid off the card as its edge, and survives a box with no size", () => {
-    expect(tiltFor(tile, 900, -50)).toEqual({ rx: TILT_MAX_DEG, ry: TILT_MAX_DEG });
-    expect(tiltFor({ left: 0, top: 0, width: 0, height: 0 }, 10, 10)).toEqual({ rx: 0, ry: 0 });
+    expect(tiltFor(tile, 900, -50)).toMatchObject({ rx: TILT_MAX_DEG, ry: TILT_MAX_DEG });
+    expect(tiltFor({ left: 0, top: 0, width: 0, height: 0 }, 10, 10)).toMatchObject({ rx: 0, ry: 0 });
   });
 
   it("covers the boxes that float, and leaves alone what moves or scrolls by itself", () => {
@@ -54,6 +60,11 @@ describe("the dip in the stylesheet and the page", () => {
     expect(css).toMatch(/\[data-tilt="on"\] \{\s*transform: perspective\(900px\) rotateX\(var\(--tilt-x, 0deg\)\) rotateY\(var\(--tilt-y, 0deg\)\) scale\(0\.985\);/);
     // Only transform moves: the card's neighbours never shift.
     expect(css.slice(at, css.indexOf("}", at))).not.toMatch(/margin|width|height|top:|left:/);
+  });
+
+  it("pressed glass: light pools under the finger and the shadow pulls in; rings drawn with the same property are left alone", () => {
+    expect(css).toMatch(/\[data-tilt="on"\]:not\(\.hero-card, \.option-card\) \{\s*box-shadow:\s*inset calc\(var\(--tilt-lx, 0\) \* -18px\) calc\(var\(--tilt-ly, 0\) \* -18px\) 28px -14px var\(--card-glow\),\s*var\(--card-edge\),\s*var\(--shadow-pressed\);/);
+    for (const v of ["--tilt-lx", "--tilt-ly"]) expect(part).toContain(`"${v}"`);
   });
 
   it("does nothing when motion is reduced, never stops the tap, and is mounted once for the app", () => {

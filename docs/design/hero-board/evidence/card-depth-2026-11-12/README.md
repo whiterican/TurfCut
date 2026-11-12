@@ -41,3 +41,15 @@ Caden: "wherever someone presses or taps it weighs that side of the card down", 
 `pressed-tile-right-light.png`: the first tile held at its right edge. `pressed-sign-in-top-dark.png`: the sign-in card held near its top.
 
 Checked in Chromium with a held mouse press (tile and sign-in card, light and dark), the angles set and cleared, reduced motion leaving the card still, and a tap on a card link still opening it. Not checked: a real finger on a real phone, where the feel of it is the whole point; and typing in a field while its card is tilted, which lasts only as long as the press.
+
+## Glass cards (same day)
+
+Caden: make all the cards Liquid Glass, so a card that is weighed down looks physically pressed and has the glass effect; change the colours slightly if that makes it more visible, but keep the same scheme.
+
+- **Every floating box is a pane of glass**: cards, lists, tables, tiles, work, shift and turf cards, choice lists, option cards and empty states. A thinner pane of the card colour (64% by day, 58% by night; it was 80% and 82%), the page blurred and a little richer behind it, the diagonal glint and bright rim the controls have.
+- **Pressed glass.** With the tilt, light pools on the side under the finger and the shadow pulls in, as the pane is pushed toward the page.
+- **The page has more for the glass to pick up**: soft washes of the brand's lavender, purple and (by night) green down the page, where there was one at the top. No new colour, and by day no stronger than the wash the top already had, because grey text sits straight on the page too.
+- **Text.** Behind a card there is only ever the page and its washes, so the test works out the worst of those: body text holds 7:1, secondary text and status colours AA. The faintest grey (Subtle, a locked colour) fell just under AA on the thinner pane by day, so on glass it steps a little toward Muted (`--subtle-on-glass`, #55647A). Subtle itself is unchanged.
+- **Solid on purpose:** a box inside another box (one blur per stack), the job cards you swipe and the job rows (a list of twenty is not twenty blurs), the hero cards (their own colour), Sunlight, and anyone who asks their device for less transparency or more contrast.
+
+Honest limits: by night the glass is plain to see. By day it is quiet: a white pane over a pale cream page has little to show through, and making the page darker would cost text contrast. Blur is the costliest thing a phone browser draws; pages with many tiles want a look on a real phone for smoothness, and Safari is known to clip or drop blur in some stacking cases, which Chromium does not show.

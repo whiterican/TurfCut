@@ -25,9 +25,11 @@ export function PressTilt() {
     };
     const lean = (e: PointerEvent) => {
       if (!card || !box) return;
-      const { rx, ry } = tiltFor(box, e.clientX, e.clientY);
+      const { rx, ry, lx, ly } = tiltFor(box, e.clientX, e.clientY);
       card.style.setProperty("--tilt-x", `${rx}deg`);
       card.style.setProperty("--tilt-y", `${ry}deg`);
+      card.style.setProperty("--tilt-lx", String(lx));
+      card.style.setProperty("--tilt-ly", String(ly));
     };
     const level = () => {
       const was = card;
@@ -37,8 +39,7 @@ export function PressTilt() {
       if (!was) return;
       // "off" while the card eases back, then the mark goes, so a card that was pressed once is like any other again.
       was.setAttribute("data-tilt", "off");
-      was.style.removeProperty("--tilt-x");
-      was.style.removeProperty("--tilt-y");
+      for (const v of ["--tilt-x", "--tilt-y", "--tilt-lx", "--tilt-ly"]) was.style.removeProperty(v);
       setTimeout(() => {
         if (was.getAttribute("data-tilt") === "off") was.removeAttribute("data-tilt");
       }, DURATION.base + 60);

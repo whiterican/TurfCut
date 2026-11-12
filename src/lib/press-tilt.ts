@@ -37,13 +37,15 @@ export interface Box {
  * The pressed side goes down, away from the viewer: pressing the right edge turns the box about
  * its vertical axis by +max (rotateY), pressing the bottom edge turns it about its horizontal
  * axis by -max (rotateX). The centre does not turn it at all. A press outside the box counts as its edge.
+ * Also where the press is across the card (lx, ly), which the pressed glass uses to pool its light.
  */
-export function tiltFor(box: Box, x: number, y: number): { rx: number; ry: number } {
-  if (!(box.width > 0) || !(box.height > 0)) return { rx: 0, ry: 0 };
+export function tiltFor(box: Box, x: number, y: number): { rx: number; ry: number; lx: number; ly: number } {
+  if (!(box.width > 0) || !(box.height > 0)) return { rx: 0, ry: 0, lx: 0, ly: 0 };
   const max = Math.min(TILT_MAX_DEG, Math.max(TILT_MIN_DEG, TILT_REACH / Math.max(box.width, box.height)));
   const unit = (at: number, start: number, size: number) => Math.min(1, Math.max(-1, ((at - start) / size) * 2 - 1));
   const px = unit(x, box.left, box.width);
   const py = unit(y, box.top, box.height);
   const round = (n: number) => Math.round(n * 100) / 100 || 0;
-  return { rx: round(-py * max), ry: round(px * max) };
+  // lx / ly: where on the card the press is, -1 (left, top) to 1 (right, bottom), for the light that pools there.
+  return { rx: round(-py * max), ry: round(px * max), lx: round(px), ly: round(py) };
 }

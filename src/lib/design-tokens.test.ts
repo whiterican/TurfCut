@@ -258,7 +258,7 @@ describe.each([
     const SEL = "body:has(.site-header:not(.site-header-worker)):not(:has(.thread-top))::after";
     const rules = (text: string) => text.split(SEL + " {").slice(1).map((part) => part.slice(0, part.indexOf("}")));
     const [fade, sunBar] = rules(phoneBar);
-    expect(fade).toMatch(/^\s*content: "";\s*position: fixed;\s*inset: 0 0 auto;\s*height: calc\(var\(--site-header-h\) \+ 0\.875rem\);\s*z-index: 44;\s*pointer-events: none;/);
+    expect(fade).toMatch(/^\s*content: "";\s*position: fixed;\s*inset: 0 0 auto;\s*height: 2\.25rem;\s*z-index: 44;\s*pointer-events: none;/);
     expect(fade).toMatch(/background: linear-gradient\(to bottom, color-mix\(in srgb, var\(--page-top\) 62%, transparent\) 0%,[^;]*transparent 100%\);/);
     expect(fade).toMatch(/backdrop-filter: blur\(7px\);/);
     expect(fade).toMatch(/mask-image: linear-gradient\(to bottom, #000 0%, #000 58%, transparent 100%\);/);

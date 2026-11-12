@@ -1,6 +1,6 @@
 /* Who is shown whose profile photo in a chat (lib/profile-photo-data.ts: photoViewers), against a fresh database (tests/acceptance/run.sh). */
 import { db } from "@/lib/db";
-import { blockProfile, createGroup, ensureDirect, removeMember, startStaffDm, unblockProfile, type ChatUser } from "@/lib/chat-data";
+import { addMembers, archiveChannel, blockProfile, createChannel, createGroup, ensureDirect, removeMember, startStaffDm, unblockProfile, type ChatUser } from "@/lib/chat-data";
 import { photoViewers } from "@/lib/profile-photo-data";
 
 const ORG = "00000000-0000-0000-0000-000000000001";
@@ -65,6 +65,15 @@ const check = (l: string, c: unknown, d?: unknown) => { if (c) console.log(`PASS
   const dm = await startStaffDm(owner, FIN);
   if (!dm.ok) throw new Error(`setup: staff DM: ${dm.reason}`);
   check("two staff in a private conversation are shown each other's photos", (await sees(OWNER, FIN)) && (await sees(FIN, OWNER)));
+  // A channel, then archived. Worker 3 is hired for it and shares nothing else with anyone
+  // (staff all share the general channel once any channel exists, so two staff cannot show this).
+  await p.engagement.create({ data: { jobId: JOB, workerId: W3, status: "ACTIVE", hiredById: OWNER } });
+  const chan = await createChannel(owner, { name: "aurora-crew", topic: "", staffOnly: false, jobIds: [JOB] });
+  if (!chan.ok) throw new Error(`setup: channel: ${chan.reason}`);
+  const added = await addMembers(owner, chan.conversationId, [W3]);
+  check("a worker in a channel is shown the staff in it", added.ok && (await sees(W3, OWNER)), added);
+  const shut = await archiveChannel(owner, chan.conversationId);
+  check("an archived channel stops counting", shut.ok && !(await sees(W3, OWNER)), shut);
   check("staff of another organization, sharing no chat, are shown nothing", !(await sees(OWNER2, OWNER)) && !(await sees(OWNER, OWNER2)));
   // Test-only row: the app never puts another organization's staff in a team. If one were there all the same, they are still shown nobody.
   const stray = await p.conversationParticipant.create({ data: { conversationId: team.conversationId, profileId: OWNER2, role: "WORKER", addedById: OWNER } });

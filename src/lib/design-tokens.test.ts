@@ -419,7 +419,8 @@ describe("mockup surfaces", () => {
     // One step heavier throughout (Nov 10): body 500, and each named weight a step above its default.
     expect(css).toMatch(/--font-weight-normal: 500;\s*--font-weight-medium: 600;\s*--font-weight-semibold: 700;\s*--font-weight-bold: 800;/);
     expect(css).toMatch(/\nbody \{[^}]*?font-weight: 500;/);
-    expect(readFileSync(join(__dirname, "../app/layout.tsx"), "utf8")).toMatch(/weight: \["500", "600", "700", "800"\]/);
+    // The font files cover exactly those weights (app/fonts.ts: one variable file per subset, 500 to 800).
+    expect(readFileSync(join(__dirname, "../app/fonts.ts"), "utf8").match(/weight: "500 800"/g)).toHaveLength(7);
     expect(css).toMatch(/@utility t-title \{[^}]*?font-size: 1\.75rem;\s*line-height: 2\.25rem;\s*font-weight: 800;/);
     expect(css).toMatch(/@utility t-headline \{[^}]*?font-size: 1\.25rem;\s*line-height: 1\.75rem;\s*font-weight: 700;/);
     expect(css).toMatch(/@utility t-section \{[^}]*?font-size: 1rem;\s*line-height: 1\.5rem;\s*font-weight: 700;/);

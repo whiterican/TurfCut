@@ -1,6 +1,6 @@
 import { NoAccessNotice } from "@/components/NoAccessNotice";
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { inter } from "./fonts";
 import { MenuButton, OrgRail, OrgTabBar } from "@/components/AppNav";
 import { SignOutButton } from "@/components/SignOutButton";
 import { signOut } from "@/app/settings/actions";
@@ -23,14 +23,6 @@ import { unreadTotal } from "@/lib/chat-data";
 import { unreadNotifications, UNREAD_CAP } from "@/lib/notifications-data";
 import { unreadPostNotices } from "@/lib/campaign-follow-data";
 import "./globals.css";
-
-// The one face (#111): Inter for every role, the four weights the type scale
-// uses. Figures take tabular numerals from the CSS, not a second font.
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
-  weight: ["500", "600", "700", "800"],
-});
 
 export function generateMetadata(): Metadata {
   // Absolute links in previews and feeds need the site's origin; with SITE_URL unset (development) Next's default is fine.

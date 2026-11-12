@@ -49,7 +49,17 @@ Caden: make all the cards Liquid Glass, so a card that is weighed down looks phy
 - **Every floating box is a pane of glass**: cards, lists, tables, tiles, work, shift and turf cards, choice lists, option cards and empty states. A thinner pane of the card colour (64% by day, 58% by night; it was 80% and 82%), the page blurred and a little richer behind it, the diagonal glint and bright rim the controls have.
 - **Pressed glass.** With the tilt, light pools on the side under the finger and the shadow pulls in, as the pane is pushed toward the page.
 - **The page has more for the glass to pick up**: soft washes of the brand's lavender, purple and (by night) green down the page, where there was one at the top. No new colour, and by day no stronger than the wash the top already had, because grey text sits straight on the page too.
-- **Text.** Behind a card there is only ever the page and its washes, so the test works out the worst of those: body text holds 7:1, secondary text and status colours AA. The faintest grey (Subtle, a locked colour) fell just under AA on the thinner pane by day, so on glass it steps a little toward Muted (`--subtle-on-glass`, #55647A). Subtle itself is unchanged.
+- **Text.** Behind a card there is the page and its washes, so the test works out the worst of those: body text holds 7:1, secondary text and status colours AA. The faintest grey (Subtle, a locked colour) fell just under AA on the thinner pane by day, so on glass it steps a little toward Muted (`--subtle-on-glass`, #55647A). Subtle itself is unchanged. Hints that sit straight on the page read the same stepped grey, because the washes are behind them too (review, Nov 12). The one card that hangs over other content, the menu in a chat, is solid with no blur.
 - **Solid on purpose:** a box inside another box (one blur per stack), the job cards you swipe and the job rows (a list of twenty is not twenty blurs), the hero cards (their own colour), Sunlight, and anyone who asks their device for less transparency or more contrast.
 
 Honest limits: by night the glass is plain to see. By day it is quiet: a white pane over a pale cream page has little to show through, and making the page darker would cost text contrast. Blur is the costliest thing a phone browser draws; pages with many tiles want a look on a real phone for smoothness, and Safari is known to clip or drop blur in some stacking cases, which Chromium does not show.
+
+## After review and Caden's first try (Nov 12)
+
+- **Gentler press** (Caden: "smoother, and not push down so quickly or as much"): the tilt is halved (3° on a small tile, 1.25° on a phone-width card, 0.6° at least), the card shrinks 0.6% where it shrank 1.5%, and it takes 360ms both to sink and to float back where the press took 120ms.
+- **Chat menu is opaque again.** The glass rule had thinned it, so messages showed through. It is `.card.card-solid` now, with a test.
+- **Faint grey on the page** holds AA over the washes (see Text above).
+- **Talking points** keep a solid fill; they had thinned without being meant to.
+- **While pressed, a card drops its blur.** Safari is known to clip a blurred backdrop on a turning panel. The page behind is a smooth wash, so the blur adds almost nothing during the press. Not checked on an iPhone.
+- **Print**: every pane prints solid.
+- **Known, not changed**: pages with many cards (Pay, the schedule) carry one blur per card; if a phone scrolls roughly there, dropping the blur from `--card-filter` costs almost nothing visually.

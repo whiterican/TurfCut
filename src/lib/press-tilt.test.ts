@@ -29,7 +29,7 @@ describe("a pressed card dips toward the finger", () => {
 
   it("turns a big card less than a small tile, and never less than a visible amount", () => {
     const card = { left: 16, top: 0, width: 360, height: 300 };
-    expect(tiltFor(card, 376, 150).ry).toBe(2.5);
+    expect(tiltFor(card, 376, 150).ry).toBe(1.25);
     const page = { left: 0, top: 0, width: 700, height: 2400 };
     expect(tiltFor(page, 700, 1200).ry).toBe(TILT_MIN_DEG);
     expect(tiltFor({ left: 0, top: 0, width: 40, height: 40 }, 40, 20).ry).toBe(TILT_MAX_DEG);
@@ -57,7 +57,7 @@ describe("the dip in the stylesheet and the page", () => {
     const at = css.indexOf('html:not([data-motion="reduce"]) [data-tilt="on"] {');
     expect(at).toBeGreaterThan(-1);
     expect(css.slice(css.lastIndexOf("@media", at), at)).toMatch(/^@media \(prefers-reduced-motion: no-preference\) \{/);
-    expect(css).toMatch(/\[data-tilt="on"\] \{\s*transform: perspective\(900px\) rotateX\(var\(--tilt-x, 0deg\)\) rotateY\(var\(--tilt-y, 0deg\)\) scale\(0\.985\);/);
+    expect(css).toMatch(/\[data-tilt="on"\] \{\s*transform: perspective\(900px\) rotateX\(var\(--tilt-x, 0deg\)\) rotateY\(var\(--tilt-y, 0deg\)\) scale\(0\.994\);/);
     // Only transform moves: the card's neighbours never shift.
     expect(css.slice(at, css.indexOf("}", at))).not.toMatch(/margin|width|height|top:|left:/);
   });

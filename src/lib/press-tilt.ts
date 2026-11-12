@@ -20,10 +20,10 @@ export const TILT_TARGETS =
 export const NO_TILT = ".swipe-card, .turf-map, .leaflet-container, select, input[type='range'], [data-no-tilt]";
 
 /** A small tile dips this far at its edge; a big card far less, so it never swings. */
-export const TILT_MAX_DEG = 6;
-export const TILT_MIN_DEG = 1.2;
-/** The longer side, in px, times its tilt in degrees stays near this: 150px dips 6°, 360px 2.5°, 750px 1.2°. */
-export const TILT_REACH = 900;
+export const TILT_MAX_DEG = 3;
+export const TILT_MIN_DEG = 0.6;
+/** The longer side, in px, times its tilt in degrees stays near this: 150px dips 3°, 360px 1.25°, 750px 0.6°. */
+export const TILT_REACH = 450;
 
 export interface Box {
   left: number;

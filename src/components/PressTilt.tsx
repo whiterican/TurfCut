@@ -42,7 +42,7 @@ export function PressTilt() {
       for (const v of ["--tilt-x", "--tilt-y", "--tilt-lx", "--tilt-ly"]) was.style.removeProperty(v);
       setTimeout(() => {
         if (was.getAttribute("data-tilt") === "off") was.removeAttribute("data-tilt");
-      }, DURATION.base + 60);
+      }, DURATION.slow + 60);
     };
     const onDown = (e: PointerEvent) => {
       if (!e.isPrimary || (e.pointerType === "mouse" && e.button !== 0) || motionReduced()) return;

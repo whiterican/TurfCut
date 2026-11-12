@@ -360,7 +360,7 @@ html {
   --drawer-root: color-mix(in srgb, var(--surface) 79%, var(--bg));
   /* Washes of the brand's sky and purple down the page, for the glass to pick up: without colour behind
      it, a pane of glass on cream is just a white card. The same scheme, a little more of it, and no
-     stronger than the wash the top of the page already had: grey text sits straight on the page too. */
+     stronger than the wash the top of the page already had. Bare hints on the page read --subtle-on-glass (set on body). */
   --page-wash:
     radial-gradient(130% 34rem at 50% -8rem, color-mix(in srgb, var(--sky) 40%, transparent), transparent 72%),
     radial-gradient(46rem 34rem at 108% 34%, color-mix(in srgb, var(--select) 6%, transparent), transparent 70%),
@@ -468,6 +468,8 @@ html[data-text="xl"] {
 body {
   background: var(--page-wash) no-repeat, var(--bg);
   color: var(--fg);
+  /* The faintest grey reads from its stepped value everywhere: the page's washes sit behind bare hints too. */
+  --subtle: var(--subtle-on-glass);
   font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   font-weight: 500;
   accent-color: var(--focus);
@@ -1606,10 +1608,6 @@ body {
   }
 
   /* ---- Data ------------------------------------------------------------ */
-  /* A card that floats over other content (the thread menu): opaque, so nothing shows through it. */
-  .card-solid {
-    background: var(--card-sheen), var(--surface);
-  }
   /* The older metric tile (scorecards, experience): the same white surface and figure as the tiles above. */
   .stat {
     @apply rounded-[var(--radius-card)] border border-border p-4;
@@ -2179,6 +2177,14 @@ body {
   :is(.card, .card-flat, .list-card, .work-card, .hero-card, .sheet-panel, .more-sheet-panel) :is(.work-card, .shift-card, .turf-card, .need-tile, .stat, .stat-tile, .summary-item, .choice-list, .option-card, .empty-state, .overview-map) {
     box-shadow: none;
   }
+  /* A card that floats over other content (the thread menu): opaque and unblurred, so nothing shows
+     through it. Two classes, so it beats the glass rule above whatever the order. */
+  .card.card-solid {
+    background: var(--card-sheen), var(--surface);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    --subtle: var(--muted);
+  }
   /* A chosen option keeps its ring, with the weight under it (or alone, inside a card). */
   .option-card:has(input:checked) {
     box-shadow: 0 0 0 1px var(--selected), var(--card-edge), var(--shadow-depth);
@@ -2192,12 +2198,15 @@ body {
   @media (prefers-reduced-motion: no-preference) {
     html:not([data-motion="reduce"]) [data-tilt] {
       transition-property: transform, border-color, background-color, color, box-shadow;
-      transition-duration: var(--dur-base);
+      /* Slow both ways: the card sinks under the finger and floats back, it never snaps (Caden, Nov 12). */
+      transition-duration: var(--dur-slow);
       transition-timing-function: var(--ease-out);
     }
     html:not([data-motion="reduce"]) [data-tilt="on"] {
-      transform: perspective(900px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) scale(0.985);
-      transition-duration: var(--dur-fast);
+      transform: perspective(900px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) scale(0.994);
+      /* Safari clips a blurred backdrop on a turning panel (as on the sheets). The page behind is a smooth wash, so the pane alone carries the press. */
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
     }
     /* Pressed glass: light pools on the side under the finger (--tilt-lx / --tilt-ly run -1 to 1 across the
        card) and the shadow pulls in, as the pane is pushed toward the page. Not the hero cards or a chosen
@@ -2228,7 +2237,7 @@ body {
   .talking-point {
     @apply rounded-[var(--radius-inner)] border border-border px-4 py-3 sm:px-5;
     border-left: 4px solid var(--link); /* Eggplant in light; its dark-mode counterpart stays visible */
-    background: var(--card-bg);
+    background: var(--surface);
   }
   .summary-band {
     @apply flex flex-wrap items-baseline gap-x-5 gap-y-1 text-sm;
@@ -3341,6 +3350,11 @@ summary.list-none::-webkit-details-marker {
 
 /* ---- Print (receipts and statements, M9) --------------------------------- */
 @media print {
+  /* Paper has no glass: every pane prints solid. */
+  :root {
+    --card-filter: none;
+    --card-bg: var(--surface);
+  }
   .tpl-head:has(> .no-print) { display: none; }
   .site-header, .tabbar, .phone-top, .no-print, nextjs-portal { display: none !important; }
   html, body { background: white; color: black; }

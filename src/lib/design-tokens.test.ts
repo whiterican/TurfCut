@@ -190,6 +190,14 @@ describe.each([
       // The faintest grey steps a little darker on the pane by day (Subtle itself is locked, and falls just under AA there).
       expect(t["subtle-on-glass"]).toBe(dark ? t.subtle : "#55647a");
       expect(ratio(t["subtle-on-glass"], card)).toBeGreaterThanOrEqual(4.5);
+      // Bare hints sit on the page itself, so the page reads the stepped grey too, over its strongest wash.
+      // By day that is every wash at once. By night the washes are checked one at a time, at their centres: they sit
+      // a screen apart, and all three stacked (which never happens) would be 3.5.
+      const bare = dark ? [mix(t.ring, 0.17, t.bg), mix(t["ring-3"], 0.2, t.bg), mix(t.select, 0.1, t.bg)] : [page];
+      for (const wash of bare) expect(ratio(t["subtle-on-glass"], wash)).toBeGreaterThanOrEqual(4.5);
+      expect(css).toMatch(/\nbody \{[^}]*?--subtle: var\(--subtle-on-glass\);/);
+      // The menu that hangs over a thread is opaque: two classes, so the glass rule cannot thin it.
+      expect(css).toMatch(/\.card\.card-solid \{\s*background: var\(--card-sheen\), var\(--surface\);\s*-webkit-backdrop-filter: none;\s*backdrop-filter: none;/);
       expect(css).toMatch(/\{\s*background: var\(--card-sheen\), var\(--card-bg\);\s*-webkit-backdrop-filter: var\(--card-filter\);\s*backdrop-filter: var\(--card-filter\);\s*--subtle: var\(--subtle-on-glass\);/);
       // Links and status colours on the pane.
       for (const k of ["link", "danger", "success", "warning"] as const) if (t[k]) expect(ratio(t[k], card)).toBeGreaterThanOrEqual(4.5);

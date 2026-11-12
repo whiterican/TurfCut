@@ -14,6 +14,7 @@ export interface ClientMessage {
   id: string;
   senderId: string;
   senderName: string;
+  senderPhoto: string | null;
   senderIsManager: boolean;
   mine: boolean;
   body: string | null;
@@ -246,7 +247,7 @@ export function MessageList({
         return (
           <li key={m.id} className={`flex items-end gap-2 ${m.mine ? "flex-row-reverse" : ""} ${firstOfRun ? "" : "-mt-2"}`}>
             <span className="w-8 shrink-0 self-start pt-0.5" aria-hidden>
-              {firstOfRun && <Avatar name={m.senderName} size="sm" tone="sky" />}
+              {firstOfRun && <Avatar name={m.senderName} photo={m.senderPhoto} size="sm" tone="sky" />}
             </span>
             <div className={`flex min-w-0 max-w-[82%] flex-col ${m.mine ? "items-end" : "items-start"}`}>
               {firstOfRun && !m.mine && (group || m.senderIsManager) && (

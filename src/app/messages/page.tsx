@@ -32,7 +32,7 @@ function ThreadRow({ t }: { t: ThreadSummary }) {
         {t.kind === "CHANNEL" ? (
           <span aria-hidden className="avatar avatar-team">{t.staffOnly ? <Lock className="size-4" /> : <Hash className="size-4" />}</span>
         ) : (
-          <Avatar name={t.title} team={t.kind === "GROUP"} />
+          <Avatar name={t.title} photo={t.photo} team={t.kind === "GROUP"} />
         )}
         <span className="min-w-0 flex-1">
           <span className={`block truncate text-base leading-6 text-fg ${unread ? "font-bold" : "font-semibold"}`}>{t.kind === "CHANNEL" ? `#${t.title}` : t.title}</span>

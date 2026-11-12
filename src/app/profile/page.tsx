@@ -20,6 +20,8 @@ import { RELATIONSHIP_PHRASE, unplacedAreaWarning, type ShareAudience } from "@/
 import { UrlNotice } from "@/components/UrlNotice";
 import { geoTables, resolveArea } from "@/lib/geo";
 import { Avatar } from "@/components/chat/Avatar";
+import { ownPhotoUrl } from "@/lib/profile-photo-key";
+import { getSessionProfile } from "@/lib/auth";
 import { payoutCta, payoutReadiness } from "@/lib/pay";
 import { stripeProvider } from "@/lib/payout-provider";
 import { expiryReminder } from "@/lib/credentials";
@@ -33,6 +35,8 @@ const AUDIENCE_SHORT: Record<ShareAudience, string> = {
 
 export default async function ProfilePage({ searchParams }: { searchParams: Promise<{ setup?: string }> }) {
   const { workerId } = await requireWorker();
+  // The worker's own photo, shown to them at the top of their own profile.
+  const session = await getSessionProfile();
   const setupDone = (await searchParams).setup === "done";
   const [worker, records, scorecard, fit, history, sharing, avail, creds] = await Promise.all([
     db().worker.findUniqueOrThrow({ where: { id: workerId }, select: { displayName: true, phone: true, payoutsEnabled: true, stripeAccountId: true } }),
@@ -78,7 +82,7 @@ export default async function ProfilePage({ searchParams }: { searchParams: Prom
       gap={6}
       head={
         <header className="profile-head">
-          <Avatar name={worker.displayName} size="lg" />
+          <Avatar name={worker.displayName} photo={ownPhotoUrl(session?.avatarKey)} size="lg" />
           <h1 className="t-headline text-fg">{worker.displayName}</h1>
           {/* The home area the worker saved for matching, when they set one; never guessed. */}
           {sharing.choices.homeArea && <p className="text-sm text-subtle">{sharing.choices.homeArea}</p>}

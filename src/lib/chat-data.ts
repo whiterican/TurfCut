@@ -4,6 +4,7 @@ import type { Role } from "@/lib/auth";
 import { canUse, type Grants } from "@/lib/access";
 import { areaMembers } from "@/lib/access-data";
 import { UUID_RE } from "@/lib/jobs";
+import { chatPhotoUrl, mayShowPhotoTo } from "@/lib/profile-photo-key";
 import {
   EDIT_WINDOW_MS,
   GENERAL_CHANNEL,
@@ -80,11 +81,25 @@ async function dbNow(c: Client): Promise<Date> {
   return row.now;
 }
 
-const PERSON = { select: { id: true, role: true, displayName: true, worker: { select: { displayName: true } }, orgRole: { select: { name: true } } } } as const;
+const PERSON = { select: { id: true, role: true, displayName: true, avatarKey: true, worker: { select: { displayName: true } }, orgRole: { select: { name: true } } } } as const;
 type Person = { role: string; displayName: string | null; worker: { displayName: string } | null; orgRole?: { name: string } | null };
 const ROLE_LABEL: Record<string, string> = { OWNER: "Owner", RECRUITER: "Recruiter", SUPERVISOR: "Supervisor", COMPLIANCE: "Compliance", FINANCE: "Finance", PUBLISHER: "Publisher" };
 /** Worker → their profile name; staff → their chat name, else their role. */
 export const personName = (p: Person | null | undefined) => p?.worker?.displayName ?? p?.displayName ?? (p ? (p.role === "CUSTOM" ? "Team member" : ROLE_LABEL[p.role]) : undefined) ?? "Former member";
+
+/**
+ * The address of a participant's photo for this viewer, or null. Only for someone still in the conversation, and
+ * never a worker's photo for staff (lib/profile-photo-key: mayShowPhotoTo). The route decides again on every request.
+ */
+type PhotoPerson = { role: string; avatarKey: string | null };
+type Shown = { profileId: string; removedAt: Date | null; profile: PhotoPerson };
+const shownPhoto = (me: ChatUser, p: Shown): string | null =>
+  p.removedAt === null && mayShowPhotoTo(me.role, p.profile.role) ? chatPhotoUrl(p.profileId, p.profile.avatarKey) : null;
+/** Everyone's photo in one open conversation: none while it is read-only for me, and none of someone I have blocked. */
+const threadPhotos = (me: ChatUser, conv: { kind: string; archivedAt: Date | null; engagement?: { status: string } | null; participants: Shown[] }, mine: { removedAt: Date | null }, blockedByMe: Set<string> = new Set()) => {
+  const live = !mine.removedAt && !conv.archivedAt && (conv.kind !== "DIRECT" || isHired(conv.engagement?.status ?? ""));
+  return new Map(conv.participants.map((p) => [p.profileId, live && !blockedByMe.has(p.profileId) ? shownPhoto(me, p) : null]));
+};
 
 async function audit(c: Client, actorId: string, action: string, entityType: string, entityId: string, metadata: Prisma.InputJsonValue) {
   await c.auditEvent.create({ data: { actorId, action, entityType, entityId, metadata } });
@@ -258,6 +273,8 @@ export interface ThreadSummary {
   subtitle: string;
   /** Read-only for me (removed, or the hire ended). */
   frozen: boolean;
+  /** The other person's photo, in a conversation between two people who are both still in it. */
+  photo: string | null;
   unread: number;
   last: { text: string; mine: boolean; at: Date } | null;
   /** For ordering: last message, else when the thread was created. */
@@ -352,6 +369,7 @@ export async function listThreads(me: ChatUser): Promise<{ threads: ThreadSummar
     const direct = c.kind === "DIRECT";
     const staffDm = c.kind === "STAFF_DM";
     const other = direct || staffDm ? (c.participants.find((p) => !p.removedAt) ?? c.participants[0]) : undefined;
+    const frozen = row.removedAt !== null || c.archivedAt !== null || (direct && !isHired(c.engagement?.status ?? "")) || (staffDm && !c.participants.some((p) => !p.removedAt));
     return {
       id: c.id,
       kind: c.kind,
@@ -359,7 +377,8 @@ export async function listThreads(me: ChatUser): Promise<{ threads: ThreadSummar
       mentions: mentions.get(c.id) ?? 0,
       title: direct || staffDm ? personName(other?.profile) : (c.name ?? "Team chat"),
       subtitle: direct ? (c.engagement?.job.title ?? "") : staffDm ? staffLabel(other?.profile) : c.kind === "CHANNEL" ? (c.topic ?? "") : c.jobs.map((j) => j.job.title).join(" · "),
-      frozen: row.removedAt !== null || c.archivedAt !== null || (direct && !isHired(c.engagement?.status ?? "")) || (staffDm && !c.participants.some((p) => !p.removedAt)),
+      frozen,
+      photo: other && !frozen ? shownPhoto(me, other) : null,
       unread: unread.get(c.id) ?? 0,
       last: last ? { text: preview(last), mine: last.senderId === me.userId, at: last.createdAt } : null,
       activeAt: last?.createdAt ?? c.createdAt,
@@ -397,6 +416,8 @@ export interface ThreadMessage {
   id: string;
   senderId: string;
   senderName: string;
+  /** The sender's photo, while they are still in the conversation. */
+  senderPhoto: string | null;
   senderIsManager: boolean;
   mine: boolean;
   body: string | null;
@@ -428,6 +449,7 @@ export interface ThreadMember {
   role: ParticipantRole;
   removed: boolean;
   isMe: boolean;
+  photo: string | null;
   /** I (a worker) have this manager blocked. */
   blockedByMe: boolean;
 }
@@ -484,6 +506,7 @@ export async function openThread(me: ChatUser, conversationId: string): Promise<
   }
 
   const byId = new Map(conv.participants.map((p) => [p.profileId, p]));
+  const photos = threadPhotos(me, conv, mine, myBlocks);
   const shift =
     conv.kind === "DIRECT" && conv.engagement && access.read && !mine.removedAt
       ? await db().shift.findFirst({
@@ -529,10 +552,11 @@ export async function openThread(me: ChatUser, conversationId: string): Promise<
         role: p.role,
         removed: p.removedAt !== null && (!mine.removedAt || p.removedAt <= mine.removedAt),
         isMe: p.profileId === me.userId,
+        photo: photos.get(p.profileId) ?? null,
         blockedByMe: myBlocks.has(p.profileId),
       })),
     mentionable: [...new Set(mentionables(conv.participants, me.userId, access).map((x) => x.name))].sort((a, b) => a.localeCompare(b)),
-    messages: view.map((m) => threadMessage(m, me.userId, byId, access, now, extras)),
+    messages: view.map((m) => threadMessage(m, me.userId, byId, access, now, extras, photos)),
     hasOlder: truncated,
   };
 }
@@ -602,13 +626,14 @@ async function messageExtras(c: Client, conversationId: string, viewerId: string
   return out;
 }
 
-function threadMessage(m: ViewMessage, myId: string, byId: Map<string, { role: ParticipantRole; profile: Parameters<typeof personName>[0] }>, access: Access, now: Date, extras: Extras): ThreadMessage {
+function threadMessage(m: ViewMessage, myId: string, byId: Map<string, { role: ParticipantRole; profile: Parameters<typeof personName>[0] }>, access: Access, now: Date, extras: Extras, photos: Map<string, string | null>): ThreadMessage {
   const sender = byId.get(m.senderId);
   const mineMsg = m.senderId === myId;
   const thread = extras.replies.get(m.id);
   return {
     ...m,
     senderName: personName(sender?.profile),
+    senderPhoto: m.deleted ? null : (photos.get(m.senderId) ?? null),
     senderIsManager: !!sender && sender.role !== "WORKER",
     mine: mineMsg,
     canEdit: mineMsg && !m.deleted && !!m.body && access.post && now.getTime() - m.createdAt.getTime() <= EDIT_WINDOW_MS,
@@ -668,6 +693,7 @@ export async function openReplies(me: ChatUser, conversationId: string, parentId
     if (skipped === 0) await db().conversationParticipant.update({ where: { id: mine.id }, data: { lastReadAt: newest } });
   }
   const byId = new Map(conv.participants.map((p) => [p.profileId, p]));
+  const photos = threadPhotos(me, conv, mine);
   const direct = conv.kind === "DIRECT" || conv.kind === "STAFF_DM";
   const other = direct ? (conv.participants.find((p) => p.profileId !== me.userId && !p.removedAt) ?? conv.participants.find((p) => p.profileId !== me.userId)) : undefined;
   return {
@@ -677,9 +703,9 @@ export async function openReplies(me: ChatUser, conversationId: string, parentId
     access,
     staff: mine.role !== "WORKER",
     mentionable: [...new Set(mentionables(conv.participants, me.userId, access).map((x) => x.name))].sort((a, b) => a.localeCompare(b)),
-    parent: threadMessage(parent, me.userId, byId, access, now, extras),
+    parent: threadMessage(parent, me.userId, byId, access, now, extras, photos),
     // Replies don't nest: a reply shows no thread of its own.
-    replies: view.map((m) => ({ ...threadMessage(m, me.userId, byId, access, now, extras), canReply: false })),
+    replies: view.map((m) => ({ ...threadMessage(m, me.userId, byId, access, now, extras, photos), canReply: false })),
     hasOlder: truncated,
   };
 }

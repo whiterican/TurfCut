@@ -208,7 +208,10 @@
   --dock-current-fg: var(--ink);
   --glass-bg: color-mix(in srgb, var(--surface) 62%, transparent);
   --glass-bg-strong: color-mix(in srgb, var(--surface) 78%, transparent);
-  --drawer-root: color-mix(in srgb, var(--surface) 78%, var(--bg));
+  /* The drawer is clear glass over the purple (Caden, Nov 12): its colour is half the page's top colour, and the
+     pane is that same colour part see-through, so over the strip-coloured page it comes out exactly the strip. */
+  --drawer-root: color-mix(in srgb, var(--surface) 50%, var(--page-top));
+  --drawer-bg: color-mix(in srgb, var(--drawer-root) 68%, transparent);
   --glass-bg-bar: color-mix(in srgb, var(--surface) 80%, transparent);
   --glass-border: rgb(255 255 255 / 0.2);
   --glass-highlight: inset 0 1px 0 rgb(255 255 255 / 0.34), inset 0 -1px 0 rgb(255 255 255 / 0.08), inset 0 0 0 1px rgb(255 255 255 / 0.06), 0 14px 36px -14px rgb(0 0 0 / 0.75);
@@ -285,6 +288,7 @@
   --glass-bg: var(--surface);
   --glass-bg-strong: var(--surface);
   --drawer-root: var(--surface);
+  --drawer-bg: var(--surface);
   --glass-bg-bar: var(--surface);
   --header-bg: var(--bg);
   --dock-border: var(--shell-edge);
@@ -367,7 +371,10 @@ html {
   --dock-border: color-mix(in srgb, var(--fg) 14%, transparent);
   --dock-ring: var(--surface);
   /* The page's colour while the menu drawer is open: the drawer's pane over the page (see the rule at the end of the file). */
-  --drawer-root: color-mix(in srgb, var(--surface) 79%, var(--bg));
+  /* The drawer is clear glass over the purple (Caden, Nov 12): its colour is half the page's top colour, and the
+     pane is that same colour part see-through, so over the strip-coloured page it comes out exactly the strip. */
+  --drawer-root: color-mix(in srgb, var(--surface) 50%, var(--page-top));
+  --drawer-bg: color-mix(in srgb, var(--drawer-root) 60%, transparent);
   /* The page is one purple gradient (Caden, Nov 12): strong and opaque at the top of the screen, easing to
      the page colour at the foot. It is fixed to the screen (body::before, below), so the purple is always at
      the top and the glass cards pass over it as the page scrolls. The same recipe by night, from the night's
@@ -380,7 +387,7 @@ html {
     color-mix(in srgb, var(--page-top) 8%, var(--bg)) 100%
   );
   /* The header's pane over the top of the page: the status bar strip on a page that has a header. */
-  --header-root: color-mix(in srgb, var(--surface) 80%, var(--page-top));
+  --header-root: var(--page-top);
   --hero-bg: var(--hero);
   /* Shape, rounder throughout (Caden's reference, Nov 10): xs 10 · sm 14 · md 24 · lg 28 · xl 32.
      Cards md, fields, thumbnails and job rows sm, tags and small tiles xs, the drawer and sheets lg.
@@ -2431,9 +2438,10 @@ body {
     --shell-edge: var(--glass-border);
     --shell-active: var(--dock-capsule);
     --on-shell-active: var(--fg);
-    background: var(--glass-sheen), var(--glass-bg-bar);
-    -webkit-backdrop-filter: var(--glass-filter);
-    backdrop-filter: var(--glass-filter);
+    /* Very clear glass (Caden, Nov 12): a quarter of a card's tint and nothing else, so the page's gradient
+       runs on behind it to the screen's edge. No sheen and no blur: either one recolours the gradient
+       (the blur's saturation most of all), and nothing scrolls behind the rail to blur. */
+    background: color-mix(in srgb, var(--card-bg) 25%, transparent);
   }
   /* By night an eggplant tile is only 1.6:1 from its surface and its label is the
      same colour as the others', so every chosen chip gets a light edge too. */
@@ -2480,10 +2488,15 @@ body {
     color: var(--fg);
   }
   /* The row you're on: the dock's tinted capsule, not a dark block (Sunlight keeps its solid tile). */
-  html:not(.sun) .more-sheet .rail-link[aria-current] {
-    background: var(--dock-capsule);
+  /* The row you're on, and the row under your finger: a floating card like the rest of the app
+     (Caden, Nov 12), bold as well so it is not told by depth alone. Sunlight keeps its solid tile. */
+  html:not(.sun) .more-sheet .rail-link:is([aria-current], :active) {
+    background: var(--card-sheen), var(--card-bg);
     color: var(--fg);
-    box-shadow: none;
+    box-shadow: var(--card-edge), var(--shadow-depth);
+  }
+  html:not(.sun) .more-sheet .rail-link:active {
+    box-shadow: var(--card-edge), var(--shadow-pressed);
   }
   .more-extra {
     @apply mt-2 border-t border-border pt-3;
@@ -2494,10 +2507,11 @@ body {
     padding-bottom: calc(1rem + env(safe-area-inset-bottom));
     padding-inline-start: calc(1rem + env(safe-area-inset-left));
     /* No sheen and no lit top edge here: the pane meets the status bar's strip, which is one flat colour. */
-    background: var(--glass-bg-strong);
+    background: var(--drawer-bg);
     border-color: var(--glass-border);
-    -webkit-backdrop-filter: var(--glass-filter);
-    backdrop-filter: var(--glass-filter);
+    /* Blur only: the usual glass recipe also saturates what shows through, and the pane's top would no longer be the strip's colour. */
+    -webkit-backdrop-filter: blur(24px);
+    backdrop-filter: blur(24px);
     box-shadow: 0 12px 34px -14px rgb(28 15 46 / 0.36);
   }
   /* The menu button (components/AppNav MenuButton): with a name, a pill led by the person's initial; without, the glyph alone. */
@@ -2551,6 +2565,48 @@ body {
   .phone-top {
     @apply flex items-center px-4 sm:px-6 md:hidden;
     padding-top: calc(0.75rem + env(safe-area-inset-top));
+    /* The row stays at the top while the page scrolls under it (Caden's reference, Nov 12), like the bar on
+       an organization's pages. Only the button takes presses: the rest of the row lets them through. */
+    position: sticky;
+    top: 0;
+    z-index: 45;
+    pointer-events: none;
+  }
+  .phone-top > * {
+    pointer-events: auto;
+    /* Part of the frame now it stays put: a page change slides under the pill, not over it. The name is on
+       the pill, not the row: a named row is a layer of its own, and its band could not blur the page behind. */
+    view-transition-name: phone-pill;
+  }
+  /* The top edge of a worker's phone page (Caden, Nov 12): what scrolls up no longer stops dead at the status
+     bar. A band fixed across the top blurs what passes under it and fades it into the colour at the top of the
+     page, which is the status bar strip's colour too, so the page seems to run on under the bar. Strongest at
+     the edge and gone a little under the menu button's row; at rest the page behind it is the same colour, so
+     nothing shows. The button sits above it, and a pull-to-refresh ring comes out from under it. An organization's
+     phone needs none: its header is a pane of glass across the top already. */
+  /* Clear glass, not a fog (Caden's screen recording, Nov 12): a light tint and a small blur, so what scrolls
+     up is still seen but cannot be read, down to just under the button's row and feathered out from there. */
+  .phone-top::before {
+    content: "";
+    position: fixed;
+    inset: 0 0 auto;
+    height: calc(5.25rem + env(safe-area-inset-top));
+    z-index: 44;
+    pointer-events: none;
+    background: linear-gradient(to bottom, color-mix(in srgb, var(--page-top) 62%, transparent) 0%, color-mix(in srgb, var(--page-top) 34%, transparent) 60%, transparent 100%);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 22%, transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 0%, #000 22%, transparent 100%);
+    /* Part of the frame, like the tab bar: a page change slides under it, not over it. */
+    view-transition-name: phone-band;
+  }
+  .phone-top .menu-button {
+    z-index: 45;
+  }
+  /* Sunlight is plain: no band. (Reduced transparency and more contrast drop it too, in the solid fallback.) */
+  .sun .phone-top::before {
+    display: none;
   }
   /* The backdrop is clear, and still takes the press that closes the drawer. An installed app on an iPhone
      colours the status bar's strip from whatever is fixed across the top of the screen: a dim backdrop made
@@ -2866,6 +2922,13 @@ body {
     background: var(--surface-2);
     color: var(--fg);
     border: 1px solid var(--border);
+  }
+  /* A person's photo fills the circle (lib/profile-photo); the initials come back if it will not load. */
+  .avatar-photo {
+    @apply overflow-hidden;
+  }
+  .avatar-photo > img {
+    @apply size-full object-cover;
   }
   .avatar-team {
     background: var(--hero);
@@ -3267,6 +3330,37 @@ summary.list-none::-webkit-details-marker {
     top: var(--site-header-h);
     height: calc(100dvh - var(--site-header-h));
   }
+  /* Beside the rail the bar has no edge either (Caden, Nov 12): the gradient runs up through it, and
+     what scrolls beneath blurs away into the page's top colour. The same layer as a phone's. */
+  body:has(.org-rail) .site-header {
+    background: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  body:has(.org-rail)::after {
+    content: "";
+    position: fixed;
+    inset: 0 0 auto;
+    height: calc(var(--site-header-h) + 1.5rem);
+    z-index: 44;
+    pointer-events: none;
+    background: linear-gradient(to bottom, color-mix(in srgb, var(--page-top) 62%, transparent) 0%, color-mix(in srgb, var(--page-top) 34%, transparent) 60%, transparent 100%);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 22%, transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 0%, #000 22%, transparent 100%);
+    view-transition-name: bar-fade;
+  }
+  /* A chat pins its own bar right under this one: no fade over it, and no gradient to fade into. */
+  body:has(.org-rail):has(.thread-top)::after,
+  .sun body:has(.org-rail)::after {
+    height: var(--site-header-h);
+    background: var(--bg);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
   /* A chat thread pins its own bar: under the header here, not over it. */
   body:has(.org-rail) .thread-top {
     top: var(--site-header-h);
@@ -3278,6 +3372,16 @@ summary.list-none::-webkit-details-marker {
   .org-rail {
     border-inline-start: 1px solid var(--shell-edge);
   }
+}
+/* The staff band sits flush under the bar at every width: the fade stops at the bar's edge, not over the
+   band's words. Marked important, so it wins over the phone's fade and the rail's alike. */
+body:has(.staff-band)::after {
+  height: var(--site-header-h) !important;
+  background: var(--page-top) !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  -webkit-mask-image: none !important;
+  mask-image: none !important;
 }
 /* A chat thread on a phone has no dock (Caden, Nov 11): the dock floated over an empty band under
    the message box. The composer sits at the bottom of the screen; the back arrow returns to
@@ -3317,6 +3421,38 @@ summary.list-none::-webkit-details-marker {
     position: sticky;
     top: 0;
     z-index: 45;
+  }
+  /* On a phone there is no bar (Caden, Nov 12): the logo and the buttons stay where they were and the
+     page's gradient runs to the top. Only a short band at the very top blurs what scrolls up into it. */
+  .site-header {
+    background: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  /* The fade is the page's layer, not the bar's: the bar is held apart for page changes, and a
+     layer inside it could not blur the page behind. */
+  body:has(.site-header:not(.site-header-worker)):not(:has(.thread-top))::after {
+    content: "";
+    position: fixed;
+    inset: 0 0 auto;
+    height: calc(var(--site-header-h) + 1.5rem);
+    z-index: 44;
+    pointer-events: none;
+    background: linear-gradient(to bottom, color-mix(in srgb, var(--page-top) 62%, transparent) 0%, color-mix(in srgb, var(--page-top) 34%, transparent) 60%, transparent 100%);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 22%, transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 0%, #000 22%, transparent 100%);
+    view-transition-name: bar-fade;
+  }
+  /* Sunlight has no blur and no see-through: a plain bar. */
+  .sun body:has(.site-header:not(.site-header-worker)):not(:has(.thread-top))::after {
+    height: var(--site-header-h);
+    background: var(--bg);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    -webkit-mask-image: none;
+    mask-image: none;
   }
   /* Focused or linked-to content never lands under the sticky header. */
   html:not(:has(.thread-top)) {
@@ -3365,6 +3501,37 @@ summary.list-none::-webkit-details-marker {
     border-color: var(--border-strong);
   }
 }
+/* With no bar, the whole top row steps aside on the way down the page and comes back on the way up
+   (Caden, Nov 12; components/ScrollDirection.tsx marks the root). Faded and slid away, never removed: the
+   keyboard still reaches it, and it shows at once while one of its controls has the keyboard's focus.
+   Not in a chat, which scrolls itself down to the newest message. */
+/* It fades where it stands, with only a breath of movement (Caden's second recording, Nov 12): not a slide. */
+.site-header,
+.phone-top > * {
+  transition: opacity var(--dur-base) var(--ease-standard), translate var(--dur-base) var(--ease-standard);
+}
+html[data-scroll="down"]:not(:has(.thread-top)) .site-header:not(:has(:focus-visible)) {
+  opacity: 0;
+  translate: 0 -0.375rem;
+  pointer-events: none;
+}
+/* With the row away the glass stays as it is, as in Caden's reference (Nov 12): what reaches the top of the
+   screen still blurs away into the page's colour, and the row fades back onto the same pane. */
+body::after {
+  transition: opacity var(--dur-base) var(--ease-standard);
+}
+/* Sunlight's bar is a plain strip behind the row, and so is the one over the staff band: with the row away
+   they go too, or a blank strip would stay across the page. */
+html.sun[data-scroll="down"]:not(:has(.thread-top)) body::after,
+html[data-scroll="down"]:not(:has(.thread-top)) body:has(.staff-band)::after {
+  opacity: 0 !important;
+}
+/* A worker's phone: the pill goes, the glass band it sits on stays (the band is the row's own layer). */
+html[data-scroll="down"]:not(:has(.thread-top)) .phone-top > :not(:focus-visible) {
+  opacity: 0;
+  translate: 0 -0.375rem;
+  pointer-events: none;
+}
 /* The theme switch shows its label from sm up; below that it's a bubble too. */
 @media (min-width: 40rem) {
   .site-header .glass-orb-phone {
@@ -3373,9 +3540,10 @@ summary.list-none::-webkit-details-marker {
     height: auto;
     padding: 0.375rem 0.75rem;
     border-radius: var(--radius-button);
-    border: 0;
-    background: transparent;
-    box-shadow: none;
+    /* With no bar behind it the labelled switch floats like the round buttons beside it (Caden, Nov 12). */
+    border: 1px solid var(--border);
+    background: var(--surface);
+    box-shadow: var(--shadow-depth);
   }
   .site-header .glass-orb-phone:hover {
     background: var(--surface-2);
@@ -3398,6 +3566,8 @@ summary.list-none::-webkit-details-marker {
   .site-header, .tabbar, .phone-top, .no-print, nextjs-portal { display: none !important; }
   html, body { background: white; color: black; }
   body::before { display: none; }
+  /* Nor the bar's fade: a sheet of paper is narrower than a tablet, so the phone rule would print it. */
+  body::after { display: none !important; }
   .page, .tpl { padding: 0; max-width: none; }
   .card, .list-card, .empty-state, .stat { background: white; border-color: #999; box-shadow: none; break-inside: avoid; }
   :is(.work-card, .shift-card, .turf-card, .need-tile, .stat-tile, .summary-item, .choice-list, .option-card, .overview-map) { box-shadow: none; }
@@ -3418,16 +3588,29 @@ summary.list-none::-webkit-details-marker {
   view-transition-name: tabbar;
 }
 ::view-transition-group(site-header),
-::view-transition-group(tabbar) {
+::view-transition-group(tabbar),
+::view-transition-group(phone-band),
+::view-transition-group(phone-pill),
+::view-transition-group(bar-fade) {
   animation: none;
   z-index: 100;
 }
+/* The pill sits on the band, as it does on the page. */
+::view-transition-group(phone-pill) {
+  z-index: 101;
+}
 ::view-transition-old(site-header),
-::view-transition-old(tabbar) {
+::view-transition-old(tabbar),
+::view-transition-old(phone-band),
+::view-transition-old(phone-pill),
+::view-transition-old(bar-fade) {
   display: none;
 }
 ::view-transition-new(site-header),
-::view-transition-new(tabbar) {
+::view-transition-new(tabbar),
+::view-transition-new(phone-band),
+::view-transition-new(phone-pill),
+::view-transition-new(bar-fade) {
   animation: none;
 }
 /* The current tab's lens glides from the old tab to the new one. */
@@ -3863,6 +4046,7 @@ summary.list-none::-webkit-details-marker {
     --glass-bg: var(--surface);
     --glass-bg-strong: var(--surface);
     --drawer-root: var(--surface);
+  --drawer-bg: var(--surface);
     --glass-bg-bar: var(--surface);
     --header-bg: var(--bg);
     --glass-border: var(--border);
@@ -3884,6 +4068,37 @@ summary.list-none::-webkit-details-marker {
     --page-top: var(--bg);
     --header-root: var(--bg);
   }
+  /* Day's top colour is declared on :root, which outranks the html rule above whatever the order: without
+     this the day page stayed flat purple here, with less contrast than the plain page. */
+  :root {
+    --page-top: var(--bg);
+  }
+  /* No blurred band at the top of a phone page either: it fades text, which is the opposite of more contrast. */
+  body:has(.org-rail)::after,
+  body:has(.site-header:not(.site-header-worker)):not(:has(.thread-top))::after {
+    height: var(--site-header-h);
+    background: var(--bg);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+  .more-sheet-panel {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  /* The pane and a card are the same solid colour here: the row you are on takes the dock's tint instead. */
+  html:not(.sun) .more-sheet .rail-link:is([aria-current], :active) {
+    background: var(--dock-capsule);
+    box-shadow: none;
+  }
+  /* The plain bar behind the row goes with the row. */
+  html[data-scroll="down"]:not(:has(.thread-top)) body::after {
+    opacity: 0 !important;
+  }
+  .phone-top::before {
+    display: none;
+  }
 }
 /* Buttons inside a glass bar sit on its pane already: no second blur. A thread pins its bar under
    the status bar, so the gradient would show as a strip above it. */
@@ -3898,6 +4113,17 @@ body:has(.thread-top) {
 /* The faintest grey is under AA on a pane once something dark scrolls behind it: in the glass bars it takes the muted grey. */
 :is(.thread-top, .composer, .more-sheet-panel, .sheet-panel) {
   --subtle: var(--muted);
+}
+/* The drawer is clearer than the other panes (Caden, Nov 12), so every word on it takes the ink: grey fails AA
+   there once something dark (by day) or light (by night) scrolls behind. Tested in design-tokens.test.ts. */
+.more-sheet-panel {
+  --muted: var(--fg);
+  --subtle: var(--fg);
+  --kicker: var(--fg);
+}
+.sun .more-sheet-panel {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }
 /* An installed app on a phone draws the status bar's strip itself, above the page, where the page
    cannot paint. It takes the colour from the page: the root's or the body's, or something fixed across

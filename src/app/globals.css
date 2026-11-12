@@ -3355,21 +3355,25 @@ summary.list-none::-webkit-details-marker {
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
   }
-  .site-header::before {
+  /* The fade is the page's layer, not the bar's: the bar is held apart for page changes, and a
+     layer inside it could not blur the page behind. */
+  body:has(.site-header:not(.site-header-worker)):not(:has(.thread-top))::after {
     content: "";
-    position: absolute;
-    inset: 0 0 -1.25rem;
-    z-index: -1;
+    position: fixed;
+    inset: 0 0 auto;
+    height: calc(var(--site-header-h) + 1.25rem);
+    z-index: 44;
     pointer-events: none;
     background: linear-gradient(to bottom, var(--page-top) 0%, color-mix(in srgb, var(--page-top) 90%, transparent) 45%, color-mix(in srgb, var(--page-top) 62%, transparent) 72%, transparent 100%);
     -webkit-backdrop-filter: blur(18px);
     backdrop-filter: blur(18px);
     -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 62%, transparent 100%);
     mask-image: linear-gradient(to bottom, #000 0%, #000 62%, transparent 100%);
+    view-transition-name: bar-fade;
   }
   /* Sunlight has no blur and no see-through: a plain bar. */
-  .sun .site-header::before {
-    inset: 0;
+  .sun body:has(.site-header:not(.site-header-worker)):not(:has(.thread-top))::after {
+    height: var(--site-header-h);
     background: var(--bg);
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
@@ -3472,18 +3476,21 @@ summary.list-none::-webkit-details-marker {
 }
 ::view-transition-group(site-header),
 ::view-transition-group(tabbar),
-::view-transition-group(phone-band) {
+::view-transition-group(phone-band),
+::view-transition-group(bar-fade) {
   animation: none;
   z-index: 100;
 }
 ::view-transition-old(site-header),
 ::view-transition-old(tabbar),
-::view-transition-old(phone-band) {
+::view-transition-old(phone-band),
+::view-transition-old(bar-fade) {
   display: none;
 }
 ::view-transition-new(site-header),
 ::view-transition-new(tabbar),
-::view-transition-new(phone-band) {
+::view-transition-new(phone-band),
+::view-transition-new(bar-fade) {
   animation: none;
 }
 /* The current tab's lens glides from the old tab to the new one. */
@@ -3941,8 +3948,8 @@ summary.list-none::-webkit-details-marker {
     --header-root: var(--bg);
   }
   /* No blurred band at the top of a phone page either: it fades text, which is the opposite of more contrast. */
-  .site-header::before {
-    inset: 0;
+  body:has(.site-header:not(.site-header-worker)):not(:has(.thread-top))::after {
+    height: var(--site-header-h);
     background: var(--bg);
     -webkit-backdrop-filter: none;
     backdrop-filter: none;

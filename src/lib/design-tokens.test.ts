@@ -238,7 +238,7 @@ describe.each([
     expect(band).toMatch(/z-index: 44;/);
     expect(band).toMatch(/mask-image: linear-gradient\(to bottom, #000 0%, #000 50%, transparent 100%\);/);
     expect(band).toMatch(/view-transition-name: phone-band;/);
-    expect(css).toMatch(/::view-transition-group\(site-header\),\s*::view-transition-group\(tabbar\),\s*::view-transition-group\(phone-band\) \{\s*animation: none;\s*z-index: 100;/);
+    expect(css).toMatch(/::view-transition-group\(site-header\),\s*::view-transition-group\(tabbar\),\s*::view-transition-group\(phone-band\),/);
     // Shown everywhere but Sunlight and the solid fallback: hidden exactly twice.
     expect(css.match(/\.phone-top::before \{\s*display: none;/g)).toHaveLength(2);
     expect(css).toMatch(/\.phone-top \.menu-button \{\s*z-index: 45;/);
@@ -248,13 +248,22 @@ describe.each([
     // A phone's top bar has no edge: the page's top colour fading to clear past the bar, blurring what scrolls under it.
     const phoneBar = css.slice(css.indexOf("@media (max-width: 47.99rem) {\n  body:not(:has(.thread-top)) .site-header {"));
     expect(phoneBar).toMatch(/^[\s\S]{0,400}?\n  \.site-header \{\s*background: none;\s*-webkit-backdrop-filter: none;\s*backdrop-filter: none;\s*\}/);
-    const fade = phoneBar.match(/\n  \.site-header::before \{([^}]*)\}/)?.[1] ?? "";
-    expect(fade).toMatch(/inset: 0 0 -1\.25rem;\s*z-index: -1;\s*pointer-events: none;/);
+    // The fade is a layer of the page (the bar is held apart for page changes, so a layer inside it could not blur the page).
+    const SEL = "body:has(.site-header:not(.site-header-worker)):not(:has(.thread-top))::after";
+    const rules = (text: string) => text.split(SEL + " {").slice(1).map((part) => part.slice(0, part.indexOf("}")));
+    const [fade, sunBar] = rules(phoneBar);
+    expect(fade).toMatch(/position: fixed;\s*inset: 0 0 auto;\s*height: calc\(var\(--site-header-h\) \+ 1\.25rem\);\s*z-index: 44;\s*pointer-events: none;/);
     expect(fade).toMatch(/background: linear-gradient\(to bottom, var\(--page-top\) 0%,[^;]*transparent 100%\);/);
     expect(fade).toMatch(/backdrop-filter: blur\(18px\);/);
     expect(fade).toMatch(/mask-image: linear-gradient\(to bottom, #000 0%, #000 62%, transparent 100%\);/);
-    expect(phoneBar).toMatch(/\.sun \.site-header::before \{\s*inset: 0;\s*background: var\(--bg\);\s*-webkit-backdrop-filter: none;\s*backdrop-filter: none;/);
-    expect(css.slice(css.indexOf("@media (prefers-reduced-transparency: reduce)"))).toMatch(/\.site-header::before \{\s*inset: 0;\s*background: var\(--bg\);/);
+    expect(fade).toMatch(/view-transition-name: bar-fade;/);
+    expect(css).not.toMatch(/\.site-header::before/);
+    // Sunlight and the solid fallback: a plain bar, by the same selector so they win.
+    expect(phoneBar).toContain(".sun " + SEL + " {");
+    expect(sunBar).toMatch(/height: var\(--site-header-h\);\s*background: var\(--bg\);\s*-webkit-backdrop-filter: none;\s*backdrop-filter: none;\s*-webkit-mask-image: none;\s*mask-image: none;/);
+    const solid = css.slice(css.indexOf("@media (prefers-reduced-transparency: reduce)"));
+    expect(rules(solid).at(-1)).toMatch(/height: var\(--site-header-h\);\s*background: var\(--bg\);\s*-webkit-backdrop-filter: none;\s*backdrop-filter: none;/);
+    expect(css).toMatch(/::view-transition-group\(phone-band\),\s*::view-transition-group\(bar-fade\) \{\s*animation: none;\s*z-index: 100;/);
     // Paper has no layer.
     expect(css).toMatch(/@media print \{[\s\S]*?body::before \{ display: none; \}/);
     // Anyone who asks for less transparency or more contrast gets solid surfaces.

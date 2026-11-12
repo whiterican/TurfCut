@@ -698,7 +698,7 @@ describe("the shell (redesign B1.4)", () => {
 
   it("every box that stands on the page has the card's weight; a box inside another stays flat", () => {
     // Caden, Nov 12: tiles, work cards, choice lists, option cards and empty states were flat beside the cards.
-    const boxes = "\\.work-card, \\.stat, \\.stat-tile, \\.summary-item, \\.choice-list, \\.option-card, \\.empty-state";
+    const boxes = "\\.work-card, \\.shift-card, \\.turf-card, \\.need-tile, \\.stat, \\.stat-tile, \\.summary-item, \\.choice-list, \\.option-card, \\.empty-state, \\.overview-map";
     const inside = "\\.card, \\.card-flat, \\.list-card, \\.work-card, \\.hero-card, \\.sheet-panel, \\.more-sheet-panel";
     expect(css).toMatch(new RegExp(`\\n  :is\\(${boxes}\\) \\{\\s*box-shadow: var\\(--card-edge\\), var\\(--shadow-depth\\);`));
     expect(css).toMatch(new RegExp(`\\n  :is\\(${inside}\\) :is\\(${boxes}\\) \\{\\s*box-shadow: none;`));
@@ -708,6 +708,8 @@ describe("the shell (redesign B1.4)", () => {
     // One token for all of them: a close contact shadow and a wider soft one. Sunlight has none (pinned above).
     expect(css).toMatch(/\n  --shadow-depth: 0 1px 2px rgb\(28 15 46 \/ 0\.07\), 0 8px 20px -8px rgb\(28 15 46 \/ 0\.16\);/);
     expect(themeBody(css, ".dark")).toMatch(/--shadow-depth: 0 1px 2px rgb\(8 3 16 \/ 0\.5\), 0 10px 24px -8px rgb\(8 3 16 \/ 0\.7\);/);
+    // Paper has no shadows.
+    expect(css).toMatch(/@media print \{[\s\S]*:is\(\.work-card, \.shift-card, \.turf-card, \.need-tile, \.stat-tile, \.summary-item, \.choice-list, \.option-card, \.overview-map\) \{ box-shadow: none; \}/);
     // Notes in the flow are not surfaces: they stay flat.
     for (const flat of [".card-flat", ".card-dashed", ".kv"]) expect(new RegExp(`\\n  \\${flat} \\{[^}]*box-shadow`).test(css)).toBe(false);
   });

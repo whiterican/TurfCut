@@ -181,7 +181,7 @@ describe.each([
     // and any bare line of text can pass over that colour. Everything is held to it.
     if (name !== "sunlight") {
       const dark = name === "dark";
-      expect(dark ? themeBody(css, ".dark") : css).toMatch(dark ? /--card-bg: color-mix\(in srgb, var\(--surface\) 58%, transparent\);\s*--card-filter: none;/ : /--card-bg: color-mix\(in srgb, var\(--surface\) 38%, transparent\);\s*--card-filter: none;/);
+      expect(dark ? themeBody(css, ".dark") : css).toMatch(dark ? /--card-bg: color-mix\(in srgb, #3a2858 58%, transparent\);\s*--card-filter: none;/ : /--card-bg: color-mix\(in srgb, var\(--surface\) 38%, transparent\);\s*--card-filter: none;/);
       // No blur on a card: behind it is only a smooth gradient, where a blur shows nothing and costs a layer per card.
       const h = (c: RGB) => "#" + c.map((v) => Math.round(v).toString(16).padStart(2, "0")).join("");
       // The gradient: opaque, from --page-top easing toward the page colour, one recipe for day and night. Pinned, so the
@@ -190,7 +190,13 @@ describe.each([
       expect(themeBody(css, ".dark")).not.toMatch(/--page-wash:/);
       expect(t["page-top"]).toBe(dark ? "#2d1a4b" : "#d6c9ea");
       const page = rgb(t["page-top"]);
-      const card = mix(t.surface, dark ? 0.58 : 0.38, h(page));
+      const card = mix(dark ? "#3a2858" : t.surface, dark ? 0.58 : 0.38, h(page));
+      // By night the page passes through the card colour part-way down, so the pane is a step lighter than the surface:
+      // it stays told apart from the page at every stop of the gradient, not by its edge alone.
+      if (dark) for (const stop of [1, 0.58, 0.22, 0.08]) {
+        const ground = mix(t["page-top"], stop, t.bg);
+        expect(ratio(mix("#3a2858", 0.58, h(ground)), ground)).toBeGreaterThanOrEqual(1.1);
+      }
       // On the pane and on the bare page at its strongest: body text AAA, and every other text colour AA. Form errors,
       // "done" marks and warnings sit on both, so the status colours are held to both.
       for (const ground of [card, page]) {

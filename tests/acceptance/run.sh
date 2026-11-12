@@ -3,7 +3,7 @@
 # built from prisma/supabase-manual-setup.sql plus the seed, then exercises the
 # data layer end to end (locks, append-only rules, pay, sync, closure).
 #
-# Usage: PGURL=postgresql://user:pass@host:port tests/acceptance/run.sh [m5|m6|m7|c1|c2|c3|c4|rl|sec|s1|s2|s3|s4|m8|m9|m10|p1 ...]
+# Usage: PGURL=postgresql://user:pass@host:port tests/acceptance/run.sh [m5|m6|m7|c1|c2|c3|c4|rl|sec|s1|s2|s3|s4|m8|m9|m10|p1|p2|p3|p4 ...]
 # Needs bash 4+ (macOS: brew install bash).
 # PGURL points at the server (database "postgres"); the script creates
 # turfcut_acc_<name> databases and drops them first if they exist. PGQUERY

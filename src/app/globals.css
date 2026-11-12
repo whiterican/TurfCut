@@ -380,7 +380,7 @@ html {
     color-mix(in srgb, var(--page-top) 8%, var(--bg)) 100%
   );
   /* The header's pane over the top of the page: the status bar strip on a page that has a header. */
-  --header-root: color-mix(in srgb, var(--surface) 80%, var(--page-top));
+  --header-root: var(--page-top);
   --hero-bg: var(--hero);
   /* Shape, rounder throughout (Caden's reference, Nov 10): xs 10 · sm 14 · md 24 · lg 28 · xl 32.
      Cards md, fields, thumbnails and job rows sm, tags and small tiles xs, the drawer and sheets lg.
@@ -2431,9 +2431,10 @@ body {
     --shell-edge: var(--glass-border);
     --shell-active: var(--dock-capsule);
     --on-shell-active: var(--fg);
-    background: var(--glass-sheen), var(--glass-bg-bar);
-    -webkit-backdrop-filter: var(--glass-filter);
-    backdrop-filter: var(--glass-filter);
+    /* Very clear glass (Caden, Nov 12): a quarter of a card's tint and nothing else, so the page's gradient
+       runs on behind it to the screen's edge. No sheen and no blur: either one recolours the gradient
+       (the blur's saturation most of all), and nothing scrolls behind the rail to blur. */
+    background: color-mix(in srgb, var(--card-bg) 25%, transparent);
   }
   /* By night an eggplant tile is only 1.6:1 from its surface and its label is the
      same colour as the others', so every chosen chip gets a light edge too. */
@@ -3297,6 +3298,37 @@ summary.list-none::-webkit-details-marker {
     top: var(--site-header-h);
     height: calc(100dvh - var(--site-header-h));
   }
+  /* Beside the rail the bar has no edge either (Caden, Nov 12): the gradient runs up through it, and
+     what scrolls beneath blurs away into the page's top colour. The same layer as a phone's. */
+  body:has(.org-rail) .site-header {
+    background: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  body:has(.org-rail)::after {
+    content: "";
+    position: fixed;
+    inset: 0 0 auto;
+    height: calc(var(--site-header-h) + 1.25rem);
+    z-index: 44;
+    pointer-events: none;
+    background: linear-gradient(to bottom, var(--page-top) 0%, color-mix(in srgb, var(--page-top) 90%, transparent) 45%, color-mix(in srgb, var(--page-top) 62%, transparent) 72%, transparent 100%);
+    -webkit-backdrop-filter: blur(18px);
+    backdrop-filter: blur(18px);
+    -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 62%, transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 0%, #000 62%, transparent 100%);
+    view-transition-name: bar-fade;
+  }
+  /* A chat pins its own bar right under this one: no fade over it, and no gradient to fade into. */
+  body:has(.org-rail):has(.thread-top)::after,
+  .sun body:has(.org-rail)::after {
+    height: var(--site-header-h);
+    background: var(--bg);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
   /* A chat thread pins its own bar: under the header here, not over it. */
   body:has(.org-rail) .thread-top {
     top: var(--site-header-h);
@@ -3370,6 +3402,12 @@ summary.list-none::-webkit-details-marker {
     -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 62%, transparent 100%);
     mask-image: linear-gradient(to bottom, #000 0%, #000 62%, transparent 100%);
     view-transition-name: bar-fade;
+  }
+  /* The staff band sits flush under the bar: the fade stops at the bar's edge, not over the band's words. */
+  body:has(.staff-band)::after {
+    height: var(--site-header-h) !important;
+    -webkit-mask-image: none !important;
+    mask-image: none !important;
   }
   /* Sunlight has no blur and no see-through: a plain bar. */
   .sun body:has(.site-header:not(.site-header-worker)):not(:has(.thread-top))::after {
@@ -3455,6 +3493,8 @@ summary.list-none::-webkit-details-marker {
   .site-header, .tabbar, .phone-top, .no-print, nextjs-portal { display: none !important; }
   html, body { background: white; color: black; }
   body::before { display: none; }
+  /* Nor the bar's fade: a sheet of paper is narrower than a tablet, so the phone rule would print it. */
+  body::after { display: none !important; }
   .page, .tpl { padding: 0; max-width: none; }
   .card, .list-card, .empty-state, .stat { background: white; border-color: #999; box-shadow: none; break-inside: avoid; }
   :is(.work-card, .shift-card, .turf-card, .need-tile, .stat-tile, .summary-item, .choice-list, .option-card, .overview-map) { box-shadow: none; }
@@ -3948,6 +3988,7 @@ summary.list-none::-webkit-details-marker {
     --header-root: var(--bg);
   }
   /* No blurred band at the top of a phone page either: it fades text, which is the opposite of more contrast. */
+  body:has(.org-rail)::after,
   body:has(.site-header:not(.site-header-worker)):not(:has(.thread-top))::after {
     height: var(--site-header-h);
     background: var(--bg);
@@ -3990,12 +4031,6 @@ body:has(.thread-top) {
 @media screen and (min-width: 48rem) {
   html:where(:has(.site-header)) {
     background: var(--header-root);
-  }
-}
-/* A phone's bar is the page's top colour (above), so the status strip is too. */
-@media screen and (max-width: 47.99rem) {
-  html:where(:has(.site-header:not(.site-header-worker))) {
-    background: var(--page-top);
   }
 }
 @media screen {

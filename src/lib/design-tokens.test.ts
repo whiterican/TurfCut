@@ -223,9 +223,9 @@ describe.each([
     expect(css).toMatch(/\nbody:has\(\.thread-top\) \{\s*--page-wash: none;\s*--page-top: var\(--bg\);\s*\}/);
     // A page with a header across the top takes the header's pane for the strip; a chat the plain page colour. Both as
     // weak as the root's own rule (:where), and before the drawer's rule, which must win while the drawer is open.
-    expect(css).toMatch(/--header-root: color-mix\(in srgb, var\(--surface\) 80%, var\(--page-top\)\);/);
+    expect(css).toMatch(/--header-root: var\(--page-top\);/);
     const bare = css.replace(/\/\*[\s\S]*?\*\//g, "");
-    expect(bare).toMatch(/@media screen \{\s*html:where\(:has\(\.site-header:not\(\.site-header-worker\)\)\) \{\s*background: var\(--header-root\);\s*\}\s*\}\s*@media screen and \(min-width: 48rem\) \{\s*html:where\(:has\(\.site-header\)\) \{\s*background: var\(--header-root\);\s*\}\s*\}\s*@media screen and \(max-width: 47\.99rem\) \{\s*html:where\(:has\(\.site-header:not\(\.site-header-worker\)\)\) \{\s*background: var\(--page-top\);\s*\}\s*\}\s*@media screen \{\s*html:where\(:has\(\.thread-top\)\) \{\s*background: var\(--bg\);\s*\}\s*\}/);
+    expect(bare).toMatch(/@media screen \{\s*html:where\(:has\(\.site-header:not\(\.site-header-worker\)\)\) \{\s*background: var\(--header-root\);\s*\}\s*\}\s*@media screen and \(min-width: 48rem\) \{\s*html:where\(:has\(\.site-header\)\) \{\s*background: var\(--header-root\);\s*\}\s*\}\s*@media screen \{\s*html:where\(:has\(\.thread-top\)\) \{\s*background: var\(--bg\);\s*\}\s*\}/);
     expect(css.indexOf("html:where(:has(.thread-top))")).toBeLessThan(css.indexOf("html:has(.more-sheet[open]) {"));
     expect(css.indexOf("\nhtml {")).toBeLessThan(css.indexOf("html:where(:has(.site-header:not(.site-header-worker)))"));
     expect(css).toMatch(/body:has\(\.more-sheet\[open\]\) \{\s*--page-wash: none;\s*background-color: var\(--drawer-root\);[^}]*?--page-top: var\(--drawer-root\);/);
@@ -252,7 +252,7 @@ describe.each([
     const SEL = "body:has(.site-header:not(.site-header-worker)):not(:has(.thread-top))::after";
     const rules = (text: string) => text.split(SEL + " {").slice(1).map((part) => part.slice(0, part.indexOf("}")));
     const [fade, sunBar] = rules(phoneBar);
-    expect(fade).toMatch(/position: fixed;\s*inset: 0 0 auto;\s*height: calc\(var\(--site-header-h\) \+ 1\.25rem\);\s*z-index: 44;\s*pointer-events: none;/);
+    expect(fade).toMatch(/^\s*content: "";\s*position: fixed;\s*inset: 0 0 auto;\s*height: calc\(var\(--site-header-h\) \+ 1\.25rem\);\s*z-index: 44;\s*pointer-events: none;/);
     expect(fade).toMatch(/background: linear-gradient\(to bottom, var\(--page-top\) 0%,[^;]*transparent 100%\);/);
     expect(fade).toMatch(/backdrop-filter: blur\(18px\);/);
     expect(fade).toMatch(/mask-image: linear-gradient\(to bottom, #000 0%, #000 62%, transparent 100%\);/);
@@ -265,6 +265,8 @@ describe.each([
     expect(rules(solid).at(-1)).toMatch(/height: var\(--site-header-h\);\s*background: var\(--bg\);\s*-webkit-backdrop-filter: none;\s*backdrop-filter: none;/);
     expect(css).toMatch(/::view-transition-group\(phone-band\),\s*::view-transition-group\(bar-fade\) \{\s*animation: none;\s*z-index: 100;/);
     // Paper has no layer.
+    expect(css).toMatch(/@media print \{[\s\S]*?body::after \{ display: none !important; \}/);
+    expect(css).toMatch(/body:has\(\.staff-band\)::after \{\s*height: var\(--site-header-h\) !important;/);
     expect(css).toMatch(/@media print \{[\s\S]*?body::before \{ display: none; \}/);
     // Anyone who asks for less transparency or more contrast gets solid surfaces.
     expect(css).toMatch(/@media \(prefers-reduced-transparency: reduce\), \(prefers-contrast: more\), \(forced-colors: active\) \{\s*html,\s*\.dark \{\s*--glass-bg: var\(--surface\);/);
@@ -874,7 +876,16 @@ describe("the shell (redesign B1.4)", () => {
     // While a field takes typing on a touch device the dock still steps aside (phones only now).
     expect(css).toMatch(/@media \(max-width: 47\.99rem\) and \(pointer: coarse\) \{\s*body:has\(\.composer-input:focus\) \.tabbar/);
     // The sidebar is glass outside Sunlight: ink type on the pane.
-    expect(css).toMatch(/html:not\(\.sun\) \.org-rail \{[^}]*?--shell-fg: var\(--fg\);[^}]*?background: var\(--glass-sheen\), var\(--glass-bg-bar\);/);
+    expect(css).toMatch(/html:not\(\.sun\) \.org-rail \{[^}]*?--shell-fg: var\(--fg\);[^}]*?background: color-mix\(in srgb, var\(--card-bg\) 25%, transparent\);\s*\}/);
+    // Beside the rail the bar is the same blurred fade as a phone's, so the gradient runs up through it; a chat and Sunlight keep a plain bar.
+    const wide = css.slice(css.indexOf("@media (width >= 48rem) {\n  body:has(.org-rail) .site-header {"));
+    expect(wide).toMatch(/\n  body:has\(\.org-rail\) \.site-header \{\s*background: none;\s*-webkit-backdrop-filter: none;\s*backdrop-filter: none;\s*\}/);
+    const wideFade = wide.match(/\n  body:has\(\.org-rail\)::after \{([^}]*)\}/)?.[1] ?? "";
+    expect(wideFade).toMatch(/^\s*content: "";\s*position: fixed;\s*inset: 0 0 auto;\s*height: calc\(var\(--site-header-h\) \+ 1\.25rem\);\s*z-index: 44;\s*pointer-events: none;/);
+    expect(wideFade).toMatch(/background: linear-gradient\(to bottom, var\(--page-top\) 0%,[^;]*transparent 100%\);/);
+    expect(wideFade).toMatch(/backdrop-filter: blur\(18px\);[\s\S]*view-transition-name: bar-fade;/);
+    expect(wide).toMatch(/body:has\(\.org-rail\):has\(\.thread-top\)::after,\s*\.sun body:has\(\.org-rail\)::after \{\s*height: var\(--site-header-h\);\s*background: var\(--bg\);\s*-webkit-backdrop-filter: none;\s*backdrop-filter: none;\s*-webkit-mask-image: none;\s*mask-image: none;/);
+    expect(css.slice(css.indexOf("@media (prefers-reduced-transparency: reduce)"))).toMatch(/\n  body:has\(\.org-rail\)::after,\s*body:has\(\.site-header:not\(\.site-header-worker\)\):not\(:has\(\.thread-top\)\)::after \{\s*height: var\(--site-header-h\);\s*background: var\(--bg\);/);
   });
 
   it("gives the staff console its own band and never an organization's rail beside it", () => {

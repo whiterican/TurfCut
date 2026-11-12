@@ -225,7 +225,7 @@ describe.each([
     // weak as the root's own rule (:where), and before the drawer's rule, which must win while the drawer is open.
     expect(css).toMatch(/--header-root: color-mix\(in srgb, var\(--surface\) 80%, var\(--page-top\)\);/);
     const bare = css.replace(/\/\*[\s\S]*?\*\//g, "");
-    expect(bare).toMatch(/@media screen \{\s*html:where\(:has\(\.site-header:not\(\.site-header-worker\)\)\) \{\s*background: var\(--header-root\);\s*\}\s*\}\s*@media screen and \(min-width: 48rem\) \{\s*html:where\(:has\(\.site-header\)\) \{\s*background: var\(--header-root\);\s*\}\s*\}\s*@media screen \{\s*html:where\(:has\(\.thread-top\)\) \{\s*background: var\(--bg\);\s*\}\s*\}/);
+    expect(bare).toMatch(/@media screen \{\s*html:where\(:has\(\.site-header:not\(\.site-header-worker\)\)\) \{\s*background: var\(--header-root\);\s*\}\s*\}\s*@media screen and \(min-width: 48rem\) \{\s*html:where\(:has\(\.site-header\)\) \{\s*background: var\(--header-root\);\s*\}\s*\}\s*@media screen and \(max-width: 47\.99rem\) \{\s*html:where\(:has\(\.site-header:not\(\.site-header-worker\)\)\) \{\s*background: var\(--page-top\);\s*\}\s*\}\s*@media screen \{\s*html:where\(:has\(\.thread-top\)\) \{\s*background: var\(--bg\);\s*\}\s*\}/);
     expect(css.indexOf("html:where(:has(.thread-top))")).toBeLessThan(css.indexOf("html:has(.more-sheet[open]) {"));
     expect(css.indexOf("\nhtml {")).toBeLessThan(css.indexOf("html:where(:has(.site-header:not(.site-header-worker)))"));
     expect(css).toMatch(/body:has\(\.more-sheet\[open\]\) \{\s*--page-wash: none;\s*background-color: var\(--drawer-root\);[^}]*?--page-top: var\(--drawer-root\);/);
@@ -235,10 +235,26 @@ describe.each([
     expect(band).toMatch(/background: linear-gradient\(to bottom, var\(--page-top\) 0%/);
     expect(band).toMatch(/backdrop-filter: blur\(12px\);/);
     expect(band).toMatch(/pointer-events: none;/);
+    expect(band).toMatch(/z-index: 44;/);
+    expect(band).toMatch(/mask-image: linear-gradient\(to bottom, #000 0%, #000 50%, transparent 100%\);/);
+    expect(band).toMatch(/view-transition-name: phone-band;/);
+    expect(css).toMatch(/::view-transition-group\(site-header\),\s*::view-transition-group\(tabbar\),\s*::view-transition-group\(phone-band\) \{\s*animation: none;\s*z-index: 100;/);
+    // Shown everywhere but Sunlight and the solid fallback: hidden exactly twice.
+    expect(css.match(/\.phone-top::before \{\s*display: none;/g)).toHaveLength(2);
     expect(css).toMatch(/\.phone-top \.menu-button \{\s*z-index: 45;/);
     // Sunlight and the solid fallback have no blur and no band.
     expect(css).toMatch(/\.sun \.phone-top::before \{\s*display: none;/);
     expect(css.slice(css.indexOf("@media (prefers-reduced-transparency: reduce)"))).toMatch(/\.phone-top::before \{\s*display: none;/);
+    // A phone's top bar has no edge: the page's top colour fading to clear past the bar, blurring what scrolls under it.
+    const phoneBar = css.slice(css.indexOf("@media (max-width: 47.99rem) {\n  body:not(:has(.thread-top)) .site-header {"));
+    expect(phoneBar).toMatch(/^[\s\S]{0,400}?\n  \.site-header \{\s*background: none;\s*-webkit-backdrop-filter: none;\s*backdrop-filter: none;\s*\}/);
+    const fade = phoneBar.match(/\n  \.site-header::before \{([^}]*)\}/)?.[1] ?? "";
+    expect(fade).toMatch(/inset: 0 0 -1\.25rem;\s*z-index: -1;\s*pointer-events: none;/);
+    expect(fade).toMatch(/background: linear-gradient\(to bottom, var\(--page-top\) 0%,[^;]*transparent 100%\);/);
+    expect(fade).toMatch(/backdrop-filter: blur\(18px\);/);
+    expect(fade).toMatch(/mask-image: linear-gradient\(to bottom, #000 0%, #000 62%, transparent 100%\);/);
+    expect(phoneBar).toMatch(/\.sun \.site-header::before \{\s*inset: 0;\s*background: var\(--bg\);\s*-webkit-backdrop-filter: none;\s*backdrop-filter: none;/);
+    expect(css.slice(css.indexOf("@media (prefers-reduced-transparency: reduce)"))).toMatch(/\.site-header::before \{\s*inset: 0;\s*background: var\(--bg\);/);
     // Paper has no layer.
     expect(css).toMatch(/@media print \{[\s\S]*?body::before \{ display: none; \}/);
     // Anyone who asks for less transparency or more contrast gets solid surfaces.

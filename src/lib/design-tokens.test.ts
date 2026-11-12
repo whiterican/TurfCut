@@ -181,16 +181,27 @@ describe.each([
     // and any bare line of text can pass over that colour. Everything is held to it.
     if (name !== "sunlight") {
       const dark = name === "dark";
-      expect(dark ? themeBody(css, ".dark") : css).toMatch(dark ? /--card-bg: color-mix\(in srgb, var\(--surface\) 58%, transparent\);\s*--card-filter: none;/ : /--card-bg: color-mix\(in srgb, var\(--surface\) 38%, transparent\);\s*--card-filter: none;/);
+      expect(dark ? themeBody(css, ".dark") : css).toMatch(dark ? /--card-bg: color-mix\(in srgb, #3a2858 45%, transparent\);\s*--card-filter: none;/ : /--card-bg: color-mix\(in srgb, var\(--surface\) 38%, transparent\);\s*--card-filter: none;/);
       // No blur on a card: behind it is only a smooth gradient, where a blur shows nothing and costs a layer per card.
       const h = (c: RGB) => "#" + c.map((v) => Math.round(v).toString(16).padStart(2, "0")).join("");
       // The gradient: opaque, from --page-top easing toward the page colour, one recipe for day and night. Pinned, so the
       // sheet cannot drift from what is checked: no stop is stronger than the first.
       expect(css).toMatch(/--page-wash: linear-gradient\(\s*180deg,\s*var\(--page-top\) 0%,\s*color-mix\(in srgb, var\(--page-top\) 58%, var\(--bg\)\) 30%,\s*color-mix\(in srgb, var\(--page-top\) 22%, var\(--bg\)\) 64%,\s*color-mix\(in srgb, var\(--page-top\) 8%, var\(--bg\)\) 100%\s*\);/);
       expect(themeBody(css, ".dark")).not.toMatch(/--page-wash:/);
-      expect(t["page-top"]).toBe(dark ? "#2d1a4b" : "#d6c9ea");
+      expect(t["page-top"]).toBe(dark ? "#3c1f66" : "#d6c9ea");
       const page = rgb(t["page-top"]);
-      const card = mix(t.surface, dark ? 0.58 : 0.38, h(page));
+      const card = mix(dark ? "#3a2858" : t.surface, dark ? 0.45 : 0.38, h(page));
+      // By night the page passes through the card colour part-way down, so the pane is a step lighter than the surface:
+      // below the top of the page it stays told apart from the page by its colour (at the very top, by its lit edge).
+      if (dark) for (const stop of [0.58, 0.22, 0.08]) {
+        const ground = mix(t["page-top"], stop, t.bg);
+        expect(ratio(mix("#3a2858", 0.45, h(ground)), ground)).toBeGreaterThanOrEqual(1.08);
+      }
+      // At the very top the pane and the page are nearly one colour: there the card is carried by its lit edge and its shadow.
+      if (dark) {
+        expect(themeBody(css, ".dark")).toMatch(/--card-edge: inset 0 1px 0 rgb\(255 255 255 \/ 0\.25\), inset 0 -1px 0 rgb\(255 255 255 \/ 0\.06\), inset 0 0 0 1px rgb\(255 255 255 \/ 0\.08\);/);
+        expect(themeBody(css, ".dark")).toMatch(/--shadow-depth: 0 1px 2px rgb\(0 0 0 \/ 0\.5\), 0 8px 16px -4px rgb\(0 0 0 \/ 0\.55\), 0 26px 48px -16px rgb\(0 0 0 \/ 0\.9\);/);
+      }
       // On the pane and on the bare page at its strongest: body text AAA, and every other text colour AA. Form errors,
       // "done" marks and warnings sit on both, so the status colours are held to both.
       for (const ground of [card, page]) {
@@ -206,7 +217,7 @@ describe.each([
         const glint = themeBody(css, ".dark").match(/--card-sheen: linear-gradient\(135deg, rgb\(255 255 255 \/ ([\d.]+)\) 0%, rgb\(255 255 255 \/ ([\d.]+)\) 30%, rgb\(255 255 255 \/ 0\) 56%, rgb\(255 255 255 \/ ([\d.]+)\) 100%\);/);
         expect(glint).not.toBeNull();
         const brightest = Math.max(...glint!.slice(1).map(Number));
-        expect(brightest).toBeLessThanOrEqual(0.06); // a quieter shine by night
+        expect(brightest).toBeLessThanOrEqual(0.065); // under the first night version's 0.1; the cap is where AA holds below
         const lit = mix("#ffffff", brightest, h(card));
         for (const k of ["fg", "muted", "subtle-on-glass", "kicker", "link", "danger", "success", "warning"] as const) expect(ratio(t[k], lit)).toBeGreaterThanOrEqual(4.5);
       }

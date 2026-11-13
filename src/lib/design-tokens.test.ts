@@ -248,8 +248,10 @@ describe.each([
     expect(band).toMatch(/pointer-events: none;/);
     expect(band).toMatch(/z-index: 44;/);
     expect(band).toMatch(/mask-image: linear-gradient\(to bottom, #000 0%, #000 22%, transparent 100%\);/);
-    expect(band).toMatch(/view-transition-name: phone-band;/);
-    expect(css).toMatch(/::view-transition-group\(site-header\),\s*::view-transition-group\(tabbar\),\s*::view-transition-group\(phone-band\),\s*::view-transition-group\(phone-pill\),/);
+    // The glass is not its own layer in a page transition: as one, an iPhone drew it as a solid strip over the arriving page's title.
+    expect(band).not.toMatch(/view-transition-name:/);
+    expect(css).not.toMatch(/phone-band|bar-fade/);
+    expect(css).toMatch(/::view-transition-group\(site-header\),\s*::view-transition-group\(tabbar\),\s*::view-transition-group\(phone-pill\) \{\s*animation: none;\s*z-index: 100;/);
     expect(css).toMatch(/\.phone-top > \* \{[^}]*?view-transition-name: phone-pill;/);
     expect(css).not.toMatch(/\.phone-top \{[^}]*?view-transition-name/);
     expect(css).toMatch(/::view-transition-group\(phone-pill\) \{\s*z-index: 101;/);
@@ -273,14 +275,13 @@ describe.each([
     expect(fade).toMatch(/background: linear-gradient\(to bottom, var\(--page-top\) 0%, color-mix\(in srgb, var\(--page-top\) 80%, transparent\) 30%,[^;]*transparent 100%\);/);
     expect(fade).toMatch(/backdrop-filter: blur\(10px\);/);
     expect(fade).toMatch(/mask-image: linear-gradient\(to bottom, #000 0%, #000 22%, transparent 100%\);/);
-    expect(fade).toMatch(/view-transition-name: bar-fade;/);
+    expect(fade).not.toMatch(/view-transition-name:/);
     expect(css).not.toMatch(/\.site-header::before/);
     // Sunlight and the solid fallback: a plain bar, by the same selector so they win.
     expect(phoneBar).toContain(".sun " + SEL + " {");
     expect(sunBar).toMatch(/height: var\(--site-header-h\);\s*background: var\(--bg\);\s*-webkit-backdrop-filter: none;\s*backdrop-filter: none;\s*-webkit-mask-image: none;\s*mask-image: none;/);
     const solid = css.slice(css.indexOf("@media (prefers-reduced-transparency: reduce)"));
     expect(rules(solid).at(-1)).toMatch(/height: var\(--site-header-h\);\s*background: var\(--bg\);\s*-webkit-backdrop-filter: none;\s*backdrop-filter: none;/);
-    expect(css).toMatch(/::view-transition-group\(phone-band\),\s*::view-transition-group\(phone-pill\),\s*::view-transition-group\(bar-fade\) \{\s*animation: none;\s*z-index: 100;/);
     // Day's top colour lives on :root, which outranks html: the solid fallback must reset it there or the day page stays purple.
     const solidBlock = css.slice(css.indexOf("@media (prefers-reduced-transparency: reduce)"));
     expect(solidBlock.replace(/\/\*[\s\S]*?\*\//g, "")).toMatch(/--header-root: var\(--bg\);\s*\}\s*:root \{\s*--page-top: var\(--bg\);\s*\}/);
@@ -922,7 +923,8 @@ describe("the shell (redesign B1.4)", () => {
     const wideFade = wide.match(/\n  body:has\(\.org-rail\)::after \{([^}]*)\}/)?.[1] ?? "";
     expect(wideFade).toMatch(/^\s*content: "";\s*position: fixed;\s*inset: 0 0 auto;\s*height: calc\(var\(--site-header-h\) \+ 1\.5rem\);\s*z-index: 44;\s*pointer-events: none;/);
     expect(wideFade).toMatch(/background: linear-gradient\(to bottom, var\(--page-top\) 0%, color-mix\(in srgb, var\(--page-top\) 80%, transparent\) 30%,[^;]*transparent 100%\);/);
-    expect(wideFade).toMatch(/backdrop-filter: blur\(10px\);[\s\S]*view-transition-name: bar-fade;/);
+    expect(wideFade).toMatch(/backdrop-filter: blur\(10px\);/);
+    expect(wideFade).not.toMatch(/view-transition-name:/);
     expect(wide).toMatch(/body:has\(\.org-rail\):has\(\.thread-top\)::after,\s*\.sun body:has\(\.org-rail\)::after \{\s*height: var\(--site-header-h\);\s*background: var\(--bg\);\s*-webkit-backdrop-filter: none;\s*backdrop-filter: none;\s*-webkit-mask-image: none;\s*mask-image: none;/);
     expect(css.slice(css.indexOf("@media (prefers-reduced-transparency: reduce)"))).toMatch(/\n  body:has\(\.org-rail\)::after,\s*body:has\(\.site-header:not\(\.site-header-worker\)\):not\(:has\(\.thread-top\)\)::after \{\s*height: var\(--site-header-h\);\s*background: var\(--bg\);/);
   });

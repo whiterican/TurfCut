@@ -854,10 +854,36 @@ describe("the shell (redesign B1.4)", () => {
     expect(css).toMatch(/\.skip-target:focus \{\s*outline: none;/);
   });
 
+  it("an installed iPhone app draws the page under the clock, and everything pinned to the top stays clear of it", () => {
+    const layout = readFileSync(join(__dirname, "../app/layout.tsx"), "utf8");
+    expect(layout).toMatch(/appleWebApp: \{ capable: true, title: "Turfcut", statusBarStyle: "black-translucent" \}/);
+    expect(layout).toMatch(/export const viewport: Viewport = \{ width: "device-width", initialScale: 1, viewportFit: "cover" \};/);
+    // The header's row, the worker's pill, the drawer and a chat's bar each start below the clock.
+    expect(css).toMatch(/\n\.site-header \{[^}]*padding-top: env\(safe-area-inset-top\);/);
+    expect(css).toMatch(/\.phone-top \{[^}]*padding-top: calc\(0\.75rem \+ env\(safe-area-inset-top\)\);/);
+    expect(css).toMatch(/body:has\(\.thread-top\) \.thread-top \{\s*top: env\(safe-area-inset-top\);/);
+    // One cap under the clock for every page and mode, in the root's own colour, under the glass and the headers.
+    expect(css).toMatch(/\nhtml::after \{\s*content: "";\s*position: fixed;\s*inset: 0 0 auto;\s*height: env\(safe-area-inset-top\);\s*z-index: 43;\s*pointer-events: none;\s*background: inherit;/);
+    expect(css).toMatch(/@media print \{\s*html::after \{\s*display: none;/);
+    // The phone's clock is white there: on a pale page with no purple the cap goes dark so it can be read.
+    expect(css).toMatch(/html\.sun::after,\s*html:not\(\.dark\):has\(\.thread-top\)::after \{\s*background: var\(--shell-bg\);/);
+    expect(ratio("#ffffff", light["shell-bg"] ?? "#1c0f2e")).toBeGreaterThanOrEqual(7);
+    // The rest of what is pinned to an edge: anchors, pull to refresh, the skip link, the notch at the side, an iPad's home bar.
+    expect(css).toMatch(/scroll-padding-top: calc\(5rem \+ env\(safe-area-inset-top\)\);/);
+    expect(css).toMatch(/\.pull \{[^}]*top: calc\(0\.25rem \+ env\(safe-area-inset-top\)\);/);
+    expect(css).toMatch(/\.skip-link \{[^}]*top: 0\.5rem;[^}]*translate: 0 -200%;/); // hidden, it stays off the top of the screen
+    expect(css).toMatch(/\.skip-link:focus-visible \{[^}]*top: calc\(0\.5rem \+ env\(safe-area-inset-top\)\);/);
+    expect(css).toMatch(/\nbody \{\s*padding-left: env\(safe-area-inset-left\);\s*padding-right: env\(safe-area-inset-right\);/);
+    expect(css).toMatch(/\.org-rail-foot \{[^}]*padding-bottom: env\(safe-area-inset-bottom\);/);
+    expect(layout).toMatch(/other: \{ "apple-mobile-web-app-capable": "yes" \}/);
+    // And the dock clears the home bar.
+    expect(css).toMatch(/--dock-clearance: calc\(6rem \+ env\(safe-area-inset-bottom\)\);/);
+  });
   it("runs the organization rail full height under a header of fixed height", () => {
-    expect(css).toMatch(/--site-header-h: 65px;/);
+    // 65px, plus the phone's own strip above it in an installed iPhone app (zero everywhere else).
+    expect(css).toMatch(/--site-header-h: calc\(65px \+ env\(safe-area-inset-top\)\);/);
     // Pinned in px, so text size never moves the rail out from under it; a thread's own bar sits below it.
-    expect(css).toMatch(/\.site-header-bar \{\s*height: calc\(var\(--site-header-h\) - 1px\);/);
+    expect(css).toMatch(/\.site-header-bar \{\s*height: calc\(var\(--site-header-h\) - 1px - env\(safe-area-inset-top\)\);/);
     expect(css).toMatch(/body:has\(\.org-rail\) \.thread-top \{\s*top: var\(--site-header-h\);/);
     expect(css).toMatch(/\.org-rail \{\s*top: var\(--site-header-h\);\s*height: calc\(100dvh - var\(--site-header-h\)\);/);
     expect(css).toMatch(/\.org-shell \{\s*@apply mx-auto flex w-full max-w-\[var\(--workspace-max\)\] flex-1;/);

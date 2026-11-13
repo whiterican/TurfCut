@@ -5,6 +5,7 @@ import type { Status } from "@/lib/status";
 import { StatusBadge, StatusChip } from "@/components/StatusBadge";
 import { DISPUTE_SLA } from "@/lib/dispute-sla";
 import type { StatementLine, StatementView as View } from "@/lib/statements-data";
+import { groupLinesByJob, jobAnchor } from "@/lib/statement-groups";
 
 const OUTCOME: Record<string, string> = { KEPT: "Pay kept", ADJUSTED: "Pay adjusted", REREVIEWED: "Shift re-reviewed" };
 
@@ -81,6 +82,10 @@ function LinesTable({ lines, caption, total, markUncounted = false }: { lines: S
 export function StatementView({ s }: { s: View }) {
   const t = s.totals;
   const NAMES: Record<keyof typeof t, string> = { grossCents: "pay recorded", feeCents: "platform fee", lineCount: "lines", paidCents: "sent to workers", paidCount: "payments", reversedCents: "came back", correctionsCents: "corrections" };
+  // With more than one job in the month, the lines sit under their jobs (in the order of By campaign), each with the
+  // subtotal By campaign shows for it, and By campaign links down to them. One job: one table, as before.
+  const groups = groupLinesByJob(s.lines, s.campaigns, (l) => l.jobTitle ?? "Other pay");
+  const grouped = groups.length > 1;
   const drift = s.status === "closed" ? (Object.keys(NAMES) as Array<keyof typeof t>).filter((k) => s.live[k] !== t[k]) : [];
   return (
     <article className="space-y-6">
@@ -140,7 +145,10 @@ export function StatementView({ s }: { s: View }) {
               <li key={c.jobId ?? "other"} className="flex items-center justify-between gap-4 px-4 py-3">
                 <span className="min-w-0">
                   <span className="block font-medium text-fg">{c.jobId ? <Link href={`/jobs/${c.jobId}`} className="link">{c.title}</Link> : c.title}</span>
-                  <span className="block text-xs text-muted">{c.lineCount} {c.lineCount === 1 ? "line" : "lines"} · {money(c.feeCents)} fee</span>
+                  <span className="block text-xs text-muted">
+                    {c.lineCount} {c.lineCount === 1 ? "line" : "lines"} · {money(c.feeCents)} fee
+                    {grouped && <span className="print:hidden"> · <a href={`#${jobAnchor(c.jobId)}`} className="link">See its lines<span className="sr-only">: {c.title}</span></a></span>}
+                  </span>
                 </span>
                 <Amount cents={c.grossCents} />
               </li>
@@ -153,6 +161,24 @@ export function StatementView({ s }: { s: View }) {
         <h2 className="section-title">Pay recorded this month</h2>
         {s.lines.length === 0 ? (
           <p className="text-muted-sm">No pay was recorded this month.</p>
+        ) : grouped ? (
+          <>
+            {groups.map((g) => (
+              <div key={g.anchor} id={g.anchor} className="space-y-2">
+                <h3 className="break-after-avoid text-sm font-semibold text-fg">{g.jobId ? <Link href={`/jobs/${g.jobId}`} className="link">{g.title}</Link> : g.title}</h3>
+                <LinesTable lines={g.lines} caption={`Pay recorded in ${s.label}: ${g.title}`} total={{ label: "Subtotal", grossCents: g.grossCents, feeCents: g.feeCents }} markUncounted />
+              </div>
+            ))}
+            <div className="list-card text-sm">
+              <p className="flex items-center justify-between gap-4 bg-surface-2 px-4 py-3">
+                <span className="min-w-0">
+                  <span className="block font-semibold text-fg">Recorded, all jobs</span>
+                  <span className="block text-xs text-muted">{money(t.feeCents)} platform fee on top</span>
+                </span>
+                <Amount cents={t.grossCents} bold />
+              </p>
+            </div>
+          </>
         ) : (
           <LinesTable lines={s.lines} caption={`Pay recorded in ${s.label}`} total={{ label: "Recorded", grossCents: t.grossCents, feeCents: t.feeCents }} markUncounted />
         )}

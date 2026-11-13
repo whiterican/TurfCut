@@ -2604,8 +2604,10 @@ body {
     backdrop-filter: blur(10px);
     -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 22%, transparent 100%);
     mask-image: linear-gradient(to bottom, #000 0%, #000 22%, transparent 100%);
-    /* Part of the frame, like the tab bar: a page change slides under it, not over it. */
-    view-transition-name: phone-band;
+    /* Not named for page transitions (Caden's iPhone recording, Nov 13): as its own layer the glass was drawn over the
+       arriving page, and cut the top off the page's title while it rose in. Unnamed, it stays where it is, under the
+       arriving and leaving pages (each page is its own layer: components/PageTransition.tsx). The cost: for the 120ms
+       a scrolled page takes to fade out, what was under the glass shows clear. */
   }
   .phone-top .menu-button {
     z-index: 45;
@@ -3350,7 +3352,6 @@ summary.list-none::-webkit-details-marker {
     backdrop-filter: blur(10px);
     -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 22%, transparent 100%);
     mask-image: linear-gradient(to bottom, #000 0%, #000 22%, transparent 100%);
-    view-transition-name: bar-fade;
   }
   /* A chat pins its own bar right under this one: no fade over it, and no gradient to fade into. */
   body:has(.org-rail):has(.thread-top)::after,
@@ -3444,7 +3445,6 @@ body:has(.staff-band)::after {
     backdrop-filter: blur(10px);
     -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 22%, transparent 100%);
     mask-image: linear-gradient(to bottom, #000 0%, #000 22%, transparent 100%);
-    view-transition-name: bar-fade;
   }
   /* Sunlight has no blur and no see-through: a plain bar. */
   .sun body:has(.site-header:not(.site-header-worker)):not(:has(.thread-top))::after {
@@ -3585,28 +3585,22 @@ html[data-scroll="down"]:not(:has(.thread-top)) .phone-top > :not(:focus-visible
 }
 ::view-transition-group(site-header),
 ::view-transition-group(tabbar),
-::view-transition-group(phone-band),
-::view-transition-group(phone-pill),
-::view-transition-group(bar-fade) {
+::view-transition-group(phone-pill) {
   animation: none;
   z-index: 100;
 }
-/* The pill sits on the band, as it does on the page. */
+/* The pill sits over the pages as they change, as it does on the page. */
 ::view-transition-group(phone-pill) {
   z-index: 101;
 }
 ::view-transition-old(site-header),
 ::view-transition-old(tabbar),
-::view-transition-old(phone-band),
-::view-transition-old(phone-pill),
-::view-transition-old(bar-fade) {
+::view-transition-old(phone-pill) {
   display: none;
 }
 ::view-transition-new(site-header),
 ::view-transition-new(tabbar),
-::view-transition-new(phone-band),
-::view-transition-new(phone-pill),
-::view-transition-new(bar-fade) {
+::view-transition-new(phone-pill) {
   animation: none;
 }
 /* The current tab's lens glides from the old tab to the new one. */

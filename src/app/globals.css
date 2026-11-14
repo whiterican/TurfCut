@@ -2614,6 +2614,10 @@ body {
      up is still seen but cannot be read, down to just under the button's row and feathered out from there.
      The very top is the page colour itself (Caden's iPhone, Nov 12): the phone's status strip above the page is
      that colour, and anything showing through at the edge drew a line under it. */
+  /* The glass is the page's solid colour all the way down the strip the phone keeps for its clock, and only fades
+     below that (Caden, Nov 14: a faint line under the clock). Before, it began to thin out part-way down the strip,
+     and the cap under the clock (html::after), solid to the strip's foot, showed through as an edge there. With no
+     strip (a browser tab, a desktop) these are the same stops as before: 30%, 65% and 22% of the height. */
   .phone-top::before {
     content: "";
     position: fixed;
@@ -2621,11 +2625,11 @@ body {
     height: calc(5.25rem + env(safe-area-inset-top));
     z-index: 44;
     pointer-events: none;
-    background: linear-gradient(to bottom, var(--page-top) 0%, color-mix(in srgb, var(--page-top) 80%, transparent) 30%, color-mix(in srgb, var(--page-top) 34%, transparent) 65%, transparent 100%);
+    background: linear-gradient(to bottom, var(--page-top) 0, var(--page-top) env(safe-area-inset-top), color-mix(in srgb, var(--page-top) 80%, transparent) calc(env(safe-area-inset-top) + (100% - env(safe-area-inset-top)) * 0.3), color-mix(in srgb, var(--page-top) 34%, transparent) calc(env(safe-area-inset-top) + (100% - env(safe-area-inset-top)) * 0.65), transparent 100%);
     -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
-    -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 22%, transparent 100%);
-    mask-image: linear-gradient(to bottom, #000 0%, #000 22%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, #000 0, #000 calc(env(safe-area-inset-top) + (100% - env(safe-area-inset-top)) * 0.22), transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 0, #000 calc(env(safe-area-inset-top) + (100% - env(safe-area-inset-top)) * 0.22), transparent 100%);
     /* Not named for page transitions (Caden's iPhone recording, Nov 13): as its own layer the glass was drawn over the
        arriving page, and cut the top off the page's title while it rose in. Unnamed, it stays where it is, under the
        arriving and leaving pages (each page is its own layer: components/PageTransition.tsx). The cost: for the 120ms
@@ -3370,11 +3374,11 @@ summary.list-none::-webkit-details-marker {
     height: calc(var(--site-header-h) + 1.5rem);
     z-index: 44;
     pointer-events: none;
-    background: linear-gradient(to bottom, var(--page-top) 0%, color-mix(in srgb, var(--page-top) 80%, transparent) 30%, color-mix(in srgb, var(--page-top) 34%, transparent) 65%, transparent 100%);
+    background: linear-gradient(to bottom, var(--page-top) 0, var(--page-top) env(safe-area-inset-top), color-mix(in srgb, var(--page-top) 80%, transparent) calc(env(safe-area-inset-top) + (100% - env(safe-area-inset-top)) * 0.3), color-mix(in srgb, var(--page-top) 34%, transparent) calc(env(safe-area-inset-top) + (100% - env(safe-area-inset-top)) * 0.65), transparent 100%);
     -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
-    -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 22%, transparent 100%);
-    mask-image: linear-gradient(to bottom, #000 0%, #000 22%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, #000 0, #000 calc(env(safe-area-inset-top) + (100% - env(safe-area-inset-top)) * 0.22), transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 0, #000 calc(env(safe-area-inset-top) + (100% - env(safe-area-inset-top)) * 0.22), transparent 100%);
   }
   /* A chat pins its own bar right under this one: no fade over it, and no gradient to fade into. */
   body:has(.org-rail):has(.thread-top)::after,
@@ -3650,11 +3654,11 @@ body:has(.staff-band)::after {
     height: calc(env(safe-area-inset-top) + 2.25rem);
     z-index: 44;
     pointer-events: none;
-    background: linear-gradient(to bottom, var(--page-top) 0%, color-mix(in srgb, var(--page-top) 80%, transparent) 30%, color-mix(in srgb, var(--page-top) 34%, transparent) 65%, transparent 100%);
+    background: linear-gradient(to bottom, var(--page-top) 0, var(--page-top) env(safe-area-inset-top), color-mix(in srgb, var(--page-top) 80%, transparent) calc(env(safe-area-inset-top) + (100% - env(safe-area-inset-top)) * 0.3), color-mix(in srgb, var(--page-top) 34%, transparent) calc(env(safe-area-inset-top) + (100% - env(safe-area-inset-top)) * 0.65), transparent 100%);
     -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
-    -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 22%, transparent 100%);
-    mask-image: linear-gradient(to bottom, #000 0%, #000 22%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, #000 0, #000 calc(env(safe-area-inset-top) + (100% - env(safe-area-inset-top)) * 0.22), transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 0, #000 calc(env(safe-area-inset-top) + (100% - env(safe-area-inset-top)) * 0.22), transparent 100%);
     opacity: 0;
   }
   html:not(.sun)[data-past-photo] body:has(.job-photo-head):has(.tpl):not(:has(.thread-top))::after {
@@ -3733,11 +3737,11 @@ body:has(.staff-band)::after {
     height: calc(var(--site-header-h) + 1.5rem);
     z-index: 44;
     pointer-events: none;
-    background: linear-gradient(to bottom, var(--page-top) 0%, color-mix(in srgb, var(--page-top) 80%, transparent) 30%, color-mix(in srgb, var(--page-top) 34%, transparent) 65%, transparent 100%);
+    background: linear-gradient(to bottom, var(--page-top) 0, var(--page-top) env(safe-area-inset-top), color-mix(in srgb, var(--page-top) 80%, transparent) calc(env(safe-area-inset-top) + (100% - env(safe-area-inset-top)) * 0.3), color-mix(in srgb, var(--page-top) 34%, transparent) calc(env(safe-area-inset-top) + (100% - env(safe-area-inset-top)) * 0.65), transparent 100%);
     -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
-    -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 22%, transparent 100%);
-    mask-image: linear-gradient(to bottom, #000 0%, #000 22%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, #000 0, #000 calc(env(safe-area-inset-top) + (100% - env(safe-area-inset-top)) * 0.22), transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 0, #000 calc(env(safe-area-inset-top) + (100% - env(safe-area-inset-top)) * 0.22), transparent 100%);
   }
   /* Sunlight has no blur and no see-through: a plain bar. */
   .sun body:has(.site-header:not(.site-header-worker)):not(:has(.thread-top))::after {

@@ -28,6 +28,8 @@ describe("the phone's status strip follows the theme", () => {
     // Two tags now: the component writes to all of them, or the one the device reads could keep its first value.
     expect(src).toMatch(/document\.querySelectorAll<HTMLMetaElement>\('meta\[name="theme-color"\]'\)/);
     expect(src).toMatch(/for \(const tag of tags\(\)\) if \(tag\.content !== plain\) tag\.content = plain;/);
+    // Fresh tags arriving in the head (the framework remounts it on some navigations) are rewritten too.
+    expect(src).toMatch(/arrivals\.observe\(document\.head, \{ childList: true \}\);/);
     // The install's own colours match the night page, not the old eggplant.
     const manifest = readFileSync(join(__dirname, "../app/manifest.ts"), "utf8");
     expect(manifest).toMatch(/background_color: "#3c1f66",\s*theme_color: "#3c1f66",/);

@@ -243,11 +243,17 @@ describe.each([
     // Under the status bar the page blurs away into the strip's own colour, and the pill sits above that band.
     const band = css.match(/\.phone-top::before \{([^}]*)\}/)?.[1] ?? "";
     expect(band).toMatch(/position: fixed;\s*inset: 0 0 auto;\s*height: calc\(5\.25rem \+ env\(safe-area-inset-top\)\);/);
-    expect(band).toMatch(/background: linear-gradient\(to bottom, var\(--page-top\) 0%, color-mix\(in srgb, var\(--page-top\) 80%, transparent\) 30%,[^;]*transparent 100%\);/);
+    expect(band).toMatch(/background: linear-gradient\(to bottom, var\(--page-top\) 0, var\(--page-top\) env\(safe-area-inset-top\), color-mix\(in srgb, var\(--page-top\) 80%, transparent\) calc\(env\(safe-area-inset-top\) \+ \(100% - env\(safe-area-inset-top\)\) \* 0\.3\),[^;]*transparent 100%\);/);
     expect(band).toMatch(/backdrop-filter: blur\(10px\);/);
     expect(band).toMatch(/pointer-events: none;/);
     expect(band).toMatch(/z-index: 44;/);
-    expect(band).toMatch(/mask-image: linear-gradient\(to bottom, #000 0%, #000 22%, transparent 100%\);/);
+    expect(band).toMatch(/mask-image: linear-gradient\(to bottom, #000 0, #000 calc\(env\(safe-area-inset-top\) \+ \(100% - env\(safe-area-inset-top\)\) \* 0\.22\), transparent 100%\);/);
+    // Solid through the strip the phone keeps for its clock, fading only below it: the cap under the clock is solid to
+    // the strip's foot, and glass that thinned out above that showed the cap's edge as a faint line (Caden, Nov 14).
+    // Every glass band is written the same way.
+    expect(css.match(/var\(--page-top\) 0, var\(--page-top\) env\(safe-area-inset-top\), color-mix/g)).toHaveLength(4);
+    expect(css).not.toMatch(/var\(--page-top\) 0%, color-mix\(in srgb, var\(--page-top\) 80%, transparent\) 30%/);
+    expect(css).not.toMatch(/#000 0%, #000 22%, transparent 100%/);
     // The glass is not its own layer in a page transition: as one, an iPhone drew it as a solid strip over the arriving page's title.
     expect(band).not.toMatch(/view-transition-name:/);
     expect(css).not.toMatch(/phone-band|bar-fade/);
@@ -272,9 +278,9 @@ describe.each([
     const rules = (text: string) => text.split(SEL + " {").slice(1).map((part) => part.slice(0, part.indexOf("}")));
     const [fade, sunBar] = rules(phoneBar);
     expect(fade).toMatch(/^\s*content: "";\s*position: fixed;\s*inset: 0 0 auto;\s*height: calc\(var\(--site-header-h\) \+ 1\.5rem\);\s*z-index: 44;\s*pointer-events: none;/);
-    expect(fade).toMatch(/background: linear-gradient\(to bottom, var\(--page-top\) 0%, color-mix\(in srgb, var\(--page-top\) 80%, transparent\) 30%,[^;]*transparent 100%\);/);
+    expect(fade).toMatch(/background: linear-gradient\(to bottom, var\(--page-top\) 0, var\(--page-top\) env\(safe-area-inset-top\), color-mix\(in srgb, var\(--page-top\) 80%, transparent\) calc\(env\(safe-area-inset-top\) \+ \(100% - env\(safe-area-inset-top\)\) \* 0\.3\),[^;]*transparent 100%\);/);
     expect(fade).toMatch(/backdrop-filter: blur\(10px\);/);
-    expect(fade).toMatch(/mask-image: linear-gradient\(to bottom, #000 0%, #000 22%, transparent 100%\);/);
+    expect(fade).toMatch(/mask-image: linear-gradient\(to bottom, #000 0, #000 calc\(env\(safe-area-inset-top\) \+ \(100% - env\(safe-area-inset-top\)\) \* 0\.22\), transparent 100%\);/);
     expect(fade).not.toMatch(/view-transition-name:/);
     expect(css).not.toMatch(/\.site-header::before/);
     // Sunlight and the solid fallback: a plain bar, by the same selector so they win.
@@ -1036,7 +1042,7 @@ describe("the shell (redesign B1.4)", () => {
     expect(wide).toMatch(/\n  body:has\(\.org-rail\) \.site-header \{\s*background: none;\s*-webkit-backdrop-filter: none;\s*backdrop-filter: none;\s*\}/);
     const wideFade = wide.match(/\n  body:has\(\.org-rail\)::after \{([^}]*)\}/)?.[1] ?? "";
     expect(wideFade).toMatch(/^\s*content: "";\s*position: fixed;\s*inset: 0 0 auto;\s*height: calc\(var\(--site-header-h\) \+ 1\.5rem\);\s*z-index: 44;\s*pointer-events: none;/);
-    expect(wideFade).toMatch(/background: linear-gradient\(to bottom, var\(--page-top\) 0%, color-mix\(in srgb, var\(--page-top\) 80%, transparent\) 30%,[^;]*transparent 100%\);/);
+    expect(wideFade).toMatch(/background: linear-gradient\(to bottom, var\(--page-top\) 0, var\(--page-top\) env\(safe-area-inset-top\), color-mix\(in srgb, var\(--page-top\) 80%, transparent\) calc\(env\(safe-area-inset-top\) \+ \(100% - env\(safe-area-inset-top\)\) \* 0\.3\),[^;]*transparent 100%\);/);
     expect(wideFade).toMatch(/backdrop-filter: blur\(10px\);/);
     expect(wideFade).not.toMatch(/view-transition-name:/);
     expect(wide).toMatch(/body:has\(\.org-rail\):has\(\.thread-top\)::after,\s*\.sun body:has\(\.org-rail\)::after \{\s*height: var\(--site-header-h\);\s*background: var\(--bg\);\s*-webkit-backdrop-filter: none;\s*backdrop-filter: none;\s*-webkit-mask-image: none;\s*mask-image: none;/);

@@ -72,6 +72,8 @@ export function StatusStripColor() {
     // A header or a chat's bar that arrives after the page (streamed in) changes the root's colour with no event.
     const arrivals = new MutationObserver(soon);
     arrivals.observe(document.body, { childList: true, subtree: true });
+    // The framework can put fresh tags in the head on a change of page or of its query, with the layout's fixed colours.
+    arrivals.observe(document.head, { childList: true });
     const phone = window.matchMedia("(prefers-color-scheme: light)");
     phone.addEventListener("change", after);
     window.addEventListener("click", after, { passive: true });

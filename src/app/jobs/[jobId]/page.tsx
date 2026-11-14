@@ -187,7 +187,7 @@ export default async function JobPage({ params }: { params: Promise<{ jobId: str
   }
   return (
     // The full card is the tail: after the Apply panel on a phone, under the job beside it from 1024.
-    <RecordPage head={head} aside={<WorkerPanel job={job} engagement={engagement} modes={modes} workerId={session.workerId!} acceptedCount={acceptedCount} />} panelLabel="Your place on this job" tail={fullCard}>
+    <RecordPage head={head} aside={<WorkerPanel job={job} engagement={engagement} modes={modes} workerId={session.workerId!} acceptedCount={acceptedCount} />} panelLabel="Your place on this job" foot={engagement ? undefined : <JoinFoot job={job} modes={modes} workerId={session.workerId!} />} tail={fullCard}>
       {/* The facts a worker decides on are in the head (D2); the description follows, then the full card below keeps every detail. */}
       {job.description && (
         <section className="section">
@@ -200,6 +200,38 @@ export default async function JobPage({ params }: { params: Promise<{ jobId: str
         <CampaignCard campaign={job.campaignProfile} follow={await followState(session.workerId!, job.campaignProfile.id)} viewer="worker" back={`/jobs/${job.id}`} />
       )}
     </RecordPage>
+  );
+}
+
+/** The ways to join a job: the one Forest action (#111, screen 3). Drawn in the aside from 1024 and as the page's foot below it. */
+function JoinButtons({ jobId, modes }: { jobId: string; modes: string[] }) {
+  return (
+    <>
+      {modes.includes("application") && (
+        <ActionButton action={apply} fields={{ jobId }} label="Apply for This Job" pendingLabel="Applying…" variant="btn-primary btn-lg w-full" />
+      )}
+      {modes.includes("instant_claim") && (
+        <ActionButton action={claim} fields={{ jobId }} label="Claim a spot" pendingLabel="Claiming…" variant={modes.includes("application") ? "btn-secondary btn-lg w-full" : "btn-primary btn-lg w-full"} />
+      )}
+      {!modes.includes("application") && !modes.includes("instant_claim") && (
+        <p className="text-muted-sm">This job hires by invitation only.</p>
+      )}
+    </>
+  );
+}
+
+/**
+ * The same action as the page's foot, below 1024: it stays above the dock while the page scrolls (the green
+ * board's bottom action). Only where the aside shows it too: a worker with no place on the job yet, whose own
+ * preferences do not hide it.
+ */
+async function JoinFoot({ job, modes, workerId }: { job: JobWithRefs; modes: string[]; workerId: string }) {
+  const pref = effectivePreference(await loadLatestPreference(workerId));
+  if (exclusionReasons(pref, { disclosure: readDisclosure(job.campaignDisclosure), orgName: job.org.name, measureIds: job.measureIds }).length) return null;
+  return (
+    <div className="job-cta-bar">
+      <JoinButtons jobId={job.id} modes={modes} />
+    </div>
   );
 }
 
@@ -332,20 +364,11 @@ async function WorkerPanel({
 
   return (
     <>
-    {/* The action first (redesign §5: the aside leads with the apply panel), then why it fits.
-        On a phone the card stays above the dock while the page scrolls (green board's bottom action). */}
+    {/* The action first (redesign §5: the aside leads with the apply panel), then why it fits. */}
     <section className="space-y-4" aria-label="Apply">
-      {/* The one Forest action, kept above the dock while the page scrolls (#111, screen 3). */}
-      <div className="job-cta-bar">
-        {modes.includes("application") && (
-          <ActionButton action={apply} fields={{ jobId: job.id }} label="Apply for This Job" pendingLabel="Applying…" variant="btn-primary btn-lg w-full" />
-        )}
-        {modes.includes("instant_claim") && (
-          <ActionButton action={claim} fields={{ jobId: job.id }} label="Claim a spot" pendingLabel="Claiming…" variant={modes.includes("application") ? "btn-secondary btn-lg w-full" : "btn-primary btn-lg w-full"} />
-        )}
-        {!modes.includes("application") && !modes.includes("instant_claim") && (
-          <p className="text-muted-sm">This job hires by invitation only.</p>
-        )}
+      {/* From 1024 the action sits here, in the aside. Below that it is the page's foot (JoinFoot), which stays on screen. */}
+      <div className="job-cta-bar hidden lg:block">
+        <JoinButtons jobId={job.id} modes={modes} />
       </div>
       <WillSee sharing={sharing.choices} approved={job.org.approved} join={joinText(modes)} />
     </section>

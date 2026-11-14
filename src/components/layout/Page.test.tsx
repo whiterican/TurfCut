@@ -49,6 +49,23 @@ describe("page templates (redesign §4.2.2)", () => {
     expect(css).toMatch(/> \.tpl-body:has\(> \.tpl-tail\) > \.tpl-panel \{\s*grid-row: 1 \/ span 2;/);
   });
 
+  it("a foot is the page's last child, so it can stay at the foot of the screen while the page scrolls", () => {
+    // A job's Apply button was sticky inside its own short section, where a sticky box has nowhere to go: it never stuck.
+    const out = html(<RecordPage aside={<p>panel</p>} tail={<p>full card</p>} foot={<button>Apply</button>}>job</RecordPage>);
+    expect(out).toMatch(/<div class="tpl-tail"><p>full card<\/p><\/div><\/div><div class="tpl-foot"><button>Apply<\/button><\/div><\/main>$/);
+    expect(html(<RecordPage>job</RecordPage>)).not.toContain("tpl-foot");
+    // Sticky above the dock; on the screen's edge from 768 (no dock); gone from 1024, where the aside has the action.
+    expect(css).toMatch(/\n  \.tpl-foot \{\s*@apply sticky z-10 lg:hidden;\s*bottom: var\(--dock-clearance\);/);
+    expect(css).toMatch(/\.tpl-foot \{[^}]*@media \(width >= 48rem\) \{\s*bottom: 0;\s*padding-bottom: calc\(0\.5rem \+ env\(safe-area-inset-bottom\)\);/);
+    // It bleeds to the page's gutters, whatever they are at this width.
+    expect(css).toMatch(/\.tpl-foot \{[^}]*margin-inline: calc\(-1 \* var\(--tpl-gutter\)\);\s*padding: 0\.5rem var\(--tpl-gutter\);/);
+    expect(css).toMatch(/\.tpl-foot:empty \{\s*display: none;/);
+    // The job page uses it for a worker with no place on the job, and keeps the aside's copy for 1024 and up.
+    const job = readFileSync(join(__dirname, "../../app/jobs/[jobId]/page.tsx"), "utf8");
+    expect(job).toContain("foot={engagement ? undefined : <JoinFoot job={job} modes={modes} workerId={session.workerId!} />}");
+    expect(job).toContain('<div className="job-cta-bar hidden lg:block">');
+  });
+
   it("a sticky panel is never taller than the window (a focused control inside stays reachable)", () => {
     const sticky = [...css.matchAll(/\{\s*(?:display: flex;\s*)?position: sticky;\s*top: calc\(var\(--site-header-h\) \+ 1rem\);([^}]*)\}/g)];
     expect(sticky.length).toBeGreaterThanOrEqual(3);

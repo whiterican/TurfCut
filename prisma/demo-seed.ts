@@ -85,7 +85,12 @@ const WORKERS = [
   "Ben Carter", "Riley Thompson", "Imani Brooks", "Diego Morales", "Hana Sato", "Owen Fischer",
 ];
 
-const CITIES = ["Denver", "Aurora", "Lakewood", "Englewood", "Westminster", "Arvada", "Littleton", "Thornton"];
+const CITIES = ["Denver", "Aurora", "Lakewood", "Englewood", "Westminster", "Arvada", "Littleton", "Thornton"] as const;
+/** Roughly the middle of each city: a demo shift's staging point is put within a mile or so of it. A city added above must be added here. */
+const CITY_CENTER: Record<(typeof CITIES)[number], [number, number]> = {
+  Denver: [39.7392, -104.9903], Aurora: [39.7294, -104.8319], Lakewood: [39.7047, -105.0814], Englewood: [39.6478, -104.9878],
+  Westminster: [39.8367, -105.0372], Arvada: [39.8028, -105.0875], Littleton: [39.6133, -105.0166], Thornton: [39.868, -104.9719],
+};
 
 interface Campaign {
   type: "PETITION" | "CANVASS";
@@ -294,13 +299,18 @@ async function main() {
         if (start.getTime() > now.getTime() - 8 * HOUR || start <= acceptedAt) continue;
         const hours = pick([4, 4, 5, 6]);
         const end = new Date(start.getTime() + hours * HOUR);
+        const center = CITY_CENTER[job.input.city as (typeof CITIES)[number]];
+        if (!center) throw new Error(`demo seed: no staging area for ${job.input.city}`);
         const sched = await scheduleShift(
           { profileId: owner.id, orgId: org.id },
           applied.engagementId,
-          { startsAt: start.toISOString(), endsAt: end.toISOString(), stagingLocation: `${pick(["Library", "Rec center", "Coffee shop", "Community center"])} parking lot`, supervisorId: sup.id },
+          // A staged job's check-in is taken against the shift's staging point (C4.2), so every demo shift has one.
+          { startsAt: start.toISOString(), endsAt: end.toISOString(), stagingLocation: `${pick(["Library", "Rec center", "Coffee shop", "Community center"])} parking lot`, stagingLat: String(center[0] + (rand() - 0.5) * 0.03), stagingLng: String(center[1] + (rand() - 0.5) * 0.03), supervisorId: sup.id },
           new Date(Math.max(start.getTime() - 3 * DAY, acceptedAt.getTime() + HOUR))
         );
-        if (!sched.ok) continue; // e.g. overlaps another shift: skip it
+        // Two random shifts for one worker can overlap: that one is skipped. Anything else is a rule this script no longer meets.
+        if (!sched.ok && sched.errors?.startsAt === "Overlaps another shift.") continue;
+        if (!sched.ok) throw new Error(`demo seed: schedule shift: ${JSON.stringify(sched)}`);
         const shiftId = sched.shiftId;
         const me = { workerId: worker.id, profileId: profile.id };
         const boss = { profileId: sup.id, orgId: org.id };

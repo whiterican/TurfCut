@@ -812,14 +812,26 @@ describe("the shell (redesign B1.4)", () => {
     expect(css).toMatch(/@media \(forced-colors: active\) \{\s*\.more-sheet::backdrop \{\s*background: rgb\(0 0 0 \/ 0\.5\);/);
   });
 
-  it("a chat thread on a phone has no dock: the composer sits at the bottom of the screen with nothing under it", () => {
-    // Caden, Nov 11: the dock floated over an empty band under the message box. Unlayered and phone-only: from 768 there is no dock anyway.
-    const at = css.indexOf("body:has(.thread-top) .tabbar {");
+  it("a chat thread takes the whole screen below a wide desktop: no dock, rail or site bar, the composer at the bottom", () => {
+    // Caden, Nov 11: the dock floated over an empty band under the message box. Unlayered.
+    // Caden, Nov 14: a conversation takes the whole screen on a phone either way up and on an upright tablet, so the
+    // rail, the site bar and the menu strip go with the dock. A wide, tall screen keeps the rail beside the chat.
+    const rule = "body:has(.thread-top) :is(.tabbar, .org-rail, .site-header, .phone-top) {";
+    const at = css.indexOf(rule);
     expect(at).toBeGreaterThan(-1);
     const before = css.slice(0, at).replace(/\/\*[\s\S]*?\*\//g, "");
     expect(before.split("{").length - before.split("}").length).toBe(1);
-    expect(before.slice(before.lastIndexOf("@media"))).toMatch(/^@media \(max-width: 47\.99rem\) \{\s*$/);
-    expect(css).toMatch(/body:has\(\.thread-top\) \.tabbar \{\s*display: none;/);
+    expect(before.slice(before.lastIndexOf("@media"))).toMatch(/^@media \(max-width: 63\.99rem\), \(max-height: 34rem\) \{\s*$/);
+    expect(css.slice(at + rule.length)).toMatch(/^\s*display: none;/);
+    // The plain bar that stood behind the site bar goes too, and the chat's own bar pins under the clock, not under a site bar.
+    const block = css.slice(at, css.indexOf("\n}\n", at));
+    expect(block).toMatch(/body:has\(\.thread-top\)::after \{\s*content: none;/);
+    expect(block).toMatch(/body:has\(\.thread-top\) \.thread-top \{\s*top: env\(safe-area-inset-top\);/);
+    expect(css.indexOf("body:has(.org-rail) .thread-top {")).toBeLessThan(at);
+    // Both bars run edge to edge, under a notch at the side, with their contents clear of it.
+    expect(block).toMatch(/body:has\(\.thread-top\) \.page \{\s*max-width: none;/);
+    expect(block).toMatch(/margin-left: calc\(-1 \* var\(--bar-pad\) - env\(safe-area-inset-left\)\);[\s\S]*padding-left: calc\(var\(--bar-pad\) \+ env\(safe-area-inset-left\)\);/);
+    expect(block).toMatch(/margin-right: calc\(-1 \* var\(--bar-pad\) - env\(safe-area-inset-right\)\);[\s\S]*padding-right: calc\(var\(--bar-pad\) \+ env\(safe-area-inset-right\)\);/);
     expect(css).toMatch(/body:has\(\.thread-top\) \.composer \{\s*bottom: 0;\s*padding-bottom: calc\(0\.75rem \+ env\(safe-area-inset-bottom\)\);/);
     // The page ends at the composer and fills the screen, so a short conversation keeps it at the bottom.
     expect(css).toMatch(/body:has\(\.thread-top\) \.page \{\s*display: flex;\s*flex: 1 0 auto;\s*flex-direction: column;\s*padding-bottom: 0;/);

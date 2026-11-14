@@ -141,8 +141,9 @@ export function OrgRail({ tabs, orgName, approved = null, person, foot }: { tabs
         <ul className="space-y-0.5">
           {tabs.map((t) => (
             <li key={t.href}>
-              <Link href={t.href} className="rail-link" aria-current={currentAttr(t.href, current, pathname)}>
+              <Link href={t.href} title={t.label} className="rail-link" aria-current={currentAttr(t.href, current, pathname)}>
                 <Icon of={iconFor(t)} className="size-4 shrink-0" />
+                {/* On a short screen the rail is icons only (globals.css): the name stays for a screen reader, and the title for a pointer. */}
                 <span className="rail-label flex-1">{t.label}</span>
                 {t.href === MESSAGES_HREF && <Badge count={count} />}
                 {t.href === MESSAGES_HREF && count > 0 && <span className="sr-only">, {count} unread</span>}

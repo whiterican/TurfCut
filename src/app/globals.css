@@ -3469,34 +3469,36 @@ body:has(.staff-band)::after {
 /* A phone on its side (Caden, Nov 14). It is wide enough for the desktop's shell and far too short for it: the
    site bar and a 220px sidebar left the page a small window. Here the bar is thinner and the sidebar is a strip
    of icons (each link keeps its name for a screen reader), so the page has most of the screen. Who is signed in
-   is in the site bar's menu; a worker's Sign out stays, as its icon. Unlayered, to win over the layered shell. */
+   is not shown at this size; a worker's Sign out stays, as its icon. The staff console's sidebar is words, not
+   icons, and keeps its width. Unlayered, to win over the layered shell. */
 @media (max-height: 34rem) and (min-width: 48rem) {
   :root {
     --site-header-h: calc(49px + env(safe-area-inset-top));
   }
-  .org-rail {
+  .org-rail:not(.staff-rail) {
     width: 4rem;
     padding: 0.5rem 0.5rem calc(0.5rem + env(safe-area-inset-bottom));
   }
-  .org-rail-head,
-  .org-rail-who {
+  .org-rail:not(.staff-rail) .org-rail-head,
+  .org-rail:not(.staff-rail) .org-rail-who {
     display: none;
   }
   /* Less air above a page's title: the height is for the page. */
-  :is(.page, .tpl):not(:has(> .thread-top)) {
+  /* Not a hero page (the landing, sign in): its photo runs to the top. */
+  :is(.page, .tpl):not(:has(> .thread-top), [data-template="hero"]) {
     padding-top: 1rem;
   }
-  .org-rail .rail-link {
+  .org-rail:not(.staff-rail) .rail-link {
     position: relative;
     min-height: 2.5rem;
     justify-content: center;
     padding-inline: 0;
   }
-  .org-rail .rail-link > svg {
+  .org-rail:not(.staff-rail) .rail-link > svg {
     width: 1.25rem;
     height: 1.25rem;
   }
-  .org-rail .rail-label {
+  .org-rail:not(.staff-rail) .rail-label {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -3504,16 +3506,16 @@ body:has(.staff-band)::after {
     clip-path: inset(50%);
     white-space: nowrap;
   }
-  .org-rail .rail-link .unread-badge {
+  .org-rail:not(.staff-rail) .rail-link .unread-badge {
     position: absolute;
     top: 0.125rem;
     right: 0.125rem;
   }
-  .org-rail-foot {
+  .org-rail:not(.staff-rail) .org-rail-foot {
     margin-top: 0.25rem;
     padding: 0.25rem 0 0;
   }
-  .org-rail-foot:not(:has(.org-rail-extra)) {
+  .org-rail:not(.staff-rail) .org-rail-foot:not(:has(.org-rail-extra)) {
     display: none;
   }
   .org-rail-extra {
@@ -3529,6 +3531,9 @@ body:has(.staff-band)::after {
     background: none;
     box-shadow: none;
     font-size: 0;
+  }
+  .org-rail-extra .btn-secondary:hover {
+    background: color-mix(in srgb, var(--shell-fg) 8%, transparent);
   }
 }
 /* A smaller phone on its side is under 768 wide, so it has the phone's shell: the dock floated across the middle
@@ -3558,7 +3563,7 @@ body:has(.staff-band)::after {
   body:has(.tabbar):not(:has(.thread-top)) {
     padding-left: calc(4.25rem + env(safe-area-inset-left));
   }
-  :is(.page, .tpl):not(:has(> .thread-top)) {
+  :is(.page, .tpl):not(:has(> .thread-top), [data-template="hero"]) {
     padding-top: 1rem;
   }
 }

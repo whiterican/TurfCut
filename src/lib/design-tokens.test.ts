@@ -856,24 +856,36 @@ describe("the shell (redesign B1.4)", () => {
     // Caden, Nov 14: landscape on a phone was the desktop's shell in a 393px-tall window.
     const at = css.indexOf("@media (max-height: 34rem) and (min-width: 48rem) {");
     expect(at).toBeGreaterThan(-1);
-    const block = css.slice(at, css.indexOf("\n}\n", at));
+    const end = css.indexOf("\n}\n", at);
+    expect(end).toBeGreaterThan(at);
+    const block = css.slice(at, end);
+    // The staff console's sidebar is words with no icons: every rule here leaves it alone.
+    for (const rule of block.match(/^  [^\n{}]*\.(org-rail|rail-)[^\n{]*[{,]$/gm) ?? []) {
+      if (!rule.includes(".org-rail-extra")) expect(rule, rule).toContain(".org-rail:not(.staff-rail)");
+    }
+    expect(block.match(/\.org-rail:not\(\.staff-rail\)/g)?.length).toBeGreaterThanOrEqual(9);
+    // A hero page (the landing, sign in) keeps its photo to the top; a chat keeps its bar there.
+    expect(block).toMatch(/:is\(\.page, \.tpl\):not\(:has\(> \.thread-top\), \[data-template="hero"\]\) \{\s*padding-top: 1rem;/);
+    // The variable is declared once before, at the root, unlayered: this later one wins.
+    expect(css.indexOf("--site-header-h: calc(65px + env(safe-area-inset-top));")).toBeLessThan(at);
     // Everything that sits under the site bar follows this one variable (the rail, a chat's bar, sticky panels).
     expect(block).toMatch(/:root \{\s*--site-header-h: calc\(49px \+ env\(safe-area-inset-top\)\);/);
-    expect(block).toMatch(/\.org-rail \{\s*width: 4rem;/);
+    expect(block).toMatch(/\.org-rail:not\(\.staff-rail\) \{\s*width: 4rem;/);
     // A link's name is still there for a screen reader: clipped, never display: none.
-    const label = block.slice(block.indexOf(".org-rail .rail-label {"));
+    const label = block.slice(block.indexOf(".org-rail:not(.staff-rail) .rail-label {"));
     expect(label.slice(0, label.indexOf("}"))).toMatch(/clip-path: inset\(50%\);/);
     expect(label.slice(0, label.indexOf("}"))).not.toMatch(/display: none|visibility: hidden/);
     // Who is signed in steps aside (the site bar's menu has it); a worker's Sign out stays, and an empty foot goes.
-    expect(block).toMatch(/\.org-rail-head,\s*\.org-rail-who \{\s*display: none;/);
+    expect(block).toMatch(/\.org-rail-head,\s*\.org-rail:not\(\.staff-rail\) \.org-rail-who \{\s*display: none;/);
     expect(block).toMatch(/\.org-rail-foot:not\(:has\(\.org-rail-extra\)\) \{\s*display: none;/);
+    expect(block.indexOf(".org-rail:not(.staff-rail) .rail-label {")).toBeGreaterThan(-1);
     expect(block).not.toMatch(/\n  \.org-rail-extra[^{]*\{[^}]*display: none/);
     // Touch targets stay 40px tall.
-    expect(block).toMatch(/\.org-rail \.rail-link \{[^}]*min-height: 2\.5rem;/);
-    // After the shell's own rules, or they would win.
-    expect(at).toBeGreaterThan(css.indexOf("body:has(.org-rail) .thread-top {"));
+    expect(block).toMatch(/\.org-rail:not\(\.staff-rail\) \.rail-link \{[^}]*min-height: 2\.5rem;/);
     const nav = readFileSync(join(__dirname, "../components/AppNav.tsx"), "utf8");
     expect(nav).toContain('className="rail-label flex-1"');
+    // Icons alone need a name a pointer can find.
+    expect(nav).toContain('<Link href={t.href} title={t.label} className="rail-link"');
     expect(nav).toContain('className="org-rail-extra pt-3"');
   });
 
@@ -888,6 +900,7 @@ describe("the shell (redesign B1.4)", () => {
     expect(block).toMatch(/\.tabbar\[data-tucked\]:not\(:has\(:focus-visible\)\) \{\s*transform: none;/);
     // The page moves over for it; a chat has no dock and keeps the full width.
     expect(block).toMatch(/body:has\(\.tabbar\):not\(:has\(\.thread-top\)\) \{\s*padding-left: calc\(4\.25rem \+ env\(safe-area-inset-left\)\);/);
+    expect(block).toMatch(/:is\(\.page, \.tpl\):not\(:has\(> \.thread-top\), \[data-template="hero"\]\) \{\s*padding-top: 1rem;/);
     // After the tuck rule it overrides.
     expect(at).toBeGreaterThan(css.indexOf("transform: translateY(calc(100% + 1.5rem + env(safe-area-inset-bottom)));"));
   });

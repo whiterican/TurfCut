@@ -23,7 +23,7 @@ export function SignOutButton({ action, userId }: { action: () => Promise<void>;
   }
   return (
     <form action={action} onSubmit={onSubmit}>
-      <button type="submit" className="btn-secondary"><LogOut aria-hidden className="btn-icon" />Sign out</button>
+      <button type="submit" className="btn-secondary" title="Sign out"><LogOut aria-hidden className="btn-icon" />Sign out</button>
     </form>
   );
 }

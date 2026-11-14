@@ -3976,6 +3976,14 @@ body {
 /* Taps during an animation reach the new page. */
 ::view-transition {
   pointer-events: none;
+  /* While one screen gives way to the next, the phone draws pictures of the two pages over the bare root, whose
+     colour is the top of the page. On an iPhone the pictures can stop short of the foot of the screen, and the
+     strip left over flashed that top colour across the bottom on every change of screen (Caden, Nov 14, after the
+     same strip was closed on a page at rest). The layer that holds the pictures now has the page's own ground
+     behind them, and carries the ground's foot colour 6rem below itself in case the layer stops short too.
+     Not checked on a phone from here. */
+  background: var(--page-wash) no-repeat, var(--page-top);
+  box-shadow: 0 6rem 0 0 color-mix(in srgb, var(--page-top) 8%, var(--bg));
 }
 
 /* Default (tabs, buttons): the old page fades quickly, the new one rises in. */

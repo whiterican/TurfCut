@@ -877,6 +877,21 @@ describe("the shell (redesign B1.4)", () => {
     expect(nav).toContain('className="org-rail-extra pt-3"');
   });
 
+  it("a small phone on its side stands the dock down the left edge, clear of the page", () => {
+    // Under 768 wide the phone's shell applies: the dock floated across the middle of a 375px-tall page.
+    const at = css.indexOf("@media (max-height: 34rem) and (max-width: 47.99rem) and (orientation: landscape) {");
+    expect(at).toBeGreaterThan(-1);
+    const block = css.slice(at, css.indexOf("\n}\n", at));
+    expect(block).toMatch(/\n  \.tabbar \{[^}]*top: 50%;[^}]*left: calc\(0\.5rem \+ env\(safe-area-inset-left\)\);[^}]*translate: 0 -50%;/);
+    expect(block).toMatch(/\.tabbar > div \{\s*flex-direction: column;/);
+    // It covers nothing, so it does not tuck away on a scroll (the tuck slides it down, which here would be across the page).
+    expect(block).toMatch(/\.tabbar\[data-tucked\]:not\(:has\(:focus-visible\)\) \{\s*transform: none;/);
+    // The page moves over for it; a chat has no dock and keeps the full width.
+    expect(block).toMatch(/body:has\(\.tabbar\):not\(:has\(\.thread-top\)\) \{\s*padding-left: calc\(4\.25rem \+ env\(safe-area-inset-left\)\);/);
+    // After the tuck rule it overrides.
+    expect(at).toBeGreaterThan(css.indexOf("transform: translateY(calc(100% + 1.5rem + env(safe-area-inset-bottom)));"));
+  });
+
   it("every box that stands on the page has the card's weight; a box inside another stays flat", () => {
     // Caden, Nov 12: tiles, work cards, choice lists, option cards and empty states were flat beside the cards.
     const boxes = "\\.work-card, \\.shift-card, \\.turf-card, \\.need-tile, \\.stat, \\.stat-tile, \\.summary-item, \\.choice-list, \\.option-card, \\.empty-state, \\.overview-map";

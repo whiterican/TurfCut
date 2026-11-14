@@ -3531,6 +3531,37 @@ body:has(.staff-band)::after {
     font-size: 0;
   }
 }
+/* A smaller phone on its side is under 768 wide, so it has the phone's shell: the dock floated across the middle
+   of a 375px-tall page. There it stands down the left edge instead, clear of the page (which moves over for it),
+   and stays put while the page scrolls: it covers nothing. */
+@media (max-height: 34rem) and (max-width: 47.99rem) and (orientation: landscape) {
+  .tabbar {
+    inset-inline: auto;
+    top: 50%;
+    bottom: auto;
+    left: calc(0.5rem + env(safe-area-inset-left));
+    margin: 0;
+    max-width: none;
+    translate: 0 -50%;
+  }
+  html:not([data-motion="reduce"]) body:not(:has(.composer)) .tabbar[data-tucked]:not(:has(:focus-visible)) {
+    transform: none;
+  }
+  .tabbar > div {
+    flex-direction: column;
+  }
+  .tabbar .tab {
+    flex: none;
+    width: 2.75rem;
+    min-height: 2.75rem;
+  }
+  body:has(.tabbar):not(:has(.thread-top)) {
+    padding-left: calc(4.25rem + env(safe-area-inset-left));
+  }
+  :is(.page, .tpl):not(:has(> .thread-top)) {
+    padding-top: 1rem;
+  }
+}
 /* A phone on its side has little height: the two bars give the messages what they can spare. */
 @media (max-height: 34rem) {
   body:has(.thread-top) .thread-top {

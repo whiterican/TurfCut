@@ -830,8 +830,18 @@ describe("the shell (redesign B1.4)", () => {
     expect(css.indexOf("body:has(.org-rail) .thread-top {")).toBeLessThan(at);
     // Both bars run edge to edge, under a notch at the side, with their contents clear of it.
     expect(block).toMatch(/body:has\(\.thread-top\) \.page \{\s*max-width: none;/);
-    expect(block).toMatch(/margin-left: calc\(-1 \* var\(--bar-pad\) - env\(safe-area-inset-left\)\);[\s\S]*padding-left: calc\(var\(--bar-pad\) \+ env\(safe-area-inset-left\)\);/);
-    expect(block).toMatch(/margin-right: calc\(-1 \* var\(--bar-pad\) - env\(safe-area-inset-right\)\);[\s\S]*padding-right: calc\(var\(--bar-pad\) \+ env\(safe-area-inset-right\)\);/);
+    // What is between the bars keeps the page's 42rem column, and what is in a bar lines up with it.
+    expect(block).toMatch(/body:has\(\.thread-top\) \.page > :not\(\.thread-top, \.composer\) \{\s*width: 100%;\s*max-width: calc\(42rem - 2 \* var\(--bar-pad\)\);\s*margin-inline: auto;/);
+    expect(block).toMatch(/margin-left: calc\(-1 \* var\(--bar-pad\) - env\(safe-area-inset-left\)\);\s*margin-right: calc\(-1 \* var\(--bar-pad\) - env\(safe-area-inset-right\)\);/);
+    expect(block).toMatch(/padding-left: max\(calc\(var\(--bar-pad\) \+ env\(safe-area-inset-left\)\), calc\(\(100vw - 42rem\) \/ 2 \+ var\(--bar-pad\)\)\);/);
+    expect(block).toMatch(/padding-right: max\(calc\(var\(--bar-pad\) \+ env\(safe-area-inset-right\)\), calc\(\(100vw - 42rem\) \/ 2 \+ var\(--bar-pad\)\)\);/);
+    // The bars' gutter is the page's own (px-4, sm:px-6): a different one would push them past the screen's edge.
+    expect(block).toMatch(/body:has\(\.thread-top\) \.page \{\s*--bar-pad: 1rem;/);
+    expect(block).toMatch(/@media \(min-width: 40rem\) \{\s*body:has\(\.thread-top\) \.page \{\s*--bar-pad: 1\.5rem;/);
+    expect(css).toMatch(/\n  \.page \{\s*@apply [^;]*\bpx-4\b[^;]*\bsm:px-6\b/);
+    // A phone on its side: thinner bars, and the gap between the composer's rows (Tailwind's space-y is a bottom margin).
+    expect(css).toMatch(/@media \(max-height: 34rem\) \{\s*body:has\(\.thread-top\) \.thread-top \{\s*padding-top: 0\.25rem;\s*padding-bottom: 0\.25rem;/);
+    expect(css).toMatch(/body:has\(\.thread-top\) \.composer > :not\(:last-child\) \{\s*margin-block-end: 0\.25rem;/);
     expect(css).toMatch(/body:has\(\.thread-top\) \.composer \{\s*bottom: 0;\s*padding-bottom: calc\(0\.75rem \+ env\(safe-area-inset-bottom\)\);/);
     // The page ends at the composer and fills the screen, so a short conversation keeps it at the bottom.
     expect(css).toMatch(/body:has\(\.thread-top\) \.page \{\s*display: flex;\s*flex: 1 0 auto;\s*flex-direction: column;\s*padding-bottom: 0;/);

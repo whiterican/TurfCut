@@ -3444,15 +3444,24 @@ body:has(.staff-band)::after {
   body:has(.thread-top) .page {
     max-width: none;
   }
-  body:has(.thread-top) :is(.thread-top, .composer) {
+  /* ...and everything between them keeps the page's column (42rem with its gutters), in the middle. */
+  body:has(.thread-top) .page > :not(.thread-top, .composer) {
+    width: 100%;
+    max-width: calc(42rem - 2 * var(--bar-pad));
+    margin-inline: auto;
+  }
+  body:has(.thread-top) .page {
     --bar-pad: 1rem;
+  }
+  body:has(.thread-top) :is(.thread-top, .composer) {
     margin-left: calc(-1 * var(--bar-pad) - env(safe-area-inset-left));
     margin-right: calc(-1 * var(--bar-pad) - env(safe-area-inset-right));
-    padding-left: calc(var(--bar-pad) + env(safe-area-inset-left));
-    padding-right: calc(var(--bar-pad) + env(safe-area-inset-right));
+    /* What is in a bar lines up with that column on a wide screen. */
+    padding-left: max(calc(var(--bar-pad) + env(safe-area-inset-left)), calc((100vw - 42rem) / 2 + var(--bar-pad)));
+    padding-right: max(calc(var(--bar-pad) + env(safe-area-inset-right)), calc((100vw - 42rem) / 2 + var(--bar-pad)));
   }
   @media (min-width: 40rem) {
-    body:has(.thread-top) :is(.thread-top, .composer) {
+    body:has(.thread-top) .page {
       --bar-pad: 1.5rem;
     }
   }
@@ -3467,8 +3476,9 @@ body:has(.staff-band)::after {
     padding-top: 0.375rem;
     padding-bottom: calc(0.375rem + env(safe-area-inset-bottom));
   }
-  body:has(.thread-top) .composer > * + * {
-    margin-top: 0.25rem;
+  /* The rows inside it: Tailwind's space-y puts the gap under each row but the last. */
+  body:has(.thread-top) .composer > :not(:last-child) {
+    margin-block-end: 0.25rem;
   }
 }
 @media (max-width: 47.99rem) {

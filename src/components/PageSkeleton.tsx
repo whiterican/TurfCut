@@ -46,6 +46,8 @@ function Rows({ n, avatar = false }: { n: number; avatar?: boolean }) {
 
 interface ShapeOptions {
   heading: boolean;
+  /** A chat: its bar is the page's own (.thread-top), so the shell steps aside while it loads, as it will when it arrives. */
+  chat?: boolean;
   filters: boolean;
   avatars: boolean;
 }
@@ -139,9 +141,9 @@ const SHAPES: Record<SkeletonShape, (o: ShapeOptions) => React.ReactNode> = {
     </>
   ),
   // A conversation or a dispute: who, a few bubbles, the composer.
-  thread: () => (
+  thread: (o) => (
     <>
-      <div className="flex items-center gap-3">
+      <div className={o.chat ? "thread-top flex items-center gap-3" : "flex items-center gap-3"}>
         <Bar className="size-10 rounded-full" />
         <div className="flex-1 space-y-2">
           <Bar className="h-5 w-40" />
@@ -184,6 +186,7 @@ export function PageSkeleton({
   framed = true,
   filters = true,
   avatars = false,
+  chat = false,
   template,
   panel = false,
   org = false,
@@ -210,6 +213,8 @@ export function PageSkeleton({
   filters?: boolean;
   /** Lists: a face on each row (inboxes, members). */
   avatars?: boolean;
+  /** With shape "thread": a conversation, whose bar is the top of the screen. */
+  chat?: boolean;
 }) {
   if (template && framed) {
     const side = (
@@ -224,7 +229,7 @@ export function PageSkeleton({
       </Frame>
     );
   }
-  const body = SHAPES[shape]({ heading: framed, filters, avatars });
+  const body = SHAPES[shape]({ heading: framed, filters, avatars, chat });
   const rhythm = gap ? GAP[gap] : "";
   if (!framed) {
     return (

@@ -51,7 +51,10 @@ describe("scroll direction for the top row", () => {
     const solid = css.slice(css.lastIndexOf("@media (prefers-reduced-transparency: reduce), (prefers-contrast: more), (forced-colors: active) {"));
     expect(solid).toMatch(/html:not\(\[data-scrolled\], \.sun\) body:not\(:has\(\.staff-band, \.thread-top\)\):not\(\.x\)::after \{\s*opacity: 1;/);
     // ...and a job page's strip under the clock stays on the way down too: there is no row for it to leave with.
-    expect(solid).toMatch(/html\[data-past-photo\]:not\(\.sun\) body:has\(\.job-photo-head\):has\(\.tpl\):not\(:has\(\.thread-top\)\)::after \{\s*opacity: 1 !important;/);
+    // Phone only: wider, a job's page keeps its header, and the bar must still leave with it.
+    const stay = "html[data-past-photo]:not(.sun) body:has(.job-photo-head):has(.tpl):not(:has(.thread-top))::after {\n      opacity: 1 !important;";
+    expect(solid.split(stay)).toHaveLength(2);
+    expect(solid.slice(solid.lastIndexOf("@media", solid.indexOf(stay)), solid.indexOf(stay))).toMatch(/^@media \(width < 48rem\) \{/);
     expect(solid).toMatch(/html:not\(\.sun\) \.job-photo-head::after \{\s*background: rgb\(0 0 0 \/ 0\.5\);\s*-webkit-backdrop-filter: none;/);
     // Nothing keyed on the scroll marks changes a size or takes anything out of the page.
     expect(css).not.toMatch(/data-scrolled[^{]*\{[^}]*(height:|visibility: hidden|display: none)/);

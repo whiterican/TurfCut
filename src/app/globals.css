@@ -783,10 +783,11 @@ body {
   .hero-split {
     @apply flex flex-1 flex-col;
   }
+  /* Below 1024 the line sits on the page itself, in the page's ink: no band (Caden, Nov 14: a black bar across
+     the sign-in page at every window size). From 1024 it is the dark left panel (below). */
   .hero-split-art {
-    @apply flex flex-row items-center justify-start gap-3 px-6 py-5 sm:px-10;
-    background: var(--shell-bg);
-    color: var(--shell-fg);
+    @apply flex flex-row items-center justify-start gap-3 px-6 pt-6 sm:px-10;
+    color: var(--fg);
   }
   /* The public hero line: Inter bold, the one size above H1 (#111). */
   .hero-split-line {
@@ -794,7 +795,7 @@ body {
     font-family: var(--font-display);
     font-weight: 700;
     font-optical-sizing: auto;
-    color: var(--shell-fg);
+    color: inherit;
   }
   /* On a phone the header above already carries the mark, so the band is the
      line alone; a worker's phone has no header, so there the band keeps it.
@@ -821,6 +822,8 @@ body {
     }
     .hero-split-art {
       @apply flex-col items-start justify-end p-12;
+      background: var(--shell-bg);
+      color: var(--shell-fg);
     }
     .hero-split-mark {
       display: block;
@@ -4424,6 +4427,12 @@ body {
       -webkit-mask-image: none;
       mask-image: none;
     }
+    /* That strip is all that keeps text from passing behind the clock, and the page has no top row for it to leave
+       with: it stays on the way down as on the way up (the rule below hides a header's bar with its row). Only on
+       a phone: wider, a job's page keeps its header and that rule is right. */
+    html[data-past-photo]:not(.sun) body:has(.job-photo-head):has(.tpl):not(:has(.thread-top))::after {
+      opacity: 1 !important;
+    }
   }
   /* Here the bar is a plain surface, like Sunlight's, not glass: it does not wait for the page to leave its top.
      One class more specific than the rule that hides the glass at rest (the second :not() is only that class). */
@@ -4433,11 +4442,6 @@ body {
   /* The plain bar behind the row goes with the row. */
   html[data-scroll="down"]:not(:has(.thread-top)) body::after {
     opacity: 0 !important;
-  }
-  /* Not on a job's page on a phone, which has no row: its plain strip under the clock is all that keeps text from
-     passing behind the clock, on the way down as much as on the way up. */
-  html[data-past-photo]:not(.sun) body:has(.job-photo-head):has(.tpl):not(:has(.thread-top))::after {
-    opacity: 1 !important;
   }
   .phone-top::before {
     display: none;

@@ -16,13 +16,16 @@ export function StatusStripColor() {
   const pathname = usePathname();
   useEffect(() => {
     const root = document.documentElement;
-    let meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
-    if (!meta) {
-      meta = document.createElement("meta");
+    // The layout sends one tag for the device's light theme and one for its dark (so a value is there at load):
+    // every one is kept on the page's real colour, whichever the device is reading.
+    const tags = () => {
+      const found = [...document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]')];
+      if (found.length) return found;
+      const meta = document.createElement("meta");
       meta.name = "theme-color";
       document.head.appendChild(meta);
-    }
-    const tag = meta;
+      return [meta];
+    };
     let frame = 0;
     let timer = 0;
     // One pixel, to turn whatever the browser computed (it may be a color(srgb …) from a color-mix) into plain rgb().
@@ -49,7 +52,7 @@ export function StatusStripColor() {
           }
         }
       }
-      if (plain && tag.content !== plain) tag.content = plain;
+      if (plain) for (const tag of tags()) if (tag.content !== plain) tag.content = plain;
     };
     const soon = () => {
       if (!frame) frame = requestAnimationFrame(read);

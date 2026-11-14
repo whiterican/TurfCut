@@ -945,7 +945,7 @@ describe("the shell (redesign B1.4)", () => {
   it("an installed iPhone app draws the page under the clock, and everything pinned to the top stays clear of it", () => {
     const layout = readFileSync(join(__dirname, "../app/layout.tsx"), "utf8");
     expect(layout).toMatch(/appleWebApp: \{ capable: true, title: "Turfcut", statusBarStyle: "black-translucent" \}/);
-    expect(layout).toMatch(/export const viewport: Viewport = \{ width: "device-width", initialScale: 1, viewportFit: "cover" \};/);
+    expect(layout).toMatch(/export const viewport: Viewport = \{\s*width: "device-width",\s*initialScale: 1,\s*viewportFit: "cover",/);
     // The header's row, the worker's pill, the drawer and a chat's bar each start below the clock.
     expect(css).toMatch(/\n\.site-header \{[^}]*padding-top: env\(safe-area-inset-top\);/);
     expect(css).toMatch(/\.phone-top \{[^}]*padding-top: calc\(0\.75rem \+ env\(safe-area-inset-top\)\);/);

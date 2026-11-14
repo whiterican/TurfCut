@@ -27,3 +27,25 @@ Vitest · Tailwind v4. Stripe Connect lands in M5.
 - Seed: `npm run seed` (needs `DATABASE_URL`). Idempotent.
 - Seed auth users don't exist — `/signup` creates them; link a login to a
   seeded worker by updating the worker's `profileId`.
+- Demo data: `npm run seed:demo -- --yes` after the base seed. It writes
+  through the app's own rules, so a new rule can break it: when it stops,
+  fix the script, not the rule.
+- An installed iPhone app draws the page under the clock and the home bar
+  (`viewport-fit=cover`, status bar `black-translucent`, in
+  `src/app/layout.tsx`). Anything pinned to a screen edge must add
+  `env(safe-area-inset-*)`. The phone draws the clock in white and the app
+  cannot change that. To check without a phone: Chromium's
+  `Emulation.setSafeAreaInsetsOverride` (top 59, bottom 34 for an iPhone).
+- iPhone only, and Chromium will not show it: the top glass and the profile
+  pill, each with its own `backdrop-filter` or mask, were drawn as solid
+  boxes during page transitions while they had a `view-transition-name`
+  (Caden's recordings, Nov 13). They are unnamed for that reason; don't name
+  them again. The dock and the site header are named and blurred too and
+  have not shown it, so this is the first thing to check, not a rule.
+- An installed iPhone app reads `theme-color` and the page colour once, at
+  load; nothing set later changes the phone's own chrome there.
+  `StatusStripColor.tsx` still matters: browsers that do follow
+  `theme-color` (Safari and Chrome tabs) get the right strip from it.
+  Don't delete it.
+- Vercel's free plan allows 100 deployments a day across both projects, and
+  each push to a PR branch uses two. Batch pushes.

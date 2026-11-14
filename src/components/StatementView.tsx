@@ -6,6 +6,7 @@ import { StatusBadge, StatusChip } from "@/components/StatusBadge";
 import { DISPUTE_SLA } from "@/lib/dispute-sla";
 import type { StatementLine, StatementView as View } from "@/lib/statements-data";
 import { groupLinesByJob, jobAnchor } from "@/lib/statement-groups";
+import styles from "./StatementView.module.css";
 
 const OUTCOME: Record<string, string> = { KEPT: "Pay kept", ADJUSTED: "Pay adjusted", REREVIEWED: "Shift re-reviewed" };
 
@@ -22,9 +23,17 @@ function Amount({ cents, bold = false }: { cents: number; bold?: boolean }) {
  */
 function LinesTable({ lines, caption, total, markUncounted = false }: { lines: StatementLine[]; caption: string; total?: { label: string; grossCents: number; feeCents: number }; markUncounted?: boolean }) {
   return (
-    <div className="data-table-wrap" role="region" aria-label={caption} tabIndex={0}>
-      <table role="table" className="data-table data-table-stack statement-lines">
+    <div className={`data-table-wrap ${styles.frame}`} role="region" aria-label={caption} tabIndex={0}>
+      <table role="table" className={`data-table data-table-stack statement-lines ${styles.lines}`}>
         <caption className="sr-only">{caption}</caption>
+        <colgroup className={styles.columns}>
+          <col className={styles.worker} />
+          <col className={styles.date} />
+          <col className={styles.basis} />
+          <col className={styles.pay} />
+          <col className={styles.fee} />
+          <col className={styles.state} />
+        </colgroup>
         <thead role="rowgroup">
           <tr role="row">
             <th role="columnheader" scope="col">Worker</th>

@@ -1,0 +1,35 @@
+/* Match columns across independently grouped job tables only when the ledger
+   has room. The container threshold also respects sidebars and browser zoom.
+   Compact tables, stacked phone rows and printed statements keep their layout. */
+.frame {
+  container-type: inline-size;
+}
+
+.columns {
+  display: none;
+}
+
+@media screen {
+  @container (min-width: 60rem) {
+    .lines {
+      table-layout: fixed;
+    }
+
+    .columns { display: table-column-group; }
+    .worker { width: 17%; }
+    .date { width: 22%; }
+    .basis { width: 22%; }
+    .pay { width: 13%; }
+    .fee { width: 11%; }
+    .state { width: 15%; }
+
+    .lines tbody th[scope="row"] {
+      white-space: normal;
+      overflow-wrap: anywhere;
+    }
+
+    .lines td:nth-child(3) {
+      overflow-wrap: anywhere;
+    }
+  }
+}

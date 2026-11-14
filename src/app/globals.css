@@ -3304,6 +3304,31 @@ body {
     transform: translateY(calc(100% + 1.5rem + env(safe-area-inset-bottom)));
   }
 }
+/* A job's Apply bar on a phone stands on the dock's place, not above an empty one (Caden's recording, Nov 14: with
+   the dock tucked away the bar hung a third of the way up the screen, the page reading on beneath it). When the
+   dock goes down the bar goes down with it, to the foot of the screen; when the dock returns the bar rises again.
+   The same conditions as the dock's own rule above, so the two never disagree (written flat: one :has() cannot
+   sit inside another). The bar's colour runs on below it
+   (its ::after): nothing reads under the bar at the foot, nor around the dock when the two stand together. Not a
+   phone on its side, where the dock is at the side and the bar is already on the foot. */
+@media (width < 48rem) and (min-height: 34.01rem) {
+  .tpl-foot {
+    transition: translate var(--dur-slow) var(--ease-out);
+  }
+  .tpl-foot::after {
+    content: "";
+    position: absolute;
+    inset: 100% 0 auto;
+    height: 10rem;
+    background: var(--bg);
+    pointer-events: none;
+  }
+}
+@media (prefers-reduced-motion: no-preference) and (width < 48rem) and (min-height: 34.01rem) {
+  html:not([data-motion="reduce"]) body:not(:has(.composer)):has(.tabbar[data-tucked]):not(:has(.tabbar :focus-visible)) .tpl-foot {
+    translate: 0 6rem;
+  }
+}
 
 /* Summaries styled as buttons: no disclosure triangle (Safari draws its own). */
 summary.list-none::-webkit-details-marker {
@@ -3984,6 +4009,15 @@ body {
      Not checked on a phone from here. */
   background: var(--page-wash) no-repeat, var(--page-top);
   box-shadow: 0 6rem 0 0 color-mix(in srgb, var(--page-top) 8%, var(--bg));
+}
+/* A chat and the open menu drawer set their ground on the body, which that layer does not inherit from. */
+html:has(.thread-top)::view-transition {
+  background: var(--bg);
+  box-shadow: 0 6rem 0 0 var(--bg);
+}
+html:has(.more-sheet[open])::view-transition {
+  background: var(--drawer-root);
+  box-shadow: 0 6rem 0 0 var(--drawer-root);
 }
 
 /* Default (tabs, buttons): the old page fades quickly, the new one rises in. */

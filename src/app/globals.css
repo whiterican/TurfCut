@@ -3594,35 +3594,43 @@ body:has(.staff-band)::after {
     padding-top: 1rem;
   }
 }
-/* A worker's phone has no bar above a job's photograph, so the photograph runs to the very top of the screen,
-   under the clock (white there in every mode), with the page's buttons on it below the clock. The cap that keeps
-   text from passing behind the clock (html::after, below) waits until the page has left its top. */
+/* A job's own page on a phone has no site bar and no menu strip (Caden, Nov 14): they took a fifth of the screen,
+   and the arrow on the photograph is the way back to everything they held. So the photograph runs to the very
+   top of the screen, under the clock (white there in every mode), with the page's buttons on it below the
+   clock. No glass either: the cap that keeps text from passing behind the clock (html::after, below) is enough,
+   and it waits until the page has left its top. For everyone, a worker or an organization alike. */
 @media (width < 48rem) {
-  body:has(.site-header-worker) .tpl:has(.job-photo-head) {
+  body:has(.job-photo-head) :is(.site-header, .phone-top) {
+    display: none;
+  }
+  body:has(.job-photo-head)::after {
+    content: none;
+  }
+  body:has(.job-photo-head) .tpl:has(.job-photo-head) {
     padding-top: 0;
   }
-  body:has(.site-header-worker) .job-photo-head {
+  body:has(.job-photo-head) .job-photo-head {
     margin-top: 0;
   }
-  body:has(.site-header-worker) .job-head-actions {
+  body:has(.job-photo-head) .job-head-actions {
     top: calc(1rem + env(safe-area-inset-top));
   }
-  html:has(.site-header-worker):has(.job-photo-head)::after {
+  html:has(.job-photo-head)::after {
     transition: opacity var(--dur-base) var(--ease-standard);
   }
-  html:has(.site-header-worker):has(.job-photo-head):not([data-scrolled])::after {
+  html:has(.job-photo-head):not([data-scrolled])::after {
     opacity: 0;
   }
 }
 /* Taller by the clock's strip, so as much photograph shows as before. Not on a short screen (a phone held on its
    side), where the short photograph below stands: these are more specific than it and would win. */
 @media (width < 40rem) and (min-height: 34.01rem) {
-  body:has(.site-header-worker) .job-photo-head {
+  body:has(.job-photo-head) .job-photo-head {
     height: calc(200px + env(safe-area-inset-top));
   }
 }
 @media (width >= 40rem) and (width < 48rem) and (min-height: 34.01rem) {
-  body:has(.site-header-worker) .job-photo-head {
+  body:has(.job-photo-head) .job-photo-head {
     height: calc(260px + env(safe-area-inset-top));
   }
 }

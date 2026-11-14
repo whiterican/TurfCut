@@ -48,19 +48,24 @@ describe("scroll direction for the top row", () => {
     expect(css).toMatch(/\n\.phone-top::before \{\s*transition: opacity var\(--dur-base\) var\(--ease-standard\);/);
     // Nothing keyed on the scroll marks changes a size or takes anything out of the page.
     expect(css).not.toMatch(/data-scrolled[^{]*\{[^}]*(height:|visibility: hidden|display: none)/);
-    // A worker's job page: the photograph runs under the clock, its buttons below the clock, and the cap waits for a scroll.
-    const at = css.indexOf("body:has(.site-header-worker) .tpl:has(.job-photo-head) {");
+    // A job's own page on a phone: no site bar, no menu strip, no glass. The photograph runs under the clock, its
+    // buttons below the clock, and the cap under the clock waits for a scroll.
+    const at = css.indexOf("body:has(.job-photo-head) :is(.site-header, .phone-top) {");
     expect(at).toBeGreaterThan(-1);
     const block = css.slice(css.lastIndexOf("@media", at), css.indexOf("\n}\n", at));
     expect(block).toMatch(/^@media \(width < 48rem\) \{/);
+    expect(block).toMatch(/:is\(\.site-header, \.phone-top\) \{\s*display: none;/);
+    expect(block).toMatch(/body:has\(\.job-photo-head\)::after \{\s*content: none;/);
     expect(block).toMatch(/\.tpl:has\(\.job-photo-head\) \{\s*padding-top: 0;/);
     expect(block).toMatch(/\.job-photo-head \{\s*margin-top: 0;\s*\}/);
-    // Taller by the clock's strip, but only on a tall screen: these selectors outweigh the short-screen height.
-    expect(css).toMatch(/@media \(width < 40rem\) and \(min-height: 34\.01rem\) \{\s*body:has\(\.site-header-worker\) \.job-photo-head \{\s*height: calc\(200px \+ env\(safe-area-inset-top\)\);/);
-    expect(css).toMatch(/@media \(width >= 40rem\) and \(width < 48rem\) and \(min-height: 34\.01rem\) \{\s*body:has\(\.site-header-worker\) \.job-photo-head \{\s*height: calc\(260px \+ env\(safe-area-inset-top\)\);/);
-    expect(css).not.toMatch(/@media \(width < 48rem\) \{[^@]*\.job-photo-head \{[^}]*height:/);
     expect(block).toMatch(/\.job-head-actions \{\s*top: calc\(1rem \+ env\(safe-area-inset-top\)\);/);
-    expect(block).toMatch(/html:has\(\.site-header-worker\):has\(\.job-photo-head\):not\(\[data-scrolled\]\)::after \{\s*opacity: 0;/);
+    expect(block).toMatch(/html:has\(\.job-photo-head\):not\(\[data-scrolled\]\)::after \{\s*opacity: 0;/);
+    // The way back is the arrow on the photograph, a real link.
+    expect(readFileSync(join(__dirname, "../components/JobHeadActions.tsx"), "utf8")).toMatch(/<Link[^>]*href=\{back\}/);
+    // Taller by the clock's strip, but only on a tall screen: these selectors outweigh the short-screen height.
+    expect(css).toMatch(/@media \(width < 40rem\) and \(min-height: 34\.01rem\) \{\s*body:has\(\.job-photo-head\) \.job-photo-head \{\s*height: calc\(200px \+ env\(safe-area-inset-top\)\);/);
+    expect(css).toMatch(/@media \(width >= 40rem\) and \(width < 48rem\) and \(min-height: 34\.01rem\) \{\s*body:has\(\.job-photo-head\) \.job-photo-head \{\s*height: calc\(260px \+ env\(safe-area-inset-top\)\);/);
+    expect(css).not.toMatch(/@media \(width < 48rem\) \{[^@]*\.job-photo-head \{[^}]*height:/);
   });
 
   it("is wired: the component marks the root, the layout mounts it, and the row hides without leaving the keyboard's reach", () => {

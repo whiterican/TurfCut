@@ -3602,10 +3602,11 @@ body:has(.staff-band)::after {
   }
 }
 /* A page with a foot (a job's Apply bar): what the keyboard or Tab moves to is scrolled clear of it, as it is of the
-   dock. As specific as the dock's own rule and after it, so this one wins. */
+   dock. One class more specific than the dock's own rule (which comes later in this file), so this one wins
+   wherever it sits. 8rem is two stacked buttons, for a job that takes applications and claims alike. */
 @media (width < 80rem) {
-  html:has(.tpl-foot):not(:has(.thread-top)) {
-    scroll-padding-bottom: calc(var(--dock-clearance) + 5rem);
+  html:has(.tpl > .tpl-foot):has(.tpl):not(:has(.thread-top)) {
+    scroll-padding-bottom: calc(var(--dock-clearance) + 8rem);
   }
 }
 /* A phone on its side has little height: the two bars give the messages what they can spare. */

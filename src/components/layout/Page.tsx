@@ -34,7 +34,7 @@ interface FrameProps {
    * (a job's full card comes after the Apply panel there; beside it from 1024).
    */
   tail?: ReactNode;
-  /** Stays at the foot of the screen while the page scrolls, below 1024 (a job's Apply button). The last thing in the page, so it rests under everything else. */
+  /** Stays at the foot of the screen while the page scrolls, below 1280 (a job's Apply button). The last thing in the page, so it rests under everything else. */
   foot?: ReactNode;
   /** The panel leads: first in reading order and the left column from 1024 (a section's sub-nav). */
   panelStart?: boolean;

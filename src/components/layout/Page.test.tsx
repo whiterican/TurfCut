@@ -59,11 +59,15 @@ describe("page templates (redesign §4.2.2)", () => {
     expect(css).toMatch(/\n  \.tpl-foot \{\s*@apply sticky z-10 xl:hidden;\s*bottom: var\(--dock-clearance\);/);
     expect(css).toMatch(/@media \(width >= 80rem\) \{\s*(?:\/\*[^*]*\*\/\s*)?\.tpl\[data-panel="aside"\]:not\(\[data-org\]\) \{/);
     // What Tab moves to is scrolled clear of the bar.
-    expect(css).toMatch(/@media \(width < 80rem\) \{\s*html:has\(\.tpl-foot\):not\(:has\(\.thread-top\)\) \{\s*scroll-padding-bottom: calc\(var\(--dock-clearance\) \+ 5rem\);/);
+    expect(css).toMatch(/@media \(width < 80rem\) \{\s*html:has\(\.tpl > \.tpl-foot\):has\(\.tpl\):not\(:has\(\.thread-top\)\) \{\s*scroll-padding-bottom: calc\(var\(--dock-clearance\) \+ 8rem\);/);
+    // The dock's own rule comes later in the file and is one class weaker: three :has/:not against two.
+    const dockRule = "html:has(.tabbar):not(:has(.thread-top)) {";
+    expect(css.split(dockRule)).toHaveLength(2);
+    expect(css.slice(css.indexOf(dockRule), css.indexOf(dockRule) + 120)).toContain("scroll-padding-bottom: var(--dock-clearance);");
     expect(css).toMatch(/\.tpl-foot \{[^}]*@media \(width >= 48rem\) \{\s*bottom: 0;\s*padding-bottom: calc\(0\.5rem \+ env\(safe-area-inset-bottom\)\);/);
     // It bleeds to the page's gutters, whatever they are at this width.
     expect(css).toMatch(/\.tpl-foot \{[^}]*margin-inline: calc\(-1 \* var\(--tpl-gutter\)\);\s*padding: 0\.5rem var\(--tpl-gutter\);/);
-    // The job page uses it for a worker with no place on the job, and keeps the aside's copy for 1024 and up.
+    // The job page uses it for a worker with no place on the job, and keeps the aside's copy for 1280 and up.
     const job = readFileSync(join(__dirname, "../../app/jobs/[jobId]/page.tsx"), "utf8");
     expect(job).toContain("foot={joinFoot}");
     expect(job).toContain("const joinFoot = !engagement && canJoin(modes) && ownExclusions(pref, job).length === 0 ? (");

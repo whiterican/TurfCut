@@ -3594,6 +3594,33 @@ body:has(.staff-band)::after {
     padding-top: 1rem;
   }
 }
+/* A worker's phone has no bar above a job's photograph, so the photograph runs to the very top of the screen,
+   under the clock (white there in every mode), with the page's buttons on it below the clock. The cap that keeps
+   text from passing behind the clock (html::after, below) waits until the page has left its top. Before the
+   short-screen height just below, which still wins on a phone held on its side. */
+@media (width < 48rem) {
+  body:has(.site-header-worker) .tpl:has(.job-photo-head) {
+    padding-top: 0;
+  }
+  body:has(.site-header-worker) .job-photo-head {
+    margin-top: 0;
+    height: calc(200px + env(safe-area-inset-top));
+  }
+  body:has(.site-header-worker) .job-head-actions {
+    top: calc(1rem + env(safe-area-inset-top));
+  }
+  html:has(.site-header-worker):has(.job-photo-head)::after {
+    transition: opacity var(--dur-base) var(--ease-standard);
+  }
+  html:has(.site-header-worker):has(.job-photo-head):not([data-scrolled])::after {
+    opacity: 0;
+  }
+}
+@media (width >= 40rem) and (width < 48rem) {
+  body:has(.site-header-worker) .job-photo-head {
+    height: calc(260px + env(safe-area-inset-top));
+  }
+}
 /* A job's photo is 260px tall from 640 wide: two thirds of a phone held on its side. There it is 9.5rem, so the
    job's name and pay are on the first screen. Unlayered, to win over the layered heights. */
 @media (max-height: 34rem) {
@@ -3727,6 +3754,19 @@ body::after {
 html.sun[data-scroll="down"]:not(:has(.thread-top)) body::after,
 html[data-scroll="down"]:not(:has(.thread-top)) body:has(.staff-band)::after {
   opacity: 0 !important;
+}
+/* The glass across the top has one job: to keep the clock and the top row readable while the page passes under
+   them. With the page at rest at its top nothing is passing, and the glass only got in the way (Caden, Nov 14): it
+   lay over a job's photograph and tinted the buttons on it, and over a page's own buttons near the top. So it shows
+   once the page has left its top (components/ScrollDirection.tsx marks the root) and fades back out when the page
+   returns there. Only opacity changes: the band is never resized or removed. Not the plain bars that stand in for a
+   header (a chat's, the staff band's, Sunlight's): those are surfaces, not glass. */
+.phone-top::before {
+  transition: opacity var(--dur-base) var(--ease-standard);
+}
+html:not([data-scrolled], .sun) .phone-top::before,
+html:not([data-scrolled], .sun) body:not(:has(.staff-band, .thread-top))::after {
+  opacity: 0;
 }
 /* A worker's phone: the pill goes, the glass band it sits on stays (the band is the row's own layer). */
 html[data-scroll="down"]:not(:has(.thread-top)) .phone-top > :not(:focus-visible) {

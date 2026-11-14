@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { SCROLL_JITTER_PX, SCROLL_TOP_PX, clampScroll, scrollDirection } from "./scroll-direction";
+import { SCROLLED_PX, SCROLL_JITTER_PX, SCROLL_TOP_PX, clampScroll, isScrolled, scrollDirection } from "./scroll-direction";
 
 describe("scroll direction for the top row", () => {
   it("is down on a clear move down and up on a clear move up", () => {
@@ -26,6 +26,39 @@ describe("scroll direction for the top row", () => {
     expect(scrollDirection(clampScroll(1040, max), clampScroll(1000, max))).toBeNull();
     expect(clampScroll(-30, max)).toBe(0);
     expect(clampScroll(50, -5)).toBe(0);
+  });
+
+  it("knows when the page has left its top, which is when the glass across the top has something to blur", () => {
+    expect(isScrolled(0)).toBe(false);
+    expect(isScrolled(SCROLLED_PX)).toBe(false);
+    expect(isScrolled(SCROLLED_PX + 1)).toBe(true);
+    // Sooner than the top row steps aside: the glass is there before anything reaches the clock.
+    expect(SCROLLED_PX).toBeLessThan(SCROLL_TOP_PX);
+  });
+
+  it("shows the glass only once the page has left its top, and never resizes or removes it", () => {
+    // Caden, Nov 14: at rest it lay over a job's photograph and the buttons on it, and over pages' own top buttons.
+    const read = (p: string) => readFileSync(join(__dirname, "..", p), "utf8");
+    const component = read("components/ScrollDirection.tsx");
+    expect(component).toMatch(/if \(is\) root\.dataset\.scrolled = "";\s*else delete root\.dataset\.scrolled;/);
+    // A reload restored part-way down has no scroll event to say so: the first read is at mount.
+    expect(component).toMatch(/mark\(last\);\s*window\.addEventListener\("scroll"/);
+    const css = read("app/globals.css");
+    expect(css).toMatch(/\nhtml:not\(\[data-scrolled\], \.sun\) \.phone-top::before,\s*html:not\(\[data-scrolled\], \.sun\) body:not\(:has\(\.staff-band, \.thread-top\)\)::after \{\s*opacity: 0;\s*\}/);
+    expect(css).toMatch(/\n\.phone-top::before \{\s*transition: opacity var\(--dur-base\) var\(--ease-standard\);/);
+    // Nothing keyed on the scroll marks changes a size or takes anything out of the page.
+    expect(css).not.toMatch(/data-scrolled[^{]*\{[^}]*(height:|visibility: hidden|display: none)/);
+    // A worker's job page: the photograph runs under the clock, its buttons below the clock, and the cap waits for a scroll.
+    const at = css.indexOf("body:has(.site-header-worker) .tpl:has(.job-photo-head) {");
+    expect(at).toBeGreaterThan(-1);
+    const block = css.slice(css.lastIndexOf("@media", at), css.indexOf("\n}\n", at));
+    expect(block).toMatch(/^@media \(width < 48rem\) \{/);
+    expect(block).toMatch(/\.tpl:has\(\.job-photo-head\) \{\s*padding-top: 0;/);
+    expect(block).toMatch(/\.job-photo-head \{\s*margin-top: 0;\s*height: calc\(200px \+ env\(safe-area-inset-top\)\);/);
+    expect(block).toMatch(/\.job-head-actions \{\s*top: calc\(1rem \+ env\(safe-area-inset-top\)\);/);
+    expect(block).toMatch(/html:has\(\.site-header-worker\):has\(\.job-photo-head\):not\(\[data-scrolled\]\)::after \{\s*opacity: 0;/);
+    // The short-screen height comes after it, so a phone held on its side keeps the short photograph.
+    expect(css.indexOf("\n@media (max-height: 34rem) {\n  .job-photo-head {")).toBeGreaterThan(at);
   });
 
   it("is wired: the component marks the root, the layout mounts it, and the row hides without leaving the keyboard's reach", () => {

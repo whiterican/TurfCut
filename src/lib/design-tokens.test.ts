@@ -867,7 +867,7 @@ describe("the shell (redesign B1.4)", () => {
     }
     expect(block.match(/\.org-rail:not\(\.staff-rail\)/g)?.length).toBeGreaterThanOrEqual(9);
     // A hero page (the landing, sign in) keeps its photo to the top; a chat keeps its bar there.
-    expect(block).toMatch(/:is\(\.page, \.tpl\):not\(:has\(> \.thread-top\), \[data-template="hero"\], :has\(\.job-head-actions\)\) \{\s*padding-top: 1rem;/);
+    expect(block).toMatch(/:is\(\.page, \.tpl\):not\(:has\(> \.thread-top\), \[data-template="hero"\]\) \{\s*padding-top: 1rem;/);
     // The variable is declared once before, at the root, unlayered: this later one wins.
     expect(css.indexOf("--site-header-h: calc(65px + env(safe-area-inset-top));")).toBeLessThan(at);
     // Everything that sits under the site bar follows this one variable (the rail, a chat's bar, sticky panels).
@@ -905,6 +905,8 @@ describe("the shell (redesign B1.4)", () => {
     // Above the glass band across the top, and nothing keeps clear of a dock at the foot any more.
     expect(block).toMatch(/\n  \.tabbar \{[^}]*z-index: 46;/);
     expect(block).toMatch(/:root \{\s*--dock-clearance: 1\.5rem;/);
+    expect(block).toMatch(/\.page:not\(:has\(> \.thread-top\)\) \{\s*padding-bottom: calc\(2rem \+ env\(safe-area-inset-bottom\)\);/);
+    expect(block).toMatch(/\.job-cta-bar \{\s*bottom: 0;\s*padding-bottom: calc\(0\.5rem \+ env\(safe-area-inset-bottom\)\);/);
     expect(block).toMatch(/:is\(\.page, \.tpl\):not\(:has\(> \.thread-top\), \[data-template="hero"\], :has\(\.job-head-actions\)\) \{\s*padding-top: 1rem;/);
     // After the tuck rule it overrides.
     expect(at).toBeGreaterThan(css.indexOf("transform: translateY(calc(100% + 1.5rem + env(safe-area-inset-bottom)));"));

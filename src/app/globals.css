@@ -3484,8 +3484,8 @@ body:has(.staff-band)::after {
     display: none;
   }
   /* Less air above a page's title: the height is for the page. */
-  /* Not a hero page (the landing, sign in) or a job page: their photo runs to the top. */
-  :is(.page, .tpl):not(:has(> .thread-top), [data-template="hero"], :has(.job-head-actions)) {
+  /* Not a hero page (the landing, sign in): its photo runs to the top. */
+  :is(.page, .tpl):not(:has(> .thread-top), [data-template="hero"]) {
     padding-top: 1rem;
   }
   .org-rail:not(.staff-rail) .rail-link {
@@ -3546,7 +3546,12 @@ body:has(.staff-band)::after {
     --dock-clearance: 1.5rem;
   }
   .page:not(:has(> .thread-top)) {
-    padding-bottom: 2rem;
+    padding-bottom: calc(2rem + env(safe-area-inset-bottom));
+  }
+  /* A job's Apply bar sits on the screen's foot, as it does from 768, with room for the home bar. */
+  .job-cta-bar {
+    bottom: 0;
+    padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));
   }
   .tabbar {
     /* Over the glass band across the top (44), which would tint its first tabs on the shortest screens. */
@@ -3574,6 +3579,7 @@ body:has(.staff-band)::after {
   body:has(.tabbar):not(:has(.thread-top), :has(.staff-band)) {
     padding-left: calc(4.25rem + env(safe-area-inset-left));
   }
+  /* Not a job page either: under 768 its photo is pulled up to the page's top. */
   :is(.page, .tpl):not(:has(> .thread-top), [data-template="hero"], :has(.job-head-actions)) {
     padding-top: 1rem;
   }

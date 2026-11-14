@@ -251,10 +251,10 @@ describe.each([
     // The glass is not its own layer in a page transition: as one, an iPhone drew it as a solid strip over the arriving page's title.
     expect(band).not.toMatch(/view-transition-name:/);
     expect(css).not.toMatch(/phone-band|bar-fade/);
-    expect(css).toMatch(/::view-transition-group\(site-header\),\s*::view-transition-group\(tabbar\),\s*::view-transition-group\(phone-pill\) \{\s*animation: none;\s*z-index: 100;/);
-    expect(css).toMatch(/\.phone-top > \* \{[^}]*?view-transition-name: phone-pill;/);
-    expect(css).not.toMatch(/\.phone-top \{[^}]*?view-transition-name/);
-    expect(css).toMatch(/::view-transition-group\(phone-pill\) \{\s*z-index: 101;/);
+    expect(css).toMatch(/::view-transition-group\(site-header\),\s*::view-transition-group\(tabbar\) \{\s*animation: none;\s*z-index: 100;/);
+    // Nor is the pill: as its own layer an iPhone drew the square of page behind its glass, a box around it on every tab switch.
+    expect(css).not.toMatch(/phone-pill/);
+    expect(css).not.toMatch(/\.phone-top(?: > \*)? \{[^}]*?view-transition-name:/);
     // Shown everywhere but Sunlight and the solid fallback: hidden exactly twice.
     expect(css.match(/\.phone-top::before \{\s*display: none;/g)).toHaveLength(2);
     expect(css).toMatch(/\.phone-top \.menu-button \{\s*z-index: 45;/);

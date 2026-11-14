@@ -3400,9 +3400,16 @@ body:has(.staff-band)::after {
    Messages, where the dock is. (An organization's header keeps its menu button here; a worker's
    menu strip is hidden on a thread, so for a worker the back arrow is the way out.)
    Unlayered, so it wins over the layered .page, .composer and .tabbar rules. */
-@media (max-width: 47.99rem) {
-  body:has(.thread-top) .tabbar {
+@media (max-width: 63.99rem), (max-height: 34rem) {
+  /* A conversation takes the whole screen (Caden, Nov 14), as in any messenger: no dock, no rail, no site bar and
+     no menu strip, on a phone either way up and on a tablet held upright. Its own bar is the top of the screen,
+     and the arrow in its corner goes back to Messages. A wide, tall screen keeps the rail beside it. */
+  body:has(.thread-top) :is(.tabbar, .org-rail, .site-header, .phone-top) {
     display: none;
+  }
+  /* The plain bar that stood in for the site bar behind a chat's own (from 768) goes with it. */
+  body:has(.thread-top)::after {
+    content: none;
   }
   body:has(.thread-top) .composer {
     bottom: 0;
@@ -3431,6 +3438,47 @@ body:has(.staff-band)::after {
      is the root's, near the end of the file). Zero everywhere else. */
   body:has(.thread-top) .thread-top {
     top: env(safe-area-inset-top);
+  }
+  /* Both bars run from one edge of the screen to the other, past the column the messages keep and under a
+     notch at the side (the words in them stay clear of it). */
+  body:has(.thread-top) .page {
+    max-width: none;
+  }
+  /* ...and everything between them keeps the page's column (42rem with its gutters), in the middle. */
+  body:has(.thread-top) .page > :not(.thread-top, .composer) {
+    width: 100%;
+    max-width: calc(42rem - 2 * var(--bar-pad));
+    margin-inline: auto;
+  }
+  body:has(.thread-top) .page {
+    --bar-pad: 1rem;
+  }
+  body:has(.thread-top) :is(.thread-top, .composer) {
+    margin-left: calc(-1 * var(--bar-pad) - env(safe-area-inset-left));
+    margin-right: calc(-1 * var(--bar-pad) - env(safe-area-inset-right));
+    /* What is in a bar lines up with that column on a wide screen. */
+    padding-left: max(calc(var(--bar-pad) + env(safe-area-inset-left)), calc((100vw - 42rem) / 2 + var(--bar-pad)));
+    padding-right: max(calc(var(--bar-pad) + env(safe-area-inset-right)), calc((100vw - 42rem) / 2 + var(--bar-pad)));
+  }
+  @media (min-width: 40rem) {
+    body:has(.thread-top) .page {
+      --bar-pad: 1.5rem;
+    }
+  }
+}
+/* A phone on its side has little height: the two bars give the messages what they can spare. */
+@media (max-height: 34rem) {
+  body:has(.thread-top) .thread-top {
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+  }
+  body:has(.thread-top) .composer {
+    padding-top: 0.375rem;
+    padding-bottom: calc(0.375rem + env(safe-area-inset-bottom));
+  }
+  /* The rows inside it: Tailwind's space-y puts the gap under each row but the last. */
+  body:has(.thread-top) .composer > :not(:last-child) {
+    margin-block-end: 0.25rem;
   }
 }
 @media (max-width: 47.99rem) {

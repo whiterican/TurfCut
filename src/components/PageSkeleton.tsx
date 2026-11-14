@@ -46,6 +46,8 @@ function Rows({ n, avatar = false }: { n: number; avatar?: boolean }) {
 
 interface ShapeOptions {
   heading: boolean;
+  /** A chat: its bar is the page's own (.thread-top), so the shell steps aside while it loads, as it will when it arrives. */
+  chat?: boolean;
   filters: boolean;
   avatars: boolean;
 }
@@ -139,8 +141,8 @@ const SHAPES: Record<SkeletonShape, (o: ShapeOptions) => React.ReactNode> = {
     </>
   ),
   // A conversation or a dispute: who, a few bubbles, the composer.
-  thread: () => (
-    <>
+  thread: (o) => {
+    const who = (
       <div className="flex items-center gap-3">
         <Bar className="size-10 rounded-full" />
         <div className="flex-1 space-y-2">
@@ -148,16 +150,22 @@ const SHAPES: Record<SkeletonShape, (o: ShapeOptions) => React.ReactNode> = {
           <Bar className="h-3 w-24" />
         </div>
       </div>
-      <div className="space-y-3">
-        {(["w-3/5", "w-2/5", "w-2/3", "w-1/3"] as const).map((w, i) => (
-          <div key={i} className={`flex ${i % 2 ? "justify-end" : ""}`}>
-            <Bar className={`h-10 ${w}`} />
-          </div>
-        ))}
-      </div>
-      <Bar className="h-40 w-full rounded-[var(--radius-card)]" />
-    </>
-  ),
+    );
+    return (
+      <>
+        {/* A chat's bar is its own (.thread-top): the row sits inside it, as the page's header does. */}
+        {o.chat ? <div className="thread-top">{who}</div> : who}
+        <div className="space-y-3">
+          {(["w-3/5", "w-2/5", "w-2/3", "w-1/3"] as const).map((w, i) => (
+            <div key={i} className={`flex ${i % 2 ? "justify-end" : ""}`}>
+              <Bar className={`h-10 ${w}`} />
+            </div>
+          ))}
+        </div>
+        <Bar className="h-40 w-full rounded-[var(--radius-card)]" />
+      </>
+    );
+  },
   // Inboxes, notices, statements, admin queues: a list of rows (with a face per row for people).
   list: (o) => (
     <>
@@ -184,6 +192,7 @@ export function PageSkeleton({
   framed = true,
   filters = true,
   avatars = false,
+  chat = false,
   template,
   panel = false,
   org = false,
@@ -210,6 +219,8 @@ export function PageSkeleton({
   filters?: boolean;
   /** Lists: a face on each row (inboxes, members). */
   avatars?: boolean;
+  /** With shape "thread": a conversation, whose bar is the top of the screen. */
+  chat?: boolean;
 }) {
   if (template && framed) {
     const side = (
@@ -224,7 +235,7 @@ export function PageSkeleton({
       </Frame>
     );
   }
-  const body = SHAPES[shape]({ heading: framed, filters, avatars });
+  const body = SHAPES[shape]({ heading: framed, filters, avatars, chat });
   const rhythm = gap ? GAP[gap] : "";
   if (!framed) {
     return (

@@ -416,6 +416,10 @@ html {
   /* The header's fixed height in px, its 1px border included (.site-header-bar), plus the phone's own strip above
      it: an installed iPhone app draws the page under the clock, and the header's row starts below that. */
   --site-header-h: calc(65px + env(safe-area-inset-top));
+  /* The sidebar's width and top padding (.org-rail: w-[220px], pt-6), named for the rules that run it to the top of
+     the screen and start the bar's glass at its edge. A short screen's icon strip renames them. */
+  --rail-w: 220px;
+  --rail-top: 1.5rem;
   --inspector-w: 24rem;
   --dock-clearance: calc(6rem + env(safe-area-inset-bottom));
 }
@@ -497,12 +501,15 @@ html[data-text="xl"] {
    With no gradient (Sunlight, a chat, reduced transparency) it is the plain page colour: --page-top is the
    page colour there. Its own colour is the top colour on purpose: an installed app on an iPhone may take the
    status bar strip's colour from whatever is fixed across the top of the screen, and this is. Taller than
-   the screen where a phone's browser bars come and go, so the foot never shows a gap. */
+   the screen where a phone's browser bars come and go, so the foot never shows a gap. And 6rem taller again:
+   an iPhone can count the screen short at the foot (the installed app on a page too short to scroll; Safari
+   under its floating address bar), and the strip left over showed the root's top colour as a band across the
+   bottom (Caden's recordings, Nov 14). */
 body::before {
   content: "";
   position: fixed;
   inset: 0;
-  min-height: 100lvh;
+  min-height: calc(100lvh + 6rem);
   z-index: -1;
   pointer-events: none;
   background: var(--page-wash) no-repeat, var(--page-top);
@@ -783,6 +790,8 @@ body {
   .hero-split {
     @apply flex flex-1 flex-col;
   }
+  /* The dark band is back at every width (Caden, Nov 14, later the same day: put the sign-in page back as it was
+     that morning). */
   .hero-split-art {
     @apply flex flex-row items-center justify-start gap-3 px-6 py-5 sm:px-10;
     background: var(--shell-bg);
@@ -2611,6 +2620,10 @@ body {
      up is still seen but cannot be read, down to just under the button's row and feathered out from there.
      The very top is the page colour itself (Caden's iPhone, Nov 12): the phone's status strip above the page is
      that colour, and anything showing through at the edge drew a line under it. */
+  /* The glass is the page's solid colour all the way down the strip the phone keeps for its clock, and only fades
+     below that (Caden, Nov 14: a faint line under the clock). Before, it began to thin out part-way down the strip,
+     and the cap under the clock (html::after), solid to the strip's foot, showed through as an edge there. With no
+     strip (a browser tab, a desktop) these are the same stops as before: 30%, 65% and 22% of the height. */
   .phone-top::before {
     content: "";
     position: fixed;
@@ -2618,11 +2631,11 @@ body {
     height: calc(5.25rem + env(safe-area-inset-top));
     z-index: 44;
     pointer-events: none;
-    background: linear-gradient(to bottom, var(--page-top) 0%, color-mix(in srgb, var(--page-top) 80%, transparent) 30%, color-mix(in srgb, var(--page-top) 34%, transparent) 65%, transparent 100%);
+    background: linear-gradient(to bottom, var(--page-top) 0, var(--page-top) env(safe-area-inset-top), color-mix(in srgb, var(--page-top) 80%, transparent) calc(env(safe-area-inset-top) + (100% - env(safe-area-inset-top)) * 0.3), color-mix(in srgb, var(--page-top) 34%, transparent) calc(env(safe-area-inset-top) + (100% - env(safe-area-inset-top)) * 0.65), transparent 100%);
     -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
-    -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 22%, transparent 100%);
-    mask-image: linear-gradient(to bottom, #000 0%, #000 22%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, #000 0, #000 calc(env(safe-area-inset-top) + (100% - env(safe-area-inset-top)) * 0.22), transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 0, #000 calc(env(safe-area-inset-top) + (100% - env(safe-area-inset-top)) * 0.22), transparent 100%);
     /* Not named for page transitions (Caden's iPhone recording, Nov 13): as its own layer the glass was drawn over the
        arriving page, and cut the top off the page's title while it rose in. Unnamed, it stays where it is, under the
        arriving and leaving pages (each page is its own layer: components/PageTransition.tsx). The cost: for the 120ms
@@ -3367,11 +3380,11 @@ summary.list-none::-webkit-details-marker {
     height: calc(var(--site-header-h) + 1.5rem);
     z-index: 44;
     pointer-events: none;
-    background: linear-gradient(to bottom, var(--page-top) 0%, color-mix(in srgb, var(--page-top) 80%, transparent) 30%, color-mix(in srgb, var(--page-top) 34%, transparent) 65%, transparent 100%);
+    background: linear-gradient(to bottom, var(--page-top) 0, var(--page-top) env(safe-area-inset-top), color-mix(in srgb, var(--page-top) 80%, transparent) calc(env(safe-area-inset-top) + (100% - env(safe-area-inset-top)) * 0.3), color-mix(in srgb, var(--page-top) 34%, transparent) calc(env(safe-area-inset-top) + (100% - env(safe-area-inset-top)) * 0.65), transparent 100%);
     -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
-    -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 22%, transparent 100%);
-    mask-image: linear-gradient(to bottom, #000 0%, #000 22%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, #000 0, #000 calc(env(safe-area-inset-top) + (100% - env(safe-area-inset-top)) * 0.22), transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 0, #000 calc(env(safe-area-inset-top) + (100% - env(safe-area-inset-top)) * 0.22), transparent 100%);
   }
   /* A chat pins its own bar right under this one: no fade over it, and no gradient to fade into. */
   body:has(.org-rail):has(.thread-top)::after,
@@ -3386,6 +3399,28 @@ summary.list-none::-webkit-details-marker {
   /* A chat thread pins its own bar: under the header here, not over it. */
   body:has(.org-rail) .thread-top {
     top: var(--site-header-h);
+  }
+}
+/* The sidebar is a pane of glass, and it runs to the very top of the screen, as the menu drawer does (Caden,
+   Nov 14: its top edge drew a line under the site's mark, and the corner above it had no glass). The site's mark
+   sits on it; the bar's glass, which blurs the page as it scrolls, begins at the sidebar's edge and no longer lies
+   over the sidebar, which does not scroll. Not Sunlight (a black frame under a plain bar), not a chat beside the
+   sidebar or the staff console (plain bars across the whole top), and not the staff console's own sidebar. Not a
+   phone held on its side either: there the sidebar is a 4rem strip of icons, and the site's name would run across
+   its edge. */
+@media (width >= 48rem) and (min-height: 34.01rem) {
+  html:not(.sun) body:not(:has(.thread-top, .staff-band)) .org-rail:not(.staff-rail) {
+    top: 0;
+    height: 100dvh;
+    margin-top: calc(-1 * var(--site-header-h));
+    padding-top: calc(var(--site-header-h) + var(--rail-top));
+  }
+  /* Past the sidebar, wherever the centred workspace puts it, and past a notch at the side: the bar's glass, and
+     the cap under a tablet's clock, which would otherwise lay the page's colour across the sidebar's top. */
+  html:not(.sun) body:has(.org-rail:not(.staff-rail)):not(:has(.thread-top, .staff-band))::after,
+  html:not(.sun):has(.org-rail:not(.staff-rail)):not(:has(.thread-top, .staff-band))::after {
+    /* 100% of the screen without a scrollbar's width (these layers are fixed), which is what the workspace centres in. */
+    left: calc(env(safe-area-inset-left) + max(0px, (100% - env(safe-area-inset-left) - env(safe-area-inset-right) - var(--workspace-max)) / 2) + var(--rail-w));
   }
 }
 /* Wider than the workspace the shell centres, so the rail's left side meets the
@@ -3594,6 +3629,95 @@ body:has(.staff-band)::after {
     padding-top: 1rem;
   }
 }
+/* A job's own page on a phone has no site bar and no menu strip (Caden, Nov 14): they took a fifth of the screen,
+   and the arrow on the photograph is the way back to everything they held. So the photograph runs to the very
+   top of the screen, under the clock (white there in every mode), with the page's buttons on it below the
+   clock. For everyone, a worker or an organization alike.
+
+   Two panes share the top of that screen, one at a time (Caden, Nov 14):
+   - over the photograph, clear glass under the clock: a light blur and a breath of shade, no colour of the page's,
+     so the time and battery read on any picture and the picture still shows through;
+   - once the photograph has passed under it (components/ScrollDirection.tsx marks the root), the page's own
+     glass, the gradient that every other page has, so text never passes behind the clock.
+   They cross-fade. Sunlight has neither: its plain cap under the clock (html::after) stays. */
+@media (width < 48rem) {
+  body:has(.job-photo-head) :is(.site-header, .phone-top) {
+    display: none;
+  }
+  body:has(.job-photo-head) .tpl:has(.job-photo-head) {
+    padding-top: 0;
+  }
+  body:has(.job-photo-head) .job-photo-head {
+    margin-top: 0;
+  }
+  body:has(.job-photo-head) .job-head-actions {
+    top: calc(1rem + env(safe-area-inset-top));
+  }
+  /* The clear pane. Fixed to the screen, so it stays under the clock while the photograph moves beneath it. It
+     is strongest under the clock and feathers away well below it (Caden, Nov 14: stronger, and not a straight bar
+     across the picture), so it has no foot to see. No height where the phone keeps no strip. The page's buttons
+     stand above it, sharp. */
+  html:not(.sun) .job-photo-head::after {
+    content: "";
+    position: fixed;
+    inset: 0 0 auto;
+    height: calc(env(safe-area-inset-top) * 2.4);
+    z-index: 43;
+    pointer-events: none;
+    background: linear-gradient(to bottom, rgb(0 0 0 / 0.34) 0%, rgb(0 0 0 / 0.22) 35%, rgb(0 0 0 / 0.08) 70%, transparent 100%);
+    -webkit-backdrop-filter: blur(18px) saturate(1.4);
+    backdrop-filter: blur(18px) saturate(1.4);
+    -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 30%, rgb(0 0 0 / 0.72) 48%, rgb(0 0 0 / 0.4) 66%, rgb(0 0 0 / 0.15) 84%, transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 0%, #000 30%, rgb(0 0 0 / 0.72) 48%, rgb(0 0 0 / 0.4) 66%, rgb(0 0 0 / 0.15) 84%, transparent 100%);
+    transition: opacity var(--dur-base) var(--ease-standard);
+  }
+  body:has(.job-photo-head) .job-head-actions {
+    z-index: 44;
+  }
+  html:not(.sun)[data-past-photo] .job-photo-head::after {
+    opacity: 0;
+  }
+  /* The page's glass, for when the photograph has gone by. Heavier than the headers' own rules for this layer
+     (four classes with the root's against their three), so its height is this one, not that of a header that is
+     hidden here. */
+  html:not(.sun) body:has(.job-photo-head):has(.tpl):not(:has(.thread-top))::after {
+    content: "";
+    position: fixed;
+    inset: 0 0 auto;
+    height: calc(env(safe-area-inset-top) + 2.25rem);
+    z-index: 44;
+    pointer-events: none;
+    background: linear-gradient(to bottom, var(--page-top) 0, var(--page-top) env(safe-area-inset-top), color-mix(in srgb, var(--page-top) 80%, transparent) calc(env(safe-area-inset-top) + (100% - env(safe-area-inset-top)) * 0.3), color-mix(in srgb, var(--page-top) 34%, transparent) calc(env(safe-area-inset-top) + (100% - env(safe-area-inset-top)) * 0.65), transparent 100%);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    -webkit-mask-image: linear-gradient(to bottom, #000 0, #000 calc(env(safe-area-inset-top) + (100% - env(safe-area-inset-top)) * 0.22), transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 0, #000 calc(env(safe-area-inset-top) + (100% - env(safe-area-inset-top)) * 0.22), transparent 100%);
+    opacity: 0;
+  }
+  html:not(.sun)[data-past-photo] body:has(.job-photo-head):has(.tpl):not(:has(.thread-top))::after {
+    opacity: 1;
+  }
+  /* Sunlight: no pane of either kind, only its cap. */
+  html.sun body:has(.job-photo-head):has(.tpl):not(:has(.thread-top))::after {
+    content: none;
+  }
+  /* The two panes stand in for the cap under the clock on this page. */
+  html:not(.sun):has(.job-photo-head)::after {
+    opacity: 0;
+  }
+}
+/* Taller by the clock's strip, so as much photograph shows as before. Not on a short screen (a phone held on its
+   side), where the short photograph below stands: these are more specific than it and would win. */
+@media (width < 40rem) and (min-height: 34.01rem) {
+  body:has(.job-photo-head) .job-photo-head {
+    height: calc(200px + env(safe-area-inset-top));
+  }
+}
+@media (width >= 40rem) and (width < 48rem) and (min-height: 34.01rem) {
+  body:has(.job-photo-head) .job-photo-head {
+    height: calc(260px + env(safe-area-inset-top));
+  }
+}
 /* A job's photo is 260px tall from 640 wide: two thirds of a phone held on its side. There it is 9.5rem, so the
    job's name and pay are on the first screen. Unlayered, to win over the layered heights. */
 @media (max-height: 34rem) {
@@ -3646,11 +3770,11 @@ body:has(.staff-band)::after {
     height: calc(var(--site-header-h) + 1.5rem);
     z-index: 44;
     pointer-events: none;
-    background: linear-gradient(to bottom, var(--page-top) 0%, color-mix(in srgb, var(--page-top) 80%, transparent) 30%, color-mix(in srgb, var(--page-top) 34%, transparent) 65%, transparent 100%);
+    background: linear-gradient(to bottom, var(--page-top) 0, var(--page-top) env(safe-area-inset-top), color-mix(in srgb, var(--page-top) 80%, transparent) calc(env(safe-area-inset-top) + (100% - env(safe-area-inset-top)) * 0.3), color-mix(in srgb, var(--page-top) 34%, transparent) calc(env(safe-area-inset-top) + (100% - env(safe-area-inset-top)) * 0.65), transparent 100%);
     -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
-    -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 22%, transparent 100%);
-    mask-image: linear-gradient(to bottom, #000 0%, #000 22%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, #000 0, #000 calc(env(safe-area-inset-top) + (100% - env(safe-area-inset-top)) * 0.22), transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 0, #000 calc(env(safe-area-inset-top) + (100% - env(safe-area-inset-top)) * 0.22), transparent 100%);
   }
   /* Sunlight has no blur and no see-through: a plain bar. */
   .sun body:has(.site-header:not(.site-header-worker)):not(:has(.thread-top))::after {
@@ -3727,6 +3851,19 @@ body::after {
 html.sun[data-scroll="down"]:not(:has(.thread-top)) body::after,
 html[data-scroll="down"]:not(:has(.thread-top)) body:has(.staff-band)::after {
   opacity: 0 !important;
+}
+/* The glass across the top has one job: to keep the clock and the top row readable while the page passes under
+   them. With the page at rest at its top nothing is passing, and the glass only got in the way (Caden, Nov 14): it
+   lay over a job's photograph and tinted the buttons on it, and over a page's own buttons near the top. So it shows
+   once the page has left its top (components/ScrollDirection.tsx marks the root) and fades back out when the page
+   returns there. Only opacity changes: the band is never resized or removed. Not the plain bars that stand in for a
+   header (a chat's, the staff band's, Sunlight's): those are surfaces, not glass. */
+.phone-top::before {
+  transition: opacity var(--dur-base) var(--ease-standard);
+}
+html:not([data-scrolled], .sun) .phone-top::before,
+html:not([data-scrolled], .sun) body:not(:has(.staff-band, .thread-top))::after {
+  opacity: 0;
 }
 /* A worker's phone: the pill goes, the glass band it sits on stays (the band is the row's own layer). */
 html[data-scroll="down"]:not(:has(.thread-top)) .phone-top > :not(:focus-visible) {
@@ -4161,6 +4298,19 @@ body {
     overscroll-behavior-y: contain;
   }
 }
+/* An installed iPhone app that draws under the clock can count its screen short when the page is too short to
+   scroll: the dock then sat higher than on a long page and jumped between tabs (Caden's recording, Nov 14). A
+   page one pixel taller than the count can always scroll, which is what a long page has that a short one lacks.
+   One pixel, not the clock strip's height: if this is not the cure, a page that moves by a pixel hides no
+   header and shifts nothing. iPhones and iPads only (the @supports), and not a chat, which has no dock and
+   opens at its foot. Not checked on a phone from here. */
+@supports (-webkit-touch-callout: none) {
+  @media (display-mode: standalone) {
+    html:not(:has(.thread-top)) {
+      min-height: calc(100% + 1px);
+    }
+  }
+}
 /* The sheet springs up when it opens (components/Sheet.tsx): the one place the
    spring's small overshoot is used, because a sheet is a physical thing landing.
    Status (the connection pill, button check faces) eases out without it. */
@@ -4308,6 +4458,36 @@ body {
   html:not(.sun) .more-sheet .rail-link:is([aria-current], :active) {
     background: var(--dock-capsule);
     box-shadow: none;
+  }
+  /* A job's page on a phone: no blur to lean on, so the pane over the photograph is plain shade, and the one
+     after it is the page's plain colour. */
+  html:not(.sun) .job-photo-head::after {
+    background: rgb(0 0 0 / 0.5);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+  @media (width < 48rem) {
+    html:not(.sun) body:has(.job-photo-head):has(.tpl):not(:has(.thread-top))::after {
+      height: env(safe-area-inset-top);
+      background: var(--bg);
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+      -webkit-mask-image: none;
+      mask-image: none;
+    }
+    /* That strip is all that keeps text from passing behind the clock, and the page has no top row for it to leave
+       with: it stays on the way down as on the way up (the rule below hides a header's bar with its row). Only on
+       a phone: wider, a job's page keeps its header and that rule is right. */
+    html[data-past-photo]:not(.sun) body:has(.job-photo-head):has(.tpl):not(:has(.thread-top))::after {
+      opacity: 1 !important;
+    }
+  }
+  /* Here the bar is a plain surface, like Sunlight's, not glass: it does not wait for the page to leave its top.
+     One class more specific than the rule that hides the glass at rest (the second :not() is only that class). */
+  html:not([data-scrolled], .sun) body:not(:has(.staff-band, .thread-top)):not(.x)::after {
+    opacity: 1;
   }
   /* The plain bar behind the row goes with the row. */
   html[data-scroll="down"]:not(:has(.thread-top)) body::after {

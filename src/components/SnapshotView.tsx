@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import type { HiringSnapshot } from "@/lib/engagements";
 import { FitSignals } from "@/components/FitSignals";
 import { RelativeTime } from "@/components/RelativeTime";
@@ -53,7 +54,8 @@ export function SnapshotView({ snapshot }: { snapshot: HiringSnapshot }) {
           <Row label="Verified work">{s.shared && !s.shared.history ? <NotSharedChip what="hours and history" /> : "No verified shifts yet"}</Row>
         ) : (
           s.segments.map((seg) => (
-            <div key={seg.workType} className="contents">
+            // A fragment, not a wrapper: inside a description list only one div may stand between the list and its terms (Row is that one).
+            <Fragment key={seg.workType}>
               <Row label={seg.workType === "PETITION" ? "Petitioning" : "Canvassing"}>
                 {seg.shiftsCount === null || seg.activeHours === null ? (
                   <NotSharedChip what="hours and history" />
@@ -71,7 +73,7 @@ export function SnapshotView({ snapshot }: { snapshot: HiringSnapshot }) {
                     </Row>
                   );
                 })}
-            </div>
+            </Fragment>
           ))
         )}
       </dl>

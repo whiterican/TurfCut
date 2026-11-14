@@ -229,7 +229,7 @@ describe.each([
     // (it would cover the layer), the root carries the top colour (overscroll, and an installed app's status bar strip),
     // and the layer's own colour is the top colour too. Where there is no gradient, the top colour is the page colour.
     expect(css).toMatch(/\nhtml \{[^}]*?\n  background: var\(--page-top\);/);
-    expect(css).toMatch(/\nbody::before \{\s*content: "";\s*position: fixed;\s*inset: 0;\s*min-height: 100lvh;\s*z-index: -1;\s*pointer-events: none;\s*background: var\(--page-wash\) no-repeat, var\(--page-top\);\s*\}/);
+    expect(css).toMatch(/\nbody::before \{\s*content: "";\s*position: fixed;\s*inset: 0;\s*min-height: calc\(100lvh \+ 6rem\);\s*z-index: -1;\s*pointer-events: none;\s*background: var\(--page-wash\) no-repeat, var\(--page-top\);\s*\}/);
     expect(css.slice(css.indexOf("\nbody {"), css.indexOf("}", css.indexOf("\nbody {")))).not.toMatch(/background/);
     expect(css).toMatch(/\nbody:has\(\.thread-top\) \{\s*--page-wash: none;\s*--page-top: var\(--bg\);\s*\}/);
     // A page with a header across the top takes the header's pane for the strip; a chat the plain page colour. Both as

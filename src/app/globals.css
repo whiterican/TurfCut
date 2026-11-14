@@ -501,12 +501,15 @@ html[data-text="xl"] {
    With no gradient (Sunlight, a chat, reduced transparency) it is the plain page colour: --page-top is the
    page colour there. Its own colour is the top colour on purpose: an installed app on an iPhone may take the
    status bar strip's colour from whatever is fixed across the top of the screen, and this is. Taller than
-   the screen where a phone's browser bars come and go, so the foot never shows a gap. */
+   the screen where a phone's browser bars come and go, so the foot never shows a gap. And 6rem taller again:
+   an iPhone can count the screen short at the foot (the installed app on a page too short to scroll; Safari
+   under its floating address bar), and the strip left over showed the root's top colour as a band across the
+   bottom (Caden's recordings, Nov 14). */
 body::before {
   content: "";
   position: fixed;
   inset: 0;
-  min-height: 100lvh;
+  min-height: calc(100lvh + 6rem);
   z-index: -1;
   pointer-events: none;
   background: var(--page-wash) no-repeat, var(--page-top);
@@ -4293,6 +4296,12 @@ body {
 @media (display-mode: standalone) {
   html {
     overscroll-behavior-y: contain;
+    /* An installed iPhone app that draws under the clock can count its screen short by the clock strip's height
+       when the page is too short to scroll: the dock then sat that much higher than on a long page and jumped
+       between tabs (Caden's recording, Nov 14). A page always at least that much taller than the count does not
+       hit it. Nothing changes where the strip is 0 (every browser tab, every desktop). Not checked on a phone
+       from here. */
+    min-height: calc(100% + env(safe-area-inset-top));
   }
 }
 /* The sheet springs up when it opens (components/Sheet.tsx): the one place the

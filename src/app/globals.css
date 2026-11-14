@@ -3403,8 +3403,10 @@ summary.list-none::-webkit-details-marker {
    Nov 14: its top edge drew a line under the site's mark, and the corner above it had no glass). The site's mark
    sits on it; the bar's glass, which blurs the page as it scrolls, begins at the sidebar's edge and no longer lies
    over the sidebar, which does not scroll. Not Sunlight (a black frame under a plain bar), not a chat beside the
-   sidebar or the staff console (plain bars across the whole top), and not the staff console's own sidebar. */
-@media (width >= 48rem) {
+   sidebar or the staff console (plain bars across the whole top), and not the staff console's own sidebar. Not a
+   phone held on its side either: there the sidebar is a 4rem strip of icons, and the site's name would run across
+   its edge. */
+@media (width >= 48rem) and (min-height: 34.01rem) {
   html:not(.sun) body:not(:has(.thread-top, .staff-band)) .org-rail:not(.staff-rail) {
     top: 0;
     height: 100dvh;
@@ -3415,7 +3417,8 @@ summary.list-none::-webkit-details-marker {
      the cap under a tablet's clock, which would otherwise lay the page's colour across the sidebar's top. */
   html:not(.sun) body:has(.org-rail:not(.staff-rail)):not(:has(.thread-top, .staff-band))::after,
   html:not(.sun):has(.org-rail:not(.staff-rail)):not(:has(.thread-top, .staff-band))::after {
-    left: calc(env(safe-area-inset-left) + max(0px, (100vw - env(safe-area-inset-left) - env(safe-area-inset-right) - var(--workspace-max)) / 2) + var(--rail-w));
+    /* 100% of the screen without a scrollbar's width (these layers are fixed), which is what the workspace centres in. */
+    left: calc(env(safe-area-inset-left) + max(0px, (100% - env(safe-area-inset-left) - env(safe-area-inset-right) - var(--workspace-max)) / 2) + var(--rail-w));
   }
 }
 /* Wider than the workspace the shell centres, so the rail's left side meets the
@@ -3514,9 +3517,6 @@ body:has(.staff-band)::after {
 @media (max-height: 34rem) and (min-width: 48rem) {
   :root {
     --site-header-h: calc(49px + env(safe-area-inset-top));
-    /* The icon strip's width and top padding, for the rules that run the sidebar to the top of the screen. */
-    --rail-w: 4rem;
-    --rail-top: 0.5rem;
   }
   .org-rail:not(.staff-rail) {
     width: 4rem;

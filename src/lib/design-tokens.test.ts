@@ -852,6 +852,66 @@ describe("the shell (redesign B1.4)", () => {
     expect(css).toMatch(/body:has\(\.thread-top\):not\(:has\(\.composer\)\) \.page \{\s*padding-bottom: calc\(2rem \+ env\(safe-area-inset-bottom\)\);/);
   });
 
+  it("a phone on its side gets a thin site bar and a sidebar of icons, so the page has the screen", () => {
+    // Caden, Nov 14: landscape on a phone was the desktop's shell in a 393px-tall window.
+    const at = css.indexOf("@media (max-height: 34rem) and (min-width: 48rem) {");
+    expect(at).toBeGreaterThan(-1);
+    const end = css.indexOf("\n}\n", at);
+    expect(end).toBeGreaterThan(at);
+    const block = css.slice(at, end);
+    // The staff console's sidebar is words with no icons: every rule here leaves it alone.
+    const rules = block.match(/^  [^\n{}]*\.(org-rail|rail-)[^\n{]*[{,]$/gm) ?? [];
+    expect(rules.length).toBeGreaterThan(8);
+    for (const rule of rules) {
+      if (!rule.includes(".org-rail-extra")) expect(rule, rule).toContain(".org-rail:not(.staff-rail)");
+    }
+    expect(block.match(/\.org-rail:not\(\.staff-rail\)/g)?.length).toBeGreaterThanOrEqual(9);
+    // A hero page (the landing, sign in) keeps its photo to the top; a chat keeps its bar there.
+    expect(block).toMatch(/:is\(\.page, \.tpl\):not\(:has\(> \.thread-top\), \[data-template="hero"\]\) \{\s*padding-top: 1rem;/);
+    // The variable is declared once before, at the root, unlayered: this later one wins.
+    expect(css.indexOf("--site-header-h: calc(65px + env(safe-area-inset-top));")).toBeLessThan(at);
+    // Everything that sits under the site bar follows this one variable (the rail, a chat's bar, sticky panels).
+    expect(block).toMatch(/:root \{\s*--site-header-h: calc\(49px \+ env\(safe-area-inset-top\)\);/);
+    expect(block).toMatch(/\.org-rail:not\(\.staff-rail\) \{\s*width: 4rem;/);
+    // A link's name is still there for a screen reader: clipped, never display: none.
+    const label = block.slice(block.indexOf(".org-rail:not(.staff-rail) .rail-label {"));
+    expect(label.slice(0, label.indexOf("}"))).toMatch(/clip-path: inset\(50%\);/);
+    expect(label.slice(0, label.indexOf("}"))).not.toMatch(/display: none|visibility: hidden/);
+    // Who is signed in steps aside (the site bar's menu has it); a worker's Sign out stays, and an empty foot goes.
+    expect(block).toMatch(/\.org-rail-head,\s*\.org-rail:not\(\.staff-rail\) \.org-rail-who \{\s*display: none;/);
+    expect(block).toMatch(/\.org-rail-foot:not\(:has\(\.org-rail-extra\)\) \{\s*display: none;/);
+    expect(block.indexOf(".org-rail:not(.staff-rail) .rail-label {")).toBeGreaterThan(-1);
+    expect(block).not.toMatch(/\n  \.org-rail-extra[^{]*\{[^}]*display: none/);
+    // Touch targets stay 40px tall.
+    expect(block).toMatch(/\.org-rail:not\(\.staff-rail\) \.rail-link \{[^}]*min-height: 2\.5rem;/);
+    const nav = readFileSync(join(__dirname, "../components/AppNav.tsx"), "utf8");
+    expect(nav).toContain('className="rail-label flex-1"');
+    // Icons alone need a name a pointer can find.
+    expect(nav).toContain('<Link href={t.href} title={t.label} className="rail-link"');
+    expect(nav).toContain('className="org-rail-extra pt-3"');
+  });
+
+  it("a small phone on its side stands the dock down the left edge, clear of the page", () => {
+    // Under 768 wide the phone's shell applies: the dock floated across the middle of a 375px-tall page.
+    const at = css.indexOf("@media (max-height: 34rem) and (min-width: 30rem) and (max-width: 47.99rem) and (orientation: landscape) {");
+    expect(at).toBeGreaterThan(-1);
+    const block = css.slice(at, css.indexOf("\n}\n", at));
+    expect(block).toMatch(/\n  \.tabbar \{[^}]*top: 50%;[^}]*left: calc\(0\.5rem \+ env\(safe-area-inset-left\)\);[^}]*translate: 0 -50%;/);
+    expect(block).toMatch(/\.tabbar > div \{\s*flex-direction: column;/);
+    // It covers nothing, so it does not tuck away on a scroll (the tuck slides it down, which here would be across the page).
+    expect(block).toMatch(/\.tabbar\[data-tucked\]:not\(:has\(:focus-visible\)\) \{\s*transform: none;/);
+    // The page moves over for it; a chat has no dock and keeps the full width.
+    expect(block).toMatch(/body:has\(\.tabbar\):not\(:has\(\.thread-top\), :has\(\.staff-band\)\) \{\s*padding-left: calc\(4\.25rem \+ env\(safe-area-inset-left\)\);/);
+    // Above the glass band across the top, and nothing keeps clear of a dock at the foot any more.
+    expect(block).toMatch(/\n  \.tabbar \{[^}]*z-index: 46;/);
+    expect(block).toMatch(/:root \{\s*--dock-clearance: 1\.5rem;/);
+    expect(block).toMatch(/\.page:not\(:has\(> \.thread-top\)\) \{\s*padding-bottom: calc\(2rem \+ env\(safe-area-inset-bottom\)\);/);
+    expect(block).toMatch(/\.job-cta-bar \{\s*bottom: 0;\s*padding-bottom: calc\(0\.5rem \+ env\(safe-area-inset-bottom\)\);/);
+    expect(block).toMatch(/:is\(\.page, \.tpl\):not\(:has\(> \.thread-top\), \[data-template="hero"\], :has\(\.job-head-actions\)\) \{\s*padding-top: 1rem;/);
+    // After the tuck rule it overrides.
+    expect(at).toBeGreaterThan(css.indexOf("transform: translateY(calc(100% + 1.5rem + env(safe-area-inset-bottom)));"));
+  });
+
   it("every box that stands on the page has the card's weight; a box inside another stays flat", () => {
     // Caden, Nov 12: tiles, work cards, choice lists, option cards and empty states were flat beside the cards.
     const boxes = "\\.work-card, \\.shift-card, \\.turf-card, \\.need-tile, \\.stat, \\.stat-tile, \\.summary-item, \\.choice-list, \\.option-card, \\.empty-state, \\.overview-map";

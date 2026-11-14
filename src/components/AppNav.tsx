@@ -141,9 +141,10 @@ export function OrgRail({ tabs, orgName, approved = null, person, foot }: { tabs
         <ul className="space-y-0.5">
           {tabs.map((t) => (
             <li key={t.href}>
-              <Link href={t.href} className="rail-link" aria-current={currentAttr(t.href, current, pathname)}>
+              <Link href={t.href} title={t.label} className="rail-link" aria-current={currentAttr(t.href, current, pathname)}>
                 <Icon of={iconFor(t)} className="size-4 shrink-0" />
-                <span className="flex-1">{t.label}</span>
+                {/* On a short screen the rail is icons only (globals.css): the name stays for a screen reader, and the title for a pointer. */}
+                <span className="rail-label flex-1">{t.label}</span>
                 {t.href === MESSAGES_HREF && <Badge count={count} />}
                 {t.href === MESSAGES_HREF && count > 0 && <span className="sr-only">, {count} unread</span>}
               </Link>
@@ -152,15 +153,15 @@ export function OrgRail({ tabs, orgName, approved = null, person, foot }: { tabs
         </ul>
       </nav>
       <div className="org-rail-foot">
-        <p className="org-rail-status">Signed in as</p>
-        <div className="flex items-center gap-2.5">
+        <p className="org-rail-status org-rail-who">Signed in as</p>
+        <div className="org-rail-who flex items-center gap-2.5">
           {person.photo && <PersonPhoto photo={person.photo} initial={person.name[0]?.toUpperCase()} />}
           <div className="min-w-0">
             <p className="truncate font-semibold" title={person.name}>{person.name}</p>
             <p className="truncate org-rail-status">{person.role}</p>
           </div>
         </div>
-        {foot && <div className="pt-3">{foot}</div>}
+        {foot && <div className="org-rail-extra pt-3">{foot}</div>}
       </div>
     </aside>
   );

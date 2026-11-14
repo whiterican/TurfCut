@@ -3466,6 +3466,124 @@ body:has(.staff-band)::after {
     }
   }
 }
+/* A phone on its side (Caden, Nov 14). It is wide enough for the desktop's shell and far too short for it: the
+   site bar and a 220px sidebar left the page a small window. Here the bar is thinner and the sidebar is a strip
+   of icons (each link keeps its name for a screen reader), so the page has most of the screen. Who is signed in
+   is not shown at this size; a worker's Sign out stays, as its icon. The staff console's sidebar is words, not
+   icons, and keeps its width. Unlayered, to win over the layered shell. */
+@media (max-height: 34rem) and (min-width: 48rem) {
+  :root {
+    --site-header-h: calc(49px + env(safe-area-inset-top));
+  }
+  .org-rail:not(.staff-rail) {
+    width: 4rem;
+    padding: 0.5rem 0.5rem calc(0.5rem + env(safe-area-inset-bottom));
+  }
+  .org-rail:not(.staff-rail) .org-rail-head,
+  .org-rail:not(.staff-rail) .org-rail-who {
+    display: none;
+  }
+  /* Less air above a page's title: the height is for the page. */
+  /* Not a hero page (the landing, sign in): its photo runs to the top. */
+  :is(.page, .tpl):not(:has(> .thread-top), [data-template="hero"]) {
+    padding-top: 1rem;
+  }
+  .org-rail:not(.staff-rail) .rail-link {
+    position: relative;
+    min-height: 2.5rem;
+    justify-content: center;
+    padding-inline: 0;
+  }
+  .org-rail:not(.staff-rail) .rail-link > svg {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+  .org-rail:not(.staff-rail) .rail-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .org-rail:not(.staff-rail) .rail-link .unread-badge {
+    position: absolute;
+    top: 0.125rem;
+    right: 0.125rem;
+  }
+  .org-rail:not(.staff-rail) .org-rail-foot {
+    margin-top: 0.25rem;
+    padding: 0.25rem 0 0;
+  }
+  .org-rail:not(.staff-rail) .org-rail-foot:not(:has(.org-rail-extra)) {
+    display: none;
+  }
+  .org-rail-extra {
+    padding-top: 0;
+  }
+  .org-rail-extra .btn-secondary {
+    width: 100%;
+    min-height: 2.5rem;
+    justify-content: center;
+    gap: 0;
+    padding-inline: 0;
+    border-color: transparent;
+    background: none;
+    box-shadow: none;
+    font-size: 0;
+  }
+  .org-rail-extra .btn-secondary:hover {
+    background: color-mix(in srgb, var(--shell-fg) 8%, transparent);
+  }
+}
+/* A smaller phone on its side is under 768 wide, so it has the phone's shell: the dock floated across the middle
+   of a 375px-tall page. There it stands down the left edge instead, clear of the page (which moves over for it),
+   and stays put while the page scrolls: it covers nothing. From 480 wide, so a phone held upright whose keyboard
+   shrinks the page to a wide, short box is left alone. */
+@media (max-height: 34rem) and (min-width: 30rem) and (max-width: 47.99rem) and (orientation: landscape) {
+  /* Nothing is under the page's foot now: what kept clear of the dock there (sticky buttons, the last card) stands down. */
+  :root {
+    --dock-clearance: 1.5rem;
+  }
+  .page:not(:has(> .thread-top)) {
+    padding-bottom: calc(2rem + env(safe-area-inset-bottom));
+  }
+  /* A job's Apply bar sits on the screen's foot, as it does from 768, with room for the home bar. */
+  .job-cta-bar {
+    bottom: 0;
+    padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));
+  }
+  .tabbar {
+    /* Over the glass band across the top (44), which would tint its first tabs on the shortest screens. */
+    z-index: 46;
+    inset-inline: auto;
+    top: 50%;
+    bottom: auto;
+    left: calc(0.5rem + env(safe-area-inset-left));
+    margin: 0;
+    max-width: none;
+    translate: 0 -50%;
+  }
+  html:not([data-motion="reduce"]) body:not(:has(.composer)) .tabbar[data-tucked]:not(:has(:focus-visible)) {
+    transform: none;
+  }
+  .tabbar > div {
+    flex-direction: column;
+  }
+  .tabbar .tab {
+    flex: none;
+    width: 2.75rem;
+    min-height: 2.75rem;
+  }
+  /* Not a chat, and not the staff console: neither shows the dock. */
+  body:has(.tabbar):not(:has(.thread-top), :has(.staff-band)) {
+    padding-left: calc(4.25rem + env(safe-area-inset-left));
+  }
+  /* Not a job page either: under 768 its photo is pulled up to the page's top. */
+  :is(.page, .tpl):not(:has(> .thread-top), [data-template="hero"], :has(.job-head-actions)) {
+    padding-top: 1rem;
+  }
+}
 /* A phone on its side has little height: the two bars give the messages what they can spare. */
 @media (max-height: 34rem) {
   body:has(.thread-top) .thread-top {

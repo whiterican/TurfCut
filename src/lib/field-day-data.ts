@@ -88,6 +88,9 @@ export async function loadShift(shiftId: string, tx: Tx | ReturnType<typeof db> 
 // Scheduling
 // ---------------------------------------------------------------------------
 
+/** What scheduleShift answers under `errors.startsAt` when the worker already has a shift then. Compare against this, never the words. */
+export const SHIFT_OVERLAPS = "Overlaps another shift.";
+
 export async function scheduleShift(
   actor: { profileId: string; orgId: string },
   engagementId: string,
@@ -131,7 +134,7 @@ export async function scheduleShift(
       select: { startsAt: true, endsAt: true, status: true },
     });
     if (findConflicts(v.value, theirs).length) {
-      return { ok: false as const, reason: "This worker already has a shift then (on this or another campaign).", errors: { startsAt: "Overlaps another shift." } };
+      return { ok: false as const, reason: "This worker already has a shift then (on this or another campaign).", errors: { startsAt: SHIFT_OVERLAPS } };
     }
     const shift = await tx.shift.create({
       data: {

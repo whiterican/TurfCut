@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { createJob, publishJob } from "@/lib/jobs-data";
 import { validateJob } from "@/lib/jobs";
 import { claimJob } from "@/lib/engagements-data";
-import { scheduleShift, workerShiftAction } from "@/lib/field-day-data";
+import { scheduleShift, SHIFT_OVERLAPS, workerShiftAction } from "@/lib/field-day-data";
 import { closeAccount } from "@/lib/account-data";
 import { assignToSlot, claimSlot, closeSlot, loadJobSlots, loadWorkerSlots, postSlot, seatsOnOffer, setSlotSeats } from "@/lib/shift-slots-data";
 
@@ -91,6 +91,9 @@ const check = (l: string, c: unknown, d?: unknown) => { if (c) console.log(`PASS
   const direct = await scheduleShift(owner, eng[W.indexOf(loser)], { startsAt: at(2, 16).toISOString(), endsAt: at(2, 18).toISOString() }, now);
   const overlap2 = await claimSlot({ workerId: loser, profileId: loser }, slotId, now);
   check("…including a shift scheduled the usual way", direct.ok && !overlap2.ok && /already have a shift then/.test(overlap2.reason), { direct, overlap2 });
+  // The demo seed skips exactly this refusal and stops on any other: it is told apart by the constant, not by its words.
+  const twice = await scheduleShift(owner, eng[W.indexOf(loser)], { startsAt: at(2, 17).toISOString(), endsAt: at(2, 19).toISOString() }, now);
+  check("scheduling over a worker's own shift is refused as an overlap, by name", !twice.ok && twice.errors?.startsAt === SHIFT_OVERLAPS, twice);
 
   // --- Giving a seat back: the usual cancel frees it ---
   const cancel = shiftRow ? await workerShiftAction({ workerId: winner, profileId: winner }, shiftRow.id, { kind: "cancel", reason: "Family thing" }, now) : null;

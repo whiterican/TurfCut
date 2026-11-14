@@ -891,6 +891,12 @@ describe("the shell (redesign B1.4)", () => {
     expect(nav).toContain('className="org-rail-extra pt-3"');
   });
 
+  it("a job's photo is shorter on a short screen, so its name and pay are on the first screen", () => {
+    expect(css).toMatch(/\n@media \(max-height: 34rem\) \{\s*\.job-photo-head \{\s*height: 9\.5rem;\s*\}\s*\}/);
+    // The layered rule it overrides still sets the tall photo everywhere else.
+    expect(css).toMatch(/\n  \.job-photo-head \{\s*@apply [^;]*\bh-\[200px\][^;]*\bsm:h-\[260px\]/);
+  });
+
   it("a small phone on its side stands the dock down the left edge, clear of the page", () => {
     // Under 768 wide the phone's shell applies: the dock floated across the middle of a 375px-tall page.
     const at = css.indexOf("@media (max-height: 34rem) and (min-width: 30rem) and (max-width: 47.99rem) and (orientation: landscape) {");

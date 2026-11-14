@@ -3596,15 +3596,13 @@ body:has(.staff-band)::after {
 }
 /* A worker's phone has no bar above a job's photograph, so the photograph runs to the very top of the screen,
    under the clock (white there in every mode), with the page's buttons on it below the clock. The cap that keeps
-   text from passing behind the clock (html::after, below) waits until the page has left its top. Before the
-   short-screen height just below, which still wins on a phone held on its side. */
+   text from passing behind the clock (html::after, below) waits until the page has left its top. */
 @media (width < 48rem) {
   body:has(.site-header-worker) .tpl:has(.job-photo-head) {
     padding-top: 0;
   }
   body:has(.site-header-worker) .job-photo-head {
     margin-top: 0;
-    height: calc(200px + env(safe-area-inset-top));
   }
   body:has(.site-header-worker) .job-head-actions {
     top: calc(1rem + env(safe-area-inset-top));
@@ -3616,7 +3614,14 @@ body:has(.staff-band)::after {
     opacity: 0;
   }
 }
-@media (width >= 40rem) and (width < 48rem) {
+/* Taller by the clock's strip, so as much photograph shows as before. Not on a short screen (a phone held on its
+   side), where the short photograph below stands: these are more specific than it and would win. */
+@media (width < 40rem) and (min-height: 34.01rem) {
+  body:has(.site-header-worker) .job-photo-head {
+    height: calc(200px + env(safe-area-inset-top));
+  }
+}
+@media (width >= 40rem) and (width < 48rem) and (min-height: 34.01rem) {
   body:has(.site-header-worker) .job-photo-head {
     height: calc(260px + env(safe-area-inset-top));
   }

@@ -3484,8 +3484,8 @@ body:has(.staff-band)::after {
     display: none;
   }
   /* Less air above a page's title: the height is for the page. */
-  /* Not a hero page (the landing, sign in): its photo runs to the top. */
-  :is(.page, .tpl):not(:has(> .thread-top), [data-template="hero"]) {
+  /* Not a hero page (the landing, sign in) or a job page: their photo runs to the top. */
+  :is(.page, .tpl):not(:has(> .thread-top), [data-template="hero"], :has(.job-head-actions)) {
     padding-top: 1rem;
   }
   .org-rail:not(.staff-rail) .rail-link {
@@ -3538,9 +3538,19 @@ body:has(.staff-band)::after {
 }
 /* A smaller phone on its side is under 768 wide, so it has the phone's shell: the dock floated across the middle
    of a 375px-tall page. There it stands down the left edge instead, clear of the page (which moves over for it),
-   and stays put while the page scrolls: it covers nothing. */
-@media (max-height: 34rem) and (max-width: 47.99rem) and (orientation: landscape) {
+   and stays put while the page scrolls: it covers nothing. From 480 wide, so a phone held upright whose keyboard
+   shrinks the page to a wide, short box is left alone. */
+@media (max-height: 34rem) and (min-width: 30rem) and (max-width: 47.99rem) and (orientation: landscape) {
+  /* Nothing is under the page's foot now: what kept clear of the dock there (sticky buttons, the last card) stands down. */
+  :root {
+    --dock-clearance: 1.5rem;
+  }
+  .page:not(:has(> .thread-top)) {
+    padding-bottom: 2rem;
+  }
   .tabbar {
+    /* Over the glass band across the top (44), which would tint its first tabs on the shortest screens. */
+    z-index: 46;
     inset-inline: auto;
     top: 50%;
     bottom: auto;
@@ -3560,10 +3570,11 @@ body:has(.staff-band)::after {
     width: 2.75rem;
     min-height: 2.75rem;
   }
-  body:has(.tabbar):not(:has(.thread-top)) {
+  /* Not a chat, and not the staff console: neither shows the dock. */
+  body:has(.tabbar):not(:has(.thread-top), :has(.staff-band)) {
     padding-left: calc(4.25rem + env(safe-area-inset-left));
   }
-  :is(.page, .tpl):not(:has(> .thread-top), [data-template="hero"]) {
+  :is(.page, .tpl):not(:has(> .thread-top), [data-template="hero"], :has(.job-head-actions)) {
     padding-top: 1rem;
   }
 }

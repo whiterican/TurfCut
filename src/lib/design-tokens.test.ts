@@ -860,12 +860,14 @@ describe("the shell (redesign B1.4)", () => {
     expect(end).toBeGreaterThan(at);
     const block = css.slice(at, end);
     // The staff console's sidebar is words with no icons: every rule here leaves it alone.
-    for (const rule of block.match(/^  [^\n{}]*\.(org-rail|rail-)[^\n{]*[{,]$/gm) ?? []) {
+    const rules = block.match(/^  [^\n{}]*\.(org-rail|rail-)[^\n{]*[{,]$/gm) ?? [];
+    expect(rules.length).toBeGreaterThan(8);
+    for (const rule of rules) {
       if (!rule.includes(".org-rail-extra")) expect(rule, rule).toContain(".org-rail:not(.staff-rail)");
     }
     expect(block.match(/\.org-rail:not\(\.staff-rail\)/g)?.length).toBeGreaterThanOrEqual(9);
     // A hero page (the landing, sign in) keeps its photo to the top; a chat keeps its bar there.
-    expect(block).toMatch(/:is\(\.page, \.tpl\):not\(:has\(> \.thread-top\), \[data-template="hero"\]\) \{\s*padding-top: 1rem;/);
+    expect(block).toMatch(/:is\(\.page, \.tpl\):not\(:has\(> \.thread-top\), \[data-template="hero"\], :has\(\.job-head-actions\)\) \{\s*padding-top: 1rem;/);
     // The variable is declared once before, at the root, unlayered: this later one wins.
     expect(css.indexOf("--site-header-h: calc(65px + env(safe-area-inset-top));")).toBeLessThan(at);
     // Everything that sits under the site bar follows this one variable (the rail, a chat's bar, sticky panels).
@@ -891,7 +893,7 @@ describe("the shell (redesign B1.4)", () => {
 
   it("a small phone on its side stands the dock down the left edge, clear of the page", () => {
     // Under 768 wide the phone's shell applies: the dock floated across the middle of a 375px-tall page.
-    const at = css.indexOf("@media (max-height: 34rem) and (max-width: 47.99rem) and (orientation: landscape) {");
+    const at = css.indexOf("@media (max-height: 34rem) and (min-width: 30rem) and (max-width: 47.99rem) and (orientation: landscape) {");
     expect(at).toBeGreaterThan(-1);
     const block = css.slice(at, css.indexOf("\n}\n", at));
     expect(block).toMatch(/\n  \.tabbar \{[^}]*top: 50%;[^}]*left: calc\(0\.5rem \+ env\(safe-area-inset-left\)\);[^}]*translate: 0 -50%;/);
@@ -899,8 +901,11 @@ describe("the shell (redesign B1.4)", () => {
     // It covers nothing, so it does not tuck away on a scroll (the tuck slides it down, which here would be across the page).
     expect(block).toMatch(/\.tabbar\[data-tucked\]:not\(:has\(:focus-visible\)\) \{\s*transform: none;/);
     // The page moves over for it; a chat has no dock and keeps the full width.
-    expect(block).toMatch(/body:has\(\.tabbar\):not\(:has\(\.thread-top\)\) \{\s*padding-left: calc\(4\.25rem \+ env\(safe-area-inset-left\)\);/);
-    expect(block).toMatch(/:is\(\.page, \.tpl\):not\(:has\(> \.thread-top\), \[data-template="hero"\]\) \{\s*padding-top: 1rem;/);
+    expect(block).toMatch(/body:has\(\.tabbar\):not\(:has\(\.thread-top\), :has\(\.staff-band\)\) \{\s*padding-left: calc\(4\.25rem \+ env\(safe-area-inset-left\)\);/);
+    // Above the glass band across the top, and nothing keeps clear of a dock at the foot any more.
+    expect(block).toMatch(/\n  \.tabbar \{[^}]*z-index: 46;/);
+    expect(block).toMatch(/:root \{\s*--dock-clearance: 1\.5rem;/);
+    expect(block).toMatch(/:is\(\.page, \.tpl\):not\(:has\(> \.thread-top\), \[data-template="hero"\], :has\(\.job-head-actions\)\) \{\s*padding-top: 1rem;/);
     // After the tuck rule it overrides.
     expect(at).toBeGreaterThan(css.indexOf("transform: translateY(calc(100% + 1.5rem + env(safe-area-inset-bottom)));"));
   });

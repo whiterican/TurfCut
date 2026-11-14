@@ -72,13 +72,15 @@ describe("scroll direction for the top row", () => {
     // to the screen, a blur and a breath of shade with none of the page's colour, ending above the buttons.
     const clear = block.slice(block.indexOf("html:not(.sun) .job-photo-head::after {"));
     const clearRule = clear.slice(0, clear.indexOf("}"));
-    expect(clearRule).toMatch(/position: fixed;\s*inset: 0 0 auto;\s*height: calc\(env\(safe-area-inset-top\) \* 1\.25\);/);
-    expect(clearRule).toMatch(/backdrop-filter: blur\(12px\) saturate\(1\.3\);/);
+    expect(clearRule).toMatch(/position: fixed;\s*inset: 0 0 auto;\s*height: calc\(env\(safe-area-inset-top\) \* 2\.4\);/);
+    expect(clearRule).toMatch(/backdrop-filter: blur\(18px\) saturate\(1\.4\);/);
     expect(clearRule).not.toContain("--page-top");
     expect(clearRule).toContain("pointer-events: none;");
+    // Feathered: solid under the clock, then four steps down to nothing, so there is no straight foot to see.
+    expect(clearRule).toMatch(/mask-image: linear-gradient\(to bottom, #000 0%, #000 30%, rgb\(0 0 0 \/ 0\.72\) 48%, rgb\(0 0 0 \/ 0\.4\) 66%, rgb\(0 0 0 \/ 0\.15\) 84%, transparent 100%\);/);
     expect(block).toMatch(/html:not\(\.sun\)\[data-past-photo\] \.job-photo-head::after \{\s*opacity: 0;/);
-    // 1.25 x the strip is under the buttons' top (the strip + 1rem) for any strip up to 64px.
-    expect(59 * 1.25).toBeLessThan(59 + 16);
+    // It reaches below the buttons' top now, so they stand above it and stay sharp.
+    expect(block).toMatch(/body:has\(\.job-photo-head\) \.job-head-actions \{\s*z-index: 44;/);
     // Past the photograph: the page's own gradient glass, hidden until then.
     const band = "html:not(.sun) body:has(.job-photo-head):has(.tpl):not(:has(.thread-top))::after {";
     const bandRule = block.slice(block.indexOf(band), block.indexOf("}", block.indexOf(band)));

@@ -3651,21 +3651,26 @@ body:has(.staff-band)::after {
   body:has(.job-photo-head) .job-head-actions {
     top: calc(1rem + env(safe-area-inset-top));
   }
-  /* The clear pane. Fixed to the screen, so it stays under the clock while the photograph moves beneath it. No
-     height where the phone keeps no strip. The buttons start below it. */
+  /* The clear pane. Fixed to the screen, so it stays under the clock while the photograph moves beneath it. It
+     is strongest under the clock and feathers away well below it (Caden, Nov 14: stronger, and not a straight bar
+     across the picture), so it has no foot to see. No height where the phone keeps no strip. The page's buttons
+     stand above it, sharp. */
   html:not(.sun) .job-photo-head::after {
     content: "";
     position: fixed;
     inset: 0 0 auto;
-    height: calc(env(safe-area-inset-top) * 1.25);
+    height: calc(env(safe-area-inset-top) * 2.4);
     z-index: 43;
     pointer-events: none;
-    background: linear-gradient(to bottom, rgb(0 0 0 / 0.2), rgb(0 0 0 / 0.08));
-    -webkit-backdrop-filter: blur(12px) saturate(1.3);
-    backdrop-filter: blur(12px) saturate(1.3);
-    -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 62%, transparent 100%);
-    mask-image: linear-gradient(to bottom, #000 0%, #000 62%, transparent 100%);
+    background: linear-gradient(to bottom, rgb(0 0 0 / 0.34) 0%, rgb(0 0 0 / 0.22) 35%, rgb(0 0 0 / 0.08) 70%, transparent 100%);
+    -webkit-backdrop-filter: blur(18px) saturate(1.4);
+    backdrop-filter: blur(18px) saturate(1.4);
+    -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 30%, rgb(0 0 0 / 0.72) 48%, rgb(0 0 0 / 0.4) 66%, rgb(0 0 0 / 0.15) 84%, transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 0%, #000 30%, rgb(0 0 0 / 0.72) 48%, rgb(0 0 0 / 0.4) 66%, rgb(0 0 0 / 0.15) 84%, transparent 100%);
     transition: opacity var(--dur-base) var(--ease-standard);
+  }
+  body:has(.job-photo-head) .job-head-actions {
+    z-index: 44;
   }
   html:not(.sun)[data-past-photo] .job-photo-head::after {
     opacity: 0;

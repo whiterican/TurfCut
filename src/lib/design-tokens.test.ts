@@ -912,7 +912,7 @@ describe("the shell (redesign B1.4)", () => {
     expect(block).toMatch(/\n  \.tabbar \{[^}]*z-index: 46;/);
     expect(block).toMatch(/:root \{\s*--dock-clearance: 1\.5rem;/);
     expect(block).toMatch(/\.page:not\(:has\(> \.thread-top\)\) \{\s*padding-bottom: calc\(2rem \+ env\(safe-area-inset-bottom\)\);/);
-    expect(block).toMatch(/\.job-cta-bar \{\s*bottom: 0;\s*padding-bottom: calc\(0\.5rem \+ env\(safe-area-inset-bottom\)\);/);
+    expect(block).toMatch(/\.tpl-foot \{\s*bottom: 0;\s*padding-bottom: calc\(0\.5rem \+ env\(safe-area-inset-bottom\)\);/);
     expect(block).toMatch(/:is\(\.page, \.tpl\):not\(:has\(> \.thread-top\), \[data-template="hero"\], :has\(\.job-head-actions\)\) \{\s*padding-top: 1rem;/);
     // After the tuck rule it overrides.
     expect(at).toBeGreaterThan(css.indexOf("transform: translateY(calc(100% + 1.5rem + env(safe-area-inset-bottom)));"));

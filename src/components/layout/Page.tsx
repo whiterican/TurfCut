@@ -34,12 +34,14 @@ interface FrameProps {
    * (a job's full card comes after the Apply panel there; beside it from 1024).
    */
   tail?: ReactNode;
+  /** Stays at the foot of the screen while the page scrolls, below 1280 (a job's Apply button). The last thing in the page, so it rests under everything else. */
+  foot?: ReactNode;
   /** The panel leads: first in reading order and the left column from 1024 (a section's sub-nav). */
   panelStart?: boolean;
 }
 
 /** The shared frame; exported for PageSkeleton, which draws the same frame around its placeholder. */
-export function Frame({ template, head, children, panel, panelKind, gap = 10, busy, org, panelLabel, tail, panelStart }: FrameProps & { template: TemplateName; panel?: ReactNode; panelKind?: "aside" | "inspector" }) {
+export function Frame({ template, head, children, panel, panelKind, gap = 10, busy, org, panelLabel, tail, foot, panelStart }: FrameProps & { template: TemplateName; panel?: ReactNode; panelKind?: "aside" | "inspector" }) {
   return (
     <main
       className="tpl"
@@ -63,6 +65,8 @@ export function Frame({ template, head, children, panel, panelKind, gap = 10, bu
         {panelStart && <div className="tpl-main">{children}</div>}
         {tail && <div className="tpl-tail">{tail}</div>}
       </div>
+      {/* The last child of the page, which is what lets it stick: a sticky box cannot leave its parent, so one inside a short section never moves. */}
+      {foot && <div className="tpl-foot">{foot}</div>}
     </main>
   );
 }

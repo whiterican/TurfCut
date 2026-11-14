@@ -690,6 +690,22 @@ body {
   .tpl-main:empty {
     display: none;
   }
+  /* A page's foot (a job's Apply button): it stays at the foot of the screen, above the dock, while the page
+     scrolls, and rests under everything else at the page's end. It is the page's last child: a sticky box cannot
+     leave its parent, so inside a short section it would never move. From 768 there is no dock and it sits on the
+     screen's edge; from 1280 a worker page's aside stands beside the page with the action in it, and this goes. */
+  .tpl-foot {
+    @apply sticky z-10 xl:hidden;
+    bottom: var(--dock-clearance);
+    margin-top: var(--tpl-gap, 2.5rem);
+    margin-inline: calc(-1 * var(--tpl-gutter));
+    padding: 0.5rem var(--tpl-gutter);
+    background: var(--bg);
+    @media (width >= 48rem) {
+      bottom: 0;
+      padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));
+    }
+  }
   .tpl-tail {
     display: flex;
     min-width: 0;
@@ -2803,15 +2819,9 @@ body {
     @apply inline-flex min-h-9 items-center gap-1.5 rounded-[var(--radius-sm)] px-3 text-sm font-medium text-fg;
     background: var(--surface-2);
   }
-  /* The one Forest action stays above the dock while the page scrolls; from 1024 it sits in the aside. */
+  /* The one Forest action. Below 1280 it is the page's foot (.tpl-foot), which keeps it on screen; from 1280 it sits in the aside. */
   .job-cta-bar {
-    @apply sticky z-10 -mx-4 px-4 py-2 sm:-mx-6 sm:px-6 lg:static lg:m-0 lg:p-0;
-    bottom: var(--dock-clearance);
-    @media (width >= 48rem) {
-      bottom: 0;
-      padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));
-    }
-    background: var(--bg);
+    @apply space-y-2;
   }
   .btn-lg {
     @apply min-h-12 text-base;
@@ -3549,7 +3559,7 @@ body:has(.staff-band)::after {
     padding-bottom: calc(2rem + env(safe-area-inset-bottom));
   }
   /* A job's Apply bar sits on the screen's foot, as it does from 768, with room for the home bar. */
-  .job-cta-bar {
+  .tpl-foot {
     bottom: 0;
     padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));
   }
@@ -3589,6 +3599,14 @@ body:has(.staff-band)::after {
 @media (max-height: 34rem) {
   .job-photo-head {
     height: 9.5rem;
+  }
+}
+/* A page with a foot (a job's Apply bar): what the keyboard or Tab moves to is scrolled clear of it, as it is of the
+   dock. One class more specific than the dock's own rule (which comes later in this file), so this one wins
+   wherever it sits. 8rem is two stacked buttons, for a job that takes applications and claims alike. */
+@media (width < 80rem) {
+  html:has(.tpl > .tpl-foot):has(.tpl):not(:has(.thread-top)) {
+    scroll-padding-bottom: calc(var(--dock-clearance) + 8rem);
   }
 }
 /* A phone on its side has little height: the two bars give the messages what they can spare. */

@@ -55,7 +55,7 @@ describe("scroll direction for the top row", () => {
     const stay = "html[data-past-photo]:not(.sun) body:has(.job-photo-head):has(.tpl):not(:has(.thread-top))::after {\n      opacity: 1 !important;";
     expect(solid.split(stay)).toHaveLength(2);
     expect(solid.slice(solid.lastIndexOf("@media", solid.indexOf(stay)), solid.indexOf(stay))).toMatch(/^@media \(width < 48rem\) \{/);
-    expect(solid).toMatch(/html:not\(\.sun\) \.job-photo-head::after \{\s*background: rgb\(0 0 0 \/ 0\.5\);\s*-webkit-backdrop-filter: none;/);
+    expect(solid).toMatch(/html:not\(\.sun\) \.job-photo-head::after \{\s*(?:\/\*[^*]*\*\/\s*)?height: env\(safe-area-inset-top\);\s*background: rgb\(0 0 0 \/ 0\.5\);\s*-webkit-backdrop-filter: none;/);
     // Nothing keyed on the scroll marks changes a size or takes anything out of the page.
     expect(css).not.toMatch(/data-scrolled[^{]*\{[^}]*(height:|visibility: hidden|display: none)/);
     // A job's own page on a phone: no site bar and no menu strip. The photograph runs under the clock, its buttons
@@ -69,7 +69,7 @@ describe("scroll direction for the top row", () => {
     expect(block).toMatch(/\.job-photo-head \{\s*margin-top: 0;\s*\}/);
     expect(block).toMatch(/\.job-head-actions \{\s*top: calc\(1rem \+ env\(safe-area-inset-top\)\);/);
     // Two panes share the top, one at a time (Caden, Nov 14). Over the photograph: clear glass under the clock, fixed
-    // to the screen, a blur and a breath of shade with none of the page's colour, ending above the buttons.
+    // to the screen, a blur and shade with none of the page's colour, feathered away below the clock.
     const clear = block.slice(block.indexOf("html:not(.sun) .job-photo-head::after {"));
     const clearRule = clear.slice(0, clear.indexOf("}"));
     expect(clearRule).toMatch(/position: fixed;\s*inset: 0 0 auto;\s*height: calc\(env\(safe-area-inset-top\) \* 2\.4\);/);

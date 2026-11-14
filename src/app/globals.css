@@ -801,6 +801,13 @@ body {
     font-optical-sizing: auto;
     color: inherit;
   }
+  /* The panel's photograph, its shade and the rest of its words are for the wide screen (below). */
+  .hero-split-photo,
+  .hero-split-scrim,
+  .hero-split-proof,
+  .hero-split-steps {
+    display: none;
+  }
   /* On a phone the header above already carries the mark, so the band is the
      line alone; a worker's phone has no header, so there the band keeps it.
      From lg the band is the left panel and the mark is its picture. */
@@ -824,13 +831,57 @@ body {
       display: grid;
       grid-template-columns: 45fr 55fr;
     }
+    /* The landing page beside the form: the photograph under a shade that is darkest where the words sit. It stays
+       in the window while a long form scrolls, so the panel is never an empty dark column. */
     .hero-split-art {
-      @apply flex-col items-start justify-end p-12;
+      @apply relative isolate flex-col items-start justify-end gap-6 overflow-hidden p-12;
+      position: sticky;
+      top: var(--site-header-h);
+      height: calc(100svh - var(--site-header-h));
+      align-self: start;
       background: var(--shell-bg);
       color: var(--shell-fg);
     }
+    .hero-split-photo {
+      @apply -z-20;
+      display: block;
+    }
+    .hero-split-scrim {
+      @apply absolute inset-0 -z-10;
+      display: block;
+      /* A radial, as the landing page's is (the motion test's "linear" rule stays exact). */
+      background: radial-gradient(150% 95% at 30% 100%, rgb(23 16 31 / 0.97) 34%, rgb(23 16 31 / 0.6) 72%, rgb(23 16 31 / 0.25) 100%);
+    }
     .hero-split-mark {
       display: block;
+    }
+    .hero-split-copy {
+      @apply max-w-md space-y-4;
+    }
+    .hero-split-proof {
+      @apply text-lg leading-snug;
+      display: block;
+      color: var(--shell-fg);
+    }
+    .hero-split-steps {
+      @apply mt-2 space-y-3 border-t pt-5;
+      display: block;
+      border-color: color-mix(in srgb, var(--shell-fg) 22%, transparent);
+    }
+    .hero-split-steps > li {
+      @apply flex gap-3;
+    }
+    .hero-split-step-n {
+      @apply w-6 shrink-0 pt-0.5 text-xs font-semibold tracking-[0.12em] tabular-nums;
+      color: var(--shell-muted);
+    }
+    .hero-split-step-title {
+      @apply block text-base font-bold;
+      color: var(--shell-fg);
+    }
+    .hero-split-step-text {
+      @apply block text-sm leading-snug;
+      color: var(--shell-muted);
     }
     .hero-split-form {
       @apply items-center;
@@ -4447,6 +4498,8 @@ body {
   /* A job's page on a phone: no blur to lean on, so the pane over the photograph is plain shade, and the one
      after it is the page's plain colour. */
   html:not(.sun) .job-photo-head::after {
+    /* Only the clock's strip: a tall slab of flat shade would have a hard foot across the picture. */
+    height: env(safe-area-inset-top);
     background: rgb(0 0 0 / 0.5);
     -webkit-backdrop-filter: none;
     backdrop-filter: none;

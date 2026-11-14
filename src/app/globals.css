@@ -3597,14 +3597,17 @@ body:has(.staff-band)::after {
 /* A job's own page on a phone has no site bar and no menu strip (Caden, Nov 14): they took a fifth of the screen,
    and the arrow on the photograph is the way back to everything they held. So the photograph runs to the very
    top of the screen, under the clock (white there in every mode), with the page's buttons on it below the
-   clock. No glass either: the cap that keeps text from passing behind the clock (html::after, below) is enough,
-   and it waits until the page has left its top. For everyone, a worker or an organization alike. */
+   clock. For everyone, a worker or an organization alike.
+
+   Two panes share the top of that screen, one at a time (Caden, Nov 14):
+   - over the photograph, clear glass under the clock: a light blur and a breath of shade, no colour of the page's,
+     so the time and battery read on any picture and the picture still shows through;
+   - once the photograph has passed under it (components/ScrollDirection.tsx marks the root), the page's own
+     glass, the gradient that every other page has, so text never passes behind the clock.
+   They cross-fade. Sunlight has neither: its plain cap under the clock (html::after) stays. */
 @media (width < 48rem) {
   body:has(.job-photo-head) :is(.site-header, .phone-top) {
     display: none;
-  }
-  body:has(.job-photo-head)::after {
-    content: none;
   }
   body:has(.job-photo-head) .tpl:has(.job-photo-head) {
     padding-top: 0;
@@ -3615,21 +3618,51 @@ body:has(.staff-band)::after {
   body:has(.job-photo-head) .job-head-actions {
     top: calc(1rem + env(safe-area-inset-top));
   }
-  /* The clock is white in every mode. Over a pale photograph (a sky, a campaign's own header image) it would be
-     lost, so the strip under it is shaded, fading out just below. No height where the phone keeps no strip. Over
-     the photograph and under nothing that takes a tap: the buttons start below it. */
-  body:has(.job-photo-head) .job-photo-head::after {
+  /* The clear pane. Fixed to the screen, so it stays under the clock while the photograph moves beneath it. No
+     height where the phone keeps no strip. The buttons start below it. */
+  html:not(.sun) .job-photo-head::after {
     content: "";
-    position: absolute;
+    position: fixed;
     inset: 0 0 auto;
-    height: calc(env(safe-area-inset-top) * 1.4);
+    height: calc(env(safe-area-inset-top) * 1.25);
+    z-index: 43;
     pointer-events: none;
-    background: linear-gradient(to bottom, rgb(0 0 0 / 0.42), rgb(0 0 0 / 0.28) 60%, transparent);
-  }
-  html:has(.job-photo-head)::after {
+    background: linear-gradient(to bottom, rgb(0 0 0 / 0.2), rgb(0 0 0 / 0.08));
+    -webkit-backdrop-filter: blur(12px) saturate(1.3);
+    backdrop-filter: blur(12px) saturate(1.3);
+    -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 62%, transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 0%, #000 62%, transparent 100%);
     transition: opacity var(--dur-base) var(--ease-standard);
   }
-  html:has(.job-photo-head):not([data-scrolled])::after {
+  html:not(.sun)[data-past-photo] .job-photo-head::after {
+    opacity: 0;
+  }
+  /* The page's glass, for when the photograph has gone by. Heavier than the headers' own rules for this layer
+     (four classes with the root's against their three), so its height is this one, not that of a header that is
+     hidden here. */
+  html:not(.sun) body:has(.job-photo-head):has(.tpl):not(:has(.thread-top))::after {
+    content: "";
+    position: fixed;
+    inset: 0 0 auto;
+    height: calc(env(safe-area-inset-top) + 2.25rem);
+    z-index: 44;
+    pointer-events: none;
+    background: linear-gradient(to bottom, var(--page-top) 0%, color-mix(in srgb, var(--page-top) 80%, transparent) 30%, color-mix(in srgb, var(--page-top) 34%, transparent) 65%, transparent 100%);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 22%, transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 0%, #000 22%, transparent 100%);
+    opacity: 0;
+  }
+  html:not(.sun)[data-past-photo] body:has(.job-photo-head):has(.tpl):not(:has(.thread-top))::after {
+    opacity: 1;
+  }
+  /* Sunlight: no pane of either kind, only its cap. */
+  html.sun body:has(.job-photo-head):has(.tpl):not(:has(.thread-top))::after {
+    content: none;
+  }
+  /* The two panes stand in for the cap under the clock on this page. */
+  html:not(.sun):has(.job-photo-head)::after {
     opacity: 0;
   }
 }
@@ -4373,14 +4406,38 @@ body {
     background: var(--dock-capsule);
     box-shadow: none;
   }
+  /* A job's page on a phone: no blur to lean on, so the pane over the photograph is plain shade, and the one
+     after it is the page's plain colour. */
+  html:not(.sun) .job-photo-head::after {
+    background: rgb(0 0 0 / 0.5);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+  @media (width < 48rem) {
+    html:not(.sun) body:has(.job-photo-head):has(.tpl):not(:has(.thread-top))::after {
+      height: env(safe-area-inset-top);
+      background: var(--bg);
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+      -webkit-mask-image: none;
+      mask-image: none;
+    }
+  }
   /* Here the bar is a plain surface, like Sunlight's, not glass: it does not wait for the page to leave its top.
-     One class more specific than the rule that hides the glass at rest. */
-  html:not([data-scrolled], .sun) body:not(:has(.staff-band, .thread-top), .x)::after {
+     One class more specific than the rule that hides the glass at rest (the second :not() is only that class). */
+  html:not([data-scrolled], .sun) body:not(:has(.staff-band, .thread-top)):not(.x)::after {
     opacity: 1;
   }
   /* The plain bar behind the row goes with the row. */
   html[data-scroll="down"]:not(:has(.thread-top)) body::after {
     opacity: 0 !important;
+  }
+  /* Not on a job's page on a phone, which has no row: its plain strip under the clock is all that keeps text from
+     passing behind the clock, on the way down as much as on the way up. */
+  html[data-past-photo]:not(.sun) body:has(.job-photo-head):has(.tpl):not(:has(.thread-top))::after {
+    opacity: 1 !important;
   }
   .phone-top::before {
     display: none;

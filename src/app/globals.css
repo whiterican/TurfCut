@@ -3584,6 +3584,13 @@ body:has(.staff-band)::after {
     padding-top: 1rem;
   }
 }
+/* A job's photo is 260px tall from 640 wide: two thirds of a phone held on its side. There it is 9.5rem, so the
+   job's name and pay are on the first screen. Unlayered, to win over the layered heights. */
+@media (max-height: 34rem) {
+  .job-photo-head {
+    height: 9.5rem;
+  }
+}
 /* A phone on its side has little height: the two bars give the messages what they can spare. */
 @media (max-height: 34rem) {
   body:has(.thread-top) .thread-top {

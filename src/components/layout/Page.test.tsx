@@ -54,16 +54,22 @@ describe("page templates (redesign §4.2.2)", () => {
     const out = html(<RecordPage aside={<p>panel</p>} tail={<p>full card</p>} foot={<button>Apply</button>}>job</RecordPage>);
     expect(out).toMatch(/<div class="tpl-tail"><p>full card<\/p><\/div><\/div><div class="tpl-foot"><button>Apply<\/button><\/div><\/main>$/);
     expect(html(<RecordPage>job</RecordPage>)).not.toContain("tpl-foot");
-    // Sticky above the dock; on the screen's edge from 768 (no dock); gone from 1024, where the aside has the action.
-    expect(css).toMatch(/\n  \.tpl-foot \{\s*@apply sticky z-10 lg:hidden;\s*bottom: var\(--dock-clearance\);/);
+    // Sticky above the dock; on the screen's edge from 768 (no dock); gone from 1280. Not 1024: a worker page is
+    // one column until 1280 (the aside waits for it), so hiding the foot at 1024 would leave 1024 to 1279 with no bar.
+    expect(css).toMatch(/\n  \.tpl-foot \{\s*@apply sticky z-10 xl:hidden;\s*bottom: var\(--dock-clearance\);/);
+    expect(css).toMatch(/@media \(width >= 80rem\) \{\s*(?:\/\*[^*]*\*\/\s*)?\.tpl\[data-panel="aside"\]:not\(\[data-org\]\) \{/);
+    // What Tab moves to is scrolled clear of the bar.
+    expect(css).toMatch(/@media \(width < 80rem\) \{\s*html:has\(\.tpl-foot\):not\(:has\(\.thread-top\)\) \{\s*scroll-padding-bottom: calc\(var\(--dock-clearance\) \+ 5rem\);/);
     expect(css).toMatch(/\.tpl-foot \{[^}]*@media \(width >= 48rem\) \{\s*bottom: 0;\s*padding-bottom: calc\(0\.5rem \+ env\(safe-area-inset-bottom\)\);/);
     // It bleeds to the page's gutters, whatever they are at this width.
     expect(css).toMatch(/\.tpl-foot \{[^}]*margin-inline: calc\(-1 \* var\(--tpl-gutter\)\);\s*padding: 0\.5rem var\(--tpl-gutter\);/);
-    expect(css).toMatch(/\.tpl-foot:empty \{\s*display: none;/);
     // The job page uses it for a worker with no place on the job, and keeps the aside's copy for 1024 and up.
     const job = readFileSync(join(__dirname, "../../app/jobs/[jobId]/page.tsx"), "utf8");
-    expect(job).toContain("foot={engagement ? undefined : <JoinFoot job={job} modes={modes} workerId={session.workerId!} />}");
-    expect(job).toContain('<div className="job-cta-bar hidden lg:block">');
+    expect(job).toContain("foot={joinFoot}");
+    expect(job).toContain("const joinFoot = !engagement && canJoin(modes) && ownExclusions(pref, job).length === 0 ? (");
+    expect(job).toContain('<div className="job-cta-bar hidden xl:block">');
+    // The worker's own preferences are read once and decide both.
+    expect(job.match(/loadLatestPreference\(/g)).toHaveLength(1);
   });
 
   it("a sticky panel is never taller than the window (a focused control inside stays reachable)", () => {

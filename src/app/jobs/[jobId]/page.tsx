@@ -185,9 +185,17 @@ export default async function JobPage({ params }: { params: Promise<{ jobId: str
       </RecordPage>
     );
   }
+  // One read of the worker's own preferences decides the panel and the foot alike.
+  const pref = effectivePreference(await loadLatestPreference(session.workerId!));
+  // The join action as the page's foot, exactly where the panel shows it: no place on the job yet, a way to join, and not hidden by the worker's own preferences.
+  const joinFoot = !engagement && canJoin(modes) && ownExclusions(pref, job).length === 0 ? (
+    <div className="job-cta-bar">
+      <JoinButtons jobId={job.id} modes={modes} />
+    </div>
+  ) : undefined;
   return (
     // The full card is the tail: after the Apply panel on a phone, under the job beside it from 1024.
-    <RecordPage head={head} aside={<WorkerPanel job={job} engagement={engagement} modes={modes} workerId={session.workerId!} acceptedCount={acceptedCount} />} panelLabel="Your place on this job" foot={engagement ? undefined : <JoinFoot job={job} modes={modes} workerId={session.workerId!} />} tail={fullCard}>
+    <RecordPage head={head} aside={<WorkerPanel job={job} engagement={engagement} modes={modes} workerId={session.workerId!} acceptedCount={acceptedCount} pref={pref} />} panelLabel="Your place on this job" foot={joinFoot} tail={fullCard}>
       {/* The facts a worker decides on are in the head (D2); the description follows, then the full card below keeps every detail. */}
       {job.description && (
         <section className="section">
@@ -203,7 +211,11 @@ export default async function JobPage({ params }: { params: Promise<{ jobId: str
   );
 }
 
-/** The ways to join a job: the one Forest action (#111, screen 3). Drawn in the aside from 1024 and as the page's foot below it. */
+/**
+ * The ways to join a job: the one Forest action (#111, screen 3). Drawn in the aside from 1280, where a worker's
+ * aside stands beside the page, and as the page's foot below that, where it stays above the dock while the page
+ * scrolls (the green board's bottom action).
+ */
 function JoinButtons({ jobId, modes }: { jobId: string; modes: string[] }) {
   return (
     <>
@@ -213,27 +225,14 @@ function JoinButtons({ jobId, modes }: { jobId: string; modes: string[] }) {
       {modes.includes("instant_claim") && (
         <ActionButton action={claim} fields={{ jobId }} label="Claim a spot" pendingLabel="Claiming…" variant={modes.includes("application") ? "btn-secondary btn-lg w-full" : "btn-primary btn-lg w-full"} />
       )}
-      {!modes.includes("application") && !modes.includes("instant_claim") && (
-        <p className="text-muted-sm">This job hires by invitation only.</p>
-      )}
     </>
   );
 }
 
-/**
- * The same action as the page's foot, below 1024: it stays above the dock while the page scrolls (the green
- * board's bottom action). Only where the aside shows it too: a worker with no place on the job yet, whose own
- * preferences do not hide it.
- */
-async function JoinFoot({ job, modes, workerId }: { job: JobWithRefs; modes: string[]; workerId: string }) {
-  const pref = effectivePreference(await loadLatestPreference(workerId));
-  if (exclusionReasons(pref, { disclosure: readDisclosure(job.campaignDisclosure), orgName: job.org.name, measureIds: job.measureIds }).length) return null;
-  return (
-    <div className="job-cta-bar">
-      <JoinButtons jobId={job.id} modes={modes} />
-    </div>
-  );
-}
+type WorkerPref = ReturnType<typeof effectivePreference>;
+/** Why the worker's own do-not-match answers keep this job from them (shown to them alone, never to the organization). */
+const ownExclusions = (pref: WorkerPref, job: JobWithRefs) => exclusionReasons(pref, { disclosure: readDisclosure(job.campaignDisclosure), orgName: job.org.name, measureIds: job.measureIds });
+const canJoin = (modes: string[]) => modes.includes("application") || modes.includes("instant_claim");
 
 async function WorkerPanel({
   job,
@@ -241,15 +240,17 @@ async function WorkerPanel({
   modes,
   workerId,
   acceptedCount,
+  pref,
 }: {
   job: JobWithRefs;
   engagement: { id: string; jobId: string; status: EngagementStatus; createdAt: Date; applicationSnapshot: unknown; inviteNote: string | null; inviteExpiresAt: Date | null } | null;
   modes: string[];
   workerId: string;
   acceptedCount: number;
+  /** The worker's own preferences, read once by the page: they decide the panel and the page's foot alike. */
+  pref: WorkerPref;
 }) {
-  const pref = effectivePreference(await loadLatestPreference(workerId));
-  const reasons = exclusionReasons(pref, { disclosure: readDisclosure(job.campaignDisclosure), orgName: job.org.name, measureIds: job.measureIds });
+  const reasons = ownExclusions(pref, job);
   const excluded = (
     <section className="alert-info space-y-2">
       <p className="font-medium">Hidden from your feed by your own preferences</p>
@@ -366,10 +367,14 @@ async function WorkerPanel({
     <>
     {/* The action first (redesign §5: the aside leads with the apply panel), then why it fits. */}
     <section className="space-y-4" aria-label="Apply">
-      {/* From 1024 the action sits here, in the aside. Below that it is the page's foot (JoinFoot), which stays on screen. */}
-      <div className="job-cta-bar hidden lg:block">
-        <JoinButtons jobId={job.id} modes={modes} />
-      </div>
+      {/* From 1280 the action sits here, in the aside beside the page. Below that it is the page's foot, which stays on screen. */}
+      {canJoin(modes) ? (
+        <div className="job-cta-bar hidden xl:block">
+          <JoinButtons jobId={job.id} modes={modes} />
+        </div>
+      ) : (
+        <p className="text-muted-sm">This job hires by invitation only.</p>
+      )}
       <WillSee sharing={sharing.choices} approved={job.org.approved} join={joinText(modes)} />
     </section>
     <section className="section">

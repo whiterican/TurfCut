@@ -2580,9 +2580,10 @@ body {
   }
   .phone-top > * {
     pointer-events: auto;
-    /* Part of the frame now it stays put: a page change slides under the pill, not over it. The name is on
-       the pill, not the row: a named row is a layer of its own, and its band could not blur the page behind. */
-    view-transition-name: phone-pill;
+    /* Not named for page transitions (Caden's iPhone recording, Nov 13): as its own layer the pill was drawn with
+       the square of page behind its glass, a brighter box around it on every tab switch. Unnamed, it stays where
+       it is, under the pages as they change. The cost: switching tabs while scrolled, with the pill showing, the
+       leaving page covers it for the 120ms it takes to fade. */
   }
   /* The top edge of a worker's phone page (Caden, Nov 12): what scrolls up no longer stops dead at the status
      bar. A band fixed across the top blurs what passes under it and fades it into the colour at the top of the
@@ -3626,23 +3627,16 @@ body {
   view-transition-name: tabbar;
 }
 ::view-transition-group(site-header),
-::view-transition-group(tabbar),
-::view-transition-group(phone-pill) {
+::view-transition-group(tabbar) {
   animation: none;
   z-index: 100;
 }
-/* The pill sits over the pages as they change, as it does on the page. */
-::view-transition-group(phone-pill) {
-  z-index: 101;
-}
 ::view-transition-old(site-header),
-::view-transition-old(tabbar),
-::view-transition-old(phone-pill) {
+::view-transition-old(tabbar) {
   display: none;
 }
 ::view-transition-new(site-header),
-::view-transition-new(tabbar),
-::view-transition-new(phone-pill) {
+::view-transition-new(tabbar) {
   animation: none;
 }
 /* The current tab's lens glides from the old tab to the new one. */

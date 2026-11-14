@@ -858,6 +858,26 @@ describe("the shell (redesign B1.4)", () => {
     expect(css).toMatch(/body:has\(\.thread-top\):not\(:has\(\.composer\)\) \.page \{\s*padding-bottom: calc\(2rem \+ env\(safe-area-inset-bottom\)\);/);
   });
 
+  it("the sidebar's glass runs to the top of the screen, and the bar's glass begins at its edge", () => {
+    // Caden, Nov 14: the sidebar's top edge drew a line under the site's mark, and the corner above it had no glass.
+    const at = css.indexOf("html:not(.sun) body:not(:has(.thread-top, .staff-band)) .org-rail:not(.staff-rail) {");
+    expect(at).toBeGreaterThan(-1);
+    const block = css.slice(css.lastIndexOf("@media", at), css.indexOf("\n}\n", at));
+    expect(block).toMatch(/^@media \(width >= 48rem\) \{/);
+    expect(block).toMatch(/\.org-rail:not\(\.staff-rail\) \{\s*top: 0;\s*height: 100dvh;\s*margin-top: calc\(-1 \* var\(--site-header-h\)\);\s*padding-top: calc\(var\(--site-header-h\) \+ var\(--rail-top\)\);/);
+    // The glass over the page, and the cap under a tablet's clock, start past the sidebar: neither lies over it.
+    expect(block).toMatch(/body:has\(\.org-rail:not\(\.staff-rail\)\):not\(:has\(\.thread-top, \.staff-band\)\)::after,\s*html:not\(\.sun\):has\(\.org-rail:not\(\.staff-rail\)\):not\(:has\(\.thread-top, \.staff-band\)\)::after \{\s*left: calc\(env\(safe-area-inset-left\) \+ max\(0px, \(100vw - env\(safe-area-inset-left\) - env\(safe-area-inset-right\) - var\(--workspace-max\)\) \/ 2\) \+ var\(--rail-w\)\);/);
+    // The sidebar's width and top padding are named once, and the icon strip on a short screen renames them.
+    expect(css).toMatch(/\n  --rail-w: 220px;\s*--rail-top: 1\.5rem;/);
+    expect(css).toMatch(/\.org-rail \{[^}]*@apply [^;]*\bw-\[220px\][^;]*\bpt-6\b/);
+    const strip = css.slice(css.indexOf("@media (max-height: 34rem) and (min-width: 48rem) {"));
+    expect(strip).toMatch(/^[^}]*--rail-w: 4rem;\s*--rail-top: 0\.5rem;/);
+    // After the rules it overrides (the sidebar pinned under the bar), which are as light as a class.
+    expect(at).toBeGreaterThan(css.indexOf("  .org-rail {\n    top: var(--site-header-h);"));
+    // Sunlight, a chat beside the sidebar and the staff console keep a plain bar across the whole top.
+    expect(block).not.toMatch(/\.sun |html\.sun/);
+  });
+
   it("a phone on its side gets a thin site bar and a sidebar of icons, so the page has the screen", () => {
     // Caden, Nov 14: landscape on a phone was the desktop's shell in a 393px-tall window.
     const at = css.indexOf("@media (max-height: 34rem) and (min-width: 48rem) {");

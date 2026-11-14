@@ -28,8 +28,9 @@
  * the base seed's approved CO/Denver jurisdiction must exist). It runs once:
  * work history, reviews and pay lines are append-only and stay for good.
  * What can be checked without writing is checked before the first write.
- * Scheduling is not: each shift goes through the app's own rules as it is
- * made, and a refusal other than an overlap stops the run partway. A
+ * Scheduling and the steps after it are not: each shift, check-in and
+ * closeout goes through the app's own rules as it is made, and a refusal
+ * (other than an overlapping shift, which is skipped) stops the run partway. A
  * completion marker naming the organizations it made is written last, so a
  * run that stopped partway is reported, not hidden (a second run refuses
  * until that database is reset), and the demo set is known by id rather
@@ -176,7 +177,7 @@ async function main() {
   const now = new Date();
   const T0 = new Date(now.getTime() - 45 * DAY); // when the demo's history starts
 
-  // --- Check everything before the first write ---
+  // --- Check what can be checked before the first write ---
   const jurisdiction = await p.jurisdictionProfile.findUnique({ where: { id: JURISDICTION } });
   if (!jurisdiction) throw new Error("Run the base seed first: the CO/Denver jurisdiction is missing.");
   // Past jobs publish at T0, so the profile must be usable then as well as now.

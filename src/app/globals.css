@@ -413,8 +413,9 @@ html {
   --workspace-max: 90rem;
   /* The worker's widest page (a list or record with its aside, gutters included): the header lines up with it. */
   --worker-frame: calc(var(--measure-content) + 18rem + 2.5rem + 3rem);
-  /* The header's fixed height in px, its 1px border included (.site-header-bar). */
-  --site-header-h: 65px;
+  /* The header's fixed height in px, its 1px border included (.site-header-bar), plus the phone's own strip above
+     it: an installed iPhone app draws the page under the clock, and the header's row starts below that. */
+  --site-header-h: calc(65px + env(safe-area-inset-top));
   --inspector-w: 24rem;
   --dock-clearance: calc(6rem + env(safe-area-inset-bottom));
 }
@@ -2394,6 +2395,7 @@ body {
   .org-rail-foot {
     @apply mt-4 shrink-0 space-y-0.5 border-t px-3 pt-4 text-sm;
     border-color: var(--shell-line);
+    padding-bottom: env(safe-area-inset-bottom);
   }
   .org-rail-head {
     @apply mb-4 space-y-1 border-b px-3 pb-4;
@@ -2807,6 +2809,7 @@ body {
     bottom: var(--dock-clearance);
     @media (width >= 48rem) {
       bottom: 0;
+      padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));
     }
     background: var(--bg);
   }
@@ -3081,6 +3084,8 @@ body {
   @media (min-width: 48rem) {
     .composer {
       bottom: 0;
+      /* An iPad's home bar. */
+      padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
     }
   }
   .composer-input {
@@ -3299,6 +3304,8 @@ summary.list-none::-webkit-details-marker {
 }
 .skip-link:focus-visible {
   translate: 0 0;
+  /* Shown, it sits below the phone's clock; hidden, it stays off the top of the screen. */
+  top: calc(0.5rem + env(safe-area-inset-top));
 }
 /* The skip link's landing spot is a wrapper, not a control: no ring on it. */
 .skip-target:focus {
@@ -3312,12 +3319,14 @@ summary.list-none::-webkit-details-marker {
   -webkit-backdrop-filter: var(--glass-filter);
   backdrop-filter: var(--glass-filter);
   border-color: transparent;
+  /* Its row starts under the phone's clock (installed iPhone app; zero everywhere else). */
+  padding-top: env(safe-area-inset-top);
 }
 /* The header's height is pinned in px (--site-header-h less its 1px border), so a
    larger text size never changes it: the full-height rail and the scroll
    padding below rely on it. Its controls fit inside at every text size. */
 .site-header-bar {
-  height: calc(var(--site-header-h) - 1px);
+  height: calc(var(--site-header-h) - 1px - env(safe-area-inset-top));
 }
 /* Organizations on desktop: the header stays put too, so the full-height rail
    can sit exactly under it (--site-header-h). */
@@ -3418,6 +3427,11 @@ body:has(.staff-band)::after {
   body:has(.thread-top):not(:has(.composer)) .page {
     padding-bottom: calc(2rem + env(safe-area-inset-bottom));
   }
+  /* An installed iPhone app draws the page under the clock: a chat's bar pins below it (the cap under the clock
+     is the root's, near the end of the file). Zero everywhere else. */
+  body:has(.thread-top) .thread-top {
+    top: env(safe-area-inset-top);
+  }
 }
 @media (max-width: 47.99rem) {
   body:not(:has(.thread-top)) .site-header {
@@ -3458,7 +3472,7 @@ body:has(.staff-band)::after {
   }
   /* Focused or linked-to content never lands under the sticky header. */
   html:not(:has(.thread-top)) {
-    scroll-padding-top: 5rem;
+    scroll-padding-top: calc(5rem + env(safe-area-inset-top));
   }
   /* ...nor under the floating dock: a field the keyboard or Tab moves to is
      scrolled clear of it (it measured 97% hidden on the shift page's packet
@@ -3553,7 +3567,35 @@ html[data-scroll="down"]:not(:has(.thread-top)) .phone-top > :not(:focus-visible
 }
 
 /* ---- Print (receipts and statements, M9) --------------------------------- */
+/* Under the phone's clock (an installed iPhone app draws the page there): a cap in the colour the root is painted,
+   on every page and in every mode, so nothing scrolls behind the clock where no glass covers it (a job's page,
+   Sunlight, the solid fallback, a chat). Under the glass and the headers (z 44, 45), which draw over it. It has no
+   height anywhere the phone keeps no strip. */
+html::after {
+  content: "";
+  position: fixed;
+  inset: 0 0 auto;
+  height: env(safe-area-inset-top);
+  z-index: 43;
+  pointer-events: none;
+  background: inherit;
+}
+/* The phone draws the clock in white there, whatever is behind it. Where the page under it is pale and has no
+   purple (Sunlight, made to be read outdoors, and a chat by day), the cap is the dock's dark colour, so the
+   clock and battery can be read. */
+html.sun::after,
+html:not(.dark):has(.thread-top)::after {
+  background: var(--shell-bg);
+}
+/* In landscape the notch is at the side: the page, the rail and a chat's box stay clear of it. */
+body {
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
 @media print {
+  html::after {
+    display: none;
+  }
   /* Paper has no glass: every pane prints solid. */
   :root {
     --card-filter: none;
@@ -3895,7 +3937,7 @@ html[data-scroll="down"]:not(:has(.thread-top)) .phone-top > :not(:focus-visible
 .pull {
   /* Under the sticky header (z 45) at rest, so it comes out from beneath it; at the threshold it sits clear below. */
   position: fixed;
-  top: 0.25rem;
+  top: calc(0.25rem + env(safe-area-inset-top));
   left: 50%;
   z-index: 30;
   display: flex;

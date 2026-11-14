@@ -1,0 +1,4964 @@
+[
+  {
+    "frame": "builder-new-errors",
+    "screen": "Builder",
+    "state": "new job, step 1, two problems",
+    "width": 390,
+    "theme": "light",
+    "dpr": 2,
+    "file": "builder-new-errors-390-light.png",
+    "contentHeight": 1274,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44.5
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": true,
+    "map": null,
+    "viewportFile": "viewport/builder-new-errors-390.png",
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "builder-new-errors"
+      ]
+    }
+  },
+  {
+    "frame": "builder-new-errors",
+    "screen": "Builder",
+    "state": "new job, step 1, two problems",
+    "width": 390,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "builder-new-errors-390-dark.png",
+    "contentHeight": 1274,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44.5
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": true,
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "builder-new-errors"
+      ]
+    }
+  },
+  {
+    "frame": "builder-new-errors",
+    "screen": "Builder",
+    "state": "new job, step 1, two problems",
+    "width": 1440,
+    "theme": "light",
+    "dpr": 2,
+    "file": "builder-new-errors-1440-light.png",
+    "contentHeight": 1097,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44.5
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": true,
+    "map": null,
+    "viewportFile": "viewport/builder-new-errors-1440.png",
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "builder-new-errors"
+      ]
+    }
+  },
+  {
+    "frame": "builder-new-errors",
+    "screen": "Builder",
+    "state": "new job, step 1, two problems",
+    "width": 1440,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "builder-new-errors-1440-dark.png",
+    "contentHeight": 1097,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44.5
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": true,
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "builder-new-errors"
+      ]
+    }
+  },
+  {
+    "frame": "builder-new-saved",
+    "screen": "Builder",
+    "state": "new job, step 1, draft saved",
+    "width": 390,
+    "theme": "light",
+    "dpr": 2,
+    "file": "builder-new-saved-390-light.png",
+    "contentHeight": 1086,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44.5
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": true,
+    "map": null,
+    "viewportFile": "viewport/builder-new-saved-390.png",
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "builder-draft-step2"
+      ]
+    }
+  },
+  {
+    "frame": "builder-new-saved",
+    "screen": "Builder",
+    "state": "new job, step 1, draft saved",
+    "width": 390,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "builder-new-saved-390-dark.png",
+    "contentHeight": 1086,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44.5
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": true,
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "builder-draft-step2"
+      ]
+    }
+  },
+  {
+    "frame": "builder-new-saved",
+    "screen": "Builder",
+    "state": "new job, step 1, draft saved",
+    "width": 1440,
+    "theme": "light",
+    "dpr": 2,
+    "file": "builder-new-saved-1440-light.png",
+    "contentHeight": 929,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44.5
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": true,
+    "map": null,
+    "viewportFile": "viewport/builder-new-saved-1440.png",
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "builder-draft-step2"
+      ]
+    }
+  },
+  {
+    "frame": "builder-new-saved",
+    "screen": "Builder",
+    "state": "new job, step 1, draft saved",
+    "width": 1440,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "builder-new-saved-1440-dark.png",
+    "contentHeight": 929,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44.5
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": true,
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "builder-draft-step2"
+      ]
+    }
+  },
+  {
+    "frame": "builder-draft-step2",
+    "screen": "Builder",
+    "state": "saved draft, step 2 (dates, city, launch, staging map)",
+    "width": 390,
+    "theme": "light",
+    "dpr": 2,
+    "file": "builder-draft-step2-390-light.png",
+    "contentHeight": 2165,
+    "horizontalOverflow": 0,
+    "clippedElements": 1,
+    "clipped": [
+      "div.turf-map.w-full"
+    ],
+    "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44.5
+      },
+      "btnSm": {
+        "visible": 36,
+        "hit": 44.5
+      },
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": true,
+    "map": {
+      "loaded": 4,
+      "total": 4,
+      "controls": true,
+      "attribution": true,
+      "pin": true
+    },
+    "viewportFile": "viewport/builder-draft-step2-390.png",
+    "scrolledFile": "viewport/builder-draft-step2-390-scrolled.png",
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "builder-draft-step2"
+      ]
+    }
+  },
+  {
+    "frame": "builder-draft-step2",
+    "screen": "Builder",
+    "state": "saved draft, step 2 (dates, city, launch, staging map)",
+    "width": 390,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "builder-draft-step2-390-dark.png",
+    "contentHeight": 2165,
+    "horizontalOverflow": 0,
+    "clippedElements": 1,
+    "clipped": [
+      "div.turf-map.w-full"
+    ],
+    "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44.5
+      },
+      "btnSm": {
+        "visible": 36,
+        "hit": 44.5
+      },
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": true,
+    "map": {
+      "loaded": 4,
+      "total": 4,
+      "controls": true,
+      "attribution": true,
+      "pin": true
+    },
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "builder-draft-step2"
+      ]
+    }
+  },
+  {
+    "frame": "builder-draft-step2",
+    "screen": "Builder",
+    "state": "saved draft, step 2 (dates, city, launch, staging map)",
+    "width": 1440,
+    "theme": "light",
+    "dpr": 2,
+    "file": "builder-draft-step2-1440-light.png",
+    "contentHeight": 1553,
+    "horizontalOverflow": 0,
+    "clippedElements": 1,
+    "clipped": [
+      "div.turf-map.w-full"
+    ],
+    "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44.5
+      },
+      "btnSm": {
+        "visible": 36,
+        "hit": 44.5
+      },
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": true,
+    "map": {
+      "loaded": 8,
+      "total": 8,
+      "controls": true,
+      "attribution": true,
+      "pin": true
+    },
+    "viewportFile": "viewport/builder-draft-step2-1440.png",
+    "scrolledFile": "viewport/builder-draft-step2-1440-scrolled.png",
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "builder-draft-step2"
+      ]
+    }
+  },
+  {
+    "frame": "builder-draft-step2",
+    "screen": "Builder",
+    "state": "saved draft, step 2 (dates, city, launch, staging map)",
+    "width": 1440,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "builder-draft-step2-1440-dark.png",
+    "contentHeight": 1553,
+    "horizontalOverflow": 0,
+    "clippedElements": 1,
+    "clipped": [
+      "div.turf-map.w-full"
+    ],
+    "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44.5
+      },
+      "btnSm": {
+        "visible": 36,
+        "hit": 44.5
+      },
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": true,
+    "map": {
+      "loaded": 8,
+      "total": 8,
+      "controls": true,
+      "attribution": true,
+      "pin": true
+    },
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "builder-draft-step2"
+      ]
+    }
+  },
+  {
+    "frame": "builder-draft-step4-errors",
+    "screen": "Builder",
+    "state": "saved draft, step 4, contacts missing",
+    "width": 390,
+    "theme": "light",
+    "dpr": 2,
+    "file": "builder-draft-step4-errors-390-light.png",
+    "contentHeight": 2026,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44.5
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": true,
+    "map": null,
+    "viewportFile": "viewport/builder-draft-step4-errors-390.png",
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "builder-draft-step4"
+      ]
+    }
+  },
+  {
+    "frame": "builder-draft-step4-errors",
+    "screen": "Builder",
+    "state": "saved draft, step 4, contacts missing",
+    "width": 390,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "builder-draft-step4-errors-390-dark.png",
+    "contentHeight": 2026,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44.5
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": true,
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "builder-draft-step4"
+      ]
+    }
+  },
+  {
+    "frame": "builder-draft-step4-errors",
+    "screen": "Builder",
+    "state": "saved draft, step 4, contacts missing",
+    "width": 1440,
+    "theme": "light",
+    "dpr": 2,
+    "file": "builder-draft-step4-errors-1440-light.png",
+    "contentHeight": 1435,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44.5
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [
+      "canvassApp (230px in 170px)"
+    ],
+    "currentStepInView": true,
+    "map": null,
+    "viewportFile": "viewport/builder-draft-step4-errors-1440.png",
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "builder-draft-step4"
+      ]
+    }
+  },
+  {
+    "frame": "builder-draft-step4-errors",
+    "screen": "Builder",
+    "state": "saved draft, step 4, contacts missing",
+    "width": 1440,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "builder-draft-step4-errors-1440-dark.png",
+    "contentHeight": 1435,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44.5
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [
+      "canvassApp (230px in 170px)"
+    ],
+    "currentStepInView": true,
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "builder-draft-step4"
+      ]
+    }
+  },
+  {
+    "frame": "builder-draft-step5",
+    "screen": "Builder",
+    "state": "saved draft, step 5 (campaign disclosure)",
+    "width": 320,
+    "theme": "light",
+    "dpr": 2,
+    "file": "builder-draft-step5-320-light.png",
+    "contentHeight": 2469,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44.5
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [
+      "campaignType (373px in 242px)"
+    ],
+    "currentStepInView": true,
+    "map": null,
+    "viewportFile": "viewport/builder-draft-step5-320.png",
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "builder-draft-step5"
+      ]
+    }
+  },
+  {
+    "frame": "builder-draft-step5",
+    "screen": "Builder",
+    "state": "saved draft, step 5 (campaign disclosure)",
+    "width": 320,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "builder-draft-step5-320-dark.png",
+    "contentHeight": 2469,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44.5
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [
+      "campaignType (373px in 242px)"
+    ],
+    "currentStepInView": true,
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "builder-draft-step5"
+      ]
+    }
+  },
+  {
+    "frame": "builder-draft-step5",
+    "screen": "Builder",
+    "state": "saved draft, step 5 (campaign disclosure)",
+    "width": 390,
+    "theme": "light",
+    "dpr": 2,
+    "file": "builder-draft-step5-390-light.png",
+    "contentHeight": 2429,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44.5
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [
+      "campaignType (373px in 312px)"
+    ],
+    "currentStepInView": true,
+    "map": null,
+    "viewportFile": "viewport/builder-draft-step5-390.png",
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "builder-draft-step5"
+      ]
+    }
+  },
+  {
+    "frame": "builder-draft-step5",
+    "screen": "Builder",
+    "state": "saved draft, step 5 (campaign disclosure)",
+    "width": 390,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "builder-draft-step5-390-dark.png",
+    "contentHeight": 2429,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44.5
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [
+      "campaignType (373px in 312px)"
+    ],
+    "currentStepInView": true,
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "builder-draft-step5"
+      ]
+    }
+  },
+  {
+    "frame": "builder-draft-step5",
+    "screen": "Builder",
+    "state": "saved draft, step 5 (campaign disclosure)",
+    "width": 1440,
+    "theme": "light",
+    "dpr": 2,
+    "file": "builder-draft-step5-1440-light.png",
+    "contentHeight": 1728,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44.5
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [
+      "campaignType (326px in 284px)"
+    ],
+    "currentStepInView": true,
+    "map": null,
+    "viewportFile": "viewport/builder-draft-step5-1440.png",
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "builder-draft-step5"
+      ]
+    }
+  },
+  {
+    "frame": "builder-draft-step5",
+    "screen": "Builder",
+    "state": "saved draft, step 5 (campaign disclosure)",
+    "width": 1440,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "builder-draft-step5-1440-dark.png",
+    "contentHeight": 1728,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44.5
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [
+      "campaignType (326px in 284px)"
+    ],
+    "currentStepInView": true,
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "builder-draft-step5"
+      ]
+    }
+  },
+  {
+    "frame": "builder-saving",
+    "screen": "Builder",
+    "state": "saved draft, step 3, saving",
+    "width": 390,
+    "theme": "light",
+    "dpr": 2,
+    "file": "builder-saving-390-light.png",
+    "contentHeight": 1241,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44.5
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": true,
+    "map": null,
+    "viewportFile": "viewport/builder-saving-390.png",
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "builder-draft-step2"
+      ]
+    }
+  },
+  {
+    "frame": "builder-saving",
+    "screen": "Builder",
+    "state": "saved draft, step 3, saving",
+    "width": 390,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "builder-saving-390-dark.png",
+    "contentHeight": 1241,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44.5
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": true,
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "builder-draft-step2"
+      ]
+    }
+  },
+  {
+    "frame": "builder-saving",
+    "screen": "Builder",
+    "state": "saved draft, step 3, saving",
+    "width": 1440,
+    "theme": "light",
+    "dpr": 2,
+    "file": "builder-saving-1440-light.png",
+    "contentHeight": 920,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44.5
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": true,
+    "map": null,
+    "viewportFile": "viewport/builder-saving-1440.png",
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "builder-draft-step2"
+      ]
+    }
+  },
+  {
+    "frame": "builder-saving",
+    "screen": "Builder",
+    "state": "saved draft, step 3, saving",
+    "width": 1440,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "builder-saving-1440-dark.png",
+    "contentHeight": 920,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44.5
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": true,
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "builder-draft-step2"
+      ]
+    }
+  },
+  {
+    "frame": "builder-failed-save",
+    "screen": "Builder",
+    "state": "saved draft, step 3, couldn't save",
+    "width": 390,
+    "theme": "light",
+    "dpr": 2,
+    "file": "builder-failed-save-390-light.png",
+    "contentHeight": 1260,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44.5
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": true,
+    "map": null,
+    "viewportFile": "viewport/builder-failed-save-390.png",
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "builder-draft-step2"
+      ]
+    }
+  },
+  {
+    "frame": "builder-failed-save",
+    "screen": "Builder",
+    "state": "saved draft, step 3, couldn't save",
+    "width": 390,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "builder-failed-save-390-dark.png",
+    "contentHeight": 1260,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44.5
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": true,
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "builder-draft-step2"
+      ]
+    }
+  },
+  {
+    "frame": "builder-failed-save",
+    "screen": "Builder",
+    "state": "saved draft, step 3, couldn't save",
+    "width": 1440,
+    "theme": "light",
+    "dpr": 2,
+    "file": "builder-failed-save-1440-light.png",
+    "contentHeight": 920,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44.5
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": true,
+    "map": null,
+    "viewportFile": "viewport/builder-failed-save-1440.png",
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "builder-draft-step2"
+      ]
+    }
+  },
+  {
+    "frame": "builder-failed-save",
+    "screen": "Builder",
+    "state": "saved draft, step 3, couldn't save",
+    "width": 1440,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "builder-failed-save-1440-dark.png",
+    "contentHeight": 920,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44.5
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": true,
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "builder-draft-step2"
+      ]
+    }
+  },
+  {
+    "frame": "builder-review",
+    "screen": "Builder",
+    "state": "saved draft, step 6 review",
+    "width": 390,
+    "theme": "light",
+    "dpr": 2,
+    "file": "builder-review-390-light.png",
+    "contentHeight": 1973,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44.5
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": true,
+    "map": null,
+    "viewportFile": "viewport/builder-review-390.png",
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": []
+    }
+  },
+  {
+    "frame": "builder-review",
+    "screen": "Builder",
+    "state": "saved draft, step 6 review",
+    "width": 390,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "builder-review-390-dark.png",
+    "contentHeight": 1973,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44.5
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": true,
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": []
+    }
+  },
+  {
+    "frame": "builder-review",
+    "screen": "Builder",
+    "state": "saved draft, step 6 review",
+    "width": 1440,
+    "theme": "light",
+    "dpr": 2,
+    "file": "builder-review-1440-light.png",
+    "contentHeight": 1608,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44.5
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": true,
+    "map": null,
+    "viewportFile": "viewport/builder-review-1440.png",
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": []
+    }
+  },
+  {
+    "frame": "builder-review",
+    "screen": "Builder",
+    "state": "saved draft, step 6 review",
+    "width": 1440,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "builder-review-1440-dark.png",
+    "contentHeight": 1608,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44.5
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": true,
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": []
+    }
+  },
+  {
+    "frame": "builder-live-step1",
+    "screen": "Builder",
+    "state": "published job, step 1",
+    "width": 390,
+    "theme": "light",
+    "dpr": 2,
+    "file": "builder-live-step1-390-light.png",
+    "contentHeight": 1260,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44.5
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": true,
+    "map": null,
+    "viewportFile": "viewport/builder-live-step1-390.png",
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "builder-live"
+      ]
+    }
+  },
+  {
+    "frame": "builder-live-step1",
+    "screen": "Builder",
+    "state": "published job, step 1",
+    "width": 390,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "builder-live-step1-390-dark.png",
+    "contentHeight": 1260,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44.5
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": true,
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "builder-live"
+      ]
+    }
+  },
+  {
+    "frame": "builder-live-step1",
+    "screen": "Builder",
+    "state": "published job, step 1",
+    "width": 1440,
+    "theme": "light",
+    "dpr": 2,
+    "file": "builder-live-step1-1440-light.png",
+    "contentHeight": 993,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44.5
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": true,
+    "map": null,
+    "viewportFile": "viewport/builder-live-step1-1440.png",
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "builder-live"
+      ]
+    }
+  },
+  {
+    "frame": "builder-live-step1",
+    "screen": "Builder",
+    "state": "published job, step 1",
+    "width": 1440,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "builder-live-step1-1440-dark.png",
+    "contentHeight": 993,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44.5
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": true,
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "builder-live"
+      ]
+    }
+  },
+  {
+    "frame": "builder-live-review",
+    "screen": "Builder",
+    "state": "published job, review, Save changes",
+    "width": 390,
+    "theme": "light",
+    "dpr": 2,
+    "file": "builder-live-review-390-light.png",
+    "contentHeight": 2155,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44.5
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": true,
+    "map": null,
+    "viewportFile": "viewport/builder-live-review-390.png",
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": []
+    }
+  },
+  {
+    "frame": "builder-live-review",
+    "screen": "Builder",
+    "state": "published job, review, Save changes",
+    "width": 390,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "builder-live-review-390-dark.png",
+    "contentHeight": 2155,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44.5
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": true,
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": []
+    }
+  },
+  {
+    "frame": "builder-live-review",
+    "screen": "Builder",
+    "state": "published job, review, Save changes",
+    "width": 1440,
+    "theme": "light",
+    "dpr": 2,
+    "file": "builder-live-review-1440-light.png",
+    "contentHeight": 1766,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44.5
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": true,
+    "map": null,
+    "viewportFile": "viewport/builder-live-review-1440.png",
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": []
+    }
+  },
+  {
+    "frame": "builder-live-review",
+    "screen": "Builder",
+    "state": "published job, review, Save changes",
+    "width": 1440,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "builder-live-review-1440-dark.png",
+    "contentHeight": 1766,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": {
+        "visible": 26,
+        "hit": 44.5
+      },
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": true,
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": []
+    }
+  },
+  {
+    "frame": "builder-closed",
+    "screen": "Builder",
+    "state": "closed job refusal",
+    "width": 390,
+    "theme": "light",
+    "dpr": 2,
+    "file": "builder-closed-390-light.png",
+    "contentHeight": 844,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": "viewport/builder-closed-390.png",
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": []
+    }
+  },
+  {
+    "frame": "builder-closed",
+    "screen": "Builder",
+    "state": "closed job refusal",
+    "width": 390,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "builder-closed-390-dark.png",
+    "contentHeight": 844,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": []
+    }
+  },
+  {
+    "frame": "builder-closed",
+    "screen": "Builder",
+    "state": "closed job refusal",
+    "width": 1440,
+    "theme": "light",
+    "dpr": 2,
+    "file": "builder-closed-1440-light.png",
+    "contentHeight": 920,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": "viewport/builder-closed-1440.png",
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": []
+    }
+  },
+  {
+    "frame": "builder-closed",
+    "screen": "Builder",
+    "state": "closed job refusal",
+    "width": 1440,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "builder-closed-1440-dark.png",
+    "contentHeight": 920,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": []
+    }
+  },
+  {
+    "frame": "builder-no-access",
+    "screen": "Builder",
+    "state": "member without jobsEdit",
+    "width": 390,
+    "theme": "light",
+    "dpr": 2,
+    "file": "builder-no-access-390-light.png",
+    "contentHeight": 844,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": "viewport/builder-no-access-390.png",
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "no-access"
+      ]
+    }
+  },
+  {
+    "frame": "builder-no-access",
+    "screen": "Builder",
+    "state": "member without jobsEdit",
+    "width": 390,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "builder-no-access-390-dark.png",
+    "contentHeight": 844,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "no-access"
+      ]
+    }
+  },
+  {
+    "frame": "builder-no-access",
+    "screen": "Builder",
+    "state": "member without jobsEdit",
+    "width": 1440,
+    "theme": "light",
+    "dpr": 2,
+    "file": "builder-no-access-1440-light.png",
+    "contentHeight": 920,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": "viewport/builder-no-access-1440.png",
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "no-access"
+      ]
+    }
+  },
+  {
+    "frame": "builder-no-access",
+    "screen": "Builder",
+    "state": "member without jobsEdit",
+    "width": 1440,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "builder-no-access-1440-dark.png",
+    "contentHeight": 920,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "no-access"
+      ]
+    }
+  },
+  {
+    "frame": "publishing-blocked",
+    "screen": "Job page",
+    "state": "draft, blocked in job, settings and counsel (composite: the Aurora draft's head with every group's reasons; no fixture is blocked in all three)",
+    "width": 390,
+    "theme": "light",
+    "dpr": 2,
+    "file": "publishing-blocked-390-light.png",
+    "contentHeight": 1349,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": "viewport/publishing-blocked-390.png",
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "job-draft-blocked"
+      ]
+    }
+  },
+  {
+    "frame": "publishing-blocked",
+    "screen": "Job page",
+    "state": "draft, blocked in job, settings and counsel (composite: the Aurora draft's head with every group's reasons; no fixture is blocked in all three)",
+    "width": 390,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "publishing-blocked-390-dark.png",
+    "contentHeight": 1349,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "job-draft-blocked"
+      ]
+    }
+  },
+  {
+    "frame": "publishing-blocked",
+    "screen": "Job page",
+    "state": "draft, blocked in job, settings and counsel (composite: the Aurora draft's head with every group's reasons; no fixture is blocked in all three)",
+    "width": 1440,
+    "theme": "light",
+    "dpr": 2,
+    "file": "publishing-blocked-1440-light.png",
+    "contentHeight": 1105,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": "viewport/publishing-blocked-1440.png",
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "job-draft-blocked"
+      ]
+    }
+  },
+  {
+    "frame": "publishing-blocked",
+    "screen": "Job page",
+    "state": "draft, blocked in job, settings and counsel (composite: the Aurora draft's head with every group's reasons; no fixture is blocked in all three)",
+    "width": 1440,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "publishing-blocked-1440-dark.png",
+    "contentHeight": 1105,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "job-draft-blocked"
+      ]
+    }
+  },
+  {
+    "frame": "publishing-restricted",
+    "screen": "Job page",
+    "state": "draft, blocked, viewer without settings or edit access (same composite)",
+    "width": 390,
+    "theme": "light",
+    "dpr": 2,
+    "file": "publishing-restricted-390-light.png",
+    "contentHeight": 1269,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": "viewport/publishing-restricted-390.png",
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "job-draft-blocked"
+      ]
+    }
+  },
+  {
+    "frame": "publishing-restricted",
+    "screen": "Job page",
+    "state": "draft, blocked, viewer without settings or edit access (same composite)",
+    "width": 390,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "publishing-restricted-390-dark.png",
+    "contentHeight": 1269,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "job-draft-blocked"
+      ]
+    }
+  },
+  {
+    "frame": "publishing-restricted",
+    "screen": "Job page",
+    "state": "draft, blocked, viewer without settings or edit access (same composite)",
+    "width": 1440,
+    "theme": "light",
+    "dpr": 2,
+    "file": "publishing-restricted-1440-light.png",
+    "contentHeight": 1025,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": "viewport/publishing-restricted-1440.png",
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "job-draft-blocked"
+      ]
+    }
+  },
+  {
+    "frame": "publishing-restricted",
+    "screen": "Job page",
+    "state": "draft, blocked, viewer without settings or edit access (same composite)",
+    "width": 1440,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "publishing-restricted-1440-dark.png",
+    "contentHeight": 1025,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "job-draft-blocked"
+      ]
+    }
+  },
+  {
+    "frame": "publishing-counsel",
+    "screen": "Job page",
+    "state": "draft, blocked by the jurisdiction only",
+    "width": 390,
+    "theme": "light",
+    "dpr": 2,
+    "file": "publishing-counsel-390-light.png",
+    "contentHeight": 1031,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": "viewport/publishing-counsel-390.png",
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "job-draft-blocked"
+      ]
+    }
+  },
+  {
+    "frame": "publishing-counsel",
+    "screen": "Job page",
+    "state": "draft, blocked by the jurisdiction only",
+    "width": 390,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "publishing-counsel-390-dark.png",
+    "contentHeight": 1031,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "job-draft-blocked"
+      ]
+    }
+  },
+  {
+    "frame": "publishing-counsel",
+    "screen": "Job page",
+    "state": "draft, blocked by the jurisdiction only",
+    "width": 1440,
+    "theme": "light",
+    "dpr": 2,
+    "file": "publishing-counsel-1440-light.png",
+    "contentHeight": 920,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": "viewport/publishing-counsel-1440.png",
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "job-draft-blocked"
+      ]
+    }
+  },
+  {
+    "frame": "publishing-counsel",
+    "screen": "Job page",
+    "state": "draft, blocked by the jurisdiction only",
+    "width": 1440,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "publishing-counsel-1440-dark.png",
+    "contentHeight": 920,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "job-draft-blocked"
+      ]
+    }
+  },
+  {
+    "frame": "publishing-clear",
+    "screen": "Job page",
+    "state": "draft, every check passes",
+    "width": 390,
+    "theme": "light",
+    "dpr": 2,
+    "file": "publishing-clear-390-light.png",
+    "contentHeight": 925,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": "viewport/publishing-clear-390.png",
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "job-draft-blocked"
+      ]
+    }
+  },
+  {
+    "frame": "publishing-clear",
+    "screen": "Job page",
+    "state": "draft, every check passes",
+    "width": 390,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "publishing-clear-390-dark.png",
+    "contentHeight": 925,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "job-draft-blocked"
+      ]
+    }
+  },
+  {
+    "frame": "publishing-clear",
+    "screen": "Job page",
+    "state": "draft, every check passes",
+    "width": 1440,
+    "theme": "light",
+    "dpr": 2,
+    "file": "publishing-clear-1440-light.png",
+    "contentHeight": 920,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": "viewport/publishing-clear-1440.png",
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "job-draft-blocked"
+      ]
+    }
+  },
+  {
+    "frame": "publishing-clear",
+    "screen": "Job page",
+    "state": "draft, every check passes",
+    "width": 1440,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "publishing-clear-1440-dark.png",
+    "contentHeight": 920,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "job-draft-blocked"
+      ]
+    }
+  },
+  {
+    "frame": "publishing-frozen",
+    "screen": "Job page",
+    "state": "published job frozen under newer rules",
+    "width": 390,
+    "theme": "light",
+    "dpr": 2,
+    "file": "publishing-frozen-390-light.png",
+    "contentHeight": 995,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": "viewport/publishing-frozen-390.png",
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "job-draft-blocked"
+      ]
+    }
+  },
+  {
+    "frame": "publishing-frozen",
+    "screen": "Job page",
+    "state": "published job frozen under newer rules",
+    "width": 390,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "publishing-frozen-390-dark.png",
+    "contentHeight": 995,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "job-draft-blocked"
+      ]
+    }
+  },
+  {
+    "frame": "publishing-frozen",
+    "screen": "Job page",
+    "state": "published job frozen under newer rules",
+    "width": 1440,
+    "theme": "light",
+    "dpr": 2,
+    "file": "publishing-frozen-1440-light.png",
+    "contentHeight": 920,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": "viewport/publishing-frozen-1440.png",
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "job-draft-blocked"
+      ]
+    }
+  },
+  {
+    "frame": "publishing-frozen",
+    "screen": "Job page",
+    "state": "published job frozen under newer rules",
+    "width": 1440,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "publishing-frozen-1440-dark.png",
+    "contentHeight": 920,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "job-draft-blocked"
+      ]
+    }
+  },
+  {
+    "frame": "candidate-withheld",
+    "screen": "Candidate",
+    "state": "applied, nothing shared",
+    "width": 390,
+    "theme": "light",
+    "dpr": 2,
+    "file": "candidate-withheld-390-light.png",
+    "contentHeight": 1404,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44.5
+      },
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": "viewport/candidate-withheld-390.png",
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "scorecard-shared"
+      ]
+    }
+  },
+  {
+    "frame": "candidate-withheld",
+    "screen": "Candidate",
+    "state": "applied, nothing shared",
+    "width": 390,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "candidate-withheld-390-dark.png",
+    "contentHeight": 1404,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44.5
+      },
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "scorecard-shared"
+      ]
+    }
+  },
+  {
+    "frame": "candidate-withheld",
+    "screen": "Candidate",
+    "state": "applied, nothing shared",
+    "width": 1440,
+    "theme": "light",
+    "dpr": 2,
+    "file": "candidate-withheld-1440-light.png",
+    "contentHeight": 1197,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44.5
+      },
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": "viewport/candidate-withheld-1440.png",
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "scorecard-shared"
+      ]
+    }
+  },
+  {
+    "frame": "candidate-withheld",
+    "screen": "Candidate",
+    "state": "applied, nothing shared",
+    "width": 1440,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "candidate-withheld-1440-dark.png",
+    "contentHeight": 1197,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44.5
+      },
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "scorecard-shared"
+      ]
+    }
+  },
+  {
+    "frame": "candidate-mixed",
+    "screen": "Candidate",
+    "state": "in review, partial sharing (synthetic: Riley's empty scorecard, invented fit answers)",
+    "width": 390,
+    "theme": "light",
+    "dpr": 2,
+    "file": "candidate-mixed-390-light.png",
+    "contentHeight": 2825,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44.5
+      },
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": "viewport/candidate-mixed-390.png",
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "scorecard-shared"
+      ]
+    }
+  },
+  {
+    "frame": "candidate-mixed",
+    "screen": "Candidate",
+    "state": "in review, partial sharing (synthetic: Riley's empty scorecard, invented fit answers)",
+    "width": 390,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "candidate-mixed-390-dark.png",
+    "contentHeight": 2825,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44.5
+      },
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "scorecard-shared"
+      ]
+    }
+  },
+  {
+    "frame": "candidate-mixed",
+    "screen": "Candidate",
+    "state": "in review, partial sharing (synthetic: Riley's empty scorecard, invented fit answers)",
+    "width": 1440,
+    "theme": "light",
+    "dpr": 2,
+    "file": "candidate-mixed-1440-light.png",
+    "contentHeight": 2417,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44.5
+      },
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": "viewport/candidate-mixed-1440.png",
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "scorecard-shared"
+      ]
+    }
+  },
+  {
+    "frame": "candidate-mixed",
+    "screen": "Candidate",
+    "state": "in review, partial sharing (synthetic: Riley's empty scorecard, invented fit answers)",
+    "width": 1440,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "candidate-mixed-1440-dark.png",
+    "contentHeight": 2417,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44.5
+      },
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "scorecard-shared"
+      ]
+    }
+  },
+  {
+    "frame": "candidate-offer",
+    "screen": "Candidate",
+    "state": "offer out (composite: Jordan's shared scorecard under Morgan's name; Morgan's own sharing isn't fixtured)",
+    "width": 390,
+    "theme": "light",
+    "dpr": 2,
+    "file": "candidate-offer-390-light.png",
+    "contentHeight": 3677,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 46.5
+      },
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": "viewport/candidate-offer-390.png",
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "scorecard-shared"
+      ]
+    }
+  },
+  {
+    "frame": "candidate-offer",
+    "screen": "Candidate",
+    "state": "offer out (composite: Jordan's shared scorecard under Morgan's name; Morgan's own sharing isn't fixtured)",
+    "width": 390,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "candidate-offer-390-dark.png",
+    "contentHeight": 3677,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 46.5
+      },
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "scorecard-shared"
+      ]
+    }
+  },
+  {
+    "frame": "candidate-offer",
+    "screen": "Candidate",
+    "state": "offer out (composite: Jordan's shared scorecard under Morgan's name; Morgan's own sharing isn't fixtured)",
+    "width": 1440,
+    "theme": "light",
+    "dpr": 2,
+    "file": "candidate-offer-1440-light.png",
+    "contentHeight": 2919,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 46.5
+      },
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": "viewport/candidate-offer-1440.png",
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "scorecard-shared"
+      ]
+    }
+  },
+  {
+    "frame": "candidate-offer",
+    "screen": "Candidate",
+    "state": "offer out (composite: Jordan's shared scorecard under Morgan's name; Morgan's own sharing isn't fixtured)",
+    "width": 1440,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "candidate-offer-1440-dark.png",
+    "contentHeight": 2919,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 46.5
+      },
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "scorecard-shared"
+      ]
+    }
+  },
+  {
+    "frame": "candidate-offer-expired",
+    "screen": "Candidate",
+    "state": "offer expired (composite: Jordan's shared scorecard under Alex's name; dated by fixture, not captured)",
+    "width": 390,
+    "theme": "light",
+    "dpr": 2,
+    "file": "candidate-offer-expired-390-light.png",
+    "contentHeight": 3657,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44.5
+      },
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": "viewport/candidate-offer-expired-390.png",
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "scorecard-shared"
+      ]
+    }
+  },
+  {
+    "frame": "candidate-offer-expired",
+    "screen": "Candidate",
+    "state": "offer expired (composite: Jordan's shared scorecard under Alex's name; dated by fixture, not captured)",
+    "width": 390,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "candidate-offer-expired-390-dark.png",
+    "contentHeight": 3657,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44.5
+      },
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "scorecard-shared"
+      ]
+    }
+  },
+  {
+    "frame": "candidate-offer-expired",
+    "screen": "Candidate",
+    "state": "offer expired (composite: Jordan's shared scorecard under Alex's name; dated by fixture, not captured)",
+    "width": 1440,
+    "theme": "light",
+    "dpr": 2,
+    "file": "candidate-offer-expired-1440-light.png",
+    "contentHeight": 2919,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44.5
+      },
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": "viewport/candidate-offer-expired-1440.png",
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "scorecard-shared"
+      ]
+    }
+  },
+  {
+    "frame": "candidate-offer-expired",
+    "screen": "Candidate",
+    "state": "offer expired (composite: Jordan's shared scorecard under Alex's name; dated by fixture, not captured)",
+    "width": 1440,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "candidate-offer-expired-1440-dark.png",
+    "contentHeight": 2919,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44.5
+      },
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "scorecard-shared"
+      ]
+    }
+  },
+  {
+    "frame": "candidate-invited",
+    "screen": "Candidate",
+    "state": "invited, unanswered (profile not open)",
+    "width": 390,
+    "theme": "light",
+    "dpr": 2,
+    "file": "candidate-invited-390-light.png",
+    "contentHeight": 875,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 46.5
+      },
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": "viewport/candidate-invited-390.png",
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": []
+    }
+  },
+  {
+    "frame": "candidate-invited",
+    "screen": "Candidate",
+    "state": "invited, unanswered (profile not open)",
+    "width": 390,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "candidate-invited-390-dark.png",
+    "contentHeight": 875,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 46.5
+      },
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": []
+    }
+  },
+  {
+    "frame": "candidate-invited",
+    "screen": "Candidate",
+    "state": "invited, unanswered (profile not open)",
+    "width": 1440,
+    "theme": "light",
+    "dpr": 2,
+    "file": "candidate-invited-1440-light.png",
+    "contentHeight": 920,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 46.5
+      },
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": "viewport/candidate-invited-1440.png",
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": []
+    }
+  },
+  {
+    "frame": "candidate-invited",
+    "screen": "Candidate",
+    "state": "invited, unanswered (profile not open)",
+    "width": 1440,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "candidate-invited-1440-dark.png",
+    "contentHeight": 920,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 46.5
+      },
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": []
+    }
+  },
+  {
+    "frame": "candidate-invite-expired",
+    "screen": "Candidate",
+    "state": "invitation expired",
+    "width": 390,
+    "theme": "light",
+    "dpr": 2,
+    "file": "candidate-invite-expired-390-light.png",
+    "contentHeight": 844,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 46.5
+      },
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": "viewport/candidate-invite-expired-390.png",
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": []
+    }
+  },
+  {
+    "frame": "candidate-invite-expired",
+    "screen": "Candidate",
+    "state": "invitation expired",
+    "width": 390,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "candidate-invite-expired-390-dark.png",
+    "contentHeight": 844,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 46.5
+      },
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": []
+    }
+  },
+  {
+    "frame": "candidate-invite-expired",
+    "screen": "Candidate",
+    "state": "invitation expired",
+    "width": 1440,
+    "theme": "light",
+    "dpr": 2,
+    "file": "candidate-invite-expired-1440-light.png",
+    "contentHeight": 920,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 46.5
+      },
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": "viewport/candidate-invite-expired-1440.png",
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": []
+    }
+  },
+  {
+    "frame": "candidate-invite-expired",
+    "screen": "Candidate",
+    "state": "invitation expired",
+    "width": 1440,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "candidate-invite-expired-1440-dark.png",
+    "contentHeight": 920,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 46.5
+      },
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": []
+    }
+  },
+  {
+    "frame": "candidate-hired",
+    "screen": "Candidate",
+    "state": "hired (Message)",
+    "width": 390,
+    "theme": "light",
+    "dpr": 2,
+    "file": "candidate-hired-390-light.png",
+    "contentHeight": 3655,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44.5
+      },
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": "viewport/candidate-hired-390.png",
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "scorecard-shared"
+      ]
+    }
+  },
+  {
+    "frame": "candidate-hired",
+    "screen": "Candidate",
+    "state": "hired (Message)",
+    "width": 390,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "candidate-hired-390-dark.png",
+    "contentHeight": 3655,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44.5
+      },
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "scorecard-shared"
+      ]
+    }
+  },
+  {
+    "frame": "candidate-hired",
+    "screen": "Candidate",
+    "state": "hired (Message)",
+    "width": 1440,
+    "theme": "light",
+    "dpr": 2,
+    "file": "candidate-hired-1440-light.png",
+    "contentHeight": 2917,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44.5
+      },
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": "viewport/candidate-hired-1440.png",
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "scorecard-shared"
+      ]
+    }
+  },
+  {
+    "frame": "candidate-hired",
+    "screen": "Candidate",
+    "state": "hired (Message)",
+    "width": 1440,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "candidate-hired-1440-dark.png",
+    "contentHeight": 2917,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44.5
+      },
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "scorecard-shared"
+      ]
+    }
+  },
+  {
+    "frame": "candidate-not-selected",
+    "screen": "Candidate",
+    "state": "not selected (profile no longer open)",
+    "width": 390,
+    "theme": "light",
+    "dpr": 2,
+    "file": "candidate-not-selected-390-light.png",
+    "contentHeight": 844,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 46.5
+      },
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": "viewport/candidate-not-selected-390.png",
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": []
+    }
+  },
+  {
+    "frame": "candidate-not-selected",
+    "screen": "Candidate",
+    "state": "not selected (profile no longer open)",
+    "width": 390,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "candidate-not-selected-390-dark.png",
+    "contentHeight": 844,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 46.5
+      },
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": []
+    }
+  },
+  {
+    "frame": "candidate-not-selected",
+    "screen": "Candidate",
+    "state": "not selected (profile no longer open)",
+    "width": 1440,
+    "theme": "light",
+    "dpr": 2,
+    "file": "candidate-not-selected-1440-light.png",
+    "contentHeight": 920,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 46.5
+      },
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": "viewport/candidate-not-selected-1440.png",
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": []
+    }
+  },
+  {
+    "frame": "candidate-not-selected",
+    "screen": "Candidate",
+    "state": "not selected (profile no longer open)",
+    "width": 1440,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "candidate-not-selected-1440-dark.png",
+    "contentHeight": 920,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 46.5
+      },
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": []
+    }
+  },
+  {
+    "frame": "candidate-action-failed",
+    "screen": "Candidate",
+    "state": "an action failed",
+    "width": 390,
+    "theme": "light",
+    "dpr": 2,
+    "file": "candidate-action-failed-390-light.png",
+    "contentHeight": 1424,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44.5
+      },
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": "viewport/candidate-action-failed-390.png",
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "scorecard-shared"
+      ]
+    }
+  },
+  {
+    "frame": "candidate-action-failed",
+    "screen": "Candidate",
+    "state": "an action failed",
+    "width": 390,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "candidate-action-failed-390-dark.png",
+    "contentHeight": 1424,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44.5
+      },
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "scorecard-shared"
+      ]
+    }
+  },
+  {
+    "frame": "candidate-action-failed",
+    "screen": "Candidate",
+    "state": "an action failed",
+    "width": 1440,
+    "theme": "light",
+    "dpr": 2,
+    "file": "candidate-action-failed-1440-light.png",
+    "contentHeight": 1217,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44.5
+      },
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": "viewport/candidate-action-failed-1440.png",
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "scorecard-shared"
+      ]
+    }
+  },
+  {
+    "frame": "candidate-action-failed",
+    "screen": "Candidate",
+    "state": "an action failed",
+    "width": 1440,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "candidate-action-failed-1440-dark.png",
+    "contentHeight": 1217,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 44.5
+      },
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "scorecard-shared"
+      ]
+    }
+  },
+  {
+    "frame": "worker-shared",
+    "screen": "Worker page",
+    "state": "shares with this organization",
+    "width": 390,
+    "theme": "light",
+    "dpr": 2,
+    "file": "worker-shared-390-light.png",
+    "contentHeight": 3091,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": "viewport/worker-shared-390.png",
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "scorecard-shared"
+      ]
+    }
+  },
+  {
+    "frame": "worker-shared",
+    "screen": "Worker page",
+    "state": "shares with this organization",
+    "width": 390,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "worker-shared-390-dark.png",
+    "contentHeight": 3091,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "scorecard-shared"
+      ]
+    }
+  },
+  {
+    "frame": "worker-shared",
+    "screen": "Worker page",
+    "state": "shares with this organization",
+    "width": 1440,
+    "theme": "light",
+    "dpr": 2,
+    "file": "worker-shared-1440-light.png",
+    "contentHeight": 2417,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": "viewport/worker-shared-1440.png",
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "scorecard-shared"
+      ]
+    }
+  },
+  {
+    "frame": "worker-shared",
+    "screen": "Worker page",
+    "state": "shares with this organization",
+    "width": 1440,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "worker-shared-1440-dark.png",
+    "contentHeight": 2417,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "scorecard-shared"
+      ]
+    }
+  },
+  {
+    "frame": "worker-withheld",
+    "screen": "Worker page",
+    "state": "shares nothing; no job open to invitations (they applied to the only published job)",
+    "width": 390,
+    "theme": "light",
+    "dpr": 2,
+    "file": "worker-withheld-390-light.png",
+    "contentHeight": 889,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": "viewport/worker-withheld-390.png",
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": []
+    }
+  },
+  {
+    "frame": "worker-withheld",
+    "screen": "Worker page",
+    "state": "shares nothing; no job open to invitations (they applied to the only published job)",
+    "width": 390,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "worker-withheld-390-dark.png",
+    "contentHeight": 889,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": []
+    }
+  },
+  {
+    "frame": "worker-withheld",
+    "screen": "Worker page",
+    "state": "shares nothing; no job open to invitations (they applied to the only published job)",
+    "width": 1440,
+    "theme": "light",
+    "dpr": 2,
+    "file": "worker-withheld-1440-light.png",
+    "contentHeight": 920,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": "viewport/worker-withheld-1440.png",
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": []
+    }
+  },
+  {
+    "frame": "worker-withheld",
+    "screen": "Worker page",
+    "state": "shares nothing; no job open to invitations (they applied to the only published job)",
+    "width": 1440,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "worker-withheld-1440-dark.png",
+    "contentHeight": 920,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": []
+    }
+  },
+  {
+    "frame": "worker-name-not-shared",
+    "screen": "Worker page",
+    "state": "name not shared, partial sharing (synthetic fit answers)",
+    "width": 390,
+    "theme": "light",
+    "dpr": 2,
+    "file": "worker-name-not-shared-390-light.png",
+    "contentHeight": 2595,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": "viewport/worker-name-not-shared-390.png",
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "scorecard-shared"
+      ]
+    }
+  },
+  {
+    "frame": "worker-name-not-shared",
+    "screen": "Worker page",
+    "state": "name not shared, partial sharing (synthetic fit answers)",
+    "width": 390,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "worker-name-not-shared-390-dark.png",
+    "contentHeight": 2595,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "scorecard-shared"
+      ]
+    }
+  },
+  {
+    "frame": "worker-name-not-shared",
+    "screen": "Worker page",
+    "state": "name not shared, partial sharing (synthetic fit answers)",
+    "width": 1440,
+    "theme": "light",
+    "dpr": 2,
+    "file": "worker-name-not-shared-1440-light.png",
+    "contentHeight": 2259,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": "viewport/worker-name-not-shared-1440.png",
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "scorecard-shared"
+      ]
+    }
+  },
+  {
+    "frame": "worker-name-not-shared",
+    "screen": "Worker page",
+    "state": "name not shared, partial sharing (synthetic fit answers)",
+    "width": 1440,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "worker-name-not-shared-1440-dark.png",
+    "contentHeight": 2259,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "scorecard-shared"
+      ]
+    }
+  },
+  {
+    "frame": "worker-denied",
+    "screen": "Worker page",
+    "state": "organization awaiting approval",
+    "width": 390,
+    "theme": "light",
+    "dpr": 2,
+    "file": "worker-denied-390-light.png",
+    "contentHeight": 844,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": "viewport/worker-denied-390.png",
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": []
+    }
+  },
+  {
+    "frame": "worker-denied",
+    "screen": "Worker page",
+    "state": "organization awaiting approval",
+    "width": 390,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "worker-denied-390-dark.png",
+    "contentHeight": 844,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": []
+    }
+  },
+  {
+    "frame": "worker-denied",
+    "screen": "Worker page",
+    "state": "organization awaiting approval",
+    "width": 1440,
+    "theme": "light",
+    "dpr": 2,
+    "file": "worker-denied-1440-light.png",
+    "contentHeight": 920,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": "viewport/worker-denied-1440.png",
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": []
+    }
+  },
+  {
+    "frame": "worker-denied",
+    "screen": "Worker page",
+    "state": "organization awaiting approval",
+    "width": 1440,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "worker-denied-1440-dark.png",
+    "contentHeight": 920,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": null,
+      "filterChip": null
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": []
+    }
+  },
+  {
+    "frame": "applicants",
+    "screen": "Applicants",
+    "state": "six applicants, none selected",
+    "width": 390,
+    "theme": "light",
+    "dpr": 2,
+    "file": "applicants-390-light.png",
+    "contentHeight": 1891,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 46.5
+      },
+      "filterChip": {
+        "visible": 36,
+        "hit": 42.5
+      }
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": "viewport/applicants-390.png",
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "applicants"
+      ]
+    }
+  },
+  {
+    "frame": "applicants",
+    "screen": "Applicants",
+    "state": "six applicants, none selected",
+    "width": 390,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "applicants-390-dark.png",
+    "contentHeight": 1891,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 46.5
+      },
+      "filterChip": {
+        "visible": 36,
+        "hit": 42.5
+      }
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "applicants"
+      ]
+    }
+  },
+  {
+    "frame": "applicants",
+    "screen": "Applicants",
+    "state": "six applicants, none selected",
+    "width": 1440,
+    "theme": "light",
+    "dpr": 2,
+    "file": "applicants-1440-light.png",
+    "contentHeight": 946,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 46.5
+      },
+      "filterChip": {
+        "visible": 36,
+        "hit": 42.5
+      }
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": "viewport/applicants-1440.png",
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "applicants"
+      ]
+    }
+  },
+  {
+    "frame": "applicants",
+    "screen": "Applicants",
+    "state": "six applicants, none selected",
+    "width": 1440,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "applicants-1440-dark.png",
+    "contentHeight": 946,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 46.5
+      },
+      "filterChip": {
+        "visible": 36,
+        "hit": 42.5
+      }
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "applicants"
+      ]
+    }
+  },
+  {
+    "frame": "applicants-selected",
+    "screen": "Applicants",
+    "state": "one selected, bulk form open",
+    "width": 390,
+    "theme": "light",
+    "dpr": 2,
+    "file": "applicants-selected-390-light.png",
+    "contentHeight": 2063,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 46.5
+      },
+      "filterChip": {
+        "visible": 36,
+        "hit": 42.5
+      }
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": "viewport/applicants-selected-390.png",
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "applicants"
+      ]
+    }
+  },
+  {
+    "frame": "applicants-selected",
+    "screen": "Applicants",
+    "state": "one selected, bulk form open",
+    "width": 390,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "applicants-selected-390-dark.png",
+    "contentHeight": 2063,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 46.5
+      },
+      "filterChip": {
+        "visible": 36,
+        "hit": 42.5
+      }
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "applicants"
+      ]
+    }
+  },
+  {
+    "frame": "applicants-selected",
+    "screen": "Applicants",
+    "state": "one selected, bulk form open",
+    "width": 1440,
+    "theme": "light",
+    "dpr": 2,
+    "file": "applicants-selected-1440-light.png",
+    "contentHeight": 1070,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 46.5
+      },
+      "filterChip": {
+        "visible": 36,
+        "hit": 42.5
+      }
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": "viewport/applicants-selected-1440.png",
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "applicants"
+      ]
+    }
+  },
+  {
+    "frame": "applicants-selected",
+    "screen": "Applicants",
+    "state": "one selected, bulk form open",
+    "width": 1440,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "applicants-selected-1440-dark.png",
+    "contentHeight": 1070,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 46.5
+      },
+      "filterChip": {
+        "visible": 36,
+        "hit": 42.5
+      }
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "applicants"
+      ]
+    }
+  },
+  {
+    "frame": "applicants-empty",
+    "screen": "Applicants",
+    "state": "nobody applied (the Aurora draft's applicants page as the app renders it: 0 applicants, Applicants 0, Invites 0, the app's empty art)",
+    "width": 390,
+    "theme": "light",
+    "dpr": 2,
+    "file": "applicants-empty-390-light.png",
+    "contentHeight": 963,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 46.5
+      },
+      "filterChip": {
+        "visible": 36,
+        "hit": 42.5
+      }
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": "viewport/applicants-empty-390.png",
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "applicants-empty"
+      ]
+    }
+  },
+  {
+    "frame": "applicants-empty",
+    "screen": "Applicants",
+    "state": "nobody applied (the Aurora draft's applicants page as the app renders it: 0 applicants, Applicants 0, Invites 0, the app's empty art)",
+    "width": 390,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "applicants-empty-390-dark.png",
+    "contentHeight": 963,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 46.5
+      },
+      "filterChip": {
+        "visible": 36,
+        "hit": 42.5
+      }
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "applicants-empty"
+      ]
+    }
+  },
+  {
+    "frame": "applicants-empty",
+    "screen": "Applicants",
+    "state": "nobody applied (the Aurora draft's applicants page as the app renders it: 0 applicants, Applicants 0, Invites 0, the app's empty art)",
+    "width": 1440,
+    "theme": "light",
+    "dpr": 2,
+    "file": "applicants-empty-1440-light.png",
+    "contentHeight": 920,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 46.5
+      },
+      "filterChip": {
+        "visible": 36,
+        "hit": 42.5
+      }
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": "viewport/applicants-empty-1440.png",
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "applicants-empty"
+      ]
+    }
+  },
+  {
+    "frame": "applicants-empty",
+    "screen": "Applicants",
+    "state": "nobody applied (the Aurora draft's applicants page as the app renders it: 0 applicants, Applicants 0, Invites 0, the app's empty art)",
+    "width": 1440,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "applicants-empty-1440-dark.png",
+    "contentHeight": 920,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 46.5
+      },
+      "filterChip": {
+        "visible": 36,
+        "hit": 42.5
+      }
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "applicants-empty"
+      ]
+    }
+  },
+  {
+    "frame": "applicants-filtered-empty",
+    "screen": "Applicants",
+    "state": "filters match nobody",
+    "width": 390,
+    "theme": "light",
+    "dpr": 2,
+    "file": "applicants-filtered-empty-390-light.png",
+    "contentHeight": 1494,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 46.5
+      },
+      "filterChip": {
+        "visible": 36,
+        "hit": 42.5
+      }
+    },
+    "selectClipped": [
+      "stage (289px in 278px)"
+    ],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": "viewport/applicants-filtered-empty-390.png",
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "applicants-empty-filter"
+      ]
+    }
+  },
+  {
+    "frame": "applicants-filtered-empty",
+    "screen": "Applicants",
+    "state": "filters match nobody",
+    "width": 390,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "applicants-filtered-empty-390-dark.png",
+    "contentHeight": 1494,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 46.5
+      },
+      "filterChip": {
+        "visible": 36,
+        "hit": 42.5
+      }
+    },
+    "selectClipped": [
+      "stage (289px in 278px)"
+    ],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 844,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "applicants-empty-filter"
+      ]
+    }
+  },
+  {
+    "frame": "applicants-filtered-empty",
+    "screen": "Applicants",
+    "state": "filters match nobody",
+    "width": 1440,
+    "theme": "light",
+    "dpr": 2,
+    "file": "applicants-filtered-empty-1440-light.png",
+    "contentHeight": 1085,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 46.5
+      },
+      "filterChip": {
+        "visible": 36,
+        "hit": 42.5
+      }
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": "viewport/applicants-filtered-empty-1440.png",
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "applicants-empty-filter"
+      ]
+    }
+  },
+  {
+    "frame": "applicants-filtered-empty",
+    "screen": "Applicants",
+    "state": "filters match nobody",
+    "width": 1440,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "applicants-filtered-empty-1440-dark.png",
+    "contentHeight": 1085,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 46.5
+      },
+      "filterChip": {
+        "visible": 36,
+        "hit": 42.5
+      }
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "applicants-empty-filter"
+      ]
+    }
+  },
+  {
+    "frame": "applicants-inspector",
+    "screen": "Applicants",
+    "state": "inspector open (1440)",
+    "width": 1440,
+    "theme": "light",
+    "dpr": 2,
+    "file": "applicants-inspector-1440-light.png",
+    "contentHeight": 946,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 46.5
+      },
+      "filterChip": {
+        "visible": 36,
+        "hit": 42.5
+      }
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": "viewport/applicants-inspector-1440.png",
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "applicants-desktop"
+      ]
+    }
+  },
+  {
+    "frame": "applicants-inspector",
+    "screen": "Applicants",
+    "state": "inspector open (1440)",
+    "width": 1440,
+    "theme": "dark",
+    "dpr": 2,
+    "file": "applicants-inspector-1440-dark.png",
+    "contentHeight": 946,
+    "horizontalOverflow": 0,
+    "clippedElements": 0,
+    "clipped": [],
+    "fontReady": true,
+    "hitTargets": {
+      "step": null,
+      "btnSm": {
+        "visible": 36,
+        "hit": 46.5
+      },
+      "filterChip": {
+        "visible": 36,
+        "hit": 42.5
+      }
+    },
+    "selectClipped": [],
+    "currentStepInView": null,
+    "map": null,
+    "viewportFile": null,
+    "scrolledFile": null,
+    "viewportHeight": 900,
+    "source": {
+      "app": "8b1a80f",
+      "docs": "cf20f29",
+      "stylesheet": "src/app/app.css",
+      "parts": [
+        "applicants-desktop"
+      ]
+    }
+  }
+]

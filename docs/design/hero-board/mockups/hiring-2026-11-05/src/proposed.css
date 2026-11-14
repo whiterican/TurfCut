@@ -1,0 +1,96 @@
+/* The only CSS the hiring family proposes to add. Everything else on the
+   mockups is the app's own stylesheet (app/app.css). Every colour, radius
+   and focus ring is an existing token from globals.css. */
+
+/* 1. The builder's step track: one row, scrolls sideways on a phone, the
+   current step kept in view (the page scrolls it into view on load; the
+   build does the same on each step change). The steps keep today's three
+   styles (.step-current, .step-done, plain); nothing is dimmed. Keyboard: the steps stay the
+   buttons they are today (Tab reaches each reachable step, Enter/Space
+   opens it); a step not yet reachable keeps aria-disabled and is skipped
+   by the jump. Focus stays visible: the ring is the app's. */
+.step-track {
+  display: flex;
+  max-width: 100%;
+  min-width: 0;
+  gap: 0.5rem;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  margin-inline: calc(-1 * var(--tpl-gutter, 1rem));
+  padding-inline: var(--tpl-gutter, 1rem);
+}
+.step-track::-webkit-scrollbar { display: none; }
+.step-track li { flex: none; scroll-snap-align: center; }
+.step-track .step { white-space: nowrap; }
+@media (min-width: 64rem) {
+  .step-track { flex-wrap: wrap; overflow: visible; margin-inline: 0; padding-inline: 0; }
+}
+
+/* 2. The focusable problem summary under a step heading: one line per
+   problem, each a link that focuses its field. The inline errors stay. */
+.problem-summary {
+  border: 1px solid var(--danger);
+  border-radius: var(--radius-md);
+  padding: 0.625rem 0.75rem;
+  background: var(--surface);
+}
+.problem-summary:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+.problem-summary > p { margin: 0; font-weight: 600; color: var(--danger); }
+.problem-summary ul { margin: 0.25rem 0 0; padding-left: 1.25rem; }
+.problem-summary li + li { margin-top: 0.125rem; }
+
+/* 3. The builder on a desktop: the form stays in the reading template's
+   column (--measure-reading, 42rem = 672px, the app's own rule); nothing
+   sits beside it. */
+.builder-main, .builder-main fieldset, .builder-main fieldset > *, .builder-main [data-list] > * { min-width: 0; }
+.builder-main .turf-map { max-width: 100%; }
+
+/* 4. The shared-profile card: one row per part. A row's value is the part's
+   summary, "Not shared" (the app's chip) or its empty words. */
+.share-rows { padding: 0; }
+.share-row { display: flex; align-items: center; gap: 0.75rem; padding: 0.875rem 1rem; border-top: 1px solid var(--border); }
+.share-row:first-child { border-top: 0; }
+.share-row > dt { flex: none; width: 7.5rem; color: var(--muted); font-size: 0.875rem; }
+.share-row > dd { flex: 1; min-width: 0; margin: 0; }
+.share-row.open { flex-wrap: wrap; }
+.share-row.open > .share-detail { flex-basis: 100%; width: 100%; min-width: 0; margin-top: 0.5rem; }
+@media (min-width: 64rem) { .share-row > dt { width: 13rem; } }
+
+/* 5. Publish blockers grouped by who fixes them. */
+.blocker-group + .blocker-group { margin-top: 0.75rem; }
+.blocker-group > h3 { margin: 0 0 0.25rem; font-weight: 600; }
+.blocker-step { color: var(--muted); font-size: 0.8125rem; }
+
+/* 6. The candidate head: the stage chip beside the "since" line; its actions under the title. */
+.candidate-stage { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+
+/* 7. Hit targets (question 10): the steps and this family's small actions reach
+   44px using the technique the app's filter chips already use (theirs reach
+   about 43), an absolutely placed ::before that extends the target without
+   changing the type or the visible box. */
+.step-track .step { position: relative; }
+.step-track .step::before { content: ""; position: absolute; inset: -10px 0; } /* from the padding box: 1px border + 9px = 44px */
+/* On a phone the track is a scroll container, so it keeps the 10px above and
+   below inside itself (else the extension would be clipped); on a desktop it
+   wraps with overflow visible, needs no room, and its rows sit 20px apart so
+   the extended boxes never overlap. */
+.step-track { padding-block: 10px calc(10px + 0.25rem); }
+@media (min-width: 64rem) { .step-track { row-gap: 1.25rem; padding-block: 0 0.25rem; } }
+.tpl-head .btn-sm, .tpl-main .btn-sm { position: relative; }
+.tpl-head .btn-sm::before, .tpl-main .btn-sm::before { content: ""; position: absolute; inset: -5px 0; } /* from the padding box: about 44.5px on a bordered button, 46.5px on a ghost, hit-tested */
+
+/* 8. Step 5's issue-position rows on a phone: today the select is capped at
+   max-w-36 beside its label and clips "Not disclosed" at 390 and 320
+   (current/builder-edit-published-step5-*-now.png). Below 40rem the row
+   stacks and the select takes the row's width; the words are unchanged. */
+@media (max-width: 39.99rem) {
+  .builder-main .list-card > label:has(> select[name^="issue_"]) { flex-direction: column; align-items: stretch; gap: 0.375rem; }
+  .builder-main .list-card > label > select[name^="issue_"] { max-width: none; }
+}
+
+/* Mockup chrome only (never shipped): the label and, on the annotated copy, the notes. */
+.mockup-tag { display: block; text-align: center; background: #fff3cd; border-bottom: 1px solid #e0b84a; color: #5c4400; font: 600 11px/18px Inter, sans-serif; height: 20px; }
+.mockup-notes { margin: 2rem var(--tpl-gutter, 1rem) 6rem; padding: 1rem; border: 1px dashed #c69a2a; background: #fff3cd; color: #5c4400; font: 13px/18px Inter, sans-serif; }
+.mockup-notes h2 { margin: 0 0 0.5rem; font-size: 14px; }
+.mockup-notes ol { margin: 0; padding-left: 1.25rem; }

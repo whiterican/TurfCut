@@ -36,11 +36,16 @@ Vitest · Tailwind v4. Stripe Connect lands in M5.
   `env(safe-area-inset-*)`. The phone draws the clock in white and the app
   cannot change that. To check without a phone: Chromium's
   `Emulation.setSafeAreaInsetsOverride` (top 59, bottom 34 for an iPhone).
-- iPhone only, and Chromium will not show it: an element with its own
-  `backdrop-filter` or mask that is given a `view-transition-name` is drawn
-  as a solid box during page transitions. The top glass and the profile
-  pill are unnamed for that reason. Don't name them again.
+- iPhone only, and Chromium will not show it: the top glass and the profile
+  pill, each with its own `backdrop-filter` or mask, were drawn as solid
+  boxes during page transitions while they had a `view-transition-name`
+  (Caden's recordings, Nov 13). They are unnamed for that reason; don't name
+  them again. The dock and the site header are named and blurred too and
+  have not shown it, so this is the first thing to check, not a rule.
 - An installed iPhone app reads `theme-color` and the page colour once, at
-  load. Nothing set later changes the phone's own chrome.
+  load; nothing set later changes the phone's own chrome there.
+  `StatusStripColor.tsx` still matters: browsers that do follow
+  `theme-color` (Safari and Chrome tabs) get the right strip from it.
+  Don't delete it.
 - Vercel's free plan allows 100 deployments a day across both projects, and
   each push to a PR branch uses two. Batch pushes.

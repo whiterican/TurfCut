@@ -4629,9 +4629,10 @@ html:not(.sun) .site-header {
   backdrop-filter: none;
 }
 /* A solid bar with nothing on it would be a blank block: when the row it stands behind leaves on the way down,
-   the bar leaves with it, and the strip under the clock (html::after, always solid) is what is left. */
-html[data-scroll="down"]:not(.sun):not(:has(.thread-top)) .phone-top::before,
-html[data-scroll="down"]:not(.sun):not(:has(.thread-top)) body:not(:has(.staff-band))::after {
+   the bar leaves with it, and the strip under the clock (html::after, always solid) is what is left. A row held
+   in place by keyboard focus keeps its bar. */
+html[data-scroll="down"]:not(.sun):not(:has(.thread-top)) .phone-top:not(:has(:focus-visible))::before,
+html[data-scroll="down"]:not(.sun):not(:has(.thread-top)) body:not(:has(.staff-band)):not(:has(.site-header :focus-visible))::after {
   opacity: 0 !important;
 }
 @media (width < 48rem) {

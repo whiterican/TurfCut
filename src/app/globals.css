@@ -3309,19 +3309,14 @@ body {
    dock goes down the bar goes down with it, to the foot of the screen; when the dock returns the bar rises again.
    The same conditions as the dock's own rule above, so the two never disagree (written flat: one :has() cannot
    sit inside another). The bar's colour runs on below it
-   (its ::after): nothing reads under the bar at the foot, nor around the dock when the two stand together. Not a
+   (its shadow): nothing reads under the bar at the foot, nor around the dock when the two stand together. Not a
    phone on its side, where the dock is at the side and the bar is already on the foot. */
 @media (width < 48rem) and (min-height: 34.01rem) {
   .tpl-foot {
+    /* Spread 5rem and set 5rem down: the bar's colour from its own top edge to 10rem below it. A shadow is only
+       paint, so the page gains no length at its end (a box there would). */
+    box-shadow: 0 5rem 0 5rem var(--bg);
     transition: translate var(--dur-slow) var(--ease-out);
-  }
-  .tpl-foot::after {
-    content: "";
-    position: absolute;
-    inset: 100% 0 auto;
-    height: 10rem;
-    background: var(--bg);
-    pointer-events: none;
   }
 }
 @media (prefers-reduced-motion: no-preference) and (width < 48rem) and (min-height: 34.01rem) {

@@ -3,7 +3,7 @@
 # built from prisma/supabase-manual-setup.sql plus the seed, then exercises the
 # data layer end to end (locks, append-only rules, pay, sync, closure).
 #
-# Usage: PGURL=postgresql://user:pass@host:port tests/acceptance/run.sh [m5|m6|m7|c1|c2|c3|c4|rl|sec|s1|s2|s3|s4|m8|m9|m10|p1|p2|p3|p4|st ...]
+# Usage: PGURL=postgresql://user:pass@host:port tests/acceptance/run.sh [m5|m6|m7|c1|c2|c3|c4|rl|sec|s1|s2|s3|s4|m8|m9|m10|p1|p2|p3|p4|st|demo ...]
 # Needs bash 4+ (macOS: brew install bash).
 # PGURL points at the server (database "postgres"); the script creates
 # turfcut_acc_<name> databases and drops them first if they exist. PGQUERY
@@ -19,15 +19,15 @@ PGURL="${PGURL%/}"
 PGQUERY="${PGQUERY:-}"
 P="psql -v ON_ERROR_STOP=1 -q -X"
 export PGOPTIONS="-c client_min_messages=warning"
-checks=("$@"); [ ${#checks[@]} -eq 0 ] && checks=(m5 m6 m7 c1 c2 c3 c4 rl sec s1 s2 s3 s4 m8 m9 m10 p1 p2 p3 p4 st)
-declare -A FILE=([m5]=m5-payouts.ts [m6]=m6-offline.ts [m7]=m7-corrections-closure.ts [c1]=c1-roles.ts [c2]=c2-consent.ts [c3]=c3-hiring.ts [c4]=c4-launch.ts [rl]=rate-limit.ts [sec]=grants.ts [s1]=s1-social.ts [s2]=s2-social.ts [s3]=s3-reach.ts [s4]=s4-kit.ts [m8]=m8-slots.ts [m9]=m9-money.ts [m10]=m10-admin.ts [p1]=p1-discovery.ts [p2]=p2-channels.ts [p3]=p3-sectors.ts [p4]=p4-photo-viewers.ts [st]=statements.ts)
+checks=("$@"); [ ${#checks[@]} -eq 0 ] && checks=(m5 m6 m7 c1 c2 c3 c4 rl sec s1 s2 s3 s4 m8 m9 m10 p1 p2 p3 p4 st demo)
+declare -A FILE=([m5]=m5-payouts.ts [m6]=m6-offline.ts [m7]=m7-corrections-closure.ts [c1]=c1-roles.ts [c2]=c2-consent.ts [c3]=c3-hiring.ts [c4]=c4-launch.ts [rl]=rate-limit.ts [sec]=grants.ts [s1]=s1-social.ts [s2]=s2-social.ts [s3]=s3-reach.ts [s4]=s4-kit.ts [m8]=m8-slots.ts [m9]=m9-money.ts [m10]=m10-admin.ts [p1]=p1-discovery.ts [p2]=p2-channels.ts [p3]=p3-sectors.ts [p4]=p4-photo-viewers.ts [st]=statements.ts [demo]=demo.ts)
 # Extra SQL run after the setup for a check (sec: re-running the lockdown,
 # as it is designed to be, must leave message grants column-limited).
 # m10, p1: the migrations themselves must be safe to run on a database that already has everything (they run on the live project that way).
 # p2: the same for channels, with M10's roles file run again after them (it redefines the staff chat trigger: channel membership must not depend on it).
 # p2-channels.sql runs once more at the very end on purpose: it redefines the participant guard that p2-dm-mentions.sql extends, so the checks prove which one must be last.
 declare -A AFTER=([sec]=prisma/m4-0-rls-lockdown.sql [m10]="prisma/m10-admin.sql prisma/m10-verification.sql prisma/m10-roles.sql" [p1]=prisma/p1-discovery.sql [p2]="prisma/p2-channels.sql prisma/p2-threads.sql prisma/p2-dm-mentions.sql prisma/m10-roles.sql prisma/p2-channels.sql" [p3]=prisma/p3-sectors.sql)
-for c in "${checks[@]}"; do [[ -v FILE[$c] ]] || { echo "unknown check: $c (m5, m6, m7, c1, c2, c3, c4, rl, sec, s1, s2, s3, s4, m8, m9, m10, p1, p2, p3, p4, st)"; exit 2; }; done
+for c in "${checks[@]}"; do [[ -v FILE[$c] ]] || { echo "unknown check: $c (m5, m6, m7, c1, c2, c3, c4, rl, sec, s1, s2, s3, s4, m8, m9, m10, p1, p2, p3, p4, st, demo)"; exit 2; }; done
 fail=0
 for c in "${checks[@]}"; do
   db="turfcut_acc_$c"

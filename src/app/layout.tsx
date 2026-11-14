@@ -42,7 +42,19 @@ export function generateMetadata(): Metadata {
 }
 
 /** The page reaches every edge of the screen, the notch and the home bar included; the stylesheet pads what must stay clear. */
-export const viewport: Viewport = { width: "device-width", initialScale: 1, viewportFit: "cover" };
+// The colour of the page's top, by day and by night (--page-top in globals.css), for the strip a device draws above
+// the page: a browser's toolbar, an installed app's window bar on a tablet. Some of them read it once, when the page
+// loads, so it has to be in the page as it arrives; StatusStripColor then keeps every one of these tags on the colour
+// the page is actually painted (the app's own theme, a chat, the drawer).
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#d6c9ea" },
+    { media: "(prefers-color-scheme: dark)", color: "#3c1f66" },
+  ],
+};
 
 export default async function RootLayout({
   children,

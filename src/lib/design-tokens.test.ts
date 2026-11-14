@@ -243,11 +243,17 @@ describe.each([
     // Under the status bar the page blurs away into the strip's own colour, and the pill sits above that band.
     const band = css.match(/\.phone-top::before \{([^}]*)\}/)?.[1] ?? "";
     expect(band).toMatch(/position: fixed;\s*inset: 0 0 auto;\s*height: calc\(5\.25rem \+ env\(safe-area-inset-top\)\);/);
-    expect(band).toMatch(/background: linear-gradient\(to bottom, var\(--page-top\) 0%, color-mix\(in srgb, var\(--page-top\) 80%, transparent\) 30%,[^;]*transparent 100%\);/);
+    expect(band).toMatch(/background: linear-gradient\(to bottom, var\(--page-top\) 0, var\(--page-top\) env\(safe-area-inset-top\), color-mix\(in srgb, var\(--page-top\) 80%, transparent\) calc\(env\(safe-area-inset-top\) \+ \(100% - env\(safe-area-inset-top\)\) \* 0\.3\),[^;]*transparent 100%\);/);
     expect(band).toMatch(/backdrop-filter: blur\(10px\);/);
     expect(band).toMatch(/pointer-events: none;/);
     expect(band).toMatch(/z-index: 44;/);
-    expect(band).toMatch(/mask-image: linear-gradient\(to bottom, #000 0%, #000 22%, transparent 100%\);/);
+    expect(band).toMatch(/mask-image: linear-gradient\(to bottom, #000 0, #000 calc\(env\(safe-area-inset-top\) \+ \(100% - env\(safe-area-inset-top\)\) \* 0\.22\), transparent 100%\);/);
+    // Solid through the strip the phone keeps for its clock, fading only below it: the cap under the clock is solid to
+    // the strip's foot, and glass that thinned out above that showed the cap's edge as a faint line (Caden, Nov 14).
+    // Every glass band is written the same way.
+    expect(css.match(/var\(--page-top\) 0, var\(--page-top\) env\(safe-area-inset-top\), color-mix/g)).toHaveLength(4);
+    expect(css).not.toMatch(/var\(--page-top\) 0%, color-mix\(in srgb, var\(--page-top\) 80%, transparent\) 30%/);
+    expect(css).not.toMatch(/#000 0%, #000 22%, transparent 100%/);
     // The glass is not its own layer in a page transition: as one, an iPhone drew it as a solid strip over the arriving page's title.
     expect(band).not.toMatch(/view-transition-name:/);
     expect(css).not.toMatch(/phone-band|bar-fade/);
@@ -272,9 +278,9 @@ describe.each([
     const rules = (text: string) => text.split(SEL + " {").slice(1).map((part) => part.slice(0, part.indexOf("}")));
     const [fade, sunBar] = rules(phoneBar);
     expect(fade).toMatch(/^\s*content: "";\s*position: fixed;\s*inset: 0 0 auto;\s*height: calc\(var\(--site-header-h\) \+ 1\.5rem\);\s*z-index: 44;\s*pointer-events: none;/);
-    expect(fade).toMatch(/background: linear-gradient\(to bottom, var\(--page-top\) 0%, color-mix\(in srgb, var\(--page-top\) 80%, transparent\) 30%,[^;]*transparent 100%\);/);
+    expect(fade).toMatch(/background: linear-gradient\(to bottom, var\(--page-top\) 0, var\(--page-top\) env\(safe-area-inset-top\), color-mix\(in srgb, var\(--page-top\) 80%, transparent\) calc\(env\(safe-area-inset-top\) \+ \(100% - env\(safe-area-inset-top\)\) \* 0\.3\),[^;]*transparent 100%\);/);
     expect(fade).toMatch(/backdrop-filter: blur\(10px\);/);
-    expect(fade).toMatch(/mask-image: linear-gradient\(to bottom, #000 0%, #000 22%, transparent 100%\);/);
+    expect(fade).toMatch(/mask-image: linear-gradient\(to bottom, #000 0, #000 calc\(env\(safe-area-inset-top\) \+ \(100% - env\(safe-area-inset-top\)\) \* 0\.22\), transparent 100%\);/);
     expect(fade).not.toMatch(/view-transition-name:/);
     expect(css).not.toMatch(/\.site-header::before/);
     // Sunlight and the solid fallback: a plain bar, by the same selector so they win.
@@ -852,6 +858,25 @@ describe("the shell (redesign B1.4)", () => {
     expect(css).toMatch(/body:has\(\.thread-top\):not\(:has\(\.composer\)\) \.page \{\s*padding-bottom: calc\(2rem \+ env\(safe-area-inset-bottom\)\);/);
   });
 
+  it("the sidebar's glass runs to the top of the screen, and the bar's glass begins at its edge", () => {
+    // Caden, Nov 14: the sidebar's top edge drew a line under the site's mark, and the corner above it had no glass.
+    const at = css.indexOf("html:not(.sun) body:not(:has(.thread-top, .staff-band)) .org-rail:not(.staff-rail) {");
+    expect(at).toBeGreaterThan(-1);
+    const block = css.slice(css.lastIndexOf("@media", at), css.indexOf("\n}\n", at));
+    // Not on a short screen: a phone on its side has a 4rem strip of icons, and the site's name would cross its edge.
+    expect(block).toMatch(/^@media \(width >= 48rem\) and \(min-height: 34\.01rem\) \{/);
+    expect(block).toMatch(/\.org-rail:not\(\.staff-rail\) \{\s*top: 0;\s*height: 100dvh;\s*margin-top: calc\(-1 \* var\(--site-header-h\)\);\s*padding-top: calc\(var\(--site-header-h\) \+ var\(--rail-top\)\);/);
+    // The glass over the page, and the cap under a tablet's clock, start past the sidebar: neither lies over it.
+    expect(block).toMatch(/body:has\(\.org-rail:not\(\.staff-rail\)\):not\(:has\(\.thread-top, \.staff-band\)\)::after,\s*html:not\(\.sun\):has\(\.org-rail:not\(\.staff-rail\)\):not\(:has\(\.thread-top, \.staff-band\)\)::after \{\s*(?:\/\*[^*]*\*\/\s*)?left: calc\(env\(safe-area-inset-left\) \+ max\(0px, \(100% - env\(safe-area-inset-left\) - env\(safe-area-inset-right\) - var\(--workspace-max\)\) \/ 2\) \+ var\(--rail-w\)\);/);
+    // The sidebar's width and top padding are named once, beside the classes that set them.
+    expect(css).toMatch(/\n  --rail-w: 220px;\s*--rail-top: 1\.5rem;/);
+    expect(css).toMatch(/\.org-rail \{[^}]*@apply [^;]*\bw-\[220px\][^;]*\bpt-6\b/);
+    // After the rules it overrides (the sidebar pinned under the bar), which are as light as a class.
+    expect(at).toBeGreaterThan(css.indexOf("  .org-rail {\n    top: var(--site-header-h);"));
+    // Sunlight, a chat beside the sidebar and the staff console keep a plain bar across the whole top.
+    expect(block).not.toMatch(/\.sun |html\.sun/);
+  });
+
   it("a phone on its side gets a thin site bar and a sidebar of icons, so the page has the screen", () => {
     // Caden, Nov 14: landscape on a phone was the desktop's shell in a 393px-tall window.
     const at = css.indexOf("@media (max-height: 34rem) and (min-width: 48rem) {");
@@ -945,7 +970,7 @@ describe("the shell (redesign B1.4)", () => {
   it("an installed iPhone app draws the page under the clock, and everything pinned to the top stays clear of it", () => {
     const layout = readFileSync(join(__dirname, "../app/layout.tsx"), "utf8");
     expect(layout).toMatch(/appleWebApp: \{ capable: true, title: "Turfcut", statusBarStyle: "black-translucent" \}/);
-    expect(layout).toMatch(/export const viewport: Viewport = \{ width: "device-width", initialScale: 1, viewportFit: "cover" \};/);
+    expect(layout).toMatch(/export const viewport: Viewport = \{\s*width: "device-width",\s*initialScale: 1,\s*viewportFit: "cover",/);
     // The header's row, the worker's pill, the drawer and a chat's bar each start below the clock.
     expect(css).toMatch(/\n\.site-header \{[^}]*padding-top: env\(safe-area-inset-top\);/);
     expect(css).toMatch(/\.phone-top \{[^}]*padding-top: calc\(0\.75rem \+ env\(safe-area-inset-top\)\);/);
@@ -1036,7 +1061,7 @@ describe("the shell (redesign B1.4)", () => {
     expect(wide).toMatch(/\n  body:has\(\.org-rail\) \.site-header \{\s*background: none;\s*-webkit-backdrop-filter: none;\s*backdrop-filter: none;\s*\}/);
     const wideFade = wide.match(/\n  body:has\(\.org-rail\)::after \{([^}]*)\}/)?.[1] ?? "";
     expect(wideFade).toMatch(/^\s*content: "";\s*position: fixed;\s*inset: 0 0 auto;\s*height: calc\(var\(--site-header-h\) \+ 1\.5rem\);\s*z-index: 44;\s*pointer-events: none;/);
-    expect(wideFade).toMatch(/background: linear-gradient\(to bottom, var\(--page-top\) 0%, color-mix\(in srgb, var\(--page-top\) 80%, transparent\) 30%,[^;]*transparent 100%\);/);
+    expect(wideFade).toMatch(/background: linear-gradient\(to bottom, var\(--page-top\) 0, var\(--page-top\) env\(safe-area-inset-top\), color-mix\(in srgb, var\(--page-top\) 80%, transparent\) calc\(env\(safe-area-inset-top\) \+ \(100% - env\(safe-area-inset-top\)\) \* 0\.3\),[^;]*transparent 100%\);/);
     expect(wideFade).toMatch(/backdrop-filter: blur\(10px\);/);
     expect(wideFade).not.toMatch(/view-transition-name:/);
     expect(wide).toMatch(/body:has\(\.org-rail\):has\(\.thread-top\)::after,\s*\.sun body:has\(\.org-rail\)::after \{\s*height: var\(--site-header-h\);\s*background: var\(--bg\);\s*-webkit-backdrop-filter: none;\s*backdrop-filter: none;\s*-webkit-mask-image: none;\s*mask-image: none;/);

@@ -6,13 +6,12 @@ import { openJobsEndAfter, payShort } from "@/lib/jobs";
 import { day } from "@/components/DateRangeChip";
 import Image from "next/image";
 import { HeroPage } from "@/components/layout/Page";
+import { HOW_IT_WORKS, LANDING_LINE, LANDING_PHOTO, LANDING_PROOF } from "@/lib/landing-copy";
 import { JobPhoto } from "@/components/JobPhoto";
 
-const steps = [
-  { number: "01", title: "Find field work", description: "Browse canvassing and petition shifts with clear expectations before you commit.", icon: MapPinned },
-  { number: "02", title: "Show up prepared", description: "Keep schedules, job details, and any required steps in one place.", icon: CalendarDays },
-  { number: "03", title: "Build a work record", description: "Carry verified, job-specific experience forward without a universal worker score.", icon: ClipboardCheck },
-];
+// The steps' words are shared with the sign-in pages (lib/landing-copy); their icons are this page's.
+const STEP_ICONS = [MapPinned, CalendarDays, ClipboardCheck];
+const steps = HOW_IT_WORKS.map((step, i) => ({ ...step, icon: STEP_ICONS[i] }));
 
 /**
  * One real open job for the hero's card (green board's "featured" slot): the
@@ -39,12 +38,12 @@ export default async function Home() {
     <HeroPage>
       {/* The public hero (#111, screen 1): the photograph, the line, one Forest action, one real open job. */}
       <section className="landing-hero">
-        <Image src="/photos/hero-neighborhood.jpg" alt="" fill priority sizes="100vw" className="landing-hero-art object-cover" />
+        <Image src={LANDING_PHOTO} alt="" fill priority sizes="100vw" className="landing-hero-art object-cover" />
         <div className="landing-hero-scrim" aria-hidden />
         <div className="landing-hero-body">
           <div className="landing-hero-copy">
-            <h1 className="landing-hero-line">Field work that matters.</h1>
-            <p className="landing-hero-proof">Get paid to support the causes and campaigns you believe in.</p>
+            <h1 className="landing-hero-line">{LANDING_LINE}</h1>
+            <p className="landing-hero-proof">{LANDING_PROOF}</p>
             {/* The phone's one action spans the content, as the concept's Find Jobs does; from the small width up it sizes to its label (#113 review). */}
             <Link href={session ? "/jobs" : "/signup"} className="btn-primary mt-6 flex w-full gap-2 px-6 sm:inline-flex sm:w-auto">
               Find jobs <ArrowRight aria-hidden className="size-4" />

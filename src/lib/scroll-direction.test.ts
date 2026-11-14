@@ -46,6 +46,9 @@ describe("scroll direction for the top row", () => {
     const css = read("app/globals.css");
     expect(css).toMatch(/\nhtml:not\(\[data-scrolled\], \.sun\) \.phone-top::before,\s*html:not\(\[data-scrolled\], \.sun\) body:not\(:has\(\.staff-band, \.thread-top\)\)::after \{\s*opacity: 0;\s*\}/);
     expect(css).toMatch(/\n\.phone-top::before \{\s*transition: opacity var\(--dur-base\) var\(--ease-standard\);/);
+    // With reduced transparency or more contrast the bar is a plain surface, not glass: it stays, as Sunlight's does.
+    const solid = css.slice(css.lastIndexOf("@media (prefers-reduced-transparency: reduce), (prefers-contrast: more), (forced-colors: active) {"));
+    expect(solid).toMatch(/html:not\(\[data-scrolled\], \.sun\) body:not\(:has\(\.staff-band, \.thread-top\), \.x\)::after \{\s*opacity: 1;/);
     // Nothing keyed on the scroll marks changes a size or takes anything out of the page.
     expect(css).not.toMatch(/data-scrolled[^{]*\{[^}]*(height:|visibility: hidden|display: none)/);
     // A job's own page on a phone: no site bar, no menu strip, no glass. The photograph runs under the clock, its
@@ -60,6 +63,9 @@ describe("scroll direction for the top row", () => {
     expect(block).toMatch(/\.job-photo-head \{\s*margin-top: 0;\s*\}/);
     expect(block).toMatch(/\.job-head-actions \{\s*top: calc\(1rem \+ env\(safe-area-inset-top\)\);/);
     expect(block).toMatch(/html:has\(\.job-photo-head\):not\(\[data-scrolled\]\)::after \{\s*opacity: 0;/);
+    // The clock is always white (black-translucent): the strip under it is shaded so a pale photograph cannot hide it.
+    expect(block).toMatch(/\.job-photo-head::after \{[^}]*height: calc\(env\(safe-area-inset-top\) \* 1\.4\);\s*pointer-events: none;\s*background: linear-gradient\(to bottom, rgb\(0 0 0 \/ 0\.42\)/);
+    expect(readFileSync(join(__dirname, "../app/layout.tsx"), "utf8")).toContain('statusBarStyle: "black-translucent"');
     // The way back is the arrow on the photograph, a real link.
     expect(readFileSync(join(__dirname, "../components/JobHeadActions.tsx"), "utf8")).toMatch(/<Link[^>]*href=\{back\}/);
     // Taller by the clock's strip, but only on a tall screen: these selectors outweigh the short-screen height.

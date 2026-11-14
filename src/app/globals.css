@@ -3615,6 +3615,17 @@ body:has(.staff-band)::after {
   body:has(.job-photo-head) .job-head-actions {
     top: calc(1rem + env(safe-area-inset-top));
   }
+  /* The clock is white in every mode. Over a pale photograph (a sky, a campaign's own header image) it would be
+     lost, so the strip under it is shaded, fading out just below. No height where the phone keeps no strip. Over
+     the photograph and under nothing that takes a tap: the buttons start below it. */
+  body:has(.job-photo-head) .job-photo-head::after {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto;
+    height: calc(env(safe-area-inset-top) * 1.4);
+    pointer-events: none;
+    background: linear-gradient(to bottom, rgb(0 0 0 / 0.42), rgb(0 0 0 / 0.28) 60%, transparent);
+  }
   html:has(.job-photo-head)::after {
     transition: opacity var(--dur-base) var(--ease-standard);
   }
@@ -4361,6 +4372,11 @@ body {
   html:not(.sun) .more-sheet .rail-link:is([aria-current], :active) {
     background: var(--dock-capsule);
     box-shadow: none;
+  }
+  /* Here the bar is a plain surface, like Sunlight's, not glass: it does not wait for the page to leave its top.
+     One class more specific than the rule that hides the glass at rest. */
+  html:not([data-scrolled], .sun) body:not(:has(.staff-band, .thread-top), .x)::after {
+    opacity: 1;
   }
   /* The plain bar behind the row goes with the row. */
   html[data-scroll="down"]:not(:has(.thread-top)) body::after {

@@ -1,5 +1,5 @@
 import { NoAccessNotice } from "@/components/NoAccessNotice";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { inter } from "./fonts";
 import { MenuButton, OrgRail, OrgTabBar } from "@/components/AppNav";
 import { SignOutButton } from "@/components/SignOutButton";
@@ -32,8 +32,17 @@ export function generateMetadata(): Metadata {
     title: "Turfcut",
     description: "The marketplace for political field work.",
     ...(site ? { metadataBase: new URL(site) } : {}),
+    // An installed iPhone app draws the page under the clock and battery (Caden, Nov 13): there is no strip of the
+    // phone's own to fall out of step with the theme, the drawer or the page. The stylesheet keeps content clear
+    // of it with env(safe-area-inset-*).
+    appleWebApp: { capable: true, title: "Turfcut", statusBarStyle: "black-translucent" },
+    // Next writes the newer "mobile-web-app-capable"; older iPhones read only Apple's own name for it.
+    other: { "apple-mobile-web-app-capable": "yes" },
   };
 }
+
+/** The page reaches every edge of the screen, the notch and the home bar included; the stylesheet pads what must stay clear. */
+export const viewport: Viewport = { width: "device-width", initialScale: 1, viewportFit: "cover" };
 
 export default async function RootLayout({
   children,

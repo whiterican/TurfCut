@@ -47,7 +47,8 @@ function imports(f: string): string[] {
 }
 const isMarksFile = (f: string) => /^src\/lib\/job-marks(-data)?\.ts$/.test(f);
 
-describe("job marks isolation (P1.6)", () => {
+// These read every source file. On a busy machine one of them passed the 5-second default (Nov 13): they get room.
+describe("job marks isolation (P1.6)", { timeout: 30_000 }, () => {
   it("only the feed, its card and its actions name the marks, their models or accessors", () => {
     const offenders = all.filter((f) => MARKS.test(source(f)) && !ALLOWED.some((re) => re.test(f)));
     expect(offenders).toEqual([]);

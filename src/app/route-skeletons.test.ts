@@ -90,4 +90,15 @@ describe("route skeletons (P1.3)", () => {
     expect(renderToStaticMarkup(createElement(PageSkeleton, { shape: "list", avatars: true }))).toContain("size-10");
     expect(renderToStaticMarkup(createElement(PageSkeleton, { shape: "cards", filters: false }))).not.toContain("h-9 w-20 rounded-full");
   });
+  it("a conversation's skeleton carries the chat's own bar, so the shell steps aside while it loads too", () => {
+    // globals.css hides the rail, site bar and dock on any page with .thread-top: without it here they would show, then vanish.
+    for (const dir of ["messages/[conversationId]", "messages/[conversationId]/thread/[messageId]"]) {
+      expect(readFileSync(join(APP, dir, "loading.tsx"), "utf8"), dir).toMatch(/shape="thread" chat /);
+    }
+    const html = (chat: boolean) => renderToStaticMarkup(createElement(PageSkeleton, { shape: "thread", width: "2xl", chat }));
+    expect(html(true)).toContain('class="thread-top"');
+    expect(html(false)).not.toContain("thread-top");
+    // A dispute uses the same shape inside a template and is not a chat.
+    expect(renderToStaticMarkup(createElement(PageSkeleton, { shape: "thread", template: "record" }))).not.toContain("thread-top");
+  });
 });

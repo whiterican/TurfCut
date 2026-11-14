@@ -141,25 +141,31 @@ const SHAPES: Record<SkeletonShape, (o: ShapeOptions) => React.ReactNode> = {
     </>
   ),
   // A conversation or a dispute: who, a few bubbles, the composer.
-  thread: (o) => (
-    <>
-      <div className={o.chat ? "thread-top flex items-center gap-3" : "flex items-center gap-3"}>
+  thread: (o) => {
+    const who = (
+      <div className="flex items-center gap-3">
         <Bar className="size-10 rounded-full" />
         <div className="flex-1 space-y-2">
           <Bar className="h-5 w-40" />
           <Bar className="h-3 w-24" />
         </div>
       </div>
-      <div className="space-y-3">
-        {(["w-3/5", "w-2/5", "w-2/3", "w-1/3"] as const).map((w, i) => (
-          <div key={i} className={`flex ${i % 2 ? "justify-end" : ""}`}>
-            <Bar className={`h-10 ${w}`} />
-          </div>
-        ))}
-      </div>
-      <Bar className="h-40 w-full rounded-[var(--radius-card)]" />
-    </>
-  ),
+    );
+    return (
+      <>
+        {/* A chat's bar is its own (.thread-top): the row sits inside it, as the page's header does. */}
+        {o.chat ? <div className="thread-top">{who}</div> : who}
+        <div className="space-y-3">
+          {(["w-3/5", "w-2/5", "w-2/3", "w-1/3"] as const).map((w, i) => (
+            <div key={i} className={`flex ${i % 2 ? "justify-end" : ""}`}>
+              <Bar className={`h-10 ${w}`} />
+            </div>
+          ))}
+        </div>
+        <Bar className="h-40 w-full rounded-[var(--radius-card)]" />
+      </>
+    );
+  },
   // Inboxes, notices, statements, admin queues: a list of rows (with a face per row for people).
   list: (o) => (
     <>

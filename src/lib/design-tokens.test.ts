@@ -852,6 +852,31 @@ describe("the shell (redesign B1.4)", () => {
     expect(css).toMatch(/body:has\(\.thread-top\):not\(:has\(\.composer\)\) \.page \{\s*padding-bottom: calc\(2rem \+ env\(safe-area-inset-bottom\)\);/);
   });
 
+  it("a phone on its side gets a thin site bar and a sidebar of icons, so the page has the screen", () => {
+    // Caden, Nov 14: landscape on a phone was the desktop's shell in a 393px-tall window.
+    const at = css.indexOf("@media (max-height: 34rem) and (min-width: 48rem) {");
+    expect(at).toBeGreaterThan(-1);
+    const block = css.slice(at, css.indexOf("\n}\n", at));
+    // Everything that sits under the site bar follows this one variable (the rail, a chat's bar, sticky panels).
+    expect(block).toMatch(/:root \{\s*--site-header-h: calc\(49px \+ env\(safe-area-inset-top\)\);/);
+    expect(block).toMatch(/\.org-rail \{\s*width: 4rem;/);
+    // A link's name is still there for a screen reader: clipped, never display: none.
+    const label = block.slice(block.indexOf(".org-rail .rail-label {"));
+    expect(label.slice(0, label.indexOf("}"))).toMatch(/clip-path: inset\(50%\);/);
+    expect(label.slice(0, label.indexOf("}"))).not.toMatch(/display: none|visibility: hidden/);
+    // Who is signed in steps aside (the site bar's menu has it); a worker's Sign out stays, and an empty foot goes.
+    expect(block).toMatch(/\.org-rail-head,\s*\.org-rail-who \{\s*display: none;/);
+    expect(block).toMatch(/\.org-rail-foot:not\(:has\(\.org-rail-extra\)\) \{\s*display: none;/);
+    expect(block).not.toMatch(/\n  \.org-rail-extra[^{]*\{[^}]*display: none/);
+    // Touch targets stay 40px tall.
+    expect(block).toMatch(/\.org-rail \.rail-link \{[^}]*min-height: 2\.5rem;/);
+    // After the shell's own rules, or they would win.
+    expect(at).toBeGreaterThan(css.indexOf("body:has(.org-rail) .thread-top {"));
+    const nav = readFileSync(join(__dirname, "../components/AppNav.tsx"), "utf8");
+    expect(nav).toContain('className="rail-label flex-1"');
+    expect(nav).toContain('className="org-rail-extra pt-3"');
+  });
+
   it("every box that stands on the page has the card's weight; a box inside another stays flat", () => {
     // Caden, Nov 12: tiles, work cards, choice lists, option cards and empty states were flat beside the cards.
     const boxes = "\\.work-card, \\.shift-card, \\.turf-card, \\.need-tile, \\.stat, \\.stat-tile, \\.summary-item, \\.choice-list, \\.option-card, \\.empty-state, \\.overview-map";

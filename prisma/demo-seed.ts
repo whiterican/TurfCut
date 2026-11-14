@@ -27,9 +27,12 @@
  * Run: npm run seed:demo -- --yes (DATABASE_URL must be set in the shell;
  * the base seed's approved CO/Denver jurisdiction must exist). It runs once:
  * work history, reviews and pay lines are append-only and stay for good.
- * Everything is checked before the first write, and a completion marker
- * naming the organizations it made is written last, so a run that stopped
- * partway is reported, not hidden, and the demo set is known by id rather
+ * What can be checked without writing is checked before the first write.
+ * Scheduling is not: each shift goes through the app's own rules as it is
+ * made, and a refusal other than an overlap stops the run partway. A
+ * completion marker naming the organizations it made is written last, so a
+ * run that stopped partway is reported, not hidden (a second run refuses
+ * until that database is reset), and the demo set is known by id rather
  * than by a name anyone could type.
  */
 import { cleanDatabaseUrl } from "../src/lib/env";
@@ -38,7 +41,7 @@ import { compensationProblem, jurisdictionProblems, validateJob, type Affiliatio
 import type { IssueKey } from "../src/lib/political-fit";
 import { createJob, publishJob } from "../src/lib/jobs-data";
 import { acceptEngagement, applyToJob, claimJob, inviteWorker, moveEngagement } from "../src/lib/engagements-data";
-import { scheduleShift, supervisorShiftAction, workerShiftAction } from "../src/lib/field-day-data";
+import { scheduleShift, SHIFT_OVERLAPS, supervisorShiftAction, workerShiftAction } from "../src/lib/field-day-data";
 import { ensureDirect, sendMessage } from "../src/lib/chat-data";
 
 const p = db();
@@ -309,7 +312,7 @@ async function main() {
           new Date(Math.max(start.getTime() - 3 * DAY, acceptedAt.getTime() + HOUR))
         );
         // Two random shifts for one worker can overlap: that one is skipped. Anything else is a rule this script no longer meets.
-        if (!sched.ok && sched.errors?.startsAt === "Overlaps another shift.") continue;
+        if (!sched.ok && sched.errors?.startsAt === SHIFT_OVERLAPS) continue;
         if (!sched.ok) throw new Error(`demo seed: schedule shift: ${JSON.stringify(sched)}`);
         const shiftId = sched.shiftId;
         const me = { workerId: worker.id, profileId: profile.id };

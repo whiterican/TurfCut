@@ -246,7 +246,7 @@ describe.each([
     // The settings that ask for contrast or solidity bring the bar back, in a list: "not (a or b)" with a feature a
     // browser lacks would drop the no-bar rules for everyone.
     expect(noBar).not.toMatch(/@media not \(/);
-    expect(noBar).toMatch(/@media \(prefers-contrast: more\), \(prefers-reduced-transparency: reduce\), \(forced-colors: active\) \{\s*html:not\(\.sun\) body:not\(:has\(\.job-photo-head, \.staff-band, \.thread-top\)\)::after \{\s*display: block !important;/);
+    expect(noBar).toMatch(/@media screen and \(prefers-contrast: more\), screen and \(prefers-reduced-transparency: reduce\), screen and \(forced-colors: active\) \{\s*html:not\(\.sun\) body:not\(:has\(\.job-photo-head, \.staff-band, \.thread-top\)\)::after \{\s*display: block !important;/);
     // Between screens the layer that holds the two pages' pictures has the page's ground behind it and its foot
     // colour below it: the bare root (the top colour) never shows as a band across the bottom.
     expect(css).toMatch(/::view-transition \{\s*pointer-events: none;[\s\S]*?background: var\(--page-wash\) no-repeat, var\(--page-top\);\s*box-shadow: 0 6rem 0 0 color-mix\(in srgb, var\(--page-top\) 8%, var\(--bg\)\);\s*\}/);

@@ -194,7 +194,7 @@ export default async function JobPage({ params }: { params: Promise<{ jobId: str
     </div>
   ) : undefined;
   return (
-    // The full card is the tail: after the Apply panel on a phone, under the job beside it from 1024.
+    // The full card is the tail: after the Apply panel on a phone, under the job beside it from 1280.
     <RecordPage head={head} aside={<WorkerPanel job={job} engagement={engagement} modes={modes} workerId={session.workerId!} acceptedCount={acceptedCount} pref={pref} />} panelLabel="Your place on this job" foot={joinFoot} tail={fullCard}>
       {/* The facts a worker decides on are in the head (D2); the description follows, then the full card below keeps every detail. */}
       {job.description && (

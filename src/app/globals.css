@@ -2896,11 +2896,6 @@ body {
   .job-head > div:last-child {
     margin-inline-start: auto;
   }
-  /* The job's apply card: on a phone it stays above the dock while the facts scroll under it (green board). */
-  .job-apply-card {
-    @apply sticky z-10 lg:static;
-    bottom: var(--dock-clearance);
-  }
   /* A job page's picture: full width under the site header, the sheet below it. */
   /* Not clipped: a save or share note hangs below its control (#113 review, P2); the photograph takes the corners itself. */
   .job-photo-head {
@@ -4742,7 +4737,8 @@ html:not(.sun):not(:has(.thread-top, .more-sheet[open]))::after {
    prefers-reduced-transparency) would count the whole "not" as false and drop the no-bar rules for everyone.
    The same three settings as the solid fallback, listed in another order so tests that find that block by its
    opening line still find it. */
-@media (prefers-contrast: more), (prefers-reduced-transparency: reduce), (forced-colors: active) {
+/* On screen only: a printed page has no bar (the print rules above hide it), and the !important here would bring it back. */
+@media screen and (prefers-contrast: more), screen and (prefers-reduced-transparency: reduce), screen and (forced-colors: active) {
   html:not(.sun) body:not(:has(.job-photo-head, .staff-band, .thread-top))::after {
     display: block !important;
   }

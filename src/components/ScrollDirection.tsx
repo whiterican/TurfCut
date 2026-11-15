@@ -18,7 +18,8 @@ export function ScrollDirection() {
   const pathname = usePathname();
   useEffect(() => {
     const root = document.documentElement;
-    const at = () => clampScroll(window.scrollY, root.scrollHeight - window.innerHeight);
+    const max = () => root.scrollHeight - window.innerHeight;
+    const at = () => clampScroll(window.scrollY, max());
     let last = at();
     let dir: ScrollDir = "up";
     let frame = 0;
@@ -40,7 +41,7 @@ export function ScrollDirection() {
       frame = 0;
       const now = at();
       mark(now);
-      const next = scrollDirection(last, now);
+      const next = scrollDirection(last, now, max());
       if (next === null) return;
       last = now;
       if (next !== dir) {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { PHOTO_PAST_PX, SCROLLED_PX, SCROLL_JITTER_PX, SCROLL_TOP_PX, clampScroll, isScrolled, photoPassed, scrollDirection } from "./scroll-direction";
+import { PHOTO_PAST_PX, SCROLLED_PX, SCROLL_JITTER_PX, SCROLL_TOP_PX, SHORT_PAGE_PX, clampScroll, isScrolled, photoPassed, scrollDirection } from "./scroll-direction";
 
 describe("scroll direction for the top row", () => {
   it("is down on a clear move down and up on a clear move up", () => {
@@ -124,5 +124,9 @@ describe("scroll direction for the top row", () => {
     expect(css).toMatch(/html\.sun\[data-scroll="down"\]:not\(:has\(\.thread-top\)\) body::after,\s*html\[data-scroll="down"\]:not\(:has\(\.thread-top\)\) body:has\(\.staff-band\)::after \{\s*opacity: 0 !important;/);
     expect(css.slice(css.indexOf("@media (prefers-reduced-transparency: reduce)"))).toMatch(/html\[data-scroll="down"\]:not\(:has\(\.thread-top\)\) body::after \{\s*opacity: 0 !important;/);
     expect(css).not.toMatch(/data-scroll[^{]*\{[^}]*(visibility: hidden|display: none)/);
+  });
+  it("never hides the row on a page with too little to scroll (an installed iPhone app's short page)", () => {
+    expect(scrollDirection(30, 60, SHORT_PAGE_PX - 1)).toBe("up");
+    expect(scrollDirection(30, 60, SHORT_PAGE_PX)).toBe("down");
   });
 });

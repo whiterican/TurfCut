@@ -11,6 +11,13 @@ export const SCROLL_JITTER_PX = 6;
 /** Past this the page has left its top: the glass across the top of the screen has something under it to blur. */
 export const SCROLLED_PX = 8;
 
+/**
+ * A page that can scroll less than this has nothing below to make room for: its top row stays. On an installed
+ * iPhone app every page is at least the clock strip (about 60px) taller than the screen (globals.css), so a short
+ * page scrolls that far; the row must not step aside for it.
+ */
+export const SHORT_PAGE_PX = 96;
+
 export type ScrollDir = "up" | "down";
 
 /** The height of the strip the top glass keeps, roughly: a photograph whose foot is above this has passed under it. */
@@ -30,11 +37,11 @@ export const isScrolled = (now: number) => now > SCROLLED_PX;
 export const clampScroll = (y: number, max: number) => Math.min(Math.max(y, 0), Math.max(max, 0));
 
 /**
- * The direction after moving from `last` to `now` (both already clamped). `null` means the move was too
+ * The direction after moving from `last` to `now` (both already clamped), on a page that can scroll `max`. `null` means the move was too
  * small to mean anything: keep `last` as the reference point.
  */
-export function scrollDirection(last: number, now: number): ScrollDir | null {
-  if (now <= SCROLL_TOP_PX) return "up";
+export function scrollDirection(last: number, now: number, max = Infinity): ScrollDir | null {
+  if (now <= SCROLL_TOP_PX || max < SHORT_PAGE_PX) return "up";
   const moved = now - last;
   if (Math.abs(moved) < SCROLL_JITTER_PX) return null;
   return moved > 0 ? "down" : "up";

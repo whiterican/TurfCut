@@ -4405,16 +4405,16 @@ html:has(.more-sheet[open])::view-transition {
     overscroll-behavior-y: contain;
   }
 }
-/* An installed iPhone app that draws under the clock can count its screen short when the page is too short to
-   scroll: the dock then sat higher than on a long page and jumped between tabs (Caden's recording, Nov 14). A
-   page one pixel taller than the count can always scroll, which is what a long page has that a short one lacks.
-   One pixel, not the clock strip's height: if this is not the cure, a page that moves by a pixel hides no
-   header and shifts nothing. iPhones and iPads only (the @supports), and not a chat, which has no dock and
-   opens at its foot. Not checked on a phone from here. */
+/* An installed iPhone app that draws under the clock counts its screen short when the page is shorter than the
+   whole screen: the dock then sat about 55pt higher than on a long page, a strip showed under it, and the dock
+   jumped between tabs (Caden's recordings, Nov 14 and 15). One pixel more than that short count was not enough
+   (the Nov 15 recording, with it in place): the page has to outgrow the whole screen, as a long page does, so
+   it is taller than the count by the clock strip and a pixel. A short page then scrolls by about that much.
+   iPhones and iPads only (the @supports), and not a chat, which has no dock and opens at its foot. */
 @supports (-webkit-touch-callout: none) {
   @media (display-mode: standalone) {
     html:not(:has(.thread-top)) {
-      min-height: calc(100% + 1px);
+      min-height: calc(100% + env(safe-area-inset-top) + 1px);
     }
   }
 }

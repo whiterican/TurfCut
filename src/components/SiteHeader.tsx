@@ -45,7 +45,7 @@ export function SiteHeader({
         <div className={`mx-auto flex w-full ${isOrg || workerPhone ? "max-w-[var(--workspace-max)]" : "max-w-[var(--worker-frame)]"} site-header-bar items-center justify-between gap-[12px] px-[16px] sm:px-[24px]`}>
           <div className="flex min-w-0 items-center gap-[8px]">
           {menu}
-          <Link href={at(!signedIn ? "/" : isOrg ? "/desk" : "/dashboard")} className="flex shrink-0 items-center gap-[8px] text-[20px] font-bold tracking-[-0.04em] text-fg">
+          <Link href={at(!signedIn ? "/" : isOrg ? "/desk" : "/dashboard")} className="site-brand flex shrink-0 items-center gap-[8px] text-[20px] font-bold tracking-[-0.04em] text-fg">
             {/* The founder's pin-check-nib mark, the same in every theme. The word is live text in the
                 theme's ink. Static import + unoptimized: served from /_next/static, saved offline by the service worker. */}
             <Image src={brandMark} alt="" width={28} height={28} unoptimized className="size-[28px] rounded-full" />

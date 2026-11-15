@@ -618,7 +618,7 @@ describe("the ten locked colours (founder's twelve-screen concept, #111)", () =>
       for (const [, name, value] of body.matchAll(/--([\w-]+):\s*([^;]+);/g)) {
         if (/^#[0-9a-fA-F]{6}$/.test(value.trim())) expect(parsed[name]).toBe(value.trim());
         else if (name === "hero-border") expect(value.trim()).toBe("transparent");
-        else expect(name).toMatch(/^(shadow|shadow-depth|shadow-pressed|glass-(bg|bg-strong|bg-bar|border|highlight|filter|sheen)|card-(bg|edge|sheen|filter|glow)|dock-(bg|fg|border|ring|filter|sheen|highlight|halo|current-bg|current-fg)|drawer-root|drawer-bg|header-bg|header-root|page-top|page-wash)$/); // the only non-colour tokens: shadows and the glass recipe
+        else expect(name).toMatch(/^(shadow|shadow-depth|shadow-pressed|glass-(bg|bg-strong|bg-bar|border|highlight|filter|sheen)|card-(bg|edge|sheen|filter|glow)|dock-(bg|fg|border|ring|filter|sheen|highlight|halo|current-bg|current-fg)|drawer-root|header-bg|header-root|page-top|page-wash)$/); // the only non-colour tokens: shadows and the glass recipe
       }
     }
   });
@@ -822,23 +822,19 @@ describe("the shell (redesign B1.4)", () => {
     // No theme gives the backdrop a colour again (only the forced-colours veil does), and the colour is the pane over the page.
     expect(css.match(/\.more-sheet::backdrop/g)).toHaveLength(2);
     expect(css).toMatch(/--glass-bg-strong: color-mix\(in srgb, var\(--surface\) 79%, transparent\);/);
-    // Clear glass over the purple: the strip is half the page's top colour, and the pane is that colour part see-through, so over the strip-coloured page it is exactly the strip.
-    expect(css.match(/--drawer-root: color-mix\(in srgb, var\(--surface\) 50%, var\(--page-top\)\);\s*--drawer-bg: color-mix\(in srgb, var\(--drawer-root\) (60|68)%, transparent\);/g)).toHaveLength(2);
-    // The pane is clearer than the other panes, so its words are all ink, and ink holds AA over the worst case behind (black by day, white by night).
+    // The strip is half the page's top colour, and the pane is that colour, solid: the menu's words are drawn on it, never on a blur.
+    expect(css.match(/--drawer-root: color-mix\(in srgb, var\(--surface\) 50%, var\(--page-top\)\);/g)).toHaveLength(2);
     expect(css).toMatch(/\n\.more-sheet-panel \{\s*--muted: var\(--fg\);\s*--subtle: var\(--fg\);\s*--kicker: var\(--fg\);/);
-    for (const [body, th, worst] of [[css.slice(css.indexOf("\nhtml {")), light, "#000000"], [themeBody(css, ".dark"), dark, "#ffffff"]] as const) {
-      const alpha = Number(body.match(/--drawer-bg: color-mix\(in srgb, var\(--drawer-root\) (\d+)%, transparent\);/)?.[1]) / 100;
+    for (const [body, th] of [[css.slice(css.indexOf("\nhtml {")), light], [themeBody(css, ".dark"), dark]] as const) {
       const top = body.match(/--page-top: (#[0-9a-f]{6});/)?.[1] ?? css.match(/--page-top: (#[0-9a-f]{6});/)![1];
       const strip = "#" + mix(th.surface, 0.5, top).map((v) => Math.round(v).toString(16).padStart(2, "0")).join("");
-      expect(alpha).toBeLessThanOrEqual(0.7); // clearer than the 78% panes
-      expect(ratio(th.fg, mix(strip, alpha, worst))).toBeGreaterThanOrEqual(4.5);
-      expect(ratio(th.fg, mix(strip, 1, worst))).toBeGreaterThanOrEqual(7);
+      expect(ratio(th.fg, strip)).toBeGreaterThanOrEqual(7);
     }
-    // Blur only on the pane (saturating what shows through would move its top off the strip's colour); none in Sunlight or the solid fallback.
-    expect(css).toMatch(/\.more-sheet-panel \{[^}]*?-webkit-backdrop-filter: blur\(24px\);\s*backdrop-filter: blur\(24px\);/);
-    expect(css).toMatch(/\.sun \.more-sheet-panel \{\s*-webkit-backdrop-filter: none;\s*backdrop-filter: none;/);
-    expect(css.match(/--drawer-root: var\(--surface\);\s*--drawer-bg: var\(--surface\);/g)).toHaveLength(2);
-    expect(css).toMatch(/\.more-sheet-panel \{[^}]*?background: var\(--drawer-bg\);/);
+    const panel = css.slice(css.indexOf(".more-sheet-panel {\n    @apply"), css.indexOf("}", css.indexOf(".more-sheet-panel {\n    @apply")));
+    expect(panel).toMatch(/background: var\(--drawer-root\);/);
+    expect(panel).not.toMatch(/backdrop-filter/);
+    expect(css.match(/--drawer-root: var\(--surface\);/g)!.length).toBeGreaterThanOrEqual(2);
+    expect(css).not.toMatch(/--drawer-bg/);
     expect(css).toMatch(/\.more-sheet \{[^}]*border-end-end-radius: var\(--radius-lg\);\s*box-shadow: 0 0 0 100vmax rgb\(24 20 30 \/ 0\.45\);/);
     expect(css).toMatch(/\.dark \.more-sheet \{\s*box-shadow: 0 0 0 100vmax rgb\(8 4 14 \/ 0\.6\);/);
     expect(css).toMatch(/@media \(forced-colors: active\) \{\s*\.more-sheet::backdrop \{\s*background: rgb\(0 0 0 \/ 0\.5\);/);

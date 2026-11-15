@@ -349,7 +349,8 @@ export function OrgTabBar({ tabs, more, extra, notices = 0, person }: { tabs: Na
             <div className="mb-2 flex items-center justify-between">
               {person ? (
                 <div className="flex min-w-0 items-center gap-3">
-                  {person.photo && <PersonPhoto photo={person.photo} initial={person.name[0]?.toUpperCase()} />}
+                  {/* The photo, or the initial where there is none: the same head on a worker's menu and an organization's. */}
+                  {person.photo ? <PersonPhoto photo={person.photo} initial={person.name[0]?.toUpperCase()} /> : <span className="menu-avatar" aria-hidden>{person.name[0]?.toUpperCase()}</span>}
                   {/* The whole name, wrapped if it must (Caden, Nov 15): an email cut to "…@gmai…" told him nothing. */}
                   <p className="min-w-0">
                     <span className="block text-lg leading-snug font-semibold text-fg [overflow-wrap:anywhere]">

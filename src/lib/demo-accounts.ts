@@ -121,11 +121,17 @@ export function projectProblem(supabaseUrl: string | undefined, confirmedRef: st
 /**
  * For a hosted Supabase URL (*.supabase.co / *.supabase.in), DATABASE_URL
  * must point at the same project: either the direct host db.<ref>.supabase.co
- * (or .in), or a pooler user named postgres.<ref>. Local URLs are left alone.
+ * (or .in), or the user postgres.<ref> on a *.pooler.supabase.com host. A
+ * live project's ref anywhere in DATABASE_URL is always refused. Local
+ * Supabase URLs are left alone.
  */
 export function databaseUrlProblem(supabaseUrl: string | undefined, databaseUrl: string | undefined): string | null {
   const ref = projectRefOf(supabaseUrl);
   if (!ref || !supabaseUrl) return null;
+  const lowered = (databaseUrl ?? "").toLowerCase();
+  if (LIVE_SUPABASE_PROJECT_REFS.some((live) => lowered.includes(live))) {
+    return "DATABASE_URL points at the live Turfcut project. Demo logins go only into a dedicated demo project.";
+  }
   let hosted = false;
   try {
     hosted = /^[a-z0-9]+\.supabase\.(co|in)$/i.test(new URL(supabaseUrl).hostname);
@@ -134,10 +140,9 @@ export function databaseUrlProblem(supabaseUrl: string | undefined, databaseUrl:
   }
   if (!hosted) return null;
   if (!databaseUrl?.trim()) return "Set DATABASE_URL to this same Supabase project's database.";
-  const clean = cleanDatabaseUrl(databaseUrl);
   let u: URL;
   try {
-    u = new URL(clean);
+    u = new URL(cleanDatabaseUrl(databaseUrl));
   } catch {
     return "DATABASE_URL isn't a usable Postgres URL, so it can't be checked against the Supabase project.";
   }
@@ -148,10 +153,34 @@ export function databaseUrlProblem(supabaseUrl: string | undefined, databaseUrl:
     // keep the raw user name
   }
   const host = u.hostname.toLowerCase();
-  const sameDirect = host === `db.${ref}.supabase.co` || host === `db.${ref}.supabase.in`;
-  const samePooler = user.toLowerCase() === `postgres.${ref}`;
-  if (sameDirect || samePooler) return null;
-  return "DATABASE_URL doesn't point at the same Supabase project as NEXT_PUBLIC_SUPABASE_URL (need db.<project-ref>.supabase.co or pooler user postgres.<project-ref>).";
+  const mismatch = "DATABASE_URL doesn't point at the same Supabase project as NEXT_PUBLIC_SUPABASE_URL (need db.<project-ref>.supabase.co, or user postgres.<project-ref> on *.pooler.supabase.com).";
+  const direct = /^db\.([a-z0-9]+)\.supabase\.(co|in)$/.exec(host);
+  if (direct) return direct[1] === ref ? null : mismatch;
+  if (host.endsWith(".pooler.supabase.com") && user.toLowerCase() === `postgres.${ref}`) return null;
+  return mismatch;
+}
+
+/**
+ * The whole --yes decision for seed:demo-accounts, in the order the script
+ * applies it. Pass authUserIds as null for the checks that run before
+ * Supabase Auth is listed, then again with the listed ids.
+ */
+export function demoAccountsYesProblem(input: {
+  supabaseUrl: string | undefined;
+  confirmedRef: string | undefined;
+  databaseUrl: string | undefined;
+  password: string | undefined;
+  serviceRoleKey: string | undefined;
+  authUserIds: readonly string[] | null;
+  plannedProfileIds: ReadonlySet<string>;
+}): string | null {
+  return (
+    projectProblem(input.supabaseUrl, input.confirmedRef) ??
+    databaseUrlProblem(input.supabaseUrl, input.databaseUrl) ??
+    passwordProblem(input.password) ??
+    (input.serviceRoleKey ? null : "Set SUPABASE_SERVICE_ROLE_KEY (the demo project's secret key) in the shell.") ??
+    (input.authUserIds ? strayAuthLoginsProblem(input.authUserIds, input.plannedProfileIds) : null)
+  );
 }
 
 /**

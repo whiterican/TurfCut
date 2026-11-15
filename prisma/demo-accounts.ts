@@ -35,17 +35,14 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { db } from "../src/lib/db";
 import {
-  databaseUrlProblem,
   DEFAULT_DEMO_EMAIL_DOMAIN,
+  demoAccountsYesProblem,
   DEMO_FINANCE_NAMES,
   DEMO_SUFFIX,
   emailDomainProblem,
   orgsMissingFinance,
-  passwordProblem,
   planAccounts,
-  projectProblem,
   strangers,
-  strayAuthLoginsProblem,
   type DemoAccount,
   type DemoOrgStaff,
 } from "../src/lib/demo-accounts";
@@ -156,18 +153,22 @@ async function main() {
   }
 
   // --- The project must be named on purpose, and empty of real logins ---
-  const problem =
-    projectProblem(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.TURFCUT_DEMO_PROJECT_REF) ??
-    databaseUrlProblem(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.DATABASE_URL) ??
-    passwordProblem(process.env.DEMO_ACCOUNTS_PASSWORD);
-  if (problem) stop(problem);
-  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) stop("Set SUPABASE_SERVICE_ROLE_KEY (the demo project's secret key) in the shell.");
-  const password = process.env.DEMO_ACCOUNTS_PASSWORD!;
-  const admin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
   const plannedIds = new Set(planned.map((a) => a.profileId));
+  const yesInput = {
+    supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    confirmedRef: process.env.TURFCUT_DEMO_PROJECT_REF,
+    databaseUrl: process.env.DATABASE_URL,
+    password: process.env.DEMO_ACCOUNTS_PASSWORD,
+    serviceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
+    plannedProfileIds: plannedIds,
+  };
+  const before = demoAccountsYesProblem({ ...yesInput, authUserIds: null });
+  if (before) stop(before);
+  const password = process.env.DEMO_ACCOUNTS_PASSWORD!;
+  const admin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { persistSession: false, autoRefreshToken: false } });
   const logins = await allAuthUserIds(admin);
-  const strayLogins = strayAuthLoginsProblem(logins, plannedIds);
-  if (strayLogins) stop(strayLogins);
+  const after = demoAccountsYesProblem({ ...yesInput, authUserIds: logins });
+  if (after) stop(after);
 
   // --- Write: finance people, then logins with the profiles' own ids ---
   for (const o of addFinance) {

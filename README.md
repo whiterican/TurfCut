@@ -347,8 +347,11 @@ prisma/
 ## Demo data
 
 `npm run seed:demo -- --yes` (after `npm run seed`) fills the app for
-testers. Export `DATABASE_URL` in the shell first; tsx doesn't read
-`.env.local`. Without `--yes` it only says where it would write. It makes:
+testers. Run it against a **dedicated demo project** (see **Setting up a
+dedicated demo project** below), never the live one: its rows are
+append-only and stay. Export that project's `DATABASE_URL` in the shell
+first; tsx doesn't read `.env.local`. Without `--yes` it only says where it
+would write. It makes:
 
 - six organizations with their staff and twelve workers, all named "… (demo)";
 - 27 published Colorado jobs, all titled "… (demo)" and fictional: local
@@ -369,8 +372,9 @@ claim. Like any application, one to a demo job carries what the worker
 shares with organizations they apply to: their scorecard and the
 political-fit answers they chose to share (identity, party, campaign
 interests). Nobody signs in as demo staff, so it reaches no one. Never link
-a real login to a demo organization (it would see those applicants), and
-close the demo jobs before real workers arrive.
+a real login to a demo organization (it would see those applicants). If
+demo data ever ends up in a project with real workers, close the demo jobs
+(SQL below) before they arrive.
 
 Everything goes through the app's own rules (publish gate, hiring, field
 day, review, pay), backdated so workers have history. Audit-log entries
@@ -387,6 +391,48 @@ WHERE status = 'PUBLISHED' AND "orgId" IN (
   SELECT (jsonb_array_elements_text(metadata -> 'orgIds'))::uuid
   FROM "AuditEvent" WHERE action = 'demo.seeded');
 ```
+
+### Setting up a dedicated demo project
+
+Creating the project is the owner's call; nothing here is automated. The
+live Supabase project (`txzxtvsfzxfhgfiurufq`) is never the demo project:
+`seed:demo-accounts` refuses it by design, by its URL and anywhere in
+`DATABASE_URL`, whatever `TURFCUT_DEMO_PROJECT_REF` says.
+
+1. **A second Supabase project.** supabase.com → New project, in the same
+   region as the live one (us-east-2, next to the `cle1` functions in
+   `vercel.json`). Note its ref, the `<demo-ref>` in
+   `https://<demo-ref>.supabase.co`.
+2. **The schema.** In the demo project's SQL editor, paste all of
+   `prisma/supabase-manual-setup.sql` once. It is for FRESH databases only
+   and is what the acceptance checks build from. Then run the newer files
+   that say they are safe to run again, in this order, as the acceptance
+   runner does: `prisma/m10-admin.sql`, `prisma/m10-verification.sql`,
+   `prisma/m10-roles.sql`, `prisma/p1-discovery.sql`,
+   `prisma/p2-channels.sql`, `prisma/p2-threads.sql`,
+   `prisma/p2-dm-mentions.sql`, `prisma/m10-roles.sql`,
+   `prisma/p2-channels.sql` (again, last on purpose), `prisma/p3-sectors.sql`.
+   Don't run `npm run db:push` against it (some indexes and triggers exist
+   only in the SQL files), and don't run the `m1-`…`m7-` upgrade files: they
+   are for databases that predate the snapshot. The setup file creates the
+   private `credential-proofs` and `profile-photos` buckets; create the
+   private `chat-attachments` bucket by hand, as in **What needs Caden**.
+3. **Auth redirect URLs.** Demo project → Authentication → URL
+   Configuration: Site URL = the demo site's public address, and add
+   `<demo SITE_URL>/auth/confirm` to Redirect URLs (exact, no wildcards).
+   Set the email templates as in **What needs Caden**, item 5.
+4. **A separate Vercel project or environment for the demo.** Point it at
+   the demo project only, with its own values (never copy the live ones):
+   `NEXT_PUBLIC_SUPABASE_URL=https://<demo-ref>.supabase.co`, the demo
+   project's `NEXT_PUBLIC_SUPABASE_ANON_KEY` and
+   `SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL` = the demo project's
+   transaction pooler (user `postgres.<demo-ref>`, port 6543), `SITE_URL` =
+   the demo site's address, `STRIPE_SECRET_KEY` = a Stripe **test** key
+   (`sk_test_…`) with its test-mode `STRIPE_WEBHOOK_SECRET`, and
+   `TURFCUT_DEMO=1`. Its name and URL are up to the owner; this README
+   doesn't assume one. Redeploy after setting them.
+5. **Seed it**, from a shell holding only the demo project's values:
+   `npm run seed`, `npm run seed:demo -- --yes`, then the demo logins below.
 
 ### Demo logins (a dedicated demo project only)
 
@@ -418,9 +464,10 @@ and supervisors review the work, so the two-person pay rule can be shown:
 review a shift as the supervisor, approve its pay as the owner or finance.
 
 The warning above still holds everywhere else. The script always refuses
-the live Turfcut Supabase project. For a hosted Supabase URL it also
-refuses unless `DATABASE_URL` is the same project (`db.<ref>.supabase.co`
-or pooler user `postgres.<ref>`). And it refuses a project that has anyone
+the live Turfcut Supabase project (`txzxtvsfzxfhgfiurufq`), by its URL and
+anywhere in `DATABASE_URL`. For a hosted Supabase URL it also refuses
+unless `DATABASE_URL` is the same project (`db.<ref>.supabase.co`, or user
+`postgres.<ref>` on a `*.pooler.supabase.com` host). And it refuses a project that has anyone
 the seeds didn't make: a profile in the database or a login in Supabase
 Auth that isn't a demo login means real people use it. Re-running it
 leaves existing logins alone; the password is never stored.

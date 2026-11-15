@@ -1,6 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
-import { DEMO_SEEDED_MARKER, liveStripeDemoPayProblem, seededDemoIdsFromMarkers } from "@/lib/demo-accounts";
+import { DEMO_SEEDED_MARKER, liveStripeDemoPayProblem, seededDemoIdsFromMarkers, stripeKeyMode } from "@/lib/demo-accounts";
 import { UUID_RE } from "@/lib/jobs";
 import { canUse, liveGrants, rolesFor, type Grants } from "@/lib/access";
 import type { Role } from "@/lib/auth";
@@ -936,8 +936,10 @@ type PayRun = { ok: true; transferId: string; outcome: "paid" | "pending" | "fai
 
 /** Live Stripe keys must never pay seeded demo data, whatever the env flags say. Checked before any Stripe call. */
 async function liveDemoPayBlock(workerId: string, orgId: string): Promise<string | null> {
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (stripeKeyMode(key) !== "live") return null; // only a live key can reach real money; no query otherwise
   const rows = await db().auditEvent.findMany({ where: DEMO_SEEDED_MARKER, select: { metadata: true } });
-  return liveStripeDemoPayProblem(process.env.STRIPE_SECRET_KEY, workerId, orgId, seededDemoIdsFromMarkers(rows));
+  return liveStripeDemoPayProblem(key, workerId, orgId, seededDemoIdsFromMarkers(rows));
 }
 
 /**
@@ -1051,25 +1053,9 @@ export async function settleTransfer(actor: PayActor | null, transferId: string,
       ? { ok: true, transferId, outcome: "paid", message: "This payment already went through." }
       : { ok: true, transferId, outcome: "failed", message: "This payment didn't go through; its lines can be paid again." };
   }
+  // Refused before asking Stripe anything: the transfer stays "sending" (nothing is recorded as failed without Stripe's answer).
   const blocked = await liveDemoPayBlock(t.workerId, t.orgId);
-  if (blocked) {
-    try {
-      return await db().$transaction(async (tx) => {
-        await payLock(tx, t.workerId);
-        const x = await transferLines(tx, transferId);
-        if (x.inFlight.length) {
-          const at = await eventAt(tx, x.inFlight.map((l) => l.id), now);
-          await tx.payoutEvent.createMany({
-            data: x.inFlight.map((l) => ({ payoutId: l.id, type: "TRANSFER_FAILED" as const, actorId: actor?.profileId ?? null, transferId, reason: blocked.slice(0, 300), createdAt: at })),
-          });
-          await tx.auditEvent.create({ data: { actorId: actor?.profileId ?? null, action: "payout.transfer_failed", entityType: "PayoutTransfer", entityId: transferId, metadata: { reason: blocked } } });
-        }
-        return { ok: true as const, transferId, outcome: "failed" as const, message: blocked };
-      });
-    } catch {
-      return { ok: false, reason: blocked };
-    }
-  }
+  if (blocked) return { ok: false, reason: blocked };
   let ref: string | null = null;
   let refusal: string | null = null;
   try {

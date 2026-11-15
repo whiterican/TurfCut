@@ -625,7 +625,8 @@ Jobs and hiring, built on the M1 profile.
   affidavit). The feed's "No credentials" filter uses the same list.
 - **Apply / invite / claim / accept.** Workers apply or claim; orgs invite;
   orgs answer applications with an offer (C3) and workers accept offers and
-  invitations. Headcount is enforced under a lock, so simultaneous claims
+  invitations. Applying and claiming check the job's credentials; accepting
+  an invitation or offer doesn't (owner decision; see C3 scope). Headcount is enforced under a lock, so simultaneous claims
   can't overfill a job.
 - **Hiring snapshot.** Each engagement freezes what the org could see at that
   moment — scorecard summary and authorized fit signals only, with consent
@@ -1159,9 +1160,16 @@ Built in C3.6b (see the C3 scope below). Approved as recommended by review:
   refuses a worker whose current wallet doesn't hold it, and says which one
   to add on Profile → Credentials. Self-reported credentials count,
   expired ones don't, and a registration or affidavit status for another
-  state doesn't. A badge is an "Other" credential named for it. Training
-  isn't checked before hiring: jobs provide it on day one. Invitations and
-  scheduling aren't checked.
+  state doesn't. A badge is an "Other" (or training) credential named
+  exactly "Badge", "Circulator badge" or "Paid circulator badge" (any case,
+  extra spaces ignored), so "No badge yet" doesn't count. The check runs
+  again under the job's lock, so a credential removed meanwhile can't slip
+  through. Training isn't checked before hiring: jobs provide it on day one.
+  **Invitations and offers skip the check (owner decision, Nov 2026):** an
+  organization can invite a worker who lacks a required credential, or
+  offer a job to one whose credential lapsed or was removed after they
+  applied, and accepting that invitation or offer hires them. Scheduling
+  and check-in aren't checked either.
 - **Pipeline (C3.1)**: an organization can mark an application *in review*
   (the worker sees "In review"), send an *offer*, or mark it *not selected*
   with a reason code from a fixed list and an optional note the worker

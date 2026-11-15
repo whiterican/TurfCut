@@ -14,7 +14,8 @@
  * - State: a registration or affidavit status that names a state counts
  *   only for jobs in that state. One with no state counts anywhere.
  * - A badge has no credential kind of its own: an "Other" (or training)
- *   credential whose name contains "badge" is the badge.
+ *   credential whose name is exactly one of BADGE_NAMES (trimmed, any case,
+ *   inner spaces collapsed) is the badge. "No badge yet" isn't.
  * - Training isn't checked before hiring: jobs say training is provided on
  *   day one, so it stays on the job card only.
  */
@@ -26,6 +27,14 @@ export type WalletRow = Pick<CredentialRow, "id" | "kind" | "label" | "state" | 
 /** Which needs are checked before hiring (training isn't: see the header). */
 export const CHECKED_BEFORE_HIRING: ReadonlySet<JobCredentialNeed["need"]> = new Set(["registration", "badge", "affidavit"]);
 
+/** The names an Other (or training) credential may have to count as the badge, lower-case. */
+export const BADGE_NAMES: ReadonlySet<string> = new Set(["badge", "circulator badge", "paid circulator badge"]);
+
+/** Whether a credential's name is one of BADGE_NAMES (trimmed, case-insensitive, inner spaces collapsed). */
+export function isBadgeName(label: string | null | undefined): boolean {
+  return BADGE_NAMES.has((label ?? "").trim().replace(/\s+/g, " ").toLowerCase());
+}
+
 function covers(need: JobCredentialNeed, c: WalletRow, jobState: string | null): boolean {
   const stateOk = !c.state || !jobState || c.state.toUpperCase() === jobState.toUpperCase();
   switch (need.need) {
@@ -34,7 +43,7 @@ function covers(need: JobCredentialNeed, c: WalletRow, jobState: string | null):
     case "affidavit":
       return c.kind === "NOTARY_OR_AFFIDAVIT" && stateOk;
     case "badge":
-      return (c.kind === "OTHER" || c.kind === "TRAINING") && /badge/i.test(c.label ?? "") && stateOk;
+      return (c.kind === "OTHER" || c.kind === "TRAINING") && isBadgeName(c.label) && stateOk;
     case "training":
       return false;
   }

@@ -80,6 +80,25 @@ async function snapshotFor(
   });
 }
 
+/** What this worker's current wallet lacks for this job (job-credentials.ts), read through `client`. */
+async function credentialsMissing(
+  client: Tx | ReturnType<typeof db>,
+  job: { type: Parameters<typeof missingCredentials>[0]["type"]; requirements: unknown; geography: unknown; jurisdiction: { rules: unknown } },
+  workerId: string,
+  now: Date
+): Promise<string[]> {
+  const geo = job.geography && typeof job.geography === "object" ? (job.geography as Record<string, unknown>) : {};
+  const wallet = await client.workerCredential.findMany({
+    where: { workerId },
+    select: { id: true, kind: true, label: true, state: true, expiresOn: true, supersedesId: true, removed: true, createdAt: true },
+  });
+  return missingCredentials(
+    { type: job.type, requirements: job.requirements, jurisdictionRules: job.jurisdiction.rules, state: typeof geo.state === "string" ? geo.state : null },
+    wallet,
+    now
+  );
+}
+
 /**
  * Creates a new engagement (apply / claim / invite). Runs under a per-job
  * lock so concurrent claims can't overfill headcount.
@@ -118,12 +137,8 @@ async function open(
     const reasons = exclusionReasons(pref, { disclosure: readDisclosure(job.campaignDisclosure), orgName: job.org.name, measureIds: job.measureIds });
     if (reasons.length) return { ok: false, reason: `${reasons[0]}. Change your preferences to see this job.` };
     // Applying or claiming needs the credentials the job asks for (job-credentials.ts): an instant claim hires on the spot.
-    const geo = job.geography && typeof job.geography === "object" ? (job.geography as Record<string, unknown>) : {};
-    const missing = missingCredentials(
-      { type: job.type, requirements: job.requirements, jurisdictionRules: job.jurisdiction.rules, state: typeof geo.state === "string" ? geo.state : null },
-      await db().workerCredential.findMany({ where: { workerId }, select: { id: true, kind: true, label: true, state: true, expiresOn: true, supersedesId: true, removed: true, createdAt: true } }),
-      before
-    );
+    // Checked here to answer early, and again under the locks below.
+    const missing = await credentialsMissing(db(), job, workerId, before);
     if (missing.length) return { ok: false, reason: missingCredentialsMessage(missing) };
   }
 
@@ -138,11 +153,18 @@ async function open(
     const [existing, acceptedCount, fresh, wk, offers] = await Promise.all([
       tx.engagement.findUnique({ where: { jobId_workerId: { jobId, workerId } } }),
       tx.engagement.count({ where: { jobId, status: { in: ACCEPTED_STATUSES } } }),
-      tx.job.findUniqueOrThrow({ where: { id: jobId } }),
+      tx.job.findUniqueOrThrow({ where: { id: jobId }, include: { jurisdiction: { select: { rules: true } } } }),
       tx.worker.findUniqueOrThrow({ where: { id: workerId }, select: { closedAt: true, profileId: true } }),
       liveOffers(tx, jobId, null, at),
     ]);
     if (wk.closedAt) return { ok: false as const, reason: "This worker has closed their account." };
+    if (actor.kind === "worker") {
+      // Again under the locks, against the job and wallet as they are now: a credential removed (or a requirement
+      // added) since the check above can't slip through. Invitations aren't checked, nor is accepting one or an
+      // offer (owner decision, PR #187).
+      const missing = await credentialsMissing(tx, fresh, workerId, at);
+      if (missing.length) return { ok: false as const, reason: missingCredentialsMessage(missing) };
+    }
     if (action === "invite") {
       // A worker who muted this organization reads like any worker it can't reach (no directory, C1).
       const muted = await tx.orgMute.findUnique({ where: { workerId_orgId: { workerId, orgId: fresh.orgId } } });

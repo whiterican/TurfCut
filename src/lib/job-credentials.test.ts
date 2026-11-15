@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { missingCredentials, missingCredentialsMessage, type WalletRow } from "./job-credentials";
+import { isBadgeName, missingCredentials, missingCredentialsMessage, type WalletRow } from "./job-credentials";
 
 const NOW = new Date("2026-11-14T18:00:00Z");
 const CO_RULES = { workerRegistrationRequired: true, badgeRequired: true, affidavitRequired: true };
@@ -62,9 +62,25 @@ describe("credentials checked before hiring", () => {
   });
 
   it("a badge is an Other or training credential named for it; other kinds don't stand in", () => {
-    expect(missingCredentials(canvassBadge, [cred({ kind: "TRAINING", label: "Badge orientation" })], NOW)).toEqual([]);
+    expect(missingCredentials(canvassBadge, [cred({ kind: "OTHER", label: "Badge" })], NOW)).toEqual([]);
+    expect(missingCredentials(canvassBadge, [cred({ kind: "TRAINING", label: "Circulator badge" })], NOW)).toEqual([]);
     expect(missingCredentials(canvassBadge, [cred({ kind: "OTHER", label: "Volunteer lanyard" })], NOW)).toEqual(["Badge"]);
     expect(missingCredentials(canvassBadge, [cred({ kind: "CIRCULATOR_REGISTRATION" })], NOW)).toEqual(["Badge"]);
+  });
+});
+
+describe("what counts as the badge", () => {
+  it("only an exact badge name, trimmed and in any case, counts", () => {
+    for (const ok of ["Badge", "badge", "  BADGE  ", "Circulator badge", "Paid  circulator   badge", "paid circulator badge"]) expect(isBadgeName(ok), ok).toBe(true);
+  });
+
+  it("a name that merely mentions a badge doesn't", () => {
+    for (const no of ["No badge yet", "Badge pending", "badge?", "Badges", "Badge orientation", "Lost my badge", "", null, undefined]) expect(isBadgeName(no), String(no)).toBe(false);
+  });
+
+  it("\"No badge yet\" is refused on a job that needs a badge", () => {
+    expect(missingCredentials(canvassBadge, [cred({ kind: "OTHER", label: "No badge yet" })], NOW)).toEqual(["Badge"]);
+    expect(missingCredentials(canvassBadge, [cred({ kind: "TRAINING", label: "Badge orientation" })], NOW)).toEqual(["Badge"]);
   });
 });
 

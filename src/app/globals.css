@@ -3384,7 +3384,8 @@ body {
 }
 @media (prefers-reduced-motion: no-preference) and (width < 48rem) and (min-height: 34.01rem) {
   html:not([data-motion="reduce"]) body:not(:has(.composer)):has(.tabbar[data-tucked]):not(:has(.tabbar :focus-visible)) .tpl-foot {
-    translate: 0 6rem;
+    /* Down to the top of the home bar's strip, never into it. */
+    translate: 0 calc(var(--dock-clearance) - env(safe-area-inset-bottom));
   }
 }
 

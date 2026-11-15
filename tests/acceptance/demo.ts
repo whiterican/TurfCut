@@ -3,6 +3,7 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { db } from "@/lib/db";
+import { jobRulesLabel, jurisdictionLocalityProblem } from "@/lib/jobs";
 
 // The seed writes permanent, append-only rows wherever DATABASE_URL points: only ever this check's own database.
 const url = new URL(process.env.DATABASE_URL ?? "");
@@ -41,6 +42,12 @@ const tail = (r: ReturnType<typeof seed>) => `${r.stdout ?? ""}\n${r.stderr ?? "
   const worked = await p.shift.count({ where: { ...inDemo, checkInAt: { not: null }, checkOutAt: { not: null } } });
   // The seed counts a shift as worked only after its check-in and check-out both went through.
   check("shifts were worked from check-in to check-out, as many as the marker counts", worked > 0 && worked === meta.shiftsWorked, { worked, marked: meta.shiftsWorked });
+
+  // A city profile covers that city only (demo audit 4): every demo job's rules line names its own city.
+  const demoJobs = await p.job.findMany({ where: { orgId: { in: orgIds } }, select: { geography: true, jurisdiction: { select: { state: true, locality: true, version: true } } } });
+  const misfiled = demoJobs.filter((j) => jurisdictionLocalityProblem(((j.geography ?? {}) as { city?: string }).city ?? null, j.jurisdiction));
+  const labels = demoJobs.map((j) => jobRulesLabel(j.geography, j.jurisdiction));
+  check("no demo job outside Denver is filed under Denver's rules, and each rules line names the job's own city", demoJobs.length > 0 && misfiled.length === 0 && labels.every((l) => !l.includes("filed under")) && labels.some((l) => /statewide/.test(l)), { misfiled: misfiled.length, labels: [...new Set(labels)] });
 
   // --- It runs once ---
   const before = { shifts, events: await p.auditEvent.count() };

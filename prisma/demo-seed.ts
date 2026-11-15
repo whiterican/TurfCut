@@ -25,7 +25,9 @@
  * dates (the hiring history events carry the backdated times).
  *
  * Run: npm run seed:demo -- --yes (DATABASE_URL must be set in the shell;
- * the base seed's approved CO/Denver jurisdiction must exist). It runs once:
+ * the base seed's approved CO/Denver jurisdiction must exist). Jobs outside
+ * Denver are filed under a statewide CO profile: the database's current one,
+ * or one this run makes with the base seed's rules. It runs once:
  * work history, reviews and pay lines are append-only and stay for good.
  * What can be checked without writing is checked before the first write.
  * Scheduling and the steps after it are not: each shift, check-in and
@@ -50,6 +52,11 @@ const DAY = 86_400_000;
 const HOUR = 3_600_000;
 const MIN = 60_000;
 const JURISDICTION = "00000000-0000-0000-0000-000000000021";
+/**
+ * A city profile covers that city only (jobs.ts jurisdictionLocalityProblem), so demo jobs outside Denver are filed under
+ * a statewide Colorado profile: the current one if the database has one, else this one, made with the base seed's rules.
+ */
+const STATEWIDE = "00000000-0000-0000-0000-000000000022";
 const DEMO = " (demo)";
 /**
  * Written last, with the ids of the organizations and workers the run made: a
@@ -184,6 +191,14 @@ async function main() {
   const problems = [...new Set([...jurisdictionProblems(jurisdiction, now), ...jurisdictionProblems(jurisdiction, T0)])];
   const shiftRate = compensationProblem("SHIFT_RATE", jurisdiction.rules);
   if (problems.length || shiftRate) throw new Error(`The CO/Denver jurisdiction can't take demo jobs: ${[...problems, shiftRate].filter(Boolean).join(" ")}`);
+  // Statewide Colorado, for the jobs outside Denver: an existing current one must be usable too; if there is none, it is made below.
+  const statewideNow = await p.jurisdictionProfile.findFirst({ where: { state: "CO", locality: null, isCurrent: true }, orderBy: { version: "desc" } });
+  if (statewideNow) {
+    const sw = [...new Set([...jurisdictionProblems(statewideNow, now), ...jurisdictionProblems(statewideNow, T0)])];
+    const swRate = compensationProblem("SHIFT_RATE", statewideNow.rules);
+    if (sw.length || swRate) throw new Error(`The statewide CO jurisdiction can't take demo jobs: ${[...sw, swRate].filter(Boolean).join(" ")}`);
+  }
+  const statewideId = statewideNow?.id ?? STATEWIDE;
 
   type Planned = { input: JobInput; orgIdx: number; type: "PETITION" | "CANVASS"; startsAt: Date; endsAt: Date; past: boolean; modes: string[] };
   const plan = (c: Campaign, orgIdx: number, past: boolean): Planned => {
@@ -198,14 +213,15 @@ async function main() {
     const o = ORGS[orgIdx];
     const phone = `(303) 555-01${String(10 + orgIdx).padStart(2, "0")}`;
     const petition = c.type === "PETITION";
+    const city = pick(CITIES);
     const v = validateJob({
       type: c.type,
       title: `${c.title}${DEMO}`,
       description: `${c.message} Training provided on day one; staging point shared after you're hired. Demo job: not a real campaign.`,
-      jurisdictionId: JURISDICTION,
+      jurisdictionId: city === "Denver" ? JURISDICTION : statewideId,
       startsAt: iso(startsAt),
       endsAt: iso(endsAt),
-      city: pick(CITIES),
+      city,
       state: "CO",
       compensationMethod: method,
       payRate: rate,
@@ -236,6 +252,13 @@ async function main() {
   ];
 
   console.log(`Writing demo data to ${target()}…`);
+
+  // --- Statewide Colorado rules, if the database has none (the base seed's rules; replace with counsel-approved text before pilot) ---
+  if (!statewideNow) {
+    await p.jurisdictionProfile.create({
+      data: { id: STATEWIDE, state: "CO", locality: null, version: 1, isCurrent: true, approved: true, approvedAt: T0, rules: jurisdiction.rules ?? {}, createdAt: T0 },
+    });
+  }
 
   // --- Organizations, each with an owner and a supervisor ---
   const orgs = [];

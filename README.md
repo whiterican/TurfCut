@@ -350,7 +350,11 @@ testers. Export `DATABASE_URL` in the shell first; tsx doesn't read
 `.env.local`. Without `--yes` it only says where it would write. It makes:
 
 - six organizations with their staff and twelve workers, all named "… (demo)";
-- 27 published Colorado jobs, all titled "… (demo)" and fictional: local
+- 27 published Colorado jobs across eight cities, all titled "… (demo)" and
+  fictional. Denver jobs are filed under the base seed's Denver profile and
+  the rest under a statewide CO profile: the database's current one, or one
+  the demo seed adds with the base seed's (not counsel-approved) rules. They
+  cover local
   measures and civic work, plus a job for each campaign type and
   affiliation (candidate, party committee, issue advocacy; Democratic,
   Republican, Libertarian, Green, other). The candidates have invented
@@ -1387,6 +1391,14 @@ roles, one slice at a time.
   version's page shows the rules as the gate reads them, each open job and
   what freezes it, the other versions of the place, and Turfcut's decisions
   on it.
+- **A city profile covers that city only (demo audit, Nov 2026).** A job
+  in Aurora can't publish under the Denver profile. It's filed under
+  Aurora's own profile or a statewide CO one (no locality), and the publish
+  gate says which to pick. A statewide profile covers every city in its
+  state. Jobs already published keep running, and their rules line says
+  "Aurora, CO · filed under Denver rules v1" instead of passing as Denver.
+  The rules line on job cards and job pages names the job's own city
+  ("Aurora, CO (statewide rules v1)").
 - **A rule change is a new version.** "Propose a new version" prefills the
   form from the current rules: pay methods (ticking per-unit records
   counsel's explicit per-unit approval, which the gate requires), the three

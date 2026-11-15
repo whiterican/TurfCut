@@ -2,7 +2,7 @@ import { CalendarDays, MapPin, Scale, ShieldCheck, Users, Wallet } from "lucide-
 import type { ComponentType, ReactNode } from "react";
 import { day } from "@/components/DateRangeChip";
 import { readLaunch } from "@/lib/job-launch";
-import { jobCardAnswers, jurisdictionLabel, jurisdictionProblems, readHiringModes, type CompensationMethod, type JobType } from "@/lib/jobs";
+import { jobCardAnswers, jobRulesLabel, jurisdictionProblems, readHiringModes, type CompensationMethod, type JobType } from "@/lib/jobs";
 import type { JobStatus, JurisdictionProfile } from "@prisma/client";
 
 /**
@@ -52,7 +52,7 @@ export function JobFacts({
         <CompactFact icon={Users}>{spots}</CompactFact>
         <CompactFact icon={Wallet}>{a.payable}</CompactFact>
         <CompactFact icon={ShieldCheck}>{a.credentials.join(" · ")}</CompactFact>
-        <CompactFact icon={Scale}>{`Rules: ${jurisdictionLabel(job.jurisdiction)}`}{rulesOk ? "" : " (not current)"}</CompactFact>
+        <CompactFact icon={Scale}>{`Rules: ${jobRulesLabel(job.geography, job.jurisdiction)}`}{rulesOk ? "" : " (not current)"}</CompactFact>
       </ul>
     );
   }
@@ -81,7 +81,7 @@ export function JobFacts({
       <Fact icon={ShieldCheck} title="Credentials needed">
         {a.credentials.join(" · ")}
       </Fact>
-      <Fact icon={Scale} title={`Rules: ${jurisdictionLabel(job.jurisdiction)}`}>
+      <Fact icon={Scale} title={`Rules: ${jobRulesLabel(job.geography, job.jurisdiction)}`}>
         {rulesOk
           ? "A current, approved rule profile for this place."
           : job.status === "DRAFT"

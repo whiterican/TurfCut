@@ -2648,7 +2648,7 @@ body {
   /* An organization's phone: the header leads with the person's pill, as a worker's phone does, and the pill takes
      the logo's place (Caden, Nov 15: the two menus match; on a 320px phone the pill ran over the wordmark). */
   @media (max-width: 47.99rem) {
-    .site-header:has(.menu-button[data-named]) .site-brand {
+    body:not(:has(.staff-band)) .site-header:has(.menu-button[data-named]) .site-brand {
       /* !important: the link's own flex utility sits in a later layer and would win. */
       display: none !important;
     }
@@ -4566,10 +4566,6 @@ html:has(.more-sheet[open])::view-transition {
     -webkit-mask-image: none;
     mask-image: none;
   }
-  .more-sheet-panel {
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
-  }
   /* The pane and a card are the same solid colour here: the row you are on takes the dock's tint instead. */
   html:not(.sun) .more-sheet .rail-link:is([aria-current], :active) {
     background: var(--dock-capsule);
@@ -4627,16 +4623,12 @@ body:has(.thread-top) {
 :is(.thread-top, .composer, .more-sheet-panel, .sheet-panel) {
   --subtle: var(--muted);
 }
-/* The drawer is clearer than the other panes (Caden, Nov 12), so every word on it takes the ink: grey fails AA
-   there once something dark (by day) or light (by night) scrolls behind. Tested in design-tokens.test.ts. */
+/* Every word on the drawer takes the ink (Caden, Nov 12), on its solid pane as on the clear one it had before.
+   Tested in design-tokens.test.ts. */
 .more-sheet-panel {
   --muted: var(--fg);
   --subtle: var(--fg);
   --kicker: var(--fg);
-}
-.sun .more-sheet-panel {
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
 }
 /* An installed app on a phone draws the status bar's strip itself, above the page, where the page
    cannot paint. It takes the colour from the page: the root's or the body's, or something fixed across

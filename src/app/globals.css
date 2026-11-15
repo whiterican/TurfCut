@@ -209,10 +209,9 @@
   --dock-current-fg: var(--ink);
   --glass-bg: color-mix(in srgb, var(--surface) 62%, transparent);
   --glass-bg-strong: color-mix(in srgb, var(--surface) 78%, transparent);
-  /* The drawer is clear glass over the purple (Caden, Nov 12): its colour is half the page's top colour, and the
-     pane is that same colour part see-through, so over the strip-coloured page it comes out exactly the strip. */
+  /* The drawer's colour (Caden, Nov 12): half the page's top colour. Its pane is that colour, solid (Nov 15), and the
+     strip under the clock takes it too while the drawer is open. */
   --drawer-root: color-mix(in srgb, var(--surface) 50%, var(--page-top));
-  --drawer-bg: color-mix(in srgb, var(--drawer-root) 68%, transparent);
   --glass-bg-bar: color-mix(in srgb, var(--surface) 80%, transparent);
   --glass-border: rgb(255 255 255 / 0.2);
   --glass-highlight: inset 0 1px 0 rgb(255 255 255 / 0.34), inset 0 -1px 0 rgb(255 255 255 / 0.08), inset 0 0 0 1px rgb(255 255 255 / 0.06), 0 14px 36px -14px rgb(0 0 0 / 0.75);
@@ -292,7 +291,6 @@
   --glass-bg: var(--surface);
   --glass-bg-strong: var(--surface);
   --drawer-root: var(--surface);
-  --drawer-bg: var(--surface);
   --glass-bg-bar: var(--surface);
   --header-bg: var(--bg);
   --dock-border: var(--shell-edge);
@@ -387,10 +385,9 @@ html {
   --dock-border: color-mix(in srgb, var(--fg) 14%, transparent);
   --dock-ring: var(--surface);
   /* The page's colour while the menu drawer is open: the drawer's pane over the page (see the rule at the end of the file). */
-  /* The drawer is clear glass over the purple (Caden, Nov 12): its colour is half the page's top colour, and the
-     pane is that same colour part see-through, so over the strip-coloured page it comes out exactly the strip. */
+  /* The drawer's colour (Caden, Nov 12): half the page's top colour. Its pane is that colour, solid (Nov 15), and the
+     strip under the clock takes it too while the drawer is open. */
   --drawer-root: color-mix(in srgb, var(--surface) 50%, var(--page-top));
-  --drawer-bg: color-mix(in srgb, var(--drawer-root) 60%, transparent);
   /* The page is one purple gradient (Caden, Nov 12): strong and opaque at the top of the screen, easing to
      the page colour at the foot. It is fixed to the screen (body::before, below), so the purple is always at
      the top and the glass cards pass over it as the page scrolls. The same recipe by night, from the night's
@@ -2600,12 +2597,10 @@ body {
     padding-top: calc(1rem + env(safe-area-inset-top));
     padding-bottom: calc(1rem + env(safe-area-inset-bottom));
     padding-inline-start: calc(1rem + env(safe-area-inset-left));
-    /* No sheen and no lit top edge here: the pane meets the status bar's strip, which is one flat colour. */
-    background: var(--drawer-bg);
+    /* Solid, the strip's own colour, with no blur (Caden's iPhone, Nov 15: on a blurred pane an iPhone drew the menu's
+       words soft). No sheen and no lit top edge: the pane meets the status bar's strip, which is one flat colour. */
+    background: var(--drawer-root);
     border-color: var(--glass-border);
-    /* Blur only: the usual glass recipe also saturates what shows through, and the pane's top would no longer be the strip's colour. */
-    -webkit-backdrop-filter: blur(24px);
-    backdrop-filter: blur(24px);
     box-shadow: 0 12px 34px -14px rgb(28 15 46 / 0.36);
   }
   /* The menu button (components/AppNav MenuButton): with a name, a pill led by the person's initial; without, the glyph alone. */
@@ -2649,6 +2644,14 @@ body {
   /* The admin console stands alone (tablet pass, #136): no worker or organization menu on its pages. */
   body:has(.staff-band) :is(.phone-top, .site-header .menu-button) {
     display: none;
+  }
+  /* An organization's phone: the header leads with the person's pill, as a worker's phone does, and the pill takes
+     the logo's place (Caden, Nov 15: the two menus match; on a 320px phone the pill ran over the wordmark). */
+  @media (max-width: 47.99rem) {
+    .site-header:has(.menu-button[data-named]) .site-brand {
+      /* !important: the link's own flex utility sits in a later layer and would win. */
+      display: none !important;
+    }
   }
   /* In the site header the button shows only where the dock does. */
   @media (min-width: 48rem) {
@@ -4527,7 +4530,6 @@ html:has(.more-sheet[open])::view-transition {
     --glass-bg: var(--surface);
     --glass-bg-strong: var(--surface);
     --drawer-root: var(--surface);
-  --drawer-bg: var(--surface);
     --glass-bg-bar: var(--surface);
     --header-bg: var(--bg);
     --glass-border: var(--border);

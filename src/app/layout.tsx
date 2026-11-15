@@ -95,7 +95,7 @@ export default async function RootLayout({
         <ViewerKindProvider kind={!session ? "none" : session.role === "WORKER" ? "worker" : session.orgId ? "org" : "none"}>
         <UnreadProvider initial={unread} enabled={tabs.some((t) => t.href === MESSAGES_HREF)}>
         <NoticesProvider count={notices}>
-        <SiteHeader signedIn={!!session} isOrg={isOrg} tabs={[]} notices={notices} workerPhone={session?.role === "WORKER"} menu={session && isOrg && org.phone.length > 0 && org.more.length > 0 ? <MenuButton /> : undefined} />
+        <SiteHeader signedIn={!!session} isOrg={isOrg} tabs={[]} notices={notices} workerPhone={session?.role === "WORKER"} menu={session && isOrg && org.phone.length > 0 && org.more.length > 0 ? <MenuButton name={railPerson(session).name} photo={railPerson(session).photo} /> : undefined} />
         {isOrg && session ? (
           <div className="org-shell">
             <OrgRail tabs={org.rail} orgName={orgInfo?.name ?? "Your organization"} approved={orgInfo ? orgInfo.approved : null} person={railPerson(session)} />
@@ -129,7 +129,8 @@ export default async function RootLayout({
         <ScrollDirection />
         <StatusStripColor />
         {isOrg ? (
-          <OrgTabBar tabs={org.phone} more={org.more} person={session ? railPerson(session) : undefined} />
+          // The same drawer as a worker's (Caden, Nov 15): the person's photo and name at its head, Sign out at its foot.
+          <OrgTabBar tabs={org.phone} more={org.more} extra={session ? <SignOutButton action={signOut} userId={session.userId} /> : undefined} person={session ? railPerson(session) : undefined} />
         ) : (
           // The worker's dock: Home · Jobs · Work · Map · Messages; the menu drawer holds the rest (Profile, Feed, Earnings, Settings, Sign out).
           <OrgTabBar tabs={tabs} more={workerMore(session?.role ?? null)} notices={notices} extra={session ? <SignOutButton action={signOut} userId={session.userId} /> : undefined} person={session ? railPerson(session) : undefined} />

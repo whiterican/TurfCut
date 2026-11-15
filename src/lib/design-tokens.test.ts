@@ -251,9 +251,9 @@ describe.each([
     // Between screens the layer that holds the two pages' pictures has the page's ground behind it and its foot
     // colour below it, the same colour the root paints, so nothing shows as a band across the bottom.
     expect(css).toMatch(/::view-transition \{\s*pointer-events: none;[\s\S]*?background: var\(--page-wash\) no-repeat 0 0 \/ 100% 100lvh, var\(--root-foot\);\s*box-shadow: 0 6rem 0 0 var\(--root-foot\);\s*\}/);
-    // Installed on an iPhone: a short page is one pixel taller than the screen count (the dock's jump between tabs),
-    // never a chat, and never by more than a pixel (a taller root would scroll the header away on a short page).
-    expect(css).toMatch(/@supports \(-webkit-touch-callout: none\) \{\s*@media \(display-mode: standalone\) \{\s*html:not\(:has\(\.thread-top\)\) \{\s*min-height: calc\(100% \+ 1px\);\s*\}/);
+    // Installed on an iPhone: a short page outgrows the whole screen (the clock strip and a pixel past the short count
+    // iOS gives it), so the dock stands where it does on a long page; never a chat.
+    expect(css).toMatch(/@supports \(-webkit-touch-callout: none\) \{\s*@media \(display-mode: standalone\) \{\s*html:not\(:has\(\.thread-top\)\) \{\s*min-height: calc\(100% \+ env\(safe-area-inset-top\) \+ 1px\);\s*\}/);
     expect(css.slice(css.indexOf("\nbody {"), css.indexOf("}", css.indexOf("\nbody {")))).not.toMatch(/background/);
     expect(css).toMatch(/\nbody:has\(\.thread-top\) \{\s*--page-wash: none;\s*--page-top: var\(--bg\);\s*\}/);
     // A page with a header across the top takes the header's pane for the strip; a chat the plain page colour. Both as

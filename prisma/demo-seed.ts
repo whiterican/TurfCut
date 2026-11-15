@@ -44,6 +44,7 @@ import { createJob, publishJob } from "../src/lib/jobs-data";
 import { acceptEngagement, applyToJob, claimJob, inviteWorker, moveEngagement } from "../src/lib/engagements-data";
 import { scheduleShift, SHIFT_OVERLAPS, supervisorShiftAction, workerShiftAction } from "../src/lib/field-day-data";
 import { ensureDirect, sendMessage } from "../src/lib/chat-data";
+import { addCredential } from "../src/lib/credentials-data";
 
 const p = db();
 const DAY = 86_400_000;
@@ -260,6 +261,12 @@ async function main() {
   for (const name of WORKERS) {
     const profile = await p.profile.create({ data: { id: crypto.randomUUID(), role: "WORKER", createdAt: T0 } });
     const worker = await p.worker.create({ data: { profileId: profile.id, displayName: `${name}${DEMO}`, createdAt: T0 } });
+    // Hiring checks credentials (job-credentials.ts): each demo worker holds a Colorado set, self-reported, as a worker adds it.
+    for (const c of [
+      { kind: "CIRCULATOR_REGISTRATION", state: "CO", expiresOn: iso(new Date(now.getTime() + 365 * DAY)) },
+      { kind: "NOTARY_OR_AFFIDAVIT", state: "CO" },
+      { kind: "OTHER", label: "Badge" },
+    ]) must(await addCredential(worker.id, profile.id, c), `credential for ${name}`);
     workers.push({ worker, profile });
   }
 

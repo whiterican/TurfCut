@@ -349,7 +349,9 @@ prisma/
 testers. Export `DATABASE_URL` in the shell first; tsx doesn't read
 `.env.local`. Without `--yes` it only says where it would write. It makes:
 
-- six organizations with their staff and twelve workers, all named "… (demo)";
+- six organizations with their staff and twelve workers, all named "… (demo)".
+  Each demo worker holds a self-reported Colorado circulator registration,
+  affidavit status and badge, since hiring checks credentials;
 - 27 published Colorado jobs, all titled "… (demo)" and fictional: local
   measures and civic work, plus a job for each campaign type and
   affiliation (candidate, party committee, issue advocacy; Democratic,
@@ -1149,6 +1151,17 @@ Built in C3.6b (see the C3 scope below). Approved as recommended by review:
 
 ## C3 scope — the hiring hub
 
+- **Credentials before hiring (demo audit, Nov 2026)**: applying to or
+  claiming a job checks the worker's credentials on the server
+  (`src/lib/job-credentials.ts`). A job that needs a circulator
+  registration, an affidavit status or a badge (asked for by the
+  organization, or by the jurisdiction's circulator rules on petition jobs)
+  refuses a worker whose current wallet doesn't hold it, and says which one
+  to add on Profile → Credentials. Self-reported credentials count,
+  expired ones don't, and a registration or affidavit status for another
+  state doesn't. A badge is an "Other" credential named for it. Training
+  isn't checked before hiring: jobs provide it on day one. Invitations and
+  scheduling aren't checked.
 - **Pipeline (C3.1)**: an organization can mark an application *in review*
   (the worker sees "In review"), send an *offer*, or mark it *not selected*
   with a reason code from a fixed list and an optional note the worker

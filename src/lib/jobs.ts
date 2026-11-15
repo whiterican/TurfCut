@@ -675,15 +675,27 @@ export function fitReasons(f: {
  * the feed's "No credentials" filter both use this list, so they agree.
  */
 export function jobCredentials(job: { type: JobType; requirements: unknown; jurisdictionRules: unknown }): string[] {
+  return jobCredentialNeeds(job).map((n) => n.label);
+}
+
+/** One credential a job needs, as jobCredentials lists it; `need` says which, for the hiring check (job-credentials.ts). */
+export type JobCredentialNeed =
+  | { need: "registration"; label: "Circulator registration" }
+  | { need: "badge"; label: "Badge" }
+  | { need: "affidavit"; label: "Signed affidavit" }
+  | { need: "training"; label: string; course: string };
+
+/** jobCredentials, keeping which credential each line is. Same rules, same order. */
+export function jobCredentialNeeds(job: { type: JobType; requirements: unknown; jurisdictionRules: unknown }): JobCredentialNeed[] {
   const req = readRequirements(job.requirements);
   const rules = obj(job.jurisdictionRules);
   const circulating = job.type === "PETITION";
-  return [
-    (req.registration || (circulating && rules.workerRegistrationRequired === true)) && "Circulator registration",
-    (req.badge || (circulating && rules.badgeRequired === true)) && "Badge",
-    (req.affidavit || (circulating && rules.affidavitRequired === true)) && "Signed affidavit",
-    req.training && `Training: ${req.training}`,
-  ].filter((x): x is string => Boolean(x));
+  const out: JobCredentialNeed[] = [];
+  if (req.registration || (circulating && rules.workerRegistrationRequired === true)) out.push({ need: "registration", label: "Circulator registration" });
+  if (req.badge || (circulating && rules.badgeRequired === true)) out.push({ need: "badge", label: "Badge" });
+  if (req.affidavit || (circulating && rules.affidavitRequired === true)) out.push({ need: "affidavit", label: "Signed affidavit" });
+  if (req.training) out.push({ need: "training", label: `Training: ${req.training}`, course: req.training });
+  return out;
 }
 
 export function jobCardAnswers(job: {

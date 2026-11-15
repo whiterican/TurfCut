@@ -27,6 +27,7 @@ import { shareScorecard } from "@/lib/shared-scorecard";
 import { defaultBoss } from "@/lib/chat-data";
 import { isMatch } from "@/lib/matches-data";
 import { notifyStep } from "@/lib/notifications-data";
+import { missingCredentials, missingCredentialsMessage } from "@/lib/job-credentials";
 
 type Result = { ok: true; engagementId: string; status: string } | { ok: false; reason: string };
 type Tx = Prisma.TransactionClient;
@@ -98,7 +99,7 @@ async function open(
   if (note && note.length > NOTE_MAX) return { ok: false, reason: `Keep the note to ${NOTE_MAX} characters or fewer.` };
   if (!UUID_RE.test(jobId)) return { ok: false, reason: "Job not found." };
   if (!UUID_RE.test(workerId)) return { ok: false, reason: "Worker not found." };
-  const job = await db().job.findUnique({ where: { id: jobId }, include: { org: { select: { name: true } } } });
+  const job = await db().job.findUnique({ where: { id: jobId }, include: { org: { select: { name: true } }, jurisdiction: { select: { rules: true } } } });
   if (!job) return { ok: false, reason: "Job not found." };
   if (actor.kind === "org" && actor.orgId !== job.orgId) return { ok: false, reason: "This job belongs to another organization." };
   // No directory (C1): an organization invites only workers who have already
@@ -116,6 +117,14 @@ async function open(
     const pref = effectivePreference(await loadLatestPreference(workerId), before);
     const reasons = exclusionReasons(pref, { disclosure: readDisclosure(job.campaignDisclosure), orgName: job.org.name, measureIds: job.measureIds });
     if (reasons.length) return { ok: false, reason: `${reasons[0]}. Change your preferences to see this job.` };
+    // Applying or claiming needs the credentials the job asks for (job-credentials.ts): an instant claim hires on the spot.
+    const geo = job.geography && typeof job.geography === "object" ? (job.geography as Record<string, unknown>) : {};
+    const missing = missingCredentials(
+      { type: job.type, requirements: job.requirements, jurisdictionRules: job.jurisdiction.rules, state: typeof geo.state === "string" ? geo.state : null },
+      await db().workerCredential.findMany({ where: { workerId }, select: { id: true, kind: true, label: true, state: true, expiresOn: true, supersedesId: true, removed: true, createdAt: true } }),
+      before
+    );
+    if (missing.length) return { ok: false, reason: missingCredentialsMessage(missing) };
   }
 
   const kind = action === "apply" ? "application" : action === "claim" ? "claim" : "invitation";

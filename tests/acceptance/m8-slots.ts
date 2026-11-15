@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { createJob, publishJob } from "@/lib/jobs-data";
 import { validateJob } from "@/lib/jobs";
 import { claimJob } from "@/lib/engagements-data";
+import { credentialed } from "./credentialed";
 import { scheduleShift, SHIFT_OVERLAPS, workerShiftAction } from "@/lib/field-day-data";
 import { closeAccount } from "@/lib/account-data";
 import { assignToSlot, claimSlot, closeSlot, loadJobSlots, loadWorkerSlots, postSlot, seatsOnOffer, setSlotSeats } from "@/lib/shift-slots-data";
@@ -18,6 +19,7 @@ const check = (l: string, c: unknown, d?: unknown) => { if (c) console.log(`PASS
 (async () => {
   const p = db();
   await p.profile.createMany({ data: [{ id: OWNER, role: "OWNER", orgId: ORG, displayName: "Maya Chen" }, { id: SUP, role: "SUPERVISOR", orgId: ORG, displayName: "Sam Ortiz" }] });
+  await credentialed(p, W);
   await p.organization.update({ where: { id: ORG }, data: { approved: true, contractorTermsSignedAt: new Date(), classificationReviewedAt: new Date() } });
   const seeded = await p.job.findUniqueOrThrow({ where: { id: JOB } });
   const year = new Date().getUTCFullYear() + 1;
@@ -143,6 +145,7 @@ const check = (l: string, c: unknown, d?: unknown) => { if (c) console.log(`PASS
     const id = `00000000-0000-0000-0000-0000000005${String(i).padStart(2, "0")}`;
     await p.profile.create({ data: { id, role: "WORKER" } });
     await p.worker.create({ data: { id, profileId: id, displayName: `Crowd ${i}` } });
+    await credentialed(p, [id]);
     const h = await claimJob(id, id, job.id);
     return { id, ok: h.ok };
   }));

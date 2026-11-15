@@ -9,6 +9,7 @@ import { facts, heldOnJob, loadShift, scheduleShift, supervisorShiftAction, sync
 import { shiftState } from "@/lib/field-day";
 import { readTools } from "@/lib/job-tools";
 import { applyToJob, claimJob, inviteWorker } from "@/lib/engagements-data";
+import { credentialed } from "./credentialed";
 import { loadNotifications } from "@/lib/notifications-data";
 import { savePreferences } from "@/lib/political-fit-data";
 
@@ -22,6 +23,7 @@ const check = (l: string, c: unknown, d?: unknown) => { if (c) console.log(`PASS
 (async () => {
   const p = db();
   await p.profile.createMany({ data: [{ id: OWNER, role: "OWNER", orgId: ORG, displayName: "Maya Chen" }] });
+  await credentialed(p, ["00000000-0000-0000-0000-000000000101", "00000000-0000-0000-0000-000000000102", "00000000-0000-0000-0000-000000000103"]);
   await p.organization.update({ where: { id: ORG }, data: { approved: true, contractorTermsSignedAt: new Date(), classificationReviewedAt: new Date() } });
   const seeded = await p.job.findUniqueOrThrow({ where: { id: JOB } });
   const year = new Date().getUTCFullYear() + 1;

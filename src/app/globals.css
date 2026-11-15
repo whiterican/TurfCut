@@ -209,9 +209,10 @@
   --dock-current-fg: var(--ink);
   --glass-bg: color-mix(in srgb, var(--surface) 62%, transparent);
   --glass-bg-strong: color-mix(in srgb, var(--surface) 78%, transparent);
-  /* The drawer's colour (Caden, Nov 12): half the page's top colour. Its pane is that colour, solid (Nov 15), and the
-     strip under the clock takes it too while the drawer is open. */
+  /* The drawer is clear glass over the purple (Caden, Nov 12): its colour is half the page's top colour, and the
+     pane is that same colour part see-through, so over the strip-coloured page it comes out exactly the strip. */
   --drawer-root: color-mix(in srgb, var(--surface) 50%, var(--page-top));
+  --drawer-bg: color-mix(in srgb, var(--drawer-root) 68%, transparent);
   --glass-bg-bar: color-mix(in srgb, var(--surface) 80%, transparent);
   --glass-border: rgb(255 255 255 / 0.2);
   --glass-highlight: inset 0 1px 0 rgb(255 255 255 / 0.34), inset 0 -1px 0 rgb(255 255 255 / 0.08), inset 0 0 0 1px rgb(255 255 255 / 0.06), 0 14px 36px -14px rgb(0 0 0 / 0.75);
@@ -291,6 +292,7 @@
   --glass-bg: var(--surface);
   --glass-bg-strong: var(--surface);
   --drawer-root: var(--surface);
+  --drawer-bg: var(--surface);
   --glass-bg-bar: var(--surface);
   --header-bg: var(--bg);
   --dock-border: var(--shell-edge);
@@ -385,9 +387,10 @@ html {
   --dock-border: color-mix(in srgb, var(--fg) 14%, transparent);
   --dock-ring: var(--surface);
   /* The page's colour while the menu drawer is open: the drawer's pane over the page (see the rule at the end of the file). */
-  /* The drawer's colour (Caden, Nov 12): half the page's top colour. Its pane is that colour, solid (Nov 15), and the
-     strip under the clock takes it too while the drawer is open. */
+  /* The drawer is clear glass over the purple (Caden, Nov 12): its colour is half the page's top colour, and the
+     pane is that same colour part see-through, so over the strip-coloured page it comes out exactly the strip. */
   --drawer-root: color-mix(in srgb, var(--surface) 50%, var(--page-top));
+  --drawer-bg: color-mix(in srgb, var(--drawer-root) 60%, transparent);
   /* The page is one purple gradient (Caden, Nov 12): strong and opaque at the top of the screen, easing to
      the page colour at the foot. It is fixed to the screen (body::before, below), so the purple is always at
      the top and the glass cards pass over it as the page scrolls. The same recipe by night, from the night's
@@ -2599,24 +2602,50 @@ body {
     padding-top: calc(1rem + env(safe-area-inset-top));
     padding-bottom: calc(1rem + env(safe-area-inset-bottom));
     padding-inline-start: calc(1rem + env(safe-area-inset-left));
-    /* Solid, the strip's own colour, with no blur (Caden's iPhone, Nov 15: on a blurred pane an iPhone drew the menu's
-       words soft). No sheen and no lit top edge: the pane meets the status bar's strip, which is one flat colour. */
-    background: var(--drawer-root);
     border-color: var(--glass-border);
     box-shadow: 0 12px 34px -14px rgb(28 15 46 / 0.36);
+  }
+  /* The drawer's glass is a layer of its own under the words, not the pane they sit in (Caden, Nov 15: "keep the blur,
+     overlay the name on top of it"). An iPhone drew text inside a blurred pane soft; text above one is drawn as
+     page. The dialog holds the layer (it does not scroll), the pane holds the words and scrolls over it. No sheen and
+     no lit top edge: the pane meets the status bar's strip, which is one flat colour. Blur only: the usual glass recipe
+     also saturates what shows through, and the pane's top would no longer be the strip's colour. */
+  .more-sheet::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-end-end-radius: var(--radius-lg);
+    background: var(--drawer-bg);
+    -webkit-backdrop-filter: blur(24px);
+    backdrop-filter: blur(24px);
+    pointer-events: none;
   }
   /* The menu button (components/AppNav MenuButton): with a name, a pill led by the person's initial; without, the glyph alone. */
   .menu-button {
     @apply relative inline-flex size-11 shrink-0 items-center justify-center rounded-full text-fg transition;
   }
-  /* A solid pill, not glass (Caden's iPhone, Nov 15): with a blur of its own, an iPhone drew the pill's name soft
-     and hazed, as if under the glass rather than on it. Solid like the top of the screen (no blur there either,
-     Nov 14), so the name and photo are drawn crisp on top. */
+  /* The pill is glass, and its glass is a layer under the photo and the name (Caden, Nov 15): an iPhone drew the
+     name soft while it sat inside the blurred pill; above the layer it is drawn as page. z-index 0 holds the layer
+     inside the pill (a stacking context, without making the pill a backdrop root, so the layer still blurs the page). */
   .menu-button[data-named] {
     @apply h-11 w-auto max-w-[60vw] justify-start gap-2 border py-1 ps-1 pe-4 font-semibold;
-    background: var(--surface);
-    border-color: var(--glass-border);
+    z-index: 0;
+    /* The pill's own border only keeps its size; the edge is drawn on the layer, which lies over it. */
+    border-color: transparent;
+  }
+  .menu-button[data-named]::before {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    z-index: -1;
+    border: 1px solid var(--glass-border);
+    border-radius: inherit;
+    background: var(--glass-sheen), var(--glass-bg-strong);
+    -webkit-backdrop-filter: var(--glass-filter);
+    backdrop-filter: var(--glass-filter);
     box-shadow: var(--glass-highlight);
+    pointer-events: none;
   }
   .menu-avatar {
     @apply flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-full text-sm font-semibold;
@@ -4532,6 +4561,7 @@ html:has(.more-sheet[open])::view-transition {
     --glass-bg: var(--surface);
     --glass-bg-strong: var(--surface);
     --drawer-root: var(--surface);
+    --drawer-bg: var(--surface);
     --glass-bg-bar: var(--surface);
     --header-bg: var(--bg);
     --glass-border: var(--border);
@@ -4567,6 +4597,10 @@ html:has(.more-sheet[open])::view-transition {
     backdrop-filter: none;
     -webkit-mask-image: none;
     mask-image: none;
+  }
+  .more-sheet::before {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
   }
   /* The pane and a card are the same solid colour here: the row you are on takes the dock's tint instead. */
   html:not(.sun) .more-sheet .rail-link:is([aria-current], :active) {
@@ -4625,12 +4659,17 @@ body:has(.thread-top) {
 :is(.thread-top, .composer, .more-sheet-panel, .sheet-panel) {
   --subtle: var(--muted);
 }
-/* Every word on the drawer takes the ink (Caden, Nov 12), on its solid pane as on the clear one it had before.
-   Tested in design-tokens.test.ts. */
+/* The drawer is clearer than the other panes (Caden, Nov 12), so every word on it takes the ink: grey fails AA
+   there once something dark (by day) or light (by night) scrolls behind. Tested in design-tokens.test.ts. */
 .more-sheet-panel {
   --muted: var(--fg);
   --subtle: var(--fg);
   --kicker: var(--fg);
+}
+/* Sunlight is plain (the solid fallback says the same above): the drawer's layer is their solid --drawer-bg, unblurred. */
+.sun .more-sheet::before {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }
 /* An installed app on a phone draws the status bar's strip itself, above the page, where the page
    cannot paint. It takes the colour from the page: the root's or the body's, or something fixed across

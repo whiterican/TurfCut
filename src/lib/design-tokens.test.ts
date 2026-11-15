@@ -215,6 +215,11 @@ describe.each([
       }
       // The faintest grey steps darker by day (Subtle itself is locked, and is under AA on the purple).
       expect(t["subtle-on-glass"]).toBe(dark ? t.subtle : "#3f4a5c");
+      // Secondary type and kickers step darker by day too (owner, Nov 14): pinned so a change is deliberate.
+      if (!dark) {
+        expect(light.muted).toBe("#3b4658");
+        expect(light.kicker).toBe("#3b4658");
+      }
       expect(css).toMatch(/\nbody \{[^}]*?--subtle: var\(--subtle-on-glass\);/);
       // The glint across a card is white. By day that only adds contrast. By night it takes contrast from light type, so
       // the pane is checked again under the glint at its brightest (its first stop), where a card's first line can sit.
@@ -722,6 +727,9 @@ describe("forest ink is for what is live and the one primary action (G1)", () =>
     const used = [...new Set(page.match(/#[0-9a-f]{6}\b/gi) ?? [])];
     expect(used.length).toBeGreaterThan(0);
     for (const hex of used) expect(css.toLowerCase()).toContain(hex.toLowerCase());
+    // Its body copy is the light theme's secondary type, the same value as --muted.
+    const copy = page.match(/\.ge-card p \{[^}]*?color: (#[0-9a-f]{6});/i);
+    expect(copy?.[1].toLowerCase()).toBe(light.muted.toLowerCase());
   });
 
   it("by night the checked radio dot reads on the card (≥ 3:1)", () => {

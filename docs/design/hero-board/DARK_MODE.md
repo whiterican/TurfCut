@@ -22,7 +22,7 @@ Every value below is read from `src/app/globals.css` `.dark` by the script that 
 | Field | `--field` | `#1c0f2e` | `#ffffff` | — |
 | Border | `--border` | `#3d2c57` | `#d7d2e0` | 1.37:1 against the card |
 | Text | `--fg` | `#f4f2f8` | `#0f172a` | 15.3:1 on the card, 13.3:1 on the Muted fill |
-| Secondary text | `--muted` | `#c9c2d6` | `#475569` | 9.8:1 on the card, 8.6:1 on the Muted fill |
+| Secondary text | `--muted` | `#c9c2d6` | `#3b4658` | 9.8:1 on the card, 8.6:1 on the Muted fill |
 | Captions | `--subtle` | `#b3abc4` | `#64748b` | 7.7:1 on the card, 6.7:1 on the Muted fill |
 | Primary action | `--primary` | `#157a46` | `#157a46` | white 5.38:1 on it |
 | Links, focus, selection | `--link` | `#5ed39b` | `#1c0f2e` | 9.1:1 on the card, 7.9:1 on the Muted fill |

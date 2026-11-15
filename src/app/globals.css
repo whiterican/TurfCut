@@ -105,7 +105,7 @@
   --subtle: #64748b; /* = Subtle: captions and hints on white and Cream */
   --subtle-on-glass: #3f4a5c; /* derived: Subtle stepped nearly to Muted, for the same captions on the purple page and on glass (AA at the page's strongest) */
   --link: #1c0f2e; /* = Eggplant: 14:1 on every light surface (Forest is 4.3:1 on Muted) */
-  --kicker: #475569;
+  --kicker: #3b4658;
   --focus: #157a46; /* = Forest */
   --selected: #157a46; /* = Forest: the chosen option's ring and card edge */
   /* Status as text has to read on Muted too, and (Nov 12) on the purple at the top of the page: these are

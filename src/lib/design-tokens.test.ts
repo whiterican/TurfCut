@@ -161,7 +161,9 @@ describe.each([
       const dockPane = name === "dark" ? mix(t.surface, 0.16, "#ffffff") : mix(t.surface, 0.12, "#000000");
       expect(ratio(t.fg, mix(name === "dark" ? t.bg : t.surface, 0.5, hex(dockPane)))).toBeGreaterThanOrEqual(3);
       // The named menu button and the drawer carry text: body ink holds AA on the stronger pane over the same worst case.
-      expect(css).toMatch(/\.menu-button\[data-named\] \{[^}]*?background: var\(--glass-sheen\), var\(--glass-bg-strong\);/);
+      // The pill itself is solid (no blur: an iPhone drew its name soft under one), so its text is on the plain surface.
+      expect(css).toMatch(/\.menu-button\[data-named\] \{[^}]*?background: var\(--surface\);/);
+      expect(css.slice(css.indexOf(".menu-button[data-named] {"), css.indexOf("}", css.indexOf(".menu-button[data-named] {")))).not.toMatch(/backdrop-filter/);
       expect(css).toMatch(/\nhtml \{[^}]*?--glass-bg-strong: color-mix\(in srgb, var\(--surface\) 79%, transparent\);/);
       expect(themeBody(css, ".dark")).toMatch(/--glass-bg-strong: color-mix\(in srgb, var\(--surface\) 78%, transparent\);/);
       const strong = name === "dark" ? mix(t.surface, 0.78, "#ffffff") : mix(t.surface, 0.79, "#000000");

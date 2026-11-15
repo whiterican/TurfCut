@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { Fragment, useEffect, useRef, useState, type ReactNode } from "react";
 import { BadgeCheck, Bell, BookOpen, Briefcase, CalendarCheck, CalendarClock, ChevronRight, ClipboardList, Clock, Footprints, House, LayoutDashboard, Map, MapPin, Megaphone, Menu, MessageCircle, Newspaper, ReceiptText, Settings, ShieldCheck, Sunrise, User, Users, Wallet, X, type LucideIcon } from "lucide-react";
 import { activeTab, MESSAGES_HREF, type NavTab, type TabIconId } from "@/lib/nav";
 import { clampScroll, MIN_DELTA, nextHidden, SHOW_NEAR_TOP } from "@/lib/scroll-hide";
@@ -350,8 +350,12 @@ export function OrgTabBar({ tabs, more, extra, notices = 0, person }: { tabs: Na
               {person ? (
                 <div className="flex min-w-0 items-center gap-3">
                   {person.photo && <PersonPhoto photo={person.photo} initial={person.name[0]?.toUpperCase()} />}
+                  {/* The whole name, wrapped if it must (Caden, Nov 15): an email cut to "…@gmai…" told him nothing. */}
                   <p className="min-w-0">
-                    <span className="block truncate text-lg font-semibold text-fg">{person.name}</span>
+                    <span className="block text-lg leading-snug font-semibold text-fg [overflow-wrap:anywhere]">
+                      {/* An email breaks after its @ and dots first. */}
+                      {person.name.split(/(?<=[@.])/).map((part, i) => <Fragment key={i}>{i > 0 && <wbr />}{part}</Fragment>)}
+                    </span>
                     <span className="block truncate text-sm text-muted">{person.role}</span>
                   </p>
                 </div>

@@ -2612,12 +2612,13 @@ body {
   .menu-button {
     @apply relative inline-flex size-11 shrink-0 items-center justify-center rounded-full text-fg transition;
   }
+  /* A solid pill, not glass (Caden's iPhone, Nov 15): with a blur of its own, an iPhone drew the pill's name soft
+     and hazed, as if under the glass rather than on it. Solid like the top of the screen (no blur there either,
+     Nov 14), so the name and photo are drawn crisp on top. */
   .menu-button[data-named] {
     @apply h-11 w-auto max-w-[60vw] justify-start gap-2 border py-1 ps-1 pe-4 font-semibold;
-    background: var(--glass-sheen), var(--glass-bg-strong);
+    background: var(--surface);
     border-color: var(--glass-border);
-    -webkit-backdrop-filter: var(--glass-filter);
-    backdrop-filter: var(--glass-filter);
     box-shadow: var(--glass-highlight);
   }
   .menu-avatar {

@@ -3,6 +3,7 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { db } from "@/lib/db";
+import { DEMO_ONLY_NOTES, DEMO_STATEWIDE_EXPIRY_DAYS, projectRefFromDatabaseUrl, projectRefFromSupabaseUrl } from "@/lib/demo-seed-guard";
 import { jobRulesLabel, jurisdictionLocalityProblem } from "@/lib/jobs";
 
 // The seed writes permanent, append-only rows wherever DATABASE_URL points: only ever this check's own database.
@@ -11,7 +12,19 @@ assert.ok(["localhost", "127.0.0.1"].includes(url.hostname) && url.pathname === 
 
 let fails = 0;
 const check = (l: string, c: unknown, d?: unknown) => { if (c) console.log(`PASS ${l}`); else { fails++; console.log(`FAIL ${l}`, d ?? ""); } };
-const seed = (...args: string[]) => spawnSync("npx", ["tsx", "prisma/demo-seed.ts", ...args], { encoding: "utf8", env: process.env, timeout: 240_000 });
+// A placeholder statewide profile is only created on a guarded demo database.
+// This check's isolated Postgres is local; the three values are set so the
+// refs match, and they never point at a hosted project.
+const dbUrl = process.env.DATABASE_URL ?? "";
+const demoRef = projectRefFromDatabaseUrl(dbUrl);
+const guardedEnv: NodeJS.ProcessEnv = {
+  ...process.env,
+  TURFCUT_DEMO: "1",
+  TURFCUT_DEMO_PROJECT_REF: demoRef ?? "",
+  NEXT_PUBLIC_SUPABASE_URL: demoRef ? `http://${demoRef}` : "",
+  DATABASE_URL: dbUrl,
+};
+const seed = (...args: string[]) => spawnSync("npx", ["tsx", "prisma/demo-seed.ts", ...args], { encoding: "utf8", env: guardedEnv, timeout: 240_000 });
 const tail = (r: ReturnType<typeof seed>) => `${r.stdout ?? ""}\n${r.stderr ?? ""}`.trim().split("\n").slice(-12).join("\n");
 
 (async () => {
@@ -48,6 +61,12 @@ const tail = (r: ReturnType<typeof seed>) => `${r.stdout ?? ""}\n${r.stderr ?? "
   const misfiled = demoJobs.filter((j) => jurisdictionLocalityProblem(((j.geography ?? {}) as { city?: string }).city ?? null, j.jurisdiction));
   const labels = demoJobs.map((j) => jobRulesLabel(j.geography, j.jurisdiction));
   check("no demo job outside Denver is filed under Denver's rules, and each rules line names the job's own city", demoJobs.length > 0 && misfiled.length === 0 && labels.every((l) => !l.includes("filed under")) && labels.some((l) => /statewide/.test(l)), { misfiled: misfiled.length, labels: [...new Set(labels)] });
+  check("this suite's seed env is a guarded demo database (local refs match)", !!demoRef && projectRefFromSupabaseUrl(guardedEnv.NEXT_PUBLIC_SUPABASE_URL) === demoRef, { demoRef });
+  const statewide = await p.jurisdictionProfile.findFirst({ where: { state: "CO", locality: null, isCurrent: true } });
+  const notes = statewide && typeof statewide.rules === "object" && statewide.rules && "notes" in statewide.rules ? String((statewide.rules as { notes?: unknown }).notes ?? "") : "";
+  const expiryDays = statewide?.approvalExpiresAt ? (statewide.approvalExpiresAt.getTime() - Date.now()) / 86_400_000 : null;
+  const created = await p.auditEvent.findFirst({ where: { action: "demo.statewide_profile", entityType: "JurisdictionProfile", entityId: statewide?.id ?? "" } });
+  check("the demo statewide profile expires in about 14 days, is labelled DEMO ONLY, and has a system audit row", !!statewide && notes.includes("DEMO ONLY") && notes === DEMO_ONLY_NOTES && expiryDays != null && expiryDays > DEMO_STATEWIDE_EXPIRY_DAYS - 1 && expiryDays < DEMO_STATEWIDE_EXPIRY_DAYS + 1 && !!created && statewide.approvedById == null, { notes, expiryDays, created: !!created, approvedById: statewide?.approvedById ?? null });
 
   // --- It runs once ---
   const before = { shifts, events: await p.auditEvent.count() };

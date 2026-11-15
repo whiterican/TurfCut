@@ -439,7 +439,7 @@ export function jurisdictionLabel(j: Pick<JurisdictionFacts, "state" | "locality
   return `${j.locality ? `${j.locality}, ` : ""}${j.state} (rules v${j.version})`;
 }
 
-const samePlace = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
+const samePlace = (a: string, b: string) => a.trim().toLowerCase().replace(/\s+/g, " ") === b.trim().toLowerCase().replace(/\s+/g, " ");
 
 /**
  * The rules line on a job (card, facts, page head): the job's own place and
@@ -465,10 +465,12 @@ export function jobRulesLabel(geography: unknown, j: Pick<JurisdictionFacts, "st
  * city's rules (demo audit finding 4). A statewide profile covers every city.
  */
 export function jurisdictionLocalityProblem(jobCity: string | null, j: Pick<JurisdictionFacts, "state" | "locality">): string | null {
-  if (!j.locality || !jobCity) return null;
-  return samePlace(jobCity, j.locality)
+  const city = jobCity?.trim().replace(/\s+/g, " ") ?? "";
+  if (!city) return "The job doesn't name a city. Name the city it's in.";
+  if (!j.locality) return null;
+  return samePlace(city, j.locality)
     ? null
-    : `The job is in ${jobCity.trim()}, but the rule profile is for ${j.locality}, ${j.state}. Pick ${jobCity.trim()}'s profile or a statewide ${j.state} one.`;
+    : `The job is in ${city}, but the rule profile is for ${j.locality}, ${j.state}. Pick ${city}'s profile or a statewide ${j.state} one.`;
 }
 
 /**

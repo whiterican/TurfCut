@@ -347,13 +347,18 @@ prisma/
 
 `npm run seed:demo -- --yes` (after `npm run seed`) fills the app for
 testers. Export `DATABASE_URL` in the shell first; tsx doesn't read
-`.env.local`. Without `--yes` it only says where it would write. It makes:
+`.env.local`. Without `--yes` it only says where it would write. A
+placeholder statewide CO profile is only created on a dedicated demo
+database: set `TURFCUT_DEMO=1` and `TURFCUT_DEMO_PROJECT_REF` to the same
+ref as `NEXT_PUBLIC_SUPABASE_URL` and `DATABASE_URL`. It makes:
 
 - six organizations with their staff and twelve workers, all named "… (demo)";
 - 27 published Colorado jobs across eight cities, all titled "… (demo)" and
-  fictional. Denver jobs are filed under the base seed's Denver profile and
-  the rest under a statewide CO profile: the database's current one, or one
-  the demo seed adds with the base seed's (not counsel-approved) rules. They
+  fictional. Denver jobs are filed under the base seed's Denver profile. On
+  a guarded demo database, the rest go under a statewide CO profile: the
+  database's current usable one, or one the demo seed adds with a 14-day
+  expiry and a "DEMO ONLY" label (not counsel-approved). Elsewhere those
+  jobs are filed in Denver, and no statewide profile is created. They
   cover local
   measures and civic work, plus a job for each campaign type and
   affiliation (candidate, party committee, issue advocacy; Democratic,

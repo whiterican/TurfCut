@@ -122,6 +122,14 @@ describe("publish gate (jurisdiction hard stop, spec p.15)", () => {
     f.jurisdiction = { ...denver };
     f.job.geography = { city: " denver ", state: "co" };
     expect(publishBlockers(f, now)).toEqual([]);
+    f.job.geography = { city: "New  York", state: "CO" };
+    f.jurisdiction = { ...denver, locality: "New York" };
+    expect(publishBlockers(f, now)).toEqual([]);
+    f.jurisdiction = { ...denver };
+    f.job.geography = { state: "CO" };
+    expect(publishBlockerList(f, now)).toEqual([
+      { text: "The job doesn't name a city. Name the city it's in.", fixer: "job", field: "jurisdictionId" },
+    ]);
   });
 
   it("keeps a job open through its whole end date, US time", () => {
@@ -592,9 +600,12 @@ describe("the rules line names the job's own place (demo audit 4)", () => {
     expect(jobRulesLabel({ state: "CO" }, denver)).toBe("Denver, CO (rules v1)");
     expect(jobRulesLabel(null, { ...denver, locality: null })).toBe("CO (rules v1)");
   });
-  it("only a city profile can be the wrong city", () => {
+  it("only a city profile can be the wrong city; a missing city is always blocked; inner spaces are ignored", () => {
     expect(jurisdictionLocalityProblem("Aurora", { state: "CO", locality: null })).toBeNull();
-    expect(jurisdictionLocalityProblem(null, denver)).toBeNull();
+    expect(jurisdictionLocalityProblem("New  York", { state: "NY", locality: "New York" })).toBeNull();
+    expect(jurisdictionLocalityProblem(null, denver)).toMatch(/doesn't name a city/);
+    expect(jurisdictionLocalityProblem("   ", denver)).toMatch(/doesn't name a city/);
+    expect(jurisdictionLocalityProblem(null, { state: "CO", locality: null })).toMatch(/doesn't name a city/);
     expect(jurisdictionLocalityProblem("Aurora", denver)).toMatch(/is in Aurora, but the rule profile is for Denver, CO/);
   });
 });

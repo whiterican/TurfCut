@@ -26,8 +26,12 @@
  *
  * Run: npm run seed:demo -- --yes (DATABASE_URL must be set in the shell;
  * the base seed's approved CO/Denver jurisdiction must exist). Jobs outside
- * Denver are filed under a statewide CO profile: the database's current one,
- * or one this run makes with the base seed's rules. It runs once:
+ * Denver are filed under a statewide CO profile only on a guarded demo
+ * database (TURFCUT_DEMO=1, and TURFCUT_DEMO_PROJECT_REF matches the ref in
+ * both NEXT_PUBLIC_SUPABASE_URL and DATABASE_URL): the database's current
+ * usable one, or one this run makes with a 14-day expiry and a "DEMO ONLY"
+ * label. Elsewhere those jobs are filed in Denver, and no statewide profile
+ * is created. It runs once:
  * work history, reviews and pay lines are append-only and stay for good.
  * What can be checked without writing is checked before the first write.
  * Scheduling and the steps after it are not: each shift, check-in and
@@ -39,6 +43,7 @@
  * than by a name anyone could type.
  */
 import { cleanDatabaseUrl } from "../src/lib/env";
+import { STATEWIDE_CO_ID, demoDatabaseGuard, demoJobCityAndJurisdiction, planStatewideProfile } from "../src/lib/demo-seed-guard";
 import { db } from "../src/lib/db";
 import { compensationProblem, jurisdictionProblems, validateJob, type Affiliation, type CampaignType, type JobInput } from "../src/lib/jobs";
 import type { IssueKey } from "../src/lib/political-fit";
@@ -54,9 +59,11 @@ const MIN = 60_000;
 const JURISDICTION = "00000000-0000-0000-0000-000000000021";
 /**
  * A city profile covers that city only (jobs.ts jurisdictionLocalityProblem), so demo jobs outside Denver are filed under
- * a statewide Colorado profile: the current one if the database has one, else this one, made with the base seed's rules.
+ * a statewide Colorado profile only in a guarded demo database: the current
+ * usable one if the database has one, else this one, made with a 14-day
+ * expiry and DEMO ONLY notes. Elsewhere those jobs stay in Denver.
  */
-const STATEWIDE = "00000000-0000-0000-0000-000000000022";
+const STATEWIDE = STATEWIDE_CO_ID;
 const DEMO = " (demo)";
 /**
  * Written last, with the ids of the organizations and workers the run made: a
@@ -191,14 +198,36 @@ async function main() {
   const problems = [...new Set([...jurisdictionProblems(jurisdiction, now), ...jurisdictionProblems(jurisdiction, T0)])];
   const shiftRate = compensationProblem("SHIFT_RATE", jurisdiction.rules);
   if (problems.length || shiftRate) throw new Error(`The CO/Denver jurisdiction can't take demo jobs: ${[...problems, shiftRate].filter(Boolean).join(" ")}`);
-  // Statewide Colorado, for the jobs outside Denver: an existing current one must be usable too; if there is none, it is made below.
-  const statewideNow = await p.jurisdictionProfile.findFirst({ where: { state: "CO", locality: null, isCurrent: true }, orderBy: { version: "desc" } });
-  if (statewideNow) {
-    const sw = [...new Set([...jurisdictionProblems(statewideNow, now), ...jurisdictionProblems(statewideNow, T0)])];
-    const swRate = compensationProblem("SHIFT_RATE", statewideNow.rules);
-    if (sw.length || swRate) throw new Error(`The statewide CO jurisdiction can't take demo jobs: ${[...sw, swRate].filter(Boolean).join(" ")}`);
+  // Statewide Colorado, for jobs outside Denver. Look at every statewide row,
+  // not only the current one: a null locality is not unique, so creating
+  // another approved v1 would silently succeed. Creating a placeholder is
+  // allowed only on a guarded demo database (checked here, at the start of
+  // the seed, not just around the insert).
+  const guard = demoDatabaseGuard(process.env);
+  const statewideRows = await p.jurisdictionProfile.findMany({
+    where: { state: "CO", locality: null },
+    orderBy: [{ isCurrent: "desc" }, { version: "desc" }],
+  });
+  const usabilityOf = (row: (typeof statewideRows)[number]) => {
+    const sw = [...new Set([...jurisdictionProblems(row, now), ...jurisdictionProblems(row, T0)])];
+    const swRate = compensationProblem("SHIFT_RATE", row.rules);
+    return { ok: !sw.length && !swRate, problems: [...sw, swRate].filter(Boolean) };
+  };
+  const existing = statewideRows.map((row) => ({ id: row.id, isCurrent: row.isCurrent, usable: usabilityOf(row).ok }));
+  const swPlan = planStatewideProfile({ guarded: guard.ok, existing, now, fixedId: STATEWIDE });
+  if (swPlan.kind === "refuse") {
+    const current = statewideRows.find((row) => row.isCurrent);
+    const details = current ? usabilityOf(current).problems : [];
+    throw new Error(details.length ? `${swPlan.reason} ${details.join(" ")}`.trim() : swPlan.reason);
   }
-  const statewideId = statewideNow?.id ?? STATEWIDE;
+  if (guard.ok) {
+    console.log(`Guarded demo database (project ref ${guard.ref}).`);
+  } else {
+    console.log(`Not a guarded demo database (${guard.reason})`);
+    if (swPlan.kind === "denver-only") {
+      console.log("Demo jobs outside Denver will be filed in Denver. No statewide CO profile will be created.");
+    }
+  }
 
   type Planned = { input: JobInput; orgIdx: number; type: "PETITION" | "CANVASS"; startsAt: Date; endsAt: Date; past: boolean; modes: string[] };
   const plan = (c: Campaign, orgIdx: number, past: boolean): Planned => {
@@ -213,12 +242,13 @@ async function main() {
     const o = ORGS[orgIdx];
     const phone = `(303) 555-01${String(10 + orgIdx).padStart(2, "0")}`;
     const petition = c.type === "PETITION";
-    const city = pick(CITIES);
+    const placed = demoJobCityAndJurisdiction(pick(CITIES), swPlan, JURISDICTION);
+    const city = placed.city;
     const v = validateJob({
       type: c.type,
       title: `${c.title}${DEMO}`,
       description: `${c.message} Training provided on day one; staging point shared after you're hired. Demo job: not a real campaign.`,
-      jurisdictionId: city === "Denver" ? JURISDICTION : statewideId,
+      jurisdictionId: placed.jurisdictionId,
       startsAt: iso(startsAt),
       endsAt: iso(endsAt),
       city,
@@ -253,11 +283,36 @@ async function main() {
 
   console.log(`Writing demo data to ${target()}…`);
 
-  // --- Statewide Colorado rules, if the database has none (the base seed's rules; replace with counsel-approved text before pilot) ---
-  if (!statewideNow) {
+  // --- Statewide Colorado rules: only created on a guarded demo database, with a 14-day expiry and DEMO ONLY notes.
+  // approvedById is left null: there is no system or Turfcut-staff user in the seed, and attributing approval to an
+  // unrelated staff profile would be misleading. A system audit event records the creation instead.
+  if (swPlan.kind === "create") {
+    const rules = { ...(jurisdiction.rules && typeof jurisdiction.rules === "object" ? jurisdiction.rules : {}), notes: swPlan.notes };
     await p.jurisdictionProfile.create({
-      data: { id: STATEWIDE, state: "CO", locality: null, version: 1, isCurrent: true, approved: true, approvedAt: T0, rules: jurisdiction.rules ?? {}, createdAt: T0 },
+      data: {
+        id: swPlan.id,
+        state: "CO",
+        locality: null,
+        version: 1,
+        isCurrent: true,
+        approved: true,
+        approvedAt: T0,
+        approvalExpiresAt: swPlan.approvalExpiresAt,
+        rules,
+        createdAt: T0,
+      },
     });
+    await p.auditEvent.create({
+      data: {
+        actorId: null,
+        action: "demo.statewide_profile",
+        entityType: "JurisdictionProfile",
+        entityId: swPlan.id,
+        metadata: { demoOnly: true, approvalExpiresAt: swPlan.approvalExpiresAt.toISOString(), notes: swPlan.notes },
+        createdAt: now,
+      },
+    });
+    console.log(`Creating a DEMO ONLY statewide CO profile that expires on ${swPlan.approvalExpiresAt.toISOString().slice(0, 10)}.`);
   }
 
   // --- Organizations, each with an owner and a supervisor ---
@@ -413,8 +468,9 @@ async function main() {
     await sendMessage(w, conv.conversationId, "Sounds good, see you Saturday!");
   }
 
+  const statewideProfileId = swPlan.kind === "create" || swPlan.kind === "use-existing" ? swPlan.id : null;
   await p.auditEvent.create({
-    data: { ...MARKER, actorId: null, metadata: { orgIds, workerIds: workers.map((w) => w.worker.id), jobs: jobs.length, shiftsWorked } },
+    data: { ...MARKER, actorId: null, metadata: { orgIds, workerIds: workers.map((w) => w.worker.id), jobs: jobs.length, shiftsWorked, statewideProfileId } },
   });
   console.log("Demo data loaded:");
   console.log(`  ${orgs.length} organizations, ${workers.length} workers, ${jobs.length} published jobs`);

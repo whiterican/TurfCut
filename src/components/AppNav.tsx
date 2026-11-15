@@ -353,7 +353,7 @@ export function OrgTabBar({ tabs, more, extra, notices = 0, person }: { tabs: Na
                   {person.photo ? <PersonPhoto photo={person.photo} initial={person.name[0]?.toUpperCase()} /> : <span className="menu-avatar" aria-hidden>{person.name[0]?.toUpperCase()}</span>}
                   {/* The whole name, wrapped if it must (Caden, Nov 15): an email cut to "…@gmai…" told him nothing. */}
                   <p className="min-w-0">
-                    <span className="block text-lg leading-snug font-semibold text-fg [overflow-wrap:anywhere]">
+                    <span className="block text-lg leading-6 font-semibold text-fg [overflow-wrap:anywhere]">
                       {/* An email breaks after its @ and dots first. */}
                       {person.name.split(/(?<=[@.])/).map((part, i) => <Fragment key={i}>{i > 0 && <wbr />}{part}</Fragment>)}
                     </span>

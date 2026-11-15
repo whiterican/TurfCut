@@ -2566,8 +2566,10 @@ body {
     box-shadow: 0 0 0 100vmax rgb(8 4 14 / 0.6);
   }
   @media (prefers-reduced-motion: no-preference) {
+    /* backwards, not both: once it has slid in the drawer keeps no transform, so an iPhone draws it as page, not as a
+       moved layer (Caden's iPhone, Nov 15: the name at its head was drawn soft while the rest was crisp). */
     .more-sheet[open] {
-      animation: tc-drawer-in var(--dur-slow) var(--ease-out) both;
+      animation: tc-drawer-in var(--dur-slow) var(--ease-out) backwards;
     }
   }
   /* The menu drawer's rows: icon, label, a chevron; rounded, no dividers. */

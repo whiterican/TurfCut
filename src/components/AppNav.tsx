@@ -230,8 +230,10 @@ export function OrgTabBar({ tabs, more, extra, notices = 0, person }: { tabs: Na
   if (openedAt !== pathname) {
     setOpenedAt(pathname);
     if (open) setOpen(false);
-    if (going) setGoing(null);
   }
+  // The capsule settles when the tab tapped is the one now open. A page from an earlier tap arriving first (two
+  // tabs tapped quickly) leaves it on the latest tap; a tap that lands somewhere else is cleared by the timeout.
+  if (going && current === going) setGoing(null);
   // A tap that never navigates (a failed fetch, the same page) must not leave the capsule on the wrong tab.
   useEffect(() => {
     if (!going) return;

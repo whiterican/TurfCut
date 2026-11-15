@@ -26,6 +26,17 @@ export interface ActionState {
 }
 
 /** Creates a draft, or saves edits to one. Publishing is separate and gated. */
+/**
+ * Drops the copies of pages the app keeps for 30 seconds (next.config.ts staleTimes), once the builder that
+ * autosaved a draft is left. The autosave itself does not refresh anything: a refresh mid-edit would hand the open
+ * form new props. Without this, the builder reopened within 30s would show the fields from before the edits, and
+ * its next autosave would write those back over them; Jobs would not list the new draft either.
+ */
+export async function forgetDraftCopies(): Promise<void> {
+  await requireJobEditor();
+  revalidatePath("/jobs", "layout");
+}
+
 export async function saveJob(_prev: JobFormState, formData: FormData): Promise<JobFormState> {
   const { orgId, userId } = await requireJobEditor();
   if (!orgId) return { message: "No organization on this account.", errors: {} };

@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { validateSetup } from "@/lib/auth-input";
@@ -33,6 +34,8 @@ export async function finishSetup(_prev: SetupState, fd: FormData): Promise<Setu
   } catch {
     return { message: "We couldn't set up your account. Try again in a minute.", errors: {} };
   }
+  // Every page reads the account: none of the copies the app kept while it had none may be shown again.
+  revalidatePath("/", "layout");
   redirect("/dashboard");
 }
 
@@ -40,6 +43,10 @@ export async function finishSetup(_prev: SetupState, fd: FormData): Promise<Setu
 export async function acceptFromWelcome(_prev: ActionStateLike, fd: FormData): Promise<ActionStateLike> {
   const user = await getAuthUser();
   if (!user) return { ok: false, message: "Sign in again to accept." };
-  if (await acceptInvite(user, { inviteId: String(fd.get("inviteId") ?? "") })) redirect("/dashboard");
+  if (await acceptInvite(user, { inviteId: String(fd.get("inviteId") ?? "") })) {
+    // A new organization changes the menus and pages: drop the copies the app kept from before.
+    revalidatePath("/", "layout");
+    redirect("/dashboard");
+  }
   return { ok: false, message: "That invite is no longer open. Ask an owner to send a new one." };
 }

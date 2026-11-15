@@ -64,9 +64,10 @@ const nextConfig: NextConfig = {
     serverActions: { bodySizeLimit: "5mb" },
     // A tab opened in the last 30 seconds opens again at once, from the copy the phone already has (Caden, Nov 15:
     // tabs should feel quick). Next.js keeps no copy of a signed-in page by default, so every tap waited on the
-    // server, however recently the page was seen. Anything that changes data on the server (a server action that
-    // revalidates, a refresh after a realtime message) clears the copies, so a person never sees their own change
-    // missing. Someone else's change can take up to 30 seconds to show on a tab already open.
+    // server, however recently the page was seen. A server action that calls revalidatePath (and a refresh after a
+    // realtime message) clears the copies; an action that changes data a page shows must call it, or that page can
+    // show the change missing for up to 30 seconds. The job builder's autosave clears them when the builder is left
+    // (forgetDraftCopies). Someone else's change can take up to 30 seconds to show on a tab already open.
     staleTimes: { dynamic: 30 },
   },
 };

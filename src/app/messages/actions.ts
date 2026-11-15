@@ -79,7 +79,10 @@ export async function react(messageId: string, emoji: string): Promise<ActionSta
 }
 
 export async function report(messageId: string, reason: string): Promise<ActionState> {
-  return done(await chat.reportMessage(await me(), str(messageId), str(reason)), "Reported. The organization's owner will review it.");
+  const r = await chat.reportMessage(await me(), str(messageId), str(reason));
+  // The owner's list of reports: the app keeps a copy of a page opened in the last 30s (next.config.ts staleTimes).
+  if (r.ok) revalidatePath("/messages/reports");
+  return done(r, "Reported. The organization's owner will review it.");
 }
 
 export async function block(conversationId: string, profileId: string): Promise<ActionState> {

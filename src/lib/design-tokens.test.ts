@@ -226,8 +226,7 @@ describe.each([
       expect(css).toMatch(/\{\s*background: var\(--card-sheen\), var\(--card-bg\);\s*-webkit-backdrop-filter: var\(--card-filter\);\s*backdrop-filter: var\(--card-filter\);\s*--subtle: var\(--subtle-on-glass\);/);
     }
     // The gradient is painted by one layer fixed to the screen, under everything: the body has no background of its own
-    // (it would cover the layer), the root carries the top colour (overscroll, and an installed app's status bar strip),
-    // and the layer's own colour is the top colour too. Where there is no gradient, the top colour is the page colour.
+    // (it would cover the layer). Where there is no gradient, the top colour is the page colour.
     // The root paints the foot of the page (an installed iPhone app shows it below a short page); the strip behind the
     // clock is --root-top, painted by html::after. The ground's wash spans the screen and the foot colour runs on.
     expect(css).toMatch(/\nhtml \{[^}]*?\n  --root-top: var\(--page-top\);\s*--root-foot: color-mix\(in srgb, var\(--page-top\) 8%, var\(--bg\)\);\s*background: var\(--root-foot\);/);
@@ -250,7 +249,7 @@ describe.each([
     expect(noBar).not.toMatch(/@media not \(/);
     expect(noBar).toMatch(/@media \(prefers-contrast: more\), \(prefers-reduced-transparency: reduce\), \(forced-colors: active\) \{\s*html:not\(\.sun\) body:not\(:has\(\.job-photo-head, \.staff-band, \.thread-top\)\)::after \{\s*display: block !important;/);
     // Between screens the layer that holds the two pages' pictures has the page's ground behind it and its foot
-    // colour below it: the bare root (the top colour) never shows as a band across the bottom.
+    // colour below it, the same colour the root paints, so nothing shows as a band across the bottom.
     expect(css).toMatch(/::view-transition \{\s*pointer-events: none;[\s\S]*?background: var\(--page-wash\) no-repeat 0 0 \/ 100% 100lvh, var\(--root-foot\);\s*box-shadow: 0 6rem 0 0 var\(--root-foot\);\s*\}/);
     // Installed on an iPhone: a short page is one pixel taller than the screen count (the dock's jump between tabs),
     // never a chat, and never by more than a pixel (a taller root would scroll the header away on a short page).
@@ -1001,7 +1000,10 @@ describe("the shell (redesign B1.4)", () => {
     expect(css).toMatch(/\.phone-top \{[^}]*padding-top: calc\(0\.75rem \+ env\(safe-area-inset-top\)\);/);
     expect(css).toMatch(/body:has\(\.thread-top\) \.thread-top \{\s*top: env\(safe-area-inset-top\);/);
     // One cap under the clock for every page and mode, in the root's own colour, under the glass and the headers.
-    expect(css).toMatch(/\nhtml::after \{\s*content: "";\s*position: fixed;\s*inset: 0 0 auto;\s*height: env\(safe-area-inset-top\);\s*z-index: 43;\s*pointer-events: none;\s*background: var\(--root-top\);/);
+    expect(css).toMatch(/\nhtml::after \{\s*content: "";\s*position: fixed;\s*inset: 0 0 auto;\s*height: var\(--clock-strip\);\s*z-index: 43;\s*pointer-events: none;\s*background: var\(--root-top\);/);
+    // The strip ends just under the time and battery, not at the foot of the whole safe area (Caden, Nov 15).
+    expect(css).toMatch(/--clock-strip: max\(0px, calc\(env\(safe-area-inset-top\) - 0\.875rem\)\);/);
+    expect(css).not.toMatch(/height: env\(safe-area-inset-top\)/);
     expect(css).toMatch(/@media print \{\s*html::after \{\s*display: none;/);
     // The phone's clock is white there: on a pale page with no purple the cap goes dark so it can be read.
     expect(css).toMatch(/html\.sun::after,\s*html:not\(\.dark\):has\(\.thread-top\)::after \{\s*background: var\(--shell-bg\);/);

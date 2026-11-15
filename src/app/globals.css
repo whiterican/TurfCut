@@ -318,6 +318,13 @@
   --header-root: var(--bg);
 }
 
+/* The strip's colour reads back as a plain colour (components/StatusStripColor.tsx copies it into theme-color),
+   not as the color-mix() text it may be written with. */
+@property --root-top {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: transparent;
+}
 /* Frame tokens: the surfaces that float (tab bar, header buttons, the More
    sheet, map controls, icon buttons, sticky table headers). Plain paper now;
    the names stay so every surface rule reads the same way. */
@@ -427,6 +434,10 @@ html {
   --rail-top: 1.5rem;
   --inspector-w: 24rem;
   --dock-clearance: calc(6rem + env(safe-area-inset-bottom));
+  /* The solid strip behind the phone's clock and battery: down to just under them, not the whole safe area, which on
+     an iPhone with an island runs about 14px further and covered the top of the row below (Caden, Nov 15: "it
+     shouldn't go below the time and battery"). Zero where there is no strip. */
+  --clock-strip: max(0px, calc(env(safe-area-inset-top) - 0.875rem));
 }
 /* ---- Motion (P1.1) ------------------------------------------------------ */
 /* Every duration and curve in the app comes from these (src/lib/motion.ts
@@ -3970,7 +3981,7 @@ html::after {
   content: "";
   position: fixed;
   inset: 0 0 auto;
-  height: env(safe-area-inset-top);
+  height: var(--clock-strip);
   z-index: 43;
   pointer-events: none;
   background: var(--root-top);
@@ -4045,12 +4056,9 @@ body {
 /* Taps during an animation reach the new page. */
 ::view-transition {
   pointer-events: none;
-  /* While one screen gives way to the next, the phone draws pictures of the two pages over the bare root, whose
-     colour is the top of the page. On an iPhone the pictures can stop short of the foot of the screen, and the
-     strip left over flashed that top colour across the bottom on every change of screen (Caden, Nov 14, after the
-     same strip was closed on a page at rest). The layer that holds the pictures now has the page's own ground
-     behind them, and carries the ground's foot colour 6rem below itself in case the layer stops short too.
-     Not checked on a phone from here. */
+  /* While one screen gives way to the next, the phone draws pictures of the two pages over the bare root. On an
+     iPhone the pictures can stop short of the foot of the screen (Caden, Nov 14). The layer that holds them has the
+     page's own ground behind them, and the foot colour (the root's own, --root-foot) 6rem below itself. */
   background: var(--page-wash) no-repeat 0 0 / 100% 100lvh, var(--root-foot);
   box-shadow: 0 6rem 0 0 var(--root-foot);
 }
@@ -4568,7 +4576,7 @@ html:has(.more-sheet[open])::view-transition {
   }
   @media (width < 48rem) {
     html:not(.sun) body:has(.job-photo-head):has(.tpl):not(:has(.thread-top))::after {
-      height: env(safe-area-inset-top);
+      height: var(--clock-strip);
       background: var(--bg);
       -webkit-backdrop-filter: none;
       backdrop-filter: none;
@@ -4709,7 +4717,7 @@ html[data-scroll="down"]:not(.sun):not(:has(.thread-top)) body:not(:has(.staff-b
     backdrop-filter: none !important;
   }
   html:not(.sun) body:has(.job-photo-head):has(.tpl):not(:has(.thread-top))::after {
-    height: env(safe-area-inset-top) !important;
+    height: var(--clock-strip) !important;
   }
   html[data-past-photo][data-scroll="down"]:not(.sun):not(:has(.thread-top)) body:has(.job-photo-head):has(.tpl):not(:has(.staff-band))::after {
     opacity: 1 !important;

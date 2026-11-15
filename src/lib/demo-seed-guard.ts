@@ -14,6 +14,19 @@ export const DEMO_ONLY_NOTES =
 
 export const STATEWIDE_CO_ID = "00000000-0000-0000-0000-000000000022";
 
+/**
+ * Live Turfcut Supabase projects. The demo seed always refuses these, even
+ * when TURFCUT_DEMO=1 and TURFCUT_DEMO_PROJECT_REF matches. This is the only
+ * project in the TurfCut org ("caden1@me.com's Project"), and the GitHub
+ * "Supabase Preview" check links to its dashboard. Same list as #185
+ * (src/lib/demo-accounts.ts); kept here because that PR is not merged yet.
+ */
+export const LIVE_SUPABASE_PROJECT_REFS: readonly string[] = ["txzxtvsfzxfhgfiurufq"];
+
+export function isLiveSupabaseRef(ref: string | null | undefined): boolean {
+  return !!ref && LIVE_SUPABASE_PROJECT_REFS.includes(ref.trim().toLowerCase());
+}
+
 export type DemoSeedEnv = {
   TURFCUT_DEMO?: string;
   TURFCUT_DEMO_PROJECT_REF?: string;
@@ -59,7 +72,8 @@ export function projectRefFromDatabaseUrl(url: string | undefined): string | nul
       } catch {
         /* keep the raw username */
       }
-      const pooled = /^postgres\.([a-z0-9]+)/i.exec(user);
+      // Exact postgres.<ref> only: postgres.abc-x must not be read as ref "abc".
+      const pooled = /^postgres\.([a-z0-9]+)$/i.exec(user);
       return pooled ? pooled[1].toLowerCase() : null;
     }
     if (!host) {
@@ -84,17 +98,23 @@ export function demoDatabaseGuard(env: DemoSeedEnv): { ok: true; ref: string } |
   if (env.TURFCUT_DEMO !== "1") {
     return { ok: false, reason: "TURFCUT_DEMO is not 1: a placeholder statewide profile is only created in a dedicated demo database." };
   }
+  const supabaseRef = projectRefFromSupabaseUrl(env.NEXT_PUBLIC_SUPABASE_URL);
+  const databaseRef = projectRefFromDatabaseUrl(env.DATABASE_URL);
+  if (isLiveSupabaseRef(supabaseRef) || isLiveSupabaseRef(databaseRef)) {
+    return { ok: false, reason: "This Supabase project is the live Turfcut project. The demo seed goes only into a dedicated demo project." };
+  }
   const confirmed = env.TURFCUT_DEMO_PROJECT_REF?.trim().toLowerCase() ?? "";
   if (!confirmed) {
     return { ok: false, reason: "Set TURFCUT_DEMO_PROJECT_REF to the dedicated demo project's ref, matching both NEXT_PUBLIC_SUPABASE_URL and DATABASE_URL." };
   }
-  const supabaseRef = projectRefFromSupabaseUrl(env.NEXT_PUBLIC_SUPABASE_URL);
   if (!supabaseRef) {
     return { ok: false, reason: "Set NEXT_PUBLIC_SUPABASE_URL to the dedicated demo project's URL." };
   }
-  const databaseRef = projectRefFromDatabaseUrl(env.DATABASE_URL);
   if (!databaseRef) {
     return { ok: false, reason: "Set DATABASE_URL to the dedicated demo project's database." };
+  }
+  if (isLiveSupabaseRef(confirmed)) {
+    return { ok: false, reason: "This Supabase project is the live Turfcut project. The demo seed goes only into a dedicated demo project." };
   }
   if (confirmed !== supabaseRef) {
     return { ok: false, reason: "TURFCUT_DEMO_PROJECT_REF doesn't match NEXT_PUBLIC_SUPABASE_URL." };
@@ -156,6 +176,28 @@ export function planStatewideProfile(opts: {
     };
   }
   return { kind: "denver-only" };
+}
+
+/** A DEMO ONLY profile is treated as expiring once fewer than this many days remain. */
+export const DEMO_STATEWIDE_RENEW_WITHIN_DAYS = 7;
+
+export function demoOnlyRules(rules: unknown): boolean {
+  if (!rules || typeof rules !== "object" || !("notes" in rules)) return false;
+  return String((rules as { notes?: unknown }).notes ?? "") === DEMO_ONLY_NOTES;
+}
+
+/**
+ * Re-seeding a guarded demo may extend this profile's approval (and nothing
+ * else) when it has expired or is within DEMO_STATEWIDE_RENEW_WITHIN_DAYS of
+ * expiring. Counsel-approved or never-expiring profiles are left alone.
+ */
+export function shouldRenewDemoStatewide(
+  profile: { state: string; locality: string | null; approvalExpiresAt: Date | null; rules: unknown } | null,
+  now: Date
+): boolean {
+  if (!profile || profile.state !== "CO" || profile.locality !== null) return false;
+  if (!demoOnlyRules(profile.rules) || !profile.approvalExpiresAt) return false;
+  return profile.approvalExpiresAt.getTime() - now.getTime() <= DEMO_STATEWIDE_RENEW_WITHIN_DAYS * 86_400_000;
 }
 
 /**

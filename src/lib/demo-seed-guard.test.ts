@@ -2,13 +2,17 @@ import { describe, expect, it } from "vitest";
 import {
   DEMO_ONLY_NOTES,
   DEMO_STATEWIDE_EXPIRY_DAYS,
+  DEMO_STATEWIDE_RENEW_WITHIN_DAYS,
+  LIVE_SUPABASE_PROJECT_REFS,
   STATEWIDE_CO_ID,
   demoDatabaseGuard,
+  demoOnlyRules,
   demoJobCityAndJurisdiction,
   demoStatewideExpiry,
   planStatewideProfile,
   projectRefFromDatabaseUrl,
   projectRefFromSupabaseUrl,
+  shouldRenewDemoStatewide,
 } from "./demo-seed-guard";
 
 const now = new Date("2026-11-14T18:00:00Z");
@@ -28,6 +32,9 @@ describe("project refs", () => {
     expect(projectRefFromDatabaseUrl("postgresql://postgres.abcd1234@aws-0-us-east-1.pooler.supabase.com:6543/postgres")).toBe(
       "abcd1234"
     );
+    expect(projectRefFromDatabaseUrl("postgresql://postgres.abc@aws-0-us-east-1.pooler.supabase.com:6543/postgres")).toBe("abc");
+    // A hyphenated suffix is a different user, not a prefix of the ref.
+    expect(projectRefFromDatabaseUrl("postgresql://postgres.abc-x@aws-0-us-east-1.pooler.supabase.com:6543/postgres")).toBeNull();
     expect(projectRefFromDatabaseUrl("postgresql://postgres@127.0.0.1:5432/turfcut_acc_demo")).toBe("127.0.0.1:5432");
     expect(projectRefFromDatabaseUrl("postgresql://postgres@localhost/turfcut_acc_demo")).toBe("localhost");
     // Node's URL parser rejects a host-less postgres URL; that form is not a match.
@@ -93,6 +100,20 @@ describe("the demo database must be named on purpose", () => {
       })
     ).toEqual({ ok: true, ref: "127.0.0.1:5432" });
   });
+
+  it("always refuses the live Turfcut project, even when the ref is confirmed", () => {
+    const live = {
+      TURFCUT_DEMO: "1",
+      TURFCUT_DEMO_PROJECT_REF: "txzxtvsfzxfhgfiurufq",
+      NEXT_PUBLIC_SUPABASE_URL: "https://txzxtvsfzxfhgfiurufq.supabase.co",
+      DATABASE_URL: "postgresql://postgres:secret@db.txzxtvsfzxfhgfiurufq.supabase.co:5432/postgres",
+    };
+    expect(LIVE_SUPABASE_PROJECT_REFS).toContain("txzxtvsfzxfhgfiurufq");
+    expect(reasonOf(live)).toMatch(/live Turfcut project/);
+    expect(reasonOf({ ...live, TURFCUT_DEMO_PROJECT_REF: undefined })).toMatch(/live Turfcut project/);
+    expect(reasonOf(live)).not.toMatch(/txzxtvsfzxfhgfiurufq/);
+    expect(demoDatabaseGuard(live).ok).toBe(false);
+  });
 });
 
 describe("planning the statewide CO profile", () => {
@@ -153,5 +174,40 @@ describe("demo job city and jurisdiction", () => {
       city: "Denver",
       jurisdictionId: denverId,
     });
+  });
+});
+
+describe("renewing a DEMO ONLY statewide profile", () => {
+  const demo = {
+    state: "CO",
+    locality: null,
+    approvalExpiresAt: new Date(now.getTime() + 2 * 86_400_000),
+    rules: { notes: DEMO_ONLY_NOTES },
+  };
+
+  it("renews when the DEMO ONLY profile has expired or is within the renew window", () => {
+    expect(shouldRenewDemoStatewide(demo, now)).toBe(true);
+    expect(shouldRenewDemoStatewide({ ...demo, approvalExpiresAt: new Date(now.getTime() - 86_400_000) }, now)).toBe(true);
+    expect(
+      shouldRenewDemoStatewide(
+        { ...demo, approvalExpiresAt: new Date(now.getTime() + DEMO_STATEWIDE_RENEW_WITHIN_DAYS * 86_400_000) },
+        now
+      )
+    ).toBe(true);
+  });
+
+  it("leaves a fresh DEMO ONLY profile, a never-expiring one, or a counsel profile alone", () => {
+    expect(
+      shouldRenewDemoStatewide(
+        { ...demo, approvalExpiresAt: new Date(now.getTime() + DEMO_STATEWIDE_EXPIRY_DAYS * 86_400_000) },
+        now
+      )
+    ).toBe(false);
+    expect(shouldRenewDemoStatewide({ ...demo, approvalExpiresAt: null }, now)).toBe(false);
+    expect(shouldRenewDemoStatewide({ ...demo, rules: { notes: "Counsel-approved CO rules" } }, now)).toBe(false);
+    expect(shouldRenewDemoStatewide({ ...demo, locality: "Denver" }, now)).toBe(false);
+    expect(shouldRenewDemoStatewide(null, now)).toBe(false);
+    expect(demoOnlyRules({ notes: DEMO_ONLY_NOTES })).toBe(true);
+    expect(demoOnlyRules({ notes: "Seed rules — replace with counsel-approved text before pilot." })).toBe(false);
   });
 });

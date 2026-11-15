@@ -43,7 +43,7 @@
  * than by a name anyone could type.
  */
 import { cleanDatabaseUrl } from "../src/lib/env";
-import { STATEWIDE_CO_ID, demoDatabaseGuard, demoJobCityAndJurisdiction, planStatewideProfile } from "../src/lib/demo-seed-guard";
+import { STATEWIDE_CO_ID, demoDatabaseGuard, demoJobCityAndJurisdiction, demoStatewideExpiry, planStatewideProfile, shouldRenewDemoStatewide } from "../src/lib/demo-seed-guard";
 import { db } from "../src/lib/db";
 import { compensationProblem, jurisdictionProblems, validateJob, type Affiliation, type CampaignType, type JobInput } from "../src/lib/jobs";
 import type { IssueKey } from "../src/lib/political-fit";
@@ -183,12 +183,32 @@ async function main() {
         "(its history is append-only, so check it by hand before anything else) or a real organization has a demo name."
     );
   }
+  const now = new Date();
   if (named.length) {
-    console.log("Demo data is already here; nothing to do.");
+    const guard = demoDatabaseGuard(process.env);
+    const existing = await p.jurisdictionProfile.findFirst({
+      where: { state: "CO", locality: null },
+      orderBy: [{ isCurrent: "desc" }, { version: "desc" }],
+    });
+    if (existing && guard.ok && shouldRenewDemoStatewide(existing, now)) {
+      const until = demoStatewideExpiry(now);
+      await p.jurisdictionProfile.update({ where: { id: existing.id }, data: { approvalExpiresAt: until } });
+      await p.auditEvent.create({
+        data: {
+          actorId: null,
+          action: "demo.statewide_profile_renewed",
+          entityType: "JurisdictionProfile",
+          entityId: existing.id,
+          metadata: { demoOnly: true, approvalExpiresAt: until.toISOString() },
+          createdAt: now,
+        },
+      });
+      console.log(`Demo data is already here. Extended the DEMO ONLY statewide profile to ${until.toISOString().slice(0, 10)}.`);
+    } else {
+      console.log("Demo data is already here; nothing to do.");
+    }
     return;
   }
-
-  const now = new Date();
   const T0 = new Date(now.getTime() - 45 * DAY); // when the demo's history starts
 
   // --- Check what can be checked before the first write ---
@@ -205,6 +225,8 @@ async function main() {
   // the seed, not just around the insert).
   const guard = demoDatabaseGuard(process.env);
   const statewideRows = await p.jurisdictionProfile.findMany({
+    // Every statewide row, including a pending or non-current v1. Do not add
+    // isCurrent: true — that would hide a leftover v1 and let a duplicate be created.
     where: { state: "CO", locality: null },
     orderBy: [{ isCurrent: "desc" }, { version: "desc" }],
   });
@@ -214,6 +236,7 @@ async function main() {
     return { ok: !sw.length && !swRate, problems: [...sw, swRate].filter(Boolean) };
   };
   const existing = statewideRows.map((row) => ({ id: row.id, isCurrent: row.isCurrent, usable: usabilityOf(row).ok }));
+  // guard.ok, not true: an unguarded run must stay Denver-only and must not create a profile.
   const swPlan = planStatewideProfile({ guarded: guard.ok, existing, now, fixedId: STATEWIDE });
   if (swPlan.kind === "refuse") {
     const current = statewideRows.find((row) => row.isCurrent);
@@ -230,7 +253,7 @@ async function main() {
   }
 
   type Planned = { input: JobInput; orgIdx: number; type: "PETITION" | "CANVASS"; startsAt: Date; endsAt: Date; past: boolean; modes: string[] };
-  const plan = (c: Campaign, orgIdx: number, past: boolean): Planned => {
+  const plan = (c: Campaign, orgIdx: number, past: boolean, cityIndex: number): Planned => {
     const startsAt = dayOf(past ? new Date(T0.getTime() + int(0, 10) * DAY) : new Date(now.getTime() + int(2, 21) * DAY));
     const endsAt = dayOf(new Date((past ? now.getTime() : startsAt.getTime()) + int(20, 60) * DAY));
     const method = rand() < 0.7 ? "HOURLY" : "SHIFT_RATE";
@@ -242,7 +265,7 @@ async function main() {
     const o = ORGS[orgIdx];
     const phone = `(303) 555-01${String(10 + orgIdx).padStart(2, "0")}`;
     const petition = c.type === "PETITION";
-    const placed = demoJobCityAndJurisdiction(pick(CITIES), swPlan, JURISDICTION);
+    const placed = demoJobCityAndJurisdiction(CITIES[cityIndex % CITIES.length], swPlan, JURISDICTION);
     const city = placed.city;
     const v = validateJob({
       type: c.type,
@@ -277,8 +300,8 @@ async function main() {
   // ~20 jobs on the local campaigns (some running since the demo began, holding
   // the history; some starting soon), then one for each campaign type and affiliation.
   const planned = [
-    ...Array.from({ length: 20 }, (_, i) => plan(CAMPAIGNS[i % CAMPAIGNS.length], i % ORGS.length, i < 12)),
-    ...MORE_CAMPAIGNS.map((c) => plan(c, c.org, false)),
+    ...Array.from({ length: 20 }, (_, i) => plan(CAMPAIGNS[i % CAMPAIGNS.length], i % ORGS.length, i < 12, i)),
+    ...MORE_CAMPAIGNS.map((c, i) => plan(c, c.org, false, 20 + i)),
   ];
 
   console.log(`Writing demo data to ${target()}…`);

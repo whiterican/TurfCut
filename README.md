@@ -396,6 +396,33 @@ WHERE status = 'PUBLISHED' AND "orgId" IN (
   FROM "AuditEvent" WHERE action = 'demo.seeded');
 ```
 
+### A dedicated demo project
+
+Run the demo on its **own** Supabase project and database, never the live
+one. Export the project identity first so `seed:demo` runs guarded
+(without `TURFCUT_DEMO=1` and a matching ref, jobs outside Denver are
+filed in Denver and no statewide profile is created):
+
+```bash
+# In the demo project's shell only. Nothing here goes in a committed file.
+export DATABASE_URL=…                 # the demo project's database (same project as the URL below)
+export NEXT_PUBLIC_SUPABASE_URL=https://<demo-ref>.supabase.co
+export TURFCUT_DEMO_PROJECT_REF=<demo-ref>   # must equal the ref in the URL and in DATABASE_URL
+export TURFCUT_DEMO=1
+npm run seed && npm run seed:demo -- --yes
+```
+
+The same `NEXT_PUBLIC_SUPABASE_URL` and `TURFCUT_DEMO_PROJECT_REF` are
+what `seed:demo-accounts` uses once that script is on the branch; keep
+them set and add `SUPABASE_SERVICE_ROLE_KEY` and `DEMO_ACCOUNTS_PASSWORD`
+before running it.
+
+The "DEMO ONLY" statewide profile expires in about 14 days. On a guarded
+demo, run `npm run seed:demo -- --yes` again to extend it when it has
+expired or has fewer than 7 days left; the rest of the demo data is left
+as it is. To extend it sooner, run that same command after the window
+has started to run down.
+
 ## S1 scope — campaign pages (the social layer, campaign side)
 
 Campaigns get a public page that works as a recruiting channel, not a town

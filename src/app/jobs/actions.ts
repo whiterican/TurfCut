@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireEmployer, requireJobEditor } from "@/lib/employer-session";
+import { getAuthUser } from "@/lib/auth";
 import { requireWorker } from "@/lib/worker-session";
 import { formToObject, jurisdictionStateProblem, UUID_RE, validateDraft, validateJob } from "@/lib/jobs";
 import { createJob, publishJob, saveDraftProgress, updateDraftJob, updatePublishedJob } from "@/lib/jobs-data";
@@ -33,7 +34,9 @@ export interface ActionState {
  * its next autosave would write those back over them; Jobs would not list the new draft either.
  */
 export async function forgetDraftCopies(): Promise<void> {
-  await requireJobEditor();
+  // Called as the builder is left: a check that redirects would move someone already on another page, so a
+  // signed-out caller is simply skipped (there is nothing of theirs to refresh).
+  if (!(await getAuthUser())) return;
   revalidatePath("/jobs", "layout");
 }
 

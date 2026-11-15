@@ -4717,22 +4717,26 @@ html[data-scroll="down"]:not(.sun):not(:has(.thread-top)) body:not(:has(.staff-b
    the phone's clock (html::after), the page's top colour and no taller than the clock's own strip, so text never
    passes behind the time and battery; a job page's shade over its photograph and its strip once past it (both
    only that tall on a phone); a chat's bar, the staff band and Sunlight's plain bar, which are surfaces. */
-html:not(.sun) .phone-top::before {
-  display: none !important;
-}
-html:not(.sun) body:not(:has(.job-photo-head, .staff-band, .thread-top))::after {
-  display: none !important;
-}
-@media (width >= 48rem) {
-  html:not(.sun) body:has(.job-photo-head):not(:has(.staff-band, .thread-top))::after {
+/* Not for anyone who asked their device for more contrast or less transparency, nor in forced colours: there the
+   solid bar stays (the solid fallback above), since text passing under the row is the opposite of what they asked. */
+@media not ((prefers-reduced-transparency: reduce) or (prefers-contrast: more) or (forced-colors: active)) {
+  html:not(.sun) .phone-top::before {
     display: none !important;
   }
-}
-html:not(.sun) .site-header {
-  --header-bg: transparent;
-}
-/* With no bar below it, the strip under the clock is the top of the page's own gradient, sized as the page's ground
-   is (body::before), so it meets the page with no edge. A chat by day keeps its dark strip (the rule above). */
-html:not(.sun):not(:has(.thread-top))::after {
-  background: var(--page-wash) no-repeat 0 0 / 100% calc(100lvh + 6rem), var(--page-top);
+  html:not(.sun) body:not(:has(.job-photo-head, .staff-band, .thread-top))::after {
+    display: none !important;
+  }
+  @media (width >= 48rem) {
+    html:not(.sun) body:has(.job-photo-head):not(:has(.staff-band, .thread-top))::after {
+      display: none !important;
+    }
+  }
+  html:not(.sun) .site-header {
+    --header-bg: transparent;
+  }
+  /* With no bar below it, the strip under the clock is the top of the page's own gradient, sized as the page's ground
+     is (body::before), so it meets the page with no edge. A chat by day keeps its dark strip (the rule above). */
+  html:not(.sun):not(:has(.thread-top, .more-sheet[open]))::after {
+    background: var(--page-wash) no-repeat 0 0 / 100% calc(100lvh + 6rem), var(--page-top);
+  }
 }

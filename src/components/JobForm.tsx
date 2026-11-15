@@ -78,10 +78,8 @@ export function JobForm({
   const [savedId, setSavedId] = useState(jobId);
   // Once a draft has been autosaved, leaving the builder drops the app's 30-second copies of the job pages
   // (forgetDraftCopies), so this builder and the Jobs list are never shown from before the save.
+  // A save still on its way when the builder is left drops them once it has landed, not before.
   const autosaved = useRef(false);
-  useEffect(() => () => {
-    if (autosaved.current) void forgetDraftCopies().catch(() => {});
-  }, []);
   const savedIdRef = useRef(jobId);
   const [save, setSave] = useState<SaveState>({ kind: "idle" });
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -301,6 +299,14 @@ export function JobForm({
   };
 
   const current = BUILDER_STEPS[step];
+  // Leaving the builder after an autosave: see autosaved above.
+  useEffect(() => () => {
+    const forget = () => {
+      if (autosaved.current) void forgetDraftCopies().catch(() => {});
+    };
+    if (inFlight.current) void inFlight.current.then(forget, forget);
+    else forget();
+  }, []);
   const live = isLiveEdit({ autosave: autosaveOn, jobId });
   const show = (i: number) => (i === step ? undefined : true); // `hidden` attribute
 

@@ -62,6 +62,12 @@ const nextConfig: NextConfig = {
     // MAX_ATTACHMENT_BYTES) plus form overhead. Kept under common hosting
     // request limits.
     serverActions: { bodySizeLimit: "5mb" },
+    // A tab opened in the last 30 seconds opens again at once, from the copy the phone already has (Caden, Nov 15:
+    // tabs should feel quick). Next.js keeps no copy of a signed-in page by default, so every tap waited on the
+    // server, however recently the page was seen. Anything that changes data on the server (a server action that
+    // revalidates, a refresh after a realtime message) clears the copies, so a person never sees their own change
+    // missing. Someone else's change can take up to 30 seconds to show on a tab already open.
+    staleTimes: { dynamic: 30 },
   },
 };
 

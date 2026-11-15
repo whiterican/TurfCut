@@ -222,12 +222,22 @@ export function OrgTabBar({ tabs, more, extra, notices = 0, person }: { tabs: Na
   const sheet = useRef<HTMLDialogElement>(null);
   const tucked = useTuckOnScroll();
 
+  // The tab just tapped, while its page is on its way: the dock's capsule moves to it at once (Caden, Nov 15: tabs
+  // should feel quick), instead of waiting for the server. Cleared when the page arrives.
+  const [going, setGoing] = useState<string | null>(null);
   // Close on navigation (reset during render when the path changes).
   const [openedAt, setOpenedAt] = useState(pathname);
   if (openedAt !== pathname) {
     setOpenedAt(pathname);
     if (open) setOpen(false);
+    if (going) setGoing(null);
   }
+  // A tap that never navigates (a failed fetch, the same page) must not leave the capsule on the wrong tab.
+  useEffect(() => {
+    if (!going) return;
+    const t = window.setTimeout(() => setGoing(null), 8000);
+    return () => window.clearTimeout(t);
+  }, [going]);
   // The menu button lives outside this component (the phone strip, the site header).
   useEffect(() => {
     const onOpen = () => setOpen(true);
@@ -372,10 +382,21 @@ export function OrgTabBar({ tabs, more, extra, notices = 0, person }: { tabs: Na
           </div>
         </dialog>
       )}
-      <nav aria-label="Main" className="tabbar" data-tucked={tucked || undefined}>
+      <nav aria-label="Main" className="tabbar" data-tucked={tucked || undefined} data-going={going ? "" : undefined}>
         <div className="flex">
           {tabs.map((t) => (
-            <Link key={t.href} href={t.href} className="tab" aria-current={currentAttr(t.href, current, pathname)}>
+            <Link
+              key={t.href}
+              href={t.href}
+              className="tab"
+              aria-current={currentAttr(t.href, current, pathname)}
+              data-going={going === t.href ? "" : undefined}
+              onClick={(e) => {
+                // A plain tap on another tab: not a new window or tab, and not the page already open.
+                if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0 || pathname === t.href) return;
+                setGoing(t.href);
+              }}
+            >
               <Icon of={iconFor(t)} className="tab-icon" />
               <span className="tab-label">{t.label}</span>
               {t.href.endsWith(MESSAGES_HREF) && <Badge count={count} />}

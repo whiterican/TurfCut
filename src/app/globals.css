@@ -434,6 +434,9 @@ html {
   --dur-page: 320ms; /* a page sliding */
   --dur-slow: 360ms; /* a sheet, a ring filling, the tab lens gliding */
   --dur-lag: 90ms; /* the pause before the new page fades in, behind the old one going */
+  --dur-tab: 160ms; /* a change of tab: the new page's rise and the tab lens, the whole change (Caden, Nov 15) */
+  --dur-tab-out: 90ms; /* the old page fading as a tab changes */
+  --dur-tab-in: 140ms; /* the new page fading in as a tab changes */
   --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
   --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
   --ease-in: cubic-bezier(0.4, 0, 1, 1);
@@ -1893,6 +1896,44 @@ body {
   }
   .sun .tab[aria-current] .tab-icon {
     color: var(--on-shell-active);
+  }
+  /* A tab just tapped wears the capsule at once, while its page is on its way; the tab it leaves gives the capsule
+     up (components/AppNav.tsx sets data-going on the dock and on the tab). Screen readers still hear the page
+     they are on as current until the new one arrives. */
+  .tabbar[data-going] .tab[aria-current]:not([data-going]) {
+    font-weight: 500;
+    color: var(--dock-fg);
+    background: transparent;
+    box-shadow: none;
+    view-transition-name: none;
+  }
+  .tabbar[data-going] .tab[aria-current]:not([data-going]) .tab-icon {
+    color: inherit;
+    stroke-width: 2;
+    filter: drop-shadow(0 0 0.5px var(--dock-halo)) drop-shadow(0 0 0.5px var(--dock-halo)) drop-shadow(0 0 0.5px var(--dock-halo)) drop-shadow(0 0 1px var(--dock-halo)) drop-shadow(0 0 3px var(--dock-halo));
+  }
+  .tab[data-going] {
+    @apply font-semibold;
+    color: var(--dock-current-fg);
+    background: var(--dock-current-bg);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.28), 0 1px 3px rgb(0 0 0 / 0.18);
+    view-transition-name: tab-current;
+  }
+  .tab[data-going] .tab-icon {
+    color: var(--dock-current-fg);
+    stroke-width: 2.5;
+    filter: none;
+  }
+  .sun .tab[data-going] {
+    background: var(--shell-active);
+    color: var(--on-shell-active);
+  }
+  .sun .tab[data-going] .tab-icon {
+    color: var(--on-shell-active);
+  }
+  .sun .tabbar[data-going] .tab[aria-current]:not([data-going]) {
+    background: transparent;
+    color: var(--dock-fg);
   }
   /* Icons inside buttons: sized to the text, never the hit target. */
   .btn-icon {
@@ -3910,7 +3951,8 @@ html[data-scroll="down"]:not(:has(.thread-top)) .phone-top > :not(:focus-visible
 }
 @media (forced-colors: active) {
   .tabbar, .icon-btn, .site-header, .composer, .thread-top, .more-sheet-panel, .data-table thead th, .turf-map.leaflet-container .leaflet-bar, .turf-map.leaflet-container .leaflet-control-attribution { border-color: CanvasText; }
-  .tab[aria-current]:not(:focus-visible) { outline: 2px solid Highlight; outline-offset: -2px; }
+  :is(.tab[aria-current], .tab[data-going]):not(:focus-visible) { outline: 2px solid Highlight; outline-offset: -2px; }
+  .tabbar[data-going] .tab[aria-current]:not([data-going]) { outline: none; }
   .option-card input[type="radio"], .choice-row input[type="radio"] { appearance: auto; }
 }
 
@@ -3988,8 +4030,10 @@ body {
   animation: none;
 }
 /* The current tab's lens glides from the old tab to the new one. */
+/* As quick as the page's own fade: the whole change of page lasts as long as its longest part, and the new page's
+   content cannot appear before it ends. */
 ::view-transition-group(tab-current) {
-  animation-duration: var(--dur-slow);
+  animation-duration: var(--dur-tab);
   animation-timing-function: var(--ease-out);
   z-index: 101;
 }
@@ -4015,14 +4059,20 @@ html:has(.more-sheet[open])::view-transition {
   box-shadow: 0 6rem 0 0 var(--drawer-root);
 }
 
-/* Default (tabs, buttons): the old page fades quickly, the new one rises in. */
+/* Default (tabs, buttons): a quick cross-fade with a small rise, all done in 160ms (--dur-tab) (Caden, Nov 15: tabs should feel
+   quick). It was 450ms (a 90ms pause, a 220ms fade, a 360ms rise), and a page that shows its loading screen first
+   cannot show its content until the animation has finished: Jobs and Messages took 450ms to appear on a fast
+   connection, against 70ms for a page with no animation. No pause before the new page now: the two overlap. */
 ::view-transition-old(.page-out) {
-  animation: var(--dur-fast) var(--ease-in) both tc-fade-out;
+  animation: var(--dur-tab-out) var(--ease-in) both tc-fade-out;
 }
 ::view-transition-new(.page-in) {
   animation:
-    var(--dur-base) var(--ease-enter) var(--dur-lag) both tc-fade-in,
-    var(--dur-slow) var(--ease-out) both tc-rise;
+    var(--dur-tab-in) var(--ease-out) both tc-fade-in,
+    var(--dur-tab) var(--ease-out) both tc-rise-short;
+}
+@keyframes tc-rise-short {
+  from { transform: translateY(6px); }
 }
 /* Deeper (open a thread, a shift): slide left. Back: slide right. */
 ::view-transition-old(.nav-forward) {
@@ -4393,6 +4443,9 @@ html:has(.more-sheet[open])::view-transition {
     --dur-page: 0ms;
     --dur-slow: 0ms;
     --dur-lag: 0ms;
+    --dur-tab: 0ms;
+    --dur-tab-out: 0ms;
+    --dur-tab-in: 0ms;
   }
   *,
   ::before,
@@ -4418,6 +4471,9 @@ html:has(.more-sheet[open])::view-transition {
   --dur-page: 0ms;
   --dur-slow: 0ms;
   --dur-lag: 0ms;
+  --dur-tab: 0ms;
+  --dur-tab-out: 0ms;
+  --dur-tab-in: 0ms;
 }
 :root[data-motion="reduce"],
 :root[data-motion="reduce"] *,

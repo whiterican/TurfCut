@@ -214,7 +214,7 @@ describe.each([
         for (const k of ["muted", "subtle-on-glass", "kicker", "link", "danger", "success", "warning"] as const) expect(ratio(t[k], ground)).toBeGreaterThanOrEqual(4.5);
       }
       // The faintest grey steps darker by day (Subtle itself is locked, and is under AA on the purple).
-      expect(t["subtle-on-glass"]).toBe(dark ? t.subtle : "#4a576b");
+      expect(t["subtle-on-glass"]).toBe(dark ? t.subtle : "#3f4a5c");
       expect(css).toMatch(/\nbody \{[^}]*?--subtle: var\(--subtle-on-glass\);/);
       // The glint across a card is white. By day that only adds contrast. By night it takes contrast from light type, so
       // the pane is checked again under the glint at its brightest (its first stop), where a card's first line can sit.

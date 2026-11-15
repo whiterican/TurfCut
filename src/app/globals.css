@@ -101,9 +101,9 @@
   --fg: #0f172a; /* = Text */
   /* Secondary type that may sit on a Muted fill: one step darker than Subtle
      (derived; Subtle itself is 3.84:1 on Muted, so it stays on white and Cream). */
-  --muted: #475569;
+  --muted: #3b4658;
   --subtle: #64748b; /* = Subtle: captions and hints on white and Cream */
-  --subtle-on-glass: #4a576b; /* derived: Subtle stepped nearly to Muted, for the same captions on the purple page and on glass (AA at the page's strongest) */
+  --subtle-on-glass: #3f4a5c; /* derived: Subtle stepped nearly to Muted, for the same captions on the purple page and on glass (AA at the page's strongest) */
   --link: #1c0f2e; /* = Eggplant: 14:1 on every light surface (Forest is 4.3:1 on Muted) */
   --kicker: #475569;
   --focus: #157a46; /* = Forest */

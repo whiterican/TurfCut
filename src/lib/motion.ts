@@ -23,6 +23,12 @@ export const DURATION = {
   slow: 360,
   /** The pause before a new page fades in, behind the old one going. */
   lag: 90,
+  /** A change of tab: the new page's rise and the tab capsule's glide, the whole change. */
+  tab: 160,
+  /** The old page fading as a tab changes. */
+  "tab-out": 90,
+  /** The new page fading in as a tab changes. */
+  "tab-in": 140,
 } as const;
 
 /**

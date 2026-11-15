@@ -1,7 +1,7 @@
 "use client";
 
 import { startTransition, useActionState, useEffect, useId, useRef, useState } from "react";
-import { autosaveDraft, saveJob, type JobFormState } from "@/app/jobs/actions";
+import { autosaveDraft, forgetDraftCopies, saveJob, type JobFormState } from "@/app/jobs/actions";
 import { AFFILIATIONS, affiliationLabel, COMPENSATION_METHODS, formToObject, HIRING_MODES, JOB_TYPES, validateJob } from "@/lib/jobs";
 import { PLANNED_CATEGORIES } from "@/lib/job-categories";
 import { BUILDER_STEPS, errorsForStep, firstStepWithErrors, isLiveEdit, REVIEW_STEP, saveLabel, stepBlurb, stepOfField } from "@/lib/job-builder";
@@ -76,6 +76,10 @@ export function JobForm({
   }, [pending]);
   // The draft autosave created or is editing: the final save and every later autosave update it.
   const [savedId, setSavedId] = useState(jobId);
+  // Once a draft has been autosaved, leaving the builder drops the app's 30-second copies of the job pages
+  // (forgetDraftCopies), so this builder and the Jobs list are never shown from before the save.
+  // A save still on its way when the builder is left drops them once it has landed, not before.
+  const autosaved = useRef(false);
   const savedIdRef = useRef(jobId);
   const [save, setSave] = useState<SaveState>({ kind: "idle" });
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -210,6 +214,7 @@ export function JobForm({
         const r = await autosaveDraft(fd);
         if (r.ok) {
           lastSent.current = snapshot;
+          autosaved.current = true;
           if (!savedIdRef.current) {
             savedIdRef.current = r.jobId;
             setSavedId(r.jobId);
@@ -294,6 +299,14 @@ export function JobForm({
   };
 
   const current = BUILDER_STEPS[step];
+  // Leaving the builder after an autosave: see autosaved above.
+  useEffect(() => () => {
+    const forget = () => {
+      if (autosaved.current) void forgetDraftCopies().catch(() => {});
+    };
+    if (inFlight.current) void inFlight.current.then(forget, forget);
+    else forget();
+  }, []);
   const live = isLiveEdit({ autosave: autosaveOn, jobId });
   const show = (i: number) => (i === step ? undefined : true); // `hidden` attribute
 

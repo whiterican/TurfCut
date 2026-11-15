@@ -480,7 +480,7 @@ Showing **Pay now** live needs four things. Two staff who can approve pay
 `seed:demo-accounts` refuses a live key.
 
 1. **Stripe test keys on the demo deployment.** Set `STRIPE_SECRET_KEY` to
-   the test secret key, and set `TURFCUT_DEMO=1`. With that flag the app
+   the test secret key, and set `TURFCUT_DEMO=1` (or `true` or `yes`). With that flag the app
    itself refuses a live secret key (`sk_live_` or `rk_live_`) and
    live-mode webhook events. A Vercel preview or development deploy
    (`VERCEL_ENV` set and not `production`) also refuses a live secret key;

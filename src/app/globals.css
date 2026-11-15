@@ -2631,13 +2631,15 @@ body {
   .menu-button[data-named] {
     @apply h-11 w-auto max-w-[60vw] justify-start gap-2 border py-1 ps-1 pe-4 font-semibold;
     z-index: 0;
-    border-color: var(--glass-border);
+    /* The pill's own border only keeps its size; the edge is drawn on the layer, which lies over it. */
+    border-color: transparent;
   }
   .menu-button[data-named]::before {
     content: "";
     position: absolute;
     inset: -1px;
     z-index: -1;
+    border: 1px solid var(--glass-border);
     border-radius: inherit;
     background: var(--glass-sheen), var(--glass-bg-strong);
     -webkit-backdrop-filter: var(--glass-filter);

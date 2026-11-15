@@ -163,7 +163,9 @@ describe.each([
       // The named menu button and the drawer carry text: body ink holds AA on the stronger pane over the same worst case.
       // The pill's glass is a layer under its photo and name (an iPhone drew the name soft inside a blurred pill): the pill holds no blur itself.
       expect(css).toMatch(/\.menu-button\[data-named\]::before \{[^}]*?z-index: -1;[^}]*?background: var\(--glass-sheen\), var\(--glass-bg-strong\);[^}]*?backdrop-filter: var\(--glass-filter\);/);
-      expect(css).toMatch(/\.menu-button\[data-named\] \{[^}]*?z-index: 0;/);
+      expect(css).toMatch(/\.menu-button\[data-named\] \{[^}]*?z-index: 0;[^}]*?border-color: transparent;/);
+      // The layer lies over the pill's border, so the edge is the layer's own (else the solid fallback and forced colours lose it).
+      expect(css).toMatch(/\.menu-button\[data-named\]::before \{[^}]*?border: 1px solid var\(--glass-border\);/);
       expect(css.slice(css.indexOf(".menu-button[data-named] {"), css.indexOf("}", css.indexOf(".menu-button[data-named] {")))).not.toMatch(/backdrop-filter|background/);
       expect(css).toMatch(/\nhtml \{[^}]*?--glass-bg-strong: color-mix\(in srgb, var\(--surface\) 79%, transparent\);/);
       expect(themeBody(css, ".dark")).toMatch(/--glass-bg-strong: color-mix\(in srgb, var\(--surface\) 78%, transparent\);/);

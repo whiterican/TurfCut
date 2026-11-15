@@ -231,3 +231,44 @@ export function planAccounts(
   if (emails.size !== out.length) throw new Error("Two demo logins would share an email: rename a demo organization.");
   return out;
 }
+
+/**
+ * Pay now in the demo (fix 2): Stripe stays in test mode. A live key
+ * (sk_live_/rk_live_) is refused outright; no key at all is fine for the
+ * script itself (it never calls Stripe), but the app needs a test key to pay.
+ */
+export function stripeKeyMode(key: string | undefined): "none" | "test" | "live" | "unknown" {
+  if (!key) return "none";
+  if (/^(sk|rk)_test_/.test(key)) return "test";
+  if (/^(sk|rk)_live_/.test(key)) return "live";
+  return "unknown";
+}
+
+export function stripeKeyProblem(key: string | undefined): string | null {
+  const mode = stripeKeyMode(key);
+  if (mode === "live") return "STRIPE_SECRET_KEY is a LIVE key. The demo runs on Stripe test mode only: use the sk_test_ key.";
+  if (mode === "unknown") return "STRIPE_SECRET_KEY isn't a Stripe secret key (sk_test_…).";
+  return null;
+}
+
+/** The demo worker's Stripe test Connect (Express) account, made in Stripe's test mode (README, "Pay now in the demo"). */
+export function connectAccountProblem(id: string | undefined): string | null {
+  if (!id) return null;
+  return /^acct_[A-Za-z0-9]{8,}$/.test(id.trim()) ? null : `DEMO_STRIPE_ACCOUNT_ID "${id}" isn't a Stripe account id (acct_…).`;
+}
+
+/**
+ * What linking the test account to the demo worker would do: link it, leave
+ * it (already linked), or refuse (the worker already has another account,
+ * or another worker has this one).
+ */
+export function connectLinkPlan(
+  accountId: string,
+  worker: { id: string; stripeAccountId: string | null },
+  holder: { id: string } | null
+): { action: "link" | "keep" } | { action: "refuse"; reason: string } {
+  if (worker.stripeAccountId === accountId) return { action: "keep" };
+  if (worker.stripeAccountId) return { action: "refuse", reason: `The demo worker already has Stripe account ${worker.stripeAccountId}; not replacing it.` };
+  if (holder && holder.id !== worker.id) return { action: "refuse", reason: `Stripe account ${accountId} already belongs to another worker.` };
+  return { action: "link" };
+}

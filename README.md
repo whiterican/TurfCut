@@ -472,6 +472,49 @@ the seeds didn't make: a profile in the database or a login in Supabase
 Auth that isn't a demo login means real people use it. Re-running it
 leaves existing logins alone; the password is never stored.
 
+### Pay now in the demo (Stripe test mode only)
+
+Showing **Pay now** live needs four things. Two staff who can approve pay
+(the demo logins above), plus the three below. Use **test-mode** keys only
+(`sk_test_…`, in the shell or the demo deployment's env, never in a file).
+`seed:demo-accounts` refuses a live key.
+
+1. **Stripe test keys on the demo deployment.** Set `STRIPE_SECRET_KEY` to
+   the test secret key. Point a test-mode webhook endpoint at
+   `<SITE_URL>/api/stripe/webhook` (`transfer.created`, `transfer.reversed`)
+   and set `STRIPE_WEBHOOK_SECRET`. Locally, run
+   `stripe listen --forward-to localhost:3000/api/stripe/webhook` and use the
+   `whsec_…` it prints.
+2. **A test Connect account for the demo worker.** Pick one:
+   - Sign in as the demo worker (`worker.<name>@example.com`), open
+     **Earnings → Set up payouts**, and finish Stripe's Express onboarding
+     with Stripe's test values
+     ([docs.stripe.com/connect/testing](https://docs.stripe.com/connect/testing)).
+     The app links the account itself.
+   - Or make a test Express account in the Stripe Dashboard (test mode →
+     Connect → Accounts), finish its onboarding, and link it:
+     `DEMO_STRIPE_ACCOUNT_ID=acct_… npm run seed:demo-accounts -- --yes`.
+     It links only a worker with no account, and never an account another
+     worker holds.
+
+   Either way, the worker counts as payable once the app has asked Stripe.
+   Signing in as the worker and opening **Earnings** once does that. So does
+   an `account.updated` webhook, or the check the app makes right before
+   every payment.
+3. **A funded test balance.** Transfers come out of the platform's Stripe
+   balance. In test mode, add funds with a test payment on card
+   **4000 0000 0000 0077**, which lands in the available balance at once,
+   not pending. Use Dashboard → Payments → Create payment, or
+   `stripe charges create --amount=100000 --currency=usd --source=tok_bypassPending`
+   with the test key. An empty balance makes the transfer fail on screen
+   ("Turfcut's Stripe balance is too low…").
+
+Then rehearse: the supervisor reviews a shift, the owner or finance
+approves its pay on **Pay**, and **Pay now** sends a test transfer. Send one
+the day before and check that the webhook marks it paid. This touches
+nothing in organization funding. Pay still comes from the one platform
+balance, as it does today.
+
 ## S1 scope — campaign pages (the social layer, campaign side)
 
 Campaigns get a public page that works as a recruiting channel, not a town

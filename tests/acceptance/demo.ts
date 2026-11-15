@@ -64,6 +64,13 @@ const tail = (r: ReturnType<typeof seed>) => `${r.stdout ?? ""}\n${r.stderr ?? "
   check("--plan writes nothing", JSON.stringify(await counts()) === JSON.stringify(beforeAccounts));
   const unnamed = accounts("--yes");
   check("--yes refuses without the demo project's settings, and writes nothing", unnamed.status === 1 && /NEXT_PUBLIC_SUPABASE_URL/.test(`${unnamed.stdout}${unnamed.stderr}`) && JSON.stringify(await counts()) === JSON.stringify(beforeAccounts), tail(unnamed));
+  // Pay now in the demo: Stripe test mode only, and the test account goes to the demo worker.
+  const withStripe = (key: string) => spawnSync("npx", ["tsx", "prisma/demo-accounts.ts", "--plan"], { encoding: "utf8", env: { ...noSupabase, STRIPE_SECRET_KEY: key, DEMO_STRIPE_ACCOUNT_ID: "acct_1DemoTestAcct" }, timeout: 120_000 });
+  const live = withStripe("sk_live_not-a-real-key");
+  check("a live Stripe key is refused", live.status === 1 && /LIVE key/.test(`${live.stdout}${live.stderr}`), tail(live));
+  const test = withStripe("sk_test_not-a-real-key");
+  check("--plan with a test key shows the test account going to the demo worker, and writes nothing", test.status === 0 && /Stripe test account acct_1DemoTestAcct → .+\(demo\)/.test(test.stdout) && (await p.worker.count({ where: { stripeAccountId: { not: null } } })) === 0, tail(test));
+
   // A real sign-up means this isn't a dedicated demo project: no demo logins here, ever.
   await p.profile.create({ data: { id: crypto.randomUUID(), role: "WORKER" } });
   const stranger = accounts("--plan");

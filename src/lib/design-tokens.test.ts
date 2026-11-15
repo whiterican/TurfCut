@@ -1002,8 +1002,10 @@ describe("the shell (redesign B1.4)", () => {
     // One cap under the clock for every page and mode, in the root's own colour, under the glass and the headers.
     expect(css).toMatch(/\nhtml::after \{\s*content: "";\s*position: fixed;\s*inset: 0 0 auto;\s*height: var\(--clock-strip\);\s*z-index: 43;\s*pointer-events: none;\s*background: var\(--root-top\);/);
     // The strip ends just under the time and battery, not at the foot of the whole safe area (Caden, Nov 15).
-    expect(css).toMatch(/--clock-strip: max\(0px, calc\(env\(safe-area-inset-top\) - 0\.875rem\)\);/);
-    expect(css).not.toMatch(/height: env\(safe-area-inset-top\)/);
+    expect(css).toMatch(/--clock-strip: max\(min\(env\(safe-area-inset-top\), 20px\), calc\(env\(safe-area-inset-top\) - 0\.875rem\)\);/);
+    // Only a chat's strip runs to the foot of the safe area, where its own bar begins.
+    expect(css.match(/height: env\(safe-area-inset-top\)/g)).toHaveLength(1);
+    expect(css).toMatch(/html:has\(\.thread-top\)::after \{\s*height: env\(safe-area-inset-top\);/);
     expect(css).toMatch(/@media print \{\s*html::after \{\s*display: none;/);
     // The phone's clock is white there: on a pale page with no purple the cap goes dark so it can be read.
     expect(css).toMatch(/html\.sun::after,\s*html:not\(\.dark\):has\(\.thread-top\)::after \{\s*background: var\(--shell-bg\);/);
@@ -1017,7 +1019,10 @@ describe("the shell (redesign B1.4)", () => {
     expect(css).toMatch(/\.org-rail-foot \{[^}]*padding-bottom: env\(safe-area-inset-bottom\);/);
     expect(layout).toMatch(/other: \{ "apple-mobile-web-app-capable": "yes" \}/);
     // And the dock clears the home bar.
-    expect(css).toMatch(/--dock-clearance: calc\(6rem \+ env\(safe-area-inset-bottom\)\);/);
+    // The dock sits 10px into the home bar's strip (Caden, Nov 15: lower), and the room kept for it follows it.
+    expect(css).toMatch(/--dock-gap: max\(10px, calc\(env\(safe-area-inset-bottom\) - 10px\)\);/);
+    expect(css).toMatch(/--dock-clearance: calc\(6rem - 10px \+ var\(--dock-gap\)\);/);
+    expect(css).toMatch(/\.tabbar \{[^}]*?bottom: var\(--dock-gap\);/);
   });
   it("runs the organization rail full height under a header of fixed height", () => {
     // 65px, plus the phone's own strip above it in an installed iPhone app (zero everywhere else).

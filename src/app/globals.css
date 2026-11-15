@@ -433,11 +433,17 @@ html {
   --rail-w: 220px;
   --rail-top: 1.5rem;
   --inspector-w: 24rem;
-  --dock-clearance: calc(6rem + env(safe-area-inset-bottom));
+  /* The dock's distance from the foot of the screen: 10px clear of the home bar's strip was too high (Caden, Nov 15:
+     "the dock needs to sit lower"). It now sits 10px into that strip, still clear of the home bar itself, and never
+     closer than 10px to the edge where there is no strip. */
+  --dock-gap: max(10px, calc(env(safe-area-inset-bottom) - 10px));
+  /* Room kept for the dock under what scrolls: the same 6rem above the dock's top as before. */
+  --dock-clearance: calc(6rem - 10px + var(--dock-gap));
   /* The solid strip behind the phone's clock and battery: down to just under them, not the whole safe area, which on
      an iPhone with an island runs about 14px further and covered the top of the row below (Caden, Nov 15: "it
      shouldn't go below the time and battery"). Zero where there is no strip. */
-  --clock-strip: max(0px, calc(env(safe-area-inset-top) - 0.875rem));
+  /* Where the inset is little more than the icons (an older phone, Android), the strip keeps the whole inset up to 20px. */
+  --clock-strip: max(min(env(safe-area-inset-top), 20px), calc(env(safe-area-inset-top) - 0.875rem));
 }
 /* ---- Motion (P1.1) ------------------------------------------------------ */
 /* Every duration and curve in the app comes from these (src/lib/motion.ts
@@ -1837,7 +1843,7 @@ body {
        screen readers; the rest of the role's places are in the menu drawer, not a tab. */
     @apply fixed z-40 mx-auto max-w-[20rem] rounded-full p-1.5;
     inset-inline: 12px;
-    bottom: calc(10px + env(safe-area-inset-bottom));
+    bottom: var(--dock-gap);
     background: var(--dock-sheen), var(--dock-bg);
     border: 1px solid var(--dock-border);
     -webkit-backdrop-filter: var(--dock-filter);
@@ -3992,6 +3998,11 @@ html::after {
 html.sun::after,
 html:not(.dark):has(.thread-top)::after {
   background: var(--shell-bg);
+}
+/* A chat's bar starts at the foot of the whole safe area: the strip runs down to it, or messages would show through a
+   slit between the two. */
+html:has(.thread-top)::after {
+  height: env(safe-area-inset-top);
 }
 /* In landscape the notch is at the side: the page, the rail and a chat's box stay clear of it. */
 body {

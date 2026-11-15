@@ -9,7 +9,7 @@ agreements and the build plan for the full roadmap.
 
 ## Prerequisites
 
-- Node 20+ and npm
+- Node 22 (see `.nvmrc`; `nvm use` picks it up) and npm
 - A Supabase project (see "What needs Caden" below)
 - No Supabase account yet? The app still typechecks, builds, and boots —
   auth/DB features show a clear "missing env" message until keys are set.

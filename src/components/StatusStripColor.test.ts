@@ -9,9 +9,9 @@ describe("the phone's status strip follows the theme", () => {
   it("is mounted once, in the root layout", () => {
     expect(layout.match(/<StatusStripColor \/>/g)).toHaveLength(1);
   });
-  it("copies the root's painted colour into the theme-color tag", () => {
+  it("copies the strip's colour (--root-top) into the theme-color tag, not the root's own foot colour", () => {
     expect(src).toMatch(/meta\[name="theme-color"\]/);
-    expect(src).toMatch(/getComputedStyle\(root\)\.backgroundColor/);
+    expect(src).toMatch(/getComputedStyle\(root\)\.getPropertyValue\("--root-top"\)/);
   });
   it("reads again when the theme's classes change, the phone's own theme changes, or the page does", () => {
     expect(src).toMatch(/watcher\.observe\(root, \{ attributes: true, attributeFilter: \["class"/);

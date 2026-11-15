@@ -228,8 +228,10 @@ describe.each([
     // The gradient is painted by one layer fixed to the screen, under everything: the body has no background of its own
     // (it would cover the layer), the root carries the top colour (overscroll, and an installed app's status bar strip),
     // and the layer's own colour is the top colour too. Where there is no gradient, the top colour is the page colour.
-    expect(css).toMatch(/\nhtml \{[^}]*?\n  background: var\(--page-top\);/);
-    expect(css).toMatch(/\nbody::before \{\s*content: "";\s*position: fixed;\s*inset: 0;\s*min-height: calc\(100lvh \+ 6rem\);\s*z-index: -1;\s*pointer-events: none;\s*background: var\(--page-wash\) no-repeat, var\(--page-top\);\s*\}/);
+    // The root paints the foot of the page (an installed iPhone app shows it below a short page); the strip behind the
+    // clock is --root-top, painted by html::after. The ground's wash spans the screen and the foot colour runs on.
+    expect(css).toMatch(/\nhtml \{[^}]*?\n  --root-top: var\(--page-top\);\s*--root-foot: color-mix\(in srgb, var\(--page-top\) 8%, var\(--bg\)\);\s*background: var\(--root-foot\);/);
+    expect(css).toMatch(/\nbody::before \{\s*content: "";\s*position: fixed;\s*inset: 0;\s*min-height: calc\(100lvh \+ 6rem\);\s*z-index: -1;\s*pointer-events: none;\s*background: var\(--page-wash\) no-repeat 0 0 \/ 100% 100lvh, var\(--root-foot\);\s*\}/);
     // The top of the screen is solid (Caden, Nov 14): every band that was glass is the page's top colour with no blur
     // and no mask, a blank bar leaves with its row on the way down, and a job's photograph keeps only plain shade.
     const solidTop = css.slice(css.indexOf("/* ---- The top of the screen is solid"));
@@ -249,7 +251,7 @@ describe.each([
     expect(noBar).toMatch(/@media \(prefers-contrast: more\), \(prefers-reduced-transparency: reduce\), \(forced-colors: active\) \{\s*html:not\(\.sun\) body:not\(:has\(\.job-photo-head, \.staff-band, \.thread-top\)\)::after \{\s*display: block !important;/);
     // Between screens the layer that holds the two pages' pictures has the page's ground behind it and its foot
     // colour below it: the bare root (the top colour) never shows as a band across the bottom.
-    expect(css).toMatch(/::view-transition \{\s*pointer-events: none;[\s\S]*?background: var\(--page-wash\) no-repeat, var\(--page-top\);\s*box-shadow: 0 6rem 0 0 color-mix\(in srgb, var\(--page-top\) 8%, var\(--bg\)\);\s*\}/);
+    expect(css).toMatch(/::view-transition \{\s*pointer-events: none;[\s\S]*?background: var\(--page-wash\) no-repeat 0 0 \/ 100% 100lvh, var\(--root-foot\);\s*box-shadow: 0 6rem 0 0 var\(--root-foot\);\s*\}/);
     // Installed on an iPhone: a short page is one pixel taller than the screen count (the dock's jump between tabs),
     // never a chat, and never by more than a pixel (a taller root would scroll the header away on a short page).
     expect(css).toMatch(/@supports \(-webkit-touch-callout: none\) \{\s*@media \(display-mode: standalone\) \{\s*html:not\(:has\(\.thread-top\)\) \{\s*min-height: calc\(100% \+ 1px\);\s*\}/);
@@ -259,7 +261,7 @@ describe.each([
     // weak as the root's own rule (:where), and before the drawer's rule, which must win while the drawer is open.
     expect(css).toMatch(/--header-root: var\(--page-top\);/);
     const bare = css.replace(/\/\*[\s\S]*?\*\//g, "");
-    expect(bare).toMatch(/@media screen \{\s*html:where\(:has\(\.site-header:not\(\.site-header-worker\)\)\) \{\s*background: var\(--header-root\);\s*\}\s*\}\s*@media screen and \(min-width: 48rem\) \{\s*html:where\(:has\(\.site-header\)\) \{\s*background: var\(--header-root\);\s*\}\s*\}\s*@media screen \{\s*html:where\(:has\(\.thread-top\)\) \{\s*background: var\(--bg\);\s*\}\s*\}/);
+    expect(bare).toMatch(/@media screen \{\s*html:where\(:has\(\.site-header:not\(\.site-header-worker\)\)\) \{\s*--root-top: var\(--header-root\);\s*\}\s*\}\s*@media screen and \(min-width: 48rem\) \{\s*html:where\(:has\(\.site-header\)\) \{\s*--root-top: var\(--header-root\);\s*\}\s*\}\s*@media screen \{\s*html:where\(:has\(\.thread-top\)\) \{\s*--root-top: var\(--bg\);\s*--root-foot: var\(--bg\);\s*\}\s*\}/);
     expect(css.indexOf("html:where(:has(.thread-top))")).toBeLessThan(css.indexOf("html:has(.more-sheet[open]) {"));
     expect(css.indexOf("\nhtml {")).toBeLessThan(css.indexOf("html:where(:has(.site-header:not(.site-header-worker)))"));
     expect(css).toMatch(/body:has\(\.more-sheet\[open\]\) \{\s*--page-wash: none;\s*background-color: var\(--drawer-root\);[^}]*?--page-top: var\(--drawer-root\);/);
@@ -810,7 +812,7 @@ describe("the shell (redesign B1.4)", () => {
     const depthOf = (src: string) => src.split("{").length - src.split("}").length;
     expect(depthOf(before)).toBe(1); // inside @media screen only
     expect(before.slice(before.lastIndexOf("@media"))).toMatch(/^@media screen \{\s*$/);
-    expect(css).toMatch(/html:has\(\.more-sheet\[open\]\) \{\s*background: var\(--drawer-root\);/);
+    expect(css).toMatch(/html:has\(\.more-sheet\[open\]\) \{\s*--root-top: var\(--drawer-root\);\s*--root-foot: var\(--drawer-root\);/);
     for (const body of [themeBody(css, ".sun"), css.slice(css.indexOf("@media (prefers-reduced-transparency: reduce)"))]) expect(body).toMatch(/--drawer-root: var\(--surface\);/);
     // The body takes it too, and the backdrop is clear: an iPhone colours the strip from the page or from whatever is fixed
     // across the top, and a dim backdrop made it a dark band (Caden's phone, Nov 11). The drawer's own shadow dims the page.
@@ -999,7 +1001,7 @@ describe("the shell (redesign B1.4)", () => {
     expect(css).toMatch(/\.phone-top \{[^}]*padding-top: calc\(0\.75rem \+ env\(safe-area-inset-top\)\);/);
     expect(css).toMatch(/body:has\(\.thread-top\) \.thread-top \{\s*top: env\(safe-area-inset-top\);/);
     // One cap under the clock for every page and mode, in the root's own colour, under the glass and the headers.
-    expect(css).toMatch(/\nhtml::after \{\s*content: "";\s*position: fixed;\s*inset: 0 0 auto;\s*height: env\(safe-area-inset-top\);\s*z-index: 43;\s*pointer-events: none;\s*background: inherit;/);
+    expect(css).toMatch(/\nhtml::after \{\s*content: "";\s*position: fixed;\s*inset: 0 0 auto;\s*height: env\(safe-area-inset-top\);\s*z-index: 43;\s*pointer-events: none;\s*background: var\(--root-top\);/);
     expect(css).toMatch(/@media print \{\s*html::after \{\s*display: none;/);
     // The phone's clock is white there: on a pale page with no purple the cap goes dark so it can be read.
     expect(css).toMatch(/html\.sun::after,\s*html:not\(\.dark\):has\(\.thread-top\)::after \{\s*background: var\(--shell-bg\);/);

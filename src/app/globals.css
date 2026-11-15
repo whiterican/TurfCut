@@ -322,9 +322,14 @@
    sheet, map controls, icon buttons, sticky table headers). Plain paper now;
    the names stay so every surface rule reads the same way. */
 html {
-  /* The root paints the colour at the top of the page: what overscroll shows, and what an installed app's
-     status bar strip takes. The page itself is painted by the fixed layer under the body (below). */
-  background: var(--page-top);
+  /* Two colours (Caden's iPhone, Nov 15). --root-top is the strip behind the clock and battery: html::after paints
+     it and the theme-color tag carries it (components/StatusStripColor.tsx). The root itself paints --root-foot,
+     the colour at the foot of the page: an installed iPhone app counts a page too short to scroll as shorter than
+     the screen, and shows the root's own colour in the band below that; the top colour there was a purple bar
+     across the bottom of every short page. The page itself is painted by the fixed layer under the body (below). */
+  --root-top: var(--page-top);
+  --root-foot: color-mix(in srgb, var(--page-top) 8%, var(--bg));
+  background: var(--root-foot);
   /* More reflective and more see-through (Caden, later on Nov 10): thinner panes, a diagonal
      glint with a bright rim, a richer blur. Icon-only panes go as thin as their icons allow
      (3:1 over the worst thing behind them); panes with text stay denser (AA for muted text). */
@@ -515,7 +520,7 @@ body::before {
   min-height: calc(100lvh + 6rem);
   z-index: -1;
   pointer-events: none;
-  background: var(--page-wash) no-repeat, var(--page-top);
+  background: var(--page-wash) no-repeat 0 0 / 100% 100lvh, var(--root-foot);
 }
 
 body {
@@ -3968,7 +3973,7 @@ html::after {
   height: env(safe-area-inset-top);
   z-index: 43;
   pointer-events: none;
-  background: inherit;
+  background: var(--root-top);
 }
 /* The phone draws the clock in white there, whatever is behind it. Where the page under it is pale and has no
    purple (Sunlight, made to be read outdoors, and a chat by day), the cap is the dock's dark colour, so the
@@ -4046,8 +4051,8 @@ body {
      same strip was closed on a page at rest). The layer that holds the pictures now has the page's own ground
      behind them, and carries the ground's foot colour 6rem below itself in case the layer stops short too.
      Not checked on a phone from here. */
-  background: var(--page-wash) no-repeat, var(--page-top);
-  box-shadow: 0 6rem 0 0 color-mix(in srgb, var(--page-top) 8%, var(--bg));
+  background: var(--page-wash) no-repeat 0 0 / 100% 100lvh, var(--root-foot);
+  box-shadow: 0 6rem 0 0 var(--root-foot);
 }
 /* A chat and the open menu drawer set their ground on the body, which that layer does not inherit from. */
 html:has(.thread-top)::view-transition {
@@ -4625,23 +4630,25 @@ body:has(.thread-top) {
      worker's phone the header is hidden (the menu button stands alone), so the strip there is the purple.
      :where() keeps these as weak as the root's own rule, so the drawer's rule below still wins. */
   html:where(:has(.site-header:not(.site-header-worker))) {
-    background: var(--header-root);
+    --root-top: var(--header-root);
   }
 }
 @media screen and (min-width: 48rem) {
   html:where(:has(.site-header)) {
-    background: var(--header-root);
+    --root-top: var(--header-root);
   }
 }
 @media screen {
   /* A chat has no gradient: its strip is the plain page colour, as its bar expects. After the two above, so it wins. */
   html:where(:has(.thread-top)) {
-    background: var(--bg);
+    --root-top: var(--bg);
+    --root-foot: var(--bg);
   }
 }
 @media screen {
   html:has(.more-sheet[open]) {
-    background: var(--drawer-root);
+    --root-top: var(--drawer-root);
+    --root-foot: var(--drawer-root);
   }
   /* No gradient either: it would show through the top of the pane and not in the strip. */
   body:has(.more-sheet[open]) {
@@ -4734,7 +4741,7 @@ html:not(.sun) .site-header {
 /* With no bar below it, the strip under the clock is the top of the page's own gradient, sized as the page's ground
    is (body::before), so it meets the page with no edge. A chat by day keeps its dark strip (the rule above). */
 html:not(.sun):not(:has(.thread-top, .more-sheet[open]))::after {
-  background: var(--page-wash) no-repeat 0 0 / 100% calc(100lvh + 6rem), var(--page-top);
+  background: var(--page-wash) no-repeat 0 0 / 100% 100lvh, var(--page-top);
 }
 /* Not for anyone who asked their device for more contrast or less transparency, nor in forced colours: there the
    solid bar of the fallback above comes back, since text passing under the row is the opposite of what they asked.
@@ -4755,6 +4762,6 @@ html:not(.sun):not(:has(.thread-top, .more-sheet[open]))::after {
     --header-bg: var(--bg);
   }
   html:not(.sun):not(:has(.thread-top, .more-sheet[open]))::after {
-    background: inherit;
+    background: var(--root-top);
   }
 }

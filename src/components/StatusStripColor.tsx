@@ -4,13 +4,13 @@ import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 
 /**
- * Tells the phone what colour the strip behind the clock and battery is: the colour the root is
- * painted (globals.css), kept in <meta name="theme-color">. An installed iPhone app takes that
+ * Tells the phone what colour the strip behind the clock and battery is: the root's --root-top
+ * (globals.css), kept in <meta name="theme-color">. An installed iPhone app takes that
  * strip from the page once and does not look again, so after a change of theme the strip kept
  * the old theme's colour (Caden's iPhone, Nov 12: a light strip over the dark app).
  *
- * The root's colour changes with the theme (classes on the root), the page (a header or a chat),
- * and the menu drawer, so it is read again after each of those, once a frame. Renders nothing.
+ * The strip's colour (--root-top) changes with the theme (classes on the root), the page (a header
+ * or a chat), and the menu drawer, so it is read again after each of those, once a frame. Renders nothing.
  */
 export function StatusStripColor() {
   const pathname = usePathname();
@@ -34,7 +34,8 @@ export function StatusStripColor() {
     let plain = "";
     const read = () => {
       frame = 0;
-      const computed = getComputedStyle(root).backgroundColor;
+      // The strip's colour, not the root's own: the root paints the foot of the page (globals.css --root-foot).
+      const computed = getComputedStyle(root).getPropertyValue("--root-top").trim();
       if (!computed) return;
       if (computed !== seen) {
         seen = computed;

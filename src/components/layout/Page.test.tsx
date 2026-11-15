@@ -61,7 +61,7 @@ describe("page templates (redesign §4.2.2)", () => {
     // What Tab moves to is scrolled clear of the bar.
     // On a phone the bar goes down with the dock and comes back with it, on the dock's own conditions, and its colour
     // runs on below it so nothing reads under it. No :has() inside a :has(): that is invalid and drops the rule.
-    expect(css).toMatch(/html:not\(\[data-motion="reduce"\]\) body:not\(:has\(\.composer\)\):has\(\.tabbar\[data-tucked\]\):not\(:has\(\.tabbar :focus-visible\)\) \.tpl-foot \{\s*translate: 0 6rem;/);
+    expect(css).toMatch(/html:not\(\[data-motion="reduce"\]\) body:not\(:has\(\.composer\)\):has\(\.tabbar\[data-tucked\]\):not\(:has\(\.tabbar :focus-visible\)\) \.tpl-foot \{\s*\/\*[^*]*\*\/\s*translate: 0 calc\(var\(--dock-clearance\) - env\(safe-area-inset-bottom\)\);/);
     expect(css).toMatch(/\.tpl-foot \{[^}]*box-shadow: 0 5rem 0 5rem var\(--bg\);\s*transition: translate var\(--dur-slow\) var\(--ease-out\);/);
     expect(css).not.toContain(".tpl-foot::after");
     expect(css).not.toMatch(/:has\([^()]*(\([^()]*\)[^()]*)*:has\(/);

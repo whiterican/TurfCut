@@ -230,6 +230,16 @@ describe.each([
     // and the layer's own colour is the top colour too. Where there is no gradient, the top colour is the page colour.
     expect(css).toMatch(/\nhtml \{[^}]*?\n  background: var\(--page-top\);/);
     expect(css).toMatch(/\nbody::before \{\s*content: "";\s*position: fixed;\s*inset: 0;\s*min-height: calc\(100lvh \+ 6rem\);\s*z-index: -1;\s*pointer-events: none;\s*background: var\(--page-wash\) no-repeat, var\(--page-top\);\s*\}/);
+    // The top of the screen is solid (Caden, Nov 14): every band that was glass is the page's top colour with no blur
+    // and no mask, a blank bar leaves with its row on the way down, and a job's photograph keeps only plain shade.
+    const solidTop = css.slice(css.indexOf("/* ---- The top of the screen is solid"));
+    expect(solidTop).toMatch(/html:not\(\.sun\) \.phone-top::before,[\s\S]*?\{\s*background: var\(--page-top\) !important;\s*-webkit-backdrop-filter: none !important;\s*backdrop-filter: none !important;\s*-webkit-mask-image: none !important;\s*mask-image: none !important;\s*\}/);
+    expect(solidTop).toMatch(/html\[data-scroll="down"\]:not\(\.sun\):not\(:has\(\.thread-top\)\) \.phone-top:not\(:has\(:focus-visible\)\)::before,\s*html\[data-scroll="down"\]:not\(\.sun\):not\(:has\(\.thread-top\)\) body:not\(:has\(\.staff-band\)\):not\(:has\(\.site-header :focus-visible\)\)::after \{\s*opacity: 0 !important;/);
+    expect(solidTop).toMatch(/html:not\(\.sun\) \.job-photo-head::after \{\s*-webkit-backdrop-filter: none !important;\s*backdrop-filter: none !important;\s*\}/);
+    expect(solidTop).not.toMatch(/blur\(/);
+    // Between screens the layer that holds the two pages' pictures has the page's ground behind it and its foot
+    // colour below it: the bare root (the top colour) never shows as a band across the bottom.
+    expect(css).toMatch(/::view-transition \{\s*pointer-events: none;[\s\S]*?background: var\(--page-wash\) no-repeat, var\(--page-top\);\s*box-shadow: 0 6rem 0 0 color-mix\(in srgb, var\(--page-top\) 8%, var\(--bg\)\);\s*\}/);
     // Installed on an iPhone: a short page is one pixel taller than the screen count (the dock's jump between tabs),
     // never a chat, and never by more than a pixel (a taller root would scroll the header away on a short page).
     expect(css).toMatch(/@supports \(-webkit-touch-callout: none\) \{\s*@media \(display-mode: standalone\) \{\s*html:not\(:has\(\.thread-top\)\) \{\s*min-height: calc\(100% \+ 1px\);\s*\}/);

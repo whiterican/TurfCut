@@ -3304,6 +3304,26 @@ body {
     transform: translateY(calc(100% + 1.5rem + env(safe-area-inset-bottom)));
   }
 }
+/* A job's Apply bar on a phone stands on the dock's place, not above an empty one (Caden's recording, Nov 14: with
+   the dock tucked away the bar hung a third of the way up the screen, the page reading on beneath it). When the
+   dock goes down the bar goes down with it, to the foot of the screen; when the dock returns the bar rises again.
+   The same conditions as the dock's own rule above, so the two never disagree (written flat: one :has() cannot
+   sit inside another). The bar's colour runs on below it
+   (its shadow): nothing reads under the bar at the foot, nor around the dock when the two stand together. Not a
+   phone on its side, where the dock is at the side and the bar is already on the foot. */
+@media (width < 48rem) and (min-height: 34.01rem) {
+  .tpl-foot {
+    /* Spread 5rem and set 5rem down: the bar's colour from its own top edge to 10rem below it. A shadow is only
+       paint, so the page gains no length at its end (a box there would). */
+    box-shadow: 0 5rem 0 5rem var(--bg);
+    transition: translate var(--dur-slow) var(--ease-out);
+  }
+}
+@media (prefers-reduced-motion: no-preference) and (width < 48rem) and (min-height: 34.01rem) {
+  html:not([data-motion="reduce"]) body:not(:has(.composer)):has(.tabbar[data-tucked]):not(:has(.tabbar :focus-visible)) .tpl-foot {
+    translate: 0 6rem;
+  }
+}
 
 /* Summaries styled as buttons: no disclosure triangle (Safari draws its own). */
 summary.list-none::-webkit-details-marker {
@@ -3976,6 +3996,23 @@ body {
 /* Taps during an animation reach the new page. */
 ::view-transition {
   pointer-events: none;
+  /* While one screen gives way to the next, the phone draws pictures of the two pages over the bare root, whose
+     colour is the top of the page. On an iPhone the pictures can stop short of the foot of the screen, and the
+     strip left over flashed that top colour across the bottom on every change of screen (Caden, Nov 14, after the
+     same strip was closed on a page at rest). The layer that holds the pictures now has the page's own ground
+     behind them, and carries the ground's foot colour 6rem below itself in case the layer stops short too.
+     Not checked on a phone from here. */
+  background: var(--page-wash) no-repeat, var(--page-top);
+  box-shadow: 0 6rem 0 0 color-mix(in srgb, var(--page-top) 8%, var(--bg));
+}
+/* A chat and the open menu drawer set their ground on the body, which that layer does not inherit from. */
+html:has(.thread-top)::view-transition {
+  background: var(--bg);
+  box-shadow: 0 6rem 0 0 var(--bg);
+}
+html:has(.more-sheet[open])::view-transition {
+  background: var(--drawer-root);
+  box-shadow: 0 6rem 0 0 var(--drawer-root);
 }
 
 /* Default (tabs, buttons): the old page fades quickly, the new one rises in. */
@@ -4556,5 +4593,62 @@ body:has(.thread-top) {
     background-color: var(--drawer-root);
     /* The fixed layer under the page takes the drawer's colour too, in case the strip is read from it. */
     --page-top: var(--drawer-root);
+  }
+}
+
+/* ---- The top of the screen is solid (Caden, Nov 14) ------------------------------------ */
+/* "Remove the blur effect from the top: it's causing too many issues and would look better with the solid colours
+   on each screen." Every band across the top that was glass (a gradient that thinned out, a blur behind it and a
+   mask that feathered it) is now the page's own top colour, opaque, with a straight edge and no blur. The rules
+   above still say where each band is, how wide, and when it shows; this block only says what it is made of and
+   how tall. Sunlight was plain already and is left alone. A chat's bar and the staff band are surfaces, not
+   glass, and are untouched. */
+html:not(.sun) .phone-top::before,
+html:not(.sun) body:has(.org-rail)::after,
+html:not(.sun) body:has(.site-header:not(.site-header-worker)):not(:has(.thread-top))::after,
+html:not(.sun) body:has(.job-photo-head):has(.tpl):not(:has(.thread-top))::after {
+  background: var(--page-top) !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  -webkit-mask-image: none !important;
+  mask-image: none !important;
+}
+/* A worker's phone: the bar is the height of the row the profile pill sits in, not the taller fade. */
+html:not(.sun) .phone-top::before {
+  height: calc(4rem + env(safe-area-inset-top));
+}
+/* A header's bar is the header's height: the 1.5rem below it was the fade. */
+html:not(.sun) body:has(.org-rail):not(:has(.staff-band))::after,
+html:not(.sun) body:has(.site-header:not(.site-header-worker)):not(:has(.thread-top, .staff-band))::after {
+  height: var(--site-header-h) !important;
+}
+/* The header itself, where it had a pane of its own (from 768): the same solid colour, no blur. */
+html:not(.sun) .site-header {
+  --header-bg: var(--page-top);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+/* A solid bar with nothing on it would be a blank block: when the row it stands behind leaves on the way down,
+   the bar leaves with it, and the strip under the clock (html::after, always solid) is what is left. A row held
+   in place by keyboard focus keeps its bar. */
+html[data-scroll="down"]:not(.sun):not(:has(.thread-top)) .phone-top:not(:has(:focus-visible))::before,
+html[data-scroll="down"]:not(.sun):not(:has(.thread-top)) body:not(:has(.staff-band)):not(:has(.site-header :focus-visible))::after {
+  opacity: 0 !important;
+}
+@media (width < 48rem) {
+  /* A job's page on a phone: the photograph still runs to the top of the screen. The shade under the clock stays
+     (the phone draws the clock in white, and a pale photograph would lose it) but it is only shade now: nothing
+     behind it is blurred. Once the photograph has gone by, the strip under the clock is the page's top colour
+     and no taller than the clock's own strip; the page has no row there for it to leave with, so it stays on the
+     way down too. */
+  html:not(.sun) .job-photo-head::after {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+  html:not(.sun) body:has(.job-photo-head):has(.tpl):not(:has(.thread-top))::after {
+    height: env(safe-area-inset-top) !important;
+  }
+  html[data-past-photo][data-scroll="down"]:not(.sun):not(:has(.thread-top)) body:has(.job-photo-head):has(.tpl):not(:has(.staff-band))::after {
+    opacity: 1 !important;
   }
 }

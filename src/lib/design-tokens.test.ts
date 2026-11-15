@@ -237,6 +237,12 @@ describe.each([
     expect(solidTop).toMatch(/html\[data-scroll="down"\]:not\(\.sun\):not\(:has\(\.thread-top\)\) \.phone-top:not\(:has\(:focus-visible\)\)::before,\s*html\[data-scroll="down"\]:not\(\.sun\):not\(:has\(\.thread-top\)\) body:not\(:has\(\.staff-band\)\):not\(:has\(\.site-header :focus-visible\)\)::after \{\s*opacity: 0 !important;/);
     expect(solidTop).toMatch(/html:not\(\.sun\) \.job-photo-head::after \{\s*-webkit-backdrop-filter: none !important;\s*backdrop-filter: none !important;\s*\}/);
     expect(solidTop).not.toMatch(/blur\(/);
+    // No bar behind the top row (Caden, Nov 15): the logo and buttons stand on the page's gradient at every width; only
+    // the strip under the clock, a job photo's shade and the surfaces (chat, staff, Sunlight) remain.
+    const noBar = css.slice(css.indexOf("/* ---- No bar behind the top row"));
+    expect(noBar).toMatch(/html:not\(\.sun\) \.phone-top::before \{\s*display: none !important;/);
+    expect(noBar).toMatch(/html:not\(\.sun\) body:not\(:has\(\.job-photo-head, \.staff-band, \.thread-top\)\)::after \{\s*display: none !important;/);
+    expect(noBar).toMatch(/html:not\(\.sun\) \.site-header \{\s*--header-bg: transparent;/);
     // Between screens the layer that holds the two pages' pictures has the page's ground behind it and its foot
     // colour below it: the bare root (the top colour) never shows as a band across the bottom.
     expect(css).toMatch(/::view-transition \{\s*pointer-events: none;[\s\S]*?background: var\(--page-wash\) no-repeat, var\(--page-top\);\s*box-shadow: 0 6rem 0 0 color-mix\(in srgb, var\(--page-top\) 8%, var\(--bg\)\);\s*\}/);

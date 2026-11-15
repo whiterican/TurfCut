@@ -44,6 +44,7 @@ npm run dev   # → http://localhost:3000
 | `npm run lint`     | ESLint                                    |
 | `npm test`         | Vitest (run once)                         |
 | `npm run seed`     | Seed the database (`prisma/seed.ts`)      |
+| `npm run seed:demo-accounts` | Demo logins, dedicated demo project only (`prisma/demo-accounts.ts`) |
 | `npm run db:push`  | Push Prisma schema to the database        |
 | `npm run db:generate` | Regenerate the Prisma client           |
 | `npm run test:acceptance` | Data-layer checks on a real Postgres (`tests/acceptance/`) |
@@ -386,6 +387,40 @@ WHERE status = 'PUBLISHED' AND "orgId" IN (
   SELECT (jsonb_array_elements_text(metadata -> 'orgIds'))::uuid
   FROM "AuditEvent" WHERE action = 'demo.seeded');
 ```
+
+### Demo logins (a dedicated demo project only)
+
+To show the organizer side live (post → hire → schedule → review →
+approve pay as a second person → Pay now), run the demo on its **own**
+Supabase project and database, never the live one, and give the demo staff
+logins there:
+
+```bash
+# In the demo project's shell only. Nothing here goes in a committed file.
+export DATABASE_URL=…                 # the demo project's database
+npm run seed && npm run seed:demo -- --yes
+npm run seed:demo-accounts -- --plan  # lists every login it would make; writes nothing
+export NEXT_PUBLIC_SUPABASE_URL=https://<demo-ref>.supabase.co
+export SUPABASE_SERVICE_ROLE_KEY=…    # the demo project's secret key
+export TURFCUT_DEMO_PROJECT_REF=<demo-ref>   # must match the URL: "yes, this is the demo project"
+export DEMO_ACCOUNTS_PASSWORD=…       # 12+ characters, shared by every demo login
+npm run seed:demo-accounts -- --yes
+```
+
+It adds a finance person to each demo organization, then creates a
+confirmed login for each organization's **owner, supervisor and finance
+person**, and for the first demo worker. Each login takes the existing demo
+profile's id, so nothing is relinked. Emails are
+`owner.<organization>@example.com`, `supervisor.…`, `finance.…` and
+`worker.<name>@example.com` (a reserved domain, so nothing is delivered;
+`DEMO_ACCOUNTS_EMAIL_DOMAIN` changes it). Owners and finance approve pay
+and supervisors review the work, so the two-person pay rule can be shown:
+review a shift as the supervisor, approve its pay as the owner or finance.
+
+The warning above still holds everywhere else. The script refuses a
+project that has anyone the seeds didn't make: a profile in the database or
+a login in Supabase Auth that isn't a demo login means real people use it.
+Re-running it leaves existing logins alone; the password is never stored.
 
 ## S1 scope — campaign pages (the social layer, campaign side)
 

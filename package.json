@@ -14,6 +14,7 @@
     "test": "vitest run",
     "seed": "tsx prisma/seed.ts",
     "seed:demo": "tsx prisma/demo-seed.ts",
+    "seed:demo-accounts": "tsx prisma/demo-accounts.ts",
     "db:push": "prisma db push",
     "db:generate": "prisma generate",
     "test:acceptance": "tests/acceptance/run.sh"

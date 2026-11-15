@@ -163,11 +163,15 @@ async function main() {
   const holder = stripeAccount ? await p.worker.findUnique({ where: { stripeAccountId: stripeAccount }, select: { id: true } }) : null;
   const link = stripeAccount && firstWorker ? connectLinkPlan(stripeAccount, firstWorker, holder) : null;
   if (link?.action === "refuse") stop(link.reason);
+  if (link?.action === "skip") console.warn(link.reason);
 
   if (planOnly) {
     console.log(`Demo logins (${planned.length}), for a dedicated demo project only:`);
     printPlan(planned, addFinance);
-    if (link && firstWorker) console.log(`  Stripe test account ${stripeAccount} → ${firstWorker.displayName}${link.action === "keep" ? " (already linked)" : ""}`);
+    if (link && firstWorker) {
+      if (link.action === "skip") console.log(`  Stripe test account ${stripeAccount} left unlinked: the demo worker already has another account`);
+      else console.log(`  Stripe test account ${stripeAccount} → ${firstWorker.displayName}${link.action === "keep" ? " (already linked)" : ""}`);
+    }
     console.log("Nothing was written. Go ahead with --yes (see the header for the settings it needs).");
     return;
   }
@@ -205,23 +209,32 @@ async function main() {
     made.push(a);
   }
   let linked = false;
+  const markerData = (stripeWorkerId?: string) => ({
+    ...MARKER,
+    actorId: null,
+    metadata: {
+      profileIds: accounts.map((a) => a.profileId),
+      emails: accounts.map((a) => a.email),
+      created: made.length,
+      financeAdded: addFinance.length,
+      ...(stripeWorkerId ? { stripeTestAccountWorkerId: stripeWorkerId } : {}),
+    },
+  });
   if (link?.action === "link" && firstWorker && stripeAccount) {
     // As the app's own onboarding does: not payable until Stripe says so (asked again right before every payment).
-    await p.worker.update({ where: { id: firstWorker.id }, data: { stripeAccountId: stripeAccount, payoutsEnabled: false, payoutsCheckedAt: null } });
-    linked = true;
-  }
-  if (made.length || addFinance.length || linked) {
-    await p.auditEvent.create({
-      data: {
-        ...MARKER,
-        actorId: null,
-        metadata: { profileIds: accounts.map((a) => a.profileId), emails: accounts.map((a) => a.email), created: made.length, financeAdded: addFinance.length, ...(linked ? { stripeTestAccountWorkerId: firstWorker!.id } : {}) },
-      },
+    // The link and the completion marker are written in one transaction.
+    await p.$transaction(async (tx) => {
+      await tx.worker.update({ where: { id: firstWorker.id }, data: { stripeAccountId: stripeAccount, payoutsEnabled: false, payoutsCheckedAt: null } });
+      await tx.auditEvent.create({ data: markerData(firstWorker.id) });
     });
+    linked = true;
+  } else if (made.length || addFinance.length) {
+    await p.auditEvent.create({ data: markerData() });
   }
   console.log(`Demo logins ready (${made.length} new, ${accounts.length - made.length} already there). Password: the DEMO_ACCOUNTS_PASSWORD you set.`);
   printPlan(accounts, []);
-  if (link && firstWorker) console.log(`  Stripe test account ${stripeAccount} → ${firstWorker.displayName}${linked ? "" : " (already linked)"}`);
+  if (link?.action === "skip" && firstWorker) console.log(`  Stripe test account ${stripeAccount} left unlinked: ${firstWorker.displayName} already has another account`);
+  else if (link && firstWorker) console.log(`  Stripe test account ${stripeAccount} → ${firstWorker.displayName}${linked ? "" : " (already linked)"}`);
 }
 
 main()

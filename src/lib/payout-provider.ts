@@ -1,5 +1,5 @@
 import Stripe from "stripe";
-import { getStripeSecretKey, getStripeWebhookSecrets, hasStripeConfig } from "@/lib/env";
+import { getStripeSecretKey, getStripeWebhookSecrets, hasStripeConfig, stripeWebhookLivemodeProblem } from "@/lib/env";
 
 /**
  * Where money actually moves (M5): Stripe Connect, Express accounts.
@@ -136,6 +136,8 @@ export function stripeProvider(): PayoutProvider {
         }
       }
       if (!e) throw new Error("invalid webhook signature");
+      const live = stripeWebhookLivemodeProblem(e.livemode);
+      if (live) throw new Error(live);
       const out: ProviderEvent = { id: e.id, type: e.type, createdAt: new Date(e.created * 1000) };
       if (e.type.startsWith("transfer.")) {
         const t = e.data.object as Stripe.Transfer;

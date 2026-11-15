@@ -236,10 +236,50 @@ export function siteOriginOf(v: string | undefined): string | null {
   }
 }
 
+/** sk_test_/rk_test_ vs sk_live_/rk_live_. Leading and trailing space is ignored for the mode check. */
+export function stripeSecretKeyMode(key: string | undefined): "none" | "test" | "live" | "unknown" {
+  if (!key) return "none";
+  const t = key.trim();
+  if (/^(sk|rk)_test_/.test(t)) return "test";
+  if (/^(sk|rk)_live_/.test(t)) return "live";
+  return "unknown";
+}
+
+/**
+ * When a live Stripe secret key must be refused. TURFCUT_DEMO=1 always
+ * refuses sk_live_ and rk_live_. So does a set VERCEL_ENV that isn't
+ * "production" (preview or development). Unset VERCEL_ENV (local or CI)
+ * and production are left alone, unless the demo flag is set.
+ */
+export function liveStripeKeyProblem(key: string, env: NodeJS.Dict<string> = process.env): string | null {
+  if (stripeSecretKeyMode(key) !== "live") return null;
+  if (env.TURFCUT_DEMO === "1") {
+    return "TURFCUT_DEMO=1 is set, but STRIPE_SECRET_KEY is a live key (sk_live_ or rk_live_). Demo deploys must use a test key.";
+  }
+  if (env.VERCEL_ENV && env.VERCEL_ENV !== "production") {
+    return "This deployment isn't production (VERCEL_ENV is preview or development), but STRIPE_SECRET_KEY is a live key. Use a test key.";
+  }
+  return null;
+}
+
+/** Live-mode Stripe webhook events: refused in demo mode, and on non-production Vercel deploys. */
+export function stripeWebhookLivemodeProblem(livemode: boolean, env: NodeJS.Dict<string> = process.env): string | null {
+  if (!livemode) return null;
+  if (env.TURFCUT_DEMO === "1") {
+    return "TURFCUT_DEMO=1 is set, but this Stripe event is from live mode. Demo deploys only accept test-mode events.";
+  }
+  if (env.VERCEL_ENV && env.VERCEL_ENV !== "production") {
+    return "This deployment isn't production (VERCEL_ENV is preview or development), but this Stripe event is from live mode.";
+  }
+  return null;
+}
+
 /** Stripe secret key (M5 payouts). Server only. */
 export function getStripeSecretKey(): string {
   const v = process.env.STRIPE_SECRET_KEY;
   if (!v) throw missing("STRIPE_SECRET_KEY");
+  const problem = liveStripeKeyProblem(v);
+  if (problem) throw new Error(problem);
   return v;
 }
 

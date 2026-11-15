@@ -16,7 +16,9 @@ export async function POST(req: Request) {
   let event: ProviderEvent;
   try {
     event = provider.parseWebhook(raw, signature);
-  } catch {
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "";
+    if (/live mode/.test(msg)) return new NextResponse(msg, { status: 400 });
     return new NextResponse("Invalid signature.", { status: 400 });
   }
   try {

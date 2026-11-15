@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
+import { DEMO_SEEDED_MARKER, liveStripeDemoPayProblem, seededDemoIdsFromMarkers } from "@/lib/demo-accounts";
 import { UUID_RE } from "@/lib/jobs";
 import { canUse, liveGrants, rolesFor, type Grants } from "@/lib/access";
 import type { Role } from "@/lib/auth";
@@ -933,6 +934,12 @@ export async function refreshPayoutStatus(workerId: string, provider: PayoutProv
 
 type PayRun = { ok: true; transferId: string; outcome: "paid" | "pending" | "failed"; message: string } | { ok: false; reason: string };
 
+/** Live Stripe keys must never pay seeded demo data, whatever the env flags say. Checked before any Stripe call. */
+async function liveDemoPayBlock(workerId: string, orgId: string): Promise<string | null> {
+  const rows = await db().auditEvent.findMany({ where: DEMO_SEEDED_MARKER, select: { metadata: true } });
+  return liveStripeDemoPayProblem(process.env.STRIPE_SECRET_KEY, workerId, orgId, seededDemoIdsFromMarkers(rows));
+}
+
 /**
  * Pays one worker everything approved and unpaid at this organization, in
  * one Stripe transfer. Step 1 records the transfer and marks its lines as
@@ -948,6 +955,8 @@ export async function payWorker(actor: PayActor, workerId: string, provider: Pay
   if (!provider.configured()) return { ok: false, reason: "Stripe isn't connected yet, so pay can't be sent. Approved pay is kept until it is." };
   const worker = await db().worker.findUnique({ where: { id: workerId }, select: { stripeAccountId: true } });
   if (!worker?.stripeAccountId) return { ok: false, reason: "This worker hasn't set up payouts with Stripe yet." };
+  const blocked = await liveDemoPayBlock(workerId, actor.orgId);
+  if (blocked) return { ok: false, reason: blocked };
   // Always ask Stripe right before paying: an account can be restricted later.
   try {
     if (!(await refreshPayoutStatus(workerId, provider, now))) return { ok: false, reason: "This worker's Stripe account can't receive payouts right now (setup unfinished or restricted)." };
@@ -1041,6 +1050,25 @@ export async function settleTransfer(actor: PayActor | null, transferId: string,
     return before.paid.length
       ? { ok: true, transferId, outcome: "paid", message: "This payment already went through." }
       : { ok: true, transferId, outcome: "failed", message: "This payment didn't go through; its lines can be paid again." };
+  }
+  const blocked = await liveDemoPayBlock(t.workerId, t.orgId);
+  if (blocked) {
+    try {
+      return await db().$transaction(async (tx) => {
+        await payLock(tx, t.workerId);
+        const x = await transferLines(tx, transferId);
+        if (x.inFlight.length) {
+          const at = await eventAt(tx, x.inFlight.map((l) => l.id), now);
+          await tx.payoutEvent.createMany({
+            data: x.inFlight.map((l) => ({ payoutId: l.id, type: "TRANSFER_FAILED" as const, actorId: actor?.profileId ?? null, transferId, reason: blocked.slice(0, 300), createdAt: at })),
+          });
+          await tx.auditEvent.create({ data: { actorId: actor?.profileId ?? null, action: "payout.transfer_failed", entityType: "PayoutTransfer", entityId: transferId, metadata: { reason: blocked } } });
+        }
+        return { ok: true as const, transferId, outcome: "failed" as const, message: blocked };
+      });
+    } catch {
+      return { ok: false, reason: blocked };
+    }
   }
   let ref: string | null = null;
   let refusal: string | null = null;

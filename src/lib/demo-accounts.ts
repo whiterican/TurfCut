@@ -1,4 +1,4 @@
-import { cleanDatabaseUrl } from "./env";
+import { cleanDatabaseUrl, stripeSecretKeyMode } from "./env";
 
 /**
  * Demo logins (prisma/demo-accounts.ts): the pure parts, so they can be
@@ -238,10 +238,40 @@ export function planAccounts(
  * script itself (it never calls Stripe), but the app needs a test key to pay.
  */
 export function stripeKeyMode(key: string | undefined): "none" | "test" | "live" | "unknown" {
-  if (!key) return "none";
-  if (/^(sk|rk)_test_/.test(key)) return "test";
-  if (/^(sk|rk)_live_/.test(key)) return "live";
-  return "unknown";
+  return stripeSecretKeyMode(key);
+}
+
+/** The demo seed's completion marker: metadata names the org and worker ids it made. */
+export const DEMO_SEEDED_MARKER = { action: "demo.seeded", entityType: "Demo", entityId: "demo-data" } as const;
+
+export function idsFromDemoMetadata(metadata: unknown, key: "orgIds" | "workerIds"): string[] {
+  const v = metadata && typeof metadata === "object" ? (metadata as Record<string, unknown>)[key] : null;
+  return Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : [];
+}
+
+export function seededDemoIdsFromMarkers(markers: readonly { metadata: unknown }[]): { workerIds: Set<string>; orgIds: Set<string> } {
+  return {
+    orgIds: new Set(markers.flatMap((m) => idsFromDemoMetadata(m.metadata, "orgIds"))),
+    workerIds: new Set(markers.flatMap((m) => idsFromDemoMetadata(m.metadata, "workerIds"))),
+  };
+}
+
+/**
+ * A live Stripe key must never pay a seeded demo worker or organization,
+ * whatever TURFCUT_DEMO or VERCEL_ENV say. Identified by the demo seed's
+ * marker ids, not by a " (demo)" name.
+ */
+export function liveStripeDemoPayProblem(
+  key: string | undefined,
+  workerId: string,
+  orgId: string,
+  seeded: { workerIds: ReadonlySet<string>; orgIds: ReadonlySet<string> }
+): string | null {
+  if (stripeKeyMode(key) !== "live") return null;
+  if (seeded.workerIds.has(workerId) || seeded.orgIds.has(orgId)) {
+    return "Can't send a live Stripe payment to a seeded demo worker or organization. Use Stripe test mode for demo data.";
+  }
+  return null;
 }
 
 export function stripeKeyProblem(key: string | undefined): string | null {
@@ -259,16 +289,17 @@ export function connectAccountProblem(id: string | undefined): string | null {
 
 /**
  * What linking the test account to the demo worker would do: link it, leave
- * it (already linked), or refuse (the worker already has another account,
- * or another worker has this one).
+ * it (already linked to this id), skip (the worker already has a different
+ * account — warn and continue, never replace), or refuse (another worker
+ * already holds this account).
  */
 export function connectLinkPlan(
   accountId: string,
   worker: { id: string; stripeAccountId: string | null },
   holder: { id: string } | null
-): { action: "link" | "keep" } | { action: "refuse"; reason: string } {
+): { action: "link" | "keep" } | { action: "skip" | "refuse"; reason: string } {
   if (worker.stripeAccountId === accountId) return { action: "keep" };
-  if (worker.stripeAccountId) return { action: "refuse", reason: `The demo worker already has Stripe account ${worker.stripeAccountId}; not replacing it.` };
+  if (worker.stripeAccountId) return { action: "skip", reason: `The demo worker already has Stripe account ${worker.stripeAccountId}; leaving it as is.` };
   if (holder && holder.id !== worker.id) return { action: "refuse", reason: `Stripe account ${accountId} already belongs to another worker.` };
   return { action: "link" };
 }

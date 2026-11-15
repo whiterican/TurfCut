@@ -480,9 +480,17 @@ Showing **Pay now** live needs four things. Two staff who can approve pay
 `seed:demo-accounts` refuses a live key.
 
 1. **Stripe test keys on the demo deployment.** Set `STRIPE_SECRET_KEY` to
-   the test secret key. Point a test-mode webhook endpoint at
-   `<SITE_URL>/api/stripe/webhook` (`transfer.created`, `transfer.reversed`)
-   and set `STRIPE_WEBHOOK_SECRET`. Locally, run
+   the test secret key, and set `TURFCUT_DEMO=1`. With that flag the app
+   itself refuses a live secret key (`sk_live_` or `rk_live_`) and
+   live-mode webhook events. A Vercel preview or development deploy
+   (`VERCEL_ENV` set and not `production`) also refuses a live secret key;
+   local and CI (unset `VERCEL_ENV`) and production are unchanged unless
+   the flag is set. Regardless of those flags, the pay path refuses a
+   live-key payout or transfer to a seeded demo worker or organization
+   (the ids in the `demo.seeded` marker) before any Stripe call. Point a
+   test-mode webhook endpoint at `<SITE_URL>/api/stripe/webhook`
+   (`transfer.created`, `transfer.reversed`) and set
+   `STRIPE_WEBHOOK_SECRET`. Locally, run
    `stripe listen --forward-to localhost:3000/api/stripe/webhook` and use the
    `whsec_…` it prints.
 2. **A test Connect account for the demo worker.** Pick one:
@@ -495,12 +503,13 @@ Showing **Pay now** live needs four things. Two staff who can approve pay
      Connect → Accounts), finish its onboarding, and link it:
      `DEMO_STRIPE_ACCOUNT_ID=acct_… npm run seed:demo-accounts -- --yes`.
      It links only a worker with no account, and never an account another
-     worker holds.
+     worker holds. If the worker already has a different account, the
+     script warns and continues; it doesn't replace it.
 
-   Either way, the worker counts as payable once the app has asked Stripe.
-   Signing in as the worker and opening **Earnings** once does that. So does
-   an `account.updated` webhook, or the check the app makes right before
-   every payment.
+   Signing in as the worker and opening **Earnings** once, or an
+   `account.updated` webhook, is what updates the stored payout status the
+   Pay page reads. Until then the worker shows as not yet set up, even if
+   the account is ready.
 3. **A funded test balance.** Transfers come out of the platform's Stripe
    balance. In test mode, add funds with a test payment on card
    **4000 0000 0000 0077**, which lands in the available balance at once,

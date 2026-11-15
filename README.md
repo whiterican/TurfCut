@@ -1524,6 +1524,15 @@ roles, one slice at a time.
   version's page shows the rules as the gate reads them, each open job and
   what freezes it, the other versions of the place, and Turfcut's decisions
   on it.
+- **Hiring pauses with the rules and the organization's approval (demo
+  audit, Nov 2026).** A published job whose rule profile fails the gate
+  (expired, unapproved, superseded, not yet effective), or whose
+  organization Turfcut no longer approves, leaves the workers' feed.
+  Applying, claiming, inviting, sending an offer and accepting one are
+  refused with the reason ("Hiring is paused on this job: …"), not only
+  scheduling. Review, decline and withdraw still work. People already
+  hired keep their place, and scheduling them follows its own freeze.
+  Everything opens again once the reason clears.
 - **A rule change is a new version.** "Propose a new version" prefills the
   form from the current rules: pay methods (ticking per-unit records
   counsel's explicit per-unit approval, which the gate requires), the three

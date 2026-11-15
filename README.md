@@ -397,12 +397,12 @@ logins there:
 
 ```bash
 # In the demo project's shell only. Nothing here goes in a committed file.
-export DATABASE_URL=…                 # the demo project's database
+export DATABASE_URL=…                 # the demo project's database (same project as the URL below)
 npm run seed && npm run seed:demo -- --yes
 npm run seed:demo-accounts -- --plan  # lists every login it would make; writes nothing
 export NEXT_PUBLIC_SUPABASE_URL=https://<demo-ref>.supabase.co
 export SUPABASE_SERVICE_ROLE_KEY=…    # the demo project's secret key
-export TURFCUT_DEMO_PROJECT_REF=<demo-ref>   # must match the URL: "yes, this is the demo project"
+export TURFCUT_DEMO_PROJECT_REF=<demo-ref>   # must equal the URL's project ref: "yes, this is the demo project"
 export DEMO_ACCOUNTS_PASSWORD=…       # 12+ characters, shared by every demo login
 npm run seed:demo-accounts -- --yes
 ```
@@ -417,10 +417,13 @@ profile's id, so nothing is relinked. Emails are
 and supervisors review the work, so the two-person pay rule can be shown:
 review a shift as the supervisor, approve its pay as the owner or finance.
 
-The warning above still holds everywhere else. The script refuses a
-project that has anyone the seeds didn't make: a profile in the database or
-a login in Supabase Auth that isn't a demo login means real people use it.
-Re-running it leaves existing logins alone; the password is never stored.
+The warning above still holds everywhere else. The script always refuses
+the live Turfcut Supabase project. For a hosted Supabase URL it also
+refuses unless `DATABASE_URL` is the same project (`db.<ref>.supabase.co`
+or pooler user `postgres.<ref>`). And it refuses a project that has anyone
+the seeds didn't make: a profile in the database or a login in Supabase
+Auth that isn't a demo login means real people use it. Re-running it
+leaves existing logins alone; the password is never stored.
 
 ## S1 scope — campaign pages (the social layer, campaign side)
 

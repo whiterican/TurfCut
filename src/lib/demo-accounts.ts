@@ -1,3 +1,5 @@
+import { cleanDatabaseUrl } from "./env";
+
 /**
  * Demo logins (prisma/demo-accounts.ts): the pure parts, so they can be
  * tested without a database or Supabase.
@@ -68,7 +70,10 @@ export function emailDomainProblem(domain: string): string | null {
 export function passwordProblem(pw: string | undefined): string | null {
   if (!pw) return "Set DEMO_ACCOUNTS_PASSWORD in the shell (never in a committed file): the password every demo login gets.";
   if (pw.length < DEMO_PASSWORD_MIN) return `DEMO_ACCOUNTS_PASSWORD must be at least ${DEMO_PASSWORD_MIN} characters.`;
-  if (/^(password|changeme|change-me|demo|turfcut)/i.test(pw)) return "DEMO_ACCOUNTS_PASSWORD looks like a placeholder: pick a real one for the demo project.";
+  // Whole words anywhere, not only at the start: "xx-password-1234" and "please-changeme-now" are placeholders too.
+  if (/(?:^|[^a-z0-9])(password|changeme|change-me|change_me|demo|turfcut)(?:[^a-z0-9]|$)/i.test(pw)) {
+    return "DEMO_ACCOUNTS_PASSWORD looks like a placeholder: pick a real one for the demo project.";
+  }
   return null;
 }
 
@@ -89,15 +94,64 @@ export function projectRefOf(url: string | undefined): string | null {
 }
 
 /**
+ * Live Turfcut Supabase projects. The demo-accounts script always refuses
+ * these, even when TURFCUT_DEMO_PROJECT_REF matches. This is the only
+ * project in the TurfCut org ("caden1@me.com's Project"), and the GitHub
+ * "Supabase Preview" check links to its dashboard.
+ */
+export const LIVE_SUPABASE_PROJECT_REFS: readonly string[] = ["txzxtvsfzxfhgfiurufq"];
+
+/**
  * The demo project must be named on purpose: TURFCUT_DEMO_PROJECT_REF has to
- * equal the ref of the Supabase project the keys point at.
+ * equal the ref of the Supabase project the keys point at. The confirmation
+ * message never echoes the expected value, so it can't be used as a bypass.
+ * A confirmed value that is only a substring of the ref is refused.
  */
 export function projectProblem(supabaseUrl: string | undefined, confirmedRef: string | undefined): string | null {
   const ref = projectRefOf(supabaseUrl);
   if (!ref) return "Set NEXT_PUBLIC_SUPABASE_URL to the dedicated demo project's URL.";
-  if (!confirmedRef) return `Set TURFCUT_DEMO_PROJECT_REF=${ref} to confirm that ${ref} is a dedicated demo project, never the live one.`;
-  if (confirmedRef.trim().toLowerCase() !== ref) return `TURFCUT_DEMO_PROJECT_REF (${confirmedRef}) doesn't match the project the keys point at (${ref}).`;
+  if (LIVE_SUPABASE_PROJECT_REFS.includes(ref)) {
+    return "This Supabase project is the live Turfcut project. Demo logins go only into a dedicated demo project.";
+  }
+  if (!confirmedRef) return "Set TURFCUT_DEMO_PROJECT_REF to confirm this is a dedicated demo project, never the live one.";
+  if (confirmedRef.trim().toLowerCase() !== ref) return "TURFCUT_DEMO_PROJECT_REF doesn't match the project the keys point at.";
   return null;
+}
+
+/**
+ * For a hosted Supabase URL (*.supabase.co / *.supabase.in), DATABASE_URL
+ * must point at the same project: either the direct host db.<ref>.supabase.co
+ * (or .in), or a pooler user named postgres.<ref>. Local URLs are left alone.
+ */
+export function databaseUrlProblem(supabaseUrl: string | undefined, databaseUrl: string | undefined): string | null {
+  const ref = projectRefOf(supabaseUrl);
+  if (!ref || !supabaseUrl) return null;
+  let hosted = false;
+  try {
+    hosted = /^[a-z0-9]+\.supabase\.(co|in)$/i.test(new URL(supabaseUrl).hostname);
+  } catch {
+    return null;
+  }
+  if (!hosted) return null;
+  if (!databaseUrl?.trim()) return "Set DATABASE_URL to this same Supabase project's database.";
+  const clean = cleanDatabaseUrl(databaseUrl);
+  let u: URL;
+  try {
+    u = new URL(clean);
+  } catch {
+    return "DATABASE_URL isn't a usable Postgres URL, so it can't be checked against the Supabase project.";
+  }
+  let user = u.username;
+  try {
+    user = decodeURIComponent(user);
+  } catch {
+    // keep the raw user name
+  }
+  const host = u.hostname.toLowerCase();
+  const sameDirect = host === `db.${ref}.supabase.co` || host === `db.${ref}.supabase.in`;
+  const samePooler = user.toLowerCase() === `postgres.${ref}`;
+  if (sameDirect || samePooler) return null;
+  return "DATABASE_URL doesn't point at the same Supabase project as NEXT_PUBLIC_SUPABASE_URL (need db.<project-ref>.supabase.co or pooler user postgres.<project-ref>).";
 }
 
 /**
@@ -106,6 +160,17 @@ export function projectProblem(supabaseUrl: string | undefined, confirmedRef: st
  */
 export function strangers(ids: readonly string[], known: ReadonlySet<string>): string[] {
   return ids.filter((id) => !known.has(id));
+}
+
+/**
+ * Extra logins in Supabase Auth that aren't the planned demo accounts. The
+ * seed script must call this; a project with a real sign-up is never a
+ * dedicated demo project.
+ */
+export function strayAuthLoginsProblem(authUserIds: readonly string[], plannedProfileIds: ReadonlySet<string>): string | null {
+  const n = strangers(authUserIds, plannedProfileIds).length;
+  if (!n) return null;
+  return `This Supabase project has ${n} login(s) that aren't demo logins. Demo logins go only into a dedicated demo project.`;
 }
 
 /** Demo organizations that still need a finance person (the script adds one each). */

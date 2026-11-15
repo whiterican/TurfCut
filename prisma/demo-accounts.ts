@@ -7,8 +7,11 @@
  * The README's rule stands for every other project: never link a real login
  * to a demo organization, because its staff see its applicants. So this
  * script refuses unless
+ *   - the project is not a known live Turfcut project,
  *   - TURFCUT_DEMO_PROJECT_REF names the Supabase project the keys point at
- *     (a deliberate "yes, this is the demo project"), and
+ *     (a deliberate "yes, this is the demo project"),
+ *   - for a hosted Supabase URL, DATABASE_URL is the same project
+ *     (db.<ref>.supabase.co or pooler user postgres.<ref>), and
  *   - nobody the seeds didn't make is in the database or in Supabase Auth
  *     (a real sign-up means it isn't a dedicated demo project).
  *
@@ -32,6 +35,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { db } from "../src/lib/db";
 import {
+  databaseUrlProblem,
   DEFAULT_DEMO_EMAIL_DOMAIN,
   DEMO_FINANCE_NAMES,
   DEMO_SUFFIX,
@@ -41,6 +45,7 @@ import {
   planAccounts,
   projectProblem,
   strangers,
+  strayAuthLoginsProblem,
   type DemoAccount,
   type DemoOrgStaff,
 } from "../src/lib/demo-accounts";
@@ -72,11 +77,28 @@ async function loadOrgs(orgIds: string[]): Promise<DemoOrgStaff[]> {
 
 async function allAuthUserIds(admin: SupabaseClient): Promise<string[]> {
   const ids: string[] = [];
-  for (let page = 1; ; page++) {
-    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
+  const perPage = 1000;
+  let page = 1;
+  for (;;) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage });
     if (error) throw new Error(`Listing the project's logins failed: ${error.message}`);
     ids.push(...data.users.map((u) => u.id));
-    if (data.users.length < 1000) return ids;
+    const nextPage = data.nextPage;
+    if (typeof nextPage === "number" && nextPage > page) {
+      page = nextPage;
+      continue;
+    }
+    const total = data.total;
+    if (typeof total === "number" && total > 0 && ids.length < total && data.users.length > 0) {
+      page += 1;
+      continue;
+    }
+    // Fallback when the API didn't send pagination headers.
+    if ((nextPage == null || nextPage === 0) && !(typeof total === "number" && total > 0) && data.users.length >= perPage) {
+      page += 1;
+      continue;
+    }
+    return ids;
   }
 }
 
@@ -134,17 +156,18 @@ async function main() {
   }
 
   // --- The project must be named on purpose, and empty of real logins ---
-  const problem = projectProblem(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.TURFCUT_DEMO_PROJECT_REF) ?? passwordProblem(process.env.DEMO_ACCOUNTS_PASSWORD);
+  const problem =
+    projectProblem(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.TURFCUT_DEMO_PROJECT_REF) ??
+    databaseUrlProblem(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.DATABASE_URL) ??
+    passwordProblem(process.env.DEMO_ACCOUNTS_PASSWORD);
   if (problem) stop(problem);
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY) stop("Set SUPABASE_SERVICE_ROLE_KEY (the demo project's secret key) in the shell.");
   const password = process.env.DEMO_ACCOUNTS_PASSWORD!;
   const admin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
   const plannedIds = new Set(planned.map((a) => a.profileId));
   const logins = await allAuthUserIds(admin);
-  const strayLogins = strangers(logins, plannedIds);
-  if (strayLogins.length) {
-    stop(`This Supabase project has ${strayLogins.length} login(s) that aren't demo logins. Demo logins go only into a dedicated demo project.`);
-  }
+  const strayLogins = strayAuthLoginsProblem(logins, plannedIds);
+  if (strayLogins) stop(strayLogins);
 
   // --- Write: finance people, then logins with the profiles' own ids ---
   for (const o of addFinance) {

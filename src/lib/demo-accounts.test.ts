@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { demoEmail, emailDomainProblem, orgsMissingFinance, passwordProblem, planAccounts, projectProblem, projectRefOf, slug, strangers, type DemoOrgStaff } from "./demo-accounts";
+import { readFileSync } from "node:fs";
+import { demoEmail, emailDomainProblem, databaseUrlProblem, orgsMissingFinance, passwordProblem, planAccounts, projectProblem, projectRefOf, slug, strangers, strayAuthLoginsProblem, type DemoOrgStaff } from "./demo-accounts";
 
 const org = (name: string, roles: string[]): DemoOrgStaff => ({
   id: `org-${slug(name)}`,
@@ -28,6 +29,9 @@ describe("the demo password", () => {
     expect(passwordProblem(undefined)).toMatch(/DEMO_ACCOUNTS_PASSWORD/);
     expect(passwordProblem("short")).toMatch(/at least 12/);
     expect(passwordProblem("changeme-please-123")).toMatch(/placeholder/);
+    expect(passwordProblem("xx-password-1234")).toMatch(/placeholder/);
+    expect(passwordProblem("please-changeme-now")).toMatch(/placeholder/);
+    expect(passwordProblem("my-demo-login-99")).toMatch(/placeholder/);
     expect(passwordProblem("rq7-Lantern-Basil-42")).toBeNull();
   });
 });
@@ -39,11 +43,30 @@ describe("the demo project must be named on purpose", () => {
     expect(projectRefOf("not a url")).toBeNull();
     expect(projectRefOf(undefined)).toBeNull();
   });
-  it("refuses until TURFCUT_DEMO_PROJECT_REF matches the project the keys point at", () => {
+  it("refuses until TURFCUT_DEMO_PROJECT_REF matches the project the keys point at, without echoing the expected ref", () => {
     expect(projectProblem(undefined, "abcd1234")).toMatch(/NEXT_PUBLIC_SUPABASE_URL/);
-    expect(projectProblem("https://abcd1234.supabase.co", undefined)).toMatch(/TURFCUT_DEMO_PROJECT_REF=abcd1234/);
+    const unset = projectProblem("https://abcd1234.supabase.co", undefined);
+    expect(unset).toMatch(/TURFCUT_DEMO_PROJECT_REF/);
+    expect(unset).not.toMatch(/abcd1234/);
     expect(projectProblem("https://abcd1234.supabase.co", "live5678")).toMatch(/doesn't match/);
     expect(projectProblem("https://abcd1234.supabase.co", " ABCD1234 ")).toBeNull();
+  });
+  it("refuses a confirmed ref that is only a substring of the project ref", () => {
+    expect(projectProblem("https://abcd1234.supabase.co", "abcd")).toMatch(/doesn't match/);
+  });
+  it("always refuses the live Turfcut project, even when the ref is confirmed", () => {
+    expect(projectProblem("https://txzxtvsfzxfhgfiurufq.supabase.co", "txzxtvsfzxfhgfiurufq")).toMatch(/live Turfcut project/);
+    expect(projectProblem("https://txzxtvsfzxfhgfiurufq.supabase.co", undefined)).toMatch(/live Turfcut project/);
+  });
+  it("for a hosted Supabase project, requires DATABASE_URL to be the same project", () => {
+    const url = "https://abcd1234.supabase.co";
+    expect(databaseUrlProblem(url, "postgresql://postgres:pw@db.abcd1234.supabase.co:5432/postgres")).toBeNull();
+    expect(databaseUrlProblem(url, "postgresql://postgres.abcd1234:pw@aws-0-us-east-2.pooler.supabase.com:6543/postgres")).toBeNull();
+    expect(databaseUrlProblem(url, "postgresql://postgres:pw@localhost:5432/turfcut")).toMatch(/same Supabase project/);
+    expect(databaseUrlProblem(url, "postgresql://postgres.abcd:pw@aws-0-us-east-2.pooler.supabase.com:6543/postgres")).toMatch(/same Supabase project/);
+    expect(databaseUrlProblem(url, "postgresql://postgres:pw@db.otherref.supabase.co:5432/postgres")).toMatch(/same Supabase project/);
+    expect(databaseUrlProblem(url, undefined)).toMatch(/DATABASE_URL/);
+    expect(databaseUrlProblem("http://127.0.0.1:54321", "postgresql://postgres@localhost:5432/turfcut")).toBeNull();
   });
 });
 
@@ -77,5 +100,17 @@ describe("who gets a demo login", () => {
   it("treats anyone the seeds didn't make as a stranger", () => {
     expect(strangers(["a", "b", "c"], new Set(["a", "c"]))).toEqual(["b"]);
     expect(strangers([], new Set())).toEqual([]);
+  });
+
+  it("refuses Auth logins that aren't the planned demo accounts", () => {
+    expect(strayAuthLoginsProblem(["a", "b"], new Set(["a", "b"]))).toBeNull();
+    expect(strayAuthLoginsProblem([], new Set(["a"]))).toBeNull();
+    expect(strayAuthLoginsProblem(["a", "x"], new Set(["a", "b"]))).toMatch(/1 login\(s\) that aren't demo logins/);
+    expect(strayAuthLoginsProblem(["x", "y"], new Set(["a"]))).toMatch(/2 login\(s\)/);
+  });
+
+  it("the seed script actually calls the stray-logins check", () => {
+    const src = readFileSync(new URL("../../prisma/demo-accounts.ts", import.meta.url), "utf8");
+    expect(src).toMatch(/strayAuthLoginsProblem\(/);
   });
 });

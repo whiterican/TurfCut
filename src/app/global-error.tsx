@@ -6,8 +6,11 @@ import { useEffect } from "react";
 /*
  * Drawn with no app stylesheet, font or provider: this page shows when the root
  * layout itself failed (a database outage, say), so it depends on nothing that
- * could have failed with it. The values are the design tokens' light and dark
- * page, card, type, border and Forest action (globals.css), copied here.
+ * could have failed with it. Every colour is a design token copied from
+ * globals.css: the light and dark page, card, text, border and Forest action,
+ * and the body copy is each theme's --muted secondary type (#3b4658 by day,
+ * #c9c2d6 by night). design-tokens.test.ts checks every colour here is a token
+ * and that the day body copy equals --muted.
  */
 const css = `
 :root { color-scheme: light dark; }
@@ -15,7 +18,7 @@ body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding
   background: #faf9f4; color: #0f172a; font: 16px/1.5 Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
 .ge-card { max-width: 32rem; width: 100%; box-sizing: border-box; background: #ffffff; border: 1px solid #d7d2e0; border-radius: 14px; padding: 24px; }
 .ge-card h1 { margin: 0 0 8px; font-size: 20px; line-height: 28px; font-weight: 600; }
-.ge-card p { margin: 0 0 20px; color: #475569; }
+.ge-card p { margin: 0 0 20px; color: #3b4658; }
 .ge-card button { min-height: 44px; padding: 0 20px; border: 0; border-radius: 10px; background: #157a46; color: #ffffff; font: inherit; font-weight: 600; cursor: pointer; }
 .ge-card button:focus-visible { outline: 2px solid #157a46; outline-offset: 2px; }
 @media (prefers-color-scheme: dark) {

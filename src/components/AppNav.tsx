@@ -351,9 +351,10 @@ export function OrgTabBar({ tabs, more, extra, notices = 0, person }: { tabs: Na
                 <div className="flex min-w-0 items-center gap-3">
                   {/* The photo, or the initial where there is none: the same head on a worker's menu and an organization's. */}
                   {person.photo ? <PersonPhoto photo={person.photo} initial={person.name[0]?.toUpperCase()} /> : <span className="menu-avatar" aria-hidden>{person.name[0]?.toUpperCase()}</span>}
-                  {/* The whole name, wrapped if it must (Caden, Nov 15): an email cut to "…@gmai…" told him nothing. */}
+                  {/* The whole name, wrapped if it must (Caden, Nov 15): an email cut to "…@gmai…" told him nothing. 16px, the size of the rows and
+                      Sign out below it, which an iPhone draws sharp: at 18px it drew the name soft (Caden, Nov 16) while "Owner" under it was sharp. */}
                   <p className="min-w-0">
-                    <span className="block text-lg leading-6 font-semibold text-fg [overflow-wrap:anywhere]">
+                    <span className="block text-base leading-6 font-semibold text-fg [overflow-wrap:anywhere]">
                       {/* An email breaks after its @ and dots first. */}
                       {person.name.split(/(?<=[@.])/).map((part, i) => <Fragment key={i}>{i > 0 && <wbr />}{part}</Fragment>)}
                     </span>

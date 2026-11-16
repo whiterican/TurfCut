@@ -247,6 +247,7 @@ describe.each([
     expect(solidTop).toMatch(/html:not\(\.sun\) \.phone-top::before,[\s\S]*?\{\s*background: var\(--page-top\) !important;\s*-webkit-backdrop-filter: none !important;\s*backdrop-filter: none !important;\s*-webkit-mask-image: none !important;\s*mask-image: none !important;\s*\}/);
     expect(solidTop).toMatch(/html\[data-scroll="down"\]:not\(\.sun\):not\(:has\(\.thread-top\)\) \.phone-top:not\(:has\(:focus-visible\)\)::before,\s*html\[data-scroll="down"\]:not\(\.sun\):not\(:has\(\.thread-top\)\) body:not\(:has\(\.staff-band\)\):not\(:has\(\.site-header :focus-visible\)\)::after \{\s*opacity: 0 !important;/);
     expect(solidTop).toMatch(/html:not\(\.sun\) \.job-photo-head::after \{\s*-webkit-backdrop-filter: none !important;\s*backdrop-filter: none !important;\s*\}/);
+    // No blur anywhere up there any more: the strip under the clock is gone (Caden, Nov 16).
     expect(solidTop).not.toMatch(/blur\(/);
     // No bar behind the top row (Caden, Nov 15): the logo and buttons stand on the page's gradient at every width; only
     // the strip under the clock, a job photo's shade and the surfaces (chat, staff, Sunlight) remain.
@@ -1017,6 +1018,9 @@ describe("the shell (redesign B1.4)", () => {
     expect(css).toMatch(/body:has\(\.thread-top\) \.thread-top \{\s*top: env\(safe-area-inset-top\);/);
     // One cap under the clock for every page and mode, in the root's own colour, under the glass and the headers.
     expect(css).toMatch(/\nhtml::after \{\s*content: "";\s*position: fixed;\s*inset: 0 0 auto;\s*height: var\(--clock-strip\);\s*z-index: 43;\s*pointer-events: none;\s*background: var\(--root-top\);/);
+    // No strip under the clock on an ordinary page: the page's gradient runs up behind it. The plain colour stays for contrast settings, a chat, Sunlight and a job page.
+    expect(css).toMatch(/html:not\(\.sun\):not\(:has\(\.thread-top, \.more-sheet\[open\]\)\)::after \{\s*background: none;\s*\}/);
+    expect(css).toMatch(/@media screen and \(prefers-contrast: more\)[^{]*\{[\s\S]*?html:not\(\.sun\):not\(:has\(\.thread-top, \.more-sheet\[open\]\)\)::after \{\s*background: var\(--root-top\);\s*\}/);
     // The strip ends just under the time and battery, not at the foot of the whole safe area (Caden, Nov 15).
     expect(css).toMatch(/--clock-strip: max\(min\(env\(safe-area-inset-top\), 20px\), calc\(env\(safe-area-inset-top\) - 0\.875rem\)\);/);
     // Only a chat's strip runs to the foot of the safe area, where its own bar begins.

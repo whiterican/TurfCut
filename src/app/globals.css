@@ -329,8 +329,9 @@
    sheet, map controls, icon buttons, sticky table headers). Plain paper now;
    the names stay so every surface rule reads the same way. */
 html {
-  /* Two colours (Caden's iPhone, Nov 15). --root-top is the strip behind the clock and battery: html::after paints
-     it and the theme-color tag carries it (components/StatusStripColor.tsx). The root itself paints --root-foot,
+  /* Two colours (Caden's iPhone, Nov 15). --root-top is the strip behind the clock and battery: the theme-color tag
+     carries it (components/StatusStripColor.tsx), and html::after paints it on a chat, Sunlight and under the contrast
+     settings (elsewhere nothing is painted over the page there). The root itself paints --root-foot,
      the colour at the foot of the page: an installed iPhone app counts a page too short to scroll as shorter than
      the screen, and shows the root's own colour in the band below that; the top colour there was a purple bar
      across the bottom of every short page. The page itself is painted by the fixed layer under the body (below). */
@@ -4010,10 +4011,11 @@ html[data-scroll="down"]:not(:has(.thread-top)) .phone-top > :not(:focus-visible
 }
 
 /* ---- Print (receipts and statements, M9) --------------------------------- */
-/* Under the phone's clock (an installed iPhone app draws the page there): a cap in the colour the root is painted,
-   on every page and in every mode, so nothing scrolls behind the clock where no glass covers it (a job's page,
-   Sunlight, the solid fallback, a chat). Under the glass and the headers (z 44, 45), which draw over it. It has no
-   height anywhere the phone keeps no strip. */
+/* Under the phone's clock (an installed iPhone app draws the page there): a cap in the colour the root is painted, so
+   nothing scrolls behind the clock where the page has no plain strip of its own (a chat, Sunlight, the solid fallback).
+   On an ordinary page it is painted over nothing, by a later rule (Nov 16: the page's gradient runs up behind the
+   clock), and a job's page has its panes. Under the headers (z 44, 45), which draw over it. It has no height anywhere
+   the phone keeps no strip. */
 html::after {
   content: "";
   position: fixed;
@@ -4743,7 +4745,7 @@ html:not(.sun) .site-header {
   backdrop-filter: none;
 }
 /* A solid bar with nothing on it would be a blank block: when the row it stands behind leaves on the way down,
-   the bar leaves with it, and the strip under the clock (html::after, always solid) is what is left. A row held
+   the bar leaves with it, and the strip under the clock (html::after: solid on a job page, a chat and Sunlight, none elsewhere) is what is left. A row held
    in place by keyboard focus keeps its bar. */
 html[data-scroll="down"]:not(.sun):not(:has(.thread-top)) .phone-top:not(:has(:focus-visible))::before,
 html[data-scroll="down"]:not(.sun):not(:has(.thread-top)) body:not(:has(.staff-band)):not(:has(.site-header :focus-visible))::after {
@@ -4771,9 +4773,9 @@ html[data-scroll="down"]:not(.sun):not(:has(.thread-top)) body:not(:has(.staff-b
 /* "This whole top bar should not exist except for the logo and buttons overlayed on the gradient underneath the
    bar." The band behind the header row (and behind a worker's profile pill, and the sidebar layout's) is gone at
    every width: the logo and the round buttons stand on the page's own gradient, which is fixed to the screen, so
-   there is no edge where a band would stop. The header has no pane of its own either. What stays: the strip under
-   the phone's clock (html::after), the page's top colour and no taller than the clock's own strip, so text never
-   passes behind the time and battery; a job page's shade over its photograph and its strip once past it (both
+   there is no edge where a band would stop. The header has no pane of its own either. What stays: the plain strip under
+   the phone's clock (html::after) on a chat, Sunlight and the contrast settings (on an ordinary page it was removed on
+   Nov 16 and the page runs up behind the clock); a job page's shade over its photograph and its strip once past it (both
    only that tall on a phone); a chat's bar, the staff band and Sunlight's plain bar, which are surfaces. */
 html:not(.sun) .phone-top::before {
   display: none !important;
@@ -4789,10 +4791,13 @@ html:not(.sun) body:not(:has(.job-photo-head, .staff-band, .thread-top))::after 
 html:not(.sun) .site-header {
   --header-bg: transparent;
 }
-/* With no bar below it, the strip under the clock is the top of the page's own gradient, sized as the page's ground
-   is (body::before), so it meets the page with no edge. A chat by day keeps its dark strip (the rule above). */
+/* No strip at all (Caden, Nov 16: "get rid of the bar and glass entirely, make the top status area have the same colors
+   as all modes so it matches seamlessly like the rest of the background"). The page's own gradient runs up behind the
+   clock and battery; nothing is painted over it, so there is no edge and no tint. What scrolls up under the time then
+   shows behind it. Sunlight and a chat keep their plain dark strip (the phone draws the clock in white, and a pale page
+   would lose it), a job's page its shade, and the contrast settings below the solid colour, which is what they ask for. */
 html:not(.sun):not(:has(.thread-top, .more-sheet[open]))::after {
-  background: var(--page-wash) no-repeat 0 0 / 100% 100lvh, var(--page-top);
+  background: none;
 }
 /* Not for anyone who asked their device for more contrast or less transparency, nor in forced colours: there the
    solid bar of the fallback above comes back, since text passing under the row is the opposite of what they asked.

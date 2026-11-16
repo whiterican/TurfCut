@@ -4743,7 +4743,7 @@ html:not(.sun) .site-header {
   backdrop-filter: none;
 }
 /* A solid bar with nothing on it would be a blank block: when the row it stands behind leaves on the way down,
-   the bar leaves with it, and the strip under the clock (html::after, always solid) is what is left. A row held
+   the bar leaves with it, and the strip under the clock (html::after, glass now: nearly clear, with a small blur) is what is left. A row held
    in place by keyboard focus keeps its bar. */
 html[data-scroll="down"]:not(.sun):not(:has(.thread-top)) .phone-top:not(:has(:focus-visible))::before,
 html[data-scroll="down"]:not(.sun):not(:has(.thread-top)) body:not(:has(.staff-band)):not(:has(.site-header :focus-visible))::after {
@@ -4800,12 +4800,15 @@ html:not(.sun):not(:has(.thread-top, .more-sheet[open]))::after {
    strip's own gradient above is only what it stood on while solid; on this the colour is flat, as the gradient
    is flat over the strip's few pixels. Not for Sunlight or a chat (plain colours above), a job's page (its own
    panes stand in for the cap) or while the drawer is open (the drawer is above it); the contrast settings below
-   take it back to the plain colour. Unnamed for page transitions, like the rest of the top. */
+   take it back to the plain colour. Unnamed for page transitions, like the rest of the top. Half again as tall as the
+   clock's strip (Caden, Nov 16: the bar "1/2 its size down lower"), and clearer: a light tint and a small blur, so
+   what passes under it is still seen, softened. */
 @supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
   html:not(.sun):not(:has(.thread-top, .more-sheet[open]))::after {
-    background: color-mix(in srgb, var(--root-top) 58%, transparent);
-    -webkit-backdrop-filter: blur(14px);
-    backdrop-filter: blur(14px);
+    height: calc(var(--clock-strip) * 1.5);
+    background: color-mix(in srgb, var(--root-top) 30%, transparent);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
   }
 }
 /* Not for anyone who asked their device for more contrast or less transparency, nor in forced colours: there the
@@ -4828,6 +4831,7 @@ html:not(.sun):not(:has(.thread-top, .more-sheet[open]))::after {
     --header-bg: var(--bg);
   }
   html:not(.sun):not(:has(.thread-top, .more-sheet[open]))::after {
+    height: var(--clock-strip);
     background: var(--root-top);
     -webkit-backdrop-filter: none;
     backdrop-filter: none;

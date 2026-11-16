@@ -31,10 +31,19 @@
  * SUPABASE_SERVICE_ROLE_KEY, TURFCUT_DEMO_PROJECT_REF, DEMO_ACCOUNTS_PASSWORD
  * (12+ characters) and optionally DEMO_ACCOUNTS_EMAIL_DOMAIN. Safe to re-run:
  * logins that exist are left alone.
+ *
+ * Pay now (Stripe TEST mode only): set DEMO_STRIPE_ACCOUNT_ID to a test
+ * Express account made in Stripe's test mode (README, "Pay now in the demo")
+ * and the demo worker is linked to it, so the owner or finance can pay them.
+ * A live STRIPE_SECRET_KEY in the shell is refused. This script never calls
+ * Stripe: the app asks Stripe whether the account can be paid right before
+ * every payment.
  */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { db } from "../src/lib/db";
 import {
+  connectAccountProblem,
+  connectLinkPlan,
   DEFAULT_DEMO_EMAIL_DOMAIN,
   demoAccountsYesProblem,
   DEMO_FINANCE_NAMES,
@@ -43,6 +52,7 @@ import {
   orgsMissingFinance,
   planAccounts,
   strangers,
+  stripeKeyProblem,
   type DemoAccount,
   type DemoOrgStaff,
 } from "../src/lib/demo-accounts";
@@ -116,6 +126,9 @@ async function main() {
   const domain = process.env.DEMO_ACCOUNTS_EMAIL_DOMAIN?.trim() || DEFAULT_DEMO_EMAIL_DOMAIN;
   const badDomain = emailDomainProblem(domain);
   if (badDomain) stop(badDomain);
+  const stripeAccount = process.env.DEMO_STRIPE_ACCOUNT_ID?.trim() || null;
+  const badStripe = stripeKeyProblem(process.env.STRIPE_SECRET_KEY) ?? connectAccountProblem(stripeAccount ?? undefined);
+  if (badStripe) stop(badStripe);
 
   // --- The demo seed must have finished ---
   const seeded = await p.auditEvent.findMany({ where: SEEDED, select: { metadata: true }, orderBy: { createdAt: "asc" } });
@@ -123,7 +136,7 @@ async function main() {
   const workerIds = [...new Set(seeded.flatMap((m) => listOf(m.metadata, "workerIds")))];
   if (!orgIds.length) stop("No finished demo seed here: run npm run seed:demo -- --yes first.");
   const orgs = await loadOrgs(orgIds);
-  const demoWorkers = await p.worker.findMany({ where: { id: { in: workerIds } }, select: { id: true, profileId: true, displayName: true } });
+  const demoWorkers = await p.worker.findMany({ where: { id: { in: workerIds } }, select: { id: true, profileId: true, displayName: true, stripeAccountId: true } });
   const firstWorker = workerIds.map((id) => demoWorkers.find((w) => w.id === id)).find((w) => !!w) ?? null;
 
   // --- Nobody the seeds didn't make ---
@@ -145,9 +158,20 @@ async function main() {
     firstWorker ? { profileId: firstWorker.profileId, displayName: firstWorker.displayName } : null,
     domain
   );
+  // --- The demo worker's Stripe test account (checked before any write) ---
+  if (stripeAccount && !firstWorker) stop("DEMO_STRIPE_ACCOUNT_ID is set, but there's no demo worker to link it to.");
+  const holder = stripeAccount ? await p.worker.findUnique({ where: { stripeAccountId: stripeAccount }, select: { id: true } }) : null;
+  const link = stripeAccount && firstWorker ? connectLinkPlan(stripeAccount, firstWorker, holder) : null;
+  if (link?.action === "refuse") stop(link.reason);
+  if (link?.action === "skip") console.warn(link.reason);
+
   if (planOnly) {
     console.log(`Demo logins (${planned.length}), for a dedicated demo project only:`);
     printPlan(planned, addFinance);
+    if (link && firstWorker) {
+      if (link.action === "skip") console.log(`  Stripe test account ${stripeAccount} left unlinked: the demo worker already has another account`);
+      else console.log(`  Stripe test account ${stripeAccount} → ${firstWorker.displayName}${link.action === "keep" ? " (already linked)" : ""}`);
+    }
     console.log("Nothing was written. Go ahead with --yes (see the header for the settings it needs).");
     return;
   }
@@ -184,13 +208,33 @@ async function main() {
     if (error) throw new Error(`Creating ${a.email} failed: ${error.message}`);
     made.push(a);
   }
-  if (made.length || addFinance.length) {
-    await p.auditEvent.create({
-      data: { ...MARKER, actorId: null, metadata: { profileIds: accounts.map((a) => a.profileId), emails: accounts.map((a) => a.email), created: made.length, financeAdded: addFinance.length } },
+  let linked = false;
+  const markerData = (stripeWorkerId?: string) => ({
+    ...MARKER,
+    actorId: null,
+    metadata: {
+      profileIds: accounts.map((a) => a.profileId),
+      emails: accounts.map((a) => a.email),
+      created: made.length,
+      financeAdded: addFinance.length,
+      ...(stripeWorkerId ? { stripeTestAccountWorkerId: stripeWorkerId } : {}),
+    },
+  });
+  if (link?.action === "link" && firstWorker && stripeAccount) {
+    // As the app's own onboarding does: not payable until Stripe says so (asked again right before every payment).
+    // The link and the completion marker are written in one transaction.
+    await p.$transaction(async (tx) => {
+      await tx.worker.update({ where: { id: firstWorker.id }, data: { stripeAccountId: stripeAccount, payoutsEnabled: false, payoutsCheckedAt: null } });
+      await tx.auditEvent.create({ data: markerData(firstWorker.id) });
     });
+    linked = true;
+  } else if (made.length || addFinance.length) {
+    await p.auditEvent.create({ data: markerData() });
   }
   console.log(`Demo logins ready (${made.length} new, ${accounts.length - made.length} already there). Password: the DEMO_ACCOUNTS_PASSWORD you set.`);
   printPlan(accounts, []);
+  if (link?.action === "skip" && firstWorker) console.log(`  Stripe test account ${stripeAccount} left unlinked: ${firstWorker.displayName} already has another account`);
+  else if (link && firstWorker) console.log(`  Stripe test account ${stripeAccount} → ${firstWorker.displayName}${linked ? "" : " (already linked)"}`);
 }
 
 main()

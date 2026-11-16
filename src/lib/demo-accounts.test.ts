@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
-import { demoEmail, emailDomainProblem, databaseUrlProblem, demoAccountsYesProblem, orgsMissingFinance, passwordProblem, planAccounts, projectProblem, projectRefOf, slug, strangers, strayAuthLoginsProblem, type DemoOrgStaff } from "./demo-accounts";
+import { connectAccountProblem, connectLinkPlan, databaseUrlProblem, demoAccountsYesProblem, demoEmail, emailDomainProblem, liveStripeDemoPayProblem, orgsMissingFinance, passwordProblem, planAccounts, projectProblem, projectRefOf, seededDemoIdsFromMarkers, slug, strangers, strayAuthLoginsProblem, stripeKeyMode, stripeKeyProblem, type DemoOrgStaff } from "./demo-accounts";
 
 const org = (name: string, roles: string[]): DemoOrgStaff => ({
   id: `org-${slug(name)}`,
@@ -159,5 +159,46 @@ describe("who gets a demo login", () => {
     expect(src).toMatch(/const before = demoAccountsYesProblem\(\{ \.\.\.yesInput, authUserIds: null \}\);\s*if \(before\) stop\(before\);/);
     expect(src).toMatch(/const after = demoAccountsYesProblem\(\{ \.\.\.yesInput, authUserIds: logins \}\);\s*if \(after\) stop\(after\);/);
     expect(src).toMatch(/databaseUrl: process\.env\.DATABASE_URL/);
+  });
+});
+
+describe("Pay now in the demo: Stripe test mode only", () => {
+  it("tells test keys from live ones", () => {
+    expect(stripeKeyMode(undefined)).toBe("none");
+    expect(stripeKeyMode("sk_test_abc")).toBe("test");
+    expect(stripeKeyMode("rk_test_abc")).toBe("test");
+    expect(stripeKeyMode("sk_live_abc")).toBe("live");
+    expect(stripeKeyMode("rk_live_abc")).toBe("live");
+    expect(stripeKeyMode("pk_test_abc")).toBe("unknown");
+  });
+  it("refuses a live key and anything that isn't a secret key", () => {
+    expect(stripeKeyProblem("sk_live_abc")).toMatch(/LIVE key/);
+    expect(stripeKeyProblem("rk_live_abc")).toMatch(/LIVE key/);
+    expect(stripeKeyProblem("pk_test_abc")).toMatch(/isn't a Stripe secret key/);
+    expect(stripeKeyProblem("sk_test_abc")).toBeNull();
+    expect(stripeKeyProblem(undefined)).toBeNull();
+  });
+  it("checks the test account id's shape", () => {
+    expect(connectAccountProblem(undefined)).toBeNull();
+    expect(connectAccountProblem("acct_1AbCdEfGhIjK")).toBeNull();
+    expect(connectAccountProblem("ba_123")).toMatch(/isn't a Stripe account id/);
+    expect(connectAccountProblem("acct_x")).toMatch(/isn't a Stripe account id/);
+    expect(connectAccountProblem("acct_")).toMatch(/isn't a Stripe account id/);
+  });
+  it("links the account once, skips a different already-linked account, and never shares one between workers", () => {
+    const acct = "acct_1AbCdEfGhIjK";
+    expect(connectLinkPlan(acct, { id: "w1", stripeAccountId: null }, null)).toEqual({ action: "link" });
+    expect(connectLinkPlan(acct, { id: "w1", stripeAccountId: acct }, { id: "w1" })).toEqual({ action: "keep" });
+    expect(connectLinkPlan(acct, { id: "w1", stripeAccountId: "acct_other123456" }, null)).toMatchObject({ action: "skip" });
+    expect(connectLinkPlan(acct, { id: "w1", stripeAccountId: null }, { id: "w2" })).toMatchObject({ action: "refuse" });
+  });
+  it("refuses a live-key payout or transfer to a seeded demo worker or org, whatever the flags say", () => {
+    const seeded = seededDemoIdsFromMarkers([{ metadata: { orgIds: ["org-demo"], workerIds: ["w-demo"] } }]);
+    expect(seeded.orgIds.has("org-demo")).toBe(true);
+    expect(liveStripeDemoPayProblem("sk_live_abc", "w-demo", "org-real", seeded)).toMatch(/seeded demo/);
+    expect(liveStripeDemoPayProblem("rk_live_abc", "w-real", "org-demo", seeded)).toMatch(/seeded demo/);
+    expect(liveStripeDemoPayProblem("sk_live_abc", "w-real", "org-real", seeded)).toBeNull();
+    expect(liveStripeDemoPayProblem("sk_test_abc", "w-demo", "org-demo", seeded)).toBeNull();
+    expect(liveStripeDemoPayProblem(undefined, "w-demo", "org-demo", seeded)).toBeNull();
   });
 });

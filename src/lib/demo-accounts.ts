@@ -1,4 +1,4 @@
-import { cleanDatabaseUrl } from "./env";
+import { cleanDatabaseUrl, stripeSecretKeyMode } from "./env";
 
 /**
  * Demo logins (prisma/demo-accounts.ts): the pure parts, so they can be
@@ -230,4 +230,76 @@ export function planAccounts(
   const emails = new Set(out.map((a) => a.email));
   if (emails.size !== out.length) throw new Error("Two demo logins would share an email: rename a demo organization.");
   return out;
+}
+
+/**
+ * Pay now in the demo (fix 2): Stripe stays in test mode. A live key
+ * (sk_live_/rk_live_) is refused outright; no key at all is fine for the
+ * script itself (it never calls Stripe), but the app needs a test key to pay.
+ */
+export function stripeKeyMode(key: string | undefined): "none" | "test" | "live" | "unknown" {
+  return stripeSecretKeyMode(key);
+}
+
+/** The demo seed's completion marker: metadata names the org and worker ids it made. */
+export const DEMO_SEEDED_MARKER = { action: "demo.seeded", entityType: "Demo", entityId: "demo-data" } as const;
+
+export function idsFromDemoMetadata(metadata: unknown, key: "orgIds" | "workerIds"): string[] {
+  const v = metadata && typeof metadata === "object" ? (metadata as Record<string, unknown>)[key] : null;
+  return Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : [];
+}
+
+export function seededDemoIdsFromMarkers(markers: readonly { metadata: unknown }[]): { workerIds: Set<string>; orgIds: Set<string> } {
+  return {
+    orgIds: new Set(markers.flatMap((m) => idsFromDemoMetadata(m.metadata, "orgIds"))),
+    workerIds: new Set(markers.flatMap((m) => idsFromDemoMetadata(m.metadata, "workerIds"))),
+  };
+}
+
+/**
+ * A live Stripe key must never pay a seeded demo worker or organization,
+ * whatever TURFCUT_DEMO or VERCEL_ENV say. Identified by the demo seed's
+ * marker ids, not by a " (demo)" name.
+ */
+export function liveStripeDemoPayProblem(
+  key: string | undefined,
+  workerId: string,
+  orgId: string,
+  seeded: { workerIds: ReadonlySet<string>; orgIds: ReadonlySet<string> }
+): string | null {
+  if (stripeKeyMode(key) !== "live") return null;
+  if (seeded.workerIds.has(workerId) || seeded.orgIds.has(orgId)) {
+    return "Can't send a live Stripe payment to a seeded demo worker or organization. Use Stripe test mode for demo data.";
+  }
+  return null;
+}
+
+export function stripeKeyProblem(key: string | undefined): string | null {
+  const mode = stripeKeyMode(key);
+  if (mode === "live") return "STRIPE_SECRET_KEY is a LIVE key. The demo runs on Stripe test mode only: use the sk_test_ key.";
+  if (mode === "unknown") return "STRIPE_SECRET_KEY isn't a Stripe secret key (sk_test_…).";
+  return null;
+}
+
+/** The demo worker's Stripe test Connect (Express) account, made in Stripe's test mode (README, "Pay now in the demo"). */
+export function connectAccountProblem(id: string | undefined): string | null {
+  if (!id) return null;
+  return /^acct_[A-Za-z0-9]{8,}$/.test(id.trim()) ? null : `DEMO_STRIPE_ACCOUNT_ID "${id}" isn't a Stripe account id (acct_…).`;
+}
+
+/**
+ * What linking the test account to the demo worker would do: link it, leave
+ * it (already linked to this id), skip (the worker already has a different
+ * account — warn and continue, never replace), or refuse (another worker
+ * already holds this account).
+ */
+export function connectLinkPlan(
+  accountId: string,
+  worker: { id: string; stripeAccountId: string | null },
+  holder: { id: string } | null
+): { action: "link" | "keep" } | { action: "skip" | "refuse"; reason: string } {
+  if (worker.stripeAccountId === accountId) return { action: "keep" };
+  if (worker.stripeAccountId) return { action: "skip", reason: `The demo worker already has Stripe account ${worker.stripeAccountId}; leaving it as is.` };
+  if (holder && holder.id !== worker.id) return { action: "refuse", reason: `Stripe account ${accountId} already belongs to another worker.` };
+  return { action: "link" };
 }

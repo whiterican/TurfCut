@@ -47,6 +47,28 @@ const tail = (r: ReturnType<typeof seed>) => `${r.stdout ?? ""}\n${r.stderr ?? "
   const again = seed("--yes");
   check("a second run changes nothing and says so", again.status === 0 && /already here; nothing to do/.test(again.stdout) && (await p.shift.count({ where: inDemo })) === before.shifts && (await p.auditEvent.count()) === before.events, tail(again));
 
+  // --- Demo logins (prisma/demo-accounts.ts): the plan, and the refusals that keep them out of a real project ---
+  const noSupabase: NodeJS.ProcessEnv = { ...process.env };
+  for (const k of ["NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "TURFCUT_DEMO_PROJECT_REF", "DEMO_ACCOUNTS_PASSWORD"]) delete noSupabase[k];
+  const accounts = (...args: string[]) => spawnSync("npx", ["tsx", "prisma/demo-accounts.ts", ...args], { encoding: "utf8", env: noSupabase, timeout: 120_000 });
+  const counts = async () => ({ profiles: await p.profile.count(), events: await p.auditEvent.count() });
+  const beforeAccounts = await counts();
+  const plan = accounts("--plan");
+  const planned = (plan.stdout ?? "").split("\n").filter((l) => /@example\.com/.test(l));
+  const staffLines = planned.filter((l) => /^\s+(OWNER|SUPERVISOR|FINANCE)\s/.test(l));
+  check(
+    "--plan lists an owner, a supervisor and a finance login for every demo organization, and the demo worker",
+    plan.status === 0 && staffLines.length === orgIds.length * 3 && planned.filter((l) => /^\s+WORKER\s/.test(l)).length === 1,
+    tail(plan)
+  );
+  check("--plan writes nothing", JSON.stringify(await counts()) === JSON.stringify(beforeAccounts));
+  const unnamed = accounts("--yes");
+  check("--yes refuses without the demo project's settings, and writes nothing", unnamed.status === 1 && /NEXT_PUBLIC_SUPABASE_URL/.test(`${unnamed.stdout}${unnamed.stderr}`) && JSON.stringify(await counts()) === JSON.stringify(beforeAccounts), tail(unnamed));
+  // A real sign-up means this isn't a dedicated demo project: no demo logins here, ever.
+  await p.profile.create({ data: { id: crypto.randomUUID(), role: "WORKER" } });
+  const stranger = accounts("--plan");
+  check("it refuses a database with a profile the seeds didn't make", stranger.status === 1 && /didn't make/.test(`${stranger.stdout}${stranger.stderr}`), tail(stranger));
+
   await p.$disconnect();
   if (fails) { console.log(`${fails} FAILED`); process.exit(1); }
 })().catch((e) => { console.error(e); process.exit(1); });

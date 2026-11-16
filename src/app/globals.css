@@ -4794,6 +4794,20 @@ html:not(.sun) .site-header {
 html:not(.sun):not(:has(.thread-top, .more-sheet[open]))::after {
   background: var(--page-wash) no-repeat 0 0 / 100% 100lvh, var(--page-top);
 }
+/* The strip is glass (Caden, Nov 16: "transparent glass with a blur, but not past the line"): the page's top colour
+   part see-through, with a blur of what passes behind it, no taller than the strip, so it blurs only what has
+   scrolled up under the clock and battery. At rest the ground behind it is that same colour and nothing shows. The
+   strip's own gradient above is only what it stood on while solid; on this the colour is flat, as the gradient
+   is flat over the strip's few pixels. Not for Sunlight or a chat (plain colours above), a job's page (its own
+   panes stand in for the cap) or while the drawer is open (the drawer is above it); the contrast settings below
+   take it back to the plain colour. Unnamed for page transitions, like the rest of the top. */
+@supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  html:not(.sun):not(:has(.thread-top, .more-sheet[open]))::after {
+    background: color-mix(in srgb, var(--root-top) 58%, transparent);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+  }
+}
 /* Not for anyone who asked their device for more contrast or less transparency, nor in forced colours: there the
    solid bar of the fallback above comes back, since text passing under the row is the opposite of what they asked.
    A list, not "not (a or b or c)": a browser that does not know one of these features (Safari has no
@@ -4815,5 +4829,7 @@ html:not(.sun):not(:has(.thread-top, .more-sheet[open]))::after {
   }
   html:not(.sun):not(:has(.thread-top, .more-sheet[open]))::after {
     background: var(--root-top);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
   }
 }

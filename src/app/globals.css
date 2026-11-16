@@ -4798,17 +4798,17 @@ html:not(.sun):not(:has(.thread-top, .more-sheet[open]))::after {
    the camera, subtle). It is no taller than the clock's strip, which ends at the foot of the front camera's island,
    and it fades out over its lower half: the tint thins to nothing and the mask thins the blur with it, so there is no
    edge for the eye to find, only the page softening a little where it passes under the time and battery. A low tint
-   (the top colour at most a third there) and a small blur: what scrolls under it is still seen, only softened. At
+   (the top colour at most a quarter there) and a small blur: what scrolls under it is still seen, only softened. At
    rest the ground behind it is that same colour and nothing shows. Not for Sunlight or a chat (plain colours above),
    a job's page (its own panes stand in for the cap) or while the drawer is open (the drawer is above it); the contrast
    settings below take it back to the plain colour. Unnamed for page transitions, like the rest of the top. */
 @supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
   html:not(.sun):not(:has(.thread-top, .more-sheet[open]))::after {
-    background: linear-gradient(to bottom, color-mix(in srgb, var(--root-top) 34%, transparent) 0%, color-mix(in srgb, var(--root-top) 18%, transparent) 55%, transparent 100%);
-    -webkit-backdrop-filter: blur(5px);
-    backdrop-filter: blur(5px);
-    -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 40%, rgb(0 0 0 / 0.5) 72%, transparent 100%);
-    mask-image: linear-gradient(to bottom, #000 0%, #000 40%, rgb(0 0 0 / 0.5) 72%, transparent 100%);
+    background: linear-gradient(to bottom, color-mix(in srgb, var(--root-top) 24%, transparent) 0%, color-mix(in srgb, var(--root-top) 10%, transparent) 50%, transparent 100%);
+    -webkit-backdrop-filter: blur(3.5px);
+    backdrop-filter: blur(3.5px);
+    -webkit-mask-image: linear-gradient(to bottom, #000 0%, rgb(0 0 0 / 0.85) 25%, rgb(0 0 0 / 0.5) 55%, rgb(0 0 0 / 0.18) 80%, transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 0%, rgb(0 0 0 / 0.85) 25%, rgb(0 0 0 / 0.5) 55%, rgb(0 0 0 / 0.18) 80%, transparent 100%);
   }
 }
 /* Not for anyone who asked their device for more contrast or less transparency, nor in forced colours: there the

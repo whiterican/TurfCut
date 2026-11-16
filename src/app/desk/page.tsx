@@ -80,9 +80,10 @@ function FieldToday({ ops, now, needs }: { ops: NonNullable<Awaited<ReturnType<t
           {live.zones.length > 0 ? (
             <CoverageMap initial={live.zones} className="overview-map" />
           ) : (
-            <div className="overview-map empty-state">
+            <div className="empty-state self-start">
               <p className="empty-state-title">No assigned turf to show.</p>
               <p className="empty-state-body">Turf drawn on a shift appears here as its workers check in. Nobody&apos;s position is ever on this map.</p>
+              <Link href="/field" className="btn-secondary mt-4">Open Field</Link>
             </div>
           )}
           <aside className="space-y-4" aria-label="Field activity key and what needs you">

@@ -242,8 +242,8 @@ describe.each([
     expect(solidTop).toMatch(/html:not\(\.sun\) \.phone-top::before,[\s\S]*?\{\s*background: var\(--page-top\) !important;\s*-webkit-backdrop-filter: none !important;\s*backdrop-filter: none !important;\s*-webkit-mask-image: none !important;\s*mask-image: none !important;\s*\}/);
     expect(solidTop).toMatch(/html\[data-scroll="down"\]:not\(\.sun\):not\(:has\(\.thread-top\)\) \.phone-top:not\(:has\(:focus-visible\)\)::before,\s*html\[data-scroll="down"\]:not\(\.sun\):not\(:has\(\.thread-top\)\) body:not\(:has\(\.staff-band\)\):not\(:has\(\.site-header :focus-visible\)\)::after \{\s*opacity: 0 !important;/);
     expect(solidTop).toMatch(/html:not\(\.sun\) \.job-photo-head::after \{\s*-webkit-backdrop-filter: none !important;\s*backdrop-filter: none !important;\s*\}/);
-    // The one blur left up there is the glass strip under the clock (Caden, Nov 16), no taller than the clock strip, feathered out at its foot.
-    expect(solidTop.replace(/@supports \(\(-webkit-backdrop-filter: blur\(1px\)\) or \(backdrop-filter: blur\(1px\)\)\)/, "").match(/blur\(/g)).toHaveLength(2); // the prefixed and the plain declaration of that one rule
+    // No blur anywhere up there any more: the strip under the clock is gone (Caden, Nov 16).
+    expect(solidTop).not.toMatch(/blur\(/);
     // No bar behind the top row (Caden, Nov 15): the logo and buttons stand on the page's gradient at every width; only
     // the strip under the clock, a job photo's shade and the surfaces (chat, staff, Sunlight) remain.
     const noBar = css.slice(css.indexOf("/* ---- No bar behind the top row"));
@@ -1010,11 +1010,9 @@ describe("the shell (redesign B1.4)", () => {
     expect(css).toMatch(/body:has\(\.thread-top\) \.thread-top \{\s*top: env\(safe-area-inset-top\);/);
     // One cap under the clock for every page and mode, in the root's own colour, under the glass and the headers.
     expect(css).toMatch(/\nhtml::after \{\s*content: "";\s*position: fixed;\s*inset: 0 0 auto;\s*height: var\(--clock-strip\);\s*z-index: 43;\s*pointer-events: none;\s*background: var\(--root-top\);/);
-    // The strip is glass: the top colour part see-through with a blur, no taller than the clock strip and feathered out at its foot; never on Sunlight or a chat, and plain again in the solid fallback.
-    expect(css).toMatch(/@supports \(\(-webkit-backdrop-filter: blur\(1px\)\) or \(backdrop-filter: blur\(1px\)\)\) \{\s*html:not\(\.sun\):not\(:has\(\.thread-top, \.more-sheet\[open\]\)\)::after \{\s*background: linear-gradient\(to bottom, color-mix\(in srgb, var\(--root-top\) 14%, transparent\) 0%, color-mix\(in srgb, var\(--root-top\) 6%, transparent\) 50%, transparent 100%\);\s*-webkit-backdrop-filter: blur\(3\.5px\);\s*backdrop-filter: blur\(3\.5px\);\s*-webkit-mask-image: linear-gradient\(to bottom, #000 0%, rgb\(0 0 0 \/ 0\.85\) 25%, rgb\(0 0 0 \/ 0\.5\) 55%, rgb\(0 0 0 \/ 0\.18\) 80%, transparent 100%\);/);
-    // Feathered: no taller than the clock's strip (the foot of the camera island), and no height of its own here.
-    expect(css.slice(css.indexOf("The strip is feathered glass"), css.indexOf("/* Not for anyone who asked their device for more contrast"))).not.toMatch(/height:/);
-    expect(css).toMatch(/@media screen and \(prefers-contrast: more\)[^{]*\{[\s\S]*?html:not\(\.sun\):not\(:has\(\.thread-top, \.more-sheet\[open\]\)\)::after \{\s*background: var\(--root-top\);\s*-webkit-backdrop-filter: none;\s*backdrop-filter: none;\s*-webkit-mask-image: none;\s*mask-image: none;/);
+    // No strip under the clock on an ordinary page: the page's gradient runs up behind it. The plain colour stays for contrast settings, a chat, Sunlight and a job page.
+    expect(css).toMatch(/html:not\(\.sun\):not\(:has\(\.thread-top, \.more-sheet\[open\]\)\)::after \{\s*background: none;\s*\}/);
+    expect(css).toMatch(/@media screen and \(prefers-contrast: more\)[^{]*\{[\s\S]*?html:not\(\.sun\):not\(:has\(\.thread-top, \.more-sheet\[open\]\)\)::after \{\s*background: var\(--root-top\);\s*\}/);
     // The strip ends just under the time and battery, not at the foot of the whole safe area (Caden, Nov 15).
     expect(css).toMatch(/--clock-strip: max\(min\(env\(safe-area-inset-top\), 20px\), calc\(env\(safe-area-inset-top\) - 0\.875rem\)\);/);
     // Only a chat's strip runs to the foot of the safe area, where its own bar begins.

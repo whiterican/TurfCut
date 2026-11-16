@@ -4743,7 +4743,7 @@ html:not(.sun) .site-header {
   backdrop-filter: none;
 }
 /* A solid bar with nothing on it would be a blank block: when the row it stands behind leaves on the way down,
-   the bar leaves with it, and the strip under the clock (html::after, glass now: nearly clear, with a small blur) is what is left. A row held
+   the bar leaves with it, and the strip under the clock (html::after: solid on a job page, a chat and Sunlight, none elsewhere) is what is left. A row held
    in place by keyboard focus keeps its bar. */
 html[data-scroll="down"]:not(.sun):not(:has(.thread-top)) .phone-top:not(:has(:focus-visible))::before,
 html[data-scroll="down"]:not(.sun):not(:has(.thread-top)) body:not(:has(.staff-band)):not(:has(.site-header :focus-visible))::after {
@@ -4794,22 +4794,13 @@ html:not(.sun) .site-header {
 html:not(.sun):not(:has(.thread-top, .more-sheet[open]))::after {
   background: var(--page-wash) no-repeat 0 0 / 100% 100lvh, var(--page-top);
 }
-/* The strip is feathered glass (Caden, Nov 16: no block, "a feathered texture so the element rests naturally", not past
-   the camera, subtle). It is no taller than the clock's strip, which ends at the foot of the front camera's island,
-   and it fades out over its lower half: the tint thins to nothing and the mask thins the blur with it, so there is no
-   edge for the eye to find, only the page softening a little where it passes under the time and battery. A low tint
-   (the top colour at most a seventh there, Caden: more transparent) and a small blur: what scrolls under it is still seen, only softened. At
-   rest the ground behind it is that same colour and nothing shows. Not for Sunlight or a chat (plain colours above),
-   a job's page (its own panes stand in for the cap) or while the drawer is open (the drawer is above it); the contrast
-   settings below take it back to the plain colour. Unnamed for page transitions, like the rest of the top. */
-@supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
-  html:not(.sun):not(:has(.thread-top, .more-sheet[open]))::after {
-    background: linear-gradient(to bottom, color-mix(in srgb, var(--root-top) 14%, transparent) 0%, color-mix(in srgb, var(--root-top) 6%, transparent) 50%, transparent 100%);
-    -webkit-backdrop-filter: blur(3.5px);
-    backdrop-filter: blur(3.5px);
-    -webkit-mask-image: linear-gradient(to bottom, #000 0%, rgb(0 0 0 / 0.85) 25%, rgb(0 0 0 / 0.5) 55%, rgb(0 0 0 / 0.18) 80%, transparent 100%);
-    mask-image: linear-gradient(to bottom, #000 0%, rgb(0 0 0 / 0.85) 25%, rgb(0 0 0 / 0.5) 55%, rgb(0 0 0 / 0.18) 80%, transparent 100%);
-  }
+/* No strip at all (Caden, Nov 16: "get rid of the bar and glass entirely, make the top status area have the same colors
+   as all modes so it matches seamlessly like the rest of the background"). The page's own gradient runs up behind the
+   clock and battery; nothing is painted over it, so there is no edge and no tint. What scrolls up under the time then
+   shows behind it. Sunlight and a chat keep their plain dark strip (the phone draws the clock in white, and a pale page
+   would lose it), a job's page its shade, and the contrast settings below the solid colour, which is what they ask for. */
+html:not(.sun):not(:has(.thread-top, .more-sheet[open]))::after {
+  background: none;
 }
 /* Not for anyone who asked their device for more contrast or less transparency, nor in forced colours: there the
    solid bar of the fallback above comes back, since text passing under the row is the opposite of what they asked.
@@ -4832,9 +4823,5 @@ html:not(.sun):not(:has(.thread-top, .more-sheet[open]))::after {
   }
   html:not(.sun):not(:has(.thread-top, .more-sheet[open]))::after {
     background: var(--root-top);
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
-    -webkit-mask-image: none;
-    mask-image: none;
   }
 }

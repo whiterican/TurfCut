@@ -9,7 +9,7 @@ agreements and the build plan for the full roadmap.
 
 ## Prerequisites
 
-- Node 20+ and npm
+- Node 22 (see `.nvmrc`; `nvm use` picks it up) and npm
 - A Supabase project (see "What needs Caden" below)
 - No Supabase account yet? The app still typechecks, builds, and boots —
   auth/DB features show a clear "missing env" message until keys are set.
@@ -44,6 +44,7 @@ npm run dev   # → http://localhost:3000
 | `npm run lint`     | ESLint                                    |
 | `npm test`         | Vitest (run once)                         |
 | `npm run seed`     | Seed the database (`prisma/seed.ts`)      |
+| `npm run seed:demo-accounts` | Demo logins, dedicated demo project only (`prisma/demo-accounts.ts`) |
 | `npm run db:push`  | Push Prisma schema to the database        |
 | `npm run db:generate` | Regenerate the Prisma client           |
 | `npm run test:acceptance` | Data-layer checks on a real Postgres (`tests/acceptance/`) |
@@ -350,8 +351,11 @@ prisma/
 ## Demo data
 
 `npm run seed:demo -- --yes` (after `npm run seed`) fills the app for
-testers. Export `DATABASE_URL` in the shell first; tsx doesn't read
-`.env.local`. Without `--yes` it only says where it would write. It makes:
+testers. Run it against a **dedicated demo project** (see **Setting up a
+dedicated demo project** below), never the live one: its rows are
+append-only and stay. Export that project's `DATABASE_URL` in the shell
+first; tsx doesn't read `.env.local`. Without `--yes` it only says where it
+would write. It makes:
 
 - six organizations with their staff and twelve workers, all named "… (demo)".
   Each demo worker holds a self-reported Colorado circulator registration,
@@ -375,8 +379,9 @@ claim. Like any application, one to a demo job carries what the worker
 shares with organizations they apply to: their scorecard and the
 political-fit answers they chose to share (identity, party, campaign
 interests). Nobody signs in as demo staff, so it reaches no one. Never link
-a real login to a demo organization (it would see those applicants), and
-close the demo jobs before real workers arrive.
+a real login to a demo organization (it would see those applicants). If
+demo data ever ends up in a project with real workers, close the demo jobs
+(SQL below) before they arrive.
 
 Everything goes through the app's own rules (publish gate, hiring, field
 day, review, pay), backdated so workers have history. Audit-log entries
@@ -393,6 +398,138 @@ WHERE status = 'PUBLISHED' AND "orgId" IN (
   SELECT (jsonb_array_elements_text(metadata -> 'orgIds'))::uuid
   FROM "AuditEvent" WHERE action = 'demo.seeded');
 ```
+
+### Setting up a dedicated demo project
+
+Creating the project is the owner's call; nothing here is automated. The
+live Supabase project (`txzxtvsfzxfhgfiurufq`) is never the demo project:
+`seed:demo-accounts` refuses it by design, by its URL and anywhere in
+`DATABASE_URL`, whatever `TURFCUT_DEMO_PROJECT_REF` says.
+
+1. **A second Supabase project.** supabase.com → New project, in the same
+   region as the live one (us-east-2, next to the `cle1` functions in
+   `vercel.json`). Note its ref, the `<demo-ref>` in
+   `https://<demo-ref>.supabase.co`.
+2. **The schema.** In the demo project's SQL editor, paste all of
+   `prisma/supabase-manual-setup.sql` once. It is for FRESH databases only
+   and is what the acceptance checks build from. Then run the newer files
+   that say they are safe to run again, in this order, as the acceptance
+   runner does: `prisma/m10-admin.sql`, `prisma/m10-verification.sql`,
+   `prisma/m10-roles.sql`, `prisma/p1-discovery.sql`,
+   `prisma/p2-channels.sql`, `prisma/p2-threads.sql`,
+   `prisma/p2-dm-mentions.sql`, `prisma/m10-roles.sql`,
+   `prisma/p2-channels.sql` (again, last on purpose), `prisma/p3-sectors.sql`.
+   Don't run `npm run db:push` against it (some indexes and triggers exist
+   only in the SQL files), and don't run the `m1-`…`m7-` upgrade files: they
+   are for databases that predate the snapshot. The setup file creates the
+   private `credential-proofs` and `profile-photos` buckets; create the
+   private `chat-attachments` bucket by hand, as in **What needs Caden**.
+3. **Auth redirect URLs.** Demo project → Authentication → URL
+   Configuration: Site URL = the demo site's public address, and add
+   `<demo SITE_URL>/auth/confirm` to Redirect URLs (exact, no wildcards).
+   Set the email templates as in **What needs Caden**, item 5.
+4. **A separate Vercel project or environment for the demo.** Point it at
+   the demo project only, with its own values (never copy the live ones):
+   `NEXT_PUBLIC_SUPABASE_URL=https://<demo-ref>.supabase.co`, the demo
+   project's `NEXT_PUBLIC_SUPABASE_ANON_KEY` and
+   `SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL` = the demo project's
+   transaction pooler (user `postgres.<demo-ref>`, port 6543), `SITE_URL` =
+   the demo site's address, `STRIPE_SECRET_KEY` = a Stripe **test** key
+   (`sk_test_…`) with its test-mode `STRIPE_WEBHOOK_SECRET`, and
+   `TURFCUT_DEMO=1`. Its name and URL are up to the owner; this README
+   doesn't assume one. Redeploy after setting them.
+5. **Seed it**, from a shell holding only the demo project's values:
+   `npm run seed`, `npm run seed:demo -- --yes`, then the demo logins below.
+
+### Demo logins (a dedicated demo project only)
+
+To show the organizer side live (post → hire → schedule → review →
+approve pay as a second person → Pay now), run the demo on its **own**
+Supabase project and database, never the live one, and give the demo staff
+logins there:
+
+```bash
+# In the demo project's shell only. Nothing here goes in a committed file.
+export DATABASE_URL=…                 # the demo project's database (same project as the URL below)
+npm run seed && npm run seed:demo -- --yes
+npm run seed:demo-accounts -- --plan  # lists every login it would make; writes nothing
+export NEXT_PUBLIC_SUPABASE_URL=https://<demo-ref>.supabase.co
+export SUPABASE_SERVICE_ROLE_KEY=…    # the demo project's secret key
+export TURFCUT_DEMO_PROJECT_REF=<demo-ref>   # must equal the URL's project ref: "yes, this is the demo project"
+export DEMO_ACCOUNTS_PASSWORD=…       # 12+ characters, shared by every demo login
+npm run seed:demo-accounts -- --yes
+```
+
+It adds a finance person to each demo organization, then creates a
+confirmed login for each organization's **owner, supervisor and finance
+person**, and for the first demo worker. Each login takes the existing demo
+profile's id, so nothing is relinked. Emails are
+`owner.<organization>@example.com`, `supervisor.…`, `finance.…` and
+`worker.<name>@example.com` (a reserved domain, so nothing is delivered;
+`DEMO_ACCOUNTS_EMAIL_DOMAIN` changes it). Owners and finance approve pay
+and supervisors review the work, so the two-person pay rule can be shown:
+review a shift as the supervisor, approve its pay as the owner or finance.
+
+The warning above still holds everywhere else. The script always refuses
+the live Turfcut Supabase project (`txzxtvsfzxfhgfiurufq`), by its URL and
+anywhere in `DATABASE_URL`. For a hosted Supabase URL it also refuses
+unless `DATABASE_URL` is the same project (`db.<ref>.supabase.co`, or user
+`postgres.<ref>` on a `*.pooler.supabase.com` host). And it refuses a project that has anyone
+the seeds didn't make: a profile in the database or a login in Supabase
+Auth that isn't a demo login means real people use it. Re-running it
+leaves existing logins alone; the password is never stored.
+
+### Pay now in the demo (Stripe test mode only)
+
+Showing **Pay now** live needs four things. Two staff who can approve pay
+(the demo logins above), plus the three below. Use **test-mode** keys only
+(`sk_test_…`, in the shell or the demo deployment's env, never in a file).
+`seed:demo-accounts` refuses a live key.
+
+1. **Stripe test keys on the demo deployment.** Set `STRIPE_SECRET_KEY` to
+   the test secret key, and set `TURFCUT_DEMO=1` (or `true` or `yes`). With that flag the app
+   itself refuses a live secret key (`sk_live_` or `rk_live_`) and
+   live-mode webhook events. A Vercel preview or development deploy
+   (`VERCEL_ENV` set and not `production`) also refuses a live secret key;
+   local and CI (unset `VERCEL_ENV`) and production are unchanged unless
+   the flag is set. Regardless of those flags, the pay path refuses a
+   live-key payout or transfer to a seeded demo worker or organization
+   (the ids in the `demo.seeded` marker) before any Stripe call. Point a
+   test-mode webhook endpoint at `<SITE_URL>/api/stripe/webhook`
+   (`transfer.created`, `transfer.reversed`) and set
+   `STRIPE_WEBHOOK_SECRET`. Locally, run
+   `stripe listen --forward-to localhost:3000/api/stripe/webhook` and use the
+   `whsec_…` it prints.
+2. **A test Connect account for the demo worker.** Pick one:
+   - Sign in as the demo worker (`worker.<name>@example.com`), open
+     **Earnings → Set up payouts**, and finish Stripe's Express onboarding
+     with Stripe's test values
+     ([docs.stripe.com/connect/testing](https://docs.stripe.com/connect/testing)).
+     The app links the account itself.
+   - Or make a test Express account in the Stripe Dashboard (test mode →
+     Connect → Accounts), finish its onboarding, and link it:
+     `DEMO_STRIPE_ACCOUNT_ID=acct_… npm run seed:demo-accounts -- --yes`.
+     It links only a worker with no account, and never an account another
+     worker holds. If the worker already has a different account, the
+     script warns and continues; it doesn't replace it.
+
+   Signing in as the worker and opening **Earnings** once, or an
+   `account.updated` webhook, is what updates the stored payout status the
+   Pay page reads. Until then the worker shows as not yet set up, even if
+   the account is ready.
+3. **A funded test balance.** Transfers come out of the platform's Stripe
+   balance. In test mode, add funds with a test payment on card
+   **4000 0000 0000 0077**, which lands in the available balance at once,
+   not pending. Use Dashboard → Payments → Create payment, or
+   `stripe charges create --amount=100000 --currency=usd --source=tok_bypassPending`
+   with the test key. An empty balance makes the transfer fail on screen
+   ("Turfcut's Stripe balance is too low…").
+
+Then rehearse: the supervisor reviews a shift, the owner or finance
+approves its pay on **Pay**, and **Pay now** sends a test transfer. Send one
+the day before and check that the webhook marks it paid. This touches
+nothing in organization funding. Pay still comes from the one platform
+balance, as it does today.
 
 ## S1 scope — campaign pages (the social layer, campaign side)
 
@@ -1424,6 +1561,15 @@ roles, one slice at a time.
   version's page shows the rules as the gate reads them, each open job and
   what freezes it, the other versions of the place, and Turfcut's decisions
   on it.
+- **Hiring pauses with the rules and the organization's approval (demo
+  audit, Nov 2026).** A published job whose rule profile fails the gate
+  (expired, unapproved, superseded, not yet effective), or whose
+  organization Turfcut no longer approves, leaves the workers' feed.
+  Applying, claiming, inviting, sending an offer and accepting one are
+  refused with the reason ("Hiring is paused on this job: …"), not only
+  scheduling. Review, decline and withdraw still work. People already
+  hired keep their place, and scheduling them follows its own freeze.
+  Everything opens again once the reason clears.
 - **A rule change is a new version.** "Propose a new version" prefills the
   form from the current rules: pay methods (ticking per-unit records
   counsel's explicit per-unit approval, which the gate requires), the three

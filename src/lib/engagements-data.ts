@@ -17,7 +17,7 @@ import {
   type EngagementAction,
   type HiringSnapshot,
 } from "@/lib/engagements";
-import { exclusionReasons, readDisclosure, readHiringModes, UUID_RE } from "@/lib/jobs";
+import { exclusionReasons, hiringPausedMessage, hiringPausedReasons, readDisclosure, readHiringModes, UUID_RE } from "@/lib/jobs";
 import { effectivePreference, employerFitView } from "@/lib/political-fit";
 import { loadLatestPreference, orgHasRelationship } from "@/lib/political-fit-data";
 import { loadScorecard } from "@/lib/scorecard-data";
@@ -118,9 +118,12 @@ async function open(
   if (note && note.length > NOTE_MAX) return { ok: false, reason: `Keep the note to ${NOTE_MAX} characters or fewer.` };
   if (!UUID_RE.test(jobId)) return { ok: false, reason: "Job not found." };
   if (!UUID_RE.test(workerId)) return { ok: false, reason: "Worker not found." };
-  const job = await db().job.findUnique({ where: { id: jobId }, include: { org: { select: { name: true } }, jurisdiction: { select: { rules: true } } } });
+  const job = await db().job.findUnique({ where: { id: jobId }, include: { org: { select: { name: true, approved: true } }, jurisdiction: true } });
   if (!job) return { ok: false, reason: "Job not found." };
   if (actor.kind === "org" && actor.orgId !== job.orgId) return { ok: false, reason: "This job belongs to another organization." };
+  // Nobody new joins a job whose organization or rules can't hire now (demo audit 5): not only scheduling stops.
+  const paused = hiringPausedReasons(job.org, job.jurisdiction, before);
+  if (paused.length) return { ok: false, reason: hiringPausedMessage(paused) };
   // No directory (C1): an organization invites only workers who have already
   // engaged with one of its jobs. Unknown and unrelated ids get the same
   // answer, so invitations can't be used to probe for worker ids.
@@ -258,10 +261,15 @@ export async function moveEngagement(
   now?: Date
 ): Promise<Result> {
   if (!UUID_RE.test(engagementId)) return { ok: false, reason: "Engagement not found." };
-  const e = await db().engagement.findUnique({ where: { id: engagementId }, include: { job: { include: { org: { select: { name: true } }, jurisdiction: { select: { rules: true } } } } } });
+  const e = await db().engagement.findUnique({ where: { id: engagementId }, include: { job: { include: { org: { select: { name: true, approved: true } }, jurisdiction: true } } } });
   if (!e) return { ok: false, reason: "Engagement not found." };
   if (actor.kind === "worker" && e.workerId !== actor.workerId) return { ok: false, reason: "Engagement not found." };
   if (actor.kind === "org" && e.job.orgId !== actor.orgId) return { ok: false, reason: "Engagement not found." };
+  // An offer or its acceptance hires: paused like applying and claiming (demo audit 5). Every other step (review, decline, withdraw) stays open.
+  if (action === "offer" || action === "accept") {
+    const paused = hiringPausedReasons(e.job.org, e.job.jurisdiction, now ?? new Date());
+    if (paused.length) return { ok: false, reason: hiringPausedMessage(paused) };
+  }
 
   const declining = action === "decline" && actor.kind === "org";
   const reasonCode = declining ? (opts.reasonCode ?? "") : null;

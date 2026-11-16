@@ -52,20 +52,23 @@ const check = (l: string, c: unknown, d?: unknown) => { if (c) console.log(`PASS
   check("posting is audited with the jurisdiction version", !!audit && (audit.metadata as { jurisdictionVersion?: number }).jurisdictionVersion !== undefined, audit);
 
   // Jurisdiction hard stop: a superseded rule profile freezes posting and taking seats.
+  // W0 is hired before the freeze; hiring pauses with it (demo audit 5).
+  const hiredBefore = await claimJob(W[0], W[0], job.id);
   await p.jurisdictionProfile.update({ where: { id: seeded.jurisdictionId }, data: { isCurrent: false } });
   const frozenPost = await postSlot(owner, job.id, form(3, 15, 19), now);
-  const frozenClaimHire = await claimJob(W[0], W[0], job.id);
+  const frozenClaimHire = await claimJob(W[1], W[1], job.id);
   const frozenClaim = s1.ok ? await claimSlot({ workerId: W[0], profileId: W[0] }, s1.slotId, now) : null;
   await p.jurisdictionProfile.update({ where: { id: seeded.jurisdictionId }, data: { isCurrent: true } });
-  check("a superseded jurisdiction blocks posting and taking a seat, with the reason", !frozenPost.ok && /frozen/.test(frozenPost.reason) && !!frozenClaim && !frozenClaim.ok && /frozen/.test(frozenClaim.reason), { frozenPost, frozenClaim, frozenClaimHire });
+  check("a superseded jurisdiction blocks posting and taking a seat, with the reason", hiredBefore.ok && !frozenPost.ok && /frozen/.test(frozenPost.reason) && !!frozenClaim && !frozenClaim.ok && /frozen/.test(frozenClaim.reason), { hiredBefore, frozenPost, frozenClaim });
+  check("…and hiring on the job: a claim is refused with the reason", !frozenClaimHire.ok && /Hiring is paused on this job: .*superseded/.test(frozenClaimHire.reason), frozenClaimHire);
 
   // --- Who may take a seat ---
   const slotId = s1.ok ? s1.slotId : "";
   const unhired = await claimSlot({ workerId: W[1], profileId: W[1] }, slotId, now);
   check("a worker not hired on the job can't see or take the slot", !unhired.ok && /not found/.test(unhired.reason) && (await loadWorkerSlots(W[1], now)).length === 0, unhired);
   const hires = await Promise.all(W.slice(1).map((w) => claimJob(w, w, job.id)));
-  const eng = [frozenClaimHire, ...hires].map((h) => (h.ok ? h.engagementId : ""));
-  check("three workers are hired", eng.every(Boolean), { frozenClaimHire, hires });
+  const eng = [hiredBefore, ...hires].map((h) => (h.ok ? h.engagementId : ""));
+  check("three workers are hired", eng.every(Boolean), { hiredBefore, hires });
 
   // --- First come, first served under contention: 3 workers race for 2 seats ---
   const race = await Promise.all(W.map((w) => claimSlot({ workerId: w, profileId: w }, slotId, now)));

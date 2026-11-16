@@ -346,10 +346,13 @@ const all = (a: string) => Object.fromEntries(SHARE_PARTS.map((p) => [p, a]));
   await p.organization.update({ where: { id: ORG }, data: { approved: false } });
   await credentialed(p, [W3]);
   const unapprovedApply = await applyToJob(W3, W3, JOB);
+  const unapprovedRows = await p.engagement.count({ where: { workerId: W3, jobId: JOB } });
   await p.organization.update({ where: { id: ORG }, data: { approved: true } });
-  const w3snap = (await p.engagement.findFirst({ where: { workerId: W3, jobId: JOB } }))?.applicationSnapshot as unknown as HiringSnapshot | undefined;
-  check("an unapproved organization's snapshot carries no political fit and no scorecard part",
-    unapprovedApply.ok && !!w3snap && Object.values(w3snap.fit.fields).every((f) => !f.shared) && !!w3snap.scorecard.shared && Object.values(w3snap.scorecard.shared).every((x) => !x), { unapprovedApply, w3snap });
+  // Hiring pauses while Turfcut's approval is withdrawn (demo audit 5), so an unapproved organization gets no snapshot at all: no political fit, no scorecard part.
+  check("an unapproved organization can't take an application, so it gets no hiring snapshot",
+    !unapprovedApply.ok && /Hiring is paused on this job: Turfcut's approval of this organization is on hold\./.test(unapprovedApply.reason) && unapprovedRows === 0, { unapprovedApply, unapprovedRows });
+  const reapproved = await applyToJob(W3, W3, JOB);
+  check("…and once approved again, the worker can apply", reapproved.ok, reapproved);
   const w3view = await loadOrgProfile(W3, ORG, at);
   check("once approved again, the live page shows the fit the worker shares with it", !!w3view && w3view.fit.fields.identity.shared === true, w3view?.fit);
 

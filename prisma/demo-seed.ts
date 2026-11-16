@@ -15,7 +15,8 @@
  * with organizations they apply to (scorecard, and fit answers they chose
  * to share). Nobody signs in as demo staff, so that goes nowhere — unless
  * someone links a real login to a demo organization. Don't; and close the
- * demo jobs before real workers arrive (README).
+ * demo jobs before real workers arrive (README). Demo staff logins exist
+ * only in a dedicated demo project, made by prisma/demo-accounts.ts.
  *
  * Built through the app's own rules — jobs pass the publish gate, workers
  * apply, the organization sends an offer and the worker accepts it (C3),

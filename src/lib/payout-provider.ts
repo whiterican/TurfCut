@@ -1,5 +1,5 @@
 import Stripe from "stripe";
-import { getStripeSecretKey, getStripeWebhookSecrets, hasStripeConfig } from "@/lib/env";
+import { getStripeWebhookSecrets, hasStripeConfig, liveStripeKeyProblem, stripeWebhookLivemodeProblem } from "@/lib/env";
 
 /**
  * Where money actually moves (M5): Stripe Connect, Express accounts.
@@ -51,9 +51,17 @@ export class ProviderError extends Error {
 }
 
 let client: Stripe | null = null;
-const stripe = () => (client ??= new Stripe(getStripeSecretKey(), { maxNetworkRetries: 2, timeout: 20_000, appInfo: { name: "Turfcut" } }));
+function stripe(): Stripe {
+  const key = process.env.STRIPE_SECRET_KEY;
+  // The live-key guard: a definitive refusal with its own message, never "Couldn't reach Stripe".
+  const live = liveStripeKeyProblem(key);
+  if (live) throw new ProviderError(live, true);
+  if (!key) throw new ProviderError("Stripe isn't connected (STRIPE_SECRET_KEY is unset).", true);
+  return (client ??= new Stripe(key, { maxNetworkRetries: 2, timeout: 20_000, appInfo: { name: "Turfcut" } }));
+}
 
 function wrap(e: unknown): ProviderError {
+  if (e instanceof ProviderError) return e;
   if (e instanceof Stripe.errors.StripeError) {
     const definitive =
       e instanceof Stripe.errors.StripeInvalidRequestError ||
@@ -136,6 +144,8 @@ export function stripeProvider(): PayoutProvider {
         }
       }
       if (!e) throw new Error("invalid webhook signature");
+      const live = stripeWebhookLivemodeProblem(e.livemode);
+      if (live) throw new Error(live);
       const out: ProviderEvent = { id: e.id, type: e.type, createdAt: new Date(e.created * 1000) };
       if (e.type.startsWith("transfer.")) {
         const t = e.data.object as Stripe.Transfer;

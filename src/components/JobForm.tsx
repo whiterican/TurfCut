@@ -522,10 +522,10 @@ export function JobForm({
         </label>
         <div className="space-y-1.5 sm:col-span-3">
           <label className="chip">
-            <input type="checkbox" name="providesTraining" defaultChecked={defaults.providesTraining === "on"} className="sr-only" />
+            <input type="checkbox" name="providesTraining" defaultChecked={defaults.providesTraining === "on"} className="sr-only" aria-describedby={["hint-providesTraining", describe("providesTraining")["aria-describedby"]].filter(Boolean).join(" ")} aria-invalid={describe("providesTraining")["aria-invalid"]} />
             We provide training
           </label>
-          <p className="text-hint">When this is on, workers can be hired without a required training course or badge — the organization provides those. A required circulator registration or signed affidavit is still required, and turning this off later does not change anyone already hired.</p>
+          <p id="hint-providesTraining" className="text-hint">When this is on, workers can be hired without a required training course or badge — the organization provides those. A required circulator registration or signed affidavit is still required, and turning this off later does not change anyone already hired.</p>
           {err("providesTraining")}
         </div>
         <label className="space-y-1.5 sm:col-span-3">

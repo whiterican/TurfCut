@@ -466,6 +466,22 @@ export function jurisdictionProblems(j: JurisdictionFacts | null, now: Date = ne
 }
 
 /**
+ * Why a published job can't take anyone new right now (demo audit finding
+ * 5): Turfcut has withdrawn the organization's approval, or the rule profile
+ * the job is filed under fails the gate (lapsed, unapproved, superseded, not
+ * yet effective). Such a job is left out of the feed, and applying,
+ * claiming, inviting, offering and accepting are refused with these reasons;
+ * people already hired keep their place (scheduling has its own freeze,
+ * canScheduleShift). Empty = hiring is open.
+ */
+export function hiringPausedReasons(org: { approved: boolean }, j: JurisdictionFacts | null, now: Date = new Date()): string[] {
+  return [...(org.approved ? [] : ["Turfcut's approval of this organization is on hold."]), ...jurisdictionProblems(j, now)];
+}
+
+/** What a worker or organization is told when hiring is paused on a job. */
+export const hiringPausedMessage = (reasons: string[]) => `Hiring is paused on this job: ${reasons.join(" ")}`;
+
+/**
  * Spec p.13: a rule change freezes new shifts until the profile is
  * re-approved. Shift scheduling arrives with shift operations; it must call
  * this before creating a shift.

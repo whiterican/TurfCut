@@ -4795,7 +4795,7 @@ html:not(.sun):not(:has(.thread-top, .more-sheet[open]))::after {
   background: var(--page-wash) no-repeat 0 0 / 100% 100lvh, var(--page-top);
 }
 /* The strip is glass (Caden, Nov 16: "transparent glass with a blur, but not past the line"): the page's top colour
-   part see-through, with a blur of what passes behind it, no taller than the strip, so it blurs only what has
+   part see-through, with a blur of what passes behind it, half again as tall as the clock's strip, so it blurs only what has
    scrolled up under the clock and battery. At rest the ground behind it is that same colour and nothing shows. The
    strip's own gradient above is only what it stood on while solid; on this the colour is flat, as the gradient
    is flat over the strip's few pixels. Not for Sunlight or a chat (plain colours above), a job's page (its own

@@ -242,7 +242,7 @@ describe.each([
     expect(solidTop).toMatch(/html:not\(\.sun\) \.phone-top::before,[\s\S]*?\{\s*background: var\(--page-top\) !important;\s*-webkit-backdrop-filter: none !important;\s*backdrop-filter: none !important;\s*-webkit-mask-image: none !important;\s*mask-image: none !important;\s*\}/);
     expect(solidTop).toMatch(/html\[data-scroll="down"\]:not\(\.sun\):not\(:has\(\.thread-top\)\) \.phone-top:not\(:has\(:focus-visible\)\)::before,\s*html\[data-scroll="down"\]:not\(\.sun\):not\(:has\(\.thread-top\)\) body:not\(:has\(\.staff-band\)\):not\(:has\(\.site-header :focus-visible\)\)::after \{\s*opacity: 0 !important;/);
     expect(solidTop).toMatch(/html:not\(\.sun\) \.job-photo-head::after \{\s*-webkit-backdrop-filter: none !important;\s*backdrop-filter: none !important;\s*\}/);
-    // The one blur left up there is the glass strip under the clock (Caden, Nov 16), no taller than the strip.
+    // The one blur left up there is the glass strip under the clock (Caden, Nov 16), half again as tall as the clock strip.
     expect(solidTop.replace(/@supports \(\(-webkit-backdrop-filter: blur\(1px\)\) or \(backdrop-filter: blur\(1px\)\)\)/, "").match(/blur\(/g)).toHaveLength(2); // the prefixed and the plain declaration of that one rule
     // No bar behind the top row (Caden, Nov 15): the logo and buttons stand on the page's gradient at every width; only
     // the strip under the clock, a job photo's shade and the surfaces (chat, staff, Sunlight) remain.
@@ -1010,7 +1010,7 @@ describe("the shell (redesign B1.4)", () => {
     expect(css).toMatch(/body:has\(\.thread-top\) \.thread-top \{\s*top: env\(safe-area-inset-top\);/);
     // One cap under the clock for every page and mode, in the root's own colour, under the glass and the headers.
     expect(css).toMatch(/\nhtml::after \{\s*content: "";\s*position: fixed;\s*inset: 0 0 auto;\s*height: var\(--clock-strip\);\s*z-index: 43;\s*pointer-events: none;\s*background: var\(--root-top\);/);
-    // The strip is glass: the top colour part see-through with a blur, only as tall as the strip; never on Sunlight or a chat, and plain again in the solid fallback.
+    // The strip is glass: the top colour part see-through with a blur, half again as tall as the clock strip; never on Sunlight or a chat, and plain again in the solid fallback.
     expect(css).toMatch(/@supports \(\(-webkit-backdrop-filter: blur\(1px\)\) or \(backdrop-filter: blur\(1px\)\)\) \{\s*html:not\(\.sun\):not\(:has\(\.thread-top, \.more-sheet\[open\]\)\)::after \{\s*height: calc\(var\(--clock-strip\) \* 1\.5\);\s*background: color-mix\(in srgb, var\(--root-top\) 30%, transparent\);\s*-webkit-backdrop-filter: blur\(8px\);\s*backdrop-filter: blur\(8px\);/);
     expect(css).toMatch(/@media screen and \(prefers-contrast: more\)[^{]*\{[\s\S]*?html:not\(\.sun\):not\(:has\(\.thread-top, \.more-sheet\[open\]\)\)::after \{\s*height: var\(--clock-strip\);\s*background: var\(--root-top\);\s*-webkit-backdrop-filter: none;\s*backdrop-filter: none;/);
     // The strip ends just under the time and battery, not at the foot of the whole safe area (Caden, Nov 15).

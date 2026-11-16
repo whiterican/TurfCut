@@ -266,6 +266,8 @@ async function main() {
       { kind: "CIRCULATOR_REGISTRATION", state: "CO", expiresOn: iso(new Date(now.getTime() + 365 * DAY)) },
       { kind: "NOTARY_OR_AFFIDAVIT", state: "CO" },
       { kind: "OTHER", label: "Badge" },
+      { kind: "TRAINING", label: "Petition basics" },
+      { kind: "TRAINING", label: "Canvass basics" },
     ]) must(await addCredential(worker.id, profile.id, c), `credential for ${name}`);
     workers.push({ worker, profile });
   }

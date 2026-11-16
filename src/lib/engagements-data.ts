@@ -83,7 +83,7 @@ async function snapshotFor(
 /** What this worker's current wallet lacks for this job (job-credentials.ts), read through `client`. */
 async function credentialsMissing(
   client: Tx | ReturnType<typeof db>,
-  job: { type: Parameters<typeof missingCredentials>[0]["type"]; requirements: unknown; geography: unknown; jurisdiction: { rules: unknown } },
+  job: { type: Parameters<typeof missingCredentials>[0]["type"]; requirements: unknown; geography: unknown; jurisdiction: { rules: unknown }; providesTraining?: boolean },
   workerId: string,
   now: Date
 ): Promise<string[]> {
@@ -93,7 +93,7 @@ async function credentialsMissing(
     select: { id: true, kind: true, label: true, state: true, expiresOn: true, supersedesId: true, removed: true, createdAt: true },
   });
   return missingCredentials(
-    { type: job.type, requirements: job.requirements, jurisdictionRules: job.jurisdiction.rules, state: typeof geo.state === "string" ? geo.state : null },
+    { type: job.type, requirements: job.requirements, jurisdictionRules: job.jurisdiction.rules, state: typeof geo.state === "string" ? geo.state : null, providesTraining: job.providesTraining === true },
     wallet,
     now
   );
@@ -137,7 +137,7 @@ async function open(
     const reasons = exclusionReasons(pref, { disclosure: readDisclosure(job.campaignDisclosure), orgName: job.org.name, measureIds: job.measureIds });
     if (reasons.length) return { ok: false, reason: `${reasons[0]}. Change your preferences to see this job.` };
     // Applying or claiming needs the credentials the job asks for (job-credentials.ts): an instant claim hires on the spot.
-    // Checked here to answer early, and again under the locks below.
+    // "We provide training" waives a missing badge or training only. Checked here to answer early, and again under the locks below.
     const missing = await credentialsMissing(db(), job, workerId, before);
     if (missing.length) return { ok: false, reason: missingCredentialsMessage(missing) };
   }
@@ -160,8 +160,8 @@ async function open(
     if (wk.closedAt) return { ok: false as const, reason: "This worker has closed their account." };
     if (actor.kind === "worker") {
       // Again under the locks, against the job and wallet as they are now: a credential removed (or a requirement
-      // added) since the check above can't slip through. Invitations aren't checked, nor is accepting one or an
-      // offer (owner decision, PR #187).
+      // or providesTraining change) since the check above can't slip through. Sending an invitation is not checked;
+      // accepting one is (moveEngagement).
       const missing = await credentialsMissing(tx, fresh, workerId, at);
       if (missing.length) return { ok: false as const, reason: missingCredentialsMessage(missing) };
     }
@@ -258,7 +258,7 @@ export async function moveEngagement(
   now?: Date
 ): Promise<Result> {
   if (!UUID_RE.test(engagementId)) return { ok: false, reason: "Engagement not found." };
-  const e = await db().engagement.findUnique({ where: { id: engagementId }, include: { job: { include: { org: { select: { name: true } } } } } });
+  const e = await db().engagement.findUnique({ where: { id: engagementId }, include: { job: { include: { org: { select: { name: true } }, jurisdiction: { select: { rules: true } } } } } });
   if (!e) return { ok: false, reason: "Engagement not found." };
   if (actor.kind === "worker" && e.workerId !== actor.workerId) return { ok: false, reason: "Engagement not found." };
   if (actor.kind === "org" && e.job.orgId !== actor.orgId) return { ok: false, reason: "Engagement not found." };
@@ -270,10 +270,15 @@ export async function moveEngagement(
   if (note && note.length > NOTE_MAX) return { ok: false, reason: `Keep the note to ${NOTE_MAX} characters or fewer.` };
 
   // Taking a job never overrides the worker's own do-not-match answers.
+  const before = now ?? new Date();
   if (action === "accept" && actor.kind === "worker") {
-    const pref = effectivePreference(await loadLatestPreference(actor.workerId), now ?? new Date());
+    const pref = effectivePreference(await loadLatestPreference(actor.workerId), before);
     const reasons = exclusionReasons(pref, { disclosure: readDisclosure(e.job.campaignDisclosure), orgName: e.job.org.name, measureIds: e.job.measureIds });
     if (reasons.length) return { ok: false, reason: `${reasons[0]}. Change your preferences to accept this job.` };
+    // Accepting an invitation or offer uses the same credential rule as apply and claim (owner decision, PR #187).
+    // Checked here to answer early, and again under the locks below. Already-hired engagements are not re-checked.
+    const missing = await credentialsMissing(db(), e.job, e.workerId, before);
+    if (missing.length) return { ok: false, reason: missingCredentialsMessage(missing) };
   }
 
   return db().$transaction(async (tx) => {
@@ -284,13 +289,18 @@ export async function moveEngagement(
     const [current, acceptedCount, job, wk, reviewed, lastOffer, offers] = await Promise.all([
       tx.engagement.findUniqueOrThrow({ where: { id: engagementId } }),
       tx.engagement.count({ where: { jobId: e.jobId, status: { in: ACCEPTED_STATUSES } } }),
-      tx.job.findUniqueOrThrow({ where: { id: e.jobId } }),
+      tx.job.findUniqueOrThrow({ where: { id: e.jobId }, include: { jurisdiction: { select: { rules: true } } } }),
       tx.worker.findUniqueOrThrow({ where: { id: e.workerId }, select: { closedAt: true, profileId: true } }),
       tx.engagementEvent.count({ where: { engagementId, type: "IN_REVIEW" } }),
       tx.engagementEvent.findFirst({ where: { engagementId, type: "OFFERED" }, orderBy: { createdAt: "desc" }, select: { createdAt: true } }),
       liveOffers(tx, e.jobId, engagementId, at),
     ]);
     if (wk.closedAt) return { ok: false as const, reason: "This worker has closed their account." };
+    if (action === "accept" && actor.kind === "worker") {
+      // Again under the locks, against the job and wallet as they are now (including providesTraining).
+      const missing = await credentialsMissing(tx, job, e.workerId, at);
+      if (missing.length) return { ok: false as const, reason: missingCredentialsMessage(missing) };
+    }
     const t = transition(current.status, action, actor.kind, {
       jobStatus: job.status,
       hiringModes: readHiringModes(job.hiringMethod),

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isBadgeName, missingCredentials, missingCredentialsMessage, type WalletRow } from "./job-credentials";
+import { isBadgeName, isTrainingName, missingCredentials, missingCredentialsMessage, type WalletRow } from "./job-credentials";
 
 const NOW = new Date("2026-11-14T18:00:00Z");
 const CO_RULES = { workerRegistrationRequired: true, badgeRequired: true, affidavitRequired: true };
@@ -21,18 +21,19 @@ const full = () => [
   cred({ kind: "CIRCULATOR_REGISTRATION", state: "CO", expiresOn: new Date("2027-06-30") }),
   cred({ kind: "NOTARY_OR_AFFIDAVIT", state: "CO" }),
   cred({ kind: "OTHER", label: "Paid circulator badge" }),
+  cred({ kind: "TRAINING", label: "Petition basics" }),
 ];
 
 describe("credentials checked before hiring", () => {
-  it("a worker with no credentials is missing everything the job needs, except training", () => {
-    expect(missingCredentials(petition, [], NOW)).toEqual(["Circulator registration", "Badge", "Signed affidavit"]);
+  it("a worker with no credentials is missing everything the job needs, training included", () => {
+    expect(missingCredentials(petition, [], NOW)).toEqual(["Circulator registration", "Badge", "Signed affidavit", "Training: Petition basics"]);
     // The audit's probe: a canvass job that asks for a badge, and a worker with none.
     expect(missingCredentials(canvassBadge, [], NOW)).toEqual(["Badge"]);
   });
 
-  it("a job that asks for nothing (or only training) is open to anyone", () => {
+  it("a job that asks for nothing is open to anyone; a training-only job is not", () => {
     expect(missingCredentials({ type: "CANVASS", requirements: {}, jurisdictionRules: CO_RULES, state: "CO" }, [], NOW)).toEqual([]);
-    expect(missingCredentials({ type: "CANVASS", requirements: { training: "Canvass basics" }, jurisdictionRules: CO_RULES, state: "CO" }, [], NOW)).toEqual([]);
+    expect(missingCredentials({ type: "CANVASS", requirements: { training: "Canvass basics" }, jurisdictionRules: CO_RULES, state: "CO" }, [], NOW)).toEqual(["Training: Canvass basics"]);
   });
 
   it("a full, current wallet covers the job, self-reported included", () => {
@@ -90,5 +91,51 @@ describe("what the worker is told", () => {
     expect(m).toContain("Circulator registration, Badge");
     expect(m).toContain("Profile → Credentials");
     expect(m).toContain("named “Badge”");
+    expect(missingCredentialsMessage(["Training: Canvass basics"])).toContain("named “Canvass basics”");
+  });
+});
+
+describe("training course names", () => {
+  const course = { type: "CANVASS" as const, requirements: { training: "Canvass basics" }, jurisdictionRules: {}, state: "CO" };
+  it("matches the job's course, trimmed and in any case", () => {
+    expect(isTrainingName("Canvass basics", "Canvass basics")).toBe(true);
+    expect(isTrainingName("  CANVASS   basics ", "Canvass basics")).toBe(true);
+    expect(missingCredentials(course, [cred({ kind: "TRAINING", label: "Canvass basics" })], NOW)).toEqual([]);
+    expect(missingCredentials(course, [cred({ kind: "TRAINING", label: "  canvass  BASICS " })], NOW)).toEqual([]);
+  });
+  it("a different course, or any other kind, doesn't count", () => {
+    expect(isTrainingName("Petition basics", "Canvass basics")).toBe(false);
+    expect(missingCredentials(course, [cred({ kind: "TRAINING", label: "Petition basics" })], NOW)).toEqual(["Training: Canvass basics"]);
+    expect(missingCredentials(course, [cred({ kind: "OTHER", label: "Canvass basics" })], NOW)).toEqual(["Training: Canvass basics"]);
+  });
+});
+
+describe("We provide training", () => {
+  const badgeAndTraining = { type: "CANVASS" as const, requirements: { badge: true, training: "Canvass basics", registration: true, affidavit: true }, jurisdictionRules: {}, state: "CO" };
+  const petitionJob = { ...petition, providesTraining: true };
+  const empty: WalletRow[] = [];
+  const onlyRegAff = [
+    cred({ kind: "CIRCULATOR_REGISTRATION", state: "CO" }),
+    cred({ kind: "NOTARY_OR_AFFIDAVIT", state: "CO" }),
+  ];
+
+  it("when the setting is off, every required credential is enforced", () => {
+    expect(missingCredentials({ ...badgeAndTraining, providesTraining: false }, empty, NOW)).toEqual(["Circulator registration", "Badge", "Signed affidavit", "Training: Canvass basics"]);
+    expect(missingCredentials({ ...badgeAndTraining, providesTraining: false }, onlyRegAff, NOW)).toEqual(["Badge", "Training: Canvass basics"]);
+  });
+
+  it("when the setting is on, a missing badge or training is waived", () => {
+    expect(missingCredentials({ ...badgeAndTraining, providesTraining: true }, onlyRegAff, NOW)).toEqual([]);
+    expect(missingCredentials({ ...badgeAndTraining, providesTraining: true }, empty, NOW)).toEqual(["Circulator registration", "Signed affidavit"]);
+    expect(missingCredentials(petitionJob, empty, NOW)).toEqual(["Circulator registration", "Signed affidavit"]);
+  });
+
+  it("registration and affidavit are never waived, even when the setting is on", () => {
+    expect(missingCredentials({ ...badgeAndTraining, providesTraining: true }, [cred({ kind: "OTHER", label: "Badge" }), cred({ kind: "TRAINING", label: "Canvass basics" })], NOW)).toEqual(["Circulator registration", "Signed affidavit"]);
+    expect(missingCredentials(petitionJob, [cred({ kind: "OTHER", label: "Badge" }), cred({ kind: "TRAINING", label: "Petition basics" })], NOW)).toEqual(["Circulator registration", "Signed affidavit"]);
+  });
+
+  it("a full wallet still covers the job when the setting is on", () => {
+    expect(missingCredentials(petitionJob, full(), NOW)).toEqual([]);
   });
 });

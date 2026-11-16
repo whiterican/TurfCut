@@ -520,6 +520,14 @@ export function JobForm({
           <input name="training" className="field" maxLength={120} defaultValue={d("training")} {...describe("training")} />
           {err("training")}
         </label>
+        <div className="space-y-1.5 sm:col-span-3">
+          <label className="chip">
+            <input type="checkbox" name="providesTraining" defaultChecked={defaults.providesTraining === "on"} className="sr-only" />
+            We provide training
+          </label>
+          <p className="text-hint">When this is on, workers can be hired without a required training course or badge — the organization provides those. A required circulator registration or signed affidavit is still required, and turning this off later does not change anyone already hired.</p>
+          {err("providesTraining")}
+        </div>
         <label className="space-y-1.5 sm:col-span-3">
           <span className="label">Script {optional}</span>
           <textarea name="script" className="field min-h-24" maxLength={4000} defaultValue={d("script")} {...describe("script")} />
@@ -674,7 +682,7 @@ function Review({ raw, jurisdictions, goTo, live }: { raw: Record<string, unknow
     { step: 2, label: "Headcount", value: s("headcount") || "—" },
     { step: 2, label: "Hiring", value: list("hiringModes").map((m) => labelOf(HIRING_MODES, m)).join(", ") || "—" },
     { step: 2, label: "Cancellation notice", value: `${s("cancellationNoticeHours") || "24"} hours` },
-    { step: 3, label: "Requirements", value: [on("registration") && "Circulator registration", on("badge") && "Badge", on("affidavit") && "Signed affidavit", s("training") && `Training: ${s("training")}`].filter(Boolean).join(", ") || "None beyond the jurisdiction's" },
+    { step: 3, label: "Requirements", value: [on("registration") && "Circulator registration", on("badge") && "Badge", on("affidavit") && "Signed affidavit", s("training") && `Training: ${s("training")}`, on("providesTraining") && "We provide training (badges and training waived; registration and affidavit still required)"].filter(Boolean).join(", ") || "None beyond the jurisdiction's" },
     { step: 3, label: "Script", value: s("script") || "—" },
     { step: 3, label: "Canvassing app", value: s("canvassApp") ? `${labelOf(CANVASS_APPS, s("canvassApp"))}${s("toolList") ? `: ${s("toolList")}` : ""}` : "None" },
     { step: 3, label: "Contacts", value: `Emergencies: ${s("contactEmergency") || "—"} · Disputes: ${s("contactDisputes") || "—"} · Lost materials: ${s("contactLostMaterials") || "—"}` },

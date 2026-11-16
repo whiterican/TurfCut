@@ -10,6 +10,7 @@ export async function credentialed(p: PrismaClient, workerIds: string[]): Promis
       { workerId, kind: "CIRCULATOR_REGISTRATION" as const, state: "CO", expiresOn, actorId: workerId },
       { workerId, kind: "NOTARY_OR_AFFIDAVIT" as const, state: "CO", actorId: workerId },
       { workerId, kind: "OTHER" as const, label: "Badge", actorId: workerId },
+      { workerId, kind: "TRAINING" as const, label: "petition-basics", actorId: workerId },
     ]),
   });
 }

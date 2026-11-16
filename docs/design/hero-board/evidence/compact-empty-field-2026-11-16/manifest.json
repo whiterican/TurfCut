@@ -1,0 +1,60 @@
+{
+  "commit": "1341c55f052302650acef67be974e7c1ec0a875c",
+  "note": "Real local owner Desk, synthetic loopback auth. formerMapHeight measured with a temporary empty overview-map CSS probe, not a before screenshot. No mutation submitted.",
+  "results": [
+    {
+      "width": 390,
+      "theme": "light",
+      "height": 198,
+      "formerMapHeight": 360,
+      "overflow": 0,
+      "copy": "No assigned turf to show.Turf drawn on a shift appears here as its workers check in. Nobody's position is ever on this map.Open Field",
+      "errors": []
+    },
+    {
+      "width": 390,
+      "theme": "dark",
+      "height": 198,
+      "formerMapHeight": 360,
+      "overflow": 0,
+      "copy": "No assigned turf to show.Turf drawn on a shift appears here as its workers check in. Nobody's position is ever on this map.Open Field",
+      "errors": []
+    },
+    {
+      "width": 768,
+      "theme": "light",
+      "height": 178,
+      "formerMapHeight": 360,
+      "overflow": 0,
+      "copy": "No assigned turf to show.Turf drawn on a shift appears here as its workers check in. Nobody's position is ever on this map.Open Field",
+      "errors": []
+    },
+    {
+      "width": 768,
+      "theme": "dark",
+      "height": 178,
+      "formerMapHeight": 360,
+      "overflow": 0,
+      "copy": "No assigned turf to show.Turf drawn on a shift appears here as its workers check in. Nobody's position is ever on this map.Open Field",
+      "errors": []
+    },
+    {
+      "width": 1440,
+      "theme": "light",
+      "height": 178,
+      "formerMapHeight": 440,
+      "overflow": 0,
+      "copy": "No assigned turf to show.Turf drawn on a shift appears here as its workers check in. Nobody's position is ever on this map.Open Field",
+      "errors": []
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "height": 178,
+      "formerMapHeight": 440,
+      "overflow": 0,
+      "copy": "No assigned turf to show.Turf drawn on a shift appears here as its workers check in. Nobody's position is ever on this map.Open Field",
+      "errors": []
+    }
+  ]
+}

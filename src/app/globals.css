@@ -2626,9 +2626,9 @@ body {
   .menu-button {
     @apply relative inline-flex size-11 shrink-0 items-center justify-center rounded-full text-fg transition;
   }
-  /* The pill is glass, and its glass is a layer under the photo and the name (Caden, Nov 15): an iPhone drew the
+  /* The pill's pane is a layer under the photo and the name (Caden, Nov 15): an iPhone drew the
      name soft while it sat inside the blurred pill; above the layer it is drawn as page. z-index 0 holds the layer
-     inside the pill (a stacking context, without making the pill a backdrop root, so the layer still blurs the page). */
+     inside the pill (a stacking context). The pane has no blur at all now (Nov 16): it is solid. */
   .menu-button[data-named] {
     @apply h-11 w-auto max-w-[60vw] justify-start gap-2 border py-1 ps-1 pe-4 font-semibold;
     z-index: 0;
@@ -2642,11 +2642,14 @@ body {
     z-index: -1;
     border: 1px solid var(--glass-border);
     border-radius: inherit;
-    background: var(--glass-sheen), var(--glass-bg-strong);
-    -webkit-backdrop-filter: var(--glass-filter);
-    backdrop-filter: var(--glass-filter);
-    box-shadow: var(--glass-highlight);
+    /* Solid and sharp (Caden, Nov 16: "the white pill not blurred"): the plain surface, no blur behind it, no sheen,
+       and a tight shadow instead of the wide soft glow, so its edge is a line and not a haze. */
+    background: var(--surface);
+    box-shadow: 0 1px 3px rgb(28 15 46 / 0.16);
     pointer-events: none;
+  }
+  .dark .menu-button[data-named]::before {
+    box-shadow: 0 1px 3px rgb(0 0 0 / 0.5);
   }
   .menu-avatar {
     @apply flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-full text-sm font-semibold;

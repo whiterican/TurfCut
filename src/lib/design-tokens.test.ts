@@ -827,7 +827,11 @@ describe("the shell (redesign B1.4)", () => {
     const depthOf = (src: string) => src.split("{").length - src.split("}").length;
     expect(depthOf(before)).toBe(1); // inside @media screen only
     expect(before.slice(before.lastIndexOf("@media"))).toMatch(/^@media screen \{\s*$/);
-    expect(css).toMatch(/html:has\(\.more-sheet\[open\]\) \{\s*--root-top: var\(--drawer-root\);\s*--root-foot: var\(--drawer-root\);/);
+    // The strip behind the clock is the drawer's colour under the same dim as the shadow (Caden, Nov 17): 45% of rgb(24 20 30) by day, 60% of rgb(8 4 14) by night.
+    expect(css).toMatch(/html:has\(\.more-sheet\[open\]\) \{\s*--drawer-strip: color-mix\(in srgb, var\(--drawer-root\) 55%, rgb\(24 20 30\)\);\s*--root-top: var\(--drawer-strip\);\s*--root-foot: var\(--drawer-root\);/);
+    expect(css).toMatch(/html\.dark:has\(\.more-sheet\[open\]\) \{\s*--drawer-strip: color-mix\(in srgb, var\(--drawer-root\) 40%, rgb\(8 4 14\)\);/);
+    expect(css).toMatch(/\.more-sheet \{[^}]*box-shadow: 0 0 0 100vmax rgb\(24 20 30 \/ 0\.45\);/);
+    expect(css).toMatch(/\.dark \.more-sheet \{\s*box-shadow: 0 0 0 100vmax rgb\(8 4 14 \/ 0\.6\);/);
     for (const body of [themeBody(css, ".sun"), css.slice(css.indexOf("@media (prefers-reduced-transparency: reduce)"))]) expect(body).toMatch(/--drawer-root: var\(--surface\);/);
     // The body takes it too, and the backdrop is clear: an iPhone colours the strip from the page or from whatever is fixed
     // across the top, and a dim backdrop made it a dark band (Caden's phone, Nov 11). The drawer's own shadow dims the page.

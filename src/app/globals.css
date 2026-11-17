@@ -4731,9 +4731,16 @@ body:has(.thread-top) {
   }
 }
 @media screen {
+  /* The strip behind the clock is dimmed like the page beside the drawer (Caden, Nov 17: "try the band again"; on Nov 11 it
+     was taken away as a dark band). It is the drawer's colour under the same dim the drawer's shadow lays on the page, so
+     the strip is one with the page next to it. The pane below it stays the drawer's own colour. */
   html:has(.more-sheet[open]) {
-    --root-top: var(--drawer-root);
+    --drawer-strip: color-mix(in srgb, var(--drawer-root) 55%, rgb(24 20 30));
+    --root-top: var(--drawer-strip);
     --root-foot: var(--drawer-root);
+  }
+  html.dark:has(.more-sheet[open]) {
+    --drawer-strip: color-mix(in srgb, var(--drawer-root) 40%, rgb(8 4 14));
   }
   /* No gradient either: it would show through the top of the pane and not in the strip. */
   body:has(.more-sheet[open]) {

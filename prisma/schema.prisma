@@ -103,6 +103,8 @@ model Profile {
   walkbooksCut          Walkbook[]                @relation("WalkbookCreator")
   walkbookAssignments   WalkbookAssignment[]      @relation("WalkbookAssigner")
   stopOutcomes          StopOutcome[]             @relation("StopOutcomeRecorder")
+  pollQuestionsMade     PollQuestion[]            @relation("PollQuestionAuthor")
+  pollAnswersRecorded   PollAnswer[]              @relation("PollAnswerRecorder")
 
   @@index([orgId])
 }
@@ -488,6 +490,7 @@ model Job {
   savedBy           SavedJob[]
   dismissedBy       DismissedJob[]
   walkbooks         Walkbook[]
+  pollQuestions     PollQuestion[]
 
   @@index([orgId, status])
   @@index([jurisdictionId])
@@ -576,6 +579,7 @@ model Engagement {
   notifications       Notification[]
   walkbookAssignments WalkbookAssignment[]
   stopOutcomes        StopOutcome[]
+  pollAnswers         PollAnswer[]
 
   @@unique([jobId, workerId])
   @@index([workerId])
@@ -1691,13 +1695,14 @@ model Walkbook {
 }
 
 model WalkbookStop {
-  id         String          @id @default(uuid()) @db.Uuid
-  walkbookId String          @db.Uuid
-  walkbook   Walkbook        @relation(fields: [walkbookId], references: [id], onDelete: Restrict)
-  addressId  String          @db.Uuid
-  address    ImportedAddress @relation(fields: [addressId], references: [id], onDelete: Restrict)
-  stopNumber Int
-  outcomes   StopOutcome[]
+  id          String          @id @default(uuid()) @db.Uuid
+  walkbookId  String          @db.Uuid
+  walkbook    Walkbook        @relation(fields: [walkbookId], references: [id], onDelete: Restrict)
+  addressId   String          @db.Uuid
+  address     ImportedAddress @relation(fields: [addressId], references: [id], onDelete: Restrict)
+  stopNumber  Int
+  outcomes    StopOutcome[]
+  pollAnswers PollAnswer[]
 
   @@unique([walkbookId, stopNumber])
   @@unique([walkbookId, addressId])
@@ -1771,4 +1776,73 @@ model StopOutcomeAnswer {
   boolValue Boolean?
 
   @@unique([outcomeId, key])
+}
+
+// ---------------------------------------------------------------------------
+// W5: polling at the door (prisma/w5-polls.sql). Server-only, append-only.
+// ---------------------------------------------------------------------------
+
+/// A job's poll question. Append-only: changing a question adds a new one that
+/// supersedes it; the old one stays, with the answers given to it. Current
+/// means no other question supersedes it.
+model PollQuestion {
+  id           String        @id @db.Uuid
+  jobId        String        @db.Uuid
+  job          Job           @relation(fields: [jobId], references: [id], onDelete: Restrict)
+  position     Int // 1-10: the order on the form
+  prompt       String // 1-200 characters, written by the organization (never about a person)
+  supersedesId String?       @unique @db.Uuid
+  supersedes   PollQuestion? @relation("PollQuestionVersions", fields: [supersedesId], references: [id], onDelete: Restrict)
+  supersededBy PollQuestion? @relation("PollQuestionVersions")
+  createdById  String        @db.Uuid
+  createdBy    Profile       @relation("PollQuestionAuthor", fields: [createdById], references: [id], onDelete: Restrict)
+  createdAt    DateTime      @default(now())
+
+  choices PollChoice[]
+  answers PollAnswer[]
+
+  @@index([jobId, position])
+  @@index([createdById])
+}
+
+/// One fixed answer choice of a question (2-8 a question, up to 60 characters).
+model PollChoice {
+  id         String       @id @db.Uuid
+  questionId String       @db.Uuid
+  question   PollQuestion @relation(fields: [questionId], references: [id], onDelete: Restrict)
+  position   Int
+  label      String
+
+  answers PollAnswer[]
+
+  @@unique([questionId, position])
+  @@unique([id, questionId])
+}
+
+/// One answer to one question at one stop: a choice, or "declined". Append-only:
+/// an edit is a new row and the newest row for a stop and question is the
+/// answer now; every earlier answer, who gave it and when, stays. There is no
+/// free-text column, so no note about a person can be stored. engagementId is
+/// null for an answer edited by staff. The id comes from the recording device,
+/// so a double tap records once.
+model PollAnswer {
+  id           String       @id @db.Uuid
+  stopId       String       @db.Uuid
+  stop         WalkbookStop @relation(fields: [stopId], references: [id], onDelete: Restrict)
+  questionId   String       @db.Uuid
+  question     PollQuestion @relation(fields: [questionId], references: [id], onDelete: Restrict)
+  /// With questionId, a composite foreign key: the database refuses a choice of another question.
+  choiceId     String?      @db.Uuid
+  choice       PollChoice?  @relation(fields: [choiceId, questionId], references: [id, questionId], onDelete: Restrict)
+  declined     Boolean      @default(false)
+  engagementId String?      @db.Uuid
+  engagement   Engagement?  @relation(fields: [engagementId], references: [id], onDelete: Restrict)
+  recordedById String       @db.Uuid
+  recordedBy   Profile      @relation("PollAnswerRecorder", fields: [recordedById], references: [id], onDelete: Restrict)
+  createdAt    DateTime     @default(now())
+
+  @@index([stopId, questionId, createdAt])
+  @@index([questionId])
+  @@index([engagementId])
+  @@index([recordedById])
 }

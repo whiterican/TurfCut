@@ -6,6 +6,8 @@ import {
   LIVE_SUPABASE_PROJECT_REFS,
   STATEWIDE_CO_ID,
   demoDatabaseGuard,
+  demoSeedTarget,
+  isHostedSupabaseDatabaseUrl,
   demoOnlyRules,
   demoJobCityAndJurisdiction,
   demoStatewideExpiry,
@@ -123,6 +125,82 @@ describe("the demo database must be named on purpose", () => {
     expect(reasonOf({ ...live, TURFCUT_DEMO_PROJECT_REF: undefined })).toMatch(/live Turfcut project/);
     expect(reasonOf(live)).not.toMatch(/txzxtvsfzxfhgfiurufq/);
     expect(demoDatabaseGuard(live).ok).toBe(false);
+  });
+});
+
+describe("where seed:demo may write (hard stop before any write)", () => {
+  const LIVE = "txzxtvsfzxfhgfiurufq";
+  const local = "postgresql://postgres@localhost:5432/turfcut_dev";
+  const refusal = (env: Parameters<typeof demoSeedTarget>[0]) => {
+    const r = demoSeedTarget(env);
+    if (r.ok) throw new Error(`expected a refusal, got ${JSON.stringify(r)}`);
+    return r.reason;
+  };
+
+  it("always refuses the live project, in any setting, whatever TURFCUT_DEMO and the confirmed ref say", () => {
+    const cases: Parameters<typeof demoSeedTarget>[0][] = [
+      { DATABASE_URL: `postgresql://postgres:secret@db.${LIVE}.supabase.co:5432/postgres` },
+      { DATABASE_URL: `postgresql://postgres.${LIVE}:secret@aws-0-us-east-2.pooler.supabase.com:6543/postgres` },
+      { ...matching, DATABASE_URL: `postgresql://postgres.${LIVE}:secret@aws-0-us-east-2.pooler.supabase.com:6543/postgres` },
+      { TURFCUT_DEMO: "1", TURFCUT_DEMO_PROJECT_REF: LIVE, NEXT_PUBLIC_SUPABASE_URL: `https://${LIVE}.supabase.co`, DATABASE_URL: `postgresql://postgres@db.${LIVE}.supabase.co:5432/postgres` },
+      // Local database, but the live project named elsewhere: still refused.
+      { NEXT_PUBLIC_SUPABASE_URL: `https://${LIVE}.supabase.co`, DATABASE_URL: local },
+      { TURFCUT_DEMO_PROJECT_REF: LIVE.toUpperCase(), DATABASE_URL: local },
+      { DIRECT_URL: `postgresql://postgres@db.${LIVE}.supabase.co:5432/postgres`, DATABASE_URL: local },
+      { DATABASE_URL: `${local}?application_name=${LIVE}` },
+      { DATABASE_URL: `${local}?application_name=%74xzxtvsfzxfhgfiurufq` },
+      { DATABASE_URL: `postgresql://user@some-proxy.example.com:5432/postgres?note=${LIVE.toUpperCase()}` },
+    ];
+    for (const env of cases) expect(refusal(env)).toMatch(/live Turfcut Supabase project/);
+  });
+
+  it("refuses any other hosted Supabase database unless the run is guarded, and says what to set", () => {
+    const hosted = [
+      "postgresql://postgres:secret@db.abcd1234.supabase.co:5432/postgres",
+      "postgresql://postgres.abcd1234:secret@aws-0-us-east-2.pooler.supabase.com:6543/postgres?pgbouncer=true",
+      "postgresql://postgres@localhost:5432/postgres?host=db.abcd1234.supabase.co",
+      "postgresql://postgres@db.abcd1234.supabase.co.:5432/postgres",
+      "postgresql://postgres.abcd1234:secret@aws-0-us-east-2.pooler.supabase.com.:6543/postgres",
+      "postgresql://postgres@localhost:5432/postgres?host=db.abcd1234.supabase.co.",
+    ];
+    for (const DATABASE_URL of hosted) {
+      expect(isHostedSupabaseDatabaseUrl(DATABASE_URL)).toBe(true);
+      const unguarded = refusal({ DATABASE_URL });
+      expect(unguarded).toMatch(/hosted Supabase database, and this run isn't guarded/);
+      expect(unguarded).toMatch(/TURFCUT_DEMO=1/);
+      expect(unguarded).toMatch(/TURFCUT_DEMO_PROJECT_REF/);
+    }
+    expect(refusal({ ...matching, TURFCUT_DEMO: undefined })).toMatch(/TURFCUT_DEMO is not on/);
+    expect(refusal({ ...matching, TURFCUT_DEMO_PROJECT_REF: "efgh5678" })).toMatch(/doesn't match/);
+    expect(refusal({ ...matching, TURFCUT_DEMO_PROJECT_REF: "abcd" })).not.toMatch(/abcd1234/);
+    expect(refusal({ ...matching, NEXT_PUBLIC_SUPABASE_URL: undefined })).toMatch(/NEXT_PUBLIC_SUPABASE_URL/);
+    // Guarded, but with a trailing-dot host: the ref can't be read, so it stays refused.
+    for (const DATABASE_URL of hosted.slice(3)) {
+      expect(refusal({ ...matching, DATABASE_URL })).toMatch(/hosted Supabase database, and this run isn't guarded/);
+    }
+  });
+
+  it("lets a guarded hosted demo project through", () => {
+    expect(demoSeedTarget(matching)).toEqual({ ok: true, kind: "guarded", ref: "abcd1234" });
+  });
+
+  it("runs a local Postgres as before, with no extra settings", () => {
+    for (const DATABASE_URL of [local, "postgresql://postgres:postgres@127.0.0.1:55432/turfcut_acc_demo", "postgresql://postgres@postgres:5432/ci", "postgresql:///turfcut?host=/var/run/postgresql"]) {
+      expect(isHostedSupabaseDatabaseUrl(DATABASE_URL)).toBe(false);
+      const r = demoSeedTarget({ DATABASE_URL });
+      expect(r.ok && r.kind).toBe("local");
+    }
+    expect(demoSeedTarget({ TURFCUT_DEMO: "1", TURFCUT_DEMO_PROJECT_REF: "localhost:5432", NEXT_PUBLIC_SUPABASE_URL: "http://localhost:5432", DATABASE_URL: local })).toEqual({
+      ok: true,
+      kind: "guarded",
+      ref: "localhost:5432",
+    });
+  });
+
+  it("refuses when DATABASE_URL is unset or unreadable", () => {
+    expect(refusal({})).toMatch(/DATABASE_URL is not set/);
+    expect(refusal({ DATABASE_URL: "   " })).toMatch(/DATABASE_URL is not set/);
+    expect(refusal({ DATABASE_URL: "not a url" })).toMatch(/isn't a usable Postgres URL/);
   });
 });
 

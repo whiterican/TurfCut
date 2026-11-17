@@ -103,17 +103,17 @@ export function AssignTurfPanel({ shifts, center }: { shifts: AssignableShift[];
                 <button
                   type="button"
                   className="btn-ghost btn-sm"
-                  onClick={() =>
+                  onClick={() => {
+                    setMsg(null);
                     setPicked((p) => {
-                      setMsg(null);
                       const n = new Set(p);
                       for (const s of ofJob) {
                         if (all) n.delete(s.id);
                         else n.add(s.id);
                       }
                       return n;
-                    })
-                  }
+                    });
+                  }}
                 >
                   {all ? "None" : "All"}
                 </button>

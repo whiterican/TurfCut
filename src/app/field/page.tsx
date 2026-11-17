@@ -48,7 +48,7 @@ export default async function FieldPage({ searchParams }: { searchParams: Search
   // Whoever may schedule shifts may give turf; the shifts offered are the ones still to work or under way.
   const assignable: AssignableShift[] = canUse(session, "scheduling")
     ? rows
-        .filter((r) => !r.state.cancelled && !r.state.checkedOutAt)
+        .filter((r) => !r.state.cancelled && !r.state.checkedOutAt && (r.state.checkedInAt || r.endsAt >= now))
         .sort((a, b) => a.jobTitle.localeCompare(b.jobTitle) || a.startsAt.getTime() - b.startsAt.getTime())
         .map((r) => ({ id: r.shiftId, worker: r.worker, jobTitle: r.jobTitle, startsAt: r.startsAt.toISOString(), endsAt: r.endsAt.toISOString(), hasTurf: r.turf !== null }))
     : [];

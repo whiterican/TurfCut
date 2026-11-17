@@ -100,7 +100,10 @@ CREATE TABLE IF NOT EXISTS "public"."PollResponse" (
 
     CONSTRAINT "PollResponse_pkey" PRIMARY KEY ("id"),
     -- No poll without the disclosure having been read: a door where it wasn't has no response row at all.
-    CONSTRAINT "PollResponse_disclosure" CHECK ("disclosureRead")
+    CONSTRAINT "PollResponse_disclosure" CHECK ("disclosureRead"),
+    -- A response that supersedes itself would drop its own door from every count, and an append-only row can't be repaired.
+    -- (Longer loops can't form: a row can only point at a row that already exists, and rows never change.)
+    CONSTRAINT "PollResponse_not_self" CHECK ("supersedesId" IS NULL OR "supersedesId" <> "id")
 );
 CREATE UNIQUE INDEX IF NOT EXISTS "PollResponse_stopOutcomeId_key" ON "public"."PollResponse"("stopOutcomeId");
 CREATE UNIQUE INDEX IF NOT EXISTS "PollResponse_supersedesId_key" ON "public"."PollResponse"("supersedesId");
@@ -165,16 +168,38 @@ DO $$ BEGIN
   ALTER TABLE "public"."PollAnswer" ADD CONSTRAINT "PollAnswer_option_fkey" FOREIGN KEY ("optionId", "questionId") REFERENCES "public"."PollOption"("id", "questionId") ON DELETE RESTRICT ON UPDATE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
--- A published poll can't change. Locking is one-way: DRAFT -> LOCKED once, then no UPDATE or DELETE.
+-- A published poll can't change. A version is born a DRAFT, and locking is one-way: DRAFT -> LOCKED once, then no UPDATE or
+-- DELETE. It can lock only with a usable shape, because after that nothing can be fixed: at least one question, every
+-- CHOICE question with at least two options, no SCALE_5 question with options. (The UPDATE holds the version row, so the
+-- question and option triggers below, which take FOR SHARE on it, wait for the lock and then see LOCKED.)
 CREATE OR REPLACE FUNCTION "turfcut_private"."poll_version_lock"() RETURNS trigger LANGUAGE plpgsql SET search_path = '' AS $$
 BEGIN
+  IF TG_OP = 'INSERT' THEN
+    IF NEW."status" <> 'DRAFT' THEN
+      RAISE EXCEPTION 'PollVersion: a version is created as a DRAFT and locked afterwards' USING ERRCODE = 'check_violation';
+    END IF;
+    RETURN NEW;
+  END IF;
   IF OLD."status" = 'LOCKED' THEN
     RAISE EXCEPTION 'PollVersion % is locked: % is not allowed', OLD."id", TG_OP USING ERRCODE = 'insufficient_privilege';
+  END IF;
+  IF TG_OP = 'UPDATE' AND NEW."status" = 'LOCKED' THEN
+    IF NOT EXISTS (SELECT 1 FROM "public"."PollQuestion" WHERE "versionId" = OLD."id") THEN
+      RAISE EXCEPTION 'PollVersion % can not lock: it has no questions', OLD."id" USING ERRCODE = 'check_violation';
+    END IF;
+    IF EXISTS (
+      SELECT 1 FROM "public"."PollQuestion" q
+       WHERE q."versionId" = OLD."id"
+         AND ((q."kind" = 'CHOICE' AND (SELECT count(*) FROM "public"."PollOption" o WHERE o."questionId" = q."id") < 2)
+           OR (q."kind" = 'SCALE_5' AND EXISTS (SELECT 1 FROM "public"."PollOption" o WHERE o."questionId" = q."id")))
+    ) THEN
+      RAISE EXCEPTION 'PollVersion % can not lock: a CHOICE question needs at least two options and a SCALE_5 question none', OLD."id" USING ERRCODE = 'check_violation';
+    END IF;
   END IF;
   RETURN CASE WHEN TG_OP = 'DELETE' THEN OLD ELSE NEW END;
 END $$;
 REVOKE ALL ON FUNCTION "turfcut_private"."poll_version_lock"() FROM PUBLIC, anon, authenticated;
-CREATE OR REPLACE TRIGGER "PollVersion_lock" BEFORE UPDATE OR DELETE ON "public"."PollVersion"
+CREATE OR REPLACE TRIGGER "PollVersion_lock" BEFORE INSERT OR UPDATE OR DELETE ON "public"."PollVersion"
   FOR EACH ROW EXECUTE FUNCTION "turfcut_private"."poll_version_lock"();
 
 -- Questions and options of a locked version can't be added, changed or removed. FOR SHARE on the version row:

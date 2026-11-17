@@ -25,7 +25,8 @@ SELECT gen_random_uuid() AS j2, gen_random_uuid() AS e2, gen_random_uuid() AS s2
        gen_random_uuid() AS imp, gen_random_uuid() AS adr1, gen_random_uuid() AS adr2, gen_random_uuid() AS wb, gen_random_uuid() AS ws1, gen_random_uuid() AS ws2,
        gen_random_uuid() AS so1, gen_random_uuid() AS so1b, gen_random_uuid() AS so2, gen_random_uuid() AS so3, gen_random_uuid() AS so4,
        gen_random_uuid() AS r1, gen_random_uuid() AS r2, gen_random_uuid() AS r3, gen_random_uuid() AS r4, gen_random_uuid() AS r5,
-       gen_random_uuid() AS a1, gen_random_uuid() AS a2, gen_random_uuid() AS a3, gen_random_uuid() AS a4, gen_random_uuid() AS a5 \gset
+       gen_random_uuid() AS a1, gen_random_uuid() AS a2, gen_random_uuid() AS a3, gen_random_uuid() AS a4, gen_random_uuid() AS a5,
+       gen_random_uuid() AS o3b, gen_random_uuid() AS ov3a, gen_random_uuid() AS ov3b \gset
 SELECT (SELECT "id" FROM "Job" ORDER BY "createdAt" LIMIT 1) AS j1,
        (SELECT "orgId" FROM "Job" ORDER BY "createdAt" LIMIT 1) AS org,
        (SELECT "id" FROM "Profile" ORDER BY "createdAt" LIMIT 1) AS p,
@@ -55,10 +56,11 @@ SELECT pg_temp.fails('a second draft on the same job is refused', format($f$INSE
 SELECT pg_temp.succeeds('v2 draft on job 2', format($f$INSERT INTO "PollVersion"("id","jobId","version","title","conductedBy","disclosure","createdById") VALUES (%L,%L,1,'t','Acme Research','We are conducting research.',%L)$f$, :'v2', :'j2', :'p'));
 SELECT pg_temp.succeeds('questions and options on a draft', format($f$
   INSERT INTO "PollQuestion"("id","versionId","position","kind","text") VALUES (%L,%L,1,'CHOICE','Q1'),(%L,%L,2,'SCALE_5','Q2'),(%L,%L,3,'CHOICE','Q3');
-  INSERT INTO "PollOption"("id","questionId","position","label") VALUES (%L,%L,1,'Yes'),(%L,%L,2,'No'),(%L,%L,1,'Other question option');
+  INSERT INTO "PollOption"("id","questionId","position","label") VALUES (%L,%L,1,'Yes'),(%L,%L,2,'No'),(%L,%L,1,'Other question option'),(%L,%L,2,'Other question option 2');
   INSERT INTO "PollQuestion"("id","versionId","position","kind","text") VALUES (%L,%L,1,'CHOICE','Job 2 question');
-$f$, :'q1',:'v1', :'q2',:'v1', :'q3',:'v1', :'o1',:'q1', :'o2',:'q1', :'o3',:'q3', :'qv2',:'v2'));
+$f$, :'q1',:'v1', :'q2',:'v1', :'q3',:'v1', :'o1',:'q1', :'o2',:'q1', :'o3',:'q3', :'o3b',:'q3', :'qv2',:'v2'));
 SELECT pg_temp.succeeds('a draft can still be edited', format($f$UPDATE "PollQuestion" SET "text" = 'Q1 edited' WHERE "id" = %L$f$, :'q1'));
+SELECT pg_temp.fails('lock refused: v2 has a CHOICE question with no options', format($f$UPDATE "PollVersion" SET "status"='LOCKED', "lockedAt"=now(), "researchAttestedById"=%L, "researchAttestedAt"=now() WHERE "id" = %L$f$, :'p', :'v2'), 'at least two options');
 SELECT pg_temp.fails('locking without the research statement is refused', format($f$UPDATE "PollVersion" SET "status"='LOCKED', "lockedAt"=now() WHERE "id" = %L$f$, :'v1'), 'PollVersion_locked');
 SELECT pg_temp.fails('status LOCKED without lockedAt is refused', format($f$UPDATE "PollVersion" SET "status"='LOCKED', "researchAttestedById"=%L, "researchAttestedAt"=now() WHERE "id" = %L$f$, :'p', :'v1'), 'PollVersion_locked');
 SELECT pg_temp.succeeds('lock v1 (statement recorded)', format($f$UPDATE "PollVersion" SET "status"='LOCKED', "lockedAt"=now(), "researchAttestedById"=%L, "researchAttestedAt"=now() WHERE "id" = %L$f$, :'p', :'v1'));
@@ -73,7 +75,16 @@ SELECT pg_temp.fails('locked: an option can not be deleted', format($f$DELETE FR
 SELECT pg_temp.fails('a question can not move to another version (here: into the locked one)', format($f$UPDATE "PollQuestion" SET "versionId"=%L WHERE "id" = %L$f$, :'v1', :'qv2'), 'can not move');
 SELECT pg_temp.fails('TRUNCATE of the versions is refused', $f$TRUNCATE "PollVersion" CASCADE$f$, 'append-only');
 -- a second version for job 1 (v1 locked), to test correction across versions
-SELECT pg_temp.succeeds('v3: a new draft after the first is locked', format($f$INSERT INTO "PollVersion"("id","jobId","version","title","conductedBy","disclosure","createdById","status","lockedAt","researchAttestedById","researchAttestedAt") VALUES (%L,%L,2,'t','x','y',%L,'LOCKED',now(),%L,now())$f$, :'v3', :'j1', :'p', :'p'));
+SELECT pg_temp.fails('a version can not be created already LOCKED', format($f$INSERT INTO "PollVersion"("id","jobId","version","title","conductedBy","disclosure","createdById","status","lockedAt","researchAttestedById","researchAttestedAt") VALUES (gen_random_uuid(),%L,9,'t','x','y',%L,'LOCKED',now(),%L,now())$f$, :'j2', :'p', :'p'), 'created as a DRAFT');
+SELECT pg_temp.succeeds('v3: a new draft after the first is locked', format($f$INSERT INTO "PollVersion"("id","jobId","version","title","conductedBy","disclosure","createdById") VALUES (%L,%L,2,'t','x','y',%L)$f$, :'v3', :'j1', :'p'));
+SELECT pg_temp.fails('lock refused: a version with no questions', format($f$UPDATE "PollVersion" SET "status"='LOCKED', "lockedAt"=now(), "researchAttestedById"=%L, "researchAttestedAt"=now() WHERE "id" = %L$f$, :'p', :'v3'), 'no questions');
+SELECT pg_temp.succeeds('v3 gets a CHOICE question with one option', format($f$INSERT INTO "PollQuestion"("id","versionId","position","kind","text") VALUES (%L,%L,1,'CHOICE','v3 question'); INSERT INTO "PollOption"("id","questionId","position","label") VALUES (%L,%L,1,'Only option')$f$, :'qv3', :'v3', :'ov3a', :'qv3'));
+SELECT pg_temp.fails('lock refused: a CHOICE question with one option', format($f$UPDATE "PollVersion" SET "status"='LOCKED', "lockedAt"=now(), "researchAttestedById"=%L, "researchAttestedAt"=now() WHERE "id" = %L$f$, :'p', :'v3'), 'at least two options');
+SELECT pg_temp.succeeds('v3 CHOICE question gets a second option', format($f$INSERT INTO "PollOption"("id","questionId","position","label") VALUES (%L,%L,2,'Second option')$f$, :'ov3b', :'qv3'));
+SELECT pg_temp.succeeds('a draft question can change kind', format($f$UPDATE "PollQuestion" SET "kind"='SCALE_5' WHERE "id" = %L$f$, :'qv3'));
+SELECT pg_temp.fails('lock refused: a SCALE_5 question that still has options', format($f$UPDATE "PollVersion" SET "status"='LOCKED', "lockedAt"=now(), "researchAttestedById"=%L, "researchAttestedAt"=now() WHERE "id" = %L$f$, :'p', :'v3'), 'SCALE_5 question none');
+SELECT pg_temp.succeeds('...and back to CHOICE', format($f$UPDATE "PollQuestion" SET "kind"='CHOICE' WHERE "id" = %L$f$, :'qv3'));
+SELECT pg_temp.succeeds('lock v3 (a usable shape)', format($f$UPDATE "PollVersion" SET "status"='LOCKED', "lockedAt"=now(), "researchAttestedById"=%L, "researchAttestedAt"=now() WHERE "id" = %L$f$, :'p', :'v3'));
 
 -- ===== Doors: W2's stop outcomes (stub) name a stop by (walkbook, number), never by a key to the stop =====
 INSERT INTO "StopOutcome"("id","shiftId","walkbookId","stopNumber","outcome") VALUES
@@ -113,6 +124,7 @@ SELECT pg_temp.fails('TRUNCATE of answers is refused', $f$TRUNCATE "PollAnswer"$
 SELECT pg_temp.succeeds('R2 corrects R1 (re-recorded against the door''s corrected outcome row)', format($f$INSERT INTO "PollResponse"("id","versionId","stopOutcomeId","completion","disclosureRead","actorId","supersedesId") VALUES (%L,%L,%L,'COMPLETE',true,%L,%L)$f$, :'r2', :'v1', :'so1b', :'p', :'r1'));
 SELECT pg_temp.succeeds('A3: R2''s answer', format($f$INSERT INTO "PollAnswer"("id","responseId","versionId","questionId","optionId") VALUES (%L,%L,%L,%L,%L)$f$, :'a3', :'r2', :'v1', :'q1', :'o2'));
 SELECT pg_temp.fails('R1 can be superseded only once', format($f$INSERT INTO "PollResponse"("id","versionId","stopOutcomeId","completion","disclosureRead","actorId","supersedesId") VALUES (gen_random_uuid(),%L,%L,'COMPLETE',true,%L,%L)$f$, :'v1', :'so3', :'p', :'r1'), 'PollResponse_supersedesId_key|PollResponse_supersedesId_versionId_key');
+SELECT pg_temp.fails('a response can not supersede itself', format($f$INSERT INTO "PollResponse"("id","versionId","stopOutcomeId","completion","disclosureRead","actorId","supersedesId") VALUES (%L,%L,%L,'COMPLETE',true,%L,%L)$f$, :'r5', :'v1', :'so4', :'p', :'r5'), 'PollResponse_not_self');
 SELECT pg_temp.fails('a correction can not move a response to another version', format($f$INSERT INTO "PollResponse"("id","versionId","stopOutcomeId","completion","disclosureRead","actorId","supersedesId") VALUES (gen_random_uuid(),%L,%L,'COMPLETE',true,%L,%L)$f$, :'v3', :'so3', :'p', :'r2'), 'PollResponse_supersedes_fkey');
 -- results rule: count only responses nothing supersedes
 SELECT pg_temp.ok('results count only current responses: R1 is superseded, so its answers are left out',

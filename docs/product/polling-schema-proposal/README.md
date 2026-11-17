@@ -56,8 +56,10 @@ anything is sent" promise, so the parser, the writer, the UI copy and `droppedCo
 (names, phone numbers, party, vote history) must never reach a worker's phone or any matching, scoring or ranking code:
 keep explicit field selects, and add an isolation test in the style of `job-marks-isolation.test.ts`. The record ID is
 deleted with the address, so a return CSV has to be exported inside the 30 days. Caden decided (Nov 17, 2026) that counsel
-doesn't need to confirm before a real voter file is imported. I haven't verified the legal side myself, so this
-proposal makes no legal claim either way.
+doesn't need to confirm before a real voter file is imported. A first check of primary sources is in
+`docs/compliance/VOTER_DATA_AND_POLLING_LEGAL_NOTES.md`: it found specific issues (Arizona makes providing internet access to
+voter-list data a felony; California puts vendor security duties on whoever holds the data) and lists what was not checked.
+This proposal itself makes no legal claim.
 
 ## Run it
 Needs a local Postgres (16 was used) and W1's and W2's SQL (`prisma/w1-walkbooks.sql`, `prisma/w2-stop-outcomes.sql`, still

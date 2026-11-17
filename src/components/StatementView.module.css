@@ -33,7 +33,7 @@
       overflow-wrap: anywhere;
     }
 
-    .lines td:nth-child(3) {
+    .lines td[data-label="Basis"] {
       overflow-wrap: anywhere;
     }
   }

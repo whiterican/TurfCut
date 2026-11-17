@@ -8,7 +8,7 @@ const results=[];
 for(const width of [390,640,768,1024,1440]) {
  await page.setViewportSize({width,height:1000});
  for(const theme of ['light','dark']) {
-  await page.evaluate(t=>{document.documentElement.classList.toggle('dark',t==='dark');document.documentElement.classList.remove('sunlight');},theme);
+  await page.evaluate(t=>{document.documentElement.classList.toggle('dark',t==='dark');document.documentElement.classList.remove('sun');},theme);
   for(const mode of ['before','after']) {
    const override=mode==='before'?await page.addStyleTag({content:'table.statement-lines {table-layout:auto!important} table.statement-lines colgroup {display:none!important} table.statement-lines tbody th[scope="row"] {white-space:nowrap!important;overflow-wrap:normal!important} @media(max-width:735px){table.statement-lines tbody th[scope="row"] {white-space:normal!important}}'}):null;
    const metrics=await page.locator('table.statement-lines').evaluateAll(tables=>tables.map(t=>({width:t.clientWidth,layout:getComputedStyle(t).tableLayout,overflow:t.parentElement.scrollWidth-t.parentElement.clientWidth,columns:[...t.querySelectorAll('thead th')].map(c=>Math.round(c.getBoundingClientRect().right*10)/10)})));

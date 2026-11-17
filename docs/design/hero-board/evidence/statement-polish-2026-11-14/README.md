@@ -6,11 +6,19 @@ Base: `b6c33b67cdd0c99490a3efaf89e2d87738beb097`.
 
 Each job group's ledger currently derives column widths from its own contents. A short worker name and formula in one group can put Pay and Fee at different horizontal positions from the next group. `StatementView.module.css` supplies one six-column grid when the **table container**, not the viewport, is at least 60rem wide. The subtotal continues to span the first three columns. Worker names may wrap instead of invading the date. The same layout applies to corrections.
 
-Column proportions: Worker 17%, Date/job 22%, Basis 22%, Pay 13%, Fee 11%, Current state 15%. These are proposed implementation values for review, not founder-specified tokens. Below the threshold, the existing automatic table sizing and phone stacks remain. Print retains automatic sizing. Palette, fonts, spacing, borders, statuses, grouping, ledger calculations and navigation are unchanged.
+Column proportions (as shipped, after Claude's review): Worker 17%, Date/job 18%, Basis 20%, Pay 15%, Fee 13%, Current state 17%. Codex first proposed 17/22/22/13/11/15; measured at a 60rem container, that let −$1,234,567.89 run 10px past Pay and −$12,345.67 7px past Fee, while the date column had room to spare. These are implementation values, not founder-specified tokens. Below the threshold, the existing automatic table sizing and phone stacks remain. Print retains automatic sizing. Palette, fonts, spacing, borders, statuses, grouping, ledger calculations and navigation are unchanged.
 
 ## Verification status
 
-No visual approval claimed. Chromium could not launch here: `socket() failed: Operation not permitted`. No screenshots were captured. The fixture uses the actual StatementView with synthetic data, not an authenticated statement route. Typecheck, lint and unit-suite results are recorded in the PR. No live database or production data was accessed.
+Codex's environment could not launch Chromium. Claude then measured the real `StatementView` in Chromium (Playwright, dev server, the same synthetic-fixture approach), at containers of 959, 960, 961, 966, 1006, 1066 and 1266px, light and dark:
+
+- every job group's column edges are identical once the layout is fixed (60rem and up);
+- no cell's visible text runs past its content box, with seven-figure, negative and bracketed amounts (up to `($9,999,999.99)` in Pay and `($999,999.99)` in Fee), 40-character unbroken names, a 60-character job title, receipt and correction references, and "Withdrawn after this statement closed";
+- print keeps automatic sizing, and the 390px phone stack has no page overflow.
+
+A correction's Basis now keeps only the reference itself unbroken (`corrects` may wrap before it): the whole phrase was 8px wider than the column at 60rem.
+
+Not captured: the authenticated statement route, 200% zoom, Sunlight, and screenshots for the record. No visual approval is claimed; that is Astra's (or Caden's). The fixture uses the actual StatementView with synthetic data, not an authenticated statement route. Typecheck, lint and unit-suite results are recorded in the PR. No live database or production data was accessed.
 
 ## Reproduce the component capture locally
 

@@ -578,30 +578,38 @@ export async function assignShiftTurf(
   // Sorted, so two assignments that share shifts take their locks in the same order.
   const ids = [...shiftIds].sort();
   if (ids.length === 0 || !ids.every((id) => UUID_RE.test(id))) return { ok: false, reason: "Shift not found." };
-  return db().$transaction(async (tx) => {
-    const loaded: LoadedShift[] = [];
-    for (const id of ids) {
-      await lock(tx, `shift:${id}`);
-      const s = await loadShift(id, tx);
-      if (!s || s.engagement.job.orgId !== actor.orgId) return { ok: false as const, reason: "Shift not found." };
-      const problem = assignProblem({ cancelled: s.status === "CANCELLED", status: s.status, checkedOutAt: shiftState(facts(s)).checkedOutAt });
-      if (problem) return { ok: false as const, reason: `${s.engagement.worker.displayName}'s shift ${problem}; nothing was changed.` };
-      loaded.push(s);
-    }
-    for (const s of loaded) {
-      await tx.shift.update({ where: { id: s.id }, data: { turfArea: turf ? (turf as unknown as Prisma.InputJsonValue) : Prisma.DbNull } });
-      await tx.auditEvent.create({
-        data: {
-          actorId: actor.profileId,
-          action: turf ? "shift.turf_assigned" : "shift.turf_cleared",
-          entityType: "Shift",
-          entityId: s.id,
-          metadata: { previous: (s.turfArea as Prisma.InputJsonValue | null) ?? null, next: turf as unknown as Prisma.InputJsonValue | null, shifts: loaded.length },
-        },
-      });
-    }
-    return { ok: true as const, count: loaded.length };
-  });
+  const now = new Date();
+  return db().$transaction(
+    async (tx) => {
+      const loaded: { id: string; turfArea: Prisma.JsonValue }[] = [];
+      for (const id of ids) {
+        await lock(tx, `shift:${id}`);
+        // Only what the check needs: a shift's events can run to a thousand rows.
+        const s = await tx.shift.findUnique({
+          where: { id },
+          select: { id: true, status: true, checkInAt: true, checkOutAt: true, endsAt: true, turfArea: true, engagement: { select: { worker: { select: { displayName: true } }, job: { select: { orgId: true } } } } },
+        });
+        if (!s || s.engagement.job.orgId !== actor.orgId) return { ok: false as const, reason: "Shift not found." };
+        const problem = assignProblem(s, now);
+        if (problem) return { ok: false as const, reason: `${s.engagement.worker.displayName}'s shift ${problem}; nothing was changed.` };
+        loaded.push({ id: s.id, turfArea: s.turfArea });
+      }
+      for (const s of loaded) {
+        await tx.shift.update({ where: { id: s.id }, data: { turfArea: turf ? (turf as unknown as Prisma.InputJsonValue) : Prisma.DbNull } });
+        await tx.auditEvent.create({
+          data: {
+            actorId: actor.profileId,
+            action: turf ? "shift.turf_assigned" : "shift.turf_cleared",
+            entityType: "Shift",
+            entityId: s.id,
+            metadata: { previous: (s.turfArea as Prisma.InputJsonValue | null) ?? null, next: turf as unknown as Prisma.InputJsonValue | null, shifts: loaded.length },
+          },
+        });
+      }
+      return { ok: true as const, count: loaded.length };
+    },
+    { timeout: 15_000, maxWait: 10_000 }
+  );
 }
 
 /** The worker's own pins and day turf on their shift. */

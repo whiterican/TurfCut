@@ -19,7 +19,13 @@ export async function assignTurfAction(shiftIds: unknown, polygon: unknown): Pro
   const s = await requireArea("scheduling");
   const req = readAssignment(shiftIds, polygon);
   if (!req.ok) return { ok: false, message: req.reason };
-  const r = await assignShiftTurf({ profileId: s.userId, orgId: s.orgId }, req.shiftIds, req.turf);
+  let r;
+  try {
+    r = await assignShiftTurf({ profileId: s.userId, orgId: s.orgId }, req.shiftIds, req.turf);
+  } catch (e) {
+    console.error("[turfcut] assign turf failed", e);
+    return { ok: false, message: "Couldn't save the turf. Nothing was changed. Try again." };
+  }
   if (!r.ok) return { ok: false, message: r.reason };
   revalidatePath("/field");
   for (const id of req.shiftIds) revalidatePath(`/shifts/${id}`);

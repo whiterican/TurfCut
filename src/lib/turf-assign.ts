@@ -25,8 +25,10 @@ export function readAssignment(shiftIds: unknown, polygon: unknown): Assignment 
 }
 
 /** Why a shift can't take new turf, or null when it can: a closed shift's turf is part of its record. */
-export function assignProblem(s: { cancelled: boolean; status: string; checkedOutAt: Date | null }): string | null {
-  if (s.cancelled || s.status === "CANCELLED") return "is cancelled";
-  if (s.checkedOutAt || s.status === "COMPLETED") return "has already finished";
+export function assignProblem(s: { status: string; checkInAt: Date | null; checkOutAt: Date | null; endsAt: Date }, now: Date): string | null {
+  if (s.status === "CANCELLED") return "is cancelled";
+  if (s.checkOutAt || s.status === "COMPLETED") return "has already finished";
+  // A shift nobody started and whose time is past is over; one still being worked past its end is not.
+  if (!s.checkInAt && s.endsAt < now) return "has already ended";
   return null;
 }

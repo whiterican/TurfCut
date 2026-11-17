@@ -2,7 +2,7 @@
 
 import { startTransition, useActionState, useEffect, useId, useRef, useState } from "react";
 import { autosaveDraft, forgetDraftCopies, saveJob, type JobFormState } from "@/app/jobs/actions";
-import { AFFILIATIONS, affiliationLabel, COMPENSATION_METHODS, formToObject, HIRING_MODES, JOB_TYPES, validateJob } from "@/lib/jobs";
+import { AFFILIATIONS, affiliationLabel, COMPENSATION_METHODS, discoveryLabelFor, formToObject, HIRING_MODES, JOB_TYPES, validateJob, type JobType } from "@/lib/jobs";
 import { PLANNED_CATEGORIES } from "@/lib/job-categories";
 import { BUILDER_STEPS, errorsForStep, firstStepWithErrors, isLiveEdit, REVIEW_STEP, saveLabel, stepBlurb, stepOfField } from "@/lib/job-builder";
 import { LAUNCH_MODES, readLaunch, validateLaunch } from "@/lib/job-launch";
@@ -140,6 +140,9 @@ export function JobForm({
   }, [step]);
 
   const d = (k: string, fallback = "") => (typeof defaults[k] === "string" ? (defaults[k] as string) : fallback);
+  // The work type and the campaign category, kept here only to say how workers will see the job: the fields themselves stay uncontrolled.
+  const [kind, setKind] = useState(d("type", "PETITION"));
+  const [category, setCategory] = useState(d("campaignType"));
   const modes = Array.isArray(defaults.hiringModes) ? (defaults.hiringModes as string[]) : ["application"];
   // The stored launch, read back from the builder's own fields (one parser: validateLaunch).
   const launchRead = validateLaunch(defaults);
@@ -395,12 +398,29 @@ export function JobForm({
         </label>
         <label className="space-y-1.5">
           <span className="label">Type</span>
-          <select name="type" className="field" defaultValue={d("type", "PETITION")} {...describe("type")}>
+          <select name="type" className="field" defaultValue={d("type", "PETITION")} onChange={(e) => setKind(e.target.value)} {...describe("type")}>
             {JOB_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
             {/* What's coming, visible but not postable: a planned category is never a job type. */}
             {PLANNED_CATEGORIES.map((c) => <option key={c.id} value="" disabled>{c.label} (planned)</option>)}
           </select>
           {err("type")}
+        </label>
+        <label className="space-y-1.5 sm:col-span-2">
+          <span className="label">Campaign type</span>
+          <ReadableSelect name="campaignType" className="field" defaultValue={d("campaignType")} required onChange={(e) => setCategory(e.target.value)} {...describe("campaignType")}>
+            <option value="" disabled>Choose…</option>
+            {CAMPAIGN_TYPES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+          </ReadableSelect>
+          {err("campaignType")}
+          {/* The work and the campaign are two separate choices; this is what they add up to on the worker's side. */}
+          <span className="text-hint block" aria-live="polite">
+            {category ? (
+              <>Workers will see this job as <strong className="font-semibold text-fg">{discoveryLabelFor(kind as JobType, category)}</strong>.</>
+            ) : (
+              "Pick who the campaign is for: workers see it with the work type, before they apply."
+            )}
+            {category === "candidate" && kind === "CANVASS" && " Candidate campaign canvassing is in development: a candidate job can be posted, and workers see it tagged so until its own tools launch."}
+          </span>
         </label>
         <label className="space-y-1.5">
           <span className="label">Jurisdiction rule profile</span>
@@ -569,17 +589,8 @@ export function JobForm({
         <legend className="sr-only">Campaign disclosure</legend>
         <p className="text-muted-sm sm:col-span-2">
           Workers see this before they apply. Issue positions you disclose are the only basis for &ldquo;issue overlap&rdquo; —
-          and only with workers who chose to share theirs.
+          and only with workers who chose to share theirs. The campaign type is in step 1, with the work.
         </p>
-        <label className="space-y-1.5">
-          <span className="label">Campaign type</span>
-          <ReadableSelect name="campaignType" className="field" defaultValue={d("campaignType")} required {...describe("campaignType")}>
-            <option value="" disabled>Choose…</option>
-            {CAMPAIGN_TYPES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
-          </ReadableSelect>
-          {err("campaignType")}
-          <span className="text-hint block">Candidate campaign canvassing is in development: a candidate job can be posted, and workers see it tagged so until its own tools launch.</span>
-        </label>
         <label className="space-y-1.5">
           <span className="label">Affiliation</span>
           <select name="affiliation" className="field" defaultValue={d("affiliation")} required {...describe("affiliation")}>

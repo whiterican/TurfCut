@@ -263,6 +263,8 @@ export async function loadFeed(workerId: string | null, f: FeedFilters = {}) {
         ...(f.q ? [{ OR: [{ title: { contains: f.q, mode: "insensitive" as const } }, { org: { name: { contains: f.q, mode: "insensitive" as const } } }] }] : []),
       ],
       ...(f.type ? { type: f.type } : {}),
+      // The category the campaign itself disclosed, read from the stored disclosure (never inferred).
+      ...(f.campaign ? { campaignDisclosure: { path: ["campaignType"], equals: f.campaign } } : {}),
       ...(f.minRateCents ? { payRateCents: { gte: f.minRateCents } } : {}),
       ...(f.startsBefore ? { startsAt: { lte: f.startsBefore } } : {}),
     },
@@ -281,8 +283,10 @@ export async function loadFeed(workerId: string | null, f: FeedFilters = {}) {
     else shown.push(j);
   }
   // The same list the job card shows, so "No credentials" means exactly that.
-  const filtered = f.noCredentials
+  const credentialed = f.noCredentials
     ? shown.filter((j) => jobCredentials({ type: j.type, requirements: j.requirements, jurisdictionRules: j.jurisdiction.rules }).length === 0)
     : shown;
+  // The category filter reads a disclosure the way the cards do: a malformed one (the JSON narrowed it in the query) has no category, so it isn't "candidate" here either.
+  const filtered = f.campaign ? credentialed.filter((j) => readDisclosure(j.campaignDisclosure)?.campaignType === f.campaign) : credentialed;
   return { jobs: filtered, hidden };
 }

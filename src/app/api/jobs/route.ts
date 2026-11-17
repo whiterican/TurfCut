@@ -9,7 +9,7 @@ import { createJob, loadFeed } from "@/lib/jobs-data";
 
 /**
  * GET /api/jobs
- * - Workers: published jobs (filters: type, minRate, startsBefore, noCredentials),
+ * - Workers: published jobs (filters: type, campaign, minRate, startsBefore, noCredentials, q),
  *   plus `hidden` — jobs their own do-not-match answers exclude, with reasons.
  * - Organization members: their organization's jobs, any status.
  */

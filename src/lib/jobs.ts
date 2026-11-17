@@ -777,7 +777,17 @@ export function exclusionReasons(
 
 /** Display field activity and campaign category using only disclosed information. */
 export function jobDiscoveryLabel(type: JobType, disclosure: unknown): string {
-  const category = readDisclosure(disclosure)?.campaignType;
+  return discoveryLabelFor(type, readDisclosure(disclosure)?.campaignType);
+}
+
+/**
+ * The same label from a work type and a campaign category on their own: what
+ * the builder shows while the category is still being chosen. "Candidate
+ * campaign canvassing" means CANVASS in the candidate category; every other
+ * pair keeps its own accurate name, and an unknown or missing category is
+ * shown neutrally, never guessed.
+ */
+export function discoveryLabelFor(type: JobType, category: string | null | undefined): string {
   if (type === "PETITION") return "Petition circulation";
   if (category === "candidate") return "Candidate campaign canvassing";
   if (category === "ballot_measure") return "Ballot initiative canvassing";
@@ -865,6 +875,8 @@ export function jobToForm(job: {
 
 export interface FeedFilters {
   type?: JobType;
+  /** The campaign's own disclosed category ("candidate", "ballot_measure", ...). Intersects with every other filter; jobs with no readable disclosure drop out of a filtered list, never out of an unfiltered one. */
+  campaign?: CampaignType;
   minRateCents?: number;
   startsBefore?: Date;
   noCredentials?: boolean;
@@ -880,6 +892,8 @@ export function parseFeedFilters(p: URLSearchParams, now = new Date()): FeedFilt
   const f: FeedFilters = {};
   const type = p.get("type");
   if (type && values(JOB_TYPES).includes(type)) f.type = type as JobType;
+  const campaign = p.get("campaign");
+  if (campaign && values(FIT_CAMPAIGN_TYPES).includes(campaign)) f.campaign = campaign as CampaignType;
   const rate = p.get("minRate");
   if (rate && /^\d+(\.\d{1,2})?$/.test(rate)) f.minRateCents = Math.round(Number(rate) * 100);
   const before = p.get("startsBefore");

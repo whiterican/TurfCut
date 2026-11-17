@@ -10,7 +10,7 @@ import { requireAuth } from "@/lib/auth";
 import { canUse } from "@/lib/access";
 import { engagementStatus, JOB_STATUS_LABELS } from "@/lib/engagement-labels";
 import { FEED_QUERY_MAX, JOB_TYPES, exclusionReasons, parseFeedFilters, readDisclosure } from "@/lib/jobs";
-import { effectivePreference } from "@/lib/political-fit";
+import { CAMPAIGN_TYPES, effectivePreference } from "@/lib/political-fit";
 import { loadLatestPreference } from "@/lib/political-fit-data";
 import { plural } from "@/lib/format";
 import { loadFeed } from "@/lib/jobs-data";
@@ -19,6 +19,7 @@ import { JobPhotoRow } from "@/components/JobPhotoRow";
 import { NotificationsBell } from "@/components/NotificationsBell";
 import { SwipeCard } from "@/components/SwipeCard";
 import { Sheet } from "@/components/Sheet";
+import { ScrollActiveChip } from "@/components/ScrollActiveChip";
 import { EmptyArt } from "@/components/EmptyState";
 import { applyMarks } from "@/lib/job-marks";
 import { loadMarks } from "@/lib/job-marks-data";
@@ -87,16 +88,18 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
   };
   // The chip row (#111, screen 2): All, then one chip per live category and the worker's own quick filters. One tap on, one tap off.
   // "All" is on only when nothing narrows the list but the search itself.
-  const allOn = !filters.type && !filters.minRateCents && !filters.startsBefore && !filters.noCredentials && !savedOnly && !showHidden;
+  const allOn = !filters.type && !filters.campaign && !filters.minRateCents && !filters.startsBefore && !filters.noCredentials && !savedOnly && !showHidden;
   const quick = [
     { label: "All", href: filters.q ? `/jobs?q=${encodeURIComponent(filters.q)}` : "/jobs", on: allOn },
     { label: "Petitions", href: toggle("type", "PETITION"), on: filters.type === "PETITION" },
     { label: "Canvassing", href: toggle("type", "CANVASS"), on: filters.type === "CANVASS" },
+    // The campaign's own disclosed category, a filter of its own: it intersects with the work type, so "Canvassing" + this is candidate canvassing.
+    { label: "Candidate campaigns", href: toggle("campaign", "candidate"), on: filters.campaign === "candidate" },
     { label: "This week", href: toggle("week", "1"), on: params.get("week") === "1" && !params.get("startsBefore") },
     { label: "No credentials", href: toggle("noCredentials", "1"), on: !!filters.noCredentials },
     { label: "Saved", href: toggle("saved", "1"), on: savedOnly },
   ];
-  const anyFilter = !!(filters.type || filters.minRateCents || filters.startsBefore || filters.noCredentials || filters.q || savedOnly || showHidden);
+  const anyFilter = !!(filters.type || filters.campaign || filters.minRateCents || filters.startsBefore || filters.noCredentials || filters.q || savedOnly || showHidden);
   // The date field shows a typed date only, not the "This week" window.
   const typedStartsBefore = parseFeedFilters(new URLSearchParams(params.get("startsBefore") ? { startsBefore: params.get("startsBefore")! } : {})).startsBefore;
   // Whether the feed has anything at all, so "no results" and "no inventory" read differently.
@@ -111,7 +114,7 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
         {/* The search is its own form (the filter sheet holds another: forms never nest). */}
         <form className="flex min-w-0 flex-1" action="/jobs" role="search">
           {/* A search keeps every filter already set (the chips' and the sheet's). */}
-          {(["type", "noCredentials", "week", "saved", "hidden", "minRate", "startsBefore"] as const).map((k) => {
+          {(["type", "campaign", "noCredentials", "week", "saved", "hidden", "minRate", "startsBefore"] as const).map((k) => {
             const v = params.get(k);
             return v ? <input key={k} type="hidden" name={k} value={v} /> : null;
           })}
@@ -128,6 +131,13 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
               <select name="type" className="field" defaultValue={filters.type ?? ""}>
                 <option value="">Any</option>
                 {JOB_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+              </select>
+            </label>
+            <label className="space-y-1.5">
+              <span className="label">Campaign category</span>
+              <select name="campaign" className="field" defaultValue={filters.campaign ?? ""}>
+                <option value="">Any</option>
+                {CAMPAIGN_TYPES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
               </select>
             </label>
             <label className="space-y-1.5">
@@ -158,6 +168,7 @@ async function WorkerFeed({ workerId, searchParams }: { workerId: string; search
             <span className="sr-only">{q.on ? " (on — tap to turn off)" : " (off)"}</span>
           </Link>
         ))}
+        <ScrollActiveChip />
       </nav>
 
       {mine.length > 0 && (

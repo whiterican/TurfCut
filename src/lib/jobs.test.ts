@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   cardAffiliation,
   jobDiscoveryLabel,
+  discoveryLabelFor,
   fitReasons,
   payParts,
   payShort,
@@ -368,6 +369,10 @@ describe("feed filters", () => {
       noCredentials: true,
     });
     expect(parseFeedFilters(new URLSearchParams("type=DROP TABLE&minRate=-3&startsBefore=soon"))).toEqual({});
+    // The campaign category: one of the five the campaign can disclose; anything else is ignored, never passed on to the query.
+    expect(parseFeedFilters(new URLSearchParams("campaign=candidate"))).toEqual({ campaign: "candidate" });
+    expect(parseFeedFilters(new URLSearchParams("type=CANVASS&campaign=ballot_measure"))).toEqual({ type: "CANVASS", campaign: "ballot_measure" });
+    for (const bad of ["Candidate", "candidates", "'; DROP TABLE", "", "party", "ballot_measure,candidate"]) expect(parseFeedFilters(new URLSearchParams({ campaign: bad }))).toEqual({});
     // The search box: trimmed, whitespace collapsed, cut at 80 characters; blank means no search.
     expect(parseFeedFilters(new URLSearchParams("q=  front   range "))).toEqual({ q: "front range" });
     expect(parseFeedFilters(new URLSearchParams("q=%20%20"))).toEqual({});
@@ -446,6 +451,21 @@ describe("job discovery category labels", () => {
     expect(jobDiscoveryLabel("CANVASS", disclosed("party_committee"))).toBe("Party committee canvassing");
     expect(jobDiscoveryLabel("CANVASS", disclosed("nonpartisan_civic"))).toBe("Nonpartisan civic canvassing");
     expect(jobDiscoveryLabel("PETITION", disclosed("candidate"))).toBe("Petition circulation");
+  });
+  it("names every pair of work type and category accurately (the category and the work stay separate dimensions)", () => {
+    // Candidate campaign canvassing is CANVASS in the candidate category and nothing else.
+    expect(discoveryLabelFor("CANVASS", "candidate")).toBe("Candidate campaign canvassing");
+    expect(discoveryLabelFor("PETITION", "ballot_measure")).toBe("Petition circulation");
+    expect(discoveryLabelFor("CANVASS", "ballot_measure")).toBe("Ballot initiative canvassing");
+    expect(discoveryLabelFor("CANVASS", "nonpartisan_civic")).toBe("Nonpartisan civic canvassing");
+    // The same label whether it comes from a stored disclosure or from the builder's two fields.
+    expect(discoveryLabelFor("CANVASS", "candidate")).toBe(jobDiscoveryLabel("CANVASS", disclosed("candidate")));
+  });
+  it("shows a missing, unknown or malformed category neutrally, never a guess", () => {
+    for (const c of [undefined, null, "", "candidates", "Candidate", "party"]) expect(discoveryLabelFor("CANVASS", c)).toBe("Door-to-door canvassing");
+    expect(jobDiscoveryLabel("CANVASS", { campaignType: "candidate", affiliation: "x" })).toBe("Door-to-door canvassing");
+    expect(jobDiscoveryLabel("CANVASS", "candidate")).toBe("Door-to-door canvassing");
+    expect(jobDiscoveryLabel("CANVASS", [])).toBe("Door-to-door canvassing");
   });
   it("does not infer a category from incomplete or absent disclosure", () => {
     expect(jobDiscoveryLabel("CANVASS", null)).toBe("Door-to-door canvassing");

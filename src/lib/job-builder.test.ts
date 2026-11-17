@@ -75,7 +75,8 @@ describe("a live edit's words", () => {
 
 describe("stepLabel", () => {
   it("names the step that claims a field, with its number", () => {
-    expect(stepLabel("campaignType")).toBe("Step 5 · Campaign disclosure");
+    expect(stepLabel("campaignType")).toBe("Step 1 · The work");
+    expect(stepLabel("affiliation")).toBe("Step 5 · Campaign disclosure");
     expect(stepLabel("contactEmergency")).toBe("Step 4 · Requirements and contacts");
     expect(stepLabel("launchMode")).toBe("Step 2 · When and where");
     expect(stepLabel("payRate")).toBe("Step 3 · Pay and hiring");

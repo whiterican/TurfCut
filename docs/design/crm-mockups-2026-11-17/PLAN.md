@@ -25,8 +25,8 @@ Order, as Caden asked: **(1) the hiring-pipeline CRM**, then **(2) the field-lea
 
 | | |
 |---|---|
-| KEEP | `/hiring` Pipeline, `/hiring/[jobId]/applicants`, `/matches`, `/invites`, the applicant inspector, `Engagement` and its append-only `EngagementEvent` history, the frozen `applicationSnapshot`, the job chat. |
-| EXTEND | `/people` becomes the People list (H1) and person record (H2). The stage shown comes from existing `EngagementStatus` and events. Last contact comes from existing messages and events. |
+| KEEP | `/hiring` Pipeline, `/hiring/[jobId]/applicants`, `/hiring/[jobId]/matches`, `/hiring/[jobId]/invites`, `/hiring/[jobId]/people/[engagementId]` (the per-job person page), the applicant inspector, `Engagement` and its append-only `EngagementEvent` history, the frozen `applicationSnapshot`, the job chat. |
+| ADD (new route) | An organization-wide People list (H1) and person record (H2), for example `/hiring/people`. There is no org-wide people route today (`/admin/people` is staff-only). Stage labels are derived from existing data: Applied = APPLIED, Offered = OFFERED, Invited = INVITED, Working = ACTIVE, Past worker = COMPLETED; CLAIMED, DECLINED, WITHDRAWN and CANCELLED would need their own labels. Last contact comes from existing messages and events. |
 | ADD (needs schema approval) | Follow-ups, and, only if you decide yes, private team notes. Both append-only. |
 | DEFER | Email or SMS sending, bulk messaging, tags, custom stages, import of outside contacts. |
 
@@ -39,6 +39,8 @@ Both are visible only to members of that organization with the existing hiring a
 
 **Rules this design keeps**
 
+- The "What she shares with you" fields in H2 (experience, availability, languages) are illustrative. Only fields that already exist and that she authorized would appear; the build slice confirms which ones exist.
+- Sample note text in H2 is illustrative and appears only if Q5 changes. The H1 "Add note" button and the "private to your team" line belong to that option too and go away under option (a).
 - Never infers politics. No political column, filter, sort or label anywhere on these pages. The "What she shares with you" panel shows only what she authorized for this organization, and withheld items stay withheld (H2).
 - No universal worker score. Nothing ranks people. Sorting is by date and stage only.
 - Append-only. Follow-ups and notes are new rows; "done", "snooze" and corrections are new events.
@@ -69,6 +71,7 @@ Sales are a worker's report until a manager confirms them.
 - No GPS dots. Outcomes are what the worker reports.
 - Contact details only when a person volunteers them; the CSV contact column is optional and off by default.
 - Business addresses only. No residential or voter lists in this slice.
+- Free-text on a stop note: F1 hints "no personal details"; the build adds the same guard in validation. "Reported by Maria R." shows worker activity to managers, which is work attribution and gets disclosed in the worker terms. Local "saved on this phone" storage needs a privacy check when built.
 - Offline: F1 shows Saved on the phone → Sent → Recorded so a worker with weak signal never loses an entry silently.
 
 ## Proposed build order (after approval)

@@ -5,6 +5,7 @@ import { readTools } from "@/lib/job-tools";
 import { needsReview } from "@/lib/field-view";
 import { db } from "@/lib/db";
 import { areaMembers } from "@/lib/access-data";
+import { assignProblem } from "@/lib/turf-assign";
 import { canScheduleShift, UUID_RE } from "@/lib/jobs";
 import { applyReviewPlan, payLock, planReview, reviewLockProblem, withdrawStalePay } from "@/lib/pay-data";
 import { correctTime, placeTime, timeProblem, wasOffline, type QueuedAction } from "@/lib/offline-sync";
@@ -22,6 +23,7 @@ import {
   type CorrectionAction,
   type Outcome,
   type TurfAction,
+  type TurfPolygon,
   type ShiftFacts,
   type SupervisorAction,
   type WorkerAction,
@@ -560,6 +562,45 @@ export async function supervisorCorrection(
       },
     });
     return { ok: true as const };
+  });
+}
+
+/**
+ * Give turf to the workers on these shifts, or clear it (polygon null), from the Field map. All or
+ * nothing: if any shift is another organization's, cancelled or finished, nothing changes. Each shift's
+ * previous turf stays in the audit trail, so a change can be traced and put back by hand.
+ */
+export async function assignShiftTurf(
+  actor: { profileId: string; orgId: string },
+  shiftIds: string[],
+  turf: TurfPolygon | null
+): Promise<{ ok: true; count: number } | { ok: false; reason: string }> {
+  // Sorted, so two assignments that share shifts take their locks in the same order.
+  const ids = [...shiftIds].sort();
+  if (ids.length === 0 || !ids.every((id) => UUID_RE.test(id))) return { ok: false, reason: "Shift not found." };
+  return db().$transaction(async (tx) => {
+    const loaded: LoadedShift[] = [];
+    for (const id of ids) {
+      await lock(tx, `shift:${id}`);
+      const s = await loadShift(id, tx);
+      if (!s || s.engagement.job.orgId !== actor.orgId) return { ok: false as const, reason: "Shift not found." };
+      const problem = assignProblem({ cancelled: s.status === "CANCELLED", status: s.status, checkedOutAt: shiftState(facts(s)).checkedOutAt });
+      if (problem) return { ok: false as const, reason: `${s.engagement.worker.displayName}'s shift ${problem}; nothing was changed.` };
+      loaded.push(s);
+    }
+    for (const s of loaded) {
+      await tx.shift.update({ where: { id: s.id }, data: { turfArea: turf ? (turf as unknown as Prisma.InputJsonValue) : Prisma.DbNull } });
+      await tx.auditEvent.create({
+        data: {
+          actorId: actor.profileId,
+          action: turf ? "shift.turf_assigned" : "shift.turf_cleared",
+          entityType: "Shift",
+          entityId: s.id,
+          metadata: { previous: (s.turfArea as Prisma.InputJsonValue | null) ?? null, next: turf as unknown as Prisma.InputJsonValue | null, shifts: loaded.length },
+        },
+      });
+    }
+    return { ok: true as const, count: loaded.length };
   });
 }
 
